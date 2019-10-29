@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(SolutionDir)common.build.pre.props" />
+  <Import Project="$(SolutionDir)tools.build.pre.props" />
+  <ItemGroup>
+    <ClCompile Include="..\attack.cpp" />
+    <ClCompile Include="..\packet_writer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\packet_writer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(SolutionDir)core\winuser\core.vcxproj">
+      <Project>{3707c7bf-99f4-4d1b-94a6-926a246578ef}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <TargetName>quicattack</TargetName>
+    <ProjectGuid>{65FA3854-7554-457E-BA27-19029BCC41EE}</ProjectGuid>
+    <IntDir>$(SolutionDir)artifacts\winuser\obj\$(Platform)\$(Configuration)\tools\attack\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)core;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <Import Project="$(SolutionDir)common.build.post.props" />
+</Project>
