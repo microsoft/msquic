@@ -147,7 +147,8 @@ QUIC_STATIC_ASSERT(
 // Initializes the packet builder for general use.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+_Success_(return != FALSE)
+BOOLEAN
 QuicPacketBuilderInitialize(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
     _In_ QUIC_CONNECTION* Connection

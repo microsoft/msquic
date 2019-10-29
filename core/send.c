@@ -861,7 +861,14 @@ QuicSendFlush(
     uint32_t StreamPacketCount = 0;
 
     QUIC_PACKET_BUILDER Builder = { 0 };
-    QuicPacketBuilderInitialize(&Builder, Connection);
+    if (!QuicPacketBuilderInitialize(&Builder, Connection)) {
+        //
+        // If this fails, the connection is in a bad (likely partially
+        // uninitialized) state, so just ignore the send flush call. This can
+        // happen if a loss detection fires right after shutdown.
+        //
+        return QUIC_SEND_COMPLETE;
+    }
     _Analysis_assume_(Builder.Metadata != NULL);
 
     LogVerbose("[send][%p] Flushing send. Allowance=%u bytes", Connection, Builder.SendAllowance);

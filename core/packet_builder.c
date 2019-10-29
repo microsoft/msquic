@@ -32,7 +32,8 @@ QuicPacketBuilderSendBatch(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+_Success_(return != FALSE)
+BOOLEAN
 QuicPacketBuilderInitialize(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
     _In_ QUIC_CONNECTION* Connection
@@ -45,6 +46,17 @@ QuicPacketBuilderInitialize(
     Builder->EncryptionOverhead =
         Connection->State.EncryptionEnabled ?
             QUIC_ENCRYPTION_OVERHEAD : 0;
+
+    if (Connection->SourceCIDs.Next == NULL) {
+        LogWarning("[conn][%p] No src CID to send with.", Connection);
+        return FALSE;
+    }
+
+    Builder->SourceCID =
+        QUIC_CONTAINING_RECORD(
+            Connection->SourceCIDs.Next,
+            QUIC_CID_HASH_ENTRY,
+            Link);
 
     for (QUIC_LIST_ENTRY* Entry = Connection->DestCIDs.Flink;
             Entry != &Connection->DestCIDs;
@@ -60,14 +72,11 @@ QuicPacketBuilderInitialize(
         Builder->DestCID = DestCid;
         break;
     }
-    QUIC_DBG_ASSERT(Builder->DestCID != NULL);
 
-    QUIC_DBG_ASSERT(Connection->SourceCIDs.Next != NULL);
-    Builder->SourceCID =
-        QUIC_CONTAINING_RECORD(
-            Connection->SourceCIDs.Next,
-            QUIC_CID_HASH_ENTRY,
-            Link);
+    if (Builder->DestCID == NULL) {
+        LogWarning("[conn][%p] No dest CID to send with.", Connection);
+        return FALSE;
+    }
 
     uint64_t TimeNow = QuicTimeUs64();
     uint64_t TimeSinceLastSend;
@@ -87,6 +96,8 @@ QuicPacketBuilderInitialize(
     }
     Connection->Send.LastFlushTime = TimeNow;
     Connection->Send.LastFlushTimeValid = TRUE;
+
+    return TRUE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
