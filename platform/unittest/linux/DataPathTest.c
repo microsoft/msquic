@@ -1,3 +1,10 @@
+/*++
+
+    Copyright (c) Microsoft Corporation.
+    Licensed under the MIT License.
+
+--*/
+
 #include "quic_datapath.h"
 #include "msquic.h"
 
