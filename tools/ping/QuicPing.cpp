@@ -1,0 +1,341 @@
+/*++
+
+    Copyright (c) Microsoft Corporation.
+    Licensed under the MIT License.
+
+Abstract:
+
+    QUIC PING Server/Client tool.
+
+--*/
+
+#include "QuicPing.h"
+
+QUIC_API_V1* MsQuic;
+HQUIC Registration;
+QUIC_SEC_CONFIG* SecurityConfig;
+QUIC_PING_CONFIG PingConfig;
+
+extern "C" void QuicTraceRundown(void) { }
+
+void
+PrintUsage()
+{
+    printf("quicping is a tool for sending and receiving data between a client and"
+           " server via the QUIC networking protocol.\n");
+
+    printf("\n  quicping.exe [options]\n");
+
+    printf("\nServer options:\n");
+    printf(
+        "  -listen:<addr or *>         The local IP address to listen on, or * for all IP addresses.\n"
+        "  -thumbprint:<cert_hash>     The hash or thumbprint of the certificate to use.\n");
+
+    printf("\nClient options:\n");
+    printf(
+        "  -target:<hostname>          The remote hostname or IP address to connect to.\n"
+        "  -ip:<0/4/6>                 A hint for the resolving the hostname to an IP address. (def:0)\n"
+        "  -remote:<addr>              A remote IP address to connect to.\n"
+        "  -bind:<addr>                A local IP address to bind to.\n"
+        "  -ver:<initial version>      The initial QUIC version number to use.\n"
+        "  -resume:<bytes>             Resumption bytes for 0-RTT.\n"
+        "  -connections:<####>         The number of connections to create. (def:%u)\n"
+        "  -wait:<####>                The time the app waits for completion. (def:%u ms)\n",
+        DEFAULT_CLIENT_CONNECTION_COUNT,
+        DEFAULT_WAIT_TIMEOUT);
+
+    printf("\nCommon options:\n");
+    printf(
+#if _WIN32
+        "  -comp:<####>                The compartment ID to run in.\n"
+#endif
+        "  -alpn:<str>                 The ALPN to use. (def:%s)\n"
+        "  -port:<####>                The UDP port of the server. (def:%u)\n"
+        "  -encrypt:<0/1>              Enables/disables encryption. (def:%u)\n"
+        "  -sendbuf:<0/1>              Whether to use send buffering. (def:%u)\n"
+        "  -pacing:<0/1>               Enabled/disables pacing. (def:%u)\n"
+        "  -stats:<0/1>                Enabled/disables printing statistics. (def:%u)\n"
+        "  -uni:<####>                 The number of unidirectional streams to open locally. (def:0)\n"
+        "  -bidi:<####>                The number of bidirectional streams to open locally. (def:0)\n"
+        "  -peer_uni:<####>            The number of unidirectional streams for the server to open. (def:0)\n"
+        "  -peer_bidi:<####>           The number of bidirectional streams for the server to open. (def:0)\n"
+        "  -length:<####>              The length of streams opened locally. (def:0)\n"
+        "  -iosize:<####>              The size of each send request queued. (buffered def:%u) (nonbuffered def:%u)\n"
+        "  -iocount:<####>             The number of outstanding send requests to queue per stream. (buffered def:%u) (nonbuffered def:%u)\n"
+        "  -timeout:<####>             Disconnect timeout for connection. (def:%u ms)\n"
+        "  -idle:<####>                Idle timeout for connection. (def:%u ms)\n"
+        "  -key_bytes:<####>           The number of bytes encrypted per key.\n",
+        DEFAULT_ALPN,
+        DEFAULT_PORT,
+        DEFAULT_USE_ENCRYPTION,
+        DEFAULT_USE_SEND_BUF,
+        DEFAULT_USE_PACING,
+        DEFAULT_PRINT_STATISTICS,
+        DEFAULT_SEND_IO_SIZE_BUFFERED, DEFAULT_SEND_IO_SIZE_NONBUFFERED,
+        DEFAULT_SEND_COUNT_BUFFERED, DEFAULT_SEND_COUNT_NONBUFFERED,
+        DEFAULT_DISCONNECT_TIMEOUT,
+        DEFAULT_IDLE_TIMEOUT);
+
+    printf("\nServer Examples:\n");
+    printf("  quicping.exe -listen:* -thumbprint:175342733b39d81c997817296c9b691172ca6b6e -bidi:10\n");
+    printf("  quicping.exe -listen:2001:4898:d8:34:b912:426d:1c88:5859 -thumbprint:175342733b39d81c997817296c9b691172ca6b6e\n");
+
+    printf("\nClient Examples:\n");
+    printf("  quicping.exe -target:localhost -port:443 -ip:6 -uni:0\n");
+    printf("  quicping.exe -target:localhost -connections:12 -uni:2 -length:100000\n");
+}
+
+void
+ParseCommonCommands(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[]
+    )
+{
+#if _WIN32
+    uint16_t compartmentid;
+    if (TryGetValue(argc, argv, "comp",  &compartmentid)) {
+        NETIO_STATUS status;
+        if (!NETIO_SUCCESS(status = SetCurrentThreadCompartmentId(compartmentid))) {
+            printf("Failed to set compartment ID = %d: 0x%x\n", compartmentid, status);
+            return;
+        } else {
+            printf("Running in Compartment %d\n", compartmentid);
+        }
+    }
+#endif
+
+    const char* alpn = DEFAULT_ALPN;
+    TryGetValue(argc, argv, "alpn", &alpn);
+    strcpy(PingConfig.ALPN, alpn);
+
+    uint16_t port = DEFAULT_PORT;
+    TryGetValue(argc, argv, "port", &port);
+    if (PingConfig.ServerMode) {
+        QuicAddrSetPort(&PingConfig.LocalIpAddr, port);
+    } else {
+        QuicAddrSetPort(&PingConfig.Client.RemoteIpAddr, port);
+    }
+
+    uint16_t useEncryption = DEFAULT_USE_ENCRYPTION;
+    TryGetValue(argc, argv, "encrypt", &useEncryption);
+    PingConfig.UseEncryption = useEncryption != 0;
+
+    uint16_t useSendBuffer = DEFAULT_USE_SEND_BUF;
+    TryGetValue(argc, argv, "sendbuf", &useSendBuffer);
+    PingConfig.UseSendBuffer = useSendBuffer != 0;
+
+    uint16_t usePacing = DEFAULT_USE_PACING;
+    TryGetValue(argc, argv, "pacing", &usePacing);
+    PingConfig.UsePacing = usePacing != 0;
+
+    uint16_t printStats = DEFAULT_PRINT_STATISTICS;
+    TryGetValue(argc, argv, "stats", &printStats);
+    PingConfig.PrintStats = printStats != 0;
+
+    UINT64 uniStreams = 0;
+    TryGetValue(argc, argv, "uni", &uniStreams);
+    PingConfig.LocalUnidirStreamCount = uniStreams;
+
+    UINT64 bidiStreams = 0;
+    TryGetValue(argc, argv, "bidi", &bidiStreams);
+    PingConfig.LocalBidirStreamCount = bidiStreams;
+
+    uint16_t peerUniStreams = 0;
+    TryGetValue(argc, argv, "peer_uni", &peerUniStreams);
+    PingConfig.PeerUnidirStreamCount = peerUniStreams;
+
+    uint16_t peerBidiStreams = 0;
+    TryGetValue(argc, argv, "peer_bidi", &peerBidiStreams);
+    PingConfig.PeerBidirStreamCount = peerBidiStreams;
+
+    UINT64 streamLength = 0;
+    TryGetValue(argc, argv, "length", &streamLength);
+    PingConfig.StreamPayloadLength = streamLength;
+
+    uint32_t ioSize = PingConfig.UseSendBuffer ? DEFAULT_SEND_IO_SIZE_BUFFERED : DEFAULT_SEND_IO_SIZE_NONBUFFERED;
+    TryGetValue(argc, argv, "iosize", &ioSize);
+    PingConfig.IoSize = ioSize;
+
+    uint32_t ioCount = PingConfig.UseSendBuffer ? DEFAULT_SEND_COUNT_BUFFERED : DEFAULT_SEND_COUNT_NONBUFFERED;
+    TryGetValue(argc, argv, "iocount", &ioCount);
+    PingConfig.IoCount = ioCount;
+
+    uint32_t disconnectTimeout = DEFAULT_DISCONNECT_TIMEOUT;
+    TryGetValue(argc, argv, "timeout", &disconnectTimeout);
+    PingConfig.DisconnectTimeout = disconnectTimeout;
+
+    UINT64 idleTimeout = DEFAULT_IDLE_TIMEOUT;
+    TryGetValue(argc, argv, "idle", &idleTimeout);
+    PingConfig.IdleTimeout = idleTimeout;
+
+    PingConfig.MaxBytesPerKey = UINT64_MAX;
+    TryGetValue(argc, argv, "key_bytes", &PingConfig.MaxBytesPerKey);
+
+    //
+    // Initialize internal memory structures based on the configuration.
+    //
+
+    QuicPingRawIoBuffer = new uint8_t[PingConfig.IoSize];
+
+    if (!PingConfig.UseEncryption) {
+        uint8_t value = FALSE;
+        if (QUIC_FAILED(
+            MsQuic->SetParam(
+                Registration,
+                QUIC_PARAM_LEVEL_REGISTRATION,
+                QUIC_PARAM_REGISTRATION_ENCRYPTION,
+                sizeof(value),
+                &value))) {
+            printf("MsQuic->SetParam (REGISTRATION_ENCRYPTION) failed!\n");
+        }
+    }
+}
+
+void
+ParseServerCommand(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[]
+    )
+{
+    PingConfig.ServerMode = true;
+
+    const char* localAddress;
+    TryGetValue(argc, argv, "listen", &localAddress);
+    if (!ConvertArgToAddress(localAddress, 0, &PingConfig.LocalIpAddr)) {
+        printf("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", localAddress);
+        return;
+    }
+
+#if _WIN32
+    const char* certThumbprint;
+    if (!TryGetValue(argc, argv, "thumbprint", &certThumbprint)) {
+        printf("Must specify -thumbprint: for server mode.\n");
+        return;
+    }
+    SecurityConfig = GetSecConfigForThumbprint(MsQuic, Registration, certThumbprint);
+    if (SecurityConfig == nullptr) {
+        printf("Failed to create security configuration for thumbprint:'%s'.\n", certThumbprint);
+        return;
+    }
+#else
+    // TODO - Support getting sec config on Linux.
+    printf("Loading sec config on Linux unsupported right now.\n");
+    return;
+#endif
+
+    ParseCommonCommands(argc, argv);
+    QuicPingServerRun();
+
+    MsQuic->SecConfigDelete(SecurityConfig);
+}
+
+void
+ParseClientCommand(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[]
+    )
+{
+    PingConfig.ServerMode = false;
+
+    const char* target;
+    TryGetValue(argc, argv, "target", &target);
+    strcpy(PingConfig.Client.Target, target);
+
+    uint16_t ip;
+    if (TryGetValue(argc, argv, "ip", &ip)) {
+        switch (ip) {
+        case 4: PingConfig.Client.RemoteIpAddr.si_family = AF_INET; break;
+        case 6: PingConfig.Client.RemoteIpAddr.si_family = AF_INET6; break;
+        }
+    }
+
+    const char* remoteAddress;
+    if (TryGetValue(argc, argv, "remote", &remoteAddress)) {
+        PingConfig.Client.UseExplicitRemoteAddr = true;
+        if (!ConvertArgToAddress(remoteAddress, 0, &PingConfig.Client.RemoteIpAddr)) {
+            printf("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", remoteAddress);
+            return;
+        }
+    }
+    
+    const char* localAddress;
+    if (TryGetValue(argc, argv, "bind", &localAddress)) {
+        if (!ConvertArgToAddress(localAddress, 0, &PingConfig.LocalIpAddr)) {
+            printf("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", localAddress);
+            return;
+        }
+    }
+
+    uint32_t version = 0;
+    TryGetValue(argc, argv, "ver", &version);
+    PingConfig.Client.Version = version;
+
+    const char* resume;
+    if (TryGetValue(argc, argv, "resume", &resume)) {
+        strcpy(PingConfig.Client.ResumeToken, resume);
+    }
+
+    uint32_t connections = DEFAULT_CLIENT_CONNECTION_COUNT;
+    TryGetValue(argc, argv, "connections", &connections);
+    PingConfig.Client.ConnectionCount = connections;
+
+    uint32_t waitTimeout = DEFAULT_WAIT_TIMEOUT;
+    TryGetValue(argc, argv, "wait", &waitTimeout);
+    PingConfig.Client.WaitTimeout = waitTimeout;
+
+    ParseCommonCommands(argc, argv);
+    QuicPingClientRun();
+}
+
+int
+QUIC_MAIN_EXPORT
+main(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[]
+    )
+{
+    int ErrorCode = -1;
+
+    QuicPlatformSystemLoad();
+    QuicPlatformInitialize();
+
+    if (argc < 2) {
+        PrintUsage();
+        goto Error;
+    }
+
+    if (QUIC_FAILED(MsQuicOpenV1(&MsQuic))) {
+        printf("MsQuicOpen failed!\n");
+        goto Error;
+    }
+
+    if (QUIC_FAILED(MsQuic->RegistrationOpen("quicping", &Registration))) {
+        printf("RegistrationOpen failed!\n");
+        MsQuicClose(MsQuic);
+        goto Error;
+    }
+
+    //
+    // Parse input to see if we are a client or server
+    //
+    if (GetValue(argc, argv, "listen")) {
+        ParseServerCommand(argc, argv);
+    } else if (GetValue(argc, argv, "target")) {
+        ParseClientCommand(argc, argv);
+    } else {
+        printf("Invalid usage!\n\n");
+        PrintUsage();
+    }
+
+    ErrorCode = 0;
+    delete [] QuicPingRawIoBuffer;
+    MsQuic->RegistrationClose(Registration);
+    MsQuicClose(MsQuic);
+
+Error:
+
+    QuicPlatformUninitialize();
+    QuicPlatformSystemUnload();
+
+    return ErrorCode;
+}

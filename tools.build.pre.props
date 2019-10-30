@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ProjectReference Include="$(SolutionDir)bin\winuser\bin.vcxproj">
+      <Project>{6990b1e1-2b70-465b-8fec-2163879af98a}</Project>
+    </ProjectReference>
+    <ProjectReference Include="$(SolutionDir)platform\winuser\platform.vcxproj">
+      <Project>{0fe9cf1e-9d39-4d2a-99cd-8c255eb33515}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>bcrypt.lib;crypt32.lib;iphlpapi.lib;ncrypt.lib;ntdll.lib;schannel.lib;tdh.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>

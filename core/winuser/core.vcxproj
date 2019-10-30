@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(SolutionDir)common.build.pre.props" />
+  <ItemGroup>
+    <ClCompile Include="..\ack_tracker.c" />
+    <ClCompile Include="..\api.c" />
+    <ClCompile Include="..\binding.c" />
+    <ClCompile Include="..\congestion_control.c" />
+    <ClCompile Include="..\connection.c" />
+    <ClCompile Include="..\crypto.c" />
+    <ClCompile Include="..\crypto_tls.c" />
+    <ClCompile Include="..\frame.c" />
+    <ClCompile Include="..\library.c" />
+    <ClCompile Include="..\listener.c" />
+    <ClCompile Include="..\lookup.c" />
+    <ClCompile Include="..\loss_detection.c" />
+    <ClCompile Include="..\operation.c" />
+    <ClCompile Include="..\packet.c" />
+    <ClCompile Include="..\packet_builder.c" />
+    <ClCompile Include="..\packet_space.c" />
+    <ClCompile Include="..\range.c" />
+    <ClCompile Include="..\recv_buffer.c" />
+    <ClCompile Include="..\registration.c" />
+    <ClCompile Include="..\send.c" />
+    <ClCompile Include="..\send_buffer.c" />
+    <ClCompile Include="..\sent_packet_metadata.c" />
+    <ClCompile Include="..\session.c" />
+    <ClCompile Include="..\settings.c" />
+    <ClCompile Include="..\stream.c" />
+    <ClCompile Include="..\stream_recv.c" />
+    <ClCompile Include="..\stream_send.c" />
+    <ClCompile Include="..\stream_set.c" />
+    <ClCompile Include="..\timer_wheel.c" />
+    <ClCompile Include="..\utils.c" />
+    <ClCompile Include="..\worker.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\ack_tracker.h" />
+    <ClInclude Include="..\api.h" />
+    <ClInclude Include="..\binding.h" />
+    <ClInclude Include="..\cid.h" />
+    <ClInclude Include="..\congestion_control.h" />
+    <ClInclude Include="..\connection.h" />
+    <ClInclude Include="..\crypto.h" />
+    <ClInclude Include="..\frame.h" />
+    <ClInclude Include="..\library.h" />
+    <ClInclude Include="..\listener.h" />
+    <ClInclude Include="..\lookup.h" />
+    <ClInclude Include="..\loss_detection.h" />
+    <ClInclude Include="..\operation.h" />
+    <ClInclude Include="..\packet.h" />
+    <ClInclude Include="..\packet_builder.h" />
+    <ClInclude Include="..\packet_space.h" />
+    <ClInclude Include="..\precomp.h" />
+    <ClInclude Include="..\quicdef.h" />
+    <ClInclude Include="..\range.h" />
+    <ClInclude Include="..\recv_buffer.h" />
+    <ClInclude Include="..\registration.h" />
+    <ClInclude Include="..\send.h" />
+    <ClInclude Include="..\send_buffer.h" />
+    <ClInclude Include="..\sent_packet_metadata.h" />
+    <ClInclude Include="..\session.h" />
+    <ClInclude Include="..\settings.h" />
+    <ClInclude Include="..\stream.h" />
+    <ClInclude Include="..\stream_set.h" />
+    <ClInclude Include="..\timer_wheel.h" />
+    <ClInclude Include="..\transport_params.h" />
+    <ClInclude Include="..\utils.h" />
+    <ClInclude Include="..\worker.h" />
+  </ItemGroup>
+  <PropertyGroup>
+    <ProjectGuid>{3707c7bf-99f4-4d1b-94a6-926a246578ef}</ProjectGuid>
+    <IntDir>$(SolutionDir)artifacts\winuser\obj\$(Platform)\$(Configuration)\core\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(SolutionDir)common.build.post.props" />
+</Project>

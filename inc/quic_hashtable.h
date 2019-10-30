@@ -1,0 +1,251 @@
+/*++
+
+    Copyright (c) Microsoft Corporation.
+    Licensed under the MIT License.
+
+Abstract:
+
+    A dynamically resizing hash table implementation.
+
+    Currently QUIC_HASH_TABLE only supports "weak" enumeration. "Weak"
+    enumeration means enumeration that requires exclusive access to the table
+    during the entire enumeration.
+
+Usage examples:
+
+    void
+    ExampleInsert(
+        PQUIC_HASHTABLE Table,
+        PEXAMPLE_OBJECT Obj
+        )
+    {
+        QuicHashtableInsert(
+            Table, &Obj->HashtableEntry, ExampleAttribHash(Obj->Attrib));
+    }
+
+    void
+    ExampleRemove(
+        PQUIC_HASHTABLE Table,
+        PEXAMPLE_OBJECT Obj
+        )
+    {
+        QuicHashtableRemove(Table, &Obj->HashtableEntry);
+    }
+
+    PEXAMPLE_OBJECT
+    ExampleLookup(
+        PQUIC_HASHTABLE Table,
+        EXAMPLE_OBJECT_ATTRIBUTE Attrib
+        )
+    {
+        QUIC_HASHTABLE_LOOKUP_CONTEXT Context;
+        QUIC_HASHTABLE_ENTRY* Entry;
+
+        Entry = QuicHashtableLookup(Table, ExampleAttribHash(Attrib), &Context);
+        while (Entry != NULL) {
+            PEXAMPLE_OBJECT Obj =
+                CONTAINING_RECORD(Entry, EXAMPLE_OBJECT, HashTableEntry);
+            if (Obj->Attrib == Attrib) {
+                return Obj;
+            }
+            Entry = QuicHashtableLookupNext(Table, &Context);
+        }
+        return NULL;
+    }
+
+    void
+    ExampleEnumeration(
+        PQUIC_HASHTABLE Table
+        )
+    {
+        QUIC_HASHTABLE_ENTRY* Entry;
+        QUIC_HASHTABLE_ENUMERATOR Enumerator;
+
+        QuicHashtableEnumerateBegin(Table, &Enumerator);
+        for (;;) {
+            Entry = QuicHashtableEnumerateNext(Table, &Enumerator);
+            if (Entry == NULL) {
+                break;
+            }
+            PEXAMPLE_OBJECT Obj =
+                CONTAINING_RECORD(Entry, EXAMPLE_OBJECT, HashTableEntry);
+            ExampleVisitObject(Obj);
+        }
+        QuicHashtableEnumerateEnd(Table, &Enumerator);
+    }
+
+--*/
+
+#pragma once
+
+#ifndef _QUIC_HASHTABLE_
+#define _QUIC_HASHTABLE_
+
+#pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
+
+#define QUIC_HASH_ALLOCATED_HEADER 0x00000001
+
+#define QUIC_HASH_MIN_SIZE 128
+
+typedef struct QUIC_HASHTABLE_ENTRY {
+    QUIC_LIST_ENTRY Linkage;
+    ULONG_PTR Signature;
+} QUIC_HASHTABLE_ENTRY;
+
+typedef struct QUIC_HASHTABLE_LOOKUP_CONTEXT {
+    //
+    // Brief background on each of the parameters and their justification:
+    // 1. ChainHead stores the pointer to a bucket. This is needed since our
+    //    hash chains are doubly-linked circular lists, and there is no way to
+    //    determine whether we've reached the end of the chain unless we store
+    //    the pointer to the bucket itself. This is particularly used in walking
+    //    the sub-list of entries returned by a lookup. We need to know when the
+    //    sub-list has been completely returned.
+    // 2. PrevLinkage stores a pointer to the entry before the entry under
+    //    consideration. The reason for storing the previous entry instead of
+    //    the entry itself is for cases where a lookup fails and PrevLinkage
+    //    actually stores the entry that would have been the previous entry, had
+    //    the looked up entry existed. This can then be used to actually insert
+    //    the entry at that place.
+    // 3. Signature is used primarily as a safety check in insertion. This field
+    //    must match the Signature of the entry being inserted.
+    //
+    QUIC_LIST_ENTRY* ChainHead;
+    QUIC_LIST_ENTRY* PrevLinkage;
+    ULONG_PTR Signature;
+} QUIC_HASHTABLE_LOOKUP_CONTEXT;
+
+typedef struct QUIC_HASHTABLE_ENUMERATOR {
+    union {
+       QUIC_HASHTABLE_ENTRY HashEntry;
+       QUIC_LIST_ENTRY* CurEntry;
+    };
+    QUIC_LIST_ENTRY* ChainHead;
+    uint32_t BucketIndex;
+} QUIC_HASHTABLE_ENUMERATOR;
+
+typedef struct QUIC_HASHTABLE {
+
+    // Entries initialized at creation
+    uint32_t Flags;
+    uint32_t Shift;
+
+    // Entries used in bucket computation.
+    uint32_t TableSize;
+    uint32_t Pivot;
+    uint32_t DivisorMask;
+
+    // Counters
+    uint32_t NumEntries;
+    uint32_t NonEmptyBuckets;
+    uint32_t NumEnumerators;
+
+    // The directory. This field is for internal use only.
+    void* Directory;
+
+} QUIC_HASHTABLE;
+
+inline
+uint32_t
+QuicHashtableGetTotalEntryCount(
+    _In_ const QUIC_HASHTABLE* HashTable
+    )
+{
+    return HashTable->NumEntries;
+}
+
+_Must_inspect_result_
+_Success_(return != 0)
+BOOLEAN
+QuicHashtableInitialize(
+    _Inout_ _When_(NULL == *HashTable, _At_(*HashTable, __drv_allocatesMem(Mem)))
+        QUIC_HASHTABLE* *HashTable,
+    _In_ uint32_t InitialSize
+    );
+
+inline
+_Must_inspect_result_
+_Success_(return != 0)
+BOOLEAN
+QuicHashtableInitializeEx(
+    _Inout_ QUIC_HASHTABLE* HashTable,
+    _In_ uint32_t InitialSize
+    )
+{
+    return QuicHashtableInitialize(&HashTable, InitialSize);
+}
+
+void
+QuicHashtableUninitialize(
+    _In_ _When_((HashTable->Flags & QUIC_HASH_ALLOCATED_HEADER), __drv_freesMem(Mem) _Post_invalid_)
+        QUIC_HASHTABLE* HashTable
+    );
+
+void
+QuicHashtableInsert(
+    _In_ QUIC_HASHTABLE* HashTable,
+    _In_ __drv_aliasesMem QUIC_HASHTABLE_ENTRY* Entry,
+    _In_ ULONG_PTR Signature,
+    _Inout_opt_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
+    );
+
+void
+QuicHashtableRemove(
+    _In_ QUIC_HASHTABLE* HashTable,
+    _In_ QUIC_HASHTABLE_ENTRY* Entry,
+    _Inout_opt_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
+    );
+
+_Must_inspect_result_
+QUIC_HASHTABLE_ENTRY*
+QuicHashtableLookup(
+    _In_ QUIC_HASHTABLE* HashTable,
+    _In_ ULONG_PTR Signature,
+    _Out_opt_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
+    );
+
+_Must_inspect_result_
+QUIC_HASHTABLE_ENTRY*
+QuicHashtableLookupNext(
+    _In_ QUIC_HASHTABLE* HashTable,
+    _Inout_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
+    );
+
+void
+QuicHashtableEnumerateBegin(
+    _In_ QUIC_HASHTABLE* HashTable,
+    _Out_ QUIC_HASHTABLE_ENUMERATOR* Enumerator
+    );
+
+_Must_inspect_result_
+QUIC_HASHTABLE_ENTRY*
+QuicHashtableEnumerateNext(
+    _In_ QUIC_HASHTABLE* HashTable,
+    _Inout_ QUIC_HASHTABLE_ENUMERATOR* Enumerator
+    );
+
+void
+QuicHashtableEnumerateEnd(
+    _In_ QUIC_HASHTABLE* HashTable,
+    _Inout_ QUIC_HASHTABLE_ENUMERATOR* Enumerator
+    );
+
+//
+// Simple helper hash function.
+//
+inline
+uint32_t
+QuicHashSimple(
+    _In_ uint16_t Length,
+    _In_reads_(Length)
+        const uint8_t* const Buffer
+    )
+{
+    uint32_t Hash = 5387; // A random prime number.
+    for (uint16_t i = 0; i < Length; ++i) {
+        Hash = ((Hash << 5) - Hash) + Buffer[i];
+    }
+    return Hash;
+}
+
+#endif // _QUIC_HASHTABLE_
