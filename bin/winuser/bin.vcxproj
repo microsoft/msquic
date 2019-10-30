@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(SolutionDir)common.build.pre.props" />
+  <ItemGroup>
+    <ClCompile Include="dllmain.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="msquic.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\core\winuser\core.vcxproj">
+      <Project>{3707c7bf-99f4-4d1b-94a6-926a246578ef}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\platform\winuser\platform.vcxproj">
+      <Project>{0fe9cf1e-9d39-4d2a-99cd-8c255eb33515}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <PropertyGroup>
+    <TargetName>msquic</TargetName>
+    <ProjectGuid>{6990B1E1-2B70-465B-8FEC-2163879AF98A}</ProjectGuid>
+    <IntDir>$(SolutionDir)artifacts\winuser\obj\$(Platform)\$(Configuration)\bin\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalDependencies>ws2_32.lib;schannel.lib;ntdll.lib;bcrypt.lib;ncrypt.lib;crypt32.lib;iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>msquic.def</ModuleDefinitionFile>
+      <GenerateDebugInformation Condition="'$(Configuration)'=='Debug'">DebugFull</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(SolutionDir)common.build.post.props" />
+</Project>
