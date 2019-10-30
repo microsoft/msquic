@@ -11,8 +11,8 @@ QUIC has many benefits when compared to existing TLS over TCP scenarios:
   * Handshake authenticated with TLS 1.3
   * All packets are encrypted
   * Parallel streams of application data.
-  * Improved (over TCP) congestion control and loss recovery.
-  * 0-RTT (_Support depends on TLS library_)
+  * Improved (compared to TCP) congestion control and loss recovery.
+  * 0-RTT (_support depends on TLS library_)
 
 **Note** - Several QUIC protocol features are still unimplemented:
 
@@ -49,9 +49,17 @@ The source is divided into several directories:
 
 Open `msquic.sln` in Visual Studio 2019.
 
+### Running the tests
+
+Either use the [Test Explorer](https://docs.microsoft.com/en-us/visualstudio/test/run-unit-tests-with-test-explorer?view=vs-2019) or run `test_bin.exe` manually.
+
 ## Building on Linux (or [WSL](https://docs.microsoft.com/en-us/windows/wsl/wsl2-install))
 
 Run `make install` (openssl) or `make install_with_stub` (stub TLS).
+
+### Running the tests
+
+Run `./apitestrunner 6` to run all the tests.
 
 # Contributing
 
@@ -60,13 +68,14 @@ working on setting up internal repository sycnhronization and continuous integra
 and until that happens, this repository will be a simple copy of the Microsoft internal
 one.
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
+Most contributions require you to agree to a Contributor License Agreement (CLA)
+declaring that you have the right to, and actually do, grant us the rights to use
+your contribution. For details, visit https://cla.opensource.microsoft.com.
 
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
+When you submit a pull request, a CLA bot will automatically determine whether you
+need to provide a CLA and decorate the PR appropriately (e.g., status check, comment).
+Simply follow the instructions provided by the bot. You will only need to do this
+once across all repos using our CLA.
 
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or

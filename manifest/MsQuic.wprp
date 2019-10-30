@@ -104,7 +104,7 @@
         </EventCollectorId>
         <EventCollectorId Value="EC_HighVolume">
           <EventProviders>
-            <EventProviderId Value="EP_WinQuicWpp" />
+            <EventProviderId Value="EP_MsQuicWpp" />
           </EventProviders>
         </EventCollectorId>
       </Collectors>
@@ -126,7 +126,7 @@
         </EventCollectorId>
         <EventCollectorId Value="EC_HighVolume">
           <EventProviders>
-            <EventProviderId Value="EP_WinQuicWpp" />
+            <EventProviderId Value="EP_MsQuicWpp" />
             <EventProviderId Value="EP_TcpIpEtw" />
             <EventProviderId Value="EP_WinSockEtw" />
             <EventProviderId Value="EP_SChannelWpp" />
