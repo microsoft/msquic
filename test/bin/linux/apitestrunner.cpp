@@ -1,3 +1,9 @@
+/*++
+
+    Copyright (c) Microsoft Corporation.
+    Licensed under the MIT License.
+
+--*/
 
 #define QUIC_TEST_APIS 1
 
