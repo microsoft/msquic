@@ -29,6 +29,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "attack", "tools\attack\winu
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ping", "tools\ping\winuser\ping.vcxproj", "{4EA192D5-9F6D-409F-8014-E5DC48867A6A}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "etw", "tools\etw\winuser\etw.vcxproj", "{74DD2FA5-D6C1-4DB1-83E3-BFCE6610E37A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -93,6 +95,14 @@ Global
 		{4EA192D5-9F6D-409F-8014-E5DC48867A6A}.Release|x64.Build.0 = Release|x64
 		{4EA192D5-9F6D-409F-8014-E5DC48867A6A}.Release|x86.ActiveCfg = Release|Win32
 		{4EA192D5-9F6D-409F-8014-E5DC48867A6A}.Release|x86.Build.0 = Release|Win32
+		{74DD2FA5-D6C1-4DB1-83E3-BFCE6610E37A}.Debug|x64.ActiveCfg = Debug|x64
+		{74DD2FA5-D6C1-4DB1-83E3-BFCE6610E37A}.Debug|x64.Build.0 = Debug|x64
+		{74DD2FA5-D6C1-4DB1-83E3-BFCE6610E37A}.Debug|x86.ActiveCfg = Debug|Win32
+		{74DD2FA5-D6C1-4DB1-83E3-BFCE6610E37A}.Debug|x86.Build.0 = Debug|Win32
+		{74DD2FA5-D6C1-4DB1-83E3-BFCE6610E37A}.Release|x64.ActiveCfg = Release|x64
+		{74DD2FA5-D6C1-4DB1-83E3-BFCE6610E37A}.Release|x64.Build.0 = Release|x64
+		{74DD2FA5-D6C1-4DB1-83E3-BFCE6610E37A}.Release|x86.ActiveCfg = Release|Win32
+		{74DD2FA5-D6C1-4DB1-83E3-BFCE6610E37A}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -105,6 +115,7 @@ Global
 		{A037CE21-FA4A-4F8B-9396-74AA323392B8} = {49AE57CF-C2E8-437D-89D8-C42504E70B15}
 		{65FA3854-7554-457E-BA27-19029BCC41EE} = {CDEC6665-89CD-4188-B7B4-364198F96CFD}
 		{4EA192D5-9F6D-409F-8014-E5DC48867A6A} = {CDEC6665-89CD-4188-B7B4-364198F96CFD}
+		{74DD2FA5-D6C1-4DB1-83E3-BFCE6610E37A} = {CDEC6665-89CD-4188-B7B4-364198F96CFD}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B171D5B9-C59B-4F45-A093-1FA5BB42B75C}

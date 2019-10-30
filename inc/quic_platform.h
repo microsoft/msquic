@@ -31,6 +31,8 @@ Supported Environments:
 #define US_TO_NS(x)     ((x) * 1000)
 #define NS100_TO_US(x)  ((x) / 10)
 #define US_TO_NS100(x)  ((x) * 10)
+#define MS_TO_NS100(x)  ((x)*10000)
+#define NS100_TO_MS(x)  ((x)/10000)
 #define US_TO_MS(x)     ((x) / 1000)
 #define MS_TO_US(x)     ((x) * 1000)
 #define US_TO_S(x)      ((x) / (1000 * 1000))

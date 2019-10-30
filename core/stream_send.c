@@ -832,7 +832,7 @@ QuicStreamWriteStreamFrames(
         //
         // Stream flow control
         //
-        if (Right > Stream->MaxAllowedSendOffset) {
+        if (Right >= Stream->MaxAllowedSendOffset) {
             Right = Stream->MaxAllowedSendOffset;
             QUIC_DBG_ASSERT(Right >= Left);
             if (Right == Left) {
@@ -850,7 +850,7 @@ QuicStreamWriteStreamFrames(
         //
         // Connection flow control
         //
-        if (Right > Send->PeerMaxData - Send->OrderedStreamBytesSent + Stream->MaxSentLength) {
+        if (Right >= Send->PeerMaxData - Send->OrderedStreamBytesSent + Stream->MaxSentLength) {
             Right = Send->PeerMaxData - Send->OrderedStreamBytesSent + Stream->MaxSentLength;
             QUIC_DBG_ASSERT(Right >= Left);
             if (Right == Left) {

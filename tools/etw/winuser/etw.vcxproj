@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(SolutionDir)common.build.pre.props" />
+  <Import Project="$(SolutionDir)tools.build.pre.props" />
+  <ItemGroup>
+    <ClCompile Include="..\binding.c" />
+    <ClCompile Include="..\cxn.c" />
+    <ClCompile Include="..\library.c" />
+    <ClCompile Include="..\listener.c" />
+    <ClCompile Include="..\main.c" />
+    <ClCompile Include="..\stream.c" />
+    <ClCompile Include="..\trace.c" />
+    <ClCompile Include="..\worker.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\object_set.h" />
+    <ClInclude Include="..\qjson.h" />
+    <ClInclude Include="..\quicetw.h" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <TargetName>quicetw</TargetName>
+    <ProjectGuid>{74DD2FA5-D6C1-4DB1-83E3-BFCE6610E37A}</ProjectGuid>
+    <IntDir>$(SolutionDir)artifacts\winuser\obj\$(Platform)\$(Configuration)\tools\etw\</IntDir>
+  </PropertyGroup>
+  <Import Project="$(SolutionDir)common.build.post.props" />
+</Project>
