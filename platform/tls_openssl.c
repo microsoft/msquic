@@ -9,8 +9,6 @@ Abstract:
 
 --*/
 
-#ifdef QUIC_BUILD_OPENSSL
-
 #include "platform_internal.h"
 #include "openssl/ssl.h"
 #include "openssl/err.h"
@@ -4954,5 +4952,3 @@ Exit:
 
     return Ret;
 }
-
-#endif // QUIC_BUILD_OPENSSL

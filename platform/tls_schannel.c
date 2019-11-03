@@ -13,8 +13,6 @@ Environment:
 
 --*/
 
-#ifdef QUIC_BUILD_SCHANNEL
-
 #include "platform_internal.h"
 #include <security.h>
 
@@ -989,7 +987,6 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
 QUIC_SEC_CONFIG*
 QuicTlsSecConfigAddRef(
     _In_ QUIC_SEC_CONFIG* SecurityConfig
@@ -2771,5 +2768,3 @@ Error:
 
     return NtStatusToQuicStatus(Status);
 }
-
-#endif // QUIC_BUILD_SCHANNEL

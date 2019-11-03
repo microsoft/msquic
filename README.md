@@ -41,25 +41,7 @@ The source is divided into several directories:
 
 # Building
 
-## Building on Windows
-
-**Requirements**
-  * [Visual Studio 2019](https://www.visualstudio.com/vs/) or higher
-  * Latest [Windows Insider](https://insider.windows.com/en-us/) builds.
-
-Open `msquic.sln` in Visual Studio 2019.
-
-### Running the tests
-
-Either use the [Test Explorer](https://docs.microsoft.com/en-us/visualstudio/test/run-unit-tests-with-test-explorer?view=vs-2019) or run `test_bin.exe` manually.
-
-## Building on Linux (or [WSL](https://docs.microsoft.com/en-us/windows/wsl/wsl2-install))
-
-Run `make install` (openssl) or `make install_with_stub` (stub TLS).
-
-### Running the tests
-
-Run `./apitestrunner 6` to run all the tests.
+You can find detailed instructions [here](./BUILD.md).
 
 # Contributing
 

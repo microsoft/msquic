@@ -220,11 +220,6 @@ QuicStreamFrameHeaderSize(
     _In_ const QUIC_STREAM_EX * const Frame
     );
 
-uint16_t
-MaxUdpPayloadSizeFromMTU(
-    _In_ uint16_t Mtu
-    );
-
 uint64_t
 QuicStreamGetInitialMaxDataFromTP(
     _In_ uint64_t StreamID,
@@ -255,56 +250,6 @@ QuicCongestionControlCanSend(
     _In_ PQUIC_CONGESTION_CONTROL Cc
     );
 
-void
-QuicListInitializeHead(
-    _Out_ QUIC_LIST_ENTRY* ListHead
-    );
-
-_Must_inspect_result_
-BOOLEAN
-QuicListIsEmpty(
-    _In_ const QUIC_LIST_ENTRY* ListHead
-    );
-
-void
-QuicListInsertHead(
-    _Inout_ QUIC_LIST_ENTRY* ListHead,
-    _Inout_ __drv_aliasesMem QUIC_LIST_ENTRY* Entry
-    );
-
-void
-QuicListInsertTail(
-    _Inout_ QUIC_LIST_ENTRY* ListHead,
-    _Inout_ __drv_aliasesMem QUIC_LIST_ENTRY* Entry
-    );
-
-QUIC_LIST_ENTRY*
-QuicListRemoveHead(
-    _Inout_ QUIC_LIST_ENTRY* ListHead
-    );
-
-BOOLEAN
-QuicListEntryRemove(
-    _In_ QUIC_LIST_ENTRY* Entry
-    );
-
-void
-QuicListMoveItems(
-    _In_ QUIC_LIST_ENTRY* Source,
-    _Out_ QUIC_LIST_ENTRY* Destination
-    );
-
-void
-QuicListPushEntry(
-    _Inout_ QUIC_SINGLE_LIST_ENTRY* ListHead,
-    _Inout_ __drv_aliasesMem QUIC_SINGLE_LIST_ENTRY* Entry
-    );
-
-QUIC_SINGLE_LIST_ENTRY*
-QuicListPopEntry(
-    _Inout_ QUIC_SINGLE_LIST_ENTRY* ListHead
-    );
-
 PQUIC_CONNECTION
 QuicSendGetConnection(
     _In_ PQUIC_SEND Send
@@ -313,12 +258,6 @@ QuicSendGetConnection(
 uint8_t
 QuicEncryptLevelToPacketType(
     QUIC_ENCRYPT_LEVEL Level
-    );
-
-uint16_t
-MaxUdpPayloadSizeForFamily(
-    _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_ uint16_t Mtu
     );
 
 QUIC_ENCRYPT_LEVEL
@@ -562,87 +501,6 @@ QuicVarIntEncode2Bytes(
     _In_ QUIC_VAR_INT Value,
     _Out_writes_bytes_(sizeof(uint16_t))
         uint8_t* Buffer
-    );
-
-LONG
-InterlockedIncrement(
-    _Inout_ _Interlocked_operand_ LONG volatile *Addend
-    );
-
-LONG
-InterlockedDecrement(
-    _Inout_ _Interlocked_operand_ LONG volatile *Addend
-    );
-
-LONG64
-InterlockedExchangeAdd64(
-    _Inout_ _Interlocked_operand_ LONG64 volatile *Addend,
-    _In_ LONG64 Value
-    );
-
-SHORT
-InterlockedCompareExchange16(
-    _Inout_ _Interlocked_operand_ SHORT volatile *Destination,
-    _In_ SHORT ExChange,
-    _In_ SHORT Comperand
-    );
-
-SHORT
-InterlockedIncrement16(
-    _Inout_ _Interlocked_operand_ SHORT volatile *Addend
-    );
-
-SHORT
-InterlockedDecrement16(
-    _Inout_ _Interlocked_operand_ SHORT volatile *Addend
-    );
-
-LONG64
-InterlockedIncrement64(
-    _Inout_ _Interlocked_operand_ LONG64 volatile *Addend
-    );
-
-uint32_t
-QuicHashtableGetTotalEntryCount(
-    _In_ const QUIC_HASHTABLE* Table
-    );
-
-_Must_inspect_result_
-_Success_(return != 0)
-BOOLEAN
-QuicHashtableInitializeEx(
-    _Inout_ QUIC_HASHTABLE* HashTable,
-    _In_ uint32_t InitialSize
-    );
-
-uint32_t
-QuicHashSimple(
-    _In_ uint16_t Length,
-    _In_reads_(Length) const uint8_t* Buffer
-    );
-
-uint64_t
-QuicTimeDiff64(
-    _In_ uint64_t T1,
-    _In_ uint64_t T2
-    );
-
-uint32_t
-QuicTimeDiff32(
-    _In_ uint32_t T1,
-    _In_ uint32_t T2
-    );
-
-BOOLEAN
-QuicTimeAtOrBefore64(
-    _In_ uint64_t T1,
-    _In_ uint64_t T2
-    );
-
-BOOLEAN
-QuicTimeAtOrBefore32(
-    _In_ uint32_t T1,
-    _In_ uint32_t T2
     );
 
 uint64_t

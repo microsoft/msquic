@@ -442,7 +442,7 @@ EstimateTimeoutMs(uint64_t Length)
 {
     const uint64_t EstimatedHandshakeTime = 2000;
     const uint64_t EstimatedStreamOverhead = 1000;
-    const uint64_t EstimatedRateBps = 10 * 1000 * 1000; // 10 MBps
+    const uint64_t EstimatedRateBps = 1 * 1000 * 1000; // 1 MBps
 
     uint64_t TimeoutMs =
         EstimatedHandshakeTime +

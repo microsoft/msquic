@@ -7,9 +7,11 @@
 
 #define QUIC_TEST_APIS 1
 
-#include <MsQuicTests.h>
-#include <MsQuicHelper.h>
 #include <quic_platform.h>
+#include <MsQuicTests.h>
+#include <msquichelper.h>
+#undef min
+#undef max
 #include "gtest/gtest.h"
 
 class WithBool : public testing::Test,

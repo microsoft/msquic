@@ -1,0 +1,39 @@
+# Builds the code for Linux and Windows.
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+strategy:
+  matrix:
+    linux:
+      imageName: 'ubuntu-latest'
+      cmakeArgs: '-g ''Linux Makefiles'''
+      testCmd: './artifacts/bin/msquictest'
+    windows-x64:
+      imageName: 'windows-latest'
+      cmakeArgs: '-g ''Visual Studio 16 2019'' -A x64'
+      testCmd: '.\artifacts\bin\Release\msquictest.exe'
+
+pool:
+  vmImage: $(imageName)
+
+steps:
+- checkout: self
+  submodules: recursive
+  persistCredentials: true
+
+- task: CMake@1
+  displayName: 'CMake Generator'
+  inputs:
+    cmakeArgs: '$(cmakeArgs) ..'
+
+- task: CMake@1
+  displayName: 'CMake Build'
+  inputs:
+    cmakeArgs: '--build . --config RELEASE'
+
+#- task: CmdLine@2
+#  displayName: 'Run Tests'
+#  inputs:
+#    script: '$(testCmd)'

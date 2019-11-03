@@ -9,8 +9,6 @@ Abstract:
 
 --*/
 
-#ifdef QUIC_BUILD_STUB
-
 #include "platform_internal.h"
 
 #ifdef QUIC_LOGS_WPP
@@ -1408,5 +1406,3 @@ QuicHashCompute(
     UNREFERENCED_PARAMETER(Output);
     return QUIC_STATUS_SUCCESS;
 }
-
-#endif // QUIC_BUILD_STUB

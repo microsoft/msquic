@@ -12,9 +12,9 @@
 #pragma warning(disable:28931) // Unused Assignment
 
 #include <precomp.h> // from 'core' dir
-#include <MsQuic.h>
-#include <MsQuicP.h>
-#include <MsQuicHelper.h>
+#include <msquic.h>
+#include <msquicp.h>
+#include <msquichelper.h>
 
 #include "packet_writer.h"
 
@@ -27,8 +27,6 @@
 #define ATTACK_THREADS_DEFAULT 1
 
 #define ATTACK_PORT_DEFAULT 443
-
-extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 
 void
 PrintUsage()
