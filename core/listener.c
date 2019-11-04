@@ -397,6 +397,7 @@ QuicListenerAcceptConnection(
             Connection);
     if (AcceptResult != QUIC_CONNECTION_ACCEPT) {
         QuicRundownRelease(&Listener->Rundown);
+        Listener->TotalRejectedConnections++;
         goto Error;
     }
 
@@ -409,14 +410,14 @@ QuicListenerAcceptConnection(
             &SecConfig);
     QuicRundownRelease(&Listener->Rundown);
 
-    if (QUIC_FAILED(Status) && Status != QUIC_STATUS_PENDING) {
-        QUIC_TEL_ASSERTMSG(SecConfig == NULL, "App failed AND provided a sec config?");
-        goto Error;
-    }
-
-    if (SecConfig == NULL) {
-        if (Status != QUIC_STATUS_PENDING) {
+    if (Status != QUIC_STATUS_PENDING) {
+        if (QUIC_FAILED(Status)) {
+            QUIC_TEL_ASSERTMSG(SecConfig == NULL, "App failed AND provided a sec config?");
+            Listener->TotalRejectedConnections++;
+            goto Error;
+        } else if (SecConfig == NULL) {
             LogVerbose("[conn][%p] No security config was provided by the app.", Connection);
+            Listener->TotalRejectedConnections++;
             goto Error;
         }
     }
@@ -427,10 +428,12 @@ QuicListenerAcceptConnection(
     if (Status != QUIC_STATUS_PENDING) {
         Status = QuicConnHandshakeConfigure(Connection, SecConfig);
         if (QUIC_FAILED(Status)) {
+            Listener->TotalRejectedConnections++;
             goto Error;
         }
     }
 
+    Listener->TotalAcceptedConnections++;
     AcceptResult = QUIC_CONNECTION_ACCEPT;
 
 Error:
@@ -493,6 +496,30 @@ QuicListenerParamGet(
 
         *BufferLength = sizeof(QUIC_ADDR);
         QuicCopyMemory(Buffer, &Listener->LocalAddress, sizeof(QUIC_ADDR));
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_LISTENER_STATS:
+
+        if (*BufferLength < sizeof(QUIC_LISTENER_STATISTICS)) {
+            *BufferLength = sizeof(QUIC_LISTENER_STATISTICS);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(QUIC_LISTENER_STATISTICS);
+        QUIC_LISTENER_STATISTICS* Stats = (QUIC_LISTENER_STATISTICS*)Buffer;
+
+        Stats->TotalAcceptedConnections = Listener->TotalAcceptedConnections;
+        Stats->TotalRejectedConnections = Listener->TotalRejectedConnections;
+
+        Stats->Binding.Recv.DroppedPackets = Listener->Binding->Stats.Recv.DroppedPackets;
 
         Status = QUIC_STATUS_SUCCESS;
         break;

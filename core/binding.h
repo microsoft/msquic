@@ -223,6 +223,14 @@ typedef struct _QUIC_BINDING {
     QUIC_POOL StatelessOperCtxPool;
     uint32_t StatelessOperCount;
 
+    struct {
+
+        struct {
+            uint64_t DroppedPackets;
+        } Recv;
+
+    } Stats;
+
 } QUIC_BINDING, *PQUIC_BINDING;
 
 //
