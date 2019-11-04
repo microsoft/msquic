@@ -10,7 +10,7 @@
 #include <quic_platform.h>
 #include <MsQuicTests.h>
 #include <msquichelper.h>
-#undef min
+#undef min // gtest headers conflict with previous definitions of min/max.
 #undef max
 #include "gtest/gtest.h"
 
