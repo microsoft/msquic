@@ -628,7 +628,7 @@ Return Value:
     PQUIC_DATAPATH_WORKITEM Workitem = QuicPoolAlloc(&WorkQueue->Pool);
 
     if (Workitem == NULL) {
-        LogError("DAL: Workitem allocation failure.");
+        LogError("[ dal] Workitem allocation failure.");
     }
 
     return Workitem;
@@ -814,7 +814,7 @@ Return Value:
     Ret = eventfd_write(ProcContext->EventFd, Value);
 
     if (Ret != 0) {
-        LogError("DAL: Write event failure, ret %d.", Ret);
+        LogError("[ dal] Write event failure, ret %d.", Ret);
     }
 }
 
@@ -980,7 +980,7 @@ Return Value:
     Ret = pthread_join(ProcContext->EpollWaitThread->Thread, (void **)&Thread_Ret);
 
     if (Ret != 0) {
-        LogError("DAL: pthread_join() failed, ret %d, retval %d.", Ret, Thread_Ret);
+        LogError("[ dal] pthread_join() failed, ret %d, retval %d.", Ret, Thread_Ret);
     }
 
     QuicThreadDelete(ProcContext->EpollWaitThread);
@@ -1013,13 +1013,13 @@ Return Value:
     Ret = epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, ProcContext->EventFd, NULL);
 
     if (Ret != 0) {
-        LogError("DAL: epoll_ctl() failed, ret %d.", Ret);
+        LogError("[ dal] epoll_ctl() failed, ret %d.", Ret);
     }
 
     Ret = close(ProcContext->EventFd);
 
     if (Ret != 0) {
-        LogError("DAL: close(EventFd) failed, ret %d.", Ret);
+        LogError("[ dal] close(EventFd) failed, ret %d.", Ret);
     }
 
     ProcContext->EventFd = INVALID_SOCKET_FD;
@@ -1027,7 +1027,7 @@ Return Value:
     Ret = close(ProcContext->EpollFd);
 
     if (Ret != 0) {
-        LogError("DAL: close(EpollFd) failed, ret %d.", Ret);
+        LogError("[ dal] close(EpollFd) failed, ret %d.", Ret);
     }
 
     ProcContext->EpollFd = INVALID_SOCKET_FD;
@@ -1108,7 +1108,7 @@ Return Value:
 
     if (EpollFd == INVALID_SOCKET_FD) {
         Status = errno;
-        LogError("DAL: epoll_create1(EPOLL_CLOEXEC) failed, status %u.", Status);
+        LogError("[ dal] epoll_create1(EPOLL_CLOEXEC) failed, status %u.", Status);
         goto Exit;
     }
 
@@ -1120,7 +1120,7 @@ Return Value:
 
     if (EventFd == INVALID_SOCKET_FD) {
         Status = errno;
-        LogError("DAL: eventfd() failed, status %u.", Status);
+        LogError("[ dal] eventfd() failed, status %u.", Status);
         goto Exit;
     }
 
@@ -1139,7 +1139,7 @@ Return Value:
 
     if (Ret != 0) {
         Status = errno;
-        LogError("DAL: epoll_ctl(EPOLL_CTL_ADD) failed, status %u.", Status);
+        LogError("[ dal] epoll_ctl(EPOLL_CTL_ADD) failed, status %u.", Status);
         goto Exit;
     }
 
@@ -1169,7 +1169,7 @@ Return Value:
             &ProcContext->EpollWaitThread);
 
     if (QUIC_FAILED(Status)) {
-        LogError("DAL: QuicThreadCreate() failed, status %u.", Status);
+        LogError("[ dal] QuicThreadCreate() failed, status %u.", Status);
         goto Exit;
     }
 
@@ -1181,7 +1181,7 @@ Exit:
             Ret = epoll_ctl(EpollFd, EPOLL_CTL_DEL, EventFd, NULL);
 
             if (Ret != 0) {
-                LogError("DAL: epoll_ctl(EPOLL_CTL_DEL) failed, ret %d.", Ret);
+                LogError("[ dal] epoll_ctl(EPOLL_CTL_DEL) failed, ret %d.", Ret);
             }
         }
 
@@ -1189,7 +1189,7 @@ Exit:
             Ret = close(EventFd);
 
             if (Ret != 0) {
-                LogError("DAL: close(EventFd) failed, ret %d.", Ret);
+                LogError("[ dal] close(EventFd) failed, ret %d.", Ret);
             }
 
             EventFd = INVALID_SOCKET_FD;
@@ -1199,7 +1199,7 @@ Exit:
             Ret = close(EpollFd);
 
             if (Ret != 0) {
-                LogError("DAL: close(EpollFd) failed, ret %d.", Ret);
+                LogError("[ dal] close(EpollFd) failed, ret %d.", Ret);
             }
 
             EpollFd = INVALID_SOCKET_FD;
@@ -1263,7 +1263,7 @@ Return Value:
     if (RecvCallback == NULL ||
         UnreachableCallback == NULL ||
         NewDataPath == NULL) {
-        LogError("DAL: Invalid parameter.");
+        LogError("[ dal] Invalid parameter.");
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
@@ -1275,7 +1275,7 @@ Return Value:
     Datapath = (PQUIC_DATAPATH)QUIC_ALLOC_PAGED(DatapathLength);
 
     if (Datapath == NULL) {
-        LogError("DAL: Datapath allocation failure.");
+        LogError("[ dal] Datapath allocation failure.");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -1303,7 +1303,7 @@ Return Value:
                 &Datapath->ProcContexts[i]);
 
         if (QUIC_FAILED(Status)) {
-            LogError("DAL: QuicDataPathProcContextInitialize() failure, Status %u.", Status);
+            LogError("[ dal] QuicDataPathProcContextInitialize() failure, Status %u.", Status);
 
             //
             // LINUX_TODO: Right now, loop size is 1. Future: clean up earlier items in this loop.
@@ -1597,7 +1597,7 @@ Return Value:
         goto Exit;
     }
 
-    LogWarning("DAL: getaddrinfo(AI_NUMERICHOST) failed, result %d.", Result);
+    LogWarning("[ dal] getaddrinfo(AI_NUMERICHOST) failed, result %d.", Result);
 
     //
     // Try canonical host name.
@@ -1614,7 +1614,7 @@ Return Value:
         goto Exit;
     }
 
-    LogError("DAL: getaddrinfo(AI_CANONNAME) failed, result %d.", Result);
+    LogError("[ dal] getaddrinfo(AI_CANONNAME) failed, result %d.", Result);
 
     Status = QUIC_STATUS_DNS_RESOLUTION_ERROR;
 
@@ -1674,7 +1674,7 @@ Return Value:
 
     if (SocketContext->SocketFd == INVALID_SOCKET_FD) {
         Status = errno;
-        LogError("DAL: socket() failed, status %u.", Status);
+        LogError("[ dal] socket() failed, status %u.", Status);
         goto Exit;
     }
 
@@ -1693,7 +1693,7 @@ Return Value:
 
     if (Result == SOCKET_ERROR) {
         Status = errno;
-        LogError("DAL: setsockopt(IPV6_V6ONLY) failed, status %u.", Status);
+        LogError("[ dal] setsockopt(IPV6_V6ONLY) failed, status %u.", Status);
         goto Exit;
     }
 
@@ -1719,7 +1719,7 @@ Return Value:
 
     if (Result == SOCKET_ERROR) {
         Status = errno;
-        LogError("DAL: setsockopt(IP_MTU_DISCOVER) failed, status %u.", Status);
+        LogError("[ dal] setsockopt(IP_MTU_DISCOVER) failed, status %u.", Status);
         goto Exit;
     }
 
@@ -1734,7 +1734,7 @@ Return Value:
 
     if (Result == SOCKET_ERROR) {
         Status = errno;
-        LogError("DAL: setsockopt(IPV6_DONTFRAG) failed, status %u.", Status);
+        LogError("[ dal] setsockopt(IPV6_DONTFRAG) failed, status %u.", Status);
         goto Exit;
     }
 
@@ -1760,7 +1760,7 @@ Return Value:
 
     if (Result == SOCKET_ERROR) {
         Status = errno;
-        LogError("DAL: setsockopt(IPV6_RECVPKTINFO) failed, status %u.", Status);
+        LogError("[ dal] setsockopt(IPV6_RECVPKTINFO) failed, status %u.", Status);
         goto Exit;
     }
 
@@ -1775,7 +1775,7 @@ Return Value:
 
     if (Result == SOCKET_ERROR) {
         Status = errno;
-        LogError("DAL: setsockopt(IP_PKTINFO) failed, status %u.", Status);
+        LogError("[ dal] setsockopt(IP_PKTINFO) failed, status %u.", Status);
         goto Exit;
     }
 
@@ -1795,7 +1795,7 @@ Return Value:
 
     if (Result == SOCKET_ERROR) {
         Status = errno;
-        LogError("DAL: setsockopt(SO_RCVBUF) failed, status %u.", Status);
+        LogError("[ dal] setsockopt(SO_RCVBUF) failed, status %u.", Status);
         goto Exit;
     }
 
@@ -1807,7 +1807,7 @@ Return Value:
 
     if (Result == SOCKET_ERROR) {
         Status = errno;
-        LogError("DAL: bind() failed, status %u.", Status);
+        LogError("[ dal] bind() failed, status %u.", Status);
         goto Exit;
     }
 
@@ -1823,7 +1823,7 @@ Return Value:
 
         if (Result == SOCKET_ERROR) {
             Status = errno;
-            LogError("DAL: connect() failed, status %u.", Status);
+            LogError("[ dal] connect() failed, status %u.", Status);
             goto Exit;
         }
 
@@ -1848,7 +1848,7 @@ Return Value:
 
     if (Result == SOCKET_ERROR) {
         Status = errno;
-        LogError("DAL: getsockname() failed, status %u.", Status);
+        LogError("[ dal] getsockname() failed, status %u.", Status);
         goto Exit;
     }
 
@@ -1861,7 +1861,7 @@ Return Value:
 
     if (SocketContext->ShutdownWorkitem == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        LogError("DAL: ShutdownWorkitem allocation failed.");
+        LogError("[ dal] ShutdownWorkitem allocation failed.");
         goto Exit;
     }
 
@@ -1872,7 +1872,7 @@ Exit:
 
         if (Result != 0)
         {
-            LogError("DAL: close() failed, err: %d.", errno);
+            LogError("[ dal] close() failed, err: %d.", errno);
         }
 
         SocketContext->SocketFd = INVALID_SOCKET_FD;
@@ -1941,7 +1941,7 @@ Return Value:
 
     if (Binding == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        LogError("DAL: Binding allocation failed");
+        LogError("[ dal] Binding allocation failed");
         goto Exit;
     }
 
@@ -1986,7 +1986,7 @@ Return Value:
             // LINUX_TODO: Right now, loop size is 1. Future: Clean up earlier items in this loop.
             //
 
-            LogError("DAL: QuicDatapathSocketContextOpen failed, status:%u", Status);
+            LogError("[ dal] QuicDatapathSocketContextOpen failed, status:%u", Status);
             goto Exit;
         }
     }
@@ -2019,7 +2019,7 @@ Return Value:
             // LINUX_TODO: Right now, loop size is 1. Future: clean up earlier items in this loop.
             //
 
-            LogError("DAL: QuicDataPathBindingStartReceive() failed, status:%u", Status);
+            LogError("[ dal] QuicDataPathBindingStartReceive() failed, status:%u", Status);
             goto Exit;
         }
     }
@@ -2136,14 +2136,14 @@ Return Value:
 
     if (Ret != 0)
     {
-        LogError("DAL: epoll_ctl() failed, ret %d.", Ret);
+        LogError("[ dal] epoll_ctl() failed, ret %d.", Ret);
     }
 
     Ret = close(SocketContext->SocketFd);
 
     if (Ret != 0)
     {
-        LogError("DAL: close() failed, ret %d.", Ret);
+        LogError("[ dal] close() failed, ret %d.", Ret);
     }
 
     SocketContext->SocketFd = INVALID_SOCKET_FD;
@@ -2253,7 +2253,7 @@ Return Value:
         QuicPoolAlloc(&Datapath->ProcContexts[ProcIndex].RecvBlockPool);
 
     if (RecvBlock == NULL) {
-        LogError("DAL: RecvBlock allocation failed.");
+        LogError("[ dal] RecvBlock allocation failed.");
         goto Exit;
     }
 
@@ -2557,7 +2557,7 @@ Return Value:
 
         if (SocketContext->CurrentRecvBlock == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
-            LogError("DAL: Recv block allocation failed.");
+            LogError("[ dal] Recv block allocation failed.");
             goto Error;
         }
     }
@@ -2613,7 +2613,7 @@ Return Value:
     Status = QuicDataPathBindingPrepareForReceive(SocketContext);
 
     if (QUIC_FAILED(Status)) {
-        LogError("DAL: QuicDataPathBindingPrepareForReceive() failed, status %u.", Status);
+        LogError("[ dal] QuicDataPathBindingPrepareForReceive() failed, status %u.", Status);
         goto Error;
     }
 
@@ -2633,7 +2633,7 @@ Return Value:
 
     if (Ret != 0) {
         Status = Ret;
-        LogError("DAL: epoll_ctl() failed, status %u.", Status);
+        LogError("[ dal] epoll_ctl() failed, status %u.", Status);
         goto Error;
     }
 
@@ -2643,7 +2643,7 @@ Error:
         Ret = close(SocketContext->SocketFd);
 
         if (Ret != 0) {
-            LogError("DAL: close() failed, status %u.", Status);
+            LogError("[ dal] close() failed, status %u.", Status);
         }
     }
 
@@ -2688,7 +2688,7 @@ Return Value:
     int Ret = 0;
     struct epoll_event SockFdEpEvt = {0};
 
-    LogInfo("DAL: Pending sends");
+    LogInfo("[ dal] Pending sends");
 
     if (!SocketContext->SendWaiting) {
 
@@ -2704,7 +2704,7 @@ Return Value:
 
         if (Ret != 0) {
             Status = Ret;
-            LogError("DAL: epoll_ctl() failed, status %u.", Status);
+            LogError("[ dal] epoll_ctl() failed, status %u.", Status);
             goto Exit;
         }
 
@@ -2790,7 +2790,7 @@ Return Value:
 
         if (Ret != 0) {
             Status = Ret;
-            LogError("DAL: epoll_ctl() failed, status %u.", Status);
+            LogError("[ dal] epoll_ctl() failed, status %u.", Status);
             goto Exit;
         }
 
@@ -2813,7 +2813,7 @@ Return Value:
                 SendContext);
 
         if (QUIC_FAILED(Status)) {
-            LogError("DAL: QuicDataPathBindingSend() failed, status %u.", Status);
+            LogError("[ dal] QuicDataPathBindingSend() failed, status %u.", Status);
         }
 
         if (SocketContext->SendWaiting) {
@@ -2867,7 +2867,7 @@ Return Value:
     SendContext = QuicPoolAlloc(&ProcContext->SendContextPool);
 
     if (SendContext == NULL) {
-        LogError("DAL: QuicPoolAlloc() failed.");
+        LogError("[ dal] QuicPoolAlloc() failed.");
         goto Exit;
     }
 
@@ -2986,7 +2986,7 @@ Return Value:
 
     if (SendContext->BufferCount ==
             SendContext->Owner->Datapath->MaxSendBatchSize) {
-        LogError("DAL: Max batch size limit hit.");
+        LogError("[ dal] Max batch size limit hit.");
         goto Exit;
     }
 
@@ -2996,7 +2996,7 @@ Return Value:
     Buffer->Buffer = QuicPoolAlloc(&SendContext->Owner->SendBufferPool);
 
     if (Buffer->Buffer == NULL) {
-        LogError("DAL: Send buffer allocation failed.");
+        LogError("[ dal] Send buffer allocation failed.");
         goto Exit;
     }
 
@@ -3083,7 +3083,7 @@ Return Value:
 {
     if (IoResult != QUIC_STATUS_SUCCESS) {
         LogWarning(
-            "DAL: [sock][%p] Send (%p) completion failed, 0x%x",
+            "[sock][%p] Send (%p) completion failed, 0x%x",
             SocketContext, SendContext, IoResult);
     }
 
@@ -3142,7 +3142,7 @@ Return Value:
 
     for (i = 0; i < SendContext->BufferCount; ++i) {
         if (RemoteAddress->si_family == AF_INET) {
-            LogVerbose("DAL: [sock][%p] SocketFd=[%d], sending %" PRIu32 " bytes Dst=[%s:%" PRIu16 "] (%p)",
+            LogVerbose("[sock][%p] SocketFd=[%d], sending %" PRIu32 " bytes Dst=[%s:%" PRIu16 "] (%p)",
                        SocketContext,
                        SocketContext->SocketFd,
                        SendContext->Buffers[i].Length,
@@ -3150,7 +3150,7 @@ Return Value:
                        ntohs(RemoteAddress->Ipv4.sin_port),
                        SendContext);
         } else {
-            LogVerbose("DAL: [sock][%p] SocketFd=[%d], sending %" PRIu32 " bytes Dst=[%s:%" PRIu16 "] (%p)",
+            LogVerbose("[sock][%p] SocketFd=[%d], sending %" PRIu32 " bytes Dst=[%s:%" PRIu16 "] (%p)",
                        SocketContext,
                        SocketContext->SocketFd,
                        SendContext->Buffers[i].Length,
@@ -3174,7 +3174,7 @@ Return Value:
     SendContext = NULL;
 
     if (QUIC_FAILED(Status)) {
-        LogError("DAL: QuicDataPathBindingSend failed, status: %u.", Status);
+        LogError("[ dal] QuicDataPathBindingSend failed, status: %u.", Status);
         goto Exit;
     }
 
@@ -3247,7 +3247,7 @@ Return Value:
 
     for (size_t i = 0; i < SendContext->BufferCount; ++i) {
         if (RemoteAddress->si_family == AF_INET) {
-            LogVerbose("DAL: [sock][%p] SocketFd=[%d], sending %" PRIu32 " bytes Src=[%s:%" PRIu16 "%%%" PRIu32 "] Dst=[%s:%" PRIu16 "] (%p)",
+            LogVerbose("[sock][%p] SocketFd=[%d], sending %" PRIu32 " bytes Src=[%s:%" PRIu16 "%%%" PRIu32 "] Dst=[%s:%" PRIu16 "] (%p)",
                        SocketContext,
                        SocketContext->SocketFd,
                        SendContext->Buffers[i].Length,
@@ -3258,7 +3258,7 @@ Return Value:
                        ntohs(RemoteAddress->Ipv4.sin_port),
                        SendContext);
         } else {
-            LogVerbose("DAL: [sock][%p] SocketFd=[%d], sending %" PRIu32 " bytes Src=[%s:%" PRIu16 "%%%" PRIu32 "] Dst=[%s:%" PRIu16 "] (%p)",
+            LogVerbose("[sock][%p] SocketFd=[%d], sending %" PRIu32 " bytes Src=[%s:%" PRIu16 "%%%" PRIu32 "] Dst=[%s:%" PRIu16 "] (%p)",
                        SocketContext,
                        SocketContext->SocketFd,
                        SendContext->Buffers[i].Length,
@@ -3363,7 +3363,7 @@ Return Value:
 
             if (SentByteCount < 0) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                    LogVerbose("DAL: sendto() blocked.");
+                    LogVerbose("[ dal] sendto() blocked.");
 
                     Status =
                         QuicDataPathBindingPendSend(
@@ -3374,7 +3374,7 @@ Return Value:
                             RemoteAddress);
 
                     if (QUIC_FAILED(Status)) {
-                        LogError("DAL: QuicDataPathBindingPendSend failed, status: %u.", Status);
+                        LogError("[ dal] QuicDataPathBindingPendSend failed, status: %u.", Status);
                         goto Exit;
                     }
 
@@ -3386,7 +3386,7 @@ Return Value:
                     //
 
                     Status = errno;
-                    LogError("DAL: sendto() failed, status: %u.", Status);
+                    LogError("[ dal] sendto() failed, status: %u.", Status);
                     goto Exit;
                 }
             } else {
@@ -3395,7 +3395,7 @@ Return Value:
                 //
 
                 LogVerbose(
-                    "DAL:  [sock][%p] Send (%p) completion succeeded, bytes transferred %d",
+                    "[sock][%p] Send (%p) completion succeeded, bytes transferred %d",
                     SocketContext, SendContext, SentByteCount);
             }
         }
@@ -3462,7 +3462,7 @@ Return Value:
                         RemoteAddress);
 
                 if (QUIC_FAILED(Status)) {
-                    LogError("DAL: QuicDataPathBindingPendSend() failed.");
+                    LogError("[ dal] QuicDataPathBindingPendSend() failed.");
                     goto Exit;
                 }
 
@@ -3470,7 +3470,7 @@ Return Value:
                 goto Exit;
             } else {
                 Status = errno;
-                LogError("DAL: sendmsg() failed, status %u.", Status);
+                LogError("[ dal] sendmsg() failed, status %u.", Status);
                 goto Exit;
             }
         } else {
@@ -3479,7 +3479,7 @@ Return Value:
             //
 
             LogVerbose(
-                "DAL:  [sock][%p] Send (%p) completion succeeded, bytes transferred %d",
+                "[sock][%p] Send (%p) completion succeeded, bytes transferred %d",
                 SocketContext, SendContext, SentByteCount);
         }
     }
@@ -3605,7 +3605,7 @@ Return Value:
     QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
     if (RemoteAddr->si_family == AF_INET) {
-        LogVerbose("DAL: [sock][%p] Received [%zd] (buflen=[%" PRIu16 "]) bytes Src=[%s:%" PRIu16 "] Dst=[%s:%" PRIu16 "], bind=[%p].",
+        LogVerbose("[sock][%p] Received [%zd] (buflen=[%" PRIu16 "]) bytes Src=[%s:%" PRIu16 "] Dst=[%s:%" PRIu16 "], bind=[%p].",
                    SocketContext, BytesTransferred,
                    RecvPacket->BufferLength,
                    inet_ntop(AF_INET, &RemoteAddr->Ipv4.sin_addr, RemoteInet6AddrStr, INET_ADDRSTRLEN),
@@ -3614,7 +3614,7 @@ Return Value:
                    ntohs(LocalAddr->Ipv4.sin_port),
                    SocketContext->Binding);
     } else {
-        LogVerbose("DAL: [sock][%p] Received [%zd] (buflen=[%" PRIu16 "]) bytes Src=[%s:%" PRIu16 "] Dst=[%s:%" PRIu16 "%%%" PRIu32 "], bind=[%p].",
+        LogVerbose("[sock][%p] Received [%zd] (buflen=[%" PRIu16 "]) bytes Src=[%s:%" PRIu16 "] Dst=[%s:%" PRIu16 "%%%" PRIu32 "], bind=[%p].",
                    SocketContext, BytesTransferred,
                    RecvPacket->BufferLength,
                    inet_ntop(AF_INET6, &RemoteAddr->Ipv6.sin6_addr, RemoteInet6AddrStr, INET6_ADDRSTRLEN),
@@ -3692,7 +3692,7 @@ Return Value:
                     -1));
 
         if (ReadyFdCount < 0) {
-            LogError("DAL: epoll_wait() failed, status %u.", errno);
+            LogError("[ dal] epoll_wait() failed, status %u.", errno);
 
             //
             // Treat this as a fatal error.
@@ -3708,7 +3708,7 @@ Return Value:
             if (ReadyFdPtr == &ProcContext->EventFd) {
 
                 if (EPOLLERR & EpollEvents[i].events) {
-                    LogError("DAL: EpollEvents failed, status %u.", errno);
+                    LogError("[ dal] EpollEvents failed, status %u.", errno);
                     continue;
                 }
 
@@ -3748,7 +3748,7 @@ Return Value:
                                 //
                                 break;
                             } else {
-                                LogError("DAL: recvmsg() failed, status %u.", errno);
+                                LogError("[ dal] recvmsg() failed, status %u.", errno);
                                 break;
                             }
                         } else {
@@ -3772,9 +3772,9 @@ Return Value:
                     Ret = getsockopt(SocketFd, SOL_SOCKET, SO_ERROR, &ErrNum, &OptLen);
 
                     if (Ret < 0) {
-                        LogError("DAL: getsockopt(SO_ERROR) failed.");
+                        LogError("[ dal] getsockopt(SO_ERROR) failed.");
                     } else {
-                        LogError("DAL: Socket event failed, status %u(%s).", ErrNum, strerror(ErrNum));
+                        LogError("[ dal] Socket event failed, status %u(%s).", ErrNum, strerror(ErrNum));
                     }
 
                     //

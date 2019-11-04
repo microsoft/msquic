@@ -1784,7 +1784,7 @@ Return Value:
     ThreadObj = QuicAlloc(sizeof(QUIC_THREAD));
 
     if (ThreadObj == NULL) {
-        LogError("PAL: Thread allocation failed.");
+        LogWarning("[qpal] Thread allocation failed.");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto exit;
     }
@@ -1792,7 +1792,7 @@ Return Value:
     Ret = pthread_create(&ThreadObj->Thread, NULL, Config->Callback, Config->Context);
 
     if (Ret != 0) {
-        LogError("PAL: pthread_create() failed.");
+        LogError("[qpal] pthread_create() failed.");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto exit;
     }
@@ -1909,58 +1909,13 @@ Return Value:
 
 --*/
 {
-    LogError("Assert:%s:%s:%d:%s", Expr, Func, Line, File);
-}
-
-
-char*
-QuicLogLevelToStr(
-    _In_ QUIC_LOG_LEVEL Level
-    )
-/*++
-
-Routine Description:
-
-    Converts QUIC log level enum to string.
-
-Arguments:
-
-    Level - The log level.
-
-Return Value:
-
-    The level string.
-
---*/
-{
-    switch(Level) {
-        case QUIC_LOG_DEV:
-            return "[Dev]";
-        case QUIC_LOG_VERBOSE:
-            return "[Verbose]";
-        case QUIC_LOG_INFO:
-            return "[Info]";
-        case QUIC_LOG_WARNING:
-            return "[Warn]";
-        case QUIC_LOG_ERROR:
-            return "[Error]";
-        case QUIC_LOG_PACKET_VERBOSE:
-            return "[PktVerbose]";
-        case QUIC_LOG_PACKET_INFO:
-            return "[PktInfo]";
-        case QUIC_LOG_PACKET_WARNING:
-            return "[PktWarn]";
-        default:
-            return "[Unk]";
-    }
-
-    return "Unk";
+    LogError("[Assert] %s:%s:%d:%s", Expr, Func, Line, File);
 }
 
 
 int
-QuicLogLevelToPrio(
-    _In_ QUIC_LOG_LEVEL Level
+QuicLogLevelToPriority(
+    _In_ QUIC_TRACE_LEVEL Level
     )
 /*++
 
@@ -1983,21 +1938,21 @@ Return Value:
     //
 
     switch(Level) {
-        case QUIC_LOG_DEV:
+        case QUIC_TRACE_LEVEL_DEV:
             return LOG_DEBUG;
-        case QUIC_LOG_VERBOSE:
+        case QUIC_TRACE_LEVEL_VERBOSE:
             return LOG_DEBUG;
-        case QUIC_LOG_INFO:
+        case QUIC_TRACE_LEVEL_INFO:
             return LOG_INFO;
-        case QUIC_LOG_WARNING:
+        case QUIC_TRACE_LEVEL_WARNING:
             return LOG_WARNING;
-        case QUIC_LOG_ERROR:
+        case QUIC_TRACE_LEVEL_ERROR:
             return LOG_ERR;
-        case QUIC_LOG_PACKET_VERBOSE:
+        case QUIC_TRACE_LEVEL_PACKET_VERBOSE:
             return LOG_DEBUG;
-        case QUIC_LOG_PACKET_INFO:
+        case QUIC_TRACE_LEVEL_PACKET_INFO:
             return LOG_INFO;
-        case QUIC_LOG_PACKET_WARNING:
+        case QUIC_TRACE_LEVEL_PACKET_WARNING:
             return LOG_WARNING;
         default:
             return LOG_DEBUG;
@@ -2008,11 +1963,8 @@ Return Value:
 
 
 void
-QuicSysLogWriteLog(
-    _In_ QUIC_LOG_LEVEL Level,
-    _In_ const char* File,
-    _In_ int Line,
-    _In_ const char* Func,
+QuicSysLogWrite(
+    _In_ QUIC_TRACE_LEVEL Level,
     _In_ const char* Fmt,
     ...
     )
@@ -2026,12 +1978,6 @@ Arguments:
 
     Level - The log level.
 
-    File - The filename that logged the message.
-
-    Line - The line number within the file that logged the message.
-
-    Func - The function name that logged the message.
-
     Fmt - The log fmt.
 
 Return Value:
@@ -2040,39 +1986,20 @@ Return Value:
 
 --*/
 {
-    char Buffer[QUIC_MAX_LOG_MSG_LEN] = {0};
-    char *LogLevelStr = QuicLogLevelToStr(Level);
-    int Prio = QuicLogLevelToPrio(Level);
-    int Res = 0;
     va_list Args = {0};
 
     if (PlatDispatch != NULL) {
         va_start(Args, Fmt);
-        PlatDispatch->Log(Level, File, Line, Func, Fmt, Args);
+        PlatDispatch->Log(Level, Fmt, Args);
         va_end(Args);
         return;
     }
 
-    if (Fmt != NULL) {
-        va_start(Args, Fmt);
-        Res = vsnprintf(Buffer, sizeof(Buffer), Fmt, Args);
-        va_end(Args);
-
-        if (Res == -1) {
-            //
-            // If vsnprintf() fails for any reason, then do a naive multi line
-            // logging instead of losing the log message.
-            //
-
-            va_start(Args, Fmt);
-            syslog(LOG_MAKEPRI(LOG_DAEMON, Prio), "QUIC%s: %s() %s:%d", LogLevelStr, Func, File, Line);
-            vsyslog(LOG_MAKEPRI(LOG_DAEMON, Prio), Fmt, Args);
-            va_end(Args);
-        } else {
-            syslog(LOG_MAKEPRI(LOG_DAEMON, Prio), "QUIC%s: %s %s() %s:%d", LogLevelStr, Buffer, Func, File, Line);
-        }
-
-    } else {
-        syslog(LOG_MAKEPRI(LOG_DAEMON, Prio), "QUIC%s: %s() %s:%d", LogLevelStr, Func, File, Line);
-    }
+    char Buffer[QUIC_MAX_LOG_MSG_LEN] = {0};
+    va_start(Args, Fmt);
+    (void)vsnprintf(Buffer, sizeof(Buffer), Fmt, Args);
+    va_end(Args);
+    syslog(
+        LOG_MAKEPRI(LOG_DAEMON, QuicLogLevelToPriority(Level)),
+        "[%u][quic]%s", syscall(__NR_gettid), Buffer);
 }

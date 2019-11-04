@@ -621,3 +621,8 @@ QuicConnGetDestCidFromSeq(
     _In_ QUIC_VAR_INT SequenceNumber,
     _In_ BOOLEAN RemoveFromList
     );
+
+uint8_t
+QuicPacketTraceType(
+    _In_ const QUIC_SENT_PACKET_METADATA* Metadata
+    );
