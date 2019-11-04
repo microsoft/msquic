@@ -9,8 +9,6 @@ Abstract:
 
 --*/
 
-#ifdef QUIC_BUILD_OPENSSL
-
 #define QUIC_TEST_APIS 1
 
 #include "platform_internal.h"
@@ -357,5 +355,3 @@ QuicPlatFreeSelfSignedCert(
 
     free(Params);
 }
-
-#endif // QUIC_BUILD_OPENSSL

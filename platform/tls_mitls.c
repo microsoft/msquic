@@ -9,8 +9,6 @@ Abstract:
 
 --*/
 
-#ifdef QUIC_BUILD_MITLS
-
 #include "platform_internal.h"
 
 #ifdef QUIC_LOGS_WPP
@@ -2744,5 +2742,3 @@ QuicHashCompute(
         InputLength);
     return QUIC_STATUS_SUCCESS;
 }
-
-#endif // QUIC_BUILD_MITLS

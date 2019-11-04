@@ -172,6 +172,9 @@ InterlockedIncrement64(
 #define strcpy_s(dst, dst_len, src) strcpy(dst, src) // TODO - Better solution for Linux
 int _strnicmp(const char * _Str1, const char * _Str2, size_t _MaxCount);
 
+#define _vsnprintf_s(buf, size, flag, format, ...) \
+    vsnprintf(buf, size, format, __VA_ARGS__)
+
 //
 // Assertion interfaces.
 //

@@ -11,9 +11,9 @@
 
 #include "quic_platform.h"
 
-#include <MsQuic.h>
-#include <MsQuicP.h>
-#include <MsQuicHelper.h>
+#include <msquic.h>
+#include <msquicp.h>
+#include <msquichelper.h>
 
 #include "PingStream.h"
 #include "PingConnection.h"

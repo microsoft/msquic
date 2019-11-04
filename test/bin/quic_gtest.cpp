@@ -73,7 +73,7 @@ public:
                 SelfSignedCertParams->Principal,
                 &Event,
                 GetSecConfigComplete))) {
-            QuicEventWaitForever(&Event);
+            QuicEventWaitForever(Event);
         }
         QuicEventUninitialize(Event);
         return SecurityConfig != nullptr;

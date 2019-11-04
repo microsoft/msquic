@@ -9,8 +9,6 @@ Abstract:
 
 --*/
 
-#ifdef QUIC_BUILD_STUB
-
 #define QUIC_TEST_APIS 1
 
 #include "platform_internal.h"
@@ -43,5 +41,3 @@ QuicPlatFreeSelfSignedCert(
 {
     free(Params);
 }
-
-#endif
