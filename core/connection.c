@@ -199,8 +199,12 @@ QuicConnInitialize(
             goto Error;
         }
     }
-    InitStep++; // Step 2
 
+    //
+    // N.B. Initializing packet space can fail part-way through, so it must be
+    //      cleaned up even if it doesn't complete. Do not separate it from
+    //      allocation.
+    //
     Status =
         QuicRangeInitialize(
             QUIC_MAX_RANGE_DECODE_ACKS,
@@ -208,7 +212,7 @@ QuicConnInitialize(
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
-    InitStep++; // Step 3
+    InitStep++; // Step 2
 
     if (Datagram == NULL) {
         Connection->State.Initialized = TRUE;
@@ -226,17 +230,16 @@ QuicConnInitialize(
 Error:
 
     switch (InitStep) {
-    case 3:
+    case 2:
         QuicRangeUninitialize(&Connection->DecodedAckRanges);
         __fallthrough;
-    case 2:
+    case 1:
         for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
             if (Connection->Packets[i] != NULL) {
                 QuicPacketSpaceUninitialize(Connection->Packets[i]);
             }
         }
-        __fallthrough;
-    case 1:
+
         Connection->State.HandleClosed = TRUE;
         Connection->State.Uninitialized = TRUE;
         if (Datagram != NULL) {

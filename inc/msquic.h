@@ -413,6 +413,18 @@ typedef struct _QUIC_STATISTICS {
     } Misc;
 } QUIC_STATISTICS;
 
+typedef struct _QUIC_LISTENER_STATISTICS {
+
+    uint64_t TotalAcceptedConnections;
+    uint64_t TotalRejectedConnections;
+
+    struct {
+        struct {
+            uint64_t DroppedPackets;
+        } Recv;
+    } Binding;
+} QUIC_LISTENER_STATISTICS;
+
 //
 // Functions for associating application contexts with QUIC handles.
 //
@@ -478,6 +490,7 @@ typedef enum QUIC_PARAM_LEVEL {
 // Parameters for QUIC_PARAM_LEVEL_LISTENER.
 //
 #define QUIC_PARAM_LISTENER_LOCAL_ADDRESS               0   // QUIC_ADDR
+#define QUIC_PARAM_LISTENER_STATS                       1   // QUIC_LISTENER_STATISTICS
 
 //
 // Parameters for QUIC_PARAM_LEVEL_CONNECTION.

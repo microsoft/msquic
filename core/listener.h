@@ -47,6 +47,12 @@ typedef struct _QUIC_LISTENER {
     //
     QUIC_LISTENER_CALLBACK_HANDLER ClientCallbackHandler;
 
+    //
+    // Stats for the Listener.
+    //
+    uint64_t TotalAcceptedConnections;
+    uint64_t TotalRejectedConnections;
+
 } QUIC_LISTENER, *PQUIC_LISTENER;
 
 //
