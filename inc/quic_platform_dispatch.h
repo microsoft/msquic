@@ -66,32 +66,10 @@ void
 typedef
 void
 (*QUIC_LOG)(
-    _In_ QUIC_LOG_LEVEL Level,
-    _In_ const char* File,
-    _In_ int Line,
-    _In_ const char* Func,
+    _In_ QUIC_TRACE_LEVEL Level,
     _In_ const char* Fmt,
     _In_ va_list args
     );
-
-typedef
-void
-(*QUIC_LOG_ASSERT)(
-    _In_z_ const char* File,
-    _In_ int Line,
-    _In_z_ const char* Func,
-    _In_z_ const char* Expr
-    );
-
-typedef
-void
-(*QUIC_TRACE_LOGGING_WRITE)(
-    _In_ const char* EventName,
-    _In_ const char* File,
-    _In_ int Line,
-    _In_ const char* Func
-    );
-
 
 typedef
 QUIC_RECV_DATAGRAM*

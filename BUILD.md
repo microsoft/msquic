@@ -28,6 +28,13 @@ reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\S
 
 - Run `..\artifacts\bin\Release\msquictest.exe`
 
+### Collecting logs
+
+- To start a trace, run `netsh trace start overwrite=yes report=dis correlation=dis traceFile=quic.etl maxSize=1024 provider={ff15e657-4f26-570e-88ab-0796b258d11c} level=0x5`
+- Run the repro.
+- To stop the trace, run `netsh trace stop`
+- To decode the `quic.etl` file, run **TODO**
+
 ## Building on Linux (or [WSL](https://docs.microsoft.com/en-us/windows/wsl/wsl2-install))
 
 - Run `mkdir bld && cd bld`
@@ -37,3 +44,12 @@ reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\S
 ### Running the tests
 
 - Run `../artifacts/bin/msquictest`
+
+### Collecting logs
+
+On Linux, MsQuic uses [syslog](http://man7.org/linux/man-pages/man3/syslog.3.html) for logging by default. To view the logs:
+
+- On **WSL**, run `sudo service rsyslog start` to make sure syslog is configured.
+- **Optionally**, run `sudo truncate -s 0 /var/log/syslog` to clear out the current log file.
+- Run the repro.
+- You can view the logs from the `/var/log/syslog` file.

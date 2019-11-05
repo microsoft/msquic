@@ -46,8 +46,8 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(QUIC_CXX_FLAGS "${QUIC_C_FLAGS}")
 else()
     # Custom build flags.
-    set(QUIC_C_FLAGS "-DQUIC_PLATFORM_LINUX -DQUIC_EVENTS_STUB -DQUIC_LOGS_SYSLOG -fms-extensions -fPIC -Wall  -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-value -pthread")
-    set(QUIC_CXX_FLAGS "-DQUIC_PLATFORM_LINUX -DQUIC_EVENTS_STUB -DQUIC_LOGS_SYSLOG -fms-extensions -fPIC -Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-value -Wno-sign-compare -Wno-format --std=c++0x -g -pthread")
+    set(QUIC_C_FLAGS "-DQUIC_PLATFORM_LINUX -DQUIC_EVENTS_SYSLOG -DQUIC_LOGS_SYSLOG -fms-extensions -fPIC -Wall  -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-value -pthread")
+    set(QUIC_CXX_FLAGS "-DQUIC_PLATFORM_LINUX -DQUIC_EVENTS_SYSLOG -DQUIC_LOGS_SYSLOG -fms-extensions -fPIC -Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-value -Wno-sign-compare -Wno-format --std=c++0x -g -pthread")
 endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/inc)
