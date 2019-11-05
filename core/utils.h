@@ -5,7 +5,7 @@
 
 --*/
 
-#if QUIC_TRACE_LEVEL_BUFFERS
+#if QUIC_LOG_BUFFERS
 //
 // Logs a buffer.
 //

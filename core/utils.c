@@ -15,9 +15,9 @@ Abstract:
 #include "utils.tmh"
 #endif
 
-#if QUIC_TRACE_LEVEL_BUFFERS
+#if QUIC_LOG_BUFFERS
 
-#define QUIC_TRACE_LEVEL_LINE_LENGTH 16
+#define QUIC_LOG_LINE_LENGTH 16
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
@@ -30,12 +30,12 @@ QuicLogBuffer(
     uint32_t Index = 0;
     while (Index < BufferLength)
     {
-        uint16_t Length = QUIC_TRACE_LEVEL_LINE_LENGTH;
+        uint16_t Length = QUIC_LOG_LINE_LENGTH;
         if (Index + Length > BufferLength) {
             Length = (uint16_t)(BufferLength - Index);
         }
         LogVerbose("%!HEXBUF!", LOG_HEXBUF(Buffer + Index, Length));
-        Index += QUIC_TRACE_LEVEL_LINE_LENGTH;
+        Index += QUIC_LOG_LINE_LENGTH;
     }
 }
 
