@@ -2001,5 +2001,5 @@ Return Value:
     va_end(Args);
     syslog(
         LOG_MAKEPRI(LOG_DAEMON, QuicLogLevelToPriority(Level)),
-        "[%u][quic]%s", syscall(__NR_gettid), Buffer);
+        "[%u][quic]%s", (uint32_t)syscall(__NR_gettid), Buffer);
 }

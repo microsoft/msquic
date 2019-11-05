@@ -72,25 +72,6 @@ void
     );
 
 typedef
-void
-(*QUIC_TRACE_LEVEL_ASSERT)(
-    _In_z_ const char* File,
-    _In_ int Line,
-    _In_z_ const char* Func,
-    _In_z_ const char* Expr
-    );
-
-typedef
-void
-(*QUIC_TRACE_LOGGING_WRITE)(
-    _In_ const char* EventName,
-    _In_ const char* File,
-    _In_ int Line,
-    _In_ const char* Func
-    );
-
-
-typedef
 QUIC_RECV_DATAGRAM*
 (*QUIC_DATAPATH_RECVCONTEXT_TO_RECVBUFFER)(
     _In_ const QUIC_RECV_PACKET* const RecvPacket
