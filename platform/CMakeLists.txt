@@ -39,3 +39,7 @@ add_library(platform STATIC ${SOURCES})
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_dependencies(platform MsQuicEtw)
 endif()
+
+if(QUIC_TLS STREQUAL "openssl")
+    add_dependencies(platform OpenSSL)
+endif()

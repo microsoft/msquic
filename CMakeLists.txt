@@ -22,7 +22,7 @@ enable_testing()
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(QUIC_TLS "schannel" CACHE STRING "TLS Library to use")
 else()
-    set(QUIC_TLS "stub" CACHE STRING "TLS Library to use")
+    set(QUIC_TLS "openssl" CACHE STRING "TLS Library to use")
 endif()
 
 option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
@@ -40,7 +40,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         OUTPUT ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.h
         COMMAND mc.exe -um -h ${CMAKE_SOURCE_DIR}/bld/inc -r ${CMAKE_SOURCE_DIR}/bld/inc ${CMAKE_SOURCE_DIR}/manifest/MsQuicEtw.man)
     add_custom_target(MsQuicEtw DEPENDS ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.h)
-    
+
     # Custom build flags.
     set(QUIC_C_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_STUB -DQUIC_NO_TAEF -DQUIC_0RTT_UNSUPPORTED /W4 /wd4100 /wd4101 /wd4189 /wd4458 /wd4459 /wd4702 /wd26451 /wd26812 /sdl")
     set(QUIC_CXX_FLAGS "${QUIC_C_FLAGS}")
@@ -48,6 +48,18 @@ else()
     # Custom build flags.
     set(QUIC_C_FLAGS "-DQUIC_PLATFORM_LINUX -DQUIC_EVENTS_SYSLOG -DQUIC_LOGS_SYSLOG -fms-extensions -fPIC -Wall  -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-value -pthread")
     set(QUIC_CXX_FLAGS "-DQUIC_PLATFORM_LINUX -DQUIC_EVENTS_SYSLOG -DQUIC_LOGS_SYSLOG -fms-extensions -fPIC -Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-value -Wno-sign-compare -Wno-format --std=c++0x -g -pthread")
+endif()
+
+if(QUIC_TLS STREQUAL "openssl")
+    # Configure and build OpenSSL.
+    add_custom_command(
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/openssl
+        OUTPUT ${CMAKE_SOURCE_DIR}/artifacts/openssl
+        COMMAND ./config enable-tls1_3 --prefix=${CMAKE_SOURCE_DIR}/artifacts/openssl
+        COMMAND make -j$(nproc)
+        COMMAND make install_sw)
+    add_custom_target(OpenSSL DEPENDS ${CMAKE_SOURCE_DIR}/artifacts/openssl)
+    include_directories(${CMAKE_SOURCE_DIR}/artifacts/openssl/include)
 endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/inc)
