@@ -20,7 +20,7 @@ Abstract:
 // The list is in priority order (highest to lowest).
 //
 const uint32_t QuicSupportedVersionList[] = {
-    QUIC_VERSION_DRAFT_23,
+    QUIC_VERSION_DRAFT_24,
     QUIC_VERSION_MS_1
 };
 
@@ -172,7 +172,7 @@ QuicPacketValidateInvariant(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
-QuicPacketValidateLongHeaderD23(
+QuicPacketValidateLongHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
     _In_ BOOLEAN IsServer,
     _Inout_ QUIC_RECV_PACKET* Packet,
@@ -220,6 +220,14 @@ QuicPacketValidateLongHeaderD23(
     uint16_t Offset = Packet->HeaderLength;
 
     if (Packet->LH->Type == QUIC_INITIAL) {
+        if (IsServer && Packet->BufferLength < QUIC_MIN_INITIAL_PACKET_LENGTH) {
+            //
+            // All client initial packets need to be padded to a minimum length.
+            //
+            QuicPacketLogDropWithValue(Owner, Packet, "Client Long header Initial packet too short", Packet->BufferLength);
+            return FALSE;
+        }
+
         QUIC_VAR_INT TokenLengthVarInt;
         if (!QuicVarIntDecode(
                 Packet->BufferLength,
@@ -283,7 +291,7 @@ QuicPacketValidateLongHeaderD23(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicPacketDecodeRetryTokenD23(
+QuicPacketDecodeRetryTokenV1(
     _In_ const QUIC_RECV_PACKET* const Packet,
     _Outptr_result_buffer_maybenull_(*TokenLength)
         const uint8_t** Token,
@@ -296,7 +304,7 @@ QuicPacketDecodeRetryTokenD23(
     QUIC_DBG_ASSERT(Packet->LH->Type == QUIC_INITIAL);
 
     uint16_t Offset =
-        sizeof(QUIC_LONG_HEADER_D23) +
+        sizeof(QUIC_LONG_HEADER_V1) +
         Packet->DestCIDLen +
         sizeof(uint8_t) +
         Packet->SourceCIDLen;
@@ -315,7 +323,7 @@ QuicPacketDecodeRetryTokenD23(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
-QuicPacketValidateShortHeaderD23(
+QuicPacketValidateShortHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
     _Inout_ QUIC_RECV_PACKET* Packet
     )
@@ -351,48 +359,6 @@ QuicPacketValidateShortHeaderD23(
     Packet->ValidatedHeaderVer = TRUE;
 
     return TRUE;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Success_(return != FALSE)
-BOOLEAN
-QuicPacketCanCreateNewConnection(
-    _In_ const void* Owner, // Binding or Connection depending on state
-    _In_ const QUIC_RECV_PACKET* const Packet
-    )
-{
-    BOOLEAN CreateNewConnection = FALSE;
-
-    QUIC_DBG_ASSERT(Packet->Invariant->IsLongHeader);
-    QUIC_DBG_ASSERT(QuicIsVersionSupported(Packet->Invariant->LONG_HDR.Version));
-
-    switch (Packet->Invariant->LONG_HDR.Version) {
-    case QUIC_VERSION_DRAFT_23:
-    case QUIC_VERSION_MS_1: {
-
-        if (Packet->LH->Type != QUIC_INITIAL) {
-            //
-            // Drop the packet because it's not allowed to create a new Connection.
-            //
-            QuicPacketLogDrop(Owner, Packet, "Non-initial packet not matched with a Connection");
-            break;
-        }
-
-        if (Packet->BufferLength < QUIC_MIN_INITIAL_PACKET_LENGTH) {
-            //
-            // All initial packets need to be padded to a minimum length.
-            //
-            QuicPacketLogDropWithValue(Owner, Packet,
-                "Long header Initial packet too short", Packet->BufferLength);
-            break;
-        }
-
-        CreateNewConnection = TRUE;
-        break;
-    }
-    }
-
-    return CreateNewConnection;
 }
 
 _Null_terminated_ const char*
@@ -454,10 +420,10 @@ QuicPacketLogHeader(
             break;
         }
 
-        case QUIC_VERSION_DRAFT_23:
+        case QUIC_VERSION_DRAFT_24:
         case QUIC_VERSION_MS_1: {
-            const QUIC_LONG_HEADER_D23 * const LongHdr =
-                (const QUIC_LONG_HEADER_D23 * const)Packet;
+            const QUIC_LONG_HEADER_V1 * const LongHdr =
+                (const QUIC_LONG_HEADER_V1 * const)Packet;
 
             QUIC_VAR_INT TokenLength;
             QUIC_VAR_INT Length;
@@ -548,12 +514,12 @@ QuicPacketLogHeader(
         const uint8_t* DestCID = Invariant->SHORT_HDR.DestCID;
 
         switch (Version) {
-        case QUIC_VERSION_DRAFT_23:
+        case QUIC_VERSION_DRAFT_24:
         case QUIC_VERSION_MS_1: {
-            const QUIC_SHORT_HEADER_D23 * const Header =
-                (const QUIC_SHORT_HEADER_D23 * const)Packet;
+            const QUIC_SHORT_HEADER_V1 * const Header =
+                (const QUIC_SHORT_HEADER_V1 * const)Packet;
 
-            Offset = sizeof(QUIC_SHORT_HEADER_D23) + DestCIDLen;
+            Offset = sizeof(QUIC_SHORT_HEADER_V1) + DestCIDLen;
 
             LogPacketInfo(
                 "[%c][%cX][%llu] SH DestCID:%s KP:%hu SB:%hu (Payload %hu bytes)",

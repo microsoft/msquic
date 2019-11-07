@@ -4280,7 +4280,7 @@ Return Value:
             SecretLen,
             (uint8_t *)OldSecret,
             SecretLen,
-            "traffic upd",
+            "quic ku",
             Md);
 
     if (!Ret) {

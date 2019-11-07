@@ -229,6 +229,17 @@ QuicPacketBuilderPrepare(
                 Builder->MinimumDatagramLength = NewDatagramLength;
             }
 
+        } else if (NewPacketType == QUIC_INITIAL &&
+            !QuicConnIsServer(Connection)) {
+
+            //
+            // Make sure to pad the packet if client Initial packets.
+            //
+            Builder->MinimumDatagramLength =
+                MaxUdpPayloadSizeForFamily(
+                    QuicAddrGetFamily(&Connection->RemoteAddress),
+                    QUIC_INITIAL_PACKET_LENGTH);
+
         } else if (IsPathMtuDiscovery) {
             Builder->MinimumDatagramLength = NewDatagramLength;
         }
@@ -270,10 +281,10 @@ QuicPacketBuilderPrepare(
             Builder->PacketNumberLength = 4; // TODO - Determine correct length based on BDP.
 
             switch (Connection->Stats.QuicVersion) {
-            case QUIC_VERSION_DRAFT_23:
+            case QUIC_VERSION_DRAFT_24:
             case QUIC_VERSION_MS_1:
                 Builder->HeaderLength =
-                    QuicPacketEncodeShortHeaderD23(
+                    QuicPacketEncodeShortHeaderV1(
                         &Builder->DestCID->CID,
                         Builder->Metadata->PacketNumber,
                         Builder->PacketNumberLength,
@@ -292,13 +303,13 @@ QuicPacketBuilderPrepare(
         } else { // Long Header
 
             switch (Connection->Stats.QuicVersion) {
-            case QUIC_VERSION_DRAFT_23:
+            case QUIC_VERSION_DRAFT_24:
             case QUIC_VERSION_MS_1:
             default:
                 Builder->HeaderLength =
-                    QuicPacketEncodeLongHeaderD23(
+                    QuicPacketEncodeLongHeaderV1(
                         Connection->Stats.QuicVersion,
-                        (QUIC_LONG_HEADER_TYPE_D23)NewPacketType,
+                        (QUIC_LONG_HEADER_TYPE_V1)NewPacketType,
                         &Builder->DestCID->CID,
                         &Builder->SourceCID->CID,
                         Connection->Send.InitialTokenLength,
@@ -625,7 +636,7 @@ QuicPacketBuilderFinalize(
 
     if (Builder->PacketType != SEND_PACKET_SHORT_HEADER_TYPE) {
         switch (Connection->Stats.QuicVersion) {
-        case QUIC_VERSION_DRAFT_23:
+        case QUIC_VERSION_DRAFT_24:
         case QUIC_VERSION_MS_1:
         default:
             QuicVarIntEncode2Bytes(

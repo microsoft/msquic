@@ -127,8 +127,8 @@ RunAttackRandom(
             QuicRandom(Length, SendBuffer->Buffer);
 
             if (ValidQuic) {
-                QUIC_LONG_HEADER_D23* Header =
-                    (QUIC_LONG_HEADER_D23*)SendBuffer->Buffer;
+                QUIC_LONG_HEADER_V1* Header =
+                    (QUIC_LONG_HEADER_V1*)SendBuffer->Buffer;
                 Header->IsLongHeader = 1;
                 Header->Type = QUIC_INITIAL;
                 Header->FixedBit = 1;
@@ -140,7 +140,7 @@ RunAttackRandom(
                 Header->DestCID[8] = 8;
                 Header->DestCID[17] = 0;
                 QuicVarIntEncode(
-                    Length - (MIN_LONG_HEADER_LENGTH_D23 + 19),
+                    Length - (MIN_LONG_HEADER_LENGTH_V1 + 19),
                     Header->DestCID + 18);
             }
 
@@ -202,8 +202,8 @@ RunAttackValidInitial(
         &HeaderLength);
     uint16_t PacketNumberOffset = HeaderLength - sizeof(uint32_t);
 
-    uint64_t* DestCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_D23));
-    uint64_t* SrcCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_D23) + sizeof(uint64_t) + sizeof(uint8_t));
+    uint64_t* DestCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1));
+    uint64_t* SrcCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1) + sizeof(uint64_t) + sizeof(uint8_t));
 
     QuicRandom(sizeof(uint64_t), (uint8_t*)DestCid);
     QuicRandom(sizeof(uint64_t), (uint8_t*)SrcCid);
@@ -422,7 +422,7 @@ main(
             goto Error;
         }
 
-        const char* Alpn = "h3-23";
+        const char* Alpn = "h3-24";
         (void)TryGetValue(argc, argv, "alpn", &Alpn);
 
         const char* ServerName = nullptr;

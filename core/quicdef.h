@@ -185,7 +185,7 @@ typedef struct _QUIC_PACKET_BUILDER QUIC_PACKET_BUILDER;
 //
 // The maximum crypto FC window we will use/allow for client buffers.
 //
-#define QUIC_MAX_TLS_CLIENT_SEND_BUFFER         (1 * 1024)
+#define QUIC_MAX_TLS_CLIENT_SEND_BUFFER         (4 * 1024)
 
 //
 // The maximum crypto FC window we will use/allow for server buffers.
@@ -257,6 +257,11 @@ QUIC_STATIC_ASSERT(
 // The default connection idle timeout (in milliseconds).
 //
 #define QUIC_DEFAULT_IDLE_TIMEOUT               30000
+
+//
+// The default connection idle timeout during the handshake (in milliseconds).
+//
+#define QUIC_DEFAULT_HANDSHAKE_IDLE_TIMEOUT     10000
 
 //
 // The default value for keep alives being enabled or not.
@@ -372,6 +377,7 @@ QUIC_STATIC_ASSERT(
 #define QUIC_SETTING_DISCONNECT_TIMEOUT         "DisconnectTimeoutMs"
 #define QUIC_SETTING_KEEP_ALIVE_INTERVAL        "KeepAliveIntervalMs"
 #define QUIC_SETTING_IDLE_TIMEOUT               "IdleTimeoutMs"
+#define QUIC_SETTING_HANDSHAKE_IDLE_TIMEOUT     "HandshakeIdleTimeoutMs"
 
 #define QUIC_SETTING_MAX_TLS_CLIENT_SEND_BUFFER "TlsClientMaxSendBuffer"
 #define QUIC_SETTING_MAX_TLS_SERVER_SEND_BUFFER "TlsServerMaxSendBuffer"

@@ -25,8 +25,7 @@ Environment:
 #include <stdio.h>
 #include <stdlib.h>
 
-#define ALPN_HTTP_OVER_QUIC_D23 "hq-23"
-#define ALPN_HTTP_OVER_QUIC     ALPN_HTTP_OVER_QUIC_D23
+#define ALPN_HTTP_OVER_QUIC     "hq-24"
 
 //
 // Converts the QUIC Status Code to a string for console output.

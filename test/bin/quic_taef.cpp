@@ -745,12 +745,14 @@ class QuicHandshake : public TestClass<QuicHandshake>
             TEST_METHOD_PROPERTY(L"Description", L"Connects a client and server.")
             TEST_METHOD_PROPERTY(L"Data:ServerStatelessRetry", L"{0,1}")
             TEST_METHOD_PROPERTY(L"Data:MultipleALPNs", L"{0,1}")
+            TEST_METHOD_PROPERTY(L"Data:MultiPacketClientInitial", L"{0,1}")
         END_TEST_METHOD_PROPERTIES()
 
-        int Family, ServerStatelessRetry, MultipleALPNs;
+        int Family, ServerStatelessRetry, MultipleALPNs, MultiPacketClientInitial;
         VERIFY_SUCCEEDED(TestData::TryGetValue(L"Family", Family));
         VERIFY_SUCCEEDED(TestData::TryGetValue(L"ServerStatelessRetry", ServerStatelessRetry));
         VERIFY_SUCCEEDED(TestData::TryGetValue(L"MultipleALPNs", MultipleALPNs));
+        VERIFY_SUCCEEDED(TestData::TryGetValue(L"MultiPacketClientInitial", MultiPacketClientInitial));
 
         CompartmentIdScope compartmentIdScope;
         if (IsTestingKernelMode()) {
@@ -761,7 +763,8 @@ class QuicHandshake : public TestClass<QuicHandshake>
                 0,  // ClientRebind
                 0,  // ChangeMaxStreamID
                 (UINT8)MultipleALPNs,
-                0   // AsyncSecConfig
+                0,  // AsyncSecConfig
+                (UINT8)MultiPacketClientInitial
             };
             VERIFY_NO_ERROR(
                 TestClient.SendIOCTL(
@@ -775,7 +778,8 @@ class QuicHandshake : public TestClass<QuicHandshake>
                 false,  // ClientRebind
                 false,  // ChangeMaxStreamID
                 MultipleALPNs != 0,
-                false   // AsyncSecConfig
+                false,  // AsyncSecConfig
+                MultiPacketClientInitial != 0
                 );
         }
     }
@@ -814,7 +818,8 @@ class QuicHandshake : public TestClass<QuicHandshake>
                 false,  // ClientRebind
                 false,  // ChangeMaxStreamID
                 false,  // MultipleALPNs
-                false   // AsyncSecConfig
+                false,  // AsyncSecConfig
+                false   // MultiPacketClientInitial
                 );
         }
     }
@@ -875,7 +880,8 @@ class QuicHandshake : public TestClass<QuicHandshake>
                 true,   // ClientRebind
                 false,  // ChangeMaxStreamID
                 false,  // MultipleALPNs
-                false   // AsyncSecConfig
+                false,  // AsyncSecConfig
+                false   // MultiPacketClientInitial
                 );
         }
     }
@@ -912,7 +918,8 @@ class QuicHandshake : public TestClass<QuicHandshake>
                 false,  // ClientRebind
                 true,   // ChangeMaxStreamID
                 false,  // MultipleALPNs
-                false   // AsyncSecConfig
+                false,  // AsyncSecConfig
+                false   // MultiPacketClientInitial
                 );
         }
     }
@@ -953,7 +960,8 @@ class QuicHandshake : public TestClass<QuicHandshake>
                 false,  // ClientRebind
                 false,  // ChangeMaxStreamID
                 MultipleALPNs != 0,
-                true    // AsyncSecConfig
+                true,   // AsyncSecConfig,
+                false   // MultiPacketClientInitial
                 );
         }
     }

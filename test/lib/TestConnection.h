@@ -171,6 +171,10 @@ public:
     QUIC_STATUS ForceKeyUpdate();
     QUIC_STATUS ForceCidUpdate();
 
+    QUIC_STATUS SetTestTransportParameter(
+        _In_ const QUIC_PRIVATE_TRANSPORT_PARAMETER* TransportParameter
+        );
+
     uint32_t GetQuicVersion();
     QUIC_STATUS SetQuicVersion(uint32_t value);
 

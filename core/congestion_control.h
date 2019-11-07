@@ -104,12 +104,6 @@ QuicCongestionControlSetExemption(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicCongestionControlInitialize(
-    _In_ PQUIC_CONGESTION_CONTROL Cc
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicCongestionControlApplySettings(
     _In_ PQUIC_CONGESTION_CONTROL Cc,
     _In_ const QUIC_SETTINGS* Settings
     );

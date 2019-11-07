@@ -1375,7 +1375,6 @@ QuicTlsWriteDataToSchannel(
     }
 
     SUBSCRIBE_GENERIC_TLS_EXTENSION SubscribeExt;
-    uint8_t PeerTPBuffer[256];
     if (*InBufferLength != 0 && !TlsContext->PeerTransportParamsReceived) {
         //
         // Subscribe to get the peer's transport parameters, if available.
@@ -1396,8 +1395,8 @@ QuicTlsWriteDataToSchannel(
         // Another (output) secbuffer for the result of the subscription.
         //
         OutSecBuffers[OutSecBufferDesc.cBuffers].BufferType = SECBUFFER_SUBSCRIBE_GENERIC_TLS_EXTENSION;
-        OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = sizeof(PeerTPBuffer);
-        OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = PeerTPBuffer;
+        OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = *InBufferLength;
+        OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = (void*)InBuffer; // Overwrite the input buffer with the extension.
         OutSecBufferDesc.cBuffers++;
     }
 
@@ -2406,7 +2405,7 @@ QuicPacketKeyUpdate(
     Status =
         QuicHkdfExpandLabel(
             Hash,
-            "traffic upd",
+            "quic ku",
             SecretLength,
             SecretLength,
             NewTrafficSecret.Secret);

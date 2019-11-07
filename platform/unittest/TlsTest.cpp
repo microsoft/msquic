@@ -201,6 +201,42 @@ struct TlsTest : public WEX::TestClass<TlsTest>
 
     private:
 
+        static
+        uint32_t
+        TlsReadUint24(
+            _In_reads_(3) const uint8_t* Buffer
+            )
+        {
+            return
+                (((uint32_t)Buffer[0] << 16) +
+                ((uint32_t)Buffer[1] << 8) +
+                (uint32_t)Buffer[2]);
+        }
+
+        static
+        uint32_t
+        GetCompleteTlsMessagesLength(
+            _In_reads_(BufferLength)
+                const uint8_t* Buffer,
+            _In_ uint32_t BufferLength
+            )
+        {
+            uint32_t MessagesLength = 0;
+            do {
+                if (BufferLength < 4) {
+                    break;
+                }
+                uint32_t MessageLength = 4 + TlsReadUint24(Buffer + 1);
+                if (BufferLength < MessageLength) {
+                    break;
+                }
+                MessagesLength += MessageLength;
+                Buffer += MessageLength;
+                BufferLength -= MessageLength;
+            } while (BufferLength > 0);
+            return MessagesLength;
+        }
+
         QUIC_TLS_RESULT_FLAGS
         ProcessData(
             _In_ QUIC_PACKET_KEY_TYPE BufferKey,
@@ -214,6 +250,8 @@ struct TlsTest : public WEX::TestClass<TlsTest>
             VERIFY_IS_TRUE(Buffer != nullptr || *BufferLength == 0);
             if (Buffer != nullptr) {
                 VERIFY_ARE_EQUAL(BufferKey, State.ReadKey);
+                *BufferLength = GetCompleteTlsMessagesLength(Buffer, *BufferLength);
+                if (*BufferLength == 0) return (QUIC_TLS_RESULT_FLAGS)0;
             }
 
             auto Result =
