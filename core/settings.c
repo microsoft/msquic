@@ -60,6 +60,9 @@ QuicSettingsSetDefault(
     if (!Settings->AppSet.IdleTimeoutMs) {
         Settings->IdleTimeoutMs = QUIC_DEFAULT_IDLE_TIMEOUT;
     }
+    if (!Settings->AppSet.HandshakeIdleTimeoutMs) {
+        Settings->HandshakeIdleTimeoutMs = QUIC_DEFAULT_HANDSHAKE_IDLE_TIMEOUT;
+    }
     if (!Settings->AppSet.BidiStreamCount) {
         Settings->BidiStreamCount = 0;
     }
@@ -131,6 +134,9 @@ QuicSettingsCopy(
     }
     if (!Settings->AppSet.IdleTimeoutMs) {
         Settings->IdleTimeoutMs = ParentSettings->IdleTimeoutMs;
+    }
+    if (!Settings->AppSet.HandshakeIdleTimeoutMs) {
+        Settings->HandshakeIdleTimeoutMs = ParentSettings->HandshakeIdleTimeoutMs;
     }
     if (!Settings->AppSet.BidiStreamCount) {
         Settings->BidiStreamCount = ParentSettings->BidiStreamCount;
@@ -310,6 +316,21 @@ QuicSettingsLoad(
         }
         if (Settings->IdleTimeoutMs > QUIC_VAR_INT_MAX) {
             Settings->IdleTimeoutMs = QUIC_DEFAULT_IDLE_TIMEOUT;
+        }
+    }
+
+    if (!Settings->AppSet.HandshakeIdleTimeoutMs) {
+        ValueLen = sizeof(Settings->HandshakeIdleTimeoutMs);
+        QuicStorageReadValue(
+            Storage,
+            QUIC_SETTING_HANDSHAKE_IDLE_TIMEOUT,
+            (uint8_t*)&Settings->HandshakeIdleTimeoutMs,
+            &ValueLen);
+        if (ValueLen == sizeof(uint32_t)) {
+            Settings->HandshakeIdleTimeoutMs = *(uint32_t*)&Settings->HandshakeIdleTimeoutMs;
+        }
+        if (Settings->HandshakeIdleTimeoutMs > QUIC_VAR_INT_MAX) {
+            Settings->HandshakeIdleTimeoutMs = QUIC_DEFAULT_IDLE_TIMEOUT;
         }
     }
 

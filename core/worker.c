@@ -238,10 +238,11 @@ QuicWorkerQueueOperation(
     QuicDispatchLockRelease(&Worker->Lock);
 
     if (Operation != NULL) {
-        QuicPacketLogDrop(
-            Operation->STATELESS.Context->Binding,
-            QuicDataPathRecvDatagramToRecvPacket(Operation->STATELESS.Context->Datagram),
-            "Worker operation limit reached");
+        const QUIC_BINDING* Binding = Operation->STATELESS.Context->Binding;
+        const QUIC_RECV_PACKET* Packet =
+            QuicDataPathRecvDatagramToRecvPacket(
+                Operation->STATELESS.Context->Datagram);
+        QuicPacketLogDrop(Binding, Packet, "Worker operation limit reached");
         QuicOperationFree(Worker, Operation);
     } else if (WakeWorkerThread) {
         QuicEventSet(Worker->Ready);

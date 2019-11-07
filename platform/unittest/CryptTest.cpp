@@ -257,7 +257,7 @@ struct CryptTest : public WEX::TestClass<CryptTest>
         QUIC_PACKET_KEY* NewPacketKey = NULL;
         VERIFY_QUIC_SUCCESS(QuicPacketKeyUpdate(PacketKey, &NewPacketKey));
 
-        const QuicBuffer ExpectedTrafficSecret("6332e2593a296a14c6899a806d3cb01f8565c17a5002e5ab4bcd2e79a6811b84");
+        const QuicBuffer ExpectedTrafficSecret("53dd8c90e78fc6ea92864f791865be060d933be0824befcb2b59ac901f306035");
         VERIFY_ARE_EQUAL(0, memcmp(ExpectedTrafficSecret.Data, NewPacketKey->TrafficSecret[0].Secret, ExpectedTrafficSecret.Length));
 
         QuicPacketKeyFree(State.ReadKeys[0]);

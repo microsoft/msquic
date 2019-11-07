@@ -114,9 +114,18 @@ MsQuicOpenPriv(
 //
 // The different private parameters for QUIC_PARAM_LEVEL_CONNECTION.
 //
+
+typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
+    uint16_t Type;
+    uint16_t Length;
+    _Field_size_(Length)
+    const uint8_t* Buffer;
+} QUIC_PRIVATE_TRANSPORT_PARAMETER;
+
 #define QUIC_PARAM_CONN_RESUMPTION_STATE                0x80000001  // uint8_t*
 #define QUIC_PARAM_CONN_FORCE_KEY_UPDATE                0x80000002  // No payload
 #define QUIC_PARAM_CONN_FORCE_CID_UPDATE                0x80000003  // No payload
+#define QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER        0x80000004  // QUIC_PRIVATE_TRANSPORT_PARAMETER
 
 #if defined(__cplusplus)
 }

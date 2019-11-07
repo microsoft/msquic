@@ -40,9 +40,9 @@ typedef struct _QUIC_RECV_PACKET {
         const uint8_t* Buffer;
         const struct _QUIC_HEADER_INVARIANT* Invariant;
         const struct _QUIC_VERSION_NEGOTIATION_PACKET* VerNeg;
-        const struct _QUIC_LONG_HEADER_D23* LH;
-        const struct _QUIC_RETRY_D23* Retry;
-        const struct _QUIC_SHORT_HEADER_D23* SH;
+        const struct _QUIC_LONG_HEADER_V1* LH;
+        const struct _QUIC_RETRY_V1* Retry;
+        const struct _QUIC_SHORT_HEADER_V1* SH;
     };
 
     //

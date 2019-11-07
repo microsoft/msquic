@@ -2427,7 +2427,7 @@ QuicPacketKeyUpdate(
     Status =
         QuicHkdfExpandLabel(
             Hash,
-            "traffic upd",
+            "quic ku",
             SecretLength,
             SecretLength,
             NewTrafficSecret.Secret);

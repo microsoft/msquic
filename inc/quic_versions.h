@@ -17,7 +17,7 @@ Abstract:
 #define QUIC_VERSION_VER_NEG    0x00000000      // Version for 'Version Negotiation'
 #define QUIC_VERSION_1          0x01000000      // First official version
 #define QUIC_VERSION_MS_1       0x0000cdab      // First Microsoft version (currently same as latest draft)
-#define QUIC_VERSION_DRAFT_23   0x170000ff      // IETF draft 23
+#define QUIC_VERSION_DRAFT_24   0x180000ff      // IETF draft 24
 
 //
 // The QUIC version numbers, in host byte order.
@@ -25,7 +25,7 @@ Abstract:
 #define QUIC_VERSION_VER_NEG_H  0x00000000      // Version for 'Version Negotiation'
 #define QUIC_VERSION_1_H        0x00000001      // First official version
 #define QUIC_VERSION_1_MS_H     0xabcd0000      // First Microsoft version (-1412628480 in decimal)
-#define QUIC_VERSION_DRAFT_23_H 0xff000017      // IETF draft 23
+#define QUIC_VERSION_DRAFT_24_H 0xff000018      // IETF draft 24
 
 //
 // Represents a reserved version value; used to force version negotation.
@@ -36,8 +36,8 @@ Abstract:
 //
 // The latest QUIC version number.
 //
-#define QUIC_VERSION_LATEST     QUIC_VERSION_DRAFT_23
-#define QUIC_VERSION_LATEST_H   QUIC_VERSION_DRAFT_23_H
+#define QUIC_VERSION_LATEST     QUIC_VERSION_DRAFT_24
+#define QUIC_VERSION_LATEST_H   QUIC_VERSION_DRAFT_24_H
 
 inline
 BOOLEAN
@@ -47,7 +47,7 @@ QuicIsVersionSupported(
 {
     switch (Version) {
     case QUIC_VERSION_VER_NEG:
-    case QUIC_VERSION_DRAFT_23:
+    case QUIC_VERSION_DRAFT_24:
     case QUIC_VERSION_MS_1:
         return TRUE;
     default:

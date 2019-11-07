@@ -143,6 +143,11 @@ typedef union _QUIC_CONNECTION_STATE {
         //
         BOOLEAN InitiatedCidUpdate : 1;
 
+        //
+        // Indicate the TestTransportParameter variable has been set by the app.
+        //
+        BOOLEAN TestTransportParameterSet : 1;
+
 #ifdef QuicVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).
@@ -366,9 +371,14 @@ typedef struct _QUIC_CONNECTION {
     uint32_t MaxAckDelayMs;
 
     //
-    // The idle timeout period (in milliseconds) for receiving data.
+    // The idle timeout period (in milliseconds).
     //
     uint64_t IdleTimeoutMs;
+
+    //
+    // The handshake idle timeout period (in milliseconds).
+    //
+    uint64_t HandshakeIdleTimeoutMs;
 
     //
     // The number of microseconds that must elapse before the connection will be
@@ -515,6 +525,11 @@ typedef struct _QUIC_CONNECTION {
     // Statistics
     //
     QUIC_CONN_STATS Stats;
+
+    //
+    // Mostly test specific state.
+    //
+    QUIC_PRIVATE_TRANSPORT_PARAMETER TestTransportParameter;
 
 } QUIC_CONNECTION, *PQUIC_CONNECTION;
 
@@ -903,6 +918,7 @@ QuicConnQueueOper(
     _In_ PQUIC_CONNECTION Connection,
     _In_ PQUIC_OPERATION Oper
     );
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueHighestPriorityOper(

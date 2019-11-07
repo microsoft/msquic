@@ -197,6 +197,20 @@ TestConnection::ForceCidUpdate()
             nullptr);
 }
 
+QUIC_STATUS
+TestConnection::SetTestTransportParameter(
+    _In_ const QUIC_PRIVATE_TRANSPORT_PARAMETER* TransportParameter
+    )
+{
+    return
+        MsQuic->SetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER,
+            sizeof(*TransportParameter),
+            TransportParameter);
+}
+
 uint32_t
 TestConnection::GetQuicVersion()
 {

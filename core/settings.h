@@ -19,6 +19,7 @@ typedef struct _QUIC_SETTINGS {
     uint32_t MaxAckDelayMs;
     uint32_t DisconnectTimeoutMs;
     uint32_t KeepAliveIntervalMs;
+    uint64_t HandshakeIdleTimeoutMs;
     uint64_t IdleTimeoutMs;
     uint16_t BidiStreamCount;
     uint16_t UnidiStreamCount;
@@ -43,6 +44,7 @@ typedef struct _QUIC_SETTINGS {
         BOOLEAN DisconnectTimeoutMs : 1;
         BOOLEAN KeepAliveIntervalMs : 1;
         BOOLEAN IdleTimeoutMs : 1;
+        BOOLEAN HandshakeIdleTimeoutMs : 1;
         BOOLEAN BidiStreamCount : 1;
         BOOLEAN UnidiStreamCount : 1;
         BOOLEAN TlsClientMaxSendBuffer : 1;

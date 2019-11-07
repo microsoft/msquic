@@ -331,9 +331,9 @@ StreamCountToID(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
-QuicPacketEncodeLongHeaderD23(
+QuicPacketEncodeLongHeaderV1(
     _In_ uint32_t Version, // Allows for version negotiation forcing
-    _In_ QUIC_LONG_HEADER_TYPE_D23 PacketType,
+    _In_ QUIC_LONG_HEADER_TYPE_V1 PacketType,
     _In_ const QUIC_CID* const DestCID,
     _In_ const QUIC_CID* const SourceCID,
     _In_ uint16_t TokenLength,
@@ -350,7 +350,7 @@ QuicPacketEncodeLongHeaderD23(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
-QuicPacketEncodeShortHeaderD23(
+QuicPacketEncodeShortHeaderV1(
     _In_ const QUIC_CID* const DestCID,
     _In_ uint64_t PacketNumber,
     _In_ uint8_t PacketNumberLength,
@@ -364,7 +364,7 @@ QuicPacketEncodeShortHeaderD23(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
-QuicPacketEncodeRetryD23(
+QuicPacketEncodeRetryV1(
     _In_ uint32_t Version,
     _In_reads_(DestCIDLength) const uint8_t* const DestCID,
     _In_ uint8_t DestCIDLength,

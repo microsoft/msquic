@@ -179,7 +179,8 @@ TEST_P(WithHandshakeArgs1, Connect) {
         false,  // ClientRebind
         false,  // ChangeMaxStreamID
         GetParam().MultipleALPNs,
-        false   // AsyncSecConfig
+        false,  // AsyncSecConfig
+        GetParam().MultipleInitials
     );
 }
 
@@ -191,7 +192,8 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
         false,  // ClientRebind
         false,  // ChangeMaxStreamID
         false,  // MultipleALPNs
-        false   // AsyncSecConfig
+        false,  // AsyncSecConfig
+        false   // MultiPacketClientInitial
     );
 }
 
@@ -207,7 +209,8 @@ TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
         false,  // ClientRebind
         true,   // ChangeMaxStreamID
         false,  // MultipleALPNs
-        false   // AsyncSecConfig
+        false,  // AsyncSecConfig
+        false   // MultiPacketClientInitial
     );
 }
 
@@ -219,7 +222,8 @@ TEST_P(WithHandshakeArgs1, AsyncSecurityConfig) {
         false,  // ClientRebind
         false,  // ChangeMaxStreamID
         GetParam().MultipleALPNs,
-        true   // AsyncSecConfig
+        true,   // AsyncSecConfig
+        false   // MultiPacketClientInitial
     );
 }
 
