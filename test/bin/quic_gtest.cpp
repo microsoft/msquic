@@ -180,7 +180,7 @@ TEST_P(WithHandshakeArgs1, Connect) {
         false,  // ChangeMaxStreamID
         GetParam().MultipleALPNs,
         false,  // AsyncSecConfig
-        GetParam().MultipleInitials
+        GetParam().MultiPacketClientInitial
     );
 }
 
