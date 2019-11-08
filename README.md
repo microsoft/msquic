@@ -4,6 +4,8 @@ MsQuic
 MsQuic is an implementation of the [IETF QUIC](https://tools.ietf.org/html/draft-ietf-quic-transport)
 protocol by Microsoft. It is a cross platform, general purpose QUIC library written in C.
 
+[![Build Status](https://microsoft.visualstudio.com/OS/_apis/build/status/microsoft.msquic?branchName=master)](https://microsoft.visualstudio.com/OS/_build/latest?definitionId=45975&branchName=master)
+
 ## Protocol Features
 
 QUIC has many benefits when compared to existing TLS over TCP scenarios:
