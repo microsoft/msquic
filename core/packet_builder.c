@@ -142,6 +142,7 @@ QuicPacketBuilderPrepare(
         DatagramSize = (uint16_t)Connection->Send.Allowance;
     }
     QUIC_DBG_ASSERT(!IsPathMtuDiscovery || !IsTailLossProbe); // Never both.
+    QUIC_DBG_ASSERT(NewPacketKey != NULL);
 
     //
     // Next, make sure the current QUIC packet matches the new packet type. If
@@ -513,6 +514,8 @@ QuicPacketBuilderFinalizeHeaderProtection(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
+    QUIC_DBG_ASSERT(Builder->Key != NULL);
+
     QUIC_STATUS Status;
     if (QUIC_FAILED(
         Status =
@@ -589,6 +592,7 @@ QuicPacketBuilderFinalize(
     QUIC_DBG_ASSERT(Builder->Datagram->Length >= Builder->MinimumDatagramLength);
     QUIC_DBG_ASSERT(Builder->Datagram->Length >= (uint32_t)(Builder->DatagramLength + Builder->EncryptionOverhead));
     QUIC_DBG_ASSERT(Builder->Metadata->FrameCount != 0);
+    QUIC_DBG_ASSERT(Builder->Key != NULL);
 
     uint8_t* Header =
         (uint8_t*)Builder->Datagram->Buffer + Builder->PacketStart;
@@ -774,6 +778,7 @@ QuicPacketBuilderFinalize(
             //
             // Update the packet key in use by the send builder.
             //
+            QUIC_DBG_ASSERT(Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL);
             Builder->Key = Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT];
         }
     }

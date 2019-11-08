@@ -449,7 +449,16 @@ QuicSendWriteFrames(
     }
 
     if (Send->SendFlags & (QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE)) {
-        BOOLEAN IsApplicationClose = !!(Send->SendFlags & QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE);
+        BOOLEAN IsApplicationClose =
+            !!(Send->SendFlags & QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE);
+        if (Connection->State.ClosedRemotely) {
+            //
+            // Application closed should only be the origination of the
+            // connection close. If we're closed remotely already, we should
+            // just acknowledge the close with a connection close frame.
+            //
+            IsApplicationClose = FALSE;
+        }
 
         QUIC_CONNECTION_CLOSE_EX Frame = {
             IsApplicationClose,
@@ -458,23 +467,6 @@ QuicSendWriteFrames(
             Connection->CloseReasonPhrase == NULL ? 0 : strlen(Connection->CloseReasonPhrase),
             Connection->CloseReasonPhrase
         };
-
-        if (Connection->State.ClosedRemotely) {
-            //
-            // If we are already closed remotely, then that means we are just
-            // responding to (acknowledging in a sense) a received close frame.
-            // In that case, we just send an error code value of 0. Otherwise,
-            // we send whatever error code we have cached.
-            //
-            Frame.ErrorCode = 0;
-            //
-            // Application closed should always be the origination of the
-            // connection close. In other words, if the peer closed the
-            // connection first, then we should be responding with a connection
-            // close frame, instead of an app close frame.
-            //
-            QUIC_DBG_ASSERT(!IsApplicationClose);
-        }
 
         if (QuicConnCloseFrameEncode(
                 &Frame,
