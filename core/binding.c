@@ -1255,7 +1255,7 @@ QuicBindingDeliverPackets(
         case QUIC_VERSION_MS_1:
             if (Packet->LH->Type != QUIC_INITIAL) {
                 QuicPacketLogDrop(Binding, Packet, "Non-initial packet not matched with a connection");
-                break;
+                return FALSE;
             }
         }
 

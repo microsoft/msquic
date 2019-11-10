@@ -290,6 +290,10 @@ QuicPoolAlloc(
     _Inout_ PQUIC_POOL Pool
     )
 {
+#if NO_HEAP_CACHING
+    return QuicAlloc(Pool->Size);
+#else
+
     void* Entry = InterlockedPopEntrySList(&Pool->ListHead);
     if (Entry == NULL) {
         Entry = QuicAlloc(Pool->Size);
@@ -300,6 +304,7 @@ QuicPoolAlloc(
     }
 #endif
     return Entry;
+#endif
 }
 
 inline
@@ -309,6 +314,11 @@ QuicPoolFree(
     _In_ void* Entry
     )
 {
+#if NO_HEAP_CACHING
+    QuicFree(Entry);
+    return;
+#else
+
 #if DBG || QUIC_TEST_MODE
     QUIC_DBG_ASSERT(((QUIC_POOL_ENTRY*)Entry)->SpecialFlag != QUIC_POOL_SPECIAL_FLAG);
     ((QUIC_POOL_ENTRY*)Entry)->SpecialFlag = QUIC_POOL_SPECIAL_FLAG;
@@ -318,6 +328,7 @@ QuicPoolFree(
     } else {
         InterlockedPushEntrySList(&Pool->ListHead, (PSLIST_ENTRY)Entry);
     }
+#endif
 }
 
 #define QuicZeroMemory RtlZeroMemory
