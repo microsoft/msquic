@@ -3713,14 +3713,6 @@ QuicConnFlushRecv(
 
     QuicConnRecvDatagrams(
         Connection, ReceiveQueue, ReceiveQueueCount, FALSE);
-
-    if (Connection->Session == NULL) {
-        //
-        // This means an initial packet failed to initialize
-        // the connection.
-        //
-        QuicConnSilentlyAbort(Connection);
-    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
