@@ -351,37 +351,24 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
     )
 {
     PQUIC_CONNECTION Connection = Builder->Connection;
-    QUIC_ENCRYPT_LEVEL MaxEncryptLevel =
-        QuicKeyTypeToEncryptLevel(Connection->Crypto.TlsState.WriteKey);
-    QUIC_PACKET_KEY* PacketsKey = NULL;
 
-    QUIC_DBG_ASSERT(MaxEncryptLevel < QUIC_ENCRYPT_LEVEL_COUNT);
     QUIC_DBG_ASSERT(SendFlags != 0);
-
     QuicSendValidate(&Builder->Connection->Send);
 
-    for (QUIC_ENCRYPT_LEVEL EncryptLevel = 0;
-         EncryptLevel <= MaxEncryptLevel;
-         ++EncryptLevel) {
+    for (QUIC_PACKET_KEY_TYPE KeyType = 0;
+         KeyType <= Connection->Crypto.TlsState.WriteKey;
+         ++KeyType) {
 
-        QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
-        if (Packets == NULL) {
-            //
-            // The encryption level no longer exists.
-            //
-            continue;
-        }
-
-        QUIC_PACKET_KEY_TYPE KeyType = QuicEncryptLevelToKeyType(EncryptLevel);
-        PacketsKey = Connection->Crypto.TlsState.WriteKeys[KeyType];
-
+        QUIC_PACKET_KEY* PacketsKey =
+            Connection->Crypto.TlsState.WriteKeys[KeyType];
         if (PacketsKey == NULL) {
             //
-            // No more key available for the encryption level.
+            // Key has been discarded.
             //
             continue;
         }
 
+        QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(KeyType);
         if (EncryptLevel == QUIC_ENCRYPT_LEVEL_1_RTT) {
             //
             // Always allowed to send with 1-RTT.
@@ -390,6 +377,9 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
             *Key = PacketsKey;
             return TRUE;
         }
+
+        QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
+        QUIC_DBG_ASSERT(Packets != NULL);
 
         if (SendFlags & QUIC_CONN_SEND_FLAG_ACK &&
             Packets->AckTracker.AckElicitingPacketsToAcknowledge) {
@@ -412,10 +402,7 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
             *Key = PacketsKey;
             return TRUE;
         }
-
     }
-
-    QUIC_DBG_ASSERT(PacketsKey != NULL);
 
     if (SendFlags & (QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE | QUIC_CONN_SEND_FLAG_PING)) {
         //
@@ -426,8 +413,8 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
         // this key, so the CLOSE frame should be sent at the current and
         // previous encryption level if the handshake hasn't been confirmed.
         //
-        *PacketType = QuicEncryptLevelToPacketType(MaxEncryptLevel);
-        *Key = PacketsKey;
+        *PacketType = QuicKeyTypeToPacketType(Connection->Crypto.TlsState.WriteKey);
+        *Key = Connection->Crypto.TlsState.WriteKeys[Connection->Crypto.TlsState.WriteKey];
         return TRUE;
     }
 

@@ -37,8 +37,6 @@ typedef enum eSniNameType {
     TlsExt_Sni_NameType_HostName = 0
 } eSniNameType;
 
-#define MAX_PARAM_LENGTH 256
-
 typedef enum _QUIC_FAKE_TLS_MESSAGE_TYPE {
 
     QUIC_TLS_MESSAGE_INVALID,
@@ -60,7 +58,7 @@ const uint16_t MinMessageLengths[] = {
     0,                              // QUIC_TLS_MESSAGE_CLIENT_INITIAL (Dynamic)
     7 + 1,                          // QUIC_TLS_MESSAGE_CLIENT_HANDSHAKE
     7 + 1,                          // QUIC_TLS_MESSAGE_SERVER_INITIAL
-    7 + 3 + MAX_PARAM_LENGTH,       // QUIC_TLS_MESSAGE_SERVER_HANDSHAKE
+    7 + 4,                          // QUIC_TLS_MESSAGE_SERVER_HANDSHAKE
     7 + 1                           // QUIC_TLS_MESSAGE_TICKET
 };
 
@@ -171,10 +169,9 @@ typedef struct _QUIC_FAKE_TLS_MESSAGE {
             uint8_t EarlyDataAccepted : 1;
         } SERVER_INITIAL;
         struct {
-            uint8_t QuicTPLength;
-            uint8_t QuicTP[MAX_PARAM_LENGTH];
+            uint16_t QuicTPLength;
             uint16_t CertificateLength;
-            uint8_t Certificate[0];
+            uint8_t Certificate[0]; // Followed by QuicTP
         } SERVER_HANDSHAKE;
         struct {
             uint8_t HasTicket;
@@ -387,7 +384,6 @@ QuicTlsClientSecConfigCreate(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
 QUIC_SEC_CONFIG*
 QuicTlsSecConfigAddRef(
     _In_ QUIC_SEC_CONFIG* SecurityConfig
@@ -720,7 +716,7 @@ QuicTlsServerProcess(
         MaxServerMessageLength =
             State->BufferAllocLength - State->BufferLength;
 
-        if (MaxServerMessageLength < MinMessageLengths[QUIC_TLS_MESSAGE_SERVER_HANDSHAKE] + SecurityConfig->FormatLength) {
+        if (MaxServerMessageLength < MinMessageLengths[QUIC_TLS_MESSAGE_SERVER_HANDSHAKE] + SecurityConfig->FormatLength + TlsContext->LocalTPLength) {
             *ResultFlags |= QUIC_TLS_RESULT_ERROR;
             break;
         }
@@ -738,13 +734,19 @@ QuicTlsServerProcess(
         State->WriteKey = QUIC_PACKET_KEY_HANDSHAKE;
         State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE] = QuicStubAllocKey(QUIC_PACKET_KEY_HANDSHAKE);
 
-        MessageLength = MinMessageLengths[QUIC_TLS_MESSAGE_SERVER_HANDSHAKE] + SecurityConfig->FormatLength;
+        MessageLength =
+            MinMessageLengths[QUIC_TLS_MESSAGE_SERVER_HANDSHAKE] +
+            SecurityConfig->FormatLength +
+            (uint16_t)TlsContext->LocalTPLength;
         TlsWriteUint24(ServerMessage->Length, MessageLength - 4);
         ServerMessage->Type = QUIC_TLS_MESSAGE_SERVER_HANDSHAKE;
-        ServerMessage->SERVER_HANDSHAKE.QuicTPLength = (uint8_t)TlsContext->LocalTPLength;
-        memcpy(ServerMessage->SERVER_HANDSHAKE.QuicTP, TlsContext->LocalTPBuffer, TlsContext->LocalTPLength);
+        ServerMessage->SERVER_HANDSHAKE.QuicTPLength = (uint16_t)TlsContext->LocalTPLength;
         ServerMessage->SERVER_HANDSHAKE.CertificateLength = SecurityConfig->FormatLength;
         memcpy(ServerMessage->SERVER_HANDSHAKE.Certificate, SecurityConfig->FormatBuffer, SecurityConfig->FormatLength);
+        uint8_t* QuicTP =
+            ServerMessage->SERVER_HANDSHAKE.Certificate +
+            ServerMessage->SERVER_HANDSHAKE.CertificateLength;
+        memcpy(QuicTP, TlsContext->LocalTPBuffer, TlsContext->LocalTPLength);
 
         State->BufferLength += MessageLength;
         State->BufferTotalLength += MessageLength;
@@ -942,10 +944,13 @@ QuicTlsClientProcess(
 
         } else if (ServerMessage->Type == QUIC_TLS_MESSAGE_SERVER_HANDSHAKE) {
 
+            const uint8_t* QuicTP =
+                ServerMessage->SERVER_HANDSHAKE.Certificate +
+                ServerMessage->SERVER_HANDSHAKE.CertificateLength;
             TlsContext->ReceiveTPCallback(
                 TlsContext->Connection,
                 ServerMessage->SERVER_HANDSHAKE.QuicTPLength,
-                ServerMessage->SERVER_HANDSHAKE.QuicTP);
+                QuicTP);
 
             if (TlsContext->SecConfig->Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION) {
                 LogWarning("[ tls][%p][%c] Certificate validation disabled!",
