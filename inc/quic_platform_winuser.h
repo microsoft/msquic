@@ -51,6 +51,10 @@ Environment:
 extern "C" {
 #endif
 
+#if defined(DEBUG) || defined(_DEBUG)
+#define DBG 1
+#endif
+
 #if _WIN64
 #define QUIC_64BIT 1
 #else
