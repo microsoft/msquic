@@ -28,19 +28,24 @@ endif()
 option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
 option(QUIC_BUILD_TEST "Builds the test code" ON)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/obj)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/obj)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/bin)
+file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/logs)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     # Generate the MsQuicEtw header file.
     file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/inc)
+    file(WRITE ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.rc)
     include_directories(${CMAKE_SOURCE_DIR}/bld/inc)
     add_custom_command(
         OUTPUT ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.h
+        OUTPUT ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.rc
         COMMAND mc.exe -um -h ${CMAKE_SOURCE_DIR}/bld/inc -r ${CMAKE_SOURCE_DIR}/bld/inc ${CMAKE_SOURCE_DIR}/manifest/MsQuicEtw.man)
-    add_custom_target(MsQuicEtw DEPENDS ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.h)
-    
+    add_custom_target(MsQuicEtw
+        DEPENDS ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.h
+        DEPENDS ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.rc)
+
     # Custom build flags.
     set(QUIC_C_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_STUB -DQUIC_NO_TAEF -DQUIC_0RTT_UNSUPPORTED /W4 /wd4100 /wd4101 /wd4189 /wd4458 /wd4459 /wd4702 /wd26451 /wd26812 /sdl")
     set(QUIC_CXX_FLAGS "${QUIC_C_FLAGS}")
