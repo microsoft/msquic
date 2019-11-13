@@ -65,6 +65,7 @@ add_subdirectory(bin)
 # Tool code
 if(QUIC_BUILD_TOOLS)
     add_subdirectory(tools/attack)
+    add_subdirectory(tools/interop)
     add_subdirectory(tools/ping)
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         add_subdirectory(tools/etw)
