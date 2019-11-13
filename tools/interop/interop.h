@@ -6,9 +6,9 @@
 --*/
 
 #include <quic_platform.h>
-#include <MsQuic.h>
-#include <MsQuicp.h>
-#include <MsQuichelper.h>
+#include <msquic.h>
+#include <msquicp.h>
+#include <msquichelper.h>
 
 //
 // Different features tested by this tool.
