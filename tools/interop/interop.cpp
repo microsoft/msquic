@@ -17,8 +17,8 @@ Abstract:
     if (QUIC_FAILED(s)) { printf(#X " FAILURE: 0x%x!!\n", s); } \
 }
 
-#define HTTP_NO_ERROR       0x0ui16
-#define HTTP_INTERNAL_ERROR 0x3ui16
+#define HTTP_NO_ERROR       0
+#define HTTP_INTERNAL_ERROR 3
 
 QUIC_API_V1* MsQuic;
 HQUIC Registration;
@@ -102,6 +102,8 @@ PrintUsage()
     printf("\nquicinterop tests all the major QUIC features of an endpoint.\n\n");
 
     printf("Usage:\n");
+    printf("  quicinterop.exe -help\n");
+    printf("  quicinterop.exe -list\n");
     printf("  quicinterop.exe [-target:<implementation>] [-test:<test case>]"
            " [-timeout:<milliseconds>]\n\n");
 
@@ -111,14 +113,14 @@ PrintUsage()
 }
 
 class GetRequest : public QUIC_BUFFER {
-    UINT8 RawBuffer[64];
+    uint8_t RawBuffer[64];
 public:
     GetRequest(const char *Request, bool Http1_1 = false) {
         Buffer = RawBuffer;
         if (Http1_1) {
-            Length = (UINT32)sprintf_s((char*)RawBuffer, sizeof(RawBuffer), "GET %s HTTP/1.1\r\n", Request);
+            Length = (uint32_t)sprintf_s((char*)RawBuffer, sizeof(RawBuffer), "GET %s HTTP/1.1\r\n", Request);
         } else {
-            Length = (UINT32)sprintf_s((char*)RawBuffer, sizeof(RawBuffer), "GET %s\r\n", Request);
+            Length = (uint32_t)sprintf_s((char*)RawBuffer, sizeof(RawBuffer), "GET %s\r\n", Request);
         }
     }
 };
@@ -213,14 +215,14 @@ public:
                     sizeof(KeepAliveMs),
                     &KeepAliveMs));
     }
-    bool ConnectToServer(const char* ServerName, UINT16 ServerPort) {
+    bool ConnectToServer(const char* ServerName, uint16_t ServerPort) {
         if (QUIC_SUCCEEDED(
             MsQuic->ConnectionStart(
                 Connection,
                 AF_UNSPEC,
                 ServerName,
                 ServerPort))) {
-            WaitForSingleObject(ConnectionComplete, WaitTimeoutMs);
+            QuicEventWaitWithTimeout(ConnectionComplete, WaitTimeoutMs);
         }
         return Connected;
     }
@@ -285,7 +287,7 @@ public:
                     nullptr)) {
                 break;
             }
-            Sleep(100);
+            QuicSleep(100);
         }
         return TryCount < 20;
     }
@@ -349,7 +351,7 @@ private:
             if (Event->CONNECTED.EarlyDataAccepted) {
                 pThis->Resumed = true;
             }
-            SetEvent(pThis->ConnectionComplete);
+            QuicEventSet(pThis->ConnectionComplete);
             break;
         case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
             if (Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status == QUIC_STATUS_VER_NEG_ERROR) {
@@ -357,17 +359,19 @@ private:
             }
             __fallthrough;
         case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
-            SetEvent(pThis->RequestComplete);
-            SetEvent(pThis->ConnectionComplete);
+            QuicEventSet(pThis->RequestComplete);
+            QuicEventSet(pThis->ConnectionComplete);
             break;
         case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-            SetEvent(pThis->RequestComplete);
-            SetEvent(pThis->ConnectionComplete);
-            SetEvent(pThis->ShutdownComplete);
+            QuicEventSet(pThis->RequestComplete);
+            QuicEventSet(pThis->ConnectionComplete);
+            QuicEventSet(pThis->ShutdownComplete);
             break;
         case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
             MsQuic->SetCallbackHandler(
-                Event->PEER_STREAM_STARTED.Stream, NoOpStreamCallback, pThis);
+                Event->PEER_STREAM_STARTED.Stream, (void*)NoOpStreamCallback, pThis);
+            break;
+        default:
             break;
         }
         return QUIC_STATUS_SUCCESS;
@@ -388,7 +392,7 @@ private:
         case QUIC_STREAM_EVENT_SEND_COMPLETE:
             break;
         case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
-            SetEvent(pThis->RequestComplete);
+            QuicEventSet(pThis->RequestComplete);
             break;
         case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
             pThis->ReceivedResponse = true;
@@ -406,9 +410,11 @@ private:
                 Length > 0) {
                 pThis->UsedZeroRtt = true;
             }
-            SetEvent(pThis->RequestComplete);
+            QuicEventSet(pThis->RequestComplete);
             break;
         }
+        default:
+            break;
         }
         return QUIC_STATUS_SUCCESS;
     }
@@ -426,6 +432,8 @@ private:
         switch (Event->Type) {
         case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
             MsQuic->StreamClose(Stream);
+            break;
+        default:
             break;
         }
         }
@@ -675,7 +683,7 @@ int
 QUIC_MAIN_EXPORT
 main(
     _In_ int argc,
-    _In_count_(argc) LPSTR argv[]
+    _In_reads_(argc) _Null_terminated_ char* argv[]
     )
 {
     if (GetValue(argc, argv, "help") ||
