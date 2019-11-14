@@ -389,7 +389,7 @@ QuicTlsAeadTagLength(
     );
 
 static
-size_t
+ssize_t
 QuicTlsEncrypt(
     _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
     _In_ size_t OutputBufferLen,
@@ -405,7 +405,7 @@ QuicTlsEncrypt(
     );
 
 static
-size_t
+ssize_t
 QuicTlsDecrypt(
     _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
     _In_ size_t OutputBufferLen,
@@ -600,10 +600,10 @@ Return Value:
     return SSL_TLSEXT_ERR_NOACK;
 }
 
-QUIC_STATIC_ASSERT(ssl_encryption_initial == QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
-QUIC_STATIC_ASSERT(ssl_encryption_early_data == QUIC_PACKET_KEY_0_RTT, "Code assumes exact match!");
-QUIC_STATIC_ASSERT(ssl_encryption_handshake == QUIC_PACKET_KEY_HANDSHAKE, "Code assumes exact match!");
-QUIC_STATIC_ASSERT(ssl_encryption_application == QUIC_PACKET_KEY_1_RTT, "Code assumes exact match!");
+QUIC_STATIC_ASSERT((int)ssl_encryption_initial == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
+QUIC_STATIC_ASSERT((int)ssl_encryption_early_data == (int)QUIC_PACKET_KEY_0_RTT, "Code assumes exact match!");
+QUIC_STATIC_ASSERT((int)ssl_encryption_handshake == (int)QUIC_PACKET_KEY_HANDSHAKE, "Code assumes exact match!");
+QUIC_STATIC_ASSERT((int)ssl_encryption_application == (int)QUIC_PACKET_KEY_1_RTT, "Code assumes exact match!");
 
 int
 QuicTlsSetEncryptionSecretsCallback(
@@ -892,7 +892,7 @@ Return Value:
     Ret =
         SSL_CTX_use_certificate_chain_file(
             SecurityConfig->SSLCtx,
-            CertFile->CertFile);
+            CertFile->CertificateFile);
 
     if (Ret != 1) {
       LogError("[TLS] SSL_CTX_use_certificate_chain_file() failed, error: %ld", ERR_get_error());
