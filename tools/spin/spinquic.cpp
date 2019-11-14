@@ -675,8 +675,9 @@ main(int argc, char **argv) {
     for (int i = 0; i < settings.sessions; i++) {
         HQUIC Session;
 
-        char *alpn_buffer = (char *)malloc(strlen(settings.alpn_prefix) + 5); // You can't have more than 10^4 sessions. :)
-        sprintf(alpn_buffer, "%s%d", settings.alpn_prefix, i);
+        size_t alpn_len = strlen(settings.alpn_prefix) + 5; // You can't have more than 10^4 sessions. :)
+        char *alpn_buffer = (char *)malloc(alpn_len);
+        sprintf_s(alpn_buffer, alpn_len, "%s%d", settings.alpn_prefix, i);
 
         int ret = MsQuic->SessionOpen(Registration, alpn_buffer, nullptr, &Session);
         printf("Opening session #%d: %d\n", i, ret);
