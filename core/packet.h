@@ -105,14 +105,14 @@ typedef struct _QUIC_VERSION_NEGOTIATION_PACKET {
 //
 // Different types of Long Header packets.
 //
-typedef enum _QUIC_LONG_HEADER_TYPE_D23 {
+typedef enum _QUIC_LONG_HEADER_TYPE_V1 {
 
     QUIC_INITIAL                = 0,
     QUIC_0_RTT_PROTECTED        = 1,
     QUIC_HANDSHAKE              = 2,
     QUIC_RETRY                  = 3,
 
-} QUIC_LONG_HEADER_TYPE_D23;
+} QUIC_LONG_HEADER_TYPE_V1;
 
 #pragma pack(push)
 #pragma pack(1)
@@ -122,7 +122,7 @@ typedef enum _QUIC_LONG_HEADER_TYPE_D23 {
 // The 4 least significant bits are protected by header protection.
 //
 
-typedef struct _QUIC_LONG_HEADER_D23 {
+typedef struct _QUIC_LONG_HEADER_V1 {
 
     uint8_t PnLength        : 2;
     uint8_t Reserved        : 2;    // Must be 0.
@@ -140,14 +140,14 @@ typedef struct _QUIC_LONG_HEADER_D23 {
     //uint8_t PacketNumber[PnLength];
     //uint8_t Payload[0];
 
-} QUIC_LONG_HEADER_D23, *PQUIC_LONG_HEADER_D23;
+} QUIC_LONG_HEADER_V1, *PQUIC_LONG_HEADER_V1;
 
 //
 // The minimum long header, in bytes.
 //
-#define MIN_LONG_HEADER_LENGTH_D23 \
+#define MIN_LONG_HEADER_LENGTH_V1 \
 ( \
-    sizeof(QUIC_LONG_HEADER_D23) + \
+    sizeof(QUIC_LONG_HEADER_V1) + \
     sizeof(uint8_t) + \
     sizeof(uint8_t) + \
     4 * sizeof(uint8_t) \
@@ -158,7 +158,7 @@ typedef struct _QUIC_LONG_HEADER_D23 {
 // order.
 //
 
-typedef struct _QUIC_RETRY_D23 {
+typedef struct _QUIC_RETRY_V1 {
 
     uint8_t UNUSED          : 4;
     uint8_t Type            : 2;
@@ -173,14 +173,14 @@ typedef struct _QUIC_RETRY_D23 {
     //uint8_t OrigDestCID[OrigDestCIDLength];
     //uint8_t Token[*];
 
-} QUIC_RETRY_D23;
+} QUIC_RETRY_V1;
 
 //
 // The minimum retry packet header, in bytes.
 //
-#define MIN_RETRY_HEADER_LENGTH_D23 \
+#define MIN_RETRY_HEADER_LENGTH_V1 \
 ( \
-    sizeof(QUIC_RETRY_D23) + \
+    sizeof(QUIC_RETRY_V1) + \
     2 * sizeof(uint8_t) \
 )
 
@@ -188,7 +188,7 @@ typedef struct _QUIC_RETRY_D23 {
 // Represents the short header format. All values in Network Byte order.
 // The 5 least significant bits are protected by header protection.
 //
-typedef struct _QUIC_SHORT_HEADER_D23 {
+typedef struct _QUIC_SHORT_HEADER_V1 {
 
     uint8_t PnLength        : 2;
     uint8_t KeyPhase        : 1;
@@ -200,19 +200,19 @@ typedef struct _QUIC_SHORT_HEADER_D23 {
     //uint8_t PacketNumber[PnLength];
     //uint8_t Payload[0];
 
-} QUIC_SHORT_HEADER_D23, *PQUIC_SHORT_HEADER_D23;
+} QUIC_SHORT_HEADER_V1, *PQUIC_SHORT_HEADER_V1;
 
 //
 // Helper to calculate the length of the full short header, in bytes.
 //
-#define SHORT_HEADER_PACKET_NUMBER_D23(Header, DestCIDLen) \
+#define SHORT_HEADER_PACKET_NUMBER_V1(Header, DestCIDLen) \
     ((Header)->ConnectionID + DestCIDLen)
 //
 // The minimum short header, in bytes.
 //
-#define MIN_SHORT_HEADER_LENGTH_D23 \
+#define MIN_SHORT_HEADER_LENGTH_V1 \
 ( \
-    sizeof(QUIC_SHORT_HEADER_D23) + \
+    sizeof(QUIC_SHORT_HEADER_V1) + \
     4 * sizeof(uint8_t) \
 )
 
@@ -232,9 +232,9 @@ QuicPacketIsHandshake(
     }
 
     switch (Packet->LONG_HDR.Version) {
-        case QUIC_VERSION_DRAFT_23:
+        case QUIC_VERSION_DRAFT_24:
         case QUIC_VERSION_MS_1:
-            return ((QUIC_LONG_HEADER_D23*)Packet)->Type != QUIC_0_RTT_PROTECTED;
+            return ((QUIC_LONG_HEADER_V1*)Packet)->Type != QUIC_0_RTT_PROTECTED;
         default:
             return TRUE;
     }
@@ -243,7 +243,7 @@ QuicPacketIsHandshake(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
-QuicPacketValidateLongHeaderD23(
+QuicPacketValidateLongHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
     _In_ BOOLEAN IsServer,
     _Inout_ QUIC_RECV_PACKET* Packet,
@@ -254,11 +254,11 @@ QuicPacketValidateLongHeaderD23(
 
 //
 // Decodes the retry token from an initial packet. Only call if a previous call
-// to QuicPacketValidateLongHeaderD23 has already succeeded.
+// to QuicPacketValidateLongHeaderV1 has already succeeded.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicPacketDecodeRetryTokenD23(
+QuicPacketDecodeRetryTokenV1(
     _In_ const QUIC_RECV_PACKET* const Packet,
     _Outptr_result_buffer_maybenull_(*TokenLength)
         const uint8_t** Token,
@@ -268,21 +268,9 @@ QuicPacketDecodeRetryTokenD23(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
-QuicPacketValidateShortHeaderD23(
+QuicPacketValidateShortHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
     _Inout_ QUIC_RECV_PACKET* Packet
-    );
-
-//
-// Returns TRUE if the long header packet is allowed to create a new QUIC
-// connection.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Success_(return != FALSE)
-BOOLEAN
-QuicPacketCanCreateNewConnection(
-    _In_ const void* Owner, // Binding or Connection depending on state
-    _In_ const QUIC_RECV_PACKET* const Packet
     );
 
 inline
@@ -324,9 +312,9 @@ inline
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
-QuicPacketEncodeLongHeaderD23(
+QuicPacketEncodeLongHeaderV1(
     _In_ uint32_t Version, // Allows for version negotiation forcing
-    _In_ QUIC_LONG_HEADER_TYPE_D23 PacketType,
+    _In_ QUIC_LONG_HEADER_TYPE_V1 PacketType,
     _In_ const QUIC_CID* const DestCID,
     _In_ const QUIC_CID* const SourceCID,
     _In_ uint16_t TokenLength,
@@ -341,7 +329,7 @@ QuicPacketEncodeLongHeaderD23(
     )
 {
     uint16_t RequiredBufferLength =
-        sizeof(QUIC_LONG_HEADER_D23) +
+        sizeof(QUIC_LONG_HEADER_V1) +
         DestCID->Length +
         sizeof(uint8_t) +
         SourceCID->Length +
@@ -354,7 +342,7 @@ QuicPacketEncodeLongHeaderD23(
         return 0;
     }
 
-    QUIC_LONG_HEADER_D23* Header = (QUIC_LONG_HEADER_D23*)Buffer;
+    QUIC_LONG_HEADER_V1* Header = (QUIC_LONG_HEADER_V1*)Buffer;
 
     Header->IsLongHeader    = TRUE;
     Header->FixedBit        = 1;
@@ -391,8 +379,8 @@ QuicPacketEncodeLongHeaderD23(
     return RequiredBufferLength;
 }
 
-#define QuicPacketMaxBufferSizeForRetryD23() \
-    MIN_RETRY_HEADER_LENGTH_D23 + \
+#define QuicPacketMaxBufferSizeForRetryV1() \
+    MIN_RETRY_HEADER_LENGTH_V1 + \
     3 * QUIC_MAX_CONNECTION_ID_LENGTH_V1 + \
     sizeof(QUIC_RETRY_TOKEN_CONTENTS)
 
@@ -403,7 +391,7 @@ inline
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
-QuicPacketEncodeRetryD23(
+QuicPacketEncodeRetryV1(
     _In_ uint32_t Version,
     _In_reads_(DestCIDLength) const uint8_t* const DestCID,
     _In_ uint8_t DestCIDLength,
@@ -420,7 +408,7 @@ QuicPacketEncodeRetryD23(
     )
 {
     uint16_t RequiredBufferLength =
-        MIN_RETRY_HEADER_LENGTH_D23 +
+        MIN_RETRY_HEADER_LENGTH_V1 +
         DestCIDLength +
         SourceCIDLength +
         OrigDestCIDLength +
@@ -429,7 +417,7 @@ QuicPacketEncodeRetryD23(
         return 0;
     }
 
-    QUIC_RETRY_D23* Header = (QUIC_RETRY_D23*)Buffer;
+    QUIC_RETRY_V1* Header = (QUIC_RETRY_V1*)Buffer;
 
     Header->IsLongHeader    = TRUE;
     Header->FixedBit        = 1;
@@ -470,7 +458,7 @@ inline
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
-QuicPacketEncodeShortHeaderD23(
+QuicPacketEncodeShortHeaderV1(
     _In_ const QUIC_CID* const DestCID,
     _In_ uint64_t PacketNumber,
     _In_ uint8_t PacketNumberLength,
@@ -484,14 +472,14 @@ QuicPacketEncodeShortHeaderD23(
     QUIC_DBG_ASSERT(PacketNumberLength != 0 && PacketNumberLength <= 4);
 
     uint16_t RequiredBufferLength =
-        sizeof(QUIC_SHORT_HEADER_D23) +
+        sizeof(QUIC_SHORT_HEADER_V1) +
         DestCID->Length +
         PacketNumberLength;
     if (BufferLength < RequiredBufferLength) {
         return 0;
     }
 
-    QUIC_SHORT_HEADER_D23* Header = (QUIC_SHORT_HEADER_D23*)Buffer;
+    QUIC_SHORT_HEADER_V1* Header = (QUIC_SHORT_HEADER_V1*)Buffer;
 
     Header->IsLongHeader    = FALSE;
     Header->FixedBit        = 1;

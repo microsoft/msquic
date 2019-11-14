@@ -40,12 +40,14 @@ struct HandshakeArgs1 {
     int Family;
     bool ServerStatelessRetry;
     bool MultipleALPNs;
+    bool MultiPacketClientInitial;
     static ::std::vector<HandshakeArgs1> Generate() {
         ::std::vector<HandshakeArgs1> list;
         for (int Family : { 4, 6})
         for (bool ServerStatelessRetry : { false, true })
         for (bool MultipleALPNs : { false, true })
-            list.push_back({ Family, ServerStatelessRetry, MultipleALPNs });
+        for (bool MultiPacketClientInitial : { false, true })
+            list.push_back({ Family, ServerStatelessRetry, MultipleALPNs, MultiPacketClientInitial });
         return list;
     }
 };
@@ -54,7 +56,8 @@ std::ostream& operator << (std::ostream& o, const HandshakeArgs1& args) {
     return o <<
         (args.Family == 4 ? "v4" : "v6") << "/" <<
         (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
-        (args.MultipleALPNs ? "MultipleALPNs" : "SingleALPN");
+        (args.MultipleALPNs ? "MultipleALPNs" : "SingleALPN") << "/" <<
+        (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial");
 }
 
 class WithHandshakeArgs1 : public testing::Test,

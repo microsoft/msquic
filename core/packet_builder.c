@@ -142,6 +142,7 @@ QuicPacketBuilderPrepare(
         DatagramSize = (uint16_t)Connection->Send.Allowance;
     }
     QUIC_DBG_ASSERT(!IsPathMtuDiscovery || !IsTailLossProbe); // Never both.
+    QUIC_DBG_ASSERT(NewPacketKey != NULL);
 
     //
     // Next, make sure the current QUIC packet matches the new packet type. If
@@ -229,6 +230,17 @@ QuicPacketBuilderPrepare(
                 Builder->MinimumDatagramLength = NewDatagramLength;
             }
 
+        } else if (NewPacketType == QUIC_INITIAL &&
+            !QuicConnIsServer(Connection)) {
+
+            //
+            // Make sure to pad the packet if client Initial packets.
+            //
+            Builder->MinimumDatagramLength =
+                MaxUdpPayloadSizeForFamily(
+                    QuicAddrGetFamily(&Connection->RemoteAddress),
+                    QUIC_INITIAL_PACKET_LENGTH);
+
         } else if (IsPathMtuDiscovery) {
             Builder->MinimumDatagramLength = NewDatagramLength;
         }
@@ -270,10 +282,10 @@ QuicPacketBuilderPrepare(
             Builder->PacketNumberLength = 4; // TODO - Determine correct length based on BDP.
 
             switch (Connection->Stats.QuicVersion) {
-            case QUIC_VERSION_DRAFT_23:
+            case QUIC_VERSION_DRAFT_24:
             case QUIC_VERSION_MS_1:
                 Builder->HeaderLength =
-                    QuicPacketEncodeShortHeaderD23(
+                    QuicPacketEncodeShortHeaderV1(
                         &Builder->DestCID->CID,
                         Builder->Metadata->PacketNumber,
                         Builder->PacketNumberLength,
@@ -292,13 +304,13 @@ QuicPacketBuilderPrepare(
         } else { // Long Header
 
             switch (Connection->Stats.QuicVersion) {
-            case QUIC_VERSION_DRAFT_23:
+            case QUIC_VERSION_DRAFT_24:
             case QUIC_VERSION_MS_1:
             default:
                 Builder->HeaderLength =
-                    QuicPacketEncodeLongHeaderD23(
+                    QuicPacketEncodeLongHeaderV1(
                         Connection->Stats.QuicVersion,
-                        (QUIC_LONG_HEADER_TYPE_D23)NewPacketType,
+                        (QUIC_LONG_HEADER_TYPE_V1)NewPacketType,
                         &Builder->DestCID->CID,
                         &Builder->SourceCID->CID,
                         Connection->Send.InitialTokenLength,
@@ -339,37 +351,24 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
     )
 {
     PQUIC_CONNECTION Connection = Builder->Connection;
-    QUIC_ENCRYPT_LEVEL MaxEncryptLevel =
-        QuicKeyTypeToEncryptLevel(Connection->Crypto.TlsState.WriteKey);
-    QUIC_PACKET_KEY* PacketsKey = NULL;
 
-    QUIC_DBG_ASSERT(MaxEncryptLevel < QUIC_ENCRYPT_LEVEL_COUNT);
     QUIC_DBG_ASSERT(SendFlags != 0);
-
     QuicSendValidate(&Builder->Connection->Send);
 
-    for (QUIC_ENCRYPT_LEVEL EncryptLevel = 0;
-         EncryptLevel <= MaxEncryptLevel;
-         ++EncryptLevel) {
+    for (QUIC_PACKET_KEY_TYPE KeyType = 0;
+         KeyType <= Connection->Crypto.TlsState.WriteKey;
+         ++KeyType) {
 
-        QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
-        if (Packets == NULL) {
-            //
-            // The encryption level no longer exists.
-            //
-            continue;
-        }
-
-        QUIC_PACKET_KEY_TYPE KeyType = QuicEncryptLevelToKeyType(EncryptLevel);
-        PacketsKey = Connection->Crypto.TlsState.WriteKeys[KeyType];
-
+        QUIC_PACKET_KEY* PacketsKey =
+            Connection->Crypto.TlsState.WriteKeys[KeyType];
         if (PacketsKey == NULL) {
             //
-            // No more key available for the encryption level.
+            // Key has been discarded.
             //
             continue;
         }
 
+        QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(KeyType);
         if (EncryptLevel == QUIC_ENCRYPT_LEVEL_1_RTT) {
             //
             // Always allowed to send with 1-RTT.
@@ -378,6 +377,9 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
             *Key = PacketsKey;
             return TRUE;
         }
+
+        QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
+        QUIC_DBG_ASSERT(Packets != NULL);
 
         if (SendFlags & QUIC_CONN_SEND_FLAG_ACK &&
             Packets->AckTracker.AckElicitingPacketsToAcknowledge) {
@@ -400,10 +402,7 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
             *Key = PacketsKey;
             return TRUE;
         }
-
     }
-
-    QUIC_DBG_ASSERT(PacketsKey != NULL);
 
     if (SendFlags & (QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE | QUIC_CONN_SEND_FLAG_PING)) {
         //
@@ -414,8 +413,8 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
         // this key, so the CLOSE frame should be sent at the current and
         // previous encryption level if the handshake hasn't been confirmed.
         //
-        *PacketType = QuicEncryptLevelToPacketType(MaxEncryptLevel);
-        *Key = PacketsKey;
+        *PacketType = QuicKeyTypeToPacketType(Connection->Crypto.TlsState.WriteKey);
+        *Key = Connection->Crypto.TlsState.WriteKeys[Connection->Crypto.TlsState.WriteKey];
         return TRUE;
     }
 
@@ -502,6 +501,8 @@ QuicPacketBuilderFinalizeHeaderProtection(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
+    QUIC_DBG_ASSERT(Builder->Key != NULL);
+
     QUIC_STATUS Status;
     if (QUIC_FAILED(
         Status =
@@ -578,6 +579,7 @@ QuicPacketBuilderFinalize(
     QUIC_DBG_ASSERT(Builder->Datagram->Length >= Builder->MinimumDatagramLength);
     QUIC_DBG_ASSERT(Builder->Datagram->Length >= (uint32_t)(Builder->DatagramLength + Builder->EncryptionOverhead));
     QUIC_DBG_ASSERT(Builder->Metadata->FrameCount != 0);
+    QUIC_DBG_ASSERT(Builder->Key != NULL);
 
     uint8_t* Header =
         (uint8_t*)Builder->Datagram->Buffer + Builder->PacketStart;
@@ -625,7 +627,7 @@ QuicPacketBuilderFinalize(
 
     if (Builder->PacketType != SEND_PACKET_SHORT_HEADER_TYPE) {
         switch (Connection->Stats.QuicVersion) {
-        case QUIC_VERSION_DRAFT_23:
+        case QUIC_VERSION_DRAFT_24:
         case QUIC_VERSION_MS_1:
         default:
             QuicVarIntEncode2Bytes(
@@ -763,6 +765,7 @@ QuicPacketBuilderFinalize(
             //
             // Update the packet key in use by the send builder.
             //
+            QUIC_DBG_ASSERT(Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL);
             Builder->Key = Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT];
         }
     }

@@ -116,6 +116,18 @@ QuicPacketTypeToEncryptLevel(
 )
 
 //
+// Set of flags we're allowed to send during the handshake.
+//
+#define QUIC_CONN_SEND_FLAG_ALLOWED_HANDSHAKE \
+( \
+    QUIC_CONN_SEND_FLAG_ACK | \
+    QUIC_CONN_SEND_FLAG_CRYPTO | \
+    QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | \
+    QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE | \
+    QUIC_CONN_SEND_FLAG_PING \
+)
+
+//
 // Flags representing types of frames that need to be sent out on a specific
 // stream. The order reflects the order the data is framed into a packet.
 //

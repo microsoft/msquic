@@ -92,7 +92,6 @@ QuicConnAlloc(
     QuicSendBufferInitialize(&Connection->SendBuffer);
     QuicOperationQueueInitialize(&Connection->OperQ);
     QuicSendInitialize(&Connection->Send);
-    QuicCongestionControlInitialize(&Connection->CongestionControl);
     QuicLossDetectionInitialize(&Connection->LossDetection);
 
     for (uint32_t i = 0; i < ARRAYSIZE(Connection->Timers); i++) {
@@ -101,6 +100,13 @@ QuicConnAlloc(
     }
 
     if (IsServer) {
+
+        //
+        // Use global settings until the connection is assigned to a session.
+        // Then the connection will use the session's settings.
+        //
+        QuicConnApplySettings(Connection, &MsQuicLib.Settings);
+
         const QUIC_RECV_PACKET* Packet =
             QuicDataPathRecvDatagramToRecvPacket(Datagram);
 
@@ -339,6 +345,7 @@ QuicConnApplySettings(
     Connection->SmoothedRtt = MS_TO_US(Settings->InitialRttMs);
     Connection->DisconnectTimeoutUs = MS_TO_US(Settings->DisconnectTimeoutMs);
     Connection->IdleTimeoutMs = Settings->IdleTimeoutMs;
+    Connection->HandshakeIdleTimeoutMs = Settings->HandshakeIdleTimeoutMs;
     Connection->KeepAliveIntervalMs = Settings->KeepAliveIntervalMs;
 
     uint8_t PeerStreamType =
@@ -358,7 +365,7 @@ QuicConnApplySettings(
     }
 
     QuicSendApplySettings(&Connection->Send, Settings);
-    QuicCongestionControlApplySettings(&Connection->CongestionControl, Settings);
+    QuicCongestionControlInitialize(&Connection->CongestionControl, Settings);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1279,7 +1286,7 @@ QuicConnOnQuicVersionSet(
     EventWriteQuicConnVersionSet(Connection, Connection->Stats.QuicVersion);
 
     switch (Connection->Stats.QuicVersion) {
-    case QUIC_VERSION_DRAFT_23:
+    case QUIC_VERSION_DRAFT_24:
     case QUIC_VERSION_MS_1:
     default:
         Connection->State.HeaderProtectionEnabled = TRUE;
@@ -1824,10 +1831,7 @@ QuicConnQueueRecvDatagram(
         QUIC_RECV_DATAGRAM* Datagram = DatagramChain;
         do {
             Datagram->QueuedOnConnection = FALSE;
-            QuicPacketLogDrop(
-                Connection,
-                QuicDataPathRecvDatagramToRecvPacket(Datagram),
-                "Max queue limit reached");
+            QuicPacketLogDrop(Connection, QuicDataPathRecvDatagramToRecvPacket(Datagram), "Max queue limit reached");
         } while ((Datagram = Datagram->Next) != NULL);
         QuicDataPathBindingReturnRecvDatagrams(DatagramChain);
         return;
@@ -2273,11 +2277,7 @@ QuicConnRecvHeader(
                     (uint64_t)QUIC_STATUS_VER_NEG_ERROR,
                     NULL);
             } else {
-                QuicPacketLogDropWithValue(
-                    Connection,
-                    Packet,
-                    "Invalid version",
-                    QuicByteSwapUint32(Packet->Invariant->LONG_HDR.Version));
+                QuicPacketLogDropWithValue(Connection, Packet, "Invalid version", QuicByteSwapUint32(Packet->Invariant->LONG_HDR.Version));
             }
             return FALSE;
         }
@@ -2305,7 +2305,7 @@ QuicConnRecvHeader(
         uint16_t TokenLength = 0;
 
         if (!Packet->ValidatedHeaderVer &&
-            !QuicPacketValidateLongHeaderD23(
+            !QuicPacketValidateLongHeaderV1(
                 Connection,
                 QuicConnIsServer(Connection),
                 Packet,
@@ -2317,7 +2317,7 @@ QuicConnRecvHeader(
         if (!Connection->State.SourceAddressValidated && Packet->ValidToken) {
 
             QUIC_DBG_ASSERT(TokenBuffer == NULL);
-            QuicPacketDecodeRetryTokenD23(Packet, &TokenBuffer, &TokenLength);
+            QuicPacketDecodeRetryTokenV1(Packet, &TokenBuffer, &TokenLength);
             QUIC_DBG_ASSERT(TokenLength == sizeof(QUIC_RETRY_TOKEN_CONTENTS));
 
             QUIC_RETRY_TOKEN_CONTENTS Token;
@@ -2353,7 +2353,7 @@ QuicConnRecvHeader(
     } else {
 
         if (!Packet->ValidatedHeaderVer &&
-            !QuicPacketValidateShortHeaderD23(Connection, Packet)) {
+            !QuicPacketValidateShortHeaderV1(Connection, Packet)) {
             return FALSE;
         }
 
@@ -2926,8 +2926,10 @@ QuicConnRecvPayload(
             } else if (Status == QUIC_STATUS_OUT_OF_MEMORY) {
                 return FALSE;
             } else {
-                EventWriteQuicConnError(Connection, "Invalid CRYPTO frame");
-                QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
+                if (Status != QUIC_STATUS_INVALID_STATE) {
+                    EventWriteQuicConnError(Connection, "Invalid CRYPTO frame");
+                    QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
+                }
                 return FALSE;
             }
             break;
@@ -3456,7 +3458,7 @@ QuicConnRecvBatch(
         const uint8_t* Cipher
     )
 {
-    BOOLEAN UpdateIdleTimeout = FALSE;
+    BOOLEAN ResetIdleTimeout = FALSE;
     uint8_t HpMask[QUIC_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
 
     QUIC_DBG_ASSERT(BatchCount > 0 && BatchCount <= QUIC_MAX_CRYPTO_BATCH_COUNT);
@@ -3493,7 +3495,7 @@ QuicConnRecvBatch(
             QuicConnRecvPayload(Connection, Packet)) {
 
             QuicConnRecvPostProcessing(Connection, Packet);
-            UpdateIdleTimeout |= Packet->CompletelyValid;
+            ResetIdleTimeout |= Packet->CompletelyValid;
 
             if (Packet->IsShortHeader && Packet->NewLargestPacketNumber) {
 
@@ -3517,7 +3519,7 @@ QuicConnRecvBatch(
         }
     }
 
-    return UpdateIdleTimeout;
+    return ResetIdleTimeout;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -3532,7 +3534,7 @@ QuicConnRecvDatagrams(
     QUIC_RECV_DATAGRAM* ReleaseChain = NULL;
     QUIC_RECV_DATAGRAM** ReleaseChainTail = &ReleaseChain;
     uint32_t ReleaseChainCount = 0;
-    BOOLEAN UpdateIdleTimeout = FALSE;
+    BOOLEAN ResetIdleTimeout = FALSE;
 
     QUIC_PASSIVE_CODE();
 
@@ -3615,7 +3617,7 @@ QuicConnRecvDatagrams(
                 // encountered a long header packet. Finish off the short
                 // headers first and then continue with the current packet.
                 //
-                UpdateIdleTimeout |=
+                ResetIdleTimeout |=
                     QuicConnRecvBatch(Connection, BatchCount, Batch, Cipher);
                 QuicMoveMemory(
                     Cipher + BatchCount * QUIC_HP_SAMPLE_LENGTH,
@@ -3629,7 +3631,7 @@ QuicConnRecvDatagrams(
                 break;
             }
 
-            UpdateIdleTimeout |=
+            ResetIdleTimeout |=
                 QuicConnRecvBatch(Connection, BatchCount, Batch, Cipher);
             BatchCount = 0;
 
@@ -3665,7 +3667,7 @@ QuicConnRecvDatagrams(
             Datagram->QueuedOnConnection = FALSE;
             if (++ReleaseChainCount == QUIC_MAX_RECEIVE_BATCH_COUNT) {
                 if (BatchCount != 0) {
-                    UpdateIdleTimeout |=
+                    ResetIdleTimeout |=
                         QuicConnRecvBatch(Connection, BatchCount, Batch, Cipher);
                     BatchCount = 0;
                 }
@@ -3678,12 +3680,12 @@ QuicConnRecvDatagrams(
     }
 
     if (BatchCount != 0) {
-        UpdateIdleTimeout |=
+        ResetIdleTimeout |=
             QuicConnRecvBatch(Connection, BatchCount, Batch, Cipher);
         BatchCount = 0;
     }
 
-    if (UpdateIdleTimeout) {
+    if (ResetIdleTimeout) {
         QuicConnResetIdleTimeout(Connection);
     }
 
@@ -3711,14 +3713,6 @@ QuicConnFlushRecv(
 
     QuicConnRecvDatagrams(
         Connection, ReceiveQueue, ReceiveQueueCount, FALSE);
-
-    if (Connection->Session == NULL) {
-        //
-        // This means an initial packet failed to initialize
-        // the connection.
-        //
-        QuicConnSilentlyAbort(Connection);
-    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -3789,13 +3783,18 @@ QuicConnResetIdleTimeout(
     _In_ PQUIC_CONNECTION Connection
     )
 {
-    //
-    // Use the (non-zero) min value between local and peer's configuration.
-    //
-    uint64_t IdleTimeoutMs = Connection->PeerTransportParams.IdleTimeout;
-    if (IdleTimeoutMs == 0 ||
-        (Connection->IdleTimeoutMs != 0 && Connection->IdleTimeoutMs < IdleTimeoutMs)) {
-        IdleTimeoutMs = Connection->IdleTimeoutMs;
+    uint64_t IdleTimeoutMs;
+    if (Connection->State.Connected) {
+        //
+        // Use the (non-zero) min value between local and peer's configuration.
+        //
+        IdleTimeoutMs = Connection->PeerTransportParams.IdleTimeout;
+        if (IdleTimeoutMs == 0 ||
+            (Connection->IdleTimeoutMs != 0 && Connection->IdleTimeoutMs < IdleTimeoutMs)) {
+            IdleTimeoutMs = Connection->IdleTimeoutMs;
+        }
+    } else {
+        IdleTimeoutMs = Connection->HandshakeIdleTimeoutMs;
     }
 
     if (IdleTimeoutMs != 0) {
@@ -4284,7 +4283,7 @@ QuicConnParamSet(
 
     case QUIC_PARAM_CONN_FORCE_CID_UPDATE:
 
-        if (!Connection->State.Connected || 
+        if (!Connection->State.Connected ||
             !Connection->State.HandshakeConfirmed) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
@@ -4294,6 +4293,29 @@ QuicConnParamSet(
 
         Connection->State.InitiatedCidUpdate = TRUE;
         QuicConnRetireCurrentDestCid(Connection);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER:
+
+        if (BufferLength != sizeof(QUIC_PRIVATE_TRANSPORT_PARAMETER)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (Connection->State.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        QuicCopyMemory(
+            &Connection->TestTransportParameter, Buffer, BufferLength);
+        Connection->State.TestTransportParameterSet = TRUE;
+
+        LogVerbose("[conn][%p] Setting Test Transport Parameter (type %hu, %hu bytes).",
+            Connection, Connection->TestTransportParameter.Type,
+            Connection->TestTransportParameter.Length);
+
         Status = QUIC_STATUS_SUCCESS;
         break;
 

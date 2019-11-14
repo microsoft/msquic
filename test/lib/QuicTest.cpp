@@ -295,6 +295,26 @@ struct StatelessRetryHelper
     }
 };
 
+#define PRIVATE_TP_TYPE   77
+#define PRIVATE_TP_LENGTH 2345
+
+struct PrivateTransportHelper : QUIC_PRIVATE_TRANSPORT_PARAMETER
+{
+    PrivateTransportHelper(bool Enabled) {
+        if (Enabled) {
+            Type = PRIVATE_TP_TYPE;
+            Length = PRIVATE_TP_LENGTH;
+            Buffer = new uint8_t[PRIVATE_TP_LENGTH];
+            TEST_TRUE(Buffer != nullptr);
+        } else {
+            Buffer = nullptr;
+        }
+    }
+    ~PrivateTransportHelper() {
+        delete [] Buffer;
+    }
+};
+
 void
 QuicTestConnect(
     _In_ int Family,
@@ -303,7 +323,8 @@ QuicTestConnect(
     _In_ bool ClientRebind,
     _In_ bool ChangeMaxStreamID,
     _In_ bool MultipleALPNs,
-    _In_ bool AsyncSecConfig
+    _In_ bool AsyncSecConfig,
+    _In_ bool MultiPacketClientInitial
     )
 {
     MsQuicSession Session;
@@ -314,6 +335,7 @@ QuicTestConnect(
     TEST_QUIC_SUCCEEDED(Session2.SetPeerBidiStreamCount(4));
 
     StatelessRetryHelper RetryHelper(ServerStatelessRetry);
+    PrivateTransportHelper TpHelper(MultiPacketClientInitial);
 
     {
         TestListener Listener(Session.Handle, ListenerAcceptConnection, AsyncSecConfig);
@@ -346,6 +368,11 @@ QuicTestConnect(
                 if (ClientUsesOldVersion) {
                     TEST_QUIC_SUCCEEDED(
                         Client.SetQuicVersion(OLD_SUPPORTED_VERSION));
+                }
+
+                if (MultiPacketClientInitial) {
+                    TEST_QUIC_SUCCEEDED(
+                        Client.SetTestTransportParameter(&TpHelper));
                 }
 
                 #if QUIC_TEST_DISABLE_DNS

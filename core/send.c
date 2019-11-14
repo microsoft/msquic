@@ -131,16 +131,32 @@ QuicSendSetAllowance(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicSendCanSendFlagsNow(
+    _In_ PQUIC_SEND Send
+    )
+{
+    PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
+    if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT &&
+        Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] == NULL) {
+        if ((!Connection->State.Started && !QuicConnIsServer(Connection)) ||
+            !(Send->SendFlags & QUIC_CONN_SEND_FLAG_ALLOWED_HANDSHAKE)) {
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendQueueFlush(
     _In_ PQUIC_SEND Send,
     _In_ QUIC_SEND_FLUSH_REASON Reason
     )
 {
-    if (!Send->FlushOperationPending) {
-        PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
-
+    if (!Send->FlushOperationPending && QuicSendCanSendFlagsNow(Send)) {
         PQUIC_OPERATION Oper;
+        PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
         if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_FLUSH_SEND)) != NULL) {
             Send->FlushOperationPending = TRUE;
             const char* ReasonStrings[] = {
@@ -449,7 +465,16 @@ QuicSendWriteFrames(
     }
 
     if (Send->SendFlags & (QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE)) {
-        BOOLEAN IsApplicationClose = !!(Send->SendFlags & QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE);
+        BOOLEAN IsApplicationClose =
+            !!(Send->SendFlags & QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE);
+        if (Connection->State.ClosedRemotely) {
+            //
+            // Application closed should only be the origination of the
+            // connection close. If we're closed remotely already, we should
+            // just acknowledge the close with a connection close frame.
+            //
+            IsApplicationClose = FALSE;
+        }
 
         QUIC_CONNECTION_CLOSE_EX Frame = {
             IsApplicationClose,
@@ -458,23 +483,6 @@ QuicSendWriteFrames(
             Connection->CloseReasonPhrase == NULL ? 0 : strlen(Connection->CloseReasonPhrase),
             Connection->CloseReasonPhrase
         };
-
-        if (Connection->State.ClosedRemotely) {
-            //
-            // If we are already closed remotely, then that means we are just
-            // responding to (acknowledging in a sense) a received close frame.
-            // In that case, we just send an error code value of 0. Otherwise,
-            // we send whatever error code we have cached.
-            //
-            Frame.ErrorCode = 0;
-            //
-            // Application closed should always be the origination of the
-            // connection close. In other words, if the peer closed the
-            // connection first, then we should be responding with a connection
-            // close frame, instead of an app close frame.
-            //
-            QUIC_DBG_ASSERT(!IsApplicationClose);
-        }
 
         if (QuicConnCloseFrameEncode(
                 &Frame,
@@ -856,6 +864,8 @@ QuicSendFlush(
         return QUIC_SEND_COMPLETE;
     }
 
+    QUIC_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
+
     QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;
     PQUIC_STREAM Stream = NULL;
     uint32_t StreamPacketCount = 0;
@@ -881,12 +891,18 @@ QuicSendFlush(
             break;
         }
 
+        uint32_t SendFlags = Send->SendFlags;
+        if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT &&
+            Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] == NULL) {
+            SendFlags &= QUIC_CONN_SEND_FLAG_ALLOWED_HANDSHAKE;
+        }
+
         if (!QuicPacketBuilderHasAllowance(&Builder)) {
             //
             // While we are CC blocked, very few things are still allowed to
             // be sent. If those are queued then we can still send.
             //
-            if (!(Send->SendFlags & QUIC_CONN_SEND_FLAGS_BYPASS_CC)) {
+            if (!(SendFlags & QUIC_CONN_SEND_FLAGS_BYPASS_CC)) {
                 if (QuicCongestionControlCanSend(&Connection->CongestionControl)) {
                     //
                     // The current pacing chunk is finished. We need to schedule a
@@ -919,7 +935,7 @@ QuicSendFlush(
 
         BOOLEAN WrotePacketFrames;
         BOOLEAN IncludesPMTUDPacket = FALSE;
-        if ((Send->SendFlags & ~QUIC_CONN_SEND_FLAG_PMTUD) != 0) {
+        if ((SendFlags & ~QUIC_CONN_SEND_FLAG_PMTUD) != 0) {
             if (!QuicPacketBuilderPrepareForControlFrames(
                     &Builder,
                     Send->TailLossProbeNeeded,

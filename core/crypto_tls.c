@@ -354,7 +354,7 @@ QuicCryptoTlsReadClientHello(
     _In_ PQUIC_CONNECTION Connection,
     _In_reads_(BufferLength)
         const uint8_t* Buffer,
-    _In_ uint16_t BufferLength,
+    _In_ uint32_t BufferLength,
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     )
 {
@@ -415,7 +415,7 @@ QuicCryptoTlsReadClientHello(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
     uint16_t Len = TlsReadUint16(Buffer);
-    if ((Len % 2) || BufferLength < sizeof(uint16_t) + Len) {
+    if ((Len % 2) || BufferLength < (uint32_t)(sizeof(uint16_t) + Len)) {
         EventWriteQuicConnError(Connection, "Parse error. ReadTlsClientHello #5");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -441,7 +441,7 @@ QuicCryptoTlsReadClientHello(
         return QUIC_STATUS_SUCCESS; // OK to not have any more.
     }
     Len = TlsReadUint16(Buffer);
-    if (BufferLength < sizeof(uint16_t) + Len) {
+    if (BufferLength < (uint32_t)(sizeof(uint16_t) + Len)) {
         EventWriteQuicConnError(Connection, "Parse error. ReadTlsClientHello #7");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -454,45 +454,73 @@ QuicCryptoTlsReadClientHello(
             Info);
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint32_t
+QuicCrytpoTlsGetCompleteTlsMessagesLength(
+    _In_reads_(BufferLength)
+        const uint8_t* Buffer,
+    _In_ uint32_t BufferLength
+    )
+{
+    uint32_t MessagesLength = 0;
+
+    do {
+        if (BufferLength < TLS_MESSAGE_HEADER_LENGTH) {
+            break;
+        }
+
+        uint32_t MessageLength =
+            TLS_MESSAGE_HEADER_LENGTH + TlsReadUint24(Buffer + 1);
+        if (BufferLength < MessageLength) {
+            break;
+        }
+
+        MessagesLength += MessageLength;
+        Buffer += MessageLength;
+        BufferLength -= MessageLength;
+
+    } while (BufferLength > 0);
+
+    return MessagesLength;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoTlsReadInitial(
     _In_ PQUIC_CONNECTION Connection,
     _In_reads_(BufferLength)
         const uint8_t* Buffer,
-    _In_ uint16_t BufferLength,
+    _In_ uint32_t BufferLength,
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     )
 {
     do {
         if (BufferLength < TLS_MESSAGE_HEADER_LENGTH) {
-            EventWriteQuicConnError(Connection, "Parse error. ServerPreprocess #1");
-            return QUIC_STATUS_INVALID_PARAMETER;
+            return QUIC_STATUS_PENDING;
         }
 
         if (Buffer[0] != TlsHandshake_ClientHello) {
-            EventWriteQuicConnError(Connection, "Parse error. ServerPreprocess #2");
+            EventWriteQuicConnError(Connection, "Invalid message in TlsReadInitial");
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
         uint32_t MessageLength = TlsReadUint24(Buffer + 1);
         if (BufferLength < TLS_MESSAGE_HEADER_LENGTH + MessageLength) {
-            EventWriteQuicConnError(Connection, "Parse error. ServerPreprocess #3");
-            return QUIC_STATUS_INVALID_PARAMETER;
+            return QUIC_STATUS_PENDING;
         }
 
         QUIC_STATUS Status =
             QuicCryptoTlsReadClientHello(
                 Connection,
                 Buffer + TLS_MESSAGE_HEADER_LENGTH,
-                (uint16_t)MessageLength,
+                MessageLength,
                 Info);
         if (QUIC_FAILED(Status)) {
             return Status;
         }
 
-        BufferLength -= (uint16_t)MessageLength + TLS_MESSAGE_HEADER_LENGTH;
-        Buffer += (uint16_t)MessageLength + TLS_MESSAGE_HEADER_LENGTH;
+        BufferLength -= MessageLength + TLS_MESSAGE_HEADER_LENGTH;
+        Buffer += MessageLength + TLS_MESSAGE_HEADER_LENGTH;
 
     } while (BufferLength > 0);
 
@@ -572,6 +600,9 @@ QuicCryptoTlsEncodeTransportParameters(
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT) {
         RequiredTPLen += TLS_HDR_SIZE + QuicVarIntSize(TransportParams->ActiveConnectionIdLimit);
+    }
+    if (Connection->State.TestTransportParameterSet) {
+        RequiredTPLen += TLS_HDR_SIZE + Connection->TestTransportParameter.Length;
     }
 
     QUIC_TEL_ASSERT(RequiredTPLen <= UINT16_MAX);
@@ -711,6 +742,17 @@ QuicCryptoTlsEncodeTransportParameters(
                 QUIC_TP_ID_ACTIVE_CONNECTION_ID_LIMIT,
                 TransportParams->ActiveConnectionIdLimit, TPBuf);
         LogVerbose("[conn][%p] TP: Connection ID Limit (%llu)", Connection, TransportParams->ActiveConnectionIdLimit);
+    }
+    if (Connection->State.TestTransportParameterSet) {
+        TPBuf =
+            TlsWriteTransportParam(
+                Connection->TestTransportParameter.Type,
+                Connection->TestTransportParameter.Length,
+                Connection->TestTransportParameter.Buffer,
+                TPBuf);
+        LogVerbose("[conn][%p] TP: TEST TP (Type %hu, Length %hu)", Connection,
+            Connection->TestTransportParameter.Type,
+            Connection->TestTransportParameter.Length);
     }
 
     size_t FinalTPLength = (TPBuf - (TPBufBase + QuicTlsTPHeaderSize));

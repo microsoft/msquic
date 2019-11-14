@@ -19,6 +19,7 @@
 
 typedef struct _CXN CXN;
 typedef struct _WORKER WORKER;
+typedef struct _SESSION SESSION;
 typedef struct _LISTENER LISTENER;
 typedef struct _BINDING BINDING;
 
@@ -860,6 +861,13 @@ typedef struct _LISTENER {
     ULONG64 FinalTimestamp; // 100ns
 } LISTENER;
 
+typedef struct _SESSION {
+    struct _OBJECT;
+
+    ULONG64 InitialTimestamp; // 100ns
+    ULONG64 FinalTimestamp; // 100ns
+} SESSION;
+
 typedef struct _CID {
     struct _CID* Next;
     UINT8 Length;
@@ -1016,6 +1024,7 @@ extern EVENT_COUNTS EventCounts[EventType_Count];
 extern API_STATS ApiStats[QUIC_API_COUNT];
 
 extern OBJECT_SET Workers;
+extern OBJECT_SET Sessions;
 extern OBJECT_SET Listeners;
 extern OBJECT_SET Cxns;
 extern OBJECT_SET Streams;
@@ -1032,6 +1041,7 @@ void RunProcessTrace(void);
 
 ObjEventCallback LibraryEventCallback;
 ObjEventCallback WorkerEventCallback;
+ObjEventCallback SessionEventCallback;
 ObjEventCallback ListenerEventCallback;
 ObjEventCallback ConnEventCallback;
 ObjEventCallback StreamEventCallback;

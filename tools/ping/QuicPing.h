@@ -41,7 +41,7 @@ extern QUIC_SEC_CONFIG* SecurityConfig;
 //
 // The default port used for connecting with QuicPing.
 //
-#define DEFAULT_PORT 4433
+#define DEFAULT_PORT 433
 
 //
 // QuicPing defaults to using encryption.

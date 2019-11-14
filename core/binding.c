@@ -745,8 +745,8 @@ QuicBindingProcessStatelessOperation(
             goto Exit;
         }
 
-        QUIC_SHORT_HEADER_D23* ResetPacket =
-            (QUIC_SHORT_HEADER_D23*)SendDatagram->Buffer;
+        QUIC_SHORT_HEADER_V1* ResetPacket =
+            (QUIC_SHORT_HEADER_V1*)SendDatagram->Buffer;
         QUIC_DBG_ASSERT(SendDatagram->Length == PacketLength);
 
         QuicRandom(
@@ -771,7 +771,7 @@ QuicBindingProcessStatelessOperation(
         QUIC_DBG_ASSERT(RecvPacket->DestCID != NULL);
         QUIC_DBG_ASSERT(RecvPacket->SourceCID != NULL);
 
-        uint16_t PacketLength = QuicPacketMaxBufferSizeForRetryD23();
+        uint16_t PacketLength = QuicPacketMaxBufferSizeForRetryV1();
         QUIC_BUFFER* SendDatagram =
             QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
         if (SendDatagram == NULL) {
@@ -800,7 +800,7 @@ QuicBindingProcessStatelessOperation(
             sizeof(Token), (uint8_t*)&Token);
 
         SendDatagram->Length =
-            QuicPacketEncodeRetryD23(
+            QuicPacketEncodeRetryV1(
                 RecvPacket->LH->Version,
                 RecvPacket->SourceCID, RecvPacket->SourceCIDLen,
                 NewDestCID, MSQUIC_CONNECTION_ID_LENGTH,
@@ -877,12 +877,15 @@ QuicBindingQueueStatelessReset(
     _In_ QUIC_RECV_DATAGRAM* Datagram
     )
 {
+    QUIC_DBG_ASSERT(!Binding->Exclusive);
+    QUIC_DBG_ASSERT(!((QUIC_SHORT_HEADER_V1*)Datagram->Buffer)->IsLongHeader);
+
     //
     // We don't respond to long header packets because the peer generally
     // doesn't even have the stateless reset token yet. We don't respond to
     // small short header packets because it could cause an infinite loop.
     //
-    const QUIC_SHORT_HEADER_D23* Header = (QUIC_SHORT_HEADER_D23*)Datagram->Buffer;
+    const QUIC_SHORT_HEADER_V1* Header = (QUIC_SHORT_HEADER_V1*)Datagram->Buffer;
     if (Header->IsLongHeader) {
         return FALSE; // No packet drop log, because it was already logged in QuicBindingShouldCreateConnection.
     }
@@ -973,40 +976,6 @@ QuicBindingPreprocessPacket(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicBindingShouldCreateConnection(
-    _In_ const QUIC_BINDING* const Binding,
-    _In_ const QUIC_RECV_PACKET* const Packet
-    )
-{
-    if (!Packet->Invariant->IsLongHeader) {
-        return FALSE; // Don't log drop. Stateless reset code may or may not.
-    }
-
-    if (!QuicBindingHasListenerRegistered(Binding)) {
-        QuicPacketLogDrop(Binding, Packet, "LH packet not matched with a connection and no listeners registered");
-        return FALSE;
-    }
-
-    if (Packet->Invariant->LONG_HDR.Version == QUIC_VERSION_VER_NEG) {
-        QuicPacketLogDrop(Binding, Packet, "Version negotiation packet not matched with a connection");
-        return FALSE;
-    }
-
-    QUIC_DBG_ASSERT(Packet->Invariant->LONG_HDR.Version != QUIC_VERSION_VER_NEG);
-
-    if (!QuicPacketCanCreateNewConnection(Binding, Packet)) {
-        return FALSE;
-    }
-
-    //
-    // We have a listener on the binding and the packet is allowed to create a
-    // new connection.
-    //
-    return TRUE;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
 QuicBindingProcessRetryToken(
     _In_ const QUIC_BINDING* const Binding,
     _In_ const QUIC_RECV_PACKET* const Packet,
@@ -1046,6 +1015,9 @@ BOOLEAN
 QuicBindingShouldRetryConnection(
     _In_ const QUIC_BINDING* const Binding,
     _In_ QUIC_RECV_PACKET* Packet,
+    _In_ uint16_t TokenLength,
+    _In_reads_(TokenLength)
+        const uint8_t* Token,
     _Inout_ BOOLEAN* DropPacket
     )
 {
@@ -1063,24 +1035,10 @@ QuicBindingShouldRetryConnection(
         return FALSE;
     }
 
-    const uint8_t* Token = NULL;
-    uint16_t TokenLength = 0;
-
-    if (!QuicPacketValidateLongHeaderD23(
-            Binding,
-            TRUE,
-            Packet,
-            &Token,
-            &TokenLength)) {
-        *DropPacket = TRUE;
-        return FALSE;
-    }
-
     if (TokenLength == 0) {
         return TRUE;
     }
 
-    QUIC_DBG_ASSERT(Token != NULL);
     if (!QuicBindingProcessRetryToken(Binding, Packet, TokenLength, Token)) {
         *DropPacket = TRUE;
         return FALSE;
@@ -1255,6 +1213,7 @@ QuicBindingDeliverPackets(
             Packet->DestCIDLen);
 
     if (Connection == NULL) {
+
         //
         // Because the packet chain is ordered by control packets first, we
         // don't have to worry about a packet that can't create the connection
@@ -1262,11 +1221,65 @@ QuicBindingDeliverPackets(
         // use the head of the chain to determine if a new connection should
         // be created.
         //
-        BOOLEAN DropPacket = FALSE;
-        if (!QuicBindingShouldCreateConnection(Binding, Packet)) {
-            return QuicBindingQueueStatelessReset(Binding, DatagramChain);
 
-        } else if (QuicBindingShouldRetryConnection(Binding, Packet, &DropPacket)) {
+        if (Binding->Exclusive) {
+            QuicPacketLogDrop(Binding, Packet, "No connection on exclusive binding");
+            return FALSE;
+        }
+
+        if (Packet->IsShortHeader) {
+            //
+            // For unattributed short header packets we can try to send a
+            // stateless reset back in response.
+            //
+            return QuicBindingQueueStatelessReset(Binding, DatagramChain);
+        }
+
+        if (Packet->Invariant->LONG_HDR.Version == QUIC_VERSION_VER_NEG) {
+            QuicPacketLogDrop(Binding, Packet, "Version negotiation packet not matched with a connection");
+            return FALSE;
+        }
+
+        //
+        // The following logic is server specific for creating/accepting new
+        // connections.
+        //
+
+        QUIC_DBG_ASSERT(QuicIsVersionSupported(Packet->Invariant->LONG_HDR.Version));
+
+        //
+        // Only Initial (version specific) packets are processed from here on.
+        //
+        switch (Packet->Invariant->LONG_HDR.Version) {
+        case QUIC_VERSION_DRAFT_24:
+        case QUIC_VERSION_MS_1:
+            if (Packet->LH->Type != QUIC_INITIAL) {
+                QuicPacketLogDrop(Binding, Packet, "Non-initial packet not matched with a connection");
+                return FALSE;
+            }
+        }
+
+        const uint8_t* Token = NULL;
+        uint16_t TokenLength = 0;
+        if (!QuicPacketValidateLongHeaderV1(
+                Binding,
+                TRUE,
+                Packet,
+                &Token,
+                &TokenLength)) {
+            return FALSE;
+        }
+
+        QUIC_DBG_ASSERT(Token != NULL);
+
+        if (!QuicBindingHasListenerRegistered(Binding)) {
+            QuicPacketLogDrop(Binding, Packet, "No listeners registered to accept new connection.");
+            return FALSE;
+        }
+
+        BOOLEAN DropPacket = FALSE;
+        if (QuicBindingShouldRetryConnection(
+                Binding, Packet, TokenLength, Token, &DropPacket)) {
             return
                 QuicBindingQueueStatelessOperation(
                     Binding, QUIC_OPER_TYPE_RETRY, DatagramChain);

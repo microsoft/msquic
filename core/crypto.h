@@ -228,8 +228,21 @@ QuicCryptoProcessCompleteOperation(
     );
 
 //
+// Helper function to determine how much complete TLS data is contained in the
+// buffer, and should be passed to TLS.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint32_t
+QuicCrytpoTlsGetCompleteTlsMessagesLength(
+    _In_reads_(BufferLength)
+        const uint8_t* Buffer,
+    _In_ uint32_t BufferLength
+    );
+
+//
 // Reads, validates and decodes all information needed for preprocessing the
-// initial CRYPTO data from a client.
+// initial CRYPTO data from a client. Return QUIC_STATUS_PENDING if not all the
+// data necessary to decode is available.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -237,7 +250,7 @@ QuicCryptoTlsReadInitial(
     _In_ PQUIC_CONNECTION Connection,
     _In_reads_(BufferLength)
         const uint8_t* Buffer,
-    _In_ uint16_t BufferLength,
+    _In_ uint32_t BufferLength,
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     );
 

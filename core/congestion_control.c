@@ -88,30 +88,18 @@ QuicConnLogCubic(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicCongestionControlInitialize(
-    _In_ PQUIC_CONGESTION_CONTROL Cc
-    )
-{
-    PQUIC_CONNECTION Connection = QuicCongestionControlGetConnection(Cc);
-    Cc->InitialWindowPackets = MsQuicLib.Settings.InitialWindowPackets;
-    Cc->CongestionWindow = Connection->Send.PathMtu * Cc->InitialWindowPackets;
-    Cc->BytesInFlightMax = Cc->CongestionWindow / 2;
-    Cc->SlowStartThreshold = (uint32_t)-1;
-    QuicConnLogCubic(Connection);
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicCongestionControlApplySettings(
     _In_ PQUIC_CONGESTION_CONTROL Cc,
     _In_ const QUIC_SETTINGS* Settings
     )
 {
     PQUIC_CONNECTION Connection = QuicCongestionControlGetConnection(Cc);
+    Cc->SlowStartThreshold = UINT32_MAX;
     Cc->SendIdleTimeoutMs = Settings->SendIdleTimeoutMs;
     Cc->InitialWindowPackets = Settings->InitialWindowPackets;
     Cc->CongestionWindow = Connection->Send.PathMtu * Cc->InitialWindowPackets;
     Cc->BytesInFlightMax = Cc->CongestionWindow / 2;
     QuicConnLogOutFlowStats(Connection);
+    QuicConnLogCubic(Connection);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -121,12 +109,12 @@ QuicCongestionControlReset(
     )
 {
     PQUIC_CONNECTION Connection = QuicCongestionControlGetConnection(Cc);
+    Cc->SlowStartThreshold = UINT32_MAX;
     Cc->IsInRecovery = FALSE;
     Cc->HasHadCongestionEvent = FALSE;
     Cc->CongestionWindow = Connection->Send.PathMtu * Cc->InitialWindowPackets;
     Cc->BytesInFlightMax = Cc->CongestionWindow / 2;
     Cc->BytesInFlight = 0;
-    Cc->SlowStartThreshold = (uint32_t)-1;
     QuicConnLogOutFlowStats(Connection);
     QuicConnLogCubic(Connection);
 }

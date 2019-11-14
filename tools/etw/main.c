@@ -107,7 +107,7 @@ const ObjEventHandler EventHandlers[EventType_Count] = {
     LibraryEventCallback,
     NULL,
     WorkerEventCallback,
-    NULL,
+    SessionEventCallback,
     ListenerEventCallback,
     ConnEventCallback,
     StreamEventCallback,
@@ -256,6 +256,7 @@ Cleanup:
 void RunProcessTrace(void)
 {
     ObjectSetReset(&Workers);
+    ObjectSetReset(&Sessions);
     ObjectSetReset(&Listeners);
     ObjectSetReset(&Cxns);
     ObjectSetReset(&Streams);
@@ -721,6 +722,7 @@ main(
 Done:
 
     ObjectSetDestroy(&Workers);
+    ObjectSetDestroy(&Sessions);
     ObjectSetDestroy(&Listeners);
     ObjectSetDestroy(&Cxns);
     ObjectSetDestroy(&Streams);

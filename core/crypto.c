@@ -619,18 +619,6 @@ QuicCryptoWriteCryptoFrames(
             break;
         }
 
-        if (Builder->PacketType == QUIC_INITIAL &&
-            !QuicConnIsServer(QuicCryptoGetConnection(Crypto))) {
-            //
-            // Make sure to pad the packet if sending the first client Initial
-            // packet.
-            //
-            Builder->MinimumDatagramLength =
-                MaxUdpPayloadSizeForFamily(
-                    QuicAddrGetFamily(&QuicCryptoGetConnection(Crypto)->RemoteAddress),
-                    QUIC_INITIAL_PACKET_LENGTH);
-        }
-
         QUIC_DBG_ASSERT(FrameBytes != 0);
         BytesWritten += FrameBytes;
 
@@ -979,7 +967,7 @@ QuicCryptoProcessDataFrame(
                 Connection, KeyType, Crypto->TlsState.ReadKey);
             Status = QUIC_STATUS_SUCCESS;
             //
-            // TODO - If it was retranmitted data, it would be OK to ignore, but if they are
+            // TODO - If it was retransmitted data, it would be OK to ignore, but if they are
             // sending at the wrong encryption level, we fatal.
             //
             goto Error;
@@ -999,65 +987,6 @@ QuicCryptoProcessDataFrame(
                 DataReady);
         if (QUIC_FAILED(Status)) {
             goto Error;
-        }
-
-        //
-        // This is a ClientHello, so initialize the server-side TLS.
-        //
-        if (Frame->Offset == 0 && *DataReady &&
-            KeyType == QUIC_PACKET_KEY_INITIAL && QuicConnIsServer(Connection)) {
-
-            QUIC_NEW_CONNECTION_INFO Info = {0};
-            Status =
-                QuicCryptoTlsReadInitial(
-                    Connection,
-                    Frame->Data,
-                    (uint16_t)Frame->Length,
-                    &Info);
-            if (QUIC_FAILED(Status)) {
-                Status = QUIC_STATUS_HANDSHAKE_FAILURE;
-                goto Error;
-            }
-
-            Info.QuicVersion = Connection->Stats.QuicVersion;
-            Info.LocalAddress = &Connection->LocalAddress;
-            Info.RemoteAddress = &Connection->RemoteAddress;
-            Info.CryptoBufferLength = (uint16_t)Frame->Length;
-            Info.CryptoBuffer = Frame->Data;
-
-            QUIC_CONNECTION_ACCEPT_RESULT AcceptResult =
-                QUIC_CONNECTION_REJECT_NO_LISTENER;
-
-            PQUIC_LISTENER Listener =
-                QuicBindingGetListener(
-                    Connection->Binding,
-                    &Info);
-            if (Listener != NULL) {
-                AcceptResult =
-                    QuicListenerAcceptConnection(
-                        Listener,
-                        Connection,
-                        &Info);
-            }
-
-            if (AcceptResult != QUIC_CONNECTION_ACCEPT) {
-                Status = QUIC_STATUS_HANDSHAKE_FAILURE;
-                LogInfo("[conn][%p] Conection Rejected, Reason=%u", Connection, AcceptResult); // TODO - ETW
-                if (AcceptResult == QUIC_CONNECTION_REJECT_NO_LISTENER) {
-                    QuicConnTransportError(
-                        Connection,
-                        QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE);
-                } else if (AcceptResult == QUIC_CONNECTION_REJECT_BUSY) {
-                    QuicConnTransportError(
-                        Connection,
-                        QUIC_ERROR_SERVER_BUSY);
-                } else {    // QUIC_CONNECTION_REJECT_APP
-                    QuicConnTransportError(
-                        Connection,
-                        QUIC_ERROR_INTERNAL_ERROR);
-                }
-                goto Error;
-            }
         }
     }
 
@@ -1090,7 +1019,7 @@ QuicCryptoProcessFrame(
             Crypto, KeyType, Frame, &DataReady);
 
     if (QUIC_SUCCEEDED(Status) && DataReady) {
-        if (Crypto->TLS != NULL && !Crypto->TlsCallPending) {
+        if (!Crypto->TlsCallPending) {
             QuicCryptoProcessData(Crypto, FALSE);
 
             PQUIC_CONNECTION Connection = QuicCryptoGetConnection(Crypto);
@@ -1286,24 +1215,10 @@ QuicCryptoProcessTlsCompletion(
     }
 
     if (ResultFlags & QUIC_TLS_RESULT_DATA) {
-        if (!QuicConnIsServer(Connection) &&
-            Crypto->MaxSentLength == 0 &&
-            Crypto->TlsState.BufferTotalLength > 1100) {
-            //
-            // We don't have enough room to send back the full TLS payload in the
-            // initial packet. All we can do is fail the connection attempt. On
-            // the client side, this means we are likely offering too many config
-            // options at the TLS layer and it needs to be scoped down.
-            //
-            QuicConnFatalError(Connection, QUIC_STATUS_BUFFER_TOO_SMALL, "Initial TLS buffer too big");
-
-        } else {
-            QuicSendSetSendFlag(
-                &QuicCryptoGetConnection(Crypto)->Send,
-                QUIC_CONN_SEND_FLAG_CRYPTO);
-
-            QuicCryptoDumpSendState(Crypto);
-        }
+        QuicSendSetSendFlag(
+            &QuicCryptoGetConnection(Crypto)->Send,
+            QUIC_CONN_SEND_FLAG_CRYPTO);
+        QuicCryptoDumpSendState(Crypto);
 
     } else if (!Crypto->FirstHandshakePacketProcessed &&
             !(ResultFlags & QUIC_TLS_RESULT_ERROR) &&
@@ -1449,7 +1364,6 @@ QuicCryptoProcessData(
     uint32_t BufferCount = 1;
     QUIC_BUFFER Buffer;
 
-    QUIC_TEL_ASSERT(Crypto->TLS != NULL);
     QUIC_TEL_ASSERT(!Crypto->TlsCallPending);
 
     if (IsClientInitial) {
@@ -1466,8 +1380,91 @@ QuicCryptoProcessData(
                 &Buffer);
 
         QUIC_TEL_ASSERT(DataAvailable);
-        UNREFERENCED_PARAMETER(BufferOffset);
-        UNREFERENCED_PARAMETER(BufferCount);
+        QUIC_DBG_ASSERT(BufferCount == 1);
+
+        QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+
+        Buffer.Length =
+            QuicCrytpoTlsGetCompleteTlsMessagesLength(
+                Buffer.Buffer, Buffer.Length);
+        if (Buffer.Length == 0) {
+            LogVerbose("[cryp][%p] No complete TLS messages to process.", Connection);
+            goto Error;
+        }
+
+        if (BufferOffset == 0 &&
+            QuicConnIsServer(Connection) &&
+            !Connection->State.ExternalOwner) {
+            //
+            // Preprocess the TLS ClientHello to find the ALPN (and optionally
+            // SNI) to match the connection to a listener.
+            //
+            QUIC_NEW_CONNECTION_INFO Info = {0};
+            QUIC_STATUS Status =
+                QuicCryptoTlsReadInitial(
+                    Connection,
+                    Buffer.Buffer,
+                    Buffer.Length,
+                    &Info);
+            if (QUIC_FAILED(Status)) {
+                QuicConnTransportError(
+                    Connection,
+                    QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE);
+                goto Error;
+            } else if (Status == QUIC_STATUS_PENDING) {
+                //
+                // The full ClientHello hasn't been received yet.
+                //
+                goto Error;
+            }
+
+            Info.QuicVersion = Connection->Stats.QuicVersion;
+            Info.LocalAddress = &Connection->LocalAddress;
+            Info.RemoteAddress = &Connection->RemoteAddress;
+            Info.CryptoBufferLength = Buffer.Length;
+            Info.CryptoBuffer = Buffer.Buffer;
+
+            QUIC_CONNECTION_ACCEPT_RESULT AcceptResult =
+                QUIC_CONNECTION_REJECT_NO_LISTENER;
+
+            PQUIC_LISTENER Listener =
+                QuicBindingGetListener(
+                    Connection->Binding,
+                    &Info);
+            if (Listener != NULL) {
+                AcceptResult =
+                    QuicListenerAcceptConnection(
+                        Listener,
+                        Connection,
+                        &Info);
+            }
+
+            if (AcceptResult != QUIC_CONNECTION_ACCEPT) {
+                LogInfo("[conn][%p] Conection Rejected, Reason=%u", Connection, AcceptResult); // TODO - ETW
+                if (AcceptResult == QUIC_CONNECTION_REJECT_NO_LISTENER) {
+                    QuicConnTransportError(
+                        Connection,
+                        QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE);
+                } else if (AcceptResult == QUIC_CONNECTION_REJECT_BUSY) {
+                    QuicConnTransportError(
+                        Connection,
+                        QUIC_ERROR_SERVER_BUSY);
+                } else {    // QUIC_CONNECTION_REJECT_APP
+                    QuicConnTransportError(
+                        Connection,
+                        QUIC_ERROR_INTERNAL_ERROR);
+                }
+                goto Error;
+            }
+        }
+    }
+
+    if (Crypto->TLS == NULL) {
+        //
+        // The listener still hasn't given us the security config to initialize
+        // TLS with yet.
+        //
+        goto Error;
     }
 
     Crypto->TlsDataPending = FALSE;
@@ -1481,6 +1478,12 @@ QuicCryptoProcessData(
     if (ResultFlags != QUIC_TLS_RESULT_PENDING) {
         QuicCryptoProcessDataComplete(Crypto, ResultFlags, Buffer.Length);
     }
+
+    return;
+
+Error:
+
+    QuicRecvBufferDrain(&Crypto->RecvBuffer, 0);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
