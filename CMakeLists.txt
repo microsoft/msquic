@@ -31,11 +31,12 @@ option(QUIC_BUILD_TEST "Builds the test code" ON)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/obj)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/bin)
+
 file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/logs)
+file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/inc)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     # Generate the MsQuicEtw header file.
-    file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/inc)
     file(WRITE ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.rc)
     include_directories(${CMAKE_SOURCE_DIR}/bld/inc)
     add_custom_command(
@@ -59,12 +60,12 @@ if(QUIC_TLS STREQUAL "openssl")
     # Configure and build OpenSSL.
     add_custom_command(
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/openssl
-        OUTPUT ${CMAKE_SOURCE_DIR}/artifacts/openssl
-        COMMAND ./config enable-tls1_3 --prefix=${CMAKE_SOURCE_DIR}/artifacts/openssl
+        OUTPUT ${CMAKE_SOURCE_DIR}/bld/inc/openssl
+        COMMAND ./config enable-tls1_3 --prefix=${CMAKE_SOURCE_DIR}/bld/inc/openssl
         COMMAND make -j$(nproc)
         COMMAND make install_sw)
-    add_custom_target(OpenSSL DEPENDS ${CMAKE_SOURCE_DIR}/artifacts/openssl)
-    include_directories(${CMAKE_SOURCE_DIR}/artifacts/openssl/include)
+    add_custom_target(OpenSSL DEPENDS ${CMAKE_SOURCE_DIR}/bld/inc/openssl)
+    include_directories(${CMAKE_SOURCE_DIR}/bld/inc/openssl/include)
 endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/inc)
