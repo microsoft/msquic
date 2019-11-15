@@ -601,60 +601,43 @@ QuicTlsSetEncryptionSecretsCallback(
     LogVerbose("[ tls][%p][%c] New encryption secrets (Level = %u).",
         TlsContext, GetTlsIdentifier(TlsContext), Level);
 
-    if (KeyType > TlsState->WriteKey) {
-        Status =
-            QuicTlsKeyCreate(
-                TlsContext,
-                WriteSecret,
-                SecretLen,
-                KeyType,
-                &TlsState->WriteKeys[KeyType]);
-        if (QUIC_FAILED(Status)) {
-            TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-            return -1;
-        }
-
-        switch (KeyType) {
-        case QUIC_PACKET_KEY_HANDSHAKE:
-            TlsState->BufferOffsetHandshake = TlsState->BufferTotalLength;
-            LogInfo("[ tls][%p][%c] Writing Handshake data starts at %u.",
-                TlsContext, GetTlsIdentifier(TlsContext), TlsState->BufferOffsetHandshake);
-            break;
-        case QUIC_PACKET_KEY_1_RTT:
-            TlsState->BufferOffset1Rtt = TlsState->BufferTotalLength;
-            LogInfo("[ tls][%p][%c] Writing 1-RTT data starts at %u.",
-                TlsContext, GetTlsIdentifier(TlsContext), TlsState->BufferOffset1Rtt);
-            break;
-        default:
-            break;
-        }
-
-        TlsState->WriteKey = KeyType;
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
+    QUIC_DBG_ASSERT(TlsState->WriteKeys[KeyType] == NULL);
+    Status =
+        QuicTlsKeyCreate(
+            TlsContext,
+            WriteSecret,
+            SecretLen,
+            KeyType,
+            &TlsState->WriteKeys[KeyType]);
+    if (QUIC_FAILED(Status)) {
+        TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+        return -1;
     }
 
-    if (KeyType > TlsState->ReadKey) {
-        Status =
-            QuicTlsKeyCreate(
-                TlsContext,
-                ReadSecret,
-                SecretLen,
-                KeyType,
-                &TlsState->ReadKeys[KeyType]);
-        if (QUIC_FAILED(Status)) {
-            TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-            return -1;
-        }
+    TlsState->WriteKey = KeyType;
+    TlsContext->ResultFlags |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
 
-        if (TlsContext->IsServer && KeyType == QUIC_PACKET_KEY_1_RTT) {
-            //
-            // The 1-RTT read keys aren't actually allowed to be used until the
-            // handshake completes.
-            //
-        } else {
-            TlsState->ReadKey = KeyType;
-            TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
-        }
+    QUIC_DBG_ASSERT(TlsState->ReadKeys[KeyType] == NULL);
+    Status =
+        QuicTlsKeyCreate(
+            TlsContext,
+            ReadSecret,
+            SecretLen,
+            KeyType,
+            &TlsState->ReadKeys[KeyType]);
+    if (QUIC_FAILED(Status)) {
+        TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+        return -1;
+    }
+
+    if (TlsContext->IsServer && KeyType == QUIC_PACKET_KEY_1_RTT) {
+        //
+        // The 1-RTT read keys aren't actually allowed to be used until the
+        // handshake completes.
+        //
+    } else {
+        TlsState->ReadKey = KeyType;
+        TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
     }
 
     return 1;
@@ -672,8 +655,7 @@ QuicTlsAddHandshakeDataCallback(
     QUIC_TLS_PROCESS_STATE* TlsState = TlsContext->State;
 
     QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)Level;
-    //QUIC_DBG_ASSERT(KeyType == TlsState->WriteKey);
-    UNREFERENCED_PARAMETER(KeyType);
+    QUIC_DBG_ASSERT(TlsState->WriteKeys[KeyType] != NULL);
 
     LogVerbose("[ tls][%p][%c] Sending %llu handshake bytes (Level = %u).",
         TlsContext, GetTlsIdentifier(TlsContext), Length, Level);
@@ -683,6 +665,25 @@ QuicTlsAddHandshakeDataCallback(
             TlsContext, GetTlsIdentifier(TlsContext));
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
         return -1;
+    }
+
+    switch (KeyType) {
+    case QUIC_PACKET_KEY_HANDSHAKE:
+        if (TlsState->BufferOffsetHandshake == 0) {
+            TlsState->BufferOffsetHandshake = TlsState->BufferTotalLength;
+            LogInfo("[ tls][%p][%c] Writing Handshake data starts at %u.",
+                TlsContext, GetTlsIdentifier(TlsContext), TlsState->BufferOffsetHandshake);
+        }
+        break;
+    case QUIC_PACKET_KEY_1_RTT:
+        if (TlsState->BufferOffset1Rtt == 0) {
+            TlsState->BufferOffset1Rtt = TlsState->BufferTotalLength;
+            LogInfo("[ tls][%p][%c] Writing 1-RTT data starts at %u.",
+                TlsContext, GetTlsIdentifier(TlsContext), TlsState->BufferOffset1Rtt);
+        }
+        break;
+    default:
+        break;
     }
 
     QuicCopyMemory(
