@@ -62,7 +62,7 @@ if(QUIC_TLS STREQUAL "openssl")
         OUTPUT ${CMAKE_SOURCE_DIR}/bld/openssl/include
         OUTPUT ${CMAKE_SOURCE_DIR}/bld/openssl/lib/libcrypto.so
         OUTPUT ${CMAKE_SOURCE_DIR}/bld/openssl/lib/libssl.so
-        COMMAND ./config enable-tls1_3 --prefix=${CMAKE_SOURCE_DIR}/bld/openssl
+        COMMAND ./Configure linux-x86_64 enable-tls1_3 --prefix=${CMAKE_SOURCE_DIR}/bld/openssl
         COMMAND make -j$(nproc)
         COMMAND make install_sw)
     add_custom_target(OpenSSL
