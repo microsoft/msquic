@@ -1378,7 +1378,6 @@ Return Value:
     //
 
     TlsContext->Ssl = SSL_new(Config->SecConfig->SSLCtx);
-
     if (TlsContext->Ssl == NULL) {
         LogError("[ tls][%p][%c] Failed to allocate Ssl object.", TlsContext, GetTlsIdentifier(TlsContext));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -1629,6 +1628,24 @@ Return Value:
         if (TlsContext->IsServer) {
             TlsContext->State->ReadKey = QUIC_PACKET_KEY_1_RTT;
             TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
+        } else {
+            const uint8_t* TransportParams;
+            size_t TransportParamLen;
+            SSL_get_peer_quic_transport_params(
+                    TlsContext->Ssl, &TransportParams, &TransportParamLen);
+            if (TransportParams == NULL || TransportParamLen == 0) {
+                LogError("[ tls][%p][%c] No transport parameters received",
+                    TlsContext, GetTlsIdentifier(TlsContext));
+                TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                goto Exit;
+            }
+            if (!TlsContext->ReceiveTPCallback(
+                    TlsContext->Connection,
+                    (uint16_t)TransportParamLen,
+                    TransportParams)) {
+                TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                goto Exit;
+            }
         }
     }
 
