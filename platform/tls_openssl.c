@@ -17,6 +17,10 @@ Abstract:
 #include "openssl/x509.h"
 #include "openssl/pem.h"
 
+#ifdef QUIC_LOGS_WPP
+#include "tls_openssl.tmh"
+#endif
+
 uint16_t QuicTlsTPHeaderSize = 0;
 
 //
@@ -56,12 +60,6 @@ typedef struct _QUIC_SEC_CONFIG {
     long RefCount;
 
     //
-    // Creation flags passed by MsQuic.
-    //
-
-    uint32_t Flags;
-
-    //
     // The SSL context associated with the sec config.
     //
 
@@ -99,16 +97,6 @@ typedef struct _QUIC_TLS {
     //
 
     const char* SNI;
-
-    //
-    // LocalTransParamBuffer - A buffer to store the transport param in encoded
-    //   format.
-    // LocalTransParamLength - The length of the encoded transport param stored
-    //   in the buffer.
-    //
-
-    uint8_t *LocalTransParamBuffer;
-    size_t LocalTransParamLength;
 
     //
     // Ssl - A SSL object associated with the connection.
@@ -844,7 +832,6 @@ Return Value:
     }
 
     SecurityConfig->CleanupRundown = Rundown;
-    SecurityConfig->Flags = Flags;
 
     //
     // Initial ref.
@@ -1035,13 +1022,6 @@ Return Value:
     }
 
     QuicZeroMemory(SecurityConfig, sizeof(*SecurityConfig));
-
-    SecurityConfig->Flags = (uint32_t)Flags;
-
-    //
-    // Initial ref.
-    //
-
     SecurityConfig->RefCount = 1;
 
     //
@@ -1343,8 +1323,6 @@ Return Value:
     TlsContext->TlsSession = Config->TlsSession;
     TlsContext->IsServer = Config->IsServer;
     TlsContext->SecConfig = QuicTlsSecConfigAddRef(Config->SecConfig);
-    TlsContext->LocalTransParamBuffer = (uint8_t *)Config->LocalTPBuffer;
-    TlsContext->LocalTransParamLength = Config->LocalTPLength;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
 
     LogVerbose("[ tls][%p][%c] Created.", TlsContext, GetTlsIdentifier(TlsContext));
@@ -1458,11 +1436,6 @@ Return Value:
             TlsContext->Ssl = NULL;
         }
 
-        if (TlsContext->LocalTransParamBuffer != NULL) {
-            QUIC_FREE(TlsContext->LocalTransParamBuffer);
-            TlsContext->LocalTransParamBuffer = NULL;
-        }
-
         QUIC_FREE(TlsContext);
         TlsContext = NULL;
     }
@@ -1515,8 +1488,20 @@ Return Value:
     SSL_set_app_data(TlsContext->Ssl, TlsContext);
 
     SSL_set_connect_state(TlsContext->Ssl);
-    SSL_set_alpn_protos(TlsContext->Ssl, TlsContext->TlsSession->AlpnBuffer, TlsContext->TlsSession->AlpnBufferLength);
     SSL_set_tlsext_host_name(TlsContext->Ssl, TlsContext->SNI);
+    SSL_set_alpn_protos(
+        TlsContext->Ssl,
+        TlsContext->TlsSession->AlpnBuffer,
+        TlsContext->TlsSession->AlpnBufferLength);
+
+    /*if (SSL_set_quic_transport_params(
+            TlsContext->Ssl,
+            Config->LocalTPBuffer,
+            Config->LocalTPLength) != 1) {
+        LogError("[ tls][%p][%c] Failed to set TP.", TlsContext, GetTlsIdentifier(TlsContext));
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
+    }*/
 
 Exit:
 
