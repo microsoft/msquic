@@ -32,7 +32,6 @@ QuicSendInitialize(
     _Inout_ PQUIC_SEND Send
     )
 {
-    Send->PathMtu = QUIC_DEFAULT_PATH_MTU;
     QuicListInitializeHead(&Send->SendStreams);
 }
 
@@ -82,7 +81,6 @@ QuicSendReset(
     )
 {
     Send->SendFlags = 0;
-    Send->PathMtu = QUIC_DEFAULT_PATH_MTU;
     Send->LastFlushTime = 0;
     if (Send->DelayedAckTimerActive) {
         LogVerbose("[send][%p] Canceling ACK_DELAY timer", QuicSendGetConnection(Send));
@@ -98,13 +96,15 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendSetAllowance(
     _In_ PQUIC_SEND Send,
+    _In_ QUIC_PATH* Path,
     _In_ uint32_t NewAllowance
     )
 {
-    BOOLEAN WasBlocked = Send->Allowance < QUIC_MIN_SEND_ALLOWANCE;
-    Send->Allowance = NewAllowance;
+    BOOLEAN WasBlocked = Path->Allowance < QUIC_MIN_SEND_ALLOWANCE;
+    Path->Allowance = NewAllowance;
 
-    if ((Send->Allowance < QUIC_MIN_SEND_ALLOWANCE) != WasBlocked) {
+    if (Path->IsValidated && // TODO - What to do for other paths?
+        (Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) != WasBlocked) {
         PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
         if (WasBlocked) {
             QuicConnRemoveOutFlowBlockedReason(
@@ -538,7 +538,7 @@ QuicSendWriteFrames(
         QUIC_PATH_RESPONSE_EX Frame = { 0 };
         QuicCopyMemory(
             Frame.Data,
-            Connection->Send.LastPathChallengeReceived,
+            Builder->Path->LastPathChallengeReceived,
             sizeof(Frame.Data));
 
         if (QuicPathChallengeFrameEncode(
@@ -678,7 +678,7 @@ QuicSendWriteFrames(
                     SourceCid->CID.Length);
                 QUIC_DBG_ASSERT(SourceCid->CID.Length == MSQUIC_CONNECTION_ID_LENGTH);
                 QuicBindingGenerateStatelessResetToken(
-                    Connection->Binding,
+                    Builder->Path->Binding,
                     SourceCid->CID.Data,
                     Frame.Buffer + SourceCid->CID.Length);
 
@@ -864,6 +864,11 @@ QuicSendFlush(
         return QUIC_SEND_COMPLETE;
     }
 
+    QUIC_PATH* Path = &Connection->Paths[0]; // TODO - How to pick?
+    if (Path->DestCid == NULL) {
+        return QUIC_SEND_COMPLETE;
+    }
+
     QUIC_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
 
     QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;
@@ -871,7 +876,7 @@ QuicSendFlush(
     uint32_t StreamPacketCount = 0;
 
     QUIC_PACKET_BUILDER Builder = { 0 };
-    if (!QuicPacketBuilderInitialize(&Builder, Connection)) {
+    if (!QuicPacketBuilderInitialize(&Builder, Connection, Path)) {
         //
         // If this fails, the connection is in a bad (likely partially
         // uninitialized) state, so just ignore the send flush call. This can
@@ -885,7 +890,7 @@ QuicSendFlush(
 
     do {
 
-        if (Send->Allowance < QUIC_MIN_SEND_ALLOWANCE) {
+        if (Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) {
             LogVerbose("[conn][%p] Cannot send any more because of amplification protection", Connection);
             Result = QUIC_SEND_COMPLETE;
             break;
@@ -1111,13 +1116,14 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendOnMtuProbePacketAcked(
     _In_ PQUIC_SEND Send,
+    _In_ QUIC_PATH* Path,
     _In_ PQUIC_SENT_PACKET_METADATA Packet
     )
 {
-    PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
-    Send->PathMtu =
+    Path->Mtu =
         PacketSizeFromUdpPayloadSize(
-            QuicAddrGetFamily(&Connection->RemoteAddress),
+            QuicAddrGetFamily(&Path->RemoteAddress),
             Packet->PacketLength);
-    LogInfo("[conn][%p] Path MTU updated to %u bytes", Connection, Send->PathMtu);
+    LogInfo("[conn][%p] Path[%hu] MTU updated to %u bytes",
+        QuicSendGetConnection(Send), Path->ID, Path->Mtu);
 }

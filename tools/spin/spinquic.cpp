@@ -357,10 +357,10 @@ void *ServerSpin(void *) {
                     server_connections.erase(it);
                 }
 
-                //SpinQuicServerConnectionContext *ctx = (SpinQuicServerConnectionContext *)MsQuic->GetContext(Connection);
-                //MsQuic->ConnectionClose(Connection);
+                SpinQuicServerConnectionContext *ctx = (SpinQuicServerConnectionContext *)MsQuic->GetContext(Connection);
+                MsQuic->ConnectionClose(Connection);
                 printf("MsQuic->ConnectionClose(%p)\n", Connection);
-                //delete ctx;
+                delete ctx;
                 break;
             }
             case SpinQuicAPICallStreamOpen: {
@@ -526,7 +526,7 @@ void *ClientSpin(void *) {
 
                 printf("MsQuic->ConnectionClose(%p)\n", Connection);
                 delete streams;
-                //MsQuic->ConnectionClose(Connection);
+                MsQuic->ConnectionClose(Connection);
                 break;
             }
             case SpinQuicAPICallStreamOpen: { // StreamOpen

@@ -1494,7 +1494,8 @@ Return Value:
         TlsContext->TlsSession->AlpnBuffer,
         TlsContext->TlsSession->AlpnBufferLength);
 
-    /*if (SSL_set_quic_transport_params(
+    /* TODO - Figure out if this is necessary.
+    if (SSL_set_quic_transport_params(
             TlsContext->Ssl,
             Config->LocalTPBuffer,
             Config->LocalTPLength) != 1) {

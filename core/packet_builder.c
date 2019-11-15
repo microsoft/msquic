@@ -36,10 +36,13 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicPacketBuilderInitialize(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_PATH* Path
     )
 {
+    QUIC_DBG_ASSERT(Path->DestCid != NULL);
     Builder->Connection = Connection;
+    Builder->Path = Path;
     Builder->PacketBatchSent = FALSE;
     Builder->PacketBatchRetransmittable = FALSE;
     Builder->Metadata = &Builder->MetadataStorage.Metadata;
@@ -58,26 +61,6 @@ QuicPacketBuilderInitialize(
             QUIC_CID_HASH_ENTRY,
             Link);
 
-    for (QUIC_LIST_ENTRY* Entry = Connection->DestCIDs.Flink;
-            Entry != &Connection->DestCIDs;
-            Entry = Entry->Flink) {
-        QUIC_CID_QUIC_LIST_ENTRY* DestCid =
-            QUIC_CONTAINING_RECORD(
-                Entry,
-                QUIC_CID_QUIC_LIST_ENTRY,
-                Link);
-        if (DestCid->CID.Retired) {
-            continue;
-        }
-        Builder->DestCID = DestCid;
-        break;
-    }
-
-    if (Builder->DestCID == NULL) {
-        LogWarning("[conn][%p] No dest CID to send with.", Connection);
-        return FALSE;
-    }
-
     uint64_t TimeNow = QuicTimeUs64();
     uint64_t TimeSinceLastSend;
     if (Connection->Send.LastFlushTimeValid) {
@@ -91,8 +74,8 @@ QuicPacketBuilderInitialize(
             &Connection->CongestionControl,
             TimeSinceLastSend,
             Connection->Send.LastFlushTimeValid);
-    if (Builder->SendAllowance > Connection->Send.Allowance) {
-        Builder->SendAllowance = Connection->Send.Allowance;
+    if (Builder->SendAllowance > Path->Allowance) {
+        Builder->SendAllowance = Path->Allowance;
     }
     Connection->Send.LastFlushTime = TimeNow;
     Connection->Send.LastFlushTimeValid = TRUE;
@@ -136,10 +119,10 @@ QuicPacketBuilderPrepare(
 {
     BOOLEAN Result = FALSE;
     QUIC_CONNECTION* Connection = Builder->Connection;
-    uint16_t DatagramSize = Connection->Send.PathMtu;
-    if ((uint32_t)DatagramSize > Connection->Send.Allowance) {
+    uint16_t DatagramSize = Builder->Path->Mtu;
+    if ((uint32_t)DatagramSize > Builder->Path->Allowance) {
         QUIC_DBG_ASSERT(!IsPathMtuDiscovery); // PMTUD always happens after source addr validation.
-        DatagramSize = (uint16_t)Connection->Send.Allowance;
+        DatagramSize = (uint16_t)Builder->Path->Allowance;
     }
     QUIC_DBG_ASSERT(!IsPathMtuDiscovery || !IsTailLossProbe); // Never both.
     QUIC_DBG_ASSERT(NewPacketKey != NULL);
@@ -180,11 +163,11 @@ QuicPacketBuilderPrepare(
         if (Builder->SendContext == NULL) {
             Builder->SendContext =
                 QuicDataPathBindingAllocSendContext(
-                    Connection->Binding->DatapathBinding,
+                    Builder->Path->Binding->DatapathBinding,
                     IsPathMtuDiscovery ?
                         0 :
                         MaxUdpPayloadSizeForFamily(
-                            QuicAddrGetFamily(&Connection->RemoteAddress),
+                            QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                             DatagramSize));
             if (Builder->SendContext == NULL) {
                 EventWriteQuicAllocFailure("packet send context", 0);
@@ -194,7 +177,7 @@ QuicPacketBuilderPrepare(
 
         uint16_t NewDatagramLength =
             MaxUdpPayloadSizeForFamily(
-                QuicAddrGetFamily(&Connection->RemoteAddress),
+                QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                 IsPathMtuDiscovery ? QUIC_MAX_MTU : DatagramSize);
         if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_PACKET_SIZE) &&
             NewDatagramLength > Connection->PeerTransportParams.MaxPacketSize) {
@@ -238,7 +221,7 @@ QuicPacketBuilderPrepare(
             //
             Builder->MinimumDatagramLength =
                 MaxUdpPayloadSizeForFamily(
-                    QuicAddrGetFamily(&Connection->RemoteAddress),
+                    QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                     QUIC_INITIAL_PACKET_LENGTH);
 
         } else if (IsPathMtuDiscovery) {
@@ -286,10 +269,10 @@ QuicPacketBuilderPrepare(
             case QUIC_VERSION_MS_1:
                 Builder->HeaderLength =
                     QuicPacketEncodeShortHeaderV1(
-                        &Builder->DestCID->CID,
+                        &Builder->Path->DestCid->CID,
                         Builder->Metadata->PacketNumber,
                         Builder->PacketNumberLength,
-                        Connection->Send.SpinBit,
+                        Builder->Path->SpinBit,
                         PacketSpace->CurrentKeyPhase,
                         BufferSpaceAvailable,
                         Header);
@@ -311,7 +294,7 @@ QuicPacketBuilderPrepare(
                     QuicPacketEncodeLongHeaderV1(
                         Connection->Stats.QuicVersion,
                         (QUIC_LONG_HEADER_TYPE_V1)NewPacketType,
-                        &Builder->DestCID->CID,
+                        &Builder->Path->DestCid->CID,
                         &Builder->SourceCID->CID,
                         Connection->Send.InitialTokenLength,
                         Connection->Send.InitialToken,
@@ -520,7 +503,7 @@ QuicPacketBuilderFinalizeHeaderProtection(
         uint16_t Offset = i * QUIC_HP_SAMPLE_LENGTH;
         uint8_t* Header = Builder->HeaderBatch[i];
         Header[0] ^= (Builder->HpMask[Offset] & 0x1f); // Bottom 5 bits for SH
-        Header += 1 + Builder->DestCID->CID.Length;
+        Header += 1 + Builder->Path->DestCid->CID.Length;
         for (uint8_t j = 0; j < Builder->PacketNumberLength; ++j) {
             Header[j] ^= Builder->HpMask[Offset + 1 + j];
         }
@@ -643,7 +626,7 @@ QuicPacketBuilderFinalize(
         QuicPacketLogHeader(
             Connection,
             FALSE,
-            Builder->DestCID->CID.Length,
+            Builder->Path->DestCid->CID.Length,
             Builder->Metadata->PacketNumber,
             Builder->HeaderLength + PayloadLength,
             Header,
@@ -783,7 +766,10 @@ QuicPacketBuilderFinalize(
         Builder->Metadata->PacketNumber,
         QuicPacketTraceType(Builder->Metadata),
         Builder->Metadata->PacketLength);
-    QuicLossDetectionOnPacketSent(&Connection->LossDetection, Builder->Metadata);
+    QuicLossDetectionOnPacketSent(
+        &Connection->LossDetection,
+        Builder->Path,
+        Builder->Metadata);
 
     if (Builder->Metadata->Flags.IsRetransmittable) {
         Builder->PacketBatchRetransmittable = TRUE;
@@ -835,22 +821,20 @@ QuicPacketBuilderSendBatch(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
-    PQUIC_CONNECTION Connection = Builder->Connection;
-
     LogDev("[pktb][%p] Sending batch. %hu datagrams",
-        Connection, (uint16_t)Builder->TotalCountDatagrams);
+        Builder->Connection, (uint16_t)Builder->TotalCountDatagrams);
 
-    if (QuicAddrIsBoundExplicitly(&Connection->LocalAddress)) {
+    if (QuicAddrIsBoundExplicitly(&Builder->Path->LocalAddress)) {
         QuicBindingSendTo(
-            Connection->Binding,
-            &Connection->RemoteAddress,
+            Builder->Path->Binding,
+            &Builder->Path->RemoteAddress,
             Builder->SendContext);
 
     } else {
         QuicBindingSendFromTo(
-            Connection->Binding,
-            &Connection->LocalAddress,
-            &Connection->RemoteAddress,
+            Builder->Path->Binding,
+            &Builder->Path->LocalAddress,
+            &Builder->Path->RemoteAddress,
             Builder->SendContext);
     }
 

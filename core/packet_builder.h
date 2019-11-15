@@ -16,9 +16,9 @@ typedef struct _QUIC_PACKET_BUILDER {
     QUIC_CONNECTION* Connection;
 
     //
-    // The destination connection ID.
+    // The current path being used.
     //
-    QUIC_CID_QUIC_LIST_ENTRY* DestCID;
+    QUIC_PATH* Path;
 
     //
     // The source connection ID.
@@ -151,7 +151,8 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicPacketBuilderInitialize(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_PATH* Path
     );
 
 //

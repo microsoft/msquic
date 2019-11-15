@@ -1109,7 +1109,7 @@ QuicBindingCreateConnection(
     }
 
     BindingRefAdded = TRUE;
-    NewConnection->Binding = Binding;
+    NewConnection->Paths[0].Binding = Binding;
     InterlockedIncrement(&Binding->HandshakeConnections);
     InterlockedExchangeAdd64(
         (LONG64*)&MsQuicLib.CurrentHandshakeMemoryUsage,
