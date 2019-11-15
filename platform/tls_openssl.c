@@ -1652,7 +1652,7 @@ Return Value:
     TlsContext->ResultFlags = 0;
 
     if (*BufferLength) {
-        LogVerbose("[TLS][%p][%c] Reading %d bytes", TlsContext,  GetTlsIdentifier(TlsContext), *BufferLength);
+        LogVerbose("[TLS][%p][%c] Reading %d bytes", TlsContext, GetTlsIdentifier(TlsContext), *BufferLength);
 
         //
         // Copy the data pointer into our buffer pointer.
