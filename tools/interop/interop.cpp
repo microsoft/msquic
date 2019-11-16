@@ -225,7 +225,7 @@ public:
                     sizeof(TimeoutMs),
                     &TimeoutMs));
     }
-    bool ConnectToServer(const char* ServerName, UINT16 ServerPort) {
+    bool ConnectToServer(const char* ServerName, uint16_t ServerPort) {
         if (QUIC_SUCCEEDED(
             MsQuic->ConnectionStart(
                 Connection,
