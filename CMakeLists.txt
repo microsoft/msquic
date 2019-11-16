@@ -3,8 +3,8 @@
 
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
-message("-- Source Dir: ${CMAKE_SOURCE_DIR}")
-message("-- Host System name: ${CMAKE_HOST_SYSTEM_NAME}")
+message(STATUS "Source Dir: ${CMAKE_SOURCE_DIR}")
+message(STATUS "Host System name: ${CMAKE_HOST_SYSTEM_NAME}")
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
     set(CMAKE_SYSTEM_VERSION 10.0.18362.0 CACHE STRING INTERNAL FORCE)
     set(CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION 10.0.18362.0 CACHE STRING INTERNAL FORCE)
@@ -12,9 +12,9 @@ endif()
 
 project(msquic)
 
-message("-- System name: ${CMAKE_SYSTEM_NAME}")
-message("-- System version: ${CMAKE_SYSTEM_VERSION}")
-message("-- Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
+message(STATUS "System name: ${CMAKE_SYSTEM_NAME}")
+message(STATUS "System version: ${CMAKE_SYSTEM_VERSION}")
+message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 
 enable_testing()
 
@@ -22,7 +22,7 @@ enable_testing()
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(QUIC_TLS "schannel" CACHE STRING "TLS Library to use")
 else()
-    set(QUIC_TLS "stub" CACHE STRING "TLS Library to use")
+    set(QUIC_TLS "openssl" CACHE STRING "TLS Library to use")
 endif()
 
 option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
@@ -53,6 +53,22 @@ else()
     # Custom build flags.
     set(QUIC_C_FLAGS "-DQUIC_PLATFORM_LINUX -DQUIC_EVENTS_SYSLOG -DQUIC_LOGS_SYSLOG -fms-extensions -fPIC -Wall  -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-value -pthread")
     set(QUIC_CXX_FLAGS "-DQUIC_PLATFORM_LINUX -DQUIC_EVENTS_SYSLOG -DQUIC_LOGS_SYSLOG -fms-extensions -fPIC -Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-value -Wno-sign-compare -Wno-format --std=c++0x -g -pthread")
+endif()
+
+if(QUIC_TLS STREQUAL "openssl")
+    # Configure and build OpenSSL.
+    add_custom_command(
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/openssl
+        OUTPUT ${CMAKE_SOURCE_DIR}/bld/openssl/include
+        OUTPUT ${CMAKE_SOURCE_DIR}/bld/openssl/lib/libcrypto.so
+        OUTPUT ${CMAKE_SOURCE_DIR}/bld/openssl/lib/libssl.so
+        COMMAND ./Configure linux-x86_64 enable-tls1_3 --prefix=${CMAKE_SOURCE_DIR}/bld/openssl
+        COMMAND make -j$(nproc)
+        COMMAND make install_sw)
+    add_custom_target(OpenSSL
+        DEPENDS ${CMAKE_SOURCE_DIR}/bld/openssl/include
+        DEPENDS ${CMAKE_SOURCE_DIR}/bld/openssl/lib/libcrypto.so
+        DEPENDS ${CMAKE_SOURCE_DIR}/bld/openssl/lib/libssl.so)
 endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/inc)

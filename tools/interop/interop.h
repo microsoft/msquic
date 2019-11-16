@@ -22,15 +22,14 @@ enum QuicTestFeature {
     ZeroRtt             = 0x0020,
     StatelessRetry      = 0x0040,
     PostQuantum         = 0x0080,
-    KeyUpdate           = 0x0100
+    KeyUpdate           = 0x0100,
+    CidUpdate           = 0x0200
 };
 
-const uint32_t QuicTestFeatureCount = 9;
+#define QuicTestFeatureCodes "VHDCRZSQUM"
+
+const uint32_t QuicTestFeatureCount = 10;
 const uint32_t QuicTestFeatureAll = ((1 << QuicTestFeatureCount) - 1);
-
-const char QuicTestFeatureCode[] = {
-    'V', 'H', 'D', 'C', 'R', 'Z', 'S', 'Q', 'U'
-};
 
 inline QuicTestFeature operator|(QuicTestFeature a, QuicTestFeature b)
 {

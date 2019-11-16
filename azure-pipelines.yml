@@ -11,6 +11,11 @@ strategy:
       imageName: 'ubuntu-latest'
       cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=stub'
       testCmd: 'bash ./test/run_linux.sh'
+    linux-openssl:
+      platform: 'Linux-OpenSSL'
+      imageName: 'ubuntu-latest'
+      cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=openssl'
+      testCmd: 'bash ./test/run_linux.sh'
     windows-x64-stub:
       platform: 'Windows-x64-Stub'
       imageName: 'windows-latest'

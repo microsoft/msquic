@@ -2051,7 +2051,7 @@ QuicTestCidUpdate(
 
                     QuicSleep(100);
 
-                    Client.ForceCidUpdate();
+                    TEST_QUIC_SUCCEEDED(Client.ForceCidUpdate());
 
                     TEST_QUIC_SUCCEEDED(Client.SetPeerBidiStreamCount((uint16_t)(101+i)));
                     TEST_EQUAL((uint16_t)(101+i), Client.GetPeerBidiStreamCount());

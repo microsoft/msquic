@@ -529,7 +529,7 @@ QuicStreamOnBytesDelivered(
             Stream->Connection->Session->Settings.ConnFlowControlWindow) {
 
             uint32_t TimeThreshold = (uint32_t)
-                ((Stream->RecvWindowBytesDelivered * Stream->Connection->SmoothedRtt) / RecvBufferDrainThreshold);
+                ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].SmoothedRtt) / RecvBufferDrainThreshold);
             if (QuicTimeDiff32(Stream->RecvWindowLastUpdate, TimeNow) <= TimeThreshold) {
 
                 //
@@ -555,7 +555,7 @@ QuicStreamOnBytesDelivered(
                     Stream,
                     Stream->ID,
                     Stream->RecvBuffer.VirtualBufferLength * 2,
-                    Stream->Connection->SmoothedRtt,
+                    Stream->Connection->Paths[0].SmoothedRtt,
                     TimeNow,
                     Stream->RecvWindowLastUpdate);
 

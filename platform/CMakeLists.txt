@@ -19,16 +19,17 @@ else()
 endif()
 
 if (QUIC_TLS STREQUAL "schannel")
-    message("-- Configuring SChannel")
+    message(STATUS "Configuring for SChannel")
     set(SOURCES ${SOURCES} cert_capi.c selfsign_capi.c tls_schannel.c)
 elseif(QUIC_TLS STREQUAL "openssl")
-    message("-- Configuring OpenSSL")
+    message(STATUS "Configuring for OpenSSL")
     set(SOURCES ${SOURCES} selfsign_openssl.c tls_openssl.c)
+    include_directories(${CMAKE_SOURCE_DIR}/bld/openssl/include)
 elseif(QUIC_TLS STREQUAL "mitls")
-    message("-- Configuring miTLS")
+    message(STATUS "Configuring for miTLS")
     set(SOURCES ${SOURCES} cert_capi.c selfsign_capi.c tls_mitls.c)
 else()
-    message("-- Configuring stub TLS")
+    message(STATUS "Configuring for stub TLS")
     set(SOURCES ${SOURCES} cert_stub.c selfsign_stub.c tls_stub.c)
 endif()
 
@@ -38,4 +39,11 @@ add_library(platform STATIC ${SOURCES})
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_dependencies(platform MsQuicEtw)
+endif()
+
+if(QUIC_TLS STREQUAL "openssl")
+    add_dependencies(platform OpenSSL)
+    target_link_libraries(platform
+        ${CMAKE_SOURCE_DIR}/bld/openssl/lib/libcrypto.so
+        ${CMAKE_SOURCE_DIR}/bld/openssl/lib/libssl.so)
 endif()

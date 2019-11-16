@@ -215,6 +215,16 @@ public:
                     sizeof(KeepAliveMs),
                     &KeepAliveMs));
     }
+    bool SetDisconnectTimeout(uint32_t TimeoutMs) {
+        return
+            QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Connection,
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_DISCONNECT_TIMEOUT,
+                    sizeof(TimeoutMs),
+                    &TimeoutMs));
+    }
     bool ConnectToServer(const char* ServerName, uint16_t ServerPort) {
         if (QUIC_SUCCEEDED(
             MsQuic->ConnectionStart(
@@ -231,6 +241,9 @@ public:
             Connection,
             QUIC_CONNECTION_SHUTDOWN_FLAG_NONE,
             Connected ? HTTP_NO_ERROR : HTTP_INTERNAL_ERROR);
+        return WaitForShutdownComplete();
+    }
+    bool WaitForShutdownComplete() {
         return QuicEventWaitWithTimeout(ShutdownComplete, WaitTimeoutMs);
     }
     bool SendHttpRequest(bool WaitForResponse = true) {
@@ -291,13 +304,13 @@ public:
         }
         return TryCount < 20;
     }
-    bool ForceKeyUpdate() {
+    bool ForceCidUpdate() {
         return
             QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 Connection,
                 QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_FORCE_KEY_UPDATE,
+                QUIC_PARAM_CONN_FORCE_CID_UPDATE,
                 0,
                 nullptr));
     }
@@ -556,6 +569,21 @@ RunInteropTest(
         }
         break;
     }
+
+    case CidUpdate: {
+        InteropConnection Connection(Session);
+        if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
+            Connection.GetQuicVersion(QuicVersionUsed);
+            QuicSleep(250);
+            if (Connection.SetDisconnectTimeout(1000) &&
+                Connection.ForceCidUpdate() &&
+                Connection.SetKeepAlive(50) &&
+                !Connection.WaitForShutdownComplete()) {
+                Success = true;
+            }
+        }
+        break;
+    }
     }
 
     MsQuic->SessionClose(Session);
@@ -628,16 +656,16 @@ PrintTestResults(
     uint32_t Endpoint
     )
 {
-    char ResultCodes[] = "VHDCRZSQU";
+    char ResultCodes[] = QuicTestFeatureCodes;
     for (uint32_t i = 0; i < QuicTestFeatureCount; ++i) {
         if (!(TestResults[Endpoint].Features & (1 << i))) {
             ResultCodes[i] = '-';
         }
     }
     if (TestResults[Endpoint].QuicVersion == 0) {
-        printf("%12s\t%s\n", PublicEndpoints[Endpoint].ImplementationName, ResultCodes);
+        printf("%12s  %s\n", PublicEndpoints[Endpoint].ImplementationName, ResultCodes);
     } else {
-        printf("%12s\t%s\t0x%X %s\n", PublicEndpoints[Endpoint].ImplementationName,
+        printf("%12s  %s  0x%X  %s\n", PublicEndpoints[Endpoint].ImplementationName,
             ResultCodes, TestResults[Endpoint].QuicVersion,
             TestResults[Endpoint].Alpn);
     }
@@ -669,7 +697,8 @@ RunInteropTests()
         }
     }
 
-    printf("\nResults:\n");
+    printf("\n%12s  %s    %s   %s\n", "TARGET", QuicTestFeatureCodes, "VERSION", "ALPN");
+    printf(" ============================================\n");
     if (EndpointIndex == -1) {
         for (uint32_t i = 0; i < ARRAYSIZE(PublicEndpoints); ++i) {
             PrintTestResults(i);

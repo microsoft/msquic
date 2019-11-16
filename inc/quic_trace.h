@@ -327,7 +327,7 @@ QuicSysLogWrite(
 #define EventWriteQuicConnPacketRecv(Connection, Number, Type, Length) \
     QUIC_WRITE_EVENT(QUIC_TRACE_LEVEL_VERBOSE, "[conn][%p] [RX][%llu] %u (%hu bytes)", Connection, Number, Type, Length)
 #define EventWriteQuicConnPacketLost(Connection, Number, Type, Reason) \
-    QUIC_WRITE_EVENT(QUIC_TRACE_LEVEL_VERBOSE, "[conn][%p] [TX][%llu] %u Lost: %s", Connection, Number, Type, Reason)
+    QUIC_WRITE_EVENT(QUIC_TRACE_LEVEL_VERBOSE, "[conn][%p] [TX][%llu] %u Lost: %u", Connection, Number, Type, Reason)
 #define EventWriteQuicConnPacketACKed(Connection, Number, Type) \
     QUIC_WRITE_EVENT(QUIC_TRACE_LEVEL_VERBOSE, "[conn][%p] [TX][%llu] %u ACKed", Connection, Number, Type)
 
