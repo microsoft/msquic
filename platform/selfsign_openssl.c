@@ -62,7 +62,7 @@ Return Value:
 
     if (PKey == NULL) {
         LogError("[TLS] EVP_PKEY_new() failed.");
-        Status = QUIC_STATUS_SSL_ERROR;
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -70,7 +70,7 @@ Return Value:
 
     if (BigNum == NULL) {
         LogError("[TLS] BN_new() failed.");
-        Status = QUIC_STATUS_SSL_ERROR;
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -78,7 +78,7 @@ Return Value:
 
     if (Ret != 1) {
         LogError("[TLS] BN_set_word() failed.");
-        Status = QUIC_STATUS_SSL_ERROR;
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -86,7 +86,7 @@ Return Value:
 
     if (Rsa == NULL) {
         LogError("[TLS] RSA_new() failed.");
-        Status = QUIC_STATUS_SSL_ERROR;
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -94,7 +94,7 @@ Return Value:
 
     if (Ret != 1) {
         LogError("[TLS] RSA_generate_key_ex() failed.");
-        Status = QUIC_STATUS_SSL_ERROR;
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -102,7 +102,7 @@ Return Value:
 
     if (Ret != 1) {
         LogError("[TLS] EVP_PKEY_assign_RSA() failed.");
-        Status = QUIC_STATUS_SSL_ERROR;
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -110,7 +110,7 @@ Return Value:
 
     if (X509 == NULL) {
         LogError("[TLS] X509_new() failed.");
-        Status = QUIC_STATUS_SSL_ERROR;
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -118,7 +118,7 @@ Return Value:
 
     if (Ret != 1) {
         LogError("[TLS] ASN1_INTEGER_set() failed.");
-        Status = QUIC_STATUS_SSL_ERROR;
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -141,7 +141,7 @@ Return Value:
 
     if (Ret != 1) {
         LogError("[TLS] X509_NAME_add_entry_by_txt() failed.");
-        Status = QUIC_STATUS_SSL_ERROR;
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -157,7 +157,7 @@ Return Value:
 
     if (Ret != 1) {
         LogError("[TLS] X509_NAME_add_entry_by_txt() failed.");
-        Status = QUIC_STATUS_SSL_ERROR;
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -173,7 +173,7 @@ Return Value:
 
     if (Ret != 1) {
         LogError("[TLS] X509_NAME_add_entry_by_txt() failed.");
-        Status = QUIC_STATUS_SSL_ERROR;
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -181,7 +181,7 @@ Return Value:
 
     if (Ret != 1) {
         LogError("[TLS] X509_set_issuer_name() failed.");
-        Status = QUIC_STATUS_SSL_ERROR;
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -189,7 +189,7 @@ Return Value:
 
     if (Ret <= 0) {
         LogError("[TLS] X509_sign() failed.");
-        Status = QUIC_STATUS_SSL_ERROR;
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -197,7 +197,7 @@ Return Value:
 
     if (Fd == NULL) {
         LogError("[TLS] fopen() failed.");
-        Status = QUIC_STATUS_SSL_ERROR;
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -205,7 +205,7 @@ Return Value:
 
     if (Ret != 1) {
         LogError("[TLS] PEM_write_PrivateKey() failed.");
-        Status = QUIC_STATUS_SSL_ERROR;
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -216,7 +216,7 @@ Return Value:
 
     if (Fd == NULL) {
         LogError("[TLS] fopen() failed.");
-        Status = QUIC_STATUS_SSL_ERROR;
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -224,7 +224,7 @@ Return Value:
 
     if (Ret != 1) {
         LogError("[TLS] PEM_write_X509() failed.");
-        Status = QUIC_STATUS_SSL_ERROR;
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 

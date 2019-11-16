@@ -71,17 +71,6 @@ typedef union _QUIC_CONNECTION_STATE {
         BOOLEAN ReceivedRetryPacket : 1;
 
         //
-        // This flag indicates that the first RTT sample has been taken. Until
-        // this is set, the RTT estimate is set to a default value.
-        //
-        BOOLEAN GotFirstRttSample : 1;
-
-        //
-        // The peer's source address has been validated.
-        //
-        BOOLEAN SourceAddressValidated : 1;
-
-        //
         // We have confirmed that the peer has completed the handshake.
         //
         BOOLEAN HandshakeConfirmed : 1;
@@ -135,13 +124,6 @@ typedef union _QUIC_CONNECTION_STATE {
         // Indicates whether this connection shares bindings with others.
         //
         BOOLEAN ShareBinding : 1;
-
-        //
-        // Indicates whether this connection initiated a CID change, and
-        // therefore shouldn't respond to the peer's next CID change with one of
-        // its own.
-        //
-        BOOLEAN InitiatedCidUpdate : 1;
 
         //
         // Indicate the TestTransportParameter variable has been set by the app.
@@ -256,6 +238,12 @@ typedef struct _QUIC_CONN_STATS {
 
 } QUIC_CONN_STATS;
 
+void
+QuicPathInitialize(
+    _In_ QUIC_PATH* Path,
+    _In_ uint8_t Id
+    );
+
 //
 // Connection-specific state.
 //   N.B. In general, all variables should only be written on the QUIC worker
@@ -295,11 +283,6 @@ typedef struct _QUIC_CONNECTION {
     // The top level session this connection is a part of.
     //
     PQUIC_SESSION Session;
-
-    //
-    // The binding used for sending/receiving UDP packets.
-    //
-    PQUIC_BINDING Binding;
 
     //
     // Number of references to the handle.
@@ -342,9 +325,20 @@ typedef struct _QUIC_CONNECTION {
     uint8_t PartitionID;
 
     //
-    // Number of desintation connection IDs we currently have cached.
+    // Number of non-retired desintation CIDs we currently have cached.
     //
     uint8_t DestCIDCount;
+
+    //
+    // Number of paths the connection is currently tracking.
+    //
+    _In_range_(0, QUIC_MAX_PATH_COUNT)
+    uint8_t PathsCount;
+
+    //
+    // The next identifier to use for a new path.
+    //
+    uint8_t NextPathId;
 
     //
     // Indicates whether a worker is currently processing a connection.
@@ -392,18 +386,16 @@ typedef struct _QUIC_CONNECTION {
     uint32_t KeepAliveIntervalMs;
 
     //
-    // RTT moving average, computed as in RFC6298. Units of microseconds.
-    //
-    uint32_t SmoothedRtt;
-    uint32_t MinRtt;
-    uint32_t MaxRtt;
-    uint32_t RttVariance;
-    uint32_t LatestRttSample;
-
-    //
     // The sequence number to use for the next source CID.
     //
     QUIC_VAR_INT NextSourceCidSequenceNumber;
+
+    //
+    // Per-path state. The first entry in the list is the active path. All the
+    // rest (if any) are other tracked paths, sorted from most to least recently
+    // used.
+    //
+    QUIC_PATH Paths[QUIC_MAX_PATH_COUNT];
 
     //
     // The list of connection IDs used for receiving.
@@ -419,17 +411,6 @@ typedef struct _QUIC_CONNECTION {
     // The original CID used by the Client in its first Initial packet.
     //
     QUIC_CID* OrigCID;
-
-    //
-    // Storage for the local address currently bound to.
-    //
-    QUIC_ADDR LocalAddress;
-
-    //
-    // Storage for the latest remote address the connection has received
-    // a packet from.
-    //
-    QUIC_ADDR RemoteAddress;
 
     //
     // Sorted array of all timers for the connection.
@@ -675,6 +656,8 @@ QuicConnLogOutFlowStats(
         &FcAvailable,
         &SendWindow);
 
+    const QUIC_PATH* Path = &Connection->Paths[0];
+
     EventWriteQuicConnOutFlowStats(
         Connection,
         Connection->Stats.Send.TotalBytes,
@@ -686,7 +669,7 @@ QuicConnLogOutFlowStats(
         FcAvailable,
         Connection->SendBuffer.IdealBytes,
         Connection->SendBuffer.PostedBytes,
-        Connection->State.GotFirstRttSample ? Connection->SmoothedRtt : 0,
+        Path->GotFirstRttSample ? Path->SmoothedRtt : 0,
         SendWindow);
 }
 
@@ -707,6 +690,7 @@ QuicConnLogStatistics(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
+    const QUIC_PATH* Path = &Connection->Paths[0];
     EventWriteQuicConnStatistics(
         Connection,
         QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()),
@@ -722,7 +706,7 @@ QuicConnLogStatistics(
         Connection->Stats.Send.PersistentCongestionCount,
         Connection->Stats.Send.TotalBytes,
         Connection->Stats.Recv.TotalBytes,
-        Connection->SmoothedRtt);
+        Path->SmoothedRtt);
 }
 
 inline
@@ -940,9 +924,10 @@ QuicConnGenerateNewSourceCid(
 // Retires the currently used destination connection ID.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicConnRetireCurrentDestCid(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_PATH* Path
     );
 
 //
@@ -1044,6 +1029,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnUpdateRtt(
     _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_PATH* Path,
     _In_ uint32_t LatestRtt
     );
 
@@ -1266,4 +1252,15 @@ QuicConnParamGet(
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
         void* Buffer
+    );
+
+//
+// Helper function to look up a path object based on its identifier.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Ret_maybenull_
+QUIC_PATH*
+QuicConnGetPathByID(
+    _In_ PQUIC_CONNECTION Connection,
+    _In_ uint8_t ID
     );

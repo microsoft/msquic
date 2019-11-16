@@ -167,11 +167,6 @@ typedef struct _QUIC_SEND {
     BOOLEAN FlushOperationPending : 1;
 
     //
-    // Current value to encode in the short header spin bit field.
-    //
-    BOOLEAN SpinBit : 1;
-
-    //
     // Indicates the delayed ACK timer is running.
     //
     BOOLEAN DelayedAckTimerActive : 1;
@@ -186,11 +181,6 @@ typedef struct _QUIC_SEND {
     // Indicates at least one tail loss probe packet must be sent.
     //
     BOOLEAN TailLossProbeNeeded : 1;
-
-    //
-    // The currently calculated path MTU.
-    //
-    uint16_t PathMtu;
 
     //
     // The next packet number to use.
@@ -230,22 +220,9 @@ typedef struct _QUIC_SEND {
     uint32_t SendFlags;
 
     //
-    // Used on the server side until the client's IP address has been validated
-    // to prevent the server from being used for amplification attacks. A value
-    // of UINT32_MAX indicates this variable does not apply.
-    //
-    uint32_t Allowance;
-
-    //
     // List of streams with data or control frames to send.
     //
     QUIC_LIST_ENTRY SendStreams;
-
-    //
-    // The last path challenge we received and need to echo back in a path
-    // response frame.
-    //
-    uint8_t LastPathChallengeReceived[8];
 
     //
     // The current token to send with an Initial packet.
@@ -298,6 +275,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendSetAllowance(
     _In_ PQUIC_SEND Send,
+    _In_ QUIC_PATH* Path,
     _In_ uint32_t NewAllowance
     );
 
@@ -306,10 +284,11 @@ inline
 void
 QuicSendIncrementAllowance(
     _In_ PQUIC_SEND Send,
+    _In_ QUIC_PATH* Path,
     _In_ uint32_t Amount
     )
 {
-    QuicSendSetAllowance(Send, Send->Allowance + Amount);
+    QuicSendSetAllowance(Send, Path, Path->Allowance + Amount);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -317,13 +296,14 @@ inline
 void
 QuicSendDecrementAllowance(
     _In_ PQUIC_SEND Send,
+    _In_ QUIC_PATH* Path,
     _In_ uint32_t Amount
     )
 {
     QuicSendSetAllowance(
         Send,
-        Send->Allowance <= Amount ?
-            0 : (Send->Allowance - Amount));
+        Path,
+        Path->Allowance <= Amount ? 0 : (Path->Allowance - Amount));
 }
 
 typedef enum _QUIC_SEND_FLUSH_REASON {
@@ -441,6 +421,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendOnMtuProbePacketAcked(
     _In_ PQUIC_SEND Send,
+    _In_ QUIC_PATH* Path,
     _In_ PQUIC_SENT_PACKET_METADATA Packet
     );
 

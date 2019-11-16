@@ -157,6 +157,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 uint32_t
 QuicLossDetectionComputeProbeTimeout(
     _In_ PQUIC_LOSS_DETECTION LossDetection,
+    _In_ const QUIC_PATH* Path,
     _In_ uint32_t Count
     )
 {
@@ -166,8 +167,8 @@ QuicLossDetectionComputeProbeTimeout(
     // Microseconds.
     //
     uint32_t Pto =
-        Connection->SmoothedRtt +
-        4 * Connection->RttVariance +
+        Path->SmoothedRtt +
+        4 * Path->RttVariance +
         (uint32_t)MS_TO_US(Connection->PeerTransportParams.MaxAckDelay);
     Pto *= Count;
     if (Pto < MsQuicLib.Settings.MaxWorkerQueueDelayUs) {
@@ -216,8 +217,9 @@ QuicLossDetectionUpdateTimer(
         return;
     }
 
-    if (!Connection->State.SourceAddressValidated &&
-        Connection->Send.Allowance < QUIC_MIN_SEND_ALLOWANCE) {
+    QUIC_PATH* Path = &Connection->Paths[0]; // TODO - Is this right?
+
+    if (!Path->IsValidated && Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) {
         //
         // Sending is restricted for amplification protection.
         // Don't run the timer, because nothing can be sent when it fires.
@@ -241,10 +243,10 @@ QuicLossDetectionUpdateTimer(
         // If it expires, we'll consider the packet lost.
         //
         TimeoutType = LOSS_TIMER_RACK;
-        uint32_t RttUs = max(Connection->SmoothedRtt, Connection->LatestRttSample);
+        uint32_t RttUs = max(Path->SmoothedRtt, Path->LatestRttSample);
         TimeFires = OldestPacket->SentTime + QUIC_TIME_REORDER_THRESHOLD(RttUs);
 
-    } else if (!Connection->State.GotFirstRttSample) {
+    } else if (!Path->GotFirstRttSample) {
 
         //
         // We don't have an RTT sample yet, so SmoothedRtt = InitialRtt.
@@ -252,14 +254,14 @@ QuicLossDetectionUpdateTimer(
         TimeoutType = LOSS_TIMER_INITIAL;
         TimeFires =
             LossDetection->TimeOfLastPacketSent +
-            ((2 * Connection->SmoothedRtt) << LossDetection->ProbeCount);
+            ((2 * Path->SmoothedRtt) << LossDetection->ProbeCount);
 
     } else {
         TimeoutType = LOSS_TIMER_PROBE;
         TimeFires =
             LossDetection->TimeOfLastPacketSent +
             QuicLossDetectionComputeProbeTimeout(
-                LossDetection, 1 << LossDetection->ProbeCount);
+                LossDetection, Path, 1 << LossDetection->ProbeCount);
     }
 
     //
@@ -302,7 +304,8 @@ QuicLossDetectionUpdateTimer(
         Delay = US_TO_MS(Delay) + 1;
     }
 
-    EventWriteQuicConnLossDetectionTimerSet(Connection, TimeoutType, Delay, LossDetection->ProbeCount);
+    EventWriteQuicConnLossDetectionTimerSet(
+        Connection, TimeoutType, Delay, LossDetection->ProbeCount);
     QuicConnTimerSet(Connection, QUIC_CONN_TIMER_LOSS_DETECTION, Delay);
 }
 
@@ -310,6 +313,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLossDetectionOnPacketSent(
     _In_ PQUIC_LOSS_DETECTION LossDetection,
+    _In_ QUIC_PATH* Path,
     _In_ PQUIC_SENT_PACKET_METADATA TempSentPacket
     )
 {
@@ -358,9 +362,9 @@ QuicLossDetectionOnPacketSent(
         LossDetection->PacketsInFlight++;
         LossDetection->TimeOfLastPacketSent = SentPacket->SentTime;
 
-        if (!Connection->State.SourceAddressValidated) {
+        if (!Path->IsValidated) {
             QuicSendDecrementAllowance(
-                &Connection->Send, SentPacket->PacketLength);
+                &Connection->Send, Path, SentPacket->PacketLength);
         }
 
         QuicCongestionControlOnDataSent(
@@ -379,16 +383,17 @@ QuicLossDetectionOnPacketAcknowledged(
     )
 {
     PQUIC_CONNECTION Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId);
 
     _Analysis_assume_(
         EncryptLevel >= QUIC_ENCRYPT_LEVEL_INITIAL &&
         EncryptLevel < QUIC_ENCRYPT_LEVEL_COUNT);
 
-    if (!Connection->State.SourceAddressValidated &&
+    if (Path != NULL && !Path->IsValidated &&
         EncryptLevel > QUIC_ENCRYPT_LEVEL_INITIAL) {
         LogInfo("[conn][%p] Source address validated via ACK.", Connection);
-        Connection->State.SourceAddressValidated = TRUE;
-        QuicSendSetAllowance(&Connection->Send, UINT32_MAX);
+        Path->IsValidated = TRUE;
+        QuicSendSetAllowance(&Connection->Send, Path, UINT32_MAX);
     }
 
     if (!Connection->State.HandshakeConfirmed &&
@@ -484,8 +489,8 @@ QuicLossDetectionOnPacketAcknowledged(
         }
     }
 
-    if (Packet->Flags.IsPMTUD) {
-        QuicSendOnMtuProbePacketAcked(&Connection->Send, Packet);
+    if (Path != NULL && Packet->Flags.IsPMTUD) {
+        QuicSendOnMtuProbePacketAcked(&Connection->Send, Path, Packet);
     }
 }
 
@@ -639,7 +644,11 @@ QuicLossDetectionDetectAndHandleLostPackets(
         // Clean out any packets in the LostPackets list that we are pretty
         // confident will never be acknowledged.
         //
-        uint32_t TwoPto = QuicLossDetectionComputeProbeTimeout(LossDetection, 2);
+        uint32_t TwoPto =
+            QuicLossDetectionComputeProbeTimeout(
+                LossDetection,
+                &Connection->Paths[0], // TODO - Is this right?
+                2);
         while ((Packet = LossDetection->LostPackets) != NULL &&
                 Packet->PacketNumber < LossDetection->LargestAck &&
                 QuicTimeDiff32(Packet->SentTime, TimeNow) > TwoPto) {
@@ -662,7 +671,8 @@ QuicLossDetectionDetectAndHandleLostPackets(
         // This implementation excludes kGranularity from the calculation,
         // because it is not needed to keep timers from firing early.
         //
-        uint32_t Rtt = max(Connection->SmoothedRtt, Connection->LatestRttSample);
+        const QUIC_PATH* Path = &Connection->Paths[0]; // TODO - Correct?
+        uint32_t Rtt = max(Path->SmoothedRtt, Path->LatestRttSample);
         uint32_t TimeReorderThreshold = QUIC_TIME_REORDER_THRESHOLD(Rtt);
         uint64_t LargestLostPacketNumber = 0;
         PQUIC_SENT_PACKET_METADATA PrevPacket = NULL;
@@ -857,12 +867,13 @@ QuicLossDetectionDiscardPackets(
     }
 
     if (AckedRetransmittableBytes > 0) {
+        const QUIC_PATH* Path = &Connection->Paths[0]; // TODO - Correct?
         if (QuicCongestionControlOnDataAcknowledged(
                 &Connection->CongestionControl,
                 US_TO_MS(TimeNow),
                 LossDetection->LargestAck,
                 AckedRetransmittableBytes,
-                Connection->SmoothedRtt)) {
+                Path->SmoothedRtt)) {
             //
             // We were previously blocked and are now unblocked.
             //
@@ -1099,7 +1110,7 @@ QuicLossDetectionProcessAckBlocks(
             //
             SmallestRtt -= (uint32_t)AckDelay;
         }
-        QuicConnUpdateRtt(Connection, SmallestRtt);
+        QuicConnUpdateRtt(Connection, &Connection->Paths[0], SmallestRtt); // TODO - Get correct path
     }
 
     if (NewLargestAck) {
@@ -1117,7 +1128,7 @@ QuicLossDetectionProcessAckBlocks(
                 US_TO_MS(TimeNow),
                 LossDetection->LargestAck,
                 AckedRetransmittableBytes,
-                Connection->SmoothedRtt)) {
+                Connection->Paths[0].SmoothedRtt)) {
             //
             // We were previously blocked and are now unblocked.
             //

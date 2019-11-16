@@ -1,3 +1,7 @@
 [submodule "submodules/googletest"]
 	path = submodules/googletest
 	url = https://github.com/google/googletest
+[submodule "submodules/openssl"]
+	path = submodules/openssl
+	url = https://github.com/tatsuhiro-t/openssl.git
+	branch = openssl-quic-draft-24

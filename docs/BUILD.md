@@ -15,6 +15,14 @@ to get all the submodules.
 - Run `cmake -G "Visual Studio 16 2019" -A x64 ..`
 - Run `cmake --build . --config RELEASE`
 
+### Building with OpenSSL
+
+**Requirements**
+  * [Perl](https://www.perl.org/)
+  * [NMAKE](https://docs.microsoft.com/en-us/cpp/build/reference/nmake-reference?view=vs-2019)
+
+**TODO** - Figure out the correct set of steps.
+
 ### Running the tests
 
 There is a one time registry setup required before the tests can be run when using

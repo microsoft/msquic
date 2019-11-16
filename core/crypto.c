@@ -444,7 +444,7 @@ QuicCryptoWriteOneFrame(
 
     QUIC_DBG_ASSERT(Frame.Length > 0);
 
-    LogVerbose("[conn][%p] Sending %hu crypto bytes, offset=%llu",
+    LogVerbose("[cryp][%p] Sending %hu crypto bytes, offset=%llu",
         Connection, (uint16_t)Frame.Length, Offset);
 
     uint16_t BufferLength = *FrameBytes;
@@ -958,12 +958,12 @@ QuicCryptoProcessDataFrame(
     } else if (!Crypto->Initialized) {
 
         Status = QUIC_STATUS_SUCCESS;
-        LogWarning("[conn][%p] Ignoring received crypto after cleanup.", Connection);
+        LogWarning("[cryp][%p] Ignoring received crypto after cleanup.", Connection);
 
     } else {
 
         if (KeyType != Crypto->TlsState.ReadKey) {
-            LogWarning("[conn][%p] Ignoring received crypto data with wrong key, %hu vs %hu!",
+            LogWarning("[cryp][%p] Ignoring received crypto data with wrong key, %hu vs %hu!",
                 Connection, KeyType, Crypto->TlsState.ReadKey);
             Status = QUIC_STATUS_SUCCESS;
             //
@@ -990,7 +990,7 @@ QuicCryptoProcessDataFrame(
         }
     }
 
-    LogVerbose("[conn][%p] Received %hu crypto bytes, offset=%llu Ready=%hu",
+    LogVerbose("[cryp][%p] Received %hu crypto bytes, offset=%llu Ready=%hu",
         Connection, (uint16_t)Frame->Length, Frame->Offset, *DataReady);
 
 Error:
@@ -1251,7 +1251,7 @@ QuicCryptoProcessTlsCompletion(
             // Only mark the handshake as complete on success.
             //
             Connection->State.Connected = TRUE;
-            InterlockedDecrement(&Connection->Binding->HandshakeConnections);
+            InterlockedDecrement(&Connection->Paths[0].Binding->HandshakeConnections);
             InterlockedExchangeAdd64(
                 (LONG64*)&MsQuicLib.CurrentHandshakeMemoryUsage,
                 -1 * (LONG64)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
@@ -1419,8 +1419,8 @@ QuicCryptoProcessData(
             }
 
             Info.QuicVersion = Connection->Stats.QuicVersion;
-            Info.LocalAddress = &Connection->LocalAddress;
-            Info.RemoteAddress = &Connection->RemoteAddress;
+            Info.LocalAddress = &Connection->Paths[0].LocalAddress;
+            Info.RemoteAddress = &Connection->Paths[0].RemoteAddress;
             Info.CryptoBufferLength = Buffer.Length;
             Info.CryptoBuffer = Buffer.Buffer;
 
@@ -1429,7 +1429,7 @@ QuicCryptoProcessData(
 
             PQUIC_LISTENER Listener =
                 QuicBindingGetListener(
-                    Connection->Binding,
+                    Connection->Paths[0].Binding,
                     &Info);
             if (Listener != NULL) {
                 AcceptResult =

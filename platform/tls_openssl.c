@@ -17,6 +17,10 @@ Abstract:
 #include "openssl/x509.h"
 #include "openssl/pem.h"
 
+#ifdef QUIC_LOGS_WPP
+#include "tls_openssl.tmh"
+#endif
+
 uint16_t QuicTlsTPHeaderSize = 0;
 
 //
@@ -35,7 +39,6 @@ typedef struct _QUIC_TLS_SESSION {
     unsigned char AlpnBuffer[0];
 
 } QUIC_TLS_SESSION, *PQUIC_TLS_SESSION;
-
 
 //
 // The QUIC sec config object. Created once per listener on server side and
@@ -57,19 +60,12 @@ typedef struct _QUIC_SEC_CONFIG {
     long RefCount;
 
     //
-    // Creation flags passed by MsQuic.
-    //
-
-    uint32_t Flags;
-
-    //
     // The SSL context associated with the sec config.
     //
 
     SSL_CTX *SSLCtx;
 
 } QUIC_SEC_CONFIG;
-
 
 //
 // A TLS context associated per connection.
@@ -103,33 +99,10 @@ typedef struct _QUIC_TLS {
     const char* SNI;
 
     //
-    // LocalTransParamBuffer - A buffer to store the transport param in encoded
-    //   format.
-    // LocalTransParamLength - The length of the encoded transport param stored
-    //   in the buffer.
-    //
-
-    uint8_t *LocalTransParamBuffer;
-    size_t LocalTransParamLength;
-
-    //
     // Ssl - A SSL object associated with the connection.
-    // Bio - A BIO object for SSL I/O.
     //
 
     SSL *Ssl;
-    BIO *Bio;
-
-    //
-    // ReadBufferLength - The read buffer length.
-    // ReadBufferOffset - The amount of data already read from the read buffer.
-    // ReadBuffer - The read buffer to temporarily store an incoming data as it is
-    //   read by the OpenSSL library.
-    //
-
-    uint32_t ReadBufferLength;
-    uint32_t ReadBufferOffset;
-    const uint8_t* ReadBuffer;
 
     //
     // State - The TLS state associated with the connection.
@@ -147,7 +120,6 @@ typedef struct _QUIC_TLS {
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
 
 } QUIC_TLS, *PQUIC_TLS;
-
 
 //
 // Represents a packet payload protection key.
@@ -169,7 +141,6 @@ typedef struct _QUIC_KEY {
 
 } QUIC_KEY;
 
-
 //
 // Represents a hash.
 //
@@ -189,7 +160,6 @@ typedef struct _QUIC_HASH {
     uint8_t Salt[QUIC_VERSION_SALT_LENGTH];
 
 } QUIC_HASH;
-
 
 //
 // Represents a packet header protection key.
@@ -211,7 +181,6 @@ typedef struct _QUIC_HP_KEY {
 
 } QUIC_HP_KEY;
 
-
 //
 // Default list of Cipher used.
 //
@@ -222,7 +191,7 @@ typedef struct _QUIC_HP_KEY {
 // Default list of curves for ECDHE ciphers.
 //
 
-#define QUIC_TLS_DEFAULT_SSL_CURVES        "P-256:X25519:P-384:P-521"
+#define QUIC_TLS_DEFAULT_SSL_CURVES     "P-256:X25519:P-384:P-521"
 
 //
 // Default cert verify depth.
@@ -236,7 +205,6 @@ typedef struct _QUIC_HP_KEY {
 
 char *QuicOpenSslClientTrustedCert = NULL;
 
-
 static
 int
 QuicTlsAlpnSelectCallback(
@@ -246,124 +214,6 @@ QuicTlsAlpnSelectCallback(
     _In_reads_bytes_(Inlen) const unsigned char *In,
     _In_ unsigned int InLen,
     _In_ void *Arg
-    );
-
-static
-int
-QuicTlsTransportParamsAddCallback(
-    _In_ SSL *Ssl,
-    _In_ unsigned int ExtType,
-    _In_ unsigned int Context,
-    _Out_writes_bytes_(Outlen) const unsigned char **Out,
-    _Out_ size_t *Outlen,
-    _In_ X509 *X509Ptr,
-    _In_ size_t ChainIdx,
-    _Out_ int *Al,
-    _In_ void *AddArg
-    );
-
-static
-int
-QuicTlsTransportParamsParseCallback(
-    _In_ SSL *Ssl,
-    _In_ unsigned int ExtType,
-    _In_ unsigned int Context,
-    _In_reads_bytes_(InLen) const unsigned char *In,
-    _In_ size_t InLen,
-    _In_ X509 *X,
-    _In_ size_t ChainIdx,
-    _In_ int *Al,
-    _In_ void *ParseArg
-    );
-
-static
-void
-QuicTlsMessageCallback(
-    _In_ int WriteP,
-    _In_ int Version,
-    _In_ int ContentType,
-    _In_reads_bytes_(Length) const void *Buffer,
-    _In_ size_t Length,
-    _In_ SSL *Ssl,
-    _In_ void *Arg
-    );
-
-static
-int
-QuicTlsServerKeyCallback(
-    _In_ SSL *Ssl,
-    _In_ int Name,
-    _In_reads_bytes_(SecretLen) const unsigned char *Secret,
-    _In_ size_t SecretLen,
-    _In_ void *Arg
-    );
-
-static
-int
-QuicTlsClientKeyCallback(
-    _In_ SSL *Ssl,
-    _In_ int Name,
-    _In_reads_bytes_(SecretLen) const unsigned char *Secret,
-    _In_ size_t SecretLen,
-    _In_ void *Arg
-    );
-
-static
-int
-QuicTlsBioWrite(
-    _In_ BIO *Bio,
-    _In_reads_bytes_(Length) const char *Buffer,
-    _In_ int Length
-    );
-
-static
-int
-QuicTlsBioRead(
-    _In_ BIO *Bio,
-    _Out_writes_bytes_(Length) char *Buffer,
-    _In_ int Length
-    );
-
-static
-int
-QuicTlsBioPuts(
-    _In_ BIO *Bio,
-    _In_ const char *String
-    );
-
-static
-int
-QuicTlsBioGets(
-    _In_ BIO *Bio,
-    _In_reads_bytes_(Length) char *Buffer,
-    _In_ int Length
-    );
-
-static
-long
-QuicTlsBioCtrl(
-    _In_ BIO *Bio,
-    _In_ int Cmd,
-    _In_ long Num,
-    _In_ void *Ptr
-    );
-
-static
-int
-QuicTlsBioCreate(
-    _In_ BIO *Bio
-    );
-
-static
-int
-QuicTlsBioDestroy(
-    _In_opt_ BIO *Bio
-    );
-
-static
-BIO_METHOD *
-QuicTlsBioCreateMethod(
-    void
     );
 
 static
@@ -509,7 +359,7 @@ QuicTlsAeadTagLength(
     );
 
 static
-ssize_t
+size_t
 QuicTlsEncrypt(
     _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
     _In_ size_t OutputBufferLen,
@@ -525,7 +375,7 @@ QuicTlsEncrypt(
     );
 
 static
-ssize_t
+size_t
 QuicTlsDecrypt(
     _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
     _In_ size_t OutputBufferLen,
@@ -594,7 +444,6 @@ Return Value:
     return IDs[TlsContext->IsServer];
 }
 
-
 QUIC_STATUS
 QuicTlsLibraryInitialize(
     void
@@ -617,10 +466,9 @@ Return Value:
 {
     int Ret = 0;
 
-
     if (OPENSSL_init_ssl(OPENSSL_INIT_LOAD_CONFIG, NULL) == 0) {
-        LogError("[TLS] OPENSSL_init_ssl() failed.");
-        return QUIC_STATUS_SSL_ERROR;
+        LogError("[ tls] OPENSSL_init_ssl() failed.");
+        return QUIC_STATUS_TLS_ERROR;
     }
 
     //
@@ -636,7 +484,6 @@ Return Value:
 
     return QUIC_STATUS_SUCCESS;
 }
-
 
 void
 QuicTlsLibraryUninitialize(
@@ -659,7 +506,6 @@ Return Value:
 --*/
 {
 }
-
 
 static
 int
@@ -716,863 +562,198 @@ Return Value:
         }
     }
 
-    LogError("[TLS] Client did not present correct ALPN");
+    LogError("[ tls] Client did not present correct ALPN");
 
     return SSL_TLSEXT_ERR_NOACK;
 }
 
+QUIC_STATIC_ASSERT((int)ssl_encryption_initial == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
+QUIC_STATIC_ASSERT((int)ssl_encryption_early_data == (int)QUIC_PACKET_KEY_0_RTT, "Code assumes exact match!");
+QUIC_STATIC_ASSERT((int)ssl_encryption_handshake == (int)QUIC_PACKET_KEY_HANDSHAKE, "Code assumes exact match!");
+QUIC_STATIC_ASSERT((int)ssl_encryption_application == (int)QUIC_PACKET_KEY_1_RTT, "Code assumes exact match!");
 
-static
 int
-QuicTlsTransportParamsAddCallback(
+QuicTlsSetEncryptionSecretsCallback(
     _In_ SSL *Ssl,
-    _In_ unsigned int ExtType,
-    _In_ unsigned int Context,
-    _Out_writes_bytes_(Outlen) const unsigned char **Out,
-    _Out_ size_t *Outlen,
-    _In_ X509 *X509Ptr,
-    _In_ size_t ChainIdx,
-    _Out_ int *Al,
-    _In_ void *AddArg
+    _In_ OSSL_ENCRYPTION_LEVEL Level,
+    _In_reads_(SecretLen) const uint8_t* ReadSecret,
+    _In_reads_(SecretLen) const uint8_t* WriteSecret,
+    _In_ size_t SecretLen
     )
-/*++
-
-Routine Description:
-
-    Callback invoked by OpenSSL to add the transport params to the TLS extension
-    in the handshake on both server and client side.
-
-Arguments:
-
-    Ssl - The SSL object.
-
-    ExtType - The TLS extension tyoe.
-
-    Context - Unused.
-
-    Out - The output buffer pointer to return the encoded transport params.
-
-    OutLen - The output buffer length.
-
-    X509Ptr - Unused.
-
-    ChainIdx - Unused.
-
-    Al - Unused.
-
-    AddArg - Unused.
-
-Return Value:
-
-    1 - denoting success.
-
---*/
 {
-    PQUIC_TLS TlsContext = NULL;
+    QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
+    QUIC_TLS_PROCESS_STATE* TlsState = TlsContext->State;
+    QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)Level;
+    QUIC_STATUS Status;
 
-    UNREFERENCED_PARAMETER(Context);
-    UNREFERENCED_PARAMETER(X509Ptr);
-    UNREFERENCED_PARAMETER(ChainIdx);
-    UNREFERENCED_PARAMETER(Al);
-    UNREFERENCED_PARAMETER(AddArg);
+    LogVerbose("[ tls][%p][%c] New encryption secrets (Level = %u).",
+        TlsContext, GetTlsIdentifier(TlsContext), Level);
 
-    QUIC_FRE_ASSERT(ExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS);
+    QUIC_DBG_ASSERT(TlsState->WriteKeys[KeyType] == NULL);
+    Status =
+        QuicTlsKeyCreate(
+            TlsContext,
+            WriteSecret,
+            SecretLen,
+            KeyType,
+            &TlsState->WriteKeys[KeyType]);
+    if (QUIC_FAILED(Status)) {
+        TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+        return -1;
+    }
 
-    TlsContext = SSL_get_app_data(Ssl);
+    TlsState->WriteKey = KeyType;
+    TlsContext->ResultFlags |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
 
-    *Out = TlsContext->LocalTransParamBuffer;
-    *Outlen = TlsContext->LocalTransParamLength;
+    QUIC_DBG_ASSERT(TlsState->ReadKeys[KeyType] == NULL);
+    Status =
+        QuicTlsKeyCreate(
+            TlsContext,
+            ReadSecret,
+            SecretLen,
+            KeyType,
+            &TlsState->ReadKeys[KeyType]);
+    if (QUIC_FAILED(Status)) {
+        TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+        return -1;
+    }
+
+    if (TlsContext->IsServer && KeyType == QUIC_PACKET_KEY_1_RTT) {
+        //
+        // The 1-RTT read keys aren't actually allowed to be used until the
+        // handshake completes.
+        //
+    } else {
+        TlsState->ReadKey = KeyType;
+        TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
+    }
 
     return 1;
 }
 
-
-static
 int
-QuicTlsTransportParamsParseCallback(
+QuicTlsAddHandshakeDataCallback(
     _In_ SSL *Ssl,
-    _In_ unsigned int ExtType,
-    _In_ unsigned int Context,
-    _In_reads_bytes_(InLen) const unsigned char *In,
-    _In_ size_t InLen,
-    _In_ X509 *X,
-    _In_ size_t ChainIdx,
-    _In_ int *Al,
-    _In_ void *ParseArg
+    _In_ OSSL_ENCRYPTION_LEVEL Level,
+    _In_reads_(len) const uint8_t *Data,
+    _In_ size_t Length
     )
-/*++
-
-Routine Description:
-
-    Callback invoked by OpenSSL to parse the incoming transport params in the
-    TLS extension in the handshake on both server and client side.
-
-Arguments:
-
-    Ssl - The SSL object.
-
-    ExtType - The TLS extension tyoe.
-
-    Context - Unused.
-
-    In - The input buffer containing the encoded transport params.
-
-    InLen - The input buffer length.
-
-    X509Ptr - Unused.
-
-    ChainIdx - Unused.
-
-    Al - Unused.
-
-    AddArg - Unused.
-
-Return Value:
-
-    1 on success, 0 on failure.
-
---*/
 {
-    PQUIC_TLS TlsContext = NULL;
-    int Ret = 1;
+    QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
+    QUIC_TLS_PROCESS_STATE* TlsState = TlsContext->State;
 
-    UNREFERENCED_PARAMETER(Context);
-    UNREFERENCED_PARAMETER(X);
-    UNREFERENCED_PARAMETER(ChainIdx);
-    UNREFERENCED_PARAMETER(Al);
-    UNREFERENCED_PARAMETER(ParseArg);
+    QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)Level;
+    QUIC_DBG_ASSERT(TlsState->WriteKeys[KeyType] != NULL);
 
-    QUIC_FRE_ASSERT(ExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS);
+    LogVerbose("[ tls][%p][%c] Sending %llu handshake bytes (Level = %u).",
+        TlsContext, GetTlsIdentifier(TlsContext), Length, Level);
 
-    TlsContext = SSL_get_app_data(Ssl);
+    if (Length + TlsState->BufferLength > (size_t)TlsState->BufferAllocLength) {
+        LogError("[ tls][%p][%c] Buffer overflow for output handshake data.",
+            TlsContext, GetTlsIdentifier(TlsContext));
+        TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+        return -1;
+    }
+
+    switch (KeyType) {
+    case QUIC_PACKET_KEY_HANDSHAKE:
+        if (TlsState->BufferOffsetHandshake == 0) {
+            TlsState->BufferOffsetHandshake = TlsState->BufferTotalLength;
+            LogInfo("[ tls][%p][%c] Writing Handshake data starts at %u.",
+                TlsContext, GetTlsIdentifier(TlsContext), TlsState->BufferOffsetHandshake);
+        }
+        break;
+    case QUIC_PACKET_KEY_1_RTT:
+        if (TlsState->BufferOffset1Rtt == 0) {
+            TlsState->BufferOffset1Rtt = TlsState->BufferTotalLength;
+            LogInfo("[ tls][%p][%c] Writing 1-RTT data starts at %u.",
+                TlsContext, GetTlsIdentifier(TlsContext), TlsState->BufferOffset1Rtt);
+        }
+        break;
+    default:
+        break;
+    }
+
+    QuicCopyMemory(
+        TlsState->Buffer + TlsState->BufferLength,
+        Data,
+        Length);
+    TlsState->BufferLength += (uint16_t)Length;
+    TlsState->BufferTotalLength += (uint16_t)Length;
+
+    TlsContext->ResultFlags |= QUIC_TLS_RESULT_DATA;
+
+    return 1;
+}
+
+int
+QuicTlsFlushFlightCallback(
+    _In_ SSL *Ssl
+    )
+{
+    UNREFERENCED_PARAMETER(Ssl);
+    return 1;
+}
+
+int
+QuicTlsSendAlertCallback(
+    _In_ SSL *Ssl,
+    _In_ enum ssl_encryption_level_t Level,
+    _In_ uint8_t Alert
+    )
+{
+    UNREFERENCED_PARAMETER(Level);
+
+    QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
+
+    LogError("[ tls][%p][%c] Send alert = %u (Level = %u).",
+        TlsContext, GetTlsIdentifier(TlsContext), Alert, Level);
+
+    TlsContext->State->AlertCode = Alert;
+    TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+
+    return 1;
+}
+
+int
+QuicTlsClientHelloCallback(
+    _In_ SSL *Ssl,
+    _Out_opt_ int *Alert,
+    _In_ void *arg
+    )
+{
+    QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
+
+    const uint8_t* TransportParams;
+    size_t TransportParamLen;
+
+    if (!SSL_client_hello_get0_ext(
+            Ssl,
+            TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS,
+            &TransportParams,
+            &TransportParamLen)) {
+        TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+        *Alert = SSL_AD_INTERNAL_ERROR;
+        return SSL_CLIENT_HELLO_ERROR;
+    }
 
     if (!TlsContext->ReceiveTPCallback(
             TlsContext->Connection,
-            (uint16_t)InLen,
-            (uint8_t*)In)) {
-        LogError("[ tls][%p][%c] ReceiveTPCallback failed.", TlsContext, GetTlsIdentifier(TlsContext));
+            (uint16_t)TransportParamLen,
+            TransportParams)) {
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-        Ret = 0;
+        return SSL_CLIENT_HELLO_ERROR;
     }
 
-    LogInfo("[TLS][%p][%c] Received QUIC TP.", TlsContext, GetTlsIdentifier(TlsContext));
-
-    return Ret;
+    return SSL_CLIENT_HELLO_SUCCESS;
 }
 
-
-static
-void
-QuicTlsMessageCallback(
-    _In_ int WriteP,
-    _In_ int Version,
-    _In_ int ContentType,
-    _In_reads_bytes_(Length) const void *Buffer,
-    _In_ size_t Length,
-    _In_ SSL *Ssl,
-    _In_ void *Arg
-    )
-/*++
-
-Routine Description:
-
-    Callback invoked by OpenSSL to notify about a TLS message being sent or
-    received on both server and client side. This is a hack to trap the outgoing
-    TLS handshake packets and hand them over to msquic.
-
-Arguments:
-
-    WriteP - TRUE if the callback is invoked for outgoing packets, FALSE if the
-        callback is invoked for incoming packets.
-
-    Version - Unused.
-
-    ContentType - Unused.
-
-    Buffer - The buffer holding the TLS data.
-
-    Length - The length of the buffer.
-
-    Ssl - The SSL object.
-
-    Arg - Unused.
-
-Return Value:
-
-    None.
-
---*/
-{
-    PQUIC_TLS TlsContext = NULL;
-    uint8_t *Message = (uint8_t *)Buffer;
-
-    UNREFERENCED_PARAMETER(Version);
-    UNREFERENCED_PARAMETER(Arg);
-
-    if (!WriteP) {
-        //
-        // Don't care about the received TLS messages.
-        //
-
-        goto Exit;
-    }
-
-    TlsContext = SSL_get_app_data(Ssl);
-
-    switch (ContentType) {
-
-    case SSL3_RT_HANDSHAKE:
-        break;
-
-    case SSL3_RT_ALERT:
-        QUIC_FRE_ASSERT(Length == 2);
-
-        if (Message[0] != SSL3_AL_FATAL) {
-            LogWarning("[TLS][%p][%c] Received TLS alert: %d.", TlsContext, GetTlsIdentifier(TlsContext), Message[1]);
-            goto Exit;
-        }
-
-        LogError("[TLS][%p][%c] Received TLS alert: %d.", TlsContext, GetTlsIdentifier(TlsContext), Message[1]);
-
-        TlsContext->State->AlertCode = Message[1];
-        goto Exit;
-
-    default:
-        goto Exit;
-    }
-
-    LogVerbose("[TLS][%p][%c] Received TLS message to send (%d bytes).", TlsContext, GetTlsIdentifier(TlsContext), Length);
-
-    QUIC_FRE_ASSERT(
-        TlsContext->State->BufferLength + Length <=
-            TlsContext->State->BufferAllocLength);
-
-    QuicCopyMemory(
-        TlsContext->State->Buffer + TlsContext->State->BufferLength,
-        Buffer,
-        Length);
-
-    //
-    // Set the right buffer offsets based on the current write key.
-    //
-
-    if (TlsContext->State->WriteKey == QUIC_PACKET_KEY_HANDSHAKE &&
-        TlsContext->State->BufferOffsetHandshake == 0) {
-        TlsContext->State->BufferOffsetHandshake = TlsContext->State->BufferTotalLength;
-    }
-
-    if (TlsContext->State->WriteKey == QUIC_PACKET_KEY_1_RTT &&
-        TlsContext->State->BufferOffset1Rtt == 0) {
-        TlsContext->State->BufferOffset1Rtt = TlsContext->State->BufferTotalLength;
-    }
-
-    TlsContext->State->BufferLength += Length;
-    TlsContext->State->BufferTotalLength += Length;
-    TlsContext->ResultFlags |= QUIC_TLS_RESULT_DATA;
-
-Exit:
-
-    return;
-}
-
-
-static
-int
-QuicTlsServerKeyCallback(
-    _In_ SSL *Ssl,
-    _In_ int Name,
-    _In_reads_bytes_(SecretLen) const unsigned char *Secret,
-    _In_ size_t SecretLen,
-    _In_ void *Arg
-    )
-/*++
-
-Routine Description:
-
-    Callback invoked by OpenSSL to notify about new secrets on server side.
-
-Arguments:
-
-    Ssl - The SSL object.
-
-    Name - The name of the secret available.
-
-    Secret - The secret.
-
-    SecretLen - The secret len.
-
-    Arg - Unused.
-
-Return Value:
-
-    1 on success, -1 on failure.
-
---*/
-{
-    int Ret = 1;
-    PQUIC_TLS TlsContext = NULL;
-    QUIC_PACKET_KEY *Key = NULL;
-    QUIC_PACKET_KEY_TYPE NewKeyType;
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-
-    TlsContext = SSL_get_app_data(Ssl);
-
-    switch (Name) {
-    case SSL_KEY_CLIENT_EARLY_TRAFFIC:
-        Status =
-            QuicTlsKeyCreate(
-                TlsContext,
-                Secret,
-                SecretLen,
-                QUIC_PACKET_KEY_0_RTT,
-                &TlsContext->State->ReadKeys[QUIC_PACKET_KEY_0_RTT]);
-
-        if (QUIC_FAILED(Status)) {
-            LogError("[TLS][%p][%c] QuicTlsKeyCreate(QUIC_PACKET_KEY_0_RTT-R) failed: %lu.", TlsContext, GetTlsIdentifier(TlsContext), Status);
-            Ret = -1;
-            TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-            goto Exit;
-        }
-
-        TlsContext->State->ReadKey = QUIC_PACKET_KEY_0_RTT;
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
-        break;
-
-    case SSL_KEY_CLIENT_HANDSHAKE_TRAFFIC:
-        Status =
-            QuicTlsKeyCreate(
-                TlsContext,
-                Secret,
-                SecretLen,
-                QUIC_PACKET_KEY_HANDSHAKE,
-                &TlsContext->State->ReadKeys[QUIC_PACKET_KEY_HANDSHAKE]);
-
-        if (QUIC_FAILED(Status)) {
-            LogError("[TLS][%p][%c] QuicTlsKeyCreate(QUIC_PACKET_KEY_HANDSHAKE-R) failed: %lu.", TlsContext, GetTlsIdentifier(TlsContext), Status);
-            Ret = -1;
-            TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-            goto Exit;
-        }
-
-        TlsContext->State->ReadKey = QUIC_PACKET_KEY_HANDSHAKE;
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
-        break;
-
-    case SSL_KEY_CLIENT_APPLICATION_TRAFFIC:
-        Status =
-            QuicTlsKeyCreate(
-                TlsContext,
-                Secret,
-                SecretLen,
-                QUIC_PACKET_KEY_1_RTT,
-                &TlsContext->State->ReadKeys[QUIC_PACKET_KEY_1_RTT]);
-
-        if (QUIC_FAILED(Status)) {
-            LogError("[TLS][%p][%c] QuicTlsKeyCreate(SSL_KEY_CLIENT_APPLICATION_TRAFFIC-R) failed: %lu.", TlsContext, GetTlsIdentifier(TlsContext), Status);
-            Ret = -1;
-            TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-            goto Exit;
-        }
-
-          TlsContext->State->ReadKey = QUIC_PACKET_KEY_1_RTT;
-          TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
-          break;
-
-    case SSL_KEY_SERVER_HANDSHAKE_TRAFFIC:
-
-        Status =
-            QuicTlsKeyCreate(
-                TlsContext,
-                Secret,
-                SecretLen,
-                QUIC_PACKET_KEY_HANDSHAKE,
-                &TlsContext->State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE]);
-
-        if (QUIC_FAILED(Status)) {
-            LogError("[TLS][%p][%c] QuicTlsKeyCreate(QUIC_PACKET_KEY_HANDSHAKE-W) failed: %lu.", TlsContext, GetTlsIdentifier(TlsContext), Status);
-            Ret = -1;
-            TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-            goto Exit;
-        }
-
-        TlsContext->State->WriteKey = QUIC_PACKET_KEY_HANDSHAKE;
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
-        break;
-
-    case SSL_KEY_SERVER_APPLICATION_TRAFFIC:
-        Status =
-            QuicTlsKeyCreate(
-                TlsContext,
-                Secret,
-                SecretLen,
-                QUIC_PACKET_KEY_1_RTT,
-                &TlsContext->State->WriteKeys[QUIC_PACKET_KEY_1_RTT]);
-
-        if (QUIC_FAILED(Status)) {
-            LogError("[TLS][%p][%c] QuicTlsKeyCreate(SSL_KEY_SERVER_APPLICATION_TRAFFIC-W) failed: %lu.", TlsContext, GetTlsIdentifier(TlsContext), Status);
-            Ret = -1;
-            TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-            goto Exit;
-        }
-
-        TlsContext->State->WriteKey = QUIC_PACKET_KEY_1_RTT;
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
-        break;
-
-    default:
-        break;
-    }
-
-Exit:
-
-    return Ret;
-}
-
-
-static
-int
-QuicTlsClientKeyCallback(
-    _In_ SSL *Ssl,
-    _In_ int Name,
-    _In_reads_bytes_(SecretLen) const unsigned char *Secret,
-    _In_ size_t SecretLen,
-    _In_ void *Arg
-    )
-/*++
-
-Routine Description:
-
-    Callback invoked by OpenSSL to notify about new secrets on client side.
-
-Arguments:
-
-    Ssl - The SSL object.
-
-    Name - The name of the secret available.
-
-    Secret - The secret.
-
-    SecretLen - The secret len.
-
-    Arg - Unused.
-
-Return Value:
-
-    1 on success, -1 on failure.
-
---*/
-{
-    int Ret = 1;
-    PQUIC_TLS TlsContext = NULL;
-    QUIC_PACKET_KEY *Key = NULL;
-    QUIC_PACKET_KEY_TYPE NewKeyType;
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-
-    TlsContext = SSL_get_app_data(Ssl);
-
-    switch (Name) {
-    case SSL_KEY_CLIENT_EARLY_TRAFFIC:
-        Status =
-            QuicTlsKeyCreate(
-                TlsContext,
-                Secret,
-                SecretLen,
-                QUIC_PACKET_KEY_0_RTT,
-                &TlsContext->State->WriteKeys[QUIC_PACKET_KEY_0_RTT]);
-
-        if (QUIC_FAILED(Status)) {
-            LogError("[TLS][%p][%c] QuicTlsKeyCreate(QUIC_PACKET_KEY_0_RTT-W) failed: %lu.", TlsContext, GetTlsIdentifier(TlsContext), Status);
-            Ret = -1;
-            TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-            goto Exit;
-        }
-
-        TlsContext->State->WriteKey = QUIC_PACKET_KEY_0_RTT;
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
-        break;
-
-    case SSL_KEY_CLIENT_HANDSHAKE_TRAFFIC:
-        Status =
-            QuicTlsKeyCreate(
-                TlsContext,
-                Secret,
-                SecretLen,
-                QUIC_PACKET_KEY_HANDSHAKE,
-                &TlsContext->State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE]);
-
-        if (QUIC_FAILED(Status)) {
-            LogError("[TLS][%p][%c] QuicTlsKeyCreate(QUIC_PACKET_KEY_HANDSHAKE-W) failed: %lu.", TlsContext, GetTlsIdentifier(TlsContext), Status);
-            Ret = -1;
-            TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-            goto Exit;
-        }
-
-        TlsContext->State->WriteKey = QUIC_PACKET_KEY_HANDSHAKE;
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
-        break;
-
-    case SSL_KEY_CLIENT_APPLICATION_TRAFFIC:
-        Status =
-            QuicTlsKeyCreate(
-                TlsContext,
-                Secret,
-                SecretLen,
-                QUIC_PACKET_KEY_1_RTT,
-                &TlsContext->State->WriteKeys[QUIC_PACKET_KEY_1_RTT]);
-
-        if (QUIC_FAILED(Status)) {
-          LogError("[TLS][%p][%c] QuicTlsKeyCreate(QUIC_PACKET_KEY_1_RTT-W) failed: %lu.", TlsContext, GetTlsIdentifier(TlsContext), Status);
-          Ret = -1;
-          TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-          goto Exit;
-      }
-
-      TlsContext->State->WriteKey = QUIC_PACKET_KEY_1_RTT;
-      TlsContext->ResultFlags |= QUIC_TLS_RESULT_WRITE_KEY_UPDATED;
-      break;
-
-    case SSL_KEY_SERVER_HANDSHAKE_TRAFFIC:
-        Status =
-            QuicTlsKeyCreate(
-                TlsContext,
-                Secret,
-                SecretLen,
-                QUIC_PACKET_KEY_HANDSHAKE,
-                &TlsContext->State->ReadKeys[QUIC_PACKET_KEY_HANDSHAKE]);
-
-         if (QUIC_FAILED(Status)) {
-            LogError("[TLS][%p][%c] QuicTlsKeyCreate(QUIC_PACKET_KEY_HANDSHAKE-R) failed: %lu.", TlsContext, GetTlsIdentifier(TlsContext), Status);
-            Ret = -1;
-            TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-            goto Exit;
-        }
-
-        TlsContext->State->ReadKey = QUIC_PACKET_KEY_HANDSHAKE;
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
-        break;
-
-    case SSL_KEY_SERVER_APPLICATION_TRAFFIC:
-        Status =
-            QuicTlsKeyCreate(
-                TlsContext,
-                Secret,
-                SecretLen,
-                QUIC_PACKET_KEY_1_RTT,
-                &TlsContext->State->ReadKeys[QUIC_PACKET_KEY_1_RTT]);
-
-        if (QUIC_FAILED(Status)) {
-            LogError("[TLS][%p][%c] QuicTlsKeyCreate(QUIC_PACKET_KEY_1_RTT-R) failed: %lu.", TlsContext, GetTlsIdentifier(TlsContext), Status);
-            Ret = -1;
-            TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-            goto Exit;
-        }
-
-        TlsContext->State->ReadKey = QUIC_PACKET_KEY_1_RTT;
-        TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
-        break;
-
-    default:
-        return 0;
-    }
-
-Exit:
-
-    return Ret;
-}
-
-
-static
-int
-QuicTlsBioWrite(
-    _In_ BIO *Bio,
-    _In_reads_bytes_(Length) const char *Buffer,
-    _In_ int Length
-    )
-/*++
-
-Routine Description:
-
-    Place holder for BIO write callback. Currently unused and should never get
-    called.
-
-Arguments:
-
-    Bio - Unused.
-
-    Buffer - Unused.
-
-    Length - Unused.
-
-Return Value:
-
-    -1 indicating failure.
-
---*/
-{
-    UNREFERENCED_PARAMETER(Bio);
-    UNREFERENCED_PARAMETER(Buffer);
-    UNREFERENCED_PARAMETER(Length);
-
-    QUIC_FRE_ASSERT(FALSE);
-
-    return -1;
-}
-
-
-static
-int
-QuicTlsBioRead(
-    _In_ BIO *Bio,
-    _Out_writes_bytes_(Length) char *Buffer,
-    _In_ int Length
-    )
-/*++
-
-Routine Description:
-
-    Read callback invoked by OpenSSL to read TLS data.
-
-Arguments:
-
-    Bio - The BIO object.
-
-    Buffer - The buffer to return TLS data.
-
-    Length - The buffer length.
-
-Return Value:
-
-    Number of bytes written to buffer, -1 if no bytes for written.
-
---*/
-{
-    PQUIC_TLS TlsContext = NULL;
-    int WriteLen = 0;
-
-    BIO_clear_retry_flags(Bio);
-
-    TlsContext = BIO_get_data(Bio);
-
-    WriteLen = min(Length, TlsContext->ReadBufferLength - TlsContext->ReadBufferOffset);
-
-    if (WriteLen == 0) {
-        WriteLen = -1;
-        BIO_set_retry_read(Bio);
-        goto Exit;
-    }
-
-    QuicCopyMemory(
-        Buffer,
-        TlsContext->ReadBuffer + TlsContext->ReadBufferOffset,
-        WriteLen);
-
-    TlsContext->ReadBufferOffset += WriteLen;
-
-Exit:
-
-    return WriteLen;
-}
-
-
-static
-int
-QuicTlsBioPuts(
-    _In_ BIO *Bio,
-    _In_ const char *String
-    )
-/*++
-
-Routine Description:
-
-    Place holder for BIO put callback. Currently unused and should never get
-    called.
-
-Arguments:
-
-    Bio - Unused.
-
-    String - Unused.
-
-    Length - Unused.
-
-Return Value:
-
-    -1 indicating failure.
-
---*/
-{
-    return QuicTlsBioWrite(Bio, String, strlen(String));
-}
-
-
-static
-int
-QuicTlsBioGets(
-    _In_ BIO *Bio,
-    _In_reads_bytes_(Length) char *Buffer,
-    _In_ int Length
-    )
-/*++
-
-Routine Description:
-
-    Place holder for BIO gets callback. Currently unused and should never get
-    called.
-
-Arguments:
-
-    Bio - Unused.
-
-    Buffer - Unused.
-
-    Length - Unused.
-
-Return Value:
-
-    -1 indicating failure.
-
---*/
-{
-    UNREFERENCED_PARAMETER(Bio);
-    UNREFERENCED_PARAMETER(Buffer);
-    UNREFERENCED_PARAMETER(Length);
-
-    return -1;
-}
-
-
-static
-long
-QuicTlsBioCtrl(
-    _In_ BIO *Bio,
-    _In_ int Cmd,
-    _In_ long Num,
-    _In_ void *Ptr
-    )
-/*++
-
-Routine Description:
-
-    BIO ctrl callback.
-
-Arguments:
-
-    Bio - Unused.
-
-    Cmd - Unused
-
-    Num - Unused.
-
-    Length - Unused.
-
-Return Value:
-
-    1 indicating success, 0 on failure.
-
---*/
-{
-    UNREFERENCED_PARAMETER(Bio);
-    UNREFERENCED_PARAMETER(Num);
-    UNREFERENCED_PARAMETER(Ptr);
-
-    switch (Cmd) {
-    case BIO_CTRL_FLUSH:
-       return 1;
-    }
-
-    return 0;
-}
-
-
-static
-int
-QuicTlsBioCreate(
-    _In_ BIO *Bio
-    )
-/*++
-
-Routine Description:
-
-    BIO initialize callback.
-
-Arguments:
-
-    Bio - The BIO object.
-
-Return Value:
-
-    1 indicating success.
-
---*/
-{
-    BIO_set_init(Bio, 1);
-    return 1;
-}
-
-
-static
-int
-QuicTlsBioDestroy(
-    _In_opt_ BIO *Bio
-    )
-/*++
-
-Routine Description:
-
-    BIO uninitialize callback.
-
-Arguments:
-
-    Bio - The BIO object.
-
-Return Value:
-
-    1 indicating success, 0 indicating failure.
-
---*/
-{
-    if (Bio == NULL) {
-        return 0;
-    }
-
-    return 1;
-}
-
-
-static
-BIO_METHOD *
-QuicTlsBioCreateMethod(
-    void
-    )
-/*++
-
-Routine Description:
-
-    Creates a BIO method to be used with a BIO object.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    BIO Method object.
-
---*/
-{
-    BIO_METHOD *Method = BIO_meth_new(BIO_TYPE_FD, "bio");
-
-    BIO_meth_set_write(Method, QuicTlsBioWrite);
-    BIO_meth_set_read(Method, QuicTlsBioRead);
-    BIO_meth_set_puts(Method, QuicTlsBioPuts);
-    BIO_meth_set_gets(Method, QuicTlsBioGets);
-    BIO_meth_set_ctrl(Method, QuicTlsBioCtrl);
-    BIO_meth_set_create(Method, QuicTlsBioCreate);
-    BIO_meth_set_destroy(Method, QuicTlsBioDestroy);
-
-    return Method;
-}
-
+SSL_QUIC_METHOD OpenSslQuicCallbacks = {
+    QuicTlsSetEncryptionSecretsCallback,
+    QuicTlsAddHandshakeDataCallback,
+    QuicTlsFlushFlightCallback,
+    QuicTlsSendAlertCallback
+};
 
 QUIC_STATUS
 QuicTlsServerSecConfigCreate(
@@ -1621,19 +802,19 @@ Return Value:
     //
 
     if (Flags != QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE) {
-        LogError("[TLS] Invalid flags: %lu.", Flags);
+        LogError("[ tls] Invalid flags: %lu.", Flags);
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
     if (CertFile == NULL) {
-        LogError("[TLS] CertFile unspecified.");
+        LogError("[ tls] CertFile unspecified.");
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
     if (!QuicRundownAcquire(Rundown)) {
-        LogError("[TLS] Failed to acquire sec config rundown.");
+        LogError("[ tls] Failed to acquire sec config rundown.");
         Status = QUIC_STATUS_INVALID_STATE;
         goto Exit;
     }
@@ -1643,16 +824,14 @@ Return Value:
     //
 
     SecurityConfig = QuicAlloc(sizeof(QUIC_SEC_CONFIG));
-
     if (SecurityConfig == NULL) {
-        LogError("[TLS] Security config allocation failure.");
+        LogError("[ tls] Security config allocation failure.");
         QuicRundownRelease(Rundown);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
 
     SecurityConfig->CleanupRundown = Rundown;
-    SecurityConfig->Flags = Flags;
 
     //
     // Initial ref.
@@ -1665,10 +844,9 @@ Return Value:
     //
 
     SecurityConfig->SSLCtx = SSL_CTX_new(TLS_method());
-
     if (SecurityConfig->SSLCtx == NULL) {
-        LogError("[TLS] SSL_CTX_new() failed, error: %ld", ERR_get_error());
-        Status = QUIC_STATUS_SSL_ERROR;
+        LogError("[ tls] SSL_CTX_new() failed, error: %ld", ERR_get_error());
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -1688,10 +866,9 @@ Return Value:
         SSL_CTX_set_ciphersuites(
             SecurityConfig->SSLCtx,
             QUIC_TLS_DEFAULT_SSL_CIPHERS);
-
     if (Ret != 1) {
-        LogError("[TLS] SSL_CTX_set_ciphersuites() failed, error: %ld", ERR_get_error());
-        Status = QUIC_STATUS_SSL_ERROR;
+        LogError("[ tls] SSL_CTX_set_ciphersuites() failed, error: %ld", ERR_get_error());
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -1699,28 +876,18 @@ Return Value:
         SSL_CTX_set1_groups_list(
             SecurityConfig->SSLCtx,
             QUIC_TLS_DEFAULT_SSL_CURVES);
-
     if (Ret != 1) {
-        LogError("[TLS] SSL_CTX_set1_groups_list() failed, error: %ld", ERR_get_error());
-        Status = QUIC_STATUS_SSL_ERROR;
+        LogError("[ tls] SSL_CTX_set1_groups_list() failed, error: %ld", ERR_get_error());
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
-    //
-    // Enable the QUIC hack mode until OpenSSL formally supports QUIC-TLS.
-    //
-
-    SSL_CTX_set_mode(
-        SecurityConfig->SSLCtx,
-        SSL_MODE_RELEASE_BUFFERS | SSL_MODE_QUIC_HACK);
+    SSL_CTX_set_mode(SecurityConfig->SSLCtx, SSL_MODE_RELEASE_BUFFERS);
 
     SSL_CTX_set_min_proto_version(SecurityConfig->SSLCtx, TLS1_3_VERSION);
     SSL_CTX_set_max_proto_version(SecurityConfig->SSLCtx, TLS1_3_VERSION);
 
-    SSL_CTX_set_alpn_select_cb(
-        SecurityConfig->SSLCtx,
-        QuicTlsAlpnSelectCallback,
-        NULL);
+    SSL_CTX_set_alpn_select_cb(SecurityConfig->SSLCtx, QuicTlsAlpnSelectCallback, NULL);
 
     SSL_CTX_set_default_verify_paths(SecurityConfig->SSLCtx);
 
@@ -1733,52 +900,32 @@ Return Value:
             SecurityConfig->SSLCtx,
             CertFile->PrivateKeyFile,
             SSL_FILETYPE_PEM);
-
     if (Ret != 1) {
-        LogError("[TLS] SSL_CTX_use_PrivateKey_file() failed, error: %ld", ERR_get_error());
-        Status = QUIC_STATUS_SSL_ERROR;
+        LogError("[ tls] SSL_CTX_use_PrivateKey_file() failed, error: %ld", ERR_get_error());
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
     Ret =
         SSL_CTX_use_certificate_chain_file(
             SecurityConfig->SSLCtx,
-            CertFile->CertFile);
-
+            CertFile->CertificateFile);
     if (Ret != 1) {
-      LogError("[TLS] SSL_CTX_use_certificate_chain_file() failed, error: %ld", ERR_get_error());
-      Status = QUIC_STATUS_SSL_ERROR;
+      LogError("[ tls] SSL_CTX_use_certificate_chain_file() failed, error: %ld", ERR_get_error());
+      Status = QUIC_STATUS_TLS_ERROR;
       goto Exit;
     }
 
     Ret = SSL_CTX_check_private_key(SecurityConfig->SSLCtx);
-
     if (Ret != 1) {
       LogError("TLS: SSL_CTX_check_private_key() failed, error: %ld", ERR_get_error());
-      Status = QUIC_STATUS_SSL_ERROR;
+      Status = QUIC_STATUS_TLS_ERROR;
       goto Exit;
     }
 
-    //
-    // Add a TLS custom extension for QUIC transport parameteres.
-    //
-
-    Ret =
-        SSL_CTX_add_custom_ext(
-            SecurityConfig->SSLCtx,
-            TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS,
-            SSL_EXT_CLIENT_HELLO | SSL_EXT_TLS1_3_ENCRYPTED_EXTENSIONS,
-            QuicTlsTransportParamsAddCallback,
-            NULL,
-            NULL,
-            QuicTlsTransportParamsParseCallback,
-            NULL);
-
-    if (Ret != 1) {
-        LogError("[TLS] SSL_CTX_add_custom_ext() failed, error: %ld", ERR_get_error());
-        Status = QUIC_STATUS_SSL_ERROR;
-        goto Exit;
-    }
+    SSL_CTX_set_max_early_data(SecurityConfig->SSLCtx, UINT32_MAX);
+    SSL_CTX_set_quic_method(SecurityConfig->SSLCtx, &OpenSslQuicCallbacks);
+    SSL_CTX_set_client_hello_cb(SecurityConfig->SSLCtx, QuicTlsClientHelloCallback, NULL);
 
     //
     // Invoke completion inline.
@@ -1798,7 +945,6 @@ Exit:
 
     return Status;
 }
-
 
 static
 void
@@ -1837,7 +983,6 @@ Return Value:
     }
 }
 
-
 QUIC_STATUS
 QuicTlsClientSecConfigCreate(
     _In_ uint32_t Flags,
@@ -1870,21 +1015,13 @@ Return Value:
     //
 
     SecurityConfig = QuicAlloc(sizeof(QUIC_SEC_CONFIG));
-
     if (SecurityConfig == NULL) {
-        LogError("[TLS] SecurityConfig alloc failed.");
+        LogError("[ tls] SecurityConfig alloc failed.");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
 
     QuicZeroMemory(SecurityConfig, sizeof(*SecurityConfig));
-
-    SecurityConfig->Flags = (uint32_t)Flags;
-
-    //
-    // Initial ref.
-    //
-
     SecurityConfig->RefCount = 1;
 
     //
@@ -1894,10 +1031,9 @@ Return Value:
     //
 
     SecurityConfig->SSLCtx = SSL_CTX_new(TLS_method());
-
     if (SecurityConfig->SSLCtx == NULL) {
-        LogError("[TLS] SSL_CTX_new() failed, error: %ld", ERR_get_error());
-        Status = QUIC_STATUS_SSL_ERROR;
+        LogError("[ tls] SSL_CTX_new() failed, error: %ld", ERR_get_error());
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -1908,20 +1044,15 @@ Return Value:
     SSL_CTX_set_min_proto_version(SecurityConfig->SSLCtx, TLS1_3_VERSION);
     SSL_CTX_set_max_proto_version(SecurityConfig->SSLCtx, TLS1_3_VERSION);
 
-    //
-    // This makes OpenSSL client not send CCS after an initial ClientHello.
-    //
-
-    SSL_CTX_clear_options(SecurityConfig->SSLCtx, SSL_OP_ENABLE_MIDDLEBOX_COMPAT);
+    SSL_CTX_set_default_verify_paths(SecurityConfig->SSLCtx);
 
     Ret =
         SSL_CTX_set_ciphersuites(
             SecurityConfig->SSLCtx,
             QUIC_TLS_DEFAULT_SSL_CIPHERS);
-
     if (Ret != 1) {
-        LogError("[TLS] SSL_CTX_set_ciphersuites() failed, error: %ld", ERR_get_error());
-        Status = QUIC_STATUS_SSL_ERROR;
+        LogError("[ tls] SSL_CTX_set_ciphersuites() failed, error: %ld", ERR_get_error());
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
@@ -1929,72 +1060,44 @@ Return Value:
         SSL_CTX_set1_groups_list(
             SecurityConfig->SSLCtx,
             QUIC_TLS_DEFAULT_SSL_CURVES);
-
     if (Ret != 1) {
-        LogError("[TLS] SSL_CTX_set1_groups_list() failed, error: %ld", ERR_get_error());
-        Status = QUIC_STATUS_SSL_ERROR;
+        LogError("[ tls] SSL_CTX_set1_groups_list() failed, error: %ld", ERR_get_error());
+        Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
-    //
-    // Enable the QUIC hack until OpenSSL formally supports QUIC-TLS.
-    //
-
-    SSL_CTX_set_mode(SecurityConfig->SSLCtx, SSL_MODE_QUIC_HACK);
+    SSL_CTX_set_quic_method(SecurityConfig->SSLCtx, &OpenSslQuicCallbacks);
 
     //
     // Cert related config.
     //
 
-    if ((Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION) == 0) {
+    BOOLEAN VerifyServerCertificate = TRUE; // !(Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION);
+    if (!VerifyServerCertificate) {
         SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
-    }
-
-    SSL_CTX_set_verify_depth(
-        SecurityConfig->SSLCtx,
-        QUIC_TLS_DEFAULT_VERIFY_DEPTH);
-
-    if (QuicOpenSslClientTrustedCert == NULL) {
-        SSL_CTX_set_default_verify_paths(SecurityConfig->SSLCtx);
     } else {
-        //
-        // LINUX_TODO: This is a hack to set a client side trusted cert in order
-        //   to verify server cert. Fix this once MsQuic formally supports
-        //   passing TLS related config from APP layer to TAL.
-        //
+        SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, QUIC_TLS_DEFAULT_VERIFY_DEPTH);
 
-        Ret =
-            SSL_CTX_load_verify_locations(
-                SecurityConfig->SSLCtx,
-                QuicOpenSslClientTrustedCert,
-                NULL);
+        if (QuicOpenSslClientTrustedCert == NULL) {
+            SSL_CTX_set_default_verify_paths(SecurityConfig->SSLCtx);
+        } else {
+            //
+            // LINUX_TODO: This is a hack to set a client side trusted cert in order
+            //   to verify server cert. Fix this once MsQuic formally supports
+            //   passing TLS related config from APP layer to TAL.
+            //
 
-        if (Ret != 1) {
-            LogError("[TLS] SSL_CTX_load_verify_locations() failed, error: %ld", ERR_get_error());
-            Status = QUIC_STATUS_SSL_ERROR;
-            goto Exit;
+            Ret =
+                SSL_CTX_load_verify_locations(
+                    SecurityConfig->SSLCtx,
+                    QuicOpenSslClientTrustedCert,
+                    NULL);
+            if (Ret != 1) {
+                LogError("[ tls] SSL_CTX_load_verify_locations() failed, error: %ld", ERR_get_error());
+                Status = QUIC_STATUS_TLS_ERROR;
+                goto Exit;
+            }
         }
-    }
-
-    //
-    // Add custom extension for QUIC transport.
-    //
-
-    Ret =
-        SSL_CTX_add_custom_ext(
-            SecurityConfig->SSLCtx,
-            TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS,
-            SSL_EXT_CLIENT_HELLO | SSL_EXT_TLS1_3_ENCRYPTED_EXTENSIONS,
-            QuicTlsTransportParamsAddCallback,
-            NULL,
-            NULL,
-            QuicTlsTransportParamsParseCallback,
-            NULL);
-
-    if (Ret != 1) {
-        LogError("[TLS] SSL_CTX_add_custom_ext() failed, error: %ld", ERR_get_error());
-        Status = QUIC_STATUS_SSL_ERROR;
-        goto Exit;
     }
 
     *ClientConfig = SecurityConfig;
@@ -2009,7 +1112,6 @@ Exit:
 
     return Status;
 }
-
 
 inline
 QUIC_SEC_CONFIG*
@@ -2035,7 +1137,6 @@ Return Value:
     InterlockedIncrement(&SecurityConfig->RefCount);
     return SecurityConfig;
 }
-
 
 void
 QUIC_API
@@ -2063,7 +1164,6 @@ Return Value:
         SecurityConfig = NULL;
     }
 }
-
 
 QUIC_STATUS
 QuicTlsSessionInitialize(
@@ -2098,9 +1198,8 @@ Return Value:
     }
 
     TlsSession = QuicAlloc(sizeof(QUIC_TLS_SESSION) + ALPNLength + 1);
-
     if (TlsSession == NULL) {
-        LogWarning("[TLS] Failed to allocate QUIC_TLS_SESSION.");
+        LogWarning("[ tls] Failed to allocate QUIC_TLS_SESSION.");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -2125,7 +1224,6 @@ Exit:
 
     return Status;
 }
-
 
 void
 QuicTlsSessionUninitialize(
@@ -2153,7 +1251,6 @@ Return Value:
     }
 }
 
-
 QUIC_STATUS
 QuicTlsSessionSetTicketKey(
     _In_ QUIC_TLS_SESSION* TlsSession,
@@ -2168,7 +1265,6 @@ QuicTlsSessionSetTicketKey(
     //
     return QUIC_STATUS_SUCCESS;
 }
-
 
 QUIC_STATUS
 QuicTlsSessionAddTicket(
@@ -2186,7 +1282,6 @@ QuicTlsSessionAddTicket(
     //
     return QUIC_STATUS_SUCCESS;
 }
-
 
 QUIC_STATUS
 QuicTlsInitialize(
@@ -2216,9 +1311,8 @@ Return Value:
     uint16_t ServerNameLength = 0;
 
     TlsContext = QuicAlloc(sizeof(QUIC_TLS));
-
     if (TlsContext == NULL) {
-        LogError("[TLS] Failed to allocate TLS context.");
+        LogError("[ tls] Failed to allocate TLS context.");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -2229,11 +1323,9 @@ Return Value:
     TlsContext->TlsSession = Config->TlsSession;
     TlsContext->IsServer = Config->IsServer;
     TlsContext->SecConfig = QuicTlsSecConfigAddRef(Config->SecConfig);
-    TlsContext->LocalTransParamBuffer = (uint8_t *)Config->LocalTPBuffer;
-    TlsContext->LocalTransParamLength = Config->LocalTPLength;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
 
-    LogVerbose("[TLS][%p][%c] Created.", TlsContext, GetTlsIdentifier(TlsContext));
+    LogVerbose("[ tls][%p][%c] Created.", TlsContext, GetTlsIdentifier(TlsContext));
 
     if (!Config->IsServer) {
 
@@ -2242,7 +1334,7 @@ Return Value:
             ServerNameLength = (uint16_t)strnlen(Config->ServerName, QUIC_MAX_SNI_LENGTH);
 
             if (ServerNameLength == QUIC_MAX_SNI_LENGTH) {
-                LogError("[TLS][%p][%c] Invalid / Too long server name!", TlsContext, GetTlsIdentifier(TlsContext));
+                LogError("[ tls][%p][%c] Invalid / Too long server name!", TlsContext, GetTlsIdentifier(TlsContext));
                 Status = QUIC_STATUS_INVALID_PARAMETER;
                 goto Exit;
             }
@@ -2250,7 +1342,7 @@ Return Value:
             TlsContext->SNI = QuicAlloc(ServerNameLength + 1);
 
             if (TlsContext->SNI == NULL) {
-                LogError("[TLS][%p][%c] Failed to allocate SNI.", TlsContext, GetTlsIdentifier(TlsContext));
+                LogError("[ tls][%p][%c] Failed to allocate SNI.", TlsContext, GetTlsIdentifier(TlsContext));
                 Status = QUIC_STATUS_OUT_OF_MEMORY;
                 goto Exit;
             }
@@ -2264,35 +1356,17 @@ Return Value:
     //
 
     TlsContext->Ssl = SSL_new(Config->SecConfig->SSLCtx);
-
     if (TlsContext->Ssl == NULL) {
-        LogError("[TLS][%p][%c] Failed to allocate Ssl object.", TlsContext, GetTlsIdentifier(TlsContext));
+        LogError("[ tls][%p][%c] Failed to allocate Ssl object.", TlsContext, GetTlsIdentifier(TlsContext));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
 
-    //
-    // Create and configure a BIO object to pass TLS data to OpenSSL.
-    //
-
-    TlsContext->Bio = BIO_new(QuicTlsBioCreateMethod());
-
-    if (TlsContext->Bio == NULL) {
-        LogError("[TLS][%p][%c] Failed to allocate Bio object.", TlsContext, GetTlsIdentifier(TlsContext));
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
-
-    BIO_set_data(TlsContext->Bio, TlsContext);
-    SSL_set_bio(TlsContext->Ssl, TlsContext->Bio, TlsContext->Bio);
     SSL_set_app_data(TlsContext->Ssl, TlsContext);
 
     if (Config->IsServer) {
         SSL_set_accept_state(TlsContext->Ssl);
-        SSL_set_key_callback(
-            TlsContext->Ssl,
-            QuicTlsServerKeyCallback,
-            TlsContext);
+        SSL_set_quic_early_data_enabled(TlsContext->Ssl, 1);
     } else {
         SSL_set_connect_state(TlsContext->Ssl);
         SSL_set_tlsext_host_name(TlsContext->Ssl, TlsContext->SNI);
@@ -2300,14 +1374,16 @@ Return Value:
             TlsContext->Ssl,
             Config->TlsSession->AlpnBuffer,
             Config->TlsSession->AlpnBufferLength);
-        SSL_set_key_callback(
-            TlsContext->Ssl,
-            QuicTlsClientKeyCallback,
-            TlsContext);
     }
 
-    SSL_set_msg_callback(TlsContext->Ssl, QuicTlsMessageCallback);
-    SSL_set_msg_callback_arg(TlsContext->Ssl, TlsContext);
+    if (SSL_set_quic_transport_params(
+            TlsContext->Ssl,
+            Config->LocalTPBuffer,
+            Config->LocalTPLength) != 1) {
+        LogError("[ tls][%p][%c] Failed to set TP.", TlsContext, GetTlsIdentifier(TlsContext));
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
+    }
 
     *NewTlsContext = TlsContext;
     TlsContext = NULL;
@@ -2321,7 +1397,6 @@ Exit:
 
     return Status;
 }
-
 
 void
 QuicTlsUninitialize(
@@ -2344,7 +1419,7 @@ Return Value:
 --*/
 {
     if (TlsContext != NULL) {
-        LogVerbose("[TLS][%p][%c] Cleaning up.", TlsContext, GetTlsIdentifier(TlsContext));
+        LogVerbose("[ tls][%p][%c] Cleaning up.", TlsContext, GetTlsIdentifier(TlsContext));
 
         if (TlsContext->SecConfig != NULL) {
             QuicTlsSecConfigRelease(TlsContext->SecConfig);
@@ -2357,24 +1432,14 @@ Return Value:
         }
 
         if (TlsContext->Ssl != NULL) {
-            //
-            // N.B. This also frees the BIO.
-            //
             SSL_free(TlsContext->Ssl);
             TlsContext->Ssl = NULL;
-            TlsContext->Bio = NULL;
-        }
-
-        if (TlsContext->LocalTransParamBuffer != NULL) {
-            QUIC_FREE(TlsContext->LocalTransParamBuffer);
-            TlsContext->LocalTransParamBuffer = NULL;
         }
 
         QUIC_FREE(TlsContext);
         TlsContext = NULL;
     }
 }
-
 
 void
 QuicTlsReset(
@@ -2396,26 +1461,17 @@ Return Value:
 
 --*/
 {
-    LogInfo("[TLS][%p][%c] Resetting TLS state.", TlsContext, GetTlsIdentifier(TlsContext));
+    LogInfo("[ tls][%p][%c] Resetting TLS state.", TlsContext, GetTlsIdentifier(TlsContext));
 
     QUIC_DBG_ASSERT(TlsContext->IsServer == FALSE);
 
-    TlsContext->ReadBuffer = NULL;
-    TlsContext->ReadBufferLength = 0;
-    TlsContext->ReadBufferOffset = 0;
-
     //
-    // Free the old SSL state and associated BIO.
+    // Free the old SSL state.
     //
 
     if (TlsContext->Ssl != NULL) {
-        //
-        // N.B. This also frees the BIO.
-        //
-
         SSL_free(TlsContext->Ssl);
         TlsContext->Ssl = NULL;
-        TlsContext->Bio = NULL;
     }
 
     //
@@ -2423,38 +1479,35 @@ Return Value:
     //
 
     TlsContext->Ssl = SSL_new(TlsContext->SecConfig->SSLCtx);
-
     if (TlsContext->Ssl == NULL) {
-        LogError("[TLS][%p][%c] Failed to allocate Ssl object.", TlsContext, GetTlsIdentifier(TlsContext));
+        LogError("[ tls][%p][%c] Failed to allocate Ssl object.", TlsContext, GetTlsIdentifier(TlsContext));
         QUIC_DBG_ASSERT(FALSE);
         goto Exit;
     }
 
-    TlsContext->Bio = BIO_new(QuicTlsBioCreateMethod());
-
-    if (TlsContext->Bio == NULL) {
-        LogError("[TLS][%p][%c] Failed to allocate Bio object.", TlsContext, GetTlsIdentifier(TlsContext));
-        QUIC_DBG_ASSERT(FALSE);
-        goto Exit;
-    }
-
-    BIO_set_data(TlsContext->Bio, TlsContext);
-    SSL_set_bio(TlsContext->Ssl, TlsContext->Bio, TlsContext->Bio);
     SSL_set_app_data(TlsContext->Ssl, TlsContext);
 
     SSL_set_connect_state(TlsContext->Ssl);
-    SSL_set_alpn_protos(TlsContext->Ssl, TlsContext->TlsSession->AlpnBuffer, TlsContext->TlsSession->AlpnBufferLength);
     SSL_set_tlsext_host_name(TlsContext->Ssl, TlsContext->SNI);
-    SSL_set_key_callback(TlsContext->Ssl, QuicTlsClientKeyCallback, TlsContext);
+    SSL_set_alpn_protos(
+        TlsContext->Ssl,
+        TlsContext->TlsSession->AlpnBuffer,
+        TlsContext->TlsSession->AlpnBufferLength);
 
-    SSL_set_msg_callback(TlsContext->Ssl, QuicTlsMessageCallback);
-    SSL_set_msg_callback_arg(TlsContext->Ssl, TlsContext);
+    /* TODO - Figure out if this is necessary.
+    if (SSL_set_quic_transport_params(
+            TlsContext->Ssl,
+            Config->LocalTPBuffer,
+            Config->LocalTPLength) != 1) {
+        LogError("[ tls][%p][%c] Failed to set TP.", TlsContext, GetTlsIdentifier(TlsContext));
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
+    }*/
 
 Exit:
 
     return;
 }
-
 
 QUIC_SEC_CONFIG*
 QuicTlsGetSecConfig(
@@ -2480,72 +1533,11 @@ Return Value:
     return QuicTlsSecConfigAddRef(TlsContext->SecConfig);
 }
 
-
-void
-QuicTlsRead(
-    _In_ PQUIC_TLS TlsContext
-    )
-/*++
-
-Routine Description:
-
-    Used to make OpenSSL read post handshake data.
-
-Arguments:
-
-    TlsContext - TLS context.
-
-Return Value:
-
-    None.
-
---*/
-{
-    uint8_t Buffer[4096] = {0};
-    size_t ReadBytes = 0;
-    int Err = 0;
-
-    //
-    // LINUX_TODO: Check if this is the right way to make OpenSSL read the post
-    // handshake data. This is a hack and bound to change once OpenSSL has formal
-    // QUIC support.
-    //
-
-    ERR_clear_error();
-
-    while (TRUE) {
-        int rv = SSL_read_ex(TlsContext->Ssl, Buffer, sizeof(Buffer), &ReadBytes);
-
-        if (rv == 1) {
-            LogVerbose("Read %d bytes from TLS crypto stream", ReadBytes);
-            continue;
-        }
-
-        Err = SSL_get_error(TlsContext->Ssl, 0);
-
-        switch (Err) {
-        case SSL_ERROR_WANT_READ:
-        case SSL_ERROR_WANT_WRITE:
-          return;
-        case SSL_ERROR_SSL:
-        case SSL_ERROR_ZERO_RETURN:
-          TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-          LogError("TLS read error: %s", ERR_error_string(ERR_get_error(), NULL));
-          break;
-        default:
-          TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
-          LogError("TLS read error: %d", Err);
-          break;
-        }
-    }
-}
-
-
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessData(
     _In_ PQUIC_TLS TlsContext,
-    _In_reads_bytes_(*BufferLength) const uint8_t * Buffer,
-    _Inout_ uint32_t *BufferLength,
+    _In_reads_bytes_(*BufferLength) const uint8_t* Buffer,
+    _Inout_ uint32_t* BufferLength,
     _Inout_ QUIC_TLS_PROCESS_STATE* State
     )
 /*++
@@ -2570,93 +1562,105 @@ Return Value:
 
 --*/
 {
-    QUIC_TLS_RESULT_FLAGS ResultFlags = 0;
     int Ret = 0;
     int Err = 0;
 
     QUIC_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
 
     if (*BufferLength != 0) {
-        LogVerbose("[TLS][%p][%c] Processing %u received bytes.", TlsContext, GetTlsIdentifier(TlsContext), *BufferLength);
+        LogVerbose("[ tls][%p][%c] Processing %u received bytes.",
+            TlsContext, GetTlsIdentifier(TlsContext), *BufferLength);
     }
 
     TlsContext->State = State;
-    TlsContext->ReadBufferOffset = 0;
-    TlsContext->ReadBuffer = NULL;
-    TlsContext->ReadBufferLength = 0;
     TlsContext->ResultFlags = 0;
 
-    if (*BufferLength) {
-        LogVerbose("[TLS][%p][%c] Reading %d bytes", TlsContext,  GetTlsIdentifier(TlsContext), *BufferLength);
-
-        //
-        // Copy the data pointer into our buffer pointer.
-        //
-
-        TlsContext->ReadBuffer = Buffer;
-
-        //
-        // Store new buffer length.
-        //
-
-        TlsContext->ReadBufferLength = *BufferLength;
+    if (SSL_provide_quic_data(
+            TlsContext->Ssl,
+            TlsContext->State->ReadKey,
+            Buffer,
+            *BufferLength) != 1) {
+        TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+        goto Exit;
     }
 
+    if (!State->HandshakeComplete) {
+        Ret = SSL_do_handshake(TlsContext->Ssl);
+        if (Ret <= 0) {
+            Err = SSL_get_error(TlsContext->Ssl, Ret);
+            switch (Err) {
+            case SSL_ERROR_WANT_READ:
+            case SSL_ERROR_WANT_WRITE:
+                goto Exit;
 
-    if (State->HandshakeComplete) {
-        //
-        // Post handshake data.
-        //
+            case SSL_ERROR_SSL:
+                LogError("[ tls][%p][%c] TLS handshake error: %s.",
+                    TlsContext, GetTlsIdentifier(TlsContext), ERR_error_string(ERR_get_error(), NULL));
+                TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                goto Exit;
 
-        QuicTlsRead(TlsContext);
-        return TlsContext->ResultFlags;
+            default:
+                LogError("[ tls][%p][%c] TLS handshake error: %d.",
+                    TlsContext, GetTlsIdentifier(TlsContext), Err);
+                TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                goto Exit;
+            }
+        }
+
+        LogInfo("[ tls][%p][%c] Handshake complete.", TlsContext, GetTlsIdentifier(TlsContext));
+        State->HandshakeComplete = TRUE;
+        TlsContext->ResultFlags |= QUIC_TLS_RESULT_COMPLETE;
+
+        if (TlsContext->IsServer) {
+            TlsContext->State->ReadKey = QUIC_PACKET_KEY_1_RTT;
+            TlsContext->ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;
+        } else {
+            const uint8_t* TransportParams;
+            size_t TransportParamLen;
+            SSL_get_peer_quic_transport_params(
+                    TlsContext->Ssl, &TransportParams, &TransportParamLen);
+            if (TransportParams == NULL || TransportParamLen == 0) {
+                LogError("[ tls][%p][%c] No transport parameters received",
+                    TlsContext, GetTlsIdentifier(TlsContext));
+                TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                goto Exit;
+            }
+            if (!TlsContext->ReceiveTPCallback(
+                    TlsContext->Connection,
+                    (uint16_t)TransportParamLen,
+                    TransportParams)) {
+                TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                goto Exit;
+            }
+        }
     }
 
     Ret = SSL_do_handshake(TlsContext->Ssl);
-
-    if (Ret <= 0) {
+    if (Ret != 1) {
         Err = SSL_get_error(TlsContext->Ssl, Ret);
-
         switch (Err) {
         case SSL_ERROR_WANT_READ:
         case SSL_ERROR_WANT_WRITE:
-            *BufferLength = TlsContext->ReadBufferOffset;
             goto Exit;
 
         case SSL_ERROR_SSL:
-            LogError("[TLS][%p][%c] TLS handshake error: %s.", TlsContext,  GetTlsIdentifier(TlsContext), ERR_error_string(ERR_get_error(), NULL));
-            ResultFlags |= QUIC_TLS_RESULT_ERROR;
-            *BufferLength = 0;
+            LogError("[ tls][%p][%c] TLS handshake error: %s.",
+                TlsContext, GetTlsIdentifier(TlsContext), ERR_error_string(ERR_get_error(), NULL));
+            TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
             goto Exit;
 
         default:
-            LogError("[TLS][%p][%c] TLS handshake error: %d.", TlsContext,  GetTlsIdentifier(TlsContext), Err, NULL);
-            ResultFlags |= QUIC_TLS_RESULT_ERROR;
-            *BufferLength = 0;
+            LogError("[ tls][%p][%c] TLS handshake error: %d.",
+                TlsContext, GetTlsIdentifier(TlsContext), Err);
+            TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
             goto Exit;
         }
     }
 
-    *BufferLength = TlsContext->ReadBufferOffset;
-
-    if (!State->HandshakeComplete) {
-        LogInfo("[TLS][%p][%c] Handshake complete.", TlsContext, GetTlsIdentifier(TlsContext));
-        State->HandshakeComplete = TRUE;
-        ResultFlags |= QUIC_TLS_RESULT_COMPLETE;
-    }
-
-    //
-    // OpenSSL might not read all data prior to handshake completion again. So
-    // poke it to do more reads until the whole read buffer is read.
-    //
-
-    QuicTlsRead(TlsContext);
-
 Exit:
 
-    return TlsContext->ResultFlags | ResultFlags;
+    return TlsContext->ResultFlags;
 }
-
 
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessDataComplete(
@@ -2668,7 +1672,6 @@ QuicTlsProcessDataComplete(
     UNREFERENCED_PARAMETER(BufferConsumed);
     return QUIC_TLS_RESULT_ERROR;
 }
-
 
 QUIC_STATUS
 QuicTlsReadTicket(
@@ -2682,7 +1685,6 @@ QuicTlsReadTicket(
     UNREFERENCED_PARAMETER(Buffer);
     return QUIC_STATUS_INVALID_STATE;
 }
-
 
 QUIC_STATUS
 QuicTlsParamSet(
@@ -2700,7 +1702,6 @@ QuicTlsParamSet(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
-
 QUIC_STATUS
 QuicTlsParamGet(
     _In_ PQUIC_TLS TlsContext,
@@ -2717,11 +1718,9 @@ QuicTlsParamGet(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
-
 //
 // Crypto / Key Functionality
 //
-
 
 QUIC_STATUS
 QuicPacketKeyCreateInitial(
@@ -2768,7 +1767,7 @@ Return Value:
         Status = QuicAllocatePacketKey(QUIC_PACKET_KEY_INITIAL, &TempWriteKey);
 
         if (QUIC_FAILED(Status)) {
-            LogError("[TLS] Key alloc failure.");
+            LogError("[ tls] Key alloc failure.");
             goto Exit;
         }
 
@@ -2783,8 +1782,8 @@ Return Value:
                 Salt,
                 QUIC_VERSION_SALT_LENGTH,
                 EVP_sha256())) {
-            LogError("[TLS] QuicTlsHkdfExtract() failed.");
-            Status = QUIC_STATUS_SSL_ERROR;
+            LogError("[ tls] QuicTlsHkdfExtract() failed.");
+            Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
 
@@ -2794,8 +1793,8 @@ Return Value:
                     sizeof(Secret),
                     InitialSecret,
                     sizeof(InitialSecret))) {
-                LogError("[TLS] QuicTlsDeriveServerInitialSecret() failed.");
-                Status = QUIC_STATUS_SSL_ERROR;
+                LogError("[ tls] QuicTlsDeriveServerInitialSecret() failed.");
+                Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
         } else {
@@ -2804,8 +1803,8 @@ Return Value:
                     sizeof(Secret),
                     InitialSecret,
                     sizeof(InitialSecret))) {
-                LogError("[TLS] QuicTlsDeriveClientInitialSecret() failed.");
-                Status = QUIC_STATUS_SSL_ERROR;
+                LogError("[ tls] QuicTlsDeriveClientInitialSecret() failed.");
+                Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
         }
@@ -2818,7 +1817,7 @@ Return Value:
                 TempWriteKey);
 
         if (QUIC_FAILED(Status)) {
-            LogError("[TLS] QuicTlsDerivePacketProtectionKey() failed. error: %ld", Status);
+            LogError("[ tls] QuicTlsDerivePacketProtectionKey() failed. error: %ld", Status);
             goto Exit;
         }
 
@@ -2830,7 +1829,7 @@ Return Value:
                 TempWriteKey);
 
         if (QUIC_FAILED(Status)) {
-            LogError("[TLS] QuicTlsDerivePacketProtectionIv() failed. error: %ld", Status);
+            LogError("[ tls] QuicTlsDerivePacketProtectionIv() failed. error: %ld", Status);
             goto Exit;
         }
 
@@ -2842,7 +1841,7 @@ Return Value:
                 TempWriteKey);
 
         if (QUIC_FAILED(Status)) {
-            LogError("[TLS] QuicTlsDeriveHeaderProtectionKey() failed. error: %ld", Status);
+            LogError("[ tls] QuicTlsDeriveHeaderProtectionKey() failed. error: %ld", Status);
             goto Exit;
         }
     }
@@ -2851,7 +1850,7 @@ Return Value:
         Status = QuicAllocatePacketKey(QUIC_PACKET_KEY_INITIAL, &TempReadKey);
 
         if (QUIC_FAILED(Status)) {
-            LogError("[TLS] Key alloc failure.");
+            LogError("[ tls] Key alloc failure.");
             goto Exit;
         }
 
@@ -2866,8 +1865,8 @@ Return Value:
                 Salt,
                 QUIC_VERSION_SALT_LENGTH,
                 EVP_sha256())) {
-            LogError("[TLS] QuicTlsHkdfExtract() failed.");
-            Status = QUIC_STATUS_SSL_ERROR;
+            LogError("[ tls] QuicTlsHkdfExtract() failed.");
+            Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
 
@@ -2877,8 +1876,8 @@ Return Value:
                     sizeof(Secret),
                     InitialSecret,
                     sizeof(InitialSecret))) {
-                LogError("[TLS] QuicTlsDeriveClientInitialSecret() failed.");
-                Status = QUIC_STATUS_SSL_ERROR;
+                LogError("[ tls] QuicTlsDeriveClientInitialSecret() failed.");
+                Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
         } else {
@@ -2887,8 +1886,8 @@ Return Value:
                     sizeof(Secret),
                     InitialSecret,
                     sizeof(InitialSecret))) {
-                LogError("[TLS] QuicTlsDeriveServerInitialSecret() failed.");
-                Status = QUIC_STATUS_SSL_ERROR;
+                LogError("[ tls] QuicTlsDeriveServerInitialSecret() failed.");
+                Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
         }
@@ -2901,7 +1900,7 @@ Return Value:
                 TempReadKey);
 
         if (QUIC_FAILED(Status)) {
-            LogError("[TLS] QuicTlsDerivePacketProtectionKey() failed. error: %ld", Status);
+            LogError("[ tls] QuicTlsDerivePacketProtectionKey() failed. error: %ld", Status);
             goto Exit;
         }
 
@@ -2913,7 +1912,7 @@ Return Value:
                 TempReadKey);
 
         if (QUIC_FAILED(Status)) {
-            LogError("[TLS] QuicTlsDerivePacketProtectionIv() failed. error: %ld", Status);
+            LogError("[ tls] QuicTlsDerivePacketProtectionIv() failed. error: %ld", Status);
             goto Exit;
         }
 
@@ -2925,7 +1924,7 @@ Return Value:
                 TempReadKey);
 
         if (QUIC_FAILED(Status)) {
-            LogError("[TLS] QuicTlsDeriveHeaderProtectionKey() failed. error: %ld", Status);
+            LogError("[ tls] QuicTlsDeriveHeaderProtectionKey() failed. error: %ld", Status);
             goto Exit;
         }
     }
@@ -2955,7 +1954,6 @@ Exit:
     return Status;
 }
 
-
 void
 QuicPacketKeyFree(
     _In_opt_ QUIC_PACKET_KEY* Key
@@ -2981,7 +1979,6 @@ Return Value:
         Key = NULL;
     }
 }
-
 
 QUIC_STATUS
 QuicPacketKeyUpdate(
@@ -3015,7 +2012,7 @@ Return Value:
     Status = QuicAllocatePacketKey(QUIC_PACKET_KEY_1_RTT, &TempKey);
 
     if (QUIC_FAILED(Status)) {
-        LogError("[TLS] Key alloc failure");
+        LogError("[ tls] Key alloc failure");
         goto Exit;
     }
 
@@ -3036,7 +2033,7 @@ Return Value:
         QuicTlsKeyGetMd(OldKey->TrafficSecret[0].Hash));
 
     if (QUIC_FAILED(Status)) {
-        LogError("[TLS] QuicTlsUpdateTrafficSecret() failed. error: %ld", Status);
+        LogError("[ tls] QuicTlsUpdateTrafficSecret() failed. error: %ld", Status);
         goto Exit;
     }
 
@@ -3048,7 +2045,7 @@ Return Value:
             TempKey);
 
     if (QUIC_FAILED(Status)) {
-        LogError("[TLS] QuicTlsDerivePacketProtectionKey() failed. error: %ld", Status);
+        LogError("[ tls] QuicTlsDerivePacketProtectionKey() failed. error: %ld", Status);
         goto Exit;
     }
 
@@ -3060,7 +2057,7 @@ Return Value:
             TempKey);
 
     if (QUIC_FAILED(Status)) {
-        LogError("[TLS] QuicTlsDerivePacketProtectionIv() failed. error: %ld", Status);
+        LogError("[ tls] QuicTlsDerivePacketProtectionIv() failed. error: %ld", Status);
         goto Exit;
     }
 
@@ -3076,7 +2073,6 @@ Exit:
 
     return Status;
 }
-
 
 QUIC_STATUS
 QuicKeyCreate(
@@ -3111,7 +2107,7 @@ Return Value:
     QUIC_KEY* Key = QuicAlloc(sizeof(QUIC_KEY));
 
     if (Key == NULL) {
-        LogError("[TLS] Failed to allocate key.");
+        LogError("[ tls] Failed to allocate key.");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -3148,7 +2144,6 @@ Exit:
     return Status;
 }
 
-
 void
 QuicKeyFree(
     _In_opt_ QUIC_KEY* Key
@@ -3175,7 +2170,6 @@ Return Value:
         Key = NULL;
     }
 }
-
 
 QUIC_STATUS
 QuicEncrypt(
@@ -3230,13 +2224,12 @@ Return Value:
             Key->Aead);
 
     if (Ret < 0) {
-        LogError("[TLS] QuicTlsEncrypt() failed. Ret: %ld", Ret);
-        return QUIC_STATUS_SSL_ERROR;
+        LogError("[ tls] QuicTlsEncrypt() failed. Ret: %ld", Ret);
+        return QUIC_STATUS_TLS_ERROR;
     }
 
     return QUIC_STATUS_SUCCESS;
 }
-
 
 QUIC_STATUS
 QuicDecrypt(
@@ -3291,13 +2284,12 @@ Return Value:
             Key->Aead);
 
     if (Ret < 0) {
-        LogError("[TLS] QuicTlsDecrypt() failed. Ret: %ld", Ret);
-        return QUIC_STATUS_SSL_ERROR;
+        LogError("[ tls] QuicTlsDecrypt() failed. Ret: %ld", Ret);
+        return QUIC_STATUS_TLS_ERROR;
     }
 
     return QUIC_STATUS_SUCCESS;
 }
-
 
 QUIC_STATUS
 QuicHpKeyCreate(
@@ -3332,7 +2324,7 @@ Return Value:
     QUIC_HP_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_KEY));
 
     if (Key == NULL) {
-        LogError("[TLS] Failed to allocate key.");
+        LogError("[ tls] Failed to allocate key.");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -3368,7 +2360,6 @@ Exit:
     return Status;
 }
 
-
 void
 QuicHpKeyFree(
     _In_opt_ QUIC_HP_KEY* Key
@@ -3394,7 +2385,6 @@ Return Value:
         Key = NULL;
     }
 }
-
 
 QUIC_STATUS
 QuicHpComputeMask(
@@ -3439,14 +2429,13 @@ Return Value:
                 Key->Aead);
 
         if (Ret < 0) {
-            LogError("[TLS] QuicTlsHeaderMask() failed. Ret: %ld", Ret);
-            return QUIC_STATUS_SSL_ERROR;
+            LogError("[ tls] QuicTlsHeaderMask() failed. Ret: %ld", Ret);
+            return QUIC_STATUS_TLS_ERROR;
         }
     }
 
     return QUIC_STATUS_SUCCESS;
 }
-
 
 QUIC_STATUS
 QuicHashCreate(
@@ -3481,7 +2470,7 @@ Return Value:
     QUIC_HASH* Hash = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASH) + SaltLength);
 
     if (Hash == NULL) {
-        LogError("[TLS] Failed to allocate hash.");
+        LogError("[ tls] Failed to allocate hash.");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -3516,7 +2505,6 @@ Exit:
     return Status;
 }
 
-
 void
 QuicHashFree(
     _In_opt_ QUIC_HASH* Hash
@@ -3542,7 +2530,6 @@ Return Value:
         Hash = NULL;
     }
 }
-
 
 QUIC_STATUS
 QuicHashCompute(
@@ -3587,7 +2574,6 @@ Return Value:
             Hash);
 }
 
-
 static
 void
 QuicTlsKeySetAead(
@@ -3630,7 +2616,6 @@ Return Value:
     }
 }
 
-
 static
 const
 EVP_MD *
@@ -3663,7 +2648,6 @@ Return Value:
         return NULL;
     }
 }
-
 
 static
 void
@@ -3710,7 +2694,6 @@ Return Value:
     }
 }
 
-
 static
 QUIC_STATUS
 QuicTlsKeyCreate(
@@ -3753,7 +2736,7 @@ Return Value:
     Status = QuicAllocatePacketKey(KeyType, &TempKey);
 
     if (QUIC_FAILED(Status)) {
-        LogError("[TLS] key alloc failed.");
+        LogError("[ tls] key alloc failed.");
         goto Exit;
     }
 
@@ -3768,7 +2751,7 @@ Return Value:
             TempKey);
 
     if (QUIC_FAILED(Status)) {
-        LogError("[TLS] QuicTlsDerivePacketProtectionKey() failed. Status: %ld", Status);
+        LogError("[ tls] QuicTlsDerivePacketProtectionKey() failed. Status: %ld", Status);
         goto Exit;
     }
 
@@ -3780,7 +2763,7 @@ Return Value:
             TempKey);
 
     if (QUIC_FAILED(Status)) {
-        LogError("[TLS] QuicTlsDeriveHeaderProtectionKey() failed. Status: %ld", Status);
+        LogError("[ tls] QuicTlsDeriveHeaderProtectionKey() failed. Status: %ld", Status);
         goto Exit;
     }
 
@@ -3792,7 +2775,7 @@ Return Value:
             TempKey);
 
     if (QUIC_FAILED(Status)) {
-        LogError("[TLS] QuicTlsDerivePacketProtectionIv() failed. Status: %ld", Status);
+        LogError("[ tls] QuicTlsDerivePacketProtectionIv() failed. Status: %ld", Status);
         goto Exit;
     }
 
@@ -3815,7 +2798,6 @@ Exit:
 
     return Status;
 }
-
 
 static
 BOOLEAN
@@ -3860,49 +2842,49 @@ Return Value:
     EVP_PKEY_CTX *KeyCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
 
     if (KeyCtx == NULL) {
-        LogError("[TLS] Key ctx alloc failed");
+        LogError("[ tls] Key ctx alloc failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_derive_init(KeyCtx) != 1) {
-        LogError("[TLS] EVP_PKEY_derive_init() failed");
+        LogError("[ tls] EVP_PKEY_derive_init() failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_hkdf_mode(KeyCtx, EVP_PKEY_HKDEF_MODE_EXPAND_ONLY) != 1) {
-        LogError("[TLS] EVP_PKEY_CTX_hkdf_mode() failed");
+        LogError("[ tls] EVP_PKEY_CTX_hkdf_mode() failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set_hkdf_md(KeyCtx, Md) != 1) {
-        LogError("[TLS] EVP_PKEY_CTX_set_hkdf_md() failed");
+        LogError("[ tls] EVP_PKEY_CTX_set_hkdf_md() failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set1_hkdf_salt(KeyCtx, "", 0) != 1) {
-        LogError("[TLS] EVP_PKEY_CTX_set1_hkdf_salt() failed");
+        LogError("[ tls] EVP_PKEY_CTX_set1_hkdf_salt() failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set1_hkdf_key(KeyCtx, Secret, SecretLen) != 1) {
-        LogError("[TLS] EVP_PKEY_CTX_set1_hkdf_key() failed");
+        LogError("[ tls] EVP_PKEY_CTX_set1_hkdf_key() failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_add1_hkdf_info(KeyCtx, Info, InfoLen) != 1) {
-        LogError("[TLS] EVP_PKEY_CTX_add1_hkdf_info() failed");
+        LogError("[ tls] EVP_PKEY_CTX_add1_hkdf_info() failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_derive(KeyCtx, OutputBuffer, &OutputBufferLen) != 1) {
-        LogError("[TLS] EVP_PKEY_derive() failed");
+        LogError("[ tls] EVP_PKEY_derive() failed");
         Ret = FALSE;
         goto Exit;
     }
@@ -3916,7 +2898,6 @@ Exit:
 
     return Ret;
 }
-
 
 static
 BOOLEAN
@@ -3970,7 +2951,6 @@ Return Value:
             Md);
 }
 
-
 static
 void
 QuicTlsHkdfFormatLabel(
@@ -4014,7 +2994,6 @@ Return Value:
     *DataLength = 3 + QUIC_HKDF_PREFIX_LEN + (ULONG)LabelLen + 1;
 }
 
-
 static
 QUIC_STATUS
 QuicAllocatePacketKey(
@@ -4050,7 +3029,7 @@ Return Value:
     TempKey = QuicAlloc(PacketKeyLength);
 
     if (TempKey == NULL) {
-        LogError("[TLS] key alloc failed.");
+        LogError("[ tls] key alloc failed.");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -4078,7 +3057,6 @@ Exit:
 
     return Status;
 }
-
 
 static
 QUIC_STATUS
@@ -4127,13 +3105,12 @@ Return Value:
             Md);
 
     if (!Ret) {
-        LogError("[TLS] QuicTlsHkdfExpandLabel() failed, error: %d", Ret);
-        return QUIC_STATUS_SSL_ERROR;
+        LogError("[ tls] QuicTlsHkdfExpandLabel() failed, error: %d", Ret);
+        return QUIC_STATUS_TLS_ERROR;
     }
 
     return QUIC_STATUS_SUCCESS;
 }
-
 
 static
 QUIC_STATUS
@@ -4180,13 +3157,12 @@ Return Value:
             Md);
 
     if (!Ret) {
-        LogError("[TLS] QuicTlsHkdfExpandLabel() failed, error: %d", Ret);
-        return QUIC_STATUS_SSL_ERROR;
+        LogError("[ tls] QuicTlsHkdfExpandLabel() failed, error: %d", Ret);
+        return QUIC_STATUS_TLS_ERROR;
     }
 
     return QUIC_STATUS_SUCCESS;
 }
-
 
 static
 QUIC_STATUS
@@ -4234,13 +3210,12 @@ Return Value:
             Md);
 
     if (!Ret) {
-        LogError("[TLS] QuicTlsHkdfExpandLabel() failed, error: %d", Ret);
-        return QUIC_STATUS_SSL_ERROR;
+        LogError("[ tls] QuicTlsHkdfExpandLabel() failed, error: %d", Ret);
+        return QUIC_STATUS_TLS_ERROR;
     }
 
     return QUIC_STATUS_SUCCESS;
 }
-
 
 static
 QUIC_STATUS
@@ -4284,13 +3259,12 @@ Return Value:
             Md);
 
     if (!Ret) {
-        LogError("[TLS] QuicTlsHkdfExpandLabel() failed, error: %d", Ret);
-        return QUIC_STATUS_SSL_ERROR;
+        LogError("[ tls] QuicTlsHkdfExpandLabel() failed, error: %d", Ret);
+        return QUIC_STATUS_TLS_ERROR;
     }
 
     return QUIC_STATUS_SUCCESS;
 }
-
 
 static
 BOOLEAN
@@ -4332,7 +3306,6 @@ Return Value:
             EVP_sha256());
 }
 
-
 static
 BOOLEAN
 QuicTlsDeriveServerInitialSecret(
@@ -4372,7 +3345,6 @@ Return Value:
             "server in",
             EVP_sha256());
 }
-
 
 static
 BOOLEAN
@@ -4417,42 +3389,42 @@ Return Value:
     EVP_PKEY_CTX *KeyCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
 
     if (KeyCtx == NULL) {
-        LogError("[TLS] EVP_PKEY_CTX_new_id() failed.");
+        LogError("[ tls] EVP_PKEY_CTX_new_id() failed.");
         return FALSE;
     }
 
     if (EVP_PKEY_derive_init(KeyCtx) != 1) {
-        LogError("[TLS] EVP_PKEY_derive_init() failed.");
+        LogError("[ tls] EVP_PKEY_derive_init() failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_hkdf_mode(KeyCtx, EVP_PKEY_HKDEF_MODE_EXTRACT_ONLY) != 1) {
-        LogError("[TLS] EVP_PKEY_CTX_hkdf_mode() failed.");
+        LogError("[ tls] EVP_PKEY_CTX_hkdf_mode() failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set_hkdf_md(KeyCtx, Md) != 1) {
-        LogError("[TLS] EVP_PKEY_CTX_set_hkdf_md() failed.");
+        LogError("[ tls] EVP_PKEY_CTX_set_hkdf_md() failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set1_hkdf_salt(KeyCtx, Salt, SaltLen) != 1) {
-        LogError("[TLS] EVP_PKEY_CTX_set1_hkdf_salt() failed.");
+        LogError("[ tls] EVP_PKEY_CTX_set1_hkdf_salt() failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set1_hkdf_key(KeyCtx, Secret, SecretLen) != 1) {
-        LogError("[TLS] EVP_PKEY_CTX_set1_hkdf_key() failed.");
+        LogError("[ tls] EVP_PKEY_CTX_set1_hkdf_key() failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_derive(KeyCtx, OutputBuffer, &OutputBufferLen) != 1) {
-        LogError("[TLS] EVP_PKEY_derive() failed.");
+        LogError("[ tls] EVP_PKEY_derive() failed.");
         Ret = FALSE;
         goto Exit;
     }
@@ -4466,7 +3438,6 @@ Exit:
 
     return Ret;
 }
-
 
 static
 size_t
@@ -4501,9 +3472,8 @@ Return Value:
     return 0;
 }
 
-
 static
-ssize_t
+size_t
 QuicTlsEncrypt(
     _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
     _In_ size_t OutputBufferLen,
@@ -4553,7 +3523,7 @@ Return Value:
 
 --*/
 {
-    ssize_t Ret = 0;
+    size_t Ret = 0;
     size_t TagLen = QuicTlsAeadTagLength(Aead);
     EVP_CIPHER_CTX *CipherCtx = NULL;
     size_t OutLen = 0;
@@ -4562,7 +3532,7 @@ Return Value:
     QUIC_FRE_ASSERT(TagLen == QUIC_ENCRYPTION_OVERHEAD);
 
     if (OutputBufferLen < PlainTextLen + TagLen) {
-        LogError("[TLS] Incorrect output buffer length :%ld.", OutputBufferLen);
+        LogError("[ tls] Incorrect output buffer length :%ld.", OutputBufferLen);
         Ret = -1;
         goto Exit;
     }
@@ -4570,37 +3540,37 @@ Return Value:
     CipherCtx = EVP_CIPHER_CTX_new();
 
     if (CipherCtx == NULL) {
-        LogError("[TLS] CipherCtx alloc failed.");
+        LogError("[ tls] CipherCtx alloc failed.");
         Ret = -1;
         goto Exit;
     }
 
     if (EVP_EncryptInit_ex(CipherCtx, Aead, NULL, NULL, NULL) != 1) {
-        LogError("[TLS] EVP_EncryptInit_ex() failed.");
+        LogError("[ tls] EVP_EncryptInit_ex() failed.");
         Ret = -1;
         goto Exit;
     }
 
     if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, NonceLen, NULL) != 1) {
-        LogError("[TLS] EVP_CIPHER_CTX_ctrl() failed.");
+        LogError("[ tls] EVP_CIPHER_CTX_ctrl() failed.");
         Ret = -1;
         goto Exit;
     }
 
     if (EVP_EncryptInit_ex(CipherCtx, NULL, NULL, Key, Nonce) != 1) {
-        LogError("[TLS] EVP_EncryptInit_ex() failed.");
+        LogError("[ tls] EVP_EncryptInit_ex() failed.");
         Ret = -1;
         goto Exit;
     }
 
     if (EVP_EncryptUpdate(CipherCtx, NULL, &Len, Authdata, AuthDataLen) != 1) {
-        LogError("[TLS] EVP_EncryptUpdate() failed.");
+        LogError("[ tls] EVP_EncryptUpdate() failed.");
         Ret = -1;
         goto Exit;
     }
 
     if (EVP_EncryptUpdate(CipherCtx, OutputBuffer, &Len, PlainText, PlainTextLen) != 1) {
-        LogError("[TLS] EVP_EncryptUpdate() failed.");
+        LogError("[ tls] EVP_EncryptUpdate() failed.");
         Ret = -1;
         goto Exit;
     }
@@ -4608,7 +3578,7 @@ Return Value:
     OutLen = Len;
 
     if (EVP_EncryptFinal_ex(CipherCtx, OutputBuffer + OutLen, &Len) != 1) {
-        LogError("[TLS] EVP_EncryptFinal_ex() failed.");
+        LogError("[ tls] EVP_EncryptFinal_ex() failed.");
         Ret = -1;
         goto Exit;
     }
@@ -4635,9 +3605,8 @@ Exit:
     return Ret;
 }
 
-
 static
-ssize_t
+size_t
 QuicTlsDecrypt(
     _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
     _In_ size_t OutputBufferLen,
@@ -4694,7 +3663,7 @@ Return Value:
     QUIC_FRE_ASSERT(TagLen == QUIC_ENCRYPTION_OVERHEAD);
 
     if (TagLen > CipherTextLen || OutputBufferLen + TagLen < CipherTextLen) {
-        LogError("[TLS] Incorrect buffer length.");
+        LogError("[ tls] Incorrect buffer length.");
         Ret = -1;
         goto Exit;
     }
@@ -4705,25 +3674,25 @@ Return Value:
     CipherCtx = EVP_CIPHER_CTX_new();
 
     if (CipherCtx == NULL) {
-        LogError("[TLS] CipherCtx alloc failed.");
+        LogError("[ tls] CipherCtx alloc failed.");
         Ret = -1;
         goto Exit;
     }
 
     if (EVP_DecryptInit_ex(CipherCtx, Aead, NULL, NULL, NULL) != 1) {
-        LogError("[TLS] EVP_DecryptInit_ex() failed.");
+        LogError("[ tls] EVP_DecryptInit_ex() failed.");
         Ret = -1;
         goto Exit;
     }
 
     if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, NonceLen, NULL) != 1) {
-        LogError("[TLS] EVP_CIPHER_CTX_ctrl() failed.");
+        LogError("[ tls] EVP_CIPHER_CTX_ctrl() failed.");
         Ret = -1;
         goto Exit;
     }
 
     if (EVP_DecryptInit_ex(CipherCtx, NULL, NULL, Key, Nonce) != 1) {
-        LogError("[TLS] EVP_DecryptInit_ex() failed.");
+        LogError("[ tls] EVP_DecryptInit_ex() failed.");
         Ret = -1;
         goto Exit;
     }
@@ -4732,13 +3701,13 @@ Return Value:
     int Len;
 
     if (EVP_DecryptUpdate(CipherCtx, NULL, &Len, AuthData, AuthDataLen) != 1) {
-        LogError("[TLS] EVP_DecryptUpdate() failed.");
+        LogError("[ tls] EVP_DecryptUpdate() failed.");
         Ret = -1;
         goto Exit;
     }
 
     if (EVP_DecryptUpdate(CipherCtx, OutputBuffer, &Len, CipherText, CipherTextLen) != 1) {
-        LogError("[TLS] EVP_DecryptUpdate() failed.");
+        LogError("[ tls] EVP_DecryptUpdate() failed.");
         Ret = -1;
         goto Exit;
     }
@@ -4746,13 +3715,13 @@ Return Value:
     OutLen = Len;
 
     if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_TAG, TagLen, Tag) != 1) {
-        LogError("[TLS] EVP_CIPHER_CTX_ctrl() failed.");
+        LogError("[ tls] EVP_CIPHER_CTX_ctrl() failed.");
         Ret = -1;
         goto Exit;
     }
 
     if (EVP_DecryptFinal_ex(CipherCtx, OutputBuffer + OutLen, &Len) != 1) {
-        LogError("[TLS] EVP_DecryptFinal_ex() failed.");
+        LogError("[ tls] EVP_DecryptFinal_ex() failed.");
         Ret = -1;
         goto Exit;
     }
@@ -4769,7 +3738,6 @@ Exit:
 
     return Ret;
 }
-
 
 static
 BOOLEAN
@@ -4818,19 +3786,19 @@ Return Value:
     EVP_CIPHER_CTX *CipherCtx = EVP_CIPHER_CTX_new();
 
     if (CipherCtx == NULL) {
-        LogError("[TLS] Cipherctx alloc failed.");
+        LogError("[ tls] Cipherctx alloc failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_EncryptInit_ex(CipherCtx, Aead, NULL, Key, Cipher) != 1) {
-        LogError("[TLS] EVP_EncryptInit_ex() failed.");
+        LogError("[ tls] EVP_EncryptInit_ex() failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_EncryptUpdate(CipherCtx, Temp, &Len, PLAINTEXT, sizeof(PLAINTEXT) - 1) != 1) {
-        LogError("[TLS] EVP_EncryptUpdate() failed.");
+        LogError("[ tls] EVP_EncryptUpdate() failed.");
         Ret = FALSE;
         goto Exit;
     }
@@ -4839,7 +3807,7 @@ Return Value:
     OutputLen += Len;
 
     if (EVP_EncryptFinal_ex(CipherCtx, Temp + OutputLen, &Len) != 1) {
-        LogError("[TLS] EVP_EncryptFinal_ex() failed.");
+        LogError("[ tls] EVP_EncryptFinal_ex() failed.");
         Ret = FALSE;
         goto Exit;
     }
@@ -4857,7 +3825,6 @@ Exit:
 
     return Ret;
 }
-
 
 static
 BOOLEAN
@@ -4902,43 +3869,43 @@ Return Value:
     EVP_PKEY_CTX *KeyCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
 
     if (KeyCtx == NULL) {
-        LogError("[TLS] KeyCtx alloc failed.");
+        LogError("[ tls] KeyCtx alloc failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_derive_init(KeyCtx) != 1) {
-        LogError("[TLS] EVP_PKEY_derive_init() failed.");
+        LogError("[ tls] EVP_PKEY_derive_init() failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_hkdf_mode(KeyCtx, EVP_PKEY_HKDEF_MODE_EXPAND_ONLY) != 1) {
-        LogError("[TLS] EVP_PKEY_CTX_hkdf_mode() failed.");
+        LogError("[ tls] EVP_PKEY_CTX_hkdf_mode() failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set_hkdf_md(KeyCtx, Hash->Md) != 1) {
-        LogError("[TLS] EVP_PKEY_CTX_set_hkdf_md() failed.");
+        LogError("[ tls] EVP_PKEY_CTX_set_hkdf_md() failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set1_hkdf_salt(KeyCtx, Salt, SaltLen) != 1) {
-        LogError("[TLS] EVP_PKEY_CTX_set1_hkdf_salt() failed.");
+        LogError("[ tls] EVP_PKEY_CTX_set1_hkdf_salt() failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set1_hkdf_key(KeyCtx, Secret, SecretLen) != 1) {
-        LogError("[TLS] EVP_PKEY_CTX_set1_hkdf_key() failed.");
+        LogError("[ tls] EVP_PKEY_CTX_set1_hkdf_key() failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_derive(KeyCtx, OutputBuffer, &OutputBufferLen) != 1) {
-        LogError("[TLS] EVP_PKEY_derive() failed.");
+        LogError("[ tls] EVP_PKEY_derive() failed.");
         Ret = FALSE;
         goto Exit;
     }

@@ -110,6 +110,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 uint32_t
 QuicLossDetectionComputeProbeTimeout(
     _In_ PQUIC_LOSS_DETECTION LossDetection,
+    _In_ const QUIC_PATH* Path,
     _In_ uint32_t Count
     );
 
@@ -120,6 +121,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLossDetectionOnPacketSent(
     _In_ PQUIC_LOSS_DETECTION LossDetection,
+    _In_ QUIC_PATH* Path,
     _In_ PQUIC_SENT_PACKET_METADATA SentPacket
     );
 

@@ -7,6 +7,7 @@ set(SOURCES
     library.c
     listener.c
     main.c
+    session.c
     stream.c
     trace.c
     worker.c

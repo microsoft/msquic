@@ -97,6 +97,11 @@ typedef struct _QUIC_CID {
     //
     uint8_t Acknowledged : 1;
     //
+    // Used for destination CIDs. The CID has been locally assigned to a path
+    // and can't be used for any other path.
+    //
+    uint8_t UsedLocally : 1;
+    //
     // Used for source CIDs. The peer has sent a packet that used this CID.
     //
     uint8_t UsedByPeer : 1;

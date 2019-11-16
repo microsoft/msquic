@@ -135,6 +135,11 @@ QuicHashSimple(
     _In_reads_(Length) const uint8_t* Buffer
     );
 
+uint16_t
+QuicHashLength(
+    QUIC_HASH_TYPE Type
+    );
+
 uint64_t
 QuicTimeDiff64(
     _In_ uint64_t T1,

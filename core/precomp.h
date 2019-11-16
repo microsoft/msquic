@@ -36,6 +36,7 @@ extern "C" {
 //
 #include "quicdef.h"
 #include "cid.h"
+#include "path.h"
 #include "transport_params.h"
 #include "lookup.h"
 #include "timer_wheel.h"

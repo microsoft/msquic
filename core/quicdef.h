@@ -15,6 +15,7 @@ typedef struct _QUIC_LISTENER QUIC_LISTENER, *PQUIC_LISTENER;
 typedef struct _QUIC_CONNECTION QUIC_CONNECTION, *PQUIC_CONNECTION;
 typedef struct _QUIC_STREAM QUIC_STREAM, *PQUIC_STREAM;
 typedef struct _QUIC_PACKET_BUILDER QUIC_PACKET_BUILDER;
+typedef struct QUIC_PATH QUIC_PATH;
 
 /*************************************************************
                     PROTOCOL CONSTANTS
@@ -314,9 +315,18 @@ QUIC_STATIC_ASSERT(
 #define QUIC_MIN_PACKET_SPARE_SPACE             64
 
 //
+// The maximum number of paths a single connection will keep track of.
+//
+#define QUIC_MAX_PATH_COUNT                     4
+
+//
 // Maximum number of connection IDs accepted from the peer.
 //
 #define QUIC_ACTIVE_CONNECTION_ID_LIMIT         4
+
+QUIC_STATIC_ASSERT(
+    QUIC_MAX_PATH_COUNT <= QUIC_ACTIVE_CONNECTION_ID_LIMIT,
+    "Should always have enough CIDs for all paths");
 
 //
 // The default value for pacing being enabled or not.
