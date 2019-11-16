@@ -41,9 +41,11 @@ The source is divided into several directories:
   * `test` - Test code for the MsQuic API / protocol.
   * `tools` - Several tools for exercising MsQuic.
 
+You can find more detailed information on how to use MsQuic in the [the API documentation](./docs/API.md).
+
 # Building
 
-You can find detailed instructions [here](./BUILD.md).
+You can find detailed instructions [here](./docs/BUILD.md).
 
 # Contributing
 
