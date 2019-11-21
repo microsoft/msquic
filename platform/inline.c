@@ -166,7 +166,7 @@ QuicTimeAtOrBefore32(
 
 void
 QuicCpuId(
-    _In_ int FunctionId
+    _In_ int FunctionId,
     _In_ int eax,
     _In_ int ebx,
     _In_ int ecx,
