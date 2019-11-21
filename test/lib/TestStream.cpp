@@ -118,7 +118,7 @@ TestStream::StartPing(
     if (BytesToSend != 0) {
         while (BytesToSend != 0 && OutstandingSendRequestCount < MaxSendRequestQueue) {
 
-            auto SendBufferLength = (uint32_t)min((size_t)BytesToSend, MaxSendLength);
+            auto SendBufferLength = (uint32_t)min(BytesToSend, MaxSendLength);
             auto SendBuffer = new QuicSendBuffer(MaxSendBuffers, SendBufferLength);
             if (SendBuffer == nullptr) {
                 TEST_FAILURE("Failed to alloc QuicSendBuffer");
@@ -273,7 +273,7 @@ TestStream::HandleStreamSendComplete(
             delete SendBuffer;
         } else {
             QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE;
-            auto SendBufferLength = (uint32_t)min((size_t)BytesToSend, MaxSendLength);
+            auto SendBufferLength = (uint32_t)min(BytesToSend, MaxSendLength);
             for (uint32_t i = 0; i < SendBuffer->BufferCount; ++i) {
                 SendBuffer->Buffers[i].Length = SendBufferLength;
             }
