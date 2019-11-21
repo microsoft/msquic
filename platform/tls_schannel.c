@@ -938,14 +938,13 @@ QuicTlsClientSecConfigCreate(
     SchannelCred.dwFlags = SCH_CRED_NO_DEFAULT_CREDS;
     if (Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION) {
         SchannelCred.dwFlags |= SCH_CRED_MANUAL_CRED_VALIDATION;
+    } else if (Flags != 0) {
+        //
+        // TODO - Schannel support for direct passthrough for certificate ignore
+        // flags (Flags variable).
+        //
+        SchannelCred.dwFlags |= SCH_CRED_MANUAL_CRED_VALIDATION;
     }
-
-    //
-    // TODO - Schannel currently doesn't support a direct passthrough for
-    // certificate ignore flags (Flags variable). So in the meantime, we just
-    // always disable schannel's validation of the certificate instead.
-    //
-    SchannelCred.dwFlags |= SCH_CRED_MANUAL_CRED_VALIDATION;
 
     SchannelCred.grbitEnabledProtocols = SP_PROT_TLS1_3_CLIENT;
     SchannelCred.dwVersion = SCHANNEL_CRED_VERSION;
@@ -2512,6 +2511,16 @@ QuicEncrypt(
     BCRYPT_KEY_HANDLE Key = (BCRYPT_KEY_HANDLE)_Key;
 
     QUIC_DBG_ASSERT(QUIC_ENCRYPTION_OVERHEAD < BufferLength);
+
+#ifdef QUIC_FUZZER
+    if (MsQuicFuzzerContext.EncryptCallback) {
+        MsQuicFuzzerContext.EncryptCallback(
+            MsQuicFuzzerContext.CallbackContext,
+            AuthData,
+            AuthDataLength + BufferLength
+        );
+    }
+#endif
 
     BCRYPT_INIT_AUTH_MODE_INFO(Info);
     Info.pbAuthData = (uint8_t*)AuthData;

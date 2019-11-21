@@ -130,8 +130,11 @@ QuicStreamSendShutdown(
             goto Exit;
         }
 
-        QUIC_DBG_ASSERT(ApiSendRequests == NULL); // This means the app queued data after queueing a graceful shutdown.
         while (ApiSendRequests != NULL) {
+            //
+            // These sends were queued by the app after queueing a graceful
+            // shutdown. Bad app!
+            //
             PQUIC_SEND_REQUEST SendRequest = ApiSendRequests;
             ApiSendRequests = ApiSendRequests->Next;
             QuicStreamCompleteSendRequest(Stream, SendRequest, TRUE);

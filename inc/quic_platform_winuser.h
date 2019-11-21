@@ -39,6 +39,7 @@ Environment:
 #include <bcrypt.h>
 #include <stdlib.h>
 #include <winternl.h>
+#include <intrin.h>
 #ifdef QUIC_TELEMETRY_ASSERTS
 #include <telemetry\MicrosoftTelemetryAssert.h>
 #endif
@@ -294,10 +295,9 @@ QuicPoolAlloc(
     _Inout_ PQUIC_POOL Pool
     )
 {
-#if NO_HEAP_CACHING
+#if QUIC_DISABLE_MEM_POOL
     return QuicAlloc(Pool->Size);
 #else
-
     void* Entry = InterlockedPopEntrySList(&Pool->ListHead);
     if (Entry == NULL) {
         Entry = QuicAlloc(Pool->Size);
@@ -318,11 +318,11 @@ QuicPoolFree(
     _In_ void* Entry
     )
 {
-#if NO_HEAP_CACHING
+#if QUIC_DISABLE_MEM_POOL
+    UNREFERENCED_PARAMETER(Pool);
     QuicFree(Entry);
     return;
 #else
-
 #if DBG || QUIC_TEST_MODE
     QUIC_DBG_ASSERT(((QUIC_POOL_ENTRY*)Entry)->SpecialFlag != QUIC_POOL_SPECIAL_FLAG);
     ((QUIC_POOL_ENTRY*)Entry)->SpecialFlag = QUIC_POOL_SPECIAL_FLAG;
@@ -860,6 +860,26 @@ QuicPlatFreeSelfSignedCert(
     );
 
 #endif // QUIC_TEST_APIS
+
+inline
+void
+QuicCpuId(
+    _In_ int FunctionId,
+    _In_ int eax,
+    _In_ int ebx,
+    _In_ int ecx,
+    _In_ int edx
+    )
+{
+    int CpuInfo[4];
+
+    CpuInfo[0] = eax;
+    CpuInfo[1] = ebx;
+    CpuInfo[2] = ecx;
+    CpuInfo[3] = edx;
+
+    __cpuid(CpuInfo, FunctionId);
+}
 
 #if defined(__cplusplus)
 }

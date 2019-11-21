@@ -5,9 +5,6 @@
 
 --*/
 
-#include <quic_platform.h>
-#include <msquic.h>
-#include <msquicp.h>
 #include <msquichelper.h>
 
 //

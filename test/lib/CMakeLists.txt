@@ -3,11 +3,13 @@
 
 set(SOURCES
     ApiTest.cpp
+    DrillDescriptor.cpp
+    EventTest.cpp
+    QuicDrill.cpp
     QuicTest.cpp
     TestConnection.cpp
     TestListener.cpp
     TestStream.cpp
-    EventTest.cpp
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/test)

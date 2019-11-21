@@ -12,8 +12,6 @@
 #pragma warning(disable:28931) // Unused Assignment
 
 #include <precomp.h> // from 'core' dir
-#include <msquic.h>
-#include <msquicp.h>
 #include <msquichelper.h>
 
 #include "packet_writer.h"

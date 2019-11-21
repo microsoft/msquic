@@ -9,10 +9,6 @@
 
 #define _CRT_SECURE_NO_WARNINGS 1
 
-#include "quic_platform.h"
-
-#include <msquic.h>
-#include <msquicp.h>
 #include <msquichelper.h>
 
 #include "PingStream.h"
