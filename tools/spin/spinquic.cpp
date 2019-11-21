@@ -14,9 +14,6 @@
 #include <algorithm>
 
 #define QUIC_TEST_APIS 1 // Needed to self signed cert API
-
-#include <quic_platform.h>
-#include <msquic.h>
 #include <msquichelper.h>
 
 #include "spinquic.h"

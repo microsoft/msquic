@@ -20,6 +20,7 @@ Environment:
 #pragma once
 #endif
 
+#include <quic_platform.h>
 #include <msquic.h>
 #include <msquicp.h>
 #include <stdio.h>
@@ -229,7 +230,55 @@ SetResumptionState(
 
 #if defined(__cplusplus)
 
-#ifdef _WIN32
+struct CreateSecConfigHelper {
+    QUIC_EVENT Complete;
+    QUIC_SEC_CONFIG* SecurityConfig;
+
+    CreateSecConfigHelper() : SecurityConfig(nullptr) {
+        QuicEventInitialize(&Complete, FALSE, FALSE);
+    }
+
+    ~CreateSecConfigHelper() {
+        QuicEventUninitialize(Complete);
+    }
+
+    _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
+    static void
+    QUIC_API
+    GetSecConfigComplete(
+        _In_opt_ void* Context,
+        _In_ QUIC_STATUS /* Status */,
+        _In_opt_ QUIC_SEC_CONFIG* SecurityConfig
+        )
+    {
+        _Analysis_assume_(Context);
+        auto HelperContext = (CreateSecConfigHelper*)Context;
+        HelperContext->SecurityConfig = SecurityConfig;
+        QuicEventSet(HelperContext->Complete);
+    }
+
+    QUIC_SEC_CONFIG*
+    Create(
+        _In_ const QUIC_API_V1* MsQuic,
+        _In_ _Pre_defensive_ HQUIC Registration,
+        _In_ QUIC_SEC_CONFIG_FLAGS Flags,
+        _In_opt_ void* Certificate,
+        _In_opt_z_ const char* Principal
+        )
+    {
+        if (QUIC_SUCCEEDED(
+            MsQuic->SecConfigCreate(
+                Registration,
+                Flags,
+                Certificate,
+                Principal,
+                this,
+                GetSecConfigComplete))) {
+            QuicEventWaitForever(Complete);
+        }
+        return SecurityConfig;
+    }
+};
 
 inline
 QUIC_SEC_CONFIG*
@@ -238,44 +287,14 @@ GetNullSecConfig(
     _In_ HQUIC Registration
     )
 {
-    struct CreateSecConfigHelper {
-        HANDLE Complete;
-        QUIC_STATUS Status;
-        QUIC_SEC_CONFIG* SecurityConfig;
-
-        _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
-        static void
-        QUIC_API
-        GetSecConfigComplete(
-            _In_opt_ void* Context,
-            _In_ QUIC_STATUS Status,
-            _In_opt_ QUIC_SEC_CONFIG* SecurityConfig
-            )
-        {
-            _Analysis_assume_(Context);
-            CreateSecConfigHelper* HelperContext = (CreateSecConfigHelper*)Context;
-            HelperContext->Status = Status;
-            HelperContext->SecurityConfig = SecurityConfig;
-            SetEvent(HelperContext->Complete);
-        }
-    };
-
-    CreateSecConfigHelper HelperContext = { CreateEvent(NULL, FALSE, FALSE, NULL), 0, NULL };
-    if (HelperContext.Complete == NULL) {
-        return FALSE;
-    }
-    if (QUIC_SUCCEEDED(
-        MsQuic->SecConfigCreate(
+    CreateSecConfigHelper Helper;
+    return
+        Helper.Create(
+            MsQuic,
             Registration,
             QUIC_SEC_CONFIG_FLAG_CERTIFICATE_NULL,
             nullptr,
-            nullptr,
-            &HelperContext,
-            CreateSecConfigHelper::GetSecConfigComplete))) {
-        WaitForSingleObject(HelperContext.Complete, INFINITE);
-    }
-    CloseHandle(HelperContext.Complete);
-    return HelperContext.SecurityConfig;
+            nullptr);
 }
 
 inline
@@ -286,44 +305,14 @@ GetSecConfigForCertContext(
     _In_ void* CertContext
     )
 {
-    struct CreateSecConfigHelper {
-        HANDLE Complete;
-        QUIC_STATUS Status;
-        QUIC_SEC_CONFIG* SecurityConfig;
-
-        _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
-        static void
-        QUIC_API
-        GetSecConfigComplete(
-            _In_opt_ void* Context,
-            _In_ QUIC_STATUS Status,
-            _In_opt_ QUIC_SEC_CONFIG* SecurityConfig
-            )
-        {
-            _Analysis_assume_(Context);
-            CreateSecConfigHelper* HelperContext = (CreateSecConfigHelper*)Context;
-            HelperContext->Status = Status;
-            HelperContext->SecurityConfig = SecurityConfig;
-            SetEvent(HelperContext->Complete);
-        }
-    };
-
-    CreateSecConfigHelper HelperContext = { CreateEvent(NULL, FALSE, FALSE, NULL), 0, NULL };
-    if (HelperContext.Complete == NULL) {
-        return FALSE;
-    }
-    if (QUIC_SUCCEEDED(
-        MsQuic->SecConfigCreate(
+    CreateSecConfigHelper Helper;
+    return
+        Helper.Create(
+            MsQuic,
             Registration,
             QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT,
             CertContext,
-            nullptr,
-            &HelperContext,
-            CreateSecConfigHelper::GetSecConfigComplete))) {
-        WaitForSingleObject(HelperContext.Complete, INFINITE);
-    }
-    CloseHandle(HelperContext.Complete);
-    return HelperContext.SecurityConfig;
+            nullptr);
 }
 
 inline
@@ -334,44 +323,14 @@ GetSecConfigForSNI(
     _In_z_ const char* ServerName
     )
 {
-    struct CreateSecConfigHelper {
-        HANDLE Complete;
-        QUIC_STATUS Status;
-        QUIC_SEC_CONFIG* SecurityConfig;
-
-        _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
-        static void
-        QUIC_API
-        GetSecConfigComplete(
-            _In_opt_ void* Context,
-            _In_ QUIC_STATUS Status,
-            _In_opt_ QUIC_SEC_CONFIG* SecurityConfig
-            )
-        {
-            _Analysis_assume_(Context);
-            CreateSecConfigHelper* HelperContext = (CreateSecConfigHelper*)Context;
-            HelperContext->Status = Status;
-            HelperContext->SecurityConfig = SecurityConfig;
-            SetEvent(HelperContext->Complete);
-        }
-    };
-
-    CreateSecConfigHelper HelperContext = { CreateEvent(NULL, FALSE, FALSE, NULL), 0, NULL };
-    if (HelperContext.Complete == NULL) {
-        return FALSE;
-    }
-    if (QUIC_SUCCEEDED(
-        MsQuic->SecConfigCreate(
+    CreateSecConfigHelper Helper;
+    return
+        Helper.Create(
+            MsQuic,
             Registration,
             QUIC_SEC_CONFIG_FLAG_NONE,
             nullptr,
-            ServerName,
-            &HelperContext,
-            CreateSecConfigHelper::GetSecConfigComplete))) {
-        WaitForSingleObject(HelperContext.Complete, INFINITE);
-    }
-    CloseHandle(HelperContext.Complete);
-    return HelperContext.SecurityConfig;
+            ServerName);
 }
 
 inline
@@ -382,28 +341,6 @@ GetSecConfigForThumbprint(
     _In_z_ const char* Thumbprint
     )
 {
-    struct CreateSecConfigHelper {
-        HANDLE Complete;
-        QUIC_STATUS Status;
-        QUIC_SEC_CONFIG* SecurityConfig;
-
-        _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
-        static void
-        QUIC_API
-        GetSecConfigComplete(
-            _In_opt_ void* Context,
-            _In_ QUIC_STATUS Status,
-            _In_opt_ QUIC_SEC_CONFIG* SecurityConfig
-            )
-        {
-            _Analysis_assume_(Context);
-            CreateSecConfigHelper* HelperContext = (CreateSecConfigHelper*)Context;
-            HelperContext->Status = Status;
-            HelperContext->SecurityConfig = SecurityConfig;
-            SetEvent(HelperContext->Complete);
-        }
-    };
-
     QUIC_CERTIFICATE_HASH CertHash;
     uint32_t CertHashLen =
         DecodeHexBuffer(
@@ -411,25 +348,16 @@ GetSecConfigForThumbprint(
             sizeof(CertHash.ShaHash),
             CertHash.ShaHash);
     if (CertHashLen != sizeof(CertHash.ShaHash)) {
-        return FALSE;
+        return nullptr;
     }
-
-    CreateSecConfigHelper HelperContext = { CreateEvent(NULL, FALSE, FALSE, NULL), 0, NULL };
-    if (HelperContext.Complete == NULL) {
-        return FALSE;
-    }
-    if (QUIC_SUCCEEDED(
-        MsQuic->SecConfigCreate(
+    CreateSecConfigHelper Helper;
+    return
+        Helper.Create(
+            MsQuic,
             Registration,
             QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH,
             &CertHash,
-            nullptr,
-            &HelperContext,
-            CreateSecConfigHelper::GetSecConfigComplete))) {
-        WaitForSingleObject(HelperContext.Complete, INFINITE);
-    }
-    CloseHandle(HelperContext.Complete);
-    return HelperContext.SecurityConfig;
+            nullptr);
 }
 
 inline
@@ -441,51 +369,18 @@ GetSecConfigForFile(
     _In_z_ const char *CertificateFile
     )
 {
-    struct CreateSecConfigHelper {
-        HANDLE Complete;
-        QUIC_STATUS Status;
-        QUIC_SEC_CONFIG* SecurityConfig;
-
-        _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
-        static void
-        QUIC_API
-        GetSecConfigComplete(
-            _In_opt_ void* Context,
-            _In_ QUIC_STATUS Status,
-            _In_opt_ QUIC_SEC_CONFIG* SecurityConfig
-            )
-        {
-            _Analysis_assume_(Context);
-            CreateSecConfigHelper* HelperContext = (CreateSecConfigHelper*)Context;
-            HelperContext->Status = Status;
-            HelperContext->SecurityConfig = SecurityConfig;
-            SetEvent(HelperContext->Complete);
-        }
-    };
-
     QUIC_CERTIFICATE_FILE CertFile;
     CertFile.PrivateKeyFile = (char*)PrivateKeyFile;
     CertFile.CertificateFile = (char*)CertificateFile;
-
-    CreateSecConfigHelper HelperContext = { CreateEvent(NULL, FALSE, FALSE, NULL), 0, NULL };
-    if (HelperContext.Complete == NULL) {
-        return FALSE;
-    }
-    if (QUIC_SUCCEEDED(
-        MsQuic->SecConfigCreate(
+    CreateSecConfigHelper Helper;
+    return
+        Helper.Create(
+            MsQuic,
             Registration,
             QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE,
             &CertFile,
-            nullptr,
-            &HelperContext,
-            CreateSecConfigHelper::GetSecConfigComplete))) {
-        WaitForSingleObject(HelperContext.Complete, INFINITE);
-    }
-    CloseHandle(HelperContext.Complete);
-    return HelperContext.SecurityConfig;
+            nullptr);
 }
-
-#endif // _WIN32
 
 //
 // Arg Value Parsers

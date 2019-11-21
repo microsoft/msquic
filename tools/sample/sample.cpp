@@ -9,15 +9,13 @@ Abstract:
 
 --*/
 
-#include <quic_platform.h>
-#include <msquic.h>
-#include <msquicp.h>
 #include <msquichelper.h>
 
 const char* AppName = "quicsample";
 const char* Alpn = "sample";
 const uint16_t UdpPort = 4567;
 const uint64_t IdleTimeoutMs = 1000;
+const uint32_t SendBufferLength = 100;
 
 QUIC_API_V1* MsQuic;
 HQUIC Registration;
@@ -41,7 +39,6 @@ ServerSend(
     _In_ HQUIC Stream
     )
 {
-    const uint32_t SendBufferLength = 100;
     auto SendBufferRaw = QUIC_ALLOC_PAGED(sizeof(QUIC_BUFFER) + SendBufferLength);
     if (SendBufferRaw == nullptr) {
         printf("SendBuffer allocation failed!\n");
@@ -254,6 +251,8 @@ ClientSend(
 {
     QUIC_STATUS Status;
     HQUIC Stream = nullptr;
+    uint8_t* SendBufferRaw;
+    QUIC_BUFFER* SendBuffer;
     if (QUIC_FAILED(Status = MsQuic->StreamOpen(Connection, QUIC_STREAM_OPEN_FLAG_NONE, ClientStreamCallback, nullptr, &Stream))) {
         printf("StreamOpen failed, 0x%x!\n", Status);
         goto Error;
@@ -267,16 +266,15 @@ ClientSend(
         goto Error;
     }
 
-    const uint32_t SendBufferLength = 100;
-    auto SendBufferRaw = QUIC_ALLOC_PAGED(sizeof(QUIC_BUFFER) + SendBufferLength);
+    SendBufferRaw = (uint8_t*)QUIC_ALLOC_PAGED(sizeof(QUIC_BUFFER) + SendBufferLength);
     if (SendBufferRaw == nullptr) {
         printf("SendBuffer allocation failed!\n");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
-    auto SendBuffer = (QUIC_BUFFER*)SendBufferRaw;
-    SendBuffer->Buffer = (uint8_t*)SendBufferRaw + sizeof(QUIC_BUFFER);
+    SendBuffer = (QUIC_BUFFER*)SendBufferRaw;
+    SendBuffer->Buffer = SendBufferRaw + sizeof(QUIC_BUFFER);
     SendBuffer->Length = SendBufferLength;
 
     printf("[strm][%p] Sending data...\n", Stream);
