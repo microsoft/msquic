@@ -7,18 +7,6 @@
 #pragma once
 
 #ifdef _KERNEL_MODE
-#ifdef PAGEDX
-#undef PAGEDX
-#endif
-#ifdef INITCODE
-#undef INITCODE
-#endif
-#include <karray.h>
-#else
-#include <vector>
-#endif
-
-#ifdef _KERNEL_MODE
 class DrillBuffer : public Rtl::KArray<uint8_t>
 {
     public:

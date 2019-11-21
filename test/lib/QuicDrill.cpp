@@ -11,7 +11,6 @@ Abstract:
 
 #include "precomp.h"
 
-
 void
 QuicDrillTestVarIntEncoder(
     )

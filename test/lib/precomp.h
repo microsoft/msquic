@@ -5,6 +5,18 @@
 
 --*/
 
+#ifdef _KERNEL_MODE
+#ifdef PAGEDX
+#undef PAGEDX
+#endif
+#ifdef INITCODE
+#undef INITCODE
+#endif
+#include <karray.h>
+#else
+#include <vector>
+#endif
+
 #include "TestAbstractionLayer.h"
 
 #include <msquic.h>

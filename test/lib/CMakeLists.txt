@@ -2,14 +2,14 @@
 # Licensed under the MIT License.
 
 set(SOURCES
-    DrillDescriptor.cpp
     ApiTest.cpp
+    DrillDescriptor.cpp
+    EventTest.cpp
     QuicDrill.cpp
     QuicTest.cpp
     TestConnection.cpp
     TestListener.cpp
     TestStream.cpp
-    EventTest.cpp
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/test)
