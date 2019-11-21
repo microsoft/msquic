@@ -69,7 +69,7 @@ DrillPacketDescriptor::write(
     //
     // Build Flags
     //
-    static_assert(sizeof(Header) == 1);
+    QUIC_STATIC_ASSERT(sizeof(Header) == 1, "Header must be 1 byte");
 
     PacketBuffer.push_back(Header.HeaderByte);
 
