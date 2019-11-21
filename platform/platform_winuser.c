@@ -127,6 +127,28 @@ QuicPlatformLogAssert(
     EventWriteQuicLibraryAssert((uint32_t)Line, File, Expr);
 }
 
+#ifdef QUIC_FUZZER
+//
+// When fuzzing we want predictable random numbers
+// so that when injection / mutating traffic, variances in
+// things like connection ID and random values do not
+// invalidate the saved fuzzer inputs.
+//
+uint8_t QUIC_FUZZ_RND_IDX = 0;
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicRandom(
+    _In_ UINT32 BufferLen,
+    _Out_writes_bytes_(BufferLen) PUCHAR Buffer
+    )
+{
+    memset(Buffer, ++QUIC_FUZZ_RND_IDX, BufferLen);
+    return 0;
+}
+
+#else
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicRandom(
@@ -144,6 +166,8 @@ QuicRandom(
             BufferLen,
             BCRYPT_USE_SYSTEM_PREFERRED_RNG);
 }
+
+#endif
 
 _Ret_maybenull_
 _Post_writable_byte_size_(ByteCount)

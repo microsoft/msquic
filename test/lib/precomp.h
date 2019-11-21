@@ -15,3 +15,4 @@
 #include "TestStream.h"
 #include "TestConnection.h"
 #include "TestListener.h"
+#include "DrillDescriptor.h"

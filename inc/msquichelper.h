@@ -432,6 +432,59 @@ GetSecConfigForThumbprint(
     return HelperContext.SecurityConfig;
 }
 
+inline
+QUIC_SEC_CONFIG*
+GetSecConfigForFile(
+    _In_ const QUIC_API_V1* MsQuic,
+    _In_ HQUIC Registration,
+    _In_z_ const char *PrivateKeyFile,
+    _In_z_ const char *CertificateFile
+    )
+{
+    struct CreateSecConfigHelper {
+        HANDLE Complete;
+        QUIC_STATUS Status;
+        QUIC_SEC_CONFIG* SecurityConfig;
+
+        _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
+        static void
+        QUIC_API
+        GetSecConfigComplete(
+            _In_opt_ void* Context,
+            _In_ QUIC_STATUS Status,
+            _In_opt_ QUIC_SEC_CONFIG* SecurityConfig
+            )
+        {
+            _Analysis_assume_(Context);
+            CreateSecConfigHelper* HelperContext = (CreateSecConfigHelper*)Context;
+            HelperContext->Status = Status;
+            HelperContext->SecurityConfig = SecurityConfig;
+            SetEvent(HelperContext->Complete);
+        }
+    };
+
+    QUIC_CERTIFICATE_FILE CertFile;
+    CertFile.PrivateKeyFile = (char*)PrivateKeyFile;
+    CertFile.CertificateFile = (char*)CertificateFile;
+
+    CreateSecConfigHelper HelperContext = { CreateEvent(NULL, FALSE, FALSE, NULL), 0, NULL };
+    if (HelperContext.Complete == NULL) {
+        return FALSE;
+    }
+    if (QUIC_SUCCEEDED(
+        MsQuic->SecConfigCreate(
+            Registration,
+            QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE,
+            &CertFile,
+            nullptr,
+            &HelperContext,
+            CreateSecConfigHelper::GetSecConfigComplete))) {
+        WaitForSingleObject(HelperContext.Complete, INFINITE);
+    }
+    CloseHandle(HelperContext.Complete);
+    return HelperContext.SecurityConfig;
+}
+
 #endif // _WIN32
 
 //

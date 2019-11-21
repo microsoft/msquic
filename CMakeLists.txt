@@ -47,12 +47,12 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         DEPENDS ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.rc)
 
     # Custom build flags.
-    set(QUIC_C_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_STUB -DQUIC_NO_TAEF -DQUIC_0RTT_UNSUPPORTED /W4 /wd4100 /wd4101 /wd4189 /wd4458 /wd4459 /wd4702 /wd26451 /wd26812 /sdl")
-    set(QUIC_CXX_FLAGS "${QUIC_C_FLAGS}")
+    set(QUIC_C_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_STUB -DQUIC_NO_TAEF -DQUIC_0RTT_UNSUPPORTED /W4 /wd4100 /wd4101 /wd4189 /wd4458 /wd4459 /wd4702 /wd26451 /wd26812 /sdl /MP")
+    set(QUIC_CXX_FLAGS "${QUIC_C_FLAGS} /std:c++17")
 else()
     # Custom build flags.
     set(QUIC_C_FLAGS "-DQUIC_PLATFORM_LINUX -DQUIC_EVENTS_SYSLOG -DQUIC_LOGS_SYSLOG -fms-extensions -fPIC -Wall  -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-value -pthread")
-    set(QUIC_CXX_FLAGS "-DQUIC_PLATFORM_LINUX -DQUIC_EVENTS_SYSLOG -DQUIC_LOGS_SYSLOG -fms-extensions -fPIC -Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-value -Wno-sign-compare -Wno-format --std=c++0x -g -pthread")
+    set(QUIC_CXX_FLAGS "-DQUIC_PLATFORM_LINUX -DQUIC_EVENTS_SYSLOG -DQUIC_LOGS_SYSLOG -fms-extensions -fPIC -Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-value -Wno-sign-compare -Wno-format --std=c++17 -g -pthread")
 endif()
 
 if(QUIC_TLS STREQUAL "openssl")
@@ -83,6 +83,7 @@ if(QUIC_BUILD_TOOLS)
     add_subdirectory(tools/attack)
     add_subdirectory(tools/interop)
     add_subdirectory(tools/ping)
+    add_subdirectory(tools/sample)
     add_subdirectory(tools/spin)
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         add_subdirectory(tools/etw)

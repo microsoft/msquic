@@ -43,6 +43,7 @@ Environment:
 #include <pthread.h>
 #include <errno.h>
 #include <sys/syscall.h>
+#include <cpuid.h>
 #include <quic_sal_stub.h>
 
 #if defined(__cplusplus)
@@ -854,6 +855,19 @@ QuicPlatFreeSelfSignedCert(
     );
 
 #endif // QUIC_TEST_APIS
+
+inline
+void
+QuicCpuId(
+    _In_ int FunctionId,
+    _In_ int eax,
+    _In_ int ebx,
+    _In_ int ecx,
+    _In_ int edx
+    )
+{
+    __cpuid(FunctionId, eax, ebx, ecx, edx);
+}
 
 #if defined(__cplusplus)
 }

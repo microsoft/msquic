@@ -20,6 +20,19 @@
 #include <msquic.h>
 #include <msquicp.h>
 
+#ifdef QUIC_FUZZER
+#include "msquic_fuzz.h"
+
+#define QUIC_DISABLED_BY_FUZZER_START if (!MsQuicFuzzerContext.RedirectDataPath) {
+#define QUIC_DISABLED_BY_FUZZER_END }
+
+#else
+
+#define QUIC_DISABLED_BY_FUZZER_START
+#define QUIC_DISABLED_BY_FUZZER_END
+
+#endif
+
 #ifdef _KERNEL_MODE
 
 #define QUIC_BASE_REG_PATH L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"

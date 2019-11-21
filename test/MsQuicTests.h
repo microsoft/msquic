@@ -212,6 +212,13 @@ QuicTestReceiveResumeNoData(
     );
 
 //
+// QuicDrill tests
+//
+void
+QuicDrillTestVarIntEncoder(
+    );
+
+//
 // Platform Specific Functions
 //
 
@@ -458,6 +465,9 @@ typedef struct {
     QUIC_CTL_CODE(34, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_RECEIVE_RESUME_PARAMS
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 34
+#define IOCTL_QUIC_RUN_DRILL_ENCODE_VAR_INT \
+    QUIC_CTL_CODE(35, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 35
 
 #endif // _WIN32

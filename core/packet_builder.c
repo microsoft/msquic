@@ -18,13 +18,23 @@ Abstract:
 #include "packet_builder.tmh"
 #endif
 
+#ifdef QUIC_FUZZER
+
+__declspec(noinline)
+void
+QuicFuzzInjectHook(
+    _Inout_ QUIC_PACKET_BUILDER *Builder
+    );
+
+#endif
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPacketBuilderFinalize(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
     _In_ BOOLEAN AllDoneSending
     );
-    
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPacketBuilderSendBatch(
@@ -621,6 +631,10 @@ QuicPacketBuilderFinalize(
             break;
         }
     }
+
+#ifdef QUIC_FUZZER
+    QuicFuzzInjectHook(Builder);
+#endif
 
     if (WPP_COMPID_LEVEL_ENABLED(FLAG_PACKET, TRACE_LEVEL_INFORMATION)) {
         QuicPacketLogHeader(

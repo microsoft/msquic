@@ -2,7 +2,9 @@
 # Licensed under the MIT License.
 
 set(SOURCES
+    DrillDescriptor.cpp
     ApiTest.cpp
+    QuicDrill.cpp
     QuicTest.cpp
     TestConnection.cpp
     TestListener.cpp

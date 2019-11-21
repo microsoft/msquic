@@ -15,6 +15,29 @@ Abstract:
 #include "datapath_winuser.tmh"
 #endif
 
+#ifdef QUIC_FUZZER
+
+int
+QuicFuzzerSendMsg(
+    _In_ SOCKET s,
+    _In_ LPWSAMSG lpMsg,
+    _In_ DWORD dwFlags,
+    _Out_ LPDWORD lpNumberOfBytesSent,
+    _In_ LPWSAOVERLAPPED lpOverlapped,
+    _In_ LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine
+    );
+
+int
+QuicFuzzerRecvMsg(
+    _In_ SOCKET s,
+    _Inout_ LPWSAMSG lpMsg,
+    _Out_ LPDWORD lpdwNumberOfBytesRecvd,
+    _In_ LPWSAOVERLAPPED lpOverlapped,
+    _In_ LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine
+    );
+
+#endif
+
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 
 #define SIO_SET_PORT_SHARING_PER_PROC_SOCKET  _WSAIOW(IOC_VENDOR,21)
@@ -1037,6 +1060,14 @@ QuicDataPathBindingCreate(
             Datapath->WSARecvMsg = WSARecvMsg;
         }
 
+#ifdef QUIC_FUZZER
+        MsQuicFuzzerContext.Socket = SocketContext;
+        MsQuicFuzzerContext.RealSendMsg = (PVOID)Datapath->WSASendMsg;
+        MsQuicFuzzerContext.RealRecvMsg = (PVOID)Datapath->WSARecvMsg;
+        Datapath->WSASendMsg = QuicFuzzerSendMsg;
+        Datapath->WSARecvMsg = QuicFuzzerRecvMsg;
+#endif
+
         if (RemoteAddress == NULL) {
             USHORT Processor = (USHORT)i; // API only supports 16-bit proc index.
             Result =
@@ -1185,6 +1216,8 @@ QuicDataPathBindingCreate(
             goto Error;
         }
 
+QUIC_DISABLED_BY_FUZZER_START;
+
         Result =
             bind(
                 SocketContext->Socket,
@@ -1197,9 +1230,13 @@ QuicDataPathBindingCreate(
             goto Error;
         }
 
+QUIC_DISABLED_BY_FUZZER_END;
+
         if (RemoteAddress != NULL) {
             SOCKADDR_INET MappedRemoteAddress = { 0 };
             QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
+
+QUIC_DISABLED_BY_FUZZER_START;
 
             Result =
                 connect(
@@ -1212,6 +1249,8 @@ QuicDataPathBindingCreate(
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
             }
+
+QUIC_DISABLED_BY_FUZZER_END;
 
             //
             // RSS affinitization has some problems:
@@ -1284,6 +1323,8 @@ QuicDataPathBindingCreate(
             // all the other sockets we are going to create.
             //
 
+QUIC_DISABLED_BY_FUZZER_START;
+
             int AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
             Result =
                 getsockname(
@@ -1300,6 +1341,9 @@ QuicDataPathBindingCreate(
             if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
                 QUIC_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
             }
+
+QUIC_DISABLED_BY_FUZZER_END;
+
         }
     }
 
@@ -1344,8 +1388,12 @@ Error:
                     UINT32 Processor =
                          Binding->Connected ? Binding->ConnectedProcessorAffinity : i;
 
+QUIC_DISABLED_BY_FUZZER_START;
+
                     CancelIo((HANDLE)SocketContext->Socket);
                     closesocket(SocketContext->Socket);
+
+QUIC_DISABLED_BY_FUZZER_END;
 
                     //
                     // Queue a completion to clean up the socket context.
@@ -1359,9 +1407,15 @@ Error:
             } else {
                 for (UINT32 i = 0; i < SocketCount; i++) {
                     PQUIC_UDP_SOCKET_CONTEXT SocketContext = &Binding->SocketContexts[i];
+
+QUIC_DISABLED_BY_FUZZER_START;
+
                     if (SocketContext->Socket != INVALID_SOCKET) {
                         closesocket(SocketContext->Socket);
                     }
+
+QUIC_DISABLED_BY_FUZZER_END;
+
                     QuicRundownUninitialize(&SocketContext->UpcallRundown);
                 }
                 QuicRundownRelease(&Datapath->BindingsRundown);
@@ -1398,8 +1452,13 @@ QuicDataPathBindingDelete(
             Datapath->ProcContexts[Processor].ThreadId != GetCurrentThreadId());
         QuicRundownReleaseAndWait(&SocketContext->UpcallRundown);
 
+QUIC_DISABLED_BY_FUZZER_START;
+
         CancelIo((HANDLE)SocketContext->Socket);
         closesocket(SocketContext->Socket);
+
+QUIC_DISABLED_BY_FUZZER_END;
+
         PostQueuedCompletionStatus(
             Datapath->ProcContexts[Processor].IOCP,
             UINT32_MAX,
@@ -1417,8 +1476,13 @@ QuicDataPathBindingDelete(
             PQUIC_UDP_SOCKET_CONTEXT SocketContext = &Binding->SocketContexts[i];
             UINT32 Processor = i;
 
+QUIC_DISABLED_BY_FUZZER_START;
+
             CancelIo((HANDLE)SocketContext->Socket);
             closesocket(SocketContext->Socket);
+
+QUIC_DISABLED_BY_FUZZER_END;
+
             PostQueuedCompletionStatus(
                 Datapath->ProcContexts[Processor].IOCP,
                 UINT32_MAX,
@@ -1797,6 +1861,21 @@ QuicDataPathRecvComplete(
 
         QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->RecvHandler);
         QUIC_DBG_ASSERT(DatagramChain);
+
+#ifdef QUIC_FUZZER
+        if (MsQuicFuzzerContext.RecvCallback) {
+            QUIC_RECV_DATAGRAM *_DatagramIter = DatagramChain;
+
+            while (_DatagramIter) {
+                MsQuicFuzzerContext.RecvCallback(
+                    MsQuicFuzzerContext.CallbackContext,
+                    _DatagramIter->Buffer,
+                    _DatagramIter->BufferLength);
+                _DatagramIter = _DatagramIter->Next;
+            }
+        }
+#endif
+
         SocketContext->Binding->Datapath->RecvHandler(
             SocketContext->Binding,
             SocketContext->Binding->ClientContext,
@@ -2224,7 +2303,6 @@ QuicDataPathBindingSendTo(
             &BytesSent,
             &SendContext->Overlapped,
             NULL);
-
     if (Result == SOCKET_ERROR) {
         int WsaError = WSAGetLastError();
         if (WsaError != WSA_IO_PENDING) {
@@ -2515,3 +2593,121 @@ QuicDataPathBindingGetParam(
     UNREFERENCED_PARAMETER(Buffer);
     return QUIC_STATUS_NOT_SUPPORTED;
 }
+
+#ifdef QUIC_FUZZER
+
+__declspec(noinline)
+void
+QuicFuzzerReceiveInject(
+    _In_ const QUIC_ADDR *SourceAddress,
+    _In_reads_(PacketLength) uint8_t *PacketData,
+    _In_ uint16_t PacketLength
+    )
+{
+    if (PacketLength > QUIC_FUZZ_BUFFER_MAX) {
+        return;
+    }
+
+    PQUIC_UDP_SOCKET_CONTEXT Socket = (PQUIC_UDP_SOCKET_CONTEXT)MsQuicFuzzerContext.Socket;
+
+    if (!Socket) {
+        return;
+    }
+
+    PQUIC_DATAPATH_INTERNAL_RECV_CONTEXT RecvContext =
+        QuicDataPathBindingAllocRecvContext(
+            Socket->Binding->Datapath,
+            (UINT16)GetCurrentProcessorNumber());
+
+    if (!RecvContext) {
+        return;
+    }
+
+    RecvContext->Tuple.RemoteAddress = *SourceAddress;
+
+    QUIC_RECV_DATAGRAM* Datagram = (QUIC_RECV_DATAGRAM*)(RecvContext + 1);
+
+    Datagram->Next = NULL;
+    Datagram->BufferLength = PacketLength;
+    Datagram->Tuple = &RecvContext->Tuple;
+    Datagram->Allocated = TRUE;
+    Datagram->QueuedOnConnection = FALSE;
+    Datagram->Buffer = ((PUCHAR)RecvContext) + Socket->Binding->Datapath->RecvPayloadOffset;
+
+    memcpy(Datagram->Buffer, PacketData, Datagram->BufferLength);
+
+    if (MsQuicFuzzerContext.RecvCallback) {
+        MsQuicFuzzerContext.RecvCallback(
+            MsQuicFuzzerContext.CallbackContext,
+            Datagram->Buffer,
+            Datagram->BufferLength);
+    }
+
+    Socket->Binding->Datapath->RecvHandler(
+            Socket->Binding,
+            Socket->Binding->ClientContext,
+            Datagram);
+}
+
+int
+QuicFuzzerRecvMsg(
+    _In_ SOCKET s,
+    _Inout_ LPWSAMSG lpMsg,
+    _Out_ LPDWORD lpdwNumberOfBytesRecvd,
+    _In_ LPWSAOVERLAPPED lpOverlapped,
+    _In_ LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine
+    )
+{
+    if (!MsQuicFuzzerContext.RedirectDataPath) {
+        QUIC_DBG_ASSERT(MsQuicFuzzerContext.RealRecvMsg);
+
+        return ((LPFN_WSARECVMSG)MsQuicFuzzerContext.RealRecvMsg)(
+            s,
+            lpMsg,
+            lpdwNumberOfBytesRecvd,
+            lpOverlapped,
+            lpCompletionRoutine);
+    }
+
+    *lpdwNumberOfBytesRecvd = 0;
+
+    WSASetLastError(WSA_IO_PENDING);
+
+    return SOCKET_ERROR;
+}
+
+int
+QuicFuzzerSendMsg(
+    _In_ SOCKET s,
+    _In_ LPWSAMSG lpMsg,
+    _In_ DWORD dwFlags,
+    _Out_ LPDWORD lpNumberOfBytesSent,
+    _In_ LPWSAOVERLAPPED lpOverlapped,
+    _In_ LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine
+    )
+{
+    if (MsQuicFuzzerContext.SendCallback) {
+        for (DWORD i = 0; i < lpMsg->dwBufferCount; i++) {
+            MsQuicFuzzerContext.SendCallback(
+                MsQuicFuzzerContext.CallbackContext,
+                (uint8_t*)lpMsg->lpBuffers[i].buf,
+                lpMsg->lpBuffers[i].len);
+        }
+    }
+
+    if (!MsQuicFuzzerContext.RedirectDataPath) {
+        QUIC_DBG_ASSERT(MsQuicFuzzerContext.RealSendMsg);
+
+        return ((LPFN_WSASENDMSG)MsQuicFuzzerContext.RealSendMsg)(
+            s,
+            lpMsg,
+            dwFlags,
+            lpNumberOfBytesSent,
+            lpOverlapped,
+            lpCompletionRoutine);
+    }
+
+    return 0;
+}
+
+#endif // QUIC_FUZZER
