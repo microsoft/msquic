@@ -1579,6 +1579,7 @@ QuicDataPathBindingHandleUnreachableError(
 
     QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
+#ifdef QUIC_LOGS_WPP // TODO - Change to ETW event
     if (RemoteAddr->si_family == AF_INET) {
         LogVerbose("[sock][%p] Received unreachable error (0x%x) from %!IPV4ADDR!:%d",
             SocketContext,
@@ -1592,6 +1593,8 @@ QuicDataPathBindingHandleUnreachableError(
             &RemoteAddr->Ipv6.sin6_addr,
             ntohs(RemoteAddr->Ipv6.sin6_port));
     }
+#endif
+    UNREFERENCED_PARAMETER(ErrorCode);
 
     QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->UnreachableHandler);
     SocketContext->Binding->Datapath->UnreachableHandler(
@@ -1731,6 +1734,7 @@ QuicDataPathRecvComplete(
 
         QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
+#ifdef QUIC_LOGS_WPP // TODO - Change to ETW event
         if (RemoteAddr->si_family == AF_INET) {
             LogVerbose("[sock][%p] Received larger than expected datagram from %!IPV4ADDR!:%d",
                 SocketContext,
@@ -1743,6 +1747,7 @@ QuicDataPathRecvComplete(
                 &RemoteAddr->Ipv6.sin6_addr,
                 ntohs(RemoteAddr->Ipv6.sin6_port));
         }
+#endif
 
         //
         // TODO - Indicate to Core library.

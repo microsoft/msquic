@@ -836,7 +836,7 @@ QuicCertValidateChain(
 
         ServerName = (LPWSTR)QUIC_ALLOC_PAGED(ServerNameLength * sizeof(WCHAR));
         if (ServerName == NULL) {
-            LogWarning("[cert] Failed to alloc %u bytes for ServerName.", (ServerNameLength * sizeof(WCHAR)));
+            LogWarning("[cert] Failed to alloc %zu bytes for ServerName.", (ServerNameLength * sizeof(WCHAR)));
             goto Exit;
         }
 

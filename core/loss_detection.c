@@ -219,7 +219,7 @@ QuicLossDetectionUpdateTimer(
 
     QUIC_PATH* Path = &Connection->Paths[0]; // TODO - Is this right?
 
-    if (!Path->IsValidated && Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) {
+    if (!Path->IsPeerValidated && Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) {
         //
         // Sending is restricted for amplification protection.
         // Don't run the timer, because nothing can be sent when it fires.
@@ -362,9 +362,9 @@ QuicLossDetectionOnPacketSent(
         LossDetection->PacketsInFlight++;
         LossDetection->TimeOfLastPacketSent = SentPacket->SentTime;
 
-        if (!Path->IsValidated) {
-            QuicSendDecrementAllowance(
-                &Connection->Send, Path, SentPacket->PacketLength);
+        if (!Path->IsPeerValidated) {
+            QuicPathDecrementAllowance(
+                Connection, Path, SentPacket->PacketLength);
         }
 
         QuicCongestionControlOnDataSent(
@@ -388,13 +388,6 @@ QuicLossDetectionOnPacketAcknowledged(
     _Analysis_assume_(
         EncryptLevel >= QUIC_ENCRYPT_LEVEL_INITIAL &&
         EncryptLevel < QUIC_ENCRYPT_LEVEL_COUNT);
-
-    if (Path != NULL && !Path->IsValidated &&
-        EncryptLevel > QUIC_ENCRYPT_LEVEL_INITIAL) {
-        LogInfo("[conn][%p] Source address validated via ACK.", Connection);
-        Path->IsValidated = TRUE;
-        QuicSendSetAllowance(&Connection->Send, Path, UINT32_MAX);
-    }
 
     if (!Connection->State.HandshakeConfirmed &&
         Packet->Flags.KeyType == QUIC_PACKET_KEY_1_RTT) {
@@ -616,11 +609,29 @@ QuicLossDetectionRetransmitFrames(
             break;
         }
 
-        case QUIC_FRAME_PATH_RESPONSE:
-            QuicSendSetSendFlag(
-                &Connection->Send,
-                QUIC_CONN_SEND_FLAG_PATH_RESPONSE);
+        case QUIC_FRAME_PATH_RESPONSE: {
+            QUIC_PATH* Path =
+                QuicConnGetPathByID(
+                    Connection, Packet->Frames[i].PATH_RESPONSE.OrigPathId);
+            if (Path != NULL) {
+                Path->SendResponse = TRUE;
+                QuicSendSetSendFlag(
+                    &Connection->Send,
+                    QUIC_CONN_SEND_FLAG_PATH_RESPONSE);
+            }
             break;
+        }
+
+        case QUIC_FRAME_PATH_CHALLENGE: {
+            QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId);
+            if (Path != NULL && !Path->IsPeerValidated) {
+                Path->SendChallenge = TRUE;
+                QuicSendSetSendFlag(
+                    &Connection->Send,
+                    QUIC_CONN_SEND_FLAG_PATH_CHALLENGE);
+            }
+            break;
+        }
         }
     }
 }
@@ -951,6 +962,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionProcessAckBlocks(
     _In_ PQUIC_LOSS_DETECTION LossDetection,
+    _In_ QUIC_PATH* Path,
     _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
     _In_ uint64_t AckDelay,
     _In_ PQUIC_RANGE AckBlocks,
@@ -967,6 +979,7 @@ QuicLossDetectionProcessAckBlocks(
     uint32_t SmallestRtt = (uint32_t)(-1);
     BOOLEAN NewLargestAck = FALSE;
     BOOLEAN NewLargestAckRetransmittable = FALSE;
+    BOOLEAN NewLargestAckDifferentPath = FALSE;
 
     *InvalidAckBlock = FALSE;
 
@@ -1052,6 +1065,7 @@ QuicLossDetectionProcessAckBlocks(
             }
             NewLargestAck = TRUE;
             NewLargestAckRetransmittable = LargestAckedPacket->Flags.IsRetransmittable;
+            NewLargestAckDifferentPath = Path->ID != LargestAckedPacket->PathId;
         }
     }
 
@@ -1098,7 +1112,7 @@ QuicLossDetectionProcessAckBlocks(
 
     LossDetection->PacketsInFlight -= PacketsInFlight;
 
-    if (NewLargestAckRetransmittable) {
+    if (NewLargestAckRetransmittable && !NewLargestAckDifferentPath) {
         //
         // Update the current RTT with the smallest RTT calculated, which
         // should be for the most acknowledged retransmittable packet.
@@ -1110,7 +1124,7 @@ QuicLossDetectionProcessAckBlocks(
             //
             SmallestRtt -= (uint32_t)AckDelay;
         }
-        QuicConnUpdateRtt(Connection, &Connection->Paths[0], SmallestRtt); // TODO - Get correct path
+        QuicConnUpdateRtt(Connection, Path, SmallestRtt);
     }
 
     if (NewLargestAck) {
@@ -1149,6 +1163,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicLossDetectionProcessAckFrame(
     _In_ PQUIC_LOSS_DETECTION LossDetection,
+    _In_ QUIC_PATH* Path,
     _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
     _In_ QUIC_FRAME_TYPE FrameType,
     _In_ uint16_t BufferLength,
@@ -1199,6 +1214,7 @@ QuicLossDetectionProcessAckFrame(
 
             QuicLossDetectionProcessAckBlocks(
                 LossDetection,
+                Path,
                 EncryptLevel,
                 AckDelay,
                 &Connection->DecodedAckRanges,

@@ -314,6 +314,33 @@ public:
                 0,
                 nullptr));
     }
+    bool SimulateNatRebinding() {
+        QUIC_ADDR LocalAddress = {0}; // Unspecified
+        uint32_t LocalAddrSize = sizeof(LocalAddress);
+        if (!QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                Connection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                &LocalAddrSize,
+                &LocalAddress))) {
+            return FALSE;
+        }
+        uint16_t PrevPort = QuicAddrGetPort(&LocalAddress);
+        for (uint16_t i = 1236; i <= 1246; ++i) {
+            QuicAddrSetPort(&LocalAddress, PrevPort + i);
+            if (QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Connection,
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                    sizeof(LocalAddress),
+                    &LocalAddress))) {
+                return TRUE;
+            }
+        }
+        return FALSE;
+    }
     bool GetQuicVersion(uint32_t& QuicVersion) {
         uint32_t Buffer = UINT32_MAX;
         uint32_t BufferLength = sizeof(Buffer);
@@ -577,6 +604,21 @@ RunInteropTest(
             QuicSleep(250);
             if (Connection.SetDisconnectTimeout(1000) &&
                 Connection.ForceCidUpdate() &&
+                Connection.SetKeepAlive(50) &&
+                !Connection.WaitForShutdownComplete()) {
+                Success = true;
+            }
+        }
+        break;
+    }
+
+    case NatRebinding: {
+        InteropConnection Connection(Session);
+        if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
+            Connection.GetQuicVersion(QuicVersionUsed);
+            QuicSleep(250);
+            if (Connection.SetDisconnectTimeout(1000) &&
+                Connection.SimulateNatRebinding() &&
                 Connection.SetKeepAlive(50) &&
                 !Connection.WaitForShutdownComplete()) {
                 Success = true;

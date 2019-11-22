@@ -11,7 +11,9 @@
 #include <wextestclass.h>
 #include <logcontroller.h>
 
+#ifdef QUIC_LOGS_WPP
 #include "main.tmh"
+#endif
 
 using namespace WEX::Common;
 

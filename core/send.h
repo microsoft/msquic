@@ -271,41 +271,6 @@ QuicSendReset(
     _In_ PQUIC_SEND Send
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicSendSetAllowance(
-    _In_ PQUIC_SEND Send,
-    _In_ QUIC_PATH* Path,
-    _In_ uint32_t NewAllowance
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-inline
-void
-QuicSendIncrementAllowance(
-    _In_ PQUIC_SEND Send,
-    _In_ QUIC_PATH* Path,
-    _In_ uint32_t Amount
-    )
-{
-    QuicSendSetAllowance(Send, Path, Path->Allowance + Amount);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-inline
-void
-QuicSendDecrementAllowance(
-    _In_ PQUIC_SEND Send,
-    _In_ QUIC_PATH* Path,
-    _In_ uint32_t Amount
-    )
-{
-    QuicSendSetAllowance(
-        Send,
-        Path,
-        Path->Allowance <= Amount ? 0 : (Path->Allowance - Amount));
-}
-
 typedef enum _QUIC_SEND_FLUSH_REASON {
     REASON_CONNECTION_FLAGS,
     REASON_STREAM_FLAGS,

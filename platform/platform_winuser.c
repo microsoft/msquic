@@ -41,7 +41,7 @@ QuicPlatformSystemLoad(
     (void)QueryPerformanceFrequency((LARGE_INTEGER*)&QuicPlatformPerfFreq);
     QuicPlatform.Heap = NULL;
 
-    LogInfo(" Loaded");
+    LogInfo("[ dll] Loaded");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -50,7 +50,7 @@ QuicPlatformSystemUnload(
     void
     )
 {
-    LogInfo(" Unloaded");
+    LogInfo("[ dll] Unloaded");
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventUnregisterMicrosoft_Quic();
 #endif
@@ -89,7 +89,7 @@ QuicPlatformInitialize(
 
     QuicTotalMemory = memInfo.ullTotalPageFile;
 
-    LogInfo(" Initialized (AvailMem = %llu bytes)", QuicTotalMemory);
+    LogInfo("[ dll] Initialized (AvailMem = %llu bytes)", QuicTotalMemory);
 
 Error:
 
@@ -113,7 +113,7 @@ QuicPlatformUninitialize(
     QUIC_DBG_ASSERT(QuicPlatform.Heap);
     HeapDestroy(QuicPlatform.Heap);
     QuicPlatform.Heap = NULL;
-    LogInfo(" Uninitialized");
+    LogInfo("[ dll] Uninitialized");
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

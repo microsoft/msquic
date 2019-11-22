@@ -163,12 +163,3 @@ QuicTimeAtOrBefore32(
     _In_ uint32_t T1,
     _In_ uint32_t T2
     );
-
-void
-QuicCpuId(
-    _In_ int FunctionId,
-    _In_ int eax,
-    _In_ int ebx,
-    _In_ int ecx,
-    _In_ int edx
-    );

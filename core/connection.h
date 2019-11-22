@@ -238,12 +238,6 @@ typedef struct _QUIC_CONN_STATS {
 
 } QUIC_CONN_STATS;
 
-void
-QuicPathInitialize(
-    _In_ QUIC_PATH* Path,
-    _In_ uint8_t Id
-    );
-
 //
 // Connection-specific state.
 //   N.B. In general, all variables should only be written on the QUIC worker
@@ -1252,15 +1246,4 @@ QuicConnParamGet(
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
         void* Buffer
-    );
-
-//
-// Helper function to look up a path object based on its identifier.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Ret_maybenull_
-QUIC_PATH*
-QuicConnGetPathByID(
-    _In_ PQUIC_CONNECTION Connection,
-    _In_ uint8_t ID
     );

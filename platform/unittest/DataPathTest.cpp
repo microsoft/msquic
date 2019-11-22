@@ -23,7 +23,10 @@ Abstract:
 
 #include "msquic.h"
 #include "quic_trace.h"
+
+#ifdef QUIC_LOGS_WPP
 #include "datapathtest.tmh"
+#endif
 
 using namespace WEX::Logging;
 

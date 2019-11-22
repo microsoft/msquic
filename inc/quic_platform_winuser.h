@@ -39,7 +39,9 @@ Environment:
 #include <bcrypt.h>
 #include <stdlib.h>
 #include <winternl.h>
+#ifdef _M_X64
 #include <intrin.h>
+#endif
 #ifdef QUIC_TELEMETRY_ASSERTS
 #include <telemetry\MicrosoftTelemetryAssert.h>
 #endif
@@ -861,25 +863,17 @@ QuicPlatFreeSelfSignedCert(
 
 #endif // QUIC_TEST_APIS
 
-inline
-void
-QuicCpuId(
-    _In_ int FunctionId,
-    _In_ int eax,
-    _In_ int ebx,
-    _In_ int ecx,
-    _In_ int edx
-    )
-{
-    int CpuInfo[4];
-
-    CpuInfo[0] = eax;
-    CpuInfo[1] = ebx;
-    CpuInfo[2] = ecx;
-    CpuInfo[3] = edx;
-
+#ifdef _M_X64
+#define QUIC_CPUID(FunctionId, eax, ebx, ecx, edx) \
+    int CpuInfo[4]; \
+    CpuInfo[0] = eax; \
+    CpuInfo[1] = ebx; \
+    CpuInfo[2] = ecx; \
+    CpuInfo[3] = edx; \
     __cpuid(CpuInfo, FunctionId);
-}
+#else
+#define QUIC_CPUID(FunctionId, eax, ebx, ecx, dx)
+#endif
 
 #if defined(__cplusplus)
 }

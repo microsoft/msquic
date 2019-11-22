@@ -27,20 +27,35 @@ typedef struct QUIC_PATH {
     BOOLEAN InitiatedCidUpdate : 1;
 
     //
-    // This flag indicates that the first RTT sample has been taken. Until this
-    // is set, the RTT estimate is set to a default value.
+    // Indicates that the first RTT sample has been taken. Until this is set,
+    // the RTT estimate is set to a default value.
     //
     BOOLEAN GotFirstRttSample : 1;
 
     //
+    // Indicates a valid (not dropped) packet has been received on this path.
+    //
+    BOOLEAN GotValidPacket : 1;
+
+    //
     // Indicates the peer's source IP address has been validated.
     //
-    BOOLEAN IsValidated : 1;
+    BOOLEAN IsPeerValidated : 1;
 
     //
     // Current value to encode in the short header spin bit field.
     //
     BOOLEAN SpinBit : 1;
+
+    //
+    // The current path challenge needs to be sent out.
+    //
+    BOOLEAN SendChallenge : 1;
+
+    //
+    // The current path response needs to be sent out.
+    //
+    BOOLEAN SendResponse : 1;
 
     //
     // The currently calculated path MTU.
@@ -84,13 +99,103 @@ typedef struct QUIC_PATH {
     uint32_t LatestRttSample;
 
     //
-    // The last path challenge we received and need to echo back in a path
-    // response frame.
+    // The last path challenge we received and needs to be sent back as in a
+    // PATH_RESPONSE frame.
     //
-    uint8_t LastPathChallengeReceived[8];
+    uint8_t Response[8];
+
+    //
+    // The current path challenge to send and wait for the peer to echo back.
+    //
+    uint8_t Challenge[8];
 
 } QUIC_PATH;
 
 QUIC_STATIC_ASSERT(
     sizeof(QUIC_PATH) < 256,
     "Ensure path struct stays small since we prealloc them");
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPathInitialize(
+    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_PATH* Path
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPathSetAllowance(
+    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_PATH* Path,
+    _In_ uint32_t NewAllowance
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+QuicPathIncrementAllowance(
+    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_PATH* Path,
+    _In_ uint32_t Amount
+    )
+{
+    QuicPathSetAllowance(Connection, Path, Path->Allowance + Amount);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+QuicPathDecrementAllowance(
+    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_PATH* Path,
+    _In_ uint32_t Amount
+    )
+{
+    QuicPathSetAllowance(
+        Connection,
+        Path,
+        Path->Allowance <= Amount ? 0 : (Path->Allowance - Amount));
+}
+
+typedef enum QUIC_PATH_VALID_REASON {
+    QUIC_PATH_VALID_INITIAL_TOKEN,
+    QUIC_PATH_VALID_HANDSHAKE_PACKET,
+    QUIC_PATH_VALID_PATH_RESPONSE
+} QUIC_PATH_VALID_REASON;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPathSetValid(
+    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_PATH* Path,
+    _In_ QUIC_PATH_VALID_REASON Reason
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPathSetActive(
+    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_PATH* Path
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Ret_maybenull_
+QUIC_PATH*
+QuicConnGetPathByID(
+    _In_ PQUIC_CONNECTION Connection,
+    _In_ uint8_t ID
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Ret_maybenull_
+QUIC_PATH*
+QuicConnGetPathForDatagram(
+    _In_ PQUIC_CONNECTION Connection,
+    _In_ const QUIC_RECV_DATAGRAM* Datagram
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnRemoveInvalidPaths(
+    _In_ PQUIC_CONNECTION Connection
+    );

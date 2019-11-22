@@ -20,12 +20,13 @@ enum QuicTestFeature {
     StatelessRetry      = 0x0040,
     PostQuantum         = 0x0080,
     KeyUpdate           = 0x0100,
-    CidUpdate           = 0x0200
+    CidUpdate           = 0x0200,
+    NatRebinding        = 0x0400
 };
 
-#define QuicTestFeatureCodes "VHDCRZSQUM"
+#define QuicTestFeatureCodes "VHDCRZSQUMB"
 
-const uint32_t QuicTestFeatureCount = 10;
+const uint32_t QuicTestFeatureCount = 11;
 const uint32_t QuicTestFeatureAll = ((1 << QuicTestFeatureCount) - 1);
 
 inline QuicTestFeature operator|(QuicTestFeature a, QuicTestFeature b)

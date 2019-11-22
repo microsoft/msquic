@@ -54,6 +54,7 @@ typedef enum _QUIC_EVENT_TYPE {
     EventType_Binding,
     EventType_Tls,
     EventType_Datapath,
+    EventType_Log,
 
     EventType_Count
 } QUIC_EVENT_TYPE;
@@ -641,6 +642,26 @@ typedef struct _QUIC_EVENT_DATA_DATAPATH {
         } ErrorStatus;
     };
 } QUIC_EVENT_DATA_DATAPATH;
+#pragma pack(pop)
+
+typedef enum _QUIC_EVENT_ID_LOG {
+    EventId_QuicLogError,
+    EventId_QuicLogWarning,
+    EventId_QuicLogInfo,
+    EventId_QuicLogVerbose,
+    EventId_QuicLogDev,
+    EventId_QuicLogPacketWarning,
+    EventId_QuicLogPacketInfo,
+    EventId_QuicLogPacketVerbose,
+
+    EventId_QuicLogCount
+} QUIC_EVENT_ID_LOG;
+
+#pragma pack(push)
+#pragma pack(1)
+typedef struct _QUIC_EVENT_DATA_LOG {
+    char Msg[1];
+} QUIC_EVENT_DATA_LOG;
 #pragma pack(pop)
 
 inline void AddrToString(const SOCKADDR_INET* Addr, _Out_ char AddrStr[INET6_ADDRSTRLEN])

@@ -55,7 +55,7 @@ QuicCryptoDumpSendState(
             UnAcked = Sack->Low + Sack->Count;
         }
         if (UnAcked < (uint64_t)Crypto->MaxSentLength) {
-            LogVerbose("[cryp][%p]   unACKed: [%llu, %llu]",
+            LogVerbose("[cryp][%p]   unACKed: [%llu, %u]",
                 Connection, UnAcked, Crypto->MaxSentLength);
         }
 
@@ -444,7 +444,7 @@ QuicCryptoWriteOneFrame(
 
     QUIC_DBG_ASSERT(Frame.Length > 0);
 
-    LogVerbose("[cryp][%p] Sending %hu crypto bytes, offset=%llu",
+    LogVerbose("[cryp][%p] Sending %hu crypto bytes, offset=%u",
         Connection, (uint16_t)Frame.Length, Offset);
 
     uint16_t BufferLength = *FrameBytes;
@@ -1317,7 +1317,7 @@ QuicCryptoProcessDataComplete(
     Crypto->TlsCallPending = FALSE;
     if (RecvBufferConsumed != 0) {
         Crypto->RecvTotalConsumed += RecvBufferConsumed;
-        LogVerbose("[cryp][%p] Draining %llu crypto bytes.",
+        LogVerbose("[cryp][%p] Draining %u crypto bytes.",
             QuicCryptoGetConnection(Crypto), RecvBufferConsumed);
         QuicRecvBufferDrain(&Crypto->RecvBuffer, RecvBufferConsumed);
     }
