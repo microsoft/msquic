@@ -2671,7 +2671,7 @@
   <localization>
     <resources culture="en-US">
       <stringTable>
-        <!-- Event strings -->
+        <!-- Event and Log strings -->
         <string
             id="Etw.Message"
             value="%1"
