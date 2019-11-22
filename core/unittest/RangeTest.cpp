@@ -15,7 +15,9 @@ Abstract:
 #include <wextestclass.h>
 #include <logcontroller.h>
 
+#ifdef QUIC_LOGS_WPP
 #include "rangetest.tmh"
+#endif
 
 using namespace WEX::Logging;
 using namespace WEX::Common;

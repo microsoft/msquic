@@ -201,6 +201,19 @@ TEST_P(WithFamilyArgs, VersionNegotiation) {
     QuicTestVersionNegotiation(GetParam().Family);
 }
 
+TEST_P(WithFamilyArgs, Rebind) {
+    QuicTestConnect(
+        GetParam().Family,
+        false,  // ServerStatelessRetry
+        false,  // ClientUsesOldVersion
+        true,   // ClientRebind
+        false,  // ChangeMaxStreamID
+        false,  // MultipleALPNs
+        false,  // AsyncSecConfig
+        false   // MultiPacketClientInitial
+    );
+}
+
 TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
     QuicTestConnect(
         GetParam().Family,

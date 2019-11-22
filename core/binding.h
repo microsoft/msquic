@@ -133,6 +133,11 @@ typedef struct _QUIC_RECV_PACKET {
     //
     BOOLEAN NewLargestPacketNumber : 1;
 
+    //
+    // Flag indicating the packet contained a non-probing frame.
+    //
+    BOOLEAN HasNonProbingFrame : 1;
+
 } QUIC_RECV_PACKET;
 
 typedef enum _QUIC_BINDING_LOOKUP_TYPE {

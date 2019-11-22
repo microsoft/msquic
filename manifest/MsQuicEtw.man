@@ -76,6 +76,11 @@
               name="ut:Api"
               symbol="KW_QUIC_API"
               />
+          <keyword
+              mask="0x0000000000001000"
+              name="ut:Log"
+              symbol="KW_QUIC_LOG"
+              />
           <!-- High bits are operation category. -->
           <keyword
               mask="0x0000000080000000"
@@ -2586,6 +2591,79 @@
               template="tid_UDP_STATUS_ERROR"
               value="9220"
               />
+          <!-- 10240 - 11263 | Logs (not events) -->
+          <event
+              keywords="ut:Log"
+              level="win:Error"
+              message="$(string.Etw.Message)"
+              opcode="win:Info"
+              symbol="QuicLogError"
+              template="tid_MESSAGE"
+              value="10240"
+              />
+          <event
+              keywords="ut:Log"
+              level="win:Warning"
+              message="$(string.Etw.Message)"
+              opcode="win:Info"
+              symbol="QuicLogWarning"
+              template="tid_MESSAGE"
+              value="10241"
+              />
+          <event
+              keywords="ut:Log"
+              level="win:Informational"
+              message="$(string.Etw.Message)"
+              opcode="win:Info"
+              symbol="QuicLogInfo"
+              template="tid_MESSAGE"
+              value="10242"
+              />
+          <event
+              keywords="ut:Log"
+              level="win:Verbose"
+              message="$(string.Etw.Message)"
+              opcode="win:Info"
+              symbol="QuicLogVerbose"
+              template="tid_MESSAGE"
+              value="10243"
+              />
+          <event
+              keywords="ut:Log"
+              level="win:Verbose"
+              message="$(string.Etw.Message)"
+              opcode="win:Info"
+              symbol="QuicLogDev"
+              template="tid_MESSAGE"
+              value="10244"
+              />
+          <event
+              keywords="ut:Log"
+              level="win:Warning"
+              message="$(string.Etw.Message)"
+              opcode="win:Info"
+              symbol="QuicLogPacketWarning"
+              template="tid_MESSAGE"
+              value="10245"
+              />
+          <event
+              keywords="ut:Log"
+              level="win:Informational"
+              message="$(string.Etw.Message)"
+              opcode="win:Info"
+              symbol="QuicLogPacketInfo"
+              template="tid_MESSAGE"
+              value="10246"
+              />
+          <event
+              keywords="ut:Log"
+              level="win:Verbose"
+              message="$(string.Etw.Message)"
+              opcode="win:Info"
+              symbol="QuicLogPacketVerbose"
+              template="tid_MESSAGE"
+              value="10247"
+              />
         </events>
       </provider>
     </events>
@@ -2593,7 +2671,11 @@
   <localization>
     <resources culture="en-US">
       <stringTable>
-        <!-- Event strings -->
+        <!-- Event and Log strings -->
+        <string
+            id="Etw.Message"
+            value="%1"
+            />
         <string
             id="Etw.ConnCreated"
             value="[conn][%1] Created, IsServer=%2"

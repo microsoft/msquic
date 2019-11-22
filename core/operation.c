@@ -102,6 +102,8 @@ QuicOperationFree(
             QuicStreamRelease(ApiCtx->STRM_START.Stream, QUIC_STREAM_REF_OPERATION);
         } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_SHUTDOWN) {
             QuicStreamRelease(ApiCtx->STRM_SHUTDOWN.Stream, QUIC_STREAM_REF_OPERATION);
+        } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_SEND) {
+            QuicStreamRelease(ApiCtx->STRM_SEND.Stream, QUIC_STREAM_REF_OPERATION);
         } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_RECV_COMPLETE) {
             QuicStreamRelease(ApiCtx->STRM_RECV_COMPLETE.Stream, QUIC_STREAM_REF_OPERATION);
         } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_RECV_SET_ENABLED) {

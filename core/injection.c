@@ -27,7 +27,7 @@ QuicFuzzInjectHook(
    // to signal that the target is in a state where pre-encryption
    // payload data can be read from the virtual machine.
    //
-   QuicCpuId(0x7b3c3639, 0, 0, 0, 0);
+   QUIC_CPUID(0x7b3c3639, 0, 0, 0, 0);
 
    if (MsQuicFuzzerContext.InjectCallback) {
       MsQuicFuzzerContext.InjectCallback(

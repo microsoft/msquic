@@ -89,6 +89,7 @@ ULONG64 StreamEventCounts[EventId_QuicStreamCount];
 ULONG64 BindingEventCounts[EventId_QuicBindingCount];
 ULONG64 TlsEventCounts[EventId_QuicTlsCount];
 ULONG64 DatapathEventCounts[EventId_QuicDatapathCount];
+ULONG64 LogEventCounts[EventId_QuicLogCount];
 
 EVENT_COUNTS EventCounts[EventType_Count] = {
     { "Library     ", LibraryEventCounts, EventId_QuicLibraryCount },
@@ -100,7 +101,8 @@ EVENT_COUNTS EventCounts[EventType_Count] = {
     { "Stream      ", StreamEventCounts, EventId_QuicStreamCount },
     { "Binding     ", BindingEventCounts, EventId_QuicBindingCount },
     { "Tls         ", TlsEventCounts, EventId_QuicTlsCount },
-    { "Datapath    ", DatapathEventCounts, EventId_QuicDatapathCount }
+    { "Datapath    ", DatapathEventCounts, EventId_QuicDatapathCount },
+    { "Log         ", LogEventCounts, EventId_QuicLogCount }
 };
 
 const ObjEventHandler EventHandlers[EventType_Count] = {

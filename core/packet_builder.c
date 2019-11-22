@@ -30,13 +30,6 @@ QuicFuzzInjectHook(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicPacketBuilderFinalize(
-    _Inout_ QUIC_PACKET_BUILDER* Builder,
-    _In_ BOOLEAN AllDoneSending
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
 QuicPacketBuilderSendBatch(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     );
@@ -266,8 +259,6 @@ QuicPacketBuilderPrepare(
             (uint8_t*)Builder->Datagram->Buffer + Builder->DatagramLength;
         uint16_t BufferSpaceAvailable =
             (uint16_t)Builder->Datagram->Length - Builder->DatagramLength;
-
-        QUIC_DBG_ASSERT(BufferSpaceAvailable >= QUIC_MIN_PACKET_SPARE_SPACE);
 
         if (NewPacketType == SEND_PACKET_SHORT_HEADER_TYPE) {
             PQUIC_PACKET_SPACE PacketSpace = Connection->Packets[Builder->EncryptLevel];
@@ -534,7 +525,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPacketBuilderFinalize(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
-    _In_ BOOLEAN AllDoneSending
+    _In_ BOOLEAN FlushBatchedDatagrams
     )
 {
     PQUIC_CONNECTION Connection = Builder->Connection;
@@ -555,7 +546,7 @@ QuicPacketBuilderFinalize(
                 Builder->Datagram = NULL;
             }
         }
-        FinalQuicPacket = AllDoneSending;
+        FinalQuicPacket = FlushBatchedDatagrams;
         goto Exit;
     }
 
@@ -581,13 +572,13 @@ QuicPacketBuilderFinalize(
     uint16_t ExpectedFinalDatagramLength =
         Builder->DatagramLength + Builder->EncryptionOverhead;
 
-    if (AllDoneSending ||
+    if (FlushBatchedDatagrams ||
         Builder->PacketType == SEND_PACKET_SHORT_HEADER_TYPE ||
         (uint16_t)Builder->Datagram->Length - ExpectedFinalDatagramLength < QUIC_MIN_PACKET_SPARE_SPACE) {
 
         FinalQuicPacket = TRUE;
 
-        if (!AllDoneSending && QuicDataPathIsPaddingPreferred(MsQuicLib.Datapath)) {
+        if (!FlushBatchedDatagrams && QuicDataPathIsPaddingPreferred(MsQuicLib.Datapath)) {
             //
             // When buffering multiple datagrams in a single contiguous buffer
             // (at the datapath layer), all but the last datagram needs to be
@@ -811,7 +802,7 @@ Exit:
             ++Builder->TotalCountDatagrams;
         }
 
-        if (AllDoneSending || QuicDataPathBindingIsSendContextFull(Builder->SendContext)) {
+        if (FlushBatchedDatagrams || QuicDataPathBindingIsSendContextFull(Builder->SendContext)) {
             if (Builder->BatchCount != 0) {
                 QuicPacketBuilderFinalizeHeaderProtection(Builder);
             }

@@ -782,6 +782,13 @@ MsQuicStreamSend(
         Oper->API_CALL.Context->STRM_SEND.Stream = Stream;
 
         //
+        // Async stream operations need to hold a ref on the stream so that the
+        // stream isn't freed before the operation can be processed. The ref is
+        // released after the operation is processed.
+        //
+        QuicStreamAddRef(Stream, QUIC_STREAM_REF_OPERATION);
+
+        //
         // Queue the operation but don't wait for the completion.
         //
         QuicConnQueueOper(Connection, Oper);

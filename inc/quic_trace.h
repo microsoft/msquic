@@ -25,6 +25,7 @@ Abstract:
 
     QUIC_LOGS_STUB              No-op all Logs
     QUIC_LOGS_WPP               Write to Windows WPP framework
+    QUIC_LOGS_MANIFEST_ETW      Write to Windows ETW framework
     QUIC_LOGS_SYSLOG            Write to Linux syslog
 
  --*/
@@ -38,7 +39,7 @@ Abstract:
 #error "Must define one QUIC_EVENTS_*"
 #endif
 
-#if !defined(QUIC_LOGS_STUB) && !defined(QUIC_LOGS_WPP) && !defined(QUIC_LOGS_SYSLOG)
+#if !defined(QUIC_LOGS_STUB) && !defined(QUIC_LOGS_WPP) && !defined(QUIC_LOGS_MANIFEST_ETW) && !defined(QUIC_LOGS_SYSLOG)
 #error "Must define one QUIC_LOGS_*"
 #endif
 
@@ -570,6 +571,31 @@ log_hexbuf(const void* Buffer, UINT32 Length) {
 #endif
 
 #endif // QUIC_LOGS_WPP
+
+#ifdef QUIC_LOGS_MANIFEST_ETW
+
+#include "MsQuicEtw.h"
+#include <stdio.h>
+
+#define WPP_COMPID_LEVEL_ENABLED(...) TRUE
+
+#define LogEtw(EventName, Fmt, ...) \
+    if (EventEnabledQuicLog##EventName()) { \
+        char EtwBuffer[256]; \
+        sprintf_s(EtwBuffer, 256, Fmt, ##__VA_ARGS__); \
+        EventWriteQuicLog##EventName##_AssumeEnabled(EtwBuffer); \
+    }
+
+#define LogError(Fmt, ...)          LogEtw(Error, Fmt, ##__VA_ARGS__)
+#define LogWarning(Fmt, ...)        LogEtw(Warning, Fmt, ##__VA_ARGS__)
+#define LogInfo(Fmt, ...)           LogEtw(Info, Fmt, ##__VA_ARGS__)
+#define LogVerbose(Fmt, ...)        LogEtw(Verbose, Fmt, ##__VA_ARGS__)
+#define LogDev(Fmt, ...)            LogEtw(Dev, Fmt, ##__VA_ARGS__)
+#define LogPacketWarning(Fmt, ...)  LogEtw(PacketWarning, Fmt, ##__VA_ARGS__)
+#define LogPacketInfo(Fmt, ...)     LogEtw(PacketInfo, Fmt, ##__VA_ARGS__)
+#define LogPacketVerbose(Fmt, ...)  LogEtw(PacketVerbose, Fmt, ##__VA_ARGS__)
+
+#endif // QUIC_LOGS_MANIFEST_ETW
 
 #ifdef QUIC_LOGS_SYSLOG
 

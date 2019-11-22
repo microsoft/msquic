@@ -451,15 +451,15 @@ QuicConnSilentlyAbort(
     );
 
 void
-QuicSendIncrementAllowance(
-    _In_ PQUIC_SEND Send,
+QuicPathIncrementAllowance(
+    _In_ PQUIC_CONNECTION Connection,
     _In_ QUIC_PATH* Path,
     _In_ uint32_t Amount
     );
 
 void
-QuicSendDecrementAllowance(
-    _In_ PQUIC_SEND Send,
+QuicPathDecrementAllowance(
+    _In_ PQUIC_CONNECTION Connection,
     _In_ QUIC_PATH* Path,
     _In_ uint32_t Amount
     );

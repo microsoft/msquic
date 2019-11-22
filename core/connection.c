@@ -43,18 +43,6 @@ QuicConnInitializeCrypto(
     _In_ PQUIC_CONNECTION Connection
     );
 
-void
-QuicPathInitialize(
-    _In_ QUIC_PATH* Path,
-    _In_ uint8_t ID
-    )
-{
-    QuicZeroMemory(Path, sizeof(QUIC_PATH));
-    Path->ID = ID;
-    Path->MinRtt = UINT32_MAX;
-    Path->Mtu = QUIC_DEFAULT_PATH_MTU;
-}
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 __drv_allocatesMem(Mem)
 _Must_inspect_result_
@@ -106,7 +94,7 @@ QuicConnAlloc(
     QuicLossDetectionInitialize(&Connection->LossDetection);
 
     QUIC_PATH* Path = &Connection->Paths[0];
-    QuicPathInitialize(Path, Connection->NextPathId++);
+    QuicPathInitialize(Connection, Path);
     Path->IsActive = TRUE;
     Connection->PathsCount = 1;
 
@@ -171,7 +159,7 @@ QuicConnAlloc(
     } else {
         Connection->Type = QUIC_HANDLE_TYPE_CLIENT;
         Connection->State.ExternalOwner = TRUE;
-        Path->IsValidated = TRUE;
+        Path->IsPeerValidated = TRUE;
         Path->Allowance = UINT32_MAX;
 
         Path->DestCid = QuicCidNewRandomDestination();
@@ -1598,7 +1586,7 @@ QuicConnHandshakeConfigure(
             QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI |
             QUIC_TP_FLAG_MAX_PACKET_SIZE |
             QUIC_TP_FLAG_MAX_ACK_DELAY |
-            QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION |
+            /* QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION | TODO - Add config option to re-enable if behind 4-tuple LB */
             QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT;
         LocalTP.MaxPacketSize =
             MaxUdpPayloadSizeFromMTU(
@@ -1699,7 +1687,6 @@ QuicConnHandshakeConfigure(
             QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI |
             QUIC_TP_FLAG_MAX_PACKET_SIZE |
             QUIC_TP_FLAG_MAX_ACK_DELAY |
-            QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION |
             QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT;
         LocalTP.MaxPacketSize =
             MaxUdpPayloadSizeFromMTU(
@@ -2367,7 +2354,7 @@ QuicConnRecvHeader(
             return FALSE;
         }
 
-        if (!Connection->Paths[0].IsValidated && Packet->ValidToken) {
+        if (!Connection->Paths[0].IsPeerValidated && Packet->ValidToken) {
 
             QUIC_DBG_ASSERT(TokenBuffer == NULL);
             QuicPacketDecodeRetryTokenV1(Packet, &TokenBuffer, &TokenLength);
@@ -2396,9 +2383,7 @@ QuicConnRecvHeader(
                 Token.OrigConnId,
                 Token.OrigConnIdLength);
 
-            Connection->Paths[0].IsValidated = TRUE;
-            Connection->Paths[0].Allowance = UINT32_MAX;
-            LogInfo("[conn][%p] Source address validated via Initial token.", Connection);
+            QuicPathSetValid(Connection, &Connection->Paths[0], QUIC_PATH_VALID_INITIAL_TOKEN);
         }
 
         Packet->KeyType = QuicPacketTypeToKeyType(Packet->LH->Type);
@@ -2820,12 +2805,7 @@ QuicConnRecvDecryptAndAuthenticate(
         // decrypting packets using handshake keys.
         //
         QuicCryptoDiscardKeys(&Connection->Crypto, QUIC_PACKET_KEY_INITIAL);
-
-        if (!Path->IsValidated) {
-            LogInfo("[conn][%p] Source address validated via Handshake packet.", Connection);
-            Path->IsValidated = TRUE;
-            QuicSendSetAllowance(&Connection->Send, Path, UINT32_MAX);
-        }
+        QuicPathSetValid(Connection, Path, QUIC_PATH_VALID_HANDSHAKE_PACKET);
     }
 
     return TRUE;
@@ -2840,6 +2820,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnRecvPayload(
     _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_PATH* Path,
     _In_ QUIC_RECV_PACKET* Packet
     )
 {
@@ -2930,6 +2911,7 @@ QuicConnRecvPayload(
             // contained in.
             //
             AckPacketImmediately = TRUE;
+            Packet->HasNonProbingFrame = TRUE;
             break;
         }
 
@@ -2938,6 +2920,7 @@ QuicConnRecvPayload(
             BOOLEAN InvalidAckFrame;
             if (!QuicLossDetectionProcessAckFrame(
                     &Connection->LossDetection,
+                    Path,
                     EncryptLevel,
                     FrameType,
                     PayloadLength,
@@ -2951,6 +2934,7 @@ QuicConnRecvPayload(
                 return FALSE;
             }
 
+            Packet->HasNonProbingFrame = TRUE;
             break;
         }
 
@@ -2986,6 +2970,8 @@ QuicConnRecvPayload(
                 }
                 return FALSE;
             }
+
+            Packet->HasNonProbingFrame = TRUE;
             break;
         }
 
@@ -3006,6 +2992,7 @@ QuicConnRecvPayload(
             //
 
             AckPacketImmediately = TRUE;
+            Packet->HasNonProbingFrame = TRUE;
             break;
         }
 
@@ -3110,6 +3097,7 @@ QuicConnRecvPayload(
                 }
             }
 
+            Packet->HasNonProbingFrame = TRUE;
             break;
         }
 
@@ -3139,6 +3127,7 @@ QuicConnRecvPayload(
             }
 
             AckPacketImmediately = TRUE;
+            Packet->HasNonProbingFrame = TRUE;
             break;
         }
 
@@ -3166,6 +3155,7 @@ QuicConnRecvPayload(
                 Frame.MaximumStreams);
 
             AckPacketImmediately = TRUE;
+            Packet->HasNonProbingFrame = TRUE;
             break;
         }
 
@@ -3188,6 +3178,7 @@ QuicConnRecvPayload(
             QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_MAX_DATA);
 
             AckPacketImmediately = TRUE;
+            Packet->HasNonProbingFrame = TRUE;
             break;
         }
 
@@ -3212,6 +3203,8 @@ QuicConnRecvPayload(
             LogVerbose("[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS",
                 Connection);
             (void)QuicConnIndicateEvent(Connection, &Event);
+
+            Packet->HasNonProbingFrame = TRUE;
             break;
         }
 
@@ -3291,6 +3284,7 @@ QuicConnRecvPayload(
             }
 
             AckPacketImmediately = TRUE;
+            Packet->HasNonProbingFrame = TRUE;
             break;
         }
 
@@ -3306,20 +3300,9 @@ QuicConnRecvPayload(
                 break; // Ignore frame if we are closed.
             }
 
-            if (memcmp(
-                    Connection->Paths[0].LastPathChallengeReceived,
-                    Frame.Data,
-                    sizeof(Frame.Data)) != 0) {
-                //
-                // This is a new path challenge that we need to respond to with
-                // a path response frame.
-                //
-                QuicCopyMemory(
-                    Connection->Paths[0].LastPathChallengeReceived,
-                    Frame.Data,
-                    sizeof(Frame.Data));
-                QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATH_RESPONSE);
-            }
+            Path->SendResponse = TRUE;
+            QuicCopyMemory(Path->Response, Frame.Data, sizeof(Frame.Data));
+            QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATH_RESPONSE);
 
             AckPacketImmediately = TRUE;
             break;
@@ -3337,9 +3320,16 @@ QuicConnRecvPayload(
                 break; // Ignore frame if we are closed.
             }
 
-            //
-            // TODO - Process Frame.
-            //
+            for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+                QUIC_PATH* TempPath = &Connection->Paths[i];
+                if (!TempPath->IsPeerValidated &&
+                    !memcmp(Frame.Data, TempPath->Challenge, sizeof(Frame.Data))) {
+                    QuicPathSetValid(Connection, TempPath, QUIC_PATH_VALID_PATH_RESPONSE);
+                    break;
+                }
+            }
+
+            // TODO - Do we care if there was no match? Possible fishing expedition?
 
             AckPacketImmediately = TRUE;
             break;
@@ -3366,6 +3356,7 @@ QuicConnRecvPayload(
                 (uint16_t)Frame.ReasonPhraseLength);
 
             AckPacketImmediately = TRUE;
+            Packet->HasNonProbingFrame = TRUE;
 
             if (Connection->State.HandleClosed) {
                 //
@@ -3418,10 +3409,11 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnRecvPostProcessing(
     _In_ PQUIC_CONNECTION Connection,
-    _In_ QUIC_PATH* Path,
+    _In_ QUIC_PATH** Path,
     _In_ QUIC_RECV_PACKET* Packet
     )
 {
+    BOOLEAN PeerUpdatedCid = FALSE;
     if (Packet->DestCIDLen != 0) {
         QUIC_CID_HASH_ENTRY* SourceCid =
             QuicConnGetSourceCidFromBuf(
@@ -3432,7 +3424,6 @@ QuicConnRecvPostProcessing(
             LogInfo("[conn][%p] First usage of SrcCID:%s",
                 Connection, QuicCidBufToStr(Packet->DestCID, Packet->DestCIDLen).Buffer);
             SourceCid->CID.UsedByPeer = TRUE;
-
             if (SourceCid->CID.IsInitial) {
                 if (QuicConnIsServer(Connection) && SourceCid->Link.Next != NULL) {
                     QUIC_CID_HASH_ENTRY* NextSourceCid =
@@ -3454,17 +3445,65 @@ QuicConnRecvPostProcessing(
                     }
                 }
             } else {
-                //
-                // If we didn't initiate the CID change locally, we need to
-                // respond to this change with a change of our own.
-                //
-                if (!Path->InitiatedCidUpdate) {
-                    QuicConnRetireCurrentDestCid(Connection, Path);
-                } else {
-                    Path->InitiatedCidUpdate = FALSE;
-                }
+                PeerUpdatedCid = TRUE;
             }
         }
+    }
+
+    if (!(*Path)->GotValidPacket) {
+        (*Path)->GotValidPacket = TRUE;
+
+        if (!(*Path)->IsActive) {
+
+            //
+            // This is the first valid packet received on this non-active path.
+            // Set the state accordingly and queue up a path challenge to be
+            // sent back out.
+            //
+
+            if (PeerUpdatedCid) {
+                (*Path)->DestCid = QuicConnGetUnusedDestCid(Connection);
+                if ((*Path)->DestCid == NULL) {
+                    (*Path)->GotValidPacket = FALSE; // Don't have a new CID to use!!!
+                    return;
+                }
+            }
+
+            (*Path)->SendChallenge = TRUE;
+            QuicRandom(sizeof((*Path)->Challenge), (*Path)->Challenge);
+            QuicSendSetSendFlag(
+                &Connection->Send,
+                QUIC_CONN_SEND_FLAG_PATH_CHALLENGE);
+        }
+
+    } else if (PeerUpdatedCid) {
+        //
+        // If we didn't initiate the CID change locally, we need to
+        // respond to this change with a change of our own.
+        //
+        if (!(*Path)->InitiatedCidUpdate) {
+            QuicConnRetireCurrentDestCid(Connection, *Path);
+        } else {
+            (*Path)->InitiatedCidUpdate = FALSE;
+        }
+    }
+
+    if (Packet->HasNonProbingFrame &&
+        Packet->NewLargestPacketNumber &&
+        !(*Path)->IsActive) {
+        //
+        // The peer has sent a non-probing frame on a path other than the active
+        // one. This signals their intent to switch active paths.
+        //
+        QuicPathSetActive(Connection, *Path);
+        *Path = &Connection->Paths[0];
+
+        QUIC_CONNECTION_EVENT Event;
+        Event.Type = QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED;
+        Event.PEER_ADDRESS_CHANGED.Address = &(*Path)->RemoteAddress;
+        LogVerbose("[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED",
+            Connection);
+        (void)QuicConnIndicateEvent(Connection, &Event);
     }
 }
 
@@ -3513,9 +3552,9 @@ QuicConnRecvBatch(
         if (QuicConnRecvPrepareDecrypt(
                 Connection, Packet, HpMask + i * QUIC_HP_SAMPLE_LENGTH) &&
             QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet) &&
-            QuicConnRecvPayload(Connection, Packet)) {
+            QuicConnRecvPayload(Connection, Path, Packet)) {
 
-            QuicConnRecvPostProcessing(Connection, Path, Packet);
+            QuicConnRecvPostProcessing(Connection, &Path, Packet);
             ResetIdleTimeout |= Packet->CompletelyValid;
 
             if (Packet->IsShortHeader && Packet->NewLargestPacketNumber) {
@@ -3533,71 +3572,6 @@ QuicConnRecvBatch(
     }
 
     return ResetIdleTimeout;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Ret_maybenull_
-QUIC_PATH*
-QuicConnGetPathByID(
-    _In_ PQUIC_CONNECTION Connection,
-    _In_ uint8_t ID
-    )
-{
-    for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
-        if (Connection->Paths[i].ID == ID) {
-            return &Connection->Paths[i];
-        }
-    }
-    return NULL;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Ret_maybenull_
-QUIC_PATH*
-QuicConnGetPathForDatagram(
-    _In_ PQUIC_CONNECTION Connection,
-    _In_ const QUIC_RECV_DATAGRAM* Datagram
-    )
-{
-    for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
-        if (!QuicAddrCompare(
-                &Datagram->Tuple->LocalAddress,
-                &Connection->Paths[i].LocalAddress) ||
-            !QuicAddrCompare(
-                &Datagram->Tuple->RemoteAddress,
-                &Connection->Paths[i].RemoteAddress)) {
-            if (!Connection->State.Connected) { // TODO - This should be handshake confirmed I believe.
-                //
-                // Ignore packets on any other paths until connected/confirmed.
-                //
-                return NULL;
-            }
-            continue;
-        }
-        return &Connection->Paths[i];
-    }
-
-    if (Connection->PathsCount == QUIC_MAX_PATH_COUNT) {
-        //
-        // Already tracking the maximum number of paths.
-        //
-        return NULL;
-    }
-
-    if (Connection->PathsCount > 1) {
-        QuicMoveMemory(
-            &Connection->Paths[2],
-            &Connection->Paths[1],
-            (Connection->PathsCount - 1) * sizeof(QUIC_PATH));
-    }
-
-    LogVerbose("[conn][%p] Tracking new path", Connection); // TODO - Make ETW
-
-    QUIC_PATH* Path = &Connection->Paths[1];
-    QuicPathInitialize(Path, Connection->NextPathId++);
-    Connection->PathsCount++;
-
-    return Path;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -3673,9 +3647,9 @@ QuicConnRecvDatagrams(
             Connection->Stats.Recv.TotalBytes += Datagram->BufferLength;
             QuicConnLogInFlowStats(Connection);
 
-            if (!Path->IsValidated) {
-                QuicSendIncrementAllowance(
-                    &Connection->Send,
+            if (!Path->IsPeerValidated) {
+                QuicPathIncrementAllowance(
+                    Connection,
                     Path,
                     QUIC_AMPLIFICATION_RATIO * Datagram->BufferLength);
             }
@@ -3750,6 +3724,7 @@ QuicConnRecvDatagrams(
             Packet->DecryptionDeferred = FALSE;
             Packet->CompletelyValid = FALSE;
             Packet->NewLargestPacketNumber = FALSE;
+            Packet->HasNonProbingFrame = FALSE;
 
         } while (Packet->Buffer - Datagram->Buffer < Datagram->BufferLength);
 
@@ -3786,6 +3761,8 @@ QuicConnRecvDatagrams(
     if (ReleaseChain != NULL) {
         QuicDataPathBindingReturnRecvDatagrams(ReleaseChain);
     }
+
+    QuicConnRemoveInvalidPaths(Connection);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -4006,7 +3983,13 @@ QuicConnParamSet(
         }
 
         if (Connection->Type == QUIC_HANDLE_TYPE_CHILD) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        if (Connection->State.Started &&
+            !Connection->State.HandshakeConfirmed) {
+            Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
 
@@ -4024,7 +4007,7 @@ QuicConnParamSet(
             LOG_ADDR_LEN(Connection->Paths[0].LocalAddress),
             (const uint8_t*)&Connection->Paths[0].LocalAddress);
 
-        if (Connection->State.Connected) {
+        if (Connection->State.Started) {
 
             QUIC_DBG_ASSERT(Connection->Paths[0].Binding);
             QUIC_DBG_ASSERT(Connection->State.RemoteAddressSet);

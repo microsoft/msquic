@@ -62,6 +62,7 @@ typedef struct _QUIC_SENT_FRAME_METADATA {
         } PATH_CHALLENGE;
         struct {
             uint8_t Data[8];
+            uint8_t OrigPathId;
         } PATH_RESPONSE;
     };
     uint8_t Type; // QUIC_FRAME_*

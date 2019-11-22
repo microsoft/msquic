@@ -92,44 +92,6 @@ QuicSendReset(
         QUIC_CONN_TIMER_PACING);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicSendSetAllowance(
-    _In_ PQUIC_SEND Send,
-    _In_ QUIC_PATH* Path,
-    _In_ uint32_t NewAllowance
-    )
-{
-    BOOLEAN WasBlocked = Path->Allowance < QUIC_MIN_SEND_ALLOWANCE;
-    Path->Allowance = NewAllowance;
-
-    if (Path->IsValidated && // TODO - What to do for other paths?
-        (Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) != WasBlocked) {
-        PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
-        if (WasBlocked) {
-            QuicConnRemoveOutFlowBlockedReason(
-                Connection, QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT);
-            if (Send->SendFlags != 0) {
-                //
-                // If we were blocked by amplification protection (no allowance
-                // left) and we have stuff to send, flush the send now.
-                //
-                QuicSendQueueFlush(&Connection->Send, REASON_AMP_PROTECTION);
-            }
-            //
-            // Now that we are no longer blocked by amplification protection
-            // we need to re-enable the loss detection timers. This call may
-            // even cause the loss timer to fire (be queued) immediately
-            // because packets were already lost, but we didn't know it.
-            //
-            QuicLossDetectionUpdateTimer(&Connection->LossDetection);
-        } else {
-            QuicConnAddOutFlowBlockedReason(
-                Connection, QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT);
-        }
-    }
-}
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicSendCanSendFlagsNow(
@@ -508,56 +470,46 @@ QuicSendWriteFrames(
         goto Exit;
     }
 
-    if (Send->SendFlags & QUIC_CONN_SEND_FLAG_PATH_CHALLENGE) {
-
-        QUIC_PATH_CHALLENGE_EX Frame = { 0 };
-        QUIC_FRE_ASSERT(FALSE); // TODO - Add framing once feature is supported.
-
-        if (QuicPathChallengeFrameEncode(
-                QUIC_FRAME_PATH_CHALLENGE,
-                &Frame,
-                &Builder->DatagramLength,
-                AvailableBufferLength,
-                (uint8_t*)Builder->Datagram->Buffer)) {
-
-            Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PATH_CHALLENGE;
-            QuicCopyMemory(
-                Builder->Metadata->Frames[Builder->Metadata->FrameCount].PATH_CHALLENGE.Data,
-                Frame.Data,
-                sizeof(Frame.Data));
-            if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_PATH_CHALLENGE, TRUE)) {
-                return TRUE;
-            }
-        } else {
-            RanOutOfRoom = TRUE;
-        }
-    }
-
     if (Send->SendFlags & QUIC_CONN_SEND_FLAG_PATH_RESPONSE) {
 
-        QUIC_PATH_RESPONSE_EX Frame = { 0 };
-        QuicCopyMemory(
-            Frame.Data,
-            Builder->Path->LastPathChallengeReceived,
-            sizeof(Frame.Data));
-
-        if (QuicPathChallengeFrameEncode(
-                QUIC_FRAME_PATH_RESPONSE,
-                &Frame,
-                &Builder->DatagramLength,
-                AvailableBufferLength,
-                (uint8_t*)Builder->Datagram->Buffer)) {
-
-            Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PATH_RESPONSE;
-            QuicCopyMemory(
-                Builder->Metadata->Frames[Builder->Metadata->FrameCount].PATH_RESPONSE.Data,
-                Frame.Data,
-                sizeof(Frame.Data));
-            if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_PATH_RESPONSE, TRUE)) {
-                return TRUE;
+        uint8_t i;
+        for (i = 0; i < Connection->PathsCount; ++i) {
+            QUIC_PATH* TempPath = &Connection->Paths[i];
+            if (!TempPath->SendResponse) {
+                continue;
             }
-        } else {
-            RanOutOfRoom = TRUE;
+
+            QUIC_PATH_RESPONSE_EX Frame = { 0 };
+            QuicCopyMemory(Frame.Data, TempPath->Response, sizeof(Frame.Data));
+
+            if (QuicPathChallengeFrameEncode(
+                    QUIC_FRAME_PATH_RESPONSE,
+                    &Frame,
+                    &Builder->DatagramLength,
+                    AvailableBufferLength,
+                    (uint8_t*)Builder->Datagram->Buffer)) {
+
+                TempPath->SendResponse = FALSE;
+                Builder->Metadata->Frames[Builder->Metadata->FrameCount].PATH_RESPONSE.OrigPathId = TempPath->ID;
+                QuicCopyMemory(
+                    Builder->Metadata->Frames[Builder->Metadata->FrameCount].PATH_RESPONSE.Data,
+                    Frame.Data,
+                    sizeof(Frame.Data));
+                if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_PATH_RESPONSE, TRUE)) {
+                    break;
+                }
+            } else {
+                RanOutOfRoom = TRUE;
+                break;
+            }
+        }
+
+        if (i == Connection->PathsCount) {
+            Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PATH_RESPONSE;
+        }
+
+        if (Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
+            return TRUE;
         }
     }
 
@@ -760,6 +712,7 @@ QuicSendWriteFrames(
         if (Builder->DatagramLength < AvailableBufferLength) {
             Builder->Datagram->Buffer[Builder->DatagramLength++] = QUIC_FRAME_PING;
             Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PING;
+            Builder->MinimumDatagramLength = (uint16_t)Builder->Datagram->Length;
             if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_PING, TRUE)) {
                 return TRUE;
             }
@@ -838,6 +791,67 @@ QuicSendGetNextStream(
     return NULL;
 }
 
+//
+// This function sends a path challenge frame out on all paths that currently
+// need one sent.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicSendPathChallenges(
+    _In_ PQUIC_SEND Send
+    )
+{
+    PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
+
+    QUIC_DBG_ASSERT(Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL);
+
+    for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+
+        QUIC_PATH* Path = &Connection->Paths[i];
+        if (!Connection->Paths[i].SendChallenge) {
+            continue;
+        }
+
+        QUIC_PACKET_BUILDER Builder = { 0 };
+        if (!QuicPacketBuilderInitialize(&Builder, Connection, Path)) {
+            continue;
+        }
+        _Analysis_assume_(Builder.Metadata != NULL);
+
+        if (!QuicPacketBuilderPrepareForControlFrames(
+                &Builder, FALSE, QUIC_CONN_SEND_FLAG_PATH_CHALLENGE)) {
+            continue;
+        }
+
+        uint16_t AvailableBufferLength =
+            (uint16_t)Builder.Datagram->Length - Builder.EncryptionOverhead;
+
+        QUIC_PATH_CHALLENGE_EX Frame;
+        QuicCopyMemory(Frame.Data, Path->Challenge, sizeof(Frame.Data));
+
+        BOOLEAN Result =
+            QuicPathChallengeFrameEncode(
+                QUIC_FRAME_PATH_CHALLENGE,
+                &Frame,
+                &Builder.DatagramLength,
+                AvailableBufferLength,
+                Builder.Datagram->Buffer);
+        QUIC_DBG_ASSERT(Result);
+
+        QuicCopyMemory(
+            Builder.Metadata->Frames[0].PATH_CHALLENGE.Data,
+            Frame.Data,
+            sizeof(Frame.Data));
+
+        Result = QuicPacketBuilderAddFrame(&Builder, QUIC_FRAME_PATH_CHALLENGE, TRUE);
+        QUIC_DBG_ASSERT(!Result);
+
+        QuicPacketBuilderFinalize(&Builder, TRUE);
+
+        Path->SendChallenge = FALSE;
+    }
+}
+
 typedef enum _QUIC_SEND_RESULT {
 
     QUIC_SEND_COMPLETE,
@@ -874,6 +888,11 @@ QuicSendFlush(
     QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;
     PQUIC_STREAM Stream = NULL;
     uint32_t StreamPacketCount = 0;
+
+    if (Send->SendFlags & QUIC_CONN_SEND_FLAG_PATH_CHALLENGE) {
+        Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PATH_CHALLENGE;
+        QuicSendPathChallenges(Send);
+    }
 
     QUIC_PACKET_BUILDER Builder = { 0 };
     if (!QuicPacketBuilderInitialize(&Builder, Connection, Path)) {
@@ -939,7 +958,7 @@ QuicSendFlush(
         //
 
         BOOLEAN WrotePacketFrames;
-        BOOLEAN IncludesPMTUDPacket = FALSE;
+        BOOLEAN FlushBatchedDatagrams = FALSE;
         if ((SendFlags & ~QUIC_CONN_SEND_FLAG_PMTUD) != 0) {
             if (!QuicPacketBuilderPrepareForControlFrames(
                     &Builder,
@@ -976,11 +995,11 @@ QuicSendFlush(
                 Stream = NULL;
             }
 
-        } else if (Send->SendFlags == QUIC_CONN_SEND_FLAG_PMTUD) {
+        } else if (SendFlags == QUIC_CONN_SEND_FLAG_PMTUD) {
             if (!QuicPacketBuilderPrepareForPathMtuDiscovery(&Builder)) {
                 break;
             }
-            IncludesPMTUDPacket = TRUE;
+            FlushBatchedDatagrams = TRUE;
             Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PMTUD;
             if (Builder.Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET &&
                 Builder.DatagramLength < Builder.Datagram->Length - Builder.EncryptionOverhead) {
@@ -1013,7 +1032,7 @@ QuicSendFlush(
             // We now have enough data in the current packet that we should
             // finalize it.
             //
-            QuicPacketBuilderFinalize(&Builder, IncludesPMTUDPacket);
+            QuicPacketBuilderFinalize(&Builder, FlushBatchedDatagrams);
         }
 
     } while (Builder.SendContext != NULL ||

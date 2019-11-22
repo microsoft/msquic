@@ -1043,8 +1043,34 @@ QuicTraceDatapathEvent(
     }
 }
 
+void
+QuicTraceLogEvent(
+    _In_ PEVENT_RECORD ev
+    )
+{
+    QUIC_EVENT_DATA_LOG* EvData = (QUIC_EVENT_DATA_LOG*)ev->UserData;
+
+    switch (GetEventId(ev->EventHeader.EventDescriptor.Id)) {
+    case EventId_QuicLogError:
+    case EventId_QuicLogWarning:
+    case EventId_QuicLogInfo:
+    case EventId_QuicLogVerbose:
+    case EventId_QuicLogDev:
+    case EventId_QuicLogPacketWarning:
+    case EventId_QuicLogPacketInfo:
+    case EventId_QuicLogPacketVerbose: {
+        printf("%s\n", EvData->Msg);
+        break;
+    }
+    default: {
+        printf("Unknown Event ID=%u\n", ev->EventHeader.EventDescriptor.Id);
+        break;
+    }
+    }
+}
+
 const char* TracePrefix[EventType_Count] = {
-    "[ lib][-----] ",
+    "[ lib] ",
     "[ reg][%.5u] ",
     "[wrkr][%.5u] ",
     "[sess][%.5u] ",
@@ -1053,7 +1079,8 @@ const char* TracePrefix[EventType_Count] = {
     "[strm][%.5u] ",
     "[bind][%.5u] ",
     "[ tls][%.5u] ",
-    "[ udp][%.5u] "
+    "[ udp][%.5u] ",
+    NULL
 };
 
 void (* TraceEventType[EventType_Count])(_In_ PEVENT_RECORD ev) = {
@@ -1066,7 +1093,8 @@ void (* TraceEventType[EventType_Count])(_In_ PEVENT_RECORD ev) = {
     QuicTraceStreamEvent,
     QuicTraceBindingEvent,
     QuicTraceTlsEvent,
-    QuicTraceDatapathEvent
+    QuicTraceDatapathEvent,
+    QuicTraceLogEvent
 };
 
 void
@@ -1089,6 +1117,8 @@ QuicTraceEvent(
         NS100_TO_US(ev->EventHeader.TimeStamp.QuadPart - InitialTimestamp) % 1000);
 
     QUIC_EVENT_TYPE EventType = GetEventType(ev->EventHeader.EventDescriptor.Id);
-    printf(TracePrefix[EventType], ObjectId);
+    if (TracePrefix[EventType] != NULL) {
+        printf(TracePrefix[EventType], ObjectId);
+    }
     TraceEventType[EventType](ev);
 }

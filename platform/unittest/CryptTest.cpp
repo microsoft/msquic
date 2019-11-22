@@ -16,7 +16,10 @@
 
 #include "msquichelper.h"
 #include "quic_trace.h"
+
+#ifdef QUIC_LOGS_WPP
 #include "crypttest.tmh"
+#endif
 
 using namespace WEX::Common;
 using namespace WEX::Logging;
