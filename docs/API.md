@@ -5,13 +5,14 @@ The MsQuic API is written in C (like the rest of the libary) and is cross platfo
 
 The primary API header can be found in the `inc` directory: [msquic.h](../inc/msquic.h)
 
-## Terms
+## Terminology
 
 Term | Definition
 --- | ---
 *app* | The application that is calling into MsQuic
 *client* | The app that initiates a connection
 *server* | The app that accepts a connection from a peer
+*handle* | A pointer to an MsQuic object that the app holds and passes to API functions
 
 ## High Level Overview
 
