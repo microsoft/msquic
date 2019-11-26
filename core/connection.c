@@ -3882,6 +3882,9 @@ QuicConnResetIdleTimeout(
         }
 
         QuicConnTimerSet(Connection, QUIC_CONN_TIMER_IDLE, IdleTimeoutMs);
+
+    } else {
+        QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_IDLE);
     }
 
     if (Connection->KeepAliveIntervalMs != 0) {

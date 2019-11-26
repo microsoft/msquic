@@ -8,68 +8,7 @@ Abstract:
     Declarations for the MsQuic API, which enables applications and drivers to
     create QUIC connections as a client or server.
 
--=---=--=-
-Terminology:
--=---=--=-
-
-    app    - the application or driver that is calling into MsQuic.
-    client - the app that initiates a connection.
-    server - the app that listens until it receives a connection request from a
-             peer.
-
--=---=--=-
-Handles:
--=---=--=-
-
-    A handle is an API context pointer for the app to hold and pass to API
-    functions. A handle represents a registration, session, listener, connection
-    or stream. When an inbound connection is accepted by a listener, a handle is
-    created for the new connection and given to the client via its
-    QUIC_LISTENER_CALLBACK; otherwise handles are created by SessionOpen,
-    ListenerOpen, ConnectionOpen or StreamOpen. A handle is closed with
-    SessionClose, ListenerClose, ConnectionClose or StreamClose as appropriate.
-
--=---=--=---=-
-App contexts:
--=---=--=---=-
-
-    The app can associate a context pointer with a handle by calling SetContext
-    (or disassociate a previously associated context pointer by passing NULL
-    instead of a valid pointer). This context pointer is provided in all event
-    callbacks for that handle.
-
--=---=--=---=--=-
-High-level usage:
--=---=--=---=--=-
-
-Using the library:
-
-    There is no explicit start/stop API for this library. Each API function
-    table has a reference on the QUIC library: the library is initialized when
-    the first call to MsQuicOpen succeeds and uninitialized when the last call
-    to MsQuicClose completes. An app should therefore beware of repeatedly
-    calling MsQuicOpen and MsQuicClose, as library setup/cleanup can be
-    expensive.
-
-    Each call to MsQuicOpen takes a version on input and returns the version
-    specific API function table. This function table is used for calling the
-    rest of the API functions.
-
-Creating a registration:
-
-    Generally, each app only needs a single registration. The registration
-    represents the execution context where all logic for the app's connections
-    run. The library will create a number of worker threads for each
-    registration, shared for all the connections.
-
-Creating sessions:
-
-    An app must create a session before it can create any listeners or
-    connections. Each session maintains certain transport and platform state
-    common to all child handles. Primarily, this consists of the ALPN string
-    used for the connection handshakes and TLS state used for session resumption.
-    On Windows platforms it also inherits the Silo and Network Compartment ID
-    from the thread that creates it.
+    For more detailed information, see ../docs/API.md
 
 Connecting to peers:
 

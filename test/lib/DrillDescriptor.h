@@ -19,6 +19,16 @@ class DrillBuffer : public Rtl::KArray<uint8_t>
     }
 
     size_t size() { return count(); }
+
+    void
+    insert(
+        _In_ const iterator &dest,
+        _In_ const const_iterator &start,
+        _In_ const const_iterator &end
+        )
+    {
+        QUIC_FRE_ASSERT(insertAt(dest, start, end));
+    }
 };
 #else
 using DrillBuffer = std::vector<uint8_t>;
