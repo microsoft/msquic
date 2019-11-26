@@ -22,6 +22,8 @@ Term | Definition
 
 ## Object Model
 
+![API Objects](images/api_objects.png)
+
 The API supports both server and client applications. All functionality is exposed primarily via a set of different objects:
 
 [**Api**](#library-function-table) - The top level handle and function table for all other API calls.
@@ -62,8 +64,6 @@ This doesn't mean the app isn't allowed to do any work in the callback. In fact,
 One important aspect of this design is that all blocking calls invoked on a callback always happen inline (to prevent deadlocks), and will supercede any calls in progress or queued from a separate thread.
 
 # API Objects
-
-<p align="center"><img src="images/api_objects.png"/></p>
 
 ## Library Function Table
 
