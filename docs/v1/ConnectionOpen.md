@@ -20,7 +20,21 @@ QUIC_STATUS
 
 # Parameters
 
-**TODO**
+`Session`
+
+The valid handle to an open session object.
+
+`Handler`
+
+A pointer to the app's callback handler to be executed when there is a connection event to be indicated to the app.
+
+`Context`
+
+The app context pointer to be associated with the connection object.
+
+`Connection`
+
+On success, returns a handle to the newly opened connection object.
 
 # Return Value
 

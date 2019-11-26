@@ -1,7 +1,7 @@
 SetCallbackHandler function
 ======
 
-Sets the application context and callback function pointer for the API handle.
+Sets the application context and callback function pointer for the API object.
 
 # Syntax
 
@@ -18,11 +18,23 @@ void
 
 # Parameters
 
-**TODO**
+`Handle`
+
+The valid handle to any API object that uses callback handlers. This includes handles to listener, connection and stream objects.
+
+`Handler`
+
+A new application callback handler to register with the API object.
+
+`Context`
+
+A new application context to register with the API object.
 
 # Remarks
 
-**TODO**
+This function allows the app to set the application callback handler and context for the API object. The context can be later retrieved by a call to [GetContext](GetContext.md). It is also passed into all callback handler events for the object.
+
+> **Important** There is no internal synchronization for this callback handler or context. If the app calls [GetContext](GetContext.md), [SetContext](SetContext.md) and/or **SetCallbackHandler** on different threads, it must provide for the necessary synchronization mechanisms.
 
 # See Also
 

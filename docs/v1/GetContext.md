@@ -1,7 +1,7 @@
 GetContext function
 ======
 
-Gets the application context from the API handle.
+Gets the application context from the API object.
 
 # Syntax
 
@@ -16,15 +16,19 @@ void*
 
 # Parameters
 
-**TODO**
+`Handle`
+
+The valid handle to any API object. This includes handles to registration, session, listener, connection and stream objects.
 
 # Return Value
 
-The function returns the application's context.
+The function returns the previously set application context for the object.
 
 # Remarks
 
-**TODO**
+This function allows the app to query the application context it has previously set on the object.
+
+> **Important** There is no internal synchronization for this context. If the app calls **GetContext**, [SetContext](SetContext.md) and/or [SetCallbackHandler](SetCallbackHandler.md) on different threads, it must provide for the necessary synchronization mechanisms.
 
 # See Also
 

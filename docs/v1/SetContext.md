@@ -1,7 +1,7 @@
 SetContext function
 ======
 
-Sets the application context for the API handle.
+Sets the application context for the API object.
 
 # Syntax
 
@@ -17,11 +17,19 @@ void
 
 # Parameters
 
-**TODO**
+`Handle`
+
+The valid handle to any API object. This includes handles to registration, session, listener, connection and stream objects.
+
+`Context`
+
+A new application context to register with the API object.
 
 # Remarks
 
-**TODO**
+This function allows the app to set the application context for the API object. This context can be later retrieved by a call to [GetContext](GetContext.md). It is also passed into all callback handler events for the object.
+
+> **Important** There is no internal synchronization for this context. If the app calls [GetContext](GetContext.md), **SetContext** and/or [SetCallbackHandler](SetCallbackHandler.md) on different threads, it must provide for the necessary synchronization mechanisms.
 
 # See Also
 

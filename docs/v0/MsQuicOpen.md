@@ -28,7 +28,7 @@ Value | Meaning
 
 `QuicApi`
 
-On success, returns a pointer the new version specific function table. The table above explains the mappings between `ApiVersion` to function table.
+On success, returns a pointer to the new version specific function table. The table above explains the mappings between `ApiVersion` to function table.
 
 # Return Value
 

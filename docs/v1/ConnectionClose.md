@@ -17,7 +17,9 @@ void
 
 # Parameters
 
-**TODO**
+`Connection`
+
+The valid handle to an open connection object.
 
 # Remarks
 

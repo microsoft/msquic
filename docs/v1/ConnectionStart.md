@@ -20,7 +20,27 @@ QUIC_STATUS
 
 # Parameters
 
-**TODO**
+`Connection`
+
+The valid handle to an open connection object.
+
+`Family`
+
+The address family to use for resolving the IP address of the *ServerName* parameter. Supported values are as follows:
+
+Value | Meaning
+--- | ---
+**AF_UNSPEC**<br>0 | Unspecified address family.
+**AF_INET**<br>2 | Version 4 IP address family.
+**AF_INET6**<br>23 | Version 6 IP address family.
+
+`ServerName`
+
+The name of the server to connect to. It may also be an IP literal.
+
+`ServerPort`
+
+The UDP port, in host byte order, to connect to on the server.
 
 # Return Value
 
