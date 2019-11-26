@@ -63,7 +63,7 @@ One important aspect of this design is that all blocking calls invoked on a call
 
 # API Objects
 
-![API Objects](images/api_objects.png)
+<p align="center"><img src="images/api_objects.png"/></p>
 
 ## Library Function Table
 
