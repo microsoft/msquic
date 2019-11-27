@@ -275,7 +275,6 @@ QuicAckFrameEncode(
 //
 // Decodes the ACK_FRAME (has packet numbers from largest to smallest) to a
 // QUIC_RANGE format (smallest to largest).
-// TODO - Continue to work with QUICWG to try to get this reversed.
 //
 _Success_(return != FALSE)
 BOOLEAN

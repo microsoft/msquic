@@ -212,6 +212,26 @@ QuicRecvBufferSetVirtualBufferLength(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicRecvBufferHasUnreadData(
+    _In_ PQUIC_RECV_BUFFER RecvBuffer
+    )
+{
+    return QuicRecvBufferGetTotalLength(RecvBuffer) > RecvBuffer->BaseOffset;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicRecvBufferAlreadyReadData(
+    _In_ PQUIC_RECV_BUFFER RecvBuffer,
+    _In_ uint64_t BufferOffset,
+    _In_ uint16_t BufferLength
+    )
+{
+    return BufferOffset + BufferLength <= RecvBuffer->BaseOffset;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicRecvBufferWrite(
     _In_ PQUIC_RECV_BUFFER RecvBuffer,

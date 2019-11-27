@@ -21,11 +21,6 @@ typedef struct _QUIC_CRYPTO {
     BOOLEAN Initialized : 1;
 
     //
-    // Indicates the first handshake packet received has been completely processed.
-    //
-    BOOLEAN FirstHandshakePacketProcessed : 1;
-
-    //
     // Indicates the send state is in recovery.
     //
     BOOLEAN InRecovery : 1;

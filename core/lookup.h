@@ -50,10 +50,6 @@ typedef struct _QUIC_LOOKUP {
         } HASH;
     };
 
-    //
-    // TODO - Closed/Tombstone connection tracking?
-    //
-
 } QUIC_LOOKUP, *PQUIC_LOOKUP;
 
 //

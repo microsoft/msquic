@@ -270,7 +270,6 @@ QuicCryptoReset(
     QUIC_TEL_ASSERT(!Crypto->TlsCallPending);
     QUIC_TEL_ASSERT(Crypto->RecvTotalConsumed == 0);
 
-    Crypto->FirstHandshakePacketProcessed = FALSE;
     Crypto->MaxSentLength = 0;
     Crypto->UnAckedOffset = 0;
     Crypto->NextSendOffset = 0;
@@ -895,7 +894,8 @@ QuicCryptoOnAck(
                 &SacksUpdated);
         if (Sack == NULL) {
 
-            QUIC_FRE_ASSERT(FALSE); // TODO - Allow this function to fail or treat as fatal error.
+            QuicConnFatalError(Connection, QUIC_STATUS_OUT_OF_MEMORY, "Out of memory");
+            return;
 
         } else if (SacksUpdated) {
 
@@ -963,13 +963,17 @@ QuicCryptoProcessDataFrame(
     } else {
 
         if (KeyType != Crypto->TlsState.ReadKey) {
-            LogWarning("[cryp][%p] Ignoring received crypto data with wrong key, %hu vs %hu!",
-                Connection, KeyType, Crypto->TlsState.ReadKey);
-            Status = QUIC_STATUS_SUCCESS;
-            //
-            // TODO - If it was retransmitted data, it would be OK to ignore, but if they are
-            // sending at the wrong encryption level, we fatal.
-            //
+            if (QuicRecvBufferAlreadyReadData(
+                    &Crypto->RecvBuffer,
+                    Crypto->RecvEncryptLevelStartOffset + Frame->Offset,
+                    (uint16_t)Frame->Length)) {
+                Status = QUIC_STATUS_SUCCESS;
+            } else {
+                EventWriteQuicConnError(
+                    Connection, "Tried crypto with incorrect key.");
+                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                Status = QUIC_STATUS_INVALID_STATE;
+            }
             goto Error;
         }
 
@@ -986,6 +990,11 @@ QuicCryptoProcessDataFrame(
                 &FlowControlLimit,
                 DataReady);
         if (QUIC_FAILED(Status)) {
+            if (Status == QUIC_STATUS_BUFFER_TOO_SMALL) {
+                EventWriteQuicConnError(
+                    Connection, "Tried to write beyond crypto flow control limit.");
+                QuicConnTransportError(Connection, QUIC_ERROR_CRYPTO_BUFFER_EXCEEDED);
+            }
             goto Error;
         }
     }
@@ -994,11 +1003,6 @@ QuicCryptoProcessDataFrame(
         Connection, (uint16_t)Frame->Length, Frame->Offset, *DataReady);
 
 Error:
-
-    if (Status == QUIC_STATUS_BUFFER_TOO_SMALL) {
-        LogWarning("[conn][%p] Tried to write beyond crypto flow control limit!", Connection);
-        QuicConnTransportError(Connection, QUIC_ERROR_CRYPTO_BUFFER_EXCEEDED);
-    }
 
     return Status;
 }
@@ -1073,21 +1077,13 @@ QuicCryptoProcessTlsCompletion(
 {
     PQUIC_CONNECTION Connection = QuicCryptoGetConnection(Crypto);
 
-    Crypto->FirstHandshakePacketProcessed = TRUE;
-
     if (ResultFlags & QUIC_TLS_RESULT_ERROR) {
-        LogVerbose("[conn][%p] Received error from TLS, %u", Connection,
-            Crypto->TlsState.AlertCode);
+        EventWriteQuicConnErrorStatus(
+            Connection, Crypto->TlsState.AlertCode, "Received alert from TLS.");
         QuicConnTransportError(
             Connection,
             QUIC_ERROR_CRYPTO_ERROR(0xFF & Crypto->TlsState.AlertCode));
-
-        if (!Connection->State.Connected) {
-            //
-            // Make sure to process error and connection complete only.
-            //
-            ResultFlags = QUIC_TLS_RESULT_ERROR | QUIC_TLS_RESULT_COMPLETE;
-        }
+        return;
     }
 
     if (ResultFlags & QUIC_TLS_RESULT_EARLY_DATA_ACCEPT) {
@@ -1160,9 +1156,16 @@ QuicCryptoProcessTlsCompletion(
 
     if (ResultFlags & QUIC_TLS_RESULT_READ_KEY_UPDATED) {
         //
-        // TODO - Make sure there isn't any data received past the current Recv
-        // offset at the previous encryption level.
+        // Make sure there isn't any data received past the current Recv offset
+        // at the previous encryption level.
         //
+        if (QuicRecvBufferHasUnreadData(&Crypto->RecvBuffer)) {
+            EventWriteQuicConnError(
+                Connection, "Leftover crypto data in previous encryption level.");
+            QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+            return;
+        }
+
         Crypto->RecvEncryptLevelStartOffset = Crypto->RecvTotalConsumed;
         EventWriteQuicConnReadKeyUpdated(Connection, Crypto->TlsState.ReadKey);
 
@@ -1219,81 +1222,66 @@ QuicCryptoProcessTlsCompletion(
             &QuicCryptoGetConnection(Crypto)->Send,
             QUIC_CONN_SEND_FLAG_CRYPTO);
         QuicCryptoDumpSendState(Crypto);
-
-    } else if (!Crypto->FirstHandshakePacketProcessed &&
-            !(ResultFlags & QUIC_TLS_RESULT_ERROR) &&
-            QuicConnIsServer(Connection)) {
-        //
-        // We just received our first packet, but it didn't include enough
-        // payload to elicit a response. That constitutes an invalid first
-        // packet from the client.
-        //
-        LogWarning("[conn][%p] Received invalid first handshake packet", Connection);
-        QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
-        ResultFlags |= QUIC_TLS_RESULT_ERROR;
     }
 
     if (ResultFlags & QUIC_TLS_RESULT_COMPLETE) {
-        BOOLEAN Successful = !(ResultFlags & QUIC_TLS_RESULT_ERROR);
+        QUIC_DBG_ASSERT(!(ResultFlags & QUIC_TLS_RESULT_ERROR));
         QUIC_TEL_ASSERT(!Connection->State.Connected);
 
-        if (Successful) {
+        EventWriteQuicConnHandshakeComplete(Connection);
 
-            EventWriteQuicConnHandshakeComplete(Connection);
+        //
+        // We should have the 1-RTT keys by connection complete time.
+        //
+        QUIC_TEL_ASSERT(Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT] != NULL);
+        QUIC_TEL_ASSERT(Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL);
+
+        //
+        // Only mark the handshake as complete on success.
+        //
+        Connection->State.Connected = TRUE;
+        InterlockedDecrement(&Connection->Paths[0].Binding->HandshakeConnections);
+        InterlockedExchangeAdd64(
+            (LONG64*)&MsQuicLib.CurrentHandshakeMemoryUsage,
+            -1 * (LONG64)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+
+        (void)QuicConnGenerateNewSourceCid(Connection, FALSE);
+
+        if (!QuicConnIsServer(Connection) &&
+            Connection->RemoteServerName != NULL) {
+
+            QUIC_SEC_CONFIG* SecConfig = QuicTlsGetSecConfig(Crypto->TLS);
 
             //
-            // We should have the 1-RTT keys by connection complete time.
+            // Cache this information for future connections in this
+            // session to make use of.
             //
-            QUIC_TEL_ASSERT(Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT] != NULL);
-            QUIC_TEL_ASSERT(Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL);
+            QUIC_TEL_ASSERT(Connection->Session != NULL);
+            QuicSessionServerCacheSetState(
+                Connection->Session,
+                Connection->RemoteServerName,
+                Connection->Stats.QuicVersion,
+                &Connection->PeerTransportParams,
+                SecConfig);
 
-            //
-            // Only mark the handshake as complete on success.
-            //
-            Connection->State.Connected = TRUE;
-            InterlockedDecrement(&Connection->Paths[0].Binding->HandshakeConnections);
-            InterlockedExchangeAdd64(
-                (LONG64*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-                -1 * (LONG64)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+            QuicTlsSecConfigRelease(SecConfig);
+        }
 
-            (void)QuicConnGenerateNewSourceCid(Connection, FALSE);
+        QUIC_CONNECTION_EVENT Event;
+        Event.Type = QUIC_CONNECTION_EVENT_CONNECTED;
+        Event.CONNECTED.EarlyDataAccepted = Crypto->TlsState.EarlyDataAccepted;
+        LogVerbose("[conn][%p] Indicating QUIC_CONNECTION_EVENT_CONNECTED (EarlyData=%hu)",
+            Connection, Event.CONNECTED.EarlyDataAccepted);
+        (void)QuicConnIndicateEvent(Connection, &Event);
 
-            if (!QuicConnIsServer(Connection) &&
-                Connection->RemoteServerName != NULL) {
+        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PMTUD);
 
-                QUIC_SEC_CONFIG* SecConfig = QuicTlsGetSecConfig(Crypto->TLS);
-
-                //
-                // Cache this information for future connections in this
-                // session to make use of.
-                //
-                QUIC_TEL_ASSERT(Connection->Session != NULL);
-                QuicSessionServerCacheSetState(
-                    Connection->Session,
-                    Connection->RemoteServerName,
-                    Connection->Stats.QuicVersion,
-                    &Connection->PeerTransportParams,
-                    SecConfig);
-
-                QuicTlsSecConfigRelease(SecConfig);
-            }
-
-            QUIC_CONNECTION_EVENT Event;
-            Event.Type = QUIC_CONNECTION_EVENT_CONNECTED;
-            Event.CONNECTED.EarlyDataAccepted = Crypto->TlsState.EarlyDataAccepted;
-            LogVerbose("[conn][%p] Indicating QUIC_CONNECTION_EVENT_CONNECTED (EarlyData=%hu)",
-                Connection, Event.CONNECTED.EarlyDataAccepted);
-            (void)QuicConnIndicateEvent(Connection, &Event);
-
-            QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PMTUD);
-
-            if (QuicConnIsServer(Connection) &&
-                Crypto->TlsState.BufferOffset1Rtt != 0 &&
-                Crypto->UnAckedOffset == Crypto->TlsState.BufferTotalLength) {
-                QuicCryptoOnServerComplete(Crypto); // TODO - If sending 0-RTT tickets ever becomes
-                                                    // controllable by the app, this logic will have
-                                                    // to take that into account.
-            }
+        if (QuicConnIsServer(Connection) &&
+            Crypto->TlsState.BufferOffset1Rtt != 0 &&
+            Crypto->UnAckedOffset == Crypto->TlsState.BufferTotalLength) {
+            QuicCryptoOnServerComplete(Crypto); // TODO - If sending 0-RTT tickets ever becomes
+                                                // controllable by the app, this logic will have
+                                                // to take that into account.
         }
     }
 
@@ -1440,7 +1428,8 @@ QuicCryptoProcessData(
             }
 
             if (AcceptResult != QUIC_CONNECTION_ACCEPT) {
-                LogInfo("[conn][%p] Conection Rejected, Reason=%u", Connection, AcceptResult); // TODO - ETW
+                EventWriteQuicConnErrorStatus(
+                    Connection, AcceptResult, "Connection rejected.");
                 if (AcceptResult == QUIC_CONNECTION_REJECT_NO_LISTENER) {
                     QuicConnTransportError(
                         Connection,

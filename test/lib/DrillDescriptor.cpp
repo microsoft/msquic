@@ -89,10 +89,7 @@ DrillPacketDescriptor::write(
     } else {
         PacketBuffer.push_back((uint8_t) DestCID.size());
     }
-    for (auto cidByte : DestCID)
-    {
-        PacketBuffer.push_back(cidByte);
-    }
+    PacketBuffer.insert(PacketBuffer.end(), DestCID.begin(), DestCID.end());
 
     //
     // Copy Source CID.
@@ -102,11 +99,7 @@ DrillPacketDescriptor::write(
     } else {
         PacketBuffer.push_back((uint8_t) SourceCID.size());
     }
-    for (auto cidByte : SourceCID)
-    {
-        PacketBuffer.push_back(cidByte);
-    }
-
+    PacketBuffer.insert(PacketBuffer.end(), SourceCID.begin(), SourceCID.end());
 
     //
     // TODO: Do type-specific stuff here.
@@ -138,18 +131,12 @@ DrillInitialPacketDescriptor::write(
     } else {
         EncodedTokenLength = QuicDrillEncodeQuicVarInt(Token.size());
     }
-    for (auto tokenLenByte : EncodedTokenLength)
-    {
-        PacketBuffer.push_back(tokenLenByte);
-    }
+    PacketBuffer.insert(PacketBuffer.end(), EncodedTokenLength.begin(), EncodedTokenLength.end());
 
     CalculatedPacketLength += EncodedTokenLength.size();
 
     if (Token.size()) {
-        for (auto tokenByte : Token)
-        {
-            PacketBuffer.push_back(tokenByte);
-        }
+        PacketBuffer.insert(PacketBuffer.end(), Token.begin(), Token.end());
         CalculatedPacketLength += Token.size();
     }
 
@@ -189,18 +176,12 @@ DrillInitialPacketDescriptor::write(
     } else {
         PacketLengthBuffer = QuicDrillEncodeQuicVarInt(CalculatedPacketLength);
     }
-    for (auto packetLenByte : PacketLengthBuffer)
-    {
-        PacketBuffer.push_back(packetLenByte);
-    }
+    PacketBuffer.insert(PacketBuffer.end(), PacketLengthBuffer.begin(), PacketLengthBuffer.end());
 
     //
     // Write packet number.
     //
-    for (auto packetNumByte : PacketNumberBuffer)
-    {
-        PacketBuffer.push_back(packetNumByte);
-    }
+    PacketBuffer.insert(PacketBuffer.end(), PacketNumberBuffer.begin(), PacketNumberBuffer.end());
 
     //
     // TODO: Write payload here.
