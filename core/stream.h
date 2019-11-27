@@ -5,7 +5,7 @@
 
 --*/
 
-typedef struct _QUIC_CONNECTION QUIC_CONNECTION, *PQUIC_CONNECTION;
+typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 
 //
 // The stream type is encoded into the low bits of the stream ID:
@@ -50,12 +50,12 @@ typedef struct _QUIC_CONNECTION QUIC_CONNECTION, *PQUIC_CONNECTION;
 //
 // Tracks the data queued up for sending by an application.
 //
-typedef struct _QUIC_SEND_REQUEST {
+typedef struct QUIC_SEND_REQUEST {
 
     //
     // The pointer to the next item in the list.
     //
-    struct _QUIC_SEND_REQUEST* Next;
+    struct QUIC_SEND_REQUEST* Next;
 
     //
     // Array of buffers to send.
@@ -93,13 +93,13 @@ typedef struct _QUIC_SEND_REQUEST {
     //
     void* ClientContext;
 
-} QUIC_SEND_REQUEST, *PQUIC_SEND_REQUEST;
+} QUIC_SEND_REQUEST;
 
 //
 // Different flags of a stream.
 // Note - Keep quictypes.h's copy up to date.
 //
-typedef union _QUIC_STREAM_FLAGS {
+typedef union QUIC_STREAM_FLAGS {
     uint32_t AllFlags;
     struct {
         BOOLEAN Allocated               : 1;    // Allocated by Connection. Used for Debugging.
@@ -142,7 +142,7 @@ typedef union _QUIC_STREAM_FLAGS {
     };
 } QUIC_STREAM_FLAGS;
 
-typedef enum _QUIC_STREAM_SEND_STATE {
+typedef enum QUIC_STREAM_SEND_STATE {
     QUIC_STREAM_SEND_DISABLED,
     QUIC_STREAM_SEND_STARTED,
     QUIC_STREAM_SEND_RESET,
@@ -151,7 +151,7 @@ typedef enum _QUIC_STREAM_SEND_STATE {
     QUIC_STREAM_SEND_FIN_ACKED
 } QUIC_STREAM_SEND_STATE;
 
-typedef enum _QUIC_STREAM_RECV_STATE {
+typedef enum QUIC_STREAM_RECV_STATE {
     QUIC_STREAM_RECV_DISABLED,
     QUIC_STREAM_RECV_STARTED,
     QUIC_STREAM_RECV_PAUSED,
@@ -163,7 +163,7 @@ typedef enum _QUIC_STREAM_RECV_STATE {
 //
 // Different references on a stream.
 //
-typedef enum _QUIC_STREAM_REF {
+typedef enum QUIC_STREAM_REF {
 
     QUIC_STREAM_REF_APP,
     QUIC_STREAM_REF_STREAM_SET,
@@ -179,9 +179,9 @@ typedef enum _QUIC_STREAM_REF {
 //
 // This structure represents all the per connection specific data.
 //
-typedef struct _QUIC_STREAM {
+typedef struct QUIC_STREAM {
 
-    struct _QUIC_HANDLE;
+    struct QUIC_HANDLE;
 
     //
     // Number of references to the handle.
@@ -212,7 +212,7 @@ typedef struct _QUIC_STREAM {
     //
     // The parent connection for this stream.
     //
-    PQUIC_CONNECTION Connection;
+    QUIC_CONNECTION* Connection;
 
     //
     // The identifier for this stream.
@@ -250,23 +250,23 @@ typedef struct _QUIC_STREAM {
     // SendRequests list.
     //
     QUIC_DISPATCH_LOCK ApiSendRequestLock;
-    PQUIC_SEND_REQUEST ApiSendRequests;
+    QUIC_SEND_REQUEST* ApiSendRequests;
 
     //
     // Queued send requests.
     //
-    PQUIC_SEND_REQUEST SendRequests;
-    PQUIC_SEND_REQUEST* SendRequestsTail;
+    QUIC_SEND_REQUEST* SendRequests;
+    QUIC_SEND_REQUEST** SendRequestsTail;
 
     //
     // Shortcut pointer: NULL, or the request containing the next byte to send.
     //
-    PQUIC_SEND_REQUEST SendBookmark;
+    QUIC_SEND_REQUEST* SendBookmark;
 
     //
     // Shortcut pointer: NULL, or the next unbuffered send request.
     //
-    PQUIC_SEND_REQUEST SendBufferBookmark;
+    QUIC_SEND_REQUEST* SendBufferBookmark;
 
     //
     // The total send offset for all queued send requests.
@@ -369,7 +369,7 @@ typedef struct _QUIC_STREAM {
     //
     QUIC_STREAM_CALLBACK_HANDLER ClientCallbackHandler;
 
-} QUIC_STREAM, *PQUIC_STREAM;
+} QUIC_STREAM;
 
 inline
 QUIC_STREAM_SEND_STATE
@@ -455,11 +455,11 @@ QuicStreamGetInitialMaxDataFromTP(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicStreamInitialize(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN Unidirectional,
     _In_ BOOLEAN Opened0Rtt,
     _Outptr_ _At_(*Stream, __drv_allocatesMem(Mem))
-        PQUIC_STREAM* Stream
+        QUIC_STREAM** Stream
     );
 
 //
@@ -468,7 +468,7 @@ QuicStreamInitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicStreamFree(
-    _In_ __drv_freesMem(Mem) PQUIC_STREAM Stream
+    _In_ __drv_freesMem(Mem) QUIC_STREAM* Stream
     );
 
 #define QUIC_STREAM_START_FLAG_REMOTE 0x8000 // The Stream was opened remotely.
@@ -480,7 +480,7 @@ QuicStreamFree(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamStart(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ QUIC_STREAM_START_FLAGS Flags
     );
 
@@ -490,7 +490,7 @@ QuicStreamStart(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamClose(
-    _In_ __drv_freesMem(Mem) PQUIC_STREAM Stream
+    _In_ __drv_freesMem(Mem) QUIC_STREAM* Stream
     );
 
 //
@@ -508,7 +508,7 @@ QuicStreamTraceRundown(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamIndicateEvent(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _Inout_ QUIC_STREAM_EVENT* Event
     );
 
@@ -518,7 +518,7 @@ QuicStreamIndicateEvent(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamIndicateStartComplete(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ QUIC_STATUS Status
     );
 
@@ -528,7 +528,7 @@ QuicStreamIndicateStartComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamShutdown(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ uint32_t Flags,
     _In_ QUIC_VAR_INT ErrorCode
     );
@@ -539,7 +539,7 @@ QuicStreamShutdown(
 //
 void
 QuicStreamTryCompleteShutdown(
-    _In_ PQUIC_STREAM Stream
+    _In_ QUIC_STREAM* Stream
     );
 
 //
@@ -547,7 +547,7 @@ QuicStreamTryCompleteShutdown(
 //
 QUIC_STATUS
 QuicStreamParamSet(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -559,7 +559,7 @@ QuicStreamParamSet(
 //
 QUIC_STATUS
 QuicStreamParamGet(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
@@ -573,7 +573,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 void
 QuicStreamAddRef(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ QUIC_STREAM_REF Ref
     )
 {
@@ -598,7 +598,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 BOOLEAN
 QuicStreamRelease(
-    _In_ __drv_freesMem(Mem) PQUIC_STREAM Stream,
+    _In_ __drv_freesMem(Mem) QUIC_STREAM* Stream,
     _In_ QUIC_STREAM_REF Ref
     )
 {
@@ -666,7 +666,7 @@ QuicStreamRemoveOutFlowBlockedReason(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamSendShutdown(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN Graceful,
     _In_ BOOLEAN Silent,
     _In_ QUIC_VAR_INT ErrorCode   // Only for !Graceful
@@ -678,7 +678,7 @@ QuicStreamSendShutdown(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamIndicateSendShutdownComplete(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN GracefulShutdown
     );
 
@@ -688,7 +688,7 @@ QuicStreamIndicateSendShutdownComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamSendFlush(
-    _In_ PQUIC_STREAM Stream
+    _In_ QUIC_STREAM* Stream
     );
 
 //
@@ -709,7 +709,7 @@ QuicStreamSendBufferRequest(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicStreamSendWrite(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _Inout_ QUIC_PACKET_BUILDER* Builder
     );
 
@@ -719,8 +719,8 @@ QuicStreamSendWrite(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamOnLoss(
-    _In_ PQUIC_STREAM Stream,
-    _In_ PQUIC_SENT_FRAME_METADATA FrameMetadata
+    _In_ QUIC_STREAM* Stream,
+    _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata
     );
 
 //
@@ -729,9 +729,9 @@ QuicStreamOnLoss(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamOnAck(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ QUIC_SEND_PACKET_FLAGS PacketFlags,
-    _In_ PQUIC_SENT_FRAME_METADATA FrameMetadata
+    _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata
     );
 
 //
@@ -740,7 +740,7 @@ QuicStreamOnAck(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamOnResetAck(
-    _In_ PQUIC_STREAM Stream
+    _In_ QUIC_STREAM* Stream
     );
 
 //
@@ -749,7 +749,7 @@ QuicStreamOnResetAck(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamSendDumpState(
-    _In_ PQUIC_STREAM Stream
+    _In_ QUIC_STREAM* Stream
     );
 
 //
@@ -762,7 +762,7 @@ QuicStreamSendDumpState(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamRecvShutdown(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN Silent,
     _In_ QUIC_VAR_INT ErrorCode
     );
@@ -773,7 +773,7 @@ QuicStreamRecvShutdown(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamReceiveCompletePending(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ uint64_t BufferLength
     );
 
@@ -783,7 +783,7 @@ QuicStreamReceiveCompletePending(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamRecv(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN EncryptedWith0Rtt,
     _In_ QUIC_FRAME_TYPE FrameType,
     _In_ uint16_t BufferLength,
@@ -799,7 +799,7 @@ QuicStreamRecv(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamRecvFlush(
-    _In_ PQUIC_STREAM Stream
+    _In_ QUIC_STREAM* Stream
     );
 
 //
@@ -808,6 +808,6 @@ QuicStreamRecvFlush(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamRecvSetEnabledState(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN NewRecvEnabled
     );

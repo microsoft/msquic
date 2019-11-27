@@ -37,7 +37,7 @@
 
 #define QUIC_BASE_REG_PATH L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
 
-typedef struct _QUIC_PLATFORM {
+typedef struct QUIC_PLATFORM {
 
     PDRIVER_OBJECT DriverObject;
 
@@ -56,7 +56,7 @@ typedef struct _QUIC_PLATFORM {
 
 #define QUIC_BASE_REG_PATH "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
 
-typedef struct _QUIC_PLATFORM {
+typedef struct QUIC_PLATFORM {
 
     //
     // Heap used for all allocations.
@@ -67,7 +67,7 @@ typedef struct _QUIC_PLATFORM {
 
 #elif QUIC_PLATFORM_LINUX
 
-typedef struct _QUIC_PLATFORM {
+typedef struct QUIC_PLATFORM {
 
     void* Reserved; // Nothing right now.
 

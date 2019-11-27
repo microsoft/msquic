@@ -5,13 +5,13 @@
 
 --*/
 
-typedef struct _QUIC_PARTITIONED_HASHTABLE QUIC_PARTITIONED_HASHTABLE;
-typedef struct _QUIC_STATELESS_CONTEXT QUIC_STATELESS_CONTEXT;
+typedef struct QUIC_PARTITIONED_HASHTABLE QUIC_PARTITIONED_HASHTABLE;
+typedef struct QUIC_STATELESS_CONTEXT QUIC_STATELESS_CONTEXT;
 
 //
 // Structure that MsQuic servers use for encoding data for stateless retries.
 //
-typedef struct _QUIC_RETRY_TOKEN_CONTENTS {
+typedef struct QUIC_RETRY_TOKEN_CONTENTS {
     QUIC_ADDR RemoteAddress;
     uint8_t OrigConnId[QUIC_MAX_CONNECTION_ID_LENGTH_V1];
     uint8_t OrigConnIdLength;
@@ -25,7 +25,7 @@ QUIC_STATIC_ASSERT(
 //
 // The per recv buffer context type.
 //
-typedef struct _QUIC_RECV_PACKET {
+typedef struct QUIC_RECV_PACKET {
 
     //
     // The bytes that represent the fully decoded packet number.
@@ -38,11 +38,11 @@ typedef struct _QUIC_RECV_PACKET {
     union {
         _Field_size_(BufferLength)
         const uint8_t* Buffer;
-        const struct _QUIC_HEADER_INVARIANT* Invariant;
-        const struct _QUIC_VERSION_NEGOTIATION_PACKET* VerNeg;
-        const struct _QUIC_LONG_HEADER_V1* LH;
-        const struct _QUIC_RETRY_V1* Retry;
-        const struct _QUIC_SHORT_HEADER_V1* SH;
+        const struct QUIC_HEADER_INVARIANT* Invariant;
+        const struct QUIC_VERSION_NEGOTIATION_PACKET* VerNeg;
+        const struct QUIC_LONG_HEADER_V1* LH;
+        const struct QUIC_RETRY_V1* Retry;
+        const struct QUIC_SHORT_HEADER_V1* SH;
     };
 
     //
@@ -140,7 +140,7 @@ typedef struct _QUIC_RECV_PACKET {
 
 } QUIC_RECV_PACKET;
 
-typedef enum _QUIC_BINDING_LOOKUP_TYPE {
+typedef enum QUIC_BINDING_LOOKUP_TYPE {
 
     QUIC_BINDING_LOOKUP_SINGLE,         // Single connection
     QUIC_BINDING_LOOKUP_HASH,           // Single hash table of connections
@@ -152,7 +152,7 @@ typedef enum _QUIC_BINDING_LOOKUP_TYPE {
 // Represents a UDP binding of local IP address and UDP port, and optionally
 // remote IP address.
 //
-typedef struct _QUIC_BINDING {
+typedef struct QUIC_BINDING {
 
     //
     // The link in the library's global list of bindings.
@@ -196,7 +196,7 @@ typedef struct _QUIC_BINDING {
     //
     // The datapath binding.
     //
-    PQUIC_DATAPATH_BINDING DatapathBinding;
+    QUIC_DATAPATH_BINDING* DatapathBinding;
 
     //
     // Lock for accessing the listeners.
@@ -236,7 +236,7 @@ typedef struct _QUIC_BINDING {
 
     } Stats;
 
-} QUIC_BINDING, *PQUIC_BINDING;
+} QUIC_BINDING;
 
 //
 // Global callbacks for all QUIC UDP bindings.
@@ -256,7 +256,7 @@ QuicBindingInitialize(
     _In_ BOOLEAN ShareBinding,
     _In_opt_ const QUIC_ADDR * LocalAddress,
     _In_opt_ const QUIC_ADDR * RemoteAddress,
-    _Out_ PQUIC_BINDING* NewBinding
+    _Out_ QUIC_BINDING** NewBinding
     );
 
 //
@@ -266,7 +266,7 @@ QuicBindingInitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicBindingUninitialize(
-    _In_ PQUIC_BINDING Binding
+    _In_ QUIC_BINDING* Binding
     );
 
 //
@@ -275,7 +275,7 @@ QuicBindingUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicBindingTraceRundown(
-    _In_ PQUIC_BINDING Binding
+    _In_ QUIC_BINDING* Binding
     );
 
 //
@@ -284,9 +284,9 @@ QuicBindingTraceRundown(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return != NULL)
-PQUIC_LISTENER
+QUIC_LISTENER*
 QuicBindingGetListener(
-    _In_ PQUIC_BINDING Binding,
+    _In_ QUIC_BINDING* Binding,
     _In_ const QUIC_NEW_CONNECTION_INFO* Info
     );
 
@@ -296,8 +296,8 @@ QuicBindingGetListener(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicBindingRegisterListener(
-    _In_ PQUIC_BINDING Binding,
-    _In_ PQUIC_LISTENER Listener
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_LISTENER* Listener
     );
 
 //
@@ -306,8 +306,8 @@ QuicBindingRegisterListener(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicBindingUnregisterListener(
-    _In_ PQUIC_BINDING Binding,
-    _In_ PQUIC_LISTENER Listener
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_LISTENER* Listener
     );
 
 //
@@ -317,7 +317,7 @@ QuicBindingUnregisterListener(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingAddSourceConnectionID(
-    _In_ PQUIC_BINDING Binding,
+    _In_ QUIC_BINDING* Binding,
     _In_ QUIC_CID_HASH_ENTRY* SourceCID
     );
 
@@ -327,7 +327,7 @@ QuicBindingAddSourceConnectionID(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicBindingRemoveSourceConnectionID(
-    _In_ PQUIC_BINDING Binding,
+    _In_ QUIC_BINDING* Binding,
     _In_ QUIC_CID_HASH_ENTRY* SourceCID
     );
 
@@ -337,8 +337,8 @@ QuicBindingRemoveSourceConnectionID(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicBindingRemoveConnection(
-    _In_ PQUIC_BINDING Binding,
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -348,9 +348,9 @@ QuicBindingRemoveConnection(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicBindingMoveSourceConnectionIDs(
-    _In_ PQUIC_BINDING BindingSrc,
-    _In_ PQUIC_BINDING BindingDest,
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_BINDING* BindingSrc,
+    _In_ QUIC_BINDING* BindingDest,
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -380,9 +380,9 @@ QuicBindingReleaseStatelessOperation(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicBindingSendTo(
-    _In_ PQUIC_BINDING Binding,
+    _In_ QUIC_BINDING* Binding,
     _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     );
 
 //
@@ -392,10 +392,10 @@ QuicBindingSendTo(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicBindingSendFromTo(
-    _In_ PQUIC_BINDING Binding,
+    _In_ QUIC_BINDING* Binding,
     _In_ const QUIC_ADDR * LocalAddress,
     _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     );
 
 //
@@ -404,7 +404,7 @@ QuicBindingSendFromTo(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicBindingGenerateStatelessResetToken(
-    _In_ PQUIC_BINDING Binding,
+    _In_ QUIC_BINDING* Binding,
     _In_reads_(MSQUIC_CONNECTION_ID_LENGTH)
         const uint8_t* const CID,
     _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)

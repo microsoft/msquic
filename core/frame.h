@@ -81,7 +81,7 @@
 //
 // Different types of QUIC frames
 //
-typedef enum _QUIC_FRAME_TYPE {
+typedef enum QUIC_FRAME_TYPE {
     QUIC_FRAME_PADDING              = 0x0,
     QUIC_FRAME_PING                 = 0x1,
     QUIC_FRAME_ACK                  = 0x2, // to 0x3
@@ -113,7 +113,7 @@ typedef enum _QUIC_FRAME_TYPE {
     QUIC_FRAME_CONNECTION_CLOSE     = 0x1c, // to 0x1d
     QUIC_FRAME_CONNECTION_CLOSE_1   = 0x1d
 
-} QUIC_FRAME_TYPE, *PQUIC_FRAME_TYPE;
+} QUIC_FRAME_TYPE;
 
 #define MAX_QUIC_FRAME QUIC_FRAME_CONNECTION_CLOSE_1
 
@@ -121,36 +121,36 @@ typedef enum _QUIC_FRAME_TYPE {
 // QUIC_FRAME_ACK Encoding/Decoding
 //
 
-typedef struct _QUIC_ACK_EX {
+typedef struct QUIC_ACK_EX {
 
     QUIC_VAR_INT LargestAcknowledged;
     QUIC_VAR_INT AckDelay;
     QUIC_VAR_INT AdditionalAckBlockCount;
     QUIC_VAR_INT FirstAckBlock;
 
-} QUIC_ACK_EX, *PQUIC_ACK_EX;
+} QUIC_ACK_EX;
 
-typedef struct _QUIC_ACK_BLOCK_EX {
+typedef struct QUIC_ACK_BLOCK_EX {
 
     QUIC_VAR_INT Gap;
     QUIC_VAR_INT AckBlock;
 
-} QUIC_ACK_BLOCK_EX, *PQUIC_ACK_BLOCK_EX;
+} QUIC_ACK_BLOCK_EX;
 
-typedef struct _QUIC_ACK_ECN_EX {
+typedef struct QUIC_ACK_ECN_EX {
 
     QUIC_VAR_INT ECT_0_Count;
     QUIC_VAR_INT ECT_1_Count;
     QUIC_VAR_INT CE_Count;
 
-} QUIC_ACK_ECN_EX, *PQUIC_ACK_ECN_EX;
+} QUIC_ACK_ECN_EX;
 
 _Success_(return != FALSE)
 BOOLEAN
 QuicAckFrameEncode(
     _In_ const QUIC_RANGE * const AckBlocks,
     _In_ uint64_t AckDelay,
-    _In_opt_ PQUIC_ACK_ECN_EX Ecn,
+    _In_opt_ QUIC_ACK_ECN_EX* Ecn,
     _Inout_ uint16_t* Offset,
     _In_ uint16_t BufferLength,
     _Out_writes_to_(BufferLength, *Offset)
@@ -166,9 +166,9 @@ QuicAckFrameDecode(
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
     _Out_ BOOLEAN* InvalidFrame,
-    _Inout_ PQUIC_RANGE AckBlocks, // Pre-Initialized by caller
+    _Inout_ QUIC_RANGE* AckBlocks, // Pre-Initialized by caller
     _When_(FrameType == QUIC_FRAME_ACK_1, _Out_)
-        PQUIC_ACK_ECN_EX Ecn,
+        QUIC_ACK_ECN_EX* Ecn,
     _Out_ uint64_t* AckDelay
     );
 
@@ -176,13 +176,13 @@ QuicAckFrameDecode(
 // QUIC_FRAME_RESET_STREAM Encoding/Decoding
 //
 
-typedef struct _QUIC_RESET_STREAM_EX {
+typedef struct QUIC_RESET_STREAM_EX {
 
     QUIC_VAR_INT StreamID;
     QUIC_VAR_INT ErrorCode;
     QUIC_VAR_INT FinalSize;
 
-} QUIC_RESET_STREAM_EX, *PQUIC_RESET_STREAM_EX;
+} QUIC_RESET_STREAM_EX;
 
 _Success_(return != FALSE)
 BOOLEAN
@@ -201,19 +201,19 @@ QuicResetStreamFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_RESET_STREAM_EX Frame
+    _Out_ QUIC_RESET_STREAM_EX* Frame
     );
 
 //
 // QUIC_FRAME_STOP_SENDING Encoding/Decoding
 //
 
-typedef struct _QUIC_STOP_SENDING_EX {
+typedef struct QUIC_STOP_SENDING_EX {
 
     QUIC_VAR_INT StreamID;
     QUIC_VAR_INT ErrorCode;
 
-} QUIC_STOP_SENDING_EX, *PQUIC_STOP_SENDING_EX;
+} QUIC_STOP_SENDING_EX;
 
 _Success_(return != FALSE)
 BOOLEAN
@@ -232,21 +232,21 @@ QuicStopSendingFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_STOP_SENDING_EX Frame
+    _Out_ QUIC_STOP_SENDING_EX* Frame
     );
 
 //
 // QUIC_FRAME_CRYPTO Encoding/Decoding
 //
 
-typedef struct _QUIC_CRYPTO_EX {
+typedef struct QUIC_CRYPTO_EX {
 
     QUIC_VAR_INT Offset;
     QUIC_VAR_INT Length;
     _Field_size_bytes_(Length)
     const uint8_t * Data;
 
-} QUIC_CRYPTO_EX, *PQUIC_CRYPTO_EX;
+} QUIC_CRYPTO_EX;
 
 _Success_(return != FALSE)
 BOOLEAN
@@ -265,19 +265,19 @@ QuicCryptoFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_CRYPTO_EX Frame
+    _Out_ QUIC_CRYPTO_EX* Frame
     );
 
 //
 // QUIC_FRAME_NEW_TOKEN Encoding/Decoding
 //
 
-typedef struct _QUIC_NEW_TOKEN_EX {
+typedef struct QUIC_NEW_TOKEN_EX {
 
     QUIC_VAR_INT TokenLength;
     const uint8_t* Token;
 
-} QUIC_NEW_TOKEN_EX, *PQUIC_NEW_TOKEN_EX;
+} QUIC_NEW_TOKEN_EX;
 
 _Success_(return != FALSE)
 BOOLEAN
@@ -296,14 +296,14 @@ QuicNewTokenFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_NEW_TOKEN_EX Frame
+    _Out_ QUIC_NEW_TOKEN_EX* Frame
     );
 
 //
 // QUIC_FRAME_STREAM Encoding/Decoding
 //
 
-typedef struct _QUIC_STREAM_FRAME_TYPE {
+typedef struct QUIC_STREAM_FRAME_TYPE {
 
     union {
         struct {
@@ -315,11 +315,11 @@ typedef struct _QUIC_STREAM_FRAME_TYPE {
         uint8_t Type;
     };
 
-} QUIC_STREAM_FRAME_TYPE, *PQUIC_STREAM_FRAME_TYPE;
+} QUIC_STREAM_FRAME_TYPE;
 
 #define MIN_STREAM_FRAME_LENGTH (sizeof(QUIC_STREAM_FRAME_TYPE) + 2)
 
-typedef struct _QUIC_STREAM_EX {
+typedef struct QUIC_STREAM_EX {
 
     BOOLEAN Fin;
     BOOLEAN ExplicitLength;
@@ -329,7 +329,7 @@ typedef struct _QUIC_STREAM_EX {
     _Field_size_bytes_(Length)
     const uint8_t * Data;
 
-} QUIC_STREAM_EX, *PQUIC_STREAM_EX;
+} QUIC_STREAM_EX;
 
 inline
 uint8_t
@@ -370,18 +370,18 @@ QuicStreamFrameDecode(
     _Deref_in_range_(0, BufferLength)
     _Deref_out_range_(0, BufferLength)
         uint16_t* Offset,
-    _Out_ PQUIC_STREAM_EX Frame
+    _Out_ QUIC_STREAM_EX* Frame
     );
 
 //
 // QUIC_FRAME_MAX_DATA Encoding/Decoding
 //
 
-typedef struct _QUIC_MAX_DATA_EX {
+typedef struct QUIC_MAX_DATA_EX {
 
     QUIC_VAR_INT MaximumData;
 
-} QUIC_MAX_DATA_EX, *PQUIC_MAX_DATA_EX;
+} QUIC_MAX_DATA_EX;
 
 _Success_(return != FALSE)
 BOOLEAN
@@ -400,19 +400,19 @@ QuicMaxDataFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_MAX_DATA_EX Frame
+    _Out_ QUIC_MAX_DATA_EX* Frame
     );
 
 //
 // QUIC_FRAME_MAX_STREAM_DATA Encoding/Decoding
 //
 
-typedef struct _QUIC_MAX_STREAM_DATA_EX {
+typedef struct QUIC_MAX_STREAM_DATA_EX {
 
     QUIC_VAR_INT StreamID;
     QUIC_VAR_INT MaximumData;
 
-} QUIC_MAX_STREAM_DATA_EX, *PQUIC_MAX_STREAM_DATA_EX;
+} QUIC_MAX_STREAM_DATA_EX;
 
 _Success_(return != FALSE)
 BOOLEAN
@@ -431,19 +431,19 @@ QuicMaxStreamDataFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_MAX_STREAM_DATA_EX Frame
+    _Out_ QUIC_MAX_STREAM_DATA_EX* Frame
     );
 
 //
 // QUIC_FRAME_MAX_STREAMS Encoding/Decoding
 //
 
-typedef struct _QUIC_MAX_STREAMS_EX {
+typedef struct QUIC_MAX_STREAMS_EX {
 
     BOOLEAN BidirectionalStreams;
     QUIC_VAR_INT MaximumStreams;
 
-} QUIC_MAX_STREAMS_EX, *PQUIC_MAX_STREAMS_EX;
+} QUIC_MAX_STREAMS_EX;
 
 _Success_(return != FALSE)
 BOOLEAN
@@ -463,18 +463,18 @@ QuicMaxStreamsFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_MAX_STREAMS_EX Frame
+    _Out_ QUIC_MAX_STREAMS_EX* Frame
     );
 
 //
 // QUIC_FRAME_DATA_BLOCKED Encoding/Decoding
 //
 
-typedef struct _QUIC_DATA_BLOCKED_EX {
+typedef struct QUIC_DATA_BLOCKED_EX {
 
     QUIC_VAR_INT DataLimit;
 
-} QUIC_DATA_BLOCKED_EX, *PQUIC_DATA_BLOCKED_EX;
+} QUIC_DATA_BLOCKED_EX;
 
 _Success_(return != FALSE)
 BOOLEAN
@@ -493,19 +493,19 @@ QuicDataBlockedFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_DATA_BLOCKED_EX Frame
+    _Out_ QUIC_DATA_BLOCKED_EX* Frame
     );
 
 //
 // QUIC_FRAME_STREAM_DATA_BLOCKED Encoding/Decoding
 //
 
-typedef struct _QUIC_STREAM_DATA_BLOCKED_EX {
+typedef struct QUIC_STREAM_DATA_BLOCKED_EX {
 
     QUIC_VAR_INT StreamID;
     QUIC_VAR_INT StreamDataLimit;
 
-} QUIC_STREAM_DATA_BLOCKED_EX, *PQUIC_STREAM_DATA_BLOCKED_EX;
+} QUIC_STREAM_DATA_BLOCKED_EX;
 
 _Success_(return != FALSE)
 BOOLEAN
@@ -524,19 +524,19 @@ QuicStreamDataBlockedFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_STREAM_DATA_BLOCKED_EX Frame
+    _Out_ QUIC_STREAM_DATA_BLOCKED_EX* Frame
     );
 
 //
 // QUIC_FRAME_STREAMS_BLOCKED Encoding/Decoding
 //
 
-typedef struct _QUIC_STREAMS_BLOCKED_EX {
+typedef struct QUIC_STREAMS_BLOCKED_EX {
 
     BOOLEAN BidirectionalStreams;
     QUIC_VAR_INT StreamLimit;
 
-} QUIC_STREAMS_BLOCKED_EX, *PQUIC_STREAMS_BLOCKED_EX;
+} QUIC_STREAMS_BLOCKED_EX;
 
 _Success_(return != FALSE)
 BOOLEAN
@@ -556,14 +556,14 @@ QuicStreamsBlockedFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_STREAMS_BLOCKED_EX Frame
+    _Out_ QUIC_STREAMS_BLOCKED_EX* Frame
     );
 
 //
 // QUIC_FRAME_NEW_CONNECTION_ID Encoding/Decoding
 //
 
-typedef struct _QUIC_NEW_CONNECTION_ID_EX {
+typedef struct QUIC_NEW_CONNECTION_ID_EX {
 
     uint8_t Length;
     QUIC_VAR_INT Sequence;
@@ -572,7 +572,7 @@ typedef struct _QUIC_NEW_CONNECTION_ID_EX {
     //uint8_t ConnectionID[Length];
     //uint8_t StatelessResetToken[16];
 
-} QUIC_NEW_CONNECTION_ID_EX, *PQUIC_NEW_CONNECTION_ID_EX;
+} QUIC_NEW_CONNECTION_ID_EX;
 
 _Success_(return != FALSE)
 BOOLEAN
@@ -591,18 +591,18 @@ QuicNewConnectionIDFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_NEW_CONNECTION_ID_EX Frame
+    _Out_ QUIC_NEW_CONNECTION_ID_EX* Frame
     );
 
 //
 // QUIC_FRAME_RETIRE_CONNECTION_ID Encoding/Decoding
 //
 
-typedef struct _QUIC_RETIRE_CONNECTION_ID_EX {
+typedef struct QUIC_RETIRE_CONNECTION_ID_EX {
 
     QUIC_VAR_INT Sequence;
 
-} QUIC_RETIRE_CONNECTION_ID_EX, *PQUIC_RETIRE_CONNECTION_ID_EX;
+} QUIC_RETIRE_CONNECTION_ID_EX;
 
 _Success_(return != FALSE)
 BOOLEAN
@@ -621,25 +621,25 @@ QuicRetireConnectionIDFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_RETIRE_CONNECTION_ID_EX Frame
+    _Out_ QUIC_RETIRE_CONNECTION_ID_EX* Frame
     );
 
 //
 // QUIC_FRAME_PATH_CHALLENGE Encoding/Decoding
 //
 
-typedef struct _QUIC_PATH_CHALLENGE_EX {
+typedef struct QUIC_PATH_CHALLENGE_EX {
 
     uint8_t Data[8];
 
-} QUIC_PATH_CHALLENGE_EX, *PQUIC_PATH_CHALLENGE_EX;
+} QUIC_PATH_CHALLENGE_EX;
 
 //
 // Struct for QUIC_FRAME_PATH_CHALLENGE is the same as for
 // QUIC_FRAME_PATH_RESPONSE.
 //
 
-typedef QUIC_PATH_CHALLENGE_EX QUIC_PATH_RESPONSE_EX, *PQUIC_PATH_RESPONSE_EX;
+typedef QUIC_PATH_CHALLENGE_EX QUIC_PATH_RESPONSE_EX;
 
 _Success_(return != FALSE)
 BOOLEAN
@@ -659,14 +659,14 @@ QuicPathChallengeFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_PATH_CHALLENGE_EX Frame
+    _Out_ QUIC_PATH_CHALLENGE_EX* Frame
     );
 
 //
 // QUIC_FRAME_CONNECTION_CLOSE Encoding/Decoding
 //
 
-typedef struct _QUIC_CONNECTION_CLOSE_EX {
+typedef struct QUIC_CONNECTION_CLOSE_EX {
 
     BOOLEAN ApplicationClosed;
     QUIC_VAR_INT ErrorCode;
@@ -674,7 +674,7 @@ typedef struct _QUIC_CONNECTION_CLOSE_EX {
     QUIC_VAR_INT ReasonPhraseLength;
     char* ReasonPhrase;     // UTF-8 string.
 
-} QUIC_CONNECTION_CLOSE_EX, *PQUIC_CONNECTION_CLOSE_EX;
+} QUIC_CONNECTION_CLOSE_EX;
 
 _Success_(return != FALSE)
 BOOLEAN
@@ -694,7 +694,7 @@ QuicConnCloseFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_CONNECTION_CLOSE_EX Frame
+    _Out_ QUIC_CONNECTION_CLOSE_EX* Frame
     );
 
 //

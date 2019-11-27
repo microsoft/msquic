@@ -116,7 +116,7 @@ DalTestTearDownTestCase(
 static
 void
 DalTestEmptyReceiveCallback(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ void* RecvContext,
     _In_ QUIC_RECV_DATAGRAM* RecvPacket
     );
@@ -124,7 +124,7 @@ DalTestEmptyReceiveCallback(
 static
 void
 DalTestEmptyUnreachableCallback(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ void* Context,
     _In_ const QUIC_ADDR* RemoteAddress
     );
@@ -132,7 +132,7 @@ DalTestEmptyUnreachableCallback(
 static
 void
 DalTestDataRecvCallback(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ void *Context,
     _In_ QUIC_RECV_DATAGRAM* RecvPacket
     );
@@ -193,25 +193,7 @@ DalTestResolve(
     _In_ ADDRESS_FAMILY Af,
     _In_ const char *HostName
     )
-/*++
 
-Routine Description:
-
-    Resolves a HostName.
-
-Arguments:
-
-    SockAddr - Returns the resolved address.
-
-    Af - The address family.
-
-    HostName - The hostname to resolve.
-
-Return Value:
-
-    None.
-
---*/
 {
     int Ret = 0;
     ADDRINFO hints = {0};
@@ -238,21 +220,7 @@ uint16_t
 DalTestGetNextPortH(
     void
     )
-/*++
 
-Routine Description:
-
-    Gets a new port for binding in host order.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    Returns the port.
-
---*/
 {
     return (++DalTestNextPortH);
 }
@@ -263,21 +231,7 @@ uint16_t
 DalTestGetNextPortN(
     void
     )
-/*++
 
-Routine Description:
-
-    Gets a new port for binding in network order.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    Returns the port.
-
---*/
 {
     return htons(DalTestGetNextPortH());
 }
@@ -288,21 +242,7 @@ SOCKADDR_INET
 DalTestGetNewLocalIPv4(
      bool RandomPort
     )
-/*++
 
-Routine Description:
-
-    Helper to return a new local IPv4 address and port to use.
-
-Arguments:
-
-    RandomPort - Specifies if random port needs to be selected.
-
-Return Value:
-
-    Returns the local address.
-
---*/
 {
     SOCKADDR_INET ipv4Copy = DalTestLocalIPv4;
 
@@ -321,21 +261,7 @@ SOCKADDR_INET
 DalTestGetNewLocalIPv6(
     _In_ bool RandomPort
     )
-/*++
 
-Routine Description:
-
-    Helper to return a new local IPv6 address and port to use.
-
-Arguments:
-
-    RandomPort - Specifies if random port needs to be selected.
-
-Return Value:
-
-    Returns the local address.
-
---*/
 {
     SOCKADDR_INET ipv6Copy = DalTestLocalIPv6;
 
@@ -355,23 +281,7 @@ DalTestGetNewLocalAddr(
     _In_ int AddressFamily,
     _In_ bool RandomPort
     )
-/*++
 
-Routine Description:
-
-    Helper to return a new local IPv4 or IPv6 address based on the test data..
-
-Arguments:
-
-    AddressFamily - The address family.
-
-    RandomPort - Specifies if random port needs to be selected.
-
-Return Value:
-
-    Returns the local address.
-
---*/
 {
     if (AddressFamily == 4) {
         return DalTestGetNewLocalIPv4(RandomPort);
@@ -389,21 +299,7 @@ void
 DalTestSetUpTestCase(
     void
     )
-/*++
 
-Routine Description:
-
-    Sets up test case.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    None.
-
---*/
 {
     //
     // Initialize a semi-random base port number.
@@ -424,21 +320,7 @@ void
 DalTestTearDownTestCase(
     void
     )
-/*++
 
-Routine Description:
-
-    Tears down test case setup.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    None.
-
---*/
 {
     if (DalTestExpectedData != NULL) {
         free(DalTestExpectedData);
@@ -450,29 +332,11 @@ Return Value:
 static
 void
 DalTestEmptyReceiveCallback(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ void* RecvContext,
     _In_ QUIC_RECV_DATAGRAM* RecvPacket
     )
-/*++
 
-Routine Description:
-
-    Empty receive callback.
-
-Arguments:
-
-    Binding - The datapath binding.
-
-    Context - The context passed during callback registration.
-
-    RemoteAddress - The remote address which is unreachable.
-
-Return Value:
-
-    None.
-
---*/
 {
     UNREFERENCED_PARAMETER(Binding);
     UNREFERENCED_PARAMETER(RecvContext);
@@ -484,29 +348,11 @@ Return Value:
 static
 void
 DalTestEmptyUnreachableCallback(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ void* Context,
     _In_ const QUIC_ADDR* RemoteAddress
     )
-/*++
 
-Routine Description:
-
-    Empty unreachable callback.
-
-Arguments:
-
-    Binding - The datapath binding.
-
-    Context - The context passed during callback registration.
-
-    RemoteAddress - The remote address which is unreachable.
-
-Return Value:
-
-    None.
-
---*/
 {
     UNREFERENCED_PARAMETER(Binding);
     UNREFERENCED_PARAMETER(Context);
@@ -520,23 +366,9 @@ BOOLEAN
 DalTestInitialize(
     void
     )
-/*++
 
-Routine Description:
-
-    Executes datapath initialization tests.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    TRUE if succeeded, FALSE otherwise.
-
---*/
 {
-    PQUIC_DATAPATH datapath = NULL;
+    QUIC_DATAPATH* datapath = NULL;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     Status =
@@ -567,23 +399,9 @@ BOOLEAN
 DalTestInitializeInvalid(
     void
     )
-/*++
 
-Routine Description:
-
-    Executes QUIC datapath invalid parameter tests.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    TRUE if test case succeeded, FALSE otherwise.
-
---*/
 {
-    PQUIC_DATAPATH datapath = NULL;
+    QUIC_DATAPATH* datapath = NULL;
     QUIC_STATUS Status = QuicDataPathInitialize(0, 0, 0, 0);
 
     if (Status != QUIC_STATUS_INVALID_PARAMETER) {
@@ -599,24 +417,10 @@ BOOLEAN
 DalTestBind(
     void
     )
-/*++
 
-Routine Description:
-
-    Executes QUIC datapath bind test.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    TRUE if test case succeeded, FALSE otherwise.
-
---*/
 {
-    PQUIC_DATAPATH datapath = NULL;
-    PQUIC_DATAPATH_BINDING binding = NULL;
+    QUIC_DATAPATH* datapath = NULL;
+    QUIC_DATAPATH_BINDING* binding = NULL;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     Status =
@@ -674,25 +478,11 @@ BOOLEAN
 DalTestRebind(
     void
     )
-/*++
 
-Routine Description:
-
-    Executes QUIC datapath rebind tests.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    TRUE if test case succeeded, FALSE otherwise.
-
---*/
 {
-    PQUIC_DATAPATH datapath = NULL;
-    PQUIC_DATAPATH_BINDING binding1 = NULL;
-    PQUIC_DATAPATH_BINDING binding2 = NULL;
+    QUIC_DATAPATH* datapath = NULL;
+    QUIC_DATAPATH_BINDING* binding1 = NULL;
+    QUIC_DATAPATH_BINDING* binding2 = NULL;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     Status =
@@ -768,29 +558,11 @@ Return Value:
 static
 void
 DalTestDataRecvCallback(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ void *Context,
     _In_ QUIC_RECV_DATAGRAM* RecvPacket
     )
-/*++
 
-Routine Description:
-
-    Receive callback invoked by DAL when any data is received.
-
-Arguments:
-
-    Binding - The datapath binding.
-
-    RecvContext - The receive context.
-
-    Recvbuffer - The receive buffer.
-
-Return Value:
-
-    None.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     DAL_TEST_RECV_CONTEXT* RecvContext = (DAL_TEST_RECV_CONTEXT*)Context;
@@ -813,7 +585,7 @@ Return Value:
     if (QuicAddrGetPort(&RecvPacket->Tuple->LocalAddress) ==
             QuicAddrGetPort(&RecvContext->ServerAddress)) {
         LOGINFO("Sending PONG");
-        PQUIC_DATAPATH_SEND_CONTEXT ServerSendContext =
+        QUIC_DATAPATH_SEND_CONTEXT* ServerSendContext =
             QuicDataPathBindingAllocSendContext(Binding, 0);
 
         if (ServerSendContext == NULL) {
@@ -856,26 +628,12 @@ BOOLEAN
 DalTestDataSend(
     void
     )
-/*++
 
-Routine Description:
-
-    Executes QUIC datapath send test.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    TRUE if test case succeeded, FALSE otherwise.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    PQUIC_DATAPATH datapath = NULL;
-    PQUIC_DATAPATH_BINDING server = NULL;
-    PQUIC_DATAPATH_BINDING client = NULL;
+    QUIC_DATAPATH* datapath = NULL;
+    QUIC_DATAPATH_BINDING* server = NULL;
+    QUIC_DATAPATH_BINDING* client = NULL;
     SOCKADDR_INET serverAddress = DalTestGetNewLocalAddr(4, TRUE);
     DAL_TEST_RECV_CONTEXT RecvContext = {0};
 
@@ -946,7 +704,7 @@ Return Value:
         return FALSE;
     }
 
-    PQUIC_DATAPATH_SEND_CONTEXT ClientSendContext =
+    QUIC_DATAPATH_SEND_CONTEXT* ClientSendContext =
         QuicDataPathBindingAllocSendContext(client, 0);
 
     if (ClientSendContext == NULL) {
@@ -997,25 +755,11 @@ BOOLEAN
 DalTestDataSendMultiple(
     void
     )
-/*++
 
-Routine Description:
-
-    Executes QUIC datapath send tests with multiple binds.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    TRUE if test case succeeded, FALSE otherwise.
-
---*/
 {
-    PQUIC_DATAPATH datapath = NULL;
-    PQUIC_DATAPATH_BINDING server = NULL;
-    PQUIC_DATAPATH_BINDING client = NULL;
+    QUIC_DATAPATH* datapath = NULL;
+    QUIC_DATAPATH_BINDING* server = NULL;
+    QUIC_DATAPATH_BINDING* client = NULL;
     SOCKADDR_INET serverAddress = DalTestGetNewLocalAddr(4, TRUE);
     DAL_TEST_RECV_CONTEXT RecvContext = {0};
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -1081,7 +825,7 @@ Return Value:
         return FALSE;
     }
 
-    PQUIC_DATAPATH_SEND_CONTEXT ClientSendContext =
+    QUIC_DATAPATH_SEND_CONTEXT* ClientSendContext =
         QuicDataPathBindingAllocSendContext(client, 0);
 
     if (ClientSendContext == NULL) {
@@ -1190,21 +934,7 @@ void
 DalTestExecuteTestCase(
     _In_ ULONG TestCaseIndex
     )
-/*++
 
-Routine Description:
-
-    Executes a test case.
-
-Arguments:
-
-    TestCaseIndex - The index of the test case to execute.
-
-Return Value:
-
-    None.
-
---*/
 {
     LOGINFO("*Start Testcase: %s.*", TestCases[TestCaseIndex].TestCaseName);
     if ((TestCases[TestCaseIndex].TestCaseFunc)()) {
@@ -1221,21 +951,7 @@ void
 DalTestHelp(
     _In_ char *argv[]
     )
-/*++
 
-Routine Description:
-
-    Prints the help text.
-
-Arguments:
-
-    argv - The argument passed.
-
-Return Value:
-
-    None.
-
---*/
 {
     printf("Usage: \n");
     printf("To execute all tests: %s %ld \n", argv[0], ARRAYSIZE(TestCases));

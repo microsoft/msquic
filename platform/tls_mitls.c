@@ -155,7 +155,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicPacketKeyCreate(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _In_ int Epoch,
     _In_ quic_direction rw,
@@ -165,7 +165,7 @@ QuicPacketKeyCreate(
 //
 // TLS Security Config
 //
-typedef struct _QUIC_SEC_CONFIG {
+typedef struct QUIC_SEC_CONFIG {
 
     //
     // Rundown tracking the clean up of all server security configs.
@@ -185,7 +185,7 @@ typedef struct _QUIC_SEC_CONFIG {
     //
     // The certificate context, used for signing.
     //
-    PQUIC_CERT Certificate;
+    QUIC_CERT* Certificate;
     void* PrivateKey;
 
     //
@@ -199,7 +199,7 @@ typedef struct _QUIC_SEC_CONFIG {
 //
 // The TLS session.
 //
-typedef struct _QUIC_TLS_SESSION {
+typedef struct QUIC_TLS_SESSION {
 
     //
     // Total number of references on the TLS session. Only freed once all
@@ -227,12 +227,12 @@ typedef struct _QUIC_TLS_SESSION {
     //
     const char Alpn[0];
 
-} QUIC_TLS_SESSION, *PQUIC_TLS_SESSION;
+} QUIC_TLS_SESSION;
 
 //
 // Contiguous memory representation of a ticket.
 //
-typedef struct _QUIC_TLS_TICKET {
+typedef struct QUIC_TLS_TICKET {
 
     uint16_t ServerNameLength;
     uint16_t TicketLength;
@@ -240,18 +240,18 @@ typedef struct _QUIC_TLS_TICKET {
     _Field_size_(ServerNameLength + TicketLength + SessionLength)
     uint8_t Buffer[0];
 
-} QUIC_TLS_TICKET, *PQUIC_TLS_TICKET;
+} QUIC_TLS_TICKET;
 
 //
 // Entry into the TLS ticket store.
 //
-typedef struct _QUIC_TLS_TICKET_ENTRY {
+typedef struct QUIC_TLS_TICKET_ENTRY {
 
     QUIC_HASHTABLE_ENTRY Entry;
     long RefCount;
     QUIC_TLS_TICKET Ticket;
 
-} QUIC_TLS_TICKET_ENTRY, *PQUIC_TLS_TICKET_ENTRY;
+} QUIC_TLS_TICKET_ENTRY;
 
 //
 // Releases a reference on the TLS ticket, and frees it if it was the last ref.
@@ -259,10 +259,10 @@ typedef struct _QUIC_TLS_TICKET_ENTRY {
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsTicketRelease(
-    _In_ PQUIC_TLS_TICKET Ticket
+    _In_ QUIC_TLS_TICKET* Ticket
     )
 {
-    PQUIC_TLS_TICKET_ENTRY TicketEntry =
+    QUIC_TLS_TICKET_ENTRY* TicketEntry =
         QUIC_CONTAINING_RECORD(Ticket, QUIC_TLS_TICKET_ENTRY, Ticket);
     if (InterlockedDecrement(&TicketEntry->RefCount) == 0) {
         QUIC_FREE(TicketEntry);
@@ -272,7 +272,7 @@ QuicTlsTicketRelease(
 //
 // The TLS interface context.
 //
-typedef struct _QUIC_TLS {
+typedef struct QUIC_TLS {
 
     //
     // Flag indicating if the TLS represents a server.
@@ -293,7 +293,7 @@ typedef struct _QUIC_TLS {
     //
     // Parent TLS session.
     //
-    PQUIC_TLS_SESSION TlsSession;
+    QUIC_TLS_SESSION* TlsSession;
 
     //
     // The TLS configuration information and credentials.
@@ -328,17 +328,17 @@ typedef struct _QUIC_TLS {
     //
     // Ticket from the ticket store.
     //
-    PQUIC_TLS_TICKET Ticket;
+    QUIC_TLS_TICKET* Ticket;
 
     //
     // Process state for the outstanding process call.
     //
-    PQUIC_TLS_PROCESS_STATE State;
+    QUIC_TLS_PROCESS_STATE* State;
 
     //
     // Callback handlers and input connection.
     //
-    PQUIC_CONNECTION Connection;
+    QUIC_CONNECTION* Connection;
     QUIC_TLS_PROCESS_COMPLETE_CALLBACK_HANDLER ProcessCompleteCallback;
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
 
@@ -368,7 +368,7 @@ typedef struct _QUIC_TLS {
     //
     mitls_extension LocalTP;
 
-} QUIC_TLS, *PQUIC_TLS;
+} QUIC_TLS;
 
 //
 // Callback from mitls for logging purposes.
@@ -501,7 +501,7 @@ QuicTlsServerSecConfigCreate(
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
         }
-        SecurityConfig->Certificate = (PQUIC_CERT)Certificate;
+        SecurityConfig->Certificate = (QUIC_CERT*)Certificate;
     } else {
         Status =
             QuicCertCreate(
@@ -593,11 +593,11 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsSessionInitialize(
     _In_z_ const char* ALPN,
-    _Out_ PQUIC_TLS_SESSION* NewTlsSession
+    _Out_ QUIC_TLS_SESSION** NewTlsSession
     )
 {
     QUIC_STATUS Status;
-    PQUIC_TLS_SESSION TlsSession = NULL;
+    QUIC_TLS_SESSION* TlsSession = NULL;
 
     size_t ALPNLength = strlen(ALPN);
     if (ALPNLength > UINT16_MAX) {
@@ -638,7 +638,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsSessionFree(
-    _In_opt_ PQUIC_TLS_SESSION TlsSession
+    _In_opt_ QUIC_TLS_SESSION* TlsSession
     )
 {
     if (TlsSession != NULL) {
@@ -689,7 +689,7 @@ QuicTlsSessionRelease(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsSessionUninitialize(
-    _In_opt_ PQUIC_TLS_SESSION TlsSession
+    _In_opt_ QUIC_TLS_SESSION* TlsSession
     )
 {
     if (TlsSession != NULL) {
@@ -717,9 +717,9 @@ QuicTlsSessionSetTicketKey(
 // Requires TlsSession->TicketStoreLock to be held (shared or exclusive).
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-PQUIC_TLS_TICKET_ENTRY
+QUIC_TLS_TICKET_ENTRY*
 QuicTlsSessionLookupTicketEntry(
-    _In_ PQUIC_TLS_SESSION TlsSession,
+    _In_ QUIC_TLS_SESSION* TlsSession,
     _In_ uint16_t ServerNameLength,
     _In_reads_(ServerNameLength)
         const char* ServerName,
@@ -731,7 +731,7 @@ QuicTlsSessionLookupTicketEntry(
         QuicHashtableLookup(&TlsSession->TicketStore, TicketHash, &Context);
 
     while (Entry != NULL) {
-        PQUIC_TLS_TICKET_ENTRY Temp =
+        QUIC_TLS_TICKET_ENTRY* Temp =
             QUIC_CONTAINING_RECORD(Entry, QUIC_TLS_TICKET_ENTRY, Entry);
         if (Temp->Ticket.ServerNameLength == ServerNameLength &&
             memcmp(Temp->Ticket.Buffer, ServerName, ServerNameLength) == 0) {
@@ -746,8 +746,8 @@ QuicTlsSessionLookupTicketEntry(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsSessionInsertTicketEntry(
-    _In_ PQUIC_TLS_SESSION TlsSession,
-    _In_ PQUIC_TLS_TICKET_ENTRY NewTicketEntry
+    _In_ QUIC_TLS_SESSION* TlsSession,
+    _In_ QUIC_TLS_TICKET_ENTRY* NewTicketEntry
     )
 {
     uint32_t TicketHash =
@@ -761,7 +761,7 @@ QuicTlsSessionInsertTicketEntry(
     // Since we only allow one entry per server name, we need to see if there
     // is already a ticket in the store, and if so, remove it.
     //
-    PQUIC_TLS_TICKET_ENTRY OldTicketEntry =
+    QUIC_TLS_TICKET_ENTRY* OldTicketEntry =
         QuicTlsSessionLookupTicketEntry(
             TlsSession,
             NewTicketEntry->Ticket.ServerNameLength,
@@ -793,9 +793,9 @@ QuicTlsSessionInsertTicketEntry(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-PQUIC_TLS_TICKET
+QUIC_TLS_TICKET*
 QuicTlsSessionGetTicket(
-    _In_ PQUIC_TLS_SESSION TlsSession,
+    _In_ QUIC_TLS_SESSION* TlsSession,
     _In_ uint16_t ServerNameLength,
     _In_reads_(ServerNameLength)
         const char* ServerName
@@ -806,7 +806,7 @@ QuicTlsSessionGetTicket(
 
     QuicRwLockAcquireShared(&TlsSession->TicketStoreLock);
 
-    PQUIC_TLS_TICKET_ENTRY TicketEntry =
+    QUIC_TLS_TICKET_ENTRY* TicketEntry =
         QuicTlsSessionLookupTicketEntry(
             TlsSession, ServerNameLength, ServerName, TicketHash);
 
@@ -822,7 +822,7 @@ QuicTlsSessionGetTicket(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsSessionAddTicket(
-    _In_ PQUIC_TLS_SESSION TlsSession,
+    _In_ QUIC_TLS_SESSION* TlsSession,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer
@@ -851,8 +851,8 @@ QuicTlsSessionAddTicket(
         Ticket->SessionLength;
 
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (TLS Session is cleaned up).")
-    PQUIC_TLS_TICKET_ENTRY TicketEntry =
-        (PQUIC_TLS_TICKET_ENTRY)QUIC_ALLOC_PAGED(TicketEntryLength);
+    QUIC_TLS_TICKET_ENTRY* TicketEntry =
+        (QUIC_TLS_TICKET_ENTRY*)QUIC_ALLOC_PAGED(TicketEntryLength);
 
     if (TicketEntry == NULL) {
         LogWarning("[tlss][%p] Failed to allocate ticket entry of %u bytes.", TlsSession, (uint32_t)TicketEntryLength);
@@ -868,9 +868,9 @@ QuicTlsSessionAddTicket(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-PQUIC_TLS_TICKET
+QUIC_TLS_TICKET*
 QuicTlsSessionCreateTicket(
-    _In_ PQUIC_TLS_SESSION TlsSession,
+    _In_ QUIC_TLS_SESSION* TlsSession,
     _In_z_ const char* ServerName,
     _In_ const mitls_ticket* miTlsTicket
     )
@@ -883,8 +883,8 @@ QuicTlsSessionCreateTicket(
         miTlsTicket->ticket_len +
         miTlsTicket->session_len;
 
-    PQUIC_TLS_TICKET_ENTRY TicketEntry =
-        (PQUIC_TLS_TICKET_ENTRY)QUIC_ALLOC_PAGED(TicketEntryLength);
+    QUIC_TLS_TICKET_ENTRY* TicketEntry =
+        (QUIC_TLS_TICKET_ENTRY*)QUIC_ALLOC_PAGED(TicketEntryLength);
 
     if (TicketEntry == NULL) {
         LogWarning("[tlss][%p] Failed to allocate ticket entry of %u bytes.", TlsSession, (uint32_t)TicketEntryLength);
@@ -908,11 +908,11 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsInitialize(
     _In_ const QUIC_TLS_CONFIG* Config,
-    _Out_ PQUIC_TLS* NewTlsContext
+    _Out_ QUIC_TLS** NewTlsContext
     )
 {
     QUIC_STATUS Status;
-    PQUIC_TLS TlsContext;
+    QUIC_TLS* TlsContext;
 
     QUIC_DBG_ASSERT(Config != NULL);
     QUIC_DBG_ASSERT(NewTlsContext != NULL);
@@ -1057,7 +1057,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsUninitialize(
-    _In_opt_ PQUIC_TLS TlsContext
+    _In_opt_ QUIC_TLS* TlsContext
     )
 {
     if (TlsContext != NULL) {
@@ -1088,7 +1088,7 @@ QuicTlsUninitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsReset(
-    _In_ PQUIC_TLS TlsContext
+    _In_ QUIC_TLS* TlsContext
     )
 {
     QUIC_DBG_ASSERT(TlsContext->IsServer == FALSE);
@@ -1116,7 +1116,7 @@ QuicTlsReset(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_SEC_CONFIG*
 QuicTlsGetSecConfig(
-    _In_ PQUIC_TLS TlsContext
+    _In_ QUIC_TLS* TlsContext
     )
 {
     return QuicTlsSecConfigAddRef(TlsContext->SecConfig);
@@ -1125,7 +1125,7 @@ QuicTlsGetSecConfig(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessData(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_reads_bytes_(*BufferLength)
         const uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength,
@@ -1186,7 +1186,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessDataComplete(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _Out_ uint32_t * BufferConsumed
     )
 {
@@ -1447,7 +1447,7 @@ QuicTlsOnCertSelect(
 {
     UNREFERENCED_PARAMETER(AlpnBuffer);
     UNREFERENCED_PARAMETER(AlpnBufferLength);
-    PQUIC_TLS TlsContext = (PQUIC_TLS)Context;
+    QUIC_TLS* TlsContext = (QUIC_TLS*)Context;
     const QUIC_SEC_CONFIG* SecurityConfig = NULL;
 
     QUIC_DBG_ASSERT(TlsContext);
@@ -1554,7 +1554,7 @@ QuicTlsOnNegotiate(
     _Inout_ size_t *CookieLength
     )
 {
-    PQUIC_TLS TlsContext = (PQUIC_TLS)Context;
+    QUIC_TLS* TlsContext = (QUIC_TLS*)Context;
     QUIC_DBG_ASSERT(TlsContext);
 
     mitls_nego_action Action = TLS_nego_abort;
@@ -1624,7 +1624,7 @@ QuicTlsOnCertFormat(
     uint8_t Buffer[MAX_CHAIN_LEN]
     )
 {
-    PQUIC_TLS TlsContext = (PQUIC_TLS)Context;
+    QUIC_TLS* TlsContext = (QUIC_TLS*)Context;
     QUIC_DBG_ASSERT(TlsContext);
     QUIC_SEC_CONFIG* SecurityConfig = (QUIC_SEC_CONFIG*)SecContext;
     QUIC_DBG_ASSERT(SecurityConfig);
@@ -1652,7 +1652,7 @@ QuicTlsOnCertSign(
     uint8_t *Signature
     )
 {
-    PQUIC_TLS TlsContext = (PQUIC_TLS)Context;
+    QUIC_TLS* TlsContext = (QUIC_TLS*)Context;
     QUIC_DBG_ASSERT(TlsContext);
     QUIC_SEC_CONFIG* SecurityConfig = (QUIC_SEC_CONFIG*)SecContext;
     QUIC_DBG_ASSERT(SecurityConfig);
@@ -1691,13 +1691,13 @@ QuicTlsOnCertVerify(
     size_t SignatureLength
     )
 {
-    PQUIC_TLS TlsContext = (PQUIC_TLS)Context;
+    QUIC_TLS* TlsContext = (QUIC_TLS*)Context;
     QUIC_DBG_ASSERT(TlsContext);
 
     LogVerbose("[ tls][%p] OnCertVerify", TlsContext);
 
     int Result = 0;
-    PQUIC_CERT Certificate = NULL;
+    QUIC_CERT* Certificate = NULL;
 
     if (TlsContext->SecConfig->Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION) {
         LogWarning("[ tls][%p] Certificate validation disabled!", TlsContext);
@@ -1750,7 +1750,7 @@ QuicTlsOnTicketReady(
     const mitls_ticket *Ticket
     )
 {
-    PQUIC_TLS TlsContext = (PQUIC_TLS)Context;
+    QUIC_TLS* TlsContext = (QUIC_TLS*)Context;
     QUIC_DBG_ASSERT(TlsContext);
 
     LogVerbose("[ tls][%p] Received new ticket. ticket_len:%d session_len:%d for %s",
@@ -1780,7 +1780,7 @@ QuicTlsOnTicketReady(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsReadTicket(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
         uint8_t* Buffer
@@ -1828,7 +1828,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsParamSet(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -1853,7 +1853,7 @@ QuicTlsParamSet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsParamGet(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
@@ -1879,18 +1879,18 @@ QuicTlsParamGet(
 // Crypto / Key Functionality
 //
 
-typedef struct _QUIC_KEY {
+typedef struct QUIC_KEY {
     QUIC_AEAD_TYPE Aead;
     uint8_t Key[32];
 } QUIC_KEY;
 
-typedef struct _QUIC_HASH {
+typedef struct QUIC_HASH {
     QUIC_HASH_TYPE Type;
     uint32_t SaltLength;
     uint8_t Salt[0];
 } QUIC_HASH;
 
-typedef struct _QUIC_HP_KEY {
+typedef struct QUIC_HP_KEY {
     QUIC_AEAD_TYPE Aead;
     union {
         uint8_t case_chacha20[32];
@@ -2281,7 +2281,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicPacketKeyCreate(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _In_ int Epoch,
     _In_ quic_direction rw,

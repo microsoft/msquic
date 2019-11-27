@@ -118,14 +118,14 @@ QUIC_STATIC_ASSERT(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPathInitialize(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPathSetAllowance(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ uint32_t NewAllowance
     );
@@ -134,7 +134,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 void
 QuicPathIncrementAllowance(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ uint32_t Amount
     )
@@ -146,7 +146,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 void
 QuicPathDecrementAllowance(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ uint32_t Amount
     )
@@ -166,7 +166,7 @@ typedef enum QUIC_PATH_VALID_REASON {
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPathSetValid(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ QUIC_PATH_VALID_REASON Reason
     );
@@ -174,7 +174,7 @@ QuicPathSetValid(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPathSetActive(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path
     );
 
@@ -182,7 +182,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
 QUIC_PATH*
 QuicConnGetPathByID(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint8_t ID
     );
 
@@ -190,12 +190,12 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
 QUIC_PATH*
 QuicConnGetPathForDatagram(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_RECV_DATAGRAM* Datagram
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnRemoveInvalidPaths(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     );

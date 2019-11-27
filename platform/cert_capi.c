@@ -395,7 +395,7 @@ QUIC_STATUS
 QuicCertLookupHash(
     _In_opt_ const QUIC_CERTIFICATE_HASH* CertHash,
     _In_opt_z_ const char* Principal,
-    _Out_ PQUIC_CERT* NewCertificate
+    _Out_ QUIC_CERT** NewCertificate
     )
 {
     QUIC_STATUS Status;
@@ -426,7 +426,7 @@ QuicCertLookupHash(
     }
 
     Status = QUIC_STATUS_SUCCESS;
-    *NewCertificate = (PQUIC_CERT)CertCtx;
+    *NewCertificate = (QUIC_CERT*)CertCtx;
 
 Exit:
 
@@ -441,7 +441,7 @@ QUIC_STATUS
 QuicCertLookupHashStore(
     _In_ const QUIC_CERTIFICATE_HASH_STORE* CertHashStore,
     _In_opt_z_ const char* Principal,
-    _Out_ PQUIC_CERT* NewCertificate
+    _Out_ QUIC_CERT** NewCertificate
     )
 {
     QUIC_STATUS Status;
@@ -477,7 +477,7 @@ QuicCertLookupHashStore(
     }
 
     Status = QUIC_STATUS_SUCCESS;
-    *NewCertificate = (PQUIC_CERT)CertCtx;
+    *NewCertificate = (QUIC_CERT*)CertCtx;
 
 Exit:
 
@@ -493,7 +493,7 @@ QuicCertCreate(
     _In_ UINT32 Flags,
     _In_opt_ void* CertConfig,
     _In_opt_z_ const char* Principal,
-    _Out_ PQUIC_CERT* NewCertificate
+    _Out_ QUIC_CERT** NewCertificate
     )
 {
     QUIC_STATUS Status;
@@ -534,7 +534,7 @@ Exit:
 
 void
 QuicCertFree(
-    _In_ PQUIC_CERT Certificate
+    _In_ QUIC_CERT* Certificate
     )
 {
     (void)CertFreeCertificateContext((PCERT_CONTEXT)Certificate);
@@ -577,7 +577,7 @@ QuicCertSelect(
 }
 
 _Success_(return != NULL)
-PQUIC_CERT
+QUIC_CERT*
 QuicCertParseChain(
     _In_ size_t ChainBufferLength,
     _In_reads_(ChainBufferLength) const BYTE *ChainBuffer
@@ -652,13 +652,13 @@ Exit:
         CertCloseStore(TempStore, 0);
     }
 
-    return (PQUIC_CERT)LeafCertCtx;
+    return (QUIC_CERT*)LeafCertCtx;
 }
 
 _Success_(return != 0)
 size_t
 QuicCertFormat(
-    _In_opt_ PQUIC_CERT Certificate,
+    _In_opt_ QUIC_CERT* Certificate,
     _In_ size_t BufferLength,
     _Out_writes_to_(BufferLength, return)
         BYTE* Buffer
@@ -789,7 +789,7 @@ Exit:
 _Success_(return != FALSE)
 BOOLEAN
 QuicCertValidateChain(
-    _In_ PQUIC_CERT Certificate,
+    _In_ QUIC_CERT* Certificate,
     _In_opt_z_ PCSTR Host,
     _In_ uint32_t IgnoreFlags
     )
@@ -869,7 +869,7 @@ Exit:
 _Success_(return != NULL)
 void*
 QuicCertGetPrivateKey(
-    _In_ PQUIC_CERT Certificate
+    _In_ QUIC_CERT* Certificate
     )
 {
     PCCERT_CONTEXT CertCtx = (PCCERT_CONTEXT)Certificate;
@@ -1012,7 +1012,7 @@ Exit:
 _Success_(return != FALSE)
 BOOLEAN
 QuicCertVerify(
-    _In_ PQUIC_CERT Certificate,
+    _In_ QUIC_CERT* Certificate,
     _In_ const UINT16 SignatureAlgorithm,
     _In_reads_(CertListToVerifyLength)
         const BYTE *CertListToVerify,

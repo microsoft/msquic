@@ -5,7 +5,7 @@
 
 --*/
 
-typedef struct _QUIC_SETTINGS {
+typedef struct QUIC_SETTINGS {
 
     BOOLEAN PacingDefault;
     uint8_t MaxPartitionCount;

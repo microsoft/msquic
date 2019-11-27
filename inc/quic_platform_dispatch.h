@@ -14,8 +14,8 @@ Environment:
 
 --*/
 
-#ifndef _QUIC_PLATFORM_DISPATCH_
-#define _QUIC_PLATFORM_DISPATCH_
+#ifndef QUIC_PLATFORM_DISPATCH_
+#define QUIC_PLATFORM_DISPATCH_
 
 #include "quic_platform.h"
 #include "quic_datapath.h"
@@ -41,25 +41,25 @@ void
 (*QUIC_POOL_INITIALIZE)(
     _In_ BOOLEAN IsPaged,
     _In_ uint32_t Size,
-    _Inout_ PQUIC_POOL Pool
+    _Inout_ QUIC_POOL* Pool
     );
 
 typedef
 void
 (*QUIC_POOL_UNINITIALIZE)(
-    _Inout_ PQUIC_POOL Pool
+    _Inout_ QUIC_POOL* Pool
     );
 
 typedef
 void*
 (*QUIC_POOL_ALLOC)(
-    _Inout_ PQUIC_POOL Pool
+    _Inout_ QUIC_POOL* Pool
     );
 
 typedef
 void
 (*QUIC_POOL_FREE)(
-    _Inout_ PQUIC_POOL Pool,
+    _Inout_ QUIC_POOL* Pool,
     _In_ void* Entry
     );
 
@@ -89,38 +89,38 @@ QUIC_STATUS
     _In_ uint32_t ClientRecvContextLength,
     _In_ QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER RecvCallback,
     _In_ QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER UnreachableCallback,
-    _Out_ PQUIC_DATAPATH *NewDatapath
+    _Out_ QUIC_DATAPATH* *NewDatapath
     );
 
 typedef
 void
 (*QUIC_DATAPATH_UNINITIALIZE)(
-    _In_ PQUIC_DATAPATH Datapath
+    _In_ QUIC_DATAPATH* Datapath
     );
 
 typedef
 QUIC_RSS_MODE
 (*QUIC_DATAPATH_GET_RSS_MODE)(
-    _In_ PQUIC_DATAPATH Datapath
+    _In_ QUIC_DATAPATH* Datapath
     );
 
 typedef
 QUIC_STATUS
 (*QUIC_DATAPATH_SET_RSS_MODE)(
-    _In_ PQUIC_DATAPATH Datapath,
+    _In_ QUIC_DATAPATH* Datapath,
     _In_ QUIC_RSS_MODE Mode
     );
 
 typedef
 BOOLEAN
 (*QUIC_DATAPATH_IS_PADDING_PREFERRED)(
-    _In_ PQUIC_DATAPATH Datapath
+    _In_ QUIC_DATAPATH* Datapath
     );
 
 typedef
 QUIC_STATUS
 (*QUIC_DATAPATH_RESOLVE_ADDRESS)(
-    _In_ PQUIC_DATAPATH Datapath,
+    _In_ QUIC_DATAPATH* Datapath,
     _In_z_ const char* HostName,
     _Inout_ QUIC_ADDR * Address
     );
@@ -128,36 +128,36 @@ QUIC_STATUS
 typedef
 QUIC_STATUS
 (*QUIC_DATAPATH_BINDING_CREATE)(
-    _In_ PQUIC_DATAPATH Datapath,
+    _In_ QUIC_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR * LocalAddress,
     _In_opt_ const QUIC_ADDR * RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
-    _Out_ PQUIC_DATAPATH_BINDING* Binding
+    _Out_ QUIC_DATAPATH_BINDING** Binding
     );
 
 typedef
 void
 (*QUIC_DATAPATH_BINDING_DELETE)(
-    _In_ PQUIC_DATAPATH_BINDING Binding
+    _In_ QUIC_DATAPATH_BINDING* Binding
     );
 
 typedef
 uint16_t
 (*QUIC_DATPATH_BINDING_GET_LOCAL_MTU)(
-    _In_ PQUIC_DATAPATH_BINDING Binding
+    _In_ QUIC_DATAPATH_BINDING* Binding
     );
 
 typedef
 void
 (*QUIC_DATAPATH_BINDING_GET_LOCAL_ADDRESS)(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _Out_ QUIC_ADDR * Address
     );
 
 typedef
 void
 (*QUIC_DATAPATH_BINDING_GET_REMOTE_ADDRESS)(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _Out_ QUIC_ADDR * Address
     );
 
@@ -168,59 +168,59 @@ void
     );
 
 typedef
-PQUIC_DATAPATH_SEND_CONTEXT
+QUIC_DATAPATH_SEND_CONTEXT*
 (*QUIC_DATAPATH_BINDING_ALLOC_SEND_CONTEXT)(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ uint16_t MaxPacketSize
     );
 
 typedef
 void
 (*QUIC_DATAPATH_BINDING_FREE_SEND_CONTEXT)(
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     );
 
 typedef
 QUIC_BUFFER*
 (*QUIC_DATAPATH_BINDING_ALLOC_SEND_BUFFER)(
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext,
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
     _In_ uint16_t MaxBufferLength
     );
 
 typedef
 void
 (*QUIC_DATAPATH_BINDING_FREE_SEND_BUFFER)(
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext,
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
     _In_ QUIC_BUFFER* SendBuffer
     );
 
 typedef
 BOOLEAN
 (*QUIC_DATAPATH_BINDING_IS_SEND_CONTEXT_FULL)(
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     );
 
 typedef
 QUIC_STATUS
 (*QUIC_DATAPATH_BINDING_SEND_TO)(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     );
 
 typedef
 QUIC_STATUS
 (*QUIC_DATAPATH_BINDING_SEND_FROM_TO)(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ const QUIC_ADDR * LocalAddress,
     _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     );
 
 typedef
 QUIC_STATUS
 (*QUIC_DATAPATH_BINDING_SET_PARAM)(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength) const uint8_t * Buffer
@@ -229,7 +229,7 @@ QUIC_STATUS
 typedef
 QUIC_STATUS
 (*QUIC_DATAPATH_BINDING_GET_PARAM)(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength) uint8_t * Buffer
@@ -243,7 +243,7 @@ QUIC_STATUS
     );
 
 
-typedef struct _QUIC_PLATFORM_DISPATCH {
+typedef struct QUIC_PLATFORM_DISPATCH {
     QUIC_ALLOC Alloc;
     QUIC_FREE Free;
     QUIC_POOL_INITIALIZE PoolInitialize;
@@ -279,8 +279,8 @@ typedef struct _QUIC_PLATFORM_DISPATCH {
     QUIC_DATAPATH_BINDING_SET_PARAM DatapathBindingSetParam;
     QUIC_DATAPATH_BINDING_GET_PARAM DatapathBindingGetParam;
 
-} QUIC_PLATFORM_DISPATCH, *PQUIC_PLATFORM_DISPATCH;
+} QUIC_PLATFORM_DISPATCH;
 
-extern PQUIC_PLATFORM_DISPATCH PlatDispatch;
+extern QUIC_PLATFORM_DISPATCH* PlatDispatch;
 
 #endif

@@ -148,7 +148,7 @@ QuicSendBufferFill(
     Entry = Connection->Send.SendStreams.Flink;
     while (QuicSendBufferHasSpace(&Connection->SendBuffer) && Entry != &(Connection->Send.SendStreams)) {
 
-        PQUIC_STREAM Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
+        QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
         Entry = Entry->Flink;
 
 #if QUIC_TEST_MODE

@@ -139,7 +139,7 @@ TlsWriteTransportParamVarInt(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoTlsReadSniExtension(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_reads_(BufferLength)
         const uint8_t* Buffer,
     _In_ uint16_t BufferLength,
@@ -222,7 +222,7 @@ QuicCryptoTlsReadSniExtension(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoTlsReadAlpnExtension(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_reads_(BufferLength)
         const uint8_t* Buffer,
     _In_ uint16_t BufferLength,
@@ -285,7 +285,7 @@ QuicCryptoTlsReadAlpnExtension(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoTlsReadExtensions(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_reads_(BufferLength)
         const uint8_t* Buffer,
     _In_ uint16_t BufferLength,
@@ -351,7 +351,7 @@ QuicCryptoTlsReadExtensions(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoTlsReadClientHello(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_reads_(BufferLength)
         const uint8_t* Buffer,
     _In_ uint32_t BufferLength,
@@ -487,7 +487,7 @@ QuicCrytpoTlsGetCompleteTlsMessagesLength(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoTlsReadInitial(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_reads_(BufferLength)
         const uint8_t* Buffer,
     _In_ uint32_t BufferLength,
@@ -540,7 +540,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 const uint8_t*
 QuicCryptoTlsEncodeTransportParameters(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_TRANSPORT_PARAMETERS *TransportParams,
     _Out_ uint32_t* TPLen
     )
@@ -774,7 +774,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicCryptoTlsDecodeTransportParameters(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_reads_(TPLen)
         const uint8_t* TPBuf,
     _In_ uint16_t TPLen,

@@ -18,9 +18,9 @@ extern "C" {
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
 #pragma warning(disable:4214)  // nonstandard extension used: bit field types other than int
 
-typedef struct _QUIC_KEY QUIC_KEY;
-typedef struct _QUIC_HP_KEY QUIC_HP_KEY;
-typedef struct _QUIC_HASH QUIC_HASH;
+typedef struct QUIC_KEY QUIC_KEY;
+typedef struct QUIC_HP_KEY QUIC_HP_KEY;
+typedef struct QUIC_HASH QUIC_HASH;
 
 #define QUIC_HKDF_PREFIX        "tls13 "
 #define QUIC_HKDF_PREFIX_LEN    (sizeof(QUIC_HKDF_PREFIX) - 1)
@@ -48,7 +48,7 @@ typedef struct _QUIC_HASH QUIC_HASH;
 //
 // Different AEAD algorithms supported for QUIC.
 //
-typedef enum _QUIC_AEAD_TYPE {
+typedef enum QUIC_AEAD_TYPE {
 
     QUIC_AEAD_AES_128_GCM       = 0,    // 16 byte key
     QUIC_AEAD_AES_256_GCM       = 1,    // 32 byte key
@@ -56,7 +56,7 @@ typedef enum _QUIC_AEAD_TYPE {
 
 } QUIC_AEAD_TYPE;
 
-typedef enum _QUIC_AEAD_TYPE_SIZE {
+typedef enum QUIC_AEAD_TYPE_SIZE {
 
     QUIC_AEAD_AES_128_GCM_SIZE       = 16,
     QUIC_AEAD_AES_256_GCM_SIZE       = 32,
@@ -83,7 +83,7 @@ QuicKeyLength(
 //
 // Different hash algorithms supported for QUIC.
 //
-typedef enum _QUIC_HASH_TYPE {
+typedef enum QUIC_HASH_TYPE {
 
     QUIC_HASH_SHA256  = 0,    // 32 bytes
     QUIC_HASH_SHA384  = 1,    // 48 bytes
@@ -91,7 +91,7 @@ typedef enum _QUIC_HASH_TYPE {
 
 } QUIC_HASH_TYPE;
 
-typedef enum _QUIC_HASH_TYPE_SIZE {
+typedef enum QUIC_HASH_TYPE_SIZE {
 
     QUIC_HASH_SHA256_SIZE = 32,
     QUIC_HASH_SHA384_SIZE = 48,
@@ -117,7 +117,7 @@ QuicHashLength(
     }
 }
 
-typedef struct _QUIC_SECRET {
+typedef struct QUIC_SECRET {
     QUIC_HASH_TYPE Hash;
     QUIC_AEAD_TYPE Aead;
     uint8_t Secret[QUIC_HASH_MAX_SIZE];
@@ -126,7 +126,7 @@ typedef struct _QUIC_SECRET {
 //
 // Different possible packet key types.
 //
-typedef enum _QUIC_PACKET_KEY_TYPE {
+typedef enum QUIC_PACKET_KEY_TYPE {
 
     QUIC_PACKET_KEY_INITIAL,
     QUIC_PACKET_KEY_0_RTT,
@@ -141,7 +141,7 @@ typedef enum _QUIC_PACKET_KEY_TYPE {
 
 #pragma warning(disable:4200)  // nonstandard extension used: zero-length array in struct/union
 
-typedef struct _QUIC_PACKET_KEY {
+typedef struct QUIC_PACKET_KEY {
 
     QUIC_PACKET_KEY_TYPE Type;
     QUIC_KEY* PacketKey;

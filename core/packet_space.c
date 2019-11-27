@@ -19,13 +19,13 @@ Abstract:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicPacketSpaceInitialize(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
-    _Out_ PQUIC_PACKET_SPACE* NewPackets
+    _Out_ QUIC_PACKET_SPACE** NewPackets
     )
 {
     QUIC_STATUS Status;
-    PQUIC_PACKET_SPACE Packets;
+    QUIC_PACKET_SPACE* Packets;
 
     Packets = QUIC_ALLOC_NONPAGED(sizeof(QUIC_PACKET_SPACE));
     if (Packets == NULL) {
@@ -58,7 +58,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPacketSpaceUninitialize(
-    _In_ PQUIC_PACKET_SPACE Packets
+    _In_ QUIC_PACKET_SPACE* Packets
     )
 {
     //
@@ -80,7 +80,7 @@ QuicPacketSpaceUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketSpaceReset(
-    _In_ PQUIC_PACKET_SPACE Packets
+    _In_ QUIC_PACKET_SPACE* Packets
     )
 {
     QuicAckTrackerReset(&Packets->AckTracker);

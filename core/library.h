@@ -8,7 +8,7 @@
 //
 // The different possible types of handles.
 //
-typedef enum _QUIC_HANDLE_TYPE {
+typedef enum QUIC_HANDLE_TYPE {
 
     QUIC_HANDLE_TYPE_REGISTRATION,
     QUIC_HANDLE_TYPE_SESSION,
@@ -22,7 +22,7 @@ typedef enum _QUIC_HANDLE_TYPE {
 //
 // The base type for all QUIC handles.
 //
-typedef struct _QUIC_HANDLE {
+typedef struct QUIC_HANDLE {
 
     //
     // The current type of handle (client/server/child).
@@ -34,12 +34,12 @@ typedef struct _QUIC_HANDLE {
     //
     void* ClientContext;
 
-} QUIC_HANDLE, *PQUIC_HANDLE;
+} QUIC_HANDLE;
 
 //
 // Per-processor storage for global library state.
 //
-typedef struct QUIC_CACHEALIGN _QUIC_LIBRARY_PP {
+typedef struct QUIC_CACHEALIGN QUIC_LIBRARY_PP {
 
     //
     // Pool for QUIC_CONNECTIONs.
@@ -51,7 +51,7 @@ typedef struct QUIC_CACHEALIGN _QUIC_LIBRARY_PP {
 //
 // Represents the storage for global library state.
 //
-typedef struct _QUIC_LIBRARY {
+typedef struct QUIC_LIBRARY {
 
     //
     // Tracks whether the library loaded (DllMain or DriverEntry invoked on Windows).
@@ -131,12 +131,12 @@ typedef struct _QUIC_LIBRARY {
     //
     // Handle to global persistent storage (registry).
     //
-    PQUIC_STORAGE Storage;
+    QUIC_STORAGE* Storage;
 
     //
     // Datapath instance for the library.
     //
-    PQUIC_DATAPATH Datapath;
+    QUIC_DATAPATH* Datapath;
 
     //
     // List of all registrations in the current process (or kernel).
@@ -152,7 +152,7 @@ typedef struct _QUIC_LIBRARY {
     // Set of workers that manage processing client Initial packets on the
     // server side.
     //
-    PQUIC_WORKER_POOL WorkerPool;
+    QUIC_WORKER_POOL* WorkerPool;
 
     //
     // Per-processor storage. Count of `PartitionCount`.
@@ -215,11 +215,11 @@ QuicLibraryGetParam(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryGetBinding(
-    _In_ PQUIC_SESSION Session,
+    _In_ QUIC_SESSION* Session,
     _In_ BOOLEAN ShareBinding,
     _In_opt_ const QUIC_ADDR * LocalAddress,
     _In_opt_ const QUIC_ADDR * RemoteAddress,
-    _Out_ PQUIC_BINDING* NewBinding
+    _Out_ QUIC_BINDING** NewBinding
     );
 
 //
@@ -229,7 +229,7 @@ QuicLibraryGetBinding(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicLibraryTryAddRefBinding(
-    _In_ PQUIC_BINDING Binding
+    _In_ QUIC_BINDING* Binding
     );
 
 //
@@ -240,7 +240,7 @@ QuicLibraryTryAddRefBinding(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLibraryReleaseBinding(
-    _In_ PQUIC_BINDING Binding
+    _In_ QUIC_BINDING* Binding
     );
 
 //
@@ -250,7 +250,7 @@ QuicLibraryReleaseBinding(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicLibraryOnListenerRegistered(
-    _In_ PQUIC_LISTENER Listener
+    _In_ QUIC_LISTENER* Listener
     );
 
 //

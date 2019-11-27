@@ -13,7 +13,7 @@ Abstract:
 //
 // Stream of TLS data.
 //
-typedef struct _QUIC_CRYPTO {
+typedef struct QUIC_CRYPTO {
 
     //
     // Indicates the crypto object has been initialized.
@@ -38,7 +38,7 @@ typedef struct _QUIC_CRYPTO {
     //
     // The TLS context for processing handshake messages.
     //
-    PQUIC_TLS TLS;
+    QUIC_TLS* TLS;
 
     //
     // Send State
@@ -93,12 +93,12 @@ typedef struct _QUIC_CRYPTO {
     //
     QUIC_RECV_BUFFER RecvBuffer;
 
-} QUIC_CRYPTO, *PQUIC_CRYPTO;
+} QUIC_CRYPTO;
 
 inline
 BOOLEAN
 QuicCryptoHasPendingCryptoFrame(
-    _In_ PQUIC_CRYPTO Crypto
+    _In_ QUIC_CRYPTO* Crypto
     )
 {
     return
@@ -109,13 +109,13 @@ QuicCryptoHasPendingCryptoFrame(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoInitialize(
-    _Inout_ PQUIC_CRYPTO Crypto
+    _Inout_ QUIC_CRYPTO* Crypto
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoUninitialize(
-    _In_ PQUIC_CRYPTO Crypto
+    _In_ QUIC_CRYPTO* Crypto
     );
 
 //
@@ -124,7 +124,7 @@ QuicCryptoUninitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoInitializeTls(
-    _Inout_ PQUIC_CRYPTO Crypto,
+    _Inout_ QUIC_CRYPTO* Crypto,
     _In_ QUIC_SEC_CONFIG* SecConfig,
     _In_ const QUIC_TRANSPORT_PARAMETERS* Params
     );
@@ -136,7 +136,7 @@ QuicCryptoInitializeTls(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoReset(
-    _In_ PQUIC_CRYPTO Crypto,
+    _In_ QUIC_CRYPTO* Crypto,
     _In_ BOOLEAN ResetTls
     );
 
@@ -148,7 +148,7 @@ QuicCryptoReset(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicCryptoDiscardKeys(
-    _In_ PQUIC_CRYPTO Crypto,
+    _In_ QUIC_CRYPTO* Crypto,
     _In_ QUIC_PACKET_KEY_TYPE KeyType
     );
 
@@ -158,7 +158,7 @@ QuicCryptoDiscardKeys(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_ENCRYPT_LEVEL
 QuicCryptoGetNextEncryptLevel(
-    _In_ PQUIC_CRYPTO Crypto
+    _In_ QUIC_CRYPTO* Crypto
     );
 
 //
@@ -168,7 +168,7 @@ QuicCryptoGetNextEncryptLevel(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicCryptoWriteFrames(
-    _In_ PQUIC_CRYPTO Crypto,
+    _In_ QUIC_CRYPTO* Crypto,
     _Inout_ QUIC_PACKET_BUILDER* Builder
     );
 
@@ -178,8 +178,8 @@ QuicCryptoWriteFrames(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoOnLoss(
-    _In_ PQUIC_CRYPTO Crypto,
-    _In_ PQUIC_SENT_FRAME_METADATA FrameMetadata
+    _In_ QUIC_CRYPTO* Crypto,
+    _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata
     );
 
 //
@@ -188,8 +188,8 @@ QuicCryptoOnLoss(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoOnAck(
-    _In_ PQUIC_CRYPTO Crypto,
-    _In_ PQUIC_SENT_FRAME_METADATA FrameMetadata
+    _In_ QUIC_CRYPTO* Crypto,
+    _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata
     );
 
 //
@@ -198,7 +198,7 @@ QuicCryptoOnAck(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoProcessFrame(
-    _In_ PQUIC_CRYPTO Crypto,
+    _In_ QUIC_CRYPTO* Crypto,
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _In_ const QUIC_CRYPTO_EX* const Frame
     );
@@ -209,7 +209,7 @@ QuicCryptoProcessFrame(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoProcessData(
-    _In_ PQUIC_CRYPTO Crypto,
+    _In_ QUIC_CRYPTO* Crypto,
     _In_ BOOLEAN IsClientInitial
     );
 
@@ -219,7 +219,7 @@ QuicCryptoProcessData(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoProcessCompleteOperation(
-    _In_ PQUIC_CRYPTO Crypto
+    _In_ QUIC_CRYPTO* Crypto
     );
 
 //
@@ -242,7 +242,7 @@ QuicCrytpoTlsGetCompleteTlsMessagesLength(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoTlsReadInitial(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_reads_(BufferLength)
         const uint8_t* Buffer,
     _In_ uint32_t BufferLength,
@@ -255,7 +255,7 @@ QuicCryptoTlsReadInitial(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoGenerateNewKeys(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -268,6 +268,6 @@ QuicCryptoGenerateNewKeys(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoUpdateKeyPhase (
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN LocalUpdate
     );

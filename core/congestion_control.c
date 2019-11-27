@@ -88,11 +88,11 @@ QuicConnLogCubic(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicCongestionControlInitialize(
-    _In_ PQUIC_CONGESTION_CONTROL Cc,
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ const QUIC_SETTINGS* Settings
     )
 {
-    PQUIC_CONNECTION Connection = QuicCongestionControlGetConnection(Cc);
+    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     Cc->SlowStartThreshold = UINT32_MAX;
     Cc->SendIdleTimeoutMs = Settings->SendIdleTimeoutMs;
     Cc->InitialWindowPackets = Settings->InitialWindowPackets;
@@ -105,10 +105,10 @@ QuicCongestionControlInitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicCongestionControlReset(
-    _In_ PQUIC_CONGESTION_CONTROL Cc
+    _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    PQUIC_CONNECTION Connection = QuicCongestionControlGetConnection(Cc);
+    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     Cc->SlowStartThreshold = UINT32_MAX;
     Cc->IsInRecovery = FALSE;
     Cc->HasHadCongestionEvent = FALSE;
@@ -125,7 +125,7 @@ QuicCongestionControlReset(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 QuicCongestionControlPredictNextWindow(
-    _In_ PQUIC_CONGESTION_CONTROL Cc
+    _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
     //
@@ -148,13 +148,13 @@ QuicCongestionControlPredictNextWindow(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 QuicCongestionControlGetSendAllowance(
-    _In_ PQUIC_CONGESTION_CONTROL Cc,
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint64_t TimeSinceLastSend, // microsec
     _In_ BOOLEAN TimeSinceLastSendValid
     )
 {
     uint32_t SendAllowance;
-    PQUIC_CONNECTION Connection = QuicCongestionControlGetConnection(Cc);
+    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     if (Cc->BytesInFlight >= Cc->CongestionWindow) {
         //
         // We are CC blocked, so we can't send anything.
@@ -225,11 +225,11 @@ QuicCongestionControlGetSendAllowance(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicCongestionControlUpdateBlockedState(
-    _In_ PQUIC_CONGESTION_CONTROL Cc,
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ BOOLEAN PreviousCanSendState
     )
 {
-    PQUIC_CONNECTION Connection = QuicCongestionControlGetConnection(Cc);
+    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     QuicConnLogOutFlowStats(Connection);
     if (PreviousCanSendState != QuicCongestionControlCanSend(Cc)) {
         if (PreviousCanSendState) {
@@ -247,10 +247,10 @@ QuicCongestionControlUpdateBlockedState(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicCongestionControlOnCongestionEvent(
-    _In_ PQUIC_CONGESTION_CONTROL Cc
+    _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    PQUIC_CONNECTION Connection = QuicCongestionControlGetConnection(Cc);
+    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     EventWriteQuicConnCongestion(Connection);
     Connection->Stats.Send.CongestionCount++;
 
@@ -293,10 +293,10 @@ QuicCongestionControlOnCongestionEvent(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicCongestionControlOnPersistentCongestionEvent(
-    _In_ PQUIC_CONGESTION_CONTROL Cc
+    _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    PQUIC_CONNECTION Connection = QuicCongestionControlGetConnection(Cc);
+    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     EventWriteQuicConnPersistentCongestion(Connection);
     Connection->Stats.Send.PersistentCongestionCount++;
 
@@ -313,7 +313,7 @@ QuicCongestionControlOnPersistentCongestionEvent(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCongestionControlOnDataSent(
-    _In_ PQUIC_CONGESTION_CONTROL Cc,
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint32_t NumRetransmittableBytes
     )
 {
@@ -335,7 +335,7 @@ QuicCongestionControlOnDataSent(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicCongestionControlOnDataInvalidated(
-    _In_ PQUIC_CONGESTION_CONTROL Cc,
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint32_t NumRetransmittableBytes
     )
 {
@@ -350,14 +350,14 @@ QuicCongestionControlOnDataInvalidated(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicCongestionControlOnDataAcknowledged(
-    _In_ PQUIC_CONGESTION_CONTROL Cc,
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint64_t TimeNow, // millisec
     _In_ uint64_t LargestPacketNumberAcked,
     _In_ uint32_t NumRetransmittableBytes,
     _In_ uint32_t SmoothedRtt
     )
 {
-    PQUIC_CONNECTION Connection = QuicCongestionControlGetConnection(Cc);
+    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     BOOLEAN PreviousCanSendState = QuicCongestionControlCanSend(Cc);
 
     QUIC_DBG_ASSERT(Cc->BytesInFlight >= NumRetransmittableBytes);
@@ -518,7 +518,7 @@ Exit:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicCongestionControlOnDataLost(
-    _In_ PQUIC_CONGESTION_CONTROL Cc,
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint64_t LargestPacketNumberLost,
     _In_ uint64_t LargestPacketNumberSent,
     _In_ uint32_t NumRetransmittableBytes,

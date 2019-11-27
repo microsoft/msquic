@@ -56,7 +56,7 @@ struct StorageTest : public WEX::TestClass<StorageTest>
 
     TEST_METHOD(FailOpenNonExisting)
     {
-        PQUIC_STORAGE Storage;
+        QUIC_STORAGE* Storage;
         VERIFY_ARE_NOT_EQUAL(
             QUIC_STATUS_SUCCESS,
             QuicStorageOpen(
@@ -67,7 +67,7 @@ struct StorageTest : public WEX::TestClass<StorageTest>
 
     TEST_METHOD(PersistKey)
     {
-        PQUIC_STORAGE Storage;
+        QUIC_STORAGE* Storage;
         VERIFY_QUIC_SUCCESS(
             QuicStorageOpen(
                 "TEST",
@@ -86,7 +86,7 @@ struct StorageTest : public WEX::TestClass<StorageTest>
 
     TEST_METHOD(PersistValue)
     {
-        PQUIC_STORAGE Storage;
+        QUIC_STORAGE* Storage;
         VERIFY_QUIC_SUCCESS(
             QuicStorageOpen(
                 "TEST",

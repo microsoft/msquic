@@ -5,7 +5,7 @@
 
 --*/
 
-typedef struct _QUIC_LOSS_DETECTION {
+typedef struct QUIC_LOSS_DETECTION {
 
     //
     // Number of outstanding **retransmittable** packets.
@@ -35,8 +35,8 @@ typedef struct _QUIC_LOSS_DETECTION {
     // Outstanding packets.
     //
     uint64_t LargestSentPacketNumber;
-    PQUIC_SENT_PACKET_METADATA SentPackets;
-    PQUIC_SENT_PACKET_METADATA* SentPacketsTail;
+    QUIC_SENT_PACKET_METADATA* SentPackets;
+    QUIC_SENT_PACKET_METADATA** SentPacketsTail;
 
     uint32_t TimeOfLastPacketSent;
 
@@ -46,32 +46,32 @@ typedef struct _QUIC_LOSS_DETECTION {
     // comes in later than expected. For accounting purposes we don't consider
     // these packets to be in the network.
     //
-    PQUIC_SENT_PACKET_METADATA LostPackets;
-    PQUIC_SENT_PACKET_METADATA* LostPacketsTail;
+    QUIC_SENT_PACKET_METADATA* LostPackets;
+    QUIC_SENT_PACKET_METADATA** LostPacketsTail;
 
     //
     // Number of probes sent.
     //
     uint16_t ProbeCount;
 
-} QUIC_LOSS_DETECTION, *PQUIC_LOSS_DETECTION;
+} QUIC_LOSS_DETECTION;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionInitialize(
-    _Inout_ PQUIC_LOSS_DETECTION LossDetection
+    _Inout_ QUIC_LOSS_DETECTION* LossDetection
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionUninitialize(
-    _In_ PQUIC_LOSS_DETECTION LossDetection
+    _In_ QUIC_LOSS_DETECTION* LossDetection
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionReset(
-    _In_ PQUIC_LOSS_DETECTION LossDetection
+    _In_ QUIC_LOSS_DETECTION* LossDetection
     );
 
 //
@@ -81,7 +81,7 @@ QuicLossDetectionReset(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionDiscardPackets(
-    _In_ PQUIC_LOSS_DETECTION LossDetection,
+    _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_PACKET_KEY_TYPE KeyType
     );
 
@@ -91,7 +91,7 @@ QuicLossDetectionDiscardPackets(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionOnZeroRttRejected(
-    _In_ PQUIC_LOSS_DETECTION LossDetection
+    _In_ QUIC_LOSS_DETECTION* LossDetection
     );
 
 //
@@ -100,7 +100,7 @@ QuicLossDetectionOnZeroRttRejected(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionUpdateTimer(
-    _In_ PQUIC_LOSS_DETECTION LossDetection
+    _In_ QUIC_LOSS_DETECTION* LossDetection
     );
 
 //
@@ -109,7 +109,7 @@ QuicLossDetectionUpdateTimer(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 uint32_t
 QuicLossDetectionComputeProbeTimeout(
-    _In_ PQUIC_LOSS_DETECTION LossDetection,
+    _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ const QUIC_PATH* Path,
     _In_ uint32_t Count
     );
@@ -120,9 +120,9 @@ QuicLossDetectionComputeProbeTimeout(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLossDetectionOnPacketSent(
-    _In_ PQUIC_LOSS_DETECTION LossDetection,
+    _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_PATH* Path,
-    _In_ PQUIC_SENT_PACKET_METADATA SentPacket
+    _In_ QUIC_SENT_PACKET_METADATA* SentPacket
     );
 
 //
@@ -133,7 +133,7 @@ QuicLossDetectionOnPacketSent(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicLossDetectionProcessAckFrame(
-    _In_ PQUIC_LOSS_DETECTION LossDetection,
+    _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_PATH* Path,
     _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
     _In_ QUIC_FRAME_TYPE FrameType,
@@ -150,5 +150,5 @@ QuicLossDetectionProcessAckFrame(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionProcessTimerOperation(
-    _In_ PQUIC_LOSS_DETECTION LossDetection
+    _In_ QUIC_LOSS_DETECTION* LossDetection
     );

@@ -21,7 +21,7 @@ QuicStorageOpen(
     _In_opt_z_ const char * Path,
     _In_ QUIC_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
-    _Out_ PQUIC_STORAGE* NewStorage
+    _Out_ QUIC_STORAGE** NewStorage
     )
 {
     // TODO
@@ -30,7 +30,7 @@ QuicStorageOpen(
 
 void
 QuicStorageClose(
-    _In_opt_ PQUIC_STORAGE Storage
+    _In_opt_ QUIC_STORAGE* Storage
     )
 {
     // TODO
@@ -39,7 +39,7 @@ QuicStorageClose(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStorageReadValue(
-    _In_ PQUIC_STORAGE Storage,
+    _In_ QUIC_STORAGE* Storage,
     _In_opt_z_ const char * Name,
     _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength)
         uint8_t * Buffer,

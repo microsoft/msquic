@@ -19,8 +19,8 @@ Supported Environments:
 #pragma once
 #endif
 
-#ifndef _QUIC_PLATFORM_
-#define _QUIC_PLATFORM_
+#ifndef QUIC_PLATFORM_
+#define QUIC_PLATFORM_
 
 #define IS_POWER_OF_TWO(x) (((x) != 0) && (((x) & ((x) - 1)) == 0))
 
@@ -234,4 +234,4 @@ QuicListPopEntry(
 
 #include "quic_hashtable.h"
 
-#endif // _QUIC_PLATFORM_
+#endif // QUIC_PLATFORM_

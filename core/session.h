@@ -5,7 +5,7 @@
 
 --*/
 
-typedef struct _QUIC_SERIALIZED_RESUMPTION_STATE {
+typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {
 
     uint32_t QuicVersion;
     QUIC_TRANSPORT_PARAMETERS TransportParameters;
@@ -17,7 +17,7 @@ typedef struct _QUIC_SERIALIZED_RESUMPTION_STATE {
 //
 // Represents cached (in memory) state from previous connections to a server.
 //
-typedef struct _QUIC_SERVER_CACHE {
+typedef struct QUIC_SERVER_CACHE {
 
     QUIC_HASHTABLE_ENTRY Entry;
 
@@ -31,19 +31,19 @@ typedef struct _QUIC_SERVER_CACHE {
 
     QUIC_SEC_CONFIG* SecConfig;
 
-} QUIC_SERVER_CACHE, *PQUIC_SERVER_CACHE;
+} QUIC_SERVER_CACHE;
 
 //
 // Represents a library session context.
 //
-typedef struct _QUIC_SESSION {
+typedef struct QUIC_SESSION {
 
-    struct _QUIC_HANDLE;
+    struct QUIC_HANDLE;
 
     //
     // Parent registration.
     //
-    PQUIC_REGISTRATION Registration;
+    QUIC_REGISTRATION* Registration;
 
     //
     // Link in the parent registration's Sessions list.
@@ -58,7 +58,7 @@ typedef struct _QUIC_SESSION {
     //
     // TLS Session Context.
     //
-    PQUIC_TLS_SESSION TlsSession;
+    QUIC_TLS_SESSION* TlsSession;
 
 #ifdef QUIC_SILO
     //
@@ -78,9 +78,9 @@ typedef struct _QUIC_SESSION {
     // Handle to persistent storage (registry).
     //
 #ifdef QUIC_SILO
-    PQUIC_STORAGE Storage; // Only necessary if it could be in a different silo.
+    QUIC_STORAGE* Storage; // Only necessary if it could be in a different silo.
 #endif
-    PQUIC_STORAGE AppSpecificStorage;
+    QUIC_STORAGE* AppSpecificStorage;
 
     //
     // Configurable (app & registry) settings.
@@ -110,7 +110,7 @@ typedef struct _QUIC_SESSION {
     _Field_z_ _Field_size_(AlpnLength + 1)
     char Alpn[0];
 
-} QUIC_SESSION, *PQUIC_SESSION;
+} QUIC_SESSION;
 
 #ifdef QUIC_SILO
 
@@ -136,7 +136,7 @@ typedef struct _QUIC_SESSION {
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSessionTraceRundown(
-    _In_ PQUIC_SESSION Session
+    _In_ QUIC_SESSION* Session
     );
 
 //
@@ -146,7 +146,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Function_class_(QUIC_STORAGE_CHANGE_CALLBACK)
 void
 QuicSessionSettingsChanged(
-    _Inout_ PQUIC_SESSION Session
+    _Inout_ QUIC_SESSION* Session
     );
 
 //
@@ -155,8 +155,8 @@ QuicSessionSettingsChanged(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSessionRegisterConnection(
-    _Inout_ PQUIC_SESSION Session,
-    _Inout_ PQUIC_CONNECTION Connection
+    _Inout_ QUIC_SESSION* Session,
+    _Inout_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -165,8 +165,8 @@ QuicSessionRegisterConnection(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSessionUnregisterConnection(
-    _In_ PQUIC_SESSION Session,
-    _Inout_ PQUIC_CONNECTION Connection
+    _In_ QUIC_SESSION* Session,
+    _Inout_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -175,7 +175,7 @@ QuicSessionUnregisterConnection(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicSessionParamGet(
-    _In_ PQUIC_SESSION Session,
+    _In_ QUIC_SESSION* Session,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
@@ -188,7 +188,7 @@ QuicSessionParamGet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicSessionParamSet(
-    _In_ PQUIC_SESSION Session,
+    _In_ QUIC_SESSION* Session,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -202,7 +202,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return!=FALSE)
 BOOLEAN
 QuicSessionServerCacheGetState(
-    _In_ PQUIC_SESSION Session,
+    _In_ QUIC_SESSION* Session,
     _In_z_ const char* ServerName,
     _Out_ uint32_t* QuicVersion,
     _Out_ QUIC_TRANSPORT_PARAMETERS* Parameters,
@@ -215,7 +215,7 @@ QuicSessionServerCacheGetState(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSessionServerCacheSetState(
-    _In_ PQUIC_SESSION Session,
+    _In_ QUIC_SESSION* Session,
     _In_z_ const char* ServerName,
     _In_ uint32_t QuicVersion,
     _In_ const QUIC_TRANSPORT_PARAMETERS* Parameters,

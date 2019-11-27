@@ -261,7 +261,7 @@ QuicPacketBuilderPrepare(
             (uint16_t)Builder->Datagram->Length - Builder->DatagramLength;
 
         if (NewPacketType == SEND_PACKET_SHORT_HEADER_TYPE) {
-            PQUIC_PACKET_SPACE PacketSpace = Connection->Packets[Builder->EncryptLevel];
+            QUIC_PACKET_SPACE* PacketSpace = Connection->Packets[Builder->EncryptLevel];
 
             Builder->PacketNumberLength = 4; // TODO - Determine correct length based on BDP.
 
@@ -334,7 +334,7 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
     _Out_ QUIC_PACKET_KEY** Key
     )
 {
-    PQUIC_CONNECTION Connection = Builder->Connection;
+    QUIC_CONNECTION* Connection = Builder->Connection;
 
     QUIC_DBG_ASSERT(SendFlags != 0);
     QuicSendValidate(&Builder->Connection->Send);
@@ -528,7 +528,7 @@ QuicPacketBuilderFinalize(
     _In_ BOOLEAN FlushBatchedDatagrams
     )
 {
-    PQUIC_CONNECTION Connection = Builder->Connection;
+    QUIC_CONNECTION* Connection = Builder->Connection;
     BOOLEAN FinalQuicPacket = FALSE;
 
     if (Builder->Datagram == NULL ||
@@ -725,7 +725,7 @@ QuicPacketBuilderFinalize(
         //
         // Increment the key phase sent bytes count.
         //
-        PQUIC_PACKET_SPACE PacketSpace = Connection->Packets[Builder->EncryptLevel];
+        QUIC_PACKET_SPACE* PacketSpace = Connection->Packets[Builder->EncryptLevel];
         PacketSpace->CurrentKeyPhaseBytesSent += (PayloadLength - Builder->EncryptionOverhead);
 
         //

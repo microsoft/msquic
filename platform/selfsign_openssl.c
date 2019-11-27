@@ -23,31 +23,15 @@ Abstract:
 #include "selfsign_openssl.tmh"
 #endif
 
+//
+// Generates a self signed cert using low level OpenSSL APIs.
+//
 QUIC_STATUS
 QuicTlsGenerateSelfSignedCert(
     _In_z_ char *CertFileName,
     _In_z_ char *PrivateKeyFileName,
     _In_z_ char *SNI
     )
-/*++
-
-Routine Description:
-
-    Generates a self signed cert using low level OpenSSL APIs.
-
-Arguments:
-
-    CertFileName - The cert file name.
-
-    PrivateKeyFileName - The private key filename.
-
-    SNI - The SNI to use in cert.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;

@@ -10,7 +10,7 @@
 //
 #define QUIC_MAX_FRAMES_PER_PACKET 8
 
-typedef struct _QUIC_STREAM QUIC_STREAM, *PQUIC_STREAM;
+typedef struct QUIC_STREAM QUIC_STREAM;
 
 #define QUIC_SENT_FRAME_FLAG_STREAM_OPEN    0x01    // STREAM frame opened stream
 #define QUIC_SENT_FRAME_FLAG_STREAM_FIN     0x02    // STREAM frame included FIN bit
@@ -21,24 +21,24 @@ typedef struct _QUIC_STREAM QUIC_STREAM, *PQUIC_STREAM;
 //
 // Tracker for a sent frame.
 //
-typedef struct _QUIC_SENT_FRAME_METADATA {
+typedef struct QUIC_SENT_FRAME_METADATA {
 
     union {
         struct {
             uint64_t LargestAckedPacketNumber;
         } ACK;
         struct {
-            PQUIC_STREAM Stream;
+            QUIC_STREAM* Stream;
         } RESET_STREAM;
         struct {
-            PQUIC_STREAM Stream;
+            QUIC_STREAM* Stream;
         } STOP_SENDING;
         struct {
             uint32_t Offset;
             uint16_t Length;
         } CRYPTO;
         struct {
-            PQUIC_STREAM Stream;
+            QUIC_STREAM* Stream;
             //
             // TODO- optimization: encode in 32 bits.
             //
@@ -46,10 +46,10 @@ typedef struct _QUIC_SENT_FRAME_METADATA {
             uint16_t Length;
         } STREAM;
         struct {
-            PQUIC_STREAM Stream;
+            QUIC_STREAM* Stream;
         } MAX_STREAM_DATA;
         struct {
-            PQUIC_STREAM Stream;
+            QUIC_STREAM* Stream;
         } STREAM_DATA_BLOCKED;
         struct {
             QUIC_VAR_INT Sequence;
@@ -68,9 +68,9 @@ typedef struct _QUIC_SENT_FRAME_METADATA {
     uint8_t Type; // QUIC_FRAME_*
     uint8_t Flags; // QUIC_SENT_FRAME_FLAG_*
 
-} QUIC_SENT_FRAME_METADATA, *PQUIC_SENT_FRAME_METADATA;
+} QUIC_SENT_FRAME_METADATA;
 
-typedef struct _QUIC_SEND_PACKET_FLAGS {
+typedef struct QUIC_SEND_PACKET_FLAGS {
 
     uint8_t KeyType                 : 2;
     BOOLEAN IsRetransmittable       : 1;
@@ -83,9 +83,9 @@ typedef struct _QUIC_SEND_PACKET_FLAGS {
 //
 // Tracker for a sent packet.
 //
-typedef struct _QUIC_SENT_PACKET_METADATA {
+typedef struct QUIC_SENT_PACKET_METADATA {
 
-    struct _QUIC_SENT_PACKET_METADATA *Next;
+    struct QUIC_SENT_PACKET_METADATA *Next;
 
     uint64_t PacketNumber;
     uint32_t SentTime; // In microseconds
@@ -103,7 +103,7 @@ typedef struct _QUIC_SENT_PACKET_METADATA {
     uint8_t FrameCount;
     QUIC_SENT_FRAME_METADATA Frames[0];
 
-} QUIC_SENT_PACKET_METADATA, *PQUIC_SENT_PACKET_METADATA;
+} QUIC_SENT_PACKET_METADATA;
 
 #pragma pack(pop)
 
@@ -122,7 +122,7 @@ QuicPacketTraceType(
 //
 // Helper for allocating the maximum sent packet metadata on the stack.
 //
-typedef union _QUIC_MAX_SENT_PACKET_METADATA
+typedef union QUIC_MAX_SENT_PACKET_METADATA
 {
     QUIC_SENT_PACKET_METADATA Metadata;
     uint8_t Raw[sizeof(QUIC_SENT_PACKET_METADATA) +
@@ -138,31 +138,31 @@ QUIC_STATIC_ASSERT(
 // A collection of object pools for each size of packet and
 // associated frame metadata.
 //
-typedef struct _QUIC_SENT_PACKET_POOL {
+typedef struct QUIC_SENT_PACKET_POOL {
 
     QUIC_POOL Pools[QUIC_MAX_FRAMES_PER_PACKET];
 
-} QUIC_SENT_PACKET_POOL, *PQUIC_SENT_PACKET_POOL;
+} QUIC_SENT_PACKET_POOL;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSentPacketPoolInitialize(
-    _Inout_ PQUIC_SENT_PACKET_POOL Pool
+    _Inout_ QUIC_SENT_PACKET_POOL* Pool
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSentPacketPoolUninitialize(
-    _In_ PQUIC_SENT_PACKET_POOL Pool
+    _In_ QUIC_SENT_PACKET_POOL* Pool
     );
 
 //
 // Allocates a sent packet metadata item.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-PQUIC_SENT_PACKET_METADATA
+QUIC_SENT_PACKET_METADATA*
 QuicSentPacketPoolGetPacketMetadata(
-    _In_ PQUIC_SENT_PACKET_POOL Pool,
+    _In_ QUIC_SENT_PACKET_POOL* Pool,
     _In_ uint8_t FrameCount
     );
 
@@ -172,6 +172,6 @@ QuicSentPacketPoolGetPacketMetadata(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSentPacketPoolReturnPacketMetadata(
-    _In_ PQUIC_SENT_PACKET_POOL Pool,
-    _In_ PQUIC_SENT_PACKET_METADATA Metadata
+    _In_ QUIC_SENT_PACKET_POOL* Pool,
+    _In_ QUIC_SENT_PACKET_METADATA* Metadata
     );

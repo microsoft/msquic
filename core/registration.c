@@ -44,7 +44,7 @@ QuicRegistrationAlloc(
         QUIC_TRACE_API_REGISTRATION_OPEN,
         NULL);
 
-    PQUIC_REGISTRATION Registration =
+    QUIC_REGISTRATION* Registration =
         QUIC_ALLOC_NONPAGED(sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
     if (Registration == NULL) {
         EventWriteQuicAllocFailure("registration", sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
@@ -198,7 +198,7 @@ MsQuicRegistrationClose(
         Handle);
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    PQUIC_REGISTRATION Registration = (PQUIC_REGISTRATION)Handle;
+    QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
 
     EventWriteQuicRegistrationCleanup(Registration);
 
@@ -230,7 +230,7 @@ MsQuicRegistrationClose(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicRegistrationTraceRundown(
-    _In_ PQUIC_REGISTRATION Registration
+    _In_ QUIC_REGISTRATION* Registration
     )
 {
     EventWriteQuicRegistrationRundown(Registration, Registration->AppName);
@@ -250,7 +250,7 @@ QuicRegistrationTraceRundown(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicRegistrationSettingsChanged(
-    _Inout_ PQUIC_REGISTRATION Registration
+    _Inout_ QUIC_REGISTRATION* Registration
     )
 {
     QuicLockAcquire(&Registration->Lock);
@@ -289,7 +289,7 @@ MsQuicSecConfigCreate(
         goto Exit;
     }
 
-    PQUIC_REGISTRATION Registration = (PQUIC_REGISTRATION)Handle;
+    QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
     Status =
         QuicTlsServerSecConfigCreate(
             &Registration->SecConfigRundown,
@@ -327,8 +327,8 @@ MsQuicSecConfigDelete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicRegistrationGetNewPartitionID(
-    _In_ PQUIC_REGISTRATION Registration,
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_REGISTRATION* Registration,
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     //
@@ -350,8 +350,8 @@ QuicRegistrationGetNewPartitionID(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_CONNECTION_ACCEPT_RESULT
 QuicRegistrationAcceptConnection(
-    _In_ PQUIC_REGISTRATION Registration,
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_REGISTRATION* Registration,
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     if (!QuicIsTupleRssMode()) {
@@ -398,8 +398,8 @@ QuicRegistrationAcceptConnection(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicRegistrationQueueNewConnection(
-    _In_ PQUIC_REGISTRATION Registration,
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_REGISTRATION* Registration,
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     uint8_t Index =
@@ -414,7 +414,7 @@ QuicRegistrationQueueNewConnection(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicRegistrationParamSet(
-    _In_ PQUIC_REGISTRATION Registration,
+    _In_ QUIC_REGISTRATION* Registration,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -494,7 +494,7 @@ QuicRegistrationParamSet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicRegistrationParamGet(
-    _In_ PQUIC_REGISTRATION Registration,
+    _In_ QUIC_REGISTRATION* Registration,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)

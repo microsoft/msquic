@@ -46,7 +46,7 @@ Abstract:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicAckTrackerInitialize(
-    _Inout_ PQUIC_ACK_TRACKER Tracker
+    _Inout_ QUIC_ACK_TRACKER* Tracker
     )
 {
     QUIC_STATUS Status;
@@ -80,7 +80,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicAckTrackerUninitialize(
-    _Inout_ PQUIC_ACK_TRACKER Tracker
+    _Inout_ QUIC_ACK_TRACKER* Tracker
     )
 {
     QuicRangeUninitialize(&Tracker->PacketNumbersToAck);
@@ -90,7 +90,7 @@ QuicAckTrackerUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicAckTrackerReset(
-    _Inout_ PQUIC_ACK_TRACKER Tracker
+    _Inout_ QUIC_ACK_TRACKER* Tracker
     )
 {
     Tracker->AckElicitingPacketsToAcknowledge = 0;
@@ -103,7 +103,7 @@ QuicAckTrackerReset(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicAckTrackerAddPacketNumber(
-    _Inout_ PQUIC_ACK_TRACKER Tracker,
+    _Inout_ QUIC_ACK_TRACKER* Tracker,
     _In_ uint64_t PacketNumber
     )
 {
@@ -116,12 +116,12 @@ QuicAckTrackerAddPacketNumber(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicAckTrackerAckPacket(
-    _Inout_ PQUIC_ACK_TRACKER Tracker,
+    _Inout_ QUIC_ACK_TRACKER* Tracker,
     _In_ uint64_t PacketNumber,
     _In_ BOOLEAN AckElicitingPayload
     )
 {
-    PQUIC_CONNECTION Connection = QuicAckTrackerGetPacketSpace(Tracker)->Connection;
+    QUIC_CONNECTION* Connection = QuicAckTrackerGetPacketSpace(Tracker)->Connection;
     _Analysis_assume_(Connection != NULL);
 
     QUIC_DBG_ASSERT(PacketNumber <= QUIC_VAR_INT_MAX);
@@ -206,7 +206,7 @@ Exit:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicAckTrackerAckFrameEncode(
-    _Inout_ PQUIC_ACK_TRACKER Tracker,
+    _Inout_ QUIC_ACK_TRACKER* Tracker,
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
@@ -243,11 +243,11 @@ QuicAckTrackerAckFrameEncode(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicAckTrackerOnAckFrameAcked(
-    _Inout_ PQUIC_ACK_TRACKER Tracker,
+    _Inout_ QUIC_ACK_TRACKER* Tracker,
     _In_ uint64_t LargestAckedPacketNumber
     )
 {
-    PQUIC_CONNECTION Connection = QuicAckTrackerGetPacketSpace(Tracker)->Connection;
+    QUIC_CONNECTION* Connection = QuicAckTrackerGetPacketSpace(Tracker)->Connection;
 
     //
     // Drop all packet numbers less than or equal to the largest acknowledged

@@ -5,8 +5,6 @@
 
 --*/
 
-typedef struct _QUIC_STREAM *PQUIC_STREAM;
-
 #define SEND_PACKET_SHORT_HEADER_TYPE 0xff
 
 inline
@@ -159,7 +157,7 @@ inline BOOLEAN HasStreamDataFrames(uint32_t Flags)
          QUIC_STREAM_SEND_FLAG_FIN);
 }
 
-typedef struct _QUIC_SEND {
+typedef struct QUIC_SEND {
 
     //
     // Indicates the FLUSH_SEND operation is already pending on the Connection.
@@ -234,25 +232,25 @@ typedef struct _QUIC_SEND {
     //
     uint16_t InitialTokenLength;
 
-} QUIC_SEND, *PQUIC_SEND;
+} QUIC_SEND;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendInitialize(
-    _Inout_ PQUIC_SEND Send
+    _Inout_ QUIC_SEND* Send
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendUninitialize(
-    _In_ PQUIC_SEND Send
+    _In_ QUIC_SEND* Send
     );
 
 #if QUIC_TEST_MODE
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendValidate(
-    _In_ PQUIC_SEND Send
+    _In_ QUIC_SEND* Send
     );
 #else
 #define QuicSendValidate(Send)
@@ -261,17 +259,17 @@ QuicSendValidate(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendApplySettings(
-    _Inout_ PQUIC_SEND Send,
+    _Inout_ QUIC_SEND* Send,
     _In_ const QUIC_SETTINGS* Settings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendReset(
-    _In_ PQUIC_SEND Send
+    _In_ QUIC_SEND* Send
     );
 
-typedef enum _QUIC_SEND_FLUSH_REASON {
+typedef enum QUIC_SEND_FLUSH_REASON {
     REASON_CONNECTION_FLAGS,
     REASON_STREAM_FLAGS,
     REASON_PROBE,
@@ -292,7 +290,7 @@ typedef enum _QUIC_SEND_FLUSH_REASON {
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendQueueFlush(
-    _In_ PQUIC_SEND Send,
+    _In_ QUIC_SEND* Send,
     _In_ QUIC_SEND_FLUSH_REASON Reason
     );
 
@@ -303,7 +301,7 @@ QuicSendQueueFlush(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicSendProcessFlushSendOperation(
-    _In_ PQUIC_SEND Send,
+    _In_ QUIC_SEND* Send,
     _In_ BOOLEAN Immediate
     );
 
@@ -313,7 +311,7 @@ QuicSendProcessFlushSendOperation(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendStartDelayedAckTimer(
-    _In_ PQUIC_SEND Send
+    _In_ QUIC_SEND* Send
     );
 
 //
@@ -322,7 +320,7 @@ QuicSendStartDelayedAckTimer(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendProcessDelayedAckTimer(
-    _In_ PQUIC_SEND Send
+    _In_ QUIC_SEND* Send
     );
 
 //
@@ -332,7 +330,7 @@ QuicSendProcessDelayedAckTimer(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendSetSendFlag(
-    _In_ PQUIC_SEND Send,
+    _In_ QUIC_SEND* Send,
     _In_ uint32_t SendFlag
     );
 
@@ -342,7 +340,7 @@ QuicSendSetSendFlag(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendClearSendFlag(
-    _In_ PQUIC_SEND Send,
+    _In_ QUIC_SEND* Send,
     _In_ uint32_t SendFlag
     );
 
@@ -352,7 +350,7 @@ QuicSendClearSendFlag(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendUpdateAckState(
-    _In_ PQUIC_SEND Send
+    _In_ QUIC_SEND* Send
     );
 
 //
@@ -362,8 +360,8 @@ QuicSendUpdateAckState(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendSetStreamSendFlag(
-    _In_ PQUIC_SEND Send,
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_SEND* Send,
+    _In_ QUIC_STREAM* Stream,
     _In_ uint32_t SendFlag
     );
 
@@ -374,8 +372,8 @@ QuicSendSetStreamSendFlag(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendClearStreamSendFlag(
-    _In_ PQUIC_SEND Send,
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_SEND* Send,
+    _In_ QUIC_STREAM* Stream,
     _In_ uint32_t SendFlag
     );
 
@@ -385,9 +383,9 @@ QuicSendClearStreamSendFlag(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendOnMtuProbePacketAcked(
-    _In_ PQUIC_SEND Send,
+    _In_ QUIC_SEND* Send,
     _In_ QUIC_PATH* Path,
-    _In_ PQUIC_SENT_PACKET_METADATA Packet
+    _In_ QUIC_SENT_PACKET_METADATA* Packet
     );
 
 #if QUIC_SEND_FAKE_LOSS

@@ -36,7 +36,7 @@ QuicWorkerInitialize(
     _In_opt_ const void* Owner,
     _In_ uint16_t ThreadFlags,
     _In_ uint8_t IdealProcessor,
-    _Inout_ PQUIC_WORKER Worker
+    _Inout_ QUIC_WORKER* Worker
     )
 {
     QUIC_STATUS Status;
@@ -98,7 +98,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicWorkerUninitialize(
-    _In_ PQUIC_WORKER Worker
+    _In_ QUIC_WORKER* Worker
     )
 {
     EventWriteQuicWorkerCleanup(Worker);
@@ -135,8 +135,8 @@ QuicWorkerUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicWorkerAssignConnection(
-    _In_ PQUIC_WORKER Worker,
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     QUIC_DBG_ASSERT(Connection->Worker != Worker);
@@ -157,8 +157,8 @@ QuicWorkerIsIdle(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicWorkerQueueConnection(
-    _In_ PQUIC_WORKER Worker,
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     QUIC_DBG_ASSERT(Connection->Worker != NULL);
@@ -188,8 +188,8 @@ QuicWorkerQueueConnection(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicWorkerMoveConnection(
-    _In_ PQUIC_WORKER Worker,
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     QUIC_DBG_ASSERT(Connection->Worker != NULL);
@@ -215,7 +215,7 @@ QuicWorkerMoveConnection(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicWorkerQueueOperation(
-    _In_ PQUIC_WORKER Worker,
+    _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION* Operation
     )
 {
@@ -255,7 +255,7 @@ QuicWorkerQueueOperation(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicWorkerToggleActivityState(
-    _In_ PQUIC_WORKER Worker,
+    _In_ QUIC_WORKER* Worker,
     _In_ uint32_t Arg
     )
 {
@@ -266,7 +266,7 @@ QuicWorkerToggleActivityState(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicWorkerUpdateQueueDelay(
-    _In_ PQUIC_WORKER Worker,
+    _In_ QUIC_WORKER* Worker,
     _In_ uint32_t TimeInQueueUs
     )
 {
@@ -277,7 +277,7 @@ QuicWorkerUpdateQueueDelay(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicWorkerResetQueueDelay(
-    _In_ PQUIC_WORKER Worker
+    _In_ QUIC_WORKER* Worker
     )
 {
     Worker->AverageQueueDelay = 0;
@@ -285,12 +285,12 @@ QuicWorkerResetQueueDelay(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicWorkerGetNextConnection(
-    _In_ PQUIC_WORKER Worker
+    _In_ QUIC_WORKER* Worker
     )
 {
-    PQUIC_CONNECTION Connection;
+    QUIC_CONNECTION* Connection;
 
     if (Worker->Enabled) {
         QuicDispatchLockAcquire(&Worker->Lock);
@@ -318,7 +318,7 @@ QuicWorkerGetNextConnection(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_OPERATION*
 QuicWorkerGetNextOperation(
-    _In_ PQUIC_WORKER Worker
+    _In_ QUIC_WORKER* Worker
     )
 {
     QUIC_OPERATION* Operation;
@@ -349,7 +349,7 @@ QuicWorkerGetNextOperation(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicWorkerProcessTimers(
-    _In_ PQUIC_WORKER Worker
+    _In_ QUIC_WORKER* Worker
     )
 {
     //
@@ -381,8 +381,8 @@ QuicWorkerProcessTimers(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicWorkerProcessConnection(
-    _In_ PQUIC_WORKER Worker,
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     EventWriteQuicConnScheduleState(Connection, QUIC_SCHEDULE_PROCESSING);
@@ -480,7 +480,7 @@ QuicWorkerProcessConnection(
 
 QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
 {
-    PQUIC_WORKER Worker = (PQUIC_WORKER)Context;
+    QUIC_WORKER* Worker = (QUIC_WORKER*)Context;
 
     Worker->ThreadID = QuicCurThreadID();
     Worker->IsActive = TRUE;
@@ -500,7 +500,7 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
         // timers (which just queue more operations on connections).
         //
 
-        PQUIC_CONNECTION Connection = QuicWorkerGetNextConnection(Worker);
+        QUIC_CONNECTION* Connection = QuicWorkerGetNextConnection(Worker);
         if (Connection != NULL) {
             QuicWorkerProcessConnection(Worker, Connection);
         }
@@ -573,7 +573,7 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
     // remaining references on connections.
     //
     while (!QuicListIsEmpty(&Worker->Connections)) {
-        PQUIC_CONNECTION Connection =
+        QUIC_CONNECTION* Connection =
             QUIC_CONTAINING_RECORD(
                 QuicListRemoveHead(&Worker->Connections), QUIC_CONNECTION, WorkerLink);
         QuicConnRelease(Connection, QUIC_CONN_REF_WORKER);
@@ -599,12 +599,12 @@ QuicWorkerPoolInitialize(
     _In_opt_ const void* Owner,
     _In_ uint16_t ThreadFlags,
     _In_ uint8_t WorkerCount,
-    _Out_ PQUIC_WORKER_POOL* NewWorkerPool
+    _Out_ QUIC_WORKER_POOL** NewWorkerPool
     )
 {
     QUIC_STATUS Status;
 
-    PQUIC_WORKER_POOL WorkerPool =
+    QUIC_WORKER_POOL* WorkerPool =
         QUIC_ALLOC_NONPAGED(sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER));
     if (WorkerPool == NULL) {
         EventWriteQuicAllocFailure("QUIC_WORKER_POOL", sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER));
@@ -648,7 +648,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicWorkerPoolUninitialize(
-    _In_ PQUIC_WORKER_POOL WorkerPool
+    _In_ QUIC_WORKER_POOL* WorkerPool
     )
 {
     for (uint8_t i = 0; i < WorkerPool->WorkerCount; i++) {
@@ -675,7 +675,7 @@ QuicWorkerPoolIsOverloaded(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint8_t
 QuicWorkerPoolGetLeastLoadedWorker(
-    _In_ PQUIC_WORKER_POOL WorkerPool
+    _In_ QUIC_WORKER_POOL* WorkerPool
     )
 {
     //

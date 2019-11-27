@@ -50,7 +50,7 @@ Abstract:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionInitializeInternalState(
-    _In_ PQUIC_LOSS_DETECTION LossDetection
+    _In_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
     LossDetection->PacketsInFlight = 0;
@@ -60,7 +60,7 @@ QuicLossDetectionInitializeInternalState(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionInitialize(
-    _Inout_ PQUIC_LOSS_DETECTION LossDetection
+    _Inout_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
     LossDetection->SentPackets = NULL;
@@ -73,13 +73,13 @@ QuicLossDetectionInitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionUninitialize(
-    _In_ PQUIC_LOSS_DETECTION LossDetection
+    _In_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
-    PQUIC_CONNECTION Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
 
     while (LossDetection->SentPackets != NULL) {
-        PQUIC_SENT_PACKET_METADATA Packet = LossDetection->SentPackets;
+        QUIC_SENT_PACKET_METADATA* Packet = LossDetection->SentPackets;
         LossDetection->SentPackets = LossDetection->SentPackets->Next;
 
         if (Packet->Flags.IsRetransmittable) {
@@ -91,7 +91,7 @@ QuicLossDetectionUninitialize(
         QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
     }
     while (LossDetection->LostPackets != NULL) {
-        PQUIC_SENT_PACKET_METADATA Packet = LossDetection->LostPackets;
+        QUIC_SENT_PACKET_METADATA* Packet = LossDetection->LostPackets;
         LossDetection->LostPackets = LossDetection->LostPackets->Next;
 
         LogPacketVerbose("[%c][TX][%llu] Thrown away on shutdown (lost packet)",
@@ -104,10 +104,10 @@ QuicLossDetectionUninitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionReset(
-    _In_ PQUIC_LOSS_DETECTION LossDetection
+    _In_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
-    PQUIC_CONNECTION Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
 
     QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_LOSS_DETECTION);
 
@@ -121,14 +121,14 @@ QuicLossDetectionReset(
     //
 
     while (LossDetection->SentPackets != NULL) {
-        PQUIC_SENT_PACKET_METADATA Packet = LossDetection->SentPackets;
+        QUIC_SENT_PACKET_METADATA* Packet = LossDetection->SentPackets;
         LossDetection->SentPackets = LossDetection->SentPackets->Next;
         QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
     }
     LossDetection->SentPacketsTail = &LossDetection->SentPackets;
 
     while (LossDetection->LostPackets != NULL) {
-        PQUIC_SENT_PACKET_METADATA Packet = LossDetection->LostPackets;
+        QUIC_SENT_PACKET_METADATA* Packet = LossDetection->LostPackets;
         LossDetection->LostPackets = LossDetection->LostPackets->Next;
         QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
     }
@@ -141,12 +141,12 @@ QuicLossDetectionReset(
 // packets.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-PQUIC_SENT_PACKET_METADATA
+QUIC_SENT_PACKET_METADATA*
 QuicLossDetectionOldestOutstandingPacket(
-    _In_ PQUIC_LOSS_DETECTION LossDetection
+    _In_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
-    PQUIC_SENT_PACKET_METADATA Packet = LossDetection->SentPackets;
+    QUIC_SENT_PACKET_METADATA* Packet = LossDetection->SentPackets;
     while (Packet != NULL && !Packet->Flags.IsRetransmittable) {
         Packet = Packet->Next;
     }
@@ -156,12 +156,12 @@ QuicLossDetectionOldestOutstandingPacket(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 uint32_t
 QuicLossDetectionComputeProbeTimeout(
-    _In_ PQUIC_LOSS_DETECTION LossDetection,
+    _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ const QUIC_PATH* Path,
     _In_ uint32_t Count
     )
 {
-    PQUIC_CONNECTION Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
 
     //
     // Microseconds.
@@ -177,7 +177,7 @@ QuicLossDetectionComputeProbeTimeout(
     return Pto;
 }
 
-typedef enum _QUIC_LOSS_TIMER_TYPE {
+typedef enum QUIC_LOSS_TIMER_TYPE {
     LOSS_TIMER_INITIAL,
     LOSS_TIMER_RACK,
     LOSS_TIMER_PROBE
@@ -186,10 +186,10 @@ typedef enum _QUIC_LOSS_TIMER_TYPE {
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionUpdateTimer(
-    _In_ PQUIC_LOSS_DETECTION LossDetection
+    _In_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
-    PQUIC_CONNECTION Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
 
     if (Connection->State.ClosedLocally || Connection->State.ClosedRemotely) {
         //
@@ -312,13 +312,13 @@ QuicLossDetectionUpdateTimer(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLossDetectionOnPacketSent(
-    _In_ PQUIC_LOSS_DETECTION LossDetection,
+    _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_PATH* Path,
-    _In_ PQUIC_SENT_PACKET_METADATA TempSentPacket
+    _In_ QUIC_SENT_PACKET_METADATA* TempSentPacket
     )
 {
-    PQUIC_SENT_PACKET_METADATA SentPacket;
-    PQUIC_CONNECTION Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_SENT_PACKET_METADATA* SentPacket;
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
 
     QUIC_DBG_ASSERT(TempSentPacket->FrameCount != 0);
 
@@ -377,12 +377,12 @@ QuicLossDetectionOnPacketSent(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionOnPacketAcknowledged(
-    _In_ PQUIC_LOSS_DETECTION LossDetection,
+    _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
-    _In_ PQUIC_SENT_PACKET_METADATA Packet
+    _In_ QUIC_SENT_PACKET_METADATA* Packet
     )
 {
-    PQUIC_CONNECTION Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
     QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId);
 
     _Analysis_assume_(
@@ -396,7 +396,7 @@ QuicLossDetectionOnPacketAcknowledged(
         QuicCryptoDiscardKeys(&Connection->Crypto, QUIC_PACKET_KEY_HANDSHAKE);
     }
 
-    PQUIC_PACKET_SPACE PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
+    QUIC_PACKET_SPACE* PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
     if (EncryptLevel == QUIC_ENCRYPT_LEVEL_1_RTT &&
         PacketSpace->AwaitingKeyPhaseConfirmation &&
         Packet->Flags.KeyPhase == PacketSpace->CurrentKeyPhase &&
@@ -494,11 +494,11 @@ QuicLossDetectionOnPacketAcknowledged(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionRetransmitFrames(
-    _In_ PQUIC_LOSS_DETECTION LossDetection,
-    _In_ PQUIC_SENT_PACKET_METADATA Packet
+    _In_ QUIC_LOSS_DETECTION* LossDetection,
+    _In_ QUIC_SENT_PACKET_METADATA* Packet
     )
 {
-    PQUIC_CONNECTION Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
 
     for (uint8_t i = 0; i < Packet->FrameCount; i++) {
         switch (Packet->Frames[i].Type) {
@@ -642,13 +642,13 @@ QuicLossDetectionRetransmitFrames(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicLossDetectionDetectAndHandleLostPackets(
-    _In_ PQUIC_LOSS_DETECTION LossDetection,
+    _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ uint32_t TimeNow
     )
 {
-    PQUIC_CONNECTION Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
     uint32_t LostRetransmittableBytes = 0;
-    PQUIC_SENT_PACKET_METADATA Packet;
+    QUIC_SENT_PACKET_METADATA* Packet;
 
     if (LossDetection->LostPackets != NULL) {
         //
@@ -686,7 +686,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
         uint32_t Rtt = max(Path->SmoothedRtt, Path->LatestRttSample);
         uint32_t TimeReorderThreshold = QUIC_TIME_REORDER_THRESHOLD(Rtt);
         uint64_t LargestLostPacketNumber = 0;
-        PQUIC_SENT_PACKET_METADATA PrevPacket = NULL;
+        QUIC_SENT_PACKET_METADATA* PrevPacket = NULL;
         Packet = LossDetection->SentPackets;
         while (Packet != NULL) {
 
@@ -778,14 +778,14 @@ QuicLossDetectionDetectAndHandleLostPackets(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionDiscardPackets(
-    _In_ PQUIC_LOSS_DETECTION LossDetection,
+    _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_PACKET_KEY_TYPE KeyType
     )
 {
-    PQUIC_CONNECTION Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
     QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(KeyType);
-    PQUIC_SENT_PACKET_METADATA PrevPacket;
-    PQUIC_SENT_PACKET_METADATA Packet;
+    QUIC_SENT_PACKET_METADATA* PrevPacket;
+    QUIC_SENT_PACKET_METADATA* Packet;
     uint32_t AckedRetransmittableBytes = 0;
     uint32_t TimeNow = QuicTimeUs32();
 
@@ -798,7 +798,7 @@ QuicLossDetectionDiscardPackets(
     PrevPacket = NULL;
     Packet = LossDetection->LostPackets;
     while (Packet != NULL) {
-        PQUIC_SENT_PACKET_METADATA NextPacket = Packet->Next;
+        QUIC_SENT_PACKET_METADATA* NextPacket = Packet->Next;
 
         if (Packet->Flags.KeyType == KeyType) {
             if (PrevPacket != NULL) {
@@ -834,7 +834,7 @@ QuicLossDetectionDiscardPackets(
     PrevPacket = NULL;
     Packet = LossDetection->SentPackets;
     while (Packet != NULL) {
-        PQUIC_SENT_PACKET_METADATA NextPacket = Packet->Next;
+        QUIC_SENT_PACKET_METADATA* NextPacket = Packet->Next;
 
         if (Packet->Flags.KeyType == KeyType) {
             if (PrevPacket != NULL) {
@@ -892,12 +892,12 @@ QuicLossDetectionDiscardPackets(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionOnZeroRttRejected(
-    _In_ PQUIC_LOSS_DETECTION LossDetection
+    _In_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
-    PQUIC_CONNECTION Connection = QuicLossDetectionGetConnection(LossDetection);
-    PQUIC_SENT_PACKET_METADATA PrevPacket;
-    PQUIC_SENT_PACKET_METADATA Packet;
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_SENT_PACKET_METADATA* PrevPacket;
+    QUIC_SENT_PACKET_METADATA* Packet;
     uint32_t CountRetransmittableBytes = 0;
 
     //
@@ -907,7 +907,7 @@ QuicLossDetectionOnZeroRttRejected(
     PrevPacket = NULL;
     Packet = LossDetection->SentPackets;
     while (Packet != NULL) {
-        PQUIC_SENT_PACKET_METADATA NextPacket = Packet->Next;
+        QUIC_SENT_PACKET_METADATA* NextPacket = Packet->Next;
 
         if (Packet->Flags.KeyType == QUIC_PACKET_KEY_0_RTT) {
             if (PrevPacket != NULL) {
@@ -957,20 +957,20 @@ QuicLossDetectionOnZeroRttRejected(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionProcessAckBlocks(
-    _In_ PQUIC_LOSS_DETECTION LossDetection,
+    _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_PATH* Path,
     _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
     _In_ uint64_t AckDelay,
-    _In_ PQUIC_RANGE AckBlocks,
+    _In_ QUIC_RANGE* AckBlocks,
     _Out_ BOOLEAN* InvalidAckBlock
     )
 {
-    PQUIC_SENT_PACKET_METADATA AckedPackets = NULL;
-    PQUIC_SENT_PACKET_METADATA* AckedPacketsTail = &AckedPackets;
+    QUIC_SENT_PACKET_METADATA* AckedPackets = NULL;
+    QUIC_SENT_PACKET_METADATA** AckedPacketsTail = &AckedPackets;
 
     uint32_t PacketsInFlight = 0;
     uint32_t AckedRetransmittableBytes = 0;
-    PQUIC_CONNECTION Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
     uint32_t TimeNow = QuicTimeUs32();
     uint32_t SmallestRtt = (uint32_t)(-1);
     BOOLEAN NewLargestAck = FALSE;
@@ -979,12 +979,12 @@ QuicLossDetectionProcessAckBlocks(
 
     *InvalidAckBlock = FALSE;
 
-    PQUIC_SENT_PACKET_METADATA* LostPacketsStart = &LossDetection->LostPackets;
-    PQUIC_SENT_PACKET_METADATA* SentPacketsStart = &LossDetection->SentPackets;
-    PQUIC_SENT_PACKET_METADATA LargestAckedPacket = NULL;
+    QUIC_SENT_PACKET_METADATA** LostPacketsStart = &LossDetection->LostPackets;
+    QUIC_SENT_PACKET_METADATA** SentPacketsStart = &LossDetection->SentPackets;
+    QUIC_SENT_PACKET_METADATA* LargestAckedPacket = NULL;
 
     uint32_t i = 0;
-    PQUIC_SUBRANGE AckBlock;
+    QUIC_SUBRANGE* AckBlock;
     while ((AckBlock = QuicRangeGetSafe(AckBlocks, i++)) != NULL) {
 
         //
@@ -995,7 +995,7 @@ QuicLossDetectionProcessAckBlocks(
             while (*LostPacketsStart && (*LostPacketsStart)->PacketNumber < AckBlock->Low) {
                 LostPacketsStart = &((*LostPacketsStart)->Next);
             }
-            PQUIC_SENT_PACKET_METADATA* End = LostPacketsStart;
+            QUIC_SENT_PACKET_METADATA** End = LostPacketsStart;
             while (*End && (*End)->PacketNumber <= QuicRangeGetHigh(AckBlock)) {
                 LogPacketVerbose("[%c][TX][%llu] Spurious loss detected",
                     PtkConnPre(Connection),
@@ -1027,7 +1027,7 @@ QuicLossDetectionProcessAckBlocks(
             while (*SentPacketsStart && (*SentPacketsStart)->PacketNumber < AckBlock->Low) {
                 SentPacketsStart = &((*SentPacketsStart)->Next);
             }
-            PQUIC_SENT_PACKET_METADATA* End = SentPacketsStart;
+            QUIC_SENT_PACKET_METADATA** End = SentPacketsStart;
             while (*End && (*End)->PacketNumber <= QuicRangeGetHigh(AckBlock)) {
 
                 if ((*End)->Flags.IsRetransmittable) {
@@ -1074,7 +1074,7 @@ QuicLossDetectionProcessAckBlocks(
 
     while (AckedPackets != NULL) {
 
-        PQUIC_SENT_PACKET_METADATA Packet = AckedPackets;
+        QUIC_SENT_PACKET_METADATA* Packet = AckedPackets;
         AckedPackets = AckedPackets->Next;
 
         if (QuicKeyTypeToEncryptLevel(Packet->Flags.KeyType) != EncryptLevel) {
@@ -1158,7 +1158,7 @@ QuicLossDetectionProcessAckBlocks(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicLossDetectionProcessAckFrame(
-    _In_ PQUIC_LOSS_DETECTION LossDetection,
+    _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_PATH* Path,
     _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
     _In_ QUIC_FRAME_TYPE FrameType,
@@ -1169,7 +1169,7 @@ QuicLossDetectionProcessAckFrame(
     _Out_ BOOLEAN* InvalidFrame
     )
 {
-    PQUIC_CONNECTION Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
 
     //
     // Called for each received ACK frame. An ACK frame consists of one or more
@@ -1229,10 +1229,10 @@ QuicLossDetectionProcessAckFrame(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionScheduleProbe(
-    _In_ PQUIC_LOSS_DETECTION LossDetection
+    _In_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
-    PQUIC_CONNECTION Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
 
     LossDetection->ProbeCount++;
     LogInfo("[conn][%p] probe round %lu", Connection, LossDetection->ProbeCount);
@@ -1264,7 +1264,7 @@ QuicLossDetectionScheduleProbe(
             Entry != &Connection->Send.SendStreams;
             Entry = Entry->Flink) {
 
-            PQUIC_STREAM Stream =
+            QUIC_STREAM* Stream =
                 QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
             if (QuicStreamCanSendNow(Stream, FALSE)) {
                 if (--NumPackets == 0) {
@@ -1278,7 +1278,7 @@ QuicLossDetectionScheduleProbe(
     // Not enough new stream data exists to fill the probing packets. Schedule
     // retransmits if possible.
     //
-    PQUIC_SENT_PACKET_METADATA Packet = LossDetection->SentPackets;
+    QUIC_SENT_PACKET_METADATA* Packet = LossDetection->SentPackets;
     while (Packet != NULL) {
         if (Packet->Flags.IsRetransmittable) {
             LogPacketVerbose(
@@ -1309,10 +1309,10 @@ QuicLossDetectionScheduleProbe(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionProcessTimerOperation(
-    _In_ PQUIC_LOSS_DETECTION LossDetection
+    _In_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
-    PQUIC_CONNECTION Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
 
     const QUIC_SENT_PACKET_METADATA* OldestPacket = // Oldest retransmittable packet.
         QuicLossDetectionOldestOutstandingPacket(LossDetection);

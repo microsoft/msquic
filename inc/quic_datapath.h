@@ -14,8 +14,8 @@ Abstract:
 #pragma once
 #endif
 
-#ifndef _QUIC_DATAPATH_
-#define _QUIC_DATAPATH_
+#ifndef QUIC_DATAPATH_
+#define QUIC_DATAPATH_
 
 #include "quic_platform.h"
 
@@ -102,7 +102,7 @@ PacketSizeFromUdpPayloadSize(
 //
 // Different types of receive side scaling supported.
 //
-typedef enum _QUIC_RSS_MODE {
+typedef enum QUIC_RSS_MODE {
 
     QUIC_RSS_NONE,
     QUIC_RSS_2_TUPLE,
@@ -116,38 +116,38 @@ typedef struct QUIC_BUFFER QUIC_BUFFER;
 //
 // Declaration for the DataPath context structures.
 //
-typedef struct _QUIC_DATAPATH QUIC_DATAPATH, *PQUIC_DATAPATH;
-typedef struct _QUIC_DATAPATH_BINDING QUIC_DATAPATH_BINDING, *PQUIC_DATAPATH_BINDING;
+typedef struct QUIC_DATAPATH QUIC_DATAPATH;
+typedef struct QUIC_DATAPATH_BINDING QUIC_DATAPATH_BINDING;
 
 //
 // Can be defined to whatever the client needs.
 //
-typedef struct _QUIC_RECV_PACKET QUIC_RECV_PACKET;
+typedef struct QUIC_RECV_PACKET QUIC_RECV_PACKET;
 
 //
 // Structure to represent data buffers received.
 //
-typedef struct _QUIC_TUPLE {
+typedef struct QUIC_TUPLE {
 
     QUIC_ADDR RemoteAddress;
     QUIC_ADDR LocalAddress;
 
-} QUIC_TUPLE, *PQUIC_TUPLE;
+} QUIC_TUPLE;
 
 //
 // Structure to represent received UDP datagrams.
 //
-typedef struct _QUIC_RECV_DATAGRAM {
+typedef struct QUIC_RECV_DATAGRAM {
 
     //
     // The next receive datagram in the chain.
     //
-    struct _QUIC_RECV_DATAGRAM* Next;
+    struct QUIC_RECV_DATAGRAM* Next;
 
     //
     // Contains the 4 tuple.
     //
-    PQUIC_TUPLE Tuple;
+    QUIC_TUPLE* Tuple;
 
     //
     // The data buffer containing the received bytes.
@@ -192,7 +192,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
 void
 (QUIC_DATAPATH_RECEIVE_CALLBACK)(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ void* Context,
     _In_ QUIC_RECV_DATAGRAM* DatagramChain
     );
@@ -207,7 +207,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_UNREACHABLE_CALLBACK)
 void
 (QUIC_DATAPATH_UNREACHABLE_CALLBACK)(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ void* Context,
     _In_ const QUIC_ADDR* RemoteAddress
     );
@@ -223,7 +223,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_SEND_COMPLETE)
 void
 (QUIC_DATAPATH_SEND_COMPLETE)(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ void* ClientContext,
     _In_ QUIC_STATUS CompletionStatus,
     _In_ uint32_t NumBytesSent
@@ -234,7 +234,7 @@ typedef QUIC_DATAPATH_SEND_COMPLETE *QUIC_DATAPATH_SEND_COMPLETE_HANDLER;
 //
 // Structure that maintains the 'per send' context for QuicDataPath.
 //
-typedef struct _QUIC_DATAPATH_SEND_CONTEXT QUIC_DATAPATH_SEND_CONTEXT, *PQUIC_DATAPATH_SEND_CONTEXT;
+typedef struct QUIC_DATAPATH_SEND_CONTEXT QUIC_DATAPATH_SEND_CONTEXT;
 
 //
 // Opens a new handle to the QUIC Datapath library.
@@ -245,7 +245,7 @@ QuicDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_ QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER RecvCallback,
     _In_ QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER UnreachableCallback,
-    _Out_ PQUIC_DATAPATH *NewDatapath
+    _Out_ QUIC_DATAPATH* *NewDatapath
     );
 
 //
@@ -254,7 +254,7 @@ QuicDataPathInitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicDataPathUninitialize(
-    _In_ PQUIC_DATAPATH Datapath
+    _In_ QUIC_DATAPATH* Datapath
     );
 
 #define QUIC_DATAPATH_FEATURE_RECV_SIDE_SCALING     0x0001
@@ -267,7 +267,7 @@ QuicDataPathUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 QuicDataPathGetSupportedFeatures(
-    _In_ PQUIC_DATAPATH Datapath
+    _In_ QUIC_DATAPATH* Datapath
     );
 
 //
@@ -276,7 +276,7 @@ QuicDataPathGetSupportedFeatures(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_RSS_MODE
 QuicDataPathGetRssMode(
-    _In_ PQUIC_DATAPATH Datapath
+    _In_ QUIC_DATAPATH* Datapath
     );
 
 //
@@ -285,7 +285,7 @@ QuicDataPathGetRssMode(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicDataPathIsPaddingPreferred(
-    _In_ PQUIC_DATAPATH Datapath
+    _In_ QUIC_DATAPATH* Datapath
     );
 
 //
@@ -294,7 +294,7 @@ QuicDataPathIsPaddingPreferred(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicDataPathResolveAddress(
-    _In_ PQUIC_DATAPATH Datapath,
+    _In_ QUIC_DATAPATH* Datapath,
     _In_z_ const char* HostName,
     _Inout_ QUIC_ADDR * Address
     );
@@ -311,11 +311,11 @@ QuicDataPathResolveAddress(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicDataPathBindingCreate(
-    _In_ PQUIC_DATAPATH Datapath,
+    _In_ QUIC_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR * LocalAddress,
     _In_opt_ const QUIC_ADDR * RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
-    _Out_ PQUIC_DATAPATH_BINDING* Binding
+    _Out_ QUIC_DATAPATH_BINDING** Binding
     );
 
 //
@@ -326,7 +326,7 @@ QuicDataPathBindingCreate(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicDataPathBindingDelete(
-    _In_ PQUIC_DATAPATH_BINDING Binding
+    _In_ QUIC_DATAPATH_BINDING* Binding
     );
 
 //
@@ -336,7 +336,7 @@ QuicDataPathBindingDelete(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 QuicDataPathBindingGetLocalMtu(
-    _In_ PQUIC_DATAPATH_BINDING Binding
+    _In_ QUIC_DATAPATH_BINDING* Binding
     );
 
 //
@@ -345,7 +345,7 @@ QuicDataPathBindingGetLocalMtu(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicDataPathBindingGetLocalAddress(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _Out_ QUIC_ADDR * Address
     );
 
@@ -356,7 +356,7 @@ QuicDataPathBindingGetLocalAddress(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicDataPathBindingGetRemoteAddress(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _Out_ QUIC_ADDR * Address
     );
 
@@ -376,9 +376,9 @@ QuicDataPathBindingReturnRecvDatagrams(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
-PQUIC_DATAPATH_SEND_CONTEXT
+QUIC_DATAPATH_SEND_CONTEXT*
 QuicDataPathBindingAllocSendContext(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ uint16_t MaxPacketSize
     );
 
@@ -389,7 +389,7 @@ QuicDataPathBindingAllocSendContext(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicDataPathBindingFreeSendContext(
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     );
 
 //
@@ -399,7 +399,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_BUFFER*
 QuicDataPathBindingAllocSendDatagram(
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext,
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
     _In_ uint16_t MaxBufferLength
     );
 
@@ -410,7 +410,7 @@ QuicDataPathBindingAllocSendDatagram(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicDataPathBindingFreeSendDatagram(
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext,
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
     _In_ QUIC_BUFFER* SendDatagram
     );
 
@@ -420,7 +420,7 @@ QuicDataPathBindingFreeSendDatagram(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicDataPathBindingIsSendContextFull(
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     );
 
 //
@@ -430,9 +430,9 @@ QuicDataPathBindingIsSendContextFull(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicDataPathBindingSendTo(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     );
 
 //
@@ -442,10 +442,10 @@ QuicDataPathBindingSendTo(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicDataPathBindingSendFromTo(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ const QUIC_ADDR * LocalAddress,
     _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     );
 
 //
@@ -454,7 +454,7 @@ QuicDataPathBindingSendFromTo(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicDataPathBindingSetParam(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength) const uint8_t * Buffer
@@ -466,7 +466,7 @@ QuicDataPathBindingSetParam(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicDataPathBindingGetParam(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength) uint8_t * Buffer
@@ -476,4 +476,4 @@ QuicDataPathBindingGetParam(
 }
 #endif
 
-#endif // _QUIC_DATAPATH_
+#endif // QUIC_DATAPATH_

@@ -5,12 +5,12 @@
 
 --*/
 
-typedef struct _QUIC_PARTITIONED_HASHTABLE QUIC_PARTITIONED_HASHTABLE;
+typedef struct QUIC_PARTITIONED_HASHTABLE QUIC_PARTITIONED_HASHTABLE;
 
 //
 // CID-keyed lookup table for connections.
 //
-typedef struct _QUIC_LOOKUP {
+typedef struct QUIC_LOOKUP {
 
     //
     // Indicates that maximized partitioning is needed, likely because a
@@ -50,7 +50,7 @@ typedef struct _QUIC_LOOKUP {
         } HASH;
     };
 
-} QUIC_LOOKUP, *PQUIC_LOOKUP;
+} QUIC_LOOKUP;
 
 //
 // Initializes a new lookup.
@@ -58,7 +58,7 @@ typedef struct _QUIC_LOOKUP {
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicLookupInitialize(
-    _Inout_ PQUIC_LOOKUP Lookup
+    _Inout_ QUIC_LOOKUP* Lookup
     );
 
 //
@@ -67,7 +67,7 @@ QuicLookupInitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicLookupUninitialize(
-    _In_ PQUIC_LOOKUP Lookup
+    _In_ QUIC_LOOKUP* Lookup
     );
 
 //
@@ -76,16 +76,16 @@ QuicLookupUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicLookupMaximizePartitioning(
-    _In_ PQUIC_LOOKUP Lookup
+    _In_ QUIC_LOOKUP* Lookup
     );
 
 //
 // Returns the connection with the given CID, or NULL.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicLookupFindConnection(
-    _In_ PQUIC_LOOKUP Lookup,
+    _In_ QUIC_LOOKUP* Lookup,
     _In_reads_(CIDLen)
         const uint8_t* const CID,
     _In_ uint8_t CIDLen
@@ -95,9 +95,9 @@ QuicLookupFindConnection(
 // Returns the connection with the given remote address, or NULL.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicLookupFindConnectionByRemoteAddr(
-    _In_ PQUIC_LOOKUP Lookup,
+    _In_ QUIC_LOOKUP* Lookup,
     _In_ const QUIC_ADDR* RemoteAddress
     );
 
@@ -107,9 +107,9 @@ QuicLookupFindConnectionByRemoteAddr(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicLookupAddSourceConnectionID(
-    _In_ PQUIC_LOOKUP Lookup,
+    _In_ QUIC_LOOKUP* Lookup,
     _In_ QUIC_CID_HASH_ENTRY* SourceCID,
-    _Out_opt_ PQUIC_CONNECTION* Collision
+    _Out_opt_ QUIC_CONNECTION** Collision
     );
 
 //
@@ -118,7 +118,7 @@ QuicLookupAddSourceConnectionID(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicLookupRemoveSourceConnectionID(
-    _In_ PQUIC_LOOKUP Lookup,
+    _In_ QUIC_LOOKUP* Lookup,
     _In_ QUIC_CID_HASH_ENTRY* SourceCID
     );
 
@@ -128,8 +128,8 @@ QuicLookupRemoveSourceConnectionID(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicLookupRemoveSourceConnectionIDs(
-    _In_ PQUIC_LOOKUP Lookup,
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_LOOKUP* Lookup,
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -138,7 +138,7 @@ QuicLookupRemoveSourceConnectionIDs(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicLookupMoveSourceConnectionIDs(
-    _In_ PQUIC_LOOKUP LookupSrc,
-    _In_ PQUIC_LOOKUP LookupDest,
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_LOOKUP* LookupSrc,
+    _In_ QUIC_LOOKUP* LookupDest,
+    _In_ QUIC_CONNECTION* Connection
     );

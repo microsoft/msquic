@@ -8,16 +8,16 @@
 #define QUIC_RANGE_NO_MAX_ALLOC_SIZE    UINT32_MAX
 #define QUIC_RANGE_USE_BINARY_SEARCH    1
 
-typedef struct _QUIC_SUBRANGE {
+typedef struct QUIC_SUBRANGE {
 
     uint64_t Low;
     uint64_t Count;
 
-} QUIC_SUBRANGE, *PQUIC_SUBRANGE;
+} QUIC_SUBRANGE;
 
 QUIC_STATIC_ASSERT(IS_POWER_OF_TWO(sizeof(QUIC_SUBRANGE)), L"Must be power of two");
 
-typedef struct _QUIC_RANGE_SEARCH_KEY {
+typedef struct QUIC_RANGE_SEARCH_KEY {
 
     uint64_t Low;
     uint64_t High;
@@ -36,12 +36,12 @@ QuicRangeGetHigh(
     return Sub->Low + Sub->Count - 1;
 }
 
-typedef struct _QUIC_RANGE {
+typedef struct QUIC_RANGE {
 
     //
     // Array of subranges that represent the set of intervals.
     //
-    PQUIC_SUBRANGE SubRanges;
+    QUIC_SUBRANGE* SubRanges;
 
     //
     // The number of currently used subranges in the 'SubRanges' array.
@@ -58,7 +58,7 @@ typedef struct _QUIC_RANGE {
     //
     uint32_t MaxAllocSize;
 
-} QUIC_RANGE, *PQUIC_RANGE;
+} QUIC_RANGE;
 
 //
 // Returns the number of subranges in the range.
@@ -90,7 +90,7 @@ QuicRangeGet(
 // the valid range, otherwise returns NULL.
 //
 inline
-PQUIC_SUBRANGE
+QUIC_SUBRANGE*
 QuicRangeGetSafe(
     _In_ const QUIC_RANGE * const Range,
     _In_ uint32_t Index
@@ -202,7 +202,7 @@ QuicRangeSearch(
     int Result;
     uint32_t i;
     for (i = QuicRangeSize(Range); i > 0; i--) {
-        PQUIC_SUBRANGE Sub = QuicRangeGet(Range, i - 1);
+        QUIC_SUBRANGE* Sub = QuicRangeGet(Range, i - 1);
         if ((Result = QuicRangeCompare(Key, Sub)) == 0) {
             return (int)(i - 1);
         } else if (Result > 0) {
@@ -218,13 +218,13 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicRangeInitialize(
     _In_ uint32_t MaxAllocSize,
-    _Out_ PQUIC_RANGE Range
+    _Out_ QUIC_RANGE* Range
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRangeUninitialize(
-    _In_ PQUIC_RANGE Range
+    _In_ QUIC_RANGE* Range
     );
 
 //
@@ -233,7 +233,7 @@ QuicRangeUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRangeReset(
-    _Inout_ PQUIC_RANGE Range
+    _Inout_ QUIC_RANGE* Range
     );
 
 //
@@ -248,7 +248,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicRangeGetRange(
-    _In_ PQUIC_RANGE Range,
+    _In_ QUIC_RANGE* Range,
     _In_ uint64_t Low,
     _Out_ uint64_t* Count,
     _Out_ BOOLEAN* IsLastRange
@@ -264,7 +264,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicRangeAddValue(
-    _Inout_ PQUIC_RANGE Range,
+    _Inout_ QUIC_RANGE* Range,
     _In_ uint64_t Value
     );
 
@@ -276,9 +276,9 @@ QuicRangeAddValue(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
-PQUIC_SUBRANGE
+QUIC_SUBRANGE*
 QuicRangeAddRange(
-    _Inout_ PQUIC_RANGE Range,
+    _Inout_ QUIC_RANGE* Range,
     _In_ uint64_t LowValue,
     _In_ uint64_t Count,
     _Out_ BOOLEAN* RangeUpdated
@@ -291,7 +291,7 @@ QuicRangeAddRange(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRangeRemoveSubranges(
-    _Inout_ PQUIC_RANGE Range,
+    _Inout_ QUIC_RANGE* Range,
     _In_ uint32_t Index,
     _In_ uint32_t Count
     );
@@ -304,7 +304,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicRangeRemoveRange(
-    _Inout_ PQUIC_RANGE Range,
+    _Inout_ QUIC_RANGE* Range,
     _In_ uint64_t LowValue,
     _In_ uint64_t Count
     );
@@ -315,7 +315,7 @@ QuicRangeRemoveRange(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRangeSetMin(
-    _Inout_ PQUIC_RANGE Range,
+    _Inout_ QUIC_RANGE* Range,
     _In_ uint64_t Value
     );
 
@@ -327,7 +327,7 @@ QuicRangeSetMin(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint64_t
 QuicRangeGetMin(
-    _In_ PQUIC_RANGE Range
+    _In_ QUIC_RANGE* Range
     );
 
 //
@@ -338,7 +338,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicRangeGetMinSafe(
-    _In_ PQUIC_RANGE Range,
+    _In_ QUIC_RANGE* Range,
     _Out_ uint64_t* Value
     );
 
@@ -350,7 +350,7 @@ QuicRangeGetMinSafe(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint64_t
 QuicRangeGetMax(
-    _In_ PQUIC_RANGE Range
+    _In_ QUIC_RANGE* Range
     );
 
 //
@@ -361,7 +361,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicRangeGetMaxSafe(
-    _In_ PQUIC_RANGE Range,
+    _In_ QUIC_RANGE* Range,
     _Out_ uint64_t* Value
     );
 
@@ -377,7 +377,7 @@ QuicRangeGetMaxSafe(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRangeValidate(
-    _In_ PQUIC_RANGE Range
+    _In_ QUIC_RANGE* Range
     );
 
 #else

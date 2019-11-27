@@ -106,7 +106,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
 
     struct TlsSession
     {
-        PQUIC_TLS_SESSION Ptr;
+        QUIC_TLS_SESSION* Ptr;
         TlsSession() : Ptr(nullptr) {
             VERIFY_QUIC_SUCCESS(QuicTlsSessionInitialize("MsQuicTest", &Ptr));
         }
@@ -117,7 +117,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
 
     struct TlsContext
     {
-        PQUIC_TLS Ptr;
+        QUIC_TLS* Ptr;
         HANDLE ProcessCompleteEvent;
 
         QUIC_TLS_PROCESS_STATE State;
@@ -158,7 +158,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
             Config.LocalTPBuffer =
                 (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
-            Config.Connection = (PQUIC_CONNECTION)this;
+            Config.Connection = (QUIC_CONNECTION*)this;
             Config.ProcessCompleteCallback = OnProcessComplete;
             Config.ReceiveTPCallback = OnRecvQuicTP;
 
@@ -181,7 +181,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
             Config.LocalTPBuffer =
                 (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
-            Config.Connection = (PQUIC_CONNECTION)this;
+            Config.Connection = (QUIC_CONNECTION*)this;
             Config.ProcessCompleteCallback = OnProcessComplete;
             Config.ReceiveTPCallback = OnRecvQuicTP;
             Config.ServerName = "localhost";
@@ -375,7 +375,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
 
         static void
         OnProcessComplete(
-            _In_ PQUIC_CONNECTION Connection
+            _In_ QUIC_CONNECTION* Connection
             )
         {
             SetEvent(((TlsContext*)Connection)->ProcessCompleteEvent);
@@ -383,7 +383,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
 
         static BOOLEAN
         OnRecvQuicTP(
-            _In_ PQUIC_CONNECTION Connection,
+            _In_ QUIC_CONNECTION* Connection,
             _In_ uint16_t TPLength,
             _In_reads_(TPLength) const uint8_t* TPBuffer
             )

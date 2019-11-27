@@ -13,7 +13,7 @@ Environment:
 
 --*/
 
-#ifndef _QUIC_PLATFORM_
+#ifndef QUIC_PLATFORM_
 #error "Must be included from quic_platform.h"
 #endif
 
@@ -261,7 +261,7 @@ QuicFree(
 // Represents a QUIC memory pool used for fixed sized allocations.
 //
 
-typedef struct _QUIC_POOL {
+typedef struct QUIC_POOL {
 
     //
     // List of free entries.
@@ -294,7 +294,7 @@ typedef struct _QUIC_POOL {
 
     UINT32 MemTag;
 
-} QUIC_POOL, *PQUIC_POOL;
+} QUIC_POOL;
 
 #define QUIC_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
 
@@ -302,22 +302,22 @@ void
 QuicPoolInitialize(
     _In_ BOOLEAN IsPaged,
     _In_ uint32_t Size,
-    _Inout_ PQUIC_POOL Pool
+    _Inout_ QUIC_POOL* Pool
     );
 
 void
 QuicPoolUninitialize(
-    _Inout_ PQUIC_POOL Pool
+    _Inout_ QUIC_POOL* Pool
     );
 
 void*
 QuicPoolAlloc(
-    _Inout_ PQUIC_POOL Pool
+    _Inout_ QUIC_POOL* Pool
     );
 
 void
 QuicPoolFree(
-    _Inout_ PQUIC_POOL Pool,
+    _Inout_ QUIC_POOL* Pool,
     _In_ void* Entry
     );
 
@@ -338,11 +338,11 @@ QuicPoolFree(
 // Represents a QUIC lock.
 //
 
-typedef struct _QUIC_LOCK {
+typedef struct QUIC_LOCK {
 
     pthread_mutex_t Mutex;
 
-} QUIC_LOCK, *PQUIC_LOCK;
+} QUIC_LOCK;
 
 #define QuicLockInitialize(Lock) { \
     pthread_mutexattr_t Attr; \
@@ -361,7 +361,7 @@ typedef struct _QUIC_LOCK {
 #define QuicLockRelease(Lock) \
     QUIC_FRE_ASSERT(pthread_mutex_unlock(&(Lock)->Mutex) == 0);
 
-typedef QUIC_LOCK QUIC_DISPATCH_LOCK, *PQUIC_DISPATCH_LOCK;
+typedef QUIC_LOCK QUIC_DISPATCH_LOCK;
 
 #define QuicDispatchLockInitialize QuicLockInitialize
 
@@ -375,11 +375,11 @@ typedef QUIC_LOCK QUIC_DISPATCH_LOCK, *PQUIC_DISPATCH_LOCK;
 // Represents a QUIC RW lock.
 //
 
-typedef struct _QUIC_RW_LOCK {
+typedef struct QUIC_RW_LOCK {
 
     pthread_rwlock_t RwLock;
 
-} QUIC_RW_LOCK, *PQUIC_RW_LOCK;
+} QUIC_RW_LOCK;
 
 #define QuicRwLockInitialize(Lock) \
     QUIC_FRE_ASSERT(pthread_rwlock_init(&(Lock)->RwLock, NULL) == 0);
@@ -399,7 +399,7 @@ typedef struct _QUIC_RW_LOCK {
 #define QuicRwLockReleaseExclusive(Lock) \
     QUIC_FRE_ASSERT(pthread_rwlock_unlock(&(Lock)->RwLock) == 0);
 
-typedef QUIC_RW_LOCK QUIC_DISPATCH_RW_LOCK, *PQUIC_DISPATCH_RW_LOCK;
+typedef QUIC_RW_LOCK QUIC_DISPATCH_RW_LOCK;
 
 #define QuicDispatchRwLockInitialize QuicRwLockInitialize
 
@@ -417,26 +417,26 @@ typedef QUIC_RW_LOCK QUIC_DISPATCH_RW_LOCK, *PQUIC_DISPATCH_RW_LOCK;
 // Reference Count Interface
 //
 
-typedef int64_t QUIC_REF_COUNT, *PQUIC_REF_COUNT;
+typedef int64_t QUIC_REF_COUNT;
 
 void
 QuicRefInitialize(
-    _Inout_ PQUIC_REF_COUNT RefCount
+    _Inout_ QUIC_REF_COUNT* RefCount
     );
 
 void
 QuicRefIncrement(
-    _Inout_ PQUIC_REF_COUNT RefCount
+    _Inout_ QUIC_REF_COUNT* RefCount
     );
 
 BOOLEAN
 QuicRefIncrementNonZero(
-    _Inout_ volatile PQUIC_REF_COUNT RefCount
+    _Inout_ volatile QUIC_REF_COUNT* RefCount
     );
 
 BOOLEAN
 QuicRefDecrement(
-    _In_ PQUIC_REF_COUNT RefCount
+    _In_ QUIC_REF_COUNT* RefCount
     );
 
 #define QuicRefUninitialize(RefCount)
@@ -449,7 +449,7 @@ QuicRefDecrement(
 // QUIC event object.
 //
 
-typedef struct _QUIC_EVENT_OBJECT {
+typedef struct QUIC_EVENT_OBJECT {
 
     //
     // Mutex and condition.
@@ -470,13 +470,13 @@ typedef struct _QUIC_EVENT_OBJECT {
 
     BOOLEAN AutoReset;
 
-} QUIC_EVENT_OBJECT, *PQUIC_EVENT_OBJECT;
+} QUIC_EVENT_OBJECT;
 
-typedef PQUIC_EVENT_OBJECT QUIC_EVENT, *PQUIC_EVENT;
+typedef QUIC_EVENT_OBJECT* QUIC_EVENT;
 
 void
 QuicEventInitialize(
-    _Out_ PQUIC_EVENT Event,
+    _Out_ QUIC_EVENT* Event,
     _In_ BOOLEAN ManualReset,
     _In_ BOOLEAN InitialState
     );
@@ -545,23 +545,6 @@ QuicTimeDiff64(
     _In_ uint64_t T1,
     _In_ uint64_t T2
     )
-/*++
-
-Routine Description:
-
-    Returns the difference between two 64-bit timestamps.
-
-Arguments:
-
-    T1 - First time measured.
-
-    T2 - Second time measured.
-
-Return Value:
-
-    Returns the difference.
-
---*/
 {
     //
     // Assume no wrap around.
@@ -576,24 +559,6 @@ QuicTimeDiff32(
     _In_ uint32_t T1,     // First time measured
     _In_ uint32_t T2      // Second time measured
     )
-/*++
-
-Routine Description:
-
-    Returns the difference between two 32-bit timestamps.
-
-Arguments:
-
-    T1 - First time measured.
-
-    T2 - Second time measured.
-
-Return Value:
-
-    Returns the difference.
-
---*/
-
 {
     if (T2 > T1) {
         return T2 - T1;
@@ -608,23 +573,6 @@ QuicTimeAtOrBefore64(
     _In_ uint64_t T1,
     _In_ uint64_t T2
     )
-/*++
-
-Routine Description:
-
-    Checks if T1 came before T2 (64-bit version).
-
-Arguments:
-
-    T1 - First time measured.
-
-    T2 - Second time measured.
-
-Return Value:
-
-    Returns TRUE if T1 came before T2.
-
---*/
 {
     //
     // Assume no wrap around.
@@ -639,23 +587,6 @@ QuicTimeAtOrBefore32(
     _In_ uint32_t T1,
     _In_ uint32_t T2
     )
-/*++
-
-Routine Description:
-
-    Checks if T1 came before T2 (32-bit version).
-
-Arguments:
-
-    T1 - First time measured.
-
-    T2 - Second time measured.
-
-Return Value:
-
-    Returns TRUE if T1 came before T2.
-
---*/
 {
     return (int32_t)(T1 - T2) <= 0;
 }
@@ -674,11 +605,11 @@ QuicSleep(
 // QUIC thread object.
 //
 
-typedef struct _QUIC_THREAD {
+typedef struct QUIC_THREAD {
 
     pthread_t Thread;
 
-} QUIC_THREAD, *PQUIC_THREAD;
+} QUIC_THREAD;
 
 #define QUIC_THREAD_CALLBACK(FuncName, CtxVarName) \
     void* \
@@ -694,7 +625,7 @@ typedef void* (* LPTHREAD_START_ROUTINE)(void *);
 #define QUIC_THREAD_FLAG_SET_AFFINITIZE     0x0002
 #define QUIC_THREAD_FLAG_HIGH_PRIORITY      0x0004
 
-typedef struct _QUIC_THREAD_CONFIG {
+typedef struct QUIC_THREAD_CONFIG {
     uint16_t Flags;
     uint8_t IdealProcessor;
     _Field_z_ const char* Name;
@@ -705,17 +636,17 @@ typedef struct _QUIC_THREAD_CONFIG {
 QUIC_STATUS
 QuicThreadCreate(
     _In_ QUIC_THREAD_CONFIG* Config,
-    _Out_ PQUIC_THREAD* Thread
+    _Out_ QUIC_THREAD** Thread
     );
 
 void
 QuicThreadDelete(
-    _Inout_ PQUIC_THREAD Thread
+    _Inout_ QUIC_THREAD* Thread
     );
 
 void
 QuicThreadWait(
-    _Inout_ PQUIC_THREAD Thread
+    _Inout_ QUIC_THREAD* Thread
     );
 
 uint32_t
@@ -746,7 +677,7 @@ QuicProcCurrentNumber(
 // Rundown Protection Interfaces.
 //
 
-typedef struct _QUIC_RUNDOWN_REF {
+typedef struct QUIC_RUNDOWN_REF {
 
     //
     // The ref counter.
@@ -760,42 +691,42 @@ typedef struct _QUIC_RUNDOWN_REF {
 
     QUIC_EVENT RundownComplete;
 
-} QUIC_RUNDOWN_REF, *PQUIC_RUNDOWN_REF;
+} QUIC_RUNDOWN_REF;
 
 
 void
 QuicRundownInitialize(
-    _Inout_ PQUIC_RUNDOWN_REF Rundown
+    _Inout_ QUIC_RUNDOWN_REF* Rundown
     );
 
 void
 QuicRundownInitializeDisabled(
-    _Inout_ PQUIC_RUNDOWN_REF Rundown
+    _Inout_ QUIC_RUNDOWN_REF* Rundown
     );
 
 void
 QuicRundownReInitialize(
-    _Inout_ PQUIC_RUNDOWN_REF Rundown
+    _Inout_ QUIC_RUNDOWN_REF* Rundown
     );
 
 void
 QuicRundownUninitialize(
-    _Inout_ PQUIC_RUNDOWN_REF Rundown
+    _Inout_ QUIC_RUNDOWN_REF* Rundown
     );
 
 BOOLEAN
 QuicRundownAcquire(
-    _Inout_ PQUIC_RUNDOWN_REF Rundown
+    _Inout_ QUIC_RUNDOWN_REF* Rundown
     );
 
 void
 QuicRundownRelease(
-    _Inout_ PQUIC_RUNDOWN_REF Rundown
+    _Inout_ QUIC_RUNDOWN_REF* Rundown
     );
 
 void
 QuicRundownReleaseAndWait(
-    _Inout_ PQUIC_RUNDOWN_REF Rundown
+    _Inout_ QUIC_RUNDOWN_REF* Rundown
     );
 
 //

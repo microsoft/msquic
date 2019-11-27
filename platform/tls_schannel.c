@@ -64,12 +64,12 @@ uint16_t QuicTlsTPHeaderSize = FIELD_OFFSET(SEND_GENERIC_TLS_EXTENSION, Buffer);
 const WORD TlsHandshake_ClientHello = 0x01;
 const WORD TlsHandshake_EncryptedExtensions = 0x08;
 
-typedef struct _QUIC_SEC_CONFIG {
+typedef struct QUIC_SEC_CONFIG {
     BOOLEAN IsServer : 1;
     LONG RefCount;
-} QUIC_SEC_CONFIG, *PQUIC_SEC_CONFIG;
+} QUIC_SEC_CONFIG;
 
-typedef struct _QUIC_SERVER_SEC_CONFIG {
+typedef struct QUIC_SERVER_SEC_CONFIG {
     QUIC_SEC_CONFIG;
     QUIC_RUNDOWN_REF* CleanupRundown;
 #ifdef _KERNEL_MODE
@@ -82,20 +82,20 @@ typedef struct _QUIC_SERVER_SEC_CONFIG {
     // Acquired credential handle.
     //
     CredHandle CertificateHandle;
-} QUIC_SERVER_SEC_CONFIG, *PQUIC_SERVER_SEC_CONFIG;
+} QUIC_SERVER_SEC_CONFIG;
 
 // allocate this internally and cast to the sec_config type
-typedef struct _QUIC_CLIENT_SEC_CONFIG {
+typedef struct QUIC_CLIENT_SEC_CONFIG {
     QUIC_SEC_CONFIG;
 
     //
     // Credential handle as obtained from AcquireCredentialsHandle.
     //
     CredHandle SchannelHandle;
-} QUIC_CLIENT_SEC_CONFIG, *PQUIC_CLIENT_SEC_CONFIG;
+} QUIC_CLIENT_SEC_CONFIG;
 
 #ifdef _KERNEL_MODE
-typedef struct _QUIC_ACHA_CONTEXT {
+typedef struct QUIC_ACHA_CONTEXT {
     //
     // Context for the completion callback.
     //
@@ -120,23 +120,23 @@ typedef struct _QUIC_ACHA_CONTEXT {
     //
     // Security config to pass back to the caller.
     //
-    PQUIC_SERVER_SEC_CONFIG SecConfig;
+    QUIC_SERVER_SEC_CONFIG* SecConfig;
 
     //
     // Holds the credentials configuration for the lifetime of the async call.
     //
     SCHANNEL_CRED Credentials;
 
-} QUIC_ACHA_CONTEXT, *PQUIC_ACHA_CONTEXT;
+} QUIC_ACHA_CONTEXT;
 #endif
 
-typedef struct _QUIC_TLS_SESSION {
+typedef struct QUIC_TLS_SESSION {
 
     SEC_APPLICATION_PROTOCOLS* ApplicationProtocols;
 
     ULONG AppProtocolsSize;
 
-} QUIC_TLS_SESSION, *PQUIC_TLS_SESSION;
+} QUIC_TLS_SESSION;
 
 typedef struct _SEC_BUFFER_WORKSPACE {
 
@@ -162,7 +162,7 @@ typedef struct _SEC_BUFFER_WORKSPACE {
 
 } SEC_BUFFER_WORKSPACE;
 
-typedef struct _QUIC_TLS {
+typedef struct QUIC_TLS {
 
     BOOLEAN IsServer : 1;
     BOOLEAN GeneratedFirstPayload : 1;
@@ -170,7 +170,7 @@ typedef struct _QUIC_TLS {
     BOOLEAN HandshakeKeyRead : 1;
     BOOLEAN ApplicationKeyRead : 1;
 
-    PQUIC_TLS_SESSION TlsSession;
+    QUIC_TLS_SESSION* TlsSession;
 
     //
     // Cached server name indication.
@@ -185,7 +185,7 @@ typedef struct _QUIC_TLS {
     //
     // SecurityConfig information for this TLS stream.
     //
-    PQUIC_SEC_CONFIG SecConfig;
+    QUIC_SEC_CONFIG* SecConfig;
 
     //
     // Schannel encoded TLS extension buffer for QUIC TP.
@@ -195,7 +195,7 @@ typedef struct _QUIC_TLS {
     //
     // Callback context and handler for QUIC TP.
     //
-    PQUIC_CONNECTION Connection;
+    QUIC_CONNECTION* Connection;
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
 
     //
@@ -203,7 +203,7 @@ typedef struct _QUIC_TLS {
     //
     SEC_BUFFER_WORKSPACE Workspace;
 
-} QUIC_TLS, *PQUIC_TLS;
+} QUIC_TLS;
 
 _Success_(return==TRUE)
 BOOLEAN
@@ -520,13 +520,13 @@ QUIC_STATUS
 QuicTlsAllocateAchaContext(
     _In_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER Callback,
-    _In_ PQUIC_SERVER_SEC_CONFIG Config,
-    _Out_ PQUIC_ACHA_CONTEXT* AchaContext
+    _In_ QUIC_SERVER_SEC_CONFIG* Config,
+    _Out_ QUIC_ACHA_CONTEXT** AchaContext
     )
 {
     QUIC_DBG_ASSERT(AchaContext != NULL);
 
-    PQUIC_ACHA_CONTEXT NewAchaContext = QUIC_ALLOC_NONPAGED(sizeof(QUIC_ACHA_CONTEXT));
+    QUIC_ACHA_CONTEXT* NewAchaContext = QUIC_ALLOC_NONPAGED(sizeof(QUIC_ACHA_CONTEXT));
     if (NewAchaContext == NULL) {
         EventWriteQuicAllocFailure("QUIC_ACHA_CONTEXT", sizeof(QUIC_ACHA_CONTEXT));
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -543,7 +543,7 @@ QuicTlsAllocateAchaContext(
 
 void
 QuicTlsFreeAchaContext(
-    _In_ PQUIC_ACHA_CONTEXT AchaContext
+    _In_ QUIC_ACHA_CONTEXT* AchaContext
     )
 {
     if (AchaContext->Principal.Buffer != NULL) {
@@ -563,10 +563,10 @@ QuicTlsSspiNotifyCallback(
         EventWriteQuicLibraryError("NULL CallbackData to QuicTlsSspiNotifyCallback");
         return;
     }
-    PQUIC_ACHA_CONTEXT Context = CallbackData;
+    QUIC_ACHA_CONTEXT* Context = CallbackData;
     QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionCallback = Context->CompletionCallback;
     void* CompletionContext = Context->CompletionContext;
-    PQUIC_SEC_CONFIG SecConfig = (PQUIC_SEC_CONFIG)Context->SecConfig;
+    QUIC_SEC_CONFIG* SecConfig = (QUIC_SEC_CONFIG*)Context->SecConfig;
     SECURITY_STATUS Status = SspiGetAsyncCallStatus(Handle);
     QuicTlsFreeAchaContext(Context);
     if (Status != SEC_E_OK) {
@@ -650,7 +650,7 @@ QuicTlsServerSecConfigCreate(
     }
 
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (QuicTlsSecConfigDelete).")
-    PQUIC_SERVER_SEC_CONFIG Config = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SERVER_SEC_CONFIG));
+    QUIC_SERVER_SEC_CONFIG* Config = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SERVER_SEC_CONFIG));
     if (Config == NULL) {
         QuicRundownRelease(Rundown);
         EventWriteQuicAllocFailure("QUIC_SERVER_SEC_CONFIG", sizeof(QUIC_SERVER_SEC_CONFIG));
@@ -664,7 +664,7 @@ QuicTlsServerSecConfigCreate(
     Config->IsServer = TRUE;
 
 #ifdef _KERNEL_MODE
-    PQUIC_ACHA_CONTEXT AchaContext = NULL;
+    QUIC_ACHA_CONTEXT* AchaContext = NULL;
     Status = QuicTlsAllocateAchaContext(Context, CompletionHandler, Config, &AchaContext);
     if (QUIC_FAILED(Status)) {
         goto Error;
@@ -925,7 +925,7 @@ QuicTlsClientSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    PQUIC_CLIENT_SEC_CONFIG Config = QUIC_ALLOC_PAGED(sizeof(QUIC_CLIENT_SEC_CONFIG));
+    QUIC_CLIENT_SEC_CONFIG* Config = QUIC_ALLOC_PAGED(sizeof(QUIC_CLIENT_SEC_CONFIG));
     if (Config == NULL) {
         EventWriteQuicAllocFailure("QUIC_CLIENT_SEC_CONFIG", sizeof(QUIC_CLIENT_SEC_CONFIG));
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -1005,9 +1005,9 @@ QuicTlsSecConfigRelease(
     if (InterlockedDecrement(&SecurityConfig->RefCount) == 0) {
 
         if (SecurityConfig->IsServer) {
-            QuicTlsServerSecConfigDelete((PQUIC_SERVER_SEC_CONFIG)SecurityConfig);
+            QuicTlsServerSecConfigDelete((QUIC_SERVER_SEC_CONFIG*)SecurityConfig);
         } else {
-            QuicTlsClientSecConfigDelete((PQUIC_CLIENT_SEC_CONFIG)SecurityConfig);
+            QuicTlsClientSecConfigDelete((QUIC_CLIENT_SEC_CONFIG*)SecurityConfig);
         }
     }
 }
@@ -1016,7 +1016,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsSessionInitialize(
     _In_z_ const char* ALPN,
-    _Out_ PQUIC_TLS_SESSION* NewTlsSession
+    _Out_ QUIC_TLS_SESSION** NewTlsSession
     )
 {
     QUIC_STATUS Status;
@@ -1026,7 +1026,7 @@ QuicTlsSessionInitialize(
             sizeof(SEC_APPLICATION_PROTOCOLS) +
             sizeof(SEC_APPLICATION_PROTOCOL_LIST));
 
-    PQUIC_TLS_SESSION TlsSession =
+    QUIC_TLS_SESSION* TlsSession =
         QUIC_ALLOC_NONPAGED(sizeof(QUIC_TLS_SESSION) + AppProtocolsSize);
     if (TlsSession == NULL) {
         EventWriteQuicAllocFailure("QUIC_TLS_SESSION", sizeof(QUIC_TLS_SESSION) + AppProtocolsSize);
@@ -1066,7 +1066,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsSessionUninitialize(
-    _In_opt_ PQUIC_TLS_SESSION TlsSession
+    _In_opt_ QUIC_TLS_SESSION* TlsSession
     )
 {
     if (TlsSession != NULL) {
@@ -1090,7 +1090,7 @@ QuicTlsSessionSetTicketKey(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsSessionAddTicket(
-    _In_ PQUIC_TLS_SESSION TlsSession,
+    _In_ QUIC_TLS_SESSION* TlsSession,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer
@@ -1106,13 +1106,13 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsInitialize(
     _In_ const QUIC_TLS_CONFIG* Config,
-    _Out_ PQUIC_TLS* NewTlsContext
+    _Out_ QUIC_TLS** NewTlsContext
     )
 {
     UNREFERENCED_PARAMETER(Config->Connection);
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    PQUIC_TLS TlsContext = QUIC_ALLOC_NONPAGED(sizeof(QUIC_TLS));
+    QUIC_TLS* TlsContext = QUIC_ALLOC_NONPAGED(sizeof(QUIC_TLS));
     if (TlsContext == NULL) {
         EventWriteQuicAllocFailure("QUIC_TLS", sizeof(QUIC_TLS));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -1163,7 +1163,7 @@ inline
 static
 void
 QuicTlsResetSchannel(
-    _In_ PQUIC_TLS TlsContext
+    _In_ QUIC_TLS* TlsContext
     )
 {
     if (SecIsValidHandle(&TlsContext->SchannelContext)) {
@@ -1190,7 +1190,7 @@ QuicTlsResetSchannel(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsUninitialize(
-    _In_opt_ PQUIC_TLS TlsContext
+    _In_opt_ QUIC_TLS* TlsContext
     )
 {
     if (TlsContext != NULL) {
@@ -1211,7 +1211,7 @@ QuicTlsUninitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsReset(
-    _In_ PQUIC_TLS TlsContext
+    _In_ QUIC_TLS* TlsContext
     )
 {
     LogInfo("[ tls][%p][%c] Resetting TLS state.",
@@ -1224,9 +1224,9 @@ QuicTlsReset(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-PQUIC_SEC_CONFIG
+QUIC_SEC_CONFIG*
 QuicTlsGetSecConfig(
-    _In_ PQUIC_TLS TlsContext
+    _In_ QUIC_TLS* TlsContext
     )
 {
     return QuicTlsSecConfigAddRef(TlsContext->SecConfig);
@@ -1235,7 +1235,7 @@ QuicTlsGetSecConfig(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
 QuicTlsWriteDataToSchannel(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_reads_(*InBufferLength)
         const uint8_t* InBuffer,
     _Inout_ uint32_t* InBufferLength,
@@ -1419,7 +1419,7 @@ QuicTlsWriteDataToSchannel(
     SECURITY_STATUS SecStatus;
 
     if (TlsContext->IsServer) {
-        PQUIC_SERVER_SEC_CONFIG SecConfig = (PQUIC_SERVER_SEC_CONFIG)TlsContext->SecConfig;
+        QUIC_SERVER_SEC_CONFIG* SecConfig = (QUIC_SERVER_SEC_CONFIG*)TlsContext->SecConfig;
         QUIC_DBG_ASSERT(SecConfig->IsServer == TRUE);
 
         SecStatus =
@@ -1435,7 +1435,7 @@ QuicTlsWriteDataToSchannel(
                 NULL); // FYI, used for client authentication certificate.
 
     } else {
-        PQUIC_CLIENT_SEC_CONFIG SecConfig = (PQUIC_CLIENT_SEC_CONFIG)TlsContext->SecConfig;
+        QUIC_CLIENT_SEC_CONFIG* SecConfig = (QUIC_CLIENT_SEC_CONFIG*)TlsContext->SecConfig;
         QUIC_DBG_ASSERT(SecConfig->IsServer == FALSE);
 
         SecStatus =
@@ -1769,7 +1769,7 @@ QuicTlsWriteDataToSchannel(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessData(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_reads_bytes_(*BufferLength)
         const uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength,
@@ -1812,7 +1812,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessDataComplete(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _Out_ uint32_t * BufferConsumed
     )
 {
@@ -1824,7 +1824,7 @@ QuicTlsProcessDataComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsReadTicket(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
         uint8_t* Buffer
@@ -1839,7 +1839,7 @@ QuicTlsReadTicket(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsParamSet(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -1856,7 +1856,7 @@ QuicTlsParamSet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsParamGet(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)

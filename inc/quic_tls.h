@@ -21,9 +21,9 @@ extern "C" {
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
 #pragma warning(disable:4214)  // nonstandard extension used: bit field types other than int
 
-typedef struct _QUIC_CONNECTION QUIC_CONNECTION, *PQUIC_CONNECTION;
-typedef struct _QUIC_TLS_SESSION QUIC_TLS_SESSION, *PQUIC_TLS_SESSION;
-typedef struct _QUIC_TLS QUIC_TLS, *PQUIC_TLS;
+typedef struct QUIC_CONNECTION QUIC_CONNECTION;
+typedef struct QUIC_TLS_SESSION QUIC_TLS_SESSION;
+typedef struct QUIC_TLS QUIC_TLS;
 
 #define TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS    0xffa5  // Host Byte Order
 
@@ -39,7 +39,7 @@ typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 (QUIC_TLS_PROCESS_COMPLETE_CALLBACK)(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     );
 
 typedef QUIC_TLS_PROCESS_COMPLETE_CALLBACK *QUIC_TLS_PROCESS_COMPLETE_CALLBACK_HANDLER;
@@ -52,7 +52,7 @@ typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 (QUIC_TLS_RECEIVE_TP_CALLBACK)(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint16_t TPLength,
     _In_reads_(TPLength) const uint8_t* TPBuffer
     );
@@ -62,14 +62,14 @@ typedef QUIC_TLS_RECEIVE_TP_CALLBACK *QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER;
 //
 // The input configuration for creation of a TLS context.
 //
-typedef struct _QUIC_TLS_CONFIG {
+typedef struct QUIC_TLS_CONFIG {
 
     BOOLEAN IsServer;
 
     //
     // The TLS session.
     //
-    PQUIC_TLS_SESSION TlsSession;
+    QUIC_TLS_SESSION* TlsSession;
 
     //
     // The TLS configuration information and credentials.
@@ -86,7 +86,7 @@ typedef struct _QUIC_TLS_CONFIG {
     //
     // Passed into completion callbacks.
     //
-    PQUIC_CONNECTION Connection;
+    QUIC_CONNECTION* Connection;
 
     //
     // Invoked for the completion of process calls that were pending.
@@ -108,7 +108,7 @@ typedef struct _QUIC_TLS_CONFIG {
 //
 // Different possible results after writing new TLS data.
 //
-typedef enum _QUIC_TLS_RESULT_FLAGS {
+typedef enum QUIC_TLS_RESULT_FLAGS {
 
     QUIC_TLS_RESULT_CONTINUE            = 0x0001, // Needs immediate call again. (Used internally to schannel)
     QUIC_TLS_RESULT_PENDING             = 0x0002, // The call is pending.
@@ -126,7 +126,7 @@ typedef enum _QUIC_TLS_RESULT_FLAGS {
 //
 // The output processing state.
 //
-typedef struct _QUIC_TLS_PROCESS_STATE {
+typedef struct QUIC_TLS_PROCESS_STATE {
 
     //
     // Indicate the client configured 0-RTT initially.
@@ -202,7 +202,7 @@ typedef struct _QUIC_TLS_PROCESS_STATE {
     //
     QUIC_PACKET_KEY* WriteKeys[QUIC_PACKET_KEY_COUNT];
 
-} QUIC_TLS_PROCESS_STATE, *PQUIC_TLS_PROCESS_STATE;
+} QUIC_TLS_PROCESS_STATE;
 
 //
 // Creates a new TLS security configuration.
@@ -255,7 +255,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsSessionInitialize(
     _In_z_ const char* ALPN,
-    _Out_ PQUIC_TLS_SESSION* NewTlsSession
+    _Out_ QUIC_TLS_SESSION** NewTlsSession
     );
 
 //
@@ -264,7 +264,7 @@ QuicTlsSessionInitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsSessionUninitialize(
-    _In_opt_ PQUIC_TLS_SESSION TlsSession
+    _In_opt_ QUIC_TLS_SESSION* TlsSession
     );
 
 //
@@ -284,7 +284,7 @@ QuicTlsSessionSetTicketKey(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsSessionAddTicket(
-    _In_ PQUIC_TLS_SESSION TlsSession,
+    _In_ QUIC_TLS_SESSION* TlsSession,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer
@@ -297,7 +297,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsInitialize(
     _In_ const QUIC_TLS_CONFIG* Config,
-    _Out_ PQUIC_TLS* NewTlsContext
+    _Out_ QUIC_TLS** NewTlsContext
     );
 
 //
@@ -306,7 +306,7 @@ QuicTlsInitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsUninitialize(
-    _In_opt_ PQUIC_TLS TlsContext
+    _In_opt_ QUIC_TLS* TlsContext
     );
 
 //
@@ -315,7 +315,7 @@ QuicTlsUninitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsReset(
-    _In_ PQUIC_TLS TlsContext
+    _In_ QUIC_TLS* TlsContext
     );
 
 //
@@ -325,7 +325,7 @@ QuicTlsReset(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_SEC_CONFIG*
 QuicTlsGetSecConfig(
-    _In_ PQUIC_TLS TlsContext
+    _In_ QUIC_TLS* TlsContext
     );
 
 //
@@ -341,7 +341,7 @@ QuicTlsGetSecConfig(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessData(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_reads_bytes_(*BufferLength)
         const uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength,
@@ -354,7 +354,7 @@ QuicTlsProcessData(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessDataComplete(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _Out_ uint32_t * ConsumedBuffer
     );
 
@@ -364,7 +364,7 @@ QuicTlsProcessDataComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsReadTicket(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
         uint8_t* Buffer
@@ -376,7 +376,7 @@ QuicTlsReadTicket(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsParamSet(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -389,7 +389,7 @@ QuicTlsParamSet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsParamGet(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)

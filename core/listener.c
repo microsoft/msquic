@@ -27,8 +27,8 @@ MsQuicListenerOpen(
     )
 {
     QUIC_STATUS Status;
-    PQUIC_SESSION Session;
-    PQUIC_LISTENER Listener = NULL;
+    QUIC_SESSION* Session;
+    QUIC_LISTENER* Listener = NULL;
 
     EventWriteQuicApiEnter(
         QUIC_TRACE_API_LISTENER_OPEN,
@@ -42,7 +42,7 @@ MsQuicListenerOpen(
         goto Error;
     }
 
-    Session = (PQUIC_SESSION)SessionHandle;
+    Session = (QUIC_SESSION*)SessionHandle;
 
     Listener = QUIC_ALLOC_NONPAGED(sizeof(QUIC_LISTENER));
     if (Listener == NULL) {
@@ -102,8 +102,8 @@ MsQuicListenerClose(
         Handle);
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    PQUIC_LISTENER Listener = (PQUIC_LISTENER)Handle;
-    PQUIC_SESSION Session = Listener->Session;
+    QUIC_LISTENER* Listener = (QUIC_LISTENER*)Handle;
+    QUIC_SESSION* Session = Listener->Session;
 
     //
     // Make sure the listener has unregistered from the binding.
@@ -128,7 +128,7 @@ MsQuicListenerStart(
     )
 {
     QUIC_STATUS Status;
-    PQUIC_LISTENER Listener;
+    QUIC_LISTENER* Listener;
     BOOLEAN PortUnspecified;
     QUIC_ADDR BindingLocalAddress = {0};
 
@@ -149,7 +149,7 @@ MsQuicListenerStart(
 
     Status = QUIC_STATUS_SUCCESS;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    Listener = (PQUIC_LISTENER)Handle;
+    Listener = (QUIC_LISTENER*)Handle;
 
     if (Listener->Binding) {
         Status = QUIC_STATUS_INVALID_STATE;
@@ -243,7 +243,7 @@ MsQuicListenerStop(
 
     if (Handle != NULL && Handle->Type == QUIC_HANDLE_TYPE_LISTENER) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        PQUIC_LISTENER Listener = (PQUIC_LISTENER)Handle;
+        QUIC_LISTENER* Listener = (QUIC_LISTENER*)Handle;
         if (Listener->Binding != NULL) {
             QuicBindingUnregisterListener(Listener->Binding, Listener);
             QuicLibraryReleaseBinding(Listener->Binding);
@@ -260,7 +260,7 @@ MsQuicListenerStop(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicListenerTraceRundown(
-    _In_ PQUIC_LISTENER Listener
+    _In_ QUIC_LISTENER* Listener
     )
 {
     EventWriteQuicListenerRundown(Listener, Listener->Session);
@@ -276,7 +276,7 @@ QuicListenerTraceRundown(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicListenerIndicateEvent(
-    _In_ PQUIC_LISTENER Listener,
+    _In_ QUIC_LISTENER* Listener,
     _Inout_ QUIC_LISTENER_EVENT* Event
     )
 {
@@ -303,8 +303,8 @@ QuicListenerIndicateEvent(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicListenerClaimConnection(
-    _In_ PQUIC_LISTENER Listener,
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_LISTENER* Listener,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_NEW_CONNECTION_INFO* Info,
     _Out_ QUIC_SEC_CONFIG** SecConfig
     )
@@ -383,8 +383,8 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_CONNECTION_ACCEPT_RESULT
 QuicListenerAcceptConnection(
-    _In_ PQUIC_LISTENER Listener,
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_LISTENER* Listener,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_NEW_CONNECTION_INFO* Info
     )
 {
@@ -444,7 +444,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicListenerParamSet(
-    _In_ PQUIC_LISTENER Listener,
+    _In_ QUIC_LISTENER* Listener,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -470,7 +470,7 @@ QuicListenerParamSet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicListenerParamGet(
-    _In_ PQUIC_LISTENER Listener,
+    _In_ QUIC_LISTENER* Listener,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)

@@ -5,7 +5,7 @@
 
 --*/
 
-typedef struct _QUIC_RECV_BUFFER {
+typedef struct QUIC_RECV_BUFFER {
 
     //
     // Flag to indicate that after a drain, copy any remaining bytes to the
@@ -57,12 +57,12 @@ typedef struct _QUIC_RECV_BUFFER {
     //
     QUIC_RANGE WrittenRanges;
 
-} QUIC_RECV_BUFFER, *PQUIC_RECV_BUFFER;
+} QUIC_RECV_BUFFER;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicRecvBufferInitialize(
-    _Inout_ PQUIC_RECV_BUFFER RecvBuffer,
+    _Inout_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint32_t AllocBufferLength,
     _In_ uint32_t VirtualBufferLength,
     _In_ BOOLEAN CopyOnDrain
@@ -71,7 +71,7 @@ QuicRecvBufferInitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRecvBufferUninitialize(
-    _In_ PQUIC_RECV_BUFFER RecvBuffer
+    _In_ QUIC_RECV_BUFFER* RecvBuffer
     );
 
 //
@@ -80,7 +80,7 @@ QuicRecvBufferUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint64_t
 QuicRecvBufferGetTotalLength(
-    _In_ PQUIC_RECV_BUFFER RecvBuffer
+    _In_ QUIC_RECV_BUFFER* RecvBuffer
     );
 
 //
@@ -89,7 +89,7 @@ QuicRecvBufferGetTotalLength(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRecvBufferSetVirtualBufferLength(
-    _In_ PQUIC_RECV_BUFFER RecvBuffer,
+    _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint32_t NewLength
     );
 
@@ -99,7 +99,7 @@ QuicRecvBufferSetVirtualBufferLength(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRecvBufferHasUnreadData(
-    _In_ PQUIC_RECV_BUFFER RecvBuffer
+    _In_ QUIC_RECV_BUFFER* RecvBuffer
     );
 
 //
@@ -108,7 +108,7 @@ QuicRecvBufferHasUnreadData(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRecvBufferAlreadyReadData(
-    _In_ PQUIC_RECV_BUFFER RecvBuffer,
+    _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint64_t BufferOffset,
     _In_ uint16_t BufferLength
     );
@@ -122,7 +122,7 @@ QuicRecvBufferAlreadyReadData(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicRecvBufferWrite(
-    _In_ PQUIC_RECV_BUFFER RecvBuffer,
+    _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint64_t BufferOffset,
     _In_ uint16_t BufferLength,
     _In_reads_bytes_(BufferLength) uint8_t const* Buffer,
@@ -141,7 +141,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicRecvBufferRead(
-    _In_ PQUIC_RECV_BUFFER RecvBuffer,
+    _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _Out_ uint64_t* BufferOffset,
     _Inout_ uint32_t* BufferCount,
     _Out_writes_all_(*BufferCount)
@@ -159,6 +159,6 @@ QuicRecvBufferRead(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRecvBufferDrain(
-    _In_ PQUIC_RECV_BUFFER RecvBuffer,
+    _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint64_t BufferLength
     );

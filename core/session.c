@@ -30,7 +30,7 @@ MsQuicSessionOpen(
     )
 {
     QUIC_STATUS Status;
-    PQUIC_SESSION Session = NULL;
+    QUIC_SESSION* Session = NULL;
     size_t AlpnLength = 0;
 
     EventWriteQuicApiEnter(
@@ -62,7 +62,7 @@ MsQuicSessionOpen(
     Session->Type = QUIC_HANDLE_TYPE_SESSION;
     Session->ClientContext = Context;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    Session->Registration = (PQUIC_REGISTRATION)RegistrationContext;
+    Session->Registration = (QUIC_REGISTRATION*)RegistrationContext;
     Session->AlpnLength = (uint8_t)AlpnLength;
     QuicCopyMemory(Session->Alpn, Alpn, AlpnLength + 1);
 
@@ -175,7 +175,7 @@ MsQuicSessionClose(
         Handle);
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    PQUIC_SESSION Session = (PQUIC_SESSION)Handle;
+    QUIC_SESSION* Session = (QUIC_SESSION*)Handle;
 
     EventWriteQuicSessionCleanup(Session);
 
@@ -258,7 +258,7 @@ MsQuicSessionShutdown(
 
     if (Handle && Handle->Type == QUIC_HANDLE_TYPE_SESSION) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        PQUIC_SESSION Session = (PQUIC_SESSION)Handle;
+        QUIC_SESSION* Session = (QUIC_SESSION*)Handle;
 
         EventWriteQuicSessionShutdown(Session, Flags, ErrorCode);
 
@@ -267,13 +267,13 @@ MsQuicSessionShutdown(
         QUIC_LIST_ENTRY* Entry = Session->Connections.Flink;
         while (Entry != &Session->Connections) {
 
-            PQUIC_CONNECTION Connection =
+            QUIC_CONNECTION* Connection =
                 QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, SessionLink);
 
             if (InterlockedCompareExchange16(
                     (SHORT*)&Connection->BackUpOperUsed, 1, 0) == 0) {
 
-                PQUIC_OPERATION Oper = &Connection->BackUpOper;
+                QUIC_OPERATION* Oper = &Connection->BackUpOper;
                 Oper->FreeAfterProcess = FALSE;
                 Oper->Type = QUIC_OPER_TYPE_API_CALL;
                 Oper->API_CALL.Context = &Connection->BackupApiContext;
@@ -295,7 +295,7 @@ MsQuicSessionShutdown(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSessionTraceRundown(
-    _In_ PQUIC_SESSION Session
+    _In_ QUIC_SESSION* Session
     )
 {
     EventWriteQuicSessionRundown(Session, Session->Registration, Session->Alpn);
@@ -316,7 +316,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Function_class_(QUIC_STORAGE_CHANGE_CALLBACK)
 void
 QuicSessionSettingsChanged(
-    _Inout_ PQUIC_SESSION Session
+    _Inout_ QUIC_SESSION* Session
     )
 {
 #ifdef QUIC_SILO
@@ -341,8 +341,8 @@ QuicSessionSettingsChanged(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSessionRegisterConnection(
-    _Inout_ PQUIC_SESSION Session,
-    _Inout_ PQUIC_CONNECTION Connection
+    _Inout_ QUIC_SESSION* Session,
+    _Inout_ QUIC_CONNECTION* Connection
     )
 {
     Connection->Session = Session;
@@ -364,8 +364,8 @@ QuicSessionRegisterConnection(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSessionUnregisterConnection(
-    _In_ PQUIC_SESSION Session,
-    _Inout_ PQUIC_CONNECTION Connection
+    _In_ QUIC_SESSION* Session,
+    _Inout_ QUIC_CONNECTION* Connection
     )
 {
     Connection->Session = NULL;
@@ -382,7 +382,7 @@ QuicSessionUnregisterConnection(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_SERVER_CACHE*
 QuicSessionServerCacheLookup(
-    _In_ PQUIC_SESSION Session,
+    _In_ QUIC_SESSION* Session,
     _In_ uint16_t ServerNameLength,
     _In_reads_(ServerNameLength)
         const char* ServerName,
@@ -410,7 +410,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicSessionServerCacheGetState(
-    _In_ PQUIC_SESSION Session,
+    _In_ QUIC_SESSION* Session,
     _In_z_ const char* ServerName,
     _Out_ uint32_t* QuicVersion,
     _Out_ QUIC_TRANSPORT_PARAMETERS* Parameters,
@@ -447,7 +447,7 @@ QuicSessionServerCacheGetState(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSessionServerCacheSetStateInternal(
-    _In_ PQUIC_SESSION Session,
+    _In_ QUIC_SESSION* Session,
     _In_ uint16_t ServerNameLength,
     _In_reads_(ServerNameLength)
     const char* ServerName,
@@ -501,7 +501,7 @@ QuicSessionServerCacheSetStateInternal(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSessionServerCacheSetState(
-    _In_ PQUIC_SESSION Session,
+    _In_ QUIC_SESSION* Session,
     _In_z_ const char* ServerName,
     _In_ uint32_t QuicVersion,
     _In_ const QUIC_TRANSPORT_PARAMETERS* Parameters,
@@ -520,7 +520,7 @@ QuicSessionServerCacheSetState(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicSessionParamGet(
-    _In_ PQUIC_SESSION Session,
+    _In_ QUIC_SESSION* Session,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
@@ -636,7 +636,7 @@ QuicSessionParamGet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicSessionParamSet(
-    _In_ PQUIC_SESSION Session,
+    _In_ QUIC_SESSION* Session,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)

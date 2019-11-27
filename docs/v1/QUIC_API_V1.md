@@ -6,7 +6,7 @@ Deletes an existing registration.
 # Syntax
 
 ```C
-typedef struct _QUIC_API_V1 {
+typedef struct QUIC_API_V1 {
 
     uint32_t                            Version;            // QUIC_API_VERSION_1
 

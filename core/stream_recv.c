@@ -19,14 +19,14 @@ Abstract:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicStreamReceiveComplete(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ uint64_t BufferLength
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamRecvShutdown(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN Silent,
     _In_ QUIC_VAR_INT ErrorCode
     )
@@ -89,7 +89,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamRecvQueueFlush(
-    _In_ PQUIC_STREAM Stream
+    _In_ QUIC_STREAM* Stream
     )
 {
     //
@@ -104,7 +104,7 @@ QuicStreamRecvQueueFlush(
 
         LogVerbose("[strm][%p][%llu] Queuing recv flush", Stream, Stream->ID);
 
-        PQUIC_OPERATION Oper;
+        QUIC_OPERATION* Oper;
         if ((Oper = QuicOperationAlloc(Stream->Connection->Worker, QUIC_OPER_TYPE_FLUSH_STREAM_RECV)) != NULL) {
             Oper->FLUSH_STREAM_RECEIVE.Stream = Stream;
             QuicStreamAddRef(Stream, QUIC_STREAM_REF_OPERATION);
@@ -122,7 +122,7 @@ QuicStreamRecvQueueFlush(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamProcessResetFrame(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ uint64_t FinalSize,
     _In_ QUIC_VAR_INT ErrorCode
     )
@@ -198,7 +198,7 @@ QuicStreamProcessResetFrame(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamProcessStopSendingFrame(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ QUIC_VAR_INT ErrorCode
     )
 {
@@ -232,7 +232,7 @@ QuicStreamProcessStopSendingFrame(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamProcessStreamFrame(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN EncryptedWith0Rtt,
     _In_ const QUIC_STREAM_EX* Frame
     )
@@ -376,7 +376,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamRecv(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN EncryptedWith0Rtt,
     _In_ QUIC_FRAME_TYPE FrameType,
     _In_ uint16_t BufferLength,
@@ -508,7 +508,7 @@ QuicStreamRecv(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamOnBytesDelivered(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ uint64_t BytesDelivered
     )
 {
@@ -603,7 +603,7 @@ QuicStreamOnBytesDelivered(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamRecvFlush(
-    _In_ PQUIC_STREAM Stream
+    _In_ QUIC_STREAM* Stream
     )
 {
     Stream->Flags.ReceiveFlushQueued = FALSE;
@@ -721,7 +721,7 @@ QuicStreamRecvFlush(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamReceiveCompletePending(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ uint64_t BufferLength
     )
 {
@@ -733,7 +733,7 @@ QuicStreamReceiveCompletePending(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicStreamReceiveComplete(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ uint64_t BufferLength
     )
 {
@@ -827,7 +827,7 @@ QuicStreamReceiveComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamRecvSetEnabledState(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN NewRecvEnabled
     )
 {

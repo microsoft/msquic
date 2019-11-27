@@ -5,7 +5,7 @@
 
 --*/
 
-typedef enum _QUIC_ENCRYPT_LEVEL {
+typedef enum QUIC_ENCRYPT_LEVEL {
 
     QUIC_ENCRYPT_LEVEL_INITIAL,
     QUIC_ENCRYPT_LEVEL_HANDSHAKE,
@@ -44,7 +44,7 @@ QuicKeyTypeToEncryptLevel(
     }
 }
 
-typedef struct _QUIC_PACKET_SPACE {
+typedef struct QUIC_PACKET_SPACE {
 
     //
     // The encryption level this packet space is for.
@@ -65,7 +65,7 @@ typedef struct _QUIC_PACKET_SPACE {
     //
     // Owning connection of this packet space.
     //
-    PQUIC_CONNECTION Connection;
+    QUIC_CONNECTION* Connection;
 
     //
     // List of received QUIC_RECV_DATAGRAMs that we don't have the key
@@ -104,15 +104,15 @@ typedef struct _QUIC_PACKET_SPACE {
     //
     BOOLEAN AwaitingKeyPhaseConfirmation: 1;
 
-} QUIC_PACKET_SPACE, *PQUIC_PACKET_SPACE;
+} QUIC_PACKET_SPACE;
 
 //
 // Helper to get the QUIC_PACKET_SPACE for an ack tracker.
 //
 inline
-PQUIC_PACKET_SPACE
+QUIC_PACKET_SPACE*
 QuicAckTrackerGetPacketSpace(
-    _In_ PQUIC_ACK_TRACKER Tracker
+    _In_ QUIC_ACK_TRACKER* Tracker
     )
 {
     return QUIC_CONTAINING_RECORD(Tracker, QUIC_PACKET_SPACE, AckTracker);
@@ -124,9 +124,9 @@ QuicAckTrackerGetPacketSpace(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicPacketSpaceInitialize(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
-    _Out_ PQUIC_PACKET_SPACE* NewPackets
+    _Out_ QUIC_PACKET_SPACE** NewPackets
     );
 
 //
@@ -135,7 +135,7 @@ QuicPacketSpaceInitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPacketSpaceUninitialize(
-    _In_ PQUIC_PACKET_SPACE Packets
+    _In_ QUIC_PACKET_SPACE* Packets
     );
 
 //
@@ -144,5 +144,5 @@ QuicPacketSpaceUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketSpaceReset(
-    _In_ PQUIC_PACKET_SPACE Packets
+    _In_ QUIC_PACKET_SPACE* Packets
     );

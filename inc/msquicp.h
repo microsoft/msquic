@@ -30,7 +30,7 @@ extern "C" {
 #define QUIC_EXEC_PROF_TYPE_SCAVENGER       0x00000002
 #define QUIC_EXEC_PROF_TYPE_REAL_TIME       0x00000003
 
-typedef struct _QUIC_EXEC_PROFILE {
+typedef struct QUIC_EXEC_PROFILE {
     uint8_t Type; // QUIC_EXEC_PROF_TYPE_*
 } QUIC_EXEC_PROFILE;
 
@@ -44,7 +44,7 @@ QUIC_STATUS
         HQUIC* Registration
     );
 
-typedef struct _QUIC_API_PRIVATE {
+typedef struct QUIC_API_PRIVATE {
 
     uint32_t                            Version;            // QUIC_API_VERSION_1
 
