@@ -1,7 +1,7 @@
 StreamClose function
 ======
 
-Deletes an existing stream.
+Closes an existing stream.
 
 # Syntax
 

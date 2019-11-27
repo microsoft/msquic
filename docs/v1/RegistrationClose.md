@@ -1,7 +1,7 @@
 RegistrationClose function
 ======
 
-Deletes an existing registration.
+Closes an existing registration.
 
 # Syntax
 
@@ -23,7 +23,7 @@ A registration handle from a previous call to [RegistrationOpen](RegistrationOpe
 
 # Remarks
 
-The application **must** close/delete all child security configurations and session objects before closing the registration. This call **will block** on those outstanding objects being cleaned up. Do no call it on any MsQuic thread, or it will deadlock.
+The application **must** close/delete all child security configurations and session objects before closing the registration. This call **will block** on those outstanding objects being cleaned up. Do no call it on any MsQuic event callback, or it will deadlock.
 
 # See Also
 

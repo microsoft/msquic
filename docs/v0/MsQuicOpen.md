@@ -32,13 +32,15 @@ On success, returns a pointer to the new version specific function table. The ta
 
 # Return Value
 
-The function returns a `QUIC_STATUS`. The app may use `QUIC_FAILED` or `QUIC_SUCCEEDED` to determine if the function failed or succeeded.
+The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAILED` or `QUIC_SUCCEEDED` to determine if the function failed or succeeded.
 
 # Remarks
 
-This function is the entry point for the MsQuic API.
+This function is the entry point for the MsQuic API. This function may be called multiple times to get multiple new function tables, but this is generally unnecessary. An app should only need call this once.
 
-# Helpers
+For every successful call to **MsQuicOpen** the app must call [MsQuicClose](MsQuicClose.md), passing in the function table from *QuicApi* when the app is done with it.
+
+## Helpers
 
 Version specific helpers of this function are included inline:
 

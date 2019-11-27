@@ -26,11 +26,11 @@ The valid handle to an open session object.
 
 `Handler`
 
-A pointer to the app's callback handler to be executed when there is a connection event to be indicated to the app.
+A pointer to the app's callback handler to be invoked for all connection events.
 
 `Context`
 
-The app context pointer to be associated with the connection object.
+The app context pointer (possibly null) to be associated with the connection object.
 
 `Connection`
 
@@ -38,7 +38,7 @@ On success, returns a handle to the newly opened connection object.
 
 # Return Value
 
-The function returns a `QUIC_STATUS`. The app may use `QUIC_FAILED` or `QUIC_SUCCEEDED` to determine if the function failed or succeeded.
+The function returns a [QUIC_STATUS](../v0/QUIC_STATUS.md). The app may use `QUIC_FAILED` or `QUIC_SUCCEEDED` to determine if the function failed or succeeded.
 
 # Remarks
 

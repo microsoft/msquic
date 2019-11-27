@@ -18,7 +18,22 @@ void
 
 # Parameters
 
-**TODO**
+`Session`
+
+The valid handle to an open session object.
+
+`Flags`
+
+The flags that control the behavior of the shutdown.
+
+Value | Meaning
+--- | ---
+**QUIC_CONNECTION_SHUTDOWN_FLAG_NONE**<br>0 | The connection is shutdown gracefully and informs the peer.
+**QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT**<br>1 | The connection is immediately shutdown without informing the peer.
+
+`ErrorCode`
+
+The 62-bit error code to indicate to the peer as the reason for the shutdown.
 
 # Remarks
 

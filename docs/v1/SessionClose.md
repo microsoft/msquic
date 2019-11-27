@@ -1,7 +1,7 @@
 SessionClose function
 ======
 
-Deletes and existing session.
+Closes an existing session.
 
 # Syntax
 
@@ -17,7 +17,9 @@ void
 
 # Parameters
 
-**TODO**
+`Session`
+
+The valid handle to an open session object.
 
 # Remarks
 

@@ -1,7 +1,7 @@
 ListenerClose function
 ======
 
-Deletes an existing listener.
+Closes an existing listener.
 
 # Syntax
 

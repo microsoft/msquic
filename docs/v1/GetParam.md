@@ -21,11 +21,29 @@ QUIC_STATUS
 
 # Parameters
 
-**TODO**
+`Handle`
+
+The valid handle to any API object. This includes handles to registration, session, listener, connection and stream objects.
+
+`Level`
+
+The level at which the parameter is defined (for example, `QUIC_PARAM_LEVEL_CONNECTION`).
+
+`Param`
+
+The parameter for which the value is to be set (for example, `QUIC_PARAM_CONN_IDLE_TIMEOUT`). The *Param* parameter must be a parameter defined within the specified *Level*, or behavior is undefined.
+
+`BufferLength`
+
+The size, in bytes, of the buffer pointed to by the *Buffer* parameter.
+
+`Buffer`
+
+A pointer to the buffer in which the value for the requested parameter is specified.
 
 # Return Value
 
-The function returns a `QUIC_STATUS`. The app may use `QUIC_FAILED` or `QUIC_SUCCEEDED` to determine if the function failed or succeeded.
+The function returns a [QUIC_STATUS](../v0/QUIC_STATUS.md). The app may use `QUIC_FAILED` or `QUIC_SUCCEEDED` to determine if the function failed or succeeded.
 
 # Remarks
 

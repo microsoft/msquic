@@ -16,6 +16,7 @@ Term | Definition
 *endpoint* | One side of a connection; client or server.
 *peer* | The *other* side of a connection.
 *callback handler* | The function pointer the app registers with an MsQuic object.
+*app context* or<br> *context* | A (possibly null) pointer registered with an MsQuic object. It is passed to callback handlers.
 *event* | An upcall to a callback handler.
 
 # High Level Overview
@@ -55,7 +56,7 @@ The API version number **does not need to change** when:
 
 ## Execution Mode
 
-In general, MsQuic uses a callback model for all asynchronous events up to the app. This includes things like connection state changes, new streams being created, stream data being received, and stream sends completing. All these events are indicated to the app via a callback on a thread owned by MsQuic.
+In general, MsQuic uses a callback model for all asynchronous events up to the app. This includes things like connection state changes, new streams being created, stream data being received, and stream sends completing. All these events are indicated to the app via the callback handler, on a thread owned by MsQuic.
 
 Apps are expected to keep any execution time in the callback **to a minimum**. MsQuic does not use separate threads for the protocol execution and upcalls to the app. Therefore, any significant delays on the callback **will delay the protocol**. Any significant time or work needed to be completed by the app must happen on its own thread.
 
@@ -94,7 +95,7 @@ A security config is created by calling [SecConfigCreate](v1/SecConfigCreate.md)
 
 An app must create a session before it can create any listeners or connections. Each session maintains certain transport and platform state common to all child handles. Primarily, this consists of the ALPN string used for the connection handshakes and TLS state used for session resumption. On Windows platforms it also inherits the Silo and Network Compartment ID from the thread that creates it.
 
-A session is created by calling [SessionOpen](v1/SessionOpen.md) and deleted by calling [SessionClose](v1/SessionClose.md). [SessionClose](v1/SessionClose.md) **will block** on all oustanding connections. Therefore do not call it on any MsQuic thread, as it will likely create a deadlock.
+A session is created by calling [SessionOpen](v1/SessionOpen.md) and deleted by calling [SessionClose](v1/SessionClose.md). [SessionClose](v1/SessionClose.md) **will block** on all oustanding connections. Therefore do not call it on any MsQuic event callback, as it will likely create a deadlock.
 
 ## Listener
 
