@@ -692,6 +692,7 @@ QuicTlsServerSecConfigCreate(
     _In_opt_z_ const char* Principal,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
+    )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
