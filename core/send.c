@@ -878,7 +878,7 @@ QuicSendFlush(
         return QUIC_SEND_COMPLETE;
     }
 
-    QUIC_PATH* Path = &Connection->Paths[0]; // TODO - How to pick?
+    QUIC_PATH* Path = &Connection->Paths[0];
     if (Path->DestCid == NULL) {
         return QUIC_SEND_COMPLETE;
     }

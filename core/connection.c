@@ -1630,6 +1630,7 @@ QuicConnHandshakeConfigure(
         }
 
         if (Connection->OrigCID != NULL) {
+            QUIC_DBG_ASSERT(Connection->OrigCID->Length <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
             LocalTP.Flags |= QUIC_TP_FLAG_ORIGINAL_CONNECTION_ID;
             LocalTP.OriginalConnectionIDLength = Connection->OrigCID->Length;
             QuicCopyMemory(
@@ -1699,7 +1700,7 @@ QuicConnHandshakeConfigure(
         }
 
         LocalTP.MaxAckDelay =
-            Connection->MaxAckDelayMs + MsQuicLib.TimerResolutionMs; // TODO - Include queue delay?
+            Connection->MaxAckDelayMs + MsQuicLib.TimerResolutionMs;
 
         if (Connection->AckDelayExponent != QUIC_DEFAULT_ACK_DELAY_EXPONENT) {
             LocalTP.Flags |= QUIC_TP_FLAG_ACK_DELAY_EXPONENT;
@@ -2130,6 +2131,8 @@ QuicConnRecvRetry(
         return;
     }
 
+    QUIC_DBG_ASSERT(OrigDestCIDLength <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
+
     //
     // Cache the Retry token.
     //
@@ -2354,7 +2357,8 @@ QuicConnRecvHeader(
             return FALSE;
         }
 
-        if (!Connection->Paths[0].IsPeerValidated && Packet->ValidToken) {
+        QUIC_PATH* Path = &Connection->Paths[0];
+        if (!Path->IsPeerValidated && Packet->ValidToken) {
 
             QUIC_DBG_ASSERT(TokenBuffer == NULL);
             QuicPacketDecodeRetryTokenV1(Packet, &TokenBuffer, &TokenLength);
@@ -2362,11 +2366,13 @@ QuicConnRecvHeader(
 
             QUIC_RETRY_TOKEN_CONTENTS Token;
             if (!QuicRetryTokenDecrypt(Packet, TokenBuffer, &Token)) {
-                QUIC_DBG_ASSERT(FALSE);
+                QUIC_DBG_ASSERT(FALSE); // Was already decrypted sucessfully once.
+                QuicPacketLogDrop(Connection, Packet, "Retry token decrypt failure");
                 return FALSE;
             }
 
             QUIC_DBG_ASSERT(Token.OrigConnIdLength <= sizeof(Token.OrigConnId));
+            QUIC_DBG_ASSERT(QuicAddrCompare(&Path->RemoteAddress, &Token.RemoteAddress));
 
             Connection->OrigCID =
                 QUIC_ALLOC_NONPAGED(
@@ -2383,7 +2389,7 @@ QuicConnRecvHeader(
                 Token.OrigConnId,
                 Token.OrigConnIdLength);
 
-            QuicPathSetValid(Connection, &Connection->Paths[0], QUIC_PATH_VALID_INITIAL_TOKEN);
+            QuicPathSetValid(Connection, Path, QUIC_PATH_VALID_INITIAL_TOKEN);
         }
 
         Packet->KeyType = QuicPacketTypeToKeyType(Packet->LH->Type);

@@ -862,10 +862,6 @@ QuicLossDetectionDiscardPackets(
                 AckedRetransmittableBytes += Packet->PacketLength;
             }
 
-            //
-            // TODO - What about largest packet number? Should that be updated?
-            //
-
             QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet);
             QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
 

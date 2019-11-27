@@ -1095,7 +1095,7 @@ QuicLibraryOnListenerRegistered(
             QuicWorkerPoolInitialize(
                 NULL,
                 0,
-                max(1, MsQuicLib.PartitionCount / 4), // TODO - Something better that PartitionCount / 4?
+                max(1, MsQuicLib.PartitionCount / 4),
                 &MsQuicLib.WorkerPool))) {
             Success = FALSE;
         }

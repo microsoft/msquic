@@ -4,6 +4,8 @@ MsQuic
 MsQuic is a Microsoft implementation of the [IETF QUIC](https://tools.ietf.org/html/draft-ietf-quic-transport)
 protocol. It is cross platform, written in C and designed to be a general purpose QUIC library.
 
+> **Important** The MsQuic library, as well as the protocol itself, is still a work in progress. Version 1 is not yet finalized and may continue to experience breaking changes until it is finalized.
+
 [![Build Status](https://microsoft.visualstudio.com/OS/_apis/build/status/microsoft.msquic?branchName=master)](https://microsoft.visualstudio.com/OS/_build/latest?definitionId=45975&branchName=master)
 
 ## Protocol Features
@@ -14,14 +16,17 @@ QUIC has many benefits when compared to existing TLS over TCP scenarios:
   * All packets are encrypted
   * Parallel streams of application data.
   * Improved (compared to TCP) congestion control and loss recovery.
-  * 0-RTT (support depends on TLS library)
+  * Exchange application data in the first round trip (0-RTT).
+  * Survives a change in the clients IP address or port.
+  * Easily extendable for new features (such as unreliable delivery).
 
-**Note** - Several QUIC protocol features are not fully implemented:
-
-  * NAT Rebinding
-  * Client Migration
-  * Server Preferred Address
-  * Full Path MTU Discovery
+> **Important** Several QUIC protocol features are not fully implemented:
+>
+>  * 0-RTT with Schannel and OpenSSL
+>  * NAT Rebinding
+>  * Client Migration
+>  * Server Preferred Address
+>  * Path MTU Discovery
 
 ## Library Features
 
@@ -46,8 +51,8 @@ The source is divided into several directories:
   * `core` - Platform independent code that implements the QUIC protocol.
   * `docs` - All MsQuic documentation.
   * `inc` - Header files used by all the other directories.
+  * `manifest` - Windows [ETW manifest](https://docs.microsoft.com/en-us/windows/win32/wes/writing-an-instrumentation-manifest) and related files.
   * `platform` - Platform specific code for OS types, sockets and TLS.
-  * `manifest` - Windows ETW manifest and related files.
   * `submodules` - All the modules that MsQuic depends on.
   * `test` - Test code for the MsQuic API / protocol.
   * `tools` - Tools for exercising MsQuic.

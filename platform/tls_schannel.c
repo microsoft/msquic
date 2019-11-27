@@ -229,7 +229,7 @@ GetTlsIdentifier(
 #ifdef _KERNEL_MODE
 #define NtStatusToQuicStatus(x) (x)
 #else
-#define NtStatusToQuicStatus(x) HRESULT_FROM_WIN32(RtlNtStatusToDosError(x)) // TODO - Plain cast?
+#define NtStatusToQuicStatus(x) HRESULT_FROM_WIN32(RtlNtStatusToDosError(x))
 #endif
 
 #ifdef _KERNEL_MODE
@@ -1737,9 +1737,6 @@ QuicTlsWriteDataToSchannel(
         if (MissingBuffer != NULL && MissingBuffer->cbBuffer != 0) {
             LogInfo("[ tls][%p][%c] TLS message missing %u bytes of data.",
                 TlsContext, GetTlsIdentifier(TlsContext), MissingBuffer->cbBuffer);
-            //
-            // TODO: Indicate this up and use it?
-            //
         }
 
         break;
