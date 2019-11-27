@@ -15,7 +15,7 @@ Abstract:
 #include "lookup.tmh"
 #endif
 
-typedef struct QUIC_CACHEALIGN _QUIC_PARTITIONED_HASHTABLE {
+typedef struct QUIC_CACHEALIGN QUIC_PARTITIONED_HASHTABLE {
 
     QUIC_DISPATCH_RW_LOCK RwLock;
     QUIC_HASHTABLE Table;
@@ -25,7 +25,7 @@ typedef struct QUIC_CACHEALIGN _QUIC_PARTITIONED_HASHTABLE {
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicLookupInsertSourceConnectionID(
-    _In_ PQUIC_LOOKUP Lookup,
+    _In_ QUIC_LOOKUP* Lookup,
     _In_ uint32_t Hash,
     _In_ QUIC_CID_HASH_ENTRY* SourceCID,
     _In_ BOOLEAN UpdateRefCount
@@ -34,7 +34,7 @@ QuicLookupInsertSourceConnectionID(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicLookupInitialize(
-    _Inout_ PQUIC_LOOKUP Lookup
+    _Inout_ QUIC_LOOKUP* Lookup
     )
 {
     QuicZeroMemory(Lookup, sizeof(QUIC_LOOKUP));
@@ -44,7 +44,7 @@ QuicLookupInitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicLookupUninitialize(
-    _In_ PQUIC_LOOKUP Lookup
+    _In_ QUIC_LOOKUP* Lookup
     )
 {
     QUIC_DBG_ASSERT(Lookup->CidCount == 0);
@@ -71,7 +71,7 @@ QuicLookupUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicLookupCreateHashTable(
-    _In_ PQUIC_LOOKUP Lookup,
+    _In_ QUIC_LOOKUP* Lookup,
     _In_ uint8_t PartitionCount
     )
 {
@@ -111,8 +111,8 @@ QuicLookupCreateHashTable(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicLookupRebalance(
-    _In_ PQUIC_LOOKUP Lookup,
-    _In_opt_ PQUIC_CONNECTION Connection
+    _In_ QUIC_LOOKUP* Lookup,
+    _In_opt_ QUIC_CONNECTION* Connection
     )
 {
     //
@@ -165,7 +165,7 @@ QuicLookupRebalance(
 
             if (PreviousLookup != NULL) {
                 QUIC_SINGLE_LIST_ENTRY* Entry =
-                    ((PQUIC_CONNECTION)PreviousLookup)->SourceCIDs.Next;
+                    ((QUIC_CONNECTION*)PreviousLookup)->SourceCIDs.Next;
 
                 while (Entry != NULL) {
                     QUIC_CID_HASH_ENTRY *CID =
@@ -225,7 +225,7 @@ QuicLookupRebalance(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicLookupMaximizePartitioning(
-    _In_ PQUIC_LOOKUP Lookup
+    _In_ QUIC_LOOKUP* Lookup
     )
 {
     BOOLEAN Result = TRUE;
@@ -280,7 +280,7 @@ QuicCidMatchConnection(
 // hash table. Returns the pointer to the connection if found; NULL otherwise.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicHashLookupConnection(
     _In_ QUIC_HASHTABLE* Table,
     _In_reads_(Length)
@@ -309,16 +309,16 @@ QuicHashLookupConnection(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicLookupFindConnectionInternal(
-    _In_ PQUIC_LOOKUP Lookup,
+    _In_ QUIC_LOOKUP* Lookup,
     _In_reads_(CIDLen)
         const uint8_t* const CID,
     _In_ uint8_t CIDLen,
     _In_ uint32_t Hash
     )
 {
-    PQUIC_CONNECTION Connection = NULL;
+    QUIC_CONNECTION* Connection = NULL;
 
     if (Lookup->PartitionCount == 0) {
         //
@@ -373,7 +373,7 @@ QuicLookupFindConnectionInternal(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicLookupInsertSourceConnectionID(
-    _In_ PQUIC_LOOKUP Lookup,
+    _In_ QUIC_LOOKUP* Lookup,
     _In_ uint32_t Hash,
     _In_ QUIC_CID_HASH_ENTRY* SourceCID,
     _In_ BOOLEAN UpdateRefCount
@@ -431,7 +431,7 @@ QuicLookupInsertSourceConnectionID(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicLookupRemoveSourceConnectionIDInt(
-    _In_ PQUIC_LOOKUP Lookup,
+    _In_ QUIC_LOOKUP* Lookup,
     _In_ QUIC_CID_HASH_ENTRY* SourceCID
     )
 {
@@ -469,9 +469,9 @@ QuicLookupRemoveSourceConnectionIDInt(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicLookupFindConnection(
-    _In_ PQUIC_LOOKUP Lookup,
+    _In_ QUIC_LOOKUP* Lookup,
     _In_reads_(CIDLen)
         const uint8_t* const CID,
     _In_ uint8_t CIDLen
@@ -481,7 +481,7 @@ QuicLookupFindConnection(
 
     QuicDispatchRwLockAcquireShared(&Lookup->RwLock);
 
-    PQUIC_CONNECTION ExistingConnection =
+    QUIC_CONNECTION* ExistingConnection =
         QuicLookupFindConnectionInternal(
             Lookup,
             CID,
@@ -498,13 +498,13 @@ QuicLookupFindConnection(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicLookupFindConnectionByRemoteAddr(
-    _In_ PQUIC_LOOKUP Lookup,
+    _In_ QUIC_LOOKUP* Lookup,
     _In_ const QUIC_ADDR* RemoteAddress
     )
 {
-    PQUIC_CONNECTION ExistingConnection = NULL;
+    QUIC_CONNECTION* ExistingConnection = NULL;
     UNREFERENCED_PARAMETER(RemoteAddress); // Can't even validate this for single connection lookups right now.
 
     QuicDispatchRwLockAcquireShared(&Lookup->RwLock);
@@ -533,13 +533,13 @@ QuicLookupFindConnectionByRemoteAddr(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicLookupAddSourceConnectionID(
-    _In_ PQUIC_LOOKUP Lookup,
+    _In_ QUIC_LOOKUP* Lookup,
     _In_ QUIC_CID_HASH_ENTRY* SourceCID,
-    _Out_opt_ PQUIC_CONNECTION* Collision
+    _Out_opt_ QUIC_CONNECTION** Collision
     )
 {
     BOOLEAN Result;
-    PQUIC_CONNECTION ExistingConnection;
+    QUIC_CONNECTION* ExistingConnection;
     uint32_t Hash = QuicHashSimple(SourceCID->CID.Length, SourceCID->CID.Data);
 
     QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
@@ -573,7 +573,7 @@ QuicLookupAddSourceConnectionID(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicLookupRemoveSourceConnectionID(
-    _In_ PQUIC_LOOKUP Lookup,
+    _In_ QUIC_LOOKUP* Lookup,
     _In_ QUIC_CID_HASH_ENTRY* SourceCID
     )
 {
@@ -586,8 +586,8 @@ QuicLookupRemoveSourceConnectionID(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicLookupRemoveSourceConnectionIDs(
-    _In_ PQUIC_LOOKUP Lookup,
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_LOOKUP* Lookup,
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     uint8_t ReleaseRefCount = 0;
@@ -613,9 +613,9 @@ QuicLookupRemoveSourceConnectionIDs(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicLookupMoveSourceConnectionIDs(
-    _In_ PQUIC_LOOKUP LookupSrc,
-    _In_ PQUIC_LOOKUP LookupDest,
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_LOOKUP* LookupSrc,
+    _In_ QUIC_LOOKUP* LookupDest,
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     QUIC_SINGLE_LIST_ENTRY* Entry = Connection->SourceCIDs.Next;

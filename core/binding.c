@@ -43,11 +43,11 @@ QuicBindingInitialize(
     _In_ BOOLEAN ShareBinding,
     _In_opt_ const QUIC_ADDR * LocalAddress,
     _In_opt_ const QUIC_ADDR * RemoteAddress,
-    _Out_ PQUIC_BINDING* NewBinding
+    _Out_ QUIC_BINDING** NewBinding
     )
 {
     QUIC_STATUS Status;
-    PQUIC_BINDING Binding;
+    QUIC_BINDING* Binding;
     uint8_t HashSalt[20];
 
     Binding = QUIC_ALLOC_NONPAGED(sizeof(QUIC_BINDING));
@@ -155,7 +155,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicBindingUninitialize(
-    _In_ PQUIC_BINDING Binding
+    _In_ QUIC_BINDING* Binding
     )
 {
     EventWriteQuicBindingCleanup(Binding);
@@ -206,7 +206,7 @@ QuicBindingUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicBindingTraceRundown(
-    _In_ PQUIC_BINDING Binding
+    _In_ QUIC_BINDING* Binding
     )
 {
     // TODO - Trace datapath binding
@@ -246,8 +246,8 @@ QuicBindingHasListenerRegistered(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicBindingRegisterListener(
-    _In_ PQUIC_BINDING Binding,
-    _In_ PQUIC_LISTENER NewListener
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_LISTENER* NewListener
     )
 {
     BOOLEAN AddNewListener = TRUE;
@@ -339,13 +339,13 @@ QuicBindingRegisterListener(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return != NULL)
-PQUIC_LISTENER
+QUIC_LISTENER*
 QuicBindingGetListener(
-    _In_ PQUIC_BINDING Binding,
+    _In_ QUIC_BINDING* Binding,
     _In_ const QUIC_NEW_CONNECTION_INFO* Info
     )
 {
-    PQUIC_LISTENER Listener = NULL;
+    QUIC_LISTENER* Listener = NULL;
 
     const QUIC_ADDR* Addr = Info->LocalAddress;
     const QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(Addr);
@@ -409,8 +409,8 @@ Done:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicBindingUnregisterListener(
-    _In_ PQUIC_BINDING Binding,
-    _In_ PQUIC_LISTENER Listener
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_LISTENER* Listener
     )
 {
     QuicDispatchRwLockAcquireExclusive(&Binding->RwLock);
@@ -421,7 +421,7 @@ QuicBindingUnregisterListener(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingAddSourceConnectionID(
-    _In_ PQUIC_BINDING Binding,
+    _In_ QUIC_BINDING* Binding,
     _In_ QUIC_CID_HASH_ENTRY* SourceCID
     )
 {
@@ -431,7 +431,7 @@ QuicBindingAddSourceConnectionID(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicBindingRemoveSourceConnectionID(
-    _In_ PQUIC_BINDING Binding,
+    _In_ QUIC_BINDING* Binding,
     _In_ QUIC_CID_HASH_ENTRY* SourceCID
     )
 {
@@ -441,8 +441,8 @@ QuicBindingRemoveSourceConnectionID(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicBindingRemoveConnection(
-    _In_ PQUIC_BINDING Binding,
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     QuicLookupRemoveSourceConnectionIDs(&Binding->Lookup, Connection);
@@ -451,9 +451,9 @@ QuicBindingRemoveConnection(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicBindingMoveSourceConnectionIDs(
-    _In_ PQUIC_BINDING BindingSrc,
-    _In_ PQUIC_BINDING BindingDest,
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_BINDING* BindingSrc,
+    _In_ QUIC_BINDING* BindingDest,
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     QuicLookupMoveSourceConnectionIDs(
@@ -469,8 +469,8 @@ QuicBindingMoveSourceConnectionIDs(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATELESS_CONTEXT*
 QuicBindingCreateStatelessOperation(
-    _In_ PQUIC_BINDING Binding,
-    _In_ PQUIC_WORKER Worker,
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_WORKER* Worker,
     _In_ QUIC_RECV_DATAGRAM* Datagram
     )
 {
@@ -589,7 +589,7 @@ Exit:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingQueueStatelessOperation(
-    _In_ PQUIC_BINDING Binding,
+    _In_ QUIC_BINDING* Binding,
     _In_ QUIC_OPERATION_TYPE OperType,
     _In_ QUIC_RECV_DATAGRAM* Datagram
     )
@@ -635,7 +635,7 @@ QuicBindingProcessStatelessOperation(
     _In_ QUIC_STATELESS_CONTEXT* StatelessCtx
     )
 {
-    PQUIC_BINDING Binding = StatelessCtx->Binding;
+    QUIC_BINDING* Binding = StatelessCtx->Binding;
     QUIC_RECV_DATAGRAM* RecvDatagram = StatelessCtx->Datagram;
     QUIC_RECV_PACKET* RecvPacket =
         QuicDataPathRecvDatagramToRecvPacket(RecvDatagram);
@@ -644,7 +644,7 @@ QuicBindingProcessStatelessOperation(
 
     EventWriteQuicBindingExecOper(Binding, OperationType);
 
-    PQUIC_DATAPATH_SEND_CONTEXT SendContext =
+    QUIC_DATAPATH_SEND_CONTEXT* SendContext =
         QuicDataPathBindingAllocSendContext(Binding->DatapathBinding, 0);
     if (SendContext == NULL) {
         EventWriteQuicAllocFailure("stateless send context", 0);
@@ -671,8 +671,8 @@ QuicBindingProcessStatelessOperation(
             goto Exit;
         }
 
-        PQUIC_VERSION_NEGOTIATION_PACKET VerNeg =
-            (PQUIC_VERSION_NEGOTIATION_PACKET)SendDatagram->Buffer;
+        QUIC_VERSION_NEGOTIATION_PACKET* VerNeg =
+            (QUIC_VERSION_NEGOTIATION_PACKET*)SendDatagram->Buffer;
         QUIC_DBG_ASSERT(SendDatagram->Length == PacketLength);
 
         VerNeg->IsLongHeader = TRUE;
@@ -845,7 +845,7 @@ QuicBindingReleaseStatelessOperation(
     _In_ BOOLEAN ReturnDatagram
     )
 {
-    PQUIC_BINDING Binding = StatelessCtx->Binding;
+    QUIC_BINDING* Binding = StatelessCtx->Binding;
 
     if (ReturnDatagram) {
         QuicDataPathBindingReturnRecvDatagrams(StatelessCtx->Datagram);
@@ -873,7 +873,7 @@ QuicBindingReleaseStatelessOperation(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingQueueStatelessReset(
-    _In_ PQUIC_BINDING Binding,
+    _In_ QUIC_BINDING* Binding,
     _In_ QUIC_RECV_DATAGRAM* Datagram
     )
 {
@@ -915,7 +915,7 @@ QuicBindingQueueStatelessReset(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingPreprocessPacket(
-    _In_ PQUIC_BINDING Binding,
+    _In_ QUIC_BINDING* Binding,
     _Inout_ QUIC_RECV_DATAGRAM* Datagram,
     _Out_ BOOLEAN* ReleasePacket
     )
@@ -1050,9 +1050,9 @@ QuicBindingShouldRetryConnection(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicBindingCreateConnection(
-    _In_ PQUIC_BINDING Binding,
+    _In_ QUIC_BINDING* Binding,
     _In_ const QUIC_RECV_DATAGRAM* const Datagram
     )
 {
@@ -1062,9 +1062,9 @@ QuicBindingCreateConnection(
     // QuicLookupAddSourceConnectionID.
     //
 
-    PQUIC_CONNECTION Connection = NULL;
+    QUIC_CONNECTION* Connection = NULL;
 
-    PQUIC_CONNECTION NewConnection;
+    QUIC_CONNECTION* NewConnection;
     QUIC_STATUS Status = QuicConnInitialize(Datagram, &NewConnection);
     if (QUIC_FAILED(Status)) {
         QuicConnRelease(NewConnection, QUIC_CONN_REF_HANDLE_OWNER);
@@ -1147,7 +1147,7 @@ Exit:
         //
         if (InterlockedCompareExchange16(
                 (SHORT*)&Connection->BackUpOperUsed, 1, 0) == 0) {
-            PQUIC_OPERATION Oper = &Connection->BackUpOper;
+            QUIC_OPERATION* Oper = &Connection->BackUpOper;
             Oper->FreeAfterProcess = FALSE;
             Oper->Type = QUIC_OPER_TYPE_API_CALL;
             Oper->API_CALL.Context = &Connection->BackupApiContext;
@@ -1174,7 +1174,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
 BOOLEAN
 QuicBindingDeliverPackets(
-    _In_ PQUIC_BINDING Binding,
+    _In_ QUIC_BINDING* Binding,
     _In_ QUIC_RECV_DATAGRAM* DatagramChain,
     _In_ uint32_t DatagramChainLength
     )
@@ -1206,7 +1206,7 @@ QuicBindingDeliverPackets(
     // packet, then the packet is dropped.
     //
 
-    PQUIC_CONNECTION Connection =
+    QUIC_CONNECTION* Connection =
         QuicLookupFindConnection(
             &Binding->Lookup,
             Packet->DestCID,
@@ -1302,7 +1302,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
 void
 QuicBindingReceive(
-    _In_ PQUIC_DATAPATH_BINDING DatapathBinding,
+    _In_ QUIC_DATAPATH_BINDING* DatapathBinding,
     _In_ void* RecvCallbackContext,
     _In_ QUIC_RECV_DATAGRAM* DatagramChain
     )
@@ -1311,7 +1311,7 @@ QuicBindingReceive(
     QUIC_DBG_ASSERT(RecvCallbackContext != NULL);
     QUIC_DBG_ASSERT(DatagramChain != NULL);
 
-    PQUIC_BINDING Binding = (PQUIC_BINDING)RecvCallbackContext;
+    QUIC_BINDING* Binding = (QUIC_BINDING*)RecvCallbackContext;
     QUIC_RECV_DATAGRAM* ReleaseChain = NULL;
     QUIC_RECV_DATAGRAM** ReleaseChainTail = &ReleaseChain;
     QUIC_RECV_DATAGRAM* ConnectionChain = NULL;
@@ -1430,7 +1430,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_UNREACHABLE_CALLBACK)
 void
 QuicBindingUnreachable(
-    _In_ PQUIC_DATAPATH_BINDING DatapathBinding,
+    _In_ QUIC_DATAPATH_BINDING* DatapathBinding,
     _In_ void* Context,
     _In_ const QUIC_ADDR* RemoteAddress
     )
@@ -1439,9 +1439,9 @@ QuicBindingUnreachable(
     QUIC_DBG_ASSERT(Context != NULL);
     QUIC_DBG_ASSERT(RemoteAddress != NULL);
 
-    PQUIC_BINDING Binding = (PQUIC_BINDING)Context;
+    QUIC_BINDING* Binding = (QUIC_BINDING*)Context;
 
-    PQUIC_CONNECTION Connection =
+    QUIC_CONNECTION* Connection =
         QuicLookupFindConnectionByRemoteAddr(
             &Binding->Lookup,
             RemoteAddress);
@@ -1455,9 +1455,9 @@ QuicBindingUnreachable(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicBindingSendTo(
-    _In_ PQUIC_BINDING Binding,
+    _In_ QUIC_BINDING* Binding,
     _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
 {
     QUIC_STATUS Status;
@@ -1487,10 +1487,10 @@ QuicBindingSendTo(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicBindingSendFromTo(
-    _In_ PQUIC_BINDING Binding,
+    _In_ QUIC_BINDING* Binding,
     _In_ const QUIC_ADDR * LocalAddress,
     _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
 {
     QUIC_STATUS Status;
@@ -1525,7 +1525,7 @@ QUIC_STATIC_ASSERT(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicBindingGenerateStatelessResetToken(
-    _In_ PQUIC_BINDING Binding,
+    _In_ QUIC_BINDING* Binding,
     _In_reads_(MSQUIC_CONNECTION_ID_LENGTH)
         const uint8_t* const CID,
     _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)

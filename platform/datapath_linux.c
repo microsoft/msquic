@@ -40,7 +40,7 @@ QUIC_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)),
 // Type of workitem queued on the epoll thread.
 //
 
-typedef enum _QUIC_DATAPATH_WORKITEM_TYPE {
+typedef enum QUIC_DATAPATH_WORKITEM_TYPE {
     QUIC_DATAPATH_WORKITEM_TYPE_SHUTDOWN
 } QUIC_DATAPATH_WORKITEM_TYPE;
 
@@ -49,7 +49,7 @@ typedef enum _QUIC_DATAPATH_WORKITEM_TYPE {
 // A datapath workitem.
 //
 
-typedef struct _QUIC_DATAPATH_WORKITEM {
+typedef struct QUIC_DATAPATH_WORKITEM {
     //
     // A linkage to the work queue.
     //
@@ -68,18 +68,18 @@ typedef struct _QUIC_DATAPATH_WORKITEM {
 
     union {
         struct {
-            struct _QUIC_SOCKET_CONTEXT *SocketContext;
+            struct QUIC_SOCKET_CONTEXT *SocketContext;
             QUIC_EVENT Completed;
         } Shutdown;
     };
-} QUIC_DATAPATH_WORKITEM, *PQUIC_DATAPATH_WORKITEM;
+} QUIC_DATAPATH_WORKITEM;
 
 
 //
 // Datapath work queue.
 //
 
-typedef struct _QUIC_DATAPATH_WORK_QUEUE {
+typedef struct QUIC_DATAPATH_WORK_QUEUE {
     //
     // Synchronizes the access to the list.
     //
@@ -98,19 +98,19 @@ typedef struct _QUIC_DATAPATH_WORK_QUEUE {
 
     QUIC_POOL Pool;
 
-} QUIC_DATAPATH_WORK_QUEUE, *PQUIC_DATAPATH_WORK_QUEUE;
+} QUIC_DATAPATH_WORK_QUEUE;
 
 
 //
 // A receive block to receive a UDP packet over the sockets.
 //
 
-typedef struct _QUIC_DATAPATH_RECV_BLOCK {
+typedef struct QUIC_DATAPATH_RECV_BLOCK {
     //
     // The pool owning this recv block.
     //
 
-    PQUIC_POOL OwningPool;
+    QUIC_POOL* OwningPool;
 
     //
     // The recv buffer used by MsQuic.
@@ -136,14 +136,14 @@ typedef struct _QUIC_DATAPATH_RECV_BLOCK {
     //
     // QUIC_RECV_PACKET RecvContext;
 
-} QUIC_DATAPATH_RECV_BLOCK, *PQUIC_DATAPATH_RECV_BLOCK;
+} QUIC_DATAPATH_RECV_BLOCK;
 
 
 //
 // Send context.
 //
 
-typedef struct _QUIC_DATAPATH_SEND_CONTEXT {
+typedef struct QUIC_DATAPATH_SEND_CONTEXT {
     //
     // Indicates if the send should be bound to a local address.
     //
@@ -178,7 +178,7 @@ typedef struct _QUIC_DATAPATH_SEND_CONTEXT {
     // The proc context owning this send context.
     //
 
-    struct _QUIC_DATAPATH_PROC_CONTEXT *Owner;
+    struct QUIC_DATAPATH_PROC_CONTEXT *Owner;
 
     //
     // BufferCount - The buffer count in use.
@@ -198,19 +198,19 @@ typedef struct _QUIC_DATAPATH_SEND_CONTEXT {
     QUIC_BUFFER Buffers[QUIC_MAX_BATCH_SEND];
     struct iovec Iovs[QUIC_MAX_BATCH_SEND];
 
-} QUIC_DATAPATH_SEND_CONTEXT, *PQUIC_DATAPATH_SEND_CONTEXT;
+} QUIC_DATAPATH_SEND_CONTEXT;
 
 
 //
 // Socket context.
 //
 
-typedef struct _QUIC_SOCKET_CONTEXT {
+typedef struct QUIC_SOCKET_CONTEXT {
     //
     // The datapath binding this socket context belongs to.
     //
 
-    PQUIC_DATAPATH_BINDING Binding;
+    QUIC_DATAPATH_BINDING* Binding;
 
     //
     // The socket FD used by this socket context.
@@ -246,7 +246,7 @@ typedef struct _QUIC_SOCKET_CONTEXT {
     // The receive block currently being used for receives on this socket.
     //
 
-    PQUIC_DATAPATH_RECV_BLOCK CurrentRecvBlock;
+    QUIC_DATAPATH_RECV_BLOCK* CurrentRecvBlock;
 
     //
     // The head of list containg all pending sends on this socket.
@@ -258,16 +258,16 @@ typedef struct _QUIC_SOCKET_CONTEXT {
     // A pre-allocated workitem used during the shudown.
     //
 
-    PQUIC_DATAPATH_WORKITEM ShutdownWorkitem;
+    QUIC_DATAPATH_WORKITEM* ShutdownWorkitem;
 
-} QUIC_SOCKET_CONTEXT, *PQUIC_SOCKET_CONTEXT;
+} QUIC_SOCKET_CONTEXT;
 
 
 //
 // Datapath binding.
 //
 
-typedef struct _QUIC_DATAPATH_BINDING {
+typedef struct QUIC_DATAPATH_BINDING {
     //
     // Indicates if datapath binding is shut down.
     //
@@ -278,7 +278,7 @@ typedef struct _QUIC_DATAPATH_BINDING {
     // A pointer to datapth object.
     //
 
-    PQUIC_DATAPATH Datapath;
+    QUIC_DATAPATH* Datapath;
 
     //
     // local_address - The local address for the binding.
@@ -318,20 +318,20 @@ typedef struct _QUIC_DATAPATH_BINDING {
 
     QUIC_SOCKET_CONTEXT SocketContexts[];
 
-} QUIC_DATAPATH_BINDING, *PQUIC_DATAPATH_BINDING;
+} QUIC_DATAPATH_BINDING;
 
 
 //
 // A per proc datapath context.
 //
 
-typedef struct _QUIC_DATAPATH_PROC_CONTEXT {
+typedef struct QUIC_DATAPATH_PROC_CONTEXT {
 
     //
     // A pointer to the datapath.
     //
 
-    PQUIC_DATAPATH Datapath;
+    QUIC_DATAPATH* Datapath;
 
     //
     // The Epoll FD for this proc context.
@@ -355,7 +355,7 @@ typedef struct _QUIC_DATAPATH_PROC_CONTEXT {
     // The epoll wait thread.
     //
 
-    PQUIC_THREAD EpollWaitThread;
+    QUIC_THREAD* EpollWaitThread;
 
     //
     // Pool of receive packet contexts and buffers to be shared by all sockets
@@ -376,14 +376,14 @@ typedef struct _QUIC_DATAPATH_PROC_CONTEXT {
 
     QUIC_POOL SendContextPool;
 
-} QUIC_DATAPATH_PROC_CONTEXT, *PQUIC_DATAPATH_PROC_CONTEXT;
+} QUIC_DATAPATH_PROC_CONTEXT;
 
 
 //
 // Represents a datapath object.
 //
 
-typedef struct _QUIC_DATAPATH {
+typedef struct QUIC_DATAPATH {
     //
     // If datapath is shutting down.
     //
@@ -442,63 +442,63 @@ typedef struct _QUIC_DATAPATH {
 
     QUIC_DATAPATH_PROC_CONTEXT ProcContexts[];
 
-} QUIC_DATAPATH, *PQUIC_DATAPATH;
+} QUIC_DATAPATH;
 
 
 static
 QUIC_STATUS
 QuicDataPathProcContextInitialize(
-    _In_ PQUIC_DATAPATH Datapath,
-    _Out_ PQUIC_DATAPATH_PROC_CONTEXT ProcContext
+    _In_ QUIC_DATAPATH* Datapath,
+    _Out_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     );
 
 static
 void
 QuicDatapathWorkQueueInitialize(
-    _Inout_ PQUIC_DATAPATH_WORK_QUEUE WorkQueue
+    _Inout_ QUIC_DATAPATH_WORK_QUEUE* WorkQueue
     );
 
 static
 void
 QuicDatapathWorkQueueUninitialize(
-    _Inout_ PQUIC_DATAPATH_WORK_QUEUE WorkQueue
+    _Inout_ QUIC_DATAPATH_WORK_QUEUE* WorkQueue
     );
 
 static
 QUIC_STATUS
 QuicDatapathSocketContextOpen(
-    _In_ PQUIC_DATAPATH Datapath,
+    _In_ QUIC_DATAPATH* Datapath,
     _In_ QUIC_ADDR *LocalAddress,
     _In_ QUIC_ADDR *RemoteAddress,
     _In_ uint32_t ProcIndex,
-    _Out_ PQUIC_SOCKET_CONTEXT SocketContext
+    _Out_ QUIC_SOCKET_CONTEXT* SocketContext
     );
 
 static
 QUIC_STATUS
 QuicDataPathBindingStartReceive(
-    _In_ PQUIC_SOCKET_CONTEXT SocketContext,
+    _In_ QUIC_SOCKET_CONTEXT* SocketContext,
     _In_ int EpollFd
     );
 
 static
 QUIC_STATUS
 QuicDataPathBindingPrepareForReceive(
-    _In_ PQUIC_SOCKET_CONTEXT SocketContext
+    _In_ QUIC_SOCKET_CONTEXT* SocketContext
     );
 
 static
 void
 QuicDataPathRecvComplete(
-    _In_ PQUIC_SOCKET_CONTEXT SocketContext,
+    _In_ QUIC_SOCKET_CONTEXT* SocketContext,
     _In_ ssize_t NumberOfBytesTransferred
     );
 
 static
 void
 QuicSendContextComplete(
-    _In_ PQUIC_SOCKET_CONTEXT SocketContext,
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext,
+    _In_ QUIC_SOCKET_CONTEXT* SocketContext,
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
     _In_ int IoResult,
     _In_ int SentByteCount
     );
@@ -513,7 +513,7 @@ QuicDataPathSendBufferInitIov(
 static
 void
 QuicDataPathUninitializeNotifyWorker(
-    _Inout_ PQUIC_DATAPATH_PROC_CONTEXT  ProcContext
+    _Inout_ QUIC_DATAPATH_PROC_CONTEXT*  ProcContext
     );
 
 static
@@ -525,47 +525,33 @@ QuicDataPathWorkerThread(
 static
 void
 QuicDatapathSocketContextShutdownBegin(
-    _Inout_ PQUIC_DATAPATH_PROC_CONTEXT ProcContext,
-    _Inout_ PQUIC_SOCKET_CONTEXT SocketContext
+    _Inout_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext,
+    _Inout_ QUIC_SOCKET_CONTEXT* SocketContext
     );
 
 static
 void
 QuicDatapathSocketContextShutdownEnd(
-    _In_ PQUIC_DATAPATH_PROC_CONTEXT ProcContext,
-    _Inout_ PQUIC_SOCKET_CONTEXT SocketContext
+    _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext,
+    _Inout_ QUIC_SOCKET_CONTEXT* SocketContext
     );
 
 static
 QUIC_STATUS
 QuicDataPathBindingSend(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ const QUIC_ADDR * LocalAddress,
     _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     );
 
 
 static
 void
 QuicDatapathWorkQueueInitialize(
-    _Inout_ PQUIC_DATAPATH_WORK_QUEUE WorkQueue
+    _Inout_ QUIC_DATAPATH_WORK_QUEUE* WorkQueue
     )
-/*++
 
-Routine Description:
-
-    Initializes a work queue.
-
-Arguments:
-
-    WorkQueue - The work queue to be initialized.
-
-Return Value:
-
-    None.
-
---*/
 {
     QuicDispatchLockInitialize(&WorkQueue->Lock);
 
@@ -578,23 +564,9 @@ Return Value:
 static
 void
 QuicDatapathWorkQueueUninitialize(
-    _Inout_ PQUIC_DATAPATH_WORK_QUEUE WorkQueue
+    _Inout_ QUIC_DATAPATH_WORK_QUEUE* WorkQueue
     )
-/*++
 
-Routine Description:
-
-    Uninitializes a work queue.
-
-Arguments:
-
-    WorkQueue - The work queue to be uninitialized.
-
-Return Value:
-
-    None.
-
---*/
 {
     QUIC_FRE_ASSERT(QuicListIsEmpty(&WorkQueue->List));
 
@@ -605,27 +577,13 @@ Return Value:
 
 
 static
-PQUIC_DATAPATH_WORKITEM
+QUIC_DATAPATH_WORKITEM*
 QuicDatapathWorkitemAlloc(
-    _Inout_ PQUIC_DATAPATH_WORK_QUEUE WorkQueue
+    _Inout_ QUIC_DATAPATH_WORK_QUEUE* WorkQueue
     )
-/*++
 
-Routine Description:
-
-    Allocates a workitem from pool.
-
-Arguments:
-
-    WorkQueue - The work queue for which the workitem needs to be allocated.
-
-Return Value:
-
-    Workitem if successful, NULL otherwise.
-
---*/
 {
-    PQUIC_DATAPATH_WORKITEM Workitem = QuicPoolAlloc(&WorkQueue->Pool);
+    QUIC_DATAPATH_WORKITEM* Workitem = QuicPoolAlloc(&WorkQueue->Pool);
 
     if (Workitem == NULL) {
         LogError("[ dal] Workitem allocation failure.");
@@ -638,26 +596,10 @@ Return Value:
 static
 void
 QuicDatapathWorkitemFree(
-    _In_ PQUIC_DATAPATH_WORK_QUEUE WorkQueue,
-    _Inout_ PQUIC_DATAPATH_WORKITEM Workitem
+    _In_ QUIC_DATAPATH_WORK_QUEUE* WorkQueue,
+    _Inout_ QUIC_DATAPATH_WORKITEM* Workitem
     )
-/*++
 
-Routine Description:
-
-    Frees a workitem.
-
-Arguments:
-
-    WorkQueue - The work queue to which the workitem belongs to.
-
-    Workitem - The workitem to free.
-
-Return Value:
-
-    None.
-
---*/
 {
     if (Workitem != NULL) {
         QuicPoolFree(&WorkQueue->Pool, Workitem);
@@ -669,26 +611,10 @@ Return Value:
 static
 void
 QuicDatapathWorkQueuePush(
-    _Inout_ PQUIC_DATAPATH_WORK_QUEUE WorkQueue,
-    _Inout_ PQUIC_DATAPATH_WORKITEM Workitem
+    _Inout_ QUIC_DATAPATH_WORK_QUEUE* WorkQueue,
+    _Inout_ QUIC_DATAPATH_WORKITEM* Workitem
     )
-/*++
 
-Routine Description:
-
-    Inserts a workitem into the tail of a work queue.
-
-Arguments:
-
-    WorkQueue - The work queue.
-
-    Workitem - The workitem to be inserted.
-
-Return Value:
-
-    None.
-
---*/
 {
     QuicDispatchLockAcquire(&WorkQueue->Lock);
 
@@ -699,27 +625,13 @@ Return Value:
 
 
 static
-PQUIC_DATAPATH_WORKITEM
+QUIC_DATAPATH_WORKITEM*
 QuicDatapathWorkQueuePop(
-    _Inout_ PQUIC_DATAPATH_WORK_QUEUE WorkQueue
+    _Inout_ QUIC_DATAPATH_WORK_QUEUE* WorkQueue
     )
-/*++
 
-Routine Description:
-
-    Pops a workitem from the head of the work queue.
-
-Arguments:
-
-    WorkQueue - The work queue.
-
-Return Value:
-
-    The poped workitem.
-
---*/
 {
-    PQUIC_DATAPATH_WORKITEM Workitem = NULL;
+    QUIC_DATAPATH_WORKITEM* Workitem = NULL;
 
     QuicDispatchLockAcquire(&WorkQueue->Lock);
 
@@ -740,26 +652,12 @@ Return Value:
 static
 void
 QuicDatapathWorkQueueClear(
-    _Inout_ PQUIC_DATAPATH_WORK_QUEUE WorkQueue
+    _Inout_ QUIC_DATAPATH_WORK_QUEUE* WorkQueue
     )
-/*++
 
-Routine Description:
-
-    Clears a work queue.
-
-Arguments:
-
-    WorkQueue - The work queue to be cleared.
-
-Return Value:
-
-    None.
-
---*/
 {
     QUIC_LIST_ENTRY OldList = {0};
-    PQUIC_DATAPATH_WORKITEM Workitem = NULL;
+    QUIC_DATAPATH_WORKITEM* Workitem = NULL;
 
     QuicListInitializeHead(&OldList);
 
@@ -785,24 +683,9 @@ Return Value:
 static
 void
 QuicDatapathNotifyEvent(
-    _Inout_ PQUIC_DATAPATH_PROC_CONTEXT ProcContext
+    _Inout_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     )
-/*++
 
-Routine Description:
-
-    Notifies the worker about a datapath proc context shutdown or about new
-    workitem in the work queue.
-
-Arguments:
-
-    ProcContext - The proc context whose worker needs to be notified.
-
-Return Value:
-
-    None.
-
---*/
 {
     const eventfd_t Value = 1;
     int Ret = 0;
@@ -822,26 +705,10 @@ Return Value:
 static
 void
 QuicDatapathProcessWorkitem(
-    _In_ PQUIC_DATAPATH_PROC_CONTEXT ProcContext,
-    _Inout_ PQUIC_DATAPATH_WORKITEM Workitem
+    _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext,
+    _Inout_ QUIC_DATAPATH_WORKITEM* Workitem
     )
-/*++
 
-Routine Description:
-
-    Process a workitem.
-
-Arguments:
-
-    ProcContext - The proc context whose workitem needs to be processed.
-
-    Workitem - The workitem to be processed.
-
-Return Value:
-
-    None.
-
---*/
 {
     switch (Workitem->Type) {
 
@@ -864,25 +731,11 @@ Return Value:
 
 void
 QuicDatapathProcessWorkQueue(
-    _Inout_ PQUIC_DATAPATH_PROC_CONTEXT ProcContext
+    _Inout_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     )
-/*++
 
-Routine Description:
-
-    Processes all workitems in a work queue.
-
-Arguments:
-
-    ProcContext - The ProcContext whose work queue needs to be processed.
-
-Return Value:
-
-    None.
-
---*/
 {
-    PQUIC_DATAPATH_WORKITEM Workitem = NULL;
+    QUIC_DATAPATH_WORKITEM* Workitem = NULL;
 
     Workitem = QuicDatapathWorkQueuePop(&ProcContext->WorkQueue);
 
@@ -899,23 +752,9 @@ Return Value:
 
 void
 QuicDatapathHandleWorkerNotification(
-    _Inout_ PQUIC_DATAPATH_PROC_CONTEXT ProcContext
+    _Inout_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     )
-/*++
 
-Routine Description:
-
-    Handles notification to process all workitems in the proc context.
-
-Arguments:
-
-    ProcContext - The ProcContext which got notified.
-
-Return Value:
-
-    None.
-
---*/
 {
     eventfd_t Value = 0;
     ssize_t ReadByteCt = 0;
@@ -930,23 +769,9 @@ Return Value:
 static
 void
 QuicDataPathUninitializeNotifyWorker(
-    _Inout_ PQUIC_DATAPATH_PROC_CONTEXT ProcContext
+    _Inout_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     )
-/*++
 
-Routine Description:
-
-    Notifies a per proc epoll worker about datapath shutdown.
-
-Arguments:
-
-    ProcContext - A pointer to Quic datapath proc context which got unitialized.
-
-Return Value:
-
-    None.
-
---*/
 {
     QuicDatapathNotifyEvent(ProcContext);
 }
@@ -954,23 +779,9 @@ Return Value:
 
 void
 QuicDataPathUninitializeWaitForWorker(
-    _Inout_ PQUIC_DATAPATH_PROC_CONTEXT  ProcContext
+    _Inout_ QUIC_DATAPATH_PROC_CONTEXT*  ProcContext
     )
-/*++
 
-Routine Description:
-
-    Waits for a per proc worker to finish uninitialization.
-
-Arguments:
-
-    ProcContext - A pointer to Quic datapath proc context.
-
-Return Value:
-
-    None.
-
---*/
 {
     int Thread_Ret = 0;
     int Ret = 0;
@@ -990,23 +801,9 @@ Return Value:
 
 void
 QuicDataPathHandleShutdownEvent(
-    _Inout_ PQUIC_DATAPATH_PROC_CONTEXT ProcContext
+    _Inout_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     )
-/*++
 
-Routine Description:
-
-    Handles datapath shutdown event for a proc.
-
-Arguments:
-
-    ProcContext - A pointer to Quic datapath proc context.
-
-Return Value:
-
-    None.
-
---*/
 {
     int Ret = 0;
 
@@ -1040,26 +837,10 @@ Return Value:
 static
 QUIC_STATUS
 QuicDataPathProcContextInitialize(
-    _In_ PQUIC_DATAPATH Datapath,
-    _Out_ PQUIC_DATAPATH_PROC_CONTEXT ProcContext
+    _In_ QUIC_DATAPATH* Datapath,
+    _Out_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     )
-/*++
 
-Routine Description:
-
-    Initializes a datapath proc context.
-
-Arguments:
-
-    Datapath - A pointer to quic datapath.
-
-    ProcContext - The proc context to initilize.
-
-Return Value:
-
-    Status - QUIC Status.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int EpollFd = INVALID_SOCKET_FD;
@@ -1219,35 +1000,12 @@ QuicDataPathInitialize(
     _In_ UINT32 ClientRecvContextLength,
     _In_ QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER RecvCallback,
     _In_ QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER UnreachableCallback,
-    _Out_ PQUIC_DATAPATH *NewDataPath
+    _Out_ QUIC_DATAPATH* *NewDataPath
     )
-/*++
 
-Routine Description:
-
-    Allocates and initializes a datapath.
-
-Arguments:
-
-    ClientRecvContextLength - The client recv context size used by MsQuic.
-
-    RecvCallback - Receive callback for MsQuic.
-
-    UnreachableCallback - Unreachable callback for MsQuic.
-
-    NewDataPath - Size of the client receive context used by the
-        MsQuic.
-
-    NewDataPath - The allocated datapath.
-
-Return Value:
-
-    Status - QUIC Status.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    PQUIC_DATAPATH Datapath = NULL;
+    QUIC_DATAPATH* Datapath = NULL;
     size_t DatapathLength = 0;
     uint32_t i = 0;
 
@@ -1272,7 +1030,7 @@ Return Value:
         sizeof(QUIC_DATAPATH) +
             QuicProcMaxCount() * sizeof(QUIC_DATAPATH_PROC_CONTEXT);
 
-    Datapath = (PQUIC_DATAPATH)QUIC_ALLOC_PAGED(DatapathLength);
+    Datapath = (QUIC_DATAPATH*)QUIC_ALLOC_PAGED(DatapathLength);
 
     if (Datapath == NULL) {
         LogError("[ dal] Datapath allocation failure.");
@@ -1330,23 +1088,9 @@ Exit:
 
 void
 QuicDataPathUninitialize(
-    _Inout_ PQUIC_DATAPATH Datapath
+    _Inout_ QUIC_DATAPATH* Datapath
     )
-/*++
 
-Routine Description:
-
-    Uninitializes the datapath.
-
-Arguments:
-
-    Datapath - A pointer to Quic datapath.
-
-Return Value:
-
-    None.
-
---*/
 {
     uint32_t i = 0;
 
@@ -1391,23 +1135,9 @@ Exit:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 QuicDataPathGetSupportedFeatures(
-    _In_ PQUIC_DATAPATH Datapath
+    _In_ QUIC_DATAPATH* Datapath
     )
-/*++
 
-Routine Description:
-
-    Gets supported datapath features.
-
-Arguments:
-
-    Datapath - A pointer to Quic datapath.
-
-Return Value:
-
-    Supported features.
-
---*/
 {
     return 0;
 }
@@ -1415,23 +1145,9 @@ Return Value:
 
 QUIC_RSS_MODE
 QuicDataPathGetRssMode(
-    _In_ PQUIC_DATAPATH Datapath
+    _In_ QUIC_DATAPATH* Datapath
     )
-/*++
 
-Routine Description:
-
-    Gets RSS mode.
-
-Arguments:
-
-    Datapath - A pointer to Quic datapath.
-
-Return Value:
-
-    RSS mode.
-
---*/
 {
     if (PlatDispatch != NULL) {
         return PlatDispatch->DatapathGetRssMode(Datapath);
@@ -1443,23 +1159,9 @@ Return Value:
 
 BOOLEAN
 QuicDataPathIsPaddingPreferred(
-    _In_ PQUIC_DATAPATH Datapath
+    _In_ QUIC_DATAPATH* Datapath
     )
-/*++
 
-Routine Description:
-
-    Gets whether the datapath prefers UDP datagrams padded to path MTU.
-
-Arguments:
-
-    Datapath - A pointer to Quic datapath.
-
-Return Value:
-
-    TRUE if padding is preferred, FALSE otherwise.
-
---*/
 {
     if (PlatDispatch != NULL) {
         return PlatDispatch->DatapathIsPaddingPreferred(Datapath);
@@ -1480,25 +1182,7 @@ QuicDataPathPopulateTargetAddress(
     _In_ PADDRINFO AddrInfo,
     _Out_ SOCKADDR_INET * Address
     )
-/*++
 
-Routine Description:
-
-    Populates the address from an addrinfo struct to a sockaddr_inet struct.
-
-Arguments:
-
-    Family - Address family.
-
-    AddrInfo - The address info struct.
-
-    Address - A pointer to the output sockaddr_inet address.
-
-Return Value:
-
-    None.
-
---*/
 {
     PSOCKADDR_IN6 SockAddrIn6 = NULL;
     PSOCKADDR_IN SockAddrIn = NULL;
@@ -1543,29 +1227,11 @@ Return Value:
 
 QUIC_STATUS
 QuicDataPathResolveAddress(
-    _In_ PQUIC_DATAPATH Datapath,
+    _In_ QUIC_DATAPATH* Datapath,
     _In_z_ const char* HostName,
     _Inout_ QUIC_ADDR * Address
     )
-/*++
 
-Routine Description:
-
-    Resolves a hostname.
-
-Arguments:
-
-    Datapath - The datapath object.
-
-    Hostname - The hostname to resolve.
-
-    Address - The resolved address.
-
-Return Value:
-
-    QUIC status.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     ADDRINFO Hints = {0};
@@ -1627,36 +1293,16 @@ Exit:
 static
 QUIC_STATUS
 QuicDatapathSocketContextOpen(
-    _In_ PQUIC_DATAPATH Datapath,
+    _In_ QUIC_DATAPATH* Datapath,
     _In_ QUIC_ADDR * LocalAddress,
     _In_ QUIC_ADDR * RemoteAddress,
     _In_ uint32_t ProcIndex,
-    _Out_ PQUIC_SOCKET_CONTEXT SocketContext
+    _Out_ QUIC_SOCKET_CONTEXT* SocketContext
     )
-/*++
 
-Routine Description:
-
-    Opens a socket context.
-
-Arguments:
-
-    LocalAddress - The local address.
-
-    RemoteAddress - The remote address.
-
-    ProcIndex - The proc index whose socket context needs to be created.
-
-    SocketContext - The created socket context.
-
-Return Value:
-
-    Status - QUIC status.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    PQUIC_DATAPATH_BINDING Binding = SocketContext->Binding;
+    QUIC_DATAPATH_BINDING* Binding = SocketContext->Binding;
     int Result = 0;
     int Option = 0;
     SOCKADDR_INET MappedRemoteAddress = {0};
@@ -1885,43 +1531,20 @@ Exit:
 
 QUIC_STATUS
 QuicDataPathBindingCreate(
-    _In_ PQUIC_DATAPATH Datapath,
+    _In_ QUIC_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR * LocalAddress,
     _In_opt_ const QUIC_ADDR * RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
-    _Out_ PQUIC_DATAPATH_BINDING* NewBinding
+    _Out_ QUIC_DATAPATH_BINDING** NewBinding
     )
-/*++
 
-Routine Description:
-
-    Creates datapath binding.
-
-Arguments:
-
-    Datapath - The datapath to create binding for.
-
-    LocalAddress - The local address to bind to.
-
-    RemoteAddress - The remote address to send to.
-
-    RecvCallbackContext - The callback context to be passed in the receive'
-        callback.
-
-    NewBinding -  Returns the new binding.
-
-Return Value:
-
-    Status - QUIC status.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    PQUIC_DATAPATH_BINDING Binding = NULL;
+    QUIC_DATAPATH_BINDING* Binding = NULL;
     int Result = 0;
     int Option = 0;
     uint32_t i = 0;
-    PQUIC_SOCKET_CONTEXT SocketContext = NULL;
+    QUIC_SOCKET_CONTEXT* SocketContext = NULL;
     size_t BindingLength = 0;
 
     if (PlatDispatch != NULL) {
@@ -1937,7 +1560,7 @@ Return Value:
     BindingLength = sizeof(QUIC_DATAPATH_BINDING) +
             Datapath->ProcCount * sizeof(QUIC_SOCKET_CONTEXT);
 
-    Binding = (PQUIC_DATAPATH_BINDING)QUIC_ALLOC_PAGED(BindingLength);
+    Binding = (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_PAGED(BindingLength);
 
     if (Binding == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -2044,29 +1667,13 @@ Exit:
 static
 void
 QuicDatapathSocketContextShutdownBegin(
-    _Inout_ PQUIC_DATAPATH_PROC_CONTEXT ProcContext,
-    _Inout_ PQUIC_SOCKET_CONTEXT SocketContext
+    _Inout_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext,
+    _Inout_ QUIC_SOCKET_CONTEXT* SocketContext
     )
-/*++
 
-Routine Description:
-
-    Begins the shutdown of a socket context.
-
-Arguments:
-
-    ProcContext - The proc context whose socketcontext needs to shutdown.
-
-    SocketContext - The socketcontext to shutdown.
-
-Return Value:
-
-    None.
-
---*/
 {
     QUIC_EVENT Completed = {0};
-    PQUIC_DATAPATH_WORKITEM Workitem = NULL;
+    QUIC_DATAPATH_WORKITEM* Workitem = NULL;
 
     //
     // Queue a workitem to cleanup the socket context. It is important to not do
@@ -2108,29 +1715,13 @@ Return Value:
 static
 void
 QuicDatapathSocketContextShutdownEnd(
-    _In_ PQUIC_DATAPATH_PROC_CONTEXT ProcContext,
-    _Inout_ PQUIC_SOCKET_CONTEXT SocketContext
+    _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext,
+    _Inout_ QUIC_SOCKET_CONTEXT* SocketContext
     )
-/*++
 
-Routine Description:
-
-    Ends the shutdown of a socket context.
-
-Arguments:
-
-    ProcContext - The proc context whose socketcontext needs to shutdown.
-
-    SocketContext - The socketcontext to shutdown.
-
-Return Value:
-
-    None.
-
---*/
 {
     int Ret = 0;
-    PQUIC_DATAPATH_SEND_CONTEXT SendContext = NULL;
+    QUIC_DATAPATH_SEND_CONTEXT* SendContext = NULL;
 
     Ret = epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
 
@@ -2188,25 +1779,11 @@ Return Value:
 
 void
 QuicDataPathBindingDelete(
-    _Inout_ PQUIC_DATAPATH_BINDING Binding
+    _Inout_ QUIC_DATAPATH_BINDING* Binding
     )
-/*++
 
-Routine Description:
-
-    Deletes datapath binding.
-
-Arguments:
-
-    Binding - The binding to be deleted.
-
-Return Value:
-
-    None.
-
---*/
 {
-    PQUIC_DATAPATH Datapath = NULL;
+    QUIC_DATAPATH* Datapath = NULL;
     uint32_t i = 0;
 
     if (PlatDispatch != NULL) {
@@ -2226,30 +1803,14 @@ Return Value:
 }
 
 
-PQUIC_DATAPATH_RECV_BLOCK
+QUIC_DATAPATH_RECV_BLOCK*
 QuicDataPathAllocRecvBlock(
-    _In_ PQUIC_DATAPATH Datapath,
+    _In_ QUIC_DATAPATH* Datapath,
     _In_ uint32_t ProcIndex
     )
-/*++
 
-Routine Description:
-
-    Allocates a recv block.
-
-Arguments:
-
-    Datapath - The datapath to allocate recv block for.
-
-    ProcIndex - The proc index to allocated recv block.
-
-Return Value:
-
-    Recv block if successful, NULL if unsuccessful.
-
---*/
 {
-    PQUIC_DATAPATH_RECV_BLOCK RecvBlock =
+    QUIC_DATAPATH_RECV_BLOCK* RecvBlock =
         QuicPoolAlloc(&Datapath->ProcContexts[ProcIndex].RecvBlockPool);
 
     if (RecvBlock == NULL) {
@@ -2270,26 +1831,10 @@ Exit:
 
 void
 QuicDataPathBindingGetLocalAddress(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _Out_ QUIC_ADDR * Address
     )
-/*++
 
-Routine Description:
-
-    Gets the local address for a binding.
-
-Arguments:
-
-    Binding - The datapath binding object.
-
-    Address - Returns the local address.
-
-Return Value:
-
-    None.
-
---*/
 {
     if (PlatDispatch != NULL) {
         PlatDispatch->DatapathBindingGetLocalAddress(Binding, Address);
@@ -2303,26 +1848,10 @@ Return Value:
 
 void
 QuicDataPathBindingGetRemoteAddress(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _Out_ QUIC_ADDR * Address
     )
-/*++
 
-Routine Description:
-
-    Gets the remote address for a binding.
-
-Arguments:
-
-    Binding - The datapath binding object.
-
-    Address - Returns the remote address.
-
-Return Value:
-
-    None.
-
---*/
 {
     if (PlatDispatch != NULL) {
         PlatDispatch->DatapathBindingGetRemoteAddress(Binding, Address);
@@ -2336,32 +1865,12 @@ Return Value:
 
 QUIC_STATUS
 QuicDataPathBindingSetParam(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength) const uint8_t * Buffer
     )
-/*++
 
-Routine Description:
-
-    Sets a parameter on a binding.
-
-Arguments:
-
-    Binding - The datapath binding object.
-
-    Param - The param to set.
-
-    BufferLength - The buffer length of param value.
-
-    Buffer - The buffer containing param value.
-
-Return Value:
-
-    QUIC status.
-
---*/
 {
     if (PlatDispatch != NULL) {
         return
@@ -2378,32 +1887,12 @@ Return Value:
 
 QUIC_STATUS
 QuicDataPathBindingGetParam(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength) uint8_t * Buffer
     )
-/*++
 
-Routine Description:
-
-    Gets a parameter on a binding.
-
-Arguments:
-
-    Binding - The datapath binding object.
-
-    Param - The param to set.
-
-    BufferLength - The buffer length of param value.
-
-    Buffer - The buffer containing param value.
-
-Return Value:
-
-    QUIC status.
-
---*/
 {
     if (PlatDispatch != NULL) {
         return
@@ -2423,30 +1912,16 @@ QuicDataPathRecvPacketToRecvDatagram(
     _In_ const QUIC_RECV_PACKET* const RecvContext
     )
 
-/*++
 
-Routine Description:
-
-    Gets the receive buffer from the receive context.
-
-Arguments:
-
-    RecvContext - The receive context.
-
-Return Value:
-
-    Receive buffer.
-
---*/
 {
-    PQUIC_DATAPATH_RECV_BLOCK RecvBlock = NULL;
+    QUIC_DATAPATH_RECV_BLOCK* RecvBlock = NULL;
 
     if (PlatDispatch != NULL) {
         return PlatDispatch->DatapathRecvContextToRecvPacket(RecvContext);
     }
 
     RecvBlock =
-        (PQUIC_DATAPATH_RECV_BLOCK)
+        (QUIC_DATAPATH_RECV_BLOCK*)
             ((char *)RecvContext - sizeof(QUIC_DATAPATH_RECV_BLOCK));
 
     return &RecvBlock->RecvPacket;
@@ -2457,23 +1932,9 @@ QUIC_RECV_PACKET*
 QuicDataPathRecvDatagramToRecvPacket(
     _In_ const QUIC_RECV_DATAGRAM* const RecvPacket
     )
-/*++
 
-Routine Description:
-
-    Gets the receive context from the receive buffer.
-
-Arguments:
-
-    RecvPacket - The receive buffer.
-
-Return Value:
-
-    Receive context.
-
---*/
 {
-    PQUIC_DATAPATH_RECV_BLOCK RecvBlock = NULL;
+    QUIC_DATAPATH_RECV_BLOCK* RecvBlock = NULL;
 
     if (PlatDispatch != NULL) {
         return PlatDispatch->DatapathRecvPacketToRecvContext(RecvPacket);
@@ -2490,23 +1951,9 @@ void
 QuicDataPathBindingReturnRecvDatagrams(
     _In_opt_ QUIC_RECV_DATAGRAM* RecvPacket
     )
-/*++
 
-Routine Description:
-
-    Returns the receive buffer to DAL.
-
-Arguments:
-
-    RecvPacket - The receive buffer.
-
-Return Value:
-
-    None.
-
---*/
 {
-    PQUIC_DATAPATH_RECV_BLOCK RecvBlock = NULL;
+    QUIC_DATAPATH_RECV_BLOCK* RecvBlock = NULL;
 
     if (RecvPacket == NULL) {
         return;
@@ -2529,23 +1976,9 @@ Return Value:
 static
 QUIC_STATUS
 QuicDataPathBindingPrepareForReceive(
-    _In_ PQUIC_SOCKET_CONTEXT SocketContext
+    _In_ QUIC_SOCKET_CONTEXT* SocketContext
     )
-/*++
 
-Routine Description:
-
-    Prepares a socket context for receive.
-
-Arguments:
-
-    SocketContext - The socket context.
-
-Return Value:
-
-    QUIC status.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
@@ -2564,7 +1997,7 @@ Return Value:
 
     SocketContext->RecvIov.iov_base = SocketContext->CurrentRecvBlock->RecvPacket.Buffer;
     SocketContext->CurrentRecvBlock->RecvPacket.BufferLength = SocketContext->RecvIov.iov_len;
-    SocketContext->CurrentRecvBlock->RecvPacket.Tuple = (PQUIC_TUPLE)&SocketContext->CurrentRecvBlock->Tuple;
+    SocketContext->CurrentRecvBlock->RecvPacket.Tuple = (QUIC_TUPLE*)&SocketContext->CurrentRecvBlock->Tuple;
 
     QuicZeroMemory(&SocketContext->RecvMsgHdr, sizeof(SocketContext->RecvMsgHdr));
     QuicZeroMemory(&SocketContext->RecvMsgControl, sizeof(SocketContext->RecvMsgControl));
@@ -2586,26 +2019,10 @@ Error:
 static
 QUIC_STATUS
 QuicDataPathBindingStartReceive(
-    _In_ PQUIC_SOCKET_CONTEXT SocketContext,
+    _In_ QUIC_SOCKET_CONTEXT* SocketContext,
     _In_ int EpollFd
     )
-/*++
 
-Routine Description:
-
-    Start receives on a socket context.
-
-Arguments:
-
-    SocketContext - The socket context to start receive on.
-
-    EpollFd - The epoll FD.
-
-Return Value:
-
-    QUIC status.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
@@ -2654,35 +2071,13 @@ Error:
 static
 QUIC_STATUS
 QuicDataPathBindingPendSend(
-    _In_ PQUIC_DATAPATH_PROC_CONTEXT ProcContext,
-    _In_ PQUIC_SOCKET_CONTEXT SocketContext,
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext,
+    _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext,
+    _In_ QUIC_SOCKET_CONTEXT* SocketContext,
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
     _In_ const QUIC_ADDR *LocalAddress,
     _In_ const QUIC_ADDR *RemoteAddress
     )
-/*++
 
-Routine Description:
-
-    Pends sends until the socket context is writeable.
-
-Arguments:
-
-    ProcContext - The proc context.
-
-    SocketContext - The socket context to wait on.
-
-    SendContext - The send context.
-
-    LocalAddress - The local address to use for send.
-
-    RemoteAddress - The remote address to send to.
-
-Return Value:
-
-    QUIC status.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
@@ -2750,31 +2145,15 @@ Exit:
 static
 QUIC_STATUS
 QuicDataPathBindingCompletePendingSend(
-    _In_ PQUIC_DATAPATH_PROC_CONTEXT ProcContext,
-    _In_ PQUIC_SOCKET_CONTEXT SocketContext
+    _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext,
+    _In_ QUIC_SOCKET_CONTEXT* SocketContext
     )
-/*++
 
-Routine Description:
-
-    Pends sends until the socket context is writeable.
-
-Arguments:
-
-    ProcContext - The proc context.
-
-    SocketContext - The socket context to wait on.
-
-Return Value:
-
-    QUIC status.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
     struct epoll_event SockFdEpEvt = {0};
-    PQUIC_DATAPATH_SEND_CONTEXT SendContext = NULL;
+    QUIC_DATAPATH_SEND_CONTEXT* SendContext = NULL;
 
     if (SocketContext->SendWaiting) {
 
@@ -2827,31 +2206,15 @@ Exit:
 }
 
 
-PQUIC_DATAPATH_SEND_CONTEXT
+QUIC_DATAPATH_SEND_CONTEXT*
 QuicDataPathBindingAllocSendContext(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ uint16_t MaxPacketSize
     )
-/*++
 
-Routine Description:
-
-    Allocates a send context.
-
-Arguments:
-
-    Binding - The datapath binding.
-
-    MaxPacketSize - Max send packet size.
-
-Return Value:
-
-    SendContext if successful, NULL otherwise.
-
---*/
 {
-    PQUIC_DATAPATH_SEND_CONTEXT SendContext = NULL;
-    PQUIC_DATAPATH_PROC_CONTEXT ProcContext = NULL;
+    QUIC_DATAPATH_SEND_CONTEXT* SendContext = NULL;
+    QUIC_DATAPATH_PROC_CONTEXT* ProcContext = NULL;
 
     if (PlatDispatch != NULL) {
         return
@@ -2883,23 +2246,9 @@ Exit:
 
 void
 QuicDataPathBindingFreeSendContext(
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
-/*++
 
-Routine Description:
-
-    Frees a send context.
-
-Arguments:
-
-    SendContext - The send context to be freed.
-
-Return Value:
-
-    None.
-
---*/
 {
     size_t i = 0;
 
@@ -2926,23 +2275,7 @@ QuicDataPathSendBufferInitIov(
     _Inout_ struct iovec *Iov,
     _In_ QUIC_BUFFER* Buffer
     )
-/*++
 
-Routine Description:
-
-    Inits IO vector for a send.
-
-Arguments:
-
-    Iov - The IO vector to initialize.
-
-    Buffer - The QUIC buffer to be used for send.
-
-Return Value:
-
-    None.
-
---*/
 {
     Iov->iov_base = Buffer->Buffer;
     Iov->iov_len = Buffer->Length;
@@ -2951,26 +2284,10 @@ Return Value:
 
 QUIC_BUFFER*
 QuicDataPathBindingAllocSendDatagram(
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext,
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
     _In_ uint16_t MaxBufferLength
     )
-/*++
 
-Routine Description:
-
-    Allocates a send buffer.
-
-Arguments:
-
-    SendContext - The send context for which buffer needs to be allocated.
-
-    MaxBufferLength - Max buffer length required.
-
-Return Value:
-
-    Send buffer if successful, NULL otherwise.
-
---*/
 {
     QUIC_BUFFER* Buffer = NULL;
 
@@ -3016,26 +2333,10 @@ Exit:
 
 void
 QuicDataPathBindingFreeSendDatagram(
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext,
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
     _In_ QUIC_BUFFER* Datagram
     )
-/*++
 
-Routine Description:
-
-    Frees a send buffer.
-
-Arguments:
-
-    SendContext - The send context for which buffer needs to be free.
-
-    Datagram - Datagram buffer to be freed.
-
-Return Value:
-
-    None.
-
---*/
 {
     if (PlatDispatch != NULL) {
         PlatDispatch->DatapathBindingFreeSendBuffer(SendContext, Datagram);
@@ -3054,32 +2355,12 @@ Return Value:
 static
 void
 QuicSendContextComplete(
-    _In_ PQUIC_SOCKET_CONTEXT SocketContext,
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext,
+    _In_ QUIC_SOCKET_CONTEXT* SocketContext,
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
     _In_ int IoResult,
     _In_ int SentByteCount
     )
-/*++
 
-Routine Description:
-
-    Completes and frees a send context.
-
-Arguments:
-
-    SocketContext - The socketcontext to which the sendcontext belongs.
-
-    SendContext - The send context which needs to be completed.
-
-    IoResult - The IO result.
-
-    SentByteCount - Number of bytes sent.
-
-Return Value:
-
-    None.
-
---*/
 {
     if (IoResult != QUIC_STATUS_SUCCESS) {
         LogWarning(
@@ -3095,34 +2376,16 @@ Return Value:
 
 QUIC_STATUS
 QuicDataPathBindingSendTo(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
-/*++
 
-Routine Description:
-
-    Sends QUIC packets to a remote address.
-
-Arguments:
-
-    Binding - The dapath binding.
-
-    RemoteAddress - The remote address to send.
-
-    SendContext - The send context.
-
-Return Value:
-
-    Quic status.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     socklen_t RemoteAddrLen = 0;
     size_t i = 0;
-    PQUIC_SOCKET_CONTEXT SocketContext = NULL;
+    QUIC_SOCKET_CONTEXT* SocketContext = NULL;
     char Inet6AddrStr[INET6_ADDRSTRLEN] = {0};
 
     if (PlatDispatch != NULL) {
@@ -3191,37 +2454,17 @@ Exit:
 
 QUIC_STATUS
 QuicDataPathBindingSendFromTo(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ const QUIC_ADDR * LocalAddress,
     _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
-/*++
 
-Routine Description:
-
-    Sends QUIC packets from a local address to a remote address.
-
-Arguments:
-
-    Binding - The dapath binding.
-
-    LocalAddress - The local address to use to send from.
-
-    RemoteAddress - The remote address to send to.
-
-    SendContext - The send context.
-
-Return Value:
-
-    Quic status.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     char LocalInet6AddrStr[INET6_ADDRSTRLEN] = {0};
     char RemoteInet6AddrStr[INET6_ADDRSTRLEN] = {0};
-    PQUIC_SOCKET_CONTEXT SocketContext = NULL;
+    QUIC_SOCKET_CONTEXT* SocketContext = NULL;
 
     if (PlatDispatch != NULL) {
         return
@@ -3296,34 +2539,16 @@ Exit:
 static
 QUIC_STATUS
 QuicDataPathBindingSend(
-    _In_ PQUIC_DATAPATH_BINDING Binding,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ const QUIC_ADDR * LocalAddress,
     _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
-/*++
 
-Routine Description:
-
-    Sends QUIC packets to a remote address.
-
-Arguments:
-
-    Binding - The dapath binding.
-
-    RemoteAddress - The remote address to send.
-
-    SendContext - The send context.
-
-Return Value:
-
-    Quic status.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    PQUIC_SOCKET_CONTEXT SocketContext = NULL;
-    PQUIC_DATAPATH_PROC_CONTEXT ProcContext = NULL;
+    QUIC_SOCKET_CONTEXT* SocketContext = NULL;
+    QUIC_DATAPATH_PROC_CONTEXT* ProcContext = NULL;
     ssize_t SentByteCount = 0;
     size_t i = 0;
     socklen_t RemoteAddrLen = 0;
@@ -3502,23 +2727,9 @@ Exit:
 
 uint16_t
 QuicDataPathBindingGetLocalMtu(
-    _In_ PQUIC_DATAPATH_BINDING Binding
+    _In_ QUIC_DATAPATH_BINDING* Binding
     )
-/*++
 
-Routine Description:
-
-    Gets the local MTU got a datapath binding.
-
-Arguments:
-
-    Binding - The datapath binding.
-
-Return Value:
-
-    Returns the MTU.
-
---*/
 {
     if (PlatDispatch != NULL) {
         return PlatDispatch->DatapathBindingGetLocalMtu(Binding);
@@ -3532,26 +2743,10 @@ Return Value:
 static
 void
 QuicDataPathRecvComplete(
-    _In_ PQUIC_SOCKET_CONTEXT SocketContext,
+    _In_ QUIC_SOCKET_CONTEXT* SocketContext,
     _In_ ssize_t BytesTransferred
     )
-/*++
 
-Routine Description:
-
-    Completes a receive.
-
-Arguments:
-
-    QuicDataPathRecvComplete - The socket context used for receive.
-
-    BytesTransferred - The bytes transferred.
-
-Return Value:
-
-    QUIC status.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_RECV_DATAGRAM* RecvPacket = NULL;
@@ -3650,23 +2845,9 @@ void*
 QuicDataPathWorkerThread(
     _In_ void* Context
     )
-/*++
 
-Routine Description:
-
-    Worker thread routine.
-
-Arguments:
-
-    Context - The proc context.
-
-Return Value:
-
-    None.
-
---*/
 {
-    PQUIC_DATAPATH_PROC_CONTEXT ProcContext = (PQUIC_DATAPATH_PROC_CONTEXT) Context;
+    QUIC_DATAPATH_PROC_CONTEXT* ProcContext = (QUIC_DATAPATH_PROC_CONTEXT*) Context;
     const size_t EpollEventCtMax = 4; // TODO: Experiment.
     struct epoll_event EpollEvents[EpollEventCtMax];
     BOOLEAN ShouldPoll = TRUE;
@@ -3675,7 +2856,7 @@ Return Value:
     void* ReadyFdPtr = NULL;
     int SocketFd = 0;
     ssize_t Ret = 0;
-    PQUIC_SOCKET_CONTEXT SocketContext = NULL;
+    QUIC_SOCKET_CONTEXT* SocketContext = NULL;
     int ErrNum = 0;
     socklen_t OptLen = 0;
 
@@ -3803,23 +2984,9 @@ Return Value:
 
 BOOLEAN
 QuicDataPathBindingIsSendContextFull(
-    _In_ PQUIC_DATAPATH_SEND_CONTEXT SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
-/*++
 
-Routine Description:
-
-    Checks if send context buffer is full.
-
-Arguments:
-
-    SendContext - The send context to check for.
-
-Return Value:
-
-    TRUE if full, FALSE otherwise .
-
---*/
 {
     if (PlatDispatch != NULL) {
         return PlatDispatch->DatapathBindingIsSendContextFull(SendContext);

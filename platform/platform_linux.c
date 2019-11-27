@@ -26,7 +26,7 @@ Environment:
 
 #define QUIC_MAX_LOG_MSG_LEN        1024 // Bytes
 
-PQUIC_PLATFORM_DISPATCH PlatDispatch = NULL;
+QUIC_PLATFORM_DISPATCH* PlatDispatch = NULL;
 uint64_t QuicTotalMemory;
 
 __attribute__((noinline))
@@ -34,22 +34,7 @@ void
 quic_bugcheck(
     void
     )
-/*++
 
-Routine Description:
-
-    This function should be called when a fatal error is detected. It will
-    terminate the process.
-
-Arguments:
-
-    None
-
-Return Value:
-
-    None
-
---*/
 {
     //
     // We want to prevent this routine from being inlined so that we can
@@ -121,22 +106,7 @@ QUIC_STATUS
 QuicPlatformInitialize(
     void
     )
-/*++
 
-Routine Description:
-
-    This function is called when MsQuicOpen is called for the first time (i.e.
-    when the first handle to the msquic library is opened).
-
-Arguments:
-
-    None
-
-Return Value:
-
-    QUIC_STATUS
-
---*/
 {
     time_t t = {0};
 
@@ -156,22 +126,7 @@ void
 QuicPlatformUninitialize(
     void
     )
-/*++
 
-Routine Description:
-
-    This function is called when MsQuicClose is called for the last time (i.e.
-    when the last handle to the msquic library is closed).
-
-Arguments:
-
-    None
-
-Return Value:
-
-    None
-
---*/
 
 {
     return;
@@ -182,21 +137,7 @@ void*
 QuicAlloc(
     _In_ SIZE_T ByteCount
     )
-/*++
 
-Routine Description:
-
-    Allocates a block from heap of a specified size.
-
-Arguments:
-
-    ByteCount - Byte count of the block to allocate.
-
-Return Value:
-
-    The allocated block if successful, NULL if the allocation failed.
-
---*/
 {
     if (PlatDispatch != NULL) {
         return PlatDispatch->Alloc(ByteCount);
@@ -210,21 +151,7 @@ void
 QuicFree(
     __drv_freesMem(Mem) _Frees_ptr_opt_ void* Mem
     )
-/*++
 
-Routine Description:
-
-    Frees a block previously allocated from heap.
-
-Arguments:
-
-    Mem - The mem to free.
-
-Return Value:
-
-    None
-
---*/
 {
     if (PlatDispatch != NULL) {
         PlatDispatch->Free(Mem);
@@ -239,27 +166,9 @@ void
 QuicPoolInitialize(
     _In_ BOOLEAN IsPaged,
     _In_ uint32_t Size,
-    _Inout_ PQUIC_POOL Pool
+    _Inout_ QUIC_POOL* Pool
     )
-/*++
 
-Routine Description:
-
-    Initializes a pool for fixed size memory allocations.
-
-Arguments:
-
-    IsPaged - Whether to use paged memory.
-
-    Size - Size of allocation.
-
-    Pool - Pool to initialize.
-
-Return Value:
-
-    None.
-
---*/
 {
     if (PlatDispatch != NULL) {
         PlatDispatch->PoolInitialize(IsPaged, Size, Pool);
@@ -272,23 +181,9 @@ Return Value:
 
 void
 QuicPoolUninitialize(
-    _Inout_ PQUIC_POOL Pool
+    _Inout_ QUIC_POOL* Pool
     )
-/*++
 
-Routine Description:
-
-    Uninitializes a pool.
-
-Arguments:
-
-    Pool - Pool to uninitialize.
-
-Return Value:
-
-    None.
-
---*/
 {
     if (PlatDispatch != NULL) {
         PlatDispatch->PoolUninitialize(Pool);
@@ -299,23 +194,9 @@ Return Value:
 
 void*
 QuicPoolAlloc(
-    _Inout_ PQUIC_POOL Pool
+    _Inout_ QUIC_POOL* Pool
     )
-/*++
 
-Routine Description:
-
-    Allocates a fixed size entry from pool.
-
-Arguments:
-
-    Pool - Pool to use for allocation.
-
-Return Value:
-
-    The memory allocated if successful, NULL if unsuccesful.
-
---*/
 {
     void* Entry = NULL;
 
@@ -335,26 +216,10 @@ Return Value:
 
 void
 QuicPoolFree(
-    _Inout_ PQUIC_POOL Pool,
+    _Inout_ QUIC_POOL* Pool,
     _In_ void* Entry
     )
-/*++
 
-Routine Description:
-
-    Free an entry previously allocated from pool.
-
-Arguments:
-
-    Pool - Pool to use for allocation.
-
-    Entry - The entry to free.
-
-Return Value:
-
-    None.
-
---*/
 {
     if (PlatDispatch != NULL) {
         PlatDispatch->PoolFree(Pool, Entry);
@@ -367,23 +232,9 @@ Return Value:
 
 void
 QuicRefInitialize(
-    _Inout_ PQUIC_REF_COUNT RefCount
+    _Inout_ QUIC_REF_COUNT* RefCount
     )
-/*++
 
-Routine Description:
-
-    Initializes a ref count.
-
-Arguments:
-
-    RefCount - RefCount to initialize.
-
-Return Value:
-
-    None.
-
---*/
 {
     *RefCount = 1;
 }
@@ -391,23 +242,9 @@ Return Value:
 
 void
 QuicRefIncrement(
-    _Inout_ PQUIC_REF_COUNT RefCount
+    _Inout_ QUIC_REF_COUNT* RefCount
     )
-/*++
 
-Routine Description:
-
-    Increments a ref count.
-
-Arguments:
-
-    RefCount - RefCount to increment.
-
-Return Value:
-
-    None.
-
---*/
 {
     if (__atomic_add_fetch(RefCount, 1, __ATOMIC_SEQ_CST)) {
         return;
@@ -419,23 +256,9 @@ Return Value:
 
 BOOLEAN
 QuicRefIncrementNonZero(
-    _Inout_ volatile PQUIC_REF_COUNT RefCount
+    _Inout_ volatile QUIC_REF_COUNT* RefCount
     )
-/*++
 
-Routine Description:
-
-    Increments a ref count only when its non-zero.
-
-Arguments:
-
-    RefCount - RefCount to increment.
-
-Return Value:
-
-    TRUE if the refcount got incremented, FALSE otherwise.
-
---*/
 {
     QUIC_REF_COUNT NewValue = 0;
     QUIC_REF_COUNT OldValue = *RefCount;
@@ -459,23 +282,9 @@ Return Value:
 
 BOOLEAN
 QuicRefDecrement(
-    _In_ PQUIC_REF_COUNT RefCount
+    _In_ QUIC_REF_COUNT* RefCount
     )
-/*++
 
-Routine Description:
-
-    Decrements a ref count only when its non-zero.
-
-Arguments:
-
-    RefCount - RefCount to decrement.
-
-Return Value:
-
-    TRUE if the refcount got decremented, FALSE otherwise.
-
---*/
 {
     QUIC_REF_COUNT NewValue = __atomic_sub_fetch(RefCount, 1, __ATOMIC_SEQ_CST);
 
@@ -493,23 +302,9 @@ Return Value:
 
 void
 QuicRundownInitialize(
-    _Inout_ PQUIC_RUNDOWN_REF Rundown
+    _Inout_ QUIC_RUNDOWN_REF* Rundown
     )
-/*++
 
-Routine Description:
-
-    Initializes the rundown ref with an initial ref count.
-
-Arguments:
-
-    Rundown - The rundown ref object to initialize.
-
-Return Value:
-
-    None.
-
---*/
 {
     QuicRefInitialize(&((Rundown)->RefCount));
     QuicEventInitialize(&((Rundown)->RundownComplete), false, false);
@@ -518,23 +313,9 @@ Return Value:
 
 void
 QuicRundownInitializeDisabled(
-    _Inout_ PQUIC_RUNDOWN_REF Rundown
+    _Inout_ QUIC_RUNDOWN_REF* Rundown
     )
-/*++
 
-Routine Description:
-
-    Initializes the rundown ref without an initial ref count.
-
-Arguments:
-
-    Rundown - The rundown ref object to initialize.
-
-Return Value:
-
-    None.
-
---*/
 {
     (Rundown)->RefCount = 0;
     QuicEventInitialize(&((Rundown)->RundownComplete), false, false);
@@ -543,23 +324,9 @@ Return Value:
 
 void
 QuicRundownReInitialize(
-    _Inout_ PQUIC_RUNDOWN_REF Rundown
+    _Inout_ QUIC_RUNDOWN_REF* Rundown
     )
-/*++
 
-Routine Description:
-
-    Re-initializes the rundown ref.
-
-Arguments:
-
-    Rundown - The rundown ref object to re-initialize.
-
-Return Value:
-
-    None.
-
---*/
 {
     (Rundown)->RefCount = 1;
 }
@@ -567,23 +334,9 @@ Return Value:
 
 void
 QuicRundownUninitialize(
-    _Inout_ PQUIC_RUNDOWN_REF Rundown
+    _Inout_ QUIC_RUNDOWN_REF* Rundown
     )
-/*++
 
-Routine Description:
-
-    Uninitializes the rundown ref.
-
-Arguments:
-
-    Rundown - The rundown ref object to re-initialize.
-
-Return Value:
-
-    None.
-
---*/
 {
     QuicEventUninitialize((Rundown)->RundownComplete);
 }
@@ -591,23 +344,9 @@ Return Value:
 
 BOOLEAN
 QuicRundownAcquire(
-    _Inout_ PQUIC_RUNDOWN_REF Rundown
+    _Inout_ QUIC_RUNDOWN_REF* Rundown
     )
-/*++
 
-Routine Description:
-
-    Acquires a rundown ref.
-
-Arguments:
-
-    Rundown - The rundown ref object to acquire ref.
-
-Return Value:
-
-    TRUE if acquire is successful, FALSE otherwise.
-
---*/
 {
     return QuicRefIncrementNonZero(&(Rundown)->RefCount);
 }
@@ -615,23 +354,9 @@ Return Value:
 
 void
 QuicRundownRelease(
-    _Inout_ PQUIC_RUNDOWN_REF Rundown
+    _Inout_ QUIC_RUNDOWN_REF* Rundown
     )
-/*++
 
-Routine Description:
-
-    Releases a rundown ref.
-
-Arguments:
-
-    Rundown - The rundown ref object to release ref.
-
-Return Value:
-
-    None.
-
---*/
 {
     if (QuicRefDecrement(&(Rundown)->RefCount)) {
         QuicEventSet((Rundown)->RundownComplete);
@@ -641,23 +366,9 @@ Return Value:
 
 void
 QuicRundownReleaseAndWait(
-    _Inout_ PQUIC_RUNDOWN_REF Rundown
+    _Inout_ QUIC_RUNDOWN_REF* Rundown
     )
-/*++
 
-Routine Description:
-
-    Releases a ref and waits for the rundown ref to drop to 0.
-
-Arguments:
-
-    Rundown - The rundown ref object.
-
-Return Value:
-
-    None.
-
---*/
 {
     if (!QuicRefDecrement(&(Rundown)->RefCount)) {
         QuicEventWaitForever((Rundown)->RundownComplete);
@@ -667,37 +378,13 @@ Return Value:
 
 void
 QuicEventInitialize(
-    _Out_ PQUIC_EVENT Event,
+    _Out_ QUIC_EVENT* Event,
     _In_ BOOLEAN ManualReset,
     _In_ BOOLEAN InitialState
     )
-/*++
 
-Routine Description:
-
-    Initializes and returns a QUIC event.
-
-Arguments:
-
-    Event - A pointer to return the event object.
-
-    ManualReset - If this parameter is TRUE, the function creates a manual-reset
-        event object, which requires the use of the ResetEvent function to set
-        the event state to nonsignaled. If this parameter is FALSE, the function
-        creates an auto-reset event object, and system automatically resets the
-        event state to nonsignaled after a single waiting thread has been
-        released.
-
-    InitialState - If this parameter is TRUE, the initial state of the event
-        object is signaled; otherwise, it is nonsignaled.
-
-Return Value:
-
-    None.
-
---*/
 {
-    PQUIC_EVENT_OBJECT EventObj = NULL;
+    QUIC_EVENT_OBJECT* EventObj = NULL;
     pthread_condattr_t Attr = {0};
 
     //
@@ -729,23 +416,9 @@ void
 QuicEventUninitialize(
     _Inout_ QUIC_EVENT Event
     )
-/*++
 
-Routine Description:
-
-    Uninitializes a QUIC event.
-
-Arguments:
-
-    Event - A pointer to the event.
-
-Return Value:
-
-    None.
-
---*/
 {
-    PQUIC_EVENT_OBJECT EventObj = Event;
+    QUIC_EVENT_OBJECT* EventObj = Event;
 
     QUIC_FRE_ASSERT(pthread_cond_destroy(&EventObj->Cond) == 0);
     QUIC_FRE_ASSERT(pthread_mutex_destroy(&EventObj->Mutex) == 0);
@@ -759,23 +432,9 @@ void
 QuicEventSet(
     _Inout_ QUIC_EVENT Event
     )
-/*++
 
-Routine Description:
-
-    Sets the specified event object to the signaled state..
-
-Arguments:
-
-    Event - A pointer to the event.
-
-Return Value:
-
-    None.
-
---*/
 {
-    PQUIC_EVENT_OBJECT EventObj = Event;
+    QUIC_EVENT_OBJECT* EventObj = Event;
 
     QUIC_FRE_ASSERT(pthread_mutex_lock(&EventObj->Mutex) == 0);
 
@@ -795,23 +454,9 @@ void
 QuicEventReset(
     _Inout_ QUIC_EVENT Event
     )
-/*++
 
-Routine Description:
-
-    Sets the specified event object to the nonsignaled state.
-
-Arguments:
-
-    Event - A pointer to the event.
-
-Return Value:
-
-    None.
-
---*/
 {
-    PQUIC_EVENT_OBJECT EventObj = Event;
+    QUIC_EVENT_OBJECT* EventObj = Event;
 
     QUIC_FRE_ASSERT(pthread_mutex_lock(&EventObj->Mutex) == 0);
     EventObj->Signaled = false;
@@ -823,24 +468,9 @@ void
 QuicEventWaitForever(
     _Inout_ QUIC_EVENT Event
     )
-/*++
 
-Routine Description:
-
-    Does a idefinite blocking wait on the specified event object to get to
-    signaled state.
-
-Arguments:
-
-    Event - A pointer to the event.
-
-Return Value:
-
-    None.
-
---*/
 {
-    PQUIC_EVENT_OBJECT EventObj = Event;
+    QUIC_EVENT_OBJECT* EventObj = Event;
 
     QUIC_FRE_ASSERT(pthread_mutex_lock(&Event->Mutex) == 0);
 
@@ -866,27 +496,9 @@ QuicEventWaitWithTimeout(
     _Inout_ QUIC_EVENT Event,
     _In_ ULONG TimeoutMs
     )
-/*++
 
-Routine Description:
-
-    Does a timed blocking wait on the specified event object to get to
-    signaled state. If the timeout expires or the event is signaled the function
-    returns.
-
-Arguments:
-
-    Event - A pointer to the event.
-
-    TimeoutMs - Timeout in msecs.
-
-Return Value:
-
-    TRUE if event got signaled, FALSE if timeout was hit.
-
---*/
 {
-    PQUIC_EVENT_OBJECT EventObj = Event;
+    QUIC_EVENT_OBJECT* EventObj = Event;
     BOOLEAN WaitSatisfied = FALSE;
     struct timespec Ts = {0};
     int Result = 0;
@@ -929,21 +541,7 @@ uint64_t
 QuicTimespecToUs(
     _In_ const struct timespec *Time
     )
-/*++
 
-Routine Description:
-
-    Converts time in timespec to usec.
-
-Arguments:
-
-    Time - The timespec to convert.
-
-Return Value:
-
-    Returns the converted time in usec.
-
---*/
 {
     return (Time->tv_sec * QUIC_MICROSEC_PER_SEC) + (Time->tv_nsec / QUIC_NANOSEC_PER_MICROSEC);
 }
@@ -953,21 +551,7 @@ uint64_t
 QuicGetTimerResolution(
     void
     )
-/*++
 
-Routine Description:
-
-    Gets the timer resolution.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    Returns the timer resolution in usec.
-
---*/
 {
     int ErrorCode = 0;
     struct timespec Res = {0};
@@ -984,21 +568,7 @@ uint64_t
 QuicTimeUs64(
     void
     )
-/*++
 
-Routine Description:
-
-    Gets the current time in usecs.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    Returns the current time in usec.
-
---*/
 {
     int ErrorCode = 0;
     struct timespec CurrTime = {0};
@@ -1016,23 +586,7 @@ QuicGetAbsoluteTime(
     _In_ unsigned long DeltaMs,
     _Out_ struct timespec *Time
     )
-/*++
 
-Routine Description:
-
-    Gets a future time by adding the delta value to the current time.
-
-Arguments:
-
-    DeltaMs - The delta time to be added to the current time.
-
-    Time - Returns the resulting time.
-
-Return Value:
-
-    None.
-
---*/
 {
     int ErrorCode = 0;
 
@@ -1057,21 +611,7 @@ void
 QuicSleep(
     _In_ uint32_t DurationMs
     )
-/*++
 
-Routine Description:
-
-    Sleep for a specified duration.
-
-Arguments:
-
-    DurationMs - The duration in msec to sleep.
-
-Return Value:
-
-    None.
-
---*/
 {
     int ErrorCode = 0;
     struct timespec TS = {
@@ -1088,21 +628,7 @@ uint32_t
 QuicProcMaxCount(
     void
     )
-/*++
 
-Routine Description:
-
-    Gets the maximum processor count.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    The active processor count.
-
---*/
 {
     //
     // Linux_TODO: Currently hardcoded to 1. Remove this hack once Linux DAL
@@ -1121,21 +647,7 @@ uint32_t
 QuicProcActiveCount(
     void
     )
-/*++
 
-Routine Description:
-
-    Gets the active processor count.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    The active processor count.
-
---*/
 {
     //
     // Linux_TODO: Currently hardcoded to 1. Remove this hack once Linux DAL
@@ -1154,21 +666,7 @@ uint32_t
 QuicProcCurrentNumber(
     void
     )
-/*++
 
-Routine Description:
-
-    Gets the processor number that the current thread is running on.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    The processor number.
-
---*/
 {
     //
     // Linux_TODO: Currently hardcoded to 0. Remove this hack once Linux DAL
@@ -1189,23 +687,7 @@ QuicRandom(
     _In_ UINT32 BufferLen,
     _Out_writes_bytes_(BufferLen) PUCHAR Buffer
     )
-/*++
 
-Routine Description:
-
-    Generates a random number of specified length.
-
-Arguments:
-
-    BufferLen - The length of the buffer.
-
-    Buffer - The buffer to write the random number to.
-
-Return Value:
-
-    QUIC_STATUS_SUCCESS if success, failure code otherwise.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
@@ -1229,23 +711,7 @@ QuicConvertToMappedV6(
     _In_ const SOCKADDR_INET * InAddr,
     _Out_ SOCKADDR_INET * OutAddr
     )
-/*++
 
-Routine Description:
-
-    Converts an IPv4 address to a mapped IPv6 address.
-
-Arguments:
-
-    InAddr - The IPv4 address to convert.
-
-    OutAddr - Returns the mapped address.
-
-Return Value:
-
-    None.
-
---*/
 {
     QUIC_FRE_ASSERT(!(InAddr == OutAddr));
 
@@ -1267,23 +733,7 @@ QuicConvertFromMappedV6(
     _In_ const SOCKADDR_INET * InAddr,
     _Out_ SOCKADDR_INET * OutAddr
     )
-/*++
 
-Routine Description:
-
-    Converts a mapped IPv6 address to a IPv4 address.
-
-Arguments:
-
-    InAddr - The IPv4 address to convert.
-
-    OutAddr - Returns the mapped address.
-
-Return Value:
-
-    None.
-
---*/
 {
     QUIC_FRE_ASSERT(InAddr->si_family == AF_INET6);
 
@@ -1305,21 +755,7 @@ BOOLEAN
 QuicAddrFamilyIsValid(
     _In_ QUIC_ADDRESS_FAMILY Family
     )
-/*++
 
-Routine Description:
-
-    Checks if the specified family is valid.
-
-Arguments:
-
-    Family - The address famiy.
-
-Return Value:
-
-    TRUE if valid, FALSE otherwise.
-
---*/
 {
     return Family == AF_INET || Family == AF_INET6 || Family == AF_UNSPEC;
 }
@@ -1329,21 +765,7 @@ BOOLEAN
 QuicAddrIsValid(
     _In_ const QUIC_ADDR * const Addr
     )
-/*++
 
-Routine Description:
-
-    Checks if the specified address is valid.
-
-Arguments:
-
-    Addr - The address.
-
-Return Value:
-
-    TRUE if valid, FALSE otherwise.
-
---*/
 {
     QUIC_FRE_ASSERT(Addr);
     return QuicAddrFamilyIsValid(Addr->si_family);
@@ -1355,23 +777,7 @@ QuicAddrCompareIp(
     _In_ const QUIC_ADDR * const Addr1,
     _In_ const QUIC_ADDR * const Addr2
     )
-/*++
 
-Routine Description:
-
-    Compares two addresses.
-
-Arguments:
-
-    Addr1 - The first address.
-
-    Addr2 - The second address.
-
-Return Value:
-
-    TRUE if the addresses are equal, FALSE otherwise.
-
---*/
 {
     QUIC_FRE_ASSERT(QuicAddrIsValid(Addr1));
     QUIC_FRE_ASSERT(QuicAddrIsValid(Addr2));
@@ -1389,23 +795,7 @@ QuicAddrCompare(
     _In_ const QUIC_ADDR * const Addr1,
     _In_ const QUIC_ADDR * const Addr2
     )
-/*++
 
-Routine Description:
-
-    Compares two addresses.
-
-Arguments:
-
-    Addr1 - The first address.
-
-    Addr2 - The second address.
-
-Return Value:
-
-    TRUE if the addresses are equal, FALSE otherwise.
-
---*/
 {
     QUIC_FRE_ASSERT(QuicAddrIsValid(Addr1));
     QUIC_FRE_ASSERT(QuicAddrIsValid(Addr2));
@@ -1427,21 +817,7 @@ uint16_t
 QuicAddrGetFamily(
     _In_ const QUIC_ADDR * const Addr
     )
-/*++
 
-Routine Description:
-
-    Gets address family.
-
-Arguments:
-
-    Addr - The address.
-
-Return Value:
-
-    The address family.
-
---*/
 {
     QUIC_FRE_ASSERT(QuicAddrIsValid(Addr));
     return Addr->si_family;
@@ -1453,23 +829,7 @@ QuicAddrSetFamily(
     _In_ QUIC_ADDR * Addr,
     _In_ uint16_t Family
     )
-/*++
 
-Routine Description:
-
-    Sets address family.
-
-Arguments:
-
-    Address - The address.
-
-    Family - The family to set.
-
-Return Value:
-
-    None.
-
---*/
 {
     QUIC_FRE_ASSERT(Addr);
     QUIC_FRE_ASSERT(QuicAddrFamilyIsValid(Family));
@@ -1481,21 +841,7 @@ uint16_t
 QuicAddrGetPort(
     _In_ const QUIC_ADDR * const Addr
     )
-/*++
 
-Routine Description:
-
-    Gets the address port in host byte order.
-
-Arguments:
-
-    Addr - The address.
-
-Return Value:
-
-    The address port.
-
---*/
 {
     QUIC_FRE_ASSERT(QuicAddrIsValid(Addr));
 
@@ -1512,23 +858,7 @@ QuicAddrSetPort(
     _Out_ QUIC_ADDR * Addr,
     _In_ uint16_t Port
     )
-/*++
 
-Routine Description:
-
-    Sets the port in an address.
-
-Arguments:
-
-    Addr - The address.
-
-    Port - The port to set in host byter order.
-
-Return Value:
-
-    None.
-
---*/
 {
     QUIC_FRE_ASSERT(QuicAddrIsValid(Addr));
 
@@ -1544,21 +874,7 @@ BOOLEAN
 QuicAddrIsBoundExplicitly(
     _In_ const QUIC_ADDR * const Addr
     )
-/*++
 
-Routine Description:
-
-    Checks if the address is bound explicitly.
-
-Arguments:
-
-    Addr - The address.
-
-Return Value:
-
-    TRUE if bound, FALSE otherwise.
-
---*/
 {
     QUIC_FRE_ASSERT(QuicAddrIsValid(Addr));
 
@@ -1576,21 +892,7 @@ void
 QuicAddrSetToLoopback(
     _Inout_ QUIC_ADDR * Addr
     )
-/*++
 
-Routine Description:
-
-    Sets the input address to loopback address.
-
-Arguments:
-
-    Addr - The address to set.
-
-Return Value:
-
-    None.
-
---*/
 {
     QUIC_FRE_ASSERT(QuicAddrIsValid(Addr));
 
@@ -1757,28 +1059,12 @@ _strnicmp(
 QUIC_STATUS
 QuicThreadCreate(
     _In_ QUIC_THREAD_CONFIG* Config,
-    _Out_ PQUIC_THREAD* Thread
+    _Out_ QUIC_THREAD** Thread
     )
-/*++
 
-Routine Description:
-
-    Creates a thread.
-
-Arguments:
-
-    Config - Configuration for the new thread.
-
-    Thread - The thread object created.
-
-Return Value:
-
-    QUIC_STATUS_SUCCESS if successful, failure code otherwise.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    PQUIC_THREAD ThreadObj = NULL;
+    QUIC_THREAD* ThreadObj = NULL;
     int Ret = 0;
 
     ThreadObj = QuicAlloc(sizeof(QUIC_THREAD));
@@ -1807,23 +1093,9 @@ exit:
 
 void
 QuicThreadDelete(
-    _Inout_ PQUIC_THREAD Thread
+    _Inout_ QUIC_THREAD* Thread
     )
-/*++
 
-Routine Description:
-
-    Deletes a thread.
-
-Arguments:
-
-    Thread - The thread object to be deleted.
-
-Return Value:
-
-    None.
-
---*/
 {
     QuicFree(Thread);
 }
@@ -1831,23 +1103,9 @@ Return Value:
 
 void
 QuicThreadWait(
-    _Inout_ PQUIC_THREAD Thread
+    _Inout_ QUIC_THREAD* Thread
     )
-/*++
 
-Routine Description:
-
-    Wait for a thread to terminate.
-
-Arguments:
-
-    Thread - The thread object to wait for.
-
-Return Value:
-
-    None.
-
---*/
 {
     QUIC_FRE_ASSERT(pthread_equal(Thread->Thread, pthread_self()) == 0);
 
@@ -1859,21 +1117,7 @@ uint32_t
 QuicCurThreadID(
     void
     )
-/*++
 
-Routine Description:
-
-    Returns the current thread id.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    None.
-
---*/
 {
     QUIC_STATIC_ASSERT(sizeof(pid_t) <= sizeof(uint32_t), "PID size exceeds the expected size");
     return syscall(__NR_gettid);
@@ -1887,27 +1131,7 @@ QuicPlatformLogAssert(
     _In_z_ const char* Func,
     _In_z_ const char* Expr
     )
-/*++
 
-Routine Description:
-
-    Logs an assert condition.
-
-Arguments:
-
-    File - The filename that raised the assert.
-
-    Line - The line number in the file that raised the assert.
-
-    Func - The function name that raised the assert.
-
-    Expr - The assert expression.
-
-Return Value:
-
-    None.
-
---*/
 {
     LogError("[Assert] %s:%s:%d:%s", Expr, Func, Line, File);
 }
@@ -1917,21 +1141,7 @@ int
 QuicLogLevelToPriority(
     _In_ QUIC_TRACE_LEVEL Level
     )
-/*++
 
-Routine Description:
-
-    Maps a QUIC log level to syslog priority.
-
-Arguments:
-
-    Level - The log level.
-
-Return Value:
-
-    The syslog priority.
-
---*/
 {
     //
     // LINUX_TODO: Re-evaluate these mappings.
@@ -1968,23 +1178,7 @@ QuicSysLogWrite(
     _In_ const char* Fmt,
     ...
     )
-/*++
 
-Routine Description:
-
-    Logs a quic message.
-
-Arguments:
-
-    Level - The log level.
-
-    Fmt - The log fmt.
-
-Return Value:
-
-    None.
-
---*/
 {
     va_list Args = {0};
 

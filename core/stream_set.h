@@ -8,7 +8,7 @@
 //
 // Info for a particular type of stream (client/server;bidir/unidir)
 //
-typedef struct _QUIC_STREAM_TYPE_INFO {
+typedef struct QUIC_STREAM_TYPE_INFO {
 
     //
     // The largest MAX_STREAMS value indicated to the peer. This MUST not ever
@@ -34,7 +34,7 @@ typedef struct _QUIC_STREAM_TYPE_INFO {
 
 } QUIC_STREAM_TYPE_INFO;
 
-typedef struct _QUIC_STREAM_SET {
+typedef struct QUIC_STREAM_SET {
 
     //
     // The per-type Stream information.

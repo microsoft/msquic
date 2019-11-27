@@ -5,7 +5,7 @@
 
 --*/
 
-typedef struct _QUIC_ACK_TRACKER {
+typedef struct QUIC_ACK_TRACKER {
 
     //
     // Range of packet numbers we have received. Used for duplicate packet
@@ -36,7 +36,7 @@ typedef struct _QUIC_ACK_TRACKER {
     //
     uint16_t AckElicitingPacketsToAcknowledge;
 
-} QUIC_ACK_TRACKER, *PQUIC_ACK_TRACKER;
+} QUIC_ACK_TRACKER;
 
 //
 // Initializes a new ack tracker.
@@ -44,7 +44,7 @@ typedef struct _QUIC_ACK_TRACKER {
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicAckTrackerInitialize(
-    _Inout_ PQUIC_ACK_TRACKER Tracker
+    _Inout_ QUIC_ACK_TRACKER* Tracker
     );
 
 //
@@ -53,7 +53,7 @@ QuicAckTrackerInitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicAckTrackerUninitialize(
-    _Inout_ PQUIC_ACK_TRACKER Tracker
+    _Inout_ QUIC_ACK_TRACKER* Tracker
     );
 
 //
@@ -62,7 +62,7 @@ QuicAckTrackerUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicAckTrackerReset(
-    _Inout_ PQUIC_ACK_TRACKER Tracker
+    _Inout_ QUIC_ACK_TRACKER* Tracker
     );
 
 //
@@ -71,7 +71,7 @@ QuicAckTrackerReset(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicAckTrackerAddPacketNumber(
-    _Inout_ PQUIC_ACK_TRACKER Tracker,
+    _Inout_ QUIC_ACK_TRACKER* Tracker,
     _In_ uint64_t PacketNumber
     );
 
@@ -81,7 +81,7 @@ QuicAckTrackerAddPacketNumber(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicAckTrackerAckPacket(
-    _Inout_ PQUIC_ACK_TRACKER Tracker,
+    _Inout_ QUIC_ACK_TRACKER* Tracker,
     _In_ uint64_t PacketNumber,
     _In_ BOOLEAN AckElicitingPayload
     );
@@ -93,7 +93,7 @@ QuicAckTrackerAckPacket(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicAckTrackerAckFrameEncode(
-    _Inout_ PQUIC_ACK_TRACKER Tracker,
+    _Inout_ QUIC_ACK_TRACKER* Tracker,
     _Inout_ QUIC_PACKET_BUILDER* Builder
     );
 
@@ -103,7 +103,7 @@ QuicAckTrackerAckFrameEncode(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicAckTrackerOnAckFrameAcked(
-    _Inout_ PQUIC_ACK_TRACKER Tracker,
+    _Inout_ QUIC_ACK_TRACKER* Tracker,
     _In_ uint64_t LargestAckedPacketNumber
     );
 
@@ -115,7 +115,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 BOOLEAN
 QuicAckTrackerHasPacketsToAck(
-    _In_ const PQUIC_ACK_TRACKER Tracker
+    _In_ const QUIC_ACK_TRACKER* Tracker
     )
 {
     return QuicRangeSize(&Tracker->PacketNumbersToAck) != 0;

@@ -30,12 +30,12 @@ QUIC_TLS_RECEIVE_TP_CALLBACK QuicConnReceiveTP;
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoDumpSendState(
-    _In_ PQUIC_CRYPTO Crypto
+    _In_ QUIC_CRYPTO* Crypto
     )
 {
     if (WPP_COMPID_LEVEL_ENABLED(FLAG_DEFAULT, TRACE_LEVEL_VERBOSE)) {
 
-        PQUIC_CONNECTION Connection = QuicCryptoGetConnection(Crypto);
+        QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
 
         LogVerbose("[cryp][%p] QS:%u MAX:%u UNA:%u NXT:%u RECOV:%u-%u",
             Connection,
@@ -48,7 +48,7 @@ QuicCryptoDumpSendState(
 
         uint64_t UnAcked = Crypto->UnAckedOffset;
         uint32_t i = 0;
-        PQUIC_SUBRANGE Sack;
+        QUIC_SUBRANGE* Sack;
         while ((Sack = QuicRangeGetSafe(&Crypto->SparseAckRanges, i++)) != NULL) {
             LogVerbose("[cryp][%p]   unACKed: [%llu, %llu]",
                 Connection, UnAcked, Sack->Low);
@@ -66,11 +66,11 @@ QuicCryptoDumpSendState(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoInitialize(
-    _Inout_ PQUIC_CRYPTO Crypto
+    _Inout_ QUIC_CRYPTO* Crypto
     )
 {
     QUIC_STATUS Status;
-    PQUIC_CONNECTION Connection = QuicCryptoGetConnection(Crypto);
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
     uint16_t SendBufferLength =
         QuicConnIsServer(Connection) ?
             QUIC_MAX_TLS_SERVER_SEND_BUFFER : QUIC_MAX_TLS_CLIENT_SEND_BUFFER;
@@ -181,7 +181,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoUninitialize(
-    _In_ PQUIC_CRYPTO Crypto
+    _In_ QUIC_CRYPTO* Crypto
     )
 {
     for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
@@ -206,14 +206,14 @@ QuicCryptoUninitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoInitializeTls(
-    _Inout_ PQUIC_CRYPTO Crypto,
+    _Inout_ QUIC_CRYPTO* Crypto,
     _In_ QUIC_SEC_CONFIG* SecConfig,
     _In_ const QUIC_TRANSPORT_PARAMETERS* Params
     )
 {
     QUIC_STATUS Status;
     QUIC_TLS_CONFIG TlsConfig = { 0 };
-    PQUIC_CONNECTION Connection = QuicCryptoGetConnection(Crypto);
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
     BOOLEAN IsServer = QuicConnIsServer(Connection);
 
     QUIC_DBG_ASSERT(Params != NULL);
@@ -262,7 +262,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoReset(
-    _In_ PQUIC_CRYPTO Crypto,
+    _In_ QUIC_CRYPTO* Crypto,
     _In_ BOOLEAN ResetTls
     )
 {
@@ -291,7 +291,7 @@ QuicCryptoReset(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicCryptoDiscardKeys(
-    _In_ PQUIC_CRYPTO Crypto,
+    _In_ QUIC_CRYPTO* Crypto,
     _In_ QUIC_PACKET_KEY_TYPE KeyType
     )
 {
@@ -303,7 +303,7 @@ QuicCryptoDiscardKeys(
         return FALSE;
     }
 
-    PQUIC_CONNECTION Connection = QuicCryptoGetConnection(Crypto);
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
     LogInfo("[conn][%p] Discarding key type = %hu", Connection, KeyType);
 
     QuicPacketKeyFree(Crypto->TlsState.WriteKeys[KeyType]);
@@ -345,7 +345,7 @@ QuicCryptoDiscardKeys(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoOnServerComplete(
-    _In_ PQUIC_CRYPTO Crypto
+    _In_ QUIC_CRYPTO* Crypto
     )
 {
     LogInfo("[conn][%p] Crypto/TLS state no longer needed.", QuicCryptoGetConnection(Crypto));
@@ -369,7 +369,7 @@ QuicCryptoOnServerComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_ENCRYPT_LEVEL
 QuicCryptoGetNextEncryptLevel(
-    _In_ PQUIC_CRYPTO Crypto
+    _In_ QUIC_CRYPTO* Crypto
     )
 {
     uint64_t SendOffset =
@@ -393,13 +393,13 @@ QuicCryptoGetNextEncryptLevel(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoWriteOneFrame(
-    _In_ PQUIC_CRYPTO Crypto,
+    _In_ QUIC_CRYPTO* Crypto,
     _In_ uint32_t EncryptLevelStart,
     _In_ uint32_t Offset,
     _Inout_ uint16_t* FramePayloadBytes,
     _Inout_ uint16_t* FrameBytes,
     _Out_writes_bytes_(*FrameBytes) uint8_t* Buffer,
-    _Inout_ PQUIC_SENT_PACKET_METADATA PacketMetadata
+    _Inout_ QUIC_SENT_PACKET_METADATA* PacketMetadata
     )
 {
     QUIC_DBG_ASSERT(*FramePayloadBytes > 0);
@@ -407,7 +407,7 @@ QuicCryptoWriteOneFrame(
     QUIC_DBG_ASSERT(Offset <= Crypto->TlsState.BufferTotalLength);
     QUIC_DBG_ASSERT(Offset >= (Crypto->TlsState.BufferTotalLength - Crypto->TlsState.BufferLength));
 
-    PQUIC_CONNECTION Connection = QuicCryptoGetConnection(Crypto);
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
     QUIC_CRYPTO_EX Frame = { Offset - EncryptLevelStart, 0 };
     Frame.Data =
         Crypto->TlsState.Buffer +
@@ -473,7 +473,7 @@ QuicCryptoWriteOneFrame(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoWriteCryptoFrames(
-    _In_ PQUIC_CRYPTO Crypto,
+    _In_ QUIC_CRYPTO* Crypto,
     _Inout_ QUIC_PACKET_BUILDER* Builder,
     _Inout_ uint16_t* BufferLength,
     _Out_writes_bytes_(*BufferLength) uint8_t* Buffer
@@ -525,7 +525,7 @@ QuicCryptoWriteCryptoFrames(
         // Find the first SACK after the selected offset.
         //
         uint32_t i = 0;
-        PQUIC_SUBRANGE Sack;
+        QUIC_SUBRANGE* Sack;
         if (Left == Crypto->MaxSentLength) {
             //
             // Transmitting new bytes; no such SACK can exist.
@@ -661,13 +661,13 @@ QuicCryptoWriteCryptoFrames(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicCryptoWriteFrames(
-    _In_ PQUIC_CRYPTO Crypto,
+    _In_ QUIC_CRYPTO* Crypto,
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
     QUIC_DBG_ASSERT(Builder->Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET);
 
-    PQUIC_CONNECTION Connection = QuicCryptoGetConnection(Crypto);
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
     uint8_t PrevFrameCount = Builder->Metadata->FrameCount;
 
     uint16_t AvailableBufferLength =
@@ -705,8 +705,8 @@ QuicCryptoWriteFrames(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoOnLoss(
-    _In_ PQUIC_CRYPTO Crypto,
-    _In_ PQUIC_SENT_FRAME_METADATA FrameMetadata
+    _In_ QUIC_CRYPTO* Crypto,
+    _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata
     )
 {
     uint64_t Start = FrameMetadata->CRYPTO.Offset;
@@ -729,7 +729,7 @@ QuicCryptoOnLoss(
         Start = Crypto->UnAckedOffset;
     }
 
-    PQUIC_SUBRANGE Sack;
+    QUIC_SUBRANGE* Sack;
     uint32_t i = 0;
     while ((Sack = QuicRangeGetSafe(&Crypto->SparseAckRanges, i++)) != NULL &&
         Sack->Low < End) {
@@ -790,7 +790,7 @@ QuicCryptoOnLoss(
 
     if (UpdatedRecoveryWindow) {
 
-        PQUIC_CONNECTION Connection = QuicCryptoGetConnection(Crypto);
+        QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
 
         LogVerbose("[cryp][%p] Recovering crypto from %llu up to %llu",
             Connection, Start, End);
@@ -810,8 +810,8 @@ QuicCryptoOnLoss(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoOnAck(
-    _In_ PQUIC_CRYPTO Crypto,
-    _In_ PQUIC_SENT_FRAME_METADATA FrameMetadata
+    _In_ QUIC_CRYPTO* Crypto,
+    _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata
     )
 {
     uint32_t Offset = FrameMetadata->CRYPTO.Offset;
@@ -824,7 +824,7 @@ QuicCryptoOnAck(
 
     QUIC_DBG_ASSERT(FollowingOffset <= Crypto->TlsState.BufferTotalLength);
 
-    PQUIC_CONNECTION Connection = QuicCryptoGetConnection(Crypto);
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
 
     LogVerbose("[cryp][%p] Received ack for %u crypto bytes, offset=%u",
         Connection, Length, Offset);
@@ -859,7 +859,7 @@ QuicCryptoOnAck(
             //
             QuicRangeSetMin(&Crypto->SparseAckRanges, Crypto->UnAckedOffset);
 
-            PQUIC_SUBRANGE Sack = QuicRangeGetSafe(&Crypto->SparseAckRanges, 0);
+            QUIC_SUBRANGE* Sack = QuicRangeGetSafe(&Crypto->SparseAckRanges, 0);
             if (Sack && Sack->Low == (uint64_t)Crypto->UnAckedOffset) {
                 Crypto->UnAckedOffset = (uint32_t)(Sack->Low + Sack->Count);
                 QuicRangeRemoveSubranges(&Crypto->SparseAckRanges, 0, 1);
@@ -886,7 +886,7 @@ QuicCryptoOnAck(
     } else {
 
         BOOLEAN SacksUpdated;
-        PQUIC_SUBRANGE Sack =
+        QUIC_SUBRANGE* Sack =
             QuicRangeAddRange(
                 &Crypto->SparseAckRanges,
                 Offset,
@@ -939,14 +939,14 @@ QuicCryptoOnAck(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoProcessDataFrame(
-    _In_ PQUIC_CRYPTO Crypto,
+    _In_ QUIC_CRYPTO* Crypto,
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _In_ const QUIC_CRYPTO_EX* Frame,
     _Out_ BOOLEAN* DataReady
     )
 {
     QUIC_STATUS Status;
-    PQUIC_CONNECTION Connection = QuicCryptoGetConnection(Crypto);
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
     uint64_t FlowControlLimit = UINT16_MAX;
 
     *DataReady = FALSE;
@@ -1010,7 +1010,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoProcessFrame(
-    _In_ PQUIC_CRYPTO Crypto,
+    _In_ QUIC_CRYPTO* Crypto,
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _In_ const QUIC_CRYPTO_EX* const Frame
     )
@@ -1026,7 +1026,7 @@ QuicCryptoProcessFrame(
         if (!Crypto->TlsCallPending) {
             QuicCryptoProcessData(Crypto, FALSE);
 
-            PQUIC_CONNECTION Connection = QuicCryptoGetConnection(Crypto);
+            QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
             if (Connection->State.ClosedLocally) {
                 //
                 // If processing the received frame caused us to close the
@@ -1050,7 +1050,7 @@ QuicCryptoProcessFrame(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnReceiveTP(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint16_t TPLength,
     _In_reads_(TPLength) const uint8_t* TPBuffer
     )
@@ -1071,11 +1071,11 @@ QuicConnReceiveTP(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoProcessTlsCompletion(
-    _In_ PQUIC_CRYPTO Crypto,
+    _In_ QUIC_CRYPTO* Crypto,
     _In_ QUIC_TLS_RESULT_FLAGS ResultFlags
     )
 {
-    PQUIC_CONNECTION Connection = QuicCryptoGetConnection(Crypto);
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
 
     if (ResultFlags & QUIC_TLS_RESULT_ERROR) {
         EventWriteQuicConnErrorStatus(
@@ -1297,7 +1297,7 @@ QuicCryptoProcessTlsCompletion(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoProcessDataComplete(
-    _In_ PQUIC_CRYPTO Crypto,
+    _In_ QUIC_CRYPTO* Crypto,
     _In_ QUIC_TLS_RESULT_FLAGS ResultFlags,
     _In_ uint32_t RecvBufferConsumed
     )
@@ -1319,10 +1319,10 @@ QuicCryptoProcessDataComplete(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicTlsProcessDataCompleteCallback(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
-    PQUIC_OPERATION Oper;
+    QUIC_OPERATION* Oper;
     if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_TLS_COMPLETE)) != NULL) {
         QuicConnQueueOper(Connection, Oper);
     } else {
@@ -1333,7 +1333,7 @@ QuicTlsProcessDataCompleteCallback(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoProcessCompleteOperation(
-    _In_ PQUIC_CRYPTO Crypto
+    _In_ QUIC_CRYPTO* Crypto
     )
 {
     uint32_t BufferConsumed = 0;
@@ -1345,7 +1345,7 @@ QuicCryptoProcessCompleteOperation(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoProcessData(
-    _In_ PQUIC_CRYPTO Crypto,
+    _In_ QUIC_CRYPTO* Crypto,
     _In_ BOOLEAN IsClientInitial
     )
 {
@@ -1415,7 +1415,7 @@ QuicCryptoProcessData(
             QUIC_CONNECTION_ACCEPT_RESULT AcceptResult =
                 QUIC_CONNECTION_REJECT_NO_LISTENER;
 
-            PQUIC_LISTENER Listener =
+            QUIC_LISTENER* Listener =
                 QuicBindingGetListener(
                     Connection->Paths[0].Binding,
                     &Info);
@@ -1478,7 +1478,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoGenerateNewKeys(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -1530,7 +1530,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoUpdateKeyPhase(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN LocalUpdate
     )
 {
@@ -1588,7 +1588,7 @@ QuicCryptoUpdateKeyPhase(
         Connection->Stats.Misc.KeyUpdateCount++;
     }
 
-    PQUIC_PACKET_SPACE PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
+    QUIC_PACKET_SPACE* PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
 
     EventWriteQuicConnKeyPhaseChange(Connection, LocalUpdate);
 

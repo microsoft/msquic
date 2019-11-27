@@ -5,9 +5,9 @@
 
 --*/
 
-typedef struct _QUIC_CONNECTION QUIC_CONNECTION;
+typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 
-typedef struct _QUIC_TIMER_WHEEL {
+typedef struct QUIC_TIMER_WHEEL {
 
     //
     // The expiration time (in us) for the next timer in the timer wheel.

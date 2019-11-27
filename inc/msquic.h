@@ -43,8 +43,8 @@ extern "C" {
 #endif
 
 
-typedef struct _QUIC_HANDLE *HQUIC;
-typedef struct _QUIC_SEC_CONFIG QUIC_SEC_CONFIG;
+typedef struct QUIC_HANDLE *HQUIC;
+typedef struct QUIC_SEC_CONFIG QUIC_SEC_CONFIG;
 
 
 //
@@ -189,7 +189,7 @@ typedef struct QUIC_NEW_CONNECTION_INFO {
 //
 // All statistics available to query about a connection.
 //
-typedef struct _QUIC_STATISTICS {
+typedef struct QUIC_STATISTICS {
     uint64_t CorrelationId;
     uint32_t VersionNegotiation     : 1;
     uint32_t StatelessRetry         : 1;
@@ -233,7 +233,7 @@ typedef struct _QUIC_STATISTICS {
     } Misc;
 } QUIC_STATISTICS;
 
-typedef struct _QUIC_LISTENER_STATISTICS {
+typedef struct QUIC_LISTENER_STATISTICS {
 
     uint64_t TotalAcceptedConnections;
     uint64_t TotalRejectedConnections;
@@ -349,7 +349,7 @@ typedef enum QUIC_PARAM_LEVEL {
 // Parameters for QUIC_PARAM_LEVEL_TLS.
 //
 #ifdef WIN32 // Windows Platform specific parameters
-typedef struct _QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W {
+typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W {
     unsigned long Attribute;
     void* Buffer;
 } QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W;
@@ -849,7 +849,7 @@ QUIC_STATUS
 //
 // Version 1 API Function Table.
 //
-typedef struct _QUIC_API_V1 {
+typedef struct QUIC_API_V1 {
 
     uint32_t                            Version;            // QUIC_API_VERSION_1
 

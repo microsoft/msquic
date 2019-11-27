@@ -51,7 +51,7 @@ Abstract:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicRecvBufferInitialize(
-    _Inout_ PQUIC_RECV_BUFFER RecvBuffer,
+    _Inout_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint32_t AllocBufferLength,
     _In_ uint32_t VirtualBufferLength,
     _In_ BOOLEAN CopyOnDrain
@@ -97,7 +97,7 @@ Error:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRecvBufferUninitialize(
-    _In_ PQUIC_RECV_BUFFER RecvBuffer
+    _In_ QUIC_RECV_BUFFER* RecvBuffer
     )
 {
     QuicRangeUninitialize(&RecvBuffer->WrittenRanges);
@@ -112,7 +112,7 @@ QuicRecvBufferUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint64_t
 QuicRecvBufferGetTotalLength(
-    _In_ PQUIC_RECV_BUFFER RecvBuffer
+    _In_ QUIC_RECV_BUFFER* RecvBuffer
     )
 {
     uint64_t TotalLength = 0;
@@ -132,7 +132,7 @@ QuicRecvBufferGetTotalLength(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 QuicRecvBufferGetSpan(
-    _In_ PQUIC_RECV_BUFFER RecvBuffer
+    _In_ QUIC_RECV_BUFFER* RecvBuffer
     )
 {
     return (uint32_t)(QuicRecvBufferGetTotalLength(RecvBuffer) - RecvBuffer->BaseOffset);
@@ -145,7 +145,7 @@ QuicRecvBufferGetSpan(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicRecvBufferResize(
-    _In_ PQUIC_RECV_BUFFER RecvBuffer,
+    _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint32_t TargetBufferLength
     )
 {
@@ -203,7 +203,7 @@ Error:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRecvBufferSetVirtualBufferLength(
-    _In_ PQUIC_RECV_BUFFER RecvBuffer,
+    _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint32_t NewLength
     )
 {
@@ -214,7 +214,7 @@ QuicRecvBufferSetVirtualBufferLength(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRecvBufferHasUnreadData(
-    _In_ PQUIC_RECV_BUFFER RecvBuffer
+    _In_ QUIC_RECV_BUFFER* RecvBuffer
     )
 {
     return QuicRecvBufferGetTotalLength(RecvBuffer) > RecvBuffer->BaseOffset;
@@ -223,7 +223,7 @@ QuicRecvBufferHasUnreadData(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRecvBufferAlreadyReadData(
-    _In_ PQUIC_RECV_BUFFER RecvBuffer,
+    _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint64_t BufferOffset,
     _In_ uint16_t BufferLength
     )
@@ -234,7 +234,7 @@ QuicRecvBufferAlreadyReadData(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicRecvBufferWrite(
-    _In_ PQUIC_RECV_BUFFER RecvBuffer,
+    _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint64_t BufferOffset,
     _In_ uint16_t BufferLength,
     _In_reads_bytes_(BufferLength) uint8_t const* Buffer,
@@ -244,7 +244,7 @@ QuicRecvBufferWrite(
 {
     QUIC_STATUS Status;
     BOOLEAN WrittenRangesUpdated;
-    PQUIC_SUBRANGE UpdatedRange = NULL;
+    QUIC_SUBRANGE* UpdatedRange = NULL;
 
     QUIC_DBG_ASSERT(BufferLength != 0);
 
@@ -407,7 +407,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicRecvBufferRead(
-    _In_ PQUIC_RECV_BUFFER RecvBuffer,
+    _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _Out_ uint64_t* BufferOffset,
     _Inout_ uint32_t* BufferCount,
     _Out_writes_all_(*BufferCount)
@@ -464,7 +464,7 @@ QuicRecvBufferRead(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRecvBufferDrain(
-    _In_ PQUIC_RECV_BUFFER RecvBuffer,
+    _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint64_t BufferLength
     )
 {

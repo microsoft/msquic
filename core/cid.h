@@ -78,7 +78,7 @@ QUIC_STATIC_ASSERT(
 // Connection ID Structures
 //
 
-typedef struct _QUIC_CID {
+typedef struct QUIC_CID {
 
     //
     // The CID is the original one used by the client in its first Initial
@@ -122,7 +122,7 @@ typedef struct _QUIC_CID {
 
 } QUIC_CID;
 
-typedef struct _QUIC_CID_QUIC_LIST_ENTRY {
+typedef struct QUIC_CID_QUIC_LIST_ENTRY {
 
     QUIC_LIST_ENTRY Link;
     uint8_t ResetToken[QUIC_STATELESS_RESET_TOKEN_LENGTH];
@@ -130,11 +130,11 @@ typedef struct _QUIC_CID_QUIC_LIST_ENTRY {
 
 } QUIC_CID_QUIC_LIST_ENTRY;
 
-typedef struct _QUIC_CID_HASH_ENTRY {
+typedef struct QUIC_CID_HASH_ENTRY {
 
     QUIC_HASHTABLE_ENTRY Entry;
     QUIC_SINGLE_LIST_ENTRY Link;
-    PQUIC_CONNECTION Connection;
+    QUIC_CONNECTION* Connection;
     QUIC_CID CID;
 
 } QUIC_CID_HASH_ENTRY;
@@ -147,7 +147,7 @@ inline
 _Success_(return != NULL)
 QUIC_CID_HASH_ENTRY*
 QuicCidNewRandomSource(
-    _In_opt_ PQUIC_CONNECTION Connection,
+    _In_opt_ QUIC_CONNECTION* Connection,
     _In_ uint8_t ServerID,
     _In_ uint8_t PartitionID,
     _In_ uint8_t PrefixLength,
@@ -201,7 +201,7 @@ inline
 _Success_(return != NULL)
 QUIC_CID_HASH_ENTRY*
 QuicCidNewSource(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint8_t Length,
     _In_reads_(Length)
         const uint8_t* const Data
@@ -283,7 +283,7 @@ QuicCidNewDestination(
 // Helpers for logging connection IDs.
 //
 
-typedef struct _QUIC_CID_STR {
+typedef struct QUIC_CID_STR {
     char Buffer[2 * QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + 1];
 } QUIC_CID_STR;
 

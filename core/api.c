@@ -43,8 +43,8 @@ MsQuicConnectionOpen(
     )
 {
     QUIC_STATUS Status;
-    PQUIC_SESSION Session;
-    PQUIC_CONNECTION Connection = NULL;
+    QUIC_SESSION* Session;
+    QUIC_CONNECTION* Connection = NULL;
 
     EventWriteQuicApiEnter(
         QUIC_TRACE_API_CONNECTION_OPEN,
@@ -58,7 +58,7 @@ MsQuicConnectionOpen(
     }
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    Session = (PQUIC_SESSION)SessionHandle;
+    Session = (QUIC_SESSION*)SessionHandle;
 
     Status = QuicConnInitialize(NULL, &Connection);
     if (QUIC_FAILED(Status)) {
@@ -91,7 +91,7 @@ MsQuicConnectionClose(
         HQUIC Handle
     )
 {
-    PQUIC_CONNECTION Connection;
+    QUIC_CONNECTION* Connection;
 
     QUIC_PASSIVE_CODE();
 
@@ -104,7 +104,7 @@ MsQuicConnectionClose(
     }
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    Connection = (PQUIC_CONNECTION)Handle;
+    Connection = (QUIC_CONNECTION*)Handle;
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
@@ -165,8 +165,8 @@ MsQuicConnectionShutdown(
     _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode
     )
 {
-    PQUIC_CONNECTION Connection;
-    PQUIC_OPERATION Oper;
+    QUIC_CONNECTION* Connection;
+    QUIC_OPERATION* Oper;
 
     EventWriteQuicApiEnter(
         QUIC_TRACE_API_CONNECTION_SHUTDOWN,
@@ -174,10 +174,10 @@ MsQuicConnectionShutdown(
 
     if (IS_CONN_HANDLE(Handle)) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Connection = (PQUIC_CONNECTION)Handle;
+        Connection = (QUIC_CONNECTION*)Handle;
     } else if (IS_STREAM_HANDLE(Handle)) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Connection = ((PQUIC_STREAM)Handle)->Connection;
+        Connection = ((QUIC_STREAM*)Handle)->Connection;
     } else {
         goto Error;
     }
@@ -229,8 +229,8 @@ MsQuicConnectionStart(
     )
 {
     QUIC_STATUS Status;
-    PQUIC_CONNECTION Connection;
-    PQUIC_OPERATION Oper;
+    QUIC_CONNECTION* Connection;
+    QUIC_OPERATION* Oper;
     char* ServerNameCopy = NULL;
 
     QUIC_PASSIVE_CODE();
@@ -254,10 +254,10 @@ MsQuicConnectionStart(
 
     if (IS_CONN_HANDLE(Handle)) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Connection = (PQUIC_CONNECTION)Handle;
+        Connection = (QUIC_CONNECTION*)Handle;
     } else if (IS_STREAM_HANDLE(Handle)) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Connection = ((PQUIC_STREAM)Handle)->Connection;
+        Connection = ((QUIC_STREAM*)Handle)->Connection;
     } else {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
@@ -339,7 +339,7 @@ MsQuicStreamOpen(
     )
 {
     QUIC_STATUS Status;
-    PQUIC_CONNECTION Connection;
+    QUIC_CONNECTION* Connection;
 
     EventWriteQuicApiEnter(
         QUIC_TRACE_API_STREAM_OPEN,
@@ -353,7 +353,7 @@ MsQuicStreamOpen(
     }
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    Connection = (PQUIC_CONNECTION)Handle;
+    Connection = (QUIC_CONNECTION*)Handle;
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
@@ -392,8 +392,8 @@ MsQuicStreamClose(
         HQUIC Handle
     )
 {
-    PQUIC_STREAM Stream;
-    PQUIC_CONNECTION Connection;
+    QUIC_STREAM* Stream;
+    QUIC_CONNECTION* Connection;
 
     QUIC_PASSIVE_CODE();
 
@@ -406,7 +406,7 @@ MsQuicStreamClose(
     }
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    Stream = (PQUIC_STREAM)Handle;
+    Stream = (QUIC_STREAM*)Handle;
 
     QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
     QUIC_TEL_ASSERT(!Stream->Flags.Freed);
@@ -478,8 +478,8 @@ MsQuicStreamStart(
     )
 {
     QUIC_STATUS Status;
-    PQUIC_STREAM Stream;
-    PQUIC_CONNECTION Connection;
+    QUIC_STREAM* Stream;
+    QUIC_CONNECTION* Connection;
 
     EventWriteQuicApiEnter(
         QUIC_TRACE_API_STREAM_START,
@@ -491,7 +491,7 @@ MsQuicStreamStart(
     }
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    Stream = (PQUIC_STREAM)Handle;
+    Stream = (QUIC_STREAM*)Handle;
 
     QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
     QUIC_TEL_ASSERT(!Stream->Flags.Freed);
@@ -515,7 +515,7 @@ MsQuicStreamStart(
 
     } else if (Flags & QUIC_STREAM_START_FLAG_ASYNC) {
 
-        PQUIC_OPERATION Oper =
+        QUIC_OPERATION* Oper =
             QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
         if (Oper == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -584,9 +584,9 @@ MsQuicStreamShutdown(
     )
 {
     QUIC_STATUS Status;
-    PQUIC_STREAM Stream;
-    PQUIC_CONNECTION Connection;
-    PQUIC_OPERATION Oper;
+    QUIC_STREAM* Stream;
+    QUIC_CONNECTION* Connection;
+    QUIC_OPERATION* Oper;
 
     EventWriteQuicApiEnter(
         QUIC_TRACE_API_STREAM_SHUTDOWN,
@@ -624,7 +624,7 @@ MsQuicStreamShutdown(
     }
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    Stream = (PQUIC_STREAM)Handle;
+    Stream = (QUIC_STREAM*)Handle;
 
     QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
     QUIC_TEL_ASSERT(!Stream->Flags.Freed);
@@ -685,12 +685,12 @@ MsQuicStreamSend(
     )
 {
     QUIC_STATUS Status;
-    PQUIC_STREAM Stream;
-    PQUIC_CONNECTION Connection;
+    QUIC_STREAM* Stream;
+    QUIC_CONNECTION* Connection;
     uint64_t TotalLength;
-    PQUIC_SEND_REQUEST SendRequest;
+    QUIC_SEND_REQUEST* SendRequest;
     BOOLEAN QueueOper = TRUE;
-    PQUIC_OPERATION Oper;
+    QUIC_OPERATION* Oper;
 
     EventWriteQuicApiEnter(
         QUIC_TRACE_API_STREAM_SEND,
@@ -704,7 +704,7 @@ MsQuicStreamSend(
     }
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    Stream = (PQUIC_STREAM)Handle;
+    Stream = (QUIC_STREAM*)Handle;
 
     QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
     QUIC_TEL_ASSERT(!Stream->Flags.Freed);
@@ -756,7 +756,7 @@ MsQuicStreamSend(
     if (!Stream->Flags.SendEnabled) {
         Status = QUIC_STATUS_INVALID_STATE;
     } else {
-        PQUIC_SEND_REQUEST* ApiSendRequestsTail = &Stream->ApiSendRequests;
+        QUIC_SEND_REQUEST** ApiSendRequestsTail = &Stream->ApiSendRequests;
         while (*ApiSendRequestsTail != NULL) {
             ApiSendRequestsTail = &((*ApiSendRequestsTail)->Next);
             QueueOper = FALSE; // Not necessary if the previous send hasn't been flushed yet.
@@ -812,9 +812,9 @@ MsQuicStreamReceiveSetEnabled(
     )
 {
     QUIC_STATUS Status;
-    PQUIC_STREAM Stream;
-    PQUIC_CONNECTION Connection;
-    PQUIC_OPERATION Oper;
+    QUIC_STREAM* Stream;
+    QUIC_CONNECTION* Connection;
+    QUIC_OPERATION* Oper;
 
     EventWriteQuicApiEnter(
         QUIC_TRACE_API_STREAM_RECEIVE_SET_ENABLED,
@@ -826,7 +826,7 @@ MsQuicStreamReceiveSetEnabled(
     }
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    Stream = (PQUIC_STREAM)Handle;
+    Stream = (QUIC_STREAM*)Handle;
 
     QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
     QUIC_TEL_ASSERT(!Stream->Flags.Freed);
@@ -877,9 +877,9 @@ MsQuicStreamReceiveComplete(
     )
 {
     QUIC_STATUS Status;
-    PQUIC_STREAM Stream;
-    PQUIC_CONNECTION Connection;
-    PQUIC_OPERATION Oper;
+    QUIC_STREAM* Stream;
+    QUIC_CONNECTION* Connection;
+    QUIC_OPERATION* Oper;
 
     EventWriteQuicApiEnter(
         QUIC_TRACE_API_STREAM_RECEIVE_COMPLETE,
@@ -891,7 +891,7 @@ MsQuicStreamReceiveComplete(
     }
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    Stream = (PQUIC_STREAM)Handle;
+    Stream = (QUIC_STREAM*)Handle;
 
     QUIC_TEL_ASSERT(!Stream->Flags.HandleClosed);
     QUIC_TEL_ASSERT(!Stream->Flags.Freed);
@@ -973,16 +973,16 @@ MsQuicSetParam(
         goto Error;
     }
 
-    PQUIC_CONNECTION Connection;
+    QUIC_CONNECTION* Connection;
     QUIC_EVENT CompletionEvent;
 
     if (Handle->Type == QUIC_HANDLE_TYPE_STREAM) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Connection = ((PQUIC_STREAM)Handle)->Connection;
+        Connection = ((QUIC_STREAM*)Handle)->Connection;
     } else if (Handle->Type == QUIC_HANDLE_TYPE_CHILD ||
         Handle->Type == QUIC_HANDLE_TYPE_CLIENT) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Connection = (PQUIC_CONNECTION)Handle;
+        Connection = (QUIC_CONNECTION*)Handle;
     } else {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
@@ -1066,16 +1066,16 @@ MsQuicGetParam(
         goto Error;
     }
 
-    PQUIC_CONNECTION Connection;
+    QUIC_CONNECTION* Connection;
     QUIC_EVENT CompletionEvent;
 
     if (Handle->Type == QUIC_HANDLE_TYPE_STREAM) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Connection = ((PQUIC_STREAM)Handle)->Connection;
+        Connection = ((QUIC_STREAM*)Handle)->Connection;
     } else if (Handle->Type == QUIC_HANDLE_TYPE_CHILD ||
         Handle->Type == QUIC_HANDLE_TYPE_CLIENT) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Connection = (PQUIC_CONNECTION)Handle;
+        Connection = (QUIC_CONNECTION*)Handle;
     } else {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;

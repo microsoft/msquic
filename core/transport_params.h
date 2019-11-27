@@ -42,7 +42,7 @@ Abstract:
 //
 // The configuration parameters that QUIC exchanges in the TLS handshake.
 //
-typedef struct _QUIC_TRANSPORT_PARAMETERS {
+typedef struct QUIC_TRANSPORT_PARAMETERS {
 
     //
     // Flags listing which parameters below are set.
@@ -131,7 +131,7 @@ typedef struct _QUIC_TRANSPORT_PARAMETERS {
     _Field_range_(0, QUIC_MAX_CONNECTION_ID_LENGTH_V1)
     uint8_t OriginalConnectionIDLength;
 
-} QUIC_TRANSPORT_PARAMETERS, *PQUIC_TRANSPORT_PARAMETERS;
+} QUIC_TRANSPORT_PARAMETERS;
 
 //
 // Allocates and encodes the QUIC TP buffer. Free with QUIC_FREE.
@@ -140,7 +140,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 const uint8_t*
 QuicCryptoTlsEncodeTransportParameters(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_TRANSPORT_PARAMETERS *TransportParams,
     _Out_ uint32_t* TPLen
     );
@@ -152,7 +152,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicCryptoTlsDecodeTransportParameters(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_reads_(TPLen)
         const uint8_t* TPBuf,
     _In_ uint16_t TPLen,

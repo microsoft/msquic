@@ -43,7 +43,7 @@ typedef ObjEventCallback* ObjEventHandler;
 
 extern const char* ApiTypeStr[QUIC_API_COUNT];
 
-typedef enum _QUIC_EVENT_TYPE {
+typedef enum QUIC_EVENT_TYPE {
     EventType_Global,
     EventType_Registration,
     EventType_Worker,
@@ -69,7 +69,7 @@ inline USHORT GetEventId(USHORT Id)
     return Id & 0x3FF;
 }
 
-typedef enum _QUIC_EVENT_ID_GLOBAL {
+typedef enum QUIC_EVENT_ID_GLOBAL {
     EventId_QuicLibraryInitialized = 1,
     EventId_QuicLibraryUninitialized,
     EventId_QuicLibraryAddRef,
@@ -94,7 +94,7 @@ typedef enum _QUIC_EVENT_ID_GLOBAL {
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct _QUIC_EVENT_DATA_GLOBAL {
+typedef struct QUIC_EVENT_DATA_GLOBAL {
     union {
         struct {
             UINT32 PartitionCount;
@@ -127,7 +127,7 @@ typedef struct _QUIC_EVENT_DATA_GLOBAL {
 } QUIC_EVENT_DATA_GLOBAL;
 #pragma pack(pop)
 
-typedef enum _QUIC_EVENT_ID_REGISTRATION {
+typedef enum QUIC_EVENT_ID_REGISTRATION {
     EventId_QuicRegistrationCreated,
     EventId_QuicRegistrationDestroyed,
     EventId_QuicRegistrationCleanup,
@@ -140,7 +140,7 @@ typedef enum _QUIC_EVENT_ID_REGISTRATION {
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct _QUIC_EVENT_DATA_REGISTRATION {
+typedef struct QUIC_EVENT_DATA_REGISTRATION {
     ULONG_PTR RegistrationPtr;
     union {
         struct {
@@ -157,7 +157,7 @@ typedef struct _QUIC_EVENT_DATA_REGISTRATION {
 } QUIC_EVENT_DATA_REGISTRATION;
 #pragma pack(pop)
 
-typedef enum _QUIC_EVENT_ID_WORKER {
+typedef enum QUIC_EVENT_ID_WORKER {
     EventId_QuicWorkerCreated,
     EventId_QuicWorkerStart,
     EventId_QuicWorkerStop,
@@ -173,7 +173,7 @@ typedef enum _QUIC_EVENT_ID_WORKER {
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct _QUIC_EVENT_DATA_WORKER {
+typedef struct QUIC_EVENT_DATA_WORKER {
     ULONG_PTR WorkerPtr;
     union {
         struct {
@@ -198,7 +198,7 @@ typedef struct _QUIC_EVENT_DATA_WORKER {
 } QUIC_EVENT_DATA_WORKER;
 #pragma pack(pop)
 
-typedef enum _QUIC_EVENT_ID_SESSION {
+typedef enum QUIC_EVENT_ID_SESSION {
     EventId_QuicSessionCreated,
     EventId_QuicSessionDestroyed,
     EventId_QuicSessionCleanup,
@@ -212,7 +212,7 @@ typedef enum _QUIC_EVENT_ID_SESSION {
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct _QUIC_EVENT_DATA_SESSION {
+typedef struct QUIC_EVENT_DATA_SESSION {
     ULONG_PTR SessionPtr;
     union {
         struct {
@@ -234,7 +234,7 @@ typedef struct _QUIC_EVENT_DATA_SESSION {
 } QUIC_EVENT_DATA_SESSION;
 #pragma pack(pop)
 
-typedef enum _QUIC_EVENT_ID_LISTENER {
+typedef enum QUIC_EVENT_ID_LISTENER {
     EventId_QuicListenerCreated,
     EventId_QuicListenerDestroyed,
     EventId_QuicListenerStarted,
@@ -248,7 +248,7 @@ typedef enum _QUIC_EVENT_ID_LISTENER {
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct _QUIC_EVENT_DATA_LISTENER {
+typedef struct QUIC_EVENT_DATA_LISTENER {
     ULONG_PTR ListenerPtr;
     union {
         struct {
@@ -270,7 +270,7 @@ typedef struct _QUIC_EVENT_DATA_LISTENER {
 } QUIC_EVENT_DATA_LISTENER;
 #pragma pack(pop)
 
-typedef enum _QUIC_EVENT_ID_CONNECTION {
+typedef enum QUIC_EVENT_ID_CONNECTION {
     EventId_QuicConnCreated,
     EventId_QuicConnDestroyed,
     EventId_QuicConnHandshakeComplete,
@@ -325,7 +325,7 @@ typedef enum _QUIC_EVENT_ID_CONNECTION {
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct _QUIC_EVENT_DATA_CONNECTION {
+typedef struct QUIC_EVENT_DATA_CONNECTION {
     ULONG_PTR CxnPtr;
     union {
         struct {
@@ -473,7 +473,7 @@ typedef struct _QUIC_EVENT_DATA_CONNECTION {
 } QUIC_EVENT_DATA_CONNECTION;
 #pragma pack(pop)
 
-typedef enum _QUIC_EVENT_ID_STREAM {
+typedef enum QUIC_EVENT_ID_STREAM {
     EventId_QuicStreamCreated,
     EventId_QuicStreamDestroyed,
     EventId_QuicStreamOutFlowBlocked,
@@ -491,7 +491,7 @@ typedef enum _QUIC_EVENT_ID_STREAM {
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct _QUIC_EVENT_DATA_STREAM {
+typedef struct QUIC_EVENT_DATA_STREAM {
     ULONG_PTR StreamPtr;
     union {
         struct {
@@ -519,7 +519,7 @@ typedef struct _QUIC_EVENT_DATA_STREAM {
 } QUIC_EVENT_DATA_STREAM;
 #pragma pack(pop)
 
-typedef enum _QUIC_EVENT_ID_BINDING {
+typedef enum QUIC_EVENT_ID_BINDING {
     EventId_QuicBindingCreated,
     EventId_QuicBindingRundown,
     EventId_QuicBindingDestroyed,
@@ -535,7 +535,7 @@ typedef enum _QUIC_EVENT_ID_BINDING {
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct _QUIC_EVENT_DATA_BINDING {
+typedef struct QUIC_EVENT_DATA_BINDING {
     ULONG_PTR BindingPtr;
     union {
         struct {
@@ -573,7 +573,7 @@ typedef struct _QUIC_EVENT_DATA_BINDING {
 } QUIC_EVENT_DATA_BINDING;
 #pragma pack(pop)
 
-typedef enum _QUIC_EVENT_ID_TLS {
+typedef enum QUIC_EVENT_ID_TLS {
     EventId_QuicTlsError,
     EventId_QuicTlsErrorStatus,
 
@@ -582,7 +582,7 @@ typedef enum _QUIC_EVENT_ID_TLS {
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct _QUIC_EVENT_DATA_TLS {
+typedef struct QUIC_EVENT_DATA_TLS {
     ULONG_PTR CxnPtr;
     union {
         struct {
@@ -596,7 +596,7 @@ typedef struct _QUIC_EVENT_DATA_TLS {
 } QUIC_EVENT_DATA_TLS;
 #pragma pack(pop)
 
-typedef enum _QUIC_EVENT_ID_DATAPATH {
+typedef enum QUIC_EVENT_ID_DATAPATH {
     EventId_QuicDatapathSendTo,
     EventId_QuicDatapathSendFromTo,
     EventId_QuicDatapathRecv,
@@ -608,7 +608,7 @@ typedef enum _QUIC_EVENT_ID_DATAPATH {
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct _QUIC_EVENT_DATA_DATAPATH {
+typedef struct QUIC_EVENT_DATA_DATAPATH {
     ULONG_PTR BindingPtr;
     union {
         struct {
@@ -644,7 +644,7 @@ typedef struct _QUIC_EVENT_DATA_DATAPATH {
 } QUIC_EVENT_DATA_DATAPATH;
 #pragma pack(pop)
 
-typedef enum _QUIC_EVENT_ID_LOG {
+typedef enum QUIC_EVENT_ID_LOG {
     EventId_QuicLogError,
     EventId_QuicLogWarning,
     EventId_QuicLogInfo,
@@ -659,7 +659,7 @@ typedef enum _QUIC_EVENT_ID_LOG {
 
 #pragma pack(push)
 #pragma pack(1)
-typedef struct _QUIC_EVENT_DATA_LOG {
+typedef struct QUIC_EVENT_DATA_LOG {
     char Msg[1];
 } QUIC_EVENT_DATA_LOG;
 #pragma pack(pop)
@@ -779,14 +779,14 @@ inline FILTER_TYPE StringToFilterType(const char* str)
     }
 }
 
-typedef enum _QUIC_SCHEDULE_STATE {
+typedef enum QUIC_SCHEDULE_STATE {
     QUIC_SCHEDULE_IDLE,
     QUIC_SCHEDULE_QUEUED,
     QUIC_SCHEDULE_PROCESSING,
     QUIC_SCHEDULE_MAX
 } QUIC_SCHEDULE_STATE;
 
-typedef struct _QUIC_TIME_STATS {
+typedef struct QUIC_TIME_STATS {
     ULONG Count;
     ULONG MinCpuTime;       // usec
     ULONG MaxCpuTime;       // usec

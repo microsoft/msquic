@@ -8,7 +8,7 @@
 //
 // All the necessary state for building and sending QUIC packets.
 //
-typedef struct _QUIC_PACKET_BUILDER {
+typedef struct QUIC_PACKET_BUILDER {
 
     //
     // Connection packets are being built for.
@@ -248,7 +248,7 @@ inline
 BOOLEAN
 QuicPacketBuilderAddStreamFrame(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ uint8_t FrameType
     )
 {

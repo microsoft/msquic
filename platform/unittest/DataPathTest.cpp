@@ -173,7 +173,7 @@ struct DataPathTest : public WEX::TestClass<DataPathTest>
 
     static void
     EmptyReceiveCallback(
-        _In_ PQUIC_DATAPATH_BINDING /* Binding */,
+        _In_ QUIC_DATAPATH_BINDING* /* Binding */,
         _In_ PVOID /* RecvContext */,
         _In_ QUIC_RECV_DATAGRAM* /* RecvPacketChain */
         )
@@ -182,7 +182,7 @@ struct DataPathTest : public WEX::TestClass<DataPathTest>
 
     static void
     EmptyUnreachableCallback(
-        _In_ PQUIC_DATAPATH_BINDING /* Binding */,
+        _In_ QUIC_DATAPATH_BINDING* /* Binding */,
         _In_ PVOID /* Context */,
         _In_ const SOCKADDR_INET* /* RemoteAddress */
         )
@@ -191,7 +191,7 @@ struct DataPathTest : public WEX::TestClass<DataPathTest>
 
     TEST_METHOD(Initialize)
     {
-        PQUIC_DATAPATH datapath = nullptr;
+        QUIC_DATAPATH* datapath = nullptr;
 
         VERIFY_QUIC_SUCCESS(
             QuicDataPathInitialize(
@@ -214,7 +214,7 @@ struct DataPathTest : public WEX::TestClass<DataPathTest>
                 EmptyUnreachableCallback,
                 nullptr));
 
-        PQUIC_DATAPATH datapath = nullptr;
+        QUIC_DATAPATH* datapath = nullptr;
         VERIFY_ARE_EQUAL(QUIC_STATUS_INVALID_PARAMETER,
             QuicDataPathInitialize(
                 0,
@@ -231,8 +231,8 @@ struct DataPathTest : public WEX::TestClass<DataPathTest>
 
     TEST_METHOD(Bind)
     {
-        PQUIC_DATAPATH datapath = nullptr;
-        PQUIC_DATAPATH_BINDING binding = nullptr;
+        QUIC_DATAPATH* datapath = nullptr;
+        QUIC_DATAPATH_BINDING* binding = nullptr;
 
         VERIFY_QUIC_SUCCESS(
             QuicDataPathInitialize(
@@ -263,9 +263,9 @@ struct DataPathTest : public WEX::TestClass<DataPathTest>
 
     TEST_METHOD(Rebind)
     {
-        PQUIC_DATAPATH datapath = nullptr;
-        PQUIC_DATAPATH_BINDING binding1 = nullptr;
-        PQUIC_DATAPATH_BINDING binding2 = nullptr;
+        QUIC_DATAPATH* datapath = nullptr;
+        QUIC_DATAPATH_BINDING* binding1 = nullptr;
+        QUIC_DATAPATH_BINDING* binding2 = nullptr;
 
         VERIFY_QUIC_SUCCESS(
             QuicDataPathInitialize(
@@ -315,7 +315,7 @@ struct DataPathTest : public WEX::TestClass<DataPathTest>
 
     static void
     DataRecvCallback(
-        _In_ PQUIC_DATAPATH_BINDING binding,
+        _In_ QUIC_DATAPATH_BINDING* binding,
         _In_ PVOID recvContext,
         _In_ QUIC_RECV_DATAGRAM* recvBufferChain
         )
@@ -362,9 +362,9 @@ struct DataPathTest : public WEX::TestClass<DataPathTest>
 
     TEST_METHOD(Data)
     {
-        PQUIC_DATAPATH datapath = nullptr;
-        PQUIC_DATAPATH_BINDING server = nullptr;
-        PQUIC_DATAPATH_BINDING client = nullptr;
+        QUIC_DATAPATH* datapath = nullptr;
+        QUIC_DATAPATH_BINDING* server = nullptr;
+        QUIC_DATAPATH_BINDING* client = nullptr;
         auto serverAddress = GetNewLocalAddr();
 
         DataRecvContext RecvContext =
@@ -436,9 +436,9 @@ struct DataPathTest : public WEX::TestClass<DataPathTest>
 
     TEST_METHOD(DataRebind)
     {
-        PQUIC_DATAPATH datapath = nullptr;
-        PQUIC_DATAPATH_BINDING server = nullptr;
-        PQUIC_DATAPATH_BINDING client = nullptr;
+        QUIC_DATAPATH* datapath = nullptr;
+        QUIC_DATAPATH_BINDING* server = nullptr;
+        QUIC_DATAPATH_BINDING* client = nullptr;
         auto serverAddress = GetNewLocalAddr();
 
         DataRecvContext RecvContext =

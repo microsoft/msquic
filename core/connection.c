@@ -40,14 +40,14 @@ Abstract:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnInitializeCrypto(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 __drv_allocatesMem(Mem)
 _Must_inspect_result_
 _Success_(return != NULL)
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicConnAlloc(
     _In_opt_ const QUIC_RECV_DATAGRAM* const Datagram
     )
@@ -56,7 +56,7 @@ QuicConnAlloc(
     uint8_t AllocProcIndex =
         (uint8_t)(QuicProcCurrentNumber() % MsQuicLib.PartitionCount);
 
-    PQUIC_CONNECTION Connection =
+    QUIC_CONNECTION* Connection =
         QuicPoolAlloc(&MsQuicLib.PerProc[AllocProcIndex].ConnectionPool);
     if (Connection == NULL) {
         EventWriteQuicAllocFailure("connection", sizeof(QUIC_CONNECTION));
@@ -189,13 +189,13 @@ QUIC_STATUS
 QuicConnInitialize(
     _In_opt_ const QUIC_RECV_DATAGRAM* const Datagram, // NULL for client side
     _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem))
-        PQUIC_CONNECTION* NewConnection
+        QUIC_CONNECTION** NewConnection
     )
 {
     QUIC_STATUS Status;
     uint32_t InitStep = 0;
 
-    PQUIC_CONNECTION Connection = QuicConnAlloc(Datagram);
+    QUIC_CONNECTION* Connection = QuicConnAlloc(Datagram);
     if (Connection == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -273,7 +273,7 @@ Error:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnFree(
-    _In_ __drv_freesMem(Mem) PQUIC_CONNECTION Connection
+    _In_ __drv_freesMem(Mem) QUIC_CONNECTION* Connection
     )
 {
     QUIC_FRE_ASSERT(!Connection->State.Freed);
@@ -344,7 +344,7 @@ QuicConnFree(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnApplySettings(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_SETTINGS* Settings
     )
 {
@@ -379,7 +379,7 @@ QuicConnApplySettings(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnShutdown(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint32_t Flags,
     _In_ QUIC_VAR_INT ErrorCode
     )
@@ -396,7 +396,7 @@ QuicConnShutdown(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnUninitialize(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     QUIC_TEL_ASSERT(Connection->State.HandleClosed);
@@ -447,7 +447,7 @@ QuicConnUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnCloseHandle(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     QUIC_TEL_ASSERT(!Connection->State.HandleClosed);
@@ -464,10 +464,10 @@ QuicConnCloseHandle(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueTraceRundown(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
-    PQUIC_OPERATION Oper;
+    QUIC_OPERATION* Oper;
     if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_TRACE_RUNDOWN)) != NULL) {
         QuicConnQueueOper(Connection, Oper);
     } else {
@@ -478,7 +478,7 @@ QuicConnQueueTraceRundown(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnTraceRundownOper(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     EventWriteQuicConnRundown(
@@ -544,7 +544,7 @@ QuicConnTraceRundownOper(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnIndicateEvent(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _Inout_ QUIC_CONNECTION_EVENT* Event
     )
 {
@@ -583,8 +583,8 @@ QuicConnIndicateEvent(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueOper(
-    _In_ PQUIC_CONNECTION Connection,
-    _In_ PQUIC_OPERATION Oper
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_OPERATION* Oper
     )
 {
     if (QuicOperationEnqueue(&Connection->OperQ, Oper)) {
@@ -599,8 +599,8 @@ QuicConnQueueOper(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueHighestPriorityOper(
-    _In_ PQUIC_CONNECTION Connection,
-    _In_ PQUIC_OPERATION Oper
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_OPERATION* Oper
     )
 {
     if (QuicOperationEnqueueFront(&Connection->OperQ, Oper)) {
@@ -615,7 +615,7 @@ QuicConnQueueHighestPriorityOper(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnUpdateRtt(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ uint32_t LatestRtt
     )
@@ -661,7 +661,7 @@ QuicConnUpdateRtt(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_CID_HASH_ENTRY*
 QuicConnGenerateNewSourceCid(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN IsInitial
     )
 {
@@ -752,7 +752,7 @@ QuicConnGetUnusedDestCid(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnRetireCurrentDestCid(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path
     )
 {
@@ -785,7 +785,7 @@ QuicConnRetireCurrentDestCid(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnTimerSet(
-    _Inout_ PQUIC_CONNECTION Connection,
+    _Inout_ QUIC_CONNECTION* Connection,
     _In_ QUIC_CONN_TIMER_TYPE Type,
     _In_ uint64_t Delay
     )
@@ -849,7 +849,7 @@ QuicConnTimerSet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnTimerCancel(
-    _Inout_ PQUIC_CONNECTION Connection,
+    _Inout_ QUIC_CONNECTION* Connection,
     _In_ QUIC_CONN_TIMER_TYPE Type
     )
 {
@@ -913,7 +913,7 @@ QuicConnTimerCancel(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnTimerExpired(
-    _Inout_ PQUIC_CONNECTION Connection,
+    _Inout_ QUIC_CONNECTION* Connection,
     _In_ uint64_t TimeNow
     )
 {
@@ -963,7 +963,7 @@ QuicConnTimerExpired(
             EventWriteQuicConnExecTimerOper(Connection, QUIC_CONN_TIMER_PACING);
             FlushSendImmediate = TRUE;
         } else {
-            PQUIC_OPERATION Oper;
+            QUIC_OPERATION* Oper;
             if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_TIMER_EXPIRED)) != NULL) {
                 Oper->TIMER_EXPIRED.Type = Temp[j].Type;
                 QuicConnQueueOper(Connection, Oper);
@@ -991,7 +991,7 @@ QuicConnTimerExpired(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnIndicateShutdownBegin(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     QUIC_CONNECTION_EVENT Event;
@@ -1012,7 +1012,7 @@ QuicConnIndicateShutdownBegin(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnOnShutdownComplete(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     if (Connection->State.HandleShutdown) {
@@ -1066,7 +1066,7 @@ QuicErrorCodeToStatus(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnTryClose(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint32_t Flags,
     _In_ uint64_t ErrorCode,
     _In_reads_bytes_opt_(RemoteReasonPhraseLength)
@@ -1274,7 +1274,7 @@ QuicConnTryClose(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnProcessShutdownTimerOperation(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     //
@@ -1293,7 +1293,7 @@ QuicConnProcessShutdownTimerOperation(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnCloseLocally(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint32_t Flags,
     _In_ uint64_t ErrorCode,
     _In_opt_z_ const char* ErrorMsg
@@ -1311,7 +1311,7 @@ QuicConnCloseLocally(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnOnQuicVersionSet(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     EventWriteQuicConnVersionSet(Connection, Connection->Stats.QuicVersion);
@@ -1328,7 +1328,7 @@ QuicConnOnQuicVersionSet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnStart(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_ADDRESS_FAMILY Family,
     _In_opt_z_ const char* ServerName,
     _In_ uint16_t ServerPort // Host byte order
@@ -1484,7 +1484,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnRestart(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN CompleteReset
     )
 {
@@ -1517,7 +1517,7 @@ QuicConnRestart(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnInitializeCrypto(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     QUIC_STATUS Status;
@@ -1561,7 +1561,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnHandshakeConfigure(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_opt_ QUIC_SEC_CONFIG* SecConfig
     )
 {
@@ -1735,7 +1735,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnProcessPeerTransportParameters(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN FromCache
     )
 {
@@ -1836,7 +1836,7 @@ Error:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueRecvDatagram(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_RECV_DATAGRAM* DatagramChain,
     _In_ uint32_t DatagramChainLength
     )
@@ -1876,7 +1876,7 @@ QuicConnQueueRecvDatagram(
     }
 
     if (QueueOperation) {
-        PQUIC_OPERATION ConnOper =
+        QUIC_OPERATION* ConnOper =
             QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_FLUSH_RECV);
         if (ConnOper != NULL) {
             QuicConnQueueOper(Connection, ConnOper);
@@ -1889,7 +1889,7 @@ QuicConnQueueRecvDatagram(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueUnreachable(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_ADDR* RemoteAddress
     )
 {
@@ -1902,7 +1902,7 @@ QuicConnQueueUnreachable(
         return;
     }
 
-    PQUIC_OPERATION ConnOper =
+    QUIC_OPERATION* ConnOper =
         QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_UNREACHABLE);
     if (ConnOper != NULL) {
         ConnOper->UNREACHABLE.RemoteAddress = *RemoteAddress;
@@ -1919,7 +1919,7 @@ QuicConnQueueUnreachable(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnUpdateDestCID(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_RECV_PACKET* const Packet
     )
 {
@@ -1994,7 +1994,7 @@ QuicConnUpdateDestCID(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnRecvVerNeg(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_RECV_PACKET* const Packet
     )
 {
@@ -2073,7 +2073,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnRecvRetry(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_RECV_PACKET* Packet
     )
 {
@@ -2225,7 +2225,7 @@ QuicConnRecvRetry(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnGetKeyOrDeferDatagram(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_RECV_PACKET* Packet
     )
 {
@@ -2235,7 +2235,7 @@ QuicConnGetKeyOrDeferDatagram(
         // the key.
         //
         QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(Packet->KeyType);
-        PQUIC_PACKET_SPACE Packets = Connection->Packets[EncryptLevel];
+        QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
         if (Packets->DeferredDatagramsCount == QUIC_MAX_PENDING_DATAGRAMS) {
             //
             // We already have too many packets queued up. Just drop this one.
@@ -2284,7 +2284,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicConnRecvHeader(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_RECV_PACKET* Packet,
     _Out_writes_all_(16) uint8_t* Cipher
     )
@@ -2443,7 +2443,7 @@ QuicConnRecvHeader(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnRecvPrepareDecrypt(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_RECV_PACKET* Packet,
     _In_reads_(16) const uint8_t* HpMask
     )
@@ -2525,7 +2525,7 @@ QuicConnRecvPrepareDecrypt(
         return FALSE;
     }
 
-    PQUIC_PACKET_SPACE PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
+    QUIC_PACKET_SPACE* PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
     if (Packet->IsShortHeader && EncryptLevel == QUIC_ENCRYPT_LEVEL_1_RTT &&
         Packet->SH->KeyPhase != PacketSpace->CurrentKeyPhase) {
         if (PacketSpace->AwaitingKeyPhaseConfirmation ||
@@ -2572,7 +2572,7 @@ QuicConnRecvPrepareDecrypt(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnRecvDecryptAndAuthenticate(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ QUIC_RECV_PACKET* Packet
     )
@@ -2783,7 +2783,7 @@ QuicConnRecvDecryptAndAuthenticate(
     //
 
     if (Packet->IsShortHeader) {
-        PQUIC_PACKET_SPACE PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
+        QUIC_PACKET_SPACE* PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
         if (Packet->KeyType == QUIC_PACKET_KEY_1_RTT_NEW) {
 
             QuicCryptoUpdateKeyPhase(Connection, FALSE);
@@ -2825,7 +2825,7 @@ QuicConnRecvDecryptAndAuthenticate(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnRecvPayload(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ QUIC_RECV_PACKET* Packet
     )
@@ -3056,7 +3056,7 @@ QuicConnRecvPayload(
             }
 
             BOOLEAN ProtocolViolation;
-            PQUIC_STREAM Stream =
+            QUIC_STREAM* Stream =
                 QuicStreamSetGetStreamForPeer(
                     &Connection->Streams,
                     StreamId,
@@ -3414,7 +3414,7 @@ Done:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnRecvPostProcessing(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH** Path,
     _In_ QUIC_RECV_PACKET* Packet
     )
@@ -3516,7 +3516,7 @@ QuicConnRecvPostProcessing(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnRecvBatch(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ uint8_t BatchCount,
     _In_reads_(BatchCount) QUIC_RECV_DATAGRAM** Datagrams,
@@ -3583,7 +3583,7 @@ QuicConnRecvBatch(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnRecvDatagrams(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_RECV_DATAGRAM* DatagramChain,
     _In_ uint32_t DatagramChainCount,
     _In_ BOOLEAN IsDeferredDatagram
@@ -3774,7 +3774,7 @@ QuicConnRecvDatagrams(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnFlushRecv(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     uint32_t ReceiveQueueCount;
@@ -3795,7 +3795,7 @@ QuicConnFlushRecv(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnFlushDeferred(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     for (uint8_t i = 1; i <= (uint8_t)Connection->Crypto.TlsState.ReadKey; ++i) {
@@ -3806,7 +3806,7 @@ QuicConnFlushDeferred(
 
         QUIC_ENCRYPT_LEVEL EncryptLevel =
             QuicKeyTypeToEncryptLevel((QUIC_PACKET_KEY_TYPE)i);
-        PQUIC_PACKET_SPACE Packets = Connection->Packets[EncryptLevel];
+        QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
 
         if (Packets->DeferredDatagrams != NULL) {
             QUIC_RECV_DATAGRAM* DeferredDatagrams = Packets->DeferredDatagrams;
@@ -3827,7 +3827,7 @@ QuicConnFlushDeferred(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnProcessUdpUnreachable(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_ADDR* RemoteAddress
     )
 {
@@ -3857,7 +3857,7 @@ QuicConnProcessUdpUnreachable(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnResetIdleTimeout(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     uint64_t IdleTimeoutMs;
@@ -3904,7 +3904,7 @@ QuicConnResetIdleTimeout(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnProcessIdleTimerOperation(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     //
@@ -3920,7 +3920,7 @@ QuicConnProcessIdleTimerOperation(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnProcessKeepAliveOperation(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     //
@@ -3941,7 +3941,7 @@ QuicConnProcessKeepAliveOperation(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnParamSet(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -4021,7 +4021,7 @@ QuicConnParamSet(
             QUIC_DBG_ASSERT(Connection->Paths[0].Binding);
             QUIC_DBG_ASSERT(Connection->State.RemoteAddressSet);
 
-            PQUIC_BINDING OldBinding = Connection->Paths[0].Binding;
+            QUIC_BINDING* OldBinding = Connection->Paths[0].Binding;
 
             Status =
                 QuicLibraryGetBinding(
@@ -4421,7 +4421,7 @@ QuicConnParamSet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnParamGet(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
@@ -4871,8 +4871,8 @@ QuicConnParamGet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnProcessApiOperation(
-    _In_ PQUIC_CONNECTION Connection,
-    _In_ PQUIC_API_CONTEXT ApiCtx
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_API_CONTEXT* ApiCtx
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -4972,7 +4972,7 @@ QuicConnProcessApiOperation(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnProcessExpiredTimer(
-    _Inout_ PQUIC_CONNECTION Connection,
+    _Inout_ QUIC_CONNECTION* Connection,
     _In_ QUIC_CONN_TIMER_TYPE Type
     )
 {
@@ -4998,10 +4998,10 @@ QuicConnProcessExpiredTimer(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnDrainOperations(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
-    PQUIC_OPERATION Oper;
+    QUIC_OPERATION* Oper;
     const uint32_t MaxOperationCount =
         Connection->Session == NULL ?
             MsQuicLib.Settings.MaxOperationsPerDrain :

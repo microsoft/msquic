@@ -37,7 +37,7 @@ typedef enum eSniNameType {
     TlsExt_Sni_NameType_HostName = 0
 } eSniNameType;
 
-typedef enum _QUIC_FAKE_TLS_MESSAGE_TYPE {
+typedef enum QUIC_FAKE_TLS_MESSAGE_TYPE {
 
     QUIC_TLS_MESSAGE_INVALID,
     QUIC_TLS_MESSAGE_CLIENT_INITIAL,
@@ -111,7 +111,7 @@ TlsWriteUint24(
 #pragma pack(push)
 #pragma pack(1)
 
-typedef struct _QUIC_TLS_SNI_EXT {
+typedef struct QUIC_TLS_SNI_EXT {
     uint8_t ExtType[2];                 // TlsExt_ServerName
     uint8_t ExtLen[2];
     uint8_t ListLen[2];
@@ -120,7 +120,7 @@ typedef struct _QUIC_TLS_SNI_EXT {
     uint8_t Name[0];
 } QUIC_TLS_SNI_EXT;
 
-typedef struct _QUIC_TLS_ALPN_EXT {
+typedef struct QUIC_TLS_ALPN_EXT {
     uint8_t ExtType[2];                 // TlsExt_AppProtocolNegotiation
     uint8_t ExtLen[2];
     uint8_t AlpnListLength[2];
@@ -128,19 +128,19 @@ typedef struct _QUIC_TLS_ALPN_EXT {
     uint8_t Alpn[0];
 } QUIC_TLS_ALPN_EXT;
 
-typedef struct _QUIC_TLS_SESSION_TICKET_EXT {
+typedef struct QUIC_TLS_SESSION_TICKET_EXT {
     uint8_t ExtType[2];                 // TlsExt_SessionTicket
     uint8_t ExtLen[2];
     uint8_t Ticket[0];
 } QUIC_TLS_SESSION_TICKET_EXT;
 
-typedef struct _QUIC_TLS_QUIC_TP_EXT {
+typedef struct QUIC_TLS_QUIC_TP_EXT {
     uint8_t ExtType[2];                 // TlsExt_QuicTransportParameters
     uint8_t ExtLen[2];
     uint8_t TP[0];
 } QUIC_TLS_QUIC_TP_EXT;
 
-typedef struct _QUIC_TLS_CLIENT_HELLO { // All multi-byte fields are Network Byte Order
+typedef struct QUIC_TLS_CLIENT_HELLO { // All multi-byte fields are Network Byte Order
     uint8_t Version[2];
     uint8_t Random[TLS_RANDOM_LENGTH];
     uint8_t SessionIdLength;            // 0
@@ -156,7 +156,7 @@ typedef struct _QUIC_TLS_CLIENT_HELLO { // All multi-byte fields are Network Byt
     // QUIC_TLS_QUIC_TP_EXT
 } QUIC_TLS_CLIENT_HELLO;
 
-typedef struct _QUIC_FAKE_TLS_MESSAGE {
+typedef struct QUIC_FAKE_TLS_MESSAGE {
     uint8_t Type;
     uint8_t Length[3]; // Uses TLS 24-bit length encoding
     union {
@@ -177,29 +177,29 @@ typedef struct _QUIC_FAKE_TLS_MESSAGE {
             uint8_t HasTicket;
         } TICKET;
     };
-} QUIC_FAKE_TLS_MESSAGE, *PQUIC_FAKE_TLS_MESSAGE;
+} QUIC_FAKE_TLS_MESSAGE;
 
 #pragma pack(pop)
 
-typedef struct _QUIC_TLS_SESSION {
+typedef struct QUIC_TLS_SESSION {
 
     uint16_t AlpnLength;
     const char* Alpn[0];
 
-} QUIC_TLS_SESSION, *PQUIC_TLS_SESSION;
+} QUIC_TLS_SESSION;
 
-typedef struct _QUIC_SEC_CONFIG {
+typedef struct QUIC_SEC_CONFIG {
 
     QUIC_RUNDOWN_REF* CleanupRundown;
     long RefCount;
     uint32_t Flags;
-    PQUIC_CERT Certificate;
+    QUIC_CERT* Certificate;
     uint16_t FormatLength;
     uint8_t FormatBuffer[SIZEOF_CERT_CHAIN_LIST_LENGTH];
 
 } QUIC_SEC_CONFIG;
 
-typedef struct _QUIC_TLS {
+typedef struct QUIC_TLS {
 
     BOOLEAN IsServer : 1;
     //BOOLEAN EarlyDataConfigured : 1;
@@ -208,10 +208,10 @@ typedef struct _QUIC_TLS {
 
     QUIC_FAKE_TLS_MESSAGE_TYPE LastMessageType; // Last message sent.
 
-    PQUIC_TLS_SESSION TlsSession;
+    QUIC_TLS_SESSION* TlsSession;
     QUIC_SEC_CONFIG* SecConfig;
 
-    PQUIC_CONNECTION Connection;
+    QUIC_CONNECTION* Connection;
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
 
     const char* SNI;
@@ -219,7 +219,7 @@ typedef struct _QUIC_TLS {
     const uint8_t* LocalTPBuffer;
     uint32_t LocalTPLength;
 
-} QUIC_TLS, *PQUIC_TLS;
+} QUIC_TLS;
 
 char
 GetTlsIdentifier(
@@ -306,7 +306,7 @@ QuicTlsServerSecConfigCreate(
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
         }
-        SecurityConfig->Certificate = (PQUIC_CERT)Certificate;
+        SecurityConfig->Certificate = (QUIC_CERT*)Certificate;
     } else {
         Status =
             QuicCertCreate(
@@ -409,11 +409,11 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsSessionInitialize(
     _In_z_ const char* ALPN,
-    _Out_ PQUIC_TLS_SESSION* NewTlsSession
+    _Out_ QUIC_TLS_SESSION** NewTlsSession
     )
 {
     QUIC_STATUS Status;
-    PQUIC_TLS_SESSION TlsSession = NULL;
+    QUIC_TLS_SESSION* TlsSession = NULL;
 
     size_t ALPNLength = strlen(ALPN);
     if (ALPNLength > UINT16_MAX) {
@@ -448,7 +448,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsSessionUninitialize(
-    _In_opt_ PQUIC_TLS_SESSION TlsSession
+    _In_opt_ QUIC_TLS_SESSION* TlsSession
     )
 {
     if (TlsSession != NULL) {
@@ -475,7 +475,7 @@ QuicTlsSessionSetTicketKey(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsSessionAddTicket(
-    _In_ PQUIC_TLS_SESSION TlsSession,
+    _In_ QUIC_TLS_SESSION* TlsSession,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer
@@ -494,12 +494,12 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsInitialize(
     _In_ const QUIC_TLS_CONFIG* Config,
-    _Out_ PQUIC_TLS* NewTlsContext
+    _Out_ QUIC_TLS** NewTlsContext
     )
 {
     QUIC_STATUS Status;
 
-    PQUIC_TLS TlsContext = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS));
+    QUIC_TLS* TlsContext = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS));
     if (TlsContext == NULL) {
         LogWarning("[ tls] Failed to allocate QUIC_TLS.");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -560,7 +560,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsUninitialize(
-    _In_opt_ PQUIC_TLS TlsContext
+    _In_opt_ QUIC_TLS* TlsContext
     )
 {
     if (TlsContext != NULL) {
@@ -586,7 +586,7 @@ QuicTlsUninitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsReset(
-    _In_ PQUIC_TLS TlsContext
+    _In_ QUIC_TLS* TlsContext
     )
 {
     LogInfo("[ tls][%p][%c] Resetting TLS state.",
@@ -599,7 +599,7 @@ QuicTlsReset(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_SEC_CONFIG*
 QuicTlsGetSecConfig(
-    _In_ PQUIC_TLS TlsContext
+    _In_ QUIC_TLS* TlsContext
     )
 {
     return QuicTlsSecConfigAddRef(TlsContext->SecConfig);
@@ -608,7 +608,7 @@ QuicTlsGetSecConfig(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsServerProcess(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _Out_ QUIC_TLS_RESULT_FLAGS* ResultFlags,
     _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _Inout_ uint32_t * BufferLength,
@@ -827,7 +827,7 @@ QuicTlsServerProcess(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsClientProcess(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _Out_ QUIC_TLS_RESULT_FLAGS* ResultFlags,
     _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _Inout_ uint32_t* BufferLength,
@@ -957,7 +957,7 @@ QuicTlsClientProcess(
                     TlsContext, GetTlsIdentifier(TlsContext));
             } else {
 
-                PQUIC_CERT ServerCert =
+                QUIC_CERT* ServerCert =
                     QuicCertParseChain(
                         ServerMessage->SERVER_HANDSHAKE.CertificateLength,
                         ServerMessage->SERVER_HANDSHAKE.Certificate);
@@ -1052,7 +1052,7 @@ QuicTlsClientProcess(
 
 BOOLEAN
 QuicTlsHasValidMessageToProcess(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
         const uint8_t* Buffer
@@ -1084,7 +1084,7 @@ QuicTlsHasValidMessageToProcess(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessData(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_reads_bytes_(*BufferLength)
         const uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength,
@@ -1125,7 +1125,7 @@ QuicTlsProcessData(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessDataComplete(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _Out_ uint32_t * BufferConsumed
     )
 {
@@ -1137,7 +1137,7 @@ QuicTlsProcessDataComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsReadTicket(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
         uint8_t* Buffer
@@ -1157,7 +1157,7 @@ QuicTlsReadTicket(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsParamSet(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -1174,7 +1174,7 @@ QuicTlsParamSet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsParamGet(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)

@@ -62,7 +62,7 @@ struct TlsContext
             (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + 2);
         QuicZeroMemory((uint8_t*)Config.LocalTPBuffer, QuicTlsTPHeaderSize + 2);
         Config.LocalTPLength = QuicTlsTPHeaderSize + 2;
-        Config.Connection = (PQUIC_CONNECTION)this;
+        Config.Connection = (QUIC_CONNECTION*)this;
         Config.ProcessCompleteCallback = OnProcessComplete;
         Config.ReceiveTPCallback = OnRecvQuicTP;
         Config.ServerName = Sni;
@@ -173,7 +173,7 @@ private:
 
     static void
     OnProcessComplete(
-        _In_ PQUIC_CONNECTION Connection
+        _In_ QUIC_CONNECTION* Connection
         )
     {
         QuicEventSet(((TlsContext*)Connection)->ProcessCompleteEvent);
@@ -181,7 +181,7 @@ private:
 
     static BOOLEAN
     OnRecvQuicTP(
-        _In_ PQUIC_CONNECTION Connection,
+        _In_ QUIC_CONNECTION* Connection,
         _In_ uint16_t TPLength,
         _In_reads_(TPLength) const uint8_t* TPBuffer
         )

@@ -114,7 +114,7 @@ TalTestKeyUpdate(
 static
 QUIC_TLS_RESULT_FLAGS
 TalTestProcessData2(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _In_ QUIC_PACKET_KEY_TYPE BufferKey,
     _In_reads_bytes_(*BufferLength) const uint8_t * Buffer,
@@ -124,7 +124,7 @@ TalTestProcessData2(
 static
 QUIC_TLS_RESULT_FLAGS
 TalTestProcessData(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _Inout_ QUIC_TLS_PROCESS_STATE* PeerState,
     _In_ UINT32 FragmentSize
@@ -133,8 +133,8 @@ TalTestProcessData(
 static
 BOOLEAN
 TalTestDoHandshake(
-    _In_ PQUIC_TLS ServerContext,
-    _In_ PQUIC_TLS ClientContext,
+    _In_ QUIC_TLS* ServerContext,
+    _In_ QUIC_TLS* ClientContext,
     _Inout_ QUIC_TLS_PROCESS_STATE *ServerState,
     _Inout_ QUIC_TLS_PROCESS_STATE *ClientState,
     _In_ UINT32 FragmentSize
@@ -143,7 +143,7 @@ TalTestDoHandshake(
 static
 QUIC_TLS_RESULT_FLAGS
 TalTestProcessFragmentedData(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _In_ QUIC_PACKET_KEY_TYPE BufferKey,
     _In_reads_bytes_(BufferLength) const uint8_t * Buffer,
@@ -159,25 +159,7 @@ TalTestOnSecConfigCreateComplete(
     _In_ QUIC_STATUS Status,
     _In_opt_ QUIC_SEC_CONFIG* SecConfig
     )
-/*++
 
-Routine Description:
-
-    Sec config create completion routine.
-
-Arguments:
-
-    Context - The context pass during sec config create function call.
-
-    Status - The status of the sec config create operation.
-
-    SecConfig - The created sec config.
-
-Return Value:
-
-    None.
-
---*/
 {
     QUIC_SEC_CONFIG** ServerConfig = Context;
 
@@ -191,21 +173,7 @@ void
 TalTestSetUpTestCase(
     void
     )
-/*++
 
-Routine Description:
-
-    Sets up test case.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    None.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     char Template[] = "/tmp/quictest.XXXXXX";
@@ -232,21 +200,7 @@ void
 TalTestTearDownTestCase(
     void
     )
-/*++
 
-Routine Description:
-
-    Tears down test case setup.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    None.
-
---*/
 {
     char RmCmd[26] = {0};
 
@@ -285,23 +239,9 @@ static TAL_TESTCASE TestCases[] = {
 static
 void
 TalTestOnProcessComplete(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
-/*++
 
-Routine Description:
-
-    TAL on data process complete callback.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    None.
-
---*/
 {
     QUIC_EVENT Event = (QUIC_EVENT)Connection;
 
@@ -311,7 +251,7 @@ Return Value:
 static
 BOOLEAN
 TalTestOnRecvQuicTP(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint16_t TPLength,
     _In_reads_(TPLength) const uint8_t* TPBuffer
     )
@@ -326,7 +266,7 @@ TalTestOnRecvQuicTP(
 static
 QUIC_TLS_RESULT_FLAGS
 TalTestProcessData2(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _In_ QUIC_PACKET_KEY_TYPE BufferKey,
     _In_reads_bytes_(*BufferLength) const uint8_t * Buffer,
@@ -365,7 +305,7 @@ TalTestProcessData2(
 static
 QUIC_TLS_RESULT_FLAGS
 TalTestProcessFragmentedData(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _In_ QUIC_PACKET_KEY_TYPE BufferKey,
     _In_reads_bytes_(BufferLength) const uint8_t * Buffer,
@@ -417,7 +357,7 @@ Exit:
 static
 QUIC_TLS_RESULT_FLAGS
 TalTestProcessData(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _Inout_ QUIC_TLS_PROCESS_STATE* PeerState,
     _In_ uint32_t FragmentSize
@@ -482,8 +422,8 @@ TalTestProcessData(
 static
 BOOLEAN
 TalTestDoHandshake(
-    _In_ PQUIC_TLS ServerContext,
-    _In_ PQUIC_TLS ClientContext,
+    _In_ QUIC_TLS* ServerContext,
+    _In_ QUIC_TLS* ClientContext,
     _Inout_ QUIC_TLS_PROCESS_STATE *ServerState,
     _Inout_ QUIC_TLS_PROCESS_STATE *ClientState,
     _In_ UINT32 FragmentSize
@@ -597,33 +537,15 @@ Exit:
 
 BOOLEAN
 TalTestInitializeServer(
-    _In_ PQUIC_TLS_SESSION Session,
+    _In_ QUIC_TLS_SESSION* Session,
     _In_ QUIC_SEC_CONFIG* SecConfig,
-    _Out_ PQUIC_TLS *TlsContext
+    _Out_ QUIC_TLS* *TlsContext
     )
-/*++
 
-Routine Description:
-
-    Initializes the server side TLS.
-
-Arguments:
-
-    Session - The TLS session to use.
-
-    SecConfig - The security config to use.
-
-    TlsContext - Returns the TLS context.
-
-Return Value:
-
-    TRUE if successful, FALSE otherwise.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_TLS_CONFIG Config = {0};
-    PQUIC_TLS TempTlsContext = NULL;
+    QUIC_TLS* TempTlsContext = NULL;
     UINT32 QuicVersion = 1;
     QUIC_EVENT ProcessCompletionEvent = NULL;
 
@@ -653,33 +575,15 @@ Return Value:
 
 BOOLEAN
 TalTestInitializeClient(
-    _In_ PQUIC_TLS_SESSION Session,
+    _In_ QUIC_TLS_SESSION* Session,
     _In_ QUIC_SEC_CONFIG* SecConfig,
-    _Out_ PQUIC_TLS *TlsContext
+    _Out_ QUIC_TLS* *TlsContext
     )
-/*++
 
-Routine Description:
-
-    Initializes the client side TLS.
-
-Arguments:
-
-    Session - The TLS session to use.
-
-    SecConfig - The security config to use.
-
-    TlsContext - Returns the TLS context.
-
-Return Value:
-
-    TRUE if successful, FALSE otherwise.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_TLS_CONFIG Config = {0};
-    PQUIC_TLS TempTlsContext = NULL;
+    QUIC_TLS* TempTlsContext = NULL;
     UINT32 QuicVersion = 1;
     QUIC_EVENT ProcessCompletionEvent = NULL;
 
@@ -713,29 +617,15 @@ BOOLEAN
 TalTestInitialize(
     void
     )
-/*++
 
-Routine Description:
-
-    Executes TAL initialization tests.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    TRUE if succeeded, FALSE otherwise.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN Ret = TRUE;
     QUIC_SEC_CONFIG* ClientConfig = NULL;
     QUIC_SEC_CONFIG* ServerConfig = NULL;
-    PQUIC_TLS ClientTlsContext = NULL;
-    PQUIC_TLS ServerTlsContext = NULL;
-    PQUIC_TLS_SESSION TlsSession = NULL;
+    QUIC_TLS* ClientTlsContext = NULL;
+    QUIC_TLS* ServerTlsContext = NULL;
+    QUIC_TLS_SESSION* TlsSession = NULL;
 
     Status = QuicTlsSessionInitialize("MsQuicTest", &TlsSession);
 
@@ -820,31 +710,17 @@ BOOLEAN
 TalTestHandshake(
     void
     )
-/*++
 
-Routine Description:
-
-    Executes TAL handshake tests.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    TRUE if succeeded, FALSE otherwise.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN Ret = TRUE;
     QUIC_SEC_CONFIG* ClientConfig = NULL;
     QUIC_SEC_CONFIG* ServerConfig = NULL;
-    PQUIC_TLS ClientTlsContext = NULL;
-    PQUIC_TLS ServerTlsContext = NULL;
+    QUIC_TLS* ClientTlsContext = NULL;
+    QUIC_TLS* ServerTlsContext = NULL;
     QUIC_TLS_PROCESS_STATE ClientState = {0};
     QUIC_TLS_PROCESS_STATE ServerState = {0};
-    PQUIC_TLS_SESSION TlsSession = NULL;
+    QUIC_TLS_SESSION* TlsSession = NULL;
 
     Status = QuicTlsSessionInitialize("MsQuicTest", &TlsSession);
 
@@ -941,31 +817,17 @@ BOOLEAN
 TalTestHandshakeFragmented(
     void
     )
-/*++
 
-Routine Description:
-
-    Executes TAL handshake fragmented tests.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    TRUE if succeeded, FALSE otherwise.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN Ret = TRUE;
     QUIC_SEC_CONFIG* ClientConfig = NULL;
     QUIC_SEC_CONFIG* ServerConfig = NULL;
-    PQUIC_TLS ClientTlsContext = NULL;
-    PQUIC_TLS ServerTlsContext = NULL;
+    QUIC_TLS* ClientTlsContext = NULL;
+    QUIC_TLS* ServerTlsContext = NULL;
     QUIC_TLS_PROCESS_STATE ClientState = {0};
     QUIC_TLS_PROCESS_STATE ServerState = {0};
-    PQUIC_TLS_SESSION TlsSession = NULL;
+    QUIC_TLS_SESSION* TlsSession = NULL;
 
     Status = QuicTlsSessionInitialize("MsQuicTest", &TlsSession);
 
@@ -1060,35 +922,21 @@ BOOLEAN
 TalTestHandshakeSerial(
     void
     )
-/*++
 
-Routine Description:
-
-    Executes TAL handshake serial tests.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    TRUE if succeeded, FALSE otherwise.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN Ret = TRUE;
     QUIC_SEC_CONFIG* ClientConfig = NULL;
     QUIC_SEC_CONFIG* ServerConfig = NULL;
-    PQUIC_TLS ClientTlsContext1 = NULL;
-    PQUIC_TLS ClientTlsContext2 = NULL;
-    PQUIC_TLS ServerTlsContext1= NULL;
-    PQUIC_TLS ServerTlsContext2 = NULL;
+    QUIC_TLS* ClientTlsContext1 = NULL;
+    QUIC_TLS* ClientTlsContext2 = NULL;
+    QUIC_TLS* ServerTlsContext1= NULL;
+    QUIC_TLS* ServerTlsContext2 = NULL;
     QUIC_TLS_PROCESS_STATE ClientState1 = {0};
     QUIC_TLS_PROCESS_STATE ServerState1 = {0};
     QUIC_TLS_PROCESS_STATE ClientState2 = {0};
     QUIC_TLS_PROCESS_STATE ServerState2 = {0};
-    PQUIC_TLS_SESSION TlsSession = NULL;
+    QUIC_TLS_SESSION* TlsSession = NULL;
 
     Status = QuicTlsSessionInitialize("MsQuicTest", &TlsSession);
 
@@ -1213,31 +1061,17 @@ BOOLEAN
 TalTestHandshakeInterleaved(
     void
     )
-/*++
 
-Routine Description:
-
-    Executes TAL handshake interleaved tests.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    TRUE if succeeded, FALSE otherwise.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN Ret = TRUE;
     QUIC_SEC_CONFIG* ClientConfig = NULL;
     QUIC_SEC_CONFIG* ServerConfig = NULL;
-    PQUIC_TLS ClientTlsContext1 = NULL;
-    PQUIC_TLS ClientTlsContext2 = NULL;
-    PQUIC_TLS ServerTlsContext1 = NULL;
-    PQUIC_TLS ServerTlsContext2 = NULL;
-    PQUIC_TLS_SESSION TlsSession = NULL;
+    QUIC_TLS* ClientTlsContext1 = NULL;
+    QUIC_TLS* ClientTlsContext2 = NULL;
+    QUIC_TLS* ServerTlsContext1 = NULL;
+    QUIC_TLS* ServerTlsContext2 = NULL;
+    QUIC_TLS_SESSION* TlsSession = NULL;
     QUIC_TLS_PROCESS_STATE ClientState1 = {0};
     QUIC_TLS_PROCESS_STATE ServerState1 = {0};
     QUIC_TLS_PROCESS_STATE ClientState2 = {0};
@@ -1552,31 +1386,17 @@ BOOLEAN
 TalTestOneRttKey(
     void
     )
-/*++
 
-Routine Description:
-
-    Executes TAL one RTT key tests.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    TRUE if succeeded, FALSE otherwise.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN Ret = TRUE;
     QUIC_SEC_CONFIG* ClientConfig = NULL;
     QUIC_SEC_CONFIG* ServerConfig = NULL;
-    PQUIC_TLS ClientTlsContext = NULL;
-    PQUIC_TLS ServerTlsContext = NULL;
+    QUIC_TLS* ClientTlsContext = NULL;
+    QUIC_TLS* ServerTlsContext = NULL;
     QUIC_TLS_PROCESS_STATE ClientState = {0};
     QUIC_TLS_PROCESS_STATE ServerState = {0};
-    PQUIC_TLS_SESSION TlsSession = NULL;
+    QUIC_TLS_SESSION* TlsSession = NULL;
 
     Status = QuicTlsSessionInitialize("MsQuicTest", &TlsSession);
 
@@ -1748,31 +1568,17 @@ BOOLEAN
 TalTestKeyUpdate(
     void
     )
-/*++
 
-Routine Description:
-
-    Executes TAL one RTT key tests.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    TRUE if succeeded, FALSE otherwise.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN Ret = TRUE;
     QUIC_SEC_CONFIG* ClientConfig = NULL;
     QUIC_SEC_CONFIG* ServerConfig = NULL;
-    PQUIC_TLS ClientTlsContext = NULL;
-    PQUIC_TLS ServerTlsContext = NULL;
+    QUIC_TLS* ClientTlsContext = NULL;
+    QUIC_TLS* ServerTlsContext = NULL;
     QUIC_TLS_PROCESS_STATE ClientState = {0};
     QUIC_TLS_PROCESS_STATE ServerState = {0};
-    PQUIC_TLS_SESSION TlsSession = NULL;
+    QUIC_TLS_SESSION* TlsSession = NULL;
     QUIC_PACKET_KEY *UpdateWriteKey = NULL;
     QUIC_PACKET_KEY *UpdateReadKey = NULL;
 
@@ -1962,21 +1768,7 @@ void
 TalTestExecuteTestCase(
     _In_ ULONG TestCaseIndex
     )
-/*++
 
-Routine Description:
-
-    Executes a test case.
-
-Arguments:
-
-    TestCaseIndex - The index of the test case to execute.
-
-Return Value:
-
-    None.
-
---*/
 {
     LOGINFO("*Start Testcase: %s.*", TestCases[TestCaseIndex].TestCaseName);
     if ((TestCases[TestCaseIndex].TestCaseFunc)()) {
@@ -1993,21 +1785,7 @@ void
 TalTestHelp(
     _In_ char *argv[]
     )
-/*++
 
-Routine Description:
-
-    Prints the help text.
-
-Arguments:
-
-    argv - The argument passed.
-
-Return Value:
-
-    None.
-
---*/
 {
     printf("Usage: \n");
     printf("To execute all tests: %s %ld \n", argv[0], ARRAYSIZE(TestCases));

@@ -148,7 +148,7 @@ QuicTimerWheelResize(
         // to the new slots.
         //
         while (!QuicListIsEmpty(&OldSlots[i])) {
-            PQUIC_CONNECTION Connection =
+            QUIC_CONNECTION* Connection =
                 QUIC_CONTAINING_RECORD(
                     QuicListRemoveHead(&OldSlots[i]),
                     QUIC_CONNECTION,
@@ -165,7 +165,7 @@ QuicTimerWheelResize(
             QUIC_LIST_ENTRY* Entry = ListHead->Blink;
 
             while (Entry != ListHead) {
-                PQUIC_CONNECTION ConnectionEntry =
+                QUIC_CONNECTION* ConnectionEntry =
                     QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
                 uint64_t EntryExpirationTime = QuicConnGetNextExpirationTime(ConnectionEntry);
 
@@ -203,7 +203,7 @@ QuicTimerWheelUpdate(
     //
     for (uint32_t i = 0; i < TimerWheel->SlotCount; ++i) {
         if (!QuicListIsEmpty(&TimerWheel->Slots[i])) {
-            PQUIC_CONNECTION ConnectionEntry =
+            QUIC_CONNECTION* ConnectionEntry =
                 QUIC_CONTAINING_RECORD(
                     TimerWheel->Slots[i].Flink,
                     QUIC_CONNECTION,
@@ -301,7 +301,7 @@ QuicTimerWheelUpdateConnection(
         QUIC_LIST_ENTRY* Entry = ListHead->Blink;
 
         while (Entry != ListHead) {
-            PQUIC_CONNECTION ConnectionEntry =
+            QUIC_CONNECTION* ConnectionEntry =
                 QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
             uint64_t EntryExpirationTime = QuicConnGetNextExpirationTime(ConnectionEntry);
 
@@ -390,7 +390,7 @@ QuicTimerWheelGetExpired(
         QUIC_LIST_ENTRY* ListHead = &TimerWheel->Slots[i];
         QUIC_LIST_ENTRY* Entry = ListHead->Flink;
         while (Entry != ListHead) {
-            PQUIC_CONNECTION ConnectionEntry =
+            QUIC_CONNECTION* ConnectionEntry =
                 QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
             uint64_t EntryExpirationTime = QuicConnGetNextExpirationTime(ConnectionEntry);
             if (EntryExpirationTime > TimeNow) {

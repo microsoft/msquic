@@ -27,7 +27,7 @@ uint16_t QuicTlsTPHeaderSize = 0;
 // TLS session object.
 //
 
-typedef struct _QUIC_TLS_SESSION {
+typedef struct QUIC_TLS_SESSION {
 
     //
     // AlpnBufferLength - The length of ALPN buffer.
@@ -38,14 +38,14 @@ typedef struct _QUIC_TLS_SESSION {
     uint16_t AlpnBufferLength;
     unsigned char AlpnBuffer[0];
 
-} QUIC_TLS_SESSION, *PQUIC_TLS_SESSION;
+} QUIC_TLS_SESSION;
 
 //
 // The QUIC sec config object. Created once per listener on server side and
 // once per connection on client side.
 //
 
-typedef struct _QUIC_SEC_CONFIG {
+typedef struct QUIC_SEC_CONFIG {
     //
     // The sec config rundown object passed by MsQuic during sec config
     // creation.
@@ -71,13 +71,13 @@ typedef struct _QUIC_SEC_CONFIG {
 // A TLS context associated per connection.
 //
 
-typedef struct _QUIC_TLS {
+typedef struct QUIC_TLS {
 
     //
     // TlsSession - The TLS session object that this context belong to.
     //
 
-    PQUIC_TLS_SESSION TlsSession;
+    QUIC_TLS_SESSION* TlsSession;
 
     //
     // The TLS configuration information and credentials.
@@ -116,16 +116,16 @@ typedef struct _QUIC_TLS {
     // Callback context and handler for QUIC TP.
     //
 
-    PQUIC_CONNECTION Connection;
+    QUIC_CONNECTION* Connection;
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
 
-} QUIC_TLS, *PQUIC_TLS;
+} QUIC_TLS;
 
 //
 // Represents a packet payload protection key.
 //
 
-typedef struct _QUIC_KEY {
+typedef struct QUIC_KEY {
     //
     // The cipher to use for encryption/decryption.
     //
@@ -145,7 +145,7 @@ typedef struct _QUIC_KEY {
 // Represents a hash.
 //
 
-typedef struct _QUIC_HASH {
+typedef struct QUIC_HASH {
     //
     // The message digest.
     //
@@ -165,7 +165,7 @@ typedef struct _QUIC_HASH {
 // Represents a packet header protection key.
 //
 
-typedef struct _QUIC_HP_KEY {
+typedef struct QUIC_HP_KEY {
     //
     // The cipher to use for encryption/decryption.
     //
@@ -423,22 +423,6 @@ char
 GetTlsIdentifier(
     _In_ const QUIC_TLS* TlsContext
     )
-/*++
-
-Routine Description:
-
-    Gets the identifier identifying if the Tls context belongs to client or
-    server.
-
-Arguments:
-
-    TlsContext - The TLS context.
-
-Return Value:
-
-    char - Identifier.
-
---*/
 {
     const char IDs[2] = { 'C', 'S' };
     return IDs[TlsContext->IsServer];
@@ -448,21 +432,6 @@ QUIC_STATUS
 QuicTlsLibraryInitialize(
     void
     )
-/*++
-
-Routine Description:
-
-    Initializes the TAL and TLS library.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     int Ret = 0;
 
@@ -489,21 +458,6 @@ void
 QuicTlsLibraryUninitialize(
     void
     )
-/*++
-
-Routine Description:
-
-    Uninitializes the TAL and TLS library.
-
-Arguments:
-
-    None.
-
-Return Value:
-
-    none.
-
---*/
 {
 }
 
@@ -517,33 +471,8 @@ QuicTlsAlpnSelectCallback(
     _In_ unsigned int InLen,
     _In_ void *Arg
     )
-/*++
-
-Routine Description:
-
-    Callback invoked by OpenSSL for ALPN selection on server side.
-
-Arguments:
-
-    Ssl - The SSL object.
-
-    Out - The output buffer pointer to return the selected ALPN.
-
-    OutLen - The output buffer length.
-
-    In - The input buffer containing the client supplied ALPN.
-
-    InLen - The inout buffer length.
-
-    Arg - Unused.
-
-Return Value:
-
-    SSL_TLSEXT_ERR_OK on success, SSL_TLSEXT_ERR_NOACK on fails.
-
---*/
 {
-    PQUIC_TLS TlsContext = SSL_get_app_data(Ssl);
+    QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
     unsigned char *Ptr = NULL;
     unsigned char *End = NULL;
 
@@ -763,33 +692,6 @@ QuicTlsServerSecConfigCreate(
     _In_opt_z_ const char* Principal,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
-    )
-/*++
-
-Routine Description:
-
-    Creates server security config.
-
-Arguments:
-
-    Rundown - A secconfig rundown object passed by MsQuic. A ref is hold on
-        this rundown until the secconfig object is freed.
-
-    Flags - CERT related flags.
-
-    Certificate - The certificate object.
-
-    Principle - Unused.
-
-    Context - A context to be pass in sec config completion handler.
-
-    CompletionHandler - The sec config completion handler.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
@@ -951,21 +853,6 @@ void
 QuicTlsSecConfigDelete(
     _In_ QUIC_SEC_CONFIG* SecurityConfig
     )
-/*++
-
-Routine Description:
-
-    Delets a security config.
-
-Arguments:
-
-    SecurityConfig - The security config to delete.
-
-Return Value:
-
-    None.
-
---*/
 {
     QUIC_RUNDOWN_REF* Rundown = SecurityConfig->CleanupRundown;
 
@@ -988,23 +875,6 @@ QuicTlsClientSecConfigCreate(
     _In_ uint32_t Flags,
     _Outptr_ QUIC_SEC_CONFIG** ClientConfig
     )
-/*++
-
-Routine Description:
-
-    Creates client security config.
-
-Arguments:
-
-    Flags - CERT related flags.
-
-    ClientConfig - A pointer to return client config.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
@@ -1118,21 +988,6 @@ QUIC_SEC_CONFIG*
 QuicTlsSecConfigAddRef(
     _In_ QUIC_SEC_CONFIG* SecurityConfig
     )
-/*++
-
-Routine Description:
-
-    Adds a ref on a sec config object.
-
-Arguments:
-
-    SecurityConfig - The security config to ref.
-
-Return Value:
-
-    Returns the sec config object.
-
---*/
 {
     InterlockedIncrement(&SecurityConfig->RefCount);
     return SecurityConfig;
@@ -1143,21 +998,6 @@ QUIC_API
 QuicTlsSecConfigRelease(
     _In_ QUIC_SEC_CONFIG* SecurityConfig
     )
-/*++
-
-Routine Description:
-
-    Releases a ref on a sec config object.
-
-Arguments:
-
-    SecurityConfig - The security config to release ref.
-
-Return Value:
-
-    None.
-
---*/
 {
     if (InterlockedDecrement(&SecurityConfig->RefCount) == 0) {
         QuicTlsSecConfigDelete(SecurityConfig);
@@ -1168,28 +1008,11 @@ Return Value:
 QUIC_STATUS
 QuicTlsSessionInitialize(
     _In_z_ const char* ALPN,
-    _Out_ PQUIC_TLS_SESSION* NewTlsSession
+    _Out_ QUIC_TLS_SESSION** NewTlsSession
     )
-/*++
-
-Routine Description:
-
-    Creates a TLS session object.
-
-Arguments:
-
-    ALPN - A null terminated ALPN string.
-
-    NewTlsSession - A pointer to return the TLS session object.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    PQUIC_TLS_SESSION TlsSession = NULL;
+    QUIC_TLS_SESSION* TlsSession = NULL;
     size_t ALPNLength = strlen(ALPN);
 
     if (ALPNLength > QUIC_MAX_ALPN_LENGTH) {
@@ -1227,23 +1050,8 @@ Exit:
 
 void
 QuicTlsSessionUninitialize(
-    _In_opt_ PQUIC_TLS_SESSION TlsSession
+    _In_opt_ QUIC_TLS_SESSION* TlsSession
     )
-/*++
-
-Routine Description:
-
-    Destroys a TLS session object.
-
-Arguments:
-
-    TlsSession - The TLS session object to destroy.
-
-Return Value:
-
-    None.
-
---*/
 {
     if (TlsSession != NULL) {
         QUIC_FREE(TlsSession);
@@ -1268,7 +1076,7 @@ QuicTlsSessionSetTicketKey(
 
 QUIC_STATUS
 QuicTlsSessionAddTicket(
-    _In_ PQUIC_TLS_SESSION TlsSession,
+    _In_ QUIC_TLS_SESSION* TlsSession,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer
@@ -1286,28 +1094,11 @@ QuicTlsSessionAddTicket(
 QUIC_STATUS
 QuicTlsInitialize(
     _In_ const QUIC_TLS_CONFIG* Config,
-    _Out_ PQUIC_TLS* NewTlsContext
+    _Out_ QUIC_TLS** NewTlsContext
     )
-/*++
-
-Routine Description:
-
-    Initializes TLS context for a connection.
-
-Arguments:
-
-    Config - The TLS config associated with the connection.
-
-    NewTlsContext - A pointer to return the new TLS context.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    PQUIC_TLS TlsContext = NULL;
+    QUIC_TLS* TlsContext = NULL;
     uint16_t ServerNameLength = 0;
 
     TlsContext = QuicAlloc(sizeof(QUIC_TLS));
@@ -1400,23 +1191,8 @@ Exit:
 
 void
 QuicTlsUninitialize(
-    _In_opt_ PQUIC_TLS TlsContext
+    _In_opt_ QUIC_TLS* TlsContext
     )
-/*++
-
-Routine Description:
-
-    Uninitializes a TLS context.
-
-Arguments:
-
-    TlsContext - TLS context to uninitialize.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     if (TlsContext != NULL) {
         LogVerbose("[ tls][%p][%c] Cleaning up.", TlsContext, GetTlsIdentifier(TlsContext));
@@ -1443,23 +1219,8 @@ Return Value:
 
 void
 QuicTlsReset(
-    _In_ PQUIC_TLS TlsContext
+    _In_ QUIC_TLS* TlsContext
     )
-/*++
-
-Routine Description:
-
-    Reset SSL state.
-
-Arguments:
-
-    TlsContext - TLS context.
-
-Return Value:
-
-    None.
-
---*/
 {
     LogInfo("[ tls][%p][%c] Resetting TLS state.", TlsContext, GetTlsIdentifier(TlsContext));
 
@@ -1511,56 +1272,19 @@ Exit:
 
 QUIC_SEC_CONFIG*
 QuicTlsGetSecConfig(
-    _In_ PQUIC_TLS TlsContext
+    _In_ QUIC_TLS* TlsContext
     )
-/*++
-
-Routine Description:
-
-    Gets the refed sec config object associated with a TLS context. The caller
-    is responsible for derefing the sec config object once its done.
-
-Arguments:
-
-    TlsContext - TLS context.
-
-Return Value:
-
-    QUIC_SEC_CONFIG - A ref counter sec config object.
-
---*/
 {
     return QuicTlsSecConfigAddRef(TlsContext->SecConfig);
 }
 
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessData(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_reads_bytes_(*BufferLength) const uint8_t* Buffer,
     _Inout_ uint32_t* BufferLength,
     _Inout_ QUIC_TLS_PROCESS_STATE* State
     )
-/*++
-
-Routine Description:
-
-    Called by MsQuic to process TLS data.
-
-Arguments:
-
-    TlsContext - TLS context.
-
-    Buffer - The TLS data.
-
-    BufferLength - The TLS data buffer length.
-
-    State - The state of TLS data processing.
-
-Return Value:
-
-    QUIC_TLS_RESULT_FLAGS - Result flags.
-
---*/
 {
     int Ret = 0;
     int Err = 0;
@@ -1664,7 +1388,7 @@ Exit:
 
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessDataComplete(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _Out_ uint32_t * BufferConsumed
     )
 {
@@ -1675,7 +1399,7 @@ QuicTlsProcessDataComplete(
 
 QUIC_STATUS
 QuicTlsReadTicket(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength) uint8_t* Buffer
     )
@@ -1688,7 +1412,7 @@ QuicTlsReadTicket(
 
 QUIC_STATUS
 QuicTlsParamSet(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -1704,7 +1428,7 @@ QuicTlsParamSet(
 
 QUIC_STATUS
 QuicTlsParamGet(
-    _In_ PQUIC_TLS TlsContext,
+    _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
@@ -1731,31 +1455,6 @@ QuicPacketKeyCreateInitial(
     _Out_opt_ QUIC_PACKET_KEY** ReadKey,
     _Out_opt_ QUIC_PACKET_KEY** WriteKey
     )
-/*++
-
-Routine Description:
-
-    Creates initial packet keys.
-
-Arguments:
-
-    IsServer - TRUE if server side.
-
-    Salt - A version specific Salt.
-
-    CIDLength - The connection ID length.
-
-    CID - The connection ID.
-
-    ReadKey - A pointer to read key to return.
-
-    WriteKey - A pointer to read key to return.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_PACKET_KEY *TempReadKey = NULL;
@@ -1958,21 +1657,6 @@ void
 QuicPacketKeyFree(
     _In_opt_ QUIC_PACKET_KEY* Key
     )
-/*++
-
-Routine Description:
-
-    Frees packet key.
-
-Arguments:
-
-    Key - Packet key to free.
-
-Return Value:
-
-    None.
-
---*/
 {
     if (Key != NULL) {
         QUIC_FREE(Key);
@@ -1985,23 +1669,6 @@ QuicPacketKeyUpdate(
     _In_ QUIC_PACKET_KEY* OldKey,
     _Out_ QUIC_PACKET_KEY** NewKey
     )
-/*++
-
-Routine Description:
-
-    Updates 1-RTT keys.
-
-Arguments:
-
-    OldKey - Old key.
-
-    NewKey - Returns the new key.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_PACKET_KEY *TempKey = NULL;
@@ -2083,25 +1750,6 @@ QuicKeyCreate(
         const uint8_t* const RawKey,
     _Out_ QUIC_KEY** NewKey
     )
-/*++
-
-Routine Description:
-
-    Creates a quic key.
-
-Arguments:
-
-    AeadType - The Aead type.
-
-    RawKey - The raw key.
-
-    NewKey - Return the new QUIC key.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_KEY* Key = QuicAlloc(sizeof(QUIC_KEY));
@@ -2148,21 +1796,6 @@ void
 QuicKeyFree(
     _In_opt_ QUIC_KEY* Key
     )
-/*++
-
-Routine Description:
-
-    Frees a quic key.
-
-Arguments:
-
-    Key - The key to free.
-
-Return Value:
-
-    None.
-
---*/
 {
 
     if (Key != NULL) {
@@ -2180,32 +1813,6 @@ QuicEncrypt(
     _In_ uint16_t BufferLength,
     _Inout_updates_bytes_(BufferLength) uint8_t* Buffer
     )
-/*++
-
-Routine Description:
-
-    Encrypts a buffer using a supplied key.
-
-Arguments:
-
-    Key - The key to use for encryption.
-
-    Iv - The IV to use for encryption.
-
-    AuthDataLength - The auth data length.
-
-    AuthData - The AuthData to use for encryption.
-
-    BufferLength - The length of bufffer.
-
-    Buffer - Buffer containing data to be encrypted plus some addition space for
-        encryption overhead. On return this buffer contains the encrypted data.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     int Ret = 0;
 
@@ -2240,32 +1847,6 @@ QuicDecrypt(
     _In_ uint16_t BufferLength,
     _Inout_updates_bytes_(BufferLength) uint8_t* Buffer
     )
-/*++
-
-Routine Description:
-
-    Decrypts a buffer using a supplied key.
-
-Arguments:
-
-    Key - The key to use for decryption.
-
-    Iv - The IV to use for decryption.
-
-    AuthDataLength - The auth data length.
-
-    AuthData - The AuthData to use for decryption.
-
-    BufferLength - The length of bufffer.
-
-    Buffer - Buffer containing data to be decryption. On return this buffer
-        contains the decrypted data.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     size_t Ret = 0;
 
@@ -2300,25 +1881,6 @@ QuicHpKeyCreate(
         const uint8_t* const RawKey,
     _Out_ QUIC_HP_KEY** NewKey
     )
-/*++
-
-Routine Description:
-
-    Creates a header protection key.
-
-Arguments:
-
-    AeadType - The Aead type.
-
-    RawKey - The raw key.
-
-    NewKey - Returns the new key.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_HP_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_KEY));
@@ -2364,21 +1926,6 @@ void
 QuicHpKeyFree(
     _In_opt_ QUIC_HP_KEY* Key
     )
-/*++
-
-Routine Description:
-
-    Frees a header protection key.
-
-Arguments:
-
-    Key - Key to free.
-
-Return Value:
-
-    None.
-
---*/
 {
     if (Key != NULL) {
         QuicFree(Key);
@@ -2393,27 +1940,6 @@ QuicHpComputeMask(
     _In_reads_bytes_(QUIC_HP_SAMPLE_LENGTH * BatchSize) const uint8_t* const Cipher,
     _Out_writes_bytes_(QUIC_HP_SAMPLE_LENGTH * BatchSize) uint8_t* Mask
     )
-/*++
-
-Routine Description:
-
-    Computes the header protection mask.
-
-Arguments:
-
-    Key - The key to use.
-
-    BatchSize - The number of masks to be computed.
-
-    Cipher - The Ciphers to use for mask computation.
-
-    Mask - Returns an array of masks.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     int Ret = 0;
     uint8_t i = 0;
@@ -2444,27 +1970,6 @@ QuicHashCreate(
     _In_ uint32_t SaltLength,
     _Out_ QUIC_HASH** NewHash
     )
-/*++
-
-Routine Description:
-
-    Creates a hash.
-
-Arguments:
-
-    HashType - The hash type.
-
-    Salt - The salt.
-
-    SaltLength - The salt length.
-
-    NewHash - Returns the new hash.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_HASH* Hash = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASH) + SaltLength);
@@ -2509,21 +2014,6 @@ void
 QuicHashFree(
     _In_opt_ QUIC_HASH* Hash
     )
-/*++
-
-Routine Description:
-
-    Frees a hash.
-
-Arguments:
-
-    Hash - The hash to be freed.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     if (Hash != NULL) {
         QuicFree(Hash);
@@ -2539,29 +2029,6 @@ QuicHashCompute(
     _In_ uint32_t OutputLength,
     _Out_writes_all_(OutputLength) uint8_t* const Output
     )
-/*++
-
-Routine Description:
-
-    Computes a hash.
-
-Arguments:
-
-    Hash - The quic hash object.
-
-    Input - The input to hash.
-
-    InputLength - The input length.
-
-    OutputLength - The output length.
-
-    Output - Returns the computed hash.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     return
         QuicTlsHash(
@@ -2580,23 +2047,6 @@ QuicTlsKeySetAead(
     _In_ QUIC_AEAD_TYPE AeadType,
     _Out_ QUIC_PACKET_KEY* Key
     )
-/*++
-
-Routine Description:
-
-    Sets the AEAD on the key.
-
-Arguments:
-
-    AeadType - The AEAD type.
-
-    Key - The key.
-
-Return Value:
-
-    None.
-
---*/
 {
     switch (AeadType) {
     case QUIC_AEAD_AES_128_GCM:
@@ -2622,21 +2072,6 @@ EVP_MD *
 QuicTlsKeyGetMd(
     _In_ QUIC_HASH_TYPE HashType
     )
-/*++
-
-Routine Description:
-
-    Sets the message digest corresponding to the hash type.
-
-Arguments:
-
-    HashType - The Hash type.
-
-Return Value:
-
-    The message digest.
-
---*/
 {
     switch (HashType) {
     case QUIC_HASH_SHA256:
@@ -2656,25 +2091,6 @@ QuicTlsNegotiatedCiphers(
     _Out_ QUIC_AEAD_TYPE *AeadType,
     _Out_ QUIC_HASH_TYPE *HashType
     )
-/*++
-
-Routine Description:
-
-    Gets the negotiated Aead and hash.
-
-Arguments:
-
-    TlsContext - The TLS context.
-
-    AeadType - The Aead type.
-
-    HashType - The Hash type.
-
-Return Value:
-
-    None.
-
---*/
 {
     switch (SSL_CIPHER_get_id(SSL_get_current_cipher(TlsContext->Ssl))) {
     case 0x03001301u: // TLS_AES_128_GCM_SHA256
@@ -2703,29 +2119,6 @@ QuicTlsKeyCreate(
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _Out_ QUIC_PACKET_KEY** Key
     )
-/*++
-
-Routine Description:
-
-    Creates a packet key based on the secret.
-
-Arguments:
-
-    TlsContext - The TLS context.
-
-    Secret - The secret.
-
-    SecretLen - The secret length.
-
-    KeyType - The key type.
-
-    Key - Returns the created key.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_PACKET_KEY *TempKey = NULL;
@@ -2810,33 +2203,6 @@ QuicTlsHdkfExpand(
     _In_ size_t InfoLen,
     _In_ const EVP_MD *Md
     )
-/*++
-
-Routine Description:
-
-    Expands the secret into a key using low level OpenSSL APIs.
-
-Arguments:
-
-    OutputBuffer - The output buffer for derived key.
-
-    OutputBufferLen - The output buffer length.
-
-    Secret - The secret.
-
-    SecretLen - The secret length.
-
-    Info - The info.
-
-    InfoLen - The info length.
-
-    Md - The message digest to use.
-
-Return Value:
-
-    TRUE on success, FALSE on failure.
-
---*/
 {
     BOOLEAN Ret = TRUE;
     EVP_PKEY_CTX *KeyCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
@@ -2909,31 +2275,6 @@ QuicTlsHkdfExpandLabel(
     _In_z_ const char* const Label,
     _In_ const EVP_MD *Md
     )
-/*++
-
-Routine Description:
-
-    Derives a key based on the secret and label.
-
-Arguments:
-
-    OutputBuffer - The output buffer for derived key.
-
-    OutputBufferLen - The output buffer length.
-
-    Secret - The secret.
-
-    SecretLen - The secret length.
-
-    Label - The label.
-
-    Md - The message digest to use.
-
-Return Value:
-
-    TRUE on success, FALSE on failure.
-
---*/
 {
     uint8_t Info[128] = {0};
     size_t InfoLen = sizeof(Info);
@@ -2959,27 +2300,6 @@ QuicTlsHkdfFormatLabel(
     _Out_writes_all_(4 + QUIC_HKDF_PREFIX_LEN + strlen(Label)) uint8_t* const Data,
     _Inout_ uint32_t* const DataLength
     )
-/*++
-
-Routine Description:
-
-    Formats a label for key derivation.
-
-Arguments:
-
-    Label - The label.
-
-    KeyLen - The key length.
-
-    Data - Returns the formatted label.
-
-    DataLength - The length of the data.
-
-Return Value:
-
-    None.
-
---*/
 {
     size_t LabelLen = strlen(Label);
 
@@ -3000,23 +2320,6 @@ QuicAllocatePacketKey(
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _Outptr_ QUIC_PACKET_KEY** Key
     )
-/*++
-
-Routine Description:
-
-    Allocates space for a packet key.
-
-Arguments:
-
-    KeyType - The key type.
-
-    Key - Returns the allocated key.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_PACKET_KEY *TempKey = NULL;
@@ -3066,27 +2369,6 @@ QuicTlsDerivePacketProtectionKey(
     _In_ const EVP_MD *Md,
     _Out_ QUIC_PACKET_KEY *QuicKey
     )
-/*++
-
-Routine Description:
-
-    Derives a packet payload protection key based on a secret.
-
-Arguments:
-
-    Secret - The secret.
-
-    SecretLen - The secret len.
-
-    Md - The message digest to use.
-
-    QuicKey - Returns the derived key.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     BOOLEAN Ret = 0;
     int KeyLen = EVP_CIPHER_key_length(QuicKey->PacketKey->Aead);
@@ -3120,27 +2402,6 @@ QuicTlsDerivePacketProtectionIv(
     _In_ const EVP_MD *Md,
     _Out_ QUIC_PACKET_KEY *QuicKey
     )
-/*++
-
-Routine Description:
-
-    Derives a packet protection IV based on a secret.
-
-Arguments:
-
-    Secret - The secret.
-
-    SecretLen - The secret len.
-
-    Md - The message digest to use.
-
-    QuicKey - Returns the derived IV.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     BOOLEAN Ret = 0;
     int IvLen = max(8, EVP_CIPHER_iv_length(QuicKey->PacketKey->Aead));
@@ -3172,27 +2433,6 @@ QuicTlsDeriveHeaderProtectionKey(
     _In_ const EVP_MD *Md,
     _Out_ QUIC_PACKET_KEY *QuicKey
     )
-/*++
-
-Routine Description:
-
-    Derives a packet header protection key based on a secret.
-
-Arguments:
-
-    Secret - The secret.
-
-    SecretLen - The secret len.
-
-    Md - The message digest to use.
-
-    QuicKey - Returns the derived key.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     BOOLEAN Ret = 0;
     int KeyLen = EVP_CIPHER_key_length(QuicKey->HeaderKey->Aead);
@@ -3225,27 +2465,6 @@ QuicTlsUpdateTrafficSecret(
     _In_ size_t SecretLen,
     _In_ const EVP_MD *Md
     )
-/*++
-
-Routine Description:
-
-    Derives a new secret based on old secret.
-
-Arguments:
-
-    NewSecret - Returns the secret.
-
-    OldSecret - The old secret.
-
-    SecretLen - The secret len.
-
-    Md - The message digest to use.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     BOOLEAN Ret = 0;
 
@@ -3274,27 +2493,6 @@ QuicTlsDeriveClientInitialSecret(
     _In_reads_bytes_(SecretLen) const uint8_t *Secret,
     _In_ size_t SecretLen
     )
-/*++
-
-Routine Description:
-
-    Derives the client initial secret based on a secret.
-
-Arguments:
-
-    OutputBuffer - Buffer to return the initial secret.
-
-    OutputBufferLen - The output buffer length.
-
-    Secret - The secret.
-
-    SecretLen - The secret len.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     return
         QuicTlsHkdfExpandLabel(
@@ -3314,27 +2512,6 @@ QuicTlsDeriveServerInitialSecret(
     _In_reads_bytes_(SecretLen) const uint8_t *Secret,
     _In_ size_t SecretLen
     )
-/*++
-
-Routine Description:
-
-    Derives the server initial secret based on a secret.
-
-Arguments:
-
-    OutputBuffer - Buffer to return the initial secret.
-
-    OutputBufferLen - The output buffer length.
-
-    Secret - The secret.
-
-    SecretLen - The secret len.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     return
         QuicTlsHkdfExpandLabel(
@@ -3357,33 +2534,6 @@ QuicTlsHkdfExtract(
     _In_ size_t SaltLen,
     _In_ const EVP_MD *Md
     )
-/*++
-
-Routine Description:
-
-    Extracts a key from a secret and salt using low level OpenSSL APIs.
-
-Arguments:
-
-    OutputBuffer - Buffer to return the initial secret.
-
-    OutputBufferLen - The output buffer length.
-
-    Secret - The secret.
-
-    SecretLen - The secret len.
-
-    Salt - The salt to use.
-
-    SaltLen - The salt len.
-
-    Md - The message digest to use.
-
-Return Value:
-
-    QUIC_STATUS.
-
---*/
 {
     int Ret = TRUE;
     EVP_PKEY_CTX *KeyCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
@@ -3444,21 +2594,6 @@ size_t
 QuicTlsAeadTagLength(
     _In_ const EVP_CIPHER *Aead
     )
-/*++
-
-Routine Description:
-
-    Gets the Aead tag length.
-
-Arguments:
-
-    Aead - Aead object.
-
-Return Value:
-
-    Tag length.
-
---*/
 {
     if (Aead == EVP_aes_128_gcm() || Aead == EVP_aes_256_gcm()) {
         return EVP_GCM_TLS_TAG_LEN;
@@ -3487,41 +2622,6 @@ QuicTlsEncrypt(
     _In_ size_t AuthDataLen,
     _In_ const EVP_CIPHER *Aead
     )
-/*++
-
-Routine Description:
-
-    Encrypts a plain text data using low level OpenSSL APIs.
-
-Arguments:
-
-    OutputBuffer - A buffer to return encrypted data.
-
-    OutputBufferLen - The output buffer length.
-
-    PlainText - The plain text buffer.
-
-    PlainTextLen - The plain text length.
-
-    Key - The key to use for encryption.
-
-    KeyLen - The key length.
-
-    Nonce - The nonce.
-
-    NonceLen - The nonce length.
-
-    Authdata - The auth data.
-
-    AuthDataLen - The auth data length.
-
-    Aead - The aead cipher to use for encryption.
-
-Return Value:
-
-    The total encrypted bytes.
-
---*/
 {
     size_t Ret = 0;
     size_t TagLen = QuicTlsAeadTagLength(Aead);
@@ -3620,41 +2720,6 @@ QuicTlsDecrypt(
     _In_ size_t AuthDataLen,
     _In_ const EVP_CIPHER *Aead
     )
-/*++
-
-Routine Description:
-
-    Decrypts a plain text data using low level OpenSSL APIs.
-
-Arguments:
-
-    OutputBuffer - A buffer to return decrypted data.
-
-    OutputBufferLen - The output buffer length.
-
-    CipherText - The cipher text buffer.
-
-    CipherTextLen - The cipher text length.
-
-    Key - The key to use for encryption.
-
-    KeyLen - The key length.
-
-    Nonce - The nonce.
-
-    NonceLen - The nonce length.
-
-    Authdata - The auth data.
-
-    AuthDataLen - The auth data length.
-
-    Aead - The aead cipher to use for decryption.
-
-Return Value:
-
-    The total decrypted bytes.
-
---*/
 {
     size_t TagLen = QuicTlsAeadTagLength(Aead);
     size_t Ret = 0;
@@ -3748,31 +2813,6 @@ QuicTlsHeaderMask(
     _In_reads_bytes_(16) const uint8_t *Cipher,
     _In_ const EVP_CIPHER *Aead
     )
-/*++
-
-Routine Description:
-
-    Computes a header mask using low level OpenSSL APIs.
-
-Arguments:
-
-    OutputBuffer - A buffer to return mask.
-
-    OutputBufferLen - The output buffer length.
-
-    Key - The key to use for encryption.
-
-    KeyLen - The key length.
-
-    Cipher - The cipher data to use for header mask.
-
-    Aead - The Aead cipher to use.
-
-Return Value:
-
-    TRUE on success, FALSE on failure.
-
---*/
 {
     BOOLEAN Ret = TRUE;
     uint8_t Temp[16] = {0};
@@ -3837,33 +2877,6 @@ QuicTlsHash(
     _In_ size_t SaltLen,
     _In_ QUIC_HASH *Hash
     )
-/*++
-
-Routine Description:
-
-    Computes a hash using low level OpenSSL APIs.
-
-Arguments:
-
-    OutputBuffer - A buffer to return hash.
-
-    OutputBufferLen - The output buffer length.
-
-    Secret - The secret.
-
-    SecretLen - The secret length.
-
-    Salt - The salt.
-
-    SaltLen - The salt length.
-
-    Hash - The quic hash object.
-
-Return Value:
-
-    TRUE on success, FALSE on failure.
-
---*/
 {
     BOOLEAN Ret = TRUE;
     EVP_PKEY_CTX *KeyCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);

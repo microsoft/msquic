@@ -15,7 +15,7 @@ Usage examples:
 
     void
     ExampleInsert(
-        PQUIC_HASHTABLE Table,
+        QUIC_HASHTABLE* Table,
         PEXAMPLE_OBJECT Obj
         )
     {
@@ -25,7 +25,7 @@ Usage examples:
 
     void
     ExampleRemove(
-        PQUIC_HASHTABLE Table,
+        QUIC_HASHTABLE* Table,
         PEXAMPLE_OBJECT Obj
         )
     {
@@ -34,7 +34,7 @@ Usage examples:
 
     PEXAMPLE_OBJECT
     ExampleLookup(
-        PQUIC_HASHTABLE Table,
+        QUIC_HASHTABLE* Table,
         EXAMPLE_OBJECT_ATTRIBUTE Attrib
         )
     {
@@ -55,7 +55,7 @@ Usage examples:
 
     void
     ExampleEnumeration(
-        PQUIC_HASHTABLE Table
+        QUIC_HASHTABLE* Table
         )
     {
         QUIC_HASHTABLE_ENTRY* Entry;
@@ -78,8 +78,8 @@ Usage examples:
 
 #pragma once
 
-#ifndef _QUIC_HASHTABLE_
-#define _QUIC_HASHTABLE_
+#ifndef QUIC_HASHTABLE_
+#define QUIC_HASHTABLE_
 
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
 
@@ -248,4 +248,4 @@ QuicHashSimple(
     return Hash;
 }
 
-#endif // _QUIC_HASHTABLE_
+#endif // QUIC_HASHTABLE_

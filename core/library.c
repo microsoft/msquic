@@ -392,20 +392,20 @@ MsQuicSetCallbackHandler(
 
     case QUIC_HANDLE_TYPE_LISTENER:
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        ((PQUIC_LISTENER)Handle)->ClientCallbackHandler =
+        ((QUIC_LISTENER*)Handle)->ClientCallbackHandler =
             (QUIC_LISTENER_CALLBACK_HANDLER)Handler;
         break;
 
     case QUIC_HANDLE_TYPE_CLIENT:
     case QUIC_HANDLE_TYPE_CHILD:
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        ((PQUIC_CONNECTION)Handle)->ClientCallbackHandler =
+        ((QUIC_CONNECTION*)Handle)->ClientCallbackHandler =
             (QUIC_CONNECTION_CALLBACK_HANDLER)Handler;
         break;
 
     case QUIC_HANDLE_TYPE_STREAM:
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        ((PQUIC_STREAM)Handle)->ClientCallbackHandler =
+        ((QUIC_STREAM*)Handle)->ClientCallbackHandler =
             (QUIC_STREAM_CALLBACK_HANDLER)Handler;
         break;
 
@@ -428,11 +428,11 @@ QuicLibrarySetParam(
     )
 {
     QUIC_STATUS Status;
-    PQUIC_REGISTRATION Registration;
-    PQUIC_SESSION Session;
-    PQUIC_LISTENER Listener;
-    PQUIC_CONNECTION Connection;
-    PQUIC_STREAM Stream;
+    QUIC_REGISTRATION* Registration;
+    QUIC_SESSION* Session;
+    QUIC_LISTENER* Listener;
+    QUIC_CONNECTION* Connection;
+    QUIC_STREAM* Stream;
 
     switch (Handle->Type) {
 
@@ -442,7 +442,7 @@ QuicLibrarySetParam(
         Listener = NULL;
         Session = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Registration = (PQUIC_REGISTRATION)Handle;
+        Registration = (QUIC_REGISTRATION*)Handle;
         break;
 
     case QUIC_HANDLE_TYPE_SESSION:
@@ -450,7 +450,7 @@ QuicLibrarySetParam(
         Connection = NULL;
         Listener = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Session = (PQUIC_SESSION)Handle;
+        Session = (QUIC_SESSION*)Handle;
         Registration = Session->Registration;
         break;
 
@@ -458,7 +458,7 @@ QuicLibrarySetParam(
         Stream = NULL;
         Connection = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Listener = (PQUIC_LISTENER)Handle;
+        Listener = (QUIC_LISTENER*)Handle;
         Session = Listener->Session;
         Registration = Session->Registration;
         break;
@@ -468,7 +468,7 @@ QuicLibrarySetParam(
         Stream = NULL;
         Listener = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Connection = (PQUIC_CONNECTION)Handle;
+        Connection = (QUIC_CONNECTION*)Handle;
         Session = Connection->Session;
         QUIC_DBG_ASSERT(Session != NULL);
         Registration = Session->Registration;
@@ -477,7 +477,7 @@ QuicLibrarySetParam(
     case QUIC_HANDLE_TYPE_STREAM:
         Listener = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Stream = (PQUIC_STREAM)Handle;
+        Stream = (QUIC_STREAM*)Handle;
         Connection = Stream->Connection;
         Session = Connection->Session;
         QUIC_DBG_ASSERT(Session != NULL);
@@ -562,11 +562,11 @@ QuicLibraryGetParam(
     )
 {
     QUIC_STATUS Status;
-    PQUIC_REGISTRATION Registration;
-    PQUIC_SESSION Session;
-    PQUIC_LISTENER Listener;
-    PQUIC_CONNECTION Connection;
-    PQUIC_STREAM Stream;
+    QUIC_REGISTRATION* Registration;
+    QUIC_SESSION* Session;
+    QUIC_LISTENER* Listener;
+    QUIC_CONNECTION* Connection;
+    QUIC_STREAM* Stream;
 
     QUIC_DBG_ASSERT(BufferLength);
 
@@ -578,7 +578,7 @@ QuicLibraryGetParam(
         Listener = NULL;
         Session = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Registration = (PQUIC_REGISTRATION)Handle;
+        Registration = (QUIC_REGISTRATION*)Handle;
         break;
 
     case QUIC_HANDLE_TYPE_SESSION:
@@ -586,7 +586,7 @@ QuicLibraryGetParam(
         Connection = NULL;
         Listener = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Session = (PQUIC_SESSION)Handle;
+        Session = (QUIC_SESSION*)Handle;
         Registration = Session->Registration;
         break;
 
@@ -594,7 +594,7 @@ QuicLibraryGetParam(
         Stream = NULL;
         Connection = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Listener = (PQUIC_LISTENER)Handle;
+        Listener = (QUIC_LISTENER*)Handle;
         Session = Listener->Session;
         Registration = Session->Registration;
         break;
@@ -604,7 +604,7 @@ QuicLibraryGetParam(
         Stream = NULL;
         Listener = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Connection = (PQUIC_CONNECTION)Handle;
+        Connection = (QUIC_CONNECTION*)Handle;
         Session = Connection->Session;
         QUIC_TEL_ASSERT(Session != NULL);
         Registration = Session->Registration;
@@ -613,7 +613,7 @@ QuicLibraryGetParam(
     case QUIC_HANDLE_TYPE_STREAM:
         Listener = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Stream = (PQUIC_STREAM)Handle;
+        Stream = (QUIC_STREAM*)Handle;
         Connection = Stream->Connection;
         Session = Connection->Session;
         QUIC_TEL_ASSERT(Session != NULL);
@@ -847,7 +847,7 @@ MsQuicClose(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-PQUIC_BINDING
+QUIC_BINDING*
 QuicLibraryLookupBinding(
 #ifdef QUIC_COMPARTMENT_ID
     _In_ QUIC_COMPARTMENT_ID CompartmentId,
@@ -860,7 +860,7 @@ QuicLibraryLookupBinding(
         Link != &MsQuicLib.Bindings;
         Link = Link->Flink) {
 
-        PQUIC_BINDING Binding =
+        QUIC_BINDING* Binding =
             QUIC_CONTAINING_RECORD(Link, QUIC_BINDING, Link);
 
 #ifdef QUIC_COMPARTMENT_ID
@@ -900,15 +900,15 @@ QuicLibraryLookupBinding(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryGetBinding(
-    _In_ PQUIC_SESSION Session,
+    _In_ QUIC_SESSION* Session,
     _In_ BOOLEAN ShareBinding,
     _In_opt_ const QUIC_ADDR * LocalAddress,
     _In_opt_ const QUIC_ADDR * RemoteAddress,
-    _Out_ PQUIC_BINDING* NewBinding
+    _Out_ QUIC_BINDING** NewBinding
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_NOT_FOUND;
-    PQUIC_BINDING Binding;
+    QUIC_BINDING* Binding;
     QUIC_ADDR NewLocalAddress;
 
     //
@@ -1036,7 +1036,7 @@ Exit:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicLibraryTryAddRefBinding(
-    _In_ PQUIC_BINDING Binding
+    _In_ QUIC_BINDING* Binding
     )
 {
     BOOLEAN Success = FALSE;
@@ -1054,7 +1054,7 @@ QuicLibraryTryAddRefBinding(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLibraryReleaseBinding(
-    _In_ PQUIC_BINDING Binding
+    _In_ QUIC_BINDING* Binding
     )
 {
     BOOLEAN Uninitialize = FALSE;
@@ -1077,7 +1077,7 @@ QuicLibraryReleaseBinding(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicLibraryOnListenerRegistered(
-    _In_ PQUIC_LISTENER Listener
+    _In_ QUIC_LISTENER* Listener
     )
 {
     BOOLEAN Success = TRUE;

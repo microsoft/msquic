@@ -26,7 +26,7 @@ QuicCidNewDestination(
 
 QUIC_CID_HASH_ENTRY*
 QuicCidNewSource(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint8_t Length,
     _In_reads_(Length)
         const uint8_t* const Data
@@ -34,7 +34,7 @@ QuicCidNewSource(
 
 QUIC_CID_HASH_ENTRY*
 QuicCidNewRandomSource(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint8_t ServerID,
     _In_ uint8_t PartitionID,
     _In_ uint8_t PrefixLength,
@@ -55,7 +55,7 @@ QuicCidDecodeLength(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnFatalError(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_STATUS Status,
     _In_opt_z_ const char* ErrorMsg
     );
@@ -63,14 +63,14 @@ QuicConnFatalError(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnRelease(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_CONNECTION_REF Ref
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnAddRef(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_CONNECTION_REF Ref
     );
 
@@ -87,7 +87,7 @@ QuicConnIsServer(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnTransportError(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint64_t ErrorCode
     );
 
@@ -95,7 +95,7 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicFrameParseType(
     _In_ uint8_t Type,
-    _Out_ PQUIC_FRAME_TYPE FrameType
+    _Out_ QUIC_FRAME_TYPE* FrameType
     );
 
 _Success_(return != FALSE)
@@ -132,14 +132,14 @@ QuicIsTupleRssMode(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicStreamAddRef(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ QUIC_STREAM_REF Ref
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicStreamRelease(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ QUIC_STREAM_REF Ref
     );
 
@@ -173,14 +173,14 @@ QuicIsVersionReserved(
     _In_ uint32_t Version // Either Byte Order
     );
 
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicCryptoGetConnection(
-    _In_ PQUIC_CRYPTO Crypto
+    _In_ QUIC_CRYPTO* Crypto
     );
 
 BOOLEAN
 QuicCryptoHasPendingCryptoFrame(
-    _In_ PQUIC_CRYPTO Crypto
+    _In_ QUIC_CRYPTO* Crypto
     );
 
 void
@@ -193,7 +193,7 @@ QuicCryptoCombineIvAndPacketNumber(
         uint8_t* IvOut
     );
 
-PQUIC_SUBRANGE
+QUIC_SUBRANGE*
 QuicRangeGetSafe(
     _In_ const QUIC_RANGE * const Range,
     _In_ uint32_t Index
@@ -204,7 +204,7 @@ QuicRangeSize(
     _In_ const QUIC_RANGE * const Range
     );
 
-PQUIC_SUBRANGE
+QUIC_SUBRANGE*
 QuicRangeGet(
     _In_ const QUIC_RANGE * const Range,
     _In_ uint32_t Index
@@ -227,9 +227,9 @@ QuicStreamGetInitialMaxDataFromTP(
     _In_ const QUIC_TRANSPORT_PARAMETERS* const TransportParams
     );
 
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicLossDetectionGetConnection(
-    _In_ PQUIC_LOSS_DETECTION LossDetection
+    _In_ QUIC_LOSS_DETECTION* LossDetection
     );
 
 uint8_t
@@ -240,19 +240,19 @@ QuicCidEncodeLength(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicCongestionControlSetExemption(
-    _In_ PQUIC_CONGESTION_CONTROL Cc,
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint8_t NumPackets
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicCongestionControlCanSend(
-    _In_ PQUIC_CONGESTION_CONTROL Cc
+    _In_ QUIC_CONGESTION_CONTROL* Cc
     );
 
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicSendGetConnection(
-    _In_ PQUIC_SEND Send
+    _In_ QUIC_SEND* Send
     );
 
 uint8_t
@@ -276,14 +276,14 @@ PacketSizeFromUdpPayloadSize(
     _In_ uint16_t UdpPayloadSize
     );
 
-PQUIC_PACKET_SPACE
+QUIC_PACKET_SPACE*
 QuicAckTrackerGetPacketSpace(
-    _In_ PQUIC_ACK_TRACKER Tracker
+    _In_ QUIC_ACK_TRACKER* Tracker
     );
 
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicCongestionControlGetConnection(
-    _In_ PQUIC_CONGESTION_CONTROL Cc
+    _In_ QUIC_CONGESTION_CONTROL* Cc
     );
 
 QUIC_CID_STR
@@ -311,7 +311,7 @@ QuicConnGetNextTimer(
     _In_ const QUIC_CONNECTION * const Connection
     );
 
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicStreamSetGetConnection(
     _In_ QUIC_STREAM_SET* StreamSet
     );
@@ -442,24 +442,24 @@ QuicPacketNumberDecompress(
 void
 QuicOperLog(
     _In_ const void* Connection,
-    _In_ PQUIC_OPERATION Oper
+    _In_ QUIC_OPERATION* Oper
     );
 
 void
 QuicConnSilentlyAbort(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     );
 
 void
 QuicPathIncrementAllowance(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ uint32_t Amount
     );
 
 void
 QuicPathDecrementAllowance(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ uint32_t Amount
     );
@@ -587,13 +587,13 @@ QuicPacketBuilderAddFrame(
 BOOLEAN
 QuicPacketBuilderAddStreamFrame(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ uint8_t FrameType
     );
 
 BOOLEAN
 QuicAckTrackerHasPacketsToAck(
-    _In_ const PQUIC_ACK_TRACKER Tracker
+    _In_ const QUIC_ACK_TRACKER* Tracker
     );
 
 BOOLEAN
@@ -603,7 +603,7 @@ QuicPacketBuilderHasAllowance(
 
 QUIC_CID_HASH_ENTRY*
 QuicConnGetSourceCidFromSeq(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_VAR_INT SequenceNumber,
     _In_ BOOLEAN RemoveFromList,
     _Out_ BOOLEAN* IsLastCid
@@ -611,7 +611,7 @@ QuicConnGetSourceCidFromSeq(
 
 QUIC_CID_HASH_ENTRY*
 QuicConnGetSourceCidFromBuf(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint8_t CidLength,
     _In_reads_(CidLength)
         const uint8_t* CidBuffer
@@ -619,7 +619,7 @@ QuicConnGetSourceCidFromBuf(
 
 QUIC_CID_QUIC_LIST_ENTRY*
 QuicConnGetDestCidFromSeq(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_VAR_INT SequenceNumber,
     _In_ BOOLEAN RemoveFromList
     );

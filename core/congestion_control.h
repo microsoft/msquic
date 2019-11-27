@@ -5,7 +5,7 @@
 
 --*/
 
-typedef struct _QUIC_CONGESTION_CONTROL {
+typedef struct QUIC_CONGESTION_CONTROL {
 
     //
     // TRUE if we have had at least one congestion event.
@@ -75,7 +75,7 @@ typedef struct _QUIC_CONGESTION_CONTROL {
     //
     uint64_t RecoverySentPacketNumber;
 
-} QUIC_CONGESTION_CONTROL, *PQUIC_CONGESTION_CONTROL;
+} QUIC_CONGESTION_CONTROL;
 
 //
 // Returns TRUE if more bytes can be sent on the network.
@@ -84,7 +84,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 BOOLEAN
 QuicCongestionControlCanSend(
-    _In_ PQUIC_CONGESTION_CONTROL Cc
+    _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
     return Cc->BytesInFlight < Cc->CongestionWindow || Cc->Exemptions > 0;
@@ -94,7 +94,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 void
 QuicCongestionControlSetExemption(
-    _In_ PQUIC_CONGESTION_CONTROL Cc,
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint8_t NumPackets
     )
 {
@@ -104,14 +104,14 @@ QuicCongestionControlSetExemption(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicCongestionControlInitialize(
-    _In_ PQUIC_CONGESTION_CONTROL Cc,
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ const QUIC_SETTINGS* Settings
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicCongestionControlReset(
-    _In_ PQUIC_CONGESTION_CONTROL Cc
+    _In_ QUIC_CONGESTION_CONTROL* Cc
     );
 
 //
@@ -120,7 +120,7 @@ QuicCongestionControlReset(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 QuicCongestionControlGetSendAllowance(
-    _In_ PQUIC_CONGESTION_CONTROL Cc,
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint64_t TimeSinceLastSend, // microsec
     _In_ BOOLEAN TimeSinceLastSendValid
     );
@@ -131,7 +131,7 @@ QuicCongestionControlGetSendAllowance(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCongestionControlOnDataSent(
-    _In_ PQUIC_CONGESTION_CONTROL Cc,
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint32_t NumRetransmittableBytes
     );
 
@@ -142,7 +142,7 @@ QuicCongestionControlOnDataSent(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicCongestionControlOnDataInvalidated(
-    _In_ PQUIC_CONGESTION_CONTROL Cc,
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint32_t NumRetransmittableBytes
     );
 
@@ -152,7 +152,7 @@ QuicCongestionControlOnDataInvalidated(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicCongestionControlOnDataAcknowledged(
-    _In_ PQUIC_CONGESTION_CONTROL Cc,
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint64_t TimeNow, // millisec
     _In_ uint64_t LargestPacketNumberAcked,
     _In_ uint32_t NumRetransmittableBytes,
@@ -165,7 +165,7 @@ QuicCongestionControlOnDataAcknowledged(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicCongestionControlOnDataLost(
-    _In_ PQUIC_CONGESTION_CONTROL Cc,
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint64_t LargestPacketNumberLost,
     _In_ uint64_t LargestPacketNumberSent,
     _In_ uint32_t NumRetransmittableBytes,

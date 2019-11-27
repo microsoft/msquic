@@ -31,7 +31,7 @@ Abstract:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicOperationQueueInitialize(
-    _Inout_ PQUIC_OPERATION_QUEUE OperQ
+    _Inout_ QUIC_OPERATION_QUEUE* OperQ
     )
 {
     OperQ->ActivelyProcessing = FALSE;
@@ -42,7 +42,7 @@ QuicOperationQueueInitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicOperationQueueUninitialize(
-    _In_ PQUIC_OPERATION_QUEUE OperQ
+    _In_ QUIC_OPERATION_QUEUE* OperQ
     )
 {
     UNREFERENCED_PARAMETER(OperQ);
@@ -51,13 +51,13 @@ QuicOperationQueueUninitialize(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-PQUIC_OPERATION
+QUIC_OPERATION*
 QuicOperationAlloc(
-    _In_ PQUIC_WORKER Worker,
+    _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION_TYPE Type
     )
 {
-    PQUIC_OPERATION Oper = (PQUIC_OPERATION)QuicPoolAlloc(&Worker->OperPool);
+    QUIC_OPERATION* Oper = (QUIC_OPERATION*)QuicPoolAlloc(&Worker->OperPool);
     if (Oper != NULL) {
 #if QUIC_TEST_MODE
         Oper->Link.Flink = NULL;
@@ -67,7 +67,7 @@ QuicOperationAlloc(
 
         if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {
             Oper->API_CALL.Context =
-                (PQUIC_API_CONTEXT)QuicPoolAlloc(&Worker->ApiContextPool);
+                (QUIC_API_CONTEXT*)QuicPoolAlloc(&Worker->ApiContextPool);
             if (Oper->API_CALL.Context == NULL) {
                 QuicPoolFree(&Worker->OperPool, Oper);
                 Oper = NULL;
@@ -83,8 +83,8 @@ QuicOperationAlloc(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicOperationFree(
-    _In_ PQUIC_WORKER Worker,
-    _In_ PQUIC_OPERATION Oper
+    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_OPERATION* Oper
     )
 {
 #if QUIC_TEST_MODE
@@ -92,7 +92,7 @@ QuicOperationFree(
 #endif
     QUIC_DBG_ASSERT(Oper->FreeAfterProcess);
     if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {
-        PQUIC_API_CONTEXT ApiCtx = Oper->API_CALL.Context;
+        QUIC_API_CONTEXT* ApiCtx = Oper->API_CALL.Context;
         if (ApiCtx->Type == QUIC_API_TYPE_CONN_START) {
             if (ApiCtx->CONN_START.ServerName != NULL) {
                 QUIC_FREE(ApiCtx->CONN_START.ServerName);
@@ -123,8 +123,8 @@ QuicOperationFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicOperationEnqueue(
-    _In_ PQUIC_OPERATION_QUEUE OperQ,
-    _In_ PQUIC_OPERATION Oper
+    _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_OPERATION* Oper
     )
 {
     BOOLEAN StartProcessing;
@@ -141,8 +141,8 @@ QuicOperationEnqueue(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicOperationEnqueueFront(
-    _In_ PQUIC_OPERATION_QUEUE OperQ,
-    _In_ PQUIC_OPERATION Oper
+    _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_OPERATION* Oper
     )
 {
     BOOLEAN StartProcessing;
@@ -157,12 +157,12 @@ QuicOperationEnqueueFront(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-PQUIC_OPERATION
+QUIC_OPERATION*
 QuicOperationDequeue(
-    _In_ PQUIC_OPERATION_QUEUE OperQ
+    _In_ QUIC_OPERATION_QUEUE* OperQ
     )
 {
-    PQUIC_OPERATION Oper;
+    QUIC_OPERATION* Oper;
     QuicDispatchLockAcquire(&OperQ->Lock);
     if (QuicListIsEmpty(&OperQ->List)) {
         OperQ->ActivelyProcessing = FALSE;
@@ -183,8 +183,8 @@ QuicOperationDequeue(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicOperationQueueClear(
-    _In_ PQUIC_WORKER Worker,
-    _In_ PQUIC_OPERATION_QUEUE OperQ
+    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_OPERATION_QUEUE* OperQ
     )
 {
     QUIC_LIST_ENTRY OldList;
@@ -196,14 +196,14 @@ QuicOperationQueueClear(
     QuicDispatchLockRelease(&OperQ->Lock);
 
     while (!QuicListIsEmpty(&OldList)) {
-        PQUIC_OPERATION Oper =
+        QUIC_OPERATION* Oper =
             QUIC_CONTAINING_RECORD(QuicListRemoveHead(&OldList), QUIC_OPERATION, Link);
 #if QUIC_TEST_MODE
         Oper->Link.Flink = NULL;
 #endif
         if (Oper->FreeAfterProcess) {
             if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {
-                PQUIC_API_CONTEXT ApiCtx = Oper->API_CALL.Context;
+                QUIC_API_CONTEXT* ApiCtx = Oper->API_CALL.Context;
                 if (ApiCtx->Type == QUIC_API_TYPE_STRM_START) {
                     QUIC_DBG_ASSERT(ApiCtx->Completed == NULL);
                     QuicStreamIndicateStartComplete(
@@ -214,7 +214,7 @@ QuicOperationQueueClear(
         } else {
             QUIC_DBG_ASSERT(Oper->Type == QUIC_OPER_TYPE_API_CALL);
             if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {
-                PQUIC_API_CONTEXT ApiCtx = Oper->API_CALL.Context;
+                QUIC_API_CONTEXT* ApiCtx = Oper->API_CALL.Context;
                 if (ApiCtx->Status != NULL) {
                     *ApiCtx->Status = QUIC_STATUS_INVALID_STATE;
                     QuicEventSet(*ApiCtx->Completed);

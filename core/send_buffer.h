@@ -5,7 +5,7 @@
 
 --*/
 
-typedef struct _QUIC_SEND_BUFFER {
+typedef struct QUIC_SEND_BUFFER {
 
     //
     // Sum of bytes over all send requests (both buffered

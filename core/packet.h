@@ -35,7 +35,7 @@ extern const char PacketLogPrefix[2][2];
 // The layout invariant (not specific to a particular version) fields
 // of a QUIC packet.
 //
-typedef struct _QUIC_HEADER_INVARIANT {
+typedef struct QUIC_HEADER_INVARIANT {
 
     union {
         struct {
@@ -62,7 +62,7 @@ typedef struct _QUIC_HEADER_INVARIANT {
         } SHORT_HDR;
     };
 
-} QUIC_HEADER_INVARIANT, *PQUIC_HEADER_INVARIANT;
+} QUIC_HEADER_INVARIANT;
 
 #define MIN_INV_LONG_HDR_LENGTH (sizeof(QUIC_HEADER_INVARIANT) + sizeof(uint8_t))
 #define MIN_INV_SHORT_HDR_LENGTH sizeof(uint8_t)
@@ -83,7 +83,7 @@ QuicPacketValidateInvariant(
 //
 // The layout of the Version Negotation packet.
 //
-typedef struct _QUIC_VERSION_NEGOTIATION_PACKET {
+typedef struct QUIC_VERSION_NEGOTIATION_PACKET {
 
     uint8_t Unused : 7;
     uint8_t IsLongHeader : 1;
@@ -94,7 +94,7 @@ typedef struct _QUIC_VERSION_NEGOTIATION_PACKET {
     //uint8_t SourceCID[SourceCIDLength];
     //uint32_t SupportedVersions[0];
 
-} QUIC_VERSION_NEGOTIATION_PACKET, *PQUIC_VERSION_NEGOTIATION_PACKET;
+} QUIC_VERSION_NEGOTIATION_PACKET;
 
 #pragma pack(pop)
 
@@ -105,7 +105,7 @@ typedef struct _QUIC_VERSION_NEGOTIATION_PACKET {
 //
 // Different types of Long Header packets.
 //
-typedef enum _QUIC_LONG_HEADER_TYPE_V1 {
+typedef enum QUIC_LONG_HEADER_TYPE_V1 {
 
     QUIC_INITIAL                = 0,
     QUIC_0_RTT_PROTECTED        = 1,
@@ -122,7 +122,7 @@ typedef enum _QUIC_LONG_HEADER_TYPE_V1 {
 // The 4 least significant bits are protected by header protection.
 //
 
-typedef struct _QUIC_LONG_HEADER_V1 {
+typedef struct QUIC_LONG_HEADER_V1 {
 
     uint8_t PnLength        : 2;
     uint8_t Reserved        : 2;    // Must be 0.
@@ -140,7 +140,7 @@ typedef struct _QUIC_LONG_HEADER_V1 {
     //uint8_t PacketNumber[PnLength];
     //uint8_t Payload[0];
 
-} QUIC_LONG_HEADER_V1, *PQUIC_LONG_HEADER_V1;
+} QUIC_LONG_HEADER_V1;
 
 //
 // The minimum long header, in bytes.
@@ -158,7 +158,7 @@ typedef struct _QUIC_LONG_HEADER_V1 {
 // order.
 //
 
-typedef struct _QUIC_RETRY_V1 {
+typedef struct QUIC_RETRY_V1 {
 
     uint8_t UNUSED          : 4;
     uint8_t Type            : 2;
@@ -188,7 +188,7 @@ typedef struct _QUIC_RETRY_V1 {
 // Represents the short header format. All values in Network Byte order.
 // The 5 least significant bits are protected by header protection.
 //
-typedef struct _QUIC_SHORT_HEADER_V1 {
+typedef struct QUIC_SHORT_HEADER_V1 {
 
     uint8_t PnLength        : 2;
     uint8_t KeyPhase        : 1;
@@ -200,7 +200,7 @@ typedef struct _QUIC_SHORT_HEADER_V1 {
     //uint8_t PacketNumber[PnLength];
     //uint8_t Payload[0];
 
-} QUIC_SHORT_HEADER_V1, *PQUIC_SHORT_HEADER_V1;
+} QUIC_SHORT_HEADER_V1;
 
 //
 // Helper to calculate the length of the full short header, in bytes.

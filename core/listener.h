@@ -8,9 +8,9 @@
 //
 // Represents the Listener specific state.
 //
-typedef struct _QUIC_LISTENER {
+typedef struct QUIC_LISTENER {
 
-    struct _QUIC_HANDLE;
+    struct QUIC_HANDLE;
 
     //
     // Indicates the listener is listening on a wildcard address (v4/v6/both).
@@ -25,7 +25,7 @@ typedef struct _QUIC_LISTENER {
     //
     // The top level session.
     //
-    PQUIC_SESSION Session;
+    QUIC_SESSION* Session;
 
     //
     // Rundown for unregistering from a binding.
@@ -40,7 +40,7 @@ typedef struct _QUIC_LISTENER {
     //
     // The UDP binding this Listener is associated with.
     //
-    PQUIC_BINDING Binding;
+    QUIC_BINDING* Binding;
 
     //
     // The handler for the API client's callbacks.
@@ -53,7 +53,7 @@ typedef struct _QUIC_LISTENER {
     uint64_t TotalAcceptedConnections;
     uint64_t TotalRejectedConnections;
 
-} QUIC_LISTENER, *PQUIC_LISTENER;
+} QUIC_LISTENER;
 
 //
 // Tracing rundown for the binding.
@@ -61,7 +61,7 @@ typedef struct _QUIC_LISTENER {
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicListenerTraceRundown(
-    _In_ PQUIC_LISTENER Listener
+    _In_ QUIC_LISTENER* Listener
     );
 
 //
@@ -70,7 +70,7 @@ QuicListenerTraceRundown(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicListenerIndicateEvent(
-    _In_ PQUIC_LISTENER Listener,
+    _In_ QUIC_LISTENER* Listener,
     _Inout_ QUIC_LISTENER_EVENT* Event
     );
 
@@ -80,8 +80,8 @@ QuicListenerIndicateEvent(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_CONNECTION_ACCEPT_RESULT
 QuicListenerAcceptConnection(
-    _In_ PQUIC_LISTENER Listener,
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_LISTENER* Listener,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_NEW_CONNECTION_INFO* Info
     );
 
@@ -91,7 +91,7 @@ QuicListenerAcceptConnection(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicListenerParamSet(
-    _In_ PQUIC_LISTENER Listener,
+    _In_ QUIC_LISTENER* Listener,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -104,7 +104,7 @@ QuicListenerParamSet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicListenerParamGet(
-    _In_ PQUIC_LISTENER Listener,
+    _In_ QUIC_LISTENER* Listener,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)

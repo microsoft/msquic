@@ -42,8 +42,8 @@ Abstract:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamCompleteSendRequest(
-    _In_ PQUIC_STREAM Stream,
-    _In_ PQUIC_SEND_REQUEST SendRequest,
+    _In_ QUIC_STREAM* Stream,
+    _In_ QUIC_SEND_REQUEST* SendRequest,
     _In_ BOOLEAN Canceled
     );
 
@@ -52,11 +52,11 @@ QuicStreamCompleteSendRequest(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamValidateRecoveryState(
-    _In_ PQUIC_STREAM Stream
+    _In_ QUIC_STREAM* Stream
     )
 {
     if (RECOV_WINDOW_OPEN(Stream)) {
-        PQUIC_SUBRANGE Sack;
+        QUIC_SUBRANGE* Sack;
         uint32_t i = 0;
         while ((Sack = QuicRangeGetSafe(&Stream->SparseAckRanges, i++)) != NULL &&
             Sack->Low < Stream->RecoveryNextOffset) {
@@ -77,7 +77,7 @@ QuicStreamValidateRecoveryState(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamIndicateSendShutdownComplete(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN GracefulShutdown
     )
 {
@@ -100,7 +100,7 @@ QuicStreamIndicateSendShutdownComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamSendShutdown(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN Graceful,
     _In_ BOOLEAN Silent,
     _In_ QUIC_VAR_INT ErrorCode   // Only for !Graceful
@@ -116,7 +116,7 @@ QuicStreamSendShutdown(
 
     QuicDispatchLockAcquire(&Stream->ApiSendRequestLock);
     Stream->Flags.SendEnabled = FALSE;
-    PQUIC_SEND_REQUEST ApiSendRequests = Stream->ApiSendRequests;
+    QUIC_SEND_REQUEST* ApiSendRequests = Stream->ApiSendRequests;
     Stream->ApiSendRequests = NULL;
     QuicDispatchLockRelease(&Stream->ApiSendRequestLock);
 
@@ -135,7 +135,7 @@ QuicStreamSendShutdown(
             // These sends were queued by the app after queueing a graceful
             // shutdown. Bad app!
             //
-            PQUIC_SEND_REQUEST SendRequest = ApiSendRequests;
+            QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
             ApiSendRequests = ApiSendRequests->Next;
             QuicStreamCompleteSendRequest(Stream, SendRequest, TRUE);
         }
@@ -156,14 +156,14 @@ QuicStreamSendShutdown(
         // Make sure to deliver all send request cancelled callbacks first.
         //
         while (Stream->SendRequests) {
-            PQUIC_SEND_REQUEST Req = Stream->SendRequests;
+            QUIC_SEND_REQUEST* Req = Stream->SendRequests;
             Stream->SendRequests = Stream->SendRequests->Next;
             QuicStreamCompleteSendRequest(Stream, Req, TRUE);
         }
         Stream->SendRequestsTail = &Stream->SendRequests;
 
         while (ApiSendRequests != NULL) {
-            PQUIC_SEND_REQUEST SendRequest = ApiSendRequests;
+            QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
             ApiSendRequests = ApiSendRequests->Next;
             QuicStreamCompleteSendRequest(Stream, SendRequest, TRUE);
         }
@@ -309,7 +309,7 @@ QuicStreamSendCanWriteDataFrames(
         //
         // Some unsent data. Can send only if flow control will allow.
         //
-        PQUIC_SEND Send = &Stream->Connection->Send;
+        QUIC_SEND* Send = &Stream->Connection->Send;
         return
             Stream->NextSendOffset < Stream->MaxAllowedSendOffset &&
             Send->OrderedStreamBytesSent < Send->PeerMaxData;
@@ -350,8 +350,8 @@ QuicStreamCanSendNow(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamCompleteSendRequest(
-    _In_ PQUIC_STREAM Stream,
-    _In_ PQUIC_SEND_REQUEST SendRequest,
+    _In_ QUIC_STREAM* Stream,
+    _In_ QUIC_SEND_REQUEST* SendRequest,
     _In_ BOOLEAN Canceled
     )
 {
@@ -454,17 +454,17 @@ QuicStreamSendBufferRequest(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamSendFlush(
-    _In_ PQUIC_STREAM Stream
+    _In_ QUIC_STREAM* Stream
     )
 {
     QuicDispatchLockAcquire(&Stream->ApiSendRequestLock);
-    PQUIC_SEND_REQUEST ApiSendRequests = Stream->ApiSendRequests;
+    QUIC_SEND_REQUEST* ApiSendRequests = Stream->ApiSendRequests;
     Stream->ApiSendRequests = NULL;
     QuicDispatchLockRelease(&Stream->ApiSendRequestLock);
 
     while (ApiSendRequests != NULL) {
 
-        PQUIC_SEND_REQUEST SendRequest = ApiSendRequests;
+        QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
         ApiSendRequests = ApiSendRequests->Next;
         SendRequest->Next = NULL;
 
@@ -552,7 +552,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_range_(0, Len)
 uint16_t
 QuicStreamCopyFromSendRequests(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ uint64_t Offset,
     _Out_writes_bytes_(Len) uint8_t* Buf,
     _In_ uint16_t Len
@@ -567,7 +567,7 @@ QuicStreamCopyFromSendRequests(
     // requests.
     //
 
-    PQUIC_SEND_REQUEST Req;
+    QUIC_SEND_REQUEST* Req;
     uint16_t Copied = 0;
 
     QUIC_DBG_ASSERT(Len > 0);
@@ -661,13 +661,13 @@ QuicStreamCopyFromSendRequests(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamWriteOneFrame(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN ExplicitDataLength,
     _In_ uint64_t Offset,
     _Inout_ uint16_t* FramePayloadBytes,
     _Inout_ uint16_t* FrameBytes,
     _Out_writes_bytes_(*FrameBytes) uint8_t* Buffer,
-    _Inout_ PQUIC_SENT_PACKET_METADATA PacketMetadata
+    _Inout_ QUIC_SENT_PACKET_METADATA* PacketMetadata
     )
 {
     QUIC_STREAM_EX Frame = { FALSE, ExplicitDataLength, Stream->ID, Offset, 0 };
@@ -759,14 +759,14 @@ QuicStreamWriteOneFrame(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamWriteStreamFrames(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN ExplicitDataLength,
-    _Inout_ PQUIC_SENT_PACKET_METADATA PacketMetadata,
+    _Inout_ QUIC_SENT_PACKET_METADATA* PacketMetadata,
     _Inout_ uint16_t* BufferLength,
     _Out_writes_bytes_(*BufferLength) uint8_t* Buffer
     )
 {
-    PQUIC_SEND Send = &Stream->Connection->Send;
+    QUIC_SEND* Send = &Stream->Connection->Send;
     uint16_t BytesWritten = 0;
 
     //
@@ -809,7 +809,7 @@ QuicStreamWriteStreamFrames(
         // Find the first SACK after the selected offset.
         //
         uint32_t i = 0;
-        PQUIC_SUBRANGE Sack;
+        QUIC_SUBRANGE* Sack;
         if (Left == Stream->MaxSentLength) {
             //
             // Transmitting new bytes; no such SACK can exist.
@@ -948,7 +948,7 @@ QuicStreamWriteStreamFrames(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicStreamSendWrite(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
@@ -1080,8 +1080,8 @@ QuicStreamSendWrite(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamOnLoss(
-    _In_ PQUIC_STREAM Stream,
-    _In_ PQUIC_SENT_FRAME_METADATA FrameMetadata
+    _In_ QUIC_STREAM* Stream,
+    _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata
     )
 {
     if (Stream->Flags.LocalCloseReset) {
@@ -1123,7 +1123,7 @@ QuicStreamOnLoss(
         Start = Stream->UnAckedOffset;
     }
 
-    PQUIC_SUBRANGE Sack;
+    QUIC_SUBRANGE* Sack;
     uint32_t i = 0;
     while ((Sack = QuicRangeGetSafe(&Stream->SparseAckRanges, i++)) != NULL &&
         Sack->Low < End) {
@@ -1210,9 +1210,9 @@ Done:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamOnAck(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ QUIC_SEND_PACKET_FLAGS PacketFlags,
-    _In_ PQUIC_SENT_FRAME_METADATA FrameMetadata
+    _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata
     )
 {
     uint64_t Offset = FrameMetadata->STREAM.Offset;
@@ -1268,7 +1268,7 @@ QuicStreamOnAck(
             //
             QuicRangeSetMin(&Stream->SparseAckRanges, Stream->UnAckedOffset);
 
-            PQUIC_SUBRANGE Sack = QuicRangeGetSafe(&Stream->SparseAckRanges, 0);
+            QUIC_SUBRANGE* Sack = QuicRangeGetSafe(&Stream->SparseAckRanges, 0);
             if (Sack && Sack->Low == Stream->UnAckedOffset) {
                 Stream->UnAckedOffset = Sack->Low + Sack->Count;
                 QuicRangeRemoveSubranges(&Stream->SparseAckRanges, 0, 1);
@@ -1281,7 +1281,7 @@ QuicStreamOnAck(
             //
             while (Stream->SendRequests) {
 
-                PQUIC_SEND_REQUEST Req = Stream->SendRequests;
+                QUIC_SEND_REQUEST* Req = Stream->SendRequests;
 
                 //
                 // Cannot complete a request until UnAckedOffset is all the way past it.
@@ -1329,7 +1329,7 @@ QuicStreamOnAck(
     } else {
 
         BOOLEAN SacksUpdated;
-        PQUIC_SUBRANGE Sack =
+        QUIC_SUBRANGE* Sack =
             QuicRangeAddRange(
                 &Stream->SparseAckRanges,
                 Offset,
@@ -1383,7 +1383,7 @@ QuicStreamOnAck(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamOnResetAck(
-    _In_ PQUIC_STREAM Stream
+    _In_ QUIC_STREAM* Stream
     )
 {
     if (!Stream->Flags.LocalCloseAcked) {
@@ -1397,7 +1397,7 @@ QuicStreamOnResetAck(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamSendDumpState(
-    _In_ PQUIC_STREAM Stream
+    _In_ QUIC_STREAM* Stream
     )
 {
     if (WPP_COMPID_LEVEL_ENABLED(FLAG_DEFAULT, TRACE_LEVEL_VERBOSE)) {
@@ -1416,7 +1416,7 @@ QuicStreamSendDumpState(
 
         uint64_t UnAcked = Stream->UnAckedOffset;
         uint32_t i = 0;
-        PQUIC_SUBRANGE Sack;
+        QUIC_SUBRANGE* Sack;
         while ((Sack = QuicRangeGetSafe(&Stream->SparseAckRanges, i++)) != NULL) {
             LogVerbose("[strm][%p][%llu]   unACKed: [%llu, %llu]",
                 Stream, Stream->ID, UnAcked, Sack->Low);

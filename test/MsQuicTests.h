@@ -152,13 +152,13 @@ QuicTestKeyUpdate(
     _In_ bool ServerKeyUpdate
     );
 
-typedef enum _QUIC_ABORTIVE_TRANSFER_DIRECTION {
+typedef enum QUIC_ABORTIVE_TRANSFER_DIRECTION {
     ShutdownBoth,
     ShutdownSend,
     ShutdownReceive
 } QUIC_ABORTIVE_TRANSFER_DIRECTION;
 
-typedef union _QUIC_ABORTIVE_TRANSFER_FLAGS {
+typedef union QUIC_ABORTIVE_TRANSFER_FLAGS {
     struct {
         uint32_t DelayStreamCreation : 1;
         uint32_t SendDataOnStream : 1;
@@ -183,13 +183,13 @@ QuicTestCidUpdate(
     _In_ uint16_t Iterations
     );
 
-typedef enum _QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE {
+typedef enum QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE {
     NoShutdown,
     GracefulShutdown,
     AbortShutdown
 } QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE;
 
-typedef enum _QUIC_RECEIVE_RESUME_TYPE {
+typedef enum QUIC_RECEIVE_RESUME_TYPE {
     ReturnConsumedBytes,
     ReturnStatusPending,
     ReturnStatusContinue

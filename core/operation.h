@@ -5,19 +5,19 @@
 
 --*/
 
-typedef struct _QUIC_SEND_REQUEST QUIC_SEND_REQUEST, *PQUIC_SEND_REQUEST;
+typedef struct QUIC_SEND_REQUEST QUIC_SEND_REQUEST;
 
 //
 // For logging.
 //
-typedef enum _QUIC_SCHEDULE_STATE {
+typedef enum QUIC_SCHEDULE_STATE {
     QUIC_SCHEDULE_IDLE,
     QUIC_SCHEDULE_QUEUED,
     QUIC_SCHEDULE_PROCESSING
 
 } QUIC_SCHEDULE_STATE;
 
-typedef enum _QUIC_OPERATION_TYPE {
+typedef enum QUIC_OPERATION_TYPE {
     QUIC_OPER_TYPE_API_CALL,            // Process an API call from the app.
     QUIC_OPER_TYPE_FLUSH_RECV,          // Process queue of receive packets.
     QUIC_OPER_TYPE_UNREACHABLE,         // Process UDP unreachable event.
@@ -37,7 +37,7 @@ typedef enum _QUIC_OPERATION_TYPE {
 
 } QUIC_OPERATION_TYPE;
 
-typedef enum _QUIC_API_TYPE {
+typedef enum QUIC_API_TYPE {
 
     QUIC_API_TYPE_CONN_CLOSE,
     QUIC_API_TYPE_CONN_SHUTDOWN,
@@ -59,7 +59,7 @@ typedef enum _QUIC_API_TYPE {
 // Context for an API call. This is allocated separately from QUIC_OPERATION
 // so that non-API-call operations will take less space.
 //
-typedef struct _QUIC_API_CONTEXT {
+typedef struct QUIC_API_CONTEXT {
 
     QUIC_API_TYPE Type;
 
@@ -102,26 +102,26 @@ typedef struct _QUIC_API_CONTEXT {
             HQUIC* NewStream;
         } STRM_OPEN;
         struct {
-            PQUIC_STREAM Stream;
+            QUIC_STREAM* Stream;
         } STRM_CLOSE;
         struct {
-            PQUIC_STREAM Stream;
+            QUIC_STREAM* Stream;
             QUIC_STREAM_START_FLAGS Flags;
         } STRM_START;
         struct {
-            PQUIC_STREAM Stream;
+            QUIC_STREAM* Stream;
             QUIC_STREAM_SHUTDOWN_FLAGS Flags;
             QUIC_VAR_INT ErrorCode;
         } STRM_SHUTDOWN;
         struct {
-            PQUIC_STREAM Stream;
+            QUIC_STREAM* Stream;
         } STRM_SEND;
         struct {
-            PQUIC_STREAM Stream;
+            QUIC_STREAM* Stream;
             uint64_t BufferLength;
         } STRM_RECV_COMPLETE;
         struct {
-            PQUIC_STREAM Stream;
+            QUIC_STREAM* Stream;
             BOOLEAN IsEnabled;
         } STRM_RECV_SET_ENABLED;
 
@@ -141,9 +141,9 @@ typedef struct _QUIC_API_CONTEXT {
         } GET_PARAM;
     };
 
-} QUIC_API_CONTEXT, *PQUIC_API_CONTEXT;
+} QUIC_API_CONTEXT;
 
-typedef enum _QUIC_CONN_TIMER_TYPE {
+typedef enum QUIC_CONN_TIMER_TYPE {
 
     QUIC_CONN_TIMER_PACING,
     QUIC_CONN_TIMER_ACK_DELAY,
@@ -156,7 +156,7 @@ typedef enum _QUIC_CONN_TIMER_TYPE {
 
 } QUIC_CONN_TIMER_TYPE;
 
-typedef struct _QUIC_STATELESS_CONTEXT {
+typedef struct QUIC_STATELESS_CONTEXT {
     QUIC_BINDING* Binding;
     QUIC_WORKER* Worker;
     QUIC_ADDR RemoteAddress;
@@ -172,7 +172,7 @@ typedef struct _QUIC_STATELESS_CONTEXT {
 //
 // A single unit of work for a connection.
 //
-typedef struct _QUIC_OPERATION {
+typedef struct QUIC_OPERATION {
 
     QUIC_LIST_ENTRY Link;
     QUIC_OPERATION_TYPE Type;
@@ -190,7 +190,7 @@ typedef struct _QUIC_OPERATION {
             void* Reserved; // Nothing.
         } INITIALIZE;
         struct {
-            PQUIC_API_CONTEXT Context;
+            QUIC_API_CONTEXT* Context;
         } API_CALL;
         struct {
             void* Reserved; // Nothing.
@@ -199,7 +199,7 @@ typedef struct _QUIC_OPERATION {
             QUIC_ADDR RemoteAddress;
         } UNREACHABLE;
         struct {
-            PQUIC_STREAM Stream;
+            QUIC_STREAM* Stream;
         } FLUSH_STREAM_RECEIVE;
         struct {
             void* Reserved; // Nothing.
@@ -212,14 +212,14 @@ typedef struct _QUIC_OPERATION {
         } STATELESS; // Stateless reset, retry and VN
     };
 
-} QUIC_OPERATION, *PQUIC_OPERATION;
+} QUIC_OPERATION;
 
 inline
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicOperLog(
     _In_ const void* Connection,
-    _In_ PQUIC_OPERATION Oper
+    _In_ QUIC_OPERATION* Oper
     )
 {
     switch (Oper->Type) {
@@ -238,7 +238,7 @@ QuicOperLog(
 //
 // A queue of operations to be executed for a connection.
 //
-typedef struct _QUIC_OPERATION_QUEUE {
+typedef struct QUIC_OPERATION_QUEUE {
 
     //
     // TRUE if the queue is being drained.
@@ -251,7 +251,7 @@ typedef struct _QUIC_OPERATION_QUEUE {
     QUIC_DISPATCH_LOCK Lock;
     QUIC_LIST_ENTRY List;
 
-} QUIC_OPERATION_QUEUE, *PQUIC_OPERATION_QUEUE;
+} QUIC_OPERATION_QUEUE;
 
 //
 // Initializes an operation queue.
@@ -259,7 +259,7 @@ typedef struct _QUIC_OPERATION_QUEUE {
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicOperationQueueInitialize(
-    _Inout_ PQUIC_OPERATION_QUEUE OperQ
+    _Inout_ QUIC_OPERATION_QUEUE* OperQ
     );
 
 //
@@ -268,16 +268,16 @@ QuicOperationQueueInitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicOperationQueueUninitialize(
-    _In_ PQUIC_OPERATION_QUEUE OperQ
+    _In_ QUIC_OPERATION_QUEUE* OperQ
     );
 
 //
 // Allocates an operation.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-PQUIC_OPERATION
+QUIC_OPERATION*
 QuicOperationAlloc(
-    _In_ PQUIC_WORKER Worker,
+    _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION_TYPE Type
     );
 
@@ -287,8 +287,8 @@ QuicOperationAlloc(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicOperationFree(
-    _In_ PQUIC_WORKER Worker,
-    _In_ PQUIC_OPERATION Oper
+    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_OPERATION* Oper
     );
 
 //
@@ -298,8 +298,8 @@ QuicOperationFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicOperationEnqueue(
-    _In_ PQUIC_OPERATION_QUEUE OperQ,
-    _In_ PQUIC_OPERATION Oper
+    _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_OPERATION* Oper
     );
 
 //
@@ -309,17 +309,17 @@ QuicOperationEnqueue(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicOperationEnqueueFront(
-    _In_ PQUIC_OPERATION_QUEUE OperQ,
-    _In_ PQUIC_OPERATION Oper
+    _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_OPERATION* Oper
     );
 
 //
 // Dequeues an operation. Returns NULL if the queue is empty.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-PQUIC_OPERATION
+QUIC_OPERATION*
 QuicOperationDequeue(
-    _In_ PQUIC_OPERATION_QUEUE OperQ
+    _In_ QUIC_OPERATION_QUEUE* OperQ
     );
 
 //
@@ -328,6 +328,6 @@ QuicOperationDequeue(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicOperationQueueClear(
-    _In_ PQUIC_WORKER Worker,
-    _In_ PQUIC_OPERATION_QUEUE OperQ
+    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_OPERATION_QUEUE* OperQ
     );

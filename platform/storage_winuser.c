@@ -33,7 +33,7 @@ QuicStorageRegKeyChangeCallback(
 //
 // The storage context returned that abstracts a registry key handle.
 //
-typedef struct _QUIC_STORAGE {
+typedef struct QUIC_STORAGE {
 
     HKEY RegKey;
     HANDLE NotifyEvent;
@@ -41,7 +41,7 @@ typedef struct _QUIC_STORAGE {
     QUIC_STORAGE_CHANGE_CALLBACK_HANDLER Callback;
     void* CallbackContext;
 
-} QUIC_STORAGE, *PQUIC_STORAGE;
+} QUIC_STORAGE;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -49,11 +49,11 @@ QuicStorageOpen(
     _In_opt_z_ const char * Path,
     _In_ QUIC_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
-    _Out_ PQUIC_STORAGE* NewStorage
+    _Out_ QUIC_STORAGE** NewStorage
     )
 {
     QUIC_STATUS Status;
-    PQUIC_STORAGE Storage = NULL;
+    QUIC_STORAGE* Storage = NULL;
 
     char FullKeyName[256] = QUIC_BASE_REG_PATH;
 
@@ -148,7 +148,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStorageClose(
-    _In_opt_ PQUIC_STORAGE Storage
+    _In_opt_ QUIC_STORAGE* Storage
     )
 {
     if (Storage != NULL) {
@@ -174,7 +174,7 @@ QuicStorageRegKeyChangeCallback(
     UNREFERENCED_PARAMETER(WaitResult);
     QUIC_DBG_ASSERT(Context);
 
-    PQUIC_STORAGE Storage = (PQUIC_STORAGE)Context;
+    QUIC_STORAGE* Storage = (QUIC_STORAGE*)Context;
     Storage->Callback(Storage->CallbackContext);
 
     if (NO_ERROR ==
@@ -191,7 +191,7 @@ QuicStorageRegKeyChangeCallback(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStorageReadValue(
-    _In_ PQUIC_STORAGE Storage,
+    _In_ QUIC_STORAGE* Storage,
     _In_opt_z_ const char * Name,
     _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength)
         UINT8 * Buffer,

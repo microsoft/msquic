@@ -93,7 +93,7 @@ extern QUIC_SEC_CONFIG* SecurityConfig;
 //
 #define DEFAULT_WAIT_TIMEOUT (60 * 60 * 1000)
 
-typedef struct _QUIC_PING_CONFIG {
+typedef struct QUIC_PING_CONFIG {
 
     bool ServerMode    : 1;
     bool UseEncryption : 1;

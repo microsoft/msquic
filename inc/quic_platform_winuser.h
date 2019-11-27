@@ -14,7 +14,7 @@ Environment:
 
 --*/
 
-#ifndef _QUIC_PLATFORM_
+#ifndef QUIC_PLATFORM_
 #error "Must be included from quic_platform.h"
 #endif
 
@@ -248,15 +248,15 @@ QuicFree(
 #define QUIC_ALLOC_NONPAGED(Size) QuicAlloc(Size)
 #define QUIC_FREE(Mem) QuicFree((void*)Mem)
 
-typedef struct _QUIC_POOL {
+typedef struct QUIC_POOL {
     SLIST_HEADER ListHead;
     uint32_t Size;
-} QUIC_POOL, *PQUIC_POOL;
+} QUIC_POOL;
 
 #define QUIC_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
 
 #if DBG || QUIC_TEST_MODE
-typedef struct _QUIC_POOL_ENTRY {
+typedef struct QUIC_POOL_ENTRY {
     SLIST_ENTRY ListHead;
     uint32_t SpecialFlag;
 } QUIC_POOL_ENTRY;
@@ -268,7 +268,7 @@ void
 QuicPoolInitialize(
     _In_ BOOLEAN IsPaged,
     _In_ uint32_t Size,
-    _Inout_ PQUIC_POOL Pool
+    _Inout_ QUIC_POOL* Pool
     )
 {
 #if DBG || QUIC_TEST_MODE
@@ -282,7 +282,7 @@ QuicPoolInitialize(
 inline
 void
 QuicPoolUninitialize(
-    _Inout_ PQUIC_POOL Pool
+    _Inout_ QUIC_POOL* Pool
     )
 {
     void* Entry;
@@ -294,7 +294,7 @@ QuicPoolUninitialize(
 inline
 void*
 QuicPoolAlloc(
-    _Inout_ PQUIC_POOL Pool
+    _Inout_ QUIC_POOL* Pool
     )
 {
 #if QUIC_DISABLE_MEM_POOL
@@ -316,7 +316,7 @@ QuicPoolAlloc(
 inline
 void
 QuicPoolFree(
-    _Inout_ PQUIC_POOL Pool,
+    _Inout_ QUIC_POOL* Pool,
     _In_ void* Entry
     )
 {
@@ -350,21 +350,21 @@ QuicPoolFree(
 // Locking Interfaces
 //
 
-typedef CRITICAL_SECTION QUIC_LOCK, *PQUIC_LOCK;
+typedef CRITICAL_SECTION QUIC_LOCK;
 
 #define QuicLockInitialize(Lock) InitializeCriticalSection(Lock)
 #define QuicLockUninitialize(Lock) DeleteCriticalSection(Lock)
 #define QuicLockAcquire(Lock) EnterCriticalSection(Lock)
 #define QuicLockRelease(Lock) LeaveCriticalSection(Lock)
 
-typedef CRITICAL_SECTION QUIC_DISPATCH_LOCK, *PQUIC_DISPATCH_LOCK;
+typedef CRITICAL_SECTION QUIC_DISPATCH_LOCK;
 
 #define QuicDispatchLockInitialize(Lock) InitializeCriticalSection(Lock)
 #define QuicDispatchLockUninitialize(Lock) DeleteCriticalSection(Lock)
 #define QuicDispatchLockAcquire(Lock) EnterCriticalSection(Lock)
 #define QuicDispatchLockRelease(Lock) LeaveCriticalSection(Lock)
 
-typedef SRWLOCK QUIC_RW_LOCK, *PQUIC_RW_LOCK;
+typedef SRWLOCK QUIC_RW_LOCK;
 
 #define QuicRwLockInitialize(Lock) InitializeSRWLock(Lock)
 #define QuicRwLockUninitialize(Lock)
@@ -373,7 +373,7 @@ typedef SRWLOCK QUIC_RW_LOCK, *PQUIC_RW_LOCK;
 #define QuicRwLockReleaseShared(Lock) ReleaseSRWLockShared(Lock)
 #define QuicRwLockReleaseExclusive(Lock) ReleaseSRWLockExclusive(Lock)
 
-typedef SRWLOCK QUIC_DISPATCH_RW_LOCK, *PQUIC_DISPATCH_RW_LOCK;
+typedef SRWLOCK QUIC_DISPATCH_RW_LOCK;
 
 #define QuicDispatchRwLockInitialize(Lock) InitializeSRWLock(Lock)
 #define QuicDispatchRwLockUninitialize(Lock)
@@ -504,7 +504,7 @@ QuicRefDecrement(
 // Event Interfaces
 //
 
-typedef HANDLE QUIC_EVENT, *PQUIC_EVENT;
+typedef HANDLE QUIC_EVENT;
 
 #define QuicEventInitialize(Event, ManualReset, InitialState) \
     *(Event) = CreateEvent(NULL, ManualReset, InitialState, NULL)
@@ -693,7 +693,7 @@ NtSetInformationThread(
 #define QUIC_THREAD_FLAG_SET_AFFINITIZE     0x0002
 #define QUIC_THREAD_FLAG_HIGH_PRIORITY      0x0004
 
-typedef struct _QUIC_THREAD_CONFIG {
+typedef struct QUIC_THREAD_CONFIG {
     uint16_t Flags;
     uint8_t IdealProcessor;
     _Field_z_ const char* Name;
@@ -701,7 +701,7 @@ typedef struct _QUIC_THREAD_CONFIG {
     void* Context;
 } QUIC_THREAD_CONFIG;
 
-typedef HANDLE PQUIC_THREAD;
+typedef void QUIC_THREAD;
 #define QUIC_THREAD_CALLBACK(FuncName, CtxVarName)  \
     DWORD                                           \
     WINAPI                                          \
@@ -713,7 +713,7 @@ inline
 QUIC_STATUS
 QuicThreadCreate(
     _In_ QUIC_THREAD_CONFIG* Config,
-    _Out_ PQUIC_THREAD* Thread
+    _Out_ QUIC_THREAD** Thread
     )
 {
     *Thread =
@@ -772,7 +772,7 @@ QuicThreadCreate(
 // Rundown Protection Interfaces
 //
 
-typedef struct _QUIC_RUNDOWN_REF {
+typedef struct QUIC_RUNDOWN_REF {
 
     //
     // The ref counter.
@@ -784,7 +784,7 @@ typedef struct _QUIC_RUNDOWN_REF {
     //
     HANDLE RundownComplete;
 
-} QUIC_RUNDOWN_REF, *PQUIC_RUNDOWN_REF;
+} QUIC_RUNDOWN_REF;
 
 #define QuicRundownInitialize(Rundown) \
     QuicRefInitialize(&(Rundown)->RefCount); \

@@ -71,7 +71,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
 void
 UdpRecvCallback(
-    _In_ PQUIC_DATAPATH_BINDING /* Binding */,
+    _In_ QUIC_DATAPATH_BINDING* /* Binding */,
     _In_ void* /* Context */,
     _In_ QUIC_RECV_DATAGRAM* RecvBufferChain
     )
@@ -83,7 +83,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_UNREACHABLE_CALLBACK)
 void
 UdpUnreachCallback(
-    _In_ PQUIC_DATAPATH_BINDING /* Binding */,
+    _In_ QUIC_DATAPATH_BINDING* /* Binding */,
     _In_ void* /* Context */,
     _In_ const QUIC_ADDR* /* RemoteAddress */
     )
@@ -360,8 +360,8 @@ RunAttack(
         ATTACK_THREAD_CONTEXT ThreadContext = {
             Binding, Type, ServerAddress, Alpn, ServerName, TimeoutMs
         };
-        PQUIC_THREAD* Threads =
-            (PQUIC_THREAD*)QUIC_ALLOC_PAGED(ThreadCount * sizeof(PQUIC_THREAD));
+        QUIC_THREAD** Threads =
+            (QUIC_THREAD**)QUIC_ALLOC_PAGED(ThreadCount * sizeof(QUIC_THREAD*));
         for (uint32_t i = 0; i < ThreadCount; ++i) {
             QUIC_THREAD_CONFIG ThreadConfig = {
                 0, 0, "AttackRunner", RunAttackThread, &ThreadContext

@@ -25,7 +25,7 @@ Abstract:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSentPacketPoolInitialize(
-    _Inout_ PQUIC_SENT_PACKET_POOL Pool
+    _Inout_ QUIC_SENT_PACKET_POOL* Pool
     )
 {
     for (uint8_t i = 0; i < ARRAYSIZE(Pool->Pools); i++) {
@@ -43,7 +43,7 @@ QuicSentPacketPoolInitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSentPacketPoolUninitialize(
-    _In_ PQUIC_SENT_PACKET_POOL Pool
+    _In_ QUIC_SENT_PACKET_POOL* Pool
     )
 {
     for (uint8_t i = 0; i < ARRAYSIZE(Pool->Pools); i++) {
@@ -52,22 +52,22 @@ QuicSentPacketPoolUninitialize(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-PQUIC_SENT_PACKET_METADATA
+QUIC_SENT_PACKET_METADATA*
 QuicSentPacketPoolGetPacketMetadata(
-    _In_ PQUIC_SENT_PACKET_POOL Pool,
+    _In_ QUIC_SENT_PACKET_POOL* Pool,
     _In_ uint8_t FrameCount
     )
 {
     return
-        (PQUIC_SENT_PACKET_METADATA)
+        (QUIC_SENT_PACKET_METADATA*)
         QuicPoolAlloc(Pool->Pools + FrameCount - 1);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSentPacketPoolReturnPacketMetadata(
-    _In_ PQUIC_SENT_PACKET_POOL Pool,
-    _In_ PQUIC_SENT_PACKET_METADATA Metadata
+    _In_ QUIC_SENT_PACKET_POOL* Pool,
+    _In_ QUIC_SENT_PACKET_METADATA* Metadata
     )
 {
     _Analysis_assume_(

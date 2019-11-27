@@ -29,7 +29,7 @@ Abstract:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendInitialize(
-    _Inout_ PQUIC_SEND Send
+    _Inout_ QUIC_SEND* Send
     )
 {
     QuicListInitializeHead(&Send->SendStreams);
@@ -38,7 +38,7 @@ QuicSendInitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendUninitialize(
-    _In_ PQUIC_SEND Send
+    _In_ QUIC_SEND* Send
     )
 {
     if (Send->InitialToken != NULL) {
@@ -52,7 +52,7 @@ QuicSendUninitialize(
     QUIC_LIST_ENTRY* Entry = Send->SendStreams.Flink;
     while (Entry != &Send->SendStreams) {
 
-        PQUIC_STREAM Stream =
+        QUIC_STREAM* Stream =
             QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
         QUIC_DBG_ASSERT(Stream->SendFlags != 0);
 
@@ -67,7 +67,7 @@ QuicSendUninitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendApplySettings(
-    _Inout_ PQUIC_SEND Send,
+    _Inout_ QUIC_SEND* Send,
     _In_ const QUIC_SETTINGS* Settings
     )
 {
@@ -77,7 +77,7 @@ QuicSendApplySettings(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendReset(
-    _In_ PQUIC_SEND Send
+    _In_ QUIC_SEND* Send
     )
 {
     Send->SendFlags = 0;
@@ -95,10 +95,10 @@ QuicSendReset(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicSendCanSendFlagsNow(
-    _In_ PQUIC_SEND Send
+    _In_ QUIC_SEND* Send
     )
 {
-    PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
     if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT &&
         Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] == NULL) {
         if ((!Connection->State.Started && !QuicConnIsServer(Connection)) ||
@@ -112,13 +112,13 @@ QuicSendCanSendFlagsNow(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendQueueFlush(
-    _In_ PQUIC_SEND Send,
+    _In_ QUIC_SEND* Send,
     _In_ QUIC_SEND_FLUSH_REASON Reason
     )
 {
     if (!Send->FlushOperationPending && QuicSendCanSendFlagsNow(Send)) {
-        PQUIC_OPERATION Oper;
-        PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
+        QUIC_OPERATION* Oper;
+        QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
         if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_FLUSH_SEND)) != NULL) {
             Send->FlushOperationPending = TRUE;
             const char* ReasonStrings[] = {
@@ -145,10 +145,10 @@ QuicSendQueueFlush(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendValidate(
-    _In_ PQUIC_SEND Send
+    _In_ QUIC_SEND* Send
     )
 {
-    PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
     BOOLEAN HasAckElicitingPacketsToAcknowledge = FALSE;
     for (uint32_t i = 0; i < QUIC_ENCRYPT_LEVEL_COUNT; ++i) {
@@ -176,11 +176,11 @@ QuicSendValidate(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendSetSendFlag(
-    _In_ PQUIC_SEND Send,
+    _In_ QUIC_SEND* Send,
     _In_ uint32_t SendFlags
     )
 {
-    PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
     BOOLEAN IsCloseFrame =
         !!(SendFlags & (QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE));
@@ -214,7 +214,7 @@ QuicSendSetSendFlag(
         //
         while (!QuicListIsEmpty(&Send->SendStreams)) {
 
-            PQUIC_STREAM Stream =
+            QUIC_STREAM* Stream =
                 QUIC_CONTAINING_RECORD(
                     QuicListRemoveHead(&Send->SendStreams), QUIC_STREAM, SendLink);
 
@@ -232,7 +232,7 @@ QuicSendSetSendFlag(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendClearSendFlag(
-    _In_ PQUIC_SEND Send,
+    _In_ QUIC_SEND* Send,
     _In_ uint32_t SendFlags
     )
 {
@@ -248,10 +248,10 @@ QuicSendClearSendFlag(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendUpdateAckState(
-    _In_ PQUIC_SEND Send
+    _In_ QUIC_SEND* Send
     )
 {
-    PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
     BOOLEAN HasAckElicitingPacketsToAcknowledge = FALSE;
     for (uint32_t i = 0; i < QUIC_ENCRYPT_LEVEL_COUNT; ++i) {
@@ -279,12 +279,12 @@ QuicSendUpdateAckState(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendSetStreamSendFlag(
-    _In_ PQUIC_SEND Send,
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_SEND* Send,
+    _In_ QUIC_STREAM* Stream,
     _In_ uint32_t SendFlags
     )
 {
-    PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
     if (QuicConnIsClosed(Connection)) {
         //
         // Ignore all frames if the connection is closed.
@@ -349,8 +349,8 @@ QuicSendSetStreamSendFlag(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendClearStreamSendFlag(
-    _In_ PQUIC_SEND Send,
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_SEND* Send,
+    _In_ QUIC_STREAM* Stream,
     _In_ uint32_t SendFlags
     )
 {
@@ -381,13 +381,13 @@ QuicSendClearStreamSendFlag(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicSendWriteFrames(
-    _In_ PQUIC_SEND Send,
+    _In_ QUIC_SEND* Send,
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
     QUIC_DBG_ASSERT(Builder->Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET);
 
-    PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
     uint16_t AvailableBufferLength =
         (uint16_t)Builder->Datagram->Length - Builder->EncryptionOverhead;
     uint8_t PrevFrameCount = Builder->Metadata->FrameCount;
@@ -734,12 +734,12 @@ Exit:
 
 BOOLEAN
 QuicSendCanSendStreamNow(
-    _In_ PQUIC_STREAM Stream
+    _In_ QUIC_STREAM* Stream
     )
 {
     QUIC_DBG_ASSERT(Stream->SendFlags != 0);
 
-    PQUIC_CONNECTION Connection = Stream->Connection;
+    QUIC_CONNECTION* Connection = Stream->Connection;
 
     if (Connection->Crypto.TlsState.WriteKey == QUIC_PACKET_KEY_1_RTT) {
         return QuicStreamCanSendNow(Stream, FALSE);
@@ -751,9 +751,9 @@ QuicSendCanSendStreamNow(
 }
 
 _Success_(return != NULL)
-PQUIC_STREAM
+QUIC_STREAM*
 QuicSendGetNextStream(
-    _In_ PQUIC_SEND Send,
+    _In_ QUIC_SEND* Send,
     _Out_ uint32_t* PacketCount
     )
 {
@@ -767,7 +767,7 @@ QuicSendGetNextStream(
         // streams repeatedly as we loop.
         //
 
-        PQUIC_STREAM Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
+        QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
 
         //
         // Make sure, given the current state of the connection and the stream,
@@ -798,10 +798,10 @@ QuicSendGetNextStream(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendPathChallenges(
-    _In_ PQUIC_SEND Send
+    _In_ QUIC_SEND* Send
     )
 {
-    PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
     QUIC_DBG_ASSERT(Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL);
 
@@ -852,7 +852,7 @@ QuicSendPathChallenges(
     }
 }
 
-typedef enum _QUIC_SEND_RESULT {
+typedef enum QUIC_SEND_RESULT {
 
     QUIC_SEND_COMPLETE,
     QUIC_SEND_INCOMPLETE,
@@ -866,10 +866,10 @@ typedef enum _QUIC_SEND_RESULT {
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_SEND_RESULT
 QuicSendFlush(
-    _In_ PQUIC_SEND Send
+    _In_ QUIC_SEND* Send
     )
 {
-    PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
     QuicConnRemoveOutFlowBlockedReason(
         Connection, QUIC_FLOW_BLOCKED_SCHEDULING);
@@ -886,7 +886,7 @@ QuicSendFlush(
     QUIC_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
 
     QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;
-    PQUIC_STREAM Stream = NULL;
+    QUIC_STREAM* Stream = NULL;
     uint32_t StreamPacketCount = 0;
 
     if (Send->SendFlags & QUIC_CONN_SEND_FLAG_PATH_CHALLENGE) {
@@ -1057,11 +1057,11 @@ QuicSendFlush(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicSendProcessFlushSendOperation(
-    _In_ PQUIC_SEND Send,
+    _In_ QUIC_SEND* Send,
     _In_ BOOLEAN Immediate
     )
 {
-    PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
     QUIC_DBG_ASSERT(!Connection->State.HandleClosed);
 
@@ -1082,10 +1082,10 @@ QuicSendProcessFlushSendOperation(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendStartDelayedAckTimer(
-    _In_ PQUIC_SEND Send
+    _In_ QUIC_SEND* Send
     )
 {
-    PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
     if (!Send->DelayedAckTimerActive &&
         !(Send->SendFlags & QUIC_CONN_SEND_FLAG_ACK) &&
@@ -1105,14 +1105,14 @@ QuicSendStartDelayedAckTimer(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendProcessDelayedAckTimer(
-    _In_ PQUIC_SEND Send
+    _In_ QUIC_SEND* Send
     )
 {
     QUIC_DBG_ASSERT(Send->DelayedAckTimerActive);
     QUIC_DBG_ASSERT(!(Send->SendFlags & QUIC_CONN_SEND_FLAG_ACK));
     Send->DelayedAckTimerActive = FALSE;
 
-    PQUIC_CONNECTION Connection = QuicSendGetConnection(Send);
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
     BOOLEAN AckElicitingPacketsToAcknowledge = FALSE;
     for (uint32_t i = 0; i < QUIC_ENCRYPT_LEVEL_COUNT; ++i) {
@@ -1134,9 +1134,9 @@ QuicSendProcessDelayedAckTimer(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendOnMtuProbePacketAcked(
-    _In_ PQUIC_SEND Send,
+    _In_ QUIC_SEND* Send,
     _In_ QUIC_PATH* Path,
-    _In_ PQUIC_SENT_PACKET_METADATA Packet
+    _In_ QUIC_SENT_PACKET_METADATA* Packet
     )
 {
     Path->Mtu =

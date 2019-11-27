@@ -8,7 +8,7 @@
 //
 // A worker thread for draining queued operations on a connection.
 //
-typedef struct QUIC_CACHEALIGN _QUIC_WORKER {
+typedef struct QUIC_CACHEALIGN QUIC_WORKER {
 
     //
     // TRUE if the worker is currently running.
@@ -48,7 +48,7 @@ typedef struct QUIC_CACHEALIGN _QUIC_WORKER {
     //
     // A thread for draining operations from queued connections.
     //
-    PQUIC_THREAD Thread;
+    QUIC_THREAD* Thread;
 
     //
     // Serializes access to the connection and operation lists.
@@ -74,12 +74,12 @@ typedef struct QUIC_CACHEALIGN _QUIC_WORKER {
     QUIC_POOL StatelessContextPool; // QUIC_STATELESS_CONTEXT
     QUIC_POOL OperPool; // QUIC_OPERATION
 
-} QUIC_WORKER, *PQUIC_WORKER;
+} QUIC_WORKER;
 
 //
 // A set of workers.
 //
-typedef struct _QUIC_WORKER_POOL {
+typedef struct QUIC_WORKER_POOL {
 
     //
     // Number of workers in the pool.
@@ -97,7 +97,7 @@ typedef struct _QUIC_WORKER_POOL {
     _Field_size_(WorkerCount)
     QUIC_WORKER Workers[0];
 
-} QUIC_WORKER_POOL, *PQUIC_WORKER_POOL;
+} QUIC_WORKER_POOL;
 
 //
 // Returns TRUE if the worker is currently overloaded and shouldn't take on more
@@ -122,7 +122,7 @@ QuicWorkerPoolInitialize(
     _In_opt_ const void* Owner,
     _In_ uint16_t ThreadFlags,
     _In_ uint8_t WorkerCount,
-    _Out_ PQUIC_WORKER_POOL* WorkerPool
+    _Out_ QUIC_WORKER_POOL** WorkerPool
     );
 
 //
@@ -131,7 +131,7 @@ QuicWorkerPoolInitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicWorkerPoolUninitialize(
-    _In_ PQUIC_WORKER_POOL WorkerPool
+    _In_ QUIC_WORKER_POOL* WorkerPool
     );
 
 //
@@ -149,7 +149,7 @@ QuicWorkerPoolIsOverloaded(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint8_t
 QuicWorkerPoolGetLeastLoadedWorker(
-    _In_ PQUIC_WORKER_POOL WorkerPool
+    _In_ QUIC_WORKER_POOL* WorkerPool
     );
 
 //
@@ -158,8 +158,8 @@ QuicWorkerPoolGetLeastLoadedWorker(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicWorkerAssignConnection(
-    _In_ PQUIC_WORKER Worker,
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -169,8 +169,8 @@ QuicWorkerAssignConnection(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicWorkerQueueConnection(
-    _In_ PQUIC_WORKER Worker,
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -180,6 +180,6 @@ QuicWorkerQueueConnection(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicWorkerQueueOperation(
-    _In_ PQUIC_WORKER Worker,
+    _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION* Operation
     );

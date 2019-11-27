@@ -63,7 +63,7 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicAckHeaderEncode(
     _In_ const QUIC_ACK_EX * const Frame,
-    _In_opt_ PQUIC_ACK_ECN_EX Ecn,
+    _In_opt_ QUIC_ACK_ECN_EX* Ecn,
     _Inout_ uint16_t* Offset,
     _In_ uint16_t BufferLength,
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
@@ -98,7 +98,7 @@ QuicAckHeaderDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_ACK_EX Frame
+    _Out_ QUIC_ACK_EX* Frame
     )
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->LargestAcknowledged) ||
@@ -142,7 +142,7 @@ QuicAckBlockDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_ACK_BLOCK_EX Block
+    _Out_ QUIC_ACK_BLOCK_EX* Block
     )
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Block->Gap) ||
@@ -186,7 +186,7 @@ QuicAckEcnDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_ACK_ECN_EX Ecn
+    _Out_ QUIC_ACK_ECN_EX* Ecn
     )
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Ecn->ECT_0_Count) ||
@@ -202,7 +202,7 @@ BOOLEAN
 QuicAckFrameEncode(
     _In_ const QUIC_RANGE * const AckBlocks,
     _In_ uint64_t AckDelay,
-    _In_opt_ PQUIC_ACK_ECN_EX Ecn,
+    _In_opt_ QUIC_ACK_ECN_EX* Ecn,
     _Inout_ uint16_t* Offset,
     _In_ uint16_t BufferLength,
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
@@ -210,7 +210,7 @@ QuicAckFrameEncode(
 {
     uint32_t i = QuicRangeSize(AckBlocks) - 1;
 
-    PQUIC_SUBRANGE LastSub = QuicRangeGet(AckBlocks, i);
+    QUIC_SUBRANGE* LastSub = QuicRangeGet(AckBlocks, i);
     uint64_t Largest = QuicRangeGetHigh(LastSub);
     uint64_t Count = LastSub->Count;
 
@@ -236,7 +236,7 @@ QuicAckFrameEncode(
         QUIC_DBG_ASSERT(Largest >= Count);
         Largest -= Count;
 
-        PQUIC_SUBRANGE Next = QuicRangeGet(AckBlocks, i - 1);
+        QUIC_SUBRANGE* Next = QuicRangeGet(AckBlocks, i - 1);
         uint64_t NextLargest = QuicRangeGetHigh(Next);
         Count = Next->Count;
 
@@ -285,9 +285,9 @@ QuicAckFrameDecode(
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
     _Out_ BOOLEAN* InvalidFrame,
-    _Inout_ PQUIC_RANGE AckRanges, // Pre-Initialized by caller
+    _Inout_ QUIC_RANGE* AckRanges, // Pre-Initialized by caller
     _When_(FrameType == QUIC_FRAME_ACK_1, _Out_)
-        PQUIC_ACK_ECN_EX Ecn,
+        QUIC_ACK_ECN_EX* Ecn,
     _Out_ uint64_t* AckDelay
     )
 {
@@ -409,7 +409,7 @@ QuicResetStreamFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_RESET_STREAM_EX Frame
+    _Out_ QUIC_RESET_STREAM_EX* Frame
     )
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->StreamID) ||
@@ -454,7 +454,7 @@ QuicStopSendingFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_STOP_SENDING_EX Frame
+    _Out_ QUIC_STOP_SENDING_EX* Frame
     )
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->StreamID) ||
@@ -502,7 +502,7 @@ QuicCryptoFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_CRYPTO_EX Frame
+    _Out_ QUIC_CRYPTO_EX* Frame
     )
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->Offset) ||
@@ -549,7 +549,7 @@ QuicNewTokenFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_NEW_TOKEN_EX Frame
+    _Out_ QUIC_NEW_TOKEN_EX* Frame
     )
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->TokenLength) ||
@@ -616,7 +616,7 @@ QuicStreamFrameDecode(
     _Deref_in_range_(0, BufferLength)
     _Deref_out_range_(0, BufferLength)
         uint16_t* Offset,
-    _Out_ PQUIC_STREAM_EX Frame
+    _Out_ QUIC_STREAM_EX* Frame
     )
 {
     QUIC_STREAM_FRAME_TYPE Type = { .Type = FrameType };
@@ -677,7 +677,7 @@ QuicMaxDataFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_MAX_DATA_EX Frame
+    _Out_ QUIC_MAX_DATA_EX* Frame
     )
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->MaximumData)) {
@@ -720,7 +720,7 @@ QuicMaxStreamDataFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_MAX_STREAM_DATA_EX Frame
+    _Out_ QUIC_MAX_STREAM_DATA_EX* Frame
     )
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->StreamID) ||
@@ -768,7 +768,7 @@ QuicMaxStreamsFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_MAX_STREAMS_EX Frame
+    _Out_ QUIC_MAX_STREAMS_EX* Frame
     )
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->MaximumStreams)) {
@@ -810,7 +810,7 @@ QuicDataBlockedFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_DATA_BLOCKED_EX Frame
+    _Out_ QUIC_DATA_BLOCKED_EX* Frame
     )
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->DataLimit)) {
@@ -853,7 +853,7 @@ QuicStreamDataBlockedFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_STREAM_DATA_BLOCKED_EX Frame
+    _Out_ QUIC_STREAM_DATA_BLOCKED_EX* Frame
     )
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->StreamID) ||
@@ -901,7 +901,7 @@ QuicStreamsBlockedFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_STREAMS_BLOCKED_EX Frame
+    _Out_ QUIC_STREAMS_BLOCKED_EX* Frame
     )
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->StreamLimit)) {
@@ -950,7 +950,7 @@ QuicNewConnectionIDFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_NEW_CONNECTION_ID_EX Frame
+    _Out_ QUIC_NEW_CONNECTION_ID_EX* Frame
     )
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->Sequence) ||
@@ -1005,7 +1005,7 @@ QuicRetireConnectionIDFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_RETIRE_CONNECTION_ID_EX Frame
+    _Out_ QUIC_RETIRE_CONNECTION_ID_EX* Frame
     )
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->Sequence)) {
@@ -1048,7 +1048,7 @@ QuicPathChallengeFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_PATH_CHALLENGE_EX Frame
+    _Out_ QUIC_PATH_CHALLENGE_EX* Frame
     )
 {
     if (BufferLength < *Offset + sizeof(Frame->Data)) {
@@ -1107,7 +1107,7 @@ QuicConnCloseFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
-    _Out_ PQUIC_CONNECTION_CLOSE_EX Frame
+    _Out_ QUIC_CONNECTION_CLOSE_EX* Frame
     )
 {
     Frame->ApplicationClosed = FrameType == QUIC_FRAME_CONNECTION_CLOSE_1;

@@ -5,7 +5,7 @@
 
 --*/
 
-typedef struct _QUIC_LISTENER QUIC_LISTENER, *PQUIC_LISTENER;
+typedef struct QUIC_LISTENER QUIC_LISTENER;
 
 //
 // Connection close flags
@@ -23,7 +23,7 @@ typedef struct _QUIC_LISTENER QUIC_LISTENER, *PQUIC_LISTENER;
 // Different possible states/flags of a connection.
 // Note - Keep quictypes.h's copy up to date.
 //
-typedef union _QUIC_CONNECTION_STATE {
+typedef union QUIC_CONNECTION_STATE {
     uint32_t Flags;
     struct {
         BOOLEAN Allocated       : 1;    // Allocated. Used for Debugging.
@@ -142,7 +142,7 @@ typedef union _QUIC_CONNECTION_STATE {
 //
 // Different references on a connection.
 //
-typedef enum _QUIC_CONNECTION_REF {
+typedef enum QUIC_CONNECTION_REF {
 
     QUIC_CONN_REF_HANDLE_OWNER,         // Application or Core.
     QUIC_CONN_REF_LOOKUP_TABLE,         // Per registered CID.
@@ -156,7 +156,7 @@ typedef enum _QUIC_CONNECTION_REF {
 //
 // A single timer entry on the connection.
 //
-typedef struct _QUIC_CONN_TIMER_ENTRY {
+typedef struct QUIC_CONN_TIMER_ENTRY {
 
     //
     // The type of timer this entry is for.
@@ -173,7 +173,7 @@ typedef struct _QUIC_CONN_TIMER_ENTRY {
 //
 // Per connection statistics.
 //
-typedef struct _QUIC_CONN_STATS {
+typedef struct QUIC_CONN_STATS {
 
     uint64_t CorrelationId;
 
@@ -243,9 +243,9 @@ typedef struct _QUIC_CONN_STATS {
 //   N.B. In general, all variables should only be written on the QUIC worker
 //        thread.
 //
-typedef struct _QUIC_CONNECTION {
+typedef struct QUIC_CONNECTION {
 
-    struct _QUIC_HANDLE;
+    struct QUIC_HANDLE;
 
     //
     // Link into the session's list of connections.
@@ -266,17 +266,17 @@ typedef struct _QUIC_CONNECTION {
     //
     // The worker that is processing this connection.
     //
-    PQUIC_WORKER Worker;
+    QUIC_WORKER* Worker;
 
     //
     // The top level registration this connection is a part of.
     //
-    PQUIC_REGISTRATION Registration;
+    QUIC_REGISTRATION* Registration;
 
     //
     // The top level session this connection is a part of.
     //
-    PQUIC_SESSION Session;
+    QUIC_SESSION* Session;
 
     //
     // Number of references to the handle.
@@ -478,7 +478,7 @@ typedef struct _QUIC_CONNECTION {
     //
     // Per-encryption level packet space information.
     //
-    PQUIC_PACKET_SPACE Packets[QUIC_ENCRYPT_LEVEL_COUNT];
+    QUIC_PACKET_SPACE* Packets[QUIC_ENCRYPT_LEVEL_COUNT];
 
     //
     // Manages the stream of cryptographic TLS data sent and received.
@@ -506,7 +506,7 @@ typedef struct _QUIC_CONNECTION {
     //
     QUIC_PRIVATE_TRANSPORT_PARAMETER TestTransportParameter;
 
-} QUIC_CONNECTION, *PQUIC_CONNECTION;
+} QUIC_CONNECTION;
 
 //
 // Estimates the memory usage for a connection object in the handshake state.
@@ -540,7 +540,7 @@ QuicConnIsServer(
     _In_ const QUIC_CONNECTION * const Connection
     )
 {
-    return ((PQUIC_HANDLE)Connection)->Type == QUIC_HANDLE_TYPE_CHILD;
+    return ((QUIC_HANDLE*)Connection)->Type == QUIC_HANDLE_TYPE_CHILD;
 }
 
 //
@@ -572,7 +572,7 @@ QuicConnGetNextExpirationTime(
 //
 inline
 _Ret_notnull_
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicStreamSetGetConnection(
     _In_ QUIC_STREAM_SET* StreamSet
     )
@@ -585,9 +585,9 @@ QuicStreamSetGetConnection(
 //
 inline
 _Ret_notnull_
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicCryptoGetConnection(
-    _In_ PQUIC_CRYPTO Crypto
+    _In_ QUIC_CRYPTO* Crypto
     )
 {
     return QUIC_CONTAINING_RECORD(Crypto, QUIC_CONNECTION, Crypto);
@@ -598,9 +598,9 @@ QuicCryptoGetConnection(
 //
 inline
 _Ret_notnull_
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicSendGetConnection(
-    _In_ PQUIC_SEND Send
+    _In_ QUIC_SEND* Send
     )
 {
     return QUIC_CONTAINING_RECORD(Send, QUIC_CONNECTION, Send);
@@ -611,9 +611,9 @@ QuicSendGetConnection(
 //
 inline
 _Ret_notnull_
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicCongestionControlGetConnection(
-    _In_ PQUIC_CONGESTION_CONTROL Cc
+    _In_ QUIC_CONGESTION_CONTROL* Cc
     )
 {
     return QUIC_CONTAINING_RECORD(Cc, QUIC_CONNECTION, CongestionControl);
@@ -624,9 +624,9 @@ QuicCongestionControlGetConnection(
 //
 inline
 _Ret_notnull_
-PQUIC_CONNECTION
+QUIC_CONNECTION*
 QuicLossDetectionGetConnection(
-    _In_ PQUIC_LOSS_DETECTION LossDetection
+    _In_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
     return QUIC_CONTAINING_RECORD(LossDetection, QUIC_CONNECTION, LossDetection);
@@ -743,7 +743,7 @@ QUIC_STATUS
 QuicConnInitialize(
     _In_opt_ const QUIC_RECV_DATAGRAM* const Datagram,
     _Outptr_ _At_(*Connection, __drv_allocatesMem(Mem))
-        PQUIC_CONNECTION* Connection
+        QUIC_CONNECTION** Connection
     );
 
 //
@@ -752,7 +752,7 @@ QuicConnInitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnFree(
-    _In_ __drv_freesMem(Mem) PQUIC_CONNECTION Connection
+    _In_ __drv_freesMem(Mem) QUIC_CONNECTION* Connection
     );
 
 //
@@ -761,7 +761,7 @@ QuicConnFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnCloseHandle(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     );
 
 #if QUIC_TEST_MODE
@@ -769,7 +769,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 void
 QuicConnValidate(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     QUIC_FRE_ASSERT(!Connection->State.Freed);
@@ -785,7 +785,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 void
 QuicConnAddRef(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_CONNECTION_REF Ref
     )
 {
@@ -810,7 +810,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 void
 QuicConnRelease(
-    _In_ __drv_freesMem(Mem) PQUIC_CONNECTION Connection,
+    _In_ __drv_freesMem(Mem) QUIC_CONNECTION* Connection,
     _In_ QUIC_CONNECTION_REF Ref
     )
 {
@@ -852,7 +852,7 @@ QuicConnRelease(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueTraceRundown(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -861,7 +861,7 @@ QuicConnQueueTraceRundown(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnIndicateEvent(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _Inout_ QUIC_CONNECTION_EVENT* Event
     );
 
@@ -873,7 +873,7 @@ QuicConnIndicateEvent(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnDrainOperations(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -882,7 +882,7 @@ QuicConnDrainOperations(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnApplySettings(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_SETTINGS* Settings
     );
 
@@ -893,15 +893,15 @@ QuicConnApplySettings(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueOper(
-    _In_ PQUIC_CONNECTION Connection,
-    _In_ PQUIC_OPERATION Oper
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_OPERATION* Oper
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueHighestPriorityOper(
-    _In_ PQUIC_CONNECTION Connection,
-    _In_ PQUIC_OPERATION Oper
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_OPERATION* Oper
     );
 
 //
@@ -910,7 +910,7 @@ QuicConnQueueHighestPriorityOper(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_CID_HASH_ENTRY*
 QuicConnGenerateNewSourceCid(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN IsInitial
     );
 
@@ -920,7 +920,7 @@ QuicConnGenerateNewSourceCid(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnRetireCurrentDestCid(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path
     );
 
@@ -932,7 +932,7 @@ _Success_(return != NULL)
 inline
 QUIC_CID_HASH_ENTRY*
 QuicConnGetSourceCidFromSeq(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_VAR_INT SequenceNumber,
     _In_ BOOLEAN RemoveFromList,
     _Out_ BOOLEAN* IsLastCid
@@ -964,7 +964,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 QUIC_CID_HASH_ENTRY*
 QuicConnGetSourceCidFromBuf(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint8_t CidLength,
     _In_reads_(CidLength)
         const uint8_t* CidBuffer
@@ -993,7 +993,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 QUIC_CID_QUIC_LIST_ENTRY*
 QuicConnGetDestCidFromSeq(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_VAR_INT SequenceNumber,
     _In_ BOOLEAN RemoveFromList
     )
@@ -1022,7 +1022,7 @@ QuicConnGetDestCidFromSeq(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnUpdateRtt(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ uint32_t LatestRtt
     );
@@ -1033,7 +1033,7 @@ QuicConnUpdateRtt(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnTimerSet(
-    _Inout_ PQUIC_CONNECTION Connection,
+    _Inout_ QUIC_CONNECTION* Connection,
     _In_ QUIC_CONN_TIMER_TYPE Type,
     _In_ uint64_t DelayMs
     );
@@ -1044,7 +1044,7 @@ QuicConnTimerSet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnTimerCancel(
-    _Inout_ PQUIC_CONNECTION Connection,
+    _Inout_ QUIC_CONNECTION* Connection,
     _In_ QUIC_CONN_TIMER_TYPE Type
     );
 
@@ -1054,7 +1054,7 @@ QuicConnTimerCancel(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnTimerExpired(
-    _Inout_ PQUIC_CONNECTION Connection,
+    _Inout_ QUIC_CONNECTION* Connection,
     _In_ uint64_t TimeNow
     );
 
@@ -1064,7 +1064,7 @@ QuicConnTimerExpired(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnOnQuicVersionSet(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -1073,7 +1073,7 @@ QuicConnOnQuicVersionSet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnOnLocalAddressChanged(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -1082,7 +1082,7 @@ QuicConnOnLocalAddressChanged(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnStart(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_ADDRESS_FAMILY Family,
     _In_opt_z_ const char* ServerName,
     _In_ uint16_t ServerPort // Host byte order
@@ -1094,7 +1094,7 @@ QuicConnStart(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnRestart(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN CompleteReset
     );
 
@@ -1105,7 +1105,7 @@ QuicConnRestart(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnProcessPeerTransportParameters(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN FromCache
     );
 
@@ -1115,7 +1115,7 @@ QuicConnProcessPeerTransportParameters(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnHandshakeConfigure(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_opt_ QUIC_SEC_CONFIG* SecConfig
     );
 
@@ -1125,7 +1125,7 @@ QuicConnHandshakeConfigure(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnFlushDeferred(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -1134,7 +1134,7 @@ QuicConnFlushDeferred(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnCloseLocally(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint32_t Flags,
     _In_ uint64_t ErrorCode,
     _In_opt_z_ const char* ErrorMsg
@@ -1147,7 +1147,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 void
 QuicConnTransportError(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint64_t ErrorCode
     )
 {
@@ -1162,7 +1162,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 void
 QuicConnFatalError(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_STATUS Status,
     _In_opt_z_ const char* ErrorMsg
     )
@@ -1182,7 +1182,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 void
 QuicConnSilentlyAbort(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     QuicConnCloseLocally(
@@ -1198,7 +1198,7 @@ QuicConnSilentlyAbort(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnResetIdleTimeout(
-    _In_ PQUIC_CONNECTION Connection
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -1207,7 +1207,7 @@ QuicConnResetIdleTimeout(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueRecvDatagram(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_RECV_DATAGRAM* DatagramChain,
     _In_ uint32_t DatagramChainLength
     );
@@ -1218,7 +1218,7 @@ QuicConnQueueRecvDatagram(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueUnreachable(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_ADDR* RemoteAddress
     );
 
@@ -1228,7 +1228,7 @@ QuicConnQueueUnreachable(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnParamSet(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -1241,7 +1241,7 @@ QuicConnParamSet(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnParamGet(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)

@@ -207,7 +207,7 @@ QuicStreamSetDrainClosedStreams(
     )
 {
     while (!QuicListIsEmpty(&StreamSet->ClosedStreams)) {
-        PQUIC_STREAM Stream =
+        QUIC_STREAM* Stream =
             QUIC_CONTAINING_RECORD(
                     QuicListRemoveHead(&StreamSet->ClosedStreams),
                     QUIC_STREAM,

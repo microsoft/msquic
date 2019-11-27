@@ -19,15 +19,15 @@ Abstract:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicStreamInitialize(
-    _In_ PQUIC_CONNECTION Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN Unidirectional,
     _In_ BOOLEAN Opened0Rtt,
     _Outptr_ _At_(*NewStream, __drv_allocatesMem(Mem))
-        PQUIC_STREAM* NewStream
+        QUIC_STREAM** NewStream
     )
 {
     QUIC_STATUS Status;
-    PQUIC_STREAM Stream;
+    QUIC_STREAM* Stream;
 
     Stream = QuicPoolAlloc(&Connection->Worker->StreamPool);
     if (Stream == NULL) {
@@ -93,7 +93,7 @@ Exit:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicStreamFree(
-    _In_ __drv_freesMem(Mem) PQUIC_STREAM Stream
+    _In_ __drv_freesMem(Mem) QUIC_STREAM* Stream
     )
 {
     BOOLEAN WasStarted = Stream->Flags.Started;
@@ -125,7 +125,7 @@ QuicStreamFree(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamStart(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ QUIC_STREAM_START_FLAGS Flags
     )
 {
@@ -231,7 +231,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamClose(
-    _In_ __drv_freesMem(Mem) PQUIC_STREAM Stream
+    _In_ __drv_freesMem(Mem) QUIC_STREAM* Stream
     )
 {
     if (!Stream->Flags.Started) {
@@ -275,7 +275,7 @@ QuicStreamTraceRundown(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamIndicateEvent(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _Inout_ QUIC_STREAM_EVENT* Event
     )
 {
@@ -308,7 +308,7 @@ QuicStreamIndicateEvent(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamIndicateStartComplete(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ QUIC_STATUS Status
     )
 {
@@ -324,7 +324,7 @@ QuicStreamIndicateStartComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamIndicateShutdownComplete(
-    _In_ PQUIC_STREAM Stream
+    _In_ QUIC_STREAM* Stream
     )
 {
     if (!Stream->Flags.HandleShutdown) {
@@ -343,7 +343,7 @@ QuicStreamIndicateShutdownComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamShutdown(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ QUIC_STREAM_SHUTDOWN_FLAGS Flags,
     _In_ QUIC_VAR_INT ErrorCode
     )
@@ -388,7 +388,7 @@ QuicStreamShutdown(
 
 void
 QuicStreamTryCompleteShutdown(
-    _In_ PQUIC_STREAM Stream
+    _In_ QUIC_STREAM* Stream
     )
 {
     if (!Stream->Flags.ShutdownComplete &&
@@ -419,7 +419,7 @@ QuicStreamTryCompleteShutdown(
 
 QUIC_STATUS
 QuicStreamParamSet(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -435,7 +435,7 @@ QuicStreamParamSet(
 
 QUIC_STATUS
 QuicStreamParamGet(
-    _In_ PQUIC_STREAM Stream,
+    _In_ QUIC_STREAM* Stream,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)

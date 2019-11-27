@@ -22,7 +22,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicRangeInitialize(
     _In_ uint32_t MaxAllocSize,
-    _Out_ PQUIC_RANGE Range
+    _Out_ QUIC_RANGE* Range
     )
 {
     Range->UsedLength = 0;
@@ -39,7 +39,7 @@ QuicRangeInitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRangeUninitialize(
-    _In_ PQUIC_RANGE Range
+    _In_ QUIC_RANGE* Range
     )
 {
     QUIC_FREE(Range->SubRanges);
@@ -48,7 +48,7 @@ QuicRangeUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRangeReset(
-    _Inout_ PQUIC_RANGE Range
+    _Inout_ QUIC_RANGE* Range
     )
 {
     Range->UsedLength = 0;
@@ -58,7 +58,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicRangeGrow(
-    _Inout_ PQUIC_RANGE Range,
+    _Inout_ QUIC_RANGE* Range,
     _In_ uint32_t NextIndex   // The next index to write to after the grow.
     )
 {
@@ -76,7 +76,7 @@ QuicRangeGrow(
         return FALSE;
     }
 
-    PQUIC_SUBRANGE NewSubRanges = QUIC_ALLOC_NONPAGED(NewAllocSize);
+    QUIC_SUBRANGE* NewSubRanges = QUIC_ALLOC_NONPAGED(NewAllocSize);
     if (NewSubRanges == NULL) {
         EventWriteQuicAllocFailure("range (realloc)", NewAllocLength);
         return FALSE;
@@ -120,9 +120,9 @@ QuicRangeGrow(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
-PQUIC_SUBRANGE
+QUIC_SUBRANGE*
 QuicRangeMakeSpace(
-    _Inout_ PQUIC_RANGE Range,
+    _Inout_ QUIC_RANGE* Range,
     _Inout_ uint32_t* Index
     )
 {
@@ -171,7 +171,7 @@ QuicRangeMakeSpace(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRangeRemoveSubranges(
-    _Inout_ PQUIC_RANGE Range,
+    _Inout_ QUIC_RANGE* Range,
     _In_ uint32_t Index,
     _In_ uint32_t Count
     )
@@ -195,7 +195,7 @@ QuicRangeRemoveSubranges(
         // Shrink
         //
         uint32_t NewAllocLength = Range->AllocLength / 2;
-        PQUIC_SUBRANGE NewSubRanges =
+        QUIC_SUBRANGE* NewSubRanges =
             QUIC_ALLOC_NONPAGED(sizeof(QUIC_SUBRANGE) * NewAllocLength);
         if (NewSubRanges != NULL) {
             memcpy(
@@ -216,7 +216,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicRangeGetRange(
-    _In_ PQUIC_RANGE Range,
+    _In_ QUIC_RANGE* Range,
     _In_ uint64_t Low,
     _Out_ uint64_t* Count,
     _Out_ BOOLEAN* IsLastRange
@@ -228,7 +228,7 @@ QuicRangeGetRange(
         return FALSE;
     }
 
-    PQUIC_SUBRANGE Sub = QuicRangeGet(Range, i);
+    QUIC_SUBRANGE* Sub = QuicRangeGet(Range, i);
     *Count = Sub->Count - (Low - Sub->Low);
     *IsLastRange = (uint32_t)(i + 1) == Range->UsedLength;
     return TRUE;
@@ -236,9 +236,9 @@ QuicRangeGetRange(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
-PQUIC_SUBRANGE
+QUIC_SUBRANGE*
 QuicRangeAddRange(
-    _Inout_ PQUIC_RANGE Range,
+    _Inout_ QUIC_RANGE* Range,
     _In_ uint64_t Low,
     _In_ uint64_t Count,
     _Out_ BOOLEAN* RangeUpdated
@@ -246,7 +246,7 @@ QuicRangeAddRange(
 {
     int result;
     uint32_t i;
-    PQUIC_SUBRANGE Sub;
+    QUIC_SUBRANGE* Sub;
     QUIC_RANGE_SEARCH_KEY Key = { Low, Low + Count - 1 };
 
     *RangeUpdated = FALSE;
@@ -339,7 +339,7 @@ QuicRangeAddRange(
         // Subsume subranges overlapping/adjacent to the expanded subrange.
         //
         uint32_t j = i + 1;
-        PQUIC_SUBRANGE Next;
+        QUIC_SUBRANGE* Next;
         while ((Next = QuicRangeGetSafe(Range, j)) != NULL &&
                 Next->Low <= Low + Count) {
             if (Next->Low + Next->Count > Sub->Low + Sub->Count) {
@@ -369,7 +369,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicRangeAddValue(
-    _Inout_ PQUIC_RANGE Range,
+    _Inout_ QUIC_RANGE* Range,
     _In_ uint64_t Value
     )
 {
@@ -381,7 +381,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicRangeRemoveRange(
-    _Inout_ PQUIC_RANGE Range,
+    _Inout_ QUIC_RANGE* Range,
     _In_ uint64_t Low,
     _In_ uint64_t Count
     )
@@ -393,8 +393,8 @@ QuicRangeRemoveRange(
     //
 
     uint32_t i;
-    PQUIC_SUBRANGE Sub = NULL;
-    PQUIC_SUBRANGE Test;
+    QUIC_SUBRANGE* Sub = NULL;
+    QUIC_SUBRANGE* Test;
 
     //
     // Find the leftmost overlapping subrange.
@@ -418,7 +418,7 @@ QuicRangeRemoveRange(
         // and the second part will be handled by the "left edge
         // overlaps" case.
         //
-        PQUIC_SUBRANGE NewSub = QuicRangeMakeSpace(Range, &i);
+        QUIC_SUBRANGE* NewSub = QuicRangeMakeSpace(Range, &i);
         if (NewSub == NULL) {
             return FALSE;
         }
@@ -464,7 +464,7 @@ QuicRangeRemoveRange(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRangeSetMin(
-    _Inout_ PQUIC_RANGE Range,
+    _Inout_ QUIC_RANGE* Range,
     _In_ uint64_t Low
     )
 {
@@ -472,7 +472,7 @@ QuicRangeSetMin(
     // Drop all values less than "low".
     //
     uint32_t i = 0;
-    PQUIC_SUBRANGE Sub = NULL;
+    QUIC_SUBRANGE* Sub = NULL;
     while (i < QuicRangeSize(Range)) {
         Sub = QuicRangeGet(Range, i);
         if (Sub->Low >= Low) {
@@ -492,7 +492,7 @@ QuicRangeSetMin(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint64_t
 QuicRangeGetMin(
-    _In_ PQUIC_RANGE Range
+    _In_ QUIC_RANGE* Range
     )
 {
     return QuicRangeGet(Range, 0)->Low;
@@ -502,7 +502,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicRangeGetMinSafe(
-    _In_ PQUIC_RANGE Range,
+    _In_ QUIC_RANGE* Range,
     _Out_ uint64_t* Value
     )
 {
@@ -517,7 +517,7 @@ QuicRangeGetMinSafe(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint64_t
 QuicRangeGetMax(
-    _In_ PQUIC_RANGE Range
+    _In_ QUIC_RANGE* Range
     )
 {
     return QuicRangeGetHigh(QuicRangeGet(Range, Range->UsedLength - 1));
@@ -527,7 +527,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
 QuicRangeGetMaxSafe(
-    _In_ PQUIC_RANGE Range,
+    _In_ QUIC_RANGE* Range,
     _Out_ uint64_t* Value
     )
 {
@@ -544,11 +544,11 @@ QuicRangeGetMaxSafe(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRangeValidate(
-    _In_ PQUIC_RANGE Range
+    _In_ QUIC_RANGE* Range
     )
 {
     for (uint32_t i = 0; i < QuicRangeSize(Range); i++) {
-        PQUIC_SUBRANGE Sub = QuicRangeGet(Range, i);
+        QUIC_SUBRANGE* Sub = QuicRangeGet(Range, i);
         //
         // In the current testing, our usage doesn't go into the full 64-bit
         // range. So we assume any values greater than 32-bits are likely bugs

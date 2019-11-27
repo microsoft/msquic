@@ -91,7 +91,7 @@ const uint32_t MaxThreadCount =
     ARRAYSIZE(Ports) *
     ARRAYSIZE(PublicEndpoints) *
     QuicTestFeatureCount;
-PQUIC_THREAD Threads[MaxThreadCount];
+QUIC_THREAD* Threads[MaxThreadCount];
 uint32_t CurrentThreadCount;
 
 extern "C" void QuicTraceRundown(void) { }
