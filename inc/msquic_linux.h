@@ -290,13 +290,6 @@ QuicAddrToString(
     _Out_ QUIC_ADDR_STR* AddrStr
     );
 
-QUIC_STATUS
-QuicTlsGenerateSelfSignedCert(
-    _In_z_ char *CertFileName,
-    _In_z_ char *PrivateKeyFileName,
-    _In_z_ char *SNI
-    );
-
 #if defined(__cplusplus)
 }
 #endif

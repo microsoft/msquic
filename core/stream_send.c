@@ -1073,6 +1073,7 @@ QuicStreamSendWrite(
     // little room left in the packet to fit anything more.
     //
     QUIC_DBG_ASSERT(Builder->Metadata->FrameCount > PrevFrameCount || RanOutOfRoom);
+    UNREFERENCED_PARAMETER(RanOutOfRoom);
 
     return Builder->Metadata->FrameCount > PrevFrameCount;
 }

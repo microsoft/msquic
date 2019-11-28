@@ -73,7 +73,6 @@ QuicPlatformUninitialize(
     void
     );
 
-
 //
 // Generic stuff.
 //
@@ -200,12 +199,7 @@ QuicPlatformLogAssert(
 #define QUIC_ANALYSIS_ASSERT(X)
 #define QUIC_FRE_ASSERT(exp) ((exp) ? (void)0 : (QuicPlatformLogAssert(__FILE__, __LINE__, __func__, #exp), quic_bugcheck()));
 
-//
-// LINUX_TODO: Define DBG on debug build.
-//
-
-#define DBG 1
-#ifdef DBG
+#ifdef DEBUG // TODO - Define DEBUG in DEBUG config
 #define QUIC_DBG_ASSERT(exp) QUIC_FRE_ASSERT(exp)
 #define QUIC_DBG_ASSERTMSG(exp, msg) QUIC_FRE_ASSERT(exp)
 #define QUIC_TEL_ASSERT(exp) QUIC_FRE_ASSERT(exp)

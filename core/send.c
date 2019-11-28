@@ -728,6 +728,7 @@ Exit:
     // little room left in the packet to fit anything more.
     //
     QUIC_DBG_ASSERT(Builder->Metadata->FrameCount > PrevFrameCount || RanOutOfRoom);
+    UNREFERENCED_PARAMETER(RanOutOfRoom);
 
     return Builder->Metadata->FrameCount > PrevFrameCount;
 }
@@ -845,6 +846,7 @@ QuicSendPathChallenges(
 
         Result = QuicPacketBuilderAddFrame(&Builder, QUIC_FRAME_PATH_CHALLENGE, TRUE);
         QUIC_DBG_ASSERT(!Result);
+        UNREFERENCED_PARAMETER(Result);
 
         QuicPacketBuilderFinalize(&Builder, TRUE);
 

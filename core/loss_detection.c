@@ -15,29 +15,31 @@ Abstract:
     sent more than QUIC_TIME_REORDER_THRESHOLD ago is assumed lost.
 
 
-    Retransmit timeout algorithm:
+    There are three logical timers in this module:
 
-    This works a bit differently from TCP and is designed to have the
-    same benefits as F-RTO (RFC 4138). When the RTO timer fires, two
-    packets are immediately retransmitted (even if the congestion window
-    is full) and the packet number of the first retransmission is recorded
-    as "Packet N."
+    1)  Disconnect timer: if a packet is outstanding for DisconnectTimeoutUs
+        without being acknowledged or determined lost (for example, if no ACKs
+        are received at all after sending the packet), the connection is
+        terminated. This is the last-resort "give-up" timer, and is armed
+        whenever there is an outstanding packet.
 
-    On the next ACK, if any packets prior to Packet N are acknowledged,
-    then we assume that the RTO was spurious. Otherwise, we consider the
-    RTO "confirmed" and tell congestion control to reduce the congestion
-    window and consider all unacknowledged packets lost.
+    2)  RACK timer: armed whenever there is an outstanding packet with a later
+        packet acknowledged. This is required to trigger the RACK loss detection
+        algorithm described above. When this is armed, the probe timer is not.
 
-    The most striking difference between this algorithm and that of
-    TCP is that the congestion window is not reduced until the RTO
-    is confirmed. In TCP with F-RTO, the window is shrunk when the
-    timer fires and if F-RTO determines the RTO to be spurious the
-    window is "restored."
+    3)  Probe timer: the purpose of this timer is to ensure the RACK algorithm
+        discovers lost packets in all cases. One example case where this helps
+        is when the very last packet sent is dropped. RACK cannot determine
+        that the last packet was lost, since it is defined based on later
+        packets being ACKed.
 
-    In case the reader is alarmed that QUIC will send more due to not
-    shrinking its window, it should be noted that the previously sent
-    packets will still be considered "in flight" until the RTO is confirmed,
-    and therefore the window will be full.
+        The probe timer is armed whenever the RACK timer is not armed and there
+        is an outstanding packet. Its period is a function of RTT, and doubles
+        for each consecutive fire. The expiry time is based on the earliest
+        packet in the set consisting of the latest outstanding packet sent in
+        each packet number space.
+
+        When the probe timer fires, two probe packets are sent.
 
 --*/
 
