@@ -100,8 +100,8 @@ class TestStream
     bool RecvShutdown       : 1;
     bool IsShutdown         : 1;
 
-    volatile LONG64 BytesToSend;
-    volatile LONG OutstandingSendRequestCount;
+    volatile int64_t BytesToSend;
+    volatile long OutstandingSendRequestCount;
     uint64_t BytesReceived;
 
     QUIC_EVENT EventSendShutdownComplete;

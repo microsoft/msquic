@@ -41,55 +41,55 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         void Reset() {
             QuicRangeReset(&range);
         }
-        bool TryAdd(UINT64 value) {
+        bool TryAdd(uint64_t value) {
             return QuicRangeAddValue(&range, value) != FALSE;
         }
-        bool TryAdd(UINT64 low, UINT64 count) {
+        bool TryAdd(uint64_t low, uint64_t count) {
             BOOLEAN rangeUpdated;
             return QuicRangeAddRange(&range, low, count, &rangeUpdated) != FALSE;
         }
-        void Add(UINT64 value) {
+        void Add(uint64_t value) {
             VERIFY_IS_TRUE(TryAdd(value));
         #ifndef LOG_ONLY_FAILURES
             Dump();
         #endif
         }
-        void Add(UINT64 low, UINT64 count) {
+        void Add(uint64_t low, uint64_t count) {
             VERIFY_IS_TRUE(TryAdd(low, count));
         #ifndef LOG_ONLY_FAILURES
             Dump();
         #endif
         }
-        void Remove(UINT64 low, UINT64 count) {
+        void Remove(uint64_t low, uint64_t count) {
             VERIFY_IS_TRUE(QuicRangeRemoveRange(&range, low, count));
         #ifndef LOG_ONLY_FAILURES
             Dump();
         #endif
         }
-        int Find(UINT64 value) {
+        int Find(uint64_t value) {
             QUIC_RANGE_SEARCH_KEY Key = { value, value };
             return QuicRangeSearch(&range, &Key);
         }
-        int FindRange(UINT64 value, UINT64 count) {
+        int FindRange(uint64_t value, uint64_t count) {
             QUIC_RANGE_SEARCH_KEY Key = { value, value + count - 1 };
             return QuicRangeSearch(&range, &Key);
         }
-        UINT64 Min() {
-            UINT64 value;
+        uint64_t Min() {
+            uint64_t value;
             VERIFY_ARE_EQUAL(TRUE, QuicRangeGetMinSafe(&range, &value));
             return value;
         }
-        UINT64 Max() {
-            UINT64 value;
+        uint64_t Max() {
+            uint64_t value;
             VERIFY_ARE_EQUAL(TRUE, QuicRangeGetMaxSafe(&range, &value));
             return value;
         }
-        UINT32 ValidCount() {
+        uint32_t ValidCount() {
             return QuicRangeSize(&range);
         }
         void Dump() {
             Log::Comment(L"== Dump == ");
-            for (UINT32 i = 0; i < QuicRangeSize(&range); i++) {
+            for (uint32_t i = 0; i < QuicRangeSize(&range); i++) {
                 auto cur = QuicRangeGet(&range, i);
                 Log::Comment(
                     String().Format(
@@ -103,9 +103,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
     {
         SmartRange range;
         range.Add(100);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)100);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)100);
     }
 
     TEST_METHOD(AddTwoAdjacentBefore)
@@ -113,9 +113,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         SmartRange range;
         range.Add(101);
         range.Add(100);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)101);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)101);
     }
 
     TEST_METHOD(AddTwoAdjacentAfter)
@@ -123,9 +123,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         SmartRange range;
         range.Add(100);
         range.Add(101);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)101);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)101);
     }
 
     TEST_METHOD(AddTwoSeparateBefore)
@@ -133,9 +133,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         SmartRange range;
         range.Add(102);
         range.Add(100);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)2);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)102);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)2);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)102);
     }
 
     TEST_METHOD(AddTwoSeparateAfter)
@@ -143,9 +143,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         SmartRange range;
         range.Add(100);
         range.Add(102);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)2);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)102);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)2);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)102);
     }
 
     TEST_METHOD(AddThreeMerge)
@@ -154,9 +154,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         range.Add(100);
         range.Add(102);
         range.Add(101);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)102);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)102);
     }
 
     TEST_METHOD(AddBetween)
@@ -165,18 +165,18 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         range.Add(100);
         range.Add(104);
         range.Add(102);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)3);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)104);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)3);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)104);
     }
 
     TEST_METHOD(AddRangeSingle)
     {
         SmartRange range;
         range.Add(100, 100);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)199);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)199);
     }
 
     TEST_METHOD(AddRangeBetween)
@@ -185,9 +185,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         range.Add(100, 50);
         range.Add(300, 50);
         range.Add(200, 50);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)3);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)349);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)3);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)349);
     }
 
     TEST_METHOD(AddRangeTwoAdjacentBefore)
@@ -195,9 +195,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         SmartRange range;
         range.Add(200, 100);
         range.Add(100, 100);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)299);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)299);
     }
 
     TEST_METHOD(AddRangeTwoAdjacentAfter)
@@ -205,9 +205,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         SmartRange range;
         range.Add(100, 100);
         range.Add(200, 100);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)299);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)299);
     }
 
     TEST_METHOD(AddRangeTwoSeparateBefore)
@@ -215,9 +215,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         SmartRange range;
         range.Add(300, 100);
         range.Add(100, 100);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)2);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)399);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)2);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)399);
     }
 
     TEST_METHOD(AddRangeTwoSeparateAfter)
@@ -225,9 +225,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         SmartRange range;
         range.Add(100, 100);
         range.Add(300, 100);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)2);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)399);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)2);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)399);
     }
 
     TEST_METHOD(AddRangeTwoOverlapBefore1)
@@ -235,9 +235,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         SmartRange range;
         range.Add(200, 100);
         range.Add(100, 150);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)299);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)299);
     }
 
     TEST_METHOD(AddRangeTwoOverlapBefore2)
@@ -245,9 +245,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         SmartRange range;
         range.Add(200, 100);
         range.Add(100, 200);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)299);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)299);
     }
 
     TEST_METHOD(AddRangeTwoOverlapBefore3)
@@ -255,9 +255,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         SmartRange range;
         range.Add(200, 50);
         range.Add(100, 200);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)299);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)299);
     }
 
     TEST_METHOD(AddRangeTwoOverlapAfter1)
@@ -265,9 +265,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         SmartRange range;
         range.Add(100, 100);
         range.Add(150, 150);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)299);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)299);
     }
 
     TEST_METHOD(AddRangeTwoOverlapAfter2)
@@ -275,9 +275,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         SmartRange range;
         range.Add(100, 100);
         range.Add(100, 200);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)299);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)299);
     }
 
     TEST_METHOD(AddRangeThreeMerge)
@@ -286,9 +286,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         range.Add(100, 100);
         range.Add(300, 100);
         range.Add(200, 100);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)399);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)399);
     }
 
     TEST_METHOD(AddRangeThreeOverlapAndAdjacentAfter1)
@@ -297,9 +297,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         range.Add(100, 1);
         range.Add(200, 100);
         range.Add(101, 150);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)299);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)299);
     }
 
     TEST_METHOD(AddRangeThreeOverlapAndAdjacentAfter2)
@@ -308,9 +308,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         range.Add(100, 1);
         range.Add(200, 100);
         range.Add(101, 299);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)399);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)399);
     }
 
     TEST_METHOD(AddRangeThreeOverlapAndAdjacentAfter3)
@@ -319,9 +319,9 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         range.Add(100, 100);
         range.Add(300, 100);
         range.Add(150, 150);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)399);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)399);
     }
 
     TEST_METHOD(AddRangeThreeOverlapAndAdjacentAfter4)
@@ -330,80 +330,80 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         range.Add(100, 100);
         range.Add(300, 100);
         range.Add(50, 250);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)50);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)399);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)50);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)399);
     }
 
     TEST_METHOD(RemoveRangeBefore)
     {
         SmartRange range;
         range.Add(100, 100);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)199);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)199);
         range.Remove(0, 99);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)199);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)199);
         range.Remove(0, 100);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)199);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)199);
     }
 
     TEST_METHOD(RemoveRangeAfter)
     {
         SmartRange range;
         range.Add(100, 100);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)199);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)199);
         range.Remove(201, 99);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)199);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)199);
         range.Remove(200, 100);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)199);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)199);
     }
 
     TEST_METHOD(RemoveRangeFront)
     {
         SmartRange range;
         range.Add(100, 100);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)199);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)199);
         range.Remove(100, 20);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)120);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)199);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)120);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)199);
     }
 
     TEST_METHOD(RemoveRangeBack)
     {
         SmartRange range;
         range.Add(100, 100);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)199);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)199);
         range.Remove(180, 20);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)179);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)179);
     }
 
     TEST_METHOD(RemoveRangeAll)
     {
         SmartRange range;
         range.Add(100, 100);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
-        VERIFY_ARE_EQUAL(range.Min(), (UINT32)100);
-        VERIFY_ARE_EQUAL(range.Max(), (UINT32)199);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
+        VERIFY_ARE_EQUAL(range.Min(), (uint32_t)100);
+        VERIFY_ARE_EQUAL(range.Max(), (uint32_t)199);
         range.Remove(100, 100);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)0);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)0);
     }
 
     TEST_METHOD(ExampleAckTest)
@@ -413,22 +413,22 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         range.Add(10001);
         range.Add(10003);
         range.Add(10002);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
         range.Remove(10000, 2);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
         range.Remove(10000, 4);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)0);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)0);
         range.Add(10005);
         range.Add(10006);
         range.Add(10004);
         range.Add(10007);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
         range.Remove(10005, 2);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)2);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)2);
         range.Remove(10004, 1);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
         range.Remove(10007, 1);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)0);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)0);
     }
 
     TEST_METHOD(ExampleAckWithLossTest)
@@ -437,45 +437,45 @@ struct RangeTest : public WEX::TestClass<RangeTest>
         range.Add(10000);
         range.Add(10001);
         range.Add(10003);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)2);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)2);
         range.Add(10002);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
         range.Remove(10000, 2);
         range.Remove(10003, 1);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
         range.Remove(10002, 1);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)0);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)0);
         range.Add(10004);
         range.Add(10005);
         range.Add(10006);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
         range.Remove(10004, 3);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)0);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)0);
         range.Add(10008);
         range.Add(10009);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
         range.Remove(10008, 2);
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)0);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)0);
     }
 
     TEST_METHOD(AddLots)
     {
         SmartRange range;
-        for (UINT32 i = 0; i < 400; i += 2) {
+        for (uint32_t i = 0; i < 400; i += 2) {
             range.Add(i);
         }
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)200);
-        for (UINT32 i = 0; i < 398; i += 2) {
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)200);
+        for (uint32_t i = 0; i < 398; i += 2) {
             range.Remove(i, 1);
         }
-        VERIFY_ARE_EQUAL(range.ValidCount(), (UINT32)1);
+        VERIFY_ARE_EQUAL(range.ValidCount(), (uint32_t)1);
     }
 
     TEST_METHOD(HitMax)
     {
         const uint32_t MaxCount = 16;
         SmartRange range(MaxCount * sizeof(QUIC_SUBRANGE));
-        for (UINT32 i = 0; i < MaxCount; i++) {
+        for (uint32_t i = 0; i < MaxCount; i++) {
             range.Add(i*2);
         }
         VERIFY_ARE_EQUAL(range.ValidCount(), MaxCount);

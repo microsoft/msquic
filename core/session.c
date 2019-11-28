@@ -271,7 +271,7 @@ MsQuicSessionShutdown(
                 QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, SessionLink);
 
             if (InterlockedCompareExchange16(
-                    (SHORT*)&Connection->BackUpOperUsed, 1, 0) == 0) {
+                    (short*)&Connection->BackUpOperUsed, 1, 0) == 0) {
 
                 QUIC_OPERATION* Oper = &Connection->BackUpOper;
                 Oper->FreeAfterProcess = FALSE;

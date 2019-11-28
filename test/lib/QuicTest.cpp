@@ -50,8 +50,8 @@ void QuicTestCleanup()
 
 struct TestScopeLogger
 {
-    PCSTR Name;
-    TestScopeLogger(PCSTR name) : Name(name) {
+    const char* Name;
+    TestScopeLogger(const char* name) : Name(name) {
         LogInfo("[test]---> %s", Name);
     }
     ~TestScopeLogger() {

@@ -289,7 +289,7 @@ typedef struct QUIC_DATAPATH_BINDING {
     // Number of outstanding sends on this binding.
     //
 
-    LONG volatile SocketContextsOutstanding;
+    long volatile SocketContextsOutstanding;
 
     //
     // The client context for this binding.
@@ -793,7 +793,7 @@ QuicDataPathProcContextInitialize(
     int EpollFd = INVALID_SOCKET_FD;
     int EventFd = INVALID_SOCKET_FD;
     int Ret = 0;
-    UINT32 RecvPacketLength = 0;
+    uint32_t RecvPacketLength = 0;
     BOOLEAN EventFdAdded = FALSE;
 
     QUIC_DBG_ASSERT(Datapath != NULL);
@@ -943,7 +943,7 @@ Exit:
 
 QUIC_STATUS
 QuicDataPathInitialize(
-    _In_ UINT32 ClientRecvContextLength,
+    _In_ uint32_t ClientRecvContextLength,
     _In_ QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER RecvCallback,
     _In_ QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER UnreachableCallback,
     _Out_ QUIC_DATAPATH* *NewDataPath

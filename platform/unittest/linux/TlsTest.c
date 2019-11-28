@@ -118,7 +118,7 @@ TalTestProcessData2(
     _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _In_ QUIC_PACKET_KEY_TYPE BufferKey,
     _In_reads_bytes_(*BufferLength) const uint8_t * Buffer,
-    _In_ UINT32 * BufferLength
+    _In_ uint32_t * BufferLength
     );
 
 static
@@ -127,7 +127,7 @@ TalTestProcessData(
     _In_ QUIC_TLS* TlsContext,
     _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _Inout_ QUIC_TLS_PROCESS_STATE* PeerState,
-    _In_ UINT32 FragmentSize
+    _In_ uint32_t FragmentSize
     );
 
 static
@@ -137,7 +137,7 @@ TalTestDoHandshake(
     _In_ QUIC_TLS* ClientContext,
     _Inout_ QUIC_TLS_PROCESS_STATE *ServerState,
     _Inout_ QUIC_TLS_PROCESS_STATE *ClientState,
-    _In_ UINT32 FragmentSize
+    _In_ uint32_t FragmentSize
     );
 
 static
@@ -147,8 +147,8 @@ TalTestProcessFragmentedData(
     _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _In_ QUIC_PACKET_KEY_TYPE BufferKey,
     _In_reads_bytes_(BufferLength) const uint8_t * Buffer,
-    _In_ UINT32 BufferLength,
-    _In_ UINT32 FragmentSize
+    _In_ uint32_t BufferLength,
+    _In_ uint32_t FragmentSize
     );
 
 
@@ -270,7 +270,7 @@ TalTestProcessData2(
     _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _In_ QUIC_PACKET_KEY_TYPE BufferKey,
     _In_reads_bytes_(*BufferLength) const uint8_t * Buffer,
-    _In_ UINT32 * BufferLength
+    _In_ uint32_t * BufferLength
     )
 {
     QUIC_FRE_ASSERT(Buffer != NULL || *BufferLength == 0);
@@ -377,7 +377,7 @@ TalTestProcessData(
         uint16_t BufferLength;
         QUIC_PACKET_KEY_TYPE PeerWriteKey;
 
-        UINT32 StartOffset = PeerState->BufferTotalLength - PeerState->BufferLength;
+        uint32_t StartOffset = PeerState->BufferTotalLength - PeerState->BufferLength;
         if (PeerState->BufferOffset1Rtt != 0 && StartOffset >= PeerState->BufferOffset1Rtt) {
             PeerWriteKey = QUIC_PACKET_KEY_1_RTT;
             BufferLength = PeerState->BufferLength;
@@ -400,7 +400,7 @@ TalTestProcessData(
         }
 
         Result |=
-            (UINT32)TalTestProcessFragmentedData(
+            (uint32_t)TalTestProcessFragmentedData(
                 TlsContext,
                 State,
                 PeerWriteKey,
@@ -426,7 +426,7 @@ TalTestDoHandshake(
     _In_ QUIC_TLS* ClientContext,
     _Inout_ QUIC_TLS_PROCESS_STATE *ServerState,
     _Inout_ QUIC_TLS_PROCESS_STATE *ClientState,
-    _In_ UINT32 FragmentSize
+    _In_ uint32_t FragmentSize
     )
 {
     BOOLEAN Ret = TRUE;
@@ -546,7 +546,7 @@ TalTestInitializeServer(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_TLS_CONFIG Config = {0};
     QUIC_TLS* TempTlsContext = NULL;
-    UINT32 QuicVersion = 1;
+    uint32_t QuicVersion = 1;
     QUIC_EVENT ProcessCompletionEvent = NULL;
 
     QuicEventInitialize(&ProcessCompletionEvent, TRUE, FALSE);
@@ -584,7 +584,7 @@ TalTestInitializeClient(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_TLS_CONFIG Config = {0};
     QUIC_TLS* TempTlsContext = NULL;
-    UINT32 QuicVersion = 1;
+    uint32_t QuicVersion = 1;
     QUIC_EVENT ProcessCompletionEvent = NULL;
 
     QuicEventInitialize(&ProcessCompletionEvent, TRUE, FALSE);
@@ -1766,7 +1766,7 @@ Exit:
 static
 void
 TalTestExecuteTestCase(
-    _In_ ULONG TestCaseIndex
+    _In_ uint32_t TestCaseIndex
     )
 
 {
@@ -1791,7 +1791,7 @@ TalTestHelp(
     printf("To execute all tests: %s %ld \n", argv[0], ARRAYSIZE(TestCases));
     printf("To execute a specific test: %s <testcaseno> \n", argv[0]);
     printf("Test cases: \n");
-    for (ULONG Iter = 0; Iter < ARRAYSIZE(TestCases); Iter++) {
+    for (uint32_t Iter = 0; Iter < ARRAYSIZE(TestCases); Iter++) {
         printf("\t%lu: %s\n", Iter, TestCases[Iter].TestCaseName);
     }
 }
@@ -1821,7 +1821,7 @@ Return Value:
 
 --*/
 {
-    ULONG Input = 0;
+    uint32_t Input = 0;
 
     if (argc != 2) {
         TalTestHelp(argv);
@@ -1834,7 +1834,7 @@ Return Value:
     if (Input < ARRAYSIZE(TestCases)) {
         TalTestExecuteTestCase(Input);
     } else if (Input == ARRAYSIZE(TestCases)) {
-        for (ULONG Iter = 0; Iter < ARRAYSIZE(TestCases); Iter++) {
+        for (uint32_t Iter = 0; Iter < ARRAYSIZE(TestCases); Iter++) {
             TalTestExecuteTestCase(Iter);
         }
     } else {

@@ -289,7 +289,7 @@ public:
     }
     bool WaitForTicket() {
         int TryCount = 0;
-        UINT32 TicketLength = 0;
+        uint32_t TicketLength = 0;
         while (TryCount++ < 20) {
             if (QUIC_STATUS_BUFFER_TOO_SMALL ==
                 MsQuic->GetParam(

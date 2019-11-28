@@ -698,7 +698,7 @@ QuicTlsServerSecConfigCreate(
     int Ret = 0;
     QUIC_SEC_CONFIG* SecurityConfig = NULL;
     QUIC_CERTIFICATE_FILE* CertFile = Certificate;
-    LONG SSLOpts = 0;
+    uint32_t SSLOpts = 0;
 
     //
     // We only allow PEM formatted cert files.
@@ -2312,7 +2312,7 @@ QuicTlsHkdfFormatLabel(
     memcpy(Data + 3, QUIC_HKDF_PREFIX, QUIC_HKDF_PREFIX_LEN);
     memcpy(Data + 3 + QUIC_HKDF_PREFIX_LEN, Label, LabelLen);
     Data[3+QUIC_HKDF_PREFIX_LEN+LabelLen] = 0;
-    *DataLength = 3 + QUIC_HKDF_PREFIX_LEN + (ULONG)LabelLen + 1;
+    *DataLength = 3 + QUIC_HKDF_PREFIX_LEN + (uint32_t)LabelLen + 1;
 }
 
 static

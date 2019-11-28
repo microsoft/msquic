@@ -176,7 +176,7 @@ DalTestDataSendMultiple(
 static
 void 
 DalTestExecuteTestCase(
-    _In_ ULONG TestCaseIndex
+    _In_ uint32_t TestCaseIndex
     );
 
 static
@@ -932,7 +932,7 @@ static DAL_TESTCASE TestCases[] = {
 static
 void 
 DalTestExecuteTestCase(
-    _In_ ULONG TestCaseIndex
+    _In_ uint32_t TestCaseIndex
     )
 
 {
@@ -957,7 +957,7 @@ DalTestHelp(
     printf("To execute all tests: %s %ld \n", argv[0], ARRAYSIZE(TestCases));
     printf("To execute a specific test: %s <testcaseno> \n", argv[0]);
     printf("Test cases: \n");
-    for (ULONG Iter = 0; Iter < ARRAYSIZE(TestCases); Iter++) {
+    for (uint32_t Iter = 0; Iter < ARRAYSIZE(TestCases); Iter++) {
         printf("\t%lu: %s\n", Iter, TestCases[Iter].TestCaseName);
     }
 }
@@ -987,7 +987,7 @@ Return Value:
 
 --*/
 {
-    ULONG Input = 0;
+    uint32_t Input = 0;
 
     if (argc != 2) {
         DalTestHelp(argv);
@@ -1000,7 +1000,7 @@ Return Value:
     if (Input < ARRAYSIZE(TestCases)) {
         DalTestExecuteTestCase(Input);
     } else if (Input == ARRAYSIZE(TestCases)) {
-        for (ULONG Iter = 0; Iter < ARRAYSIZE(TestCases); Iter++) {
+        for (uint32_t Iter = 0; Iter < ARRAYSIZE(TestCases); Iter++) {
             DalTestExecuteTestCase(Iter);
         }
     } else {

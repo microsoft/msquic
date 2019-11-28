@@ -108,14 +108,14 @@ struct StorageTest : public WEX::TestClass<StorageTest>
                 QUIC_STORAGE_OPEN_FLAG_OPEN_EXISTING,
                 &Storage));
         UINT8* PersistedValue;
-        UINT32 PersistedValueLength = 0;
+        uint32_t PersistedValueLength = 0;
         VERIFY_QUIC_SUCCESS(
             QuicStorageReadValue(
                 Storage,
                 "NAME",
                 nullptr,
                 &PersistedValueLength));
-        VERIFY_ARE_EQUAL(PersistedValueLength, (UINT32)sizeof(Value));
+        VERIFY_ARE_EQUAL(PersistedValueLength, (uint32_t)sizeof(Value));
         PersistedValue = new UINT8[PersistedValueLength];
         VERIFY_IS_NOT_NULL(PersistedValue);
         VERIFY_QUIC_SUCCESS(

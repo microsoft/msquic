@@ -28,6 +28,8 @@ Environment:
 
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
 QUIC_PLATFORM_DISPATCH* PlatDispatch = NULL;
+#else
+int RandomFd;
 #endif
 
 uint64_t QuicTotalMemory;
@@ -74,11 +76,14 @@ QuicPlatformInitialize(
     void
     )
 {
-    //
-    // Seed the random number generator.
-    //
-    time_t t = {0};
-    srand((unsigned) time(&t));
+#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+    QUIC_FRE_ASSERT(PlatDispatch != NULL);
+#else
+    RandomFd = open("/dev/urandom", O_RDONLY);
+    if (RandomFd == -1) {
+        return (QUIC_STATUS)errno;
+    }
+#endif
 
     QuicTotalMemory = 0x40000000; // TODO - Hard coded at 1 GB. Query real value.
 
@@ -94,7 +99,7 @@ QuicPlatformUninitialize(
 
 void*
 QuicAlloc(
-    _In_ SIZE_T ByteCount
+    _In_ size_t ByteCount
     )
 {
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
@@ -405,7 +410,7 @@ QuicEventWaitForever(
 BOOLEAN
 QuicEventWaitWithTimeout(
     _Inout_ QUIC_EVENT Event,
-    _In_ ULONG TimeoutMs
+    _In_ uint32_t TimeoutMs
     )
 {
     QUIC_EVENT_OBJECT* EventObj = Event;
@@ -579,18 +584,17 @@ QuicProcCurrentNumber(
     return 0;
 }
 
-
 QUIC_STATUS
 QuicRandom(
-    _In_ UINT32 BufferLen,
-    _Out_writes_bytes_(BufferLen) PUCHAR Buffer
+    _In_ uint32_t BufferLen,
+    _Out_writes_bytes_(BufferLen) uint8_t* Buffer
     )
 {
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->Random(BufferLen, Buffer);
 #else
-    for (uint32_t i = 0; i < BufferLen; i++) {
-        Buffer[i] = (UCHAR)(rand() % 256); // TODO - Use secured random generator!!
+    if (read(RandomFd, (void*)Buffer, BufferLen) == -1) {
+        return (QUIC_STATUS)errno;
     }
     return QUIC_STATUS_SUCCESS;
 #endif

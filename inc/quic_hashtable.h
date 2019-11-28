@@ -89,7 +89,7 @@ Usage examples:
 
 typedef struct QUIC_HASHTABLE_ENTRY {
     QUIC_LIST_ENTRY Linkage;
-    ULONG_PTR Signature;
+    uint64_t Signature;
 } QUIC_HASHTABLE_ENTRY;
 
 typedef struct QUIC_HASHTABLE_LOOKUP_CONTEXT {
@@ -112,7 +112,7 @@ typedef struct QUIC_HASHTABLE_LOOKUP_CONTEXT {
     //
     QUIC_LIST_ENTRY* ChainHead;
     QUIC_LIST_ENTRY* PrevLinkage;
-    ULONG_PTR Signature;
+    uint64_t Signature;
 } QUIC_HASHTABLE_LOOKUP_CONTEXT;
 
 typedef struct QUIC_HASHTABLE_ENUMERATOR {
@@ -185,7 +185,7 @@ void
 QuicHashtableInsert(
     _In_ QUIC_HASHTABLE* HashTable,
     _In_ __drv_aliasesMem QUIC_HASHTABLE_ENTRY* Entry,
-    _In_ ULONG_PTR Signature,
+    _In_ uint64_t Signature,
     _Inout_opt_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
     );
 
@@ -200,7 +200,7 @@ _Must_inspect_result_
 QUIC_HASHTABLE_ENTRY*
 QuicHashtableLookup(
     _In_ QUIC_HASHTABLE* HashTable,
-    _In_ ULONG_PTR Signature,
+    _In_ uint64_t Signature,
     _Out_opt_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
     );
 

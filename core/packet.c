@@ -552,7 +552,7 @@ QuicPacketLogDrop(
         QuicDataPathRecvPacketToRecvDatagram(Packet);
 
     if (Packet->AssignedToConnection) {
-        InterlockedIncrement64((LONG64*) &((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
+        InterlockedIncrement64((int64_t*) &((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
         EventWriteQuicConnDropPacket(
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
@@ -562,7 +562,7 @@ QuicPacketLogDrop(
             (uint8_t*)&Datagram->Tuple->RemoteAddress,
             Reason);
     } else {
-        InterlockedIncrement64((LONG64*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
+        InterlockedIncrement64((int64_t*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
         EventWriteQuicBindingDropPacket(
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
@@ -587,7 +587,7 @@ QuicPacketLogDropWithValue(
         QuicDataPathRecvPacketToRecvDatagram(Packet);
 
     if (Packet->AssignedToConnection) {
-        InterlockedIncrement64((LONG64*) & ((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
+        InterlockedIncrement64((int64_t*) & ((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
         EventWriteQuicConnDropPacketEx(
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
@@ -598,7 +598,7 @@ QuicPacketLogDropWithValue(
             (uint8_t*)&Datagram->Tuple->RemoteAddress,
             Reason);
     } else {
-        InterlockedIncrement64((LONG64*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
+        InterlockedIncrement64((int64_t*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
         EventWriteQuicBindingDropPacketEx(
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,

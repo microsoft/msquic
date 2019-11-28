@@ -18,10 +18,10 @@ Abstract:
 // helper for subtracting 64-bit numbers.
 //
 inline
-LONG64
+int64_t
 InterlockedSubtract64(
-    _Inout_ _Interlocked_operand_ LONG64 volatile *Addend,
-    _In_ LONG64 Value
+    _Inout_ _Interlocked_operand_ int64_t volatile *Addend,
+    _In_ int64_t Value
     ) {
     return InterlockedExchangeAdd64(Addend, -Value) - Value;
 }
@@ -91,7 +91,7 @@ public:
 struct MsQuicSession {
     HQUIC Handle;
     bool CloseAllConnectionsOnDelete;
-    MsQuicSession(_In_ PCSTR ALPN = "MsQuicTest", _In_ bool AutoCleanup = false)
+    MsQuicSession(_In_ const char* ALPN = "MsQuicTest", _In_ bool AutoCleanup = false)
         : Handle(nullptr),
         CloseAllConnectionsOnDelete(AutoCleanup) {
         if (QUIC_FAILED(
@@ -103,7 +103,7 @@ struct MsQuicSession {
             Handle = nullptr;
         }
     }
-    MsQuicSession(HQUIC Reg, _In_ PCSTR ALPN = "MsQuicTest", _In_ bool AutoCleanup = false)
+    MsQuicSession(HQUIC Reg, _In_ const char* ALPN = "MsQuicTest", _In_ bool AutoCleanup = false)
         : Handle(nullptr),
         CloseAllConnectionsOnDelete(AutoCleanup) {
         if (QUIC_FAILED(
@@ -115,7 +115,7 @@ struct MsQuicSession {
             Handle = nullptr;
         }
     }
-    MsQuicSession(MsQuicRegistration& Reg, _In_ PCSTR ALPN = "MsQuicTest", _In_ bool AutoCleanup = false)
+    MsQuicSession(MsQuicRegistration& Reg, _In_ const char* ALPN = "MsQuicTest", _In_ bool AutoCleanup = false)
         : Handle(nullptr),
         CloseAllConnectionsOnDelete(AutoCleanup) {
         if (QUIC_FAILED(

@@ -99,69 +99,69 @@ QuicPlatformUninitialize(
 //
 
 inline
-LONG
+long
 InterlockedIncrement(
-    _Inout_ _Interlocked_operand_ LONG volatile *Addend
+    _Inout_ _Interlocked_operand_ long volatile *Addend
     )
 {
-    return __sync_add_and_fetch(Addend, (LONG)1);
+    return __sync_add_and_fetch(Addend, (long)1);
 }
 
 inline
-LONG
+long
 InterlockedDecrement(
-    _Inout_ _Interlocked_operand_ LONG volatile *Addend
+    _Inout_ _Interlocked_operand_ long volatile *Addend
     )
 {
-    return __sync_sub_and_fetch(Addend, (LONG)1);
+    return __sync_sub_and_fetch(Addend, (long)1);
 }
 
 inline
-LONG64
+int64_t
 InterlockedExchangeAdd64(
-    _Inout_ _Interlocked_operand_ LONG64 volatile *Addend,
-    _In_ LONG64 Value
+    _Inout_ _Interlocked_operand_ int64_t volatile *Addend,
+    _In_ int64_t Value
     )
 {
     return __sync_fetch_and_add(Addend, Value);
 }
 
 inline
-SHORT
+short
 InterlockedCompareExchange16(
-    _Inout_ _Interlocked_operand_ SHORT volatile *Destination,
-    _In_ SHORT ExChange,
-    _In_ SHORT Comperand
+    _Inout_ _Interlocked_operand_ short volatile *Destination,
+    _In_ short ExChange,
+    _In_ short Comperand
     )
 {
     return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
 }
 
 inline
-SHORT
+short
 InterlockedIncrement16(
-    _Inout_ _Interlocked_operand_ SHORT volatile *Addend
+    _Inout_ _Interlocked_operand_ short volatile *Addend
     )
 {
-    return __sync_add_and_fetch(Addend, (SHORT)1);
+    return __sync_add_and_fetch(Addend, (short)1);
 }
 
 inline
-SHORT
+short
 InterlockedDecrement16(
-    _Inout_ _Interlocked_operand_ SHORT volatile *Addend
+    _Inout_ _Interlocked_operand_ short volatile *Addend
     )
 {
-    return __sync_sub_and_fetch(Addend, (SHORT)1);
+    return __sync_sub_and_fetch(Addend, (short)1);
 }
 
 inline
-LONG64
+int64_t
 InterlockedIncrement64(
-    _Inout_ _Interlocked_operand_ LONG64 volatile *Addend
+    _Inout_ _Interlocked_operand_ int64_t volatile *Addend
     )
 {
-    return __sync_add_and_fetch(Addend, (LONG64)1);
+    return __sync_add_and_fetch(Addend, (int64_t)1);
 }
 
 //
@@ -239,7 +239,7 @@ extern uint64_t QuicTotalMemory;
 _Ret_maybenull_
 void*
 QuicAlloc(
-    _In_ SIZE_T ByteCount
+    _In_ size_t ByteCount
     );
 
 void
@@ -267,7 +267,7 @@ typedef struct QUIC_POOL {
     // Number of free entries in the list.
     //
 
-    USHORT ListDepth;
+    uint16_t ListDepth;
 
     //
     // Lock to synchronize access to the List.
@@ -280,13 +280,13 @@ typedef struct QUIC_POOL {
     // Size of entries.
     //
 
-    UINT32 Size;
+    uint32_t Size;
 
     //
     // The memory tag to use for any allocation from this pool.
     //
 
-    UINT32 MemTag;
+    uint32_t MemTag;
 
 } QUIC_POOL;
 
@@ -498,7 +498,7 @@ QuicEventWaitForever(
 BOOLEAN
 QuicEventWaitWithTimeout(
     _Inout_ QUIC_EVENT Event,
-    _In_ ULONG timeoutMs
+    _In_ uint32_t timeoutMs
     );
 
 //
@@ -729,8 +729,8 @@ QuicRundownReleaseAndWait(
 
 QUIC_STATUS
 QuicRandom(
-    _In_ UINT32 BufferLen,
-    _Out_writes_bytes_(BufferLen) PUCHAR Buffer
+    _In_ uint32_t BufferLen,
+    _Out_writes_bytes_(BufferLen) uint8_t* Buffer
     );
 
 //

@@ -446,7 +446,7 @@ QuicCertLookupHashStore(
 {
     QUIC_STATUS Status;
     HCERTSTORE CertStore;
-    UINT32 Flags = CERT_STORE_DEFER_CLOSE_UNTIL_LAST_FREE_FLAG | CERT_STORE_READONLY_FLAG;
+    uint32_t Flags = CERT_STORE_DEFER_CLOSE_UNTIL_LAST_FREE_FLAG | CERT_STORE_READONLY_FLAG;
     if (CertHashStore->Flags & QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE) {
         Flags |= CERT_SYSTEM_STORE_LOCAL_MACHINE;
     } else {
@@ -490,7 +490,7 @@ Exit:
 
 QUIC_STATUS
 QuicCertCreate(
-    _In_ UINT32 Flags,
+    _In_ uint32_t Flags,
     _In_opt_ void* CertConfig,
     _In_opt_z_ const char* Principal,
     _Out_ QUIC_CERT** NewCertificate

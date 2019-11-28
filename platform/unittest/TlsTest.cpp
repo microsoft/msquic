@@ -413,9 +413,9 @@ struct TlsTest : public WEX::TestClass<TlsTest>
             _In_ UINT16 HeaderLength,
             _In_reads_bytes_(HeaderLength)
                 const UINT8* const Header,
-            _In_ UINT64 PacketNumber,
+            _In_ uint64_t PacketNumber,
             _In_ UINT16 BufferLength,
-            _Inout_updates_bytes_(BufferLength) PUCHAR Buffer
+            _Inout_updates_bytes_(BufferLength) uint8_t* Buffer
             )
         {
             uint8_t Iv[QUIC_IV_LENGTH];
@@ -437,9 +437,9 @@ struct TlsTest : public WEX::TestClass<TlsTest>
             _In_ UINT16 HeaderLength,
             _In_reads_bytes_(HeaderLength)
                 const UINT8* const Header,
-            _In_ UINT64 PacketNumber,
+            _In_ uint64_t PacketNumber,
             _In_ UINT16 BufferLength,
-            _Inout_updates_bytes_(BufferLength) PUCHAR Buffer
+            _Inout_updates_bytes_(BufferLength) uint8_t* Buffer
             )
         {
             uint8_t Iv[QUIC_IV_LENGTH];
@@ -624,7 +624,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
             PacketKey ClientKey(ClientContext.State.ReadKeys[QUIC_PACKET_KEY_1_RTT]);
 
             UINT8 Header[32] = { 1, 2, 3, 4 };
-            UINT64 PacketNumber = 0;
+            uint64_t PacketNumber = 0;
             UINT8 Buffer[1000] = { 0 };
 
             VERIFY_IS_TRUE(
@@ -710,7 +710,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
             PacketKey ClientKey(UpdateReadKey);
 
             UINT8 Header[32] = { 1, 2, 3, 4 };
-            UINT64 PacketNumber = 0;
+            uint64_t PacketNumber = 0;
             UINT8 Buffer[1000] = { 0 };
 
             VERIFY_IS_TRUE(
@@ -760,7 +760,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
     DoEncryption(
         PacketKey& Key,
         UINT16 BufferSize,
-        UINT64 LoopCount
+        uint64_t LoopCount
         )
     {
         UINT8 Header[32] = { 0 };
@@ -770,7 +770,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
         LARGE_INTEGER Start, End;
         QueryPerformanceCounter(&Start);
 
-        for (UINT64 j = 0; j < LoopCount; ++j) {
+        for (uint64_t j = 0; j < LoopCount; ++j) {
             Key.Encrypt(
                 sizeof(Header),
                 Header,
@@ -788,7 +788,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
     DoEncryptionWithPNE(
         PacketKey& Key,
         UINT16 BufferSize,
-        UINT64 LoopCount
+        uint64_t LoopCount
         )
     {
         UINT8 Header[32] = { 0 };
@@ -799,7 +799,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
         LARGE_INTEGER Start, End;
         QueryPerformanceCounter(&Start);
 
-        for (UINT64 j = 0; j < LoopCount; ++j) {
+        for (uint64_t j = 0; j < LoopCount; ++j) {
             Key.Encrypt(
                 sizeof(Header),
                 Header,
@@ -835,7 +835,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
 
             PacketKey ServerKey(ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
-            const UINT64 LoopCount = 10000;
+            const uint64_t LoopCount = 10000;
             UINT16 BufferSizes[] =
             {
                 4,

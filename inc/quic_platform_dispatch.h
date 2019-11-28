@@ -29,7 +29,7 @@ Environment:
 typedef
 void*
 (*QUIC_ALLOC)(
-    _In_ SIZE_T ByteCount
+    _In_ size_t ByteCount
     );
 
 typedef
@@ -240,8 +240,8 @@ QUIC_STATUS
 typedef
 QUIC_STATUS
 (*QUIC_RANDOM)(
-    _In_ UINT32 BufferLen,
-    _Out_writes_bytes_(BufferLen) PUCHAR Buffer
+    _In_ uint32_t BufferLen,
+    _Out_writes_bytes_(BufferLen) uint8_t* Buffer
     );
 
 

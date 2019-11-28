@@ -163,14 +163,14 @@ PingConnection::Initialize(
         }
     }
 
-    for (UINT64 i = 0; i < PingConfig.LocalBidirStreamCount; i++) {
+    for (uint64_t i = 0; i < PingConfig.LocalBidirStreamCount; i++) {
         auto Stream = new PingStream(this, BidiSendMode);
         if (!Stream || !Stream->Start()) {
             delete Stream;
             return false;
         }
     }
-    for (UINT64 i = 0; i < PingConfig.LocalUnidirStreamCount; i++) {
+    for (uint64_t i = 0; i < PingConfig.LocalUnidirStreamCount; i++) {
         auto Stream = new PingStream(this, UniSendMode);
         if (!Stream || !Stream->Start()) {
             delete Stream;
@@ -316,7 +316,7 @@ PingConnection::ProcessEvent(
         }
 
         if (DumpResumption && ConnectedSuccessfully) {
-            UCHAR SerializedResumptionState[2048];
+            uint8_t SerializedResumptionState[2048];
             uint32_t SerializedResumptionStateLength = sizeof(SerializedResumptionState);
             if (QUIC_SUCCEEDED(
                 MsQuic->GetParam(

@@ -69,7 +69,7 @@ QuicConnAlloc(
 #endif
 
     Connection->Stats.CorrelationId =
-        InterlockedIncrement64((LONG64*)&MsQuicLib.ConnectionCorrelationId) - 1;
+        InterlockedIncrement64((int64_t*)&MsQuicLib.ConnectionCorrelationId) - 1;
     EventWriteQuicConnCreated(Connection, IsServer, Connection->Stats.CorrelationId);
 
     Connection->RefCount = 1;
@@ -310,8 +310,8 @@ QuicConnFree(
         if (!Connection->State.Connected) {
             InterlockedDecrement(&Path->Binding->HandshakeConnections);
             InterlockedExchangeAdd64(
-                (LONG64*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-                -1 * (LONG64)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+                (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
+                -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
         }
         QuicLibraryReleaseBinding(Path->Binding);
         Path->Binding = NULL;
@@ -1403,8 +1403,8 @@ QuicConnStart(
 
     InterlockedIncrement(&Path->Binding->HandshakeConnections);
     InterlockedExchangeAdd64(
-        (LONG64*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-        (LONG64)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+        (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
+        (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
 
     //
     // Clients only need to generate a non-zero length source CID if it
@@ -1431,8 +1431,8 @@ QuicConnStart(
     if (!QuicBindingAddSourceConnectionID(Path->Binding, SourceCID)) {
         InterlockedDecrement(&Path->Binding->HandshakeConnections);
         InterlockedExchangeAdd64(
-            (LONG64*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-            -1 * (LONG64)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+            (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
+            -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
         QuicLibraryReleaseBinding(Path->Binding);
         Path->Binding = NULL;
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -4044,8 +4044,8 @@ QuicConnParamSet(
             if (!Connection->State.Connected) {
                 InterlockedDecrement(&OldBinding->HandshakeConnections);
                 InterlockedExchangeAdd64(
-                    (LONG64*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-                    -1 * (LONG64)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+                    (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
+                    -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
             }
             QuicLibraryReleaseBinding(OldBinding);
             EventWriteQuicConnLocalAddrRemoved(

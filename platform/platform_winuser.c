@@ -20,7 +20,7 @@ Environment:
 #include <fastwppimpl.h>
 #endif
 
-UINT64 QuicPlatformPerfFreq;
+uint64_t QuicPlatformPerfFreq;
 uint64_t QuicTotalMemory;
 QUIC_PLATFORM QuicPlatform = { NULL };
 
@@ -139,7 +139,7 @@ uint8_t QUIC_FUZZ_RND_IDX = 0;
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicRandom(
-    _In_ UINT32 BufferLen,
+    _In_ uint32_t BufferLen,
     _Out_writes_bytes_(BufferLen) PUCHAR Buffer
     )
 {
@@ -152,7 +152,7 @@ QuicRandom(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicRandom(
-    _In_ UINT32 BufferLen,
+    _In_ uint32_t BufferLen,
     _Out_writes_bytes_(BufferLen) PUCHAR Buffer
     )
 {
@@ -174,7 +174,7 @@ _Post_writable_byte_size_(ByteCount)
 DECLSPEC_ALLOCATOR
 void*
 QuicAlloc(
-    _In_ SIZE_T ByteCount
+    _In_ size_t ByteCount
     )
 {
     QUIC_DBG_ASSERT(QuicPlatform.Heap);

@@ -1293,7 +1293,7 @@ QuicEncrypt(
     UNREFERENCED_PARAMETER(AuthDataLength);
     UNREFERENCED_PARAMETER(AuthData);
     uint16_t PlainTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
-    *(PUINT64)(Buffer + PlainTextLength) = MAGIC_NO_ENCRYPTION_VALUE;
+    *(uint64_t*)(Buffer + PlainTextLength) = MAGIC_NO_ENCRYPTION_VALUE;
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -1316,7 +1316,7 @@ QuicDecrypt(
     UNREFERENCED_PARAMETER(AuthDataLength);
     UNREFERENCED_PARAMETER(AuthData);
     uint16_t PlainTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
-    if (*(PUINT64)(Buffer + PlainTextLength) != MAGIC_NO_ENCRYPTION_VALUE) {
+    if (*(uint64_t*)(Buffer + PlainTextLength) != MAGIC_NO_ENCRYPTION_VALUE) {
         return QUIC_STATUS_INVALID_PARAMETER;
     } else {
         return QUIC_STATUS_SUCCESS;
