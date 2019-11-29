@@ -95,6 +95,7 @@ QuicPlatformUninitialize(
     void
     )
 {
+    close(RandomFd);
 }
 
 void*
@@ -465,14 +466,10 @@ QuicGetTimerResolution(
     void
     )
 {
-    int ErrorCode = 0;
     struct timespec Res = {0};
-
-    ErrorCode = clock_getres(CLOCK_MONOTONIC, &Res);
-
+    int ErrorCode = clock_getres(CLOCK_MONOTONIC, &Res);
     QUIC_DBG_ASSERT(ErrorCode == 0);
     UNREFERENCED_PARAMETER(ErrorCode);
-
     return QuicTimespecToUs(&Res);
 }
 
@@ -481,14 +478,10 @@ QuicTimeUs64(
     void
     )
 {
-    int ErrorCode = 0;
     struct timespec CurrTime = {0};
-
-    ErrorCode = clock_gettime(CLOCK_MONOTONIC, &CurrTime);
-
+    int ErrorCode = clock_gettime(CLOCK_MONOTONIC, &CurrTime);
     QUIC_DBG_ASSERT(ErrorCode == 0);
     UNREFERENCED_PARAMETER(ErrorCode);
-
     return QuicTimespecToUs(&CurrTime);
 }
 
@@ -923,32 +916,47 @@ _strnicmp(
 QUIC_STATUS
 QuicThreadCreate(
     _In_ QUIC_THREAD_CONFIG* Config,
-    _Out_ QUIC_THREAD** Thread
+    _Out_ QUIC_THREAD* Thread
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    QUIC_THREAD* ThreadObj = NULL;
-    int Ret = 0;
 
-    ThreadObj = QuicAlloc(sizeof(QUIC_THREAD));
-
-    if (ThreadObj == NULL) {
-        LogWarning("[qpal] Thread allocation failed.");
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto exit;
+    pthread_attr_t Attr = {0};
+    if (!pthread_attr_init(&Attr)) {
+        LogError("[qpal] pthread_attr_init() failed.");
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    Ret = pthread_create(&ThreadObj->Thread, NULL, Config->Callback, Config->Context);
+    /* TODO - How to enable non-standard functions?
+    if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
+        QUIC_TEL_ASSERT(Config->IdealProcessor < 64);
+        // TODO - Set Linux equivalent of ideal processor.
+        if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
+            cpu_set_t CpuSet;
+            CPU_ZERO(&CpuSet);
+            CPU_SET(Config->IdealProcessor, &CpuSet);
+            if (!pthread_attr_setaffinity_np(&Attr, sizeof(CpuSet), &CpuSet)) {
+                LogWarning("[qpal] pthread_attr_setaffinity_np() failed.");
+            }
+        } else {
+            // TODO - Set Linux equivalent of NUMA affinity.
+        }
+    }*/
 
-    if (Ret != 0) {
+    if (Config->Flags & QUIC_THREAD_FLAG_HIGH_PRIORITY) {
+        struct sched_param Params;
+        Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
+        if (!pthread_attr_setschedparam(&Attr, &Params)) {
+            LogWarning("[qpal] pthread_attr_setschedparam() failed.");
+        }
+    }
+
+    if (!pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
         LogError("[qpal] pthread_create() failed.");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto exit;
     }
 
-    *Thread = ThreadObj;
-
-exit:
+    pthread_attr_destroy(&Attr);
 
     return Status;
 }
@@ -958,7 +966,7 @@ QuicThreadDelete(
     _Inout_ QUIC_THREAD* Thread
     )
 {
-    QuicFree(Thread);
+    UNREFERENCED_PARAMETER(Thread);
 }
 
 void
@@ -966,8 +974,8 @@ QuicThreadWait(
     _Inout_ QUIC_THREAD* Thread
     )
 {
-    QUIC_FRE_ASSERT(pthread_equal(Thread->Thread, pthread_self()) == 0);
-    QUIC_FRE_ASSERT(pthread_join(Thread->Thread, NULL) == 0);
+    QUIC_DBG_ASSERT(pthread_equal(*Thread, pthread_self()) == 0);
+    QUIC_FRE_ASSERT(pthread_join(*Thread, NULL) == 0);
 }
 
 uint32_t

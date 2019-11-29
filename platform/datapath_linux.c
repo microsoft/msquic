@@ -345,7 +345,7 @@ typedef struct QUIC_DATAPATH_PROC_CONTEXT {
     // The epoll wait thread.
     //
 
-    QUIC_THREAD* EpollWaitThread;
+    QUIC_THREAD EpollWaitThread;
 
     //
     // Pool of receive packet contexts and buffers to be shared by all sockets
@@ -540,9 +540,7 @@ QuicDatapathWorkQueueInitialize(
     )
 {
     QuicDispatchLockInitialize(&WorkQueue->Lock);
-
     QuicListInitializeHead(&WorkQueue->List);
-
     QuicPoolInitialize(FALSE, sizeof(QUIC_DATAPATH_WORKITEM), &WorkQueue->Pool);
 }
 
@@ -553,9 +551,7 @@ QuicDatapathWorkQueueUninitialize(
     )
 {
     QUIC_DBG_ASSERT(QuicListIsEmpty(&WorkQueue->List));
-
     QuicDispatchLockUninitialize(&WorkQueue->Lock);
-
     QuicPoolUninitialize(&WorkQueue->Pool);
 }
 
@@ -566,11 +562,9 @@ QuicDatapathWorkitemAlloc(
     )
 {
     QUIC_DATAPATH_WORKITEM* Workitem = QuicPoolAlloc(&WorkQueue->Pool);
-
     if (Workitem == NULL) {
         LogError("[ dal] Workitem allocation failure.");
     }
-
     return Workitem;
 }
 
@@ -595,9 +589,7 @@ QuicDatapathWorkQueuePush(
     )
 {
     QuicDispatchLockAcquire(&WorkQueue->Lock);
-
     QuicListInsertTail(&WorkQueue->List, &Workitem->Link);
-
     QuicDispatchLockRelease(&WorkQueue->Lock);
 }
 
@@ -610,7 +602,6 @@ QuicDatapathWorkQueuePop(
     QUIC_DATAPATH_WORKITEM* Workitem = NULL;
 
     QuicDispatchLockAcquire(&WorkQueue->Lock);
-
     if (!QuicListIsEmpty(&WorkQueue->List)) {
         Workitem =
             QUIC_CONTAINING_RECORD(
@@ -618,7 +609,6 @@ QuicDatapathWorkQueuePop(
                 QUIC_DATAPATH_WORKITEM,
                 Link);
     }
-
     QuicDispatchLockRelease(&WorkQueue->Lock);
 
     return Workitem;
@@ -631,25 +621,19 @@ QuicDatapathWorkQueueClear(
     )
 {
     QUIC_LIST_ENTRY OldList = {0};
-    QUIC_DATAPATH_WORKITEM* Workitem = NULL;
-
     QuicListInitializeHead(&OldList);
 
     QuicDispatchLockAcquire(&WorkQueue->Lock);
-
     QuicListMoveItems(&WorkQueue->List, &OldList);
-
     QuicDispatchLockRelease(&WorkQueue->Lock);
 
     while (!QuicListIsEmpty(&OldList)) {
-        Workitem =
+        QuicDatapathWorkitemFree(
+            WorkQueue,
             QUIC_CONTAINING_RECORD(
                 QuicListRemoveHead(&OldList),
                 QUIC_DATAPATH_WORKITEM,
-                Link);
-
-        QuicDatapathWorkitemFree(WorkQueue, Workitem);
-        Workitem = NULL;
+                Link));
     }
 }
 
@@ -660,17 +644,13 @@ QuicDatapathNotifyEvent(
     )
 {
     const eventfd_t Value = 1;
-    int Ret = 0;
 
     //
     // Poke the worker by writing to the event FD.
     //
-
-    Ret = eventfd_write(ProcContext->EventFd, Value);
-
-    if (Ret != 0) {
-        LogError("[ dal] Write event failure, ret %d.", Ret);
-    }
+    int Ret = eventfd_write(ProcContext->EventFd, Value);
+    QUIC_DBG_ASSERT(Ret == 0);
+    UNREFERENCED_PARAMETER(Ret);
 }
 
 static
@@ -698,13 +678,10 @@ QuicDatapathProcessWorkQueue(
     _Inout_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
-    QUIC_DATAPATH_WORKITEM* Workitem =
-        QuicDatapathWorkQueuePop(&ProcContext->WorkQueue);
-
-    while (Workitem != NULL) {
+    QUIC_DATAPATH_WORKITEM* Workitem;
+    while ((Workitem = QuicDatapathWorkQueuePop(&ProcContext->WorkQueue)) != NULL) {
         QuicDatapathProcessWorkitem(ProcContext, Workitem);
         QuicDatapathWorkitemFree(&ProcContext->WorkQueue, Workitem);
-        Workitem = QuicDatapathWorkQueuePop(&ProcContext->WorkQueue);
     }
 }
 
@@ -734,19 +711,13 @@ QuicDataPathUninitializeWaitForWorker(
     _Inout_ QUIC_DATAPATH_PROC_CONTEXT*  ProcContext
     )
 {
+    QUIC_DBG_ASSERT(!pthread_equal(pthread_self(), ProcContext->EpollWaitThread));
+
     int Thread_Ret = 0;
-    int Ret = 0;
-
-    QUIC_FRE_ASSERT(!pthread_equal(pthread_self(), ProcContext->EpollWaitThread->Thread));
-
-    Ret = pthread_join(ProcContext->EpollWaitThread->Thread, (void **)&Thread_Ret);
-
-    if (Ret != 0) {
-        LogError("[ dal] pthread_join() failed, ret %d, retval %d.", Ret, Thread_Ret);
-    }
-
-    QuicThreadDelete(ProcContext->EpollWaitThread);
-    ProcContext->EpollWaitThread = NULL;
+    int Ret = pthread_join(ProcContext->EpollWaitThread, (void **)&Thread_Ret);
+    QUIC_DBG_ASSERT(Ret == 0);
+    UNREFERENCED_PARAMETER(Ret);
+    UNREFERENCED_PARAMETER(Thread_Ret);
 }
 
 void
@@ -757,13 +728,11 @@ QuicDataPathHandleShutdownEvent(
     int Ret = 0;
 
     Ret = epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, ProcContext->EventFd, NULL);
-
     if (Ret != 0) {
         LogError("[ dal] epoll_ctl() failed, ret %d.", Ret);
     }
 
     Ret = close(ProcContext->EventFd);
-
     if (Ret != 0) {
         LogError("[ dal] close(EventFd) failed, ret %d.", Ret);
     }
@@ -771,7 +740,6 @@ QuicDataPathHandleShutdownEvent(
     ProcContext->EventFd = INVALID_SOCKET_FD;
 
     Ret = close(ProcContext->EpollFd);
-
     if (Ret != 0) {
         LogError("[ dal] close(EpollFd) failed, ret %d.", Ret);
     }
@@ -801,51 +769,23 @@ QuicDataPathProcContextInitialize(
     RecvPacketLength =
         sizeof(QUIC_DATAPATH_RECV_BLOCK) + Datapath->ClientRecvContextLength;
 
-    //
-    // Initialize the receive block pool.
-    //
-
     QuicPoolInitialize(TRUE, RecvPacketLength, &ProcContext->RecvBlockPool);
-
-    //
-    // Initialize the send buffer pool.
-    //
-
     QuicPoolInitialize(TRUE, MAX_UDP_PAYLOAD_LENGTH, &ProcContext->SendBufferPool);
-
-    //
-    // Initialize the send context pool.
-    //
-
     QuicPoolInitialize(
         TRUE,
         sizeof(QUIC_DATAPATH_SEND_CONTEXT),
         &ProcContext->SendContextPool);
 
-    //
-    // Initialize the work queue.
-    //
-
     QuicDatapathWorkQueueInitialize(&ProcContext->WorkQueue);
 
-    //
-    // Create the Epoll FD.
-    //
-
     EpollFd = epoll_create1(EPOLL_CLOEXEC);
-
     if (EpollFd == INVALID_SOCKET_FD) {
         Status = errno;
         LogError("[ dal] epoll_create1(EPOLL_CLOEXEC) failed, status %u.", Status);
         goto Exit;
     }
 
-    //
-    // Create a event fd.
-    //
-
     EventFd = eventfd(0, EFD_CLOEXEC);
-
     if (EventFd == INVALID_SOCKET_FD) {
         Status = errno;
         LogError("[ dal] eventfd() failed, status %u.", Status);
@@ -859,12 +799,7 @@ QuicDataPathProcContextInitialize(
         }
     };
 
-    //
-    // Add the eventfd to the epoll FD.
-    //
-
     Ret = epoll_ctl(EpollFd, EPOLL_CTL_ADD, EventFd, &EvtFdEpEvt);
-
     if (Ret != 0) {
         Status = errno;
         LogError("[ dal] epoll_ctl(EPOLL_CTL_ADD) failed, status %u.", Status);
@@ -891,11 +826,7 @@ QuicDataPathProcContextInitialize(
         ProcContext
     };
 
-    Status =
-        QuicThreadCreate(
-            &ThreadConfig,
-            &ProcContext->EpollWaitThread);
-
+    Status = QuicThreadCreate(&ThreadConfig, &ProcContext->EpollWaitThread);
     if (QUIC_FAILED(Status)) {
         LogError("[ dal] QuicThreadCreate() failed, status %u.", Status);
         goto Exit;
@@ -906,31 +837,15 @@ Exit:
     if (QUIC_FAILED(Status)) {
 
         if (EventFdAdded) {
-            Ret = epoll_ctl(EpollFd, EPOLL_CTL_DEL, EventFd, NULL);
-
-            if (Ret != 0) {
-                LogError("[ dal] epoll_ctl(EPOLL_CTL_DEL) failed, ret %d.", Ret);
-            }
+            epoll_ctl(EpollFd, EPOLL_CTL_DEL, EventFd, NULL);
         }
 
         if (EventFd != INVALID_SOCKET_FD) {
-            Ret = close(EventFd);
-
-            if (Ret != 0) {
-                LogError("[ dal] close(EventFd) failed, ret %d.", Ret);
-            }
-
-            EventFd = INVALID_SOCKET_FD;
+            close(EventFd);
         }
 
         if (EpollFd != INVALID_SOCKET_FD) {
-            Ret = close(EpollFd);
-
-            if (Ret != 0) {
-                LogError("[ dal] close(EpollFd) failed, ret %d.", Ret);
-            }
-
-            EpollFd = INVALID_SOCKET_FD;
+            close(EpollFd);
         }
 
         QuicPoolUninitialize(&ProcContext->RecvBlockPool);
@@ -2665,23 +2580,23 @@ QuicDataPathRecvComplete(
 
     if (RemoteAddr->si_family == AF_INET) {
         LogVerbose("[sock][%p] Received [%zd] (buflen=[%" PRIu16 "]) bytes Src=[%s:%" PRIu16 "] Dst=[%s:%" PRIu16 "], bind=[%p].",
-                   SocketContext, BytesTransferred,
-                   RecvPacket->BufferLength,
-                   inet_ntop(AF_INET, &RemoteAddr->Ipv4.sin_addr, RemoteInet6AddrStr, INET_ADDRSTRLEN),
-                   ntohs(RemoteAddr->Ipv4.sin_port),
-                   inet_ntop(AF_INET, &LocalAddr->Ipv4.sin_addr, LocalInet6AddrStr, INET_ADDRSTRLEN),
-                   ntohs(LocalAddr->Ipv4.sin_port),
-                   SocketContext->Binding);
+            SocketContext, BytesTransferred,
+            RecvPacket->BufferLength,
+            inet_ntop(AF_INET, &RemoteAddr->Ipv4.sin_addr, RemoteInet6AddrStr, INET_ADDRSTRLEN),
+            ntohs(RemoteAddr->Ipv4.sin_port),
+            inet_ntop(AF_INET, &LocalAddr->Ipv4.sin_addr, LocalInet6AddrStr, INET_ADDRSTRLEN),
+            ntohs(LocalAddr->Ipv4.sin_port),
+            SocketContext->Binding);
     } else {
         LogVerbose("[sock][%p] Received [%zd] (buflen=[%" PRIu16 "]) bytes Src=[%s:%" PRIu16 "] Dst=[%s:%" PRIu16 "%%%" PRIu32 "], bind=[%p].",
-                   SocketContext, BytesTransferred,
-                   RecvPacket->BufferLength,
-                   inet_ntop(AF_INET6, &RemoteAddr->Ipv6.sin6_addr, RemoteInet6AddrStr, INET6_ADDRSTRLEN),
-                   ntohs(RemoteAddr->Ipv6.sin6_port),
-                   inet_ntop(AF_INET6, &LocalAddr->Ipv6.sin6_addr, LocalInet6AddrStr, INET6_ADDRSTRLEN),
-                   ntohs(LocalAddr->Ipv6.sin6_port),
-                   LocalAddr->Ipv6.sin6_scope_id,
-                   SocketContext->Binding);
+            SocketContext, BytesTransferred,
+            RecvPacket->BufferLength,
+            inet_ntop(AF_INET6, &RemoteAddr->Ipv6.sin6_addr, RemoteInet6AddrStr, INET6_ADDRSTRLEN),
+            ntohs(RemoteAddr->Ipv6.sin6_port),
+            inet_ntop(AF_INET6, &LocalAddr->Ipv6.sin6_addr, LocalInet6AddrStr, INET6_ADDRSTRLEN),
+            ntohs(LocalAddr->Ipv6.sin6_port),
+            LocalAddr->Ipv6.sin6_scope_id,
+            SocketContext->Binding);
     }
 
     QUIC_DBG_ASSERT(BytesTransferred <= RecvPacket->BufferLength);
@@ -2713,12 +2628,7 @@ QuicDataPathWorkerThread(
     const size_t EpollEventCtMax = 4; // TODO: Experiment.
     struct epoll_event EpollEvents[EpollEventCtMax];
     BOOLEAN ShouldPoll = TRUE;
-    int ReadyFdCount = 0;
-    int i = 0;
-    void* ReadyFdPtr = NULL;
-    int SocketFd = 0;
     ssize_t Ret = 0;
-    QUIC_SOCKET_CONTEXT* SocketContext = NULL;
     int ErrNum = 0;
     socklen_t OptLen = 0;
 
@@ -2726,7 +2636,7 @@ QuicDataPathWorkerThread(
     QUIC_DBG_ASSERT(ProcContext->Datapath != NULL);
 
     while (ShouldPoll) {
-        ReadyFdCount =
+        int ReadyFdCount =
             TEMP_FAILURE_RETRY(
                 epoll_wait(
                     ProcContext->EpollFd,
@@ -2734,20 +2644,9 @@ QuicDataPathWorkerThread(
                     EpollEventCtMax,
                     -1));
 
-        if (ReadyFdCount < 0) {
-            LogError("[ dal] epoll_wait() failed, status %u.", errno);
-
-            //
-            // Treat this as a fatal error.
-            //
-
-            QUIC_FRE_ASSERT((FALSE));
-            break;
-        }
-
-        for (i = 0; i < ReadyFdCount; i++) {
-            ReadyFdPtr = EpollEvents[i].data.ptr;
-
+        QUIC_FRE_ASSERT(ReadyFdCount >= 0);
+        for (int i = 0; i < ReadyFdCount; i++) {
+            void* ReadyFdPtr = EpollEvents[i].data.ptr;
             if (ReadyFdPtr == &ProcContext->EventFd) {
 
                 if (EPOLLERR & EpollEvents[i].events) {
@@ -2758,7 +2657,7 @@ QuicDataPathWorkerThread(
                 if (EPOLLIN & EpollEvents[i].events) {
                     if (ProcContext->Datapath->Shutdown) {
                         QuicDataPathHandleShutdownEvent(ProcContext);
-                        ShouldPoll = (FALSE);
+                        ShouldPoll = FALSE;
                         break;
                     }
 
@@ -2766,12 +2665,13 @@ QuicDataPathWorkerThread(
                     continue;
                 }
 
-                QUIC_FRE_ASSERT((FALSE));
+                QUIC_FRE_ASSERT(FALSE);
                 break;
 
             } else {
-                SocketFd = *((int*)ReadyFdPtr);
-                SocketContext = QUIC_CONTAINING_RECORD(ReadyFdPtr, QUIC_SOCKET_CONTEXT, SocketFd);
+                int SocketFd = *((int*)ReadyFdPtr);
+                QUIC_SOCKET_CONTEXT* SocketContext =
+                    QUIC_CONTAINING_RECORD(ReadyFdPtr, QUIC_SOCKET_CONTEXT, SocketFd);
 
                 if (SocketContext->Binding->Shutdown) {
                     continue;
@@ -2813,11 +2713,10 @@ QuicDataPathWorkerThread(
                     OptLen = sizeof(ErrNum);
 
                     Ret = getsockopt(SocketFd, SOL_SOCKET, SO_ERROR, &ErrNum, &OptLen);
-
                     if (Ret < 0) {
                         LogError("[ dal] getsockopt(SO_ERROR) failed.");
                     } else {
-                        LogError("[ dal] Socket event failed, status %u(%s).", ErrNum, strerror(ErrNum));
+                        LogError("[ dal] Socket event failed, status %u (%s).", ErrNum, strerror(ErrNum));
                     }
 
                     //

@@ -360,8 +360,8 @@ RunAttack(
         ATTACK_THREAD_CONTEXT ThreadContext = {
             Binding, Type, ServerAddress, Alpn, ServerName, TimeoutMs
         };
-        QUIC_THREAD** Threads =
-            (QUIC_THREAD**)QUIC_ALLOC_PAGED(ThreadCount * sizeof(QUIC_THREAD*));
+        QUIC_THREAD* Threads =
+            (QUIC_THREAD*)QUIC_ALLOC_PAGED(ThreadCount * sizeof(QUIC_THREAD));
         for (uint32_t i = 0; i < ThreadCount; ++i) {
             QUIC_THREAD_CONFIG ThreadConfig = {
                 0, 0, "AttackRunner", RunAttackThread, &ThreadContext
@@ -369,8 +369,8 @@ RunAttack(
             QuicThreadCreate(&ThreadConfig, &Threads[i]);
         }
         for (uint32_t i = 0; i < ThreadCount; ++i) {
-            QuicThreadWait(Threads[i]);
-            QuicThreadDelete(Threads[i]);
+            QuicThreadWait(&Threads[i]);
+            QuicThreadDelete(&Threads[i]);
         }
     }
 

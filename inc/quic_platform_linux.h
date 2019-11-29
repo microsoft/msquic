@@ -599,11 +599,7 @@ QuicSleep(
 // QUIC thread object.
 //
 
-typedef struct QUIC_THREAD {
-
-    pthread_t Thread;
-
-} QUIC_THREAD;
+typedef pthread_t QUIC_THREAD;
 
 #define QUIC_THREAD_CALLBACK(FuncName, CtxVarName) \
     void* \
@@ -630,7 +626,7 @@ typedef struct QUIC_THREAD_CONFIG {
 QUIC_STATUS
 QuicThreadCreate(
     _In_ QUIC_THREAD_CONFIG* Config,
-    _Out_ QUIC_THREAD** Thread
+    _Out_ QUIC_THREAD* Thread
     );
 
 void
