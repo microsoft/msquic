@@ -140,7 +140,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicRandom(
     _In_ uint32_t BufferLen,
-    _Out_writes_bytes_(BufferLen) PUCHAR Buffer
+    _Out_writes_bytes_(BufferLen) void* Buffer
     )
 {
     memset(Buffer, ++QUIC_FUZZ_RND_IDX, BufferLen);
@@ -153,7 +153,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicRandom(
     _In_ uint32_t BufferLen,
-    _Out_writes_bytes_(BufferLen) PUCHAR Buffer
+    _Out_writes_bytes_(BufferLen) void* Buffer
     )
 {
     //
@@ -162,7 +162,7 @@ QuicRandom(
     return (QUIC_STATUS)
         BCryptGenRandom(
             NULL,
-            Buffer,
+            (uint8_t*)Buffer,
             BufferLen,
             BCRYPT_USE_SYSTEM_PREFERRED_RNG);
 }

@@ -77,7 +77,7 @@ struct FrameTest : public WEX::TestClass<FrameTest>
             // Generate a random value and make sure the top 2 bits aren't set.
             //
             uint64_t Value;
-            VERIFY_QUIC_SUCCESS(QuicRandom(sizeof(Value), (uint8_t*)&Value));
+            VERIFY_QUIC_SUCCESS(QuicRandom(sizeof(Value), &Value));
             Value &= ~(3ULL << 62);
 
             //

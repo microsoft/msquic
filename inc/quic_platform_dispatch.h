@@ -241,7 +241,7 @@ typedef
 QUIC_STATUS
 (*QUIC_RANDOM)(
     _In_ uint32_t BufferLen,
-    _Out_writes_bytes_(BufferLen) uint8_t* Buffer
+    _Out_writes_bytes_(BufferLen) void* Buffer
     );
 
 

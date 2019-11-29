@@ -815,7 +815,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicRandom(
     _In_ uint32_t BufferLen,
-    _Out_writes_bytes_(BufferLen) uint8_t* Buffer
+    _Out_writes_bytes_(BufferLen) void* Buffer
     );
 
 //

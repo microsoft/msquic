@@ -73,7 +73,7 @@ QuicBindingInitialize(
     //
     // Random reserved version number for version negotation.
     //
-    QuicRandom(sizeof(uint32_t), (uint8_t*)&Binding->RandomReservedVersion);
+    QuicRandom(sizeof(uint32_t), &Binding->RandomReservedVersion);
     Binding->RandomReservedVersion =
         (Binding->RandomReservedVersion & ~QUIC_VERSION_RESERVED_MASK) |
         QUIC_VERSION_RESERVED;

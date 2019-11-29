@@ -553,13 +553,13 @@ QuicProcCurrentNumber(
 QUIC_STATUS
 QuicRandom(
     _In_ uint32_t BufferLen,
-    _Out_writes_bytes_(BufferLen) uint8_t* Buffer
+    _Out_writes_bytes_(BufferLen) void* Buffer
     )
 {
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->Random(BufferLen, Buffer);
 #else
-    if (read(RandomFd, (void*)Buffer, BufferLen) == -1) {
+    if (read(RandomFd, Buffer, BufferLen) == -1) {
         return (QUIC_STATUS)errno;
     }
     return QUIC_STATUS_SUCCESS;
