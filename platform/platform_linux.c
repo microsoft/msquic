@@ -531,9 +531,8 @@ QuicProcMaxCount(
     void
     )
 {
-    long ProcCount = sysconf(_SC_NPROCESSORS_ONLN);
-    QUIC_DBG_ASSERT(ProcCount > 0 && ProcCount <= UINT32_MAX);
-    return (uint32_t)ProcCount;
+    return 1; // TODO - Support multi-core
+    //return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
 }
 
 uint32_t
@@ -541,9 +540,8 @@ QuicProcActiveCount(
     void
     )
 {
-    long ProcCount = sysconf(_SC_NPROCESSORS_ONLN);
-    QUIC_DBG_ASSERT(ProcCount > 0 && ProcCount <= UINT32_MAX);
-    return (uint32_t)ProcCount;
+    return 1; // TODO - Support multi-core
+    //return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
 }
 
 uint32_t
@@ -551,9 +549,8 @@ QuicProcCurrentNumber(
     void
     )
 {
-    int Cpu = sched_getcpu();
-    QUIC_DBG_ASSERT(Cpu >= 0);
-    return (uint32_t)Cpu;
+    return 0; // TODO - Support multi-core
+    //return (uint32_t)sched_getcpu();
 }
 
 QUIC_STATUS
