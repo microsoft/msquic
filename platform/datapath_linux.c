@@ -30,13 +30,11 @@ QUIC_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)),
 //
 // LINUX_TODO: Support batching.
 //
-
 #define QUIC_MAX_BATCH_SEND 1
 
 //
 // Type of workitem queued on the epoll thread.
 //
-
 typedef enum QUIC_DATAPATH_WORKITEM_TYPE {
     QUIC_DATAPATH_WORKITEM_TYPE_SHUTDOWN
 } QUIC_DATAPATH_WORKITEM_TYPE;
@@ -44,24 +42,20 @@ typedef enum QUIC_DATAPATH_WORKITEM_TYPE {
 //
 // A datapath workitem.
 //
-
 typedef struct QUIC_DATAPATH_WORKITEM {
     //
     // A linkage to the work queue.
     //
-
     QUIC_LIST_ENTRY Link;
 
     //
     // The workitem type.
     //
-
     QUIC_DATAPATH_WORKITEM_TYPE Type;
 
     //
     // Work context based on the workitem type.
     //
-
     union {
         struct {
             struct QUIC_SOCKET_CONTEXT *SocketContext;
@@ -73,24 +67,20 @@ typedef struct QUIC_DATAPATH_WORKITEM {
 //
 // Datapath work queue.
 //
-
 typedef struct QUIC_DATAPATH_WORK_QUEUE {
     //
     // Synchronizes the access to the list.
     //
-
     QUIC_DISPATCH_LOCK Lock;
 
     //
     // List of workitems.
     //
-
     QUIC_LIST_ENTRY List;
 
     //
     // Pool for workitem allocation.
     //
-
     QUIC_POOL Pool;
 
 } QUIC_DATAPATH_WORK_QUEUE;
@@ -98,31 +88,26 @@ typedef struct QUIC_DATAPATH_WORK_QUEUE {
 //
 // A receive block to receive a UDP packet over the sockets.
 //
-
 typedef struct QUIC_DATAPATH_RECV_BLOCK {
     //
     // The pool owning this recv block.
     //
-
     QUIC_POOL* OwningPool;
 
     //
     // The recv buffer used by MsQuic.
     //
-
     QUIC_RECV_DATAGRAM RecvPacket;
 
     //
     // Represents the address (source and destination) information of the
     // packet.
     //
-
     QUIC_TUPLE Tuple;
 
     //
     // Buffer that actually stores the UDP payload.
     //
-
     uint8_t Buffer[MAX_UDP_PAYLOAD_LENGTH];
 
     //
@@ -140,37 +125,31 @@ typedef struct QUIC_DATAPATH_SEND_CONTEXT {
     //
     // Indicates if the send should be bound to a local address.
     //
-
     BOOLEAN Bind;
 
     //
     // The local address to bind to.
     //
-
     QUIC_ADDR LocalAddress;
 
     //
     // The remote address to send to.
     //
-
     QUIC_ADDR RemoteAddress;
 
     //
     // Linkage to pending send list.
     //
-
     QUIC_LIST_ENTRY PendingSendLinkage;
 
     //
     // Indicates if the send is pending.
     //
-
     BOOLEAN Pending;
 
     //
     // The proc context owning this send context.
     //
-
     struct QUIC_DATAPATH_PROC_CONTEXT *Owner;
 
     //
@@ -185,7 +164,6 @@ typedef struct QUIC_DATAPATH_SEND_CONTEXT {
     // LINUX_TODO: Better way to reconcile layout difference
     // between QUIC_BUFFER and struct iovec?
     //
-
     size_t BufferCount;
     size_t CurrentIndex;
     QUIC_BUFFER Buffers[QUIC_MAX_BATCH_SEND];
@@ -196,60 +174,50 @@ typedef struct QUIC_DATAPATH_SEND_CONTEXT {
 //
 // Socket context.
 //
-
 typedef struct QUIC_SOCKET_CONTEXT {
     //
     // The datapath binding this socket context belongs to.
     //
-
     QUIC_DATAPATH_BINDING* Binding;
 
     //
     // The socket FD used by this socket context.
     //
-
     int SocketFd;
 
     //
     // Indicates if sends are waiting for the socket to be write ready.
     //
-
     BOOLEAN SendWaiting;
 
     //
     // The I/O vector for receive datagrams.
     //
-
     struct iovec RecvIov;
 
     //
     // The control buffer used in RecvMsgHdr.
     //
-
     char RecvMsgControl[CMSG_SPACE(sizeof(struct in6_pktinfo))];
 
     //
     // The buffer used to receive msg headers on socket.
     //
-
     struct msghdr RecvMsgHdr;
 
     //
     // The receive block currently being used for receives on this socket.
     //
-
     QUIC_DATAPATH_RECV_BLOCK* CurrentRecvBlock;
 
     //
     // The head of list containg all pending sends on this socket.
     //
-
     QUIC_LIST_ENTRY PendingSendContextHead;
 
     //
     // A pre-allocated workitem used during the shudown.
     //
-
     QUIC_DATAPATH_WORKITEM* ShutdownWorkitem;
 
 } QUIC_SOCKET_CONTEXT;
@@ -257,56 +225,47 @@ typedef struct QUIC_SOCKET_CONTEXT {
 //
 // Datapath binding.
 //
-
 typedef struct QUIC_DATAPATH_BINDING {
     //
     // Indicates if datapath binding is shut down.
     //
-
     BOOLEAN volatile Shutdown;
 
     //
     // A pointer to datapth object.
     //
-
     QUIC_DATAPATH* Datapath;
 
     //
-    // local_address - The local address for the binding.
-    // remote_address - The remote address for the binding.
+    // LocalAddress - The local address for the binding.
+    // RemoteAddress - The remote address for the binding.
     //
-
     SOCKADDR_INET LocalAddress;
     SOCKADDR_INET RemoteAddress;
 
     //
     // The MTU for this datapath binding.
     //
-
     uint16_t Mtu;
 
     //
     // Number of outstanding sends on this binding.
     //
-
     long volatile SocketContextsOutstanding;
 
     //
     // The client context for this binding.
     //
-
     void *ClientContext;
 
     //
     // Number of outstanding sends.
     //
-
     long volatile SendOutstanding;
 
     //
     // Set of socket contexts one per proc.
     //
-
     QUIC_SOCKET_CONTEXT SocketContexts[];
 
 } QUIC_DATAPATH_BINDING;
@@ -314,56 +273,47 @@ typedef struct QUIC_DATAPATH_BINDING {
 //
 // A per proc datapath context.
 //
-
 typedef struct QUIC_DATAPATH_PROC_CONTEXT {
 
     //
     // A pointer to the datapath.
     //
-
     QUIC_DATAPATH* Datapath;
 
     //
     // The Epoll FD for this proc context.
     //
-
     int EpollFd;
 
     //
     // The event FD for this proc context.
     //
-
     int EventFd;
 
     //
     // The work queue for this proc context.
     //
-
     QUIC_DATAPATH_WORK_QUEUE WorkQueue;
 
     //
     // The epoll wait thread.
     //
-
     QUIC_THREAD EpollWaitThread;
 
     //
     // Pool of receive packet contexts and buffers to be shared by all sockets
     // on this core.
     //
-
     QUIC_POOL RecvBlockPool;
 
     //
     // Pool of send buffers to be shared by all sockets on this core.
     //
-
     QUIC_POOL SendBufferPool;
 
     //
     // Pool of send contexts to be shared by all sockets on this core.
     //
-
     QUIC_POOL SendContextPool;
 
 } QUIC_DATAPATH_PROC_CONTEXT;
@@ -376,45 +326,38 @@ typedef struct QUIC_DATAPATH {
     //
     // If datapath is shutting down.
     //
-
     BOOLEAN volatile Shutdown;
 
     //
     // The max send batch size.
     // LINUX_TODO: See how send batching can be enabled.
     //
-
     uint8_t MaxSendBatchSize;
 
     //
     // The RSS mode (4-tuple, 2-tuple or connectionid) in use.
     // LINUX_TODO: See how to set and use this.
     //
-
     QUIC_RSS_MODE RssMode;
 
     //
     // A reference rundown on the datapath binding.
     //
-
     QUIC_RUNDOWN_REF BindingsRundown;
 
     //
     // The MsQuic receive handler.
     //
-
     QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER RecvHandler;
 
     //
     // The MsQuic unreachable handler.
     //
-
     QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER UnreachHandler;
 
     //
     // The length of recv context used by MsQuic.
     //
-
     size_t ClientRecvContextLength;
 
     //
@@ -422,13 +365,11 @@ typedef struct QUIC_DATAPATH {
     // LINUX_TODO: For now this is hardcoded to 1 and we maintain a single proc
     // state per datapath binding.
     //
-
     uint32_t ProcCount;
 
     //
     // The per proc datapath contexts.
     //
-
     QUIC_DATAPATH_PROC_CONTEXT ProcContexts[];
 
 } QUIC_DATAPATH;
@@ -1155,13 +1096,11 @@ QuicDatapathSocketContextOpen(
     //
     // Create datagram socket.
     //
-
     SocketContext->SocketFd =
         socket(
             AF_INET6,
             SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, // LINUX_TODO check if SOCK_CLOEXEC is required?
             IPPROTO_UDP);
-
     if (SocketContext->SocketFd == INVALID_SOCKET_FD) {
         Status = errno;
         LogError("[ dal] socket() failed, status %u.", Status);
@@ -1171,7 +1110,6 @@ QuicDatapathSocketContextOpen(
     //
     // Set dual (IPv4 & IPv6) socket mode.
     //
-
     Option = false;
     Result =
         setsockopt(
@@ -1180,7 +1118,6 @@ QuicDatapathSocketContextOpen(
             IPV6_V6ONLY,
             (const void*)&Option,
             sizeof(Option));
-
     if (Result == SOCKET_ERROR) {
         Status = errno;
         LogError("[ dal] setsockopt(IPV6_V6ONLY) failed, status %u.", Status);
@@ -1197,7 +1134,6 @@ QuicDatapathSocketContextOpen(
     // apparent alternative.
     // LINUX_TODO: Verify this.
     //
-
     Option = IP_PMTUDISC_DO;
     Result =
         setsockopt(
@@ -1206,7 +1142,6 @@ QuicDatapathSocketContextOpen(
             IP_MTU_DISCOVER,
             (const void*)&Option,
             sizeof(Option));
-
     if (Result == SOCKET_ERROR) {
         Status = errno;
         LogError("[ dal] setsockopt(IP_MTU_DISCOVER) failed, status %u.", Status);
@@ -1221,7 +1156,6 @@ QuicDatapathSocketContextOpen(
             IPV6_DONTFRAG,
             (const void*)&Option,
             sizeof(Option));
-
     if (Result == SOCKET_ERROR) {
         Status = errno;
         LogError("[ dal] setsockopt(IPV6_DONTFRAG) failed, status %u.", Status);
@@ -1238,7 +1172,6 @@ QuicDatapathSocketContextOpen(
     // IPV6_RECVPKTINFO seems like is the alternative.
     // LINUX_TODO: Check if this works as expected?
     //
-
     Option = true;
     Result =
         setsockopt(
@@ -1247,7 +1180,6 @@ QuicDatapathSocketContextOpen(
             IPV6_RECVPKTINFO,
             (const void*)&Option,
             sizeof(Option));
-
     if (Result == SOCKET_ERROR) {
         Status = errno;
         LogError("[ dal] setsockopt(IPV6_RECVPKTINFO) failed, status %u.", Status);
@@ -1262,7 +1194,6 @@ QuicDatapathSocketContextOpen(
             IP_PKTINFO,
             (const void*)&Option,
             sizeof(Option));
-
     if (Result == SOCKET_ERROR) {
         Status = errno;
         LogError("[ dal] setsockopt(IP_PKTINFO) failed, status %u.", Status);
@@ -1273,7 +1204,6 @@ QuicDatapathSocketContextOpen(
     // The socket is shared by multiple QUIC endpoints, so increase the receive
     // buffer size.
     //
-
     Option = INT32_MAX;
     Result =
         setsockopt(
@@ -1282,7 +1212,6 @@ QuicDatapathSocketContextOpen(
             SO_RCVBUF,
             (const void*)&Option,
             sizeof(Option));
-
     if (Result == SOCKET_ERROR) {
         Status = errno;
         LogError("[ dal] setsockopt(SO_RCVBUF) failed, status %u.", Status);
@@ -1294,7 +1223,6 @@ QuicDatapathSocketContextOpen(
             SocketContext->SocketFd,
             (const struct sockaddr *)&Binding->LocalAddress,
             sizeof(Binding->LocalAddress));
-
     if (Result == SOCKET_ERROR) {
         Status = errno;
         LogError("[ dal] bind() failed, status %u.", Status);
@@ -1327,15 +1255,12 @@ QuicDatapathSocketContextOpen(
     // assigned this socket a port. We need to query it and use it for
     // all the other sockets we are going to create.
     //
-
     AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
-
     Result =
         getsockname(
             SocketContext->SocketFd,
             (struct sockaddr *)&Binding->LocalAddress,
             &AssignedLocalAddressLength);
-
     if (Result == SOCKET_ERROR) {
         Status = errno;
         LogError("[ dal] getsockname() failed, status %u.", Status);
@@ -1348,7 +1273,6 @@ QuicDatapathSocketContextOpen(
 
     SocketContext->ShutdownWorkitem =
         QuicDatapathWorkitemAlloc(&Datapath->ProcContexts[ProcIndex].WorkQueue);
-
     if (SocketContext->ShutdownWorkitem == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         LogError("[ dal] ShutdownWorkitem allocation failed.");
@@ -1358,13 +1282,7 @@ QuicDatapathSocketContextOpen(
 Exit:
 
     if (QUIC_FAILED(Status)) {
-        Result = close(SocketContext->SocketFd);
-
-        if (Result != 0)
-        {
-            LogError("[ dal] close() failed, err: %d.", errno);
-        }
-
+        close(SocketContext->SocketFd);
         SocketContext->SocketFd = INVALID_SOCKET_FD;
     }
 
@@ -1399,10 +1317,9 @@ QuicDataPathBindingCreate(
     size_t BindingLength = 0;
 
     BindingLength = sizeof(QUIC_DATAPATH_BINDING) +
-            Datapath->ProcCount * sizeof(QUIC_SOCKET_CONTEXT);
+        Datapath->ProcCount * sizeof(QUIC_SOCKET_CONTEXT);
 
     Binding = (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_PAGED(BindingLength);
-
     if (Binding == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         LogError("[ dal] Binding allocation failed");
@@ -1410,7 +1327,6 @@ QuicDataPathBindingCreate(
     }
 
     QuicZeroMemory(Binding, BindingLength);
-
     Binding->Datapath = Datapath;
     Binding->ClientContext = RecvCallbackContext;
     Binding->Mtu = QUIC_MAX_MTU;
@@ -1434,9 +1350,7 @@ QuicDataPathBindingCreate(
     }
 
     for (i = 0; i < Binding->Datapath->ProcCount; i++) {
-
         SocketContext = &Binding->SocketContexts[i];
-
         Status =
             QuicDatapathSocketContextOpen(
                 Datapath,
@@ -1444,12 +1358,10 @@ QuicDataPathBindingCreate(
                 (QUIC_ADDR *)RemoteAddress,
                 i,
                 SocketContext);
-
         if (QUIC_FAILED(Status)) {
             //
             // LINUX_TODO: Right now, loop size is 1. Future: Clean up earlier items in this loop.
             //
-
             LogError("[ dal] QuicDatapathSocketContextOpen failed, status:%u", Status);
             goto Exit;
         }
@@ -1477,12 +1389,10 @@ QuicDataPathBindingCreate(
             QuicDataPathBindingStartReceive(
                 &Binding->SocketContexts[i],
                 Datapath->ProcContexts[i].EpollFd);
-
         if (QUIC_FAILED(Status)) {
             //
             // LINUX_TODO: Right now, loop size is 1. Future: clean up earlier items in this loop.
             //
-
             LogError("[ dal] QuicDataPathBindingStartReceive() failed, status:%u", Status);
             goto Exit;
         }
@@ -1548,7 +1458,6 @@ QuicDatapathSocketContextShutdownBegin(
 
     QuicEventWaitForever(Completed);
     QuicEventUninitialize(Completed);
-
 }
 
 static
@@ -1559,19 +1468,14 @@ QuicDatapathSocketContextShutdownEnd(
     )
 {
     int Ret = 0;
-    QUIC_DATAPATH_SEND_CONTEXT* SendContext = NULL;
 
     Ret = epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
-
-    if (Ret != 0)
-    {
+    if (Ret != 0) {
         LogError("[ dal] epoll_ctl() failed, ret %d.", Ret);
     }
 
     Ret = close(SocketContext->SocketFd);
-
-    if (Ret != 0)
-    {
+    if (Ret != 0) {
         LogError("[ dal] close() failed, ret %d.", Ret);
     }
 
@@ -1582,19 +1486,14 @@ QuicDatapathSocketContextShutdownEnd(
     }
 
     while (!QuicListIsEmpty(&SocketContext->PendingSendContextHead)) {
-        SendContext =
+        QuicSendContextComplete(
+            SocketContext,
             QUIC_CONTAINING_RECORD(
                 QuicListRemoveHead(&SocketContext->PendingSendContextHead),
                 QUIC_DATAPATH_SEND_CONTEXT,
-                PendingSendLinkage);
-
-        QuicSendContextComplete(
-            SocketContext,
-            SendContext,
+                PendingSendLinkage),
             QUIC_STATUS_ABORTED,
             0);
-
-        SendContext = NULL;
     }
 
     if (SocketContext->ShutdownWorkitem != NULL) {
@@ -1608,7 +1507,6 @@ QuicDatapathSocketContextShutdownEnd(
         //
         // Last socket context cleaned up, so now the binding can be freed.
         //
-
         QuicRundownRelease(&SocketContext->Binding->Datapath->BindingsRundown);
         QuicFree(SocketContext->Binding);
     }
@@ -1646,7 +1544,6 @@ QuicDataPathAllocRecvBlock(
 {
     QUIC_DATAPATH_RECV_BLOCK* RecvBlock =
         QuicPoolAlloc(&Datapath->ProcContexts[ProcIndex].RecvBlockPool);
-
     if (RecvBlock == NULL) {
         LogError("[ dal] RecvBlock allocation failed.");
         goto Exit;
@@ -1792,18 +1689,13 @@ QuicDataPathBindingPrepareForReceive(
     _In_ QUIC_SOCKET_CONTEXT* SocketContext
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-
     if (SocketContext->CurrentRecvBlock == NULL) {
         SocketContext->CurrentRecvBlock =
             QuicDataPathAllocRecvBlock(
                 SocketContext->Binding->Datapath,
                 QuicProcCurrentNumber());
-
         if (SocketContext->CurrentRecvBlock == NULL) {
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            LogError("[ dal] Recv block allocation failed.");
-            goto Error;
+            return QUIC_STATUS_OUT_OF_MEMORY;
         }
     }
 
@@ -1822,9 +1714,7 @@ QuicDataPathBindingPrepareForReceive(
     SocketContext->RecvMsgHdr.msg_controllen = sizeof(SocketContext->RecvMsgControl);
     SocketContext->RecvMsgHdr.msg_flags = 0;
 
-Error:
-
-    return Status;
+    return QUIC_STATUS_SUCCESS;
 }
 
 static
@@ -1838,7 +1728,6 @@ QuicDataPathBindingStartReceive(
     int Ret = 0;
 
     Status = QuicDataPathBindingPrepareForReceive(SocketContext);
-
     if (QUIC_FAILED(Status)) {
         LogError("[ dal] QuicDataPathBindingPrepareForReceive() failed, status %u.", Status);
         goto Error;
@@ -1857,7 +1746,6 @@ QuicDataPathBindingStartReceive(
             EPOLL_CTL_ADD,
             SocketContext->SocketFd,
             &SockFdEpEvt);
-
     if (Ret != 0) {
         Status = Ret;
         LogError("[ dal] epoll_ctl() failed, status %u.", Status);
@@ -1867,11 +1755,7 @@ QuicDataPathBindingStartReceive(
 Error:
 
     if (QUIC_FAILED(Status)) {
-        Ret = close(SocketContext->SocketFd);
-
-        if (Ret != 0) {
-            LogError("[ dal] close() failed, status %u.", Status);
-        }
+        close(SocketContext->SocketFd);
     }
 
     return Status;
@@ -1904,7 +1788,6 @@ QuicDataPathBindingPendSend(
                 EPOLL_CTL_MOD,
                 SocketContext->SocketFd,
                 &SockFdEpEvt);
-
         if (Ret != 0) {
             Status = Ret;
             LogError("[ dal] epoll_ctl() failed, status %u.", Status);
@@ -1972,7 +1855,6 @@ QuicDataPathBindingCompletePendingSend(
                 EPOLL_CTL_MOD,
                 SocketContext->SocketFd,
                 &SockFdEpEvt);
-
         if (Ret != 0) {
             Status = Ret;
             LogError("[ dal] epoll_ctl() failed, status %u.", Status);
@@ -1995,7 +1877,6 @@ QuicDataPathBindingCompletePendingSend(
                 SendContext->Bind ? &SendContext->LocalAddress : NULL,
                 &SendContext->RemoteAddress,
                 SendContext);
-
         if (QUIC_FAILED(Status)) {
             LogError("[ dal] QuicDataPathBindingSend() failed, status %u.", Status);
         }

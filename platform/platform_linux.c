@@ -13,7 +13,7 @@ Environment:
 
 --*/
 
-#include "../core/precomp.h"
+#define _GNU_SOURCE
 #include "platform_internal.h"
 #include "quic_platform.h"
 #include <limits.h>
@@ -29,7 +29,7 @@ Environment:
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
 QUIC_PLATFORM_DISPATCH* PlatDispatch = NULL;
 #else
-int RandomFd;
+int RandomFd; // Used for reading random numbers.
 #endif
 
 uint64_t QuicTotalMemory;
@@ -47,13 +47,11 @@ quic_bugcheck(
     // it is possible certain optimizations will cause inlining. asm technique
     // is the gcc documented way to prevent such optimizations.
     //
-
     asm("");
 
     //
     // abort() sends a SIGABRT signal and it triggers termination and coredump.
     //
-
     abort();
 }
 
@@ -95,7 +93,9 @@ QuicPlatformUninitialize(
     void
     )
 {
+#ifndef QUIC_PLATFORM_DISPATCH_TABLE
     close(RandomFd);
+#endif
 }
 
 void*
@@ -531,16 +531,9 @@ QuicProcMaxCount(
     void
     )
 {
-    //
-    // Linux_TODO: Currently hardcoded to 1. Remove this hack once Linux DAL
-    // support multi proc model.
-    //
-
-    //long ProcCount = sysconf(_SC_NPROCESSORS_CONF);
-    //QUIC_DBG_ASSERT(ProcCount > 0 && ProcCount <= UINT32_MAX);
-    //return (uint32_t)ProcCount;
-
-    return 1;
+    long ProcCount = sysconf(_SC_NPROCESSORS_ONLN);
+    QUIC_DBG_ASSERT(ProcCount > 0 && ProcCount <= UINT32_MAX);
+    return (uint32_t)ProcCount;
 }
 
 uint32_t
@@ -548,16 +541,9 @@ QuicProcActiveCount(
     void
     )
 {
-    //
-    // Linux_TODO: Currently hardcoded to 1. Remove this hack once Linux DAL
-    // support multi proc model.
-    //
-
-    //long ProcCount = sysconf(_SC_NPROCESSORS_ONLN);
-    //QUIC_DBG_ASSERT(ProcCount > 0 && ProcCount <= UINT32_MAX);
-    //return (uint32_t)ProcCount;
-
-    return 1;
+    long ProcCount = sysconf(_SC_NPROCESSORS_ONLN);
+    QUIC_DBG_ASSERT(ProcCount > 0 && ProcCount <= UINT32_MAX);
+    return (uint32_t)ProcCount;
 }
 
 uint32_t
@@ -565,16 +551,9 @@ QuicProcCurrentNumber(
     void
     )
 {
-    //
-    // Linux_TODO: Currently hardcoded to 0. Remove this hack once Linux DAL
-    // support multi proc model.
-    //
-
-    //
-    //int Cpu = sched_getcpu();
-    //QUIC_DBG_ASSERT(Cpu >= 0);
-    //return (uint32_t) Cpu;
-    return 0;
+    int Cpu = sched_getcpu();
+    QUIC_DBG_ASSERT(Cpu >= 0);
+    return (uint32_t)Cpu;
 }
 
 QUIC_STATUS
