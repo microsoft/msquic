@@ -114,7 +114,6 @@ QuicWorkerUninitialize(
     QuicEventSet(Worker->Ready);
     QuicThreadWait(&Worker->Thread);
     QuicThreadDelete(&Worker->Thread);
-    Worker->Thread = NULL;
 
     QUIC_TEL_ASSERT(QuicListIsEmpty(&Worker->Connections));
     QUIC_TEL_ASSERT(QuicListIsEmpty(&Worker->Operations));

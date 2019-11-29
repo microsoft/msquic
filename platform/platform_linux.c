@@ -897,10 +897,10 @@ QuicThreadCreate(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    pthread_attr_t Attr = {0};
-    if (!pthread_attr_init(&Attr)) {
-        LogError("[qpal] pthread_attr_init() failed.");
-        return QUIC_STATUS_OUT_OF_MEMORY;
+    pthread_attr_t Attr;
+    if (pthread_attr_init(&Attr)) {
+        LogError("[qpal] pthread_attr_init() failed, 0x%x.", errno);
+        return errno;
     }
 
     /* TODO - How to enable non-standard functions?
@@ -923,13 +923,13 @@ QuicThreadCreate(
         struct sched_param Params;
         Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
         if (!pthread_attr_setschedparam(&Attr, &Params)) {
-            LogWarning("[qpal] pthread_attr_setschedparam() failed.");
+            LogWarning("[qpal] pthread_attr_setschedparam() failed, 0x%x.");
         }
     }
 
-    if (!pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
-        LogError("[qpal] pthread_create() failed.");
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
+    if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
+        Status = errno;
+        LogError("[qpal] pthread_create() failed, 0x%x.", Status);
     }
 
     pthread_attr_destroy(&Attr);
