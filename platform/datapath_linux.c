@@ -1218,6 +1218,23 @@ QuicDatapathSocketContextOpen(
         goto Exit;
     }
 
+    //
+    // The port is shared across processors.
+    //
+    Option = TRUE;
+    Result =
+        setsockopt(
+            SocketContext->SocketFd,
+            SOL_SOCKET,
+            SO_REUSEADDR,
+            (const void*)&Option,
+            sizeof(Option));
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        LogError("[ dal] setsockopt(SO_REUSEADDR) failed, status %u.", Status);
+        goto Exit;
+    }
+
     Result =
         bind(
             SocketContext->SocketFd,

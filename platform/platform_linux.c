@@ -531,8 +531,7 @@ QuicProcMaxCount(
     void
     )
 {
-    return 1; // TODO - Support multi-core
-    //return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
+    return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
 }
 
 uint32_t
@@ -540,8 +539,7 @@ QuicProcActiveCount(
     void
     )
 {
-    return 1; // TODO - Support multi-core
-    //return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
+    return (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
 }
 
 uint32_t
@@ -549,8 +547,7 @@ QuicProcCurrentNumber(
     void
     )
 {
-    return 0; // TODO - Support multi-core
-    //return (uint32_t)sched_getcpu();
+    return (uint32_t)sched_getcpu();
 }
 
 QUIC_STATUS
