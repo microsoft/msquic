@@ -27,6 +27,7 @@ endif()
 
 option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
 option(QUIC_BUILD_TEST "Builds the test code" ON)
+option(QUIC_ENABLE_LOGGING "Enables logging" ON)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/obj)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/lib)
@@ -47,12 +48,34 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         DEPENDS ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.rc)
 
     # Custom build flags.
-    set(QUIC_C_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW -DQUIC_0RTT_UNSUPPORTED /W4 /wd4100 /wd4101 /wd4189 /wd4458 /wd4459 /wd4702 /wd26451 /wd26812 /sdl /MP")
-    set(QUIC_CXX_FLAGS "${QUIC_C_FLAGS} /std:c++17")
+    set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 -DQUIC_0RTT_UNSUPPORTED /W4 /wd4100 /wd4101 /wd4189 /wd4458 /wd4459 /wd4702 /wd26451 /wd26812 /sdl /MP")
+    if(QUIC_ENABLE_LOGGING)
+        message(STATUS "Configuring for manifested ETW events and logging")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW")
+    else()
+        message(STATUS "Disabling events and logging")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_STUB")
+    endif()
+
+    set(QUIC_C_FLAGS "${QUIC_COMMON_FLAGS}")
+    set(QUIC_CXX_FLAGS "${QUIC_COMMON_FLAGS} /std:c++17")
+
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /Zi")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
+    set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF")
 else()
     # Custom build flags.
-    set(QUIC_C_FLAGS "-DQUIC_PLATFORM_LINUX -DQUIC_EVENTS_SYSLOG -DQUIC_LOGS_SYSLOG -fms-extensions -fPIC -Wall  -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-value -pthread")
-    set(QUIC_CXX_FLAGS "-DQUIC_PLATFORM_LINUX -DQUIC_EVENTS_SYSLOG -DQUIC_LOGS_SYSLOG -fms-extensions -fPIC -Wall -Wno-reorder -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-value -Wno-sign-compare -Wno-format --std=c++17 -g -pthread")
+    set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions -fPIC -Wall -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-value -pthread")
+    if(QUIC_ENABLE_LOGGING)
+        message(STATUS "Configuring for syslog events and logging")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_SYSLOG -DQUIC_LOGS_SYSLOG")
+    else()
+        message(STATUS "Disabling events and logging")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_STUB")
+    endif()
+
+    set(QUIC_C_FLAGS "${QUIC_COMMON_FLAGS}")
+    set(QUIC_CXX_FLAGS "${QUIC_COMMON_FLAGS} --std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format")
 endif()
 
 if(QUIC_TLS STREQUAL "openssl")

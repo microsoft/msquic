@@ -72,7 +72,7 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 
 #define QUIC_API
 #define QUIC_MAIN_EXPORT
-#define QUIC_STATUS                     ULONG
+#define QUIC_STATUS                     unsigned long
 #define QUIC_FAILED(X)                  ((int)(X) > 0)
 #define QUIC_SUCCEEDED(X)               ((int)(X) <= 0)
 
@@ -137,41 +137,17 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 #define QUIC_STATUS_SOCKET_ERROR        ((QUIC_STATUS)ERROR_SOCKET_ERROR)
 #define QUIC_STATUS_TLS_ERROR           ((QUIC_STATUS)ERROR_SSL_ERROR)
 
-typedef char CHAR;
-typedef unsigned char UCHAR;
-typedef UCHAR *PUCHAR;
-typedef const CHAR* PCSTR;
-typedef short SHORT;
-typedef unsigned short USHORT;
-typedef long LONG;
-typedef unsigned long ULONG;
-typedef unsigned long *PULONG;
-typedef int64_t LONG64;
-typedef size_t SIZE_T;
-typedef uint32_t UINT32;
-typedef uint64_t UINT64;
-typedef uint64_t *PUINT64;
-typedef uint64_t ULONG_PTR;
 typedef unsigned char BOOLEAN;
-typedef BOOLEAN *PBOOLEAN;
-typedef struct in_addr IN_ADDR, *PIN_ADDR, *LPIN_ADDR;
-typedef struct in6_addr IN6_ADDR, *PIN6_ADDR,  *LPIN6_ADDR;
-typedef sa_family_t ADDRESS_FAMILY;
-typedef struct sockaddr_in SOCKADDR_IN, *PSOCKADDR_IN;
-typedef struct sockaddr_in6 SOCKADDR_IN6, *PSOCKADDR_IN6, *LPSOCKADDR_IN6;
-typedef struct sockaddr SOCKADDR, *PSOCKADDR,  *LPSOCKADDR;
-typedef struct sockaddr_storage SOCKADDR_STORAGE, *PSOCKADDR_STORAGE,  *LPSOCKADDR_STORAGE;
+typedef struct in_addr IN_ADDR;
+typedef struct in6_addr IN6_ADDR;
+typedef struct addrinfo ADDRINFO;
+typedef sa_family_t QUIC_ADDRESS_FAMILY;
 
-typedef union _SOCKADDR_INET {
-    SOCKADDR_IN Ipv4;
-    SOCKADDR_IN6 Ipv6;
-    ADDRESS_FAMILY si_family;
-} SOCKADDR_INET, *PSOCKADDR_INET;
-
-typedef struct addrinfo ADDRINFO, *PADDRINFO;
-
-typedef ADDRESS_FAMILY QUIC_ADDRESS_FAMILY;
-typedef SOCKADDR_INET QUIC_ADDR;
+typedef union QUIC_ADDR {
+    struct sockaddr_in Ipv4;
+    struct sockaddr_in6 Ipv6;
+    sa_family_t si_family;
+} QUIC_ADDR;
 
 #ifndef FALSE
 #define FALSE 0
@@ -213,61 +189,61 @@ QuicAddrFamilyIsValid(
     
 BOOLEAN
 QuicAddrIsValid(
-    _In_ const QUIC_ADDR * const Addr
+    _In_ const QUIC_ADDR* const Addr
     );
 
 BOOLEAN
 QuicAddrCompareIp(
-    _In_ const QUIC_ADDR * const Addr1,
-    _In_ const QUIC_ADDR * const Addr2
+    _In_ const QUIC_ADDR* const Addr1,
+    _In_ const QUIC_ADDR* const Addr2
     );
 
 BOOLEAN
 QuicAddrCompare(
-    _In_ const QUIC_ADDR * const Addr1,
-    _In_ const QUIC_ADDR * const Addr2
+    _In_ const QUIC_ADDR* const Addr1,
+    _In_ const QUIC_ADDR* const Addr2
     );
 
 uint16_t
 QuicAddrGetFamily(
-    _In_ const QUIC_ADDR * const Addr
+    _In_ const QUIC_ADDR* const Addr
     );
 
 void
 QuicAddrSetFamily(
-    _In_ QUIC_ADDR * Addr,
+    _In_ QUIC_ADDR* Addr,
     _In_ uint16_t Family
     );
 
 uint16_t // Returns in host byte order.
 QuicAddrGetPort(
-    _In_ const QUIC_ADDR * const Addr
+    _In_ const QUIC_ADDR* const Addr
     );
-    
+
 void
 QuicAddrSetPort(
-    _In_ QUIC_ADDR * Addr,
+    _In_ QUIC_ADDR* Addr,
     _In_ uint16_t Port // Host byte order
     );
 
 BOOLEAN
 QuicAddrIsBoundExplicitly(
-    _In_ const QUIC_ADDR * const Addr
+    _In_ const QUIC_ADDR* const Addr
     );
 
 void
 QuicAddrSetToLoopback(
-    _In_ QUIC_ADDR * Addr
+    _In_ QUIC_ADDR* Addr
     );
 
 uint32_t
 QuicAddrHash(
-    _In_ const QUIC_ADDR * Addr
+    _In_ const QUIC_ADDR* Addr
     );
 
 BOOLEAN
 QuicAddrIsWildCard(
-    _In_ const QUIC_ADDR * const Addr
+    _In_ const QUIC_ADDR* const Addr
     );
 
 BOOLEAN
@@ -288,13 +264,6 @@ BOOLEAN
 QuicAddrToString(
     _In_ const QUIC_ADDR* Addr,
     _Out_ QUIC_ADDR_STR* AddrStr
-    );
-
-QUIC_STATUS
-QuicTlsGenerateSelfSignedCert(
-    _In_z_ char *CertFileName,
-    _In_z_ char *PrivateKeyFileName,
-    _In_z_ char *SNI
     );
 
 #if defined(__cplusplus)

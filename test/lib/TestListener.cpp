@@ -11,7 +11,7 @@ Abstract:
 
 #include "precomp.h"
 
-volatile LONG64 NextConnID = 0x10000;
+volatile int64_t NextConnID = 0x10000;
 
 TestListener::TestListener(
     _In_ HQUIC SessionHandle,

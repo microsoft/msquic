@@ -14,6 +14,8 @@ Environment:
 
 --*/
 
+#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+
 #ifndef QUIC_PLATFORM_DISPATCH_
 #define QUIC_PLATFORM_DISPATCH_
 
@@ -27,7 +29,7 @@ Environment:
 typedef
 void*
 (*QUIC_ALLOC)(
-    _In_ SIZE_T ByteCount
+    _In_ size_t ByteCount
     );
 
 typedef
@@ -238,8 +240,8 @@ QUIC_STATUS
 typedef
 QUIC_STATUS
 (*QUIC_RANDOM)(
-    _In_ UINT32 BufferLen,
-    _Out_writes_bytes_(BufferLen) PUCHAR Buffer
+    _In_ uint32_t BufferLen,
+    _Out_writes_bytes_(BufferLen) void* Buffer
     );
 
 
@@ -283,4 +285,6 @@ typedef struct QUIC_PLATFORM_DISPATCH {
 
 extern QUIC_PLATFORM_DISPATCH* PlatDispatch;
 
-#endif
+#endif // QUIC_PLATFORM_DISPATCH_
+
+#endif // QUIC_PLATFORM_DISPATCH_TABLE

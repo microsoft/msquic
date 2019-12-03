@@ -58,8 +58,8 @@ struct PingTracker {
         uint64_t Sent,
         uint64_t Received
         ) {
-        InterlockedExchangeAdd64((LONG64*)&BytesSent, (LONG64)Sent);
-        InterlockedExchangeAdd64((LONG64*)&BytesReceived, (LONG64)Received);
+        InterlockedExchangeAdd64((int64_t*)&BytesSent, (int64_t)Sent);
+        InterlockedExchangeAdd64((int64_t*)&BytesReceived, (int64_t)Received);
         if (InterlockedDecrement(&RefCount) == 0) {
             CompleteTime = QuicTimeUs64();
             QuicEventSet(Done);

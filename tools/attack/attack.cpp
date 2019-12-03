@@ -100,7 +100,7 @@ RunAttackRandom(
     )
 {
     uint64_t ConnectionId = 0;
-    QuicRandom(sizeof(ConnectionId), (uint8_t*)&ConnectionId);
+    QuicRandom(sizeof(ConnectionId), &ConnectionId);
 
     uint64_t PacketCount = 0;
     uint64_t TimeStart = QuicTimeMs64();
@@ -203,8 +203,8 @@ RunAttackValidInitial(
     uint64_t* DestCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1));
     uint64_t* SrcCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1) + sizeof(uint64_t) + sizeof(uint8_t));
 
-    QuicRandom(sizeof(uint64_t), (uint8_t*)DestCid);
-    QuicRandom(sizeof(uint64_t), (uint8_t*)SrcCid);
+    QuicRandom(sizeof(uint64_t), DestCid);
+    QuicRandom(sizeof(uint64_t), SrcCid);
 
     uint64_t PacketCount = 0;
     uint64_t TimeStart = QuicTimeMs64();
@@ -360,8 +360,8 @@ RunAttack(
         ATTACK_THREAD_CONTEXT ThreadContext = {
             Binding, Type, ServerAddress, Alpn, ServerName, TimeoutMs
         };
-        QUIC_THREAD** Threads =
-            (QUIC_THREAD**)QUIC_ALLOC_PAGED(ThreadCount * sizeof(QUIC_THREAD*));
+        QUIC_THREAD* Threads =
+            (QUIC_THREAD*)QUIC_ALLOC_PAGED(ThreadCount * sizeof(QUIC_THREAD));
         for (uint32_t i = 0; i < ThreadCount; ++i) {
             QUIC_THREAD_CONFIG ThreadConfig = {
                 0, 0, "AttackRunner", RunAttackThread, &ThreadContext
@@ -369,8 +369,8 @@ RunAttack(
             QuicThreadCreate(&ThreadConfig, &Threads[i]);
         }
         for (uint32_t i = 0; i < ThreadCount; ++i) {
-            QuicThreadWait(Threads[i]);
-            QuicThreadDelete(Threads[i]);
+            QuicThreadWait(&Threads[i]);
+            QuicThreadDelete(&Threads[i]);
         }
     }
 

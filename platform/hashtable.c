@@ -390,7 +390,7 @@ static
 uint32_t
 QuicRandomizeBits(
     _In_ const QUIC_HASHTABLE* HashTable,
-    _In_ ULONG_PTR Signature
+    _In_ uint64_t Signature
     )
 /*++
 
@@ -428,7 +428,7 @@ static
 uint32_t
 QuicGetBucketIndex(
     _In_ const QUIC_HASHTABLE* HashTable,
-    _In_ ULONG_PTR Signature
+    _In_ uint64_t Signature
     )
 /*++
 
@@ -468,7 +468,7 @@ void
 QuicPopulateContext(
     _In_ QUIC_HASHTABLE* HashTable,
     _Out_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context,
-    _In_ ULONG_PTR Signature
+    _In_ uint64_t Signature
     )
 /*++
 
@@ -797,7 +797,7 @@ void
 QuicHashtableInsert(
     _In_ QUIC_HASHTABLE* HashTable,
     _In_ __drv_aliasesMem QUIC_HASHTABLE_ENTRY* Entry,
-    _In_ ULONG_PTR Signature,
+    _In_ uint64_t Signature,
     _Inout_opt_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
     )
 /*++
@@ -905,7 +905,7 @@ Arguments:
 
 --*/
 {
-    ULONG_PTR Signature = Entry->Signature;
+    uint64_t Signature = Entry->Signature;
 
     QUIC_DBG_ASSERT(HashTable->NumEntries > 0);
     HashTable->NumEntries--;
@@ -933,7 +933,7 @@ _Must_inspect_result_
 QUIC_HASHTABLE_ENTRY*
 QuicHashtableLookup(
     _In_ QUIC_HASHTABLE* HashTable,
-    _In_ ULONG_PTR Signature,
+    _In_ uint64_t Signature,
     _Out_opt_ QUIC_HASHTABLE_LOOKUP_CONTEXT* Context
     )
 /*++

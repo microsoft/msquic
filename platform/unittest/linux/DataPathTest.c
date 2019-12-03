@@ -43,7 +43,7 @@ typedef struct _DAL_TEST_RECV_CONTEXT {
     // The server address.
     //
 
-    SOCKADDR_INET ServerAddress;
+    QUIC_ADDR ServerAddress;
 
     //
     // Client receive completion event.
@@ -57,16 +57,16 @@ typedef struct _DAL_TEST_RECV_CONTEXT {
 static const size_t DalTestExpectedDataSize = 1 * 1024;
 static char* DalTestExpectedData = NULL;
 static uint16_t DalTestNextPortH = 0;
-static SOCKADDR_INET DalTestLocalIPv4 = {0};
-static SOCKADDR_INET DalTestLocalIPv6 = {0};
-static SOCKADDR_INET DalTestZeroIP = {0};
+static QUIC_ADDR DalTestLocalIPv4 = {0};
+static QUIC_ADDR DalTestLocalIPv6 = {0};
+static QUIC_ADDR DalTestZeroIP = {0};
 
 
 static
 void
 DalTestResolve(
-    _Out_ SOCKADDR_INET* SockAddr,
-    _In_ ADDRESS_FAMILY Af,
+    _Out_ QUIC_ADDR* SockAddr,
+    _In_ QUIC_ADDRESS_FAMILY Af,
     _In_ const char *HostName
     );
 
@@ -83,19 +83,19 @@ DalTestGetNextPortN(
     );
 
 static
-SOCKADDR_INET
+QUIC_ADDR
 DalTestGetNewLocalIPv4(
      bool RandomPort
     );
 
 static
-SOCKADDR_INET
+QUIC_ADDR
 DalTestGetNewLocalIPv6(
     _In_ bool RandomPort
     );
 
 static
-SOCKADDR_INET
+QUIC_ADDR
 DalTestGetNewLocalAddr(
     _In_ int AddressFamily,
     _In_ bool RandomPort
@@ -176,7 +176,7 @@ DalTestDataSendMultiple(
 static
 void 
 DalTestExecuteTestCase(
-    _In_ ULONG TestCaseIndex
+    _In_ uint32_t TestCaseIndex
     );
 
 static
@@ -189,8 +189,8 @@ DalTestHelp(
 static
 void
 DalTestResolve(
-    _Out_ SOCKADDR_INET* SockAddr,
-    _In_ ADDRESS_FAMILY Af,
+    _Out_ QUIC_ADDR* SockAddr,
+    _In_ QUIC_ADDRESS_FAMILY Af,
     _In_ const char *HostName
     )
 
@@ -238,13 +238,13 @@ DalTestGetNextPortN(
 
 
 static
-SOCKADDR_INET
+QUIC_ADDR
 DalTestGetNewLocalIPv4(
      bool RandomPort
     )
 
 {
-    SOCKADDR_INET ipv4Copy = DalTestLocalIPv4;
+    QUIC_ADDR ipv4Copy = DalTestLocalIPv4;
 
     if (RandomPort) {
         ipv4Copy.Ipv4.sin_port = DalTestGetNextPortN();
@@ -257,13 +257,13 @@ DalTestGetNewLocalIPv4(
 
 
 static
-SOCKADDR_INET
+QUIC_ADDR
 DalTestGetNewLocalIPv6(
     _In_ bool RandomPort
     )
 
 {
-    SOCKADDR_INET ipv6Copy = DalTestLocalIPv6;
+    QUIC_ADDR ipv6Copy = DalTestLocalIPv6;
 
     if (RandomPort) {
         ipv6Copy.Ipv6.sin6_port = DalTestGetNextPortN();
@@ -276,7 +276,7 @@ DalTestGetNewLocalIPv6(
 
 
 static
-SOCKADDR_INET
+QUIC_ADDR
 DalTestGetNewLocalAddr(
     _In_ int AddressFamily,
     _In_ bool RandomPort
@@ -458,7 +458,7 @@ DalTestBind(
         return FALSE;
     }
 
-    SOCKADDR_INET Address;
+    QUIC_ADDR Address;
     QuicDataPathBindingGetLocalAddress(binding, &Address);
 
     if (QuicAddrGetPort(&Address) == (uint16_t)0) {
@@ -516,7 +516,7 @@ DalTestRebind(
         return FALSE;
     }
 
-    SOCKADDR_INET Address1 = {0};
+    QUIC_ADDR Address1 = {0};
     QuicDataPathBindingGetLocalAddress(binding1, &Address1);
 
     if (QuicAddrGetPort(&Address1) == (uint16_t)0) {
@@ -539,7 +539,7 @@ DalTestRebind(
         return FALSE;
     }
 
-    SOCKADDR_INET Address2 = {0};
+    QUIC_ADDR Address2 = {0};
     QuicDataPathBindingGetLocalAddress(binding2, &Address2);
 
     if (QuicAddrGetPort(&Address2) == (uint16_t)0) {
@@ -634,7 +634,7 @@ DalTestDataSend(
     QUIC_DATAPATH* datapath = NULL;
     QUIC_DATAPATH_BINDING* server = NULL;
     QUIC_DATAPATH_BINDING* client = NULL;
-    SOCKADDR_INET serverAddress = DalTestGetNewLocalAddr(4, TRUE);
+    QUIC_ADDR serverAddress = DalTestGetNewLocalAddr(4, TRUE);
     DAL_TEST_RECV_CONTEXT RecvContext = {0};
 
     QuicEventInitialize(&RecvContext.ClientCompletion, FALSE, FALSE);
@@ -760,7 +760,7 @@ DalTestDataSendMultiple(
     QUIC_DATAPATH* datapath = NULL;
     QUIC_DATAPATH_BINDING* server = NULL;
     QUIC_DATAPATH_BINDING* client = NULL;
-    SOCKADDR_INET serverAddress = DalTestGetNewLocalAddr(4, TRUE);
+    QUIC_ADDR serverAddress = DalTestGetNewLocalAddr(4, TRUE);
     DAL_TEST_RECV_CONTEXT RecvContext = {0};
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
@@ -932,7 +932,7 @@ static DAL_TESTCASE TestCases[] = {
 static
 void 
 DalTestExecuteTestCase(
-    _In_ ULONG TestCaseIndex
+    _In_ uint32_t TestCaseIndex
     )
 
 {
@@ -957,7 +957,7 @@ DalTestHelp(
     printf("To execute all tests: %s %ld \n", argv[0], ARRAYSIZE(TestCases));
     printf("To execute a specific test: %s <testcaseno> \n", argv[0]);
     printf("Test cases: \n");
-    for (ULONG Iter = 0; Iter < ARRAYSIZE(TestCases); Iter++) {
+    for (uint32_t Iter = 0; Iter < ARRAYSIZE(TestCases); Iter++) {
         printf("\t%lu: %s\n", Iter, TestCases[Iter].TestCaseName);
     }
 }
@@ -987,7 +987,7 @@ Return Value:
 
 --*/
 {
-    ULONG Input = 0;
+    uint32_t Input = 0;
 
     if (argc != 2) {
         DalTestHelp(argv);
@@ -1000,7 +1000,7 @@ Return Value:
     if (Input < ARRAYSIZE(TestCases)) {
         DalTestExecuteTestCase(Input);
     } else if (Input == ARRAYSIZE(TestCases)) {
-        for (ULONG Iter = 0; Iter < ARRAYSIZE(TestCases); Iter++) {
+        for (uint32_t Iter = 0; Iter < ARRAYSIZE(TestCases); Iter++) {
             DalTestExecuteTestCase(Iter);
         }
     } else {

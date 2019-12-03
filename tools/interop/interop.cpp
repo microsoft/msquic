@@ -91,7 +91,7 @@ const uint32_t MaxThreadCount =
     ARRAYSIZE(Ports) *
     ARRAYSIZE(PublicEndpoints) *
     QuicTestFeatureCount;
-QUIC_THREAD* Threads[MaxThreadCount];
+QUIC_THREAD Threads[MaxThreadCount];
 uint32_t CurrentThreadCount;
 
 extern "C" void QuicTraceRundown(void) { }
@@ -289,7 +289,7 @@ public:
     }
     bool WaitForTicket() {
         int TryCount = 0;
-        UINT32 TicketLength = 0;
+        uint32_t TicketLength = 0;
         while (TryCount++ < 20) {
             if (QUIC_STATUS_BUFFER_TOO_SMALL ==
                 MsQuic->GetParam(
@@ -733,10 +733,8 @@ RunInteropTests()
     }
 
     for (uint32_t i = 0; i < CurrentThreadCount; ++i) {
-        if (Threads[i] != nullptr) {
-            QuicThreadWait(Threads[i]);
-            QuicThreadDelete(Threads[i]);
-        }
+        QuicThreadWait(&Threads[i]);
+        QuicThreadDelete(&Threads[i]);
     }
 
     printf("\n%12s  %s    %s   %s\n", "TARGET", QuicTestFeatureCodes, "VERSION", "ALPN");

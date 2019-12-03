@@ -54,12 +54,6 @@ QuicFuzzerRecvMsg(
 #define QUIC_MAX_BATCH_SEND                 1
 
 //
-// The buffer size that must be allocated to fit the maximum UDP payload we
-// support.
-//
-#define MAX_UDP_PAYLOAD_LENGTH              (QUIC_MAX_MTU - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE)
-
-//
 // The maximum UDP receive coalescing payload.
 //
 #define MAX_URO_PAYLOAD_LENGTH              (UINT16_MAX - QUIC_UDP_HEADER_SIZE)
@@ -148,7 +142,7 @@ typedef struct QUIC_DATAPATH_SEND_CONTEXT {
     //
     // The total buffer size for WsaBuffers.
     //
-    UINT32 TotalSize;
+    uint32_t TotalSize;
 
     //
     // The send segmentation size; zero if segmentation is not performed.
@@ -212,7 +206,6 @@ typedef struct QUIC_UDP_SOCKET_CONTEXT {
 //
 typedef struct QUIC_DATAPATH_BINDING {
 
-
     //
     // Flag indicates the binding has a default remote destination.
     //
@@ -252,11 +245,6 @@ typedef struct QUIC_DATAPATH_BINDING {
     // Client context pointer.
     //
     void *ClientContext;
-
-    //
-    // The number of outstanding sends.
-    //
-    long volatile SendOutstanding;
 
     //
     // Socket contexts for this port.
@@ -364,24 +352,24 @@ typedef struct QUIC_DATAPATH {
     //
     // Size of the client's QUIC_RECV_PACKET.
     //
-    UINT32 ClientRecvContextLength;
+    uint32_t ClientRecvContextLength;
 
     //
     // The size of each receive datagram array element, including client context,
     // internal context, and padding.
     //
-    UINT32 DatagramStride;
+    uint32_t DatagramStride;
 
     //
     // The offset of the receive payload buffer from the start of the receive
     // context.
     //
-    UINT32 RecvPayloadOffset;
+    uint32_t RecvPayloadOffset;
 
     //
     // The number of processors.
     //
-    UINT32 ProcCount;
+    uint32_t ProcCount;
 
     //
     // Per-processor completion contexts.
@@ -539,7 +527,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicDataPathInitialize(
-    _In_ UINT32 ClientRecvContextLength,
+    _In_ uint32_t ClientRecvContextLength,
     _In_ QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER RecvCallback,
     _In_ QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER UnreachableCallback,
     _Out_ QUIC_DATAPATH* *NewDataPath
@@ -550,7 +538,7 @@ QuicDataPathInitialize(
     WSADATA WsaData;
     QUIC_DATAPATH* Datapath;
     SYSTEM_INFO Sysinfo;
-    UINT32 DatapathLength;
+    uint32_t DatapathLength;
 
     if (RecvCallback == NULL || UnreachableCallback == NULL || NewDataPath == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -586,7 +574,7 @@ QuicDataPathInitialize(
     Datapath->RecvHandler = RecvCallback;
     Datapath->UnreachableHandler = UnreachableCallback;
     Datapath->ClientRecvContextLength = ClientRecvContextLength;
-    Datapath->ProcCount = (UINT32)Sysinfo.dwNumberOfProcessors;
+    Datapath->ProcCount = (uint32_t)Sysinfo.dwNumberOfProcessors;
     QuicRundownInitialize(&Datapath->BindingsRundown);
 
     QuicDataPathQueryRssScalabilityInfo(Datapath);
@@ -605,7 +593,7 @@ QuicDataPathInitialize(
         Datapath->MaxSendBatchSize = 1;
     }
 
-    UINT32 MessageCount =
+    uint32_t MessageCount =
         (Datapath->Features & QUIC_DATAPATH_FEATURE_RECV_COALESCING)
             ? URO_MAX_DATAGRAMS_PER_INDICATION : 1;
 
@@ -619,12 +607,12 @@ QuicDataPathInitialize(
         sizeof(QUIC_DATAPATH_INTERNAL_RECV_CONTEXT) +
         MessageCount * Datapath->DatagramStride;
 
-    UINT32 RecvDatagramLength =
+    uint32_t RecvDatagramLength =
         Datapath->RecvPayloadOffset +
             ((Datapath->Features & QUIC_DATAPATH_FEATURE_RECV_COALESCING) ?
                 MAX_URO_PAYLOAD_LENGTH : MAX_UDP_PAYLOAD_LENGTH);
 
-    for (UINT32 i = 0; i < Datapath->ProcCount; i++) {
+    for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
 
         //
         // This creates a per processor IO completion port and thread. It
@@ -714,7 +702,7 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         if (Datapath != NULL) {
-            for (UINT32 i = 0; i < Datapath->ProcCount; i++) {
+            for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
                 if (Datapath->ProcContexts[i].IOCP) {
                     CloseHandle(Datapath->ProcContexts[i].IOCP);
                 }
@@ -757,7 +745,7 @@ QuicDataPathUninitialize(
     // sure the threads knows they are disabled.
     //
     Datapath->Shutdown = TRUE;
-    for (UINT32 i = 0; i < Datapath->ProcCount; i++) {
+    for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
         PostQueuedCompletionStatus(
             Datapath->ProcContexts[i].IOCP, 0, (ULONG_PTR)NULL, NULL);
     }
@@ -765,12 +753,12 @@ QuicDataPathUninitialize(
     //
     // Wait for the worker threads to finish up. Then clean it up.
     //
-    for (UINT32 i = 0; i < Datapath->ProcCount; i++) {
+    for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
         WaitForSingleObject(Datapath->ProcContexts[i].CompletionThread, INFINITE);
         CloseHandle(Datapath->ProcContexts[i].CompletionThread);
     }
 
-    for (UINT32 i = 0; i < Datapath->ProcCount; i++) {
+    for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
         CloseHandle(Datapath->ProcContexts[i].IOCP);
         QuicPoolUninitialize(&Datapath->ProcContexts[i].SendContextPool);
         QuicPoolUninitialize(&Datapath->ProcContexts[i].SendBufferPool);
@@ -815,7 +803,7 @@ void
 QuicDataPathPopulateTargetAddress(
     _In_ ADDRESS_FAMILY Family,
     _In_ ADDRINFOW *Ai,
-    _Out_ SOCKADDR_INET * Address
+    _Out_ SOCKADDR_INET* Address
     )
 {
     if (Ai->ai_addr->sa_family == AF_INET6) {
@@ -950,8 +938,8 @@ QuicDataPathBindingCreate(
 {
     QUIC_STATUS Status;
     QUIC_DATAPATH_BINDING* Binding = NULL;
-    UINT32 BindingLength;
-    UINT32 SocketCount = (RemoteAddress == NULL) ? Datapath->ProcCount : 1;
+    uint32_t BindingLength;
+    uint32_t SocketCount = (RemoteAddress == NULL) ? Datapath->ProcCount : 1;
     int Result;
     int Option;
 
@@ -978,7 +966,7 @@ QuicDataPathBindingCreate(
     Binding->Mtu = QUIC_MAX_MTU;
     QuicRundownAcquire(&Datapath->BindingsRundown);
 
-    for (UINT32 i = 0; i < SocketCount; i++) {
+    for (uint32_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
         Binding->SocketContexts[i].Socket = INVALID_SOCKET;
         Binding->SocketContexts[i].RecvWsaBuf.len =
@@ -988,7 +976,7 @@ QuicDataPathBindingCreate(
         QuicRundownInitialize(&Binding->SocketContexts[i].UpcallRundown);
     }
 
-    for (UINT32 i = 0; i < SocketCount; i++) {
+    for (uint32_t i = 0; i < SocketCount; i++) {
 
         QUIC_UDP_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
         UINT8 AffinitizedProcessor = (UINT8)i;
@@ -1363,8 +1351,8 @@ QUIC_DISABLED_BY_FUZZER_END;
     *NewBinding = Binding;
 
     Binding->SocketContextsOutstanding = (short)SocketCount;
-    for (UINT32 i = 0; i < SocketCount; i++) {
-        UINT32 Processor =
+    for (uint32_t i = 0; i < SocketCount; i++) {
+        uint32_t Processor =
             Binding->Connected ? Binding->ConnectedProcessorAffinity : i;
 
         Status =
@@ -1383,9 +1371,9 @@ Error:
     if (QUIC_FAILED(Status)) {
         if (Binding != NULL) {
             if (Binding->SocketContextsOutstanding != 0) {
-                for (UINT32 i = 0; i < SocketCount; i++) {
+                for (uint32_t i = 0; i < SocketCount; i++) {
                     QUIC_UDP_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
-                    UINT32 Processor =
+                    uint32_t Processor =
                          Binding->Connected ? Binding->ConnectedProcessorAffinity : i;
 
 QUIC_DISABLED_BY_FUZZER_START;
@@ -1405,7 +1393,7 @@ QUIC_DISABLED_BY_FUZZER_END;
                         &SocketContext->RecvOverlapped);
                 }
             } else {
-                for (UINT32 i = 0; i < SocketCount; i++) {
+                for (uint32_t i = 0; i < SocketCount; i++) {
                     QUIC_UDP_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
 
 QUIC_DISABLED_BY_FUZZER_START;
@@ -1447,7 +1435,7 @@ QuicDataPathBindingDelete(
 
     if (Binding->Connected) {
         QUIC_UDP_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[0];
-        UINT32 Processor = Binding->ConnectedProcessorAffinity;
+        uint32_t Processor = Binding->ConnectedProcessorAffinity;
         QUIC_DBG_ASSERT(
             Datapath->ProcContexts[Processor].ThreadId != GetCurrentThreadId());
         QuicRundownReleaseAndWait(&SocketContext->UpcallRundown);
@@ -1466,15 +1454,15 @@ QUIC_DISABLED_BY_FUZZER_END;
             &SocketContext->RecvOverlapped);
 
     } else {
-        for (UINT32 i = 0; i < Datapath->ProcCount; ++i) {
+        for (uint32_t i = 0; i < Datapath->ProcCount; ++i) {
             QUIC_UDP_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
             QUIC_DBG_ASSERT(
                 Datapath->ProcContexts[i].ThreadId != GetCurrentThreadId());
             QuicRundownReleaseAndWait(&SocketContext->UpcallRundown);
         }
-        for (UINT32 i = 0; i < Datapath->ProcCount; ++i) {
+        for (uint32_t i = 0; i < Datapath->ProcCount; ++i) {
             QUIC_UDP_SOCKET_CONTEXT* SocketContext = &Binding->SocketContexts[i];
-            UINT32 Processor = i;
+            uint32_t Processor = i;
 
 QUIC_DISABLED_BY_FUZZER_START;
 
@@ -2224,8 +2212,6 @@ QuicSendContextComplete(
     }
 
     QuicDataPathBindingFreeSendContext(SendContext);
-
-    InterlockedDecrement(&SocketContext->Binding->SendOutstanding);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2264,8 +2250,6 @@ QuicDataPathBindingSendTo(
         SendContext->WsaBufferCount,
         SendContext->SegmentSize,
         LOG_ADDR_LEN(*RemoteAddress), (UINT8*)RemoteAddress);
-
-    InterlockedIncrement(&Binding->SendOutstanding);
 
     WSAMSG WSAMhdr;
     WSAMhdr.dwFlags = 0;
@@ -2313,7 +2297,6 @@ QuicDataPathBindingSendTo(
         if (WsaError != WSA_IO_PENDING) {
             EventWriteQuicDatapathErrorStatus(SocketContext->Binding, WsaError, "WSASendMsg");
             Status = HRESULT_FROM_WIN32(WsaError);
-            InterlockedDecrement(&Binding->SendOutstanding);
             goto Exit;
         }
     } else {
@@ -2376,8 +2359,6 @@ QuicDataPathBindingSendFromTo(
         SendContext->SegmentSize,
         LOG_ADDR_LEN(*RemoteAddress), LOG_ADDR_LEN(*LocalAddress),
         (UINT8*)RemoteAddress, (UINT8*)LocalAddress);
-
-    InterlockedIncrement(&Binding->SendOutstanding);
 
     //
     // Map V4 address to dual-stack socket format.
@@ -2453,7 +2434,6 @@ QuicDataPathBindingSendFromTo(
         if (WsaError != WSA_IO_PENDING) {
             EventWriteQuicDatapathErrorStatus(SocketContext->Binding, WsaError, "WSASendMsg");
             Status = HRESULT_FROM_WIN32(WsaError);
-            InterlockedDecrement(&Binding->SendOutstanding);
             goto Exit;
         }
     } else {
@@ -2571,8 +2551,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicDataPathBindingSetParam(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ UINT32 Param,
-    _In_ UINT32 BufferLength,
+    _In_ uint32_t Param,
+    _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength) const UINT8 * Buffer
     )
 {
@@ -2587,7 +2567,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicDataPathBindingGetParam(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ UINT32 Param,
+    _In_ uint32_t Param,
     _Inout_ PUINT32 BufferLength,
     _Out_writes_bytes_opt_(*BufferLength) UINT8 * Buffer
     )

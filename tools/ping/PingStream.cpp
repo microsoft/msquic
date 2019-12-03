@@ -43,7 +43,7 @@ struct PingSendRequest {
         }
     }
 
-    void SetLength(UINT64 BytesLeftToSend) {
+    void SetLength(uint64_t BytesLeftToSend) {
         if (BytesLeftToSend > PingConfig.IoSize) {
             QuicBuffer.Length = PingConfig.IoSize;
         } else {

@@ -32,7 +32,7 @@ using namespace WEX::Logging;
 
 #define VERIFY_QUIC_SUCCESS(result, ...) VERIFY_ARE_EQUAL(QUIC_STATUS_SUCCESS, result, __VA_ARGS__)
 
-const ULONG ExpectedDataSize = 1 * 1024;
+const uint32_t ExpectedDataSize = 1 * 1024;
 char* ExpectedData;
 
 //
@@ -63,7 +63,7 @@ struct QuicAddr
         ZeroMemory(this, sizeof(*this));
     }
 
-    void Resolve(ADDRESS_FAMILY af, PSTR hostname) {
+    void Resolve(QUIC_ADDRESS_FAMILY af, PSTR hostname) {
         WSADATA wsaData;
         ADDRINFOA hints = { 0 };
         ADDRINFOA *ai;
@@ -91,7 +91,7 @@ struct QuicAddr
 
 struct DataPathTest : public WEX::TestClass<DataPathTest>
 {
-    volatile USHORT NextPort;
+    volatile uint16_t NextPort;
     QuicAddr LocalIPv4;
     QuicAddr LocalIPv6;
 

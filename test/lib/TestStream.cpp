@@ -113,7 +113,7 @@ TestStream::StartPing(
     _In_ uint64_t PayloadLength
     )
 {
-    BytesToSend = (LONG64)(PayloadLength / MaxSendBuffers);
+    BytesToSend = (int64_t)(PayloadLength / MaxSendBuffers);
 
     if (BytesToSend != 0) {
         while (BytesToSend != 0 && OutstandingSendRequestCount < MaxSendRequestQueue) {

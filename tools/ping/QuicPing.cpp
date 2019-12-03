@@ -132,11 +132,11 @@ ParseCommonCommands(
     TryGetValue(argc, argv, "stats", &printStats);
     PingConfig.PrintStats = printStats != 0;
 
-    UINT64 uniStreams = 0;
+    uint64_t uniStreams = 0;
     TryGetValue(argc, argv, "uni", &uniStreams);
     PingConfig.LocalUnidirStreamCount = uniStreams;
 
-    UINT64 bidiStreams = 0;
+    uint64_t bidiStreams = 0;
     TryGetValue(argc, argv, "bidi", &bidiStreams);
     PingConfig.LocalBidirStreamCount = bidiStreams;
 
@@ -148,7 +148,7 @@ ParseCommonCommands(
     TryGetValue(argc, argv, "peer_bidi", &peerBidiStreams);
     PingConfig.PeerBidirStreamCount = peerBidiStreams;
 
-    UINT64 streamLength = 0;
+    uint64_t streamLength = 0;
     TryGetValue(argc, argv, "length", &streamLength);
     PingConfig.StreamPayloadLength = streamLength;
 
@@ -164,7 +164,7 @@ ParseCommonCommands(
     TryGetValue(argc, argv, "timeout", &disconnectTimeout);
     PingConfig.DisconnectTimeout = disconnectTimeout;
 
-    UINT64 idleTimeout = DEFAULT_IDLE_TIMEOUT;
+    uint64_t idleTimeout = DEFAULT_IDLE_TIMEOUT;
     TryGetValue(argc, argv, "idle", &idleTimeout);
     PingConfig.IdleTimeout = idleTimeout;
 

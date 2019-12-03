@@ -78,42 +78,42 @@ QuicListPopEntry(
     _Inout_ QUIC_SINGLE_LIST_ENTRY* ListHead
     );
 
-LONG
+long
 InterlockedIncrement(
-    _Inout_ _Interlocked_operand_ LONG volatile *Addend
+    _Inout_ _Interlocked_operand_ long volatile *Addend
     );
 
-LONG
+long
 InterlockedDecrement(
-    _Inout_ _Interlocked_operand_ LONG volatile *Addend
+    _Inout_ _Interlocked_operand_ long volatile *Addend
     );
 
-LONG64
+int64_t
 InterlockedExchangeAdd64(
-    _Inout_ _Interlocked_operand_ LONG64 volatile *Addend,
-    _In_ LONG64 Value
+    _Inout_ _Interlocked_operand_ int64_t volatile *Addend,
+    _In_ int64_t Value
     );
 
-SHORT
+short
 InterlockedCompareExchange16(
-    _Inout_ _Interlocked_operand_ SHORT volatile *Destination,
-    _In_ SHORT ExChange,
-    _In_ SHORT Comperand
+    _Inout_ _Interlocked_operand_ short volatile *Destination,
+    _In_ short ExChange,
+    _In_ short Comperand
     );
 
-SHORT
+short
 InterlockedIncrement16(
-    _Inout_ _Interlocked_operand_ SHORT volatile *Addend
+    _Inout_ _Interlocked_operand_ short volatile *Addend
     );
 
-SHORT
+short
 InterlockedDecrement16(
-    _Inout_ _Interlocked_operand_ SHORT volatile *Addend
+    _Inout_ _Interlocked_operand_ short volatile *Addend
     );
 
-LONG64
+int64_t
 InterlockedIncrement64(
-    _Inout_ _Interlocked_operand_ LONG64 volatile *Addend
+    _Inout_ _Interlocked_operand_ int64_t volatile *Addend
     );
 
 uint32_t

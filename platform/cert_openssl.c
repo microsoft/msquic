@@ -57,7 +57,7 @@ static
 inline
 void
 LogGetProcAddressFailure(
-    _In_ PCSTR FuncName,
+    _In_ const char* FuncName,
     _In_ DWORD Error
     )
 {
@@ -236,7 +236,7 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicCertValidateChain(
     _In_ QUIC_CERT* Certificate,
-    _In_opt_z_ PCSTR Host,
+    _In_opt_z_ const char* Host,
     _In_ uint32_t IgnoreFlags
     )
 {

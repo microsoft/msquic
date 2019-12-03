@@ -195,7 +195,7 @@ MsQuicConnectionShutdown(
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         if (InterlockedCompareExchange16(
-                (SHORT*)&Connection->BackUpOperUsed, 1, 0) != 0) {
+                (short*)&Connection->BackUpOperUsed, 1, 0) != 0) {
             goto Error; // It's already started the shutdown.
         }
         Oper = &Connection->BackUpOper;

@@ -195,7 +195,7 @@ QuicStorageReadValue(
     _In_opt_z_ const char * Name,
     _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength)
         UINT8 * Buffer,
-    _Inout_ UINT32 * BufferLength
+    _Inout_ uint32_t * BufferLength
     )
 {
     DWORD Type;

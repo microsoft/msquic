@@ -1242,8 +1242,8 @@ QuicCryptoProcessTlsCompletion(
         Connection->State.Connected = TRUE;
         InterlockedDecrement(&Connection->Paths[0].Binding->HandshakeConnections);
         InterlockedExchangeAdd64(
-            (LONG64*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-            -1 * (LONG64)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+            (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
+            -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
 
         (void)QuicConnGenerateNewSourceCid(Connection, FALSE);
 

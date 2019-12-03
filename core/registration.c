@@ -334,7 +334,7 @@ QuicRegistrationGetNewPartitionID(
     //
     // Initially randomize the bits in partition ID.
     //
-    QuicRandom(sizeof(Connection->PartitionID), (uint8_t*)&Connection->PartitionID);
+    QuicRandom(sizeof(Connection->PartitionID), &Connection->PartitionID);
 
     if (Registration->WorkerPool->WorkerCount > 1) {
         //

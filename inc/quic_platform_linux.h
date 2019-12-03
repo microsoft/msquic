@@ -49,6 +49,10 @@ Environment:
 extern "C" {
 #endif
 
+#ifndef NDEBUG
+#define DEBUG 1
+#endif
+
 //
 // Library Initialization routines.
 //
@@ -72,7 +76,6 @@ void
 QuicPlatformUninitialize(
     void
     );
-
 
 //
 // Generic stuff.
@@ -100,69 +103,69 @@ QuicPlatformUninitialize(
 //
 
 inline
-LONG
+long
 InterlockedIncrement(
-    _Inout_ _Interlocked_operand_ LONG volatile *Addend
+    _Inout_ _Interlocked_operand_ long volatile *Addend
     )
 {
-    return __sync_add_and_fetch(Addend, (LONG)1);
+    return __sync_add_and_fetch(Addend, (long)1);
 }
 
 inline
-LONG
+long
 InterlockedDecrement(
-    _Inout_ _Interlocked_operand_ LONG volatile *Addend
+    _Inout_ _Interlocked_operand_ long volatile *Addend
     )
 {
-    return __sync_sub_and_fetch(Addend, (LONG)1);
+    return __sync_sub_and_fetch(Addend, (long)1);
 }
 
 inline
-LONG64
+int64_t
 InterlockedExchangeAdd64(
-    _Inout_ _Interlocked_operand_ LONG64 volatile *Addend,
-    _In_ LONG64 Value
+    _Inout_ _Interlocked_operand_ int64_t volatile *Addend,
+    _In_ int64_t Value
     )
 {
     return __sync_fetch_and_add(Addend, Value);
 }
 
 inline
-SHORT
+short
 InterlockedCompareExchange16(
-    _Inout_ _Interlocked_operand_ SHORT volatile *Destination,
-    _In_ SHORT ExChange,
-    _In_ SHORT Comperand
+    _Inout_ _Interlocked_operand_ short volatile *Destination,
+    _In_ short ExChange,
+    _In_ short Comperand
     )
 {
     return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
 }
 
 inline
-SHORT
+short
 InterlockedIncrement16(
-    _Inout_ _Interlocked_operand_ SHORT volatile *Addend
+    _Inout_ _Interlocked_operand_ short volatile *Addend
     )
 {
-    return __sync_add_and_fetch(Addend, (SHORT)1);
+    return __sync_add_and_fetch(Addend, (short)1);
 }
 
 inline
-SHORT
+short
 InterlockedDecrement16(
-    _Inout_ _Interlocked_operand_ SHORT volatile *Addend
+    _Inout_ _Interlocked_operand_ short volatile *Addend
     )
 {
-    return __sync_sub_and_fetch(Addend, (SHORT)1);
+    return __sync_sub_and_fetch(Addend, (short)1);
 }
 
 inline
-LONG64
+int64_t
 InterlockedIncrement64(
-    _Inout_ _Interlocked_operand_ LONG64 volatile *Addend
+    _Inout_ _Interlocked_operand_ int64_t volatile *Addend
     )
 {
-    return __sync_add_and_fetch(Addend, (LONG64)1);
+    return __sync_add_and_fetch(Addend, (int64_t)1);
 }
 
 //
@@ -200,12 +203,7 @@ QuicPlatformLogAssert(
 #define QUIC_ANALYSIS_ASSERT(X)
 #define QUIC_FRE_ASSERT(exp) ((exp) ? (void)0 : (QuicPlatformLogAssert(__FILE__, __LINE__, __func__, #exp), quic_bugcheck()));
 
-//
-// LINUX_TODO: Define DBG on debug build.
-//
-
-#define DBG 1
-#ifdef DBG
+#ifdef DEBUG
 #define QUIC_DBG_ASSERT(exp) QUIC_FRE_ASSERT(exp)
 #define QUIC_DBG_ASSERTMSG(exp, msg) QUIC_FRE_ASSERT(exp)
 #define QUIC_TEL_ASSERT(exp) QUIC_FRE_ASSERT(exp)
@@ -245,7 +243,7 @@ extern uint64_t QuicTotalMemory;
 _Ret_maybenull_
 void*
 QuicAlloc(
-    _In_ SIZE_T ByteCount
+    _In_ size_t ByteCount
     );
 
 void
@@ -273,7 +271,7 @@ typedef struct QUIC_POOL {
     // Number of free entries in the list.
     //
 
-    USHORT ListDepth;
+    uint16_t ListDepth;
 
     //
     // Lock to synchronize access to the List.
@@ -286,13 +284,13 @@ typedef struct QUIC_POOL {
     // Size of entries.
     //
 
-    UINT32 Size;
+    uint32_t Size;
 
     //
     // The memory tag to use for any allocation from this pool.
     //
 
-    UINT32 MemTag;
+    uint32_t MemTag;
 
 } QUIC_POOL;
 
@@ -504,7 +502,7 @@ QuicEventWaitForever(
 BOOLEAN
 QuicEventWaitWithTimeout(
     _Inout_ QUIC_EVENT Event,
-    _In_ ULONG timeoutMs
+    _In_ uint32_t timeoutMs
     );
 
 //
@@ -605,11 +603,7 @@ QuicSleep(
 // QUIC thread object.
 //
 
-typedef struct QUIC_THREAD {
-
-    pthread_t Thread;
-
-} QUIC_THREAD;
+typedef pthread_t QUIC_THREAD;
 
 #define QUIC_THREAD_CALLBACK(FuncName, CtxVarName) \
     void* \
@@ -636,7 +630,7 @@ typedef struct QUIC_THREAD_CONFIG {
 QUIC_STATUS
 QuicThreadCreate(
     _In_ QUIC_THREAD_CONFIG* Config,
-    _Out_ QUIC_THREAD** Thread
+    _Out_ QUIC_THREAD* Thread
     );
 
 void
@@ -735,8 +729,8 @@ QuicRundownReleaseAndWait(
 
 QUIC_STATUS
 QuicRandom(
-    _In_ UINT32 BufferLen,
-    _Out_writes_bytes_(BufferLen) PUCHAR Buffer
+    _In_ uint32_t BufferLen,
+    _Out_writes_bytes_(BufferLen) void* Buffer
     );
 
 //
@@ -745,14 +739,14 @@ QuicRandom(
 
 void
 QuicConvertToMappedV6(
-    _In_ const SOCKADDR_INET * InAddr,
-    _Out_ SOCKADDR_INET * OutAddr
+    _In_ const QUIC_ADDR* InAddr,
+    _Out_ QUIC_ADDR* OutAddr
     );
 
 void
 QuicConvertFromMappedV6(
-    _In_ const SOCKADDR_INET * InAddr,
-    _Out_ SOCKADDR_INET * OutAddr
+    _In_ const QUIC_ADDR* InAddr,
+    _Out_ QUIC_ADDR* OutAddr
     );
 
 //

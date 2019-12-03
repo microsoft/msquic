@@ -307,9 +307,9 @@ void InitializeServer()
             QUIC_STATUS Status = MsQuic->ListenerOpen(session, SpinQuicServerHandleListenerEvent, nullptr, &Listener);
             printf("0x%x\n", Status);
 
-            SOCKADDR_INET sockAddr = { 0 };
-            sockAddr.Ipv4.sin_family = (rand() % 2) ? AF_INET : AF_UNSPEC;
-            sockAddr.Ipv4.sin_port = htons(pt);
+            QUIC_ADDR sockAddr = { 0 };
+            QuicAddrSetFamily(&sockAddr, (rand() % 2) ? AF_INET : AF_UNSPEC);
+            QuicAddrSetPort(&sockAddr, pt);
 
             printf("MsQuic->ListenerStart(%p, {*:%d}) = ", Listener, pt);
             Status = MsQuic->ListenerStart(Listener, &sockAddr);

@@ -112,9 +112,8 @@ QuicWorkerUninitialize(
     // Wait for the thread to finish.
     //
     QuicEventSet(Worker->Ready);
-    QuicThreadWait(Worker->Thread);
-    QuicThreadDelete(Worker->Thread);
-    Worker->Thread = NULL;
+    QuicThreadWait(&Worker->Thread);
+    QuicThreadDelete(&Worker->Thread);
 
     QUIC_TEL_ASSERT(QuicListIsEmpty(&Worker->Connections));
     QUIC_TEL_ASSERT(QuicListIsEmpty(&Worker->Operations));

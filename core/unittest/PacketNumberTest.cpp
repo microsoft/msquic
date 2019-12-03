@@ -31,10 +31,10 @@ struct PacketNumberTest : public WEX::TestClass<PacketNumberTest>
     END_TEST_CLASS()
 
     struct DecompressEntry {
-        UINT64 HighestReceived;
+        uint64_t HighestReceived;
         UINT8  CompressedBytes;
-        UINT64 Compressed;
-        UINT64 PacketNumber;
+        uint64_t Compressed;
+        uint64_t PacketNumber;
     };
 
     TEST_METHOD(WellKnownDecompress)

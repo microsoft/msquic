@@ -48,7 +48,7 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     //
     // A thread for draining operations from queued connections.
     //
-    QUIC_THREAD* Thread;
+    QUIC_THREAD Thread;
 
     //
     // Serializes access to the connection and operation lists.

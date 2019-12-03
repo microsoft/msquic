@@ -701,7 +701,7 @@ typedef struct QUIC_THREAD_CONFIG {
     void* Context;
 } QUIC_THREAD_CONFIG;
 
-typedef void QUIC_THREAD;
+typedef HANDLE QUIC_THREAD;
 #define QUIC_THREAD_CALLBACK(FuncName, CtxVarName)  \
     DWORD                                           \
     WINAPI                                          \
@@ -713,7 +713,7 @@ inline
 QUIC_STATUS
 QuicThreadCreate(
     _In_ QUIC_THREAD_CONFIG* Config,
-    _Out_ QUIC_THREAD** Thread
+    _Out_ QUIC_THREAD* Thread
     )
 {
     *Thread =
@@ -756,8 +756,8 @@ QuicThreadCreate(
     }
     return QUIC_STATUS_SUCCESS;
 }
-#define QuicThreadDelete(Thread) CloseHandle(Thread)
-#define QuicThreadWait(Thread) WaitForSingleObject(Thread, INFINITE)
+#define QuicThreadDelete(Thread) CloseHandle(*(Thread))
+#define QuicThreadWait(Thread) WaitForSingleObject(*(Thread), INFINITE)
 #define QuicCurThreadID() GetCurrentThreadId()
 
 //
@@ -815,7 +815,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicRandom(
     _In_ uint32_t BufferLen,
-    _Out_writes_bytes_(BufferLen) uint8_t* Buffer
+    _Out_writes_bytes_(BufferLen) void* Buffer
     );
 
 //

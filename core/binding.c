@@ -73,7 +73,7 @@ QuicBindingInitialize(
     //
     // Random reserved version number for version negotation.
     //
-    QuicRandom(sizeof(uint32_t), (uint8_t*)&Binding->RandomReservedVersion);
+    QuicRandom(sizeof(uint32_t), &Binding->RandomReservedVersion);
     Binding->RandomReservedVersion =
         (Binding->RandomReservedVersion & ~QUIC_VERSION_RESERVED_MASK) |
         QUIC_VERSION_RESERVED;
@@ -1112,8 +1112,8 @@ QuicBindingCreateConnection(
     NewConnection->Paths[0].Binding = Binding;
     InterlockedIncrement(&Binding->HandshakeConnections);
     InterlockedExchangeAdd64(
-        (LONG64*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-        (LONG64)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+        (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
+        (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
 
     if (!QuicLookupAddSourceConnectionID(
             &Binding->Lookup,
@@ -1146,7 +1146,7 @@ Exit:
         // down.
         //
         if (InterlockedCompareExchange16(
-                (SHORT*)&Connection->BackUpOperUsed, 1, 0) == 0) {
+                (short*)&Connection->BackUpOperUsed, 1, 0) == 0) {
             QUIC_OPERATION* Oper = &Connection->BackUpOper;
             Oper->FreeAfterProcess = FALSE;
             Oper->Type = QUIC_OPER_TYPE_API_CALL;

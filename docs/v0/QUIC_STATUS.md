@@ -16,7 +16,7 @@ The status type MsQuic uses for all API return codes.
 ## Linux
 
 ```C
-#define QUIC_STATUS                     ULONG
+#define QUIC_STATUS                     unsigned long
 #define QUIC_FAILED(X)                  ((int)(X) > 0)
 #define QUIC_SUCCEEDED(X)               ((int)(X) <= 0)
 ```
