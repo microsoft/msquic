@@ -49,6 +49,10 @@ Environment:
 extern "C" {
 #endif
 
+#ifndef NDEBUG
+#define DEBUG 1
+#endif
+
 //
 // Library Initialization routines.
 //
@@ -199,7 +203,7 @@ QuicPlatformLogAssert(
 #define QUIC_ANALYSIS_ASSERT(X)
 #define QUIC_FRE_ASSERT(exp) ((exp) ? (void)0 : (QuicPlatformLogAssert(__FILE__, __LINE__, __func__, #exp), quic_bugcheck()));
 
-#ifdef DEBUG // TODO - Define DEBUG in DEBUG config
+#ifdef DEBUG
 #define QUIC_DBG_ASSERT(exp) QUIC_FRE_ASSERT(exp)
 #define QUIC_DBG_ASSERTMSG(exp, msg) QUIC_FRE_ASSERT(exp)
 #define QUIC_TEL_ASSERT(exp) QUIC_FRE_ASSERT(exp)
@@ -735,14 +739,14 @@ QuicRandom(
 
 void
 QuicConvertToMappedV6(
-    _In_ const SOCKADDR_INET * InAddr,
-    _Out_ SOCKADDR_INET * OutAddr
+    _In_ const QUIC_ADDR* InAddr,
+    _Out_ QUIC_ADDR* OutAddr
     );
 
 void
 QuicConvertFromMappedV6(
-    _In_ const SOCKADDR_INET * InAddr,
-    _Out_ SOCKADDR_INET * OutAddr
+    _In_ const QUIC_ADDR* InAddr,
+    _Out_ QUIC_ADDR* OutAddr
     );
 
 //

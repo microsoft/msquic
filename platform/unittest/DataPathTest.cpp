@@ -63,7 +63,7 @@ struct QuicAddr
         ZeroMemory(this, sizeof(*this));
     }
 
-    void Resolve(ADDRESS_FAMILY af, PSTR hostname) {
+    void Resolve(QUIC_ADDRESS_FAMILY af, PSTR hostname) {
         WSADATA wsaData;
         ADDRINFOA hints = { 0 };
         ADDRINFOA *ai;

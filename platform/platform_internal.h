@@ -95,8 +95,8 @@ extern QUIC_PLATFORM QuicPlatform;
 inline
 void
 QuicConvertToMappedV6(
-    _In_ const SOCKADDR_INET * InAddr,
-    _Out_ SOCKADDR_INET * OutAddr
+    _In_ const QUIC_ADDR* InAddr,
+    _Out_ QUIC_ADDR* OutAddr
     )
 {
     if (InAddr->si_family == AF_INET) {
@@ -118,8 +118,8 @@ QuicConvertToMappedV6(
 inline
 void
 QuicConvertFromMappedV6(
-    _In_ const SOCKADDR_INET * InAddr,
-    _Inout_ SOCKADDR_INET * OutAddr
+    _In_ const QUIC_ADDR* InAddr,
+    _Inout_ QUIC_ADDR* OutAddr
     )
 {
     QUIC_DBG_ASSERT(InAddr->si_family == AF_INET6);

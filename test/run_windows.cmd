@@ -13,7 +13,6 @@ netsh trace start sessionname=quic ^
 
 :: Run the tests.
 artifacts\bin\Release\msquictest.exe ^
-    --gtest_filter=Handshake*:Basic* ^
     --gtest_output=xml:artifacts\logs\windows-test-results.xml
 
 :: Stop log collection.

@@ -54,12 +54,6 @@ QuicFuzzerRecvMsg(
 #define QUIC_MAX_BATCH_SEND                 1
 
 //
-// The buffer size that must be allocated to fit the maximum UDP payload we
-// support.
-//
-#define MAX_UDP_PAYLOAD_LENGTH              (QUIC_MAX_MTU - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE)
-
-//
 // The maximum UDP receive coalescing payload.
 //
 #define MAX_URO_PAYLOAD_LENGTH              (UINT16_MAX - QUIC_UDP_HEADER_SIZE)
@@ -212,7 +206,6 @@ typedef struct QUIC_UDP_SOCKET_CONTEXT {
 //
 typedef struct QUIC_DATAPATH_BINDING {
 
-
     //
     // Flag indicates the binding has a default remote destination.
     //
@@ -252,11 +245,6 @@ typedef struct QUIC_DATAPATH_BINDING {
     // Client context pointer.
     //
     void *ClientContext;
-
-    //
-    // The number of outstanding sends.
-    //
-    long volatile SendOutstanding;
 
     //
     // Socket contexts for this port.
@@ -815,7 +803,7 @@ void
 QuicDataPathPopulateTargetAddress(
     _In_ ADDRESS_FAMILY Family,
     _In_ ADDRINFOW *Ai,
-    _Out_ SOCKADDR_INET * Address
+    _Out_ SOCKADDR_INET* Address
     )
 {
     if (Ai->ai_addr->sa_family == AF_INET6) {
@@ -2224,8 +2212,6 @@ QuicSendContextComplete(
     }
 
     QuicDataPathBindingFreeSendContext(SendContext);
-
-    InterlockedDecrement(&SocketContext->Binding->SendOutstanding);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2264,8 +2250,6 @@ QuicDataPathBindingSendTo(
         SendContext->WsaBufferCount,
         SendContext->SegmentSize,
         LOG_ADDR_LEN(*RemoteAddress), (UINT8*)RemoteAddress);
-
-    InterlockedIncrement(&Binding->SendOutstanding);
 
     WSAMSG WSAMhdr;
     WSAMhdr.dwFlags = 0;
@@ -2313,7 +2297,6 @@ QuicDataPathBindingSendTo(
         if (WsaError != WSA_IO_PENDING) {
             EventWriteQuicDatapathErrorStatus(SocketContext->Binding, WsaError, "WSASendMsg");
             Status = HRESULT_FROM_WIN32(WsaError);
-            InterlockedDecrement(&Binding->SendOutstanding);
             goto Exit;
         }
     } else {
@@ -2376,8 +2359,6 @@ QuicDataPathBindingSendFromTo(
         SendContext->SegmentSize,
         LOG_ADDR_LEN(*RemoteAddress), LOG_ADDR_LEN(*LocalAddress),
         (UINT8*)RemoteAddress, (UINT8*)LocalAddress);
-
-    InterlockedIncrement(&Binding->SendOutstanding);
 
     //
     // Map V4 address to dual-stack socket format.
@@ -2453,7 +2434,6 @@ QuicDataPathBindingSendFromTo(
         if (WsaError != WSA_IO_PENDING) {
             EventWriteQuicDatapathErrorStatus(SocketContext->Binding, WsaError, "WSASendMsg");
             Status = HRESULT_FROM_WIN32(WsaError);
-            InterlockedDecrement(&Binding->SendOutstanding);
             goto Exit;
         }
     } else {

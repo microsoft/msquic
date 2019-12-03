@@ -308,6 +308,7 @@ QuicLossDetectionUpdateTimer(
 
     EventWriteQuicConnLossDetectionTimerSet(
         Connection, TimeoutType, Delay, LossDetection->ProbeCount);
+    UNREFERENCED_PARAMETER(TimeoutType);
     QuicConnTimerSet(Connection, QUIC_CONN_TIMER_LOSS_DETECTION, Delay);
 }
 

@@ -52,6 +52,12 @@ extern "C" {
 #define QUIC_MAX_MTU 1500
 
 //
+// The buffer size that must be allocated to fit the maximum UDP payload we
+// support.
+//
+#define MAX_UDP_PAYLOAD_LENGTH (QUIC_MAX_MTU - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE)
+
+//
 // Helper function for calculating the length of a UDP packet, for a given
 // MTU, on a dual-mode socket. It uses IPv4 header size since that is the
 // least limiting as far as making sure enough space is allocated. An IPv6

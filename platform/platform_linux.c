@@ -568,13 +568,13 @@ QuicRandom(
 
 void
 QuicConvertToMappedV6(
-    _In_ const SOCKADDR_INET * InAddr,
-    _Out_ SOCKADDR_INET * OutAddr
+    _In_ const QUIC_ADDR* InAddr,
+    _Out_ QUIC_ADDR* OutAddr
     )
 {
     QUIC_DBG_ASSERT(!(InAddr == OutAddr));
 
-    QuicZeroMemory(OutAddr, sizeof(SOCKADDR_INET));
+    QuicZeroMemory(OutAddr, sizeof(QUIC_ADDR));
 
     if (InAddr->si_family == AF_INET) {
         OutAddr->Ipv6.sin6_family = AF_INET6;
@@ -588,15 +588,15 @@ QuicConvertToMappedV6(
 
 void
 QuicConvertFromMappedV6(
-    _In_ const SOCKADDR_INET * InAddr,
-    _Out_ SOCKADDR_INET * OutAddr
+    _In_ const QUIC_ADDR* InAddr,
+    _Out_ QUIC_ADDR* OutAddr
     )
 {
     QUIC_DBG_ASSERT(InAddr->si_family == AF_INET6);
 
     if (IN6_IS_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr)) {
-        SOCKADDR_INET TmpAddrS = {0};
-        SOCKADDR_INET* TmpAddr = &TmpAddrS;
+        QUIC_ADDR TmpAddrS = {0};
+        QUIC_ADDR* TmpAddr = &TmpAddrS;
 
         TmpAddr->Ipv4.sin_family = AF_INET;
         TmpAddr->Ipv4.sin_port = InAddr->Ipv6.sin6_port;
@@ -617,7 +617,7 @@ QuicAddrFamilyIsValid(
 
 BOOLEAN
 QuicAddrIsValid(
-    _In_ const QUIC_ADDR * const Addr
+    _In_ const QUIC_ADDR* const Addr
     )
 {
     QUIC_DBG_ASSERT(Addr);
@@ -626,8 +626,8 @@ QuicAddrIsValid(
 
 BOOLEAN
 QuicAddrCompareIp(
-    _In_ const QUIC_ADDR * const Addr1,
-    _In_ const QUIC_ADDR * const Addr2
+    _In_ const QUIC_ADDR* const Addr1,
+    _In_ const QUIC_ADDR* const Addr2
     )
 {
     QUIC_DBG_ASSERT(QuicAddrIsValid(Addr1));
@@ -642,8 +642,8 @@ QuicAddrCompareIp(
 
 BOOLEAN
 QuicAddrCompare(
-    _In_ const QUIC_ADDR * const Addr1,
-    _In_ const QUIC_ADDR * const Addr2
+    _In_ const QUIC_ADDR* const Addr1,
+    _In_ const QUIC_ADDR* const Addr2
     )
 {
     QUIC_DBG_ASSERT(QuicAddrIsValid(Addr1));
@@ -663,7 +663,7 @@ QuicAddrCompare(
 
 uint16_t
 QuicAddrGetFamily(
-    _In_ const QUIC_ADDR * const Addr
+    _In_ const QUIC_ADDR* const Addr
     )
 {
     QUIC_DBG_ASSERT(QuicAddrIsValid(Addr));
@@ -672,7 +672,7 @@ QuicAddrGetFamily(
 
 void
 QuicAddrSetFamily(
-    _In_ QUIC_ADDR * Addr,
+    _In_ QUIC_ADDR* Addr,
     _In_ uint16_t Family
     )
 {
@@ -683,7 +683,7 @@ QuicAddrSetFamily(
 
 uint16_t
 QuicAddrGetPort(
-    _In_ const QUIC_ADDR * const Addr
+    _In_ const QUIC_ADDR* const Addr
     )
 {
     QUIC_DBG_ASSERT(QuicAddrIsValid(Addr));
@@ -697,7 +697,7 @@ QuicAddrGetPort(
 
 void
 QuicAddrSetPort(
-    _Out_ QUIC_ADDR * Addr,
+    _Out_ QUIC_ADDR* Addr,
     _In_ uint16_t Port
     )
 {
@@ -712,7 +712,7 @@ QuicAddrSetPort(
 
 BOOLEAN
 QuicAddrIsBoundExplicitly(
-    _In_ const QUIC_ADDR * const Addr
+    _In_ const QUIC_ADDR* const Addr
     )
 {
     QUIC_DBG_ASSERT(QuicAddrIsValid(Addr));
@@ -728,7 +728,7 @@ QuicAddrIsBoundExplicitly(
 
 void
 QuicAddrSetToLoopback(
-    _Inout_ QUIC_ADDR * Addr
+    _Inout_ QUIC_ADDR* Addr
     )
 {
     QUIC_DBG_ASSERT(QuicAddrIsValid(Addr));
@@ -742,7 +742,7 @@ QuicAddrSetToLoopback(
 
 uint32_t
 QuicAddrHash(
-    _In_ const QUIC_ADDR * Addr
+    _In_ const QUIC_ADDR* Addr
     )
 {
     uint32_t Hash = 5387; // A random prime number.
@@ -765,7 +765,7 @@ QuicAddrHash(
 
 BOOLEAN
 QuicAddrIsWildCard(
-    _In_ const QUIC_ADDR * const Addr
+    _In_ const QUIC_ADDR* const Addr
     )
 {
     if (Addr->si_family == AF_UNSPEC) {
@@ -896,11 +896,10 @@ QuicThreadCreate(
 
     pthread_attr_t Attr;
     if (pthread_attr_init(&Attr)) {
-        LogError("[qpal] pthread_attr_init() failed, 0x%x.", errno);
+        LogError("[qpal] pthread_attr_init failed, 0x%x.", errno);
         return errno;
     }
 
-    /* TODO - How to enable non-standard functions?
     if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
         QUIC_TEL_ASSERT(Config->IdealProcessor < 64);
         // TODO - Set Linux equivalent of ideal processor.
@@ -909,24 +908,24 @@ QuicThreadCreate(
             CPU_ZERO(&CpuSet);
             CPU_SET(Config->IdealProcessor, &CpuSet);
             if (!pthread_attr_setaffinity_np(&Attr, sizeof(CpuSet), &CpuSet)) {
-                LogWarning("[qpal] pthread_attr_setaffinity_np() failed.");
+                LogWarning("[qpal] pthread_attr_setaffinity_np failed.");
             }
         } else {
             // TODO - Set Linux equivalent of NUMA affinity.
         }
-    }*/
+    }
 
     if (Config->Flags & QUIC_THREAD_FLAG_HIGH_PRIORITY) {
         struct sched_param Params;
         Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
         if (!pthread_attr_setschedparam(&Attr, &Params)) {
-            LogWarning("[qpal] pthread_attr_setschedparam() failed, 0x%x.");
+            LogWarning("[qpal] pthread_attr_setschedparam failed, 0x%x.");
         }
     }
 
     if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
         Status = errno;
-        LogError("[qpal] pthread_create() failed, 0x%x.", Status);
+        LogError("[qpal] pthread_create failed, 0x%x.", Status);
     }
 
     pthread_attr_destroy(&Attr);

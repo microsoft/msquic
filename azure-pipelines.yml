@@ -9,12 +9,12 @@ strategy:
     linux-stub:
       platform: 'Linux-Stub'
       imageName: 'ubuntu-latest'
-      cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=stub'
+      cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=stub -DQUIC_ENABLE_LOGGING=off'
       testCmd: 'bash ./test/run_linux.sh'
     linux-openssl:
       platform: 'Linux-OpenSSL'
       imageName: 'ubuntu-latest'
-      cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=openssl'
+      cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=openssl -DQUIC_ENABLE_LOGGING=off'
       testCmd: 'bash ./test/run_linux.sh'
     windows-x64-stub:
       platform: 'Windows-x64-Stub'
