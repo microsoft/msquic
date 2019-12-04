@@ -1407,7 +1407,6 @@ QuicHashCompute(
     UNREFERENCED_PARAMETER(Hash);
     UNREFERENCED_PARAMETER(Input);
     UNREFERENCED_PARAMETER(InputLength);
-    UNREFERENCED_PARAMETER(OutputLength);
-    UNREFERENCED_PARAMETER(Output);
+    QuicZeroMemory(Output, OutputLength);
     return QUIC_STATUS_SUCCESS;
 }

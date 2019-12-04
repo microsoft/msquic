@@ -7,6 +7,10 @@
 
 #include "quic_gtest.h"
 
+#ifdef QUIC_LOGS_WPP
+#include "quic_gtest.tmh"
+#endif
+
 QUIC_API_V1* MsQuic;
 HQUIC Registration;
 QUIC_SEC_CONFIG_PARAMS* SelfSignedCertParams;
@@ -98,19 +102,45 @@ LogTestFailure(
     va_start(Args, Format);
     (void)_vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, Format, Args);
     va_end(Args);
+    LogError("[test] FAILURE - %s:%d - %s", File, Line, Buffer);
     GTEST_MESSAGE_AT_(File, Line, Buffer, ::testing::TestPartResult::kFatalFailure);
 }
 
+struct TestLogger {
+    const char* TestName;
+    TestLogger(const char* Name) : TestName(Name) {
+        LogInfo("[test] START %s", TestName);
+    }
+    ~TestLogger() {
+        LogInfo("[test] END %s", TestName);
+    }
+};
+
+template<class T>
+struct TestLoggerT {
+    const char* TestName;
+    TestLoggerT(const char* Name, const T& Params) : TestName(Name) {
+        std::ostringstream stream; stream << Params;
+        LogInfo("[test] START %s, %s", TestName, stream.str().c_str());
+    }
+    ~TestLoggerT() {
+        LogInfo("[test] END %s", TestName);
+    }
+};
+
 TEST(ParameterValidation, ValidateApi) {
+    TestLogger Logger("QuicTestValidateApi");
     QuicTestValidateApi();
 }
 
 TEST(ParameterValidation, ValidateRegistration) {
+    TestLogger Logger("QuicTestValidateRegistration");
     QuicTestValidateRegistration();
 }
 
 #if _WIN32
 TEST(ParameterValidation, ValidateServerSecConfig) {
+    TestLogger Logger("QuicTestValidateServerSecConfig");
     QUIC_CERTIFICATE_HASH_STORE CertHashStore = { QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE };
     memcpy(CertHashStore.ShaHash, SelfSignedCertParams->Thumbprint, sizeof(CertHashStore.ShaHash));
     memcpy(CertHashStore.StoreName, "My", 2);
@@ -120,58 +150,72 @@ TEST(ParameterValidation, ValidateServerSecConfig) {
 #endif // _WIN32
 
 TEST(ParameterValidation, ValidateSession) {
+    TestLogger Logger("QuicTestValidateSession");
     QuicTestValidateSession();
 }
 
 TEST(ParameterValidation, ValidateListener) {
+    TestLogger Logger("QuicTestValidateListener");
     QuicTestValidateListener();
 }
 
 TEST(ParameterValidation, ValidateConnection) {
+    TestLogger Logger("QuicTestValidateConnection");
     QuicTestValidateConnection();
 }
 
 TEST_P(WithBool, ValidateStream) {
+    TestLoggerT Logger("QuicTestValidateStream", GetParam());
     QuicTestValidateStream(GetParam());
 }
 
 TEST(Basic, CreateListener) {
+    TestLogger Logger("QuicTestCreateListener");
     QuicTestCreateListener();
 }
 
 TEST(Basic, StartListener) {
+    TestLogger Logger("QuicTestStartListener");
     QuicTestStartListener();
 }
 
 TEST_P(WithFamilyArgs, StartListenerImplicit) {
+    TestLoggerT Logger("QuicTestStartListenerImplicit", GetParam());
     QuicTestStartListenerImplicit(GetParam().Family);
 }
 
 TEST(Basic, StartTwoListeners) {
+    TestLogger Logger("QuicTestStartTwoListeners");
     QuicTestStartTwoListeners();
 }
 
 TEST(Basic, StartTwoListenersSameALPN) {
+    TestLogger Logger("QuicTestStartTwoListenersSameALPN");
     QuicTestStartTwoListenersSameALPN();
 }
 
 TEST_P(WithFamilyArgs, StartListenerExplicit) {
+    TestLoggerT Logger("QuicTestStartListenerImplicit", GetParam());
     QuicTestStartListenerExplicit(GetParam().Family);
 }
 
 TEST(Basic, CreateConnection) {
+    TestLogger Logger("QuicTestCreateConnection");
     QuicTestCreateConnection();
 }
 
 TEST_P(WithFamilyArgs, BindConnectionImplicit) {
+    TestLoggerT Logger("QuicTestBindConnectionImplicit", GetParam());
     QuicTestBindConnectionImplicit(GetParam().Family);
 }
 
 TEST_P(WithFamilyArgs, BindConnectionExplicit) {
+    TestLoggerT Logger("QuicTestBindConnectionExplicit", GetParam());
     QuicTestBindConnectionExplicit(GetParam().Family);
 }
 
 TEST_P(WithHandshakeArgs1, Connect) {
+    TestLoggerT Logger("QuicTestConnect", GetParam());
     QuicTestConnect(
         GetParam().Family,
         GetParam().ServerStatelessRetry,
@@ -180,11 +224,11 @@ TEST_P(WithHandshakeArgs1, Connect) {
         false,  // ChangeMaxStreamID
         GetParam().MultipleALPNs,
         false,  // AsyncSecConfig
-        GetParam().MultiPacketClientInitial
-    );
+        GetParam().MultiPacketClientInitial);
 }
 
 TEST_P(WithHandshakeArgs2, OldVersion) {
+    TestLoggerT Logger("QuicTestConnect", GetParam());
     QuicTestConnect(
         GetParam().Family,
         GetParam().ServerStatelessRetry,
@@ -193,15 +237,16 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
         false,  // ChangeMaxStreamID
         false,  // MultipleALPNs
         false,  // AsyncSecConfig
-        false   // MultiPacketClientInitial
-    );
+        false); // MultiPacketClientInitial
 }
 
 TEST_P(WithFamilyArgs, VersionNegotiation) {
+    TestLoggerT Logger("QuicTestVersionNegotiation", GetParam());
     QuicTestVersionNegotiation(GetParam().Family);
 }
 
 TEST_P(WithFamilyArgs, Rebind) {
+    TestLoggerT Logger("QuicTestConnect", GetParam());
     QuicTestConnect(
         GetParam().Family,
         false,  // ServerStatelessRetry
@@ -210,11 +255,11 @@ TEST_P(WithFamilyArgs, Rebind) {
         false,  // ChangeMaxStreamID
         false,  // MultipleALPNs
         false,  // AsyncSecConfig
-        false   // MultiPacketClientInitial
-    );
+        false); // MultiPacketClientInitial
 }
 
 TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
+    TestLoggerT Logger("QuicTestConnect", GetParam());
     QuicTestConnect(
         GetParam().Family,
         false,  // ServerStatelessRetry
@@ -223,11 +268,11 @@ TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
         true,   // ChangeMaxStreamID
         false,  // MultipleALPNs
         false,  // AsyncSecConfig
-        false   // MultiPacketClientInitial
-    );
+        false); // MultiPacketClientInitial
 }
 
 TEST_P(WithHandshakeArgs1, AsyncSecurityConfig) {
+    TestLoggerT Logger("QuicTestConnect", GetParam());
     QuicTestConnect(
         GetParam().Family,
         GetParam().ServerStatelessRetry,
@@ -236,27 +281,31 @@ TEST_P(WithHandshakeArgs1, AsyncSecurityConfig) {
         false,  // ChangeMaxStreamID
         GetParam().MultipleALPNs,
         true,   // AsyncSecConfig
-        false   // MultiPacketClientInitial
-    );
+        false); // MultiPacketClientInitial
 }
 
 TEST_P(WithFamilyArgs, Unreachable) {
+    TestLoggerT Logger("QuicTestConnectUnreachable", GetParam());
     QuicTestConnectUnreachable(GetParam().Family);
 }
 
 TEST_P(WithFamilyArgs, BadALPN) {
+    TestLoggerT Logger("QuicTestConnectBadAlpn", GetParam());
     QuicTestConnectBadAlpn(GetParam().Family);
 }
 
 TEST_P(WithFamilyArgs, BadSNI) {
+    TestLoggerT Logger("QuicTestConnectBadSni", GetParam());
     QuicTestConnectBadSni(GetParam().Family);
 }
 
 TEST_P(WithFamilyArgs, ServerRejected) {
+    TestLoggerT Logger("QuicTestConnectServerRejected", GetParam());
     QuicTestConnectServerRejected(GetParam().Family);
 }
 
 TEST_P(WithSendArgs1, Send) {
+    TestLoggerT Logger("QuicTestConnectAndPing", GetParam());
     QuicTestConnectAndPing(
         GetParam().Family,
         GetParam().Length,
@@ -270,8 +319,7 @@ TEST_P(WithSendArgs1, Send) {
         false,  // ServerRejectZeroRtt
         GetParam().UseSendBuffer,
         GetParam().UnidirectionalStreams,
-        GetParam().ServerInitiatedStreams
-    );
+        GetParam().ServerInitiatedStreams);
 }
 
 #ifndef QUIC_0RTT_UNSUPPORTED
@@ -280,6 +328,7 @@ TEST_P(WithSendArgs1, Send) {
 #endif
 
 TEST_P(WithSendArgs2, SendLarge) {
+    TestLoggerT Logger("QuicTestConnectAndPing", GetParam());
     QuicTestConnectAndPing(
         GetParam().Family,
         100000000llu,
@@ -293,11 +342,11 @@ TEST_P(WithSendArgs2, SendLarge) {
         false,  // ServerRejectZeroRtt
         GetParam().UseSendBuffer,
         false,  // UnidirectionalStreams
-        false   // ServerInitiatedStreams
-    );
+        false); // ServerInitiatedStreams
 }
 
 TEST_P(WithSendArgs3, SendIntermittently) {
+    TestLoggerT Logger("QuicTestConnectAndPing", GetParam());
     QuicTestConnectAndPing(
         GetParam().Family,
         GetParam().Length,
@@ -311,46 +360,58 @@ TEST_P(WithSendArgs3, SendIntermittently) {
         false,  // ServerRejectZeroRtt
         GetParam().UseSendBuffer,
         false,  // UnidirectionalStreams
-        false   // ServerInitiatedStreams
-    );
+        false); // ServerInitiatedStreams
 }
 
 TEST_P(WithBool, IdleTimeout) {
+    TestLoggerT Logger("QuicTestConnectAndIdle", GetParam());
     QuicTestConnectAndIdle(GetParam());
 }
 
 TEST(Misc, ServerDisconnect) {
+    TestLogger Logger("QuicTestServerDisconnect");
     QuicTestServerDisconnect();
 }
 
 TEST(Misc, ClientDisconnect) {
+    TestLogger Logger("QuicTestClientDisconnect");
     QuicTestClientDisconnect(false); // TODO - Support true, when race condition is fixed.
 }
 
 TEST_P(WithKeyUpdateArgs1, KeyUpdate) {
+    TestLoggerT Logger("QuicTestKeyUpdate", GetParam());
     QuicTestKeyUpdate(
         GetParam().Family,
         GetParam().KeyUpdate == 0 ? 5 : 1,  // Iterations
         0,                                  // KeyUpdateBytes
         GetParam().KeyUpdate == 0,          // UseKeyUpdateBytes
         GetParam().KeyUpdate & 1,           // ClientKeyUpdate
-        GetParam().KeyUpdate & 2            // ServerKeyUpdate
-    );
+        GetParam().KeyUpdate & 2);          // ServerKeyUpdate
 }
 
 TEST_P(WithAbortiveArgs, AbortiveShutdown) {
+    TestLoggerT Logger("QuicAbortiveTransfers", GetParam());
     QuicAbortiveTransfers(GetParam().Family, GetParam().Flags);
 }
 
 TEST_P(WithCidUpdateArgs, CidUpdate) {
+    TestLoggerT Logger("QuicTestCidUpdate", GetParam());
     QuicTestCidUpdate(GetParam().Family, GetParam().Iterations);
 }
 
 TEST_P(WithReceiveResumeArgs, ReceiveResume) {
-    QuicTestReceiveResume(GetParam().Family, GetParam().SendBytes, GetParam().ConsumeBytes, GetParam().ShutdownType, GetParam().PauseType, GetParam().PauseFirst);
+    TestLoggerT Logger("QuicTestReceiveResume", GetParam());
+    QuicTestReceiveResume(
+        GetParam().Family,
+        GetParam().SendBytes,
+        GetParam().ConsumeBytes,
+        GetParam().ShutdownType,
+        GetParam().PauseType,
+        GetParam().PauseFirst);
 }
 
 TEST_P(WithReceiveResumeNoDataArgs, ReceiveResumeNoData) {
+    TestLoggerT Logger("QuicTestReceiveResumeNoData", GetParam());
     QuicTestReceiveResumeNoData(GetParam().Family, GetParam().ShutdownType);
 }
 
