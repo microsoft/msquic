@@ -10,6 +10,7 @@
 #include <quic_platform.h>
 #include <MsQuicTests.h>
 #include <msquichelper.h>
+#include "quic_trace.h"
 #undef min // gtest headers conflict with previous definitions of min/max.
 #undef max
 #include "gtest/gtest.h"
@@ -189,7 +190,7 @@ struct KeyUpdateArgs1 {
     static ::std::vector<KeyUpdateArgs1> Generate() {
         ::std::vector<KeyUpdateArgs1> list;
         for (int Family : { 4, 6 })
-        for (int KeyUpdate : { 1, 2, 3, 4 })
+        for (int KeyUpdate : { 0, 1, 2, 3 })
             list.push_back({ Family, KeyUpdate });
         return list;
     }

@@ -1607,10 +1607,16 @@ QuicConnHandshakeConfigure(
                 QUIC_CID_HASH_ENTRY,
                 Link);
         LocalTP.Flags |= QUIC_TP_FLAG_STATELESS_RESET_TOKEN;
-        QuicBindingGenerateStatelessResetToken(
-            Connection->Paths[0].Binding,
-            SourceCID->CID.Data,
-            LocalTP.StatelessResetToken);
+        Status =
+            QuicBindingGenerateStatelessResetToken(
+                Connection->Paths[0].Binding,
+                SourceCID->CID.Data,
+                LocalTP.StatelessResetToken);
+        if (QUIC_FAILED(Status)) {
+            EventWriteQuicConnErrorStatus(Connection, Status,
+                "QuicBindingGenerateStatelessResetToken");
+            goto Error;
+        }
 
         if (Connection->AckDelayExponent != QUIC_DEFAULT_ACK_DELAY_EXPONENT) {
             LocalTP.Flags |= QUIC_TP_FLAG_ACK_DELAY_EXPONENT;
