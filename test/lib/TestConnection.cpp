@@ -264,14 +264,32 @@ TestConnection::SetLocalAddr(
     _In_ const QuicAddr &localAddr
     )
 {
+    QUIC_STATUS Status;
+    uint32_t Try = 0;
     uint32_t Size = sizeof(localAddr.SockAddr);
-    return
-        MsQuic->SetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_LOCAL_ADDRESS,
-            Size,
-            &localAddr.SockAddr);
+
+    do {
+        //
+        // If setting the new local address right after handshake complete, it's
+        // possible the handshake hasn't been confirmed yet, and this call will
+        // fail with QUIC_STATUS_INVALID_STATE (because the client's not allowed
+        // to change IP until handshake confirmation). To get around this we
+        // allow for a couple retries (with some sleeps).
+        //
+        if (Try != 0) {
+            QuicSleep(100);
+        }
+        Status =
+            MsQuic->SetParam(
+                QuicConnection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                Size,
+                &localAddr.SockAddr);
+
+    } while (Status == QUIC_STATUS_INVALID_STATE && ++Try <= 3);
+
+    return Status;
 }
 
 QUIC_STATUS

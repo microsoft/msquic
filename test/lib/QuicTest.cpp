@@ -1827,6 +1827,21 @@ QuicAbortiveTransfers(
             return;
         }
 
+        uint32_t CertFlags =
+            QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
+            QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID;
+        Status =
+            MsQuic->SetParam(
+                ClientContext.Conn.Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
+                sizeof(CertFlags),
+                &CertFlags);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("MsQuic->SetParam(CERT_VALIDATION_FLAGS) failed, 0x%x.", Status);
+            return;
+        }
+
         Status =
             MsQuic->ConnectionStart(
                 ClientContext.Conn.Handle,
@@ -2349,6 +2364,21 @@ QuicTestReceiveResume(
             return;
         }
 
+        uint32_t CertFlags =
+            QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
+            QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID;
+        Status =
+            MsQuic->SetParam(
+                ClientContext.Conn.Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
+                sizeof(CertFlags),
+                &CertFlags);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("MsQuic->SetParam(CERT_VALIDATION_FLAGS) failed, 0x%x.", Status);
+            return;
+        }
+
         Status =
             MsQuic->ConnectionStart(
                 ClientContext.Conn.Handle,
@@ -2595,6 +2625,21 @@ QuicTestReceiveResumeNoData(
                 &ClientContext.Conn.Handle);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("MsQuic->ConnectionOpen failed, 0x%x.", Status);
+            return;
+        }
+
+        uint32_t CertFlags =
+            QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
+            QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID;
+        Status =
+            MsQuic->SetParam(
+                ClientContext.Conn.Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
+                sizeof(CertFlags),
+                &CertFlags);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("MsQuic->SetParam(CERT_VALIDATION_FLAGS) failed, 0x%x.", Status);
             return;
         }
 

@@ -236,7 +236,7 @@ _Post_writable_byte_size_(ByteCount)
 DECLSPEC_ALLOCATOR
 void*
 QuicAlloc(
-    _In_ SIZE_T ByteCount
+    _In_ size_t ByteCount
     );
 
 void
