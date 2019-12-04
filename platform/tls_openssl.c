@@ -2039,7 +2039,8 @@ QuicHashCompute(
             InputLength,
             Hash->Salt,
             Hash->SaltLength,
-            Hash);
+            Hash) != 0 ?
+        QUIC_STATUS_SUCCESS : QUIC_STATUS_INTERNAL_ERROR;
 }
 
 static

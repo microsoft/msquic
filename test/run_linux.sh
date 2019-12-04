@@ -8,6 +8,7 @@ sudo truncate -s 0 /var/log/syslog
 
 # Run the tests.
 ./artifacts/bin/msquictest \
+    --gtest_filter=Handshake/WithHandshakeArgs1.Connect/0 \
     --gtest_output=xml:artifacts/logs/linux-test-results.xml
 
 # Copy logs to log folder (with correct permsissions).
