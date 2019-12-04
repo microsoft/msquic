@@ -47,7 +47,6 @@ reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\S
 - Install tooling (WSL2 or Ubuntu)
     - sudo apt-get install cmake
     - sudo apt-get install build-essential
-    
 - Run `mkdir bld && cd bld`
 - Run `cmake -G "Unix Makefiles" ..`
 - Run `cmake --build . --config RELEASE`
