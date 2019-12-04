@@ -165,7 +165,7 @@ TEST(ParameterValidation, ValidateConnection) {
 }
 
 TEST_P(WithBool, ValidateStream) {
-    TestLoggerT Logger("QuicTestValidateStream", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestValidateStream", GetParam());
     QuicTestValidateStream(GetParam());
 }
 
@@ -180,7 +180,7 @@ TEST(Basic, StartListener) {
 }
 
 TEST_P(WithFamilyArgs, StartListenerImplicit) {
-    TestLoggerT Logger("QuicTestStartListenerImplicit", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestStartListenerImplicit", GetParam());
     QuicTestStartListenerImplicit(GetParam().Family);
 }
 
@@ -195,7 +195,7 @@ TEST(Basic, StartTwoListenersSameALPN) {
 }
 
 TEST_P(WithFamilyArgs, StartListenerExplicit) {
-    TestLoggerT Logger("QuicTestStartListenerImplicit", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestStartListenerImplicit", GetParam());
     QuicTestStartListenerExplicit(GetParam().Family);
 }
 
@@ -205,17 +205,17 @@ TEST(Basic, CreateConnection) {
 }
 
 TEST_P(WithFamilyArgs, BindConnectionImplicit) {
-    TestLoggerT Logger("QuicTestBindConnectionImplicit", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestBindConnectionImplicit", GetParam());
     QuicTestBindConnectionImplicit(GetParam().Family);
 }
 
 TEST_P(WithFamilyArgs, BindConnectionExplicit) {
-    TestLoggerT Logger("QuicTestBindConnectionExplicit", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestBindConnectionExplicit", GetParam());
     QuicTestBindConnectionExplicit(GetParam().Family);
 }
 
 TEST_P(WithHandshakeArgs1, Connect) {
-    TestLoggerT Logger("QuicTestConnect", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestConnect", GetParam());
     QuicTestConnect(
         GetParam().Family,
         GetParam().ServerStatelessRetry,
@@ -228,7 +228,7 @@ TEST_P(WithHandshakeArgs1, Connect) {
 }
 
 TEST_P(WithHandshakeArgs2, OldVersion) {
-    TestLoggerT Logger("QuicTestConnect", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestConnect", GetParam());
     QuicTestConnect(
         GetParam().Family,
         GetParam().ServerStatelessRetry,
@@ -241,12 +241,12 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
 }
 
 TEST_P(WithFamilyArgs, VersionNegotiation) {
-    TestLoggerT Logger("QuicTestVersionNegotiation", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestVersionNegotiation", GetParam());
     QuicTestVersionNegotiation(GetParam().Family);
 }
 
 TEST_P(WithFamilyArgs, Rebind) {
-    TestLoggerT Logger("QuicTestConnect", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestConnect", GetParam());
     QuicTestConnect(
         GetParam().Family,
         false,  // ServerStatelessRetry
@@ -259,7 +259,7 @@ TEST_P(WithFamilyArgs, Rebind) {
 }
 
 TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
-    TestLoggerT Logger("QuicTestConnect", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestConnect", GetParam());
     QuicTestConnect(
         GetParam().Family,
         false,  // ServerStatelessRetry
@@ -272,7 +272,7 @@ TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
 }
 
 TEST_P(WithHandshakeArgs1, AsyncSecurityConfig) {
-    TestLoggerT Logger("QuicTestConnect", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestConnect", GetParam());
     QuicTestConnect(
         GetParam().Family,
         GetParam().ServerStatelessRetry,
@@ -285,27 +285,27 @@ TEST_P(WithHandshakeArgs1, AsyncSecurityConfig) {
 }
 
 TEST_P(WithFamilyArgs, Unreachable) {
-    TestLoggerT Logger("QuicTestConnectUnreachable", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestConnectUnreachable", GetParam());
     QuicTestConnectUnreachable(GetParam().Family);
 }
 
 TEST_P(WithFamilyArgs, BadALPN) {
-    TestLoggerT Logger("QuicTestConnectBadAlpn", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestConnectBadAlpn", GetParam());
     QuicTestConnectBadAlpn(GetParam().Family);
 }
 
 TEST_P(WithFamilyArgs, BadSNI) {
-    TestLoggerT Logger("QuicTestConnectBadSni", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestConnectBadSni", GetParam());
     QuicTestConnectBadSni(GetParam().Family);
 }
 
 TEST_P(WithFamilyArgs, ServerRejected) {
-    TestLoggerT Logger("QuicTestConnectServerRejected", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestConnectServerRejected", GetParam());
     QuicTestConnectServerRejected(GetParam().Family);
 }
 
 TEST_P(WithSendArgs1, Send) {
-    TestLoggerT Logger("QuicTestConnectAndPing", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
     QuicTestConnectAndPing(
         GetParam().Family,
         GetParam().Length,
@@ -328,7 +328,7 @@ TEST_P(WithSendArgs1, Send) {
 #endif
 
 TEST_P(WithSendArgs2, SendLarge) {
-    TestLoggerT Logger("QuicTestConnectAndPing", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
     QuicTestConnectAndPing(
         GetParam().Family,
         100000000llu,
@@ -346,7 +346,7 @@ TEST_P(WithSendArgs2, SendLarge) {
 }
 
 TEST_P(WithSendArgs3, SendIntermittently) {
-    TestLoggerT Logger("QuicTestConnectAndPing", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
     QuicTestConnectAndPing(
         GetParam().Family,
         GetParam().Length,
@@ -364,7 +364,7 @@ TEST_P(WithSendArgs3, SendIntermittently) {
 }
 
 TEST_P(WithBool, IdleTimeout) {
-    TestLoggerT Logger("QuicTestConnectAndIdle", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestConnectAndIdle", GetParam());
     QuicTestConnectAndIdle(GetParam());
 }
 
@@ -379,7 +379,7 @@ TEST(Misc, ClientDisconnect) {
 }
 
 TEST_P(WithKeyUpdateArgs1, KeyUpdate) {
-    TestLoggerT Logger("QuicTestKeyUpdate", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestKeyUpdate", GetParam());
     QuicTestKeyUpdate(
         GetParam().Family,
         GetParam().KeyUpdate == 0 ? 5 : 1,  // Iterations
@@ -390,17 +390,17 @@ TEST_P(WithKeyUpdateArgs1, KeyUpdate) {
 }
 
 TEST_P(WithAbortiveArgs, AbortiveShutdown) {
-    TestLoggerT Logger("QuicAbortiveTransfers", GetParam());
+    TestLoggerT<ParamType> Logger("QuicAbortiveTransfers", GetParam());
     QuicAbortiveTransfers(GetParam().Family, GetParam().Flags);
 }
 
 TEST_P(WithCidUpdateArgs, CidUpdate) {
-    TestLoggerT Logger("QuicTestCidUpdate", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestCidUpdate", GetParam());
     QuicTestCidUpdate(GetParam().Family, GetParam().Iterations);
 }
 
 TEST_P(WithReceiveResumeArgs, ReceiveResume) {
-    TestLoggerT Logger("QuicTestReceiveResume", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestReceiveResume", GetParam());
     QuicTestReceiveResume(
         GetParam().Family,
         GetParam().SendBytes,
@@ -411,7 +411,7 @@ TEST_P(WithReceiveResumeArgs, ReceiveResume) {
 }
 
 TEST_P(WithReceiveResumeNoDataArgs, ReceiveResumeNoData) {
-    TestLoggerT Logger("QuicTestReceiveResumeNoData", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestReceiveResumeNoData", GetParam());
     QuicTestReceiveResumeNoData(GetParam().Family, GetParam().ShutdownType);
 }
 
