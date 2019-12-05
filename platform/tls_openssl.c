@@ -359,7 +359,7 @@ QuicTlsAeadTagLength(
     );
 
 static
-size_t
+int
 QuicTlsEncrypt(
     _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
     _In_ size_t OutputBufferLen,
@@ -375,7 +375,7 @@ QuicTlsEncrypt(
     );
 
 static
-size_t
+int
 QuicTlsDecrypt(
     _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
     _In_ size_t OutputBufferLen,
@@ -1176,6 +1176,7 @@ QuicTlsInitialize(
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
+    QUIC_FREE(Config->LocalTPBuffer);
 
     *NewTlsContext = TlsContext;
     TlsContext = NULL;
@@ -1815,9 +1816,7 @@ QuicEncrypt(
     _Inout_updates_bytes_(BufferLength) uint8_t* Buffer
     )
 {
-    int Ret = 0;
-
-    Ret =
+    int Ret =
         QuicTlsEncrypt(
             Buffer,
             BufferLength,
@@ -1830,13 +1829,7 @@ QuicEncrypt(
             AuthData,
             AuthDataLength,
             Key->Aead);
-
-    if (Ret < 0) {
-        LogError("[ tls] QuicTlsEncrypt() failed. Ret: %ld", Ret);
-        return QUIC_STATUS_TLS_ERROR;
-    }
-
-    return QUIC_STATUS_SUCCESS;
+    return (Ret < 0) ? QUIC_STATUS_TLS_ERROR : QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS
@@ -1849,9 +1842,7 @@ QuicDecrypt(
     _Inout_updates_bytes_(BufferLength) uint8_t* Buffer
     )
 {
-    size_t Ret = 0;
-
-    Ret =
+    int Ret =
         QuicTlsDecrypt(
             Buffer,
             BufferLength,
@@ -1864,13 +1855,7 @@ QuicDecrypt(
             AuthData,
             AuthDataLength,
             Key->Aead);
-
-    if (Ret < 0) {
-        LogError("[ tls] QuicTlsDecrypt() failed. Ret: %ld", Ret);
-        return QUIC_STATUS_TLS_ERROR;
-    }
-
-    return QUIC_STATUS_SUCCESS;
+    return (Ret < 0) ? QUIC_STATUS_TLS_ERROR : QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS
@@ -2610,7 +2595,7 @@ QuicTlsAeadTagLength(
 }
 
 static
-size_t
+int
 QuicTlsEncrypt(
     _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
     _In_ size_t OutputBufferLen,
@@ -2625,7 +2610,7 @@ QuicTlsEncrypt(
     _In_ const EVP_CIPHER *Aead
     )
 {
-    size_t Ret = 0;
+    int Ret = 0;
     size_t TagLen = QuicTlsAeadTagLength(Aead);
     EVP_CIPHER_CTX *CipherCtx = NULL;
     size_t OutLen = 0;
@@ -2640,7 +2625,6 @@ QuicTlsEncrypt(
     }
 
     CipherCtx = EVP_CIPHER_CTX_new();
-
     if (CipherCtx == NULL) {
         LogError("[ tls] CipherCtx alloc failed.");
         Ret = -1;
@@ -2708,7 +2692,7 @@ Exit:
 }
 
 static
-size_t
+int
 QuicTlsDecrypt(
     _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
     _In_ size_t OutputBufferLen,
@@ -2724,7 +2708,7 @@ QuicTlsDecrypt(
     )
 {
     size_t TagLen = QuicTlsAeadTagLength(Aead);
-    size_t Ret = 0;
+    int Ret = 0;
     EVP_CIPHER_CTX *CipherCtx = NULL;
 
     QUIC_FRE_ASSERT(TagLen == QUIC_ENCRYPTION_OVERHEAD);
@@ -2739,7 +2723,6 @@ QuicTlsDecrypt(
     uint8_t *Tag = (uint8_t *)CipherText + CipherTextLen;
 
     CipherCtx = EVP_CIPHER_CTX_new();
-
     if (CipherCtx == NULL) {
         LogError("[ tls] CipherCtx alloc failed.");
         Ret = -1;
