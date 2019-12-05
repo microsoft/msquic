@@ -169,14 +169,12 @@ typedef struct QUIC_HP_KEY {
     //
     // The cipher to use for encryption/decryption.
     //
-
     const EVP_CIPHER *Aead;
 
     //
     // Buffer and BufferLen of the key.
     //
-
-    size_t BufferLen;
+    int BufferLen;
     uint8_t Buffer[64];
 
 } QUIC_HP_KEY;
@@ -220,6 +218,7 @@ static
 QUIC_STATUS
 QuicAllocatePacketKey(
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
+    _In_ BOOLEAN AllocHpKey,
     _Outptr_ QUIC_PACKET_KEY** Key
     );
 
@@ -1465,7 +1464,7 @@ QuicPacketKeyCreateInitial(
     uint8_t Secret[QUIC_HASH_SHA256_SIZE] = {0};
 
     if (WriteKey != NULL) {
-        Status = QuicAllocatePacketKey(QUIC_PACKET_KEY_INITIAL, &TempWriteKey);
+        Status = QuicAllocatePacketKey(QUIC_PACKET_KEY_INITIAL, TRUE, &TempWriteKey);
 
         if (QUIC_FAILED(Status)) {
             LogError("[ tls] Key alloc failure.");
@@ -1548,7 +1547,7 @@ QuicPacketKeyCreateInitial(
     }
 
     if (ReadKey != NULL) {
-        Status = QuicAllocatePacketKey(QUIC_PACKET_KEY_INITIAL, &TempReadKey);
+        Status = QuicAllocatePacketKey(QUIC_PACKET_KEY_INITIAL, TRUE, &TempReadKey);
 
         if (QUIC_FAILED(Status)) {
             LogError("[ tls] Key alloc failure.");
@@ -1642,15 +1641,8 @@ QuicPacketKeyCreateInitial(
 
 Exit:
 
-    if (TempReadKey != NULL) {
-        QuicFree(TempReadKey);
-        TempReadKey = NULL;
-    }
-
-    if (TempWriteKey != NULL) {
-        QuicFree(TempWriteKey);
-        TempWriteKey = NULL;
-    }
+    QuicPacketKeyFree(TempReadKey);
+    QuicPacketKeyFree(TempWriteKey);
 
     return Status;
 }
@@ -1661,8 +1653,12 @@ QuicPacketKeyFree(
     )
 {
     if (Key != NULL) {
+        QuicKeyFree(Key->PacketKey);
+        QuicHpKeyFree(Key->HeaderKey);
+        if (Key->Type >= QUIC_PACKET_KEY_1_RTT) {
+            QuicSecureZeroMemory(Key->TrafficSecret, sizeof(QUIC_SECRET));
+        }
         QUIC_FREE(Key);
-        Key = NULL;
     }
 }
 
@@ -1678,8 +1674,7 @@ QuicPacketKeyUpdate(
 
     QUIC_FRE_ASSERT(OldKey->Type == QUIC_PACKET_KEY_1_RTT);
 
-    Status = QuicAllocatePacketKey(QUIC_PACKET_KEY_1_RTT, &TempKey);
-
+    Status = QuicAllocatePacketKey(QUIC_PACKET_KEY_1_RTT, FALSE, &TempKey);
     if (QUIC_FAILED(Status)) {
         LogError("[ tls] Key alloc failure");
         goto Exit;
@@ -1687,7 +1682,6 @@ QuicPacketKeyUpdate(
 
     TempKey->Type = OldKey->Type;
     TempKey->PacketKey->Aead = OldKey->PacketKey->Aead;
-    TempKey->HeaderKey->Aead = OldKey->HeaderKey->Aead;
 
     TempKey->TrafficSecret[0].Aead = OldKey->TrafficSecret[0].Aead;
     TempKey->TrafficSecret[0].Hash = OldKey->TrafficSecret[0].Hash;
@@ -1696,11 +1690,10 @@ QuicPacketKeyUpdate(
 
     Status =
         QuicTlsUpdateTrafficSecret(
-        TempKey->TrafficSecret[0].Secret,
-        OldKey->TrafficSecret[0].Secret,
-        SecretLen,
-        QuicTlsKeyGetMd(OldKey->TrafficSecret[0].Hash));
-
+            TempKey->TrafficSecret[0].Secret,
+            OldKey->TrafficSecret[0].Secret,
+            SecretLen,
+            QuicTlsKeyGetMd(OldKey->TrafficSecret[0].Hash));
     if (QUIC_FAILED(Status)) {
         LogError("[ tls] QuicTlsUpdateTrafficSecret failed. error: %ld", Status);
         goto Exit;
@@ -1712,7 +1705,6 @@ QuicPacketKeyUpdate(
             SecretLen,
             QuicTlsKeyGetMd(OldKey->TrafficSecret[0].Hash),
             TempKey);
-
     if (QUIC_FAILED(Status)) {
         LogError("[ tls] QuicTlsDerivePacketProtectionKey failed. error: %ld", Status);
         goto Exit;
@@ -1724,7 +1716,6 @@ QuicPacketKeyUpdate(
             SecretLen,
             QuicTlsKeyGetMd(OldKey->TrafficSecret[0].Hash),
             TempKey);
-
     if (QUIC_FAILED(Status)) {
         LogError("[ tls] QuicTlsDerivePacketProtectionIv failed. error: %ld", Status);
         goto Exit;
@@ -1735,10 +1726,7 @@ QuicPacketKeyUpdate(
 
 Exit:
 
-    if (TempKey != NULL) {
-        QuicFree(TempKey);
-        TempKey = NULL;
-    }
+    QuicPacketKeyFree(TempKey);
 
     return Status;
 }
@@ -1786,10 +1774,7 @@ QuicKeyCreate(
 
 Exit:
 
-    if (Key != NULL) {
-        QuicFree(Key);
-        Key = NULL;
-    }
+    QuicKeyFree(Key);
 
     return Status;
 }
@@ -1799,7 +1784,6 @@ QuicKeyFree(
     _In_opt_ QUIC_KEY* Key
     )
 {
-
     if (Key != NULL) {
         QuicFree(Key);
         Key = NULL;
@@ -1900,10 +1884,7 @@ QuicHpKeyCreate(
 
 Exit:
 
-    if (Key != NULL) {
-        QuicFree(Key);
-        Key = NULL;
-    }
+    QuicHpKeyFree(Key);
 
     return Status;
 }
@@ -1927,21 +1908,13 @@ QuicHpComputeMask(
     _Out_writes_bytes_(QUIC_HP_SAMPLE_LENGTH * BatchSize) uint8_t* Mask
     )
 {
-    int Ret = 0;
-    uint8_t i = 0;
-    QuicZeroMemory(Mask, sizeof(QUIC_HP_SAMPLE_LENGTH * BatchSize));
-
-    for (i = 0; i < BatchSize; i++) {
-        Ret =
-            QuicTlsHeaderMask(
+    for (uint8_t i = 0; i < BatchSize; i++) {
+        if (!QuicTlsHeaderMask(
                 Mask + i * QUIC_HP_SAMPLE_LENGTH,
                 Key->Buffer,
                 Key->BufferLen,
                 Cipher + i * QUIC_HP_SAMPLE_LENGTH,
-                Key->Aead);
-
-        if (Ret < 0) {
-            LogError("[ tls] QuicTlsHeaderMask failed. Ret: %ld", Ret);
+                Key->Aead)) {
             return QUIC_STATUS_TLS_ERROR;
         }
     }
@@ -1988,10 +1961,7 @@ QuicHashCreate(
 
 Exit:
 
-    if (Hash != NULL) {
-        QuicFree(Hash);
-        Hash = NULL;
-    }
+    QuicHashFree(Hash);
 
     return Status;
 }
@@ -2113,7 +2083,7 @@ QuicTlsKeyCreate(
     QUIC_HASH_TYPE HashType;
     QUIC_AEAD_TYPE AeadType;
 
-    Status = QuicAllocatePacketKey(KeyType, &TempKey);
+    Status = QuicAllocatePacketKey(KeyType, TRUE, &TempKey);
 
     if (QUIC_FAILED(Status)) {
         LogError("[ tls] key alloc failed.");
@@ -2129,7 +2099,6 @@ QuicTlsKeyCreate(
             SecretLen,
             QuicTlsKeyGetMd(HashType),
             TempKey);
-
     if (QUIC_FAILED(Status)) {
         LogError("[ tls] QuicTlsDerivePacketProtectionKey failed. Status: %ld", Status);
         goto Exit;
@@ -2141,7 +2110,6 @@ QuicTlsKeyCreate(
             SecretLen,
             QuicTlsKeyGetMd(HashType),
             TempKey);
-
     if (QUIC_FAILED(Status)) {
         LogError("[ tls] QuicTlsDeriveHeaderProtectionKey failed. Status: %ld", Status);
         goto Exit;
@@ -2153,7 +2121,6 @@ QuicTlsKeyCreate(
             SecretLen,
             QuicTlsKeyGetMd(HashType),
             TempKey);
-
     if (QUIC_FAILED(Status)) {
         LogError("[ tls] QuicTlsDerivePacketProtectionIv failed. Status: %ld", Status);
         goto Exit;
@@ -2171,10 +2138,7 @@ QuicTlsKeyCreate(
 
 Exit:
 
-    if (TempKey != NULL) {
-        QuicFree(TempKey);
-        TempKey = NULL;
-    }
+    QuicPacketKeyFree(TempKey);
 
     return Status;
 }
@@ -2305,47 +2269,46 @@ static
 QUIC_STATUS
 QuicAllocatePacketKey(
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
+    _In_ BOOLEAN AllocHpKey,
     _Outptr_ QUIC_PACKET_KEY** Key
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    QUIC_PACKET_KEY *TempKey = NULL;
-    size_t PacketKeyLength =
+    const size_t PacketKeyLength =
         sizeof(QUIC_PACKET_KEY) +
-        (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0) +
-        sizeof(QUIC_HP_KEY) +
-        sizeof(QUIC_KEY);
+        (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
 
-    TempKey = QuicAlloc(PacketKeyLength);
-
+    QUIC_PACKET_KEY * TempKey = QuicAlloc(PacketKeyLength);
     if (TempKey == NULL) {
-        LogError("[ tls] key alloc failed.");
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
+        LogError("[ tls] TempKey alloc failed.");
+        goto Error;
     }
 
     QuicZeroMemory(TempKey, PacketKeyLength);
-
-    TempKey->HeaderKey =
-            (QUIC_HP_KEY *)
-                ((uint8_t *)TempKey +
-                sizeof(QUIC_PACKET_KEY) +
-                (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0));
-    TempKey->PacketKey = (QUIC_KEY *)(TempKey->HeaderKey + 1);
-
     TempKey->Type = KeyType;
 
-    *Key = TempKey;
-    TempKey = NULL;
-
-Exit:
-
-    if (TempKey != NULL) {
-        QuicFree(TempKey);
-        TempKey = NULL;
+    if (AllocHpKey) {
+        TempKey->HeaderKey = QuicAlloc(sizeof(QUIC_HP_KEY));
+        if (TempKey->HeaderKey == NULL) {
+            LogError("[ tls] HeaderKey alloc failed.");
+            goto Error;
+        }
     }
 
-    return Status;
+    TempKey->PacketKey = QuicAlloc(sizeof(QUIC_KEY));
+    if (TempKey->PacketKey == NULL) {
+        LogError("[ tls] PacketKey alloc failed.");
+        goto Error;
+    }
+
+    *Key = TempKey;
+    
+    return QUIC_STATUS_SUCCESS;
+
+Error:
+
+    QuicPacketKeyFree(TempKey);
+
+    return QUIC_STATUS_OUT_OF_MEMORY;
 }
 
 static
@@ -2794,7 +2757,7 @@ QuicTlsHeaderMask(
     _In_ const EVP_CIPHER *Aead
     )
 {
-    BOOLEAN Ret = TRUE;
+    BOOLEAN Ret = FALSE;
     uint8_t Temp[16] = {0};
     int OutputLen = 0;
     int Len = 0;
@@ -2804,22 +2767,18 @@ QuicTlsHeaderMask(
     static const uint8_t PLAINTEXT[] = "\x00\x00\x00\x00\x00";
 
     EVP_CIPHER_CTX *CipherCtx = EVP_CIPHER_CTX_new();
-
     if (CipherCtx == NULL) {
         LogError("[ tls] Cipherctx alloc failed.");
-        Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_EncryptInit_ex(CipherCtx, Aead, NULL, Key, Cipher) != 1) {
         LogError("[ tls] EVP_EncryptInit_ex failed.");
-        Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_EncryptUpdate(CipherCtx, Temp, &Len, PLAINTEXT, sizeof(PLAINTEXT) - 1) != 1) {
         LogError("[ tls] EVP_EncryptUpdate failed.");
-        Ret = FALSE;
         goto Exit;
     }
 
@@ -2828,13 +2787,12 @@ QuicTlsHeaderMask(
 
     if (EVP_EncryptFinal_ex(CipherCtx, Temp + OutputLen, &Len) != 1) {
         LogError("[ tls] EVP_EncryptFinal_ex failed.");
-        Ret = FALSE;
         goto Exit;
     }
 
     QUIC_FRE_ASSERT(Len == 0);
-
     QuicCopyMemory(OutputBuffer, Temp, OutputLen);
+    Ret = TRUE;
 
 Exit:
 
