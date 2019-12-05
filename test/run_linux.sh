@@ -6,12 +6,17 @@ sudo service rsyslog start
 echo "Clearing syslog file..."
 sudo truncate -s 0 /var/log/syslog
 
+# Enable core dumps.
+ulimit -c unlimited
+mkdir artifacts/dumps
+cd artifacts/dumps
+
 # Run the tests.
-./artifacts/bin/msquictest \
-    --gtest_output=xml:artifacts/logs/linux-test-results.xml
+../bin/msquictest \
+    --gtest_output=xml:../logs/linux-test-results.xml
 
 # Copy logs to log folder (with correct permsissions).
 echo "Copying logs..."
-cd ./artifacts/logs
+cd ../logs
 sudo cp /var/log/syslog quic.log
 sudo chmod -R 0777 .

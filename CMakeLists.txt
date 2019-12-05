@@ -48,13 +48,18 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         DEPENDS ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.rc)
 
     # Custom build flags.
-    set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 -DQUIC_0RTT_UNSUPPORTED /W4 /wd4100 /wd4101 /wd4189 /wd4458 /wd4459 /wd4702 /wd26451 /wd26812 /sdl /MP")
+    set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 /W4 /wd4100 /wd4101 /wd4189 /wd4458 /wd4459 /wd4702 /wd26451 /wd26812 /sdl /MP")
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for manifested ETW events and logging")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW")
     else()
         message(STATUS "Disabling events and logging")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_STUB")
+    endif()
+
+    if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel")
+        # OpenSSL and SChannel don't support 0-RTT yet.
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_0RTT_UNSUPPORTED")
     endif()
 
     set(QUIC_C_FLAGS "${QUIC_COMMON_FLAGS}")
