@@ -54,7 +54,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 "  --reso <ms>, Event resolution in milliseconds\n" \
 "  --verbose, Includes more detailed output\n" \
 
-#define QUIC_MAN_PATH L"\\minio\\netio\\quic\\manifest\\MsQuicEtw.man"
+#define QUIC_MAN_PATH L"\\minio\\quic\\manifest\\MsQuicEtw.man"
 
 const GUID QuicEtwProviderId = { // {ff15e657-4f26-570e-88ab-0796b258d11c}
     0xff15e657,0x4f26,0x570e,0x88,0xab,0x07,0x96,0xb2,0x58,0xd1,0x1c};

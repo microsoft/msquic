@@ -28,9 +28,10 @@ endif()
 option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
 option(QUIC_BUILD_TEST "Builds the test code" ON)
 option(QUIC_ENABLE_LOGGING "Enables logging" ON)
+option(QUIC_SANITIZE_ADDRESS "Enables address sanitizer" OFF)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/obj)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/bin)
 file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/logs)
 
@@ -48,13 +49,23 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         DEPENDS ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.rc)
 
     # Custom build flags.
-    set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 -DQUIC_0RTT_UNSUPPORTED /W4 /wd4100 /wd4101 /wd4189 /wd4458 /wd4459 /wd4702 /wd26451 /wd26812 /sdl /MP")
+    set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 /W4 /wd4100 /wd4101 /wd4189 /wd4458 /wd4459 /wd4702 /wd26451 /wd26812 /sdl /MP")
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for manifested ETW events and logging")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW")
     else()
         message(STATUS "Disabling events and logging")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_STUB")
+    endif()
+
+    if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel")
+        # OpenSSL and SChannel don't support 0-RTT yet.
+        message(STATUS "Disabling 0-RTT support")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_0RTT_UNSUPPORTED")
+    endif()
+
+    if(QUIC_SANITIZE_ADDRESS)
+        message(STATUS "Address sanitizer unsupported on this platform.")
     endif()
 
     set(QUIC_C_FLAGS "${QUIC_COMMON_FLAGS}")
@@ -72,6 +83,17 @@ else()
     else()
         message(STATUS "Disabling events and logging")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_STUB")
+    endif()
+
+    if(QUIC_TLS STREQUAL "openssl")
+        # OpenSSL doesn't support 0-RTT yet.
+        message(STATUS "Disabling 0-RTT support")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_0RTT_UNSUPPORTED")
+    endif()
+
+    if(QUIC_SANITIZE_ADDRESS)
+        message(STATUS "Configuring address sanitizer")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -fsanitize=address -fno-omit-frame-pointer -Wno-maybe-uninitialized -O0 -Og -g")
     endif()
 
     set(QUIC_C_FLAGS "${QUIC_COMMON_FLAGS}")

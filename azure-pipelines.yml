@@ -10,17 +10,17 @@ strategy:
       platform: 'Linux-Stub'
       imageName: 'ubuntu-latest'
       cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=stub -DQUIC_ENABLE_LOGGING=off'
-      testCmd: 'bash ./test/run_linux.sh'
+      testCmd: 'bash ./.azure/run_linux.sh'
     linux-openssl:
       platform: 'Linux-OpenSSL'
       imageName: 'ubuntu-latest'
       cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=openssl -DQUIC_ENABLE_LOGGING=off'
-      testCmd: 'bash ./test/run_linux.sh'
+      testCmd: 'bash ./.azure/run_linux.sh'
     windows-x64-stub:
       platform: 'Windows-x64-Stub'
       imageName: 'windows-latest'
       cmakeArgs: '-g ''Visual Studio 16 2019'' -A x64 -DQUIC_TLS=stub'
-      testCmd: '.\test\run_windows.cmd'
+      testCmd: '.\.azure\run_windows.cmd'
     windows-x64-schannel:
       platform: 'Windows-x64-Schannel'
       imageName: 'windows-latest'

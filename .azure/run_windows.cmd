@@ -13,9 +13,9 @@ wevtutil im manifest\MsQuicEtw.man ^
 
 :: Start log collection.
 netsh trace start sessionname=quic ^
-    overwrite=yes report=dis correlation=dis maxSize=1024 ^
+    overwrite=yes report=dis correlation=dis maxSize=256 ^
     traceFile=artifacts\logs\quic.etl ^
-    provider=Microsoft-Quic level=0x5
+    provider=Microsoft-Quic level=0x5 keywords=0xE0000100
 
 :: Run the tests.
 artifacts\bin\Release\msquictest.exe ^
