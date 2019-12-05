@@ -436,7 +436,7 @@ QuicTlsLibraryInitialize(
     int Ret = 0;
 
     if (OPENSSL_init_ssl(OPENSSL_INIT_LOAD_CONFIG, NULL) == 0) {
-        LogError("[ tls] OPENSSL_init_ssl() failed.");
+        LogError("[ tls] OPENSSL_init_ssl failed.");
         return QUIC_STATUS_TLS_ERROR;
     }
 
@@ -748,7 +748,7 @@ QuicTlsServerSecConfigCreate(
 
     SecurityConfig->SSLCtx = SSL_CTX_new(TLS_method());
     if (SecurityConfig->SSLCtx == NULL) {
-        LogError("[ tls] SSL_CTX_new() failed, error: %ld", ERR_get_error());
+        LogError("[ tls] SSL_CTX_new failed, error: %ld", ERR_get_error());
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -770,7 +770,7 @@ QuicTlsServerSecConfigCreate(
             SecurityConfig->SSLCtx,
             QUIC_TLS_DEFAULT_SSL_CIPHERS);
     if (Ret != 1) {
-        LogError("[ tls] SSL_CTX_set_ciphersuites() failed, error: %ld", ERR_get_error());
+        LogError("[ tls] SSL_CTX_set_ciphersuites failed, error: %ld", ERR_get_error());
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -780,7 +780,7 @@ QuicTlsServerSecConfigCreate(
             SecurityConfig->SSLCtx,
             QUIC_TLS_DEFAULT_SSL_CURVES);
     if (Ret != 1) {
-        LogError("[ tls] SSL_CTX_set1_groups_list() failed, error: %ld", ERR_get_error());
+        LogError("[ tls] SSL_CTX_set1_groups_list failed, error: %ld", ERR_get_error());
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -804,7 +804,7 @@ QuicTlsServerSecConfigCreate(
             CertFile->PrivateKeyFile,
             SSL_FILETYPE_PEM);
     if (Ret != 1) {
-        LogError("[ tls] SSL_CTX_use_PrivateKey_file() failed, error: %ld", ERR_get_error());
+        LogError("[ tls] SSL_CTX_use_PrivateKey_file failed, error: %ld", ERR_get_error());
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -814,14 +814,14 @@ QuicTlsServerSecConfigCreate(
             SecurityConfig->SSLCtx,
             CertFile->CertificateFile);
     if (Ret != 1) {
-      LogError("[ tls] SSL_CTX_use_certificate_chain_file() failed, error: %ld", ERR_get_error());
+      LogError("[ tls] SSL_CTX_use_certificate_chain_file failed, error: %ld", ERR_get_error());
       Status = QUIC_STATUS_TLS_ERROR;
       goto Exit;
     }
 
     Ret = SSL_CTX_check_private_key(SecurityConfig->SSLCtx);
     if (Ret != 1) {
-      LogError("TLS: SSL_CTX_check_private_key() failed, error: %ld", ERR_get_error());
+      LogError("TLS: SSL_CTX_check_private_key failed, error: %ld", ERR_get_error());
       Status = QUIC_STATUS_TLS_ERROR;
       goto Exit;
     }
@@ -903,7 +903,7 @@ QuicTlsClientSecConfigCreate(
 
     SecurityConfig->SSLCtx = SSL_CTX_new(TLS_method());
     if (SecurityConfig->SSLCtx == NULL) {
-        LogError("[ tls] SSL_CTX_new() failed, error: %ld", ERR_get_error());
+        LogError("[ tls] SSL_CTX_new failed, error: %ld", ERR_get_error());
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -922,7 +922,7 @@ QuicTlsClientSecConfigCreate(
             SecurityConfig->SSLCtx,
             QUIC_TLS_DEFAULT_SSL_CIPHERS);
     if (Ret != 1) {
-        LogError("[ tls] SSL_CTX_set_ciphersuites() failed, error: %ld", ERR_get_error());
+        LogError("[ tls] SSL_CTX_set_ciphersuites failed, error: %ld", ERR_get_error());
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -932,7 +932,7 @@ QuicTlsClientSecConfigCreate(
             SecurityConfig->SSLCtx,
             QUIC_TLS_DEFAULT_SSL_CURVES);
     if (Ret != 1) {
-        LogError("[ tls] SSL_CTX_set1_groups_list() failed, error: %ld", ERR_get_error());
+        LogError("[ tls] SSL_CTX_set1_groups_list failed, error: %ld", ERR_get_error());
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -964,7 +964,7 @@ QuicTlsClientSecConfigCreate(
                     QuicOpenSslClientTrustedCert,
                     NULL);
             if (Ret != 1) {
-                LogError("[ tls] SSL_CTX_load_verify_locations() failed, error: %ld", ERR_get_error());
+                LogError("[ tls] SSL_CTX_load_verify_locations failed, error: %ld", ERR_get_error());
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
@@ -1483,7 +1483,7 @@ QuicPacketKeyCreateInitial(
                 Salt,
                 QUIC_VERSION_SALT_LENGTH,
                 EVP_sha256())) {
-            LogError("[ tls] QuicTlsHkdfExtract() failed.");
+            LogError("[ tls] QuicTlsHkdfExtract failed.");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
@@ -1494,7 +1494,7 @@ QuicPacketKeyCreateInitial(
                     sizeof(Secret),
                     InitialSecret,
                     sizeof(InitialSecret))) {
-                LogError("[ tls] QuicTlsDeriveServerInitialSecret() failed.");
+                LogError("[ tls] QuicTlsDeriveServerInitialSecret failed.");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
@@ -1504,7 +1504,7 @@ QuicPacketKeyCreateInitial(
                     sizeof(Secret),
                     InitialSecret,
                     sizeof(InitialSecret))) {
-                LogError("[ tls] QuicTlsDeriveClientInitialSecret() failed.");
+                LogError("[ tls] QuicTlsDeriveClientInitialSecret failed.");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
@@ -1518,7 +1518,7 @@ QuicPacketKeyCreateInitial(
                 TempWriteKey);
 
         if (QUIC_FAILED(Status)) {
-            LogError("[ tls] QuicTlsDerivePacketProtectionKey() failed. error: %ld", Status);
+            LogError("[ tls] QuicTlsDerivePacketProtectionKey failed. error: %ld", Status);
             goto Exit;
         }
 
@@ -1530,7 +1530,7 @@ QuicPacketKeyCreateInitial(
                 TempWriteKey);
 
         if (QUIC_FAILED(Status)) {
-            LogError("[ tls] QuicTlsDerivePacketProtectionIv() failed. error: %ld", Status);
+            LogError("[ tls] QuicTlsDerivePacketProtectionIv failed. error: %ld", Status);
             goto Exit;
         }
 
@@ -1542,7 +1542,7 @@ QuicPacketKeyCreateInitial(
                 TempWriteKey);
 
         if (QUIC_FAILED(Status)) {
-            LogError("[ tls] QuicTlsDeriveHeaderProtectionKey() failed. error: %ld", Status);
+            LogError("[ tls] QuicTlsDeriveHeaderProtectionKey failed. error: %ld", Status);
             goto Exit;
         }
     }
@@ -1566,7 +1566,7 @@ QuicPacketKeyCreateInitial(
                 Salt,
                 QUIC_VERSION_SALT_LENGTH,
                 EVP_sha256())) {
-            LogError("[ tls] QuicTlsHkdfExtract() failed.");
+            LogError("[ tls] QuicTlsHkdfExtract failed.");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
@@ -1577,7 +1577,7 @@ QuicPacketKeyCreateInitial(
                     sizeof(Secret),
                     InitialSecret,
                     sizeof(InitialSecret))) {
-                LogError("[ tls] QuicTlsDeriveClientInitialSecret() failed.");
+                LogError("[ tls] QuicTlsDeriveClientInitialSecret failed.");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
@@ -1587,7 +1587,7 @@ QuicPacketKeyCreateInitial(
                     sizeof(Secret),
                     InitialSecret,
                     sizeof(InitialSecret))) {
-                LogError("[ tls] QuicTlsDeriveServerInitialSecret() failed.");
+                LogError("[ tls] QuicTlsDeriveServerInitialSecret failed.");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
@@ -1601,7 +1601,7 @@ QuicPacketKeyCreateInitial(
                 TempReadKey);
 
         if (QUIC_FAILED(Status)) {
-            LogError("[ tls] QuicTlsDerivePacketProtectionKey() failed. error: %ld", Status);
+            LogError("[ tls] QuicTlsDerivePacketProtectionKey failed. error: %ld", Status);
             goto Exit;
         }
 
@@ -1613,7 +1613,7 @@ QuicPacketKeyCreateInitial(
                 TempReadKey);
 
         if (QUIC_FAILED(Status)) {
-            LogError("[ tls] QuicTlsDerivePacketProtectionIv() failed. error: %ld", Status);
+            LogError("[ tls] QuicTlsDerivePacketProtectionIv failed. error: %ld", Status);
             goto Exit;
         }
 
@@ -1625,7 +1625,7 @@ QuicPacketKeyCreateInitial(
                 TempReadKey);
 
         if (QUIC_FAILED(Status)) {
-            LogError("[ tls] QuicTlsDeriveHeaderProtectionKey() failed. error: %ld", Status);
+            LogError("[ tls] QuicTlsDeriveHeaderProtectionKey failed. error: %ld", Status);
             goto Exit;
         }
     }
@@ -1702,7 +1702,7 @@ QuicPacketKeyUpdate(
         QuicTlsKeyGetMd(OldKey->TrafficSecret[0].Hash));
 
     if (QUIC_FAILED(Status)) {
-        LogError("[ tls] QuicTlsUpdateTrafficSecret() failed. error: %ld", Status);
+        LogError("[ tls] QuicTlsUpdateTrafficSecret failed. error: %ld", Status);
         goto Exit;
     }
 
@@ -1714,7 +1714,7 @@ QuicPacketKeyUpdate(
             TempKey);
 
     if (QUIC_FAILED(Status)) {
-        LogError("[ tls] QuicTlsDerivePacketProtectionKey() failed. error: %ld", Status);
+        LogError("[ tls] QuicTlsDerivePacketProtectionKey failed. error: %ld", Status);
         goto Exit;
     }
 
@@ -1726,7 +1726,7 @@ QuicPacketKeyUpdate(
             TempKey);
 
     if (QUIC_FAILED(Status)) {
-        LogError("[ tls] QuicTlsDerivePacketProtectionIv() failed. error: %ld", Status);
+        LogError("[ tls] QuicTlsDerivePacketProtectionIv failed. error: %ld", Status);
         goto Exit;
     }
 
@@ -1941,7 +1941,7 @@ QuicHpComputeMask(
                 Key->Aead);
 
         if (Ret < 0) {
-            LogError("[ tls] QuicTlsHeaderMask() failed. Ret: %ld", Ret);
+            LogError("[ tls] QuicTlsHeaderMask failed. Ret: %ld", Ret);
             return QUIC_STATUS_TLS_ERROR;
         }
     }
@@ -2131,7 +2131,7 @@ QuicTlsKeyCreate(
             TempKey);
 
     if (QUIC_FAILED(Status)) {
-        LogError("[ tls] QuicTlsDerivePacketProtectionKey() failed. Status: %ld", Status);
+        LogError("[ tls] QuicTlsDerivePacketProtectionKey failed. Status: %ld", Status);
         goto Exit;
     }
 
@@ -2143,7 +2143,7 @@ QuicTlsKeyCreate(
             TempKey);
 
     if (QUIC_FAILED(Status)) {
-        LogError("[ tls] QuicTlsDeriveHeaderProtectionKey() failed. Status: %ld", Status);
+        LogError("[ tls] QuicTlsDeriveHeaderProtectionKey failed. Status: %ld", Status);
         goto Exit;
     }
 
@@ -2155,7 +2155,7 @@ QuicTlsKeyCreate(
             TempKey);
 
     if (QUIC_FAILED(Status)) {
-        LogError("[ tls] QuicTlsDerivePacketProtectionIv() failed. Status: %ld", Status);
+        LogError("[ tls] QuicTlsDerivePacketProtectionIv failed. Status: %ld", Status);
         goto Exit;
     }
 
@@ -2201,43 +2201,43 @@ QuicTlsHdkfExpand(
     }
 
     if (EVP_PKEY_derive_init(KeyCtx) != 1) {
-        LogError("[ tls] EVP_PKEY_derive_init() failed");
+        LogError("[ tls] EVP_PKEY_derive_init failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_hkdf_mode(KeyCtx, EVP_PKEY_HKDEF_MODE_EXPAND_ONLY) != 1) {
-        LogError("[ tls] EVP_PKEY_CTX_hkdf_mode() failed");
+        LogError("[ tls] EVP_PKEY_CTX_hkdf_mode failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set_hkdf_md(KeyCtx, Md) != 1) {
-        LogError("[ tls] EVP_PKEY_CTX_set_hkdf_md() failed");
+        LogError("[ tls] EVP_PKEY_CTX_set_hkdf_md failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set1_hkdf_salt(KeyCtx, "", 0) != 1) {
-        LogError("[ tls] EVP_PKEY_CTX_set1_hkdf_salt() failed");
+        LogError("[ tls] EVP_PKEY_CTX_set1_hkdf_salt failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set1_hkdf_key(KeyCtx, Secret, SecretLen) != 1) {
-        LogError("[ tls] EVP_PKEY_CTX_set1_hkdf_key() failed");
+        LogError("[ tls] EVP_PKEY_CTX_set1_hkdf_key failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_add1_hkdf_info(KeyCtx, Info, InfoLen) != 1) {
-        LogError("[ tls] EVP_PKEY_CTX_add1_hkdf_info() failed");
+        LogError("[ tls] EVP_PKEY_CTX_add1_hkdf_info failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_derive(KeyCtx, OutputBuffer, &OutputBufferLen) != 1) {
-        LogError("[ tls] EVP_PKEY_derive() failed");
+        LogError("[ tls] EVP_PKEY_derive failed");
         Ret = FALSE;
         goto Exit;
     }
@@ -2374,7 +2374,7 @@ QuicTlsDerivePacketProtectionKey(
             Md);
 
     if (!Ret) {
-        LogError("[ tls] QuicTlsHkdfExpandLabel() failed, error: %d", Ret);
+        LogError("[ tls] QuicTlsHkdfExpandLabel failed, error: %d", Ret);
         return QUIC_STATUS_TLS_ERROR;
     }
 
@@ -2405,7 +2405,7 @@ QuicTlsDerivePacketProtectionIv(
             Md);
 
     if (!Ret) {
-        LogError("[ tls] QuicTlsHkdfExpandLabel() failed, error: %d", Ret);
+        LogError("[ tls] QuicTlsHkdfExpandLabel failed, error: %d", Ret);
         return QUIC_STATUS_TLS_ERROR;
     }
 
@@ -2437,7 +2437,7 @@ QuicTlsDeriveHeaderProtectionKey(
             Md);
 
     if (!Ret) {
-        LogError("[ tls] QuicTlsHkdfExpandLabel() failed, error: %d", Ret);
+        LogError("[ tls] QuicTlsHkdfExpandLabel failed, error: %d", Ret);
         return QUIC_STATUS_TLS_ERROR;
     }
 
@@ -2465,7 +2465,7 @@ QuicTlsUpdateTrafficSecret(
             Md);
 
     if (!Ret) {
-        LogError("[ tls] QuicTlsHkdfExpandLabel() failed, error: %d", Ret);
+        LogError("[ tls] QuicTlsHkdfExpandLabel failed, error: %d", Ret);
         return QUIC_STATUS_TLS_ERROR;
     }
 
@@ -2526,42 +2526,42 @@ QuicTlsHkdfExtract(
     EVP_PKEY_CTX *KeyCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
 
     if (KeyCtx == NULL) {
-        LogError("[ tls] EVP_PKEY_CTX_new_id() failed.");
+        LogError("[ tls] EVP_PKEY_CTX_new_id failed.");
         return FALSE;
     }
 
     if (EVP_PKEY_derive_init(KeyCtx) != 1) {
-        LogError("[ tls] EVP_PKEY_derive_init() failed.");
+        LogError("[ tls] EVP_PKEY_derive_init failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_hkdf_mode(KeyCtx, EVP_PKEY_HKDEF_MODE_EXTRACT_ONLY) != 1) {
-        LogError("[ tls] EVP_PKEY_CTX_hkdf_mode() failed.");
+        LogError("[ tls] EVP_PKEY_CTX_hkdf_mode failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set_hkdf_md(KeyCtx, Md) != 1) {
-        LogError("[ tls] EVP_PKEY_CTX_set_hkdf_md() failed.");
+        LogError("[ tls] EVP_PKEY_CTX_set_hkdf_md failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set1_hkdf_salt(KeyCtx, Salt, SaltLen) != 1) {
-        LogError("[ tls] EVP_PKEY_CTX_set1_hkdf_salt() failed.");
+        LogError("[ tls] EVP_PKEY_CTX_set1_hkdf_salt failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set1_hkdf_key(KeyCtx, Secret, SecretLen) != 1) {
-        LogError("[ tls] EVP_PKEY_CTX_set1_hkdf_key() failed.");
+        LogError("[ tls] EVP_PKEY_CTX_set1_hkdf_key failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_derive(KeyCtx, OutputBuffer, &OutputBufferLen) != 1) {
-        LogError("[ tls] EVP_PKEY_derive() failed.");
+        LogError("[ tls] EVP_PKEY_derive failed.");
         Ret = FALSE;
         goto Exit;
     }
@@ -2632,31 +2632,33 @@ QuicTlsEncrypt(
     }
 
     if (EVP_EncryptInit_ex(CipherCtx, Aead, NULL, NULL, NULL) != 1) {
-        LogError("[ tls] EVP_EncryptInit_ex() failed.");
+        LogError("[ tls] EVP_EncryptInit_ex failed.");
         Ret = -1;
         goto Exit;
     }
 
     if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, NonceLen, NULL) != 1) {
-        LogError("[ tls] EVP_CIPHER_CTX_ctrl() failed.");
+        LogError("[ tls] EVP_CIPHER_CTX_ctrl failed.");
         Ret = -1;
         goto Exit;
     }
 
     if (EVP_EncryptInit_ex(CipherCtx, NULL, NULL, Key, Nonce) != 1) {
-        LogError("[ tls] EVP_EncryptInit_ex() failed.");
+        LogError("[ tls] EVP_EncryptInit_ex failed.");
         Ret = -1;
         goto Exit;
     }
 
-    if (EVP_EncryptUpdate(CipherCtx, NULL, &Len, Authdata, AuthDataLen) != 1) {
-        LogError("[ tls] EVP_EncryptUpdate() failed.");
-        Ret = -1;
-        goto Exit;
+    if (Authdata != NULL) {
+        if (EVP_EncryptUpdate(CipherCtx, NULL, &Len, Authdata, AuthDataLen) != 1) {
+            LogError("[ tls] EVP_EncryptUpdate failed.");
+            Ret = -1;
+            goto Exit;
+        }
     }
 
     if (EVP_EncryptUpdate(CipherCtx, OutputBuffer, &Len, PlainText, PlainTextLen) != 1) {
-        LogError("[ tls] EVP_EncryptUpdate() failed.");
+        LogError("[ tls] EVP_EncryptUpdate failed.");
         Ret = -1;
         goto Exit;
     }
@@ -2664,7 +2666,7 @@ QuicTlsEncrypt(
     OutLen = Len;
 
     if (EVP_EncryptFinal_ex(CipherCtx, OutputBuffer + OutLen, &Len) != 1) {
-        LogError("[ tls] EVP_EncryptFinal_ex() failed.");
+        LogError("[ tls] EVP_EncryptFinal_ex failed.");
         Ret = -1;
         goto Exit;
     }
@@ -2708,14 +2710,13 @@ QuicTlsDecrypt(
     )
 {
     size_t TagLen = QuicTlsAeadTagLength(Aead);
-    int Ret = 0;
+    int Ret = -1;
     EVP_CIPHER_CTX *CipherCtx = NULL;
 
     QUIC_FRE_ASSERT(TagLen == QUIC_ENCRYPTION_OVERHEAD);
 
     if (TagLen > CipherTextLen || OutputBufferLen + TagLen < CipherTextLen) {
         LogError("[ tls] Incorrect buffer length.");
-        Ret = -1;
         goto Exit;
     }
 
@@ -2724,55 +2725,49 @@ QuicTlsDecrypt(
 
     CipherCtx = EVP_CIPHER_CTX_new();
     if (CipherCtx == NULL) {
-        LogError("[ tls] CipherCtx alloc failed.");
-        Ret = -1;
+        LogError("[ tls] EVP_CIPHER_CTX_new failed.");
         goto Exit;
     }
 
     if (EVP_DecryptInit_ex(CipherCtx, Aead, NULL, NULL, NULL) != 1) {
-        LogError("[ tls] EVP_DecryptInit_ex() failed.");
-        Ret = -1;
+        LogError("[ tls] EVP_DecryptInit_ex failed, 0x%x.", ERR_get_error());
         goto Exit;
     }
 
     if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, NonceLen, NULL) != 1) {
-        LogError("[ tls] EVP_CIPHER_CTX_ctrl() failed.");
-        Ret = -1;
+        LogError("[ tls] EVP_CIPHER_CTX_ctrl failed, 0x%x.", ERR_get_error());
         goto Exit;
     }
 
     if (EVP_DecryptInit_ex(CipherCtx, NULL, NULL, Key, Nonce) != 1) {
-        LogError("[ tls] EVP_DecryptInit_ex() failed.");
-        Ret = -1;
+        LogError("[ tls] EVP_DecryptInit_ex failed, 0x%x.", ERR_get_error());
         goto Exit;
     }
 
     size_t OutLen;
     int Len;
 
-    if (EVP_DecryptUpdate(CipherCtx, NULL, &Len, AuthData, AuthDataLen) != 1) {
-        LogError("[ tls] EVP_DecryptUpdate() failed.");
-        Ret = -1;
-        goto Exit;
+    if (AuthData != NULL) {
+        if (EVP_DecryptUpdate(CipherCtx, NULL, &Len, AuthData, AuthDataLen) != 1) {
+            LogError("[ tls] EVP_DecryptUpdate (AD) failed, 0x%x.", ERR_get_error());
+            goto Exit;
+        }
     }
 
     if (EVP_DecryptUpdate(CipherCtx, OutputBuffer, &Len, CipherText, CipherTextLen) != 1) {
-        LogError("[ tls] EVP_DecryptUpdate() failed.");
-        Ret = -1;
+        LogError("[ tls] EVP_DecryptUpdate (Cipher) failed, 0x%x.", ERR_get_error());
         goto Exit;
     }
 
     OutLen = Len;
 
     if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_TAG, TagLen, Tag) != 1) {
-        LogError("[ tls] EVP_CIPHER_CTX_ctrl() failed.");
-        Ret = -1;
+        LogError("[ tls] EVP_CIPHER_CTX_ctrl failed, 0x%x.", ERR_get_error());
         goto Exit;
     }
 
     if (EVP_DecryptFinal_ex(CipherCtx, OutputBuffer + OutLen, &Len) != 1) {
-        LogError("[ tls] EVP_DecryptFinal_ex() failed.");
-        Ret = -1;
+        LogError("[ tls] EVP_DecryptFinal_ex failed, 0x%x.", ERR_get_error());
         goto Exit;
     }
 
@@ -2817,13 +2812,13 @@ QuicTlsHeaderMask(
     }
 
     if (EVP_EncryptInit_ex(CipherCtx, Aead, NULL, Key, Cipher) != 1) {
-        LogError("[ tls] EVP_EncryptInit_ex() failed.");
+        LogError("[ tls] EVP_EncryptInit_ex failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_EncryptUpdate(CipherCtx, Temp, &Len, PLAINTEXT, sizeof(PLAINTEXT) - 1) != 1) {
-        LogError("[ tls] EVP_EncryptUpdate() failed.");
+        LogError("[ tls] EVP_EncryptUpdate failed.");
         Ret = FALSE;
         goto Exit;
     }
@@ -2832,7 +2827,7 @@ QuicTlsHeaderMask(
     OutputLen += Len;
 
     if (EVP_EncryptFinal_ex(CipherCtx, Temp + OutputLen, &Len) != 1) {
-        LogError("[ tls] EVP_EncryptFinal_ex() failed.");
+        LogError("[ tls] EVP_EncryptFinal_ex failed.");
         Ret = FALSE;
         goto Exit;
     }
@@ -2873,37 +2868,37 @@ QuicTlsHash(
     }
 
     if (EVP_PKEY_derive_init(KeyCtx) != 1) {
-        LogError("[ tls] EVP_PKEY_derive_init() failed.");
+        LogError("[ tls] EVP_PKEY_derive_init failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_hkdf_mode(KeyCtx, EVP_PKEY_HKDEF_MODE_EXPAND_ONLY) != 1) {
-        LogError("[ tls] EVP_PKEY_CTX_hkdf_mode() failed.");
+        LogError("[ tls] EVP_PKEY_CTX_hkdf_mode failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set_hkdf_md(KeyCtx, Hash->Md) != 1) {
-        LogError("[ tls] EVP_PKEY_CTX_set_hkdf_md() failed.");
+        LogError("[ tls] EVP_PKEY_CTX_set_hkdf_md failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set1_hkdf_salt(KeyCtx, Salt, SaltLen) != 1) {
-        LogError("[ tls] EVP_PKEY_CTX_set1_hkdf_salt() failed.");
+        LogError("[ tls] EVP_PKEY_CTX_set1_hkdf_salt failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set1_hkdf_key(KeyCtx, Secret, SecretLen) != 1) {
-        LogError("[ tls] EVP_PKEY_CTX_set1_hkdf_key() failed.");
+        LogError("[ tls] EVP_PKEY_CTX_set1_hkdf_key failed.");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_derive(KeyCtx, OutputBuffer, &OutputBufferLen) != 1) {
-        LogError("[ tls] EVP_PKEY_derive() failed.");
+        LogError("[ tls] EVP_PKEY_derive failed.");
         Ret = FALSE;
         goto Exit;
     }
