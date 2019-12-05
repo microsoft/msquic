@@ -66,6 +66,22 @@ public:
     bool operator != (T* _ptr) const { return ptr != _ptr; }
 };
 
+template<class T>
+class UniquePtrArray {
+    T* ptr;
+public:
+    UniquePtrArray() : ptr(nullptr) { }
+    UniquePtrArray(T* _ptr) : ptr(_ptr) { }
+    ~UniquePtrArray() { delete [] ptr; }
+    T* get() { return ptr; }
+    const T* get() const { return ptr; }
+    T& operator*() const { return *ptr; }
+    T* operator->() const { return ptr; }
+    operator bool() const { return ptr != nullptr; }
+    bool operator == (T* _ptr) const { return ptr == _ptr; }
+    bool operator != (T* _ptr) const { return ptr != _ptr; }
+};
+
 class MsQuicRegistration {
     HQUIC Registration;
 public:

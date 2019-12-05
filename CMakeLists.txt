@@ -28,6 +28,7 @@ endif()
 option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
 option(QUIC_BUILD_TEST "Builds the test code" ON)
 option(QUIC_ENABLE_LOGGING "Enables logging" ON)
+option(QUIC_SANITIZE_ADDRESS "Enables address sanitizer" OFF)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/obj)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/lib)
@@ -59,7 +60,12 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 
     if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel")
         # OpenSSL and SChannel don't support 0-RTT yet.
+        message(STATUS "Disabling 0-RTT support")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_0RTT_UNSUPPORTED")
+    endif()
+
+    if(QUIC_SANITIZE_ADDRESS)
+        message(STATUS "Address sanitizer unsupported on this platform.")
     endif()
 
     set(QUIC_C_FLAGS "${QUIC_COMMON_FLAGS}")
@@ -77,6 +83,17 @@ else()
     else()
         message(STATUS "Disabling events and logging")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_STUB")
+    endif()
+
+    if(QUIC_TLS STREQUAL "openssl")
+        # OpenSSL doesn't support 0-RTT yet.
+        message(STATUS "Disabling 0-RTT support")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_0RTT_UNSUPPORTED")
+    endif()
+
+    if(QUIC_SANITIZE_ADDRESS)
+        message(STATUS "Configuring address sanitizer")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -fsanitize=address -fno-omit-frame-pointer -Wno-maybe-uninitialized -O0 -Og -g")
     endif()
 
     set(QUIC_C_FLAGS "${QUIC_COMMON_FLAGS}")

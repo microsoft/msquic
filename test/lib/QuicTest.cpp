@@ -819,7 +819,7 @@ QuicTestConnectAndPing(
 
         Listener.Context = &ServerStats;
 
-        UniquePtr<TestConnection*> Connections(new TestConnection*[ConnectionCount]);
+        UniquePtrArray<TestConnection*> Connections(new TestConnection*[ConnectionCount]);
 
         for (uint32_t i = 0; i < ClientStats.ConnectionCount; ++i) {
             Connections.get()[i] =
