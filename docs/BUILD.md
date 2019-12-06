@@ -44,7 +44,9 @@ reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\S
 - To decode the `quic.etl` file, run **TODO**
 
 ## Building on Linux (or [WSL](https://docs.microsoft.com/en-us/windows/wsl/wsl2-install))
-
+- Install tooling (WSL2 or Ubuntu)
+    - `sudo apt-get install cmake`
+    - `sudo apt-get install build-essentials`
 - Run `mkdir bld && cd bld`
 - Run `cmake -G "Unix Makefiles" ..`
 - Run `cmake --build . --config RELEASE`
