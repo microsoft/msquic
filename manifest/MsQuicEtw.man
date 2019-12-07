@@ -732,6 +732,16 @@
                 name="Connection"
                 />
           </template>
+          <template tid="tid_CONN_MESSAGE">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:AnsiString"
+                name="Message"
+                />
+          </template>
           <template tid="tid_CONN_UINT32">
             <data
                 inType="win:Pointer"
@@ -2539,11 +2549,11 @@
           <event
               keywords="ut:TLS"
               level="win:Verbose"
-              message="$(string.Etw.miTLS)"
+              message="$(string.Etw.TlsMessage)"
               opcode="win:Info"
-              symbol="MiTLSTrace"
-              template="tid_MESSAGE"
-              value="9215"
+              symbol="QuicTlsMessage"
+              template="tid_CONN_MESSAGE"
+              value="8194"
               />
           <!-- 9216 - 10239 | Datapath Events -->
           <event
@@ -3093,8 +3103,8 @@
             value="[ tls][%1] ERROR, %2, %3."
             />
         <string
-            id="Etw.miTLS"
-            value="[mitls] %1"
+            id="Etw.TlsMessage"
+            value="[ tls] %1"
             />
         <string
             id="Etw.DatapathSendTo"

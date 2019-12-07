@@ -374,9 +374,8 @@ QuicSysLogWrite(
     QUIC_WRITE_EVENT(QUIC_TRACE_LEVEL_ERROR, "[ tls][%p] ERROR, %s", Connection, ErrStr)
 #define EventWriteQuicTlsErrorStatus(Connection, Status, ErrStr) \
     QUIC_WRITE_EVENT(QUIC_TRACE_LEVEL_ERROR, "[ tls][%p] ERROR, %u, %s", Connection, Status, ErrStr)
-
-#define EventWriteMiTLSTrace(Message) \
-    QUIC_WRITE_EVENT(QUIC_TRACE_LEVEL_ERROR, "[mitls] %s", Message)
+#define EventWriteQuicTlsMessage(Connection, Message) \
+    QUIC_WRITE_EVENT(QUIC_TRACE_LEVEL_VERBOSE, "[ tls][%p] %s", Connection, Message)
 
 #define EventWriteQuicDatapathSendTo(Binding, TotalSize, BufferCount, SegmentSize, RemoteAddrLen, RemoteAddr) \
     QUIC_WRITE_EVENT(QUIC_TRACE_LEVEL_VERBOSE, "[ udp][%p] Send %u bytes in %u buffers (segment=%u) Dst=TODO", Binding, TotalSize, BufferCount, SegmentSize)

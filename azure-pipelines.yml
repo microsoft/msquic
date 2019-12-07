@@ -10,22 +10,32 @@ strategy:
       platform: 'Linux-Stub'
       imageName: 'ubuntu-latest'
       cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=stub -DQUIC_ENABLE_LOGGING=off'
-      testCmd: 'bash ./.azure/run_linux.sh'
+      testCmd: 'bash ./.azure/test_linux.sh ''*'''
+    linux-stub-sanitize:
+      platform: 'Linux-Stub-Sanitize'
+      imageName: 'ubuntu-latest'
+      cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=stub -DQUIC_ENABLE_LOGGING=off -DQUIC_SANITIZE_ADDRESS=on'
+      testCmd: 'bash ./.azure/test_linux.sh AppData/WithSendArgs2.SendLarge/0'
     linux-openssl:
       platform: 'Linux-OpenSSL'
       imageName: 'ubuntu-latest'
       cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=openssl -DQUIC_ENABLE_LOGGING=off'
-      testCmd: 'bash ./.azure/run_linux.sh'
+      testCmd: 'bash ./.azure/test_linux.sh ''*'''
     windows-x64-stub:
       platform: 'Windows-x64-Stub'
       imageName: 'windows-latest'
       cmakeArgs: '-g ''Visual Studio 16 2019'' -A x64 -DQUIC_TLS=stub'
-      testCmd: '.\.azure\run_windows.cmd'
+      testCmd: '.\.azure\run_windows.cmd *'
+    windows-x64-mitls:
+      platform: 'Windows-x64-miTLS'
+      imageName: 'windows-latest'
+      cmakeArgs: '-g ''Visual Studio 16 2019'' -A x64 -DQUIC_TLS=mitls'
+      testCmd: '.\.azure\run_windows.cmd *'
     windows-x64-schannel:
       platform: 'Windows-x64-Schannel'
       imageName: 'windows-latest'
       cmakeArgs: '-g ''Visual Studio 16 2019'' -A x64 -DQUIC_TLS=schannel'
-      testCmd: 'echo Not supported yet'
+      testCmd: '.\.azure\test_windows.cmd ParameterValidation.*'
 
 pool:
   vmImage: $(imageName)

@@ -35,7 +35,7 @@ void QuicTestValidateSession();
 void QuicTestValidateListener();
 void QuicTestValidateConnection();
 void QuicTestValidateStream(bool Connect);
-void QuicTestValidateServerSecConfig(bool KernelMode, void* CertContext, void* CertHashStore, char* Principal);
+void QuicTestValidateServerSecConfig(void* CertContext, QUIC_CERTIFICATE_HASH_STORE* CertHashStore, char* Principal);
 
 //
 // Event Validation Tests

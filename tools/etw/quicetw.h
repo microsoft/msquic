@@ -576,6 +576,7 @@ typedef struct QUIC_EVENT_DATA_BINDING {
 typedef enum QUIC_EVENT_ID_TLS {
     EventId_QuicTlsError,
     EventId_QuicTlsErrorStatus,
+    EventId_QuicTlsMessage,
 
     EventId_QuicTlsCount
 } QUIC_EVENT_ID_TLS;
@@ -592,6 +593,9 @@ typedef struct QUIC_EVENT_DATA_TLS {
             UINT32 Status;
             char ErrStr[1];
         } ErrorStatus;
+        struct {
+            char Str[1];
+        } Message;
     };
 } QUIC_EVENT_DATA_TLS;
 #pragma pack(pop)
