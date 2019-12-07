@@ -953,6 +953,10 @@ QuicTraceTlsEvent(
         printf("ERROR, %u, %s\n", EvData->ErrorStatus.Status, EvData->ErrorStatus.ErrStr);
         break;
     }
+    case EventId_QuicTlsMessage: {
+        printf("%s\n", EvData->Message.Str);
+        break;
+    }
     default: {
         printf("Unknown Event ID=%u\n", ev->EventHeader.EventDescriptor.Id);
         break;

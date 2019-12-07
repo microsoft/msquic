@@ -53,6 +53,9 @@ typedef struct QUIC_PLATFORM {
 #include <ws2tcpip.h>
 #include <mswsock.h>
 #include <mstcpip.h>
+#if DBG
+#include <crtdbg.h>
+#endif
 
 #define QUIC_BASE_REG_PATH "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
 

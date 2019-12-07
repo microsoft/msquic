@@ -451,6 +451,7 @@ private:
                 pThis->UsedZeroRtt = true;
             }
             QuicEventSet(pThis->RequestComplete);
+            MsQuic->StreamClose(Stream);
             break;
         }
         default:

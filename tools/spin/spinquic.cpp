@@ -169,8 +169,13 @@ T& SpinQuicGetRandomFromVector(std::vector<T> &vec)
 }
 
 // Replace these with actually random data
-char pkt0[] = "AAAAAAAAAAA";
-char pkt1[] = "\x01";
+const char pkt0[] = "AAAAAAAAAAA";
+const char pkt1[] = "\x01";
+
+const QUIC_BUFFER Buffers[2] = {
+    { ARRAYSIZE(pkt0) - 1, (uint8_t*)pkt0 },
+    { ARRAYSIZE(pkt1) - 1, (uint8_t*)pkt1 }
+};
 
 int SpinQuicGetRandom(int upper_bound)
 {
@@ -404,13 +409,8 @@ void ServerSpin(void *)
 
                 HQUIC Stream = SpinQuicGetRandomFromVector(ctx->Streams);
 
-                QUIC_BUFFER Buffers[2] = {
-                    { (uint32_t)strlen(pkt0), reinterpret_cast<uint8_t *>(pkt0) },
-                    { (uint32_t)strlen(pkt1), reinterpret_cast<uint8_t *>(pkt1) },
-                };
-
                 printf("MsQuic->StreamSend(%p, ...) = ", Stream);
-                QUIC_STATUS Status = MsQuic->StreamSend(Stream, Buffers, 2, QUIC_SEND_FLAG_NONE, nullptr);
+                QUIC_STATUS Status = MsQuic->StreamSend(Stream, Buffers, ARRAYSIZE(Buffers), QUIC_SEND_FLAG_NONE, nullptr);
                 printf("0x%x\n", Status);
             }
             break;
@@ -588,13 +588,8 @@ void ClientSpin(void *)
 
             HQUIC Stream = SpinQuicGetRandomFromVector(*Streams);
 
-            QUIC_BUFFER Buffers[2] = {
-                { (uint32_t)strlen(pkt0), reinterpret_cast<uint8_t *>(pkt0) },
-                { (uint32_t)strlen(pkt1), reinterpret_cast<uint8_t *>(pkt1) },
-            };
-
             printf("MsQuic->StreamSend(%p, ...) = ", Stream);
-            QUIC_STATUS Status = MsQuic->StreamSend(Stream, Buffers, 2, QUIC_SEND_FLAG_NONE, nullptr);
+            QUIC_STATUS Status = MsQuic->StreamSend(Stream, Buffers, ARRAYSIZE(Buffers), QUIC_SEND_FLAG_NONE, nullptr);
             printf("0x%x\n", Status);
             break;
         }

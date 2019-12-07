@@ -5,3 +5,7 @@
 	path = submodules/openssl
 	url = https://github.com/tatsuhiro-t/openssl.git
 	branch = openssl-quic-draft-24
+[submodule "submodules/everest"]
+	path = submodules/everest
+	url = https://github.com/nibanks/everest-dist.git
+	branch = pr/msquic

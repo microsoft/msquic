@@ -100,6 +100,8 @@ else()
     set(QUIC_CXX_FLAGS "${QUIC_COMMON_FLAGS} --std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format")
 endif()
 
+include_directories(${CMAKE_SOURCE_DIR}/inc)
+
 if(QUIC_TLS STREQUAL "openssl")
     # Configure and build OpenSSL.
     add_custom_command(
@@ -116,7 +118,13 @@ if(QUIC_TLS STREQUAL "openssl")
         DEPENDS ${CMAKE_SOURCE_DIR}/bld/openssl/lib/libssl.so)
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR}/inc)
+if (QUIC_TLS STREQUAL "mitls")
+    # Build Everest.
+    add_subdirectory(submodules/everest/msquic/msvc/kremlib)
+    add_subdirectory(submodules/everest/msquic/msvc/evercrypt)
+    add_subdirectory(submodules/everest/msquic/msvc/mitls)
+    add_subdirectory(submodules/everest/msquic/msvc/quiccrypto)
+endif()
 
 # Product code
 add_subdirectory(core)

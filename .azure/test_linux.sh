@@ -13,6 +13,7 @@ cd artifacts/dumps
 
 # Run the tests.
 ../bin/msquictest \
+    --gtest_filter=$1 \
     --gtest_output=xml:../logs/linux-test-results.xml
 
 # Copy logs to log folder (with correct permsissions).

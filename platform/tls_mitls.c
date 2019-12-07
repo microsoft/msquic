@@ -16,6 +16,7 @@ Abstract:
 #endif
 
 #define IS_WINDOWS 1
+#pragma warning(disable:4996) // Deprecated APIs
 #include <EverCrypt.h>
 #include <mitlsffi.h>
 
@@ -379,7 +380,8 @@ MiTlsTraceCallback(
     _In_z_ const char *Msg
     )
 {
-    EventWriteMiTLSTrace(Msg);
+    // TODO - Save connection in thread-local storage and retrieve it?
+    EventWriteQuicTlsMessage(NULL, Msg);
 }
 
 QUIC_STATUS
@@ -1899,13 +1901,13 @@ typedef struct QUIC_HP_KEY {
     };
 } QUIC_HP_KEY;
 
-Spec_Hash_Helpers_hash_alg
+Spec_Hash_Definitions_hash_alg
 HashTypeToEverCrypt(
     QUIC_HASH_TYPE Type
 ) {
     return
-        (Spec_Hash_Helpers_hash_alg)
-            (Spec_Hash_Helpers_SHA2_256 + Type);
+        (Spec_Hash_Definitions_hash_alg)
+            (Spec_Hash_Definitions_SHA2_256 + Type);
 }
 
 #ifdef QUIC_TEST_MODE
@@ -2532,7 +2534,7 @@ QuicEncrypt(
     } else if (Key->Aead == QUIC_AEAD_AES_256_GCM) {
         EverCrypt_aes256_gcm_encrypt(Key->Key, (uint8_t*)Iv, (uint8_t*)AuthData, AuthDataLength, Buffer, PlainTextLength, Temp, Temp+PlainTextLength);
     } else if (Key->Aead == QUIC_AEAD_CHACHA20_POLY1305) {
-        EverCrypt_chacha20_poly1305_encrypt(Key->Key, (uint8_t*)Iv, (uint8_t*)AuthData, AuthDataLength, Buffer, PlainTextLength, Temp, Temp+PlainTextLength);
+        EverCrypt_Chacha20Poly1305_aead_encrypt(Key->Key, (uint8_t*)Iv, AuthDataLength, (uint8_t*)AuthData, PlainTextLength, Buffer, Temp, Temp+PlainTextLength);
     } else {
         QUIC_FRE_ASSERT(FALSE);
         return QUIC_STATUS_NOT_SUPPORTED;
@@ -2570,7 +2572,7 @@ QuicDecrypt(
     } else if (Key->Aead == QUIC_AEAD_AES_256_GCM) {
         r = EverCrypt_aes256_gcm_decrypt(Key->Key, (uint8_t*)Iv, (uint8_t*)AuthData, AuthDataLength, Temp, PlainTextLength, Buffer, Buffer+PlainTextLength);
     } else if (Key->Aead == QUIC_AEAD_CHACHA20_POLY1305) {
-        r = EverCrypt_chacha20_poly1305_decrypt(Key->Key, (uint8_t*)Iv, (uint8_t*)AuthData, AuthDataLength, Temp, PlainTextLength, Buffer, Buffer+PlainTextLength);
+        r = EverCrypt_Chacha20Poly1305_aead_decrypt(Key->Key, (uint8_t*)Iv, AuthDataLength, (uint8_t*)AuthData, PlainTextLength, Temp, Buffer, Buffer+PlainTextLength);
     } else {
         QUIC_FRE_ASSERT(FALSE);
         return QUIC_STATUS_NOT_SUPPORTED;
@@ -2665,7 +2667,7 @@ QuicHpComputeMask(
         } else if (Key->Aead == QUIC_AEAD_CHACHA20_POLY1305) {
             uint8_t zero[5] = {0};
             uint32_t ctr = Cipher[0] + (Cipher[1] << 8) + (Cipher[2] << 16) + (Cipher[3] << 24);
-            EverCrypt_chacha20((uint8_t*)Key->case_chacha20, Cipher+4, ctr, zero, 5, Mask);
+            EverCrypt_Cipher_chacha20(5, Mask, Cipher+4, (uint8_t*)Key->case_chacha20, zero, ctr);
         } else {
             return QUIC_STATUS_NOT_SUPPORTED;
         }

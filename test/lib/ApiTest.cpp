@@ -965,17 +965,15 @@ QuicTestSecConfigCreateComplete(
     QuicEventSet(ctxt->Event);
 }
 
-void QuicTestValidateServerSecConfig(bool KernelMode, void* CertContext, void* CertHashStore, char* Principal)
+void QuicTestValidateServerSecConfig(void* CertContext, QUIC_CERTIFICATE_HASH_STORE* CertHashStore, char* Principal)
 {
     MsQuicRegistration TestReg;
     TEST_TRUE(TestReg.IsValid());
 
     SecConfigTestContext TestContext;
 
-    void* CertHash = &((QUIC_CERTIFICATE_HASH_STORE*)CertHashStore)->ShaHash;
-
     //
-    // Test null inputs (user and kernel mode).
+    // Test null inputs.
     //
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
@@ -987,63 +985,67 @@ void QuicTestValidateServerSecConfig(bool KernelMode, void* CertContext, void* C
             &TestContext,
             QuicTestSecConfigCreateComplete));
 
-    //
-    // Test certificate principal (user and kernel mode).
-    //
-    TestContext.Expected = QUIC_STATUS_SUCCESS;
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SecConfigCreate(
-            TestReg,
-            QUIC_SEC_CONFIG_FLAG_NONE,
-            nullptr,    // Certificate
-            Principal,  // Principal
-            &TestContext,
-            QuicTestSecConfigCreateComplete));
-
-    TEST_TRUE(QuicEventWaitWithTimeout(TestContext.Event, TestWaitTimeout));
-    TEST_FALSE(TestContext.Failed);
-
-    //
-    // Test certificate hash (user and kernel mode).
-    //
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SecConfigCreate(
-            TestReg,
-            QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH,
-            CertHash,                       // Certificate
-            nullptr,                        // Principal
-            &TestContext,
-            QuicTestSecConfigCreateComplete));
-
-    TEST_TRUE(QuicEventWaitWithTimeout(TestContext.Event, TestWaitTimeout));
-    TEST_FALSE(TestContext.Failed);
-
-    //
-    // Test certificate hash+store (user and kernel mode).
-    //
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SecConfigCreate(
-            TestReg,
-            QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE,
-            CertHashStore,                          // Certificate
-            nullptr,                                // Principal
-            &TestContext,
-            QuicTestSecConfigCreateComplete));
-
-    TEST_TRUE(QuicEventWaitWithTimeout(TestContext.Event, TestWaitTimeout));
-    TEST_FALSE(TestContext.Failed);
-
-    if (!KernelMode) {
+    if (CertContext != nullptr) {
         //
-        // Test certificate context (user mode only).
+        // Test certificate context.
         //
         TestContext.Expected = QUIC_STATUS_SUCCESS;
         TEST_QUIC_SUCCEEDED(
             MsQuic->SecConfigCreate(
                 TestReg,
                 QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT,
-                CertContext,                        // Certificate
-                nullptr,                            // Principal
+                CertContext,                // Certificate
+                nullptr,                    // Principal
+                &TestContext,
+                QuicTestSecConfigCreateComplete));
+
+        TEST_TRUE(QuicEventWaitWithTimeout(TestContext.Event, TestWaitTimeout));
+        TEST_FALSE(TestContext.Failed);
+    }
+
+    if (Principal != nullptr) {
+        //
+        // Test certificate principal.
+        //
+        TestContext.Expected = QUIC_STATUS_SUCCESS;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SecConfigCreate(
+                TestReg,
+                QUIC_SEC_CONFIG_FLAG_NONE,
+                nullptr,                    // Certificate
+                Principal,                  // Principal
+                &TestContext,
+                QuicTestSecConfigCreateComplete));
+
+        TEST_TRUE(QuicEventWaitWithTimeout(TestContext.Event, TestWaitTimeout));
+        TEST_FALSE(TestContext.Failed);
+    }
+
+    if (CertHashStore != nullptr) {
+        //
+        // Test certificate hash.
+        //
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SecConfigCreate(
+                TestReg,
+                QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH,
+                &CertHashStore->ShaHash,        // Certificate
+                nullptr,                        // Principal
+                &TestContext,
+                QuicTestSecConfigCreateComplete));
+
+        TEST_TRUE(QuicEventWaitWithTimeout(TestContext.Event, TestWaitTimeout));
+        TEST_FALSE(TestContext.Failed);
+
+        //
+        // Test certificate hash + store.
+        //
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SecConfigCreate(
+                TestReg,
+                QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE,
+                CertHashStore,                          // Certificate
+                nullptr,                                // Principal
                 &TestContext,
                 QuicTestSecConfigCreateComplete));
 

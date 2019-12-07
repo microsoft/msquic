@@ -144,8 +144,7 @@ TEST(ParameterValidation, ValidateServerSecConfig) {
     QUIC_CERTIFICATE_HASH_STORE CertHashStore = { QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE };
     memcpy(CertHashStore.ShaHash, SelfSignedCertParams->Thumbprint, sizeof(CertHashStore.ShaHash));
     memcpy(CertHashStore.StoreName, "My", 2);
-    QuicTestValidateServerSecConfig(
-        false, SelfSignedCertParams->Certificate, &CertHashStore, "localhost");
+    QuicTestValidateServerSecConfig(SelfSignedCertParams->Certificate, &CertHashStore, "localhost");
 }
 #endif // _WIN32
 
