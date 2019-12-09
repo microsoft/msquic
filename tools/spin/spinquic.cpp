@@ -26,9 +26,9 @@ const QUIC_BUFFER Buffers[2] = {
 };
 
 #if 1
-#define PRINT(...) printf(##__VA_ARGS__)
+#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
-#define PRINT(...)
+#define PRINT(fmt, ...)
 #endif
 
 #define EXIT_ON_FAILURE(x) do { \
