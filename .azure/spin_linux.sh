@@ -6,4 +6,6 @@ mkdir artifacts/dumps
 cd artifacts/dumps
 
 # Run spinquic for a while.
-../bin/spinquic both -timeout:60000
+../bin/spinquic both -timeout:1000
+
+ls artifacts/dumps

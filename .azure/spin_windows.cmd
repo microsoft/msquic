@@ -13,4 +13,6 @@ mkdir artifacts\dumps
 start bld\procdump\procdump64.exe -ma -e -b -accepteula -w spinquic.exe artifacts\dumps
 
 :: Run spinquic for a while.
-artifacts\bin\Release\spinquic.exe both -timeout:60000
+artifacts\bin\Release\spinquic.exe both -timeout:1000
+
+dir artifacts\dumps
