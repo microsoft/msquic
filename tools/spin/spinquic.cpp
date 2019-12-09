@@ -16,159 +16,7 @@
 #define QUIC_TEST_APIS 1 // Needed to self signed cert API
 #include <msquichelper.h>
 
-#include "spinquic.h"
-
-static QUIC_API_V1 *MsQuic = nullptr;
-static HQUIC Registration = nullptr;
-static QUIC_SEC_CONFIG *GlobalSecurityConfig = nullptr;
-static std::vector<HQUIC> Sessions;
-static std::vector<HQUIC> ServerConnections;
-static std::mutex ServerConnectionsLock;
-
-class SpinQuicServerConnectionContext {
-public:
-    std::mutex StreamsLock;
-    std::vector<HQUIC> Streams;
-};;
-
-static struct {
-    std::vector<uint16_t> Ports;
-    bool IsServer;
-    const char* ServerName;
-
-    // Sessions Settings
-    const char* AlpnPrefix;
-    uint64_t MaxOperationCount;
-} Settings;
-
-extern "C" void QuicTraceRundown(void) { }
-
-// MsQuic Client Callbacks
-QUIC_STATUS SpinQuicClientHandleStreamEvent(HQUIC Stream, void * /* p_context */, QUIC_STREAM_EVENT *Event)
-{
-    switch (Event->Type) {
-        case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:
-        case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
-        case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
-        case QUIC_STREAM_EVENT_RECEIVE: // send it back?
-        case QUIC_STREAM_EVENT_SEND_COMPLETE:
-        case QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE:
-        case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
-        case QUIC_STREAM_EVENT_START_COMPLETE:
-            break;
-        case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
-            MsQuic->StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS) (rand() % 16), 0);
-            break;
-    }
-
-    return QUIC_STATUS_SUCCESS;
-}
-
-QUIC_STATUS SpinQuicClientHandleConnectionEvent(HQUIC /* Connection */, void * /* p_context */, QUIC_CONNECTION_EVENT *Event)
-{
-    switch (Event->Type) {
-        case QUIC_CONNECTION_EVENT_CONNECTED:
-            break;
-        case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-            break;
-        case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
-            MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void *)SpinQuicClientHandleStreamEvent, nullptr);
-            break;
-        default:
-            break;
-    }
-
-    return QUIC_STATUS_SUCCESS;
-}
-
-// MsQuic Server callbacks
-QUIC_STATUS SpinQuicServerHandleStreamEvent(HQUIC Stream, void * /* p_context */, QUIC_STREAM_EVENT *Event)
-{
-    switch (Event->Type) {
-        case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:
-        case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
-        case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
-        case QUIC_STREAM_EVENT_RECEIVE: // send it back?
-        case QUIC_STREAM_EVENT_SEND_COMPLETE:
-        case QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE:
-        case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
-        case QUIC_STREAM_EVENT_START_COMPLETE:
-            break;
-        case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
-            MsQuic->StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS) (rand() % 16), 0);
-            break;
-    }
-
-    return QUIC_STATUS_SUCCESS;
-}
-
-QUIC_STATUS SpinQuicServerHandleConnectionEvent(HQUIC Connection, void * /* p_context */, QUIC_CONNECTION_EVENT *Event)
-{
-    switch (Event->Type) {
-        case QUIC_CONNECTION_EVENT_CONNECTED:
-            break;
-        case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE: {
-            // Close all Streams.
-            auto ctx = (SpinQuicServerConnectionContext *)MsQuic->GetContext(Connection);
-            {
-                std::lock_guard<std::mutex> Lock(ctx->StreamsLock);
-                auto &Streams = ctx->Streams;
-                while (Streams.size() > 0) {
-                    HQUIC Stream = Streams.back();
-                    Streams.pop_back();
-                    MsQuic->StreamClose(Stream);
-                }
-            }
-            break;
-        }
-        case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED: {
-            MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void *)SpinQuicServerHandleStreamEvent, nullptr);
-
-            auto ctx = (SpinQuicServerConnectionContext *)MsQuic->GetContext(Connection);
-            {
-                std::lock_guard<std::mutex> Lock(ctx->StreamsLock);
-                ctx->Streams.push_back(Event->PEER_STREAM_STARTED.Stream);
-            }
-            break;
-        }
-        default:
-            break;
-    }
-
-    return QUIC_STATUS_SUCCESS;
-}
-
-QUIC_STATUS SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, void * /* p_context */, QUIC_LISTENER_EVENT *Event)
-{
-    switch (Event->Type) {
-        case QUIC_LISTENER_EVENT_NEW_CONNECTION:
-            Event->NEW_CONNECTION.SecurityConfig = GlobalSecurityConfig;
-            MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void *)SpinQuicServerHandleConnectionEvent, nullptr);
-            {
-                HQUIC Connection = Event->NEW_CONNECTION.Connection;
-                std::lock_guard<std::mutex> Lock(ServerConnectionsLock);
-
-                auto ctx = new SpinQuicServerConnectionContext();
-                MsQuic->SetContext(Connection, ctx);
-                printf("[NEW CONNECTION] %p:%p\n", Event->NEW_CONNECTION.Connection, MsQuic->GetContext(Connection));
-
-                ServerConnections.push_back(Connection);
-            }
-            break;
-        default:
-            break;
-    }
-
-    return QUIC_STATUS_SUCCESS;
-}
-
-template<typename T>
-T& SpinQuicGetRandomFromVector(std::vector<T> &vec)
-{
-    return vec.at(rand() % vec.size());
-}
-
-// Replace these with actually random data
+// Replace these with random data?
 const char pkt0[] = "AAAAAAAAAAA";
 const char pkt1[] = "\x01";
 
@@ -177,11 +25,204 @@ const QUIC_BUFFER Buffers[2] = {
     { ARRAYSIZE(pkt1) - 1, (uint8_t*)pkt1 }
 };
 
-int SpinQuicGetRandom(int upper_bound)
+#define EXIT_ON_FAILURE(x) do { \
+    auto _Status = x; \
+    if (QUIC_FAILED(_Status)) { \
+       printf("%s:%d %s failed!\n", __FILE__, __LINE__, #x); \
+       exit(10); \
+    } \
+} while (0);
+
+template<typename T>
+T& GetRandomFromVector(std::vector<T> &vec) {
+    return vec.at(rand() % vec.size());
+}
+
+template<typename T>
+T GetRandom(T upper_bound) {
+    return (T)(rand() % (int)upper_bound);
+}
+
+template<typename T>
+class LockableVector : public std::vector<T>, public std::mutex {
+public:
+    T TryGetRandom(bool Erase = false) {
+        std::lock_guard<std::mutex> Lock(*this);
+        if (size() > 0) {
+            auto idx = GetRandom(size());
+            auto obj = at(idx);
+            if (Erase) {
+                erase(begin() + idx);
+            }
+            return obj;
+        }
+        return nullptr;
+    }
+};
+
+static uint64_t StartTimeMs;
+static QUIC_API_V1* MsQuic;
+static HQUIC Registration;
+static QUIC_SEC_CONFIG* GlobalSecurityConfig;
+static std::vector<HQUIC> Sessions;
+
+typedef enum {
+    SpinQuicAPICallCreateConnection = 0,
+    SpinQuicAPICallStartConnection,
+    SpinQuicAPICallShutdownConnection,
+    SpinQuicAPICallCloseConnection,
+    SpinQuicAPICallStreamOpen,
+    SpinQuicAPICallStreamStart,
+    SpinQuicAPICallStreamSend,
+    SpinQuicAPICallStreamShutdown,
+    SpinQuicAPICallStreamClose,
+    SpinQuicAPICallSetParamSession,
+    SpinQuicAPICallSetParamConnection,
+    SpinQuicAPICallCount    // Always the last element
+} SpinQuicAPICall;
+
+class SpinQuicConnection {
+public:
+    std::mutex Lock;
+    HQUIC Connection = nullptr;
+    std::vector<HQUIC> Streams;
+    bool IsShutdownComplete = false;
+    bool IsDeleting = false;
+    static SpinQuicConnection* Get(HQUIC Connection) {
+        return (SpinQuicConnection*)MsQuic->GetContext(Connection);
+    }
+    SpinQuicConnection() { }
+    SpinQuicConnection(HQUIC Connection) {
+        Set(Connection);
+    }
+    ~SpinQuicConnection() {
+        bool CloseStreamsNow;
+        {
+            std::lock_guard<std::mutex> LockScope(Lock);
+            CloseStreamsNow = IsShutdownComplete; // Already shutdown complete, so clean up now.
+            IsDeleting = true;
+        }
+        if (CloseStreamsNow) CloseStreams();
+        printf("MsQuic->ConnectionClose(%p)\n", Connection);
+        MsQuic->ConnectionClose(Connection);
+    }
+    void Set(HQUIC _Connection) {
+        Connection = _Connection;
+        MsQuic->SetContext(Connection, this);
+    }
+    void OnShutdownComplete() {
+        printf("[Shutdown] %p\n", Connection);
+        bool CloseStreamsNow;
+        {
+            std::lock_guard<std::mutex> LockScope(Lock);
+            CloseStreamsNow = IsDeleting; // This is happening as a result of deleting, so clean up now.
+            IsShutdownComplete = true;
+        }
+        if (CloseStreamsNow) CloseStreams();
+    }
+    void CloseStreams() {
+        std::vector<HQUIC> StreamsCopy;
+        {
+            std::lock_guard<std::mutex> LockScope(Lock);
+            StreamsCopy = Streams;
+            StreamsCopy.clear();
+        }
+        while (StreamsCopy.size() > 0) {
+            HQUIC Stream = StreamsCopy.back();
+            StreamsCopy.pop_back();
+            printf("MsQuic->StreamClose(%p)\n", Stream);
+            MsQuic->StreamClose(Stream);
+        }
+    }
+    void AddStream(HQUIC Stream) {
+        std::lock_guard<std::mutex> LockScope(Lock);
+        Streams.push_back(Stream);
+    }
+    // Requires Lock to be held
+    HQUIC TryGetStream(bool Remove = false) {
+        if (Streams.size() != 0) {
+            auto idx = GetRandom(Streams.size());
+            HQUIC Stream = Streams[idx];
+            if (Remove) {
+                Streams.erase(Streams.begin() + idx);
+            }
+            return Stream;
+        }
+        return nullptr;
+    }
+};
+
+static struct {
+    uint64_t RunTimeMs;
+    uint64_t MaxOperationCount;
+    const char* AlpnPrefix;
+    std::vector<uint16_t> Ports;
+    const char* ServerName;
+} Settings;
+
+extern "C" void QuicTraceRundown(void) { }
+
+QUIC_STATUS SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context */, QUIC_STREAM_EVENT *Event)
 {
-    // Use more uniform random if necessary.
-    // upper_bound may be unaligned leading to non-uniformity
-    return rand() % upper_bound;
+    switch (Event->Type) {
+    case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
+        MsQuic->StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)(rand() % 16), 0);
+        break;
+    default:
+        break;
+    }
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+QUIC_STATUS SpinQuicHandleConnectionEvent(HQUIC Connection, void * /* Context */, QUIC_CONNECTION_EVENT *Event)
+{
+    switch (Event->Type) {
+    case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
+        printf("[Shutdown] %p\n", Connection);
+        SpinQuicConnection::Get(Connection)->OnShutdownComplete();
+        break;
+    case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
+        MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void *)SpinQuicHandleStreamEvent, nullptr);
+        SpinQuicConnection::Get(Connection)->AddStream(Event->PEER_STREAM_STARTED.Stream);
+        break;
+    default:
+        break;
+    }
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+void SpinQuicGetSecConfigComplete(_In_opt_ void *Context, _In_ QUIC_STATUS /* Status */, _In_opt_ QUIC_SEC_CONFIG *SecConfig)
+{
+    GlobalSecurityConfig = SecConfig;
+    QuicEventSet(*(QUIC_EVENT*)Context);
+}
+
+QUIC_STATUS SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, void* Context , QUIC_LISTENER_EVENT* Event)
+{
+    auto& Connections = *(LockableVector<HQUIC>*)(Context);
+
+    switch (Event->Type) {
+    case QUIC_LISTENER_EVENT_NEW_CONNECTION: {
+        Event->NEW_CONNECTION.SecurityConfig = GlobalSecurityConfig;
+        MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)SpinQuicHandleConnectionEvent, nullptr);
+        auto ctx = new SpinQuicConnection(Event->NEW_CONNECTION.Connection);
+        if (ctx == nullptr) {
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+        printf("[Adding] %p\n", Event->NEW_CONNECTION.Connection);
+        {
+            std::lock_guard<std::mutex> Lock(Connections);
+            Connections.push_back(Event->NEW_CONNECTION.Connection);
+        }
+        break;
+    }
+    default:
+        break;
+    }
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 void SpinQuicSetRandomConnectionParam(HQUIC Connection)
@@ -276,40 +317,189 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
     }
 }
 
-void SpinQuicGetSecConfigComplete(_In_opt_ void *Context, _In_ QUIC_STATUS /* Status */, _In_opt_ QUIC_SEC_CONFIG *SecConfig)
+void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
 {
-    GlobalSecurityConfig = SecConfig;
-    QuicEventSet(*(QUIC_EVENT*)Context);
+    uint64_t OpCount = 0;
+    while (++OpCount != Settings.MaxOperationCount &&
+        QuicTimeDiff64(StartTimeMs, QuicTimeMs64()) < Settings.RunTimeMs) {
+
+    #define BAIL_ON_NULL_CONNECTION(Connection) \
+        if (Connection == nullptr) { \
+            if (IsServer) { \
+                QuicSleep(100); \
+            } \
+            continue; \
+        }
+
+        switch (GetRandom(SpinQuicAPICallCount)) {
+        case SpinQuicAPICallCreateConnection :
+            if (!IsServer) {
+                auto ctx = new SpinQuicConnection();
+                if (ctx == nullptr) continue;
+
+                HQUIC Connection;
+                HQUIC Session = GetRandomFromVector(Sessions);
+                printf("MsQuic->ConnectionOpen(%p, ...) = ", Session);
+                QUIC_STATUS Status = MsQuic->ConnectionOpen(Session, SpinQuicHandleConnectionEvent, ctx, &Connection);
+                printf("0x%x\n", Status);
+                if (QUIC_SUCCEEDED(Status)) {
+                    ctx->Set(Connection);
+                    printf("[Adding] %p\n", Connection);
+                    Connections.push_back(Connection);
+                } else {
+                    delete ctx;
+                }
+            }
+            break;
+        case SpinQuicAPICallStartConnection: {
+            auto Connection = Connections.TryGetRandom();
+            BAIL_ON_NULL_CONNECTION(Connection);
+            printf("MsQuic->ConnectionStart(%p, ...) = ", Connection);
+            QUIC_STATUS Status = MsQuic->ConnectionStart(Connection, AF_INET, Settings.ServerName, GetRandomFromVector(Settings.Ports));
+            printf("0x%x\n", Status);
+            break;
+        }
+        case SpinQuicAPICallShutdownConnection: {
+            auto Connection = Connections.TryGetRandom();
+            BAIL_ON_NULL_CONNECTION(Connection);
+            printf("MsQuic->ConnectionShutdown(%p, ...)\n", Connection);
+            MsQuic->ConnectionShutdown(Connection, (QUIC_CONNECTION_SHUTDOWN_FLAGS)(rand() % 2), 0);
+            break;
+        }
+        case SpinQuicAPICallCloseConnection: {
+            auto Connection = Connections.TryGetRandom(true);
+            BAIL_ON_NULL_CONNECTION(Connection);
+            delete SpinQuicConnection::Get(Connection);
+            break;
+        }
+        case SpinQuicAPICallStreamOpen: {
+            auto Connection = Connections.TryGetRandom();
+            BAIL_ON_NULL_CONNECTION(Connection);
+            HQUIC Stream;
+            printf("MsQuic->StreamOpen(%p, ...) = ", Connection);
+            QUIC_STATUS Status = MsQuic->StreamOpen(Connection, (QUIC_STREAM_OPEN_FLAGS)(rand() % 2), SpinQuicHandleStreamEvent, nullptr, &Stream);
+            printf("0x%x\n", Status);
+            if (QUIC_SUCCEEDED(Status)) {
+                printf("[Adding Stream] %p\n", Stream);
+                SpinQuicConnection::Get(Connection)->AddStream(Stream);
+            }
+            break;
+        }
+        case SpinQuicAPICallStreamStart: {
+            auto Connection = Connections.TryGetRandom();
+            BAIL_ON_NULL_CONNECTION(Connection);
+            auto ctx = SpinQuicConnection::Get(Connection);
+            {
+                std::lock_guard<std::mutex> Lock(ctx->Lock);
+                auto Stream = ctx->TryGetStream();
+                if (Stream == nullptr) continue;
+                printf("MsQuic->StreamStart(%p, ...) = ", Stream);
+                QUIC_STATUS Status = MsQuic->StreamStart(Stream, (QUIC_STREAM_START_FLAGS)(rand() % 2) | QUIC_STREAM_START_FLAG_ASYNC);
+                printf("0x%x\n", Status);
+            }
+            break;
+        }
+        case SpinQuicAPICallStreamSend: {
+            auto Connection = Connections.TryGetRandom();
+            BAIL_ON_NULL_CONNECTION(Connection);
+            auto ctx = SpinQuicConnection::Get(Connection);
+            {
+                std::lock_guard<std::mutex> Lock(ctx->Lock);
+                auto Stream = ctx->TryGetStream();
+                if (Stream == nullptr) continue;
+                printf("MsQuic->StreamSend(%p, ...) = ", Stream);
+                QUIC_STATUS Status = MsQuic->StreamSend(Stream, Buffers, ARRAYSIZE(Buffers), QUIC_SEND_FLAG_NONE, nullptr);
+                printf("0x%x\n", Status);
+            }
+            break;
+        }
+        case SpinQuicAPICallStreamShutdown: {
+            auto Connection = Connections.TryGetRandom();
+            BAIL_ON_NULL_CONNECTION(Connection);
+            auto ctx = SpinQuicConnection::Get(Connection);
+            {
+                std::lock_guard<std::mutex> Lock(ctx->Lock);
+                auto Stream = ctx->TryGetStream();
+                if (Stream == nullptr) continue;
+                printf("MsQuic->StreamShutdown(%p, ...) = ", Stream);
+                QUIC_STATUS Status = MsQuic->StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)(rand() % 16), 0);
+                printf("0x%x\n", Status);
+            }
+            break;
+        }
+        case SpinQuicAPICallStreamClose: {
+            auto Connection = Connections.TryGetRandom();
+            BAIL_ON_NULL_CONNECTION(Connection);
+            auto ctx = SpinQuicConnection::Get(Connection);
+            HQUIC Stream;
+            {
+                std::lock_guard<std::mutex> Lock(ctx->Lock);
+                Stream = ctx->TryGetStream(true);
+            }
+            if (Stream == nullptr) continue;
+            printf("MsQuic->StreamClose(%p)\n", Stream);
+            MsQuic->StreamClose(Stream);
+            break;
+        }
+        case SpinQuicAPICallSetParamSession: {
+            auto Session = GetRandomFromVector(Sessions);
+            auto PeerStreamCount = GetRandom((uint16_t)10);
+            MsQuic->SetParam(
+                Session,
+                QUIC_PARAM_LEVEL_SESSION,
+                (GetRandom(2) == 0 ? QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT : QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT),
+                sizeof(PeerStreamCount),
+                &PeerStreamCount);
+            break;
+        }
+        case SpinQuicAPICallSetParamConnection: {
+            auto Connection = Connections.TryGetRandom();
+            BAIL_ON_NULL_CONNECTION(Connection);
+            SpinQuicSetRandomConnectionParam(Connection);
+            break;
+        }
+        default:
+            break;
+        }
+    }
 }
 
-void InitializeServer()
+QUIC_THREAD_CALLBACK(ServerSpin, Context)
 {
-    QUIC_SEC_CONFIG_PARAMS* SelfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
+    UNREFERENCED_PARAMETER(Context);
+    LockableVector<HQUIC> Connections;
+
+    //
+    // Setup
+    //
+
+    auto SelfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
     if (!SelfSignedCertParams) {
         exit(1);
     }
 
     QUIC_EVENT Event;
     QuicEventInitialize(&Event, FALSE, FALSE);
-
-    SQ_ASSERT(!QUIC_FAILED(MsQuic->SecConfigCreate(Registration,
-                            (QUIC_SEC_CONFIG_FLAGS)SelfSignedCertParams->Flags,
-                            SelfSignedCertParams->Certificate,
-                            SelfSignedCertParams->Principal,
-                            &Event,
-                            SpinQuicGetSecConfigComplete)));
-
+    EXIT_ON_FAILURE(
+        MsQuic->SecConfigCreate(
+            Registration,
+            (QUIC_SEC_CONFIG_FLAGS)SelfSignedCertParams->Flags,
+            SelfSignedCertParams->Certificate,
+            SelfSignedCertParams->Principal,
+            &Event,
+            SpinQuicGetSecConfigComplete));
     QuicEventWaitForever(Event);
     QuicEventUninitialize(Event);
 
     printf("Security config: %p\n", GlobalSecurityConfig);
     if (!GlobalSecurityConfig) exit(1);
 
+    std::vector<HQUIC> Listeners;
     for (auto &session : Sessions) {
         for (auto &pt : Settings.Ports) {
             HQUIC Listener;
             printf("MsQuic->ListenerOpen(%p, ...) = ", session);
-            QUIC_STATUS Status = MsQuic->ListenerOpen(session, SpinQuicServerHandleListenerEvent, nullptr, &Listener);
+            QUIC_STATUS Status = MsQuic->ListenerOpen(session, SpinQuicServerHandleListenerEvent, &Connections, &Listener);
             printf("0x%x\n", Status);
 
             QUIC_ADDR sockAddr = { 0 };
@@ -319,330 +509,74 @@ void InitializeServer()
             printf("MsQuic->ListenerStart(%p, {*:%d}) = ", Listener, pt);
             Status = MsQuic->ListenerStart(Listener, &sockAddr);
             printf("0x%x\n", Status);
+
+            Listeners.push_back(Listener);
         }
     }
+
+    //
+    // Run
+    //
+
+    Spin(Connections, true);
+
+    //
+    // Clean up
+    //
+
+    while (Listeners.size() > 0) {
+        auto Listener = Listeners.back();
+        Listeners.pop_back();
+        MsQuic->ListenerClose(Listener);
+    }
+
+    while (Connections.size() > 0) {
+        auto Connection = Connections.back();
+        Connections.pop_back();
+        delete SpinQuicConnection::Get(Connection);
+    }
+
+    MsQuic->SecConfigDelete(GlobalSecurityConfig);
+    QuicPlatFreeSelfSignedCert(SelfSignedCertParams);
+
+    QUIC_THREAD_RETURN(0);
 }
 
-// Match signature of LPTHREAD_START_ROUTINE
-void ServerSpin(void *)
+QUIC_THREAD_CALLBACK(ClientSpin, Context)
 {
-    uint64_t OpCount = 0;
-    while (++OpCount != Settings.MaxOperationCount) {
-        // Acquire a connection
-        HQUIC Connection = nullptr;
-        {
-            std::lock_guard<std::mutex> Lock(ServerConnectionsLock);
-            if (ServerConnections.size() > 0) {
-                Connection = SpinQuicGetRandomFromVector(ServerConnections);
-            }
-        }
+    UNREFERENCED_PARAMETER(Context);
+    LockableVector<HQUIC> Connections;
 
-        // Don't sleep while holding the Lock
-        if (Connection == nullptr) {
-            QuicSleep(100);
-            continue;
-        }
+    //
+    // Run
+    //
 
-        switch (SpinQuicGetRandom(SpinQuicAPICallCount)) {
-        case SpinQuicAPICallCreateConnection:
-        case SpinQuicAPICallStartConnection:
-            // Don't think we can do these
-            break;
-        case SpinQuicAPICallShutdownConnection:
-            printf("MsQuic->ConnectionShutdown(%p, ...)\n", Connection);
-            MsQuic->ConnectionShutdown(Connection, (QUIC_CONNECTION_SHUTDOWN_FLAGS)(rand() % 2), 0);
-            break;
-        case SpinQuicAPICallCloseConnection: {
-            // Close all Streams in the SHUTDOWN_COMPLETE callback.
-            {
-                std::lock_guard<std::mutex> Lock(ServerConnectionsLock);
-                auto it = std::find(ServerConnections.begin(), ServerConnections.end(), Connection);
-                if (it == ServerConnections.end()) continue;
-                ServerConnections.erase(it);
-            }
+    Spin(Connections, false);
 
-            SpinQuicServerConnectionContext *ctx = (SpinQuicServerConnectionContext *)MsQuic->GetContext(Connection);
-            MsQuic->ConnectionClose(Connection);
-            printf("MsQuic->ConnectionClose(%p)\n", Connection);
-            delete ctx;
-            break;
-        }
-        case SpinQuicAPICallStreamOpen: {
-            auto ctx = (SpinQuicServerConnectionContext *)MsQuic->GetContext(Connection);
-            HQUIC Stream;
+    //
+    // Clean up
+    //
 
-            printf("MsQuic->StreamOpen(%p, ...) = ", Connection);
-            QUIC_STATUS Status = MsQuic->StreamOpen(Connection, (QUIC_STREAM_OPEN_FLAGS)(rand() % 2), SpinQuicServerHandleStreamEvent, nullptr, &Stream);
-            printf("0x%x\n", Status);
-
-            if (QUIC_SUCCEEDED(Status)) {
-                printf("[Adding Stream] %p\n", Stream);
-                {
-                    std::lock_guard<std::mutex> Lock(ctx->StreamsLock);
-                    ctx->Streams.push_back(Stream);
-                }
-            }
-            break;
-        }
-        case SpinQuicAPICallStreamStart: {
-            auto ctx = (SpinQuicServerConnectionContext *)MsQuic->GetContext(Connection);
-            {
-                std::lock_guard<std::mutex> Lock(ctx->StreamsLock);
-                if (ctx->Streams.size() == 0) continue;
-
-                HQUIC Stream = SpinQuicGetRandomFromVector(ctx->Streams);
-
-                // QUIC_STREAM_START_FLAGS flags[] = { QUIC_STREAM_START_FLAG_NONE, QUIC_STREAM_START_FLAG_IMMEDIATE, QUIC_STREAM_START_FLAG_ASYNC };
-                // Can't pass other flags for now, it'll cause a deadlock.
-
-                printf("MsQuic->StreamStart(%p, ...) = ", Stream);
-                QUIC_STATUS Status = MsQuic->StreamStart(Stream, QUIC_STREAM_START_FLAG_ASYNC);
-                printf("0x%x\n", Status);
-            }
-            break;
-        }
-        case SpinQuicAPICallStreamSend: {
-            auto ctx = (SpinQuicServerConnectionContext *)MsQuic->GetContext(Connection);
-            {
-                std::lock_guard<std::mutex> Lock(ctx->StreamsLock);
-                if (ctx->Streams.size() == 0) continue;
-
-                HQUIC Stream = SpinQuicGetRandomFromVector(ctx->Streams);
-
-                printf("MsQuic->StreamSend(%p, ...) = ", Stream);
-                QUIC_STATUS Status = MsQuic->StreamSend(Stream, Buffers, ARRAYSIZE(Buffers), QUIC_SEND_FLAG_NONE, nullptr);
-                printf("0x%x\n", Status);
-            }
-            break;
-        }
-        case SpinQuicAPICallStreamShutdown: {
-            auto ctx = (SpinQuicServerConnectionContext *)MsQuic->GetContext(Connection);
-            {
-                std::lock_guard<std::mutex> Lock(ctx->StreamsLock);
-                if (ctx->Streams.size() == 0) continue;
-
-                HQUIC Stream = SpinQuicGetRandomFromVector(ctx->Streams);
-                printf("MsQuic->StreamShutdown(%p, ...) = ", Stream);
-                QUIC_STATUS Status = MsQuic->StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS) (rand() % 16), 0);
-                printf("0x%x\n", Status);
-            }
-            break;
-        }
-        case SpinQuicAPICallStreamClose: {
-            auto ctx = (SpinQuicServerConnectionContext *)MsQuic->GetContext(Connection);
-            HQUIC Stream = nullptr;
-            {
-                std::lock_guard<std::mutex> Lock(ctx->StreamsLock);
-                if (ctx->Streams.size() == 0) continue;
-
-                auto &Streams = ctx->Streams;
-                int idx = SpinQuicGetRandom((int)Streams.size());
-                Stream = Streams[idx];
-                Streams.erase(Streams.begin() + idx);
-            }
-
-            printf("MsQuic->StreamClose(%p)\n", Stream);
-            MsQuic->StreamClose(Stream);
-            break;
-        }
-        case SpinQuicAPICallSetParamSession: {
-            HQUIC Session = SpinQuicGetRandomFromVector(Sessions);
-
-            uint16_t PeerStreamCount = (uint16_t)SpinQuicGetRandom(10);
-            int uni = SpinQuicGetRandom(2);
-
-            MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, (uni == 0 ? QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT : QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT), sizeof(PeerStreamCount), &PeerStreamCount);
-            break;
-        }
-        case SpinQuicAPICallSetParamConnection:
-            SpinQuicSetRandomConnectionParam(Connection);
-            break;
-        default:
-            break;
-        }
+    while (Connections.size() > 0) {
+        auto Connection = Connections.back();
+        Connections.pop_back();
+        delete SpinQuicConnection::Get(Connection);
     }
-}
 
-void ClientSpin(void *)
-{
-    std::vector<HQUIC> Connections;
-    uint64_t OpCount = 0;
-    while (++OpCount != Settings.MaxOperationCount) {
-        switch (SpinQuicGetRandom(SpinQuicAPICallCount)) {
-        case SpinQuicAPICallCreateConnection : { // Create connection
-            HQUIC Session = SpinQuicGetRandomFromVector(Sessions);
-            HQUIC Connection;
-
-            std::vector<HQUIC> *Streams = new std::vector<HQUIC>();
-
-            printf("MsQuic->ConnectionOpen(%p, ...) = ", Session);
-            QUIC_STATUS Status = MsQuic->ConnectionOpen(Session, SpinQuicClientHandleConnectionEvent, Streams, &Connection);
-            printf("0x%x\n", Status);
-
-            if (QUIC_SUCCEEDED(Status)) {
-                printf("[Adding] %p\n", Connection);
-                Connections.push_back(Connection);
-            }
-
-            if (SpinQuicGetRandom(2) % 1 == 0) {
-                break;
-            }
-
-            __fallthrough;
-        }
-        case SpinQuicAPICallStartConnection: { // Start connection
-            if (Connections.size() == 0) continue;
-
-            HQUIC Connection = SpinQuicGetRandomFromVector(Connections);
-
-            printf("MsQuic->ConnectionStart(%p, ...) = ", Connection);
-            QUIC_STATUS Status = MsQuic->ConnectionStart(Connection, AF_INET, Settings.ServerName, SpinQuicGetRandomFromVector(Settings.Ports));
-            printf("0x%x\n", Status);
-            break;
-        }
-        case SpinQuicAPICallShutdownConnection: { // Shutdown connection
-            if (Connections.size() == 0) continue;
-            // fill with random flags and error codes..
-            HQUIC Connection = SpinQuicGetRandomFromVector(Connections);
-            printf("MsQuic->ConnectionShutdown(%p, ...)\n", Connection);
-            MsQuic->ConnectionShutdown(Connection, (QUIC_CONNECTION_SHUTDOWN_FLAGS)(rand() % 2), 0);
-            break;
-        }
-        case SpinQuicAPICallCloseConnection: { // Close connection
-            if (Connections.size() == 0) continue;
-
-            int idx = SpinQuicGetRandom((int)Connections.size());
-            HQUIC Connection = Connections[idx];
-            Connections.erase(Connections.begin() + idx);
-
-            auto Streams = (std::vector<HQUIC> *)MsQuic->GetContext(Connection);
-            while (Streams->size() != 0) {
-                HQUIC Stream = Streams->back();
-                Streams->pop_back();
-                //*Streams.erase(Streams.begin());
-                printf("[Closing Connection %p] MsQuic->StreamClose(%p)\n", Connection, Stream);
-                MsQuic->StreamClose(Stream);
-            }
-
-            printf("MsQuic->ConnectionClose(%p)\n", Connection);
-            delete Streams;
-            MsQuic->ConnectionClose(Connection);
-            break;
-        }
-        case SpinQuicAPICallStreamOpen: { // StreamOpen
-            if (Connections.size() == 0) continue;
-
-            HQUIC Connection = SpinQuicGetRandomFromVector(Connections);
-
-            HQUIC Stream;
-            printf("MsQuic->StreamOpen(%p, ...) = ", Connection);
-            QUIC_STATUS Status = MsQuic->StreamOpen(Connection, (QUIC_STREAM_OPEN_FLAGS)(rand() % 2), SpinQuicClientHandleStreamEvent, nullptr, &Stream);
-            printf("0x%x\n", Status);
-
-            if (QUIC_SUCCEEDED(Status)) {
-                printf("[Adding Stream] %p\n", Stream);
-                auto Streams = (std::vector<HQUIC> *)MsQuic->GetContext(Connection);
-                Streams->push_back(Stream);
-            }
-
-            break;
-        }
-        case SpinQuicAPICallStreamStart: { // StreamStart
-            if  (Connections.size() == 0) continue;
-
-            HQUIC Connection = SpinQuicGetRandomFromVector(Connections);
-
-            auto Streams = (std::vector<HQUIC> *)MsQuic->GetContext(Connection);
-            if (Streams->size() == 0) continue;
-
-            HQUIC Stream = SpinQuicGetRandomFromVector(*Streams);
-
-            QUIC_STREAM_START_FLAGS flags[] = { QUIC_STREAM_START_FLAG_NONE, QUIC_STREAM_START_FLAG_IMMEDIATE, QUIC_STREAM_START_FLAG_ASYNC };
-
-            printf("MsQuic->StreamStart(%p, ...) = ", Stream);
-            QUIC_STATUS Status = MsQuic->StreamStart(Stream, flags[rand() % 3]);
-            printf("0x%x\n", Status);
-            break;
-        }
-        case SpinQuicAPICallStreamShutdown: { // StreamShutdown
-            if (Connections.size() == 0) continue;
-
-            HQUIC Connection = SpinQuicGetRandomFromVector(Connections);
-
-            auto Streams = (std::vector<HQUIC> *)MsQuic->GetContext(Connection);
-            if (Streams->size() == 0) continue;
-
-            HQUIC Stream = SpinQuicGetRandomFromVector(*Streams);
-            printf("MsQuic->StreamShutdown(%p, ...) = ", Stream);
-            QUIC_STATUS Status = MsQuic->StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS) (rand() % 16), 0);
-            printf("0x%x\n", Status);
-            break;
-        }
-        case SpinQuicAPICallStreamSend: { // StreamSend
-            if (Connections.size() == 0) continue;
-            HQUIC Connection = SpinQuicGetRandomFromVector(Connections);
-
-            auto Streams = (std::vector<HQUIC> *)MsQuic->GetContext(Connection);
-
-            if (Streams->size() == 0) continue;
-
-            HQUIC Stream = SpinQuicGetRandomFromVector(*Streams);
-
-            printf("MsQuic->StreamSend(%p, ...) = ", Stream);
-            QUIC_STATUS Status = MsQuic->StreamSend(Stream, Buffers, ARRAYSIZE(Buffers), QUIC_SEND_FLAG_NONE, nullptr);
-            printf("0x%x\n", Status);
-            break;
-        }
-        case SpinQuicAPICallStreamClose: { // StreamClose
-            if (Connections.size() == 0) continue;
-
-            HQUIC Connection = SpinQuicGetRandomFromVector(Connections);
-
-            auto Streams = (std::vector<HQUIC> *)MsQuic->GetContext(Connection);
-            if (Streams->size() == 0) continue;
-
-            int idx = rand() % Streams->size();
-            HQUIC Stream = (*Streams)[idx];
-            Streams->erase(Streams->begin() + idx);
-
-            printf("MsQuic->StreamClose(%p)\n", Stream);
-            MsQuic->StreamClose(Stream);
-            break;
-        }
-        case SpinQuicAPICallSetParamSession: { // SetParam - Session
-            HQUIC Session = SpinQuicGetRandomFromVector(Sessions);
-
-            uint16_t PeerStreamCount = (uint16_t)SpinQuicGetRandom(10);
-            int uni = SpinQuicGetRandom(2);
-
-            MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, (uni == 0 ? QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT : QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT), sizeof(PeerStreamCount), &PeerStreamCount);
-
-            break;
-        }
-        case SpinQuicAPICallSetParamConnection: { // SetParam - Connection
-            if (Connections.size() == 0) continue;
-
-            HQUIC Connection = SpinQuicGetRandomFromVector(Connections);
-
-            SpinQuicSetRandomConnectionParam(Connection);
-            break;
-        }
-        default:
-            break;
-        }
-    }
+    QUIC_THREAD_RETURN(0);
 }
 
 void PrintHelpText(void)
 {
-    printf("Usage: spinquic.exe [client/server] [options]\n" \
+    printf("Usage: spinquic.exe [client/server/both] [options]\n" \
           "\n" \
           "  -alpn:<alpn>         default: 'spin'\n" \
           "  -dstport:<port>      default: 9999\n" \
-          "  -seed:<seed>         default: 6\n" \
-          "  -target:<ip>         default: '127.0.0.1'\n" \
-          "  -sessions:<count>    default: 4\n" \
           "  -max_ops:<count>     default: UINT64_MAX\n"
+          "  -seed:<seed>         default: 6\n" \
+          "  -sessions:<count>    default: 4\n" \
+          "  -target:<ip>         default: '127.0.0.1'\n" \
+          "  -timeout:<count_ms>  default: 60000\n" \
           );
     exit(1);
 }
@@ -655,22 +589,36 @@ main(int argc, char **argv)
         PrintHelpText();
     }
 
-    uint32_t SessionCount = 4;
-    uint32_t RngSeed = 6;
+    bool RunServer = false;
+    bool RunClient = false;
 
+    if (strcmp(argv[1], "server") == 0) {
+        RunServer = true;
+    } else if (strcmp(argv[1], "client") == 0) {
+        RunClient = true;
+    } else if (strcmp(argv[1], "both") == 0) {
+        RunServer = true;
+        RunClient = true;
+    } else {
+        printf("Must specify one of the following as the first argument: 'server' 'client' 'both'\n\n");
+        PrintHelpText();
+    }
+
+    QuicPlatformSystemLoad();
+    QuicPlatformInitialize();
+
+    uint32_t SessionCount = 4;
+
+    Settings.RunTimeMs = 60000;
     Settings.ServerName = "127.0.0.1";
     Settings.Ports = std::vector<uint16_t>({9998, 9999});
     Settings.AlpnPrefix = "spin";
     Settings.MaxOperationCount = UINT64_MAX;
 
+    TryGetValue(argc, argv, "timeout", &Settings.RunTimeMs);
     TryGetValue(argc, argv, "max_ops", &Settings.MaxOperationCount);
-    TryGetValue(argc, argv, "seed", &RngSeed);
-    srand(RngSeed);
 
-    if (strcmp(argv[1], "server") == 0) {
-        Settings.IsServer = true;
-    } else {
-        Settings.IsServer = false;
+    if (RunClient) {
         uint16_t dstPort = 0;
         if (TryGetValue(argc, argv, "dstport", &dstPort)) {
             Settings.Ports = std::vector<uint16_t>({dstPort});
@@ -680,9 +628,13 @@ main(int argc, char **argv)
         TryGetValue(argc, argv, "sessions", &SessionCount);
     }
 
-    SQ_ASSERT(!QUIC_FAILED(MsQuicOpenV1(&MsQuic)));
+    uint32_t RngSeed = 6;
+    TryGetValue(argc, argv, "seed", &RngSeed);
+    srand(RngSeed);
 
-    SQ_ASSERT(!QUIC_FAILED(MsQuic->RegistrationOpen("spinquic", &Registration)));
+    EXIT_ON_FAILURE(MsQuicOpenV1(&MsQuic));
+
+    EXIT_ON_FAILURE(MsQuic->RegistrationOpen("spinquic", &Registration));
     
     const size_t AlpnLen = strlen(Settings.AlpnPrefix) + 5; // You can't have more than 10^4 SessionCount. :)
     char *AlpnBuffer = (char *)malloc(AlpnLen);
@@ -694,7 +646,6 @@ main(int argc, char **argv)
         HQUIC Session;
         QUIC_STATUS Status = MsQuic->SessionOpen(Registration, AlpnBuffer, nullptr, &Session);
         printf("Opening session #%d: %d\n", i, Status);
-
         if (QUIC_FAILED(Status)) {
             printf("Failed to open session #%d\n", i);
             continue;
@@ -704,19 +655,60 @@ main(int argc, char **argv)
 
         // Configure Session
         uint16_t PeerBidiStreamCount = 9999;
-        SQ_ASSERT(!QUIC_FAILED(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerBidiStreamCount), &PeerBidiStreamCount)));
-        SQ_ASSERT(!QUIC_FAILED(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerBidiStreamCount), &PeerBidiStreamCount)));
+        EXIT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerBidiStreamCount), &PeerBidiStreamCount));
+        EXIT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerBidiStreamCount), &PeerBidiStreamCount));
     }
 
     free(AlpnBuffer);
 
-    // Make it optional to do both server and client in the same process
-    if (Settings.IsServer) {
-        InitializeServer();
-        ServerSpin(nullptr);
-    } else {
-        ClientSpin(nullptr);
+    QUIC_THREAD Threads[2];
+    QUIC_THREAD_CONFIG Config = { 0 };
+
+    StartTimeMs = QuicTimeMs64();
+
+    //
+    // Start worker threads
+    //
+
+    if (RunServer) {
+        Config.Name = "spin_server";
+        Config.Callback = ServerSpin;
+        EXIT_ON_FAILURE(QuicThreadCreate(&Config, &Threads[0]));
     }
+
+    if (RunClient) {
+        Config.Name = "spin_client";
+        Config.Callback = ClientSpin;
+        EXIT_ON_FAILURE(QuicThreadCreate(&Config, &Threads[1]));
+    }
+
+    //
+    // Wait on worker threads
+    //
+
+    if (RunClient) {
+        QuicThreadWait(&Threads[1]);
+        QuicThreadDelete(&Threads[1]);
+    }
+
+    if (RunServer) {
+        QuicThreadWait(&Threads[0]);
+        QuicThreadDelete(&Threads[0]);
+    }
+
+    //
+    // Clean up
+    //
+
+    while (Sessions.size() > 0) {
+        auto Session = Sessions.back();
+        Sessions.pop_back();
+        MsQuic->SessionClose(Session);
+    }
+
+    MsQuic->RegistrationClose(Registration);
+
+    MsQuicClose(MsQuic);
 
     return 0;
 }
