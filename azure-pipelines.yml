@@ -16,7 +16,7 @@ strategy:
       imageName: 'ubuntu-latest'
       cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=stub -DQUIC_ENABLE_LOGGING=off -DQUIC_SANITIZE_ADDRESS=on'
       testCmd: 'bash ./.azure/test_linux.sh AppData/WithSendArgs2.SendLarge/0'
-    linux-stub-sanitize:
+    linux-stub-spin:
       platform: 'Linux-Stub-Spin'
       imageName: 'ubuntu-latest'
       cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=stub -DQUIC_ENABLE_LOGGING=off -DQUIC_SANITIZE_ADDRESS=on'
@@ -31,7 +31,7 @@ strategy:
       imageName: 'windows-latest'
       cmakeArgs: '-g ''Visual Studio 16 2019'' -A x64 -DQUIC_TLS=stub'
       testCmd: '.\.azure\test_windows.cmd *'
-    windows-x64-stub:
+    windows-x64-stub-spin:
       platform: 'Windows-x64-Stub-Spin'
       imageName: 'windows-latest'
       cmakeArgs: '-g ''Visual Studio 16 2019'' -A x64 -DQUIC_TLS=stub'
