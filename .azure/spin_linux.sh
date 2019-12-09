@@ -8,4 +8,4 @@ cd artifacts/dumps
 # Run spinquic for a while.
 ../bin/spinquic both -timeout:1000
 
-ls artifacts/dumps
+ls
