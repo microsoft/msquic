@@ -48,11 +48,11 @@ class LockableVector : public std::vector<T>, public std::mutex {
 public:
     T TryGetRandom(bool Erase = false) {
         std::lock_guard<std::mutex> Lock(*this);
-        if (size() > 0) {
-            auto idx = GetRandom(size());
-            auto obj = at(idx);
+        if (this->size() > 0) {
+            auto idx = GetRandom(this->size());
+            auto obj = this->at(idx);
             if (Erase) {
-                erase(begin() + idx);
+                this->erase(this->begin() + idx);
             }
             return obj;
         }
