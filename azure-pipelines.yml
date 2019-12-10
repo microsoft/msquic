@@ -67,6 +67,7 @@ steps:
 
 - task: CmdLine@2
   displayName: 'Run Tests'
+  timeoutInMinutes: 10
   inputs:
     script: '$(testCmd)'
 
