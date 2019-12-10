@@ -240,6 +240,13 @@ QuicStreamClose(
 
     } else if (!Stream->Flags.ShutdownComplete) {
 
+        //
+        // TODO - If the stream hasn't been aborted already, then this is a
+        // fatal error for the connection. The QUIC transport cannot "just pick
+        // an error" to shutdown the stream with. It must abort the entire
+        // connection.
+        //
+
         LogWarning("[strm][%p][%llu] Closing handle without fully shutting down.",
             Stream, Stream->ID);
 

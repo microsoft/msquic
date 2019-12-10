@@ -13,7 +13,7 @@
 #include <mutex>
 #include <algorithm>
 
-#define QUIC_TEST_APIS 1 // Needed to self signed cert API
+#define QUIC_TEST_APIS 1 // Needed for self signed cert API
 #include <msquichelper.h>
 
 // Replace these with random data?
@@ -117,7 +117,6 @@ public:
         MsQuic->SetContext(Connection, this);
     }
     void OnShutdownComplete() {
-        PRINT("[Shutdown] %p\n", Connection);
         bool CloseStreamsNow;
         {
             std::lock_guard<std::mutex> LockScope(Lock);
@@ -127,11 +126,12 @@ public:
         if (CloseStreamsNow) CloseStreams();
     }
     void CloseStreams() {
+        PRINT("[Cleanup] %p\n", Connection);
         std::vector<HQUIC> StreamsCopy;
         {
             std::lock_guard<std::mutex> LockScope(Lock);
             StreamsCopy = Streams;
-            StreamsCopy.clear();
+            Streams.clear();
         }
         while (StreamsCopy.size() > 0) {
             HQUIC Stream = StreamsCopy.back();

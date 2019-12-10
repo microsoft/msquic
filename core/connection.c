@@ -43,6 +43,12 @@ QuicConnInitializeCrypto(
     _In_ QUIC_CONNECTION* Connection
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnOnShutdownComplete(
+    _In_ QUIC_CONNECTION* Connection
+    );
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 __drv_allocatesMem(Mem)
 _Must_inspect_result_
@@ -451,6 +457,18 @@ QuicConnCloseHandle(
     )
 {
     QUIC_TEL_ASSERT(!Connection->State.HandleClosed);
+
+    QuicConnCloseLocally(
+        Connection,
+        QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+        (uint64_t)QUIC_STATUS_ABORTED,
+        NULL);
+
+    if (Connection->State.SendShutdownCompleteNotif) {
+        Connection->State.SendShutdownCompleteNotif = FALSE;
+        QuicConnOnShutdownComplete(Connection);
+    }
+
     Connection->State.HandleClosed = TRUE;
     Connection->ClientCallbackHandler = NULL;
 
