@@ -1639,19 +1639,22 @@ QuicDataPathRecvDatagramToRecvPacket(
 
 void
 QuicDataPathBindingReturnRecvDatagrams(
-    _In_opt_ QUIC_RECV_DATAGRAM* RecvPacket
+    _In_opt_ QUIC_RECV_DATAGRAM* DatagramChain
     )
 {
-    if (RecvPacket != NULL) {
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
-        PlatDispatch->DatapathBindingReturnRecvPacket(RecvPacket);
-#else
-        QUIC_DATAPATH_RECV_BLOCK* RecvBlock =
-            QUIC_CONTAINING_RECORD(RecvPacket, QUIC_DATAPATH_RECV_BLOCK, RecvPacket);
-
-        QuicPoolFree(RecvBlock->OwningPool, RecvBlock);
-#endif
+    if (DatagramChain != NULL) {
+        PlatDispatch->DatapathBindingReturnRecvPacket(DatagramChain);
     }
+#else
+    QUIC_RECV_DATAGRAM* Datagram;
+    while ((Datagram = DatagramChain) != NULL) {
+        DatagramChain = DatagramChain->Next;
+        QUIC_DATAPATH_RECV_BLOCK* RecvBlock =
+            QUIC_CONTAINING_RECORD(Datagram, QUIC_DATAPATH_RECV_BLOCK, RecvPacket);
+        QuicPoolFree(RecvBlock->OwningPool, RecvBlock);
+    }
+#endif
 }
 
 QUIC_DATAPATH_SEND_CONTEXT*
