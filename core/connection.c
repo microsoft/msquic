@@ -460,7 +460,7 @@ QuicConnCloseHandle(
 
     QuicConnCloseLocally(
         Connection,
-        QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+        QUIC_CLOSE_SILENT | QUIC_CLOSE_QUIC_STATUS,
         (uint64_t)QUIC_STATUS_ABORTED,
         NULL);
 
