@@ -252,6 +252,15 @@ ListenerAcceptConnection(
     )
 {
     ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
+    if (AcceptContext == nullptr) { // Prime Resumption scenario.
+        auto NewConnection = new TestConnection(ConnectionHandle, ConnectionDoNothingCallback, true, true);
+        if (NewConnection == nullptr || !NewConnection->IsValid()) {
+            TEST_FAILURE("Failed to accept new TestConnection.");
+            delete NewConnection;
+            MsQuic->ConnectionClose(ConnectionHandle);
+        }
+        return;
+    }
     if (*AcceptContext->NewConnection != nullptr) { // Retry scenario.
         delete *AcceptContext->NewConnection;
         *AcceptContext->NewConnection = nullptr;
@@ -324,7 +333,8 @@ QuicTestConnect(
     _In_ bool ChangeMaxStreamID,
     _In_ bool MultipleALPNs,
     _In_ bool AsyncSecConfig,
-    _In_ bool MultiPacketClientInitial
+    _In_ bool MultiPacketClientInitial,
+    _In_ bool SessionResumption
     )
 {
     MsQuicSession Session;
@@ -352,6 +362,37 @@ QuicTestConnect(
             TEST_QUIC_SUCCEEDED(Listener2.Start(&ServerLocalAddr.SockAddr));
         }
 
+        if (SessionResumption) {
+            TestScopeLogger logScope("PrimeResumption");
+            {
+                TestConnection Client(
+                    MultipleALPNs ? Session2.Handle : Session.Handle,
+                    ConnectionDoNothingCallback,
+                    false);
+                TEST_TRUE(Client.IsValid());
+                #if QUIC_TEST_DISABLE_DNS
+                QuicAddr RemoteAddr(QuicAddrFamily, true);
+                TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+                #endif
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        QuicAddrFamily,
+                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+                if (!Client.WaitForZeroRttTicket()) {
+                    return;
+                }
+                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+                if (!Client.WaitForShutdownComplete()) {
+                    return;
+                }
+            }
+        }
+
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
@@ -373,6 +414,10 @@ QuicTestConnect(
                 if (MultiPacketClientInitial) {
                     TEST_QUIC_SUCCEEDED(
                         Client.SetTestTransportParameter(&TpHelper));
+                }
+
+                if (SessionResumption) {
+                    Client.SetExpectedResumed(true);
                 }
 
                 #if QUIC_TEST_DISABLE_DNS
@@ -412,6 +457,11 @@ QuicTestConnect(
                     TEST_EQUAL(Server->GetQuicVersion(), OLD_SUPPORTED_VERSION);
                 } else {
                     TEST_EQUAL(Server->GetQuicVersion(), LATEST_SUPPORTED_VERSION);
+                }
+
+                if (SessionResumption) {
+                    TEST_TRUE(Client.GetResumed());
+                    TEST_TRUE(Server->GetResumed());
                 }
 
                 TEST_EQUAL(

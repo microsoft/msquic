@@ -30,7 +30,7 @@ strategy:
       platform: 'Windows-x64-Stub'
       imageName: 'windows-latest'
       cmakeArgs: '-g ''Visual Studio 16 2019'' -A x64 -DQUIC_TLS=stub'
-      testCmd: '.\.azure\test_windows.cmd *'
+      testCmd: '.\.azure\test_windows.cmd -*Unreachable/0'
     windows-x64-stub-spin:
       platform: 'Windows-x64-Stub-Spin'
       imageName: 'windows-latest'
@@ -40,7 +40,7 @@ strategy:
       platform: 'Windows-x64-miTLS'
       imageName: 'windows-latest'
       cmakeArgs: '-g ''Visual Studio 16 2019'' -A x64 -DQUIC_TLS=mitls'
-      testCmd: '.\.azure\test_windows.cmd *'
+      testCmd: '.\.azure\test_windows.cmd -*Unreachable/0'
     windows-x64-schannel:
       platform: 'Windows-x64-Schannel'
       imageName: 'windows-latest'

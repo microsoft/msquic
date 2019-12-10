@@ -223,7 +223,8 @@ TEST_P(WithHandshakeArgs1, Connect) {
         false,  // ChangeMaxStreamID
         GetParam().MultipleALPNs,
         false,  // AsyncSecConfig
-        GetParam().MultiPacketClientInitial);
+        GetParam().MultiPacketClientInitial,
+        GetParam().SessionResumption);
 }
 
 TEST_P(WithHandshakeArgs2, OldVersion) {
@@ -236,7 +237,8 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
         false,  // ChangeMaxStreamID
         false,  // MultipleALPNs
         false,  // AsyncSecConfig
-        false); // MultiPacketClientInitial
+        false,  // MultiPacketClientInitial
+        false); // SessionResumption
 }
 
 TEST_P(WithFamilyArgs, VersionNegotiation) {
@@ -254,7 +256,8 @@ TEST_P(WithFamilyArgs, Rebind) {
         false,  // ChangeMaxStreamID
         false,  // MultipleALPNs
         false,  // AsyncSecConfig
-        false); // MultiPacketClientInitial
+        false,  // MultiPacketClientInitial
+        false); // SessionResumption
 }
 
 TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
@@ -267,7 +270,8 @@ TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
         true,   // ChangeMaxStreamID
         false,  // MultipleALPNs
         false,  // AsyncSecConfig
-        false); // MultiPacketClientInitial
+        false,  // MultiPacketClientInitial
+        false); // SessionResumption
 }
 
 TEST_P(WithHandshakeArgs1, AsyncSecurityConfig) {
@@ -280,7 +284,8 @@ TEST_P(WithHandshakeArgs1, AsyncSecurityConfig) {
         false,  // ChangeMaxStreamID
         GetParam().MultipleALPNs,
         true,   // AsyncSecConfig
-        false); // MultiPacketClientInitial
+        false,  // MultiPacketClientInitial
+        false); // SessionResumption
 }
 
 TEST_P(WithFamilyArgs, Unreachable) {
@@ -321,7 +326,7 @@ TEST_P(WithSendArgs1, Send) {
         GetParam().ServerInitiatedStreams);
 }
 
-#ifndef QUIC_0RTT_UNSUPPORTED
+#ifndef QUIC_DISABLE_0RTT
 // TODO - Send0Rtt
 // TODO - Reject0Rtt
 #endif

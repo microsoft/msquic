@@ -598,7 +598,7 @@ typedef struct QUIC_CONNECTION_EVENT {
     QUIC_CONNECTION_EVENT_TYPE Type;
     union {
         struct {
-            BOOLEAN EarlyDataAccepted;
+            BOOLEAN SessionResumed;
         } CONNECTED;
         struct {
             QUIC_STATUS Status;

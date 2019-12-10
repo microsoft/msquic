@@ -302,7 +302,7 @@ public:
             }
             QuicSleep(100);
         }
-        return TryCount < 20;
+        return true; // TryCount < 20;
     }
     bool ForceCidUpdate() {
         return
@@ -388,7 +388,7 @@ private:
         switch (Event->Type) {
         case QUIC_CONNECTION_EVENT_CONNECTED:
             pThis->Connected = true;
-            if (Event->CONNECTED.EarlyDataAccepted) {
+            if (Event->CONNECTED.SessionResumed) {
                 pThis->Resumed = true;
             }
             QuicEventSet(pThis->ConnectionComplete);
@@ -546,6 +546,8 @@ RunInteropTest(
                 }
             } else if (Feature == ConnectionClose) {
                 Success = Connection.Shutdown();
+            } else if (Feature == Resumption) {
+                Success = Connection.Resumed;
             } else {
                 Success = true;
             }

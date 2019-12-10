@@ -1557,8 +1557,23 @@ QuicTlsWriteDataToSchannel(
                 // signal in the upcall which ALPN(s) were negotiated.
             }
 
-            LogInfo("[ tls][%p][%c] Handshake complete.",
-                TlsContext, GetTlsIdentifier(TlsContext));
+            SecPkgContext_SessionInfo SessionInfo;
+            SecStatus =
+                QueryContextAttributesW(
+                    &TlsContext->SchannelContext,
+                    SECPKG_ATTR_SESSION_INFO,
+                    &SessionInfo);
+            if (SecStatus != SEC_E_OK) {
+                EventWriteQuicTlsErrorStatus(TlsContext->Connection, SecStatus, "query session info");
+                Result |= QUIC_TLS_RESULT_ERROR;
+                break;
+            }
+            if (SessionInfo.dwFlags & SSL_SESSION_RECONNECT) {
+                State->SessionResumed = TRUE;
+            }
+
+            LogInfo("[ tls][%p][%c] Handshake complete (resume=%hu).",
+                TlsContext, GetTlsIdentifier(TlsContext), State->SessionResumed);
             State->HandshakeComplete = TRUE;
             Result |= QUIC_TLS_RESULT_COMPLETE;
         }
