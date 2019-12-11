@@ -475,10 +475,21 @@ QuicTestConnect(
                     TEST_QUIC_SUCCEEDED(Client.GetLocalAddr(NewLocalAddr));
                     TEST_FALSE(Client.GetIsShutdown());
 
-                    QuicAddr ServerRemoteAddr;
-                    TEST_QUIC_SUCCEEDED(Server->GetRemoteAddr(ServerRemoteAddr));
-                    TEST_TRUE(Server->GetPeerAddrChanged());
-                    TEST_TRUE(QuicAddrCompare(&NewLocalAddr.SockAddr, &ServerRemoteAddr.SockAddr));
+                    bool ServerAddressUpdated = false;
+                    uint32_t Try = 0;
+                    do {
+                        if (Try != 0) {
+                            QuicSleep(200);
+                        }
+                        QuicAddr ServerRemoteAddr;
+                        TEST_QUIC_SUCCEEDED(Server->GetRemoteAddr(ServerRemoteAddr));
+                        if (Server->GetPeerAddrChanged() &&
+                            QuicAddrCompare(&NewLocalAddr.SockAddr, &ServerRemoteAddr.SockAddr)) {
+                            ServerAddressUpdated = true;
+                            break;
+                        }
+                    } while (++Try <= 3);
+                    TEST_TRUE(ServerAddressUpdated);
                 }
 
                 if (ChangeMaxStreamID) {
