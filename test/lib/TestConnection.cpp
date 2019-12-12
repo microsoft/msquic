@@ -646,7 +646,7 @@ TestConnection::HandleConnectionEvent(
 
     case QUIC_CONNECTION_EVENT_CONNECTED:
         IsConnected = true;
-        Resumed = Event->CONNECTED.EarlyDataAccepted != FALSE;
+        Resumed = Event->CONNECTED.SessionResumed != FALSE;
         if (!Resumed && ExpectedResumed) {
             TEST_FAILURE("Resumption was expected!");
         }

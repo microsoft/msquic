@@ -174,7 +174,7 @@ void QuicTestValidateSession()
             sizeof(TicketKey) - 1,
             TicketKey));
 
-#ifndef QUIC_0RTT_UNSUPPORTED
+#ifndef QUIC_DISABLE_0RTT
     //
     // Valid 0-RTT ticket encryption key.
     //
@@ -547,7 +547,7 @@ ListenerAcceptCallback(
     )
 {
     TestConnection** NewConnection = (TestConnection**)Listener->Context;
-    *NewConnection = new TestConnection(ConnectionHandle, ConnectionIgnoreStreamCallback, true, true);
+    *NewConnection = new TestConnection(ConnectionHandle, ConnectionIgnoreStreamCallback, true);
     if (*NewConnection == nullptr || !(*NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *NewConnection;
@@ -593,7 +593,7 @@ void QuicTestValidateStream(bool Connect)
     // Force the Client, Server, and Listener to clean up before the Session and Registration.
     //
     {
-        TestConnection Client(TestSession, ConnectionIgnoreStreamCallback, false, false);
+        TestConnection Client(TestSession, ConnectionIgnoreStreamCallback, false);
         TEST_TRUE(Client.IsValid());
 
         UniquePtr<TestConnection> Server;

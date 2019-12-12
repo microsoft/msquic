@@ -657,8 +657,9 @@ QuicTlsServerProcess(
                 break; // Ignored in this code.
             }
             case TlsExt_SessionTicket: {
+                State->SessionResumed = TRUE; // TODO - Support tickets
                 State->EarlyDataAttempted = TRUE;
-                State->EarlyDataAccepted = TRUE; // TODO - Support tickets
+                State->EarlyDataAccepted = TRUE;
                 break;
             }
             case TlsExt_QuicTransportParameters: {
@@ -704,8 +705,6 @@ QuicTlsServerProcess(
         TlsWriteUint24(ServerMessage->Length, MessageLength - 4);
         ServerMessage->Type = QUIC_TLS_MESSAGE_SERVER_INITIAL;
         ServerMessage->SERVER_INITIAL.EarlyDataAccepted = State->EarlyDataAccepted;
-        State->EarlyDataAttempted = State->EarlyDataAttempted;
-        State->EarlyDataAccepted = State->EarlyDataAccepted;
 
         State->BufferLength = MessageLength;
         State->BufferTotalLength = MessageLength;
@@ -924,6 +923,7 @@ QuicTlsClientProcess(
         if (ServerMessage->Type == QUIC_TLS_MESSAGE_SERVER_INITIAL) {
 
             if (State->EarlyDataAttempted) {
+                State->SessionResumed = ServerMessage->SERVER_INITIAL.EarlyDataAccepted;
                 State->EarlyDataAccepted = ServerMessage->SERVER_INITIAL.EarlyDataAccepted;
                 if (!ServerMessage->SERVER_INITIAL.EarlyDataAccepted) {
                     *ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_REJECT;

@@ -128,44 +128,40 @@ typedef struct QUIC_HASHTABLE {
 
     // Entries initialized at creation
     uint32_t Flags;
-    uint32_t Shift;
 
     // Entries used in bucket computation.
     uint32_t TableSize;
+#ifdef QUIC_HASHTABLE_RESIZE_SUPPORT
     uint32_t Pivot;
     uint32_t DivisorMask;
+#endif
 
     // Counters
     uint32_t NumEntries;
     uint32_t NonEmptyBuckets;
     uint32_t NumEnumerators;
 
-    // The directory. This field is for internal use only.
-    void* Directory;
+    // For internal use only.
+    union {
+        void* Directory;
+        QUIC_LIST_ENTRY* SecondLevelDir; // When TableSize <= HT_SECOND_LEVEL_DIR_MIN_SIZE
+        QUIC_LIST_ENTRY** FirstLevelDir; // When TableSize > HT_SECOND_LEVEL_DIR_MIN_SIZE
+    };
 
 } QUIC_HASHTABLE;
 
-inline
-uint32_t
-QuicHashtableGetTotalEntryCount(
-    _In_ const QUIC_HASHTABLE* HashTable
-    )
-{
-    return HashTable->NumEntries;
-}
-
 _Must_inspect_result_
-_Success_(return != 0)
+_Success_(return != FALSE)
 BOOLEAN
 QuicHashtableInitialize(
     _Inout_ _When_(NULL == *HashTable, _At_(*HashTable, __drv_allocatesMem(Mem)))
-        QUIC_HASHTABLE* *HashTable,
+        QUIC_HASHTABLE** HashTable,
     _In_ uint32_t InitialSize
     );
 
 inline
 _Must_inspect_result_
-_Success_(return != 0)
+_Success_(return != FALSE)
 BOOLEAN
 QuicHashtableInitializeEx(
     _Inout_ QUIC_HASHTABLE* HashTable,
@@ -177,7 +173,9 @@ QuicHashtableInitializeEx(
 
 void
 QuicHashtableUninitialize(
-    _In_ _When_((HashTable->Flags & QUIC_HASH_ALLOCATED_HEADER), __drv_freesMem(Mem) _Post_invalid_)
+    _In_
+    _When_((HashTable->Flags & QUIC_HASH_ALLOCATED_HEADER), __drv_freesMem(Mem) _Post_invalid_)
+    _At_(HashTable->Directory, __drv_freesMem(Mem) _Post_invalid_)
         QUIC_HASHTABLE* HashTable
     );
 
@@ -229,6 +227,20 @@ QuicHashtableEnumerateEnd(
     _In_ QUIC_HASHTABLE* HashTable,
     _Inout_ QUIC_HASHTABLE_ENUMERATOR* Enumerator
     );
+
+#ifdef QUIC_HASHTABLE_RESIZE_SUPPORT
+
+BOOLEAN
+QuicHashTableExpand(
+    _Inout_ QUIC_HASHTABLE* HashTable
+    );
+
+BOOLEAN
+QuicHashTableContract(
+    _Inout_ QUIC_HASHTABLE* HashTable
+    );
+
+#endif // QUIC_HASHTABLE_RESIZE_SUPPORT
 
 //
 // Simple helper hash function.

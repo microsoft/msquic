@@ -55,7 +55,7 @@ QuicLookupUninitialize(
         QUIC_DBG_ASSERT(Lookup->HASH.Tables != NULL);
         for (uint8_t i = 0; i < Lookup->PartitionCount; i++) {
             QUIC_PARTITIONED_HASHTABLE* Table = &Lookup->HASH.Tables[i];
-            QUIC_DBG_ASSERT(QuicHashtableGetTotalEntryCount(&Table->Table) == 0);
+            QUIC_DBG_ASSERT(Table->Table.NumEntries == 0);
             QuicHashtableUninitialize(&Table->Table);
             QuicDispatchRwLockUninitialize(&Table->RwLock);
         }

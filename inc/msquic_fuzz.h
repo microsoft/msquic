@@ -83,7 +83,7 @@ typedef
 void
 (*QUIC_FUZZ_ENCRYPT_CALLBACK_FN) (
     _Inout_ void *CallbackContext,
-    _Inout_updates_bytes_(Length) const uint8_t * const Buffer,
+    _Inout_updates_bytes_(Length) uint8_t* Buffer,
     _In_ DWORD Length
     );
 

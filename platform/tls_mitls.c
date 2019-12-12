@@ -1291,6 +1291,7 @@ QuicTlsProcessDataComplete(
                     ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_ACCEPT;
                     LogVerbose("[ tls][%p] Early data accepted", TlsContext);
                     TlsContext->TlsKeySchedule = 1; // 0-RTT allowed.
+                    State->SessionResumed = TRUE;
                     State->EarlyDataAttempted = TRUE;
                     State->EarlyDataAccepted = TRUE;
                 } else {
@@ -1339,6 +1340,7 @@ QuicTlsProcessDataComplete(
                             // rejected event/flag from miTLS.
                             //
                             ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_ACCEPT;
+                            State->SessionResumed = TRUE;
                             State->EarlyDataAccepted = TRUE;
                             LogVerbose("[ tls][%p] Early data accepted", TlsContext);
                         }

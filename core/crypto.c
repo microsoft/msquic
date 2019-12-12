@@ -1269,9 +1269,9 @@ QuicCryptoProcessTlsCompletion(
 
         QUIC_CONNECTION_EVENT Event;
         Event.Type = QUIC_CONNECTION_EVENT_CONNECTED;
-        Event.CONNECTED.EarlyDataAccepted = Crypto->TlsState.EarlyDataAccepted;
-        LogVerbose("[conn][%p] Indicating QUIC_CONNECTION_EVENT_CONNECTED (EarlyData=%hu)",
-            Connection, Event.CONNECTED.EarlyDataAccepted);
+        Event.CONNECTED.SessionResumed = Crypto->TlsState.SessionResumed;
+        LogVerbose("[conn][%p] Indicating QUIC_CONNECTION_EVENT_CONNECTED (Resume=%hu)",
+            Connection, Event.CONNECTED.SessionResumed);
         (void)QuicConnIndicateEvent(Connection, &Event);
 
         QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PMTUD);

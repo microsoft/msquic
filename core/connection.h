@@ -326,7 +326,7 @@ typedef struct QUIC_CONNECTION {
     //
     // Number of paths the connection is currently tracking.
     //
-    _In_range_(0, QUIC_MAX_PATH_COUNT)
+    _Field_range_(0, QUIC_MAX_PATH_COUNT)
     uint8_t PathsCount;
 
     //

@@ -129,7 +129,17 @@ typedef enum QUIC_TLS_RESULT_FLAGS {
 typedef struct QUIC_TLS_PROCESS_STATE {
 
     //
-    // Indicate the client configured 0-RTT initially.
+    // Indicates TLS has completed the handshake phase of its exchange.
+    //
+    BOOLEAN HandshakeComplete : 1;
+
+    //
+    // Indicates the TLS session was resumed from a previous connection.
+    //
+    BOOLEAN SessionResumed : 1;
+
+    //
+    // Indicates the client configured 0-RTT initially.
     //
     BOOLEAN EarlyDataAttempted : 1;
 
@@ -138,11 +148,6 @@ typedef struct QUIC_TLS_PROCESS_STATE {
     // was never even attemtped.
     //
     BOOLEAN EarlyDataAccepted : 1;
-
-    //
-    // Indicates TLS has completed the handshake phase of its exchange.
-    //
-    BOOLEAN HandshakeComplete : 1;
 
     //
     // The key that newly received data should be decrypted and read with.

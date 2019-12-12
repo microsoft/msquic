@@ -58,10 +58,16 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_STUB")
     endif()
 
+    if(QUIC_TLS STREQUAL "openssl")
+        # OpenSSL doesn't support session resumption yet.
+        message(STATUS "Disabling session resumption support")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_DISABLE_RESUMPTION")
+    endif()
+
     if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel")
         # OpenSSL and SChannel don't support 0-RTT yet.
         message(STATUS "Disabling 0-RTT support")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_0RTT_UNSUPPORTED")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_DISABLE_0RTT")
     endif()
 
     if(QUIC_SANITIZE_ADDRESS)
@@ -86,9 +92,12 @@ else()
     endif()
 
     if(QUIC_TLS STREQUAL "openssl")
+        # OpenSSL doesn't support session resumption yet.
+        message(STATUS "Disabling session resumption support")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_DISABLE_RESUMPTION")
         # OpenSSL doesn't support 0-RTT yet.
         message(STATUS "Disabling 0-RTT support")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_0RTT_UNSUPPORTED")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_DISABLE_0RTT")
     endif()
 
     if(QUIC_SANITIZE_ADDRESS)

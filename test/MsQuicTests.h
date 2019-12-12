@@ -70,7 +70,8 @@ QuicTestConnect(
     _In_ bool ChangeMaxStreamID,
     _In_ bool MultipleALPNs,
     _In_ bool AsyncSecConfig,
-    _In_ bool MultiPacketClientInitial
+    _In_ bool MultiPacketClientInitial,
+    _In_ bool SessionResumption
     );
 
 void
@@ -325,6 +326,7 @@ typedef struct {
     UINT8 MultipleALPNs;
     UINT8 AsyncSecConfig;
     UINT8 MultiPacketClientInitial;
+    UINT8 SessionResumption;
 } QUIC_RUN_CONNECT_PARAMS;
 
 #pragma pack(pop)

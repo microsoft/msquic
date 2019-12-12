@@ -250,8 +250,4 @@
 #define _At_(...)
 #endif
 
-#ifndef __ecount_opt
-#define __ecount_opt(...)
-#endif
-
 #endif // _SAL_STUB_H
