@@ -1401,7 +1401,7 @@ QuicStreamSendDumpState(
     _In_ QUIC_STREAM* Stream
     )
 {
-    if (WPP_COMPID_LEVEL_ENABLED(FLAG_DEFAULT, TRACE_LEVEL_VERBOSE)) {
+    if (LogVerboseEnabled()) {
 
         LogVerbose("[strm][%p][%llu] SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu",
             Stream,

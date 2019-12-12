@@ -2372,6 +2372,42 @@
               template="tid_PACKET_ACKED"
               value="5167"
               />
+          <event
+              keywords="ut:Connection ut:Log"
+              level="win:Error"
+              message="$(string.Etw.Message)"
+              opcode="win:Info"
+              symbol="QuicConnLogError"
+              template="tid_CONN_MESSAGE"
+              value="5168"
+              />
+          <event
+              keywords="ut:Connection ut:Log"
+              level="win:Warning"
+              message="$(string.Etw.Message)"
+              opcode="win:Info"
+              symbol="QuicConnLogWarning"
+              template="tid_CONN_MESSAGE"
+              value="5169"
+              />
+          <event
+              keywords="ut:Connection ut:Log"
+              level="win:Informational"
+              message="$(string.Etw.Message)"
+              opcode="win:Info"
+              symbol="QuicConnLogInfo"
+              template="tid_CONN_MESSAGE"
+              value="5170"
+              />
+          <event
+              keywords="ut:Connection ut:Log"
+              level="win:Verbose"
+              message="$(string.Etw.Message)"
+              opcode="win:Info"
+              symbol="QuicConnLogVerbose"
+              template="tid_CONN_MESSAGE"
+              value="5171"
+              />
           <!-- 6144 - 7167 | Stream Events -->
           <event
               keywords="ut:Stream ut:LowVolume"
@@ -2637,42 +2673,6 @@
               symbol="QuicLogVerbose"
               template="tid_MESSAGE"
               value="10243"
-              />
-          <event
-              keywords="ut:Log"
-              level="win:Verbose"
-              message="$(string.Etw.Message)"
-              opcode="win:Info"
-              symbol="QuicLogDev"
-              template="tid_MESSAGE"
-              value="10244"
-              />
-          <event
-              keywords="ut:Log"
-              level="win:Warning"
-              message="$(string.Etw.Message)"
-              opcode="win:Info"
-              symbol="QuicLogPacketWarning"
-              template="tid_MESSAGE"
-              value="10245"
-              />
-          <event
-              keywords="ut:Log"
-              level="win:Informational"
-              message="$(string.Etw.Message)"
-              opcode="win:Info"
-              symbol="QuicLogPacketInfo"
-              template="tid_MESSAGE"
-              value="10246"
-              />
-          <event
-              keywords="ut:Log"
-              level="win:Verbose"
-              message="$(string.Etw.Message)"
-              opcode="win:Info"
-              symbol="QuicLogPacketVerbose"
-              template="tid_MESSAGE"
-              value="10247"
               />
         </events>
       </provider>

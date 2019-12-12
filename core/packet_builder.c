@@ -231,7 +231,7 @@ QuicPacketBuilderPrepare(
             Builder->MinimumDatagramLength = NewDatagramLength;
         }
 
-        LogDev("[pktb][%p] New UDP datagram. Space: %u",
+        LogVerbose("[pktb][%p] New UDP datagram. Space: %u",
             Connection, Builder->Datagram->Length);
     }
 
@@ -310,7 +310,7 @@ QuicPacketBuilderPrepare(
 
         Builder->DatagramLength += Builder->HeaderLength;
 
-        LogDev("[pktb][%p] New QUIC packet. Space: %hu. Type: %hx",
+        LogVerbose("[pktb][%p] New QUIC packet. Space: %hu. Type: %hx",
             Connection, BufferSpaceAvailable, NewPacketType);
     }
 
@@ -627,7 +627,7 @@ QuicPacketBuilderFinalize(
     QuicFuzzInjectHook(Builder);
 #endif
 
-    if (WPP_COMPID_LEVEL_ENABLED(FLAG_PACKET, TRACE_LEVEL_INFORMATION)) {
+    if (LogVerboseEnabled()) {
         QuicPacketLogHeader(
             Connection,
             FALSE,
@@ -826,7 +826,7 @@ QuicPacketBuilderSendBatch(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
-    LogDev("[pktb][%p] Sending batch. %hu datagrams",
+    LogVerbose("[pktb][%p] Sending batch. %hu datagrams",
         Builder->Connection, (uint16_t)Builder->TotalCountDatagrams);
 
     if (QuicAddrIsBoundExplicitly(&Builder->Path->LocalAddress)) {

@@ -401,7 +401,7 @@ QuicPacketLogHeader(
 
         switch (Invariant->LONG_HDR.Version) {
         case QUIC_VERSION_VER_NEG: {
-            LogPacketInfo(
+            LogVerbose(
                 "[%c][%cX][-] VerNeg DestCID:%s SrcCID:%s (Payload %lu bytes)",
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
@@ -410,7 +410,7 @@ QuicPacketLogHeader(
                 PacketLength - Offset);
 
             while (Offset < PacketLength) {
-                LogPacketInfo(
+                LogVerbose(
                     "[%c][%cX][-]   Ver:0x%x",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
@@ -444,7 +444,7 @@ QuicPacketLogHeader(
                 const uint8_t* OrigDestCID = SourceCID + sizeof(uint8_t) + SourceCIDLen;
                 Offset += sizeof(uint8_t) + OrigDestCIDLen;
 
-                LogPacketInfo(
+                LogVerbose(
                     "[%c][%cX][-] LH Ver:0x%x DestCID:%s SrcCID:%s Type:R OrigDestCID:%s (Token %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
@@ -468,7 +468,7 @@ QuicPacketLogHeader(
             }
 
             if (LongHdr->Type == QUIC_INITIAL) {
-                LogPacketInfo(
+                LogVerbose(
                     "[%c][%cX][%llu] LH Ver:0x%x DestCID:%s SrcCID:%s Type:%s (Token %hu bytes) (Payload %hu bytes) (PktNum %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
@@ -481,7 +481,7 @@ QuicPacketLogHeader(
                     (uint16_t)Length,
                     LongHdr->PnLength + 1);
             } else {
-                LogPacketInfo(
+                LogVerbose(
                     "[%c][%cX][%llu] LH Ver:0x%x DestCID:%s SrcCID:%s Type:%s (Payload %hu bytes) (PktNum %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
@@ -497,7 +497,7 @@ QuicPacketLogHeader(
         }
 
         default:
-            LogPacketInfo(
+            LogVerbose(
                 "[%c][%cX][%llu] LH Ver:[UNSUPPORTED,0x%x] DestCID:%s SrcCID:%s",
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
@@ -521,7 +521,7 @@ QuicPacketLogHeader(
 
             Offset = sizeof(QUIC_SHORT_HEADER_V1) + DestCIDLen;
 
-            LogPacketInfo(
+            LogVerbose(
                 "[%c][%cX][%llu] SH DestCID:%s KP:%hu SB:%hu (Payload %hu bytes)",
                 PtkConnPre(Connection),
                 PktRxPre(Rx),

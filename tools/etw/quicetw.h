@@ -319,6 +319,10 @@ typedef enum QUIC_EVENT_ID_CONNECTION {
     EventId_QuicConnPacketRecv,
     EventId_QuicConnPacketLost,
     EventId_QuicConnPacketACKed,
+    EventId_QuicConnLogError,
+    EventId_QuicConnLogWarning,
+    EventId_QuicConnLogInfo,
+    EventId_QuicConnLogVerbose,
 
     EventId_QuicConnCount
 } QUIC_EVENT_ID_CONNECTION;
@@ -469,6 +473,9 @@ typedef struct QUIC_EVENT_DATA_CONNECTION {
             UINT64 Number;
             UINT8 Type;
         } PacketACKed;
+        struct {
+            char Msg[1];
+        } Log;
     };
 } QUIC_EVENT_DATA_CONNECTION;
 #pragma pack(pop)
@@ -653,10 +660,6 @@ typedef enum QUIC_EVENT_ID_LOG {
     EventId_QuicLogWarning,
     EventId_QuicLogInfo,
     EventId_QuicLogVerbose,
-    EventId_QuicLogDev,
-    EventId_QuicLogPacketWarning,
-    EventId_QuicLogPacketInfo,
-    EventId_QuicLogPacketVerbose,
 
     EventId_QuicLogCount
 } QUIC_EVENT_ID_LOG;

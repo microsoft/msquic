@@ -130,7 +130,7 @@ QuicTimerWheelResize(
         return;
     }
 
-    LogDev("[time][%p] Resizing timer wheel (new slot count = %u).", TimerWheel, NewSlotCount);
+    LogVerbose("[time][%p] Resizing timer wheel (new slot count = %u).", TimerWheel, NewSlotCount);
 
     for (uint32_t i = 0; i < NewSlotCount; ++i) {
         QuicListInitializeHead(&NewSlots[i]);
@@ -217,9 +217,9 @@ QuicTimerWheelUpdate(
     }
 
     if (TimerWheel->NextConnection == NULL) {
-        LogDev("[time][%p] Next Expiration = {NULL}.", TimerWheel);
+        LogVerbose("[time][%p] Next Expiration = {NULL}.", TimerWheel);
     } else {
-        LogDev("[time][%p] Next Expiration = {%llu, %p}.",
+        LogVerbose("[time][%p] Next Expiration = {%llu, %p}.",
             TimerWheel, TimerWheel->NextExpirationTime, TimerWheel->NextConnection);
     }
 }
@@ -236,7 +236,7 @@ QuicTimerWheelRemoveConnection(
         // If the connection was in the timer wheel, remove its entry in the
         // doubly-link list.
         //
-        LogDev("[time][%p] Removing Connection %p.", TimerWheel, Connection);
+        LogVerbose("[time][%p] Removing Connection %p.", TimerWheel, Connection);
         QuicListEntryRemove(&Connection->TimerLink);
         Connection->TimerLink.Flink = NULL;
         TimerWheel->ConnectionCount--;
@@ -282,7 +282,7 @@ QuicTimerWheelUpdateConnection(
         // No more timers left, go ahead and invalidate its link.
         //
         Connection->TimerLink.Flink = NULL;
-        LogDev("[time][%p] Removing Connection %p.", TimerWheel, Connection);
+        LogVerbose("[time][%p] Removing Connection %p.", TimerWheel, Connection);
 
         if (Connection == TimerWheel->NextConnection) {
             QuicTimerWheelUpdate(TimerWheel);
@@ -317,7 +317,7 @@ QuicTimerWheelUpdateConnection(
         //
         QuicListInsertHead(Entry, &Connection->TimerLink);
 
-        LogDev("[time][%p] Updating Connection %p.", TimerWheel, Connection);
+        LogVerbose("[time][%p] Updating Connection %p.", TimerWheel, Connection);
 
         //
         // Make sure the next expiration time/connection is still correct.
@@ -325,7 +325,7 @@ QuicTimerWheelUpdateConnection(
         if (ExpirationTime < TimerWheel->NextExpirationTime) {
             TimerWheel->NextExpirationTime = ExpirationTime;
             TimerWheel->NextConnection = Connection;
-            LogDev("[time][%p] Next Expiration = {%llu, %p}.",
+            LogVerbose("[time][%p] Next Expiration = {%llu, %p}.",
                 TimerWheel, ExpirationTime, Connection);
         } else if (Connection == TimerWheel->NextConnection) {
             QuicTimerWheelUpdate(TimerWheel);

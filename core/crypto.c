@@ -33,7 +33,7 @@ QuicCryptoDumpSendState(
     _In_ QUIC_CRYPTO* Crypto
     )
 {
-    if (WPP_COMPID_LEVEL_ENABLED(FLAG_DEFAULT, TRACE_LEVEL_VERBOSE)) {
+    if (LogVerboseEnabled()) {
 
         QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
 

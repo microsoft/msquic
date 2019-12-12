@@ -2529,7 +2529,7 @@ QuicEncrypt(
 #pragma prefast(suppress: __WARNING_26000, "Auth Data and Buffer are always contiguous.")
         MsQuicFuzzerContext.EncryptCallback(
             MsQuicFuzzerContext.CallbackContext,
-            AuthData,
+            (uint8_t*)AuthData,
             AuthDataLength + BufferLength
         );
     }
