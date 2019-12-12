@@ -2407,6 +2407,7 @@ QuicDataPathBindingSendFromTo(
         WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(*SegmentSize));
 
         CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+        QUIC_DBG_ASSERT(CMsg != NULL);
         CMsg->cmsg_level = IPPROTO_UDP;
         CMsg->cmsg_type = UDP_SEND_MSG_SIZE;
         CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(*SegmentSize));

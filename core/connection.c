@@ -3350,6 +3350,7 @@ QuicConnRecvPayload(
                 break; // Ignore frame if we are closed.
             }
 
+            QUIC_DBG_ASSERT(Connection->PathsCount <= QUIC_MAX_PATH_COUNT);
             for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
                 QUIC_PATH* TempPath = &Connection->Paths[i];
                 if (!TempPath->IsPeerValidated &&

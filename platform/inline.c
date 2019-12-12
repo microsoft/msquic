@@ -116,11 +116,6 @@ InterlockedIncrement64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Addend
     );
 
-uint32_t
-QuicHashtableGetTotalEntryCount(
-    _In_ const QUIC_HASHTABLE* Table
-    );
-
 _Must_inspect_result_
 _Success_(return != 0)
 BOOLEAN

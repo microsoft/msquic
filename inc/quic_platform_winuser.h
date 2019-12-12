@@ -33,6 +33,8 @@ Environment:
 
 #pragma warning(push) // Don't care about OACR warnings in publics
 #pragma warning(disable:26036)
+#pragma warning(disable:28252)
+#pragma warning(disable:28253)
 #include <windows.h>
 #include <winsock2.h>
 #include <iphlpapi.h>

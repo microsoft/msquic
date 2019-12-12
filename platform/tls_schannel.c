@@ -2526,6 +2526,7 @@ QuicEncrypt(
 
 #ifdef QUIC_FUZZER
     if (MsQuicFuzzerContext.EncryptCallback) {
+#pragma prefast(suppress: __WARNING_26000, "Auth Data and Buffer are always contiguous.")
         MsQuicFuzzerContext.EncryptCallback(
             MsQuicFuzzerContext.CallbackContext,
             AuthData,

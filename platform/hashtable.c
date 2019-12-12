@@ -10,42 +10,35 @@ Abstract:
 
 Notes:
 
-    This code uses linear-hashing to increase the table size
-    smoothly as the number of elements in the table increases,
-    while rehashing a portion of the elements. This is in
-    contrast to doubling-based schemes which double the
-    size of the hash table periodically and rehash *all*
-    the elements in the hash table.
+    This code uses linear hashing to increase the table size smoothly as the
+    number of elements in the table increases, while rehashing a portion of the
+    elements. This is in contrast to doubling-based schemes which double the
+    size of the hash table periodically and rehash *all* the elements in the
+    hash table.
 
-    Note that the hash table size (in terms of the total number of buckets)
-    is independent from the size of memory allocated for backing the table.
-    This implementation doubles up the memory size for each higher-indexed 
-    second level bucket directory (which the first level directory points to).
-    This is so that we can scale up the maximum supported table size
-    exponentially by the size of the first level directory. But, we still
-    increment the table size by only one bucket during table expansion, 
-    i.e., each expansion iteration rehashes only a single bucket (the
-    pivot bucket) as opposed to the whole table.
+    Note that the hash table size (in terms of the total number of buckets) is
+    independent from the size of memory allocated for backing the table. This
+    implementation doubles up the memory size for each higher-indexed second
+    level bucket directory (which the first level directory points to). This is
+    so that we can scale up the maximum supported table size exponentially by
+    the size of the first level directory. But, we still increment the table
+    size by only one bucket during table expansion, i.e., each expansion
+    iteration rehashes only a single bucket (the pivot bucket) as opposed to the
+    whole table.
 
-    This module contains the "basic" hash table, referred below
-    as just the hash table. This hash table is intended to
-    be protected by a single lock, which can be a reader-writer
-    lock if the caller desires. Locking is supposed to be
-    handled by the user. This API is designed for users
-    who really care about performance and would like to
-    retain explicit control of locking.
+    This hash table is intended to be protected by a single lock, which can be a
+    reader-writer lock if the caller desires. Locking is supposed to be handled
+    by the user. This API is designed for users who really care about
+    performance and would like to retain explicit control of locking.
 
-    APIs support the concept of transactions -- if the
-    caller wishes to make a series of operations, for e.g, a
-    lookup followed by an insertion, the APIs allow the user
-    to mark the position where the last operation occurred
-    using a place-holder called a Context. So if a user
-    performs a lookup and passes in a Context, the Context
-    will store the place in the hash table where the lookup
-    ended. If the caller wants to follow it up with an
-    insertion, the hash table now has information about
-    the location, and does not have to traverse the hash
-    table chains again.
+    APIs support the concept of transactions -- if the caller wishes to make a
+    series of operations, for e.g, a lookup followed by an insertion, the APIs
+    allow the user to mark the position where the last operation occurred using
+    a place-holder called a Context. So if a user performs a lookup and passes
+    in a Context, the Context will store the place in the hash table where the
+    lookup ended. If the caller wants to follow it up with an insertion, the
+    hash table now has information about the location, and does not have to
+    traverse the hash table chains again.
 
 --*/
 
@@ -143,16 +136,16 @@ QuicComputeDirIndices(
     uint32_t BucketIndex,
     _Out_range_(<, HT_FIRST_LEVEL_DIR_SIZE)
     uint32_t* FirstLevelIndex,
-    _Out_range_(<, (1 << (*FirstLevelIndex+HT_SECOND_LEVEL_DIR_SHIFT)))
+    _Out_range_(<, (1 << (*FirstLevelIndex + HT_SECOND_LEVEL_DIR_SHIFT)))
     uint32_t* SecondLevelIndex
     )
 /*++
 
 Routine Description:
 
-    Given a bucket index, computes the first level dir index that points to
-    the corresponding second level dir, and the second level dir index that
-    points to the hash bucket.
+    Given a bucket index, computes the first level dir index that points to the
+    corresponding second level dir, and the second level dir index that points
+    to the hash bucket.
 
 Arguments:
 
@@ -166,13 +159,13 @@ Arguments:
 
 --*/
 {
-    uint32_t AbsoluteIndex = BucketIndex + HT_SECOND_LEVEL_DIR_MIN_SIZE;
-
     QUIC_DBG_ASSERT(BucketIndex < MAX_HASH_TABLE_SIZE);
 
+    uint32_t AbsoluteIndex = BucketIndex + HT_SECOND_LEVEL_DIR_MIN_SIZE;
+
     //
-    // Find the most significant set bit. Since AbsoluteIndex
-    // is always nonzero, we don't need to check the return value.
+    // Find the most significant set bit. Since AbsoluteIndex is always nonzero,
+    // we don't need to check the return value.
     //
 
     QuicBitScanReverse(FirstLevelIndex, AbsoluteIndex);
@@ -203,8 +196,8 @@ QuicComputeSecondLevelDirSize(
 
 Routine Description:
 
-    Computes size of 2nd level directory. The size of the second level dir
-    is determined by its position in the first level dir.
+    Computes size of 2nd level directory. The size of the second level dir is
+    determined by its position in the first level dir.
 
 Arguments:
 
@@ -220,36 +213,6 @@ Return Value:
 }
 
 static
-_Ret_maybenull_
-_Must_inspect_result_
-__ecount_opt(1 << (FirstLevelIndex + HT_SECOND_LEVEL_DIR_SHIFT))
-QUIC_LIST_ENTRY*
-QuicAllocateSecondLevelDir(
-    _In_range_(<, HT_FIRST_LEVEL_DIR_SIZE) uint32_t FirstLevelIndex
-    )
-/*++
-
-Routine Description:
-
-    This routine allocates a second level dir. The size of the second level dir
-    is determined by its position in the first level dir. 
-
-Arguments:
-
-    FirstLevelIndex - [0, HT_FIRST_LEVEL_DIR_SIZE-1]
-
-Return Value:
-
-    QUIC_LIST_ENTRY* Head of a second-level directory.
-
---*/
-{
-    return
-        QUIC_ALLOC_NONPAGED(
-            QuicComputeSecondLevelDirSize(FirstLevelIndex) * sizeof(QUIC_LIST_ENTRY));
-}
-
-static
 void
 QuicInitializeSecondLevelDir(
     _Out_writes_all_(NumberOfBucketsToInitialize) QUIC_LIST_ENTRY* SecondLevelDir,
@@ -259,7 +222,7 @@ QuicInitializeSecondLevelDir(
 
 Routine Description:
 
-    Initializes a second level dir. 
+    Initializes a second level dir.
 
 Arguments:
 
@@ -275,26 +238,6 @@ Arguments:
 }
 
 static
-void
-QuicSecondLevelDirFree(
-    _In_ __drv_freesMem(Mem) _Post_invalid_ void* MemPtr
-    )
-/*++
-
-Routine Description:
-
-    Frees second level dir
-
-Arguments:
-
-    MemPtr - supplies the pointer to the second level page dir
-
---*/
-{
-    QUIC_FREE(MemPtr);
-}
-
-static
 QUIC_HASHTABLE_ENTRY*
 QuicFlinkToHashEntry(
     _In_ QUIC_LIST_ENTRY* *FlinkPtr
@@ -303,25 +246,22 @@ QuicFlinkToHashEntry(
 
 Routine Description:
 
-    Converts the pointer to the Flink in LIST_ENTRY
-    into a RTL_DYNAMIC_HASH_TABLE_ENTRY structure.
+    Converts the pointer to the Flink in LIST_ENTRY into a QUIC_HASHTABLE_ENTRY
+    structure.
 
 Arguments:
 
-    FlinkPtr - supplies the pointer to the Flink field
-        in LIST_ENTRY
+    FlinkPtr - supplies the pointer to the Flink field in LIST_ENTRY
 
 Return Value:
 
-    Returns the RTL_DYNAMIC_HASH_TABLE_ENTRY that contains the
-    LIST_ENTRY which contains the Flink whose pointer
-    was passed above.
+    Returns the QUIC_HASHTABLE_ENTRY that contains the LIST_ENTRY which contains
+    the Flink whose pointer was passed above.
 
 --*/
 {
     return QUIC_CONTAINING_RECORD(FlinkPtr, QUIC_HASHTABLE_ENTRY, Linkage);
 }
-
 
 static
 QUIC_LIST_ENTRY*
@@ -333,16 +273,13 @@ QuicGetChainHead(
 
 Routine Description:
 
-    Given a table index, it retrieves the pointer to
-    the head of the hash chain. This routine expects
-    that the index passed will be less than the table
-    size.
-    I thought of adding functionality such that if the
-    index asked for is greater than table size, this
-    routine should just increase the table size so that
-    the index asked for exists. But that increases the
-    path length for the regular callers, and so I chucked
-    that functionality out.
+    Given a table index, it retrieves the pointer to the head of the hash chain.
+    This routine expects that the index passed will be less than the table size.
+
+    N.B. It was initially designed such that if the index asked for is greater
+    than table size, this routine should just increase the table size so that
+    the index asked for exists. But that increases the path length for the
+    regular callers, and so that functionality was removed.
 
 Arguments:
 
@@ -372,56 +309,18 @@ Return Value:
     //
 
     if (HashTable->TableSize <= HT_SECOND_LEVEL_DIR_MIN_SIZE) {
-        SecondLevelDir = (QUIC_LIST_ENTRY*)HashTable->Directory;
+        SecondLevelDir = HashTable->SecondLevelDir;
         SecondLevelIndex = BucketIndex;
 
     } else {
         uint32_t FirstLevelIndex = 0;
         QuicComputeDirIndices(BucketIndex, &FirstLevelIndex, &SecondLevelIndex);
-        SecondLevelDir = *((QUIC_LIST_ENTRY**)HashTable->Directory + FirstLevelIndex);
+        SecondLevelDir = *(HashTable->FirstLevelDir + FirstLevelIndex);
     }
 
     QUIC_DBG_ASSERT(SecondLevelDir != NULL);
 
     return SecondLevelDir + SecondLevelIndex;
-}
-
-static
-uint32_t
-QuicRandomizeBits(
-    _In_ const QUIC_HASHTABLE* HashTable,
-    _In_ uint64_t Signature
-    )
-/*++
-
-Routine Description:
-
-    Mix up the Signature bits in order to generate a more unified distribution
-    of bits. The intent is to avoid clustering the keys in the hash table for
-    better performance.
-    Hash Function came from CLKRHashTable see bug#349459
-
-Arguments:
-
-    HashTable - Pointer to hash table to operate on.
-
-    Signature - The signature to mix.
-
-Synchronization:
-    none
-
-Return Value:
-
-    Returns the mixed set of bits
-
---*/
-{
-    uint32_t Hash = (uint32_t)Signature >> HashTable->Shift;
-
-    Hash = (((Hash * 1103515245 + 12345) >> 16)
-            | ((Hash * 69069 + 1) & 0xffff0000));
-
-    return Hash;
 }
 
 static
@@ -452,16 +351,17 @@ Return Value:
 --*/
 
 {
-    uint32_t MixedBits = QuicRandomizeBits(HashTable, Signature);
-
-    uint32_t BucketIndex = MixedBits & HashTable->DivisorMask;
+#ifdef QUIC_HASHTABLE_RESIZE_SUPPORT
+    uint32_t BucketIndex = ((uint32_t)Signature) & HashTable->DivisorMask;
     if (BucketIndex < HashTable->Pivot) {
-        BucketIndex = MixedBits & ((HashTable->DivisorMask << 1) | 1);
+        BucketIndex = ((uint32_t)Signature) & ((HashTable->DivisorMask << 1) | 1);
     }
+#else
+    uint32_t BucketIndex = ((uint32_t)Signature) & (HashTable->TableSize - 1);
+#endif
 
     return BucketIndex;
 }
-
 
 static
 void
@@ -474,10 +374,9 @@ QuicPopulateContext(
 
 Routine Description:
 
-    Does the basic hashing and lookup and returns a pointer
-    to either the entry before the entry with the queried
-    signature, or to the entry after which such a entry would
-    exist (if it doesn't exist).
+    Does the basic hashing and lookup and returns a pointer to either the entry
+    before the entry with the queried signature, or to the entry after which
+    such a entry would exist (if it doesn't exist).
 
 Arguments:
 
@@ -498,26 +397,19 @@ Return Value:
 
 --*/
 {
-    QUIC_HASHTABLE_ENTRY* NextHashEntry = NULL;
-    QUIC_LIST_ENTRY* BucketPtr;
-    QUIC_LIST_ENTRY* NextEntry;
-    QUIC_LIST_ENTRY* CurEntry;
-    uint32_t BucketIndex;
-
     //
     // Compute the hash.
     //
-    BucketIndex = QuicGetBucketIndex(HashTable, Signature);
+    uint32_t BucketIndex = QuicGetBucketIndex(HashTable, Signature);
 
-    BucketPtr = QuicGetChainHead(HashTable, BucketIndex);
+    QUIC_LIST_ENTRY* BucketPtr = QuicGetChainHead(HashTable, BucketIndex);
     QUIC_DBG_ASSERT(NULL != BucketPtr);
 
-    CurEntry = BucketPtr;
-
+    QUIC_LIST_ENTRY* CurEntry = BucketPtr;
     while (CurEntry->Flink != BucketPtr) {
 
-        NextEntry = CurEntry->Flink;
-        NextHashEntry = QuicFlinkToHashEntry(&NextEntry->Flink);
+        QUIC_LIST_ENTRY* NextEntry = CurEntry->Flink;
+        QUIC_HASHTABLE_ENTRY* NextHashEntry = QuicFlinkToHashEntry(&NextEntry->Flink);
 
         if ((QUIC_HASH_RESERVED_SIGNATURE == NextHashEntry->Signature) ||
             (NextHashEntry->Signature < Signature)) {
@@ -530,9 +422,8 @@ Return Value:
     }
 
     //
-    // At this point, the signature is either equal or greater, or the
-    // end of the chain. Either way, this is where we want to
-    // be.
+    // At this point, the signature is either equal or greater, or the end of
+    // the chain. Either way, this is where we want to be.
     //
     Context->ChainHead = BucketPtr;
     Context->PrevLinkage = CurEntry;
@@ -540,7 +431,7 @@ Return Value:
 }
 
 _Must_inspect_result_
-_Success_(return != 0)
+_Success_(return != FALSE)
 BOOLEAN
 QuicHashtableInitialize(
     _Inout_ _When_(NULL == *HashTable, _At_(*HashTable, __drv_allocatesMem(Mem)))
@@ -551,10 +442,9 @@ QuicHashtableInitialize(
 
 Routine Description:
 
-    Creates a hash table. Takes a pointer to a pointer to
-    RTL_DYNAMIC_HASH_TABLE, just so that the caller can pass a
-    pre-allocated RTL_DYNAMIC_HASH_TABLE structure to be initialized,
-    which the partitioned hash table does.
+    Creates a hash table. Takes a pointer to a pointer to QUIC_HASHTABLE, just
+    so that the caller can pass a pre-allocated QUIC_HASHTABLE structure to be
+    initialized, which the partitioned hash table does.
 
 Synchronization:
 
@@ -562,11 +452,10 @@ Synchronization:
 
 Arguments:
 
-    HashTable - Pointer to a pointer to a hash Table to be initialized.
-        This argument must be non-null, but it can
-        contain either a NULL value (in which case
-        a RTL_DYNAMIC_HASH_TABLE will be allocated, or can
-        contain a pre-allocated RTL_DYNAMIC_HASH_TABLE.
+    HashTable - Pointer to a pointer to a hash Table to be initialized. This
+        argument must be non-null, but it can contain either a NULL value (in
+        which case a QUIC_HASHTABLE will be allocated, or can contain a
+        pre-allocated QUIC_HASHTABLE.
 
     InitialSize - The initial size of the hash table in number of buckets.
 
@@ -576,16 +465,10 @@ Return Value:
 
 --*/
 {
-    QUIC_HASHTABLE* Table;
-    QUIC_LIST_ENTRY* SecondLevelDir;
-    QUIC_LIST_ENTRY** FirstLevelDir;
-    uint32_t LocalFlags;
-
     //
     // Initial size must be a power of two and within the allowed range.
     //
-
-    if (((InitialSize & (InitialSize - 1)) != 0) ||
+    if (!IS_POWER_OF_TWO(InitialSize) ||
         (InitialSize > MAX_HASH_TABLE_SIZE) ||
         (InitialSize < BASE_HASH_TABLE_SIZE)) {
         return FALSE;
@@ -594,12 +477,12 @@ Return Value:
     //
     // First allocate the hash Table header.
     //
-
-    LocalFlags = 0;
+    uint32_t LocalFlags = 0;
+    QUIC_HASHTABLE* Table;
     if (*HashTable == NULL) {
         Table = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASHTABLE));
         if (Table == NULL) {
-            LogError("[ pal] Hashtable allocation failed.");
+            LogWarning("[ pal] Hashtable allocation failed.");
             return FALSE;
         }
 
@@ -609,17 +492,13 @@ Return Value:
         Table = *HashTable;
     }
 
-    //
-    // Zero out all the fields.
-    //
-
     QuicZeroMemory(Table, sizeof(QUIC_HASHTABLE));
-
     Table->Flags = LocalFlags;
     Table->TableSize = InitialSize;
+#ifdef QUIC_HASHTABLE_RESIZE_SUPPORT
     Table->DivisorMask = Table->TableSize - 1;
-    Table->Shift = 0;
     Table->Pivot = 0;
+#endif
 
     //
     // Now we allocate the second level entries.
@@ -628,68 +507,59 @@ Return Value:
     if (Table->TableSize <= HT_SECOND_LEVEL_DIR_MIN_SIZE) {
 
         //
-        // Directory pointer in the Table header structure
-        // points directly to the single second-level directory.
+        // Directory pointer in the Table header structure points points directly
+        // directly points directly to the single second-level directory.
         //
 
-        SecondLevelDir = QuicAllocateSecondLevelDir(0);
-        if (SecondLevelDir == NULL) {
-            LogError("[ pal] SecondLevelDir allocation failure.");
+        Table->SecondLevelDir =
+            QUIC_ALLOC_NONPAGED(
+                QuicComputeSecondLevelDirSize(0) * sizeof(QUIC_LIST_ENTRY));
+        if (Table->SecondLevelDir == NULL) {
+            LogWarning("[ pal] Allocate second level dir (0) failure.");
             QuicHashtableUninitialize(Table);
             return FALSE;
         }
 
-        QuicInitializeSecondLevelDir(SecondLevelDir, Table->TableSize);
-
-        Table->Directory = SecondLevelDir;
+        QuicInitializeSecondLevelDir(Table->SecondLevelDir, Table->TableSize);
 
     } else {
 
         //
-        // Allocate and initialize the first-level directory
-        // entries required to fit upper bound.
+        // Allocate and initialize the first-level directory entries required to
+        // fit upper bound.
         //
-        uint32_t FirstLevelIndex;
-        uint32_t SecondLevelIndex;
-        uint32_t i;
-
+        uint32_t FirstLevelIndex, SecondLevelIndex;
         QuicComputeDirIndices(
             (Table->TableSize - 1), &FirstLevelIndex, &SecondLevelIndex);
 
-        FirstLevelDir = (QUIC_LIST_ENTRY**)
+        Table->FirstLevelDir =
             QUIC_ALLOC_NONPAGED(sizeof(QUIC_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
-
-        if (FirstLevelDir == NULL) {
+        if (Table->FirstLevelDir == NULL) {
             QuicHashtableUninitialize(Table);
             return FALSE;
         }
 
-        QuicZeroMemory(FirstLevelDir,
-                       sizeof(QUIC_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
-        Table->Directory = FirstLevelDir;
+        QuicZeroMemory(Table->FirstLevelDir,
+            sizeof(QUIC_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
 
-        for (i = 0; i <= FirstLevelIndex; i++) {
+        for (uint32_t i = 0; i <= FirstLevelIndex; i++) {
 
-            SecondLevelDir = QuicAllocateSecondLevelDir(i);
-
-            if (SecondLevelDir == NULL) {
+            Table->FirstLevelDir[i] =
+                QUIC_ALLOC_NONPAGED(
+                    QuicComputeSecondLevelDirSize(i) * sizeof(QUIC_LIST_ENTRY));
+            if (Table->FirstLevelDir[i] == NULL) {
+                LogWarning("[ pal] Allocate second level dir (i) failure.");
                 QuicHashtableUninitialize(Table);
                 return FALSE;
             }
 
             QuicInitializeSecondLevelDir(
-                SecondLevelDir,
+                Table->FirstLevelDir[i],
                 (i < FirstLevelIndex)
-                    ? QuicComputeSecondLevelDirSize(i) 
-                    : (SecondLevelIndex+1));
-
-            FirstLevelDir[i] = SecondLevelDir;
+                    ? QuicComputeSecondLevelDirSize(i)
+                    : (SecondLevelIndex + 1));
         }
     }
-
-    //
-    // Return the initialized hash Table via the supplied pointer.
-    //
 
     *HashTable = Table;
 
@@ -698,22 +568,21 @@ Return Value:
 
 void
 QuicHashtableUninitialize(
-    _In_ _When_((HashTable->Flags & QUIC_HASH_ALLOCATED_HEADER), __drv_freesMem(Mem) _Post_invalid_)
+    _In_
+    _When_((HashTable->Flags & QUIC_HASH_ALLOCATED_HEADER), __drv_freesMem(Mem) _Post_invalid_)
+    _At_(HashTable->Directory, __drv_freesMem(Mem) _Post_invalid_)
         QUIC_HASHTABLE* HashTable
     )
 /*++
 
 Routine Description:
 
-    Called to remove all resources allocated either in
-    RtlCreateHashTable, or later while expanding the
-    table. This function just walks the entire table
-    checking that all hash buckets are null, and then
-    removing all the memory allocated for the directories
-    behind it. This function is also called from
-    RtlCreateHashTable to cleanup the allocations
-    just in case, an error occurs (like failed memory
-    allocation).
+    Called to remove all resources allocated either in QuicHashtableInitialize,
+    or later while expanding the table. This function just walks the entire
+    table checking that all hash buckets are null, and then removing all the
+    memory allocated for the directories behind it. This function is also called
+    from QuicHashtableInitialize to cleanup the allocations just in case, an
+    error occurs (like failed memory allocation).
 
 Synchronization:
 
@@ -725,66 +594,59 @@ Arguments:
 
 --*/
 {
-    uint32_t FirstLevelIndex, SecondLevelIndex;
-    QUIC_LIST_ENTRY* SecondLevelDir;
-    QUIC_LIST_ENTRY** FirstLevelDir;
-
     QUIC_DBG_ASSERT(HashTable->NumEnumerators == 0);
     QUIC_DBG_ASSERT(HashTable->NumEntries == 0);
 
     if (HashTable->TableSize <= HT_SECOND_LEVEL_DIR_MIN_SIZE) {
 
-        SecondLevelDir = (QUIC_LIST_ENTRY*)HashTable->Directory;
-
-        if (SecondLevelDir != NULL) {
-
-            QuicSecondLevelDirFree(SecondLevelDir);
-
+        if (HashTable->SecondLevelDir != NULL) {
+            QUIC_FREE(HashTable->SecondLevelDir);
         }
 
     } else {
 
-        FirstLevelDir = (QUIC_LIST_ENTRY**)HashTable->Directory;
+        if (HashTable->FirstLevelDir != NULL) {
 
-        if (FirstLevelDir != NULL) {
-
-            uint32_t largestFirstLevelIndex;
-            uint32_t largestSecondLevelIndex;
-            uint32_t initializedBucketCountInSecondLevelDir;
-            
+#if DBG || QUIC_TEST_MODE
+            uint32_t largestFirstLevelIndex, largestSecondLevelIndex;
             QuicComputeDirIndices(
                 (HashTable->TableSize - 1), &largestFirstLevelIndex, &largestSecondLevelIndex);
+#endif
 
+            uint32_t FirstLevelIndex;
             for (FirstLevelIndex = 0;
                  FirstLevelIndex < HT_FIRST_LEVEL_DIR_SIZE;
                  FirstLevelIndex++) {
 
-                SecondLevelDir = FirstLevelDir[FirstLevelIndex];
-
+                QUIC_LIST_ENTRY* SecondLevelDir =
+                    HashTable->FirstLevelDir[FirstLevelIndex];
                 if (NULL == SecondLevelDir) {
                     break;
                 }
 
-                initializedBucketCountInSecondLevelDir = 
-                    (FirstLevelIndex < largestFirstLevelIndex) 
-                    ? QuicComputeSecondLevelDirSize(FirstLevelIndex)
-                    : largestSecondLevelIndex+1;
-                
-                for(SecondLevelIndex = 0;
-                    SecondLevelIndex < initializedBucketCountInSecondLevelDir;
-                    SecondLevelIndex ++) {
+#if DBG || QUIC_TEST_MODE
+                uint32_t initializedBucketCountInSecondLevelDir =
+                    (FirstLevelIndex < largestFirstLevelIndex)
+                        ? QuicComputeSecondLevelDirSize(FirstLevelIndex)
+                        : largestSecondLevelIndex+1;
+
+                for (uint32_t SecondLevelIndex = 0;
+                     SecondLevelIndex < initializedBucketCountInSecondLevelDir;
+                     SecondLevelIndex++) {
                     QUIC_DBG_ASSERT(QuicListIsEmpty(&SecondLevelDir[SecondLevelIndex]));
                 }
+#endif
 
-                QuicSecondLevelDirFree(SecondLevelDir);
-
+                QUIC_FREE(SecondLevelDir);
             }
 
-            for(; FirstLevelIndex < HT_FIRST_LEVEL_DIR_SIZE; FirstLevelIndex++) {
-                QUIC_DBG_ASSERT(NULL == FirstLevelDir[FirstLevelIndex]);
+#if DBG || QUIC_TEST_MODE
+            for (; FirstLevelIndex < HT_FIRST_LEVEL_DIR_SIZE; FirstLevelIndex++) {
+                QUIC_DBG_ASSERT(NULL == HashTable->FirstLevelDir[FirstLevelIndex]);
             }
+#endif
 
-            QUIC_FREE(FirstLevelDir);
+            QUIC_FREE(HashTable->FirstLevelDir);
         }
     }
 
@@ -804,18 +666,13 @@ QuicHashtableInsert(
 
 Routine Description:
 
-    Inserts an entry into a hash table, given the pointer to
-    a RTL_DYNAMIC_HASH_TABLE_ENTRY and a signature. An optional context
-    can be passed in which, if possible, will be used to
-    quickly get to the relevant bucket chain. This routine
-    will not take the contents of the Context structure passed
-    in on blind faith -- it will check if the signature in
-    the Context structure matches the signature of the entry
-    that needs to be inserted. This adds an extra check
-    on the hot path, but I deemed it necessary.
-
-    This routine strictly requires that the signature is not
-    QUIC_HASH_RESERVED_SIGNATURE.
+    Inserts an entry into a hash table, given the pointer to a
+    QUIC_HASHTABLE_ENTRY and a signature. An optional context can be passed in
+    which, if possible, will be used to quickly get to the relevant bucket chain.
+    This routine will not take the contents of the Context structure passed in
+    on blind faith -- it will check if the signature in the Context structure
+    matches the signature of the entry that needs to be inserted. This adds an
+    extra check on the hot path, but I deemed it necessary.
 
 Synchronization:
 
@@ -876,19 +733,18 @@ QuicHashtableRemove(
 
 Routine Description:
 
-    This function will remove an entry from the hash table.
-    Since the bucket chains are doubly-linked lists, removal
-    does not require identification of the bucket, and is a
-    local operation.
+    This function will remove an entry from the hash table. Since the bucket
+    chains are doubly-linked lists, removal does not require identification of
+    the bucket, and is a local operation.
 
-    If a Context is specified, the function takes care of
-    both possibilities -- if the Context is already filled,
-    it remains untouched, otherwise, it is filled appropriately.
+    If a Context is specified, the function takes care of both possibilities --
+    if the Context is already filled, it remains untouched, otherwise, it is
+    filled appropriately.
 
 Synchronization:
 
-    Requires the caller to hold the lock protecting the
-    hash table in exclusive-mode
+    Requires the caller to hold the lock protecting the hash table in
+    exclusive-mode
 
 Arguments:
 
@@ -896,12 +752,9 @@ Arguments:
 
     Entry - Pointer to the entry that is to be removed.
 
-    Context - Optional pointer which stores information
-        about the location in the hash table where
-        that particular signature resides. This is
-        NOT used in this function currently -- it
-        is there just in case we decide to go with
-        singly-linked lists in the future.
+    Context - Optional pointer which stores information about the location in
+        about the location in the hash table where that particular signature
+        resides.
 
 --*/
 {
@@ -940,65 +793,51 @@ QuicHashtableLookup(
 
 Routine Description:
 
-    This function will lookup an entry in the hash table.
-    Since our hash table only recognizes signatures, lookups
-    need to generate all possible matches for the requested
-    signature. This is achieved by storing all entries with
-    the same signature in a contiguous subsequence, and
-    returning the subsequence. The caller can walk this
-    subsequence by calling RtlLookupNextEntryHashTable.
-    If specified, the context is always initialized in
+    This function will look up an entry in the hash table. Since our hash table
+    only recognizes signatures, lookups need to generate all possible matches
+    for the requested signature. This is achieved by storing all entries with
+    the same signature in a contiguous subsequence, and returning the
+    subsequence. The caller can walk this subsequence by calling
+    QuicHashtableLookupNext. If specified, the context is always initialized in
     this operation.
-
-    This routine strictly requires that the signature is not
-    QUIC_HASH_RESERVED_SIGNATURE.
 
 Arguments:
 
-    HashTable - Pointer to the hash table in which the
-        signature is to be looked up.
+    HashTable - Pointer to the hash table in which the signature is to be looked
+        up.
 
     Signature - Signature to be looked up.
 
-    Context - Optional pointer which stores information
-        about the location in the hash table where
-        that particular signature resides.
+    Context - Optional pointer which stores information about the location in
+        the hash table where that particular signature resides.
 
 Return Value:
 
-    Returns the first hash entry found that matches the
-    signature. All the other hash entries with the same
-    signature are linked behind this value.
+    Returns the first hash entry found that matches the signature. All the other
+    hash entries with the same signature are linked behind this value.
 
 --*/
 {
-    QUIC_HASHTABLE_LOOKUP_CONTEXT LocalContext;
-    QUIC_HASHTABLE_LOOKUP_CONTEXT* ContextPtr;
-    QUIC_HASHTABLE_ENTRY* CurHashEntry ;
-    QUIC_LIST_ENTRY* CurEntry;
-
     if (Signature == QUIC_HASH_RESERVED_SIGNATURE) {
         Signature = QUIC_HASH_ALT_SIGNATURE;
     }
 
-    if (Context != NULL) {
-        ContextPtr = Context;
-    } else {
-        ContextPtr = &LocalContext;
-    }
+    QUIC_HASHTABLE_LOOKUP_CONTEXT LocalContext;
+    QUIC_HASHTABLE_LOOKUP_CONTEXT* ContextPtr =
+        (Context != NULL) ? Context : &LocalContext;
 
     QuicPopulateContext(HashTable, ContextPtr, Signature);
 
-    CurEntry = ContextPtr->PrevLinkage->Flink;
+    QUIC_LIST_ENTRY* CurEntry = ContextPtr->PrevLinkage->Flink;
     if (ContextPtr->ChainHead == CurEntry) {
         return NULL;
     }
 
-    CurHashEntry = QuicFlinkToHashEntry(&(CurEntry->Flink));
+    QUIC_HASHTABLE_ENTRY* CurHashEntry = QuicFlinkToHashEntry(&CurEntry->Flink);
 
     //
-    // QuicPopulateContext will never return a PrevLinkage whose next
-    // points to a enumerator.
+    // QuicPopulateContext will never return a PrevLinkage whose next points to
+    // an enumerator.
     //
     QUIC_DBG_ASSERT(QUIC_HASH_RESERVED_SIGNATURE != CurHashEntry->Signature);
 
@@ -1019,38 +858,29 @@ QuicHashtableLookupNext(
 
 Routine Description:
 
-    This function will continue a lookup on a hash table.
-    See comments for QuicHashtableLookupStrict. We assume
-    that the user is not stupid and will call it only
-    after Lookup has returned a non-NULL entry.
+    This function will continue a lookup on a hash table. We assume that the
+    user is not stupid and will call it only after Lookup has returned a
+    non-NULL entry.
 
-    Also note that this function has the responsibility
-    to skip through any enumerators that may be in the
-    chain. In such a case, the Context structure's
-    PrevLinkage will *still* point to the last entry
-    WHICH IS NOT A ENUMERATOR.
+    Also note that this function has the responsibility to skip through any
+    enumerators that may be in the chain. In such a case, the Context structure's
+    PrevLinkage will *still* point to the last entry WHICH IS NOT A ENUMERATOR.
 
 Arguments:
 
-    HashTable - Pointer to the hash table in which the
-        lookup is to be performed
+    HashTable - Pointer to the hash table in which the lookup is to be performed
 
-    Context - Pointer to context which remains untouched
-        during this operation. However that entry
-        must be non-NULL so that we can figure out
-        whether we have reached the end of the
-        list.
+    Context - Pointer to context which remains untouched during this operation.
+        However that entry must be non-NULL so that we can figure out whether we
+        have reached the end of the list.
 
 Return Value:
 
-    Returns the next entry with the same signature as the
-    entry passed in, or NULL if no such entry exists.
+    Returns the next entry with the same signature as the entry passed in, or
+    NULL if no such entry exists.
 
 --*/
 {
-    QUIC_HASHTABLE_ENTRY* NextHashEntry = NULL;
-    QUIC_LIST_ENTRY* CurEntry, *NextEntry;
-
     QUIC_DBG_ASSERT(NULL != Context);
     QUIC_DBG_ASSERT(NULL != Context->ChainHead);
     QUIC_DBG_ASSERT(Context->PrevLinkage->Flink != Context->ChainHead);
@@ -1058,11 +888,10 @@ Return Value:
     //
     // We know that the next entry is a valid, kosher entry,
     //
-    CurEntry = Context->PrevLinkage->Flink;
-
+    QUIC_LIST_ENTRY* CurEntry = Context->PrevLinkage->Flink;
     QUIC_DBG_ASSERT(CurEntry != Context->ChainHead);
     QUIC_DBG_ASSERT(QUIC_HASH_RESERVED_SIGNATURE !=
-           (QuicFlinkToHashEntry(&(CurEntry->Flink))->Signature));
+           (QuicFlinkToHashEntry(&CurEntry->Flink)->Signature));
 
     //
     // Is this the end of the chain?
@@ -1071,19 +900,19 @@ Return Value:
         return NULL;
     }
 
-    //
-    // Good, so there is a following entry.
-    //
+    QUIC_LIST_ENTRY* NextEntry;
+    QUIC_HASHTABLE_ENTRY* NextHashEntry;
     if (HashTable->NumEnumerators == 0) {
         NextEntry = CurEntry->Flink;
-        NextHashEntry = QuicFlinkToHashEntry(&(NextEntry->Flink));
+        NextHashEntry = QuicFlinkToHashEntry(&NextEntry->Flink);
     } else {
         QUIC_DBG_ASSERT(CurEntry->Flink != Context->ChainHead);
+        NextHashEntry = NULL;
         while (CurEntry->Flink != Context->ChainHead) {
             NextEntry = CurEntry->Flink;
-            NextHashEntry = QuicFlinkToHashEntry(&(NextEntry->Flink));
+            NextHashEntry = QuicFlinkToHashEntry(&NextEntry->Flink);
 
-            if (QUIC_HASH_RESERVED_SIGNATURE != (NextHashEntry->Signature)) {
+            if (QUIC_HASH_RESERVED_SIGNATURE != NextHashEntry->Signature) {
                 break;
             }
 
@@ -1098,9 +927,9 @@ Return Value:
     }
 
     //
-    // If we have found no other entry matching that signature,
-    // the Context remains untouched, free for the caller to
-    // use for other insertions and removals.
+    // If we have found no other entry matching that signature, the Context
+    // remains untouched, free for the caller to use for other insertions and
+    // removals.
     //
     return NULL;
 }
@@ -1114,46 +943,39 @@ QuicHashtableEnumerateBegin(
 
 Routine Description:
 
-    This routine initializes state for the main type
-    of enumeration supported -- in which the lock is
-    held during the entire duration of the enumeration.
+    This routine initializes state for the main type of enumeration supported --
+    in which the lock is held during the entire duration of the enumeration.
 
-    Currently, the enumeration always starts from the
-    start of the table and proceeds till the end, but
-    we leave open the possibility that the Context
-    passed in will be used to initialize the place
-    from which the enumeration starts.
+    Currently, the enumeration always starts from the start of the table and
+    proceeds till the end, but we leave open the possibility that the Context
+    passed in will be used to initialize the place from which the enumeration
+    starts.
 
-    This routine also increments the counter in the
-    hash table tracking the number of enumerators
-    active on the hash table -- as long as this
-    number is positive, no hash table restructuring
-    is possible.
+    This routine also increments the counter in the hash table tracking the
+    number of enumerators active on the hash table -- as long as this number is
+    positive, no hash table restructuring is possible.
 
 Synchronization:
 
-    The lock protecting the hash table must be
-    acquired in exclusive mode.
+    The lock protecting the hash table must be acquired in exclusive mode.
 
 Arguments:
 
-    HashTable - Pointer to hash Table on which the enumeration
-        will take place.
+    HashTable - Pointer to hash Table on which the enumeration will take place.
 
-    Enumerator - Pointer to RTL_DYNAMIC_HASH_TABLE_ENUMERATOR structure that
-        stores enumeration state.
+    Enumerator - Pointer to QUIC_HASHTABLE_ENUMERATOR structure that stores
+        enumeration state.
 
 --*/
 {
-    QUIC_HASHTABLE_LOOKUP_CONTEXT LocalContext;
-
     QUIC_DBG_ASSERT(Enumerator != NULL);
 
+    QUIC_HASHTABLE_LOOKUP_CONTEXT LocalContext;
     QuicPopulateContext(HashTable, &LocalContext, 0);
-    HashTable->NumEnumerators ++;
+    HashTable->NumEnumerators++;
 
     if (QuicListIsEmpty(LocalContext.ChainHead)) {
-        HashTable->NonEmptyBuckets ++;
+        HashTable->NonEmptyBuckets++;
     }
 
     QuicListInsertHead(LocalContext.ChainHead, &(Enumerator->HashEntry.Linkage));
@@ -1172,19 +994,16 @@ QuicHashtableEnumerateNext(
 
 Routine Description
 
-    Get the next entry to be enumerated. If the hash chain
-    still has entries that haven't been given to the user,
-    the next such entry in the hash chain is returned. If
-    the hash chain has ended, this function searches for
-    the next non-empty hash chain and returns the first
-    element in that chain. If no more non-empty hash chains
-    exists, the function returns NULL. The caller must call
-    RtlEndEnumeration() to explicitly end the enumeration
-    and cleanup state.
+    Get the next entry to be enumerated. If the hash chain still has entries
+    that haven't been given to the user, the next such entry in the hash chain
+    is returned. If the hash chain has ended, this function searches for the
+    next non-empty hash chain and returns the first element in that chain. If no
+    more non-empty hash chains exists, the function returns NULL. The caller
+    must call QuicHashtableEnumerateEnd() to explicitly end the enumeration and
+    cleanup state.
 
-    This call is robust in the sense, that if this function
-    returns NULL, subsequent calls to this function will
-    not fail, and will still return NULL.
+    This call is robust in the sense, that if this function returns NULL,
+    subsequent calls to this function will not fail, and will still return NULL.
 
 Synchronization:
 
@@ -1194,25 +1013,17 @@ Arguments:
 
     Hash Table - Pointer to the hash table to be enumerated.
 
-    Enumerator - Pointer to RTL_DYNAMIC_HASH_TABLE_ENUMERATOR structure that
-        stores enumeration state.
+    Enumerator - Pointer to QUIC_HASHTABLE_ENUMERATOR structure that stores
+        enumeration state.
 
 Return Value:
 
-    Pointer to RTL_DYNAMIC_HASH_TABLE_ENTRY if one can be enumerated, and NULL
-    other wise.
+    Pointer to QUIC_HASHTABLE_ENTRY if one can be enumerated, and NULL other
+    wise.
 
 --*/
 {
-    QUIC_LIST_ENTRY* CurEntry, *NextEntry, *ChainHead;
-    uint32_t i;
-    QUIC_HASHTABLE_ENTRY* NextHashEntry;
-
     QUIC_DBG_ASSERT(Enumerator != NULL);
-
-    //
-    // Make sure that Enumerator is initialized.
-    //
     QUIC_DBG_ASSERT(Enumerator->ChainHead != NULL);
     QUIC_DBG_ASSERT(QUIC_HASH_RESERVED_SIGNATURE == Enumerator->HashEntry.Signature);
 
@@ -1220,7 +1031,9 @@ Return Value:
     // We are trying to find the next valid entry. We need
     // to skip over other enumerators AND empty buckets.
     //
-    for (i = Enumerator->BucketIndex; i < HashTable->TableSize; i++) {
+    for (uint32_t i = Enumerator->BucketIndex; i < HashTable->TableSize; i++) {
+
+        QUIC_LIST_ENTRY* CurEntry, *ChainHead;
         if (i == Enumerator->BucketIndex) {
             //
             // If this is the first bucket, start searching from enumerator.
@@ -1236,9 +1049,9 @@ Return Value:
         }
 
         while (CurEntry->Flink != ChainHead) {
-            NextEntry = CurEntry->Flink;
-            NextHashEntry = QuicFlinkToHashEntry(&(NextEntry->Flink));
 
+            QUIC_LIST_ENTRY* NextEntry = CurEntry->Flink;
+            QUIC_HASHTABLE_ENTRY* NextHashEntry = QuicFlinkToHashEntry(&NextEntry->Flink);
             if (QUIC_HASH_RESERVED_SIGNATURE != NextHashEntry->Signature) {
                 QuicListEntryRemove(&(Enumerator->HashEntry.Linkage));
 
@@ -1246,11 +1059,11 @@ Return Value:
 
                 if (Enumerator->ChainHead != ChainHead) {
                     if (QuicListIsEmpty(Enumerator->ChainHead)) {
-                        HashTable->NonEmptyBuckets --;
+                        HashTable->NonEmptyBuckets--;
                     }
 
                     if (QuicListIsEmpty(ChainHead)) {
-                        HashTable->NonEmptyBuckets ++;
+                        HashTable->NonEmptyBuckets++;
                     }
                 }
 
@@ -1277,9 +1090,8 @@ QuicHashtableEnumerateEnd(
 
 Routine Description:
 
-    This routine reverses the effect of InitEnumeration. It
-    decrements the NumEnumerators counter in HashTable and
-    cleans up Enumerator state.
+    This routine reverses the effect of InitEnumeration. It decrements the
+    NumEnumerators counter in HashTable and cleans up Enumerator state.
 
 Synchronization:
 
@@ -1289,8 +1101,8 @@ Arguments:
 
     HashTable - Pointer to hash table on which enumerator was operating.
 
-    Enumerator - Pointer to enumerator representing the enumeration that
-        needs to be ended.
+    Enumerator - Pointer to enumerator representing the enumeration that needs
+        to be ended.
 
 --*/
 {
@@ -1312,21 +1124,13 @@ Arguments:
     Enumerator->ChainHead = FALSE;
 }
 
-#if 0 // Currently unused
+#ifdef QUIC_HASHTABLE_RESIZE_SUPPORT
 
 BOOLEAN
 QuicHashTableExpand(
     _Inout_ QUIC_HASHTABLE* HashTable
     )
 {
-    QUIC_HASHTABLE_ENTRY* NextHashEntry;
-    QUIC_LIST_ENTRY* ChainToBeSplit, *NewChain;
-    QUIC_LIST_ENTRY* NextEntry, *CurEntry;
-    uint32_t BucketIndex;
-    uint32_t FirstLevelIndex, SecondLevelIndex;
-    QUIC_LIST_ENTRY*  SecondLevelDir;
-    QUIC_LIST_ENTRY* *FirstLevelDir;
-
     //
     // Can't expand if we've reached the maximum.
     //
@@ -1341,22 +1145,24 @@ QuicHashTableExpand(
     QUIC_DBG_ASSERT(HashTable->TableSize < MAX_HASH_TABLE_SIZE);
 
     //
-    // First see if increasing the table size will mean
-    // new allocations. After the hash table is increased by
-    // one, the highest bucket index will be the current table
-    // size, which is what we use in the calculations below
+    // First see if increasing the table size will mean new allocations. After
+    // the hash table is increased by one, the highest bucket index will be the
+    // current table size, which is what we use in the calculations below
     //
+    uint32_t FirstLevelIndex, SecondLevelIndex;
     QuicComputeDirIndices(
         HashTable->TableSize, &FirstLevelIndex, &SecondLevelIndex);
 
     //
-    // Switch to the multi-dir mode in case of
-    // the only second-level directory is about to be expanded.
+    // Switch to the multi-dir mode in case of the only second-level directory
+    // is about to be expanded.
     //
 
+    QUIC_LIST_ENTRY* SecondLevelDir;
+    QUIC_LIST_ENTRY** FirstLevelDir;
     if (HT_SECOND_LEVEL_DIR_MIN_SIZE == HashTable->TableSize) {
 
-        SecondLevelDir = (QUIC_LIST_ENTRY*)HashTable->Directory;
+        SecondLevelDir = (QUIC_LIST_ENTRY*)HashTable->SecondLevelDir;
         FirstLevelDir = QUIC_ALLOC_NONPAGED(sizeof(QUIC_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
 
         if (FirstLevelDir == NULL) {
@@ -1368,31 +1174,33 @@ QuicHashTableExpand(
 
         FirstLevelDir[0] = SecondLevelDir;
 
-        HashTable->Directory = FirstLevelDir;
+        HashTable->FirstLevelDir = FirstLevelDir;
     }
 
-    FirstLevelDir = (QUIC_LIST_ENTRY* *)HashTable->Directory;
-    QUIC_DBG_ASSERT(FirstLevelDir != NULL);
+    QUIC_DBG_ASSERT(HashTable->FirstLevelDir != NULL);
+    FirstLevelDir = HashTable->FirstLevelDir;
     SecondLevelDir = FirstLevelDir[FirstLevelIndex];
 
     if (SecondLevelDir == NULL) {
+
         //
         // Allocate second level directory.
         //
-        SecondLevelDir = QuicAllocateSecondLevelDir(FirstLevelIndex);
-
+        SecondLevelDir =
+            QUIC_ALLOC_NONPAGED(
+                QuicComputeSecondLevelDirSize(FirstLevelIndex) * sizeof(QUIC_LIST_ENTRY));
         if (NULL == SecondLevelDir) {
 
             //
-            // If allocation failure happened on attempt to restructure
-            // the table, switch it back to direct mode.
+            // If allocation failure happened on attempt to restructure the
+            // table, switch it back to direct mode.
             //
 
             if (HT_SECOND_LEVEL_DIR_MIN_SIZE == HashTable->TableSize) {
 
                 QUIC_DBG_ASSERT(FirstLevelIndex == 1);
 
-                HashTable->Directory = FirstLevelDir[0];
+                HashTable->SecondLevelDir = FirstLevelDir[0];
                 QUIC_FREE(FirstLevelDir);
             }
 
@@ -1402,26 +1210,30 @@ QuicHashTableExpand(
         FirstLevelDir[FirstLevelIndex] = SecondLevelDir;
     }
 
-    HashTable->TableSize ++;
+    HashTable->TableSize++;
 
     //
     // The allocations are out of the way. Now actually increase
     // the Table size and split the pivot bucket.
     //
-    ChainToBeSplit = QuicGetChainHead(HashTable, HashTable->Pivot);
-    HashTable->Pivot ++;
+    QUIC_LIST_ENTRY* ChainToBeSplit =
+        QuicGetChainHead(HashTable, HashTable->Pivot);
+    HashTable->Pivot++;
 
-    NewChain = &(SecondLevelDir[SecondLevelIndex]);
+    QUIC_LIST_ENTRY* NewChain = &(SecondLevelDir[SecondLevelIndex]);
     QuicListInitializeHead(NewChain);
 
     if (!QuicListIsEmpty(ChainToBeSplit)) {
-        CurEntry = ChainToBeSplit;
 
+        QUIC_LIST_ENTRY* CurEntry = ChainToBeSplit;
         while (CurEntry->Flink != ChainToBeSplit) {
-            NextEntry = CurEntry->Flink;
-            NextHashEntry = QuicFlinkToHashEntry(&(NextEntry->Flink));
 
-            BucketIndex = QuicRandomizeBits(HashTable, NextHashEntry->Signature) &
+            QUIC_LIST_ENTRY* NextEntry = CurEntry->Flink;
+            QUIC_HASHTABLE_ENTRY* NextHashEntry =
+                QuicFlinkToHashEntry(&NextEntry->Flink);
+
+            uint32_t BucketIndex =
+                ((uint32_t)NextHashEntry->Signature) &
                 ((HashTable->DivisorMask << 1) | 1);
 
             QUIC_DBG_ASSERT((BucketIndex == (HashTable->Pivot - 1)) ||
@@ -1440,12 +1252,12 @@ QuicHashTableExpand(
         }
 
         if (!QuicListIsEmpty(NewChain)) {
-            HashTable->NonEmptyBuckets ++;
+            HashTable->NonEmptyBuckets++;
         }
 
         if (QuicListIsEmpty(ChainToBeSplit)) {
             QUIC_DBG_ASSERT(HashTable->NonEmptyBuckets > 0);
-            HashTable->NonEmptyBuckets --;
+            HashTable->NonEmptyBuckets--;
         }
     }
 
@@ -1467,13 +1279,6 @@ QuicHashTableContract(
     _Inout_ QUIC_HASHTABLE* HashTable
     )
 {
-    uint32_t FirstLevelIndex, SecondLevelIndex;
-    QUIC_LIST_ENTRY* ChainToBeMoved, *CombinedChain;
-    QUIC_LIST_ENTRY* CurEntry, *NextEntry, *EntryToBeMoved;
-    QUIC_LIST_ENTRY* SecondLevelDir;
-    QUIC_LIST_ENTRY** FirstLevelDir;
-    QUIC_HASHTABLE_ENTRY* NextHashEntry, *HashEntryToBeMoved;
-
     //
     // Can't take table size lower than BASE_DYNAMIC_HASH_TABLE_SIZE.
     //
@@ -1488,24 +1293,23 @@ QuicHashTableContract(
     }
 
     //
-    // Bring the table size down by 1 bucket, and change all
-    // state variables accordingly.
+    // Bring the table size down by 1 bucket, and change all state variables
+    // accordingly.
     //
     if (HashTable->Pivot == 0) {
         HashTable->DivisorMask = HashTable->DivisorMask >> 1;
         HashTable->Pivot = HashTable->DivisorMask;
     } else {
-        HashTable->Pivot --;
+        HashTable->Pivot--;
     }
 
     //
-    // Need to combine two buckets. Since table-size is down by 1
-    // and we need the bucket that was the last bucket before table
-    // size was lowered, the index of the last bucket is exactly
-    // equal to the current table size.
+    // Need to combine two buckets. Since table-size is down by 1 and we need
+    // the bucket that was the last bucket before table size was lowered, the
+    // index of the last bucket is exactly equal to the current table size.
     //
-    ChainToBeMoved = QuicGetChainHead(HashTable, HashTable->TableSize - 1);
-    CombinedChain = QuicGetChainHead(HashTable, HashTable->Pivot);
+    QUIC_LIST_ENTRY* ChainToBeMoved = QuicGetChainHead(HashTable, HashTable->TableSize - 1);
+    QUIC_LIST_ENTRY* CombinedChain = QuicGetChainHead(HashTable, HashTable->Pivot);
 
     HashTable->TableSize--;
 
@@ -1521,15 +1325,18 @@ QuicHashTableContract(
         HashTable->NonEmptyBuckets--;
     }
 
-    CurEntry = CombinedChain;
-
+    QUIC_LIST_ENTRY* CurEntry = CombinedChain;
     while (!QuicListIsEmpty(ChainToBeMoved)) {
-        EntryToBeMoved = QuicListRemoveHead(ChainToBeMoved);
-        HashEntryToBeMoved = QuicFlinkToHashEntry(&(EntryToBeMoved->Flink));
+
+        QUIC_LIST_ENTRY* EntryToBeMoved = QuicListRemoveHead(ChainToBeMoved);
+        QUIC_HASHTABLE_ENTRY* HashEntryToBeMoved =
+            QuicFlinkToHashEntry(&EntryToBeMoved->Flink);
 
         while (CurEntry->Flink != CombinedChain) {
-            NextEntry = CurEntry->Flink;
-            NextHashEntry = QuicFlinkToHashEntry(&(NextEntry->Flink));
+
+            QUIC_LIST_ENTRY* NextEntry = CurEntry->Flink;
+            QUIC_HASHTABLE_ENTRY* NextHashEntry =
+                QuicFlinkToHashEntry(&NextEntry->Flink);
 
             if (NextHashEntry->Signature >= HashEntryToBeMoved->Signature) {
                 break;
@@ -1545,17 +1352,16 @@ QuicHashTableContract(
     // Finally free any extra memory if possible.
     //
 
+    uint32_t FirstLevelIndex, SecondLevelIndex;
     QuicComputeDirIndices(
         HashTable->TableSize, &FirstLevelIndex, &SecondLevelIndex);
 
     if (SecondLevelIndex == 0) {
 
-        FirstLevelDir = (QUIC_LIST_ENTRY**)HashTable->Directory;
+        QUIC_LIST_ENTRY** FirstLevelDir = HashTable->FirstLevelDir;
+        QUIC_LIST_ENTRY* SecondLevelDir = FirstLevelDir[FirstLevelIndex];
 
-        SecondLevelDir = FirstLevelDir[FirstLevelIndex];
-
-        QuicSecondLevelDirFree(SecondLevelDir);
-
+        QUIC_FREE(SecondLevelDir);
         FirstLevelDir[FirstLevelIndex] = NULL;
 
         //
@@ -1563,7 +1369,7 @@ QuicHashTableContract(
         //
 
         if (HT_SECOND_LEVEL_DIR_MIN_SIZE == HashTable->TableSize) {
-            HashTable->Directory = FirstLevelDir[0];
+            HashTable->SecondLevelDir = FirstLevelDir[0];
             QUIC_FREE(FirstLevelDir);
         }
     }
@@ -1571,4 +1377,4 @@ QuicHashTableContract(
     return TRUE;
 }
 
-#endif // 0
+#endif // QUIC_HASHTABLE_RESIZE_SUPPORT

@@ -190,7 +190,7 @@ QuicBindingUninitialize(
             StatelessCtx);
     }
     QUIC_DBG_ASSERT(Binding->StatelessOperCount == 0);
-    QUIC_DBG_ASSERT(QuicHashtableGetTotalEntryCount(&Binding->StatelessOperTable) == 0);
+    QUIC_DBG_ASSERT(Binding->StatelessOperTable.NumEntries == 0);
 
     QuicHashFree(Binding->ResetTokenHash);
     QuicLookupUninitialize(&Binding->Lookup);
