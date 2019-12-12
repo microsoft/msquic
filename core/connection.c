@@ -1058,8 +1058,7 @@ QuicConnOnShutdownComplete(
         Event.SHUTDOWN_COMPLETE.PeerAcknowledgedShutdown =
             !Connection->State.ShutdownCompleteTimedOut;
 
-        LogVerbose("[conn][%p] Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE",
-            Connection);
+        LogConnVerbose(IndicateShutdownComplete, Connection, "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE");
         (void)QuicConnIndicateEvent(Connection, &Event);
     }
 
@@ -1173,7 +1172,7 @@ QuicConnTryClose(
 
     } else {
 
-        LogInfo("[conn][%p] Connection close complete.", Connection);
+        LogConnInfo(CloseComplete, Connection, "Connection close complete.");
 
         //
         // Peer acknowledged our local close.
@@ -1508,7 +1507,7 @@ QuicConnRestart(
 {
     QUIC_TEL_ASSERT(Connection->State.Started);
 
-    LogInfo("[conn][%p] Restart (CompleteReset=%hu)", Connection, CompleteReset);
+    LogConnInfo(Restart, Connection, "Restart (CompleteReset=%hu)", CompleteReset);
 
     if (CompleteReset) {
         //
@@ -1763,7 +1762,7 @@ QuicConnProcessPeerTransportParameters(
     _In_ BOOLEAN FromCache
     )
 {
-    LogInfo("[conn][%p] Peer Transport Parameters Set", Connection);
+    LogConnInfo(PeerTPSet, Connection, "Peer Transport Parameters Set");
 
     if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_STATELESS_RESET_TOKEN) {
         QUIC_DBG_ASSERT(!QuicListIsEmpty(&Connection->DestCIDs));
@@ -2661,9 +2660,9 @@ QuicConnRecvDecryptAndAuthenticate(
                         DestCID->ResetToken,
                         PacketResetToken,
                         QUIC_STATELESS_RESET_TOKEN_LENGTH) == 0) {
-                    LogPacketInfo("[S][RX][-] SR %s",
+                    LogVerbose("[S][RX][-] SR %s",
                         QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
-                    LogInfo("[conn][%p] Received stateless reset", Connection);
+                    LogConnInfo(RecvStatelessReset, Connection, "Received stateless reset");
                     QuicConnCloseLocally(
                         Connection,
                         QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
@@ -2674,7 +2673,7 @@ QuicConnRecvDecryptAndAuthenticate(
             }
         }
 
-        if (WPP_COMPID_LEVEL_ENABLED(FLAG_PACKET, TRACE_LEVEL_INFORMATION)) {
+        if (LogVerboseEnabled()) {
             QuicPacketLogHeader(
                 Connection,
                 TRUE,
@@ -2730,7 +2729,7 @@ QuicConnRecvDecryptAndAuthenticate(
             &Connection->Packets[EncryptLevel]->AckTracker,
             Packet->PacketNumber)) {
 
-        if (WPP_COMPID_LEVEL_ENABLED(FLAG_PACKET, TRACE_LEVEL_INFORMATION)) {
+        if (LogVerboseEnabled()) {
             QuicPacketLogHeader(
                 Connection,
                 TRUE,
@@ -2749,7 +2748,7 @@ QuicConnRecvDecryptAndAuthenticate(
     // Log the received packet header and payload now that it's decrypted.
     //
 
-    if (WPP_COMPID_LEVEL_ENABLED(FLAG_PACKET, TRACE_LEVEL_INFORMATION)) {
+    if (LogVerboseEnabled()) {
         QuicPacketLogHeader(
             Connection,
             TRUE,
@@ -3415,7 +3414,7 @@ Done:
     }
 
     if (Connection->State.HandleShutdown || Connection->State.HandleClosed) {
-        LogPacketInfo("[%c][RX][%llu] not acked (connection is closed)",
+        LogVerbose("[%c][RX][%llu] not acked (connection is closed)",
             PtkConnPre(Connection), Packet->PacketNumber);
 
     } else if (Connection->Packets[EncryptLevel] != NULL) {
@@ -3861,10 +3860,10 @@ QuicConnProcessUdpUnreachable(
         // Only accept unreachable events at the beginning of the handshake.
         // Otherwise, it opens up an attack surface.
         //
-        LogWarning("[conn][%p] Ignoring received unreachable event.", Connection);
+        LogConnWarning(UnreachableIgnore, Connection, "Ignoring received unreachable event.");
 
     } else if (QuicAddrCompare(&Connection->Paths[0].RemoteAddress, RemoteAddress)) {
-        LogInfo("[conn][%p] Received unreachable event.", Connection);
+        LogConnInfo(Unreachable, Connection, "Received unreachable event.");
         //
         // Close the connection since the peer is unreachable.
         //
@@ -3875,7 +3874,7 @@ QuicConnProcessUdpUnreachable(
             NULL);
 
     } else {
-        LogWarning("[conn][%p] Received invalid unreachable event.", Connection);
+        LogConnWarning(UnreachableInvalid, Connection, "Received invalid unreachable event.");
     }
 }
 

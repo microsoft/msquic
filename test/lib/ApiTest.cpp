@@ -593,315 +593,318 @@ void QuicTestValidateStream(bool Connect)
     // Force the Client, Server, and Listener to clean up before the Session and Registration.
     //
     {
-        TestConnection Client(TestSession, ConnectionIgnoreStreamCallback, false);
-        TEST_TRUE(Client.IsValid());
-
-        UniquePtr<TestConnection> Server;
         TestListener MyListener(TestSession, ListenerAcceptCallback);
         TEST_TRUE(MyListener.IsValid());
+
+        UniquePtr<TestConnection> Server;
         MyListener.Context = &Server;
-        if (Connect) {
-            TEST_QUIC_SUCCEEDED(MyListener.Start());
-            QuicAddr ServerLocalAddr;
-            TEST_QUIC_SUCCEEDED(MyListener.GetLocalAddr(ServerLocalAddr));
 
-            //
-            // Start client connection.
-            //
-            TEST_QUIC_SUCCEEDED(
-                Client.Start(
-                    ServerLocalAddr.SockAddr.si_family,
-                    QUIC_LOCALHOST_FOR_AF(ServerLocalAddr.SockAddr.si_family),
-                    QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
-
-            //
-            // Wait for connection.
-            //
-            TEST_TRUE(Client.WaitForConnectionComplete());
-            TEST_TRUE(Client.GetIsConnected());
-
-            TEST_NOT_EQUAL(nullptr, Server);
-            TEST_TRUE(Server->WaitForConnectionComplete());
-            TEST_TRUE(Server->GetIsConnected());
-        }
-
-        //
-        // Null connection.
-        //
         {
-            StreamScope Stream;
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                MsQuic->StreamOpen(
-                    nullptr,
-                    QUIC_STREAM_OPEN_FLAG_NONE,
-                    DummyStreamCallback,
-                    nullptr,
-                    &Stream.Handle));
-        }
-
-        //
-        // Null handler.
-        //
-        {
-            StreamScope Stream;
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                MsQuic->StreamOpen(
-                    Client.GetConnection(),
-                    QUIC_STREAM_OPEN_FLAG_NONE,
-                    nullptr,
-                    nullptr,
-                    &Stream.Handle));
-        }
-
-        //
-        // Null out-parameter.
-        //
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->StreamOpen(
-                Client.GetConnection(),
-                QUIC_STREAM_OPEN_FLAG_NONE,
-                DummyStreamCallback,
-                nullptr,
-                nullptr));
-
-        //
-        // Fail on blocked.
-        //
-        {
-            StreamScope Stream;
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->StreamOpen(
-                    Client.GetConnection(),
-                    QUIC_STREAM_OPEN_FLAG_NONE,
-                    DummyStreamCallback,
-                    nullptr,
-                    &Stream.Handle));
+            TestConnection Client(TestSession, ConnectionIgnoreStreamCallback, false);
+            TEST_TRUE(Client.IsValid());
             if (Connect) {
+                TEST_QUIC_SUCCEEDED(MyListener.Start());
+                QuicAddr ServerLocalAddr;
+                TEST_QUIC_SUCCEEDED(MyListener.GetLocalAddr(ServerLocalAddr));
+
+                //
+                // Start client connection.
+                //
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ServerLocalAddr.SockAddr.si_family,
+                        QUIC_LOCALHOST_FOR_AF(ServerLocalAddr.SockAddr.si_family),
+                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+
+                //
+                // Wait for connection.
+                //
+                TEST_TRUE(Client.WaitForConnectionComplete());
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                TEST_TRUE(Server->WaitForConnectionComplete());
+                TEST_TRUE(Server->GetIsConnected());
+            }
+
+            //
+            // Null connection.
+            //
+            {
+                StreamScope Stream;
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_PARAMETER,
+                    MsQuic->StreamOpen(
+                        nullptr,
+                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        DummyStreamCallback,
+                        nullptr,
+                        &Stream.Handle));
+            }
+
+            //
+            // Null handler.
+            //
+            {
+                StreamScope Stream;
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_PARAMETER,
+                    MsQuic->StreamOpen(
+                        Client.GetConnection(),
+                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        nullptr,
+                        nullptr,
+                        &Stream.Handle));
+            }
+
+            //
+            // Null out-parameter.
+            //
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->StreamOpen(
+                    Client.GetConnection(),
+                    QUIC_STREAM_OPEN_FLAG_NONE,
+                    DummyStreamCallback,
+                    nullptr,
+                    nullptr));
+
+            //
+            // Fail on blocked.
+            //
+            {
+                StreamScope Stream;
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamOpen(
+                        Client.GetConnection(),
+                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        DummyStreamCallback,
+                        nullptr,
+                        &Stream.Handle));
+                if (Connect) {
+                    TEST_QUIC_SUCCEEDED(
+                        MsQuic->StreamStart(
+                            Stream.Handle,
+                            QUIC_STREAM_START_FLAG_FAIL_BLOCKED));
+                } else {
+                    TEST_QUIC_STATUS(
+                        QUIC_STATUS_BUFFER_TOO_SMALL,
+                        MsQuic->StreamStart(
+                            Stream.Handle,
+                            QUIC_STREAM_START_FLAG_FAIL_BLOCKED));
+                }
+            }
+
+            //
+            // Null stream handle.
+            //
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->StreamSend(
+                    nullptr,
+                    Buffers,
+                    ARRAYSIZE(Buffers),
+                    QUIC_SEND_FLAG_NONE,
+                    nullptr));
+
+            //
+            // Never started (close).
+            //
+            {
+                StreamScope Stream;
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamOpen(
+                        Client.GetConnection(),
+                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        DummyStreamCallback,
+                        nullptr,
+                        &Stream.Handle));
+            }
+
+            //
+            // Never started (shutdown).
+            //
+            {
+                StreamScope Stream;
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamOpen(
+                        Client.GetConnection(),
+                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        DummyStreamCallback,
+                        nullptr,
+                        &Stream.Handle));
+
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_STATE,
+                    MsQuic->StreamShutdown(
+                        Stream.Handle,
+                        QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND | QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE,
+                        0));
+            }
+
+            //
+            // Null buffer.
+            //
+            {
+                StreamScope Stream;
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamOpen(
+                        Client.GetConnection(),
+                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        DummyStreamCallback,
+                        nullptr,
+                        &Stream.Handle));
+
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamStart(
                         Stream.Handle,
-                        QUIC_STREAM_START_FLAG_FAIL_BLOCKED));
-            } else {
+                        QUIC_STREAM_START_FLAG_NONE));
+
                 TEST_QUIC_STATUS(
-                    QUIC_STATUS_BUFFER_TOO_SMALL,
+                    QUIC_STATUS_INVALID_PARAMETER,
+                    MsQuic->StreamSend(
+                        Stream.Handle,
+                        nullptr,
+                        ARRAYSIZE(Buffers),
+                        QUIC_SEND_FLAG_NONE,
+                        nullptr));
+            }
+
+            //
+            // Zero buffers.
+            //
+            {
+                StreamScope Stream;
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamOpen(
+                        Client.GetConnection(),
+                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        DummyStreamCallback,
+                        nullptr,
+                        &Stream.Handle));
+
+                TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamStart(
                         Stream.Handle,
-                        QUIC_STREAM_START_FLAG_FAIL_BLOCKED));
+                        QUIC_STREAM_START_FLAG_NONE));
+
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_PARAMETER,
+                    MsQuic->StreamSend(
+                        Stream.Handle,
+                        Buffers,
+                        0,
+                        QUIC_SEND_FLAG_NONE,
+                        nullptr));
             }
-        }
 
-        //
-        // Null stream handle.
-        //
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->StreamSend(
-                nullptr,
-                Buffers,
-                ARRAYSIZE(Buffers),
-                QUIC_SEND_FLAG_NONE,
-                nullptr));
+            //
+            // Send on shutdown stream.
+            //
+            {
+                StreamScope Stream;
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamOpen(
+                        Client.GetConnection(),
+                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        DummyStreamCallback,
+                        nullptr,
+                        &Stream.Handle));
 
-        //
-        // Never started (close).
-        //
-        {
-            StreamScope Stream;
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->StreamOpen(
-                    Client.GetConnection(),
-                    QUIC_STREAM_OPEN_FLAG_NONE,
-                    DummyStreamCallback,
-                    nullptr,
-                    &Stream.Handle));
-        }
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamStart(
+                        Stream.Handle,
+                        QUIC_STREAM_START_FLAG_NONE));
 
-        //
-        // Never started (shutdown).
-        //
-        {
-            StreamScope Stream;
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->StreamOpen(
-                    Client.GetConnection(),
-                    QUIC_STREAM_OPEN_FLAG_NONE,
-                    DummyStreamCallback,
-                    nullptr,
-                    &Stream.Handle));
+                // TODO: try this for each flag type
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamShutdown(
+                        Stream.Handle,
+                        QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL,
+                        QUIC_TEST_NO_ERROR));
 
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_STATE,
-                MsQuic->StreamShutdown(
-                    Stream.Handle,
-                    QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND | QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE,
-                    0));
-        }
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_PARAMETER,
+                    MsQuic->StreamSend(
+                        Stream.Handle,
+                        Buffers,
+                        ARRAYSIZE(Buffers),
+                        QUIC_SEND_FLAG_NONE,
+                        nullptr));
+            }
 
-        //
-        // Null buffer.
-        //
-        {
-            StreamScope Stream;
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->StreamOpen(
-                    Client.GetConnection(),
-                    QUIC_STREAM_OPEN_FLAG_NONE,
-                    DummyStreamCallback,
-                    nullptr,
-                    &Stream.Handle));
+            //
+            // Double-shutdown stream.
+            //
+            {
+                StreamScope Stream;
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamOpen(
+                        Client.GetConnection(),
+                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        DummyStreamCallback,
+                        nullptr,
+                        &Stream.Handle));
 
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->StreamStart(
-                    Stream.Handle,
-                    QUIC_STREAM_START_FLAG_NONE));
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamStart(
+                        Stream.Handle,
+                        QUIC_STREAM_START_FLAG_NONE));
 
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                MsQuic->StreamSend(
-                    Stream.Handle,
-                    nullptr,
-                    ARRAYSIZE(Buffers),
-                    QUIC_SEND_FLAG_NONE,
-                    nullptr));
-        }
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamShutdown(
+                        Stream.Handle,
+                        QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL,
+                        QUIC_TEST_NO_ERROR));
 
-        //
-        // Zero buffers.
-        //
-        {
-            StreamScope Stream;
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->StreamOpen(
-                    Client.GetConnection(),
-                    QUIC_STREAM_OPEN_FLAG_NONE,
-                    DummyStreamCallback,
-                    nullptr,
-                    &Stream.Handle));
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamShutdown(
+                        Stream.Handle,
+                        QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL,
+                        QUIC_TEST_NO_ERROR));
+            }
 
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->StreamStart(
-                    Stream.Handle,
-                    QUIC_STREAM_START_FLAG_NONE));
-
+            //
+            // Shutdown null handle.
+            //
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_PARAMETER,
-                MsQuic->StreamSend(
-                    Stream.Handle,
-                    Buffers,
-                    0,
-                    QUIC_SEND_FLAG_NONE,
-                    nullptr));
-        }
-
-        //
-        // Send on shutdown stream.
-        //
-        {
-            StreamScope Stream;
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->StreamOpen(
-                    Client.GetConnection(),
-                    QUIC_STREAM_OPEN_FLAG_NONE,
-                    DummyStreamCallback,
-                    nullptr,
-                    &Stream.Handle));
-
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->StreamStart(
-                    Stream.Handle,
-                    QUIC_STREAM_START_FLAG_NONE));
-
-            // TODO: try this for each flag type
-            TEST_QUIC_SUCCEEDED(
                 MsQuic->StreamShutdown(
-                    Stream.Handle,
+                    nullptr,
                     QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL,
                     QUIC_TEST_NO_ERROR));
 
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                MsQuic->StreamSend(
-                    Stream.Handle,
-                    Buffers,
-                    ARRAYSIZE(Buffers),
-                    QUIC_SEND_FLAG_NONE,
-                    nullptr));
+            //
+            // Shutdown no flags.
+            //
+            {
+                StreamScope Stream;
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamOpen(
+                        Client.GetConnection(),
+                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        DummyStreamCallback,
+                        nullptr,
+                        &Stream.Handle));
+
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamStart(
+                        Stream.Handle,
+                        QUIC_STREAM_START_FLAG_NONE));
+
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_PARAMETER,
+                    MsQuic->StreamShutdown(
+                        Stream.Handle,
+                        QUIC_STREAM_SHUTDOWN_FLAG_NONE,
+                        QUIC_TEST_NO_ERROR));
+            }
+
+            //
+            // Close nullptr.
+            //
+            MsQuic->StreamClose(nullptr);
         }
-
-        //
-        // Double-shutdown stream.
-        //
-        {
-            StreamScope Stream;
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->StreamOpen(
-                    Client.GetConnection(),
-                    QUIC_STREAM_OPEN_FLAG_NONE,
-                    DummyStreamCallback,
-                    nullptr,
-                    &Stream.Handle));
-
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->StreamStart(
-                    Stream.Handle,
-                    QUIC_STREAM_START_FLAG_NONE));
-
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->StreamShutdown(
-                    Stream.Handle,
-                    QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL,
-                    QUIC_TEST_NO_ERROR));
-
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->StreamShutdown(
-                    Stream.Handle,
-                    QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL,
-                    QUIC_TEST_NO_ERROR));
-        }
-
-        //
-        // Shutdown null handle.
-        //
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->StreamShutdown(
-                nullptr,
-                QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL,
-                QUIC_TEST_NO_ERROR));
-
-        //
-        // Shutdown no flags.
-        //
-        {
-            StreamScope Stream;
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->StreamOpen(
-                    Client.GetConnection(),
-                    QUIC_STREAM_OPEN_FLAG_NONE,
-                    DummyStreamCallback,
-                    nullptr,
-                    &Stream.Handle));
-
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->StreamStart(
-                    Stream.Handle,
-                    QUIC_STREAM_START_FLAG_NONE));
-
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                MsQuic->StreamShutdown(
-                    Stream.Handle,
-                    QUIC_STREAM_SHUTDOWN_FLAG_NONE,
-                    QUIC_TEST_NO_ERROR));
-        }
-
-        //
-        // Close nullptr.
-        //
-        MsQuic->StreamClose(nullptr);
     }
 }
 

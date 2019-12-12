@@ -754,6 +754,13 @@ QuicTraceConnEvent(
             PacktTypeStr[EvData->PacketACKed.Type]);
         break;
     }
+    case EventId_QuicConnLogError:
+    case EventId_QuicConnLogWarning:
+    case EventId_QuicConnLogInfo:
+    case EventId_QuicConnLogVerbose: {
+        printf("%s\n", EvData->Log.Msg);
+        break;
+    }
     default: {
         printf("Unknown Event ID=%u\n", ev->EventHeader.EventDescriptor.Id);
         break;
@@ -1058,11 +1065,7 @@ QuicTraceLogEvent(
     case EventId_QuicLogError:
     case EventId_QuicLogWarning:
     case EventId_QuicLogInfo:
-    case EventId_QuicLogVerbose:
-    case EventId_QuicLogDev:
-    case EventId_QuicLogPacketWarning:
-    case EventId_QuicLogPacketInfo:
-    case EventId_QuicLogPacketVerbose: {
+    case EventId_QuicLogVerbose: {
         printf("%s\n", EvData->Msg);
         break;
     }

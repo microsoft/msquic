@@ -22,11 +22,13 @@ Abstract:
     QUIC_EVENTS_STUB            No-op all Events
     QUIC_EVENTS_MANIFEST_ETW    Write to Windows ETW framework
     QUIC_EVENTS_SYSLOG          Write to Linux syslog
+    QUIC_EVENTS_LTTNG           Write to Linux LTTng framework
 
     QUIC_LOGS_STUB              No-op all Logs
     QUIC_LOGS_WPP               Write to Windows WPP framework
     QUIC_LOGS_MANIFEST_ETW      Write to Windows ETW framework
     QUIC_LOGS_SYSLOG            Write to Linux syslog
+    QUIC_LOGS_LTTNG             Write to Linux LTTng framework
 
  --*/
 
@@ -35,11 +37,11 @@ Abstract:
 
 #pragma once
 
-#if !defined(QUIC_EVENTS_STUB) && !defined(QUIC_EVENTS_MANIFEST_ETW) && !defined(QUIC_EVENTS_SYSLOG)
+#if !defined(QUIC_EVENTS_STUB) && !defined(QUIC_EVENTS_MANIFEST_ETW) && !defined(QUIC_EVENTS_SYSLOG) && !defined(QUIC_EVENTS_LTTNG)
 #error "Must define one QUIC_EVENTS_*"
 #endif
 
-#if !defined(QUIC_LOGS_STUB) && !defined(QUIC_LOGS_WPP) && !defined(QUIC_LOGS_MANIFEST_ETW) && !defined(QUIC_LOGS_SYSLOG)
+#if !defined(QUIC_LOGS_STUB) && !defined(QUIC_LOGS_WPP) && !defined(QUIC_LOGS_MANIFEST_ETW) && !defined(QUIC_LOGS_SYSLOG) && !defined(QUIC_LOGS_LTTNG)
 #error "Must define one QUIC_LOGS_*"
 #endif
 
@@ -133,12 +135,14 @@ QuicSysLogWrite(
 
 #endif // defined(QUIC_EVENTS_SYSLOG) || defined(QUIC_TRACE_SYSLOG)
 
-#if defined(QUIC_EVENTS_STUB) || defined(QUIC_EVENTS_SYSLOG)
+#if defined(QUIC_EVENTS_STUB) || defined(QUIC_EVENTS_SYSLOG) || defined(QUIC_EVENTS_LTTNG)
 
 #ifdef QUIC_EVENTS_SYSLOG
 #define QUIC_WRITE_EVENT QuicSysLogWrite
-#else // QUIC_EVENTS_STUB
+#elif defined(QUIC_EVENTS_STUB)
 #define QUIC_WRITE_EVENT(...)
+#else // QUIC_EVENTS_LTTNG
+#error "LTTng not supported yet!"
 #endif
 
 #define EventWriteQuicLibraryInitialized(PartitionCount, DatapathFeatures) \
@@ -428,21 +432,20 @@ QuicEtwCallback(
 
 #ifdef QUIC_LOGS_STUB
 
-#define WPP_COMPID_LEVEL_ENABLED(...) 0
+#define LogErrorEnabled()   FALSE
+#define LogWarningEnabled() FALSE
+#define LogInfoEnabled()    FALSE
+#define LogVerboseEnabled() FALSE
 
-#define LogFuncEntryMsg(...)
-#define LogFuncEntry(...)
-#define LogFuncExit(...)
-#define LogVerbose(...)
-#define LogWarning(...)
 #define LogError(...)
+#define LogWarning(...)
 #define LogInfo(...)
-#define LogFuncExitMsg(...)
-#define LogPacketVerbose(...)
-#define LogPacketInfo(...)
-#define LogDev(...)
-#define LogPacketWarning(...)
-#define LogTLS(...)
+#define LogVerbose(...)
+
+#define LogConnError(...)
+#define LogConnWarning(...)
+#define LogConnInfo(...)
+#define LogConnVerbose(...)
 
 #endif // QUIC_LOGS_STUB
 
@@ -463,84 +466,51 @@ extern "C" {
 
 #define WPP_CONTROL_GUIDS \
     WPP_DEFINE_CONTROL_GUID(quicGUID,(620FD025,BE51,42EF,A5C0,50F13F183AD9),  \
-        WPP_DEFINE_BIT(FLAG_DEFAULT)          \
-        WPP_DEFINE_BIT(FLAG_PACKET)           \
-        WPP_DEFINE_BIT(FLAG_DEVELOPMENT)      \
+        WPP_DEFINE_BIT(FLAG_DEFAULT)        \
+        WPP_DEFINE_BIT(FLAG_REGISTRATION)   \
+        WPP_DEFINE_BIT(FLAG_SESSION)        \
+        WPP_DEFINE_BIT(FLAG_LISTENER)       \
+        WPP_DEFINE_BIT(FLAG_WORKER)         \
+        WPP_DEFINE_BIT(FLAG_BINDING)        \
+        WPP_DEFINE_BIT(FLAG_CONNECTION)     \
+        WPP_DEFINE_BIT(FLAG_STREAM)         \
+        WPP_DEFINE_BIT(FLAG_UDP)            \
+        WPP_DEFINE_BIT(FLAG_PACKET)         \
+        WPP_DEFINE_BIT(FLAG_TLS)            \
+        WPP_DEFINE_BIT(FLAG_PLATFORM)       \
         )
 
-#ifdef WPP_COMPID_LEVEL_ENABLED
-#undef WPP_COMPID_LEVEL_ENABLED
-#endif
+#define WPP_LEVEL_FLAGS_NOOP_ENABLED(LEVEL,FLAGS,NOOP)   \
+    WPP_LEVEL_FLAGS_ENABLED(LEVEL,FLAGS)
+#define WPP_LEVEL_FLAGS_NOOP_LOGGER(LEVEL,FLAGS,NOOP)   \
+    WPP_LEVEL_FLAGS_LOGGER(LEVEL,FLAGS)
 
-#define WPP_COMPID_LEVEL_ENABLED(CTL,LEVEL)                            \
-    ((WPP_CONTROL (WPP_BIT_##CTL).Level >= LEVEL) &&                   \
-     (WPP_CONTROL (WPP_BIT_##CTL).Flags[WPP_FLAG_NO (WPP_BIT_##CTL)] & \
-      WPP_MASK (WPP_BIT_##CTL)))
+#define WPP_LEVEL_FLAGS_NOOP_POINTER_ENABLED(LEVEL,FLAGS,NOOP,POINTER)   \
+    WPP_LEVEL_FLAGS_ENABLED(LEVEL,FLAGS)
+#define WPP_LEVEL_FLAGS_NOOP_POINTER_LOGGER(LEVEL,FLAGS,NOOP,POINTER)   \
+    WPP_LEVEL_FLAGS_LOGGER(LEVEL,FLAGS)
 
-#ifndef WPP_COMPID_LEVEL_LOGGER
-#define WPP_COMPID_LEVEL_LOGGER(CTL,LEVEL)      \
-    (WPP_CONTROL(WPP_BIT_ ## CTL).Logger),
-#endif
-
-#define WPP_COMPID_LEVEL__ENABLED(COMPID,LEVEL,DUMMY)   \
-    WPP_COMPID_LEVEL_ENABLED (COMPID,LEVEL)
-#define WPP_COMPID_LEVEL__LOGGER(COMPID,LEVEL,DUMMY)    \
-    WPP_COMPID_LEVEL_LOGGER (COMPID,LEVEL)
-
-#define WPP_COMPID_LEVEL_EXP_ENABLED(COMPID,LEVEL,EXP)  \
-    WPP_COMPID_LEVEL_ENABLED (COMPID,LEVEL)
-#define WPP_COMPID_LEVEL_EXP_LOGGER(COMPID,LEVEL,EXP)   \
-    WPP_COMPID_LEVEL_LOGGER (COMPID,LEVEL)
-
-#define WPP_COMPID_LEVEL__PRE(COMPID,LEVEL,DUMMY)
-#define WPP_COMPID_LEVEL__POST(COMPID,LEVEL,DUMMY)
+#define LogErrorEnabled()   WPP_FLAGS_LEVEL_ENABLED(FLAG_DEFAULT, TRACE_LEVEL_ERROR)
+#define LogWarningEnabled() WPP_FLAGS_LEVEL_ENABLED(FLAG_DEFAULT, TRACE_LEVEL_WARNING)
+#define LogInfoEnabled()    WPP_FLAGS_LEVEL_ENABLED(FLAG_DEFAULT, TRACE_LEVEL_INFORMATION)
+#define LogVerboseEnabled() WPP_FLAGS_LEVEL_ENABLED(FLAG_DEFAULT, TRACE_LEVEL_VERBOSE)
 
 // begin_wpp config
-// USEPREFIX (LogError, " ");
+
 // FUNC LogError{LEVEL=TRACE_LEVEL_ERROR,FLAGS=FLAG_DEFAULT}(MSG,...);
-// end_wpp
-
-// begin_wpp config
-// USEPREFIX (LogWarning, " ");
 // FUNC LogWarning{LEVEL=TRACE_LEVEL_WARNING,FLAGS=FLAG_DEFAULT}(MSG,...);
-// end_wpp
-
-// begin_wpp config
-// USEPREFIX (LogInfo, " ");
 // FUNC LogInfo{LEVEL=TRACE_LEVEL_INFORMATION,FLAGS=FLAG_DEFAULT}(MSG,...);
-// end_wpp
-
-// begin_wpp config
-// USEPREFIX (LogVerbose, " ");
 // FUNC LogVerbose{LEVEL=TRACE_LEVEL_VERBOSE,FLAGS=FLAG_DEFAULT}(MSG,...);
-// end_wpp
 
-//
-// Packet
-//
+// USEPREFIX(LogConnError,"%!STDPREFIX![conn][%p]%!SPACE!",POINTER);
+// FUNC LogConnError{LEVEL=TRACE_LEVEL_ERROR,FLAGS=FLAG_CONNECTION}(NOOP,POINTER,MSG,...);
+// USEPREFIX(LogConnWarning,"%!STDPREFIX![conn][%p]%!SPACE!",POINTER);
+// FUNC LogConnWarning{LEVEL=TRACE_LEVEL_WARNING,FLAGS=FLAG_CONNECTION}(NOOP,POINTER,MSG,...);
+// USEPREFIX(LogConnInfo,"%!STDPREFIX![conn][%p]%!SPACE!",POINTER);
+// FUNC LogConnInfo{LEVEL=TRACE_LEVEL_INFORMATION,FLAGS=FLAG_CONNECTION}(NOOP,POINTER,MSG,...);
+// USEPREFIX(LogConnVerbose,"%!STDPREFIX![conn][%p]%!SPACE!",POINTER);
+// FUNC LogConnVerbose{LEVEL=TRACE_LEVEL_VERBOSE,FLAGS=FLAG_CONNECTION}(NOOP,POINTER,MSG,...);
 
-// begin_wpp config
-// USEPREFIX (LogPacketWarning, " ");
-// FUNC LogPacketWarning{LEVEL=TRACE_LEVEL_WARNING,FLAGS=FLAG_PACKET}(MSG,...);
-// end_wpp
-
-// begin_wpp config
-// USEPREFIX (LogPacketInfo, " ");
-// FUNC LogPacketInfo{LEVEL=TRACE_LEVEL_INFORMATION,FLAGS=FLAG_PACKET}(MSG,...);
-// end_wpp
-
-// begin_wpp config
-// USEPREFIX (LogPacketVerbose, " ");
-// FUNC LogPacketVerbose{LEVEL=TRACE_LEVEL_VERBOSE,FLAGS=FLAG_PACKET}(MSG,...);
-// end_wpp
-
-//
-// Development
-//
-
-// begin_wpp config
-// USEPREFIX (LogDev, " ");
-// FUNC LogDev{LEVEL=TRACE_LEVEL_INFORMATION,FLAGS=FLAG_DEVELOPMENT}(MSG,...);
 // end_wpp
 
 typedef struct _ByteArray {
@@ -576,7 +546,10 @@ log_hexbuf(const void* Buffer, UINT32 Length) {
 #include "MsQuicEtw.h"
 #include <stdio.h>
 
-#define WPP_COMPID_LEVEL_ENABLED(...) TRUE
+#define LogErrorEnabled()   TRUE
+#define LogWarningEnabled() TRUE
+#define LogInfoEnabled()    TRUE
+#define LogVerboseEnabled() TRUE
 
 #define LogEtw(EventName, Fmt, ...) \
     if (EventEnabledQuicLog##EventName()) { \
@@ -585,30 +558,48 @@ log_hexbuf(const void* Buffer, UINT32 Length) {
         EventWriteQuicLog##EventName##_AssumeEnabled(EtwBuffer); \
     }
 
+#define LogEtwType(Type, EventName, Ptr, Fmt, ...) \
+    if (EventEnabledQuic##Type##Log##EventName()) { \
+        char EtwBuffer[256]; \
+        sprintf_s(EtwBuffer, 256, Fmt, ##__VA_ARGS__); \
+        EventWriteQuic##Type##Log##EventName##_AssumeEnabled(Ptr, EtwBuffer); \
+    }
+
 #define LogError(Fmt, ...)          LogEtw(Error, Fmt, ##__VA_ARGS__)
 #define LogWarning(Fmt, ...)        LogEtw(Warning, Fmt, ##__VA_ARGS__)
 #define LogInfo(Fmt, ...)           LogEtw(Info, Fmt, ##__VA_ARGS__)
 #define LogVerbose(Fmt, ...)        LogEtw(Verbose, Fmt, ##__VA_ARGS__)
-#define LogDev(Fmt, ...)            LogEtw(Dev, Fmt, ##__VA_ARGS__)
-#define LogPacketWarning(Fmt, ...)  LogEtw(PacketWarning, Fmt, ##__VA_ARGS__)
-#define LogPacketInfo(Fmt, ...)     LogEtw(PacketInfo, Fmt, ##__VA_ARGS__)
-#define LogPacketVerbose(Fmt, ...)  LogEtw(PacketVerbose, Fmt, ##__VA_ARGS__)
+
+#define LogConnError(Name, Ptr, Fmt, ...)    LogEtwType(Conn, Error, Ptr, Fmt, ##__VA_ARGS__)
+#define LogConnWarning(Name, Ptr, Fmt, ...)  LogEtwType(Conn, Warning, Ptr, Fmt, ##__VA_ARGS__)
+#define LogConnInfo(Name, Ptr, Fmt, ...)     LogEtwType(Conn, Info, Ptr, Fmt, ##__VA_ARGS__)
+#define LogConnVerbose(Name, Ptr, Fmt, ...)  LogEtwType(Conn, Verbose, Ptr, Fmt, ##__VA_ARGS__)
 
 #endif // QUIC_LOGS_MANIFEST_ETW
 
 #ifdef QUIC_LOGS_SYSLOG
 
-#define WPP_COMPID_LEVEL_ENABLED(...) TRUE
+#define LogErrorEnabled()   TRUE
+#define LogWarningEnabled() TRUE
+#define LogInfoEnabled()    TRUE
+#define LogVerboseEnabled() TRUE
 
-#define LogDev(Fmt, ...)            QuicSysLogWrite(QUIC_TRACE_LEVEL_DEV, Fmt, ##__VA_ARGS__)
-#define LogVerbose(Fmt, ...)        QuicSysLogWrite(QUIC_TRACE_LEVEL_VERBOSE, Fmt, ##__VA_ARGS__)
-#define LogInfo(Fmt, ...)           QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, Fmt, ##__VA_ARGS__)
-#define LogWarning(Fmt, ...)        QuicSysLogWrite(QUIC_TRACE_LEVEL_WARNING, Fmt, ##__VA_ARGS__)
 #define LogError(Fmt, ...)          QuicSysLogWrite(QUIC_TRACE_LEVEL_ERROR, Fmt, ##__VA_ARGS__)
-#define LogPacketVerbose(Fmt, ...)  QuicSysLogWrite(QUIC_TRACE_LEVEL_PACKET_VERBOSE, Fmt, ##__VA_ARGS__)
-#define LogPacketInfo(Fmt, ...)     QuicSysLogWrite(QUIC_TRACE_LEVEL_PACKET_INFO, Fmt, ##__VA_ARGS__)
-#define LogPacketWarning(Fmt, ...)  QuicSysLogWrite(QUIC_TRACE_LEVEL_PACKET_WARNING, Fmt, ##__VA_ARGS__)
+#define LogWarning(Fmt, ...)        QuicSysLogWrite(QUIC_TRACE_LEVEL_WARNING, Fmt, ##__VA_ARGS__)
+#define LogInfo(Fmt, ...)           QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, Fmt, ##__VA_ARGS__)
+#define LogVerbose(Fmt, ...)        QuicSysLogWrite(QUIC_TRACE_LEVEL_VERBOSE, Fmt, ##__VA_ARGS__)
+
+#define LogConnError(Name, Ptr, Fmt, ...)   QuicSysLogWrite(QUIC_TRACE_LEVEL_ERROR, "[conn][%p] " Fmt, Ptr, ##__VA_ARGS__)
+#define LogConnWarning(Name, Ptr, Fmt, ...) QuicSysLogWrite(QUIC_TRACE_LEVEL_WARNING, "[conn][%p] " Fmt, Ptr, ##__VA_ARGS__)
+#define LogConnInfo(Name, Ptr, Fmt, ...)    QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] " Fmt, Ptr, ##__VA_ARGS__)
+#define LogConnVerbose(Name, Ptr, Fmt, ...) QuicSysLogWrite(QUIC_TRACE_LEVEL_VERBOSE, "[conn][%p] " Fmt, Ptr, ##__VA_ARGS__)
 
 #endif // QUIC_LOGS_SYSLOG
+
+#ifdef QUIC_LOGS_LTTNG
+
+#error "LTTng not supported yet!"
+
+#endif // QUIC_LOGS_LTTNG
 
 #endif // _TRACE_H

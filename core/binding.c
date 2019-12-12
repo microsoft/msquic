@@ -705,7 +705,7 @@ QuicBindingProcessStatelessOperation(
             QuicSupportedVersionList,
             sizeof(QuicSupportedVersionList));
 
-        LogPacketInfo("[S][TX][-] VN");
+        LogVerbose("[S][TX][-] VN");
 
     } else if (OperationType == QUIC_OPER_TYPE_STATELESS_RESET) {
 
@@ -760,7 +760,7 @@ QuicBindingProcessStatelessOperation(
             RecvPacket->DestCID,
             SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH);
 
-        LogPacketInfo("[S][TX][-] SR %s",
+        LogVerbose("[S][TX][-] SR %s",
             QuicCidBufToStr(
                 SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH,
                 QUIC_STATELESS_RESET_TOKEN_LENGTH
@@ -811,7 +811,7 @@ QuicBindingProcessStatelessOperation(
                 (uint8_t*)SendDatagram->Buffer);
         QUIC_DBG_ASSERT(SendDatagram->Length != 0);
 
-        LogPacketInfo(
+        LogVerbose(
             "[S][TX][-] LH Ver:0x%x DestCID:%s SrcCID:%s Type:R OrigDestCID:%s (Token %hu bytes)",
             RecvPacket->LH->Version,
             QuicCidBufToStr(RecvPacket->SourceCID, RecvPacket->SourceCIDLen).Buffer,
@@ -1475,7 +1475,7 @@ QuicBindingSendTo(
         }
 #if QUIC_SEND_FAKE_LOSS
     } else {
-        LogPacketInfo("[bind][%p] Dropped (fake loss) packet", Binding);
+        LogVerbose("[bind][%p] Dropped (fake loss) packet", Binding);
         QuicDataPathBindingFreeSendContext(SendContext);
         Status = QUIC_STATUS_SUCCESS;
     }
@@ -1509,7 +1509,7 @@ QuicBindingSendFromTo(
         }
 #if QUIC_SEND_FAKE_LOSS
     } else {
-        LogPacketInfo("[bind][%p] Dropped (fake loss) packet", Binding);
+        LogVerbose("[bind][%p] Dropped (fake loss) packet", Binding);
         QuicDataPathBindingFreeSendContext(SendContext);
         Status = QUIC_STATUS_SUCCESS;
     }

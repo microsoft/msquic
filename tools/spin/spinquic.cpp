@@ -363,6 +363,7 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
             PRINT("MsQuic->ConnectionStart(%p, ...) = ", Connection);
             QUIC_STATUS Status = MsQuic->ConnectionStart(Connection, AF_INET, Settings.ServerName, GetRandomFromVector(Settings.Ports));
             PRINT("0x%x\n", Status);
+            UNREFERENCED_PARAMETER(Status);
             break;
         }
         case SpinQuicAPICallShutdownConnection: {
@@ -402,6 +403,7 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
                 PRINT("MsQuic->StreamStart(%p, ...) = ", Stream);
                 QUIC_STATUS Status = MsQuic->StreamStart(Stream, (QUIC_STREAM_START_FLAGS)(rand() % 2) | QUIC_STREAM_START_FLAG_ASYNC);
                 PRINT("0x%x\n", Status);
+                UNREFERENCED_PARAMETER(Status);
             }
             break;
         }
@@ -416,6 +418,7 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
                 PRINT("MsQuic->StreamSend(%p, ...) = ", Stream);
                 QUIC_STATUS Status = MsQuic->StreamSend(Stream, Buffers, ARRAYSIZE(Buffers), QUIC_SEND_FLAG_NONE, nullptr);
                 PRINT("0x%x\n", Status);
+                UNREFERENCED_PARAMETER(Status);
             }
             break;
         }
@@ -430,6 +433,7 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
                 PRINT("MsQuic->StreamShutdown(%p, ...) = ", Stream);
                 QUIC_STATUS Status = MsQuic->StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)(rand() % 16), 0);
                 PRINT("0x%x\n", Status);
+                UNREFERENCED_PARAMETER(Status);
             }
             break;
         }

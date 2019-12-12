@@ -85,7 +85,7 @@ QuicLossDetectionUninitialize(
         LossDetection->SentPackets = LossDetection->SentPackets->Next;
 
         if (Packet->Flags.IsRetransmittable) {
-            LogPacketVerbose("[%c][TX][%llu] Thrown away on shutdown",
+            LogVerbose("[%c][TX][%llu] Thrown away on shutdown",
                 PtkConnPre(Connection), Packet->PacketNumber);
 
         }
@@ -96,7 +96,7 @@ QuicLossDetectionUninitialize(
         QUIC_SENT_PACKET_METADATA* Packet = LossDetection->LostPackets;
         LossDetection->LostPackets = LossDetection->LostPackets->Next;
 
-        LogPacketVerbose("[%c][TX][%llu] Thrown away on shutdown (lost packet)",
+        LogVerbose("[%c][TX][%llu] Thrown away on shutdown (lost packet)",
             PtkConnPre(Connection), Packet->PacketNumber);
 
         QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
@@ -666,7 +666,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
         while ((Packet = LossDetection->LostPackets) != NULL &&
                 Packet->PacketNumber < LossDetection->LargestAck &&
                 QuicTimeDiff32(Packet->SentTime, TimeNow) > TwoPto) {
-            LogPacketVerbose("[%c][TX][%llu] Forgetting",
+            LogVerbose("[%c][TX][%llu] Forgetting",
                 PtkConnPre(Connection), Packet->PacketNumber);
             LossDetection->LostPackets = Packet->Next;
             QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
@@ -705,7 +705,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 continue;
             } else if (Packet->PacketNumber + QUIC_PACKET_REORDER_THRESHOLD < LossDetection->LargestAck) {
                 if (!NonretransmittableHandshakePacket) {
-                    LogPacketVerbose(
+                    LogVerbose(
                         "[%c][TX][%llu] Lost: FACK %llu packets",
                         PtkConnPre(Connection),
                         Packet->PacketNumber,
@@ -719,7 +719,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
             } else if (Packet->PacketNumber < LossDetection->LargestAck &&
                         QuicTimeAtOrBefore32(Packet->SentTime + TimeReorderThreshold, TimeNow)) {
                 if (!NonretransmittableHandshakePacket) {
-                    LogPacketVerbose(
+                    LogVerbose(
                         "[%c][TX][%llu] Lost: RACK %lu ms",
                         PtkConnPre(Connection),
                         Packet->PacketNumber,
@@ -816,7 +816,7 @@ QuicLossDetectionDiscardPackets(
                 }
             }
 
-            LogPacketVerbose("[%c][TX][%llu] ACKed (implicit)",
+            LogVerbose("[%c][TX][%llu] ACKed (implicit)",
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
             EventWriteQuicConnPacketACKed(
@@ -852,7 +852,7 @@ QuicLossDetectionDiscardPackets(
                 }
             }
 
-            LogPacketVerbose("[%c][TX][%llu] ACKed (implicit)",
+            LogVerbose("[%c][TX][%llu] ACKed (implicit)",
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
             EventWriteQuicConnPacketACKed(
@@ -925,7 +925,7 @@ QuicLossDetectionOnZeroRttRejected(
                 }
             }
 
-            LogPacketVerbose("[%c][TX][%llu] Rejected",
+            LogVerbose("[%c][TX][%llu] Rejected",
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
 
@@ -1000,7 +1000,7 @@ QuicLossDetectionProcessAckBlocks(
             }
             QUIC_SENT_PACKET_METADATA** End = LostPacketsStart;
             while (*End && (*End)->PacketNumber <= QuicRangeGetHigh(AckBlock)) {
-                LogPacketVerbose("[%c][TX][%llu] Spurious loss detected",
+                LogVerbose("[%c][TX][%llu] Spurious loss detected",
                     PtkConnPre(Connection),
                     (*End)->PacketNumber);
                 Connection->Stats.Send.SpuriousLostPackets++;
@@ -1084,17 +1084,13 @@ QuicLossDetectionProcessAckBlocks(
             //
             // The packet was not acknowledged with the same encryption level.
             //
-            LogPacketWarning("[%c][TX][%llu] Incorrect ACK encryption level (%hu key with %hu level)",
-                PtkConnPre(Connection),
-                Packet->PacketNumber,
-                Packet->Flags.KeyType,
-                EncryptLevel);
+            EventWriteQuicConnError(Connection, "Incorrect ACK encryption level");
             *InvalidAckBlock = TRUE;
             return;
         }
 
         uint32_t PacketRtt = QuicTimeDiff32(Packet->SentTime, TimeNow);
-        LogPacketVerbose("[%c][TX][%llu] ACKed (%u.%u ms)",
+        LogVerbose("[%c][TX][%llu] ACKed (%u.%u ms)",
             PtkConnPre(Connection),
             Packet->PacketNumber,
             PacketRtt / 1000, PacketRtt % 1000);
@@ -1284,7 +1280,7 @@ QuicLossDetectionScheduleProbe(
     QUIC_SENT_PACKET_METADATA* Packet = LossDetection->SentPackets;
     while (Packet != NULL) {
         if (Packet->Flags.IsRetransmittable) {
-            LogPacketVerbose(
+            LogVerbose(
                 "[%c][TX][%llu] Probe Retransmit",
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
