@@ -63,7 +63,7 @@ steps:
 - task: CMake@1
   displayName: 'CMake Build'
   inputs:
-    cmakeArgs: '--build . --config RELEASE'
+    cmakeArgs: '--build . --config DEBUG'
 
 - task: CmdLine@2
   displayName: 'Run Tests'
