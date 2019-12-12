@@ -14,7 +14,7 @@ strategy:
     linux-stub-sanitize:
       platform: 'Linux-Stub-Sanitize'
       imageName: 'ubuntu-latest'
-      cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=stub -DQUIC_ENABLE_LOGGING=on -DQUIC_SANITIZE_ADDRESS=on'
+      cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=stub -DQUIC_SANITIZE_ADDRESS=on'
       testCmd: 'bash ./.azure/test_linux.sh AppData/WithSendArgs2.SendLarge/0'
     linux-stub-spin:
       platform: 'Linux-Stub-Spin'

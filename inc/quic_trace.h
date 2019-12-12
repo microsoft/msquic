@@ -442,7 +442,10 @@ QuicEtwCallback(
 #define LogInfo(...)
 #define LogVerbose(...)
 
+#define LogConnError(...)
+#define LogConnWarning(...)
 #define LogConnInfo(...)
+#define LogConnVerbose(...)
 
 #endif // QUIC_LOGS_STUB
 

@@ -14,8 +14,8 @@ start bld\procdump\procdump64.exe -ma -e -b -accepteula -w msquictest.exe artifa
 
 :: Import our ETW manifest.
 wevtutil im manifest\MsQuicEtw.man ^
-    /rf:%cd%\artifacts\bin\Debug\msquic.dll ^
-    /mf:%cd%\artifacts\bin\Debug\msquic.dll
+    /rf:%cd%\artifacts\bin\debug\msquic.dll ^
+    /mf:%cd%\artifacts\bin\debug\msquic.dll
 
 :: Start log collection.
 netsh trace start sessionname=quic ^
@@ -24,7 +24,7 @@ netsh trace start sessionname=quic ^
     provider=Microsoft-Quic level=0x5 keywords=0xE0000100
 
 :: Run the tests.
-artifacts\bin\Debug\msquictest.exe ^
+artifacts\bin\debug\msquictest.exe ^
     --gtest_filter=%1 ^
     --gtest_output=xml:artifacts\logs\windows-test-results.xml
 
