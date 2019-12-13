@@ -184,8 +184,7 @@ QuicEtwCallback(
 #ifdef QUIC_EVENTS_SYSLOG
 
 #define QuicTraceEventEnabled(Name) TRUE
-#define _QuicTraceEvent(Name, Args) EventWriteQuic##Name##Args
-#define QuicTraceEvent(Name, ...) _QuicTraceEvent(Name, (__VA_ARGS__))
+#define QuicTraceEvent(Name, ...) EventWriteQuic##Name(__VA_ARGS__)
 
 #define EventWriteQuicLibraryInitialized(PartitionCount, DatapathFeatures) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u", PartitionCount, DatapathFeatures)
