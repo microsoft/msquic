@@ -77,7 +77,7 @@ QuicConnLogCubic(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
-    EventWriteQuicConnCubic(
+    QuicTraceEvent(ConnCubic,
         Connection,
         Connection->CongestionControl.SlowStartThreshold,
         Connection->CongestionControl.KCubic,
@@ -251,7 +251,7 @@ QuicCongestionControlOnCongestionEvent(
     )
 {
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
-    EventWriteQuicConnCongestion(Connection);
+    QuicTraceEvent(ConnCongestion, Connection);
     Connection->Stats.Send.CongestionCount++;
 
     Cc->IsInRecovery = TRUE;
@@ -297,7 +297,7 @@ QuicCongestionControlOnPersistentCongestionEvent(
     )
 {
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
-    EventWriteQuicConnPersistentCongestion(Connection);
+    QuicTraceEvent(ConnPersistentCongestion, Connection);
     Connection->Stats.Send.PersistentCongestionCount++;
 
     Cc->IsInPersistentCongestion = TRUE;
@@ -370,7 +370,7 @@ QuicCongestionControlOnDataAcknowledged(
             // bit differently here than in TCP: we simply require an ACK for a
             // packet sent after recovery started.
             //
-            EventWriteQuicConnRecoveryExit(Connection);
+            QuicTraceEvent(ConnRecoveryExit, Connection);
             Cc->IsInRecovery = FALSE;
             Cc->IsInPersistentCongestion = FALSE;
             Cc->TimeOfCongAvoidStart = QuicTimeMs64();

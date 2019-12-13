@@ -896,7 +896,7 @@ QuicThreadCreate(
 
     pthread_attr_t Attr;
     if (pthread_attr_init(&Attr)) {
-        LogError("[qpal] pthread_attr_init failed, 0x%x.", errno);
+        QuicTraceLogError("[qpal] pthread_attr_init failed, 0x%x.", errno);
         return errno;
     }
 
@@ -908,7 +908,7 @@ QuicThreadCreate(
             CPU_ZERO(&CpuSet);
             CPU_SET(Config->IdealProcessor, &CpuSet);
             if (!pthread_attr_setaffinity_np(&Attr, sizeof(CpuSet), &CpuSet)) {
-                LogWarning("[qpal] pthread_attr_setaffinity_np failed.");
+                QuicTraceLogWarning("[qpal] pthread_attr_setaffinity_np failed.");
             }
         } else {
             // TODO - Set Linux equivalent of NUMA affinity.
@@ -919,13 +919,13 @@ QuicThreadCreate(
         struct sched_param Params;
         Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
         if (!pthread_attr_setschedparam(&Attr, &Params)) {
-            LogWarning("[qpal] pthread_attr_setschedparam failed, 0x%x.");
+            QuicTraceLogWarning("[qpal] pthread_attr_setschedparam failed, 0x%x.");
         }
     }
 
     if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
         Status = errno;
-        LogError("[qpal] pthread_create failed, 0x%x.", Status);
+        QuicTraceLogError("[qpal] pthread_create failed, 0x%x.", Status);
     }
 
     pthread_attr_destroy(&Attr);
@@ -967,7 +967,7 @@ QuicPlatformLogAssert(
     _In_z_ const char* Expr
     )
 {
-    LogError("[Assert] %s:%s:%d:%s", Expr, Func, Line, File);
+    QuicTraceLogError("[Assert] %s:%s:%d:%s", Expr, Func, Line, File);
 }
 
 int
@@ -1013,7 +1013,7 @@ QuicSysLogWrite(
     va_list Args = {0};
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     va_start(Args, Fmt);
-    PlatDispatch->Log(Level, Fmt, Args);
+    PlatDispatch->QuicTraceLog(Level, Fmt, Args);
     va_end(Args);
 #else
     char Buffer[QUIC_MAX_LOG_MSG_LEN] = {0};

@@ -224,13 +224,13 @@ QuicOperLog(
 {
     switch (Oper->Type) {
         case QUIC_OPER_TYPE_API_CALL:
-            EventWriteQuicConnExecApiOper(Connection, Oper->API_CALL.Context->Type);
+            QuicTraceEvent(ConnExecApiOper, Connection, Oper->API_CALL.Context->Type);
             break;
         case QUIC_OPER_TYPE_TIMER_EXPIRED:
-            EventWriteQuicConnExecTimerOper(Connection, Oper->TIMER_EXPIRED.Type);
+            QuicTraceEvent(ConnExecTimerOper, Connection, Oper->TIMER_EXPIRED.Type);
             break;
         default:
-            EventWriteQuicConnExecOper(Connection, Oper->Type);
+            QuicTraceEvent(ConnExecOper, Connection, Oper->Type);
             break;
     }
 }

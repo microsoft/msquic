@@ -34,7 +34,7 @@ QuicLogBuffer(
         if (Index + Length > BufferLength) {
             Length = (uint16_t)(BufferLength - Index);
         }
-        LogVerbose("%!HEXBUF!", LOG_HEXBUF(Buffer + Index, Length));
+        QuicTraceLogVerbose("%!HEXBUF!", LOG_HEXBUF(Buffer + Index, Length));
         Index += QUIC_LOG_LINE_LENGTH;
     }
 }

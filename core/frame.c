@@ -1138,7 +1138,7 @@ QuicFrameLog(
 {
     QUIC_FRAME_TYPE FrameType = Packet[*Offset];
     if (FrameType > MAX_QUIC_FRAME) {
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[%c][%cX][%llu]   unknown frame (%hu)",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, FrameType);
         return FALSE;
@@ -1154,14 +1154,14 @@ QuicFrameLog(
             Packet[*Offset] == QUIC_FRAME_PADDING) {
             (*Offset) += sizeof(uint8_t);
         }
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[%c][%cX][%llu]   PADDING Len:%hu",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, (*Offset - Start) + 1);
         break;
     }
 
     case QUIC_FRAME_PING: {
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[%c][%cX][%llu]   PING",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
         break;
@@ -1171,24 +1171,24 @@ QuicFrameLog(
     case QUIC_FRAME_ACK_1: {
         QUIC_ACK_EX Frame;
         if (!QuicAckHeaderDecode(PacketLength, Packet, Offset, &Frame)) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   ACK [Invalid]",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
             return FALSE;
         }
 
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[%c][%cX][%llu]   ACK Largest:%llu Delay:%llu",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.LargestAcknowledged,
             Frame.AckDelay);
 
         if (Frame.FirstAckBlock == 0) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]     %llu",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber,
                 Frame.LargestAcknowledged);
         } else {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]     %llu - %llu",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber,
                 Frame.LargestAcknowledged - Frame.FirstAckBlock,
@@ -1200,7 +1200,7 @@ QuicFrameLog(
         for (uint8_t i = 0; i < Frame.AdditionalAckBlockCount; i++) {
             QUIC_ACK_BLOCK_EX Block;
             if (!QuicAckBlockDecode(PacketLength, Packet, Offset, &Block)) {
-                LogVerbose(
+                QuicTraceLogVerbose(
                     "[%c][%cX][%llu]     [Invalid Block]",
                     PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
                 return FALSE;
@@ -1209,12 +1209,12 @@ QuicFrameLog(
             Frame.LargestAcknowledged -= (Block.Gap + 1);
 
             if (Block.AckBlock == 0) {
-                LogVerbose(
+                QuicTraceLogVerbose(
                     "[%c][%cX][%llu]     %llu",
                     PtkConnPre(Connection), PktRxPre(Rx), PacketNumber,
                     Frame.LargestAcknowledged);
             } else {
-                LogVerbose(
+                QuicTraceLogVerbose(
                     "[%c][%cX][%llu]     %llu - %llu",
                     PtkConnPre(Connection), PktRxPre(Rx), PacketNumber,
                     Frame.LargestAcknowledged - Block.AckBlock,
@@ -1229,12 +1229,12 @@ QuicFrameLog(
             if (!QuicVarIntDecode(PacketLength, Packet, Offset, &Ecn.ECT_0_Count) ||
                 !QuicVarIntDecode(PacketLength, Packet, Offset, &Ecn.ECT_1_Count) ||
                 !QuicVarIntDecode(PacketLength, Packet, Offset, &Ecn.CE_Count)) {
-                LogVerbose(
+                QuicTraceLogVerbose(
                     "[%c][%cX][%llu]     ECN [Invalid]",
                     PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
                 return FALSE;
             }
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]     ECN [ECT0=%llu,ECT1=%llu,CE=%llu]",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber,
                 Ecn.ECT_0_Count, Ecn.ECT_1_Count, Ecn.CE_Count);
@@ -1246,13 +1246,13 @@ QuicFrameLog(
     case QUIC_FRAME_RESET_STREAM: {
         QUIC_RESET_STREAM_EX Frame;
         if (!QuicResetStreamFrameDecode(PacketLength, Packet, Offset, &Frame)) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   RESET_STREAM [Invalid]",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
             return FALSE;
         }
 
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[%c][%cX][%llu]   RESET_STREAM ID:%llu ErrorCode:0x%llX FinalSize:%llu",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.StreamID, Frame.ErrorCode,
             Frame.FinalSize);
@@ -1262,13 +1262,13 @@ QuicFrameLog(
     case QUIC_FRAME_STOP_SENDING: {
         QUIC_STOP_SENDING_EX Frame;
         if (!QuicStopSendingFrameDecode(PacketLength, Packet, Offset, &Frame)) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   STOP_SENDING [Invalid]",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
             return FALSE;
         }
 
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[%c][%cX][%llu]   STOP_SENDING ID:%llu Error:0x%llX",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.StreamID, Frame.ErrorCode);
         break;
@@ -1277,13 +1277,13 @@ QuicFrameLog(
     case QUIC_FRAME_CRYPTO: {
         QUIC_CRYPTO_EX Frame;
         if (!QuicCryptoFrameDecode(PacketLength, Packet, Offset, &Frame)) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   CRYPTO [Invalid]",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
             return FALSE;
         }
 
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[%c][%cX][%llu]   CRYPTO Offset:%llu Len:%hu",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.Offset, (uint16_t)Frame.Length);
 
@@ -1293,13 +1293,13 @@ QuicFrameLog(
     case QUIC_FRAME_NEW_TOKEN: {
         QUIC_NEW_TOKEN_EX Frame;
         if (!QuicNewTokenFrameDecode(PacketLength, Packet, Offset, &Frame)) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   NEW_TOKEN [Invalid]",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
             return FALSE;
         }
 
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[%c][%cX][%llu]   NEW_TOKEN Length:%llu",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.TokenLength);
 
@@ -1316,19 +1316,19 @@ QuicFrameLog(
     case QUIC_FRAME_STREAM_7: {
         QUIC_STREAM_EX Frame;
         if (!QuicStreamFrameDecode(FrameType, PacketLength, Packet, Offset, &Frame)) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   STREAM [Invalid]",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
             return FALSE;
         }
 
         if (Frame.Fin) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   STREAM ID:%llu Offset:%llu Len:%hu Fin",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.StreamID, Frame.Offset,
                 (uint16_t)Frame.Length);
         } else {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   STREAM ID:%llu Offset:%llu Len:%hu",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.StreamID, Frame.Offset,
                 (uint16_t)Frame.Length);
@@ -1340,13 +1340,13 @@ QuicFrameLog(
     case QUIC_FRAME_MAX_DATA: {
         QUIC_MAX_DATA_EX Frame;
         if (!QuicMaxDataFrameDecode(PacketLength, Packet, Offset, &Frame)) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   MAX_DATA [Invalid]",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
             return FALSE;
         }
 
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[%c][%cX][%llu]   MAX_DATA Max:%llu",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.MaximumData);
         break;
@@ -1355,13 +1355,13 @@ QuicFrameLog(
     case QUIC_FRAME_MAX_STREAM_DATA: {
         QUIC_MAX_STREAM_DATA_EX Frame;
         if (!QuicMaxStreamDataFrameDecode(PacketLength, Packet, Offset, &Frame)) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   MAX_STREAM_DATA [Invalid]",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
             return FALSE;
         }
 
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[%c][%cX][%llu]   MAX_STREAM_DATA ID:%llu Max:%llu",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.StreamID, Frame.MaximumData);
         break;
@@ -1371,13 +1371,13 @@ QuicFrameLog(
     case QUIC_FRAME_MAX_STREAMS_1: {
         QUIC_MAX_STREAMS_EX Frame;
         if (!QuicMaxStreamsFrameDecode(FrameType, PacketLength, Packet, Offset, &Frame)) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   MAX_STREAMS [Invalid]",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
             return FALSE;
         }
 
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[%c][%cX][%llu]   MAX_STREAMS[%hu] Count:%llu",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.BidirectionalStreams, Frame.MaximumStreams);
         break;
@@ -1386,12 +1386,12 @@ QuicFrameLog(
     case QUIC_FRAME_DATA_BLOCKED: {
         QUIC_DATA_BLOCKED_EX Frame;
         if (!QuicDataBlockedFrameDecode(PacketLength, Packet, Offset, &Frame)) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   DATA_BLOCKED [Invalid]",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
             return FALSE;
         }
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[%c][%cX][%llu]   DATA_BLOCKED Limit:%llu",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.DataLimit);
         break;
@@ -1400,13 +1400,13 @@ QuicFrameLog(
     case QUIC_FRAME_STREAM_DATA_BLOCKED: {
         QUIC_STREAM_DATA_BLOCKED_EX Frame;
         if (!QuicStreamDataBlockedFrameDecode(PacketLength, Packet, Offset, &Frame)) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   STREAM_DATA_BLOCKED [Invalid]",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
             return FALSE;
         }
 
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[%c][%cX][%llu]   STREAM_DATA_BLOCKED ID:%llu Limit:%llu",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.StreamID, Frame.StreamDataLimit);
         break;
@@ -1416,13 +1416,13 @@ QuicFrameLog(
     case QUIC_FRAME_STREAMS_BLOCKED_1: {
         QUIC_STREAMS_BLOCKED_EX Frame;
         if (!QuicStreamsBlockedFrameDecode(FrameType, PacketLength, Packet, Offset, &Frame)) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   STREAMS_BLOCKED [Invalid]",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
             return FALSE;
         }
 
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[%c][%cX][%llu]   STREAMS_BLOCKED[%hu] ID:%llu",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.BidirectionalStreams, Frame.StreamLimit);
         break;
@@ -1431,13 +1431,13 @@ QuicFrameLog(
     case QUIC_FRAME_NEW_CONNECTION_ID: {
         QUIC_NEW_CONNECTION_ID_EX Frame;
         if (!QuicNewConnectionIDFrameDecode(PacketLength, Packet, Offset, &Frame)) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   NEW_CONN_ID [Invalid]",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
             return FALSE;
         }
 
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[%c][%cX][%llu]   NEW_CONN_ID Seq:%llu CID:%s Token:%s",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.Sequence,
             QuicCidBufToStr(Frame.Buffer, Frame.Length).Buffer,
@@ -1448,13 +1448,13 @@ QuicFrameLog(
     case QUIC_FRAME_RETIRE_CONNECTION_ID: {
         QUIC_RETIRE_CONNECTION_ID_EX Frame;
         if (!QuicRetireConnectionIDFrameDecode(PacketLength, Packet, Offset, &Frame)) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   RETIRE_CONN_ID [Invalid]",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
             return FALSE;
         }
 
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[%c][%cX][%llu]   RETIRE_CONN_ID Seq:%llu",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.Sequence);
         break;
@@ -1463,13 +1463,13 @@ QuicFrameLog(
     case QUIC_FRAME_PATH_CHALLENGE: {
         QUIC_PATH_CHALLENGE_EX Frame;
         if (!QuicPathChallengeFrameDecode(PacketLength, Packet, Offset, &Frame)) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   PATH_CHALLENGE [Invalid]",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
             return FALSE;
         }
 
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[%c][%cX][%llu]   PATH_CHALLENGE [%llu]",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, QuicByteSwapUint64(*(uint64_t*)Frame.Data));
         break;
@@ -1478,13 +1478,13 @@ QuicFrameLog(
     case QUIC_FRAME_PATH_RESPONSE: {
         QUIC_PATH_RESPONSE_EX Frame;
         if (!QuicPathChallengeFrameDecode(PacketLength, Packet, Offset, &Frame)) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   PATH_RESPONSE [Invalid]",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
             return FALSE;
         }
 
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[%c][%cX][%llu]   PATH_RESPONSE [%llu]",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, QuicByteSwapUint64(*(uint64_t*)Frame.Data));
         break;
@@ -1494,18 +1494,18 @@ QuicFrameLog(
     case QUIC_FRAME_CONNECTION_CLOSE_1: {
         QUIC_CONNECTION_CLOSE_EX Frame;
         if (!QuicConnCloseFrameDecode(FrameType, PacketLength, Packet, Offset, &Frame)) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   CONN_CLOSE [Invalid]",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
             return FALSE;
         }
 
         if (Frame.ApplicationClosed) {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   CONN_CLOSE (App) ErrorCode:0x%llX",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.ErrorCode);
         } else {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu]   CONN_CLOSE ErrorCode:0x%llX FrameType:%llu",
                 PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.ErrorCode, Frame.FrameType);
         }

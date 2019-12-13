@@ -381,7 +381,7 @@ MiTlsTraceCallback(
     )
 {
     // TODO - Save connection in thread-local storage and retrieve it?
-    EventWriteQuicTlsMessage(NULL, Msg);
+    QuicTraceEvent(TlsMessage, NULL, Msg);
 }
 
 QUIC_STATUS
@@ -391,18 +391,18 @@ QuicTlsLibraryInitialize(
 {
     QUIC_STATUS Status;
 
-    LogVerbose("[ tls] Initializing miTLS library");
+    QuicTraceLogVerbose("[ tls] Initializing miTLS library");
     FFI_mitls_set_trace_callback(MiTlsTraceCallback);
     if (!FFI_mitls_init()) {
         Status = QUIC_STATUS_INVALID_STATE;
-        LogError("[ tls] FFI_mitls_init failed.");
+        QuicTraceLogError("[ tls] FFI_mitls_init failed.");
         goto Error;
     }
 
     uint8_t Key[QUIC_IV_LENGTH + 32] = { 0 }; // Always use the same null key client side right now.
     if (!FFI_mitls_set_sealing_key("AES256-GCM", Key, sizeof(Key))) {
         Status = QUIC_STATUS_INVALID_STATE;
-        LogError("[ tls] FFI_mitls_set_sealing_key failed.");
+        QuicTraceLogError("[ tls] FFI_mitls_set_sealing_key failed.");
         FFI_mitls_cleanup();
         goto Error;
     }
@@ -413,7 +413,7 @@ QuicTlsLibraryInitialize(
     QuicRandom(sizeof(Key), Key);
     if (!FFI_mitls_set_ticket_key("AES256-GCM", Key, sizeof(Key))) {
         Status = QUIC_STATUS_INVALID_STATE;
-        LogError("[ tls] FFI_mitls_set_ticket_key failed.");
+        QuicTraceLogError("[ tls] FFI_mitls_set_ticket_key failed.");
         FFI_mitls_cleanup();
         goto Error;
     }
@@ -430,7 +430,7 @@ QuicTlsLibraryUninitialize(
     void
     )
 {
-    LogVerbose("[ tls] Cleaning up miTLS library");
+    QuicTraceLogVerbose("[ tls] Cleaning up miTLS library");
     FFI_mitls_cleanup();
 }
 
@@ -474,7 +474,7 @@ QuicTlsServerSecConfigCreate(
     }
 
     if (!QuicRundownAcquire(Rundown)) {
-        LogError("[ tls] Failed to acquire sec config rundown.");
+        QuicTraceLogError("[ tls] Failed to acquire sec config rundown.");
         Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
     }
@@ -709,7 +709,7 @@ QuicTlsSessionSetTicketKey(
 {
     UNREFERENCED_PARAMETER(TlsSession); // miTLS doesn't actually support sessions.
     if (!FFI_mitls_set_ticket_key("AES256-GCM", (uint8_t*)Buffer, 44)) {
-        LogError("[ tls] FFI_mitls_set_ticket_key failed.");
+        QuicTraceLogError("[ tls] FFI_mitls_set_ticket_key failed.");
         return QUIC_STATUS_INVALID_STATE;
     }
     return QUIC_STATUS_SUCCESS;
@@ -857,7 +857,7 @@ QuicTlsSessionAddTicket(
         (QUIC_TLS_TICKET_ENTRY*)QUIC_ALLOC_PAGED(TicketEntryLength);
 
     if (TicketEntry == NULL) {
-        LogWarning("[tlss][%p] Failed to allocate ticket entry of %u bytes.", TlsSession, (uint32_t)TicketEntryLength);
+        QuicTraceLogWarning("[tlss][%p] Failed to allocate ticket entry of %u bytes.", TlsSession, (uint32_t)TicketEntryLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -889,7 +889,7 @@ QuicTlsSessionCreateTicket(
         (QUIC_TLS_TICKET_ENTRY*)QUIC_ALLOC_PAGED(TicketEntryLength);
 
     if (TicketEntry == NULL) {
-        LogWarning("[tlss][%p] Failed to allocate ticket entry of %u bytes.", TlsSession, (uint32_t)TicketEntryLength);
+        QuicTraceLogWarning("[tlss][%p] Failed to allocate ticket entry of %u bytes.", TlsSession, (uint32_t)TicketEntryLength);
         return NULL;
     }
 
@@ -921,7 +921,7 @@ QuicTlsInitialize(
 
     TlsContext = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS));
     if (TlsContext == NULL) {
-        LogWarning("[ tls] Failed to allocate QUIC_TLS.");
+        QuicTraceLogWarning("[ tls] Failed to allocate QUIC_TLS.");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -977,14 +977,14 @@ QuicTlsInitialize(
             const size_t ServerNameLength =
                 strnlen(Config->ServerName, QUIC_MAX_SNI_LENGTH + 1);
             if (ServerNameLength == QUIC_MAX_SNI_LENGTH + 1) {
-                LogError("[ tls][%p] Invalid / Too long server name!", TlsContext);
+                QuicTraceLogError("[ tls][%p] Invalid / Too long server name!", TlsContext);
                 Status = QUIC_STATUS_INVALID_PARAMETER;
                 goto Error;
             }
 
             TlsContext->SNI = QUIC_ALLOC_PAGED(ServerNameLength + 1);
             if (TlsContext->SNI == NULL) {
-                LogWarning("[ tls][%p] Failed to allocate SNI.", TlsContext);
+                QuicTraceLogWarning("[ tls][%p] Failed to allocate SNI.", TlsContext);
                 Status = QUIC_STATUS_OUT_OF_MEMORY;
                 goto Error;
             }
@@ -1001,7 +1001,7 @@ QuicTlsInitialize(
 
             if (TlsContext->Ticket != NULL) {
 
-                LogVerbose("[ tls][%p] Using 0-RTT ticket.", TlsContext);
+                QuicTraceLogVerbose("[ tls][%p] Using 0-RTT ticket.", TlsContext);
 
                 TlsContext->miTlsTicket.ticket_len = TlsContext->Ticket->TicketLength;
                 TlsContext->miTlsTicket.ticket =
@@ -1032,7 +1032,7 @@ QuicTlsInitialize(
     // Initialize the miTLS library.
     //
     if (!FFI_mitls_quic_create(&TlsContext->miTlsState, &TlsContext->miTlsConfig)) {
-        LogError("[ tls][%p] FFI_mitls_quic_create failed.", TlsContext);
+        QuicTraceLogError("[ tls][%p] FFI_mitls_quic_create failed.", TlsContext);
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
@@ -1110,7 +1110,7 @@ QuicTlsReset(
     // Reinitialize new miTLS state.
     //
     if (!FFI_mitls_quic_create(&TlsContext->miTlsState, &TlsContext->miTlsConfig)) {
-        LogError("[ tls][%p] FFI_mitls_quic_create failed.", TlsContext);
+        QuicTraceLogError("[ tls][%p] FFI_mitls_quic_create failed.", TlsContext);
         QUIC_DBG_ASSERT(FALSE);
     }
 }
@@ -1144,14 +1144,14 @@ QuicTlsProcessData(
     //
     if (TlsContext->BufferLength + *BufferLength > QUIC_TLS_MAX_MESSAGE_LENGTH) {
         ResultFlags = QUIC_TLS_RESULT_ERROR;
-        LogError("[ tls][%p] Error: Attempt to write too much buffer.", TlsContext);
+        QuicTraceLogError("[ tls][%p] Error: Attempt to write too much buffer.", TlsContext);
         goto Error;
     }
 
     TlsContext->State = State;
 
     if (*BufferLength) {
-        LogVerbose("[ tls][%p] Writing %d bytes", TlsContext, *BufferLength);
+        QuicTraceLogVerbose("[ tls][%p] Writing %d bytes", TlsContext, *BufferLength);
 
         //
         // Copy the data pointer into our buffer pointer.
@@ -1211,7 +1211,7 @@ QuicTlsProcessDataComplete(
             0
         };
 
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[ tls][%p] FFI_mitls_quic_process processing %d input bytes.",
             TlsContext, (uint32_t)Context.input_len);
 
@@ -1219,7 +1219,7 @@ QuicTlsProcessDataComplete(
         // Pass the data to miTLS for processing.
         //
         if (!FFI_mitls_quic_process(TlsContext->miTlsState, &Context)) {
-            LogError(
+            QuicTraceLogError(
                 "[ tls][%p] FFI_mitls_quic_process failed, tls_error %hu, %s.",
                 TlsContext, Context.tls_error, Context.tls_error_desc);
             State->AlertCode = Context.tls_error;
@@ -1227,7 +1227,7 @@ QuicTlsProcessDataComplete(
             break;
         }
 
-        LogVerbose(
+        QuicTraceLogVerbose(
             "[ tls][%p] FFI_mitls_quic_process read %u bytes and has %u bytes ready to send.",
             TlsContext, (uint32_t)Context.consumed_bytes, (uint32_t)Context.output_len);
 
@@ -1247,14 +1247,14 @@ QuicTlsProcessDataComplete(
         }
 
         if (Context.flags & QFLAG_COMPLETE && !State->HandshakeComplete) {
-            LogVerbose("[ tls][%p] Handshake complete", TlsContext);
+            QuicTraceLogVerbose("[ tls][%p] Handshake complete", TlsContext);
             State->HandshakeComplete = TRUE;
             ResultFlags |= QUIC_TLS_RESULT_COMPLETE;
 
             if (TlsContext->IsServer) {
-                LogVerbose("[ tls][%p] Sending new 0-RTT ticket", TlsContext);
+                QuicTraceLogVerbose("[ tls][%p] Sending new 0-RTT ticket", TlsContext);
                 if (!FFI_mitls_quic_send_ticket(TlsContext->miTlsState, NULL, 0)) {
-                    LogError("[ tls][%p] Failed to send 0-RTT ticket!", TlsContext);
+                    QuicTraceLogError("[ tls][%p] Failed to send 0-RTT ticket!", TlsContext);
                 }
             }
         }
@@ -1266,7 +1266,7 @@ QuicTlsProcessDataComplete(
             if (State->EarlyDataAttempted) {
                 ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_REJECT;
             }
-            LogVerbose("[ tls][%p] Early data rejected", TlsContext);
+            QuicTraceLogVerbose("[ tls][%p] Early data rejected", TlsContext);
         }
 
         BOOLEAN ReadKeyUpdated = Context.cur_reader_key != TlsContext->CurrentReaderKey;
@@ -1289,7 +1289,7 @@ QuicTlsProcessDataComplete(
                     // We know early data is accepted if we get 0-RTT keys.
                     //
                     ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_ACCEPT;
-                    LogVerbose("[ tls][%p] Early data accepted", TlsContext);
+                    QuicTraceLogVerbose("[ tls][%p] Early data accepted", TlsContext);
                     TlsContext->TlsKeySchedule = 1; // 0-RTT allowed.
                     State->SessionResumed = TRUE;
                     State->EarlyDataAttempted = TRUE;
@@ -1297,19 +1297,19 @@ QuicTlsProcessDataComplete(
                 } else {
                     TlsContext->TlsKeySchedule = 0;
                     if (!(Context.flags & QFLAG_REJECTED_0RTT)) {
-                        LogVerbose("[ tls][%p] Early data not attempted", TlsContext);
+                        QuicTraceLogVerbose("[ tls][%p] Early data not attempted", TlsContext);
                     }
                 }
             } else {
                 if (WriteKeyUpdated) {
-                    LogVerbose("[ tls][%p] Early data attempted", TlsContext);
+                    QuicTraceLogVerbose("[ tls][%p] Early data attempted", TlsContext);
                     TlsContext->TlsKeySchedule = 1; // 0-RTT allowed.
                     State->EarlyDataAttempted = TRUE;
                 } else {
                     TlsContext->TlsKeySchedule = 0;
                 }
             }
-            LogVerbose("[ tls][%p] Key schedule = %hu", TlsContext, TlsContext->TlsKeySchedule);
+            QuicTraceLogVerbose("[ tls][%p] Key schedule = %hu", TlsContext, TlsContext->TlsKeySchedule);
             TlsContext->TlsKeyScheduleSet = TRUE;
         }
 
@@ -1324,13 +1324,13 @@ QuicTlsProcessDataComplete(
                     &State->ReadKeys[NewKeyType])) {
                 switch (NewKeyType) {
                 case QUIC_PACKET_KEY_0_RTT:
-                    LogVerbose("[ tls][%p] 0-RTT read key exported", TlsContext);
+                    QuicTraceLogVerbose("[ tls][%p] 0-RTT read key exported", TlsContext);
                     break;
                 case QUIC_PACKET_KEY_HANDSHAKE:
-                    LogVerbose("[ tls][%p] Handshake read key exported", TlsContext);
+                    QuicTraceLogVerbose("[ tls][%p] Handshake read key exported", TlsContext);
                     break;
                 case QUIC_PACKET_KEY_1_RTT:
-                    LogVerbose("[ tls][%p] 1-RTT read key exported", TlsContext);
+                    QuicTraceLogVerbose("[ tls][%p] 1-RTT read key exported", TlsContext);
                     if (!TlsContext->IsServer) {
                         if (State->EarlyDataAttempted &&
                             !(Context.flags & QFLAG_REJECTED_0RTT)) {
@@ -1342,7 +1342,7 @@ QuicTlsProcessDataComplete(
                             ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_ACCEPT;
                             State->SessionResumed = TRUE;
                             State->EarlyDataAccepted = TRUE;
-                            LogVerbose("[ tls][%p] Early data accepted", TlsContext);
+                            QuicTraceLogVerbose("[ tls][%p] Early data accepted", TlsContext);
                         }
                     }
                     break;
@@ -1377,13 +1377,13 @@ QuicTlsProcessDataComplete(
                     &State->WriteKeys[NewKeyType])) {
                 switch (NewKeyType) {
                 case QUIC_PACKET_KEY_0_RTT:
-                    LogVerbose("[ tls][%p] 0-RTT write key exported", TlsContext);
+                    QuicTraceLogVerbose("[ tls][%p] 0-RTT write key exported", TlsContext);
                     break;
                 case QUIC_PACKET_KEY_HANDSHAKE:
-                    LogVerbose("[ tls][%p] Handshake write key exported", TlsContext);
+                    QuicTraceLogVerbose("[ tls][%p] Handshake write key exported", TlsContext);
                     break;
                 case QUIC_PACKET_KEY_1_RTT:
-                    LogVerbose("[ tls][%p] 1-RTT write key exported", TlsContext);
+                    QuicTraceLogVerbose("[ tls][%p] 1-RTT write key exported", TlsContext);
                     break;
                 default:
                     QUIC_FRE_ASSERT(FALSE);
@@ -1396,11 +1396,11 @@ QuicTlsProcessDataComplete(
                 break;
             case QUIC_PACKET_KEY_HANDSHAKE:
                 State->BufferOffsetHandshake = State->BufferTotalLength;
-                LogVerbose("[ tls][%p] Handshake write offset = %u", TlsContext, State->BufferOffsetHandshake);
+                QuicTraceLogVerbose("[ tls][%p] Handshake write offset = %u", TlsContext, State->BufferOffsetHandshake);
                 break;
             case QUIC_PACKET_KEY_1_RTT:
                 State->BufferOffset1Rtt = State->BufferTotalLength;
-                LogVerbose("[ tls][%p] 1-RTT write offset = %u", TlsContext, State->BufferOffset1Rtt);
+                QuicTraceLogVerbose("[ tls][%p] 1-RTT write offset = %u", TlsContext, State->BufferOffset1Rtt);
                 break;
             default:
                 QUIC_FRE_ASSERT(FALSE);
@@ -1425,7 +1425,7 @@ QuicTlsProcessDataComplete(
     TlsContext->Buffer = NULL;
     *BufferConsumed = BufferOffset;
 
-    LogVerbose("[ tls][%p] Consumed %d bytes", TlsContext, BufferOffset);
+    QuicTraceLogVerbose("[ tls][%p] Consumed %d bytes", TlsContext, BufferOffset);
 
     if (TlsContext->TicketReady) {
         ResultFlags |= QUIC_TLS_RESULT_TICKET;
@@ -1457,13 +1457,13 @@ QuicTlsOnCertSelect(
     QUIC_DBG_ASSERT(TlsContext);
     QUIC_DBG_ASSERT(TlsContext->IsServer);
 
-    LogVerbose("[ tls][%p] OnCertSelect", TlsContext);
+    QuicTraceLogVerbose("[ tls][%p] OnCertSelect", TlsContext);
 
     //
     // Only allow TLS 1.3.
     //
     if (TlsVersion != TLS_1p3) {
-        LogError("[ tls][%p] Unsupported TLS version %hu", TlsContext, TlsVersion);
+        QuicTraceLogError("[ tls][%p] Unsupported TLS version %hu", TlsContext, TlsVersion);
         goto Error;
     }
 
@@ -1472,14 +1472,14 @@ QuicTlsOnCertSelect(
     //
 
     if (ServerNameIndicationLength >= QUIC_MAX_SNI_LENGTH) {
-        LogError("[ tls][%p] Too long server name!", TlsContext);
+        QuicTraceLogError("[ tls][%p] Too long server name!", TlsContext);
         goto Error;
     }
 
     if (ServerNameIndicationLength != 0) {
         TlsContext->SNI = QUIC_ALLOC_PAGED((uint16_t)(ServerNameIndicationLength + 1));
         if (TlsContext->SNI == NULL) {
-            LogWarning("[ tls][%p] Failed to allocate SNI.", TlsContext);
+            QuicTraceLogWarning("[ tls][%p] Failed to allocate SNI.", TlsContext);
             goto Error;
         }
 
@@ -1506,24 +1506,24 @@ QuicTlsOnCertSelect(
             SignatureAlgorithmsLength,
             SelectedSignature)) {
         if (SignatureAlgorithmsLength == 1) {
-            LogError("[ tls][%p] No matching signature algorithms, {0x%hx}",
+            QuicTraceLogError("[ tls][%p] No matching signature algorithms, {0x%hx}",
                 TlsContext, SignatureAlgorithms[0]);
         } else if (SignatureAlgorithmsLength == 2) {
-            LogError("[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx}",
+            QuicTraceLogError("[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx}",
                 TlsContext, SignatureAlgorithms[0], SignatureAlgorithms[1]);
         } else if (SignatureAlgorithmsLength == 3) {
-            LogError("[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx}",
+            QuicTraceLogError("[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx}",
                 TlsContext, SignatureAlgorithms[0], SignatureAlgorithms[1], SignatureAlgorithms[2]);
         } else if (SignatureAlgorithmsLength == 4) {
-            LogError("[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx, 0x%hx}",
+            QuicTraceLogError("[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx, 0x%hx}",
                 TlsContext, SignatureAlgorithms[0], SignatureAlgorithms[1], SignatureAlgorithms[2],
                 SignatureAlgorithms[3]);
         } else if (SignatureAlgorithmsLength == 5) {
-            LogError("[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx}",
+            QuicTraceLogError("[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx}",
                 TlsContext, SignatureAlgorithms[0], SignatureAlgorithms[1], SignatureAlgorithms[2],
                 SignatureAlgorithms[3], SignatureAlgorithms[4]);
         } else {
-            LogError("[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, ...}",
+            QuicTraceLogError("[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, ...}",
                 TlsContext, SignatureAlgorithms[0], SignatureAlgorithms[1], SignatureAlgorithms[2],
                 SignatureAlgorithms[3], SignatureAlgorithms[4], SignatureAlgorithms[5]);
         }
@@ -1531,7 +1531,7 @@ QuicTlsOnCertSelect(
         goto Error;
     }
 
-    LogInfo("[ tls][%p] Server certificate selected. SNI: %s; Algorithm: 0x%4.4x",
+    QuicTraceLogInfo("[ tls][%p] Server certificate selected. SNI: %s; Algorithm: 0x%4.4x",
         TlsContext, TlsContext->SNI, *SelectedSignature);
 
 Error:
@@ -1568,13 +1568,13 @@ QuicTlsOnNegotiate(
     UNREFERENCED_PARAMETER(Cookie);
     UNREFERENCED_PARAMETER(CookieLength);
 
-    LogVerbose("[ tls][%p] OnNegotiate", TlsContext);
+    QuicTraceLogVerbose("[ tls][%p] OnNegotiate", TlsContext);
 
     //
     // Only allow TLS 1.3.
     //
     if (Version != TLS_1p3) {
-        LogError("[ tls][%p] Unsupported TLS version %hu", TlsContext, Version);
+        QuicTraceLogError("[ tls][%p] Unsupported TLS version %hu", TlsContext, Version);
         goto Exit;
     }
 
@@ -1589,7 +1589,7 @@ QuicTlsOnNegotiate(
             TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS,
             &TransportParams,
             &TransportParamsLength)) {
-        LogError("[ tls][%p] Missing QUIC transport parameters.", TlsContext);
+        QuicTraceLogError("[ tls][%p] Missing QUIC transport parameters.", TlsContext);
         goto Exit;
     }
 
@@ -1597,7 +1597,7 @@ QuicTlsOnNegotiate(
             TlsContext->Connection,
             (uint16_t)TransportParamsLength,
             TransportParams)) {
-        LogError("[ tls][%p] Failed to process the QUIC transport parameters.", TlsContext);
+        QuicTraceLogError("[ tls][%p] Failed to process the QUIC transport parameters.", TlsContext);
         goto Exit;
     }
 
@@ -1633,7 +1633,7 @@ QuicTlsOnCertFormat(
     QUIC_SEC_CONFIG* SecurityConfig = (QUIC_SEC_CONFIG*)SecContext;
     QUIC_DBG_ASSERT(SecurityConfig);
 
-    LogVerbose("[ tls][%p] OnCertFormat", TlsContext);
+    QuicTraceLogVerbose("[ tls][%p] OnCertFormat", TlsContext);
 
     QUIC_DBG_ASSERT(SecurityConfig->FormatLength <= MAX_CHAIN_LEN);
     if (SecurityConfig->FormatLength > MAX_CHAIN_LEN) {
@@ -1661,7 +1661,7 @@ QuicTlsOnCertSign(
     QUIC_SEC_CONFIG* SecurityConfig = (QUIC_SEC_CONFIG*)SecContext;
     QUIC_DBG_ASSERT(SecurityConfig);
 
-    LogVerbose("[ tls][%p] OnCertSign", TlsContext);
+    QuicTraceLogVerbose("[ tls][%p] OnCertSign", TlsContext);
 
     size_t SignatureLength = MAX_SIGNATURE_LEN;
 
@@ -1698,13 +1698,13 @@ QuicTlsOnCertVerify(
     QUIC_TLS* TlsContext = (QUIC_TLS*)Context;
     QUIC_DBG_ASSERT(TlsContext);
 
-    LogVerbose("[ tls][%p] OnCertVerify", TlsContext);
+    QuicTraceLogVerbose("[ tls][%p] OnCertVerify", TlsContext);
 
     int Result = 0;
     QUIC_CERT* Certificate = NULL;
 
     if (TlsContext->SecConfig->Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION) {
-        LogWarning("[ tls][%p] Certificate validation disabled!", TlsContext);
+        QuicTraceLogWarning("[ tls][%p] Certificate validation disabled!", TlsContext);
         Result = 1;
         goto Error;
     }
@@ -1714,7 +1714,7 @@ QuicTlsOnCertVerify(
             ChainBufferLength,
             ChainBuffer);
     if (Certificate == NULL) {
-        LogError("[ tls][%p] failed to parse certificate chain.", TlsContext);
+        QuicTraceLogError("[ tls][%p] failed to parse certificate chain.", TlsContext);
         goto Error;
     }
 
@@ -1722,7 +1722,7 @@ QuicTlsOnCertVerify(
             Certificate,
             TlsContext->SNI,
             TlsContext->SecConfig->Flags)) {
-        LogError("[ tls][%p] Cert chain validation failed.", TlsContext);
+        QuicTraceLogError("[ tls][%p] Cert chain validation failed.", TlsContext);
         Result = 0;
         goto Error;
     }
@@ -1757,7 +1757,7 @@ QuicTlsOnTicketReady(
     QUIC_TLS* TlsContext = (QUIC_TLS*)Context;
     QUIC_DBG_ASSERT(TlsContext);
 
-    LogVerbose("[ tls][%p] Received new ticket. ticket_len:%d session_len:%d for %s",
+    QuicTraceLogVerbose("[ tls][%p] Received new ticket. ticket_len:%d session_len:%d for %s",
         TlsContext, (uint32_t)Ticket->ticket_len, (uint32_t)Ticket->session_len, ServerNameIndication);
 
     //
@@ -1814,7 +1814,7 @@ QuicTlsReadTicket(
         goto Exit;
     }
 
-    LogVerbose("[ tls][%p] Ticket (%u bytes) read.", TlsContext, TicketBufferLength);
+    QuicTraceLogVerbose("[ tls][%p] Ticket (%u bytes) read.", TlsContext, TicketBufferLength);
 
     QuicCopyMemory(
         Buffer,
@@ -1927,7 +1927,7 @@ QuicTlsLogSecret(
         SecretStr[i*2]     = HEX_TO_CHAR(Secret[i] >> 4);
         SecretStr[i*2 + 1] = HEX_TO_CHAR(Secret[i] & 0xf);
     }
-    LogVerbose("[ tls] %s[%u]: %s", Prefix, Length, SecretStr);
+    QuicTraceLogVerbose("[ tls] %s[%u]: %s", Prefix, Length, SecretStr);
 }
 #else
 #define QuicTlsLogSecret(Prefix, Secret, Length) UNREFERENCED_PARAMETER(Prefix)
@@ -2108,7 +2108,7 @@ QuicPacketKeyDerive(
         (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
     QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength);
     if (Key == NULL) {
-        LogWarning("[ tls] Failed to allocate packet key.");
+        QuicTraceLogWarning("[ tls] Failed to allocate packet key.");
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     QuicZeroMemory(Key, sizeof(QUIC_PACKET_KEY));
@@ -2303,7 +2303,7 @@ QuicPacketKeyCreate(
             Epoch,
             rw);
     if (Result == FALSE) {
-        LogError("[ tls][%p] FFI_mitls_quic_get_record_key failed.", TlsContext);
+        QuicTraceLogError("[ tls][%p] FFI_mitls_quic_get_record_key failed.", TlsContext);
         goto Error;
     }
 
@@ -2312,7 +2312,7 @@ QuicPacketKeyCreate(
         (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
     Key = QUIC_ALLOC_NONPAGED(PacketKeyLength);
     if (Key == NULL) {
-        LogWarning("[ tls][%p] Failed to allocate packet key.", TlsContext);
+        QuicTraceLogWarning("[ tls][%p] Failed to allocate packet key.", TlsContext);
         Result = FALSE;
         goto Error;
     }
@@ -2347,7 +2347,7 @@ QuicPacketKeyCreate(
                 &ClientReadSecret,
                 &ServerReadSecret);
         if (Result == FALSE) {
-            LogError("[ tls][%p] FFI_mitls_quic_get_record_secrets failed.", TlsContext);
+            QuicTraceLogError("[ tls][%p] FFI_mitls_quic_get_record_secrets failed.", TlsContext);
             goto Error;
         }
         quic_secret* CopySecret;
@@ -2368,7 +2368,7 @@ QuicPacketKeyCreate(
             Key->TrafficSecret->Hash = QUIC_HASH_SHA512;
             break;
         default:
-            LogError("[ tls][%p] Unsupported hash type.", TlsContext);
+            QuicTraceLogError("[ tls][%p] Unsupported hash type.", TlsContext);
             Result = FALSE;
             goto Error;
         }
@@ -2487,7 +2487,7 @@ QuicKeyCreate(
 
     QUIC_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_KEY));
     if (Key == NULL) {
-        LogWarning("[ tls] Failed to allocate key.");
+        QuicTraceLogWarning("[ tls] Failed to allocate key.");
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -2615,7 +2615,7 @@ QuicHpKeyCreate(
 
     QUIC_HP_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_KEY));
     if (Key == NULL) {
-        LogWarning("[ tls] Failed to allocate key.");
+        QuicTraceLogWarning("[ tls] Failed to allocate key.");
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -2700,7 +2700,7 @@ QuicHashCreate(
 
     QUIC_HASH* Hash = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASH) + SaltLength);
     if (Hash == NULL) {
-        LogWarning("[ tls] Failed to allocate hash.");
+        QuicTraceLogWarning("[ tls] Failed to allocate hash.");
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 

@@ -638,7 +638,7 @@ QuicConnLogOutFlowStats(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
-    if (!EventEnabledQuicConnOutFlowStats()) {
+    if (!QuicTraceEventEnabled(ConnOutFlowStats)) {
         return;
     }
 
@@ -652,7 +652,8 @@ QuicConnLogOutFlowStats(
 
     const QUIC_PATH* Path = &Connection->Paths[0];
 
-    EventWriteQuicConnOutFlowStats(
+    QuicTraceEvent(
+        ConnOutFlowStats,
         Connection,
         Connection->Stats.Send.TotalBytes,
         Connection->CongestionControl.BytesInFlight,
@@ -673,7 +674,7 @@ QuicConnLogInFlowStats(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
-    EventWriteQuicConnInFlowStats(
+    QuicTraceEvent(ConnInFlowStats,
         Connection,
         Connection->Stats.Recv.TotalBytes);
 }
@@ -685,7 +686,7 @@ QuicConnLogStatistics(
     )
 {
     const QUIC_PATH* Path = &Connection->Paths[0];
-    EventWriteQuicConnStatistics(
+    QuicTraceEvent(ConnStatistics,
         Connection,
         QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()),
         Connection->Stats.Send.TotalPackets,
@@ -712,7 +713,7 @@ QuicConnAddOutFlowBlockedReason(
 {
     if (!(Connection->OutFlowBlockedReasons & Reason)) {
         Connection->OutFlowBlockedReasons |= Reason;
-        EventWriteQuicConnOutFlowBlocked(Connection, Connection->OutFlowBlockedReasons);
+        QuicTraceEvent(ConnOutFlowBlocked, Connection, Connection->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -727,7 +728,7 @@ QuicConnRemoveOutFlowBlockedReason(
 {
     if ((Connection->OutFlowBlockedReasons & Reason)) {
         Connection->OutFlowBlockedReasons &= ~Reason;
-        EventWriteQuicConnOutFlowBlocked(Connection, Connection->OutFlowBlockedReasons);
+        QuicTraceEvent(ConnOutFlowBlocked, Connection, Connection->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;

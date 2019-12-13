@@ -639,7 +639,7 @@ QuicStreamAddOutFlowBlockedReason(
 {
     if (!(Stream->OutFlowBlockedReasons & Reason)) {
         Stream->OutFlowBlockedReasons |= Reason;
-        EventWriteQuicStreamOutFlowBlocked(Stream, Stream->OutFlowBlockedReasons);
+        QuicTraceEvent(StreamOutFlowBlocked, Stream, Stream->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -654,7 +654,7 @@ QuicStreamRemoveOutFlowBlockedReason(
 {
     if ((Stream->OutFlowBlockedReasons & Reason)) {
         Stream->OutFlowBlockedReasons &= ~Reason;
-        EventWriteQuicStreamOutFlowBlocked(Stream, Stream->OutFlowBlockedReasons);
+        QuicTraceEvent(StreamOutFlowBlocked, Stream, Stream->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;

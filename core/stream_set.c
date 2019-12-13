@@ -96,7 +96,7 @@ QuicStreamSetInsertStream(
         // Lazily initialize the hash table.
         //
         if (!QuicHashtableInitialize(&StreamSet->StreamTable, QUIC_HASH_MIN_SIZE)) {
-            EventWriteQuicAllocFailure("streamset hash table", 0);
+            QuicTraceEvent(AllocFailure, "streamset hash table", 0);
             return FALSE;
         }
     }
@@ -235,7 +235,7 @@ QuicStreamSetIndicateStreamsAvailable(
     Event.STREAMS_AVAILABLE.UnidirectionalCount =
         QuicStreamSetGetCountAvailable(StreamSet, Type | STREAM_ID_FLAG_IS_UNI_DIR);
 
-    LogVerbose("[conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [%u] [%u]",
+    QuicTraceLogVerbose("[conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [%u] [%u]",
         Connection,
         Event.STREAMS_AVAILABLE.BidirectionalCount,
         Event.STREAMS_AVAILABLE.UnidirectionalCount);
@@ -352,7 +352,7 @@ QuicStreamSetUpdateMaxStreams(
 
     if (MaxStreams > Info->MaxTotalStreamCount) {
 
-        LogVerbose("[conn][%p] Peer updated max stream count (%hu, %llu).",
+        QuicTraceLogVerbose("[conn][%p] Peer updated max stream count (%hu, %llu).",
             Connection, BidirectionalStreams, MaxStreams);
 
         BOOLEAN FlushSend = FALSE;
@@ -401,7 +401,7 @@ QuicStreamSetUpdateMaxCount(
     QUIC_CONNECTION* Connection = QuicStreamSetGetConnection(StreamSet);
     QUIC_STREAM_TYPE_INFO* Info = &StreamSet->Types[Type];
 
-    LogInfo("[conn][%p] App configured max stream count of %hu (type=%hu).",
+    QuicTraceLogInfo("[conn][%p] App configured max stream count of %hu (type=%hu).",
         Connection, Count, Type);
 
     if (!Connection->State.Started) {
@@ -558,7 +558,7 @@ QuicStreamSetGetStreamForPeer(
     // Validate the stream ID isn't above the allowed max.
     //
     if (StreamCount > Info->MaxTotalStreamCount) {
-        EventWriteQuicConnError(Connection, "Peer used more streams than allowed");
+        QuicTraceEvent(ConnError, Connection, "Peer used more streams than allowed");
         QuicConnTransportError(Connection, QUIC_ERROR_STREAM_LIMIT_ERROR);
         *ProtocolViolation = TRUE;
         return NULL;
@@ -624,12 +624,12 @@ QuicStreamSetGetStreamForPeer(
             Event.PEER_STREAM_STARTED.Stream = (HQUIC)Stream;
             Event.PEER_STREAM_STARTED.Flags = StreamFlags;
 
-            LogVerbose("[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED [%p, 0x%x]",
+            QuicTraceLogVerbose("[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED [%p, 0x%x]",
                 Connection, Event.PEER_STREAM_STARTED.Stream, Event.PEER_STREAM_STARTED.Flags);
             Status = QuicConnIndicateEvent(Connection, &Event);
 
             if (QUIC_FAILED(Status)) {
-                LogWarning("[strm][%p][%llu] New stream wasn't accepted, 0x%x",
+                QuicTraceLogWarning("[strm][%p][%llu] New stream wasn't accepted, 0x%x",
                     Stream, NewStreamId, Status);
                 QuicStreamClose(Stream);
                 Stream = NULL;
@@ -648,7 +648,7 @@ QuicStreamSetGetStreamForPeer(
         //
         // Remote tried to open stream that it wasn't allowed to.
         //
-        LogWarning("[conn][%p] Remote tried to open stream it wasn't allowed to open.", Connection);
+        QuicTraceLogWarning("[conn][%p] Remote tried to open stream it wasn't allowed to open.", Connection);
         QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
         *ProtocolViolation = TRUE;
     }

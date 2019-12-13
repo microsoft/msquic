@@ -401,7 +401,7 @@ QuicPacketLogHeader(
 
         switch (Invariant->LONG_HDR.Version) {
         case QUIC_VERSION_VER_NEG: {
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][-] VerNeg DestCID:%s SrcCID:%s (Payload %lu bytes)",
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
@@ -410,7 +410,7 @@ QuicPacketLogHeader(
                 PacketLength - Offset);
 
             while (Offset < PacketLength) {
-                LogVerbose(
+                QuicTraceLogVerbose(
                     "[%c][%cX][-]   Ver:0x%x",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
@@ -444,7 +444,7 @@ QuicPacketLogHeader(
                 const uint8_t* OrigDestCID = SourceCID + sizeof(uint8_t) + SourceCIDLen;
                 Offset += sizeof(uint8_t) + OrigDestCIDLen;
 
-                LogVerbose(
+                QuicTraceLogVerbose(
                     "[%c][%cX][-] LH Ver:0x%x DestCID:%s SrcCID:%s Type:R OrigDestCID:%s (Token %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
@@ -468,7 +468,7 @@ QuicPacketLogHeader(
             }
 
             if (LongHdr->Type == QUIC_INITIAL) {
-                LogVerbose(
+                QuicTraceLogVerbose(
                     "[%c][%cX][%llu] LH Ver:0x%x DestCID:%s SrcCID:%s Type:%s (Token %hu bytes) (Payload %hu bytes) (PktNum %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
@@ -481,7 +481,7 @@ QuicPacketLogHeader(
                     (uint16_t)Length,
                     LongHdr->PnLength + 1);
             } else {
-                LogVerbose(
+                QuicTraceLogVerbose(
                     "[%c][%cX][%llu] LH Ver:0x%x DestCID:%s SrcCID:%s Type:%s (Payload %hu bytes) (PktNum %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
@@ -497,7 +497,7 @@ QuicPacketLogHeader(
         }
 
         default:
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu] LH Ver:[UNSUPPORTED,0x%x] DestCID:%s SrcCID:%s",
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
@@ -521,7 +521,7 @@ QuicPacketLogHeader(
 
             Offset = sizeof(QUIC_SHORT_HEADER_V1) + DestCIDLen;
 
-            LogVerbose(
+            QuicTraceLogVerbose(
                 "[%c][%cX][%llu] SH DestCID:%s KP:%hu SB:%hu (Payload %hu bytes)",
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
@@ -553,7 +553,7 @@ QuicPacketLogDrop(
 
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*) &((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
-        EventWriteQuicConnDropPacket(
+        QuicTraceEvent(ConnDropPacket,
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
             LOG_ADDR_LEN(Datagram->Tuple->LocalAddress),
@@ -563,7 +563,7 @@ QuicPacketLogDrop(
             Reason);
     } else {
         InterlockedIncrement64((int64_t*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
-        EventWriteQuicBindingDropPacket(
+        QuicTraceEvent(BindingDropPacket,
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
             LOG_ADDR_LEN(Datagram->Tuple->LocalAddress),
@@ -588,7 +588,7 @@ QuicPacketLogDropWithValue(
 
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*) & ((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
-        EventWriteQuicConnDropPacketEx(
+        QuicTraceEvent(ConnDropPacketEx,
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
             Value,
@@ -599,7 +599,7 @@ QuicPacketLogDropWithValue(
             Reason);
     } else {
         InterlockedIncrement64((int64_t*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
-        EventWriteQuicBindingDropPacketEx(
+        QuicTraceEvent(BindingDropPacketEx,
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
             Value,

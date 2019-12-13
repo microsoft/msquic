@@ -41,7 +41,7 @@ QuicPlatformSystemLoad(
     (void)QueryPerformanceFrequency((LARGE_INTEGER*)&QuicPlatformPerfFreq);
     QuicPlatform.Heap = NULL;
 
-    LogInfo("[ dll] Loaded");
+    QuicTraceLogInfo("[ dll] Loaded");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -50,7 +50,7 @@ QuicPlatformSystemUnload(
     void
     )
 {
-    LogInfo("[ dll] Unloaded");
+    QuicTraceLogInfo("[ dll] Unloaded");
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventUnregisterMicrosoft_Quic();
 #endif
@@ -77,7 +77,7 @@ QuicPlatformInitialize(
 
     if (!GlobalMemoryStatusEx(&memInfo)) {
         DWORD Error = GetLastError();
-        EventWriteQuicLibraryErrorStatus(Error, "GlobalMemoryStatusEx");
+        QuicTraceEvent(LibraryErrorStatus, Error, "GlobalMemoryStatusEx");
         Status = HRESULT_FROM_WIN32(Error);
         goto Error;
     }
@@ -89,7 +89,7 @@ QuicPlatformInitialize(
 
     QuicTotalMemory = memInfo.ullTotalPageFile;
 
-    LogInfo("[ dll] Initialized (AvailMem = %llu bytes)", QuicTotalMemory);
+    QuicTraceLogInfo("[ dll] Initialized (AvailMem = %llu bytes)", QuicTotalMemory);
 
 Error:
 
@@ -113,7 +113,7 @@ QuicPlatformUninitialize(
     QUIC_DBG_ASSERT(QuicPlatform.Heap);
     HeapDestroy(QuicPlatform.Heap);
     QuicPlatform.Heap = NULL;
-    LogInfo("[ dll] Uninitialized");
+    QuicTraceLogInfo("[ dll] Uninitialized");
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -124,7 +124,7 @@ QuicPlatformLogAssert(
     _In_z_ const char* Expr
     )
 {
-    EventWriteQuicLibraryAssert((uint32_t)Line, File, Expr);
+    QuicTraceEvent(LibraryAssert, (uint32_t)Line, File, Expr);
 }
 
 #ifdef QUIC_FUZZER

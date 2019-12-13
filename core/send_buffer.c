@@ -91,7 +91,7 @@ QuicSendBufferAlloc(
     if (Buf != NULL) {
         SendBuffer->BufferedBytes += Size;
     } else {
-        EventWriteQuicAllocFailure("sendbuffer", Size);
+        QuicTraceEvent(AllocFailure, "sendbuffer", Size);
     }
 
     return Buf;
@@ -206,7 +206,7 @@ QuicSendBufferStreamAdjust(
     QUIC_STREAM_EVENT Event;
     Event.Type = QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE;
     Event.IDEAL_SEND_BUFFER_SIZE.ByteCount = ByteCount;
-    LogVerbose("[strm][%p] Indicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu",
+    QuicTraceLogVerbose("[strm][%p] Indicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu",
         Stream, Event.IDEAL_SEND_BUFFER_SIZE.ByteCount);
     (void)QuicStreamIndicateEvent(Stream, &Event);
 }

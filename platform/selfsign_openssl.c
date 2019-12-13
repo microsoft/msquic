@@ -45,7 +45,7 @@ QuicTlsGenerateSelfSignedCert(
     PKey = EVP_PKEY_new();
 
     if (PKey == NULL) {
-        LogError("[TLS] EVP_PKEY_new() failed.");
+        QuicTraceLogError("[TLS] EVP_PKEY_new() failed.");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -53,7 +53,7 @@ QuicTlsGenerateSelfSignedCert(
     BigNum = BN_new();
 
     if (BigNum == NULL) {
-        LogError("[TLS] BN_new() failed.");
+        QuicTraceLogError("[TLS] BN_new() failed.");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -61,7 +61,7 @@ QuicTlsGenerateSelfSignedCert(
     Ret = BN_set_word(BigNum, RSA_F4);
 
     if (Ret != 1) {
-        LogError("[TLS] BN_set_word() failed.");
+        QuicTraceLogError("[TLS] BN_set_word() failed.");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -69,7 +69,7 @@ QuicTlsGenerateSelfSignedCert(
     Rsa = RSA_new();
 
     if (Rsa == NULL) {
-        LogError("[TLS] RSA_new() failed.");
+        QuicTraceLogError("[TLS] RSA_new() failed.");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -77,7 +77,7 @@ QuicTlsGenerateSelfSignedCert(
     Ret = RSA_generate_key_ex(Rsa, 2048, BigNum, NULL);
 
     if (Ret != 1) {
-        LogError("[TLS] RSA_generate_key_ex() failed.");
+        QuicTraceLogError("[TLS] RSA_generate_key_ex() failed.");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -85,7 +85,7 @@ QuicTlsGenerateSelfSignedCert(
     Ret = EVP_PKEY_assign_RSA(PKey, Rsa);
 
     if (Ret != 1) {
-        LogError("[TLS] EVP_PKEY_assign_RSA() failed.");
+        QuicTraceLogError("[TLS] EVP_PKEY_assign_RSA() failed.");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -93,7 +93,7 @@ QuicTlsGenerateSelfSignedCert(
     X509 = X509_new();
 
     if (X509 == NULL) {
-        LogError("[TLS] X509_new() failed.");
+        QuicTraceLogError("[TLS] X509_new() failed.");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -101,7 +101,7 @@ QuicTlsGenerateSelfSignedCert(
     Ret = ASN1_INTEGER_set(X509_get_serialNumber(X509), 1);
 
     if (Ret != 1) {
-        LogError("[TLS] ASN1_INTEGER_set() failed.");
+        QuicTraceLogError("[TLS] ASN1_INTEGER_set() failed.");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -124,7 +124,7 @@ QuicTlsGenerateSelfSignedCert(
             0);
 
     if (Ret != 1) {
-        LogError("[TLS] X509_NAME_add_entry_by_txt() failed.");
+        QuicTraceLogError("[TLS] X509_NAME_add_entry_by_txt() failed.");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -140,7 +140,7 @@ QuicTlsGenerateSelfSignedCert(
             0);
 
     if (Ret != 1) {
-        LogError("[TLS] X509_NAME_add_entry_by_txt() failed.");
+        QuicTraceLogError("[TLS] X509_NAME_add_entry_by_txt() failed.");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -156,7 +156,7 @@ QuicTlsGenerateSelfSignedCert(
             0);
 
     if (Ret != 1) {
-        LogError("[TLS] X509_NAME_add_entry_by_txt() failed.");
+        QuicTraceLogError("[TLS] X509_NAME_add_entry_by_txt() failed.");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -164,7 +164,7 @@ QuicTlsGenerateSelfSignedCert(
     Ret = X509_set_issuer_name(X509, Name);
 
     if (Ret != 1) {
-        LogError("[TLS] X509_set_issuer_name() failed.");
+        QuicTraceLogError("[TLS] X509_set_issuer_name() failed.");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -172,7 +172,7 @@ QuicTlsGenerateSelfSignedCert(
     Ret = X509_sign(X509, PKey, EVP_sha1());
 
     if (Ret <= 0) {
-        LogError("[TLS] X509_sign() failed.");
+        QuicTraceLogError("[TLS] X509_sign() failed.");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -180,7 +180,7 @@ QuicTlsGenerateSelfSignedCert(
     Fd = fopen(PrivateKeyFileName, "wb");
 
     if (Fd == NULL) {
-        LogError("[TLS] fopen() failed.");
+        QuicTraceLogError("[TLS] fopen() failed.");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -188,7 +188,7 @@ QuicTlsGenerateSelfSignedCert(
     Ret = PEM_write_PrivateKey(Fd, PKey, NULL, NULL, 0, NULL, NULL);
 
     if (Ret != 1) {
-        LogError("[TLS] PEM_write_PrivateKey() failed.");
+        QuicTraceLogError("[TLS] PEM_write_PrivateKey() failed.");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -199,7 +199,7 @@ QuicTlsGenerateSelfSignedCert(
     Fd = fopen(CertFileName, "wb");
 
     if (Fd == NULL) {
-        LogError("[TLS] fopen() failed.");
+        QuicTraceLogError("[TLS] fopen() failed.");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -207,7 +207,7 @@ QuicTlsGenerateSelfSignedCert(
     Ret = PEM_write_X509(Fd, X509);
 
     if (Ret != 1) {
-        LogError("[TLS] PEM_write_X509() failed.");
+        QuicTraceLogError("[TLS] PEM_write_X509() failed.");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -275,7 +275,7 @@ QuicPlatGetSelfSignedCert(
 
     Params->TempDir = mkdtemp(Template);
     if (Params->TempDir == NULL) {
-        LogError("[TLS] mkdtemp failed.");
+        QuicTraceLogError("[TLS] mkdtemp failed.");
         goto Error;
     }
 
@@ -334,7 +334,7 @@ QuicPlatFreeSelfSignedCert(
     strncpy(RmCmd, "rm -rf ", 7 + 1);
     strncat(RmCmd, Params->TempDir, strlen(Params->TempDir) + 1);
     if (system(RmCmd) == -1) {
-        LogError("[TLS] Tempdir del error.");
+        QuicTraceLogError("[TLS] Tempdir del error.");
     }
 
     free(Params);

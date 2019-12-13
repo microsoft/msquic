@@ -39,7 +39,7 @@ void QuicTestInitialize()
             QUIC_PARAM_REGISTRATION_ENCRYPTION,
             sizeof(Disabled),
             &Disabled))) {
-        LogError("[test] Disabling encryption failed");
+        QuicTraceLogError("[test] Disabling encryption failed");
     }
 #endif
 }
@@ -52,10 +52,10 @@ struct TestScopeLogger
 {
     const char* Name;
     TestScopeLogger(const char* name) : Name(name) {
-        LogInfo("[test]---> %s", Name);
+        QuicTraceLogInfo("[test]---> %s", Name);
     }
     ~TestScopeLogger() {
-        LogInfo("[test]<--- %s", Name);
+        QuicTraceLogInfo("[test]<--- %s", Name);
     }
 };
 

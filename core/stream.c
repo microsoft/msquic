@@ -118,7 +118,7 @@ QuicStreamFree(
     QuicPoolFree(&Stream->Connection->Worker->StreamPool, Stream);
 
     if (WasStarted) {
-        EventWriteQuicStreamDestroyed(Stream);
+        QuicTraceEvent(StreamDestroyed, Stream);
     }
 }
 
@@ -161,7 +161,7 @@ QuicStreamStart(
     }
 
     Stream->Flags.Started = TRUE;
-    EventWriteQuicStreamCreated(Stream, Stream->Connection, Stream->ID,
+    QuicTraceEvent(StreamCreated, Stream, Stream->Connection, Stream->ID,
         (!QuicConnIsServer(Stream->Connection) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
 
     if (Stream->Flags.Unidirectional) {
@@ -190,8 +190,8 @@ QuicStreamStart(
         }
     }
 
-    EventWriteQuicStreamSendState(Stream, QuicStreamSendGetState(Stream));
-    EventWriteQuicStreamRecvState(Stream, QuicStreamRecvGetState(Stream));
+    QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
+    QuicTraceEvent(StreamRecvState, Stream, QuicStreamRecvGetState(Stream));
 
     if (Stream->Flags.SendEnabled) {
         Stream->OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_APP;
@@ -216,7 +216,7 @@ QuicStreamStart(
     Stream->SendWindow = (uint32_t)min(Stream->MaxAllowedSendOffset, UINT32_MAX);
 
     if (Stream->OutFlowBlockedReasons != 0) {
-        EventWriteQuicStreamOutFlowBlocked(Stream, Stream->OutFlowBlockedReasons);
+        QuicTraceEvent(StreamOutFlowBlocked, Stream, Stream->OutFlowBlockedReasons);
     }
 
 Exit:
@@ -247,7 +247,7 @@ QuicStreamClose(
         // connection.
         //
 
-        LogWarning("[strm][%p][%llu] Closing handle without fully shutting down.",
+        QuicTraceLogWarning("[strm][%p][%llu] Closing handle without fully shutting down.",
             Stream, Stream->ID);
 
         //
@@ -273,9 +273,9 @@ QuicStreamTraceRundown(
     _In_ QUIC_STREAM* Stream
     )
 {
-    EventWriteQuicStreamRundown(Stream, Stream->Connection, Stream->ID,
+    QuicTraceEvent(StreamRundown, Stream, Stream->Connection, Stream->ID,
         (!QuicConnIsServer(Stream->Connection) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
-    EventWriteQuicStreamOutFlowBlocked(Stream, Stream->OutFlowBlockedReasons);
+    QuicTraceEvent(StreamOutFlowBlocked, Stream, Stream->OutFlowBlockedReasons);
     // TODO - More state dump.
 }
 
@@ -296,7 +296,7 @@ QuicStreamIndicateEvent(
                 Event);
         uint64_t EndTime = QuicTimeUs64();
         if (EndTime - StartTime > QUIC_MAX_CALLBACK_TIME_WARNING) {
-            LogWarning("strm][%p][%llu] App took excessive time (%llu us) in callback.",
+            QuicTraceLogWarning("strm][%p][%llu] App took excessive time (%llu us) in callback.",
                 Stream, Stream->ID, (EndTime - StartTime));
             QUIC_TEL_ASSERTMSG_ARGS(
                 EndTime - StartTime < QUIC_MAX_CALLBACK_TIME_ERROR,
@@ -307,7 +307,7 @@ QuicStreamIndicateEvent(
         }
     } else {
         Status = QUIC_STATUS_INVALID_STATE;
-        LogWarning("[strm][%p][%llu] Event silently discarded.", Stream, Stream->ID);
+        QuicTraceLogWarning("[strm][%p][%llu] Event silently discarded.", Stream, Stream->ID);
     }
     return Status;
 }
@@ -323,7 +323,7 @@ QuicStreamIndicateStartComplete(
     Event.Type = QUIC_STREAM_EVENT_START_COMPLETE;
     Event.START_COMPLETE.Status = Status;
     Event.START_COMPLETE.ID = Stream->ID;
-    LogVerbose("[strm][%p][%llu] Indicating QUIC_STREAM_EVENT_START_COMPLETE (0x%x)",
+    QuicTraceLogVerbose("[strm][%p][%llu] Indicating QUIC_STREAM_EVENT_START_COMPLETE (0x%x)",
         Stream, Stream->ID, Status);
     (void)QuicStreamIndicateEvent(Stream, &Event);
 }
@@ -339,7 +339,7 @@ QuicStreamIndicateShutdownComplete(
 
         QUIC_STREAM_EVENT Event;
         Event.Type = QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE;
-        LogVerbose("[strm][%p][%llu] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE",
+        QuicTraceLogVerbose("[strm][%p][%llu] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE",
             Stream, Stream->ID);
         (void)QuicStreamIndicateEvent(Stream, &Event);
 

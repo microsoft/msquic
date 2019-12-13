@@ -31,7 +31,7 @@ QuicPathInitialize(
     Path->MinRtt = UINT32_MAX;
     Path->Mtu = QUIC_DEFAULT_PATH_MTU;
 
-    LogInfo("[conn][%p] Path[%u] Initialized", Connection, Path->ID);
+    QuicTraceLogInfo("[conn][%p] Path[%u] Initialized", Connection, Path->ID);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -89,7 +89,7 @@ QuicPathSetValid(
         "Path Response"
     };
 
-    LogInfo("[conn][%p] Path[%u] Validated (%s)", Connection, Path->ID, ReasonStrings[Reason]);
+    QuicTraceLogInfo("[conn][%p] Path[%u] Validated (%s)", Connection, Path->ID, ReasonStrings[Reason]);
 
     Path->IsPeerValidated = TRUE;
     QuicPathSetAllowance(Connection, Path, UINT32_MAX);
@@ -187,7 +187,7 @@ QuicPathSetActive(
         QuicAddrGetFamily(&Path->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[0].RemoteAddress) &&
         QuicAddrCompareIp(&Path->RemoteAddress, &Connection->Paths[0].RemoteAddress);
 
-    LogInfo("[conn][%p] Path[%u] Set active (rebind=%hu)", Connection, Path->ID, UdpPortChangeOnly);
+    QuicTraceLogInfo("[conn][%p] Path[%u] Set active (rebind=%hu)", Connection, Path->ID, UdpPortChangeOnly);
 
     QUIC_PATH PrevActivePath = Connection->Paths[0];
 
@@ -216,7 +216,7 @@ QuicConnRemoveInvalidPaths(
         if (Connection->Paths[i].GotValidPacket) {
             continue;
         }
-        LogInfo("[conn][%p] Path[%u] Discarded (invalid)", Connection, Connection->Paths[i].ID);
+        QuicTraceLogInfo("[conn][%p] Path[%u] Discarded (invalid)", Connection, Connection->Paths[i].ID);
         if (i + 1 < Connection->PathsCount) {
             QuicMoveMemory(
                 &Connection->Paths[i],

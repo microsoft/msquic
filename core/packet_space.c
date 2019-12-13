@@ -29,7 +29,7 @@ QuicPacketSpaceInitialize(
 
     Packets = QUIC_ALLOC_NONPAGED(sizeof(QUIC_PACKET_SPACE));
     if (Packets == NULL) {
-        EventWriteQuicAllocFailure("packet space", sizeof(QUIC_PACKET_SPACE));
+        QuicTraceEvent(AllocFailure, "packet space", sizeof(QUIC_PACKET_SPACE));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }

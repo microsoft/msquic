@@ -54,7 +54,7 @@ QuicPacketBuilderInitialize(
             QUIC_ENCRYPTION_OVERHEAD : 0;
 
     if (Connection->SourceCIDs.Next == NULL) {
-        LogWarning("[conn][%p] No src CID to send with.", Connection);
+        QuicTraceLogWarning("[conn][%p] No src CID to send with.", Connection);
         return FALSE;
     }
 
@@ -173,7 +173,7 @@ QuicPacketBuilderPrepare(
                             QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                             DatagramSize));
             if (Builder->SendContext == NULL) {
-                EventWriteQuicAllocFailure("packet send context", 0);
+                QuicTraceEvent(AllocFailure, "packet send context", 0);
                 goto Error;
             }
         }
@@ -192,7 +192,7 @@ QuicPacketBuilderPrepare(
                 Builder->SendContext,
                 NewDatagramLength);
         if (Builder->Datagram == NULL) {
-            EventWriteQuicAllocFailure("packet datagram", NewDatagramLength);
+            QuicTraceEvent(AllocFailure, "packet datagram", NewDatagramLength);
             goto Error;
         }
 
@@ -231,7 +231,7 @@ QuicPacketBuilderPrepare(
             Builder->MinimumDatagramLength = NewDatagramLength;
         }
 
-        LogVerbose("[pktb][%p] New UDP datagram. Space: %u",
+        QuicTraceLogVerbose("[pktb][%p] New UDP datagram. Space: %u",
             Connection, Builder->Datagram->Length);
     }
 
@@ -310,7 +310,7 @@ QuicPacketBuilderPrepare(
 
         Builder->DatagramLength += Builder->HeaderLength;
 
-        LogVerbose("[pktb][%p] New QUIC packet. Space: %hu. Type: %hx",
+        QuicTraceLogVerbose("[pktb][%p] New QUIC packet. Space: %hu. Type: %hx",
             Connection, BufferSpaceAvailable, NewPacketType);
     }
 
@@ -423,7 +423,7 @@ QuicPacketBuilderPrepareForControlFrames(
             SendFlags,
             &PacketType,
             &PacketKey)) {
-        LogWarning("[conn][%p] Failed to get packet type for control frames, 0x%x",
+        QuicTraceLogWarning("[conn][%p] Failed to get packet type for control frames, 0x%x",
             Builder->Connection, SendFlags);
         QUIC_DBG_ASSERT(FALSE); // This shouldn't have been called then!
         return FALSE;
@@ -627,7 +627,7 @@ QuicPacketBuilderFinalize(
     QuicFuzzInjectHook(Builder);
 #endif
 
-    if (LogVerboseEnabled()) {
+    if (QuicTraceLogVerboseEnabled()) {
         QuicPacketLogHeader(
             Connection,
             FALSE,
@@ -740,7 +740,7 @@ QuicPacketBuilderFinalize(
 
             Status = QuicCryptoGenerateNewKeys(Connection);
             if (QUIC_FAILED(Status)) {
-                EventWriteQuicConnErrorStatus(
+                QuicTraceEvent(ConnErrorStatus,
                     Connection,
                     Status,
                     "Send-triggered key update");
@@ -766,7 +766,7 @@ QuicPacketBuilderFinalize(
     Builder->Metadata->PacketLength =
         Builder->HeaderLength + PayloadLength;
 
-    EventWriteQuicConnPacketSent(
+    QuicTraceEvent(ConnPacketSent,
         Connection,
         Builder->Metadata->PacketNumber,
         QuicPacketTraceType(Builder->Metadata),
@@ -826,7 +826,7 @@ QuicPacketBuilderSendBatch(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
-    LogVerbose("[pktb][%p] Sending batch. %hu datagrams",
+    QuicTraceLogVerbose("[pktb][%p] Sending batch. %hu datagrams",
         Builder->Connection, (uint16_t)Builder->TotalCountDatagrams);
 
     if (QuicAddrIsBoundExplicitly(&Builder->Path->LocalAddress)) {
