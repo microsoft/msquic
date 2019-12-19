@@ -811,8 +811,7 @@ QuicBindingProcessStatelessOperation(
                 (uint8_t*)SendDatagram->Buffer);
         QUIC_DBG_ASSERT(SendDatagram->Length != 0);
 
-        QuicTraceLogVerbose(
-            "[S][TX][-] LH Ver:0x%x DestCID:%s SrcCID:%s Type:R OrigDestCID:%s (Token %hu bytes)",
+        QuicTraceLogVerbose("[S][TX][-] LH Ver:0x%x DestCID:%s SrcCID:%s Type:R OrigDestCID:%s (Token %hu bytes)",
             RecvPacket->LH->Version,
             QuicCidBufToStr(RecvPacket->SourceCID, RecvPacket->SourceCIDLen).Buffer,
             QuicCidBufToStr(NewDestCID, MSQUIC_CONNECTION_ID_LENGTH).Buffer,

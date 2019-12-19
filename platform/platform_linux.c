@@ -14,6 +14,8 @@ Environment:
 --*/
 
 #define _GNU_SOURCE
+#define TRACEPOINT_CREATE_PROBES
+#define TRACEPOINT_DEFINE
 #include "platform_internal.h"
 #include "quic_platform.h"
 #include <limits.h>

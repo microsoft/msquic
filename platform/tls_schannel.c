@@ -1262,6 +1262,8 @@ QuicTlsWriteDataToSchannel(
     OutSecBufferDesc.pBuffers = OutSecBuffers;
     OutSecBufferDesc.cBuffers = 0;
 
+    uint8_t AlertBufferRaw[2];
+
     if (*InBufferLength == 0) {
 
         //
@@ -1356,8 +1358,8 @@ QuicTlsWriteDataToSchannel(
     // Another (output) secbuffer is for any TLS alerts.
     //
     OutSecBuffers[OutSecBufferDesc.cBuffers].BufferType = SECBUFFER_EMPTY;
-    OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = 0;
-    OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = NULL;
+    OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = sizeof(AlertBufferRaw);
+    OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = &AlertBufferRaw;
     OutSecBufferDesc.cBuffers++;
 
     if (TlsContext->TransportParams != NULL) {
@@ -1584,11 +1586,12 @@ QuicTlsWriteDataToSchannel(
     case SEC_I_CONTINUE_NEEDED_MESSAGE_OK:
 
         if (AlertBuffer != NULL) {
-            //
-            // TODO: This needs to be indicated in a QUIC CONNECTION_CLOSE frame.
-            //
-            QuicTraceLogWarning("[ tls][%p][%c] TLS ALERT message is available!",
-                TlsContext, GetTlsIdentifier(TlsContext));
+            if (AlertBuffer->cbBuffer < 2) {
+                QuicTraceEvent(TlsError, TlsContext->Connection, "TLS alert message received (invalid)");
+            } else {
+                State->AlertCode = ((uint8_t*)AlertBuffer->pvBuffer)[1];
+                QuicTraceEvent(TlsErrorStatus, TlsContext->Connection, State->AlertCode, "TLS alert message received");
+            }
             Result |= QUIC_TLS_RESULT_ERROR;
             break;
         }

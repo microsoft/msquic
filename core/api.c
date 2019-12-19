@@ -265,7 +265,8 @@ MsQuicConnectionStart(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
-    if (!Connection->State.RemoteAddressSet && ServerName == NULL) {
+    if (QuicConnIsServer(Connection) ||
+        (!Connection->State.RemoteAddressSet && ServerName == NULL)) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }

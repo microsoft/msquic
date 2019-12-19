@@ -416,8 +416,7 @@ QuicWorkerProcessConnection(
         QUIC_CONNECTION_EVENT Event;
         Event.Type = QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED;
         Event.IDEAL_PROCESSOR_CHANGED.IdealProcessor = Worker->IdealProcessor;
-        QuicTraceLogVerbose("[conn][%p] Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED",
-            Connection);
+        QuicTraceLogConnVerbose(IndicateIdealProcChanged, Connection, "Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED");
         (void)QuicConnIndicateEvent(Connection, &Event);
     }
 

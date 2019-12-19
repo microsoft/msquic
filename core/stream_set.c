@@ -235,8 +235,7 @@ QuicStreamSetIndicateStreamsAvailable(
     Event.STREAMS_AVAILABLE.UnidirectionalCount =
         QuicStreamSetGetCountAvailable(StreamSet, Type | STREAM_ID_FLAG_IS_UNI_DIR);
 
-    QuicTraceLogVerbose("[conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [%u] [%u]",
-        Connection,
+    QuicTraceLogConnVerbose(IndicateStreamsAvailable, Connection, "Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [%u] [%u]",
         Event.STREAMS_AVAILABLE.BidirectionalCount,
         Event.STREAMS_AVAILABLE.UnidirectionalCount);
     (void)QuicConnIndicateEvent(Connection, &Event);
@@ -352,8 +351,8 @@ QuicStreamSetUpdateMaxStreams(
 
     if (MaxStreams > Info->MaxTotalStreamCount) {
 
-        QuicTraceLogVerbose("[conn][%p] Peer updated max stream count (%hu, %llu).",
-            Connection, BidirectionalStreams, MaxStreams);
+        QuicTraceLogConnVerbose(PeerStreamCountsUpdated, Connection, "Peer updated max stream count (%hu, %llu).",
+            BidirectionalStreams, MaxStreams);
 
         BOOLEAN FlushSend = FALSE;
         if (StreamSet->StreamTable != NULL) {
@@ -401,8 +400,8 @@ QuicStreamSetUpdateMaxCount(
     QUIC_CONNECTION* Connection = QuicStreamSetGetConnection(StreamSet);
     QUIC_STREAM_TYPE_INFO* Info = &StreamSet->Types[Type];
 
-    QuicTraceLogInfo("[conn][%p] App configured max stream count of %hu (type=%hu).",
-        Connection, Count, Type);
+    QuicTraceLogConnInfo(MaxStreamCountUpdated, Connection, "App configured max stream count of %hu (type=%hu).",
+        Count, Type);
 
     if (!Connection->State.Started) {
         Info->MaxTotalStreamCount = Count;
@@ -624,8 +623,8 @@ QuicStreamSetGetStreamForPeer(
             Event.PEER_STREAM_STARTED.Stream = (HQUIC)Stream;
             Event.PEER_STREAM_STARTED.Flags = StreamFlags;
 
-            QuicTraceLogVerbose("[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED [%p, 0x%x]",
-                Connection, Event.PEER_STREAM_STARTED.Stream, Event.PEER_STREAM_STARTED.Flags);
+            QuicTraceLogConnVerbose(IndicatePeerStreamStarted, Connection, "Indicating QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED [%p, 0x%x]",
+                Event.PEER_STREAM_STARTED.Stream, Event.PEER_STREAM_STARTED.Flags);
             Status = QuicConnIndicateEvent(Connection, &Event);
 
             if (QUIC_FAILED(Status)) {
@@ -648,7 +647,7 @@ QuicStreamSetGetStreamForPeer(
         //
         // Remote tried to open stream that it wasn't allowed to.
         //
-        QuicTraceLogWarning("[conn][%p] Remote tried to open stream it wasn't allowed to open.", Connection);
+        QuicTraceEvent(ConnError, Connection, "Remote tried to open stream it wasn't allowed to open.");
         QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
         *ProtocolViolation = TRUE;
     }

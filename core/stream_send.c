@@ -932,7 +932,7 @@ QuicStreamWriteStreamFrames(
             Send->OrderedStreamBytesSent += Right - Stream->MaxSentLength;
             QUIC_DBG_ASSERT(Send->OrderedStreamBytesSent <= Send->PeerMaxData);
             if (Send->OrderedStreamBytesSent == Send->PeerMaxData) {
-                QuicTraceLogVerbose("[conn][%p] Connection flow control limit reached", Stream->Connection);
+                QuicTraceLogConnVerbose(ConnFCBlocked, Stream->Connection, "Connection flow control limit reached");
             }
             Stream->MaxSentLength = Right;
         }

@@ -5,6 +5,7 @@ Gets procdump from the web if it doesn't already exist.
 
 #>
 
+mkdir bld
 if ((Test-Path .\bld\procdump) -eq $false) {
     # Download the zip file.
     Invoke-WebRequest -Uri https://download.sysinternals.com/files/Procdump.zip -OutFile bld\procdump.zip

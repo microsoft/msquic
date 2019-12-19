@@ -74,7 +74,7 @@ struct PacketNumberTest : public WEX::TestClass<PacketNumberTest>
 
         for (UINT8 i = 0; i < ARRAYSIZE(Entries); i++) {
             VERIFY_ARE_EQUAL(
-                QuicPacketNumberDecompress(
+                QuicPktNumDecompress(
                     Entries[i].HighestReceived + 1,
                     Entries[i].Compressed,
                     Entries[i].CompressedBytes),

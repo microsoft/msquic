@@ -650,8 +650,21 @@ QuicConnLogOutFlowStats(
         &FcAvailable,
         &SendWindow);
 
+#ifdef QUIC_EVENTS_LTTNG // LTTng has a max of 10 fields.
+    QuicTraceEvent(
+        ConnOutFlowStats,
+        Connection,
+        Connection->Stats.Send.TotalBytes,
+        Connection->CongestionControl.BytesInFlight,
+        Connection->CongestionControl.BytesInFlightMax,
+        Connection->CongestionControl.CongestionWindow,
+        Connection->CongestionControl.SlowStartThreshold,
+        Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
+        FcAvailable,
+        Connection->SendBuffer.IdealBytes,
+        Connection->SendBuffer.PostedBytes);
+#else
     const QUIC_PATH* Path = &Connection->Paths[0];
-
     QuicTraceEvent(
         ConnOutFlowStats,
         Connection,
@@ -666,6 +679,7 @@ QuicConnLogOutFlowStats(
         Connection->SendBuffer.PostedBytes,
         Path->GotFirstRttSample ? Path->SmoothedRtt : 0,
         SendWindow);
+#endif
 }
 
 inline
@@ -674,7 +688,8 @@ QuicConnLogInFlowStats(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
-    QuicTraceEvent(ConnInFlowStats,
+    QuicTraceEvent(
+        ConnInFlowStats,
         Connection,
         Connection->Stats.Recv.TotalBytes);
 }
@@ -685,8 +700,23 @@ QuicConnLogStatistics(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
+#ifdef QUIC_EVENTS_LTTNG // LTTng has a max of 10 fields.
+    QuicTraceEvent(
+        ConnStatistics,
+        Connection,
+        QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()),
+        Connection->Stats.Send.TotalPackets,
+        Connection->Stats.Send.SuspectedLostPackets,
+        Connection->Stats.Send.SpuriousLostPackets,
+        Connection->Stats.Recv.TotalPackets,
+        Connection->Stats.Recv.ReorderedPackets,
+        Connection->Stats.Recv.DroppedPackets,
+        Connection->Stats.Recv.DuplicatePackets,
+        Connection->Stats.Recv.DecryptionFailures);
+#else
     const QUIC_PATH* Path = &Connection->Paths[0];
-    QuicTraceEvent(ConnStatistics,
+    QuicTraceEvent(
+        ConnStatistics,
         Connection,
         QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()),
         Connection->Stats.Send.TotalPackets,
@@ -702,6 +732,7 @@ QuicConnLogStatistics(
         Connection->Stats.Send.TotalBytes,
         Connection->Stats.Recv.TotalBytes,
         Path->SmoothedRtt);
+#endif
 }
 
 inline

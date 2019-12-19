@@ -511,6 +511,7 @@ QUIC_THREAD_CALLBACK(ServerSpin, Context)
             PRINT("MsQuic->ListenerOpen(%p, ...) = ", session);
             QUIC_STATUS Status = MsQuic->ListenerOpen(session, SpinQuicServerHandleListenerEvent, &Connections, &Listener);
             PRINT("0x%x\n", Status);
+            UNREFERENCED_PARAMETER(Status);
 
             QUIC_ADDR sockAddr = { 0 };
             QuicAddrSetFamily(&sockAddr, (rand() % 2) ? AF_INET : AF_UNSPEC);
@@ -519,6 +520,7 @@ QUIC_THREAD_CALLBACK(ServerSpin, Context)
             PRINT("MsQuic->ListenerStart(%p, {*:%d}) = ", Listener, pt);
             Status = MsQuic->ListenerStart(Listener, &sockAddr);
             PRINT("0x%x\n", Status);
+            UNREFERENCED_PARAMETER(Status);
 
             Listeners.push_back(Listener);
         }

@@ -197,7 +197,7 @@ QuicEtwCallback(
 #define EventWriteQuicLibraryWorkerPoolInit() \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[ lib] Shared worker pool initializing")
 #define EventWriteQuicAllocFailure(Desc, ByteCount) \
-    QuicSysLogWrite(QUIC_TRACE_LEVEL_WARNING, "Allocation of '%s' failed. (%llu bytes)")
+    QuicSysLogWrite(QUIC_TRACE_LEVEL_WARNING, "Allocation of '%s' failed. (%llu bytes)", Desc, ByteCount)
 #define EventWriteQuicLibraryRundown(PartitionCount, DatapathFeatures) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u", PartitionCount, DatapathFeatures)
 #define EventWriteQuicLibraryError(ErrStr) \
@@ -439,7 +439,7 @@ QuicEtwCallback(
 
 #ifdef QUIC_EVENTS_LTTNG
 
-#error "LTTng not supported yet!"
+#include "quic_trace_lttng.h"
 
 #endif // QUIC_EVENTS_LTTNG
 

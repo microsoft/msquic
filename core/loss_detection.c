@@ -394,7 +394,7 @@ QuicLossDetectionOnPacketAcknowledged(
 
     if (!Connection->State.HandshakeConfirmed &&
         Packet->Flags.KeyType == QUIC_PACKET_KEY_1_RTT) {
-        QuicTraceLogInfo("[conn][%p] Handshake confirmed.", Connection);
+        QuicTraceLogConnInfo(HandshakeConfirmed, Connection, "Handshake confirmed.");
         Connection->State.HandshakeConfirmed = TRUE;
         QuicCryptoDiscardKeys(&Connection->Crypto, QUIC_PACKET_KEY_HANDSHAKE);
     }
@@ -404,7 +404,7 @@ QuicLossDetectionOnPacketAcknowledged(
         PacketSpace->AwaitingKeyPhaseConfirmation &&
         Packet->Flags.KeyPhase == PacketSpace->CurrentKeyPhase &&
         Packet->PacketNumber >= PacketSpace->WriteKeyPhaseStartPacketNumber) {
-        QuicTraceLogVerbose("[conn][%p] Key change confirmed by peer.", Connection);
+        QuicTraceLogConnVerbose(KeyChangeConfirmed, Connection, "Key change confirmed by peer.");
         PacketSpace->AwaitingKeyPhaseConfirmation = FALSE;
     }
 
@@ -1234,7 +1234,7 @@ QuicLossDetectionScheduleProbe(
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
 
     LossDetection->ProbeCount++;
-    QuicTraceLogInfo("[conn][%p] probe round %lu", Connection, LossDetection->ProbeCount);
+    QuicTraceLogConnInfo(ScheduleProbe, Connection, "probe round %lu", LossDetection->ProbeCount);
 
     //
     // Below, we will schedule a fixed number packets to be retransmitted. What

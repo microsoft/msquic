@@ -47,6 +47,8 @@ reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\S
 - Install tooling
     - `sudo apt-get install cmake`
     - `sudo apt-get install build-essentials`
+    - `sudo apt-get install liblttng-ust-dev`
+    - `sudo apt-get install lttng-tools`
 - Run `mkdir bld && cd bld`
 - Run `cmake -G "Unix Makefiles" ..`
 - Run `cmake --build . --config RELEASE`

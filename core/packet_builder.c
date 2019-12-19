@@ -54,7 +54,7 @@ QuicPacketBuilderInitialize(
             QUIC_ENCRYPTION_OVERHEAD : 0;
 
     if (Connection->SourceCIDs.Next == NULL) {
-        QuicTraceLogWarning("[conn][%p] No src CID to send with.", Connection);
+        QuicTraceLogConnWarning(NoSrcCidAvailable, Connection, "No src CID to send with.");
         return FALSE;
     }
 
@@ -423,8 +423,8 @@ QuicPacketBuilderPrepareForControlFrames(
             SendFlags,
             &PacketType,
             &PacketKey)) {
-        QuicTraceLogWarning("[conn][%p] Failed to get packet type for control frames, 0x%x",
-            Builder->Connection, SendFlags);
+        QuicTraceLogConnWarning(GetPacketTypeFailure, Builder->Connection, "Failed to get packet type for control frames, 0x%x",
+            SendFlags);
         QUIC_DBG_ASSERT(FALSE); // This shouldn't have been called then!
         return FALSE;
     }
@@ -643,7 +643,6 @@ QuicPacketBuilderFinalize(
             Builder->HeaderLength + PayloadLength,
             Header,
             Builder->HeaderLength);
-        QuicLogBuffer(Header, Builder->HeaderLength + PayloadLength);
     }
 
     if (Connection->State.EncryptionEnabled) {

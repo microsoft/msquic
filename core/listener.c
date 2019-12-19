@@ -416,7 +416,7 @@ QuicListenerAcceptConnection(
             Listener->TotalRejectedConnections++;
             goto Error;
         } else if (SecConfig == NULL) {
-            QuicTraceLogVerbose("[conn][%p] No security config was provided by the app.", Connection);
+            QuicTraceLogConnVerbose(NoSecurityConfigAvailable, Connection, "No security config was provided by the app.");
             Listener->TotalRejectedConnections++;
             goto Error;
         }
