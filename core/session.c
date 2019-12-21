@@ -33,7 +33,7 @@ MsQuicSessionOpen(
     QUIC_SESSION* Session = NULL;
     size_t AlpnLength = 0;
 
-    EventWriteQuicApiEnter(
+    QuicTraceEvent(ApiEnter,
         QUIC_TRACE_API_SESSION_OPEN,
         RegistrationContext);
 
@@ -53,7 +53,7 @@ MsQuicSessionOpen(
 
     Session = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SESSION) + AlpnLength + 1);
     if (Session == NULL) {
-        EventWriteQuicAllocFailure("session", sizeof(QUIC_SESSION) + AlpnLength + 1);
+        QuicTraceEvent(AllocFailure, "session", sizeof(QUIC_SESSION) + AlpnLength + 1);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -67,14 +67,14 @@ MsQuicSessionOpen(
     QuicCopyMemory(Session->Alpn, Alpn, AlpnLength + 1);
 
     if (!QuicHashtableInitializeEx(&Session->ServerCache, QUIC_HASH_MIN_SIZE)) {
-        EventWriteQuicSessionError(Session, "Server cache initialize");
+        QuicTraceEvent(SessionError, Session, "Server cache initialize");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
     Status = QuicTlsSessionInitialize(Session->Alpn, &Session->TlsSession);
     if (QUIC_FAILED(Status)) {
-        EventWriteQuicSessionErrorStatus(Session, Status, "QuicTlsSessionInitialize");
+        QuicTraceEvent(SessionErrorStatus, Session, Status, "QuicTlsSessionInitialize");
         QuicHashtableUninitialize(&Session->ServerCache);
         goto Error;
     }
@@ -88,7 +88,7 @@ MsQuicSessionOpen(
     Session->CompartmentId = QuicCompartmentIdGetCurrent();
 #endif
 
-    EventWriteQuicSessionCreated(Session, Session->Registration, Alpn);
+    QuicTraceEvent(SessionCreated, Session, Session->Registration, Alpn);
 
     QuicRundownInitialize(&Session->Rundown);
     QuicRwLockInitialize(&Session->ServerCacheLock);
@@ -108,7 +108,7 @@ MsQuicSessionOpen(
                 Session,
                 &Session->Storage);
         if (QUIC_FAILED(Status)) {
-            LogWarning("[sess][%p] Failed to open settings, 0x%x", Session, Status);
+            QuicTraceLogWarning("[sess][%p] Failed to open settings, 0x%x", Session, Status);
             Status = QUIC_STATUS_SUCCESS; // Non-fatal, as the process may not have access
         }
     }
@@ -127,7 +127,7 @@ MsQuicSessionOpen(
                 Session,
                 &Session->AppSpecificStorage);
         if (QUIC_FAILED(Status)) {
-            LogWarning("[sess][%p] Failed to open app specific settings, 0x%x", Session, Status);
+            QuicTraceLogWarning("[sess][%p] Failed to open app specific settings, 0x%x", Session, Status);
             Status = QUIC_STATUS_SUCCESS; // Non-fatal, as the process may not have access
         }
     }
@@ -147,7 +147,7 @@ Error:
         QUIC_FREE(Session);
     }
 
-    EventWriteQuicApiExitStatus(Status);
+    QuicTraceEvent(ApiExitStatus, Status);
 
     return Status;
 }
@@ -170,14 +170,14 @@ MsQuicSessionClose(
         return;
     }
 
-    EventWriteQuicApiEnter(
+    QuicTraceEvent(ApiEnter,
         QUIC_TRACE_API_SESSION_CLOSE,
         Handle);
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     QUIC_SESSION* Session = (QUIC_SESSION*)Handle;
 
-    EventWriteQuicSessionCleanup(Session);
+    QuicTraceEvent(SessionCleanup, Session);
 
     QuicLockAcquire(&Session->Registration->Lock);
     QuicListEntryRemove(&Session->Link);
@@ -231,9 +231,9 @@ MsQuicSessionClose(
 #endif
     QUIC_FREE(Session);
 
-    EventWriteQuicSessionDestroyed(Session);
+    QuicTraceEvent(SessionDestroyed, Session);
 
-    EventWriteQuicApiExit();
+    QuicTraceEvent(ApiExit);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -252,7 +252,7 @@ MsQuicSessionShutdown(
         return;
     }
 
-    EventWriteQuicApiEnter(
+    QuicTraceEvent(ApiEnter,
         QUIC_TRACE_API_SESSION_SHUTDOWN,
         Handle);
 
@@ -260,7 +260,7 @@ MsQuicSessionShutdown(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_SESSION* Session = (QUIC_SESSION*)Handle;
 
-        EventWriteQuicSessionShutdown(Session, Flags, ErrorCode);
+        QuicTraceEvent(SessionShutdown, Session, Flags, ErrorCode);
 
         QuicDispatchLockAcquire(&Session->ConnectionsLock);
 
@@ -289,7 +289,7 @@ MsQuicSessionShutdown(
         QuicDispatchLockRelease(&Session->ConnectionsLock);
     }
 
-    EventWriteQuicApiExit();
+    QuicTraceEvent(ApiExit);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -298,7 +298,7 @@ QuicSessionTraceRundown(
     _In_ QUIC_SESSION* Session
     )
 {
-    EventWriteQuicSessionRundown(Session, Session->Registration, Session->Alpn);
+    QuicTraceEvent(SessionRundown, Session, Session->Registration, Session->Alpn);
 
     QuicDispatchLockAcquire(&Session->ConnectionsLock);
 
@@ -334,7 +334,7 @@ QuicSessionSettingsChanged(
         QuicSettingsLoad(&Session->Settings, Session->AppSpecificStorage);
     }
 
-    LogInfo("[sess][%p] Settings %p Updated", Session, &Session->Settings);
+    QuicTraceLogInfo("[sess][%p] Settings %p Updated", Session, &Session->Settings);
     QuicSettingsDump(&Session->Settings);
 }
 
@@ -353,7 +353,7 @@ QuicSessionRegisterConnection(
 
     QuicConnApplySettings(Connection, &Session->Settings);
 
-    EventWriteQuicConnRegisterSession(Connection, Session);
+    QuicTraceEvent(ConnRegisterSession, Connection, Session);
     BOOLEAN Success = QuicRundownAcquire(&Session->Rundown);
     QUIC_DBG_ASSERT(Success); UNREFERENCED_PARAMETER(Success);
     QuicDispatchLockAcquire(&Session->ConnectionsLock);
@@ -369,7 +369,7 @@ QuicSessionUnregisterConnection(
     )
 {
     Connection->Session = NULL;
-    EventWriteQuicConnUnregisterSession(Connection, Session);
+    QuicTraceEvent(ConnUnregisterSession, Connection, Session);
     QuicDispatchLockAcquire(&Session->ConnectionsLock);
     QuicListEntryRemove(&Connection->SessionLink);
     QuicDispatchLockRelease(&Session->ConnectionsLock);
@@ -491,7 +491,7 @@ QuicSessionServerCacheSetStateInternal(
             QuicHashtableInsert(&Session->ServerCache, &Cache->Entry, Hash, NULL);
 
         } else {
-            EventWriteQuicAllocFailure("server cache entry", sizeof(QUIC_SERVER_CACHE) + ServerNameLength);
+            QuicTraceEvent(AllocFailure, "server cache entry", sizeof(QUIC_SERVER_CACHE) + ServerNameLength);
         }
     }
 
@@ -671,7 +671,7 @@ QuicSessionParamSet(
         Session->Settings.AppSet.BidiStreamCount = TRUE;
         Session->Settings.BidiStreamCount = *(uint16_t*)Buffer;
 
-        LogInfo("[sess][%p] Updated bidirectional stream count = %hu",
+        QuicTraceLogInfo("[sess][%p] Updated bidirectional stream count = %hu",
             Session, Session->Settings.BidiStreamCount);
 
         Status = QUIC_STATUS_SUCCESS;
@@ -688,7 +688,7 @@ QuicSessionParamSet(
         Session->Settings.AppSet.UnidiStreamCount = TRUE;
         Session->Settings.UnidiStreamCount = *(uint16_t*)Buffer;
 
-        LogInfo("[sess][%p] Updated unidirectional stream count = %hu",
+        QuicTraceLogInfo("[sess][%p] Updated unidirectional stream count = %hu",
             Session, Session->Settings.UnidiStreamCount);
 
         Status = QUIC_STATUS_SUCCESS;
@@ -705,7 +705,7 @@ QuicSessionParamSet(
         Session->Settings.AppSet.IdleTimeoutMs = TRUE;
         Session->Settings.IdleTimeoutMs = *(uint64_t*)Buffer;
 
-        LogInfo("[sess][%p] Updated idle timeout to %llu milliseconds",
+        QuicTraceLogInfo("[sess][%p] Updated idle timeout to %llu milliseconds",
             Session, Session->Settings.IdleTimeoutMs);
 
         Status = QUIC_STATUS_SUCCESS;
@@ -722,7 +722,7 @@ QuicSessionParamSet(
         Session->Settings.AppSet.DisconnectTimeoutMs = TRUE;
         Session->Settings.DisconnectTimeoutMs = *(uint32_t*)Buffer;
 
-        LogInfo("[sess][%p] Updated disconnect timeout to %u milliseconds",
+        QuicTraceLogInfo("[sess][%p] Updated disconnect timeout to %u milliseconds",
             Session, Session->Settings.DisconnectTimeoutMs);
 
         Status = QUIC_STATUS_SUCCESS;
@@ -779,7 +779,7 @@ QuicSessionParamSet(
         Session->Settings.AppSet.MaxBytesPerKey = TRUE;
         Session->Settings.MaxBytesPerKey = NewValue;
 
-        LogInfo("[sess][%p] Updated max bytes per key to %llu bytes",
+        QuicTraceLogInfo("[sess][%p] Updated max bytes per key to %llu bytes",
             Session,
             Session->Settings.MaxBytesPerKey);
 

@@ -161,13 +161,6 @@ QuicVarPktNumDecodeLength(
     uint8_t FirstByte
     );
 
-uint64_t
-QuicPacketNumberDecompressV2(
-    _In_ uint64_t ExpectedPacketNumber,
-    _In_ uint64_t CompressedPacketNumber,
-    _In_ uint8_t CompressedPacketNumberBytes
-    );
-
 BOOLEAN
 QuicIsVersionReserved(
     _In_ uint32_t Version // Either Byte Order
@@ -432,13 +425,6 @@ QuicConnLogOutFlowStats(
     _In_ const QUIC_CONNECTION* const Connection
     );
 
-uint64_t
-QuicPacketNumberDecompress(
-    _In_ uint64_t ExpectedPacketNumber,
-    _In_ uint64_t CompressedPacketNumber,
-    _In_ uint8_t CompressedPacketNumberBytes
-    );
-
 void
 QuicOperLog(
     _In_ const void* Connection,
@@ -473,7 +459,7 @@ QuicPktNumDecode(
     );
 
 uint64_t
-QuicPacketNumberDecompress(
+QuicPktNumDecompress(
     _In_ uint64_t ExpectedPacketNumber,
     _In_ uint64_t CompressedPacketNumber,
     _In_ uint8_t CompressedPacketNumberBytes

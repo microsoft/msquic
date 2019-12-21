@@ -31,7 +31,7 @@ QuicRangeInitialize(
     QUIC_FRE_ASSERT(sizeof(QUIC_SUBRANGE) * INITIAL_SUBRANGE_COUNT < MaxAllocSize);
     Range->SubRanges = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SUBRANGE) * INITIAL_SUBRANGE_COUNT);
     if (Range->SubRanges == NULL) {
-        EventWriteQuicAllocFailure("range", sizeof(QUIC_SUBRANGE) * INITIAL_SUBRANGE_COUNT);
+        QuicTraceEvent(AllocFailure, "range", sizeof(QUIC_SUBRANGE) * INITIAL_SUBRANGE_COUNT);
     }
     return (Range->SubRanges == NULL) ? QUIC_STATUS_OUT_OF_MEMORY : QUIC_STATUS_SUCCESS;
 }
@@ -78,7 +78,7 @@ QuicRangeGrow(
 
     QUIC_SUBRANGE* NewSubRanges = QUIC_ALLOC_NONPAGED(NewAllocSize);
     if (NewSubRanges == NULL) {
-        EventWriteQuicAllocFailure("range (realloc)", NewAllocLength);
+        QuicTraceEvent(AllocFailure, "range (realloc)", NewAllocLength);
         return FALSE;
     }
 

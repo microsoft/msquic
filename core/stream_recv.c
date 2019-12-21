@@ -79,7 +79,7 @@ QuicStreamRecvShutdown(
 
 Exit:
 
-    EventWriteQuicStreamRecvState(Stream, QuicStreamRecvGetState(Stream));
+    QuicTraceEvent(StreamRecvState, Stream, QuicStreamRecvGetState(Stream));
 
     if (Silent) {
         QuicStreamTryCompleteShutdown(Stream);
@@ -102,7 +102,7 @@ QuicStreamRecvQueueFlush(
         !Stream->Flags.ReceiveCallPending &&
         !Stream->Flags.ReceiveFlushQueued) {
 
-        LogVerbose("[strm][%p][%llu] Queuing recv flush", Stream, Stream->ID);
+        QuicTraceLogVerbose("[strm][%p][%llu] Queuing recv flush", Stream, Stream->ID);
 
         QUIC_OPERATION* Oper;
         if ((Oper = QuicOperationAlloc(Stream->Connection->Worker, QUIC_OPER_TYPE_FLUSH_STREAM_RECV)) != NULL) {
@@ -111,7 +111,7 @@ QuicStreamRecvQueueFlush(
             QuicConnQueueOper(Stream->Connection, Oper);
             Stream->Flags.ReceiveFlushQueued = TRUE;
         } else {
-            EventWriteQuicAllocFailure("Flush Stream Recv operation", 0);
+            QuicTraceEvent(AllocFailure, "Flush Stream Recv operation", 0);
         }
     }
 }
@@ -143,7 +143,7 @@ QuicStreamProcessResetFrame(
             // The peer indicated a final offset less than what they have
             // already sent to us. Kill the connection.
             //
-            LogWarning("[strm][%p][%llu] Tried to reset at earlier final size!", Stream, Stream->ID);
+            QuicTraceLogWarning("[strm][%p][%llu] Tried to reset at earlier final size!", Stream, Stream->ID);
             QuicConnTransportError(Stream->Connection, QUIC_ERROR_FINAL_SIZE_ERROR);
             return;
 
@@ -162,21 +162,21 @@ QuicStreamProcessResetFrame(
                 // The peer indicated a final offset more than allowed. Kill the
                 // connection.
                 //
-                LogWarning("[strm][%p][%llu] Tried to reset with too big final size!", Stream, Stream->ID);
+                QuicTraceLogWarning("[strm][%p][%llu] Tried to reset with too big final size!", Stream, Stream->ID);
                 QuicConnTransportError(Stream->Connection, QUIC_ERROR_FINAL_SIZE_ERROR);
                 return;
             }
         }
 
-        EventWriteQuicStreamRecvState(Stream, QuicStreamRecvGetState(Stream));
+        QuicTraceEvent(StreamRecvState, Stream, QuicStreamRecvGetState(Stream));
 
         if (!Stream->Flags.SentStopSending) {
-            LogInfo("[strm][%p][%llu] Closed remotely (reset).", Stream, Stream->ID);
+            QuicTraceLogInfo("[strm][%p][%llu] Closed remotely (reset).", Stream, Stream->ID);
             
             QUIC_STREAM_EVENT Event;
             Event.Type = QUIC_STREAM_EVENT_PEER_SEND_ABORTED;
             Event.PEER_SEND_ABORTED.ErrorCode = ErrorCode;
-            LogVerbose("[strm][%p][%llu] Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
+            QuicTraceLogVerbose("[strm][%p][%llu] Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
                 Stream, Stream->ID, ErrorCode);
             (void)QuicStreamIndicateEvent(Stream, &Event);
         }
@@ -208,13 +208,13 @@ QuicStreamProcessStopSendingFrame(
         // completely closed gracefully (i.e. our close has been acknowledged)
         // or if we have already been reset (abortive closure).
         //
-        LogInfo("[strm][%p][%llu] Closed locally (stop sending).", Stream, Stream->ID);
+        QuicTraceLogInfo("[strm][%p][%llu] Closed locally (stop sending).", Stream, Stream->ID);
         Stream->Flags.ReceivedStopSending = TRUE;
 
         QUIC_STREAM_EVENT Event;
         Event.Type = QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED;
         Event.PEER_RECEIVE_ABORTED.ErrorCode = ErrorCode;
-        LogVerbose("[strm][%p][%llu] Indicating QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED (0x%llX)",
+        QuicTraceLogVerbose("[strm][%p][%llu] Indicating QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED (0x%llX)",
             Stream, Stream->ID, ErrorCode);
         (void)QuicStreamIndicateEvent(Stream, &Event);
 
@@ -242,7 +242,7 @@ QuicStreamProcessStreamFrame(
     uint64_t EndOffset = Frame->Offset + Frame->Length;
 
     if (Stream->Flags.RemoteNotAllowed) {
-        EventWriteQuicStreamError(Stream, "Receive on unidirectional stream");
+        QuicTraceEvent(StreamError, Stream, "Receive on unidirectional stream");
         Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
     }
@@ -254,7 +254,7 @@ QuicStreamProcessStreamFrame(
         // Ignore the data if we are already closed remotely. Likely means we received
         // a copy of already processed data that was resent.
         //
-        EventWriteQuicStreamError(Stream, "Receive after close");
+        QuicTraceEvent(StreamError, Stream, "Receive after close");
         Status = QUIC_STATUS_SUCCESS;
         goto Error;
     }
@@ -326,7 +326,7 @@ QuicStreamProcessStreamFrame(
         QUIC_DBG_ASSERT(Stream->Connection->Send.OrderedStreamBytesReceived >= WriteLength);
 
         if (QuicRecvBufferGetTotalLength(&Stream->RecvBuffer) == Stream->MaxAllowedRecvOffset) {
-            LogVerbose("[strm][%p][%llu] Flow control window exhausted!", Stream, Stream->ID);
+            QuicTraceLogVerbose("[strm][%p][%llu] Flow control window exhausted!", Stream, Stream->ID);
         }
 
         if (EncryptedWith0Rtt) {
@@ -357,16 +357,16 @@ QuicStreamProcessStreamFrame(
         QuicStreamRecvQueueFlush(Stream);
     }
 
-    LogVerbose("[strm][%p][%llu] Received %hu bytes, offset=%llu Ready=%hu",
+    QuicTraceLogVerbose("[strm][%p][%llu] Received %hu bytes, offset=%llu Ready=%hu",
         Stream, Stream->ID, (uint16_t)Frame->Length, Frame->Offset, ReadyToDeliver);
 
 Error:
 
     if (Status == QUIC_STATUS_INVALID_PARAMETER) {
-        LogWarning("[strm][%p][%llu] Tried to write beyond end of buffer!", Stream, Stream->ID);
+        QuicTraceLogWarning("[strm][%p][%llu] Tried to write beyond end of buffer!", Stream, Stream->ID);
         QuicConnTransportError(Stream->Connection, QUIC_ERROR_FINAL_SIZE_ERROR);
     } else if (Status == QUIC_STATUS_BUFFER_TOO_SMALL) {
-        LogWarning("[strm][%p][%llu] Tried to write beyond flow control limit!", Stream, Stream->ID);
+        QuicTraceLogWarning("[strm][%p][%llu] Tried to write beyond flow control limit!", Stream, Stream->ID);
         QuicConnTransportError(Stream->Connection, QUIC_ERROR_FLOW_CONTROL_ERROR);
     }
 
@@ -468,7 +468,7 @@ QuicStreamRecv(
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
-        LogVerbose("[strm][%p][%llu] Remote stream FC blocked (%llu).", Stream, Stream->ID, Frame.StreamDataLimit);
+        QuicTraceLogVerbose("[strm][%p][%llu] Remote stream FC blocked (%llu).", Stream, Stream->ID, Frame.StreamDataLimit);
 
         QuicSendSetStreamSendFlag(
             &Stream->Connection->Send,
@@ -551,7 +551,7 @@ QuicStreamOnBytesDelivered(
                 // low.
                 //
 
-                LogVerbose("[strm][%p][%llu] Increasing max RX buffer size to %u (SRtt=%u; TimeNow=%u; LastUpdate=%u)",
+                QuicTraceLogVerbose("[strm][%p][%llu] Increasing max RX buffer size to %u (SRtt=%u; TimeNow=%u; LastUpdate=%u)",
                     Stream,
                     Stream->ID,
                     Stream->RecvBuffer.VirtualBufferLength * 2,
@@ -581,7 +581,7 @@ QuicStreamOnBytesDelivered(
     // Advance MaxAllowedRecvOffset.
     //
 
-    LogVerbose("[strm][%p][%llu] Updating flow control window",
+    QuicTraceLogVerbose("[strm][%p][%llu] Updating flow control window",
         Stream, Stream->ID);
 
     QUIC_DBG_ASSERT(
@@ -608,7 +608,7 @@ QuicStreamRecvFlush(
 {
     Stream->Flags.ReceiveFlushQueued = FALSE;
     if (!Stream->Flags.ReceiveEnabled) {
-        LogVerbose("[strm][%p][%llu] Ignoring recv flush (recv disabled)", Stream, Stream->ID);
+        QuicTraceLogVerbose("[strm][%p][%llu] Ignoring recv flush (recv disabled)", Stream, Stream->ID);
         return;
     }
 
@@ -663,7 +663,7 @@ QuicStreamRecvFlush(
                 Event.RECEIVE.Flags |= QUIC_RECEIVE_FLAG_FIN;
             }
 
-            LogVerbose("[strm][%p][%llu] Indicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]",
+            QuicTraceLogVerbose("[strm][%p][%llu] Indicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]",
                 Stream, Stream->ID, Event.RECEIVE.TotalBufferLength, Event.RECEIVE.BufferCount, Event.RECEIVE.Flags);
 
             QUIC_STATUS Status = QuicStreamIndicateEvent(Stream, &Event);
@@ -746,7 +746,7 @@ QuicStreamReceiveComplete(
         "App overflowed read buffer!");
 
     Stream->Flags.ReceiveCallPending = FALSE;
-    LogVerbose("[strm][%p][%llu] Recv complete (%llu bytes).", Stream, Stream->ID, BufferLength);
+    QuicTraceLogVerbose("[strm][%p][%llu] Recv complete (%llu bytes).", Stream, Stream->ID, BufferLength);
 
     //
     // Reclaim any buffer space comsumed by the app.
@@ -776,7 +776,7 @@ QuicStreamReceiveComplete(
         // The application layer can't drain any more right now. Pause the
         // receive callbacks until the application re-enables them.
         //
-        EventWriteQuicStreamRecvState(Stream, QuicStreamRecvGetState(Stream));
+        QuicTraceEvent(StreamRecvState, Stream, QuicStreamRecvGetState(Stream));
         return FALSE;
     }
 
@@ -797,11 +797,11 @@ QuicStreamReceiveComplete(
         Stream->Flags.RemoteCloseFin = TRUE;
         Stream->Flags.RemoteCloseAcked = TRUE;
 
-        EventWriteQuicStreamRecvState(Stream, QuicStreamRecvGetState(Stream));
+        QuicTraceEvent(StreamRecvState, Stream, QuicStreamRecvGetState(Stream));
 
         QUIC_STREAM_EVENT Event;
         Event.Type = QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN;
-        LogVerbose("[strm][%p][%llu] Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN",
+        QuicTraceLogVerbose("[strm][%p][%llu] Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN",
             Stream, Stream->ID);
         (void)QuicStreamIndicateEvent(Stream, &Event);
 
@@ -845,7 +845,7 @@ QuicStreamRecvSetEnabledState(
             // The application just resumed receive callbacks. Queue a
             // flush receive operation to start draining the receive buffer.
             //
-            EventWriteQuicStreamRecvState(Stream, QuicStreamRecvGetState(Stream));
+            QuicTraceEvent(StreamRecvState, Stream, QuicStreamRecvGetState(Stream));
             QuicStreamRecvQueueFlush(Stream);
         }
     }

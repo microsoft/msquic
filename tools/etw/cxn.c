@@ -277,18 +277,18 @@ const char* CxnShortState(_In_ CXN* Cxn)
 }
 
 /*
-    ID     State        Age     Active      Queue       Idle         TX         RX
-                       (us)       (us)       (us)       (us)        (B)        (B)
-   497   UNKNOWN    6140863       1830     538662    5600265          0          0
-   561   UNKNOWN    6264427       1825     537906    5724584          0          0
-   760   UNKNOWN    6183284       1767     537374    5613273          0          0
-   525   UNKNOWN    6186948       1757     535821    5618185          0          0
-   499   UNKNOWN    6250781       1855     535766    5713048          0          0
-  1008   UNKNOWN    6180047       1680     534083    5622105          0          0
-   498   UNKNOWN    6250791       1681     533620    5683344          0          0
-  1152   UNKNOWN    6155561       1740     533519    5620182          0          0
-   304   UNKNOWN    6197423       1643     532606    5632627          0          0
-  1574   UNKNOWN    6140501       1670     531907    5606820          0          0
+    ID     State        Age     Active      Queue       Idle         TX         RX                  Local                 Remote             Source        Destination
+                       (us)       (us)       (us)       (us)        (B)        (B)                     IP                     IP                CID                CID
+     1   CONNECT      10262       3449        253       6540       3417       2977      10.228.101.54:443   10.228.101.148:50276   980539EF482B15CE   0081ACA53BAA3777
+     2   CONNECT       4871       2777        116       1962       2031       2977      10.228.101.54:443   10.228.101.148:50277   E5865654E08FD767   0042CA1037EA0C0B
+     3   CONNECT       5241       2669        128       2427       2031       2977      10.228.101.54:443   10.228.101.148:50278   1AE746C27E748386   0043E62A8B8EBB8C
+     4   CONNECT       5453       2831        225       2378       2031       2977      10.228.101.54:443   10.228.101.148:50279   426834ED9F012754   00C437DB702918BE
+     5   CONNECT       5213       2693        120       2383       2031       2977      10.228.101.54:443   10.228.101.148:50280   4BA9AD36454BE269   0085C40BDABF7C09
+     6   CONNECT       4646       2757        142       1728       2031       2977      10.228.101.54:443   10.228.101.148:50281   D74ACAB3ADA763FE   0006FB7E2933A165
+     7   CONNECT       5563       2744        147       2654       2031       2977      10.228.101.54:443   10.228.101.148:50282   220B2401DA530AFC   0047429971FD0421
+     8   CONNECT       5626       2764        158       2689       2031       2977      10.228.101.54:443   10.228.101.148:50283   DDAC7AB527FA87E8   00C8B6293C55ED5F
+     9   CONNECT       5444       2730        162       2536       2031       2977      10.228.101.54:443   10.228.101.148:50284   75CDBEF0873D20C9   0049D58DD89A0F4F
+    10   CONNECT       5316       2527        138       2634       2031       2977      10.228.101.54:443   10.228.101.148:50285   A24ED01EB3B5B306   008AA39BA9D4D97E
 */
 
 void OutputCxnOneLineSummary(_In_ CXN* Cxn)
@@ -297,23 +297,40 @@ void OutputCxnOneLineSummary(_In_ CXN* Cxn)
         return;
     }
 
-    const char* FormatStr = "%6lu %s %10llu %10llu %10llu %10llu %10llu %10llu\n";
-    const char* FormatCsvStr = "%lu,%s,%llu,%llu,%llu,%llu,%llu,%llu\n";
+    const char* FormatStr = "%6lu %s %10llu %10llu %10llu %10llu %10llu %10llu %22s %22s %18s %18s\n";
+    const char* FormatCsvStr = "%lu,%s,%llu,%llu,%llu,%llu,%llu,%llu,%s,%s,%s,%s\n";
 
     if (!Cmd.FormatCSV && ((Trace.OutputLineCount-1) % 10) == 0) {
         if (Trace.OutputLineCount != 1) printf("\n");
-        printf("    ID     State        Age     Active      Queue       Idle         TX         RX\n");
-        printf("                       (us)       (us)       (us)       (us)        (B)        (B)\n");
+        printf("    ID     State        Age     Active      Queue       Idle         TX         RX                  Local                 Remote             Source        Destination\n");
+        printf("                       (us)       (us)       (us)       (us)        (B)        (B)                     IP                     IP                CID                CID\n");
     }
 
     ULONG64 Age = NS100_TO_US(Cxn->FinalTimestamp - Cxn->InitialTimestamp);
+
+    char LocalAddrStr[INET6_ADDRSTRLEN];
+    AddrToString(&Cxn->LocalAddress, LocalAddrStr);
+    char RemoteAddrStr[INET6_ADDRSTRLEN];
+    AddrToString(&Cxn->RemoteAddress, RemoteAddrStr);
+
+    char SrcCidStr[QUIC_CID_MAX_STR_LEN] = "UNKNOWN";
+    if (Cxn->SrcCids != NULL) {
+        CidToString(Cxn->SrcCids->Length, Cxn->SrcCids->Buffer, SrcCidStr);
+    }
+    char DestCidStr[QUIC_CID_MAX_STR_LEN] = "UNKNOWN";
+    if (Cxn->DestCids != NULL) {
+        CidToString(Cxn->DestCids->Length, Cxn->DestCids->Buffer, DestCidStr);
+    }
+
     printf(
         Cmd.FormatCSV ? FormatCsvStr : FormatStr,
         Cxn->Id, CxnShortState(Cxn), Age,
         Cxn->SchedulingStats[QUIC_SCHEDULE_PROCESSING].TotalCpuTime,
         Cxn->SchedulingStats[QUIC_SCHEDULE_QUEUED].TotalCpuTime,
         Cxn->SchedulingStats[QUIC_SCHEDULE_IDLE].TotalCpuTime,
-        Cxn->BytesSent, Cxn->BytesReceived);
+        Cxn->BytesSent, Cxn->BytesReceived,
+        LocalAddrStr, RemoteAddrStr,
+        SrcCidStr, DestCidStr);
 }
 
 /*
@@ -494,7 +511,7 @@ void OutputCxnSummary(_In_ CXN* Cxn)
     }
 
     printf("  DestCids       ");
-    if (Cxn->SrcCids == NULL) {
+    if (Cxn->DestCids == NULL) {
         printf("UNKNOWN\n");
     } else {
         CID* Cid = Cxn->DestCids;
@@ -522,7 +539,7 @@ void OutputCxnSummary(_In_ CXN* Cxn)
     } else {
         STREAM* Stream = Cxn->Streams;
         while (Stream) {
-            printf("%llX (#%llu) (id %u)\n",
+            printf("%llX (#%llu) (id %u)\n                 ",
                 Stream->Ptr,
                 Stream->StreamId,
                 Stream->Id);

@@ -88,7 +88,7 @@ MsQuicLibraryReadSettings(
         QuicSettingsLoad(&MsQuicLib.Settings, MsQuicLib.Storage);
     }
 
-    LogInfo("[ lib] Settings %p Updated", &MsQuicLib.Settings);
+    QuicTraceLogInfo("[ lib] Settings %p Updated", &MsQuicLib.Settings);
     QuicSettingsDump(&MsQuicLib.Settings);
 
     BOOLEAN UpdateRegistrations = (Context != NULL);
@@ -132,7 +132,7 @@ MsQuicLibraryInitialize(
             (void*)TRUE, // Non-null indicates registrations should be updated
             &MsQuicLib.Storage);
     if (QUIC_FAILED(Status)) {
-        LogWarning("[ lib] Failed to open global settings, 0x%x", Status);
+        QuicTraceLogWarning("[ lib] Failed to open global settings, 0x%x", Status);
         Status = QUIC_STATUS_SUCCESS; // Non-fatal, as the process may not have access
     }
 
@@ -146,7 +146,7 @@ MsQuicLibraryInitialize(
             RawKey,
             &MsQuicLib.StatelessRetryKey);
     if (QUIC_FAILED(Status)) {
-        EventWriteQuicLibraryErrorStatus(Status, "Create stateless retry key");
+        QuicTraceEvent(LibraryErrorStatus, Status, "Create stateless retry key");
         goto Error;
     }
 
@@ -163,7 +163,7 @@ MsQuicLibraryInitialize(
     MsQuicLib.PerProc =
         QUIC_ALLOC_NONPAGED(MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
     if (MsQuicLib.PerProc == NULL) {
-        EventWriteQuicAllocFailure("connection pools",
+        QuicTraceEvent(AllocFailure, "connection pools",
             MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -183,11 +183,11 @@ MsQuicLibraryInitialize(
             QuicBindingUnreachable,
             &MsQuicLib.Datapath);
     if (QUIC_FAILED(Status)) {
-        EventWriteQuicLibraryErrorStatus(Status, "QuicDataPathInitialize");
+        QuicTraceEvent(LibraryErrorStatus, Status, "QuicDataPathInitialize");
         goto Error;
     }
 
-    EventWriteQuicLibraryInitialized(
+    QuicTraceEvent(LibraryInitialized,
         MsQuicLib.PartitionCount,
         QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 
@@ -196,9 +196,9 @@ MsQuicLibraryInitialize(
     MsQuicLib.IsVerifying = QuicVerifierEnabled(Flags);
     if (MsQuicLib.IsVerifying) {
 #ifdef QuicVerifierEnabledByAddr
-        LogInfo("[ lib] Verifing enabled, per-registration!");
+        QuicTraceLogInfo("[ lib] Verifing enabled, per-registration!");
 #else
-        LogInfo("[ lib] Verifing enabled for all!");
+        QuicTraceLogInfo("[ lib] Verifing enabled for all!");
 #endif
     }
 #endif
@@ -282,7 +282,7 @@ MsQuicLibraryUninitialize(
     QuicDataPathUninitialize(MsQuicLib.Datapath);
     MsQuicLib.Datapath = NULL;
 
-    EventWriteQuicLibraryUninitialized();
+    QuicTraceEvent(LibraryUninitialized);
 
     QuicPlatformUninitialize();
 }
@@ -318,7 +318,7 @@ MsQuicAddRef(
         }
     }
 
-    EventWriteQuicLibraryAddRef();
+    QuicTraceEvent(LibraryAddRef);
 
 Error:
 
@@ -341,7 +341,7 @@ MsQuicRelease(
     //
 
     QUIC_FRE_ASSERT(MsQuicLib.RefCount > 0);
-    EventWriteQuicLibraryRelease();
+    QuicTraceEvent(LibraryRelease);
 
     if (--MsQuicLib.RefCount == 0) {
         MsQuicLibraryUninitialize();
@@ -698,12 +698,12 @@ MsQuicOpen(
     QUIC_STATUS Status;
 
     if (QuicApi == NULL) {
-        LogVerbose("[ api] MsQuicOpen, NULL");
+        QuicTraceLogVerbose("[ api] MsQuicOpen, NULL");
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
-    LogVerbose("[ api] MsQuicOpen, %u", ApiVersion);
+    QuicTraceLogVerbose("[ api] MsQuicOpen, %u", ApiVersion);
 
     if ((ApiVersion == 0 || ApiVersion > QUIC_API_VERSION_1) &&
         ApiVersion != QUIC_API_VERSION_PRIVATE) {
@@ -826,7 +826,7 @@ Error:
 
 Exit:
 
-    LogVerbose("[ api] MsQuicOpen, status=0x%x", Status);
+    QuicTraceLogVerbose("[ api] MsQuicOpen, status=0x%x", Status);
 
     return Status;
 }
@@ -840,7 +840,7 @@ MsQuicClose(
     )
 {
     if (QuicApi != NULL) {
-        LogVerbose("[ api] MsQuicClose");
+        QuicTraceLogVerbose("[ api] MsQuicClose");
         QUIC_FREE(QuicApi);
         MsQuicRelease();
     }
@@ -1090,7 +1090,7 @@ QuicLibraryOnListenerRegistered(
         //
         // Make sure the handshake worker threads are initialized.
         //
-        EventWriteQuicLibraryWorkerPoolInit();
+        QuicTraceEvent(LibraryWorkerPoolInit);
         if (QUIC_FAILED(
             QuicWorkerPoolInitialize(
                 NULL,
@@ -1131,7 +1131,7 @@ QuicTraceRundown(
     QuicLockAcquire(&MsQuicLib.Lock);
 
     if (MsQuicLib.RefCount > 0) {
-        EventWriteQuicLibraryRundown(
+        QuicTraceEvent(LibraryRundown,
             MsQuicLib.PartitionCount,
             QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 

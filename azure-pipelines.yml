@@ -9,41 +9,49 @@ strategy:
     linux-stub:
       platform: 'Linux-Stub'
       imageName: 'ubuntu-latest'
+      prepareCmd: 'bash ./.azure/prepare_linux.sh'
       cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=stub -DQUIC_ENABLE_LOGGING=off'
       testCmd: 'bash ./.azure/test_linux.sh ''*'''
     linux-stub-sanitize:
       platform: 'Linux-Stub-Sanitize'
       imageName: 'ubuntu-latest'
+      prepareCmd: 'bash ./.azure/prepare_linux.sh'
       cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=stub -DQUIC_SANITIZE_ADDRESS=on'
       testCmd: 'bash ./.azure/test_linux.sh AppData/WithSendArgs2.SendLarge/0'
     linux-stub-spin:
       platform: 'Linux-Stub-Spin'
       imageName: 'ubuntu-latest'
+      prepareCmd: 'bash ./.azure/prepare_linux.sh'
       cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=stub -DQUIC_ENABLE_LOGGING=off -DQUIC_SANITIZE_ADDRESS=on'
       testCmd: 'bash ./.azure/spin_linux.sh'
     linux-openssl:
       platform: 'Linux-OpenSSL'
       imageName: 'ubuntu-latest'
+      prepareCmd: 'bash ./.azure/prepare_linux.sh'
       cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=openssl -DQUIC_ENABLE_LOGGING=off'
       testCmd: 'bash ./.azure/test_linux.sh ''*'''
     windows-x64-stub:
       platform: 'Windows-x64-Stub'
       imageName: 'windows-latest'
+      prepareCmd: '.\.azure\prepare_windows.cmd'
       cmakeArgs: '-g ''Visual Studio 16 2019'' -A x64 -DQUIC_TLS=stub'
       testCmd: '.\.azure\test_windows.cmd -*Unreachable/0'
     windows-x64-stub-spin:
       platform: 'Windows-x64-Stub-Spin'
       imageName: 'windows-latest'
+      prepareCmd: '.\.azure\prepare_windows.cmd'
       cmakeArgs: '-g ''Visual Studio 16 2019'' -A x64 -DQUIC_TLS=stub'
       testCmd: '.\.azure\spin_windows.cmd'
     windows-x64-mitls:
       platform: 'Windows-x64-miTLS'
       imageName: 'windows-latest'
+      prepareCmd: '.\.azure\prepare_windows.cmd'
       cmakeArgs: '-g ''Visual Studio 16 2019'' -A x64 -DQUIC_TLS=mitls'
       testCmd: '.\.azure\test_windows.cmd -*Unreachable/0'
     windows-x64-schannel:
       platform: 'Windows-x64-Schannel'
       imageName: 'windows-latest'
+      prepareCmd: '.\.azure\prepare_windows.cmd'
       cmakeArgs: '-g ''Visual Studio 16 2019'' -A x64 -DQUIC_TLS=schannel'
       testCmd: '.\.azure\test_windows.cmd ParameterValidation.*'
 
@@ -54,6 +62,11 @@ steps:
 - checkout: self
   submodules: recursive
   persistCredentials: true
+
+- task: CmdLine@2
+  displayName: 'Prepare Image'
+  inputs:
+    script: '$(prepareCmd)'
 
 - task: CMake@1
   displayName: 'CMake Generator'

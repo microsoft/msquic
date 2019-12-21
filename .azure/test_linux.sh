@@ -1,12 +1,11 @@
 #!/bin/bash
 
 # Setup logs.
-echo "Making sure syslog is running..."
-sudo service rsyslog start
 echo "Clearing syslog file..."
 sudo truncate -s 0 /var/log/syslog
 
 # Enable core dumps.
+echo "Enabling core dumps..."
 ulimit -c unlimited
 mkdir artifacts/dumps
 cd artifacts/dumps
@@ -15,6 +14,10 @@ cd artifacts/dumps
 ../bin/msquictest \
     --gtest_filter=$1 \
     --gtest_output=xml:../logs/linux-test-results.xml
+
+# Print any core files that might be generated.
+echo "Available core dumps:"
+ls
 
 # Copy logs to log folder (with correct permsissions).
 echo "Copying logs..."

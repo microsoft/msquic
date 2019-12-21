@@ -40,14 +40,14 @@ QuicRegistrationAlloc(
 
     size_t AppNameLength = AppName == NULL ? 0 : strlen(AppName);
 
-    EventWriteQuicApiEnter(
+    QuicTraceEvent(ApiEnter,
         QUIC_TRACE_API_REGISTRATION_OPEN,
         NULL);
 
     QUIC_REGISTRATION* Registration =
         QUIC_ALLOC_NONPAGED(sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
     if (Registration == NULL) {
-        EventWriteQuicAllocFailure("registration", sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
+        QuicTraceEvent(AllocFailure, "registration", sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -98,13 +98,13 @@ QuicRegistrationAlloc(
         goto Error;
     }
 
-    EventWriteQuicRegistrationCreated(Registration, Registration->AppName);
+    QuicTraceEvent(RegistrationCreated, Registration, Registration->AppName);
 
 #ifdef QuicVerifierEnabledByAddr
     if (MsQuicLib.IsVerifying &&
         QuicVerifierEnabledByAddr(NewRegistration)) {
         Registration->IsVerifying = TRUE;
-        LogInfo("[ reg][%p] Verifing enabled!", Registration);
+        QuicTraceLogInfo("[ reg][%p] Verifing enabled!", Registration);
     } else {
         Registration->IsVerifying = FALSE;
     }
@@ -125,7 +125,7 @@ Error:
         QUIC_FREE(Registration);
     }
 
-    EventWriteQuicApiExitStatus(Status);
+    QuicTraceEvent(ApiExitStatus, Status);
 
     return Status;
 }
@@ -193,14 +193,14 @@ MsQuicRegistrationClose(
         return;
     }
 
-    EventWriteQuicApiEnter(
+    QuicTraceEvent(ApiEnter,
         QUIC_TRACE_API_REGISTRATION_CLOSE,
         Handle);
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
 
-    EventWriteQuicRegistrationCleanup(Registration);
+    QuicTraceEvent(RegistrationCleanup, Registration);
 
     //
     // If you hit this assert, you are trying to clean up a registration without
@@ -224,7 +224,7 @@ MsQuicRegistrationClose(
 
     QUIC_FREE(Registration);
 
-    EventWriteQuicApiExit();
+    QuicTraceEvent(ApiExit);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -233,7 +233,7 @@ QuicRegistrationTraceRundown(
     _In_ QUIC_REGISTRATION* Registration
     )
 {
-    EventWriteQuicRegistrationRundown(Registration, Registration->AppName);
+    QuicTraceEvent(RegistrationRundown, Registration, Registration->AppName);
 
     QuicLockAcquire(&Registration->Lock);
 
@@ -279,7 +279,7 @@ MsQuicSecConfigCreate(
 {
     QUIC_STATUS Status;
 
-    EventWriteQuicApiEnter(
+    QuicTraceEvent(ApiEnter,
         QUIC_TRACE_API_SEC_CONFIG_CREATE,
         Handle);
 
@@ -301,7 +301,7 @@ MsQuicSecConfigCreate(
 
 Exit:
 
-    EventWriteQuicApiExitStatus(Status);
+    QuicTraceEvent(ApiExitStatus, Status);
 
     return Status;
 }
@@ -313,7 +313,7 @@ MsQuicSecConfigDelete(
     _In_ _Pre_defensive_ QUIC_SEC_CONFIG* SecurityConfig
     )
 {
-    EventWriteQuicApiEnter(
+    QuicTraceEvent(ApiEnter,
         QUIC_TRACE_API_SEC_CONFIG_DELETE,
         SecurityConfig);
 
@@ -321,7 +321,7 @@ MsQuicSecConfigDelete(
         QuicTlsSecConfigRelease(SecurityConfig);
     }
 
-    EventWriteQuicApiExit();
+    QuicTraceEvent(ApiExit);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -32,7 +32,6 @@ set(SOURCES
     stream_send.c
     stream_set.c
     timer_wheel.c
-    utils.c
     worker.c
 )
 
