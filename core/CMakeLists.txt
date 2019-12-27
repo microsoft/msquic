@@ -1,6 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+# Include Files that need CLOG processing
+include("../CLog.make")
+include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY})
+
 set(SOURCES
     ack_tracker.c
     api.c
@@ -39,10 +43,26 @@ if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(SOURCES ${SOURCES} inline.c)
 endif()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
+#
+# Setup CLOG by calling a helper function which sets up dependencies.  Then add the .c file
+#     ...it'd be preferred to have the helper function set this requirement
+#
+CLOG_ADD_SOURCEFILE(SOURCES ${SOURCES})
+	
+#
+# quic_trace_lttng.h is a helper and part of QUIC convention;  explicitly add it
+#
+#set(SOURCES ${SOURCES} ${CMAKE_CLOG_OUTPUT_DIRECTORY}/quic_trace_lttng.h.clog.lttng.h.c)
+
+
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS} -DQUIC_LOGS_WPP")
 
 add_library(core STATIC ${SOURCES})
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_dependencies(core MsQuicEtw)
 endif()
+
+add_dependencies(core inc)
+

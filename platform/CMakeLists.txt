@@ -1,6 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+# Include Files that need CLOG processing
+include("../CLog.make")
+include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY})
+
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(SOURCES
         datapath_winuser.c
@@ -35,6 +39,13 @@ else()
 endif()
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
+
+#
+# Setup CLOG by calling a helper function which sets up dependencies.  Then add the .c file
+#     ...it'd be preferred to have the helper function set this requirement
+#
+CLOG_ADD_SOURCEFILE(SOURCES ${SOURCES})
+
 
 add_library(platform STATIC ${SOURCES})
 
