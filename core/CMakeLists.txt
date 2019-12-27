@@ -52,11 +52,11 @@ CLOG_ADD_SOURCEFILE(SOURCES ${SOURCES})
 #
 # quic_trace_lttng.h is a helper and part of QUIC convention;  explicitly add it
 #
-#set(SOURCES ${SOURCES} ${CMAKE_CLOG_OUTPUT_DIRECTORY}/quic_trace_lttng.h.clog.lttng.h.c)
+set(SOURCES ${SOURCES} ${CMAKE_CLOG_OUTPUT_DIRECTORY}/quic_trace_lttng.h.clog.lttng.h.c)
 
 
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS} -DQUIC_LOGS_WPP")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS} ")
 
 add_library(core STATIC ${SOURCES})
 
