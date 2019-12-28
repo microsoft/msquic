@@ -443,6 +443,26 @@ QuicEtwCallback(
 
 #endif // QUIC_EVENTS_LTTNG
 
+
+
+#ifdef QUIC_LOGS_LTTNG
+#define QuicTraceLogErrorEnabled()   FALSE
+#define QuicTraceLogWarningEnabled() FALSE
+#define QuicTraceLogInfoEnabled()    FALSE
+#define QuicTraceLogVerboseEnabled() FALSE
+
+#define QuicTraceLogWarning(...)
+#define QuicTraceLogInfo(...)
+#define QuicTraceLogVerbose(...)
+
+#define QuicTraceLogConnError(...)
+#define QuicTraceLogConnWarning(...)
+#define QuicTraceLogConnInfo(...)
+#define QuicTraceLogConnVerbose(...)
+#endif
+
+
+
 #ifdef QUIC_LOGS_STUB
 
 #define QuicTraceLogErrorEnabled()   FALSE
@@ -462,7 +482,7 @@ QuicEtwCallback(
 
 #endif // QUIC_LOGS_STUB
 
-#ifdef QUIC_LOGS_WPP
+#if defined(QUIC_LOGS_WPP) && !defined(QUIC_LOGS_LTTNG)
 
 #ifdef __cplusplus
 extern "C" {
@@ -608,11 +628,5 @@ log_hexbuf(const void* Buffer, UINT32 Length) {
 #define QuicTraceLogConnVerbose(Name, Ptr, Fmt, ...) QuicSysLogWrite(QUIC_TRACE_LEVEL_VERBOSE, "[conn][%p] " Fmt, Ptr, ##__VA_ARGS__)
 
 #endif // QUIC_LOGS_SYSLOG
-
-#ifdef QUIC_LOGS_LTTNG
-
-#error "LTTng not supported yet!"
-
-#endif // QUIC_LOGS_LTTNG
 
 #endif // _TRACE_H

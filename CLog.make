@@ -17,7 +17,7 @@ function(CLOG_ADD_SOURCEFILE)
 
         add_custom_command(
             OUTPUT ${ARG_CLOG_FILE} ${ARG_CLOG_C_FILE}
-            COMMENT "ULOG: ${CMAKE_SOURCE_DIR}/submodules/clog/bld/clog -t ${CMAKE_SOURCE_DIR}/submodules/clog/clog.config -s /mnt/c/temp/clog.sidecar -i ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${ARG_CLOG_FILE}"
+            COMMENT "ULOG: ${CMAKE_SOURCE_DIR}/submodules/clog/bld/clog -c ${CMAKE_SOURCE_DIR}/manifest/clog.config -s /mnt/c/temp/clog.sidecar -i ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${ARG_CLOG_FILE}"
             COMMAND ${CMAKE_SOURCE_DIR}/submodules/clog/bld/clog -c ${CMAKE_SOURCE_DIR}/manifest/clog.config -s /mnt/c/temp/clog.sidecar -i ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${ARG_CLOG_FILE}
         )
               
