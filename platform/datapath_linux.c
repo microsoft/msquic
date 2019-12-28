@@ -1141,7 +1141,7 @@ QuicSocketContextRecvComplete(
             ntohs(LocalAddr->Ipv4.sin_port),
             SocketContext->Binding);
     } else {
-        QuicTraceLogVerbose("[sock][%p] Received [%zd] (buflen=[%hs]) bytes Src=[%s:%hs] Dst=[%s:%hs%%%" PRIu32 "], bind=[%p].",
+        QuicTraceLogVerbose("[sock][%p] Received [%zd] (buflen=[%hs]) bytes Src=[%s:%hs] Dst=[%s:%hs%hd], bind=[%p].",
             SocketContext, BytesTransferred,
             RecvPacket->BufferLength,
             inet_ntop(AF_INET6, &RemoteAddr->Ipv6.sin6_addr, RemoteInet6AddrStr, INET6_ADDRSTRLEN),
@@ -1979,7 +1979,7 @@ QuicDataPathBindingSendTo(
 
     for (size_t i = 0; i < SendContext->BufferCount; ++i) {
         if (RemoteAddress->si_family == AF_INET) {
-            QuicTraceLogVerbose("[sock][%p] SocketFd=[%d], sending %" PRIu32 " bytes Dst=[%s:%hs] (%p)",
+            QuicTraceLogVerbose("[sock][%p] SocketFd=[%d], sending %hd bytes Dst=[%s:%hs] (%p)",
                 SocketContext,
                 SocketContext->SocketFd,
                 SendContext->Buffers[i].Length,
@@ -1987,7 +1987,7 @@ QuicDataPathBindingSendTo(
                 ntohs(RemoteAddress->Ipv4.sin_port),
                 SendContext);
         } else {
-            QuicTraceLogVerbose("[sock][%p] SocketFd=[%d], sending %" PRIu32 " bytes Dst=[%s:%hs] (%p)",
+            QuicTraceLogVerbose("[sock][%p] SocketFd=[%d], sending %hd bytes Dst=[%s:%hs] (%p)",
                 SocketContext,
                 SocketContext->SocketFd,
                 SendContext->Buffers[i].Length,
@@ -2038,7 +2038,7 @@ QuicDataPathBindingSendFromTo(
 
     for (size_t i = 0; i < SendContext->BufferCount; ++i) {
         if (RemoteAddress->si_family == AF_INET) {
-            QuicTraceLogVerbose("[sock][%p] SocketFd=[%d], sending %" PRIu32 " bytes Src=[%s:%hs%%%" PRIu32 "] Dst=[%s:%hs] (%p)",
+            QuicTraceLogVerbose("[sock][%p] SocketFd=[%d], sending %hd bytes Src=[%s:%hs%hd] Dst=[%s:%hs] (%p)",
                 SocketContext,
                 SocketContext->SocketFd,
                 SendContext->Buffers[i].Length,
@@ -2049,7 +2049,7 @@ QuicDataPathBindingSendFromTo(
                 ntohs(RemoteAddress->Ipv4.sin_port),
                 SendContext);
         } else {
-            QuicTraceLogVerbose("[sock][%p] SocketFd=[%d], sending %" PRIu32 " bytes Src=[%s:%hs%%%" PRIu32 "] Dst=[%s:%hs] (%p)",
+            QuicTraceLogVerbose("[sock][%p] SocketFd=[%d], sending %hd bytes Src=[%s:%hs%hd] Dst=[%s:%hs] (%p)",
                 SocketContext,
                 SocketContext->SocketFd,
                 SendContext->Buffers[i].Length,
