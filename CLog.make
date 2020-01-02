@@ -3,6 +3,8 @@ function(CLOG_ADD_SOURCEFILE)
 	list(REMOVE_AT ARGV 0)
 	
 	# message(STATUS "CLOG : ADDING SOURCE FILES TO LIBRARY ${library}")
+	set(CMAKE_CLOG_BINS_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/toosl/bin/clog)
+
 	
     foreach(arg IN LISTS ARGV)
         #message(STATUS "${arg} CLOG FILE: ${CMAKE_CURRENT_SOURCE_DIR}/${arg}")         
@@ -14,11 +16,22 @@ function(CLOG_ADD_SOURCEFILE)
 		set(ARG_CLOG_C_FILE ${CMAKE_CLOG_OUTPUT_DIRECTORY}/${arg}.clog.lttng.h.c)
 
         # message(STATUS "   ${ARG_DEPENDENCY}")
+		
+		
+		add_custom_command(
+			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/clog
+			COMMENT "Building CLOG and its support tooling"
+			OUTPUT ${CMAKE_CLOG_BINS_DIRECTORY}/clog
+			COMMAND dotnet build ./clog.sln/clog.sln -o ${CMAKE_CLOG_BINS_DIRECTORY}
+			COMMAND ls ${CMAKE_CLOG_BINS_DIRECTORY} > /mnt/c/temp/clog.output
+		)
+			
 
         add_custom_command(
             OUTPUT ${ARG_CLOG_FILE} ${ARG_CLOG_C_FILE}
-            COMMENT "ULOG: ${CMAKE_SOURCE_DIR}/submodules/clog/bld/clog -c ${CMAKE_SOURCE_DIR}/manifest/clog.config -s /mnt/c/temp/clog.sidecar -i ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${ARG_CLOG_FILE}"
-            COMMAND ${CMAKE_SOURCE_DIR}/submodules/clog/bld/clog -c ${CMAKE_SOURCE_DIR}/manifest/clog.config -s /mnt/c/temp/clog.sidecar -i ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${ARG_CLOG_FILE}
+			DEPENDS ${CMAKE_CLOG_BINS_DIRECTORY}/clog
+            COMMENT "ULOG: ${CMAKE_CLOG_BINS_DIRECTORY}/clog -c ${CMAKE_SOURCE_DIR}/manifest/clog.config -s /mnt/c/temp/clog.sidecar -i ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${ARG_CLOG_FILE}"
+            COMMAND ${CMAKE_CLOG_BINS_DIRECTORY}/clog -c ${CMAKE_SOURCE_DIR}/manifest/clog.config -s /mnt/c/temp/clog.sidecar -i ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${ARG_CLOG_FILE}
         )
               
         add_custom_target(${ARG_DEPENDENCY}
