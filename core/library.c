@@ -148,7 +148,7 @@ MsQuicLibraryInitialize(
             RawKey,
             &MsQuicLib.StatelessRetryKey);
     if (QUIC_FAILED(Status)) {
-        CLOG_TraceEvent(LibraryErrorStatusABC, "[ lib] ERROR, 0x%x, %s.", Status, "Create stateless retry key");
+        CLOG_TraceEvent(BoogersLibraryErrorStatus_1, "[ lib] ERROR, 0x%x, %s.", Status, "Create stateless retry key");
         goto Error;
     }
 
@@ -165,7 +165,7 @@ MsQuicLibraryInitialize(
     MsQuicLib.PerProc =
         QUIC_ALLOC_NONPAGED(MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
     if (MsQuicLib.PerProc == NULL) {
-        CLOG_TraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "connection pools",
+        CLOG_TraceEvent(AllocFailure_2, "Allocation of '%s' failed. (%llu bytes)", "connection pools",
             MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -189,7 +189,7 @@ MsQuicLibraryInitialize(
         goto Error;
     }
 
-    CLOG_TraceEvent(LibraryInitialized, "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
+    CLOG_TraceEvent(LibraryInitialized_3, "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
         MsQuicLib.PartitionCount,
         QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 
