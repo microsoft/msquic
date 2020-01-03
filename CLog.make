@@ -15,14 +15,13 @@ function(CLOG_ADD_SOURCEFILE)
 		add_custom_command(
 			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/clog
 			COMMENT "Building CLOG and its support tooling"
-			OUTPUT ${CMAKE_CLOG_BINS_DIRECTORY}/clog
+			OUTPUT ${CMAKE_CLOG_BINS_DIRECTORY}/clog.dll
 			COMMAND dotnet build ./clog.sln/clog.sln -o ${CMAKE_CLOG_BINS_DIRECTORY}
 		)
 			
-
         add_custom_command(
             OUTPUT ${ARG_CLOG_FILE} ${ARG_CLOG_C_FILE}
-			DEPENDS ${CMAKE_CLOG_BINS_DIRECTORY}/clog
+			DEPENDS ${CMAKE_CLOG_BINS_DIRECTORY}/clog.dll
             COMMENT "ULOG: ${CMAKE_CLOG_BINS_DIRECTORY}/clog -c ${CMAKE_SOURCE_DIR}/manifest/clog.config -s ${CMAKE_CLOG_SIDECAR_DIRECTORY}/clog.sidecar -i ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${ARG_CLOG_FILE}"
             COMMAND ${CMAKE_CLOG_BINS_DIRECTORY}/clog -c ${CMAKE_SOURCE_DIR}/manifest/clog.config -s ${CMAKE_CLOG_SIDECAR_DIRECTORY}/clog.sidecar -i ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${ARG_CLOG_FILE}
         )
