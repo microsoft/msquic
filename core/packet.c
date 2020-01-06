@@ -11,7 +11,7 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
 #include "packet.tmh"
 #endif
 

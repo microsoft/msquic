@@ -15,7 +15,7 @@ Environment:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
 #include "platform_winuser.tmh"
 #include <fastwppimpl.h>
 #endif
@@ -30,7 +30,7 @@ QuicPlatformSystemLoad(
     void
     )
 {
-#ifdef QUIC_LOGS_WPP
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
     FAST_WPP_INIT_TRACING(L"quic");
 #endif
 
@@ -54,7 +54,7 @@ QuicPlatformSystemUnload(
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventUnregisterMicrosoft_Quic();
 #endif
-#ifdef QUIC_LOGS_WPP
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
     FAST_WPP_CLEANUP();
 #endif
 }
@@ -234,7 +234,7 @@ QuicEtwCallback(
 }
 #endif
 
-#ifdef QUIC_LOGS_WPP
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
 void
 QuicForceWppInitCodeGeneration(
     void

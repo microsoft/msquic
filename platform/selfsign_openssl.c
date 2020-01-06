@@ -19,7 +19,7 @@ Abstract:
 #include "openssl/x509.h"
 #include "openssl/pem.h"
 
-#ifdef QUIC_LOGS_WPP
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
 #include "selfsign_openssl.tmh"
 #endif
 

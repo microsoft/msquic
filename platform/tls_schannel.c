@@ -16,7 +16,7 @@ Environment:
 #include "platform_internal.h"
 #include <security.h>
 
-#ifdef QUIC_LOGS_WPP
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
 #include "tls_schannel.tmh"
 #endif
 
