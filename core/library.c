@@ -15,8 +15,6 @@ Abstract:
 #include "library.tmh"
 #endif
 
-#include "c:\source\msquic\bld\clog\library.c.clog"
-
 QUIC_LIBRARY MsQuicLib = { 0 };
 
 //
@@ -148,7 +146,7 @@ MsQuicLibraryInitialize(
             RawKey,
             &MsQuicLib.StatelessRetryKey);
     if (QUIC_FAILED(Status)) {
-        CLOG_TraceEvent(BoogersLibraryErrorStatus_1, "[ lib] ERROR, 0x%x, %s.", Status, "Create stateless retry key");
+        QuicTraceEvent(LibraryErrorStatus, Status, "Create stateless retry key");
         goto Error;
     }
 
@@ -165,7 +163,7 @@ MsQuicLibraryInitialize(
     MsQuicLib.PerProc =
         QUIC_ALLOC_NONPAGED(MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
     if (MsQuicLib.PerProc == NULL) {
-        CLOG_TraceEvent(AllocFailure_2, "Allocation of '%s' failed. (%llu bytes)", "connection pools",
+        QuicTraceEvent(AllocFailure, "connection pools",
             MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -189,7 +187,7 @@ MsQuicLibraryInitialize(
         goto Error;
     }
 
-    CLOG_TraceEvent(LibraryInitialized_3, "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
+    QuicTraceEvent(LibraryInitialized,
         MsQuicLib.PartitionCount,
         QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 
