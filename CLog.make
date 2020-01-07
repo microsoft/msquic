@@ -37,10 +37,12 @@ function(CLOG_ADD_SOURCEFILE)
 		set_property(SOURCE ${arg}
             APPEND PROPERTY OBJECT_DEPENDS ${ARG_CLOG_C_FILE}
         )
-		
-		set(clogfiles ${clogfiles} ${ARG_CLOG_C_FILE})
-		
+			
+        list(APPEND clogfiles ${ARG_CLOG_C_FILE})
     endforeach()
-	
-	set(${library} ${${library}} ${clogfiles} PARENT_SCOPE)
+	    
+
+    list(APPEND foo ${clogfiles} ${${library}})
+	set(${${library}} ${foo} PARENT_SCOPE)
+   
 endfunction()

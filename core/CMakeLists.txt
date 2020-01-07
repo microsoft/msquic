@@ -37,6 +37,9 @@ set(SOURCES
     stream_set.c
     timer_wheel.c
     worker.c
+    operation.h
+    stream.h
+    connection.h
 )
 
 if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")

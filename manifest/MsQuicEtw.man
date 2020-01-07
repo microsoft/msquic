@@ -650,15 +650,208 @@
       </provider>
       <provider guid="{ef930961-be37-58e4-e651-0698eed214d3}" messageFileName="%windir%\system32\wlansvc.dll" name="Microsoft-Windows-WLAN-Driver2" resourceFileName="%windir%\system32\wlansvc.dll" symbol="MICROSOFT_WINDOWS_WLAN_DRIVER_PROVIDER_GUIDX">
         <events>
+          <event keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" symbol="BoogersLibraryErrorStatus_1" template="template_ui32_sz_" value="1" />
+          <event keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" symbol="AllocFailure_2" template="template_sz_ui64_" value="2" />
+          <event keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" symbol="LibraryInitialized_3" template="template_ui32_ui32_" value="3" />
           
           
           
-        <event value="2" symbol="BoogersLibraryErrorStatus_1" template="template_ui32_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="3" symbol="AllocFailure_2" template="template_sz_ui64_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="3" symbol="LibraryInitialized_3" template="template_ui32_ui32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /></events>
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+        <event value="4" symbol="ApiWaitOperation" template="template_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="5" symbol="BindingErrorStatus" template="template_ptr_i32_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="6" symbol="BindingCreated" template="template_ptr_ptr_ptr_ptr_i32_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="7" symbol="BindingCleanup" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="8" symbol="BindingDestroyed" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="9" symbol="BindingRundown" template="template_ptr_ptr_ptr_ptr_i32_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="10" symbol="BindingExecOper" template="template_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="11" symbol="ConnCubic" template="template_ptr_i32_i32_i32_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="12" symbol="ConnCongestion" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="13" symbol="ConnPersistentCongestion" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="14" symbol="ConnRecoveryExit" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="15" symbol="ConnCreated" template="template_ptr_i32_ui64_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="16" symbol="ConnLocalAddrAdded" template="template_ptr_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="17" symbol="ConnRemoteAddrAdded" template="template_ptr_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="18" symbol="ConnDestCidAdded" template="template_ptr_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="19" symbol="ConnSourceCidAdded" template="template_ptr_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="20" symbol="ConnInitializeComplete" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="21" symbol="ConnDestroyed" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="22" symbol="ConnHandleClosed" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="23" symbol="ConnRundown" template="template_ptr_i32_ui64_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="24" symbol="ConnDestCidRemoved" template="template_ptr_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="25" symbol="ConnShutdownComplete" template="template_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="26" symbol="ConnAppShutdown" template="template_ptr_ui64_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="27" symbol="ConnTransportShutdown" template="template_ptr_ui64_i32_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="28" symbol="ConnVersionSet" template="template_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="29" symbol="ConnPacketRecv" template="template_ptr_ui64_i32_ui16_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="30" symbol="ConnLocalAddrRemoved" template="template_ptr_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="31" symbol="ConnWriteKeyUpdated" template="template_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="32" symbol="ConnReadKeyUpdated" template="template_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="33" symbol="ConnHandshakeComplete" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="34" symbol="ConnNewPacketKeys" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="35" symbol="ConnKeyPhaseChange" template="template_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="36" symbol="LibraryInitialized" template="template_i32_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="37" symbol="LibraryUninitialized" template="template_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="38" symbol="LibraryAddRef" template="template_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="39" symbol="LibraryRelease" template="template_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="40" symbol="LibraryWorkerPoolInit" template="template_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="41" symbol="LibraryRundown" template="template_i32_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="42" symbol="ListenerCreated" template="template_ptr_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="43" symbol="ListenerDestroyed" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="44" symbol="ListenerErrorStatus" template="template_ptr_i32_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="45" symbol="ListenerError" template="template_ptr_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="46" symbol="ListenerStarted" template="template_ptr_ptr_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="47" symbol="ListenerStopped" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="48" symbol="ListenerRundown" template="template_ptr_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="49" symbol="ConnHandshakeStart" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="50" symbol="ConnLossDetectionTimerCancel" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="51" symbol="ConnLossDetectionTimerSet" template="template_ptr_i32_i32_ui16_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="52" symbol="ConnPacketLost" template="template_ptr_ui64_i32_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="53" symbol="ConnPacketACKed" template="template_ptr_ui64_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="54" symbol="ConnDropPacket" template="template_ptr_ui64_ptr_ptr_sz_i32_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="55" symbol="BindingDropPacket" template="template_ptr_ui64_ptr_ptr_sz_i32_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="56" symbol="ConnDropPacketEx" template="template_ptr_ui64_ptr_ptr_sz_ui64_i32_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="57" symbol="BindingDropPacketEx" template="template_ptr_ui64_ptr_ptr_sz_ui64_i32_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="58" symbol="ConnErrorStatus" template="template_ptr_i32_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="59" symbol="ConnPacketSent" template="template_ptr_ui64_i32_ui16_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="60" symbol="RegistrationCreated" template="template_ptr_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="61" symbol="RegistrationCleanup" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="62" symbol="RegistrationRundown" template="template_ptr_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="63" symbol="ApiEnter" template="template_i32_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="64" symbol="SessionError" template="template_ptr_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="65" symbol="SessionErrorStatus" template="template_ptr_i32_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="66" symbol="SessionCreated" template="template_ptr_ptr_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="67" symbol="ApiExitStatus" template="template_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="68" symbol="SessionCleanup" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="69" symbol="SessionDestroyed" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="70" symbol="ApiExit" template="template_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="71" symbol="SessionShutdown" template="template_ptr_i32_ui64_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="72" symbol="SessionRundown" template="template_ptr_ptr_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="73" symbol="ConnRegisterSession" template="template_ptr_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="74" symbol="ConnUnregisterSession" template="template_ptr_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="75" symbol="StreamDestroyed" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="76" symbol="StreamCreated" template="template_ptr_ptr_ui64_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="77" symbol="StreamRundown" template="template_ptr_ptr_ui64_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="78" symbol="StreamRecvState" template="template_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="79" symbol="StreamError" template="template_ptr_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="80" symbol="StreamSendState" template="template_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="81" symbol="ConnError" template="template_ptr_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="82" symbol="WorkerCreated" template="template_ptr_i32_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="83" symbol="WorkerErrorStatus" template="template_ptr_i32_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="84" symbol="WorkerCleanup" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="85" symbol="WorkerDestroyed" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="86" symbol="ConnAssignWorker" template="template_ptr_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="87" symbol="ConnScheduleState" template="template_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="88" symbol="WorkerActivityStateUpdated" template="template_ptr_i32_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="89" symbol="WorkerQueueDelayUpdated" template="template_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="90" symbol="WorkerStart" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="91" symbol="WorkerStop" template="template_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="92" symbol="DatapathErrorStatus" template="template_ptr_i32_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="93" symbol="DatapathRecv" template="template_ptr_i32_ui16_i32_i32_ptr_ptr_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="94" symbol="DatapathSendTo" template="template_ptr_i32_i32_ui16_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="95" symbol="DatapathSendFromTo" template="template_ptr_i32_i32_ui16_ptr_ptr_i32_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="96" symbol="LibraryAssert" template="template_sz_i32_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="97" symbol="LibraryErrorStatus" template="template_i32_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="98" symbol="AllocFailure" template="template_sz_ui64_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="99" symbol="LibraryError" template="template_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="100" symbol="TlsErrorStatus" template="template_ptr_i32_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="101" symbol="TlsError" template="template_ptr_sz_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="102" symbol="ConnExecApiOper" template="template_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="103" symbol="ConnExecTimerOper" template="template_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="104" symbol="ConnExecOper" template="template_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="105" symbol="StreamOutFlowBlocked" template="template_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="106" symbol="ConnOutFlowStats" template="template_ptr_ui64_i32_i32_i32_i32_ui64_ui64_ui64_ptr_ptr_ptr_ui64_i32_ui64_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="107" symbol="ConnStatistics" template="template_ptr_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ptr_ptr_ptr_ptr_ptr_ptr_ui64_i32_i32_ui64_ui64_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="109" symbol="ConnInFlowStats" template="template_ptr_ui64_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /><event value="33154" symbol="ConnOutFlowBlocked" template="template_ptr_i32_" keywords="CLOG_DOT11_AUTOCONF" level="CLOG_SHAREDACCESS_LOG_LEVEL_ENTER_EXIT" /></events>
         <templates>
+          <template tid="template_ui32_sz_">
+            <data inType="win:UInt32" name="arg2" />
+            <data inType="win:AnsiString" name="arg3" />
+          </template>
+          <template tid="template_ui32_ui32_">
+            <data inType="win:UInt32" name="arg2" />
+            <data inType="win:UInt32" name="arg3" />
+          </template>
+          <template tid="template_ptr_ptr_ptr_ptr_">
+            <data inType="win:Pointer" name="arg2" />
+            <data inType="win:Pointer" name="arg3" />
+            <data inType="win:Pointer" name="arg4" />
+            <data inType="win:Pointer" name="arg5" />
+          </template>
+          <template tid="template_ptr_ptr_ptr_">
+            <data inType="win:Pointer" name="arg2" />
+            <data inType="win:Pointer" name="arg3" />
+            <data inType="win:Pointer" name="arg4" />
+          </template>
+          <template tid="template_ptr_ui64_ptr_ptr_sz_">
+            <data inType="win:Pointer" name="arg2" />
+            <data inType="win:UInt64" name="arg3" />
+            <data inType="win:Pointer" name="arg4" />
+            <data inType="win:Pointer" name="arg5" />
+            <data inType="win:AnsiString" name="arg6" />
+          </template>
+          <template tid="template_ptr_ui64_ptr_ptr_sz_ui64_">
+            <data inType="win:Pointer" name="arg2" />
+            <data inType="win:UInt64" name="arg3" />
+            <data inType="win:Pointer" name="arg4" />
+            <data inType="win:Pointer" name="arg5" />
+            <data inType="win:AnsiString" name="arg6" />
+            <data inType="win:UInt64" name="arg7" />
+          </template>
+          <template tid="template_ptr_i32_ui16_i32_i32_">
+            <data inType="win:Pointer" name="arg2" />
+            <data inType="win:Int32" name="arg3" />
+            <data inType="win:UInt16" name="arg4" />
+            <data inType="win:Int32" name="arg5" />
+            <data inType="win:Int32" name="arg6" />
+          </template>
+          <template tid="template_ptr_i32_i32_ui16_ptr_">
+            <data inType="win:Pointer" name="arg2" />
+            <data inType="win:Int32" name="arg3" />
+            <data inType="win:Int32" name="arg4" />
+            <data inType="win:UInt16" name="arg5" />
+            <data inType="win:Pointer" name="arg6" />
+          </template>
+          <template tid="template_ptr_i32_i32_ui16_ptr_ptr_">
+            <data inType="win:Pointer" name="arg2" />
+            <data inType="win:Int32" name="arg3" />
+            <data inType="win:Int32" name="arg4" />
+            <data inType="win:UInt16" name="arg5" />
+            <data inType="win:Pointer" name="arg6" />
+            <data inType="win:Pointer" name="arg7" />
+          </template>
           
           
           
-        <template tid="template_ui32_sz_"><data inType="win:UInt32" name="arg2" /><data inType="win:AnsiString" name="arg3" /></template><template tid="template_sz_ui64_"><data inType="win:AnsiString" name="arg2" /><data inType="win:UInt64" name="arg3" /></template><template tid="template_ui32_ui32_"><data inType="win:UInt32" name="arg2" /><data inType="win:UInt32" name="arg3" /></template></templates>
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+        <template tid="template_ptr_ptr_ptr_ptr_i32_i32_"><data inType="win:Pointer" name="arg2" /><data inType="win:Pointer" name="arg3" /><data inType="win:Pointer" name="arg4" /><data inType="win:Pointer" name="arg5" /><data inType="win:Int32" name="arg6" /><data inType="win:Int32" name="arg7" /></template><template tid="template_ptr_i32_i32_i32_i32_"><data inType="win:Pointer" name="arg2" /><data inType="win:Int32" name="arg3" /><data inType="win:Int32" name="arg4" /><data inType="win:Int32" name="arg5" /><data inType="win:Int32" name="arg6" /></template><template tid="template_ptr_ptr_i32_"><data inType="win:Pointer" name="arg2" /><data inType="win:Pointer" name="arg3" /><data inType="win:Int32" name="arg4" /></template><template tid="template_i32_i32_"><data inType="win:Int32" name="arg2" /><data inType="win:Int32" name="arg3" /></template><template tid="template_ptr_ptr_ptr_i32_"><data inType="win:Pointer" name="arg2" /><data inType="win:Pointer" name="arg3" /><data inType="win:Pointer" name="arg4" /><data inType="win:Int32" name="arg5" /></template><template tid="template_ptr_i32_i32_ui16_"><data inType="win:Pointer" name="arg2" /><data inType="win:Int32" name="arg3" /><data inType="win:Int32" name="arg4" /><data inType="win:UInt16" name="arg5" /></template><template tid="template_ptr_ui64_i32_i32_"><data inType="win:Pointer" name="arg2" /><data inType="win:UInt64" name="arg3" /><data inType="win:Int32" name="arg4" /><data inType="win:Int32" name="arg5" /></template><template tid="template_ptr_ui64_i32_"><data inType="win:Pointer" name="arg2" /><data inType="win:UInt64" name="arg3" /><data inType="win:Int32" name="arg4" /></template><template tid="template_ptr_ui64_ptr_ptr_sz_i32_i32_"><data inType="win:Pointer" name="arg2" /><data inType="win:UInt64" name="arg3" /><data inType="win:Pointer" name="arg4" /><data inType="win:Pointer" name="arg5" /><data inType="win:AnsiString" name="arg6" /><data inType="win:Int32" name="arg7" /><data inType="win:Int32" name="arg8" /></template><template tid="template_ptr_ui64_ptr_ptr_sz_ui64_i32_i32_"><data inType="win:Pointer" name="arg2" /><data inType="win:UInt64" name="arg3" /><data inType="win:Pointer" name="arg4" /><data inType="win:Pointer" name="arg5" /><data inType="win:AnsiString" name="arg6" /><data inType="win:UInt64" name="arg7" /><data inType="win:Int32" name="arg8" /><data inType="win:Int32" name="arg9" /></template><template tid="template_ptr_ui64_i32_ui16_"><data inType="win:Pointer" name="arg2" /><data inType="win:UInt64" name="arg3" /><data inType="win:Int32" name="arg4" /><data inType="win:UInt16" name="arg5" /></template><template tid="template_i32_ptr_"><data inType="win:Int32" name="arg2" /><data inType="win:Pointer" name="arg3" /></template><template tid="template_ptr_ptr_sz_"><data inType="win:Pointer" name="arg2" /><data inType="win:Pointer" name="arg3" /><data inType="win:AnsiString" name="arg4" /></template><template tid="template_i32_"><data inType="win:Int32" name="arg2" /></template><template tid="template_" /><template tid="template_ptr_i32_ui64_"><data inType="win:Pointer" name="arg2" /><data inType="win:Int32" name="arg3" /><data inType="win:UInt64" name="arg4" /></template><template tid="template_ptr_ptr_ui64_i32_"><data inType="win:Pointer" name="arg2" /><data inType="win:Pointer" name="arg3" /><data inType="win:UInt64" name="arg4" /><data inType="win:Int32" name="arg5" /></template><template tid="template_ptr_i32_ptr_"><data inType="win:Pointer" name="arg2" /><data inType="win:Int32" name="arg3" /><data inType="win:Pointer" name="arg4" /></template><template tid="template_ptr_"><data inType="win:Pointer" name="arg2" /></template><template tid="template_ptr_ptr_"><data inType="win:Pointer" name="arg2" /><data inType="win:Pointer" name="arg3" /></template><template tid="template_ptr_i32_i32_"><data inType="win:Pointer" name="arg2" /><data inType="win:Int32" name="arg3" /><data inType="win:Int32" name="arg4" /></template><template tid="template_ptr_i32_ui16_i32_i32_ptr_ptr_"><data inType="win:Pointer" name="arg2" /><data inType="win:Int32" name="arg3" /><data inType="win:UInt16" name="arg4" /><data inType="win:Int32" name="arg5" /><data inType="win:Int32" name="arg6" /><data inType="win:Pointer" name="arg7" /><data inType="win:Pointer" name="arg8" /></template><template tid="template_ptr_i32_i32_ui16_ptr_i32_"><data inType="win:Pointer" name="arg2" /><data inType="win:Int32" name="arg3" /><data inType="win:Int32" name="arg4" /><data inType="win:UInt16" name="arg5" /><data inType="win:Pointer" name="arg6" /><data inType="win:Int32" name="arg7" /></template><template tid="template_ptr_i32_i32_ui16_ptr_ptr_i32_i32_"><data inType="win:Pointer" name="arg2" /><data inType="win:Int32" name="arg3" /><data inType="win:Int32" name="arg4" /><data inType="win:UInt16" name="arg5" /><data inType="win:Pointer" name="arg6" /><data inType="win:Pointer" name="arg7" /><data inType="win:Int32" name="arg8" /><data inType="win:Int32" name="arg9" /></template><template tid="template_sz_i32_sz_"><data inType="win:AnsiString" name="arg2" /><data inType="win:Int32" name="arg3" /><data inType="win:AnsiString" name="arg4" /></template><template tid="template_i32_sz_"><data inType="win:Int32" name="arg2" /><data inType="win:AnsiString" name="arg3" /></template><template tid="template_sz_ui64_"><data inType="win:AnsiString" name="arg2" /><data inType="win:UInt64" name="arg3" /></template><template tid="template_sz_"><data inType="win:AnsiString" name="arg2" /></template><template tid="template_ptr_i32_sz_"><data inType="win:Pointer" name="arg2" /><data inType="win:Int32" name="arg3" /><data inType="win:AnsiString" name="arg4" /></template><template tid="template_ptr_sz_"><data inType="win:Pointer" name="arg2" /><data inType="win:AnsiString" name="arg3" /></template><template tid="template_ptr_ui64_i32_i32_i32_i32_ui64_ui64_ui64_ptr_ptr_ptr_ui64_i32_ui64_"><data inType="win:Pointer" name="arg2" /><data inType="win:UInt64" name="arg3" /><data inType="win:Int32" name="arg4" /><data inType="win:Int32" name="arg5" /><data inType="win:Int32" name="arg6" /><data inType="win:Int32" name="arg7" /><data inType="win:UInt64" name="arg8" /><data inType="win:UInt64" name="arg9" /><data inType="win:UInt64" name="arg10" /><data inType="win:Pointer" name="arg11" /><data inType="win:Pointer" name="arg12" /><data inType="win:Pointer" name="arg13" /><data inType="win:UInt64" name="arg14" /><data inType="win:Int32" name="arg15" /><data inType="win:UInt64" name="arg16" /></template><template tid="template_ptr_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ui64_ptr_ptr_ptr_ptr_ptr_ptr_ui64_i32_i32_ui64_ui64_i32_"><data inType="win:Pointer" name="arg2" /><data inType="win:UInt64" name="arg3" /><data inType="win:UInt64" name="arg4" /><data inType="win:UInt64" name="arg5" /><data inType="win:UInt64" name="arg6" /><data inType="win:UInt64" name="arg7" /><data inType="win:UInt64" name="arg8" /><data inType="win:UInt64" name="arg9" /><data inType="win:UInt64" name="arg10" /><data inType="win:Pointer" name="arg11" /><data inType="win:Pointer" name="arg12" /><data inType="win:Pointer" name="arg13" /><data inType="win:Pointer" name="arg14" /><data inType="win:Pointer" name="arg15" /><data inType="win:Pointer" name="arg16" /><data inType="win:UInt64" name="arg17" /><data inType="win:Int32" name="arg18" /><data inType="win:Int32" name="arg19" /><data inType="win:UInt64" name="arg20" /><data inType="win:UInt64" name="arg21" /><data inType="win:Int32" name="arg22" /></template><template tid="template_ptr_ui64_"><data inType="win:Pointer" name="arg2" /><data inType="win:UInt64" name="arg3" /></template><template tid="template_ptr_i32_"><data inType="win:Pointer" name="arg2" /><data inType="win:Int32" name="arg3" /></template></templates>
         <keywords>
           
         <keyword name="CLOG_DOT11_AUTOCONF" mask="0x10" symbol="CLOG_DOT11_AUTOCONF" /></keywords>
