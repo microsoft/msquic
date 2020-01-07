@@ -957,7 +957,7 @@ QuicTlsClientSecConfigCreate(
             //   passing TLS related config from APP layer to TAL.
             //
 
-            Ret =
+            /*Ret =
                 SSL_CTX_load_verify_locations(
                     SecurityConfig->SSLCtx,
                     QuicOpenSslClientTrustedCert,
@@ -966,7 +966,7 @@ QuicTlsClientSecConfigCreate(
                 QuicTraceLogError("[ tls] SSL_CTX_load_verify_locations failed, error: %ld", ERR_get_error());
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
-            }
+            }*/
         }
     }
 
@@ -1157,7 +1157,7 @@ QuicTlsInitialize(
 
     if (Config->IsServer) {
         SSL_set_accept_state(TlsContext->Ssl);
-        SSL_set_quic_early_data_enabled(TlsContext->Ssl, 1);
+        //SSL_set_quic_early_data_enabled(TlsContext->Ssl, 1);
     } else {
         SSL_set_connect_state(TlsContext->Ssl);
         SSL_set_tlsext_host_name(TlsContext->Ssl, TlsContext->SNI);
