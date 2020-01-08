@@ -12,7 +12,9 @@ Abstract:
 #include "platform_internal.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "tls_mitls.tmh"
+; //<-- WPP line was here
+#include "tls_mitls.c.clog"
+
 #endif
 
 #define IS_WINDOWS 1
@@ -381,7 +383,7 @@ MiTlsTraceCallback(
     )
 {
     // TODO - Save connection in thread-local storage and retrieve it?
-    QuicTraceEvent(TlsMessage, NULL, Msg);
+    QuicTraceEvent(TlsMessage, "[ tls] %p, CLOGBUG=%s", NULL, Msg);
 }
 
 QUIC_STATUS

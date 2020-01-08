@@ -12,7 +12,9 @@ Abstract:
 #include "platform_internal.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "tls_stub.tmh"
+; //<-- WPP line was here
+#include "tls_stub.c.clog"
+
 #endif
 
 uint16_t QuicTlsTPHeaderSize = 0;

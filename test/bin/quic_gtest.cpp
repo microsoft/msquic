@@ -8,7 +8,9 @@
 #include "quic_gtest.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "quic_gtest.tmh"
+; //<-- WPP line was here
+#include "quic_gtest.cpp.clog"
+
 #endif
 
 QUIC_API_V1* MsQuic;

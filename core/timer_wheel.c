@@ -58,7 +58,9 @@ Abstract:
 #define QUIC_TIMER_WHEEL_MAX_LOAD_FACTOR    32
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "timer_wheel.tmh"
+; //<-- WPP line was here
+#include "timer_wheel.c.clog"
+
 #endif
 
 //
@@ -80,8 +82,7 @@ QuicTimerWheelInitialize(
     TimerWheel->Slots =
         QUIC_ALLOC_NONPAGED(QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(QUIC_LIST_ENTRY));
     if (TimerWheel->Slots == NULL) {
-        QuicTraceEvent(AllocFailure, "timerwheel slots",
-            QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(QUIC_LIST_ENTRY));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "timerwheel slots", QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(QUIC_LIST_ENTRY));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -125,8 +126,7 @@ QuicTimerWheelResize(
     QUIC_LIST_ENTRY* NewSlots =
         QUIC_ALLOC_NONPAGED(NewSlotCount * sizeof(QUIC_LIST_ENTRY));
     if (NewSlots == NULL) {
-        QuicTraceEvent(AllocFailure, "timerwheel slots (realloc)",
-            NewSlotCount * sizeof(QUIC_LIST_ENTRY));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "timerwheel slots (realloc)", NewSlotCount * sizeof(QUIC_LIST_ENTRY));
         return;
     }
 

@@ -22,7 +22,9 @@ Abstract:
 #include "precomp.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "registration.tmh"
+; //<-- WPP line was here
+#include "registration.c.clog"
+
 #endif
 
 QUIC_DATAPATH_RECEIVE_CALLBACK MsQuicRecvCallback;
@@ -40,14 +42,12 @@ QuicRegistrationAlloc(
 
     size_t AppNameLength = AppName == NULL ? 0 : strlen(AppName);
 
-    QuicTraceEvent(ApiEnter,
-        QUIC_TRACE_API_REGISTRATION_OPEN,
-        NULL);
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", QUIC_TRACE_API_REGISTRATION_OPEN, NULL);
 
     QUIC_REGISTRATION* Registration =
         QUIC_ALLOC_NONPAGED(sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
     if (Registration == NULL) {
-        QuicTraceEvent(AllocFailure, "registration", sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "registration", sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -98,7 +98,7 @@ QuicRegistrationAlloc(
         goto Error;
     }
 
-    QuicTraceEvent(RegistrationCreated, Registration, Registration->AppName);
+    QuicTraceEvent(RegistrationCreated, "[ reg][%p] Created, AppName=%s", Registration, Registration->AppName);
 
 #ifdef QuicVerifierEnabledByAddr
     if (MsQuicLib.IsVerifying &&
@@ -125,7 +125,7 @@ Error:
         QUIC_FREE(Registration);
     }
 
-    QuicTraceEvent(ApiExitStatus, Status);
+    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d", Status);
 
     return Status;
 }
@@ -193,14 +193,12 @@ MsQuicRegistrationClose(
         return;
     }
 
-    QuicTraceEvent(ApiEnter,
-        QUIC_TRACE_API_REGISTRATION_CLOSE,
-        Handle);
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", QUIC_TRACE_API_REGISTRATION_CLOSE, Handle);
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
 
-    QuicTraceEvent(RegistrationCleanup, Registration);
+    QuicTraceEvent(RegistrationCleanup, "[ reg][%p] Cleaning up", Registration);
 
     //
     // If you hit this assert, you are trying to clean up a registration without
@@ -224,7 +222,7 @@ MsQuicRegistrationClose(
 
     QUIC_FREE(Registration);
 
-    QuicTraceEvent(ApiExit);
+    QuicTraceEvent(ApiExit, "[ api] Exit");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -233,7 +231,7 @@ QuicRegistrationTraceRundown(
     _In_ QUIC_REGISTRATION* Registration
     )
 {
-    QuicTraceEvent(RegistrationRundown, Registration, Registration->AppName);
+    QuicTraceEvent(RegistrationRundown, "[ reg][%p] Rundown, AppName=%s", Registration, Registration->AppName);
 
     QuicLockAcquire(&Registration->Lock);
 
@@ -279,9 +277,7 @@ MsQuicSecConfigCreate(
 {
     QUIC_STATUS Status;
 
-    QuicTraceEvent(ApiEnter,
-        QUIC_TRACE_API_SEC_CONFIG_CREATE,
-        Handle);
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", QUIC_TRACE_API_SEC_CONFIG_CREATE, Handle);
 
     if (Handle == NULL || Handle->Type != QUIC_HANDLE_TYPE_REGISTRATION ||
         CompletionHandler == NULL) {
@@ -301,7 +297,7 @@ MsQuicSecConfigCreate(
 
 Exit:
 
-    QuicTraceEvent(ApiExitStatus, Status);
+    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d", Status);
 
     return Status;
 }
@@ -313,15 +309,13 @@ MsQuicSecConfigDelete(
     _In_ _Pre_defensive_ QUIC_SEC_CONFIG* SecurityConfig
     )
 {
-    QuicTraceEvent(ApiEnter,
-        QUIC_TRACE_API_SEC_CONFIG_DELETE,
-        SecurityConfig);
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", QUIC_TRACE_API_SEC_CONFIG_DELETE, SecurityConfig);
 
     if (SecurityConfig != NULL) {
         QuicTlsSecConfigRelease(SecurityConfig);
     }
 
-    QuicTraceEvent(ApiExit);
+    QuicTraceEvent(ApiExit, "[ api] Exit");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

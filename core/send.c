@@ -23,7 +23,9 @@ Abstract:
 #include "precomp.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "send.tmh"
+; //<-- WPP line was here
+#include "send.c.clog"
+
 #endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

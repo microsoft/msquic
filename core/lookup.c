@@ -12,7 +12,9 @@ Abstract:
 #include "precomp.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "lookup.tmh"
+; //<-- WPP line was here
+#include "lookup.c.clog"
+
 #endif
 
 typedef struct QUIC_CACHEALIGN QUIC_PARTITIONED_HASHTABLE {

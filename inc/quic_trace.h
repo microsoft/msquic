@@ -117,6 +117,7 @@ typedef enum QUIC_TRACE_LEVEL {
 #define QuicTraceLogWarning(...)
 #define QuicTraceLogInfo(...)
 #define QuicTraceLogVerbose(...)
+#define QuicTraceLogError(...)
 
 #define QuicTraceLogConnError(...)
 #define QuicTraceLogConnWarning(...)

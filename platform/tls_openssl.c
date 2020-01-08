@@ -18,7 +18,9 @@ Abstract:
 #include "openssl/pem.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "tls_openssl.tmh"
+; //<-- WPP line was here
+#include "tls_openssl.c.clog"
+
 #endif
 
 uint16_t QuicTlsTPHeaderSize = 0;

@@ -36,7 +36,9 @@ Abstract:
 #include "precomp.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "stream_send.tmh"
+; //<-- WPP line was here
+#include "stream_send.c.clog"
+
 #endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -223,7 +225,7 @@ QuicStreamSendShutdown(
 
 Exit:
 
-    QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
+    QuicTraceEvent(StreamSendState, "[strm][%p] Send State: %c", Stream, QuicStreamSendGetState(Stream));
 
     if (Silent) {
         QuicStreamTryCompleteShutdown(Stream);
@@ -1320,7 +1322,7 @@ QuicStreamOnAck(
                 //
                 if (!Stream->Flags.LocalCloseAcked) {
                     Stream->Flags.LocalCloseAcked = TRUE;
-                    QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
+                    QuicTraceEvent(StreamSendState, "[strm][%p] Send State: %c", Stream, QuicStreamSendGetState(Stream));
                     QuicStreamIndicateSendShutdownComplete(Stream, TRUE);
                     QuicStreamTryCompleteShutdown(Stream);
                 }
@@ -1389,7 +1391,7 @@ QuicStreamOnResetAck(
 {
     if (!Stream->Flags.LocalCloseAcked) {
         Stream->Flags.LocalCloseAcked = TRUE;
-        QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
+        QuicTraceEvent(StreamSendState, "[strm][%p] Send State: %c", Stream, QuicStreamSendGetState(Stream));
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
         QuicStreamTryCompleteShutdown(Stream);
     }

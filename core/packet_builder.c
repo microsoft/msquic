@@ -15,7 +15,9 @@ Abstract:
 #include "precomp.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "packet_builder.tmh"
+; //<-- WPP line was here
+#include "packet_builder.c.clog"
+
 #endif
 
 #ifdef QUIC_FUZZER
@@ -173,7 +175,7 @@ QuicPacketBuilderPrepare(
                             QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                             DatagramSize));
             if (Builder->SendContext == NULL) {
-                QuicTraceEvent(AllocFailure, "packet send context", 0);
+                QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "packet send context", 0);
                 goto Error;
             }
         }
@@ -192,7 +194,7 @@ QuicPacketBuilderPrepare(
                 Builder->SendContext,
                 NewDatagramLength);
         if (Builder->Datagram == NULL) {
-            QuicTraceEvent(AllocFailure, "packet datagram", NewDatagramLength);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "packet datagram", NewDatagramLength);
             goto Error;
         }
 
@@ -739,10 +741,7 @@ QuicPacketBuilderFinalize(
 
             Status = QuicCryptoGenerateNewKeys(Connection);
             if (QUIC_FAILED(Status)) {
-                QuicTraceEvent(ConnErrorStatus,
-                    Connection,
-                    Status,
-                    "Send-triggered key update");
+                QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Status, "Send-triggered key update");
                 QuicConnFatalError(Connection, Status, "Send-triggered key update");
                 goto Exit;
             }
@@ -765,11 +764,7 @@ QuicPacketBuilderFinalize(
     Builder->Metadata->PacketLength =
         Builder->HeaderLength + PayloadLength;
 
-    QuicTraceEvent(ConnPacketSent,
-        Connection,
-        Builder->Metadata->PacketNumber,
-        QuicPacketTraceType(Builder->Metadata),
-        Builder->Metadata->PacketLength);
+    QuicTraceEvent(ConnPacketSent, "[conn][%p][TX][%I] %c (%hd bytes)", Connection, Builder->Metadata->PacketNumber, QuicPacketTraceType(Builder->Metadata), Builder->Metadata->PacketLength);
     QuicLossDetectionOnPacketSent(
         &Connection->LossDetection,
         Builder->Path,

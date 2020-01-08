@@ -17,7 +17,9 @@ Environment:
 #include "platform_internal.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "cert_capi.tmh"
+; //<-- WPP line was here
+#include "cert_capi.c.clog"
+
 #endif
 
 #include <wincrypt.h>

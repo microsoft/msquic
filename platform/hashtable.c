@@ -45,7 +45,9 @@ Notes:
 #include "platform_internal.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "hashtable.tmh"
+; //<-- WPP line was here
+#include "hashtable.c.clog"
+
 #endif
 
 #define QUIC_HASH_RESERVED_SIGNATURE 0

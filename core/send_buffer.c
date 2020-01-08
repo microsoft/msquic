@@ -57,7 +57,9 @@ Abstract:
 #include "precomp.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "send_buffer.tmh"
+; //<-- WPP line was here
+#include "send_buffer.c.clog"
+
 #endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -91,7 +93,7 @@ QuicSendBufferAlloc(
     if (Buf != NULL) {
         SendBuffer->BufferedBytes += Size;
     } else {
-        QuicTraceEvent(AllocFailure, "sendbuffer", Size);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "sendbuffer", Size);
     }
 
     return Buf;

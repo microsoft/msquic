@@ -12,7 +12,9 @@ Abstract:
 #include "precomp.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "utils.tmh"
+; //<-- WPP line was here
+#include "utils.c.clog"
+
 #endif
 
 #if QUIC_LOG_BUFFERS

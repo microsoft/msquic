@@ -13,7 +13,9 @@ Abstract:
 
 #include "quic_trace.h"
 #ifdef QUIC_LOGS_WPP
-#include "quictest.tmh"
+; //<-- WPP line was here
+#include "QuicTest.cpp.clog"
+
 #endif
 
 //#define QUIC_TEST_DISABLE_DNS 1

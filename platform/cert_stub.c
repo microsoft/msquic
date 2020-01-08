@@ -12,7 +12,9 @@ Abstract:
 #include "platform_internal.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "cert_stub.tmh"
+; //<-- WPP line was here
+#include "cert_stub.c.clog"
+
 #endif
 
 QUIC_STATUS

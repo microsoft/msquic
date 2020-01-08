@@ -12,7 +12,9 @@ Abstract:
 #include "platform_internal.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "datapath_winuser.tmh"
+; //<-- WPP line was here
+#include "datapath_winuser.c.clog"
+
 #endif
 
 #ifdef QUIC_FUZZER
@@ -547,7 +549,7 @@ QuicDataPathInitialize(
     }
 
     if ((WsaError = WSAStartup(MAKEWORD(2, 2), &WsaData)) != 0) {
-        QuicTraceEvent(LibraryErrorStatus, WsaError, "WSAStartup");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", WsaError, "WSAStartup");
         Status = HRESULT_FROM_WIN32(WsaError);
         Datapath = NULL;
         goto Exit;
@@ -565,7 +567,7 @@ QuicDataPathInitialize(
 
     Datapath = (QUIC_DATAPATH*)QUIC_ALLOC_PAGED(DatapathLength);
     if (Datapath == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_DATAPATH", DatapathLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "QUIC_DATAPATH", DatapathLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -650,7 +652,7 @@ QuicDataPathInitialize(
                 1);
         if (Datapath->ProcContexts[i].IOCP == NULL) {
             DWORD LastError = GetLastError();
-            QuicTraceEvent(LibraryErrorStatus, LastError, "CreateIoCompletionPort");
+            QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", LastError, "CreateIoCompletionPort");
             Status = HRESULT_FROM_WIN32(LastError);
             goto Error;
         }
@@ -665,7 +667,7 @@ QuicDataPathInitialize(
                 NULL);
         if (Datapath->ProcContexts[i].CompletionThread == NULL) {
             DWORD LastError = GetLastError();
-            QuicTraceEvent(LibraryErrorStatus, LastError, "CreateThread");
+            QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", LastError, "CreateThread");
             Status = HRESULT_FROM_WIN32(LastError);
             goto Error;
         }
@@ -675,7 +677,7 @@ QuicDataPathInitialize(
                 Datapath->ProcContexts[i].CompletionThread,
                 AffinityMask) == 0) {
             DWORD LastError = GetLastError();
-            QuicTraceEvent(LibraryErrorStatus, LastError, "SetThreadAffinityMask");
+            QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", LastError, "SetThreadAffinityMask");
             Status = HRESULT_FROM_WIN32(LastError);
             goto Error;
         }
@@ -689,7 +691,7 @@ QuicDataPathInitialize(
                 &ThreadNameInfo,
                 sizeof(ThreadNameInfo));
         if (!NT_SUCCESS(NtStatus)) {
-            QuicTraceEvent(LibraryErrorStatus, NtStatus, "NtSetInformationThread(name)");
+            QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", NtStatus, "NtSetInformationThread(name)");
         }
 
         // TODO - Set thread priority higher to better match kernel at dispatch?
@@ -853,7 +855,7 @@ QuicDataPathResolveAddress(
             0);
     if (Result == 0) {
         DWORD LastError = GetLastError();
-        QuicTraceEvent(LibraryErrorStatus, LastError, "Calculate hostname wchar length");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", LastError, "Calculate hostname wchar length");
         Status = HRESULT_FROM_WIN32(LastError);
         goto Exit;
     }
@@ -861,7 +863,7 @@ QuicDataPathResolveAddress(
     HostNameW = QUIC_ALLOC_PAGED(sizeof(WCHAR) * Result);
     if (HostNameW == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "Wchar hostname", sizeof(WCHAR) * Result);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "Wchar hostname", sizeof(WCHAR) * Result);
         goto Exit;
     }
 
@@ -875,7 +877,7 @@ QuicDataPathResolveAddress(
             Result);
     if (Result == 0) {
         DWORD LastError = GetLastError();
-        QuicTraceEvent(LibraryErrorStatus, LastError, "Convert hostname to wchar");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", LastError, "Convert hostname to wchar");
         Status = HRESULT_FROM_WIN32(LastError);
         goto Exit;
     }
@@ -907,7 +909,7 @@ QuicDataPathResolveAddress(
         goto Exit;
     }
 
-    QuicTraceEvent(LibraryError, "Resolving hostname to IP");
+    QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "Resolving hostname to IP");
     QuicTraceLogError("[%p] Couldn't resolve hostname '%s' to an IP address", Datapath, HostName);
     Status = HRESULT_FROM_WIN32(WSAHOST_NOT_FOUND);
 
@@ -949,7 +951,7 @@ QuicDataPathBindingCreate(
 
     Binding = (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_PAGED(BindingLength);
     if (Binding == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_DATAPATH_BINDING", BindingLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "QUIC_DATAPATH_BINDING", BindingLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -991,7 +993,7 @@ QuicDataPathBindingCreate(
                 WSA_FLAG_OVERLAPPED);
         if (SocketContext->Socket == INVALID_SOCKET) {
             int WsaError = WSAGetLastError();
-            QuicTraceEvent(DatapathErrorStatus, Binding, WsaError, "WSASocketW");
+            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", Binding, WsaError, "WSASocketW");
             Status = HRESULT_FROM_WIN32(WsaError);
             goto Error;
         }
@@ -1015,7 +1017,7 @@ QuicDataPathBindingCreate(
                     NULL);
             if (Result != NO_ERROR) {
                 int WsaError = WSAGetLastError();
-                QuicTraceEvent(DatapathErrorStatus, Binding, WsaError, "SIO_GET_EXTENSION_FUNCTION_POINTER (WSASendMsg)");
+                QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", Binding, WsaError, "SIO_GET_EXTENSION_FUNCTION_POINTER (WSASendMsg)");
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
             }
@@ -1040,7 +1042,7 @@ QuicDataPathBindingCreate(
                     NULL);
             if (Result != NO_ERROR) {
                 int WsaError = WSAGetLastError();
-                QuicTraceEvent(DatapathErrorStatus, Binding, WsaError, "SIO_GET_EXTENSION_FUNCTION_POINTER (WSARecvMsg)");
+                QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", Binding, WsaError, "SIO_GET_EXTENSION_FUNCTION_POINTER (WSARecvMsg)");
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
             }
@@ -1071,7 +1073,7 @@ QuicDataPathBindingCreate(
                     NULL);
             if (Result != NO_ERROR) {
                 int WsaError = WSAGetLastError();
-                QuicTraceEvent(DatapathErrorStatus, Binding, WsaError, "SIO_SET_PORT_SHARING_PER_PROC_SOCKET");
+                QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", Binding, WsaError, "SIO_SET_PORT_SHARING_PER_PROC_SOCKET");
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
             }
@@ -1087,7 +1089,7 @@ QuicDataPathBindingCreate(
                 sizeof(Option));
         if (Result == SOCKET_ERROR) {
             int WsaError = WSAGetLastError();
-            QuicTraceEvent(DatapathErrorStatus, Binding, WsaError, "Set IPV6_V6ONLY");
+            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", Binding, WsaError, "Set IPV6_V6ONLY");
             Status = HRESULT_FROM_WIN32(WsaError);
             goto Error;
         }
@@ -1102,7 +1104,7 @@ QuicDataPathBindingCreate(
                 sizeof(Option));
         if (Result == SOCKET_ERROR) {
             int WsaError = WSAGetLastError();
-            QuicTraceEvent(DatapathErrorStatus, Binding, WsaError, "Set IP_DONTFRAGMENT");
+            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", Binding, WsaError, "Set IP_DONTFRAGMENT");
             Status = HRESULT_FROM_WIN32(WsaError);
             goto Error;
         }
@@ -1117,7 +1119,7 @@ QuicDataPathBindingCreate(
                 sizeof(Option));
         if (Result == SOCKET_ERROR) {
             int WsaError = WSAGetLastError();
-            QuicTraceEvent(DatapathErrorStatus, Binding, WsaError, "Set IPV6_DONTFRAG");
+            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", Binding, WsaError, "Set IPV6_DONTFRAG");
             Status = HRESULT_FROM_WIN32(WsaError);
             goto Error;
         }
@@ -1132,7 +1134,7 @@ QuicDataPathBindingCreate(
                 sizeof(Option));
         if (Result == SOCKET_ERROR) {
             int WsaError = WSAGetLastError();
-            QuicTraceEvent(DatapathErrorStatus, Binding, WsaError, "Set IPV6_PKTINFO");
+            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", Binding, WsaError, "Set IPV6_PKTINFO");
             Status = HRESULT_FROM_WIN32(WsaError);
             goto Error;
         }
@@ -1147,7 +1149,7 @@ QuicDataPathBindingCreate(
                 sizeof(Option));
         if (Result == SOCKET_ERROR) {
             int WsaError = WSAGetLastError();
-            QuicTraceEvent(DatapathErrorStatus, Binding, WsaError, "Set IP_PKTINFO");
+            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", Binding, WsaError, "Set IP_PKTINFO");
             Status = HRESULT_FROM_WIN32(WsaError);
             goto Error;
         }
@@ -1166,7 +1168,7 @@ QuicDataPathBindingCreate(
                 sizeof(Option));
         if (Result == SOCKET_ERROR) {
             int WsaError = WSAGetLastError();
-            QuicTraceEvent(DatapathErrorStatus, Binding, WsaError, "Set SO_RCVBUF");
+            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", Binding, WsaError, "Set SO_RCVBUF");
             Status = HRESULT_FROM_WIN32(WsaError);
             goto Error;
         }
@@ -1183,7 +1185,7 @@ QuicDataPathBindingCreate(
                     sizeof(Option));
             if (Result == SOCKET_ERROR) {
                 int WsaError = WSAGetLastError();
-                QuicTraceEvent(DatapathErrorStatus, Binding, WsaError, "Set UDP_RECV_MAX_COALESCED_SIZE");
+                QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", Binding, WsaError, "Set UDP_RECV_MAX_COALESCED_SIZE");
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
             }
@@ -1199,7 +1201,7 @@ QuicDataPathBindingCreate(
                 (HANDLE)SocketContext->Socket,
                 FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE)) {
             DWORD LastError = GetLastError();
-            QuicTraceEvent(DatapathErrorStatus, Binding, LastError, "SetFileCompletionNotificationModes");
+            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", Binding, LastError, "SetFileCompletionNotificationModes");
             Status = HRESULT_FROM_WIN32(LastError);
             goto Error;
         }
@@ -1213,7 +1215,7 @@ QUIC_DISABLED_BY_FUZZER_START;
                 sizeof(Binding->LocalAddress));
         if (Result == SOCKET_ERROR) {
             int WsaError = WSAGetLastError();
-            QuicTraceEvent(DatapathErrorStatus, Binding, WsaError, "bind");
+            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", Binding, WsaError, "bind");
             Status = HRESULT_FROM_WIN32(WsaError);
             goto Error;
         }
@@ -1233,7 +1235,7 @@ QUIC_DISABLED_BY_FUZZER_START;
                     sizeof(MappedRemoteAddress));
             if (Result == SOCKET_ERROR) {
                 int WsaError = WSAGetLastError();
-                QuicTraceEvent(DatapathErrorStatus, Binding, WsaError, "connect");
+                QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", Binding, WsaError, "connect");
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
             }
@@ -1298,7 +1300,7 @@ QUIC_DISABLED_BY_FUZZER_END;
                 (ULONG_PTR)SocketContext,
                 0)) {
             DWORD LastError = GetLastError();
-            QuicTraceEvent(DatapathErrorStatus, Binding, LastError, "CreateIoCompletionPort");
+            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", Binding, LastError, "CreateIoCompletionPort");
             Status = HRESULT_FROM_WIN32(LastError);
             goto Error;
         }
@@ -1321,7 +1323,7 @@ QUIC_DISABLED_BY_FUZZER_START;
                     &AssignedLocalAddressLength);
             if (Result == SOCKET_ERROR) {
                 int WsaError = WSAGetLastError();
-                QuicTraceEvent(DatapathErrorStatus, Binding, WsaError, "getsockaddress");
+                QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", Binding, WsaError, "getsockaddress");
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
             }
@@ -1655,7 +1657,7 @@ Retry_recv:
                 QuicDataPathBindingHandleUnreachableError(SocketContext, (ULONG)WsaError);
                 goto Retry_recv;
             } else {
-                QuicTraceEvent(DatapathErrorStatus, SocketContext->Binding, WsaError, "WSARecvMsg");
+                QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", SocketContext->Binding, WsaError, "WSARecvMsg");
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
             }
@@ -1670,7 +1672,7 @@ Retry_recv:
                 (ULONG_PTR)SocketContext,
                 &SocketContext->RecvOverlapped)) {
             DWORD LastError = GetLastError();
-            QuicTraceEvent(DatapathErrorStatus, SocketContext->Binding, LastError, "PostQueuedCompletionStatus");
+            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", SocketContext->Binding, LastError, "PostQueuedCompletionStatus");
             Status = HRESULT_FROM_WIN32(LastError);
             goto Error;
         }
@@ -1800,12 +1802,7 @@ QuicDataPathRecvComplete(
 
         QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
-        QuicTraceEvent(DatapathRecv,
-            SocketContext->Binding,
-            NumberOfBytesTransferred,
-            MessageLength,
-            LOG_ADDR_LEN(*LocalAddr), LOG_ADDR_LEN(*RemoteAddr),
-            (UINT8*)LocalAddr, (UINT8*)RemoteAddr);
+        QuicTraceEvent(DatapathRecv, "[ udp][%p] Recv %d bytes (segment=%hd) Src=%c Dst=%c, CLOGBUG=%p, CLOGBUG=%p", SocketContext->Binding, NumberOfBytesTransferred, MessageLength, LOG_ADDR_LEN(*LocalAddr), LOG_ADDR_LEN(*RemoteAddr), (UINT8*)LocalAddr, (UINT8*)RemoteAddr);
 
         QUIC_DBG_ASSERT(NumberOfBytesTransferred <= SocketContext->RecvWsaBuf.len);
 
@@ -1875,7 +1872,7 @@ QuicDataPathRecvComplete(
             DatagramChain);
 
     } else {
-        QuicTraceEvent(DatapathErrorStatus, SocketContext->Binding, IoResult, "WSARecvMsg completion");
+        QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", SocketContext->Binding, IoResult, "WSARecvMsg completion");
     }
 
 Drop:
@@ -2208,7 +2205,7 @@ QuicSendContextComplete(
     )
 {
     if (IoResult != QUIC_STATUS_SUCCESS) {
-        QuicTraceEvent(DatapathErrorStatus, SocketContext->Binding, IoResult, "WSASendMsg completion");
+        QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", SocketContext->Binding, IoResult, "WSASendMsg completion");
     }
 
     QuicDataPathBindingFreeSendContext(SendContext);
@@ -2244,12 +2241,7 @@ QuicDataPathBindingSendTo(
     SocketContext = &Binding->SocketContexts[Binding->Connected ? 0 : GetCurrentProcessorNumber()];
     Socket = SocketContext->Socket;
 
-    QuicTraceEvent(DatapathSendTo,
-        Binding,
-        SendContext->TotalSize,
-        SendContext->WsaBufferCount,
-        SendContext->SegmentSize,
-        LOG_ADDR_LEN(*RemoteAddress), (UINT8*)RemoteAddress);
+    QuicTraceEvent(DatapathSendTo, "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%p, CLOGBUG=%c", Binding, SendContext->TotalSize, SendContext->WsaBufferCount, SendContext->SegmentSize, (UINT8*)RemoteAddress, LOG_ADDR_LEN(*RemoteAddress));
 
     WSAMSG WSAMhdr;
     WSAMhdr.dwFlags = 0;
@@ -2295,7 +2287,7 @@ QuicDataPathBindingSendTo(
     if (Result == SOCKET_ERROR) {
         int WsaError = WSAGetLastError();
         if (WsaError != WSA_IO_PENDING) {
-            QuicTraceEvent(DatapathErrorStatus, SocketContext->Binding, WsaError, "WSASendMsg");
+            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", SocketContext->Binding, WsaError, "WSASendMsg");
             Status = HRESULT_FROM_WIN32(WsaError);
             goto Exit;
         }
@@ -2352,13 +2344,7 @@ QuicDataPathBindingSendFromTo(
     SocketContext = &Binding->SocketContexts[Binding->Connected ? 0 : GetCurrentProcessorNumber()];
     Socket = SocketContext->Socket;
 
-    QuicTraceEvent(DatapathSendFromTo,
-        Binding,
-        SendContext->TotalSize,
-        SendContext->WsaBufferCount,
-        SendContext->SegmentSize,
-        LOG_ADDR_LEN(*RemoteAddress), LOG_ADDR_LEN(*LocalAddress),
-        (UINT8*)RemoteAddress, (UINT8*)LocalAddress);
+    QuicTraceEvent(DatapathSendFromTo, "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Src=%p Dst=%p, CLOGBUG=%c, CLOGBUG=%c", Binding, SendContext->TotalSize, SendContext->WsaBufferCount, SendContext->SegmentSize, (UINT8*)LocalAddress, (UINT8*)RemoteAddress, LOG_ADDR_LEN(*RemoteAddress), LOG_ADDR_LEN(*LocalAddress));
 
     //
     // Map V4 address to dual-stack socket format.
@@ -2433,7 +2419,7 @@ QuicDataPathBindingSendFromTo(
     if (Result == SOCKET_ERROR) {
         int WsaError = WSAGetLastError();
         if (WsaError != WSA_IO_PENDING) {
-            QuicTraceEvent(DatapathErrorStatus, SocketContext->Binding, WsaError, "WSASendMsg");
+            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", SocketContext->Binding, WsaError, "WSASendMsg");
             Status = HRESULT_FROM_WIN32(WsaError);
             goto Exit;
         }

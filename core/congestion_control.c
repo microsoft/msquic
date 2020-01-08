@@ -24,7 +24,9 @@ Future work:
 #include "precomp.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "congestion_control.tmh"
+; //<-- WPP line was here
+#include "congestion_control.c.clog"
+
 #endif
 
 //
@@ -77,12 +79,7 @@ QuicConnLogCubic(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
-    QuicTraceEvent(ConnCubic,
-        Connection,
-        Connection->CongestionControl.SlowStartThreshold,
-        Connection->CongestionControl.KCubic,
-        Connection->CongestionControl.WindowMax,
-        Connection->CongestionControl.WindowLastMax);
+    QuicTraceEvent(ConnCubic, "[conn][%p] CUBIC: SlowStartThreshold=%d K=%d WindowMax=%d WindowLastMax=%d", Connection, Connection->CongestionControl.SlowStartThreshold, Connection->CongestionControl.KCubic, Connection->CongestionControl.WindowMax, Connection->CongestionControl.WindowLastMax);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -251,7 +248,7 @@ QuicCongestionControlOnCongestionEvent(
     )
 {
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
-    QuicTraceEvent(ConnCongestion, Connection);
+    QuicTraceEvent(ConnCongestion, "[conn][%p] Congestion event", Connection);
     Connection->Stats.Send.CongestionCount++;
 
     Cc->IsInRecovery = TRUE;
@@ -297,7 +294,7 @@ QuicCongestionControlOnPersistentCongestionEvent(
     )
 {
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
-    QuicTraceEvent(ConnPersistentCongestion, Connection);
+    QuicTraceEvent(ConnPersistentCongestion, "[conn][%p] Persistent congestion event", Connection);
     Connection->Stats.Send.PersistentCongestionCount++;
 
     Cc->IsInPersistentCongestion = TRUE;
@@ -370,7 +367,7 @@ QuicCongestionControlOnDataAcknowledged(
             // bit differently here than in TCP: we simply require an ACK for a
             // packet sent after recovery started.
             //
-            QuicTraceEvent(ConnRecoveryExit, Connection);
+            QuicTraceEvent(ConnRecoveryExit, "[conn][%p] Recovery complete", Connection);
             Cc->IsInRecovery = FALSE;
             Cc->IsInPersistentCongestion = FALSE;
             Cc->TimeOfCongAvoidStart = QuicTimeMs64();

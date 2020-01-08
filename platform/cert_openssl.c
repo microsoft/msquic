@@ -14,7 +14,9 @@ Abstract:
 #include "platform_internal.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "cert_openssl.tmh"
+; //<-- WPP line was here
+#include "cert_openssl.c.clog"
+
 #endif
 
 #include <mitlsffi.h>

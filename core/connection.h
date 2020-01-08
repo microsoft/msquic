@@ -659,20 +659,7 @@ QuicConnLogOutFlowStats(
 #error - removed for now
 #else
     const QUIC_PATH* Path = &Connection->Paths[0];
-    QuicTraceEvent(
-        ConnOutFlowStats,
-        Connection,
-        Connection->Stats.Send.TotalBytes,
-        Connection->CongestionControl.BytesInFlight,
-        Connection->CongestionControl.BytesInFlightMax,
-        Connection->CongestionControl.CongestionWindow,
-        Connection->CongestionControl.SlowStartThreshold,
-        Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
-        FcAvailable,
-        Connection->SendBuffer.IdealBytes,
-        Connection->SendBuffer.PostedBytes,
-        Path->GotFirstRttSample ? Path->SmoothedRtt : 0,
-        SendWindow);
+    QuicTraceEvent(ConnOutFlowStats, "[conn][%p] OUT: BytesSent=%I InFlight=%d InFlightMax=%d CWnd=%d SSThresh=%d ConnFC=%I StreamFC=%I ISB=%I PostedBytes=%p0 SRtt=%p1 StreamSendWindow=%p2, CLOGBUG=%I, CLOGBUG=%d, CLOGBUG=%I", Connection, Connection->Stats.Send.TotalBytes, Connection->CongestionControl.BytesInFlight, Connection->CongestionControl.BytesInFlightMax, Connection->CongestionControl.CongestionWindow, Connection->CongestionControl.SlowStartThreshold, Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent, FcAvailable, Connection->SendBuffer.IdealBytes, Connection, Connection, Connection, Connection->SendBuffer.PostedBytes, Path->GotFirstRttSample ? Path->SmoothedRtt : 0, SendWindow);
 #endif
 }
 
@@ -682,10 +669,7 @@ QuicConnLogInFlowStats(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
-    QuicTraceEvent(
-        ConnInFlowStats,
-        Connection,
-        Connection->Stats.Recv.TotalBytes);
+    QuicTraceEvent(ConnInFlowStats, "[conn][%p] IN: BytesRecv=%I", Connection, Connection->Stats.Recv.TotalBytes);
 }
 
 inline
@@ -698,23 +682,7 @@ QuicConnLogStatistics(
 #error - removed for now
 #else
     const QUIC_PATH* Path = &Connection->Paths[0];
-    QuicTraceEvent(
-        ConnStatistics,
-        Connection,
-        QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()),
-        Connection->Stats.Send.TotalPackets,
-        Connection->Stats.Send.SuspectedLostPackets,
-        Connection->Stats.Send.SpuriousLostPackets,
-        Connection->Stats.Recv.TotalPackets,
-        Connection->Stats.Recv.ReorderedPackets,
-        Connection->Stats.Recv.DroppedPackets,
-        Connection->Stats.Recv.DuplicatePackets,
-        Connection->Stats.Recv.DecryptionFailures,
-        Connection->Stats.Send.CongestionCount,
-        Connection->Stats.Send.PersistentCongestionCount,
-        Connection->Stats.Send.TotalBytes,
-        Connection->Stats.Recv.TotalBytes,
-        Path->SmoothedRtt);
+    QuicTraceEvent(ConnStatistics, "[conn][%p] STATS: LifeTimeUs=%I SendTotalPackets=%I SendSuspectedLostPackets=%I SendSpuriousLostPackets=%I RecvTotalPackets=%I RecvReorderedPackets=%I RecvDroppedPackets=%I RecvDuplicatePackets=%I RecvDecryptionFailures=%p0 CongestionCount=%p1 PersistentCongestionCount=%p2 SendTotalBytes=%p3 RecvTotalBytes=%p4 SRtt=%p5, CLOGBUG=%I, CLOGBUG=%d, CLOGBUG=%d, CLOGBUG=%I, CLOGBUG=%I, CLOGBUG=%d", Connection, QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()), Connection->Stats.Send.TotalPackets, Connection->Stats.Send.SuspectedLostPackets, Connection->Stats.Send.SpuriousLostPackets, Connection->Stats.Recv.TotalPackets, Connection->Stats.Recv.ReorderedPackets, Connection->Stats.Recv.DroppedPackets, Connection->Stats.Recv.DuplicatePackets, Connection, Connection, Connection, Connection, Connection, Connection, Connection->Stats.Recv.DecryptionFailures, Connection->Stats.Send.CongestionCount, Connection->Stats.Send.PersistentCongestionCount, Connection->Stats.Send.TotalBytes, Connection->Stats.Recv.TotalBytes, Path->SmoothedRtt);
 #endif
 }
 
@@ -727,7 +695,7 @@ QuicConnAddOutFlowBlockedReason(
 {
     if (!(Connection->OutFlowBlockedReasons & Reason)) {
         Connection->OutFlowBlockedReasons |= Reason;
-        QuicTraceEvent(ConnOutFlowBlocked, Connection, Connection->OutFlowBlockedReasons);
+        QuicTraceEvent(ConnOutFlowBlocked, "[conn][%p] Send Blocked Flags: %c", Connection, Connection->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -742,7 +710,7 @@ QuicConnRemoveOutFlowBlockedReason(
 {
     if ((Connection->OutFlowBlockedReasons & Reason)) {
         Connection->OutFlowBlockedReasons &= ~Reason;
-        QuicTraceEvent(ConnOutFlowBlocked, Connection, Connection->OutFlowBlockedReasons);
+        QuicTraceEvent(ConnOutFlowBlocked, "[conn][%p] Send Blocked Flags: %c", Connection, Connection->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;

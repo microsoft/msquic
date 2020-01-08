@@ -12,7 +12,9 @@ Abstract:
 #include "precomp.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "frame.tmh"
+; //<-- WPP line was here
+#include "frame.c.clog"
+
 #endif
 
 _Post_equal_to_(Buffer + sizeof(uint8_t))

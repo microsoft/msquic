@@ -20,7 +20,9 @@ Abstract:
 #include "openssl/pem.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "selfsign_openssl.tmh"
+; //<-- WPP line was here
+#include "selfsign_openssl.c.clog"
+
 #endif
 
 //

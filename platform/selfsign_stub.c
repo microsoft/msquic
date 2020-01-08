@@ -14,7 +14,9 @@ Abstract:
 #include "platform_internal.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "selfsign_stub.tmh"
+; //<-- WPP line was here
+#include "selfsign_stub.c.clog"
+
 #endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

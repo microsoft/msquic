@@ -18,7 +18,9 @@ Environment:
 #include "platform_internal.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "storage_winuser.tmh"
+; //<-- WPP line was here
+#include "storage_winuser.c.clog"
+
 #endif
 
 void

@@ -12,7 +12,9 @@ Abstract:
 #include "precomp.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "library.tmh"
+; //<-- WPP line was here
+#include "library.c.clog"
+
 #endif
 
 QUIC_LIBRARY MsQuicLib = { 0 };
@@ -146,7 +148,7 @@ MsQuicLibraryInitialize(
             RawKey,
             &MsQuicLib.StatelessRetryKey);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "Create stateless retry key");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "Create stateless retry key");
         goto Error;
     }
 
@@ -163,8 +165,7 @@ MsQuicLibraryInitialize(
     MsQuicLib.PerProc =
         QUIC_ALLOC_NONPAGED(MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
     if (MsQuicLib.PerProc == NULL) {
-        QuicTraceEvent(AllocFailure, "connection pools",
-            MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "connection pools", MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -183,13 +184,11 @@ MsQuicLibraryInitialize(
             QuicBindingUnreachable,
             &MsQuicLib.Datapath);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "QuicDataPathInitialize");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "QuicDataPathInitialize");
         goto Error;
     }
 
-    QuicTraceEvent(LibraryInitialized,
-        MsQuicLib.PartitionCount,
-        QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+    QuicTraceEvent(LibraryInitialized, "[ lib] Initialized, PartitionCount=%d DatapathFeatures=%d", MsQuicLib.PartitionCount, QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 
 #ifdef QuicVerifierEnabled
     uint32_t Flags;
@@ -282,7 +281,7 @@ MsQuicLibraryUninitialize(
     QuicDataPathUninitialize(MsQuicLib.Datapath);
     MsQuicLib.Datapath = NULL;
 
-    QuicTraceEvent(LibraryUninitialized);
+    QuicTraceEvent(LibraryUninitialized, "[ lib] Uninitialized");
 
     QuicPlatformUninitialize();
 }
@@ -318,7 +317,7 @@ MsQuicAddRef(
         }
     }
 
-    QuicTraceEvent(LibraryAddRef);
+    QuicTraceEvent(LibraryAddRef, "[ lib] AddRef");
 
 Error:
 
@@ -341,7 +340,7 @@ MsQuicRelease(
     //
 
     QUIC_FRE_ASSERT(MsQuicLib.RefCount > 0);
-    QuicTraceEvent(LibraryRelease);
+    QuicTraceEvent(LibraryRelease, "[ lib] Release");
 
     if (--MsQuicLib.RefCount == 0) {
         MsQuicLibraryUninitialize();
@@ -1090,7 +1089,7 @@ QuicLibraryOnListenerRegistered(
         //
         // Make sure the handshake worker threads are initialized.
         //
-        QuicTraceEvent(LibraryWorkerPoolInit);
+        QuicTraceEvent(LibraryWorkerPoolInit, "[ lib] Shared worker pool initializing");
         if (QUIC_FAILED(
             QuicWorkerPoolInitialize(
                 NULL,
@@ -1131,9 +1130,7 @@ QuicTraceRundown(
     QuicLockAcquire(&MsQuicLib.Lock);
 
     if (MsQuicLib.RefCount > 0) {
-        QuicTraceEvent(LibraryRundown,
-            MsQuicLib.PartitionCount,
-            QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        QuicTraceEvent(LibraryRundown, "[ lib] Rundown, PartitionCount=%d DatapathFeatures=%d", MsQuicLib.PartitionCount, QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 
         for (QUIC_LIST_ENTRY* Link = MsQuicLib.Registrations.Flink;
             Link != &MsQuicLib.Registrations;

@@ -16,7 +16,9 @@ Environment:
 #include "platform_internal.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "platform_winuser.tmh"
+; //<-- WPP line was here
+#include "platform_winuser.c.clog"
+
 #endif
 
 #if defined(QUIC_LOGS_WPP)
@@ -81,7 +83,7 @@ QuicPlatformInitialize(
 
     if (!GlobalMemoryStatusEx(&memInfo)) {
         DWORD Error = GetLastError();
-        QuicTraceEvent(LibraryErrorStatus, Error, "GlobalMemoryStatusEx");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Error, "GlobalMemoryStatusEx");
         Status = HRESULT_FROM_WIN32(Error);
         goto Error;
     }
@@ -128,7 +130,7 @@ QuicPlatformLogAssert(
     _In_z_ const char* Expr
     )
 {
-    QuicTraceEvent(LibraryAssert, (uint32_t)Line, File, Expr);
+    QuicTraceEvent(LibraryAssert, "[ lib] ASSERT, %s:%d - %s.", File, (uint32_t)Line, Expr);
 }
 
 #ifdef QUIC_FUZZER

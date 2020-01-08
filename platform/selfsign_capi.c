@@ -14,7 +14,9 @@ Abstract:
 #include "platform_internal.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "selfsign_capi.tmh"
+; //<-- WPP line was here
+#include "selfsign_capi.c.clog"
+
 #endif
 
 #include <wincrypt.h>

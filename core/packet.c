@@ -12,7 +12,9 @@ Abstract:
 #include "precomp.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "packet.tmh"
+; //<-- WPP line was here
+#include "packet.c.clog"
+
 #endif
 
 //
@@ -553,24 +555,10 @@ QuicPacketLogDrop(
 
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*) &((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
-        QuicTraceEvent(ConnDropPacket,
-            Owner,
-            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
-            LOG_ADDR_LEN(Datagram->Tuple->LocalAddress),
-            LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress),
-            (uint8_t*)&Datagram->Tuple->LocalAddress,
-            (uint8_t*)&Datagram->Tuple->RemoteAddress,
-            Reason);
+        QuicTraceEvent(ConnDropPacket, "[conn][%p] DROP packet[%I] Src=%p Dst=%p Reason=%s., CLOGBUG=%c, CLOGBUG=%c", Owner, Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber, (uint8_t*)&Datagram->Tuple->RemoteAddress, (uint8_t*)&Datagram->Tuple->LocalAddress, Reason, LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress));
     } else {
         InterlockedIncrement64((int64_t*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
-        QuicTraceEvent(BindingDropPacket,
-            Owner,
-            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
-            LOG_ADDR_LEN(Datagram->Tuple->LocalAddress),
-            LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress),
-            (uint8_t*)&Datagram->Tuple->LocalAddress,
-            (uint8_t*)&Datagram->Tuple->RemoteAddress,
-            Reason);
+        QuicTraceEvent(BindingDropPacket, "[bind][%p] DROP packet[%I] Src=%p Dst=%p Reason=%s., CLOGBUG=%c, CLOGBUG=%c", Owner, Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber, (uint8_t*)&Datagram->Tuple->RemoteAddress, (uint8_t*)&Datagram->Tuple->LocalAddress, Reason, LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress));
     }
 }
 
@@ -588,25 +576,9 @@ QuicPacketLogDropWithValue(
 
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*) & ((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
-        QuicTraceEvent(ConnDropPacketEx,
-            Owner,
-            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
-            Value,
-            LOG_ADDR_LEN(Datagram->Tuple->LocalAddress),
-            LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress),
-            (uint8_t*)&Datagram->Tuple->LocalAddress,
-            (uint8_t*)&Datagram->Tuple->RemoteAddress,
-            Reason);
+        QuicTraceEvent(ConnDropPacketEx, "[conn][%p] DROP packet[%I] Src=%p Dst=%p Reason=%s, %I., CLOGBUG=%c, CLOGBUG=%c", Owner, Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber, (uint8_t*)&Datagram->Tuple->RemoteAddress, (uint8_t*)&Datagram->Tuple->LocalAddress, Reason, Value, LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress));
     } else {
         InterlockedIncrement64((int64_t*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
-        QuicTraceEvent(BindingDropPacketEx,
-            Owner,
-            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
-            Value,
-            LOG_ADDR_LEN(Datagram->Tuple->LocalAddress),
-            LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress),
-            (uint8_t*)&Datagram->Tuple->LocalAddress,
-            (uint8_t*)&Datagram->Tuple->RemoteAddress,
-            Reason);
+        QuicTraceEvent(BindingDropPacketEx, "[bind][%p] DROP packet[%I] Src=%p Dst=%p Reason=%s, %I., CLOGBUG=%c, CLOGBUG=%c", Owner, Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber, (uint8_t*)&Datagram->Tuple->RemoteAddress, (uint8_t*)&Datagram->Tuple->LocalAddress, Reason, Value, LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress));
     }
 }

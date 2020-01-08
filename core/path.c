@@ -16,7 +16,9 @@ TODO:
 #include "precomp.h"
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-#include "path.tmh"
+; //<-- WPP line was here
+#include "path.c.clog"
+
 #endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
