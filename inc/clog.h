@@ -18,10 +18,17 @@ extern "C" {
 
     
 #define EXPAND(x) x
-#define SELECT_ARGN_MACRO(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, N, ...) N
+#define SELECT_ARGN_MACRO(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25, N, ...) N
 #define CLOG_ARGN_SELECTOR(...) \
     EXPAND(SELECT_ARGN_MACRO( \
         __VA_ARGS__,\
+        CLOG_25_ARGS_TRACE,\
+        CLOG_24_ARGS_TRACE,\
+        CLOG_23_ARGS_TRACE,\
+        CLOG_22_ARGS_TRACE,\
+        CLOG_21_ARGS_TRACE,\
+        CLOG_20_ARGS_TRACE,\
+        CLOG_19_ARGS_TRACE,\
         CLOG_18_ARGS_TRACE,\
         CLOG_17_ARGS_TRACE,\
         CLOG_16_ARGS_TRACE,\
@@ -63,10 +70,20 @@ extern "C" {
 
     
 #define EXPAND(x) x
-#define SELECT_ARGN_MACRO(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, N, ...) N
+#define SELECT_ARGN_MACRO(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25, N, ...) N
 #define CLOG_ARGN_SELECTOR(...) \
     EXPAND(SELECT_ARGN_MACRO( \
         __VA_ARGS__, \
+        CLOG_25_ARGS_TRACE,\
+        CLOG_24_ARGS_TRACE,\
+        CLOG_23_ARGS_TRACE,\
+        CLOG_22_ARGS_TRACE,\
+        CLOG_21_ARGS_TRACE,\
+        CLOG_20_ARGS_TRACE,\
+        CLOG_19_ARGS_TRACE,\
+        CLOG_18_ARGS_TRACE,\
+        CLOG_17_ARGS_TRACE,\
+        CLOG_16_ARGS_TRACE,\
         CLOG_15_ARGS_TRACE, \
         CLOG_14_ARGS_TRACE, \
         CLOG_13_ARGS_TRACE, \
