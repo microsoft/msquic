@@ -1,3 +1,6 @@
+#pragma once 
+
+
 #if 0
 #error - clog_h - linux
 

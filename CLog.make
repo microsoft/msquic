@@ -1,6 +1,7 @@
 function(CLOG_ADD_SOURCEFILE)
 	set(library ${ARGV0})
 	list(REMOVE_AT ARGV 0)
+    message(STATUS "****************<<<<<<<   CLOG(${library}))    >>>>>>>>>>>>>>>*******************")
 	
 	set(CMAKE_CLOG_BINS_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/tools/bin/clog)
 	set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_SOURCE_DIR}/manifest)
@@ -42,7 +43,17 @@ function(CLOG_ADD_SOURCEFILE)
     endforeach()
 	    
 
+    foreach(arg IN LISTS ARGV)
+        message(STATUS "++SRC_FILE ${arg}")
+    endforeach()
+    foreach(arg IN LISTS clogfiles)
+        message(STATUS "+CLOG_FILE ${arg}")
+    endforeach()
     list(APPEND foo ${clogfiles} ${${library}})
 	set(${${library}} ${foo} PARENT_SCOPE)
+    foreach(arg IN LISTS foo)
+        message(STATUS "+MERGE ${arg}")
+    endforeach()
+    message(STATUS "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
    
 endfunction()

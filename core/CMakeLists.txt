@@ -51,6 +51,9 @@ endif()
 #     ...it'd be preferred to have the helper function set this requirement
 #
 CLOG_ADD_SOURCEFILE(SOURCES ${SOURCES})
+foreach(arg IN LISTS ${SOURCES})
+    message(STATUS "***FILE ${arg}")
+endforeach()
 	
 #
 # quic_trace_lttng.h is a helper and part of QUIC convention;  explicitly add it
