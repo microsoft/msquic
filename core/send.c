@@ -121,21 +121,7 @@ QuicSendQueueFlush(
         QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
         if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_FLUSH_SEND)) != NULL) {
             Send->FlushOperationPending = TRUE;
-            const char* ReasonStrings[] = {
-                "Flags",
-                "Stream",
-                "Probe",
-                "Loss",
-                "ACK",
-                "TP",
-                "CC",
-                "FC",
-                "NewKey",
-                "StreamFC",
-                "StreamID",
-                "AmpProtect"
-            };
-            QuicTraceLogConnVerbose(QueueSendFlush, Connection, "Queuing send flush (%s)", ReasonStrings[Reason]);
+            QuicTraceEvent(ConnQueueSendFlush, Connection, Reason);
             QuicConnQueueOper(Connection, Oper);
         }
     }
@@ -862,27 +848,27 @@ typedef enum QUIC_SEND_RESULT {
 
 } QUIC_SEND_RESULT;
 
-//
-// Sends items from the output queue.
-//
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_SEND_RESULT
+BOOLEAN
 QuicSendFlush(
     _In_ QUIC_SEND* Send
     )
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
+    QUIC_DBG_ASSERT(!Connection->State.HandleClosed);
+
+    QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_PACING);
     QuicConnRemoveOutFlowBlockedReason(
-        Connection, QUIC_FLOW_BLOCKED_SCHEDULING);
+        Connection, QUIC_FLOW_BLOCKED_SCHEDULING | QUIC_FLOW_BLOCKED_PACING);
 
     if (Send->SendFlags == 0 && QuicListIsEmpty(&Send->SendStreams)) {
-        return QUIC_SEND_COMPLETE;
+        return TRUE;
     }
 
     QUIC_PATH* Path = &Connection->Paths[0];
     if (Path->DestCid == NULL) {
-        return QUIC_SEND_COMPLETE;
+        return TRUE;
     }
 
     QUIC_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
@@ -903,7 +889,7 @@ QuicSendFlush(
         // uninitialized) state, so just ignore the send flush call. This can
         // happen if a loss detection fires right after shutdown.
         //
-        return QUIC_SEND_COMPLETE;
+        return TRUE;
     }
     _Analysis_assume_(Builder.Metadata != NULL);
 
@@ -934,6 +920,8 @@ QuicSendFlush(
                     // The current pacing chunk is finished. We need to schedule a
                     // new pacing send.
                     //
+                    QuicConnAddOutFlowBlockedReason(
+                        Connection, QUIC_FLOW_BLOCKED_PACING);
                     QuicTraceLogConnVerbose(SetPacingTimer, Connection, "Setting delayed send (PACING) timer for %u ms",
                         QUIC_SEND_PACING_INTERVAL);
                     QuicConnTimerSet(
@@ -1040,45 +1028,24 @@ QuicSendFlush(
     } while (Builder.SendContext != NULL ||
         Builder.TotalCountDatagrams < QUIC_MAX_DATAGRAMS_PER_SEND);
 
-    if (Result == QUIC_SEND_INCOMPLETE &&
-        Builder.TotalCountDatagrams >= QUIC_MAX_DATAGRAMS_PER_SEND) {
-        //
-        // The send is limited by the scheduling logic.
-        //
-        QuicConnAddOutFlowBlockedReason(
-            Connection, QUIC_FLOW_BLOCKED_SCHEDULING);
-    }
-
     QuicPacketBuilderCleanup(&Builder);
 
     QuicTraceLogConnVerbose(SendFlushComplete, Connection, "Flush complete flags=0x%x", Send->SendFlags);
 
-    return Result;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-QuicSendProcessFlushSendOperation(
-    _In_ QUIC_SEND* Send,
-    _In_ BOOLEAN Immediate
-    )
-{
-    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
-
-    QUIC_DBG_ASSERT(!Connection->State.HandleClosed);
-
-    QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_PACING);
-    QUIC_SEND_RESULT SendResult = QuicSendFlush(Send);
-
-    if (!Immediate && SendResult != QUIC_SEND_INCOMPLETE) {
+    if (Result == QUIC_SEND_INCOMPLETE) {
         //
-        // We have no more data to immediately send out so clear the pending
-        // flag.
+        // The send is limited by the scheduling logic.
         //
-        Send->FlushOperationPending = FALSE;
+        QuicConnAddOutFlowBlockedReason(Connection, QUIC_FLOW_BLOCKED_SCHEDULING);
+
+        //
+        // We have more data to send so we need to make sure a flush send
+        // operation is queued to send the rest.
+        //
+        QuicSendQueueFlush(&Connection->Send, REASON_SCHEDULING);
     }
 
-    return SendResult == QUIC_SEND_INCOMPLETE;
+    return Result != QUIC_SEND_INCOMPLETE;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

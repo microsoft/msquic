@@ -281,7 +281,8 @@ typedef enum QUIC_SEND_FLUSH_REASON {
     REASON_NEW_KEY,
     REASON_STREAM_FLOW_CONTROL,
     REASON_STREAM_ID_FLOW_CONTROL,
-    REASON_AMP_PROTECTION
+    REASON_AMP_PROTECTION,
+    REASON_SCHEDULING
 } QUIC_SEND_FLUSH_REASON;
 
 //
@@ -295,14 +296,13 @@ QuicSendQueueFlush(
     );
 
 //
-// Called in response to FLUSH_SEND operation. Drains all queued data that
-// needs to be sent.
+// Tries to drain all queued data that needs to be sent. Returns TRUE if all the
+// data was drained.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
-QuicSendProcessFlushSendOperation(
-    _In_ QUIC_SEND* Send,
-    _In_ BOOLEAN Immediate
+QuicSendFlush(
+    _In_ QUIC_SEND* Send
     );
 
 //

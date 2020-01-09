@@ -2525,7 +2525,7 @@ QuicEncrypt(
         uint8_t* Buffer
     )
 {
-    QUIC_DBG_ASSERT(BufferLength > QUIC_ENCRYPTION_OVERHEAD);
+    QUIC_DBG_ASSERT(QUIC_ENCRYPTION_OVERHEAD <= BufferLength);
     uint16_t PlainTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
 
     uint8_t Temp[QUIC_MAX_MTU];
@@ -2562,7 +2562,7 @@ QuicDecrypt(
         uint8_t* Buffer
     )
 {
-    QUIC_DBG_ASSERT(BufferLength > QUIC_ENCRYPTION_OVERHEAD);
+    QUIC_DBG_ASSERT(QUIC_ENCRYPTION_OVERHEAD <= BufferLength);
     uint16_t PlainTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
 
     uint8_t Temp[QUIC_MAX_MTU];

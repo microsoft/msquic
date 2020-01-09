@@ -423,13 +423,9 @@ QuicWorkerProcessConnection(
     //
     // Process some operations.
     //
-    BOOLEAN StillHasWorkToDo = QuicConnDrainOperations(Connection);
+    BOOLEAN StillHasWorkToDo =
+        QuicConnDrainOperations(Connection) | Connection->State.UpdateWorker;
     Connection->WorkerThreadID = 0;
-
-    //
-    // If UpdateWorker is TRUE, then StillHasWorkToDo should be TRUE as well.
-    //
-    QUIC_DBG_ASSERT(!Connection->State.UpdateWorker || StillHasWorkToDo);
 
     //
     // Determine whether the connection needs to be requeued.

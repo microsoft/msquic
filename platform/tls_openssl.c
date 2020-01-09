@@ -1800,6 +1800,7 @@ QuicEncrypt(
     _Inout_updates_bytes_(BufferLength) uint8_t* Buffer
     )
 {
+    QUIC_DBG_ASSERT(QUIC_ENCRYPTION_OVERHEAD <= BufferLength);
     int Ret =
         QuicTlsEncrypt(
             Buffer,
@@ -1826,6 +1827,7 @@ QuicDecrypt(
     _Inout_updates_bytes_(BufferLength) uint8_t* Buffer
     )
 {
+    QUIC_DBG_ASSERT(QUIC_ENCRYPTION_OVERHEAD <= BufferLength);
     int Ret =
         QuicTlsDecrypt(
             Buffer,

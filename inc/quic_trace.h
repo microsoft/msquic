@@ -47,12 +47,13 @@ Abstract:
 
 typedef enum QUIC_FLOW_BLOCK_REASON {
     QUIC_FLOW_BLOCKED_SCHEDULING            = 0x01,
-    QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT    = 0x02,
-    QUIC_FLOW_BLOCKED_CONGESTION_CONTROL    = 0x04,
-    QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL     = 0x08,
-    QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL= 0x10,
-    QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL   = 0x20,
-    QUIC_FLOW_BLOCKED_APP                   = 0x40
+    QUIC_FLOW_BLOCKED_PACING                = 0x02,
+    QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT    = 0x04,
+    QUIC_FLOW_BLOCKED_CONGESTION_CONTROL    = 0x08,
+    QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL     = 0x10,
+    QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL= 0x20,
+    QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL   = 0x40,
+    QUIC_FLOW_BLOCKED_APP                   = 0x80
 } QUIC_FLOW_BLOCK_REASON;
 
 typedef enum QUIC_TRACE_PACKET_TYPE {
@@ -376,6 +377,8 @@ QuicEtwCallback(
     QuicSysLogWrite(QUIC_TRACE_LEVEL_VERBOSE, "[conn][%p] [TX][%llu] %u Lost: %u", Connection, Number, Type, Reason)
 #define EventWriteQuicConnPacketACKed(Connection, Number, Type) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_VERBOSE, "[conn][%p] [TX][%llu] %u ACKed", Connection, Number, Type)
+#define EventWriteQuicConnQueueSendFlush(Connection, Reason) \
+    QuicSysLogWrite(QUIC_TRACE_LEVEL_VERBOSE, "[conn][%p] Queueing send flush, reason=%u", Connection, Reason)
 
 #define EventWriteQuicStreamCreated(Stream, Connection, ID, IsLocalOwned) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[strm][%p] Created, Connection=%p ID=%llu IsLocal=%hu", Stream, Connection, ID, IsLocalOwned)

@@ -323,6 +323,7 @@ typedef enum QUIC_EVENT_ID_CONNECTION {
     EventId_QuicConnLogWarning,
     EventId_QuicConnLogInfo,
     EventId_QuicConnLogVerbose,
+    EventId_QuicQueueSendFlush,
 
     EventId_QuicConnCount
 } QUIC_EVENT_ID_CONNECTION;
@@ -476,6 +477,9 @@ typedef struct QUIC_EVENT_DATA_CONNECTION {
         struct {
             char Msg[1];
         } Log;
+        struct {
+            UINT32 Reason;
+        } QueueSendFlush;
     };
 } QUIC_EVENT_DATA_CONNECTION;
 #pragma pack(pop)
