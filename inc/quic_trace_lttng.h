@@ -834,6 +834,14 @@ QUIC_TRACE_EVENT(ConnPacketACKed,
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(uint32_t, arg4, arg4))
 )
+QUIC_TRACE_EVENT(ConnQueueSendFlush,
+    TP_ARGS(
+        const void*, Connection,
+        uint32_t, Reason),
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, Connection, Connection)
+        ctf_integer(uint32_t, Reason, Reason))
+)
 QUIC_TRACE_EVENT(StreamCreated,
     TP_ARGS(
         const void*, Stream,

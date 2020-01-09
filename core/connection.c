@@ -996,7 +996,7 @@ QuicConnTimerExpired(
         // We don't want to actually call the flush immediate above as it can
         // cause a new timer to be inserted, messing up timer loop.
         //
-        (void)QuicSendProcessFlushSendOperation(&Connection->Send, TRUE);
+        (void)QuicSendFlush(&Connection->Send);
     }
 }
 
@@ -5080,10 +5080,15 @@ QuicConnDrainOperations(
             break;
 
         case QUIC_OPER_TYPE_FLUSH_SEND:
-            if (QuicSendProcessFlushSendOperation(&Connection->Send, FALSE)) {
+            if (QuicSendFlush(&Connection->Send)) {
                 //
-                // Still have more packets to send. Put the operation back
-                // on the queue.
+                // We have no more data to send out so clear the pending flag.
+                //
+                Connection->Send.FlushOperationPending = FALSE;
+            } else {
+                //
+                // Still have more data to send. Put the operation back on the
+                // queue.
                 //
                 FreeOper = FALSE;
                 (void)QuicOperationEnqueue(&Connection->OperQ, Oper);
@@ -5124,7 +5129,7 @@ QuicConnDrainOperations(
         // immediate ACK. So as to not introduce additional queuing delay do one
         // immediate flush now.
         //
-        QuicSendProcessFlushSendOperation(&Connection->Send, TRUE);
+        (void)QuicSendFlush(&Connection->Send);
     }
 
     if (Connection->State.SendShutdownCompleteNotif && !Connection->State.HandleClosed) {

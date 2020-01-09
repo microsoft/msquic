@@ -921,7 +921,7 @@ QuicThreadCreate(
         struct sched_param Params;
         Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
         if (!pthread_attr_setschedparam(&Attr, &Params)) {
-            QuicTraceLogWarning("[qpal] pthread_attr_setschedparam failed, 0x%x.");
+            QuicTraceLogWarning("[qpal] pthread_attr_setschedparam failed, 0x%x.", errno);
         }
     }
 

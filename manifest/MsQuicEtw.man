@@ -435,6 +435,60 @@
                 value="23"
                 />
           </valueMap>
+          <valueMap name="map_QUIC_SEND_FLUSH_REASON">
+            <map
+                message="$(string.Enum.QUIC_SEND_FLUSH_REASON.CONNECTION_FLAGS)"
+                value="0"
+                />
+            <map
+                message="$(string.Enum.QUIC_SEND_FLUSH_REASON.STREAM_FLAGS)"
+                value="1"
+                />
+            <map
+                message="$(string.Enum.QUIC_SEND_FLUSH_REASON.PROBE)"
+                value="2"
+                />
+            <map
+                message="$(string.Enum.QUIC_SEND_FLUSH_REASON.LOSS)"
+                value="3"
+                />
+            <map
+                message="$(string.Enum.QUIC_SEND_FLUSH_REASON.ACK)"
+                value="4"
+                />
+            <map
+                message="$(string.Enum.QUIC_SEND_FLUSH_REASON.TRANSPORT_PARAMETERS)"
+                value="5"
+                />
+            <map
+                message="$(string.Enum.QUIC_SEND_FLUSH_REASON.CONGESTION_CONTROL)"
+                value="6"
+                />
+            <map
+                message="$(string.Enum.QUIC_SEND_FLUSH_REASON.CONNECTION_FLOW_CONTROL)"
+                value="7"
+                />
+            <map
+                message="$(string.Enum.QUIC_SEND_FLUSH_REASON.NEW_KEY)"
+                value="8"
+                />
+            <map
+                message="$(string.Enum.QUIC_SEND_FLUSH_REASON.STREAM_FLOW_CONTROL)"
+                value="9"
+                />
+            <map
+                message="$(string.Enum.QUIC_SEND_FLUSH_REASON.STREAM_ID_FLOW_CONTROL)"
+                value="10"
+                />
+            <map
+                message="$(string.Enum.QUIC_SEND_FLUSH_REASON.AMPLIFICATION_PROTECTION)"
+                value="11"
+                />
+            <map
+                message="$(string.Enum.QUIC_SEND_FLUSH_REASON.SCHEDULING)"
+                value="12"
+                />
+          </valueMap>
         </maps>
         <templates>
           <template tid="tid_MESSAGE">
@@ -1118,6 +1172,17 @@
             <data
                 inType="win:UInt8"
                 name="NewValue"
+                />
+          </template>
+          <template tid="tid_CONN_FLUSH_REASON">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt32"
+                map="map_QUIC_SEND_FLUSH_REASON"
+                name="Type"
                 />
           </template>
           <template tid="tid_STREAM">
@@ -2375,7 +2440,7 @@
           <event
               keywords="ut:Connection ut:Log"
               level="win:Error"
-              message="$(string.Etw.Message)"
+              message="$(string.Etw.ConnMessage)"
               opcode="win:Info"
               symbol="QuicConnLogError"
               template="tid_CONN_MESSAGE"
@@ -2384,7 +2449,7 @@
           <event
               keywords="ut:Connection ut:Log"
               level="win:Warning"
-              message="$(string.Etw.Message)"
+              message="$(string.Etw.ConnMessage)"
               opcode="win:Info"
               symbol="QuicConnLogWarning"
               template="tid_CONN_MESSAGE"
@@ -2393,7 +2458,7 @@
           <event
               keywords="ut:Connection ut:Log"
               level="win:Informational"
-              message="$(string.Etw.Message)"
+              message="$(string.Etw.ConnMessage)"
               opcode="win:Info"
               symbol="QuicConnLogInfo"
               template="tid_CONN_MESSAGE"
@@ -2402,11 +2467,20 @@
           <event
               keywords="ut:Connection ut:Log"
               level="win:Verbose"
-              message="$(string.Etw.Message)"
+              message="$(string.Etw.ConnMessage)"
               opcode="win:Info"
               symbol="QuicConnLogVerbose"
               template="tid_CONN_MESSAGE"
               value="5171"
+              />
+          <event
+              keywords="ut:Connection ut:Scheduling"
+              level="win:Verbose"
+              message="$(string.Etw.ConnQueueSendFlush)"
+              opcode="win:Info"
+              symbol="QuicConnQueueSendFlush"
+              template="tid_CONN_FLUSH_REASON"
+              value="5172"
               />
           <!-- 6144 - 7167 | Stream Events -->
           <event
@@ -2687,12 +2761,16 @@
             value="%1"
             />
         <string
+            id="Etw.ConnMessage"
+            value="[conn][%1] %2"
+            />
+        <string
             id="Etw.ConnCreated"
-            value="[conn][%1] Created, IsServer=%2"
+            value="[conn][%1] Created, IsServer=%2, CorrelationId=%3"
             />
         <string
             id="Etw.ConnRundown"
-            value="[conn][%1] Rundown, IsServer=%2"
+            value="[conn][%1] Rundown, IsServer=%2, CorrelationId=%3"
             />
         <string
             id="Etw.ConnDestroyed"
@@ -2869,6 +2947,10 @@
         <string
             id="Etw.ConnPacketAcked"
             value="[conn][%1][TX][%2] %3 ACKed"
+            />
+        <string
+            id="Etw.ConnQueueSendFlush"
+            value="[conn][%1] Queueing send flush, reason=%2"
             />
         <string
             id="Etw.StreamCreated"
@@ -3104,7 +3186,7 @@
             />
         <string
             id="Etw.TlsMessage"
-            value="[ tls] %1"
+            value="[ tls][%1] %2"
             />
         <string
             id="Etw.DatapathSendTo"
@@ -3458,6 +3540,58 @@
         <string
             id="Enum.QUIC_TRACE_API_TYPE.STREAM_RECEIVE_SET_ENABLED"
             value="STREAM_RECEIVE_SET_ENABLED"
+            />
+        <string
+            id="Enum.QUIC_SEND_FLUSH_REASON.CONNECTION_FLAGS"
+            value="CONNECTION_FLAGS"
+            />
+        <string
+            id="Enum.QUIC_SEND_FLUSH_REASON.STREAM_FLAGS"
+            value="STREAM_FLAGS"
+            />
+        <string
+            id="Enum.QUIC_SEND_FLUSH_REASON.PROBE"
+            value="PROBE"
+            />
+        <string
+            id="Enum.QUIC_SEND_FLUSH_REASON.LOSS"
+            value="LOSS"
+            />
+        <string
+            id="Enum.QUIC_SEND_FLUSH_REASON.ACK"
+            value="ACK"
+            />
+        <string
+            id="Enum.QUIC_SEND_FLUSH_REASON.TRANSPORT_PARAMETERS"
+            value="TRANSPORT_PARAMETERS"
+            />
+        <string
+            id="Enum.QUIC_SEND_FLUSH_REASON.CONGESTION_CONTROL"
+            value="CONGESTION_CONTROL"
+            />
+        <string
+            id="Enum.QUIC_SEND_FLUSH_REASON.CONNECTION_FLOW_CONTROL"
+            value="CONNECTION_FLOW_CONTROL"
+            />
+        <string
+            id="Enum.QUIC_SEND_FLUSH_REASON.NEW_KEY"
+            value="NEW_KEY"
+            />
+        <string
+            id="Enum.QUIC_SEND_FLUSH_REASON.STREAM_FLOW_CONTROL"
+            value="STREAM_FLOW_CONTROL"
+            />
+        <string
+            id="Enum.QUIC_SEND_FLUSH_REASON.STREAM_ID_FLOW_CONTROL"
+            value="STREAM_ID_FLOW_CONTROL"
+            />
+        <string
+            id="Enum.QUIC_SEND_FLUSH_REASON.AMPLIFICATION_PROTECTION"
+            value="AMPLIFICATION_PROTECTION"
+            />
+        <string
+            id="Enum.QUIC_SEND_FLUSH_REASON.SCHEDULING"
+            value="SCHEDULING"
             />
       </stringTable>
     </resources>

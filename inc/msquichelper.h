@@ -362,6 +362,43 @@ GetSecConfigForThumbprint(
 
 inline
 QUIC_SEC_CONFIG*
+GetSecConfigForThumbprintAndStore(
+    _In_ const QUIC_API_V1* MsQuic,
+    _In_ HQUIC Registration,
+    _In_ QUIC_CERTIFICATE_HASH_STORE_FLAGS Flags,
+    _In_z_ const char* Thumbprint,
+    _In_z_ const char* StoreName
+    )
+{
+    QUIC_CERTIFICATE_HASH_STORE CertHashStore;
+    QuicZeroMemory(&CertHashStore, sizeof(CertHashStore));
+
+    uint32_t CertHashLen =
+        DecodeHexBuffer(
+            Thumbprint,
+            sizeof(CertHashStore.ShaHash),
+            CertHashStore.ShaHash);
+    if (CertHashLen != sizeof(CertHashStore.ShaHash)) {
+        return nullptr;
+    }
+
+    size_t StoreNameLen = strlen(StoreName);
+    QuicCopyMemory(CertHashStore.StoreName, StoreName, min(StoreNameLen, sizeof(CertHashStore.StoreName)));
+
+    CertHashStore.Flags = Flags;
+
+    CreateSecConfigHelper Helper;
+    return
+        Helper.Create(
+            MsQuic,
+            Registration,
+            QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE,
+            &CertHashStore,
+            nullptr);
+}
+
+inline
+QUIC_SEC_CONFIG*
 GetSecConfigForFile(
     _In_ const QUIC_API_V1* MsQuic,
     _In_ HQUIC Registration,
