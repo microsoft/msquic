@@ -245,8 +245,6 @@ QuicCryptoInitializeTls(
         goto Error;
     }
 
-    Connection->State.Started = TRUE;
-
     if (!IsServer) {
         QuicCryptoProcessData(Crypto, TRUE);
     }

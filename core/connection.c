@@ -1353,9 +1353,6 @@ QuicConnStart(
     QUIC_PATH* Path = &Connection->Paths[0];
     QUIC_TEL_ASSERT(Path->Binding == NULL);
 
-    Connection->Stats.Timing.Start = QuicTimeUs64();
-    QuicTraceEvent(ConnHandshakeStart, Connection);
-
     if (!Connection->State.RemoteAddressSet) {
 
         QUIC_DBG_ASSERT(ServerName != NULL);
@@ -1476,8 +1473,6 @@ QuicConnStart(
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
-
-    Connection->State.Started = TRUE;
 
 Exit:
 
@@ -1740,6 +1735,10 @@ QuicConnHandshakeConfigure(
                 Connection->Streams.Types[STREAM_ID_FLAG_IS_SERVER | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount;
         }
     }
+
+    Connection->State.Started = TRUE;
+    Connection->Stats.Timing.Start = QuicTimeUs64();
+    QuicTraceEvent(ConnHandshakeStart, Connection);
 
     Status =
         QuicCryptoInitializeTls(
