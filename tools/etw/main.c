@@ -516,7 +516,7 @@ void ProcessCommandArgs(int argc, char** argv)
     if (Cmd.FormatCSV) {
         switch (Cmd.Command) {
         case COMMAND_CONN_LIST:
-            printf("ID,State,Age(us),Active(us),Queued(us),Idle(us),TX,RX,LocalIp,RemoteIp,SourceCID,DestinationCID\n");
+            printf("ID,State,Age(us),Active(us),Queued(us),Idle(us),TX,RX,LocalIp,RemoteIp,SourceCid,DestinationCID\n");
             break;
         case COMMAND_CONN_TPUT:
             printf("ms,TxMbps,RxMbps,RttMs,CongEvents,InFlight,Cwnd,TxBufBytes,FlowAvailStrm,FlowAvailConn,SsThresh,CubicK,CubicWindowMax,StrmSndWnd\n");

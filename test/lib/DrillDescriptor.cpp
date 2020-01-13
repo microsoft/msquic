@@ -53,10 +53,10 @@ DrillPacketDescriptor::write(
     //
     RequiredSize += 1; // For the bit fields.
     RequiredSize += sizeof(this->Version);
-    RequiredSize += 1; // For the size of DestCID.
-    RequiredSize += this->DestCID.size();
-    RequiredSize += 1; // For the size of SourceCID.
-    RequiredSize += this->SourceCID.size();
+    RequiredSize += 1; // For the size of DestCid.
+    RequiredSize += this->DestCid.size();
+    RequiredSize += 1; // For the size of SourceCid.
+    RequiredSize += this->SourceCid.size();
 
     QUIC_FRE_ASSERTMSG(
         RequiredSize <= UINT16_MAX,
@@ -84,22 +84,22 @@ DrillPacketDescriptor::write(
     //
     // Copy Destination CID.
     //
-    if (DestCIDLen != nullptr) {
-        PacketBuffer.push_back(*DestCIDLen);
+    if (DestCidLen != nullptr) {
+        PacketBuffer.push_back(*DestCidLen);
     } else {
-        PacketBuffer.push_back((uint8_t) DestCID.size());
+        PacketBuffer.push_back((uint8_t) DestCid.size());
     }
-    PacketBuffer.insert(PacketBuffer.end(), DestCID.begin(), DestCID.end());
+    PacketBuffer.insert(PacketBuffer.end(), DestCid.begin(), DestCid.end());
 
     //
     // Copy Source CID.
     //
-    if (SourceCIDLen != nullptr) {
-        PacketBuffer.push_back((uint8_t) *SourceCIDLen);
+    if (SourceCidLen != nullptr) {
+        PacketBuffer.push_back((uint8_t) *SourceCidLen);
     } else {
-        PacketBuffer.push_back((uint8_t) SourceCID.size());
+        PacketBuffer.push_back((uint8_t) SourceCid.size());
     }
-    PacketBuffer.insert(PacketBuffer.end(), SourceCID.begin(), SourceCID.end());
+    PacketBuffer.insert(PacketBuffer.end(), SourceCid.begin(), SourceCid.end());
 
     //
     // TODO: Do type-specific stuff here.

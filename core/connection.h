@@ -321,7 +321,7 @@ typedef struct QUIC_CONNECTION {
     //
     // Number of non-retired desintation CIDs we currently have cached.
     //
-    uint8_t DestCIDCount;
+    uint8_t DestCidCount;
 
     //
     // Number of paths the connection is currently tracking.
@@ -385,6 +385,12 @@ typedef struct QUIC_CONNECTION {
     QUIC_VAR_INT NextSourceCidSequenceNumber;
 
     //
+    // The most recent Retire Prior To field received in a NEW_CONNECTION_ID
+    // frame.
+    //
+    QUIC_VAR_INT RetirePriorTo;
+
+    //
     // Per-path state. The first entry in the list is the active path. All the
     // rest (if any) are other tracked paths, sorted from most to least recently
     // used.
@@ -394,12 +400,12 @@ typedef struct QUIC_CONNECTION {
     //
     // The list of connection IDs used for receiving.
     //
-    QUIC_SINGLE_LIST_ENTRY SourceCIDs;
+    QUIC_SINGLE_LIST_ENTRY SourceCids;
 
     //
     // The list of connection IDs used for sending. Given to us by the peer.
     //
-    QUIC_LIST_ENTRY DestCIDs;
+    QUIC_LIST_ENTRY DestCids;
 
     //
     // The original CID used by the Client in its first Initial packet.
@@ -970,7 +976,7 @@ QuicConnGetSourceCidFromSeq(
     _Out_ BOOLEAN* IsLastCid
     )
 {
-    for (QUIC_SINGLE_LIST_ENTRY** Entry = &Connection->SourceCIDs.Next;
+    for (QUIC_SINGLE_LIST_ENTRY** Entry = &Connection->SourceCids.Next;
             *Entry != NULL;
             Entry = &(*Entry)->Next) {
         QUIC_CID_HASH_ENTRY* SourceCid =
@@ -982,7 +988,7 @@ QuicConnGetSourceCidFromSeq(
             if (RemoveFromList) {
                 *Entry = (*Entry)->Next;
             }
-            *IsLastCid = Connection->SourceCIDs.Next == NULL;
+            *IsLastCid = Connection->SourceCids.Next == NULL;
             return SourceCid;
         }
     }
@@ -1002,7 +1008,7 @@ QuicConnGetSourceCidFromBuf(
         const uint8_t* CidBuffer
     )
 {
-    for (QUIC_SINGLE_LIST_ENTRY* Entry = Connection->SourceCIDs.Next;
+    for (QUIC_SINGLE_LIST_ENTRY* Entry = Connection->SourceCids.Next;
             Entry != NULL;
             Entry = Entry->Next) {
         QUIC_CID_HASH_ENTRY* SourceCid =
@@ -1030,8 +1036,8 @@ QuicConnGetDestCidFromSeq(
     _In_ BOOLEAN RemoveFromList
     )
 {
-    for (QUIC_LIST_ENTRY* Entry = Connection->DestCIDs.Flink;
-            Entry != &Connection->DestCIDs;
+    for (QUIC_LIST_ENTRY* Entry = Connection->DestCids.Flink;
+            Entry != &Connection->DestCids;
             Entry = Entry->Flink) {
         QUIC_CID_QUIC_LIST_ENTRY* DestCid =
             QUIC_CONTAINING_RECORD(

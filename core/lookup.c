@@ -27,7 +27,7 @@ BOOLEAN
 QuicLookupInsertSourceConnectionID(
     _In_ QUIC_LOOKUP* Lookup,
     _In_ uint32_t Hash,
-    _In_ QUIC_CID_HASH_ENTRY* SourceCID,
+    _In_ QUIC_CID_HASH_ENTRY* SourceCid,
     _In_ BOOLEAN UpdateRefCount
     );
 
@@ -165,7 +165,7 @@ QuicLookupRebalance(
 
             if (PreviousLookup != NULL) {
                 QUIC_SINGLE_LIST_ENTRY* Entry =
-                    ((QUIC_CONNECTION*)PreviousLookup)->SourceCIDs.Next;
+                    ((QUIC_CONNECTION*)PreviousLookup)->SourceCids.Next;
 
                 while (Entry != NULL) {
                     QUIC_CID_HASH_ENTRY *CID =
@@ -255,11 +255,11 @@ BOOLEAN
 QuicCidMatchConnection(
     _In_ const QUIC_CONNECTION* const Connection,
     _In_reads_(Length)
-        const uint8_t* const DestCID,
+        const uint8_t* const DestCid,
     _In_ uint8_t Length
     )
 {
-    for (QUIC_SINGLE_LIST_ENTRY* Link = Connection->SourceCIDs.Next;
+    for (QUIC_SINGLE_LIST_ENTRY* Link = Connection->SourceCids.Next;
         Link != NULL;
         Link = Link->Next) {
 
@@ -267,7 +267,7 @@ QuicCidMatchConnection(
             QUIC_CONTAINING_RECORD(Link, const QUIC_CID_HASH_ENTRY, Link);
 
         if (Length == Entry->CID.Length &&
-            (Length == 0 || memcmp(DestCID, Entry->CID.Data, Length) == 0)) {
+            (Length == 0 || memcmp(DestCid, Entry->CID.Data, Length) == 0)) {
             return TRUE;
         }
     }
@@ -284,7 +284,7 @@ QUIC_CONNECTION*
 QuicHashLookupConnection(
     _In_ QUIC_HASHTABLE* Table,
     _In_reads_(Length)
-        const uint8_t* const DestCID,
+        const uint8_t* const DestCid,
     _In_ uint8_t Length,
     _In_ uint32_t Hash
     )
@@ -298,7 +298,7 @@ QuicHashLookupConnection(
             QUIC_CONTAINING_RECORD(TableEntry, QUIC_CID_HASH_ENTRY, Entry);
 
         if (CIDEntry->CID.Length == Length &&
-            memcmp(DestCID, CIDEntry->CID.Data, Length) == 0) {
+            memcmp(DestCid, CIDEntry->CID.Data, Length) == 0) {
             return CIDEntry->Connection;
         }
 
@@ -375,11 +375,11 @@ BOOLEAN
 QuicLookupInsertSourceConnectionID(
     _In_ QUIC_LOOKUP* Lookup,
     _In_ uint32_t Hash,
-    _In_ QUIC_CID_HASH_ENTRY* SourceCID,
+    _In_ QUIC_CID_HASH_ENTRY* SourceCid,
     _In_ BOOLEAN UpdateRefCount
     )
 {
-    if (!QuicLookupRebalance(Lookup, SourceCID->Connection)) {
+    if (!QuicLookupRebalance(Lookup, SourceCid->Connection)) {
         return FALSE;
     }
 
@@ -388,17 +388,17 @@ QuicLookupInsertSourceConnectionID(
         // Make sure the connection pointer is set.
         //
         if (Lookup->SINGLE.Connection == NULL) {
-            Lookup->SINGLE.Connection = SourceCID->Connection;
+            Lookup->SINGLE.Connection = SourceCid->Connection;
         }
 
     } else {
-        QUIC_DBG_ASSERT(SourceCID->CID.Length >= QUIC_CID_PID_INDEX + QUIC_CID_PID_LENGTH);
+        QUIC_DBG_ASSERT(SourceCid->CID.Length >= QUIC_CID_PID_INDEX + QUIC_CID_PID_LENGTH);
 
         //
         // Insert the source connection ID into the hash table.
         //
         QUIC_STATIC_ASSERT(QUIC_CID_PID_LENGTH == 1, "The code below assumes 1 byte");
-        uint32_t PartitionIndex = SourceCID->CID.Data[QUIC_CID_PID_INDEX];
+        uint32_t PartitionIndex = SourceCid->CID.Data[QUIC_CID_PID_INDEX];
         PartitionIndex &= MsQuicLib.PartitionMask;
         PartitionIndex %= Lookup->PartitionCount;
         QUIC_PARTITIONED_HASHTABLE* Table = &Lookup->HASH.Tables[PartitionIndex];
@@ -406,7 +406,7 @@ QuicLookupInsertSourceConnectionID(
         QuicDispatchRwLockAcquireExclusive(&Table->RwLock);
         QuicHashtableInsert(
             &Table->Table,
-            &SourceCID->Entry,
+            &SourceCid->Entry,
             Hash,
             NULL);
         QuicDispatchRwLockReleaseExclusive(&Table->RwLock);
@@ -414,7 +414,7 @@ QuicLookupInsertSourceConnectionID(
 
     if (UpdateRefCount) {
         Lookup->CidCount++;
-        QuicConnAddRef(SourceCID->Connection, QUIC_CONN_REF_LOOKUP_TABLE);
+        QuicConnAddRef(SourceCid->Connection, QUIC_CONN_REF_LOOKUP_TABLE);
     }
 
 #if QUIC_DEBUG_HASHTABLE_LOOKUP
@@ -432,18 +432,18 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicLookupRemoveSourceConnectionIDInt(
     _In_ QUIC_LOOKUP* Lookup,
-    _In_ QUIC_CID_HASH_ENTRY* SourceCID
+    _In_ QUIC_CID_HASH_ENTRY* SourceCid
     )
 {
     QUIC_DBG_ASSERT(Lookup->CidCount != 0);
     Lookup->CidCount--;
 
 #if QUIC_DEBUG_HASHTABLE_LOOKUP
-    QuicTraceLogVerbose("[bind][%p] Remove Conn=%p", Lookup, SourceCID->Connection);
+    QuicTraceLogVerbose("[bind][%p] Remove Conn=%p", Lookup, SourceCid->Connection);
 #endif
 
     if (Lookup->PartitionCount == 0) {
-        QUIC_DBG_ASSERT(Lookup->SINGLE.Connection == SourceCID->Connection);
+        QUIC_DBG_ASSERT(Lookup->SINGLE.Connection == SourceCid->Connection);
         if (Lookup->CidCount == 0) {
             //
             // This was the last CID reference, so we can clear the connection
@@ -452,18 +452,18 @@ QuicLookupRemoveSourceConnectionIDInt(
             Lookup->SINGLE.Connection = NULL;
         }
     } else {
-        QUIC_DBG_ASSERT(SourceCID->CID.Length >= QUIC_CID_PID_INDEX + QUIC_CID_PID_LENGTH);
+        QUIC_DBG_ASSERT(SourceCid->CID.Length >= QUIC_CID_PID_INDEX + QUIC_CID_PID_LENGTH);
 
         //
         // Remove the source connection ID from the multi-hash table.
         //
         QUIC_STATIC_ASSERT(QUIC_CID_PID_LENGTH == 1, "The code below assumes 1 byte");
-        uint32_t PartitionIndex = SourceCID->CID.Data[QUIC_CID_PID_INDEX];
+        uint32_t PartitionIndex = SourceCid->CID.Data[QUIC_CID_PID_INDEX];
         PartitionIndex &= MsQuicLib.PartitionMask;
         PartitionIndex %= Lookup->PartitionCount;
         QUIC_PARTITIONED_HASHTABLE* Table = &Lookup->HASH.Tables[PartitionIndex];
         QuicDispatchRwLockAcquireExclusive(&Table->RwLock);
-        QuicHashtableRemove(&Table->Table, &SourceCID->Entry, NULL);
+        QuicHashtableRemove(&Table->Table, &SourceCid->Entry, NULL);
         QuicDispatchRwLockReleaseExclusive(&Table->RwLock);
     }
 }
@@ -534,26 +534,26 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicLookupAddSourceConnectionID(
     _In_ QUIC_LOOKUP* Lookup,
-    _In_ QUIC_CID_HASH_ENTRY* SourceCID,
+    _In_ QUIC_CID_HASH_ENTRY* SourceCid,
     _Out_opt_ QUIC_CONNECTION** Collision
     )
 {
     BOOLEAN Result;
     QUIC_CONNECTION* ExistingConnection;
-    uint32_t Hash = QuicHashSimple(SourceCID->CID.Length, SourceCID->CID.Data);
+    uint32_t Hash = QuicHashSimple(SourceCid->CID.Length, SourceCid->CID.Data);
 
     QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
 
     ExistingConnection =
         QuicLookupFindConnectionInternal(
             Lookup,
-            SourceCID->CID.Data,
-            SourceCID->CID.Length,
+            SourceCid->CID.Data,
+            SourceCid->CID.Length,
             Hash);
 
     if (ExistingConnection == NULL) {
         Result =
-            QuicLookupInsertSourceConnectionID(Lookup, Hash, SourceCID, TRUE);
+            QuicLookupInsertSourceConnectionID(Lookup, Hash, SourceCid, TRUE);
         if (Collision != NULL) {
             *Collision = NULL;
         }
@@ -574,13 +574,13 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicLookupRemoveSourceConnectionID(
     _In_ QUIC_LOOKUP* Lookup,
-    _In_ QUIC_CID_HASH_ENTRY* SourceCID
+    _In_ QUIC_CID_HASH_ENTRY* SourceCid
     )
 {
     QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
-    QuicLookupRemoveSourceConnectionIDInt(Lookup, SourceCID);
+    QuicLookupRemoveSourceConnectionIDInt(Lookup, SourceCid);
     QuicDispatchRwLockReleaseExclusive(&Lookup->RwLock);
-    QuicConnRelease(SourceCID->Connection, QUIC_CONN_REF_LOOKUP_TABLE);
+    QuicConnRelease(SourceCid->Connection, QUIC_CONN_REF_LOOKUP_TABLE);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -593,10 +593,10 @@ QuicLookupRemoveSourceConnectionIDs(
     uint8_t ReleaseRefCount = 0;
 
     QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
-    while (Connection->SourceCIDs.Next != NULL) {
+    while (Connection->SourceCids.Next != NULL) {
         QUIC_CID_HASH_ENTRY *CID =
             QUIC_CONTAINING_RECORD(
-                QuicListPopEntry(&Connection->SourceCIDs),
+                QuicListPopEntry(&Connection->SourceCids),
                 QUIC_CID_HASH_ENTRY,
                 Link);
         QuicLookupRemoveSourceConnectionIDInt(Lookup, CID);
@@ -618,7 +618,7 @@ QuicLookupMoveSourceConnectionIDs(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    QUIC_SINGLE_LIST_ENTRY* Entry = Connection->SourceCIDs.Next;
+    QUIC_SINGLE_LIST_ENTRY* Entry = Connection->SourceCids.Next;
 
     QuicDispatchRwLockAcquireExclusive(&LookupSrc->RwLock);
     while (Entry != NULL) {
@@ -633,7 +633,7 @@ QuicLookupMoveSourceConnectionIDs(
     }
     QuicDispatchRwLockReleaseExclusive(&LookupSrc->RwLock);
 
-    Entry = Connection->SourceCIDs.Next;
+    Entry = Connection->SourceCids.Next;
     while (Entry != NULL) {
         QUIC_CID_HASH_ENTRY *CID =
             QUIC_CONTAINING_RECORD(

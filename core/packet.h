@@ -47,17 +47,17 @@ typedef struct QUIC_HEADER_INVARIANT {
             uint8_t VARIANT : 7;
             uint8_t IsLongHeader : 1;
             uint32_t Version;
-            uint8_t DestCIDLength;
-            uint8_t DestCID[0];
-            //uint8_t SourceCIDLength;
-            //uint8_t SourceCID[SourceCIDLength];
+            uint8_t DestCidLength;
+            uint8_t DestCid[0];
+            //uint8_t SourceCidLength;
+            //uint8_t SourceCid[SourceCidLength];
 
         } LONG_HDR;
 
         struct {
             uint8_t VARIANT : 7;
             uint8_t IsLongHeader : 1;
-            uint8_t DestCID[0];
+            uint8_t DestCid[0];
 
         } SHORT_HDR;
     };
@@ -88,10 +88,10 @@ typedef struct QUIC_VERSION_NEGOTIATION_PACKET {
     uint8_t Unused : 7;
     uint8_t IsLongHeader : 1;
     uint32_t Version;
-    uint8_t DestCIDLength;
-    uint8_t DestCID[0];
-    //uint8_t SourceCIDLength;
-    //uint8_t SourceCID[SourceCIDLength];
+    uint8_t DestCidLength;
+    uint8_t DestCid[0];
+    //uint8_t SourceCidLength;
+    //uint8_t SourceCid[SourceCidLength];
     //uint32_t SupportedVersions[0];
 
 } QUIC_VERSION_NEGOTIATION_PACKET;
@@ -130,10 +130,10 @@ typedef struct QUIC_LONG_HEADER_V1 {
     uint8_t FixedBit        : 1;    // Must be 1.
     uint8_t IsLongHeader    : 1;
     uint32_t Version;
-    uint8_t DestCIDLength;
-    uint8_t DestCID[0];
-    //uint8_t SourceCIDLength;
-    //uint8_t SourceCID[SourceCIDLength];
+    uint8_t DestCidLength;
+    uint8_t DestCid[0];
+    //uint8_t SourceCidLength;
+    //uint8_t SourceCid[SourceCidLength];
     //  QUIC_VAR_INT TokenLength;       {Initial}
     //  uint8_t Token[0];               {Initial}
     //QUIC_VAR_INT Length;
@@ -165,12 +165,12 @@ typedef struct QUIC_RETRY_V1 {
     uint8_t FixedBit        : 1;    // Must be 1.
     uint8_t IsLongHeader    : 1;
     uint32_t Version;
-    uint8_t DestCIDLength;
-    uint8_t DestCID[0];
-    //uint8_t SourceCIDLength;
-    //uint8_t SourceCID[SourceCIDLength];
-    //uint8_t OrigDestCIDLength;
-    //uint8_t OrigDestCID[OrigDestCIDLength];
+    uint8_t DestCidLength;
+    uint8_t DestCid[0];
+    //uint8_t SourceCidLength;
+    //uint8_t SourceCid[SourceCidLength];
+    //uint8_t OrigDestCidLength;
+    //uint8_t OrigDestCid[OrigDestCidLength];
     //uint8_t Token[*];
 
 } QUIC_RETRY_V1;
@@ -196,7 +196,7 @@ typedef struct QUIC_SHORT_HEADER_V1 {
     uint8_t SpinBit         : 1;
     uint8_t FixedBit        : 1;    // Must be 1.
     uint8_t IsLongHeader    : 1;
-    uint8_t DestCID[0];             // Length depends on connection.
+    uint8_t DestCid[0];             // Length depends on connection.
     //uint8_t PacketNumber[PnLength];
     //uint8_t Payload[0];
 
@@ -205,8 +205,8 @@ typedef struct QUIC_SHORT_HEADER_V1 {
 //
 // Helper to calculate the length of the full short header, in bytes.
 //
-#define SHORT_HEADER_PACKET_NUMBER_V1(Header, DestCIDLen) \
-    ((Header)->ConnectionID + DestCIDLen)
+#define SHORT_HEADER_PACKET_NUMBER_V1(Header, DestCidLen) \
+    ((Header)->ConnectionID + DestCidLen)
 //
 // The minimum short header, in bytes.
 //
@@ -368,8 +368,8 @@ uint16_t
 QuicPacketEncodeLongHeaderV1(
     _In_ uint32_t Version, // Allows for version negotiation forcing
     _In_ QUIC_LONG_HEADER_TYPE_V1 PacketType,
-    _In_ const QUIC_CID* const DestCID,
-    _In_ const QUIC_CID* const SourceCID,
+    _In_ const QUIC_CID* const DestCid,
+    _In_ const QUIC_CID* const SourceCid,
     _In_ uint16_t TokenLength,
     _In_reads_opt_(TokenLength)
         const uint8_t* const Token,
@@ -383,9 +383,9 @@ QuicPacketEncodeLongHeaderV1(
 {
     uint16_t RequiredBufferLength =
         sizeof(QUIC_LONG_HEADER_V1) +
-        DestCID->Length +
+        DestCid->Length +
         sizeof(uint8_t) +
-        SourceCID->Length +
+        SourceCid->Length +
         sizeof(uint16_t) + // We always encode 2 bytes for the length.
         sizeof(uint32_t);  // We always encode 4 bytes for the packet number.
     if (PacketType == QUIC_INITIAL) {
@@ -403,18 +403,18 @@ QuicPacketEncodeLongHeaderV1(
     Header->Reserved        = 0;
     Header->PnLength        = sizeof(uint32_t) - 1;
     Header->Version         = Version;
-    Header->DestCIDLength   = DestCID->Length;
+    Header->DestCidLength   = DestCid->Length;
 
-    uint8_t *HeaderBuffer = Header->DestCID;
-    if (DestCID->Length != 0) {
-        memcpy(HeaderBuffer, DestCID->Data, DestCID->Length);
-        HeaderBuffer += DestCID->Length;
+    uint8_t *HeaderBuffer = Header->DestCid;
+    if (DestCid->Length != 0) {
+        memcpy(HeaderBuffer, DestCid->Data, DestCid->Length);
+        HeaderBuffer += DestCid->Length;
     }
-    *HeaderBuffer = SourceCID->Length;
+    *HeaderBuffer = SourceCid->Length;
     HeaderBuffer++;
-    if (SourceCID->Length != 0) {
-        memcpy(HeaderBuffer, SourceCID->Data, SourceCID->Length);
-        HeaderBuffer += SourceCID->Length;
+    if (SourceCid->Length != 0) {
+        memcpy(HeaderBuffer, SourceCid->Data, SourceCid->Length);
+        HeaderBuffer += SourceCid->Length;
     }
     if (PacketType == QUIC_INITIAL) {
         HeaderBuffer = QuicVarIntEncode(TokenLength, HeaderBuffer);
@@ -446,12 +446,12 @@ _Success_(return != 0)
 uint16_t
 QuicPacketEncodeRetryV1(
     _In_ uint32_t Version,
-    _In_reads_(DestCIDLength) const uint8_t* const DestCID,
-    _In_ uint8_t DestCIDLength,
-    _In_reads_(SourceCIDLength) const uint8_t* const SourceCID,
-    _In_ uint8_t SourceCIDLength,
-    _In_reads_(OrigDestCIDLength) const uint8_t* const OrigDestCID,
-    _In_ uint8_t OrigDestCIDLength,
+    _In_reads_(DestCidLength) const uint8_t* const DestCid,
+    _In_ uint8_t DestCidLength,
+    _In_reads_(SourceCidLength) const uint8_t* const SourceCid,
+    _In_ uint8_t SourceCidLength,
+    _In_reads_(OrigDestCidLength) const uint8_t* const OrigDestCid,
+    _In_ uint8_t OrigDestCidLength,
     _In_ uint16_t TokenLength,
     _In_reads_(TokenLength)
         uint8_t* Token,
@@ -462,9 +462,9 @@ QuicPacketEncodeRetryV1(
 {
     uint16_t RequiredBufferLength =
         MIN_RETRY_HEADER_LENGTH_V1 +
-        DestCIDLength +
-        SourceCIDLength +
-        OrigDestCIDLength +
+        DestCidLength +
+        SourceCidLength +
+        OrigDestCidLength +
         TokenLength;
     if (BufferLength < RequiredBufferLength) {
         return 0;
@@ -477,24 +477,24 @@ QuicPacketEncodeRetryV1(
     Header->Type            = QUIC_RETRY;
     Header->UNUSED          = 0;
     Header->Version         = Version;
-    Header->DestCIDLength   = DestCIDLength;
+    Header->DestCidLength   = DestCidLength;
 
-    uint8_t *HeaderBuffer = Header->DestCID;
-    if (DestCIDLength != 0) {
-        memcpy(HeaderBuffer, DestCID, DestCIDLength);
-        HeaderBuffer += DestCIDLength;
+    uint8_t *HeaderBuffer = Header->DestCid;
+    if (DestCidLength != 0) {
+        memcpy(HeaderBuffer, DestCid, DestCidLength);
+        HeaderBuffer += DestCidLength;
     }
-    *HeaderBuffer = SourceCIDLength;
+    *HeaderBuffer = SourceCidLength;
     HeaderBuffer++;
-    if (SourceCIDLength != 0) {
-        memcpy(HeaderBuffer, SourceCID, SourceCIDLength);
-        HeaderBuffer += SourceCIDLength;
+    if (SourceCidLength != 0) {
+        memcpy(HeaderBuffer, SourceCid, SourceCidLength);
+        HeaderBuffer += SourceCidLength;
     }
-    *HeaderBuffer = OrigDestCIDLength;
+    *HeaderBuffer = OrigDestCidLength;
     HeaderBuffer++;
-    if (OrigDestCIDLength != 0) {
-        memcpy(HeaderBuffer, OrigDestCID, OrigDestCIDLength);
-        HeaderBuffer += OrigDestCIDLength;
+    if (OrigDestCidLength != 0) {
+        memcpy(HeaderBuffer, OrigDestCid, OrigDestCidLength);
+        HeaderBuffer += OrigDestCidLength;
     }
     if (TokenLength != 0) {
         memcpy(HeaderBuffer, Token, TokenLength);
@@ -512,7 +512,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
 QuicPacketEncodeShortHeaderV1(
-    _In_ const QUIC_CID* const DestCID,
+    _In_ const QUIC_CID* const DestCid,
     _In_ uint64_t PacketNumber,
     _In_ uint8_t PacketNumberLength,
     _In_ BOOLEAN SpinBit,
@@ -526,7 +526,7 @@ QuicPacketEncodeShortHeaderV1(
 
     uint16_t RequiredBufferLength =
         sizeof(QUIC_SHORT_HEADER_V1) +
-        DestCID->Length +
+        DestCid->Length +
         PacketNumberLength;
     if (BufferLength < RequiredBufferLength) {
         return 0;
@@ -541,10 +541,10 @@ QuicPacketEncodeShortHeaderV1(
     Header->KeyPhase        = KeyPhase;
     Header->PnLength        = PacketNumberLength - 1;
 
-    uint8_t *HeaderBuffer = Header->DestCID;
-    if (DestCID->Length != 0) {
-        memcpy(HeaderBuffer, DestCID->Data, DestCID->Length);
-        HeaderBuffer += DestCID->Length;
+    uint8_t *HeaderBuffer = Header->DestCid;
+    if (DestCid->Length != 0) {
+        memcpy(HeaderBuffer, DestCid->Data, DestCid->Length);
+        HeaderBuffer += DestCid->Length;
     }
 
     QuicPktNumEncode(PacketNumber, PacketNumberLength, HeaderBuffer);

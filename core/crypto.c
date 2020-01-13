@@ -112,26 +112,26 @@ QuicCryptoInitialize(
     RecvBufferInitialized = TRUE;
 
     if (QuicConnIsServer(Connection)) {
-        QUIC_DBG_ASSERT(Connection->SourceCIDs.Next != NULL);
-        QUIC_CID_HASH_ENTRY* SourceCID =
+        QUIC_DBG_ASSERT(Connection->SourceCids.Next != NULL);
+        QUIC_CID_HASH_ENTRY* SourceCid =
             QUIC_CONTAINING_RECORD(
-                Connection->SourceCIDs.Next,
+                Connection->SourceCids.Next,
                 QUIC_CID_HASH_ENTRY,
                 Link);
 
-        HandshakeCid = SourceCID->CID.Data;
-        HandshakeCidLength = SourceCID->CID.Length;
+        HandshakeCid = SourceCid->CID.Data;
+        HandshakeCidLength = SourceCid->CID.Length;
 
     } else {
-        QUIC_DBG_ASSERT(!QuicListIsEmpty(&Connection->DestCIDs));
-        QUIC_CID_QUIC_LIST_ENTRY* DestCID =
+        QUIC_DBG_ASSERT(!QuicListIsEmpty(&Connection->DestCids));
+        QUIC_CID_QUIC_LIST_ENTRY* DestCid =
             QUIC_CONTAINING_RECORD(
-                Connection->DestCIDs.Flink,
+                Connection->DestCids.Flink,
                 QUIC_CID_QUIC_LIST_ENTRY,
                 Link);
 
-        HandshakeCid = DestCID->CID.Data;
-        HandshakeCidLength = DestCID->CID.Length;
+        HandshakeCid = DestCid->CID.Data;
+        HandshakeCidLength = DestCid->CID.Length;
     }
 
     Status =

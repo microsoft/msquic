@@ -132,14 +132,14 @@ RunAttackRandom(
                 Header->FixedBit = 1;
                 Header->Reserved = 0;
                 Header->Version = QUIC_VERSION_LATEST;
-                Header->DestCIDLength = 8;
+                Header->DestCidLength = 8;
                 ConnectionId++;
-                QuicCopyMemory(Header->DestCID, &ConnectionId, sizeof(ConnectionId));
-                Header->DestCID[8] = 8;
-                Header->DestCID[17] = 0;
+                QuicCopyMemory(Header->DestCid, &ConnectionId, sizeof(ConnectionId));
+                Header->DestCid[8] = 8;
+                Header->DestCid[17] = 0;
                 QuicVarIntEncode(
                     Length - (MIN_LONG_HEADER_LENGTH_V1 + 19),
-                    Header->DestCID + 18);
+                    Header->DestCid + 18);
             }
 
             ++PacketCount;
