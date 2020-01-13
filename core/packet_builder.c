@@ -128,7 +128,19 @@ QuicPacketBuilderPrepare(
         DatagramSize = (uint16_t)Builder->Path->Allowance;
     }
     QUIC_DBG_ASSERT(!IsPathMtuDiscovery || !IsTailLossProbe); // Never both.
-    QUIC_DBG_ASSERT(NewPacketKey != NULL);
+
+    if (NewPacketKey == NULL) {
+        //
+        // A NULL key here usually means the connection had a fatal error in
+        // such a way that resulted in the key not getting created. The
+        // connection is most likely trying to send a connection close frame,
+        // but without the key, nothing can be done. Just silently kill the
+        // connection.
+        //
+        QuicTraceEvent(ConnError, Connection, "NULL key in builder prepare");
+        QuicConnSilentlyAbort(Connection);
+        return FALSE;
+    }
 
     //
     // Next, make sure the current QUIC packet matches the new packet type. If
