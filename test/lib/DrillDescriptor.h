@@ -69,16 +69,16 @@ struct DrillPacketDescriptor {
     uint32_t Version;
 
     //
-    // Optional destination CID length. If not set, will use length of DestCID.
+    // Optional destination CID length. If not set, will use length of DestCid.
     //
-    uint8_t* DestCIDLen;
-    DrillBuffer DestCID;
+    uint8_t* DestCidLen;
+    DrillBuffer DestCid;
 
     //
-    // Optional source CID length. If not set, will use length of SourceCID.
+    // Optional source CID length. If not set, will use length of SourceCid.
     //
-    uint8_t* SourceCIDLen;
-    DrillBuffer SourceCID;
+    uint8_t* SourceCidLen;
+    DrillBuffer SourceCid;
 
     //
     // Write this descriptor to a byte array to send on the wire.

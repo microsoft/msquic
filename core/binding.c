@@ -422,20 +422,20 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingAddSourceConnectionID(
     _In_ QUIC_BINDING* Binding,
-    _In_ QUIC_CID_HASH_ENTRY* SourceCID
+    _In_ QUIC_CID_HASH_ENTRY* SourceCid
     )
 {
-    return QuicLookupAddSourceConnectionID(&Binding->Lookup, SourceCID, NULL);
+    return QuicLookupAddSourceConnectionID(&Binding->Lookup, SourceCid, NULL);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicBindingRemoveSourceConnectionID(
     _In_ QUIC_BINDING* Binding,
-    _In_ QUIC_CID_HASH_ENTRY* SourceCID
+    _In_ QUIC_CID_HASH_ENTRY* SourceCid
     )
 {
-    QuicLookupRemoveSourceConnectionID(&Binding->Lookup, SourceCID);
+    QuicLookupRemoveSourceConnectionID(&Binding->Lookup, SourceCid);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -653,14 +653,14 @@ QuicBindingProcessStatelessOperation(
 
     if (OperationType == QUIC_OPER_TYPE_VERSION_NEGOTIATION) {
 
-        QUIC_DBG_ASSERT(RecvPacket->DestCID != NULL);
-        QUIC_DBG_ASSERT(RecvPacket->SourceCID != NULL);
+        QUIC_DBG_ASSERT(RecvPacket->DestCid != NULL);
+        QUIC_DBG_ASSERT(RecvPacket->SourceCid != NULL);
 
         uint16_t PacketLength =
             sizeof(QUIC_VERSION_NEGOTIATION_PACKET) +   // Header
-            RecvPacket->SourceCIDLen +
+            RecvPacket->SourceCidLen +
             sizeof(uint8_t) +
-            RecvPacket->DestCIDLen +
+            RecvPacket->DestCidLen +
             sizeof(uint32_t) +                          // One random version
             sizeof(QuicSupportedVersionList);           // Our actual supported versions
 
@@ -678,21 +678,21 @@ QuicBindingProcessStatelessOperation(
         VerNeg->IsLongHeader = TRUE;
         VerNeg->Version = QUIC_VERSION_VER_NEG;
 
-        uint8_t* Buffer = VerNeg->DestCID;
-        VerNeg->DestCIDLength = RecvPacket->SourceCIDLen;
+        uint8_t* Buffer = VerNeg->DestCid;
+        VerNeg->DestCidLength = RecvPacket->SourceCidLen;
         memcpy(
             Buffer,
-            RecvPacket->SourceCID,
-            RecvPacket->SourceCIDLen);
-        Buffer += RecvPacket->SourceCIDLen;
+            RecvPacket->SourceCid,
+            RecvPacket->SourceCidLen);
+        Buffer += RecvPacket->SourceCidLen;
 
-        *Buffer = RecvPacket->DestCIDLen;
+        *Buffer = RecvPacket->DestCidLen;
         Buffer++;
         memcpy(
             Buffer,
-            RecvPacket->DestCID,
-            RecvPacket->DestCIDLen);
-        Buffer += RecvPacket->DestCIDLen;
+            RecvPacket->DestCid,
+            RecvPacket->DestCidLen);
+        Buffer += RecvPacket->DestCidLen;
 
         uint8_t RandomValue = 0;
         QuicRandom(sizeof(uint8_t), &RandomValue);
@@ -709,8 +709,8 @@ QuicBindingProcessStatelessOperation(
 
     } else if (OperationType == QUIC_OPER_TYPE_STATELESS_RESET) {
 
-        QUIC_DBG_ASSERT(RecvPacket->DestCID != NULL);
-        QUIC_DBG_ASSERT(RecvPacket->SourceCID == NULL);
+        QUIC_DBG_ASSERT(RecvPacket->DestCid != NULL);
+        QUIC_DBG_ASSERT(RecvPacket->SourceCid == NULL);
 
         //
         // There are a few requirements for sending stateless reset packets:
@@ -757,7 +757,7 @@ QuicBindingProcessStatelessOperation(
         ResetPacket->KeyPhase = RecvPacket->SH->KeyPhase;
         QuicBindingGenerateStatelessResetToken(
             Binding,
-            RecvPacket->DestCID,
+            RecvPacket->DestCid,
             SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH);
 
         QuicTraceLogVerbose("[S][TX][-] SR %s",
@@ -768,8 +768,8 @@ QuicBindingProcessStatelessOperation(
 
     } else if (OperationType == QUIC_OPER_TYPE_RETRY) {
 
-        QUIC_DBG_ASSERT(RecvPacket->DestCID != NULL);
-        QUIC_DBG_ASSERT(RecvPacket->SourceCID != NULL);
+        QUIC_DBG_ASSERT(RecvPacket->DestCid != NULL);
+        QUIC_DBG_ASSERT(RecvPacket->SourceCid != NULL);
 
         uint16_t PacketLength = QuicPacketMaxBufferSizeForRetryV1();
         QUIC_BUFFER* SendDatagram =
@@ -780,16 +780,16 @@ QuicBindingProcessStatelessOperation(
             goto Exit;
         }
 
-        uint8_t NewDestCID[MSQUIC_CONNECTION_ID_LENGTH];
-        QuicRandom(MSQUIC_CONNECTION_ID_LENGTH, NewDestCID);
+        uint8_t NewDestCid[MSQUIC_CONNECTION_ID_LENGTH];
+        QuicRandom(MSQUIC_CONNECTION_ID_LENGTH, NewDestCid);
 
         QUIC_RETRY_TOKEN_CONTENTS Token;
         Token.RemoteAddress = RecvDatagram->Tuple->RemoteAddress;
-        QuicCopyMemory(Token.OrigConnId, RecvPacket->DestCID, RecvPacket->DestCIDLen);
-        Token.OrigConnIdLength = RecvPacket->DestCIDLen;
+        QuicCopyMemory(Token.OrigConnId, RecvPacket->DestCid, RecvPacket->DestCidLen);
+        Token.OrigConnIdLength = RecvPacket->DestCidLen;
 
         uint8_t Iv[QUIC_IV_LENGTH];
-        QuicCopyMemory(Iv, NewDestCID, MSQUIC_CONNECTION_ID_LENGTH);
+        QuicCopyMemory(Iv, NewDestCid, MSQUIC_CONNECTION_ID_LENGTH);
         QuicZeroMemory(
             Iv + MSQUIC_CONNECTION_ID_LENGTH,
             QUIC_IV_LENGTH - MSQUIC_CONNECTION_ID_LENGTH);
@@ -802,20 +802,20 @@ QuicBindingProcessStatelessOperation(
         SendDatagram->Length =
             QuicPacketEncodeRetryV1(
                 RecvPacket->LH->Version,
-                RecvPacket->SourceCID, RecvPacket->SourceCIDLen,
-                NewDestCID, MSQUIC_CONNECTION_ID_LENGTH,
-                RecvPacket->DestCID, RecvPacket->DestCIDLen,
+                RecvPacket->SourceCid, RecvPacket->SourceCidLen,
+                NewDestCid, MSQUIC_CONNECTION_ID_LENGTH,
+                RecvPacket->DestCid, RecvPacket->DestCidLen,
                 sizeof(Token),
                 (uint8_t*)&Token,
                 (uint16_t)SendDatagram->Length,
                 (uint8_t*)SendDatagram->Buffer);
         QUIC_DBG_ASSERT(SendDatagram->Length != 0);
 
-        QuicTraceLogVerbose("[S][TX][-] LH Ver:0x%x DestCID:%s SrcCID:%s Type:R OrigDestCID:%s (Token %hu bytes)",
+        QuicTraceLogVerbose("[S][TX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R OrigDestCid:%s (Token %hu bytes)",
             RecvPacket->LH->Version,
-            QuicCidBufToStr(RecvPacket->SourceCID, RecvPacket->SourceCIDLen).Buffer,
-            QuicCidBufToStr(NewDestCID, MSQUIC_CONNECTION_ID_LENGTH).Buffer,
-            QuicCidBufToStr(RecvPacket->DestCID, RecvPacket->DestCIDLen).Buffer,
+            QuicCidBufToStr(RecvPacket->SourceCid, RecvPacket->SourceCidLen).Buffer,
+            QuicCidBufToStr(NewDestCid, MSQUIC_CONNECTION_ID_LENGTH).Buffer,
+            QuicCidBufToStr(RecvPacket->DestCid, RecvPacket->DestCidLen).Buffer,
             (uint16_t)sizeof(Token));
 
     } else {
@@ -937,16 +937,16 @@ QuicBindingPreprocessPacket(
     }
 
     if (Binding->Exclusive) {
-        if (Packet->DestCIDLen != 0) {
+        if (Packet->DestCidLen != 0) {
             QuicPacketLogDrop(Binding, Packet, "Non-zero length CID on exclusive binding");
             return FALSE;
         }
     } else {
-        if (Packet->DestCIDLen == 0) {
+        if (Packet->DestCidLen == 0) {
             QuicPacketLogDrop(Binding, Packet, "Zero length CID on non-exclusive binding");
             return FALSE;
 
-        } else if (Packet->DestCIDLen < QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH) {
+        } else if (Packet->DestCidLen < QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH) {
             QuicPacketLogDrop(Binding, Packet, "Less than min length CID on non-exclusive binding");
             return FALSE;
         }
@@ -1073,10 +1073,10 @@ QuicBindingCreateConnection(
     }
 
     BOOLEAN BindingRefAdded = FALSE;
-    QUIC_DBG_ASSERT(NewConnection->SourceCIDs.Next != NULL);
-    QUIC_CID_HASH_ENTRY* SourceCID =
+    QUIC_DBG_ASSERT(NewConnection->SourceCids.Next != NULL);
+    QUIC_CID_HASH_ENTRY* SourceCid =
         QUIC_CONTAINING_RECORD(
-            NewConnection->SourceCIDs.Next,
+            NewConnection->SourceCids.Next,
             QUIC_CID_HASH_ENTRY,
             Link);
 
@@ -1116,7 +1116,7 @@ QuicBindingCreateConnection(
 
     if (!QuicLookupAddSourceConnectionID(
             &Binding->Lookup,
-            SourceCID,
+            SourceCid,
             &Connection)) {
         //
         // Collision with an existing connection or a memory failure.
@@ -1134,8 +1134,8 @@ QuicBindingCreateConnection(
 
 Exit:
 
-    NewConnection->SourceCIDs.Next = NULL;
-    QUIC_FREE(SourceCID);
+    NewConnection->SourceCids.Next = NULL;
+    QUIC_FREE(SourceCid);
     QuicConnRelease(NewConnection, QUIC_CONN_REF_LOOKUP_RESULT);
 
     if (BindingRefAdded) {
@@ -1183,12 +1183,12 @@ QuicBindingDeliverPackets(
     QUIC_DBG_ASSERT(Packet->ValidatedHeaderInv);
 
     //
-    // The packet's destination connection ID (DestCID) is the key for looking
-    // up the corresponding connection object. The DestCID encodes the
+    // The packet's destination connection ID (DestCid) is the key for looking
+    // up the corresponding connection object. The DestCid encodes the
     // partition ID (PID) that can be used for partitioning the look up table.
     //
     // The exact type of look up table associated with binding varies on the
-    // circumstances, but it allows for quick and easy lookup based on DestCID.
+    // circumstances, but it allows for quick and easy lookup based on DestCid.
     //
     // If the lookup fails, and if there is a listener on the local 2-Tuple,
     // then a new connection is created and inserted into the binding's lookup
@@ -1208,8 +1208,8 @@ QuicBindingDeliverPackets(
     QUIC_CONNECTION* Connection =
         QuicLookupFindConnection(
             &Binding->Lookup,
-            Packet->DestCID,
-            Packet->DestCIDLen);
+            Packet->DestCid,
+            Packet->DestCidLen);
 
     if (Connection == NULL) {
 
@@ -1353,8 +1353,8 @@ QuicBindingReceive(
         QUIC_RECV_PACKET* ConnectionChainRecvCtx =
             ConnectionChain == NULL ?
                 NULL : QuicDataPathRecvDatagramToRecvPacket(ConnectionChain);
-        QUIC_DBG_ASSERT(Packet->DestCID != NULL);
-        QUIC_DBG_ASSERT(Packet->DestCIDLen != 0 || Binding->Exclusive);
+        QUIC_DBG_ASSERT(Packet->DestCid != NULL);
+        QUIC_DBG_ASSERT(Packet->DestCidLen != 0 || Binding->Exclusive);
         QUIC_DBG_ASSERT(Packet->ValidatedHeaderInv);
 
         //
@@ -1365,8 +1365,8 @@ QuicBindingReceive(
         // processing to split the chain.
         //
         if (!Binding->Exclusive && ConnectionChain != NULL &&
-            (Packet->DestCIDLen != ConnectionChainRecvCtx->DestCIDLen ||
-             memcmp(Packet->DestCID, ConnectionChainRecvCtx->DestCID, Packet->DestCIDLen) != 0)) {
+            (Packet->DestCidLen != ConnectionChainRecvCtx->DestCidLen ||
+             memcmp(Packet->DestCid, ConnectionChainRecvCtx->DestCid, Packet->DestCidLen) != 0)) {
             //
             // This packet doesn't match the current connection chain. Deliver
             // the current chain and start a new one.

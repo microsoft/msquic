@@ -48,12 +48,12 @@ typedef struct QUIC_RECV_PACKET {
     //
     // Destination connection ID.
     //
-    const uint8_t* DestCID;
+    const uint8_t* DestCid;
 
     //
     // Sources connection ID. Only valid for long header packets.
     //
-    const uint8_t* SourceCID;
+    const uint8_t* SourceCid;
 
     //
     // Length of the Buffer array.
@@ -73,8 +73,8 @@ typedef struct QUIC_RECV_PACKET {
     //
     // Lengths of the destination and source connection IDs
     //
-    uint8_t DestCIDLen;
-    uint8_t SourceCIDLen;
+    uint8_t DestCidLen;
+    uint8_t SourceCidLen;
 
     //
     // The type of key used to decrypt the packet.
@@ -318,7 +318,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingAddSourceConnectionID(
     _In_ QUIC_BINDING* Binding,
-    _In_ QUIC_CID_HASH_ENTRY* SourceCID
+    _In_ QUIC_CID_HASH_ENTRY* SourceCid
     );
 
 //
@@ -328,7 +328,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicBindingRemoveSourceConnectionID(
     _In_ QUIC_BINDING* Binding,
-    _In_ QUIC_CID_HASH_ENTRY* SourceCID
+    _In_ QUIC_CID_HASH_ENTRY* SourceCid
     );
 
 //
@@ -430,7 +430,7 @@ QuicRetryTokenDecrypt(
     QuicCopyMemory(Token, TokenBuffer, sizeof(QUIC_RETRY_TOKEN_CONTENTS));
 
     uint8_t Iv[QUIC_IV_LENGTH];
-    QuicCopyMemory(Iv, Packet->DestCID, MSQUIC_CONNECTION_ID_LENGTH);
+    QuicCopyMemory(Iv, Packet->DestCid, MSQUIC_CONNECTION_ID_LENGTH);
     QuicZeroMemory(
         Iv + MSQUIC_CONNECTION_ID_LENGTH,
         QUIC_IV_LENGTH - MSQUIC_CONNECTION_ID_LENGTH);

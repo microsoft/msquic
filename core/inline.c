@@ -327,8 +327,8 @@ uint16_t
 QuicPacketEncodeLongHeaderV1(
     _In_ uint32_t Version, // Allows for version negotiation forcing
     _In_ QUIC_LONG_HEADER_TYPE_V1 PacketType,
-    _In_ const QUIC_CID* const DestCID,
-    _In_ const QUIC_CID* const SourceCID,
+    _In_ const QUIC_CID* const DestCid,
+    _In_ const QUIC_CID* const SourceCid,
     _In_ uint16_t TokenLength,
     _In_reads_opt_(TokenLength)
         const uint8_t* const Token,
@@ -344,7 +344,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
 QuicPacketEncodeShortHeaderV1(
-    _In_ const QUIC_CID* const DestCID,
+    _In_ const QUIC_CID* const DestCid,
     _In_ uint64_t PacketNumber,
     _In_ uint8_t PacketNumberLength,
     _In_ BOOLEAN SpinBit,
@@ -359,12 +359,12 @@ _Success_(return != 0)
 uint16_t
 QuicPacketEncodeRetryV1(
     _In_ uint32_t Version,
-    _In_reads_(DestCIDLength) const uint8_t* const DestCID,
-    _In_ uint8_t DestCIDLength,
-    _In_reads_(SourceCIDLength) const uint8_t* const SourceCID,
-    _In_ uint8_t SourceCIDLength,
-    _In_reads_(OrigDestCIDLength) const uint8_t* const OrigDestCID,
-    _In_ uint8_t OrigDestCIDLength,
+    _In_reads_(DestCidLength) const uint8_t* const DestCid,
+    _In_ uint8_t DestCidLength,
+    _In_reads_(SourceCidLength) const uint8_t* const SourceCid,
+    _In_ uint8_t SourceCidLength,
+    _In_reads_(OrigDestCidLength) const uint8_t* const OrigDestCid,
+    _In_ uint8_t OrigDestCidLength,
     _In_ uint16_t TokenLength,
     _In_reads_(TokenLength)
         uint8_t* Token,

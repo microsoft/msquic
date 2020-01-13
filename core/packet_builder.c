@@ -53,14 +53,14 @@ QuicPacketBuilderInitialize(
         Connection->State.EncryptionEnabled ?
             QUIC_ENCRYPTION_OVERHEAD : 0;
 
-    if (Connection->SourceCIDs.Next == NULL) {
+    if (Connection->SourceCids.Next == NULL) {
         QuicTraceLogConnWarning(NoSrcCidAvailable, Connection, "No src CID to send with.");
         return FALSE;
     }
 
-    Builder->SourceCID =
+    Builder->SourceCid =
         QUIC_CONTAINING_RECORD(
-            Connection->SourceCIDs.Next,
+            Connection->SourceCids.Next,
             QUIC_CID_HASH_ENTRY,
             Link);
 
@@ -296,7 +296,7 @@ QuicPacketBuilderPrepare(
                         Connection->Stats.QuicVersion,
                         (QUIC_LONG_HEADER_TYPE_V1)NewPacketType,
                         &Builder->Path->DestCid->CID,
-                        &Builder->SourceCID->CID,
+                        &Builder->SourceCid->CID,
                         Connection->Send.InitialTokenLength,
                         Connection->Send.InitialToken,
                         (uint32_t)Builder->Metadata->PacketNumber,

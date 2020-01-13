@@ -108,7 +108,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicLookupAddSourceConnectionID(
     _In_ QUIC_LOOKUP* Lookup,
-    _In_ QUIC_CID_HASH_ENTRY* SourceCID,
+    _In_ QUIC_CID_HASH_ENTRY* SourceCid,
     _Out_opt_ QUIC_CONNECTION** Collision
     );
 
@@ -119,7 +119,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicLookupRemoveSourceConnectionID(
     _In_ QUIC_LOOKUP* Lookup,
-    _In_ QUIC_CID_HASH_ENTRY* SourceCID
+    _In_ QUIC_CID_HASH_ENTRY* SourceCid
     );
 
 //

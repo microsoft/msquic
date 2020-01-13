@@ -590,7 +590,7 @@ QuicSendWriteFrames(
 
             BOOLEAN HasMoreCidsToSend = FALSE;
             BOOLEAN MaxFrameLimitHit = FALSE;
-            for (QUIC_SINGLE_LIST_ENTRY* Entry = Connection->SourceCIDs.Next;
+            for (QUIC_SINGLE_LIST_ENTRY* Entry = Connection->SourceCids.Next;
                     Entry != NULL;
                     Entry = Entry->Next) {
                 QUIC_CID_HASH_ENTRY* SourceCid =
@@ -648,8 +648,8 @@ QuicSendWriteFrames(
 
             BOOLEAN HasMoreCidsToSend = FALSE;
             BOOLEAN MaxFrameLimitHit = FALSE;
-            for (QUIC_LIST_ENTRY* Entry = Connection->DestCIDs.Flink;
-                    Entry != &Connection->DestCIDs;
+            for (QUIC_LIST_ENTRY* Entry = Connection->DestCids.Flink;
+                    Entry != &Connection->DestCids;
                     Entry = Entry->Flink) {
                 QUIC_CID_QUIC_LIST_ENTRY* DestCid =
                     QUIC_CONTAINING_RECORD(

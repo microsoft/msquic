@@ -71,8 +71,8 @@ QuicPacketValidateInvariant(
     _In_ BOOLEAN IsBindingShared
     )
 {
-    uint8_t DestCIDLen, SourceCIDLen;
-    const uint8_t* DestCID, *SourceCID;
+    uint8_t DestCidLen, SourceCidLen;
+    const uint8_t* DestCid, *SourceCid;
 
     //
     // Ignore empty or too short packets.
@@ -87,65 +87,65 @@ QuicPacketValidateInvariant(
 
         Packet->IsShortHeader = FALSE;
 
-        DestCIDLen = Packet->Invariant->LONG_HDR.DestCIDLength;
-        if (Packet->BufferLength < MIN_INV_LONG_HDR_LENGTH + DestCIDLen) {
-            QuicPacketLogDrop(Owner, Packet, "LH no room for DestCID");
+        DestCidLen = Packet->Invariant->LONG_HDR.DestCidLength;
+        if (Packet->BufferLength < MIN_INV_LONG_HDR_LENGTH + DestCidLen) {
+            QuicPacketLogDrop(Owner, Packet, "LH no room for DestCid");
             return FALSE;
         }
-        if (IsBindingShared && DestCIDLen == 0) {
-            QuicPacketLogDrop(Owner, Packet, "Zero length DestCID");
+        if (IsBindingShared && DestCidLen == 0) {
+            QuicPacketLogDrop(Owner, Packet, "Zero length DestCid");
             return FALSE;
         }
-        DestCID = Packet->Invariant->LONG_HDR.DestCID;
+        DestCid = Packet->Invariant->LONG_HDR.DestCid;
 
-        SourceCIDLen = *(DestCID + DestCIDLen);
-        Packet->HeaderLength = MIN_INV_LONG_HDR_LENGTH + DestCIDLen + SourceCIDLen;
+        SourceCidLen = *(DestCid + DestCidLen);
+        Packet->HeaderLength = MIN_INV_LONG_HDR_LENGTH + DestCidLen + SourceCidLen;
         if (Packet->BufferLength < Packet->HeaderLength) {
-            QuicPacketLogDrop(Owner, Packet, "LH no room for SourceCID");
+            QuicPacketLogDrop(Owner, Packet, "LH no room for SourceCid");
             return FALSE;
         }
-        SourceCID = DestCID + sizeof(uint8_t) + DestCIDLen;
+        SourceCid = DestCid + sizeof(uint8_t) + DestCidLen;
 
     } else {
 
         Packet->IsShortHeader = TRUE;
-        DestCIDLen = IsBindingShared ? MSQUIC_CONNECTION_ID_LENGTH : 0;
-        SourceCIDLen = 0;
+        DestCidLen = IsBindingShared ? MSQUIC_CONNECTION_ID_LENGTH : 0;
+        SourceCidLen = 0;
 
         //
         // Header length so far (just Packet->Invariant part).
         //
-        Packet->HeaderLength = sizeof(uint8_t) + DestCIDLen;
+        Packet->HeaderLength = sizeof(uint8_t) + DestCidLen;
 
         if (Packet->BufferLength < Packet->HeaderLength) {
-            QuicPacketLogDrop(Owner, Packet, "SH no room for DestCID");
+            QuicPacketLogDrop(Owner, Packet, "SH no room for DestCid");
             return FALSE;
         }
 
-        DestCID = Packet->Invariant->SHORT_HDR.DestCID;
-        SourceCID = NULL;
+        DestCid = Packet->Invariant->SHORT_HDR.DestCid;
+        SourceCid = NULL;
     }
 
-    if (Packet->DestCID != NULL) {
+    if (Packet->DestCid != NULL) {
 
         //
         // The CID(s) have already been previously set for this UDP datagram.
         // Make sure they match.
         //
 
-        if (Packet->DestCIDLen != DestCIDLen ||
-            memcmp(Packet->DestCID, DestCID, DestCIDLen) != 0) {
-            QuicPacketLogDrop(Owner, Packet, "DestCID don't match");
+        if (Packet->DestCidLen != DestCidLen ||
+            memcmp(Packet->DestCid, DestCid, DestCidLen) != 0) {
+            QuicPacketLogDrop(Owner, Packet, "DestCid don't match");
             return FALSE;
         }
 
         if (!Packet->IsShortHeader) {
 
-            QUIC_DBG_ASSERT(Packet->SourceCID != NULL);
+            QUIC_DBG_ASSERT(Packet->SourceCid != NULL);
 
-            if (Packet->SourceCIDLen != SourceCIDLen ||
-                memcmp(Packet->SourceCID, SourceCID, SourceCIDLen) != 0) {
-                QuicPacketLogDrop(Owner, Packet, "SourceCID don't match");
+            if (Packet->SourceCidLen != SourceCidLen ||
+                memcmp(Packet->SourceCid, SourceCid, SourceCidLen) != 0) {
+                QuicPacketLogDrop(Owner, Packet, "SourceCid don't match");
                 return FALSE;
             }
         }
@@ -157,11 +157,11 @@ QuicPacketValidateInvariant(
         // context.
         //
 
-        Packet->DestCIDLen = DestCIDLen;
-        Packet->SourceCIDLen = SourceCIDLen;
+        Packet->DestCidLen = DestCidLen;
+        Packet->SourceCidLen = SourceCidLen;
 
-        Packet->DestCID = DestCID;
-        Packet->SourceCID = SourceCID;
+        Packet->DestCid = DestCid;
+        Packet->SourceCid = SourceCid;
     }
 
     Packet->ValidatedHeaderInv = TRUE;
@@ -189,8 +189,8 @@ QuicPacketValidateLongHeaderV1(
     QUIC_DBG_ASSERT(Packet->BufferLength >= Packet->HeaderLength);
     QUIC_DBG_ASSERT(Packet->LH->Type != QUIC_RETRY); // Retry uses a different code path.
 
-    if (Packet->DestCIDLen > QUIC_MAX_CONNECTION_ID_LENGTH_V1 ||
-        Packet->SourceCIDLen > QUIC_MAX_CONNECTION_ID_LENGTH_V1) {
+    if (Packet->DestCidLen > QUIC_MAX_CONNECTION_ID_LENGTH_V1 ||
+        Packet->SourceCidLen > QUIC_MAX_CONNECTION_ID_LENGTH_V1) {
         QuicPacketLogDrop(Owner, Packet, "Greater than allowed max CID length");
         return FALSE;
     }
@@ -305,9 +305,9 @@ QuicPacketDecodeRetryTokenV1(
 
     uint16_t Offset =
         sizeof(QUIC_LONG_HEADER_V1) +
-        Packet->DestCIDLen +
+        Packet->DestCidLen +
         sizeof(uint8_t) +
-        Packet->SourceCIDLen;
+        Packet->SourceCidLen;
 
     QUIC_VAR_INT TokenLengthVarInt;
     BOOLEAN Success = QuicVarIntDecode(
@@ -392,21 +392,21 @@ QuicPacketLogHeader(
 
     if (Invariant->IsLongHeader) {
 
-        uint8_t DestCIDLen = Invariant->LONG_HDR.DestCIDLength;
-        const uint8_t* DestCID = Invariant->LONG_HDR.DestCID;
-        uint8_t SourceCIDLen = *(DestCID + DestCIDLen);
-        const uint8_t* SourceCID = DestCID + sizeof(uint8_t) + DestCIDLen;
+        uint8_t DestCidLen = Invariant->LONG_HDR.DestCidLength;
+        const uint8_t* DestCid = Invariant->LONG_HDR.DestCid;
+        uint8_t SourceCidLen = *(DestCid + DestCidLen);
+        const uint8_t* SourceCid = DestCid + sizeof(uint8_t) + DestCidLen;
 
-        Offset = sizeof(QUIC_HEADER_INVARIANT) + sizeof(uint8_t) + DestCIDLen + SourceCIDLen;
+        Offset = sizeof(QUIC_HEADER_INVARIANT) + sizeof(uint8_t) + DestCidLen + SourceCidLen;
 
         switch (Invariant->LONG_HDR.Version) {
         case QUIC_VERSION_VER_NEG: {
             QuicTraceLogVerbose(
-                "[%c][%cX][-] VerNeg DestCID:%s SrcCID:%s (Payload %lu bytes)",
+                "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %lu bytes)",
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
-                QuicCidBufToStr(DestCID, DestCIDLen).Buffer,
-                QuicCidBufToStr(SourceCID, SourceCIDLen).Buffer,
+                QuicCidBufToStr(DestCid, DestCidLen).Buffer,
+                QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
                 PacketLength - Offset);
 
             while (Offset < PacketLength) {
@@ -440,18 +440,18 @@ QuicPacketLogHeader(
 
             } else if (LongHdr->Type == QUIC_RETRY) {
 
-                uint8_t OrigDestCIDLen = *(SourceCID + SourceCIDLen);
-                const uint8_t* OrigDestCID = SourceCID + sizeof(uint8_t) + SourceCIDLen;
-                Offset += sizeof(uint8_t) + OrigDestCIDLen;
+                uint8_t OrigDestCidLen = *(SourceCid + SourceCidLen);
+                const uint8_t* OrigDestCid = SourceCid + sizeof(uint8_t) + SourceCidLen;
+                Offset += sizeof(uint8_t) + OrigDestCidLen;
 
                 QuicTraceLogVerbose(
-                    "[%c][%cX][-] LH Ver:0x%x DestCID:%s SrcCID:%s Type:R OrigDestCID:%s (Token %hu bytes)",
+                    "[%c][%cX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R OrigDestCid:%s (Token %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     LongHdr->Version,
-                    QuicCidBufToStr(DestCID, DestCIDLen).Buffer,
-                    QuicCidBufToStr(SourceCID, SourceCIDLen).Buffer,
-                    QuicCidBufToStr(OrigDestCID, OrigDestCIDLen).Buffer,
+                    QuicCidBufToStr(DestCid, DestCidLen).Buffer,
+                    QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
+                    QuicCidBufToStr(OrigDestCid, OrigDestCidLen).Buffer,
                     PacketLength - Offset);
                 break;
 
@@ -469,26 +469,26 @@ QuicPacketLogHeader(
 
             if (LongHdr->Type == QUIC_INITIAL) {
                 QuicTraceLogVerbose(
-                    "[%c][%cX][%llu] LH Ver:0x%x DestCID:%s SrcCID:%s Type:%s (Token %hu bytes) (Payload %hu bytes) (PktNum %hu bytes)",
+                    "[%c][%cX][%llu] LH Ver:0x%x DestCid:%s SrcCid:%s Type:%s (Token %hu bytes) (Payload %hu bytes) (PktNum %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     PacketNumber,
                     LongHdr->Version,
-                    QuicCidBufToStr(DestCID, DestCIDLen).Buffer,
-                    QuicCidBufToStr(SourceCID, SourceCIDLen).Buffer,
+                    QuicCidBufToStr(DestCid, DestCidLen).Buffer,
+                    QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
                     QuicLongHeaderTypeToString(LongHdr->Type),
                     (uint16_t)TokenLength,
                     (uint16_t)Length,
                     LongHdr->PnLength + 1);
             } else {
                 QuicTraceLogVerbose(
-                    "[%c][%cX][%llu] LH Ver:0x%x DestCID:%s SrcCID:%s Type:%s (Payload %hu bytes) (PktNum %hu bytes)",
+                    "[%c][%cX][%llu] LH Ver:0x%x DestCid:%s SrcCid:%s Type:%s (Payload %hu bytes) (PktNum %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     PacketNumber,
                     LongHdr->Version,
-                    QuicCidBufToStr(DestCID, DestCIDLen).Buffer,
-                    QuicCidBufToStr(SourceCID, SourceCIDLen).Buffer,
+                    QuicCidBufToStr(DestCid, DestCidLen).Buffer,
+                    QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
                     QuicLongHeaderTypeToString(LongHdr->Type),
                     (uint16_t)Length,
                     LongHdr->PnLength + 1);
@@ -498,20 +498,20 @@ QuicPacketLogHeader(
 
         default:
             QuicTraceLogVerbose(
-                "[%c][%cX][%llu] LH Ver:[UNSUPPORTED,0x%x] DestCID:%s SrcCID:%s",
+                "[%c][%cX][%llu] LH Ver:[UNSUPPORTED,0x%x] DestCid:%s SrcCid:%s",
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber,
                 Invariant->LONG_HDR.Version,
-                QuicCidBufToStr(DestCID, DestCIDLen).Buffer,
-                QuicCidBufToStr(SourceCID, SourceCIDLen).Buffer);
+                QuicCidBufToStr(DestCid, DestCidLen).Buffer,
+                QuicCidBufToStr(SourceCid, SourceCidLen).Buffer);
             break;
         }
 
     } else {
 
-        uint8_t DestCIDLen = CIDLength;
-        const uint8_t* DestCID = Invariant->SHORT_HDR.DestCID;
+        uint8_t DestCidLen = CIDLength;
+        const uint8_t* DestCid = Invariant->SHORT_HDR.DestCid;
 
         switch (Version) {
         case QUIC_VERSION_DRAFT_24:
@@ -519,14 +519,14 @@ QuicPacketLogHeader(
             const QUIC_SHORT_HEADER_V1 * const Header =
                 (const QUIC_SHORT_HEADER_V1 * const)Packet;
 
-            Offset = sizeof(QUIC_SHORT_HEADER_V1) + DestCIDLen;
+            Offset = sizeof(QUIC_SHORT_HEADER_V1) + DestCidLen;
 
             QuicTraceLogVerbose(
-                "[%c][%cX][%llu] SH DestCID:%s KP:%hu SB:%hu (Payload %hu bytes)",
+                "[%c][%cX][%llu] SH DestCid:%s KP:%hu SB:%hu (Payload %hu bytes)",
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber,
-                QuicCidBufToStr(DestCID, DestCIDLen).Buffer,
+                QuicCidBufToStr(DestCid, DestCidLen).Buffer,
                 Header->KeyPhase,
                 Header->SpinBit,
                 PacketLength - Offset);
