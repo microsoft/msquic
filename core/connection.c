@@ -409,6 +409,7 @@ QuicConnUninitialize(
     QUIC_TEL_ASSERT(!Connection->State.Uninitialized);
 
     Connection->State.Uninitialized = TRUE;
+    Connection->State.UpdateWorker = FALSE;
 
     //
     // Ensure we are shut down.
