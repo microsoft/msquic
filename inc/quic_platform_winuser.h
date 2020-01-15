@@ -521,6 +521,10 @@ typedef HANDLE QUIC_EVENT;
 // Time Measurement Interfaces
 //
 
+//
+// This is an undocumented API that is used to query the current timer
+// resolution.
+//
 __kernel_entry
 NTSYSCALLAPI
 NTSTATUS
@@ -674,6 +678,12 @@ QuicTimeAtOrBefore32(
 // Create Thread Interfaces
 //
 
+//
+// The following are the undocumented interface for setting a thread's name.
+// This is essentially what SetThreadDescription does, but that is not
+// avaialable down level.
+//
+#if 1
 #define ThreadNameInformation ((THREADINFOCLASS)38)
 
 typedef struct _THREAD_NAME_INFORMATION {
@@ -690,6 +700,7 @@ NtSetInformationThread(
     _In_reads_bytes_(ThreadInformationLength) PVOID ThreadInformation,
     _In_ ULONG ThreadInformationLength
     );
+#endif
 
 #define QUIC_THREAD_FLAG_SET_IDEAL_PROC     0x0001
 #define QUIC_THREAD_FLAG_SET_AFFINITIZE     0x0002
