@@ -795,7 +795,8 @@ QuicSendPathChallenges(
     for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
 
         QUIC_PATH* Path = &Connection->Paths[i];
-        if (!Connection->Paths[i].SendChallenge) {
+        if (!Connection->Paths[i].SendChallenge ||
+            Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) {
             continue;
         }
 
@@ -824,6 +825,7 @@ QuicSendPathChallenges(
                 AvailableBufferLength,
                 Builder.Datagram->Buffer);
 
+        QUIC_DBG_ASSERT(Result);
         if (Result) {
             QuicCopyMemory(
                 Builder.Metadata->Frames[0].PATH_CHALLENGE.Data,
