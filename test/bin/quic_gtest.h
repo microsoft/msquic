@@ -318,3 +318,55 @@ std::ostream& operator << (std::ostream& o, const ReceiveResumeNoDataArgs& args)
 class WithReceiveResumeNoDataArgs : public testing::Test,
     public testing::WithParamInterface<ReceiveResumeNoDataArgs> {
 };
+
+struct DrillInitialPacketCidArgs {
+    int Family;
+    bool SourceOrDest;
+    bool ActualCidLengthValid;
+    bool ShortCidLength;
+    bool CidLengthFieldValid;
+
+    static ::std::vector<DrillInitialPacketCidArgs> Generate() {
+        ::std::vector<DrillInitialPacketCidArgs> list;
+        for (int Family : { 4, 6 })
+        for (bool SourceOrDest : { true, false })
+        for (bool ActualCidLengthValid : { true, false })
+        for (bool ShortCidLength : { true, false })
+        for (bool CidLengthFieldValid : { true, false })
+            list.push_back({ Family, SourceOrDest, ActualCidLengthValid, ShortCidLength, CidLengthFieldValid });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const DrillInitialPacketCidArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.SourceOrDest ? "SourceCid" : "DestCid") << "/" <<
+        (args.ActualCidLengthValid ? "Valid" : "Invalid") << "/" <<
+        (args.ShortCidLength ? "Short" : "Long") << "/" <<
+        (args.CidLengthFieldValid ? "Valid" : "Invalid") << " length";
+}
+
+class WithDrillInitialPacketCidArgs: public testing::Test,
+    public testing::WithParamInterface<DrillInitialPacketCidArgs> {
+};
+
+struct DrillInitialPacketTokenArgs {
+    int Family;
+
+    static ::std::vector<DrillInitialPacketTokenArgs> Generate() {
+        ::std::vector<DrillInitialPacketTokenArgs> list;
+        for (int Family : { 4, 6 })
+            list.push_back({ Family, });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const DrillInitialPacketTokenArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6");
+}
+
+class WithDrillInitialPacketTokenArgs: public testing::Test,
+    public testing::WithParamInterface<DrillInitialPacketTokenArgs> {
+};

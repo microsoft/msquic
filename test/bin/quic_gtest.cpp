@@ -19,8 +19,13 @@ QUIC_SEC_CONFIG* SecurityConfig;
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 
 class QuicTestEnvironment : public ::testing::Environment {
+    bool PlatformInitialized;
 public:
     void SetUp() override {
+        if (QUIC_FAILED(QuicPlatformInitialize())) {
+            return; // TODO - FAIL SetUp
+        }
+        PlatformInitialized = true;
         if (QUIC_FAILED(MsQuicOpenV1(&MsQuic))) {
             return; // TODO - FAIL SetUp
         }
@@ -51,6 +56,9 @@ public:
         Registration = nullptr;
         MsQuicClose(MsQuic);
         MsQuic = nullptr;
+        if (PlatformInitialized) {
+            QuicPlatformUninitialize();
+        }
     }
     _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
     static void
@@ -419,6 +427,21 @@ TEST_P(WithReceiveResumeNoDataArgs, ReceiveResumeNoData) {
     QuicTestReceiveResumeNoData(GetParam().Family, GetParam().ShutdownType);
 }
 
+TEST_P(WithDrillInitialPacketCidArgs, DrillInitialPacketCids) {
+    TestLoggerT<ParamType> Logger("QuicDrillInitialPacketCids", GetParam());
+    QuicDrillTestInitialCid(
+        GetParam().Family,
+        GetParam().SourceOrDest,
+        GetParam().ActualCidLengthValid,
+        GetParam().ShortCidLength,
+        GetParam().CidLengthFieldValid);
+}
+
+TEST_P(WithDrillInitialPacketTokenArgs, DrillInitialPacketToken) {
+    TestLoggerT<ParamType> Logger("QuicDrillInitialPacketToken", GetParam());
+    QuicDrillTestInitialToken(GetParam().Family);
+}
+
 INSTANTIATE_TEST_CASE_P(
     ParameterValidation,
     WithBool,
@@ -478,6 +501,16 @@ INSTANTIATE_TEST_CASE_P(
     Misc,
     WithReceiveResumeNoDataArgs,
     testing::ValuesIn(ReceiveResumeNoDataArgs::Generate()));
+
+INSTANTIATE_TEST_CASE_P(
+    Drill,
+    WithDrillInitialPacketCidArgs,
+    testing::ValuesIn(DrillInitialPacketCidArgs::Generate()));
+
+INSTANTIATE_TEST_CASE_P(
+    Drill,
+    WithDrillInitialPacketTokenArgs,
+    testing::ValuesIn(DrillInitialPacketTokenArgs::Generate()));
 
 int main(int argc, char** argv) {
     ::testing::AddGlobalTestEnvironment(new QuicTestEnvironment);
