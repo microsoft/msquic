@@ -422,9 +422,6 @@ QuicListenerAcceptConnection(
         }
     }
 
-    Connection->Stats.Timing.Start = QuicTimeUs64();
-    QuicTraceEvent(ConnHandshakeStart, Connection);
-
     if (Status != QUIC_STATUS_PENDING) {
         Status = QuicConnHandshakeConfigure(Connection, SecConfig);
         if (QUIC_FAILED(Status)) {
