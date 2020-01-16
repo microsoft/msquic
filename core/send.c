@@ -823,20 +823,21 @@ QuicSendPathChallenges(
                 &Builder.DatagramLength,
                 AvailableBufferLength,
                 Builder.Datagram->Buffer);
-        QUIC_DBG_ASSERT(Result);
 
-        QuicCopyMemory(
-            Builder.Metadata->Frames[0].PATH_CHALLENGE.Data,
-            Frame.Data,
-            sizeof(Frame.Data));
+        if (Result) {
+            QuicCopyMemory(
+                Builder.Metadata->Frames[0].PATH_CHALLENGE.Data,
+                Frame.Data,
+                sizeof(Frame.Data));
 
-        Result = QuicPacketBuilderAddFrame(&Builder, QUIC_FRAME_PATH_CHALLENGE, TRUE);
-        QUIC_DBG_ASSERT(!Result);
-        UNREFERENCED_PARAMETER(Result);
+            Result = QuicPacketBuilderAddFrame(&Builder, QUIC_FRAME_PATH_CHALLENGE, TRUE);
+            QUIC_DBG_ASSERT(!Result);
+            UNREFERENCED_PARAMETER(Result);
+
+            Path->SendChallenge = FALSE;
+        }
 
         QuicPacketBuilderFinalize(&Builder, TRUE);
-
-        Path->SendChallenge = FALSE;
     }
 }
 
