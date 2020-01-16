@@ -681,7 +681,7 @@ QuicTimeAtOrBefore32(
 //
 // The following are the undocumented interface for setting a thread's name.
 // This is essentially what SetThreadDescription does, but that is not
-// avaialable down level.
+// available in older versions of Windows.
 //
 #if 1
 #define ThreadNameInformation ((THREADINFOCLASS)38)

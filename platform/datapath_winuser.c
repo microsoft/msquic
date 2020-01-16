@@ -48,8 +48,7 @@ QuicFuzzerRecvMsg(
 #define SIO_SET_PORT_SHARING_PER_PROC_SOCKET  _WSAIOW(IOC_VENDOR,21)
 
 //
-// Not yet available in the currently non-preview SDK version. When available
-// this code can be removed.
+// Not yet available in the SDK. When available this code can be removed.
 //
 #if 1
 #define UDP_SEND_MSG_SIZE           2
