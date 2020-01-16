@@ -1489,7 +1489,7 @@ Exit:
             QuicRundownRelease(&Datapath->BindingsRundown);
             QuicRundownUninitialize(&Binding->Rundown);
             QUIC_FREE(Binding);
-            Binding == NULL;
+            Binding = NULL;
         }
     }
 
