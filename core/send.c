@@ -796,7 +796,7 @@ QuicSendPathChallenges(
 
         QUIC_PATH* Path = &Connection->Paths[i];
         if (!Connection->Paths[i].SendChallenge ||
-            Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) {
+            Connection->Paths[i].Allowance < QUIC_MIN_SEND_ALLOWANCE) {
             continue;
         }
 
