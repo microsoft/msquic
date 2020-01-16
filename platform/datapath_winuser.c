@@ -42,7 +42,7 @@ QuicFuzzerRecvMsg(
 
 //
 // This is a (currently) undocumented socket IOCTL. It allows for creating
-// per-processor sockets for the same UDP binding. This is used to get better
+// per-processor sockets for the same UDP port. This is used to get better
 // parallelization to improve performance.
 //
 #define SIO_SET_PORT_SHARING_PER_PROC_SOCKET  _WSAIOW(IOC_VENDOR,21)
