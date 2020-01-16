@@ -18,7 +18,9 @@ class DrillBuffer : public Rtl::KArray<uint8_t>
         QUIC_FRE_ASSERT(append(value));
     }
 
-    size_t size() { return count(); }
+    const uint8_t* data() const { return &(*this)[0]; }
+
+    size_t size() const { return count(); }
 
     void
     insert(
@@ -80,10 +82,12 @@ struct DrillPacketDescriptor {
     uint8_t* SourceCidLen;
     DrillBuffer SourceCid;
 
+    DrillPacketDescriptor() : SourceCidLen(nullptr), DestCidLen(nullptr) {};
+
     //
     // Write this descriptor to a byte array to send on the wire.
     //
-    virtual DrillBuffer write();
+    virtual DrillBuffer write() const;
 };
 
 
@@ -117,10 +121,23 @@ struct DrillInitialPacketDescriptor : DrillPacketDescriptor {
     //
     // Write this descriptor to a byte array to send on the wire.
     //
-    virtual DrillBuffer write();
+    virtual DrillBuffer write() const;
+};
+
+enum DrillVarIntSize {
+    OneByte = 1,
+    TwoBytes = 2,
+    FourBytes = 4,
+    EightBytes = 8
 };
 
 DrillBuffer
 QuicDrillEncodeQuicVarInt (
+    const uint64_t input,
+    const DrillVarIntSize size
+    );
+
+DrillBuffer
+QuicDrillEncodeQuicVarInt(
     uint64_t input
     );

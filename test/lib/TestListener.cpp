@@ -79,6 +79,21 @@ TestListener::GetLocalAddr(
 }
 
 QUIC_STATUS
+TestListener::GetStatistics(
+    _Out_ QUIC_LISTENER_STATISTICS &stats
+    )
+{
+    uint32_t Size = sizeof(stats);
+    return
+        MsQuic->GetParam(
+            QuicListener,
+            QUIC_PARAM_LEVEL_LISTENER,
+            QUIC_PARAM_LISTENER_STATS,
+            &Size,
+            &stats);
+}
+
+QUIC_STATUS
 TestListener::HandleListenerEvent(
     _Inout_ QUIC_LISTENER_EVENT* Event
     )
