@@ -35,7 +35,7 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN AppClosed       : 1;    // Application (not transport) closed connection.
         BOOLEAN HandleShutdown  : 1;    // Shutdown callback delivered for handle.
         BOOLEAN HandleClosed    : 1;    // Handle closed by application layer.
-        BOOLEAN Uninitialized   : 1;    // Uninitialize started/completed. Used for Debugging.
+        BOOLEAN Uninitialized   : 1;    // Uninitialize started/completed.
         BOOLEAN Freed           : 1;    // Freed. Used for Debugging.
 
         //
