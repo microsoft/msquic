@@ -33,7 +33,7 @@ The API supports both server and client applications. All functionality is expos
 
 [**Registration**](#registration) – Manages the execution context for all child objects. An app may open multiple registrations but ideally should only open one.
 
-[**Security Configuration**](#security-configuration) – Abstracts the configuration for the TLS layer. This primarily consists of a certificate that is used for authentication. The app may create as many of these as necessary.
+[**Security Configuration**](#security-configuration) – Abstracts the configuration for the TLS component. This primarily consists of a certificate that is used for authentication. The app may create as many of these as necessary.
 
 [**Session**](#session) – Abstracts several different session-layer concepts: TLS Session Resumption, Application Layer Protocol Negotiation (ALPN) and platform specifics (such as Server Silo and Network Compartment ID on Windows). The app may create as many of these as necessary.
 
