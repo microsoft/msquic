@@ -4448,6 +4448,31 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_CONN_PRIORITY_SCHEME: {
+
+        if (BufferLength != sizeof(QUIC_CONNECTION_PRIORTY_SCHEME)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        QUIC_CONNECTION_PRIORTY_SCHEME Scheme =
+            *(QUIC_CONNECTION_PRIORTY_SCHEME*)Buffer;
+
+        if (Scheme > QUIC_CONNECTION_PRIORITY_ROUND_ROBIN) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Connection->State.UsePriorityRoundRobin =
+            Scheme == QUIC_CONNECTION_PRIORITY_ROUND_ROBIN;
+
+        QuicTraceLogConnInfo(UpdatePriorityScheme, Connection, "Updated Priotity Scheme = %u",
+            Scheme);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
     case QUIC_PARAM_CONN_FORCE_KEY_UPDATE:
 
         if (!Connection->State.Connected ||
@@ -4958,6 +4983,27 @@ QuicConnParamGet(
 
         *BufferLength = sizeof(uint64_t) * NUMBER_OF_STREAM_TYPES;
         QuicStreamSetGetMaxStreamIDs(&Connection->Streams, (uint64_t*)Buffer);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_PRIORITY_SCHEME:
+
+        if (*BufferLength < sizeof(QUIC_CONNECTION_PRIORTY_SCHEME)) {
+            *BufferLength = sizeof(QUIC_CONNECTION_PRIORTY_SCHEME);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(QUIC_CONNECTION_PRIORTY_SCHEME);
+        *(QUIC_CONNECTION_PRIORTY_SCHEME*)Buffer =
+            Connection->State.UsePriorityRoundRobin ?
+                QUIC_CONNECTION_PRIORITY_ROUND_ROBIN : QUIC_CONNECTION_PRIORITY_FIFO;
 
         Status = QUIC_STATUS_SUCCESS;
         break;

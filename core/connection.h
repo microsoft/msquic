@@ -130,6 +130,11 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN TestTransportParameterSet : 1;
 
+        //
+        // Indicate the connection is using the round robin priority scheme.
+        //
+        BOOLEAN UsePriorityRoundRobin : 1;
+
 #ifdef QuicVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).

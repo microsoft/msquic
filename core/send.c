@@ -744,7 +744,8 @@ QuicSendGetNextStream(
     _Out_ uint32_t* PacketCount
     )
 {
-    QUIC_DBG_ASSERT(!QuicConnIsClosed(QuicSendGetConnection(Send)) || QuicListIsEmpty(&Send->SendStreams));
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
+    QUIC_DBG_ASSERT(!QuicConnIsClosed(Connection) || QuicListIsEmpty(&Send->SendStreams));
 
     QUIC_LIST_ENTRY* Entry = Send->SendStreams.Flink;
     while (Entry != &Send->SendStreams) {
@@ -762,13 +763,19 @@ QuicSendGetNextStream(
         //
         if (QuicSendCanSendStreamNow(Stream)) {
 
-            //
-            // Move the stream to the end of the queue.
-            //
-            QuicListEntryRemove(&Stream->SendLink);
-            QuicListInsertTail(&Send->SendStreams, &Stream->SendLink);
+            if (Connection->State.UsePriorityRoundRobin) {
+                //
+                // Move the stream to the end of the queue.
+                //
+                QuicListEntryRemove(&Stream->SendLink);
+                QuicListInsertTail(&Send->SendStreams, &Stream->SendLink);
 
-            *PacketCount = QUIC_STREAM_SEND_BATCH_COUNT;
+                *PacketCount = QUIC_STREAM_SEND_BATCH_COUNT;
+
+            } else { // FIFO prioritization scheme
+                *PacketCount = UINT32_MAX;
+            }
+
             return Stream;
         }
 
