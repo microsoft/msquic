@@ -109,7 +109,7 @@ When a new connection is started by a client, the server will get a callback all
 2. Return `QUIC_STATUS_SUCCESS` and set the SecConfig output parameter in the event.
 3. Return `QUIC_STATUS_PENDING`, which allows the SecConfig to be set later, via a call to SetParam with the `QUIC_PARAM_CONN_SEC_CONFIG` option.
 
-If either 2 and 3 above, the server now has ownership of the connection object. It **must** set the callback handler via [SetCallbackHandler](v1/SetCallbackHandler.md) before the callback returns. Additionally when it’s done with the connection, the app must call [ConnectionClose](v1/ConnectionClose.md) on the connection to clean it up. Also, in case 2, if the server does not set the SecConfig, it is treated as case 1.
+If either 2 or 3 above, the server now has ownership of the connection object. It **must** set the callback handler via [SetCallbackHandler](v1/SetCallbackHandler.md) before the callback returns. Additionally, when it’s done with the connection, the app must call [ConnectionClose](v1/ConnectionClose.md) on the connection to clean it up. Also, in case 2, if the server does not set the SecConfig, it is treated as case 1.
 
 When the server wishes to stop accepting new connections and stop further callbacks to the registered handler, it can call [ListenerStop](v1/ListenerStop.md). This call will block while any existing callbacks complete, and when it returns no future callbacks will occur. Therefore, the server ***must not** call this on any other library callbacks. The server may call [ListenerStart](v1/ListenerStart.md) again on the listener to start listening for incoming connections again.
 
@@ -125,7 +125,7 @@ When the app is done with the connection, it can then call [ConnectionShutdown](
 
 ## Stream
 
-Streams are the primary means of exchanging app data over a connection. Streams can be bidirectional or unidirectional. They can also be initiated/opened by either endpoint (Client or server). Each endpoint dicates exactly how many streams of each type (unidirectional or bidirectional) their peer can open at a given time. Finally, they can be shutdown by either endpoint, in either direction.
+Streams are the primary means of exchanging app data over a connection. Streams can be bidirectional or unidirectional. They can also be initiated/opened by either endpoint (Client or server). Each endpoint dictates exactly how many streams of each type (unidirectional or bidirectional) their peer can open at a given time. Finally, they can be shutdown by either endpoint, in either direction.
 
 A stream handle represents a single QUIC stream. It can be locally created by a call to [StreamOpen](v1/StreamOpen.md) or remotely created and then indicated to the app via the connection's callback handler via a `QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED` event. Locally created streams must be started (via [StreamStart](v1/StreamStart.md)) before they can practically be used. Remote streams are already started when indicated to the app.
 
