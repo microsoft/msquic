@@ -101,7 +101,7 @@ A session is created by calling [SessionOpen](v1/SessionOpen.md) and deleted by 
 
 ## Listener
 
-To create a QUIC server, an server must create a listener via [ListenerOpen](v1/ListenerOpen.md). This will return a new listener handle that is ready to start accepting incoming connections. Then, the server must call [ListenerStart](v1/ListenerStart.md) to get callbacks for new incoming connections. [ListenerStart](v1/ListenerStart.md) takes the network address the server wants to listener on.
+To create a QUIC server, a server must create a listener via [ListenerOpen](v1/ListenerOpen.md). This will return a new listener handle that is ready to start accepting incoming connections. Then, the server must call [ListenerStart](v1/ListenerStart.md) to get callbacks for new incoming connections. [ListenerStart](v1/ListenerStart.md) takes the network address the server wants to listener on.
 
 When a new connection is started by a client, the server will get a callback allowing it to accept the connection. This happens via the `QUIC_LISTENER_EVENT_NEW_CONNECTION` callback event, which contains all the currently known information in the `QUIC_NEW_CONNECTION_INFO` struct. The server is required to do one of three things in response to this event:
 
