@@ -210,6 +210,9 @@ public:
     bool GetShareUdpBinding();
     QUIC_STATUS SetShareUdpBinding(bool value);
 
+    QUIC_CONNECTION_PRIORTY_SCHEME GetPriorityScheme();
+    QUIC_STATUS SetPriorityScheme(QUIC_CONNECTION_PRIORTY_SCHEME value);
+
     QUIC_STATUS SetSecurityConfig(QUIC_SEC_CONFIG* value);
 
     bool HasNewZeroRttTicket();

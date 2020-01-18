@@ -547,6 +547,7 @@ struct PingStats
     const uint64_t PayloadLength;
     const uint32_t ConnectionCount;
     const uint32_t StreamCount;
+    const bool FifoPriority;
     const bool UnidirectionalStreams;
     const bool ServerInitiatedStreams;
     const bool ZeroRtt;
@@ -562,6 +563,7 @@ struct PingStats
         uint64_t _PayloadLength,
         uint32_t _ConnectionCount,
         uint32_t _StreamCount,
+        bool _FifoPriority,
         bool _UnidirectionalStreams,
         bool _ServerInitiatedStreams,
         bool _ZeroRtt,
@@ -572,6 +574,7 @@ struct PingStats
         PayloadLength(_PayloadLength),
         ConnectionCount(_ConnectionCount),
         StreamCount(_StreamCount),
+        FifoPriority(_FifoPriority),
         UnidirectionalStreams(_UnidirectionalStreams),
         ServerInitiatedStreams(_ServerInitiatedStreams),
         ZeroRtt(_ZeroRtt),
@@ -749,6 +752,11 @@ ListenerAcceptPingConnection(
             }
         }
 
+        Connection->SetPriorityScheme(
+            Stats->FifoPriority ?
+                QUIC_CONNECTION_PRIORITY_FIFO :
+                QUIC_CONNECTION_PRIORITY_ROUND_ROBIN);
+
         if (Stats->ServerInitiatedStreams) {
             SendPingBurst(
                 Connection,
@@ -787,6 +795,11 @@ NewPingConnection(
     Connection->SetShutdownCompleteCallback(PingConnectionShutdown);
     Connection->SetExpectedResumed(ClientStats->ZeroRtt);
 
+    Connection->SetPriorityScheme(
+        ClientStats->FifoPriority ?
+            QUIC_CONNECTION_PRIORITY_FIFO :
+            QUIC_CONNECTION_PRIORITY_ROUND_ROBIN);
+
     if (ClientStats->ServerInitiatedStreams) {
         Connection->SetPeerUnidiStreamCount((uint16_t)ClientStats->StreamCount);
         Connection->SetPeerBidiStreamCount((uint16_t)ClientStats->StreamCount);
@@ -813,14 +826,15 @@ QuicTestConnectAndPing(
     _In_ bool ServerRejectZeroRtt,
     _In_ bool UseSendBuffer,
     _In_ bool UnidirectionalStreams,
-    _In_ bool ServerInitiatedStreams
+    _In_ bool ServerInitiatedStreams,
+    _In_ bool FifoPriority
     )
 {
     const uint32_t TimeoutMs = EstimateTimeoutMs(Length) * StreamBurstCount;
     const uint16_t TotalStreamCount = (uint16_t)(StreamCount * StreamBurstCount);
 
-    PingStats ServerStats(Length, ConnectionCount, TotalStreamCount, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
-    PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
+    PingStats ServerStats(Length, ConnectionCount, TotalStreamCount, FifoPriority, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
+    PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, FifoPriority, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
 
     MsQuicSession Session("MsQuicTest", true);
     TEST_TRUE(Session.IsValid());
