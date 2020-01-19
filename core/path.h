@@ -124,6 +124,13 @@ QuicPathInitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicPathRemove(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint8_t Index
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 QuicPathSetAllowance(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,

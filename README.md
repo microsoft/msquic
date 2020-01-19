@@ -65,10 +65,9 @@ The source is divided into several directories:
 
 # Contributing
 
-For the time being, **external contributions will not be accepted**. We are still
-working on setting up internal repository sycnhronization and continuous integration,
-and until that happens, this repository will be a simple copy of the Microsoft internal
-one.
+> For the time being, **external code contributions will not be accepted**. We are still
+working on setting up internal repository sycnhronization, continuous integration,
+and generally ironing out our processes.
 
 Most contributions require you to agree to a Contributor License Agreement (CLA)
 declaring that you have the right to, and actually do, grant us the rights to use

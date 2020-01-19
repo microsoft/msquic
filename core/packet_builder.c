@@ -53,14 +53,14 @@ QuicPacketBuilderInitialize(
         Connection->State.EncryptionEnabled ?
             QUIC_ENCRYPTION_OVERHEAD : 0;
 
-    if (Connection->SourceCIDs.Next == NULL) {
+    if (Connection->SourceCids.Next == NULL) {
         QuicTraceLogConnWarning(NoSrcCidAvailable, Connection, "No src CID to send with.");
         return FALSE;
     }
 
-    Builder->SourceCID =
+    Builder->SourceCid =
         QUIC_CONTAINING_RECORD(
-            Connection->SourceCIDs.Next,
+            Connection->SourceCids.Next,
             QUIC_CID_HASH_ENTRY,
             Link);
 
@@ -128,7 +128,19 @@ QuicPacketBuilderPrepare(
         DatagramSize = (uint16_t)Builder->Path->Allowance;
     }
     QUIC_DBG_ASSERT(!IsPathMtuDiscovery || !IsTailLossProbe); // Never both.
-    QUIC_DBG_ASSERT(NewPacketKey != NULL);
+
+    if (NewPacketKey == NULL) {
+        //
+        // A NULL key here usually means the connection had a fatal error in
+        // such a way that resulted in the key not getting created. The
+        // connection is most likely trying to send a connection close frame,
+        // but without the key, nothing can be done. Just silently kill the
+        // connection.
+        //
+        QuicTraceEvent(ConnError, Connection, "NULL key in builder prepare");
+        QuicConnSilentlyAbort(Connection);
+        return FALSE;
+    }
 
     //
     // Next, make sure the current QUIC packet matches the new packet type. If
@@ -296,7 +308,7 @@ QuicPacketBuilderPrepare(
                         Connection->Stats.QuicVersion,
                         (QUIC_LONG_HEADER_TYPE_V1)NewPacketType,
                         &Builder->Path->DestCid->CID,
-                        &Builder->SourceCID->CID,
+                        &Builder->SourceCid->CID,
                         Connection->Send.InitialTokenLength,
                         Connection->Send.InitialToken,
                         (uint32_t)Builder->Metadata->PacketNumber,

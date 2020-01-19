@@ -92,6 +92,22 @@ const char* ApiTypeStr[] = {
     "STREAM_RECEIVE_SET_ENABLED"
 };
 
+const char* SendFlushReasonStr[] = {
+    "Flags",
+    "Stream",
+    "Probe",
+    "Loss",
+    "ACK",
+    "TP",
+    "CC",
+    "FC",
+    "NewKey",
+    "StreamFC",
+    "StreamID",
+    "AmpProtect",
+    "Scheduling"
+};
+
 #define TRACE_TIME_FORMAT "%llu.%03llu "
 #define TRACE_TIME(Cxn,ev) \
     NS100_TO_US(ev->EventHeader.TimeStamp.QuadPart - Cxn->InitialTimestamp) / 1000, \
@@ -398,12 +414,13 @@ QuicTraceListenerEvent(
 
 typedef enum QUIC_FLOW_BLOCK_REASON {
     QUIC_FLOW_BLOCKED_SCHEDULING            = 0x01,
-    QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT    = 0x02,
-    QUIC_FLOW_BLOCKED_CONGESTION_CONTROL    = 0x04,
-    QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL     = 0x08,
-    QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL= 0x10,
-    QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL   = 0x20,
-    QUIC_FLOW_BLOCKED_APP                   = 0x40
+    QUIC_FLOW_BLOCKED_PACING                = 0x02,
+    QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT    = 0x04,
+    QUIC_FLOW_BLOCKED_CONGESTION_CONTROL    = 0x08,
+    QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL     = 0x10,
+    QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL= 0x20,
+    QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL   = 0x40,
+    QUIC_FLOW_BLOCKED_APP                   = 0x80
 } QUIC_FLOW_BLOCK_REASON;
 
 void
@@ -414,6 +431,9 @@ QuicTraceFlowBlockFlags(
     printf("[ ");
     if (Flags & QUIC_FLOW_BLOCKED_SCHEDULING) {
         printf("SCHED ");
+    }
+    if (Flags & QUIC_FLOW_BLOCKED_PACING) {
+        printf("PACE ");
     }
     if (Flags & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT) {
         printf("AMP ");
@@ -759,6 +779,10 @@ QuicTraceConnEvent(
     case EventId_QuicConnLogInfo:
     case EventId_QuicConnLogVerbose: {
         printf("%s\n", EvData->Log.Msg);
+        break;
+    }
+    case EventId_QuicQueueSendFlush: {
+        printf("Queueing send flush, reason=%s\n", SendFlushReasonStr[EvData->QueueSendFlush.Reason]);
         break;
     }
     default: {

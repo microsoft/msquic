@@ -29,7 +29,9 @@ PrintUsage()
     printf("\nServer options:\n");
     printf(
         "  -listen:<addr or *>         The local IP address to listen on, or * for all IP addresses.\n"
-        "  -thumbprint:<cert_hash>     The hash or thumbprint of the certificate to use.\n");
+        "  -thumbprint:<cert_hash>     The hash or thumbprint of the certificate to use.\n"
+        "  -cert_store:<store name>    The certificate store to search for the thumbprint in.\n"
+        "  -machine_cert:<0/1>         Use the machine, or current user's, certificate store. (def:0)\n");
 
     printf("\nClient options:\n");
     printf(
@@ -212,10 +214,27 @@ ParseServerCommand(
         printf("Must specify -thumbprint: for server mode.\n");
         return;
     }
-    SecurityConfig = GetSecConfigForThumbprint(MsQuic, Registration, certThumbprint);
-    if (SecurityConfig == nullptr) {
-        printf("Failed to create security configuration for thumbprint:'%s'.\n", certThumbprint);
-        return;
+    const char* certStoreName;
+    if (!TryGetValue(argc, argv, "cert_store", &certStoreName)) {
+        SecurityConfig = GetSecConfigForThumbprint(MsQuic, Registration, certThumbprint);
+        if (SecurityConfig == nullptr) {
+            printf("Failed to create security configuration for thumbprint:'%s'.\n", certThumbprint);
+            return;
+        }
+    } else {
+        uint32_t machineCert = 0;
+        TryGetValue(argc, argv, "machine_cert", &machineCert);
+        QUIC_CERTIFICATE_HASH_STORE_FLAGS flags =
+            machineCert ? QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE : QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE;
+
+        SecurityConfig = GetSecConfigForThumbprintAndStore(MsQuic, Registration, flags, certThumbprint, certStoreName);
+        if (SecurityConfig == nullptr) {
+            printf(
+                "Failed to create security configuration for thumbprint:'%s' and store: '%s'.\n",
+                certThumbprint,
+                certStoreName);
+            return;
+        }
     }
 #else
     // TODO - Support getting sec config on Linux.

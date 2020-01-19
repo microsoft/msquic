@@ -23,7 +23,7 @@ typedef struct QUIC_PACKET_BUILDER {
     //
     // The source connection ID.
     //
-    QUIC_CID_HASH_ENTRY* SourceCID;
+    QUIC_CID_HASH_ENTRY* SourceCid;
 
     //
     // Represents a set of UDP datagrams.

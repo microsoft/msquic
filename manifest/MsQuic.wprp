@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <WindowsPerformanceRecorder Version="1.0" Author="Microsoft Corporation" Copyright="Microsoft Corporation" Company="Microsoft Corporation">
   <Profiles>
+   <SystemCollector Id="SC_HighVolume" Realtime="false">
+      <BufferSize Value="1024"/>
+      <Buffers Value="20"/>
+    </SystemCollector>
     <EventCollector Id="EC_LowVolume" Name="LowVolume">
       <BufferSize Value="64"/>
       <Buffers Value="32"/>
@@ -9,6 +13,15 @@
       <BufferSize Value="128"/>
       <Buffers Value="64"/>
     </EventCollector>
+
+    <SystemProvider Id="SP_SystemThreadExecution">
+      <Keywords>
+        <Keyword Value="CpuConfig"/>
+        <Keyword Value="Loader"/>
+        <Keyword Value="ProcessThread"/>
+        <Keyword Value="CSwitch"/>
+      </Keywords>
+    </SystemProvider>
 
     <EventProvider Id="EP_MsQuicEtw" Name="Microsoft-Quic" NonPagedMemory="true" />
     <EventProvider Id="EP_MsQuicEtw_LowVolume" Name="Microsoft-Quic" NonPagedMemory="true" Level="4">
@@ -49,6 +62,31 @@
         <Keyword Value="0xFFFF"/>
       </Keywords>
     </EventProvider>
+
+    <Profile Id="Performance.Light.File" Name="Performance" Description="Perf related MsQuic ETW Events" LoggingMode="File" DetailLevel="Light">
+      <Collectors>
+        <EventCollectorId Value="EC_HighVolume">
+          <EventProviders>
+            <EventProviderId Value="EP_MsQuicEtw" />
+          </EventProviders>
+        </EventCollectorId>
+      </Collectors>
+    </Profile>
+    <Profile Id="Performance.Light.Memory" Base="Performance.Light.File" Name="Performance" Description="Perf related MsQuic ETW Events" LoggingMode="Memory" DetailLevel="Light"/>
+
+    <Profile Id="Performance.Verbose.File" Name="Performance" Description="Perf related MsQuic ETW and System Events" LoggingMode="File" DetailLevel="Verbose">
+      <Collectors>
+        <SystemCollectorId Value="SC_HighVolume">
+          <SystemProviderId Value="SP_SystemThreadExecution" />
+        </SystemCollectorId>
+        <EventCollectorId Value="EC_HighVolume">
+          <EventProviders>
+            <EventProviderId Value="EP_MsQuicEtw" />
+          </EventProviders>
+        </EventCollectorId>
+      </Collectors>
+    </Profile>
+    <Profile Id="Performance.Verbose.Memory" Base="Performance.Verbose.File" Name="Performance" Description="Perf related MsQuic ETW and System" LoggingMode="Memory" DetailLevel="Verbose"/>
 
     <Profile Id="Basic.Light.File" Name="Basic" Description="Low Volume MsQuic ETW Events" LoggingMode="File" DetailLevel="Light">
       <Collectors>

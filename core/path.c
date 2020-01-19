@@ -36,6 +36,27 @@ QuicPathInitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicPathRemove(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint8_t Index
+    )
+{
+    QUIC_DBG_ASSERT(Index < Connection->PathsCount);
+    const QUIC_PATH* Path = &Connection->Paths[Index];
+    QuicTraceLogConnInfo(PathRemoved, Connection, "Path[%u] Removed", Path->ID);
+
+    if (Index + 1 < Connection->PathsCount) {
+        QuicMoveMemory(
+            Connection->Paths + Index,
+            Connection->Paths + Index + 1,
+            (Connection->PathsCount - Index - 1) * sizeof(QUIC_PATH));
+    }
+
+    Connection->PathsCount--;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 QuicPathSetAllowance(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,

@@ -9,23 +9,28 @@
 
 DrillBuffer
 QuicDrillEncodeQuicVarInt(
-    uint64_t input
+    uint64_t input,
+    const DrillVarIntSize size
     )
 {
     DrillBuffer result;
     uint8_t* inputPointer = ((uint8_t*)&input);
 
-    if (input < 0x40) {
+    if (size == OneByte) {
+        QUIC_FRE_ASSERT(input < 0x40);
         result.push_back((uint8_t) input);
-    } else if (input < 0x4000) {
+    } else if (size == TwoBytes) {
+        QUIC_FRE_ASSERT(input < 0x4000);
         result.push_back(0x40 | inputPointer[1]);
         result.push_back(inputPointer[0]);
-    } else if (input < 0x40000000) {
+    } else if (size == FourBytes) {
+        QUIC_FRE_ASSERT(input < 0x40000000);
         result.push_back(0x80 | inputPointer[3]);
         result.push_back(inputPointer[2]);
         result.push_back(inputPointer[1]);
         result.push_back(inputPointer[0]);
-    } else if (input < 0x4000000000000000ull) {
+    } else if (size == EightBytes) {
+        QUIC_FRE_ASSERT(input < 0x4000000000000000ull);
         result.push_back(0xc0 | inputPointer[7]);
         result.push_back(inputPointer[6]);
         result.push_back(inputPointer[5]);
@@ -36,15 +41,37 @@ QuicDrillEncodeQuicVarInt(
         result.push_back(inputPointer[0]);
     } else {
         QUIC_FRE_ASSERTMSG(
-            input < 0x4000000000000000ull,
-            "Supplied value is larger than QUIC_VAR_INT allowed (2^62)");
+            size == EightBytes,
+            "Supplied size is not a valid  QUIC_VAR_INT size");
     }
     return result;
 }
 
 DrillBuffer
-DrillPacketDescriptor::write(
+QuicDrillEncodeQuicVarInt (
+    uint64_t input
     )
+{
+    if (input < 0x40) {
+        return QuicDrillEncodeQuicVarInt(input, OneByte);
+    } else if (input < 0x4000) {
+        return QuicDrillEncodeQuicVarInt(input, TwoBytes);
+    } else if (input < 0x40000000) {
+        return QuicDrillEncodeQuicVarInt(input, FourBytes);
+    } else if (input < 0x4000000000000000ull) {
+        return QuicDrillEncodeQuicVarInt(input, EightBytes);
+    } else {
+        QUIC_FRE_ASSERTMSG(
+            input < 0x4000000000000000ull,
+            "Supplied value is larger than QUIC_VAR_INT allowed (2^62)");
+        return DrillBuffer();
+    }
+    return DrillBuffer();
+}
+
+DrillBuffer
+DrillPacketDescriptor::write(
+    ) const
 {
     size_t RequiredSize = 0;
 
@@ -52,11 +79,11 @@ DrillPacketDescriptor::write(
     // Calculate the size required to write the packet.
     //
     RequiredSize += 1; // For the bit fields.
-    RequiredSize += sizeof(this->Version);
-    RequiredSize += 1; // For the size of DestCID.
-    RequiredSize += this->DestCID.size();
-    RequiredSize += 1; // For the size of SourceCID.
-    RequiredSize += this->SourceCID.size();
+    RequiredSize += sizeof(Version);
+    RequiredSize += 1; // For the size of DestCid.
+    RequiredSize += DestCid.size();
+    RequiredSize += 1; // For the size of SourceCid.
+    RequiredSize += SourceCid.size();
 
     QUIC_FRE_ASSERTMSG(
         RequiredSize <= UINT16_MAX,
@@ -77,29 +104,29 @@ DrillPacketDescriptor::write(
     //
     // Copy version.
     //
-    for (int i = 0; i < sizeof(this->Version); ++i) {
-        PacketBuffer.push_back((uint8_t) (Version >> ((3 - i) * 8)));
+    for (int i = 0; i < sizeof(Version); ++i) {
+        PacketBuffer.push_back((uint8_t) (Version >> (((sizeof(Version) - 1) - i) * 8)));
     }
 
     //
     // Copy Destination CID.
     //
-    if (DestCIDLen != nullptr) {
-        PacketBuffer.push_back(*DestCIDLen);
+    if (DestCidLen != nullptr) {
+        PacketBuffer.push_back(*DestCidLen);
     } else {
-        PacketBuffer.push_back((uint8_t) DestCID.size());
+        PacketBuffer.push_back((uint8_t) DestCid.size());
     }
-    PacketBuffer.insert(PacketBuffer.end(), DestCID.begin(), DestCID.end());
+    PacketBuffer.insert(PacketBuffer.end(), DestCid.begin(), DestCid.end());
 
     //
     // Copy Source CID.
     //
-    if (SourceCIDLen != nullptr) {
-        PacketBuffer.push_back((uint8_t) *SourceCIDLen);
+    if (SourceCidLen != nullptr) {
+        PacketBuffer.push_back((uint8_t) *SourceCidLen);
     } else {
-        PacketBuffer.push_back((uint8_t) SourceCID.size());
+        PacketBuffer.push_back((uint8_t) SourceCid.size());
     }
-    PacketBuffer.insert(PacketBuffer.end(), SourceCID.begin(), SourceCID.end());
+    PacketBuffer.insert(PacketBuffer.end(), SourceCid.begin(), SourceCid.end());
 
     //
     // TODO: Do type-specific stuff here.
@@ -109,17 +136,23 @@ DrillPacketDescriptor::write(
 }
 
 DrillInitialPacketDescriptor::DrillInitialPacketDescriptor(
-    )
+    ) : DrillPacketDescriptor(), TokenLen(nullptr), PacketLength(nullptr), PacketNumber(0)
 {
-    this->Type = Initial;
-    this->Header.LongHeader = 1;
-    this->Header.FixedBit = 1;
-    this->Version = 1;
+    Type = Initial;
+    Header.LongHeader = 1;
+    Header.FixedBit = 1;
+    Version = QUIC_VERSION_LATEST_H;
+
+    const uint8_t CidValMax = 8;
+    for (uint8_t CidVal = 0; CidVal <= CidValMax; CidVal++) {
+        DestCid.push_back(CidVal);
+        SourceCid.push_back(CidValMax - CidVal);
+    }
 }
 
 DrillBuffer
 DrillInitialPacketDescriptor::write(
-    )
+    ) const
 {
     DrillBuffer PacketBuffer = DrillPacketDescriptor::write();
 

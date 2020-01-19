@@ -782,9 +782,9 @@ QuicStreamWriteStreamFrames(
         PacketMetadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET) {
 
         //
-        // Find the bounds of this frame. Left is the offset of the
-        // first byte in the frame, and Right is the offset of the
-        // first byte AFTER the frame.
+        // Find the bounds of this frame. Left is the offset of the first byte
+        // in the frame, and Right is the offset of the first byte AFTER the
+        // frame.
         //
         uint64_t Left;
         uint64_t Right;
@@ -822,7 +822,7 @@ QuicStreamWriteStreamFrames(
             }
         }
 
-        if (Sack) {
+        if (Sack != NULL) {
             if (Right > Sack->Low) {
                 Right = Sack->Low;
             }
@@ -835,41 +835,23 @@ QuicStreamWriteStreamFrames(
         //
         // Stream flow control
         //
-        if (Right >= Stream->MaxAllowedSendOffset) {
+        if (Right > Stream->MaxAllowedSendOffset) {
             Right = Stream->MaxAllowedSendOffset;
-            QUIC_DBG_ASSERT(Right >= Left);
-            if (Right == Left) {
-                if (QuicStreamAddOutFlowBlockedReason(
-                        Stream, QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL)) {
-                    QuicSendSetStreamSendFlag(
-                        &Stream->Connection->Send,
-                        Stream, QUIC_STREAM_SEND_FLAG_DATA_BLOCKED);
-                }
-                QUIC_DBG_ASSERT(BytesWritten != 0);
-                break;
-            }
         }
 
         //
         // Connection flow control
         //
-        if (Right >= Send->PeerMaxData - Send->OrderedStreamBytesSent + Stream->MaxSentLength) {
-            Right = Send->PeerMaxData - Send->OrderedStreamBytesSent + Stream->MaxSentLength;
-            QUIC_DBG_ASSERT(Right >= Left);
-            if (Right == Left) {
-                if (QuicConnAddOutFlowBlockedReason(
-                        Stream->Connection,
-                        QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL)) {
-                    QuicSendSetSendFlag(
-                        &Stream->Connection->Send,
-                        QUIC_CONN_SEND_FLAG_DATA_BLOCKED);
-                }
-                QUIC_DBG_ASSERT(BytesWritten != 0);
-                break;
-            }
+        const uint64_t MaxConnFlowControlOffset =
+             Stream->MaxSentLength + (Send->PeerMaxData - Send->OrderedStreamBytesSent);
+        if (Right > MaxConnFlowControlOffset) {
+            Right = MaxConnFlowControlOffset;
         }
 
-        QUIC_DBG_ASSERT(Right <= Stream->MaxAllowedSendOffset);
+        //
+        // It's OK for Right and Left to be equal because there are cases where
+        // stream frames will be written with no payload (initial or FIN).
+        //
         QUIC_DBG_ASSERT(Right >= Left);
 
         uint16_t FrameBytes = *BufferLength - BytesWritten;
@@ -884,33 +866,56 @@ QuicStreamWriteStreamFrames(
             Buffer + BytesWritten,
             PacketMetadata);
 
+        BOOLEAN ExitLoop = FALSE;
+
         //
-        // When FramePayloadBytes is returned as zero, an empty FIN frame
-        // may or may not have been written (i.e. we may have
-        // FramePayloadBytes == 0 but FrameBytes != 0).
+        // When FramePayloadBytes is returned as zero, an empty stream frame may
+        // still have been written (i.e. FramePayloadBytes might be 0 but
+        // FrameBytes is not).
         //
         BytesWritten += FrameBytes;
         if (FramePayloadBytes == 0) {
-            break;
+            ExitLoop = TRUE;
         }
 
         //
-        // FramePayloadBytes may have been reduced.
+        // Recalculate Right since FramePayloadBytes may have been reduced.
         //
         Right = Left + FramePayloadBytes;
 
+        QUIC_DBG_ASSERT(Right <= Stream->QueuedSendOffset);
         if (Right == Stream->QueuedSendOffset) {
-            QuicStreamAddOutFlowBlockedReason(
-                Stream, QUIC_FLOW_BLOCKED_APP);
+            QuicStreamAddOutFlowBlockedReason(Stream, QUIC_FLOW_BLOCKED_APP);
+            ExitLoop = TRUE;
         }
 
         QUIC_DBG_ASSERT(Right <= Stream->MaxAllowedSendOffset);
+        if (Right == Stream->MaxAllowedSendOffset) {
+            if (QuicStreamAddOutFlowBlockedReason(
+                    Stream, QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL)) {
+                QuicSendSetStreamSendFlag(
+                    &Stream->Connection->Send,
+                    Stream, QUIC_STREAM_SEND_FLAG_DATA_BLOCKED);
+            }
+            ExitLoop = TRUE;
+        }
+
+        QUIC_DBG_ASSERT(Right <= MaxConnFlowControlOffset);
+        if (Right == MaxConnFlowControlOffset) {
+            if (QuicConnAddOutFlowBlockedReason(
+                    Stream->Connection, QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL)) {
+                QuicSendSetSendFlag(
+                    &Stream->Connection->Send,
+                    QUIC_CONN_SEND_FLAG_DATA_BLOCKED);
+            }
+            ExitLoop = TRUE;
+        }
 
         //
-        // Move the "next" offset (RecoveryNextOffset if we are sending
-        // recovery bytes or NextSendOffset otherwise) forward by the
-        // number of bytes we've written. If we wrote up to the edge
-        // of a SACK, skip past the SACK.
+        // Move the "next" offset (RecoveryNextOffset if we are sending recovery
+        // bytes or NextSendOffset otherwise) forward by the number of bytes
+        // we've written. If we wrote up to the edge of a SACK, skip past the
+        // SACK.
         //
 
         if (Recovery) {
@@ -931,13 +936,14 @@ QuicStreamWriteStreamFrames(
         if (Stream->MaxSentLength < Right) {
             Send->OrderedStreamBytesSent += Right - Stream->MaxSentLength;
             QUIC_DBG_ASSERT(Send->OrderedStreamBytesSent <= Send->PeerMaxData);
-            if (Send->OrderedStreamBytesSent == Send->PeerMaxData) {
-                QuicTraceLogConnVerbose(ConnFCBlocked, Stream->Connection, "Connection flow control limit reached");
-            }
             Stream->MaxSentLength = Right;
         }
 
         QuicStreamValidateRecoveryState(Stream);
+
+        if (ExitLoop) {
+            break;
+        }
     }
 
     QuicStreamSendDumpState(Stream);

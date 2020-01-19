@@ -219,6 +219,20 @@ void
 QuicDrillTestVarIntEncoder(
     );
 
+void
+QuicDrillTestInitialCid(
+    _In_ int Family,
+    _In_ bool Source, // or Dest
+    _In_ bool ValidActualLength, // or invalid
+    _In_ bool Short, // or long
+    _In_ bool ValidLengthField // or invalid
+    );
+
+void
+QuicDrillTestInitialToken(
+    _In_ int Family
+    );
+
 //
 // Platform Specific Functions
 //
@@ -470,6 +484,22 @@ typedef struct {
 #define IOCTL_QUIC_RUN_DRILL_ENCODE_VAR_INT \
     QUIC_CTL_CODE(35, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 35
+typedef struct {
+    INT32 Family;
+    BOOLEAN SourceOrDest;
+    BOOLEAN ActualCidLengthValid;
+    BOOLEAN ShortCidLength;
+    BOOLEAN CidLengthFieldValid;
+} QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS;
+
+#define IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_CID \
+    QUIC_CTL_CODE(36, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS
+
+#define IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_TOKEN \
+    QUIC_CTL_CODE(37, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // INT32 - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 37
 
 #endif // _WIN32
