@@ -1,0 +1,231 @@
+#
+# Helper script for running executing the MsQuic tests.
+#
+
+param (
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("Debug", "Release")]
+    [string]$Config = "Debug",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$ListTestCases = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Serial = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Compress = $false,
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("None", "Full.Light", "Full.Verbose")]
+    [string]$LogProfile = "None",
+
+    [Parameter(Mandatory = $false)]
+    [string]$TestCase = ""
+)
+
+Set-StrictMode -Version 'Latest'
+$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+# Helper to determine if we're running on Windows.
+$IsWindows = $Env:OS -eq "Windows_NT"
+
+# Path for the test program.
+$MsQuicTest = (Get-Item -Path ".\").FullName + "\artifacts\bin\$($Config)\msquictest.exe"
+if (!$IsWindows) {
+    $MsQuicTest = (Get-Item -Path ".\").FullName + "\artifacts\bin\msquictest"
+}
+
+# Path for the procdump executable.
+$ProcDumpExe = (Get-Item -Path ".\").FullName + "\bld\procdump\procdump.exe"
+
+# Folder for log files.
+$LogBaseDir = (Get-Item -Path ".\").FullName + "\artifacts\logs"
+$LogDir = $LogBaseDir + "\" + (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+
+# List of all the test results.
+$PassedTests = New-Object System.Collections.ArrayList
+$FailedTests = New-Object System.Collections.ArrayList
+
+function Log($msg) {
+    Write-Host "[$(Get-Date)] $msg"
+}
+
+# Installs procdump if not already.
+function Install-ProcDump {
+    if (!(Test-Path bld)) { mkdir bld | Out-Null }
+    if (!(Test-Path .\bld\procdump)) {
+        Log "Installing procdump..."
+        # Download the zip file.
+        Invoke-WebRequest -Uri https://download.sysinternals.com/files/Procdump.zip -OutFile bld\procdump.zip
+        # Extract the zip file.
+        Expand-Archive -Path bld\procdump.zip .\bld\procdump
+        # Delete the zip file.
+        Remove-Item -Path bld\procdump.zip
+    }
+}
+
+# Executes msquictext with the given arguments.
+function Start-MsQuicTest([String]$Arguments, [String]$InstanceName = "") {
+    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+    if ($InstanceName -ne "") {
+        $pinfo.FileName = $ProcDumpExe
+        $pinfo.Arguments = "-ma -e -b -accepteula -x $($LogDir)\$($InstanceName) $($MsQuicTest) $($Arguments)"
+    } else {
+        $pinfo.FileName = $MsQuicTest
+        $pinfo.Arguments = $Arguments
+    }
+    $pinfo.RedirectStandardOutput = $true
+    $pinfo.UseShellExecute = $false
+    $p = New-Object System.Diagnostics.Process
+    $p.StartInfo = $pinfo
+    $p.Start() | Out-Null
+    $p
+}
+
+# Executes msquictest to query all available test cases, parses the console
+# output and returns a list of test case names.
+function GetTestCases {
+    $p = Start-MsQuicTest "--gtest_list_tests"
+    $stdout = $p.StandardOutput.ReadToEnd()
+    $p.WaitForExit()
+    $Lines = ($stdout.Split([Environment]::NewLine)) | Where-Object { $_.Length -ne 0 }
+    $CurTestGroup = $null
+    $Tests = New-Object System.Collections.ArrayList
+    for ($i = 0; $i -lt $Lines.Length; $i++) {
+        if (!($Lines[$i].StartsWith(" "))) {
+            $CurTestGroup = $Lines[$i]
+        } else {
+            $Tests.Add($CurTestGroup + $Lines[$i].Split("#")[0].Trim()) | Out-Null
+        }
+    }
+    $Tests.ToArray()
+}
+
+# Starts a single msquictest test case running.
+function StartTestCase([String]$Name) {
+
+    $InstanceName = $Name.Replace("/", "_").Replace(".", "_")
+    $LocalLogDir = $LogDir + "\" + $InstanceName
+    mkdir $LocalLogDir | Out-Null
+
+    if ($LogProfile -ne "None") {
+        # Start the logs
+        .\log.ps1 -Start -LogProfile $LogProfile -InstanceName $InstanceName | Out-Null
+    }
+
+    # Run the test and parse the output to determine if it was success.
+    $p = Start-MsQuicTest "--gtest_filter=$($Name)" $InstanceName
+    
+    [pscustomobject]@{
+        Name = $Name
+        p = $p
+    }
+}
+
+# Waits for and finishes up the test case.
+function FinishTestCase($p) {
+
+    $InstanceName = $p.Name.Replace("/", "_").Replace(".", "_")
+    $LocalLogDir = $LogDir + "\" + $InstanceName
+
+    $stdout = $p.p.StandardOutput.ReadToEnd()
+    $p.p.WaitForExit()
+    $Success = $stdout.Contains("[  PASSED  ] 1 test")
+
+    if ($Success) {
+        if ($LogProfile -ne "None") {
+            # Don't keep logs on success.
+            .\log.ps1 -Cancel -InstanceName $InstanceName | Out-Null
+        }
+        $PassedTests.Add($p.Name) | Out-Null
+        Remove-Item $LocalLogDir -Recurse -Force | Out-Null
+    } else {
+        if ($LogProfile -ne "None") {
+            # Keep logs on failure.
+            .\log.ps1 -Stop -Output "$($LocalLogDir)\quic.etl" -InstanceName $InstanceName | Out-Null
+        }
+        $stdout > "$($LocalLogDir)\console.txt"
+        $FailedTests.Add($p.Name) | Out-Null
+
+        if ($Compress) {
+            # Zip the output.
+            Compress-Archive -Path "$($LocalLogDir)\*" -DestinationPath "$($LocalLogDir).zip" | Out-Null
+            Remove-Item $LocalLogDir -Recurse -Force | Out-Null
+        }
+    }
+}
+
+# Runs a test case synchronously.
+function RunTestCase([String]$Name) {
+    FinishTestCase (StartTestCase $Name)
+}
+
+######################
+#   Main Execution   #
+######################
+
+# Make sure the executable is present for the current configuration.
+if (!(Test-Path $MsQuicTest)) { Write-Error "$($MsQuicTest) does not exist!" }
+
+# Query all the test cases.
+$TestCases = GetTestCases
+
+if ($ListTestCases) {
+    $TestCases
+    exit
+}
+
+# Make sure procdump is installed.
+Install-ProcDump
+
+if (!(Test-Path $LogBaseDir)) { mkdir $LogBaseDir }
+mkdir $LogDir | Out-Null
+
+if ($TestCase -ne "") {
+    # Run the test case specified.
+    Log "Running test $($TestCase)"
+    RunTestCase $TestCase
+
+} elseif ($Serial -ne $false) {
+    # Run the test cases serially.
+    Log "Executing $($TestCases.Length) tests in series..."
+    for ($i = 0; $i -lt $TestCases.Length; $i++) {
+        RunTestCase $TestCases[$i]
+        Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+    }
+
+} else {
+    # Log collection doesn't work for parallel right now.
+    if ($LogProfile -ne "None") {
+        Log "Warning: Disabling log collection for parallel runs!"
+        $LogProfile = "None"
+    }
+
+    # Starting the test cases all in parallel.
+    Log "Starting $($TestCases.Length) tests in parallel..."
+    $Runs = New-Object System.Collections.ArrayList
+    for ($i = 0; $i -lt $TestCases.Length; $i++) {
+        $Runs.Add((StartTestCase $TestCases[$i])) | Out-Null
+        Write-Progress -Activity "Starting tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+    }
+
+    # Wait for the test cases to complete.
+    Log "Waiting for test cases to complete..."
+    for ($i = 0; $i -lt $Runs.Count; $i++) {
+        FinishTestCase $Runs[$i]
+        Write-Progress -Activity "Finishing tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+    }
+}
+
+# Print out the results.
+Log "$($PassedTests.Count) test(s) passed."
+if ($FailedTests.Count -ne 0) {
+    Log "$($FailedTests.Count) test(s) failed:"
+    for ($i = 0; $i -lt $FailedTests.Count; $i++) {
+        Log "  $($FailedTests[$i])"
+    }
+    Log "Logs can be found in $($LogDir)"
+} else {
+    Remove-Item $LogDir | Out-Null
+}
