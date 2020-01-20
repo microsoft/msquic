@@ -17,11 +17,14 @@ param (
     [switch]$Compress = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("None", "Full.Light", "Full.Verbose")]
+    [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose")]
     [string]$LogProfile = "None",
 
     [Parameter(Mandatory = $false)]
-    [string]$TestCase = ""
+    [string]$Filter = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$NegativeFilter = ""
 )
 
 Set-StrictMode -Version 'Latest'
@@ -70,7 +73,7 @@ function Start-MsQuicTest([String]$Arguments, [String]$InstanceName = "") {
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($InstanceName -ne "") {
         $pinfo.FileName = $ProcDumpExe
-        $pinfo.Arguments = "-ma -e -b -accepteula -x $($LogDir)\$($InstanceName) $($MsQuicTest) $($Arguments)"
+        $pinfo.Arguments = "-ma -e -b -l -accepteula -x $($LogDir)\$($InstanceName) $($MsQuicTest) $($Arguments)"
     } else {
         $pinfo.FileName = $MsQuicTest
         $pinfo.Arguments = $Arguments
@@ -115,7 +118,7 @@ function StartTestCase([String]$Name) {
     }
 
     # Run the test and parse the output to determine if it was success.
-    $p = Start-MsQuicTest "--gtest_filter=$($Name)" $InstanceName
+    $p = Start-MsQuicTest "--gtest_filter=$($Name) --gtest_output=xml:$($LocalLogDir)\results.xml" $InstanceName
     
     [pscustomobject]@{
         Name = $Name
@@ -171,7 +174,16 @@ if (!(Test-Path $MsQuicTest)) { Write-Error "$($MsQuicTest) does not exist!" }
 # Query all the test cases.
 $TestCases = GetTestCases
 
+# Apply any filtering.
+if ($Filter -ne "") {
+    $TestCases = ($TestCases | Where-Object { $_ -Like $Filter }) -as [String[]]
+}
+if ($NegativeFilter -ne "") {
+    $TestCases = ($TestCases | Where-Object { !($_ -Like $NegativeFilter) }) -as [String[]]
+}
+
 if ($ListTestCases) {
+    # List the tst cases.
     $TestCases
     exit
 }
@@ -179,15 +191,11 @@ if ($ListTestCases) {
 # Make sure procdump is installed.
 Install-ProcDump
 
+# Set up the base directory.
 if (!(Test-Path $LogBaseDir)) { mkdir $LogBaseDir }
 mkdir $LogDir | Out-Null
 
-if ($TestCase -ne "") {
-    # Run the test case specified.
-    Log "Running test $($TestCase)"
-    RunTestCase $TestCase
-
-} elseif ($Serial -ne $false) {
+if ($Serial -ne $false) {
     # Run the test cases serially.
     Log "Executing $($TestCases.Length) tests in series..."
     for ($i = 0; $i -lt $TestCases.Length; $i++) {
@@ -208,6 +216,7 @@ if ($TestCase -ne "") {
     for ($i = 0; $i -lt $TestCases.Length; $i++) {
         $Runs.Add((StartTestCase $TestCases[$i])) | Out-Null
         Write-Progress -Activity "Starting tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+        Start-Sleep -Milliseconds 1
     }
 
     # Wait for the test cases to complete.

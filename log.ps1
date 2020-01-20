@@ -7,7 +7,7 @@ param (
     [switch]$Start = $false,
 
     [Parameter(Mandatory = $true, ParameterSetName='Start')]
-    [ValidateSet("Full.Light", "Full.Verbose")]
+    [ValidateSet("Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose")]
     [string]$LogProfile,
 
     [Parameter(Mandatory = $false, ParameterSetName='Cancel')]
