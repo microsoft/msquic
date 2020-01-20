@@ -10,7 +10,7 @@ Streams are the primary mechanism apps use to reliably exchange data with their 
 
 # Stream ID Flow Control
 
-The QUIC protocol allows for a possibly maximum number of streams equal to 2 ^ 62. So, per stream type, the maximum number of streams is 2 ^ 60. This is obviously a very large number and no app would likely ever need to have anywhere close to this number of streams open at any point in time.
+The QUIC protocol allows for a possible maximum number of streams equal to 2 ^ 62. So, per stream type, the maximum number of streams is 2 ^ 60. This is obviously a very large number and no app would likely ever need to have anywhere close to this number of streams open at any point in time.
 
 For this reason, each app controls the number of streams that the peer is allowed to open. The concept is similar to flow control of the actual data on a stream. The app tells the peer how much it's willing to accept at any point in time. Instead of a buffer size, for it's a stream count.
 
@@ -40,11 +40,35 @@ An app can send on a locally initiated unidirectional stream or a peer initiated
 
 ## Send Buffering
 
+There are two buffering models for sending supported by MsQuic. The first model has MsQuic buffer the stream data internally. As long as there is room to buffer the data, MsQuic will copy the data locally and then immediately complete the send back to the app, via the `QUIC_STREAM_EVENT_SEND_COMPLETE` event. If there is no room to copy the data, then MsQuic will hold onto the buffer until there is room.
+
+With this model, the app can keep the "pipe full" using only a single send buffer. It continually keeps the send pending on the stream. If/when it gets completed by MsQuic it immediately queues the buffer again with any new data it has.
+
+This is seen by many as the simplest design for apps, but does introduce an additional copy in the data path, which has some performance draw backs. **This is the default MsQuic behavior.**
+
 ## Ideal Send Buffer
+
+The other buffering model supported by MsQuic requires no internal copy of the data. MsQuic holds onto the app buffers until all the data has been acknowledged by the peer.
+
+To fill the pipe, the app is responsible for keeping enough buffers pending at all times to ensure the connection doesn't go idle. MsQuic indicates the amount of data the app should keep pending in the `QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE` event. The app should always have at least two buffers pending at a time. If only a single buffer is used, the connection can go idle for the time between that buffer is completed and the new buffer is queued.
+
+By default, this behavior is not used. To enable this behavior, the app must call [SetParam](v1/SetParam.md) on the connection with the `QUIC_PARAM_CONN_SEND_BUFFERING` parameter set to `FALSE`.
 
 ## Send Shutdown
 
+The send direction can be shutdown in three different ways:
+
+- **Graceful** - The sender can gracefully shutdown the send by calling [StreamShutdown](v1/StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL` flag or by including the `QUIC_SEND_FLAG_FIN` flag on the last [StreamSend](v1/StreamSend.md) call. In this scenario all data will be delivered to the peer and then the peer is informed the stream has been gracefully shutdown.
+
+- **Sender Abort** - The sender can abortively shutdown the send by calling [StreamShutdown](v1/StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND` flag. In this scenario, all outstanding sends are immediately canceled and are not delivered to the peer. The peer is immediately informed of the abort.
+
+- **Receiver Abort** - The receiver can abortively shutdown their peer's send direction. When this happens the sender will get a `QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED` event.
+
+When the send has been completely shutdown the app will get a `QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE` event. This will happen immediately on an abortive send or after a graceful send has been acknowledged by the peer.
+
 ## 0-RTT
+
+An app can opt in to sending stream data with 0-RTT keys (if available) by including the `QUIC_SEND_FLAG_ALLOW_0_RTT` flag on [StreamSend](v1/StreamSend.md) call. MsQuic doesn't make any guarantees that the data will actually be sent with 0-RTT keys. There are several reasons it may not happen, such as keys not being available, packet loss, flow control, etc.
 
 # Receiving
 
