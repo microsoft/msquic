@@ -111,7 +111,7 @@ When a new connection is started by a client, the server will get a callback all
 
 If either 2 or 3 above, the server now has ownership of the connection object. It **must** set the callback handler via [SetCallbackHandler](v1/SetCallbackHandler.md) before the callback returns. Additionally, when it’s done with the connection, the app must call [ConnectionClose](v1/ConnectionClose.md) on the connection to clean it up. Also, in case 2, if the server does not set the SecConfig, it is treated as case 1.
 
-When the server wishes to stop accepting new connections and stop further callbacks to the registered handler, it can call [ListenerStop](v1/ListenerStop.md). This call will block while any existing callbacks complete, and when it returns no future callbacks will occur. Therefore, the server ***must not** call this on any other library callbacks. The server may call [ListenerStart](v1/ListenerStart.md) again on the listener to start listening for incoming connections again.
+When the server wishes to stop accepting new connections and stop further callbacks to the registered handler, it can call [ListenerStop](v1/ListenerStop.md). This call will block while any existing callbacks complete, and when it returns no future callbacks will occur. Therefore, the server **must not** call this on any other library callbacks. The server may call [ListenerStart](v1/ListenerStart.md) again on the listener to start listening for incoming connections again.
 
 To clean up the listener object, the server calls [ListenerClose](v1/ListenerClose.md). If the listener was not previously stopped, this function implicitly calls [ListenerStop](v1/ListenerStop.md), so all the same restrictions to that call apply.
 
