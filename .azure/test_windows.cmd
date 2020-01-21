@@ -9,6 +9,7 @@ wevtutil im manifest\MsQuicEtw.man ^
     /mf:%cd%\artifacts\windows\bin\debug\msquic.dll
 
 :: Start log collection.
+mkdir artifacts\logs
 netsh trace start sessionname=quic ^
     overwrite=yes report=dis correlation=dis maxSize=256 ^
     traceFile=artifacts\logs\quic.etl ^
