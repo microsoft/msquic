@@ -128,7 +128,7 @@ function CMake-Generate {
     if ($DisableTest) {
         $Arguments += " -DQUIC_BUILD_TEST=off"
     }
-    $Arguments += " $($CurrentDir)"
+    $Arguments += " ../.."
 
     CMake-Execute $Arguments
 }

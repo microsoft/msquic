@@ -91,7 +91,6 @@ $LogDir = Join-Path $LogBaseDir (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.
 # List of all the test results.
 $PassedTests = New-Object System.Collections.ArrayList
 $FailedTests = New-Object System.Collections.ArrayList
-
 function Log($msg) {
     Write-Host "[$(Get-Date)] $msg"
 }
@@ -120,6 +119,9 @@ function Start-MsQuicTest([String]$Arguments, [String]$InstanceName = "") {
     } else {
         $pinfo.FileName = $MsQuicTest
         $pinfo.Arguments = $Arguments
+    }
+    if (!$IsWindows -and $InstanceName -ne "") {
+        $pinfo.WorkingDirectory = Join-Path $LogDir $InstanceName
     }
     $pinfo.RedirectStandardOutput = $true
     $pinfo.UseShellExecute = $false

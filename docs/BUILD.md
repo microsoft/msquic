@@ -87,7 +87,8 @@ The script has a lot of additional configuration options, but the default should
 
 # Test Instructions
 
-### Additional Requirements on Windows
+### Additional Windows Configuration
+
 There is a one time registry setup required before the tests can be run when using
 SChannel TLS. These registry keys allow QUIC to use TLS 1.3
 ```cmd
@@ -95,6 +96,14 @@ reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\S
 reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server" /v Enabled /t REG_DWORD /d 1 /f
 reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client" /v DisabledByDefault /t REG_DWORD /d 1 /f
 reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client" /v Enabled /t REG_DWORD /d 1 /f
+```
+
+### Additional Linux Configuration
+
+In order to collect core dumps during test execution, it's recommended to run the following before starting PowerShell:
+
+```
+ulimit -c unlimited
 ```
 
 ## Running the Tests
