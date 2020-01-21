@@ -47,7 +47,7 @@ param (
     [switch]$Stop = $false,
 
     [Parameter(Mandatory = $true, ParameterSetName='Stop')]
-    [string]$Output = "",
+    [string]$OutputDirectory = "",
 
     [Parameter(Mandatory = $false)]
     [string]$InstanceName = "msquic"
@@ -82,7 +82,7 @@ function Log-Cancel {
 # Stops log collection, keeping the logs.
 function Log-Stop {
     if ($IsWindows) {
-        wpr.exe -stop $Output -instancename $InstanceName
+        wpr.exe -stop (Join-Path $OutputDirectory "quic.etl") -instancename $InstanceName
     } else {
         # TODO
         Write-Error "Not supported yet!"

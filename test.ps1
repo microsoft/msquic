@@ -66,7 +66,10 @@ param (
     [string]$Filter = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$NegativeFilter = ""
+    [string]$NegativeFilter = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Debugger = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -110,18 +113,21 @@ function Install-ProcDump {
     }
 }
 
-# Executes msquictext with the given arguments.
-function Start-MsQuicTest([String]$Arguments, [String]$InstanceName = "") {
+# Starts msquictext with the given arguments, asynchronously.
+function Start-MsQuicTest([String]$Arguments, [String]$OutputDir) {
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    if ($IsWindows -and $InstanceName -ne "") {
-        $pinfo.FileName = $ProcDumpExe
-        $pinfo.Arguments = "-ma -e -b -l -accepteula -x $($LogDir)\$($InstanceName) $($MsQuicTest) $($Arguments)"
+    if ($IsWindows) {
+        if ($Debugger) {
+            $pinfo.FileName = "windbg"
+            $pinfo.Arguments = "-g -G $($MsQuicTest) $($Arguments)"
+        } else {
+            $pinfo.FileName = $ProcDumpExe
+            $pinfo.Arguments = "-ma -e -b -l -accepteula -x $($OutputDir) $($MsQuicTest) $($Arguments)"
+        }
     } else {
         $pinfo.FileName = $MsQuicTest
         $pinfo.Arguments = $Arguments
-    }
-    if (!$IsWindows -and $InstanceName -ne "") {
-        $pinfo.WorkingDirectory = Join-Path $LogDir $InstanceName
+        $pinfo.WorkingDirectory = $OutputDir
     }
     $pinfo.RedirectStandardOutput = $true
     $pinfo.UseShellExecute = $false
@@ -134,9 +140,7 @@ function Start-MsQuicTest([String]$Arguments, [String]$InstanceName = "") {
 # Executes msquictest to query all available test cases, parses the console
 # output and returns a list of test case names.
 function GetTestCases {
-    $p = Start-MsQuicTest "--gtest_list_tests"
-    $stdout = $p.StandardOutput.ReadToEnd()
-    $p.WaitForExit()
+    $stdout = & $MsQuicTest "--gtest_list_tests"
     $Lines = ($stdout.Split([Environment]::NewLine)) | Where-Object { $_.Length -ne 0 }
     $CurTestGroup = $null
     $Tests = New-Object System.Collections.ArrayList
@@ -164,7 +168,7 @@ function StartTestCase([String]$Name) {
 
     # Run the test and parse the output to determine if it was success.
     $ResultsPath = Join-Path $LocalLogDir "results.xml"
-    $p = Start-MsQuicTest "--gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)" $InstanceName
+    $p = Start-MsQuicTest "--gtest_break_on_failure --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)" $LocalLogDir
     
     [pscustomobject]@{
         Name = $Name
@@ -182,7 +186,7 @@ function FinishTestCase($p) {
     $p.p.WaitForExit()
     $Success = $stdout.Contains("[  PASSED  ] 1 test")
 
-    if ($Success) {
+    if ($Success -or $Debugger) {
         if ($LogProfile -ne "None") {
             # Don't keep logs on success.
             .\log.ps1 -Cancel -InstanceName $InstanceName | Out-Null
@@ -192,7 +196,7 @@ function FinishTestCase($p) {
     } else {
         if ($LogProfile -ne "None") {
             # Keep logs on failure.
-            .\log.ps1 -Stop -Output "$($LocalLogDir)\quic.etl" -InstanceName $InstanceName | Out-Null
+            .\log.ps1 -Stop -OutputDirectory $LocalLogDir -InstanceName $InstanceName | Out-Null
         }
         $stdout > (Join-Path $LocalLogDir "console.txt")
         $FailedTests.Add($p.Name) | Out-Null

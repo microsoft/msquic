@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    set(SOURCES winuser/dllmain.c winuser/msquic.rc ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/inc/MsQuicEtw.rc)
+    set(SOURCES winuser/dllmain.c winuser/msquic.rc ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
 else()
     set(SOURCES linux/init.c)
 endif()

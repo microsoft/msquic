@@ -24,6 +24,9 @@ This script provides helpers for building msquic.
 .PARAMETER DisableTest
     Don't build the test directory.
 
+.PARAMETER Clean
+    Deletes all previous build and configuration.
+
 .EXAMPLE
     build.ps1 -InstallDependencies
 
@@ -57,25 +60,37 @@ param (
     [switch]$DisableTools = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$DisableTest = $false
+    [switch]$DisableTest = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Clean = $false
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-# Current directory.
+# Important directory paths.
 $CurrentDir = (Get-Item -Path ".\").FullName
-
-# Path for the build directory.
-$BuildDir = Join-Path $CurrentDir "bld"
-if (!(Test-Path $BuildDir)) { mkdir $BuildDir | Out-Null }
-
-# Add the platform specific path.
+$BaseArtifactsDir = Join-Path $CurrentDir "artifacts"
+$BaseBuildDir = Join-Path $CurrentDir "bld"
+$ArtifactsDir = $null
+$BuildDir = $null
 if ($IsWindows) {
-    $BuildDir = Join-Path $BuildDir "windows"
+    $ArtifactsDir = Join-Path $BaseArtifactsDir "windows"
+    $BuildDir = Join-Path $BaseBuildDir "windows"
 } else {
-    $BuildDir = Join-Path $BuildDir "linux"
+    $ArtifactsDir = Join-Path $BaseArtifactsDir "linux"
+    $BuildDir = Join-Path $BaseBuildDir "linux"
 }
+
+if ($Clean) {
+    # Delete old build/config directories.
+    if (!(Test-Path $ArtifactsDir)) { Remove-Item $ArtifactsDir -Recurse -Force | Out-Null }
+    if (!(Test-Path $BuildDir)) { Remove-Item $BuildDir -Recurse -Force | Out-Null }
+}
+
+# Initialize directories needed for building.
+if (!(Test-Path $BaseBuildDir)) { mkdir $BaseBuildDir | Out-Null }
 if (!(Test-Path $BuildDir)) { mkdir $BuildDir | Out-Null }
 
 function Log($msg) {
