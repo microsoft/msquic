@@ -1,7 +1,7 @@
 Using Streams
 ======
 
-Streams are the primary mechanism apps use to reliably exchange data with their peer. Streams can be opened by either peer (client or server) and can be unidirectional or bidirectional. So, there are 4 types of streams:
+Streams are the primary mechanism apps use to reliably exchange data with their peer. Streams can be opened by either peer (client or server) and can be unidirectional (can only send) or bidirectional (can send and receive). So, there are 4 types of streams:
 
 - Client initiated, unidirectional stream
 - Server initiated, unidirectional stream
@@ -10,9 +10,9 @@ Streams are the primary mechanism apps use to reliably exchange data with their 
 
 # Stream ID Flow Control
 
-The QUIC protocol allows for a possible maximum number of streams equal to 2 ^ 62. So, per stream type, the maximum number of streams is 2 ^ 60. This is obviously a very large number and no app would likely ever need to have anywhere close to this number of streams open at any point in time.
+The QUIC protocol allows for a possible maximum number of streams equal to 2 ^ 62. As there are 4 unique stream types, the maximum number of streams is 2 ^ 60. No app would likely ever need to have anywhere close to this number of streams open at any point in time.
 
-For this reason, each app controls the number of streams that the peer is allowed to open. The concept is similar to flow control of the actual data on a stream. The app tells the peer how much it's willing to accept at any point in time. Instead of a buffer size, for it's a stream count.
+For this reason, each app controls the number of streams that the peer is allowed to open. The concept is similar to flow control of the actual data on a stream. The app tells the peer how many streams it's willing to accept at any point in time. Instead of a buffer size, for it's for a stream count.
 
 The actual protocol for synchronizing maximum stream count is somewhat complicated, but MsQuic simplifies the design by requiring the app to specify a number of simultaneous streams to allow the peer to open at any time. MsQuic then takes care of updating the maximum stream count for the peer as old streams get shutdown.
 
@@ -45,8 +45,6 @@ There are two buffering models for sending supported by MsQuic. The first model 
 With this model, the app can keep the "pipe full" using only a single send buffer. It continually keeps the send pending on the stream. If/when it gets completed by MsQuic it immediately queues the buffer again with any new data it has.
 
 This is seen by many as the simplest design for apps, but does introduce an additional copy in the data path, which has some performance draw backs. **This is the default MsQuic behavior.**
-
-## Ideal Send Buffer
 
 The other buffering model supported by MsQuic requires no internal copy of the data. MsQuic holds onto the app buffers until all the data has been acknowledged by the peer.
 
