@@ -36,7 +36,7 @@ For peer initiated streams, the app gets a `QUIC_CONNECTION_EVENT_PEER_STREAM_ST
 
 # Sending
 
-An app can send on a locally initiated unidirectional stream or a peer initiated bidirectional stream. The app uses the [StreamSend](v1/StreamSend.md) API queue data to be reliably sent. MsQuic holds on to any buffers queued via [StreamSend](v1/StreamSend.md) until they have been completed via the `QUIC_STREAM_EVENT_SEND_COMPLETE` event.
+An app can send on a locally initiated unidirectional/bidirectional stream or a peer initiated bidirectional stream. The app uses the [StreamSend](v1/StreamSend.md) API queue data to be reliably sent. MsQuic holds on to any buffers queued via [StreamSend](v1/StreamSend.md) until they have been completed via the `QUIC_STREAM_EVENT_SEND_COMPLETE` event.
 
 ## Send Buffering
 
