@@ -72,20 +72,17 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-# Helper to determine if we're running on Windows.
-#$IsWindows = $Env:OS -eq "Windows_NT"
-
 # Current directory.
 $CurrentDir = (Get-Item -Path ".\").FullName
 
 # Path for the test program.
-$MsQuicTest = $CurrentDir + "\artifacts\bin\$($Config)\msquictest.exe"
+$MsQuicTest = $CurrentDir + "\artifacts\windows\bin\$($Config)\msquictest.exe"
 if (!$IsWindows) {
-    $MsQuicTest = $CurrentDir + "/artifacts/bin/msquictest"
+    $MsQuicTest = $CurrentDir + "/artifacts/linux/bin/msquictest"
 }
 
 # Path for the procdump executable.
-$ProcDumpExe = $CurrentDir + "\bld\procdump\procdump.exe"
+$ProcDumpExe = $CurrentDir + "\bld\windows\procdump\procdump.exe"
 
 # Folder for log files.
 $LogBaseDir = Join-Path (Join-Path $CurrentDir "artifacts") "logs"
@@ -102,14 +99,15 @@ function Log($msg) {
 # Installs procdump if not already. Windows specific.
 function Install-ProcDump {
     if (!(Test-Path bld)) { mkdir bld | Out-Null }
-    if (!(Test-Path .\bld\procdump)) {
+    if (!(Test-Path bld\windows)) { mkdir bld\windows | Out-Null }
+    if (!(Test-Path .\bld\windows\procdump)) {
         Log "Installing procdump..."
         # Download the zip file.
-        Invoke-WebRequest -Uri https://download.sysinternals.com/files/Procdump.zip -OutFile bld\procdump.zip
+        Invoke-WebRequest -Uri https://download.sysinternals.com/files/Procdump.zip -OutFile bld\windows\procdump.zip
         # Extract the zip file.
-        Expand-Archive -Path bld\procdump.zip .\bld\procdump
+        Expand-Archive -Path bld\windows\procdump.zip .\bld\windows\procdump
         # Delete the zip file.
-        Remove-Item -Path bld\procdump.zip
+        Remove-Item -Path bld\windows\procdump.zip
     }
 }
 
@@ -240,7 +238,7 @@ if ($IsWindows) {
 }
 
 # Set up the base directory.
-if (!(Test-Path $LogBaseDir)) { mkdir $LogBaseDir }
+if (!(Test-Path $LogBaseDir)) { mkdir $LogBaseDir | Out-Null }
 mkdir $LogDir | Out-Null
 
 if ($Serial -ne $false) {

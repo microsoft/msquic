@@ -56,9 +56,6 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-# Helper to determine if we're running on Windows.
-$IsWindows = $Env:OS -eq "Windows_NT"
-
 # Path for the WPR profile.
 $WprpFile = (Get-Item -Path ".\").FullName + "\manifest\msquic.wprp"
 

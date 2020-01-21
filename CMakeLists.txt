@@ -30,23 +30,29 @@ option(QUIC_BUILD_TEST "Builds the test code" ON)
 option(QUIC_ENABLE_LOGGING "Enables logging" ON)
 option(QUIC_SANITIZE_ADDRESS "Enables address sanitizer" OFF)
 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/obj)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/bin)
-file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/logs)
+if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
+    set(QUIC_PLATFORM "windows")
+else()
+    set(QUIC_PLATFORM "linux")
+endif()
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/obj)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/bin)
+#file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/logs)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     # Generate the MsQuicEtw header file.
-    file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/inc)
-    file(WRITE ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.rc)
-    include_directories(${CMAKE_SOURCE_DIR}/bld/inc)
+    file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/inc)
+    file(WRITE ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/inc/MsQuicEtw.rc)
+    include_directories(${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/inc)
     add_custom_command(
-        OUTPUT ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.h
-        OUTPUT ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.rc
-        COMMAND mc.exe -um -h ${CMAKE_SOURCE_DIR}/bld/inc -r ${CMAKE_SOURCE_DIR}/bld/inc ${CMAKE_SOURCE_DIR}/manifest/MsQuicEtw.man)
+        OUTPUT ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/inc/MsQuicEtw.h
+        OUTPUT ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/inc/MsQuicEtw.rc
+        COMMAND mc.exe -um -h ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/inc -r ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/inc ${CMAKE_SOURCE_DIR}/manifest/MsQuicEtw.man)
     add_custom_target(MsQuicEtw
-        DEPENDS ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.h
-        DEPENDS ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.rc)
+        DEPENDS ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/inc/MsQuicEtw.h
+        DEPENDS ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/inc/MsQuicEtw.rc)
 
     # Custom build flags.
     set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 /W4 /wd4100 /wd4101 /wd4189 /wd4458 /wd4459 /wd4702 /wd26451 /wd26812 /sdl /MP")
@@ -116,16 +122,16 @@ if(QUIC_TLS STREQUAL "openssl")
     # Configure and build OpenSSL.
     add_custom_command(
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/openssl
-        OUTPUT ${CMAKE_SOURCE_DIR}/bld/openssl/include
-        OUTPUT ${CMAKE_SOURCE_DIR}/bld/openssl/lib/libcrypto.so
-        OUTPUT ${CMAKE_SOURCE_DIR}/bld/openssl/lib/libssl.so
+        OUTPUT ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/openssl/include
+        OUTPUT ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/openssl/lib/libcrypto.so
+        OUTPUT ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/openssl/lib/libssl.so
         COMMAND ./Configure linux-x86_64 enable-tls1_3 --prefix=${CMAKE_SOURCE_DIR}/bld/openssl
         COMMAND make -j$(nproc)
         COMMAND make install_sw)
     add_custom_target(OpenSSL
-        DEPENDS ${CMAKE_SOURCE_DIR}/bld/openssl/include
-        DEPENDS ${CMAKE_SOURCE_DIR}/bld/openssl/lib/libcrypto.so
-        DEPENDS ${CMAKE_SOURCE_DIR}/bld/openssl/lib/libssl.so)
+        DEPENDS ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/openssl/include
+        DEPENDS ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/openssl/lib/libcrypto.so
+        DEPENDS ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/openssl/lib/libssl.so)
 endif()
 
 if (QUIC_TLS STREQUAL "mitls")

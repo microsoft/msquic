@@ -57,15 +57,12 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-# Helper to determine if we're running on Windows.
-#$IsWindows = $Env:OS -eq "Windows_NT"
-
 # Current directory.
 $CurrentDir = (Get-Item -Path ".\").FullName
 
 # Path for the build directory.
 $BuildDir = Join-Path $CurrentDir "bld"
-if (!(Test-Path $BuildDir)) { mkdir $BuildDir }
+if (!(Test-Path $BuildDir)) { mkdir $BuildDir | Out-Null }
 
 # Add the platform specific path.
 if ($IsWindows) {
@@ -73,7 +70,7 @@ if ($IsWindows) {
 } else {
     $BuildDir = Join-Path $BuildDir "linux"
 }
-if (!(Test-Path $BuildDir)) { mkdir $BuildDir }
+if (!(Test-Path $BuildDir)) { mkdir $BuildDir | Out-Null }
 
 function Log($msg) {
     Write-Host "[$(Get-Date)] $msg"
