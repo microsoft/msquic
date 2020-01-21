@@ -208,9 +208,9 @@ function RunTestCase([String]$Name) {
     FinishTestCase (StartTestCase $Name)
 }
 
-######################
-#   Main Execution   #
-######################
+##############################################################
+#                     Main Execution                         #
+##############################################################
 
 # Make sure the executable is present for the current configuration.
 if (!(Test-Path $MsQuicTest)) { Write-Error "$($MsQuicTest) does not exist!" }

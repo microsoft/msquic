@@ -89,6 +89,10 @@ function Log-Stop {
     }
 }
 
+##############################################################
+#                     Main Execution                         #
+##############################################################
+
 if ($Start)  { Log-Start }
 if ($Cancel) { Log-Cancel }
 if ($Stop)   { Log-Stop }

@@ -4,19 +4,19 @@
 This script provides helpers for building msquic.
 
 .PARAMETER InstallDependencies
-    Runs the test cases serially instead of in parallel. Required for log collection.
+    Installs any necessary build dependencies.
 
 .PARAMETER Config
-    Compresses the output files generated for failed test cases.
+    The debug or release build configuration to use.
 
 .PARAMETER Tls
-    The name of the profile to use for log collection.
+    The TLS library to use.
 
 .PARAMETER DisableLogs
-    A filter to include test cases from the list to execute.
+    Disables log collection.
 
 .PARAMETER SanitizeAddress
-    A filter to remove test cases from the list to execute.
+    Enables address sanitizer.
 
 .PARAMETER DisableTools
     Don't build the tools directory.
@@ -25,7 +25,13 @@ This script provides helpers for building msquic.
     Don't build the test directory.
 
 .EXAMPLE
+    build.ps1 -InstallDependencies
+
+.EXAMPLE
     build.ps1
+
+.EXAMPLE
+    build.ps1 -Config Release
 
 #>
 
@@ -89,17 +95,10 @@ function Install-Dependencies {
 }
 
 # Executes msquictext with the given arguments.
-function Start-CMake([String]$Arguments) {
-    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    $pinfo.FileName = "cmake"
-    $pinfo.Arguments = $Arguments
-    $pinfo.RedirectStandardOutput = $true
-    $pinfo.UseShellExecute = $false
-    $pinfo.WorkingDirectory = $BuildDir
-    $p = New-Object System.Diagnostics.Process
-    $p.StartInfo = $pinfo
-    $p.Start() | Out-Null
-    $p
+function CMake-Execute([String]$Arguments) {
+    Push-Location $BuildDir | Out-Null
+    try { Start-Process cmake $Arguments -Wait }
+    finally { Pop-Location | Out-Null }
 }
 
 # Uses cmake to generate the build configuration files.
@@ -131,10 +130,7 @@ function CMake-Generate {
     }
     $Arguments += " $($CurrentDir)"
 
-    $p = Start-CMake $Arguments
-    $stdout = $p.StandardOutput.ReadToEnd()
-    $p.WaitForExit()
-    $stdout
+    CMake-Execute $Arguments
 }
 
 # Uses cmake to generate the build configuration files.
@@ -145,19 +141,17 @@ function CMake-Build {
         "Release"  { $Arguments += " --config RELEASE" }
     }
 
-    $p = Start-CMake $Arguments
-    $stdout = $p.StandardOutput.ReadToEnd()
-    $p.WaitForExit()
-    $stdout
+    CMake-Execute $Arguments
 }
 
-######################
-#   Main Execution   #
-######################
+##############################################################
+#                     Main Execution                         #
+##############################################################
 
 if ($InstallDependencies) {
     Log "Installing dependencies..."
     Install-Dependencies
+    exit
 }
 
 # Generate the build files.
@@ -167,3 +161,5 @@ CMake-Generate
 # Build the code.
 Log "Building..."
 CMake-Build
+
+Log "Done."
