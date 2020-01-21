@@ -1,6 +1,48 @@
-#
-# Helper script for running executing the MsQuic tests.
-#
+<#
+
+.SYNOPSIS
+This script provides helpers for running executing the MsQuic tests.
+
+.PARAMETER Config
+    Specifies the build configuration to test.
+
+.PARAMETER ListTestCases
+    Lists all the test cases.
+
+.PARAMETER Serial
+    Runs the test cases serially instead of in parallel. Required for log collection.
+
+.PARAMETER Compress
+    Compresses the output files generated for failed test cases.
+
+.PARAMETER LogProfile
+    The name of the profile to use for log collection.
+
+.PARAMETER Filter
+    A filter to include test cases from the list to execute.
+
+.PARAMETER NegativeFilter
+    A filter to remove test cases from the list to execute.
+
+.EXAMPLE
+    test.ps1
+
+.EXAMPLE
+    test.ps1 -ListTestCases
+
+.EXAMPLE
+    test.ps1 -ListTestCases -Filter ParameterValidation*
+
+.EXAMPLE
+    test.ps1 -Filter ParameterValidation*
+
+.EXAMPLE
+    test.ps1 -Serial - LogProfile Full.Basic
+
+.EXAMPLE
+    test.ps1 -Compress
+
+#>
 
 param (
     [Parameter(Mandatory = $false)]
@@ -31,20 +73,23 @@ Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 # Helper to determine if we're running on Windows.
-$IsWindows = $Env:OS -eq "Windows_NT"
+#$IsWindows = $Env:OS -eq "Windows_NT"
+
+# Current directory.
+$CurrentDir = (Get-Item -Path ".\").FullName
 
 # Path for the test program.
-$MsQuicTest = (Get-Item -Path ".\").FullName + "\artifacts\bin\$($Config)\msquictest.exe"
+$MsQuicTest = $CurrentDir + "\artifacts\bin\$($Config)\msquictest.exe"
 if (!$IsWindows) {
-    $MsQuicTest = (Get-Item -Path ".\").FullName + "\artifacts\bin\msquictest"
+    $MsQuicTest = $CurrentDir + "/artifacts/bin/msquictest"
 }
 
 # Path for the procdump executable.
-$ProcDumpExe = (Get-Item -Path ".\").FullName + "\bld\procdump\procdump.exe"
+$ProcDumpExe = $CurrentDir + "\bld\procdump\procdump.exe"
 
 # Folder for log files.
-$LogBaseDir = (Get-Item -Path ".\").FullName + "\artifacts\logs"
-$LogDir = $LogBaseDir + "\" + (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+$LogBaseDir = Join-Path (Join-Path $CurrentDir "artifacts") "logs"
+$LogDir = Join-Path $LogBaseDir (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
 
 # List of all the test results.
 $PassedTests = New-Object System.Collections.ArrayList
@@ -54,7 +99,7 @@ function Log($msg) {
     Write-Host "[$(Get-Date)] $msg"
 }
 
-# Installs procdump if not already.
+# Installs procdump if not already. Windows specific.
 function Install-ProcDump {
     if (!(Test-Path bld)) { mkdir bld | Out-Null }
     if (!(Test-Path .\bld\procdump)) {
@@ -71,7 +116,7 @@ function Install-ProcDump {
 # Executes msquictext with the given arguments.
 function Start-MsQuicTest([String]$Arguments, [String]$InstanceName = "") {
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    if ($InstanceName -ne "") {
+    if ($IsWindows -and $InstanceName -ne "") {
         $pinfo.FileName = $ProcDumpExe
         $pinfo.Arguments = "-ma -e -b -l -accepteula -x $($LogDir)\$($InstanceName) $($MsQuicTest) $($Arguments)"
     } else {
@@ -109,7 +154,7 @@ function GetTestCases {
 function StartTestCase([String]$Name) {
 
     $InstanceName = $Name.Replace("/", "_").Replace(".", "_")
-    $LocalLogDir = $LogDir + "\" + $InstanceName
+    $LocalLogDir = Join-Path $LogDir $InstanceName
     mkdir $LocalLogDir | Out-Null
 
     if ($LogProfile -ne "None") {
@@ -118,7 +163,8 @@ function StartTestCase([String]$Name) {
     }
 
     # Run the test and parse the output to determine if it was success.
-    $p = Start-MsQuicTest "--gtest_filter=$($Name) --gtest_output=xml:$($LocalLogDir)\results.xml" $InstanceName
+    $ResultsPath = Join-Path $LocalLogDir "results.xml"
+    $p = Start-MsQuicTest "--gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)" $InstanceName
     
     [pscustomobject]@{
         Name = $Name
@@ -130,7 +176,7 @@ function StartTestCase([String]$Name) {
 function FinishTestCase($p) {
 
     $InstanceName = $p.Name.Replace("/", "_").Replace(".", "_")
-    $LocalLogDir = $LogDir + "\" + $InstanceName
+    $LocalLogDir = Join-Path $LogDir $InstanceName
 
     $stdout = $p.p.StandardOutput.ReadToEnd()
     $p.p.WaitForExit()
@@ -148,7 +194,7 @@ function FinishTestCase($p) {
             # Keep logs on failure.
             .\log.ps1 -Stop -Output "$($LocalLogDir)\quic.etl" -InstanceName $InstanceName | Out-Null
         }
-        $stdout > "$($LocalLogDir)\console.txt"
+        $stdout > (Join-Path $LocalLogDir "console.txt")
         $FailedTests.Add($p.Name) | Out-Null
 
         if ($Compress) {
@@ -188,8 +234,10 @@ if ($ListTestCases) {
     exit
 }
 
-# Make sure procdump is installed.
-Install-ProcDump
+if ($IsWindows) {
+    # Make sure procdump is installed.
+    Install-ProcDump
+}
 
 # Set up the base directory.
 if (!(Test-Path $LogBaseDir)) { mkdir $LogBaseDir }

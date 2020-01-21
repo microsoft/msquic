@@ -1,6 +1,36 @@
-#
-# Helper script for collecting logs.
-#
+<#
+
+.SYNOPSIS
+This script provides helpers for starting, stopping and canceling log collection.
+
+.PARAMETER Start
+    Starts the logs being collected with the given profile.
+
+.PARAMETER LogProfile
+    The name of the profile to use for log collection.
+
+.PARAMETER Cancel
+    Stops the logs from being collected and discards any collected so far.
+
+.PARAMETER Stop
+    Stops the logs from being collected and saves them to the -Output location.
+
+.PARAMETER Output
+    The output file name or directory for the logs.
+
+.PARAMETER InstanceName
+    A unique name for the logging instance.
+
+.EXAMPLE
+    logs.ps1 -Start -LogProfile Basic.Light
+
+.EXAMPLE
+    logs.ps1 -Cancel
+
+.EXAMPLE
+    logs.ps1 -Stop -Output quic.etl
+
+#>
 
 param (
     [Parameter(Mandatory = $false, ParameterSetName='Start')]
