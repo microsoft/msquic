@@ -252,17 +252,18 @@ typedef struct QUIC_SEC_CONFIG_PARAMS_INTERNAL {
 
 } QUIC_SEC_CONFIG_PARAMS_INTERNAL;
 
+#define TEMP_DIR_TEMPLATE "/tmp/quictest.XXXXXX"
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_SEC_CONFIG_PARAMS*
 QuicPlatGetSelfSignedCert(
     _In_ QUIC_SELF_SIGN_CERT_TYPE Type
     )
 {
-    char Template[] = "/tmp/quictest.XXXXXX";
     UNREFERENCED_PARAMETER(Type);
 
     QUIC_SEC_CONFIG_PARAMS_INTERNAL* Params =
-        malloc(sizeof(QUIC_SEC_CONFIG_PARAMS_INTERNAL));
+        malloc(sizeof(QUIC_SEC_CONFIG_PARAMS_INTERNAL) + sizeof(TEMP_DIR_TEMPLATE));
     if (Params == NULL) {
         return NULL;
     }
@@ -272,6 +273,9 @@ QuicPlatGetSelfSignedCert(
     Params->Certificate = &Params->CertFile;
     Params->CertFile.CertificateFile = Params->CertFilepath;
     Params->CertFile.PrivateKeyFile = Params->PrivateKeyFilepath;
+
+    char* Template = (char*)(Params + 1);
+    memcpy(Template, TEMP_DIR_TEMPLATE, sizeof(TEMP_DIR_TEMPLATE));
 
     Params->TempDir = mkdtemp(Template);
     if (Params->TempDir == NULL) {
