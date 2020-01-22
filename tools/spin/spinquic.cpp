@@ -66,6 +66,42 @@ public:
     }
 };
 
+//
+// The amount of extra time (in milliseconds) to give the watchdog before
+// actually firing.
+//
+#define WATCHDOG_WIGGLE_ROOM 1000
+
+class SpinQuicWatchdog {
+    QUIC_THREAD WatchdogThread;
+    QUIC_EVENT ShutdownEvent;
+    uint32_t TimeoutMs;
+    static
+    QUIC_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
+        auto This = (SpinQuicWatchdog*)Context;
+        if (!QuicEventWaitWithTimeout(This->ShutdownEvent, This->TimeoutMs)) {
+            printf("Watchdog timeout fired!\n");
+            QUIC_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
+        }
+        QUIC_THREAD_RETURN(0);
+    }
+public:
+    SpinQuicWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
+        QuicEventInitialize(&ShutdownEvent, TRUE, FALSE);
+        QUIC_THREAD_CONFIG Config = { 0 };
+        Config.Name = "spin_watchdog";
+        Config.Callback = WatchdogThreadCallback;
+        Config.Context = this;
+        EXIT_ON_FAILURE(QuicThreadCreate(&Config, &WatchdogThread));
+    }
+    ~SpinQuicWatchdog() {
+        QuicEventSet(ShutdownEvent);
+        QuicThreadWait(&WatchdogThread);
+        QuicThreadDelete(&WatchdogThread);
+        QuicEventUninitialize(ShutdownEvent);
+    }
+};
+
 static uint64_t StartTimeMs;
 static QUIC_API_V1* MsQuic;
 static HQUIC Registration;
@@ -643,6 +679,8 @@ main(int argc, char **argv)
     uint32_t RngSeed = 6;
     TryGetValue(argc, argv, "seed", &RngSeed);
     srand(RngSeed);
+
+    SpinQuicWatchdog Watchdog(Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
 
     EXIT_ON_FAILURE(MsQuicOpenV1(&MsQuic));
 
