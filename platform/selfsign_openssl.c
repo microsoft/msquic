@@ -334,7 +334,7 @@ QuicPlatFreeSelfSignedCert(
     QUIC_SEC_CONFIG_PARAMS_INTERNAL* Params =
         (QUIC_SEC_CONFIG_PARAMS_INTERNAL*)_Params;
 
-    char RmCmd[26] = {0};
+    char RmCmd[32] = {0};
     strncpy(RmCmd, "rm -rf ", 7 + 1);
     strncat(RmCmd, Params->TempDir, strlen(Params->TempDir) + 1);
     if (system(RmCmd) == -1) {
