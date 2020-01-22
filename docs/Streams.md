@@ -10,7 +10,7 @@ Streams are the primary mechanism apps use to reliably exchange data with their 
 
 # Stream ID Flow Control
 
-The QUIC protocol allows a maximum number of streams equal to 2 ^ 62. As there are 4 unique stream types, the maximum number of streams is 2 ^ 60. No app would likely need to have this many streams open at any point.
+The QUIC protocol allows a maximum number of streams equal to 2 ^ 62. As there are 4 unique stream types, the maximum number of streams is 2 ^ 60, per stream type. No app would likely need to have this many streams open at any point.
 
 For this reason, each app controls the number of streams that the peer is allowed to open. The concept is similar to flow control of the actual data on a stream. The app tells the peer how many streams it's willing to accept at any point. Instead of a buffer size, it's a stream count.
 
