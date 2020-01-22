@@ -30,8 +30,9 @@ QUIC has many benefits when compared to existing TLS over TCP scenarios:
 
 ## Library Features
 
+  * Cross-platform support.
   * Optimized for maximal throughput and minimal latency.
-  * Asychronous IO.
+  * Asynchronous IO.
   * Receive side scaling (RSS).
   * UDP send and receive coalescing support.
 
