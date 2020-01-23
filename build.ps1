@@ -112,7 +112,7 @@ function Install-Dependencies {
 # Executes msquictext with the given arguments.
 function CMake-Execute([String]$Arguments) {
     Push-Location $BuildDir | Out-Null
-    try { Start-Process cmake $Arguments -Wait }
+    try { Start-Process cmake $Arguments -Wait -NoNewWindow }
     finally { Pop-Location | Out-Null }
 }
 
