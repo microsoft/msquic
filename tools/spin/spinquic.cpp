@@ -680,7 +680,7 @@ main(int argc, char **argv)
     TryGetValue(argc, argv, "seed", &RngSeed);
     srand(RngSeed);
 
-    SpinQuicWatchdog Watchdog(Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
+    SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
 
     EXIT_ON_FAILURE(MsQuicOpenV1(&MsQuic));
 
