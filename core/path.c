@@ -66,7 +66,7 @@ QuicPathSetAllowance(
     BOOLEAN WasBlocked = Path->Allowance < QUIC_MIN_SEND_ALLOWANCE;
     Path->Allowance = NewAllowance;
 
-    if (Path->IsPeerValidated &&
+    if (!Path->IsPeerValidated &&
         (Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) != WasBlocked) {
         if (WasBlocked) {
             QuicConnRemoveOutFlowBlockedReason(
