@@ -82,7 +82,8 @@ QUIC_CONNECTION_ACCEPT_RESULT
 QuicListenerAcceptConnection(
     _In_ QUIC_LISTENER* Listener,
     _In_ QUIC_CONNECTION* Connection,
-    _In_ const QUIC_NEW_CONNECTION_INFO* Info
+    _In_ const QUIC_NEW_CONNECTION_INFO* Info,
+    _Out_ QUIC_SEC_CONFIG** SecConfig
     );
 
 //

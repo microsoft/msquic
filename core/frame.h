@@ -76,7 +76,8 @@
 //
 #define QUIC_ERROR_CRYPTO_ERROR(TlsAlertCode)   ((QUIC_VAR_INT)(0x100 | (TlsAlertCode)))
 
-#define QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE     QUIC_ERROR_CRYPTO_ERROR(40) // TLS error code for 'handshake_failure'
+#define QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE         QUIC_ERROR_CRYPTO_ERROR(40)  // TLS error code for 'handshake_failure'
+#define QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL   QUIC_ERROR_CRYPTO_ERROR(120) // TLS error code for 'no_application_protocol'
 
 //
 // Different types of QUIC frames
