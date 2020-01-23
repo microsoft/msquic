@@ -1406,6 +1406,7 @@ QuicCryptoProcessData(
             QUIC_CONNECTION_ACCEPT_RESULT AcceptResult =
                 QUIC_CONNECTION_REJECT_NO_LISTENER;
 
+            QUIC_SEC_CONFIG* SecConfig = NULL;
             QUIC_LISTENER* Listener =
                 QuicBindingGetListener(
                     Connection->Paths[0].Binding,
@@ -1415,7 +1416,9 @@ QuicCryptoProcessData(
                     QuicListenerAcceptConnection(
                         Listener,
                         Connection,
-                        &Info);
+                        &Info,
+                        &SecConfig);
+                QuicRundownRelease(&Listener->Rundown);
             }
 
             if (AcceptResult != QUIC_CONNECTION_ACCEPT) {
@@ -1424,7 +1427,7 @@ QuicCryptoProcessData(
                 if (AcceptResult == QUIC_CONNECTION_REJECT_NO_LISTENER) {
                     QuicConnTransportError(
                         Connection,
-                        QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE);
+                        QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL);
                 } else if (AcceptResult == QUIC_CONNECTION_REJECT_BUSY) {
                     QuicConnTransportError(
                         Connection,
@@ -1435,6 +1438,15 @@ QuicCryptoProcessData(
                         QUIC_ERROR_INTERNAL_ERROR);
                 }
                 goto Error;
+
+            } else if (SecConfig != NULL) {
+                Status = QuicConnHandshakeConfigure(Connection, SecConfig);
+                if (QUIC_FAILED(Status)) {
+                    QuicConnTransportError(
+                        Connection,
+                        QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE);
+                    goto Error;
+                }
             }
         }
     }
