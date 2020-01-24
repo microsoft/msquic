@@ -52,15 +52,15 @@ By default, this mode is not used. To enable this mode, the app must call [SetPa
 
 ## Send Shutdown
 
-The send direction can be shutdown in three different ways:
+The send direction can be shut down in three different ways:
 
-- **Graceful** - The sender can gracefully shutdown the send by calling [StreamShutdown](v1/StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL` flag or by including the `QUIC_SEND_FLAG_FIN` flag on the last [StreamSend](v1/StreamSend.md) call. In this scenario all data will be delivered to the peer and then the peer is informed the stream has been gracefully shutdown.
+- **Graceful** - The sender can gracefully shut down the send direction by calling [StreamShutdown](v1/StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL` flag or by including the `QUIC_SEND_FLAG_FIN` flag on the last [StreamSend](v1/StreamSend.md) call. In this scenario all data will be delivered to the peer and then the peer is informed the stream has been gracefully shut down.
 
-- **Sender Abort** - The sender can abortively shutdown the send by calling [StreamShutdown](v1/StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND` flag. In this scenario, all outstanding sends are immediately canceled and are not delivered to the peer. The peer is immediately informed of the abort.
+- **Sender Abort** - The sender can abortively shut down the send direction by calling [StreamShutdown](v1/StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND` flag. In this scenario, all outstanding sends are immediately canceled and are not delivered to the peer. The peer is immediately informed of the abort.
 
-- **Receiver Abort** - The receiver can abortively shutdown their peer's send direction. When this happens the sender will get a `QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED` event.
+- **Receiver Abort** - The receiver can abortively shut down their peer's send direction. When this happens the sender will get a `QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED` event.
 
-When the send has been completely shutdown the app will get a `QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE` event. This will happen immediately on an abortive send or after a graceful send has been acknowledged by the peer.
+When the send has been completely shut down the app will get a `QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE` event. This will happen immediately on an abortive send or after a graceful send has been acknowledged by the peer.
 
 ## 0-RTT
 
@@ -72,20 +72,20 @@ Data is received and delivered to apps via the `QUIC_STREAM_EVENT_RECEIVE` event
 
 ## Synchronous vs Asynchronous
 
-The app has the option of either processing the received data either in the callback (synchronous) or it may queue the work to process the data on a separate thread (asynchronous). If the app processes the data synchronously it must do so in a timely manner. Any significant delays will delay other QUIC processing (such as sending acknowledgements) that can cause protocol issues (dropped connections).
+The app has the option of either processing the received data in the callback (synchronous) or queuing the work to a separate thread (asynchronous). If the app processes the data synchronously it must do so in a timely manner. Any significant delays will delay other QUIC processing (such as sending acknowledgements), which can cause protocol issues (dropped connections).
 
-If the app wants to queue the data to a separate thread, the app must return `QUIC_STATUS_PENDING` from the receive callback. This informs MsQuic that the app still has an outstanding reference on the buffers, and it will not try to modify or free them. Once the app is done with the buffers it must call [StreamReceiveComplete](v1/StreamReceiveComplete.md).
+If the app wants to queue the data to a separate thread, the app must return `QUIC_STATUS_PENDING` from the receive callback. This informs MsQuic that the app still has an outstanding reference on the buffers, and it will not modify or free them. Once the app is done with the buffers it must call [StreamReceiveComplete](v1/StreamReceiveComplete.md).
 
 ## Partial Data Acceptance
 
-Whenever the app get the `QUIC_STREAM_EVENT_RECEIVE` event, it has the ability to only partially accept/consume the received data.
+Whenever the app gets the `QUIC_STREAM_EVENT_RECEIVE` event, it can partially accept/consume the received data.
 
 For synchronous receives, the app indicates how much of the data it accepted via the **TotalBufferLength** variable in the payload of the `QUIC_STREAM_EVENT_RECEIVE` event. On input, that variable indicates the total amount of data being indicated. On output (return from the callback), the variable is taken as how much data the app consumed. By default, if the variable is left unmodified, then all data is assumed to be accepted.
 
-For asynchronous received, the app indicates how much of the data it accepted via the **BufferLength** parameter passed into the [StreamReceiveComplete](v1/StreamReceiveComplete.md) API.
+For asynchronous receives, the app indicates how much of the data it accepted via the **BufferLength** parameter passed into the [StreamReceiveComplete](v1/StreamReceiveComplete.md) API.
 
 Any value less than or equal to the initial **TotalBufferLength** value is allowed, including zero.
 
-Whenever a receive isn't fully accepted by the app, additional receive events are immediately disabled. The app is assumed to be at capacity and not able to consume more until further indication. To re-enable receive callback, the app must call [StreamReceiveSetEnabled](v1/StreamReceiveSetEnabled.md).
+Whenever a receive isn't fully accepted by the app, additional receive events are immediately disabled. The app is assumed to be at capacity and not able to consume more until further indication. To re-enable receive callbacks, the app must call [StreamReceiveSetEnabled](v1/StreamReceiveSetEnabled.md).
 
-There are cases where an app may want to partially accept the current data, but still immediately get called back with the rest of the data. To do this (only works in the synchronous flow) the app must return `QUIC_STATUS_CONTINUE`.
+There are cases where an app may want to partially accept the current data, but still immediately get a callback with the rest of the data. To do this (only works in the synchronous flow) the app must return `QUIC_STATUS_CONTINUE`.
