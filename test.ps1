@@ -9,8 +9,8 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER ListTestCases
     Lists all the test cases.
 
-.PARAMETER Serial
-    Runs the test cases serially instead of in parallel. Required for log collection.
+.PARAMETER Parallel
+    Runs the test cases in parallel instead of serially. Log collection not currently supported.
 
 .PARAMETER Compress
     Compresses the output files generated for failed test cases.
@@ -23,6 +23,9 @@ This script provides helpers for running executing the MsQuic tests.
 
 .PARAMETER NegativeFilter
     A filter to remove test cases from the list to execute.
+
+.PARAMETER Debugger
+    Attaches the debugger to each test case run.
 
 .EXAMPLE
     test.ps1
@@ -37,10 +40,13 @@ This script provides helpers for running executing the MsQuic tests.
     test.ps1 -Filter ParameterValidation*
 
 .EXAMPLE
-    test.ps1 -Serial - LogProfile Full.Basic
+    test.ps1 -LogProfile Full.Basic
 
 .EXAMPLE
-    test.ps1 -Compress
+    test.ps1 -Parallel -NegativeFilter *Send*
+
+.EXAMPLE
+    test.ps1 -LogProfile Full.Verbose -Compress
 
 #>
 
@@ -53,7 +59,7 @@ param (
     [switch]$ListTestCases = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Serial = $false,
+    [switch]$Parallel = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$Compress = $false,
@@ -91,9 +97,79 @@ $ProcDumpExe = $CurrentDir + "\bld\windows\procdump\procdump.exe"
 $LogBaseDir = Join-Path (Join-Path $CurrentDir "artifacts") "logs"
 $LogDir = Join-Path $LogBaseDir (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
 
-# List of all the test results.
-$PassedTests = New-Object System.Collections.ArrayList
-$FailedTests = New-Object System.Collections.ArrayList
+# Base XML results data.
+$XmlResults = [xml]@"
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="0" failures="0" disabled="0" errors="0" time="0" timestamp="date" name="AllTests">
+</testsuites>
+"@
+$XmlResults.testsuites.timestamp = Get-Date -UFormat "%Y-%m-%dT%T"
+
+# XML for creating new (failure) result data.
+$FailXmlText = @"
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="1" failures="1" disabled="0" errors="0" time="0" name="AllTests">
+  <testsuite name="TestSuiteName" tests="1" failures="1" disabled="0" errors="0" timestamp="date" time="0" >
+    <testcase name="TestCaseName" status="run" result="completed" time="0" timestamp="date" classname="TestSuiteName">
+      <failure message="Application Crashed" type=""><![CDATA[Application Crashed]]></failure>
+    </testcase>
+  </testsuite>
+</testsuites>
+"@
+
+# Helper script to build up a combined XML file for all test cases. This
+# function just appends the given test case's xml output to the existing xml
+# file. If not present (because of a crash) it generates one instead and appends
+# it.
+function Add-XmlResults($TestCase) {
+    $TestHasResults = Test-Path $TestCase.ResultsPath
+    $TestSuiteName = $TestCase.Name.Split(".")[0]
+    $TestCaseName = $TestCase.Name.Split(".")[1]
+
+    $NewXmlResults = $null
+    if ($TestHasResults) {
+        # Get the results from the test output.
+        $NewXmlResults = [xml](Get-Content $TestCase.ResultsPath)
+        Remove-Item $TestCase.ResultsPath -Force | Out-Null
+    } else {
+        # Generate our own results xml.
+        $NewXmlText =  $FailXmlText.Replace("TestSuiteName", $TestSuiteName)
+        $NewXmlText =  $NewXmlText.Replace("TestCaseName", $TestCaseName)
+        $NewXmlText =  $NewXmlText.Replace("date", $TestCase.Timestamp)
+        $NewXmlResults = [xml]($NewXmlText)
+    }
+
+    $IsFailure = $NewXmlResults.testsuites.failures -eq 1
+    $Time = $NewXmlResults.testsuites.testsuite.testcase.time -as [Decimal]
+
+    $Node = $null
+    if ($XmlResults.testsuites.tests -ne 0) {
+        # Look for a matching test suite that might already exist.
+        $Node = $XmlResults.testsuites.testsuite | Where-Object { $_.Name -eq $TestSuiteName }
+    }
+    if ($null -ne $Node) {
+        # Already has a matching test suite. Add the test case to it.
+        $Node.tests = ($Node.tests -as [Int]) + 1
+        if ($IsFailure) {
+            $Node.failures = ($Node.failures -as [Int]) + 1
+        }
+        $Node.time = ($Node.time -as [Decimal]) + $Time
+        $NewNode = $XmlResults.ImportNode($NewXmlResults.testsuites.testsuite.testcase, $true)
+        $Node.AppendChild($NewNode) | Out-Null
+    } else {
+        # First instance of this test suite. Add the test suite.
+        $NewNode = $XmlResults.ImportNode($NewXmlResults.testsuites.testsuite, $true)
+        $XmlResults.testsuites.AppendChild($NewNode) | Out-Null
+    }
+
+    # Update the top level test and failure counts.
+    $XmlResults.testsuites.tests = ($XmlResults.testsuites.tests -as [Int]) + 1
+    if ($IsFailure) {
+        $XmlResults.testsuites.failures = ($XmlResults.testsuites.failures -as [Int]) + 1
+    }
+    $XmlResults.testsuites.time = ($XmlResults.testsuites.time -as [Decimal]) + $Time
+}
+
 function Log($msg) {
     Write-Host "[$(Get-Date)] $msg"
 }
@@ -157,7 +233,7 @@ function GetTestCases {
 # Starts a single msquictest test case running.
 function StartTestCase([String]$Name) {
 
-    $InstanceName = $Name.Replace("/", "_").Replace(".", "_")
+    $InstanceName = $Name.Replace("/", "_")
     $LocalLogDir = Join-Path $LogDir $InstanceName
     mkdir $LocalLogDir | Out-Null
 
@@ -166,45 +242,48 @@ function StartTestCase([String]$Name) {
         .\log.ps1 -Start -LogProfile $LogProfile -InstanceName $InstanceName | Out-Null
     }
 
-    # Run the test and parse the output to determine if it was success.
     $ResultsPath = Join-Path $LocalLogDir "results.xml"
-    $p = Start-MsQuicTest "--gtest_break_on_failure --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)" $LocalLogDir
-    
+    $Arguments = "--gtest_break_on_failure --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)"
+
+    # Start the test process and return some information about the test case.
     [pscustomobject]@{
         Name = $Name
-        p = $p
+        InstanceName = $InstanceName
+        LogDir = $LocalLogDir
+        Timestamp = (Get-Date -UFormat "%Y-%m-%dT%T")
+        ResultsPath = $ResultsPath
+        Process = (Start-MsQuicTest $Arguments $LocalLogDir)
     }
 }
 
 # Waits for and finishes up the test case.
-function FinishTestCase($p) {
+function FinishTestCase($TestCase) {
 
-    $InstanceName = $p.Name.Replace("/", "_").Replace(".", "_")
-    $LocalLogDir = Join-Path $LogDir $InstanceName
+    $stdout = $TestCase.Process.StandardOutput.ReadToEnd()
+    $TestCase.Process.WaitForExit()
 
-    $stdout = $p.p.StandardOutput.ReadToEnd()
-    $p.p.WaitForExit()
+    # Add the current test case results.
+    Add-XmlResults $TestCase
+
     $Success = $stdout.Contains("[  PASSED  ] 1 test")
-
     if ($Success -or $Debugger) {
         if ($LogProfile -ne "None") {
             # Don't keep logs on success.
-            .\log.ps1 -Cancel -InstanceName $InstanceName | Out-Null
+            .\log.ps1 -Cancel -InstanceName $TestCase.InstanceName | Out-Null
         }
-        $PassedTests.Add($p.Name) | Out-Null
-        Remove-Item $LocalLogDir -Recurse -Force | Out-Null
+        Remove-Item $TestCase.LogDir -Recurse -Force | Out-Null
     } else {
         if ($LogProfile -ne "None") {
             # Keep logs on failure.
-            .\log.ps1 -Stop -OutputDirectory $LocalLogDir -InstanceName $InstanceName | Out-Null
+            .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName | Out-Null
         }
-        $stdout > (Join-Path $LocalLogDir "console.txt")
-        $FailedTests.Add($p.Name) | Out-Null
+
+        $stdout > (Join-Path $TestCase.LogDir "console.txt")
 
         if ($Compress) {
             # Zip the output.
-            Compress-Archive -Path "$($LocalLogDir)\*" -DestinationPath "$($LocalLogDir).zip" | Out-Null
-            Remove-Item $LocalLogDir -Recurse -Force | Out-Null
+            Compress-Archive -Path "$($TestCase.LogDir)\*" -DestinationPath "$($TestCase.LogDir).zip" | Out-Null
+            Remove-Item $TestCase.LogDir -Recurse -Force | Out-Null
         }
     }
 }
@@ -231,6 +310,10 @@ if ($Filter -ne "") {
 if ($NegativeFilter -ne "") {
     $TestCases = ($TestCases | Where-Object { !($_ -Like $NegativeFilter) }) -as [String[]]
 }
+if ($null -eq $TestCases) {
+    Log "No test cases found."
+    exit
+}
 
 if ($ListTestCases) {
     # List the tst cases.
@@ -247,7 +330,7 @@ if ($IsWindows) {
 if (!(Test-Path $LogBaseDir)) { mkdir $LogBaseDir | Out-Null }
 mkdir $LogDir | Out-Null
 
-if ($Serial -ne $false) {
+if ($Parallel -eq $false) {
     # Run the test cases serially.
     Log "Executing $($TestCases.Length) tests in series..."
     for ($i = 0; $i -lt $TestCases.Length; $i++) {
@@ -279,13 +362,17 @@ if ($Serial -ne $false) {
     }
 }
 
+# Save the xml results.
+$XmlResults.Save("$($LogDir).xml") | Out-Null
+
+$TestCount = $XmlResults.testsuites.tests -as [Int]
+$TestsFailed = $XmlResults.testsuites.failures -as [Int]
+$TestsPassed = $TestCount - $TestsFailed
+
 # Print out the results.
-Log "$($PassedTests.Count) test(s) passed."
-if ($FailedTests.Count -ne 0) {
-    Log "$($FailedTests.Count) test(s) failed:"
-    for ($i = 0; $i -lt $FailedTests.Count; $i++) {
-        Log "  $($FailedTests[$i])"
-    }
+Log "$($TestsPassed) test(s) passed."
+if ($TestsFailed -ne 0) {
+    Log "$($TestsFailed) test(s) failed."
     Log "Logs can be found in $($LogDir)"
 } else {
     Remove-Item $LogDir | Out-Null
