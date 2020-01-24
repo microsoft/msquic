@@ -85,8 +85,8 @@ if ($IsWindows) {
 
 if ($Clean) {
     # Delete old build/config directories.
-    if (!(Test-Path $ArtifactsDir)) { Remove-Item $ArtifactsDir -Recurse -Force | Out-Null }
-    if (!(Test-Path $BuildDir)) { Remove-Item $BuildDir -Recurse -Force | Out-Null }
+    if (Test-Path $ArtifactsDir) { Remove-Item $ArtifactsDir -Recurse -Force | Out-Null }
+    if (Test-Path $BuildDir) { Remove-Item $BuildDir -Recurse -Force | Out-Null }
 }
 
 # Initialize directories needed for building.
@@ -111,9 +111,13 @@ function Install-Dependencies {
 
 # Executes msquictext with the given arguments.
 function CMake-Execute([String]$Arguments) {
-    Push-Location $BuildDir | Out-Null
-    try { Start-Process cmake $Arguments -Wait -NoNewWindow }
-    finally { Pop-Location | Out-Null }
+    $process = Start-Process cmake $Arguments -PassThru -NoNewWindow -WorkingDirectory $BuildDir
+    $handle = $process.Handle # Magic work around. Don't remove this line.
+    $process.WaitForExit();
+
+    if ($process.ExitCode -ne 0) {
+        Write-Warning "[$(Get-Date)] CMake exited with status code $($process.ExitCode)"
+    }
 }
 
 # Uses cmake to generate the build configuration files.
