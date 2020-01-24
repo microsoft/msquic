@@ -11,7 +11,7 @@ mkdir artifacts/dumps
 cd artifacts/dumps
 
 # Run the tests.
-../bin/msquictest \
+../linux/bin/msquictest \
     --gtest_filter=$1 \
     --gtest_output=xml:../logs/linux-test-results.xml
 

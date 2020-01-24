@@ -7,7 +7,7 @@ mkdir artifacts/dumps
 cd artifacts/dumps
 
 # Run spinquic for a while.
-../bin/spinquic both -timeout:300000
+../linux/bin/spinquic both -timeout:300000
 
 # Print any core files that might be generated.
 echo "Available core dumps:"

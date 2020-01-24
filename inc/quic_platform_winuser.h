@@ -525,6 +525,7 @@ typedef HANDLE QUIC_EVENT;
 // This is an undocumented API that is used to query the current timer
 // resolution.
 //
+#if !defined(QUIC_WINDOWS_INTERNAL)
 __kernel_entry
 NTSYSCALLAPI
 NTSTATUS
@@ -534,6 +535,7 @@ NtQueryTimerResolution(
     _Out_ PULONG MinimumTime,
     _Out_ PULONG CurrentTime
     );
+#endif
 
 //
 // Returns the worst-case system timer resolution (in us).
@@ -683,7 +685,7 @@ QuicTimeAtOrBefore32(
 // essentially what SetThreadDescription does, but that is not available in
 // older versions of Windows.
 //
-#if 1
+#if !defined(QUIC_WINDOWS_INTERNAL)
 #define ThreadNameInformation ((THREADINFOCLASS)38)
 
 typedef struct _THREAD_NAME_INFORMATION {
