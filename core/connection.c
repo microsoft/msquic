@@ -5207,23 +5207,31 @@ QuicConnDrainOperations(
         Connection->Stats.Schedule.OperationCount++;
     }
 
-    if (OperationCount >= MaxOperationCount &&
-        (Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_ACK) &&
-        !Connection->State.HandleClosed) {
+    if (!Connection->State.ExternalOwner && Connection->State.ClosedLocally) {
         //
-        // We can't process any more operations but still need to send an
-        // immediate ACK. So as to not introduce additional queuing delay do one
-        // immediate flush now.
+        // Don't continue processing the connection is it has been closed
+        // locally and it's not referenced externally.
         //
-        (void)QuicSendFlush(&Connection->Send);
-    }
-
-    if (Connection->State.SendShutdownCompleteNotif && !Connection->State.HandleClosed) {
-        Connection->State.SendShutdownCompleteNotif = FALSE;
+        QuicTraceLogConnVerbose(AbandonInternallyClosed, Connection, "Abandoning internal, closed connection");
         QuicConnOnShutdownComplete(Connection);
     }
 
-    if (Connection->State.HandleClosed) {
+    if (!Connection->State.HandleClosed) {
+        if (OperationCount >= MaxOperationCount &&
+            (Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_ACK)) {
+            //
+            // We can't process any more operations but still need to send an
+            // immediate ACK. So as to not introduce additional queuing delay do
+            // one immediate flush now.
+            //
+            (void)QuicSendFlush(&Connection->Send);
+        }
+
+        if (Connection->State.SendShutdownCompleteNotif) {
+            Connection->State.SendShutdownCompleteNotif = FALSE;
+            QuicConnOnShutdownComplete(Connection);
+        }
+    } else {
         if (!Connection->State.Uninitialized) {
             QuicConnUninitialize(Connection);
         }
