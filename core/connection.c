@@ -5230,7 +5230,9 @@ QuicConnDrainOperations(
         if (Connection->State.SendShutdownCompleteNotif) {
             QuicConnOnShutdownComplete(Connection);
         }
-    } else {
+    }
+
+    if (Connection->State.HandleClosed) {
         if (!Connection->State.Uninitialized) {
             QuicConnUninitialize(Connection);
         }
