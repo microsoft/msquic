@@ -5209,7 +5209,7 @@ QuicConnDrainOperations(
 
     if (!Connection->State.ExternalOwner && Connection->State.ClosedLocally) {
         //
-        // Don't continue processing the connection is it has been closed
+        // Don't continue processing the connection, since it has been closed
         // locally and it's not referenced externally.
         //
         QuicTraceLogConnVerbose(AbandonInternallyClosed, Connection, "Abandoning internal, closed connection");
