@@ -10,7 +10,7 @@ This script provides helpers for running executing the MsQuic tests.
     Lists all the test cases.
 
 .PARAMETER Parallel
-    Runs the test cases in parallel instead of in serial. Log collection not currently supported.
+    Runs the test cases in parallel instead of serially. Log collection not currently supported.
 
 .PARAMETER Compress
     Compresses the output files generated for failed test cases.
