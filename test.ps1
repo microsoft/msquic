@@ -117,9 +117,9 @@ $FailXmlText = @"
 </testsuites>
 "@
 
-# Helper script to build up a combined XML script for all test cases. This
+# Helper script to build up a combined XML file for all test cases. This
 # function just appends the given test case's xml output to the existing xml
-# doc. If not present (because of a crash) it generates one instead and appends
+# file. If not present (because of a crash) it generates one instead and appends
 # it.
 function Add-XmlResults($TestCase) {
     $TestHasResults = Test-Path $TestCase.ResultsPath
