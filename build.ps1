@@ -111,7 +111,13 @@ function Install-Dependencies {
 
 # Executes msquictext with the given arguments.
 function CMake-Execute([String]$Arguments) {
-    Start-Process cmake $Arguments -Wait -NoNewWindow -WorkingDirectory $BuildDir
+    $process = Start-Process cmake $Arguments -PassThru -NoNewWindow -WorkingDirectory $BuildDir
+    $handle = $process.Handle # Magic work around. Don't remove this line.
+    $process.WaitForExit();
+
+    if ($process.ExitCode -ne 0) {
+        Write-Warning "[$(Get-Date)] CMake exited with status code $($process.ExitCode)"
+    }
 }
 
 # Uses cmake to generate the build configuration files.

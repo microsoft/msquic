@@ -330,50 +330,50 @@ if ($IsWindows) {
 if (!(Test-Path $LogBaseDir)) { mkdir $LogBaseDir | Out-Null }
 mkdir $LogDir | Out-Null
 
-if ($Parallel -eq $false) {
-    # Run the test cases serially.
-    Log "Executing $($TestCases.Length) tests in series..."
-    for ($i = 0; $i -lt $TestCases.Length; $i++) {
-        RunTestCase $TestCases[$i]
-        Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+try {
+    if ($Parallel -eq $false) {
+        # Run the test cases serially.
+        Log "Executing $($TestCases.Length) tests in series..."
+        for ($i = 0; $i -lt $TestCases.Length; $i++) {
+            RunTestCase $TestCases[$i]
+            Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+        }
+
+    } else {
+        # Log collection doesn't work for parallel right now.
+        if ($LogProfile -ne "None") {
+            Log "Warning: Disabling log collection for parallel runs!"
+            $LogProfile = "None"
+        }
+
+        # Starting the test cases all in parallel.
+        Log "Starting $($TestCases.Length) tests in parallel..."
+        $Runs = New-Object System.Collections.ArrayList
+        for ($i = 0; $i -lt $TestCases.Length; $i++) {
+            $Runs.Add((StartTestCase $TestCases[$i])) | Out-Null
+            Write-Progress -Activity "Starting tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+            Start-Sleep -Milliseconds 1
+        }
+
+        # Wait for the test cases to complete.
+        Log "Waiting for test cases to complete..."
+        for ($i = 0; $i -lt $Runs.Count; $i++) {
+            FinishTestCase $Runs[$i]
+            Write-Progress -Activity "Finishing tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+        }
     }
+} finally {
+    # Save the xml results.
+    $XmlResults.Save("$($LogDir).xml") | Out-Null
 
-} else {
-    # Log collection doesn't work for parallel right now.
-    if ($LogProfile -ne "None") {
-        Log "Warning: Disabling log collection for parallel runs!"
-        $LogProfile = "None"
+    $TestCount = $XmlResults.testsuites.tests -as [Int]
+    $TestsFailed = $XmlResults.testsuites.failures -as [Int]
+
+    # Print out the results.
+    Log "$($TestCount) test(s) run. $($TestsFailed) test(s) failed."
+    if ($TestsFailed -ne 0) {
+        Log "Logs can be found in $($LogDir)"
+    } else {
+        Remove-Item $LogDir -Recurse -Force | Out-Null
     }
-
-    # Starting the test cases all in parallel.
-    Log "Starting $($TestCases.Length) tests in parallel..."
-    $Runs = New-Object System.Collections.ArrayList
-    for ($i = 0; $i -lt $TestCases.Length; $i++) {
-        $Runs.Add((StartTestCase $TestCases[$i])) | Out-Null
-        Write-Progress -Activity "Starting tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
-        Start-Sleep -Milliseconds 1
-    }
-
-    # Wait for the test cases to complete.
-    Log "Waiting for test cases to complete..."
-    for ($i = 0; $i -lt $Runs.Count; $i++) {
-        FinishTestCase $Runs[$i]
-        Write-Progress -Activity "Finishing tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
-    }
-}
-
-# Save the xml results.
-$XmlResults.Save("$($LogDir).xml") | Out-Null
-
-$TestCount = $XmlResults.testsuites.tests -as [Int]
-$TestsFailed = $XmlResults.testsuites.failures -as [Int]
-$TestsPassed = $TestCount - $TestsFailed
-
-# Print out the results.
-Log "$($TestsPassed) test(s) passed."
-if ($TestsFailed -ne 0) {
-    Log "$($TestsFailed) test(s) failed."
-    Log "Logs can be found in $($LogDir)"
-} else {
-    Remove-Item $LogDir | Out-Null
 }
