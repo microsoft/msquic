@@ -466,7 +466,6 @@ QuicConnCloseHandle(
         NULL);
 
     if (Connection->State.SendShutdownCompleteNotif) {
-        Connection->State.SendShutdownCompleteNotif = FALSE;
         QuicConnOnShutdownComplete(Connection);
     }
 
@@ -1103,6 +1102,7 @@ QuicConnOnShutdownComplete(
     _In_ QUIC_CONNECTION* Connection
     )
 {
+    Connection->State.SendShutdownCompleteNotif = FALSE;
     if (Connection->State.HandleShutdown) {
         return;
     }
@@ -5228,7 +5228,6 @@ QuicConnDrainOperations(
         }
 
         if (Connection->State.SendShutdownCompleteNotif) {
-            Connection->State.SendShutdownCompleteNotif = FALSE;
             QuicConnOnShutdownComplete(Connection);
         }
     } else {
