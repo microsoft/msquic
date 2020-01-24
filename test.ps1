@@ -59,7 +59,7 @@ param (
     [switch]$ListTestCases = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Serial = $false,
+    [switch]$Parallel = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$Compress = $false,
