@@ -1423,7 +1423,7 @@ QuicCryptoProcessData(
 
             if (AcceptResult != QUIC_CONNECTION_ACCEPT) {
                 QuicTraceEvent(ConnErrorStatus,
-                    Connection, AcceptResult, "Connection rejected.");
+                    Connection, AcceptResult, "Connection rejected");
                 if (AcceptResult == QUIC_CONNECTION_REJECT_NO_LISTENER) {
                     QuicConnTransportError(
                         Connection,
