@@ -7,42 +7,50 @@ trigger:
 strategy:
   matrix:
     linux-stub:
-      platform: 'Linux-Stub'
+      platform: 'Linux'
+      config: 'Stub'
       imageName: 'ubuntu-latest'
       buildArgs: '-Tls stub -DisableLogs'
       testCmd: 'bash ./.azure/test_linux.sh ''*'''
     linux-stub-sanitize:
-      platform: 'Linux-Stub-Sanitize'
+      platform: 'Linux'
+      config: 'Stub-Sanitize'
       imageName: 'ubuntu-latest'
       buildArgs: '-Tls stub -DisableLogs -SanitizeAddress'
       testCmd: 'bash ./.azure/test_linux.sh AppData/WithSendArgs2.SendLarge/0'
     linux-stub-spin:
-      platform: 'Linux-Stub-Spin'
+      platform: 'Linux'
+      config: 'Stub-Spin'
       imageName: 'ubuntu-latest'
       buildArgs: '-Tls stub -DisableLogs -SanitizeAddress'
       testCmd: 'bash ./.azure/spin_linux.sh'
     linux-openssl:
-      platform: 'Linux-OpenSSL'
+      platform: 'Linux'
+      config: 'OpenSSL'
       imageName: 'ubuntu-latest'
       buildArgs: '-Tls openssl -DisableLogs'
       testCmd: 'bash ./.azure/test_linux.sh ''*'''
     windows-x64-stub:
-      platform: 'Windows-x64-Stub'
+      platform: 'Windows'
+      config: 'x64-Stub'
       imageName: 'windows-latest'
       buildArgs: '-Tls stub'
       testCmd: '.\.azure\test_windows.cmd -*Unreachable/0'
     windows-x64-stub-spin:
-      platform: 'Windows-x64-Stub-Spin'
+      platform: 'Windows'
+      config: 'x64-Stub-Spin'
       imageName: 'windows-latest'
       buildArgs: '-Tls stub'
       testCmd: '.\.azure\spin_windows.cmd'
     windows-x64-mitls:
-      platform: 'Windows-x64-miTLS'
+      platform: 'Windows'
+      config: 'x64-miTLS'
       imageName: 'windows-latest'
       buildArgs: '-Tls mitls'
       testCmd: '.\.azure\test_windows.cmd -*Unreachable/0'
     windows-x64-schannel:
-      platform: 'Windows-x64-Schannel'
+      platform: 'Windows'
+      config: 'x64-Schannel'
       imageName: 'windows-latest'
       buildArgs: '-Tls schannel'
       testCmd: '.\.azure\test_windows.cmd ParameterValidation.*'
@@ -69,10 +77,24 @@ steps:
     script: '$(testCmd)'
 
 - task: PublishBuildArtifacts@1
-  displayName: 'Publish Artifacts'
+  displayName: 'Publish Binaries'
   inputs:
-    PathtoPublish: 'artifacts'
-    ArtifactName: '$(platform)-Artifacts'
+    PathtoPublish: 'artifacts/bin/$(platform)'
+    ArtifactName: 'binaries/$(config)'
+    publishLocation: 'Container'
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Logs'
+  inputs:
+    PathtoPublish: 'artifacts/logs'
+    ArtifactName: 'logs/$(config)'
+    publishLocation: 'Container'
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Dumps'
+  inputs:
+    PathtoPublish: 'artifacts/dumps'
+    ArtifactName: 'dumps/$(config)'
     publishLocation: 'Container'
 
 - task: PublishTestResults@2
