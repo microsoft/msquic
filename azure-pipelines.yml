@@ -59,8 +59,8 @@ steps:
   displayName: 'Build'
   inputs:
     pwsh: true
-    targetType: inline
-    script: './build.ps1 -InstallDependencies $(buildArgs)'
+    filePath: './build.ps1'
+    arguments: '-InstallDependencies $(buildArgs)'
 
 - task: CmdLine@2
   displayName: 'Run Tests'
