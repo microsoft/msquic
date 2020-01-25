@@ -7,49 +7,49 @@ trigger:
 strategy:
   matrix:
     linux-stub:
-      platform: 'Linux'
+      platform: 'linux'
       config: 'Stub'
       imageName: 'ubuntu-latest'
       buildArgs: '-Tls stub -DisableLogs'
       testCmd: 'bash ./.azure/test_linux.sh ''*'''
     linux-stub-sanitize:
-      platform: 'Linux'
+      platform: 'linux'
       config: 'Stub-Sanitize'
       imageName: 'ubuntu-latest'
       buildArgs: '-Tls stub -DisableLogs -SanitizeAddress'
       testCmd: 'bash ./.azure/test_linux.sh AppData/WithSendArgs2.SendLarge/0'
     linux-stub-spin:
-      platform: 'Linux'
+      platform: 'linux'
       config: 'Stub-Spin'
       imageName: 'ubuntu-latest'
       buildArgs: '-Tls stub -DisableLogs -SanitizeAddress'
       testCmd: 'bash ./.azure/spin_linux.sh'
     linux-openssl:
-      platform: 'Linux'
+      platform: 'linux'
       config: 'OpenSSL'
       imageName: 'ubuntu-latest'
       buildArgs: '-Tls openssl -DisableLogs'
       testCmd: 'bash ./.azure/test_linux.sh ''*'''
     windows-x64-stub:
-      platform: 'Windows'
+      platform: 'windows'
       config: 'x64-Stub'
       imageName: 'windows-latest'
       buildArgs: '-Tls stub'
       testCmd: '.\.azure\test_windows.cmd -*Unreachable/0'
     windows-x64-stub-spin:
-      platform: 'Windows'
+      platform: 'windows'
       config: 'x64-Stub-Spin'
       imageName: 'windows-latest'
       buildArgs: '-Tls stub'
       testCmd: '.\.azure\spin_windows.cmd'
     windows-x64-mitls:
-      platform: 'Windows'
+      platform: 'windows'
       config: 'x64-miTLS'
       imageName: 'windows-latest'
       buildArgs: '-Tls mitls'
       testCmd: '.\.azure\test_windows.cmd -*Unreachable/0'
     windows-x64-schannel:
-      platform: 'Windows'
+      platform: 'windows'
       config: 'x64-Schannel'
       imageName: 'windows-latest'
       buildArgs: '-Tls schannel'
@@ -80,21 +80,21 @@ steps:
   displayName: 'Publish Binaries'
   inputs:
     PathtoPublish: 'artifacts/$(platform)/bin'
-    ArtifactName: 'binaries/$(config)'
+    ArtifactName: 'binaries\$(config)'
     publishLocation: 'Container'
 
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Logs'
   inputs:
     PathtoPublish: 'artifacts/logs'
-    ArtifactName: 'logs/$(config)'
+    ArtifactName: 'logs\$(config)'
     publishLocation: 'Container'
 
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Dumps'
   inputs:
     PathtoPublish: 'artifacts/dumps'
-    ArtifactName: 'dumps/$(config)'
+    ArtifactName: 'dumps\$(config)'
     publishLocation: 'Container'
 
 - task: PublishTestResults@2
