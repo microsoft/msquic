@@ -1,4 +1,4 @@
-# Continuous integration for Linux and Windows.
+# Continuous integration for cross-platform build and testing.
 # https://aka.ms/yaml
 
 trigger:
@@ -6,24 +6,24 @@ trigger:
 
 strategy:
   matrix:
-    linux-stub:
+    ubuntu-stub:
       platform: 'ubuntu'
       config: 'stub'
       imageName: 'ubuntu-latest'
       buildArgs: '-Tls stub -DisableLogs'
       testCmd: 'bash ./.azure/test_linux.sh ''*'''
-    linux-stub-sanitize:
+    ubuntu-stub-sanitize:
       platform: 'ubuntu'
       config: 'stub-sanitize'
       imageName: 'ubuntu-latest'
       buildArgs: '-Tls stub -DisableLogs -SanitizeAddress'
       testCmd: 'bash ./.azure/test_linux.sh AppData/WithSendArgs2.SendLarge/0'
-    linux-stub-spin:
+    ubuntu-stub-spin:
       platform: 'ubuntu'
       config: 'stub-spin'
       buildArgs: '-Tls stub -DisableLogs -SanitizeAddress'
       testCmd: 'bash ./.azure/spin_linux.sh'
-    linux-openssl:
+    ubuntu-openssl:
       platform: 'ubuntu'
       config: 'openssl'
       buildArgs: '-Tls openssl -DisableLogs'
@@ -67,6 +67,7 @@ steps:
 - task: CmdLine@2
   displayName: 'Run Tests'
   timeoutInMinutes: 10
+  continueOnError: true
   inputs:
     script: '$(testCmd)'
 
