@@ -174,6 +174,21 @@ function Log($msg) {
     Write-Host "[$(Get-Date)] $msg"
 }
 
+# Installs procdump if not already. Windows specific.
+function Install-ProcDump {
+    if (!(Test-Path bld)) { mkdir bld | Out-Null }
+    if (!(Test-Path bld\windows)) { mkdir bld\windows | Out-Null }
+    if (!(Test-Path .\bld\windows\procdump)) {
+        Log "Installing procdump..."
+        # Download the zip file.
+        Invoke-WebRequest -Uri https://download.sysinternals.com/files/Procdump.zip -OutFile bld\windows\procdump.zip
+        # Extract the zip file.
+        Expand-Archive -Path bld\windows\procdump.zip .\bld\windows\procdump
+        # Delete the zip file.
+        Remove-Item -Path bld\windows\procdump.zip
+    }
+}
+
 # Starts msquictext with the given arguments, asynchronously.
 function Start-MsQuicTest([String]$Arguments, [String]$OutputDir) {
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
@@ -235,7 +250,7 @@ function StartTestCase([String]$Name) {
     }
 
     $ResultsPath = Join-Path $LocalLogDir "results.xml"
-    $Arguments = "--gtest_break_on_failure --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)"
+    $Arguments = "--gtest_break_on_failure --gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)"
 
     # Start the test process and return some information about the test case.
     [pscustomobject]@{
@@ -292,7 +307,6 @@ function RunTestCase([String]$Name) {
 
 # Make sure the executable is present for the current configuration.
 if (!(Test-Path $MsQuicTest)) { Write-Error "$($MsQuicTest) does not exist!" }
-if (!(Test-Path $ProcDumpExe)) { Write-Error "$($ProcDumpExe) does not exist!" }
 
 # Query all the test cases.
 $TestCases = GetTestCases
@@ -313,6 +327,11 @@ if ($ListTestCases) {
     # List the tst cases.
     $TestCases
     exit
+}
+
+if ($IsWindows) {
+    # Make sure procdump is installed.
+    Install-ProcDump
 }
 
 # Set up the base directory.
