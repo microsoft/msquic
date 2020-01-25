@@ -68,15 +68,16 @@ steps:
   inputs:
     script: '$(testCmd)'
 
-- task: PublishTestResults@2
-  displayName: 'Publish Test Results'
-  inputs:
-    testResultsFormat: 'JUnit'
-    testResultsFiles: '**/*test-results.xml'
-
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifacts'
   inputs:
     PathtoPublish: 'artifacts'
     ArtifactName: '$(platform)-Artifacts'
     publishLocation: 'Container'
+
+- task: PublishTestResults@2
+  displayName: 'Publish Test Results'
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: '**/*test-results.xml'
+    failTaskOnFailedTests: true
