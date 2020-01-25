@@ -208,6 +208,9 @@ function CMake-Build {
 if ($InstallDependencies) {
     Log "Installing dependencies..."
     Install-Dependencies
+} elseif ($InstallAzureDependencies) {
+    Log "Installing Azure Pipelines dependencies..."
+    Install-Azure-Dependencies
 }
 
 # Generate the build files.
