@@ -201,11 +201,18 @@ function Start-MsQuicTest([String]$Arguments, [String]$OutputDir) {
             $pinfo.Arguments = "-ma -e -b -l -accepteula -x $($OutputDir) $($MsQuicTest) $($Arguments)"
         }
     } else {
-        $pinfo.FileName = $MsQuicTest
-        $pinfo.Arguments = $Arguments
-        $pinfo.WorkingDirectory = $OutputDir
+        if ($Debugger) {
+            $pinfo.FileName = "gdb"
+            $pinfo.Arguments = "--args $MsQuicTest $Arguments"
+        } else {
+            $pinfo.FileName = $MsQuicTest
+            $pinfo.Arguments = $Arguments
+            $pinfo.WorkingDirectory = $OutputDir
+        }
     }
-    $pinfo.RedirectStandardOutput = $true
+    if (!$Debugger) {
+        $pinfo.RedirectStandardOutput = $true
+    }
     $pinfo.UseShellExecute = $false
     $p = New-Object System.Diagnostics.Process
     $p.StartInfo = $pinfo
@@ -258,15 +265,16 @@ function StartTestCase([String]$Name) {
 
 # Waits for and finishes up the test case.
 function FinishTestCase($TestCase) {
-
-    $stdout = $TestCase.Process.StandardOutput.ReadToEnd()
+    $stdout = $null
+    if (!$Debugger) {
+        $stdout = $TestCase.Process.StandardOutput.ReadToEnd()
+    }
     $TestCase.Process.WaitForExit()
 
     # Add the current test case results.
     Add-XmlResults $TestCase
 
-    $Success = $stdout.Contains("[  PASSED  ] 1 test")
-    if ($Success -or $Debugger) {
+    if ($Debugger -or $stdout.Contains("[  PASSED  ] 1 test")) {
         if ($LogProfile -ne "None") {
             # Don't keep logs on success.
             .\log.ps1 -Cancel -InstanceName $TestCase.InstanceName | Out-Null
@@ -329,6 +337,12 @@ if ($IsWindows) {
 # Set up the base directory.
 if (!(Test-Path $LogBaseDir)) { mkdir $LogBaseDir | Out-Null }
 mkdir $LogDir | Out-Null
+
+# Log collection doesn't work for parallel right now.
+if ($Debugger -and $Parallel) {
+    Log "Warning: Disabling parallel for debugger runs!"
+    $Parallel = $false
+}
 
 try {
     if ($Parallel -eq $false) {

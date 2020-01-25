@@ -128,7 +128,7 @@ function CMake-Generate {
     } else {
         $Arguments += " 'Linux Makefiles'"
     }
-    switch ($Config) {
+    switch ($Tls) {
         "schannel" { $Arguments += " -DQUIC_TLS=schannel" }
         "openssl"  { $Arguments += " -DQUIC_TLS=openssl" }
         "stub"     { $Arguments += " -DQUIC_TLS=stub" }
