@@ -40,9 +40,17 @@ QuicFuzzerRecvMsg(
 
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 
+//
+// This is a (currently) undocumented socket IOCTL. It allows for creating
+// per-processor sockets for the same UDP port. This is used to get better
+// parallelization to improve performance.
+//
 #define SIO_SET_PORT_SHARING_PER_PROC_SOCKET  _WSAIOW(IOC_VENDOR,21)
 
-#if 1 // Optional
+//
+// Not yet available in the SDK. When available this code can be removed.
+//
+#if 1
 #define UDP_SEND_MSG_SIZE           2
 #define UDP_RECV_MAX_COALESCED_SIZE 3
 #define UDP_COALESCED_INFO          3

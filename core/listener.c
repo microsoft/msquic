@@ -385,57 +385,42 @@ QUIC_CONNECTION_ACCEPT_RESULT
 QuicListenerAcceptConnection(
     _In_ QUIC_LISTENER* Listener,
     _In_ QUIC_CONNECTION* Connection,
-    _In_ const QUIC_NEW_CONNECTION_INFO* Info
+    _In_ const QUIC_NEW_CONNECTION_INFO* Info,
+    _Out_ QUIC_SEC_CONFIG** SecConfig
     )
 {
-    QUIC_STATUS Status;
-    QUIC_SEC_CONFIG* SecConfig = NULL;
-
     QUIC_CONNECTION_ACCEPT_RESULT AcceptResult =
         QuicRegistrationAcceptConnection(
             Listener->Session->Registration,
             Connection);
     if (AcceptResult != QUIC_CONNECTION_ACCEPT) {
-        QuicRundownRelease(&Listener->Rundown);
-        Listener->TotalRejectedConnections++;
         goto Error;
     }
 
-    AcceptResult = QUIC_CONNECTION_REJECT_APP;
-    Status =
+    QUIC_STATUS Status =
         QuicListenerClaimConnection(
             Listener,
             Connection,
             Info,
-            &SecConfig);
-    QuicRundownRelease(&Listener->Rundown);
-
+            SecConfig);
     if (Status != QUIC_STATUS_PENDING) {
         if (QUIC_FAILED(Status)) {
-            QUIC_TEL_ASSERTMSG(SecConfig == NULL, "App failed AND provided a sec config?");
-            Listener->TotalRejectedConnections++;
+            QUIC_TEL_ASSERTMSG(*SecConfig == NULL, "App failed AND provided a sec config?");
             goto Error;
-        } else if (SecConfig == NULL) {
+        } else if (*SecConfig == NULL) {
             QuicTraceLogConnVerbose(NoSecurityConfigAvailable, Connection, "No security config was provided by the app.");
-            Listener->TotalRejectedConnections++;
-            goto Error;
-        }
-    }
-
-    if (Status != QUIC_STATUS_PENDING) {
-        Status = QuicConnHandshakeConfigure(Connection, SecConfig);
-        if (QUIC_FAILED(Status)) {
-            Listener->TotalRejectedConnections++;
             goto Error;
         }
     }
 
     Listener->TotalAcceptedConnections++;
-    AcceptResult = QUIC_CONNECTION_ACCEPT;
+    return QUIC_CONNECTION_ACCEPT;
 
 Error:
 
-    return AcceptResult;
+    *SecConfig = NULL;
+    Listener->TotalRejectedConnections++;
+    return QUIC_CONNECTION_REJECT_APP;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -194,10 +194,11 @@ struct DrillSender {
         // Copy test packet into SendBuffer.
         memcpy(SendBuffer->Buffer, PacketBuffer->data(), DatagramLength);
 
-        QuicDataPathBindingSendTo(
-            Binding,
-            &ServerAddress,
-            SendContext);
+        Status =
+            QuicDataPathBindingSendTo(
+                Binding,
+                &ServerAddress,
+                SendContext);
 
         return Status;
     }
@@ -309,7 +310,9 @@ QuicDrillInitialPacketFailureTest(
         // N.B. Could fail if the server has other packets sent to it accidentally.
         //
         if (DroppedPacketsAfter - DroppedPacketsBefore != 1) {
-            TEST_FAILURE("DroppedPacketsAfter - DroppedPacketsBefore not equal to 1");
+            TEST_FAILURE(
+                "DroppedPacketsAfter - DroppedPacketsBefore (%d) not equal to 1",
+                DroppedPacketsAfter - DroppedPacketsBefore);
             return false;
         }
     }
