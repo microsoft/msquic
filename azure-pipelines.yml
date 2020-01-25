@@ -60,7 +60,7 @@ steps:
   inputs:
     pwsh: true
     filePath: './build.ps1'
-    arguments: '-InstallDependencies $(buildArgs)'
+    arguments: '-InstallAzureDependencies $(buildArgs)'
 
 - task: CmdLine@2
   displayName: 'Run Tests'

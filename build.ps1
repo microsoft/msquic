@@ -4,7 +4,10 @@
 This script provides helpers for building msquic.
 
 .PARAMETER InstallDependencies
-    Installs any necessary build dependencies.
+    Installs any necessary dependencies.
+
+.PARAMETER InstallAzureDependencies
+    Installs any necessary Azure Pipelines dependencies.
 
 .PARAMETER Config
     The debug or release build configuration to use.
@@ -41,6 +44,9 @@ This script provides helpers for building msquic.
 param (
     [Parameter(Mandatory = $false)]
     [switch]$InstallDependencies = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$InstallAzureDependencies = $false,
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("Debug", "Release")]
@@ -97,8 +103,23 @@ function Log($msg) {
     Write-Host "[$(Get-Date)] $msg"
 }
 
-# Installs the dependencies.
-function Install-Dependencies {
+# Installs procdump if not already. Windows specific.
+function Install-ProcDump {
+    if (!(Test-Path bld)) { mkdir bld | Out-Null }
+    if (!(Test-Path bld\windows)) { mkdir bld\windows | Out-Null }
+    if (!(Test-Path .\bld\windows\procdump)) {
+        Log "Installing procdump..."
+        # Download the zip file.
+        Invoke-WebRequest -Uri https://download.sysinternals.com/files/Procdump.zip -OutFile bld\windows\procdump.zip
+        # Extract the zip file.
+        Expand-Archive -Path bld\windows\procdump.zip .\bld\windows\procdump
+        # Delete the zip file.
+        Remove-Item -Path bld\windows\procdump.zip
+    }
+}
+
+# Installs just the Azure Pipelines dependencies.
+function Install-Azure-Dependencies {
     if ($IsWindows) {
         # Enable SChannel TLS 1.3 (client and server).
         $TlsServerKeyPath = "HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server"
@@ -107,12 +128,23 @@ function Install-Dependencies {
         $TlsClientKeyPath = "HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client"
         reg.exe add $TlsClientKeyPath /v DisabledByDefault /t REG_DWORD /d 1 /f | Out-Null
         reg.exe add $TlsClientKeyPath /v Enabled /t REG_DWORD /d 1 /f | Out-Null
+        # Make sure procdump is installed
+        Install-ProcDump
     } else {
-        sudo apt-get install cmake
-        sudo apt-get install build-essentials
         sudo apt-get install liblttng-ust-dev
         sudo apt-get install lttng-tools
     }
+}
+
+# Installs all the dependencies.
+function Install-Dependencies {
+    if ($IsWindows) {
+        # TODO - Anything else?
+    } else {
+        sudo apt-get install cmake
+        sudo apt-get install build-essentials
+    }
+    Install-Azure-Dependencies
 }
 
 # Executes msquictext with the given arguments.
