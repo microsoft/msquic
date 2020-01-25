@@ -100,7 +100,13 @@ function Log($msg) {
 # Installs the dependencies.
 function Install-Dependencies {
     if ($IsWindows) {
-
+        # Enable SChannel TLS 1.3 (client and server).
+        $TlsServerKeyPath = "HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server"
+        reg.exe add $TlsServerKeyPath /v DisabledByDefault /t REG_DWORD /d 1 /f | Out-Null
+        reg.exe add $TlsServerKeyPath /v Enabled /t REG_DWORD /d 1 /f | Out-Null
+        $TlsClientKeyPath = "HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client"
+        reg.exe add $TlsClientKeyPath /v DisabledByDefault /t REG_DWORD /d 1 /f | Out-Null
+        reg.exe add $TlsClientKeyPath /v Enabled /t REG_DWORD /d 1 /f | Out-Null
     } else {
         sudo apt-get install cmake
         sudo apt-get install build-essentials
@@ -128,7 +134,7 @@ function CMake-Generate {
     } else {
         $Arguments += " 'Linux Makefiles'"
     }
-    switch ($Config) {
+    switch ($Tls) {
         "schannel" { $Arguments += " -DQUIC_TLS=schannel" }
         "openssl"  { $Arguments += " -DQUIC_TLS=openssl" }
         "stub"     { $Arguments += " -DQUIC_TLS=stub" }
@@ -170,7 +176,6 @@ function CMake-Build {
 if ($InstallDependencies) {
     Log "Installing dependencies..."
     Install-Dependencies
-    exit
 }
 
 # Generate the build files.
