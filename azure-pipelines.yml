@@ -79,7 +79,7 @@ steps:
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Binaries'
   inputs:
-    PathtoPublish: 'artifacts/bin/$(platform)'
+    PathtoPublish: 'artifacts/$(platform)/bin'
     ArtifactName: 'binaries/$(config)'
     publishLocation: 'Container'
 
