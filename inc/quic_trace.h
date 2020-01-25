@@ -463,6 +463,13 @@ QuicEtwCallback(
 #define QuicTraceLogConnInfo(...)
 #define QuicTraceLogConnVerbose(...)
 
+#define QuicTraceLogStreamVerboseEnabled() FALSE
+
+#define QuicTraceLogStreamError(...)
+#define QuicTraceLogStreamWarning(...)
+#define QuicTraceLogStreamInfo(...)
+#define QuicTraceLogStreamVerbose(...)
+
 #endif // QUIC_LOGS_STUB
 
 #ifdef QUIC_LOGS_WPP
