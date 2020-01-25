@@ -122,7 +122,7 @@ QuicTestConnectAndPing(
     _In_ bool UseSendBuffer,
     _In_ bool UnidirectionalStreams,
     _In_ bool ServerInitiatedStreams,
-    _In_ bool FifoPriority
+    _In_ bool FifoScheduling
     );
 
 //
@@ -367,7 +367,7 @@ typedef struct {
     UINT8 UseSendBuffer;
     UINT8 UnidirectionalStreams;
     UINT8 ServerInitiatedStreams;
-    UINT8 FifoPriority;
+    UINT8 FifoScheduling;
 } QUIC_RUN_CONNECT_AND_PING_PARAMS;
 
 #pragma pack(pop)

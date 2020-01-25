@@ -4448,23 +4448,23 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_PRIORITY_SCHEME: {
+    case QUIC_PARAM_CONN_STREAM_SCHED_SCHEME: {
 
-        if (BufferLength != sizeof(QUIC_CONNECTION_PRIORTY_SCHEME)) {
+        if (BufferLength != sizeof(QUIC_STREAM_SCHEDULING_SCHEME)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        QUIC_CONNECTION_PRIORTY_SCHEME Scheme =
-            *(QUIC_CONNECTION_PRIORTY_SCHEME*)Buffer;
+        QUIC_STREAM_SCHEDULING_SCHEME Scheme =
+            *(QUIC_STREAM_SCHEDULING_SCHEME*)Buffer;
 
-        if (Scheme > QUIC_CONNECTION_PRIORITY_ROUND_ROBIN) {
+        if (Scheme >= QUIC_STREAM_SCHEDULING_COUNT) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
         Connection->State.UsePriorityRoundRobin =
-            Scheme == QUIC_CONNECTION_PRIORITY_ROUND_ROBIN;
+            Scheme == QUIC_STREAM_SCHEDULING_ROUND_ROBIN;
 
         QuicTraceLogConnInfo(UpdatePriorityScheme, Connection, "Updated Priotity Scheme = %u",
             Scheme);
@@ -4987,10 +4987,10 @@ QuicConnParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_PRIORITY_SCHEME:
+    case QUIC_PARAM_CONN_STREAM_SCHED_SCHEME:
 
-        if (*BufferLength < sizeof(QUIC_CONNECTION_PRIORTY_SCHEME)) {
-            *BufferLength = sizeof(QUIC_CONNECTION_PRIORTY_SCHEME);
+        if (*BufferLength < sizeof(QUIC_STREAM_SCHEDULING_SCHEME)) {
+            *BufferLength = sizeof(QUIC_STREAM_SCHEDULING_SCHEME);
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             break;
         }
@@ -5000,10 +5000,10 @@ QuicConnParamGet(
             break;
         }
 
-        *BufferLength = sizeof(QUIC_CONNECTION_PRIORTY_SCHEME);
-        *(QUIC_CONNECTION_PRIORTY_SCHEME*)Buffer =
+        *BufferLength = sizeof(QUIC_STREAM_SCHEDULING_SCHEME);
+        *(QUIC_STREAM_SCHEDULING_SCHEME*)Buffer =
             Connection->State.UsePriorityRoundRobin ?
-                QUIC_CONNECTION_PRIORITY_ROUND_ROBIN : QUIC_CONNECTION_PRIORITY_FIFO;
+                QUIC_STREAM_SCHEDULING_ROUND_ROBIN : QUIC_STREAM_SCHEDULING_FIFO;
 
         Status = QUIC_STATUS_SUCCESS;
         break;

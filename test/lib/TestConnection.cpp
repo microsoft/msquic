@@ -609,20 +609,20 @@ TestConnection::SetShareUdpBinding(
             &bValue);
 }
 
-QUIC_CONNECTION_PRIORTY_SCHEME
+QUIC_STREAM_SCHEDULING_SCHEME
 TestConnection::GetPriorityScheme()
 {
-    QUIC_CONNECTION_PRIORTY_SCHEME value;
+    QUIC_STREAM_SCHEDULING_SCHEME value;
     uint32_t valueSize = sizeof(value);
     QUIC_STATUS Status =
         MsQuic->GetParam(
             QuicConnection,
             QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_PRIORITY_SCHEME,
+            QUIC_PARAM_CONN_STREAM_SCHED_SCHEME,
             &valueSize,
             &value);
     if (QUIC_FAILED(Status)) {
-        value = QUIC_CONNECTION_PRIORITY_FIFO;
+        value = QUIC_STREAM_SCHEDULING_FIFO;
         TEST_FAILURE("MsQuic->GetParam(CONN_PRIORITY_SCHEME) failed, 0x%x.", Status);
     }
     return value;
@@ -630,14 +630,14 @@ TestConnection::GetPriorityScheme()
 
 QUIC_STATUS
 TestConnection::SetPriorityScheme(
-    QUIC_CONNECTION_PRIORTY_SCHEME value
+    QUIC_STREAM_SCHEDULING_SCHEME value
     )
 {
     return
         MsQuic->SetParam(
             QuicConnection,
             QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_PRIORITY_SCHEME,
+            QUIC_PARAM_CONN_STREAM_SCHED_SCHEME,
             sizeof(value),
             &value);
 }

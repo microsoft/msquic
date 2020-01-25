@@ -126,12 +126,12 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ShareBinding : 1;
 
         //
-        // Indicate the TestTransportParameter variable has been set by the app.
+        // Indicates the TestTransportParameter variable has been set by the app.
         //
         BOOLEAN TestTransportParameterSet : 1;
 
         //
-        // Indicate the connection is using the round robin priority scheme.
+        // Indicates the connection is using the round robin priority scheme.
         //
         BOOLEAN UsePriorityRoundRobin : 1;
 

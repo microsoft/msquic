@@ -332,7 +332,7 @@ TEST_P(WithSendArgs1, Send) {
         GetParam().UseSendBuffer,
         GetParam().UnidirectionalStreams,
         GetParam().ServerInitiatedStreams,
-        false); // FifoPriority
+        false); // FifoScheduling
 }
 
 #ifndef QUIC_DISABLE_0RTT
@@ -356,7 +356,7 @@ TEST_P(WithSendArgs2, SendLarge) {
         GetParam().UseSendBuffer,
         false,  // UnidirectionalStreams
         false,  // ServerInitiatedStreams
-        true);  // FifoPriority
+        true);  // FifoScheduling
 }
 
 TEST_P(WithSendArgs3, SendIntermittently) {
@@ -375,7 +375,7 @@ TEST_P(WithSendArgs3, SendIntermittently) {
         GetParam().UseSendBuffer,
         false,  // UnidirectionalStreams
         false,  // ServerInitiatedStreams
-        false); // FifoPriority
+        false); // FifoScheduling
 }
 
 TEST_P(WithBool, IdleTimeout) {
