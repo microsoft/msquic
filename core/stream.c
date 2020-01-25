@@ -247,8 +247,7 @@ QuicStreamClose(
         // connection.
         //
 
-        QuicTraceLogWarning("[strm][%p][%llu] Closing handle without fully shutting down.",
-            Stream, Stream->ID);
+        QuicTraceLogStreamWarning(CloseWithoutShutdown, Stream, "Closing handle without fully shutting down.");
 
         //
         // Abort any pending operations.
@@ -296,8 +295,9 @@ QuicStreamIndicateEvent(
                 Event);
         uint64_t EndTime = QuicTimeUs64();
         if (EndTime - StartTime > QUIC_MAX_CALLBACK_TIME_WARNING) {
-            QuicTraceLogWarning("strm][%p][%llu] App took excessive time (%llu us) in callback.",
-                Stream, Stream->ID, (EndTime - StartTime));
+            QuicTraceLogStreamWarning(AppTooLong, Stream,
+                "App took excessive time (%llu us) in callback.",
+                (EndTime - StartTime));
             QUIC_TEL_ASSERTMSG_ARGS(
                 EndTime - StartTime < QUIC_MAX_CALLBACK_TIME_ERROR,
                 "App extremely long time in stream callback",
@@ -307,7 +307,7 @@ QuicStreamIndicateEvent(
         }
     } else {
         Status = QUIC_STATUS_INVALID_STATE;
-        QuicTraceLogWarning("[strm][%p][%llu] Event silently discarded.", Stream, Stream->ID);
+        QuicTraceLogStreamWarning(EventSilentDiscard, Stream, "Event silently discarded.");
     }
     return Status;
 }
@@ -323,8 +323,8 @@ QuicStreamIndicateStartComplete(
     Event.Type = QUIC_STREAM_EVENT_START_COMPLETE;
     Event.START_COMPLETE.Status = Status;
     Event.START_COMPLETE.ID = Stream->ID;
-    QuicTraceLogVerbose("[strm][%p][%llu] Indicating QUIC_STREAM_EVENT_START_COMPLETE (0x%x)",
-        Stream, Stream->ID, Status);
+    QuicTraceLogStreamVerbose(IndicateStartComplete, Stream, "Indicating QUIC_STREAM_EVENT_START_COMPLETE (0x%x)",
+        Status);
     (void)QuicStreamIndicateEvent(Stream, &Event);
 }
 
@@ -339,8 +339,7 @@ QuicStreamIndicateShutdownComplete(
 
         QUIC_STREAM_EVENT Event;
         Event.Type = QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE;
-        QuicTraceLogVerbose("[strm][%p][%llu] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE",
-            Stream, Stream->ID);
+        QuicTraceLogStreamVerbose(IndicateShutdownComplete, Stream, "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE");
         (void)QuicStreamIndicateEvent(Stream, &Event);
 
         Stream->ClientCallbackHandler = NULL;

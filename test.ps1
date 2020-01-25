@@ -27,6 +27,9 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER Debugger
     Attaches the debugger to each test case run.
 
+.PARAMETER KeepLogsOnSuccess
+    Don't discard logs on success.
+
 .EXAMPLE
     test.ps1
 
@@ -75,7 +78,10 @@ param (
     [string]$NegativeFilter = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$Debugger = $false
+    [switch]$Debugger = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$KeepLogsOnSuccess = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -275,11 +281,18 @@ function FinishTestCase($TestCase) {
     Add-XmlResults $TestCase
 
     if ($Debugger -or $stdout.Contains("[  PASSED  ] 1 test")) {
-        if ($LogProfile -ne "None") {
-            # Don't keep logs on success.
-            .\log.ps1 -Cancel -InstanceName $TestCase.InstanceName | Out-Null
+        if ($KeepLogsOnSuccess) {
+            if ($LogProfile -ne "None") {
+                # Keep logs on failure.
+                .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName | Out-Null
+            }
+        } else {
+            if ($LogProfile -ne "None") {
+                # Don't keep logs on success.
+                .\log.ps1 -Cancel -InstanceName $TestCase.InstanceName | Out-Null
+            }
+            Remove-Item $TestCase.LogDir -Recurse -Force | Out-Null
         }
-        Remove-Item $TestCase.LogDir -Recurse -Force | Out-Null
     } else {
         if ($LogProfile -ne "None") {
             # Keep logs on failure.
@@ -387,7 +400,7 @@ try {
     Log "$($TestCount) test(s) run. $($TestsFailed) test(s) failed."
     if ($TestsFailed -ne 0) {
         Log "Logs can be found in $($LogDir)"
-    } else {
+    } elseif (!$KeepLogsOnSuccess) {
         Remove-Item $LogDir -Recurse -Force | Out-Null
     }
 }
