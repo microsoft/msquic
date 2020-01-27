@@ -1250,7 +1250,7 @@ QuicBindingDeliverPackets(
         // Only Initial (version specific) packets are processed from here on.
         //
         switch (Packet->Invariant->LONG_HDR.Version) {
-        case QUIC_VERSION_DRAFT_24:
+        case QUIC_VERSION_DRAFT_25:
         case QUIC_VERSION_MS_1:
             if (Packet->LH->Type != QUIC_INITIAL) {
                 QuicPacketLogDrop(Binding, Packet, "Non-initial packet not matched with a connection");
