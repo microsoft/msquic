@@ -502,6 +502,21 @@ QuicSendWriteFrames(
     if (Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_1_RTT ||
         Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_0_RTT) {
 
+        if (Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_1_RTT &&
+            Send->SendFlags & QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE) {
+
+            if (Builder->DatagramLength < AvailableBufferLength) {
+                Builder->Datagram->Buffer[Builder->DatagramLength++] = QUIC_FRAME_HANDSHAKE_DONE;
+                Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE;
+                Builder->MinimumDatagramLength = (uint16_t)Builder->Datagram->Length;
+                if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_HANDSHAKE_DONE, TRUE)) {
+                    return TRUE;
+                }
+            } else {
+                RanOutOfRoom = TRUE;
+            }
+        }
+
         if (Send->SendFlags & QUIC_CONN_SEND_FLAG_DATA_BLOCKED) {
 
             QUIC_DATA_BLOCKED_EX Frame = { Send->OrderedStreamBytesSent };

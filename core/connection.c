@@ -2974,6 +2974,7 @@ QuicConnRecvPayload(
             //
             case QUIC_FRAME_ACK:
             case QUIC_FRAME_ACK_1:
+            case QUIC_FRAME_HANDSHAKE_DONE:
                 QuicTraceEvent(ConnErrorStatus, Connection, FrameType, "Disallowed frame type");
                 QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
                 return FALSE;
@@ -3474,6 +3475,14 @@ QuicConnRecvPayload(
                 // parse anything else.
                 //
                 goto Done;
+            }
+            break;
+        }
+
+        case QUIC_FRAME_HANDSHAKE_DONE: {
+            if (!QuicConnIsServer(Connection) && !Connection->State.HandshakeConfirmed) {
+                QuicTraceLogConnInfo(HandshakeConfirmedFrame, Connection, "Handshake confirmed (frame).");
+                QuicCryptoHandshakeConfirmed(&Connection->Crypto);
             }
             break;
         }

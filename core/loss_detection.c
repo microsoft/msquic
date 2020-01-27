@@ -392,11 +392,11 @@ QuicLossDetectionOnPacketAcknowledged(
         EncryptLevel >= QUIC_ENCRYPT_LEVEL_INITIAL &&
         EncryptLevel < QUIC_ENCRYPT_LEVEL_COUNT);
 
-    if (!Connection->State.HandshakeConfirmed &&
+    if (!QuicConnIsServer(Connection) &&
+        !Connection->State.HandshakeConfirmed &&
         Packet->Flags.KeyType == QUIC_PACKET_KEY_1_RTT) {
-        QuicTraceLogConnInfo(HandshakeConfirmed, Connection, "Handshake confirmed.");
-        Connection->State.HandshakeConfirmed = TRUE;
-        QuicCryptoDiscardKeys(&Connection->Crypto, QUIC_PACKET_KEY_HANDSHAKE);
+        QuicTraceLogConnInfo(HandshakeConfirmedAck, Connection, "Handshake confirmed (ack).");
+        QuicCryptoHandshakeConfirmed(&Connection->Crypto);
     }
 
     QUIC_PACKET_SPACE* PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
@@ -635,6 +635,12 @@ QuicLossDetectionRetransmitFrames(
             }
             break;
         }
+
+        case QUIC_FRAME_HANDSHAKE_DONE:
+            QuicSendSetSendFlag(
+                &Connection->Send,
+                QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE);
+            break;
         }
     }
 }

@@ -284,6 +284,16 @@ QuicCryptoReset(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCryptoHandshakeConfirmed(
+    _In_ QUIC_CRYPTO* Crypto
+    )
+{
+    QuicCryptoGetConnection(Crypto)->State.HandshakeConfirmed = TRUE;
+    QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_HANDSHAKE);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicCryptoDiscardKeys(
     _In_ QUIC_CRYPTO* Crypto,
@@ -1236,6 +1246,15 @@ QuicCryptoProcessTlsCompletion(
         InterlockedExchangeAdd64(
             (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
             -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+
+        if (QuicConnIsServer(Connection)) {
+            //
+            // Handshake is confirmed on the server side as soon as it completes.
+            //
+            QuicTraceLogConnInfo(HandshakeConfirmedServer, Connection, "Handshake confirmed (server).");
+            QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE);
+            QuicCryptoHandshakeConfirmed(&Connection->Crypto);
+        }
 
         (void)QuicConnGenerateNewSourceCid(Connection, FALSE);
 
