@@ -1292,6 +1292,21 @@ QuicConnTryClose(
             QuicConnTimerCancel(Connection, TimerType);
         }
 
+        if ((Flags & QUIC_CLOSE_APPLICATION) &&
+            Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] == NULL &&
+            Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] == NULL) {
+            //
+            // Application close can only happen if we have 0/1-RTT keys.
+            // Otherwise we have to send "user_canceled" TLS error code as a
+            // connection close. Overwrite all application provided parameters.
+            //
+            Flags &= ~QUIC_CLOSE_APPLICATION;
+            ResultQuicStatus = FALSE;
+            ErrorCode = QUIC_ERROR_CRYPTO_USER_CANCELED;
+            RemoteReasonPhrase = NULL;
+            RemoteReasonPhraseLength = 0;
+        }
+
         if (ResultQuicStatus) {
             Connection->CloseStatus = (QUIC_STATUS)ErrorCode;
             Connection->CloseErrorCode = QUIC_ERROR_INTERNAL_ERROR;
@@ -2956,7 +2971,6 @@ QuicConnRecvPayload(
             case QUIC_FRAME_ACK_1:
             case QUIC_FRAME_CRYPTO:
             case QUIC_FRAME_CONNECTION_CLOSE:
-            case QUIC_FRAME_CONNECTION_CLOSE_1:
                 break;
             //
             // All other frame types are disallowed.
