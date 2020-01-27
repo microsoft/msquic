@@ -414,6 +414,12 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
         return TRUE;
     }
 
+    if (Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL) {
+        *PacketType = SEND_PACKET_SHORT_HEADER_TYPE;
+        *Key = Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT];
+        return TRUE;
+    }
+
     return FALSE;
 }
 

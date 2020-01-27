@@ -1182,6 +1182,23 @@ QuicConnTryClose(
         return;
     }
 
+    if (!ClosedRemotely) {
+
+        if ((Flags & QUIC_CLOSE_APPLICATION) &&
+            Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] == NULL &&
+            Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] == NULL) {
+            //
+            // Application close can only happen if we have 0/1-RTT keys.
+            // Otherwise we have to send "user_canceled" TLS error code as a
+            // connection close. Overwrite all application provided parameters.
+            //
+            Flags &= ~QUIC_CLOSE_APPLICATION;
+            ErrorCode = QUIC_ERROR_CRYPTO_USER_CANCELED;
+            RemoteReasonPhrase = NULL;
+            RemoteReasonPhraseLength = 0;
+        }
+    }
+
     BOOLEAN ResultQuicStatus = !!(Flags & QUIC_CLOSE_QUIC_STATUS);
 
     BOOLEAN IsFirstCloseForConnection = TRUE;
@@ -1291,21 +1308,6 @@ QuicConnTryClose(
             TimerType < QUIC_CONN_TIMER_SHUTDOWN;
             ++TimerType) {
             QuicConnTimerCancel(Connection, TimerType);
-        }
-
-        if ((Flags & QUIC_CLOSE_APPLICATION) &&
-            Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] == NULL &&
-            Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] == NULL) {
-            //
-            // Application close can only happen if we have 0/1-RTT keys.
-            // Otherwise we have to send "user_canceled" TLS error code as a
-            // connection close. Overwrite all application provided parameters.
-            //
-            Flags &= ~QUIC_CLOSE_APPLICATION;
-            ResultQuicStatus = FALSE;
-            ErrorCode = QUIC_ERROR_CRYPTO_USER_CANCELED;
-            RemoteReasonPhrase = NULL;
-            RemoteReasonPhraseLength = 0;
         }
 
         if (ResultQuicStatus) {

@@ -1475,7 +1475,7 @@ QuicTestConnectServerRejected(
             }
 
             TEST_FALSE(Client.GetIsConnected());
-            TEST_TRUE(Client.GetPeerClosed());
+            TEST_TRUE(Client.GetTransportClosed());
         }
     }
 }
