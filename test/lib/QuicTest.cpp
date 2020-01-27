@@ -1464,7 +1464,7 @@ QuicTestConnectServerRejected(
             TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
             #endif
 
-            Client.SetExpectedPeerCloseErrorCode(QUIC_TEST_SPECIAL_ERROR);
+            Client.SetExpectedTransportCloseStatus(QUIC_STATUS_USER_CANCELED);
             TEST_QUIC_SUCCEEDED(
                 Client.Start(
                     QuicAddrFamily,

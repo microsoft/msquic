@@ -37,6 +37,10 @@ Environment:
 #define ERROR_QUIC_VER_NEG_FAILURE      _HRESULT_TYPEDEF_(0x80410001L)
 #endif
 
+#ifndef ERROR_QUIC_USER_CANCELED
+#define ERROR_QUIC_USER_CANCELED        _HRESULT_TYPEDEF_(0x80410002L)
+#endif
+
 #define QUIC_API                        WINAPI
 #define QUIC_MAIN_EXPORT                __cdecl
 #define QUIC_STATUS                     HRESULT
@@ -63,6 +67,7 @@ Environment:
 #define QUIC_STATUS_PROTOCOL_ERROR      HRESULT_FROM_WIN32(ERROR_CONNECTION_INVALID)
 #define QUIC_STATUS_VER_NEG_ERROR       ERROR_QUIC_VER_NEG_FAILURE
 #define QUIC_STATUS_TLS_ERROR           HRESULT_FROM_WIN32(WSA_SECURE_HOST_NOT_FOUND)
+#define QUIC_STATUS_USER_CANCELED       ERROR_QUIC_USER_CANCELED
 
 //
 // Swaps byte orders between host and network endianness.

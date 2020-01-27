@@ -1143,10 +1143,11 @@ QuicErrorCodeToStatus(
     )
 {
     switch (ErrorCode) {
-    case QUIC_ERROR_NO_ERROR:           return QUIC_STATUS_SUCCESS;
-    case QUIC_ERROR_SERVER_BUSY:        return QUIC_STATUS_SERVER_BUSY;
-    case QUIC_ERROR_PROTOCOL_VIOLATION: return QUIC_STATUS_PROTOCOL_ERROR;
-    default:                            return QUIC_STATUS_INTERNAL_ERROR;
+    case QUIC_ERROR_NO_ERROR:               return QUIC_STATUS_SUCCESS;
+    case QUIC_ERROR_SERVER_BUSY:            return QUIC_STATUS_SERVER_BUSY;
+    case QUIC_ERROR_PROTOCOL_VIOLATION:     return QUIC_STATUS_PROTOCOL_ERROR;
+    case QUIC_ERROR_CRYPTO_USER_CANCELED:   return QUIC_STATUS_USER_CANCELED;
+    default:                                return QUIC_STATUS_INTERNAL_ERROR;
     }
 }
 

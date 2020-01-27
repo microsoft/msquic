@@ -400,7 +400,7 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
         }
     }
 
-    if (SendFlags & (QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE | QUIC_CONN_SEND_FLAG_PING)) {
+    if (SendFlags & (QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_PING)) {
         //
         // CLOSE or PING is ready to be sent. This is always sent with the
         // current write key.
