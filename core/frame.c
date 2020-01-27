@@ -1511,6 +1511,13 @@ QuicFrameLog(
         }
         break;
     }
+
+    case QUIC_FRAME_HANDSHAKE_DONE: {
+        QuicTraceLogVerbose(
+            "[%c][%cX][%llu]   HANDSHAKE_DONE",
+            PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
+        break;
+    }
     }
 
     return TRUE;
