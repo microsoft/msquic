@@ -91,7 +91,7 @@ if (!$IsWindows) {
 }
 
 # Path for the procdump executable.
-$ProcDumpExe = $CurrentDir + "\bld\windows\procdump\procdump.exe"
+$ProcDumpExe = $CurrentDir + "\bld\windows\procdump\procdump64.exe"
 
 # Folder for log files.
 $LogBaseDir = Join-Path (Join-Path $CurrentDir "artifacts") "logs"
@@ -250,7 +250,7 @@ function StartTestCase([String]$Name) {
     }
 
     $ResultsPath = Join-Path $LocalLogDir "results.xml"
-    $Arguments = "--gtest_break_on_failure --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)"
+    $Arguments = "--gtest_break_on_failure --gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)"
 
     # Start the test process and return some information about the test case.
     [pscustomobject]@{
