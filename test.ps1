@@ -288,8 +288,8 @@ function FinishTestCase($TestCase) {
 
     if ($Debugger -or $stdout.Contains("[  PASSED  ] 1 test")) {
         if ($KeepLogsOnSuccess) {
+            # Keep logs.
             if ($LogProfile -ne "None") {
-                # Keep logs on failure.
                 if ($ConvertLogs) {
                     .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName -ConvertToText | Out-Null
                 } else {
