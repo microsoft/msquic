@@ -114,21 +114,12 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicPacketBuilderPrepare(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
-    _In_ uint8_t NewPacketType,
     _In_ QUIC_PACKET_KEY_TYPE NewPacketKeyType,
     _In_ BOOLEAN IsTailLossProbe,
     _In_ BOOLEAN IsPathMtuDiscovery
     )
 {
-    BOOLEAN Result = FALSE;
     QUIC_CONNECTION* Connection = Builder->Connection;
-    uint16_t DatagramSize = Builder->Path->Mtu;
-    if ((uint32_t)DatagramSize > Builder->Path->Allowance) {
-        QUIC_DBG_ASSERT(!IsPathMtuDiscovery); // PMTUD always happens after source addr validation.
-        DatagramSize = (uint16_t)Builder->Path->Allowance;
-    }
-    QUIC_DBG_ASSERT(!IsPathMtuDiscovery || !IsTailLossProbe); // Never both.
-
     if (Connection->Crypto.TlsState.WriteKeys[NewPacketKeyType] == NULL) {
         //
         // A NULL key here usually means the connection had a fatal error in
@@ -141,6 +132,16 @@ QuicPacketBuilderPrepare(
         QuicConnSilentlyAbort(Connection);
         return FALSE;
     }
+
+    BOOLEAN Result = FALSE;
+    uint8_t NewPacketType = QuicKeyTypeToPacketType(NewPacketKeyType);
+    uint16_t DatagramSize = Builder->Path->Mtu;
+    if ((uint32_t)DatagramSize > Builder->Path->Allowance) {
+        QUIC_DBG_ASSERT(!IsPathMtuDiscovery); // PMTUD always happens after source addr validation.
+        DatagramSize = (uint16_t)Builder->Path->Allowance;
+    }
+    QUIC_DBG_ASSERT(!IsPathMtuDiscovery || !IsTailLossProbe); // Never both.
+
 
     //
     // Next, make sure the current QUIC packet matches the new packet type. If
@@ -262,7 +263,7 @@ QuicPacketBuilderPrepare(
 
         Builder->Metadata->FrameCount = 0;
         Builder->Metadata->PacketNumber = Connection->Send.NextPacketNumber++;
-        Builder->Metadata->Flags.KeyType = QuicPacketTypeToKeyType(NewPacketType);
+        Builder->Metadata->Flags.KeyType = NewPacketKeyType;
         Builder->Metadata->Flags.IsRetransmittable = FALSE;
         Builder->Metadata->Flags.HasCrypto = FALSE;
         Builder->Metadata->Flags.IsPMTUD = IsPathMtuDiscovery;
@@ -345,7 +346,6 @@ BOOLEAN
 QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
     _In_ const QUIC_PACKET_BUILDER* Builder,
     _In_ uint32_t SendFlags,
-    _Out_ uint8_t* PacketType,
     _Out_ QUIC_PACKET_KEY_TYPE* PacketKeyType
     )
 {
@@ -372,7 +372,6 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
             //
             // Always allowed to send with 1-RTT.
             //
-            *PacketType = SEND_PACKET_SHORT_HEADER_TYPE;
             *PacketKeyType = QUIC_PACKET_KEY_1_RTT;
             return TRUE;
         }
@@ -386,7 +385,6 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
             // ACK frames have the highest send priority; but they only
             // determine a packet type if they can be sent as ACK-only.
             //
-            *PacketType = QuicEncryptLevelToPacketType(EncryptLevel);
             *PacketKeyType = KeyType;
             return TRUE;
         }
@@ -397,7 +395,6 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
             //
             // Crypto handshake data is ready to be sent.
             //
-            *PacketType = QuicEncryptLevelToPacketType(EncryptLevel);
             *PacketKeyType = KeyType;
             return TRUE;
         }
@@ -412,7 +409,6 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
         // this key, so the CLOSE frame should be sent at the current and
         // previous encryption level if the handshake hasn't been confirmed.
         //
-        *PacketType = QuicKeyTypeToPacketType(Connection->Crypto.TlsState.WriteKey);
         *PacketKeyType = Connection->Crypto.TlsState.WriteKey;
         return TRUE;
     }
@@ -431,12 +427,10 @@ QuicPacketBuilderPrepareForControlFrames(
 {
     QUIC_DBG_ASSERT(!(SendFlags & QUIC_CONN_SEND_FLAG_PMTUD));
 
-    uint8_t PacketType;
     QUIC_PACKET_KEY_TYPE PacketKeyType;
     if (!QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
             Builder,
             SendFlags,
-            &PacketType,
             &PacketKeyType)) {
         QuicTraceLogConnWarning(GetPacketTypeFailure, Builder->Connection, "Failed to get packet type for control frames, 0x%x",
             SendFlags);
@@ -444,7 +438,7 @@ QuicPacketBuilderPrepareForControlFrames(
         return FALSE;
     }
 
-    return QuicPacketBuilderPrepare(Builder, PacketType, PacketKeyType, IsTailLossProbe, FALSE);
+    return QuicPacketBuilderPrepare(Builder, PacketKeyType, IsTailLossProbe, FALSE);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -457,7 +451,6 @@ QuicPacketBuilderPrepareForPathMtuDiscovery(
     return
         QuicPacketBuilderPrepare(
             Builder,
-            SEND_PACKET_SHORT_HEADER_TYPE,
             QUIC_PACKET_KEY_1_RTT,
             FALSE,
             TRUE);
@@ -472,7 +465,6 @@ QuicPacketBuilderPrepareForStreamFrames(
     _In_ BOOLEAN IsTailLossProbe
     )
 {
-    uint8_t PacketType;
     QUIC_PACKET_KEY_TYPE PacketKeyType;
 
     if (Builder->Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] != NULL &&
@@ -481,16 +473,14 @@ QuicPacketBuilderPrepareForStreamFrames(
         // Application stream data can only be sent with the 0-RTT key if the
         // 1-RTT key is unavailable.
         //
-        PacketType = QUIC_0_RTT_PROTECTED;
         PacketKeyType = QUIC_PACKET_KEY_0_RTT;
 
     } else {
         QUIC_DBG_ASSERT(Builder->Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
-        PacketType = SEND_PACKET_SHORT_HEADER_TYPE;
         PacketKeyType = QUIC_PACKET_KEY_1_RTT;
     }
 
-    return QuicPacketBuilderPrepare(Builder, PacketType, PacketKeyType, IsTailLossProbe, FALSE);
+    return QuicPacketBuilderPrepare(Builder, PacketKeyType, IsTailLossProbe, FALSE);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
