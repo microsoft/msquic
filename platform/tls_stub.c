@@ -243,6 +243,8 @@ QuicStubAllocKey(
     QUIC_DBG_ASSERT(Key != NULL);
     QuicZeroMemory(Key, PacketKeySize);
     Key->Type = Type;
+    Key->PacketKey = (QUIC_KEY*)0x1;
+    Key->HeaderKey = (QUIC_HP_KEY*)0x1;
     return Key;
 }
 
