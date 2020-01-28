@@ -27,6 +27,9 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER Debugger
     Attaches the debugger to each test case run.
 
+.PARAMETER ConvertLogs
+    Convert any collected logs to text. Only works when LogProfile is set.
+
 .PARAMETER KeepLogsOnSuccess
     Don't discard logs on success.
 
@@ -81,6 +84,9 @@ param (
     [switch]$Debugger = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$ConvertLogs = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$KeepLogsOnSuccess = $false
 )
 
@@ -97,7 +103,7 @@ if (!$IsWindows) {
 }
 
 # Path for the procdump executable.
-$ProcDumpExe = $CurrentDir + "\bld\windows\procdump\procdump.exe"
+$ProcDumpExe = $CurrentDir + "\bld\windows\procdump\procdump64.exe"
 
 # Folder for log files.
 $LogBaseDir = Join-Path (Join-Path $CurrentDir "artifacts") "logs"
@@ -256,7 +262,7 @@ function StartTestCase([String]$Name) {
     }
 
     $ResultsPath = Join-Path $LocalLogDir "results.xml"
-    $Arguments = "--gtest_break_on_failure --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)"
+    $Arguments = "--gtest_break_on_failure --gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)"
 
     # Start the test process and return some information about the test case.
     [pscustomobject]@{
@@ -282,9 +288,13 @@ function FinishTestCase($TestCase) {
 
     if ($Debugger -or $stdout.Contains("[  PASSED  ] 1 test")) {
         if ($KeepLogsOnSuccess) {
+            # Keep logs.
             if ($LogProfile -ne "None") {
-                # Keep logs on failure.
-                .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName | Out-Null
+                if ($ConvertLogs) {
+                    .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName -ConvertToText | Out-Null
+                } else {
+                    .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName | Out-Null
+                }
             }
         } else {
             if ($LogProfile -ne "None") {
@@ -296,7 +306,11 @@ function FinishTestCase($TestCase) {
     } else {
         if ($LogProfile -ne "None") {
             # Keep logs on failure.
-            .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName | Out-Null
+            if ($ConvertLogs) {
+                .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName -ConvertToText | Out-Null
+            } else {
+                .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName | Out-Null
+            }
         }
 
         $stdout > (Join-Path $TestCase.LogDir "console.txt")
