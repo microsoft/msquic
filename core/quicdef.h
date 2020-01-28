@@ -365,6 +365,12 @@ QUIC_STATIC_ASSERT(
 //
 #define QUIC_INITIAL_PACKET_LENGTH              1280
 
+//
+// The lifetime of a QUIC stateless retry token encryption key.
+// This is also the interval that generates new keys.
+//
+#define QUIC_STATELESS_RETRY_KEY_LIFETIME_MS 30000
+
 /*************************************************************
                   PERSISTENT SETTINGS
 *************************************************************/

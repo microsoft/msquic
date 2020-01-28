@@ -2479,23 +2479,23 @@ QuicConnRecvHeader(
                 return FALSE;
             }
 
-            QUIC_DBG_ASSERT(Token.OrigConnIdLength <= sizeof(Token.OrigConnId));
-            QUIC_DBG_ASSERT(QuicAddrCompare(&Path->RemoteAddress, &Token.RemoteAddress));
+            QUIC_DBG_ASSERT(Token.Encrypted.OrigConnIdLength <= sizeof(Token.Encrypted.OrigConnId));
+            QUIC_DBG_ASSERT(QuicAddrCompare(&Path->RemoteAddress, &Token.Encrypted.RemoteAddress));
 
             Connection->OrigCID =
                 QUIC_ALLOC_NONPAGED(
                     sizeof(QUIC_CID) +
-                    Token.OrigConnIdLength);
+                    Token.Encrypted.OrigConnIdLength);
             if (Connection->OrigCID == NULL) {
-                QuicTraceEvent(AllocFailure, "OrigCID", sizeof(QUIC_CID) + Token.OrigConnIdLength);
+                QuicTraceEvent(AllocFailure, "OrigCID", sizeof(QUIC_CID) + Token.Encrypted.OrigConnIdLength);
                 return FALSE;
             }
 
-            Connection->OrigCID->Length = Token.OrigConnIdLength;
+            Connection->OrigCID->Length = Token.Encrypted.OrigConnIdLength;
             QuicCopyMemory(
                 Connection->OrigCID->Data,
-                Token.OrigConnId,
-                Token.OrigConnIdLength);
+                Token.Encrypted.OrigConnId,
+                Token.Encrypted.OrigConnIdLength);
 
             QuicPathSetValid(Connection, Path, QUIC_PATH_VALID_INITIAL_TOKEN);
         }

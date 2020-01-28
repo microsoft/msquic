@@ -12,9 +12,14 @@ typedef struct QUIC_STATELESS_CONTEXT QUIC_STATELESS_CONTEXT;
 // Structure that MsQuic servers use for encoding data for stateless retries.
 //
 typedef struct QUIC_RETRY_TOKEN_CONTENTS {
+    struct {
+        uint64_t Timestamp;
+    } Authenticated;
+    struct {
     QUIC_ADDR RemoteAddress;
     uint8_t OrigConnId[QUIC_MAX_CONNECTION_ID_LENGTH_V1];
     uint8_t OrigConnIdLength;
+    } Encrypted;
     uint8_t EncryptionTag[QUIC_ENCRYPTION_OVERHEAD];
 } QUIC_RETRY_TOKEN_CONTENTS;
 
@@ -429,19 +434,27 @@ QuicRetryTokenDecrypt(
     //
     QuicCopyMemory(Token, TokenBuffer, sizeof(QUIC_RETRY_TOKEN_CONTENTS));
 
+    QUIC_KEY* StatelessRetryKey;
     uint8_t Iv[QUIC_IV_LENGTH];
     QuicCopyMemory(Iv, Packet->DestCid, MSQUIC_CONNECTION_ID_LENGTH);
     QuicZeroMemory(
         Iv + MSQUIC_CONNECTION_ID_LENGTH,
         QUIC_IV_LENGTH - MSQUIC_CONNECTION_ID_LENGTH);
 
+    if (QUIC_FAILED(
+        QuicLibraryGetStatelessRetryKeyForTimestamp(
+            Token->Authenticated.Timestamp,
+            &StatelessRetryKey))) {
+        return FALSE;
+    }
+
     return
         QUIC_SUCCEEDED(
-        QuicDecrypt(
-            MsQuicLib.StatelessRetryKey,
-            Iv,
-            0,
-            NULL,
-            sizeof(QUIC_RETRY_TOKEN_CONTENTS),
-            (uint8_t*)Token));
+            QuicDecrypt(
+                StatelessRetryKey,
+                Iv,
+                sizeof(Token->Authenticated),
+                (uint8_t*) &Token->Authenticated,
+                sizeof(Token->Encrypted) + sizeof(Token->EncryptionTag),
+                (uint8_t*)&Token->Encrypted));
 }
