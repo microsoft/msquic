@@ -27,6 +27,9 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER Debugger
     Attaches the debugger to each test case run.
 
+.PARAMETER ConvertLogs
+    Will also convert logs to text. Only works when LogProfile is set.
+
 .EXAMPLE
     test.ps1
 
@@ -75,7 +78,10 @@ param (
     [string]$NegativeFilter = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$Debugger = $false
+    [switch]$Debugger = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$ConvertLogs = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -283,7 +289,11 @@ function FinishTestCase($TestCase) {
     } else {
         if ($LogProfile -ne "None") {
             # Keep logs on failure.
-            .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName | Out-Null
+            if ($ConvertLogs) {
+                .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName -ConvertToText | Out-Null
+            } else {
+                .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName | Out-Null
+            }
         }
 
         $stdout > (Join-Path $TestCase.LogDir "console.txt")

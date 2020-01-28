@@ -18,6 +18,9 @@ This script provides helpers for starting, stopping and canceling log collection
 .PARAMETER Output
     The output file name or directory for the logs.
 
+.PARAMETER ConvertToText
+    Converts the output logs to text.
+
 .PARAMETER InstanceName
     A unique name for the logging instance.
 
@@ -49,6 +52,9 @@ param (
     [Parameter(Mandatory = $true, ParameterSetName='Stop')]
     [string]$OutputDirectory = "",
 
+    [Parameter(Mandatory = $false, ParameterSetName='Stop')]
+    [switch]$ConvertToText = $false,
+
     [Parameter(Mandatory = $false)]
     [string]$InstanceName = "msquic"
 )
@@ -56,8 +62,23 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+# Current directory.
+$CurrentDir = (Get-Item -Path ".\").FullName
+
 # Path for the WPR profile.
-$WprpFile = (Get-Item -Path ".\").FullName + "\manifest\msquic.wprp"
+$WprpFile = $CurrentDir + "\manifest\msquic.wprp"
+
+# Path for the quicetw.
+$QuicEtw = $null
+if ($IsWindows) {
+    if (Test-Path ($CurrentDir + "\artifacts\windows\bin\release")) {
+        $QuicEtw = $CurrentDir + "\artifacts\windows\bin\release\quicetw.exe"
+    } else {
+        $QuicEtw = $CurrentDir + "\artifacts\windows\bin\debug\quicetw.exe"
+    }
+} else {
+    # TODO
+}
 
 # Start log collection.
 function Log-Start {
@@ -82,7 +103,12 @@ function Log-Cancel {
 # Stops log collection, keeping the logs.
 function Log-Stop {
     if ($IsWindows) {
-        wpr.exe -stop (Join-Path $OutputDirectory "quic.etl") -instancename $InstanceName
+        $EtlPath = Join-Path $OutputDirectory "quic.etl"
+        wpr.exe -stop $EtlPath -instancename $InstanceName
+        if ($ConvertToText) {
+            $LogPath = Join-Path $OutputDirectory "quic.log"
+            & $QuicEtw $EtlPath --trace > $LogPath
+        }
     } else {
         # TODO
         Write-Error "Not supported yet!"
