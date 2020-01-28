@@ -68,7 +68,7 @@ $CurrentDir = (Get-Item -Path ".\").FullName
 # Path for the WPR profile.
 $WprpFile = $CurrentDir + "\manifest\msquic.wprp"
 
-# Path for the quicetw.
+# Path for quicetw.
 $QuicEtw = $null
 if ($IsWindows) {
     if (Test-Path ($CurrentDir + "\artifacts\windows\bin\release")) {

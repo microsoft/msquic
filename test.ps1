@@ -28,7 +28,7 @@ This script provides helpers for running executing the MsQuic tests.
     Attaches the debugger to each test case run.
 
 .PARAMETER ConvertLogs
-    Will also convert logs to text. Only works when LogProfile is set.
+    Convert any collected logs to text. Only works when LogProfile is set.
 
 .PARAMETER KeepLogsOnSuccess
     Don't discard logs on success.
