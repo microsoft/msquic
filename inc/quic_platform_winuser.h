@@ -612,6 +612,18 @@ QuicTimeUs64ToPlat(
 #define QuicTimeMs64() US_TO_MS(QuicTimeUs64())
 #define QuicTimeMs32() (uint32_t)QuicTimeMs64()
 
+#define UNIX_EPOCH_AS_FILE_TIME 0x19db1ded53e8000
+
+inline
+int64_t
+QuicTimeEpochMs64(
+    )
+{
+    FILETIME FileTime;
+    GetSystemTimeAsFileTime(&FileTime);
+    return NS100_TO_MS(*((int64_t*) &FileTime) - UNIX_EPOCH_AS_FILE_TIME);
+}
+
 //
 // Returns the difference between two timestamps.
 //

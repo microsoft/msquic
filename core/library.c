@@ -263,13 +263,9 @@ MsQuicLibraryUninitialize(
     QUIC_FREE(MsQuicLib.PerProc);
     MsQuicLib.PerProc = NULL;
 
-    for (uint8_t i = 0;
-        i < sizeof(MsQuicLib.StatelessRetryKeys) / sizeof(MsQuicLib.StatelessRetryKeys[0]);
-        ++i) {
-        if (MsQuicLib.StatelessRetryKeys[i] != NULL) {
-            QuicKeyFree(MsQuicLib.StatelessRetryKeys[i]);
-            MsQuicLib.StatelessRetryKeys[i] = NULL;
-        }
+    for (uint8_t i = 0; i < ARRAYSIZE(MsQuicLib.StatelessRetryKeys); ++i) {
+        QuicKeyFree(MsQuicLib.StatelessRetryKeys[i]);
+        MsQuicLib.StatelessRetryKeys[i] = NULL;
     }
 
     QuicDataPathUninitialize(MsQuicLib.Datapath);
@@ -1149,48 +1145,47 @@ QuicTraceRundown(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+_Ret_maybenull_
+QUIC_KEY*
 QuicLibraryGetStatelessRetryKeyForTimestamp(
-    _In_ uint64_t Timestamp,
-    _Out_ QUIC_KEY** CurrentKey
+    _In_ int64_t Timestamp
     )
 {
     if (Timestamp < MsQuicLib.StatelessRetryKeysExpiration[!MsQuicLib.CurrentStatelessRetryKey] - QUIC_STATELESS_RETRY_KEY_LIFETIME_MS) {
-        // Too far in the past
-        *CurrentKey = NULL;
-        return QUIC_STATUS_NOT_FOUND;
+        //
+        // Timestamp is before the begining of the previous key's validity window.
+        //
+        return NULL;
     } else if (Timestamp < MsQuicLib.StatelessRetryKeysExpiration[!MsQuicLib.CurrentStatelessRetryKey]) {
         if (MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey] == NULL) {
-            *CurrentKey = NULL;
-            return QUIC_STATUS_NOT_FOUND;
+            return NULL;
         }
-        *CurrentKey = MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey];
-        return QUIC_STATUS_SUCCESS;
+        return MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey];
     } else if (Timestamp < MsQuicLib.StatelessRetryKeysExpiration[MsQuicLib.CurrentStatelessRetryKey]) {
-        if (MsQuicLib.StatelessRetryKeys[MsQuicLib.CurrentStatelessRetryKey]) {
-            *CurrentKey = NULL;
-            return QUIC_STATUS_NOT_FOUND;
+        if (MsQuicLib.StatelessRetryKeys[MsQuicLib.CurrentStatelessRetryKey] == NULL) {
+            return NULL;
         }
-        *CurrentKey = MsQuicLib.StatelessRetryKeys[MsQuicLib.CurrentStatelessRetryKey];
-        return QUIC_STATUS_SUCCESS;
+        return MsQuicLib.StatelessRetryKeys[MsQuicLib.CurrentStatelessRetryKey];
     } else {
-        // In the future
-        *CurrentKey = NULL;
-        return QUIC_STATUS_NOT_FOUND;
+        //
+        // Timestamp is after the end of the latest key's validity window.
+        //
+        return NULL;
     }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+_Ret_maybenull_
+QUIC_KEY*
 QuicLibraryGetCurrentStatelessRetryKey(
-    _Out_ QUIC_KEY** CurrentKey
+    void
     )
 {
     // TODO: Lock or have per-core keys.
     QUIC_STATUS Status;
-    uint64_t Now = QuicTimeUs64(); // TODO: replace with epoch timestamp
-    uint64_t StartTime = (Now / QUIC_STATELESS_RETRY_KEY_LIFETIME_MS);
-    uint64_t ExpirationTime = StartTime + QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
+    int64_t Now = QuicTimeEpochMs64();
+    int64_t StartTime = (Now / QUIC_STATELESS_RETRY_KEY_LIFETIME_MS) * QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
+    int64_t ExpirationTime = StartTime + QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
 
     // If the start time for the current key epoch is greater-than-or-equal to the expiration time
     // for the current stateless retry key
@@ -1206,24 +1201,20 @@ QuicLibraryGetCurrentStatelessRetryKey(
                 &NewKey);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(LibraryErrorStatus, Status, "Create stateless retry key");
-            return Status;
+            return NULL;
         }
 
         // TODO: take lock here
         MsQuicLib.StatelessRetryKeysExpiration[!MsQuicLib.CurrentStatelessRetryKey] = ExpirationTime;
-        if (MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey] != NULL) {
-            QuicKeyFree(MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey]); // N.B. there's a potential race condition here
-        }
+        QuicKeyFree(MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey]); // N.B. there's a potential race condition here
         MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey] = NewKey;
         MsQuicLib.CurrentStatelessRetryKey = !MsQuicLib.CurrentStatelessRetryKey;
         // TODO: Release lock here
-        *CurrentKey = NewKey;
-        Status = QUIC_STATUS_SUCCESS;
+        return NewKey;
     } else {
         // TODO: take lock here
-        *CurrentKey = MsQuicLib.StatelessRetryKeys[MsQuicLib.CurrentStatelessRetryKey];
-        Status = QUIC_STATUS_SUCCESS;
+        QUIC_KEY* Key = MsQuicLib.StatelessRetryKeys[MsQuicLib.CurrentStatelessRetryKey];
         // TODO: release lock here
+        return Key;
     }
-    return Status;
 }

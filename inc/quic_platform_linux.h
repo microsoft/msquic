@@ -536,6 +536,7 @@ QuicGetAbsoluteTime(
 #define QuicTimeMs64()  (QuicTimeUs64() / QUIC_MICROSEC_PER_MS)
 #define QuicTimeMs32() (uint32_t)QuicTimeMs64()
 #define QuicTimeUs64ToPlat(x) (x)
+#define QuicTimeEpochMs64() QuicTimeMs64()
 
 inline
 uint64_t

@@ -173,7 +173,7 @@ typedef struct QUIC_LIBRARY {
     //
     // Timestamp when the current stateless retry key expires.
     //
-    uint64_t StatelessRetryKeysExpiration[2];
+    int64_t StatelessRetryKeysExpiration[2];
 
 } QUIC_LIBRARY;
 
@@ -276,17 +276,18 @@ QuicLibraryGetWorker(
 // Returns the current stateless retry key.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+_Ret_maybenull_
+QUIC_KEY*
 QuicLibraryGetCurrentStatelessRetryKey(
-    _Out_ QUIC_KEY** CurrentKey
+    void
     );
 
 //
 // Returns the stateless retry key for that timestamp.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+_Ret_maybenull_
+QUIC_KEY*
 QuicLibraryGetStatelessRetryKeyForTimestamp(
-    _In_ uint64_t Timestamp,
-    _Out_ QUIC_KEY** CurrentKey
+    _In_ int64_t Timestamp
     );

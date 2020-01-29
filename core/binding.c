@@ -782,17 +782,15 @@ QuicBindingProcessStatelessOperation(
         uint8_t NewDestCid[MSQUIC_CONNECTION_ID_LENGTH];
         QuicRandom(MSQUIC_CONNECTION_ID_LENGTH, NewDestCid);
 
-        QUIC_RETRY_TOKEN_CONTENTS Token;
-        Token.Authenticated.Timestamp = QuicTimeUs64(); // TODO: Change this to a cross-platform epoch timestamp.
+        QUIC_RETRY_TOKEN_CONTENTS Token = { 0 };
+        Token.Authenticated.Timestamp = QuicTimeEpochMs64();
 
         Token.Encrypted.RemoteAddress = RecvDatagram->Tuple->RemoteAddress;
         QuicCopyMemory(Token.Encrypted.OrigConnId, RecvPacket->DestCid, RecvPacket->DestCidLen);
         Token.Encrypted.OrigConnIdLength = RecvPacket->DestCidLen;
 
-        QUIC_KEY* StatelessRetryKey;
-        QUIC_STATUS Status =
-            QuicLibraryGetCurrentStatelessRetryKey(&StatelessRetryKey);
-        if (QUIC_FAILED(Status)) {
+        QUIC_KEY* StatelessRetryKey = QuicLibraryGetCurrentStatelessRetryKey();
+        if (StatelessRetryKey == NULL) {
             goto Exit;
         }
 
@@ -801,7 +799,7 @@ QuicBindingProcessStatelessOperation(
         QuicZeroMemory(
             Iv + MSQUIC_CONNECTION_ID_LENGTH,
             QUIC_IV_LENGTH - MSQUIC_CONNECTION_ID_LENGTH);
-        Status =
+        QUIC_STATUS Status =
             QuicEncrypt(
                 StatelessRetryKey,
                 Iv,
