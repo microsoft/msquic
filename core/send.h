@@ -83,6 +83,7 @@ QuicPacketTypeToEncryptLevel(
 #define QUIC_CONN_SEND_FLAG_PATH_CHALLENGE          0x00000400
 #define QUIC_CONN_SEND_FLAG_PATH_RESPONSE           0x00000800
 #define QUIC_CONN_SEND_FLAG_PING                    0x00001000
+#define QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE          0x00002000
 #define QUIC_CONN_SEND_FLAG_PMTUD                   0x80000000
 
 //

@@ -141,6 +141,15 @@ QuicCryptoReset(
     );
 
 //
+// Indicates both peers know the handshake completed successfully.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCryptoHandshakeConfirmed(
+    _In_ QUIC_CRYPTO* Crypto
+    );
+
+//
 // Cleans up the indicated key type so that it cannot be used for encryption or
 // decryption of packets any more. Returns TRUE if keys were actually discarded
 // or FALSE if keys had previously been discarded already.
