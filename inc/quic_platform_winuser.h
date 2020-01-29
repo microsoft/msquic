@@ -612,16 +612,16 @@ QuicTimeUs64ToPlat(
 #define QuicTimeMs64() US_TO_MS(QuicTimeUs64())
 #define QuicTimeMs32() (uint32_t)QuicTimeMs64()
 
-#define UNIX_EPOCH_AS_FILE_TIME 0x19db1ded53e8000
+#define UNIX_EPOCH_AS_FILE_TIME 0x19db1ded53e8000ll
 
 inline
 int64_t
 QuicTimeEpochMs64(
     )
 {
-    FILETIME FileTime;
-    GetSystemTimeAsFileTime(&FileTime);
-    return NS100_TO_MS(*((int64_t*) &FileTime) - UNIX_EPOCH_AS_FILE_TIME);
+    LARGE_INTEGER FileTime;
+    GetSystemTimeAsFileTime((FILETIME*) &FileTime);
+    return NS100_TO_MS(FileTime.QuadPart - UNIX_EPOCH_AS_FILE_TIME);
 }
 
 //

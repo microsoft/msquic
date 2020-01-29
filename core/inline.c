@@ -614,3 +614,8 @@ uint8_t
 QuicPacketTraceType(
     _In_ const QUIC_SENT_PACKET_METADATA* Metadata
     );
+
+int64_t
+QuicTimeEpochMs64(
+    void
+    );

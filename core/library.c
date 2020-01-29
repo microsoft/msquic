@@ -138,6 +138,7 @@ MsQuicLibraryInitialize(
 
     MsQuicLibraryReadSettings(NULL); // NULL means don't update registrations.
 
+    QuicLockInitialize(&MsQuicLib.StatelessRetryKeysLock);
     QuicZeroMemory(&MsQuicLib.StatelessRetryKeys, sizeof(MsQuicLib.StatelessRetryKeys));
     QuicZeroMemory(&MsQuicLib.StatelessRetryKeysExpiration, sizeof(MsQuicLib.StatelessRetryKeysExpiration));
 
@@ -267,6 +268,7 @@ MsQuicLibraryUninitialize(
         QuicKeyFree(MsQuicLib.StatelessRetryKeys[i]);
         MsQuicLib.StatelessRetryKeys[i] = NULL;
     }
+    QuicLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
 
     QuicDataPathUninitialize(MsQuicLib.Datapath);
     MsQuicLib.Datapath = NULL;
@@ -1181,20 +1183,20 @@ QuicLibraryGetCurrentStatelessRetryKey(
     void
     )
 {
-    // TODO: Lock or have per-core keys.
-    QUIC_STATUS Status;
     int64_t Now = QuicTimeEpochMs64();
     int64_t StartTime = (Now / QUIC_STATELESS_RETRY_KEY_LIFETIME_MS) * QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
     int64_t ExpirationTime = StartTime + QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
 
-    // If the start time for the current key epoch is greater-than-or-equal to the expiration time
-    // for the current stateless retry key
+    //
+    // If the start time for the current key interval is greater-than-or-equal to the expiration time
+    // of the latest stateless retry key, generate a new key, and rotate the old.
+    //
     if (StartTime >= MsQuicLib.StatelessRetryKeysExpiration[MsQuicLib.CurrentStatelessRetryKey]) {
 
         QUIC_KEY* NewKey;
         uint8_t RawKey[QUIC_AEAD_AES_256_GCM_SIZE];
         QuicRandom(sizeof(RawKey), RawKey);
-        Status =
+        QUIC_STATUS Status =
             QuicKeyCreate(
                 QUIC_AEAD_AES_256_GCM,
                 RawKey,
@@ -1204,17 +1206,21 @@ QuicLibraryGetCurrentStatelessRetryKey(
             return NULL;
         }
 
-        // TODO: take lock here
+        QuicLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
+
         MsQuicLib.StatelessRetryKeysExpiration[!MsQuicLib.CurrentStatelessRetryKey] = ExpirationTime;
         QuicKeyFree(MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey]); // N.B. there's a potential race condition here
         MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey] = NewKey;
         MsQuicLib.CurrentStatelessRetryKey = !MsQuicLib.CurrentStatelessRetryKey;
-        // TODO: Release lock here
+
+        QuicLockRelease(&MsQuicLib.StatelessRetryKeysLock);
         return NewKey;
     } else {
-        // TODO: take lock here
+        QuicLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
+
         QUIC_KEY* Key = MsQuicLib.StatelessRetryKeys[MsQuicLib.CurrentStatelessRetryKey];
-        // TODO: release lock here
+
+        QuicLockRelease(&MsQuicLib.StatelessRetryKeysLock);
         return Key;
     }
 }

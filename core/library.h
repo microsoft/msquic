@@ -166,6 +166,11 @@ typedef struct QUIC_LIBRARY {
     QUIC_LIBRARY_PP* PerProc;
 
     //
+    // Controls access to the stateless retry keys when rotated.
+    //
+    QUIC_LOCK StatelessRetryKeysLock;
+
+    //
     // Keys used for encryption of stateless retry tokens.
     //
     QUIC_KEY* StatelessRetryKeys[2];
