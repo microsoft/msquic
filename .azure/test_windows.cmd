@@ -6,4 +6,10 @@ wevtutil im manifest\MsQuicEtw.man ^
 
 :: Run the tests.
 pwsh -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Unrestricted ^
-    .\test.ps1 -Batch -SaveXmlResults -LogProfile Basic.Light -ConvertLogs -Filter %1
+    .\test.ps1 ^
+        -Config Debug ^
+        -Batch ^
+        -Filter %1 ^
+        -SaveXmlResults ^
+        -LogProfile Basic.Light ^
+        -ConvertLogs
