@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 
 # Enable core dumps.
 echo "Enabling core dumps..."
@@ -8,8 +9,9 @@ ulimit -c unlimited
 pwsh -NoLogo -NoProfile -NonInteractive \
     ./test.ps1 \
         -Config Debug \
-        -Batch \
         -Filter $1 \
+        -Batch \
         -SaveXmlResults \
         -LogProfile Basic.Light \
-        -ConvertLogs
+        -ConvertLogs \
+        -KeepLogsOnSuccess

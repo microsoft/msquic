@@ -11,7 +11,7 @@ strategy:
       config: 'stub'
       imageName: 'ubuntu-latest'
       buildArgs: '-Tls stub -DisableLogs'
-      testCmd: 'bash ./.azure/test_linux.sh *'
+      testCmd: 'bash ./.azure/test_linux.sh ''*'''
     ubuntu-stub-sanitize:
       platform: 'ubuntu'
       config: 'stub-sanitize'
@@ -27,7 +27,7 @@ strategy:
       platform: 'ubuntu'
       config: 'openssl'
       buildArgs: '-Tls openssl -DisableLogs'
-      testCmd: 'bash ./.azure/test_linux.sh *'
+      testCmd: 'bash ./.azure/test_linux.sh ''*'''
     windows-x64-stub:
       platform: 'windows'
       config: 'stub'
