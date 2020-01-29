@@ -72,6 +72,11 @@ typedef struct QUIC_LIBRARY {
 #endif
 
     //
+    // Index for the current stateless retry token key.
+    //
+    BOOLEAN CurrentStatelessRetryKey : 1;
+
+    //
     // Configurable (app & registry) settings.
     //
     QUIC_SETTINGS Settings;
@@ -161,9 +166,19 @@ typedef struct QUIC_LIBRARY {
     QUIC_LIBRARY_PP* PerProc;
 
     //
-    // Key used for encryption of stateless retry tokens.
+    // Controls access to the stateless retry keys when rotated.
     //
-    QUIC_KEY* StatelessRetryKey;
+    QUIC_LOCK StatelessRetryKeysLock;
+
+    //
+    // Keys used for encryption of stateless retry tokens.
+    //
+    QUIC_KEY* StatelessRetryKeys[2];
+
+    //
+    // Timestamp when the current stateless retry key expires.
+    //
+    int64_t StatelessRetryKeysExpiration[2];
 
 } QUIC_LIBRARY;
 
@@ -260,4 +275,24 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_WORKER*
 QuicLibraryGetWorker(
     void
+    );
+
+//
+// Returns the current stateless retry key.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Ret_maybenull_
+QUIC_KEY*
+QuicLibraryGetCurrentStatelessRetryKey(
+    void
+    );
+
+//
+// Returns the stateless retry key for that timestamp.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Ret_maybenull_
+QUIC_KEY*
+QuicLibraryGetStatelessRetryKeyForTimestamp(
+    _In_ int64_t Timestamp
     );

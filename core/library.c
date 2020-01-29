@@ -138,17 +138,9 @@ MsQuicLibraryInitialize(
 
     MsQuicLibraryReadSettings(NULL); // NULL means don't update registrations.
 
-    uint8_t RawKey[QUIC_AEAD_AES_256_GCM_SIZE];
-    QuicRandom(sizeof(RawKey), RawKey);
-    Status =
-        QuicKeyCreate(
-            QUIC_AEAD_AES_256_GCM,
-            RawKey,
-            &MsQuicLib.StatelessRetryKey);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "Create stateless retry key");
-        goto Error;
-    }
+    QuicLockInitialize(&MsQuicLib.StatelessRetryKeysLock);
+    QuicZeroMemory(&MsQuicLib.StatelessRetryKeys, sizeof(MsQuicLib.StatelessRetryKeys));
+    QuicZeroMemory(&MsQuicLib.StatelessRetryKeysExpiration, sizeof(MsQuicLib.StatelessRetryKeysExpiration));
 
     //
     // TODO: Add support for CPU hot swap/add.
@@ -206,10 +198,6 @@ MsQuicLibraryInitialize(
 Error:
 
     if (QUIC_FAILED(Status)) {
-        if (MsQuicLib.StatelessRetryKey != NULL) {
-            QuicKeyFree(MsQuicLib.StatelessRetryKey);
-            MsQuicLib.StatelessRetryKey = NULL;
-        }
         if (MsQuicLib.PerProc != NULL) {
             for (uint8_t i = 0; i < MsQuicLib.PartitionCount; ++i) {
                 QuicPoolUninitialize(&MsQuicLib.PerProc[i].ConnectionPool);
@@ -276,8 +264,11 @@ MsQuicLibraryUninitialize(
     QUIC_FREE(MsQuicLib.PerProc);
     MsQuicLib.PerProc = NULL;
 
-    QuicKeyFree(MsQuicLib.StatelessRetryKey);
-    MsQuicLib.StatelessRetryKey = NULL;
+    for (uint8_t i = 0; i < ARRAYSIZE(MsQuicLib.StatelessRetryKeys); ++i) {
+        QuicKeyFree(MsQuicLib.StatelessRetryKeys[i]);
+        MsQuicLib.StatelessRetryKeys[i] = NULL;
+    }
+    QuicLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
 
     QuicDataPathUninitialize(MsQuicLib.Datapath);
     MsQuicLib.Datapath = NULL;
@@ -1153,4 +1144,75 @@ QuicTraceRundown(
     }
 
     QuicLockRelease(&MsQuicLib.Lock);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Ret_maybenull_
+QUIC_KEY*
+QuicLibraryGetStatelessRetryKeyForTimestamp(
+    _In_ int64_t Timestamp
+    )
+{
+    if (Timestamp < MsQuicLib.StatelessRetryKeysExpiration[!MsQuicLib.CurrentStatelessRetryKey] - QUIC_STATELESS_RETRY_KEY_LIFETIME_MS) {
+        //
+        // Timestamp is before the begining of the previous key's validity window.
+        //
+        return NULL;
+    } else if (Timestamp < MsQuicLib.StatelessRetryKeysExpiration[!MsQuicLib.CurrentStatelessRetryKey]) {
+        if (MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey] == NULL) {
+            return NULL;
+        }
+        return MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey];
+    } else if (Timestamp < MsQuicLib.StatelessRetryKeysExpiration[MsQuicLib.CurrentStatelessRetryKey]) {
+        if (MsQuicLib.StatelessRetryKeys[MsQuicLib.CurrentStatelessRetryKey] == NULL) {
+            return NULL;
+        }
+        return MsQuicLib.StatelessRetryKeys[MsQuicLib.CurrentStatelessRetryKey];
+    } else {
+        //
+        // Timestamp is after the end of the latest key's validity window.
+        //
+        return NULL;
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Ret_maybenull_
+QUIC_KEY*
+QuicLibraryGetCurrentStatelessRetryKey(
+    void
+    )
+{
+    int64_t Now = QuicTimeEpochMs64();
+    int64_t StartTime = (Now / QUIC_STATELESS_RETRY_KEY_LIFETIME_MS) * QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
+    int64_t ExpirationTime = StartTime + QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
+
+    //
+    // If the start time for the current key interval is greater-than-or-equal to the expiration time
+    // of the latest stateless retry key, generate a new key, and rotate the old.
+    //
+    if (StartTime >= MsQuicLib.StatelessRetryKeysExpiration[MsQuicLib.CurrentStatelessRetryKey]) {
+
+        QUIC_KEY* NewKey;
+        uint8_t RawKey[QUIC_AEAD_AES_256_GCM_SIZE];
+        QuicRandom(sizeof(RawKey), RawKey);
+        QUIC_STATUS Status =
+            QuicKeyCreate(
+                QUIC_AEAD_AES_256_GCM,
+                RawKey,
+                &NewKey);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(LibraryErrorStatus, Status, "Create stateless retry key");
+            return NULL;
+        }
+
+        MsQuicLib.StatelessRetryKeysExpiration[!MsQuicLib.CurrentStatelessRetryKey] = ExpirationTime;
+        QuicKeyFree(MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey]);
+        MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey] = NewKey;
+        MsQuicLib.CurrentStatelessRetryKey = !MsQuicLib.CurrentStatelessRetryKey;
+
+        return NewKey;
+    } else {
+        return MsQuicLib.StatelessRetryKeys[MsQuicLib.CurrentStatelessRetryKey];
+    }
 }

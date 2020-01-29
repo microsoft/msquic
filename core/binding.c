@@ -776,28 +776,44 @@ QuicBindingProcessStatelessOperation(
             QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
         if (SendDatagram == NULL) {
             QuicTraceEvent(AllocFailure, "retry datagram", PacketLength);
-            QuicDataPathBindingFreeSendContext(SendContext);
             goto Exit;
         }
 
         uint8_t NewDestCid[MSQUIC_CONNECTION_ID_LENGTH];
         QuicRandom(MSQUIC_CONNECTION_ID_LENGTH, NewDestCid);
 
-        QUIC_RETRY_TOKEN_CONTENTS Token;
-        Token.RemoteAddress = RecvDatagram->Tuple->RemoteAddress;
-        QuicCopyMemory(Token.OrigConnId, RecvPacket->DestCid, RecvPacket->DestCidLen);
-        Token.OrigConnIdLength = RecvPacket->DestCidLen;
+        QUIC_RETRY_TOKEN_CONTENTS Token = { 0 };
+        Token.Authenticated.Timestamp = QuicTimeEpochMs64();
+
+        Token.Encrypted.RemoteAddress = RecvDatagram->Tuple->RemoteAddress;
+        QuicCopyMemory(Token.Encrypted.OrigConnId, RecvPacket->DestCid, RecvPacket->DestCidLen);
+        Token.Encrypted.OrigConnIdLength = RecvPacket->DestCidLen;
 
         uint8_t Iv[QUIC_IV_LENGTH];
         QuicCopyMemory(Iv, NewDestCid, MSQUIC_CONNECTION_ID_LENGTH);
         QuicZeroMemory(
             Iv + MSQUIC_CONNECTION_ID_LENGTH,
             QUIC_IV_LENGTH - MSQUIC_CONNECTION_ID_LENGTH);
-        QuicEncrypt(
-            MsQuicLib.StatelessRetryKey,
-            Iv,
-            0, NULL,
-            sizeof(Token), (uint8_t*)&Token);
+
+        QuicLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
+
+        QUIC_KEY* StatelessRetryKey = QuicLibraryGetCurrentStatelessRetryKey();
+        if (StatelessRetryKey == NULL) {
+            QuicLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+            goto Exit;
+        }
+
+        QUIC_STATUS Status =
+            QuicEncrypt(
+                StatelessRetryKey,
+                Iv,
+                sizeof(Token.Authenticated), (uint8_t*) &Token.Authenticated,
+                sizeof(Token.Encrypted) + sizeof(Token.EncryptionTag), (uint8_t*)&(Token.Encrypted));
+
+        QuicLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+        if (QUIC_FAILED(Status)) {
+            goto Exit;
+        }
 
         SendDatagram->Length =
             QuicPacketEncodeRetryV1(
@@ -994,14 +1010,14 @@ QuicBindingProcessRetryToken(
         return FALSE;
     }
 
-    if (Token.OrigConnIdLength > sizeof(Token.OrigConnId)) {
+    if (Token.Encrypted.OrigConnIdLength > sizeof(Token.Encrypted.OrigConnId)) {
         QuicPacketLogDrop(Binding, Packet, "Invalid Retry Token OrigConnId Length");
         return FALSE;
     }
 
     const QUIC_RECV_DATAGRAM* Datagram =
         QuicDataPathRecvPacketToRecvDatagram(Packet);
-    if (!QuicAddrCompare(&Token.RemoteAddress, &Datagram->Tuple->RemoteAddress)) {
+    if (!QuicAddrCompare(&Token.Encrypted.RemoteAddress, &Datagram->Tuple->RemoteAddress)) {
         QuicPacketLogDrop(Binding, Packet, "Retry Token Addr Mismatch");
         return FALSE;
     }

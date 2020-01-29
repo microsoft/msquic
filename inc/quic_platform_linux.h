@@ -43,6 +43,7 @@ Environment:
 #include <pthread.h>
 #include <errno.h>
 #include <sys/syscall.h>
+#include <sys/time.h>
 #include <quic_sal_stub.h>
 
 #if defined(__cplusplus)
@@ -536,6 +537,17 @@ QuicGetAbsoluteTime(
 #define QuicTimeMs64()  (QuicTimeUs64() / QUIC_MICROSEC_PER_MS)
 #define QuicTimeMs32() (uint32_t)QuicTimeMs64()
 #define QuicTimeUs64ToPlat(x) (x)
+
+inline
+int64_t
+QuicTimeEpochMs64(
+    void
+    )
+{
+    struct timeval tv = { 0 };
+    gettimeofday(&tv, NULL);
+    return S_TO_MS(tv.tv_sec) + US_TO_MS(tv.tv_usec);
+}
 
 inline
 uint64_t
