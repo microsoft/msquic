@@ -5,4 +5,5 @@ wevtutil im manifest\MsQuicEtw.man ^
     /mf:%cd%\artifacts\windows\bin\debug\msquic.dll
 
 :: Run the tests.
-pwsh -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Unrestricted .\test.ps1 -Batch -SaveXmlResults -LogProfile Full.Light -ConvertLogs -Filter %1
+pwsh -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Unrestricted ^
+    .\test.ps1 -Batch -SaveXmlResults -LogProfile Basic.Light -ConvertLogs -Filter %1
