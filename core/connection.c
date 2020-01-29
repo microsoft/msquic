@@ -3480,10 +3480,19 @@ QuicConnRecvPayload(
         }
 
         case QUIC_FRAME_HANDSHAKE_DONE: {
-            if (!QuicConnIsServer(Connection) && !Connection->State.HandshakeConfirmed) {
+            if (QuicConnIsServer(Connection)) {
+                QuicTraceEvent(ConnError, Connection, "Client sent HANDSHAKE_DONE frame");
+                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                return FALSE;
+            }
+
+            if (!Connection->State.HandshakeConfirmed) {
                 QuicTraceLogConnInfo(HandshakeConfirmedFrame, Connection, "Handshake confirmed (frame).");
                 QuicCryptoHandshakeConfirmed(&Connection->Crypto);
             }
+
+            AckPacketImmediately = TRUE;
+            Packet->HasNonProbingFrame = TRUE;
             break;
         }
 
