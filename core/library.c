@@ -1206,21 +1206,13 @@ QuicLibraryGetCurrentStatelessRetryKey(
             return NULL;
         }
 
-        QuicLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
-
         MsQuicLib.StatelessRetryKeysExpiration[!MsQuicLib.CurrentStatelessRetryKey] = ExpirationTime;
-        QuicKeyFree(MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey]); // N.B. there's a potential race condition here
+        QuicKeyFree(MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey]);
         MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey] = NewKey;
         MsQuicLib.CurrentStatelessRetryKey = !MsQuicLib.CurrentStatelessRetryKey;
 
-        QuicLockRelease(&MsQuicLib.StatelessRetryKeysLock);
         return NewKey;
     } else {
-        QuicLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
-
-        QUIC_KEY* Key = MsQuicLib.StatelessRetryKeys[MsQuicLib.CurrentStatelessRetryKey];
-
-        QuicLockRelease(&MsQuicLib.StatelessRetryKeysLock);
-        return Key;
+        return MsQuicLib.StatelessRetryKeys[MsQuicLib.CurrentStatelessRetryKey];
     }
 }

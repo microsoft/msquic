@@ -789,22 +789,28 @@ QuicBindingProcessStatelessOperation(
         QuicCopyMemory(Token.Encrypted.OrigConnId, RecvPacket->DestCid, RecvPacket->DestCidLen);
         Token.Encrypted.OrigConnIdLength = RecvPacket->DestCidLen;
 
-        QUIC_KEY* StatelessRetryKey = QuicLibraryGetCurrentStatelessRetryKey();
-        if (StatelessRetryKey == NULL) {
-            goto Exit;
-        }
-
         uint8_t Iv[QUIC_IV_LENGTH];
         QuicCopyMemory(Iv, NewDestCid, MSQUIC_CONNECTION_ID_LENGTH);
         QuicZeroMemory(
             Iv + MSQUIC_CONNECTION_ID_LENGTH,
             QUIC_IV_LENGTH - MSQUIC_CONNECTION_ID_LENGTH);
+
+        QuicLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
+
+        QUIC_KEY* StatelessRetryKey = QuicLibraryGetCurrentStatelessRetryKey();
+        if (StatelessRetryKey == NULL) {
+            QuicLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+            goto Exit;
+        }
+
         QUIC_STATUS Status =
             QuicEncrypt(
                 StatelessRetryKey,
                 Iv,
                 sizeof(Token.Authenticated), (uint8_t*) &Token.Authenticated,
                 sizeof(Token.Encrypted) + sizeof(Token.EncryptionTag), (uint8_t*)&(Token.Encrypted));
+
+        QuicLockRelease(&MsQuicLib.StatelessRetryKeysLock);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }

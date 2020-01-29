@@ -440,20 +440,25 @@ QuicRetryTokenDecrypt(
         Iv + MSQUIC_CONNECTION_ID_LENGTH,
         QUIC_IV_LENGTH - MSQUIC_CONNECTION_ID_LENGTH);
 
+    QuicLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
+
     QUIC_KEY* StatelessRetryKey =
         QuicLibraryGetStatelessRetryKeyForTimestamp(
             Token->Authenticated.Timestamp);
     if (StatelessRetryKey == NULL) {
+        QuicLockRelease(&MsQuicLib.StatelessRetryKeysLock);
         return FALSE;
     }
 
-    return
-        QUIC_SUCCEEDED(
-            QuicDecrypt(
-                StatelessRetryKey,
-                Iv,
-                sizeof(Token->Authenticated),
-                (uint8_t*) &Token->Authenticated,
-                sizeof(Token->Encrypted) + sizeof(Token->EncryptionTag),
-                (uint8_t*)&Token->Encrypted));
+    QUIC_STATUS Status =
+        QuicDecrypt(
+            StatelessRetryKey,
+            Iv,
+            sizeof(Token->Authenticated),
+            (uint8_t*) &Token->Authenticated,
+            sizeof(Token->Encrypted) + sizeof(Token->EncryptionTag),
+            (uint8_t*)&Token->Encrypted);
+
+    QuicLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+    return QUIC_SUCCEEDED(Status);
 }
