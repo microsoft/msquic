@@ -303,8 +303,8 @@ QuicSendSetStreamSendFlag(
 
     if ((Stream->SendFlags | SendFlags) != Stream->SendFlags) {
 
-        QuicTraceLogVerbose("[strm][%p][%llu] Setting flags 0x%x (existing flags: 0x%x)",
-            Stream, Stream->ID, (SendFlags & (~Stream->SendFlags)), Stream->SendFlags);
+        QuicTraceLogStreamVerbose(SetSendFlag, Stream, "Setting flags 0x%x (existing flags: 0x%x)",
+            (SendFlags & (~Stream->SendFlags)), Stream->SendFlags);
 
         if ((Stream->SendFlags & SendFlags) != SendFlags) {
             //
@@ -344,8 +344,8 @@ QuicSendClearStreamSendFlag(
 
     if (Stream->SendFlags & SendFlags) {
 
-        QuicTraceLogVerbose("[strm][%p][%llu] Removing flags %x",
-            Stream, Stream->ID, (SendFlags & Stream->SendFlags));
+        QuicTraceLogStreamVerbose(ClearSendFlags, Stream, "Removing flags %x",
+            (SendFlags & Stream->SendFlags));
 
         //
         // Remove the flags since they are present.
