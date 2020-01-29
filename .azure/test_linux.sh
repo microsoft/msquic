@@ -6,7 +6,7 @@ echo "Enabling core dumps..."
 ulimit -c unlimited
 
 # Run the tests.
-if [ $# -eq 0 ]
+if [ $# -eq 0 ]; then
     pwsh -NoLogo -NoProfile -NonInteractive \
         ./test.ps1 \
             -Config Debug \
