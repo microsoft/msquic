@@ -154,7 +154,7 @@ function CMake-Execute([String]$Arguments) {
     $process.WaitForExit();
 
     if ($process.ExitCode -ne 0) {
-        Write-Warning "[$(Get-Date)] CMake exited with status code $($process.ExitCode)"
+        Write-Error "[$(Get-Date)] CMake exited with status code $($process.ExitCode)"
     }
 }
 
