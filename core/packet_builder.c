@@ -400,7 +400,7 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
         }
     }
 
-    if (SendFlags & (QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE | QUIC_CONN_SEND_FLAG_PING)) {
+    if (SendFlags & (QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_PING)) {
         //
         // CLOSE or PING is ready to be sent. This is always sent with the
         // current write key.
@@ -411,6 +411,12 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
         //
         *PacketType = QuicKeyTypeToPacketType(Connection->Crypto.TlsState.WriteKey);
         *Key = Connection->Crypto.TlsState.WriteKeys[Connection->Crypto.TlsState.WriteKey];
+        return TRUE;
+    }
+
+    if (Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL) {
+        *PacketType = SEND_PACKET_SHORT_HEADER_TYPE;
+        *Key = Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT];
         return TRUE;
     }
 
