@@ -232,7 +232,7 @@ QuicPacketIsHandshake(
     }
 
     switch (Packet->LONG_HDR.Version) {
-        case QUIC_VERSION_DRAFT_24:
+        case QUIC_VERSION_DRAFT_25:
         case QUIC_VERSION_MS_1:
             return ((QUIC_LONG_HEADER_V1*)Packet)->Type != QUIC_0_RTT_PROTECTED;
         default:

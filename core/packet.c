@@ -20,7 +20,7 @@ Abstract:
 // The list is in priority order (highest to lowest).
 //
 const uint32_t QuicSupportedVersionList[] = {
-    QUIC_VERSION_DRAFT_24,
+    QUIC_VERSION_DRAFT_25,
     QUIC_VERSION_MS_1
 };
 
@@ -420,7 +420,7 @@ QuicPacketLogHeader(
             break;
         }
 
-        case QUIC_VERSION_DRAFT_24:
+        case QUIC_VERSION_DRAFT_25:
         case QUIC_VERSION_MS_1: {
             const QUIC_LONG_HEADER_V1 * const LongHdr =
                 (const QUIC_LONG_HEADER_V1 * const)Packet;
@@ -514,7 +514,7 @@ QuicPacketLogHeader(
         const uint8_t* DestCid = Invariant->SHORT_HDR.DestCid;
 
         switch (Version) {
-        case QUIC_VERSION_DRAFT_24:
+        case QUIC_VERSION_DRAFT_25:
         case QUIC_VERSION_MS_1: {
             const QUIC_SHORT_HEADER_V1 * const Header =
                 (const QUIC_SHORT_HEADER_V1 * const)Packet;

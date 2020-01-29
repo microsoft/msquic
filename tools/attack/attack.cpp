@@ -420,7 +420,7 @@ main(
             goto Error;
         }
 
-        const char* Alpn = "h3-24";
+        const char* Alpn = "h3-25";
         (void)TryGetValue(argc, argv, "alpn", &Alpn);
 
         const char* ServerName = nullptr;
