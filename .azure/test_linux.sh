@@ -13,8 +13,7 @@ if [ $# -eq 0 ]; then
             -Batch \
             -SaveXmlResults \
             -LogProfile Basic.Light \
-            -ConvertLogs \
-            -KeepLogsOnSuccess
+            -ConvertLogs
 else
     pwsh -NoLogo -NoProfile -NonInteractive \
         ./test.ps1 \
@@ -23,6 +22,5 @@ else
             -Batch \
             -SaveXmlResults \
             -LogProfile Basic.Light \
-            -ConvertLogs \
-            -KeepLogsOnSuccess
+            -ConvertLogs
 fi
