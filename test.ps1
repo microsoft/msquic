@@ -366,7 +366,6 @@ $TestCases = GetTestCases
 
 # Apply any filtering.
 if ($Filter -ne "") {
-    $Filters = $Filter.Split(":")
     foreach ($f in $Filter.Split(":")) {
         if ($f.StartsWith("-")) {
             $f = $f.Substring(1)
