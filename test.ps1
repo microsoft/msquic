@@ -295,7 +295,7 @@ function StartAllTestCases {
         .\log.ps1 -Start -LogProfile $LogProfile -InstanceName $InstanceName | Out-Null
     }
 
-    $ResultsPath = "$($LogDir).xml"
+    $ResultsPath = "$($LogDir)-results.xml"
     $Arguments = "--gtest_break_on_failure --gtest_catch_exceptions=0 --gtest_output=xml:$($ResultsPath)"
     if ($null -ne $Filter) {
         $Arguments = $Arguments + " --gtest_filter=$($Filter)"
@@ -441,8 +441,8 @@ try {
     }
 } finally {
     if ($Batch) {
-        if (Test-Path "$($LogDir).xml") {
-            $XmlResults = [xml](Get-Content "$($LogDir).xml")
+        if (Test-Path "$($LogDir)-results.xml") {
+            $XmlResults = [xml](Get-Content "$($LogDir)-results.xml")
             if (!$SaveXmlResults) {
                 # Delete the XML results file since it's not needed.
                 Remove-Item "$($LogDir).xml" -Force | Out-Null
@@ -455,13 +455,13 @@ try {
             $XmlResults = [xml]($NewXmlText)
             if ($SaveXmlResults) {
                 # Save the xml results.
-                $XmlResults.Save("$($LogDir).xml") | Out-Null
+                $XmlResults.Save("$($LogDir)-results.xml") | Out-Null
             }
         }
     } else {
         if ($SaveXmlResults) {
             # Save the xml results.
-            $XmlResults.Save("$($LogDir).xml") | Out-Null
+            $XmlResults.Save("$($LogDir)-results.xml") | Out-Null
         }
     }
 
