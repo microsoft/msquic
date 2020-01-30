@@ -105,18 +105,6 @@ PacketSizeFromUdpPayloadSize(
         UdpPayloadSize + QUIC_MIN_IPV6_HEADER_SIZE + QUIC_UDP_HEADER_SIZE;
 }
 
-//
-// Different types of receive side scaling supported.
-//
-typedef enum QUIC_RSS_MODE {
-
-    QUIC_RSS_NONE,
-    QUIC_RSS_2_TUPLE,
-    QUIC_RSS_4_TUPLE,
-    QUIC_RSS_CONNECTION_ID
-
-} QUIC_RSS_MODE;
-
 typedef struct QUIC_BUFFER QUIC_BUFFER;
 
 //
@@ -278,15 +266,6 @@ QuicDataPathUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 QuicDataPathGetSupportedFeatures(
-    _In_ QUIC_DATAPATH* Datapath
-    );
-
-//
-// Queries the current RSS mode.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_RSS_MODE
-QuicDataPathGetRssMode(
     _In_ QUIC_DATAPATH* Datapath
     );
 

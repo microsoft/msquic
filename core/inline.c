@@ -124,12 +124,6 @@ QuicIsVersionSupported(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-QuicIsTupleRssMode(
-    void
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
 uint8_t
 QuicLibraryGetCurrentPartition(
     void

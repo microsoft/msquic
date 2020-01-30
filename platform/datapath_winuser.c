@@ -337,11 +337,6 @@ typedef struct QUIC_DATAPATH {
     UINT8 MaxSendBatchSize;
 
     //
-    // Current receive side scaling mode.
-    //
-    QUIC_RSS_MODE RssMode;
-
-    //
     // Function pointer to WSASendMsg.
     //
     LPFN_WSASENDMSG WSASendMsg;
@@ -466,7 +461,6 @@ QuicDataPathQueryRssScalabilityInfo(
 
     if (RssInfo.RssEnabled) {
         Datapath->Features |= QUIC_DATAPATH_FEATURE_RECV_SIDE_SCALING;
-        Datapath->RssMode = QUIC_RSS_2_TUPLE;
     }
 
 Error:
@@ -793,15 +787,6 @@ QuicDataPathGetSupportedFeatures(
     )
 {
     return Datapath->Features;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_RSS_MODE
-QuicDataPathGetRssMode(
-    _In_ QUIC_DATAPATH* Datapath
-    )
-{
-    return Datapath->RssMode;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

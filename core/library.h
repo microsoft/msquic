@@ -193,17 +193,6 @@ extern QUIC_LIBRARY MsQuicLib;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
-BOOLEAN
-QuicIsTupleRssMode(
-    void
-    )
-{
-    QUIC_RSS_MODE RssMode = QuicDataPathGetRssMode(MsQuicLib.Datapath);
-    return RssMode == QUIC_RSS_2_TUPLE || RssMode == QUIC_RSS_4_TUPLE;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-inline
 uint8_t
 QuicLibraryGetCurrentPartition(
     void

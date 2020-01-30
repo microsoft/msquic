@@ -292,12 +292,6 @@ typedef struct QUIC_DATAPATH {
     uint8_t MaxSendBatchSize;
 
     //
-    // The RSS mode (4-tuple, 2-tuple or connectionid) in use.
-    // TODO: See how to set and use this.
-    //
-    QUIC_RSS_MODE RssMode;
-
-    //
     // A reference rundown on the datapath binding.
     //
     QUIC_RUNDOWN_REF BindingsRundown;
@@ -564,18 +558,6 @@ QuicDataPathGetSupportedFeatures(
     )
 {
     return 0;
-}
-
-QUIC_RSS_MODE
-QuicDataPathGetRssMode(
-    _In_ QUIC_DATAPATH* Datapath
-    )
-{
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->DatapathGetRssMode(Datapath);
-#else
-    return QUIC_RSS_NONE;
-#endif
 }
 
 BOOLEAN
@@ -931,10 +913,6 @@ QuicSocketContextInitialize(
             QuicTraceLogError("[ dal] connect failed, 0x%x.", Status);
             goto Exit;
         }
-
-        //
-        // TODO: TODO Rss affinity. See Windows implementation.
-        //
     }
 
     //
