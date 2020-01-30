@@ -1,0 +1,2 @@
+## Ignore incremental linker files.
+*.ilk
