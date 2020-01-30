@@ -9,6 +9,9 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER ListTestCases
     Lists all the test cases.
 
+.PARAMETER Batch
+    Runs the test cases in a batch execution of msquictest.
+
 .PARAMETER Parallel
     Runs the test cases in parallel instead of serially. Log collection not currently supported.
 
@@ -19,7 +22,7 @@ This script provides helpers for running executing the MsQuic tests.
     The name of the profile to use for log collection.
 
 .PARAMETER Filter
-    A filter to include test cases from the list to execute.
+    A filter to include test cases from the list to execute. Multiple filters are separated by :. Negative filters are prefixed with -.
 
 .PARAMETER NegativeFilter
     A filter to remove test cases from the list to execute.
@@ -27,11 +30,17 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER Debugger
     Attaches the debugger to each test case run.
 
+.PARAMETER BreakOnFailure
+    Triggers a break point on a test failure.
+
 .PARAMETER ConvertLogs
     Convert any collected logs to text. Only works when LogProfile is set.
 
 .PARAMETER KeepLogsOnSuccess
     Don't discard logs on success.
+
+.PARAMETER SaveXmlResults
+    Saves the test results to XML.
 
 .EXAMPLE
     test.ps1
@@ -65,6 +74,9 @@ param (
     [switch]$ListTestCases = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$Batch = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$Parallel = $false,
 
     [Parameter(Mandatory = $false)]
@@ -78,16 +90,19 @@ param (
     [string]$Filter = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$NegativeFilter = "",
+    [switch]$Debugger = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Debugger = $false,
+    [switch]$BreakOnFailure = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$ConvertLogs = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$KeepLogsOnSuccess = $false
+    [switch]$KeepLogsOnSuccess = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SaveXmlResults = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -108,6 +123,9 @@ $ProcDumpExe = $CurrentDir + "\bld\windows\procdump\procdump64.exe"
 # Folder for log files.
 $LogBaseDir = Join-Path (Join-Path $CurrentDir "artifacts") "logs"
 $LogDir = Join-Path $LogBaseDir (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+
+# The file path of the final XML results.
+$FinalResultsPath = "$($LogDir)-results.xml"
 
 # Base XML results data.
 $XmlResults = [xml]@"
@@ -145,9 +163,9 @@ function Add-XmlResults($TestCase) {
         Remove-Item $TestCase.ResultsPath -Force | Out-Null
     } else {
         # Generate our own results xml.
-        $NewXmlText =  $FailXmlText.Replace("TestSuiteName", $TestSuiteName)
-        $NewXmlText =  $NewXmlText.Replace("TestCaseName", $TestCaseName)
-        $NewXmlText =  $NewXmlText.Replace("date", $TestCase.Timestamp)
+        $NewXmlText = $FailXmlText.Replace("TestSuiteName", $TestSuiteName)
+        $NewXmlText = $NewXmlText.Replace("TestCaseName", $TestCaseName)
+        $NewXmlText = $NewXmlText.Replace("date", $TestCase.Timestamp)
         $NewXmlResults = [xml]($NewXmlText)
     }
 
@@ -261,8 +279,12 @@ function StartTestCase([String]$Name) {
         .\log.ps1 -Start -LogProfile $LogProfile -InstanceName $InstanceName | Out-Null
     }
 
+    # Build up the argument list.
     $ResultsPath = Join-Path $LocalLogDir "results.xml"
-    $Arguments = "--gtest_break_on_failure --gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)"
+    $Arguments = "--gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)"
+    if ($BreakOnFailure) {
+        $Arguments = $Arguments + " --gtest_break_on_failure"
+    }
 
     # Start the test process and return some information about the test case.
     [pscustomobject]@{
@@ -275,6 +297,37 @@ function StartTestCase([String]$Name) {
     }
 }
 
+# Start all the msquictest test cases running.
+function StartAllTestCases {
+
+    $Name = "all"
+    $InstanceName = $Name
+
+    if ($LogProfile -ne "None") {
+        # Start the logs
+        .\log.ps1 -Start -LogProfile $LogProfile -InstanceName $InstanceName | Out-Null
+    }
+
+    # Build up the argument list.
+    $Arguments = "--gtest_catch_exceptions=0 --gtest_output=xml:$($FinalResultsPath)"
+    if ($null -ne $Filter) {
+        $Arguments = $Arguments + " --gtest_filter=$($Filter)"
+    }
+    if ($BreakOnFailure) {
+        $Arguments = $Arguments + " --gtest_break_on_failure"
+    }
+
+    # Start the test process and return some information about the test case.
+    [pscustomobject]@{
+        Name = $Name
+        InstanceName = $InstanceName
+        LogDir = $LogDir
+        Timestamp = (Get-Date -UFormat "%Y-%m-%dT%T")
+        ResultsPath = $FinalResultsPath
+        Process = (Start-MsQuicTest $Arguments $LogDir)
+    }
+}
+
 # Waits for and finishes up the test case.
 function FinishTestCase($TestCase) {
     $stdout = $null
@@ -284,28 +337,16 @@ function FinishTestCase($TestCase) {
     $TestCase.Process.WaitForExit()
 
     # Add the current test case results.
-    Add-XmlResults $TestCase
+    if (!$Batch) {
+        Add-XmlResults $TestCase
+    }
 
-    if ($Debugger -or $stdout.Contains("[  PASSED  ] 1 test")) {
-        if ($KeepLogsOnSuccess) {
-            # Keep logs.
-            if ($LogProfile -ne "None") {
-                if ($ConvertLogs) {
-                    .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName -ConvertToText | Out-Null
-                } else {
-                    .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName | Out-Null
-                }
-            }
-        } else {
-            if ($LogProfile -ne "None") {
-                # Don't keep logs on success.
-                .\log.ps1 -Cancel -InstanceName $TestCase.InstanceName | Out-Null
-            }
-            Remove-Item $TestCase.LogDir -Recurse -Force | Out-Null
-        }
-    } else {
+    if ($KeepLogsOnSuccess -or `
+        !$Debugger -or `
+        $stdout.Contains("[  FAILED  ]") -or `
+        !(Test-Path $TestCase.ResultsPath)) {
+
         if ($LogProfile -ne "None") {
-            # Keep logs on failure.
             if ($ConvertLogs) {
                 .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName -ConvertToText | Out-Null
             } else {
@@ -313,19 +354,21 @@ function FinishTestCase($TestCase) {
             }
         }
 
-        $stdout > (Join-Path $TestCase.LogDir "console.txt")
+        if (!$Debugger) {
+            $stdout > (Join-Path $TestCase.LogDir "console.txt")
+        }
 
         if ($Compress) {
             # Zip the output.
             Compress-Archive -Path "$($TestCase.LogDir)\*" -DestinationPath "$($TestCase.LogDir).zip" | Out-Null
             Remove-Item $TestCase.LogDir -Recurse -Force | Out-Null
         }
+    } else {
+        if ($LogProfile -ne "None") {
+            .\log.ps1 -Cancel -InstanceName $TestCase.InstanceName | Out-Null
+        }
+        Remove-Item $TestCase.LogDir -Recurse -Force | Out-Null
     }
-}
-
-# Runs a test case synchronously.
-function RunTestCase([String]$Name) {
-    FinishTestCase (StartTestCase $Name)
 }
 
 ##############################################################
@@ -340,11 +383,16 @@ $TestCases = GetTestCases
 
 # Apply any filtering.
 if ($Filter -ne "") {
-    $TestCases = ($TestCases | Where-Object { $_ -Like $Filter }) -as [String[]]
+    foreach ($f in $Filter.Split(":")) {
+        if ($f.StartsWith("-")) {
+            $f = $f.Substring(1)
+            $TestCases = ($TestCases | Where-Object { !($_ -Like $f) }) -as [String[]]
+        } else {
+            $TestCases = ($TestCases | Where-Object { $_ -Like $f }) -as [String[]]
+        }
+    }
 }
-if ($NegativeFilter -ne "") {
-    $TestCases = ($TestCases | Where-Object { !($_ -Like $NegativeFilter) }) -as [String[]]
-}
+
 if ($null -eq $TestCases) {
     Log "No test cases found."
     exit
@@ -372,15 +420,12 @@ if ($Debugger -and $Parallel) {
 }
 
 try {
-    if ($Parallel -eq $false) {
-        # Run the test cases serially.
-        Log "Executing $($TestCases.Length) tests in series..."
-        for ($i = 0; $i -lt $TestCases.Length; $i++) {
-            RunTestCase $TestCases[$i]
-            Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
-        }
+    if ($Batch) {
+        # Run the the test process once for all tests.
+        Log "Executing tests in batch..."
+        FinishTestCase (StartAllTestCases)
 
-    } else {
+    } elseif ($Parallel) {
         # Log collection doesn't work for parallel right now.
         if ($LogProfile -ne "None") {
             Log "Warning: Disabling log collection for parallel runs!"
@@ -402,19 +447,51 @@ try {
             FinishTestCase $Runs[$i]
             Write-Progress -Activity "Finishing tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
         }
+
+    } else {
+        # Run the test cases serially.
+        Log "Executing $($TestCases.Length) tests in series..."
+        for ($i = 0; $i -lt $TestCases.Length; $i++) {
+            FinishTestCase (StartTestCase $TestCases[$i])
+            Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+        }
     }
 } finally {
-    # Save the xml results.
-    $XmlResults.Save("$($LogDir).xml") | Out-Null
+    if ($Batch) {
+        if (Test-Path $FinalResultsPath) {
+            $XmlResults = [xml](Get-Content $FinalResultsPath)
+            if (!$SaveXmlResults) {
+                # Delete the XML results file since it's not needed.
+                Remove-Item "$($LogDir).xml" -Force | Out-Null
+            }
+        } else {
+            # No results file means the tests crashed most likely.
+            $NewXmlText = $FailXmlText.Replace("TestSuiteName", "all")
+            $NewXmlText = $NewXmlText.Replace("TestCaseName", "all")
+            $NewXmlText = $NewXmlText.Replace("date", $XmlResults.testsuites.timestamp)
+            $XmlResults = [xml]($NewXmlText)
+            if ($SaveXmlResults) {
+                # Save the xml results.
+                $XmlResults.Save($FinalResultsPath) | Out-Null
+            }
+        }
+    } else {
+        if ($SaveXmlResults) {
+            # Save the xml results.
+            $XmlResults.Save($FinalResultsPath) | Out-Null
+        }
+    }
 
     $TestCount = $XmlResults.testsuites.tests -as [Int]
     $TestsFailed = $XmlResults.testsuites.failures -as [Int]
 
     # Print out the results.
     Log "$($TestCount) test(s) run. $($TestsFailed) test(s) failed."
-    if ($TestsFailed -ne 0) {
+    if ($KeepLogsOnSuccess -or ($TestsFailed -ne 0)) {
         Log "Logs can be found in $($LogDir)"
-    } elseif (!$KeepLogsOnSuccess) {
-        Remove-Item $LogDir -Recurse -Force | Out-Null
+    } else {
+        if (Test-Path $LogDir) {
+            Remove-Item $LogDir -Recurse -Force | Out-Null
+        }
     }
 }

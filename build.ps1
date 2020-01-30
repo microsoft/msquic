@@ -96,6 +96,11 @@ if ($Clean) {
 }
 
 # Initialize directories needed for building.
+if (!(Test-Path $BaseArtifactsDir)) {
+    mkdir $BaseArtifactsDir | Out-Null
+    # Build up the artifacts (upload) ignore file.
+    ".artifactignore`n*.ilk`n*-results.xml" > (Join-Path $BaseArtifactsDir ".artifactignore")
+}
 if (!(Test-Path $BaseBuildDir)) { mkdir $BaseBuildDir | Out-Null }
 if (!(Test-Path $BuildDir)) { mkdir $BuildDir | Out-Null }
 
