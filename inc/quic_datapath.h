@@ -167,10 +167,15 @@ typedef struct QUIC_RECV_DATAGRAM {
     uint16_t BufferLength;
 
     //
-    // Flags, generally used for debugging.
+    // The partition ID of the received datagram.
     //
-    uint8_t Allocated : 1;          // Set to FALSE on free.
-    uint8_t QueuedOnConnection : 1;
+    uint8_t PartitionIndex;
+
+    //
+    // Flags.
+    //
+    uint8_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
+    uint8_t QueuedOnConnection : 1; // Used for debugging.
 
 } QUIC_RECV_DATAGRAM;
 

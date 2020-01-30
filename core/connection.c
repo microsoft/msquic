@@ -37,6 +37,12 @@ Abstract:
 #include "connection.tmh"
 #endif
 
+typedef struct QUIC_RECEIVE_PROCESSING_STATE {
+    BOOLEAN ResetIdleTimeout;
+    BOOLEAN UpdatePartitionId;
+    uint8_t PartitionIndex;
+} QUIC_RECEIVE_PROCESSING_STATE;
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnInitializeCrypto(
@@ -59,11 +65,22 @@ QuicConnAlloc(
     )
 {
     BOOLEAN IsServer = Datagram != NULL;
-    uint8_t AllocProcIndex =
-        (uint8_t)(QuicProcCurrentNumber() % MsQuicLib.PartitionCount);
+    uint8_t CurProcIndex = QuicLibraryGetCurrentPartition();
+
+    //
+    // For client, the datapath partitioning info is not known yet, so just use
+    // the current processor for now. Once the connection receives a packet the
+    // partition can be updated accordingly.
+    //
+    uint8_t BasePartitionId =
+        IsServer ?
+            (Datagram->PartitionIndex % MsQuicLib.PartitionCount) :
+            CurProcIndex;
+    uint8_t PartitionId = QuicPartitionIdCreate(BasePartitionId);
+    QUIC_DBG_ASSERT(BasePartitionId == QuicPartitionIdGetIndex(PartitionId));
 
     QUIC_CONNECTION* Connection =
-        QuicPoolAlloc(&MsQuicLib.PerProc[AllocProcIndex].ConnectionPool);
+        QuicPoolAlloc(&MsQuicLib.PerProc[CurProcIndex].ConnectionPool);
     if (Connection == NULL) {
         QuicTraceEvent(AllocFailure, "connection", sizeof(QUIC_CONNECTION));
         goto Error;
@@ -82,12 +99,13 @@ QuicConnAlloc(
 #if QUIC_TEST_MODE
     Connection->RefTypeCount[QUIC_CONN_REF_HANDLE_OWNER] = 1;
 #endif
-    Connection->AllocProcIndex = AllocProcIndex;
+    Connection->PartitionID = PartitionId;
     Connection->State.Allocated = TRUE;
     Connection->State.UseSendBuffer = QUIC_DEFAULT_SEND_BUFFERING_ENABLE;
     Connection->State.EncryptionEnabled = !MsQuicLib.EncryptionDisabled;
     Connection->State.ShareBinding = IsServer;
     Connection->Stats.Timing.Start = QuicTimeUs64();
+    Connection->SourceCidLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
     Connection->AckDelayExponent = QUIC_ACK_DELAY_EXPONENT;
     Connection->PeerTransportParams.AckDelayExponent = QUIC_DEFAULT_ACK_DELAY_EXPONENT;
     Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
@@ -122,7 +140,6 @@ QuicConnAlloc(
 
         Connection->Type = QUIC_HANDLE_TYPE_CHILD;
         Connection->ServerID = Packet->DestCid[QUIC_CID_SID_INDEX];
-        Connection->PartitionID = AllocProcIndex; // Used in tuple RSS modes.
 
         Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
         QuicConnOnQuicVersionSet(Connection);
@@ -336,9 +353,8 @@ QuicConnFree(
     if (Connection->OrigCID != NULL) {
         QUIC_FREE(Connection->OrigCID);
     }
-    QUIC_DBG_ASSERT(Connection->AllocProcIndex < MsQuicLib.PartitionCount);
     QuicPoolFree(
-        &MsQuicLib.PerProc[Connection->AllocProcIndex].ConnectionPool,
+        &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].ConnectionPool,
         Connection);
     QuicTraceEvent(ConnDestroyed, Connection);
 
@@ -709,6 +725,7 @@ QuicConnGenerateNewSourceCid(
                 MSQUIC_CONNECTION_ID_LENGTH);
         if (SourceCid == NULL) {
             QuicTraceEvent(AllocFailure, "new Src CID", sizeof(QUIC_CID_HASH_ENTRY) + MSQUIC_CONNECTION_ID_LENGTH);
+            QuicConnFatalError(Connection, QUIC_STATUS_INTERNAL_ERROR, NULL);
             return NULL;
         }
         if (!QuicBindingAddSourceConnectionID(Connection->Paths[0].Binding, SourceCid)) {
@@ -716,6 +733,7 @@ QuicConnGenerateNewSourceCid(
             SourceCid = NULL;
             if (++TryCount > QUIC_CID_MAX_COLLISION_RETRY) {
                 QuicTraceEvent(ConnError, Connection, "Too many CID collisions");
+                QuicConnFatalError(Connection, QUIC_STATUS_INTERNAL_ERROR, NULL);
                 return NULL;
             }
             QuicTraceLogConnVerbose(NewSrcCidNameCollision, Connection, "CID collision, trying again.");
@@ -743,6 +761,56 @@ QuicConnGenerateNewSourceCid(
     }
 
     return SourceCid;
+}
+
+uint8_t
+QuicConnSourceCidsCount(
+    _In_ const QUIC_CONNECTION* Connection
+    )
+{
+    uint8_t Count = 0;
+    const QUIC_SINGLE_LIST_ENTRY* Entry = &Connection->SourceCids;
+    while (Entry != NULL) {
+        ++Count;
+        Entry = Entry->Next;
+    }
+    return Count;
+}
+
+//
+// This generates new source CIDs for the peer to use to talk to us. If
+// indicated, it invalidates all the existing ones, sets a a new retire prior to
+// sequence number to send out and generates replacement CIDs.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnGenerateNewSourceCids(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ BOOLEAN ReplaceExistingCids
+    )
+{
+    if (Connection->SourceCidLimit == 1 || !Connection->State.ShareBinding) {
+        //
+        // Can't generate any new CIDs, so this is a no-op.
+        //
+        return;
+    }
+
+    //
+    // If we're replacing existing ones, then generate all new CIDs (up to the 
+    // limit). Otherwise, just generate whatever number we need to hit the
+    // limit.
+    //
+    uint8_t NewCidCount =
+        ReplaceExistingCids ?
+            Connection->SourceCidLimit :
+            Connection->SourceCidLimit - QuicConnSourceCidsCount(Connection);
+
+    for (uint8_t i = 0; i < NewCidCount; ++i) {
+        if (QuicConnGenerateNewSourceCid(Connection, FALSE) == NULL) {
+            break;
+        }
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1850,6 +1918,18 @@ QuicConnProcessPeerTransportParameters(
     )
 {
     QuicTraceLogConnInfo(PeerTPSet, Connection, "Peer Transport Parameters Set");
+
+    if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT) {
+        if (Connection->PeerTransportParams.ActiveConnectionIdLimit == 0) {
+            QuicTraceEvent(ConnError, Connection, "Peer set ActiveConnectionIdLimit to 0");
+            goto Error;
+        }
+        if (Connection->SourceCidLimit > Connection->PeerTransportParams.ActiveConnectionIdLimit) {
+            Connection->SourceCidLimit = (uint8_t) Connection->PeerTransportParams.ActiveConnectionIdLimit;
+        }
+    } else {
+        Connection->SourceCidLimit = 1;
+    }
 
     if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_STATELESS_RESET_TOKEN) {
         QUIC_DBG_ASSERT(!QuicListIsEmpty(&Connection->DestCids));
@@ -3406,7 +3486,9 @@ QuicConnRecvPayload(
                         QUIC_ERROR_PROTOCOL_VIOLATION,
                         NULL);
                 } else {
-                    (void)QuicConnGenerateNewSourceCid(Connection, FALSE);
+                    if (!QuicConnGenerateNewSourceCid(Connection, FALSE)) {
+                        break;
+                    }
                 }
             }
 
@@ -3652,17 +3734,17 @@ QuicConnRecvPostProcessing(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
+void
 QuicConnRecvBatch(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ uint8_t BatchCount,
     _In_reads_(BatchCount) QUIC_RECV_DATAGRAM** Datagrams,
     _In_reads_(BatchCount * QUIC_HP_SAMPLE_LENGTH)
-        const uint8_t* Cipher
+        const uint8_t* Cipher,
+    _Inout_ QUIC_RECEIVE_PROCESSING_STATE* RecvState
     )
 {
-    BOOLEAN ResetIdleTimeout = FALSE;
     uint8_t HpMask[QUIC_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
 
     QUIC_DBG_ASSERT(BatchCount > 0 && BatchCount <= QUIC_MAX_CRYPTO_BATCH_COUNT);
@@ -3672,7 +3754,7 @@ QuicConnRecvBatch(
 
     if (Connection->Crypto.TlsState.ReadKeys[Packet->KeyType] == NULL) {
         QuicPacketLogDrop(Connection, Packet, "Key no longer accepted (batch)");
-        return FALSE;
+        return;
     }
 
     if (Connection->State.EncryptionEnabled &&
@@ -3684,7 +3766,7 @@ QuicConnRecvBatch(
                 Cipher,
                 HpMask))) {
             QuicPacketLogDrop(Connection, Packet, "Failed to compute HP mask");
-            return FALSE;
+            return;
         }
     } else {
         QuicZeroMemory(HpMask, BatchCount * QUIC_HP_SAMPLE_LENGTH);
@@ -3699,7 +3781,13 @@ QuicConnRecvBatch(
             QuicConnRecvPayload(Connection, Path, Packet)) {
 
             QuicConnRecvPostProcessing(Connection, &Path, Packet);
-            ResetIdleTimeout |= Packet->CompletelyValid;
+            RecvState->ResetIdleTimeout |= Packet->CompletelyValid;
+
+            if (Path->IsActive && Packet->CompletelyValid &&
+                (Datagrams[i]->PartitionIndex % MsQuicLib.PartitionCount) != RecvState->PartitionIndex) {
+                RecvState->PartitionIndex = Datagrams[i]->PartitionIndex % MsQuicLib.PartitionCount;
+                RecvState->UpdatePartitionId = TRUE;
+            }
 
             if (Packet->IsShortHeader && Packet->NewLargestPacketNumber) {
 
@@ -3714,8 +3802,6 @@ QuicConnRecvBatch(
             Connection->Stats.Recv.DroppedPackets++;
         }
     }
-
-    return ResetIdleTimeout;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -3730,7 +3816,8 @@ QuicConnRecvDatagrams(
     QUIC_RECV_DATAGRAM* ReleaseChain = NULL;
     QUIC_RECV_DATAGRAM** ReleaseChainTail = &ReleaseChain;
     uint32_t ReleaseChainCount = 0;
-    BOOLEAN ResetIdleTimeout = FALSE;
+    QUIC_RECEIVE_PROCESSING_STATE RecvState = { FALSE, FALSE };
+    RecvState.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
 
     QUIC_PASSIVE_CODE();
 
@@ -3779,8 +3866,7 @@ QuicConnRecvDatagrams(
                 // batched ones. Flush the current batch before continuing.
                 //
                 QUIC_DBG_ASSERT(Path != NULL);
-                ResetIdleTimeout |=
-                    QuicConnRecvBatch(Connection, Path, BatchCount, Batch, Cipher);
+                QuicConnRecvBatch(Connection, Path, BatchCount, Batch, Cipher, &RecvState);
                 BatchCount = 0;
             }
 
@@ -3829,8 +3915,7 @@ QuicConnRecvDatagrams(
                 // encountered a long header packet. Finish off the short
                 // headers first and then continue with the current packet.
                 //
-                ResetIdleTimeout |=
-                    QuicConnRecvBatch(Connection, Path, BatchCount, Batch, Cipher);
+                QuicConnRecvBatch(Connection, Path, BatchCount, Batch, Cipher, &RecvState);
                 QuicMoveMemory(
                     Cipher + BatchCount * QUIC_HP_SAMPLE_LENGTH,
                     Cipher,
@@ -3843,8 +3928,7 @@ QuicConnRecvDatagrams(
                 break;
             }
 
-            ResetIdleTimeout |=
-                QuicConnRecvBatch(Connection, Path, BatchCount, Batch, Cipher);
+            QuicConnRecvBatch(Connection, Path, BatchCount, Batch, Cipher, &RecvState);
             BatchCount = 0;
 
             if (Packet->IsShortHeader) {
@@ -3880,8 +3964,7 @@ QuicConnRecvDatagrams(
             Datagram->QueuedOnConnection = FALSE;
             if (++ReleaseChainCount == QUIC_MAX_RECEIVE_BATCH_COUNT) {
                 if (BatchCount != 0) {
-                    ResetIdleTimeout |=
-                        QuicConnRecvBatch(Connection, Path, BatchCount, Batch, Cipher);
+                    QuicConnRecvBatch(Connection, Path, BatchCount, Batch, Cipher, &RecvState);
                     BatchCount = 0;
                 }
                 QuicDataPathBindingReturnRecvDatagrams(ReleaseChain);
@@ -3893,12 +3976,11 @@ QuicConnRecvDatagrams(
     }
 
     if (BatchCount != 0) {
-        ResetIdleTimeout |=
-            QuicConnRecvBatch(Connection, Path, BatchCount, Batch, Cipher);
+        QuicConnRecvBatch(Connection, Path, BatchCount, Batch, Cipher, &RecvState);
         BatchCount = 0;
     }
 
-    if (ResetIdleTimeout) {
+    if (RecvState.ResetIdleTimeout) {
         QuicConnResetIdleTimeout(Connection);
     }
 
@@ -3907,6 +3989,15 @@ QuicConnRecvDatagrams(
     }
 
     QuicConnRemoveInvalidPaths(Connection);
+
+    if (!Connection->State.UpdateWorker &&
+        Connection->State.Connected &&
+        RecvState.UpdatePartitionId) {
+        QUIC_DBG_ASSERT(RecvState.PartitionIndex != QuicPartitionIdGetIndex(Connection->PartitionID));
+        Connection->PartitionID = QuicPartitionIdCreate(RecvState.PartitionIndex);
+        QuicConnGenerateNewSourceCids(Connection, TRUE);
+        Connection->State.UpdateWorker = TRUE;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
