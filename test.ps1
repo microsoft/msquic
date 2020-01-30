@@ -30,6 +30,9 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER Debugger
     Attaches the debugger to each test case run.
 
+.PARAMETER BreakOnFailure
+    Triggers a break point on a test failure.
+
 .PARAMETER ConvertLogs
     Convert any collected logs to text. Only works when LogProfile is set.
 
@@ -90,6 +93,9 @@ param (
     [switch]$Debugger = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$BreakOnFailure = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$ConvertLogs = $false,
 
     [Parameter(Mandatory = $false)]
@@ -117,6 +123,9 @@ $ProcDumpExe = $CurrentDir + "\bld\windows\procdump\procdump64.exe"
 # Folder for log files.
 $LogBaseDir = Join-Path (Join-Path $CurrentDir "artifacts") "logs"
 $LogDir = Join-Path $LogBaseDir (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+
+# The file path of the final XML results.
+$FinalResultsPath = "$($LogDir)-results.xml"
 
 # Base XML results data.
 $XmlResults = [xml]@"
@@ -270,8 +279,12 @@ function StartTestCase([String]$Name) {
         .\log.ps1 -Start -LogProfile $LogProfile -InstanceName $InstanceName | Out-Null
     }
 
+    # Build up the argument list.
     $ResultsPath = Join-Path $LocalLogDir "results.xml"
-    $Arguments = "--gtest_break_on_failure --gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)"
+    $Arguments = "--gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)"
+    if ($BreakOnFailure) {
+        $Arguments = $Arguments + " --gtest_break_on_failure"
+    }
 
     # Start the test process and return some information about the test case.
     [pscustomobject]@{
@@ -295,10 +308,13 @@ function StartAllTestCases {
         .\log.ps1 -Start -LogProfile $LogProfile -InstanceName $InstanceName | Out-Null
     }
 
-    $ResultsPath = "$($LogDir)-results.xml"
-    $Arguments = "--gtest_catch_exceptions=0 --gtest_output=xml:$($ResultsPath)"
+    # Build up the argument list.
+    $Arguments = "--gtest_catch_exceptions=0 --gtest_output=xml:$($FinalResultsPath)"
     if ($null -ne $Filter) {
         $Arguments = $Arguments + " --gtest_filter=$($Filter)"
+    }
+    if ($BreakOnFailure) {
+        $Arguments = $Arguments + " --gtest_break_on_failure"
     }
 
     # Start the test process and return some information about the test case.
@@ -307,7 +323,7 @@ function StartAllTestCases {
         InstanceName = $InstanceName
         LogDir = $LogDir
         Timestamp = (Get-Date -UFormat "%Y-%m-%dT%T")
-        ResultsPath = $ResultsPath
+        ResultsPath = $FinalResultsPath
         Process = (Start-MsQuicTest $Arguments $LogDir)
     }
 }
@@ -442,8 +458,8 @@ try {
     }
 } finally {
     if ($Batch) {
-        if (Test-Path "$($LogDir)-results.xml") {
-            $XmlResults = [xml](Get-Content "$($LogDir)-results.xml")
+        if (Test-Path $FinalResultsPath) {
+            $XmlResults = [xml](Get-Content $FinalResultsPath)
             if (!$SaveXmlResults) {
                 # Delete the XML results file since it's not needed.
                 Remove-Item "$($LogDir).xml" -Force | Out-Null
@@ -456,13 +472,13 @@ try {
             $XmlResults = [xml]($NewXmlText)
             if ($SaveXmlResults) {
                 # Save the xml results.
-                $XmlResults.Save("$($LogDir)-results.xml") | Out-Null
+                $XmlResults.Save($FinalResultsPath) | Out-Null
             }
         }
     } else {
         if ($SaveXmlResults) {
             # Save the xml results.
-            $XmlResults.Save("$($LogDir)-results.xml") | Out-Null
+            $XmlResults.Save($FinalResultsPath) | Out-Null
         }
     }
 
