@@ -2409,6 +2409,80 @@ QuicTlsDeriveHeaderProtectionKey(
     return QUIC_STATUS_SUCCESS;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicPacketKeyDerive(
+    _In_ QUIC_PACKET_KEY_TYPE KeyType,
+    _In_ const QUIC_SECRET* const Secret,
+    _In_z_ const char* const SecretName,
+    _In_ BOOLEAN CreateHpKey,
+    _Out_ QUIC_PACKET_KEY **NewKey
+    )
+{
+    const uint16_t SecretLength = QuicHashLength(Secret->Hash);
+    const uint16_t KeyLength = QuicKeyLength(Secret->Aead);
+
+    QUIC_DBG_ASSERT(SecretLength >= KeyLength);
+    QUIC_DBG_ASSERT(SecretLength >= QUIC_IV_LENGTH);
+    QUIC_DBG_ASSERT(SecretLength <= QUIC_HASH_MAX_SIZE);
+
+    const uint16_t PacketKeyLength =
+        sizeof(QUIC_PACKET_KEY) +
+        (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
+    QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength);
+    if (Key == NULL) {
+        QuicTraceLogWarning("[ tls] Failed to allocate packet key.");
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+    QuicZeroMemory(Key, sizeof(QUIC_PACKET_KEY));
+    Key->Type = KeyType;
+
+    QUIC_STATUS Status =
+        QuicTlsDerivePacketProtectionIv(
+            Secret->Secret,
+            SecretLength,
+            QuicTlsKeyGetMd(Secret->Hash),
+            Key);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    Status =
+        QuicTlsDerivePacketProtectionKey(
+            Secret->Secret,
+            SecretLength,
+            QuicTlsKeyGetMd(Secret->Hash),
+            Key);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    if (CreateHpKey) {
+        Status =
+            QuicTlsDeriveHeaderProtectionKey(
+                Secret->Secret,
+                SecretLength,
+                QuicTlsKeyGetMd(Secret->Hash),
+                Key);
+        if (QUIC_FAILED(Status)) {
+            goto Error;
+        }
+    }
+
+    if (KeyType == QUIC_PACKET_KEY_1_RTT) {
+        QuicCopyMemory(Key->TrafficSecret, Secret, sizeof(QUIC_SECRET));
+    }
+
+    *NewKey = Key;
+    Key = NULL;
+
+Error:
+
+    QuicPacketKeyFree(Key);
+
+    return Status;
+}
+
 static
 QUIC_STATUS
 QuicTlsUpdateTrafficSecret(
