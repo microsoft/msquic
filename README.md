@@ -59,7 +59,7 @@ The source is divided into several directories:
   * `tools` - Tools for exercising MsQuic.
     * `attack` - Adversarial tool for exploiting protocol weaknesses.
     * `etw` - Windows specific tool for processing MsQuic ETW logs.
-    * `interop` - Runs through the [IETF interop scenarios](https://github.com/quicwg/base-drafts/wiki/15th-Implementation-Draft).
+    * `interop` - Runs through the [IETF interop scenarios](https://github.com/quicwg/base-drafts/wiki/16th-Implementation-Draft).
     * `ping` - Simple tool for gathering throughput measurements. Read more [here](./tools/ping/readme.md).
     * `sample` - Minimal example of how to use the MsQuic API.
     * `spin` - Randomly executes the MsQuic API to discover bugs.

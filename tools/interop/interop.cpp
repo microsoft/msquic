@@ -647,7 +647,7 @@ QUIC_THREAD_CALLBACK(InteropTestCallback, Context)
 {
     auto TestContext = (InteropTestContext*)Context;
 
-    uint32_t QuicVersion;
+    uint32_t QuicVersion = 0;
     if (RunInteropTest(
             PublicEndpoints[TestContext->EndpointIndex],
             TestContext->Alpn,
