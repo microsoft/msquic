@@ -493,6 +493,10 @@ typedef enum QUIC_EVENT_ID_STREAM {
     EventId_QuicStreamRecvState,
     EventId_QuicStreamError,
     EventId_QuicStreamErrorStatus,
+    EventId_QuicStreamLogError,
+    EventId_QuicStreamLogWarning,
+    EventId_QuicStreamLogInfo,
+    EventId_QuicStreamLogVerbose,
 
     EventId_QuicStreamCount
 } QUIC_EVENT_ID_STREAM;
@@ -526,6 +530,9 @@ typedef struct QUIC_EVENT_DATA_STREAM {
             UINT32 Status;
             char ErrStr[1];
         } ErrorStatus;
+        struct {
+            char Msg[1];
+        } Log;
     };
 } QUIC_EVENT_DATA_STREAM;
 #pragma pack(pop)
