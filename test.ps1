@@ -296,10 +296,11 @@ function StartAllTestCases {
     }
 
     $ResultsPath = "$($LogDir)-results.xml"
-    $Arguments = "--gtest_break_on_failure --gtest_catch_exceptions=0 --gtest_output=xml:$($ResultsPath)"
+    $Arguments = "--gtest_catch_exceptions=0 --gtest_output=xml:$($ResultsPath)"
     if ($null -ne $Filter) {
         $Arguments = $Arguments + " --gtest_filter=$($Filter)"
     }
+
     # Start the test process and return some information about the test case.
     [pscustomobject]@{
         Name = $Name
