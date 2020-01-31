@@ -296,7 +296,7 @@ QuicPacketGenerateRetryV1Integrity(
     _In_ uint16_t BufferLength,
     _In_reads_bytes_(BufferLength)
         const uint8_t* const Buffer,
-    _Out_writes_bytes_(QUIC_ENCRYPTION_OVERHEAD)
+    _Out_writes_bytes_(QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1)
         uint8_t* IntegrityField
     )
 {
@@ -340,7 +340,7 @@ QuicPacketGenerateRetryV1Integrity(
             RetryIntegrityKey->Iv,
             RetryPseudoPacketLength,
             RetryPseudoPacket,
-            QUIC_ENCRYPTION_OVERHEAD,
+            QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1,
             IntegrityField);
 
 Exit:
@@ -375,7 +375,7 @@ QuicPacketEncodeRetryV1(
         DestCidLength +
         SourceCidLength +
         TokenLength +
-        QUIC_ENCRYPTION_OVERHEAD;
+        QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1;
     if (BufferLength < RequiredBufferLength) {
         return 0;
     }
@@ -409,16 +409,16 @@ QuicPacketEncodeRetryV1(
     }
 
     if (QUIC_FAILED(
-            QuicPacketGenerateRetryV1Integrity(
-                OrigDestCidLength,
-                OrigDestCid,
-                RequiredBufferLength - QUIC_ENCRYPTION_OVERHEAD,
-                (uint8_t*) Header,
-                HeaderBuffer))) {
+        QuicPacketGenerateRetryV1Integrity(
+            OrigDestCidLength,
+            OrigDestCid,
+            RequiredBufferLength - QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1,
+            (uint8_t*) Header,
+            HeaderBuffer))) {
         return 0;
     }
 
-    HeaderBuffer += QUIC_ENCRYPTION_OVERHEAD;
+    HeaderBuffer += QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1;
 
     return RequiredBufferLength;
 }

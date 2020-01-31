@@ -183,6 +183,8 @@ typedef struct QUIC_RETRY_V1 {
     sizeof(uint8_t) \
 )
 
+#define QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1 QUIC_ENCRYPTION_OVERHEAD
+
 //
 // Represents the short header format. All values in Network Byte order.
 // The 5 least significant bits are protected by header protection.

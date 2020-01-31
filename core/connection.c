@@ -2205,13 +2205,13 @@ QuicConnRecvRetry(
     // Decode and validate the Retry packet.
     //
 
-    if (Packet->BufferLength - Packet->HeaderLength <= QUIC_ENCRYPTION_OVERHEAD) {
+    if (Packet->BufferLength - Packet->HeaderLength <= QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1) {
         QuicPacketLogDrop(Connection, Packet, "No room for Retry Token");
         return;
     }
 
     const uint8_t* Token = (Packet->Buffer + Packet->HeaderLength);
-    uint16_t TokenLength = Packet->BufferLength - (Packet->HeaderLength + QUIC_ENCRYPTION_OVERHEAD);
+    uint16_t TokenLength = Packet->BufferLength - (Packet->HeaderLength + QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1);
 
     QuicPacketLogHeader(
         Connection,
@@ -2234,13 +2234,13 @@ QuicConnRecvRetry(
     uint8_t CalculatedIntegrityValue[QUIC_ENCRYPTION_OVERHEAD];
 
     if (QUIC_FAILED(
-            QuicPacketGenerateRetryV1Integrity(
-                OrigDestCidLength,
-                OrigDestCid,
-                Packet->BufferLength - QUIC_ENCRYPTION_OVERHEAD,
-                Packet->Buffer,
-                CalculatedIntegrityValue))) {
-        QuicPacketLogDrop(Connection, Packet, "Failed to verify integrity field");
+        QuicPacketGenerateRetryV1Integrity(
+            OrigDestCidLength,
+            OrigDestCid,
+            Packet->BufferLength - QUIC_ENCRYPTION_OVERHEAD,
+            Packet->Buffer,
+            CalculatedIntegrityValue))) {
+        QuicPacketLogDrop(Connection, Packet, "Failed to generate integrity field");
         return;
     }
 

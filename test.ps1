@@ -310,7 +310,7 @@ function StartAllTestCases {
 
     # Build up the argument list.
     $Arguments = "--gtest_catch_exceptions=0 --gtest_output=xml:$($FinalResultsPath)"
-    if ($null -ne $Filter) {
+    if ($Filter -ne "") {
         $Arguments = $Arguments + " --gtest_filter=$($Filter)"
     }
     if ($BreakOnFailure) {
