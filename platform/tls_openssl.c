@@ -2010,15 +2010,21 @@ QuicTlsKeySetAead(
     switch (AeadType) {
     case QUIC_AEAD_AES_128_GCM:
         Key->PacketKey->Aead = EVP_aes_128_gcm();
-        Key->HeaderKey->Aead = EVP_aes_128_ctr();
+        if (Key->HeaderKey != NULL) {
+            Key->HeaderKey->Aead = EVP_aes_128_ctr();
+        }
         break;
     case QUIC_AEAD_AES_256_GCM:
         Key->PacketKey->Aead = EVP_aes_256_gcm();
-        Key->HeaderKey->Aead = EVP_aes_256_ctr();
+        if (Key->HeaderKey != NULL) {
+            Key->HeaderKey->Aead = EVP_aes_256_ctr();
+        }
         break;
     case QUIC_AEAD_CHACHA20_POLY1305:
         Key->PacketKey->Aead = EVP_chacha20_poly1305();
-        Key->HeaderKey->Aead = EVP_chacha20();
+        if (Key->HeaderKey != NULL) {
+            Key->HeaderKey->Aead = EVP_chacha20();
+        }
         break;
     default:
         QUIC_FRE_ASSERT(FALSE);
@@ -2426,18 +2432,15 @@ QuicPacketKeyDerive(
     QUIC_DBG_ASSERT(SecretLength >= QUIC_IV_LENGTH);
     QUIC_DBG_ASSERT(SecretLength <= QUIC_HASH_MAX_SIZE);
 
-    const uint16_t PacketKeyLength =
-        sizeof(QUIC_PACKET_KEY) +
-        (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
-    QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength);
-    if (Key == NULL) {
-        QuicTraceLogWarning("[ tls] Failed to allocate packet key.");
-        return QUIC_STATUS_OUT_OF_MEMORY;
+    QUIC_PACKET_KEY *Key;
+    QUIC_STATUS Status = QuicAllocatePacketKey(KeyType, CreateHpKey, &Key);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
     }
-    QuicZeroMemory(Key, sizeof(QUIC_PACKET_KEY));
-    Key->Type = KeyType;
 
-    QUIC_STATUS Status =
+    QuicTlsKeySetAead(Secret->Aead, Key);
+
+     Status =
         QuicTlsDerivePacketProtectionIv(
             Secret->Secret,
             SecretLength,

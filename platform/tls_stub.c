@@ -1313,6 +1313,7 @@ QuicEncrypt(
     UNREFERENCED_PARAMETER(AuthData);
     uint16_t PlainTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
     *(uint64_t*)(Buffer + PlainTextLength) = MAGIC_NO_ENCRYPTION_VALUE;
+    *(uint64_t*)(Buffer + PlainTextLength + sizeof(uint64_t)) = MAGIC_NO_ENCRYPTION_VALUE;
     return QUIC_STATUS_SUCCESS;
 }
 
