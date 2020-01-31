@@ -289,6 +289,140 @@ QuicPacketValidateLongHeaderV1(
     return TRUE;
 }
 
+QUIC_STATUS
+QuicPacketGenerateRetryV1Integrity(
+    _In_ uint8_t OrigDestCidLength,
+    _In_reads_(OrigDestCidLength) const uint8_t* const OrigDestCid,
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t* const Buffer,
+    _Out_writes_bytes_(QUIC_ENCRYPTION_OVERHEAD)
+        uint8_t* IntegrityField
+    )
+{
+    QUIC_SECRET Secret = {
+        QUIC_HASH_SHA256,
+        QUIC_AEAD_AES_128_GCM,
+        { QUIC_RETRY_PACKET_INTEGRITY_SECRET }
+    };
+
+    uint8_t* RetryPseudoPacket = NULL;
+    QUIC_PACKET_KEY* RetryIntegrityKey;
+    QUIC_STATUS Status =
+        QuicPacketKeyDerive(
+            QUIC_PACKET_KEY_INITIAL,
+            &Secret,
+            "RetryIntegrity",
+            FALSE,
+            &RetryIntegrityKey);
+    if (QUIC_FAILED(Status)) {
+        goto Exit;
+    }
+
+    uint16_t RetryPseudoPacketLength = sizeof(uint8_t) + OrigDestCidLength + BufferLength;
+    RetryPseudoPacket = (uint8_t*) QUIC_ALLOC_PAGED(RetryPseudoPacketLength);
+    if (RetryPseudoPacket == NULL) {
+        QuicTraceEvent(AllocFailure, "RetryPseudoPacket", RetryPseudoPacketLength);
+        goto Exit;
+    }
+    uint8_t* RetryPseudoPacketCursor = RetryPseudoPacket;
+
+    *RetryPseudoPacketCursor = OrigDestCidLength;
+    RetryPseudoPacketCursor++;
+    QuicCopyMemory(RetryPseudoPacketCursor, OrigDestCid, OrigDestCidLength);
+    RetryPseudoPacketCursor += OrigDestCidLength;
+    QuicCopyMemory(RetryPseudoPacketCursor, Buffer, BufferLength);
+    RetryPseudoPacketCursor += BufferLength;
+
+    Status =
+        QuicEncrypt(
+            RetryIntegrityKey->PacketKey,
+            RetryIntegrityKey->Iv,
+            RetryPseudoPacketLength,
+            RetryPseudoPacket,
+            QUIC_ENCRYPTION_OVERHEAD,
+            IntegrityField);
+
+Exit:
+    if (RetryPseudoPacket != NULL) {
+        QuicFree(RetryPseudoPacket);
+    }
+    QuicPacketKeyFree(RetryIntegrityKey);
+    return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != 0)
+uint16_t
+QuicPacketEncodeRetryV1(
+    _In_ uint32_t Version,
+    _In_reads_(DestCidLength) const uint8_t* const DestCid,
+    _In_ uint8_t DestCidLength,
+    _In_reads_(SourceCidLength) const uint8_t* const SourceCid,
+    _In_ uint8_t SourceCidLength,
+    _In_reads_(OrigDestCidLength) const uint8_t* const OrigDestCid,
+    _In_ uint8_t OrigDestCidLength,
+    _In_ uint16_t TokenLength,
+    _In_reads_(TokenLength)
+        uint8_t* Token,
+    _In_ uint16_t BufferLength,
+    _Out_writes_bytes_(BufferLength)
+        uint8_t* Buffer
+    )
+{
+    uint16_t RequiredBufferLength =
+        MIN_RETRY_HEADER_LENGTH_V1 +
+        DestCidLength +
+        SourceCidLength +
+        TokenLength +
+        QUIC_ENCRYPTION_OVERHEAD;
+    if (BufferLength < RequiredBufferLength) {
+        return 0;
+    }
+
+    QUIC_RETRY_V1* Header = (QUIC_RETRY_V1*)Buffer;
+
+    uint8_t RandomBits;
+    QuicRandom(sizeof(RandomBits), &RandomBits);
+
+    Header->IsLongHeader    = TRUE;
+    Header->FixedBit        = 1;
+    Header->Type            = QUIC_RETRY;
+    Header->UNUSED          = RandomBits;
+    Header->Version         = Version;
+    Header->DestCidLength   = DestCidLength;
+
+    uint8_t *HeaderBuffer = Header->DestCid;
+    if (DestCidLength != 0) {
+        memcpy(HeaderBuffer, DestCid, DestCidLength);
+        HeaderBuffer += DestCidLength;
+    }
+    *HeaderBuffer = SourceCidLength;
+    HeaderBuffer++;
+    if (SourceCidLength != 0) {
+        memcpy(HeaderBuffer, SourceCid, SourceCidLength);
+        HeaderBuffer += SourceCidLength;
+    }
+    if (TokenLength != 0) {
+        memcpy(HeaderBuffer, Token, TokenLength);
+        HeaderBuffer += TokenLength;
+    }
+
+    if (QUIC_FAILED(
+            QuicPacketGenerateRetryV1Integrity(
+                OrigDestCidLength,
+                OrigDestCid,
+                RequiredBufferLength - QUIC_ENCRYPTION_OVERHEAD,
+                (uint8_t*) Header,
+                HeaderBuffer))) {
+        return 0;
+    }
+
+    HeaderBuffer += QUIC_ENCRYPTION_OVERHEAD;
+
+    return RequiredBufferLength;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketDecodeRetryTokenV1(
@@ -445,13 +579,12 @@ QuicPacketLogHeader(
                 Offset += sizeof(uint8_t) + OrigDestCidLen;
 
                 QuicTraceLogVerbose(
-                    "[%c][%cX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R OrigDestCid:%s (Token %hu bytes)",
+                    "[%c][%cX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R (Token %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     LongHdr->Version,
                     QuicCidBufToStr(DestCid, DestCidLen).Buffer,
                     QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
-                    QuicCidBufToStr(OrigDestCid, OrigDestCidLen).Buffer,
                     PacketLength - Offset);
                 break;
 

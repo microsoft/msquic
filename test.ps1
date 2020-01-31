@@ -336,6 +336,8 @@ function FinishTestCase($TestCase) {
     }
     $TestCase.Process.WaitForExit()
 
+    $HasResults = Test-Path $TestCase.ResultsPath
+
     # Add the current test case results.
     if (!$Batch) {
         Add-XmlResults $TestCase
@@ -344,7 +346,7 @@ function FinishTestCase($TestCase) {
     if ($KeepLogsOnSuccess -or `
         !$Debugger -or `
         $stdout.Contains("[  FAILED  ]") -or `
-        !(Test-Path $TestCase.ResultsPath)) {
+        !$HasResults) {
 
         if ($LogProfile -ne "None") {
             if ($ConvertLogs) {
@@ -462,7 +464,7 @@ try {
             $XmlResults = [xml](Get-Content $FinalResultsPath)
             if (!$SaveXmlResults) {
                 # Delete the XML results file since it's not needed.
-                Remove-Item "$($LogDir).xml" -Force | Out-Null
+                Remove-Item $FinalResultsPath -Force | Out-Null
             }
         } else {
             # No results file means the tests crashed most likely.

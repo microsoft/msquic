@@ -436,10 +436,21 @@ QuicPacketEncodeLongHeaderV1(
     3 * QUIC_MAX_CONNECTION_ID_LENGTH_V1 + \
     sizeof(QUIC_RETRY_TOKEN_CONTENTS)
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicPacketGenerateRetryV1Integrity(
+    _In_ uint8_t OrigDestCidLength,
+    _In_reads_(OrigDestCidLength) const uint8_t* const OrigDestCid,
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t* const Buffer,
+    _Out_writes_bytes_(QUIC_ENCRYPTION_OVERHEAD)
+        uint8_t* IntegrityField
+    );
+
 //
 // Encodes the long header fields.
 //
-inline
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
@@ -457,83 +468,7 @@ QuicPacketEncodeRetryV1(
     _In_ uint16_t BufferLength,
     _Out_writes_bytes_(BufferLength)
         uint8_t* Buffer
-    )
-{
-    uint16_t RequiredBufferLength =
-        MIN_RETRY_HEADER_LENGTH_V1 +
-        DestCidLength +
-        SourceCidLength +
-        TokenLength +
-        QUIC_ENCRYPTION_OVERHEAD;
-    if (BufferLength < RequiredBufferLength) {
-        return 0;
-    }
-
-    QUIC_RETRY_V1* Header = (QUIC_RETRY_V1*)Buffer;
-
-    Header->IsLongHeader    = TRUE;
-    Header->FixedBit        = 1;
-    Header->Type            = QUIC_RETRY;
-    Header->UNUSED          = 0; // TODO: These are supposed to be random
-    Header->Version         = Version;
-    Header->DestCidLength   = DestCidLength;
-
-    uint8_t *HeaderBuffer = Header->DestCid;
-    if (DestCidLength != 0) {
-        memcpy(HeaderBuffer, DestCid, DestCidLength);
-        HeaderBuffer += DestCidLength;
-    }
-    *HeaderBuffer = SourceCidLength;
-    HeaderBuffer++;
-    if (SourceCidLength != 0) {
-        memcpy(HeaderBuffer, SourceCid, SourceCidLength);
-        HeaderBuffer += SourceCidLength;
-    }
-    if (TokenLength != 0) {
-        memcpy(HeaderBuffer, Token, TokenLength);
-        HeaderBuffer += TokenLength;
-    }
-
-    QUIC_SECRET Secret = {
-        QUIC_HASH_SHA256,
-        QUIC_AEAD_AES_128_GCM,
-        {0x65, 0x6e, 0x61, 0xe3, 0x36, 0xae, 0x94, 0x17, 0xf7, 0xf0, 0xed, 0xd8, 0xd7, 0x8d, 0x46, 0x1e, 0x2a, 0xa7, 0x08, 0x4a, 0xba, 0x7a, 0x14, 0xc1, 0xe9, 0xf7, 0x26, 0xd5, 0x57, 0x09, 0x16, 0x9a}
-    };
-
-    QUIC_PACKET_KEY* RetryIntegrityKey;
-    if (QUIC_FAILED(QuicPacketKeyDerive(QUIC_PACKET_KEY_INITIAL, &Secret, "RetryIntegrity", FALSE, &RetryIntegrityKey))) {
-        // TODO Log failure here.
-        return 0;
-    }
-
-    uint16_t RetryPseudoPacketLength = RequiredBufferLength + OrigDestCidLength + sizeof(uint8_t);
-    uint8_t* RetryPseudoPacket = (uint8_t*) QUIC_ALLOC_PAGED(RetryPseudoPacketLength);
-    if (RetryPseudoPacket == NULL) {
-        // TODO: Log failure here.
-        return 0;
-    }
-    uint8_t* RetryPseudoPacketCursor = RetryPseudoPacket;
-
-    *RetryPseudoPacketCursor = OrigDestCidLength;
-    RetryPseudoPacketCursor++;
-    QuicCopyMemory(RetryPseudoPacketCursor, OrigDestCid, OrigDestCidLength);
-    RetryPseudoPacketCursor += OrigDestCidLength;
-    QuicCopyMemory(RetryPseudoPacketCursor, (uint8_t*) Header, RequiredBufferLength);
-
-    QuicEncrypt(
-        RetryIntegrityKey->PacketKey,
-        RetryIntegrityKey->Iv,
-        RetryPseudoPacketLength,
-        RetryPseudoPacket,
-        QUIC_ENCRYPTION_OVERHEAD,
-        RetryPseudoPacketCursor - QUIC_ENCRYPTION_OVERHEAD);
-
-    QuicCopyMemory(HeaderBuffer, RetryPseudoPacketCursor - QUIC_ENCRYPTION_OVERHEAD, QUIC_ENCRYPTION_OVERHEAD);
-
-    QuicFree(RetryPseudoPacket);
-
-    return RequiredBufferLength;
-}
+    );
 
 //
 // Encodes the short header fields.
