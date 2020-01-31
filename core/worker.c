@@ -581,6 +581,14 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
         QUIC_CONNECTION* Connection =
             QUIC_CONTAINING_RECORD(
                 QuicListRemoveHead(&Worker->Connections), QUIC_CONNECTION, WorkerLink);
+        if (!Connection->State.ExternalOwner) {
+            //
+            // If there is no external owner, shutdown the connection so that
+            // it's not leaked.
+            //
+            QuicTraceLogConnVerbose(AbandonOnLibShutdown, Connection, "Abandoning on shutdown");
+            QuicConnOnShutdownComplete(Connection);
+        }
         QuicConnRelease(Connection, QUIC_CONN_REF_WORKER);
     }
 
