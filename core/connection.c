@@ -43,12 +43,6 @@ QuicConnInitializeCrypto(
     _In_ QUIC_CONNECTION* Connection
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicConnOnShutdownComplete(
-    _In_ QUIC_CONNECTION* Connection
-    );
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 __drv_allocatesMem(Mem)
 _Must_inspect_result_
