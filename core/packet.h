@@ -169,9 +169,8 @@ typedef struct QUIC_RETRY_V1 {
     uint8_t DestCid[0];
     //uint8_t SourceCidLength;
     //uint8_t SourceCid[SourceCidLength];
-    //uint8_t OrigDestCidLength;
-    //uint8_t OrigDestCid[OrigDestCidLength];
     //uint8_t Token[*];
+    //uint8_t RetryIntegrityField[16];
 
 } QUIC_RETRY_V1;
 
@@ -181,8 +180,10 @@ typedef struct QUIC_RETRY_V1 {
 #define MIN_RETRY_HEADER_LENGTH_V1 \
 ( \
     sizeof(QUIC_RETRY_V1) + \
-    2 * sizeof(uint8_t) \
+    sizeof(uint8_t) \
 )
+
+#define QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1 QUIC_ENCRYPTION_OVERHEAD
 
 //
 // Represents the short header format. All values in Network Byte order.
@@ -437,10 +438,21 @@ QuicPacketEncodeLongHeaderV1(
     3 * QUIC_MAX_CONNECTION_ID_LENGTH_V1 + \
     sizeof(QUIC_RETRY_TOKEN_CONTENTS)
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicPacketGenerateRetryV1Integrity(
+    _In_ uint8_t OrigDestCidLength,
+    _In_reads_(OrigDestCidLength) const uint8_t* const OrigDestCid,
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t* const Buffer,
+    _Out_writes_bytes_(QUIC_ENCRYPTION_OVERHEAD)
+        uint8_t* IntegrityField
+    );
+
 //
 // Encodes the long header fields.
 //
-inline
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != 0)
 uint16_t
@@ -458,51 +470,7 @@ QuicPacketEncodeRetryV1(
     _In_ uint16_t BufferLength,
     _Out_writes_bytes_(BufferLength)
         uint8_t* Buffer
-    )
-{
-    uint16_t RequiredBufferLength =
-        MIN_RETRY_HEADER_LENGTH_V1 +
-        DestCidLength +
-        SourceCidLength +
-        OrigDestCidLength +
-        TokenLength;
-    if (BufferLength < RequiredBufferLength) {
-        return 0;
-    }
-
-    QUIC_RETRY_V1* Header = (QUIC_RETRY_V1*)Buffer;
-
-    Header->IsLongHeader    = TRUE;
-    Header->FixedBit        = 1;
-    Header->Type            = QUIC_RETRY;
-    Header->UNUSED          = 0;
-    Header->Version         = Version;
-    Header->DestCidLength   = DestCidLength;
-
-    uint8_t *HeaderBuffer = Header->DestCid;
-    if (DestCidLength != 0) {
-        memcpy(HeaderBuffer, DestCid, DestCidLength);
-        HeaderBuffer += DestCidLength;
-    }
-    *HeaderBuffer = SourceCidLength;
-    HeaderBuffer++;
-    if (SourceCidLength != 0) {
-        memcpy(HeaderBuffer, SourceCid, SourceCidLength);
-        HeaderBuffer += SourceCidLength;
-    }
-    *HeaderBuffer = OrigDestCidLength;
-    HeaderBuffer++;
-    if (OrigDestCidLength != 0) {
-        memcpy(HeaderBuffer, OrigDestCid, OrigDestCidLength);
-        HeaderBuffer += OrigDestCidLength;
-    }
-    if (TokenLength != 0) {
-        memcpy(HeaderBuffer, Token, TokenLength);
-        HeaderBuffer += TokenLength;
-    }
-
-    return RequiredBufferLength;
-}
+    );
 
 //
 // Encodes the short header fields.

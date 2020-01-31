@@ -148,6 +148,11 @@ QuicKeyTypeToEncryptLevel(
     QUIC_PACKET_KEY_TYPE KeyType
     );
 
+uint16_t
+QuicKeyLength(
+    QUIC_AEAD_TYPE Type
+    );
+
 QUIC_PACKET_KEY_TYPE
 QuicPacketTypeToKeyType(
     uint8_t PacketType
@@ -351,25 +356,6 @@ QuicPacketEncodeShortHeaderV1(
     _In_ BOOLEAN KeyPhase,
     _In_ uint16_t BufferLength,
     _Out_writes_bytes_opt_(BufferLength)
-        uint8_t* Buffer
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Success_(return != 0)
-uint16_t
-QuicPacketEncodeRetryV1(
-    _In_ uint32_t Version,
-    _In_reads_(DestCidLength) const uint8_t* const DestCid,
-    _In_ uint8_t DestCidLength,
-    _In_reads_(SourceCidLength) const uint8_t* const SourceCid,
-    _In_ uint8_t SourceCidLength,
-    _In_reads_(OrigDestCidLength) const uint8_t* const OrigDestCid,
-    _In_ uint8_t OrigDestCidLength,
-    _In_ uint16_t TokenLength,
-    _In_reads_(TokenLength)
-        uint8_t* Token,
-    _In_ uint16_t BufferLength,
-    _Out_writes_bytes_(BufferLength)
         uint8_t* Buffer
     );
 

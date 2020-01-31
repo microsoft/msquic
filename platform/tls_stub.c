@@ -1224,6 +1224,23 @@ QuicPacketKeyCreateInitial(
     return QUIC_STATUS_SUCCESS;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicPacketKeyDerive(
+    _In_ QUIC_PACKET_KEY_TYPE KeyType,
+    _In_ const QUIC_SECRET* const Secret,
+    _In_z_ const char* const SecretName,
+    _In_ BOOLEAN CreateHpKey,
+    _Out_ QUIC_PACKET_KEY **NewKey
+    )
+{
+    UNREFERENCED_PARAMETER(Secret);
+    UNREFERENCED_PARAMETER(SecretName);
+    UNREFERENCED_PARAMETER(CreateHpKey);
+    *NewKey = QuicStubAllocKey(KeyType);
+    return QUIC_STATUS_SUCCESS;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketKeyFree(
@@ -1296,6 +1313,7 @@ QuicEncrypt(
     UNREFERENCED_PARAMETER(AuthData);
     uint16_t PlainTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
     *(uint64_t*)(Buffer + PlainTextLength) = MAGIC_NO_ENCRYPTION_VALUE;
+    *(uint64_t*)(Buffer + PlainTextLength + sizeof(uint64_t)) = MAGIC_NO_ENCRYPTION_VALUE;
     return QUIC_STATUS_SUCCESS;
 }
 
