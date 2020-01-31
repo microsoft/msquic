@@ -964,6 +964,11 @@ QuicCryptoProcessDataFrame(
 
     } else {
 
+        if (KeyType == QUIC_PACKET_KEY_1_RTT_OLD ||
+            KeyType == QUIC_PACKET_KEY_1_RTT_NEW) {
+            KeyType = QUIC_PACKET_KEY_1_RTT; // Treat them all as the same
+        }
+
         if (KeyType != Crypto->TlsState.ReadKey) {
             if (QuicRecvBufferAlreadyReadData(
                     &Crypto->RecvBuffer,
