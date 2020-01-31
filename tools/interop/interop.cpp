@@ -59,6 +59,7 @@ const QuicPublicEndpoint PublicEndpoints[] = {
     { "ats",            "quic.ogre.com" },
     { "f5",             "f5quic.com" },
     { "gquic",          "quic.rocks" },
+    { "haskell",        "mew.org" },
     { "lsquic",         "http3-test.litespeedtech.com" },
     { "mvfst",          "fb.mvfst.net" },
     { "msquic",         "quic.westus.cloudapp.azure.com" },
@@ -749,6 +750,7 @@ RunInteropTests()
     } else {
         PrintTestResults((uint32_t)EndpointIndex);
     }
+    printf("\n");
 }
 
 int
