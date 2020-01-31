@@ -1435,6 +1435,7 @@ QuicConnStart(
 {
     QUIC_STATUS Status;
     QUIC_PATH* Path = &Connection->Paths[0];
+    QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
     QUIC_TEL_ASSERT(Path->Binding == NULL);
 
     if (!Connection->State.RemoteAddressSet) {
