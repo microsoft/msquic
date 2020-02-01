@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY})
+
 set(SOURCES
     attack.cpp
     packet_writer.cpp
@@ -12,7 +14,7 @@ include_directories(${CMAKE_SOURCE_DIR}/core)
 
 add_executable(quicattack ${SOURCES})
 
-target_link_libraries(quicattack core platform)
+target_link_libraries(quicattack core platform CORE_CLOG_LIB PLATFORM_CLOG_LIB)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     target_link_libraries(quicattack

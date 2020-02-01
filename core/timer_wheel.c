@@ -57,8 +57,10 @@ Abstract:
 //
 #define QUIC_TIMER_WHEEL_MAX_LOAD_FACTOR    32
 
-#ifdef QUIC_LOGS_WPP
-#include "timer_wheel.tmh"
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "timer_wheel.c.clog"
+
 #endif
 
 //

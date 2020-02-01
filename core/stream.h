@@ -5,6 +5,11 @@
 
 --*/
 
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "stream.h.clog"
+#endif
+
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 
 //

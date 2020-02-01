@@ -11,8 +11,10 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "library.tmh"
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "library.c.clog"
+
 #endif
 
 QUIC_LIBRARY MsQuicLib = { 0 };

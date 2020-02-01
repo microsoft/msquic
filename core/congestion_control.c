@@ -22,9 +22,11 @@ Future work:
 --*/
 
 #include "precomp.h"
+ 
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "congestion_control.c.clog"
 
-#ifdef QUIC_LOGS_WPP
-#include "congestion_control.tmh"
 #endif
 
 //

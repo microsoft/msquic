@@ -12,8 +12,11 @@ Abstract:
 #include "precomp.h"
 
 #include "quic_trace.h"
-#ifdef QUIC_LOGS_WPP
-#include "quictest.tmh"
+
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+//#include "QuicTest.cpp.clog"
+
 #endif
 
 //#define QUIC_TEST_DISABLE_DNS 1

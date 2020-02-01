@@ -11,8 +11,10 @@ Abstract:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "datapath_winuser.tmh"
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "datapath_winuser.c.clog"
+
 #endif
 
 #ifdef QUIC_FUZZER
@@ -1575,7 +1577,7 @@ QuicDataPathBindingHandleUnreachableError(
 
     QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
-#ifdef QUIC_LOGS_WPP // TODO - Change to ETW event
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG) // TODO - Change to ETW event
     if (RemoteAddr->si_family == AF_INET) {
         QuicTraceLogVerbose("[sock][%p] Received unreachable error (0x%x) from %!IPV4ADDR!:%d",
             SocketContext,
@@ -1730,7 +1732,7 @@ QuicDataPathRecvComplete(
 
         QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
-#ifdef QUIC_LOGS_WPP // TODO - Change to ETW event
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG) // TODO - Change to ETW event
         if (RemoteAddr->si_family == AF_INET) {
             QuicTraceLogVerbose("[sock][%p] Received larger than expected datagram from %!IPV4ADDR!:%d",
                 SocketContext,

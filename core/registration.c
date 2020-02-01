@@ -21,8 +21,10 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "registration.tmh"
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "registration.c.clog"
+
 #endif
 
 QUIC_DATAPATH_RECEIVE_CALLBACK MsQuicRecvCallback;

@@ -15,8 +15,13 @@ Environment:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "platform_winuser.tmh"
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "platform_winuser.c.clog"
+
+#endif
+
+#if defined(QUIC_LOGS_WPP)
 #include <fastwppimpl.h>
 #endif
 
@@ -30,12 +35,12 @@ QuicPlatformSystemLoad(
     void
     )
 {
-#ifdef QUIC_LOGS_WPP
+#if defined(QUIC_LOGS_WPP)
     FAST_WPP_INIT_TRACING(L"quic");
 #endif
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
-    EventRegisterMicrosoft_Quic();
+    EventRegisterCLOG_Microsoft_Quic();
 #endif
 
     (void)QueryPerformanceFrequency((LARGE_INTEGER*)&QuicPlatformPerfFreq);
@@ -52,9 +57,9 @@ QuicPlatformSystemUnload(
 {
     QuicTraceLogInfo("[ dll] Unloaded");
 #ifdef QUIC_EVENTS_MANIFEST_ETW
-    EventUnregisterMicrosoft_Quic();
+    EventUnregisterCLOG_Microsoft_Quic();
 #endif
-#ifdef QUIC_LOGS_WPP
+#if defined(QUIC_LOGS_WPP)
     FAST_WPP_CLEANUP();
 #endif
 }
@@ -224,7 +229,7 @@ QuicEtwCallback(
     case EVENT_CONTROL_CODE_ENABLE_PROVIDER:
     case EVENT_CONTROL_CODE_CAPTURE_STATE:
         if (CallbackContext == &MICROSOFT_MSQUIC_PROVIDER_Context) {
-            QuicTraceRundown();
+            //QuicTraceRundown();
         }
         break;
     case EVENT_CONTROL_CODE_DISABLE_PROVIDER:
@@ -234,7 +239,7 @@ QuicEtwCallback(
 }
 #endif
 
-#ifdef QUIC_LOGS_WPP
+#if defined(QUIC_LOGS_WPP)
 void
 QuicForceWppInitCodeGeneration(
     void

@@ -13,8 +13,10 @@ Abstract:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "selfsign_stub.tmh"
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "selfsign_stub.c.clog"
+
 #endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

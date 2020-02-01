@@ -11,8 +11,10 @@ Abstract:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "tls_mitls.tmh"
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "tls_mitls.c.clog"
+
 #endif
 
 #define IS_WINDOWS 1

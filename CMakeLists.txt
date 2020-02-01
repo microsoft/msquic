@@ -3,6 +3,11 @@
 
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
+add_custom_target(CLOG_GENERATED_FILES
+    COMMENT "CREATED CMAKE Target for CLOG generated files"
+)
+
+
 message(STATUS "Source Dir: ${CMAKE_SOURCE_DIR}")
 message(STATUS "Host System name: ${CMAKE_HOST_SYSTEM_NAME}")
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
@@ -29,6 +34,13 @@ option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
 option(QUIC_BUILD_TEST "Builds the test code" ON)
 option(QUIC_ENABLE_LOGGING "Enables logging" ON)
 option(QUIC_SANITIZE_ADDRESS "Enables address sanitizer" OFF)
+set(CMAKE_CLOG_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/clog)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/obj)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/bin)
+set(MANIFESTED_HEADER_FILENAME ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.h)
+
+
 
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
     set(QUIC_PLATFORM "windows")
@@ -44,6 +56,10 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${QUIC_ARTIFACTS_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${QUIC_ARTIFACTS_DIR}/bin)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    #Choose our CLOG configuration file
+    set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/manifest/msquic_windows.clog_config)
+    
+    
     # Generate the MsQuicEtw header file.
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/inc)
     file(WRITE ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
@@ -60,7 +76,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 /W4 /wd4100 /wd4101 /wd4189 /wd4458 /wd4459 /wd4702 /wd26451 /wd26812 /sdl /MP")
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for manifested ETW events and logging")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW -DQUIC_LOGS_CLOG")
     else()
         message(STATUS "Disabling events and logging")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_STUB")
@@ -89,15 +105,17 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
     set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF")
 else()
+    set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/manifest/msquic_linux.clog_config)
+
     # Custom build flags.
     set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions -fPIC -Wall -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-value -pthread")
     if(QUIC_ENABLE_LOGGING)
         include(FindLTTngUST)
         message(STATUS "Configuring for LTTng events and disabling logging")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_LTTNG -DQUIC_LOGS_STUB")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_LTTNG -DQUIC_LOGS_CLOG -DQUIC_LOGS_STUB")
     else()
         message(STATUS "Disabling events and logging")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_STUB")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_CLOG -DQUIC_LOGS_STUB")
     endif()
 
     if(QUIC_TLS STREQUAL "openssl")
@@ -118,6 +136,7 @@ else()
     set(QUIC_CXX_FLAGS "${QUIC_COMMON_FLAGS} --std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format")
 endif()
 
+include_directories(${CMAKE_SOURCE_DIR}/bld/inc)
 include_directories(${CMAKE_SOURCE_DIR}/inc)
 
 if(QUIC_TLS STREQUAL "openssl")
@@ -145,6 +164,7 @@ if (QUIC_TLS STREQUAL "mitls")
 endif()
 
 # Product code
+add_subdirectory(manifest)
 add_subdirectory(core)
 add_subdirectory(platform)
 add_subdirectory(bin)

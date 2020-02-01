@@ -16,8 +16,10 @@ Environment:
 #include "platform_internal.h"
 #include <security.h>
 
-#ifdef QUIC_LOGS_WPP
-#include "tls_schannel.tmh"
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "tls_schannel.c.clog"
+
 #endif
 
 #ifdef _KERNEL_MODE

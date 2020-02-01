@@ -14,8 +14,10 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "crypto_tls.tmh"
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "crypto_tls.c.clog"
+
 #endif
 
 #define TLS1_PROTOCOL_VERSION 0x0301

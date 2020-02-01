@@ -1,6 +1,10 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+# Include Files that need CLOG processing
+include("../CLog.make")
+include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY})
+
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(SOURCES
         datapath_winuser.c
@@ -24,7 +28,7 @@ if (QUIC_TLS STREQUAL "schannel")
 elseif(QUIC_TLS STREQUAL "openssl")
     message(STATUS "Configuring for OpenSSL")
     set(SOURCES ${SOURCES} selfsign_openssl.c tls_openssl.c)
-    include_directories(${QUIC_BUILD_DIR}/openssl/include)
+    include_directories(${CMAKE_SOURCE_DIR}/bld/openssl/include)
 elseif(QUIC_TLS STREQUAL "mitls")
     message(STATUS "Configuring for miTLS")
     set(SOURCES ${SOURCES} cert_capi.c selfsign_capi.c tls_mitls.c)
@@ -36,7 +40,14 @@ endif()
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
 
+#
+# Setup CLOG by calling a helper function which sets up dependencies.  Then add the .c file
+#     ...it'd be preferred to have the helper function set this requirement
+#
+CLOG_ADD_SOURCEFILE(PLATFORM_CLOG_LIB ${SOURCES})
+
 add_library(platform STATIC ${SOURCES})
+add_dependencies(platform PLATFORM_CLOG_LIB)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_dependencies(platform MsQuicEtw)
