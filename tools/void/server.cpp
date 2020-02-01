@@ -40,6 +40,8 @@ QUIC_STATUS VoidHandleStreamEvent(HQUIC Stream, void* /* Context */, QUIC_STREAM
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         MsQuic->StreamClose(Stream);
         break;
+    default:
+        break;
     }
     return QUIC_STATUS_SUCCESS;
 }
@@ -50,7 +52,7 @@ QUIC_STATUS VoidHandleConnectionEvent(HQUIC Connection, void* /* Context */, QUI
         MsQuic->ConnectionClose(Connection);
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
-        MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, VoidHandleStreamEvent, nullptr);
+        MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)VoidHandleStreamEvent, nullptr);
     default:
         break;
     }
@@ -61,7 +63,7 @@ QUIC_STATUS VoidHandleListenerEvent(HQUIC /* Listener */, void* /* Context */, Q
     switch (Event->Type) {
     case QUIC_LISTENER_EVENT_NEW_CONNECTION:
         Event->NEW_CONNECTION.SecurityConfig = GlobalSecurityConfig;
-        MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, VoidHandleConnectionEvent, nullptr);
+        MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)VoidHandleConnectionEvent, nullptr);
     default:
         break;
     }
