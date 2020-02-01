@@ -58,19 +58,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${QUIC_ARTIFACTS_DIR}/bin)
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     #Choose our CLOG configuration file
     set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/manifest/msquic_windows.clog_config)
-    
-    
-    # Generate the MsQuicEtw header file.
-    file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/inc)
-    file(WRITE ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
-    include_directories(${QUIC_BUILD_DIR}/inc)
-    add_custom_command(
-        OUTPUT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h
-        OUTPUT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc
-        COMMAND mc.exe -um -h ${QUIC_BUILD_DIR}/inc -r ${QUIC_BUILD_DIR}/inc ${CMAKE_SOURCE_DIR}/manifest/MsQuicEtw.man)
-    add_custom_target(MsQuicEtw
-        DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h
-        DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
 
     # Custom build flags.
     set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 /W4 /wd4100 /wd4101 /wd4189 /wd4458 /wd4459 /wd4702 /wd26451 /wd26812 /sdl /MP")
