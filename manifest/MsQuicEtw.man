@@ -1265,6 +1265,16 @@
                 name="ErrStr"
                 />
           </template>
+          <template tid="tid_STREAM_MESSAGE">
+            <data
+                inType="win:Pointer"
+                name="Stream"
+                />
+            <data
+                inType="win:AnsiString"
+                name="Message"
+                />
+          </template>
           <template tid="tid_BINDING">
             <data
                 inType="win:Pointer"
@@ -2555,6 +2565,42 @@
               template="tid_STREAM_STATUS_ERROR"
               value="6151"
               />
+          <event
+              keywords="ut:Stream ut:Log"
+              level="win:Error"
+              message="$(string.Etw.StreamMessage)"
+              opcode="win:Info"
+              symbol="QuicStreamLogError"
+              template="tid_STREAM_MESSAGE"
+              value="6152"
+              />
+          <event
+              keywords="ut:Stream ut:Log"
+              level="win:Warning"
+              message="$(string.Etw.StreamMessage)"
+              opcode="win:Info"
+              symbol="QuicStreamLogWarning"
+              template="tid_STREAM_MESSAGE"
+              value="6153"
+              />
+          <event
+              keywords="ut:Stream ut:Log"
+              level="win:Informational"
+              message="$(string.Etw.StreamMessage)"
+              opcode="win:Info"
+              symbol="QuicStreamLogInfo"
+              template="tid_STREAM_MESSAGE"
+              value="6154"
+              />
+          <event
+              keywords="ut:Stream ut:Log"
+              level="win:Verbose"
+              message="$(string.Etw.StreamMessage)"
+              opcode="win:Info"
+              symbol="QuicStreamLogVerbose"
+              template="tid_STREAM_MESSAGE"
+              value="6155"
+              />
           <!-- 7168 - 8191 | Binding Events -->
           <event
               keywords="ut:Binding ut:LowVolume"
@@ -2983,6 +3029,10 @@
         <string
             id="Etw.StreamErrorStatus"
             value="[strm][%1] ERROR, %2, %3."
+            />
+        <string
+            id="Etw.StreamMessage"
+            value="[strm][%1] %2"
             />
         <string
             id="Etw.WorkerCreated"

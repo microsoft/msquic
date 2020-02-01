@@ -20,7 +20,7 @@ QUIC has many benefits when compared to existing TLS over TCP scenarios:
   * Survives a change in the clients IP address or port.
   * Easily extendable for new features (such as unreliable delivery).
 
-> **Important** Several QUIC protocol features are not fully implemented:
+> **Important** Several QUIC protocol features are not yet fully implemented:
 >
 >  * 0-RTT with Schannel and OpenSSL
 >  * NAT Rebinding
@@ -30,8 +30,9 @@ QUIC has many benefits when compared to existing TLS over TCP scenarios:
 
 ## Library Features
 
+  * Cross-platform support.
   * Optimized for maximal throughput and minimal latency.
-  * Asychronous IO.
+  * Asynchronous IO.
   * Receive side scaling (RSS).
   * UDP send and receive coalescing support.
 
@@ -58,7 +59,7 @@ The source is divided into several directories:
   * `tools` - Tools for exercising MsQuic.
     * `attack` - Adversarial tool for exploiting protocol weaknesses.
     * `etw` - Windows specific tool for processing MsQuic ETW logs.
-    * `interop` - Runs through the [IETF interop scenarios](https://github.com/quicwg/base-drafts/wiki/15th-Implementation-Draft).
+    * `interop` - Runs through the [IETF interop scenarios](https://github.com/quicwg/base-drafts/wiki/16th-Implementation-Draft).
     * `ping` - Simple tool for gathering throughput measurements. Read more [here](./tools/ping/readme.md).
     * `sample` - Minimal example of how to use the MsQuic API.
     * `spin` - Randomly executes the MsQuic API to discover bugs.

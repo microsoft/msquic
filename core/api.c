@@ -302,6 +302,7 @@ MsQuicConnectionStart(
     }
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
+    QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;

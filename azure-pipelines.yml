@@ -1,4 +1,4 @@
-# Continuous integration for Linux and Windows.
+# Continuous integration for cross-platform build and testing.
 # https://aka.ms/yaml
 
 trigger:
@@ -6,93 +6,80 @@ trigger:
 
 strategy:
   matrix:
-    linux-stub:
-      platform: 'Linux-Stub'
+    ubuntu-stub:
+      platform: 'ubuntu'
+      config: 'stub'
       imageName: 'ubuntu-latest'
-      prepareCmd: 'bash ./.azure/prepare_linux.sh'
-      cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=stub -DQUIC_ENABLE_LOGGING=off'
-      testCmd: 'bash ./.azure/test_linux.sh ''*'''
-    linux-stub-sanitize:
-      platform: 'Linux-Stub-Sanitize'
+      buildArgs: '-Tls stub -DisableLogs'
+      testCmd: 'bash ./.azure/test_linux.sh'
+    ubuntu-stub-sanitize:
+      platform: 'ubuntu'
+      config: 'stub-sanitize'
       imageName: 'ubuntu-latest'
-      prepareCmd: 'bash ./.azure/prepare_linux.sh'
-      cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=stub -DQUIC_SANITIZE_ADDRESS=on'
+      buildArgs: '-Tls stub -DisableLogs -SanitizeAddress'
       testCmd: 'bash ./.azure/test_linux.sh AppData/WithSendArgs2.SendLarge/0'
-    linux-stub-spin:
-      platform: 'Linux-Stub-Spin'
-      imageName: 'ubuntu-latest'
-      prepareCmd: 'bash ./.azure/prepare_linux.sh'
-      cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=stub -DQUIC_ENABLE_LOGGING=off -DQUIC_SANITIZE_ADDRESS=on'
+    ubuntu-stub-spin:
+      platform: 'ubuntu'
+      config: 'stub-spin'
+      buildArgs: '-Tls stub -DisableLogs -SanitizeAddress'
       testCmd: 'bash ./.azure/spin_linux.sh'
-    linux-openssl:
-      platform: 'Linux-OpenSSL'
-      imageName: 'ubuntu-latest'
-      prepareCmd: 'bash ./.azure/prepare_linux.sh'
-      cmakeArgs: '-g ''Linux Makefiles'' -DQUIC_TLS=openssl -DQUIC_ENABLE_LOGGING=off'
-      testCmd: 'bash ./.azure/test_linux.sh ''*'''
+    ubuntu-openssl:
+      platform: 'ubuntu'
+      config: 'openssl'
+      buildArgs: '-Tls openssl -DisableLogs'
+      testCmd: 'bash ./.azure/test_linux.sh'
     windows-x64-stub:
-      platform: 'Windows-x64-Stub'
-      imageName: 'windows-latest'
-      prepareCmd: '.\.azure\prepare_windows.cmd'
-      cmakeArgs: '-g ''Visual Studio 16 2019'' -A x64 -DQUIC_TLS=stub'
+      platform: 'windows'
+      config: 'stub'
+      buildArgs: '-Tls stub'
       testCmd: '.\.azure\test_windows.cmd -*Unreachable/0'
     windows-x64-stub-spin:
-      platform: 'Windows-x64-Stub-Spin'
-      imageName: 'windows-latest'
-      prepareCmd: '.\.azure\prepare_windows.cmd'
-      cmakeArgs: '-g ''Visual Studio 16 2019'' -A x64 -DQUIC_TLS=stub'
+      platform: 'windows'
+      config: 'stub-spin'
+      buildArgs: '-Tls stub'
       testCmd: '.\.azure\spin_windows.cmd'
     windows-x64-mitls:
-      platform: 'Windows-x64-miTLS'
-      imageName: 'windows-latest'
-      prepareCmd: '.\.azure\prepare_windows.cmd'
-      cmakeArgs: '-g ''Visual Studio 16 2019'' -A x64 -DQUIC_TLS=mitls'
+      platform: 'windows'
+      config: 'mitls'
+      buildArgs: '-Tls mitls'
       testCmd: '.\.azure\test_windows.cmd -*Unreachable/0'
     windows-x64-schannel:
-      platform: 'Windows-x64-Schannel'
-      imageName: 'windows-latest'
-      prepareCmd: '.\.azure\prepare_windows.cmd'
-      cmakeArgs: '-g ''Visual Studio 16 2019'' -A x64 -DQUIC_TLS=schannel'
-      testCmd: '.\.azure\test_windows.cmd ParameterValidation.*'
+      platform: 'windows'
+      config: 'schannel'
+      buildArgs: '-Tls schannel'
+      testCmd: '.\.azure\test_windows.cmd ParameterValidation.*:-*Events'
 
 pool:
-  vmImage: $(imageName)
+  vmImage: '$(platform)-latest'
 
 steps:
 - checkout: self
   submodules: recursive
   persistCredentials: true
 
-- task: CmdLine@2
-  displayName: 'Prepare Image'
+- task: PowerShell@2
+  displayName: 'Build'
   inputs:
-    script: '$(prepareCmd)'
-
-- task: CMake@1
-  displayName: 'CMake Generator'
-  inputs:
-    cmakeArgs: '$(cmakeArgs) ..'
-
-- task: CMake@1
-  displayName: 'CMake Build'
-  inputs:
-    cmakeArgs: '--build . --config DEBUG'
+    pwsh: true
+    filePath: './build.ps1'
+    arguments: '-InstallAzureDependencies $(buildArgs)'
 
 - task: CmdLine@2
   displayName: 'Run Tests'
-  timeoutInMinutes: 10
+  timeoutInMinutes: 15
+  continueOnError: true
   inputs:
     script: '$(testCmd)'
+
+- task: PublishPipelineArtifact@1
+  displayName: 'Publish Artifacts'
+  inputs:
+    targetPath: 'artifacts'
+    artifactName: '$(platform)-$(config)'
 
 - task: PublishTestResults@2
   displayName: 'Publish Test Results'
   inputs:
     testResultsFormat: 'JUnit'
-    testResultsFiles: '**/*test-results.xml'
-
-- task: PublishBuildArtifacts@1
-  displayName: 'Publish Artifacts'
-  inputs:
-    PathtoPublish: 'artifacts'
-    ArtifactName: '$(platform)-Artifacts'
-    publishLocation: 'Container'
+    testResultsFiles: '**/*-results.xml'
+    failTaskOnFailedTests: true

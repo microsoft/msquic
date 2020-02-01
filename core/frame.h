@@ -76,7 +76,9 @@
 //
 #define QUIC_ERROR_CRYPTO_ERROR(TlsAlertCode)   ((QUIC_VAR_INT)(0x100 | (TlsAlertCode)))
 
-#define QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE     QUIC_ERROR_CRYPTO_ERROR(40) // TLS error code for 'handshake_failure'
+#define QUIC_ERROR_CRYPTO_USER_CANCELED             QUIC_ERROR_CRYPTO_ERROR(22)  // TLS error code for 'user_canceled'
+#define QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE         QUIC_ERROR_CRYPTO_ERROR(40)  // TLS error code for 'handshake_failure'
+#define QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL   QUIC_ERROR_CRYPTO_ERROR(120) // TLS error code for 'no_application_protocol'
 
 //
 // Different types of QUIC frames
@@ -111,11 +113,12 @@ typedef enum QUIC_FRAME_TYPE {
     QUIC_FRAME_PATH_CHALLENGE       = 0x1a,
     QUIC_FRAME_PATH_RESPONSE        = 0x1b,
     QUIC_FRAME_CONNECTION_CLOSE     = 0x1c, // to 0x1d
-    QUIC_FRAME_CONNECTION_CLOSE_1   = 0x1d
+    QUIC_FRAME_CONNECTION_CLOSE_1   = 0x1d,
+    QUIC_FRAME_HANDSHAKE_DONE       = 0x1e
 
 } QUIC_FRAME_TYPE;
 
-#define MAX_QUIC_FRAME QUIC_FRAME_CONNECTION_CLOSE_1
+#define MAX_QUIC_FRAME QUIC_FRAME_HANDSHAKE_DONE
 
 //
 // QUIC_FRAME_ACK Encoding/Decoding

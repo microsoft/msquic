@@ -862,6 +862,13 @@ QuicTraceStreamEvent(
         printf("ERROR, %u, %s\n", EvData->ErrorStatus.Status, EvData->ErrorStatus.ErrStr);
         break;
     }
+    case EventId_QuicStreamLogError:
+    case EventId_QuicStreamLogWarning:
+    case EventId_QuicStreamLogInfo:
+    case EventId_QuicStreamLogVerbose: {
+        printf("%s\n", EvData->Log.Msg);
+        break;
+    }
     default: {
         printf("Unknown Event ID=%u\n", ev->EventHeader.EventDescriptor.Id);
         break;

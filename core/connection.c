@@ -43,12 +43,6 @@ QuicConnInitializeCrypto(
     _In_ QUIC_CONNECTION* Connection
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicConnOnShutdownComplete(
-    _In_ QUIC_CONNECTION* Connection
-    );
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 __drv_allocatesMem(Mem)
 _Must_inspect_result_
@@ -466,7 +460,6 @@ QuicConnCloseHandle(
         NULL);
 
     if (Connection->State.SendShutdownCompleteNotif) {
-        Connection->State.SendShutdownCompleteNotif = FALSE;
         QuicConnOnShutdownComplete(Connection);
     }
 
@@ -1103,6 +1096,7 @@ QuicConnOnShutdownComplete(
     _In_ QUIC_CONNECTION* Connection
     )
 {
+    Connection->State.SendShutdownCompleteNotif = FALSE;
     if (Connection->State.HandleShutdown) {
         return;
     }
@@ -1143,10 +1137,11 @@ QuicErrorCodeToStatus(
     )
 {
     switch (ErrorCode) {
-    case QUIC_ERROR_NO_ERROR:           return QUIC_STATUS_SUCCESS;
-    case QUIC_ERROR_SERVER_BUSY:        return QUIC_STATUS_SERVER_BUSY;
-    case QUIC_ERROR_PROTOCOL_VIOLATION: return QUIC_STATUS_PROTOCOL_ERROR;
-    default:                            return QUIC_STATUS_INTERNAL_ERROR;
+    case QUIC_ERROR_NO_ERROR:               return QUIC_STATUS_SUCCESS;
+    case QUIC_ERROR_SERVER_BUSY:            return QUIC_STATUS_SERVER_BUSY;
+    case QUIC_ERROR_PROTOCOL_VIOLATION:     return QUIC_STATUS_PROTOCOL_ERROR;
+    case QUIC_ERROR_CRYPTO_USER_CANCELED:   return QUIC_STATUS_USER_CANCELED;
+    default:                                return QUIC_STATUS_INTERNAL_ERROR;
     }
 }
 
@@ -1179,6 +1174,23 @@ QuicConnTryClose(
             Connection->State.SendShutdownCompleteNotif = TRUE;
         }
         return;
+    }
+
+    if (!ClosedRemotely) {
+
+        if ((Flags & QUIC_CLOSE_APPLICATION) &&
+            Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] == NULL &&
+            Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] == NULL) {
+            //
+            // Application close can only happen if we have 0/1-RTT keys.
+            // Otherwise we have to send "user_canceled" TLS error code as a
+            // connection close. Overwrite all application provided parameters.
+            //
+            Flags &= ~QUIC_CLOSE_APPLICATION;
+            ErrorCode = QUIC_ERROR_CRYPTO_USER_CANCELED;
+            RemoteReasonPhrase = NULL;
+            RemoteReasonPhraseLength = 0;
+        }
     }
 
     BOOLEAN ResultQuicStatus = !!(Flags & QUIC_CLOSE_QUIC_STATUS);
@@ -1404,7 +1416,7 @@ QuicConnOnQuicVersionSet(
     QuicTraceEvent(ConnVersionSet, Connection, Connection->Stats.QuicVersion);
 
     switch (Connection->Stats.QuicVersion) {
-    case QUIC_VERSION_DRAFT_24:
+    case QUIC_VERSION_DRAFT_25:
     case QUIC_VERSION_MS_1:
     default:
         Connection->State.HeaderProtectionEnabled = TRUE;
@@ -1423,6 +1435,7 @@ QuicConnStart(
 {
     QUIC_STATUS Status;
     QUIC_PATH* Path = &Connection->Paths[0];
+    QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
     QUIC_TEL_ASSERT(Path->Binding == NULL);
 
     if (!Connection->State.RemoteAddressSet) {
@@ -2187,14 +2200,13 @@ QuicConnRecvRetry(
     // Decode and validate the Retry packet.
     //
 
-    uint16_t Offset = Packet->HeaderLength;
-    uint8_t OrigDestCidLength = *(Packet->Buffer + Offset);
-    Offset += sizeof(uint8_t);
-
-    if (Packet->BufferLength < Offset + OrigDestCidLength) {
-        QuicPacketLogDrop(Connection, Packet, "No room for ODCID");
+    if (Packet->BufferLength - Packet->HeaderLength <= QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1) {
+        QuicPacketLogDrop(Connection, Packet, "No room for Retry Token");
         return;
     }
+
+    const uint8_t* Token = (Packet->Buffer + Packet->HeaderLength);
+    uint16_t TokenLength = Packet->BufferLength - (Packet->HeaderLength + QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1);
 
     QuicPacketLogHeader(
         Connection,
@@ -2205,19 +2217,33 @@ QuicConnRecvRetry(
         Packet->Buffer,
         0);
 
-    const uint8_t* OrigDestCid = Packet->Buffer + Offset;
-    Offset += OrigDestCidLength;
-
     QUIC_DBG_ASSERT(!QuicListIsEmpty(&Connection->DestCids));
     QUIC_CID_QUIC_LIST_ENTRY* DestCid =
         QUIC_CONTAINING_RECORD(
             Connection->DestCids.Flink,
             QUIC_CID_QUIC_LIST_ENTRY,
             Link);
+    const uint8_t* OrigDestCid = DestCid->CID.Data;
+    uint8_t OrigDestCidLength = DestCid->CID.Length;
 
-    if (OrigDestCidLength != DestCid->CID.Length ||
-        memcmp(DestCid->CID.Data, OrigDestCid, OrigDestCidLength) != 0) {
-        QuicPacketLogDrop(Connection, Packet, "Invalid ODCID");
+    uint8_t CalculatedIntegrityValue[QUIC_ENCRYPTION_OVERHEAD];
+
+    if (QUIC_FAILED(
+        QuicPacketGenerateRetryV1Integrity(
+            OrigDestCidLength,
+            OrigDestCid,
+            Packet->BufferLength - QUIC_ENCRYPTION_OVERHEAD,
+            Packet->Buffer,
+            CalculatedIntegrityValue))) {
+        QuicPacketLogDrop(Connection, Packet, "Failed to generate integrity field");
+        return;
+    }
+
+    if (memcmp(
+            CalculatedIntegrityValue,
+            Packet->Buffer + (Packet->BufferLength - QUIC_ENCRYPTION_OVERHEAD),
+            QUIC_ENCRYPTION_OVERHEAD) != 0) {
+        QuicPacketLogDrop(Connection, Packet, "Invalid integrity field");
         return;
     }
 
@@ -2226,9 +2252,6 @@ QuicConnRecvRetry(
     //
     // Cache the Retry token.
     //
-
-    const uint8_t* Token = Packet->Buffer + Offset;
-    uint16_t TokenLength = Packet->BufferLength - Offset;
 
     Connection->Send.InitialToken = QUIC_ALLOC_PAGED(TokenLength);
     if (Connection->Send.InitialToken == NULL) {
@@ -2461,23 +2484,23 @@ QuicConnRecvHeader(
                 return FALSE;
             }
 
-            QUIC_DBG_ASSERT(Token.OrigConnIdLength <= sizeof(Token.OrigConnId));
-            QUIC_DBG_ASSERT(QuicAddrCompare(&Path->RemoteAddress, &Token.RemoteAddress));
+            QUIC_DBG_ASSERT(Token.Encrypted.OrigConnIdLength <= sizeof(Token.Encrypted.OrigConnId));
+            QUIC_DBG_ASSERT(QuicAddrCompare(&Path->RemoteAddress, &Token.Encrypted.RemoteAddress));
 
             Connection->OrigCID =
                 QUIC_ALLOC_NONPAGED(
                     sizeof(QUIC_CID) +
-                    Token.OrigConnIdLength);
+                    Token.Encrypted.OrigConnIdLength);
             if (Connection->OrigCID == NULL) {
-                QuicTraceEvent(AllocFailure, "OrigCID", sizeof(QUIC_CID) + Token.OrigConnIdLength);
+                QuicTraceEvent(AllocFailure, "OrigCID", sizeof(QUIC_CID) + Token.Encrypted.OrigConnIdLength);
                 return FALSE;
             }
 
-            Connection->OrigCID->Length = Token.OrigConnIdLength;
+            Connection->OrigCID->Length = Token.Encrypted.OrigConnIdLength;
             QuicCopyMemory(
                 Connection->OrigCID->Data,
-                Token.OrigConnId,
-                Token.OrigConnIdLength);
+                Token.Encrypted.OrigConnId,
+                Token.Encrypted.OrigConnIdLength);
 
             QuicPathSetValid(Connection, Path, QUIC_PATH_VALID_INITIAL_TOKEN);
         }
@@ -2956,7 +2979,6 @@ QuicConnRecvPayload(
             case QUIC_FRAME_ACK_1:
             case QUIC_FRAME_CRYPTO:
             case QUIC_FRAME_CONNECTION_CLOSE:
-            case QUIC_FRAME_CONNECTION_CLOSE_1:
                 break;
             //
             // All other frame types are disallowed.
@@ -2974,6 +2996,7 @@ QuicConnRecvPayload(
             //
             case QUIC_FRAME_ACK:
             case QUIC_FRAME_ACK_1:
+            case QUIC_FRAME_HANDSHAKE_DONE:
                 QuicTraceEvent(ConnErrorStatus, Connection, FrameType, "Disallowed frame type");
                 QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
                 return FALSE;
@@ -3475,6 +3498,23 @@ QuicConnRecvPayload(
                 //
                 goto Done;
             }
+            break;
+        }
+
+        case QUIC_FRAME_HANDSHAKE_DONE: {
+            if (QuicConnIsServer(Connection)) {
+                QuicTraceEvent(ConnError, Connection, "Client sent HANDSHAKE_DONE frame");
+                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                return FALSE;
+            }
+
+            if (!Connection->State.HandshakeConfirmed) {
+                QuicTraceLogConnInfo(HandshakeConfirmedFrame, Connection, "Handshake confirmed (frame).");
+                QuicCryptoHandshakeConfirmed(&Connection->Crypto);
+            }
+
+            AckPacketImmediately = TRUE;
+            Packet->HasNonProbingFrame = TRUE;
             break;
         }
 
@@ -5207,20 +5247,29 @@ QuicConnDrainOperations(
         Connection->Stats.Schedule.OperationCount++;
     }
 
-    if (OperationCount >= MaxOperationCount &&
-        (Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_ACK) &&
-        !Connection->State.HandleClosed) {
+    if (!Connection->State.ExternalOwner && Connection->State.ClosedLocally) {
         //
-        // We can't process any more operations but still need to send an
-        // immediate ACK. So as to not introduce additional queuing delay do one
-        // immediate flush now.
+        // Don't continue processing the connection, since it has been closed
+        // locally and it's not referenced externally.
         //
-        (void)QuicSendFlush(&Connection->Send);
+        QuicTraceLogConnVerbose(AbandonInternallyClosed, Connection, "Abandoning internal, closed connection");
+        QuicConnOnShutdownComplete(Connection);
     }
 
-    if (Connection->State.SendShutdownCompleteNotif && !Connection->State.HandleClosed) {
-        Connection->State.SendShutdownCompleteNotif = FALSE;
-        QuicConnOnShutdownComplete(Connection);
+    if (!Connection->State.HandleClosed) {
+        if (OperationCount >= MaxOperationCount &&
+            (Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_ACK)) {
+            //
+            // We can't process any more operations but still need to send an
+            // immediate ACK. So as to not introduce additional queuing delay do
+            // one immediate flush now.
+            //
+            (void)QuicSendFlush(&Connection->Send);
+        }
+
+        if (Connection->State.SendShutdownCompleteNotif) {
+            QuicConnOnShutdownComplete(Connection);
+        }
     }
 
     if (Connection->State.HandleClosed) {

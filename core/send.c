@@ -303,8 +303,8 @@ QuicSendSetStreamSendFlag(
 
     if ((Stream->SendFlags | SendFlags) != Stream->SendFlags) {
 
-        QuicTraceLogVerbose("[strm][%p][%llu] Setting flags 0x%x (existing flags: 0x%x)",
-            Stream, Stream->ID, (SendFlags & (~Stream->SendFlags)), Stream->SendFlags);
+        QuicTraceLogStreamVerbose(SetSendFlag, Stream, "Setting flags 0x%x (existing flags: 0x%x)",
+            (SendFlags & (~Stream->SendFlags)), Stream->SendFlags);
 
         if ((Stream->SendFlags & SendFlags) != SendFlags) {
             //
@@ -344,8 +344,8 @@ QuicSendClearStreamSendFlag(
 
     if (Stream->SendFlags & SendFlags) {
 
-        QuicTraceLogVerbose("[strm][%p][%llu] Removing flags %x",
-            Stream, Stream->ID, (SendFlags & Stream->SendFlags));
+        QuicTraceLogStreamVerbose(ClearSendFlags, Stream, "Removing flags %x",
+            (SendFlags & Stream->SendFlags));
 
         //
         // Remove the flags since they are present.
@@ -384,6 +384,10 @@ QuicSendWriteFrames(
 
     BOOLEAN IsCongestionControlBlocked = !QuicPacketBuilderHasAllowance(Builder);
 
+    BOOLEAN Is1RttEncryptionLevel =
+        Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_1_RTT ||
+        Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_0_RTT;
+
     //
     // Now fill the packet with available frames, in priority order, until we
     // run out of space. The order below was generally chosen based on the
@@ -412,7 +416,8 @@ QuicSendWriteFrames(
         }
     }
 
-    if (Send->SendFlags & (QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE)) {
+    if ((Send->SendFlags & QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE) ||
+        ((Send->SendFlags & QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE) && Is1RttEncryptionLevel)) {
         BOOLEAN IsApplicationClose =
             !!(Send->SendFlags & QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE);
         if (Connection->State.ClosedRemotely) {
@@ -499,8 +504,21 @@ QuicSendWriteFrames(
         }
     }
 
-    if (Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_1_RTT ||
-        Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_0_RTT) {
+    if (Is1RttEncryptionLevel) {
+        if (Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_1_RTT &&
+            Send->SendFlags & QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE) {
+
+            if (Builder->DatagramLength < AvailableBufferLength) {
+                Builder->Datagram->Buffer[Builder->DatagramLength++] = QUIC_FRAME_HANDSHAKE_DONE;
+                Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE;
+                Builder->MinimumDatagramLength = (uint16_t)Builder->Datagram->Length;
+                if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_HANDSHAKE_DONE, TRUE)) {
+                    return TRUE;
+                }
+            } else {
+                RanOutOfRoom = TRUE;
+            }
+        }
 
         if (Send->SendFlags & QUIC_CONN_SEND_FLAG_DATA_BLOCKED) {
 

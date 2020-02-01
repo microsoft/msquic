@@ -206,8 +206,8 @@ QuicSendBufferStreamAdjust(
     QUIC_STREAM_EVENT Event;
     Event.Type = QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE;
     Event.IDEAL_SEND_BUFFER_SIZE.ByteCount = ByteCount;
-    QuicTraceLogVerbose("[strm][%p] Indicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu",
-        Stream, Event.IDEAL_SEND_BUFFER_SIZE.ByteCount);
+    QuicTraceLogStreamVerbose(IndicateIdealSendBuffer, Stream, "Indicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu",
+        Event.IDEAL_SEND_BUFFER_SIZE.ByteCount);
     (void)QuicStreamIndicateEvent(Stream, &Event);
 }
 

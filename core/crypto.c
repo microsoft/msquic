@@ -284,6 +284,16 @@ QuicCryptoReset(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCryptoHandshakeConfirmed(
+    _In_ QUIC_CRYPTO* Crypto
+    )
+{
+    QuicCryptoGetConnection(Crypto)->State.HandshakeConfirmed = TRUE;
+    QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_HANDSHAKE);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicCryptoDiscardKeys(
     _In_ QUIC_CRYPTO* Crypto,
@@ -954,6 +964,11 @@ QuicCryptoProcessDataFrame(
 
     } else {
 
+        if (KeyType == QUIC_PACKET_KEY_1_RTT_OLD ||
+            KeyType == QUIC_PACKET_KEY_1_RTT_NEW) {
+            KeyType = QUIC_PACKET_KEY_1_RTT; // Treat them all as the same
+        }
+
         if (KeyType != Crypto->TlsState.ReadKey) {
             if (QuicRecvBufferAlreadyReadData(
                     &Crypto->RecvBuffer,
@@ -1237,6 +1252,15 @@ QuicCryptoProcessTlsCompletion(
             (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
             -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
 
+        if (QuicConnIsServer(Connection)) {
+            //
+            // Handshake is confirmed on the server side as soon as it completes.
+            //
+            QuicTraceLogConnInfo(HandshakeConfirmedServer, Connection, "Handshake confirmed (server).");
+            QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE);
+            QuicCryptoHandshakeConfirmed(&Connection->Crypto);
+        }
+
         (void)QuicConnGenerateNewSourceCid(Connection, FALSE);
 
         if (!QuicConnIsServer(Connection) &&
@@ -1406,6 +1430,7 @@ QuicCryptoProcessData(
             QUIC_CONNECTION_ACCEPT_RESULT AcceptResult =
                 QUIC_CONNECTION_REJECT_NO_LISTENER;
 
+            QUIC_SEC_CONFIG* SecConfig = NULL;
             QUIC_LISTENER* Listener =
                 QuicBindingGetListener(
                     Connection->Paths[0].Binding,
@@ -1415,16 +1440,18 @@ QuicCryptoProcessData(
                     QuicListenerAcceptConnection(
                         Listener,
                         Connection,
-                        &Info);
+                        &Info,
+                        &SecConfig);
+                QuicRundownRelease(&Listener->Rundown);
             }
 
             if (AcceptResult != QUIC_CONNECTION_ACCEPT) {
                 QuicTraceEvent(ConnErrorStatus,
-                    Connection, AcceptResult, "Connection rejected.");
+                    Connection, AcceptResult, "Connection rejected");
                 if (AcceptResult == QUIC_CONNECTION_REJECT_NO_LISTENER) {
                     QuicConnTransportError(
                         Connection,
-                        QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE);
+                        QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL);
                 } else if (AcceptResult == QUIC_CONNECTION_REJECT_BUSY) {
                     QuicConnTransportError(
                         Connection,
@@ -1435,6 +1462,15 @@ QuicCryptoProcessData(
                         QUIC_ERROR_INTERNAL_ERROR);
                 }
                 goto Error;
+
+            } else if (SecConfig != NULL) {
+                Status = QuicConnHandshakeConfigure(Connection, SecConfig);
+                if (QUIC_FAILED(Status)) {
+                    QuicConnTransportError(
+                        Connection,
+                        QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE);
+                    goto Error;
+                }
             }
         }
     }

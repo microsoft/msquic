@@ -38,7 +38,7 @@ QUIC_PRIVATE_TRANSPORT_PARAMETER RandomTransportParameter = {
 
 const char* Alpns[] = {
     ALPN_HTTP_OVER_QUIC,
-    "h3-24"
+    "h3-25"
 };
 
 const uint16_t Ports[] = {
@@ -59,6 +59,7 @@ const QuicPublicEndpoint PublicEndpoints[] = {
     { "ats",            "quic.ogre.com" },
     { "f5",             "f5quic.com" },
     { "gquic",          "quic.rocks" },
+    { "haskell",        "mew.org" },
     { "lsquic",         "http3-test.litespeedtech.com" },
     { "mvfst",          "fb.mvfst.net" },
     { "msquic",         "quic.westus.cloudapp.azure.com" },
@@ -647,7 +648,7 @@ QUIC_THREAD_CALLBACK(InteropTestCallback, Context)
 {
     auto TestContext = (InteropTestContext*)Context;
 
-    uint32_t QuicVersion;
+    uint32_t QuicVersion = 0;
     if (RunInteropTest(
             PublicEndpoints[TestContext->EndpointIndex],
             TestContext->Alpn,
@@ -749,6 +750,7 @@ RunInteropTests()
     } else {
         PrintTestResults((uint32_t)EndpointIndex);
     }
+    printf("\n");
 }
 
 int

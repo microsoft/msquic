@@ -628,8 +628,8 @@ QuicStreamSetGetStreamForPeer(
             Status = QuicConnIndicateEvent(Connection, &Event);
 
             if (QUIC_FAILED(Status)) {
-                QuicTraceLogWarning("[strm][%p][%llu] New stream wasn't accepted, 0x%x",
-                    Stream, NewStreamId, Status);
+                QuicTraceLogStreamWarning(NotAccepted, Stream, "New stream wasn't accepted, 0x%x",
+                    Status);
                 QuicStreamClose(Stream);
                 Stream = NULL;
             } else if (Stream->Flags.HandleClosed) {

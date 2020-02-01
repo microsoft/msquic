@@ -463,6 +463,13 @@ QuicEtwCallback(
 #define QuicTraceLogConnInfo(...)
 #define QuicTraceLogConnVerbose(...)
 
+#define QuicTraceLogStreamVerboseEnabled() FALSE
+
+#define QuicTraceLogStreamError(...)
+#define QuicTraceLogStreamWarning(...)
+#define QuicTraceLogStreamInfo(...)
+#define QuicTraceLogStreamVerbose(...)
+
 #endif // QUIC_LOGS_STUB
 
 #ifdef QUIC_LOGS_WPP
@@ -511,6 +518,8 @@ extern "C" {
 #define QuicTraceLogInfoEnabled()    WPP_FLAGS_LEVEL_ENABLED(FLAG_DEFAULT, TRACE_LEVEL_INFORMATION)
 #define QuicTraceLogVerboseEnabled() WPP_FLAGS_LEVEL_ENABLED(FLAG_DEFAULT, TRACE_LEVEL_VERBOSE)
 
+#define QuicTraceLogStreamVerboseEnabled() WPP_FLAGS_LEVEL_ENABLED(FLAG_STREAM, TRACE_LEVEL_VERBOSE)
+
 // begin_wpp config
 
 // FUNC QuicTraceLogError{LEVEL=TRACE_LEVEL_ERROR,FLAGS=FLAG_DEFAULT}(MSG,...);
@@ -526,6 +535,15 @@ extern "C" {
 // FUNC QuicTraceLogConnInfo{LEVEL=TRACE_LEVEL_INFORMATION,FLAGS=FLAG_CONNECTION}(NOOP,POINTER,MSG,...);
 // USEPREFIX(QuicTraceLogConnVerbose,"%!STDPREFIX![conn][%p]%!SPACE!",POINTER);
 // FUNC QuicTraceLogConnVerbose{LEVEL=TRACE_LEVEL_VERBOSE,FLAGS=FLAG_CONNECTION}(NOOP,POINTER,MSG,...);
+
+// USEPREFIX(QuicTraceLogStreamError,"%!STDPREFIX![strm][%p]%!SPACE!",POINTER);
+// FUNC QuicTraceLogStreamError{LEVEL=TRACE_LEVEL_ERROR,FLAGS=FLAG_STREAM}(NOOP,POINTER,MSG,...);
+// USEPREFIX(QuicTraceLogStreamWarning,"%!STDPREFIX![strm][%p]%!SPACE!",POINTER);
+// FUNC QuicTraceLogStreamWarning{LEVEL=TRACE_LEVEL_WARNING,FLAGS=FLAG_STREAM}(NOOP,POINTER,MSG,...);
+// USEPREFIX(QuicTraceLogStreamInfo,"%!STDPREFIX![strm][%p]%!SPACE!",POINTER);
+// FUNC QuicTraceLogStreamInfo{LEVEL=TRACE_LEVEL_INFORMATION,FLAGS=FLAG_STREAM}(NOOP,POINTER,MSG,...);
+// USEPREFIX(QuicTraceLogStreamVerbose,"%!STDPREFIX![strm][%p]%!SPACE!",POINTER);
+// FUNC QuicTraceLogStreamVerbose{LEVEL=TRACE_LEVEL_VERBOSE,FLAGS=FLAG_STREAM}(NOOP,POINTER,MSG,...);
 
 // end_wpp
 
@@ -562,10 +580,10 @@ log_hexbuf(const void* Buffer, UINT32 Length) {
 #include "MsQuicEtw.h"
 #include <stdio.h>
 
-#define QuicTraceLogErrorEnabled()   TRUE
-#define QuicTraceLogWarningEnabled() TRUE
-#define QuicTraceLogInfoEnabled()    TRUE
-#define QuicTraceLogVerboseEnabled() TRUE
+#define QuicTraceLogErrorEnabled()   EventEnabledQuicLogError()
+#define QuicTraceLogWarningEnabled() EventEnabledQuicLogWarning()
+#define QuicTraceLogInfoEnabled()    EventEnabledQuicLogInfo()
+#define QuicTraceLogVerboseEnabled() EventEnabledQuicLogVerbose()
 
 #define LogEtw(EventName, Fmt, ...) \
     if (EventEnabledQuicLog##EventName()) { \
@@ -591,6 +609,13 @@ log_hexbuf(const void* Buffer, UINT32 Length) {
 #define QuicTraceLogConnInfo(Name, Ptr, Fmt, ...)     LogEtwType(Conn, Info, Ptr, Fmt, ##__VA_ARGS__)
 #define QuicTraceLogConnVerbose(Name, Ptr, Fmt, ...)  LogEtwType(Conn, Verbose, Ptr, Fmt, ##__VA_ARGS__)
 
+#define QuicTraceLogStreamVerboseEnabled() EventEnabledQuicStreamLogVerbose()
+
+#define QuicTraceLogStreamError(Name, Ptr, Fmt, ...)    LogEtwType(Stream, Error, Ptr, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogStreamWarning(Name, Ptr, Fmt, ...)  LogEtwType(Stream, Warning, Ptr, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogStreamInfo(Name, Ptr, Fmt, ...)     LogEtwType(Stream, Info, Ptr, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogStreamVerbose(Name, Ptr, Fmt, ...)  LogEtwType(Stream, Verbose, Ptr, Fmt, ##__VA_ARGS__)
+
 #endif // QUIC_LOGS_MANIFEST_ETW
 
 #ifdef QUIC_LOGS_SYSLOG
@@ -609,6 +634,13 @@ log_hexbuf(const void* Buffer, UINT32 Length) {
 #define QuicTraceLogConnWarning(Name, Ptr, Fmt, ...) QuicSysLogWrite(QUIC_TRACE_LEVEL_WARNING, "[conn][%p] " Fmt, Ptr, ##__VA_ARGS__)
 #define QuicTraceLogConnInfo(Name, Ptr, Fmt, ...)    QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] " Fmt, Ptr, ##__VA_ARGS__)
 #define QuicTraceLogConnVerbose(Name, Ptr, Fmt, ...) QuicSysLogWrite(QUIC_TRACE_LEVEL_VERBOSE, "[conn][%p] " Fmt, Ptr, ##__VA_ARGS__)
+
+#define QuicTraceLogStreamVerboseEnabled() TRUE
+
+#define QuicTraceLogStreamError(Name, Ptr, Fmt, ...)    QuicSysLogWrite(QUIC_TRACE_LEVEL_ERROR, "[strm][%p] " Fmt, Ptr, ##__VA_ARGS__)
+#define QuicTraceLogStreamWarning(Name, Ptr, Fmt, ...)  QuicSysLogWrite(QUIC_TRACE_LEVEL_WARNING, "[strm][%p] " Fmt, Ptr, ##__VA_ARGS__)
+#define QuicTraceLogStreamInfo(Name, Ptr, Fmt, ...)     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[strm][%p] " Fmt, Ptr, ##__VA_ARGS__)
+#define QuicTraceLogStreamVerbose(Name, Ptr, Fmt, ...)  QuicSysLogWrite(QUIC_TRACE_LEVEL_VERBOSE, "[strm][%p] " Fmt, Ptr, ##__VA_ARGS__)
 
 #endif // QUIC_LOGS_SYSLOG
 
