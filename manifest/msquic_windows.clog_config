@@ -6,8 +6,8 @@
   },
   "SourceCodeMacros": [
     {
-      "XMacroName": "QuicTraceLogWarning",
-      "MacroName": "QuicTraceLogWarning",
+      "XMacroName": "XuicTraceLogWarning",
+      "MacroName": "XuicTraceLogWarning",
       "EncodedPrefix": null,
       "EncodedArgNumber": 1,
       "Ignore": false,
@@ -26,8 +26,8 @@
       "Keywords": {}
     },
     {
-      "XMacroName": "QuicTraceLogInfo",
-      "MacroName": "QuicTraceLogInfo",
+      "XMacroName": "XuicTraceLogInfo",
+      "MacroName": "XuicTraceLogInfo",
       "EncodedPrefix": null,
       "EncodedArgNumber": 1,
       "Ignore": false,
@@ -46,8 +46,8 @@
       "Keywords": {}
     },
     {
-      "XMacroName": "QuicTraceLogVerbose",
-      "MacroName": "QuicTraceLogVerbose",
+      "XMacroName": "XuicTraceLogVerbose",
+      "MacroName": "XuicTraceLogVerbose",
       "EncodedPrefix": null,
       "EncodedArgNumber": 1,
       "Ignore": false,
@@ -66,8 +66,8 @@
       "Keywords": {}
     },
     {
-      "XMacroName": "QuicTraceLogError",
-      "MacroName": "QuicTraceLogError",
+      "XMacroName": "XuicTraceLogError",
+      "MacroName": "XuicTraceLogError",
       "EncodedPrefix": null,
       "EncodedArgNumber": 1,
       "Ignore": false,
@@ -86,8 +86,8 @@
       "Keywords": {}
     },
     {
-      "XMacroName": "QuicTraceLogConnError",
-      "MacroName": "QuicTraceLogConnError",
+      "XMacroName": "XuicTraceLogConnError",
+      "MacroName": "XuicTraceLogConnError",
       "EncodedPrefix": "PREFIX %p : ",
       "EncodedArgNumber": 2,
       "Ignore": false,
@@ -106,8 +106,8 @@
       "Keywords": {}
     },
     {
-      "XMacroName": "QuicTraceLogConnWarning",
-      "MacroName": "QuicTraceLogConnWarning",
+      "XMacroName": "XuicTraceLogConnWarning",
+      "MacroName": "XuicTraceLogConnWarning",
       "EncodedPrefix": "PREFIX %p : ",
       "EncodedArgNumber": 2,
       "Ignore": false,
@@ -126,8 +126,8 @@
       "Keywords": {}
     },
     {
-      "XMacroName": "QuicTraceLogConnInfo",
-      "MacroName": "QuicTraceLogConnInfo",
+      "XMacroName": "XuicTraceLogConnInfo",
+      "MacroName": "XuicTraceLogConnInfo",
       "EncodedPrefix": "PREFIX %p : ",
       "EncodedArgNumber": 2,
       "Ignore": false,
@@ -146,8 +146,8 @@
       "Keywords": {}
     },
     {
-      "XMacroName": "QuicTraceLogConnVerbose",
-      "MacroName": "QuicTraceLogConnVerbose",
+      "XMacroName": "XuicTraceLogConnVerbose",
+      "MacroName": "XuicTraceLogConnVerbose",
       "EncodedPrefix": "PREFIX %p : ",
       "EncodedArgNumber": 2,
       "Ignore": false,
@@ -166,8 +166,8 @@
       "Keywords": {}
     },
     {
-      "XMacroName": "QuicTraceEvent",
-      "MacroName": "QuicTraceEvent",
+      "XMacroName": "XuicTraceEvent",
+      "MacroName": "XuicTraceEvent",
       "EncodedPrefix": null,
       "EncodedArgNumber": 1,
       "Ignore": false,
@@ -862,7 +862,7 @@
       },
       {
         "UniquenessHash": "ef247211-36c1-c84a-ab61-0e2b6fb38f8d",
-        "TraceID": "FN_quictest9eddd9dc5266f22ce5fe2958d12ddae0"
+        "TraceID": "FN_XuicTest9eddd9dc5266f22ce5fe2958d12ddae0"
       },
       {
         "UniquenessHash": "cf4a6fb9-226b-1654-46cc-2570911c48c3",
@@ -2834,11 +2834,11 @@
       },
       {
         "UniquenessHash": "385e077d-3665-30cc-5f15-cd839787eb1d",
-        "TraceID": "FN_quictest0785c7e818b20fe296fb9343da4ad6c7"
+        "TraceID": "FN_XuicTest0785c7e818b20fe296fb9343da4ad6c7"
       },
       {
         "UniquenessHash": "86ca8dda-eda7-f36d-425c-0a706f5645ce",
-        "TraceID": "FN_quictest3a72f018a4cf860262d89c7671534363"
+        "TraceID": "FN_XuicTest3a72f018a4cf860262d89c7671534363"
       }
     ]
   }

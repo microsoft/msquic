@@ -115,16 +115,22 @@ typedef enum QUIC_TRACE_LEVEL {
 #define QuicTraceLogInfoEnabled()    FALSE
 #define QuicTraceLogVerboseEnabled() FALSE
 #define QuicTraceEventEnabled(x) TRUE
+#define QuicTraceLogStreamVerboseEnabled() TRUE
 
-//#define QuicTraceLogWarning(...)
-//#define QuicTraceLogInfo(...)
-//#define QuicTraceLogVerbose(...)
-//#define QuicTraceLogError(...)
+#define QuicTraceEvent(...)
+#define QuicTraceLogStreamVerbose(...)
+#define QuicTraceLogStreamWarning(...)
+#define QuicTraceLogStreamInfo(...)
 
-//#define QuicTraceLogConnError(...)
-//#define QuicTraceLogConnWarning(...)
-//#define QuicTraceLogConnInfo(...)
-//#define QuicTraceLogConnVerbose(...)
+#define QuicTraceLogWarning(...)
+#define QuicTraceLogInfo(...)
+#define QuicTraceLogVerbose(...)
+#define QuicTraceLogError(...)
+
+#define QuicTraceLogConnError(...)
+#define QuicTraceLogConnWarning(...)
+#define QuicTraceLogConnInfo(...)
+#define QuicTraceLogConnVerbose(...)
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
 #include "quic_trace_manifested_etw.h"
