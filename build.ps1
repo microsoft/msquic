@@ -82,10 +82,9 @@ Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 # Important directory paths.
-$CurrentDir = (Get-Item -Path ".\").FullName
-$BaseArtifactsDir = Join-Path $CurrentDir "artifacts"
-$BaseBuildDir = Join-Path $CurrentDir "bld"
-$SrcDir = Join-Path $CurrentDir "src"
+$BaseArtifactsDir = Join-Path $PSScriptRoot "artifacts"
+$BaseBuildDir = Join-Path $PSScriptRoot "bld"
+$SrcDir = Join-Path $PSScriptRoot "src"
 $ArtifactsDir = $null
 $BuildDir = $null
 if ($IsWindows) {
