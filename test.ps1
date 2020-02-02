@@ -108,20 +108,17 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-# Current directory.
-$CurrentDir = (Get-Item -Path ".\").FullName
-
 # Path for the test program.
-$MsQuicTest = $CurrentDir + "\artifacts\windows\bin\$($Config)\msquictest.exe"
+$MsQuicTest = Join-Path $PSScriptRoot "\artifacts\windows\bin\$($Config)\msquictest.exe"
 if (!$IsWindows) {
-    $MsQuicTest = $CurrentDir + "/artifacts/linux/bin/msquictest"
+    $MsQuicTest = Join-Path $PSScriptRoot "/artifacts/linux/bin/msquictest"
 }
 
 # Path for the procdump executable.
-$ProcDumpExe = $CurrentDir + "\bld\windows\procdump\procdump64.exe"
+$ProcDumpExe = $PSScriptRoot + "\bld\windows\procdump\procdump64.exe"
 
 # Folder for log files.
-$LogBaseDir = Join-Path (Join-Path $CurrentDir "artifacts") "logs"
+$LogBaseDir = Join-Path (Join-Path $PSScriptRoot "artifacts") "logs"
 $LogDir = Join-Path $LogBaseDir (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
 
 # The file path of the final XML results.
