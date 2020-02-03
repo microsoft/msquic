@@ -633,6 +633,7 @@ QuicConnUpdateRtt(
     )
 {
     BOOLEAN RttUpdated;
+    UNREFERENCED_PARAMETER(Connection);
 
     Path->LatestRttSample = LatestRtt;
     if (LatestRtt < Path->MinRtt) {
@@ -3735,6 +3736,8 @@ QuicConnRecvDatagrams(
     QUIC_RECV_DATAGRAM** ReleaseChainTail = &ReleaseChain;
     uint32_t ReleaseChainCount = 0;
     BOOLEAN ResetIdleTimeout = FALSE;
+
+    UNREFERENCED_PARAMETER(DatagramChainCount);
 
     QUIC_PASSIVE_CODE();
 

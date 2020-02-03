@@ -574,10 +574,6 @@ QuicPacketLogHeader(
 
             } else if (LongHdr->Type == QUIC_RETRY) {
 
-                uint8_t OrigDestCidLen = *(SourceCid + SourceCidLen);
-                const uint8_t* OrigDestCid = SourceCid + sizeof(uint8_t) + SourceCidLen;
-                Offset += sizeof(uint8_t) + OrigDestCidLen;
-
                 QuicTraceLogVerbose(
                     "[%c][%cX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R (Token %hu bytes)",
                     PtkConnPre(Connection),
@@ -585,7 +581,7 @@ QuicPacketLogHeader(
                     LongHdr->Version,
                     QuicCidBufToStr(DestCid, DestCidLen).Buffer,
                     QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
-                    PacketLength - Offset);
+                    PacketLength - (Offset + QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1));
                 break;
 
             } else {

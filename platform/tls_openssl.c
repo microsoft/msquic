@@ -418,6 +418,7 @@ QuicTlsSecConfigDelete(
     );
 
 static
+inline
 char
 GetTlsIdentifier(
     _In_ const QUIC_TLS* TlsContext

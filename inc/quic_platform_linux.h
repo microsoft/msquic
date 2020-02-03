@@ -99,6 +99,11 @@ QuicPlatformUninitialize(
 #define SIZEOF_STRUCT_MEMBER(StructType, StructMember) sizeof(((StructType *)0)->StructMember)
 #define TYPEOF_STRUCT_MEMBER(StructType, StructMember) typeof(((StructType *)0)->StructMember)
 
+#ifdef __fallthrough
+#undef __fallthrough
+#endif
+#define __fallthrough __attribute__((fallthrough))
+
 //
 // Interlocked implementations.
 //
