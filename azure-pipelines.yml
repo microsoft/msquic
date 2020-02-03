@@ -47,7 +47,7 @@ strategy:
       platform: 'windows'
       config: 'schannel'
       buildArgs: '-Tls schannel'
-      testCmd: '.\.azure\test_windows.cmd ParameterValidation.*'
+      testCmd: '.\.azure\test_windows.cmd ParameterValidation.*:-*Events'
 
 pool:
   vmImage: '$(platform)-latest'

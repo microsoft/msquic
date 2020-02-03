@@ -384,6 +384,10 @@ QuicSendWriteFrames(
 
     BOOLEAN IsCongestionControlBlocked = !QuicPacketBuilderHasAllowance(Builder);
 
+    BOOLEAN Is1RttEncryptionLevel =
+        Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_1_RTT ||
+        Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_0_RTT;
+
     //
     // Now fill the packet with available frames, in priority order, until we
     // run out of space. The order below was generally chosen based on the
@@ -412,7 +416,8 @@ QuicSendWriteFrames(
         }
     }
 
-    if (Send->SendFlags & (QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE)) {
+    if ((Send->SendFlags & QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE) ||
+        ((Send->SendFlags & QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE) && Is1RttEncryptionLevel)) {
         BOOLEAN IsApplicationClose =
             !!(Send->SendFlags & QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE);
         if (Connection->State.ClosedRemotely) {
@@ -499,9 +504,7 @@ QuicSendWriteFrames(
         }
     }
 
-    if (Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_1_RTT ||
-        Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_0_RTT) {
-
+    if (Is1RttEncryptionLevel) {
         if (Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_1_RTT &&
             Send->SendFlags & QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE) {
 

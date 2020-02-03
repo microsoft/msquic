@@ -176,6 +176,16 @@ TEST_P(WithBool, ValidateStream) {
     QuicTestValidateStream(GetParam());
 }
 
+TEST(ParameterValidation, ValidateConnectionEvents) {
+    TestLogger Logger("QuicTestValidateConnectionEvents");
+    QuicTestValidateConnectionEvents();
+}
+
+TEST(ParameterValidation, ValidateStreamEvents) {
+    TestLogger Logger("QuicTestValidateStreamEvents");
+    QuicTestValidateStreamEvents();
+}
+
 TEST(Basic, CreateListener) {
     TestLogger Logger("QuicTestCreateListener");
     QuicTestCreateListener();

@@ -200,6 +200,16 @@ QuicKeyCreate(
     _Out_ QUIC_KEY** Key
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicPacketKeyDerive(
+    _In_ QUIC_PACKET_KEY_TYPE KeyType,
+    _In_ const QUIC_SECRET* const Secret,
+    _In_z_ const char* const SecretName,
+    _In_ BOOLEAN CreateHpKey,
+    _Out_ QUIC_PACKET_KEY **NewKey
+    );
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicKeyFree(

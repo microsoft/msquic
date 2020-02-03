@@ -2010,15 +2010,21 @@ QuicTlsKeySetAead(
     switch (AeadType) {
     case QUIC_AEAD_AES_128_GCM:
         Key->PacketKey->Aead = EVP_aes_128_gcm();
-        Key->HeaderKey->Aead = EVP_aes_128_ctr();
+        if (Key->HeaderKey != NULL) {
+            Key->HeaderKey->Aead = EVP_aes_128_ctr();
+        }
         break;
     case QUIC_AEAD_AES_256_GCM:
         Key->PacketKey->Aead = EVP_aes_256_gcm();
-        Key->HeaderKey->Aead = EVP_aes_256_ctr();
+        if (Key->HeaderKey != NULL) {
+            Key->HeaderKey->Aead = EVP_aes_256_ctr();
+        }
         break;
     case QUIC_AEAD_CHACHA20_POLY1305:
         Key->PacketKey->Aead = EVP_chacha20_poly1305();
-        Key->HeaderKey->Aead = EVP_chacha20();
+        if (Key->HeaderKey != NULL) {
+            Key->HeaderKey->Aead = EVP_chacha20();
+        }
         break;
     default:
         QUIC_FRE_ASSERT(FALSE);
@@ -2407,6 +2413,77 @@ QuicTlsDeriveHeaderProtectionKey(
     }
 
     return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicPacketKeyDerive(
+    _In_ QUIC_PACKET_KEY_TYPE KeyType,
+    _In_ const QUIC_SECRET* const Secret,
+    _In_z_ const char* const SecretName,
+    _In_ BOOLEAN CreateHpKey,
+    _Out_ QUIC_PACKET_KEY **NewKey
+    )
+{
+    const uint16_t SecretLength = QuicHashLength(Secret->Hash);
+    const uint16_t KeyLength = QuicKeyLength(Secret->Aead);
+
+    QUIC_DBG_ASSERT(SecretLength >= KeyLength);
+    QUIC_DBG_ASSERT(SecretLength >= QUIC_IV_LENGTH);
+    QUIC_DBG_ASSERT(SecretLength <= QUIC_HASH_MAX_SIZE);
+
+    QUIC_PACKET_KEY *Key;
+    QUIC_STATUS Status = QuicAllocatePacketKey(KeyType, CreateHpKey, &Key);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    QuicTlsKeySetAead(Secret->Aead, Key);
+
+     Status =
+        QuicTlsDerivePacketProtectionIv(
+            Secret->Secret,
+            SecretLength,
+            QuicTlsKeyGetMd(Secret->Hash),
+            Key);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    Status =
+        QuicTlsDerivePacketProtectionKey(
+            Secret->Secret,
+            SecretLength,
+            QuicTlsKeyGetMd(Secret->Hash),
+            Key);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    if (CreateHpKey) {
+        Status =
+            QuicTlsDeriveHeaderProtectionKey(
+                Secret->Secret,
+                SecretLength,
+                QuicTlsKeyGetMd(Secret->Hash),
+                Key);
+        if (QUIC_FAILED(Status)) {
+            goto Error;
+        }
+    }
+
+    if (KeyType == QUIC_PACKET_KEY_1_RTT) {
+        QuicCopyMemory(Key->TrafficSecret, Secret, sizeof(QUIC_SECRET));
+    }
+
+    *NewKey = Key;
+    Key = NULL;
+
+Error:
+
+    QuicPacketKeyFree(Key);
+
+    return Status;
 }
 
 static
