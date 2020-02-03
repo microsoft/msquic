@@ -712,7 +712,7 @@ QuicConnLogStatistics(
     )
 {
 #ifdef QUIC_EVENTS_LTTNG // LTTng has a max of 10 fields.
-    QuicTraceEvent(
+    BUGBUG_icTraceEvent(
         ConnStatistics,
         Connection,
         QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()),
