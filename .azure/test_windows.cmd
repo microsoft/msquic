@@ -1,6 +1,6 @@
 
 :: Import our ETW manifest.
-wevtutil im manifest\MsQuicEtw.man ^
+wevtutil im src\manifest\MsQuicEtw.man ^
     /rf:%cd%\artifacts\windows\bin\debug\msquic.dll ^
     /mf:%cd%\artifacts\windows\bin\debug\msquic.dll
 

@@ -51,7 +51,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_custom_command(
         OUTPUT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h
         OUTPUT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc
-        COMMAND mc.exe -um -h ${QUIC_BUILD_DIR}/inc -r ${QUIC_BUILD_DIR}/inc ${CMAKE_SOURCE_DIR}/manifest/MsQuicEtw.man)
+        COMMAND mc.exe -um -h ${QUIC_BUILD_DIR}/inc -r ${QUIC_BUILD_DIR}/inc ${CMAKE_SOURCE_DIR}/src/manifest/MsQuicEtw.man)
     add_custom_target(MsQuicEtw
         DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h
         DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
@@ -118,7 +118,7 @@ else()
     set(QUIC_CXX_FLAGS "${QUIC_COMMON_FLAGS} --std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format")
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR}/inc)
+include_directories(${CMAKE_SOURCE_DIR}/src/inc)
 
 if(QUIC_TLS STREQUAL "openssl")
     # Configure and build OpenSSL.
@@ -145,22 +145,22 @@ if (QUIC_TLS STREQUAL "mitls")
 endif()
 
 # Product code
-add_subdirectory(core)
-add_subdirectory(platform)
-add_subdirectory(bin)
+add_subdirectory(src/core)
+add_subdirectory(src/platform)
+add_subdirectory(src/bin)
 
 # Tool code
 if(QUIC_BUILD_TOOLS)
-    add_subdirectory(tools/attack)
-    add_subdirectory(tools/interop)
-    add_subdirectory(tools/ping)
-    add_subdirectory(tools/reach)
-    add_subdirectory(tools/sample)
-    add_subdirectory(tools/spin)
-    add_subdirectory(tools/void)
+    add_subdirectory(src/tools/attack)
+    add_subdirectory(src/tools/interop)
+    add_subdirectory(src/tools/ping)
+    add_subdirectory(src/tools/reach)
+    add_subdirectory(src/tools/sample)
+    add_subdirectory(src/tools/spin)
+    add_subdirectory(src/tools/void)
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-        add_subdirectory(tools/etwlib)
-        add_subdirectory(tools/etw)
+        add_subdirectory(src/tools/etwlib)
+        add_subdirectory(src/tools/etw)
     endif()
 endif()
 
@@ -174,6 +174,6 @@ if(QUIC_BUILD_TEST)
     endif()
     add_subdirectory(submodules/googletest)
 
-    add_subdirectory(test/lib)
-    add_subdirectory(test/bin)
+    add_subdirectory(src/test/lib)
+    add_subdirectory(src/test/bin)
 endif()
