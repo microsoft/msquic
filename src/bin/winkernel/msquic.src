@@ -1,0 +1,5 @@
+NAME msquic.sys
+
+EXPORTS
+    MsQuicOpen
+    MsQuicClose
