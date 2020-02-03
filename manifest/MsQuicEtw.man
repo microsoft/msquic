@@ -3128,7 +3128,7 @@
             />
         <string
             id="Etw.LibraryAssert"
-            value="[ lib] ASSERT, %2:%1 - %3."
+            value="[ lib] ASSERT, %1:%2 - %3."
             />
         <string
             id="Etw.SessionCreated"
