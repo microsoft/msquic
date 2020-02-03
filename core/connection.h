@@ -662,7 +662,7 @@ QuicConnLogOutFlowStats(
         &SendWindow);
 
 #ifdef QUIC_EVENTS_LTTNG // LTTng has a max of 10 fields.
-    QuicTraceEvent(
+    BUGBUG_icTraceEvent(
         ConnOutFlowStats,
         Connection,
         Connection->Stats.Send.TotalBytes,
