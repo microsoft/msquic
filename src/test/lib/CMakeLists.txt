@@ -12,7 +12,7 @@ set(SOURCES
     TestStream.cpp
 )
 
-include_directories(${CMAKE_SOURCE_DIR}/test)
+include_directories(${CMAKE_SOURCE_DIR}/src/test)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 
