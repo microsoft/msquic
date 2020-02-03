@@ -55,6 +55,7 @@ struct QuicPublicEndpoint {
 
 const QuicPublicEndpoint PublicEndpoints[] = {
     { "aioquic",        "quic.aiortc.org" },
+    { "akamaiquic",     "ietf.akaquic.com" },
     { "applequic",      "12.181.55.166" },
     { "ats",            "quic.ogre.com" },
     { "f5",             "f5quic.com" },

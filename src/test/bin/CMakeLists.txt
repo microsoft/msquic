@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-include_directories(${CMAKE_SOURCE_DIR}/test)
+include_directories(${CMAKE_SOURCE_DIR}/src/test)
 include_directories(${CMAKE_SOURCE_DIR}/submodules/googletest/googletest/include)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")

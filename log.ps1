@@ -62,19 +62,16 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-# Current directory.
-$CurrentDir = (Get-Item -Path ".\").FullName
-
 # Path for the WPR profile.
-$WprpFile = $CurrentDir + "\manifest\msquic.wprp"
+$WprpFile = $PSScriptRoot + "\src\manifest\msquic.wprp"
 
 # Path for quicetw.
 $QuicEtw = $null
 if ($IsWindows) {
-    if (Test-Path ($CurrentDir + "\artifacts\windows\bin\release")) {
-        $QuicEtw = $CurrentDir + "\artifacts\windows\bin\release\quicetw.exe"
+    if (Test-Path ($PSScriptRoot + "\artifacts\windows\bin\release")) {
+        $QuicEtw = $PSScriptRoot + "\artifacts\windows\bin\release\quicetw.exe"
     } else {
-        $QuicEtw = $CurrentDir + "\artifacts\windows\bin\debug\quicetw.exe"
+        $QuicEtw = $PSScriptRoot + "\artifacts\windows\bin\debug\quicetw.exe"
     }
 } else {
     # TODO
@@ -86,7 +83,7 @@ function Log-Start {
         wpr.exe -start "$($WprpFile)!$($LogProfile)" -filemode -instancename $InstanceName
     } else {
         # TODO
-        Write-Warning "Not supported yet!"
+        Write-Warning "Logging not supported yet!"
     }
 }
 
@@ -96,7 +93,7 @@ function Log-Cancel {
         wpr.exe -cancel -instancename $InstanceName
     } else {
         # TODO
-        Write-Warning "Not supported yet!"
+        Write-Warning "Logging not supported yet!"
     }
 }
 
@@ -111,7 +108,7 @@ function Log-Stop {
         }
     } else {
         # TODO
-        Write-Warning "Not supported yet!"
+        Write-Warning "Logging not supported yet!"
     }
 }
 

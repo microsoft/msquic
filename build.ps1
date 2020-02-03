@@ -30,6 +30,9 @@ This script provides helpers for building msquic.
 .PARAMETER Clean
     Deletes all previous build and configuration.
 
+.PARAMETER InstallOutput
+    Installs the build output to the current machine.
+
 .EXAMPLE
     build.ps1 -InstallDependencies
 
@@ -69,16 +72,19 @@ param (
     [switch]$DisableTest = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Clean = $false
+    [switch]$Clean = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$InstallOutput = $false
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 # Important directory paths.
-$CurrentDir = (Get-Item -Path ".\").FullName
-$BaseArtifactsDir = Join-Path $CurrentDir "artifacts"
-$BaseBuildDir = Join-Path $CurrentDir "bld"
+$BaseArtifactsDir = Join-Path $PSScriptRoot "artifacts"
+$BaseBuildDir = Join-Path $PSScriptRoot "bld"
+$SrcDir = Join-Path $PSScriptRoot "src"
 $ArtifactsDir = $null
 $BuildDir = $null
 if ($IsWindows) {
@@ -206,6 +212,20 @@ function CMake-Build {
     CMake-Execute $Arguments
 }
 
+# Installs all the build output.
+function Install-Output {
+    if ($IsWindows) {
+        # Import the ETW manifest.
+        $ManifestDir = Join-Path $SrcDir "manifest"
+        $ManifestPath = Join-Path $ManifestDir "MsQuicEtw.man"
+        $MsQuicDllPath = Join-Path $ArtifactsDir "bin" $Config "msquic.dll"
+        Log "Installing ETW manifest..."
+        wevtutil.exe im $ManifestPath /rf:$MsQuicDllPath /mf:$MsQuicDllPath
+    } else {
+        # TODO - Anything?
+    }
+}
+
 ##############################################################
 #                     Main Execution                         #
 ##############################################################
@@ -225,5 +245,10 @@ CMake-Generate
 # Build the code.
 Log "Building..."
 CMake-Build
+
+if ($InstallOutput) {
+    # Install the build output.
+    Install-Output
+}
 
 Log "Done."
