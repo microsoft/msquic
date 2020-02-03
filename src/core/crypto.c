@@ -969,18 +969,9 @@ QuicCryptoProcessDataFrame(
             KeyType = QUIC_PACKET_KEY_1_RTT; // Treat them all as the same
         }
 
-        if (KeyType != Crypto->TlsState.ReadKey) {
-            if (QuicRecvBufferAlreadyReadData(
-                    &Crypto->RecvBuffer,
-                    Crypto->RecvEncryptLevelStartOffset + Frame->Offset,
-                    (uint16_t)Frame->Length)) {
-                Status = QUIC_STATUS_SUCCESS;
-            } else {
-                QuicTraceEvent(ConnError,
-                    Connection, "Tried crypto with incorrect key.");
-                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
-                Status = QUIC_STATUS_INVALID_STATE;
-            }
+        QUIC_DBG_ASSERT(KeyType <= Crypto->TlsState.ReadKey);
+        if (KeyType < Crypto->TlsState.ReadKey) {
+            Status = QUIC_STATUS_SUCCESS; // Old, likely retransmitted data.
             goto Error;
         }
 
