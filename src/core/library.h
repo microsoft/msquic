@@ -213,8 +213,9 @@ QuicPartitionIdCreate(
     // Generate a partition ID which is a combination of random high bits and
     // the actual partitioning index encoded in the low bits.
     //
-    // N.B. The following logic can leak the partitioning size if not a power of
-    // two. This is because we use a bit mask to split the two parts of the ID.
+    // N.B. The following logic can leak the number of partitions if not a power
+    // of two. This is because we use a bit mask to split the two parts of the
+    // ID.
     //
     uint8_t PartitionId;
     QuicRandom(sizeof(PartitionId), &PartitionId);

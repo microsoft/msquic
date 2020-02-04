@@ -783,7 +783,7 @@ QuicConnGenerateNewSourceCids(
     _In_ BOOLEAN ReplaceExistingCids
     )
 {
-    if (Connection->SourceCidLimit == 1 || !Connection->State.ShareBinding) {
+    if (!Connection->State.ShareBinding) {
         //
         // Can't generate any new CIDs, so this is a no-op.
         //
@@ -795,6 +795,7 @@ QuicConnGenerateNewSourceCids(
     // limit). Otherwise, just generate whatever number we need to hit the
     // limit.
     //
+    QUIC_DBG_ASSERT(QuicConnSourceCidsCount(Connection) <= Connection->SourceCidLimit);
     uint8_t NewCidCount =
         ReplaceExistingCids ?
             Connection->SourceCidLimit :
