@@ -1595,7 +1595,6 @@ QuicConnRestart(
         Path->GotFirstRttSample = FALSE;
         Path->RttVariance = 0;
         Path->SmoothedRtt = MS_TO_US(Connection->Session->Settings.InitialRttMs);
-        //Path->SmoothedRtt = MS_TO_US(QUIC_INITIAL_RTT);
     }
 
     for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); ++i) {
@@ -1604,8 +1603,8 @@ QuicConnRestart(
     }
 
     QuicCongestionControlReset(&Connection->CongestionControl);
-    QuicLossDetectionReset(&Connection->LossDetection);
     QuicSendReset(&Connection->Send);
+    QuicLossDetectionReset(&Connection->LossDetection);
     QuicCryptoReset(&Connection->Crypto, CompleteReset);
 }
 
