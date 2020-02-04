@@ -578,7 +578,7 @@ QuicConnIndicateEvent(
 {
     QUIC_STATUS Status;
     if (!Connection->State.HandleClosed) {
-        QUIC_CONN_VERIFY(Connection, Connection->ClientCallbackHandler != NULL);
+        QUIC_CONN_VERIFY(Connection, Connection->State.HandleShutdown || Connection->ClientCallbackHandler != NULL);
         if (Connection->ClientCallbackHandler == NULL) {
             Status = QUIC_STATUS_INVALID_STATE;
             QuicTraceLogConnWarning(ApiEventNoHandler, Connection, "Event silently discarded (no handler).");
@@ -1193,6 +1193,8 @@ QuicConnOnShutdownComplete(
 
         QuicTraceLogConnVerbose(IndicateShutdownComplete, Connection, "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE");
         (void)QuicConnIndicateEvent(Connection, &Event);
+
+        Connection->ClientCallbackHandler = NULL;
     }
 
     if (Connection->Paths[0].Binding != NULL) {
