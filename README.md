@@ -23,7 +23,6 @@ QUIC has many benefits when compared to existing TLS over TCP scenarios:
 > **Important** Several QUIC protocol features are not yet fully implemented:
 >
 >  * 0-RTT with Schannel and OpenSSL
->  * NAT Rebinding
 >  * Client Migration
 >  * Server Preferred Address
 >  * Path MTU Discovery
