@@ -46,11 +46,10 @@ You can find more detailed information on how to use MsQuic in the [the API docu
 
 ## Source Code
 
-The source is divided into several directories:
+The source (found in the `src` directory) is divided into several directories:
 
   * `bin` - Packages up all static libraries into the platform specific binaries.
   * `core` - Platform independent code that implements the QUIC protocol.
-  * `docs` - All MsQuic documentation.
   * `inc` - Header files used by all the other directories.
   * `manifest` - Windows [ETW manifest](https://docs.microsoft.com/en-us/windows/win32/wes/writing-an-instrumentation-manifest) and related files.
   * `platform` - Platform specific code for OS types, sockets and TLS.
@@ -61,8 +60,10 @@ The source is divided into several directories:
     * `etw` - Windows specific tool for processing MsQuic ETW logs.
     * `interop` - Runs through the [IETF interop scenarios](https://github.com/quicwg/base-drafts/wiki/16th-Implementation-Draft).
     * `ping` - Simple tool for gathering throughput measurements. Read more [here](./tools/ping/readme.md).
+    * `reach` - Tests for QUIC reachability of a server for several well-known ALPNs.
     * `sample` - Minimal example of how to use the MsQuic API.
     * `spin` - Randomly executes the MsQuic API to discover bugs.
+    * `void` - Randomly starts and stops the server to discover bugs.
 
 # Contributing
 
