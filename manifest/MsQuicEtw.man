@@ -3224,7 +3224,7 @@
             />
         <string
             id="Etw.AllocFailure"
-            value="Allocation of &apos;%1&apos; failed. (%2 bytes)"
+            value="Allocation of %1; failed. (%2 bytes)"
             />
         <string
             id="Etw.TlsError"
