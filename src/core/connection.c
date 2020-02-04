@@ -160,7 +160,7 @@ QuicConnAlloc(
         Path->DestCid->CID.UsedLocally = TRUE;
         QuicListInsertTail(&Connection->DestCids, &Path->DestCid->Link);
         QuicTraceEvent(ConnDestCidAdded,
-            Connection, Path->DestCid->CID.Length, Path->DestCid->CID.Data);
+            Connection, Path->DestCid->CID.SequenceNumber, Path->DestCid->CID.Length, Path->DestCid->CID.Data);
 
         QUIC_CID_HASH_ENTRY* SourceCid =
             QuicCidNewSource(Connection, Packet->DestCidLen, Packet->DestCid);
@@ -171,7 +171,7 @@ QuicConnAlloc(
         SourceCid->CID.UsedByPeer = TRUE;
         QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
         QuicTraceEvent(ConnSourceCidAdded,
-            Connection, SourceCid->CID.Length, SourceCid->CID.Data);
+            Connection, SourceCid->CID.SequenceNumber, SourceCid->CID.Length, SourceCid->CID.Data);
 
     } else {
         Connection->Type = QUIC_HANDLE_TYPE_CLIENT;
@@ -187,7 +187,7 @@ QuicConnAlloc(
         Connection->DestCidCount++;
         QuicListInsertTail(&Connection->DestCids, &Path->DestCid->Link);
         QuicTraceEvent(ConnDestCidAdded,
-            Connection, Path->DestCid->CID.Length, Path->DestCid->CID.Data);
+            Connection, Path->DestCid->CID.SequenceNumber, Path->DestCid->CID.Length, Path->DestCid->CID.Data);
     }
 
     return Connection;
@@ -541,7 +541,7 @@ QuicConnTraceRundownOper(
                     QUIC_CID_HASH_ENTRY,
                     Link);
             QuicTraceEvent(ConnSourceCidAdded,
-                Connection, SourceCid->CID.Length, SourceCid->CID.Data);
+                Connection, SourceCid->CID.SequenceNumber, SourceCid->CID.Length, SourceCid->CID.Data);
         }
         for (QUIC_LIST_ENTRY* Entry = Connection->DestCids.Flink;
                 Entry != &Connection->DestCids;
@@ -552,7 +552,7 @@ QuicConnTraceRundownOper(
                     QUIC_CID_QUIC_LIST_ENTRY,
                     Link);
             QuicTraceEvent(ConnDestCidAdded,
-                Connection, DestCid->CID.Length, DestCid->CID.Data);
+                Connection, DestCid->CID.SequenceNumber, DestCid->CID.Length, DestCid->CID.Data);
         }
     }
     if (Connection->State.Connected) {
@@ -734,7 +734,7 @@ QuicConnGenerateNewSourceCid(
         }
     } while (SourceCid == NULL);
 
-    QuicTraceEvent(ConnSourceCidAdded, Connection, SourceCid->CID.Length, SourceCid->CID.Data);
+    QuicTraceEvent(ConnSourceCidAdded, Connection, SourceCid->CID.SequenceNumber, SourceCid->CID.Length, SourceCid->CID.Data);
 
     SourceCid->CID.SequenceNumber = Connection->NextSourceCidSequenceNumber++;
     if (SourceCid->CID.SequenceNumber > 0) {
@@ -836,7 +836,7 @@ QuicConnRetireCid(
     _In_ QUIC_CID_QUIC_LIST_ENTRY* DestCid
     )
 {
-    QuicTraceEvent(ConnDestCidRemoved, Connection, DestCid->CID.Length, DestCid->CID.Data);
+    QuicTraceEvent(ConnDestCidRemoved, Connection, DestCid->CID.SequenceNumber, DestCid->CID.Length, DestCid->CID.Data);
     Connection->DestCidCount--;
     DestCid->CID.Retired = TRUE;
     DestCid->CID.NeedsToSend = TRUE;
@@ -1591,7 +1591,7 @@ QuicConnStart(
     }
 
     Connection->NextSourceCidSequenceNumber++;
-    QuicTraceEvent(ConnSourceCidAdded, Connection, SourceCid->CID.Length, SourceCid->CID.Data);
+    QuicTraceEvent(ConnSourceCidAdded, Connection, SourceCid->CID.SequenceNumber, SourceCid->CID.Length, SourceCid->CID.Data);
     QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
 
     if (!QuicBindingAddSourceConnectionID(Path->Binding, SourceCid)) {
@@ -2123,7 +2123,7 @@ QuicConnUpdateDestCid(
 
         // TODO - Only update for the first packet of each type (Initial and Retry).
 
-        QuicTraceEvent(ConnDestCidRemoved, Connection, DestCid->CID.Length, DestCid->CID.Data);
+        QuicTraceEvent(ConnDestCidRemoved, Connection, DestCid->CID.SequenceNumber, DestCid->CID.Length, DestCid->CID.Data);
 
         //
         // We have just received the a packet from a new source CID
@@ -2162,7 +2162,7 @@ QuicConnUpdateDestCid(
         }
 
         if (DestCid != NULL) {
-            QuicTraceEvent(ConnDestCidAdded, Connection, DestCid->CID.Length, DestCid->CID.Data);
+            QuicTraceEvent(ConnDestCidAdded, Connection, DestCid->CID.SequenceNumber, DestCid->CID.Length, DestCid->CID.Data);
         }
     }
 
@@ -3437,7 +3437,7 @@ QuicConnRecvPayload(
                 DestCid->ResetToken,
                 Frame.Buffer + Frame.Length,
                 QUIC_STATELESS_RESET_TOKEN_LENGTH);
-            QuicTraceEvent(ConnDestCidAdded, Connection, DestCid->CID.Length, DestCid->CID.Data);
+            QuicTraceEvent(ConnDestCidAdded, Connection, DestCid->CID.SequenceNumber, DestCid->CID.Length, DestCid->CID.Data);
             QuicListInsertTail(&Connection->DestCids, &DestCid->Link);
             Connection->DestCidCount++;
 
@@ -3481,8 +3481,8 @@ QuicConnRecvPayload(
             if (SourceCid != NULL) {
                 QuicBindingRemoveSourceConnectionID(
                     Connection->Paths[0].Binding, SourceCid);
-                QuicTraceEvent(ConnDestCidRemoved,
-                    Connection, SourceCid->CID.Length, SourceCid->CID.Data);
+                QuicTraceEvent(ConnSourceCidRemoved,
+                    Connection, SourceCid->CID.SequenceNumber, SourceCid->CID.Length, SourceCid->CID.Data);
                 QUIC_FREE(SourceCid);
                 if (IsLastCid) {
                     QuicTraceEvent(ConnError, Connection, "Last Source CID Retired!");
@@ -3672,8 +3672,8 @@ QuicConnRecvPostProcessing(
                         SourceCid->Link.Next = NextSourceCid->Link.Next;
                         QuicBindingRemoveSourceConnectionID(
                             Connection->Paths[0].Binding, NextSourceCid);
-                        QuicTraceEvent(ConnDestCidRemoved,
-                            Connection, NextSourceCid->CID.Length, NextSourceCid->CID.Data);
+                        QuicTraceEvent(ConnSourceCidRemoved,
+                            Connection, NextSourceCid->CID.SequenceNumber, NextSourceCid->CID.Length, NextSourceCid->CID.Data);
                         QUIC_FREE(NextSourceCid);
                     }
                 }
