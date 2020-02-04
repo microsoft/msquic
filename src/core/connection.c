@@ -3424,31 +3424,36 @@ QuicConnRecvPayload(
                 ReplaceRetiredCids = QuicConnOnRetirePriorToUpdated(Connection);
             }
 
-            QUIC_CID_QUIC_LIST_ENTRY* DestCid =
-                QuicCidNewDestination(Frame.Length, Frame.Buffer);
-            if (DestCid == NULL) {
-                QuicTraceEvent(AllocFailure, "new DestCid", sizeof(QUIC_CID_QUIC_LIST_ENTRY) + Frame.Length);
-                return FALSE;
-            }
+            if (QuicConnGetDestCidFromSeq(Connection, Frame.Sequence, FALSE) == NULL) {
+                //
+                // Create the new destination connection ID.
+                //
+                QUIC_CID_QUIC_LIST_ENTRY* DestCid =
+                    QuicCidNewDestination(Frame.Length, Frame.Buffer);
+                if (DestCid == NULL) {
+                    QuicTraceEvent(AllocFailure, "new DestCid", sizeof(QUIC_CID_QUIC_LIST_ENTRY) + Frame.Length);
+                    return FALSE;
+                }
 
-            DestCid->CID.HasResetToken = TRUE;
-            DestCid->CID.SequenceNumber = Frame.Sequence;
-            QuicCopyMemory(
-                DestCid->ResetToken,
-                Frame.Buffer + Frame.Length,
-                QUIC_STATELESS_RESET_TOKEN_LENGTH);
-            QuicTraceEvent(ConnDestCidAdded, Connection, DestCid->CID.SequenceNumber, DestCid->CID.Length, DestCid->CID.Data);
-            QuicListInsertTail(&Connection->DestCids, &DestCid->Link);
-            Connection->DestCidCount++;
+                DestCid->CID.HasResetToken = TRUE;
+                DestCid->CID.SequenceNumber = Frame.Sequence;
+                QuicCopyMemory(
+                    DestCid->ResetToken,
+                    Frame.Buffer + Frame.Length,
+                    QUIC_STATELESS_RESET_TOKEN_LENGTH);
+                QuicTraceEvent(ConnDestCidAdded, Connection, DestCid->CID.SequenceNumber, DestCid->CID.Length, DestCid->CID.Data);
+                QuicListInsertTail(&Connection->DestCids, &DestCid->Link);
+                Connection->DestCidCount++;
 
-            if (DestCid->CID.SequenceNumber < Connection->RetirePriorTo) {
-                QuicConnRetireCid(Connection, DestCid);
-            }
+                if (DestCid->CID.SequenceNumber < Connection->RetirePriorTo) {
+                    QuicConnRetireCid(Connection, DestCid);
+                }
 
-            if (Connection->DestCidCount > QUIC_ACTIVE_CONNECTION_ID_LIMIT) {
-                QuicTraceEvent(ConnError, Connection, "Peer exceeded CID limit");
-                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
-                return FALSE;
+                if (Connection->DestCidCount > QUIC_ACTIVE_CONNECTION_ID_LIMIT) {
+                    QuicTraceEvent(ConnError, Connection, "Peer exceeded CID limit");
+                    QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                    return FALSE;
+                }
             }
 
             if (ReplaceRetiredCids && !QuicConnReplaceRetiredCids(Connection)) {
