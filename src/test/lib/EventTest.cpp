@@ -225,8 +225,9 @@ QuicTestValidateConnectionEvents1(
     )
 {
     ConnValidator Client(
-        new ConnEventValidator* [3] {
+        new ConnEventValidator* [4] {
             new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED, 0, true),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         }
@@ -285,8 +286,9 @@ QuicTestValidateConnectionEvents2(
     )
 {
     ConnValidator Client(
-        new ConnEventValidator* [4] {
+        new ConnEventValidator* [5] {
             new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED, 0, true),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
@@ -427,9 +429,10 @@ QuicTestValidateStreamEvents1(
         });
 
     Client.SetExpectedEvents(
-        new ConnEventValidator* [5] {
+        new ConnEventValidator* [6] {
             new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED, 0, true),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
@@ -525,11 +528,12 @@ QuicTestValidateStreamEvents2(
         });
 
     Client.SetExpectedEvents(
-        new ConnEventValidator* [6] {
+        new ConnEventValidator* [7] {
             new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED, 0, true),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         });
