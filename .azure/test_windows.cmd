@@ -11,5 +11,5 @@ pwsh -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Unrestricted ^
         -Batch ^
         -Filter %1 ^
         -SaveXmlResults ^
-        -LogProfile Basic.Light ^
+        -LogProfile Full.Light ^
         -ConvertLogs
