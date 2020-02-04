@@ -1055,7 +1055,7 @@ MsQuicGetParam(
     QUIC_STATUS Status;
 
     QuicTraceEvent(ApiEnter,
-        QUIC_TRACE_API_SET_PARAM,
+        QUIC_TRACE_API_GET_PARAM,
         Handle);
 
     if (Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION ||
