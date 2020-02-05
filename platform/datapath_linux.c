@@ -1147,7 +1147,7 @@ QuicSocketContextRecvComplete(
             ntohs(LocalAddr->Ipv4.sin_port),
             SocketContext->Binding);
     } else {
-        QuicTraceLogVerbose("[sock][%p] Received [%zd] (buflen=[%hu]) bytes Src=[%s:%hu] Dst=[%s:%hu%%%u], bind=[%p].",
+        QuicTraceLogVerbose("[sock][%p] Received [%zd] (buflen=[%hu]) bytes Src=[%s:%hu] Dst=[%s:%hu%u], bind=[%p].",
             SocketContext, BytesTransferred,
             RecvPacket->BufferLength,
             inet_ntop(AF_INET6, &RemoteAddr->Ipv6.sin6_addr, RemoteInet6AddrStr, INET6_ADDRSTRLEN),
@@ -2044,7 +2044,7 @@ QuicDataPathBindingSendFromTo(
 
     for (size_t i = 0; i < SendContext->BufferCount; ++i) {
         if (RemoteAddress->si_family == AF_INET) {
-            QuicTraceLogVerbose("[sock][%p] SocketFd=[%d], sending %u bytes Src=[%s:%hu%%%u] Dst=[%s:%hu] (%p)",
+            QuicTraceLogVerbose("[sock][%p] SocketFd=[%d], sending %u bytes Src=[%s:%hu%u] Dst=[%s:%hu] (%p)",
                 SocketContext,
                 SocketContext->SocketFd,
                 SendContext->Buffers[i].Length,
@@ -2055,7 +2055,7 @@ QuicDataPathBindingSendFromTo(
                 ntohs(RemoteAddress->Ipv4.sin_port),
                 SendContext);
         } else {
-            QuicTraceLogVerbose("[sock][%p] SocketFd=[%d], sending %u bytes Src=[%s:%hu%%%u] Dst=[%s:%hu] (%p)",
+            QuicTraceLogVerbose("[sock][%p] SocketFd=[%d], sending %u bytes Src=[%s:%hu%u] Dst=[%s:%hu] (%p)",
                 SocketContext,
                 SocketContext->SocketFd,
                 SendContext->Buffers[i].Length,
