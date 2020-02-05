@@ -49,6 +49,7 @@ Environment:
 #include <winerror.h>
 #endif
 
+#define SCHANNEL_USE_BLACKLISTS
 #include <schannel.h>
 
 uint16_t QuicTlsTPHeaderSize = FIELD_OFFSET(SEND_GENERIC_TLS_EXTENSION, Buffer);
@@ -125,7 +126,12 @@ typedef struct QUIC_ACHA_CONTEXT {
     //
     // Holds the credentials configuration for the lifetime of the async call.
     //
-    SCHANNEL_CRED Credentials;
+    SCH_CREDENTIALS Credentials;
+
+    //
+    // Holds TLS configuration for the lifetime of the async call.
+    //
+    TLS_PARAMETERS TlsParameter;
 
 } QUIC_ACHA_CONTEXT;
 #endif
@@ -670,19 +676,26 @@ QuicTlsServerSecConfigCreate(
         goto Error;
     }
 
-    PSCHANNEL_CRED Credentials = &AchaContext->Credentials;
+    PSCH_CREDENTIALS Credentials = &AchaContext->Credentials;
+    Credentials->pTlsParameters = &AchaContext->TlsParameters;
+    Credentials->cTlsParameters = 1;
 #else
-    SCHANNEL_CRED LocalCredentials = { 0 };
-    PSCHANNEL_CRED Credentials = &LocalCredentials;
+    SCH_CREDENTIALS LocalCredentials = { 0 };
+    TLS_PARAMETERS LocalTlsParameters = { 0 };
+    PSCH_CREDENTIALS Credentials = &LocalCredentials;
+    Credentials->pTlsParameters = &LocalTlsParameters;
+    Credentials->cTlsParameters = 1;
 #endif
 
     //
     // Initialize user/kernel-common configuration.
     //
-    Credentials->dwVersion = SCHANNEL_CRED_VERSION;
-    Credentials->grbitEnabledProtocols = SP_PROT_TLS1_3_SERVER;
-    Credentials->cSupportedAlgs = 0;
-    Credentials->palgSupportedAlgs = NULL;
+    Credentials->dwVersion = SCH_CREDENTIALS_VERSION;
+    Credentials->pTlsParameters->grbitDisabledProtocols = SP_PROT_TLS1_2 | SP_PROT_TLS1_1 | SP_PROT_TLS1_0 | SP_PROT_SSL3 | SP_PROT_SSL2;
+    Credentials->pTlsParameters->cAlpnIds = 0;
+    Credentials->pTlsParameters->rgstrAlpnIds = NULL; // QUIC manages all the ALPN matching.
+    Credentials->pTlsParameters->cDisabledCrypto = 0;
+    Credentials->pTlsParameters->pDisabledCrypto = NULL; // Allow all TLS 1.3 algorithms.
     Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
 
     //
@@ -917,7 +930,8 @@ QuicTlsClientSecConfigCreate(
     )
 {
     TimeStamp CredExpiration;
-    SCHANNEL_CRED SchannelCred = { 0 };
+    TLS_PARAMETERS TlsParameters = { 0 };
+    SCH_CREDENTIALS SchannelCred = { 0 };
     SECURITY_STATUS SecStatus;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
@@ -946,10 +960,14 @@ QuicTlsClientSecConfigCreate(
         SchannelCred.dwFlags |= SCH_CRED_MANUAL_CRED_VALIDATION;
     }
 
-    SchannelCred.grbitEnabledProtocols = SP_PROT_TLS1_3_CLIENT;
-    SchannelCred.dwVersion = SCHANNEL_CRED_VERSION;
-    SchannelCred.cSupportedAlgs = 0;
-    SchannelCred.palgSupportedAlgs = NULL;
+    TlsParameters.grbitDisabledProtocols = SP_PROT_TLS1_2 | SP_PROT_TLS1_1 | SP_PROT_TLS1_0 | SP_PROT_SSL3 | SP_PROT_SSL2;
+    TlsParameters.cAlpnIds = 0;
+    TlsParameters.rgstrAlpnIds = NULL; // QUIC manages all the ALPN matching.
+    TlsParameters.cDisabledCrypto = 0;
+    TlsParameters.pDisabledCrypto = NULL; // Allow all TLS 1.3 algorithms.
+    SchannelCred.cTlsParameters = 1;
+    SchannelCred.pTlsParameters = &TlsParameters;
+    SchannelCred.dwVersion = SCH_CREDENTIALS_VERSION;
 #ifdef _KERNEL_MODE
     PSECURITY_STRING PackageName = (PSECURITY_STRING) &QuicTlsPackageName;
 #else
