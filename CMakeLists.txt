@@ -115,8 +115,8 @@ else()
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -fsanitize=address -fno-omit-frame-pointer -Wno-maybe-uninitialized -O0 -Og -g")
     endif()
 
-    set(QUIC_C_FLAGS "${QUIC_COMMON_FLAGS}")
-    set(QUIC_CXX_FLAGS "${QUIC_COMMON_FLAGS} --std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format -static")
+    set(QUIC_C_FLAGS "${QUIC_COMMON_FLAGS} ")
+    set(QUIC_CXX_FLAGS "${QUIC_COMMON_FLAGS} --std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format")
 endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/src/inc)
