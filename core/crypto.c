@@ -55,7 +55,7 @@ QuicCryptoDumpSendState(
             UnAcked = Sack->Low + Sack->Count;
         }
         if (UnAcked < (uint64_t)Crypto->MaxSentLength) {
-            QuicTraceLogConnVerbose(CryptoDumpUnacked, Connection, "  unACKed: [%llu, %u]", UnAcked, Crypto->MaxSentLength);
+            QuicTraceLogConnVerbose(CryptoDumpUnacked, Connection, "  unACKed: [%llu, %llu]", UnAcked, Crypto->MaxSentLength);
         }
 
         QUIC_DBG_ASSERT(Crypto->UnAckedOffset <= Crypto->NextSendOffset);
