@@ -2913,7 +2913,7 @@ QuicConnRecvDecryptAndAuthenticate(
             // number than this key phase's start, update the key phase start.
             //
             PacketSpace->ReadKeyPhaseStartPacketNumber = Packet->PacketNumber;
-            QuicTraceLogConnVerbose(UpdateReadKeyPhase, Connection, "Updating current key phase read packet number[%llu]",
+            QuicTraceLogConnVerbose(UpdateReadKeyPhase, Connection, "Updating current read key phase and packet number[%llu]",
                 Packet->PacketNumber);
         }
     }
