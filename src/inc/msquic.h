@@ -159,6 +159,11 @@ typedef struct QUIC_CERTIFICATE_FILE {
     char *CertificateFile;
 } QUIC_CERTIFICATE_FILE;
 
+typedef struct QUIC_CERTIFICATE_HANDLE {
+    char *CertificateFileHandle;
+    char *PrivateKeyFileHandle;
+} QUIC_CERTIFICATE_HANDLE;
+
 //
 // A single contiguous buffer.
 //

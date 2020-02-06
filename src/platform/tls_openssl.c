@@ -698,6 +698,9 @@ QuicTlsServerSecConfigCreate(
     QUIC_SEC_CONFIG* SecurityConfig = NULL;
     uint32_t SSLOpts = 0;
     QUIC_CERTIFICATE_FILE* CertFile;
+    QUIC_CERTIFICATE_HANDLE* CertStruct;
+    X509* CertHandle;
+    EVP_PKEY* PrivateKeyHandle;
 
     if (Flags != QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE &&
             Flags != QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT) {
@@ -820,14 +823,20 @@ QuicTlsServerSecConfigCreate(
     else
     {
         // QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT
-        Ret = SSL_CTX_use_certificate(SecurityConfig->SSLCtx, Certificate);
+
+        CertStruct = Certificate;
+
+        CertHandle = CertStruct->CertificateFileHandle;
+        PrivateKeyHandle = CertStruct->PrivateKeyFileHandle;
+        Ret = SSL_CTX_use_certificate(SecurityConfig->SSLCtx, CertHandle);
         if (Ret != 1) {
             QuicTraceLogError("[ tls] SSL_CTX_use_certificate failed, error: %ld", ERR_get_error());
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
 
-        Ret = SSL_CTX_use_PrivateKey(SecurityConfig->SSLCtx, Certificate);
+        // EVP_PKEY
+        Ret = SSL_CTX_use_PrivateKey(SecurityConfig->SSLCtx, PrivateKeyHandle);
         if (Ret != 1) {
             QuicTraceLogError("[ tls] SSL_CTX_use_PrivateKey failed, error: %ld", ERR_get_error());
             Status = QUIC_STATUS_TLS_ERROR;
@@ -837,9 +846,9 @@ QuicTlsServerSecConfigCreate(
 
     Ret = SSL_CTX_check_private_key(SecurityConfig->SSLCtx);
     if (Ret != 1) {
-      QuicTraceLogError("TLS: SSL_CTX_check_private_key failed, error: %ld", ERR_get_error());
-      Status = QUIC_STATUS_TLS_ERROR;
-      goto Exit;
+        QuicTraceLogError("TLS: SSL_CTX_check_private_key failed, error: %ld", ERR_get_error());
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
     }
 
     SSL_CTX_set_max_early_data(SecurityConfig->SSLCtx, UINT32_MAX);
