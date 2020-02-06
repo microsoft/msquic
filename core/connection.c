@@ -1124,7 +1124,7 @@ QuicConnOnShutdownComplete(
         Event.SHUTDOWN_COMPLETE.PeerAcknowledgedShutdown =
             !Connection->State.ShutdownCompleteTimedOut;
 
-        QuicTraceLogConnVerbose(IndicateShutdownComplete, Connection, "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE");
+        QuicTraceLogConnVerbose(IndicateConnectionShutdownComplete, Connection, "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE");
         (void)QuicConnIndicateEvent(Connection, &Event);
     }
 
