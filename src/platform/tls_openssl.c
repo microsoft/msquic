@@ -699,7 +699,7 @@ QuicTlsServerSecConfigCreate(
     uint32_t SSLOpts = 0;
     QUIC_CERTIFICATE_FILE* CertFile;
 
-    if (Flags != QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE ||
+    if (Flags != QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE &&
             Flags != QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT) {
         QuicTraceLogError("[ tls] Invalid flags: %lu.", Flags);
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -819,7 +819,7 @@ QuicTlsServerSecConfigCreate(
     }
     else
     {
-        // 
+        // QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT
         Ret = SSL_CTX_use_certificate(SecurityConfig->SSLCtx, Certificate);
         if (Ret != 1) {
             QuicTraceLogError("[ tls] SSL_CTX_use_certificate failed, error: %ld", ERR_get_error());
