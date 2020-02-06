@@ -696,21 +696,18 @@ QuicTlsServerSecConfigCreate(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
     QUIC_SEC_CONFIG* SecurityConfig = NULL;
-    QUIC_CERTIFICATE_FILE* CertFile = Certificate;
     uint32_t SSLOpts = 0;
+    QUIC_CERTIFICATE_FILE* CertFile;
 
-    //
-    // We only allow PEM formatted cert files.
-    //
-
-    if (Flags != QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE) {
+    if (Flags != QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE ||
+            Flags != QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT) {
         QuicTraceLogError("[ tls] Invalid flags: %lu.", Flags);
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
-    if (CertFile == NULL) {
-        QuicTraceLogError("[ tls] CertFile unspecified.");
+    if (Certificate == NULL) {
+        QuicTraceLogError("[ tls] Certificate unspecified.");
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
@@ -796,26 +793,46 @@ QuicTlsServerSecConfigCreate(
     //
     // Set the server certs.
     //
+    if (Flags == QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE)
+    {
+        CertFile = Certificate;
+        Ret =
+            SSL_CTX_use_PrivateKey_file(
+                SecurityConfig->SSLCtx,
+                CertFile->PrivateKeyFile,
+                SSL_FILETYPE_PEM);
+        if (Ret != 1) {
+            QuicTraceLogError("[ tls] SSL_CTX_use_PrivateKey_file failed, error: %ld", ERR_get_error());
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
 
-    Ret =
-        SSL_CTX_use_PrivateKey_file(
-            SecurityConfig->SSLCtx,
-            CertFile->PrivateKeyFile,
-            SSL_FILETYPE_PEM);
-    if (Ret != 1) {
-        QuicTraceLogError("[ tls] SSL_CTX_use_PrivateKey_file failed, error: %ld", ERR_get_error());
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
+        Ret =
+            SSL_CTX_use_certificate_chain_file(
+                SecurityConfig->SSLCtx,
+                CertFile->CertificateFile);
+        if (Ret != 1) {
+            QuicTraceLogError("[ tls] SSL_CTX_use_certificate_chain_file failed, error: %ld", ERR_get_error());
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
     }
+    else
+    {
+        // 
+        Ret = SSL_CTX_use_certificate(SecurityConfig->SSLCtx, Certificate);
+        if (Ret != 1) {
+            QuicTraceLogError("[ tls] SSL_CTX_use_certificate failed, error: %ld", ERR_get_error());
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
 
-    Ret =
-        SSL_CTX_use_certificate_chain_file(
-            SecurityConfig->SSLCtx,
-            CertFile->CertificateFile);
-    if (Ret != 1) {
-      QuicTraceLogError("[ tls] SSL_CTX_use_certificate_chain_file failed, error: %ld", ERR_get_error());
-      Status = QUIC_STATUS_TLS_ERROR;
-      goto Exit;
+        Ret = SSL_CTX_use_PrivateKey(SecurityConfig->SSLCtx, Certificate);
+        if (Ret != 1) {
+            QuicTraceLogError("[ tls] SSL_CTX_use_PrivateKey failed, error: %ld", ERR_get_error());
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
     }
 
     Ret = SSL_CTX_check_private_key(SecurityConfig->SSLCtx);
