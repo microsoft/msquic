@@ -160,8 +160,8 @@ typedef struct QUIC_CERTIFICATE_FILE {
 } QUIC_CERTIFICATE_FILE;
 
 typedef struct QUIC_CERTIFICATE_HANDLE {
-    char *CertificateFileHandle;
-    char *PrivateKeyFileHandle;
+    void *CertificateFileHandle;
+    void *PrivateKeyFileHandle;
 } QUIC_CERTIFICATE_HANDLE;
 
 //
