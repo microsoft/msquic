@@ -252,6 +252,67 @@ BCRYPT_ALG_HANDLE QUIC_AES_ECB_ALG_HANDLE = BCRYPT_AES_ECB_ALG_HANDLE;
 BCRYPT_ALG_HANDLE QUIC_AES_GCM_ALG_HANDLE = BCRYPT_AES_GCM_ALG_HANDLE;
 #endif
 
+
+#define UNICODE_STRING_FROM_PWSTR(x)\
+{\
+    sizeof(x),\
+    sizeof(x),\
+    (unsigned short*)(x)\
+}\
+
+static UNICODE_STRING DisabledChainingModes[] =
+{
+    UNICODE_STRING_FROM_PWSTR(BCRYPT_CHAIN_MODE_CBC)
+};
+
+static CRYPTO_SETTINGS H2DisabledCryptoSettings[] =
+{
+    {
+        TlsParametersCngAlgUsageCipher,
+        UNICODE_STRING_FROM_PWSTR(BCRYPT_AES_ALGORITHM),
+        ARRAYSIZE(DisabledChainingModes),
+        DisabledChainingModes
+    },
+    {
+        TlsParametersCngAlgUsageCipher,
+        UNICODE_STRING_FROM_PWSTR(BCRYPT_DES_ALGORITHM),
+        0,
+        NULL
+    },
+    {
+        TlsParametersCngAlgUsageCipher,
+        UNICODE_STRING_FROM_PWSTR(BCRYPT_3DES_ALGORITHM),
+        0,
+        NULL
+    },
+    {
+        TlsParametersCngAlgUsageCipher,
+        UNICODE_STRING_FROM_PWSTR(BCRYPT_RC4_ALGORITHM),
+        0,
+        NULL
+    },
+    {
+        TlsParametersCngAlgUsageKeyExchange,
+        UNICODE_STRING_FROM_PWSTR(BCRYPT_RSA_ALGORITHM)
+    },
+    {
+        TlsParametersCngAlgUsageKeyExchange,
+        UNICODE_STRING_FROM_PWSTR(BCRYPT_DH_ALGORITHM),
+        0,
+        NULL,
+        2048,
+        0
+    },
+    {
+        TlsParametersCngAlgUsageKeyExchange,
+        UNICODE_STRING_FROM_PWSTR(BCRYPT_ECDH_ALGORITHM),
+        0,
+        NULL,
+        224,
+        0
+    }
+};
+
 QUIC_STATUS
 QuicTlsLibraryInitialize(
     void
@@ -691,17 +752,22 @@ QuicTlsServerSecConfigCreate(
     // Initialize user/kernel-common configuration.
     //
     Credentials->dwVersion = SCH_CREDENTIALS_VERSION;
-    Credentials->pTlsParameters->grbitDisabledProtocols = SP_PROT_TLS1_2 | SP_PROT_TLS1_1 | SP_PROT_TLS1_0 | SP_PROT_SSL3 | SP_PROT_SSL2;
+    Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD) ~SP_PROT_TLS1_3_SERVER;
     Credentials->pTlsParameters->cAlpnIds = 0;
     Credentials->pTlsParameters->rgstrAlpnIds = NULL; // QUIC manages all the ALPN matching.
-    Credentials->pTlsParameters->cDisabledCrypto = 0;
-    Credentials->pTlsParameters->pDisabledCrypto = NULL; // Allow all TLS 1.3 algorithms.
+    Credentials->pTlsParameters->cDisabledCrypto = ARRAYSIZE(H2DisabledCryptoSettings);
+    Credentials->pTlsParameters->pDisabledCrypto = H2DisabledCryptoSettings;
     Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
 
     //
     // This flag is required to prevent the SSL BEAST attack.
     //
     Credentials->dwFlags |= SCH_SEND_AUX_RECORD;
+
+    //
+    // This flag disables known-weak crypto algorithms.
+    //
+    Credentials->dwFlags |= SCH_USE_STRONG_CRYPTO;
 
     if (Flags & QUIC_SEC_CONFIG_FLAG_ENABLE_OCSP) {
         Credentials->dwFlags |= SCH_CRED_SNI_ENABLE_OCSP;
@@ -950,6 +1016,8 @@ QuicTlsClientSecConfigCreate(
     Config->RefCount = 1;
 
     SchannelCred.dwFlags = SCH_CRED_NO_DEFAULT_CREDS;
+    SchannelCred.dwFlags |= SCH_USE_STRONG_CRYPTO;
+    SchannelCred.dwFlags |= SCH_SEND_AUX_RECORD;
     if (Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION) {
         SchannelCred.dwFlags |= SCH_CRED_MANUAL_CRED_VALIDATION;
     } else if (Flags != 0) {
@@ -960,11 +1028,11 @@ QuicTlsClientSecConfigCreate(
         SchannelCred.dwFlags |= SCH_CRED_MANUAL_CRED_VALIDATION;
     }
 
-    TlsParameters.grbitDisabledProtocols = SP_PROT_TLS1_2 | SP_PROT_TLS1_1 | SP_PROT_TLS1_0 | SP_PROT_SSL3 | SP_PROT_SSL2;
+    TlsParameters.grbitDisabledProtocols = (DWORD) ~SP_PROT_TLS1_3_CLIENT;
     TlsParameters.cAlpnIds = 0;
-    TlsParameters.rgstrAlpnIds = NULL; // QUIC manages all the ALPN matching.
-    TlsParameters.cDisabledCrypto = 0;
-    TlsParameters.pDisabledCrypto = NULL; // Allow all TLS 1.3 algorithms.
+    TlsParameters.rgstrAlpnIds = NULL; // Only used on server.
+    TlsParameters.cDisabledCrypto = ARRAYSIZE(H2DisabledCryptoSettings);
+    TlsParameters.pDisabledCrypto = H2DisabledCryptoSettings;
     SchannelCred.cTlsParameters = 1;
     SchannelCred.pTlsParameters = &TlsParameters;
     SchannelCred.dwVersion = SCH_CREDENTIALS_VERSION;
