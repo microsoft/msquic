@@ -25,6 +25,42 @@
       "Levels": {},
       "Keywords": {}
     },
+      {
+      "XMacroName": "QuicTraceLogStreamWarning",
+      "MacroName": "QuicTraceLogStreamWarning",
+      "EncodedPrefix": "PREFIX : %p",
+      "EncodedArgNumber": 2,
+      "Ignore": false,
+      "CustomSettings": {},
+      "CLogExportModules": [
+        "MANIFESTED_ETW",
+        "XXX_DTRACE"
+      ],
+      "DefaultLevel": null,
+      "DefaultKeyWord": null,
+      "ProviderId": "ba7375ae-29d0-4bb7-b30e-32abaf672591",
+      "EventNamePrefix": null,
+      "Levels": {},
+      "Keywords": {}
+    },
+     {
+      "XMacroName": "QuicTraceLogStreamInfo",
+      "MacroName": "QuicTraceLogStreamInfo",
+      "EncodedPrefix": "PREFIX : %p",
+      "EncodedArgNumber": 2,
+      "Ignore": false,
+      "CustomSettings": {},
+      "CLogExportModules": [
+        "MANIFESTED_ETW",
+        "XXX_DTRACE"
+      ],
+      "DefaultLevel": null,
+      "DefaultKeyWord": null,
+      "ProviderId": "ba7375ae-29d0-4bb7-b30e-32abaf672591",
+      "EventNamePrefix": null,
+      "Levels": {},
+      "Keywords": {}
+    },
     {
       "XMacroName": "XuicTraceLogInfo",
       "MacroName": "XuicTraceLogInfo",

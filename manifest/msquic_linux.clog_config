@@ -20,7 +20,61 @@
       ],
       "DefaultLevel": null,
       "DefaultKeyWord": null,
-      "ProviderId": "ff15e657-4f26-570e-88ab-0796b258d11c",
+      "ProviderId": "ba7375ae-29d0-4bb7-b30e-32abaf672591",
+      "EventNamePrefix": null,
+      "Levels": {},
+      "Keywords": {}
+    },
+    {
+      "XMacroName": "QuicTraceLogStreamWarning",
+      "MacroName": "QuicTraceLogStreamWarning",
+      "EncodedPrefix": "PREFIX : %p",
+      "EncodedArgNumber": 2,
+      "Ignore": false,
+      "CustomSettings": {},
+      "CLogExportModules": [
+        "XXX_LTTNG",
+        "DTRACE"
+      ],
+      "DefaultLevel": null,
+      "DefaultKeyWord": null,
+      "ProviderId": "ba7375ae-29d0-4bb7-b30e-32abaf672591",
+      "EventNamePrefix": null,
+      "Levels": {},
+      "Keywords": {}
+    },
+    {
+      "XMacroName": "QuicTraceLogStreamInfo",
+      "MacroName": "QuicTraceLogStreamInfo",
+      "EncodedPrefix": "PREFIX : %p",
+      "EncodedArgNumber": 2,
+      "Ignore": false,
+      "CustomSettings": {},
+      "CLogExportModules": [
+        "XXX_LTTNG",
+        "DTRACE"
+      ],
+      "DefaultLevel": null,
+      "DefaultKeyWord": null,
+      "ProviderId": "ba7375ae-29d0-4bb7-b30e-32abaf672591",
+      "EventNamePrefix": null,
+      "Levels": {},
+      "Keywords": {}
+    },
+    {
+      "XMacroName": "QuicTraceLogStreamVerbose",
+      "MacroName": "QuicTraceLogStreamVerbose",
+      "EncodedPrefix": "PREFIX : %p",
+      "EncodedArgNumber": 2,
+      "Ignore": false,
+      "CustomSettings": {},
+      "CLogExportModules": [
+        "XXX_LTTNG",
+        "DTRACE"
+      ],
+      "DefaultLevel": null,
+      "DefaultKeyWord": null,
+      "ProviderId": "ba7375ae-29d0-4bb7-b30e-32abaf672591",
       "EventNamePrefix": null,
       "Levels": {},
       "Keywords": {}
@@ -2479,6 +2533,354 @@
       {
         "UniquenessHash": "6d935407-efca-c673-fa0d-23141b365782",
         "TraceID": "TESTING"
+      },
+      {
+        "UniquenessHash": "0cbea180-20e7-27be-a57d-138d16373a2b",
+        "TraceID": "AllocFailure"
+      },
+      {
+        "UniquenessHash": "745a282a-c797-d86c-33cb-8ee995ae2a99",
+        "TraceID": "FN_bindingda2912dbb439879118c990ced87e39cd"
+      },
+      {
+        "UniquenessHash": "274f9219-6e49-da9e-8717-82f85dc2c200",
+        "TraceID": "BindingCreated"
+      },
+      {
+        "UniquenessHash": "cc16d161-08b0-9c2d-9511-ae49219fb566",
+        "TraceID": "BindingRundown"
+      },
+      {
+        "UniquenessHash": "c18415b7-7f5c-a9a6-b9c7-61e54ade1648",
+        "TraceID": "NonActivePathCidRetired"
+      },
+      {
+        "UniquenessHash": "e51ce1e9-9e9f-6cc2-f895-659c767346fa",
+        "TraceID": "HandshakeConfirmedFrame"
+      },
+      {
+        "UniquenessHash": "9a8d703c-e857-bf17-6eb0-767374a13ce2",
+        "TraceID": "FirstCidUsage"
+      },
+      {
+        "UniquenessHash": "5e8a2e93-da3b-b1a9-581f-23380295d288",
+        "TraceID": "IndicateConnectionShutdownComplete"
+      },
+      {
+        "UniquenessHash": "cddf1d8f-8e7e-c9e5-2b6c-f52704940992",
+        "TraceID": "UpdateReadKeyPhase"
+      },
+      {
+        "UniquenessHash": "044b2adf-3141-df06-a18c-1c4070146173",
+        "TraceID": "AbandonInternallyClosed"
+      },
+      {
+        "UniquenessHash": "c7fbbbe9-2c04-86d6-5df1-799b7750091d",
+        "TraceID": "ConnCreated"
+      },
+      {
+        "UniquenessHash": "f729842b-f33c-5475-c25f-3c991effc0f9",
+        "TraceID": "ConnLocalAddrAdded"
+      },
+      {
+        "UniquenessHash": "25561d39-6fed-bbce-b0d5-1682cb50a582",
+        "TraceID": "ConnRemoteAddrAdded"
+      },
+      {
+        "UniquenessHash": "bbf03322-062c-747a-38ac-b86dc13d27c9",
+        "TraceID": "ConnDestCidAdded"
+      },
+      {
+        "UniquenessHash": "26cb5031-9f8f-3645-a3e1-581473ee45af",
+        "TraceID": "ConnSourceCidAdded"
+      },
+      {
+        "UniquenessHash": "7c64ce80-c242-6993-c89b-13a4401c2569",
+        "TraceID": "ConnRundown"
+      },
+      {
+        "UniquenessHash": "1f769517-2e4a-8d67-be96-1f2b2840714c",
+        "TraceID": "ConnDestCidRemoved"
+      },
+      {
+        "UniquenessHash": "1edffc9d-5265-6fd9-6f99-fbb849fa353a",
+        "TraceID": "ConnLocalAddrRemoved"
+      },
+      {
+        "UniquenessHash": "bf9957f7-d2b3-d088-73d7-2e2d176200c9",
+        "TraceID": "HandshakeConfirmedServer"
+      },
+      {
+        "UniquenessHash": "b4e99551-e7b0-fa03-0434-11b13d9ee08e",
+        "TraceID": "FN_framef5cddee84c6341468d9090b90ab3208e"
+      },
+      {
+        "UniquenessHash": "af61ef27-257b-ab2d-dcac-456d9df7b9fc",
+        "TraceID": "ListenerStarted"
+      },
+      {
+        "UniquenessHash": "1de418a5-00ed-4aa9-24a8-17c34d0ffaf5",
+        "TraceID": "FN_lookupeff24288031c85be92f7f20338b8933f"
+      },
+      {
+        "UniquenessHash": "cd6d8fdb-0cfc-f4f8-d60d-4c8d1b134a50",
+        "TraceID": "HandshakeConfirmedAck"
+      },
+      {
+        "UniquenessHash": "2359e5fa-1e64-d9a6-af17-fc8ebaa7e0c0",
+        "TraceID": "FN_packet90ccc79fc6238b6379c9f2d0110c7855"
+      },
+      {
+        "UniquenessHash": "b2285d3c-1669-af2c-75a6-e45bddd7e587",
+        "TraceID": "FN_packetf843b0fef1a9db8bfa6d7339b88abaec"
+      },
+      {
+        "UniquenessHash": "26858f8a-8ba0-a822-6fd8-af881b36a3d7",
+        "TraceID": "FN_packet85487ff2d76aa8944f1e441b0abee08a"
+      },
+      {
+        "UniquenessHash": "59086756-4750-5296-ee5b-c9b46943ffb1",
+        "TraceID": "FN_packet33cae7b7d88f1a0a561d8abc592bb027"
+      },
+      {
+        "UniquenessHash": "bdb0f9a4-1bf0-3dec-f5f3-cf945aee79bb",
+        "TraceID": "FN_packetd9382d9761cefee7446ff5c4f3049c56"
+      },
+      {
+        "UniquenessHash": "825676a5-108e-e836-01a9-c92945b4727e",
+        "TraceID": "FN_packet61e31d5123d636bf45a77c08018ceb3a"
+      },
+      {
+        "UniquenessHash": "9065aff5-82b2-6eaf-8bf7-3dc966492be5",
+        "TraceID": "ConnDropPacket"
+      },
+      {
+        "UniquenessHash": "62da3a1c-6982-6773-a7a5-f2200cec35ba",
+        "TraceID": "BindingDropPacket"
+      },
+      {
+        "UniquenessHash": "91c7fc1c-bc76-94ad-c8bc-675895679a10",
+        "TraceID": "ConnDropPacketEx"
+      },
+      {
+        "UniquenessHash": "6673cfc8-0f99-8586-a32c-e291b34a1a79",
+        "TraceID": "BindingDropPacketEx"
+      },
+      {
+        "UniquenessHash": "44d4499e-ad40-0341-8051-a0bf3cd062c1",
+        "TraceID": "PathRemoved"
+      },
+      {
+        "UniquenessHash": "264ae39b-1aba-8c84-a63e-53eeaaaa137f",
+        "TraceID": "SetSendFlag"
+      },
+      {
+        "UniquenessHash": "731354f7-0ffc-5be9-cdea-50c96cd01023",
+        "TraceID": "ClearSendFlags"
+      },
+      {
+        "UniquenessHash": "5d310171-cd3d-0604-d8a6-bcd1fb29d022",
+        "TraceID": "ConnQueueSendFlush"
+      },
+      {
+        "UniquenessHash": "cbc8db5a-0596-45eb-ed21-d8e3bf49f50f",
+        "TraceID": "IndicateIdealSendBuffer"
+      },
+      {
+        "UniquenessHash": "07a8845f-46e7-de06-fae0-47c37c5b8554",
+        "TraceID": "IndicateStartComplete"
+      },
+      {
+        "UniquenessHash": "54c581b6-b321-c80c-426b-0626e898eeee",
+        "TraceID": "IndicateStreamShutdownComplete"
+      },
+      {
+        "UniquenessHash": "99aaedcc-73a8-6500-f2a6-559a489a8be0",
+        "TraceID": "QueueRecvFlush"
+      },
+      {
+        "UniquenessHash": "355a5377-4cd8-f17c-460f-51bea13d7119",
+        "TraceID": "IndicatePeerSendAbort"
+      },
+      {
+        "UniquenessHash": "e586f61a-3405-5aec-3e46-e4dd97400e19",
+        "TraceID": "IndicatePeerReceiveAborted"
+      },
+      {
+        "UniquenessHash": "e7e34faa-6df4-1bc9-6daa-d2f70ecaa595",
+        "TraceID": "FlowControlExhausted"
+      },
+      {
+        "UniquenessHash": "105ed75d-e77a-c035-fd7e-33e28da413c7",
+        "TraceID": "Receive"
+      },
+      {
+        "UniquenessHash": "e0ec4484-5b99-0de1-8040-8f1eaad0c82b",
+        "TraceID": "RemoteBlocked"
+      },
+      {
+        "UniquenessHash": "6dc35277-c97e-857c-70b7-45bf28eab4b3",
+        "TraceID": "IncreaseRxBuffer"
+      },
+      {
+        "UniquenessHash": "09d82141-cf59-d06f-28c7-8d5aaeb6ff0d",
+        "TraceID": "UpdateFlowControl"
+      },
+      {
+        "UniquenessHash": "53c81840-8f7b-69dc-2867-041ed73735a3",
+        "TraceID": "IgnoreRecvFlush"
+      },
+      {
+        "UniquenessHash": "e1d6151e-ea3e-e8de-6466-b30046403cc8",
+        "TraceID": "IndicateReceive"
+      },
+      {
+        "UniquenessHash": "8f31dd23-1bfb-1dbd-7f36-c48c21c4cf7f",
+        "TraceID": "ReceiveComplete"
+      },
+      {
+        "UniquenessHash": "f468e3e2-ab22-7ec6-ec78-284e4af76d38",
+        "TraceID": "IndicatePeerSendShutdown"
+      },
+      {
+        "UniquenessHash": "ab49ef87-864d-ff97-21af-86410c136847",
+        "TraceID": "IndicateSendShutdownComplete"
+      },
+      {
+        "UniquenessHash": "447eb9ee-13ef-434e-6a9e-a7ac592ce4bc",
+        "TraceID": "IndicateSendCanceled"
+      },
+      {
+        "UniquenessHash": "2b2fc465-f386-951f-e378-4396f1aae26c",
+        "TraceID": "IndicateSendComplete"
+      },
+      {
+        "UniquenessHash": "588b9db0-8fbb-f773-e5e4-0c8bb2a74647",
+        "TraceID": "SendQueued"
+      },
+      {
+        "UniquenessHash": "7c5efc66-205d-7966-0f47-b7449c6c3f18",
+        "TraceID": "NoMoreRoom"
+      },
+      {
+        "UniquenessHash": "2ff42b6e-b22b-8a39-f0be-bb962cf649da",
+        "TraceID": "NoMoreFrames"
+      },
+      {
+        "UniquenessHash": "37e5ca9d-a931-198f-fff5-831bff3753f6",
+        "TraceID": "AddFrame"
+      },
+      {
+        "UniquenessHash": "9f16cdca-422d-de49-4f3c-0229447bed46",
+        "TraceID": "RecoverOpen"
+      },
+      {
+        "UniquenessHash": "ec49fabd-f374-a063-9168-0419b901fb9d",
+        "TraceID": "RecoverFin"
+      },
+      {
+        "UniquenessHash": "8250704a-8ae7-f50b-be02-b3472b3d9c34",
+        "TraceID": "RecoverRange"
+      },
+      {
+        "UniquenessHash": "9f9580fd-2728-ebc7-1f53-be0fa97f2cf4",
+        "TraceID": "AckRange"
+      },
+      {
+        "UniquenessHash": "08666fb7-f155-a883-e869-ee2bfe1bcbff",
+        "TraceID": "Send0RttUpdated"
+      },
+      {
+        "UniquenessHash": "7e1170f1-2803-b960-f197-80ad467b0826",
+        "TraceID": "SendQueueDrained"
+      },
+      {
+        "UniquenessHash": "0df32e7a-4c2e-9907-55d4-3144a2c7759f",
+        "TraceID": "SendDump"
+      },
+      {
+        "UniquenessHash": "62cd0dd1-aade-6ea4-b819-3be7479dfa16",
+        "TraceID": "SendDumpAck"
+      },
+      {
+        "UniquenessHash": "253e77bc-187e-c80f-7f97-8db16f0af581",
+        "TraceID": "StillInTimerWheel"
+      },
+      {
+        "UniquenessHash": "aa4a85dd-5b04-6a25-bf55-ae9a159eb6a6",
+        "TraceID": "AbandonOnLibShutdown"
+      },
+      {
+        "UniquenessHash": "a6210eaa-436d-a3c0-b289-1c3b517c42ec",
+        "TraceID": "ConnOutFlowStats"
+      },
+      {
+        "UniquenessHash": "b8c5b02f-4b56-29d4-a07d-4b07320c379d",
+        "TraceID": "FN_datapath_linuxb802df54d54a4bc6143599cee561f8f3"
+      },
+      {
+        "UniquenessHash": "48a5c0a7-3baa-e611-bbfe-b2ae848fe171",
+        "TraceID": "FN_datapath_linuxde827e1cb26621b9975feaa0c9aade47"
+      },
+      {
+        "UniquenessHash": "1ee9f4c0-b5f7-dbf7-b1d7-6f49c4b0d731",
+        "TraceID": "FN_datapath_linux60ede27a1c5ad670ecffe4810e5d350a"
+      },
+      {
+        "UniquenessHash": "7b2e8aae-c263-bf8b-e17b-adda14684e26",
+        "TraceID": "FN_datapath_linux8492f15439dfbd6b576f900b8ec9a319"
+      },
+      {
+        "UniquenessHash": "0fd60613-8198-c4ba-dd02-37fc577f9339",
+        "TraceID": "FN_datapath_linux3b98ac193c78986a62dc8818437aaac3"
+      },
+      {
+        "UniquenessHash": "bc5db144-865d-5a41-ac57-94592f92a8d8",
+        "TraceID": "FN_datapath_linux8a3aa260f243d9c933a88d3f5f4c0321"
+      },
+      {
+        "UniquenessHash": "13fe1f8f-fefe-6d25-e579-f79525b99565",
+        "TraceID": "FN_platform_linuxa4807bc3dec94112c855988b9765e9fd"
+      },
+      {
+        "UniquenessHash": "f047a5d3-f677-26c8-dc82-cd127d6a44a8",
+        "TraceID": "CloseWithoutShutdown"
+      },
+      {
+        "UniquenessHash": "c4a31129-6405-1fa5-7676-524b8d247657",
+        "TraceID": "AppTooLong"
+      },
+      {
+        "UniquenessHash": "4fe999ae-119d-5c43-2707-75c0a45b2893",
+        "TraceID": "EventSilentDiscard"
+      },
+      {
+        "UniquenessHash": "fc5f72b2-3ad9-e090-6abd-aee3d0bf5995",
+        "TraceID": "ResetEarly"
+      },
+      {
+        "UniquenessHash": "80018310-7f17-a0e4-9d4b-911f8cbf2f94",
+        "TraceID": "ResetTooBig"
+      },
+      {
+        "UniquenessHash": "ba9d9250-9821-0c6e-c420-6bd996343704",
+        "TraceID": "ReceiveTooBig"
+      },
+      {
+        "UniquenessHash": "02210838-bcda-1b91-b547-041d5154d7dd",
+        "TraceID": "ReceiveBeyondFlowControl"
+      },
+      {
+        "UniquenessHash": "cd4422fc-d2f2-a279-4854-a9a0925e7614",
+        "TraceID": "NotAccepted"
+      },
+      {
+        "UniquenessHash": "441910f3-8478-c623-f04b-db19660d7a3f",
+        "TraceID": "RemoteCloseReset"
+      },
+      {
+        "UniquenessHash": "680b94ee-e9b0-9560-83b7-7e7466182851",
+        "TraceID": "LocalCloseStopSending"
       }
     ]
   }
