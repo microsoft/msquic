@@ -252,67 +252,6 @@ BCRYPT_ALG_HANDLE QUIC_AES_ECB_ALG_HANDLE = BCRYPT_AES_ECB_ALG_HANDLE;
 BCRYPT_ALG_HANDLE QUIC_AES_GCM_ALG_HANDLE = BCRYPT_AES_GCM_ALG_HANDLE;
 #endif
 
-
-#define UNICODE_STRING_FROM_PWSTR(x)\
-{\
-    sizeof(x),\
-    sizeof(x),\
-    (unsigned short*)(x)\
-}\
-
-static UNICODE_STRING DisabledChainingModes[] =
-{
-    UNICODE_STRING_FROM_PWSTR(BCRYPT_CHAIN_MODE_CBC)
-};
-
-static CRYPTO_SETTINGS H2DisabledCryptoSettings[] =
-{
-    {
-        TlsParametersCngAlgUsageCipher,
-        UNICODE_STRING_FROM_PWSTR(BCRYPT_AES_ALGORITHM),
-        ARRAYSIZE(DisabledChainingModes),
-        DisabledChainingModes
-    },
-    {
-        TlsParametersCngAlgUsageCipher,
-        UNICODE_STRING_FROM_PWSTR(BCRYPT_DES_ALGORITHM),
-        0,
-        NULL
-    },
-    {
-        TlsParametersCngAlgUsageCipher,
-        UNICODE_STRING_FROM_PWSTR(BCRYPT_3DES_ALGORITHM),
-        0,
-        NULL
-    },
-    {
-        TlsParametersCngAlgUsageCipher,
-        UNICODE_STRING_FROM_PWSTR(BCRYPT_RC4_ALGORITHM),
-        0,
-        NULL
-    },
-    {
-        TlsParametersCngAlgUsageKeyExchange,
-        UNICODE_STRING_FROM_PWSTR(BCRYPT_RSA_ALGORITHM)
-    },
-    {
-        TlsParametersCngAlgUsageKeyExchange,
-        UNICODE_STRING_FROM_PWSTR(BCRYPT_DH_ALGORITHM),
-        0,
-        NULL,
-        2048,
-        0
-    },
-    {
-        TlsParametersCngAlgUsageKeyExchange,
-        UNICODE_STRING_FROM_PWSTR(BCRYPT_ECDH_ALGORITHM),
-        0,
-        NULL,
-        224,
-        0
-    }
-};
-
 QUIC_STATUS
 QuicTlsLibraryInitialize(
     void
@@ -755,8 +694,8 @@ QuicTlsServerSecConfigCreate(
     Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD) ~SP_PROT_TLS1_3_SERVER;
     Credentials->pTlsParameters->cAlpnIds = 0;
     Credentials->pTlsParameters->rgstrAlpnIds = NULL; // QUIC manages all the ALPN matching.
-    Credentials->pTlsParameters->cDisabledCrypto = ARRAYSIZE(H2DisabledCryptoSettings);
-    Credentials->pTlsParameters->pDisabledCrypto = H2DisabledCryptoSettings;
+    Credentials->pTlsParameters->cDisabledCrypto = 0;
+    Credentials->pTlsParameters->pDisabledCrypto = NULL;
     Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
 
     //
@@ -1031,8 +970,8 @@ QuicTlsClientSecConfigCreate(
     TlsParameters.grbitDisabledProtocols = (DWORD) ~SP_PROT_TLS1_3_CLIENT;
     TlsParameters.cAlpnIds = 0;
     TlsParameters.rgstrAlpnIds = NULL; // Only used on server.
-    TlsParameters.cDisabledCrypto = ARRAYSIZE(H2DisabledCryptoSettings);
-    TlsParameters.pDisabledCrypto = H2DisabledCryptoSettings;
+    TlsParameters.cDisabledCrypto = 0;
+    TlsParameters.pDisabledCrypto = NULL;
     SchannelCred.cTlsParameters = 1;
     SchannelCred.pTlsParameters = &TlsParameters;
     SchannelCred.dwVersion = SCH_CREDENTIALS_VERSION;
