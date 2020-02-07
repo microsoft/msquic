@@ -695,6 +695,9 @@ QuicTlsServerSecConfigCreate(
     Credentials->pTlsParameters->cAlpnIds = 0;
     Credentials->pTlsParameters->rgstrAlpnIds = NULL; // QUIC manages all the ALPN matching.
     Credentials->pTlsParameters->cDisabledCrypto = 0;
+    //
+    // TODO: Disallow AES_CCM_8 algorithm, which are undefined in the QUIC-TLS spec.
+    //
     Credentials->pTlsParameters->pDisabledCrypto = NULL;
     Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
 
@@ -971,6 +974,9 @@ QuicTlsClientSecConfigCreate(
     TlsParameters.cAlpnIds = 0;
     TlsParameters.rgstrAlpnIds = NULL; // Only used on server.
     TlsParameters.cDisabledCrypto = 0;
+    //
+    // TODO: Disallow AES_CCM_8 algorithm, which are undefined in the QUIC-TLS spec.
+    //
     TlsParameters.pDisabledCrypto = NULL;
     SchannelCred.cTlsParameters = 1;
     SchannelCred.pTlsParameters = &TlsParameters;
