@@ -702,11 +702,6 @@ QuicTlsServerSecConfigCreate(
     Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
 
     //
-    // This flag is required to prevent the SSL BEAST attack.
-    //
-    Credentials->dwFlags |= SCH_SEND_AUX_RECORD;
-
-    //
     // This flag disables known-weak crypto algorithms.
     //
     Credentials->dwFlags |= SCH_USE_STRONG_CRYPTO;
@@ -959,7 +954,6 @@ QuicTlsClientSecConfigCreate(
 
     SchannelCred.dwFlags = SCH_CRED_NO_DEFAULT_CREDS;
     SchannelCred.dwFlags |= SCH_USE_STRONG_CRYPTO;
-    SchannelCred.dwFlags |= SCH_SEND_AUX_RECORD;
     if (Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION) {
         SchannelCred.dwFlags |= SCH_CRED_MANUAL_CRED_VALIDATION;
     } else if (Flags != 0) {
