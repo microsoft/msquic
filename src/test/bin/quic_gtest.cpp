@@ -19,57 +19,26 @@ QUIC_SEC_CONFIG* SecurityConfig;
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 
 class QuicTestEnvironment : public ::testing::Environment {
-    bool PlatformInitialized;
 public:
     void SetUp() override {
-        if (QUIC_FAILED(QuicPlatformInitialize())) {
-            GTEST_FATAL_FAILURE_("QuicPlatformInitialize failed!");
-            exit(1);
-        }
-        PlatformInitialized = true;
-        if (QUIC_FAILED(MsQuicOpenV1(&MsQuic))) {
-            TearDown();
-            GTEST_FATAL_FAILURE_("MsQuicOpenV1 failed!");
-            exit(1);
-        }
-        if (QUIC_FAILED(MsQuic->RegistrationOpen("MsQuicBVT", &Registration))) {
-            TearDown();
-            GTEST_FATAL_FAILURE_("RegistrationOpen failed!");
-            exit(1);
-        }
-        if ((SelfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER)) == nullptr) {
-            TearDown();
-            GTEST_FATAL_FAILURE_("QuicPlatGetSelfSignedCert failed!");
-            exit(1);
-        }
-        if (!LoadSecConfig()) {
-            TearDown();
-            GTEST_FATAL_FAILURE_("LoadSecConfig failed!");
-            exit(1);
-        }
+        ASSERT_TRUE(QUIC_SUCCEEDED(QuicPlatformInitialize()));
+        ASSERT_TRUE(QUIC_SUCCEEDED(MsQuicOpenV1(&MsQuic)));
+        ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->RegistrationOpen("MsQuicBVT", &Registration)));
+        ASSERT_TRUE((SelfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER)) != nullptr);
+        ASSERT_TRUE(LoadSecConfig());
         QuicTestInitialize();
     }
     void TearDown() override {
-        if (PlatformInitialized) {
-            if (MsQuic != nullptr) {
-                if (Registration != nullptr) {
-                    if (SelfSignedCertParams != nullptr) {
-                        if (SecurityConfig != nullptr) {
-                            QuicTestCleanup();
-                            MsQuic->SecConfigDelete(SecurityConfig);
-                            SecurityConfig = nullptr;
-                        }
-                        QuicPlatFreeSelfSignedCert(SelfSignedCertParams);
-                        SelfSignedCertParams = nullptr;
-                    }
-                    MsQuic->RegistrationClose(Registration);
-                    Registration = nullptr;
-                }
-                MsQuicClose(MsQuic);
-                MsQuic = nullptr;
-            }
-            QuicPlatformUninitialize();
-        }
+        QuicTestCleanup();
+        MsQuic->SecConfigDelete(SecurityConfig);
+        SecurityConfig = nullptr;
+        QuicPlatFreeSelfSignedCert(SelfSignedCertParams);
+        SelfSignedCertParams = nullptr;
+        MsQuic->RegistrationClose(Registration);
+        Registration = nullptr;
+        MsQuicClose(MsQuic);
+        MsQuic = nullptr;
+        QuicPlatformUninitialize();
     }
     _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
     static void
