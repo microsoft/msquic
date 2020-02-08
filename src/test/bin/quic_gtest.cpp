@@ -21,12 +21,16 @@ extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 class QuicTestEnvironment : public ::testing::Environment {
 public:
     void SetUp() override {
-        ASSERT_TRUE(QUIC_SUCCEEDED(QuicPlatformInitialize()));
-        ASSERT_TRUE(QUIC_SUCCEEDED(MsQuicOpenV1(&MsQuic)));
-        ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->RegistrationOpen("MsQuicBVT", &Registration)));
-        ASSERT_TRUE((SelfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER)) != nullptr);
-        ASSERT_TRUE(LoadSecConfig());
-        QuicTestInitialize();
+        try {
+            ASSERT_TRUE(QUIC_SUCCEEDED(QuicPlatformInitialize()));
+            ASSERT_TRUE(QUIC_SUCCEEDED(MsQuicOpenV1(&MsQuic)));
+            ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->RegistrationOpen("MsQuicBVT", &Registration)));
+            ASSERT_TRUE((SelfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER)) != nullptr);
+            ASSERT_TRUE(LoadSecConfig());
+            QuicTestInitialize();
+        } catch (...) {
+            exit(1); // Don't crash on exception. Just exit with an error code.
+        }
     }
     void TearDown() override {
         QuicTestCleanup();
