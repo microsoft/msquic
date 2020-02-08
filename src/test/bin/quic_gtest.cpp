@@ -21,27 +21,19 @@ extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 class QuicTestEnvironment : public ::testing::Environment {
 public:
     void SetUp() override {
-        try {
-            ASSERT_TRUE(QUIC_SUCCEEDED(QuicPlatformInitialize()));
-            ASSERT_TRUE(QUIC_SUCCEEDED(MsQuicOpenV1(&MsQuic)));
-            ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->RegistrationOpen("MsQuicBVT", &Registration)));
-            ASSERT_TRUE((SelfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER)) != nullptr);
-            ASSERT_TRUE(LoadSecConfig());
-            QuicTestInitialize();
-        } catch (...) {
-            exit(1); // Don't crash on exception. Just exit with an error code.
-        }
+        ASSERT_TRUE(QUIC_SUCCEEDED(QuicPlatformInitialize()));
+        ASSERT_TRUE(QUIC_SUCCEEDED(MsQuicOpenV1(&MsQuic)));
+        ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->RegistrationOpen("MsQuicBVT", &Registration)));
+        ASSERT_TRUE((SelfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER)) != nullptr);
+        ASSERT_TRUE(LoadSecConfig());
+        QuicTestInitialize();
     }
     void TearDown() override {
         QuicTestCleanup();
         MsQuic->SecConfigDelete(SecurityConfig);
-        SecurityConfig = nullptr;
         QuicPlatFreeSelfSignedCert(SelfSignedCertParams);
-        SelfSignedCertParams = nullptr;
         MsQuic->RegistrationClose(Registration);
-        Registration = nullptr;
         MsQuicClose(MsQuic);
-        MsQuic = nullptr;
         QuicPlatformUninitialize();
     }
     _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
