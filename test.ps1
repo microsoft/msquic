@@ -367,8 +367,11 @@ function FinishTestCase($TestCase) {
             }
         }
 
-        if (!$Debugger) {
-            $stdout > (Join-Path $TestCase.LogDir "console.txt")
+        if ($null -ne $stdout) {
+            $stdout > (Join-Path $TestCase.LogDir "console.stdout.txt")
+            if ($Batch) {
+                Write-Host $stdout
+            }
         }
 
         if ($Compress) {
