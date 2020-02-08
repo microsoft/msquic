@@ -51,6 +51,13 @@ Abstract:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicLossDetectionRetransmitFrames(
+    _In_ QUIC_LOSS_DETECTION* LossDetection,
+    _In_ QUIC_SENT_PACKET_METADATA* Packet
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 QuicLossDetectionInitializeInternalState(
     _In_ QUIC_LOSS_DETECTION* LossDetection
     )
@@ -125,6 +132,7 @@ QuicLossDetectionReset(
     while (LossDetection->SentPackets != NULL) {
         QUIC_SENT_PACKET_METADATA* Packet = LossDetection->SentPackets;
         LossDetection->SentPackets = LossDetection->SentPackets->Next;
+        QuicLossDetectionRetransmitFrames(LossDetection, Packet);
         QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
     }
     LossDetection->SentPacketsTail = &LossDetection->SentPackets;
@@ -132,6 +140,7 @@ QuicLossDetectionReset(
     while (LossDetection->LostPackets != NULL) {
         QUIC_SENT_PACKET_METADATA* Packet = LossDetection->LostPackets;
         LossDetection->LostPackets = LossDetection->LostPackets->Next;
+        QuicLossDetectionRetransmitFrames(LossDetection, Packet);
         QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
     }
     LossDetection->LostPacketsTail = &LossDetection->LostPackets;

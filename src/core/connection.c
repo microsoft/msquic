@@ -1596,7 +1596,6 @@ QuicConnRestart(
         Path->GotFirstRttSample = FALSE;
         Path->RttVariance = 0;
         Path->SmoothedRtt = MS_TO_US(Connection->Session->Settings.InitialRttMs);
-        //Path->SmoothedRtt = MS_TO_US(QUIC_INITIAL_RTT);
     }
 
     for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); ++i) {
@@ -1605,8 +1604,8 @@ QuicConnRestart(
     }
 
     QuicCongestionControlReset(&Connection->CongestionControl);
-    QuicLossDetectionReset(&Connection->LossDetection);
     QuicSendReset(&Connection->Send);
+    QuicLossDetectionReset(&Connection->LossDetection);
     QuicCryptoReset(&Connection->Crypto, CompleteReset);
 }
 
@@ -2227,13 +2226,13 @@ QuicConnRecvRetry(
     const uint8_t* OrigDestCid = DestCid->CID.Data;
     uint8_t OrigDestCidLength = DestCid->CID.Length;
 
-    uint8_t CalculatedIntegrityValue[QUIC_ENCRYPTION_OVERHEAD];
+    uint8_t CalculatedIntegrityValue[QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1];
 
     if (QUIC_FAILED(
         QuicPacketGenerateRetryV1Integrity(
             OrigDestCidLength,
             OrigDestCid,
-            Packet->BufferLength - QUIC_ENCRYPTION_OVERHEAD,
+            Packet->BufferLength - QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1,
             Packet->Buffer,
             CalculatedIntegrityValue))) {
         QuicPacketLogDrop(Connection, Packet, "Failed to generate integrity field");
@@ -2242,8 +2241,8 @@ QuicConnRecvRetry(
 
     if (memcmp(
             CalculatedIntegrityValue,
-            Packet->Buffer + (Packet->BufferLength - QUIC_ENCRYPTION_OVERHEAD),
-            QUIC_ENCRYPTION_OVERHEAD) != 0) {
+            Packet->Buffer + (Packet->BufferLength - QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1),
+            QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1) != 0) {
         QuicPacketLogDrop(Connection, Packet, "Invalid integrity field");
         return;
     }

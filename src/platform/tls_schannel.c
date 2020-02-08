@@ -49,6 +49,7 @@ Environment:
 #include <winerror.h>
 #endif
 
+#define SCHANNEL_USE_BLACKLISTS
 #include <schannel.h>
 
 uint16_t QuicTlsTPHeaderSize = FIELD_OFFSET(SEND_GENERIC_TLS_EXTENSION, Buffer);
@@ -125,7 +126,12 @@ typedef struct QUIC_ACHA_CONTEXT {
     //
     // Holds the credentials configuration for the lifetime of the async call.
     //
-    SCHANNEL_CRED Credentials;
+    SCH_CREDENTIALS Credentials;
+
+    //
+    // Holds TLS configuration for the lifetime of the async call.
+    //
+    TLS_PARAMETERS TlsParameter;
 
 } QUIC_ACHA_CONTEXT;
 #endif
@@ -670,25 +676,35 @@ QuicTlsServerSecConfigCreate(
         goto Error;
     }
 
-    PSCHANNEL_CRED Credentials = &AchaContext->Credentials;
+    PSCH_CREDENTIALS Credentials = &AchaContext->Credentials;
+    Credentials->pTlsParameters = &AchaContext->TlsParameters;
+    Credentials->cTlsParameters = 1;
 #else
-    SCHANNEL_CRED LocalCredentials = { 0 };
-    PSCHANNEL_CRED Credentials = &LocalCredentials;
+    SCH_CREDENTIALS LocalCredentials = { 0 };
+    TLS_PARAMETERS LocalTlsParameters = { 0 };
+    PSCH_CREDENTIALS Credentials = &LocalCredentials;
+    Credentials->pTlsParameters = &LocalTlsParameters;
+    Credentials->cTlsParameters = 1;
 #endif
 
     //
     // Initialize user/kernel-common configuration.
     //
-    Credentials->dwVersion = SCHANNEL_CRED_VERSION;
-    Credentials->grbitEnabledProtocols = SP_PROT_TLS1_3_SERVER;
-    Credentials->cSupportedAlgs = 0;
-    Credentials->palgSupportedAlgs = NULL;
+    Credentials->dwVersion = SCH_CREDENTIALS_VERSION;
+    Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD) ~SP_PROT_TLS1_3_SERVER;
+    Credentials->pTlsParameters->cAlpnIds = 0;
+    Credentials->pTlsParameters->rgstrAlpnIds = NULL; // QUIC manages all the ALPN matching.
+    Credentials->pTlsParameters->cDisabledCrypto = 0;
+    //
+    // TODO: Disallow AES_CCM_8 algorithm, which are undefined in the QUIC-TLS spec.
+    //
+    Credentials->pTlsParameters->pDisabledCrypto = NULL;
     Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
 
     //
-    // This flag is required to prevent the SSL BEAST attack.
+    // This flag disables known-weak crypto algorithms.
     //
-    Credentials->dwFlags |= SCH_SEND_AUX_RECORD;
+    Credentials->dwFlags |= SCH_USE_STRONG_CRYPTO;
 
     if (Flags & QUIC_SEC_CONFIG_FLAG_ENABLE_OCSP) {
         Credentials->dwFlags |= SCH_CRED_SNI_ENABLE_OCSP;
@@ -917,7 +933,8 @@ QuicTlsClientSecConfigCreate(
     )
 {
     TimeStamp CredExpiration;
-    SCHANNEL_CRED SchannelCred = { 0 };
+    TLS_PARAMETERS TlsParameters = { 0 };
+    SCH_CREDENTIALS SchannelCred = { 0 };
     SECURITY_STATUS SecStatus;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
@@ -936,6 +953,7 @@ QuicTlsClientSecConfigCreate(
     Config->RefCount = 1;
 
     SchannelCred.dwFlags = SCH_CRED_NO_DEFAULT_CREDS;
+    SchannelCred.dwFlags |= SCH_USE_STRONG_CRYPTO;
     if (Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION) {
         SchannelCred.dwFlags |= SCH_CRED_MANUAL_CRED_VALIDATION;
     } else if (Flags != 0) {
@@ -946,10 +964,17 @@ QuicTlsClientSecConfigCreate(
         SchannelCred.dwFlags |= SCH_CRED_MANUAL_CRED_VALIDATION;
     }
 
-    SchannelCred.grbitEnabledProtocols = SP_PROT_TLS1_3_CLIENT;
-    SchannelCred.dwVersion = SCHANNEL_CRED_VERSION;
-    SchannelCred.cSupportedAlgs = 0;
-    SchannelCred.palgSupportedAlgs = NULL;
+    TlsParameters.grbitDisabledProtocols = (DWORD) ~SP_PROT_TLS1_3_CLIENT;
+    TlsParameters.cAlpnIds = 0;
+    TlsParameters.rgstrAlpnIds = NULL; // Only used on server.
+    TlsParameters.cDisabledCrypto = 0;
+    //
+    // TODO: Disallow AES_CCM_8 algorithm, which are undefined in the QUIC-TLS spec.
+    //
+    TlsParameters.pDisabledCrypto = NULL;
+    SchannelCred.cTlsParameters = 1;
+    SchannelCred.pTlsParameters = &TlsParameters;
+    SchannelCred.dwVersion = SCH_CREDENTIALS_VERSION;
 #ifdef _KERNEL_MODE
     PSECURITY_STRING PackageName = (PSECURITY_STRING) &QuicTlsPackageName;
 #else
