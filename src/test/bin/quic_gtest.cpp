@@ -24,28 +24,28 @@ public:
     void SetUp() override {
         if (QUIC_FAILED(QuicPlatformInitialize())) {
             GTEST_FATAL_FAILURE_("QuicPlatformInitialize failed!");
-            return;
+            exit(1);
         }
         PlatformInitialized = true;
         if (QUIC_FAILED(MsQuicOpenV1(&MsQuic))) {
             TearDown();
             GTEST_FATAL_FAILURE_("MsQuicOpenV1 failed!");
-            return;
+            exit(1);
         }
         if (QUIC_FAILED(MsQuic->RegistrationOpen("MsQuicBVT", &Registration))) {
             TearDown();
             GTEST_FATAL_FAILURE_("RegistrationOpen failed!");
-            return;
+            exit(1);
         }
         if ((SelfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER)) == nullptr) {
             TearDown();
             GTEST_FATAL_FAILURE_("QuicPlatGetSelfSignedCert failed!");
-            return;
+            exit(1);
         }
         if (!LoadSecConfig()) {
             TearDown();
             GTEST_FATAL_FAILURE_("LoadSecConfig failed!");
-            return;
+            exit(1);
         }
         QuicTestInitialize();
     }
