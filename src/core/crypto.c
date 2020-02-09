@@ -1610,6 +1610,7 @@ QuicCryptoUpdateKeyPhase(
 
     QUIC_PACKET_SPACE* PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
 
+    UNREFERENCED_PARAMETER(LocalUpdate);
     QuicTraceEvent(ConnKeyPhaseChange, Connection, LocalUpdate);
 
     PacketSpace->WriteKeyPhaseStartPacketNumber = Connection->Send.NextPacketNumber;
