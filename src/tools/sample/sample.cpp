@@ -158,7 +158,7 @@ RunServer(
     const uint16_t PeerStreamCount = 1;
     HQUIC Listener = nullptr;
 
-    QUIC_ADDR Address = {0};
+    QUIC_ADDR Address = {};
     QuicAddrSetFamily(&Address, AF_UNSPEC);
     QuicAddrSetPort(&Address, UdpPort);
 

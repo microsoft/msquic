@@ -30,6 +30,9 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER Debugger
     Attaches the debugger to each test case run.
 
+.PARAMETER InitialBreak
+    Debugger starts broken into the process to allow setting breakpoints, etc.
+
 .PARAMETER BreakOnFailure
     Triggers a break point on a test failure.
 
@@ -91,6 +94,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$Debugger = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$InitialBreak = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$BreakOnFailure = $false,
@@ -222,7 +228,11 @@ function Start-MsQuicTest([String]$Arguments, [String]$OutputDir) {
     if ($IsWindows) {
         if ($Debugger) {
             $pinfo.FileName = "windbg"
-            $pinfo.Arguments = "-g -G $($MsQuicTest) $($Arguments)"
+            if ($InitialBreak) {
+                $pinfo.Arguments = "-G $($MsQuicTest) $($Arguments)"
+            } else {
+                $pinfo.Arguments = "-g -G $($MsQuicTest) $($Arguments)"
+            }
         } else {
             $pinfo.FileName = $ProcDumpExe
             $pinfo.Arguments = "-ma -e -b -l -accepteula -x $($OutputDir) $($MsQuicTest) $($Arguments)"
@@ -230,7 +240,11 @@ function Start-MsQuicTest([String]$Arguments, [String]$OutputDir) {
     } else {
         if ($Debugger) {
             $pinfo.FileName = "gdb"
-            $pinfo.Arguments = "--args $MsQuicTest $Arguments"
+            if ($InitialBreak) {
+                $pinfo.Arguments = "--args $($MsQuicTest) $($Arguments)"
+            } else {
+                $pinfo.Arguments = "-ex=r --args $($MsQuicTest) $($Arguments)"
+            }
         } else {
             $pinfo.FileName = $MsQuicTest
             $pinfo.Arguments = $Arguments

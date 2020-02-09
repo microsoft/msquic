@@ -307,7 +307,7 @@ QuicPacketGenerateRetryV1Integrity(
     };
 
     uint8_t* RetryPseudoPacket = NULL;
-    QUIC_PACKET_KEY* RetryIntegrityKey;
+    QUIC_PACKET_KEY* RetryIntegrityKey = NULL;
     QUIC_STATUS Status =
         QuicPacketKeyDerive(
             QUIC_PACKET_KEY_INITIAL,
@@ -345,7 +345,7 @@ QuicPacketGenerateRetryV1Integrity(
 
 Exit:
     if (RetryPseudoPacket != NULL) {
-        QuicFree(RetryPseudoPacket);
+        QUIC_FREE(RetryPseudoPacket);
     }
     QuicPacketKeyFree(RetryIntegrityKey);
     return Status;

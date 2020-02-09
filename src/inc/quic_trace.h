@@ -453,22 +453,48 @@ QuicEtwCallback(
 #define QuicTraceLogInfoEnabled()    FALSE
 #define QuicTraceLogVerboseEnabled() FALSE
 
-#define QuicTraceLogError(...)
-#define QuicTraceLogWarning(...)
-#define QuicTraceLogInfo(...)
-#define QuicTraceLogVerbose(...)
+inline
+void
+QuicTraceStubVarArgs(
+    _In_ const char* Fmt,
+    ...
+    )
+{
+    UNREFERENCED_PARAMETER(Fmt);
+}
 
-#define QuicTraceLogConnError(...)
-#define QuicTraceLogConnWarning(...)
-#define QuicTraceLogConnInfo(...)
-#define QuicTraceLogConnVerbose(...)
+inline
+void
+QuicTraceStubConnVarArgs(
+    // _In_ const void* Name,
+    _In_ const void* Ptr,
+    _In_ const char* Fmt,
+    ...
+    )
+{
+    // UNREFERENCED_PARAMETER(Name);
+    UNREFERENCED_PARAMETER(Ptr);
+    UNREFERENCED_PARAMETER(Fmt);
+}
+
+#define IGNORE_FIRST_PARAM(A, ...) QuicTraceStubConnVarArgs(__VA_ARGS__)
+
+#define QuicTraceLogError(...) QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogWarning(...) QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogInfo(...) QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogVerbose(...) QuicTraceStubVarArgs(__VA_ARGS__)
+
+#define QuicTraceLogConnError(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
+#define QuicTraceLogConnWarning(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
+#define QuicTraceLogConnInfo(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
+#define QuicTraceLogConnVerbose(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
 
 #define QuicTraceLogStreamVerboseEnabled() FALSE
 
-#define QuicTraceLogStreamError(...)
-#define QuicTraceLogStreamWarning(...)
-#define QuicTraceLogStreamInfo(...)
-#define QuicTraceLogStreamVerbose(...)
+#define QuicTraceLogStreamError(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
+#define QuicTraceLogStreamWarning(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
+#define QuicTraceLogStreamInfo(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
+#define QuicTraceLogStreamVerbose(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
 
 #endif // QUIC_LOGS_STUB
 
