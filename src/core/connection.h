@@ -671,6 +671,7 @@ QuicConnLogOutFlowStats(
         Connection->SendBuffer.PostedBytes);
 #else
     const QUIC_PATH* Path = &Connection->Paths[0];
+    UNREFERENCED_PARAMETER(Path);
     QuicTraceEvent(
         ConnOutFlowStats,
         Connection,
@@ -694,6 +695,7 @@ QuicConnLogInFlowStats(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
+    UNREFERENCED_PARAMETER(Connection);
     QuicTraceEvent(
         ConnInFlowStats,
         Connection,
@@ -721,6 +723,7 @@ QuicConnLogStatistics(
         Connection->Stats.Recv.DecryptionFailures);
 #else
     const QUIC_PATH* Path = &Connection->Paths[0];
+    UNREFERENCED_PARAMETER(Path);
     QuicTraceEvent(
         ConnStatistics,
         Connection,
