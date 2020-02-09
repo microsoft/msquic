@@ -72,7 +72,7 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 
 #define QUIC_API
 #define QUIC_MAIN_EXPORT
-#define QUIC_STATUS                     unsigned long
+#define QUIC_STATUS                     uint32_t
 #define QUIC_FAILED(X)                  ((int)(X) > 0)
 #define QUIC_SUCCEEDED(X)               ((int)(X) <= 0)
 

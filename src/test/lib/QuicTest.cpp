@@ -1752,10 +1752,15 @@ QuicAbortiveConnectionHandler(
             return QUIC_STATUS_SUCCESS;
         case QUIC_CONNECTION_EVENT_CONNECTED:
             QuicEventSet(TestContext->ConnectedEvent.Handle);
+            __fallthrough;
         case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
+            __fallthrough;
         case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
+            __fallthrough;
         case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
+            __fallthrough;
         case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
+            __fallthrough;
         case QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE:
             return QUIC_STATUS_SUCCESS;
         default:
@@ -2312,10 +2317,15 @@ QuicRecvResumeConnectionHandler(
             return QUIC_STATUS_SUCCESS;
         case QUIC_CONNECTION_EVENT_CONNECTED:
             QuicEventSet(TestContext->ConnectedEvent.Handle);
+            __fallthrough;
         case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
+            __fallthrough;
         case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
+            __fallthrough;
         case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
+            __fallthrough;
         case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
+            __fallthrough;
         case QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE:
             return QUIC_STATUS_SUCCESS;
         default:

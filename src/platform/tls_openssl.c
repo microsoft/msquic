@@ -651,6 +651,7 @@ QuicTlsClientHelloCallback(
     _In_ void *arg
     )
 {
+    UNREFERENCED_PARAMETER(arg);
     QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
 
     const uint8_t* TransportParams;
@@ -694,6 +695,7 @@ QuicTlsServerSecConfigCreate(
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
 {
+    UNREFERENCED_PARAMETER(Principal);
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
     QUIC_SEC_CONFIG* SecurityConfig = NULL;
@@ -877,6 +879,7 @@ QuicTlsClientSecConfigCreate(
     _Outptr_ QUIC_SEC_CONFIG** ClientConfig
     )
 {
+    UNREFERENCED_PARAMETER(Flags);
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
     QUIC_SEC_CONFIG* SecurityConfig = NULL;
@@ -1945,8 +1948,10 @@ QuicHashCreate(
     switch (HashType) {
     case QUIC_HASH_SHA256:
         Hash->Md = EVP_sha256();
+        break;
     case QUIC_HASH_SHA384:
         Hash->Md = EVP_sha384();
+        break;
     case QUIC_HASH_SHA512:
         Hash->Md = EVP_sha512();
         break;
@@ -2426,6 +2431,7 @@ QuicPacketKeyDerive(
     _Out_ QUIC_PACKET_KEY **NewKey
     )
 {
+    UNREFERENCED_PARAMETER(SecretName);
     const uint16_t SecretLength = QuicHashLength(Secret->Hash);
     const uint16_t KeyLength = QuicKeyLength(Secret->Aead);
 
@@ -2653,6 +2659,7 @@ QuicTlsEncrypt(
     _In_ const EVP_CIPHER *Aead
     )
 {
+    UNREFERENCED_PARAMETER(KeyLen);
     int Ret = 0;
     size_t TagLen = QuicTlsAeadTagLength(Aead);
     EVP_CIPHER_CTX *CipherCtx = NULL;
@@ -2752,6 +2759,7 @@ QuicTlsDecrypt(
     _In_ const EVP_CIPHER *Aead
     )
 {
+    UNREFERENCED_PARAMETER(KeyLen);
     size_t TagLen = QuicTlsAeadTagLength(Aead);
     int Ret = -1;
     EVP_CIPHER_CTX *CipherCtx = NULL;
@@ -2832,11 +2840,12 @@ BOOLEAN
 QuicTlsHeaderMask(
     _Out_writes_bytes_(5) uint8_t *OutputBuffer,
     _In_reads_bytes_(keylen) const uint8_t *Key,
-    _In_ size_t keylen,
+    _In_ size_t KeyLen,
     _In_reads_bytes_(16) const uint8_t *Cipher,
     _In_ const EVP_CIPHER *Aead
     )
 {
+    UNREFERENCED_PARAMETER(KeyLen);
     BOOLEAN Ret = FALSE;
     uint8_t Temp[16] = {0};
     int OutputLen = 0;

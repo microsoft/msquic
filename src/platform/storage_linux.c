@@ -24,6 +24,10 @@ QuicStorageOpen(
     _Out_ QUIC_STORAGE** NewStorage
     )
 {
+    UNREFERENCED_PARAMETER(Path);
+    UNREFERENCED_PARAMETER(Callback);
+    UNREFERENCED_PARAMETER(CallbackContext);
+    UNREFERENCED_PARAMETER(NewStorage);
     // TODO
     return QUIC_STATUS_NOT_SUPPORTED;
 }
@@ -33,6 +37,7 @@ QuicStorageClose(
     _In_opt_ QUIC_STORAGE* Storage
     )
 {
+    UNREFERENCED_PARAMETER(Storage);
     // TODO
 }
 
@@ -46,6 +51,10 @@ QuicStorageReadValue(
     _Inout_ uint32_t * BufferLength
     )
 {
+    UNREFERENCED_PARAMETER(Storage);
+    UNREFERENCED_PARAMETER(Name);
+    UNREFERENCED_PARAMETER(Buffer);
+    UNREFERENCED_PARAMETER(BufferLength);
     // TODO
     return QUIC_STATUS_NOT_SUPPORTED;
 }

@@ -556,6 +556,7 @@ QuicDataPathGetSupportedFeatures(
     _In_ QUIC_DATAPATH* Datapath
     )
 {
+    UNREFERENCED_PARAMETER(Datapath);
     return 0;
 }
 
@@ -567,6 +568,7 @@ QuicDataPathGetRssMode(
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->DatapathGetRssMode(Datapath);
 #else
+    UNREFERENCED_PARAMETER(Datapath);
     return QUIC_RSS_NONE;
 #endif
 }
@@ -579,6 +581,7 @@ QuicDataPathIsPaddingPreferred(
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->DatapathIsPaddingPreferred(Datapath);
 #else
+    UNREFERENCED_PARAMETER(Datapath);
     //
     // The windows implementation returns TRUE only if GSO is supported and
     // this DAL implementation doesn't support GSO currently.
@@ -663,6 +666,7 @@ QuicDataPathResolveAddress(
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     return PlatDispatch->DatapathResolveAddress(Datapath, HostName, Address);
 #else
+    UNREFERENCED_PARAMETER(Datapath);
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     ADDRINFO Hints = {0};
     ADDRINFO* AddrInfo = NULL;
@@ -1669,6 +1673,7 @@ QuicDataPathBindingAllocSendContext(
             Binding,
             MaxPacketSize);
 #else
+    UNREFERENCED_PARAMETER(MaxPacketSize);
     QUIC_DATAPATH_SEND_CONTEXT* SendContext = NULL;
     QUIC_DATAPATH_PROC_CONTEXT* ProcContext = NULL;
 

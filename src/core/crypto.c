@@ -413,7 +413,7 @@ QuicCryptoWriteOneFrame(
     QUIC_DBG_ASSERT(Offset >= (Crypto->TlsState.BufferTotalLength - Crypto->TlsState.BufferLength));
 
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
-    QUIC_CRYPTO_EX Frame = { Offset - EncryptLevelStart, 0 };
+    QUIC_CRYPTO_EX Frame = { Offset - EncryptLevelStart, 0, 0 };
     Frame.Data =
         Crypto->TlsState.Buffer +
         (Offset - (Crypto->TlsState.BufferTotalLength - Crypto->TlsState.BufferLength));

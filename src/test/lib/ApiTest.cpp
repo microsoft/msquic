@@ -587,7 +587,7 @@ void QuicTestValidateStream(bool Connect)
     TEST_TRUE(TestSession.IsValid());
     TEST_QUIC_SUCCEEDED(TestSession.SetPeerBidiStreamCount(32));
 
-    QUIC_BUFFER Buffers[1] = { 0 };
+    QUIC_BUFFER Buffers[1] = {};
 
     //
     // Force the Client, Server, and Listener to clean up before the Session and Registration.

@@ -58,7 +58,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
 
     # Custom build flags.
-    set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 /WX /W4 /wd4459 /sdl /MP")
+    set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 /MP")
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for manifested ETW events and logging")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW")
@@ -95,7 +95,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 
 else()
     # Custom build flags.
-    set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions -fPIC -Werror -Wall -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-value -pthread")
+    set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions -fPIC -pthread")
     if(QUIC_ENABLE_LOGGING)
         include(FindLTTngUST)
         message(STATUS "Configuring for LTTng events and disabling logging")

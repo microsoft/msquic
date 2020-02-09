@@ -134,6 +134,7 @@ QuicPoolInitialize(
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     PlatDispatch->PoolInitialize(IsPaged, Size, Pool);
 #else
+    UNREFERENCED_PARAMETER(IsPaged);
     Pool->Size = Size;
 #endif
 }
@@ -177,6 +178,7 @@ QuicPoolFree(
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     PlatDispatch->PoolFree(Pool, Entry);
 #else
+    UNREFERENCED_PARAMETER(Pool);
     QuicFree(Entry);
 #endif
 }
