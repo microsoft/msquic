@@ -524,6 +524,7 @@ QuicConnTraceRundownOper(
                     Entry,
                     QUIC_CID_HASH_ENTRY,
                     Link);
+            UNREFERENCED_PARAMETER(SourceCid);
             QuicTraceEvent(ConnSourceCidAdded,
                 Connection, SourceCid->CID.Length, SourceCid->CID.Data);
         }
@@ -535,6 +536,7 @@ QuicConnTraceRundownOper(
                     Entry,
                     QUIC_CID_QUIC_LIST_ENTRY,
                     Link);
+            UNREFERENCED_PARAMETER(DestCid);
             QuicTraceEvent(ConnDestCidAdded,
                 Connection, DestCid->CID.Length, DestCid->CID.Data);
         }
