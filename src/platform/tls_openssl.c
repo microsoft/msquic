@@ -433,8 +433,6 @@ QuicTlsLibraryInitialize(
     void
     )
 {
-    int Ret = 0;
-
     if (OPENSSL_init_ssl(OPENSSL_INIT_LOAD_CONFIG, NULL) == 0) {
         QuicTraceLogError("[ tls] OPENSSL_init_ssl failed.");
         return QUIC_STATUS_TLS_ERROR;
@@ -2850,9 +2848,6 @@ QuicTlsHeaderMask(
     uint8_t Temp[16] = {0};
     int OutputLen = 0;
     int Len = 0;
-    uint8_t Zero[5] = {0};
-    uint32_t Ctr = 0;
-    uint8_t Iv[16] = {0};
     static const uint8_t PLAINTEXT[] = "\x00\x00\x00\x00\x00";
 
     EVP_CIPHER_CTX *CipherCtx = EVP_CIPHER_CTX_new();

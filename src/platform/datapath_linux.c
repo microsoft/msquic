@@ -730,7 +730,6 @@ QuicSocketContextInitialize(
     socklen_t AssignedLocalAddressLength = 0;
 
     QUIC_DATAPATH_BINDING* Binding = SocketContext->Binding;
-    QUIC_DATAPATH* Datapath = Binding->Datapath;
 
     for (uint32_t i = 0; i < ARRAYSIZE(SocketContext->EventContexts); ++i) {
         SocketContext->EventContexts[i] = i;
