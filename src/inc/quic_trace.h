@@ -138,8 +138,18 @@ QuicSysLogWrite(
 
 #ifdef QUIC_EVENTS_STUB
 
+inline
+void
+QuicTraceEventStubVarArgs(
+    _In_ const void* Fmt,
+    ...
+    )
+{
+    UNREFERENCED_PARAMETER(Fmt);
+}
+
 #define QuicTraceEventEnabled(Name) FALSE
-#define QuicTraceEvent(Name, ...)
+#define QuicTraceEvent(Name, ...) QuicTraceEventStubVarArgs(__VA_ARGS__)
 #define LOG_ADDR_LEN(Addr)
 
 #endif // QUIC_EVENTS_STUB
@@ -456,28 +466,14 @@ QuicEtwCallback(
 inline
 void
 QuicTraceStubVarArgs(
-    _In_ const char* Fmt,
+    _In_ const void* Fmt,
     ...
     )
 {
     UNREFERENCED_PARAMETER(Fmt);
 }
 
-inline
-void
-QuicTraceStubConnVarArgs(
-    // _In_ const void* Name,
-    _In_ const void* Ptr,
-    _In_ const char* Fmt,
-    ...
-    )
-{
-    // UNREFERENCED_PARAMETER(Name);
-    UNREFERENCED_PARAMETER(Ptr);
-    UNREFERENCED_PARAMETER(Fmt);
-}
-
-#define IGNORE_FIRST_PARAM(A, ...) QuicTraceStubConnVarArgs(__VA_ARGS__)
+#define IGNORE_FIRST_PARAM(A, ...) QuicTraceStubVarArgs(__VA_ARGS__)
 
 #define QuicTraceLogError(...) QuicTraceStubVarArgs(__VA_ARGS__)
 #define QuicTraceLogWarning(...) QuicTraceStubVarArgs(__VA_ARGS__)

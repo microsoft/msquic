@@ -44,6 +44,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/obj)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${QUIC_ARTIFACTS_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${QUIC_ARTIFACTS_DIR}/bin)
 
+set(CLANG_GCC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value CACHE INTERNAL "")
+set(MSVC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
+
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     # Generate the MsQuicEtw header file.
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/inc)

@@ -19,9 +19,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 add_library(testlib ${SOURCES})
 target_compile_options(testlib PRIVATE
      $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-        -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value>
+        ${CLANG_GCC_WARNING_FLAGS}>
      $<$<CXX_COMPILER_ID:MSVC>:
-        /WX /W4 /sdl>)
+        ${MSVC_WARNING_FLAGS}>)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_dependencies(platform MsQuicEtw)
