@@ -322,6 +322,18 @@ function Wait-TestCase($TestCase) {
         $AnyProcessCrashes = $true;
     }
 
+    if ($Batch) {
+        if ($null -ne $stdout -and "" -ne $stdout) {
+            Write-Host $stdout
+        }
+        if ($null -ne $stderr -and "" -ne $stderr) {
+            Write-Host $stdout
+        }
+        if ($ProcessCrashed) {
+            Log "Test process crashed!"
+        }
+    }
+
     if ($KeepOutputOnSuccess -or $ProcessCrashed -or $AnyTestFailed) {
 
         if ($LogProfile -ne "None") {
@@ -334,16 +346,10 @@ function Wait-TestCase($TestCase) {
 
         if ($null -ne $stdout -and "" -ne $stdout) {
             $stdout > (Join-Path $LogDir "stdout.txt")
-            if ($Batch) {
-                Write-Host $stdout
-            }
         }
 
         if ($null -ne $stderr -and "" -ne $stderr) {
             $stderr > (Join-Path $LogDir "stderr.txt")
-            if ($Batch) {
-                Write-Host $stdout
-            }
         }
 
         if ($CompressOutput) {
