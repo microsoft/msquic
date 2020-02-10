@@ -138,19 +138,8 @@ QuicSysLogWrite(
 
 #ifdef QUIC_EVENTS_STUB
 
-inline
-void
-QuicTraceEventStubVarArgs(
-    _In_ const void* Fmt,
-    ...
-    )
-{
-    UNREFERENCED_PARAMETER(Fmt);
-}
-
 #define QuicTraceEventEnabled(Name) FALSE
-#define VA_ARGS_MAYBE_EMPTY(...) , ##__VA_ARGS__
-#define QuicTraceEvent(Name, ...) QuicTraceEventStubVarArgs(#Name VA_ARGS_MAYBE_EMPTY(__VA_ARGS__))
+#define QuicTraceEvent(Name, ...)
 #define LOG_ADDR_LEN(Addr)
 
 #endif // QUIC_EVENTS_STUB

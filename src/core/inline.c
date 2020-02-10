@@ -607,12 +607,6 @@ QuicTimeEpochMs64(
     );
 
 void
-QuicTraceEventStubVarArgs(
-    _In_ const void* Fmt,
-    ...
-    );
-
-void
 QuicTraceStubVarArgs(
     _In_ const void* Fmt,
     ...
