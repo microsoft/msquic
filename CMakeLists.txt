@@ -106,7 +106,7 @@ else()
     else()
         message(STATUS "Disabling events and logging")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_STUB")
-        list(APPEND CLANG_GCC_WARNING_FLAGS -Wno-unused-parameter)
+        list(APPEND CLANG_GCC_WARNING_FLAGS -Wno-unused-parameter -Wno-unused-variable)
     endif()
 
     if(QUIC_TLS STREQUAL "openssl")
