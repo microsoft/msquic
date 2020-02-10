@@ -80,6 +80,7 @@ typedef enum QUIC_SEC_CONFIG_FLAGS {
     QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT    = 0x00000004,
     QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE       = 0x00000008,
     QUIC_SEC_CONFIG_FLAG_ENABLE_OCSP            = 0x00000010,
+    QUIC_SEC_CONFIG_FLAG_CERTIFICATE_X509       = 0x00000020,
     QUIC_SEC_CONFIG_FLAG_CERTIFICATE_NULL       = 0xF0000000    // Can't be used with anything else.
 } QUIC_SEC_CONFIG_FLAGS;
 
@@ -159,10 +160,10 @@ typedef struct QUIC_CERTIFICATE_FILE {
     char *CertificateFile;
 } QUIC_CERTIFICATE_FILE;
 
-typedef struct QUIC_CERTIFICATE_HANDLE {
-    void *CertificateFileHandle;
-    void *PrivateKeyFileHandle;
-} QUIC_CERTIFICATE_HANDLE;
+typedef struct QUIC_CERTIFICATE_X509 {
+    void *CertificateHandle;
+    void *PrivateKeyHandle;
+} QUIC_CERTIFICATE_X509;
 
 //
 // A single contiguous buffer.

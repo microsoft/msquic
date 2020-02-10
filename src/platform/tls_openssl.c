@@ -698,7 +698,7 @@ QuicTlsServerSecConfigCreate(
     QUIC_SEC_CONFIG* SecurityConfig = NULL;
     uint32_t SSLOpts = 0;
     QUIC_CERTIFICATE_FILE* CertFile;
-    QUIC_CERTIFICATE_HANDLE* CertStruct;
+    QUIC_CERTIFICATE_X509* CertStruct;
     X509* CertHandle;
     EVP_PKEY* PrivateKeyHandle;
 
@@ -820,14 +820,12 @@ QuicTlsServerSecConfigCreate(
             goto Exit;
         }
     }
-    else
+    else // QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT 
     {
-        // QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT
-
         CertStruct = Certificate;
+        CertHandle = CertStruct->CertificateHandle;
+        PrivateKeyHandle = CertStruct->PrivateKeyHandle;
 
-        CertHandle = CertStruct->CertificateFileHandle;
-        PrivateKeyHandle = CertStruct->PrivateKeyFileHandle;
         Ret = SSL_CTX_use_certificate(SecurityConfig->SSLCtx, CertHandle);
         if (Ret != 1) {
             QuicTraceLogError("[ tls] SSL_CTX_use_certificate failed, error: %ld", ERR_get_error());
