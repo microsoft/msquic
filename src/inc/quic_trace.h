@@ -149,7 +149,7 @@ QuicTraceEventStubVarArgs(
 }
 
 #define QuicTraceEventEnabled(Name) FALSE
-#define QuicTraceEvent(Name, ...) QuicTraceEventStubVarArgs(__VA_ARGS__)
+#define QuicTraceEvent(Name, ...) QuicTraceEventStubVarArgs(##Name, __VA_ARGS__)
 #define LOG_ADDR_LEN(Addr)
 
 #endif // QUIC_EVENTS_STUB
