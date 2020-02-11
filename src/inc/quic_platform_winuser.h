@@ -785,6 +785,7 @@ QuicThreadCreate(
 }
 #define QuicThreadDelete(Thread) CloseHandle(*(Thread))
 #define QuicThreadWait(Thread) WaitForSingleObject(*(Thread), INFINITE)
+typedef uint32_t QUIC_THREAD_ID;
 #define QuicCurThreadID() GetCurrentThreadId()
 
 //
