@@ -32,7 +32,7 @@ static QUIC_SEC_CONFIG* GlobalSecurityConfig;
 
 extern "C" void QuicTraceRundown(void) { }
 
-QUIC_STATUS VoidHandleStreamEvent(HQUIC Stream, void* /* Context */, QUIC_STREAM_EVENT *Event) {
+QUIC_STATUS QUIC_API VoidHandleStreamEvent(HQUIC Stream, void* /* Context */, QUIC_STREAM_EVENT *Event) {
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         MsQuic->StreamShutdown(Stream, QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE, 0);
@@ -46,7 +46,7 @@ QUIC_STATUS VoidHandleStreamEvent(HQUIC Stream, void* /* Context */, QUIC_STREAM
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS VoidHandleConnectionEvent(HQUIC Connection, void* /* Context */, QUIC_CONNECTION_EVENT *Event) {
+QUIC_STATUS QUIC_API VoidHandleConnectionEvent(HQUIC Connection, void* /* Context */, QUIC_CONNECTION_EVENT *Event) {
     switch(Event->Type){
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         MsQuic->ConnectionClose(Connection);
@@ -59,7 +59,7 @@ QUIC_STATUS VoidHandleConnectionEvent(HQUIC Connection, void* /* Context */, QUI
     return ERROR_SUCCESS;
 }
 
-QUIC_STATUS VoidHandleListenerEvent(HQUIC /* Listener */, void* /* Context */, QUIC_LISTENER_EVENT *Event) {
+QUIC_STATUS QUIC_API VoidHandleListenerEvent(HQUIC /* Listener */, void* /* Context */, QUIC_LISTENER_EVENT *Event) {
     switch (Event->Type) {
     case QUIC_LISTENER_EVENT_NEW_CONNECTION:
         Event->NEW_CONNECTION.SecurityConfig = GlobalSecurityConfig;
@@ -70,7 +70,7 @@ QUIC_STATUS VoidHandleListenerEvent(HQUIC /* Listener */, void* /* Context */, Q
     return ERROR_SUCCESS;
 }
 
-void VoidGetSecConfigComplete(_In_opt_ void* Context, _In_ QUIC_STATUS /* Status */, _In_opt_ QUIC_SEC_CONFIG* SecConfig) {
+void QUIC_API VoidGetSecConfigComplete(_In_opt_ void* Context, _In_ QUIC_STATUS /* Status */, _In_opt_ QUIC_SEC_CONFIG* SecConfig) {
     auto Event = (QUIC_EVENT *)Context;
     GlobalSecurityConfig = SecConfig;
     QuicEventSet(*Event);
