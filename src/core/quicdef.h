@@ -240,7 +240,7 @@ QUIC_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DECODE_ACKS), L"Must be power 
 // long running app callbacks.
 //
 #define QUIC_MAX_CALLBACK_TIME_WARNING          MS_TO_US(10)
-#define QUIC_MAX_CALLBACK_TIME_ERROR            MS_TO_US(200)
+#define QUIC_MAX_CALLBACK_TIME_ERROR            MS_TO_US(1000)
 
 //
 // The number of milliseconds that must elapse before a connection is
