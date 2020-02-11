@@ -655,6 +655,8 @@ QuicThreadWait(
     _Inout_ QUIC_THREAD* Thread
     );
 
+typedef uint32_t QUIC_THREAD_ID;
+
 uint32_t
 QuicCurThreadID(
     void

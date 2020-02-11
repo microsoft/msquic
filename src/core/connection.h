@@ -295,7 +295,7 @@ typedef struct QUIC_CONNECTION {
     //
     // The current worker thread ID. 0 if not being processed right now.
     //
-    uint32_t WorkerThreadID;
+    QUIC_THREAD_ID WorkerThreadID;
 
     //
     // The set of ignore flags for server certificate validation to pass to TLS.
