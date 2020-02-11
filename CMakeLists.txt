@@ -37,12 +37,17 @@ else()
     set(QUIC_PLATFORM "linux")
 endif()
 
-set(QUIC_BUILD_DIR ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM})
-set(QUIC_ARTIFACTS_DIR ${CMAKE_SOURCE_DIR}/artifacts/${QUIC_PLATFORM})
+set(QUIC_ARCH "x64" CACHE STRING "CPU architecture to build for")
+
+set(QUIC_BUILD_DIR ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/${QUIC_ARCH}_${QUIC_TLS})
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/obj)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${QUIC_ARTIFACTS_DIR}/bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${QUIC_ARTIFACTS_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_$<IF:$<CONFIG:Debug>,Debug,Release>_${QUIC_TLS})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_$<IF:$<CONFIG:Debug>,Debug,Release>_${QUIC_TLS})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_Release_${QUIC_TLS})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_Release_${QUIC_TLS})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_Debug_${QUIC_TLS})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_Debug_${QUIC_TLS})
 
 set(CLANG_GCC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value CACHE INTERNAL "")
 set(MSVC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
@@ -99,6 +104,13 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 else()
     # Custom build flags.
     set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions -fPIC -pthread")
+
+    #if(QUIC_TLS STREQUAL "x64")
+    #    set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -m64")
+    #else()
+    #    set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -m32")
+    #endif()
+
     if(QUIC_ENABLE_LOGGING)
         include(FindLTTngUST)
         message(STATUS "Configuring for LTTng events and disabling logging")
@@ -145,7 +157,7 @@ if(QUIC_TLS STREQUAL "openssl")
         DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libssl.so)
 endif()
 
-if (QUIC_TLS STREQUAL "mitls")
+if(QUIC_TLS STREQUAL "mitls")
     # Build Everest.
     add_subdirectory(submodules/everest/msquic/msvc/kremlib)
     add_subdirectory(submodules/everest/msquic/msvc/evercrypt)

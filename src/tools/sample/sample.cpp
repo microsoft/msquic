@@ -131,6 +131,7 @@ ServerConnectionCallback(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Function_class_(QUIC_LISTENER_CALLBACK)
 QUIC_STATUS
+QUIC_API
 ServerListenerCallback(
     _In_ HQUIC /* Listener */,
     _In_opt_ void* /* Context */,

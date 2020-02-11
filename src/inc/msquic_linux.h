@@ -72,7 +72,7 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 
 #define QUIC_API
 #define QUIC_MAIN_EXPORT
-#define QUIC_STATUS                     uint32_t
+#define QUIC_STATUS                     unsigned int
 #define QUIC_FAILED(X)                  ((int)(X) > 0)
 #define QUIC_SUCCEEDED(X)               ((int)(X) <= 0)
 
@@ -88,30 +88,30 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 // All "E*" (that are not "ERROR_*") names are system error codes.
 //
 
-#define NO_ERROR                         0ul
-#define ERROR_SUCCESS                    0ul
+#define NO_ERROR                         0
+#define ERROR_SUCCESS                    0
 #define ERROR_CONTINUE                   -1
 #define ERROR_NOT_READY                  -2
-#define ERROR_BASE                       200000000ul
-#define ERROR_NOT_ENOUGH_MEMORY          1ul + ERROR_BASE
-#define ERROR_INVALID_STATE              2ul + ERROR_BASE
-#define ERROR_INVALID_PARAMETER          3ul + ERROR_BASE
-#define ERROR_NOT_SUPPORTED              4ul + ERROR_BASE
-#define ERROR_NOT_FOUND                  5ul + ERROR_BASE
-#define ERROR_BUFFER_OVERFLOW            6ul + ERROR_BASE
-#define ERROR_CONNECTION_REFUSED         7ul + ERROR_BASE
-#define ERROR_OPERATION_ABORTED          8ul + ERROR_BASE
-#define ERROR_CONNECTION_UNAVAIL         9ul + ERROR_BASE
-#define ERROR_NETWORK_UNREACHABLE        10ul + ERROR_BASE
-#define ERROR_CONNECTION_ABORTED         11ul + ERROR_BASE
-#define ERROR_INTERNAL_ERROR             12ul + ERROR_BASE
-#define ERROR_CONNECTION_INVALID         13ul + ERROR_BASE
-#define ERROR_VERSION_PARSE_ERROR        14ul + ERROR_BASE
-#define ERROR_EPOLL_ERROR                15ul + ERROR_BASE
-#define ERROR_DNS_RESOLUTION_ERROR       16ul + ERROR_BASE
-#define ERROR_SOCKET_ERROR               17ul + ERROR_BASE
-#define ERROR_SSL_ERROR                  18ul + ERROR_BASE
-#define ERROR_USER_CANCELED              19ul + ERROR_BASE
+#define ERROR_BASE                       200000000
+#define ERROR_NOT_ENOUGH_MEMORY          1 + ERROR_BASE
+#define ERROR_INVALID_STATE              2 + ERROR_BASE
+#define ERROR_INVALID_PARAMETER          3 + ERROR_BASE
+#define ERROR_NOT_SUPPORTED              4 + ERROR_BASE
+#define ERROR_NOT_FOUND                  5 + ERROR_BASE
+#define ERROR_BUFFER_OVERFLOW            6 + ERROR_BASE
+#define ERROR_CONNECTION_REFUSED         7 + ERROR_BASE
+#define ERROR_OPERATION_ABORTED          8 + ERROR_BASE
+#define ERROR_CONNECTION_UNAVAIL         9 + ERROR_BASE
+#define ERROR_NETWORK_UNREACHABLE        10 + ERROR_BASE
+#define ERROR_CONNECTION_ABORTED         11 + ERROR_BASE
+#define ERROR_INTERNAL_ERROR             12 + ERROR_BASE
+#define ERROR_CONNECTION_INVALID         13 + ERROR_BASE
+#define ERROR_VERSION_PARSE_ERROR        14 + ERROR_BASE
+#define ERROR_EPOLL_ERROR                15 + ERROR_BASE
+#define ERROR_DNS_RESOLUTION_ERROR       16 + ERROR_BASE
+#define ERROR_SOCKET_ERROR               17 + ERROR_BASE
+#define ERROR_SSL_ERROR                  18 + ERROR_BASE
+#define ERROR_USER_CANCELED              19 + ERROR_BASE
 
 #define QUIC_STATUS_SUCCESS             ((QUIC_STATUS)ERROR_SUCCESS)
 #define QUIC_STATUS_PENDING             ((QUIC_STATUS)ERROR_NOT_READY)

@@ -204,7 +204,7 @@ static struct {
 
 extern "C" void QuicTraceRundown(void) { }
 
-QUIC_STATUS SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context */, QUIC_STREAM_EVENT *Event)
+QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context */, QUIC_STREAM_EVENT *Event)
 {
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
@@ -217,7 +217,7 @@ QUIC_STATUS SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context */, QUIC_S
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS SpinQuicHandleConnectionEvent(HQUIC Connection, void * /* Context */, QUIC_CONNECTION_EVENT *Event)
+QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void * /* Context */, QUIC_CONNECTION_EVENT *Event)
 {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
@@ -235,13 +235,13 @@ QUIC_STATUS SpinQuicHandleConnectionEvent(HQUIC Connection, void * /* Context */
     return QUIC_STATUS_SUCCESS;
 }
 
-void SpinQuicGetSecConfigComplete(_In_opt_ void *Context, _In_ QUIC_STATUS /* Status */, _In_opt_ QUIC_SEC_CONFIG *SecConfig)
+void QUIC_API SpinQuicGetSecConfigComplete(_In_opt_ void *Context, _In_ QUIC_STATUS /* Status */, _In_opt_ QUIC_SEC_CONFIG *SecConfig)
 {
     GlobalSecurityConfig = SecConfig;
     QuicEventSet(*(QUIC_EVENT*)Context);
 }
 
-QUIC_STATUS SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, void* Context , QUIC_LISTENER_EVENT* Event)
+QUIC_STATUS QUIC_API SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, void* Context , QUIC_LISTENER_EVENT* Event)
 {
     auto& Connections = *(LockableVector<HQUIC>*)(Context);
 
