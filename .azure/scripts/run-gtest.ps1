@@ -214,8 +214,8 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
                 $pinfo.Arguments = "-ex=r --args $($Path) $($Arguments)"
             }
         } else {
-            $pinfo.FileName = $Path
-            $pinfo.Arguments = $Arguments
+            $pinfo.FileName = "bash"
+            $pinfo.Arguments = "-c `"ulimit -c unlimited && $($Path) $($Arguments) && echo Done`""
             $pinfo.WorkingDirectory = $OutputDir
         }
     }
@@ -303,7 +303,7 @@ function Wait-TestCase($TestCase) {
         if ($isWindows) {
             $ProcessCrashed = $stdout.Contains("Dump 1 complete")
         } else {
-            $ProcessCrashed = $stdout.Contains("core") # TODO
+            $ProcessCrashed = $stderr.Contains("Aborted")
         }
         $AnyTestFailed = $stdout.Contains("[  FAILED  ]")
         if (!(Test-Path $TestCase.ResultsPath) -and !$ProcessCrashed) {
@@ -327,10 +327,7 @@ function Wait-TestCase($TestCase) {
             Write-Host $stdout
         }
         if ($null -ne $stderr -and "" -ne $stderr) {
-            Write-Host $stdout
-        }
-        if ($ProcessCrashed) {
-            Log "Test process crashed!"
+            Write-Host $stderr
         }
     }
 

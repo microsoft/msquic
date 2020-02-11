@@ -141,8 +141,8 @@ function Start-Executable {
                 $pinfo.Arguments = "-ex=r --args $($Path) $($Arguments)"
             }
         } else {
-            $pinfo.FileName = $Path
-            $pinfo.Arguments = $Arguments
+            $pinfo.FileName = "bash"
+            $pinfo.Arguments = "-c `"ulimit -c unlimited && $($Path) $($Arguments) && echo Done`""
             $pinfo.WorkingDirectory = $LogDir
         }
     }
@@ -172,14 +172,13 @@ function Wait-Executable($Exe) {
         if ($isWindows) {
             $ProcessCrashed = $stdout.Contains("Dump 1 complete")
         } else {
-            $ProcessCrashed = $stdout.Contains("core") # TODO
+            $ProcessCrashed = $stderr.Contains("Aborted")
         }
     }
     $Exe.Process.WaitForExit()
 
     $XmlText = $null
     if ($ProcessCrashed) {
-        Log "Process crashed!"
         $XmlText = $FailXmlText;
     } else {
         $XmlText = $SuccessXmlText;

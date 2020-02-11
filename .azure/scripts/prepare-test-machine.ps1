@@ -75,12 +75,14 @@ if ($IsWindows) {
 
     # Enable core dumps (up to ~1GB) for the system.
     Write-Host "[$(Get-Date)] Setting core dump size limit..."
-    sudo sh -c "echo '* soft core 1000000' >> /etc/security/limits.conf"
-    sudo sh -c "echo '* hard core 1000000' >> /etc/security/limits.conf"
+    sudo sh -c "echo 'root soft core unlimited' >> /etc/security/limits.conf"
+    sudo sh -c "echo 'root hard core unlimited' >> /etc/security/limits.conf"
+    sudo sh -c "echo '* soft core unlimited' >> /etc/security/limits.conf"
+    sudo sh -c "echo '* hard core unlimited' >> /etc/security/limits.conf"
     #sudo cat /etc/security/limits.conf
 
     # Set the core dump pattern.
     Write-Host "[$(Get-Date)] Setting core dump pattern..."
-    sudo sh -c "echo 'core' > /proc/sys/kernel/core_pattern"
+    sudo sh -c "echo -n '%e.%p.%t.core' > /proc/sys/kernel/core_pattern"
     #sudo cat /proc/sys/kernel/core_pattern
 }
