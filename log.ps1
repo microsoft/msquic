@@ -21,6 +21,9 @@ This script provides helpers for starting, stopping and canceling log collection
 .PARAMETER ConvertToText
     Converts the output logs to text.
 
+.PARAMETER TmfPath
+    Used for converting Windows WPP logs.
+
 .PARAMETER InstanceName
     A unique name for the logging instance.
 
@@ -55,6 +58,9 @@ param (
     [Parameter(Mandatory = $false, ParameterSetName='Stop')]
     [switch]$ConvertToText = $false,
 
+    [Parameter(Mandatory = $false, ParameterSetName='Stop')]
+    [string]$TmfPath = "",
+
     [Parameter(Mandatory = $false)]
     [string]$InstanceName = "msquic"
 )
@@ -64,18 +70,6 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 # Path for the WPR profile.
 $WprpFile = $PSScriptRoot + "\src\manifest\msquic.wprp"
-
-# Path for quicetw.
-$QuicEtw = $null
-if ($IsWindows) {
-    if (Test-Path ($PSScriptRoot + "\artifacts\windows\bin\release")) {
-        $QuicEtw = $PSScriptRoot + "\artifacts\windows\bin\release\quicetw.exe"
-    } else {
-        $QuicEtw = $PSScriptRoot + "\artifacts\windows\bin\debug\quicetw.exe"
-    }
-} else {
-    # TODO
-}
 
 # Start log collection.
 function Log-Start {
@@ -104,7 +98,12 @@ function Log-Stop {
         wpr.exe -stop $EtlPath -instancename $InstanceName
         if ($ConvertToText) {
             $LogPath = Join-Path $OutputDirectory "quic.log"
-            & $QuicEtw $EtlPath --trace > $LogPath
+            $Arguments = "netsh trace convert $($EtlPath) output=$($LogPath) overwrite=yes report=no"
+            if ($TmfPath -ne "") {
+                $Arguments += " tmfpath=$($TmfPath)"
+            }
+            #$Arguments
+            Invoke-Expression $Arguments
         }
     } else {
         # TODO

@@ -305,14 +305,22 @@ QuicSettingsLoad(
     }
 
     if (!Settings->AppSet.IdleTimeoutMs) {
-        ValueLen = sizeof(Settings->IdleTimeoutMs);
+        union {
+            uint32_t Half;
+            uint64_t Full;
+            uint8_t Array[sizeof(uint64_t)];
+        } TempIdleTimeoutMs;
+        QUIC_STATIC_ASSERT(sizeof(TempIdleTimeoutMs) == sizeof(Settings->IdleTimeoutMs), "These must be the same size");
+        ValueLen = sizeof(TempIdleTimeoutMs);
         QuicStorageReadValue(
             Storage,
             QUIC_SETTING_IDLE_TIMEOUT,
-            (uint8_t*)&Settings->IdleTimeoutMs,
+            TempIdleTimeoutMs.Array,
             &ValueLen);
         if (ValueLen == sizeof(uint32_t)) {
-            Settings->IdleTimeoutMs = *(uint32_t*)&Settings->IdleTimeoutMs;
+            Settings->IdleTimeoutMs = TempIdleTimeoutMs.Half;
+        } else {
+            Settings->IdleTimeoutMs = TempIdleTimeoutMs.Full;
         }
         if (Settings->IdleTimeoutMs > QUIC_VAR_INT_MAX) {
             Settings->IdleTimeoutMs = QUIC_DEFAULT_IDLE_TIMEOUT;
@@ -320,14 +328,22 @@ QuicSettingsLoad(
     }
 
     if (!Settings->AppSet.HandshakeIdleTimeoutMs) {
-        ValueLen = sizeof(Settings->HandshakeIdleTimeoutMs);
+        union {
+            uint32_t Half;
+            uint64_t Full;
+            uint8_t Array[sizeof(uint64_t)];
+        } TempHandshakeIdleTimeoutMs;
+        QUIC_STATIC_ASSERT(sizeof(TempHandshakeIdleTimeoutMs) == sizeof(Settings->HandshakeIdleTimeoutMs), "These must be the same size");
+        ValueLen = sizeof(TempHandshakeIdleTimeoutMs);
         QuicStorageReadValue(
             Storage,
             QUIC_SETTING_HANDSHAKE_IDLE_TIMEOUT,
-            (uint8_t*)&Settings->HandshakeIdleTimeoutMs,
+            TempHandshakeIdleTimeoutMs.Array,
             &ValueLen);
         if (ValueLen == sizeof(uint32_t)) {
-            Settings->HandshakeIdleTimeoutMs = *(uint32_t*)&Settings->HandshakeIdleTimeoutMs;
+            Settings->HandshakeIdleTimeoutMs = TempHandshakeIdleTimeoutMs.Half;
+        } else {
+            Settings->HandshakeIdleTimeoutMs = TempHandshakeIdleTimeoutMs.Full;
         }
         if (Settings->HandshakeIdleTimeoutMs > QUIC_VAR_INT_MAX) {
             Settings->HandshakeIdleTimeoutMs = QUIC_DEFAULT_IDLE_TIMEOUT;

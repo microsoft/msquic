@@ -528,7 +528,7 @@ Return Value:
         // Allocate and initialize the first-level directory entries required to
         // fit upper bound.
         //
-        uint32_t FirstLevelIndex, SecondLevelIndex;
+        uint32_t FirstLevelIndex = 0, SecondLevelIndex = 0;
         QuicComputeDirIndices(
             (Table->TableSize - 1), &FirstLevelIndex, &SecondLevelIndex);
 

@@ -507,7 +507,7 @@ QuicCryptoFrameDecode(
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->Offset) ||
         !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->Length) ||
-        BufferLength - *Offset < Frame->Length) {
+        BufferLength < Frame->Length + *Offset) {
         return FALSE;
     }
     Frame->Data = Buffer + *Offset;
@@ -553,7 +553,7 @@ QuicNewTokenFrameDecode(
     )
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->TokenLength) ||
-        BufferLength - *Offset < Frame->TokenLength) {
+        BufferLength < Frame->TokenLength + *Offset) {
         return FALSE;
     }
 
@@ -632,7 +632,7 @@ QuicStreamFrameDecode(
     }
     if (Type.LEN) {
         if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->Length) ||
-            BufferLength - *Offset < Frame->Length) {
+            BufferLength < Frame->Length + *Offset) {
             return FALSE;
         }
     } else {

@@ -413,7 +413,7 @@ QuicCryptoWriteOneFrame(
     QUIC_DBG_ASSERT(Offset >= (Crypto->TlsState.BufferTotalLength - Crypto->TlsState.BufferLength));
 
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
-    QUIC_CRYPTO_EX Frame = { Offset - EncryptLevelStart, 0 };
+    QUIC_CRYPTO_EX Frame = { Offset - EncryptLevelStart, 0, 0 };
     Frame.Data =
         Crypto->TlsState.Buffer +
         (Offset - (Crypto->TlsState.BufferTotalLength - Crypto->TlsState.BufferLength));
@@ -1377,6 +1377,7 @@ QuicCryptoProcessData(
 
         UNREFERENCED_PARAMETER(DataAvailable);
         QUIC_TEL_ASSERT(DataAvailable);
+        UNREFERENCED_PARAMETER(DataAvailable);
         QUIC_DBG_ASSERT(BufferCount == 1);
 
         QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
@@ -1611,6 +1612,7 @@ QuicCryptoUpdateKeyPhase(
 
     QUIC_PACKET_SPACE* PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
 
+    UNREFERENCED_PARAMETER(LocalUpdate);
     QuicTraceEvent(ConnKeyPhaseChange, Connection, LocalUpdate);
 
     PacketSpace->WriteKeyPhaseStartPacketNumber = Connection->Send.NextPacketNumber;

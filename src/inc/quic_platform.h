@@ -92,8 +92,8 @@ QuicListInitializeHead(
 }
 
 _Must_inspect_result_
-BOOLEAN
 FORCEINLINE
+BOOLEAN
 QuicListIsEmpty(
     _In_ const QUIC_LIST_ENTRY* ListHead
     )

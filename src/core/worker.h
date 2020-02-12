@@ -28,7 +28,7 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     //
     // The identifier of the platform thread.
     //
-    uint32_t ThreadID;
+    QUIC_THREAD_ID ThreadID;
 
     //
     // The average queue delay connections experience, in microseconds.

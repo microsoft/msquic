@@ -77,6 +77,7 @@ QuicConnLogCubic(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
+    UNREFERENCED_PARAMETER(Connection);
     QuicTraceEvent(ConnCubic,
         Connection,
         Connection->CongestionControl.SlowStartThreshold,
