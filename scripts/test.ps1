@@ -122,8 +122,11 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+# Root directory of the project.
+$RootDir = Split-Path $PSScriptRoot -Parent
+
 # Path to the run-gtest Powershell script.
-$RunTest = Join-Path $PSScriptRoot ".azure/scripts/run-gtest.ps1"
+$RunTest = Join-Path $RootDir ".azure/scripts/run-gtest.ps1"
 
 # Path to the msquictest exectuable.
 $MsQuicTest = $null

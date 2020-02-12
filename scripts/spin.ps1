@@ -68,15 +68,18 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+# Root directory of the project.
+$RootDir = Split-Path $PSScriptRoot -Parent
+
 # Path to the run-executable Powershell script.
-$RunExecutable = Join-Path $PSScriptRoot ".azure/scripts/run-executable.ps1"
+$RunExecutable = Join-Path $RootDir ".azure/scripts/run-executable.ps1"
 
 # Path to the spinquic exectuable.
 $SpinQuic = $null
 if ($IsWindows) {
-    $SpinQuic = Join-Path $PSScriptRoot "\artifacts\windows\$($Arch)_$($Config)_$($Tls)\spinquic.exe"
+    $SpinQuic = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)\spinquic.exe"
 } else {
-    $SpinQuic = Join-Path $PSScriptRoot "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/spinquic"
+    $SpinQuic = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/spinquic"
 }
 
 # Build up all the arguments to pass to the Powershell script.
