@@ -68,8 +68,11 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+# Root directory of the project.
+$RootDir = Split-Path $PSScriptRoot -Parent
+
 # Path for the WPR profile.
-$WprpFile = $PSScriptRoot + "\src\manifest\msquic.wprp"
+$WprpFile = $RootDir + "\src\manifest\msquic.wprp"
 
 # Start log collection.
 function Log-Start {

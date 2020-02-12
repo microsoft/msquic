@@ -88,10 +88,13 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+# Root directory of the project.
+$RootDir = Split-Path $PSScriptRoot -Parent
+
 # Important directory paths.
-$BaseArtifactsDir = Join-Path $PSScriptRoot "artifacts"
-$BaseBuildDir = Join-Path $PSScriptRoot "bld"
-$SrcDir = Join-Path $PSScriptRoot "src"
+$BaseArtifactsDir = Join-Path $RootDir "artifacts"
+$BaseBuildDir = Join-Path $RootDir "bld"
+$SrcDir = Join-Path $RootDir "src"
 $ArtifactsDir = $null
 $BuildDir = $null
 if ($IsWindows) {
