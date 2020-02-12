@@ -49,6 +49,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/artifacts/${QUIC_
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_Debug_${QUIC_TLS})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_Debug_${QUIC_TLS})
 
+set(CLANG_GCC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value CACHE INTERNAL "")
+set(MSVC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
+
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     # Generate the MsQuicEtw header file.
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/inc)
@@ -63,7 +66,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
 
     # Custom build flags.
-    set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 /W4 /wd4100 /wd4101 /wd4189 /wd4458 /wd4459 /wd4702 /wd26451 /wd26812 /sdl /MP")
+    set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 /MP")
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for manifested ETW events and logging")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW")
@@ -100,8 +103,8 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 
 else()
     # Custom build flags.
-    set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions -fPIC -Wall -Wno-unknown-pragmas -Wno-unused-variable -Wno-unused-value -pthread")
-    
+    set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions -fPIC -pthread")
+
     #if(QUIC_TLS STREQUAL "x64")
     #    set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -m64")
     #else()
@@ -115,6 +118,7 @@ else()
     else()
         message(STATUS "Disabling events and logging")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_STUB")
+        list(APPEND CLANG_GCC_WARNING_FLAGS -Wno-unused-parameter -Wno-unused-variable)
     endif()
 
     if(QUIC_TLS STREQUAL "openssl")

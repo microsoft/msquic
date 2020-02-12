@@ -587,7 +587,7 @@ void QuicTestValidateStream(bool Connect)
     TEST_TRUE(TestSession.IsValid());
     TEST_QUIC_SUCCEEDED(TestSession.SetPeerBidiStreamCount(32));
 
-    QUIC_BUFFER Buffers[1] = { 0 };
+    QUIC_BUFFER Buffers[1] = {};
 
     //
     // Force the Client, Server, and Listener to clean up before the Session and Registration.
@@ -928,13 +928,13 @@ void static
 QuicTestValidateSecConfig(
     _In_ SecConfigTestContext* ctxt,
     _In_ QUIC_STATUS Status,
-    _In_opt_ QUIC_SEC_CONFIG* SecurityConfig
+    _In_opt_ QUIC_SEC_CONFIG* SecConfig
     )
 {
     TEST_QUIC_STATUS(ctxt->Expected, Status);
 
     if (ctxt->Expected == QUIC_STATUS_SUCCESS) {
-        TEST_TRUE(SecurityConfig != nullptr);
+        TEST_TRUE(SecConfig != nullptr);
     }
 
     ctxt->Failed = false;
@@ -946,20 +946,20 @@ QUIC_API
 QuicTestSecConfigCreateComplete(
     _In_opt_ void* Context,
     _In_ QUIC_STATUS Status,
-    _In_opt_ QUIC_SEC_CONFIG* SecurityConfig
+    _In_opt_ QUIC_SEC_CONFIG* SecConfig
     )
 {
     _Analysis_assume_(Context != NULL);
     SecConfigTestContext* ctxt = (SecConfigTestContext*) Context;
 
     ctxt->Failed = true;
-    QuicTestValidateSecConfig(ctxt, Status, SecurityConfig);
+    QuicTestValidateSecConfig(ctxt, Status, SecConfig);
 
     //
     // If SecurityConfig is non-null, Delete the security config.
     //
     if (SecurityConfig != nullptr) {
-        MsQuic->SecConfigDelete(SecurityConfig);
+        MsQuic->SecConfigDelete(SecConfig);
     }
 
     //

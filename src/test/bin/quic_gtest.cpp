@@ -81,6 +81,7 @@ LogTestFailure(
     ...
     )
 {
+    UNREFERENCED_PARAMETER(Function);
     char Buffer[128];
     va_list Args;
     va_start(Args, Format);

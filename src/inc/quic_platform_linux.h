@@ -99,6 +99,8 @@ QuicPlatformUninitialize(
 #define SIZEOF_STRUCT_MEMBER(StructType, StructMember) sizeof(((StructType *)0)->StructMember)
 #define TYPEOF_STRUCT_MEMBER(StructType, StructMember) typeof(((StructType *)0)->StructMember)
 
+#define __fallthrough __attribute__((fallthrough))
+
 //
 // Interlocked implementations.
 //
@@ -544,7 +546,7 @@ QuicTimeEpochMs64(
     void
     )
 {
-    struct timeval tv = { 0 };
+    struct timeval tv = { 0, 0 };
     gettimeofday(&tv, NULL);
     return S_TO_MS(tv.tv_sec) + US_TO_MS(tv.tv_usec);
 }

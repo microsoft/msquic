@@ -524,6 +524,7 @@ QuicConnTraceRundownOper(
                     Entry,
                     QUIC_CID_HASH_ENTRY,
                     Link);
+            UNREFERENCED_PARAMETER(SourceCid);
             QuicTraceEvent(ConnSourceCidAdded,
                 Connection, SourceCid->CID.Length, SourceCid->CID.Data);
         }
@@ -535,6 +536,7 @@ QuicConnTraceRundownOper(
                     Entry,
                     QUIC_CID_QUIC_LIST_ENTRY,
                     Link);
+            UNREFERENCED_PARAMETER(DestCid);
             QuicTraceEvent(ConnDestCidAdded,
                 Connection, DestCid->CID.Length, DestCid->CID.Data);
         }
@@ -633,6 +635,7 @@ QuicConnUpdateRtt(
     )
 {
     BOOLEAN RttUpdated;
+    UNREFERENCED_PARAMETER(Connection);
 
     Path->LatestRttSample = LatestRtt;
     if (LatestRtt < Path->MinRtt) {
@@ -3735,6 +3738,8 @@ QuicConnRecvDatagrams(
     QUIC_RECV_DATAGRAM** ReleaseChainTail = &ReleaseChain;
     uint32_t ReleaseChainCount = 0;
     BOOLEAN ResetIdleTimeout = FALSE;
+
+    UNREFERENCED_PARAMETER(DatagramChainCount);
 
     QUIC_PASSIVE_CODE();
 

@@ -222,6 +222,7 @@ QuicOperLog(
     _In_ QUIC_OPERATION* Oper
     )
 {
+    UNREFERENCED_PARAMETER(Connection);
     switch (Oper->Type) {
         case QUIC_OPER_TYPE_API_CALL:
             QuicTraceEvent(ConnExecApiOper, Connection, Oper->API_CALL.Context->Type);

@@ -42,6 +42,11 @@ endif()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
 
 add_library(core STATIC ${SOURCES})
+target_compile_options(core PRIVATE
+     $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
+        ${CLANG_GCC_WARNING_FLAGS}>
+     $<$<CXX_COMPILER_ID:MSVC>:
+        ${MSVC_WARNING_FLAGS}>)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_dependencies(core MsQuicEtw)
