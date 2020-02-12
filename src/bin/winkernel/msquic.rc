@@ -13,7 +13,7 @@
 
 #include "common.ver"
 
-#include "MsQuicEtw.rc"
+//#include "MsQuicEtw.rc"
 
 STRINGTABLE DISCARDABLE
 BEGIN

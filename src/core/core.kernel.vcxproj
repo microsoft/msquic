@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(SolutionDir)src\inc\msquic.kernel.pre.props" />
+  <ItemGroup>
+    <ClCompile Include="ack_tracker.c" />
+    <ClCompile Include="api.c" />
+    <ClCompile Include="binding.c" />
+    <ClCompile Include="congestion_control.c" />
+    <ClCompile Include="connection.c" />
+    <ClCompile Include="crypto.c" />
+    <ClCompile Include="crypto_tls.c" />
+    <ClCompile Include="frame.c" />
+    <ClCompile Include="library.c" />
+    <ClCompile Include="listener.c" />
+    <ClCompile Include="lookup.c" />
+    <ClCompile Include="loss_detection.c" />
+    <ClCompile Include="operation.c" />
+    <ClCompile Include="packet.c" />
+    <ClCompile Include="packet_builder.c" />
+    <ClCompile Include="packet_space.c" />
+    <ClCompile Include="path.c" />
+    <ClCompile Include="range.c" />
+    <ClCompile Include="recv_buffer.c" />
+    <ClCompile Include="registration.c" />
+    <ClCompile Include="send.c" />
+    <ClCompile Include="send_buffer.c" />
+    <ClCompile Include="sent_packet_metadata.c" />
+    <ClCompile Include="session.c" />
+    <ClCompile Include="settings.c" />
+    <ClCompile Include="stream.c" />
+    <ClCompile Include="stream_recv.c" />
+    <ClCompile Include="stream_send.c" />
+    <ClCompile Include="stream_set.c" />
+    <ClCompile Include="timer_wheel.c" />
+    <ClCompile Include="worker.c" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{e862be76-298b-4021-8105-a3e115fa29d1}</ProjectGuid>
+    <OutDir>$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\bin\</OutDir>
+    <IntDir>$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Label="PropertySheets">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(SolutionDir)src\inc\msquic.kernel.post.props" />
+</Project>

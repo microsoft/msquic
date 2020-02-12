@@ -83,9 +83,13 @@ QuicPlatformSystemLoad(
     FAST_WPP_INIT_TRACING(DriverObject, RegistryPath);
 #endif
 
+#ifdef QUIC_EVENTS_MANIFEST_ETW
     EventRegisterMicrosoft_Quic();
+#endif
 
+#ifdef QUIC_TELEMETRY_ASSERTS
     InitializeTelemetryAssertsKM(RegistryPath);
+#endif
 
     QuicPlatform.DriverObject = DriverObject;
     (VOID)KeQueryPerformanceCounter((LARGE_INTEGER*)&QuicPlatformPerfFreq);
@@ -103,8 +107,14 @@ QuicPlatformSystemUnload(
 {
     PAGED_CODE();
     QuicTraceLogInfo("[ sys] Unloaded");
+
+#ifdef QUIC_TELEMETRY_ASSERTS
     UninitializeTelemetryAssertsKM();
+#endif
+
+#ifdef QUIC_EVENTS_MANIFEST_ETW
     EventUnregisterMicrosoft_Quic();
+#endif
 
 #ifdef QUIC_LOGS_WPP
     FAST_WPP_CLEANUP(QuicPlatform.DriverObject);
@@ -213,6 +223,8 @@ QuicRandom(
             0);
 }
 
+#ifdef QUIC_EVENTS_MANIFEST_ETW
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _IRQL_requires_same_
 void
@@ -245,3 +257,5 @@ QuicEtwCallback(
         break;
     }
 }
+
+#endif

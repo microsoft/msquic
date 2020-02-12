@@ -15,6 +15,15 @@ Abstract:
 #include "datapath_winkernel.tmh"
 #endif
 
+//
+// Not yet available in the WDK. When available this code can be removed.
+//
+#if 1
+#define UDP_SEND_MSG_SIZE           2
+#define UDP_RECV_MAX_COALESCED_SIZE 3
+#define UDP_COALESCED_INFO          3
+#endif
+
 typedef enum {
     ICMP4_ECHO_REPLY        =  0, // Echo Reply.
     ICMP4_DST_UNREACH       =  3, // Destination Unreachable.

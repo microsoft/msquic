@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(SolutionDir)src\inc\msquic.kernel.pre.props" />
+  <ItemGroup>
+    <ClCompile Include="driver.c" />
+    <ResourceCompile Include="msquic.rc" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <TargetName>msquic</TargetName>
+    <ProjectGuid>{C31B028C-E91C-4CF7-A8E7-F385B2AF5F85}</ProjectGuid>
+    <OutDir>$(SolutionDir)artifacts\winkernel\bin\$(Platform)_$(Configuration)_schannel\</OutDir>
+    <IntDir>$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Label="PropertySheets">
+    <ConfigurationType>Driver</ConfigurationType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(SolutionDir)src\core\core.kernel.vcxproj">
+      <Project>{e862be76-298b-4021-8105-a3e115fa29d1}</Project>
+    </ProjectReference>
+    <ProjectReference Include="$(SolutionDir)src\platform\platform.kernel.vcxproj">
+      <Project>{5f99f713-bf5f-44eb-90fe-fea03906bba9}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalDependencies>
+        %(AdditionalDependencies);
+        uuid.lib;
+        msnetioid.lib;
+        netio.lib;
+        ndis.lib;
+        cng.lib;
+        ksecdd.lib;
+      </AdditionalDependencies>
+      <ModuleDefinitionFile>msquic.src</ModuleDefinitionFile>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(SolutionDir)src\inc\msquic.kernel.post.props" />
+</Project>

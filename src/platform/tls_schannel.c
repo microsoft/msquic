@@ -21,31 +21,7 @@ Environment:
 #endif
 
 #ifdef _KERNEL_MODE
-//
-// SDK definitions required by schannel.h.
-//
-// These type definitions are in an SDK header file (wtypes.h).
-// It would be very awkward to include SDK headers here, especially since they
-// contain other definitions which require even more SDK header files, some
-// of which redefine DDK and/or http.sys definitions.  Therefore, the needed
-// definitions are defined here. winbasek is needed for filetime and systemtime
-// definitions for wincrypt.h
-// Copied from schack.h
-//
 
-#define BYTE UCHAR
-#define PBYTE uint8_t*
-#define DWORD ULONG
-#define WORD USHORT
-#define BOOL ULONG
-#define LPVOID PVOID
-#define HMODULE HANDLE
-#define PDWORD PULONG
-#define HKEY HANDLE
-#define HWND HANDLE
-
-#include <wbasek.h>
-#include <secint.h>
 #include <winerror.h>
 
 typedef enum _SEC_APPLICATION_PROTOCOL_NEGOTIATION_STATUS
@@ -65,10 +41,202 @@ typedef struct _SecPkgContext_ApplicationProtocol
     unsigned char ProtocolId[MAX_PROTOCOL_ID_SIZE];              // Byte string representing the negotiated application protocol ID
 } SecPkgContext_ApplicationProtocol, *PSecPkgContext_ApplicationProtocol;
 
-#endif
+typedef struct _SEND_GENERIC_TLS_EXTENSION
+{
+    WORD  ExtensionType;            // Code point of extension.
+    WORD  HandshakeType;            // Message type used to transport extension.
+    DWORD Flags;                    // Flags used to modify behavior. Must be zero.
+    WORD  BufferSize;               // Size in bytes of the extension data.
+    UCHAR Buffer[ANYSIZE_ARRAY];    // Extension data.
+} SEND_GENERIC_TLS_EXTENSION, * PSEND_GENERIC_TLS_EXTENSION;
+
+#define SP_PROT_TLS1_3_SERVER           0x00001000
+#define SP_PROT_TLS1_3_CLIENT           0x00002000
+#define SP_PROT_TLS1_3                  (SP_PROT_TLS1_3_SERVER | \
+                                         SP_PROT_TLS1_3_CLIENT)
+
+#define SCH_CRED_NO_SYSTEM_MAPPER                    0x00000002
+#define SCH_CRED_NO_SERVERNAME_CHECK                 0x00000004
+#define SCH_CRED_MANUAL_CRED_VALIDATION              0x00000008
+#define SCH_CRED_NO_DEFAULT_CREDS                    0x00000010
+#define SCH_CRED_AUTO_CRED_VALIDATION                0x00000020
+#define SCH_CRED_USE_DEFAULT_CREDS                   0x00000040
+#define SCH_CRED_DISABLE_RECONNECTS                  0x00000080
+
+#define SCH_CRED_REVOCATION_CHECK_END_CERT           0x00000100
+#define SCH_CRED_REVOCATION_CHECK_CHAIN              0x00000200
+#define SCH_CRED_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT 0x00000400
+#define SCH_CRED_IGNORE_NO_REVOCATION_CHECK          0x00000800
+#define SCH_CRED_IGNORE_REVOCATION_OFFLINE           0x00001000
+
+#define SCH_CRED_RESTRICTED_ROOTS                    0x00002000
+#define SCH_CRED_REVOCATION_CHECK_CACHE_ONLY         0x00004000
+#define SCH_CRED_CACHE_ONLY_URL_RETRIEVAL            0x00008000
+
+#define SCH_CRED_MEMORY_STORE_CERT                   0x00010000
+
+#define SCH_CRED_CACHE_ONLY_URL_RETRIEVAL_ON_CREATE  0x00020000
+
+#define SCH_SEND_ROOT_CERT                           0x00040000
+#define SCH_CRED_SNI_CREDENTIAL                      0x00080000
+#define SCH_CRED_SNI_ENABLE_OCSP                     0x00100000
+#define SCH_SEND_AUX_RECORD                          0x00200000
+#define SCH_USE_STRONG_CRYPTO                        0x00400000
+#define SCH_USE_PRESHAREDKEY_ONLY                    0x00800000
+#define SCH_USE_DTLS_ONLY                            0x01000000
+#define SCH_ALLOW_NULL_ENCRYPTION                    0x02000000
+
+// Values for SCHANNEL_CRED dwCredFormat field.
+#define SCH_CRED_FORMAT_CERT_CONTEXT    0x00000000
+#define SCH_CRED_FORMAT_CERT_HASH       0x00000001
+#define SCH_CRED_FORMAT_CERT_HASH_STORE 0x00000002
+
+#define SCH_CRED_MAX_STORE_NAME_SIZE    128
+#define SCH_CRED_MAX_SUPPORTED_ALGS     256
+#define SCH_CRED_MAX_SUPPORTED_CERTS    100
+
+typedef ULONG_PTR HCRYPTPROV;
+
+typedef struct _SCHANNEL_CERT_HASH
+{
+    DWORD           dwLength;
+    DWORD           dwFlags;
+    HCRYPTPROV      hProv;
+    BYTE            ShaHash[20];
+} SCHANNEL_CERT_HASH, * PSCHANNEL_CERT_HASH;
+
+typedef struct _SCHANNEL_CERT_HASH_STORE
+{
+    DWORD           dwLength;
+    DWORD           dwFlags;
+    HCRYPTPROV      hProv;
+    BYTE            ShaHash[20];
+    WCHAR           pwszStoreName[SCH_CRED_MAX_STORE_NAME_SIZE];
+} SCHANNEL_CERT_HASH_STORE, * PSCHANNEL_CERT_HASH_STORE;
+
+// Values for SCHANNEL_CERT_HASH dwFlags field.
+#define SCH_MACHINE_CERT_HASH           0x00000001
+
+//
+// Schannel credentials data structure.
+//
+
+#define SCH_CRED_V1              0x00000001
+#define SCH_CRED_V2              0x00000002  // for legacy code
+#define SCH_CRED_VERSION         0x00000002  // for legacy code
+#define SCH_CRED_V3              0x00000003  // for legacy code
+#define SCHANNEL_CRED_VERSION    0x00000004  // for legacy code
+#define SCH_CREDENTIALS_VERSION  0x00000005
+
+struct _HMAPPER;
+
+typedef const struct _CERT_CONTEXT* PCCERT_CONTEXT;
+
+typedef void* HCERTSTORE;
+
+typedef unsigned int ALG_ID;
+
+typedef struct _SCHANNEL_CRED
+{
+    DWORD           dwVersion;      // always SCHANNEL_CRED_VERSION
+    DWORD           cCreds;
+    PCCERT_CONTEXT* paCred;
+    HCERTSTORE      hRootStore;
+
+    DWORD           cMappers;
+    struct _HMAPPER** aphMappers;
+
+    DWORD           cSupportedAlgs;
+    ALG_ID* palgSupportedAlgs;
+
+    DWORD           grbitEnabledProtocols;
+    DWORD           dwMinimumCipherStrength;
+    DWORD           dwMaximumCipherStrength;
+    DWORD           dwSessionLifespan;
+    DWORD           dwFlags;
+    DWORD           dwCredFormat;
+} SCHANNEL_CRED, * PSCHANNEL_CRED;
+
+typedef enum _eTlsAlgorithmUsage
+{
+    TlsParametersCngAlgUsageKeyExchange,          // Key exchange algorithm. RSA, ECHDE, DHE, etc.
+    TlsParametersCngAlgUsageSignature,            // Signature algorithm. RSA, DSA, ECDSA, etc.
+    TlsParametersCngAlgUsageCipher,               // Encryption algorithm. AES, DES, RC4, etc.
+    TlsParametersCngAlgUsageDigest,               // Digest of cipher suite. SHA1, SHA256, SHA384, etc.
+    TlsParametersCngAlgUsageCertSig               // Signature and/or hash used to sign certificate. RSA, DSA, ECDSA, SHA1, SHA256, etc.
+} eTlsAlgorithmUsage;
+
+//
+// SCH_CREDENTIALS structures
+//
+typedef struct _CRYPTO_SETTINGS
+{
+    eTlsAlgorithmUsage  eAlgorithmUsage;         // How this algorithm is being used.
+    UNICODE_STRING      strCngAlgId;             // CNG algorithm identifier.
+    DWORD               cChainingModes;          // Set to 0 if CNG algorithm does not have a chaining mode.
+    PUNICODE_STRING     rgstrChainingModes;      // Set to NULL if CNG algorithm does not have a chaining mode.
+    DWORD               dwMinBitLength;          // Blacklist key sizes less than this. Set to 0 if not defined or CNG algorithm implies bit length.
+    DWORD               dwMaxBitLength;          // Blacklist key sizes greater than this. Set to 0 if not defined or CNG algorithm implies bit length.
+} CRYPTO_SETTINGS, * PCRYPTO_SETTINGS;
+
+typedef struct _TLS_PARAMETERS
+{
+    DWORD               cAlpnIds;                // Valid for server applications only. Must be zero otherwise. Number of ALPN IDs in rgstrAlpnIds; set to 0 if applies to all.
+    PUNICODE_STRING     rgstrAlpnIds;            // Valid for server applications only. Must be NULL otherwise. Array of ALPN IDs that the following settings apply to; set to NULL if applies to all.
+    DWORD               grbitDisabledProtocols;  // List protocols you DO NOT want negotiated.
+    DWORD               cDisabledCrypto;         // Number of CRYPTO_SETTINGS structures; set to 0 if there are none.
+    PCRYPTO_SETTINGS    pDisabledCrypto;         // Array of CRYPTO_SETTINGS structures; set to NULL if there are none;
+    DWORD               dwFlags;                 // Optional flags to pass; set to 0 if there are none.
+} TLS_PARAMETERS, * PTLS_PARAMETERS;
+
+typedef struct _SCH_CREDENTIALS
+{
+    DWORD               dwVersion;               // Always SCH_CREDENTIALS_VERSION.
+    DWORD               dwCredFormat;
+    DWORD               cCreds;
+    PCCERT_CONTEXT* paCred;
+    HCERTSTORE          hRootStore;
+
+    DWORD               cMappers;
+    struct _HMAPPER** aphMappers;
+
+    DWORD               dwSessionLifespan;
+    DWORD               dwFlags;
+    DWORD               cTlsParameters;
+    PTLS_PARAMETERS     pTlsParameters;
+} SCH_CREDENTIALS, * PSCH_CREDENTIALS;
+
+typedef struct _TLS_EXTENSION_SUBSCRIPTION
+{
+    WORD ExtensionType; // Code point of extension.
+    WORD HandshakeType; // Message type used to transport extension.
+} TLS_EXTENSION_SUBSCRIPTION, * PTLS_EXTENSION_SUBSCRIPTION;
+
+typedef struct _SUBSCRIBE_GENERIC_TLS_EXTENSION
+{
+    DWORD Flags;                                                // Flags used to modify behavior. Must be zero.
+    DWORD SubscriptionsCount;                                   // Number of elements in the Subscriptions array.
+    TLS_EXTENSION_SUBSCRIPTION Subscriptions[ANYSIZE_ARRAY];    // Array of TLS_EXTENSION_SUBSCRIPTION structures.
+} SUBSCRIBE_GENERIC_TLS_EXTENSION, * PSUBSCRIBE_GENERIC_TLS_EXTENSION;
+
+// Flag values for SecPkgContext_SessionInfo
+#define SSL_SESSION_RECONNECT   1
+
+typedef struct _SecPkgContext_SessionInfo
+{
+    DWORD dwFlags;
+    DWORD cbSessionId;
+    BYTE  rgbSessionId[32];
+} SecPkgContext_SessionInfo, * PSecPkgContext_SessionInfo;
+
+#define SECPKG_ATTR_SESSION_INFO         0x5d   // returns SecPkgContext_SessionInfo
+
+#else
 
 #define SCHANNEL_USE_BLACKLISTS
 #include <schannel.h>
+
+#endif
 
 uint16_t QuicTlsTPHeaderSize = FIELD_OFFSET(SEND_GENERIC_TLS_EXTENSION, Buffer);
 
@@ -149,7 +317,7 @@ typedef struct QUIC_ACHA_CONTEXT {
     //
     // Holds TLS configuration for the lifetime of the async call.
     //
-    TLS_PARAMETERS TlsParameter;
+    TLS_PARAMETERS TlsParameters;
 
 } QUIC_ACHA_CONTEXT;
 #endif
@@ -605,7 +773,7 @@ QuicTlsSspiNotifyCallback(
 //
 // Used by QuicTlsServerSecConfigCreate and QuicTlsInitialize
 //
-const static UNICODE_STRING QuicTlsPackageName = RTL_CONSTANT_STRING(SCHANNEL_NAME_W);
+const static UNICODE_STRING QuicTlsPackageName = RTL_CONSTANT_STRING(L"Schannel");
 
 #endif
 
