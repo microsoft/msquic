@@ -35,19 +35,10 @@ typedef UINT16 uint16_t;
 typedef UINT32 uint32_t;
 typedef UINT64 uint64_t;
 
-typedef INT_PTR intptr_t;
-typedef UINT_PTR uintptr_t;
-
 #define UINT8_MAX   0xffui8
 #define UINT16_MAX  0xffffui16
 #define UINT32_MAX  0xffffffffui32
 #define UINT64_MAX  0xffffffffffffffffui64
-
-#define UINTPTR_MAX MAXUINT_PTR
-#define INTPTR_MAX  MAXINT_PTR
-
-#undef SIZE_MAX
-#define SIZE_MAX UINTPTR_MAX
 
 #ifndef STATUS_QUIC_HANDSHAKE_FAILURE
 #define STATUS_QUIC_HANDSHAKE_FAILURE    ((NTSTATUS)0xC0240000L)

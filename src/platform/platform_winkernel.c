@@ -29,6 +29,10 @@ Environment:
     textual reference to the "WPP_INIT_TRACING();" macro.
 */
 
+typedef enum _SYSTEM_INFORMATION_CLASS {
+    SystemBasicInformation                          = 0
+} SYSTEM_INFORMATION_CLASS;
+
 NTSYSAPI // Copied from zwapi.h.
 NTSTATUS
 NTAPI
@@ -38,6 +42,30 @@ ZwQuerySystemInformation (
     __in ULONG SystemInformationLength,
     __out_opt PULONG ReturnLength
     );
+
+typedef struct _SYSTEM_BASIC_INFORMATION {
+    ULONG Reserved;
+    ULONG TimerResolution;
+    ULONG PageSize;
+
+    //
+    // WARNING: The following fields are 32-bit and may get
+    // capped to MAXULONG on systems with a lot of RAM!
+    //
+    // Use SYSTEM_PHYSICAL_MEMORY_INFORMATION instead.
+    //
+
+    ULONG NumberOfPhysicalPages;      // Deprecated, do not use.
+    ULONG LowestPhysicalPageNumber;   // Deprecated, do not use.
+    ULONG HighestPhysicalPageNumber;  // Deprecated, do not use.
+
+    ULONG AllocationGranularity;
+    ULONG_PTR MinimumUserModeAddress;
+    ULONG_PTR MaximumUserModeAddress;
+    ULONG_PTR ActiveProcessorsAffinityMask;
+    CCHAR NumberOfProcessors;
+} SYSTEM_BASIC_INFORMATION, *PSYSTEM_BASIC_INFORMATION;
+
 
 uint64_t QuicPlatformPerfFreq;
 uint64_t QuicTotalMemory;
