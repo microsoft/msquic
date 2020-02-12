@@ -1,0 +1,29 @@
+EXPORTS
+
+;--------------------------------------------------------------------
+; Core exports provided by the ExtCpp framework.
+;--------------------------------------------------------------------
+
+    DebugExtensionInitialize
+    DebugExtensionUninitialize
+    DebugExtensionNotify
+    help
+
+;--------------------------------------------------------------------
+; Extension commands.
+;--------------------------------------------------------------------
+
+    quicanalyze
+    quicbinding
+    quicconn
+    quicconnection
+    quicdump
+    quichandle
+    quiclib
+    quiclibrary
+    quiclistener
+    quicpacket
+    quicregistration
+    quicsession
+    quicstream
+    quicworker
