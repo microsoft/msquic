@@ -1375,6 +1375,7 @@ QuicCryptoProcessData(
                 &BufferCount,
                 &Buffer);
 
+        UNREFERENCED_PARAMETER(DataAvailable);
         QUIC_TEL_ASSERT(DataAvailable);
         QUIC_DBG_ASSERT(BufferCount == 1);
 

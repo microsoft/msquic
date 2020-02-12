@@ -9,13 +9,6 @@ Abstract:
 
 --*/
 
-#include <ntverp.h>
-#include <ntosp.h>
-#include <ntstrsafe.h>
-#include <WppRecorder.h>
-#include <wdf.h>
-#include <netioapi.h>
-#include <msquic.h>
 #include <quic_platform.h>
 #include <MsQuicTests.h>
 
