@@ -83,6 +83,9 @@ if (!(Test-Path $Path)) {
 # Root directory of the project.
 $RootDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 
+# Script for controlling loggings.
+$LogScript = Join-Path $RootDir "scripts" "log.ps1"
+
 # Executable name.
 $ExeName = Split-Path $Path -Leaf
 
@@ -116,7 +119,7 @@ $SuccessXmlText = @"
 function Start-Executable {
     $Now = (Get-Date -UFormat "%Y-%m-%dT%T")
     if ($LogProfile -ne "None") {
-        .\log.ps1 -Start -LogProfile $LogProfile | Out-Null
+        & $LogScript -Start -LogProfile $LogProfile | Out-Null
     }
 
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
@@ -205,9 +208,9 @@ function Wait-Executable($Exe) {
 
         if ($LogProfile -ne "None") {
             if ($ConvertLogs) {
-                .\log.ps1 -Stop -OutputDirectory $LogDir -ConvertToText
+                & $LogScript -Stop -OutputDirectory $LogDir -ConvertToText
             } else {
-                .\log.ps1 -Stop -OutputDirectory $LogDir | Out-Null
+                & $LogScript -Stop -OutputDirectory $LogDir | Out-Null
             }
         }
 
@@ -229,7 +232,7 @@ function Wait-Executable($Exe) {
 
     } else {
         if ($LogProfile -ne "None") {
-            .\log.ps1 -Cancel | Out-Null
+            & $LogScript -Cancel | Out-Null
         }
         Remove-Item $LogDir -Recurse -Force | Out-Null
     }
