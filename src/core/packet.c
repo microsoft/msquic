@@ -443,7 +443,7 @@ QuicPacketDecodeRetryTokenV1(
         sizeof(uint8_t) +
         Packet->SourceCidLen;
 
-    QUIC_VAR_INT TokenLengthVarInt;
+    QUIC_VAR_INT TokenLengthVarInt = 0;
     BOOLEAN Success = QuicVarIntDecode(
         Packet->BufferLength, Packet->Buffer, &Offset, &TokenLengthVarInt);
     QUIC_DBG_ASSERT(Success); // Was previously validated.

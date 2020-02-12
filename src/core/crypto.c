@@ -1376,6 +1376,7 @@ QuicCryptoProcessData(
                 &Buffer);
 
         QUIC_TEL_ASSERT(DataAvailable);
+        UNREFERENCED_PARAMETER(DataAvailable);
         QUIC_DBG_ASSERT(BufferCount == 1);
 
         QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);

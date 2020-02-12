@@ -2092,8 +2092,8 @@ QuicTlsKeyCreate(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_PACKET_KEY *TempKey = NULL;
     QUIC_SECRET *TrafficSecret = NULL;
-    QUIC_HASH_TYPE HashType;
-    QUIC_AEAD_TYPE AeadType;
+    QUIC_HASH_TYPE HashType = QUIC_HASH_SHA256;
+    QUIC_AEAD_TYPE AeadType = QUIC_AEAD_AES_128_GCM;
 
     Status = QuicAllocatePacketKey(KeyType, TRUE, &TempKey);
 
@@ -2431,13 +2431,12 @@ QuicPacketKeyDerive(
 {
     UNREFERENCED_PARAMETER(SecretName);
     const uint16_t SecretLength = QuicHashLength(Secret->Hash);
-    const uint16_t KeyLength = QuicKeyLength(Secret->Aead);
 
-    QUIC_DBG_ASSERT(SecretLength >= KeyLength);
+    QUIC_DBG_ASSERT(SecretLength >= QuicKeyLength(Secret->Aead));
     QUIC_DBG_ASSERT(SecretLength >= QUIC_IV_LENGTH);
     QUIC_DBG_ASSERT(SecretLength <= QUIC_HASH_MAX_SIZE);
 
-    QUIC_PACKET_KEY *Key;
+    QUIC_PACKET_KEY *Key = NULL;
     QUIC_STATUS Status = QuicAllocatePacketKey(KeyType, CreateHpKey, &Key);
     if (QUIC_FAILED(Status)) {
         goto Error;
