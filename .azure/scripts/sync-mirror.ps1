@@ -35,3 +35,5 @@ git reset --hard origin/$Branch
 
 # Push to the AzDO repo.
 git push azdo-mirror $Branch
+
+Write-Host "Sync complete."
