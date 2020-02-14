@@ -22,9 +22,7 @@ struct DecompressEntry {
     uint64_t PacketNumber;
 };
 
-void
-PacketNumberTestWellKnownDecompress(
-    )
+TEST(PacketNumberTest, WellKnownDecompress)
 {
     DecompressEntry Entries[] = {
         { 63, 1, 0, 0 },

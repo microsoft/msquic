@@ -17,7 +17,7 @@ Abstract:
 uint64_t Encode(uint64_t Value)
 {
     uint64_t Encoded = 0;
-    TEST_TRUE(QuicVarIntEncode(Value, (uint8_t*)&Encoded) != NULL);
+    EXPECT_NE(QuicVarIntEncode(Value, (uint8_t*)&Encoded), nullptr);
     return Encoded;
 }
 
@@ -25,13 +25,11 @@ uint64_t Decode(uint64_t Encoded)
 {
     uint64_t Decoded;
     UINT16 Offset = 0;
-    TEST_TRUE(QuicVarIntDecode(sizeof(Encoded), (uint8_t*)&Encoded, &Offset, &Decoded));
+    EXPECT_NE(QuicVarIntDecode(sizeof(Encoded), (uint8_t*)&Encoded, &Offset, &Decoded), (BOOLEAN)0);
     return Decoded;
 }
 
-void
-FrameTestWellKnownEncode(
-    )
+TEST(FrameTest, WellKnownEncode)
 {
     TEST_EQUAL(Encode(0), 0);
     TEST_EQUAL(Encode(0x3F), 0x3F);
@@ -43,9 +41,7 @@ FrameTestWellKnownEncode(
     TEST_EQUAL(Encode(0x3FFFFFFFFFFFFFFF), 0xFFFFFFFFFFFFFFFF);
 }
 
-void
-FrameTestWellKnownDecode(
-    )
+TEST(FrameTest, WellKnownDecode)
 {
     TEST_EQUAL(Decode(0), 0);
     TEST_EQUAL(Decode(0x3F), 0x3F);
@@ -57,9 +53,7 @@ FrameTestWellKnownDecode(
     TEST_EQUAL(Decode(0xFFFFFFFFFFFFFFFF), 0x3FFFFFFFFFFFFFFFULL);
 }
 
-void
-FrameTestRandomEncodeDecode(
-    )
+TEST(FrameTest, RandomEncodeDecode)
 {
     for (uint32_t i = 0; i < 1000; i++) {
 

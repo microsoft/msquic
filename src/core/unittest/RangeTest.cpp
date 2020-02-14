@@ -61,12 +61,12 @@ struct SmartRange {
     }
     uint64_t Min() {
         uint64_t value;
-        TEST_EQUAL(TRUE, QuicRangeGetMinSafe(&range, &value));
+        EXPECT_EQ(TRUE, QuicRangeGetMinSafe(&range, &value));
         return value;
     }
     uint64_t Max() {
         uint64_t value;
-        TEST_EQUAL(TRUE, QuicRangeGetMaxSafe(&range, &value));
+        EXPECT_EQ(TRUE, QuicRangeGetMaxSafe(&range, &value));
         return value;
     }
     uint32_t ValidCount() {
@@ -83,9 +83,7 @@ struct SmartRange {
     }
 };
 
-void
-RangeTestAddSingle(
-    )
+TEST(RangeTest, AddSingle)
 {
     SmartRange range;
     range.Add(100);
@@ -94,9 +92,7 @@ RangeTestAddSingle(
     TEST_EQUAL(range.Max(), (uint32_t)100);
 }
 
-void
-RangeTestAddTwoAdjacentBefore(
-    )
+TEST(RangeTest, AddTwoAdjacentBefore)
 {
     SmartRange range;
     range.Add(101);
@@ -106,9 +102,7 @@ RangeTestAddTwoAdjacentBefore(
     TEST_EQUAL(range.Max(), (uint32_t)101);
 }
 
-void
-RangeTestAddTwoAdjacentAfter(
-    )
+TEST(RangeTest, AddTwoAdjacentAfter)
 {
     SmartRange range;
     range.Add(100);
@@ -118,9 +112,7 @@ RangeTestAddTwoAdjacentAfter(
     TEST_EQUAL(range.Max(), (uint32_t)101);
 }
 
-void
-RangeTestAddTwoSeparateBefore(
-    )
+TEST(RangeTest, AddTwoSeparateBefore)
 {
     SmartRange range;
     range.Add(102);
@@ -130,9 +122,7 @@ RangeTestAddTwoSeparateBefore(
     TEST_EQUAL(range.Max(), (uint32_t)102);
 }
 
-void
-RangeTestAddTwoSeparateAfter(
-    )
+TEST(RangeTest, AddTwoSeparateAfter)
 {
     SmartRange range;
     range.Add(100);
@@ -142,9 +132,7 @@ RangeTestAddTwoSeparateAfter(
     TEST_EQUAL(range.Max(), (uint32_t)102);
 }
 
-void
-RangeTestAddThreeMerge(
-    )
+TEST(RangeTest, AddThreeMerge)
 {
     SmartRange range;
     range.Add(100);
@@ -155,9 +143,7 @@ RangeTestAddThreeMerge(
     TEST_EQUAL(range.Max(), (uint32_t)102);
 }
 
-void
-RangeTestAddBetween(
-    )
+TEST(RangeTest, AddBetween)
 {
     SmartRange range;
     range.Add(100);
@@ -168,9 +154,7 @@ RangeTestAddBetween(
     TEST_EQUAL(range.Max(), (uint32_t)104);
 }
 
-void
-RangeTestAddRangeSingle(
-    )
+TEST(RangeTest, AddRangeSingle)
 {
     SmartRange range;
     range.Add(100, 100);
@@ -179,9 +163,7 @@ RangeTestAddRangeSingle(
     TEST_EQUAL(range.Max(), (uint32_t)199);
 }
 
-void
-RangeTestAddRangeBetween(
-    )
+TEST(RangeTest, AddRangeBetween)
 {
     SmartRange range;
     range.Add(100, 50);
@@ -192,9 +174,7 @@ RangeTestAddRangeBetween(
     TEST_EQUAL(range.Max(), (uint32_t)349);
 }
 
-void
-RangeTestAddRangeTwoAdjacentBefore(
-    )
+TEST(RangeTest, AddRangeTwoAdjacentBefore)
 {
     SmartRange range;
     range.Add(200, 100);
@@ -204,9 +184,7 @@ RangeTestAddRangeTwoAdjacentBefore(
     TEST_EQUAL(range.Max(), (uint32_t)299);
 }
 
-void
-RangeTestAddRangeTwoAdjacentAfter(
-    )
+TEST(RangeTest, AddRangeTwoAdjacentAfter)
 {
     SmartRange range;
     range.Add(100, 100);
@@ -216,9 +194,7 @@ RangeTestAddRangeTwoAdjacentAfter(
     TEST_EQUAL(range.Max(), (uint32_t)299);
 }
 
-void
-RangeTestAddRangeTwoSeparateBefore(
-    )
+TEST(RangeTest, AddRangeTwoSeparateBefore)
 {
     SmartRange range;
     range.Add(300, 100);
@@ -228,9 +204,7 @@ RangeTestAddRangeTwoSeparateBefore(
     TEST_EQUAL(range.Max(), (uint32_t)399);
 }
 
-void
-RangeTestAddRangeTwoSeparateAfter(
-    )
+TEST(RangeTest, AddRangeTwoSeparateAfter)
 {
     SmartRange range;
     range.Add(100, 100);
@@ -240,9 +214,7 @@ RangeTestAddRangeTwoSeparateAfter(
     TEST_EQUAL(range.Max(), (uint32_t)399);
 }
 
-void
-RangeTestAddRangeTwoOverlapBefore1(
-    )
+TEST(RangeTest, AddRangeTwoOverlapBefore1)
 {
     SmartRange range;
     range.Add(200, 100);
@@ -252,9 +224,7 @@ RangeTestAddRangeTwoOverlapBefore1(
     TEST_EQUAL(range.Max(), (uint32_t)299);
 }
 
-void
-RangeTestAddRangeTwoOverlapBefore2(
-    )
+TEST(RangeTest, AddRangeTwoOverlapBefore2)
 {
     SmartRange range;
     range.Add(200, 100);
@@ -264,9 +234,7 @@ RangeTestAddRangeTwoOverlapBefore2(
     TEST_EQUAL(range.Max(), (uint32_t)299);
 }
 
-void
-RangeTestAddRangeTwoOverlapBefore3(
-    )
+TEST(RangeTest, AddRangeTwoOverlapBefore3)
 {
     SmartRange range;
     range.Add(200, 50);
@@ -276,9 +244,7 @@ RangeTestAddRangeTwoOverlapBefore3(
     TEST_EQUAL(range.Max(), (uint32_t)299);
 }
 
-void
-RangeTestAddRangeTwoOverlapAfter1(
-    )
+TEST(RangeTest, AddRangeTwoOverlapAfter1)
 {
     SmartRange range;
     range.Add(100, 100);
@@ -288,9 +254,7 @@ RangeTestAddRangeTwoOverlapAfter1(
     TEST_EQUAL(range.Max(), (uint32_t)299);
 }
 
-void
-RangeTestAddRangeTwoOverlapAfter2(
-    )
+TEST(RangeTest, AddRangeTwoOverlapAfter2)
 {
     SmartRange range;
     range.Add(100, 100);
@@ -300,9 +264,7 @@ RangeTestAddRangeTwoOverlapAfter2(
     TEST_EQUAL(range.Max(), (uint32_t)299);
 }
 
-void
-RangeTestAddRangeThreeMerge(
-    )
+TEST(RangeTest, AddRangeThreeMerge)
 {
     SmartRange range;
     range.Add(100, 100);
@@ -313,9 +275,7 @@ RangeTestAddRangeThreeMerge(
     TEST_EQUAL(range.Max(), (uint32_t)399);
 }
 
-void
-RangeTestAddRangeThreeOverlapAndAdjacentAfter1(
-    )
+TEST(RangeTest, AddRangeThreeOverlapAndAdjacentAfter1)
 {
     SmartRange range;
     range.Add(100, 1);
@@ -326,9 +286,7 @@ RangeTestAddRangeThreeOverlapAndAdjacentAfter1(
     TEST_EQUAL(range.Max(), (uint32_t)299);
 }
 
-void
-RangeTestAddRangeThreeOverlapAndAdjacentAfter2(
-    )
+TEST(RangeTest, AddRangeThreeOverlapAndAdjacentAfter2)
 {
     SmartRange range;
     range.Add(100, 1);
@@ -339,9 +297,7 @@ RangeTestAddRangeThreeOverlapAndAdjacentAfter2(
     TEST_EQUAL(range.Max(), (uint32_t)399);
 }
 
-void
-RangeTestAddRangeThreeOverlapAndAdjacentAfter3(
-    )
+TEST(RangeTest, AddRangeThreeOverlapAndAdjacentAfter3)
 {
     SmartRange range;
     range.Add(100, 100);
@@ -352,9 +308,7 @@ RangeTestAddRangeThreeOverlapAndAdjacentAfter3(
     TEST_EQUAL(range.Max(), (uint32_t)399);
 }
 
-void
-RangeTestAddRangeThreeOverlapAndAdjacentAfter4(
-    )
+TEST(RangeTest, AddRangeThreeOverlapAndAdjacentAfter4)
 {
     SmartRange range;
     range.Add(100, 100);
@@ -365,9 +319,7 @@ RangeTestAddRangeThreeOverlapAndAdjacentAfter4(
     TEST_EQUAL(range.Max(), (uint32_t)399);
 }
 
-void
-RangeTestRemoveRangeBefore(
-    )
+TEST(RangeTest, RemoveRangeBefore)
 {
     SmartRange range;
     range.Add(100, 100);
@@ -384,9 +336,7 @@ RangeTestRemoveRangeBefore(
     TEST_EQUAL(range.Max(), (uint32_t)199);
 }
 
-void
-RangeTestRemoveRangeAfter(
-    )
+TEST(RangeTest, RemoveRangeAfter)
 {
     SmartRange range;
     range.Add(100, 100);
@@ -403,9 +353,7 @@ RangeTestRemoveRangeAfter(
     TEST_EQUAL(range.Max(), (uint32_t)199);
 }
 
-void
-RangeTestRemoveRangeFront(
-    )
+TEST(RangeTest, RemoveRangeFront)
 {
     SmartRange range;
     range.Add(100, 100);
@@ -418,9 +366,7 @@ RangeTestRemoveRangeFront(
     TEST_EQUAL(range.Max(), (uint32_t)199);
 }
 
-void
-RangeTestRemoveRangeBack(
-    )
+TEST(RangeTest, RemoveRangeBack)
 {
     SmartRange range;
     range.Add(100, 100);
@@ -433,9 +379,7 @@ RangeTestRemoveRangeBack(
     TEST_EQUAL(range.Max(), (uint32_t)179);
 }
 
-void
-RangeTestRemoveRangeAll(
-    )
+TEST(RangeTest, RemoveRangeAll)
 {
     SmartRange range;
     range.Add(100, 100);
@@ -446,9 +390,7 @@ RangeTestRemoveRangeAll(
     TEST_EQUAL(range.ValidCount(), (uint32_t)0);
 }
 
-void
-RangeTestExampleAckTest(
-    )
+TEST(RangeTest, ExampleAckTest)
 {
     SmartRange range;
     range.Add(10000);
@@ -473,9 +415,7 @@ RangeTestExampleAckTest(
     TEST_EQUAL(range.ValidCount(), (uint32_t)0);
 }
 
-void
-RangeTestExampleAckWithLossTest(
-    )
+TEST(RangeTest, ExampleAckWithLossTest)
 {
     SmartRange range;
     range.Add(10000);
@@ -502,9 +442,7 @@ RangeTestExampleAckWithLossTest(
     TEST_EQUAL(range.ValidCount(), (uint32_t)0);
 }
 
-void
-RangeTestAddLots(
-    )
+TEST(RangeTest, AddLots)
 {
     SmartRange range;
     for (uint32_t i = 0; i < 400; i += 2) {
@@ -517,9 +455,7 @@ RangeTestAddLots(
     TEST_EQUAL(range.ValidCount(), (uint32_t)1);
 }
 
-void
-RangeTestHitMax(
-    )
+TEST(RangeTest, HitMax)
 {
     const uint32_t MaxCount = 16;
     SmartRange range(MaxCount * sizeof(QUIC_SUBRANGE));
@@ -543,9 +479,7 @@ RangeTestHitMax(
     TEST_EQUAL(range.Max(), MaxCount*2);
 }
 
-void
-RangeTestSearchZero(
-    )
+TEST(RangeTest, SearchZero)
 {
     SmartRange range;
     auto index = range.Find(25);
@@ -553,9 +487,7 @@ RangeTestSearchZero(
     TEST_EQUAL(INSERT_INDEX_TO_FIND_INDEX(index), 0ul);
 }
 
-void
-RangeTestSearchOne(
-    )
+TEST(RangeTest, SearchOne)
 {
     SmartRange range;
     range.Add(25);
@@ -578,9 +510,7 @@ RangeTestSearchOne(
     TEST_EQUAL(index, 0);
 }
 
-void
-RangeTestSearchTwo(
-    )
+TEST(RangeTest, SearchTwo)
 {
     SmartRange range;
     range.Add(25);
@@ -604,9 +534,7 @@ RangeTestSearchTwo(
     TEST_EQUAL(index, 0);
 }
 
-void
-RangeTestSearchThree(
-    )
+TEST(RangeTest, SearchThree)
 {
     SmartRange range;
     range.Add(25);
@@ -637,9 +565,7 @@ RangeTestSearchThree(
     TEST_EQUAL(index, 0);
 }
 
-void
-RangeTestSearchFour(
-    )
+TEST(RangeTest, SearchFour)
 {
     SmartRange range;
     range.Add(25);
@@ -674,9 +600,7 @@ RangeTestSearchFour(
     TEST_EQUAL(index, 0);
 }
 
-void
-RangeTestSearchRangeZero(
-    )
+TEST(RangeTest, SearchRangeZero)
 {
     SmartRange range;
     auto index = range.FindRange(25, 17);
@@ -684,9 +608,7 @@ RangeTestSearchRangeZero(
     TEST_EQUAL(INSERT_INDEX_TO_FIND_INDEX(index), 0ul);
 }
 
-void
-RangeTestSearchRangeOne(
-    )
+TEST(RangeTest, SearchRangeOne)
 {
     SmartRange range;
     range.Add(25);
@@ -715,9 +637,7 @@ RangeTestSearchRangeOne(
     TEST_EQUAL(index, 0);
 }
 
-void
-RangeTestSearchRangeTwo(
-    )
+TEST(RangeTest, SearchRangeTwo)
 {
     SmartRange range;
     range.Add(25);
@@ -780,9 +700,7 @@ RangeTestSearchRangeTwo(
 #endif
 }
 
-void
-RangeTestSearchRangeThree(
-    )
+TEST(RangeTest, SearchRangeThree)
 {
     SmartRange range;
     range.Add(25);
@@ -790,7 +708,7 @@ RangeTestSearchRangeThree(
     range.Add(35);
 
     auto index = range.FindRange(36, 3);
-    TEST_TRUE(IS_INSERT_INDEX(index));
+    ASSERT_TRUE(IS_INSERT_INDEX(index));
     TEST_EQUAL(INSERT_INDEX_TO_FIND_INDEX(index), 3ul);
     index = range.FindRange(32, 3);
     TEST_TRUE(IS_INSERT_INDEX(index));
