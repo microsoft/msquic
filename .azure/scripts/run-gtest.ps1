@@ -104,6 +104,9 @@ if (!(Test-Path $Path)) {
 # Root directory of the project.
 $RootDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 
+# Script for controlling loggings.
+$LogScript = Join-Path $RootDir "scripts" "log.ps1"
+
 # Executable name.
 $TestExeName = Split-Path $Path -Leaf
 
@@ -239,7 +242,7 @@ function Start-TestCase([String]$Name) {
 
     if ($LogProfile -ne "None") {
         # Start the logs
-        .\log.ps1 -Start -LogProfile $LogProfile -InstanceName $InstanceName | Out-Null
+        & $LogScript -Start -LogProfile $LogProfile -InstanceName $InstanceName | Out-Null
     }
 
     # Build up the argument list.
@@ -268,7 +271,7 @@ function Start-AllTestCases {
 
     if ($LogProfile -ne "None") {
         # Start the logs
-        .\log.ps1 -Start -LogProfile $LogProfile -InstanceName $InstanceName | Out-Null
+        & $LogScript -Start -LogProfile $LogProfile -InstanceName $InstanceName | Out-Null
     }
 
     # Build up the argument list.
@@ -335,9 +338,9 @@ function Wait-TestCase($TestCase) {
 
         if ($LogProfile -ne "None") {
             if ($ConvertLogs) {
-                .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName -ConvertToText
+                & $LogScript -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName -ConvertToText
             } else {
-                .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName | Out-Null
+                & $LogScript -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName | Out-Null
             }
         }
 
@@ -359,7 +362,7 @@ function Wait-TestCase($TestCase) {
 
     } else {
         if ($LogProfile -ne "None") {
-            .\log.ps1 -Cancel -InstanceName $TestCase.InstanceName | Out-Null
+            & $LogScript -Cancel -InstanceName $TestCase.InstanceName | Out-Null
         }
         Remove-Item $TestCase.LogDir -Recurse -Force | Out-Null
     }
