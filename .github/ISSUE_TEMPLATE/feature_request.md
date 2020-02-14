@@ -1,12 +1,12 @@
 ---
 name: "\U00002B50 Submit a feature request"
-about: Request a feature or surface a problem that you think should be solved
+about: Request a feature that you think should be supported
 
 ---
 
-### Describe the feature or problem you’d like to solve
+### Describe the feature you'd like supported
 
-A clear and concise description of what the feature or problem is.
+A description of what the feature is.
 
 ### Proposed solution
 

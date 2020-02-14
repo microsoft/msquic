@@ -6,7 +6,7 @@ about: Report a bug or unexpected behavior
 
 ### Describe the bug
 
-A clear and concise description of what the bug is.
+A description of what the bug is.
 
 ### Steps to reproduce the behavior
 
@@ -16,4 +16,4 @@ A clear and concise description of what the bug is.
 
 ### Expected vs actual behavior
 
-A clear and concise description of what you expected to happen and what actually happened.
+A description of what you expected to happen and what actually happened.
