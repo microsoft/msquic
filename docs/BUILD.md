@@ -2,12 +2,12 @@
 
 MsQuic uses [CMake](https://cmake.org/) to generate build files.
 
-**Note** - clone the repo recursively or run `git submodule update --init --recursive`
+> **Note** - clone the repo recursively or run `git submodule update --init --recursive`
 to get all the submodules.
 
-# PowerShell (6 or 7) Requirement
+# PowerShell (6 or greater) Requirement
 
-MsQuic uses several cross platform PowerShell build scripts to simplify build and test operations. PowerShell 6 or (preferrably) 7 will need to be installed for them to work.
+MsQuic uses several cross platform PowerShell build scripts to simplify build and test operations. PowerShell 6 or greater will need to be installed for them to work.
 
 ## Install on Windows
 
@@ -66,7 +66,7 @@ sudo dpkg -i libssl1.0.0_1.0.2g-1ubuntu4.15_amd64.deb
 For the very first time you build, it's recommend to make sure you have all the dependencies installed. You can ensure this by running:
 
 ```PowerShell
-./build.ps1 -InstallDependencies
+./scripts/build.ps1 -InstallDependencies
 ```
 
 ### Additional Requirements on Windows
@@ -78,7 +78,7 @@ For the very first time you build, it's recommend to make sure you have all the 
 To actually build the code, you just need to run:
 
 ```PowerShell
-./build.ps1
+./scripts/build.ps1
 ```
 
 The script has a lot of additional configuration options, but the default should be fine for most.
@@ -92,18 +92,10 @@ The script has a lot of additional configuration options, but the default should
 There is a one time registry setup required before the tests can be run when using
 SChannel TLS. These registry keys allow QUIC to use TLS 1.3
 ```cmd
-reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server" /v DisabledByDefault /t REG_DWORD /d 1 /f
 reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server" /v Enabled /t REG_DWORD /d 1 /f
-reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client" /v DisabledByDefault /t REG_DWORD /d 1 /f
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server" /v DisabledByDefault /t REG_DWORD /d 0 /f
 reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client" /v Enabled /t REG_DWORD /d 1 /f
-```
-
-### Additional Linux Configuration
-
-In order to collect core dumps during test execution, it's recommended to run the following before starting PowerShell:
-
-```
-ulimit -c unlimited
+reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client" /v DisabledByDefault /t REG_DWORD /d 0 /f
 ```
 
 ## Running the Tests
@@ -111,22 +103,22 @@ ulimit -c unlimited
 To run the tests, simply run:
 
 ```PowerShell
-./test.ps1
+./scripts/test.ps1
 ```
 
-By default this will run all tests in parallel. Running in parallel is much faster than in series, but it sometimes can cause additional test failures because of the increased (likely maximum) CPU load it creates. Additionally, while running in parallel, you cannot collect the logs.
+By default this will run all tests in series. To run in parallel, use the `-Parallel` switch. Running in parallel is much faster than in series, but it sometimes can cause additional test failures because of the increased (likely maximum) CPU load it creates. Additionally, while running in parallel, you cannot collect the logs.
 
 So, for a reliable run, that also includes logs for failed tests, run:
 
 ```PowerShell
-./test.ps1 -Serial -LogProfile Full.Light
+./scripts/test.ps1 -LogProfile Full.Light
 ```
 
 If there are any failed tests, this will generate a directory for each failed test that incldues the console output from running the test and any logs collected.
 
 **Example Output**
 ```
-PS G:\msquic> .\test.ps1 -Serial -LogProfile Full.Light
+PS G:\msquic> ./scripts/test.ps1 -LogProfile Full.Light
 [01/21/2020 07:20:29] Executing 967 tests in series...
 [01/21/2020 07:46:42] 963 test(s) passed.
 [01/21/2020 07:46:42] 4 test(s) failed:
