@@ -1,6 +1,6 @@
 ---
 name: "\U00002B50 Submit a feature request"
-about: Request a feature or surface problem that you think should be solved
+about: Request a feature or surface a problem that you think should be solved
 
 ---
 
