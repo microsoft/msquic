@@ -19,6 +19,11 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+# Verify the PAT environmental variable is set.
+if ($null -eq $Env:AzDO_PAT -or "" -eq $Env:AzDO_PAT) {
+    Write-Error "PAT for Azure DevOps Repo doesn't exist!"
+}
+
 # Make sure we're in the correct branch.
 git checkout $Branch
 
