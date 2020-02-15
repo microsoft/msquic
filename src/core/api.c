@@ -638,11 +638,6 @@ MsQuicStreamShutdown(
         (Connection->WorkerThreadID == QuicCurThreadID()) ||
         !Connection->State.HandleClosed);
 
-    if (!Stream->Flags.Started) {
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Error;
-    }
-
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -717,11 +712,6 @@ MsQuicStreamSend(
     QUIC_CONN_VERIFY(Connection,
         (Connection->WorkerThreadID == QuicCurThreadID()) ||
         !Connection->State.HandleClosed);
-
-    if (!Stream->Flags.Started) {
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Exit;
-    }
 
     TotalLength = 0;
     for (uint32_t i = 0; i < BufferCount; ++i) {

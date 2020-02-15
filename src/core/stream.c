@@ -197,6 +197,15 @@ QuicStreamStart(
         Stream->OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_APP;
     }
 
+    if (Stream->SendFlags != 0) {
+        //
+        // Send flags were queued up before starting so we need to queue the
+        // stream data to be sent out now.
+        //
+        QuicSendQueueFlushForStream(
+            &Stream->Connection->Send, Stream, FALSE);
+    }
+
     Stream->Flags.SendOpen = !!(Flags & QUIC_STREAM_START_FLAG_IMMEDIATE);
     if (Stream->Flags.SendOpen) {
         QuicSendSetStreamSendFlag(
@@ -234,20 +243,18 @@ QuicStreamClose(
     _In_ __drv_freesMem(Mem) QUIC_STREAM* Stream
     )
 {
-    if (!Stream->Flags.Started) {
+    if (!Stream->Flags.ShutdownComplete) {
 
-        Stream->Flags.ShutdownComplete = TRUE;
-
-    } else if (!Stream->Flags.ShutdownComplete) {
-
-        //
-        // TODO - If the stream hasn't been aborted already, then this is a
-        // fatal error for the connection. The QUIC transport cannot "just pick
-        // an error" to shutdown the stream with. It must abort the entire
-        // connection.
-        //
-
-        QuicTraceLogStreamWarning(CloseWithoutShutdown, Stream, "Closing handle without fully shutting down.");
+        QUIC_CONN_VERIFY(Stream->Connection, !Stream->Flags.Started);
+        if (Stream->Flags.Started) {
+            //
+            // TODO - If the stream hasn't been aborted already, then this is a
+            // fatal error for the connection. The QUIC transport cannot "just
+            // pick an error" to shutdown the stream with. It must abort the
+            // entire connection.
+            //
+            QuicTraceLogStreamWarning(CloseWithoutShutdown, Stream, "Closing handle without fully shutting down.");
+        }
 
         //
         // Abort any pending operations.

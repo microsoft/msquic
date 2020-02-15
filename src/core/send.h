@@ -297,6 +297,17 @@ QuicSendQueueFlush(
     );
 
 //
+// Queues a FLUSH_SEND operation for stream data.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicSendQueueFlushForStream(
+    _In_ QUIC_SEND* Send,
+    _In_ QUIC_STREAM* Stream,
+    _In_ BOOLEAN WasPreviouslyQueued
+    );
+
+//
 // Tries to drain all queued data that needs to be sent. Returns TRUE if all the
 // data was drained.
 //
