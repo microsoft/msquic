@@ -1038,30 +1038,29 @@ QuicBindingShouldRetryConnection(
 {
     //
     // The function is only called once QuicBindingShouldCreateConnection has
-    // already returned TRUE. It checks to see if the binding currently has too
-    // many connections in the handshake state already. If so, it requests the
-    // client to retry its connection attempt to prove source address ownership.
+    // already returned TRUE. If there is a token, it validates the token. If
+    // there is no token, then the function checks to see if the binding
+    // currently has too many connections in the handshake state already. If so,
+    // it requests the client to retry its connection attempt to prove source
+    // address ownership.
     //
+
+    if (TokenLength != 0) {
+        //
+        // Must always validate the token when provided by the client.
+        //
+        if (!QuicBindingProcessRetryToken(Binding, Packet, TokenLength, Token)) {
+            *DropPacket = TRUE;
+        } else {
+            Packet->ValidToken = TRUE;
+        }
+        return FALSE;
+    }
 
     uint64_t CurrentMemoryLimit =
         (MsQuicLib.Settings.RetryMemoryLimit * QuicTotalMemory) / UINT16_MAX;
 
-    if (MsQuicLib.CurrentHandshakeMemoryUsage < CurrentMemoryLimit) {
-        return FALSE;
-    }
-
-    if (TokenLength == 0) {
-        return TRUE;
-    }
-
-    if (!QuicBindingProcessRetryToken(Binding, Packet, TokenLength, Token)) {
-        *DropPacket = TRUE;
-        return FALSE;
-    }
-
-    Packet->ValidToken = TRUE;
-
-    return FALSE;
+    return MsQuicLib.CurrentHandshakeMemoryUsage > CurrentMemoryLimit;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
