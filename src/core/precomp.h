@@ -5,6 +5,8 @@
 
 --*/
 
+#pragma warning(disable:4100)  // unreferenced formal parameter
+#pragma warning(disable:4189)  // local variable is initialized but not referenced
 #pragma warning(disable:4200)  // nonstandard extension used: bit field types other than int
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
 #pragma warning(disable:4204)  // nonstandard extension used: non-constant aggregate initializer
