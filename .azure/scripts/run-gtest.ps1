@@ -14,12 +14,12 @@ as necessary.
 .PARAMETER ListTestCases
     Lists all the test cases.
 
-.PARAMETER Batch
-    Runs the test cases in a single batch execution.
+.PARAMETER Serial
+    Serially runs the test cases in individual executions of msquictest.
 
 .PARAMETER Parallel
-    Runs the test cases in parallel instead of serially. Log collection not
-    currently supported.
+    Runs the test cases in parallel and individual executions of msquictest.
+    Log collection not currently supported.
 
 .PARAMETER KeepOutputOnSuccess
     Don't discard console output or logs on success.
@@ -58,7 +58,7 @@ param (
     [switch]$ListTestCases = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Batch = $false,
+    [switch]$Serial = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$Parallel = $false,
@@ -317,7 +317,7 @@ function Wait-TestCase($TestCase) {
     $TestCase.Process.WaitForExit()
 
     # Add the current test case results.
-    if (!$Batch) {
+    if ($Serial -or $Parallel) {
         Add-XmlResults $TestCase
     }
 
@@ -325,7 +325,7 @@ function Wait-TestCase($TestCase) {
         $AnyProcessCrashes = $true;
     }
 
-    if ($Batch) {
+    if (!$Serial -and !$Parallel) {
         if ($null -ne $stdout -and "" -ne $stdout) {
             Write-Host $stdout
         }
@@ -427,10 +427,13 @@ if ($Debugger -and $Parallel) {
 }
 
 try {
-    if ($Batch) {
-        # Run the the test process once for all tests.
-        Log "Executing tests in batch..."
-        Wait-TestCase (Start-AllTestCases)
+    if ($Serial) {
+        # Run the test cases serially.
+        Log "Executing $($TestCases.Length) tests in series..."
+        for ($i = 0; $i -lt $TestCases.Length; $i++) {
+            Wait-TestCase (Start-TestCase $TestCases[$i])
+            Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+        }
 
     } elseif ($Parallel) {
         # Log collection doesn't work for parallel right now.
@@ -456,15 +459,17 @@ try {
         }
 
     } else {
-        # Run the test cases serially.
-        Log "Executing $($TestCases.Length) tests in series..."
-        for ($i = 0; $i -lt $TestCases.Length; $i++) {
-            Wait-TestCase (Start-TestCase $TestCases[$i])
-            Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
-        }
+        # Run the the test process once for all tests.
+        Log "Executing tests in batch..."
+        Wait-TestCase (Start-AllTestCases)
     }
 } finally {
-    if ($Batch) {
+    if ($Serial -or $Parallel) {
+        if ($GenerateXmlResults) {
+            # Save the xml results.
+            $XmlResults.Save($FinalResultsPath) | Out-Null
+        }
+    } else {
         if (Test-Path $FinalResultsPath) {
             $XmlResults = [xml](Get-Content $FinalResultsPath)
             if (!$GenerateXmlResults) {
@@ -481,11 +486,6 @@ try {
                 # Save the xml results.
                 $XmlResults.Save($FinalResultsPath) | Out-Null
             }
-        }
-    } else {
-        if ($GenerateXmlResults) {
-            # Save the xml results.
-            $XmlResults.Save($FinalResultsPath) | Out-Null
         }
     }
 

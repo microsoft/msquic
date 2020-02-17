@@ -13,16 +13,18 @@ This script provides helpers for running executing the MsQuic tests.
     The TLS library test.
 
 .PARAMETER Filter
-    A filter to include test cases from the list to execute. Multiple filters are separated by :. Negative filters are prefixed with -.
+    A filter to include test cases from the list to execute. Multiple filters
+    are separated by :. Negative filters are prefixed with -.
 
 .PARAMETER ListTestCases
     Lists all the test cases.
 
-.PARAMETER Batch
-    Runs the test cases in a batch execution of msquictest.
+.PARAMETER Serial
+    Serially runs the test cases in individual executions of msquictest.
 
 .PARAMETER Parallel
-    Runs the test cases in parallel instead of serially. Log collection not currently supported.
+    Runs the test cases in parallel and individual executions of msquictest.
+    Log collection not currently supported.
 
 .PARAMETER KeepOutputOnSuccess
     Don't discard console output or logs on success.
@@ -88,7 +90,7 @@ param (
     [switch]$ListTestCases = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Batch = $false,
+    [switch]$Serial = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$Parallel = $false,
@@ -144,8 +146,8 @@ if ("" -ne $Filter) {
 if ($ListTestCases) {
     $Arguments += " -ListTestCases"
 }
-if ($Batch) {
-    $Arguments += " -Batch"
+if ($Serial) {
+    $Arguments += " -Serial"
 }
 if ($Parallel) {
     $Arguments += " -Parallel"
