@@ -3831,7 +3831,7 @@ QuicConnRecvDatagrams(
     QUIC_RECV_DATAGRAM* ReleaseChain = NULL;
     QUIC_RECV_DATAGRAM** ReleaseChainTail = &ReleaseChain;
     uint32_t ReleaseChainCount = 0;
-    QUIC_RECEIVE_PROCESSING_STATE RecvState = { FALSE, FALSE };
+    QUIC_RECEIVE_PROCESSING_STATE RecvState = { FALSE, FALSE, 0 };
     RecvState.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
 
     UNREFERENCED_PARAMETER(DatagramChainCount);
