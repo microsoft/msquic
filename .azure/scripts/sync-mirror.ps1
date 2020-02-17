@@ -35,8 +35,9 @@ git reset --hard origin/$Branch
 
 # Push to the AzDO repo.
 $Result = (git push azdo-mirror $Branch)
-if (($Result -as [String]).Contains("HEAD is now at")) {
+if (($Result -as [String]).Contains("To https://mscodehub.visualstudio.com/msquic/_git/msquic")) {
     Write-Host "Successfully mirrored latest changes to https://mscodehub.visualstudio.com/msquic/_git/msquic"
 } else {
-    Write-Error $Result
+    Write-Error "ERROR:`n$($Result)"
+    exit
 }
