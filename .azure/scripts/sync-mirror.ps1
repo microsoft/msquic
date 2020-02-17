@@ -33,6 +33,10 @@ git remote add azdo-mirror "https://nibanks:$Env:AzDO_PAT@mscodehub.visualstudio
 git reset --hard origin/$Branch
 
 # Push to the AzDO repo.
-git push azdo-mirror $Branch
+try {
+    git push azdo-mirror $Branch
+} catch {
+    Write-Host "Supressing exception while running 'git push'"
+}
 
 Write-Host "Successfully mirrored latest changes"
