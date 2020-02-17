@@ -144,7 +144,7 @@ QuicSendQueueFlushForStream(
         QuicStreamAddRef(Stream, QUIC_STREAM_REF_SEND);
     }
 
-    if (Connection->State.Started) {
+    if (Stream->Connection->State.Started) {
         //
         // Schedule the flush even if we didn't just queue the stream,
         // because it may have been previously blocked.
