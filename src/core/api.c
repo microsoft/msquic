@@ -367,6 +367,7 @@ MsQuicStreamOpen(
     Status =
         QuicStreamInitialize(
             Connection,
+            FALSE,
             !!(Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL),
             !!(Flags & QUIC_STREAM_OPEN_FLAG_0_RTT),
             (QUIC_STREAM**)NewStream);
@@ -507,13 +508,11 @@ MsQuicStreamStart(
         goto Exit;
     }
 
-    Flags &= ~QUIC_STREAM_START_FLAG_REMOTE; // Don't allow API client to set remote flag.
-
     if (Connection->WorkerThreadID == QuicCurThreadID()) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
-        Status = QuicStreamStart(Stream, Flags);
+        Status = QuicStreamStart(Stream, Flags, FALSE);
 
     } else if (Flags & QUIC_STREAM_START_FLAG_ASYNC) {
 

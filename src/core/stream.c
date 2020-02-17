@@ -20,6 +20,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicStreamInitialize(
     _In_ QUIC_CONNECTION* Connection,
+    _In_ BOOLEAN OpenedRemotely,
     _In_ BOOLEAN Unidirectional,
     _In_ BOOLEAN Opened0Rtt,
     _Outptr_ _At_(*NewStream, __drv_allocatesMem(Mem))
@@ -52,6 +53,32 @@ QuicStreamInitialize(
 #if QUIC_TEST_MODE
     Stream->RefTypeCount[QUIC_STREAM_REF_APP] = 1;
 #endif
+
+    if (Unidirectional) {
+        if (!OpenedRemotely) {
+
+            //
+            // This is 'our' unidirectional stream, so that means just the send
+            // path is used.
+            //
+
+            Stream->Flags.RemoteNotAllowed = TRUE;
+            Stream->Flags.RemoteCloseAcked = TRUE;
+            Stream->Flags.ReceiveEnabled = FALSE;
+
+        } else {
+
+            //
+            // This is 'their' unidirectional stream, so that means just the recv
+            // path is used.
+            //
+
+            Stream->Flags.LocalNotAllowed = TRUE;
+            Stream->Flags.LocalCloseAcked = TRUE;
+            Stream->Flags.SendEnabled = FALSE;
+            Stream->Flags.HandleSendShutdown = TRUE;
+        }
+    }
 
     Status =
         QuicRangeInitialize(
@@ -126,7 +153,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamStart(
     _In_ QUIC_STREAM* Stream,
-    _In_ QUIC_STREAM_START_FLAGS Flags
+    _In_ QUIC_STREAM_START_FLAGS Flags,
+    _In_ BOOLEAN IsRemoteStream
     )
 {
     QUIC_STATUS Status;
@@ -137,7 +165,7 @@ QuicStreamStart(
         goto Exit;
     }
 
-    if (!(Flags & QUIC_STREAM_START_FLAG_REMOTE)) {
+    if (!IsRemoteStream) {
         uint8_t Type =
             QuicConnIsServer(Stream->Connection) ?
                 STREAM_ID_FLAG_IS_SERVER :
@@ -161,35 +189,8 @@ QuicStreamStart(
     }
 
     Stream->Flags.Started = TRUE;
-    QuicTraceEvent(StreamCreated, Stream, Stream->Connection, Stream->ID,
-        (!QuicConnIsServer(Stream->Connection) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
 
-    if (Stream->Flags.Unidirectional) {
-        if (!(Flags & QUIC_STREAM_START_FLAG_REMOTE)) {
-
-            //
-            // This is 'our' unidirectional stream, so that means just the send
-            // path is used.
-            //
-
-            Stream->Flags.RemoteNotAllowed = TRUE;
-            Stream->Flags.RemoteCloseAcked = TRUE;
-            Stream->Flags.ReceiveEnabled = FALSE;
-
-        } else {
-
-            //
-            // This is 'their' unidirectional stream, so that means just the recv
-            // path is used.
-            //
-
-            Stream->Flags.LocalNotAllowed = TRUE;
-            Stream->Flags.LocalCloseAcked = TRUE;
-            Stream->Flags.SendEnabled = FALSE;
-            Stream->Flags.HandleSendShutdown = TRUE;
-        }
-    }
-
+    QuicTraceEvent(StreamCreated, Stream, Stream->Connection, Stream->ID, !IsRemoteStream);
     QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
     QuicTraceEvent(StreamRecvState, Stream, QuicStreamRecvGetState(Stream));
 
@@ -230,7 +231,7 @@ QuicStreamStart(
 
 Exit:
 
-    if (!(Flags & QUIC_STREAM_START_FLAG_REMOTE)) {
+    if (!IsRemoteStream) {
         QuicStreamIndicateStartComplete(Stream, Status);
     }
 

@@ -364,7 +364,7 @@ QuicSendClearStreamSendFlag(
         //
         Stream->SendFlags &= ~SendFlags;
 
-        if (Stream->SendFlags == 0) {
+        if (Stream->SendFlags == 0 && Stream->Flags.Started) {
             //
             // Since there are no flags left, remove the stream from the queue.
             //

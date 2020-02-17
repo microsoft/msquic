@@ -5060,7 +5060,8 @@ QuicConnProcessApiOperation(
         Status =
             QuicStreamStart(
                 ApiCtx->STRM_START.Stream,
-                ApiCtx->STRM_START.Flags);
+                ApiCtx->STRM_START.Flags,
+                FALSE);
         break;
 
     case QUIC_API_TYPE_STRM_SEND:
