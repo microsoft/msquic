@@ -265,6 +265,15 @@ QuicStreamClose(
                 QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE |
                 QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE,
             QUIC_ERROR_NO_ERROR);
+
+            if (!Stream->Flags.Started) {
+                //
+                // The stream was abandoned before it could be successfully
+                // started. Just mark it as completing the shutdown process now
+                // since nothing else can be done with it now.
+                //
+                Stream->Flags.ShutdownComplete = TRUE;
+            }
     }
 
     Stream->Flags.HandleClosed = TRUE;
