@@ -295,7 +295,7 @@ typedef struct QUIC_CONNECTION {
     //
     // The current worker thread ID. 0 if not being processed right now.
     //
-    uint32_t WorkerThreadID;
+    QUIC_THREAD_ID WorkerThreadID;
 
     //
     // The set of ignore flags for server certificate validation to pass to TLS.
@@ -671,6 +671,7 @@ QuicConnLogOutFlowStats(
         Connection->SendBuffer.PostedBytes);
 #else
     const QUIC_PATH* Path = &Connection->Paths[0];
+    UNREFERENCED_PARAMETER(Path);
     QuicTraceEvent(
         ConnOutFlowStats,
         Connection,
@@ -694,6 +695,7 @@ QuicConnLogInFlowStats(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
+    UNREFERENCED_PARAMETER(Connection);
     QuicTraceEvent(
         ConnInFlowStats,
         Connection,
@@ -721,6 +723,7 @@ QuicConnLogStatistics(
         Connection->Stats.Recv.DecryptionFailures);
 #else
     const QUIC_PATH* Path = &Connection->Paths[0];
+    UNREFERENCED_PARAMETER(Path);
     QuicTraceEvent(
         ConnStatistics,
         Connection,

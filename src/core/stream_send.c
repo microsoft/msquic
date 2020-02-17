@@ -673,7 +673,7 @@ QuicStreamWriteOneFrame(
     _Inout_ QUIC_SENT_PACKET_METADATA* PacketMetadata
     )
 {
-    QUIC_STREAM_EX Frame = { FALSE, ExplicitDataLength, Stream->ID, Offset, 0 };
+    QUIC_STREAM_EX Frame = { FALSE, ExplicitDataLength, Stream->ID, Offset, 0, NULL };
     uint16_t HeaderLength = 0;
     uint16_t SendLength;
 

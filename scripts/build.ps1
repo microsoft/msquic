@@ -10,7 +10,10 @@ This script provides helpers for building msquic.
     Installs any necessary Azure Pipelines dependencies.
 
 .PARAMETER Config
-    The debug or release build configuration to use.
+    The debug or release configurationto build for.
+
+.PARAMETER Arch
+    The CPU architecture to build for.
 
 .PARAMETER Tls
     The TLS library to use.
@@ -56,8 +59,12 @@ param (
     [string]$Config = "Debug",
 
     [Parameter(Mandatory = $false)]
+    [ValidateSet("x86", "x64", "arm", "arm64")]
+    [string]$Arch = "x64",
+
+    [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
-    [string]$Tls = "",
+    [string]$Tls = "schannel",
 
     [Parameter(Mandatory = $false)]
     [switch]$DisableLogs = $false,
@@ -81,10 +88,13 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+# Root directory of the project.
+$RootDir = Split-Path $PSScriptRoot -Parent
+
 # Important directory paths.
-$BaseArtifactsDir = Join-Path $PSScriptRoot "artifacts"
-$BaseBuildDir = Join-Path $PSScriptRoot "bld"
-$SrcDir = Join-Path $PSScriptRoot "src"
+$BaseArtifactsDir = Join-Path $RootDir "artifacts"
+$BaseBuildDir = Join-Path $RootDir "bld"
+$SrcDir = Join-Path $RootDir "src"
 $ArtifactsDir = $null
 $BuildDir = $null
 if ($IsWindows) {
@@ -94,6 +104,8 @@ if ($IsWindows) {
     $ArtifactsDir = Join-Path $BaseArtifactsDir "linux"
     $BuildDir = Join-Path $BaseBuildDir "linux"
 }
+$ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)"
+$BuildDir = Join-Path $BuildDir "$($Arch)_$($Tls)"
 
 if ($Clean) {
     # Delete old build/config directories.
@@ -103,44 +115,18 @@ if ($Clean) {
 
 # Initialize directories needed for building.
 if (!(Test-Path $BaseArtifactsDir)) {
-    mkdir $BaseArtifactsDir | Out-Null
-    # Build up the artifacts (upload) ignore file.
-    ".artifactignore`n*.ilk`n*-results.xml" > (Join-Path $BaseArtifactsDir ".artifactignore")
+    New-Item -Path $BaseArtifactsDir -ItemType Directory -Force | Out-Null
 }
-if (!(Test-Path $BaseBuildDir)) { mkdir $BaseBuildDir | Out-Null }
-if (!(Test-Path $BuildDir)) { mkdir $BuildDir | Out-Null }
+if (!(Test-Path $BuildDir)) { New-Item -Path $BuildDir -ItemType Directory -Force | Out-Null }
 
 function Log($msg) {
     Write-Host "[$(Get-Date)] $msg"
 }
 
-# Installs procdump if not already. Windows specific.
-function Install-ProcDump {
-    if (!(Test-Path bld)) { mkdir bld | Out-Null }
-    if (!(Test-Path bld\windows)) { mkdir bld\windows | Out-Null }
-    if (!(Test-Path .\bld\windows\procdump)) {
-        Log "Installing procdump..."
-        # Download the zip file.
-        Invoke-WebRequest -Uri https://download.sysinternals.com/files/Procdump.zip -OutFile bld\windows\procdump.zip
-        # Extract the zip file.
-        Expand-Archive -Path bld\windows\procdump.zip .\bld\windows\procdump
-        # Delete the zip file.
-        Remove-Item -Path bld\windows\procdump.zip
-    }
-}
-
 # Installs just the Azure Pipelines dependencies.
 function Install-Azure-Dependencies {
     if ($IsWindows) {
-        # Enable SChannel TLS 1.3 (client and server).
-        $TlsServerKeyPath = "HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server"
-        # reg.exe add $TlsServerKeyPath /v DisabledByDefault /t REG_DWORD /d 1 /f | Out-Null
-        reg.exe add $TlsServerKeyPath /v Enabled /t REG_DWORD /d 1 /f | Out-Null
-        $TlsClientKeyPath = "HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client"
-        # reg.exe add $TlsClientKeyPath /v DisabledByDefault /t REG_DWORD /d 1 /f | Out-Null
-        reg.exe add $TlsClientKeyPath /v Enabled /t REG_DWORD /d 1 /f | Out-Null
-        # Make sure procdump is installed
-        Install-ProcDump
+        # TODO - Anything else?
     } else {
         sudo apt-get install liblttng-ust-dev
         sudo apt-get install lttng-tools
@@ -158,8 +144,9 @@ function Install-Dependencies {
     Install-Azure-Dependencies
 }
 
-# Executes msquictext with the given arguments.
+# Executes cmake with the given arguments.
 function CMake-Execute([String]$Arguments) {
+    Log "cmake $($Arguments)"
     $process = Start-Process cmake $Arguments -PassThru -NoNewWindow -WorkingDirectory $BuildDir
     $handle = $process.Handle # Magic work around. Don't remove this line.
     $process.WaitForExit();
@@ -173,17 +160,18 @@ function CMake-Execute([String]$Arguments) {
 function CMake-Generate {
     $Arguments = "-g"
     if ($IsWindows) {
-        $Arguments += " 'Visual Studio 16 2019' -A x64"
+        $Arguments += " 'Visual Studio 16 2019' -A "
+        switch ($Arch) {
+            "x86"   { $Arguments += "Win32" }
+            "x64"   { $Arguments += "x64" }
+            "arm"   { $Arguments += "arm" }
+            "arm64" { $Arguments += "arm64" }
+        }
     } else {
         $Arguments += " 'Linux Makefiles'"
     }
-    switch ($Tls) {
-        "schannel" { $Arguments += " -DQUIC_TLS=schannel" }
-        "openssl"  { $Arguments += " -DQUIC_TLS=openssl" }
-        "stub"     { $Arguments += " -DQUIC_TLS=stub" }
-        "mitls"    { $Arguments += " -DQUIC_TLS=mitls" }
-        ""         { }
-    }
+    $Arguments += " -DQUIC_ARCH=" + $Arch
+    $Arguments += " -DQUIC_TLS=" + $Tls
     if ($DisableLogs) {
         $Arguments += " -DQUIC_ENABLE_LOGGING=off"
     }
@@ -196,7 +184,10 @@ function CMake-Generate {
     if ($DisableTest) {
         $Arguments += " -DQUIC_BUILD_TEST=off"
     }
-    $Arguments += " ../.."
+    if ($IsLinux) {
+        $Arguments += " -DCMAKE_BUILD_TYPE=" + $Config
+    }
+    $Arguments += " ../../.."
 
     CMake-Execute $Arguments
 }
@@ -204,12 +195,16 @@ function CMake-Generate {
 # Uses cmake to generate the build configuration files.
 function CMake-Build {
     $Arguments = "--build ."
-    switch ($Config) {
-        "Debug"    { $Arguments += " --config DEBUG" }
-        "Release"  { $Arguments += " --config RELEASE" }
+    if ($IsWindows) {
+        $Arguments += " --config " + $Config
     }
 
     CMake-Execute $Arguments
+
+    if ($Tls -eq "openssl") {
+        $OpensslDir = Join-Path $BuildDir "openssl" "lib" "*"
+        Copy-Item $OpensslDir -Destination $ArtifactsDir -Recurse
+    }
 }
 
 # Installs all the build output.

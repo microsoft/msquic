@@ -47,6 +47,24 @@ Environment:
 #include <wbasek.h>
 #include <secint.h>
 #include <winerror.h>
+
+typedef enum _SEC_APPLICATION_PROTOCOL_NEGOTIATION_STATUS
+{
+    SecApplicationProtocolNegotiationStatus_None,
+    SecApplicationProtocolNegotiationStatus_Success,
+    SecApplicationProtocolNegotiationStatus_SelectedClientOnly
+} SEC_APPLICATION_PROTOCOL_NEGOTIATION_STATUS, *PSEC_APPLICATION_PROTOCOL_NEGOTIATION_STATUS;
+
+#define MAX_PROTOCOL_ID_SIZE 0xff
+
+typedef struct _SecPkgContext_ApplicationProtocol
+{
+    SEC_APPLICATION_PROTOCOL_NEGOTIATION_STATUS ProtoNegoStatus; // Application  protocol negotiation status
+    SEC_APPLICATION_PROTOCOL_NEGOTIATION_EXT ProtoNegoExt;       // Protocol negotiation extension type corresponding to this protocol ID
+    unsigned char ProtocolIdSize;                                // Size in bytes of the application protocol ID
+    unsigned char ProtocolId[MAX_PROTOCOL_ID_SIZE];              // Byte string representing the negotiated application protocol ID
+} SecPkgContext_ApplicationProtocol, *PSecPkgContext_ApplicationProtocol;
+
 #endif
 
 #define SCHANNEL_USE_BLACKLISTS

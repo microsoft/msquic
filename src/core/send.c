@@ -560,7 +560,7 @@ QuicSendWriteFrames(
 
         if ((Send->SendFlags & QUIC_CONN_SEND_FLAG_MAX_STREAMS_BIDI)) {
 
-            QUIC_MAX_STREAMS_EX Frame = { TRUE };
+            QUIC_MAX_STREAMS_EX Frame = { TRUE, 0 };
             Frame.MaximumStreams =
                 QuicConnIsServer(Connection) ?
                     Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount :
@@ -627,7 +627,8 @@ QuicSendWriteFrames(
                 QUIC_NEW_CONNECTION_ID_EX Frame = {
                     SourceCid->CID.Length,
                     SourceCid->CID.SequenceNumber,
-                    0 };
+                    0,
+                    { 0 } };
                 QUIC_DBG_ASSERT(Connection->SourceCidLimit > 1);
                 if (Frame.Sequence >= Connection->SourceCidLimit) {
                     Frame.RetirePriorTo = Frame.Sequence + 1 - Connection->SourceCidLimit;

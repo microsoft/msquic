@@ -36,19 +36,18 @@ Environment:
 #pragma warning(disable:28252)
 #pragma warning(disable:28253)
 #pragma warning(disable:28309)
+#include <ntifs.h>
 #include <ntverp.h>
-#include <ntosp.h>
 #include <ntstrsafe.h>
 #include <WppRecorder.h>
 #include <wdf.h>
 #include <netioapi.h>
 #include <wsk.h>
-#include <rtlrefcount.h>
 #include <bcrypt.h>
-#include <wsnetiop.h>
-#include <ndiscomp.h>
 #include <intrin.h>
+#ifdef QUIC_TELEMETRY_ASSERTS
 #include <telemetry\MicrosoftTelemetryAssertKM.h>
+#endif
 #include <msquic_winkernel.h>
 #pragma warning(pop)
 
@@ -211,10 +210,17 @@ QuicPlatformLogAssert(
 #define QUIC_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
      (QUIC_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
 #else
+#ifdef MICROSOFT_TELEMETRY_ASSERT
 #define QUIC_TEL_ASSERT(_exp)          (QUIC_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_KM(_exp))
 #define QUIC_TEL_ASSERTMSG(_exp, _msg) (QUIC_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_MSG_KM(_exp, _msg))
 #define QUIC_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
     (QUIC_ANALYSIS_ASSUME(_exp), MICROSOFT_TELEMETRY_ASSERT_MSG_WITH_ARGS_KM(_exp, _msg, _origin, _bucketArg1, _bucketArg2))
+#else
+#define QUIC_TEL_ASSERT(_exp)          (QUIC_ANALYSIS_ASSUME(_exp), 0)
+#define QUIC_TEL_ASSERTMSG(_exp, _msg) (QUIC_ANALYSIS_ASSUME(_exp), 0)
+#define QUIC_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
+    (QUIC_ANALYSIS_ASSUME(_exp), 0)
+#endif
 #endif
 
 #define QUIC_FRE_ASSERT(_exp)          (QUIC_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
@@ -281,6 +287,51 @@ typedef LOOKASIDE_LIST_EX QUIC_POOL;
 // Locking Interfaces
 //
 
+//
+// The following declares several currently unpublished shared locking
+// functions from Windows.
+//
+
+__drv_maxIRQL(APC_LEVEL)
+__drv_mustHoldCriticalRegion
+NTKERNELAPI
+VOID
+FASTCALL
+ExfAcquirePushLockExclusive(
+    __inout __deref __drv_acquiresExclusiveResource(ExPushLockType)
+    PEX_PUSH_LOCK PushLock
+    );
+
+__drv_maxIRQL(APC_LEVEL)
+__drv_mustHoldCriticalRegion
+NTKERNELAPI
+VOID
+FASTCALL
+ExfAcquirePushLockShared(
+    __inout __deref __drv_acquiresExclusiveResource(ExPushLockType)
+    PEX_PUSH_LOCK PushLock
+    );
+
+__drv_maxIRQL(DISPATCH_LEVEL)
+__drv_mustHoldCriticalRegion
+NTKERNELAPI
+VOID
+FASTCALL
+ExfReleasePushLockExclusive(
+    __inout __deref __drv_releasesExclusiveResource(ExPushLockType)
+    PEX_PUSH_LOCK PushLock
+    );
+
+__drv_maxIRQL(DISPATCH_LEVEL)
+__drv_mustHoldCriticalRegion
+NTKERNELAPI
+VOID
+FASTCALL
+ExfReleasePushLockShared(
+    __inout __deref __drv_releasesExclusiveResource(ExPushLockType)
+    PEX_PUSH_LOCK PushLock
+    );
+
 typedef EX_PUSH_LOCK QUIC_LOCK;
 
 #define QuicLockInitialize(Lock) ExInitializePushLock(Lock)
@@ -327,13 +378,119 @@ typedef struct QUIC_DISPATCH_RW_LOCK {
 // Reference Count Interface
 //
 
-typedef RTL_REFERENCE_COUNT QUIC_REF_COUNT;
+#if defined(_X86_) || defined(_AMD64_)
+#define QuicBarrierAfterInterlock()
+#elif defined(_ARM64_)
+#define QuicBarrierAfterInterlock()  __dmb(_ARM64_BARRIER_ISH)
+#elif defined(_ARM_)
+#define QuicBarrierAfterInterlock()  __dmb(_ARM_BARRIER_ISH)
+#else
+#error Unsupported architecture.
+#endif
 
-#define QuicRefInitialize(RefCount) RtlInitializeReferenceCount(RefCount)
+#if defined (_WIN64)
+#define QuicIncrementLongPtrNoFence InterlockedIncrementNoFence64
+#define QuicDecrementLongPtrRelease InterlockedDecrementRelease64
+#define QuicCompareExchangeLongPtrNoFence InterlockedCompareExchangeNoFence64
+#define QuicReadLongPtrNoFence ReadNoFence64
+#else
+#define QuicIncrementLongPtrNoFence InterlockedIncrementNoFence
+#define QuicDecrementLongPtrRelease InterlockedDecrementRelease
+#define QuicCompareExchangeLongPtrNoFence InterlockedCompareExchangeNoFence
+#define QuicReadLongPtrNoFence ReadNoFence
+#endif
+
+typedef LONG_PTR QUIC_REF_COUNT;
+
+inline
+void
+QuicRefInitialize(
+    _Out_ QUIC_REF_COUNT* RefCount
+    )
+{
+    *RefCount = 1;
+}
+
 #define QuicRefUninitialize(RefCount)
-#define QuicRefIncrement(RefCount) RtlIncrementReferenceCount(RefCount)
-#define QuicRefIncrementNonZero(RefCount) RtlIncrementReferenceCountNonZero(RefCount, 1)
-#define QuicRefDecrement(RefCount) RtlDecrementReferenceCount(RefCount)
+
+inline
+void
+QuicRefIncrement(
+    _Inout_ QUIC_REF_COUNT* RefCount
+    )
+{
+    if (QuicIncrementLongPtrNoFence(RefCount) > 1) {
+        return;
+    }
+
+    __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
+}
+
+inline
+BOOLEAN
+QuicRefIncrementNonZero(
+    _Inout_ volatile QUIC_REF_COUNT *RefCount,
+    _In_ ULONG Bias
+    )
+{
+    QUIC_REF_COUNT NewValue;
+    QUIC_REF_COUNT OldValue;
+
+    PrefetchForWrite(RefCount);
+    OldValue = QuicReadLongPtrNoFence(RefCount);
+    for (;;) {
+        NewValue = OldValue + Bias;
+        if ((ULONG_PTR)NewValue > Bias) {
+            NewValue = QuicCompareExchangeLongPtrNoFence(RefCount,
+                                                         NewValue,
+                                                         OldValue);
+            if (NewValue == OldValue) {
+                return TRUE;
+            }
+
+            OldValue = NewValue;
+
+        } else if ((ULONG_PTR)NewValue == Bias) {
+            return FALSE;
+
+        } else {
+            __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
+            return FALSE;
+        }
+    }
+}
+
+inline
+BOOLEAN
+QuicRefDecrement(
+    _Inout_ QUIC_REF_COUNT* RefCount
+    )
+{
+    QUIC_REF_COUNT NewValue;
+
+    //
+    // A release fence is required to ensure all guarded memory accesses are
+    // complete before any thread can begin destroying the object.
+    //
+
+    NewValue = QuicDecrementLongPtrRelease(RefCount);
+    if (NewValue > 0) {
+        return FALSE;
+
+    } else if (NewValue == 0) {
+
+        //
+        // An acquire fence is required before object destruction to ensure
+        // that the destructor cannot observe values changing on other threads.
+        //
+
+        QuicBarrierAfterInterlock();
+        return TRUE;
+    }
+
+    __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
+    return FALSE;
+}
 
 //
 // Event Interfaces
@@ -653,7 +810,7 @@ QuicThreadCreate(
     }
     if (Config->Flags & QUIC_THREAD_FLAG_HIGH_PRIORITY) {
         KeSetBasePriorityThread(
-            PsGetKernelThread(*Thread),
+            (PKTHREAD)(*Thread),
             IO_NETWORK_INCREMENT + 1);
     }
     if (Config->Name) {
@@ -668,6 +825,7 @@ QuicThreadCreate(
                 (ULONG)strnlen(Config->Name, 64));
         QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
         UnicodeName.Length = (USHORT)UnicodeNameLength;
+#define ThreadNameInformation ((THREADINFOCLASS)38)
         Status =
             ZwSetInformationThread(
                 ThreadHandle,
@@ -696,7 +854,8 @@ Error:
         KernelMode, \
         FALSE, \
         NULL)
-#define QuicCurThreadID() ((uint32_t)PsGetCurrentThreadId())
+typedef ULONG_PTR QUIC_THREAD_ID;
+#define QuicCurThreadID() ((QUIC_THREAD_ID)PsGetCurrentThreadId())
 
 //
 // Processor Count and Index
@@ -755,9 +914,20 @@ QuicRandom(
 #define QUIC_UNSPECIFIED_COMPARTMENT_ID UNSPECIFIED_COMPARTMENT_ID
 #define QUIC_DEFAULT_COMPARTMENT_ID     DEFAULT_COMPARTMENT_ID
 
-#define QuicCompartmentIdGetCurrent() NdisGetCurrentThreadCompartmentId()
+COMPARTMENT_ID
+NdisGetThreadObjectCompartmentId(
+    IN PETHREAD ThreadObject
+    );
+
+NTSTATUS
+NdisSetThreadObjectCompartmentId(
+    IN PETHREAD ThreadObject,
+    IN NET_IF_COMPARTMENT_ID CompartmentId
+    );
+
+#define QuicCompartmentIdGetCurrent() NdisGetThreadObjectCompartmentId(PsGetCurrentThread())
 #define QuicCompartmentIdSetCurrent(CompartmentId) \
-    NdisSetCurrentThreadCompartmentId(CompartmentId)
+    NdisSetThreadObjectCompartmentId(PsGetCurrentThread(), CompartmentId)
 
 #define QUIC_CPUID(FunctionId, eax, ebx, ecx, dx)
 

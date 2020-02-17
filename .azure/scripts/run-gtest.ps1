@@ -1,34 +1,34 @@
 <#
 
 .SYNOPSIS
-This script provides helpers for running executing the MsQuic tests.
+This script runs a google test executable and collects and logs or process dumps
+as necessary.
 
-.PARAMETER Config
-    Specifies the build configuration to test.
+.PARAMETER Path
+    The path to the test executable.
+
+.PARAMETER Filter
+    A filter to include test cases from the list to execute. Multiple filters
+    are separated by :. Negative filters are prefixed with -.
 
 .PARAMETER ListTestCases
     Lists all the test cases.
 
 .PARAMETER Batch
-    Runs the test cases in a batch execution of msquictest.
+    Runs the test cases in a single batch execution.
 
 .PARAMETER Parallel
-    Runs the test cases in parallel instead of serially. Log collection not currently supported.
+    Runs the test cases in parallel instead of serially. Log collection not
+    currently supported.
 
-.PARAMETER Compress
-    Compresses the output files generated for failed test cases.
+.PARAMETER KeepOutputOnSuccess
+    Don't discard console output or logs on success.
 
-.PARAMETER LogProfile
-    The name of the profile to use for log collection.
-
-.PARAMETER Filter
-    A filter to include test cases from the list to execute. Multiple filters are separated by :. Negative filters are prefixed with -.
-
-.PARAMETER NegativeFilter
-    A filter to remove test cases from the list to execute.
+.PARAMETER GenerateXmlResults
+    Generates an xml Test report for the run.
 
 .PARAMETER Debugger
-    Attaches the debugger to each test case run.
+    Attaches the debugger to the process.
 
 .PARAMETER InitialBreak
     Debugger starts broken into the process to allow setting breakpoints, etc.
@@ -36,42 +36,23 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER BreakOnFailure
     Triggers a break point on a test failure.
 
+.PARAMETER LogProfile
+    The name of the profile to use for log collection.
+
 .PARAMETER ConvertLogs
     Convert any collected logs to text. Only works when LogProfile is set.
 
-.PARAMETER KeepLogsOnSuccess
-    Don't discard logs on success.
-
-.PARAMETER SaveXmlResults
-    Saves the test results to XML.
-
-.EXAMPLE
-    test.ps1
-
-.EXAMPLE
-    test.ps1 -ListTestCases
-
-.EXAMPLE
-    test.ps1 -ListTestCases -Filter ParameterValidation*
-
-.EXAMPLE
-    test.ps1 -Filter ParameterValidation*
-
-.EXAMPLE
-    test.ps1 -LogProfile Full.Basic
-
-.EXAMPLE
-    test.ps1 -Parallel -NegativeFilter *Send*
-
-.EXAMPLE
-    test.ps1 -LogProfile Full.Verbose -Compress
+.PARAMETER CompressOutput
+    Compresses the output files generated for failed test cases.
 
 #>
 
 param (
+    [Parameter(Mandatory = $true)]
+    [string]$Path,
+
     [Parameter(Mandatory = $false)]
-    [ValidateSet("Debug", "Release")]
-    [string]$Config = "Debug",
+    [string]$Filter = "",
 
     [Parameter(Mandatory = $false)]
     [switch]$ListTestCases = $false,
@@ -83,14 +64,10 @@ param (
     [switch]$Parallel = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Compress = $false,
+    [switch]$KeepOutputOnSuccess = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose")]
-    [string]$LogProfile = "None",
-
-    [Parameter(Mandatory = $false)]
-    [string]$Filter = "",
+    [switch]$GenerateXmlResults = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$Debugger = $false,
@@ -102,30 +79,40 @@ param (
     [switch]$BreakOnFailure = $false,
 
     [Parameter(Mandatory = $false)]
+    [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose")]
+    [string]$LogProfile = "None",
+
+    [Parameter(Mandatory = $false)]
     [switch]$ConvertLogs = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$KeepLogsOnSuccess = $false,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$SaveXmlResults = $false
+    [switch]$CompressOutput = $false
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-# Path for the test program.
-$MsQuicTest = Join-Path $PSScriptRoot "\artifacts\windows\bin\$($Config)\msquictest.exe"
-if (!$IsWindows) {
-    $MsQuicTest = Join-Path $PSScriptRoot "/artifacts/linux/bin/msquictest"
+function Log($msg) {
+    Write-Host "[$(Get-Date)] $msg"
 }
 
-# Path for the procdump executable.
-$ProcDumpExe = $PSScriptRoot + "\bld\windows\procdump\procdump64.exe"
+# Make sure the test executable is present.
+if (!(Test-Path $Path)) {
+    Write-Error "[$(Get-Date)] $($Path) does not exist!"
+}
+
+# Root directory of the project.
+$RootDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+
+# Script for controlling loggings.
+$LogScript = Join-Path $RootDir "scripts" "log.ps1"
+
+# Executable name.
+$TestExeName = Split-Path $Path -Leaf
 
 # Folder for log files.
-$LogBaseDir = Join-Path (Join-Path $PSScriptRoot "artifacts") "logs"
-$LogDir = Join-Path $LogBaseDir (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+$LogDir = Join-Path $RootDir "artifacts" "logs" $TestExeName (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
 
 # The file path of the final XML results.
 $FinalResultsPath = "$($LogDir)-results.xml"
@@ -149,6 +136,9 @@ $FailXmlText = @"
   </testsuite>
 </testsuites>
 "@
+
+# Global state for tracking if any crashes occurred.
+$AnyProcessCrashes = $false
 
 # Helper script to build up a combined XML file for all test cases. This
 # function just appends the given test case's xml output to the existing xml
@@ -203,56 +193,38 @@ function Add-XmlResults($TestCase) {
     $XmlResults.testsuites.time = ($XmlResults.testsuites.time -as [Decimal]) + $Time
 }
 
-function Log($msg) {
-    Write-Host "[$(Get-Date)] $msg"
-}
-
-# Installs procdump if not already. Windows specific.
-function Install-ProcDump {
-    if (!(Test-Path bld)) { mkdir bld | Out-Null }
-    if (!(Test-Path bld\windows)) { mkdir bld\windows | Out-Null }
-    if (!(Test-Path .\bld\windows\procdump)) {
-        Log "Installing procdump..."
-        # Download the zip file.
-        Invoke-WebRequest -Uri https://download.sysinternals.com/files/Procdump.zip -OutFile bld\windows\procdump.zip
-        # Extract the zip file.
-        Expand-Archive -Path bld\windows\procdump.zip .\bld\windows\procdump
-        # Delete the zip file.
-        Remove-Item -Path bld\windows\procdump.zip
-    }
-}
-
-# Starts msquictext with the given arguments, asynchronously.
-function Start-MsQuicTest([String]$Arguments, [String]$OutputDir) {
+# Asynchronously starts the test executable with the given arguments.
+function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
         if ($Debugger) {
             $pinfo.FileName = "windbg"
             if ($InitialBreak) {
-                $pinfo.Arguments = "-G $($MsQuicTest) $($Arguments)"
+                $pinfo.Arguments = "-G $($Path) $($Arguments)"
             } else {
-                $pinfo.Arguments = "-g -G $($MsQuicTest) $($Arguments)"
+                $pinfo.Arguments = "-g -G $($Path) $($Arguments)"
             }
         } else {
-            $pinfo.FileName = $ProcDumpExe
-            $pinfo.Arguments = "-ma -e -b -l -accepteula -x $($OutputDir) $($MsQuicTest) $($Arguments)"
+            $pinfo.FileName = $RootDir + "\bld\windows\procdump\procdump64.exe"
+            $pinfo.Arguments = "-ma -e -b -l -accepteula -x $($OutputDir) $($Path) $($Arguments)"
         }
     } else {
         if ($Debugger) {
             $pinfo.FileName = "gdb"
             if ($InitialBreak) {
-                $pinfo.Arguments = "--args $($MsQuicTest) $($Arguments)"
+                $pinfo.Arguments = "--args $($Path) $($Arguments)"
             } else {
-                $pinfo.Arguments = "-ex=r --args $($MsQuicTest) $($Arguments)"
+                $pinfo.Arguments = "-ex=r --args $($Path) $($Arguments)"
             }
         } else {
-            $pinfo.FileName = $MsQuicTest
-            $pinfo.Arguments = $Arguments
+            $pinfo.FileName = "bash"
+            $pinfo.Arguments = "-c `"ulimit -c unlimited && $($Path) $($Arguments) && echo Done`""
             $pinfo.WorkingDirectory = $OutputDir
         }
     }
     if (!$Debugger) {
         $pinfo.RedirectStandardOutput = $true
+        $pinfo.RedirectStandardError = $true
     }
     $pinfo.UseShellExecute = $false
     $p = New-Object System.Diagnostics.Process
@@ -261,25 +233,8 @@ function Start-MsQuicTest([String]$Arguments, [String]$OutputDir) {
     $p
 }
 
-# Executes msquictest to query all available test cases, parses the console
-# output and returns a list of test case names.
-function GetTestCases {
-    $stdout = & $MsQuicTest "--gtest_list_tests"
-    $Lines = ($stdout.Split([Environment]::NewLine)) | Where-Object { $_.Length -ne 0 }
-    $CurTestGroup = $null
-    $Tests = New-Object System.Collections.ArrayList
-    for ($i = 0; $i -lt $Lines.Length; $i++) {
-        if (!($Lines[$i].StartsWith(" "))) {
-            $CurTestGroup = $Lines[$i]
-        } else {
-            $Tests.Add($CurTestGroup + $Lines[$i].Split("#")[0].Trim()) | Out-Null
-        }
-    }
-    $Tests.ToArray()
-}
-
-# Starts a single msquictest test case running.
-function StartTestCase([String]$Name) {
+# Asynchronously starts a single msquictest test case running.
+function Start-TestCase([String]$Name) {
 
     $InstanceName = $Name.Replace("/", "_")
     $LocalLogDir = Join-Path $LogDir $InstanceName
@@ -287,7 +242,7 @@ function StartTestCase([String]$Name) {
 
     if ($LogProfile -ne "None") {
         # Start the logs
-        .\log.ps1 -Start -LogProfile $LogProfile -InstanceName $InstanceName | Out-Null
+        & $LogScript -Start -LogProfile $LogProfile -InstanceName $InstanceName | Out-Null
     }
 
     # Build up the argument list.
@@ -304,19 +259,19 @@ function StartTestCase([String]$Name) {
         LogDir = $LocalLogDir
         Timestamp = (Get-Date -UFormat "%Y-%m-%dT%T")
         ResultsPath = $ResultsPath
-        Process = (Start-MsQuicTest $Arguments $LocalLogDir)
+        Process = (Start-TestExecutable $Arguments $LocalLogDir)
     }
 }
 
-# Start all the msquictest test cases running.
-function StartAllTestCases {
+# Asynchronously start all the msquictest test cases running.
+function Start-AllTestCases {
 
     $Name = "all"
     $InstanceName = $Name
 
     if ($LogProfile -ne "None") {
         # Start the logs
-        .\log.ps1 -Start -LogProfile $LogProfile -InstanceName $InstanceName | Out-Null
+        & $LogScript -Start -LogProfile $LogProfile -InstanceName $InstanceName | Out-Null
     }
 
     # Build up the argument list.
@@ -335,64 +290,109 @@ function StartAllTestCases {
         LogDir = $LogDir
         Timestamp = (Get-Date -UFormat "%Y-%m-%dT%T")
         ResultsPath = $FinalResultsPath
-        Process = (Start-MsQuicTest $Arguments $LogDir)
+        Process = (Start-TestExecutable $Arguments $LogDir)
     }
 }
 
-# Waits for and finishes up the test case.
-function FinishTestCase($TestCase) {
+# Waits for the executable to finish and processes the results.
+function Wait-TestCase($TestCase) {
     $stdout = $null
+    $stderr = $null
+    $ProcessCrashed = $false
+    $AnyTestFailed = $false
     if (!$Debugger) {
         $stdout = $TestCase.Process.StandardOutput.ReadToEnd()
+        $stderr = $TestCase.Process.StandardError.ReadToEnd()
+        if ($isWindows) {
+            $ProcessCrashed = $stdout.Contains("Dump 1 complete")
+        } else {
+            $ProcessCrashed = $stderr.Contains("Aborted")
+        }
+        $AnyTestFailed = $stdout.Contains("[  FAILED  ]")
+        if (!(Test-Path $TestCase.ResultsPath) -and !$ProcessCrashed) {
+            Log "No test results generated! Treating as crash!"
+            $ProcessCrashed = $true
+        }
     }
     $TestCase.Process.WaitForExit()
-
-    $HasResults = Test-Path $TestCase.ResultsPath
 
     # Add the current test case results.
     if (!$Batch) {
         Add-XmlResults $TestCase
     }
 
-    if ($KeepLogsOnSuccess -or `
-        !$Debugger -or `
-        $stdout.Contains("[  FAILED  ]") -or `
-        !$HasResults) {
+    if ($ProcessCrashed) {
+        $AnyProcessCrashes = $true;
+    }
+
+    if ($Batch) {
+        if ($null -ne $stdout -and "" -ne $stdout) {
+            Write-Host $stdout
+        }
+        if ($null -ne $stderr -and "" -ne $stderr) {
+            Write-Host $stderr
+        }
+    }
+
+    if ($KeepOutputOnSuccess -or $ProcessCrashed -or $AnyTestFailed) {
 
         if ($LogProfile -ne "None") {
             if ($ConvertLogs) {
-                .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName -ConvertToText | Out-Null
+                & $LogScript -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName -ConvertToText
             } else {
-                .\log.ps1 -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName | Out-Null
+                & $LogScript -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName | Out-Null
             }
         }
 
-        if ($null -ne $stdout) {
-            $stdout > (Join-Path $TestCase.LogDir "console.stdout.txt")
-            if ($Batch) {
-                Write-Host $stdout
-            }
+        if ($null -ne $stdout -and "" -ne $stdout) {
+            $stdout > (Join-Path $LogDir "stdout.txt")
         }
 
-        if ($Compress) {
+        if ($null -ne $stderr -and "" -ne $stderr) {
+            $stderr > (Join-Path $LogDir "stderr.txt")
+        }
+
+        if ($CompressOutput) {
             # Zip the output.
-            Compress-Archive -Path "$($TestCase.LogDir)\*" -DestinationPath "$($TestCase.LogDir).zip" | Out-Null
-            Remove-Item $TestCase.LogDir -Recurse -Force | Out-Null
+            CompressOutput-Archive -Path "$($TestCase.LogDir)\*" -DestinationPath "$($TestCase.LogDir).zip" | Out-Null
+            Remove-Item $LogDir -Recurse -Force | Out-Null
         }
+
+        Log "Output available at $($LogDir)"
+
     } else {
         if ($LogProfile -ne "None") {
-            .\log.ps1 -Cancel -InstanceName $TestCase.InstanceName | Out-Null
+            & $LogScript -Cancel -InstanceName $TestCase.InstanceName | Out-Null
         }
         Remove-Item $TestCase.LogDir -Recurse -Force | Out-Null
     }
 }
 
+# Runs the test executable to query all available test cases, parses the console
+# output and returns a list of test case names.
+function GetTestCases {
+    $stdout = & $Path "--gtest_list_tests"
+
+    if ($null -eq $stdout) {
+        Write-Error "[$(Get-Date)] No output from $($TestExeName)!"
+    }
+
+    $Lines = ($stdout.Split([Environment]::NewLine)) | Where-Object { $_.Length -ne 0 }
+    $CurTestGroup = $null
+    $Tests = New-Object System.Collections.ArrayList
+    for ($i = 0; $i -lt $Lines.Length; $i++) {
+        if (!($Lines[$i].StartsWith(" "))) {
+            $CurTestGroup = $Lines[$i]
+        } else {
+            $Tests.Add($CurTestGroup + $Lines[$i].Split("#")[0].Trim()) | Out-Null
+        }
+    }
+    $Tests.ToArray()
+}
+
 ##############################################################
 #                     Main Execution                         #
 ##############################################################
-
-# Make sure the executable is present for the current configuration.
-if (!(Test-Path $MsQuicTest)) { Write-Error "$($MsQuicTest) does not exist!" }
 
 # Query all the test cases.
 $TestCases = GetTestCases
@@ -420,15 +420,6 @@ if ($ListTestCases) {
     exit
 }
 
-if ($IsWindows) {
-    # Make sure procdump is installed.
-    Install-ProcDump
-}
-
-# Set up the base directory.
-if (!(Test-Path $LogBaseDir)) { mkdir $LogBaseDir | Out-Null }
-mkdir $LogDir | Out-Null
-
 # Log collection doesn't work for parallel right now.
 if ($Debugger -and $Parallel) {
     Log "Warning: Disabling parallel for debugger runs!"
@@ -439,7 +430,7 @@ try {
     if ($Batch) {
         # Run the the test process once for all tests.
         Log "Executing tests in batch..."
-        FinishTestCase (StartAllTestCases)
+        Wait-TestCase (Start-AllTestCases)
 
     } elseif ($Parallel) {
         # Log collection doesn't work for parallel right now.
@@ -452,7 +443,7 @@ try {
         Log "Starting $($TestCases.Length) tests in parallel..."
         $Runs = New-Object System.Collections.ArrayList
         for ($i = 0; $i -lt $TestCases.Length; $i++) {
-            $Runs.Add((StartTestCase $TestCases[$i])) | Out-Null
+            $Runs.Add((Start-TestCase $TestCases[$i])) | Out-Null
             Write-Progress -Activity "Starting tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
             Start-Sleep -Milliseconds 1
         }
@@ -460,7 +451,7 @@ try {
         # Wait for the test cases to complete.
         Log "Waiting for test cases to complete..."
         for ($i = 0; $i -lt $Runs.Count; $i++) {
-            FinishTestCase $Runs[$i]
+            Wait-TestCase $Runs[$i]
             Write-Progress -Activity "Finishing tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
         }
 
@@ -468,7 +459,7 @@ try {
         # Run the test cases serially.
         Log "Executing $($TestCases.Length) tests in series..."
         for ($i = 0; $i -lt $TestCases.Length; $i++) {
-            FinishTestCase (StartTestCase $TestCases[$i])
+            Wait-TestCase (Start-TestCase $TestCases[$i])
             Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
         }
     }
@@ -476,7 +467,7 @@ try {
     if ($Batch) {
         if (Test-Path $FinalResultsPath) {
             $XmlResults = [xml](Get-Content $FinalResultsPath)
-            if (!$SaveXmlResults) {
+            if (!$GenerateXmlResults) {
                 # Delete the XML results file since it's not needed.
                 Remove-Item $FinalResultsPath -Force | Out-Null
             }
@@ -486,13 +477,13 @@ try {
             $NewXmlText = $NewXmlText.Replace("TestCaseName", "all")
             $NewXmlText = $NewXmlText.Replace("date", $XmlResults.testsuites.timestamp)
             $XmlResults = [xml]($NewXmlText)
-            if ($SaveXmlResults) {
+            if ($GenerateXmlResults) {
                 # Save the xml results.
                 $XmlResults.Save($FinalResultsPath) | Out-Null
             }
         }
     } else {
-        if ($SaveXmlResults) {
+        if ($GenerateXmlResults) {
             # Save the xml results.
             $XmlResults.Save($FinalResultsPath) | Out-Null
         }
@@ -503,7 +494,7 @@ try {
 
     # Print out the results.
     Log "$($TestCount) test(s) run. $($TestsFailed) test(s) failed."
-    if ($KeepLogsOnSuccess -or ($TestsFailed -ne 0)) {
+    if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or $AnyProcessCrashes) {
         Log "Logs can be found in $($LogDir)"
     } else {
         if (Test-Path $LogDir) {

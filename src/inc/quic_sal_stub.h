@@ -214,10 +214,6 @@
 #define _Field_z_
 #endif
 
-#ifndef __fallthrough
-#define __fallthrough
-#endif
-
 #ifndef __analysis_assume
 #define __analysis_assume(expr)
 #endif

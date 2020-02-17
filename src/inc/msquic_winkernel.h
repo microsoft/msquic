@@ -23,7 +23,34 @@ Environment:
 #include <ws2ipdef.h>
 #include <minwindef.h>
 #include <ntstatus.h>
-#include <stdint.h>
+#include <basetsd.h>
+
+typedef INT8 int8_t;
+typedef INT16 int16_t;
+typedef INT32 int32_t;
+typedef INT64 int64_t;
+
+typedef UINT8 uint8_t;
+typedef UINT16 uint16_t;
+typedef UINT32 uint32_t;
+typedef UINT64 uint64_t;
+
+#define UINT8_MAX   0xffui8
+#define UINT16_MAX  0xffffui16
+#define UINT32_MAX  0xffffffffui32
+#define UINT64_MAX  0xffffffffffffffffui64
+
+#ifndef STATUS_QUIC_HANDSHAKE_FAILURE
+#define STATUS_QUIC_HANDSHAKE_FAILURE    ((NTSTATUS)0xC0240000L)
+#endif
+
+#ifndef STATUS_QUIC_VER_NEG_FAILURE
+#define STATUS_QUIC_VER_NEG_FAILURE      ((NTSTATUS)0xC0240001L)
+#endif
+
+#ifndef STATUS_QUIC_USER_CANCELED
+#define STATUS_QUIC_USER_CANCELED        ((NTSTATUS)0xC0240002L)
+#endif
 
 #define QUIC_API                        NTAPI
 #define QUIC_STATUS                     NTSTATUS
