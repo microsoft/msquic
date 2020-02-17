@@ -34,6 +34,9 @@ git remote add azdo-mirror "https://nibanks:$Env:AzDO_PAT@mscodehub.visualstudio
 git reset --hard origin/$Branch
 
 # Push to the AzDO repo.
-git push azdo-mirror $Branch
-
-Write-Host "Sync complete."
+$Result = (git push azdo-mirror $Branch)
+if ($Result.Contains("Head is now at")) {
+    Write-Host "Successfully mirrored latest changes to https://mscodehub.visualstudio.com/msquic/_git/msquic"
+} else {
+    Write-Error $Result
+}
