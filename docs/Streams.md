@@ -20,7 +20,11 @@ The app can configure the unidirectional and bidirectional limits separately. **
 
 # Opening and Starting Streams
 
-An app calls [StreamOpen](v1/StreamOpen.md) to allocate a new stream. Then the app calls [StreamStart](v1/StreamStart.md) to actually start using the stream.
+An app calls [StreamOpen](v1/StreamOpen.md) to allocate a new stream. The stream object returned from [StreamOpen](v1/StreamOpen.md) is locally usable. The app can call any other stream API on the object, but until the stream is started all operations are essentially queued. While in this state the stream has no ID and generates no "on-wire" changes.
+
+If a stream is closed ([StreamClose](v1/StreamClose.md)) before being successfully started, the app essentially abandons the stream. No on-wire changes will ever result from that stream.
+
+To start using the stream on-wire, the app calls [StreamStart](v1/StreamStart.md). On success, all queued operations (i.e. sends or shutdown) will immediately trigger, and the stream can start receiving `QUIC_STREAM_EVENT_RECEIVE` events.
 
 When calling [StreamStart](v1/StreamStart.md) the app passes a set of `QUIC_STREAM_START_FLAGS` flags to control the behavior:
 
@@ -30,7 +34,7 @@ When calling [StreamStart](v1/StreamStart.md) the app passes a set of `QUIC_STRE
 
 - `QUIC_STREAM_START_FLAG_ASYNC` - The StreamStart call will not block. The result of the start can be retrieved from the `QUIC_STREAM_EVENT_START_COMPLETE` event.
 
-For peer initiated streams, the app gets a `QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED` event on the connection. A stream is officially started when this event or the `QUIC_STREAM_EVENT_START_COMPLETE` event is received. Once started, the app can immediately call [StreamSend](v1/StreamSend.md) and start getting `QUIC_STREAM_EVENT_RECEIVE` events.
+For peer initiated streams, the app gets a `QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED` event on the connection. A stream is officially started when this event or the `QUIC_STREAM_EVENT_START_COMPLETE` event is received.
 
 # Sending
 
