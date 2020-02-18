@@ -722,7 +722,7 @@ void QuicTestValidateStream(bool Connect)
             }
 
             //
-            // Never started (shutdown).
+            // Never started (shutdown graceful).
             //
             {
                 StreamScope Stream;
@@ -734,8 +734,27 @@ void QuicTestValidateStream(bool Connect)
                         nullptr,
                         &Stream.Handle));
 
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_STATE,
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamShutdown(
+                        Stream.Handle,
+                        QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL,
+                        0));
+            }
+
+            //
+            // Never started (shutdown abortive).
+            //
+            {
+                StreamScope Stream;
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamOpen(
+                        Client.GetConnection(),
+                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        DummyStreamCallback,
+                        nullptr,
+                        &Stream.Handle));
+
+                TEST_QUIC_SUCCEEDED(
                     MsQuic->StreamShutdown(
                         Stream.Handle,
                         QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND | QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE,

@@ -5,11 +5,31 @@ MsQuic uses [CMake](https://cmake.org/) to generate build files.
 > **Note** - clone the repo recursively or run `git submodule update --init --recursive`
 to get all the submodules.
 
-# PowerShell (6 or greater) Requirement
+## Source Code
+
+The source (found in the `src` directory) is divided into several directories:
+
+  * `bin` - Packages up all static libraries into the platform specific binaries.
+  * `core` - Platform independent code that implements the QUIC protocol.
+  * `inc` - Header files used by all the other directories.
+  * `manifest` - Windows [ETW manifest](https://docs.microsoft.com/en-us/windows/win32/wes/writing-an-instrumentation-manifest) and related files.
+  * `platform` - Platform specific code for OS types, sockets and TLS.
+  * `test` - Test code for the MsQuic API / protocol.
+  * `tools` - Tools for exercising MsQuic.
+    * `attack` - Adversarial tool for exploiting protocol weaknesses.
+    * `etw` - Windows specific tool for processing MsQuic ETW logs.
+    * `interop` - Runs through the [IETF interop scenarios](https://github.com/quicwg/base-drafts/wiki/16th-Implementation-Draft).
+    * `ping` - Simple tool for gathering throughput measurements. Read more [here](../src/tools/ping/readme.md).
+    * `reach` - Tests for QUIC reachability of a server for several well-known ALPNs.
+    * `sample` - Minimal example of how to use the MsQuic API.
+    * `spin` - Randomly executes the MsQuic API to discover bugs.
+    * `void` - Randomly starts and stops the server to discover bugs.
+
+## PowerShell (6 or greater) Requirement
 
 MsQuic uses several cross platform PowerShell build scripts to simplify build and test operations. PowerShell 6 or greater will need to be installed for them to work.
 
-## Install on Windows
+### Install on Windows
 
 You can install PowerShell 7.0 on Windows by running the following **PowerShell** script:
 
@@ -19,7 +39,7 @@ iex "& { $(irm https://aka.ms/install-powershell.ps1) } -UseMSI -Preview"
 
 Then you will need to manually launch "PowerShell 7" to continue.
 
-## Install on Linux
+### Install on Linux
 
 You find the full installation instructions for PowerShell on Linux [here](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?). For Ubuntu you can run the following:
 
@@ -70,6 +90,8 @@ For the very first time you build, it's recommend to make sure you have all the 
 ```
 
 ### Additional Requirements on Windows
+
+  * [CMake](https://cmake.org/)
   * [Visual Studio 2019](https://www.visualstudio.com/vs/) or higher
   * Latest [Windows Insider](https://insider.windows.com/en-us/) builds.
 

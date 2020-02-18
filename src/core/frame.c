@@ -1438,9 +1438,9 @@ QuicFrameLog(
         }
 
         QuicTraceLogVerbose(
-            "[%c][%cX][%llu]   NEW_CONN_ID Seq:%llu CID:%s Token:%s",
+            "[%c][%cX][%llu]   NEW_CONN_ID Seq:%llu RPT:%llu CID:%s Token:%s",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.Sequence,
-            QuicCidBufToStr(Frame.Buffer, Frame.Length).Buffer,
+            Frame.RetirePriorTo, QuicCidBufToStr(Frame.Buffer, Frame.Length).Buffer,
             QuicCidBufToStr(Frame.Buffer + Frame.Length, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
         break;
     }

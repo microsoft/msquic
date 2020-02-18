@@ -895,16 +895,6 @@ QuicBindingQueueStatelessReset(
     QUIC_DBG_ASSERT(!Binding->Exclusive);
     QUIC_DBG_ASSERT(!((QUIC_SHORT_HEADER_V1*)Datagram->Buffer)->IsLongHeader);
 
-    //
-    // We don't respond to long header packets because the peer generally
-    // doesn't even have the stateless reset token yet. We don't respond to
-    // small short header packets because it could cause an infinite loop.
-    //
-    const QUIC_SHORT_HEADER_V1* Header = (QUIC_SHORT_HEADER_V1*)Datagram->Buffer;
-    if (Header->IsLongHeader) {
-        return FALSE; // No packet drop log, because it was already logged in QuicBindingShouldCreateConnection.
-    }
-
     if (Datagram->BufferLength <= QUIC_MIN_STATELESS_RESET_PACKET_LENGTH) {
         QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
             "Packet too short for stateless reset");
@@ -989,9 +979,12 @@ QuicBindingPreprocessPacket(
     return TRUE;
 }
 
+//
+// Returns TRUE if the retry token was successfully decrypted and validated.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicBindingProcessRetryToken(
+QuicBindingValidateRetryToken(
     _In_ const QUIC_BINDING* const Binding,
     _In_ const QUIC_RECV_PACKET* const Packet,
     _In_ uint16_t TokenLength,
@@ -1025,6 +1018,10 @@ QuicBindingProcessRetryToken(
     return TRUE;
 }
 
+//
+// Returns TRUE if we should respond to the connection attempt with a Retry
+// packet.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingShouldRetryConnection(
@@ -1037,31 +1034,29 @@ QuicBindingShouldRetryConnection(
     )
 {
     //
-    // The function is only called once QuicBindingShouldCreateConnection has
-    // already returned TRUE. It checks to see if the binding currently has too
-    // many connections in the handshake state already. If so, it requests the
-    // client to retry its connection attempt to prove source address ownership.
+    // This is only called once we've determined we can create a new connection.
+    // If there is a token, it validates the token. If there is no token, then
+    // the function checks to see if the binding currently has too many
+    // connections in the handshake state already. If so, it requests the client
+    // to retry its connection attempt to prove source address ownership.
     //
+
+    if (TokenLength != 0) {
+        //
+        // Must always validate the token when provided by the client.
+        //
+        if (QuicBindingValidateRetryToken(Binding, Packet, TokenLength, Token)) {
+            Packet->ValidToken = TRUE;
+        } else {
+            *DropPacket = TRUE;
+        }
+        return FALSE;
+    }
 
     uint64_t CurrentMemoryLimit =
         (MsQuicLib.Settings.RetryMemoryLimit * QuicTotalMemory) / UINT16_MAX;
 
-    if (MsQuicLib.CurrentHandshakeMemoryUsage < CurrentMemoryLimit) {
-        return FALSE;
-    }
-
-    if (TokenLength == 0) {
-        return TRUE;
-    }
-
-    if (!QuicBindingProcessRetryToken(Binding, Packet, TokenLength, Token)) {
-        *DropPacket = TRUE;
-        return FALSE;
-    }
-
-    Packet->ValidToken = TRUE;
-
-    return FALSE;
+    return MsQuicLib.CurrentHandshakeMemoryUsage > CurrentMemoryLimit;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

@@ -288,6 +288,11 @@ typedef struct QUIC_DATAPATH_PROC_CONTEXT {
     uint32_t ThreadId;
 
     //
+    // The index of the context in the datapath's array.
+    //
+    uint32_t Index;
+
+    //
     // Pool of send contexts to be shared by all sockets on this core.
     //
     QUIC_POOL SendContextPool;
@@ -330,11 +335,6 @@ typedef struct QUIC_DATAPATH {
     // Maximum batch sizes supported for send.
     //
     UINT8 MaxSendBatchSize;
-
-    //
-    // Current receive side scaling mode.
-    //
-    QUIC_RSS_MODE RssMode;
 
     //
     // Function pointer to WSASendMsg.
@@ -461,7 +461,6 @@ QuicDataPathQueryRssScalabilityInfo(
 
     if (RssInfo.RssEnabled) {
         Datapath->Features |= QUIC_DATAPATH_FEATURE_RECV_SIDE_SCALING;
-        Datapath->RssMode = QUIC_RSS_2_TUPLE;
     }
 
 Error:
@@ -629,6 +628,7 @@ QuicDataPathInitialize(
         //
 
         Datapath->ProcContexts[i].Datapath = Datapath;
+        Datapath->ProcContexts[i].Index = i;
 
         QuicPoolInitialize(
             FALSE,
@@ -787,15 +787,6 @@ QuicDataPathGetSupportedFeatures(
     )
 {
     return Datapath->Features;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_RSS_MODE
-QuicDataPathGetRssMode(
-    _In_ QUIC_DATAPATH* Datapath
-    )
-{
-    return Datapath->RssMode;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1693,8 +1684,8 @@ Error:
 
 void
 QuicDataPathRecvComplete(
+    _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext,
     _In_ QUIC_UDP_SOCKET_CONTEXT* SocketContext,
-    _In_ HANDLE CompletionPort,
     _In_ ULONG IoResult,
     _In_ UINT16 NumberOfBytesTransferred
     )
@@ -1838,6 +1829,7 @@ QuicDataPathRecvComplete(
             Datagram->Buffer = RecvPayload;
             Datagram->BufferLength = MessageLength;
             Datagram->Tuple = &RecvContext->Tuple;
+            Datagram->PartitionIndex = (uint8_t)ProcContext->Index;
             Datagram->Allocated = TRUE;
             Datagram->QueuedOnConnection = FALSE;
 
@@ -1890,7 +1882,7 @@ Drop:
     //
     // Try to start a new receive.
     //
-    (void)QuicDataPathBindingStartReceive(SocketContext, CompletionPort);
+    (void)QuicDataPathBindingStartReceive(SocketContext, ProcContext->IOCP);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2472,29 +2464,29 @@ QuicDataPathWorkerThread(
     _In_ void* CompletionContext
     )
 {
-    QUIC_DATAPATH_PROC_CONTEXT* Completion = (QUIC_DATAPATH_PROC_CONTEXT*)CompletionContext;
+    QUIC_DATAPATH_PROC_CONTEXT* ProcContext = (QUIC_DATAPATH_PROC_CONTEXT*)CompletionContext;
 
-    QUIC_DBG_ASSERT(Completion != NULL);
-    QUIC_DBG_ASSERT(Completion->Datapath != NULL);
+    QUIC_DBG_ASSERT(ProcContext != NULL);
+    QUIC_DBG_ASSERT(ProcContext->Datapath != NULL);
 
     QUIC_UDP_SOCKET_CONTEXT* SocketContext;
     LPOVERLAPPED Overlapped;
     DWORD NumberOfBytesTransferred;
     ULONG IoResult;
 
-    Completion->ThreadId = GetCurrentThreadId();
+    ProcContext->ThreadId = GetCurrentThreadId();
 
     while (TRUE) {
 
         BOOL Result =
             GetQueuedCompletionStatus(
-                Completion->IOCP,
+                ProcContext->IOCP,
                 &NumberOfBytesTransferred,
                 (PULONG_PTR)&SocketContext,
                 &Overlapped,
                 INFINITE);
 
-        if (Completion->Datapath->Shutdown) {
+        if (ProcContext->Datapath->Shutdown) {
             break;
         }
 
@@ -2530,8 +2522,8 @@ QuicDataPathWorkerThread(
                 // Handle the receive indication and queue a new receive.
                 //
                 QuicDataPathRecvComplete(
+                    ProcContext,
                     SocketContext,
-                    Completion->IOCP,
                     IoResult,
                     (UINT16)NumberOfBytesTransferred);
 
