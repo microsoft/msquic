@@ -13,16 +13,17 @@ This script provides helpers for running executing the MsQuic tests.
     The TLS library test.
 
 .PARAMETER Filter
-    A filter to include test cases from the list to execute. Multiple filters are separated by :. Negative filters are prefixed with -.
+    A filter to include test cases from the list to execute. Multiple filters
+    are separated by :. Negative filters are prefixed with -.
 
 .PARAMETER ListTestCases
     Lists all the test cases.
 
-.PARAMETER Batch
-    Runs the test cases in a batch execution of msquictest.
+.PARAMETER ExecutionMode
+    Controls the execution mode when running each test case.
 
-.PARAMETER Parallel
-    Runs the test cases in parallel instead of serially. Log collection not currently supported.
+.PARAMETER IsolationMode
+    Controls the isolation mode when running each test case.
 
 .PARAMETER KeepOutputOnSuccess
     Don't discard console output or logs on success.
@@ -88,10 +89,12 @@ param (
     [switch]$ListTestCases = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Batch = $false,
+    [ValidateSet("Serial", "Parallel")]
+    [string]$ExecutionMode = "Serial",
 
     [Parameter(Mandatory = $false)]
-    [switch]$Parallel = $false,
+    [ValidateSet("Batch", "Isolated")]
+    [string]$IsolationMode = "Batch",
 
     [Parameter(Mandatory = $false)]
     [switch]$KeepOutputOnSuccess = $false,
@@ -137,18 +140,12 @@ if ($IsWindows) {
 }
 
 # Build up all the arguments to pass to the Powershell script.
-$Arguments = "-Path $($MsQuicTest)"
+$Arguments = "-Path $($MsQuicTest) -ExecutionMode $($ExecutionMode) -IsolationMode $($IsolationMode)"
 if ("" -ne $Filter) {
     $Arguments += " -Filter $($Filter)"
 }
 if ($ListTestCases) {
     $Arguments += " -ListTestCases"
-}
-if ($Batch) {
-    $Arguments += " -Batch"
-}
-if ($Parallel) {
-    $Arguments += " -Parallel"
 }
 if ($KeepOutputOnSuccess) {
     $Arguments += " -KeepOutputOnSuccess"

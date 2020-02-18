@@ -20,6 +20,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicStreamInitialize(
     _In_ QUIC_CONNECTION* Connection,
+    _In_ BOOLEAN OpenedRemotely,
     _In_ BOOLEAN Unidirectional,
     _In_ BOOLEAN Opened0Rtt,
     _Outptr_ _At_(*NewStream, __drv_allocatesMem(Mem))
@@ -52,6 +53,32 @@ QuicStreamInitialize(
 #if QUIC_TEST_MODE
     Stream->RefTypeCount[QUIC_STREAM_REF_APP] = 1;
 #endif
+
+    if (Unidirectional) {
+        if (!OpenedRemotely) {
+
+            //
+            // This is 'our' unidirectional stream, so that means just the send
+            // path is used.
+            //
+
+            Stream->Flags.RemoteNotAllowed = TRUE;
+            Stream->Flags.RemoteCloseAcked = TRUE;
+            Stream->Flags.ReceiveEnabled = FALSE;
+
+        } else {
+
+            //
+            // This is 'their' unidirectional stream, so that means just the recv
+            // path is used.
+            //
+
+            Stream->Flags.LocalNotAllowed = TRUE;
+            Stream->Flags.LocalCloseAcked = TRUE;
+            Stream->Flags.SendEnabled = FALSE;
+            Stream->Flags.HandleSendShutdown = TRUE;
+        }
+    }
 
     Status =
         QuicRangeInitialize(
@@ -126,7 +153,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamStart(
     _In_ QUIC_STREAM* Stream,
-    _In_ QUIC_STREAM_START_FLAGS Flags
+    _In_ QUIC_STREAM_START_FLAGS Flags,
+    _In_ BOOLEAN IsRemoteStream
     )
 {
     QUIC_STATUS Status;
@@ -137,7 +165,7 @@ QuicStreamStart(
         goto Exit;
     }
 
-    if (!(Flags & QUIC_STREAM_START_FLAG_REMOTE)) {
+    if (!IsRemoteStream) {
         uint8_t Type =
             QuicConnIsServer(Stream->Connection) ?
                 STREAM_ID_FLAG_IS_SERVER :
@@ -161,40 +189,22 @@ QuicStreamStart(
     }
 
     Stream->Flags.Started = TRUE;
-    QuicTraceEvent(StreamCreated, Stream, Stream->Connection, Stream->ID,
-        (!QuicConnIsServer(Stream->Connection) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
 
-    if (Stream->Flags.Unidirectional) {
-        if (!(Flags & QUIC_STREAM_START_FLAG_REMOTE)) {
-
-            //
-            // This is 'our' unidirectional stream, so that means just the send
-            // path is used.
-            //
-
-            Stream->Flags.RemoteNotAllowed = TRUE;
-            Stream->Flags.RemoteCloseAcked = TRUE;
-            Stream->Flags.ReceiveEnabled = FALSE;
-
-        } else {
-
-            //
-            // This is 'their' unidirectional stream, so that means just the recv
-            // path is used.
-            //
-
-            Stream->Flags.LocalNotAllowed = TRUE;
-            Stream->Flags.LocalCloseAcked = TRUE;
-            Stream->Flags.SendEnabled = FALSE;
-            Stream->Flags.HandleSendShutdown = TRUE;
-        }
-    }
-
+    QuicTraceEvent(StreamCreated, Stream, Stream->Connection, Stream->ID, !IsRemoteStream);
     QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
     QuicTraceEvent(StreamRecvState, Stream, QuicStreamRecvGetState(Stream));
 
     if (Stream->Flags.SendEnabled) {
         Stream->OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_APP;
+    }
+
+    if (Stream->SendFlags != 0) {
+        //
+        // Send flags were queued up before starting so we need to queue the
+        // stream data to be sent out now.
+        //
+        QuicSendQueueFlushForStream(
+            &Stream->Connection->Send, Stream, FALSE);
     }
 
     Stream->Flags.SendOpen = !!(Flags & QUIC_STREAM_START_FLAG_IMMEDIATE);
@@ -221,7 +231,7 @@ QuicStreamStart(
 
 Exit:
 
-    if (!(Flags & QUIC_STREAM_START_FLAG_REMOTE)) {
+    if (!IsRemoteStream) {
         QuicStreamIndicateStartComplete(Stream, Status);
     }
 
@@ -234,20 +244,18 @@ QuicStreamClose(
     _In_ __drv_freesMem(Mem) QUIC_STREAM* Stream
     )
 {
-    if (!Stream->Flags.Started) {
+    if (!Stream->Flags.ShutdownComplete) {
 
-        Stream->Flags.ShutdownComplete = TRUE;
-
-    } else if (!Stream->Flags.ShutdownComplete) {
-
-        //
-        // TODO - If the stream hasn't been aborted already, then this is a
-        // fatal error for the connection. The QUIC transport cannot "just pick
-        // an error" to shutdown the stream with. It must abort the entire
-        // connection.
-        //
-
-        QuicTraceLogStreamWarning(CloseWithoutShutdown, Stream, "Closing handle without fully shutting down.");
+        QUIC_CONN_VERIFY(Stream->Connection, !Stream->Flags.Started);
+        if (Stream->Flags.Started) {
+            //
+            // TODO - If the stream hasn't been aborted already, then this is a
+            // fatal error for the connection. The QUIC transport cannot "just
+            // pick an error" to shutdown the stream with. It must abort the
+            // entire connection.
+            //
+            QuicTraceLogStreamWarning(CloseWithoutShutdown, Stream, "Closing handle without fully shutting down.");
+        }
 
         //
         // Abort any pending operations.
@@ -258,6 +266,15 @@ QuicStreamClose(
                 QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE |
                 QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE,
             QUIC_ERROR_NO_ERROR);
+
+            if (!Stream->Flags.Started) {
+                //
+                // The stream was abandoned before it could be successfully
+                // started. Just mark it as completing the shutdown process now
+                // since nothing else can be done with it now.
+                //
+                Stream->Flags.ShutdownComplete = TRUE;
+            }
     }
 
     Stream->Flags.HandleClosed = TRUE;

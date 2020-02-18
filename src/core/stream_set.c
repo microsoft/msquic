@@ -593,6 +593,7 @@ QuicStreamSetGetStreamForPeer(
             QUIC_STATUS Status =
                 QuicStreamInitialize(
                     Connection,
+                    TRUE,
                     STREAM_ID_IS_UNI_DIR(StreamId), // Unidirectional
                     FrameIn0Rtt,                    // Opened0Rtt
                     &Stream);
@@ -601,7 +602,7 @@ QuicStreamSetGetStreamForPeer(
             }
 
             Stream->ID = NewStreamId;
-            Status = QuicStreamStart(Stream, QUIC_STREAM_START_FLAG_REMOTE);
+            Status = QuicStreamStart(Stream, QUIC_STREAM_START_FLAG_NONE, TRUE);
             if (QUIC_FAILED(Status)) {
                 QuicStreamRelease(Stream, QUIC_STREAM_REF_APP);
                 Stream = NULL;
