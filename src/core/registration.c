@@ -54,7 +54,7 @@ QuicRegistrationAlloc(
 
     Registration->Type = QUIC_HANDLE_TYPE_REGISTRATION;
     Registration->ClientContext = NULL;
-    Registration->PartitionCount = MsQuicLib.PartitionCount;
+    Registration->NoPartitioning = FALSE;
     Registration->ExecProfileType = ExecProfileType;
     Registration->CidPrefixLength = 0;
     Registration->CidPrefix = NULL;
@@ -78,7 +78,7 @@ QuicRegistrationAlloc(
         break;
     case QUIC_EXEC_PROF_TYPE_SCAVENGER:
         WorkerThreadFlags = 0;
-        Registration->PartitionCount = 1;
+        Registration->NoPartitioning = TRUE;
         break;
     case QUIC_EXEC_PROF_TYPE_REAL_TIME:
         WorkerThreadFlags =
@@ -92,7 +92,7 @@ QuicRegistrationAlloc(
         QuicWorkerPoolInitialize(
             Registration,
             WorkerThreadFlags,
-            Registration->PartitionCount,
+            Registration->NoPartitioning ? 1 : MsQuicLib.PartitionCount,
             &Registration->WorkerPool);
     if (QUIC_FAILED(Status)) {
         goto Error;
@@ -325,68 +325,30 @@ MsQuicSecConfigDelete(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicRegistrationGetNewPartitionID(
-    _In_ QUIC_REGISTRATION* Registration,
-    _In_ QUIC_CONNECTION* Connection
-    )
-{
-    //
-    // Initially randomize the bits in partition ID.
-    //
-    QuicRandom(sizeof(Connection->PartitionID), &Connection->PartitionID);
-
-    if (Registration->WorkerPool->WorkerCount > 1) {
-        //
-        // Assign the lower bits of connection's partition ID to the worker index
-        // of the current smallest load.
-        //
-        Connection->PartitionID =
-            (Connection->PartitionID & ~MsQuicLib.PartitionMask) |
-            QuicWorkerPoolGetLeastLoadedWorker(Registration->WorkerPool);
-    }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_CONNECTION_ACCEPT_RESULT
 QuicRegistrationAcceptConnection(
     _In_ QUIC_REGISTRATION* Registration,
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    if (!QuicIsTupleRssMode()) {
+    if (Registration->ExecProfileType == QUIC_EXEC_PROF_TYPE_MAX_THROUGHPUT) {
         //
-        // If the machine doesn't support RSS, then we need to dynamically pick
-        // a partition ID for the new connection.
+        // TODO - Figure out how to check to see if hyper-threading was enabled first
+        // TODO - Constrain ++PartitionID to the same NUMA node.
         //
-        QuicRegistrationGetNewPartitionID(Registration, Connection);
-
-    } else {
-        if (Registration->ExecProfileType == QUIC_EXEC_PROF_TYPE_MAX_THROUGHPUT) {
-            //
-            // TODO - Figure out how to check to see if hyper-threading was enabled first
-            // TODO - Constrain ++PartitionID to the same NUMA node.
-            //
-            // When hyper-threading is enabled, better bulk throughput can sometimes
-            // be gained by sharing the same physical core, but not the logical one.
-            // The shared one is always one greater than the RSS core.
-            //
-            Connection->PartitionID++;
-            Connection->PartitionID &= MsQuicLib.PartitionMask;
-        }
-
-        uint8_t RandomPartitionID;
-        QuicRandom(sizeof(RandomPartitionID), &RandomPartitionID);
-        Connection->PartitionID |= RandomPartitionID & ~MsQuicLib.PartitionMask;
-
-        QUIC_STATIC_ASSERT(
-            sizeof(Connection->PartitionID) == sizeof(RandomPartitionID),
-            L"The code above assumes 1-byte PIDs");
+        // When hyper-threading is enabled, better bulk throughput can sometimes
+        // be gained by sharing the same physical core, but not the logical one.
+        // The shared one is always one greater than the RSS core.
+        //
+        Connection->PartitionID++;
     }
 
     uint8_t Index =
-        (Connection->PartitionID & MsQuicLib.PartitionMask) %
-            Registration->PartitionCount;
+        Registration->NoPartitioning ? 0 : QuicPartitionIdGetIndex(Connection->PartitionID);
+
+    //
+    // TODO - Look for other worker instead if the proposed worker is overloaded?
+    //
 
     if (QuicWorkerIsOverloaded(&Registration->WorkerPool->Workers[Index])) {
         return QUIC_CONNECTION_REJECT_BUSY;
@@ -403,8 +365,11 @@ QuicRegistrationQueueNewConnection(
     )
 {
     uint8_t Index =
-        (Connection->PartitionID & MsQuicLib.PartitionMask) %
-            Registration->PartitionCount;
+        Registration->NoPartitioning ? 0 : QuicPartitionIdGetIndex(Connection->PartitionID);
+
+    //
+    // TODO - Look for other worker instead if the proposed worker is overloaded?
+    //
 
     QuicWorkerAssignConnection(
         &Registration->WorkerPool->Workers[Index],
