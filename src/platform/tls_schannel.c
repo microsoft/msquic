@@ -2509,7 +2509,7 @@ QuicParseTrafficSecrets(
     _Out_ QUIC_SECRET* Secret
     )
 {
-	UNREFERENCED_PARAMETER(TlsContext);
+    UNREFERENCED_PARAMETER(TlsContext);
 
     if (wcscmp(TrafficSecrets->SymmetricAlgId, BCRYPT_AES_ALGORITHM) != 0) {
         QuicTraceEvent(TlsError, TlsContext->Connection, "Unsupported symmetric algorithm");

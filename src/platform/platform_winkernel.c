@@ -79,7 +79,7 @@ QuicPlatformSystemLoad(
     _In_ PUNICODE_STRING RegistryPath
     )
 {
-	UNREFERENCED_PARAMETER(RegistryPath);
+    UNREFERENCED_PARAMETER(RegistryPath);
 
 #ifdef QUIC_LOGS_WPP
     FAST_WPP_INIT_TRACING(DriverObject, RegistryPath);
@@ -203,9 +203,9 @@ QuicPlatformLogAssert(
     _In_z_ const char* Expr
     )
 {
-	UNREFERENCED_PARAMETER(File);
-	UNREFERENCED_PARAMETER(Line);
-	UNREFERENCED_PARAMETER(Expr);
+    UNREFERENCED_PARAMETER(File);
+    UNREFERENCED_PARAMETER(Line);
+    UNREFERENCED_PARAMETER(Expr);
     QuicTraceEvent(LibraryAssert, (uint32_t)Line, File, Expr);
 }
 
