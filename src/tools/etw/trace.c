@@ -629,25 +629,25 @@ QuicTraceConnEvent(
     case EventId_QuicConnSourceCidAdded: {
         char CidStr[QUIC_CID_MAX_STR_LEN];
         CidToString(EvData->SourceCidAdd.CidLength, EvData->SourceCidAdd.Cid, CidStr);
-        printf("New Source CID: %s\n", CidStr);
+        printf("New Source CID: %s (#%llu)\n", CidStr, EvData->SourceCidAdd.SequenceNumber);
         break;
     }
     case EventId_QuicConnDestCidAdded: {
         char CidStr[QUIC_CID_MAX_STR_LEN];
         CidToString(EvData->DestCidAdd.CidLength, EvData->DestCidAdd.Cid, CidStr);
-        printf("New Destination CID: %s\n", CidStr);
+        printf("New Destination CID: %s (#%llu)\n", CidStr, EvData->SourceCidAdd.SequenceNumber);
         break;
     }
     case EventId_QuicConnSourceCidRemoved: {
         char CidStr[QUIC_CID_MAX_STR_LEN];
         CidToString(EvData->SourceCidRemove.CidLength, EvData->SourceCidRemove.Cid, CidStr);
-        printf("Removed Source CID: %s\n", CidStr);
+        printf("Removed Source CID: %s (#%llu)\n", CidStr, EvData->SourceCidAdd.SequenceNumber);
         break;
     }
     case EventId_QuicConnDestCidRemoved: {
         char CidStr[QUIC_CID_MAX_STR_LEN];
         CidToString(EvData->DestCidRemove.CidLength, EvData->DestCidRemove.Cid, CidStr);
-        printf("Removed Destination CID: %s\n", CidStr);
+        printf("Removed Destination CID: %s (#%llu)\n", CidStr, EvData->SourceCidAdd.SequenceNumber);
         break;
     }
     case EventId_QuicConnLossDetectionTimerSet: {

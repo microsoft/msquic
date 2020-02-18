@@ -101,19 +101,6 @@ void
     );
 
 typedef
-QUIC_RSS_MODE
-(*QUIC_DATAPATH_GET_RSS_MODE)(
-    _In_ QUIC_DATAPATH* Datapath
-    );
-
-typedef
-QUIC_STATUS
-(*QUIC_DATAPATH_SET_RSS_MODE)(
-    _In_ QUIC_DATAPATH* Datapath,
-    _In_ QUIC_RSS_MODE Mode
-    );
-
-typedef
 BOOLEAN
 (*QUIC_DATAPATH_IS_PADDING_PREFERRED)(
     _In_ QUIC_DATAPATH* Datapath
@@ -261,8 +248,6 @@ typedef struct QUIC_PLATFORM_DISPATCH {
     QUIC_DATAPATH_UNINITIALIZE DatapathUninitialize;
     QUIC_DATAPATH_RECVCONTEXT_TO_RECVBUFFER DatapathRecvContextToRecvPacket;
     QUIC_DATAPATH_RECVBUFFER_TO_RECVCONTEXT DatapathRecvPacketToRecvContext;
-    QUIC_DATAPATH_GET_RSS_MODE DatapathGetRssMode;
-    QUIC_DATAPATH_SET_RSS_MODE DatapathSetRssMode;
     QUIC_DATAPATH_IS_PADDING_PREFERRED DatapathIsPaddingPreferred;
     QUIC_DATAPATH_RESOLVE_ADDRESS DatapathResolveAddress;
     QUIC_DATAPATH_BINDING_CREATE DatapathBindingCreate;

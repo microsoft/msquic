@@ -69,7 +69,6 @@ MsQuicConnectionOpen(
     Connection->ClientContext = Context;
 
     QuicSessionRegisterConnection(Session, Connection);
-    QuicRegistrationGetNewPartitionID(Session->Registration, Connection);
     QuicRegistrationQueueNewConnection(Session->Registration, Connection);
 
     *NewConnection = (HQUIC)Connection;
