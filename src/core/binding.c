@@ -979,9 +979,12 @@ QuicBindingPreprocessPacket(
     return TRUE;
 }
 
+//
+// Returns TRUE if the retry token was successfully decrypted and validated.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicBindingProcessRetryToken(
+QuicBindingValidateRetryToken(
     _In_ const QUIC_BINDING* const Binding,
     _In_ const QUIC_RECV_PACKET* const Packet,
     _In_ uint16_t TokenLength,
@@ -1015,6 +1018,9 @@ QuicBindingProcessRetryToken(
     return TRUE;
 }
 
+//
+// Returns TRUE we should respond to the connection attempt with a Retry packet.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingShouldRetryConnection(
@@ -1038,10 +1044,10 @@ QuicBindingShouldRetryConnection(
         //
         // Must always validate the token when provided by the client.
         //
-        if (!QuicBindingProcessRetryToken(Binding, Packet, TokenLength, Token)) {
-            *DropPacket = TRUE;
-        } else {
+        if (QuicBindingValidateRetryToken(Binding, Packet, TokenLength, Token)) {
             Packet->ValidToken = TRUE;
+        } else {
+            *DropPacket = TRUE;
         }
         return FALSE;
     }
