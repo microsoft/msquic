@@ -19,12 +19,11 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER ListTestCases
     Lists all the test cases.
 
-.PARAMETER Serial
-    Serially runs the test cases in individual executions of msquictest.
+.PARAMETER ExecutionMode
+    Controls the execution mode when running each test case.
 
-.PARAMETER Parallel
-    Runs the test cases in parallel and individual executions of msquictest.
-    Log collection not currently supported.
+.PARAMETER IsolationMode
+    Controls the isolation mode when running each test case.
 
 .PARAMETER KeepOutputOnSuccess
     Don't discard console output or logs on success.
@@ -90,10 +89,12 @@ param (
     [switch]$ListTestCases = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Serial = $false,
+    [ValidateSet("Serial", "Parallel")]
+    [string]$ExecutionMode = "Serial",
 
     [Parameter(Mandatory = $false)]
-    [switch]$Parallel = $false,
+    [ValidateSet("Batch", "Isolated")]
+    [string]$IsolationMode = "Batch",
 
     [Parameter(Mandatory = $false)]
     [switch]$KeepOutputOnSuccess = $false,
@@ -139,18 +140,12 @@ if ($IsWindows) {
 }
 
 # Build up all the arguments to pass to the Powershell script.
-$Arguments = "-Path $($MsQuicTest)"
+$Arguments = "-Path $($MsQuicTest) -ExecutionMode $($ExecutionMode) -IsolationMode $($IsolationMode)"
 if ("" -ne $Filter) {
     $Arguments += " -Filter $($Filter)"
 }
 if ($ListTestCases) {
     $Arguments += " -ListTestCases"
-}
-if ($Serial) {
-    $Arguments += " -Serial"
-}
-if ($Parallel) {
-    $Arguments += " -Parallel"
 }
 if ($KeepOutputOnSuccess) {
     $Arguments += " -KeepOutputOnSuccess"

@@ -14,12 +14,11 @@ as necessary.
 .PARAMETER ListTestCases
     Lists all the test cases.
 
-.PARAMETER Serial
-    Serially runs the test cases in individual executions of msquictest.
+.PARAMETER ExecutionMode
+    Controls the execution mode when running each test case.
 
-.PARAMETER Parallel
-    Runs the test cases in parallel and individual executions of msquictest.
-    Log collection not currently supported.
+.PARAMETER IsolationMode
+    Controls the isolation mode when running each test case.
 
 .PARAMETER KeepOutputOnSuccess
     Don't discard console output or logs on success.
@@ -58,10 +57,12 @@ param (
     [switch]$ListTestCases = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Serial = $false,
+    [ValidateSet("Serial", "Parallel")]
+    [string]$ExecutionMode = "Serial",
 
     [Parameter(Mandatory = $false)]
-    [switch]$Parallel = $false,
+    [ValidateSet("Batch", "Isolated")]
+    [string]$IsolationMode = "Batch",
 
     [Parameter(Mandatory = $false)]
     [switch]$KeepOutputOnSuccess = $false,
@@ -317,7 +318,7 @@ function Wait-TestCase($TestCase) {
     $TestCase.Process.WaitForExit()
 
     # Add the current test case results.
-    if ($Serial -or $Parallel) {
+    if ($IsolationMode -ne "Batch") {
         Add-XmlResults $TestCase
     }
 
@@ -325,7 +326,7 @@ function Wait-TestCase($TestCase) {
         $AnyProcessCrashes = $true;
     }
 
-    if (!$Serial -and !$Parallel) {
+    if ($IsolationMode -eq "Batch") {
         if ($null -ne $stdout -and "" -ne $stdout) {
             Write-Host $stdout
         }
@@ -421,55 +422,58 @@ if ($ListTestCases) {
 }
 
 # Log collection doesn't work for parallel right now.
-if ($Debugger -and $Parallel) {
-    Log "Warning: Disabling parallel for debugger runs!"
-    $Parallel = $false
+if ($Debugger -and $ExecutionMode -eq "Parallel") {
+    Log "Warning: Disabling parallel execution for debugger runs!"
+    $ExecutionMode = "IsolatedSerial"
 }
 
 try {
-    if ($Serial) {
-        # Run the test cases serially.
-        Log "Executing $($TestCases.Length) tests in series..."
-        for ($i = 0; $i -lt $TestCases.Length; $i++) {
-            Wait-TestCase (Start-TestCase $TestCases[$i])
-            Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+    if ($IsolationMode -eq "Batch") {
+        # Batch/Parallel is an unsupported combination.
+        if ($ExecutionMode -eq "Parallel") {
+            Log "Warning: Disabling parallel execution for batch runs!"
+            $ExecutionMode = "IsolatedSerial"
         }
 
-    } elseif ($Parallel) {
-        # Log collection doesn't work for parallel right now.
-        if ($LogProfile -ne "None") {
-            Log "Warning: Disabling log collection for parallel runs!"
-            $LogProfile = "None"
-        }
-
-        # Starting the test cases all in parallel.
-        Log "Starting $($TestCases.Length) tests in parallel..."
-        $Runs = New-Object System.Collections.ArrayList
-        for ($i = 0; $i -lt $TestCases.Length; $i++) {
-            $Runs.Add((Start-TestCase $TestCases[$i])) | Out-Null
-            Write-Progress -Activity "Starting tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
-            Start-Sleep -Milliseconds 1
-        }
-
-        # Wait for the test cases to complete.
-        Log "Waiting for test cases to complete..."
-        for ($i = 0; $i -lt $Runs.Count; $i++) {
-            Wait-TestCase $Runs[$i]
-            Write-Progress -Activity "Finishing tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
-        }
-
-    } else {
         # Run the the test process once for all tests.
         Log "Executing tests in batch..."
         Wait-TestCase (Start-AllTestCases)
+
+    } else {
+        if ($ExecutionMode -eq "Serial") {
+            # Run the test cases serially.
+            Log "Executing $($TestCases.Length) tests in series..."
+            for ($i = 0; $i -lt $TestCases.Length; $i++) {
+                Wait-TestCase (Start-TestCase $TestCases[$i])
+                Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+            }
+
+        } else {
+            # Log collection doesn't work for parallel right now.
+            if ($LogProfile -ne "None") {
+                Log "Warning: Disabling log collection for parallel runs!"
+                $LogProfile = "None"
+            }
+
+            # Starting the test cases all in parallel.
+            Log "Starting $($TestCases.Length) tests in parallel..."
+            $Runs = New-Object System.Collections.ArrayList
+            for ($i = 0; $i -lt $TestCases.Length; $i++) {
+                $Runs.Add((Start-TestCase $TestCases[$i])) | Out-Null
+                Write-Progress -Activity "Starting tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+                Start-Sleep -Milliseconds 1
+            }
+
+            # Wait for the test cases to complete.
+            Log "Waiting for test cases to complete..."
+            for ($i = 0; $i -lt $Runs.Count; $i++) {
+                Wait-TestCase $Runs[$i]
+                Write-Progress -Activity "Finishing tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+            }
+        }
     }
 } finally {
-    if ($Serial -or $Parallel) {
-        if ($GenerateXmlResults) {
-            # Save the xml results.
-            $XmlResults.Save($FinalResultsPath) | Out-Null
-        }
-    } else {
+    if ($IsolationMode -eq "Batch") {
         if (Test-Path $FinalResultsPath) {
             $XmlResults = [xml](Get-Content $FinalResultsPath)
             if (!$GenerateXmlResults) {
@@ -486,6 +490,11 @@ try {
                 # Save the xml results.
                 $XmlResults.Save($FinalResultsPath) | Out-Null
             }
+        }
+    } else {
+        if ($GenerateXmlResults) {
+            # Save the xml results.
+            $XmlResults.Save($FinalResultsPath) | Out-Null
         }
     }
 
