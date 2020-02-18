@@ -1019,7 +1019,8 @@ QuicBindingValidateRetryToken(
 }
 
 //
-// Returns TRUE we should respond to the connection attempt with a Retry packet.
+// Returns TRUE if we should respond to the connection attempt with a Retry
+// packet.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
