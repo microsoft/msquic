@@ -25,28 +25,6 @@ public:
     }
 };
 
-struct TestLogger {
-    const char* TestName;
-    TestLogger(const char* Name) : TestName(Name) {
-        QuicTraceLogInfo("[test] START %s", TestName);
-    }
-    ~TestLogger() {
-        QuicTraceLogInfo("[test] END %s", TestName);
-    }
-};
-
-template<class T>
-struct TestLoggerT {
-    const char* TestName;
-    TestLoggerT(const char* Name, const T& Params) : TestName(Name) {
-        std::ostringstream stream; stream << Params;
-        QuicTraceLogInfo("[test] START %s, %s", TestName, stream.str().c_str());
-    }
-    ~TestLoggerT() {
-        QuicTraceLogInfo("[test] END %s", TestName);
-    }
-};
-
 int main(int argc, char** argv) {
     ::testing::AddGlobalTestEnvironment(new QuicCoreTestEnvironment);
     ::testing::InitGoogleTest(&argc, argv);
