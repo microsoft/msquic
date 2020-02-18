@@ -463,7 +463,7 @@ QuicTraceStubVarArgs(
     UNREFERENCED_PARAMETER(Fmt);
 }
 
-#define IGNORE_FIRST_PARAM(A, ...) 
+#define IGNORE_FIRST_PARAM(A, ...) QuicTraceStubVarArgs(__VA_ARGS__)
 
 #define QuicTraceLogError(...) QuicTraceStubVarArgs(__VA_ARGS__)
 #define QuicTraceLogWarning(...) QuicTraceStubVarArgs(__VA_ARGS__)

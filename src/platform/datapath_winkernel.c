@@ -1879,7 +1879,7 @@ QuicDataPathSocketReceive(
             QUIC_DBG_ASSERT(DataLength <= MAXUINT16);
             if (DataLength > MAXUINT16) {
                 QuicTraceLogWarning("[%p] Dropping datagram with too many bytes (%llu).",
-                    SocketContext, DataLength);
+                    SocketContext, (uint64_t)DataLength);
                 goto Drop;
             }
             MessageLength = (UINT16)DataLength;
