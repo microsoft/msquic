@@ -875,6 +875,10 @@
                 name="Connection"
                 />
             <data
+                inType="win:UInt64"
+                name="SequenceNumber"
+                />
+            <data
                 inType="win:UInt8"
                 name="CidLength"
                 />

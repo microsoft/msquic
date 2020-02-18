@@ -248,6 +248,11 @@ typedef struct QUIC_DATAPATH_PROC_CONTEXT {
     int EventFd;
 
     //
+    // The index of the context in the datapath's array.
+    //
+    uint32_t Index;
+
+    //
     // The epoll wait thread.
     //
     QUIC_THREAD EpollWaitThread;
@@ -285,12 +290,6 @@ typedef struct QUIC_DATAPATH {
     // TODO: See how send batching can be enabled.
     //
     uint8_t MaxSendBatchSize;
-
-    //
-    // The RSS mode (4-tuple, 2-tuple or connectionid) in use.
-    // TODO: See how to set and use this.
-    //
-    QUIC_RSS_MODE RssMode;
 
     //
     // A reference rundown on the datapath binding.
@@ -340,6 +339,7 @@ QuicDataPathWorkerThread(
 QUIC_STATUS
 QuicProcessorContextInitialize(
     _In_ QUIC_DATAPATH* Datapath,
+    _In_ uint32_t Index,
     _Out_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
@@ -355,6 +355,7 @@ QuicProcessorContextInitialize(
     RecvPacketLength =
         sizeof(QUIC_DATAPATH_RECV_BLOCK) + Datapath->ClientRecvContextLength;
 
+    ProcContext->Index = Index;
     QuicPoolInitialize(TRUE, RecvPacketLength, &ProcContext->RecvBlockPool);
     QuicPoolInitialize(TRUE, MAX_UDP_PAYLOAD_LENGTH, &ProcContext->SendBufferPool);
     QuicPoolInitialize(
@@ -502,7 +503,7 @@ QuicDataPathInitialize(
     // Initialize the per processor contexts.
     //
     for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
-        Status = QuicProcessorContextInitialize(Datapath, &Datapath->ProcContexts[i]);
+        Status = QuicProcessorContextInitialize(Datapath, i, &Datapath->ProcContexts[i]);
         if (QUIC_FAILED(Status)) {
             Datapath->Shutdown = TRUE;
             for (uint32_t j = 0; j < i; j++) {
@@ -558,19 +559,6 @@ QuicDataPathGetSupportedFeatures(
 {
     UNREFERENCED_PARAMETER(Datapath);
     return 0;
-}
-
-QUIC_RSS_MODE
-QuicDataPathGetRssMode(
-    _In_ QUIC_DATAPATH* Datapath
-    )
-{
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->DatapathGetRssMode(Datapath);
-#else
-    UNREFERENCED_PARAMETER(Datapath);
-    return QUIC_RSS_NONE;
-#endif
 }
 
 BOOLEAN
@@ -927,10 +915,6 @@ QuicSocketContextInitialize(
             QuicTraceLogError("[ dal] connect failed, 0x%x.", Status);
             goto Exit;
         }
-
-        //
-        // TODO: TODO Rss affinity. See Windows implementation.
-        //
     }
 
     //
@@ -1086,6 +1070,7 @@ Error:
 void
 QuicSocketContextRecvComplete(
     _In_ QUIC_SOCKET_CONTEXT* SocketContext,
+    _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext,
     _In_ ssize_t BytesTransferred
     )
 {
@@ -1158,6 +1143,8 @@ QuicSocketContextRecvComplete(
 
     QUIC_DBG_ASSERT(BytesTransferred <= RecvPacket->BufferLength);
     RecvPacket->BufferLength = BytesTransferred;
+
+    RecvPacket->PartitionIndex = ProcContext->Index;
 
     QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->RecvHandler);
     SocketContext->Binding->Datapath->RecvHandler(
@@ -1375,7 +1362,7 @@ QuicSocketContextProcessEvents(
                 }
                 break;
             } else {
-                QuicSocketContextRecvComplete(SocketContext, Ret);
+                QuicSocketContextRecvComplete(SocketContext, ProcContext, Ret);
             }
         }
     }

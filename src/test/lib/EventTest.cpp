@@ -100,13 +100,16 @@ struct ConnValidator {
     HQUIC Handle;
     ConnEventValidator** ExpectedEvents;
     uint32_t CurrentEvent;
+    bool IgnoreIdealProcChangedEvents;
     QUIC_EVENT Complete;
-    ConnValidator() :
-        Handle(nullptr), ExpectedEvents(nullptr), CurrentEvent(0) {
+    ConnValidator(bool ignoreIdealProcChangedEvents = true) :
+        Handle(nullptr), ExpectedEvents(nullptr), CurrentEvent(0),
+        IgnoreIdealProcChangedEvents(ignoreIdealProcChangedEvents) {
         QuicEventInitialize(&Complete, TRUE, FALSE);
     }
-    ConnValidator(ConnEventValidator** expectedEvents) :
-        Handle(nullptr), ExpectedEvents(expectedEvents), CurrentEvent(0) {
+    ConnValidator(ConnEventValidator** expectedEvents, bool ignoreIdealProcChangedEvents = true) :
+        Handle(nullptr), ExpectedEvents(expectedEvents), CurrentEvent(0),
+        IgnoreIdealProcChangedEvents(ignoreIdealProcChangedEvents) {
         QuicEventInitialize(&Complete, TRUE, FALSE);
     }
     ~ConnValidator() {
@@ -126,6 +129,11 @@ struct ConnValidator {
         ExpectedEvents = expectedEvents;
     }
     void ValidateEvent(_Inout_ QUIC_CONNECTION_EVENT* Event) {
+        if (IgnoreIdealProcChangedEvents &&
+            Event->Type == QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED) {
+            return;
+        }
+
         do {
             TEST_NOT_EQUAL(ExpectedEvents[CurrentEvent], nullptr);
             ExpectedEvents[CurrentEvent]->Validate(Handle, Event);
@@ -225,7 +233,7 @@ QuicTestValidateConnectionEvents1(
     )
 {
     ConnValidator Client(
-        new ConnEventValidator* [3] {
+        new ConnEventValidator* [4] {
             new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
@@ -238,7 +246,8 @@ QuicTestValidateConnectionEvents1(
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
-        }
+        },
+        false
     );
 
     MsQuic->SetContext(Listener, &Server);
@@ -285,7 +294,7 @@ QuicTestValidateConnectionEvents2(
     )
 {
     ConnValidator Client(
-        new ConnEventValidator* [4] {
+        new ConnEventValidator* [5] {
             new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
@@ -298,7 +307,8 @@ QuicTestValidateConnectionEvents2(
             new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
-        }
+        },
+        false
     );
 
     MsQuic->SetContext(Listener, &Server);
@@ -379,7 +389,7 @@ QuicTestValidateStreamEvents1(
     TEST_TRUE(Session.IsValid());
 
     { // Connections scope
-    ConnValidator Client, Server;
+    ConnValidator Client, Server(false);
 
     MsQuic->SetContext(Listener, &Server);
 
@@ -427,7 +437,7 @@ QuicTestValidateStreamEvents1(
         });
 
     Client.SetExpectedEvents(
-        new ConnEventValidator* [5] {
+        new ConnEventValidator* [6] {
             new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
@@ -485,7 +495,7 @@ QuicTestValidateStreamEvents2(
     TEST_TRUE(Session.IsValid());
 
     { // Connections scope
-    ConnValidator Client, Server;
+    ConnValidator Client, Server(false);
 
     MsQuic->SetContext(Listener, &Server);
 
@@ -525,7 +535,7 @@ QuicTestValidateStreamEvents2(
         });
 
     Client.SetExpectedEvents(
-        new ConnEventValidator* [6] {
+        new ConnEventValidator* [7] {
             new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),

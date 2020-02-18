@@ -124,9 +124,21 @@ QuicIsVersionSupported(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-QuicIsTupleRssMode(
+uint8_t
+QuicLibraryGetCurrentPartition(
     void
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint8_t
+QuicPartitionIdCreate(
+    uint8_t BaseIndex
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint8_t
+QuicPartitionIdGetIndex(
+    uint8_t PartitionId
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -362,11 +374,6 @@ QuicPacketEncodeShortHeaderV1(
 QUIC_PACKET_KEY_TYPE
 QuicEncryptLevelToKeyType(
     QUIC_ENCRYPT_LEVEL Level
-    );
-
-BOOLEAN
-QuicIsTupleRssMode(
-    void
     );
 
 BOOLEAN
