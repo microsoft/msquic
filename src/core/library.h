@@ -193,13 +193,43 @@ extern QUIC_LIBRARY MsQuicLib;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
-BOOLEAN
-QuicIsTupleRssMode(
+uint8_t
+QuicLibraryGetCurrentPartition(
     void
     )
 {
-    QUIC_RSS_MODE RssMode = QuicDataPathGetRssMode(MsQuicLib.Datapath);
-    return RssMode == QUIC_RSS_2_TUPLE || RssMode == QUIC_RSS_4_TUPLE;
+    return ((uint8_t)QuicProcCurrentNumber()) % MsQuicLib.PartitionCount;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+uint8_t
+QuicPartitionIdCreate(
+    uint8_t BaseIndex
+    )
+{
+    QUIC_DBG_ASSERT(BaseIndex < MsQuicLib.PartitionCount);
+    //
+    // Generate a partition ID which is a combination of random high bits and
+    // the actual partitioning index encoded in the low bits.
+    //
+    // N.B. The following logic can leak the number of partitions if not a power
+    // of two. This is because we use a bit mask to split the two parts of the
+    // ID.
+    //
+    uint8_t PartitionId;
+    QuicRandom(sizeof(PartitionId), &PartitionId);
+    return (PartitionId & ~MsQuicLib.PartitionMask) | BaseIndex;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+uint8_t
+QuicPartitionIdGetIndex(
+    uint8_t PartitionId
+    )
+{
+    return (PartitionId & MsQuicLib.PartitionMask) % MsQuicLib.PartitionCount;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

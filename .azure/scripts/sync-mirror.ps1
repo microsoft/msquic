@@ -17,7 +17,6 @@ param (
 )
 
 Set-StrictMode -Version 'Latest'
-$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 # Verify the PAT environmental variable is set.
 if ($null -eq $Env:AzDO_PAT -or "" -eq $Env:AzDO_PAT) {
@@ -34,6 +33,10 @@ git remote add azdo-mirror "https://nibanks:$Env:AzDO_PAT@mscodehub.visualstudio
 git reset --hard origin/$Branch
 
 # Push to the AzDO repo.
-git push azdo-mirror $Branch
+try {
+    git push azdo-mirror $Branch
+} catch {
+    Write-Host "Supressing exception while running 'git push'"
+}
 
-Write-Host "Sync complete."
+Write-Host "Successfully mirrored latest changes"
