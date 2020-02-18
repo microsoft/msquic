@@ -895,16 +895,6 @@ QuicBindingQueueStatelessReset(
     QUIC_DBG_ASSERT(!Binding->Exclusive);
     QUIC_DBG_ASSERT(!((QUIC_SHORT_HEADER_V1*)Datagram->Buffer)->IsLongHeader);
 
-    //
-    // We don't respond to long header packets because the peer generally
-    // doesn't even have the stateless reset token yet. We don't respond to
-    // small short header packets because it could cause an infinite loop.
-    //
-    const QUIC_SHORT_HEADER_V1* Header = (QUIC_SHORT_HEADER_V1*)Datagram->Buffer;
-    if (Header->IsLongHeader) {
-        return FALSE; // No packet drop log, because it was already logged in QuicBindingShouldCreateConnection.
-    }
-
     if (Datagram->BufferLength <= QUIC_MIN_STATELESS_RESET_PACKET_LENGTH) {
         QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
             "Packet too short for stateless reset");
@@ -1037,12 +1027,11 @@ QuicBindingShouldRetryConnection(
     )
 {
     //
-    // The function is only called once QuicBindingShouldCreateConnection has
-    // already returned TRUE. If there is a token, it validates the token. If
-    // there is no token, then the function checks to see if the binding
-    // currently has too many connections in the handshake state already. If so,
-    // it requests the client to retry its connection attempt to prove source
-    // address ownership.
+    // This is only called once we've determined we can create a new connection.
+    // If there is a token, it validates the token. If there is no token, then
+    // the function checks to see if the binding currently has too many
+    // connections in the handshake state already. If so, it requests the client
+    // to retry its connection attempt to prove source address ownership.
     //
 
     if (TokenLength != 0) {
