@@ -24,7 +24,7 @@ uint64_t Encode(uint64_t Value)
 uint64_t Decode(uint64_t Encoded)
 {
     uint64_t Decoded;
-    UINT16 Offset = 0;
+    uint16_t Offset = 0;
     EXPECT_NE(QuicVarIntDecode(sizeof(Encoded), (uint8_t*)&Encoded, &Offset, &Decoded), (BOOLEAN)0);
     return Decoded;
 }
