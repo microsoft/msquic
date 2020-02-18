@@ -101,12 +101,11 @@ function Log-Stop {
         wpr.exe -stop $EtlPath -instancename $InstanceName
         if ($ConvertToText) {
             $LogPath = Join-Path $OutputDirectory "quic.log"
-            $Arguments = "netsh trace convert $($EtlPath) output=$($LogPath) overwrite=yes report=no"
+            $Command = "netsh trace convert $($EtlPath) output=$($LogPath) overwrite=yes report=no"
             if ($TmfPath -ne "") {
-                $Arguments += " tmfpath=$($TmfPath)"
+                $Command += " tmfpath=$($TmfPath)"
             }
-            #$Arguments
-            Invoke-Expression $Arguments
+            Invoke-Expression $Command
         }
     } else {
         # TODO

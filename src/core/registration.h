@@ -26,13 +26,14 @@ typedef struct QUIC_REGISTRATION {
     //
     // The calling app is being verified (app or driver verifier).
     //
-    BOOLEAN IsVerifying;
+    BOOLEAN IsVerifying : 1;
 #endif
 
     //
-    // Number of partitions currently being used.
+    // Indicates whether or not the registration is partitioned into multiple
+    // workers.
     //
-    uint8_t PartitionCount;
+    BOOLEAN NoPartitioning : 1;
 
     //
     // App configured network profile type.
@@ -103,17 +104,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicRegistrationSettingsChanged(
     _Inout_ QUIC_REGISTRATION* Registration
-    );
-
-//
-// Dynamically calculates a partition ID for the connection. The calculation
-// is attempts to dynamically spread the load among the existing workers.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicRegistrationGetNewPartitionID(
-    _In_ QUIC_REGISTRATION* Registration,
-    _In_ QUIC_CONNECTION* Connection
     );
 
 //

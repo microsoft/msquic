@@ -375,11 +375,6 @@ typedef struct QUIC_DATAPATH {
     uint32_t Features;
 
     //
-    // Current receive side scaling mode.
-    //
-    QUIC_RSS_MODE RssMode;
-
-    //
     // The registration with WinSock Kernel.
     //
     WSK_REGISTRATION WskRegistration;
@@ -594,7 +589,6 @@ QuicDataPathQueryRssScalabilityInfo(
 
     if (RssInfo.RssEnabled) {
         Datapath->Features |= QUIC_DATAPATH_FEATURE_RECV_SIDE_SCALING;
-        Datapath->RssMode = QUIC_RSS_2_TUPLE;
     }
 
 Error:
@@ -936,15 +930,6 @@ QuicDataPathGetSupportedFeatures(
     )
 {
     return Datapath->Features;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_RSS_MODE
-QuicDataPathGetRssMode(
-    _In_ QUIC_DATAPATH* Datapath
-    )
-{
-    return Datapath->RssMode;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1954,6 +1939,7 @@ QuicDataPathSocketReceive(
 
             QUIC_DBG_ASSERT(Datagram != NULL);
             Datagram->Next = NULL;
+            Datagram->PartitionIndex = (uint8_t)QuicProcCurrentNumber();
             Datagram->Allocated = TRUE;
             Datagram->QueuedOnConnection = FALSE;
 

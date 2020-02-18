@@ -336,13 +336,13 @@ QuicEtwCallback(
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] Recovery exit", Connection)
 #define EventWriteQuicConnRundown(Connection, IsServer, CorrelationId) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] Rundown, Server=%u, CorrelationId=%llu", Connection, IsServer, CorrelationId)
-#define EventWriteQuicConnSourceCidAdded(Connection, CidLen, Cid) \
+#define EventWriteQuicConnSourceCidAdded(Connection, SequenceNumber, CidLen, Cid) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] New Source CID: TODO", Connection)
-#define EventWriteQuicConnDestCidAdded(Connection, CidLen, Cid) \
+#define EventWriteQuicConnDestCidAdded(Connection, SequenceNumber, CidLen, Cid) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] New Destination CID: TODO", Connection)
-#define EventWriteQuicConnSourceCidRemoved(Connection, CidLen, Cid) \
+#define EventWriteQuicConnSourceCidRemoved(Connection, SequenceNumber, CidLen, Cid) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] Removed Source CID: TODO", Connection)
-#define EventWriteQuicConnDestCidRemoved(Connection, CidLen, Cid) \
+#define EventWriteQuicConnDestCidRemoved(Connection, SequenceNumber, CidLen, Cid) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] Removed Destination CID: TODO", Connection)
 #define EventWriteQuicConnLossDetectionTimerSet(Connection, TimerType, DelayMs, ProbeCount) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] Setting loss detection timer (type %u) for %u ms. (ProbeCount=%hu)", TimerType, DelayMs, ProbeCount)
