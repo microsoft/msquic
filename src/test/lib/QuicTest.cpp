@@ -644,6 +644,7 @@ PingStreamShutdown(
 
 #if !QUIC_SEND_FAKE_LOSS
     if (!ConnState->GetPingStats()->ServerInitiatedStreams &&
+        !ConnState->GetPingStats()->FifoScheduling &&
         ConnState->GetPingStats()->ZeroRtt) {
         if (Stream->GetBytesReceived() != 0 && // TODO - Support 0-RTT indication for Stream Open callback.
             !Stream->GetUsedZeroRtt()) {
@@ -754,8 +755,8 @@ ListenerAcceptPingConnection(
 
         Connection->SetPriorityScheme(
             Stats->FifoScheduling ?
-                QUIC_STREAM_SCHEDULING_FIFO :
-                QUIC_STREAM_SCHEDULING_ROUND_ROBIN);
+                QUIC_STREAM_SCHEDULING_SCHEME_FIFO :
+                QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN);
 
         if (Stats->ServerInitiatedStreams) {
             SendPingBurst(
@@ -797,8 +798,8 @@ NewPingConnection(
 
     Connection->SetPriorityScheme(
         ClientStats->FifoScheduling ?
-            QUIC_STREAM_SCHEDULING_FIFO :
-            QUIC_STREAM_SCHEDULING_ROUND_ROBIN);
+            QUIC_STREAM_SCHEDULING_SCHEME_FIFO :
+            QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN);
 
     if (ClientStats->ServerInitiatedStreams) {
         Connection->SetPeerUnidiStreamCount((uint16_t)ClientStats->StreamCount);

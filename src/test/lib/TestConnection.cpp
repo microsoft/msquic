@@ -618,11 +618,11 @@ TestConnection::GetPriorityScheme()
         MsQuic->GetParam(
             QuicConnection,
             QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_STREAM_SCHED_SCHEME,
+            QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME,
             &valueSize,
             &value);
     if (QUIC_FAILED(Status)) {
-        value = QUIC_STREAM_SCHEDULING_FIFO;
+        value = QUIC_STREAM_SCHEDULING_SCHEME_FIFO;
         TEST_FAILURE("MsQuic->GetParam(CONN_PRIORITY_SCHEME) failed, 0x%x.", Status);
     }
     return value;
@@ -637,7 +637,7 @@ TestConnection::SetPriorityScheme(
         MsQuic->SetParam(
             QuicConnection,
             QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_STREAM_SCHED_SCHEME,
+            QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME,
             sizeof(value),
             &value);
 }

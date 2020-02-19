@@ -798,7 +798,7 @@ QuicSendGetNextStream(
         //
         if (QuicSendCanSendStreamNow(Stream)) {
 
-            if (Connection->State.UsePriorityRoundRobin) {
+            if (Connection->State.UseRoundRobinStreamScheduling) {
                 //
                 // Move the stream to the end of the queue.
                 //
