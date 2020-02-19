@@ -48,8 +48,6 @@ On Windows 10, MsQuic relies on built-in support from [Schannel](https://docs.mi
 
 > **Important** This configuration does not support 0-RTT due to Schannel's current lack of support.
 
- In the future, older Windows OS versions may be supported by using OpenSSL.
-
 ## Linux
 
 On Linux, MsQuic relies on [OpenSSL](https://www.openssl.org/) for TLS 1.3 functionality.
