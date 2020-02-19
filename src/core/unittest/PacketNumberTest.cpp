@@ -17,7 +17,7 @@ Abstract:
 
 struct DecompressEntry {
     uint64_t HighestReceived;
-    UINT8  CompressedBytes;
+    uint8_t  CompressedBytes;
     uint64_t Compressed;
     uint64_t PacketNumber;
 };
@@ -57,7 +57,7 @@ TEST(PacketNumberTest, WellKnownDecompress)
         { 0x35, 4, 0xFFFFFFFFull, 0xFFFFFFFFull }
     };
 
-    for (UINT8 i = 0; i < ARRAYSIZE(Entries); i++) {
+    for (uint8_t i = 0; i < ARRAYSIZE(Entries); i++) {
         TEST_EQUAL(
             QuicPktNumDecompress(
                 Entries[i].HighestReceived + 1,
