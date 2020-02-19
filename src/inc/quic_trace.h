@@ -171,7 +171,10 @@ QuicEtwCallback(
 //
 #define MCGEN_PRIVATE_ENABLE_CALLBACK_V2 QuicEtwCallback
 
+#pragma warning(push) // Don't care about warnings from generated files
+#pragma warning(disable:6001)
 #include "MsQuicEtw.h"
+#pragma warning(pop)
 
 #define QuicTraceEventEnabled(Name) EventEnabledQuic##Name()
 #define _QuicTraceEvent(Name, Args) EventWriteQuic##Name##Args
@@ -589,7 +592,11 @@ log_hexbuf(const void* Buffer, UINT32 Length) {
 
 #ifdef QUIC_LOGS_MANIFEST_ETW
 
+#pragma warning(push) // Don't care about warnings from generated files
+#pragma warning(disable:6001)
 #include "MsQuicEtw.h"
+#pragma warning(pop)
+
 #include <stdio.h>
 
 #define QuicTraceLogErrorEnabled()   EventEnabledQuicLogError()

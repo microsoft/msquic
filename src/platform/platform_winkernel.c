@@ -79,13 +79,19 @@ QuicPlatformSystemLoad(
     _In_ PUNICODE_STRING RegistryPath
     )
 {
+    UNREFERENCED_PARAMETER(RegistryPath);
+
 #ifdef QUIC_LOGS_WPP
     FAST_WPP_INIT_TRACING(DriverObject, RegistryPath);
 #endif
 
+#ifdef QUIC_EVENTS_MANIFEST_ETW
     EventRegisterMicrosoft_Quic();
+#endif
 
+#ifdef QUIC_TELEMETRY_ASSERTS
     InitializeTelemetryAssertsKM(RegistryPath);
+#endif
 
     QuicPlatform.DriverObject = DriverObject;
     (VOID)KeQueryPerformanceCounter((LARGE_INTEGER*)&QuicPlatformPerfFreq);
@@ -103,8 +109,14 @@ QuicPlatformSystemUnload(
 {
     PAGED_CODE();
     QuicTraceLogInfo("[ sys] Unloaded");
+
+#ifdef QUIC_TELEMETRY_ASSERTS
     UninitializeTelemetryAssertsKM();
+#endif
+
+#ifdef QUIC_EVENTS_MANIFEST_ETW
     EventUnregisterMicrosoft_Quic();
+#endif
 
 #ifdef QUIC_LOGS_WPP
     FAST_WPP_CLEANUP(QuicPlatform.DriverObject);
@@ -191,6 +203,9 @@ QuicPlatformLogAssert(
     _In_z_ const char* Expr
     )
 {
+    UNREFERENCED_PARAMETER(File);
+    UNREFERENCED_PARAMETER(Line);
+    UNREFERENCED_PARAMETER(Expr);
     QuicTraceEvent(LibraryAssert, (uint32_t)Line, File, Expr);
 }
 
@@ -212,6 +227,8 @@ QuicRandom(
             BufferLen,
             0);
 }
+
+#ifdef QUIC_EVENTS_MANIFEST_ETW
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _IRQL_requires_same_
@@ -245,3 +262,5 @@ QuicEtwCallback(
         break;
     }
 }
+
+#endif

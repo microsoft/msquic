@@ -5,12 +5,15 @@
 
 --*/
 
+#pragma warning(disable:4100)  // unreferenced formal parameter
+#pragma warning(disable:4189)  // local variable is initialized but not referenced
 #pragma warning(disable:4200)  // nonstandard extension used: bit field types other than int
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
 #pragma warning(disable:4204)  // nonstandard extension used: non-constant aggregate initializer
 #pragma warning(disable:4214)  // nonstandard extension used: zero-sized array in struct/union
 #pragma warning(disable:4324)  // structure was padded due to alignment specifier
 #pragma warning(disable:26035) // Precondition Nulltermination Violation
+#pragma warning(disable:26451) // Arithmetic overflow: Using operator '+' on a 4 byte value and then casting the result to a 8 byte value.
 #pragma warning(disable:28931) // Unused Assignment
 
 //
