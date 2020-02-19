@@ -1050,8 +1050,8 @@ QuicTestServerDisconnect(
     void
     )
 {
-    PingStats ServerStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, TRUE, QUIC_STATUS_CONNECTION_TIMEOUT);
-    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, TRUE);
+    PingStats ServerStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, TRUE, FALSE, TRUE, QUIC_STATUS_CONNECTION_TIMEOUT);
+    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, TRUE, FALSE, TRUE);
 
     {
         MsQuicSession Session;
@@ -1158,7 +1158,7 @@ QuicTestClientDisconnect(
     // back to the client as it continues to receive the client's UDP packets.
     //
 
-    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, FALSE, FALSE, TRUE,
+    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, FALSE, TRUE,
         StopListenerFirst ? QUIC_STATUS_CONNECTION_TIMEOUT : QUIC_STATUS_ABORTED);
 
     {
