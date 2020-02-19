@@ -674,14 +674,14 @@ QUIC_THREAD_CALLBACK(InteropTestCallback, Context)
 
 void
 StartTest(
-    _In_ uint32_t EndpointIndex,
+    _In_ uint32_t EndpointIdx,
     _In_ const char* Alpn,
     _In_ uint16_t Port,
     _In_ QuicTestFeature Feature
     )
 {
     auto TestContext = new InteropTestContext;
-    TestContext->EndpointIndex = EndpointIndex;
+    TestContext->EndpointIndex = EndpointIdx;
     TestContext->Alpn = Alpn;
     TestContext->Port = Port;
     TestContext->Feature = Feature;

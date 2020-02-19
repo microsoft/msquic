@@ -611,37 +611,45 @@ QUIC_TRACE_EVENT(ConnRundown,
 QUIC_TRACE_EVENT(ConnSourceCidAdded,
     TP_ARGS(
         const void*, Connection,
+        uint64_t, SequenceNumber,
         uint8_t, CidLength,
         const void*, Cid),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, Connection, Connection)
+        ctf_integer_hex(uint64_t, SequenceNumber, SequenceNumber)
         /*ctf_sequence_hex(uint8_t, Cid, Cid, uint8_t, CidLength)*/)
 )
 QUIC_TRACE_EVENT(ConnDestCidAdded,
     TP_ARGS(
         const void*, Connection,
+        uint64_t, SequenceNumber,
         uint8_t, CidLength,
         const void*, Cid),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, Connection, Connection)
+        ctf_integer_hex(uint64_t, SequenceNumber, SequenceNumber)
         /*ctf_sequence_hex(uint8_t, Cid, Cid, uint8_t, CidLength)*/)
 )
 QUIC_TRACE_EVENT(ConnSourceCidRemoved,
     TP_ARGS(
         const void*, Connection,
+        uint64_t, SequenceNumber,
         uint8_t, CidLength,
         const void*, Cid),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, Connection, Connection)
+        ctf_integer_hex(uint64_t, SequenceNumber, SequenceNumber)
         /*ctf_sequence_hex(uint8_t, Cid, Cid, uint8_t, CidLength)*/)
 )
 QUIC_TRACE_EVENT(ConnDestCidRemoved,
     TP_ARGS(
         const void*, Connection,
+        uint64_t, SequenceNumber,
         uint8_t, CidLength,
         const void*, Cid),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, Connection, Connection)
+        ctf_integer_hex(uint64_t, SequenceNumber, SequenceNumber)
         /*ctf_sequence_hex(uint8_t, Cid, Cid, uint8_t, CidLength)*/)
 )
 QUIC_TRACE_EVENT(ConnLossDetectionTimerSet,

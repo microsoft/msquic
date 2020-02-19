@@ -171,7 +171,10 @@ QuicEtwCallback(
 //
 #define MCGEN_PRIVATE_ENABLE_CALLBACK_V2 QuicEtwCallback
 
+#pragma warning(push) // Don't care about warnings from generated files
+#pragma warning(disable:6001)
 #include "MsQuicEtw.h"
+#pragma warning(pop)
 
 #define QuicTraceEventEnabled(Name) EventEnabledQuic##Name()
 #define _QuicTraceEvent(Name, Args) EventWriteQuic##Name##Args
@@ -336,13 +339,13 @@ QuicEtwCallback(
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] Recovery exit", Connection)
 #define EventWriteQuicConnRundown(Connection, IsServer, CorrelationId) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] Rundown, Server=%u, CorrelationId=%llu", Connection, IsServer, CorrelationId)
-#define EventWriteQuicConnSourceCidAdded(Connection, CidLen, Cid) \
+#define EventWriteQuicConnSourceCidAdded(Connection, SequenceNumber, CidLen, Cid) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] New Source CID: TODO", Connection)
-#define EventWriteQuicConnDestCidAdded(Connection, CidLen, Cid) \
+#define EventWriteQuicConnDestCidAdded(Connection, SequenceNumber, CidLen, Cid) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] New Destination CID: TODO", Connection)
-#define EventWriteQuicConnSourceCidRemoved(Connection, CidLen, Cid) \
+#define EventWriteQuicConnSourceCidRemoved(Connection, SequenceNumber, CidLen, Cid) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] Removed Source CID: TODO", Connection)
-#define EventWriteQuicConnDestCidRemoved(Connection, CidLen, Cid) \
+#define EventWriteQuicConnDestCidRemoved(Connection, SequenceNumber, CidLen, Cid) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] Removed Destination CID: TODO", Connection)
 #define EventWriteQuicConnLossDetectionTimerSet(Connection, TimerType, DelayMs, ProbeCount) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] Setting loss detection timer (type %u) for %u ms. (ProbeCount=%hu)", TimerType, DelayMs, ProbeCount)
@@ -453,22 +456,34 @@ QuicEtwCallback(
 #define QuicTraceLogInfoEnabled()    FALSE
 #define QuicTraceLogVerboseEnabled() FALSE
 
-#define QuicTraceLogError(...)
-#define QuicTraceLogWarning(...)
-#define QuicTraceLogInfo(...)
-#define QuicTraceLogVerbose(...)
+inline
+void
+QuicTraceStubVarArgs(
+    _In_ const void* Fmt,
+    ...
+    )
+{
+    UNREFERENCED_PARAMETER(Fmt);
+}
 
-#define QuicTraceLogConnError(...)
-#define QuicTraceLogConnWarning(...)
-#define QuicTraceLogConnInfo(...)
-#define QuicTraceLogConnVerbose(...)
+#define IGNORE_FIRST_PARAM(A, ...) QuicTraceStubVarArgs(__VA_ARGS__)
+
+#define QuicTraceLogError(...) QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogWarning(...) QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogInfo(...) QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogVerbose(...) QuicTraceStubVarArgs(__VA_ARGS__)
+
+#define QuicTraceLogConnError(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
+#define QuicTraceLogConnWarning(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
+#define QuicTraceLogConnInfo(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
+#define QuicTraceLogConnVerbose(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
 
 #define QuicTraceLogStreamVerboseEnabled() FALSE
 
-#define QuicTraceLogStreamError(...)
-#define QuicTraceLogStreamWarning(...)
-#define QuicTraceLogStreamInfo(...)
-#define QuicTraceLogStreamVerbose(...)
+#define QuicTraceLogStreamError(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
+#define QuicTraceLogStreamWarning(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
+#define QuicTraceLogStreamInfo(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
+#define QuicTraceLogStreamVerbose(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
 
 #endif // QUIC_LOGS_STUB
 
@@ -577,7 +592,11 @@ log_hexbuf(const void* Buffer, UINT32 Length) {
 
 #ifdef QUIC_LOGS_MANIFEST_ETW
 
+#pragma warning(push) // Don't care about warnings from generated files
+#pragma warning(disable:6001)
 #include "MsQuicEtw.h"
+#pragma warning(pop)
+
 #include <stdio.h>
 
 #define QuicTraceLogErrorEnabled()   EventEnabledQuicLogError()

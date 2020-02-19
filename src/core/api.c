@@ -69,7 +69,6 @@ MsQuicConnectionOpen(
     Connection->ClientContext = Context;
 
     QuicSessionRegisterConnection(Session, Connection);
-    QuicRegistrationGetNewPartitionID(Session->Registration, Connection);
     QuicRegistrationQueueNewConnection(Session->Registration, Connection);
 
     *NewConnection = (HQUIC)Connection;
@@ -367,6 +366,7 @@ MsQuicStreamOpen(
     Status =
         QuicStreamInitialize(
             Connection,
+            FALSE,
             !!(Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL),
             !!(Flags & QUIC_STREAM_OPEN_FLAG_0_RTT),
             (QUIC_STREAM**)NewStream);
@@ -507,13 +507,11 @@ MsQuicStreamStart(
         goto Exit;
     }
 
-    Flags &= ~QUIC_STREAM_START_FLAG_REMOTE; // Don't allow API client to set remote flag.
-
     if (Connection->WorkerThreadID == QuicCurThreadID()) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
-        Status = QuicStreamStart(Stream, Flags);
+        Status = QuicStreamStart(Stream, Flags, FALSE);
 
     } else if (Flags & QUIC_STREAM_START_FLAG_ASYNC) {
 
@@ -638,11 +636,6 @@ MsQuicStreamShutdown(
         (Connection->WorkerThreadID == QuicCurThreadID()) ||
         !Connection->State.HandleClosed);
 
-    if (!Stream->Flags.Started) {
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Error;
-    }
-
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -717,11 +710,6 @@ MsQuicStreamSend(
     QUIC_CONN_VERIFY(Connection,
         (Connection->WorkerThreadID == QuicCurThreadID()) ||
         !Connection->State.HandleClosed);
-
-    if (!Stream->Flags.Started) {
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Exit;
-    }
 
     TotalLength = 0;
     for (uint32_t i = 0; i < BufferCount; ++i) {
@@ -1055,7 +1043,7 @@ MsQuicGetParam(
     QUIC_STATUS Status;
 
     QuicTraceEvent(ApiEnter,
-        QUIC_TRACE_API_SET_PARAM,
+        QUIC_TRACE_API_GET_PARAM,
         Handle);
 
     if (Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION ||

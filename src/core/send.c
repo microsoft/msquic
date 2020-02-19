@@ -127,6 +127,32 @@ QuicSendQueueFlush(
     }
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicSendQueueFlushForStream(
+    _In_ QUIC_SEND* Send,
+    _In_ QUIC_STREAM* Stream,
+    _In_ BOOLEAN WasPreviouslyQueued
+    )
+{
+    if (!WasPreviouslyQueued) {
+        //
+        // Not previously queued, so add the stream to the end of the queue.
+        //
+        QUIC_DBG_ASSERT(Stream->SendLink.Flink == NULL);
+        QuicListInsertTail(&Send->SendStreams, &Stream->SendLink);
+        QuicStreamAddRef(Stream, QUIC_STREAM_REF_SEND);
+    }
+
+    if (Stream->Connection->State.Started) {
+        //
+        // Schedule the flush even if we didn't just queue the stream,
+        // because it may have been previously blocked.
+        //
+        QuicSendQueueFlush(Send, REASON_STREAM_FLAGS);
+    }
+}
+
 #if QUIC_TEST_MODE
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
@@ -306,27 +332,13 @@ QuicSendSetStreamSendFlag(
         QuicTraceLogStreamVerbose(SetSendFlag, Stream, "Setting flags 0x%x (existing flags: 0x%x)",
             (SendFlags & (~Stream->SendFlags)), Stream->SendFlags);
 
-        if ((Stream->SendFlags & SendFlags) != SendFlags) {
+        if (Stream->Flags.Started &&
+            (Stream->SendFlags & SendFlags) != SendFlags) {
             //
-            // Setting a new flag.
+            // Since this is new data for a started stream, we need to queue
+            // up the send to flush the stream data.
             //
-            if (Stream->SendFlags == 0) {
-                //
-                // No flags were set previously, so add the stream to the end
-                // of the queue.
-                //
-                QUIC_DBG_ASSERT(Stream->SendLink.Flink == NULL);
-                QuicListInsertTail(&Send->SendStreams, &Stream->SendLink);
-                QuicStreamAddRef(Stream, QUIC_STREAM_REF_SEND);
-            }
-
-            if (Connection->State.Started) {
-                //
-                // Schedule the output worker even if we didn't just queue
-                // the stream, because it may have been queued and blocked.
-                //
-                QuicSendQueueFlush(Send, REASON_STREAM_FLAGS);
-            }
+            QuicSendQueueFlushForStream(Send, Stream, Stream->SendFlags != 0);
         }
         Stream->SendFlags |= SendFlags;
     }
@@ -352,7 +364,7 @@ QuicSendClearStreamSendFlag(
         //
         Stream->SendFlags &= ~SendFlags;
 
-        if (Stream->SendFlags == 0) {
+        if (Stream->SendFlags == 0 && Stream->Flags.Started) {
             //
             // Since there are no flags left, remove the stream from the queue.
             //
@@ -560,7 +572,7 @@ QuicSendWriteFrames(
 
         if ((Send->SendFlags & QUIC_CONN_SEND_FLAG_MAX_STREAMS_BIDI)) {
 
-            QUIC_MAX_STREAMS_EX Frame = { TRUE };
+            QUIC_MAX_STREAMS_EX Frame = { TRUE, 0 };
             Frame.MaximumStreams =
                 QuicConnIsServer(Connection) ?
                     Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount :
@@ -627,7 +639,12 @@ QuicSendWriteFrames(
                 QUIC_NEW_CONNECTION_ID_EX Frame = {
                     SourceCid->CID.Length,
                     SourceCid->CID.SequenceNumber,
-                    0 };
+                    0,
+                    { 0 } };
+                QUIC_DBG_ASSERT(Connection->SourceCidLimit > 1);
+                if (Frame.Sequence >= Connection->SourceCidLimit) {
+                    Frame.RetirePriorTo = Frame.Sequence + 1 - Connection->SourceCidLimit;
+                }
                 QuicCopyMemory(
                     Frame.Buffer,
                     SourceCid->CID.Data,

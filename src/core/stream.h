@@ -456,6 +456,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicStreamInitialize(
     _In_ QUIC_CONNECTION* Connection,
+    _In_ BOOLEAN OpenedRemotely,
     _In_ BOOLEAN Unidirectional,
     _In_ BOOLEAN Opened0Rtt,
     _Outptr_ _At_(*Stream, __drv_allocatesMem(Mem))
@@ -471,8 +472,6 @@ QuicStreamFree(
     _In_ __drv_freesMem(Mem) QUIC_STREAM* Stream
     );
 
-#define QUIC_STREAM_START_FLAG_REMOTE 0x8000 // The Stream was opened remotely.
-
 //
 // Associates a new ID with the stream and inserts it into the connection's
 // table.
@@ -481,7 +480,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamStart(
     _In_ QUIC_STREAM* Stream,
-    _In_ QUIC_STREAM_START_FLAGS Flags
+    _In_ QUIC_STREAM_START_FLAGS Flags,
+    _In_ BOOLEAN IsRemoteStream
     );
 
 //

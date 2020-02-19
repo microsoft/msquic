@@ -413,7 +413,7 @@ QuicCryptoWriteOneFrame(
     QUIC_DBG_ASSERT(Offset >= (Crypto->TlsState.BufferTotalLength - Crypto->TlsState.BufferLength));
 
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
-    QUIC_CRYPTO_EX Frame = { Offset - EncryptLevelStart, 0 };
+    QUIC_CRYPTO_EX Frame = { Offset - EncryptLevelStart, 0, 0 };
     Frame.Data =
         Crypto->TlsState.Buffer +
         (Offset - (Crypto->TlsState.BufferTotalLength - Crypto->TlsState.BufferLength));
@@ -1227,21 +1227,16 @@ QuicCryptoProcessTlsCompletion(
         QUIC_TEL_ASSERT(!Connection->State.Connected);
 
         QuicTraceEvent(ConnHandshakeComplete, Connection);
+        InterlockedDecrement(&Connection->Paths[0].Binding->HandshakeConnections);
+        InterlockedExchangeAdd64(
+            (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
+            -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
 
         //
         // We should have the 1-RTT keys by connection complete time.
         //
         QUIC_TEL_ASSERT(Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT] != NULL);
         QUIC_TEL_ASSERT(Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL);
-
-        //
-        // Only mark the handshake as complete on success.
-        //
-        Connection->State.Connected = TRUE;
-        InterlockedDecrement(&Connection->Paths[0].Binding->HandshakeConnections);
-        InterlockedExchangeAdd64(
-            (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-            -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
 
         if (QuicConnIsServer(Connection)) {
             //
@@ -1252,7 +1247,14 @@ QuicCryptoProcessTlsCompletion(
             QuicCryptoHandshakeConfirmed(&Connection->Crypto);
         }
 
-        (void)QuicConnGenerateNewSourceCid(Connection, FALSE);
+        //
+        // Only set the connected flag after we do the confirmation code path
+        // above so that TLS state isn't prematurely destroyed (before the
+        // CONNECTED event is indicated to the app).
+        //
+        Connection->State.Connected = TRUE;
+
+        QuicConnGenerateNewSourceCid(Connection, FALSE);
 
         if (!QuicConnIsServer(Connection) &&
             Connection->RemoteServerName != NULL) {
@@ -1373,6 +1375,7 @@ QuicCryptoProcessData(
                 &BufferCount,
                 &Buffer);
 
+        UNREFERENCED_PARAMETER(DataAvailable);
         QUIC_TEL_ASSERT(DataAvailable);
         QUIC_DBG_ASSERT(BufferCount == 1);
 
@@ -1608,6 +1611,7 @@ QuicCryptoUpdateKeyPhase(
 
     QUIC_PACKET_SPACE* PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
 
+    UNREFERENCED_PARAMETER(LocalUpdate);
     QuicTraceEvent(ConnKeyPhaseChange, Connection, LocalUpdate);
 
     PacketSpace->WriteKeyPhaseStartPacketNumber = Connection->Send.NextPacketNumber;

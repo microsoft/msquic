@@ -23,7 +23,6 @@ QUIC has many benefits when compared to existing TLS over TCP scenarios:
 > **Important** Several QUIC protocol features are not yet fully implemented:
 >
 >  * 0-RTT with Schannel and OpenSSL
->  * NAT Rebinding
 >  * Client Migration
 >  * Server Preferred Address
 >  * Path MTU Discovery
@@ -31,38 +30,16 @@ QUIC has many benefits when compared to existing TLS over TCP scenarios:
 ## Library Features
 
   * Cross-platform support.
+  * Optimized for client and server.
   * Optimized for maximal throughput and minimal latency.
   * Asynchronous IO.
   * Receive side scaling (RSS).
   * UDP send and receive coalescing support.
 
-## Building
-
-You can find detailed instructions for building the library [here](./docs/BUILD.md).
-
 ## Documentation
 
-You can find more detailed information on how to use MsQuic in the [the API documentation](./docs/API.md).
-
-## Source Code
-
-The source is divided into several directories:
-
-  * `bin` - Packages up all static libraries into the platform specific binaries.
-  * `core` - Platform independent code that implements the QUIC protocol.
-  * `docs` - All MsQuic documentation.
-  * `inc` - Header files used by all the other directories.
-  * `manifest` - Windows [ETW manifest](https://docs.microsoft.com/en-us/windows/win32/wes/writing-an-instrumentation-manifest) and related files.
-  * `platform` - Platform specific code for OS types, sockets and TLS.
-  * `submodules` - All the modules that MsQuic depends on.
-  * `test` - Test code for the MsQuic API / protocol.
-  * `tools` - Tools for exercising MsQuic.
-    * `attack` - Adversarial tool for exploiting protocol weaknesses.
-    * `etw` - Windows specific tool for processing MsQuic ETW logs.
-    * `interop` - Runs through the [IETF interop scenarios](https://github.com/quicwg/base-drafts/wiki/16th-Implementation-Draft).
-    * `ping` - Simple tool for gathering throughput measurements. Read more [here](./tools/ping/readme.md).
-    * `sample` - Minimal example of how to use the MsQuic API.
-    * `spin` - Randomly executes the MsQuic API to discover bugs.
+  * For building the library, see the [Build docs](./docs/BUILD.md).
+  * For using the library, see the [API docs](./docs/API.md).
 
 # Contributing
 

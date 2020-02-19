@@ -875,6 +875,10 @@
                 name="Connection"
                 />
             <data
+                inType="win:UInt64"
+                name="SequenceNumber"
+                />
+            <data
                 inType="win:UInt8"
                 name="CidLength"
                 />
@@ -3248,7 +3252,7 @@
             />
         <string
             id="Etw.DatapathRecv"
-            value="[ udp][%1] Recv %2 bytes (segment=%3) Src=%4 Dst=%5"
+            value="[ udp][%1] Recv %2 bytes (segment=%3) Src=%6 Dst=%7"
             />
         <string
             id="Etw.DatapathError"

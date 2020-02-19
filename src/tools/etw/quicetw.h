@@ -401,10 +401,12 @@ typedef struct QUIC_EVENT_DATA_CONNECTION {
             UINT32 WindowLastMax;
         } Cubic;
         struct {
+            UINT64 SequenceNumber;
             UINT8 CidLength;
             UINT8 Cid[1];
         } SourceCidAdd, SourceCidRemove;
         struct {
+            UINT64 SequenceNumber;
             UINT8 CidLength;
             UINT8 Cid[1];
         } DestCidAdd, DestCidRemove;

@@ -66,7 +66,6 @@ QuicDrillEncodeQuicVarInt (
             "Supplied value is larger than QUIC_VAR_INT allowed (2^62)");
         return DrillBuffer();
     }
-    return DrillBuffer();
 }
 
 DrillBuffer

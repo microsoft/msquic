@@ -307,7 +307,7 @@ QuicPacketGenerateRetryV1Integrity(
     };
 
     uint8_t* RetryPseudoPacket = NULL;
-    QUIC_PACKET_KEY* RetryIntegrityKey;
+    QUIC_PACKET_KEY* RetryIntegrityKey = NULL;
     QUIC_STATUS Status =
         QuicPacketKeyDerive(
             QUIC_PACKET_KEY_INITIAL,
@@ -345,7 +345,7 @@ QuicPacketGenerateRetryV1Integrity(
 
 Exit:
     if (RetryPseudoPacket != NULL) {
-        QuicFree(RetryPseudoPacket);
+        QUIC_FREE(RetryPseudoPacket);
     }
     QuicPacketKeyFree(RetryIntegrityKey);
     return Status;
@@ -443,7 +443,7 @@ QuicPacketDecodeRetryTokenV1(
         sizeof(uint8_t) +
         Packet->SourceCidLen;
 
-    QUIC_VAR_INT TokenLengthVarInt;
+    QUIC_VAR_INT TokenLengthVarInt = 0;
     BOOLEAN Success = QuicVarIntDecode(
         Packet->BufferLength, Packet->Buffer, &Offset, &TokenLengthVarInt);
     QUIC_DBG_ASSERT(Success); // Was previously validated.
@@ -574,10 +574,6 @@ QuicPacketLogHeader(
 
             } else if (LongHdr->Type == QUIC_RETRY) {
 
-                uint8_t OrigDestCidLen = *(SourceCid + SourceCidLen);
-                const uint8_t* OrigDestCid = SourceCid + sizeof(uint8_t) + SourceCidLen;
-                Offset += sizeof(uint8_t) + OrigDestCidLen;
-
                 QuicTraceLogVerbose(
                     "[%c][%cX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R (Token %hu bytes)",
                     PtkConnPre(Connection),
@@ -585,7 +581,7 @@ QuicPacketLogHeader(
                     LongHdr->Version,
                     QuicCidBufToStr(DestCid, DestCidLen).Buffer,
                     QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
-                    PacketLength - Offset);
+                    PacketLength - (Offset + QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1));
                 break;
 
             } else {

@@ -7,7 +7,8 @@
 
 #pragma once
 
-#pragma warning(disable:28922)  // Redundant Pointer Test
+#pragma warning(disable:28922) // Redundant Pointer Test
+#pragma warning(disable:26451) // Arithmetic overflow: Using operator '+' on a 4 byte value and then casting the result to a 8 byte value.
 
 #include "quic_platform.h"
 #include "quic_datapath.h"

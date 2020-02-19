@@ -38,8 +38,8 @@ TestStream::FromStreamHandle(
     _In_ QUIC_STREAM_OPEN_FLAGS Flags
     )
 {
-    auto IsUnidirectional = !!(Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
-    auto Stream = new TestStream(QuicStreamHandle, StreamShutdownHandler, IsUnidirectional, false);
+    auto IsUnidirectionalStream = !!(Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+    auto Stream = new TestStream(QuicStreamHandle, StreamShutdownHandler, IsUnidirectionalStream, false);
     if (Stream == nullptr || !Stream->IsValid()) {
         TEST_FAILURE("Failed to create new TestStream.");
         delete Stream;
@@ -56,7 +56,7 @@ TestStream::FromConnectionHandle(
     _In_ QUIC_STREAM_OPEN_FLAGS Flags
     )
 {
-    auto IsUnidirectional = !!(Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+    auto IsUnidirectionalStream = !!(Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
     HQUIC QuicStreamHandle;
     QUIC_STATUS Status =
         MsQuic->StreamOpen(
@@ -78,7 +78,7 @@ TestStream::FromConnectionHandle(
         MsQuic->StreamClose(QuicStreamHandle);
         return nullptr;
     }
-    auto Stream = new TestStream(QuicStreamHandle, StreamShutdownHandler, IsUnidirectional, true);
+    auto Stream = new TestStream(QuicStreamHandle, StreamShutdownHandler, IsUnidirectionalStream, true);
     if (Stream == nullptr || !Stream->IsValid()) {
         TEST_FAILURE("Failed to create new TestStream.");
         delete Stream;

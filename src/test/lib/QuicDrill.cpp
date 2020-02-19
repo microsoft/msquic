@@ -127,7 +127,6 @@ struct DrillSender {
         _In_ uint16_t NetworkPort
         )
     {
-        QUIC_ADDR ServerAddress;
         QUIC_STATUS Status =
             QuicDataPathInitialize(
                 0,

@@ -129,6 +129,7 @@ QuicStreamSendShutdown(
             goto Exit;
         }
 
+        QUIC_CONN_VERIFY(Stream->Connection, ApiSendRequests == NULL);
         while (ApiSendRequests != NULL) {
             //
             // These sends were queued by the app after queueing a graceful
@@ -673,7 +674,7 @@ QuicStreamWriteOneFrame(
     _Inout_ QUIC_SENT_PACKET_METADATA* PacketMetadata
     )
 {
-    QUIC_STREAM_EX Frame = { FALSE, ExplicitDataLength, Stream->ID, Offset, 0 };
+    QUIC_STREAM_EX Frame = { FALSE, ExplicitDataLength, Stream->ID, Offset, 0, NULL };
     uint16_t HeaderLength = 0;
     uint16_t SendLength;
 

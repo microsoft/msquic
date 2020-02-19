@@ -19,46 +19,22 @@ QUIC_SEC_CONFIG* SecurityConfig;
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 
 class QuicTestEnvironment : public ::testing::Environment {
-    bool PlatformInitialized;
 public:
     void SetUp() override {
-        if (QUIC_FAILED(QuicPlatformInitialize())) {
-            return; // TODO - FAIL SetUp
-        }
-        PlatformInitialized = true;
-        if (QUIC_FAILED(MsQuicOpenV1(&MsQuic))) {
-            return; // TODO - FAIL SetUp
-        }
-        if (QUIC_FAILED(MsQuic->RegistrationOpen("MsQuicBVT", &Registration))) {
-            MsQuicClose(MsQuic);
-            return; // TODO - FAIL SetUp
-        }
-        if ((SelfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER)) == nullptr) {
-            MsQuic->RegistrationClose(Registration);
-            MsQuicClose(MsQuic);
-            return; // TODO - FAIL SetUp
-        }
-        if (!LoadSecConfig()) {
-            QuicPlatFreeSelfSignedCert(SelfSignedCertParams);
-            MsQuic->RegistrationClose(Registration);
-            MsQuicClose(MsQuic);
-            return; // TODO - FAIL SetUp
-        }
+        ASSERT_TRUE(QUIC_SUCCEEDED(QuicPlatformInitialize()));
+        ASSERT_TRUE(QUIC_SUCCEEDED(MsQuicOpenV1(&MsQuic)));
+        ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->RegistrationOpen("MsQuicBVT", &Registration)));
+        ASSERT_TRUE((SelfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER)) != nullptr);
+        ASSERT_TRUE(LoadSecConfig());
         QuicTestInitialize();
     }
     void TearDown() override {
         QuicTestCleanup();
         MsQuic->SecConfigDelete(SecurityConfig);
-        SecurityConfig = nullptr;
         QuicPlatFreeSelfSignedCert(SelfSignedCertParams);
-        SelfSignedCertParams = nullptr;
         MsQuic->RegistrationClose(Registration);
-        Registration = nullptr;
         MsQuicClose(MsQuic);
-        MsQuic = nullptr;
-        if (PlatformInitialized) {
-            QuicPlatformUninitialize();
-        }
+        QuicPlatformUninitialize();
     }
     _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
     static void
@@ -105,6 +81,7 @@ LogTestFailure(
     ...
     )
 {
+    UNREFERENCED_PARAMETER(Function);
     char Buffer[128];
     va_list Args;
     va_start(Args, Format);
