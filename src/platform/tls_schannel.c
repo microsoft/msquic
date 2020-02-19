@@ -134,29 +134,6 @@ typedef const struct _CERT_CONTEXT* PCCERT_CONTEXT;
 
 typedef void* HCERTSTORE;
 
-typedef unsigned int ALG_ID;
-
-typedef struct _SCHANNEL_CRED
-{
-    DWORD           dwVersion;      // always SCHANNEL_CRED_VERSION
-    DWORD           cCreds;
-    PCCERT_CONTEXT* paCred;
-    HCERTSTORE      hRootStore;
-
-    DWORD           cMappers;
-    struct _HMAPPER** aphMappers;
-
-    DWORD           cSupportedAlgs;
-    ALG_ID* palgSupportedAlgs;
-
-    DWORD           grbitEnabledProtocols;
-    DWORD           dwMinimumCipherStrength;
-    DWORD           dwMaximumCipherStrength;
-    DWORD           dwSessionLifespan;
-    DWORD           dwFlags;
-    DWORD           dwCredFormat;
-} SCHANNEL_CRED, * PSCHANNEL_CRED;
-
 typedef enum _eTlsAlgorithmUsage
 {
     TlsParametersCngAlgUsageKeyExchange,          // Key exchange algorithm. RSA, ECHDE, DHE, etc.
@@ -194,7 +171,7 @@ typedef struct _SCH_CREDENTIALS
     DWORD               dwVersion;               // Always SCH_CREDENTIALS_VERSION.
     DWORD               dwCredFormat;
     DWORD               cCreds;
-    PCCERT_CONTEXT* paCred;
+    PCCERT_CONTEXT*     paCred;
     HCERTSTORE          hRootStore;
 
     DWORD               cMappers;
