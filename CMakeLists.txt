@@ -195,6 +195,7 @@ if(QUIC_BUILD_TEST)
     endif()
     add_subdirectory(submodules/googletest)
 
+    add_subdirectory(src/core/unittest)
     add_subdirectory(src/test/lib)
     add_subdirectory(src/test/bin)
 endif()

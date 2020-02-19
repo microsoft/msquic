@@ -133,44 +133,49 @@ $RunTest = Join-Path $RootDir ".azure/scripts/run-gtest.ps1"
 
 # Path to the msquictest exectuable.
 $MsQuicTest = $null
+$MsQuicCoreTest = $null
 if ($IsWindows) {
     $MsQuicTest = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)\msquictest.exe"
+    $MsQuicCoreTest = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)\msquiccoretest.exe"
 } else {
     $MsQuicTest = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/msquictest"
+    $MsQuicCoreTest = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/msquiccoretest"
 }
 
 # Build up all the arguments to pass to the Powershell script.
-$Arguments = "-Path $($MsQuicTest) -ExecutionMode $($ExecutionMode) -IsolationMode $($IsolationMode)"
+$TestArguments =  "-ExecutionMode $($ExecutionMode) -IsolationMode $($IsolationMode)"
+
 if ("" -ne $Filter) {
-    $Arguments += " -Filter $($Filter)"
+    $TestArguments += " -Filter $($Filter)"
 }
 if ($ListTestCases) {
-    $Arguments += " -ListTestCases"
+    $TestArguments += " -ListTestCases"
 }
 if ($KeepOutputOnSuccess) {
-    $Arguments += " -KeepOutputOnSuccess"
+    $TestArguments += " -KeepOutputOnSuccess"
 }
 if ($GenerateXmlResults) {
-    $Arguments += " -GenerateXmlResults"
+    $TestArguments += " -GenerateXmlResults"
 }
 if ($Debugger) {
-    $Arguments += " -Debugger"
+    $TestArguments += " -Debugger"
 }
 if ($InitialBreak) {
-    $Arguments += " -InitialBreak"
+    $TestArguments += " -InitialBreak"
 }
 if ($BreakOnFailure) {
-    $Arguments += " -BreakOnFailure"
+    $TestArguments += " -BreakOnFailure"
 }
 if ("None" -ne $LogProfile) {
-    $Arguments += " -LogProfile $($LogProfile)"
+    $TestArguments += " -LogProfile $($LogProfile)"
 }
 if ($ConvertLogs) {
-    $Arguments += " -ConvertLogs"
+    $TestArguments += " -ConvertLogs"
 }
 if ($CompressOutput) {
-    $Arguments += " -CompressOutput"
+    $TestArguments += " -CompressOutput"
 }
 
 # Run the script.
-Invoke-Expression ($RunTest + " " + $Arguments)
+Invoke-Expression ($RunTest + " -Path $($MsQuicTest) " + $TestArguments)
+Invoke-Expression ($RunTest + " -Path $($MsQuicCoreTest) " + $TestArguments)
