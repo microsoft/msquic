@@ -144,13 +144,13 @@ protected:
         LocalIPv4.Resolve(AF_INET, "localhost");
         LocalIPv6.Resolve(AF_INET6, "localhost");
 
-        ExpectedData = (char*)QuicAlloc(ExpectedDataSize);
+        ExpectedData = (char*)QUIC_ALLOC_NONPAGED(ExpectedDataSize);
         ASSERT_NE(ExpectedData, nullptr);
     }
 
     static void TearDownTestSuite()
     {
-        QuicFree(ExpectedData);
+        QUIC_FREE(ExpectedData);
     }
 
     static void
@@ -371,12 +371,12 @@ TEST_P(DataPathTest, Data)
                 &RecvContext,
                 &server);
 #ifdef _WIN32
-        if (Status == WSAEACCES) {
+        if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
             Status = QUIC_STATUS_ADDRESS_IN_USE;
             std::cout << "Replacing EACCESS with ADDRINUSE for port: " <<
                 htons(serverAddress.SockAddr.Ipv4.sin_port) << std::endl;
         }
-#endif
+#endif //_WIN32
     }
     VERIFY_QUIC_SUCCESS(Status);
     ASSERT_NE(nullptr, server);
@@ -449,6 +449,13 @@ TEST_P(DataPathTest, DataRebind)
                 nullptr,
                 &RecvContext,
                 &server);
+#ifdef _WIN32
+        if (Status == HRESULT_FROM_WIN32(WSAEACCES)) {
+            Status = QUIC_STATUS_ADDRESS_IN_USE;
+            std::cout << "Replacing EACCESS with ADDRINUSE for port: " <<
+                htons(serverAddress.SockAddr.Ipv4.sin_port) << std::endl;
+        }
+#endif //_WIN32
     }
     VERIFY_QUIC_SUCCESS(Status);
     ASSERT_NE(nullptr, server);
