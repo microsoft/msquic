@@ -5,26 +5,13 @@
 
 --*/
 
-#include "quic_platform.h"
+#include "main.h"
 #include "msquic.h"
 #include "quic_tls.h"
-
-#define LOG_ONLY_FAILURES
-#define INLINE_TEST_METHOD_MARKUP
-#include <wextestclass.h>
-#include <logcontroller.h>
-
-#include "quic_trace.h"
 
 #ifdef QUIC_LOGS_WPP
 #include "tlstest.tmh"
 #endif
-
-using namespace WEX::Common;
-using namespace WEX::Logging;
-using namespace WEX::TestExecution;
-
-#define VERIFY_QUIC_SUCCESS(result, ...) VERIFY_IS_TRUE(QUIC_SUCCEEDED(result), __VA_ARGS__)
 
 extern "C" {
 void* CreateServerCertificate();
@@ -35,32 +22,30 @@ const uint32_t CertValidationIgnoreFlags =
     QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
     QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID;
 
-struct TlsTest : public WEX::TestClass<TlsTest>
+struct TlsTest : public ::testing::Test
 {
+protected:
     QUIC_RUNDOWN_REF SecConfigRundown;
-    HANDLE SecConfigDoneEvent;
-    void* SecConfigertContext;
+    QUIC_EVENT SecConfigDoneEvent;
+    static void* SecConfigertContext;
     QUIC_SEC_CONFIG* SecConfig;
 
     TlsTest() :
-        SecConfigDoneEvent(CreateEvent(nullptr, FALSE, FALSE, nullptr)),
         SecConfig(nullptr)
     {
         QuicRundownInitialize(&SecConfigRundown);
+        QuicEventInitialize(&SecConfigDoneEvent, FALSE, FALSE);
     }
 
     ~TlsTest()
     {
-        CloseHandle(SecConfigDoneEvent);
+        QuicEventUninitialize(SecConfigDoneEvent);
         if (SecConfig != nullptr) {
             QuicTlsSecConfigRelease(SecConfig);
         }
         QuicRundownReleaseAndWait(&SecConfigRundown);
         QuicRundownUninitialize(&SecConfigRundown);
     }
-
-    BEGIN_TEST_CLASS(TlsTest)
-    END_TEST_CLASS()
 
     static void
     OnSecConfigCreateComplete(
@@ -75,9 +60,19 @@ struct TlsTest : public WEX::TestClass<TlsTest>
         SetEvent(pThis->SecConfigDoneEvent);
     }
 
-    TEST_CLASS_SETUP(Setup)
+    static void SetUpTestSuite()
     {
-        VERIFY_IS_NOT_NULL((SecConfigertContext = CreateServerCertificate()));
+        ASSERT_NE(nullptr, (SecConfigertContext = CreateServerCertificate()));
+    }
+
+    static void TearDownTestSuite()
+    {
+        FreeServerCertificate(SecConfigertContext);
+        SecConfigertContext = nullptr;
+    }
+
+    virtual void SetUp() override
+    {
         VERIFY_QUIC_SUCCESS(
             QuicTlsServerSecConfigCreate(
                 &SecConfigRundown,
@@ -86,29 +81,20 @@ struct TlsTest : public WEX::TestClass<TlsTest>
                 nullptr,
                 this,
                 OnSecConfigCreateComplete));
-        VERIFY_IS_TRUE(WaitForSingleObject(SecConfigDoneEvent, 5000) == WAIT_OBJECT_0);
-        return SecConfig != nullptr;
+        ASSERT_TRUE(QuicEventWaitWithTimeout(SecConfigDoneEvent, 5000));
     }
 
-    TEST_CLASS_CLEANUP(Cleanup)
+    virtual void TearDown() override
     {
         QuicTlsSecConfigRelease(SecConfig);
         SecConfig = nullptr;
-        FreeServerCertificate(SecConfigertContext);
-        SecConfigertContext = nullptr;
-        return true;
-    }
-
-    TEST_METHOD_CLEANUP(MethodCleanup)
-    {
-        return true;
     }
 
     struct TlsSession
     {
         QUIC_TLS_SESSION* Ptr;
         TlsSession() : Ptr(nullptr) {
-            VERIFY_QUIC_SUCCESS(QuicTlsSessionInitialize("MsQuicTest", &Ptr));
+            EXPECT_EQ(QUIC_STATUS_SUCCESS, QuicTlsSessionInitialize("MsQuicTest", &Ptr));
         }
         ~TlsSession() {
             QuicTlsSessionUninitialize(Ptr);
@@ -128,10 +114,10 @@ struct TlsTest : public WEX::TestClass<TlsTest>
 
         TlsContext() :
             Ptr(nullptr),
-            ProcessCompleteEvent(CreateEvent(nullptr, FALSE, FALSE, nullptr)),
             Connected(false) {
+            QuicEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
             RtlZeroMemory(&State, sizeof(State));
-            State.Buffer = (UINT8*)QUIC_ALLOC_NONPAGED(8000);
+            State.Buffer = (uint8_t*)QUIC_ALLOC_NONPAGED(8000);
             State.BufferAllocLength = 8000;
         }
 
@@ -244,15 +230,15 @@ struct TlsTest : public WEX::TestClass<TlsTest>
         ProcessData(
             _In_ QUIC_PACKET_KEY_TYPE BufferKey,
             _In_reads_bytes_(*BufferLength)
-                const UINT8 * Buffer,
-            _In_ UINT32 * BufferLength
+                const uint8_t * Buffer,
+            _In_ uint32_t * BufferLength
             )
         {
             ResetEvent(ProcessCompleteEvent);
 
-            VERIFY_IS_TRUE(Buffer != nullptr || *BufferLength == 0);
+            EXPECT_TRUE(Buffer != nullptr || *BufferLength == 0);
             if (Buffer != nullptr) {
-                VERIFY_ARE_EQUAL(BufferKey, State.ReadKey);
+                EXPECT_EQ(BufferKey, State.ReadKey);
                 *BufferLength = GetCompleteTlsMessagesLength(Buffer, *BufferLength);
                 if (*BufferLength == 0) return (QUIC_TLS_RESULT_FLAGS)0;
             }
@@ -264,11 +250,11 @@ struct TlsTest : public WEX::TestClass<TlsTest>
                     BufferLength,
                     &State);
             if (Result & QUIC_TLS_RESULT_PENDING) {
-                WaitForSingleObject(ProcessCompleteEvent, INFINITE);
+                QuicEventWaitForever(ProcessCompleteEvent);
                 Result = QuicTlsProcessDataComplete(Ptr, BufferLength);
             }
 
-            VERIFY_IS_TRUE((Result & QUIC_TLS_RESULT_ERROR) == 0);
+            EXPECT_TRUE((Result & QUIC_TLS_RESULT_ERROR) == 0);
 
             return Result;
         }
@@ -277,14 +263,14 @@ struct TlsTest : public WEX::TestClass<TlsTest>
         ProcessFragmentedData(
             _In_ QUIC_PACKET_KEY_TYPE BufferKey,
             _In_reads_bytes_(BufferLength)
-                const UINT8 * Buffer,
-            _In_ UINT32 BufferLength,
-            _In_ UINT32 FragmentSize
+                const uint8_t * Buffer,
+            _In_ uint32_t BufferLength,
+            _In_ uint32_t FragmentSize
             )
         {
-            UINT32 Result = 0;
-            UINT32 ConsumedBuffer = FragmentSize;
-            UINT32 Count = 1;
+            uint32_t Result = 0;
+            uint32_t ConsumedBuffer = FragmentSize;
+            uint32_t Count = 1;
             while (BufferLength != 0) {
 
                 if (BufferLength < FragmentSize) {
@@ -292,11 +278,9 @@ struct TlsTest : public WEX::TestClass<TlsTest>
                     ConsumedBuffer = FragmentSize;
                 }
 
-                Log::Comment(
-                    String().Format(
-                        L"Processing fragment of %u bytes", FragmentSize));
+                std::cout << "Processing fragment of " << FragmentSize << " bytes" << std::endl;
 
-                Result |= (UINT32)ProcessData(BufferKey, Buffer, &ConsumedBuffer);
+                Result |= (uint32_t)ProcessData(BufferKey, Buffer, &ConsumedBuffer);
 
                 if (ConsumedBuffer > 0) {
                     Buffer += ConsumedBuffer;
@@ -315,24 +299,24 @@ struct TlsTest : public WEX::TestClass<TlsTest>
         QUIC_TLS_RESULT_FLAGS
         ProcessData(
             _Inout_ QUIC_TLS_PROCESS_STATE* PeerState,
-            _In_ UINT32 FragmentSize = 1200
+            _In_ uint32_t FragmentSize = 1200
             )
         {
             if (PeerState == nullptr) {
                 //
                 // Special case for client hello/initial.
                 //
-                UINT32 Zero = 0;
+                uint32_t Zero = 0;
                 return ProcessData(QUIC_PACKET_KEY_INITIAL, nullptr, &Zero);
             }
 
-            UINT32 Result;
+            uint32_t Result;
 
             while (PeerState->BufferLength != 0) {
-                UINT16 BufferLength;
+                uint16_t BufferLength;
                 QUIC_PACKET_KEY_TYPE PeerWriteKey;
 
-                UINT32 StartOffset = PeerState->BufferTotalLength - PeerState->BufferLength;
+                uint32_t StartOffset = PeerState->BufferTotalLength - PeerState->BufferLength;
                 if (PeerState->BufferOffset1Rtt != 0 && StartOffset >= PeerState->BufferOffset1Rtt) {
                     PeerWriteKey = QUIC_PACKET_KEY_1_RTT;
                     BufferLength = PeerState->BufferLength;
@@ -340,7 +324,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
                 } else if (PeerState->BufferOffsetHandshake != 0 && StartOffset >= PeerState->BufferOffsetHandshake) {
                     PeerWriteKey = QUIC_PACKET_KEY_HANDSHAKE;
                     if (PeerState->BufferOffset1Rtt != 0) {
-                        BufferLength = (UINT16)(PeerState->BufferOffset1Rtt - StartOffset);
+                        BufferLength = (uint16_t)(PeerState->BufferOffset1Rtt - StartOffset);
                     } else {
                         BufferLength = PeerState->BufferLength;
                     }
@@ -348,14 +332,14 @@ struct TlsTest : public WEX::TestClass<TlsTest>
                 } else {
                     PeerWriteKey = QUIC_PACKET_KEY_INITIAL;
                     if (PeerState->BufferOffsetHandshake != 0) {
-                        BufferLength = (UINT16)(PeerState->BufferOffsetHandshake - StartOffset);
+                        BufferLength = (uint16_t)(PeerState->BufferOffsetHandshake - StartOffset);
                     } else {
                         BufferLength = PeerState->BufferLength;
                     }
                 }
 
                 Result |=
-                    (UINT32)ProcessFragmentedData(
+                    (uint32_t)ProcessFragmentedData(
                         PeerWriteKey,
                         PeerState->Buffer,
                         BufferLength,
@@ -399,10 +383,10 @@ struct TlsTest : public WEX::TestClass<TlsTest>
     {
         QUIC_PACKET_KEY* Ptr;
         PacketKey(QUIC_PACKET_KEY* Key) : Ptr(Key) {
-            VERIFY_IS_NOT_NULL(Key);
+            EXPECT_NE(nullptr, Key);
         }
 
-        UINT16
+        uint16_t
         Overhead()
         {
             return QUIC_ENCRYPTION_OVERHEAD;
@@ -410,11 +394,11 @@ struct TlsTest : public WEX::TestClass<TlsTest>
 
         bool
         Encrypt(
-            _In_ UINT16 HeaderLength,
+            _In_ uint16_t HeaderLength,
             _In_reads_bytes_(HeaderLength)
-                const UINT8* const Header,
+                const uint8_t* const Header,
             _In_ uint64_t PacketNumber,
-            _In_ UINT16 BufferLength,
+            _In_ uint16_t BufferLength,
             _Inout_updates_bytes_(BufferLength) uint8_t* Buffer
             )
         {
@@ -434,11 +418,11 @@ struct TlsTest : public WEX::TestClass<TlsTest>
 
         bool
         Decrypt(
-            _In_ UINT16 HeaderLength,
+            _In_ uint16_t HeaderLength,
             _In_reads_bytes_(HeaderLength)
-                const UINT8* const Header,
+                const uint8_t* const Header,
             _In_ uint64_t PacketNumber,
-            _In_ UINT16 BufferLength,
+            _In_ uint16_t BufferLength,
             _Inout_updates_bytes_(BufferLength) uint8_t* Buffer
             )
         {
@@ -459,9 +443,9 @@ struct TlsTest : public WEX::TestClass<TlsTest>
         bool
         ComputeHpMask(
             _In_reads_bytes_(16)
-                const UINT8* const Cipher,
+                const uint8_t* const Cipher,
             _Out_writes_bytes_(16)
-                UINT8* Mask
+                uint8_t* Mask
             )
         {
             return
@@ -478,26 +462,29 @@ struct TlsTest : public WEX::TestClass<TlsTest>
     DoHandshake(
         TlsContext& ServerContext,
         TlsContext& ClientContext,
-        UINT32 FragmentSize = 1200
+        uint32_t FragmentSize = 1200
         )
     {
         auto Result = ClientContext.ProcessData(nullptr);
-        VERIFY_IS_TRUE(Result & QUIC_TLS_RESULT_DATA);
+        ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
 
         Result = ServerContext.ProcessData(&ClientContext.State, FragmentSize);
-        VERIFY_IS_TRUE(Result & QUIC_TLS_RESULT_DATA);
-        VERIFY_IS_NOT_NULL(ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+        ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+        ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
         Result = ClientContext.ProcessData(&ServerContext.State, FragmentSize);
-        VERIFY_IS_TRUE(Result & QUIC_TLS_RESULT_DATA);
-        VERIFY_IS_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
-        VERIFY_IS_NOT_NULL(ClientContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+        ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+        ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
+        ASSERT_NE(nullptr, ClientContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
         Result = ServerContext.ProcessData(&ClientContext.State, FragmentSize);
-        VERIFY_IS_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
+        ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
     }
+};
 
-    TEST_METHOD(Initialize)
+void* TlsTest::SecConfigertContext;
+
+    TEST_F(TlsTest, Initialize)
     {
         TlsSession ServerSession, ClientSession;
         {
@@ -507,7 +494,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
         }
     }
 
-    TEST_METHOD(Handshake)
+    TEST_F(TlsTest, Handshake)
     {
         TlsSession ServerSession, ClientSession;
         {
@@ -518,7 +505,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
         }
     }
 
-    TEST_METHOD(HandshakeFragmented)
+    TEST_F(TlsTest, HandshakeFragmented)
     {
         TlsSession ServerSession, ClientSession;
         {
@@ -529,7 +516,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
         }
     }
 
-    TEST_METHOD(HandshakesSerial)
+    TEST_F(TlsTest, HandshakesSerial)
     {
         // Server fails to decrypt message during second handshake with shared ClientSession.
         // Server still fail to decrypt second handshake with separate ClientSessions.
@@ -556,7 +543,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
         QuicTlsSecConfigRelease(ClientSecConfig);
     }
 
-    TEST_METHOD(HandshakesInterleaved)
+    TEST_F(TlsTest, HandshakesInterleaved)
     {
         TlsSession ServerSession, ClientSession;
         QUIC_SEC_CONFIG* ClientSecConfig = nullptr;
@@ -572,39 +559,39 @@ struct TlsTest : public WEX::TestClass<TlsTest>
             ClientContext2.InitializeClient(ClientSession, ClientSecConfig);
 
             auto Result = ClientContext1.ProcessData(nullptr);
-            VERIFY_IS_TRUE(Result & QUIC_TLS_RESULT_DATA);
+            ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
 
             Result = ClientContext2.ProcessData(nullptr);
-            VERIFY_IS_TRUE(Result & QUIC_TLS_RESULT_DATA);
+            ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
 
             Result = ServerContext1.ProcessData(&ClientContext1.State);
-            VERIFY_IS_TRUE(Result & QUIC_TLS_RESULT_DATA);
-            VERIFY_IS_NOT_NULL(ServerContext1.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+            ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+            ASSERT_NE(nullptr, ServerContext1.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
             Result = ServerContext2.ProcessData(&ClientContext2.State);
-            VERIFY_IS_TRUE(Result & QUIC_TLS_RESULT_DATA);
-            VERIFY_IS_NOT_NULL(ServerContext2.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+            ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+            ASSERT_NE(nullptr, ServerContext2.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
             Result = ClientContext1.ProcessData(&ServerContext1.State);
-            VERIFY_IS_TRUE(Result & QUIC_TLS_RESULT_DATA);
-            VERIFY_IS_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
-            VERIFY_IS_NOT_NULL(ClientContext1.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+            ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+            ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
+            ASSERT_NE(nullptr, ClientContext1.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
             Result = ClientContext2.ProcessData(&ServerContext2.State);
-            VERIFY_IS_TRUE(Result & QUIC_TLS_RESULT_DATA);
-            VERIFY_IS_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
-            VERIFY_IS_NOT_NULL(ClientContext2.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+            ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+            ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
+            ASSERT_NE(nullptr, ClientContext2.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
             Result = ServerContext1.ProcessData(&ClientContext1.State);
-            VERIFY_IS_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
+            ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
 
             Result = ServerContext2.ProcessData(&ClientContext2.State);
-            VERIFY_IS_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
+            ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
         }
         QuicTlsSecConfigRelease(ClientSecConfig);
     }
 
-    TEST_METHOD(One1RttKey)
+    TEST_P(TlsTest, One1RttKey)
     {
         BEGIN_TEST_METHOD_PROPERTIES()
             TEST_METHOD_PROPERTY(L"Data:PNE", L"{0,1}")
@@ -623,11 +610,11 @@ struct TlsTest : public WEX::TestClass<TlsTest>
             PacketKey ServerKey(ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
             PacketKey ClientKey(ClientContext.State.ReadKeys[QUIC_PACKET_KEY_1_RTT]);
 
-            UINT8 Header[32] = { 1, 2, 3, 4 };
+            uint8_t Header[32] = { 1, 2, 3, 4 };
             uint64_t PacketNumber = 0;
-            UINT8 Buffer[1000] = { 0 };
+            uint8_t Buffer[1000] = { 0 };
 
-            VERIFY_IS_TRUE(
+            ASSERT_TRUE(
                 ServerKey.Encrypt(
                     sizeof(Header),
                     Header,
@@ -636,28 +623,28 @@ struct TlsTest : public WEX::TestClass<TlsTest>
                     Buffer));
 
             if (PNE != 0) {
-                UINT8 Mask[16];
+                uint8_t Mask[16];
 
-                VERIFY_IS_TRUE(
+                ASSERT_TRUE(
                     ServerKey.ComputeHpMask(
                         Buffer,
                         Mask));
 
-                for (UINT32 i = 0; i < sizeof(Mask); i++) {
+                for (uint32_t i = 0; i < sizeof(Mask); i++) {
                     Header[i] ^= Mask[i];
                 }
 
-                VERIFY_IS_TRUE(
+                ASSERT_TRUE(
                     ClientKey.ComputeHpMask(
                         Buffer,
                         Mask));
 
-                for (UINT32 i = 0; i < sizeof(Mask); i++) {
+                for (uint32_t i = 0; i < sizeof(Mask); i++) {
                     Header[i] ^= Mask[i];
                 }
             }
 
-            VERIFY_IS_TRUE(
+            ASSERT_TRUE(
                 ClientKey.Decrypt(
                     sizeof(Header),
                     Header,
@@ -667,7 +654,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
         }
     }
 
-    TEST_METHOD(KeyUpdate)
+    TEST_P(TlsTest, KeyUpdate)
     {
         BEGIN_TEST_METHOD_PROPERTIES()
             TEST_METHOD_PROPERTY(L"Data:PNE", L"{0,1}")
@@ -709,11 +696,11 @@ struct TlsTest : public WEX::TestClass<TlsTest>
             PacketKey ServerKey(UpdateWriteKey);
             PacketKey ClientKey(UpdateReadKey);
 
-            UINT8 Header[32] = { 1, 2, 3, 4 };
+            uint8_t Header[32] = { 1, 2, 3, 4 };
             uint64_t PacketNumber = 0;
-            UINT8 Buffer[1000] = { 0 };
+            uint8_t Buffer[1000] = { 0 };
 
-            VERIFY_IS_TRUE(
+            ASSERT_TRUE(
                 ServerKey.Encrypt(
                     sizeof(Header),
                     Header,
@@ -722,28 +709,28 @@ struct TlsTest : public WEX::TestClass<TlsTest>
                     Buffer));
 
             if (PNE != 0) {
-                UINT8 Mask[16];
+                uint8_t Mask[16];
 
-                VERIFY_IS_TRUE(
+                ASSERT_TRUE(
                     ServerKey.ComputeHpMask(
                         Buffer,
                         Mask));
 
-                for (UINT32 i = 0; i < sizeof(Mask); i++) {
+                for (uint32_t i = 0; i < sizeof(Mask); i++) {
                     Header[i] ^= Mask[i];
                 }
 
-                VERIFY_IS_TRUE(
+                ASSERT_TRUE(
                     ClientKey.ComputeHpMask(
                         Buffer,
                         Mask));
 
-                for (UINT32 i = 0; i < sizeof(Mask); i++) {
+                for (uint32_t i = 0; i < sizeof(Mask); i++) {
                     Header[i] ^= Mask[i];
                 }
             }
 
-            VERIFY_IS_TRUE(
+            ASSERT_TRUE(
                 ClientKey.Decrypt(
                     sizeof(Header),
                     Header,
@@ -756,16 +743,16 @@ struct TlsTest : public WEX::TestClass<TlsTest>
         }
     }
 
-    LONGLONG
+    int64_t
     DoEncryption(
         PacketKey& Key,
-        UINT16 BufferSize,
+        uint16_t BufferSize,
         uint64_t LoopCount
         )
     {
-        UINT8 Header[32] = { 0 };
-        UINT8 Buffer[MAXUINT16] = { 0 };
-        UINT16 OverHead = Key.Overhead();
+        uint8_t Header[32] = { 0 };
+        uint8_t Buffer[MAXUINT16] = { 0 };
+        uint16_t OverHead = Key.Overhead();
 
         LARGE_INTEGER Start, End;
         QueryPerformanceCounter(&Start);
@@ -784,17 +771,17 @@ struct TlsTest : public WEX::TestClass<TlsTest>
         return End.QuadPart - Start.QuadPart;
     }
 
-    LONGLONG
+    int64_t
     DoEncryptionWithPNE(
         PacketKey& Key,
-        UINT16 BufferSize,
+        uint16_t BufferSize,
         uint64_t LoopCount
         )
     {
-        UINT8 Header[32] = { 0 };
-        UINT8 Buffer[MAXUINT16] = { 0 };
-        UINT16 OverHead = Key.Overhead();
-        UINT8 Mask[16];
+        uint8_t Header[32] = { 0 };
+        uint8_t Buffer[MAXUINT16] = { 0 };
+        uint16_t OverHead = Key.Overhead();
+        uint8_t Mask[16];
 
         LARGE_INTEGER Start, End;
         QueryPerformanceCounter(&Start);
@@ -807,7 +794,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
                 BufferSize + OverHead,
                 Buffer);
             Key.ComputeHpMask(Buffer, Mask);
-            for (UINT32 i = 0; i < sizeof(Mask); i++) {
+            for (uint32_t i = 0; i < sizeof(Mask); i++) {
                 Header[i] ^= Mask[i];
             }
         }
@@ -817,7 +804,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
         return End.QuadPart - Start.QuadPart;
     }
 
-    TEST_METHOD(PacketEncryptionPerf)
+    TEST_F(TlsTest, PacketEncryptionPerf)
     {
         BEGIN_TEST_METHOD_PROPERTIES()
             TEST_METHOD_PROPERTY(L"Data:PNE", L"{0,1}")
@@ -836,7 +823,7 @@ struct TlsTest : public WEX::TestClass<TlsTest>
             PacketKey ServerKey(ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
 
             const uint64_t LoopCount = 10000;
-            UINT16 BufferSizes[] =
+            uint16_t BufferSizes[] =
             {
                 4,
                 16,
@@ -859,8 +846,8 @@ struct TlsTest : public WEX::TestClass<TlsTest>
                 SetThreadAffinityMask(CurrentThread, (DWORD_PTR)1 << (DWORD_PTR)ProcNumber);
             SetThreadPriority(CurrentThread, THREAD_PRIORITY_HIGHEST);
 
-            for (UINT8 i = 0; i < ARRAYSIZE(BufferSizes); ++i) {
-                LONGLONG elapsedMicroseconds =
+            for (uint8_t i = 0; i < ARRAYSIZE(BufferSizes); ++i) {
+                int64_t elapsedMicroseconds =
                     PNE == 0 ?
                     DoEncryption(ServerKey, BufferSizes[i], LoopCount) :
                     DoEncryptionWithPNE(ServerKey, BufferSizes[i], LoopCount);

@@ -47,7 +47,7 @@ struct QuicAddr
     }
 
     QuicAddr() {
-        ZeroMemory(this, sizeof(*this));
+        QuicZeroMemory(this, sizeof(*this));
     }
 
     void Resolve(QUIC_ADDRESS_FAMILY af, const char* hostname) {
@@ -139,7 +139,7 @@ protected:
         //
         // Initialize a semi-random base port number.
         //
-        NextPort = 50000 + (GetCurrentProcessId() % 10000) + (rand() % 5000);
+        NextPort = 50000 + (QuicCurThreadID() % 10000) + (rand() % 5000);
 
         LocalIPv4.Resolve(AF_INET, "localhost");
         LocalIPv6.Resolve(AF_INET6, "localhost");
@@ -208,7 +208,7 @@ protected:
                     ));
 
             } else {
-                ASSERT_EQ(TRUE, QuicEventSet(RecvContext->ClientCompletion));
+                QuicEventSet(RecvContext->ClientCompletion);
             }
 
             recvBuffer = recvBuffer->Next;
@@ -348,11 +348,9 @@ TEST_P(DataPathTest, Data)
     QUIC_DATAPATH_BINDING* client = nullptr;
     auto serverAddress = GetNewLocalAddr();
 
-    DataRecvContext RecvContext =
-    {
-        { 0 },
-        CreateEvent(nullptr, FALSE, FALSE, nullptr)
-    };
+    DataRecvContext RecvContext = {};
+
+    QuicEventInitialize(&RecvContext.ClientCompletion, FALSE, FALSE);
 
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
@@ -372,6 +370,13 @@ TEST_P(DataPathTest, Data)
                 nullptr,
                 &RecvContext,
                 &server);
+#ifdef _WIN32
+        if (Status == WSAEACCES) {
+            Status = QUIC_STATUS_ADDRESS_IN_USE;
+            std::cout << "Replacing EACCESS with ADDRINUSE for port: " <<
+                htons(serverAddress.SockAddr.Ipv4.sin_port) << std::endl;
+        }
+#endif
     }
     VERIFY_QUIC_SUCCESS(Status);
     ASSERT_NE(nullptr, server);
@@ -422,11 +427,9 @@ TEST_P(DataPathTest, DataRebind)
     QUIC_DATAPATH_BINDING* client = nullptr;
     auto serverAddress = GetNewLocalAddr();
 
-    DataRecvContext RecvContext =
-    {
-        { 0 },
-        CreateEvent(nullptr, FALSE, FALSE, nullptr)
-    };
+    DataRecvContext RecvContext = {};
+
+    QuicEventInitialize(&RecvContext.ClientCompletion, FALSE, FALSE);
 
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(

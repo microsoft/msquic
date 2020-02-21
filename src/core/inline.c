@@ -160,11 +160,6 @@ QuicKeyTypeToEncryptLevel(
     QUIC_PACKET_KEY_TYPE KeyType
     );
 
-uint16_t
-QuicKeyLength(
-    QUIC_AEAD_TYPE Type
-    );
-
 QUIC_PACKET_KEY_TYPE
 QuicPacketTypeToKeyType(
     uint8_t PacketType
@@ -611,10 +606,4 @@ QuicPacketTraceType(
 int64_t
 QuicTimeEpochMs64(
     void
-    );
-
-void
-QuicTraceStubVarArgs(
-    _In_ const void* Fmt,
-    ...
     );

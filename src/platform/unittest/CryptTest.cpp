@@ -318,9 +318,15 @@ TEST_P(CryptTest, HashWellKnown)
         &WellKnownOutput0, &WellKnownOutput1, &WellKnownOutput2
     };
 
-    uint8_t Salt[20] = {0xff};
-    uint8_t Input[256] = {0xaa};
-    uint8_t Output[QUIC_HASH_MAX_SIZE] = {0};
+    uint8_t Salt[20];
+    QuicZeroMemory(Salt, sizeof(Salt));
+    Salt[0] = 0xff;
+    uint8_t Input[256];
+    QuicZeroMemory(Input, sizeof(Input));
+    Input[0] = 0xaa;
+
+    uint8_t Output[QUIC_HASH_MAX_SIZE];
+    QuicZeroMemory(Output, sizeof(Output));
     const uint16_t OutputLength = QuicHashLength((QUIC_HASH_TYPE)HASH);
 
     QuicHash Hash((QUIC_HASH_TYPE)HASH, Salt, sizeof(Salt));
@@ -332,7 +338,7 @@ TEST_P(CryptTest, HashWellKnown)
             sizeof(Input),
             OutputLength,
             Output));
-    ASSERT_EQ((uint16_t)WellKnownOutput[HASH]->Length, OutputLength);
+    ASSERT_EQ(WellKnownOutput[HASH]->Length, OutputLength);
     ASSERT_EQ(0, memcmp(WellKnownOutput[HASH]->Data, Output, OutputLength));
 }
 
