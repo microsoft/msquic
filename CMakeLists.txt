@@ -87,6 +87,10 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_DISABLE_0RTT")
     endif()
 
+    if(QUIC_TLS STREQUAL "stub")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_TLS_STUB")
+    endif()
+
     if(QUIC_SANITIZE_ADDRESS)
         message(STATUS "Address sanitizer unsupported on this platform.")
     endif()
@@ -133,6 +137,10 @@ else()
     if(QUIC_SANITIZE_ADDRESS)
         message(STATUS "Configuring address sanitizer")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -fsanitize=address -fno-omit-frame-pointer -Wno-maybe-uninitialized -O0 -Og -g")
+    endif()
+
+    if(QUIC_TLS STREQUAL "stub")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_TLS_STUB")
     endif()
 
     set(QUIC_C_FLAGS "${QUIC_COMMON_FLAGS}")

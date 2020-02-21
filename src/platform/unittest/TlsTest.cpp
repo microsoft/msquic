@@ -23,6 +23,7 @@ protected:
     QUIC_RUNDOWN_REF SecConfigRundown;
     QUIC_EVENT SecConfigDoneEvent;
     QUIC_SEC_CONFIG* SecConfig;
+    static QUIC_SEC_CONFIG_PARAMS* SelfSignedCertParams;
 
     TlsTest() :
         SecConfig(nullptr)
@@ -54,20 +55,32 @@ protected:
         QuicEventSet(pThis->SecConfigDoneEvent);
     }
 
-    virtual void SetUp() override
+    static void SetUpTestSuite()
+    {
+        SelfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
+        ASSERT_NE(nullptr, SelfSignedCertParams);
+    }
+
+    static void TearDownTestSuite()
+    {
+        QuicPlatFreeSelfSignedCert(SelfSignedCertParams);
+        SelfSignedCertParams = nullptr;
+    }
+
+    void SetUp() override
     {
         VERIFY_QUIC_SUCCESS(
             QuicTlsServerSecConfigCreate(
                 &SecConfigRundown,
-                QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT,
-                SecConfigCertContext,
-                nullptr,
+                (QUIC_SEC_CONFIG_FLAGS)SelfSignedCertParams->Flags,
+                SelfSignedCertParams->Certificate,
+                SelfSignedCertParams->Principal,
                 this,
                 OnSecConfigCreateComplete));
         ASSERT_TRUE(QuicEventWaitWithTimeout(SecConfigDoneEvent, 5000));
     }
 
-    virtual void TearDown() override
+    void TearDown() override
     {
         QuicTlsSecConfigRelease(SecConfig);
         SecConfig = nullptr;
@@ -526,6 +539,8 @@ protected:
     }
 };
 
+QUIC_SEC_CONFIG_PARAMS* TlsTest::SelfSignedCertParams = nullptr;
+
 TEST_F(TlsTest, Initialize)
 {
     TlsSession ServerSession, ClientSession;
@@ -776,10 +791,7 @@ TEST_P(TlsTest, KeyUpdate)
     }
 }
 
-#ifdef _WIN32
-/*
-    N.B. Perf test only available for Windows at this time.
-*/
+
 TEST_P(TlsTest, PacketEncryptionPerf)
 {
 
@@ -809,11 +821,13 @@ TEST_P(TlsTest, PacketEncryptionPerf)
             //65000
         };
 
+#ifdef _WIN32
         HANDLE CurrentThread = GetCurrentThread();
         DWORD ProcNumber = GetCurrentProcessorNumber();
         DWORD_PTR OldAffinityMask =
             SetThreadAffinityMask(CurrentThread, (DWORD_PTR)1 << (DWORD_PTR)ProcNumber);
         SetThreadPriority(CurrentThread, THREAD_PRIORITY_HIGHEST);
+#endif
 
         for (uint8_t i = 0; i < ARRAYSIZE(BufferSizes); ++i) {
             int64_t elapsedMicroseconds =
@@ -826,10 +840,11 @@ TEST_P(TlsTest, PacketEncryptionPerf)
                 << BufferSizes[i] << " << bytes " << LoopCount << " times" << std::endl;
         }
 
+#ifdef _WIN32
         SetThreadPriority(CurrentThread, THREAD_PRIORITY_NORMAL);
         SetThreadAffinityMask(CurrentThread, OldAffinityMask);
+#endif
     }
 }
-#endif // _WIN32
 
 INSTANTIATE_TEST_SUITE_P(TlsTest, TlsTest, ::testing::Bool());

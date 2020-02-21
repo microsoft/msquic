@@ -58,14 +58,14 @@ struct QuicAddr
                 (QUIC_DATAPATH_RECEIVE_CALLBACK_HANDLER)(1),
                 (QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER)(1),
                 &Datapath))) {
-            GTEST_NONFATAL_FAILURE_(" QuicDataPathInitialize failed.");
+            GTEST_FATAL_FAILURE_(" QuicDataPathInitialize failed.");
         }
         if (QUIC_FAILED(
             QuicDataPathResolveAddress(
                 Datapath,
                 hostname,
                 &SockAddr))) {
-            GTEST_NONFATAL_FAILURE_("Failed to resolve IP address.");
+            GTEST_FATAL_FAILURE_("Failed to resolve IP address.");
         }
         QuicDataPathUninitialize(Datapath);
     }

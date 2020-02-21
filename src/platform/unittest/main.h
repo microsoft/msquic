@@ -9,13 +9,15 @@
 #undef max
 #include "gtest/gtest.h"
 
+#define QUIC_TEST_APIS 1
+
 #include "quic_platform.h"
 
 #include "quic_trace.h"
 
-#define VERIFY_QUIC_SUCCESS(result) ASSERT_EQ(QUIC_STATUS_SUCCESS, result)
+#define VERIFY_QUIC_SUCCESS(result) ASSERT_TRUE(QUIC_SUCCEEDED(result))
 
 #define GTEST_SKIP_NO_RETURN_(message) \
   GTEST_MESSAGE_(message, ::testing::TestPartResult::kSkip)
 
-extern void* SecConfigCertContext;
+extern QUIC_SEC_CONFIG_PARAMS* SelfSignedCertParams;

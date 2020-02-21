@@ -134,12 +134,15 @@ $RunTest = Join-Path $RootDir ".azure/scripts/run-gtest.ps1"
 # Path to the msquictest exectuable.
 $MsQuicTest = $null
 $MsQuicCoreTest = $null
+$MsQuicPlatTest = $null
 if ($IsWindows) {
     $MsQuicTest = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)\msquictest.exe"
     $MsQuicCoreTest = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)\msquiccoretest.exe"
+    $MsQuicPlatTest = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)\msquicplatformtest.exe"
 } else {
     $MsQuicTest = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/msquictest"
     $MsQuicCoreTest = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/msquiccoretest"
+    $MsQuicPlatTest = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/msquicplatformtest"
 }
 
 # Build up all the arguments to pass to the Powershell script.

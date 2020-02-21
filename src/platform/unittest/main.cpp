@@ -13,23 +13,13 @@
 
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 
-extern "C" {
-void* CreateServerCertificate();
-void FreeServerCertificate(void* CertCtx);
-}
-
-void* SecConfigCertContext;
-
 class QuicCoreTestEnvironment : public ::testing::Environment {
 public:
     void SetUp() override {
         QuicPlatformSystemLoad();
         ASSERT_TRUE(QUIC_SUCCEEDED(QuicPlatformInitialize()));
-        ASSERT_NE(nullptr, (SecConfigCertContext = CreateServerCertificate()));
     }
     void TearDown() override {
-        FreeServerCertificate(SecConfigCertContext);
-        SecConfigCertContext = nullptr;
         QuicPlatformUninitialize();
         QuicPlatformSystemUnload();
     }
