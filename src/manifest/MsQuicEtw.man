@@ -2860,19 +2860,19 @@
             />
         <string
             id="Etw.ConnSourceCidAdd"
-            value="[conn][%1] New Source CID: %3"
+            value="[conn][%1] New Source CID: %4"
             />
         <string
             id="Etw.ConnDestCidAdd"
-            value="[conn][%1] New Destination CID: %3"
+            value="[conn][%1] New Destination CID: %4"
             />
         <string
             id="Etw.ConnSourceCidRemove"
-            value="[conn][%1] Removed Source CID: %3"
+            value="[conn][%1] Removed Source CID: %4"
             />
         <string
             id="Etw.ConnDestCidRemove"
-            value="[conn][%1] Removed Destination CID: %3"
+            value="[conn][%1] Removed Destination CID: %4"
             />
         <string
             id="Etw.ConnAssignWorker"
