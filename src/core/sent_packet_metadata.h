@@ -8,7 +8,7 @@
 //
 // The maximum number of frames we will write to a single packet.
 //
-#define QUIC_MAX_FRAMES_PER_PACKET 8
+#define QUIC_MAX_FRAMES_PER_PACKET 12
 
 typedef struct QUIC_STREAM QUIC_STREAM;
 

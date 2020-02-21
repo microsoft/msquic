@@ -180,5 +180,5 @@ if ($CompressOutput) {
 }
 
 # Run the script.
-Invoke-Expression ($RunTest + " -Path $($MsQuicTest) " + $TestArguments)
 Invoke-Expression ($RunTest + " -Path $($MsQuicCoreTest) " + $TestArguments)
+Invoke-Expression ($RunTest + " -Path $($MsQuicTest) " + $TestArguments)
