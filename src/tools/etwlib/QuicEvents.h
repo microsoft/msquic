@@ -242,6 +242,7 @@ struct QuicConnEventPayload {
             uint32_t WindowLastMax;
         } Cubic;
         struct {
+            uint64_t SequenceNumber;
             uint8_t CidLength;
             uint8_t Cid[1];
         } SourceCidAdd, SourceCidRemove;
