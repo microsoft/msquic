@@ -13,21 +13,15 @@
 #include "tlstest.tmh"
 #endif
 
-extern "C" {
-void* CreateServerCertificate();
-void FreeServerCertificate(void* CertCtx);
-}
-
 const uint32_t CertValidationIgnoreFlags =
     QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
     QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID;
 
-struct TlsTest : public ::testing::Test
+struct TlsTest : public ::testing::TestWithParam<bool>
 {
 protected:
     QUIC_RUNDOWN_REF SecConfigRundown;
     QUIC_EVENT SecConfigDoneEvent;
-    static void* SecConfigertContext;
     QUIC_SEC_CONFIG* SecConfig;
 
     TlsTest() :
@@ -57,18 +51,7 @@ protected:
         TlsTest* pThis = (TlsTest*)Context;
         VERIFY_QUIC_SUCCESS(Status);
         pThis->SecConfig = SecConfig;
-        SetEvent(pThis->SecConfigDoneEvent);
-    }
-
-    static void SetUpTestSuite()
-    {
-        ASSERT_NE(nullptr, (SecConfigertContext = CreateServerCertificate()));
-    }
-
-    static void TearDownTestSuite()
-    {
-        FreeServerCertificate(SecConfigertContext);
-        SecConfigertContext = nullptr;
+        QuicEventSet(pThis->SecConfigDoneEvent);
     }
 
     virtual void SetUp() override
@@ -77,7 +60,7 @@ protected:
             QuicTlsServerSecConfigCreate(
                 &SecConfigRundown,
                 QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT,
-                SecConfigertContext,
+                SecConfigCertContext,
                 nullptr,
                 this,
                 OnSecConfigCreateComplete));
@@ -104,7 +87,7 @@ protected:
     struct TlsContext
     {
         QUIC_TLS* Ptr;
-        HANDLE ProcessCompleteEvent;
+        QUIC_EVENT ProcessCompleteEvent;
 
         QUIC_TLS_PROCESS_STATE State;
 
@@ -116,14 +99,14 @@ protected:
             Ptr(nullptr),
             Connected(false) {
             QuicEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
-            RtlZeroMemory(&State, sizeof(State));
+            QuicZeroMemory(&State, sizeof(State));
             State.Buffer = (uint8_t*)QUIC_ALLOC_NONPAGED(8000);
             State.BufferAllocLength = 8000;
         }
 
         ~TlsContext() {
             QuicTlsUninitialize(Ptr);
-            CloseHandle(ProcessCompleteEvent);
+            QuicEventUninitialize(ProcessCompleteEvent);
             QUIC_FREE(State.Buffer);
             for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
                 QuicPacketKeyFree(State.ReadKeys[i]);
@@ -234,7 +217,7 @@ protected:
             _In_ uint32_t * BufferLength
             )
         {
-            ResetEvent(ProcessCompleteEvent);
+            QuicEventReset(ProcessCompleteEvent);
 
             EXPECT_TRUE(Buffer != nullptr || *BufferLength == 0);
             if (Buffer != nullptr) {
@@ -346,7 +329,7 @@ protected:
                         FragmentSize);
 
                 PeerState->BufferLength -= BufferLength;
-                RtlMoveMemory(
+                QuicMoveMemory(
                     PeerState->Buffer,
                     PeerState->Buffer + BufferLength,
                     PeerState->BufferLength);
@@ -362,7 +345,7 @@ protected:
             _In_ QUIC_CONNECTION* Connection
             )
         {
-            SetEvent(((TlsContext*)Connection)->ProcessCompleteEvent);
+            QuicEventSet(((TlsContext*)Connection)->ProcessCompleteEvent);
         }
 
         static BOOLEAN
@@ -480,268 +463,6 @@ protected:
         Result = ServerContext.ProcessData(&ClientContext.State, FragmentSize);
         ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
     }
-};
-
-void* TlsTest::SecConfigertContext;
-
-    TEST_F(TlsTest, Initialize)
-    {
-        TlsSession ServerSession, ClientSession;
-        {
-            TlsContext ServerContext, ClientContext;
-            ServerContext.InitializeServer(ServerSession, SecConfig);
-            ClientContext.InitializeClient(ClientSession);
-        }
-    }
-
-    TEST_F(TlsTest, Handshake)
-    {
-        TlsSession ServerSession, ClientSession;
-        {
-            TlsContext ServerContext, ClientContext;
-            ServerContext.InitializeServer(ServerSession, SecConfig);
-            ClientContext.InitializeClient(ClientSession);
-            DoHandshake(ServerContext, ClientContext);
-        }
-    }
-
-    TEST_F(TlsTest, HandshakeFragmented)
-    {
-        TlsSession ServerSession, ClientSession;
-        {
-            TlsContext ServerContext, ClientContext;
-            ServerContext.InitializeServer(ServerSession, SecConfig);
-            ClientContext.InitializeClient(ClientSession);
-            DoHandshake(ServerContext, ClientContext, 200);
-        }
-    }
-
-    TEST_F(TlsTest, HandshakesSerial)
-    {
-        // Server fails to decrypt message during second handshake with shared ClientSession.
-        // Server still fail to decrypt second handshake with separate ClientSessions.
-        // Server still fails to decrypt when using the same ServerContext again.
-        // passes with different ServerContexts.
-        TlsSession ServerSession, ClientSession/*, ClientSession2*/;
-        QUIC_SEC_CONFIG* ClientSecConfig = nullptr;
-        VERIFY_QUIC_SUCCESS(
-            QuicTlsClientSecConfigCreate(
-                CertValidationIgnoreFlags,
-                &ClientSecConfig));
-        {
-            TlsContext ServerContext, ClientContext1;
-            ServerContext.InitializeServer(ServerSession, SecConfig);
-            ClientContext1.InitializeClient(ClientSession, ClientSecConfig);
-            DoHandshake(ServerContext, ClientContext1);
-        }
-        {
-            TlsContext ServerContext, ClientContext2;
-            ServerContext.InitializeServer(ServerSession, SecConfig);
-            ClientContext2.InitializeClient(ClientSession, ClientSecConfig);
-            DoHandshake(ServerContext, ClientContext2);
-        }
-        QuicTlsSecConfigRelease(ClientSecConfig);
-    }
-
-    TEST_F(TlsTest, HandshakesInterleaved)
-    {
-        TlsSession ServerSession, ClientSession;
-        QUIC_SEC_CONFIG* ClientSecConfig = nullptr;
-        VERIFY_QUIC_SUCCESS(
-            QuicTlsClientSecConfigCreate(
-                CertValidationIgnoreFlags,
-                &ClientSecConfig));
-        {
-            TlsContext ServerContext1, ServerContext2, ClientContext1, ClientContext2;
-            ServerContext1.InitializeServer(ServerSession, SecConfig);
-            ClientContext1.InitializeClient(ClientSession, ClientSecConfig);
-            ServerContext2.InitializeServer(ServerSession, SecConfig);
-            ClientContext2.InitializeClient(ClientSession, ClientSecConfig);
-
-            auto Result = ClientContext1.ProcessData(nullptr);
-            ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
-
-            Result = ClientContext2.ProcessData(nullptr);
-            ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
-
-            Result = ServerContext1.ProcessData(&ClientContext1.State);
-            ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
-            ASSERT_NE(nullptr, ServerContext1.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
-
-            Result = ServerContext2.ProcessData(&ClientContext2.State);
-            ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
-            ASSERT_NE(nullptr, ServerContext2.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
-
-            Result = ClientContext1.ProcessData(&ServerContext1.State);
-            ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
-            ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
-            ASSERT_NE(nullptr, ClientContext1.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
-
-            Result = ClientContext2.ProcessData(&ServerContext2.State);
-            ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
-            ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
-            ASSERT_NE(nullptr, ClientContext2.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
-
-            Result = ServerContext1.ProcessData(&ClientContext1.State);
-            ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
-
-            Result = ServerContext2.ProcessData(&ClientContext2.State);
-            ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
-        }
-        QuicTlsSecConfigRelease(ClientSecConfig);
-    }
-
-    TEST_P(TlsTest, One1RttKey)
-    {
-        BEGIN_TEST_METHOD_PROPERTIES()
-            TEST_METHOD_PROPERTY(L"Data:PNE", L"{0,1}")
-        END_TEST_METHOD_PROPERTIES()
-
-        int PNE;
-        TestData::TryGetValue(L"PNE", PNE);
-
-        TlsSession ServerSession, ClientSession;
-        {
-            TlsContext ServerContext, ClientContext;
-            ServerContext.InitializeServer(ServerSession, SecConfig);
-            ClientContext.InitializeClient(ClientSession);
-            DoHandshake(ServerContext, ClientContext);
-
-            PacketKey ServerKey(ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
-            PacketKey ClientKey(ClientContext.State.ReadKeys[QUIC_PACKET_KEY_1_RTT]);
-
-            uint8_t Header[32] = { 1, 2, 3, 4 };
-            uint64_t PacketNumber = 0;
-            uint8_t Buffer[1000] = { 0 };
-
-            ASSERT_TRUE(
-                ServerKey.Encrypt(
-                    sizeof(Header),
-                    Header,
-                    PacketNumber,
-                    sizeof(Buffer),
-                    Buffer));
-
-            if (PNE != 0) {
-                uint8_t Mask[16];
-
-                ASSERT_TRUE(
-                    ServerKey.ComputeHpMask(
-                        Buffer,
-                        Mask));
-
-                for (uint32_t i = 0; i < sizeof(Mask); i++) {
-                    Header[i] ^= Mask[i];
-                }
-
-                ASSERT_TRUE(
-                    ClientKey.ComputeHpMask(
-                        Buffer,
-                        Mask));
-
-                for (uint32_t i = 0; i < sizeof(Mask); i++) {
-                    Header[i] ^= Mask[i];
-                }
-            }
-
-            ASSERT_TRUE(
-                ClientKey.Decrypt(
-                    sizeof(Header),
-                    Header,
-                    PacketNumber,
-                    sizeof(Buffer),
-                    Buffer));
-        }
-    }
-
-    TEST_P(TlsTest, KeyUpdate)
-    {
-        BEGIN_TEST_METHOD_PROPERTIES()
-            TEST_METHOD_PROPERTY(L"Data:PNE", L"{0,1}")
-        END_TEST_METHOD_PROPERTIES()
-
-        int PNE;
-        TestData::TryGetValue(L"PNE", PNE);
-
-        TlsSession ServerSession, ClientSession;
-        {
-            TlsContext ServerContext, ClientContext;
-            ServerContext.InitializeServer(ServerSession, SecConfig);
-            ClientContext.InitializeClient(ClientSession);
-            DoHandshake(ServerContext, ClientContext);
-
-            QUIC_PACKET_KEY* UpdateWriteKey, *UpdateReadKey = nullptr;
-
-            VERIFY_QUIC_SUCCESS(
-                QuicPacketKeyUpdate(
-                    ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT],
-                    &UpdateWriteKey));
-            VERIFY_QUIC_SUCCESS(
-                QuicPacketKeyUpdate(
-                    ClientContext.State.ReadKeys[QUIC_PACKET_KEY_1_RTT],
-                    &UpdateReadKey));
-
-            if (PNE != 0) {
-                //
-                // If PNE is enabled, copy the header keys to the new packet
-                // key structs.
-                //
-                UpdateWriteKey->HeaderKey = ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]->HeaderKey;
-                ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]->HeaderKey = NULL;
-
-                UpdateReadKey->HeaderKey = ClientContext.State.ReadKeys[QUIC_PACKET_KEY_1_RTT]->HeaderKey;
-                ClientContext.State.ReadKeys[QUIC_PACKET_KEY_1_RTT]->HeaderKey = NULL;
-            }
-
-            PacketKey ServerKey(UpdateWriteKey);
-            PacketKey ClientKey(UpdateReadKey);
-
-            uint8_t Header[32] = { 1, 2, 3, 4 };
-            uint64_t PacketNumber = 0;
-            uint8_t Buffer[1000] = { 0 };
-
-            ASSERT_TRUE(
-                ServerKey.Encrypt(
-                    sizeof(Header),
-                    Header,
-                    PacketNumber,
-                    sizeof(Buffer),
-                    Buffer));
-
-            if (PNE != 0) {
-                uint8_t Mask[16];
-
-                ASSERT_TRUE(
-                    ServerKey.ComputeHpMask(
-                        Buffer,
-                        Mask));
-
-                for (uint32_t i = 0; i < sizeof(Mask); i++) {
-                    Header[i] ^= Mask[i];
-                }
-
-                ASSERT_TRUE(
-                    ClientKey.ComputeHpMask(
-                        Buffer,
-                        Mask));
-
-                for (uint32_t i = 0; i < sizeof(Mask); i++) {
-                    Header[i] ^= Mask[i];
-                }
-            }
-
-            ASSERT_TRUE(
-                ClientKey.Decrypt(
-                    sizeof(Header),
-                    Header,
-                    PacketNumber,
-                    sizeof(Buffer),
-                    Buffer));
-
-            QuicPacketKeyFree(UpdateWriteKey);
-            QuicPacketKeyFree(UpdateReadKey);
-        }
-    }
 
     int64_t
     DoEncryption(
@@ -751,11 +472,11 @@ void* TlsTest::SecConfigertContext;
         )
     {
         uint8_t Header[32] = { 0 };
-        uint8_t Buffer[MAXUINT16] = { 0 };
+        uint8_t Buffer[(uint16_t)~0] = { 0 };
         uint16_t OverHead = Key.Overhead();
 
-        LARGE_INTEGER Start, End;
-        QueryPerformanceCounter(&Start);
+        uint64_t Start, End;
+        Start = QuicTimeUs64();
 
         for (uint64_t j = 0; j < LoopCount; ++j) {
             Key.Encrypt(
@@ -766,9 +487,9 @@ void* TlsTest::SecConfigertContext;
                 Buffer);
         }
 
-        QueryPerformanceCounter(&End);
+        End = QuicTimeUs64();
 
-        return End.QuadPart - Start.QuadPart;
+        return End - Start;
     }
 
     int64_t
@@ -779,12 +500,12 @@ void* TlsTest::SecConfigertContext;
         )
     {
         uint8_t Header[32] = { 0 };
-        uint8_t Buffer[MAXUINT16] = { 0 };
+        uint8_t Buffer[(uint16_t)~0] = { 0 };
         uint16_t OverHead = Key.Overhead();
         uint8_t Mask[16];
 
-        LARGE_INTEGER Start, End;
-        QueryPerformanceCounter(&Start);
+        uint64_t Start, End;
+        Start = QuicTimeUs64();
 
         for (uint64_t j = 0; j < LoopCount; ++j) {
             Key.Encrypt(
@@ -799,70 +520,316 @@ void* TlsTest::SecConfigertContext;
             }
         }
 
-        QueryPerformanceCounter(&End);
+        End = QuicTimeUs64();
 
-        return End.QuadPart - Start.QuadPart;
-    }
-
-    TEST_F(TlsTest, PacketEncryptionPerf)
-    {
-        BEGIN_TEST_METHOD_PROPERTIES()
-            TEST_METHOD_PROPERTY(L"Data:PNE", L"{0,1}")
-        END_TEST_METHOD_PROPERTIES()
-
-        int PNE;
-        TestData::TryGetValue(L"PNE", PNE);
-
-        TlsSession ServerSession, ClientSession;
-        {
-            TlsContext ServerContext, ClientContext;
-            ServerContext.InitializeServer(ServerSession, SecConfig);
-            ClientContext.InitializeClient(ClientSession);
-            DoHandshake(ServerContext, ClientContext);
-
-            PacketKey ServerKey(ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
-
-            const uint64_t LoopCount = 10000;
-            uint16_t BufferSizes[] =
-            {
-                4,
-                16,
-                64,
-                256,
-                600,
-                1000,
-                1200,
-                1450,
-                //8000,
-                //65000
-            };
-
-            LARGE_INTEGER PerfFreq;
-            QueryPerformanceFrequency(&PerfFreq);
-
-            HANDLE CurrentThread = GetCurrentThread();
-            DWORD ProcNumber = GetCurrentProcessorNumber();
-            DWORD_PTR OldAffinityMask =
-                SetThreadAffinityMask(CurrentThread, (DWORD_PTR)1 << (DWORD_PTR)ProcNumber);
-            SetThreadPriority(CurrentThread, THREAD_PRIORITY_HIGHEST);
-
-            for (uint8_t i = 0; i < ARRAYSIZE(BufferSizes); ++i) {
-                int64_t elapsedMicroseconds =
-                    PNE == 0 ?
-                    DoEncryption(ServerKey, BufferSizes[i], LoopCount) :
-                    DoEncryptionWithPNE(ServerKey, BufferSizes[i], LoopCount);
-                elapsedMicroseconds *= 1000000;
-                elapsedMicroseconds /= PerfFreq.QuadPart;
-
-                Log::Comment(
-                    String().Format(
-                        L"%lld.%d milliseconds elapsed encrypting %u bytes %u times",
-                        elapsedMicroseconds / 1000, (int)(elapsedMicroseconds % 1000),
-                        BufferSizes[i], LoopCount));
-            }
-
-            SetThreadPriority(CurrentThread, THREAD_PRIORITY_NORMAL);
-            SetThreadAffinityMask(CurrentThread, OldAffinityMask);
-        }
+        return End - Start;
     }
 };
+
+TEST_F(TlsTest, Initialize)
+{
+    TlsSession ServerSession, ClientSession;
+    {
+        TlsContext ServerContext, ClientContext;
+        ServerContext.InitializeServer(ServerSession, SecConfig);
+        ClientContext.InitializeClient(ClientSession);
+    }
+}
+
+TEST_F(TlsTest, Handshake)
+{
+    TlsSession ServerSession, ClientSession;
+    {
+        TlsContext ServerContext, ClientContext;
+        ServerContext.InitializeServer(ServerSession, SecConfig);
+        ClientContext.InitializeClient(ClientSession);
+        DoHandshake(ServerContext, ClientContext);
+    }
+}
+
+TEST_F(TlsTest, HandshakeFragmented)
+{
+    TlsSession ServerSession, ClientSession;
+    {
+        TlsContext ServerContext, ClientContext;
+        ServerContext.InitializeServer(ServerSession, SecConfig);
+        ClientContext.InitializeClient(ClientSession);
+        DoHandshake(ServerContext, ClientContext, 200);
+    }
+}
+
+TEST_F(TlsTest, HandshakesSerial)
+{
+    // Server fails to decrypt message during second handshake with shared ClientSession.
+    // Server still fail to decrypt second handshake with separate ClientSessions.
+    // Server still fails to decrypt when using the same ServerContext again.
+    // passes with different ServerContexts.
+    TlsSession ServerSession, ClientSession/*, ClientSession2*/;
+    QUIC_SEC_CONFIG* ClientSecConfig = nullptr;
+    VERIFY_QUIC_SUCCESS(
+        QuicTlsClientSecConfigCreate(
+            CertValidationIgnoreFlags,
+            &ClientSecConfig));
+    {
+        TlsContext ServerContext, ClientContext1;
+        ServerContext.InitializeServer(ServerSession, SecConfig);
+        ClientContext1.InitializeClient(ClientSession, ClientSecConfig);
+        DoHandshake(ServerContext, ClientContext1);
+    }
+    {
+        TlsContext ServerContext, ClientContext2;
+        ServerContext.InitializeServer(ServerSession, SecConfig);
+        ClientContext2.InitializeClient(ClientSession, ClientSecConfig);
+        DoHandshake(ServerContext, ClientContext2);
+    }
+    QuicTlsSecConfigRelease(ClientSecConfig);
+}
+
+TEST_F(TlsTest, HandshakesInterleaved)
+{
+    TlsSession ServerSession, ClientSession;
+    QUIC_SEC_CONFIG* ClientSecConfig = nullptr;
+    VERIFY_QUIC_SUCCESS(
+        QuicTlsClientSecConfigCreate(
+            CertValidationIgnoreFlags,
+            &ClientSecConfig));
+    {
+        TlsContext ServerContext1, ServerContext2, ClientContext1, ClientContext2;
+        ServerContext1.InitializeServer(ServerSession, SecConfig);
+        ClientContext1.InitializeClient(ClientSession, ClientSecConfig);
+        ServerContext2.InitializeServer(ServerSession, SecConfig);
+        ClientContext2.InitializeClient(ClientSession, ClientSecConfig);
+
+        auto Result = ClientContext1.ProcessData(nullptr);
+        ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+
+        Result = ClientContext2.ProcessData(nullptr);
+        ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+
+        Result = ServerContext1.ProcessData(&ClientContext1.State);
+        ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+        ASSERT_NE(nullptr, ServerContext1.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+
+        Result = ServerContext2.ProcessData(&ClientContext2.State);
+        ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+        ASSERT_NE(nullptr, ServerContext2.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+
+        Result = ClientContext1.ProcessData(&ServerContext1.State);
+        ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+        ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
+        ASSERT_NE(nullptr, ClientContext1.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+
+        Result = ClientContext2.ProcessData(&ServerContext2.State);
+        ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+        ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
+        ASSERT_NE(nullptr, ClientContext2.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+
+        Result = ServerContext1.ProcessData(&ClientContext1.State);
+        ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
+
+        Result = ServerContext2.ProcessData(&ClientContext2.State);
+        ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
+    }
+    QuicTlsSecConfigRelease(ClientSecConfig);
+}
+
+TEST_P(TlsTest, One1RttKey)
+{
+    bool PNE = GetParam();
+
+    TlsSession ServerSession, ClientSession;
+    {
+        TlsContext ServerContext, ClientContext;
+        ServerContext.InitializeServer(ServerSession, SecConfig);
+        ClientContext.InitializeClient(ClientSession);
+        DoHandshake(ServerContext, ClientContext);
+
+        PacketKey ServerKey(ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+        PacketKey ClientKey(ClientContext.State.ReadKeys[QUIC_PACKET_KEY_1_RTT]);
+
+        uint8_t Header[32] = { 1, 2, 3, 4 };
+        uint64_t PacketNumber = 0;
+        uint8_t Buffer[1000] = { 0 };
+
+        ASSERT_TRUE(
+            ServerKey.Encrypt(
+                sizeof(Header),
+                Header,
+                PacketNumber,
+                sizeof(Buffer),
+                Buffer));
+
+        if (PNE) {
+            uint8_t Mask[16];
+
+            ASSERT_TRUE(
+                ServerKey.ComputeHpMask(
+                    Buffer,
+                    Mask));
+
+            for (uint32_t i = 0; i < sizeof(Mask); i++) {
+                Header[i] ^= Mask[i];
+            }
+
+            ASSERT_TRUE(
+                ClientKey.ComputeHpMask(
+                    Buffer,
+                    Mask));
+
+            for (uint32_t i = 0; i < sizeof(Mask); i++) {
+                Header[i] ^= Mask[i];
+            }
+        }
+
+        ASSERT_TRUE(
+            ClientKey.Decrypt(
+                sizeof(Header),
+                Header,
+                PacketNumber,
+                sizeof(Buffer),
+                Buffer));
+    }
+}
+
+TEST_P(TlsTest, KeyUpdate)
+{
+
+    bool PNE = GetParam();
+
+    TlsSession ServerSession, ClientSession;
+    {
+        TlsContext ServerContext, ClientContext;
+        ServerContext.InitializeServer(ServerSession, SecConfig);
+        ClientContext.InitializeClient(ClientSession);
+        DoHandshake(ServerContext, ClientContext);
+
+        QUIC_PACKET_KEY* UpdateWriteKey, *UpdateReadKey = nullptr;
+
+        VERIFY_QUIC_SUCCESS(
+            QuicPacketKeyUpdate(
+                ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT],
+                &UpdateWriteKey));
+        VERIFY_QUIC_SUCCESS(
+            QuicPacketKeyUpdate(
+                ClientContext.State.ReadKeys[QUIC_PACKET_KEY_1_RTT],
+                &UpdateReadKey));
+
+        if (PNE) {
+            //
+            // If PNE is enabled, copy the header keys to the new packet
+            // key structs.
+            //
+            UpdateWriteKey->HeaderKey = ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]->HeaderKey;
+            ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]->HeaderKey = NULL;
+
+            UpdateReadKey->HeaderKey = ClientContext.State.ReadKeys[QUIC_PACKET_KEY_1_RTT]->HeaderKey;
+            ClientContext.State.ReadKeys[QUIC_PACKET_KEY_1_RTT]->HeaderKey = NULL;
+        }
+
+        PacketKey ServerKey(UpdateWriteKey);
+        PacketKey ClientKey(UpdateReadKey);
+
+        uint8_t Header[32] = { 1, 2, 3, 4 };
+        uint64_t PacketNumber = 0;
+        uint8_t Buffer[1000] = { 0 };
+
+        ASSERT_TRUE(
+            ServerKey.Encrypt(
+                sizeof(Header),
+                Header,
+                PacketNumber,
+                sizeof(Buffer),
+                Buffer));
+
+        if (PNE) {
+            uint8_t Mask[16];
+
+            ASSERT_TRUE(
+                ServerKey.ComputeHpMask(
+                    Buffer,
+                    Mask));
+
+            for (uint32_t i = 0; i < sizeof(Mask); i++) {
+                Header[i] ^= Mask[i];
+            }
+
+            ASSERT_TRUE(
+                ClientKey.ComputeHpMask(
+                    Buffer,
+                    Mask));
+
+            for (uint32_t i = 0; i < sizeof(Mask); i++) {
+                Header[i] ^= Mask[i];
+            }
+        }
+
+        ASSERT_TRUE(
+            ClientKey.Decrypt(
+                sizeof(Header),
+                Header,
+                PacketNumber,
+                sizeof(Buffer),
+                Buffer));
+
+        QuicPacketKeyFree(UpdateWriteKey);
+        QuicPacketKeyFree(UpdateReadKey);
+    }
+}
+
+#ifdef _WIN32
+/*
+    N.B. Perf test only available for Windows at this time.
+*/
+TEST_P(TlsTest, PacketEncryptionPerf)
+{
+
+    bool PNE = GetParam();
+
+    TlsSession ServerSession, ClientSession;
+    {
+        TlsContext ServerContext, ClientContext;
+        ServerContext.InitializeServer(ServerSession, SecConfig);
+        ClientContext.InitializeClient(ClientSession);
+        DoHandshake(ServerContext, ClientContext);
+
+        PacketKey ServerKey(ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+
+        const uint64_t LoopCount = 10000;
+        uint16_t BufferSizes[] =
+        {
+            4,
+            16,
+            64,
+            256,
+            600,
+            1000,
+            1200,
+            1450,
+            //8000,
+            //65000
+        };
+
+        HANDLE CurrentThread = GetCurrentThread();
+        DWORD ProcNumber = GetCurrentProcessorNumber();
+        DWORD_PTR OldAffinityMask =
+            SetThreadAffinityMask(CurrentThread, (DWORD_PTR)1 << (DWORD_PTR)ProcNumber);
+        SetThreadPriority(CurrentThread, THREAD_PRIORITY_HIGHEST);
+
+        for (uint8_t i = 0; i < ARRAYSIZE(BufferSizes); ++i) {
+            int64_t elapsedMicroseconds =
+                PNE == 0 ?
+                DoEncryption(ServerKey, BufferSizes[i], LoopCount) :
+                DoEncryptionWithPNE(ServerKey, BufferSizes[i], LoopCount);
+
+            std::cout << elapsedMicroseconds / 1000 << "." << (int)(elapsedMicroseconds % 1000) <<
+                " milliseconds elapsed encrypting "
+                << BufferSizes[i] << " << bytes " << LoopCount << " times" << std::endl;
+        }
+
+        SetThreadPriority(CurrentThread, THREAD_PRIORITY_NORMAL);
+        SetThreadAffinityMask(CurrentThread, OldAffinityMask);
+    }
+}
+#endif // _WIN32
+
+INSTANTIATE_TEST_SUITE_P(TlsTest, TlsTest, ::testing::Bool());

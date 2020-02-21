@@ -11,7 +11,7 @@ set(
     CryptTest.cpp
     DataPathTest.cpp
     # StorageTest.cpp
-    # TlsTest.cpp
+    TlsTest.cpp
     main.cpp
 )
 
