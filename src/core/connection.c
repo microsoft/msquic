@@ -1490,7 +1490,7 @@ QuicConnOnQuicVersionSet(
     QuicTraceEvent(ConnVersionSet, Connection, Connection->Stats.QuicVersion);
 
     switch (Connection->Stats.QuicVersion) {
-    case QUIC_VERSION_DRAFT_25:
+    case QUIC_VERSION_DRAFT_27:
     case QUIC_VERSION_MS_1:
     default:
         Connection->State.HeaderProtectionEnabled = TRUE;
