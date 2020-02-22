@@ -42,7 +42,9 @@ protected:
         QuicRundownUninitialize(&SecConfigRundown);
     }
 
+    _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
     static void
+    QUIC_API
     OnSecConfigCreateComplete(
         _In_opt_ void* Context,
         _In_ QUIC_STATUS Status,

@@ -29,7 +29,7 @@ elseif(QUIC_TLS STREQUAL "openssl")
         ${QUIC_BUILD_DIR}/openssl/lib/libcrypto.so
         ${QUIC_BUILD_DIR}/openssl/lib/libssl.so)
 elseif(QUIC_TLS STREQUAL "mitls")
-    target_link_libraries(msquicplatformtest kremlib evercrypt mitls quiccrypto)
+    target_link_libraries(msquicplatformtest kremlib evercrypt mitls quiccrypto ncrypt crypt32)
 endif()
 
 target_link_libraries(msquicplatformtest platform gtest)
