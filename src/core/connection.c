@@ -696,20 +696,6 @@ QuicConnUpdateRtt(
     return RttUpdated;
 }
 
-uint8_t
-QuicConnSourceCidsCount(
-    _In_ const QUIC_CONNECTION* Connection
-    )
-{
-    uint8_t Count = 0;
-    const QUIC_SINGLE_LIST_ENTRY* Entry = &Connection->SourceCids;
-    while (Entry != NULL) {
-        ++Count;
-        Entry = Entry->Next;
-    }
-    return Count;
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_CID_HASH_ENTRY*
 QuicConnGenerateNewSourceCid(
@@ -727,8 +713,6 @@ QuicConnGenerateNewSourceCid(
         //
         return NULL;
     }
-
-    QUIC_DBG_ASSERT(QuicConnSourceCidsCount(Connection) <= Connection->SourceCidLimit);
 
     //
     // Keep randomly generating new source CIDs until we find one that doesn't
@@ -784,6 +768,20 @@ QuicConnGenerateNewSourceCid(
     return SourceCid;
 }
 
+uint8_t
+QuicConnSourceCidsCount(
+    _In_ const QUIC_CONNECTION* Connection
+    )
+{
+    uint8_t Count = 0;
+    const QUIC_SINGLE_LIST_ENTRY* Entry = &Connection->SourceCids;
+    while (Entry != NULL) {
+        ++Count;
+        Entry = Entry->Next;
+    }
+    return Count;
+}
+
 //
 // This generates new source CIDs for the peer to use to talk to us. If
 // indicated, it invalidates all the existing ones, sets a a new retire prior to
@@ -808,7 +806,9 @@ QuicConnGenerateNewSourceCids(
     // limit). Otherwise, just generate whatever number we need to hit the
     // limit.
     //
-    QUIC_DBG_ASSERT(QuicConnSourceCidsCount(Connection) <= Connection->SourceCidLimit);
+    QUIC_DBG_ASSERT(
+        ReplaceExistingCids ||
+        (QuicConnSourceCidsCount(Connection) <= Connection->SourceCidLimit));
     uint8_t NewCidCount =
         ReplaceExistingCids ?
             Connection->SourceCidLimit :
