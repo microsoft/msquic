@@ -806,7 +806,9 @@ QuicConnGenerateNewSourceCids(
     // limit). Otherwise, just generate whatever number we need to hit the
     // limit.
     //
-    QUIC_DBG_ASSERT(QuicConnSourceCidsCount(Connection) <= Connection->SourceCidLimit);
+    QUIC_DBG_ASSERT(
+        ReplaceExistingCids ||
+        (QuicConnSourceCidsCount(Connection) <= Connection->SourceCidLimit));
     uint8_t NewCidCount =
         ReplaceExistingCids ?
             Connection->SourceCidLimit :
