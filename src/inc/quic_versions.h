@@ -17,7 +17,7 @@ Abstract:
 #define QUIC_VERSION_VER_NEG    0x00000000      // Version for 'Version Negotiation'
 #define QUIC_VERSION_1          0x01000000      // First official version
 #define QUIC_VERSION_MS_1       0x0000cdab      // First Microsoft version (currently same as latest draft)
-#define QUIC_VERSION_DRAFT_27   0x190000ff      // IETF draft 27
+#define QUIC_VERSION_DRAFT_27   0x1b0000ff      // IETF draft 27
 
 //
 // The QUIC version numbers, in host byte order.
@@ -25,7 +25,7 @@ Abstract:
 #define QUIC_VERSION_VER_NEG_H  0x00000000      // Version for 'Version Negotiation'
 #define QUIC_VERSION_1_H        0x00000001      // First official version
 #define QUIC_VERSION_1_MS_H     0xabcd0000      // First Microsoft version (-1412628480 in decimal)
-#define QUIC_VERSION_DRAFT_27_H 0xff000019      // IETF draft 27
+#define QUIC_VERSION_DRAFT_27_H 0xff00001b      // IETF draft 27
 
 //
 // Represents a reserved version value; used to force version negotation.
