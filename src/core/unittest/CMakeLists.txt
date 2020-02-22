@@ -8,10 +8,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 
 set(
     SOURCES
-    FrameTest.cpp
+    main.cpp
     PacketNumberTest.cpp
     RangeTest.cpp
-    main.cpp
+    TransportParamTest.cpp
+    VarIntTest.cpp
 )
 
 add_executable(msquiccoretest ${SOURCES})

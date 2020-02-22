@@ -20,7 +20,10 @@ uint16_t Port = 443;
 const char* ServerName = "localhost";
 const char* ServerIp = nullptr;
 QUIC_ADDR ServerAddress = {0};
-std::vector<const char*> ALPNs({ "h3-24", "h3-25", "hq-24", "hq-25", "smb" });
+std::vector<const char*> ALPNs(
+    { "h3-25", "h3-26", "h3-27",
+      "hq-25", "hq-26", "hq-27",
+      "smb" });
 
 QUIC_API_V1* MsQuic;
 HQUIC Registration;

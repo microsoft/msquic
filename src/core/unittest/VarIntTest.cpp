@@ -5,14 +5,14 @@
 
 Abstract:
 
-    Unit test for the framing logic.
+    Unit test for the variable length integer encoding and decoding logic.
 
 --*/
 
 #include "main.h"
 
 #ifdef QUIC_LOGS_WPP
-#include "frametest.tmh"
+#include "varinttest.tmh"
 #endif
 
 uint64_t Encode(uint64_t Value)
@@ -30,7 +30,7 @@ uint64_t Decode(uint64_t Encoded)
     return Decoded;
 }
 
-TEST(FrameTest, WellKnownEncode)
+TEST(VarIntTest, WellKnownEncode)
 {
     TEST_EQUAL(Encode(0), 0);
     TEST_EQUAL(Encode(0x3F), 0x3F);
@@ -42,7 +42,7 @@ TEST(FrameTest, WellKnownEncode)
     TEST_EQUAL(Encode(0x3FFFFFFFFFFFFFFF), 0xFFFFFFFFFFFFFFFF);
 }
 
-TEST(FrameTest, WellKnownDecode)
+TEST(VarIntTest, WellKnownDecode)
 {
     TEST_EQUAL(Decode(0), 0);
     TEST_EQUAL(Decode(0x3F), 0x3F);
@@ -54,7 +54,7 @@ TEST(FrameTest, WellKnownDecode)
     TEST_EQUAL(Decode(0xFFFFFFFFFFFFFFFF), 0x3FFFFFFFFFFFFFFFULL);
 }
 
-TEST(FrameTest, RandomEncodeDecode)
+TEST(VarIntTest, RandomEncodeDecode)
 {
     for (uint32_t i = 0; i < 1000; i++) {
 

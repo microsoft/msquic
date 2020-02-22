@@ -38,7 +38,7 @@ QUIC_PRIVATE_TRANSPORT_PARAMETER RandomTransportParameter = {
 
 const char* Alpns[] = {
     ALPN_HTTP_OVER_QUIC,
-    "h3-25"
+    "h3-27"
 };
 
 const uint16_t Ports[] = {

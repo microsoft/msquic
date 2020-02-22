@@ -174,6 +174,8 @@ QuicLossDetectionComputeProbeTimeout(
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
 
+    QUIC_DBG_ASSERT(Path->SmoothedRtt != 0);
+
     //
     // Microseconds.
     //
@@ -241,6 +243,8 @@ QuicLossDetectionUpdateTimer(
     }
 
     uint32_t TimeNow = QuicTimeUs32();
+
+    QUIC_DBG_ASSERT(Path->SmoothedRtt != 0);
 
     uint32_t TimeFires;
     QUIC_LOSS_TIMER_TYPE TimeoutType;

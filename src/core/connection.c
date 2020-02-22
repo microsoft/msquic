@@ -653,6 +653,13 @@ QuicConnUpdateRtt(
     BOOLEAN RttUpdated;
     UNREFERENCED_PARAMETER(Connection);
 
+    if (LatestRtt == 0) {
+        //
+        // RTT cannot be zero or several loss recovery algorithms break down.
+        //
+        LatestRtt = 1;
+    }
+
     Path->LatestRttSample = LatestRtt;
     if (LatestRtt < Path->MinRtt) {
         Path->MinRtt = LatestRtt;
@@ -680,6 +687,7 @@ QuicConnUpdateRtt(
     }
 
     if (RttUpdated) {
+        QUIC_DBG_ASSERT(Path->SmoothedRtt != 0);
         QuicTraceLogConnVerbose(RttUpdated, Connection, "Updated Rtt=%u.%u ms, Var=%u.%u",
             Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
             Path->RttVariance / 1000, Path->RttVariance % 1000);
@@ -1490,7 +1498,7 @@ QuicConnOnQuicVersionSet(
     QuicTraceEvent(ConnVersionSet, Connection, Connection->Stats.QuicVersion);
 
     switch (Connection->Stats.QuicVersion) {
-    case QUIC_VERSION_DRAFT_25:
+    case QUIC_VERSION_DRAFT_27:
     case QUIC_VERSION_MS_1:
     default:
         Connection->State.HeaderProtectionEnabled = TRUE;
