@@ -774,7 +774,7 @@ QuicConnSourceCidsCount(
     )
 {
     uint8_t Count = 0;
-    const QUIC_SINGLE_LIST_ENTRY* Entry = &Connection->SourceCids;
+    const QUIC_SINGLE_LIST_ENTRY* Entry = Connection->SourceCids.Next;
     while (Entry != NULL) {
         ++Count;
         Entry = Entry->Next;
@@ -806,13 +806,25 @@ QuicConnGenerateNewSourceCids(
     // limit). Otherwise, just generate whatever number we need to hit the
     // limit.
     //
-    QUIC_DBG_ASSERT(
-        ReplaceExistingCids ||
-        (QuicConnSourceCidsCount(Connection) <= Connection->SourceCidLimit));
-    uint8_t NewCidCount =
-        ReplaceExistingCids ?
-            Connection->SourceCidLimit :
-            Connection->SourceCidLimit - QuicConnSourceCidsCount(Connection);
+    uint8_t NewCidCount;
+    if (ReplaceExistingCids) {
+        NewCidCount = Connection->SourceCidLimit;
+        QUIC_SINGLE_LIST_ENTRY* Entry = Connection->SourceCids.Next;
+        while (Entry != NULL) {
+            QUIC_CID_HASH_ENTRY* SourceCid =
+                QUIC_CONTAINING_RECORD(Entry, QUIC_CID_HASH_ENTRY, Link);
+            SourceCid->CID.Retired = TRUE;
+            Entry = Entry->Next;
+        }
+    } else {
+        uint8_t CurrentCidCount = QuicConnSourceCidsCount(Connection);
+        QUIC_DBG_ASSERT(CurrentCidCount <= Connection->SourceCidLimit);
+        if (CurrentCidCount < Connection->SourceCidLimit) {
+            NewCidCount = Connection->SourceCidLimit - CurrentCidCount;
+        } else {
+            NewCidCount = 0;
+        }
+    }
 
     for (uint8_t i = 0; i < NewCidCount; ++i) {
         if (QuicConnGenerateNewSourceCid(Connection, FALSE) == NULL) {
@@ -3510,7 +3522,11 @@ QuicConnRecvPayload(
                         QUIC_CLOSE_INTERNAL_SILENT,
                         QUIC_ERROR_PROTOCOL_VIOLATION,
                         NULL);
-                } else {
+                } else if (!SourceCid->CID.Retired) {
+                    //
+                    // Replace the CID if we weren't the one to request it to be
+                    // retired in the first place.
+                    //
                     if (!QuicConnGenerateNewSourceCid(Connection, FALSE)) {
                         break;
                     }

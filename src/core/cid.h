@@ -106,8 +106,10 @@ typedef struct QUIC_CID {
     //
     uint8_t UsedByPeer : 1;
     //
-    // Used for destination CIDs. The CID has been locally retired. Once the
-    // peer has acknowledged this the CID can be deleted.
+    // When used for destination CIDs, the CID has been locally retired. Once the
+    // peer has acknowledged this, the CID can be deleted.
+    // When used for source CIDs, the CID has been indicated as needing to be
+    // retired. Once the peer has retired this, the CID can be deleted.
     //
     uint8_t Retired : 1;
     //
