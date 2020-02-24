@@ -135,6 +135,11 @@ QuicHashLength(
     QUIC_HASH_TYPE Type
     );
 
+uint16_t
+QuicKeyLength(
+    QUIC_AEAD_TYPE Type
+    );
+
 uint64_t
 QuicTimeDiff64(
     _In_ uint64_t T1,
@@ -157,4 +162,10 @@ BOOLEAN
 QuicTimeAtOrBefore32(
     _In_ uint32_t T1,
     _In_ uint32_t T2
+    );
+
+void
+QuicTraceStubVarArgs(
+    _In_ const void* Fmt,
+    ...
     );

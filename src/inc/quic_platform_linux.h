@@ -94,7 +94,7 @@ QuicPlatformUninitialize(
 
 #define UNREFERENCED_PARAMETER(P) (P)
 
-#define QuicNetByteSwapShort(x) htons((x)
+#define QuicNetByteSwapShort(x) htons((x))
 
 #define SIZEOF_STRUCT_MEMBER(StructType, StructMember) sizeof(((StructType *)0)->StructMember)
 #define TYPEOF_STRUCT_MEMBER(StructType, StructMember) typeof(((StructType *)0)->StructMember)

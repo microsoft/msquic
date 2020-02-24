@@ -36,6 +36,9 @@ This script provides helpers for building msquic.
 .PARAMETER InstallOutput
     Installs the build output to the current machine.
 
+.PARAMETER Parallel
+    Enables CMake to build in parallel, where possible.
+
 .EXAMPLE
     build.ps1 -InstallDependencies
 
@@ -82,7 +85,10 @@ param (
     [switch]$Clean = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallOutput = $false
+    [switch]$InstallOutput = $false,
+
+    [Parameter(Mandatory = $false)]
+    [int32]$Parallel = -1
 )
 
 Set-StrictMode -Version 'Latest'
@@ -195,16 +201,16 @@ function CMake-Generate {
 # Uses cmake to generate the build configuration files.
 function CMake-Build {
     $Arguments = "--build ."
+    if ($Parallel -gt 0) {
+        $Arguments += " --parallel $($Parallel)"
+    } elseif ($Parallel -eq 0) {
+        $Arguments += " --parallel"
+    }
     if ($IsWindows) {
         $Arguments += " --config " + $Config
     }
 
     CMake-Execute $Arguments
-
-    if ($Tls -eq "openssl") {
-        $OpensslDir = Join-Path $BuildDir "openssl" "lib" "*"
-        Copy-Item $OpensslDir -Destination $ArtifactsDir -Recurse
-    }
 }
 
 # Installs all the build output.
