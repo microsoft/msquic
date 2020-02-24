@@ -774,7 +774,7 @@ QuicConnSourceCidsCount(
     )
 {
     uint8_t Count = 0;
-    const QUIC_SINGLE_LIST_ENTRY* Entry = &Connection->SourceCids;
+    const QUIC_SINGLE_LIST_ENTRY* Entry = Connection->SourceCids.Next;
     while (Entry != NULL) {
         ++Count;
         Entry = Entry->Next;
@@ -809,7 +809,7 @@ QuicConnGenerateNewSourceCids(
     uint8_t NewCidCount;
     if (ReplaceExistingCids) {
         NewCidCount = Connection->SourceCidLimit;
-        QUIC_SINGLE_LIST_ENTRY* Entry = &Connection->SourceCids;
+        QUIC_SINGLE_LIST_ENTRY* Entry = Connection->SourceCids.Next;
         while (Entry != NULL) {
             QUIC_CID_HASH_ENTRY* SourceCid =
                 QUIC_CONTAINING_RECORD(Entry, QUIC_CID_HASH_ENTRY, Link);
