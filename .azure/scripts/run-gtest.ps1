@@ -301,71 +301,76 @@ function Wait-TestCase($TestCase) {
     $stderr = $null
     $ProcessCrashed = $false
     $AnyTestFailed = $false
-    if (!$Debugger) {
-        $stdout = $TestCase.Process.StandardOutput.ReadToEnd()
-        $stderr = $TestCase.Process.StandardError.ReadToEnd()
-        if ($isWindows) {
-            $ProcessCrashed = $stdout.Contains("Dump 1 complete")
-        } else {
-            $ProcessCrashed = $stderr.Contains("Aborted")
-        }
-        $AnyTestFailed = $stdout.Contains("[  FAILED  ]")
-        if (!(Test-Path $TestCase.ResultsPath) -and !$ProcessCrashed) {
-            Log "No test results generated! Treating as crash!"
-            $ProcessCrashed = $true
-        }
-    }
-    $TestCase.Process.WaitForExit()
 
-    # Add the current test case results.
-    if ($IsolationMode -ne "Batch") {
-        Add-XmlResults $TestCase
-    }
-
-    if ($ProcessCrashed) {
-        $AnyProcessCrashes = $true;
-    }
-
-    if ($IsolationMode -eq "Batch") {
-        if ($null -ne $stdout -and "" -ne $stdout) {
-            Write-Host $stdout
-        }
-        if ($null -ne $stderr -and "" -ne $stderr) {
-            Write-Host $stderr
-        }
-    }
-
-    if ($KeepOutputOnSuccess -or $ProcessCrashed -or $AnyTestFailed) {
-
-        if ($LogProfile -ne "None") {
-            if ($ConvertLogs) {
-                & $LogScript -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName -ConvertToText
+    try {
+        if (!$Debugger) {
+            $stdout = $TestCase.Process.StandardOutput.ReadToEnd()
+            $stderr = $TestCase.Process.StandardError.ReadToEnd()
+            if ($isWindows) {
+                $ProcessCrashed = $stdout.Contains("Dump 1 complete")
             } else {
-                & $LogScript -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName | Out-Null
+                $ProcessCrashed = $stderr.Contains("Aborted")
+            }
+            $AnyTestFailed = $stdout.Contains("[  FAILED  ]")
+            if (!(Test-Path $TestCase.ResultsPath) -and !$ProcessCrashed) {
+                Log "No test results generated! Treating as crash!"
+                $ProcessCrashed = $true
+            }
+        }
+        $TestCase.Process.WaitForExit()
+    } catch {
+        Log "Treating exception as crash!"
+        $ProcessCrashed = $true
+        throw
+    } finally {
+        # Add the current test case results.
+        if ($IsolationMode -ne "Batch") {
+            Add-XmlResults $TestCase
+        }
+
+        if ($ProcessCrashed) {
+            $AnyProcessCrashes = $true;
+        }
+
+        if ($IsolationMode -eq "Batch") {
+            if ($null -ne $stdout -and "" -ne $stdout) {
+                Write-Host $stdout
+            }
+            if ($null -ne $stderr -and "" -ne $stderr) {
+                Write-Host $stderr
             }
         }
 
-        if ($null -ne $stdout -and "" -ne $stdout) {
-            $stdout > (Join-Path $LogDir "stdout.txt")
-        }
+        if ($KeepOutputOnSuccess -or $ProcessCrashed -or $AnyTestFailed) {
 
-        if ($null -ne $stderr -and "" -ne $stderr) {
-            $stderr > (Join-Path $LogDir "stderr.txt")
-        }
+            if ($LogProfile -ne "None") {
+                if ($ConvertLogs) {
+                    & $LogScript -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName -ConvertToText
+                } else {
+                    & $LogScript -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName | Out-Null
+                }
+            }
 
-        if ($CompressOutput) {
-            # Zip the output.
-            CompressOutput-Archive -Path "$($TestCase.LogDir)\*" -DestinationPath "$($TestCase.LogDir).zip" | Out-Null
-            Remove-Item $LogDir -Recurse -Force | Out-Null
-        }
+            if ($null -ne $stdout -and "" -ne $stdout) {
+                $stdout > (Join-Path $LogDir "stdout.txt")
+            }
 
-        Log "Output available at $($LogDir)"
+            if ($null -ne $stderr -and "" -ne $stderr) {
+                $stderr > (Join-Path $LogDir "stderr.txt")
+            }
 
-    } else {
-        if ($LogProfile -ne "None") {
-            & $LogScript -Cancel -InstanceName $TestCase.InstanceName | Out-Null
+            if ($CompressOutput) {
+                # Zip the output.
+                CompressOutput-Archive -Path "$($TestCase.LogDir)\*" -DestinationPath "$($TestCase.LogDir).zip" | Out-Null
+                Remove-Item $LogDir -Recurse -Force | Out-Null
+            }
+
+        } else {
+            if ($LogProfile -ne "None") {
+                & $LogScript -Cancel -InstanceName $TestCase.InstanceName | Out-Null
+            }
+            Remove-Item $TestCase.LogDir -Recurse -Force | Out-Null
         }
-        Remove-Item $TestCase.LogDir -Recurse -Force | Out-Null
     }
 }
 
