@@ -28,7 +28,7 @@ LogTestBuffer(
     for (size_t i = 0; i < Length; ++i) {
         sprintf_s(&Str[i*2], 3, "%.2X", Buffer[i]);
     }
-    // Log::Comment(String().Format(L"%S[%u]: %S", Name, (uint32_t)Length, Str)); // TODO
+    std::cout << Name << "[" << Length << "]: " << Str << std::endl;
     delete [] Str;
 }
 
