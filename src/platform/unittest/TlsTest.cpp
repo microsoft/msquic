@@ -839,7 +839,7 @@ TEST_P(TlsTest, PacketEncryptionPerf)
 
             std::cout << elapsedMicroseconds / 1000 << "." << (int)(elapsedMicroseconds % 1000) <<
                 " milliseconds elapsed encrypting "
-                << BufferSizes[i] << " << bytes " << LoopCount << " times" << std::endl;
+                << BufferSizes[i] << " bytes " << LoopCount << " times" << std::endl;
         }
 
 #ifdef _WIN32
