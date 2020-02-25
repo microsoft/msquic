@@ -211,6 +211,10 @@ function CMake-Build {
     }
 
     CMake-Execute $Arguments
+
+    if ($IsWindows) {
+        Copy-Item (Join-Path $BuildDir "obj" $Config "msquic.lib") $ArtifactsDir
+    }
 }
 
 # Installs all the build output.
