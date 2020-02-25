@@ -1,0 +1,47 @@
+//
+//    Copyright (c) Microsoft Corporation.
+//    Licensed under the MIT License.
+//
+
+#define VER_COMPANYNAME_STR         "Microsoft Corporation"
+#define VER_FILEDESCRIPTION_STR     "Microsoft\256 QUIC Library"
+#define VER_INTERNALNAME_STR        "msquic"
+#define VER_LEGALCOPYRIGHT_STR      "\251 Microsoft Corporation."
+#define VER_PRODUCTNAME_STR         "Microsoft\256 QUIC"
+
+#define VER_FILEVERSION             1,0,0,0
+#define VER_FILEVERSION_STR         "1.0.0\0"
+
+#define VER_PRODUCTVERSION          1,0,0,0
+#define VER_PRODUCTVERSION_STR      "1.0.0\0"
+
+VS_VERSION_INFO                     VERSIONINFO
+FILEVERSION                         VER_FILEVERSION
+PRODUCTVERSION                      VER_PRODUCTVERSION
+FILEFLAGSMASK                       VS_FFI_FILEFLAGSMASK
+FILEFLAGS                           0
+FILEOS                              VOS_NT_WINDOWS32
+FILETYPE                            VER_FILETYPE
+FILESUBTYPE                         VER_FILESUBTYPE
+
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName",      VER_COMPANYNAME_STR
+            VALUE "FileDescription",  VER_FILEDESCRIPTION_STR
+            VALUE "FileVersion",      VER_FILEVERSION_STR
+            VALUE "InternalName",     VER_INTERNALNAME_STR
+            VALUE "LegalCopyright",   VER_LEGALCOPYRIGHT_STR
+            VALUE "OriginalFilename", VER_ORIGINALFILENAME_STR
+            VALUE "ProductName",      VER_PRODUCTNAME_STR
+            VALUE "ProductVersion",   VER_PRODUCTVERSION_STR
+        END
+    END
+
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 0x04B0
+    END
+END
