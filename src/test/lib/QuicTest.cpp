@@ -650,7 +650,9 @@ PingStreamShutdown(
 #endif
 
     if (ConnState->StreamsComplete > 0 && ConnState->StreamsComplete % 2 == 0 && ConnState->Stats->ServerKeyUpdate) {
-        ConnState->Connection->ForceKeyUpdate();
+        if (QUIC_FAILED(ConnState->Connection->ForceKeyUpdate())) {
+            TEST_FAILURE("Server ForceKeyUpdate failed.");
+        }
     }
 
     ConnState->OnStreamComplete();
@@ -1545,11 +1547,11 @@ QuicTestKeyUpdate(
                     QuicSleep(100);
 
                     if (ClientKeyUpdate) {
-                        Client.ForceKeyUpdate();
+                        TEST_QUIC_SUCCEEDED(Client.ForceKeyUpdate());
                     }
 
                     if (ServerKeyUpdate) {
-                        Server->ForceKeyUpdate();
+                        TEST_QUIC_SUCCEEDED(Server->ForceKeyUpdate());
                     }
 
                     //
