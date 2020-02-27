@@ -19,7 +19,7 @@ $RootDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $ArtifactsDir = Join-Path $RootDir "artifacts"
 
 # Output directory for all package files.
-$PackageDir = Join-Path $ArtifactsDir "package/all"
+$PackageDir = Join-Path $ArtifactsDir "package"
 
 function Force-Copy($Source, $Destination) {
     New-Item -Path $Destination -ItemType Directory -Force | Out-Null
