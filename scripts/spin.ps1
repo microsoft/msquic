@@ -58,7 +58,7 @@ param (
     [switch]$Debugger = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose")]
+    [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
     [string]$LogProfile = "None",
 
     [Parameter(Mandatory = $false)]

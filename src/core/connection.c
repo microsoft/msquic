@@ -1294,6 +1294,7 @@ QuicConnTryClose(
     BOOLEAN IsFirstCloseForConnection = TRUE;
 
     if (ClosedRemotely && !Connection->State.ClosedLocally) {
+
         //
         // Peer closed first.
         //
@@ -1532,7 +1533,13 @@ QuicConnStart(
     QUIC_STATUS Status;
     QUIC_PATH* Path = &Connection->Paths[0];
     QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
+    QUIC_DBG_ASSERT(Connection->State.Started);
     QUIC_TEL_ASSERT(Path->Binding == NULL);
+
+    if (Connection->State.ClosedLocally) {
+        Status = QUIC_STATUS_INVALID_STATE;
+        goto Exit;
+    }
 
     if (!Connection->State.RemoteAddressSet) {
 
