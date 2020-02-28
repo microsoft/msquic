@@ -494,12 +494,10 @@ public:
             QuicTraceLogError("[test] CreateFile failed, 0x%x.", Error);
             return false;
         }
-        Error = Run(IOCTL_QUIC_SEC_CONFIG, SecConfigParams->Thumbprint, sizeof(SecConfigParams->Thumbprint), 30000);
-        if (Error != NO_ERROR) {
+        if (!Run(IOCTL_QUIC_SEC_CONFIG, SecConfigParams->Thumbprint, sizeof(SecConfigParams->Thumbprint), 30000)) {
             CloseHandle(DeviceHandle);
             DeviceHandle = INVALID_HANDLE_VALUE;
-            Error = GetLastError();
-            QuicTraceLogError("[test] Run(IOCTL_QUIC_SEC_CONFIG) failed, 0x%x.", Error);
+            QuicTraceLogError("[test] Run(IOCTL_QUIC_SEC_CONFIG) failed.");
             return false;
         }
         return true;

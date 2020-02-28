@@ -26,7 +26,12 @@ public:
     void SetUp() override {
         QuicPlatformSystemLoad();
         ASSERT_TRUE(QUIC_SUCCEEDED(QuicPlatformInitialize()));
-        ASSERT_TRUE((SelfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER)) != nullptr);
+        ASSERT_TRUE((SelfSignedCertParams =
+            QuicPlatGetSelfSignedCert(
+                TestingKernelMode ?
+                    QUIC_SELF_SIGN_CERT_MACHINE :
+                    QUIC_SELF_SIGN_CERT_USER
+                )) != nullptr);
         if (TestingKernelMode) {
             printf("Initializing for Kernel Mode tests\n");
             ASSERT_TRUE(DriverService.Initialize());
@@ -154,7 +159,7 @@ TEST(ParameterValidation, ValidateServerSecConfig) {
     TestLogger Logger("QuicTestValidateServerSecConfig");
     if (TestingKernelMode) {
         // Not currently supported, since certs are in user store.
-        GTEST_SKIP_("Unsupported in kernel mode");
+        GTEST_SKIP_(":Unsupported in kernel mode");
     } else {
         QUIC_CERTIFICATE_HASH_STORE CertHashStore = { QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE };
         memcpy(CertHashStore.ShaHash, SelfSignedCertParams->Thumbprint, sizeof(CertHashStore.ShaHash));
@@ -369,7 +374,7 @@ TEST_P(WithFamilyArgs, VersionNegotiation) {
 TEST_P(WithFamilyArgs, Rebind) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-Rebind", GetParam());
     if (TestingKernelMode) {
-        GTEST_SKIP_("Unsupported in kernel mode");
+        GTEST_SKIP_(":Unsupported in kernel mode");
         /* Not supported in kernel mode yet.
         QUIC_RUN_CONNECT_PARAMS Params = {
             GetParam().Family,
