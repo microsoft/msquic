@@ -53,9 +53,9 @@ WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_TEST_CLIENT, QuicTestCtlGetFileContext);
 EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL QuicTestCtlEvtIoDeviceControl;
 EVT_WDF_IO_QUEUE_IO_CANCELED_ON_QUEUE QuicTestCtlEvtIoCanceled;
 
-EVT_WDF_DEVICE_FILE_CREATE QuicTestCtlEvtFileCreate;
-EVT_WDF_FILE_CLOSE QuicTestCtlEvtFileClose;
-EVT_WDF_FILE_CLEANUP QuicTestCtlEvtFileCleanup;
+PAGEDX EVT_WDF_DEVICE_FILE_CREATE QuicTestCtlEvtFileCreate;
+PAGEDX EVT_WDF_FILE_CLOSE QuicTestCtlEvtFileClose;
+PAGEDX EVT_WDF_FILE_CLEANUP QuicTestCtlEvtFileCleanup;
 
 WDFDEVICE QuicTestCtlDevice = nullptr;
 QUIC_DEVICE_EXTENSION* QuicTestCtlExtension = nullptr;
@@ -79,7 +79,7 @@ QuicTestCtlInitialize(
 
     Status = MsQuicOpenV1(&MsQuic);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError("[test] MsQuicOpen failed: %!STATUS!", Status);
+        QuicTraceLogError("[test] MsQuicOpen failed: 0x%x", Status);
         goto Error;
     }
 
@@ -98,7 +98,7 @@ QuicTestCtlInitialize(
             DeviceInit,
             &QuicTestCtlDeviceName);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] WdfDeviceInitAssignName failed, %!STATUS!", Status);
+        QuicTraceLogError("[test] WdfDeviceInitAssignName failed, 0x%x", Status);
         goto Error;
     }
 
@@ -122,7 +122,7 @@ QuicTestCtlInitialize(
             &Attribs,
             &Device);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] WdfDeviceCreate failed, %!STATUS!", Status);
+        QuicTraceLogError("[test] WdfDeviceCreate failed, 0x%x", Status);
         goto Error;
     }
 
@@ -133,7 +133,7 @@ QuicTestCtlInitialize(
 
     Status = WdfDeviceCreateSymbolicLink(Device, &QuicTestCtlDeviceSymLink);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] WdfDeviceCreateSymbolicLink failed, %!STATUS!", Status);
+        QuicTraceLogError("[test] WdfDeviceCreateSymbolicLink failed, 0x%x", Status);
         goto Error;
     }
 
@@ -151,7 +151,7 @@ QuicTestCtlInitialize(
     __analysis_assume(QueueConfig.EvtIoStop == 0);
 
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] WdfIoQueueCreate failed, %!STATUS!", Status);
+        QuicTraceLogError("[test] WdfIoQueueCreate failed, 0x%x", Status);
         goto Error;
     }
 
@@ -194,6 +194,7 @@ QuicTestCtlUninitialize(
     QuicTraceLogVerbose("[test] Control interface uninitialized.");
 }
 
+PAGEDX
 _Use_decl_annotations_
 VOID
 QuicTestCtlEvtFileCreate(
@@ -229,7 +230,7 @@ QuicTestCtlEvtFileCreate(
 
         Status = MsQuic->RegistrationOpen("MsQuicBvt", &Client->Registration);
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogError("[test] RegistrationOpen failed: %!STATUS!", Status);
+            QuicTraceLogError("[test] RegistrationOpen failed: 0x%x", Status);
             break;
         }
 
@@ -255,14 +256,17 @@ QuicTestCtlEvtFileCreate(
     WdfRequestComplete(Request, Status);
 }
 
+PAGEDX
 _Use_decl_annotations_
 VOID
 QuicTestCtlEvtFileClose(
     _In_ WDFFILEOBJECT /* FileObject */
     )
 {
+    PAGED_CODE();
 }
 
+PAGEDX
 _Use_decl_annotations_
 VOID
 QuicTestCtlEvtFileCleanup(
@@ -366,7 +370,7 @@ QuicTestCtlSetSecurityConfig(
             Client,
             QuicTestSecConfigCreated);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError("[test] SecConfigCreate failed: %!STATUS!", Status);
+        QuicTraceLogError("[test] SecConfigCreate failed: 0x%x", Status);
         goto Error;
     }
 
@@ -405,6 +409,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
 void
+QUIC_API
 QuicTestSecConfigCreated(
     _In_opt_ void* Context,
     _In_ QUIC_STATUS Status,
@@ -432,8 +437,9 @@ Return Value:
 --*/
 {
     QUIC_TEST_CLIENT* Client = (QUIC_TEST_CLIENT*)Context;
+    QUIC_FRE_ASSERT(Client != nullptr);
 
-    QuicTraceLogInfo("[test] SecConfigCreated: %!STATUS!", Status);
+    QuicTraceLogInfo("[test] SecConfigCreated: 0x%x", Status);
 
     NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
 
@@ -519,11 +525,16 @@ QuicTestCtlEvtIoDeviceControl(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    WDFFILEOBJECT FileObject = nullptr;
     QUIC_TEST_CLIENT* Client = nullptr;
 
-    PAGED_CODE();
+    if (KeGetCurrentIrql() > PASSIVE_LEVEL) {
+        Status = STATUS_NOT_SUPPORTED;
+        QuicTraceLogError("[test] QuicTestCtlEvtIoDeviceControl not supported greater than PASSIVE_LEVEL");
+        goto Error;
+    }
 
-    WDFFILEOBJECT FileObject = WdfRequestGetFileObject(Request);
+    FileObject = WdfRequestGetFileObject(Request);
     if (FileObject == nullptr) {
         Status = STATUS_DEVICE_NOT_READY;
         QuicTraceLogError("[test] WdfRequestGetFileObject failed");
@@ -560,7 +571,7 @@ QuicTestCtlEvtIoDeviceControl(
                 (void**)&Params,
                 nullptr);
         if (!NT_SUCCESS(Status)) {
-            QuicTraceLogError("[test] WdfRequestRetrieveInputBuffer failed, %!STATUS!", Status);
+            QuicTraceLogError("[test] WdfRequestRetrieveInputBuffer failed, 0x%x", Status);
             goto Error;
         } else if (Params == nullptr) {
             QuicTraceLogError("[test] WdfRequestRetrieveInputBuffer failed to return parameter buffer");
@@ -568,6 +579,8 @@ QuicTestCtlEvtIoDeviceControl(
             goto Error;
         }
     }
+
+    QUIC_FRE_ASSERT(Params != nullptr);
 
     QuicTraceLogInfo("[test] Client %p executing IOCTL %u.", Client, FunctionCode);
 
@@ -787,7 +800,7 @@ QuicTestCtlEvtIoDeviceControl(
 
 Error:
 
-    QuicTraceLogInfo("[test] Client %p completing request, %!STATUS!.", Client, Status);
+    QuicTraceLogInfo("[test] Client %p completing request, 0x%x.", Client, Status);
 
     WdfRequestComplete(Request, Status);
 }
