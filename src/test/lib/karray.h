@@ -50,10 +50,10 @@ Notes:
 #define NONPAGED CODE_SEG(KRTL_NONPAGED_SEGMENT) _IRQL_requires_max_(DISPATCH_LEVEL)
 
 template<ULONG SIGNATURE>
-struct KRTL_CLASS NdisDebugBlock
+struct KRTL_CLASS QuicDebugBlock
 {
 #if _DEBUG
-    PAGED ~NdisDebugBlock()
+    PAGED ~QuicDebugBlock()
     {
         ASSERT_VALID();
         Signature |= 0x80;
@@ -153,7 +153,7 @@ struct KRTL_CLASS KALLOCATOR : public KALLOCATION_TAG<TAG, ARENA>
 template <ULONG TAG>
 struct KRTL_CLASS PAGED_OBJECT :
     public KALLOCATOR<TAG, PagedPool>,
-    public NdisDebugBlock<TAG>
+    public QuicDebugBlock<TAG>
 {
 
 };
