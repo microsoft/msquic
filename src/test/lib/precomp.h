@@ -25,7 +25,7 @@
 #ifndef WIN_ASSERT
 #define WIN_ASSERT QUIC_FRE_ASSERT
 #endif
-#include <karray.h>
+#include "karray.h"
 #endif
 
 #include "TestHelpers.h"
