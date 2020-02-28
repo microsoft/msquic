@@ -43,7 +43,7 @@ void __cdecl operator delete (_In_opt_ void* Mem) {
     }
 }
 
-void __cdecl operator delete (_In_opt_ void* Mem, _In_opt_ uint64_t) {
+void __cdecl operator delete (_In_opt_ void* Mem, _In_opt_ size_t) {
     if (Mem != nullptr) {
         ExFreePoolWithTag(Mem, QUIC_TEST_TAG);
     }
@@ -62,6 +62,10 @@ void __cdecl operator delete[] (_In_opt_ void* Mem) {
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 
 extern "C"
+INITCODE
+_Function_class_(DRIVER_INITIALIZE)
+_IRQL_requires_same_
+_IRQL_requires_(PASSIVE_LEVEL)
 NTSTATUS
 DriverEntry(
     _In_ PDRIVER_OBJECT DriverObject,

@@ -53,9 +53,9 @@ WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_TEST_CLIENT, QuicTestCtlGetFileContext);
 EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL QuicTestCtlEvtIoDeviceControl;
 EVT_WDF_IO_QUEUE_IO_CANCELED_ON_QUEUE QuicTestCtlEvtIoCanceled;
 
-EVT_WDF_DEVICE_FILE_CREATE QuicTestCtlEvtFileCreate;
-EVT_WDF_FILE_CLOSE QuicTestCtlEvtFileClose;
-EVT_WDF_FILE_CLEANUP QuicTestCtlEvtFileCleanup;
+PAGEDX EVT_WDF_DEVICE_FILE_CREATE QuicTestCtlEvtFileCreate;
+PAGEDX EVT_WDF_FILE_CLOSE QuicTestCtlEvtFileClose;
+PAGEDX EVT_WDF_FILE_CLEANUP QuicTestCtlEvtFileCleanup;
 
 WDFDEVICE QuicTestCtlDevice = nullptr;
 QUIC_DEVICE_EXTENSION* QuicTestCtlExtension = nullptr;
@@ -194,6 +194,7 @@ QuicTestCtlUninitialize(
     QuicTraceLogVerbose("[test] Control interface uninitialized.");
 }
 
+PAGEDX
 _Use_decl_annotations_
 VOID
 QuicTestCtlEvtFileCreate(
@@ -255,14 +256,17 @@ QuicTestCtlEvtFileCreate(
     WdfRequestComplete(Request, Status);
 }
 
+PAGEDX
 _Use_decl_annotations_
 VOID
 QuicTestCtlEvtFileClose(
     _In_ WDFFILEOBJECT /* FileObject */
     )
 {
+    PAGED_CODE();
 }
 
+PAGEDX
 _Use_decl_annotations_
 VOID
 QuicTestCtlEvtFileCleanup(
@@ -405,6 +409,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
 void
+QUIC_API
 QuicTestSecConfigCreated(
     _In_opt_ void* Context,
     _In_ QUIC_STATUS Status,
@@ -432,6 +437,7 @@ Return Value:
 --*/
 {
     QUIC_TEST_CLIENT* Client = (QUIC_TEST_CLIENT*)Context;
+    QUIC_FRE_ASSERT(Client != nullptr);
 
     QuicTraceLogInfo("[test] SecConfigCreated: 0x%x", Status);
 
@@ -519,11 +525,16 @@ QuicTestCtlEvtIoDeviceControl(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    WDFFILEOBJECT FileObject = nullptr;
     QUIC_TEST_CLIENT* Client = nullptr;
 
-    PAGED_CODE();
+    if (KeGetCurrentIrql() > PASSIVE_LEVEL) {
+        Status = STATUS_NOT_SUPPORTED;
+        QuicTraceLogError("[test] QuicTestCtlEvtIoDeviceControl not supported greater than PASSIVE_LEVEL");
+        goto Error;
+    }
 
-    WDFFILEOBJECT FileObject = WdfRequestGetFileObject(Request);
+    FileObject = WdfRequestGetFileObject(Request);
     if (FileObject == nullptr) {
         Status = STATUS_DEVICE_NOT_READY;
         QuicTraceLogError("[test] WdfRequestGetFileObject failed");
@@ -568,6 +579,8 @@ QuicTestCtlEvtIoDeviceControl(
             goto Error;
         }
     }
+
+    QUIC_FRE_ASSERT(Params != nullptr);
 
     QuicTraceLogInfo("[test] Client %p executing IOCTL %u.", Client, FunctionCode);
 
