@@ -45,6 +45,7 @@
     <ClCompile Include="TestStream.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="KArray.h" />
     <ClInclude Include="precomp.h" />
     <ClInclude Include="..\MsQuicTests.h" />
   </ItemGroup>

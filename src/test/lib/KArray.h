@@ -1,5 +1,7 @@
 /*++
-Copyright (c) Microsoft Corporation
+
+    Copyright (c) Microsoft Corporation.
+    Licensed under the MIT License.
 
 Module Name:
 
@@ -11,19 +13,21 @@ Abstract:
 
 Environment:
 
-    Kernel mode or usermode unittest
+    Kernel mode or user mode unittest
 
 Notes:
 
-    Because kernel C++ doesn't support exceptions, we can't use the STL directly
-    in kernelmode.  Therefore, this class provides a limited and slightly
-    modified subset of the STL's std::vector.
+    Because kernel C++ doesn't support exceptions, we can't use the STL
+    directly in kernel mode. Therefore, this class provides a limited and
+    slightly modified subset of the STL's std::vector.
 
     If you're not familiar with std::vector, you should go read up on it
     first: https://docs.microsoft.com/en-us/cpp/standard-library/vector-class
 
-    This file copied from https://github.com/microsoft/Network-Adapter-Class-Extension/blob/windows_10.0.19541/ndis/rtl/inc/karray.h
-    with modifications to reduce dependencies.
+    This file was originally copied from the following location and then
+    modified to reduce dependencies:
+   
+    https://github.com/microsoft/Network-Adapter-Class-Extension/blob/windows_10.0.19541/ndis/rtl/inc/karray.h
 
 --*/
 
@@ -39,17 +43,17 @@ Notes:
 #  define KRTL_PAGE_SEGMENT "PAGE"
 #endif
 
-/// Use on classes or structs.  Class member functions & compiler-generated code
-/// will default to the PAGE segment.  You can override any member function with `NONPAGED`.
+// Use on classes or structs.  Class member functions & compiler-generated code
+// will default to the PAGE segment.  You can override any member function with `NONPAGED`.
 #define KRTL_CLASS CODE_SEG(KRTL_PAGE_SEGMENT) __declspec(empty_bases)
 
-/// Use on pageable functions.
+// Use on pageable functions.
 #define PAGED CODE_SEG(KRTL_PAGE_SEGMENT) _IRQL_always_function_max_(PASSIVE_LEVEL)
 
-/// Use on pageable functions, where you don't want the SAL IRQL annotation to say PASSIVE_LEVEL.
+// Use on pageable functions, where you don't want the SAL IRQL annotation to say PASSIVE_LEVEL.
 #define PAGEDX CODE_SEG(KRTL_PAGE_SEGMENT)
 
-/// Use on code that must always be locked in memory.
+// Use on code that must always be locked in memory.
 #define NONPAGED CODE_SEG(KRTL_NONPAGED_SEGMENT) _IRQL_requires_max_(DISPATCH_LEVEL)
 
 template<uint32_t SIGNATURE>
@@ -91,7 +95,7 @@ struct KRTL_CLASS KALLOCATOR : public KALLOCATION_TAG<TAG, ARENA>
     PAGED void *operator new(size_t cb, std::nothrow_t const &)
     {
         PAGED_CODE();
-        return ExAllocatePoolWithTag(static_cast<POOL_TYPE>(ARENA), cb, TAG);
+        return ExAllocatePoolWithTag(static_cast<POOL_TYPE>(ARENA), (SIZE_T)cb, TAG);
     }
 
     PAGED void operator delete(void *p)
@@ -116,7 +120,7 @@ struct KRTL_CLASS KALLOCATOR : public KALLOCATION_TAG<TAG, ARENA>
         if (size < cb)
             return nullptr;
 
-        return ExAllocatePoolWithTag(static_cast<POOL_TYPE>(ARENA), size, TAG);
+        return ExAllocatePoolWithTag(static_cast<POOL_TYPE>(ARENA), (SIZE_T)size, TAG);
     }
 
     // Array new & delete
@@ -124,7 +128,7 @@ struct KRTL_CLASS KALLOCATOR : public KALLOCATION_TAG<TAG, ARENA>
     PAGED void *operator new[](size_t cb, std::nothrow_t const &)
     {
         PAGED_CODE();
-        return ExAllocatePoolWithTag(static_cast<POOL_TYPE>(ARENA), cb, TAG);
+        return ExAllocatePoolWithTag(static_cast<POOL_TYPE>(ARENA), (SIZE_T)cb, TAG);
     }
 
     PAGED void operator delete[](void *p)
@@ -278,11 +282,12 @@ public:
         if (count >= (uint32_t)(-1))
             return false;
 
-        size_t bytesNeeded;
-        if (!NT_SUCCESS(RtlULongLongMult(sizeof(T), count, reinterpret_cast<SIZE_T*>(&bytesNeeded))))
+        ULONGLONG bytesNeeded;
+        if (!NT_SUCCESS(RtlULongLongMult(sizeof(T), count, &bytesNeeded)) ||
+            bytesNeeded > SIZE_T_MAX)
             return false;
 
-        T * p = (T*)ExAllocatePoolWithTag(PoolType, bytesNeeded, 'rrAK');
+        T * p = (T*)ExAllocatePoolWithTag(PoolType, (SIZE_T)bytesNeeded, 'rrAK');
         if (!p)
             return false;
 
