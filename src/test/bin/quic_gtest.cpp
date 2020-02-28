@@ -31,7 +31,7 @@ public:
             printf("Initializing for Kernel Mode tests\n");
             ASSERT_TRUE(DriverService.Initialize());
             ASSERT_TRUE(DriverService.Start());
-            ASSERT_TRUE(DriverClient.Initialize((QUIC_CERTIFICATE_HASH*)SelfSignedCertParams->Thumbprint));
+            ASSERT_TRUE(DriverClient.Initialize(SelfSignedCertParams));
         } else {
             printf("Initializing for User Mode tests\n");
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuicOpenV1(&MsQuic)));

@@ -477,7 +477,7 @@ class QuicDriverClient {
 public:
     QuicDriverClient() : DeviceHandle(INVALID_HANDLE_VALUE) { }
     bool Initialize(
-        _In_ QUIC_CERTIFICATE_HASH* ServerCertHash
+        _In_ QUIC_SEC_CONFIG_PARAMS* SecConfigParams
         ) {
         uint32_t Error;
         DeviceHandle =
@@ -494,7 +494,7 @@ public:
             QuicTraceLogError("[test] CreateFile failed, 0x%x.", Error);
             return false;
         }
-        Error = Run(IOCTL_QUIC_SEC_CONFIG, *ServerCertHash);
+        Error = Run(IOCTL_QUIC_SEC_CONFIG, SecConfigParams->Thumbprint, sizeof(SecConfigParams->Thumbprint), 30000);
         if (Error != NO_ERROR) {
             CloseHandle(DeviceHandle);
             DeviceHandle = INVALID_HANDLE_VALUE;
@@ -579,7 +579,12 @@ public:
 
 class QuicDriverClient {
 public:
-    bool Initialize(_In_ QUIC_CERTIFICATE_HASH* ServerCertHash) { return false; }
+    bool Initialize(
+        _In_ QUIC_SEC_CONFIG_PARAMS* SecConfigParams
+    ) {
+        UNREFERENCED_PARAMETER(SecConfigParams);
+        return false;
+    }
     void Uninitialize() { }
     bool Run(
         _In_ uint32_t IoControlCode,
