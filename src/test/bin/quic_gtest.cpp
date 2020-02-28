@@ -488,20 +488,39 @@ TEST_P(WithFamilyArgs, ServerRejected) {
 
 TEST_P(WithSendArgs1, Send) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
-    QuicTestConnectAndPing(
-        GetParam().Family,
-        GetParam().Length,
-        GetParam().ConnectionCount,
-        GetParam().StreamCount,
-        1,      // StreamBurstCount
-        0,      // StreamBurstDelayMs
-        false,  // ServerStatelessRetry
-        false,  // ClientRebind
-        false,  // ClientZeroRtt
-        false,  // ServerRejectZeroRtt
-        GetParam().UseSendBuffer,
-        GetParam().UnidirectionalStreams,
-        GetParam().ServerInitiatedStreams);
+    if (TestingKernelMode) {
+        QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
+            GetParam().Family,
+            GetParam().Length,
+            GetParam().ConnectionCount,
+            GetParam().StreamCount,
+            1,  // StreamBurstCount
+            0,  // StreamBurstDelayMs
+            0,  // ServerStatelessRetry
+            0,  // ClientRebind
+            0,  // ClientZeroRtt,
+            0,  // ServerRejectZeroRtt
+            (uint8_t)GetParam().UseSendBuffer,
+            (uint8_t)GetParam().UnidirectionalStreams,
+            (uint8_t)GetParam().ServerInitiatedStreams
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
+    } else {
+        QuicTestConnectAndPing(
+            GetParam().Family,
+            GetParam().Length,
+            GetParam().ConnectionCount,
+            GetParam().StreamCount,
+            1,      // StreamBurstCount
+            0,      // StreamBurstDelayMs
+            false,  // ServerStatelessRetry
+            false,  // ClientRebind
+            false,  // ClientZeroRtt
+            false,  // ServerRejectZeroRtt
+            GetParam().UseSendBuffer,
+            GetParam().UnidirectionalStreams,
+            GetParam().ServerInitiatedStreams);
+    }
 }
 
 #ifndef QUIC_DISABLE_0RTT
@@ -511,74 +530,154 @@ TEST_P(WithSendArgs1, Send) {
 
 TEST_P(WithSendArgs2, SendLarge) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
-    QuicTestConnectAndPing(
-        GetParam().Family,
-        100000000llu,
-        1,      // ConnectionCount
-        1,      // StreamCount
-        1,      // StreamBurstCount
-        0,      // StreamBurstDelayMs
-        false,  // ServerStatelessRetry
-        false,  // ClientRebind
-        GetParam().UseZeroRtt,
-        false,  // ServerRejectZeroRtt
-        GetParam().UseSendBuffer,
-        false,  // UnidirectionalStreams
-        false); // ServerInitiatedStreams
+    if (TestingKernelMode) {
+        QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
+            GetParam().Family,
+            100000000llu,
+            1,  // ConnectionCount
+            1,  // StreamCount
+            1,  // StreamBurstCount
+            0,  // StreamBurstDelayMs
+            0,  // ServerStatelessRetry
+            0,  // ClientRebind
+            (uint8_t)GetParam().UseZeroRtt,
+            0,  // ServerRejectZeroRtt
+            (uint8_t)GetParam().UseSendBuffer,
+            0,  // UnidirectionalStreams
+            0   // ServerInitiatedStreams
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
+    } else {
+        QuicTestConnectAndPing(
+            GetParam().Family,
+            100000000llu,
+            1,      // ConnectionCount
+            1,      // StreamCount
+            1,      // StreamBurstCount
+            0,      // StreamBurstDelayMs
+            false,  // ServerStatelessRetry
+            false,  // ClientRebind
+            GetParam().UseZeroRtt,
+            false,  // ServerRejectZeroRtt
+            GetParam().UseSendBuffer,
+            false,  // UnidirectionalStreams
+            false); // ServerInitiatedStreams
+    }
 }
 
 TEST_P(WithSendArgs3, SendIntermittently) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
-    QuicTestConnectAndPing(
-        GetParam().Family,
-        GetParam().Length,
-        1,  // ConnectionCount
-        1,  // StreamCount
-        GetParam().BurstCount,
-        GetParam().BurstDelay,
-        false,  // ServerStatelessRetry
-        false,  // ClientRebind
-        false,  // ClientZeroRtt
-        false,  // ServerRejectZeroRtt
-        GetParam().UseSendBuffer,
-        false,  // UnidirectionalStreams
-        false); // ServerInitiatedStreams
+    if (TestingKernelMode) {
+        QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
+            GetParam().Family,
+            GetParam().Length,
+            1,  // ConnectionCount
+            1,  // StreamCount
+            GetParam().BurstCount,
+            GetParam().BurstDelay,
+            0,  // ServerStatelessRetry
+            0,  // ClientRebind
+            0,  // ClientZeroRtt
+            0,  // ServerRejectZeroRtt
+            (uint8_t)GetParam().UseSendBuffer,
+            0,  // UnidirectionalStreams
+            0   // ServerInitiatedStreams
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
+    } else {
+        QuicTestConnectAndPing(
+            GetParam().Family,
+            GetParam().Length,
+            1,  // ConnectionCount
+            1,  // StreamCount
+            GetParam().BurstCount,
+            GetParam().BurstDelay,
+            false,  // ServerStatelessRetry
+            false,  // ClientRebind
+            false,  // ClientZeroRtt
+            false,  // ServerRejectZeroRtt
+            GetParam().UseSendBuffer,
+            false,  // UnidirectionalStreams
+            false); // ServerInitiatedStreams
+    }
 }
 
 TEST_P(WithBool, IdleTimeout) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndIdle", GetParam());
-    QuicTestConnectAndIdle(GetParam());
+    if (TestingKernelMode) {
+        uint8_t Param = (uint8_t)GetParam();
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_IDLE, Param));
+    } else {
+        QuicTestConnectAndIdle(GetParam());
+    }
 }
 
 TEST(Misc, ServerDisconnect) {
     TestLogger Logger("QuicTestServerDisconnect");
-    QuicTestServerDisconnect();
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_SERVER_DISCONNECT));
+    } else {
+        QuicTestServerDisconnect();
+    }
 }
 
 TEST(Misc, ClientDisconnect) {
     TestLogger Logger("QuicTestClientDisconnect");
-    QuicTestClientDisconnect(false); // TODO - Support true, when race condition is fixed.
+    if (TestingKernelMode) {
+        uint8_t Param = 0;
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CLIENT_DISCONNECT, Param));
+    } else {
+        QuicTestClientDisconnect(false); // TODO - Support true, when race condition is fixed.
+    }
 }
 
 TEST_P(WithKeyUpdateArgs1, KeyUpdate) {
     TestLoggerT<ParamType> Logger("QuicTestKeyUpdate", GetParam());
-    QuicTestKeyUpdate(
-        GetParam().Family,
-        GetParam().KeyUpdate == 0 ? 5 : 1,  // Iterations
-        0,                                  // KeyUpdateBytes
-        GetParam().KeyUpdate == 0,          // UseKeyUpdateBytes
-        GetParam().KeyUpdate & 1,           // ClientKeyUpdate
-        GetParam().KeyUpdate & 2);          // ServerKeyUpdate
+    if (TestingKernelMode) {
+        QUIC_RUN_KEY_UPDATE_PARAMS Params = {
+            GetParam().Family,
+            GetParam().KeyUpdate == 0 ? 5 : 1,  // Iterations
+            0,                                  // KeyUpdateBytes
+            GetParam().KeyUpdate == 0,          // UseKeyUpdateBytes
+            GetParam().KeyUpdate & 1,           // ClientKeyUpdate
+            GetParam().KeyUpdate & 2            // ServerKeyUpdate
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_KEY_UPDATE, Params));
+    } else {
+        QuicTestKeyUpdate(
+            GetParam().Family,
+            GetParam().KeyUpdate == 0 ? 5 : 1,  // Iterations
+            0,                                  // KeyUpdateBytes
+            GetParam().KeyUpdate == 0,          // UseKeyUpdateBytes
+            GetParam().KeyUpdate & 1,           // ClientKeyUpdate
+            GetParam().KeyUpdate & 2);          // ServerKeyUpdate
+    }
 }
 
 TEST_P(WithAbortiveArgs, AbortiveShutdown) {
     TestLoggerT<ParamType> Logger("QuicAbortiveTransfers", GetParam());
-    QuicAbortiveTransfers(GetParam().Family, GetParam().Flags);
+    if (TestingKernelMode) {
+        QUIC_RUN_ABORTIVE_SHUTDOWN_PARAMS Params = {
+            GetParam().Family,
+            GetParam().Flags
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ABORTIVE_SHUTDOWN, Params));
+    } else {
+        QuicAbortiveTransfers(GetParam().Family, GetParam().Flags);
+    }
 }
 
 TEST_P(WithCidUpdateArgs, CidUpdate) {
     TestLoggerT<ParamType> Logger("QuicTestCidUpdate", GetParam());
-    QuicTestCidUpdate(GetParam().Family, GetParam().Iterations);
+    if (TestingKernelMode) {
+        QUIC_RUN_CID_UPDATE_PARAMS Params = {
+            GetParam().Family,
+            GetParam().Iterations
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CID_UPDATE, Params));
+    } else {
+        QuicTestCidUpdate(GetParam().Family, GetParam().Iterations);
+    }
 }
 
 TEST_P(WithReceiveResumeArgs, ReceiveResume) {
