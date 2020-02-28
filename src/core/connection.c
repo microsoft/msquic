@@ -3517,6 +3517,7 @@ QuicConnRecvPayload(
                     TRUE,
                     &IsLastCid);
             if (SourceCid != NULL) {
+                BOOLEAN CidAlreadyRetired = SourceCid->CID.Retired;
                 QuicBindingRemoveSourceConnectionID(
                     Connection->Paths[0].Binding, SourceCid);
                 QuicTraceEvent(ConnSourceCidRemoved,
@@ -3529,7 +3530,7 @@ QuicConnRecvPayload(
                         QUIC_CLOSE_INTERNAL_SILENT,
                         QUIC_ERROR_PROTOCOL_VIOLATION,
                         NULL);
-                } else if (!SourceCid->CID.Retired) {
+                } else if (!CidAlreadyRetired) {
                     //
                     // Replace the CID if we weren't the one to request it to be
                     // retired in the first place.
