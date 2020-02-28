@@ -390,7 +390,7 @@ public:
         const size_t countToInsert = end._i - start._i;
 
         size_t countToGrow;
-        if (!NT_SUCCESS(RtlULongLongAdd(m_numElements, countToInsert, reinterpret_cast<SIZE_T*>(&countToGrow))))
+        if (!NT_SUCCESS(RtlULongLongAdd(m_numElements, countToInsert, reinterpret_cast<ULONGLONG*>(&countToGrow))))
             return false;
 
         if (!grow(countToGrow))
