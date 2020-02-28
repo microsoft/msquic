@@ -269,7 +269,9 @@ LogTestFailure(
 static const GUID QUIC_TEST_DEVICE_INSTANCE =
 { 0x85c2d886, 0xfa01, 0x4dda,{ 0xaa, 0xed, 0x9a, 0x16, 0xcc, 0x7d, 0xa6, 0xce } };
 
+#ifndef _KERNEL_MODE
 #include <winioctl.h>
+#endif // _KERNEL_MODE
 
 #define QUIC_CTL_CODE(request, method, access) \
     CTL_CODE(FILE_DEVICE_NETWORK, request, method, access)

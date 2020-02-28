@@ -386,7 +386,7 @@ public:
         ServiceHandle(nullptr) {
     }
     bool Initialize() {
-        DWORD Error;
+        uint32_t Error;
         ScmHandle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
         if (ScmHandle == nullptr) {
             Error = GetLastError();
@@ -449,7 +449,7 @@ public:
     }
     bool Start() {
         if (!StartServiceA(ServiceHandle, 0, nullptr)) {
-            DWORD Error = GetLastError();
+            uint32_t Error = GetLastError();
             if (Error != ERROR_SERVICE_ALREADY_RUNNING) {
                 QuicTraceLogError("[test] StartService failed, 0x%x.", Error);
                 return false;
@@ -479,7 +479,7 @@ public:
     bool Initialize(
         _In_ QUIC_CERTIFICATE_HASH* ServerCertHash
         ) {
-        DWORD Error;
+        uint32_t Error;
         DeviceHandle =
             CreateFileA(
                 QUIC_TEST_IOCTL_PATH,
@@ -510,13 +510,13 @@ public:
         }
     }
     bool Run(
-        _In_ DWORD IoControlCode,
+        _In_ uint32_t IoControlCode,
         _In_reads_bytes_opt_(InBufferSize)
-            LPVOID InBuffer,
-        _In_ DWORD InBufferSize,
-        _In_ DWORD TimeoutMs = 30000
+            void* InBuffer,
+        _In_ uint32_t InBufferSize,
+        _In_ uint32_t TimeoutMs = 30000
         ) {
-        DWORD Error;
+        uint32_t Error;
         OVERLAPPED Overlapped = { 0 };
         Overlapped.hEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
         if (Overlapped.hEvent == nullptr) {
@@ -560,16 +560,16 @@ public:
         return Error == ERROR_SUCCESS;
     }
     bool Run(
-        _In_ DWORD IoControlCode,
-        _In_ DWORD TimeoutMs = 30000
+        _In_ uint32_t IoControlCode,
+        _In_ uint32_t TimeoutMs = 30000
         ) {
         return Run(IoControlCode, nullptr, 0, TimeoutMs);
     }
     template<class T>
     bool Run(
-        _In_ DWORD IoControlCode,
+        _In_ uint32_t IoControlCode,
         _In_ const T& Data,
-        _In_ DWORD TimeoutMs = 30000
+        _In_ uint32_t TimeoutMs = 30000
         ) {
         return Run(IoControlCode, (void*)&Data, sizeof(Data), TimeoutMs);
     }
@@ -582,10 +582,10 @@ public:
     bool Initialize(_In_ QUIC_CERTIFICATE_HASH* ServerCertHash) { return false; }
     void Uninitialize() { }
     bool Run(
-        _In_ DWORD IoControlCode,
-        _In_ LPVOID InBuffer,
-        _In_ DWORD InBufferSize,
-        _In_ DWORD TimeoutMs = 30000
+        _In_ uint32_t IoControlCode,
+        _In_ void* InBuffer,
+        _In_ uint32_t InBufferSize,
+        _In_ uint32_t TimeoutMs = 30000
         ) {
         UNREFERENCED_PARAMETER(IoControlCode);
         UNREFERENCED_PARAMETER(InBuffer);
@@ -595,17 +595,17 @@ public:
     }
     bool
     Run(
-        _In_ DWORD IoControlCode,
-        _In_ DWORD TimeoutMs = 30000
+        _In_ uint32_t IoControlCode,
+        _In_ uint32_t TimeoutMs = 30000
         ) {
         return Run(IoControlCode, nullptr, 0, TimeoutMs);
     }
     template<class T>
     bool
     Run(
-        _In_ DWORD IoControlCode,
+        _In_ uint32_t IoControlCode,
         _In_ const T& Data,
-        _In_ DWORD TimeoutMs = 30000
+        _In_ uint32_t TimeoutMs = 30000
         ) {
         return Run(IoControlCode, (void*)&Data, sizeof(Data), TimeoutMs);
     }
