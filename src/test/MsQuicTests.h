@@ -256,13 +256,17 @@ LogTestFailure(
 // Kernel Mode Driver Interface
 //
 
-//
-// Name of the driver service for msquic_bvt.sys.
-//
-#define QUIC_TEST_DRIVER_NAME   "QuicTest"
+#include <winioctl.h>
 
+//
+// Name of the driver service for msquictest.sys.
+//
+#define QUIC_TEST_DRIVER_NAME   "msquictest"
 
 #define QUIC_TEST_IOCTL_PATH    "\\\\.\\\\" QUIC_TEST_DRIVER_NAME
+
+#define IoGetFunctionCodeFromCtlCode( ControlCode ) (\
+    ( ControlCode >> 2) & 0x00000FFF )
 
 //
 // {85C2D886-FA01-4DDA-AAED-9A16CC7DA6CE}
