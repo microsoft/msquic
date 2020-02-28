@@ -833,7 +833,7 @@ INSTANTIATE_TEST_CASE_P(
 
 int main(int argc, char** argv) {
     for (int i = 0; i < argc; ++i) {
-        if (strcmp("--kernel", argv[i])) {
+        if (strcmp("--kernel", argv[i]) == 0) {
             TestingKernelMode = true;
             break;
         }
