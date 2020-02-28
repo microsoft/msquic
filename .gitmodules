@@ -9,6 +9,6 @@
 	path = submodules/everest
 	url = https://github.com/nibanks/everest-dist.git
 	branch = pr/msquic
-[submodule "submodules\\wil"]
-	path = submodules\\wil
+[submodule "submodules/wil"]
+	path = submodules/wil
 	url = https://github.com/microsoft/wil
