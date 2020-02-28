@@ -29,9 +29,9 @@ public:
         ASSERT_TRUE((SelfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER)) != nullptr);
         if (TestingKernelMode) {
             printf("Initializing for Kernel Mode tests\n");
-            ASSERT_TRUE(QUIC_SUCCEEDED(DriverService.Initialize()));
-            ASSERT_TRUE(QUIC_SUCCEEDED(DriverService.Start()));
-            ASSERT_TRUE(QUIC_SUCCEEDED(DriverClient.Initialize((QUIC_CERTIFICATE_HASH*)SelfSignedCertParams->Thumbprint)));
+            ASSERT_TRUE(DriverService.Initialize());
+            ASSERT_TRUE(DriverService.Start());
+            ASSERT_TRUE(DriverClient.Initialize((QUIC_CERTIFICATE_HASH*)SelfSignedCertParams->Thumbprint));
         } else {
             printf("Initializing for User Mode tests\n");
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuicOpenV1(&MsQuic)));
@@ -636,11 +636,11 @@ TEST_P(WithKeyUpdateArgs1, KeyUpdate) {
     if (TestingKernelMode) {
         QUIC_RUN_KEY_UPDATE_PARAMS Params = {
             GetParam().Family,
-            GetParam().KeyUpdate == 0 ? 5 : 1,  // Iterations
-            0,                                  // KeyUpdateBytes
-            GetParam().KeyUpdate == 0,          // UseKeyUpdateBytes
-            GetParam().KeyUpdate & 1,           // ClientKeyUpdate
-            GetParam().KeyUpdate & 2            // ServerKeyUpdate
+            (uint16_t)(GetParam().KeyUpdate == 0 ? 5 : 1),  // Iterations
+            0,                                              // KeyUpdateBytes
+            (uint8_t)(GetParam().KeyUpdate == 0),           // UseKeyUpdateBytes
+            (uint8_t)(GetParam().KeyUpdate & 1),            // ClientKeyUpdate
+            (uint8_t)(GetParam().KeyUpdate & 2)             // ServerKeyUpdate
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_KEY_UPDATE, Params));
     } else {
@@ -682,33 +682,81 @@ TEST_P(WithCidUpdateArgs, CidUpdate) {
 
 TEST_P(WithReceiveResumeArgs, ReceiveResume) {
     TestLoggerT<ParamType> Logger("QuicTestReceiveResume", GetParam());
-    QuicTestReceiveResume(
-        GetParam().Family,
-        GetParam().SendBytes,
-        GetParam().ConsumeBytes,
-        GetParam().ShutdownType,
-        GetParam().PauseType,
-        GetParam().PauseFirst);
+    if (TestingKernelMode) {
+        QUIC_RUN_RECEIVE_RESUME_PARAMS Params = {
+            GetParam().Family,
+            GetParam().SendBytes,
+            GetParam().ConsumeBytes,
+            GetParam().ShutdownType,
+            GetParam().PauseType,
+            (uint8_t)GetParam().PauseFirst
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_RECEIVE_RESUME, Params));
+    } else {
+        QuicTestReceiveResume(
+            GetParam().Family,
+            GetParam().SendBytes,
+            GetParam().ConsumeBytes,
+            GetParam().ShutdownType,
+            GetParam().PauseType,
+            GetParam().PauseFirst);
+    }
 }
 
 TEST_P(WithReceiveResumeNoDataArgs, ReceiveResumeNoData) {
     TestLoggerT<ParamType> Logger("QuicTestReceiveResumeNoData", GetParam());
-    QuicTestReceiveResumeNoData(GetParam().Family, GetParam().ShutdownType);
+    if (TestingKernelMode) {
+        QUIC_RUN_RECEIVE_RESUME_PARAMS Params = {
+            GetParam().Family,
+            0,
+            0,
+            GetParam().ShutdownType,
+            ReturnConsumedBytes,
+            0
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_RECEIVE_RESUME_NO_DATA, Params));
+    } else {
+        QuicTestReceiveResumeNoData(GetParam().Family, GetParam().ShutdownType);
+    }
+}
+
+TEST(Drill, VarIntEncoder) {
+    TestLogger Logger("QuicDrillTestVarIntEncoder");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DRILL_ENCODE_VAR_INT));
+    } else {
+        QuicDrillTestVarIntEncoder();
+    }
 }
 
 TEST_P(WithDrillInitialPacketCidArgs, DrillInitialPacketCids) {
     TestLoggerT<ParamType> Logger("QuicDrillInitialPacketCids", GetParam());
-    QuicDrillTestInitialCid(
-        GetParam().Family,
-        GetParam().SourceOrDest,
-        GetParam().ActualCidLengthValid,
-        GetParam().ShortCidLength,
-        GetParam().CidLengthFieldValid);
+    if (TestingKernelMode) {
+        QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS Params = {
+            GetParam().Family,
+            (uint8_t)GetParam().SourceOrDest,
+            (uint8_t)GetParam().ActualCidLengthValid,
+            (uint8_t)GetParam().ShortCidLength,
+            (uint8_t)GetParam().CidLengthFieldValid
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_CID, Params));
+    } else {
+        QuicDrillTestInitialCid(
+            GetParam().Family,
+            GetParam().SourceOrDest,
+            GetParam().ActualCidLengthValid,
+            GetParam().ShortCidLength,
+            GetParam().CidLengthFieldValid);
+    }
 }
 
 TEST_P(WithDrillInitialPacketTokenArgs, DrillInitialPacketToken) {
     TestLoggerT<ParamType> Logger("QuicDrillInitialPacketToken", GetParam());
-    QuicDrillTestInitialToken(GetParam().Family);
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_TOKEN, GetParam().Family));
+    } else {
+        QuicDrillTestInitialToken(GetParam().Family);
+    }
 }
 
 INSTANTIATE_TEST_CASE_P(
