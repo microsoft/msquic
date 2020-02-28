@@ -50,13 +50,10 @@ Notes:
 // Use on pageable functions.
 #define PAGED CODE_SEG(KRTL_PAGE_SEGMENT) _IRQL_always_function_max_(PASSIVE_LEVEL)
 
-// Use on pageable functions, where you don't want the SAL IRQL annotation to say PASSIVE_LEVEL.
-#define PAGEDX CODE_SEG(KRTL_PAGE_SEGMENT)
-
 // Use on code that must always be locked in memory.
 #define NONPAGED CODE_SEG(KRTL_NONPAGED_SEGMENT) _IRQL_requires_max_(DISPATCH_LEVEL)
 
-template<uint32_t SIGNATURE>
+template<ULONG SIGNATURE>
 struct KRTL_CLASS QuicDebugBlock
 {
 #if _DEBUG
