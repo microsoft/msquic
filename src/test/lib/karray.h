@@ -46,10 +46,13 @@ Notes:
 /// Use on pageable functions.
 #define PAGED CODE_SEG(KRTL_PAGE_SEGMENT) _IRQL_always_function_max_(PASSIVE_LEVEL)
 
+/// Use on pageable functions, where you don't want the SAL IRQL annotation to say PASSIVE_LEVEL.
+#define PAGEDX CODE_SEG(KRTL_PAGE_SEGMENT)
+
 /// Use on code that must always be locked in memory.
 #define NONPAGED CODE_SEG(KRTL_NONPAGED_SEGMENT) _IRQL_requires_max_(DISPATCH_LEVEL)
 
-template<ULONG SIGNATURE>
+template<uint32_t SIGNATURE>
 struct KRTL_CLASS QuicDebugBlock
 {
 #if _DEBUG
@@ -69,18 +72,18 @@ struct KRTL_CLASS QuicDebugBlock
 
 private:
 #if _DEBUG
-    ULONG Signature = SIGNATURE;
+    uint32_t Signature = SIGNATURE;
 #endif
 };
 
-template <ULONG TAG, ULONG ARENA = PagedPool>
+template <uint32_t TAG, uint32_t ARENA = PagedPool>
 struct KRTL_CLASS KALLOCATION_TAG
 {
-    static const ULONG AllocationTag = TAG;
-    static const ULONG AllocationArena = ARENA;
+    static const uint32_t AllocationTag = TAG;
+    static const uint32_t AllocationArena = ARENA;
 };
 
-template <ULONG TAG, ULONG ARENA = PagedPool>
+template <uint32_t TAG, uint32_t ARENA = PagedPool>
 struct KRTL_CLASS KALLOCATOR : public KALLOCATION_TAG<TAG, ARENA>
 {
     // Scalar new & delete
@@ -150,7 +153,7 @@ struct KRTL_CLASS KALLOCATOR : public KALLOCATION_TAG<TAG, ARENA>
     }
 };
 
-template <ULONG TAG>
+template <uint32_t TAG>
 struct KRTL_CLASS PAGED_OBJECT :
     public KALLOCATOR<TAG, PagedPool>,
     public QuicDebugBlock<TAG>
