@@ -10,6 +10,12 @@ if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
     set(CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION 10.0.18362.0 CACHE STRING INTERNAL FORCE)
 endif()
 
+if(POLICY CMP0091)
+    cmake_policy(SET CMP0091 NEW)
+elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    message(WARNING "CMake version too old to support Policy 0091; CRT static linking won't work")
+endif()
+
 project(msquic)
 
 message(STATUS "System name: ${CMAKE_SYSTEM_NAME}")
@@ -102,6 +108,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
     set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF")
     if(QUIC_STATIC_LINK_CRT)
+        message(STATUS "Configuring for statically-linked CRT")
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     endif()
 
