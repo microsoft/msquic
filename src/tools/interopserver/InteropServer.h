@@ -99,7 +99,6 @@ struct HttpConnection {
     HttpConnection(HQUIC connection) :
         QuicConnection(connection), RefCount(1) {
         MsQuic->SetCallbackHandler(QuicConnection, (void*)QuicCallbackHandler, this);
-        printf("[%p] From %s\n", QuicConnection, GetRemoteAddr(MsQuic, QuicConnection).Address);
     }
     ~HttpConnection() {
         MsQuic->ConnectionClose(QuicConnection);

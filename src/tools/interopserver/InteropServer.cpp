@@ -164,6 +164,7 @@ HttpRequest::Process()
 
     if (QuicBuffer->Length < 5 ||
         _strnicmp((const char*)QuicBuffer->Buffer, "get ", 4) != 0) {
+        printf("[%s] Invalid get\n", GetRemoteAddr(MsQuic, QuicStream).Address);
         Abort();
         return;
     }
@@ -178,7 +179,8 @@ HttpRequest::Process()
         *end = '\0';
     }
 
-    if (strstr(PathStart, "..") == nullptr) {
+    if (strstr(PathStart, "..") != nullptr) {
+        printf("[%s] '..' found\n", GetRemoteAddr(MsQuic, QuicStream).Address);
         Abort(); // Don't allow requests with ../ in them.
         return;
     }
@@ -191,7 +193,7 @@ HttpRequest::Process()
         strcat(fullFilePath, PathStart);
     }
 
-    printf("GET '%s'\n", PathStart);
+    printf("[%s] GET '%s'\n", GetRemoteAddr(MsQuic, QuicStream).Address, PathStart);
     File = fopen(fullFilePath, "rb"); // In case of failure, SendData still works.
 
     SendData();
@@ -253,6 +255,7 @@ HttpRequest::SendData()
             1,
             Buffer.Flags,
             this))) {
+        printf("[%s] Send failed\n", GetRemoteAddr(MsQuic, QuicStream).Address);
         Abort();
     }
 }
@@ -271,6 +274,7 @@ HttpRequest::QuicCallbackHandler(
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_RECEIVE:
         if (!Buffer->HasRoom(Event->RECEIVE.TotalBufferLength)) {
+            printf("[%s] No room for recv\n", GetRemoteAddr(MsQuic, Stream).Address);
             pThis->Abort();
         } else {
             for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
@@ -289,6 +293,7 @@ HttpRequest::QuicCallbackHandler(
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
+        printf("[%s] Peer abort\n", GetRemoteAddr(MsQuic, Stream).Address);
         pThis->Abort();
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
