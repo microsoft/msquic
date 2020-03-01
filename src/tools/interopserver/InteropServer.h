@@ -98,7 +98,7 @@ private:
 struct HttpConnection {
     HttpConnection(HQUIC connection) :
         QuicConnection(connection), RefCount(1) {
-        MsQuic->SetCallbackHandler(QuicConnection, QuicCallbackHandler, this);
+        MsQuic->SetCallbackHandler(QuicConnection, (void*)QuicCallbackHandler, this);
         printf("[%p] From %s\n", QuicConnection, GetRemoteAddr(MsQuic, QuicConnection).Address);
     }
     ~HttpConnection() {
@@ -130,7 +130,7 @@ private:
             if (Event->PEER_STREAM_STARTED.Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL) {
                 MsQuic->SetCallbackHandler(
                     Event->PEER_STREAM_STARTED.Stream,
-                    HttpUnidirectionalStreamCallback,
+                    (void*)HttpUnidirectionalStreamCallback,
                     nullptr);
             } else {
                 new HttpRequest(pThis, Event->PEER_STREAM_STARTED.Stream);

@@ -74,7 +74,7 @@ main(
     // Required parameters.
     //
     const char* ListenAddrStr = nullptr;
-    SOCKADDR_INET ListenAddr = { 0 };
+    QUIC_ADDR ListenAddr = { 0 };
     if (!TryGetValue(argc, argv, "listen", &ListenAddrStr) ||
         !ConvertArgToAddress(ListenAddrStr, LocalPort, &ListenAddr)) {
         printf("Missing or invalid '-listen' arg!\n");
@@ -140,7 +140,7 @@ HttpRequest::HttpRequest(HttpConnection *connection, HQUIC stream) :
     Connection(connection), QuicStream(stream), File(nullptr),
     Shutdown(false), WriteHttp11Header(false)
 {
-    MsQuic->SetCallbackHandler(QuicStream, QuicCallbackHandler, this);
+    MsQuic->SetCallbackHandler(QuicStream, (void*)QuicCallbackHandler, this);
     Connection->AddRef();
 }
 
