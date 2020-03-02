@@ -95,7 +95,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel")
         # OpenSSL and SChannel don't support 0-RTT yet.
         message(STATUS "Disabling 0-RTT support")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_DISABLE_0RTT")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_DISABLE_0RTT_TESTS")
     endif()
 
     if(QUIC_TLS STREQUAL "stub")
@@ -143,7 +143,7 @@ else()
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_DISABLE_RESUMPTION")
         # OpenSSL doesn't support 0-RTT yet.
         message(STATUS "Disabling 0-RTT support")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_DISABLE_0RTT")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_DISABLE_0RTT_TESTS")
     endif()
 
     if(QUIC_SANITIZE_ADDRESS)

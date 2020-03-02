@@ -174,7 +174,7 @@ void QuicTestValidateSession()
             sizeof(TicketKey) - 1,
             TicketKey));
 
-#ifndef QUIC_DISABLE_0RTT
+#ifndef QUIC_DISABLE_0RTT_TESTS
     //
     // Valid 0-RTT ticket encryption key.
     //
