@@ -1535,8 +1535,7 @@ QuicConnStart(
     QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
 
     if (Connection->State.ClosedLocally || Connection->State.Started) {
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Exit;
+        return QUIC_STATUS_INVALID_STATE;
     }
 
     QUIC_TEL_ASSERT(Path->Binding == NULL);
