@@ -386,7 +386,7 @@ QuicTestValidateStreamEvents1(
     TEST_TRUE(Session.IsValid());
 
     { // Connections scope
-    ConnValidator Client, Server(false);
+    ConnValidator Client, Server;
 
     MsQuic->SetContext(Listener, &Server);
 
@@ -491,7 +491,7 @@ QuicTestValidateStreamEvents2(
     TEST_TRUE(Session.IsValid());
 
     { // Connections scope
-    ConnValidator Client, Server(false);
+    ConnValidator Client, Server;
 
     MsQuic->SetContext(Listener, &Server);
 
