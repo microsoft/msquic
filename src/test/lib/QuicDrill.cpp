@@ -217,10 +217,6 @@ QuicDrillInitialPacketFailureTest(
     uint64_t DroppedPacketsAfter;
 
     QuicAddr ServerAddress(QuicAddrFamily);
-    if (Registration == nullptr) {
-        TEST_FAILURE("Registration not valid!");
-        return false;
-    }
     DrillSender Sender;
     MsQuicSession Session(Registration);
     if (!Session.IsValid()) {
