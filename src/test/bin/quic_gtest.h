@@ -139,7 +139,7 @@ struct SendArgs2 {
         ::std::vector<SendArgs2> list;
         for (int Family : { 4, 6 })
         for (bool UseSendBuffer : { false, true })
-#ifndef QUIC_DISABLE_0RTT
+#ifndef QUIC_DISABLE_0RTT_TESTS
         for (bool UseZeroRtt : { false, true })
 #else
         for (bool UseZeroRtt : { false })

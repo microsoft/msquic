@@ -530,7 +530,7 @@ TEST_P(WithSendArgs1, Send) {
     }
 }
 
-#ifndef QUIC_DISABLE_0RTT
+#ifndef QUIC_DISABLE_0RTT_TESTS
 // TODO - Send0Rtt
 // TODO - Reject0Rtt
 #endif
