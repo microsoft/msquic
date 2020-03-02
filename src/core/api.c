@@ -274,7 +274,6 @@ MsQuicConnectionStart(
         Status = QUIC_STATUS_INVALID_STATE; // TODO - Support the Connect after close/previous connect failure?
         goto Error;
     }
-    QUIC_DBG_ASSERT(Connection->Paths[0].Binding == NULL);
 
     if (ServerName != NULL) {
         //
@@ -317,7 +316,6 @@ MsQuicConnectionStart(
     //
     // Queue the operation but don't wait for the completion.
     //
-    Connection->State.Started = TRUE;
     QuicConnQueueOper(Connection, Oper);
     Status = QUIC_STATUS_PENDING;
 
