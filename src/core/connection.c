@@ -1294,6 +1294,7 @@ QuicConnTryClose(
     BOOLEAN IsFirstCloseForConnection = TRUE;
 
     if (ClosedRemotely && !Connection->State.ClosedLocally) {
+
         //
         // Peer closed first.
         //
@@ -1532,7 +1533,13 @@ QuicConnStart(
     QUIC_STATUS Status;
     QUIC_PATH* Path = &Connection->Paths[0];
     QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
+    QUIC_DBG_ASSERT(Connection->State.Started);
     QUIC_TEL_ASSERT(Path->Binding == NULL);
+
+    if (Connection->State.ClosedLocally) {
+        Status = QUIC_STATUS_INVALID_STATE;
+        goto Exit;
+    }
 
     if (!Connection->State.RemoteAddressSet) {
 
@@ -3510,6 +3517,7 @@ QuicConnRecvPayload(
                     TRUE,
                     &IsLastCid);
             if (SourceCid != NULL) {
+                BOOLEAN CidAlreadyRetired = SourceCid->CID.Retired;
                 QuicBindingRemoveSourceConnectionID(
                     Connection->Paths[0].Binding, SourceCid);
                 QuicTraceEvent(ConnSourceCidRemoved,
@@ -3522,7 +3530,7 @@ QuicConnRecvPayload(
                         QUIC_CLOSE_INTERNAL_SILENT,
                         QUIC_ERROR_PROTOCOL_VIOLATION,
                         NULL);
-                } else if (!SourceCid->CID.Retired) {
+                } else if (!CidAlreadyRetired) {
                     //
                     // Replace the CID if we weren't the one to request it to be
                     // retired in the first place.

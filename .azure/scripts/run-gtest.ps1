@@ -405,8 +405,12 @@ $TestCases = GetTestCases
 
 # Apply any filtering.
 if ($Filter -ne "") {
+    $isNegative = $false
     foreach ($f in $Filter.Split(":")) {
         if ($f.StartsWith("-")) {
+            $isNegative = $true
+        }
+        if ($isNegative) {
             $f = $f.Substring(1)
             $TestCases = ($TestCases | Where-Object { !($_ -Like $f) }) -as [String[]]
         } else {

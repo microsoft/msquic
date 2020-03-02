@@ -370,3 +370,248 @@ std::ostream& operator << (std::ostream& o, const DrillInitialPacketTokenArgs& a
 class WithDrillInitialPacketTokenArgs: public testing::Test,
     public testing::WithParamInterface<DrillInitialPacketTokenArgs> {
 };
+
+//
+// Windows Kernel Mode Helpers
+//
+
+#ifdef _WIN32
+
+class QuicDriverService {
+    SC_HANDLE ScmHandle;
+    SC_HANDLE ServiceHandle;
+public:
+    QuicDriverService() :
+        ScmHandle(nullptr),
+        ServiceHandle(nullptr) {
+    }
+    bool Initialize() {
+        uint32_t Error;
+        ScmHandle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
+        if (ScmHandle == nullptr) {
+            Error = GetLastError();
+            QuicTraceLogError("[test] GetFullPathName failed, 0x%x.", Error);
+            return false;
+        }
+    QueryService:
+        ServiceHandle =
+            OpenServiceA(
+                ScmHandle,
+                QUIC_TEST_DRIVER_NAME,
+                SERVICE_ALL_ACCESS);
+        if (ServiceHandle == nullptr) {
+            QuicTraceLogError("[test] OpenService failed, 0x%x.", GetLastError());
+            char DriverFilePath[MAX_PATH];
+            Error =
+                GetFullPathNameA(
+                    "msquictest.sys",
+                    sizeof(DriverFilePath),
+                    DriverFilePath,
+                    nullptr);
+            if (Error == 0) {
+                Error = GetLastError();
+                QuicTraceLogError("[test] GetFullPathName failed, 0x%x.", Error);
+                return false;
+            }
+            ServiceHandle =
+                CreateServiceA(
+                    ScmHandle,
+                    QUIC_TEST_DRIVER_NAME,
+                    QUIC_TEST_DRIVER_NAME,
+                    SC_MANAGER_ALL_ACCESS,
+                    SERVICE_KERNEL_DRIVER,
+                    SERVICE_DEMAND_START,
+                    SERVICE_ERROR_NORMAL,
+                    DriverFilePath,
+                    nullptr,
+                    nullptr,
+                    "msquic\0",
+                    nullptr,
+                    nullptr);
+            if (ServiceHandle == nullptr) {
+                Error = GetLastError();
+                if (Error == ERROR_SERVICE_EXISTS) {
+                    goto QueryService;
+                }
+                QuicTraceLogError("[test] CreateService failed, 0x%x.", Error);
+                return false;
+            }
+        }
+        return true;
+    }
+    void Uninitialize() {
+        if (ServiceHandle != nullptr) {
+            CloseServiceHandle(ServiceHandle);
+        }
+        if (ScmHandle != nullptr) {
+            CloseServiceHandle(ScmHandle);
+        }
+    }
+    bool Start() {
+        if (!StartServiceA(ServiceHandle, 0, nullptr)) {
+            uint32_t Error = GetLastError();
+            if (Error != ERROR_SERVICE_ALREADY_RUNNING) {
+                QuicTraceLogError("[test] StartService failed, 0x%x.", Error);
+                return false;
+            }
+        }
+        return true;
+    }
+};
+
+#else
+
+class QuicDriverService {
+public:
+    bool Initialize() { return false; }
+    void Uninitialize() { }
+    bool Start() { return false; }
+};
+
+#endif // _WIN32
+
+#ifdef _WIN32
+
+class QuicDriverClient {
+    HANDLE DeviceHandle;
+public:
+    QuicDriverClient() : DeviceHandle(INVALID_HANDLE_VALUE) { }
+    bool Initialize(
+        _In_ QUIC_SEC_CONFIG_PARAMS* SecConfigParams
+        ) {
+        uint32_t Error;
+        DeviceHandle =
+            CreateFileA(
+                QUIC_TEST_IOCTL_PATH,
+                GENERIC_READ | GENERIC_WRITE,
+                0,
+                nullptr,                // no SECURITY_ATTRIBUTES structure
+                OPEN_EXISTING,          // No special create flags
+                FILE_FLAG_OVERLAPPED,   // Allow asynchronous requests
+                nullptr);
+        if (DeviceHandle == INVALID_HANDLE_VALUE) {
+            Error = GetLastError();
+            QuicTraceLogError("[test] CreateFile failed, 0x%x.", Error);
+            return false;
+        }
+        if (!Run(IOCTL_QUIC_SEC_CONFIG, SecConfigParams->Thumbprint, sizeof(SecConfigParams->Thumbprint), 30000)) {
+            CloseHandle(DeviceHandle);
+            DeviceHandle = INVALID_HANDLE_VALUE;
+            QuicTraceLogError("[test] Run(IOCTL_QUIC_SEC_CONFIG) failed.");
+            return false;
+        }
+        return true;
+    }
+    void Uninitialize() {
+        if (DeviceHandle != INVALID_HANDLE_VALUE) {
+            CloseHandle(DeviceHandle);
+        }
+    }
+    bool Run(
+        _In_ uint32_t IoControlCode,
+        _In_reads_bytes_opt_(InBufferSize)
+            void* InBuffer,
+        _In_ uint32_t InBufferSize,
+        _In_ uint32_t TimeoutMs = 30000
+        ) {
+        uint32_t Error;
+        OVERLAPPED Overlapped = { 0 };
+        Overlapped.hEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+        if (Overlapped.hEvent == nullptr) {
+            Error = GetLastError();
+            QuicTraceLogError("[test] CreateEvent failed, 0x%x.", Error);
+            return false;
+        }
+        QuicTraceLogVerbose("[test] Sending IOCTL %u with %u bytes.",
+            IoGetFunctionCodeFromCtlCode(IoControlCode), InBufferSize);
+        if (!DeviceIoControl(
+                DeviceHandle,
+                IoControlCode,
+                InBuffer, InBufferSize,
+                nullptr, 0,
+                nullptr,
+                &Overlapped)) {
+            Error = GetLastError();
+            if (Error != ERROR_IO_PENDING) {
+                CloseHandle(Overlapped.hEvent);
+                QuicTraceLogError("[test] DeviceIoControl failed, 0x%x.", Error);
+                return false;
+            }
+        }
+        DWORD dwBytesReturned;
+        if (!GetOverlappedResultEx(
+                DeviceHandle,
+                &Overlapped,
+                &dwBytesReturned,
+                TimeoutMs,
+                FALSE)) {
+            Error = GetLastError();
+            if (Error == WAIT_TIMEOUT) {
+                Error = ERROR_TIMEOUT;
+                CancelIoEx(DeviceHandle, &Overlapped);
+            }
+            QuicTraceLogError("[test] GetOverlappedResultEx failed, 0x%x.", Error);
+        } else {
+            Error = ERROR_SUCCESS;
+        }
+        CloseHandle(Overlapped.hEvent);
+        return Error == ERROR_SUCCESS;
+    }
+    bool Run(
+        _In_ uint32_t IoControlCode,
+        _In_ uint32_t TimeoutMs = 30000
+        ) {
+        return Run(IoControlCode, nullptr, 0, TimeoutMs);
+    }
+    template<class T>
+    bool Run(
+        _In_ uint32_t IoControlCode,
+        _In_ const T& Data,
+        _In_ uint32_t TimeoutMs = 30000
+        ) {
+        return Run(IoControlCode, (void*)&Data, sizeof(Data), TimeoutMs);
+    }
+};
+
+#else
+
+class QuicDriverClient {
+public:
+    bool Initialize(
+        _In_ QUIC_SEC_CONFIG_PARAMS* SecConfigParams
+    ) {
+        UNREFERENCED_PARAMETER(SecConfigParams);
+        return false;
+    }
+    void Uninitialize() { }
+    bool Run(
+        _In_ uint32_t IoControlCode,
+        _In_ void* InBuffer,
+        _In_ uint32_t InBufferSize,
+        _In_ uint32_t TimeoutMs = 30000
+        ) {
+        UNREFERENCED_PARAMETER(IoControlCode);
+        UNREFERENCED_PARAMETER(InBuffer);
+        UNREFERENCED_PARAMETER(InBufferSize);
+        UNREFERENCED_PARAMETER(TimeoutMs);
+        return false;
+    }
+    bool
+    Run(
+        _In_ uint32_t IoControlCode,
+        _In_ uint32_t TimeoutMs = 30000
+        ) {
+        return Run(IoControlCode, nullptr, 0, TimeoutMs);
+    }
+    template<class T>
+    bool
+    Run(
+        _In_ uint32_t IoControlCode,
+        _In_ const T& Data,
+        _In_ uint32_t TimeoutMs = 30000
+        ) {
+        return Run(IoControlCode, (void*)&Data, sizeof(Data), TimeoutMs);
+    }
+};
+
+#endif // _WIN32

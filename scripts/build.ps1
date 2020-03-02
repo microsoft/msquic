@@ -39,6 +39,9 @@ This script provides helpers for building msquic.
 .PARAMETER Parallel
     Enables CMake to build in parallel, where possible.
 
+.PARAMETER DynamicCRT
+    Builds msquic with dynamic C runtime (Windows-only).
+
 .EXAMPLE
     build.ps1 -InstallDependencies
 
@@ -88,7 +91,10 @@ param (
     [switch]$InstallOutput = $false,
 
     [Parameter(Mandatory = $false)]
-    [int32]$Parallel = -1
+    [int32]$Parallel = -1,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$DynamicCRT = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -192,6 +198,9 @@ function CMake-Generate {
     }
     if ($IsLinux) {
         $Arguments += " -DCMAKE_BUILD_TYPE=" + $Config
+    }
+    if ($DynamicCRT) {
+        $Arguments += " -DQUIC_STATIC_LINK_CRT=off"
     }
     $Arguments += " ../../.."
 

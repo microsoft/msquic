@@ -39,6 +39,11 @@
         <Keyword Value="0xC0000000"/>
       </Keywords>
     </EventProvider>
+    <EventProvider Id="EP_MsQuicEtw_LowVolume_Api" Name="Microsoft-Quic" NonPagedMemory="true">
+      <Keywords>
+        <Keyword Value="0x80000800"/>
+      </Keywords>
+    </EventProvider>
 
     <EventProvider Id="EP_TcpIpEtw" Name="Microsoft-Windows-TCPIP" NonPagedMemory="true" />
     <EventProvider Id="EP_WinSockEtw" Name="Microsoft-Windows-Winsock-AFD" NonPagedMemory="true" />
@@ -179,6 +184,17 @@
       </TraceMergeProperties>
     </Profile>
     <Profile Id="Full.Verbose.Memory" Base="Full.Verbose.File" Name="Full" Description="Everything" LoggingMode="Memory" DetailLevel="Verbose"/>
+
+    <Profile Id="SpinQuic.Light.File" Name="SpinQuic" Description="Used for SpinQuic Testing" LoggingMode="File" DetailLevel="Light">
+      <Collectors>
+        <EventCollectorId Value="EC_LowVolume">
+          <EventProviders>
+            <EventProviderId Value="EP_MsQuicEtw_LowVolume_Api" />
+          </EventProviders>
+        </EventCollectorId>
+      </Collectors>
+    </Profile>
+    <Profile Id="SpinQuic.Light.Memory" Base="SpinQuic.Light.File" Name="SpinQuic" Description="Used for SpinQuic Testing" LoggingMode="Memory" DetailLevel="Light"/>
 
   </Profiles>
 </WindowsPerformanceRecorder>
