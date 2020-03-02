@@ -347,8 +347,43 @@ std::ostream& operator << (std::ostream& o, const DrillInitialPacketCidArgs& arg
         (args.CidLengthFieldValid ? "Valid" : "Invalid") << " length";
 }
 
-class WithDrillInitialPacketCidArgs: public testing::Test,
-    public testing::WithParamInterface<DrillInitialPacketCidArgs> {
+class WithDrillInitialPacketCidArgs: public testing::TestWithParam<DrillInitialPacketCidArgs> {
+protected:
+    static void SetUpTestSuite()
+    {
+        QUIC_STATUS Status;
+        uint8_t Disabled = FALSE;
+
+        Status =
+            MsQuic->SetParam(
+                Registration,
+                QUIC_PARAM_LEVEL_REGISTRATION,
+                QUIC_PARAM_REGISTRATION_ENCRYPTION,
+                sizeof(Disabled),
+                &Disabled);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceLogError("Failed to disable encryption for test. 0x%x", Status);
+            GTEST_NONFATAL_FAILURE_("Failed to disable encryption for test.");
+        }
+    }
+
+    static void TearDownTestSuite()
+    {
+        QUIC_STATUS Status;
+        uint8_t Enabled = TRUE;
+
+        Status =
+            MsQuic->SetParam(
+                Registration,
+                QUIC_PARAM_LEVEL_REGISTRATION,
+                QUIC_PARAM_REGISTRATION_ENCRYPTION,
+                sizeof(Enabled),
+                &Enabled);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceLogError("Failed to re-enable encryption after test. 0x%x", Status);
+            GTEST_NONFATAL_FAILURE_("Failed to re-enable encryption for test.");
+        }
+    }
 };
 
 struct DrillInitialPacketTokenArgs {
