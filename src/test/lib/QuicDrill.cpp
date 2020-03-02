@@ -215,29 +215,14 @@ QuicDrillInitialPacketFailureTest(
     QUIC_LISTENER_STATISTICS Stats;
     uint64_t DroppedPacketsBefore;
     uint64_t DroppedPacketsAfter;
-    uint8_t Disabled = FALSE;
 
     QuicAddr ServerAddress(QuicAddrFamily);
-    MsQuicRegistration QuicDrillRegistration;
-    if (!QuicDrillRegistration.IsValid()) {
-        TEST_FAILURE("QuicDrillRegistration not valid!");
+    if (Registration == nullptr) {
+        TEST_FAILURE("Registration not valid!");
         return false;
     }
     DrillSender Sender;
-
-    Status =
-        MsQuic->SetParam(
-            QuicDrillRegistration,
-            QUIC_PARAM_LEVEL_REGISTRATION,
-            QUIC_PARAM_REGISTRATION_ENCRYPTION,
-            sizeof(Disabled),
-            &Disabled);
-    if (QUIC_FAILED(Status)) {
-        TEST_FAILURE("Failed to disable encryption for test. 0x%x", Status);
-        return false;
-    }
-
-    MsQuicSession Session(QuicDrillRegistration);
+    MsQuicSession Session(Registration);
     if (!Session.IsValid()) {
         TEST_FAILURE("Session not valid!");
         return false;
