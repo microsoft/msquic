@@ -131,6 +131,22 @@ typedef struct QUIC_SESSION {
 #endif // #ifdef QUIC_SILO
 
 //
+// Initializes an empty session object.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+__drv_allocatesMem(Mem)
+_Must_inspect_result_
+_Success_(return != NULL)
+QUIC_SESSION*
+QuicSessionAlloc(
+    _In_opt_ QUIC_REGISTRATION* Registration,
+    _In_opt_ void* Context,
+    _In_ uint8_t AlpnLength,
+    _In_reads_opt_(AlpnLength)
+        const uint8_t* Alpn
+    );
+
+//
 // Tracing rundown for the session.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -165,7 +181,6 @@ QuicSessionRegisterConnection(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSessionUnregisterConnection(
-    _In_ QUIC_SESSION* Session,
     _Inout_ QUIC_CONNECTION* Connection
     );
 

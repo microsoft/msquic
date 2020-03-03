@@ -60,7 +60,7 @@ MsQuicConnectionOpen(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Session = (QUIC_SESSION*)SessionHandle;
 
-    Status = QuicConnInitialize(NULL, &Connection);
+    Status = QuicConnInitialize(Session, NULL, &Connection);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
@@ -68,7 +68,6 @@ MsQuicConnectionOpen(
     Connection->ClientCallbackHandler = Handler;
     Connection->ClientContext = Context;
 
-    QuicSessionRegisterConnection(Session, Connection);
     QuicRegistrationQueueNewConnection(Session->Registration, Connection);
 
     *NewConnection = (HQUIC)Connection;

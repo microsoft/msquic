@@ -55,6 +55,7 @@ _Must_inspect_result_
 _Success_(return != NULL)
 QUIC_CONNECTION*
 QuicConnAlloc(
+    _In_ QUIC_SESSION* Session,
     _In_opt_ const QUIC_RECV_DATAGRAM* const Datagram
     )
 {
@@ -190,6 +191,8 @@ QuicConnAlloc(
             Connection, Path->DestCid->CID.SequenceNumber, Path->DestCid->CID.Length, Path->DestCid->CID.Data);
     }
 
+    QuicSessionRegisterConnection(Session, Connection);
+
     return Connection;
 
 Error:
@@ -204,6 +207,7 @@ Error:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicConnInitialize(
+    _In_ QUIC_SESSION* Session,
     _In_opt_ const QUIC_RECV_DATAGRAM* const Datagram, // NULL for client side
     _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem))
         QUIC_CONNECTION** NewConnection
@@ -212,7 +216,7 @@ QuicConnInitialize(
     QUIC_STATUS Status;
     uint32_t InitStep = 0;
 
-    QUIC_CONNECTION* Connection = QuicConnAlloc(Datagram);
+    QUIC_CONNECTION* Connection = QuicConnAlloc(Session, Datagram);
     if (Connection == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -337,10 +341,8 @@ QuicConnFree(
     QuicOperationQueueUninitialize(&Connection->OperQ);
     QuicStreamSetUninitialize(&Connection->Streams);
     QuicSendBufferUninitialize(&Connection->SendBuffer);
+    QuicSessionUnregisterConnection(Connection);
     Connection->State.Freed = TRUE;
-    if (Connection->Session != NULL) {
-        QuicSessionUnregisterConnection(Connection->Session, Connection);
-    }
     if (Connection->RemoteServerName != NULL) {
         QUIC_FREE(Connection->RemoteServerName);
     }
@@ -482,9 +484,7 @@ QuicConnCloseHandle(
     Connection->State.HandleClosed = TRUE;
     Connection->ClientCallbackHandler = NULL;
 
-    if (Connection->Session != NULL) {
-        QuicSessionUnregisterConnection(Connection->Session, Connection);
-    }
+    QuicSessionUnregisterConnection(Connection);
 
     QuicTraceEvent(ConnHandleClosed, Connection);
 }
@@ -5282,7 +5282,7 @@ QuicConnDrainOperations(
 {
     QUIC_OPERATION* Oper;
     const uint32_t MaxOperationCount =
-        Connection->Session == NULL ?
+        (Connection->Session == NULL || Connection->Session->Registration == NULL) ?
             MsQuicLib.Settings.MaxOperationsPerDrain :
             Connection->Session->Settings.MaxOperationsPerDrain;
     uint32_t OperationCount = 0;
