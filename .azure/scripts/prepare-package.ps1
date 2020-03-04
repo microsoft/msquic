@@ -50,7 +50,7 @@ foreach ($Config in $Configs) {
 
 # Package up all the kernel mode binary files.
 $Configs = [System.Tuple]::Create("Debug","chk"), [System.Tuple]::Create("Release","fre")
-$Archs = [System.Tuple]::Create("ARM","woa"), [System.Tuple]::Create("ARM64","ARM64"), `
+$Archs = [System.Tuple]::Create("ARM","arm"), [System.Tuple]::Create("ARM64","arm64"), `
          [System.Tuple]::Create("Win32","x86"), [System.Tuple]::Create("x64","amd64")
 foreach ($Config in $Configs) {
     foreach ($Arch in $Archs) {
