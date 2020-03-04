@@ -223,6 +223,9 @@ function CMake-Build {
 
     if ($IsWindows) {
         Copy-Item (Join-Path $BuildDir "obj" $Config "msquic.lib") $ArtifactsDir
+        if (!$DisableTools) {
+            Copy-Item (Join-Path $BuildDir "obj" $Config "msquicetw.lib") $ArtifactsDir
+        }
     }
 }
 

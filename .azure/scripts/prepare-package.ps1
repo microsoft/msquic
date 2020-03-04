@@ -31,6 +31,7 @@ $IncFiles = "msquic.h", "msquicp.h", "msquic_winkernel.h", "msquic_winuser.h"
 foreach ($File in $IncFiles) {
     Force-Copy (Join-Path $RootDir "src/inc/$File") $PackageDir
 }
+Force-Copy (Join-Path $RootDir "src/tools/etwlib/MsQuicEventCollection.h") $PackageDir
 Force-Copy (Join-Path $RootDir "src/manifest/MsQuic.wprp") $PackageDir
 Force-Copy (Join-Path $RootDir "src/manifest/MsQuicEtw.man") $PackageDir
 
@@ -41,6 +42,7 @@ foreach ($Config in $Configs) {
     foreach ($Arch in $Archs) {
         $InputDir = Join-Path $ArtifactsDir "windows/$($Arch.Item1)_$($Config.Item1)_schannel"
         Force-Copy (Join-Path $InputDir "msquic.lib") (Join-Path $PackageDir "lib/$($Arch.Item2)$($Config.Item2)/user")
+        Force-Copy (Join-Path $InputDir "msquicetw.lib") (Join-Path $PackageDir "lib/$($Arch.Item2)$($Config.Item2)/user")
         Force-Copy (Join-Path $InputDir "msquic.dll") (Join-Path $PackageDir "bin/$($Arch.Item2)$($Config.Item2)/user")
         Force-Copy (Join-Path $InputDir "msquic.pdb") (Join-Path $PackageDir "bin/$($Arch.Item2)$($Config.Item2)/user")
         Force-Copy (Join-Path $InputDir "msquictest.exe") (Join-Path $PackageDir "bin/$($Arch.Item2)$($Config.Item2)/user")
