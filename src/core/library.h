@@ -154,6 +154,11 @@ typedef struct QUIC_LIBRARY {
     QUIC_LIST_ENTRY Bindings;
 
     //
+    // Contains all (server) connections currently not in an app's registration.
+    //
+    QUIC_SESSION* UnregisteredSession;
+
+    //
     // Set of workers that manage processing client Initial packets on the
     // server side.
     //

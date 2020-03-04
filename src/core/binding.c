@@ -1075,7 +1075,11 @@ QuicBindingCreateConnection(
     QUIC_CONNECTION* Connection = NULL;
 
     QUIC_CONNECTION* NewConnection;
-    QUIC_STATUS Status = QuicConnInitialize(Datagram, &NewConnection);
+    QUIC_STATUS Status =
+        QuicConnInitialize(
+            MsQuicLib.UnregisteredSession,
+            Datagram,
+            &NewConnection);
     if (QUIC_FAILED(Status)) {
         QuicConnRelease(NewConnection, QUIC_CONN_REF_HANDLE_OWNER);
         QuicPacketLogDropWithValue(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),

@@ -17,6 +17,113 @@ Abstract:
 #include "session.tmh"
 #endif
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+__drv_allocatesMem(Mem)
+_Must_inspect_result_
+_Success_(return != NULL)
+QUIC_SESSION*
+QuicSessionAlloc(
+    _In_opt_ QUIC_REGISTRATION* Registration,
+    _In_opt_ void* Context,
+    _In_ uint8_t AlpnLength,
+    _In_reads_opt_(AlpnLength)
+        const uint8_t* Alpn
+    )
+{
+    QUIC_SESSION* Session = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SESSION) + AlpnLength + 1);
+    if (Session == NULL) {
+        QuicTraceEvent(AllocFailure, "session", sizeof(QUIC_SESSION) + AlpnLength + 1);
+        return NULL;
+    }
+
+    QuicZeroMemory(Session, sizeof(QUIC_SESSION));
+    Session->Type = QUIC_HANDLE_TYPE_SESSION;
+    Session->ClientContext = Context;
+    Session->AlpnLength = AlpnLength;
+    if (Alpn != NULL) {
+        QuicCopyMemory(Session->Alpn, Alpn, AlpnLength + 1);
+    }
+
+    if (Registration != NULL) {
+        Session->Registration = Registration;
+
+#ifdef QUIC_SILO
+        Session->Silo = QuicSiloGetCurrentServer();
+        QuicSiloAddRef(Session->Silo);
+#endif
+
+#ifdef QUIC_COMPARTMENT_ID
+        Session->CompartmentId = QuicCompartmentIdGetCurrent();
+#endif
+    }
+
+    QuicTraceEvent(SessionCreated, Session, Session->Registration, (const char*)Alpn); // TODO - Buffer and length
+
+    QuicRundownInitialize(&Session->Rundown);
+    QuicRwLockInitialize(&Session->ServerCacheLock);
+    QuicDispatchLockInitialize(&Session->ConnectionsLock);
+    QuicListInitializeHead(&Session->Connections);
+
+    return Session;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+MsQuicSessionFree(
+    _In_ _Pre_defensive_ __drv_freesMem(Mem)
+        QUIC_SESSION* Session
+    )
+{
+    //
+    // If you hit this assert, you are trying to clean up a session without
+    // first cleaning up all the child connections first.
+    //
+    QUIC_TEL_ASSERT(QuicListIsEmpty(&Session->Connections));
+    QuicRundownUninitialize(&Session->Rundown);
+
+    if (Session->Registration != NULL) {
+        QuicTlsSessionUninitialize(Session->TlsSession);
+
+        //
+        // Enumerate and free all entries in the table.
+        //
+        QUIC_HASHTABLE_ENTRY* Entry;
+        QUIC_HASHTABLE_ENUMERATOR Enumerator;
+        QuicHashtableEnumerateBegin(&Session->ServerCache, &Enumerator);
+        while (TRUE) {
+            Entry = QuicHashtableEnumerateNext(&Session->ServerCache, &Enumerator);
+            if (Entry == NULL) {
+                QuicHashtableEnumerateEnd(&Session->ServerCache, &Enumerator);
+                break;
+            }
+            QuicHashtableRemove(&Session->ServerCache, Entry, NULL);
+
+            //
+            // Release the security config stored in this cache.
+            //
+            QUIC_SERVER_CACHE* Temp = QUIC_CONTAINING_RECORD(Entry, QUIC_SERVER_CACHE, Entry);
+            if (Temp->SecConfig != NULL) {
+                QuicTlsSecConfigRelease(Temp->SecConfig);
+            }
+
+            QUIC_FREE(Entry);
+        }
+        QuicHashtableUninitialize(&Session->ServerCache);
+
+        QuicStorageClose(Session->AppSpecificStorage);
+#ifdef QUIC_SILO
+        QuicStorageClose(Session->Storage);
+        QuicSiloRelease(Session->Silo);
+#endif
+    }
+
+    QuicDispatchLockUninitialize(&Session->ConnectionsLock);
+    QuicRwLockUninitialize(&Session->ServerCacheLock);
+    QUIC_FREE(Session);
+
+    QuicTraceEvent(SessionDestroyed, Session);
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -37,34 +144,31 @@ MsQuicSessionOpen(
         QUIC_TRACE_API_SESSION_OPEN,
         RegistrationContext);
 
-    if (Alpn != NULL) {
-        AlpnLength = strnlen(Alpn, QUIC_MAX_ALPN_LENGTH + 1);
-    }
-
     if (RegistrationContext == NULL ||
+        RegistrationContext->Type != QUIC_HANDLE_TYPE_REGISTRATION ||
         NewSession == NULL ||
-        Alpn == NULL ||
-        AlpnLength == 0 ||
-        AlpnLength > QUIC_MAX_ALPN_LENGTH ||
-        RegistrationContext->Type != QUIC_HANDLE_TYPE_REGISTRATION) {
+        Alpn == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
 
-    Session = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SESSION) + AlpnLength + 1);
-    if (Session == NULL) {
-        QuicTraceEvent(AllocFailure, "session", sizeof(QUIC_SESSION) + AlpnLength + 1);
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
+    AlpnLength = strnlen(Alpn, QUIC_MAX_ALPN_LENGTH + 1);
+    if (AlpnLength == 0 ||
+        AlpnLength > QUIC_MAX_ALPN_LENGTH) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
 
-    QuicZeroMemory(Session, sizeof(QUIC_SESSION));
-    Session->Type = QUIC_HANDLE_TYPE_SESSION;
-    Session->ClientContext = Context;
-#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    Session->Registration = (QUIC_REGISTRATION*)RegistrationContext;
-    Session->AlpnLength = (uint8_t)AlpnLength;
-    QuicCopyMemory(Session->Alpn, Alpn, AlpnLength + 1);
+    Session =
+        QuicSessionAlloc(
+            (QUIC_REGISTRATION*)RegistrationContext,
+            Context,
+            (uint8_t)AlpnLength,
+            (const uint8_t*)Alpn);
+    if (Session == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
 
     if (!QuicHashtableInitializeEx(&Session->ServerCache, QUIC_HASH_MIN_SIZE)) {
         QuicTraceEvent(SessionError, Session, "Server cache initialize");
@@ -78,22 +182,6 @@ MsQuicSessionOpen(
         QuicHashtableUninitialize(&Session->ServerCache);
         goto Error;
     }
-
-#ifdef QUIC_SILO
-    Session->Silo = QuicSiloGetCurrentServer();
-    QuicSiloAddRef(Session->Silo);
-#endif
-
-#ifdef QUIC_COMPARTMENT_ID
-    Session->CompartmentId = QuicCompartmentIdGetCurrent();
-#endif
-
-    QuicTraceEvent(SessionCreated, Session, Session->Registration, Alpn);
-
-    QuicRundownInitialize(&Session->Rundown);
-    QuicRwLockInitialize(&Session->ServerCacheLock);
-    QuicDispatchLockInitialize(&Session->ConnectionsLock);
-    QuicListInitializeHead(&Session->Connections);
 
 #ifdef QUIC_SILO
     if (Session->Silo != NULL) {
@@ -144,7 +232,7 @@ MsQuicSessionOpen(
 Error:
 
     if (Session != NULL) {
-        QUIC_FREE(Session);
+        MsQuicSessionFree(Session);
     }
 
     QuicTraceEvent(ApiExitStatus, Status);
@@ -179,59 +267,26 @@ MsQuicSessionClose(
 
     QuicTraceEvent(SessionCleanup, Session);
 
-    QuicLockAcquire(&Session->Registration->Lock);
-    QuicListEntryRemove(&Session->Link);
-    QuicLockRelease(&Session->Registration->Lock);
+    if (Session->Registration != NULL) {
+        QuicLockAcquire(&Session->Registration->Lock);
+        QuicListEntryRemove(&Session->Link);
+        QuicLockRelease(&Session->Registration->Lock);
+    } else {
+        //
+        // This is the global unregistered session. All connections need to be
+        // immediately cleaned up.
+        //
+        QUIC_LIST_ENTRY* Entry = Session->Connections.Flink;
+        while (Entry != &Session->Connections) {
+            QUIC_CONNECTION* Connection =
+                QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, SessionLink);
+            Entry = Entry->Flink;
+            QuicConnCloseHandle(Connection);
+        }
+    }
 
     QuicRundownReleaseAndWait(&Session->Rundown);
-
-    //
-    // If you hit this assert, you are trying to clean up a session without
-    // first cleaning up all the child connections first.
-    //
-    QUIC_TEL_ASSERT(QuicListIsEmpty(&Session->Connections));
-    QuicRundownUninitialize(&Session->Rundown);
-
-    QuicTlsSessionUninitialize(Session->TlsSession);
-
-    //
-    // Enumerate and free all entries in the table.
-    //
-    QUIC_HASHTABLE_ENTRY* Entry;
-    QUIC_HASHTABLE_ENUMERATOR Enumerator;
-    QuicHashtableEnumerateBegin(&Session->ServerCache, &Enumerator);
-    while (TRUE) {
-        Entry = QuicHashtableEnumerateNext(&Session->ServerCache, &Enumerator);
-        if (Entry == NULL) {
-            QuicHashtableEnumerateEnd(&Session->ServerCache, &Enumerator);
-            break;
-        }
-        QuicHashtableRemove(&Session->ServerCache, Entry, NULL);
-
-        //
-        // Release the security config stored in this cache.
-        //
-        QUIC_SERVER_CACHE* Temp = QUIC_CONTAINING_RECORD(Entry, QUIC_SERVER_CACHE, Entry);
-        if (Temp->SecConfig != NULL) {
-            QuicTlsSecConfigRelease(Temp->SecConfig);
-        }
-
-        QUIC_FREE(Entry);
-    }
-    QuicHashtableUninitialize(&Session->ServerCache);
-
-    QuicStorageClose(Session->AppSpecificStorage);
-#ifdef QUIC_SILO
-    QuicStorageClose(Session->Storage);
-#endif
-    QuicDispatchLockUninitialize(&Session->ConnectionsLock);
-    QuicRwLockUninitialize(&Session->ServerCacheLock);
-#ifdef QUIC_SILO
-    QuicSiloRelease(Session->Silo);
-#endif
-    QUIC_FREE(Session);
-
-    QuicTraceEvent(SessionDestroyed, Session);
+    MsQuicSessionFree(Session);
 
     QuicTraceEvent(ApiExit);
 }
@@ -345,13 +400,16 @@ QuicSessionRegisterConnection(
     _Inout_ QUIC_CONNECTION* Connection
     )
 {
+    QuicSessionUnregisterConnection(Connection);
     Connection->Session = Session;
-    Connection->Registration = Session->Registration;
-#ifdef QuicVerifierEnabledByAddr
-    Connection->State.IsVerifying = Session->Registration->IsVerifying;
-#endif
 
-    QuicConnApplySettings(Connection, &Session->Settings);
+    if (Session->Registration != NULL) {
+        Connection->Registration = Session->Registration;
+#ifdef QuicVerifierEnabledByAddr
+        Connection->State.IsVerifying = Session->Registration->IsVerifying;
+#endif
+        QuicConnApplySettings(Connection, &Session->Settings);
+    }
 
     QuicTraceEvent(ConnRegisterSession, Connection, Session);
     BOOLEAN Success = QuicRundownAcquire(&Session->Rundown);
@@ -364,10 +422,13 @@ QuicSessionRegisterConnection(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSessionUnregisterConnection(
-    _In_ QUIC_SESSION* Session,
     _Inout_ QUIC_CONNECTION* Connection
     )
 {
+    if (Connection->Session == NULL) {
+        return;
+    }
+    QUIC_SESSION* Session = Connection->Session;
     Connection->Session = NULL;
     QuicTraceEvent(ConnUnregisterSession, Connection, Session);
     QuicDispatchLockAcquire(&Session->ConnectionsLock);

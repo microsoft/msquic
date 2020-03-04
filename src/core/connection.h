@@ -782,6 +782,7 @@ QuicConnRemoveOutFlowBlockedReason(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicConnInitialize(
+    _In_ QUIC_SESSION* Session,
     _In_opt_ const QUIC_RECV_DATAGRAM* const Datagram,
     _Outptr_ _At_(*Connection, __drv_allocatesMem(Mem))
         QUIC_CONNECTION** Connection

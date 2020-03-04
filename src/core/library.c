@@ -235,6 +235,14 @@ MsQuicLibraryUninitialize(
     }
 
     //
+    // Clean up all the leftover, unregistered server connections.
+    //
+    if (MsQuicLib.UnregisteredSession != NULL) {
+        MsQuicSessionClose((HQUIC)MsQuicLib.UnregisteredSession);
+        MsQuicLib.UnregisteredSession = NULL;
+    }
+
+    //
     // The library's worker pool for processing half-opened connections
     // needs to be cleaned up first, as it's the last thing that can be
     // holding on to connection objects.
@@ -1080,9 +1088,18 @@ QuicLibraryOnListenerRegistered(
 
     if (MsQuicLib.WorkerPool == NULL) {
         //
-        // Make sure the handshake worker threads are initialized.
+        // Lazily initialize server specific state, such as worker threads and
+        // the unregistered connection session.
         //
         QuicTraceEvent(LibraryWorkerPoolInit);
+
+        QUIC_DBG_ASSERT(MsQuicLib.UnregisteredSession == NULL);
+        MsQuicLib.UnregisteredSession = QuicSessionAlloc(NULL, NULL, 0, NULL);
+        if (MsQuicLib.UnregisteredSession == NULL) {
+            Success = FALSE;
+            goto Fail;
+        }
+
         if (QUIC_FAILED(
             QuicWorkerPoolInitialize(
                 NULL,
@@ -1090,8 +1107,13 @@ QuicLibraryOnListenerRegistered(
                 max(1, MsQuicLib.PartitionCount / 4),
                 &MsQuicLib.WorkerPool))) {
             Success = FALSE;
+            MsQuicSessionClose((HQUIC)MsQuicLib.UnregisteredSession);
+            MsQuicLib.UnregisteredSession = NULL;
+            goto Fail;
         }
     }
+
+Fail:
 
     QuicLockRelease(&MsQuicLib.Lock);
 
