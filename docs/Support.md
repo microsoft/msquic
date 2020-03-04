@@ -1,6 +1,6 @@
 # Support for MsQuic
 
-An MsQuic release begins its life in the master branch where it receives feature updates as well as servicing for security and bug fixes. When it is time to release the code will be snapped into a release branch where it is stable and will only receive servicing for security and bug fixes. 
+An MsQuic release begins its life in the master branch where it receives feature updates as well as servicing for security and bug fixes. When it is time to release, the code will be snapped into a release branch where it is stable and will only receive servicing for security and bug fixes. 
 
 ## MsQuic Releases
 
