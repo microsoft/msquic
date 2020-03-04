@@ -4,7 +4,8 @@ An MsQuic release begins its life in the master branch where it receives feature
 
 ## MsQuic Releases
 
-MsQuic releases will correspond to Windows releases. When Windows releases to GA then we will create a new MsQuic release branch from master. The release branch will be serviced with security and bug fixes throughout its lifecycle which will end at the same time as the Windows release support ends.
+MsQuic releases will correspond to Windows releases. When Windows releases to GA then we will create a new MsQuic release branch from master. The release branch will likely be created at the same time as in Windows: when we hit stabilization. The release will be finalized/published when Windows GAs. Once finalized the release branch will be serviced with security and bug fixes throughout its lifecycle which will end at the same time as the Windows release support ends.
+
 
 This table describes the version, release date and end of support for MsQuic releases.
 
