@@ -43,6 +43,12 @@ void __cdecl operator delete (_In_opt_ void* Mem) {
     }
 }
 
+void __cdecl operator delete (_In_opt_ void* Mem, _In_opt_ size_t) {
+    if (Mem != nullptr) {
+        ExFreePoolWithTag(Mem, QUIC_TEST_TAG);
+    }
+}
+
 void* __cdecl operator new[] (size_t Size) {
     return ExAllocatePoolWithTag(NonPagedPool, Size, QUIC_TEST_TAG);
 }
@@ -53,9 +59,13 @@ void __cdecl operator delete[] (_In_opt_ void* Mem) {
     }
 }
 
-extern "C" void QuicTraceRundown(void) { }
+extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 
 extern "C"
+INITCODE
+_Function_class_(DRIVER_INITIALIZE)
+_IRQL_requires_same_
+_IRQL_requires_(PASSIVE_LEVEL)
 NTSTATUS
 DriverEntry(
     _In_ PDRIVER_OBJECT DriverObject,
@@ -96,7 +106,7 @@ Return Value:
 
     Status = QuicPlatformInitialize();
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] QuicPlatformInitialize failed: %!STATUS!", Status);
+        QuicTraceLogError("[test] QuicPlatformInitialize failed: 0x%x", Status);
         goto Error;
     }
     PlatformInitialized = TRUE;
@@ -117,7 +127,7 @@ Return Value:
             &Config,
             &Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] WdfDriverCreate failed: %!STATUS!", Status);
+        QuicTraceLogError("[test] WdfDriverCreate failed: 0x%x", Status);
         goto Error;
     }
 
@@ -126,7 +136,7 @@ Return Value:
     //
     Status = QuicTestCtlInitialize(Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] QuicTestCtlInitialize failed: %!STATUS!", Status);
+        QuicTraceLogError("[test] QuicTestCtlInitialize failed: 0x%x", Status);
         goto Error;
     }
 

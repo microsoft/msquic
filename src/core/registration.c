@@ -444,6 +444,7 @@ QuicRegistrationParamSet(
         }
 
         MsQuicLib.EncryptionDisabled = *(uint8_t*)Buffer == FALSE;
+        QuicTraceLogWarning("[ lib] Updated encryption disabled = %hu", MsQuicLib.EncryptionDisabled);
 
         Status = QUIC_STATUS_SUCCESS;
         break;

@@ -60,7 +60,7 @@ MsQuicConnectionOpen(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Session = (QUIC_SESSION*)SessionHandle;
 
-    Status = QuicConnInitialize(NULL, &Connection);
+    Status = QuicConnInitialize(Session, NULL, &Connection);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
@@ -68,7 +68,6 @@ MsQuicConnectionOpen(
     Connection->ClientCallbackHandler = Handler;
     Connection->ClientContext = Context;
 
-    QuicSessionRegisterConnection(Session, Connection);
     QuicRegistrationQueueNewConnection(Session->Registration, Connection);
 
     *NewConnection = (HQUIC)Connection;
@@ -270,7 +269,7 @@ MsQuicConnectionStart(
         goto Error;
     }
 
-    if (Connection->State.Started) {
+    if (Connection->State.Started || Connection->State.ClosedLocally) {
         Status = QUIC_STATUS_INVALID_STATE; // TODO - Support the Connect after close/previous connect failure?
         goto Error;
     }
@@ -316,7 +315,6 @@ MsQuicConnectionStart(
     //
     // Queue the operation but don't wait for the completion.
     //
-    Connection->State.Started = TRUE;
     QuicConnQueueOper(Connection, Oper);
     Status = QUIC_STATUS_PENDING;
 

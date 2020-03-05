@@ -1254,7 +1254,7 @@ QuicCryptoProcessTlsCompletion(
         //
         Connection->State.Connected = TRUE;
 
-        QuicConnGenerateNewSourceCid(Connection, FALSE);
+        QuicConnGenerateNewSourceCids(Connection, FALSE);
 
         if (!QuicConnIsServer(Connection) &&
             Connection->RemoteServerName != NULL) {

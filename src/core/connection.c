@@ -55,6 +55,7 @@ _Must_inspect_result_
 _Success_(return != NULL)
 QUIC_CONNECTION*
 QuicConnAlloc(
+    _In_ QUIC_SESSION* Session,
     _In_opt_ const QUIC_RECV_DATAGRAM* const Datagram
     )
 {
@@ -190,6 +191,8 @@ QuicConnAlloc(
             Connection, Path->DestCid->CID.SequenceNumber, Path->DestCid->CID.Length, Path->DestCid->CID.Data);
     }
 
+    QuicSessionRegisterConnection(Session, Connection);
+
     return Connection;
 
 Error:
@@ -204,6 +207,7 @@ Error:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicConnInitialize(
+    _In_ QUIC_SESSION* Session,
     _In_opt_ const QUIC_RECV_DATAGRAM* const Datagram, // NULL for client side
     _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem))
         QUIC_CONNECTION** NewConnection
@@ -212,7 +216,7 @@ QuicConnInitialize(
     QUIC_STATUS Status;
     uint32_t InitStep = 0;
 
-    QUIC_CONNECTION* Connection = QuicConnAlloc(Datagram);
+    QUIC_CONNECTION* Connection = QuicConnAlloc(Session, Datagram);
     if (Connection == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -337,10 +341,8 @@ QuicConnFree(
     QuicOperationQueueUninitialize(&Connection->OperQ);
     QuicStreamSetUninitialize(&Connection->Streams);
     QuicSendBufferUninitialize(&Connection->SendBuffer);
+    QuicSessionUnregisterConnection(Connection);
     Connection->State.Freed = TRUE;
-    if (Connection->Session != NULL) {
-        QuicSessionUnregisterConnection(Connection->Session, Connection);
-    }
     if (Connection->RemoteServerName != NULL) {
         QUIC_FREE(Connection->RemoteServerName);
     }
@@ -482,9 +484,7 @@ QuicConnCloseHandle(
     Connection->State.HandleClosed = TRUE;
     Connection->ClientCallbackHandler = NULL;
 
-    if (Connection->Session != NULL) {
-        QuicSessionUnregisterConnection(Connection->Session, Connection);
-    }
+    QuicSessionUnregisterConnection(Connection);
 
     QuicTraceEvent(ConnHandleClosed, Connection);
 }
@@ -653,6 +653,13 @@ QuicConnUpdateRtt(
     BOOLEAN RttUpdated;
     UNREFERENCED_PARAMETER(Connection);
 
+    if (LatestRtt == 0) {
+        //
+        // RTT cannot be zero or several loss recovery algorithms break down.
+        //
+        LatestRtt = 1;
+    }
+
     Path->LatestRttSample = LatestRtt;
     if (LatestRtt < Path->MinRtt) {
         Path->MinRtt = LatestRtt;
@@ -680,6 +687,7 @@ QuicConnUpdateRtt(
     }
 
     if (RttUpdated) {
+        QUIC_DBG_ASSERT(Path->SmoothedRtt != 0);
         QuicTraceLogConnVerbose(RttUpdated, Connection, "Updated Rtt=%u.%u ms, Var=%u.%u",
             Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
             Path->RttVariance / 1000, Path->RttVariance % 1000);
@@ -766,7 +774,7 @@ QuicConnSourceCidsCount(
     )
 {
     uint8_t Count = 0;
-    const QUIC_SINGLE_LIST_ENTRY* Entry = &Connection->SourceCids;
+    const QUIC_SINGLE_LIST_ENTRY* Entry = Connection->SourceCids.Next;
     while (Entry != NULL) {
         ++Count;
         Entry = Entry->Next;
@@ -798,11 +806,25 @@ QuicConnGenerateNewSourceCids(
     // limit). Otherwise, just generate whatever number we need to hit the
     // limit.
     //
-    QUIC_DBG_ASSERT(QuicConnSourceCidsCount(Connection) <= Connection->SourceCidLimit);
-    uint8_t NewCidCount =
-        ReplaceExistingCids ?
-            Connection->SourceCidLimit :
-            Connection->SourceCidLimit - QuicConnSourceCidsCount(Connection);
+    uint8_t NewCidCount;
+    if (ReplaceExistingCids) {
+        NewCidCount = Connection->SourceCidLimit;
+        QUIC_SINGLE_LIST_ENTRY* Entry = Connection->SourceCids.Next;
+        while (Entry != NULL) {
+            QUIC_CID_HASH_ENTRY* SourceCid =
+                QUIC_CONTAINING_RECORD(Entry, QUIC_CID_HASH_ENTRY, Link);
+            SourceCid->CID.Retired = TRUE;
+            Entry = Entry->Next;
+        }
+    } else {
+        uint8_t CurrentCidCount = QuicConnSourceCidsCount(Connection);
+        QUIC_DBG_ASSERT(CurrentCidCount <= Connection->SourceCidLimit);
+        if (CurrentCidCount < Connection->SourceCidLimit) {
+            NewCidCount = Connection->SourceCidLimit - CurrentCidCount;
+        } else {
+            NewCidCount = 0;
+        }
+    }
 
     for (uint8_t i = 0; i < NewCidCount; ++i) {
         if (QuicConnGenerateNewSourceCid(Connection, FALSE) == NULL) {
@@ -1272,6 +1294,7 @@ QuicConnTryClose(
     BOOLEAN IsFirstCloseForConnection = TRUE;
 
     if (ClosedRemotely && !Connection->State.ClosedLocally) {
+
         //
         // Peer closed first.
         //
@@ -1490,7 +1513,7 @@ QuicConnOnQuicVersionSet(
     QuicTraceEvent(ConnVersionSet, Connection, Connection->Stats.QuicVersion);
 
     switch (Connection->Stats.QuicVersion) {
-    case QUIC_VERSION_DRAFT_25:
+    case QUIC_VERSION_DRAFT_27:
     case QUIC_VERSION_MS_1:
     default:
         Connection->State.HeaderProtectionEnabled = TRUE;
@@ -1510,6 +1533,11 @@ QuicConnStart(
     QUIC_STATUS Status;
     QUIC_PATH* Path = &Connection->Paths[0];
     QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
+
+    if (Connection->State.ClosedLocally || Connection->State.Started) {
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
     QUIC_TEL_ASSERT(Path->Binding == NULL);
 
     if (!Connection->State.RemoteAddressSet) {
@@ -3488,6 +3516,7 @@ QuicConnRecvPayload(
                     TRUE,
                     &IsLastCid);
             if (SourceCid != NULL) {
+                BOOLEAN CidAlreadyRetired = SourceCid->CID.Retired;
                 QuicBindingRemoveSourceConnectionID(
                     Connection->Paths[0].Binding, SourceCid);
                 QuicTraceEvent(ConnSourceCidRemoved,
@@ -3500,7 +3529,11 @@ QuicConnRecvPayload(
                         QUIC_CLOSE_INTERNAL_SILENT,
                         QUIC_ERROR_PROTOCOL_VIOLATION,
                         NULL);
-                } else {
+                } else if (!CidAlreadyRetired) {
+                    //
+                    // Replace the CID if we weren't the one to request it to be
+                    // retired in the first place.
+                    //
                     if (!QuicConnGenerateNewSourceCid(Connection, FALSE)) {
                         break;
                     }
@@ -5295,7 +5328,7 @@ QuicConnDrainOperations(
 {
     QUIC_OPERATION* Oper;
     const uint32_t MaxOperationCount =
-        Connection->Session == NULL ?
+        (Connection->Session == NULL || Connection->Session->Registration == NULL) ?
             MsQuicLib.Settings.MaxOperationsPerDrain :
             Connection->Session->Settings.MaxOperationsPerDrain;
     uint32_t OperationCount = 0;

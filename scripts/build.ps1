@@ -36,6 +36,12 @@ This script provides helpers for building msquic.
 .PARAMETER InstallOutput
     Installs the build output to the current machine.
 
+.PARAMETER Parallel
+    Enables CMake to build in parallel, where possible.
+
+.PARAMETER DynamicCRT
+    Builds msquic with dynamic C runtime (Windows-only).
+
 .EXAMPLE
     build.ps1 -InstallDependencies
 
@@ -82,7 +88,13 @@ param (
     [switch]$Clean = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallOutput = $false
+    [switch]$InstallOutput = $false,
+
+    [Parameter(Mandatory = $false)]
+    [int32]$Parallel = -1,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$DynamicCRT = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -187,6 +199,9 @@ function CMake-Generate {
     if ($IsLinux) {
         $Arguments += " -DCMAKE_BUILD_TYPE=" + $Config
     }
+    if ($DynamicCRT) {
+        $Arguments += " -DQUIC_STATIC_LINK_CRT=off"
+    }
     $Arguments += " ../../.."
 
     CMake-Execute $Arguments
@@ -195,15 +210,22 @@ function CMake-Generate {
 # Uses cmake to generate the build configuration files.
 function CMake-Build {
     $Arguments = "--build ."
+    if ($Parallel -gt 0) {
+        $Arguments += " --parallel $($Parallel)"
+    } elseif ($Parallel -eq 0) {
+        $Arguments += " --parallel"
+    }
     if ($IsWindows) {
         $Arguments += " --config " + $Config
     }
 
     CMake-Execute $Arguments
 
-    if ($Tls -eq "openssl") {
-        $OpensslDir = Join-Path $BuildDir "openssl" "lib" "*"
-        Copy-Item $OpensslDir -Destination $ArtifactsDir -Recurse
+    if ($IsWindows) {
+        Copy-Item (Join-Path $BuildDir "obj" $Config "msquic.lib") $ArtifactsDir
+        if (!$DisableTools) {
+            Copy-Item (Join-Path $BuildDir "obj" $Config "msquicetw.lib") $ArtifactsDir
+        }
     }
 }
 

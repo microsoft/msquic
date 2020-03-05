@@ -58,12 +58,6 @@ typedef struct QUIC_LIBRARY {
     //
     BOOLEAN Loaded : 1;
 
-    //
-    // Indicates encryption is enabled or disabled for new connections.
-    // Defaults to FALSE.
-    //
-    BOOLEAN EncryptionDisabled : 1;
-
 #ifdef QuicVerifierEnabled
     //
     // The app or driver verifier is globally enabled.
@@ -72,9 +66,15 @@ typedef struct QUIC_LIBRARY {
 #endif
 
     //
+    // Indicates encryption is enabled or disabled for new connections.
+    // Defaults to FALSE.
+    //
+    BOOLEAN EncryptionDisabled;
+
+    //
     // Index for the current stateless retry token key.
     //
-    BOOLEAN CurrentStatelessRetryKey : 1;
+    BOOLEAN CurrentStatelessRetryKey;
 
     //
     // Configurable (app & registry) settings.
@@ -152,6 +152,11 @@ typedef struct QUIC_LIBRARY {
     // List of all UDP bindings in the current process (or kernel).
     //
     QUIC_LIST_ENTRY Bindings;
+
+    //
+    // Contains all (server) connections currently not in an app's registration.
+    //
+    QUIC_SESSION* UnregisteredSession;
 
     //
     // Set of workers that manage processing client Initial packets on the

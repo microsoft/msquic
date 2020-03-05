@@ -174,7 +174,7 @@ void QuicTestValidateSession()
             sizeof(TicketKey) - 1,
             TicketKey));
 
-#ifndef QUIC_DISABLE_0RTT
+#ifndef QUIC_DISABLE_0RTT_TESTS
     //
     // Valid 0-RTT ticket encryption key.
     //
@@ -480,6 +480,15 @@ void QuicTestValidateConnection()
                 "localhost",
                 4433));
 
+        //
+        // If ConnectionStart is called immediately for a second time, it will
+        // likely succeed because the previous one was queued up. It would
+        // instead eventually fail asynchronously. Instead, this test case
+        // waits a bit to allow for the previous command to be processed so
+        // that the second call will fail inline.
+        //
+        QuicSleep(100);
+
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_STATE,
             MsQuic->ConnectionStart(
@@ -487,6 +496,33 @@ void QuicTestValidateConnection()
                 AF_INET,
                 "localhost",
                 4433));
+    }
+
+    //
+    // Shutdown connection and then start. Make sure there is no crash.
+    // Depending on the timing it's possible for the ConnectionStart call to
+    // either fail or succeed. This test case doesn't care about the result,
+    // just that no crash results because of this.
+    //
+    {
+        ConnectionScope Connection;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConnectionOpen(
+                TestSession,
+                DummyConnectionCallback,
+                nullptr,
+                &Connection.Handle));
+
+        MsQuic->ConnectionShutdown(
+            Connection.Handle,
+            QUIC_CONNECTION_SHUTDOWN_FLAG_NONE,
+            QUIC_TEST_NO_ERROR);
+
+        MsQuic->ConnectionStart(
+            Connection.Handle,
+            AF_INET,
+            "localhost",
+            4433);
     }
 
     //

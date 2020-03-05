@@ -400,18 +400,6 @@ QuicTlsHeaderMask(
     );
 
 static
-BOOLEAN
-QuicTlsHash(
-    _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
-    _In_ size_t OutputBufferLen,
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen,
-    _In_reads_bytes_(SaltLen) const uint8_t *Salt,
-    _In_ size_t SaltLen,
-    _In_ QUIC_HASH *Hash
-    );
-
-static
 void
 QuicTlsSecConfigDelete(
     _In_ QUIC_SEC_CONFIG* SecurityConfig
@@ -1992,16 +1980,50 @@ QuicHashCompute(
     _Out_writes_all_(OutputLength) uint8_t* const Output
     )
 {
-    return
-        QuicTlsHash(
-            Output,
-            OutputLength,
-            Input,
-            InputLength,
-            Hash->Salt,
-            Hash->SaltLength,
-            Hash) != 0 ?
-        QUIC_STATUS_SUCCESS : QUIC_STATUS_INTERNAL_ERROR;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    EVP_MD_CTX* HashContext = NULL;
+    EVP_PKEY* HmacKey = NULL;
+
+    HashContext = EVP_MD_CTX_create();
+    if (HashContext == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    HmacKey = EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, NULL, Hash->Salt, Hash->SaltLength);
+    if (HmacKey == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    if (!EVP_DigestSignInit(HashContext, NULL, Hash->Md, NULL, HmacKey)) {
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+
+    if (!EVP_DigestSignUpdate(HashContext, Input, InputLength)) {
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+
+    size_t ActualOutputSize = OutputLength;
+    if (!EVP_DigestSignFinal(HashContext, Output, &ActualOutputSize)) {
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+
+    QUIC_FRE_ASSERT(ActualOutputSize == OutputLength);
+
+Error:
+    if (HashContext != NULL) {
+        EVP_MD_CTX_free(HashContext);
+    }
+
+    if (HmacKey != NULL) {
+        EVP_PKEY_free(HmacKey);
+    }
+
+    return Status;
 }
 
 static
@@ -2882,73 +2904,6 @@ Exit:
     if (CipherCtx != NULL) {
         EVP_CIPHER_CTX_free(CipherCtx);
         CipherCtx = NULL;
-    }
-
-    return Ret;
-}
-
-static
-BOOLEAN
-QuicTlsHash(
-    _Out_writes_bytes_(OutputBufferLen) uint8_t *OutputBuffer,
-    _In_ size_t OutputBufferLen,
-    _In_reads_bytes_(SecretLen) const uint8_t *Secret,
-    _In_ size_t SecretLen,
-    _In_reads_bytes_(SaltLen) const uint8_t *Salt,
-    _In_ size_t SaltLen,
-    _In_ QUIC_HASH *Hash
-    )
-{
-    BOOLEAN Ret = TRUE;
-    EVP_PKEY_CTX *KeyCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
-
-    if (KeyCtx == NULL) {
-        QuicTraceLogError("[ tls] KeyCtx alloc failed.");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-    if (EVP_PKEY_derive_init(KeyCtx) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_derive_init failed.");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-    if (EVP_PKEY_CTX_hkdf_mode(KeyCtx, EVP_PKEY_HKDEF_MODE_EXPAND_ONLY) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_CTX_hkdf_mode failed.");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-    if (EVP_PKEY_CTX_set_hkdf_md(KeyCtx, Hash->Md) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_CTX_set_hkdf_md failed.");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-    if (EVP_PKEY_CTX_set1_hkdf_salt(KeyCtx, Salt, SaltLen) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_CTX_set1_hkdf_salt failed.");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-    if (EVP_PKEY_CTX_set1_hkdf_key(KeyCtx, Secret, SecretLen) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_CTX_set1_hkdf_key failed.");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-    if (EVP_PKEY_derive(KeyCtx, OutputBuffer, &OutputBufferLen) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_derive failed.");
-        Ret = FALSE;
-        goto Exit;
-    }
-
-Exit:
-
-    if (KeyCtx != NULL) {
-        EVP_PKEY_CTX_free(KeyCtx);
-        KeyCtx = NULL;
     }
 
     return Ret;

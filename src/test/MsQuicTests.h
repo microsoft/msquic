@@ -251,17 +251,16 @@ LogTestFailure(
 }
 #endif
 
-#ifdef _WIN32
-
 //
 // Kernel Mode Driver Interface
 //
 
 //
-// Name of the driver service for msquic_bvt.sys.
+// Name of the driver service for msquictest.sys.
 //
-#define QUIC_TEST_DRIVER_NAME   "QuicTest"
+#define QUIC_TEST_DRIVER_NAME   "msquictest"
 
+#ifdef _WIN32
 
 #define QUIC_TEST_IOCTL_PATH    "\\\\.\\\\" QUIC_TEST_DRIVER_NAME
 
@@ -271,12 +270,25 @@ LogTestFailure(
 static const GUID QUIC_TEST_DEVICE_INSTANCE =
 { 0x85c2d886, 0xfa01, 0x4dda,{ 0xaa, 0xed, 0x9a, 0x16, 0xcc, 0x7d, 0xa6, 0xce } };
 
-//
-// IOCTL Interface
-//
+#ifndef _KERNEL_MODE
+#include <winioctl.h>
+#endif // _KERNEL_MODE
 
 #define QUIC_CTL_CODE(request, method, access) \
     CTL_CODE(FILE_DEVICE_NETWORK, request, method, access)
+
+#define IoGetFunctionCodeFromCtlCode( ControlCode ) (\
+    ( ControlCode >> 2) & 0x00000FFF )
+
+#else // _WIN32
+
+#define QUIC_CTL_CODE(request, method, access) (request)
+
+#endif // _WIN32
+
+//
+// IOCTL Interface
+//
 
 #define IOCTL_QUIC_SEC_CONFIG \
     QUIC_CTL_CODE(1, METHOD_BUFFERED, FILE_WRITE_DATA)
@@ -296,7 +308,7 @@ static const GUID QUIC_TEST_DEVICE_INSTANCE =
 
 #define IOCTL_QUIC_RUN_VALIDATE_STREAM \
     QUIC_CTL_CODE(6, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // UINT8 - Connect
+    // uint8_t - Connect
 
 #define IOCTL_QUIC_RUN_CREATE_LISTENER \
     QUIC_CTL_CODE(7, METHOD_BUFFERED, FILE_WRITE_DATA)
@@ -306,7 +318,7 @@ static const GUID QUIC_TEST_DEVICE_INSTANCE =
 
 #define IOCTL_QUIC_RUN_START_LISTENER_IMPLICIT \
     QUIC_CTL_CODE(9, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // INT32 - Family
+    // int - Family
 
 #define IOCTL_QUIC_RUN_START_TWO_LISTENERS \
     QUIC_CTL_CODE(10, METHOD_BUFFERED, FILE_WRITE_DATA)
@@ -316,32 +328,32 @@ static const GUID QUIC_TEST_DEVICE_INSTANCE =
 
 #define IOCTL_QUIC_RUN_START_LISTENER_EXPLICIT \
     QUIC_CTL_CODE(12, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // INT32 - Family
+    // int - Family
 
 #define IOCTL_QUIC_RUN_CREATE_CONNECTION \
     QUIC_CTL_CODE(13, METHOD_BUFFERED, FILE_WRITE_DATA)
 
 #define IOCTL_QUIC_RUN_BIND_CONNECTION_IMPLICIT \
     QUIC_CTL_CODE(14, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // INT32 - Family
+    // int - Family
 
 #define IOCTL_QUIC_RUN_BIND_CONNECTION_EXPLICIT \
     QUIC_CTL_CODE(15, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // INT32 - Family
+    // int - Family
 
 #pragma pack(push)
 #pragma pack(1)
 
 typedef struct {
-    INT32 Family;
-    UINT8 ServerStatelessRetry;
-    UINT8 ClientUsesOldVersion;
-    UINT8 ClientRebind;
-    UINT8 ChangeMaxStreamID;
-    UINT8 MultipleALPNs;
-    UINT8 AsyncSecConfig;
-    UINT8 MultiPacketClientInitial;
-    UINT8 SessionResumption;
+    int Family;
+    uint8_t ServerStatelessRetry;
+    uint8_t ClientUsesOldVersion;
+    uint8_t ClientRebind;
+    uint8_t ChangeMaxStreamID;
+    uint8_t MultipleALPNs;
+    uint8_t AsyncSecConfig;
+    uint8_t MultiPacketClientInitial;
+    uint8_t SessionResumption;
 } QUIC_RUN_CONNECT_PARAMS;
 
 #pragma pack(pop)
@@ -354,20 +366,20 @@ typedef struct {
 #pragma pack(1)
 
 typedef struct {
-    INT32 Family;
+    int Family;
     uint64_t Length;
     uint32_t ConnectionCount;
     uint32_t StreamCount;
     uint32_t StreamBurstCount;
     uint32_t StreamBurstDelayMs;
-    UINT8 ServerStatelessRetry;
-    UINT8 ClientRebind;
-    UINT8 ClientZeroRtt;
-    UINT8 ServerRejectZeroRtt;
-    UINT8 UseSendBuffer;
-    UINT8 UnidirectionalStreams;
-    UINT8 ServerInitiatedStreams;
-    UINT8 FifoScheduling;
+    uint8_t ServerStatelessRetry;
+    uint8_t ClientRebind;
+    uint8_t ClientZeroRtt;
+    uint8_t ServerRejectZeroRtt;
+    uint8_t UseSendBuffer;
+    uint8_t UnidirectionalStreams;
+    uint8_t ServerInitiatedStreams;
+    uint8_t FifoScheduling;
 } QUIC_RUN_CONNECT_AND_PING_PARAMS;
 
 #pragma pack(pop)
@@ -378,7 +390,7 @@ typedef struct {
 
 #define IOCTL_QUIC_RUN_CONNECT_AND_IDLE \
     QUIC_CTL_CODE(18, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // UINT8 - EnableKeepAlive
+    // uint8_t - EnableKeepAlive
 
 #define IOCTL_QUIC_RUN_VALIDATE_SECCONFIG \
     QUIC_CTL_CODE(19, METHOD_BUFFERED, FILE_WRITE_DATA)
@@ -386,22 +398,22 @@ typedef struct {
 
 #define IOCTL_QUIC_RUN_CONNECT_UNREACHABLE \
     QUIC_CTL_CODE(20, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // INT32 - Family
+    // int - Family
 
 #define IOCTL_QUIC_RUN_CONNECT_BAD_ALPN \
     QUIC_CTL_CODE(21, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // INT32 - Family
+    // int - Family
 
 #define IOCTL_QUIC_RUN_CONNECT_BAD_SNI \
     QUIC_CTL_CODE(22, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // INT32 - Family
+    // int - Family
 
 #define IOCTL_QUIC_RUN_SERVER_DISCONNECT \
     QUIC_CTL_CODE(23, METHOD_BUFFERED, FILE_WRITE_DATA)
 
 #define IOCTL_QUIC_RUN_CLIENT_DISCONNECT \
     QUIC_CTL_CODE(24, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // UINT8 - StopListenerFirst
+    // uint8_t - StopListenerFirst
 
 #define IOCTL_QUIC_RUN_VALIDATE_CONNECTION_EVENTS \
     QUIC_CTL_CODE(25, METHOD_BUFFERED, FILE_WRITE_DATA)
@@ -411,18 +423,18 @@ typedef struct {
 
 #define IOCTL_QUIC_RUN_VERSION_NEGOTIATION \
     QUIC_CTL_CODE(27, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // INT32 - Family
+    // int - Family
 
 #pragma pack(push)
 #pragma pack(1)
 
 typedef struct {
-    INT32 Family;
+    int Family;
     uint16_t Iterations;
     uint16_t KeyUpdateBytes;
-    UINT8 UseKeyUpdateBytes;
-    UINT8 ClientKeyUpdate;
-    UINT8 ServerKeyUpdate;
+    uint8_t UseKeyUpdateBytes;
+    uint8_t ClientKeyUpdate;
+    uint8_t ServerKeyUpdate;
 } QUIC_RUN_KEY_UPDATE_PARAMS;
 
 #pragma pack(pop)
@@ -436,13 +448,13 @@ typedef struct {
 
 #define IOCTL_QUIC_RUN_CONNECT_SERVER_REJECTED \
     QUIC_CTL_CODE(30, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // INT32 - Family
+    // int - Family
 
 #pragma pack(push)
 #pragma pack(1)
 
 typedef struct {
-    INT32 Family;
+    int Family;
     QUIC_ABORTIVE_TRANSFER_FLAGS Flags;
 } QUIC_RUN_ABORTIVE_SHUTDOWN_PARAMS;
 
@@ -456,7 +468,7 @@ typedef struct {
 #pragma pack(1)
 
 typedef struct {
-    INT32 Family;
+    int Family;
     uint16_t Iterations;
 } QUIC_RUN_CID_UPDATE_PARAMS;
 
@@ -467,12 +479,12 @@ typedef struct {
     // QUIC_RUN_CID_UPDATE_PARAMS
 
 typedef struct {
-    INT32 Family;
-    INT32 SendBytes;
-    INT32 ConsumeBytes;
+    int Family;
+    int SendBytes;
+    int ConsumeBytes;
     QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType;
     QUIC_RECEIVE_RESUME_TYPE PauseType;
-    UINT8 PauseFirst;
+    uint8_t PauseFirst;
 } QUIC_RUN_RECEIVE_RESUME_PARAMS;
 
 #define IOCTL_QUIC_RUN_RECEIVE_RESUME \
@@ -487,7 +499,7 @@ typedef struct {
     QUIC_CTL_CODE(35, METHOD_BUFFERED, FILE_WRITE_DATA)
 
 typedef struct {
-    INT32 Family;
+    int Family;
     BOOLEAN SourceOrDest;
     BOOLEAN ActualCidLengthValid;
     BOOLEAN ShortCidLength;
@@ -500,8 +512,6 @@ typedef struct {
 
 #define IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_TOKEN \
     QUIC_CTL_CODE(37, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // INT32 - Family
+    // int - Family
 
 #define QUIC_MAX_IOCTL_FUNC_CODE 37
-
-#endif // _WIN32

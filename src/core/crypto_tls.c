@@ -58,7 +58,7 @@ typedef enum eSniNameType {
 
 BOOLEAN
 QuicTpIdIsReserved(
-    _In_ uint16_t ID
+    _In_ QUIC_VAR_INT ID
     )
 {
     //
@@ -66,7 +66,7 @@ QuicTpIdIsReserved(
     // for integer values of N are reserved to exercise the requirement that
     // unknown transport parameters be ignored.
     //
-    return (ID % 31) == 27;
+    return (ID % 31ull) == 27ull;
 }
 
 static
@@ -93,12 +93,13 @@ TlsReadUint24(
 }
 
 //
-// The following functions encode data in the TLS extension format. This format
-// consists of a uint16_t (network byte order) for the 'ID', a uint16_t (network
-// byte order) for the 'Length', and then 'Length' bytes of data.
+// The following functions encode data in the QUIC TP format. This format
+// consists of a var-int for the 'ID', a var-int for the 'Length', and then
+// 'Length' bytes of data.
 //
 
-#define TLS_HDR_SIZE (sizeof(uint16_t) + sizeof(uint16_t))
+#define TlsTransportParamLength(Id, Length) \
+    (QuicVarIntSize(Id) + QuicVarIntSize(Length) + Length)
 
 static
 uint8_t*
@@ -106,16 +107,18 @@ TlsWriteTransportParam(
     _In_ uint16_t Id,
     _In_ uint16_t Length,
     _In_reads_bytes_opt_(Length) const uint8_t* Param,
-    _Out_writes_bytes_(TLS_HDR_SIZE + Length) uint8_t* Buffer
+    _Out_writes_bytes_(_Inexpressible_("Too Dynamic"))
+        uint8_t* Buffer
     )
 {
-    *((uint16_t*)Buffer) = QuicByteSwapUint16(Id);
-    *((uint16_t*)(Buffer + sizeof(uint16_t))) = QuicByteSwapUint16(Length);
+    Buffer = QuicVarIntEncode(Id, Buffer);
+    Buffer = QuicVarIntEncode(Length, Buffer);
     QUIC_DBG_ASSERT(Param != NULL || Length == 0);
     if (Param) {
-        QuicCopyMemory(Buffer + TLS_HDR_SIZE, Param, Length);
+        QuicCopyMemory(Buffer, Param, Length);
+        Buffer += Length;
     }
-    return Buffer + TLS_HDR_SIZE + Length;
+    return Buffer;
 }
 
 static
@@ -123,17 +126,15 @@ uint8_t*
 TlsWriteTransportParamVarInt(
     _In_ uint16_t Id,
     _In_ QUIC_VAR_INT Value,
-    _When_(Value < 0x40, _Out_writes_bytes_(TLS_HDR_SIZE + sizeof(uint8_t)))
-    _When_(Value >= 0x40 && Value < 0x4000, _Out_writes_bytes_(TLS_HDR_SIZE + sizeof(uint16_t)))
-    _When_(Value >= 0x4000 && Value < 0x40000000, _Out_writes_bytes_(TLS_HDR_SIZE + sizeof(uint32_t)))
-    _When_(Value >= 0x40000000, _Out_writes_bytes_(TLS_HDR_SIZE + sizeof(uint64_t)))
+    _Out_writes_bytes_(_Inexpressible_("Too Dynamic"))
         uint8_t* Buffer
     )
 {
-    *((uint16_t*)Buffer) = QuicByteSwapUint16(Id);
-    *((uint16_t*)(Buffer + sizeof(uint16_t))) =
-        QuicByteSwapUint16(QuicVarIntSize(Value));
-    return QuicVarIntEncode(Value, Buffer + TLS_HDR_SIZE);
+    uint8_t Length = QuicVarIntSize(Value);
+    Buffer = QuicVarIntEncode(Id, Buffer);
+    Buffer = QuicVarIntEncode(Length, Buffer);
+    Buffer = QuicVarIntEncode(Value, Buffer);
+    return Buffer;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -551,58 +552,103 @@ QuicCryptoTlsEncodeTransportParameters(
 
     QuicTraceLogConnVerbose(EncodeTPStart, Connection, "Encoding Transport Parameters");
 
-    size_t RequiredTPLen = sizeof(uint16_t); // Parameter list length
+    size_t RequiredTPLen = 0;
     if (TransportParams->Flags & QUIC_TP_FLAG_ORIGINAL_CONNECTION_ID) {
         QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
         QUIC_FRE_ASSERT(TransportParams->OriginalConnectionIDLength <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
-        RequiredTPLen += TLS_HDR_SIZE + TransportParams->OriginalConnectionIDLength;
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_ORIGINAL_CONNECTION_ID,
+                TransportParams->OriginalConnectionIDLength);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_IDLE_TIMEOUT) {
-        RequiredTPLen += TLS_HDR_SIZE + QuicVarIntSize(TransportParams->IdleTimeout);
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_IDLE_TIMEOUT,
+                QuicVarIntSize(TransportParams->IdleTimeout));
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_STATELESS_RESET_TOKEN) {
         QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
-        RequiredTPLen += TLS_HDR_SIZE + QUIC_STATELESS_RESET_TOKEN_LENGTH;
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_STATELESS_RESET_TOKEN,
+                QUIC_STATELESS_RESET_TOKEN_LENGTH);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_MAX_PACKET_SIZE) {
-        RequiredTPLen += TLS_HDR_SIZE + QuicVarIntSize(TransportParams->MaxPacketSize);
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_MAX_PACKET_SIZE,
+                QuicVarIntSize(TransportParams->MaxPacketSize));
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_DATA) {
-        RequiredTPLen += TLS_HDR_SIZE + QuicVarIntSize(TransportParams->InitialMaxData);
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_INITIAL_MAX_DATA,
+                QuicVarIntSize(TransportParams->InitialMaxData));
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL) {
-        RequiredTPLen += TLS_HDR_SIZE + QuicVarIntSize(TransportParams->InitialMaxStreamDataBidiLocal);
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_BIDI_LOCAL,
+                QuicVarIntSize(TransportParams->InitialMaxStreamDataBidiLocal));
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE) {
-        RequiredTPLen += TLS_HDR_SIZE + QuicVarIntSize(TransportParams->InitialMaxStreamDataBidiRemote);
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_BIDI_REMOTE,
+                QuicVarIntSize(TransportParams->InitialMaxStreamDataBidiRemote));
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI) {
-        RequiredTPLen += TLS_HDR_SIZE + QuicVarIntSize(TransportParams->InitialMaxStreamDataUni);
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_UNI,
+                QuicVarIntSize(TransportParams->InitialMaxStreamDataUni));
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI) {
-        RequiredTPLen += TLS_HDR_SIZE + QuicVarIntSize(TransportParams->InitialMaxBidiStreams);
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_INITIAL_MAX_STREAMS_BIDI,
+                QuicVarIntSize(TransportParams->InitialMaxBidiStreams));
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI) {
-        RequiredTPLen += TLS_HDR_SIZE + QuicVarIntSize(TransportParams->InitialMaxUniStreams);
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_INITIAL_MAX_STREAMS_UNI,
+                QuicVarIntSize(TransportParams->InitialMaxUniStreams));
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_ACK_DELAY_EXPONENT) {
-        RequiredTPLen += TLS_HDR_SIZE + QuicVarIntSize(TransportParams->AckDelayExponent);
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_ACK_DELAY_EXPONENT,
+                QuicVarIntSize(TransportParams->AckDelayExponent));
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_MAX_ACK_DELAY) {
-        RequiredTPLen += TLS_HDR_SIZE + QuicVarIntSize(TransportParams->MaxAckDelay);
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_MAX_ACK_DELAY,
+                QuicVarIntSize(TransportParams->MaxAckDelay));
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION) {
-        RequiredTPLen += TLS_HDR_SIZE;
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_DISABLE_ACTIVE_MIGRATION,
+                0);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_PREFERRED_ADDRESS) {
         QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
         QUIC_FRE_ASSERT(FALSE); // TODO - Implement
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT) {
-        RequiredTPLen += TLS_HDR_SIZE + QuicVarIntSize(TransportParams->ActiveConnectionIdLimit);
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_ACTIVE_CONNECTION_ID_LIMIT,
+                QuicVarIntSize(TransportParams->ActiveConnectionIdLimit));
     }
     if (Connection->State.TestTransportParameterSet) {
-        RequiredTPLen += TLS_HDR_SIZE + Connection->TestTransportParameter.Length;
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                Connection->TestTransportParameter.Type,
+                Connection->TestTransportParameter.Length);
     }
 
     QUIC_TEL_ASSERT(RequiredTPLen <= UINT16_MAX);
@@ -624,9 +670,6 @@ QuicCryptoTlsEncodeTransportParameters(
     // Now that we have allocated the exact size, we can freely write to the
     // buffer without checking any more lengths.
     //
-
-    *(uint16_t*)TPBuf = QuicByteSwapUint16((uint16_t)RequiredTPLen - sizeof(uint16_t));
-    TPBuf += sizeof(uint16_t); // Parameter list length
 
     if (TransportParams->Flags & QUIC_TP_FLAG_ORIGINAL_CONNECTION_ID) {
         QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
@@ -789,57 +832,34 @@ QuicCryptoTlsDecodeTransportParameters(
 
     QuicTraceLogConnVerbose(DecodeTPStart, Connection, "Decoding Peer Transport Parameters (%hu bytes)", TPLen);
 
-    if (TPLen < sizeof(uint16_t)) {
-        QuicTraceEvent(ConnError, Connection, "Invalid length for QUIC TP param list length");
-        goto Exit;
-    }
-    uint16_t TPParamListLen = QuicByteSwapUint16(*(uint16_t*)(TPBuf));
-    Offset += sizeof(uint16_t);
-
-    if (Offset + TPParamListLen > TPLen) {
-        QuicTraceEvent(ConnError, Connection, "QUIC TP param list length too large");
-        goto Exit;
-    }
-
     while (Offset < TPLen) {
 
-        //
-        // Validate there is enough space to read the next ID and length.
-        //
-        if (Offset + TLS_HDR_SIZE > TPLen) {
-            QuicTraceEvent(ConnError, Connection, "QUIC TP params invalid leftover length");
+        QUIC_VAR_INT Id;
+        if (!QuicVarIntDecode(TPLen, TPBuf, &Offset, &Id)) {
+            QuicTraceEvent(ConnError, Connection, "No room for QUIC TP ID");
             goto Exit;
         }
-
-        //
-        // Decode the next 2 bytes as the ID.
-        //
-        uint16_t Id = QuicByteSwapUint16(*(uint16_t*)(TPBuf + Offset));
-        Offset += sizeof(uint16_t);
 
         if (Id <= QUIC_TP_ID_MAX) {
 
             if (ParamsPresent & (1 << Id)) {
-                QuicTraceEvent(ConnErrorStatus, Connection, Id, "Duplicate QUIC TP type");
+                QuicTraceEvent(ConnError, Connection, "Duplicate QUIC TP ID");
                 goto Exit;
             }
 
             ParamsPresent |= (1 << Id);
         }
 
-        //
-        // Decode the next 2 bytes as the length.
-        //
-        uint16_t Length = QuicByteSwapUint16(*(uint16_t*)(TPBuf + Offset));
-        Offset += sizeof(uint16_t);
-
-        //
-        // Validate there is enough space for the actual value to be read.
-        //
-        if (Offset + Length > TPLen) {
-            QuicTraceEvent(ConnErrorStatus, Connection, Id, "QUIC TP value length too long");
+        QUIC_VAR_INT ParamLength;
+        if (!QuicVarIntDecode(TPLen, TPBuf, &Offset, &ParamLength)) {
+            QuicTraceEvent(ConnError, Connection, "No room for QUIC TP length");
+            goto Exit;
+        } else if (ParamLength + Offset > TPLen) {
+            QuicTraceEvent(ConnError, Connection, "QUIC TP length too big");
             goto Exit;
         }
+
+        uint16_t Length = (uint16_t)ParamLength;;
 
         uint16_t VarIntLength = 0;
     #define TRY_READ_VAR_INT(Param) \
@@ -1030,9 +1050,9 @@ QuicCryptoTlsDecodeTransportParameters(
 
         default:
             if (QuicTpIdIsReserved(Id)) {
-                QuicTraceLogConnWarning(DecodeTPReserved, Connection, "TP: Reserved ID %hu, length %hu", Id, Length);
+                QuicTraceLogConnWarning(DecodeTPReserved, Connection, "TP: Reserved ID %llu, length %hu", Id, Length);
             } else {
-                QuicTraceLogConnWarning(DecodeTPUnknown, Connection, "TP: Unknown ID %hu, length %hu", Id, Length);
+                QuicTraceLogConnWarning(DecodeTPUnknown, Connection, "TP: Unknown ID %llu, length %hu", Id, Length);
             }
             break;
         }

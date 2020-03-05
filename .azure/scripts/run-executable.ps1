@@ -55,7 +55,7 @@ param (
     [switch]$InitialBreak = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose")]
+    [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
     [string]$LogProfile = "None",
 
     [Parameter(Mandatory = $false)]
@@ -145,7 +145,7 @@ function Start-Executable {
             }
         } else {
             $pinfo.FileName = "bash"
-            $pinfo.Arguments = "-c `"ulimit -c unlimited && ASAN_OPTIONS=disable_coredump=0 $($Path) $($Arguments) && echo Done`""
+            $pinfo.Arguments = "-c `"ulimit -c unlimited && ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 $($Path) $($Arguments) && echo Done`""
             $pinfo.WorkingDirectory = $LogDir
         }
     }
@@ -169,72 +169,79 @@ function Wait-Executable($Exe) {
     $stdout = $null
     $stderr = $null
     $ProcessCrashed = $false
-    if (!$Debugger) {
-        $stdout = $Exe.Process.StandardOutput.ReadToEnd()
-        $stderr = $Exe.Process.StandardError.ReadToEnd()
-        if ($isWindows) {
-            $ProcessCrashed = $stdout.Contains("Dump 1 complete")
-        } else {
-            $ProcessCrashed = $stderr.Contains("Aborted")
-        }
-    }
-    $Exe.Process.WaitForExit()
 
-    $XmlText = $null
-    if ($ProcessCrashed) {
-        $XmlText = $FailXmlText;
-    } else {
-        $XmlText = $SuccessXmlText;
-    }
-
-    if ($GenerateXmlResults) {
-        $XmlText = $XmlText.Replace("ExeName", $ExeName)
-        $XmlText = $XmlText.Replace("date", $Exe.Timestamp)
-        # TODO - Update time fields.
-        $XmlResults = [xml]($XmlText)
-        $XmlResults.Save($LogDir + "-results.xml") | Out-Null
-    }
-    
-    if ($ShowOutput) {
-        if ($null -ne $stdout -and "" -ne $stdout) {
-            Write-Host $stdout
-        }
-        if ($null -ne $stderr -and "" -ne $stderr) {
-            Write-Host $stderr
-        }
-    }
-
-    if ($ProcessCrashed -or $KeepOutputOnSuccess) {
-
-        if ($LogProfile -ne "None") {
-            if ($ConvertLogs) {
-                & $LogScript -Stop -OutputDirectory $LogDir -ConvertToText
+    try {
+        if (!$Debugger) {
+            $stdout = $Exe.Process.StandardOutput.ReadToEnd()
+            $stderr = $Exe.Process.StandardError.ReadToEnd()
+            if ($isWindows) {
+                $ProcessCrashed = $stdout.Contains("Dump 1 complete")
             } else {
-                & $LogScript -Stop -OutputDirectory $LogDir | Out-Null
+                $ProcessCrashed = $stderr.Contains("Aborted")
+            }
+        }
+        $Exe.Process.WaitForExit()
+    } catch {
+        Log "Treating exception as crash!"
+        $ProcessCrashed = $true
+        throw
+    } finally {
+        $XmlText = $null
+        if ($ProcessCrashed) {
+            $XmlText = $FailXmlText;
+        } else {
+            $XmlText = $SuccessXmlText;
+        }
+
+        if ($GenerateXmlResults) {
+            $XmlText = $XmlText.Replace("ExeName", $ExeName)
+            $XmlText = $XmlText.Replace("date", $Exe.Timestamp)
+            # TODO - Update time fields.
+            $XmlResults = [xml]($XmlText)
+            $XmlResults.Save($LogDir + "-results.xml") | Out-Null
+        }
+        
+        if ($ShowOutput) {
+            if ($null -ne $stdout -and "" -ne $stdout) {
+                Write-Host $stdout
+            }
+            if ($null -ne $stderr -and "" -ne $stderr) {
+                Write-Host $stderr
             }
         }
 
-        if ($null -ne $stdout -and "" -ne $stdout) {
-            $stdout > (Join-Path $LogDir "stdout.txt")
-        }
+        if ($ProcessCrashed -or $KeepOutputOnSuccess) {
 
-        if ($null -ne $stderr -and "" -ne $stderr) {
-            $stderr > (Join-Path $LogDir "stderr.txt")
-        }
+            if ($LogProfile -ne "None") {
+                if ($ConvertLogs) {
+                    & $LogScript -Stop -OutputDirectory $LogDir -ConvertToText
+                } else {
+                    & $LogScript -Stop -OutputDirectory $LogDir | Out-Null
+                }
+            }
 
-        if ($CompressOutput) {
-            # Zip the output.
-            CompressOutput-Archive -Path "$($LogDir)\*" -DestinationPath "$($LogDir).zip" | Out-Null
+            if ($null -ne $stdout -and "" -ne $stdout) {
+                $stdout > (Join-Path $LogDir "stdout.txt")
+            }
+
+            if ($null -ne $stderr -and "" -ne $stderr) {
+                $stderr > (Join-Path $LogDir "stderr.txt")
+            }
+
+            if ($CompressOutput) {
+                # Zip the output.
+                CompressOutput-Archive -Path "$($LogDir)\*" -DestinationPath "$($LogDir).zip" | Out-Null
+                Remove-Item $LogDir -Recurse -Force | Out-Null
+            }
+
+            Log "Output available at $($LogDir)"
+
+        } else {
+            if ($LogProfile -ne "None") {
+                & $LogScript -Cancel | Out-Null
+            }
             Remove-Item $LogDir -Recurse -Force | Out-Null
         }
-
-        Log "Output available at $($LogDir)"
-
-    } else {
-        if ($LogProfile -ne "None") {
-            & $LogScript -Cancel | Out-Null
-        }
-        Remove-Item $LogDir -Recurse -Force | Out-Null
     }
 }
 

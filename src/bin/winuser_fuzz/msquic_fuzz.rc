@@ -2,13 +2,22 @@
 //    Copyright (c) Microsoft Corporation.
 //    Licensed under the MIT License.
 //
+
 #include <windows.h>
-#include <ntverp.h>
 
 #define VER_FILETYPE                VFT_DLL
 #define VER_FILESUBTYPE             VFT2_UNKNOWN
-#define VER_FILEDESCRIPTION_STR     "Windows QUIC Fuzzing Library"
-#define VER_INTERNALNAME_STR        "msquic_fuzz.dll"
 #define VER_ORIGINALFILENAME_STR    "msquic_fuzz.dll"
 
+#ifdef QUIC_WINDOWS_INTERNAL
+
+#include <ntverp.h>
+#define VER_FILEDESCRIPTION_STR     "Microsoft QUIC Library"
+#define VER_INTERNALNAME_STR        "msquic"
 #include "common.ver"
+
+#else
+
+#include "msquic.ver"
+
+#endif // QUIC_WINDOWS_INTERNAL

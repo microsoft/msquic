@@ -374,7 +374,7 @@ QuicListenerClaimConnection(
 Exit:
 
     if (Status != QUIC_STATUS_PENDING && QUIC_FAILED(Status)) {
-        QuicSessionUnregisterConnection(Connection->Session, Connection);
+        QuicSessionUnregisterConnection(Connection);
     }
 
     return Status;

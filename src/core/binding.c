@@ -1075,7 +1075,11 @@ QuicBindingCreateConnection(
     QUIC_CONNECTION* Connection = NULL;
 
     QUIC_CONNECTION* NewConnection;
-    QUIC_STATUS Status = QuicConnInitialize(Datagram, &NewConnection);
+    QUIC_STATUS Status =
+        QuicConnInitialize(
+            MsQuicLib.UnregisteredSession,
+            Datagram,
+            &NewConnection);
     if (QUIC_FAILED(Status)) {
         QuicConnRelease(NewConnection, QUIC_CONN_REF_HANDLE_OWNER);
         QuicPacketLogDropWithValue(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
@@ -1261,7 +1265,7 @@ QuicBindingDeliverPackets(
         // Only Initial (version specific) packets are processed from here on.
         //
         switch (Packet->Invariant->LONG_HDR.Version) {
-        case QUIC_VERSION_DRAFT_25:
+        case QUIC_VERSION_DRAFT_27:
         case QUIC_VERSION_MS_1:
             if (Packet->LH->Type != QUIC_INITIAL) {
                 QuicPacketLogDrop(Binding, Packet, "Non-initial packet not matched with a connection");
