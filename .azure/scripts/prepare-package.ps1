@@ -37,7 +37,8 @@ Force-Copy (Join-Path $RootDir "src/manifest/MsQuicEtw.man") $PackageDir
 
 # Package up all the user mode binary files.
 $Configs = [System.Tuple]::Create("Debug","chk"), [System.Tuple]::Create("Release","fre")
-$Archs = [System.Tuple]::Create("x86","x86"), [System.Tuple]::Create("x64","amd64")
+$Archs = [System.Tuple]::Create("arm","arm"), [System.Tuple]::Create("arm64","arm64"), `
+[System.Tuple]::Create("x86","x86"), [System.Tuple]::Create("x64","amd64")
 foreach ($Config in $Configs) {
     foreach ($Arch in $Archs) {
         $InputDir = Join-Path $ArtifactsDir "windows/$($Arch.Item1)_$($Config.Item1)_schannel"
