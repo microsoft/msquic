@@ -22,47 +22,48 @@ QUIC has many benefits when compared to existing TLS over TCP scenarios:
 
 > **Important** Several QUIC protocol features are not yet fully implemented:
 >
->  * 0-RTT with Schannel and OpenSSL
->  * NAT Rebinding
->  * Client Migration
+>  * 0-RTT
+>  * Client-side Migration
 >  * Server Preferred Address
 >  * Path MTU Discovery
 
 ## Library Features
 
   * Cross-platform support.
+  * Optimized for client and server.
   * Optimized for maximal throughput and minimal latency.
   * Asynchronous IO.
   * Receive side scaling (RSS).
   * UDP send and receive coalescing support.
 
-## Building
+# Platform Support
 
-You can find detailed instructions for building the library [here](./docs/BUILD.md).
+MsQuic currently officially supports the following platform configurations.
 
-## Documentation
+## Windows 10
 
-You can find more detailed information on how to use MsQuic in the [the API documentation](./docs/API.md).
+On Windows 10, MsQuic relies on built-in support from [Schannel](https://docs.microsoft.com/en-us/windows/win32/com/schannel) for TLS 1.3 functionality. MsQuic is shipped in-box in the Windows kernel in the form of the `msquic.sys` driver, to support built-in HTTP and SMB features. User mode applications use `msquic.dll` (built from here) and package it with their app.
 
-## Source Code
+> **Important** This configuration requires running the latest [Windows Insider Preview Builds](https://insider.windows.com/en-us/) for Schannel's TLS 1.3 support.
 
-The source is divided into several directories:
+> **Important** This configuration does not support 0-RTT due to Schannel's current lack of support.
 
-  * `bin` - Packages up all static libraries into the platform specific binaries.
-  * `core` - Platform independent code that implements the QUIC protocol.
-  * `docs` - All MsQuic documentation.
-  * `inc` - Header files used by all the other directories.
-  * `manifest` - Windows [ETW manifest](https://docs.microsoft.com/en-us/windows/win32/wes/writing-an-instrumentation-manifest) and related files.
-  * `platform` - Platform specific code for OS types, sockets and TLS.
-  * `submodules` - All the modules that MsQuic depends on.
-  * `test` - Test code for the MsQuic API / protocol.
-  * `tools` - Tools for exercising MsQuic.
-    * `attack` - Adversarial tool for exploiting protocol weaknesses.
-    * `etw` - Windows specific tool for processing MsQuic ETW logs.
-    * `interop` - Runs through the [IETF interop scenarios](https://github.com/quicwg/base-drafts/wiki/16th-Implementation-Draft).
-    * `ping` - Simple tool for gathering throughput measurements. Read more [here](./tools/ping/readme.md).
-    * `sample` - Minimal example of how to use the MsQuic API.
-    * `spin` - Randomly executes the MsQuic API to discover bugs.
+## Linux
+
+On Linux, MsQuic relies on [OpenSSL](https://www.openssl.org/) for TLS 1.3 functionality.
+
+> **Important** This configuration relies on an [outstanding pull request](https://github.com/openssl/openssl/pull/8797) to OpenSSL master for TLS 1.3 support. It is still currently unknown as to when it will be merged into master. See [here](https://www.openssl.org/blog/blog/2020/02/17/QUIC-and-OpenSSL/) for more details.
+
+> **Important** This configuration does not support 0-RTT. Complete integration with OpenSSL is an ongoing effort.
+
+## Other
+
+For testing or experimentation purposes, MsQuic may be built with other configurations, but they are not to be considered officially supported unless they are listed above. Any bugs found while using these configurations may be looked at, but no guarantees are provided that they will be fixed.
+
+# Documentation
+
+  * For building the library, see the [Build docs](./docs/BUILD.md).
+  * For using the library, see the [API docs](./docs/API.md) or the [Sample](./src/tools/sample/sample.cpp).
 
 # Contributing
 
