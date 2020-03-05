@@ -19,4 +19,4 @@ add_executable(quicetw ${SOURCES})
 
 target_link_libraries(quicetw msquic platform)
 target_link_libraries(quicetw
-    ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi tdh)
+    ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi tdh advapi32)
