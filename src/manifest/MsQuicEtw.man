@@ -696,10 +696,10 @@
         <string id="Etw.ConnRemoteAddrAdd" value="[conn][%1] New Remote IP: %3" />
         <string id="Etw.ConnLocalAddrRemove" value="[conn][%1] Removed Local IP: %3" />
         <string id="Etw.ConnRemoteAddrRemove" value="[conn][%1] Removed Remote IP: %3" />
-        <string id="Etw.ConnSourceCidAdd" value="[conn][%1] New Source CID: %4" />
-        <string id="Etw.ConnDestCidAdd" value="[conn][%1] New Destination CID: %4" />
-        <string id="Etw.ConnSourceCidRemove" value="[conn][%1] Removed Source CID: %4" />
-        <string id="Etw.ConnDestCidRemove" value="[conn][%1] Removed Destination CID: %4" />
+        <string id="Etw.ConnSourceCidAdd" value="[conn][%1] (SeqNum=%2) New Source CID: %4" />
+        <string id="Etw.ConnDestCidAdd" value="[conn][%1] (SeqNum=%2) New Destination CID: %4" />
+        <string id="Etw.ConnSourceCidRemove" value="[conn][%1] (SeqNum=%2) Removed Source CID: %4" />
+        <string id="Etw.ConnDestCidRemove" value="[conn][%1] (SeqNum=%2) Removed Destination CID: %4" />
         <string id="Etw.ConnAssignWorker" value="[conn][%1] Assigned worker: %2" />
         <string id="Etw.ConnRegisterSession" value="[conn][%1] Registered with session: %2" />
         <string id="Etw.ConnUnregisterSession" value="[conn][%1] Unregistered from session: %2" />
