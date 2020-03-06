@@ -7,10 +7,10 @@
       >
     <events xmlns="http://schemas.microsoft.com/win/2004/08/events">
       <provider
-          guid="{ba7375ae-29d0-4bb7-b30e-32abaf672591}"
-          messageFileName="%WinDir%\system32\drivers\msquic.sys"
-          name="CLOG-Microsoft-Quic"
-          resourceFileName="%WinDir%\system32\drivers\msquic.sys"
+          guid="{1976b04f-669c-4ad1-865d-7ecad43b3696}"
+          messageFileName="C:\Source\msquic\artifacts\windows\bin\Debug\msquic.dll"
+          name="CLOG-2-Microsoft-Quic"
+          resourceFileName="C:\Source\msquic\artifacts\windows\bin\Debug\msquic.dll"
           symbol="MICROSOFT_MSQUIC_PROVIDER"
           >
         <keywords>

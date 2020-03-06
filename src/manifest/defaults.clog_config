@@ -1,825 +1,833 @@
 {
+  "Version": 1,
+  "CustomTypeClogCSharpFile": "defaults.clog.cs",
+  "TypeEncoders": {
     "Version": 0,
-    "ChainedConfigFiles": [
-    ],
-    "TypeEncoders": {
-        "Version": 0,
-        "TypeEncoder": [{
-                "Version": 1,
-                "EncodingType": "Skip",
-                "CType": "const void *",
-                "TraceLoggingAPI": "TraceLoggingInt32",
-                "DefinationEncoding": "!IPV4ADDR!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Skip",
-                "CType": "const void *",
-                "TraceLoggingAPI": "TraceLoggingInt32",
-                "DefinationEncoding": "!IPV6ADDR!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "int",
-                "TraceLoggingAPI": "TraceLoggingInt32",
-                "DefinationEncoding": "d",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Int32",
-                "CType": "int",
-                "TraceLoggingAPI": "TraceLoggingInt32",
-                "DefinationEncoding": "c",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Int32",
-                "CType": "int",
-                "TraceLoggingAPI": "TraceLoggingInt32",
-                "DefinationEncoding": "cx",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Int32",
-                "CType": "int",
-                "TraceLoggingAPI": "TraceLoggingInt32",
-                "DefinationEncoding": "4.4x",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Int64",
-                "CType": "long",
-                "TraceLoggingAPI": "TraceLoggingInt64",
-                "DefinationEncoding": "zd",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": "TraceLoggingUInt32",
-                "DefinationEncoding": "u",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Skip",
-                "CType": "const void *",
-                "TraceLoggingAPI": "",
-                "DefinationEncoding": "!CTDSTR!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Skip",
-                "CType": "const void *",
-                "TraceLoggingAPI": "",
-                "DefinationEncoding": "!sid!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Skip",
-                "CType": "const void *",
-                "TraceLoggingAPI": "",
-                "DefinationEncoding": "!CTDSTRW!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt64",
-                "CType": "unsigned long",
-                "TraceLoggingAPI": "",
-                "DefinationEncoding": "!TIMESTAMP!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": "TraceLoggingUInt32",
-                "DefinationEncoding": "!AUTHSCHEME!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": "TraceLoggingUInt32",
-                "DefinationEncoding": "!AUTHSTATE!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UNICODE_String",
-                "CType": "const short *",
-                "TraceLoggingAPI": "TraceLoggingWideString",
-                "DefinationEncoding": "S",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "ANSI_String",
-                "CType": "const char *",
-                "TraceLoggingAPI": "TraceLoggingString",
-                "DefinationEncoding": "s",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "int",
-                "TraceLoggingAPI": "TraceLoggingUInt32",
-                "DefinationEncoding": "B",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "int",
-                "TraceLoggingAPI": "TraceLoggingUInt32",
-                "DefinationEncoding": "!BOOLEAN!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Pointer",
-                "CType": "const void *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "p",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "03x",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "0X",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt16",
-                "CType": "unsigned short",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "hu",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt16",
-                "CType": "unsigned short",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "hd",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt16",
-                "CType": "unsigned short",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "hx",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt16",
-                "CType": "unsigned short",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "hX",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Pointer",
-                "CType": "const void *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "A",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "ANSI_String",
-                "CType": "const char *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "hs",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "04x",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Pointer",
-                "CType": "const void *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "0p",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "04X",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": ".8X",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": ".2x",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "8x",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": ".04X",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": ".8x",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "02u",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "02X",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "lx",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "08lX",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Pointer",
-                "CType": "const void *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "08p",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UNICODE_String",
-                "CType": "const WCHAR *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "-32S",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt64",
-                "CType": "unsigned long",
-                "TraceLoggingAPI": "TraceLoggingUInt32",
-                "DefinationEncoding": "lu",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UNICODE_String",
-                "CType": "const WCHAR *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "ls",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Int64",
-                "CType": "long",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "ld",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt64",
-                "CType": "unsigned long",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "llu",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt64",
-                "CType": "unsigned long",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "llx",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt64",
-                "CType": "unsigned long",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "llX",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "#B",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UNICODE_String",
-                "CType": "const WCHAR *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "#wq",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "ANSI_String",
-                "CType": "const CHAR *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "#q",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt64",
-                "CType": "unsigned long",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "I",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "i",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": "TraceLoggingUInt32",
-                "DefinationEncoding": "x",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "X",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "int",
-                "TraceLoggingAPI": "TraceLoggingUInt32",
-                "DefinationEncoding": "#d",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": "TraceLoggingUInt32",
-                "DefinationEncoding": "#x",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Pointer",
-                "CType": "const void *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "#p",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Skip",
-                "CType": "const void *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "#Iu",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Int64",
-                "CType": "long",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "#Id",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Int64",
-                "CType": "long",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "#08I",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Unknown",
-                "CType": "",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "#08Iu",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Int64",
-                "CType": "long",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "#08x",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Int64",
-                "CType": "long",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "#I64x",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Int64",
-                "CType": "long",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "#I64d",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt64",
-                "CType": "unsigned long",
-                "TraceLoggingAPI": "TraceLoggingUInt64",
-                "DefinationEncoding": "08x",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt64",
-                "CType": "unsigned long",
-                "TraceLoggingAPI": "TraceLoggingUInt64",
-                "DefinationEncoding": "08Iu",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": "TraceLoggingUInt32",
-                "DefinationEncoding": "!WINERROR!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!CHUNKTOKEN!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!CHUNKSTATE!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Skip",
-                "CType": "const void *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!DOT11SSID!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!SERVICETYPE!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Synthesized",
-                "CType": "",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!FUNC!",
-                "Synthesized": true
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": "TraceLoggingUInt32",
-                "DefinationEncoding": "!bool!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": "TraceLoggingUInt32",
-                "DefinationEncoding": "!HANDLETYPE!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Pointer",
-                "CType": "const void *",
-                "TraceLoggingAPI": "",
-                "DefinationEncoding": "!HANDLE!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Skip",
-                "CType": "const void *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!HEXDUMP!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Skip",
-                "CType": "const void *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!HEXBUF!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Int64",
-                "CType": "long",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!STATUS!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Int64",
-                "CType": "long",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!status!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": "TraceLoggingUInt32",
-                "DefinationEncoding": "!hresult!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": "TraceLoggingUInt32",
-                "DefinationEncoding": "!HRESULT!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!INTERNETSCHEME!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": "TraceLoggingUInt32",
-                "DefinationEncoding": "!HRESULT!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": "TraceLoggingUInt32",
-                "DefinationEncoding": "!winerr!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!AF!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!B!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": "UInt32",
-                "DefinationEncoding": "!SOCK!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!IPPROTO!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!IPADDR!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "ANSI_String",
-                "CType": "const void *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!MACADDR!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt64",
-                "CType": "const void *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!WLANHEXDUMP!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "GUID",
-                "CType": "const GUID *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!guid!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!x!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!HNReason!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!HNState!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!HNInfo!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!PairState!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!PairAction!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!GOPeerState!",
-                "Synthesized": false
-            },
-			 {
-                "Version": 1,
-                "EncodingType": "ByteArray",
-                "CType": "const void *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!BYTEARRAY!",
-                "Synthesized": false
-            },
-			
-			{
-                "Version": 1,
-                "EncodingType": "Pointer",
-                "CType": "const void *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!PTR!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!WFDPropertyOpcode!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!WlanInterfaceState!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!VMGRPROTOCOL!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Unknown",
-                "CType": "",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!MGRSCENARIOTYPE!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!VMGRSCENARIOTYPE!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!VMGRRESOURCEACTION!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!HTTPSTATEFLAG!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!HTTPSTATE!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UInt32",
-                "CType": "unsigned int",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!WlanConnectionMode!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "Skip",
-                "CType": "unsigned long",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "3p",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "GUID",
-                "CType": "const GUID *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "!GUID!",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UNICODE_String",
-                "CType": "const WCHAR *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "ws",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UNICODE_String",
-                "CType": "const WCHAR *",
-                "TraceLoggingAPI": null,
-                "DefinationEncoding": "wq",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "UNICODE_String",
-                "CType": "const WCHAR *",
-                "TraceLoggingAPI": "TraceLoggingWideString",
-                "DefinationEncoding": "Q",
-                "Synthesized": false
-            }, {
-                "Version": 1,
-                "EncodingType": "ANSI_String",
-                "CType": "const CHAR *",
-                "TraceLoggingAPI": "TraceLoggingString",
-                "DefinationEncoding": "q",
-                "Synthesized": false
-            }
-        ]
-    }
+    "TypeEncoder": [
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!IPV4ADDR!",
+        "CustomDecoder": "defaults.clog_config.Types.QUIC_IP_ADDR",
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Skip",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!IPV6ADDR!",
+        "CustomDecoder": "defaults.clog_config.Types.QUIC_IP_ADDR",
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_INT32",
+        "DefinationEncoding": "d",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt8",
+        "CType": "CLOG_INT32",
+        "DefinationEncoding": "c",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Int32",
+        "CType": "CLOG_INT32",
+        "DefinationEncoding": "cx",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Int32",
+        "CType": "CLOG_INT32",
+        "DefinationEncoding": "4.4x",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "CLOG_INT64",
+        "DefinationEncoding": "zd",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "u",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Skip",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!CTDSTR!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Skip",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!sid!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Skip",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!CTDSTRW!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "CLOG_UINT64",
+        "DefinationEncoding": "!TIMESTAMP!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!AUTHSCHEME!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!AUTHSTATE!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UNICODE_String",
+        "CType": "const short *",
+        "DefinationEncoding": "S",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "ANSI_String",
+        "CType": "const char *",
+        "DefinationEncoding": "s",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_INT32",
+        "DefinationEncoding": "B",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_INT32",
+        "DefinationEncoding": "!BOOLEAN!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Pointer",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "p",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "03x",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "0X",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt16",
+        "CType": "unsigned short",
+        "DefinationEncoding": "hu",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt16",
+        "CType": "unsigned short",
+        "DefinationEncoding": "hd",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt16",
+        "CType": "unsigned short",
+        "DefinationEncoding": "hx",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt16",
+        "CType": "unsigned short",
+        "DefinationEncoding": "hX",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Pointer",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "A",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "ANSI_String",
+        "CType": "const char *",
+        "DefinationEncoding": "hs",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "04x",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Pointer",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "0p",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "04X",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": ".8X",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": ".2x",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "8x",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": ".04X",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": ".8x",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "02u",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "02X",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "lx",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "08lX",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Pointer",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "08p",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UNICODE_String",
+        "CType": "const WCHAR *",
+        "DefinationEncoding": "-32S",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "CLOG_UINT64",
+        "DefinationEncoding": "lu",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UNICODE_String",
+        "CType": "const WCHAR *",
+        "DefinationEncoding": "ls",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "CLOG_INT64",
+        "DefinationEncoding": "ld",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "CLOG_UINT64",
+        "DefinationEncoding": "llu",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "CLOG_UINT64",
+        "DefinationEncoding": "llx",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "CLOG_UINT64",
+        "DefinationEncoding": "llX",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "#B",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UNICODE_String",
+        "CType": "const WCHAR *",
+        "DefinationEncoding": "#wq",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "ANSI_String",
+        "CType": "const CHAR *",
+        "DefinationEncoding": "#q",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "CLOG_UINT64",
+        "DefinationEncoding": "I",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "i",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!QUIC_FLAGS!",
+        "CustomDecoder": "defaults.clog_config.Types.QUIC_FLAGS",
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "x",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "X",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_INT32",
+        "DefinationEncoding": "#d",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "#x",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Pointer",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "#p",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Skip",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "#Iu",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "CLOG_INT64",
+        "DefinationEncoding": "#Id",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "CLOG_INT64",
+        "DefinationEncoding": "#08I",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Unknown",
+        "CType": "",
+        "DefinationEncoding": "#08Iu",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "CLOG_INT64",
+        "DefinationEncoding": "#08x",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "CLOG_INT64",
+        "DefinationEncoding": "#I64x",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "CLOG_INT64",
+        "DefinationEncoding": "#I64d",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "CLOG_UINT64",
+        "DefinationEncoding": "08x",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "CLOG_UINT64",
+        "DefinationEncoding": "08Iu",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!WINERROR!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!CHUNKTOKEN!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!CHUNKSTATE!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Skip",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!DOT11SSID!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!SERVICETYPE!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Synthesized",
+        "CType": "",
+        "DefinationEncoding": "!FUNC!",
+        "CustomDecoder": null,
+        "Synthesized": true
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!bool!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!HANDLETYPE!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Pointer",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!HANDLE!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Skip",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!HEXDUMP!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Skip",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!HEXBUF!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "CLOG_INT64",
+        "DefinationEncoding": "!STATUS!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "CLOG_INT64",
+        "DefinationEncoding": "!status!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!hresult!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!HRESULT!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!INTERNETSCHEME!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!HRESULT!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!winerr!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!AF!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!B!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!SOCK!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!IPPROTO!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!IPADDR!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "ANSI_String",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!MACADDR!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!WLANHEXDUMP!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "GUID",
+        "CType": "const GUID *",
+        "DefinationEncoding": "!guid!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!x!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!HNReason!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!HNState!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!HNInfo!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!PairState!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!PairAction!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!GOPeerState!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "ByteArray",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!BYTEARRAY!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Pointer",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!PTR!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!WFDPropertyOpcode!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!WlanInterfaceState!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!VMGRPROTOCOL!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Unknown",
+        "CType": "",
+        "DefinationEncoding": "!MGRSCENARIOTYPE!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!VMGRSCENARIOTYPE!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!VMGRRESOURCEACTION!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!HTTPSTATEFLAG!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!HTTPSTATE!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "!WlanConnectionMode!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "Skip",
+        "CType": "CLOG_UINT64",
+        "DefinationEncoding": "3p",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "GUID",
+        "CType": "const GUID *",
+        "DefinationEncoding": "!GUID!",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UNICODE_String",
+        "CType": "const WCHAR *",
+        "DefinationEncoding": "ws",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UNICODE_String",
+        "CType": "const WCHAR *",
+        "DefinationEncoding": "wq",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "UNICODE_String",
+        "CType": "const WCHAR *",
+        "DefinationEncoding": "Q",
+        "CustomDecoder": null,
+        "Synthesized": false
+      },
+      {
+        "EncodingType": "ANSI_String",
+        "CType": "const CHAR *",
+        "DefinationEncoding": "q",
+        "CustomDecoder": null,
+        "Synthesized": false
+      }
+    ]
+  },
+  "SourceCodeMacros": [],
+  "ChainedConfigFiles": [],
+  "ModuleUniqueness": {
+    "TraceInformation": []
+  }
 }
