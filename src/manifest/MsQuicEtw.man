@@ -1629,7 +1629,6 @@
                 name="ErrStr"
                 />
           </template>
-          <template tid="template_"/>
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
@@ -2798,21 +2797,6 @@
               symbol="QuicLogVerbose"
               template="tid_MESSAGE"
               value="10243"
-              />
-          <event
-              symbol="&quot;[test] START %s&quot;"
-              template="template_"
-              value="15"
-              />
-          <event
-              symbol="&quot;[ dal] RSS helper socket failed to open, 0x%x&quot;"
-              template="template_"
-              value="16"
-              />
-          <event
-              symbol="&quot;[test]---&gt; %s&quot;"
-              template="template_"
-              value="17"
               />
         </events>
       </provider>
