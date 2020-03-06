@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 # Include Files that need CLOG processing
-include("../CLog.make")
+include("../../CLog.make")
 include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY})
 
 set(SOURCES

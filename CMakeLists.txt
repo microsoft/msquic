@@ -76,7 +76,7 @@ set(MSVC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     #Choose our CLOG configuration file
-        COMMAND mc.exe -um -h ${QUIC_BUILD_DIR}/inc -r ${QUIC_BUILD_DIR}/inc ${CMAKE_SOURCE_DIR}/manifest/MsQuicEtw.man)
+    set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/src/manifest/msquic_windows.clog_config)
 
     # Custom build flags.
     set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 /MP")
@@ -121,7 +121,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     endif()
 
 else()
-    set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/manifest/msquic_linux.clog_config)
+    set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/src/manifest/msquic_linux.clog_config)
 
     # Custom build flags.
     set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions -fPIC -pthread")
@@ -192,7 +192,7 @@ if(QUIC_TLS STREQUAL "mitls")
 endif()
 
 # Product code
-add_subdirectory(manifest)
+add_subdirectory(src/manifest)
 add_subdirectory(src/core)
 add_subdirectory(src/platform)
 add_subdirectory(src/bin)

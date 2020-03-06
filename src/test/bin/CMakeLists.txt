@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 # Include Files that need CLOG processing
-include("../../CLog.make")
+include("../../../CLog.make")
 include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY})
 include_directories(${CMAKE_SOURCE_DIR}/src/test)
 include_directories(${CMAKE_SOURCE_DIR}/submodules/googletest/googletest/include)
