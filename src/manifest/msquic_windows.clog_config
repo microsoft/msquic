@@ -26,6 +26,7 @@
       "EncodedPrefix": "PREFIX : %p",
       "EncodedArgNumber": 2,
       "CustomSettings": {
+        "WPPArgNumber": 3,
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
@@ -40,6 +41,7 @@
       "EncodedPrefix": "PREFIX : %p",
       "EncodedArgNumber": 2,
       "CustomSettings": {
+        "WPPArgNumber": 3,
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
@@ -54,6 +56,8 @@
       "EncodedPrefix": "PREFIX : %p",
       "EncodedArgNumber": 2,
       "CustomSettings": {
+        
+        "WPPArgNumber": 3,
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
@@ -126,6 +130,7 @@
       "EncodedPrefix": "PREFIX %p : ",
       "EncodedArgNumber": 2,
       "CustomSettings": {
+        "WPPArgNumber": 2,
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
@@ -140,6 +145,7 @@
       "EncodedPrefix": "PREFIX %p : ",
       "EncodedArgNumber": 2,
       "CustomSettings": {
+        "WPPArgNumber": 2,
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
@@ -154,6 +160,7 @@
       "EncodedPrefix": "PREFIX %p : ",
       "EncodedArgNumber": 2,
       "CustomSettings": {
+        "WPPArgNumber": 2,
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
