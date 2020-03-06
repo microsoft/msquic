@@ -26,6 +26,8 @@
       "EncodedPrefix": "PREFIX : %p",
       "EncodedArgNumber": 2,
       "CustomSettings": {
+        "Quic2Clog": "1",
+        "EventNamePrefix": "Quic",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
@@ -40,6 +42,8 @@
       "EncodedPrefix": "PREFIX : %p",
       "EncodedArgNumber": 2,
       "CustomSettings": {
+        "Quic2Clog": "1",
+        "EventNamePrefix": "Quic",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
@@ -54,6 +58,8 @@
       "EncodedPrefix": "PREFIX : %p",
       "EncodedArgNumber": 2,
       "CustomSettings": {
+        "Quic2Clog": "1",
+        "EventNamePrefix": "Quic",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
@@ -126,6 +132,8 @@
       "EncodedPrefix": "PREFIX %p : ",
       "EncodedArgNumber": 2,
       "CustomSettings": {
+        "Quic2Clog": "1",
+        "EventNamePrefix": "Quic",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
@@ -140,6 +148,8 @@
       "EncodedPrefix": "PREFIX %p : ",
       "EncodedArgNumber": 2,
       "CustomSettings": {
+        "Quic2Clog": "1",
+        "EventNamePrefix": "Quic",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
@@ -154,6 +164,8 @@
       "EncodedPrefix": "PREFIX %p : ",
       "EncodedArgNumber": 2,
       "CustomSettings": {
+         "Quic2Clog": "1",
+        "EventNamePrefix": "Quic",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
