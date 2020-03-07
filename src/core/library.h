@@ -197,6 +197,7 @@ extern QUIC_LIBRARY MsQuicLib;
 #endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+_Ret_range_(0,MsQuicLib.PartitionCount - 1)
 inline
 uint8_t
 QuicLibraryGetCurrentPartition(
