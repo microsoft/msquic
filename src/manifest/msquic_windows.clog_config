@@ -11,6 +11,7 @@
       "EncodedPrefix": null,
       "EncodedArgNumber": 1,
       "CustomSettings": {
+        "NeedsWPPConversion":"1",
         "WPPArgNumber": "0",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
@@ -71,7 +72,8 @@
       "MacroName": "QuicTraceLogInfo",
       "EncodedPrefix": null,
       "EncodedArgNumber": 1,
-      "CustomSettings": {
+      "CustomSettings": {        
+        "NeedsWPPConversion":"1",
         "WPPArgNumber": "0",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
@@ -86,7 +88,8 @@
       "MacroName": "QuicTraceLogVerbose",
       "EncodedPrefix": null,
       "EncodedArgNumber": 1,
-      "CustomSettings": {
+      "CustomSettings": {        
+        "NeedsWPPConversion":"1",
         "WPPArgNumber": "0",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
@@ -101,7 +104,8 @@
       "MacroName": "QuicTraceLogError",
       "EncodedPrefix": null,
       "EncodedArgNumber": 1,
-      "CustomSettings": {
+      "CustomSettings": {        
+        "NeedsWPPConversion":"1",
         "WPPArgNumber": "0",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
