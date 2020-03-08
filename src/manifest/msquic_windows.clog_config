@@ -2319,6 +2319,14 @@
       {
         "UniquenessHash": "ef247211-36c1-c84a-ab61-0e2b6fb38f8d",
         "TraceID": "FN_quictest9eddd9dc5266f22ce5fe2958d12ddae0"
+      },
+      {
+        "UniquenessHash": "a6210eaa-436d-a3c0-b289-1c3b517c42ec",
+        "TraceID": "ConnOutFlowStats"
+      },
+      {
+        "UniquenessHash": "d9de7bd0-7a4e-ff71-4584-33f404147d62",
+        "TraceID": "ConnStatistics"
       }
     ]
   }
