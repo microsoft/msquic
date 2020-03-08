@@ -9,5 +9,5 @@ target_link_libraries(quicinterop msquic platform PLATFORM_CLOG_LIB MSQUICTEST_C
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     target_link_libraries(quicinterop
-        ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi)
+        ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
 endif()
