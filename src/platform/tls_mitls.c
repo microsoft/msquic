@@ -2521,7 +2521,7 @@ QuicEncrypt(
     _In_reads_bytes_opt_(AuthDataLength)
         const uint8_t* const AuthData,
     _In_ uint16_t BufferLength,
-    _Inout_updates_bytes_(BufferLength)
+    _Out_writes_bytes_(BufferLength)
         uint8_t* Buffer
     )
 {

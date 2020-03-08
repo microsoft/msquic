@@ -199,8 +199,8 @@ QuicBindingUninitialize(
     QuicDispatchLockUninitialize(&Binding->ResetTokenLock);
     QuicDispatchRwLockUninitialize(&Binding->RwLock);
 
-    QUIC_FREE(Binding);
     QuicTraceEvent(BindingDestroyed, Binding);
+    QUIC_FREE(Binding);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -790,10 +790,8 @@ QuicBindingProcessStatelessOperation(
         Token.Encrypted.OrigConnIdLength = RecvPacket->DestCidLen;
 
         uint8_t Iv[QUIC_IV_LENGTH];
+        QuicZeroMemory(Iv, sizeof(Iv));
         QuicCopyMemory(Iv, NewDestCid, MSQUIC_CONNECTION_ID_LENGTH);
-        QuicZeroMemory(
-            Iv + MSQUIC_CONNECTION_ID_LENGTH,
-            QUIC_IV_LENGTH - MSQUIC_CONNECTION_ID_LENGTH);
 
         QuicLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
 
@@ -1168,7 +1166,10 @@ Exit:
             Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
             Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
             Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = 0;
+#pragma warning(push)
+#pragma warning(disable:6001) // SAL doesn't understand ref counts
             QuicConnQueueOper(NewConnection, Oper);
+#pragma warning(pop)
         }
 
     } else {

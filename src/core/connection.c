@@ -349,10 +349,10 @@ QuicConnFree(
     if (Connection->OrigCID != NULL) {
         QUIC_FREE(Connection->OrigCID);
     }
+    QuicTraceEvent(ConnDestroyed, Connection);
     QuicPoolFree(
         &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].ConnectionPool,
         Connection);
-    QuicTraceEvent(ConnDestroyed, Connection);
 
 #if QUIC_TEST_MODE
     InterlockedDecrement(&MsQuicLib.ConnectionCount);
@@ -1222,9 +1222,12 @@ QuicConnOnShutdownComplete(
         Connection->ClientCallbackHandler = NULL;
     }
 
+#pragma warning(push)
+#pragma warning(disable:6001) // SAL doesn't understand ref counts
     if (Connection->Paths[0].Binding != NULL) {
         QuicBindingRemoveConnection(Connection->Paths[0].Binding, Connection);
     }
+#pragma warning(pop)
 }
 
 QUIC_STATUS

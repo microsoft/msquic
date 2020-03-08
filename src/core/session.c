@@ -30,13 +30,14 @@ QuicSessionAlloc(
         const uint8_t* Alpn
     )
 {
-    QUIC_SESSION* Session = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SESSION) + AlpnLength + 1);
+    const uint16_t SessionSize = sizeof(QUIC_SESSION) + AlpnLength + 1;
+    QUIC_SESSION* Session = QUIC_ALLOC_NONPAGED(SessionSize);
     if (Session == NULL) {
-        QuicTraceEvent(AllocFailure, "session", sizeof(QUIC_SESSION) + AlpnLength + 1);
+        QuicTraceEvent(AllocFailure, "session", SessionSize);
         return NULL;
     }
 
-    QuicZeroMemory(Session, sizeof(QUIC_SESSION));
+    QuicZeroMemory(Session, SessionSize);
     Session->Type = QUIC_HANDLE_TYPE_SESSION;
     Session->ClientContext = Context;
     Session->AlpnLength = AlpnLength;
@@ -119,9 +120,8 @@ MsQuicSessionFree(
 
     QuicDispatchLockUninitialize(&Session->ConnectionsLock);
     QuicRwLockUninitialize(&Session->ServerCacheLock);
-    QUIC_FREE(Session);
-
     QuicTraceEvent(SessionDestroyed, Session);
+    QUIC_FREE(Session);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
