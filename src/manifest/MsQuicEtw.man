@@ -2944,11 +2944,11 @@
             />
         <string
             id="Etw.ConnDropPacket"
-            value="[conn][%1] DROP packet[%2] Src=%6 Dst=%5 Reason=%7."
+            value="[conn][%1] DROP packet[%2] Dst=%5 Src=%6 Reason=%7."
             />
         <string
             id="Etw.ConnDropPacketEx"
-            value="[conn][%1] DROP packet[%2] Src=%7 Dst=%6 Reason=%8, %3."
+            value="[conn][%1] DROP packet[%2] Value=%3 Dst=%6 Src=%7 Reason=%8."
             />
         <string
             id="Etw.ConnError"
