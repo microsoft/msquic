@@ -171,5 +171,8 @@ QuicTraceStubVarArgs(
 #include "quic_trace_manifested_etw.h"
 #endif
 
+#ifdef QUIC_EVENTS_TRACELOGGING
+#include "quic_trace_tracelogging.h"
+#endif
 
 #endif // _TRACE_H
