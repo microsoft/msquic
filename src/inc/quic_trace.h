@@ -115,11 +115,15 @@ typedef enum QUIC_TRACE_LEVEL {
 #pragma warning(disable:26451)
 #pragma warning(pop)
 #if 0
+
+
 #define EventWriteQuicConnSourceCidAdded(Connection, CidLen, Cid) \
 #define EventWriteQuicConnDestCidAdded(Connection, CidLen, Cid) \
 #define EventWriteQuicConnSourceCidRemoved(Connection, CidLen, Cid) \
 #define EventWriteQuicConnDestCidRemoved(Connection, CidLen, Cid) \
+
 #endif
+
 
 #define QuicTraceLogErrorEnabled()   FALSE
 #define QuicTraceLogWarningEnabled() FALSE

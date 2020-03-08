@@ -11,7 +11,7 @@
       "EncodedPrefix": null,
       "EncodedArgNumber": 1,
       "CustomSettings": {
-        "NeedsWPPConversion":"1",
+        "NeedsWPPConversion": "1",
         "WPPArgNumber": "0",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
@@ -27,7 +27,7 @@
       "EncodedPrefix": "PREFIX : %p",
       "EncodedArgNumber": 2,
       "CustomSettings": {
-        "WPPArgNumber": 2,
+        "WPPArgNumber": "2",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
@@ -42,7 +42,7 @@
       "EncodedPrefix": "PREFIX : %p",
       "EncodedArgNumber": 2,
       "CustomSettings": {
-        "WPPArgNumber": 2,
+        "WPPArgNumber": "2",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
@@ -57,8 +57,7 @@
       "EncodedPrefix": "PREFIX : %p",
       "EncodedArgNumber": 2,
       "CustomSettings": {
-        
-        "WPPArgNumber": 2,
+        "WPPArgNumber": "2",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
@@ -72,8 +71,8 @@
       "MacroName": "QuicTraceLogInfo",
       "EncodedPrefix": null,
       "EncodedArgNumber": 1,
-      "CustomSettings": {        
-        "NeedsWPPConversion":"1",
+      "CustomSettings": {
+        "NeedsWPPConversion": "1",
         "WPPArgNumber": "0",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
@@ -88,8 +87,8 @@
       "MacroName": "QuicTraceLogVerbose",
       "EncodedPrefix": null,
       "EncodedArgNumber": 1,
-      "CustomSettings": {        
-        "NeedsWPPConversion":"1",
+      "CustomSettings": {
+        "NeedsWPPConversion": "1",
         "WPPArgNumber": "0",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
@@ -104,8 +103,8 @@
       "MacroName": "QuicTraceLogError",
       "EncodedPrefix": null,
       "EncodedArgNumber": 1,
-      "CustomSettings": {        
-        "NeedsWPPConversion":"1",
+      "CustomSettings": {
+        "NeedsWPPConversion": "1",
         "WPPArgNumber": "0",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
@@ -134,7 +133,7 @@
       "EncodedPrefix": "PREFIX %p : ",
       "EncodedArgNumber": 2,
       "CustomSettings": {
-        "WPPArgNumber": 2,
+        "WPPArgNumber": "2",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
@@ -149,7 +148,7 @@
       "EncodedPrefix": "PREFIX %p : ",
       "EncodedArgNumber": 2,
       "CustomSettings": {
-        "WPPArgNumber": 2,
+        "WPPArgNumber": "2",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
@@ -164,7 +163,7 @@
       "EncodedPrefix": "PREFIX %p : ",
       "EncodedArgNumber": 2,
       "CustomSettings": {
-        "WPPArgNumber": 2,
+        "WPPArgNumber": "2",
         "ETWManifestFile": "MsQuicEtw.man",
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
@@ -182,7 +181,8 @@
         "Quic2Clog": "1",
         "EventNamePrefix": "Quic",
         "ETWManifestFile": "MsQuicEtw.man",
-        "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
+        "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696",
+        "Orig_EncodedArg": "1"
       },
       "CLogExportModules": [
         "MANIFESTED_ETW",
@@ -513,14 +513,6 @@
         "TraceID": "ConnRemoteAddrAdded"
       },
       {
-        "UniquenessHash": "bbf03322-062c-747a-38ac-b86dc13d27c9",
-        "TraceID": "ConnDestCidAdded"
-      },
-      {
-        "UniquenessHash": "26cb5031-9f8f-3645-a3e1-581473ee45af",
-        "TraceID": "ConnSourceCidAdded"
-      },
-      {
         "UniquenessHash": "228c04ea-f275-6f9c-e29a-a8f058a5db5e",
         "TraceID": "ConnInitializeComplete"
       },
@@ -551,10 +543,6 @@
       {
         "UniquenessHash": "0ebbffbe-69d8-3f2b-949d-d93cdd7f8b99",
         "TraceID": "ConnError"
-      },
-      {
-        "UniquenessHash": "1f769517-2e4a-8d67-be96-1f2b2840714c",
-        "TraceID": "ConnDestCidRemoved"
       },
       {
         "UniquenessHash": "e60c48fb-a199-2842-564c-c4b6c6b15825",
@@ -651,14 +639,6 @@
       {
         "UniquenessHash": "a8e9f9da-c972-8c27-200c-ef66aadfa30f",
         "TraceID": "NoSniPresent"
-      },
-      {
-        "UniquenessHash": "fc1982df-f7b4-7493-e93f-6cd5d3a340b6",
-        "TraceID": "DecodeTPReserved"
-      },
-      {
-        "UniquenessHash": "5507c630-7eac-47ea-e505-bf1526f9b5ea",
-        "TraceID": "DecodeTPUnknown"
       },
       {
         "UniquenessHash": "b3050ce5-ea39-fea6-ed54-0207b6395dde",
@@ -947,10 +927,6 @@
       {
         "UniquenessHash": "91c7fc1c-bc76-94ad-c8bc-675895679a10",
         "TraceID": "ConnDropPacketEx"
-      },
-      {
-        "UniquenessHash": "6673cfc8-0f99-8586-a32c-e291b34a1a79",
-        "TraceID": "BindingDropPacketEx"
       },
       {
         "UniquenessHash": "ae8d6511-2012-8041-9607-2af43217bce1",
@@ -2273,8 +2249,76 @@
         "TraceID": "TEST"
       },
       {
-        "UniquenessHash": "bb20a326-22aa-7248-3bd9-92c44674bae8",
+        "UniquenessHash": "69e923e7-7262-8b47-087f-860f372dcc67",
+        "TraceID": "ConnDestCidAdded"
+      },
+      {
+        "UniquenessHash": "d7e368d7-e5e3-c23d-8582-2d277025d417",
+        "TraceID": "ConnSourceCidAdded"
+      },
+      {
+        "UniquenessHash": "5bce5311-2367-ea30-ce97-a03c4af57131",
+        "TraceID": "ConnDestCidRemoved"
+      },
+      {
+        "UniquenessHash": "9ef9539e-2af8-135f-632a-ae580de686f1",
+        "TraceID": "ConnSourceCidRemoved"
+      },
+      {
+        "UniquenessHash": "68101e09-d8da-bf34-65a2-6398a18668b4",
+        "TraceID": "DecodeTPReserved"
+      },
+      {
+        "UniquenessHash": "bcf9e193-4060-8f90-3447-602ecb402bfa",
+        "TraceID": "DecodeTPUnknown"
+      },
+      {
+        "UniquenessHash": "a91bc9a5-7212-f42c-3cd0-f6a3d191f09c",
+        "TraceID": "FN_frameed6f73d458adbca8f05a63fb174c5da9"
+      },
+      {
+        "UniquenessHash": "963fbafb-8455-2dd0-71eb-623cb764808c",
+        "TraceID": "FN_packet525472688dabf619f866c5771120c7ba"
+      },
+      {
+        "UniquenessHash": "6fb78453-a6e2-4677-8209-d8d871ee1b37",
+        "TraceID": "BindingDropPacketEx"
+      },
+      {
+        "UniquenessHash": "84c29f08-52db-0372-78a6-ab55a9022431",
+        "TraceID": "FN_registration711e1a8cca07c45faee6d20a450e9ec6"
+      },
+      {
+        "UniquenessHash": "9e969969-aac7-79b8-23fe-e40d65638561",
         "TraceID": "ScheduleSendFlags"
+      },
+      {
+        "UniquenessHash": "6de3f3f4-687c-38a7-187e-506545d804ca",
+        "TraceID": "FN_quic_gtestbb702fe0fcf0a2c8153ffeaa97baed28"
+      },
+      {
+        "UniquenessHash": "0308500b-cd3f-a356-55c8-354a0fe4afac",
+        "TraceID": "FN_quic_gtest94df3afe3f5519a593efadf4e20ffaa3"
+      },
+      {
+        "UniquenessHash": "1f2ceac8-31c1-c555-3b5e-c3a19486add7",
+        "TraceID": "FN_quic_gtestdd5240e195ab753f90e16d88b5739619"
+      },
+      {
+        "UniquenessHash": "d49b26bb-4033-535c-b125-e4a515054931",
+        "TraceID": "FN_quic_gtestdad587a711d7f49ccd556377f5eff9ed"
+      },
+      {
+        "UniquenessHash": "385e077d-3665-30cc-5f15-cd839787eb1d",
+        "TraceID": "FN_quictest0785c7e818b20fe296fb9343da4ad6c7"
+      },
+      {
+        "UniquenessHash": "86ca8dda-eda7-f36d-425c-0a706f5645ce",
+        "TraceID": "FN_quictest3a72f018a4cf860262d89c7671534363"
+      },
+      {
+        "UniquenessHash": "ef247211-36c1-c84a-ab61-0e2b6fb38f8d",
+        "TraceID": "FN_quictest9eddd9dc5266f22ce5fe2958d12ddae0"
       }
     ]
   }
