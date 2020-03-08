@@ -25,6 +25,15 @@ Environment:
 #include <fastwppimpl.h>
 #endif
 
+#if defined(QUIC_EVENTS_TRACELOGGING)
+ // {23D715F1-898A-4003-A2D2-645B68B52C97}
+TRACELOGGING_DEFINE_PROVIDER(
+    clog_hTrace,
+    "MSQuic",
+    (0x23d715f1, 0x898a, 0x4003, 0xa2, 0xd2, 0x64, 0x5b, 0x68, 0xb5, 0x2c, 0x97));
+#endif
+
+
 uint64_t QuicPlatformPerfFreq;
 uint64_t QuicTotalMemory;
 QUIC_PLATFORM QuicPlatform = { NULL };
@@ -40,7 +49,7 @@ QuicPlatformSystemLoad(
 #endif
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
-    EventRegisterCLOG_Microsoft_Quic();
+    EventRegisterCLOG_2_Microsoft_Quic();
 #endif
 
     (void)QueryPerformanceFrequency((LARGE_INTEGER*)&QuicPlatformPerfFreq);
@@ -57,7 +66,7 @@ QuicPlatformSystemUnload(
 {
     QuicTraceLogInfo("[ dll] Unloaded");
 #ifdef QUIC_EVENTS_MANIFEST_ETW
-    EventUnregisterCLOG_Microsoft_Quic();
+    EventUnregisterCLOG_2_Microsoft_Quic();
 #endif
 #if defined(QUIC_LOGS_WPP)
     FAST_WPP_CLEANUP();
