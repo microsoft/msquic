@@ -25,7 +25,7 @@ function(CLOG_ADD_SOURCEFILE)
             #DEPENDS ${CMAKE_CLOG_CONFIG_FILE}
             DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${arg}
             COMMENT "ULOG: ${CMAKE_CLOG_BINS_DIRECTORY}/clog --scopePrefix ${library} -c ${CMAKE_CLOG_CONFIG_FILE} -s ${CMAKE_CLOG_SIDECAR_DIRECTORY}/clog.sidecar -i ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${ARG_CLOG_FILE}"
-            COMMAND ${CMAKE_CLOG_BINS_DIRECTORY}/clog --scopePrefix ${library} -c ${CMAKE_CLOG_CONFIG_FILE} -s ${CMAKE_CLOG_SIDECAR_DIRECTORY}/clog.sidecar -i ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${ARG_CLOG_FILE}
+            COMMAND ${CMAKE_CLOG_BINS_DIRECTORY}/clog --overwriteHashCollsions --scopePrefix ${library} -c ${CMAKE_CLOG_CONFIG_FILE} -s ${CMAKE_CLOG_SIDECAR_DIRECTORY}/clog.sidecar -i ${CMAKE_CURRENT_SOURCE_DIR}/${arg} -o ${ARG_CLOG_FILE}
         )
 
         add_custom_target(${ARG_DEPENDENCY}

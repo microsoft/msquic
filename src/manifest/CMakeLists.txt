@@ -16,7 +16,7 @@ include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY})
         DEPENDS ${CMAKE_SOURCE_DIR}/manifest/MsQuicEtw.man
         OUTPUT ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.h
         OUTPUT ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.rc
-        COMMAND mc.exe -um -h ${CMAKE_SOURCE_DIR}/bld/inc -r ${CMAKE_SOURCE_DIR}/bld/inc ${CMAKE_SOURCE_DIR}/manifest/MsQuicEtw.man)
+        COMMAND mc.exe -um -h ${CMAKE_SOURCE_DIR}/bld/inc -r ${CMAKE_SOURCE_DIR}/bld/inc ${CMAKE_SOURCE_DIR}/src/manifest/MsQuicEtw.man)
     add_custom_target(MsQuicEtw
         DEPENDS ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.h
         DEPENDS ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.rc)

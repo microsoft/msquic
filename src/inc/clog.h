@@ -4,8 +4,23 @@
 #define LOG_ADDR_LEN(x) sizeof(x)
 #endif
 
+#if 0
+#define CLOG_BYTEARRAY(x, y) y, x
+#define CLOG_PTR const void *
+#define CLOG_INT32 const int
+#define CLOG_UINT32 const unsigned int
+#define CLOG_INT64 const int64_t
+#define CLOG_UINT64 const unsigned long long
+#else
 
-#define BYTEARRAY(x, y) x, y
+#define CLOG_BYTEARRAY_HELPER(length, pointer) pointer, length
+#define CLOG_BYTEARRAY(length, pointer) CLOG_BYTEARRAY_HELPER(length, pointer)
+#define CLOG_PTR const void *
+#define CLOG_INT32 const int
+#define CLOG_UINT32 const unsigned int
+#define CLOG_INT64 const long long
+#define CLOG_UINT64 unsigned long long
+#endif
 
 #ifndef CLOG_H
 #define CLOG_H 1
@@ -21,6 +36,7 @@ extern "C" {
 #define CLOG_ARGN_SELECTOR(...) \
     EXPAND(SELECT_ARGN_MACRO( \
         __VA_ARGS__, \
+        CLOG_26_ARGS_TRACE,\
         CLOG_25_ARGS_TRACE,\
         CLOG_24_ARGS_TRACE,\
         CLOG_23_ARGS_TRACE,\
@@ -30,7 +46,7 @@ extern "C" {
         CLOG_19_ARGS_TRACE,\
         CLOG_18_ARGS_TRACE,\
         CLOG_17_ARGS_TRACE,\
-        CLOG_16_ARGS_TRACE,\
+        CLOG_16_ARGS_TRACE, \
         CLOG_15_ARGS_TRACE, \
         CLOG_14_ARGS_TRACE, \
         CLOG_13_ARGS_TRACE, \
@@ -45,7 +61,6 @@ extern "C" {
         CLOG_4_ARGS_TRACE, \
         CLOG_3_ARGS_TRACE, \
         CLOG_2_ARGS_TRACE, \
-        CLOG_1_ARGS_TRACE, \
         0))
 
 #define CLOG_CAT_HELPER(x, y) x ## y
