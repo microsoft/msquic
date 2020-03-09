@@ -3206,11 +3206,11 @@
             />
         <string
             id="Etw.BindingDropPacket"
-            value="[bind][%1] DROP packet[%2] Dst=%5 Src=%6 Reason=%7."
+            value="[bind][%1] DROP packet[%2] Dst=%4 Src=%6 Reason=%7."
             />
         <string
             id="Etw.BindingDropPacketEx"
-            value="[bind][%1] DROP packet[%2] %3. Dst=%6 Src=%7 Reason=%8"
+            value="[bind][%1] DROP packet[%2] %3. Dst=%5 Src=%7 Reason=%8"
             />
         <string
             id="Etw.BindingError"
