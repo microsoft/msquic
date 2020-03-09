@@ -142,6 +142,8 @@ QuicTraceStubVarArgs(
 #define QuicTraceLogError(...)
 #define IGNORE_FIRST_PARAM(A, ...) QuicTraceStubVarArgs(__VA_ARGS__)
 
+#if 0
+
 #define QuicTraceLogError(...) QuicTraceStubVarArgs(__VA_ARGS__)
 #define QuicTraceLogWarning(...)
 #define QuicTraceLogInfo(...)
@@ -156,6 +158,8 @@ QuicTraceStubVarArgs(
 #define QuicTraceLogStreamInfo(...)
 #define QuicTraceLogStreamVerbose(...)
 //#define QuicTraceLogError(...)
+
+#endif
 
 #pragma warning(push) // Don't care about warnings from generated files
 #pragma warning(disable:6001)
