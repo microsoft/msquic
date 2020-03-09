@@ -13,10 +13,12 @@ Abstract:
 
 #include "quic_trace.h"
 
+// BUGBUG : CLOG IS DISABLED due to unknown import issue (prob cdecl/stdcall)
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
 ; //<-- WPP line was here
 //#include "QuicTest.cpp.clog"
-
+#define QuicTraceLogError(...)
+#define QuicTraceLogInfo(...)
 #endif
 
 //#define QUIC_TEST_DISABLE_DNS 1

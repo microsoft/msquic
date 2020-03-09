@@ -14,7 +14,14 @@
 #undef min // gtest headers conflict with previous definitions of min/max.
 #undef max
 #include "gtest/gtest.h"
-
+// BUGBUG : CLOG IS DISABLED due to unknown import issue (prob cdecl/stdcall)
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+//#include "quic_gtest.cpp.clog"
+#endif
+#define QuicTraceLogError(...)
+#define QuicTraceLogInfo(...)
+#define QuicTraceLogVerbose(...)
 class WithBool : public testing::Test,
     public testing::WithParamInterface<bool> {
 };

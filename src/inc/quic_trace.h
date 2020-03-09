@@ -125,11 +125,15 @@ typedef enum QUIC_TRACE_LEVEL {
 #endif
 
 
-#define QuicTraceLogErrorEnabled()   FALSE
-#define QuicTraceLogWarningEnabled() FALSE
-#define QuicTraceLogInfoEnabled()    FALSE
-#define QuicTraceLogVerboseEnabled() FALSE
+#define QuicTraceLogStreamVerboseEnabled() TRUE
+#define QuicTraceLogErrorEnabled()   TRUE
+#define QuicTraceLogWarningEnabled() TRUE
+#define QuicTraceLogInfoEnabled()    TRUE
+#define QuicTraceLogVerboseEnabled() TRUE
 #define QuicTraceEventEnabled(x) TRUE
+
+#if 0
+
 inline
 void
 QuicTraceStubVarArgs(
@@ -139,10 +143,11 @@ QuicTraceStubVarArgs(
 {
     UNREFERENCED_PARAMETER(Fmt);
 }
+
+
 #define QuicTraceLogError(...)
 #define IGNORE_FIRST_PARAM(A, ...) QuicTraceStubVarArgs(__VA_ARGS__)
 
-#if 0
 
 #define QuicTraceLogError(...) QuicTraceStubVarArgs(__VA_ARGS__)
 #define QuicTraceLogWarning(...)

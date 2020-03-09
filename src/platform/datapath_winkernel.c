@@ -12,7 +12,9 @@ Abstract:
 #include "platform_internal.h"
 
 #ifdef QUIC_LOGS_WPP
-#include "datapath_winkernel.tmh"
+; //<-- WPP line was here
+#include "datapath_winkernel.c.clog"
+
 #endif
 
 //

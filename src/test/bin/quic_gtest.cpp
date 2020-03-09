@@ -7,10 +7,12 @@
 
 #include "quic_gtest.h"
 
-#ifdef QUIC_LOGS_WPP
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
 ; //<-- WPP line was here
-#include "quic_gtest.cpp.clog"
-
+// BUGBUG : CLOG IS DISABLED due to unknown import issue (prob cdecl/stdcall)
+//#include "quic_gtest.cpp.clog"
+#define QuicTraceLogError(...)
+#define QuicTraceLogInfo(...)
 #endif
 
 bool TestingKernelMode = false;

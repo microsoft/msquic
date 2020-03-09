@@ -11,8 +11,11 @@
 
 #include "msquichelper.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "crypttest.tmh"
+
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "CryptTest.cpp.clog"
+
 #endif
 
 #ifndef QUIC_TLS_STUB

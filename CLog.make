@@ -4,7 +4,7 @@ function(CLOG_ADD_SOURCEFILE)
     message(STATUS "****************<<<<<<<   CLOG(${library}))    >>>>>>>>>>>>>>>*******************")
 	
 	set(CMAKE_CLOG_BINS_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/tools/bin/clog)
-	set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_SOURCE_DIR}/manifest)
+	set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_SOURCE_DIR}/src/manifest)
 
     foreach(arg IN LISTS ARGV)
         string(MAKE_C_IDENTIFIER ${CMAKE_CURRENT_SOURCE_DIR}, PATH_HASH)
