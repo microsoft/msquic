@@ -3190,11 +3190,11 @@
             />
         <string
             id="Etw.BindingCreated"
-            value="[bind][%1] Created, Udp=%2 LocalAddr=%5 RemoteAddr=%6"
+            value="[bind][%1] Created, Udp=%2 LocalAddr=%4 RemoteAddr=%5"
             />
         <string
             id="Etw.BindingRundown"
-            value="[bind][%1] Rundown, Udp=%2 LocalAddr=%5 RemoteAddr=%6"
+            value="[bind][%1] Rundown, Udp=%2 LocalAddr=%4 RemoteAddr=%5"
             />
         <string
             id="Etw.BindingDestroyed"
