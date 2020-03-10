@@ -15,13 +15,10 @@ Environment:
 
 #include "platform_internal.h"
 
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+#ifdef QUIC_LOGS_WPP
 ; //<-- WPP line was here
 #include "platform_winkernel.c.clog"
-#endif
 
-#ifdef QUIC_LOGS_WPP
 #pragma warning(push) // Don't care about OACR warnings in publics
 #pragma warning(disable:28170)
 #include <fastwppimpl.h>

@@ -1569,19 +1569,19 @@ QuicDataPathBindingHandleUnreachableError(
     QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG) // TODO - Change to ETW event
+#if 0
     if (RemoteAddr->si_family == AF_INET) {
-        QuicTraceLogVerbose("[sock][%p] Received unreachable error (0x%x) from %!IPV4ADDR!:%d",
-            SocketContext,
-            ErrorCode,
-            &RemoteAddr->Ipv4.sin_addr,
-            ntohs(RemoteAddr->Ipv4.sin_port));
+        CLOG_BUG_TraceLogVerbose(FN_datapath_winuser98712c41f3c7a37b24466cc56356459a, "[sock][%p] Received unreachable error (0x%x) from %!BYTEARRAY!", 
+            SocketContext, 
+            ErrorCode, 
+            CLOG_BYTEARRAY((unsigned char)ntohs(RemoteAddr->Ipv4.sin_port), &RemoteAddr->Ipv4.sin_addr));
     } else {
-        QuicTraceLogVerbose("[sock][%p] Received unreachable error (0x%x) from [%!IPV6ADDR!]:%d",
-            SocketContext,
-            ErrorCode,
-            &RemoteAddr->Ipv6.sin6_addr,
-            ntohs(RemoteAddr->Ipv6.sin6_port));
+        CLOG_BUG_TraceLogVerbose(FN_datapath_winuser12d869b81546180a6c851672aa59025c, "[sock][%p] Received unreachable error (0x%x) from [%!BYTEARRAY!]", 
+            SocketContext, 
+            ErrorCode, 
+            CLOG_BYTEARRAY((unsigned char)ntohs(RemoteAddr->Ipv6.sin6_port), &RemoteAddr->Ipv6.sin6_addr));
     }
+#endif    
 #endif
     UNREFERENCED_PARAMETER(ErrorCode);
 
@@ -1724,18 +1724,18 @@ QuicDataPathRecvComplete(
         QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG) // TODO - Change to ETW event
+#if 0
         if (RemoteAddr->si_family == AF_INET) {
-            QuicTraceLogVerbose("[sock][%p] Received larger than expected datagram from %!IPV4ADDR!:%d",
-                SocketContext,
-                &RemoteAddr->Ipv4.sin_addr,
-                ntohs(RemoteAddr->Ipv4.sin_port));
+            CLOG_BUG_TraceLogVerbose(FN_datapath_winuser80f95372f363d78879faa71a2a91f95d, "[sock][%p] Received larger than expected datagram from %!IPV4ADDR!", 
+                SocketContext, 
+                CLOG_BYTEARRAY(ntohs(RemoteAddr->Ipv4.sin_port), &RemoteAddr->Ipv4.sin_addr));
         }
         else {
-            QuicTraceLogVerbose("[sock][%p] Received larger than expected datagram from [%!IPV6ADDR!]:%d",
-                SocketContext,
-                &RemoteAddr->Ipv6.sin6_addr,
-                ntohs(RemoteAddr->Ipv6.sin6_port));
+            CLOG_BUG_TraceLogVerbose(FN_datapath_winuser565b55c86799256c4ab6aa11a0a736b9, "[sock][%p] Received larger than expected datagram from [%!IPV6ADDR!]", 
+                SocketContext, 
+                CLOG_BYTEARRAY(ntohs(RemoteAddr->Ipv6.sin6_port), &RemoteAddr->Ipv6.sin6_addr));
         }
+#endif
 #endif
 
         //

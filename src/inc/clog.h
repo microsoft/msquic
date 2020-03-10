@@ -25,6 +25,9 @@
 #ifndef CLOG_H
 #define CLOG_H 1
 
+#define CLOG_BUG_TraceLogVerbose(...)
+#define CLOG_BUG_TraceLogError(...)
+#define CLOG_BUG_TraceLogInfo(...)
 
 #ifdef __cplusplus
 extern "C" {

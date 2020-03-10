@@ -225,10 +225,6 @@
         "TraceID": "FN_binding4b36568b714495e4231bf89d1ca50021"
       },
       {
-        "UniquenessHash": "0cbea180-20e7-27be-a57d-138d16373a2b",
-        "TraceID": "AllocFailure"
-      },
-      {
         "UniquenessHash": "86839ed5-8fd4-e91c-5dd7-8e10e4cc8878",
         "TraceID": "BindingErrorStatus"
       },
@@ -925,10 +921,6 @@
         "TraceID": "BindingDropPacket"
       },
       {
-        "UniquenessHash": "91c7fc1c-bc76-94ad-c8bc-675895679a10",
-        "TraceID": "ConnDropPacketEx"
-      },
-      {
         "UniquenessHash": "ae8d6511-2012-8041-9607-2af43217bce1",
         "TraceID": "FN_packet_builder24bb96787b7b1cfae2d4688ab3213bf6"
       },
@@ -1481,14 +1473,6 @@
         "TraceID": "FN_datapath_winuser7cbaf8a9e6d9fdd2bd3510dc11d90bf6"
       },
       {
-        "UniquenessHash": "1a51d761-147c-b2dc-decb-520352580f3b",
-        "TraceID": "FN_datapath_winuser12d869b81546180a6c851672aa59025c"
-      },
-      {
-        "UniquenessHash": "59571547-1c84-146b-1f66-fb9166a091e1",
-        "TraceID": "FN_datapath_winuser565b55c86799256c4ab6aa11a0a736b9"
-      },
-      {
         "UniquenessHash": "3f41650a-9b57-9608-0877-9cd2fed09662",
         "TraceID": "FN_datapath_winusera4bf90a34d69dcbe9e96ed51f1b9021c"
       },
@@ -1835,14 +1819,6 @@
       {
         "UniquenessHash": "d914feab-d8a5-e860-e48c-5b30bacf9686",
         "TraceID": "PeerPreferredAddressV4"
-      },
-      {
-        "UniquenessHash": "26c7d8f2-974a-421d-5136-8565bb1d7eda",
-        "TraceID": "FN_datapath_winuser98712c41f3c7a37b24466cc56356459a"
-      },
-      {
-        "UniquenessHash": "6163cd6e-9e9d-70b1-5439-198674871346",
-        "TraceID": "FN_datapath_winuser80f95372f363d78879faa71a2a91f95d"
       },
       {
         "UniquenessHash": "1f150096-7faa-b808-9b37-3e0d17a94b06",
@@ -2281,10 +2257,6 @@
         "TraceID": "FN_packet525472688dabf619f866c5771120c7ba"
       },
       {
-        "UniquenessHash": "6fb78453-a6e2-4677-8209-d8d871ee1b37",
-        "TraceID": "BindingDropPacketEx"
-      },
-      {
         "UniquenessHash": "84c29f08-52db-0372-78a6-ab55a9022431",
         "TraceID": "FN_registration711e1a8cca07c45faee6d20a450e9ec6"
       },
@@ -2327,6 +2299,82 @@
       {
         "UniquenessHash": "d9de7bd0-7a4e-ff71-4584-33f404147d62",
         "TraceID": "ConnStatistics"
+      },
+      {
+        "UniquenessHash": "e4fac6fc-5aef-f6ef-45b6-74c8b84f027d",
+        "TraceID": "AllocFailure"
+      },
+      {
+        "UniquenessHash": "e0164979-f71a-f0d8-f03d-8956ab1e1881",
+        "TraceID": "ConnDropPacketEx"
+      },
+      {
+        "UniquenessHash": "6673cfc8-0f99-8586-a32c-e291b34a1a79",
+        "TraceID": "BindingDropPacketEx"
+      },
+      {
+        "UniquenessHash": "1da3a40e-5881-ece5-f514-4349b82d7faa",
+        "TraceID": "FN_datapath_winuser80f95372f363d78879faa71a2a91f95d"
+      },
+      {
+        "UniquenessHash": "2d2f0a68-8ae1-96fb-e9fa-5e990b29d4a7",
+        "TraceID": "FN_datapath_winuser565b55c86799256c4ab6aa11a0a736b9"
+      },
+      {
+        "UniquenessHash": "76d9c798-cef4-398e-0acf-252cb1d4e5d5",
+        "TraceID": "FN_datapath_winuser98712c41f3c7a37b24466cc56356459a"
+      },
+      {
+        "UniquenessHash": "c29cb001-c4d1-1873-0b61-867db56c1f7c",
+        "TraceID": "FN_datapath_winuser12d869b81546180a6c851672aa59025c"
+      },
+      {
+        "UniquenessHash": "408d2e21-2096-233e-b1cb-22c0b9e0c9bb",
+        "TraceID": "FN_quic_gtestc29943650ba591527c20610d5e4341fa"
+      },
+      {
+        "UniquenessHash": "0a1a4f0a-85ef-9232-f96b-f7370af4aff5",
+        "TraceID": "FN_quic_gtest71846a9bd6bfce5ef3916d34cf1fd7ff"
+      },
+      {
+        "UniquenessHash": "0c25cb23-e4a7-58c2-55a7-db4db342bced",
+        "TraceID": "FN_quic_gtest50d5f151f0424344fcece303e2a8348e"
+      },
+      {
+        "UniquenessHash": "f8a1f38a-6f97-7a83-7f0f-5f4b55e45879",
+        "TraceID": "FN_quic_gtest73178060cf679812c455d24149a83275"
+      },
+      {
+        "UniquenessHash": "36bcb328-f233-ed66-cb31-f1a26f53228a",
+        "TraceID": "FN_quic_gtest5749aac4ddd4085d450bf1ae50c0e50a"
+      },
+      {
+        "UniquenessHash": "b82cdd25-38d1-2f03-d018-58a8d6fe42e4",
+        "TraceID": "FN_quic_gtest5b07b27351d8ea042f59aa23e2e1a046"
+      },
+      {
+        "UniquenessHash": "2cd63bf9-81a3-9350-4545-c303e793b68a",
+        "TraceID": "FN_quic_gtest54d8840a5ade9629a36e7dd348b8887d"
+      },
+      {
+        "UniquenessHash": "19a62019-55fc-872b-4805-732bce968125",
+        "TraceID": "FN_quic_gtest5a1fc330c5d2330b64c36d36354303a7"
+      },
+      {
+        "UniquenessHash": "1a5458fe-fc55-f36e-10d2-472f921fa130",
+        "TraceID": "FN_quic_gtestd1e125594b412facc27a063c75f1499c"
+      },
+      {
+        "UniquenessHash": "56fa2d1b-c6c8-bebe-3c61-1ae9359bdcad",
+        "TraceID": "FN_quic_gtest4bd843e92a166e3b41dbbc6269fcc977"
+      },
+      {
+        "UniquenessHash": "fa6c3b65-ab20-c72e-e0ba-029c9e4aa597",
+        "TraceID": "FN_quic_gtestc66971b364eb2012de0eac4474413cf3"
+      },
+      {
+        "UniquenessHash": "ce3d7c54-1e3f-74dd-0b4b-d6b08a4f367c",
+        "TraceID": "FN_quic_gteste294f437c33d1ade7d212999d4baddc2"
       }
     ]
   }
