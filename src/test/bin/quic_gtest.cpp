@@ -9,8 +9,8 @@
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
 ; //<-- WPP line was here
-#warning CLOG BUG - C++ code isnt compiling/linking correctly - disabling CLOG for now
-//#include "quic_gtest.cpp.clog"
+//BUGBUG : CLOG BUG - C++ code isnt compiling/linking correctly - disabling CLOG for now
+#include "quic_gtest.cpp.clog"
 #endif
 
 bool TestingKernelMode = false;
