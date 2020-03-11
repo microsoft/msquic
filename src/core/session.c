@@ -281,7 +281,7 @@ MsQuicSessionClose(
             QUIC_CONNECTION* Connection =
                 QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, SessionLink);
             Entry = Entry->Flink;
-            QuicConnCloseHandle(Connection);
+            QuicConnOnShutdownComplete(Connection);
         }
     }
 
