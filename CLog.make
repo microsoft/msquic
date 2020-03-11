@@ -16,7 +16,7 @@ function(CLOG_ADD_SOURCEFILE)
 			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/clog
 			COMMENT "Building CLOG and its support tooling"
 			OUTPUT ${CMAKE_CLOG_BINS_DIRECTORY}/clog.dll
-			COMMAND dotnet build ./clog.sln/clog.sln -o ${CMAKE_CLOG_BINS_DIRECTORY}
+			COMMAND dotnet build ./clog.sln/clog_coreclr.sln -o ${CMAKE_CLOG_BINS_DIRECTORY}
 		)
 			
         add_custom_command(
