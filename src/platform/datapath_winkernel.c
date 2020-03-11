@@ -484,6 +484,7 @@ QuicDataPathIoCompletion(
         //
         // Set the event to indicate we have completed the operation.
         //
+#pragma prefast(suppress: 28182, "SAL doesn't understand this callback parameter")
         QuicEventSet(*CompletionEvent);
     }
 
@@ -1201,6 +1202,7 @@ QuicDataPathCloseSocketIoCompletion(
         QUIC_UDP_SOCKET_CONTEXT* SocketContext = (QUIC_UDP_SOCKET_CONTEXT*)Context;
         NT_ASSERT(SocketContext);
 
+#pragma prefast(suppress: 28182, "SAL doesn't understand how callbacks work.")
         if (QUIC_FAILED(SocketContext->Irp.IoStatus.Status)) {
             QuicTraceEvent(DatapathErrorStatus, SocketContext->Binding,
                 SocketContext->Irp.IoStatus.Status, "WskCloseSocket completion");

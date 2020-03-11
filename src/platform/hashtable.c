@@ -187,6 +187,7 @@ Arguments:
     QUIC_DBG_ASSERT(*FirstLevelIndex < HT_FIRST_LEVEL_DIR_SIZE);
 }
 
+_Ret_range_(>=, QUIC_HASH_MIN_SIZE)
 static
 uint32_t
 QuicComputeSecondLevelDirSize(
@@ -520,7 +521,7 @@ Return Value:
             return FALSE;
         }
 
-        QuicInitializeSecondLevelDir(Table->SecondLevelDir, QuicComputeSecondLevelDirSize(0));
+        QuicInitializeSecondLevelDir(Table->SecondLevelDir, Table->TableSize);
 
     } else {
 

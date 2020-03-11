@@ -608,10 +608,8 @@ QuicLookupRemoveSourceConnectionIDs(
     QuicDispatchRwLockReleaseExclusive(&Lookup->RwLock);
 
     for (uint8_t i = 0; i < ReleaseRefCount; i++) {
-#pragma warning(push)
-#pragma warning(disable:6001) // SAL doesn't understand ref counts
+#pragma prefast(suppress:6001, "SAL doesn't understand ref counts")
         QuicConnRelease(Connection, QUIC_CONN_REF_LOOKUP_TABLE);
-#pragma warning(pop)
     }
 }
 
@@ -638,10 +636,8 @@ QuicLookupMoveSourceConnectionIDs(
     }
     QuicDispatchRwLockReleaseExclusive(&LookupSrc->RwLock);
 
-#pragma warning(push)
-#pragma warning(disable:6001) // SAL doesn't understand ref counts
+#pragma prefast(suppress:6001, "SAL doesn't understand ref counts")
     Entry = Connection->SourceCids.Next;
-#pragma warning(pop)
     while (Entry != NULL) {
         QUIC_CID_HASH_ENTRY *CID =
             QUIC_CONTAINING_RECORD(

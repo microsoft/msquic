@@ -1222,12 +1222,10 @@ QuicConnOnShutdownComplete(
         Connection->ClientCallbackHandler = NULL;
     }
 
-#pragma warning(push)
-#pragma warning(disable:6001) // SAL doesn't understand ref counts
+#pragma prefast(suppress:6001, "SAL doesn't understand ref counts")
     if (Connection->Paths[0].Binding != NULL) {
         QuicBindingRemoveConnection(Connection->Paths[0].Binding, Connection);
     }
-#pragma warning(pop)
 }
 
 QUIC_STATUS
