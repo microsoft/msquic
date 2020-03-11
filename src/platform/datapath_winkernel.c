@@ -484,6 +484,7 @@ QuicDataPathIoCompletion(
         //
         // Set the event to indicate we have completed the operation.
         //
+#pragma prefast(suppress: 28182, "SAL doesn't understand this callback parameter")
         QuicEventSet(*CompletionEvent);
     }
 
@@ -510,6 +511,8 @@ QuicDataPathQueryRssScalabilityInfo(
 
     uint8_t IrpBuffer[sizeof(IRP) + sizeof(IO_STACK_LOCATION)];
     PIRP Irp = (PIRP)IrpBuffer;
+
+    QuicZeroMemory(Irp, sizeof(IrpBuffer));
 
     IoInitializeIrp(Irp, sizeof(IrpBuffer), 1);
     IoSetCompletionRoutine(
@@ -628,6 +631,8 @@ QuicDataPathQuerySockoptSupport(
 
     uint8_t IrpBuffer[sizeof(IRP) + sizeof(IO_STACK_LOCATION)];
     PIRP Irp = (PIRP)IrpBuffer;
+
+    QuicZeroMemory(Irp, sizeof(IrpBuffer));
 
     IoInitializeIrp(Irp, sizeof(IrpBuffer), 1);
     IoSetCompletionRoutine(
@@ -807,7 +812,7 @@ QuicDataPathInitialize(
         goto Exit;
     }
 
-    RtlZeroMemory(Datapath, sizeof(QUIC_DATAPATH));
+    RtlZeroMemory(Datapath, DatapathLength);
     Datapath->RecvHandler = RecvCallback;
     Datapath->UnreachableHandler = UnreachableCallback;
     Datapath->ClientRecvContextLength = ClientRecvContextLength;
@@ -1197,6 +1202,7 @@ QuicDataPathCloseSocketIoCompletion(
         QUIC_UDP_SOCKET_CONTEXT* SocketContext = (QUIC_UDP_SOCKET_CONTEXT*)Context;
         NT_ASSERT(SocketContext);
 
+#pragma prefast(suppress: 28182, "SAL doesn't understand how callbacks work.")
         if (QUIC_FAILED(SocketContext->Irp.IoStatus.Status)) {
             QuicTraceEvent(DatapathErrorStatus, SocketContext->Binding,
                 SocketContext->Irp.IoStatus.Status, "WskCloseSocket completion");

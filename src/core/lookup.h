@@ -46,6 +46,7 @@ typedef struct QUIC_LOOKUP {
             //
             // Set of partitioned hash tables.
             //
+            _Field_size_bytes_(PartitionCount * sizeof(QUIC_PARTITIONED_HASHTABLE))
             QUIC_PARTITIONED_HASHTABLE* Tables;
         } HASH;
     };
