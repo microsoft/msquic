@@ -1207,6 +1207,7 @@ QuicConnOnShutdownComplete(
         //
 
         QuicConnCloseHandle(Connection);
+        QuicConnUninitialize(Connection);
         QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
 
     } else {
@@ -1220,11 +1221,6 @@ QuicConnOnShutdownComplete(
         (void)QuicConnIndicateEvent(Connection, &Event);
 
         Connection->ClientCallbackHandler = NULL;
-    }
-
-#pragma prefast(suppress:6001, "SAL doesn't understand ref counts")
-    if (Connection->Paths[0].Binding != NULL) {
-        QuicBindingRemoveConnection(Connection->Paths[0].Binding, Connection);
     }
 }
 
