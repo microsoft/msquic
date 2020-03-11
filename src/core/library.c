@@ -149,11 +149,12 @@ MsQuicLibraryInitialize(
     if (MaxProcCount > (uint32_t)MsQuicLib.Settings.MaxPartitionCount) {
         MaxProcCount = (uint32_t)MsQuicLib.Settings.MaxPartitionCount;
     }
+    QUIC_FRE_ASSERT(MaxProcCount > 0);
     MsQuicLib.PartitionCount = (uint8_t)MaxProcCount;
     MsQuicCalculatePartitionMask();
 
-    const size_t PerProcSize = MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP);
-    MsQuicLib.PerProc = QUIC_ALLOC_NONPAGED(PerProcSize);
+    MsQuicLib.PerProc =
+        QUIC_ALLOC_NONPAGED(MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
     if (MsQuicLib.PerProc == NULL) {
         QuicTraceEvent(AllocFailure, "connection pools",
             MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
@@ -161,13 +162,11 @@ MsQuicLibraryInitialize(
         goto Error;
     }
 
-    QuicZeroMemory(MsQuicLib.PerProc, PerProcSize);
-
     for (uint8_t i = 0; i < MsQuicLib.PartitionCount; ++i) {
         QuicPoolInitialize(
             FALSE,
             sizeof(QUIC_CONNECTION),
-            &(MsQuicLib.PerProc[i].ConnectionPool));
+            &MsQuicLib.PerProc[i].ConnectionPool);
     }
 
     Status =

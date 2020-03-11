@@ -72,19 +72,20 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicLookupCreateHashTable(
     _In_ QUIC_LOOKUP* Lookup,
-    _In_ uint8_t PartitionCount
+    _In_range_(>, 0) uint8_t PartitionCount
     )
 {
     QUIC_DBG_ASSERT(Lookup->LookupTable == NULL);
-    const uint32_t TableSize = sizeof(QUIC_PARTITIONED_HASHTABLE) * PartitionCount;
+    QUIC_FRE_ASSERT(PartitionCount > 0);
 
-    Lookup->HASH.Tables = QUIC_ALLOC_NONPAGED(TableSize);
+    Lookup->HASH.Tables =
+        QUIC_ALLOC_NONPAGED(sizeof(QUIC_PARTITIONED_HASHTABLE) * PartitionCount);
 
     if (Lookup->HASH.Tables != NULL) {
-        QuicZeroMemory(Lookup->HASH.Tables, TableSize);
+
         uint8_t Cleanup = 0;
         for (uint8_t i = 0; i < PartitionCount; i++) {
-            if (!QuicHashtableInitializeEx(&(Lookup->HASH.Tables[i].Table), QUIC_HASH_MIN_SIZE)) {
+            if (!QuicHashtableInitializeEx(&Lookup->HASH.Tables[i].Table, QUIC_HASH_MIN_SIZE)) {
                 Cleanup = i;
                 break;
             }
@@ -607,8 +608,10 @@ QuicLookupRemoveSourceConnectionIDs(
     QuicDispatchRwLockReleaseExclusive(&Lookup->RwLock);
 
     for (uint8_t i = 0; i < ReleaseRefCount; i++) {
+#pragma warning(push)
 #pragma warning(disable:6001) // SAL doesn't understand ref counts
         QuicConnRelease(Connection, QUIC_CONN_REF_LOOKUP_TABLE);
+#pragma warning(pop)
     }
 }
 
@@ -635,8 +638,10 @@ QuicLookupMoveSourceConnectionIDs(
     }
     QuicDispatchRwLockReleaseExclusive(&LookupSrc->RwLock);
 
+#pragma warning(push)
 #pragma warning(disable:6001) // SAL doesn't understand ref counts
     Entry = Connection->SourceCids.Next;
+#pragma warning(pop)
     while (Entry != NULL) {
         QUIC_CID_HASH_ENTRY *CID =
             QUIC_CONTAINING_RECORD(

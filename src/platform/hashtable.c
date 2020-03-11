@@ -434,7 +434,7 @@ _Must_inspect_result_
 _Success_(return != FALSE)
 BOOLEAN
 QuicHashtableInitialize(
-    _Inout_ _When_(NULL == *HashTable, _At_(*HashTable, __drv_allocatesMem(Mem)))
+    _Inout_ _When_(NULL == *HashTable, _At_(*HashTable, __drv_allocatesMem(Mem) _Post_notnull_))
         QUIC_HASHTABLE* *HashTable,
     _In_ uint32_t InitialSize
     )

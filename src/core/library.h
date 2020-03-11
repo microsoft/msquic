@@ -99,6 +99,7 @@ typedef struct QUIC_LIBRARY {
     //
     // Number of partitions currently being used.
     //
+    _Field_range_(>, 0)
     uint8_t PartitionCount;
 
     //

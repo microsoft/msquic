@@ -68,6 +68,7 @@ QuicRangeGrow(
 
     uint32_t NewAllocLength = Range->AllocLength << 1; // Grow by a factor of 2.
     uint32_t NewAllocSize = NewAllocLength * sizeof(QUIC_SUBRANGE);
+    QUIC_FRE_ASSERTMSG(NewAllocSize > sizeof(QUIC_SUBRANGE), "Range alloc arithmetic underflow.");
     if (NewAllocSize > Range->MaxAllocSize) {
         //
         // Don't log anything as this will be the common case after we hit the

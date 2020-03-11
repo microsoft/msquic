@@ -267,7 +267,8 @@ QuicEncrypt(
     _In_reads_bytes_opt_(AuthDataLength)
         const uint8_t* const AuthData,
     _In_ uint16_t BufferLength,
-    _Out_writes_bytes_(BufferLength)
+    _When_(BufferLength > QUIC_ENCRYPTION_OVERHEAD, _Inout_updates_bytes_(BufferLength))
+    _When_(BufferLength <= QUIC_ENCRYPTION_OVERHEAD, _Out_writes_bytes_(BufferLength))
         uint8_t* Buffer
     );
 

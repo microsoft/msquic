@@ -459,9 +459,12 @@ QuicCryptoWriteOneFrame(
     // We're definitely writing a frame and we know how many bytes it contains,
     // so do the real call to QuicFrameEncodeStreamHeader to write the header.
     //
+#pragma warning(push)
+#pragma warning(disable:6386) // SAL doesn't understand the complicated buffer logic here
     if (!QuicCryptoFrameEncode(&Frame, FrameBytes, BufferLength, Buffer)) {
         QUIC_FRE_ASSERT(FALSE);
     }
+#pragma warning(pop)
 
     PacketMetadata->Flags.IsRetransmittable = TRUE;
     PacketMetadata->Frames[PacketMetadata->FrameCount].Type = QUIC_FRAME_CRYPTO;
