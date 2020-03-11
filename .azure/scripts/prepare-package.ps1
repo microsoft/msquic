@@ -44,10 +44,10 @@ foreach ($Config in $Configs) {
         $InputDir = Join-Path $ArtifactsDir "windows/$($Arch.Item1)_$($Config.Item1)_schannel"
         Force-Copy (Join-Path $InputDir "msquic.lib") (Join-Path $PackageDir "lib/$($Arch.Item2)$($Config.Item2)/user")
         Force-Copy (Join-Path $InputDir "msquicetw.lib") (Join-Path $PackageDir "lib/$($Arch.Item2)$($Config.Item2)/user")
-        Force-Copy (Join-Path $InputDir "msquic.dll") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item3)/user")
-        Force-Copy (Join-Path $InputDir "msquic.pdb") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item3)/user")
-        Force-Copy (Join-Path $InputDir "msquictest.exe") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item3)/user")
-        Force-Copy (Join-Path $InputDir "msquictest.pdb") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item3)/user")
+        Force-Copy (Join-Path $InputDir "msquic.dll") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/user")
+        Force-Copy (Join-Path $InputDir "msquic.pdb") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/user")
+        Force-Copy (Join-Path $InputDir "msquictest.exe") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/user")
+        Force-Copy (Join-Path $InputDir "msquictest.pdb") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/user")
     }
 }
 
@@ -59,9 +59,9 @@ foreach ($Config in $Configs) {
     foreach ($Arch in $Archs) {
         $InputDir = Join-Path $ArtifactsDir "winkernel/$($Arch.Item1)_$($Config.Item1)_schannel"
         Force-Copy (Join-Path $InputDir "msquic.lib") (Join-Path $PackageDir "lib/$($Arch.Item2)$($Config.Item2)/kernel")
-        Force-Copy (Join-Path $InputDir "msquic.sys") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item3)/kernel")
-        Force-Copy (Join-Path $InputDir "msquictest.sys") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item3)/kernel")
-        Force-Copy (Join-Path $InputDir "msquic.pdb") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item3)/kernel")
-        Force-Copy (Join-Path $InputDir "msquictest.pdb") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item3)/kernel")
+        Force-Copy (Join-Path $InputDir "msquic.sys") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/kernel")
+        Force-Copy (Join-Path $InputDir "msquictest.sys") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/kernel")
+        Force-Copy (Join-Path $InputDir "msquic.pdb") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/kernel")
+        Force-Copy (Join-Path $InputDir "msquictest.pdb") (Join-Path $PackageDir "bin/$($Arch.Item3)$($Config.Item2)/kernel")
     }
 }
