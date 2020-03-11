@@ -520,7 +520,7 @@ Return Value:
             return FALSE;
         }
 
-        QuicInitializeSecondLevelDir(Table->SecondLevelDir, Table->TableSize);
+        QuicInitializeSecondLevelDir(Table->SecondLevelDir, QuicComputeSecondLevelDirSize(0));
 
     } else {
 

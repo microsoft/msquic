@@ -511,6 +511,8 @@ QuicDataPathQueryRssScalabilityInfo(
     uint8_t IrpBuffer[sizeof(IRP) + sizeof(IO_STACK_LOCATION)];
     PIRP Irp = (PIRP)IrpBuffer;
 
+    QuicZeroMemory(Irp, sizeof(IrpBuffer));
+
     IoInitializeIrp(Irp, sizeof(IrpBuffer), 1);
     IoSetCompletionRoutine(
         Irp,
@@ -628,6 +630,8 @@ QuicDataPathQuerySockoptSupport(
 
     uint8_t IrpBuffer[sizeof(IRP) + sizeof(IO_STACK_LOCATION)];
     PIRP Irp = (PIRP)IrpBuffer;
+
+    QuicZeroMemory(Irp, sizeof(IrpBuffer));
 
     IoInitializeIrp(Irp, sizeof(IrpBuffer), 1);
     IoSetCompletionRoutine(
@@ -807,7 +811,7 @@ QuicDataPathInitialize(
         goto Exit;
     }
 
-    RtlZeroMemory(Datapath, sizeof(QUIC_DATAPATH));
+    RtlZeroMemory(Datapath, DatapathLength);
     Datapath->RecvHandler = RecvCallback;
     Datapath->UnreachableHandler = UnreachableCallback;
     Datapath->ClientRecvContextLength = ClientRecvContextLength;

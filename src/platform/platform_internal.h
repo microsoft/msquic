@@ -123,7 +123,7 @@ inline
 void
 QuicConvertFromMappedV6(
     _In_ const QUIC_ADDR* InAddr,
-    _Inout_ QUIC_ADDR* OutAddr
+    _Out_ QUIC_ADDR* OutAddr
     )
 {
     QUIC_DBG_ASSERT(InAddr->si_family == AF_INET6);
