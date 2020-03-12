@@ -25,7 +25,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 # Setup CLOG by calling a helper function which sets up dependencies.  Then add the .c file
 #     ...it'd be preferred to have the helper function set this requirement
 #
-#CLOG_ADD_SOURCEFILE(TESTLIB_CLOG_LIB ${SOURCES})
+CLOG_ADD_SOURCEFILE(TESTLIB_CLOG_LIB ${SOURCES})
 
 add_library(testlib ${SOURCES})
 
