@@ -3,7 +3,7 @@
 
 
 # Include Files that need CLOG processing
-include("../../../CLog.make")
+include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
 include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY})
 
 set(SOURCES

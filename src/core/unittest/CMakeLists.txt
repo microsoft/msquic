@@ -5,7 +5,7 @@ include_directories(${CMAKE_SOURCE_DIR}/src/core)
 include_directories(${CMAKE_SOURCE_DIR}/submodules/googletest/googletest/include)
 
 # Include Files that need CLOG processing
-include("../../../CLog.make")
+include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
 include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY})
 
 

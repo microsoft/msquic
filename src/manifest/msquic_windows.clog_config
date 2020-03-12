@@ -192,7 +192,7 @@
     }
   ],
   "ChainedConfigFiles": [
-    "defaults.clog_config"
+    "../../submodules/clog/clog_official/inc/defaults.clog_config"
   ],
   "ModuleUniqueness": {
     "TraceInformation": [

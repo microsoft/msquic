@@ -7,6 +7,14 @@ add_custom_target(CLOG_GENERATED_FILES
     COMMENT "CREATED CMAKE Target for CLOG generated files"
 )
 
+set(CMAKE_CLOG_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/clog)
+set(CMAKE_CLOG_BINS_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/tools/bin/clog)
+set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_SOURCE_DIR}/src/manifest)
+set(CLOG_SOURCE_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/clog/clog_official)
+set(CLOG_INCLUDE_DIRECTORY ${CLOG_SOURCE_DIRECTORY}/inc)
+
+include_directories(${CLOG_INCLUDE_DIRECTORY})
+
 
 message(STATUS "Source Dir: ${CMAKE_SOURCE_DIR}")
 message(STATUS "Host System name: ${CMAKE_HOST_SYSTEM_NAME}")
@@ -45,7 +53,7 @@ option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
 option(QUIC_BUILD_TEST "Builds the test code" ON)
 option(QUIC_ENABLE_LOGGING "Enables logging" ON)
 option(QUIC_SANITIZE_ADDRESS "Enables address sanitizer" OFF)
-set(CMAKE_CLOG_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/clog)
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/obj)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/bin)
