@@ -403,7 +403,7 @@ function GetTestCases {
 ##############################################################
 
 # Query all the test cases.
-$TestCases = (GetTestCases -as [String[]])
+$TestCases = GetTestCases
 if ($null -eq $TestCases) {
     Log "No test cases found."
     exit
