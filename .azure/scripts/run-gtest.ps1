@@ -377,20 +377,22 @@ function Wait-TestCase($TestCase) {
 # Runs the test executable to query all available test cases, parses the console
 # output and returns a list of test case names.
 function GetTestCases {
-    $stdout = & $Path "--gtest_list_tests"
-
-    if ($null -eq $stdout) {
-        Write-Error "[$(Get-Date)] No output from $($TestExeName)!"
+    $Arguments = " --gtest_list_tests"
+    if ($Filter -ne "") {
+        $Arguments = " --gtest_filter=$Filter --gtest_list_tests"
     }
+    $stdout = Invoke-Expression ($Path + $Arguments)
 
-    $Lines = ($stdout.Split([Environment]::NewLine)) | Where-Object { $_.Length -ne 0 }
-    $CurTestGroup = $null
     $Tests = New-Object System.Collections.ArrayList
-    for ($i = 0; $i -lt $Lines.Length; $i++) {
-        if (!($Lines[$i].StartsWith(" "))) {
-            $CurTestGroup = $Lines[$i]
-        } else {
-            $Tests.Add($CurTestGroup + $Lines[$i].Split("#")[0].Trim()) | Out-Null
+    if ($null -ne $stdout) {
+        $Lines = ($stdout.Split([Environment]::NewLine)) | Where-Object { $_.Length -ne 0 }
+        $CurTestGroup = $null
+        for ($i = 0; $i -lt $Lines.Length; $i++) {
+            if (!($Lines[$i].StartsWith(" "))) {
+                $CurTestGroup = $Lines[$i]
+            } else {
+                $Tests.Add($CurTestGroup + $Lines[$i].Split("#")[0].Trim()) | Out-Null
+            }
         }
     }
     $Tests.ToArray()
@@ -401,28 +403,13 @@ function GetTestCases {
 ##############################################################
 
 # Query all the test cases.
-$TestCases = GetTestCases
-
-# Apply any filtering.
-if ($Filter -ne "") {
-    $isNegative = $false
-    foreach ($f in $Filter.Split(":")) {
-        if ($f.StartsWith("-")) {
-            $isNegative = $true
-        }
-        if ($isNegative) {
-            $f = $f.Substring(1)
-            $TestCases = ($TestCases | Where-Object { !($_ -Like $f) }) -as [String[]]
-        } else {
-            $TestCases = ($TestCases | Where-Object { $_ -Like $f }) -as [String[]]
-        }
-    }
-}
-
+$TestCases = (GetTestCases -as [String[]])
 if ($null -eq $TestCases) {
     Log "No test cases found."
     exit
 }
+
+$TestCount = ($TestCases -as [String[]]).Length
 
 if ($ListTestCases) {
     # List the tst cases.
@@ -445,13 +432,13 @@ try {
         }
 
         # Run the the test process once for all tests.
-        Log "Executing tests in batch..."
+        Log "Executing $TestCount test(s) in batch..."
         Wait-TestCase (Start-AllTestCases)
 
     } else {
         if ($ExecutionMode -eq "Serial") {
             # Run the test cases serially.
-            Log "Executing $($TestCases.Length) tests in series..."
+            Log "Executing $TestCount test(s) in series..."
             for ($i = 0; $i -lt $TestCases.Length; $i++) {
                 Wait-TestCase (Start-TestCase $TestCases[$i])
                 Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
@@ -465,7 +452,7 @@ try {
             }
 
             # Starting the test cases all in parallel.
-            Log "Starting $($TestCases.Length) tests in parallel..."
+            Log "Starting $TestCount test(s) in parallel..."
             $Runs = New-Object System.Collections.ArrayList
             for ($i = 0; $i -lt $TestCases.Length; $i++) {
                 $Runs.Add((Start-TestCase $TestCases[$i])) | Out-Null
