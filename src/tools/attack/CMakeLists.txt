@@ -14,7 +14,7 @@ include_directories(${CMAKE_SOURCE_DIR}/src/core)
 
 add_executable(quicattack ${SOURCES})
 
-target_link_libraries(quicattack core platform CORE_CLOG_LIB PLATFORM_CLOG_LIB)
+target_link_libraries(quicattack core platform)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     target_link_libraries(quicattack

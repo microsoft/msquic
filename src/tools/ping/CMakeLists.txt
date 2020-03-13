@@ -13,7 +13,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 
 add_executable(quicping ${SOURCES})
 
-target_link_libraries(quicping msquic platform CORE_CLOG_LIB PLATFORM_CLOG_LIB)
+target_link_libraries(quicping msquic platform)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     target_link_libraries(quicping

@@ -28,6 +28,6 @@ CLOG_ADD_SOURCEFILE(MSQUIC_CORETEST ${SOURCES})
 
 add_executable(msquiccoretest ${SOURCES})
 
-target_link_libraries(msquiccoretest msquic gtest CORE_CLOG_LIB PLATFORM_CLOG_LIB)
+target_link_libraries(msquiccoretest msquic gtest)
 
 add_test(msquiccoretest msquiccoretest)

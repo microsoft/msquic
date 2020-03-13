@@ -45,6 +45,6 @@ elseif(QUIC_TLS STREQUAL "mitls")
     target_link_libraries(msquicplatformtest kremlib evercrypt mitls quiccrypto ncrypt crypt32)
 endif()
 
-target_link_libraries(msquicplatformtest platform gtest  CORE_CLOG_LIB PLATFORM_CLOG_LIB)
+target_link_libraries(msquicplatformtest platform gtest)
 
 add_test(msquicplatformtest msquicplatformtest)

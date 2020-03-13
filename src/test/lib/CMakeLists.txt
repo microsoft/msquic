@@ -12,7 +12,7 @@ set(SOURCES
     EventTest.cpp
     QuicDrill.cpp
     QuicTest.cpp
-    TestConnection.cpp
+    TestConnection.cpp  
     TestListener.cpp
     TestStream.cpp
 )
@@ -28,6 +28,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 #CLOG_ADD_SOURCEFILE(TESTLIB_CLOG_LIB ${SOURCES})
 
 add_library(testlib ${SOURCES})
+
 target_compile_options(testlib PRIVATE
      $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
         ${CLANG_GCC_WARNING_FLAGS}>
@@ -35,5 +36,5 @@ target_compile_options(testlib PRIVATE
         ${MSVC_WARNING_FLAGS}>)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    add_dependencies(platform MsQuicEtw PLATFORM_CLOG_LIB)
+    add_dependencies(platform MsQuicEtw)
 endif()
