@@ -119,11 +119,13 @@ QuicConvertToMappedV6(
 // Converts (possibly mapped) IPv6 address to a IPv6 or IPV4 address. Does
 // support InAdrr == OutAddr.
 //
+#pragma warning(push)
+#pragma warning(disable: 6101) // Intentially don't overwrite output if unable to convert
 inline
 void
 QuicConvertFromMappedV6(
     _In_ const QUIC_ADDR* InAddr,
-    _Inout_ QUIC_ADDR* OutAddr
+    _Out_ QUIC_ADDR* OutAddr
     )
 {
     QUIC_DBG_ASSERT(InAddr->si_family == AF_INET6);
@@ -137,6 +139,7 @@ QuicConvertFromMappedV6(
         *OutAddr = *InAddr;
     }
 }
+#pragma warning(pop)
 
 #endif
 
