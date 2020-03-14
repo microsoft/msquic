@@ -545,10 +545,6 @@
         "TraceID": "CryptoDumpUnacked"
       },
       {
-        "UniquenessHash": "3345da12-6b90-4fde-9d28-669af577e8a8",
-        "TraceID": "NoMoreRoomForCrypto"
-      },
-      {
         "UniquenessHash": "a73e6bb1-192d-f4f8-e6ef-c98d3a3eedbf",
         "TraceID": "AddCryptoFrame"
       },
@@ -2403,6 +2399,358 @@
       {
         "UniquenessHash": "9e969969-aac7-79b8-23fe-e40d65638561",
         "TraceID": "ScheduleSendFlags"
+      },
+      {
+        "UniquenessHash": "7af13cd4-a73f-7636-f9ac-98b5014f953d",
+        "TraceID": "NoMoreRoomForCrypto"
+      },
+      {
+        "UniquenessHash": "0769c375-c2ab-d9ad-8c6a-d3d12728951b",
+        "TraceID": "FN_cert_capi332ce3a0478930dcc0f30a74d3b73bef"
+      },
+      {
+        "UniquenessHash": "f5d267fb-796a-75bf-94fe-b193f40e2582",
+        "TraceID": "FN_cert_capia03041865fc856d1e4ee6ce5628bdbaf"
+      },
+      {
+        "UniquenessHash": "f0b0b2e9-6d2c-4c41-4288-81b14fb27657",
+        "TraceID": "FN_cert_capied863464d8821793b4154d75fcf32d5b"
+      },
+      {
+        "UniquenessHash": "981383d2-2b13-b22d-16e4-87428239bba3",
+        "TraceID": "FN_cert_capi5bb34b6704875d28cb94dc588d4b472a"
+      },
+      {
+        "UniquenessHash": "ac79f181-91a7-fea8-c1df-5544e44fec20",
+        "TraceID": "FN_cert_capi17d2c0488205ee4e61e1e86b9b6ff56b"
+      },
+      {
+        "UniquenessHash": "27575d3e-3091-f821-2119-71d12e41c441",
+        "TraceID": "FN_cert_capiee6066640e45e7af6588ec052f0c067f"
+      },
+      {
+        "UniquenessHash": "b612344f-b7f8-239d-e7b9-d319b827589a",
+        "TraceID": "FN_cert_capi9ce4f92e6428499177c1105cbdfaed28"
+      },
+      {
+        "UniquenessHash": "a306f523-dee0-016a-8724-bdd22641c22f",
+        "TraceID": "FN_cert_capi1f5a615a0ca68291825c1c035f552f11"
+      },
+      {
+        "UniquenessHash": "13b9cb8f-22f8-3e57-8032-1dc894723f7f",
+        "TraceID": "FN_cert_capi2a247724ef2fdb2817522e427f20c5b7"
+      },
+      {
+        "UniquenessHash": "8b57ea01-ed1f-e5fc-61a1-ad566f5e337b",
+        "TraceID": "FN_cert_capi0ea0bfe55114d53864b583880e28febd"
+      },
+      {
+        "UniquenessHash": "f426f51c-043c-c61b-7bb2-8aeb58bd826d",
+        "TraceID": "FN_cert_capie9f6ebfefedfe10ace186698160ca5e7"
+      },
+      {
+        "UniquenessHash": "4ab6249c-3ade-54ae-0fe5-72e56b31463e",
+        "TraceID": "FN_cert_capi566dce19e279b51310e501a3d10cb8bb"
+      },
+      {
+        "UniquenessHash": "197ce8b5-4d4a-6b6c-2212-76925a4829d0",
+        "TraceID": "FN_cert_capi20392d28615e72bb1d59e5a6bc2751a4"
+      },
+      {
+        "UniquenessHash": "d5bde170-281f-8db3-8a82-da77fa56467b",
+        "TraceID": "FN_cert_capif85d28e87fb160b72a3e4062af703589"
+      },
+      {
+        "UniquenessHash": "06597174-c49d-8632-c824-26ee384f3650",
+        "TraceID": "FN_cert_capid7cda0467be9666b4624e1d824fa3e4f"
+      },
+      {
+        "UniquenessHash": "f04fcb16-d35d-fe8b-c06e-276240957e9e",
+        "TraceID": "FN_cert_capiaee49fa3187aab711dc50b0ce162f7c5"
+      },
+      {
+        "UniquenessHash": "695fa373-a965-6197-57f5-f54baa97da67",
+        "TraceID": "FN_cert_capi5c2523d318ca5995bcc6dfa9f4edd05f"
+      },
+      {
+        "UniquenessHash": "65f81c66-4e90-b73d-191b-5138ce8de5db",
+        "TraceID": "FN_cert_capiaad93cae0528abd93349f2e1f0c0d733"
+      },
+      {
+        "UniquenessHash": "439f9d66-3c93-e87b-2cff-5b29ce9148dc",
+        "TraceID": "FN_cert_capiec620a1708e8f40da6e3a3fcffa2b044"
+      },
+      {
+        "UniquenessHash": "dd74f006-dcdc-25da-2426-eea3084c24b0",
+        "TraceID": "FN_cert_capi24d66c83bf0adc7239db5119b81b679c"
+      },
+      {
+        "UniquenessHash": "9610c2ca-c79f-3b5a-3b9e-f018501cfee3",
+        "TraceID": "FN_cert_capi43b2d940a5becc6235628c85ce8ced33"
+      },
+      {
+        "UniquenessHash": "d09b333b-daa6-e270-db43-01109fd58721",
+        "TraceID": "FN_cert_capiae80431d598b350efeb03382cbeb2b41"
+      },
+      {
+        "UniquenessHash": "dea97e11-144e-f3fc-7794-8ecc50dee0af",
+        "TraceID": "FN_cert_capif08fb999578bf6d0c9eeaa0df652e2f0"
+      },
+      {
+        "UniquenessHash": "45c742b4-6e98-e455-f2fe-bf86c26e5902",
+        "TraceID": "FN_cert_capid6bc56587e5b37506529ac0f2e978988"
+      },
+      {
+        "UniquenessHash": "740a83c8-5552-abeb-6aed-927d1f7e072b",
+        "TraceID": "FN_cert_capi74f600bbf24758be24c171307f786d93"
+      },
+      {
+        "UniquenessHash": "a5d48e84-2cee-7741-f842-a5431e9531ed",
+        "TraceID": "FN_cert_capi6ef52f7405a29bc4484fcb2478561c69"
+      },
+      {
+        "UniquenessHash": "4e4ecde9-9805-52c7-72ce-344fbbee046b",
+        "TraceID": "FN_cert_capi9d9c3aecf5c804cd4f49710986e4e86f"
+      },
+      {
+        "UniquenessHash": "125fba3b-edbc-1908-77d8-8a1f0ce43627",
+        "TraceID": "FN_cert_capi26376cc0986f6195c23953e735c21dff"
+      },
+      {
+        "UniquenessHash": "539a45c7-5c5a-86f0-413c-d89aaef2d769",
+        "TraceID": "FN_cert_capiaf9152a65b5a765ac869b83af9bbe4b2"
+      },
+      {
+        "UniquenessHash": "e6a88cdf-7ec7-f9ab-b679-bf38ec8d3b63",
+        "TraceID": "FN_cert_capid75c4943214f92a4e4aed3f409633d32"
+      },
+      {
+        "UniquenessHash": "c15fe3af-4029-59ca-eb3c-e2ad1ea79735",
+        "TraceID": "FN_cert_capif423b51efcd97ed754802562c64995f1"
+      },
+      {
+        "UniquenessHash": "446140a2-9e85-1117-e0fe-b3b422961a7e",
+        "TraceID": "FN_selfsign_capi0ea0bfe55114d53864b583880e28febd"
+      },
+      {
+        "UniquenessHash": "9159e35a-1f11-f097-12a8-d11260195775",
+        "TraceID": "FN_selfsign_capib987d46256da02f01ee442873c55fc3a"
+      },
+      {
+        "UniquenessHash": "71b7d7d4-f62e-acf0-0e6d-3aed7f0e1c46",
+        "TraceID": "FN_selfsign_capicb36dc033ac9877463b0859504450655"
+      },
+      {
+        "UniquenessHash": "43c3d34f-0586-e7a3-b232-240abf60d086",
+        "TraceID": "FN_selfsign_capi35f78be05fa1f09f40401bab17eb322e"
+      },
+      {
+        "UniquenessHash": "dab8b2c3-48a9-cbf3-46f4-db6584b934bf",
+        "TraceID": "FN_selfsign_capi7d9d27fd867edffa90d14735abcef13b"
+      },
+      {
+        "UniquenessHash": "76ca1163-613d-0889-af2d-fba8a68d7749",
+        "TraceID": "FN_selfsign_capi760f4991b08a42d6e34243caf688f6db"
+      },
+      {
+        "UniquenessHash": "5aea0450-60df-412a-520d-1c341155eb0b",
+        "TraceID": "FN_selfsign_capi8650607e99507e1eb44a84f5cb4faff4"
+      },
+      {
+        "UniquenessHash": "799fb571-07bd-84d6-c7ba-670ccef05c35",
+        "TraceID": "FN_selfsign_capi9389d4c9e8922de376eb5fe3d0b2ec6e"
+      },
+      {
+        "UniquenessHash": "44bedcae-b0e8-4261-c682-b2265abd8185",
+        "TraceID": "FN_selfsign_capib4167274625f54f8d7dae77b1badfa37"
+      },
+      {
+        "UniquenessHash": "63f8db81-9b10-2f47-15d8-257e7dfe8253",
+        "TraceID": "FN_selfsign_capib54384b48c8de0ef32831df01792b822"
+      },
+      {
+        "UniquenessHash": "2815d22b-aea3-facd-6d3e-8c49ba946664",
+        "TraceID": "FN_selfsign_capif612c254501084f860a4d65f1d00f458"
+      },
+      {
+        "UniquenessHash": "5c6db2f1-54a9-c984-3088-4d1f071f0edf",
+        "TraceID": "FN_selfsign_capi12b6d068a1a9391246c76011697121e0"
+      },
+      {
+        "UniquenessHash": "e5c35062-529c-60e8-8f5f-545518106be6",
+        "TraceID": "FN_selfsign_capi0dde9310da399e50c6c40f7aa5805fe9"
+      },
+      {
+        "UniquenessHash": "3086b934-b23e-f53c-d73f-c4b14c8a9a3c",
+        "TraceID": "FN_selfsign_capi78ec506566adfde5beacd100ed342b0a"
+      },
+      {
+        "UniquenessHash": "fe8867d4-7d78-2b55-6141-5b5cd6b9e7ef",
+        "TraceID": "FN_selfsign_capi7224c0d1a17ab3a6ac156ed43aef923b"
+      },
+      {
+        "UniquenessHash": "8443c062-47b8-f4d4-cfa0-549128ce121c",
+        "TraceID": "FN_selfsign_capi2005562022de62909c3f0c7285426014"
+      },
+      {
+        "UniquenessHash": "add0daba-eb77-d4da-b1aa-cdf344c26e6c",
+        "TraceID": "FN_selfsign_capi577a364e6a706037a4d5314ede005085"
+      },
+      {
+        "UniquenessHash": "d375520a-c262-a124-b279-654b8ed6392c",
+        "TraceID": "FN_selfsign_capibeb3d36073e270808487b7ad4e94759c"
+      },
+      {
+        "UniquenessHash": "6eb7633b-58a4-af97-ff7b-799a3d314879",
+        "TraceID": "FN_selfsign_capi50b9de74542ef82946afc0f3d0db3ed9"
+      },
+      {
+        "UniquenessHash": "c933e9cb-b83a-5721-a6fb-c7221459b0df",
+        "TraceID": "FN_selfsign_capifcdde10fcd730b6d052d07c926b4176a"
+      },
+      {
+        "UniquenessHash": "979a2a18-f77f-ea15-4a71-3834b65faa7c",
+        "TraceID": "FN_selfsign_capi7ef9c5e5ef97f389821078e31a11d45e"
+      },
+      {
+        "UniquenessHash": "800c811d-1f24-1268-867a-3a550aae2fee",
+        "TraceID": "FN_selfsign_capieb8ac18220159f03a2fc2869b2bfd275"
+      },
+      {
+        "UniquenessHash": "b9fd8b6d-9eae-421e-160b-284450f5a664",
+        "TraceID": "FN_selfsign_capi19a45b31070a77d6fccf2496fd8af96b"
+      },
+      {
+        "UniquenessHash": "ce6d60e4-76b2-df5f-3d73-a90dfbecae6f",
+        "TraceID": "FN_selfsign_capi3039c7954db54dd771a7e5cf2a2e8543"
+      },
+      {
+        "UniquenessHash": "2a51f066-d3cb-eac0-025d-1a5029266b28",
+        "TraceID": "FN_selfsign_capibb2e66d5c0fa329c33511153548609b9"
+      },
+      {
+        "UniquenessHash": "0f21c99a-303e-a29d-0894-e9a687dc0bd2",
+        "TraceID": "FN_selfsign_capib7f937400a87b8cc12ab6d021b98d0da"
+      },
+      {
+        "UniquenessHash": "309efa67-4bfd-56e7-4caa-8f6f3ff9d446",
+        "TraceID": "FN_selfsign_capib3aab84f6a61d0f06607e50d73e64728"
+      },
+      {
+        "UniquenessHash": "9b621226-aa6a-4e4e-76a3-f2da99943652",
+        "TraceID": "FN_selfsign_capi9777e92b55d10041e8c1879083583602"
+      },
+      {
+        "UniquenessHash": "fb562e7b-8e0f-7314-510f-5dac47889df9",
+        "TraceID": "FN_selfsign_capi24fca425cd878eb28a4a89014d353835"
+      },
+      {
+        "UniquenessHash": "8ed4c9f7-b921-308d-81b8-e7141b53cd03",
+        "TraceID": "FN_selfsign_capi35d3b0c70fdf4ee038769a9a60d87ee8"
+      },
+      {
+        "UniquenessHash": "32ef3ffc-06be-a752-d94a-e9041640ad10",
+        "TraceID": "FN_selfsign_capi1b6739defef24561b3846cb5127a3644"
+      },
+      {
+        "UniquenessHash": "1d977b00-d251-3966-ea3c-e7a840e294f2",
+        "TraceID": "FN_selfsign_capi30cfec4d6480dd6e2ccca715e08c306a"
+      },
+      {
+        "UniquenessHash": "3aa00c2d-101c-134f-3ad0-f16566297b2b",
+        "TraceID": "FN_selfsign_capi47e693d98dffdb601a27fda197f23007"
+      },
+      {
+        "UniquenessHash": "89af2db8-cc51-7fdd-56c8-568fd9c93593",
+        "TraceID": "FN_tls_schannelf64eed1bdb2b3ad9b5977354e08be5bd"
+      },
+      {
+        "UniquenessHash": "7ae1e13f-730e-e752-dc16-9cbb439a808d",
+        "TraceID": "FN_tls_schannel17f0d4ffbb3c4f80c2422125e4fa3a17"
+      },
+      {
+        "UniquenessHash": "81f0da9f-ca84-b355-0649-64841ad1c4ed",
+        "TraceID": "FN_tls_schannel30e07aa262881737030e9cf1ebd43162"
+      },
+      {
+        "UniquenessHash": "f87de7cf-6341-a39f-1191-7eb2b0f80335",
+        "TraceID": "FN_tls_schannel1d944110e7ac29bb27332b45e704846e"
+      },
+      {
+        "UniquenessHash": "ecb89050-53e3-bbab-24a1-36ade09d1b88",
+        "TraceID": "FN_tls_schannelc8b3f8ee595be8c34e988c062530e0b5"
+      },
+      {
+        "UniquenessHash": "8746f0ac-ac29-aeb7-00c1-7799ac671915",
+        "TraceID": "FN_tls_schannele60d006afc2cab6e462c21e95ce14070"
+      },
+      {
+        "UniquenessHash": "5cfc8475-e091-5cc0-a00a-4eda2768718f",
+        "TraceID": "FN_tls_schannel30391afe07b6d3f74572de151f17cbae"
+      },
+      {
+        "UniquenessHash": "0c027f0d-b3f7-8398-8f9f-8d99db03f0e8",
+        "TraceID": "FN_tls_schannel6970b6eabec6111fb0e2607f8de29955"
+      },
+      {
+        "UniquenessHash": "14e02cd4-6d57-722a-da15-7956e4f58430",
+        "TraceID": "FN_tls_schannel2d1fad924513272aa57a5583188d4f3b"
+      },
+      {
+        "UniquenessHash": "0b6d55ee-b378-7c1c-707d-82cfe2e90543",
+        "TraceID": "FN_tls_schannel4317e3d2ceeb3b5573f957f9ed083e97"
+      },
+      {
+        "UniquenessHash": "50157ba4-e9bc-1dae-5311-e43ddaeec481",
+        "TraceID": "FN_tls_schannelb65b8dca7f5151d13234fe346bafd955"
+      },
+      {
+        "UniquenessHash": "bea951df-a480-1f21-5e2c-09a12f7b5fb3",
+        "TraceID": "FN_tls_schannele8a70813676523358183bd7ed391b113"
+      },
+      {
+        "UniquenessHash": "100450c2-4235-6de9-059d-60c24de915ea",
+        "TraceID": "FN_tls_schannel9c3e8aea1bec24709728acfa96449d4b"
+      },
+      {
+        "UniquenessHash": "9e85369e-12db-7276-9b13-df18f7196eab",
+        "TraceID": "FN_tls_schannel6d361481ebf951cde4a4cf39643dfef0"
+      },
+      {
+        "UniquenessHash": "33df7bd5-c393-c251-71d9-0aa7a29eb112",
+        "TraceID": "FN_tls_schannel8b8980417b7165619250b4160d5f5320"
+      },
+      {
+        "UniquenessHash": "c33610ac-2176-c407-5225-2f31d4d66a0f",
+        "TraceID": "FN_tls_schannel46416f9e948dc2d7e0da7dff4824650b"
+      },
+      {
+        "UniquenessHash": "200cf5f8-7a5c-1de6-6193-252717d0db6f",
+        "TraceID": "FN_tls_schannel1791055a5ed419b1993a1889e6a3c2f3"
+      },
+      {
+        "UniquenessHash": "e5f0c15d-ae63-531c-d423-b0e19bd5cc1e",
+        "TraceID": "FN_tls_schannel11388d903b526f90953cc5357d33da16"
+      },
+      {
+        "UniquenessHash": "fe2b838a-4bca-305b-3d75-7abec4d3d613",
+        "TraceID": "FN_tls_schannel4f259e4b8596ae5c2c3a20b405dc2316"
+      },
+      {
+        "UniquenessHash": "f9fe2e40-5955-dc6d-3a5a-6f4fbf35f104",
+        "TraceID": "FN_tls_schannel754265edd8c0f88042c680baa8685b2a"
+      },
+      {
+        "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
+        "TraceID": "LibraryError"
+      },
+      {
+        "UniquenessHash": "4465575d-da66-8105-b38c-bd370a6e8355",
+        "TraceID": "TlsErrorStatus"
+      },
+      {
+        "UniquenessHash": "9eac4540-061f-ff2b-c104-5c1e1b8b22b6",
+        "TraceID": "TlsError"
       }
     ]
   }
