@@ -142,6 +142,10 @@
 #define _Inout_updates_bytes_(...)
 #endif
 
+#ifndef _Inout_updates_bytes_opt_
+#define _Inout_updates_bytes_opt_(...)
+#endif
+
 #ifndef _Out_opt_
 #define _Out_opt_
 #endif

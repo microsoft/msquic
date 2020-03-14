@@ -783,8 +783,16 @@ QUIC_STATUS
 QuicTlsServerSecConfigCreate(
     _Inout_ QUIC_RUNDOWN_REF* Rundown,
     _In_ QUIC_SEC_CONFIG_FLAGS Flags,
-    _In_opt_ void* Certificate,
-    _In_opt_z_ const char* Principal,
+    _When_(Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH, _In_)
+    _When_(Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE, _In_)
+    _When_(Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT, _In_)
+    _When_(Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_NONE, _In_opt_)
+        void* Certificate,
+    _When_(Flags& QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH, _In_opt_z_)
+    _When_(Flags& QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE, _In_opt_z_)
+    _When_(Flags& QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT, _In_opt_z_)
+    _When_(Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_NONE, _In_z_)
+        const char* Principal,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
@@ -902,6 +910,10 @@ QuicTlsServerSecConfigCreate(
     // Set the parameters and then call ACHA.
     //
     if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH) {
+        if (Certificate == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
         QUIC_CERTIFICATE_HASH* CertHash = Certificate;
         AchaContext->CertHash.dwLength = sizeof(AchaContext->CertHash);
         AchaContext->CertHash.dwFlags |= SCH_MACHINE_CERT_HASH;
@@ -923,6 +935,10 @@ QuicTlsServerSecConfigCreate(
         Credentials->dwFlags |= SCH_MACHINE_CERT_HASH;
 
     } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE) {
+        if (Certificate == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
         QUIC_CERTIFICATE_HASH_STORE* CertHashStore = Certificate;
 
         AchaContext->CertHash.dwLength = sizeof(AchaContext->CertHash);
@@ -934,6 +950,9 @@ QuicTlsServerSecConfigCreate(
             &(CertHashStore->ShaHash),
             sizeof(AchaContext->CertHash.ShaHash));
 
+#pragma warning(push)
+#pragma warning(disable:6387) // Parameter 3 is allowed to be NULL when the value isn't wanted.
+#pragma warning(disable:6385) // SAL ignores the annotations on strnlen_s because of the (ULONG) cast. Probably.
         Status =
             RtlUTF8ToUnicodeN(
                 AchaContext->CertHash.pwszStoreName,
@@ -943,6 +962,7 @@ QuicTlsServerSecConfigCreate(
                 (ULONG) strnlen_s(
                     CertHashStore->StoreName,
                     sizeof(CertHashStore->StoreName)));
+#pragma warning(pop)
         if (!NT_SUCCESS(Status)) {
             QuicTraceEvent(LibraryErrorStatus, Status, "Convert cert store name to unicode");
             goto Error;
@@ -2067,7 +2087,7 @@ QuicTlsParamGet(
     _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
+    _Inout_updates_bytes_opt_(*BufferLength)
         void* Buffer
     )
 {
@@ -2708,7 +2728,8 @@ QuicEncrypt(
     _In_reads_bytes_opt_(AuthDataLength)
         const uint8_t* const AuthData,
     _In_ uint16_t BufferLength,
-    _Inout_updates_bytes_(BufferLength)
+    _When_(BufferLength > QUIC_ENCRYPTION_OVERHEAD, _Inout_updates_bytes_(BufferLength))
+    _When_(BufferLength <= QUIC_ENCRYPTION_OVERHEAD, _Out_writes_bytes_(BufferLength))
         uint8_t* Buffer
     )
 {

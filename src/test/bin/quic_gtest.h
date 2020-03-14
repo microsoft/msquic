@@ -355,41 +355,6 @@ std::ostream& operator << (std::ostream& o, const DrillInitialPacketCidArgs& arg
 
 class WithDrillInitialPacketCidArgs: public testing::TestWithParam<DrillInitialPacketCidArgs> {
 protected:
-    static void SetUpTestSuite()
-    {
-        QUIC_STATUS Status;
-        uint8_t Disabled = FALSE;
-
-        Status =
-            MsQuic->SetParam(
-                Registration,
-                QUIC_PARAM_LEVEL_REGISTRATION,
-                QUIC_PARAM_REGISTRATION_ENCRYPTION,
-                sizeof(Disabled),
-                &Disabled);
-        if (QUIC_FAILED(Status)) {
-            CLOG_BUG_TraceLogError(FN_quic_gtest71846a9bd6bfce5ef3916d34cf1fd7ff, "Failed to disable encryption for test. 0x%x",  Status);
-            GTEST_NONFATAL_FAILURE_("Failed to disable encryption for test.");
-        }
-    }
-
-    static void TearDownTestSuite()
-    {
-        QUIC_STATUS Status;
-        uint8_t Enabled = TRUE;
-
-        Status =
-            MsQuic->SetParam(
-                Registration,
-                QUIC_PARAM_LEVEL_REGISTRATION,
-                QUIC_PARAM_REGISTRATION_ENCRYPTION,
-                sizeof(Enabled),
-                &Enabled);
-        if (QUIC_FAILED(Status)) {
-            CLOG_BUG_TraceLogError(FN_quic_gtest50d5f151f0424344fcece303e2a8348e, "Failed to re-enable encryption after test. 0x%x",  Status);
-            GTEST_NONFATAL_FAILURE_("Failed to re-enable encryption for test.");
-        }
-    }
 };
 
 struct DrillInitialPacketTokenArgs {

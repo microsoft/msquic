@@ -189,6 +189,7 @@ Arguments:
     QUIC_DBG_ASSERT(*FirstLevelIndex < HT_FIRST_LEVEL_DIR_SIZE);
 }
 
+_Ret_range_(>=, QUIC_HASH_MIN_SIZE)
 static
 uint32_t
 QuicComputeSecondLevelDirSize(
@@ -436,7 +437,7 @@ _Must_inspect_result_
 _Success_(return != FALSE)
 BOOLEAN
 QuicHashtableInitialize(
-    _Inout_ _When_(NULL == *HashTable, _At_(*HashTable, __drv_allocatesMem(Mem)))
+    _Inout_ _When_(NULL == *HashTable, _At_(*HashTable, __drv_allocatesMem(Mem) _Post_notnull_))
         QUIC_HASHTABLE* *HashTable,
     _In_ uint32_t InitialSize
     )

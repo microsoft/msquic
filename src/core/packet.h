@@ -446,7 +446,7 @@ QuicPacketGenerateRetryV1Integrity(
     _In_ uint16_t BufferLength,
     _In_reads_bytes_(BufferLength)
         const uint8_t* const Buffer,
-    _Out_writes_bytes_(QUIC_ENCRYPTION_OVERHEAD)
+    _Out_writes_bytes_(QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1)
         uint8_t* IntegrityField
     );
 

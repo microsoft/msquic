@@ -224,10 +224,25 @@ QuicDrillInitialPacketFailureTest(
 
     QuicAddr ServerAddress(QuicAddrFamily);
     DrillSender Sender;
+    const uint8_t Disabled = FALSE;
+    const uint8_t Enabled = TRUE;
+
+    Status =
+        MsQuic->SetParam(
+            Registration,
+            QUIC_PARAM_LEVEL_REGISTRATION,
+            QUIC_PARAM_REGISTRATION_ENCRYPTION,
+            sizeof(Disabled),
+            &Disabled);
+    if (QUIC_FAILED(Status)) {
+        TEST_FAILURE("Failed to disable encryption for test. 0x%x", Status);
+        return false;
+    }
+
     MsQuicSession Session(Registration);
     if (!Session.IsValid()) {
         TEST_FAILURE("Session not valid!");
-        return false;
+        goto Failure;
     }
 
     {
@@ -239,7 +254,7 @@ QuicDrillInitialPacketFailureTest(
         Status = Listener.Start(&ServerAddress.SockAddr);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("ListenerStart failed, 0x%x.", Status);
-            return false;
+            goto Failure;
         }
 
         //
@@ -248,7 +263,7 @@ QuicDrillInitialPacketFailureTest(
         Status = Listener.GetLocalAddr(ServerAddress);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("MsQuic->GetParam failed, 0x%x.", Status);
-            return false;
+            goto Failure;
         }
 
         Status =
@@ -259,7 +274,7 @@ QuicDrillInitialPacketFailureTest(
                     ServerAddress.SockAddr.Ipv4.sin_port :
                     ServerAddress.SockAddr.Ipv6.sin6_port);
         if (QUIC_FAILED(Status)) {
-            return false;
+            goto Failure;
         }
 
         DrillBuffer PacketBuffer = InitialPacketDescriptor.write();
@@ -267,7 +282,7 @@ QuicDrillInitialPacketFailureTest(
         Status = Listener.GetStatistics(Stats);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Get Listener statistics before test failed, 0x%x.", Status);
-            return false;
+            goto Failure;
         }
         DroppedPacketsBefore = Stats.Binding.Recv.DroppedPackets;
 
@@ -276,7 +291,7 @@ QuicDrillInitialPacketFailureTest(
         //
         Status = Sender.Send(&PacketBuffer);
         if (QUIC_FAILED(Status)) {
-            return false;
+            goto Failure;
         }
 
         //
@@ -287,7 +302,7 @@ QuicDrillInitialPacketFailureTest(
         Status = Listener.GetStatistics(Stats);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Get Listener statistics after test failed, 0x%x.", Status);
-            return false;
+            goto Failure;
         }
         DroppedPacketsAfter = Stats.Binding.Recv.DroppedPackets;
 
@@ -299,10 +314,23 @@ QuicDrillInitialPacketFailureTest(
             TEST_FAILURE(
                 "DroppedPacketsAfter - DroppedPacketsBefore (%d) not equal to 1",
                 DroppedPacketsAfter - DroppedPacketsBefore);
-            return false;
+            goto Failure;
         }
     }
     return true;
+
+Failure:
+    Status =
+        MsQuic->SetParam(
+            Registration,
+            QUIC_PARAM_LEVEL_REGISTRATION,
+            QUIC_PARAM_REGISTRATION_ENCRYPTION,
+            sizeof(Enabled),
+            &Enabled);
+    if (QUIC_FAILED(Status)) {
+        TEST_FAILURE("Failed to re-enable encryption after test. 0x%x", Status);
+    }
+    return false;
 }
 
 #define VALID_CID_LENGTH_SHORT 8

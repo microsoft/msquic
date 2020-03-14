@@ -351,10 +351,10 @@ QuicConnFree(
     if (Connection->OrigCID != NULL) {
         QUIC_FREE(Connection->OrigCID);
     }
+    QuicTraceEvent(ConnDestroyed, Connection);
     QuicPoolFree(
         &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].ConnectionPool,
         Connection);
-    QuicTraceEvent(ConnDestroyed, Connection);
 
 #if QUIC_TEST_MODE
     InterlockedDecrement(&MsQuicLib.ConnectionCount);
@@ -1209,6 +1209,7 @@ QuicConnOnShutdownComplete(
         //
 
         QuicConnCloseHandle(Connection);
+        QuicConnUninitialize(Connection);
         QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
 
     } else {
@@ -1222,10 +1223,6 @@ QuicConnOnShutdownComplete(
         (void)QuicConnIndicateEvent(Connection, &Event);
 
         Connection->ClientCallbackHandler = NULL;
-    }
-
-    if (Connection->Paths[0].Binding != NULL) {
-        QuicBindingRemoveConnection(Connection->Paths[0].Binding, Connection);
     }
 }
 
