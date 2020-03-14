@@ -27,7 +27,6 @@ set(
 #
 CLOG_ADD_SOURCEFILE(MSQUIC_PLATFORMTEST ${SOURCES})
 
-
 add_executable(msquicplatformtest ${SOURCES})
 
 if(WIN32)
@@ -45,6 +44,6 @@ elseif(QUIC_TLS STREQUAL "mitls")
     target_link_libraries(msquicplatformtest kremlib evercrypt mitls quiccrypto ncrypt crypt32)
 endif()
 
-target_link_libraries(msquicplatformtest platform gtest)
+target_link_libraries(msquicplatformtest platform gtest MSQUIC_PLATFORMTEST)
 
 add_test(msquicplatformtest msquicplatformtest)
