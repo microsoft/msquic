@@ -597,10 +597,6 @@
         "TraceID": "CryptoDumpUnacked"
       },
       {
-        "UniquenessHash": "3345da12-6b90-4fde-9d28-669af577e8a8",
-        "TraceID": "NoMoreRoomForCrypto"
-      },
-      {
         "UniquenessHash": "a73e6bb1-192d-f4f8-e6ef-c98d3a3eedbf",
         "TraceID": "AddCryptoFrame"
       },
@@ -2375,6 +2371,10 @@
       {
         "UniquenessHash": "ce3d7c54-1e3f-74dd-0b4b-d6b08a4f367c",
         "TraceID": "FN_quic_gteste294f437c33d1ade7d212999d4baddc2"
+      },
+      {
+        "UniquenessHash": "7af13cd4-a73f-7636-f9ac-98b5014f953d",
+        "TraceID": "NoMoreRoomForCrypto"
       }
     ]
   }
