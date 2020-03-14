@@ -149,6 +149,7 @@ MsQuicLibraryInitialize(
     if (MaxProcCount > (uint32_t)MsQuicLib.Settings.MaxPartitionCount) {
         MaxProcCount = (uint32_t)MsQuicLib.Settings.MaxPartitionCount;
     }
+    QUIC_FRE_ASSERT(MaxProcCount > 0);
     MsQuicLib.PartitionCount = (uint8_t)MaxProcCount;
     MsQuicCalculatePartitionMask();
 
