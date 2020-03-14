@@ -336,7 +336,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStorageReadValue(
     _In_ QUIC_STORAGE* Storage,
-    _In_opt_z_ const char * Name,
+    _In_z_ const char * Name,
     _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength)
         UINT8 * Buffer,
     _Inout_ uint32_t * BufferLength
@@ -351,7 +351,7 @@ QuicStorageReadValue(
             return Status;
         }
     } else {
-        NameUnicode = NULL;
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     if (Buffer == NULL) {

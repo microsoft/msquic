@@ -398,27 +398,29 @@ QuicCryptoGetNextEncryptLevel(
 // Writes data at the requested stream offset to a stream frame.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+_Success_(return != FALSE)
+BOOLEAN
 QuicCryptoWriteOneFrame(
     _In_ QUIC_CRYPTO* Crypto,
     _In_ uint32_t EncryptLevelStart,
-    _In_ uint32_t Offset,
+    _In_ uint32_t CryptoOffset,
     _Inout_ uint16_t* FramePayloadBytes,
-    _Inout_ uint16_t* FrameBytes,
-    _Out_writes_bytes_(*FrameBytes) uint8_t* Buffer,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer,
     _Inout_ QUIC_SENT_PACKET_METADATA* PacketMetadata
     )
 {
     QUIC_DBG_ASSERT(*FramePayloadBytes > 0);
-    QUIC_DBG_ASSERT(Offset >= EncryptLevelStart);
-    QUIC_DBG_ASSERT(Offset <= Crypto->TlsState.BufferTotalLength);
-    QUIC_DBG_ASSERT(Offset >= (Crypto->TlsState.BufferTotalLength - Crypto->TlsState.BufferLength));
+    QUIC_DBG_ASSERT(CryptoOffset >= EncryptLevelStart);
+    QUIC_DBG_ASSERT(CryptoOffset <= Crypto->TlsState.BufferTotalLength);
+    QUIC_DBG_ASSERT(CryptoOffset >= (Crypto->TlsState.BufferTotalLength - Crypto->TlsState.BufferLength));
 
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
-    QUIC_CRYPTO_EX Frame = { Offset - EncryptLevelStart, 0, 0 };
+    QUIC_CRYPTO_EX Frame = { CryptoOffset - EncryptLevelStart, 0, 0 };
     Frame.Data =
         Crypto->TlsState.Buffer +
-        (Offset - (Crypto->TlsState.BufferTotalLength - Crypto->TlsState.BufferLength));
+        (CryptoOffset - (Crypto->TlsState.BufferTotalLength - Crypto->TlsState.BufferLength));
 
     //
     // From the remaining amount of space in the packet, calculate the size of
@@ -426,15 +428,13 @@ QuicCryptoWriteOneFrame(
     // payload.
     //
 
-    uint16_t HeaderLength = sizeof(uint8_t) + QuicVarIntSize(Offset);
-    if (*FrameBytes < HeaderLength + 4) {
-        QuicTraceLogConnVerbose(NoMoreRoomForCrypto, Connection, "Can't squeeze in a frame (no room for header) with %hu bytes", *FrameBytes);
-        *FramePayloadBytes = 0;
-        *FrameBytes = 0;
-        return;
+    uint16_t HeaderLength = sizeof(uint8_t) + QuicVarIntSize(CryptoOffset);
+    if (BufferLength < *Offset + HeaderLength + 4) {
+        QuicTraceLogConnVerbose(NoMoreRoomForCrypto, Connection, "No room for CRYPTO frame");
+        return FALSE;
     }
 
-    Frame.Length = *FrameBytes - HeaderLength;
+    Frame.Length = BufferLength - *Offset - HeaderLength;
     uint16_t LengthFieldByteCount = QuicVarIntSize(Frame.Length);
     HeaderLength += LengthFieldByteCount;
     Frame.Length -= LengthFieldByteCount;
@@ -448,29 +448,27 @@ QuicCryptoWriteOneFrame(
     }
 
     QUIC_DBG_ASSERT(Frame.Length > 0);
+    *FramePayloadBytes = (uint16_t)Frame.Length;
 
     QuicTraceLogConnVerbose(AddCryptoFrame, Connection, "Sending %hu crypto bytes, offset=%u",
-        (uint16_t)Frame.Length, Offset);
-
-    uint16_t BufferLength = *FrameBytes;
-
-    *FrameBytes = 0;
-    *FramePayloadBytes = (uint16_t)Frame.Length;
+        (uint16_t)Frame.Length, CryptoOffset);
 
     //
     // We're definitely writing a frame and we know how many bytes it contains,
     // so do the real call to QuicFrameEncodeStreamHeader to write the header.
     //
-    if (!QuicCryptoFrameEncode(&Frame, FrameBytes, BufferLength, Buffer)) {
-        QUIC_FRE_ASSERT(FALSE);
-    }
+    QUIC_FRE_ASSERT(
+        QuicCryptoFrameEncode(&Frame, Offset, BufferLength, Buffer));
 
     PacketMetadata->Flags.IsRetransmittable = TRUE;
+    PacketMetadata->Flags.HasCrypto = TRUE;
     PacketMetadata->Frames[PacketMetadata->FrameCount].Type = QUIC_FRAME_CRYPTO;
-    PacketMetadata->Frames[PacketMetadata->FrameCount].CRYPTO.Offset = Offset;
+    PacketMetadata->Frames[PacketMetadata->FrameCount].CRYPTO.Offset = CryptoOffset;
     PacketMetadata->Frames[PacketMetadata->FrameCount].CRYPTO.Length = (uint16_t)Frame.Length;
     PacketMetadata->Frames[PacketMetadata->FrameCount].Flags = 0;
     PacketMetadata->FrameCount++;
+
+    return TRUE;
 }
 
 //
@@ -481,17 +479,17 @@ void
 QuicCryptoWriteCryptoFrames(
     _In_ QUIC_CRYPTO* Crypto,
     _Inout_ QUIC_PACKET_BUILDER* Builder,
-    _Inout_ uint16_t* BufferLength,
-    _Out_writes_bytes_(*BufferLength) uint8_t* Buffer
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
-    uint16_t BytesWritten = 0;
 
     //
     // Write frames until we've filled the provided space.
     //
 
-    while (BytesWritten < *BufferLength &&
+    while (*Offset < BufferLength &&
         Builder->Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET) {
 
         //
@@ -515,11 +513,10 @@ QuicCryptoWriteCryptoFrames(
             //
             // No more data left to send.
             //
-            QUIC_DBG_ASSERT(BytesWritten != 0);
             break;
         }
 
-        Right = Left + *BufferLength - BytesWritten;
+        Right = Left + BufferLength - *Offset;
 
         if (Recovery &&
             Right > Crypto->RecoveryEndOffset &&
@@ -598,34 +595,27 @@ QuicCryptoWriteCryptoFrames(
             // have at least written something. If not, then the logic that
             // decided to call this function in the first place is wrong.
             //
-            QUIC_DBG_ASSERT(BytesWritten != 0);
             break;
         }
 
         QUIC_DBG_ASSERT(Right > Left);
 
-        uint16_t FrameBytes = *BufferLength - BytesWritten;
         uint16_t FramePayloadBytes = (uint16_t)(Right - Left);
 
-        QuicCryptoWriteOneFrame(
-            Crypto,
-            EncryptLevelStart,
-            Left,
-            &FramePayloadBytes,
-            &FrameBytes,
-            Buffer + BytesWritten,
-            Builder->Metadata);
-
-        if (FramePayloadBytes == 0) {
+        if (!QuicCryptoWriteOneFrame(
+                Crypto,
+                EncryptLevelStart,
+                Left,
+                &FramePayloadBytes,
+                Offset,
+                BufferLength,
+                Buffer,
+                Builder->Metadata)) {
             //
             // No more data could be written.
             //
-            QUIC_DBG_ASSERT(FrameBytes == 0);
             break;
         }
-
-        QUIC_DBG_ASSERT(FrameBytes != 0);
-        BytesWritten += FrameBytes;
 
         //
         // FramePayloadBytes may have been reduced.
@@ -660,8 +650,6 @@ QuicCryptoWriteCryptoFrames(
     }
 
     QuicCryptoDumpSendState(Crypto);
-
-    *BufferLength = BytesWritten;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -680,21 +668,15 @@ QuicCryptoWriteFrames(
         (uint16_t)Builder->Datagram->Length - Builder->EncryptionOverhead;
 
     if (QuicCryptoHasPendingCryptoFrame(Crypto)) {
-        uint16_t FrameLength = AvailableBufferLength - Builder->DatagramLength;
         QuicCryptoWriteCryptoFrames(
             Crypto,
             Builder,
-            &FrameLength,
-            (uint8_t*)Builder->Datagram->Buffer + Builder->DatagramLength);
+            &Builder->DatagramLength,
+            AvailableBufferLength,
+            Builder->Datagram->Buffer);
 
-        if (FrameLength > 0) {
-            QUIC_DBG_ASSERT(FrameLength <= AvailableBufferLength - Builder->DatagramLength);
-            Builder->DatagramLength += FrameLength;
-            Builder->Metadata->Flags.HasCrypto = TRUE;
-
-            if (!QuicCryptoHasPendingCryptoFrame(Crypto)) {
-                Connection->Send.SendFlags &= ~QUIC_CONN_SEND_FLAG_CRYPTO;
-            }
+        if (!QuicCryptoHasPendingCryptoFrame(Crypto)) {
+            Connection->Send.SendFlags &= ~QUIC_CONN_SEND_FLAG_CRYPTO;
         }
 
     } else {

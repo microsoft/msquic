@@ -103,6 +103,7 @@ QuicRegistrationAlloc(
     QuicTraceEvent(RegistrationCreated, "[ reg][%p] Created, AppName=%s",  Registration,  Registration->AppName);
 
 #ifdef QuicVerifierEnabledByAddr
+#pragma prefast(suppress:6001, "SAL doesn't understand checking whether memory is tracked by Verifier.")
     if (MsQuicLib.IsVerifying &&
         QuicVerifierEnabledByAddr(NewRegistration)) {
         Registration->IsVerifying = TRUE;
