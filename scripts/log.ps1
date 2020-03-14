@@ -71,16 +71,31 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
-# Path for the WPR profile.
-$WprpFile = $RootDir + "\src\manifest\msquic.wprp"
-
 # Start log collection.
 function Log-Start {
     if ($IsWindows) {
+        # Path for the WPR profile.
+        $WprpFile = $RootDir + "\src\manifest\msquic.wprp"
+
         wpr.exe -start "$($WprpFile)!$($LogProfile)" -filemode -instancename $InstanceName
     } else {
-        # TODO
-        Write-Warning "Logging not supported yet!"
+        lttng destroy
+        Write-Host "------------"   
+        pushd ~
+        mkdir ./QUICLogs
+        mkdir ./QUICLogs/$LogProfile
+        pushd ./QUICLogs
+        ls
+        lttng create $LogProfile -o=./$LogProfile
+        popd
+        Write-Host "------------" 
+        
+        
+        Write-Host "Enabling all CLOG traces"
+        lttng enable-event --userspace CLOG_*
+
+        lttng start
+        lttng list
     }
 }
 
@@ -89,8 +104,7 @@ function Log-Cancel {
     if ($IsWindows) {
         wpr.exe -cancel -instancename $InstanceName
     } else {
-        # TODO
-        Write-Warning "Logging not supported yet!"
+        lttng destroy
     }
 }
 
@@ -108,8 +122,7 @@ function Log-Stop {
             Invoke-Expression $Command
         }
     } else {
-        # TODO
-        Write-Warning "Logging not supported yet!"
+        babeltrace --names all ~/QUICLogs/$LogProfile* | ../artifacts/tools/bin/clog/clog2text_lttng -s ../src/manifest/clog.sidecar
     }
 }
 
