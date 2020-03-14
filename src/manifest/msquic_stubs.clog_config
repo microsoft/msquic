@@ -14,8 +14,6 @@
         "WPPArgNumber": "0"
       },
       "CLogExportModules": [
-        "LTTNG",
-        "XXX_DTRACE"
       ]
     },
     {
@@ -24,8 +22,6 @@
       "EncodedArgNumber": 2,
       "CustomSettings": {},
       "CLogExportModules": [
-        "LTTNG",
-        "XXX_DTRACE"
       ]
     },
     {
@@ -34,8 +30,6 @@
       "EncodedArgNumber": 2,
       "CustomSettings": {},
       "CLogExportModules": [
-        "LTTNG",
-        "XXX_DTRACE"
       ]
     },
     {
@@ -44,8 +38,6 @@
       "EncodedArgNumber": 2,
       "CustomSettings": {},
       "CLogExportModules": [
-        "LTTNG",
-        "XXX_DTRACE"
       ]
     },
     {
@@ -56,8 +48,6 @@
         "WPPArgNumber": "0"
       },
       "CLogExportModules": [
-        "LTTNG",
-        "XXX_DTRACE"
       ]
     },
     {
@@ -68,8 +58,6 @@
         "WPPArgNumber": "0"
       },
       "CLogExportModules": [
-        "LTTNG",
-        "XXX_DTRACE"
       ]
     },
     {
@@ -80,8 +68,6 @@
         "WPPArgNumber": "0"
       },
       "CLogExportModules": [
-        "LTTNG",
-        "XXX_DTRACE"
       ]
     },
     {
@@ -92,8 +78,6 @@
         "WPPArgNumber": "2"
       },
       "CLogExportModules": [
-        "LTTNG",
-        "XXX_DTRACE"
       ]
     },
     {
@@ -102,8 +86,6 @@
       "EncodedArgNumber": 2,
       "CustomSettings": {},
       "CLogExportModules": [
-        "LTTNG",
-        "XXX_DTRACE"
       ]
     },
     {
@@ -112,8 +94,6 @@
       "EncodedArgNumber": 2,
       "CustomSettings": {},
       "CLogExportModules": [
-        "LTTNG",
-        "XXX_DTRACE"
       ]
     },
     {
@@ -122,8 +102,6 @@
       "EncodedArgNumber": 2,
       "CustomSettings": {},
       "CLogExportModules": [
-        "LTTNG",
-        "XXX_DTRACE"
       ]
     },
     {
@@ -134,13 +112,11 @@
         "Quic2Clog": "1"
       },
       "CLogExportModules": [
-        "LTTNG",
-        "XXX_DTRACE"
       ]
     }
   ],
   "ChainedConfigFiles": [
-    "../../submodules/clog/clog_official/inc/defaults.clog_config"
+    "../../submodules/clog/inc/defaults.clog_config"
   ],
   "ModuleUniqueness": {
     "TraceInformation": [
