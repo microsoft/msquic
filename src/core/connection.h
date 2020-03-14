@@ -662,7 +662,7 @@ QuicConnLogOutFlowStats(
         &SendWindow);
 
 #ifdef QUIC_EVENTS_LTTNG // LTTng has a max of 10 fields.
-    BUGBUG_icTraceEvent(
+    CLOG_BUG_TraceEvent(
         ConnOutFlowStats,
         Connection,
         Connection->Stats.Send.TotalBytes,
@@ -677,7 +677,7 @@ QuicConnLogOutFlowStats(
 #else
     const QUIC_PATH* Path = &Connection->Paths[0];
     UNREFERENCED_PARAMETER(Path);
-    QuicTraceEvent(ConnOutFlowStats, "[conn][%p] OUT: BytesSent=%I InFlight=%d InFlightMax=%d CWnd=%d SSThresh=%d ConnFC=%I StreamFC=%I ISB=%I PostedBytes=%I SRtt=%d StreamSendWindow=%I", 
+    CLOG_BUG_TraceEvent(ConnOutFlowStats, "[conn][%p] OUT: BytesSent=%I InFlight=%d InFlightMax=%d CWnd=%d SSThresh=%d ConnFC=%I StreamFC=%I ISB=%I PostedBytes=%I SRtt=%d StreamSendWindow=%I", 
         Connection, 
         Connection->Stats.Send.TotalBytes, 
         Connection->CongestionControl.BytesInFlight, 
@@ -711,8 +711,9 @@ QuicConnLogStatistics(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
+UNREFERENCED_PARAMETER(Connection);
 #ifdef QUIC_EVENTS_LTTNG // LTTng has a max of 10 fields.
-    BUGBUG_icTraceEvent(
+    CLOG_BUG_TraceEvent(
         ConnStatistics,
         Connection,
         QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()),
@@ -727,7 +728,7 @@ QuicConnLogStatistics(
 #else
     const QUIC_PATH* Path = &Connection->Paths[0];
     UNREFERENCED_PARAMETER(Path);
-    QuicTraceEvent(ConnStatistics, "[conn][%p] STATS: LifeTimeUs=%I SendTotalPackets=%I SendSuspectedLostPackets=%I SendSpuriousLostPackets=%I RecvTotalPackets=%I RecvReorderedPackets=%I RecvDroppedPackets=%I RecvDuplicatePackets=%I RecvDecryptionFailures=%I CongestionCount=%d PersistentCongestionCount=%d SendTotalBytes=%I RecvTotalBytes=%I SRtt=%d", 
+    CLOG_BUG_TraceEvent(ConnStatistics, "[conn][%p] STATS: LifeTimeUs=%I SendTotalPackets=%I SendSuspectedLostPackets=%I SendSpuriousLostPackets=%I RecvTotalPackets=%I RecvReorderedPackets=%I RecvDroppedPackets=%I RecvDuplicatePackets=%I RecvDecryptionFailures=%I CongestionCount=%d PersistentCongestionCount=%d SendTotalBytes=%I RecvTotalBytes=%I SRtt=%d", 
         Connection, 
         QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()), 
         Connection->Stats.Send.TotalPackets, 
