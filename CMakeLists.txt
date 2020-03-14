@@ -84,8 +84,7 @@ set(MSVC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     #Choose our CLOG configuration file
-    set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/src/manifest/msquic_windows.clog_config)
-
+   
     # Custom build flags.
     set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 /MP")
     if(QUIC_ENABLE_LOGGING)
@@ -129,8 +128,6 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     endif()
 
 else()
-    set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/src/manifest/msquic_linux.clog_config)
-
     # Custom build flags.
     set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions -fPIC -pthread")
 
@@ -141,12 +138,14 @@ else()
     #endif()
 
     if(QUIC_ENABLE_LOGGING)
-        include(FindLTTngUST)
         message(STATUS "Configuring for LTTng events and disabling logging")
+        set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/src/manifest/msquic_linux.clog_config)
+        include(FindLTTngUST)       
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_LTTNG -DQUIC_LOGS_CLOG -DQUIC_LOGS_STUB")
     else()
         message(STATUS "Disabling events and logging")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_CLOG -DQUIC_LOGS_STUB")
+        set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/src/manifest/msquic_stubs.clog_config)
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_LOGS_CLOG")
         list(APPEND CLANG_GCC_WARNING_FLAGS -Wno-unused-parameter -Wno-unused-variable)
     endif()
 

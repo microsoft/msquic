@@ -37,14 +37,6 @@ Abstract:
 
 #pragma once
 
-#if !defined(QUIC_EVENTS_STUB) && !defined(QUIC_EVENTS_MANIFEST_ETW) && !defined(QUIC_EVENTS_SYSLOG) && !defined(QUIC_EVENTS_LTTNG)
-#error "Must define one QUIC_EVENTS_*"
-#endif
-
-#if !defined(QUIC_LOGS_STUB) && !defined(QUIC_LOGS_WPP) && !defined(QUIC_LOGS_MANIFEST_ETW) && !defined(QUIC_LOGS_SYSLOG) && !defined(QUIC_LOGS_LTTNG)
-#error "Must define one QUIC_LOGS_*"
-#endif
-
 typedef enum QUIC_FLOW_BLOCK_REASON {
     QUIC_FLOW_BLOCKED_SCHEDULING            = 0x01,
     QUIC_FLOW_BLOCKED_PACING                = 0x02,
