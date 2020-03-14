@@ -83,15 +83,16 @@ set(CLANG_GCC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -W
 set(MSVC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    #Choose our CLOG configuration file
-   
+
     # Custom build flags.
     set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 /MP")
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for manifested ETW events and logging")
+        set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/src/manifest/msquic_windows.clog_config)
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_EVENTS_TRACELOGGING -DQUIC_LOGS_MANIFEST_ETW -DQUIC_LOGS_CLOG")
     else()
         message(STATUS "Disabling events and logging")
+        set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/src/manifest/msquic_stubs.clog_config)
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_STUB")
     endif()
 
