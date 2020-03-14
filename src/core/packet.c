@@ -324,7 +324,7 @@ QuicPacketGenerateRetryV1Integrity(
     uint16_t RetryPseudoPacketLength = sizeof(uint8_t) + OrigDestCidLength + BufferLength;
     RetryPseudoPacket = (uint8_t*) QUIC_ALLOC_PAGED(RetryPseudoPacketLength);
     if (RetryPseudoPacket == NULL) {
-        QuicTraceEvent(AllocFailure, "RetryPseudoPacket", RetryPseudoPacketLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "RetryPseudoPacket",  RetryPseudoPacketLength);
         goto Exit;
     }
     uint8_t* RetryPseudoPacketCursor = RetryPseudoPacket;
@@ -537,19 +537,17 @@ QuicPacketLogHeader(
 
         switch (Invariant->LONG_HDR.Version) {
         case QUIC_VERSION_VER_NEG: {
-            QuicTraceLogVerbose(
-                "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %lu bytes)",
-                PtkConnPre(Connection),
-                PktRxPre(Rx),
-                QuicCidBufToStr(DestCid, DestCidLen).Buffer,
-                QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
+            QuicTraceLogVerbose(FN_packet90ccc79fc6238b6379c9f2d0110c7855, "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %lu bytes)", 
+                PtkConnPre(Connection), 
+                PktRxPre(Rx), 
+                QuicCidBufToStr(DestCid, DestCidLen).Buffer, 
+                QuicCidBufToStr(SourceCid, SourceCidLen).Buffer, 
                 PacketLength - Offset);
 
             while (Offset < PacketLength) {
-                QuicTraceLogVerbose(
-                    "[%c][%cX][-]   Ver:0x%x",
-                    PtkConnPre(Connection),
-                    PktRxPre(Rx),
+                QuicTraceLogVerbose(FN_packeta4413873397d4ee4b262cc411ec706f4, "[%c][%cX][-]   Ver:0x%x", 
+                    PtkConnPre(Connection), 
+                    PktRxPre(Rx), 
                     *(uint32_t*)(Packet + Offset));
                 Offset += sizeof(uint32_t);
             }
@@ -576,13 +574,12 @@ QuicPacketLogHeader(
 
             } else if (LongHdr->Type == QUIC_RETRY) {
 
-                QuicTraceLogVerbose(
-                    "[%c][%cX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R (Token %hu bytes)",
-                    PtkConnPre(Connection),
-                    PktRxPre(Rx),
-                    LongHdr->Version,
-                    QuicCidBufToStr(DestCid, DestCidLen).Buffer,
-                    QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
+                QuicTraceLogVerbose(FN_packet525472688dabf619f866c5771120c7ba, "[%c][%cX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R (Token %hu bytes)", 
+                    PtkConnPre(Connection), 
+                    PktRxPre(Rx), 
+                    LongHdr->Version, 
+                    QuicCidBufToStr(DestCid, DestCidLen).Buffer, 
+                    QuicCidBufToStr(SourceCid, SourceCidLen).Buffer, 
                     PacketLength - (Offset + QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1));
                 break;
 
@@ -599,42 +596,39 @@ QuicPacketLogHeader(
             }
 
             if (LongHdr->Type == QUIC_INITIAL) {
-                QuicTraceLogVerbose(
-                    "[%c][%cX][%llu] LH Ver:0x%x DestCid:%s SrcCid:%s Type:%s (Token %hu bytes) (Payload %hu bytes) (PktNum %hu bytes)",
-                    PtkConnPre(Connection),
-                    PktRxPre(Rx),
-                    PacketNumber,
-                    LongHdr->Version,
-                    QuicCidBufToStr(DestCid, DestCidLen).Buffer,
-                    QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
-                    QuicLongHeaderTypeToString(LongHdr->Type),
-                    (uint16_t)TokenLength,
-                    (uint16_t)Length,
+                QuicTraceLogVerbose(FN_packet85487ff2d76aa8944f1e441b0abee08a, "[%c][%cX][%llu] LH Ver:0x%x DestCid:%s SrcCid:%s Type:%s (Token %hu bytes) (Payload %hu bytes) (PktNum %hu bytes)", 
+                    PtkConnPre(Connection), 
+                    PktRxPre(Rx), 
+                    PacketNumber, 
+                    LongHdr->Version, 
+                    QuicCidBufToStr(DestCid, DestCidLen).Buffer, 
+                    QuicCidBufToStr(SourceCid, SourceCidLen).Buffer, 
+                    QuicLongHeaderTypeToString(LongHdr->Type), 
+                    (uint16_t)TokenLength, 
+                    (uint16_t)Length, 
                     LongHdr->PnLength + 1);
             } else {
-                QuicTraceLogVerbose(
-                    "[%c][%cX][%llu] LH Ver:0x%x DestCid:%s SrcCid:%s Type:%s (Payload %hu bytes) (PktNum %hu bytes)",
-                    PtkConnPre(Connection),
-                    PktRxPre(Rx),
-                    PacketNumber,
-                    LongHdr->Version,
-                    QuicCidBufToStr(DestCid, DestCidLen).Buffer,
-                    QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
-                    QuicLongHeaderTypeToString(LongHdr->Type),
-                    (uint16_t)Length,
+                QuicTraceLogVerbose(FN_packet33cae7b7d88f1a0a561d8abc592bb027, "[%c][%cX][%llu] LH Ver:0x%x DestCid:%s SrcCid:%s Type:%s (Payload %hu bytes) (PktNum %hu bytes)", 
+                    PtkConnPre(Connection), 
+                    PktRxPre(Rx), 
+                    PacketNumber, 
+                    LongHdr->Version, 
+                    QuicCidBufToStr(DestCid, DestCidLen).Buffer, 
+                    QuicCidBufToStr(SourceCid, SourceCidLen).Buffer, 
+                    QuicLongHeaderTypeToString(LongHdr->Type), 
+                    (uint16_t)Length, 
                     LongHdr->PnLength + 1);
             }
             break;
         }
 
         default:
-            QuicTraceLogVerbose(
-                "[%c][%cX][%llu] LH Ver:[UNSUPPORTED,0x%x] DestCid:%s SrcCid:%s",
-                PtkConnPre(Connection),
-                PktRxPre(Rx),
-                PacketNumber,
-                Invariant->LONG_HDR.Version,
-                QuicCidBufToStr(DestCid, DestCidLen).Buffer,
+            QuicTraceLogVerbose(FN_packetd9382d9761cefee7446ff5c4f3049c56, "[%c][%cX][%llu] LH Ver:[UNSUPPORTED,0x%x] DestCid:%s SrcCid:%s", 
+                PtkConnPre(Connection), 
+                PktRxPre(Rx), 
+                PacketNumber, 
+                Invariant->LONG_HDR.Version, 
+                QuicCidBufToStr(DestCid, DestCidLen).Buffer, 
                 QuicCidBufToStr(SourceCid, SourceCidLen).Buffer);
             break;
         }
@@ -652,14 +646,13 @@ QuicPacketLogHeader(
 
             Offset = sizeof(QUIC_SHORT_HEADER_V1) + DestCidLen;
 
-            QuicTraceLogVerbose(
-                "[%c][%cX][%llu] SH DestCid:%s KP:%hu SB:%hu (Payload %hu bytes)",
-                PtkConnPre(Connection),
-                PktRxPre(Rx),
-                PacketNumber,
-                QuicCidBufToStr(DestCid, DestCidLen).Buffer,
-                Header->KeyPhase,
-                Header->SpinBit,
+            QuicTraceLogVerbose(FN_packet61e31d5123d636bf45a77c08018ceb3a, "[%c][%cX][%llu] SH DestCid:%s KP:%hu SB:%hu (Payload %hu bytes)", 
+                PtkConnPre(Connection), 
+                PktRxPre(Rx), 
+                PacketNumber, 
+                QuicCidBufToStr(DestCid, DestCidLen).Buffer, 
+                Header->KeyPhase, 
+                Header->SpinBit, 
                 PacketLength - Offset);
             break;
         }
@@ -684,23 +677,15 @@ QuicPacketLogDrop(
 
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*) &((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
-        QuicTraceEvent(ConnDropPacket,
-            Owner,
-            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
-            LOG_ADDR_LEN(Datagram->Tuple->LocalAddress),
-            LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress),
-            (uint8_t*)&Datagram->Tuple->LocalAddress,
-            (uint8_t*)&Datagram->Tuple->RemoteAddress,
+        QuicTraceEvent(ConnDropPacket, "[conn][%p] DROP packet[%I] Dst=%!BYTEARRAY! Src=%!BYTEARRAY! Reason=%s.", 
+            Owner, 
+            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber, CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&Datagram->Tuple->LocalAddress), CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&Datagram->Tuple->RemoteAddress), 
             Reason);
     } else {
         InterlockedIncrement64((int64_t*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
-        QuicTraceEvent(BindingDropPacket,
-            Owner,
-            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
-            LOG_ADDR_LEN(Datagram->Tuple->LocalAddress),
-            LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress),
-            (uint8_t*)&Datagram->Tuple->LocalAddress,
-            (uint8_t*)&Datagram->Tuple->RemoteAddress,
+        QuicTraceEvent(BindingDropPacket, "[bind][%p] DROP packet[%I] Dst=%!BYTEARRAY! Src=%!BYTEARRAY! Reason=%s.", 
+            Owner, 
+            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber, CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&Datagram->Tuple->LocalAddress), CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&Datagram->Tuple->RemoteAddress), 
             Reason);
     }
 }
@@ -719,25 +704,17 @@ QuicPacketLogDropWithValue(
 
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*) & ((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
-        QuicTraceEvent(ConnDropPacketEx,
-            Owner,
-            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
-            Value,
-            LOG_ADDR_LEN(Datagram->Tuple->LocalAddress),
-            LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress),
-            (uint8_t*)&Datagram->Tuple->LocalAddress,
-            (uint8_t*)&Datagram->Tuple->RemoteAddress,
+        QuicTraceEvent(ConnDropPacketEx, "[conn][%p] DROP packet[%I] Value=%I Dst=%!BYTEARRAY! Src=%!BYTEARRAY! Reason=%s.", 
+            Owner, 
+            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber, 
+            Value, CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&Datagram->Tuple->LocalAddress), CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&Datagram->Tuple->RemoteAddress), 
             Reason);
     } else {
         InterlockedIncrement64((int64_t*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
-        QuicTraceEvent(BindingDropPacketEx,
-            Owner,
-            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
-            Value,
-            LOG_ADDR_LEN(Datagram->Tuple->LocalAddress),
-            LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress),
-            (uint8_t*)&Datagram->Tuple->LocalAddress,
-            (uint8_t*)&Datagram->Tuple->RemoteAddress,
+        QuicTraceEvent(BindingDropPacketEx, "[bind][%p] DROP packet[%I] %I. Dst=%!BYTEARRAY! Src=%!BYTEARRAY! Reason=%s", 
+            Owner, 
+            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber, 
+            Value, CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&Datagram->Tuple->LocalAddress), CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&Datagram->Tuple->RemoteAddress), 
             Reason);
     }
 }

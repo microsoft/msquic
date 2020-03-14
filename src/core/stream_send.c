@@ -225,7 +225,7 @@ QuicStreamSendShutdown(
 
 Exit:
 
-    QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
+    QuicTraceEvent(StreamSendState, "[strm][%p] Send State: %c",  Stream,  QuicStreamSendGetState(Stream));
 
     if (Silent) {
         QuicStreamTryCompleteShutdown(Stream);
@@ -1332,7 +1332,7 @@ QuicStreamOnAck(
                 //
                 if (!Stream->Flags.LocalCloseAcked) {
                     Stream->Flags.LocalCloseAcked = TRUE;
-                    QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
+                    QuicTraceEvent(StreamSendState, "[strm][%p] Send State: %c",  Stream,  QuicStreamSendGetState(Stream));
                     QuicStreamIndicateSendShutdownComplete(Stream, TRUE);
                     QuicStreamTryCompleteShutdown(Stream);
                 }
@@ -1401,7 +1401,7 @@ QuicStreamOnResetAck(
 {
     if (!Stream->Flags.LocalCloseAcked) {
         Stream->Flags.LocalCloseAcked = TRUE;
-        QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
+        QuicTraceEvent(StreamSendState, "[strm][%p] Send State: %c",  Stream,  QuicStreamSendGetState(Stream));
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
         QuicStreamTryCompleteShutdown(Stream);
     }

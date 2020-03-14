@@ -98,7 +98,7 @@ QuicStreamSetInsertStream(
         // Lazily initialize the hash table.
         //
         if (!QuicHashtableInitialize(&StreamSet->StreamTable, QUIC_HASH_MIN_SIZE)) {
-            QuicTraceEvent(AllocFailure, "streamset hash table", 0);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "streamset hash table",  0);
             return FALSE;
         }
     }
@@ -559,7 +559,7 @@ QuicStreamSetGetStreamForPeer(
     // Validate the stream ID isn't above the allowed max.
     //
     if (StreamCount > Info->MaxTotalStreamCount) {
-        QuicTraceEvent(ConnError, Connection, "Peer used more streams than allowed");
+        QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.",  Connection,  "Peer used more streams than allowed");
         QuicConnTransportError(Connection, QUIC_ERROR_STREAM_LIMIT_ERROR);
         *ProtocolViolation = TRUE;
         return NULL;
@@ -650,7 +650,7 @@ QuicStreamSetGetStreamForPeer(
         //
         // Remote tried to open stream that it wasn't allowed to.
         //
-        QuicTraceEvent(ConnError, Connection, "Remote tried to open stream it wasn't allowed to open.");
+        QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.",  Connection,  "Remote tried to open stream it wasn't allowed to open.");
         QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
         *ProtocolViolation = TRUE;
     }

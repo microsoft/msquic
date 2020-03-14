@@ -93,7 +93,7 @@ QuicSendBufferAlloc(
     if (Buf != NULL) {
         SendBuffer->BufferedBytes += Size;
     } else {
-        QuicTraceEvent(AllocFailure, "sendbuffer", Size);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "sendbuffer",  Size);
     }
 
     return Buf;

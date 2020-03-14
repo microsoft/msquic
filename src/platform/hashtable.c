@@ -484,7 +484,7 @@ Return Value:
     if (*HashTable == NULL) {
         Table = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASHTABLE));
         if (Table == NULL) {
-            QuicTraceLogWarning("[ pal] Hashtable allocation failed.");
+            QuicTraceLogWarning(FN_hashtable326faab9213339c91955ee3d43e0becf, "[ pal] Hashtable allocation failed.");
             return FALSE;
         }
 
@@ -517,7 +517,7 @@ Return Value:
             QUIC_ALLOC_NONPAGED(
                 QuicComputeSecondLevelDirSize(0) * sizeof(QUIC_LIST_ENTRY));
         if (Table->SecondLevelDir == NULL) {
-            QuicTraceLogWarning("[ pal] Allocate second level dir (0) failure.");
+            QuicTraceLogWarning(FN_hashtable12abd3e77029de1e5e8fce713b6ed28c, "[ pal] Allocate second level dir (0) failure.");
             QuicHashtableUninitialize(Table);
             return FALSE;
         }
@@ -550,7 +550,7 @@ Return Value:
                 QUIC_ALLOC_NONPAGED(
                     QuicComputeSecondLevelDirSize(i) * sizeof(QUIC_LIST_ENTRY));
             if (Table->FirstLevelDir[i] == NULL) {
-                QuicTraceLogWarning("[ pal] Allocate second level dir (i) failure.");
+                QuicTraceLogWarning(FN_hashtableaad8c35db1c3ff2442383d4ca831a9b7, "[ pal] Allocate second level dir (i) failure.");
                 QuicHashtableUninitialize(Table);
                 return FALSE;
             }
