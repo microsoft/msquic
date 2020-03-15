@@ -86,7 +86,7 @@ sudo dpkg -i libssl1.0.0_1.0.2g-1ubuntu4.15_amd64.deb
 For the very first time you build, it's recommend to make sure you have all the dependencies installed. You can ensure this by running:
 
 ```PowerShell
-./scripts/build.ps1 -InstallDependencies
+./scripts/prepare-machine.ps1 -Configuration Dev
 ```
 
 ### Additional Requirements on Windows
