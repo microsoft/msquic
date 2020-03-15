@@ -78,6 +78,10 @@ if ($IsWindows) {
 
 } elseif ($IsLinux) {
 
+    # Install LTTng packages.
+    sudo apt-get install liblttng-ust-dev
+    sudo apt-get install lttng-tools
+
     # Make sure we have full permissions for all artifacts.
     Write-Host "[$(Get-Date)] Configuring permissions for artifacts..."
     sudo chmod -R 777 $ArtifactsDir
