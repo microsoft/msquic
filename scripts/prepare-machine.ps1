@@ -1,11 +1,11 @@
 <#
 
 .SYNOPSIS
-This script installs all necessary dependencies on the local machine, depending
+This script installs all necessary dependencies on the machine, depending
 on the provided configuration.
 
 .PARAMETER Configuration
-    The different type of configuration to install dependencies for.
+    The type of configuration to install dependencies for.
 
 .EXAMPLE
     prepare-machine.ps1 -Configuration Build
