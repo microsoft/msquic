@@ -12,7 +12,7 @@ Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 # Root directory of the project.
-$RootDir = Join-Path $PSScriptRoot ".." ".."
+$RootDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 
 # Installation directory for procdump.
 $ProcdumpDir = Join-Path $RootDir "bld" "windows" "procdump"
