@@ -12,9 +12,11 @@ Abstract:
 #include "quic_platform.h"
 #include "quic_trace.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "driver.tmh"
+
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+#include "driver.c.clog"
 #endif
+
 
 INITCODE
 _IRQL_requires_max_(PASSIVE_LEVEL)

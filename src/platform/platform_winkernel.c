@@ -15,10 +15,10 @@ Environment:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
 ; //<-- WPP line was here
 #include "platform_winkernel.c.clog"
-
+#elif QUIC_LOGS_WPP
 #pragma warning(push) // Don't care about OACR warnings in publics
 #pragma warning(disable:28170)
 #include <fastwppimpl.h>
@@ -88,7 +88,7 @@ QuicPlatformSystemLoad(
 #endif
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
-    EventRegisterMicrosoft_Quic();
+    EventRegisterCLOG_2_Microsoft_Quic();
 #endif
 
 #ifdef QUIC_TELEMETRY_ASSERTS
@@ -117,7 +117,7 @@ QuicPlatformSystemUnload(
 #endif
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
-    EventUnregisterMicrosoft_Quic();
+    EventUnregisterCLOG_2_Microsoft_Quic();
 #endif
 
 #ifdef QUIC_LOGS_WPP
@@ -256,7 +256,8 @@ QuicEtwCallback(
     case EVENT_CONTROL_CODE_ENABLE_PROVIDER:
     case EVENT_CONTROL_CODE_CAPTURE_STATE:
         if (CallbackContext == &MICROSOFT_MSQUIC_PROVIDER_Context) {
-            QuicTraceRundown();
+            //BUGBUG : Nick, I'm unsure what you need here
+            //QuicTraceRundown();
         }
         break;
     case EVENT_CONTROL_CODE_DISABLE_PROVIDER:
