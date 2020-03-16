@@ -93,7 +93,7 @@ Return Value:
             &Config,
             &Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "WdfDriverCreate");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "WdfDriverCreate");
         goto Error;
     }
 
