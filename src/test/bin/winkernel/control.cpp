@@ -14,8 +14,8 @@ Abstract:
 
 #include "quic_trace.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "control.tmh"
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+#include "control.cpp.clog"
 #endif
 
 QUIC_API_V1* MsQuic;
