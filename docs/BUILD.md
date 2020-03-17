@@ -34,7 +34,7 @@ MsQuic uses several cross platform PowerShell build scripts to simplify build an
 You can install PowerShell 7.0 on Windows by running the following **PowerShell** script:
 
 ```PowerShell
-iex "& { $(irm https://aka.ms/install-powershell.ps1) } -UseMSI -Preview"
+iex "& { $(irm https://aka.ms/install-powershell.ps1) } -UseMSI"
 ```
 
 Then you will need to manually launch "PowerShell 7" to continue.
