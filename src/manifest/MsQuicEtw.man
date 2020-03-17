@@ -1627,1445 +1627,10 @@
                 name="ErrStr"
                 />
           </template>
-<<<<<<< HEAD
-=======
-          <template tid="template_ui8_ui64_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg3"
-                />
-          </template>
-          <template tid="template_"/>
-          <template tid="template_ptr_ptr_sz_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:Pointer"
-                name="arg3"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ptr_ui32_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg3"
-                />
-          </template>
-          <template tid="template_sz_">
-            <data
-                inType="win:AnsiString"
-                name="arg2"
-                />
-          </template>
-          <template tid="template_ui32_sz_sz_sz_ui16_">
-            <data
-                inType="win:UInt32"
-                name="arg2"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg3"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg4"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg6"
-                />
-          </template>
-          <template tid="template_ptr_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-          </template>
-          <template tid="template_ptr_ui64_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg3"
-                />
-          </template>
-          <template tid="template_ptr_ui16_ui64_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ptr_ui16_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg3"
-                />
-          </template>
-          <template tid="template_ptr_sz_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg3"
-                />
-          </template>
-          <template tid="template_ptr_ptr_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:Pointer"
-                name="arg3"
-                />
-          </template>
-          <template tid="template_ptr_ui32_ui32_ui32_ui32_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg6"
-                />
-          </template>
-          <template tid="template_ptr_ui32_ui32_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ptr_ui16_ui16_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ptr_ui32_ui32_ui32_ui32_ui32_ui32_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg6"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg7"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg8"
-                />
-          </template>
-          <template tid="template_ptr_ui64_ui64_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ptr_ui16_ui32_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ptr_ui16_ui64_ui16_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg5"
-                />
-          </template>
-          <template tid="template_ptr_ui64_ui16_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ui8_ui8_ui64_ui16_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg5"
-                />
-          </template>
-          <template tid="template_ui8_ui8_ui64_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ui8_ui8_ui64_ui64_ui64_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg6"
-                />
-          </template>
-          <template tid="template_ui8_ui8_ui64_ui64_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg5"
-                />
-          </template>
-          <template tid="template_ui8_ui8_ui64_ui64_ui64_ui64_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg6"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg7"
-                />
-          </template>
-          <template tid="template_ui8_ui8_ui64_ui64_ui16_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg6"
-                />
-          </template>
-          <template tid="template_ui8_ui8_ui64_ui64_ui64_ui16_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg6"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg7"
-                />
-          </template>
-          <template tid="template_ui8_ui8_ui64_ui16_ui64_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg6"
-                />
-          </template>
-          <template tid="template_ui8_ui8_ui64_ui64_ui64_sz_sz_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg6"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg7"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg8"
-                />
-          </template>
-          <template tid="template_ui32_">
-            <data
-                inType="win:UInt32"
-                name="arg2"
-                />
-          </template>
-          <template tid="template_ptr_ui32_ptr_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg3"
-                />
-            <data
-                inType="win:Pointer"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ptr_ptr_ui32_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:Pointer"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ui8_ui64_ui64_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ui8_ui64_ui32_ui32_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg5"
-                />
-          </template>
-          <template tid="template_ui8_ui8_sz_sz_ui64_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg4"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg6"
-                />
-          </template>
-          <template tid="template_ui8_ui8_ui32_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ui8_ui8_ui32_sz_sz_ui16_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg5"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg6"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg7"
-                />
-          </template>
-          <template tid="template_ui8_ui8_ui64_ui32_sz_sz_sz_ui16_ui16_ui16_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg5"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg6"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg7"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg8"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg9"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg10"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg11"
-                />
-          </template>
-          <template tid="template_ui8_ui8_ui64_ui32_sz_sz_sz_ui16_ui16_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg5"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg6"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg7"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg8"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg9"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg10"
-                />
-          </template>
-          <template tid="template_ui8_ui8_ui64_ui32_sz_sz_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg5"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg6"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg7"
-                />
-          </template>
-          <template tid="template_ui8_ui8_ui64_sz_ui16_ui16_ui16_">
-            <data
-                inType="win:UInt8"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg6"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg7"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg8"
-                />
-          </template>
-          <template tid="template_ptr_ui32_sz_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg3"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ptr_ui32_ui16_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ui16_">
-            <data
-                inType="win:UInt16"
-                name="arg2"
-                />
-          </template>
-          <template tid="template_ui64_">
-            <data
-                inType="win:UInt64"
-                name="arg2"
-                />
-          </template>
-          <template tid="template_ptr_ui64_ui32_ui32_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg5"
-                />
-          </template>
-          <template tid="template_ptr_ptr_ui64_ui64_ui32_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:Pointer"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg6"
-                />
-          </template>
-          <template tid="template_ptr_ui64_ui64_ui32_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg5"
-                />
-          </template>
-          <template tid="template_ptr_ui32_ui64_ui16_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg5"
-                />
-          </template>
-          <template tid="template_ptr_ui16_ui64_ui64_ui64_ui64_ui64_ui64_ui64_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg6"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg7"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg8"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg9"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg10"
-                />
-          </template>
-          <template tid="template_ptr_ui64_ptr_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg3"
-                />
-            <data
-                inType="win:Pointer"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_usz_ui32_ui32_">
-            <data
-                inType="win:UnicodeString"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_i32_">
-            <data
-                inType="win:Int32"
-                name="arg2"
-                />
-          </template>
-          <template tid="template_sz_ui32_">
-            <data
-                inType="win:AnsiString"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg3"
-                />
-          </template>
-          <template tid="template_ui32_ui32_">
-            <data
-                inType="win:UInt32"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg3"
-                />
-          </template>
-          <template tid="template_ptr_ui8_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-          </template>
-          <template tid="template_ptr_ui8_ui16_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ptr_ui8_ui32_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ptr_ui8_ui32_ui16_ui16_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg6"
-                />
-          </template>
-          <template tid="template_sz_ui32_sz_">
-            <data
-                inType="win:AnsiString"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg3"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ptr_i64_ui16_sz_ui16_sz_ui16_ptr_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:Int64"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg4"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg6"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg7"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg8"
-                />
-            <data
-                inType="win:Pointer"
-                name="arg9"
-                />
-          </template>
-          <template tid="template_ptr_i64_ui16_sz_ui16_sz_ui16_ui32_ptr_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:Int64"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg4"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg6"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg7"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg8"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg9"
-                />
-            <data
-                inType="win:Pointer"
-                name="arg10"
-                />
-          </template>
-          <template tid="template_ptr_ui32_ui32_sz_ui16_ptr_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg6"
-                />
-            <data
-                inType="win:Pointer"
-                name="arg7"
-                />
-          </template>
-          <template tid="template_ptr_ui32_ui32_sz_ui16_ui32_sz_ui16_ptr_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg6"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg7"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg8"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg9"
-                />
-            <data
-                inType="win:Pointer"
-                name="arg10"
-                />
-          </template>
-          <template tid="template_ptr_ui_8binary_ui16_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3_len"
-                />
-            <data
-                inType="win:Binary"
-                length="arg3_len"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_sz_sz_ui32_sz_">
-            <data
-                inType="win:AnsiString"
-                name="arg2"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg5"
-                />
-          </template>
-          <template tid="template_ui32_ui64_">
-            <data
-                inType="win:UInt32"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg3"
-                />
-          </template>
-          <template tid="template_ptr_sz_i32_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg3"
-                />
-            <data
-                inType="win:Int32"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ptr_ui32_ui32_sz_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg5"
-                />
-          </template>
-          <template tid="template_ptr_ui16_sz_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg3"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ptr_ui16_ui16_ui16_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg5"
-                />
-          </template>
-          <template tid="template_ptr_ui16_ui16_ui16_ui16_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg6"
-                />
-          </template>
-          <template tid="template_ptr_ui16_ui16_ui16_ui16_ui16_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg6"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg7"
-                />
-          </template>
-          <template tid="template_ptr_ui16_ui16_ui16_ui16_ui16_ui16_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg5"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg6"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg7"
-                />
-            <data
-                inType="win:UInt16"
-                name="arg8"
-                />
-          </template>
-          <template tid="template_ptr_ui8_ui64_ui32_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt64"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg5"
-                />
-          </template>
-          <template tid="template_ptr_ui8_ui32_ui32_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg5"
-                />
-          </template>
-          <template tid="template_i64_">
-            <data
-                inType="win:Int64"
-                name="arg2"
-                />
-          </template>
-          <template tid="template_ptr_ui8_sz_">
-            <data
-                inType="win:Pointer"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt8"
-                name="arg3"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ui32_ui32_ui32_">
-            <data
-                inType="win:UInt32"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_sz_sz_ui32_">
-            <data
-                inType="win:AnsiString"
-                name="arg2"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg3"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg4"
-                />
-          </template>
->>>>>>> b1e8fdd... try to build kernel with a manifest project
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
           <!--    1 - 1023 | Global/Library Events -->
-<<<<<<< HEAD
-          <event
-              keywords="ut:LowVolume"
-              level="win:Informational"
-              message="$(string.Etw.LibraryInitialized)"
-              opcode="win:Info"
-              symbol="QuicLibraryInitialized"
-              template="tid_LIBRARY_INIT"
-              value="1"
-              />
-          <event
-              keywords="ut:LowVolume"
-              level="win:Informational"
-              message="$(string.Etw.LibraryUninitialized)"
-              opcode="win:Info"
-              symbol="QuicLibraryUninitialized"
               template="template_"
               value="2"
               />
@@ -7236,11 +5801,9 @@
               symbol="FN_tls_openssla59aef6e72e651b091de3d22c86c02b6"
               template="template_ptr_ui8_sz_"
               value="617"
->>>>>>> b1e8fdd... try to build kernel with a manifest project
               />
           <!-- 1024 - 2047 | Registration Events -->
           <event
-<<<<<<< HEAD
               keywords="ut:Registration ut:LowVolume"
               level="win:Informational"
               message="$(string.Etw.RegistrationCreated)"
@@ -7293,10 +5856,6 @@
               symbol="QuicRegistrationErrorStatus"
               template="tid_REGISTRATION_STATUS_ERROR"
               value="1029"
-=======
-              symbol="FN_tls_openssl61743e8150362a484225c69e9b06687f"
-              template="template_ptr_ui8_ui32_"
-              value="618"
               />
           <event
               symbol="FN_tls_openssle861a4ef7fcfbd00c9b1e9642f164ba6"
@@ -7322,11 +5881,9 @@
               symbol="FN_tls_openssla29c9b082db7b8aa46e1a26a3bafe9d8"
               template="template_"
               value="623"
->>>>>>> b1e8fdd... try to build kernel with a manifest project
               />
           <!-- 2048 - 3071 | Worker Events -->
           <event
-<<<<<<< HEAD
               keywords="ut:Worker ut:LowVolume"
               level="win:Informational"
               message="$(string.Etw.WorkerCreated)"
@@ -7406,10 +5963,6 @@
               symbol="QuicWorkerErrorStatus"
               template="tid_WORKER_STATUS_ERROR"
               value="2056"
-=======
-              symbol="FN_tls_openssled0c168c586279d947f1f4100186ab44"
-              template="template_"
-              value="624"
               />
           <event
               symbol="FN_tls_opensslac616e82c72d63a68386394f9b2bbc36"
@@ -7450,11 +6003,9 @@
               symbol="FN_tls_opensslae9383cf5075be0251768414e35ec4a3"
               template="template_"
               value="632"
->>>>>>> b1e8fdd... try to build kernel with a manifest project
               />
           <!-- 3072 - 4095 | Session Events -->
           <event
-<<<<<<< HEAD
               keywords="ut:Session ut:LowVolume"
               level="win:Informational"
               message="$(string.Etw.SessionCreated)"
@@ -7516,10 +6067,6 @@
               symbol="QuicSessionErrorStatus"
               template="tid_SESSION_STATUS_ERROR"
               value="3078"
-=======
-              symbol="FN_tls_openssl7874563f7c9843b9ce98264dc2023d10"
-              template="template_"
-              value="633"
               />
           <event
               symbol="FN_tls_opensslf8217e380d78561227f74be97664c50b"
@@ -7550,11 +6097,9 @@
               symbol="FN_tls_opensslfe1483abe0f571420a155312a3621f48"
               template="template_"
               value="639"
->>>>>>> b1e8fdd... try to build kernel with a manifest project
               />
           <!-- 4096 - 5119 | Listener Events -->
           <event
-<<<<<<< HEAD
               keywords="ut:Listener ut:LowVolume"
               level="win:Informational"
               message="$(string.Etw.ListenerCreated)"
@@ -7616,10 +6161,6 @@
               symbol="QuicListenerErrorStatus"
               template="tid_LISTENER_STATUS_ERROR"
               value="4102"
-=======
-              symbol="FN_tls_openssl1ba4fc8be660f737b9413e1ef4e655c7"
-              template="template_"
-              value="640"
               />
           <event
               symbol="FN_tls_openssl913c33b43821605a2d3e10e147307ebd"
@@ -7650,11 +6191,9 @@
               symbol="FN_tls_openssl0aef2e0b2d51b74e2f22fe98c5a283a9"
               template="template_"
               value="646"
->>>>>>> b1e8fdd... try to build kernel with a manifest project
               />
           <!-- 5120 - 6143 | Connection Events -->
           <event
-<<<<<<< HEAD
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               message="$(string.Etw.ConnCreated)"
@@ -8130,10 +6669,6 @@
               symbol="QuicConnQueueSendFlush"
               template="tid_CONN_FLUSH_REASON"
               value="5172"
-=======
-              symbol="FN_tls_opensslcf5233c6c82f90d01fe6fd349f817eaa"
-              template="template_"
-              value="647"
               />
           <event
               symbol="FN_tls_openssl7b0b5c3fcfbc6baa74f8dadc7761e9db"
@@ -8394,11 +6929,9 @@
               symbol="FN_controle39f156e7c33ef5d449ba2a5b670f8dc"
               template="template_"
               value="699"
->>>>>>> b1e8fdd... try to build kernel with a manifest project
               />
           <!-- 6144 - 7167 | Stream Events -->
           <event
-<<<<<<< HEAD
               keywords="ut:Stream ut:LowVolume"
               level="win:Informational"
               message="$(string.Etw.StreamCreated)"
@@ -8505,10 +7038,6 @@
               symbol="QuicStreamLogVerbose"
               template="tid_STREAM_MESSAGE"
               value="6155"
-=======
-              symbol="FN_control928f1e9265e07ac92d6f7f99f3350848"
-              template="template_"
-              value="700"
               />
           <event
               symbol="FN_control79d5bb59ba655554979808ebcdfc4afc"
@@ -8564,11 +7093,9 @@
               symbol="FN_control9c740cde42b8116cfc95fe3797249a35"
               template="template_ui32_"
               value="711"
->>>>>>> b1e8fdd... try to build kernel with a manifest project
               />
           <!-- 7168 - 8191 | Binding Events -->
           <event
-<<<<<<< HEAD
               keywords="ut:Binding ut:LowVolume"
               level="win:Informational"
               message="$(string.Etw.BindingCreated)"
@@ -8648,10 +7175,6 @@
               symbol="QuicBindingExecOper"
               template="tid_BINDING_OPER"
               value="7176"
-=======
-              symbol="FN_controlc0479dcb8ee9e72085ba88d718e40e3d"
-              template="template_"
-              value="712"
               />
           <event
               symbol="FN_control2252efed476118adb31be54fe5829479"
@@ -8692,11 +7215,9 @@
               symbol="FN_control29f33308baa8406e1d914675d6a80714"
               template="template_ptr_"
               value="720"
->>>>>>> b1e8fdd... try to build kernel with a manifest project
               />
           <!-- 8192 - 9215 | Tls Events -->
           <event
-<<<<<<< HEAD
               keywords="ut:TLS ut:LowVolume"
               level="win:Error"
               message="$(string.Etw.TlsError)"
@@ -8722,10 +7243,6 @@
               symbol="QuicTlsMessage"
               template="tid_CONN_MESSAGE"
               value="8194"
-=======
-              symbol="FN_controlaac546ec85a3233833360cd7ab640553"
-              template="template_sz_sz_ui32_"
-              value="721"
               />
           <event
               symbol="FN_controle873f8dcb3ed431fa02ef1c6e5c2c525"
@@ -8736,11 +7253,9 @@
               symbol="FN_driver33ec7eb98b419e59add5890fa61afa13"
               template="template_"
               value="723"
->>>>>>> b1e8fdd... try to build kernel with a manifest project
               />
           <!-- 9216 - 10239 | Datapath Events -->
           <event
-<<<<<<< HEAD
               keywords="ut:UDP ut:DataFlow"
               level="win:Verbose"
               message="$(string.Etw.DatapathSendTo)"
@@ -8821,10 +7336,6 @@
               symbol="QuicLogVerbose"
               template="tid_MESSAGE"
               value="10243"
-=======
-              symbol="FN_driver2914cfd7e479c844f78b638f668e3720"
-              template="template_"
-              value="724"
               />
           <event
               symbol="FN_driver9dbc814f4f43ea517407f5b7c8143626"
@@ -8840,7 +7351,6 @@
               symbol="FN_drivere2715f5ac91739cf9fdd047896c7912c"
               template="template_ui32_"
               value="727"
->>>>>>> b1e8fdd... try to build kernel with a manifest project
               />
         </events>
       </provider>
