@@ -90,7 +90,6 @@ function Log-Start {
         popd
         Write-Host "------------" 
         
-        
         Write-Host "Enabling all CLOG traces"
         lttng enable-event --userspace CLOG_*
 

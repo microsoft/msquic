@@ -15,7 +15,6 @@ set(CLOG_INCLUDE_DIRECTORY ${CLOG_SOURCE_DIRECTORY}/inc)
 
 include_directories(${CLOG_INCLUDE_DIRECTORY})
 
-
 message(STATUS "Source Dir: ${CMAKE_SOURCE_DIR}")
 message(STATUS "Host System name: ${CMAKE_HOST_SYSTEM_NAME}")
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
@@ -59,7 +58,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/bin)
 set(MANIFESTED_HEADER_FILENAME ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.h)
 option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
-
 
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
     set(QUIC_PLATFORM "windows")
