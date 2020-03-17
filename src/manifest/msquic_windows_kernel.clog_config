@@ -17,7 +17,7 @@
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
       "CLogExportModules": [
-        "XXX_MANIFESTED_ETW",
+        "MANIFESTED_ETW",
         "XXX_TRACELOGGING",
         "XXX_DTRACE"
       ]
@@ -32,7 +32,7 @@
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
       "CLogExportModules": [
-        "XXX_MANIFESTED_ETW",
+        "MANIFESTED_ETW",
         "XXX_TRACELOGGING",
         "XXX_DTRACE"
       ]
@@ -47,7 +47,7 @@
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
       "CLogExportModules": [
-        "XXX_MANIFESTED_ETW",
+        "MANIFESTED_ETW",
         "XXX_TRACELOGGING",
         "XXX_DTRACE"
       ]
@@ -62,7 +62,7 @@
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
       "CLogExportModules": [
-        "XXX_MANIFESTED_ETW",
+        "MANIFESTED_ETW",
         "XXX_TRACELOGGING",
         "XXX_DTRACE"
       ]
@@ -78,7 +78,7 @@
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
       "CLogExportModules": [
-        "XXX_MANIFESTED_ETW",
+        "MANIFESTED_ETW",
         "XXX_TRACELOGGING",
         "XXX_DTRACE"
       ]
@@ -94,7 +94,7 @@
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
       "CLogExportModules": [
-        "XXX_MANIFESTED_ETW",
+        "MANIFESTED_ETW",
         "XXX_TRACELOGGING",
         "XXX_DTRACE"
       ]
@@ -110,7 +110,7 @@
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
       "CLogExportModules": [
-        "XXX_MANIFESTED_ETW",
+        "MANIFESTED_ETW",
         "XXX_TRACELOGGING",
         "XXX_DTRACE"
       ]
@@ -123,7 +123,7 @@
         "WPPArgNumber": "2"
       },
       "CLogExportModules": [
-        "XXX_MANIFESTED_ETW",
+        "MANIFESTED_ETW",
         "XXX_TRACELOGGING",
         "XXX_DTRACE"
       ]
@@ -138,7 +138,7 @@
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
       "CLogExportModules": [
-        "XXX_MANIFESTED_ETW",
+        "MANIFESTED_ETW",
         "XXX_TRACELOGGING",
         "XXX_DTRACE"
       ]
@@ -153,7 +153,7 @@
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
       "CLogExportModules": [
-        "XXX_MANIFESTED_ETW",
+        "MANIFESTED_ETW",
         "XXX_TRACELOGGING",
         "XXX_DTRACE"
       ]
@@ -168,7 +168,7 @@
         "ETW_Provider": "1976b04f-669c-4ad1-865d-7ecad43b3696"
       },
       "CLogExportModules": [
-        "XXX_MANIFESTED_ETW",
+        "MANIFESTED_ETW",
         "XXX_TRACELOGGING",
         "XXX_DTRACE"
       ]
@@ -185,7 +185,7 @@
         "Orig_EncodedArg": "1"
       },
       "CLogExportModules": [
-        "XXX_MANIFESTED_ETW",
+        "MANIFESTED_ETW",
         "XXX_TRACELOGGING",
         "XXX_DTRACE"
       ]
