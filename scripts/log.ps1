@@ -95,6 +95,7 @@ function Log-Start {
 
         lttng start
         lttng list
+        popd
     }
 }
 
@@ -121,7 +122,8 @@ function Log-Stop {
             Invoke-Expression $Command
         }
     } else {
-        babeltrace --names all ~/QUICLogs/$LogProfile* | ../artifacts/tools/bin/clog/clog2text_lttng -s ../src/manifest/clog.sidecar
+        Write-Host "Using traces from $LogProfile"
+        babeltrace --names all $OutputDirectory* | ../artifacts/tools/bin/clog/clog2text_lttng -s ../src/manifest/clog.sidecar
     }
 }
 
