@@ -17,6 +17,7 @@ Abstract:
 #include "driver.c.clog"
 #endif
 
+
 INITCODE
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
