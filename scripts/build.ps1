@@ -3,12 +3,6 @@
 .SYNOPSIS
 This script provides helpers for building msquic.
 
-.PARAMETER InstallDependencies
-    Installs any necessary dependencies.
-
-.PARAMETER InstallAzureDependencies
-    Installs any necessary Azure Pipelines dependencies.
-
 .PARAMETER Config
     The debug or release configurationto build for.
 
@@ -55,12 +49,6 @@ This script provides helpers for building msquic.
 
 param (
     [Parameter(Mandatory = $false)]
-    [switch]$InstallDependencies = $false,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$InstallAzureDependencies = $false,
-
-    [Parameter(Mandatory = $false)]
     [ValidateSet("Debug", "Release")]
     [string]$Config = "Debug",
 
@@ -86,9 +74,6 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$Clean = $false,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$InstallOutput = $false,
 
     [Parameter(Mandatory = $false)]
     [int32]$Parallel = -1,
@@ -133,27 +118,6 @@ if (!(Test-Path $BuildDir)) { New-Item -Path $BuildDir -ItemType Directory -Forc
 
 function Log($msg) {
     Write-Host "[$(Get-Date)] $msg"
-}
-
-# Installs just the Azure Pipelines dependencies.
-function Install-Azure-Dependencies {
-    if ($IsWindows) {
-        # TODO - Anything else?
-    } else {
-        sudo apt-get install liblttng-ust-dev
-        sudo apt-get install lttng-tools
-    }
-}
-
-# Installs all the dependencies.
-function Install-Dependencies {
-    if ($IsWindows) {
-        # TODO - Anything else?
-    } else {
-        sudo apt-get install cmake
-        sudo apt-get install build-essentials
-    }
-    Install-Azure-Dependencies
 }
 
 # Executes cmake with the given arguments.
@@ -229,31 +193,9 @@ function CMake-Build {
     }
 }
 
-# Installs all the build output.
-function Install-Output {
-    if ($IsWindows) {
-        # Import the ETW manifest.
-        $ManifestDir = Join-Path $SrcDir "manifest"
-        $ManifestPath = Join-Path $ManifestDir "MsQuicEtw.man"
-        $MsQuicDllPath = Join-Path $ArtifactsDir "bin" $Config "msquic.dll"
-        Log "Installing ETW manifest..."
-        wevtutil.exe im $ManifestPath /rf:$MsQuicDllPath /mf:$MsQuicDllPath
-    } else {
-        # TODO - Anything?
-    }
-}
-
 ##############################################################
 #                     Main Execution                         #
 ##############################################################
-
-if ($InstallDependencies) {
-    Log "Installing dependencies..."
-    Install-Dependencies
-} elseif ($InstallAzureDependencies) {
-    Log "Installing Azure Pipelines dependencies..."
-    Install-Azure-Dependencies
-}
 
 # Generate the build files.
 Log "Generating files..."
@@ -262,10 +204,5 @@ CMake-Generate
 # Build the code.
 Log "Building..."
 CMake-Build
-
-if ($InstallOutput) {
-    # Install the build output.
-    Install-Output
-}
 
 Log "Done."
