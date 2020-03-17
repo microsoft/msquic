@@ -17,6 +17,10 @@ Abstract:
 
 #include "platform_internal.h"
 
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+#include "inline.c.clog"
+#endif
+
 uint16_t
 MaxUdpPayloadSizeFromMTU(
     _In_ uint16_t Mtu

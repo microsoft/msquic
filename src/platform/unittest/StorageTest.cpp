@@ -16,8 +16,11 @@
 
 #include "quic_trace.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "storagetest.tmh"
+
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "StorageTest.cpp.clog"
+
 #endif
 
 using namespace WEX::Common;

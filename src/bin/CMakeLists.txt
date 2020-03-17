@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    set(SOURCES winuser/dllmain.c winuser/msquic.rc ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
+    set(SOURCES winuser/dllmain.c winuser/msquic.rc ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.rc)
 else()
     set(SOURCES linux/init.c)
 endif()
@@ -16,11 +16,13 @@ target_compile_options(msquic PRIVATE
      $<$<CXX_COMPILER_ID:MSVC>:
         ${MSVC_WARNING_FLAGS}>)
 
-target_link_libraries(msquic core platform)
+target_link_libraries(msquic core platform CORE_CLOG_LIB PLATFORM_CLOG_LIB)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     target_link_libraries(msquic
         ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
     SET_TARGET_PROPERTIES(msquic
         PROPERTIES LINK_FLAGS "/DEF:\"${CMAKE_CURRENT_SOURCE_DIR}/winuser/msquic.def\"")
+else()
+    target_link_libraries(msquic ${LTTNGUST_LIBRARIES})
 endif()

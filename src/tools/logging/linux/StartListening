@@ -1,0 +1,14 @@
+#!/bin/sh
+lttng destroy
+lttng create msquicLive --live
+lttng enable-event --userspace CLOG_*
+lttng start
+lttng list
+babeltrace -i lttng-live net://localhost
+echo
+echo
+echo run tool from babeltrace output, for example babeltrace -i lttng-live net://....
+
+alias clog2text="dotnet /mnt/c/Source/clog/clog2text/clog2text_lttng/bin/Debug/netcoreapp3.0/clog2text_lttng.dll"
+
+babeltrace --names all -i lttng-live net://localhost/host/DESKTOP-H35BUVS/msquicLive | ../../submodules/clog/bld/clog2text_lttng -s /mnt/c/temp/clog.sidecar

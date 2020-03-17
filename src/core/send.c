@@ -22,8 +22,10 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "send.tmh"
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "send.c.clog"
+
 #endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -121,7 +123,7 @@ QuicSendQueueFlush(
         QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
         if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_FLUSH_SEND)) != NULL) {
             Send->FlushOperationPending = TRUE;
-            QuicTraceEvent(ConnQueueSendFlush, Connection, Reason);
+            QuicTraceEvent(ConnQueueSendFlush, "[conn][%p] Queueing send flush, reason=%d",  Connection,  Reason);
             QuicConnQueueOper(Connection, Oper);
         }
     }

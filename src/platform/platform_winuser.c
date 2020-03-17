@@ -15,10 +15,24 @@ Environment:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "platform_winuser.tmh"
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "platform_winuser.c.clog"
+
+#endif
+
+#if defined(QUIC_LOGS_WPP)
 #include <fastwppimpl.h>
 #endif
+
+#if defined(QUIC_EVENTS_TRACELOGGING)
+ // {23D715F1-898A-4003-A2D2-645B68B52C97}
+TRACELOGGING_DEFINE_PROVIDER(
+    clog_hTrace,
+    "MSQuic",
+    (0x23d715f1, 0x898a, 0x4003, 0xa2, 0xd2, 0x64, 0x5b, 0x68, 0xb5, 0x2c, 0x97));
+#endif
+
 
 uint64_t QuicPlatformPerfFreq;
 uint64_t QuicTotalMemory;
@@ -30,18 +44,18 @@ QuicPlatformSystemLoad(
     void
     )
 {
-#ifdef QUIC_LOGS_WPP
+#if defined(QUIC_LOGS_WPP)
     FAST_WPP_INIT_TRACING(L"quic");
 #endif
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
-    EventRegisterMicrosoft_Quic();
+    EventRegisterCLOG_2_Microsoft_Quic();
 #endif
 
     (void)QueryPerformanceFrequency((LARGE_INTEGER*)&QuicPlatformPerfFreq);
     QuicPlatform.Heap = NULL;
 
-    QuicTraceLogInfo("[ dll] Loaded");
+    QuicTraceLogInfo(FN_platform_winuser8e387020259f41ef110ccaeebe910f40, "[ dll] Loaded");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -50,11 +64,11 @@ QuicPlatformSystemUnload(
     void
     )
 {
-    QuicTraceLogInfo("[ dll] Unloaded");
+    QuicTraceLogInfo(FN_platform_winuser0c22020f4491112ca1f62af9913bb8bd, "[ dll] Unloaded");
 #ifdef QUIC_EVENTS_MANIFEST_ETW
-    EventUnregisterMicrosoft_Quic();
+    EventUnregisterCLOG_2_Microsoft_Quic();
 #endif
-#ifdef QUIC_LOGS_WPP
+#if defined(QUIC_LOGS_WPP)
     FAST_WPP_CLEANUP();
 #endif
 }
@@ -77,7 +91,7 @@ QuicPlatformInitialize(
 
     if (!GlobalMemoryStatusEx(&memInfo)) {
         DWORD Error = GetLastError();
-        QuicTraceEvent(LibraryErrorStatus, Error, "GlobalMemoryStatusEx");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.",  Error,  "GlobalMemoryStatusEx");
         Status = HRESULT_FROM_WIN32(Error);
         goto Error;
     }
@@ -89,7 +103,7 @@ QuicPlatformInitialize(
 
     QuicTotalMemory = memInfo.ullTotalPageFile;
 
-    QuicTraceLogInfo("[ dll] Initialized (AvailMem = %llu bytes)", QuicTotalMemory);
+    QuicTraceLogInfo(FN_platform_winuser73ea831dacee5fd83da7d83c77bdbcdb, "[ dll] Initialized (AvailMem = %llu bytes)",  QuicTotalMemory);
 
 Error:
 
@@ -113,7 +127,7 @@ QuicPlatformUninitialize(
     QUIC_DBG_ASSERT(QuicPlatform.Heap);
     HeapDestroy(QuicPlatform.Heap);
     QuicPlatform.Heap = NULL;
-    QuicTraceLogInfo("[ dll] Uninitialized");
+    QuicTraceLogInfo(FN_platform_winuserd673a9c82917e2cfa2aeed8357e33ee9, "[ dll] Uninitialized");
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -124,7 +138,7 @@ QuicPlatformLogAssert(
     _In_z_ const char* Expr
     )
 {
-    QuicTraceEvent(LibraryAssert, (uint32_t)Line, File, Expr);
+    QuicTraceEvent(LibraryAssert, "[ lib] ASSERT, %d:%s - %s.",  (uint32_t)Line,  File,  Expr);
 }
 
 #ifdef QUIC_FUZZER
@@ -224,7 +238,7 @@ QuicEtwCallback(
     case EVENT_CONTROL_CODE_ENABLE_PROVIDER:
     case EVENT_CONTROL_CODE_CAPTURE_STATE:
         if (CallbackContext == &MICROSOFT_MSQUIC_PROVIDER_Context) {
-            QuicTraceRundown();
+            //QuicTraceRundown();
         }
         break;
     case EVENT_CONTROL_CODE_DISABLE_PROVIDER:
@@ -234,7 +248,7 @@ QuicEtwCallback(
 }
 #endif
 
-#ifdef QUIC_LOGS_WPP
+#if defined(QUIC_LOGS_WPP)
 void
 QuicForceWppInitCodeGeneration(
     void

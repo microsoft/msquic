@@ -13,8 +13,10 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "stream_set.tmh"
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "stream_set.c.clog"
+
 #endif
 
 #if QUIC_TEST_MODE
@@ -96,7 +98,7 @@ QuicStreamSetInsertStream(
         // Lazily initialize the hash table.
         //
         if (!QuicHashtableInitialize(&StreamSet->StreamTable, QUIC_HASH_MIN_SIZE)) {
-            QuicTraceEvent(AllocFailure, "streamset hash table", 0);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "streamset hash table",  0);
             return FALSE;
         }
     }
@@ -354,7 +356,7 @@ QuicStreamSetUpdateMaxStreams(
         QuicTraceLogConnVerbose(PeerStreamCountsUpdated, Connection, "Peer updated max stream count (%hu, %llu).",
             BidirectionalStreams, MaxStreams);
 
-        BOOLEAN FlushSend = FALSE;
+        BOOLEAN FlushSendX = FALSE;
         if (StreamSet->StreamTable != NULL) {
 
             QUIC_HASHTABLE_ENUMERATOR Enumerator;
@@ -368,7 +370,7 @@ QuicStreamSetUpdateMaxStreams(
                 if ((Stream->ID & STREAM_ID_MASK) == Mask &&
                     Count > Info->MaxTotalStreamCount &&
                     Count <= MaxStreams) {
-                    FlushSend = TRUE;
+                    FlushSendX = TRUE;
                     QuicStreamRemoveOutFlowBlockedReason(
                         Stream, QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
                 }
@@ -380,7 +382,7 @@ QuicStreamSetUpdateMaxStreams(
 
         QuicStreamSetIndicateStreamsAvailable(StreamSet);
 
-        if (FlushSend) {
+        if (FlushSendX) {
             //
             // Queue a flush, as we have unblocked a stream.
             //
@@ -557,7 +559,7 @@ QuicStreamSetGetStreamForPeer(
     // Validate the stream ID isn't above the allowed max.
     //
     if (StreamCount > Info->MaxTotalStreamCount) {
-        QuicTraceEvent(ConnError, Connection, "Peer used more streams than allowed");
+        QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.",  Connection,  "Peer used more streams than allowed");
         QuicConnTransportError(Connection, QUIC_ERROR_STREAM_LIMIT_ERROR);
         *ProtocolViolation = TRUE;
         return NULL;
@@ -648,7 +650,7 @@ QuicStreamSetGetStreamForPeer(
         //
         // Remote tried to open stream that it wasn't allowed to.
         //
-        QuicTraceEvent(ConnError, Connection, "Remote tried to open stream it wasn't allowed to open.");
+        QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.",  Connection,  "Remote tried to open stream it wasn't allowed to open.");
         QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
         *ProtocolViolation = TRUE;
     }

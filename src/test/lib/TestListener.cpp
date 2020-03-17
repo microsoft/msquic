@@ -11,6 +11,10 @@ Abstract:
 
 #include "precomp.h"
 
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+#include "TestListener.cpp.clog"
+#endif
+
 volatile int64_t NextConnID = 0x10000;
 
 TestListener::TestListener(

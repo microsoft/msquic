@@ -11,6 +11,10 @@ Abstract:
 
 #include "precomp.h"
 
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+#include "TestConnection.cpp.clog"
+#endif
+
 TestConnection::TestConnection(
     _In_ HQUIC Handle,
     _In_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler,

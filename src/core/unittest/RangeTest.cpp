@@ -11,8 +11,10 @@ Abstract:
 
 #include "main.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "rangetest.tmh"
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "RangeTest.cpp.clog"
+
 #endif
 
 struct SmartRange {

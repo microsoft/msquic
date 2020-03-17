@@ -5,6 +5,11 @@
 
 --*/
 
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "stream.h.clog"
+#endif
+
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 
 //
@@ -639,7 +644,7 @@ QuicStreamAddOutFlowBlockedReason(
 {
     if (!(Stream->OutFlowBlockedReasons & Reason)) {
         Stream->OutFlowBlockedReasons |= Reason;
-        QuicTraceEvent(StreamOutFlowBlocked, Stream, Stream->OutFlowBlockedReasons);
+        QuicTraceEvent(StreamOutFlowBlocked, "[strm][%p] Send Blocked Flags: %c",  Stream,  Stream->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -654,7 +659,7 @@ QuicStreamRemoveOutFlowBlockedReason(
 {
     if ((Stream->OutFlowBlockedReasons & Reason)) {
         Stream->OutFlowBlockedReasons &= ~Reason;
-        QuicTraceEvent(StreamOutFlowBlocked, Stream, Stream->OutFlowBlockedReasons);
+        QuicTraceEvent(StreamOutFlowBlocked, "[strm][%p] Send Blocked Flags: %c",  Stream,  Stream->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;

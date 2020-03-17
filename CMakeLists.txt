@@ -3,6 +3,18 @@
 
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
+add_custom_target(CLOG_GENERATED_FILES
+    COMMENT "CREATED CMAKE Target for CLOG generated files"
+)
+
+set(CMAKE_CLOG_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/clog)
+set(CMAKE_CLOG_BINS_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/tools/bin/clog)
+set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_SOURCE_DIR}/src/manifest)
+set(CLOG_SOURCE_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/clog)
+set(CLOG_INCLUDE_DIRECTORY ${CLOG_SOURCE_DIRECTORY}/inc)
+
+include_directories(${CLOG_INCLUDE_DIRECTORY})
+
 message(STATUS "Source Dir: ${CMAKE_SOURCE_DIR}")
 message(STATUS "Host System name: ${CMAKE_HOST_SYSTEM_NAME}")
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
@@ -40,6 +52,11 @@ option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
 option(QUIC_BUILD_TEST "Builds the test code" ON)
 option(QUIC_ENABLE_LOGGING "Enables logging" ON)
 option(QUIC_SANITIZE_ADDRESS "Enables address sanitizer" OFF)
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/obj)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/bin)
+set(MANIFESTED_HEADER_FILENAME ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.h)
 option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
 
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
@@ -64,25 +81,16 @@ set(CLANG_GCC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -W
 set(MSVC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    # Generate the MsQuicEtw header file.
-    file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/inc)
-    file(WRITE ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
-    include_directories(${QUIC_BUILD_DIR}/inc)
-    add_custom_command(
-        OUTPUT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h
-        OUTPUT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc
-        COMMAND mc.exe -um -h ${QUIC_BUILD_DIR}/inc -r ${QUIC_BUILD_DIR}/inc ${CMAKE_SOURCE_DIR}/src/manifest/MsQuicEtw.man)
-    add_custom_target(MsQuicEtw
-        DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h
-        DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
 
     # Custom build flags.
     set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 /MP")
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for manifested ETW events and logging")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW")
+        set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/src/manifest/msquic_windows.clog_config)
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_EVENTS_TRACELOGGING -DQUIC_LOGS_MANIFEST_ETW -DQUIC_LOGS_CLOG")
     else()
         message(STATUS "Disabling events and logging")
+        set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/src/manifest/msquic_stubs.clog_config)
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_STUB")
     endif()
 
@@ -129,12 +137,14 @@ else()
     #endif()
 
     if(QUIC_ENABLE_LOGGING)
-        include(FindLTTngUST)
         message(STATUS "Configuring for LTTng events and disabling logging")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_LTTNG -DQUIC_LOGS_STUB")
+        set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/src/manifest/msquic_linux.clog_config)
+        include(FindLTTngUST)       
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_LTTNG -DQUIC_LOGS_CLOG -DQUIC_LOGS_STUB")
     else()
         message(STATUS "Disabling events and logging")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_STUB")
+        set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/src/manifest/msquic_stubs.clog_config)
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_LOGS_CLOG")
         list(APPEND CLANG_GCC_WARNING_FLAGS -Wno-unused-parameter -Wno-unused-variable)
     endif()
 
@@ -160,6 +170,7 @@ else()
     set(QUIC_CXX_FLAGS "${QUIC_COMMON_FLAGS} --std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format")
 endif()
 
+include_directories(${CMAKE_SOURCE_DIR}/bld/inc)
 include_directories(${CMAKE_SOURCE_DIR}/src/inc)
 
 if(QUIC_TLS STREQUAL "openssl")
@@ -187,6 +198,7 @@ if(QUIC_TLS STREQUAL "mitls")
 endif()
 
 # Product code
+add_subdirectory(src/manifest)
 add_subdirectory(src/core)
 add_subdirectory(src/platform)
 add_subdirectory(src/bin)

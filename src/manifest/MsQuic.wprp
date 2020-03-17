@@ -23,18 +23,18 @@
       </Keywords>
     </SystemProvider>
 
-    <EventProvider Id="EP_MsQuicEtw" Name="Microsoft-Quic" NonPagedMemory="true" />
-    <EventProvider Id="EP_MsQuicEtw_LowVolume" Name="Microsoft-Quic" NonPagedMemory="true" Level="4">
+    <EventProvider Id="EP_MsQuicEtw" Name="CLOG-Microsoft-Quic" NonPagedMemory="true" />
+    <EventProvider Id="EP_MsQuicEtw_LowVolume" Name="CLOG-Microsoft-Quic" NonPagedMemory="true" Level="4">
       <Keywords>
         <Keyword Value="0x80000000"/>
       </Keywords>
     </EventProvider>
-    <EventProvider Id="EP_MsQuicEtw_LowVolume_Scheduling" Name="Microsoft-Quic" NonPagedMemory="true">
+    <EventProvider Id="EP_MsQuicEtw_LowVolume_Scheduling" Name="CLOG-Microsoft-Quic" NonPagedMemory="true">
       <Keywords>
         <Keyword Value="0xA0000000"/>
       </Keywords>
     </EventProvider>
-    <EventProvider Id="EP_MsQuicEtw_LowVolume_DataPath" Name="Microsoft-Quic" NonPagedMemory="true">
+    <EventProvider Id="EP_MsQuicEtw_LowVolume_DataPath" Name="CLOG-Microsoft-Quic" NonPagedMemory="true">
       <Keywords>
         <Keyword Value="0xC0000000"/>
       </Keywords>
@@ -47,7 +47,7 @@
 
     <EventProvider Id="EP_TcpIpEtw" Name="Microsoft-Windows-TCPIP" NonPagedMemory="true" />
     <EventProvider Id="EP_WinSockEtw" Name="Microsoft-Windows-Winsock-AFD" NonPagedMemory="true" />
-    <EventProvider Id="EP_MsQuicWpp" Name="620FD025-BE51-42EF-A5C0-50F13F183AD9" Level="5">
+    <EventProvider Id="EP_MsQuicWpp" Name="ba7375ae-29d0-4bb7-b30e-32abaf672591" Level="5">
       <Keywords>
         <Keyword Value="0xFF"/>
       </Keywords>

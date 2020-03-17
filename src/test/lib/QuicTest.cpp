@@ -12,9 +12,13 @@ Abstract:
 #include "precomp.h"
 
 #include "quic_trace.h"
-#ifdef QUIC_LOGS_WPP
-#include "quictest.tmh"
+
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+//BUGBUG : CLOG BUG - C++ code isnt compiling/linking correctly - disabling CLOG for now
+#include "QuicTest.cpp.clog"
 #endif
+
 
 //#define QUIC_TEST_DISABLE_DNS 1
 
@@ -39,7 +43,7 @@ void QuicTestInitialize()
             QUIC_PARAM_REGISTRATION_ENCRYPTION,
             sizeof(Disabled),
             &Disabled))) {
-        QuicTraceLogError("[test] Disabling encryption failed");
+        CLOG_BUG_TraceLogError(FN_quictest9eddd9dc5266f22ce5fe2958d12ddae0, "[test] Disabling encryption failed");
     }
 #endif
 }
@@ -52,10 +56,10 @@ struct TestScopeLogger
 {
     const char* Name;
     TestScopeLogger(const char* name) : Name(name) {
-        QuicTraceLogInfo("[test]---> %s", Name);
+        CLOG_BUG_TraceLogInfo(FN_quictest0785c7e818b20fe296fb9343da4ad6c7, "[test]---> %s",  Name);
     }
     ~TestScopeLogger() {
-        QuicTraceLogInfo("[test]<--- %s", Name);
+        CLOG_BUG_TraceLogInfo(FN_quictest3a72f018a4cf860262d89c7671534363, "[test]<--- %s",  Name);
     }
 };
 

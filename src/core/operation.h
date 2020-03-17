@@ -5,6 +5,11 @@
 
 --*/
 
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+//<-- WPP line was here
+#include "operation.h.clog"
+#endif
+
 typedef struct QUIC_SEND_REQUEST QUIC_SEND_REQUEST;
 
 //
@@ -225,13 +230,13 @@ QuicOperLog(
     UNREFERENCED_PARAMETER(Connection);
     switch (Oper->Type) {
         case QUIC_OPER_TYPE_API_CALL:
-            QuicTraceEvent(ConnExecApiOper, Connection, Oper->API_CALL.Context->Type);
+            QuicTraceEvent(ConnExecApiOper, "[conn][%p] Execute: %d",  Connection,  Oper->API_CALL.Context->Type);
             break;
         case QUIC_OPER_TYPE_TIMER_EXPIRED:
-            QuicTraceEvent(ConnExecTimerOper, Connection, Oper->TIMER_EXPIRED.Type);
+            QuicTraceEvent(ConnExecTimerOper, "[conn][%p] Execute: %d",  Connection,  Oper->TIMER_EXPIRED.Type);
             break;
         default:
-            QuicTraceEvent(ConnExecOper, Connection, Oper->Type);
+            QuicTraceEvent(ConnExecOper, "[conn][%p] Execute: %d",  Connection,  Oper->Type);
             break;
     }
 }

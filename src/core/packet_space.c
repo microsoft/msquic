@@ -12,8 +12,10 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "packet_space.tmh"
+#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
+; //<-- WPP line was here
+#include "packet_space.c.clog"
+
 #endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -29,7 +31,7 @@ QuicPacketSpaceInitialize(
 
     Packets = QUIC_ALLOC_NONPAGED(sizeof(QUIC_PACKET_SPACE));
     if (Packets == NULL) {
-        QuicTraceEvent(AllocFailure, "packet space", sizeof(QUIC_PACKET_SPACE));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "packet space",  sizeof(QUIC_PACKET_SPACE));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
