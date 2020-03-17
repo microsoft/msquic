@@ -42,6 +42,9 @@ param (
     [Parameter(Mandatory = $false, ParameterSetName='Start')]
     [switch]$Start = $false,
 
+    [Parameter(Mandatory = $false, ParameterSetName='Stream')]
+    [switch]$Stream = $false,
+
     [Parameter(Mandatory = $true, ParameterSetName='Start')]
     [ValidateSet("Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
     [string]$LogProfile,
@@ -127,6 +130,26 @@ function Log-Stop {
     }
 }
 
+
+# Start log collection.
+function Log-Stream {
+    if ($IsWindows) {
+       Write-Host "Not supported on Windows"
+    } else {
+        lttng destroy
+        Write-Host "------------"   
+        lttng destroy
+        lttng create msquicLive --live
+        lttng enable-event --userspace CLOG_*
+        lttng start
+        lttng list
+        babeltrace -i lttng-live net://localhost
+        
+        babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquicLive | ../artifacts/tools/bin/clog/clog2text_lttng -s ../src/manifest/clog.sidecar
+
+        popd
+    }
+}
 ##############################################################
 #                     Main Execution                         #
 ##############################################################
@@ -134,3 +157,4 @@ function Log-Stop {
 if ($Start)  { Log-Start }
 if ($Cancel) { Log-Cancel }
 if ($Stop)   { Log-Stop }
+if ($STream) { Log-Stream }
