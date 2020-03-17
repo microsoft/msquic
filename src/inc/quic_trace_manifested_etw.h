@@ -23,7 +23,11 @@ QuicEtwCallback(
 //
 #define MCGEN_PRIVATE_ENABLE_CALLBACK_V2 QuicEtwCallback
 
+#pragma warning(push) // Don't care about warnings from generated files
+#pragma warning(disable:6001)
+#pragma warning(disable:26451)
 #include "MsQuicEtw.h"
+#pragma warning(pop)
 
 #define QuicTraceEventEnabled(Name) TRUE //EventEnabledQuic##Name()
 
