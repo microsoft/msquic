@@ -587,7 +587,7 @@ QuicTlsSessionInitialize(
     )
 {
     QUIC_STATUS Status;
-    QUIC_TLS_SESSION*TlsSession = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS_SESSION));
+    QUIC_TLS_SESSION* TlsSession = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS_SESSION));
     if (TlsSession == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;

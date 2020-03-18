@@ -1265,19 +1265,21 @@ QuicCryptoProcessTlsCompletion(
             QuicTlsSecConfigRelease(SecConfig);
         }
 
-        //
-        // Currently, NegotiatedAlpn points into TLS state memory, which doesn't
-        // live as long as the connection. Update it to point to the session
-        // state memory instead.
-        //
         QUIC_DBG_ASSERT(Crypto->TlsState.NegotiatedAlpn != NULL);
-        Crypto->TlsState.NegotiatedAlpn =
-            QuicTlsAlpnFindInList(
-                Connection->Session->AlpnListLength,
-                Connection->Session->AlpnList,
-                Crypto->TlsState.NegotiatedAlpn[0],
-                Crypto->TlsState.NegotiatedAlpn + 1);
-        QUIC_TEL_ASSERT(Crypto->TlsState.NegotiatedAlpn != NULL);
+        if (!QuicConnIsServer(Connection)) {
+            //
+            // Currently, NegotiatedAlpn points into TLS state memory, which
+            // doesn't live as long as the connection. Update it to point to the
+            // session state memory instead.
+            //
+            Crypto->TlsState.NegotiatedAlpn =
+                QuicTlsAlpnFindInList(
+                    Connection->Session->AlpnListLength,
+                    Connection->Session->AlpnList,
+                    Crypto->TlsState.NegotiatedAlpn[0],
+                    Crypto->TlsState.NegotiatedAlpn + 1);
+            QUIC_TEL_ASSERT(Crypto->TlsState.NegotiatedAlpn != NULL);
+        }
 
         QUIC_CONNECTION_EVENT Event;
         Event.Type = QUIC_CONNECTION_EVENT_CONNECTED;
