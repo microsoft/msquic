@@ -143,7 +143,7 @@ QuicStreamFree(
 
     if (WasStarted) {
 #pragma prefast(suppress:6001, "SAL doesn't understand we're logging just the address")
-        QuicTraceEvent(StreamDestroyed, "[strm][%p] Destroyed",  Stream);
+        QuicTraceEvent(StreamDestroyed, "[strm][%p] Destroyed", Stream);
     }
 }
 
@@ -188,9 +188,9 @@ QuicStreamStart(
 
     Stream->Flags.Started = TRUE;
 
-    QuicTraceEvent(StreamCreated, "[strm][%p] Created, Conn=%p ID=%I IsLocal=%c",  Stream,  Stream->Connection,  Stream->ID,  !IsRemoteStream);
-    QuicTraceEvent(StreamSendState, "[strm][%p] Send State: %c",  Stream,  QuicStreamSendGetState(Stream));
-    QuicTraceEvent(StreamRecvState, "[strm][%p] Recv State: %c",  Stream,  QuicStreamRecvGetState(Stream));
+    QuicTraceEvent(StreamCreated, "[strm][%p] Created, Conn=%p ID=%I IsLocal=%c", Stream, Stream->Connection, Stream->ID, !IsRemoteStream);
+    QuicTraceEvent(StreamSendState, "[strm][%p] Send State: %c", Stream, QuicStreamSendGetState(Stream));
+    QuicTraceEvent(StreamRecvState, "[strm][%p] Recv State: %c", Stream, QuicStreamRecvGetState(Stream));
 
     if (Stream->Flags.SendEnabled) {
         Stream->OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_APP;
@@ -224,7 +224,7 @@ QuicStreamStart(
     Stream->SendWindow = (uint32_t)min(Stream->MaxAllowedSendOffset, UINT32_MAX);
 
     if (Stream->OutFlowBlockedReasons != 0) {
-        QuicTraceEvent(StreamOutFlowBlocked, "[strm][%p] Send Blocked Flags: %c",  Stream,  Stream->OutFlowBlockedReasons);
+        QuicTraceEvent(StreamOutFlowBlocked, "[strm][%p] Send Blocked Flags: %c", Stream, Stream->OutFlowBlockedReasons);
     }
 
 Exit:
@@ -287,9 +287,9 @@ QuicStreamTraceRundown(
     _In_ QUIC_STREAM* Stream
     )
 {
-    QuicTraceEvent(StreamRundown, "[strm][%p] Rundown, Conn=%p ID=%I IsLocal=%c",  Stream,  Stream->Connection,  Stream->ID, 
+    QuicTraceEvent(StreamRundown, "[strm][%p] Rundown, Conn=%p ID=%I IsLocal=%c", Stream, Stream->Connection, Stream->ID, 
         (!QuicConnIsServer(Stream->Connection) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
-    QuicTraceEvent(StreamOutFlowBlocked, "[strm][%p] Send Blocked Flags: %c",  Stream,  Stream->OutFlowBlockedReasons);
+    QuicTraceEvent(StreamOutFlowBlocked, "[strm][%p] Send Blocked Flags: %c", Stream, Stream->OutFlowBlockedReasons);
     // TODO - More state dump.
 }
 

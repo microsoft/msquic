@@ -378,7 +378,7 @@ MiTlsTraceCallback(
     )
 {
     // TODO - Save connection in thread-local storage and retrieve it?
-    QuicTraceEvent(TlsMessage, "[ tls][%p] %s",  NULL,  Msg);
+    QuicTraceEvent(TlsMessage, "[ tls][%p] %s", NULL, Msg);
 }
 
 QUIC_STATUS
@@ -854,7 +854,7 @@ QuicTlsSessionAddTicket(
         (QUIC_TLS_TICKET_ENTRY*)QUIC_ALLOC_PAGED(TicketEntryLength);
 
     if (TicketEntry == NULL) {
-        QuicTraceLogWarning(FN_tls_mitls102c19f4bec59d3dace660aab6fdc606, "[tlss][%p] Failed to allocate ticket entry of %u bytes.",  TlsSession,  (uint32_t)TicketEntryLength);
+        QuicTraceLogWarning(FN_tls_mitls102c19f4bec59d3dace660aab6fdc606, "[tlss][%p] Failed to allocate ticket entry of %u bytes.", TlsSession, (uint32_t)TicketEntryLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -886,7 +886,7 @@ QuicTlsSessionCreateTicket(
         (QUIC_TLS_TICKET_ENTRY*)QUIC_ALLOC_PAGED(TicketEntryLength);
 
     if (TicketEntry == NULL) {
-        QuicTraceLogWarning(FN_tls_mitls102c19f4bec59d3dace660aab6fdc606, "[tlss][%p] Failed to allocate ticket entry of %u bytes.",  TlsSession,  (uint32_t)TicketEntryLength);
+        QuicTraceLogWarning(FN_tls_mitls102c19f4bec59d3dace660aab6fdc606, "[tlss][%p] Failed to allocate ticket entry of %u bytes.", TlsSession, (uint32_t)TicketEntryLength);
         return NULL;
     }
 
@@ -974,14 +974,14 @@ QuicTlsInitialize(
             const size_t ServerNameLength =
                 strnlen(Config->ServerName, QUIC_MAX_SNI_LENGTH + 1);
             if (ServerNameLength == QUIC_MAX_SNI_LENGTH + 1) {
-                QuicTraceLogError(FN_tls_mitlsfe2e4dc1785fc8e14fd6539f359922af, "[ tls][%p] Invalid / Too long server name!",  TlsContext);
+                QuicTraceLogError(FN_tls_mitlsfe2e4dc1785fc8e14fd6539f359922af, "[ tls][%p] Invalid / Too long server name!", TlsContext);
                 Status = QUIC_STATUS_INVALID_PARAMETER;
                 goto Error;
             }
 
             TlsContext->SNI = QUIC_ALLOC_PAGED(ServerNameLength + 1);
             if (TlsContext->SNI == NULL) {
-                QuicTraceLogWarning(FN_tls_mitls37ba0d472b40dadbf1d5b15d772bb1a9, "[ tls][%p] Failed to allocate SNI.",  TlsContext);
+                QuicTraceLogWarning(FN_tls_mitls37ba0d472b40dadbf1d5b15d772bb1a9, "[ tls][%p] Failed to allocate SNI.", TlsContext);
                 Status = QUIC_STATUS_OUT_OF_MEMORY;
                 goto Error;
             }
@@ -998,7 +998,7 @@ QuicTlsInitialize(
 
             if (TlsContext->Ticket != NULL) {
 
-                QuicTraceLogVerbose(FN_tls_mitlsc37fe137f61cf0e10b81aa5fe1e5d1ea, "[ tls][%p] Using 0-RTT ticket.",  TlsContext);
+                QuicTraceLogVerbose(FN_tls_mitlsc37fe137f61cf0e10b81aa5fe1e5d1ea, "[ tls][%p] Using 0-RTT ticket.", TlsContext);
 
                 TlsContext->miTlsTicket.ticket_len = TlsContext->Ticket->TicketLength;
                 TlsContext->miTlsTicket.ticket =
@@ -1029,7 +1029,7 @@ QuicTlsInitialize(
     // Initialize the miTLS library.
     //
     if (!FFI_mitls_quic_create(&TlsContext->miTlsState, &TlsContext->miTlsConfig)) {
-        QuicTraceLogError(FN_tls_mitlsfdedc6c9a907c587410284650a074b1c, "[ tls][%p] FFI_mitls_quic_create failed.",  TlsContext);
+        QuicTraceLogError(FN_tls_mitlsfdedc6c9a907c587410284650a074b1c, "[ tls][%p] FFI_mitls_quic_create failed.", TlsContext);
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
@@ -1107,7 +1107,7 @@ QuicTlsReset(
     // Reinitialize new miTLS state.
     //
     if (!FFI_mitls_quic_create(&TlsContext->miTlsState, &TlsContext->miTlsConfig)) {
-        QuicTraceLogError(FN_tls_mitlsfdedc6c9a907c587410284650a074b1c, "[ tls][%p] FFI_mitls_quic_create failed.",  TlsContext);
+        QuicTraceLogError(FN_tls_mitlsfdedc6c9a907c587410284650a074b1c, "[ tls][%p] FFI_mitls_quic_create failed.", TlsContext);
         QUIC_DBG_ASSERT(FALSE);
     }
 }
@@ -1141,14 +1141,14 @@ QuicTlsProcessData(
     //
     if (TlsContext->BufferLength + *BufferLength > QUIC_TLS_MAX_MESSAGE_LENGTH) {
         ResultFlags = QUIC_TLS_RESULT_ERROR;
-        QuicTraceLogError(FN_tls_mitls99a2b668fe15eb273d54e7662830d8b3, "[ tls][%p] Error: Attempt to write too much buffer.",  TlsContext);
+        QuicTraceLogError(FN_tls_mitls99a2b668fe15eb273d54e7662830d8b3, "[ tls][%p] Error: Attempt to write too much buffer.", TlsContext);
         goto Error;
     }
 
     TlsContext->State = State;
 
     if (*BufferLength) {
-        QuicTraceLogVerbose(FN_tls_mitls90b4187f661fa35a9bcb6b2851622a29, "[ tls][%p] Writing %d bytes",  TlsContext,  *BufferLength);
+        QuicTraceLogVerbose(FN_tls_mitls90b4187f661fa35a9bcb6b2851622a29, "[ tls][%p] Writing %d bytes", TlsContext, *BufferLength);
 
         //
         // Copy the data pointer into our buffer pointer.
@@ -1209,21 +1209,21 @@ QuicTlsProcessDataComplete(
         };
 
         QuicTraceLogVerbose(FN_tls_mitls132772e24a8d5bcdbe582fd727d20951, "[ tls][%p] FFI_mitls_quic_process processing %d input bytes.", 
-            TlsContext,  (uint32_t)Context.input_len);
+            TlsContext, (uint32_t)Context.input_len);
 
         //
         // Pass the data to miTLS for processing.
         //
         if (!FFI_mitls_quic_process(TlsContext->miTlsState, &Context)) {
             QuicTraceLogError(FN_tls_mitls4d46f6b660e1026c4da88729df6f96db, "[ tls][%p] FFI_mitls_quic_process failed, tls_error %hu, %s.", 
-                TlsContext,  Context.tls_error,  Context.tls_error_desc);
+                TlsContext, Context.tls_error, Context.tls_error_desc);
             State->AlertCode = Context.tls_error;
             ResultFlags |= QUIC_TLS_RESULT_ERROR;
             break;
         }
 
         QuicTraceLogVerbose(FN_tls_mitlsa836a06071c174bb5f77cd091b797299, "[ tls][%p] FFI_mitls_quic_process read %u bytes and has %u bytes ready to send.", 
-            TlsContext,  (uint32_t)Context.consumed_bytes,  (uint32_t)Context.output_len);
+            TlsContext, (uint32_t)Context.consumed_bytes, (uint32_t)Context.output_len);
 
         QUIC_DBG_ASSERT(Context.consumed_bytes <= Context.input_len);
         QUIC_DBG_ASSERT((int64_t)Context.output_len <= State->BufferAllocLength - State->BufferLength);
@@ -1241,14 +1241,14 @@ QuicTlsProcessDataComplete(
         }
 
         if (Context.flags & QFLAG_COMPLETE && !State->HandshakeComplete) {
-            QuicTraceLogVerbose(FN_tls_mitlsd6a6b895c5e1f67b6060fbd2a230dfc7, "[ tls][%p] Handshake complete",  TlsContext);
+            QuicTraceLogVerbose(FN_tls_mitlsd6a6b895c5e1f67b6060fbd2a230dfc7, "[ tls][%p] Handshake complete", TlsContext);
             State->HandshakeComplete = TRUE;
             ResultFlags |= QUIC_TLS_RESULT_COMPLETE;
 
             if (TlsContext->IsServer) {
-                QuicTraceLogVerbose(FN_tls_mitlsb4de992040201004014e478e328769de, "[ tls][%p] Sending new 0-RTT ticket",  TlsContext);
+                QuicTraceLogVerbose(FN_tls_mitlsb4de992040201004014e478e328769de, "[ tls][%p] Sending new 0-RTT ticket", TlsContext);
                 if (!FFI_mitls_quic_send_ticket(TlsContext->miTlsState, NULL, 0)) {
-                    QuicTraceLogError(FN_tls_mitls7f69bdd34ceea10602f3120ba5a81f99, "[ tls][%p] Failed to send 0-RTT ticket!",  TlsContext);
+                    QuicTraceLogError(FN_tls_mitls7f69bdd34ceea10602f3120ba5a81f99, "[ tls][%p] Failed to send 0-RTT ticket!", TlsContext);
                 }
             }
         }
@@ -1260,7 +1260,7 @@ QuicTlsProcessDataComplete(
             if (State->EarlyDataAttempted) {
                 ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_REJECT;
             }
-            QuicTraceLogVerbose(FN_tls_mitls6569b967d8a1c7512d904b2db00acdb0, "[ tls][%p] Early data rejected",  TlsContext);
+            QuicTraceLogVerbose(FN_tls_mitls6569b967d8a1c7512d904b2db00acdb0, "[ tls][%p] Early data rejected", TlsContext);
         }
 
         BOOLEAN ReadKeyUpdated = Context.cur_reader_key != TlsContext->CurrentReaderKey;
@@ -1283,7 +1283,7 @@ QuicTlsProcessDataComplete(
                     // We know early data is accepted if we get 0-RTT keys.
                     //
                     ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_ACCEPT;
-                    QuicTraceLogVerbose(FN_tls_mitls2130252c98cd8adeb814586ee3472ac3, "[ tls][%p] Early data accepted",  TlsContext);
+                    QuicTraceLogVerbose(FN_tls_mitls2130252c98cd8adeb814586ee3472ac3, "[ tls][%p] Early data accepted", TlsContext);
                     TlsContext->TlsKeySchedule = 1; // 0-RTT allowed.
                     State->SessionResumed = TRUE;
                     State->EarlyDataAttempted = TRUE;
@@ -1291,19 +1291,19 @@ QuicTlsProcessDataComplete(
                 } else {
                     TlsContext->TlsKeySchedule = 0;
                     if (!(Context.flags & QFLAG_REJECTED_0RTT)) {
-                        QuicTraceLogVerbose(FN_tls_mitls72a905e2901486384b7e113b953ce9d3, "[ tls][%p] Early data not attempted",  TlsContext);
+                        QuicTraceLogVerbose(FN_tls_mitls72a905e2901486384b7e113b953ce9d3, "[ tls][%p] Early data not attempted", TlsContext);
                     }
                 }
             } else {
                 if (WriteKeyUpdated) {
-                    QuicTraceLogVerbose(FN_tls_mitls04b56a24f67a73651ade622c07b162fc, "[ tls][%p] Early data attempted",  TlsContext);
+                    QuicTraceLogVerbose(FN_tls_mitls04b56a24f67a73651ade622c07b162fc, "[ tls][%p] Early data attempted", TlsContext);
                     TlsContext->TlsKeySchedule = 1; // 0-RTT allowed.
                     State->EarlyDataAttempted = TRUE;
                 } else {
                     TlsContext->TlsKeySchedule = 0;
                 }
             }
-            QuicTraceLogVerbose(FN_tls_mitls3f100d18a021034819b20c71dd66909d, "[ tls][%p] Key schedule = %hu",  TlsContext,  TlsContext->TlsKeySchedule);
+            QuicTraceLogVerbose(FN_tls_mitls3f100d18a021034819b20c71dd66909d, "[ tls][%p] Key schedule = %hu", TlsContext, TlsContext->TlsKeySchedule);
             TlsContext->TlsKeyScheduleSet = TRUE;
         }
 
@@ -1318,13 +1318,13 @@ QuicTlsProcessDataComplete(
                     &State->ReadKeys[NewKeyType])) {
                 switch (NewKeyType) {
                 case QUIC_PACKET_KEY_0_RTT:
-                    QuicTraceLogVerbose(FN_tls_mitls1f9f25bed22c8725bc630dd86bde3952, "[ tls][%p] 0-RTT read key exported",  TlsContext);
+                    QuicTraceLogVerbose(FN_tls_mitls1f9f25bed22c8725bc630dd86bde3952, "[ tls][%p] 0-RTT read key exported", TlsContext);
                     break;
                 case QUIC_PACKET_KEY_HANDSHAKE:
-                    QuicTraceLogVerbose(FN_tls_mitlse55f267d5e0a22759daaf356bfe41fe4, "[ tls][%p] Handshake read key exported",  TlsContext);
+                    QuicTraceLogVerbose(FN_tls_mitlse55f267d5e0a22759daaf356bfe41fe4, "[ tls][%p] Handshake read key exported", TlsContext);
                     break;
                 case QUIC_PACKET_KEY_1_RTT:
-                    QuicTraceLogVerbose(FN_tls_mitls80105292c04d4510435e66b70bb98a6c, "[ tls][%p] 1-RTT read key exported",  TlsContext);
+                    QuicTraceLogVerbose(FN_tls_mitls80105292c04d4510435e66b70bb98a6c, "[ tls][%p] 1-RTT read key exported", TlsContext);
                     if (!TlsContext->IsServer) {
                         if (State->EarlyDataAttempted &&
                             !(Context.flags & QFLAG_REJECTED_0RTT)) {
@@ -1336,7 +1336,7 @@ QuicTlsProcessDataComplete(
                             ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_ACCEPT;
                             State->SessionResumed = TRUE;
                             State->EarlyDataAccepted = TRUE;
-                            QuicTraceLogVerbose(FN_tls_mitls2130252c98cd8adeb814586ee3472ac3, "[ tls][%p] Early data accepted",  TlsContext);
+                            QuicTraceLogVerbose(FN_tls_mitls2130252c98cd8adeb814586ee3472ac3, "[ tls][%p] Early data accepted", TlsContext);
                         }
                     }
                     break;
@@ -1371,13 +1371,13 @@ QuicTlsProcessDataComplete(
                     &State->WriteKeys[NewKeyType])) {
                 switch (NewKeyType) {
                 case QUIC_PACKET_KEY_0_RTT:
-                    QuicTraceLogVerbose(FN_tls_mitls4af6288f56becc3c173700d7f2199b4f, "[ tls][%p] 0-RTT write key exported",  TlsContext);
+                    QuicTraceLogVerbose(FN_tls_mitls4af6288f56becc3c173700d7f2199b4f, "[ tls][%p] 0-RTT write key exported", TlsContext);
                     break;
                 case QUIC_PACKET_KEY_HANDSHAKE:
-                    QuicTraceLogVerbose(FN_tls_mitls045814212696220bb1bc6aa0d64da1c7, "[ tls][%p] Handshake write key exported",  TlsContext);
+                    QuicTraceLogVerbose(FN_tls_mitls045814212696220bb1bc6aa0d64da1c7, "[ tls][%p] Handshake write key exported", TlsContext);
                     break;
                 case QUIC_PACKET_KEY_1_RTT:
-                    QuicTraceLogVerbose(FN_tls_mitls72ed17fb7d2ba16fd94175d492326096, "[ tls][%p] 1-RTT write key exported",  TlsContext);
+                    QuicTraceLogVerbose(FN_tls_mitls72ed17fb7d2ba16fd94175d492326096, "[ tls][%p] 1-RTT write key exported", TlsContext);
                     break;
                 default:
                     QUIC_FRE_ASSERT(FALSE);
@@ -1390,11 +1390,11 @@ QuicTlsProcessDataComplete(
                 break;
             case QUIC_PACKET_KEY_HANDSHAKE:
                 State->BufferOffsetHandshake = State->BufferTotalLength;
-                QuicTraceLogVerbose(FN_tls_mitls33003c454b08c9edaddad6f8f76b8466, "[ tls][%p] Handshake write offset = %u",  TlsContext,  State->BufferOffsetHandshake);
+                QuicTraceLogVerbose(FN_tls_mitls33003c454b08c9edaddad6f8f76b8466, "[ tls][%p] Handshake write offset = %u", TlsContext, State->BufferOffsetHandshake);
                 break;
             case QUIC_PACKET_KEY_1_RTT:
                 State->BufferOffset1Rtt = State->BufferTotalLength;
-                QuicTraceLogVerbose(FN_tls_mitls149c710690f9774242c8b8bb6a173ac2, "[ tls][%p] 1-RTT write offset = %u",  TlsContext,  State->BufferOffset1Rtt);
+                QuicTraceLogVerbose(FN_tls_mitls149c710690f9774242c8b8bb6a173ac2, "[ tls][%p] 1-RTT write offset = %u", TlsContext, State->BufferOffset1Rtt);
                 break;
             default:
                 QUIC_FRE_ASSERT(FALSE);
@@ -1419,7 +1419,7 @@ QuicTlsProcessDataComplete(
     TlsContext->Buffer = NULL;
     *BufferConsumed = BufferOffset;
 
-    QuicTraceLogVerbose(FN_tls_mitlsd0901bbb86524cd16d6b969fb96e4a2b, "[ tls][%p] Consumed %d bytes",  TlsContext,  BufferOffset);
+    QuicTraceLogVerbose(FN_tls_mitlsd0901bbb86524cd16d6b969fb96e4a2b, "[ tls][%p] Consumed %d bytes", TlsContext, BufferOffset);
 
     if (TlsContext->TicketReady) {
         ResultFlags |= QUIC_TLS_RESULT_TICKET;
@@ -1451,13 +1451,13 @@ QuicTlsOnCertSelect(
     QUIC_DBG_ASSERT(TlsContext);
     QUIC_DBG_ASSERT(TlsContext->IsServer);
 
-    QuicTraceLogVerbose(FN_tls_mitlsd36099cedc66c6c8c16ade212b1767ed, "[ tls][%p] OnCertSelect",  TlsContext);
+    QuicTraceLogVerbose(FN_tls_mitlsd36099cedc66c6c8c16ade212b1767ed, "[ tls][%p] OnCertSelect", TlsContext);
 
     //
     // Only allow TLS 1.3.
     //
     if (TlsVersion != TLS_1p3) {
-        QuicTraceLogError(FN_tls_mitls3c9b3c3271eb5184119a5a8843fdb741, "[ tls][%p] Unsupported TLS version %hu",  TlsContext,  TlsVersion);
+        QuicTraceLogError(FN_tls_mitls3c9b3c3271eb5184119a5a8843fdb741, "[ tls][%p] Unsupported TLS version %hu", TlsContext, TlsVersion);
         goto Error;
     }
 
@@ -1466,14 +1466,14 @@ QuicTlsOnCertSelect(
     //
 
     if (ServerNameIndicationLength >= QUIC_MAX_SNI_LENGTH) {
-        QuicTraceLogError(FN_tls_mitls151ede0577965fb7c0e4753f4ad25ec3, "[ tls][%p] Too long server name!",  TlsContext);
+        QuicTraceLogError(FN_tls_mitls151ede0577965fb7c0e4753f4ad25ec3, "[ tls][%p] Too long server name!", TlsContext);
         goto Error;
     }
 
     if (ServerNameIndicationLength != 0) {
         TlsContext->SNI = QUIC_ALLOC_PAGED((uint16_t)(ServerNameIndicationLength + 1));
         if (TlsContext->SNI == NULL) {
-            QuicTraceLogWarning(FN_tls_mitls37ba0d472b40dadbf1d5b15d772bb1a9, "[ tls][%p] Failed to allocate SNI.",  TlsContext);
+            QuicTraceLogWarning(FN_tls_mitls37ba0d472b40dadbf1d5b15d772bb1a9, "[ tls][%p] Failed to allocate SNI.", TlsContext);
             goto Error;
         }
 
@@ -1501,32 +1501,32 @@ QuicTlsOnCertSelect(
             SelectedSignature)) {
         if (SignatureAlgorithmsLength == 1) {
             QuicTraceLogError(FN_tls_mitls2b57b65b0be1f0fdb281e1055ffea064, "[ tls][%p] No matching signature algorithms, {0x%hx}", 
-                TlsContext,  SignatureAlgorithms[0]);
+                TlsContext, SignatureAlgorithms[0]);
         } else if (SignatureAlgorithmsLength == 2) {
             QuicTraceLogError(FN_tls_mitlsd14369f0b74ba6fbe50a4ebf000568ac, "[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx}", 
-                TlsContext,  SignatureAlgorithms[0],  SignatureAlgorithms[1]);
+                TlsContext, SignatureAlgorithms[0], SignatureAlgorithms[1]);
         } else if (SignatureAlgorithmsLength == 3) {
             QuicTraceLogError(FN_tls_mitls35bbf79e5ec73d02e30e54182a1200bc, "[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx}", 
-                TlsContext,  SignatureAlgorithms[0],  SignatureAlgorithms[1],  SignatureAlgorithms[2]);
+                TlsContext, SignatureAlgorithms[0], SignatureAlgorithms[1], SignatureAlgorithms[2]);
         } else if (SignatureAlgorithmsLength == 4) {
             QuicTraceLogError(FN_tls_mitls67827f4a72ead14a3264b46d8597cf76, "[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx, 0x%hx}", 
-                TlsContext,  SignatureAlgorithms[0],  SignatureAlgorithms[1],  SignatureAlgorithms[2], 
+                TlsContext, SignatureAlgorithms[0], SignatureAlgorithms[1], SignatureAlgorithms[2], 
                 SignatureAlgorithms[3]);
         } else if (SignatureAlgorithmsLength == 5) {
             QuicTraceLogError(FN_tls_mitlsa7f4e79bb9f5e0cd46deb27512358d7a, "[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx}", 
-                TlsContext,  SignatureAlgorithms[0],  SignatureAlgorithms[1],  SignatureAlgorithms[2], 
-                SignatureAlgorithms[3],  SignatureAlgorithms[4]);
+                TlsContext, SignatureAlgorithms[0], SignatureAlgorithms[1], SignatureAlgorithms[2], 
+                SignatureAlgorithms[3], SignatureAlgorithms[4]);
         } else {
             QuicTraceLogError(FN_tls_mitlsa5378f9628151212f0604036bb6fb20c, "[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, ...}", 
-                TlsContext,  SignatureAlgorithms[0],  SignatureAlgorithms[1],  SignatureAlgorithms[2], 
-                SignatureAlgorithms[3],  SignatureAlgorithms[4],  SignatureAlgorithms[5]);
+                TlsContext, SignatureAlgorithms[0], SignatureAlgorithms[1], SignatureAlgorithms[2], 
+                SignatureAlgorithms[3], SignatureAlgorithms[4], SignatureAlgorithms[5]);
         }
         SecurityConfig = NULL;
         goto Error;
     }
 
     QuicTraceLogInfo(FN_tls_mitlsf40198db99564073aa3e5226589a4243, "[ tls][%p] Server certificate selected. SNI: %s; Algorithm: 0x%4.4x", 
-        TlsContext,  TlsContext->SNI,  *SelectedSignature);
+        TlsContext, TlsContext->SNI, *SelectedSignature);
 
 Error:
 
@@ -1562,13 +1562,13 @@ QuicTlsOnNegotiate(
     UNREFERENCED_PARAMETER(Cookie);
     UNREFERENCED_PARAMETER(CookieLength);
 
-    QuicTraceLogVerbose(FN_tls_mitlsb3bcc727603086bb5e8fbd7bb6d384aa, "[ tls][%p] OnNegotiate",  TlsContext);
+    QuicTraceLogVerbose(FN_tls_mitlsb3bcc727603086bb5e8fbd7bb6d384aa, "[ tls][%p] OnNegotiate", TlsContext);
 
     //
     // Only allow TLS 1.3.
     //
     if (Version != TLS_1p3) {
-        QuicTraceLogError(FN_tls_mitls41fd58a3e931b88224db90da542d72a0, "[ tls][%p] Unsupported TLS version %hu",  TlsContext,  Version);
+        QuicTraceLogError(FN_tls_mitls41fd58a3e931b88224db90da542d72a0, "[ tls][%p] Unsupported TLS version %hu", TlsContext, Version);
         goto Exit;
     }
 
@@ -1583,7 +1583,7 @@ QuicTlsOnNegotiate(
             TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS,
             &TransportParams,
             &TransportParamsLength)) {
-        QuicTraceLogError(FN_tls_mitls7311dd4a8d17392e0d12243e9c2d5c55, "[ tls][%p] Missing QUIC transport parameters.",  TlsContext);
+        QuicTraceLogError(FN_tls_mitls7311dd4a8d17392e0d12243e9c2d5c55, "[ tls][%p] Missing QUIC transport parameters.", TlsContext);
         goto Exit;
     }
 
@@ -1591,7 +1591,7 @@ QuicTlsOnNegotiate(
             TlsContext->Connection,
             (uint16_t)TransportParamsLength,
             TransportParams)) {
-        QuicTraceLogError(FN_tls_mitlsbafa18c408b3446024369717200eaea3, "[ tls][%p] Failed to process the QUIC transport parameters.",  TlsContext);
+        QuicTraceLogError(FN_tls_mitlsbafa18c408b3446024369717200eaea3, "[ tls][%p] Failed to process the QUIC transport parameters.", TlsContext);
         goto Exit;
     }
 
@@ -1627,7 +1627,7 @@ QuicTlsOnCertFormat(
     QUIC_SEC_CONFIG* SecurityConfig = (QUIC_SEC_CONFIG*)SecContext;
     QUIC_DBG_ASSERT(SecurityConfig);
 
-    QuicTraceLogVerbose(FN_tls_mitls54dfff39d5ca4eb5ff4f3f410e25605a, "[ tls][%p] OnCertFormat",  TlsContext);
+    QuicTraceLogVerbose(FN_tls_mitls54dfff39d5ca4eb5ff4f3f410e25605a, "[ tls][%p] OnCertFormat", TlsContext);
 
     QUIC_DBG_ASSERT(SecurityConfig->FormatLength <= MAX_CHAIN_LEN);
     if (SecurityConfig->FormatLength > MAX_CHAIN_LEN) {
@@ -1655,7 +1655,7 @@ QuicTlsOnCertSign(
     QUIC_SEC_CONFIG* SecurityConfig = (QUIC_SEC_CONFIG*)SecContext;
     QUIC_DBG_ASSERT(SecurityConfig);
 
-    QuicTraceLogVerbose(FN_tls_mitls820c2a6a8dc21b0538f4b6fc9c116f1e, "[ tls][%p] OnCertSign",  TlsContext);
+    QuicTraceLogVerbose(FN_tls_mitls820c2a6a8dc21b0538f4b6fc9c116f1e, "[ tls][%p] OnCertSign", TlsContext);
 
     size_t SignatureLength = MAX_SIGNATURE_LEN;
 
@@ -1692,13 +1692,13 @@ QuicTlsOnCertVerify(
     QUIC_TLS* TlsContext = (QUIC_TLS*)Context;
     QUIC_DBG_ASSERT(TlsContext);
 
-    QuicTraceLogVerbose(FN_tls_mitls724f1d5cba2cbfb93b8f06ee6f516c32, "[ tls][%p] OnCertVerify",  TlsContext);
+    QuicTraceLogVerbose(FN_tls_mitls724f1d5cba2cbfb93b8f06ee6f516c32, "[ tls][%p] OnCertVerify", TlsContext);
 
     int Result = 0;
     QUIC_CERT* Certificate = NULL;
 
     if (TlsContext->SecConfig->Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION) {
-        QuicTraceLogWarning(FN_tls_mitls6c7dc739ef26e36473656ef1aae65365, "[ tls][%p] Certificate validation disabled!",  TlsContext);
+        QuicTraceLogWarning(FN_tls_mitls6c7dc739ef26e36473656ef1aae65365, "[ tls][%p] Certificate validation disabled!", TlsContext);
         Result = 1;
         goto Error;
     }
@@ -1708,7 +1708,7 @@ QuicTlsOnCertVerify(
             ChainBufferLength,
             ChainBuffer);
     if (Certificate == NULL) {
-        QuicTraceLogError(FN_tls_mitls5c78178a2d4248940c31c2bfac65cce3, "[ tls][%p] failed to parse certificate chain.",  TlsContext);
+        QuicTraceLogError(FN_tls_mitls5c78178a2d4248940c31c2bfac65cce3, "[ tls][%p] failed to parse certificate chain.", TlsContext);
         goto Error;
     }
 
@@ -1716,7 +1716,7 @@ QuicTlsOnCertVerify(
             Certificate,
             TlsContext->SNI,
             TlsContext->SecConfig->Flags)) {
-        QuicTraceLogError(FN_tls_mitls805006c91795110a6438196bae97f490, "[ tls][%p] Cert chain validation failed.",  TlsContext);
+        QuicTraceLogError(FN_tls_mitls805006c91795110a6438196bae97f490, "[ tls][%p] Cert chain validation failed.", TlsContext);
         Result = 0;
         goto Error;
     }
@@ -1752,7 +1752,7 @@ QuicTlsOnTicketReady(
     QUIC_DBG_ASSERT(TlsContext);
 
     QuicTraceLogVerbose(FN_tls_mitls81abb5295d39854b93921273b608b49e, "[ tls][%p] Received new ticket. ticket_len:%d session_len:%d for %s", 
-        TlsContext,  (uint32_t)Ticket->ticket_len,  (uint32_t)Ticket->session_len,  ServerNameIndication);
+        TlsContext, (uint32_t)Ticket->ticket_len, (uint32_t)Ticket->session_len, ServerNameIndication);
 
     //
     // Release any previous ticket.
@@ -1808,7 +1808,7 @@ QuicTlsReadTicket(
         goto Exit;
     }
 
-    QuicTraceLogVerbose(FN_tls_mitls890188c3029a52a4120ef5d0d84250a5, "[ tls][%p] Ticket (%u bytes) read.",  TlsContext,  TicketBufferLength);
+    QuicTraceLogVerbose(FN_tls_mitls890188c3029a52a4120ef5d0d84250a5, "[ tls][%p] Ticket (%u bytes) read.", TlsContext, TicketBufferLength);
 
     QuicCopyMemory(
         Buffer,
@@ -1921,7 +1921,7 @@ QuicTlsLogSecret(
         SecretStr[i*2]     = HEX_TO_CHAR(Secret[i] >> 4);
         SecretStr[i*2 + 1] = HEX_TO_CHAR(Secret[i] & 0xf);
     }
-    QuicTraceLogVerbose(FN_tls_mitls4f259e4b8596ae5c2c3a20b405dc2316, "[ tls] %s[%u]: %s",  Prefix,  Length,  SecretStr);
+    QuicTraceLogVerbose(FN_tls_mitls4f259e4b8596ae5c2c3a20b405dc2316, "[ tls] %s[%u]: %s", Prefix, Length, SecretStr);
 }
 #else
 #define QuicTlsLogSecret(Prefix, Secret, Length) UNREFERENCED_PARAMETER(Prefix)
@@ -2205,7 +2205,7 @@ QUIC_STATUS
 QuicPacketKeyCreateInitial(
     _In_ BOOLEAN IsServer,
     _In_reads_(QUIC_VERSION_SALT_LENGTH)
-        const uint8_t* const Salt,  // Version Specific
+        const uint8_t* const Salt, // Version Specific
     _In_ uint8_t CIDLength,
     _In_reads_(CIDLength)
         const uint8_t* const CID,
@@ -2297,7 +2297,7 @@ QuicPacketKeyCreate(
             Epoch,
             rw);
     if (Result == FALSE) {
-        QuicTraceLogError(FN_tls_mitls02bc097017e9638848dd3edc17f31e5a, "[ tls][%p] FFI_mitls_quic_get_record_key failed.",  TlsContext);
+        QuicTraceLogError(FN_tls_mitls02bc097017e9638848dd3edc17f31e5a, "[ tls][%p] FFI_mitls_quic_get_record_key failed.", TlsContext);
         goto Error;
     }
 
@@ -2306,7 +2306,7 @@ QuicPacketKeyCreate(
         (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
     Key = QUIC_ALLOC_NONPAGED(PacketKeyLength);
     if (Key == NULL) {
-        QuicTraceLogWarning(FN_tls_mitls66757a052b88f225106e71f68b6c20e8, "[ tls][%p] Failed to allocate packet key.",  TlsContext);
+        QuicTraceLogWarning(FN_tls_mitls66757a052b88f225106e71f68b6c20e8, "[ tls][%p] Failed to allocate packet key.", TlsContext);
         Result = FALSE;
         goto Error;
     }
@@ -2341,7 +2341,7 @@ QuicPacketKeyCreate(
                 &ClientReadSecret,
                 &ServerReadSecret);
         if (Result == FALSE) {
-            QuicTraceLogError(FN_tls_mitls67620ba3ef82710e016097152619a8b4, "[ tls][%p] FFI_mitls_quic_get_record_secrets failed.",  TlsContext);
+            QuicTraceLogError(FN_tls_mitls67620ba3ef82710e016097152619a8b4, "[ tls][%p] FFI_mitls_quic_get_record_secrets failed.", TlsContext);
             goto Error;
         }
         quic_secret* CopySecret;
@@ -2362,7 +2362,7 @@ QuicPacketKeyCreate(
             Key->TrafficSecret->Hash = QUIC_HASH_SHA512;
             break;
         default:
-            QuicTraceLogError(FN_tls_mitls274f703b551e308b4a69a0d7c9e01f56, "[ tls][%p] Unsupported hash type.",  TlsContext);
+            QuicTraceLogError(FN_tls_mitls274f703b551e308b4a69a0d7c9e01f56, "[ tls][%p] Unsupported hash type.", TlsContext);
             Result = FALSE;
             goto Error;
         }

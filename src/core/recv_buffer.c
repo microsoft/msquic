@@ -62,7 +62,7 @@ QuicRecvBufferInitialize(
 
     RecvBuffer->Buffer = QUIC_ALLOC_NONPAGED(AllocBufferLength);
     if (RecvBuffer->Buffer == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "recv_buffer",  AllocBufferLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "recv_buffer", AllocBufferLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -72,7 +72,7 @@ QuicRecvBufferInitialize(
             QUIC_MAX_RANGE_ALLOC_SIZE,
             &RecvBuffer->WrittenRanges);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "recv_buffer written ranged",  QUIC_MAX_RANGE_ALLOC_SIZE);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "recv_buffer written ranged", QUIC_MAX_RANGE_ALLOC_SIZE);
         QUIC_FREE(RecvBuffer->Buffer);
         goto Error;
     }
@@ -321,7 +321,7 @@ QuicRecvBufferWrite(
             BufferLength,
             &WrittenRangesUpdated);
     if (!UpdatedRange) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "recv_buffer range",  0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "recv_buffer range", 0);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     } else if (!WrittenRangesUpdated) {

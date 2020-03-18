@@ -44,7 +44,7 @@ QuicRegistrationAlloc(
     QUIC_REGISTRATION* Registration =
         QUIC_ALLOC_NONPAGED(sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
     if (Registration == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "registration",  sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "registration", sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -95,14 +95,14 @@ QuicRegistrationAlloc(
         goto Error;
     }
 
-    QuicTraceEvent(RegistrationCreated, "[ reg][%p] Created, AppName=%s",  Registration,  Registration->AppName);
+    QuicTraceEvent(RegistrationCreated, "[ reg][%p] Created, AppName=%s", Registration, Registration->AppName);
 
 #ifdef QuicVerifierEnabledByAddr
 #pragma prefast(suppress:6001, "SAL doesn't understand checking whether memory is tracked by Verifier.")
     if (MsQuicLib.IsVerifying &&
         QuicVerifierEnabledByAddr(NewRegistration)) {
         Registration->IsVerifying = TRUE;
-        QuicTraceLogInfo(FN_registrationdab4993b2508030f7c01169b90ab5a52, "[ reg][%p] Verifing enabled!",  Registration);
+        QuicTraceLogInfo(FN_registrationdab4993b2508030f7c01169b90ab5a52, "[ reg][%p] Verifing enabled!", Registration);
     } else {
         Registration->IsVerifying = FALSE;
     }
@@ -123,7 +123,7 @@ Error:
         QUIC_FREE(Registration);
     }
 
-    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d",  Status);
+    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d", Status);
 
     return Status;
 }
@@ -198,7 +198,7 @@ MsQuicRegistrationClose(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
 
-    QuicTraceEvent(RegistrationCleanup, "[ reg][%p] Cleaning up",  Registration);
+    QuicTraceEvent(RegistrationCleanup, "[ reg][%p] Cleaning up", Registration);
 
     //
     // If you hit this assert, you are trying to clean up a registration without
@@ -231,7 +231,7 @@ QuicRegistrationTraceRundown(
     _In_ QUIC_REGISTRATION* Registration
     )
 {
-    QuicTraceEvent(RegistrationRundown, "[ reg][%p] Rundown, AppName=%s",  Registration,  Registration->AppName);
+    QuicTraceEvent(RegistrationRundown, "[ reg][%p] Rundown, AppName=%s", Registration, Registration->AppName);
 
     QuicLockAcquire(&Registration->Lock);
 
@@ -299,7 +299,7 @@ MsQuicSecConfigCreate(
 
 Exit:
 
-    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d",  Status);
+    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d", Status);
 
     return Status;
 }
@@ -442,7 +442,7 @@ QuicRegistrationParamSet(
         }
 
         MsQuicLib.EncryptionDisabled = *(uint8_t*)Buffer == FALSE;
-        QuicTraceLogWarning(FN_registration711e1a8cca07c45faee6d20a450e9ec6, "[ lib] Updated encryption disabled = %hu",  MsQuicLib.EncryptionDisabled);
+        QuicTraceLogWarning(FN_registration711e1a8cca07c45faee6d20a450e9ec6, "[ lib] Updated encryption disabled = %hu", MsQuicLib.EncryptionDisabled);
 
         Status = QUIC_STATUS_SUCCESS;
         break;

@@ -90,7 +90,7 @@ QuicLossDetectionUninitialize(
 
         if (Packet->Flags.IsRetransmittable) {
             QuicTraceLogVerbose(FN_loss_detection8e90a8ce9382e68c0b924d43672c2a5f, "[%c][TX][%llu] Thrown away on shutdown", 
-                PtkConnPre(Connection),  Packet->PacketNumber);
+                PtkConnPre(Connection), Packet->PacketNumber);
 
         }
 
@@ -101,7 +101,7 @@ QuicLossDetectionUninitialize(
         LossDetection->LostPackets = LossDetection->LostPackets->Next;
 
         QuicTraceLogVerbose(FN_loss_detectionf10106b315c3f490c7f862fe7f361eb0, "[%c][TX][%llu] Thrown away on shutdown (lost packet)", 
-            PtkConnPre(Connection),  Packet->PacketNumber);
+            PtkConnPre(Connection), Packet->PacketNumber);
 
         QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
     }
@@ -205,7 +205,7 @@ QuicLossDetectionUpdateTimer(
         //
         // No retransmission timer runs after the connection has been shut down.
         //
-        QuicTraceEvent(ConnLossDetectionTimerCancel, "[conn][%p] Cancelling loss detection timer.",  Connection);
+        QuicTraceEvent(ConnLossDetectionTimerCancel, "[conn][%p] Cancelling loss detection timer.", Connection);
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_LOSS_DETECTION);
         return;
     }
@@ -222,7 +222,7 @@ QuicLossDetectionUpdateTimer(
         // doing amplification protection, which means more data might need to
         // be sent to unblock it.
         //
-        QuicTraceEvent(ConnLossDetectionTimerCancel, "[conn][%p] Cancelling loss detection timer.",  Connection);
+        QuicTraceEvent(ConnLossDetectionTimerCancel, "[conn][%p] Cancelling loss detection timer.", Connection);
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_LOSS_DETECTION);
         return;
     }
@@ -234,7 +234,7 @@ QuicLossDetectionUpdateTimer(
         // Sending is restricted for amplification protection.
         // Don't run the timer, because nothing can be sent when it fires.
         //
-        QuicTraceEvent(ConnLossDetectionTimerCancel, "[conn][%p] Cancelling loss detection timer.",  Connection);
+        QuicTraceEvent(ConnLossDetectionTimerCancel, "[conn][%p] Cancelling loss detection timer.", Connection);
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_LOSS_DETECTION);
         return;
     }
@@ -317,7 +317,7 @@ QuicLossDetectionUpdateTimer(
     }
 
     QuicTraceEvent(ConnLossDetectionTimerSet, "[conn][%p] Setting loss detection %c timer for %d ms. (ProbeCount=%hd)", 
-        Connection,  TimeoutType,  Delay,  LossDetection->ProbeCount);
+        Connection, TimeoutType, Delay, LossDetection->ProbeCount);
     UNREFERENCED_PARAMETER(TimeoutType);
     QuicConnTimerSet(Connection, QUIC_CONN_TIMER_LOSS_DETECTION, Delay);
 }
@@ -683,7 +683,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 Packet->PacketNumber < LossDetection->LargestAck &&
                 QuicTimeDiff32(Packet->SentTime, TimeNow) > TwoPto) {
             QuicTraceLogVerbose(FN_loss_detection92c87e0f2df7baa73685d553de54f39a, "[%c][TX][%llu] Forgetting", 
-                PtkConnPre(Connection),  Packet->PacketNumber);
+                PtkConnPre(Connection), Packet->PacketNumber);
             LossDetection->LostPackets = Packet->Next;
             QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
         }
@@ -1098,7 +1098,7 @@ QuicLossDetectionProcessAckBlocks(
             //
             // The packet was not acknowledged with the same encryption level.
             //
-            QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.",  Connection,  "Incorrect ACK encryption level");
+            QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Incorrect ACK encryption level");
             *InvalidAckBlock = TRUE;
             return;
         }
@@ -1107,7 +1107,7 @@ QuicLossDetectionProcessAckBlocks(
         QuicTraceLogVerbose(FN_loss_detectiona16a26f66ee07984bb898e24396a45ef, "[%c][TX][%llu] ACKed (%u.%u ms)", 
             PtkConnPre(Connection), 
             Packet->PacketNumber, 
-            PacketRtt / 1000,  PacketRtt % 1000);
+            PacketRtt / 1000, PacketRtt % 1000);
             QuicTraceEvent(ConnPacketACKed, "[conn][%p][TX][%I] %c ACKed", 
                 Connection, 
                 Packet->PacketNumber, 

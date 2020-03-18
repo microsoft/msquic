@@ -125,7 +125,7 @@ QuicPacketBuilderPrepare(
         // but without the key, nothing can be done. Just silently kill the
         // connection.
         //
-        QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.",  Connection,  "NULL key in builder prepare");
+        QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "NULL key in builder prepare");
         QuicConnSilentlyAbort(Connection);
         return FALSE;
     }
@@ -183,7 +183,7 @@ QuicPacketBuilderPrepare(
                             QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                             DatagramSize));
             if (Builder->SendContext == NULL) {
-                QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "packet send context",  0);
+                QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "packet send context", 0);
                 goto Error;
             }
         }
@@ -202,7 +202,7 @@ QuicPacketBuilderPrepare(
                 Builder->SendContext,
                 NewDatagramLength);
         if (Builder->Datagram == NULL) {
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "packet datagram",  NewDatagramLength);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "packet datagram", NewDatagramLength);
             goto Error;
         }
 
@@ -242,7 +242,7 @@ QuicPacketBuilderPrepare(
         }
 
         QuicTraceLogVerbose(FN_packet_builder24bb96787b7b1cfae2d4688ab3213bf6, "[pktb][%p] New UDP datagram. Space: %u", 
-            Connection,  Builder->Datagram->Length);
+            Connection, Builder->Datagram->Length);
     }
 
     if (NewQuicPacket) {
@@ -324,7 +324,7 @@ QuicPacketBuilderPrepare(
         Builder->DatagramLength += Builder->HeaderLength;
 
         QuicTraceLogVerbose(FN_packet_builderaee4e5ee823e822959be3e96df4584aa, "[pktb][%p] New QUIC packet. Space: %hu. Type: %hx", 
-            Connection,  BufferSpaceAvailable,  NewPacketType);
+            Connection, BufferSpaceAvailable, NewPacketType);
     }
 
     QUIC_DBG_ASSERT(Builder->PacketType == NewPacketType);
@@ -836,7 +836,7 @@ QuicPacketBuilderSendBatch(
     )
 {
     QuicTraceLogVerbose(FN_packet_builderbe3ff1273f0941f8129a2f6dac9f12fc, "[pktb][%p] Sending batch. %hu datagrams", 
-        Builder->Connection,  (uint16_t)Builder->TotalCountDatagrams);
+        Builder->Connection, (uint16_t)Builder->TotalCountDatagrams);
 
     if (QuicAddrIsBoundExplicitly(&Builder->Path->LocalAddress)) {
         QuicBindingSendTo(

@@ -85,7 +85,7 @@ MsQuicLibraryReadSettings(
         QuicSettingsLoad(&MsQuicLib.Settings, MsQuicLib.Storage);
     }
 
-    QuicTraceLogInfo(FN_library44069ab9a4dc123108e58e00777db935, "[ lib] Settings %p Updated",  &MsQuicLib.Settings);
+    QuicTraceLogInfo(FN_library44069ab9a4dc123108e58e00777db935, "[ lib] Settings %p Updated", &MsQuicLib.Settings);
     QuicSettingsDump(&MsQuicLib.Settings);
 
     BOOLEAN UpdateRegistrations = (Context != NULL);
@@ -129,7 +129,7 @@ MsQuicLibraryInitialize(
             (void*)TRUE, // Non-null indicates registrations should be updated
             &MsQuicLib.Storage);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogWarning(FN_library8441890d38c2db33e439a12ca0d3ac1f, "[ lib] Failed to open global settings, 0x%x",  Status);
+        QuicTraceLogWarning(FN_library8441890d38c2db33e439a12ca0d3ac1f, "[ lib] Failed to open global settings, 0x%x", Status);
         Status = QUIC_STATUS_SUCCESS; // Non-fatal, as the process may not have access
     }
 
@@ -153,7 +153,7 @@ MsQuicLibraryInitialize(
     MsQuicLib.PerProc =
         QUIC_ALLOC_NONPAGED(MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
     if (MsQuicLib.PerProc == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "connection pools", 
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "connection pools", 
             MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -173,7 +173,7 @@ MsQuicLibraryInitialize(
             QuicBindingUnreachable,
             &MsQuicLib.Datapath);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.",  Status,  "QuicDataPathInitialize");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "QuicDataPathInitialize");
         goto Error;
     }
 
@@ -700,7 +700,7 @@ MsQuicOpen(
         goto Exit;
     }
 
-    QuicTraceLogVerbose(FN_library1200b70fe511717df8e9a0fdad1f6efe, "[ api] MsQuicOpen, %u",  ApiVersion);
+    QuicTraceLogVerbose(FN_library1200b70fe511717df8e9a0fdad1f6efe, "[ api] MsQuicOpen, %u", ApiVersion);
 
     if ((ApiVersion == 0 || ApiVersion > QUIC_API_VERSION_1) &&
         ApiVersion != QUIC_API_VERSION_PRIVATE) {
@@ -823,7 +823,7 @@ Error:
 
 Exit:
 
-    QuicTraceLogVerbose(FN_library053186b47e8b8a7520ef3db96676afc2, "[ api] MsQuicOpen, status=0x%x",  Status);
+    QuicTraceLogVerbose(FN_library053186b47e8b8a7520ef3db96676afc2, "[ api] MsQuicOpen, status=0x%x", Status);
 
     return Status;
 }
@@ -1223,7 +1223,7 @@ QuicLibraryGetCurrentStatelessRetryKey(
                 RawKey,
                 &NewKey);
         if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.",  Status,  "Create stateless retry key");
+            QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "Create stateless retry key");
             return NULL;
         }
 

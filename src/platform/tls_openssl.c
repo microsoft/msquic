@@ -499,7 +499,7 @@ QuicTlsSetEncryptionSecretsCallback(
     QUIC_STATUS Status;
 
     QuicTraceLogVerbose(FN_tls_openssl17614e2cf93914e3e8febee432e767cf, "[ tls][%p][%c] New encryption secrets (Level = %u).", 
-        TlsContext,  GetTlsIdentifier(TlsContext),  Level);
+        TlsContext, GetTlsIdentifier(TlsContext), Level);
 
     QUIC_DBG_ASSERT(TlsState->WriteKeys[KeyType] == NULL);
     Status =
@@ -558,11 +558,11 @@ QuicTlsAddHandshakeDataCallback(
     QUIC_DBG_ASSERT(TlsState->WriteKeys[KeyType] != NULL);
 
     QuicTraceLogVerbose(FN_tls_opensslf2f87064588bde8f0ae0de92805bd612, "[ tls][%p][%c] Sending %llu handshake bytes (Level = %u).", 
-        TlsContext,  GetTlsIdentifier(TlsContext),  Length,  Level);
+        TlsContext, GetTlsIdentifier(TlsContext), Length, Level);
 
     if (Length + TlsState->BufferLength > (size_t)TlsState->BufferAllocLength) {
         QuicTraceLogError(FN_tls_opensslafed13f43fc25eda4085433fbf682f78, "[ tls][%p][%c] Buffer overflow for output handshake data.", 
-            TlsContext,  GetTlsIdentifier(TlsContext));
+            TlsContext, GetTlsIdentifier(TlsContext));
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
         return -1;
     }
@@ -572,14 +572,14 @@ QuicTlsAddHandshakeDataCallback(
         if (TlsState->BufferOffsetHandshake == 0) {
             TlsState->BufferOffsetHandshake = TlsState->BufferTotalLength;
             QuicTraceLogInfo(FN_tls_openssl1878a45ea8ee9d559ee0eabc85c97c6d, "[ tls][%p][%c] Writing Handshake data starts at %u.", 
-                TlsContext,  GetTlsIdentifier(TlsContext),  TlsState->BufferOffsetHandshake);
+                TlsContext, GetTlsIdentifier(TlsContext), TlsState->BufferOffsetHandshake);
         }
         break;
     case QUIC_PACKET_KEY_1_RTT:
         if (TlsState->BufferOffset1Rtt == 0) {
             TlsState->BufferOffset1Rtt = TlsState->BufferTotalLength;
             QuicTraceLogInfo(FN_tls_openssl41172f95bb9f270970e2278858802d89, "[ tls][%p][%c] Writing 1-RTT data starts at %u.", 
-                TlsContext,  GetTlsIdentifier(TlsContext),  TlsState->BufferOffset1Rtt);
+                TlsContext, GetTlsIdentifier(TlsContext), TlsState->BufferOffset1Rtt);
         }
         break;
     default:
@@ -619,7 +619,7 @@ QuicTlsSendAlertCallback(
     QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
 
     QuicTraceLogError(FN_tls_openssl811042102773d53433a65cd85448f874, "[ tls][%p][%c] Send alert = %u (Level = %u).", 
-        TlsContext,  GetTlsIdentifier(TlsContext),  Alert,  Level);
+        TlsContext, GetTlsIdentifier(TlsContext), Alert, Level);
 
     TlsContext->State->AlertCode = Alert;
     TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
@@ -690,7 +690,7 @@ QuicTlsServerSecConfigCreate(
     //
 
     if (Flags != QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE) {
-        QuicTraceLogError(FN_tls_opensslb84452a322bf75977e5c714ab23885c2, "[ tls] Invalid flags: %lu.",  Flags);
+        QuicTraceLogError(FN_tls_opensslb84452a322bf75977e5c714ab23885c2, "[ tls] Invalid flags: %lu.", Flags);
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
@@ -733,7 +733,7 @@ QuicTlsServerSecConfigCreate(
 
     SecurityConfig->SSLCtx = SSL_CTX_new(TLS_method());
     if (SecurityConfig->SSLCtx == NULL) {
-        QuicTraceLogError(FN_tls_opensslab860b50eac7c325ea39d9ab87298208, "[ tls] SSL_CTX_new failed, error: %ld",  ERR_get_error());
+        QuicTraceLogError(FN_tls_opensslab860b50eac7c325ea39d9ab87298208, "[ tls] SSL_CTX_new failed, error: %ld", ERR_get_error());
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -755,7 +755,7 @@ QuicTlsServerSecConfigCreate(
             SecurityConfig->SSLCtx,
             QUIC_TLS_DEFAULT_SSL_CIPHERS);
     if (Ret != 1) {
-        QuicTraceLogError(FN_tls_openssl77f607afc7718f0d73990aee8025a22d, "[ tls] SSL_CTX_set_ciphersuites failed, error: %ld",  ERR_get_error());
+        QuicTraceLogError(FN_tls_openssl77f607afc7718f0d73990aee8025a22d, "[ tls] SSL_CTX_set_ciphersuites failed, error: %ld", ERR_get_error());
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -765,7 +765,7 @@ QuicTlsServerSecConfigCreate(
             SecurityConfig->SSLCtx,
             QUIC_TLS_DEFAULT_SSL_CURVES);
     if (Ret != 1) {
-        QuicTraceLogError(FN_tls_openssl5de667d2fdc3e76736e64269152e9606, "[ tls] SSL_CTX_set1_groups_list failed, error: %ld",  ERR_get_error());
+        QuicTraceLogError(FN_tls_openssl5de667d2fdc3e76736e64269152e9606, "[ tls] SSL_CTX_set1_groups_list failed, error: %ld", ERR_get_error());
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -789,7 +789,7 @@ QuicTlsServerSecConfigCreate(
             CertFile->PrivateKeyFile,
             SSL_FILETYPE_PEM);
     if (Ret != 1) {
-        QuicTraceLogError(FN_tls_opensslb3dea916b43e905a7773ff180c84360f, "[ tls] SSL_CTX_use_PrivateKey_file failed, error: %ld",  ERR_get_error());
+        QuicTraceLogError(FN_tls_opensslb3dea916b43e905a7773ff180c84360f, "[ tls] SSL_CTX_use_PrivateKey_file failed, error: %ld", ERR_get_error());
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -799,14 +799,14 @@ QuicTlsServerSecConfigCreate(
             SecurityConfig->SSLCtx,
             CertFile->CertificateFile);
     if (Ret != 1) {
-      QuicTraceLogError(FN_tls_openssld9758300a9ef4d701b7388b05943f6fe, "[ tls] SSL_CTX_use_certificate_chain_file failed, error: %ld",  ERR_get_error());
+      QuicTraceLogError(FN_tls_openssld9758300a9ef4d701b7388b05943f6fe, "[ tls] SSL_CTX_use_certificate_chain_file failed, error: %ld", ERR_get_error());
       Status = QUIC_STATUS_TLS_ERROR;
       goto Exit;
     }
 
     Ret = SSL_CTX_check_private_key(SecurityConfig->SSLCtx);
     if (Ret != 1) {
-      QuicTraceLogError(FN_tls_openssl72201348378d4d4dc8907bbb09d654be, "TLS: SSL_CTX_check_private_key failed, error: %ld",  ERR_get_error());
+      QuicTraceLogError(FN_tls_openssl72201348378d4d4dc8907bbb09d654be, "TLS: SSL_CTX_check_private_key failed, error: %ld", ERR_get_error());
       Status = QUIC_STATUS_TLS_ERROR;
       goto Exit;
     }
@@ -889,7 +889,7 @@ QuicTlsClientSecConfigCreate(
 
     SecurityConfig->SSLCtx = SSL_CTX_new(TLS_method());
     if (SecurityConfig->SSLCtx == NULL) {
-        QuicTraceLogError(FN_tls_opensslab860b50eac7c325ea39d9ab87298208, "[ tls] SSL_CTX_new failed, error: %ld",  ERR_get_error());
+        QuicTraceLogError(FN_tls_opensslab860b50eac7c325ea39d9ab87298208, "[ tls] SSL_CTX_new failed, error: %ld", ERR_get_error());
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -908,7 +908,7 @@ QuicTlsClientSecConfigCreate(
             SecurityConfig->SSLCtx,
             QUIC_TLS_DEFAULT_SSL_CIPHERS);
     if (Ret != 1) {
-        QuicTraceLogError(FN_tls_openssl77f607afc7718f0d73990aee8025a22d, "[ tls] SSL_CTX_set_ciphersuites failed, error: %ld",  ERR_get_error());
+        QuicTraceLogError(FN_tls_openssl77f607afc7718f0d73990aee8025a22d, "[ tls] SSL_CTX_set_ciphersuites failed, error: %ld", ERR_get_error());
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -918,7 +918,7 @@ QuicTlsClientSecConfigCreate(
             SecurityConfig->SSLCtx,
             QUIC_TLS_DEFAULT_SSL_CURVES);
     if (Ret != 1) {
-        QuicTraceLogError(FN_tls_openssl5de667d2fdc3e76736e64269152e9606, "[ tls] SSL_CTX_set1_groups_list failed, error: %ld",  ERR_get_error());
+        QuicTraceLogError(FN_tls_openssl5de667d2fdc3e76736e64269152e9606, "[ tls] SSL_CTX_set1_groups_list failed, error: %ld", ERR_get_error());
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -950,7 +950,7 @@ QuicTlsClientSecConfigCreate(
                     QuicOpenSslClientTrustedCert,
                     NULL);
             if (Ret != 1) {
-                QuicTraceLogError(FN_tls_openssl0339f6f32f9772515774d5ef2114a538, "[ tls] SSL_CTX_load_verify_locations failed, error: %ld",  ERR_get_error());
+                QuicTraceLogError(FN_tls_openssl0339f6f32f9772515774d5ef2114a538, "[ tls] SSL_CTX_load_verify_locations failed, error: %ld", ERR_get_error());
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }*/
@@ -1103,7 +1103,7 @@ QuicTlsInitialize(
     TlsContext->SecConfig = QuicTlsSecConfigAddRef(Config->SecConfig);
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
 
-    QuicTraceLogVerbose(FN_tls_openssld2c76a13ec3224e52c2437c16c0b5b7c, "[ tls][%p][%c] Created.",  TlsContext,  GetTlsIdentifier(TlsContext));
+    QuicTraceLogVerbose(FN_tls_openssld2c76a13ec3224e52c2437c16c0b5b7c, "[ tls][%p][%c] Created.", TlsContext, GetTlsIdentifier(TlsContext));
 
     if (!Config->IsServer) {
 
@@ -1112,7 +1112,7 @@ QuicTlsInitialize(
             ServerNameLength = (uint16_t)strnlen(Config->ServerName, QUIC_MAX_SNI_LENGTH);
 
             if (ServerNameLength == QUIC_MAX_SNI_LENGTH) {
-                QuicTraceLogError(FN_tls_openssl09dfff459247ec1feca343eb6b5850f3, "[ tls][%p][%c] Invalid / Too long server name!",  TlsContext,  GetTlsIdentifier(TlsContext));
+                QuicTraceLogError(FN_tls_openssl09dfff459247ec1feca343eb6b5850f3, "[ tls][%p][%c] Invalid / Too long server name!", TlsContext, GetTlsIdentifier(TlsContext));
                 Status = QUIC_STATUS_INVALID_PARAMETER;
                 goto Exit;
             }
@@ -1120,7 +1120,7 @@ QuicTlsInitialize(
             TlsContext->SNI = QuicAlloc(ServerNameLength + 1);
 
             if (TlsContext->SNI == NULL) {
-                QuicTraceLogError(FN_tls_openssl56d1d65cf830cd9da164340511afad48, "[ tls][%p][%c] Failed to allocate SNI.",  TlsContext,  GetTlsIdentifier(TlsContext));
+                QuicTraceLogError(FN_tls_openssl56d1d65cf830cd9da164340511afad48, "[ tls][%p][%c] Failed to allocate SNI.", TlsContext, GetTlsIdentifier(TlsContext));
                 Status = QUIC_STATUS_OUT_OF_MEMORY;
                 goto Exit;
             }
@@ -1135,7 +1135,7 @@ QuicTlsInitialize(
 
     TlsContext->Ssl = SSL_new(Config->SecConfig->SSLCtx);
     if (TlsContext->Ssl == NULL) {
-        QuicTraceLogError(FN_tls_openssl3e7711e803662760b5571141f7253248, "[ tls][%p][%c] Failed to allocate Ssl object.",  TlsContext,  GetTlsIdentifier(TlsContext));
+        QuicTraceLogError(FN_tls_openssl3e7711e803662760b5571141f7253248, "[ tls][%p][%c] Failed to allocate Ssl object.", TlsContext, GetTlsIdentifier(TlsContext));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -1158,7 +1158,7 @@ QuicTlsInitialize(
             TlsContext->Ssl,
             Config->LocalTPBuffer,
             Config->LocalTPLength) != 1) {
-        QuicTraceLogError(FN_tls_openssla40bb2b89e176a23f02d8484eecb2b5a, "[ tls][%p][%c] Failed to set TP.",  TlsContext,  GetTlsIdentifier(TlsContext));
+        QuicTraceLogError(FN_tls_openssla40bb2b89e176a23f02d8484eecb2b5a, "[ tls][%p][%c] Failed to set TP.", TlsContext, GetTlsIdentifier(TlsContext));
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -1183,7 +1183,7 @@ QuicTlsUninitialize(
     )
 {
     if (TlsContext != NULL) {
-        QuicTraceLogVerbose(FN_tls_opensslb3d2044358dd9167ca56734ff6291d11, "[ tls][%p][%c] Cleaning up.",  TlsContext,  GetTlsIdentifier(TlsContext));
+        QuicTraceLogVerbose(FN_tls_opensslb3d2044358dd9167ca56734ff6291d11, "[ tls][%p][%c] Cleaning up.", TlsContext, GetTlsIdentifier(TlsContext));
 
         if (TlsContext->SecConfig != NULL) {
             QuicTlsSecConfigRelease(TlsContext->SecConfig);
@@ -1210,7 +1210,7 @@ QuicTlsReset(
     _In_ QUIC_TLS* TlsContext
     )
 {
-    QuicTraceLogInfo(FN_tls_opensslfc5ceebf57a21e036166dfbd9f5f5841, "[ tls][%p][%c] Resetting TLS state.",  TlsContext,  GetTlsIdentifier(TlsContext));
+    QuicTraceLogInfo(FN_tls_opensslfc5ceebf57a21e036166dfbd9f5f5841, "[ tls][%p][%c] Resetting TLS state.", TlsContext, GetTlsIdentifier(TlsContext));
 
     QUIC_DBG_ASSERT(TlsContext->IsServer == FALSE);
 
@@ -1229,7 +1229,7 @@ QuicTlsReset(
 
     TlsContext->Ssl = SSL_new(TlsContext->SecConfig->SSLCtx);
     if (TlsContext->Ssl == NULL) {
-        QuicTraceLogError(FN_tls_openssl3e7711e803662760b5571141f7253248, "[ tls][%p][%c] Failed to allocate Ssl object.",  TlsContext,  GetTlsIdentifier(TlsContext));
+        QuicTraceLogError(FN_tls_openssl3e7711e803662760b5571141f7253248, "[ tls][%p][%c] Failed to allocate Ssl object.", TlsContext, GetTlsIdentifier(TlsContext));
         QUIC_DBG_ASSERT(FALSE);
         goto Exit;
     }
@@ -1248,7 +1248,7 @@ QuicTlsReset(
             TlsContext->Ssl,
             Config->LocalTPBuffer,
             Config->LocalTPLength) != 1) {
-        QuicTraceLogError(FN_tls_openssla40bb2b89e176a23f02d8484eecb2b5a, "[ tls][%p][%c] Failed to set TP.",  TlsContext,  GetTlsIdentifier(TlsContext));
+        QuicTraceLogError(FN_tls_openssla40bb2b89e176a23f02d8484eecb2b5a, "[ tls][%p][%c] Failed to set TP.", TlsContext, GetTlsIdentifier(TlsContext));
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }*/
@@ -1281,7 +1281,7 @@ QuicTlsProcessData(
 
     if (*BufferLength != 0) {
         QuicTraceLogVerbose(FN_tls_openssl948e07444f7369140c04d67fbfd780bb, "[ tls][%p][%c] Processing %u received bytes.", 
-            TlsContext,  GetTlsIdentifier(TlsContext),  *BufferLength);
+            TlsContext, GetTlsIdentifier(TlsContext), *BufferLength);
     }
 
     TlsContext->State = State;
@@ -1307,19 +1307,19 @@ QuicTlsProcessData(
 
             case SSL_ERROR_SSL:
                 QuicTraceLogError(FN_tls_openssla59aef6e72e651b091de3d22c86c02b6, "[ tls][%p][%c] TLS handshake error: %s.", 
-                    TlsContext,  GetTlsIdentifier(TlsContext),  ERR_error_string(ERR_get_error(), NULL));
+                    TlsContext, GetTlsIdentifier(TlsContext), ERR_error_string(ERR_get_error(), NULL));
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 goto Exit;
 
             default:
                 QuicTraceLogError(FN_tls_openssl61743e8150362a484225c69e9b06687f, "[ tls][%p][%c] TLS handshake error: %d.", 
-                    TlsContext,  GetTlsIdentifier(TlsContext),  Err);
+                    TlsContext, GetTlsIdentifier(TlsContext), Err);
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 goto Exit;
             }
         }
 
-        QuicTraceLogInfo(FN_tls_openssl7cddfd039b47ef0bf60bfb2adb708d5e, "[ tls][%p][%c] Handshake complete.",  TlsContext,  GetTlsIdentifier(TlsContext));
+        QuicTraceLogInfo(FN_tls_openssl7cddfd039b47ef0bf60bfb2adb708d5e, "[ tls][%p][%c] Handshake complete.", TlsContext, GetTlsIdentifier(TlsContext));
         State->HandshakeComplete = TRUE;
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_COMPLETE;
 
@@ -1333,7 +1333,7 @@ QuicTlsProcessData(
                     TlsContext->Ssl, &TransportParams, &TransportParamLen);
             if (TransportParams == NULL || TransportParamLen == 0) {
                 QuicTraceLogError(FN_tls_openssle861a4ef7fcfbd00c9b1e9642f164ba6, "[ tls][%p][%c] No transport parameters received", 
-                    TlsContext,  GetTlsIdentifier(TlsContext));
+                    TlsContext, GetTlsIdentifier(TlsContext));
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 goto Exit;
             }
@@ -1357,13 +1357,13 @@ QuicTlsProcessData(
 
         case SSL_ERROR_SSL:
             QuicTraceLogError(FN_tls_openssl04e431e55360af28be501afc87ef6ad6, "[ tls][%p][%c] TLS handshake error: %s.", 
-                TlsContext,  GetTlsIdentifier(TlsContext),  ERR_error_string(ERR_get_error(), NULL));
+                TlsContext, GetTlsIdentifier(TlsContext), ERR_error_string(ERR_get_error(), NULL));
             TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
             goto Exit;
 
         default:
             QuicTraceLogError(FN_tls_openssl49b66ab03faf20fe5c73f2f8cc60308f, "[ tls][%p][%c] TLS handshake error: %d.", 
-                TlsContext,  GetTlsIdentifier(TlsContext),  Err);
+                TlsContext, GetTlsIdentifier(TlsContext), Err);
             TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
             goto Exit;
         }
@@ -1504,7 +1504,7 @@ QuicPacketKeyCreateInitial(
                 TempWriteKey);
 
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogError(FN_tls_openssl407b8b39a62cfcc2a157c3106df05ed8, "[ tls] QuicTlsDerivePacketProtectionKey failed. error: %ld",  Status);
+            QuicTraceLogError(FN_tls_openssl407b8b39a62cfcc2a157c3106df05ed8, "[ tls] QuicTlsDerivePacketProtectionKey failed. error: %ld", Status);
             goto Exit;
         }
 
@@ -1516,7 +1516,7 @@ QuicPacketKeyCreateInitial(
                 TempWriteKey);
 
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogError(FN_tls_opensslc3a6918edf49b97af97ccfeb7b00e2d1, "[ tls] QuicTlsDerivePacketProtectionIv failed. error: %ld",  Status);
+            QuicTraceLogError(FN_tls_opensslc3a6918edf49b97af97ccfeb7b00e2d1, "[ tls] QuicTlsDerivePacketProtectionIv failed. error: %ld", Status);
             goto Exit;
         }
 
@@ -1528,7 +1528,7 @@ QuicPacketKeyCreateInitial(
                 TempWriteKey);
 
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogError(FN_tls_openssle68142c566545a620ea6c0b9e6abb755, "[ tls] QuicTlsDeriveHeaderProtectionKey failed. error: %ld",  Status);
+            QuicTraceLogError(FN_tls_openssle68142c566545a620ea6c0b9e6abb755, "[ tls] QuicTlsDeriveHeaderProtectionKey failed. error: %ld", Status);
             goto Exit;
         }
     }
@@ -1587,7 +1587,7 @@ QuicPacketKeyCreateInitial(
                 TempReadKey);
 
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogError(FN_tls_openssl407b8b39a62cfcc2a157c3106df05ed8, "[ tls] QuicTlsDerivePacketProtectionKey failed. error: %ld",  Status);
+            QuicTraceLogError(FN_tls_openssl407b8b39a62cfcc2a157c3106df05ed8, "[ tls] QuicTlsDerivePacketProtectionKey failed. error: %ld", Status);
             goto Exit;
         }
 
@@ -1599,7 +1599,7 @@ QuicPacketKeyCreateInitial(
                 TempReadKey);
 
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogError(FN_tls_opensslc3a6918edf49b97af97ccfeb7b00e2d1, "[ tls] QuicTlsDerivePacketProtectionIv failed. error: %ld",  Status);
+            QuicTraceLogError(FN_tls_opensslc3a6918edf49b97af97ccfeb7b00e2d1, "[ tls] QuicTlsDerivePacketProtectionIv failed. error: %ld", Status);
             goto Exit;
         }
 
@@ -1611,7 +1611,7 @@ QuicPacketKeyCreateInitial(
                 TempReadKey);
 
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogError(FN_tls_openssle68142c566545a620ea6c0b9e6abb755, "[ tls] QuicTlsDeriveHeaderProtectionKey failed. error: %ld",  Status);
+            QuicTraceLogError(FN_tls_openssle68142c566545a620ea6c0b9e6abb755, "[ tls] QuicTlsDeriveHeaderProtectionKey failed. error: %ld", Status);
             goto Exit;
         }
     }
@@ -1682,7 +1682,7 @@ QuicPacketKeyUpdate(
             SecretLen,
             QuicTlsKeyGetMd(OldKey->TrafficSecret[0].Hash));
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError(FN_tls_openssld2a443d4156357979e7192a50c95eee0, "[ tls] QuicTlsUpdateTrafficSecret failed. error: %ld",  Status);
+        QuicTraceLogError(FN_tls_openssld2a443d4156357979e7192a50c95eee0, "[ tls] QuicTlsUpdateTrafficSecret failed. error: %ld", Status);
         goto Exit;
     }
 
@@ -1693,7 +1693,7 @@ QuicPacketKeyUpdate(
             QuicTlsKeyGetMd(OldKey->TrafficSecret[0].Hash),
             TempKey);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError(FN_tls_openssl407b8b39a62cfcc2a157c3106df05ed8, "[ tls] QuicTlsDerivePacketProtectionKey failed. error: %ld",  Status);
+        QuicTraceLogError(FN_tls_openssl407b8b39a62cfcc2a157c3106df05ed8, "[ tls] QuicTlsDerivePacketProtectionKey failed. error: %ld", Status);
         goto Exit;
     }
 
@@ -1704,7 +1704,7 @@ QuicPacketKeyUpdate(
             QuicTlsKeyGetMd(OldKey->TrafficSecret[0].Hash),
             TempKey);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError(FN_tls_opensslc3a6918edf49b97af97ccfeb7b00e2d1, "[ tls] QuicTlsDerivePacketProtectionIv failed. error: %ld",  Status);
+        QuicTraceLogError(FN_tls_opensslc3a6918edf49b97af97ccfeb7b00e2d1, "[ tls] QuicTlsDerivePacketProtectionIv failed. error: %ld", Status);
         goto Exit;
     }
 
@@ -2133,7 +2133,7 @@ QuicTlsKeyCreate(
             QuicTlsKeyGetMd(HashType),
             TempKey);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError(FN_tls_opensslf8217e380d78561227f74be97664c50b, "[ tls] QuicTlsDerivePacketProtectionKey failed. Status: %ld",  Status);
+        QuicTraceLogError(FN_tls_opensslf8217e380d78561227f74be97664c50b, "[ tls] QuicTlsDerivePacketProtectionKey failed. Status: %ld", Status);
         goto Exit;
     }
 
@@ -2144,7 +2144,7 @@ QuicTlsKeyCreate(
             QuicTlsKeyGetMd(HashType),
             TempKey);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError(FN_tls_opensslbbf1ec890b79dd718012ae7e1f14887e, "[ tls] QuicTlsDeriveHeaderProtectionKey failed. Status: %ld",  Status);
+        QuicTraceLogError(FN_tls_opensslbbf1ec890b79dd718012ae7e1f14887e, "[ tls] QuicTlsDeriveHeaderProtectionKey failed. Status: %ld", Status);
         goto Exit;
     }
 
@@ -2155,7 +2155,7 @@ QuicTlsKeyCreate(
             QuicTlsKeyGetMd(HashType),
             TempKey);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError(FN_tls_openssl0fb819c8756d457c580995d79e34850b, "[ tls] QuicTlsDerivePacketProtectionIv failed. Status: %ld",  Status);
+        QuicTraceLogError(FN_tls_openssl0fb819c8756d457c580995d79e34850b, "[ tls] QuicTlsDerivePacketProtectionIv failed. Status: %ld", Status);
         goto Exit;
     }
 
@@ -2370,7 +2370,7 @@ QuicTlsDerivePacketProtectionKey(
             Md);
 
     if (!Ret) {
-        QuicTraceLogError(FN_tls_openssl7b0b5c3fcfbc6baa74f8dadc7761e9db, "[ tls] QuicTlsHkdfExpandLabel failed, error: %d",  Ret);
+        QuicTraceLogError(FN_tls_openssl7b0b5c3fcfbc6baa74f8dadc7761e9db, "[ tls] QuicTlsHkdfExpandLabel failed, error: %d", Ret);
         return QUIC_STATUS_TLS_ERROR;
     }
 
@@ -2401,7 +2401,7 @@ QuicTlsDerivePacketProtectionIv(
             Md);
 
     if (!Ret) {
-        QuicTraceLogError(FN_tls_openssl7b0b5c3fcfbc6baa74f8dadc7761e9db, "[ tls] QuicTlsHkdfExpandLabel failed, error: %d",  Ret);
+        QuicTraceLogError(FN_tls_openssl7b0b5c3fcfbc6baa74f8dadc7761e9db, "[ tls] QuicTlsHkdfExpandLabel failed, error: %d", Ret);
         return QUIC_STATUS_TLS_ERROR;
     }
 
@@ -2433,7 +2433,7 @@ QuicTlsDeriveHeaderProtectionKey(
             Md);
 
     if (!Ret) {
-        QuicTraceLogError(FN_tls_openssl7b0b5c3fcfbc6baa74f8dadc7761e9db, "[ tls] QuicTlsHkdfExpandLabel failed, error: %d",  Ret);
+        QuicTraceLogError(FN_tls_openssl7b0b5c3fcfbc6baa74f8dadc7761e9db, "[ tls] QuicTlsHkdfExpandLabel failed, error: %d", Ret);
         return QUIC_STATUS_TLS_ERROR;
     }
 
@@ -2532,7 +2532,7 @@ QuicTlsUpdateTrafficSecret(
             Md);
 
     if (!Ret) {
-        QuicTraceLogError(FN_tls_openssl7b0b5c3fcfbc6baa74f8dadc7761e9db, "[ tls] QuicTlsHkdfExpandLabel failed, error: %d",  Ret);
+        QuicTraceLogError(FN_tls_openssl7b0b5c3fcfbc6baa74f8dadc7761e9db, "[ tls] QuicTlsHkdfExpandLabel failed, error: %d", Ret);
         return QUIC_STATUS_TLS_ERROR;
     }
 
@@ -2687,7 +2687,7 @@ QuicTlsEncrypt(
     QUIC_FRE_ASSERT(TagLen == QUIC_ENCRYPTION_OVERHEAD);
 
     if (OutputBufferLen < PlainTextLen + TagLen) {
-        QuicTraceLogError(FN_tls_opensslf6036de05c998cd55785bd97895a2645, "[ tls] Incorrect output buffer length :%ld.",  OutputBufferLen);
+        QuicTraceLogError(FN_tls_opensslf6036de05c998cd55785bd97895a2645, "[ tls] Incorrect output buffer length :%ld.", OutputBufferLen);
         Ret = -1;
         goto Exit;
     }
@@ -2799,17 +2799,17 @@ QuicTlsDecrypt(
     }
 
     if (EVP_DecryptInit_ex(CipherCtx, Aead, NULL, NULL, NULL) != 1) {
-        QuicTraceLogError(FN_tls_openssl4f0946242ac783c45434010951c96cdd, "[ tls] EVP_DecryptInit_ex failed, 0x%x.",  ERR_get_error());
+        QuicTraceLogError(FN_tls_openssl4f0946242ac783c45434010951c96cdd, "[ tls] EVP_DecryptInit_ex failed, 0x%x.", ERR_get_error());
         goto Exit;
     }
 
     if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, NonceLen, NULL) != 1) {
-        QuicTraceLogError(FN_tls_openssl50436385dca206cf3e9009971260f08c, "[ tls] EVP_CIPHER_CTX_ctrl failed, 0x%x.",  ERR_get_error());
+        QuicTraceLogError(FN_tls_openssl50436385dca206cf3e9009971260f08c, "[ tls] EVP_CIPHER_CTX_ctrl failed, 0x%x.", ERR_get_error());
         goto Exit;
     }
 
     if (EVP_DecryptInit_ex(CipherCtx, NULL, NULL, Key, Nonce) != 1) {
-        QuicTraceLogError(FN_tls_openssl4f0946242ac783c45434010951c96cdd, "[ tls] EVP_DecryptInit_ex failed, 0x%x.",  ERR_get_error());
+        QuicTraceLogError(FN_tls_openssl4f0946242ac783c45434010951c96cdd, "[ tls] EVP_DecryptInit_ex failed, 0x%x.", ERR_get_error());
         goto Exit;
     }
 
@@ -2818,25 +2818,25 @@ QuicTlsDecrypt(
 
     if (AuthData != NULL) {
         if (EVP_DecryptUpdate(CipherCtx, NULL, &Len, AuthData, AuthDataLen) != 1) {
-            QuicTraceLogError(FN_tls_opensslf706af273dacd8600b6d300c5887c637, "[ tls] EVP_DecryptUpdate (AD) failed, 0x%x.",  ERR_get_error());
+            QuicTraceLogError(FN_tls_opensslf706af273dacd8600b6d300c5887c637, "[ tls] EVP_DecryptUpdate (AD) failed, 0x%x.", ERR_get_error());
             goto Exit;
         }
     }
 
     if (EVP_DecryptUpdate(CipherCtx, OutputBuffer, &Len, CipherText, CipherTextLen) != 1) {
-        QuicTraceLogError(FN_tls_openssl39eb35ac7eac5751e9484c6e3d97bb38, "[ tls] EVP_DecryptUpdate (Cipher) failed, 0x%x.",  ERR_get_error());
+        QuicTraceLogError(FN_tls_openssl39eb35ac7eac5751e9484c6e3d97bb38, "[ tls] EVP_DecryptUpdate (Cipher) failed, 0x%x.", ERR_get_error());
         goto Exit;
     }
 
     OutLen = Len;
 
     if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_TAG, TagLen, Tag) != 1) {
-        QuicTraceLogError(FN_tls_openssl50436385dca206cf3e9009971260f08c, "[ tls] EVP_CIPHER_CTX_ctrl failed, 0x%x.",  ERR_get_error());
+        QuicTraceLogError(FN_tls_openssl50436385dca206cf3e9009971260f08c, "[ tls] EVP_CIPHER_CTX_ctrl failed, 0x%x.", ERR_get_error());
         goto Exit;
     }
 
     if (EVP_DecryptFinal_ex(CipherCtx, OutputBuffer + OutLen, &Len) != 1) {
-        QuicTraceLogError(FN_tls_openssld307701436e46fd1000a1ae8108915d2, "[ tls] EVP_DecryptFinal_ex failed, 0x%x.",  ERR_get_error());
+        QuicTraceLogError(FN_tls_openssld307701436e46fd1000a1ae8108915d2, "[ tls] EVP_DecryptFinal_ex failed, 0x%x.", ERR_get_error());
         goto Exit;
     }
 

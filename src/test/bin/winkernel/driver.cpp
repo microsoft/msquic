@@ -103,7 +103,7 @@ Return Value:
 
     Status = QuicPlatformInitialize();
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError(FN_driver9dbc814f4f43ea517407f5b7c8143626, "[test] QuicPlatformInitialize failed: 0x%x",  Status);
+        QuicTraceLogError(FN_driver9dbc814f4f43ea517407f5b7c8143626, "[test] QuicPlatformInitialize failed: 0x%x", Status);
         goto Error;
     }
     PlatformInitialized = TRUE;
@@ -124,7 +124,7 @@ Return Value:
             &Config,
             &Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError(FN_driver2b1325882fdd29ce47e4eb6224542b5f, "[test] WdfDriverCreate failed: 0x%x",  Status);
+        QuicTraceLogError(FN_driver2b1325882fdd29ce47e4eb6224542b5f, "[test] WdfDriverCreate failed: 0x%x", Status);
         goto Error;
     }
 
@@ -133,7 +133,7 @@ Return Value:
     //
     Status = QuicTestCtlInitialize(Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError(FN_drivere2715f5ac91739cf9fdd047896c7912c, "[test] QuicTestCtlInitialize failed: 0x%x",  Status);
+        QuicTraceLogError(FN_drivere2715f5ac91739cf9fdd047896c7912c, "[test] QuicTestCtlInitialize failed: 0x%x", Status);
         goto Error;
     }
 

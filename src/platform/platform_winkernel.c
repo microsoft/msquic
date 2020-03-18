@@ -141,7 +141,7 @@ QuicPlatformInitialize(
             NULL,
             BCRYPT_PROV_DISPATCH);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.",  Status,  "BCryptOpenAlgorithmProvider (RNG)");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "BCryptOpenAlgorithmProvider (RNG)");
         goto Error;
     }
     QUIC_DBG_ASSERT(QuicPlatform.RngAlgorithm != NULL);
@@ -150,13 +150,13 @@ QuicPlatformInitialize(
         ZwQuerySystemInformation(
             SystemBasicInformation, &Sbi, sizeof(Sbi), NULL);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.",  Status,  "ZwQuerySystemInformation(SystemBasicInformation)");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "ZwQuerySystemInformation(SystemBasicInformation)");
         goto Error;
     }
 
     Status = QuicTlsLibraryInitialize();
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.",  Status,  "QuicTlsLibraryInitialize");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "QuicTlsLibraryInitialize");
         goto Error;
     }
 
@@ -167,7 +167,7 @@ QuicPlatformInitialize(
     QuicTotalMemory = (uint64_t)Sbi.NumberOfPhysicalPages * (uint64_t)Sbi.PageSize;
 
     QuicTraceLogInfo(FN_platform_winkernelfae6d131ade2e717f4aff25de71cf94a, "[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)", 
-        Sbi.PageSize,  QuicTotalMemory);
+        Sbi.PageSize, QuicTotalMemory);
 
 Error:
 
@@ -206,7 +206,7 @@ QuicPlatformLogAssert(
     UNREFERENCED_PARAMETER(File);
     UNREFERENCED_PARAMETER(Line);
     UNREFERENCED_PARAMETER(Expr);
-    QuicTraceEvent(LibraryAssert, "[ lib] ASSERT, %d:%s - %s.",  (uint32_t)Line,  File,  Expr);
+    QuicTraceEvent(LibraryAssert, "[ lib] ASSERT, %d:%s - %s.", (uint32_t)Line, File, Expr);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

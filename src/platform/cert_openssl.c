@@ -58,7 +58,7 @@ LogGetProcAddressFailure(
     _In_ DWORD Error
     )
 {
-    QuicTraceLogVerbose(FN_cert_openssl5b5f57e3d075abc22ec387bfa5371909, "[cert] GetProcAddress failed for %s, 0x%x",  FuncName,  Error);
+    QuicTraceLogVerbose(FN_cert_openssl5b5f57e3d075abc22ec387bfa5371909, "[cert] GetProcAddress failed for %s, 0x%x", FuncName, Error);
 }
 
 QUIC_STATUS
@@ -79,7 +79,7 @@ QuicCertLibraryInitialize(
     miPKI.Libmipki = LoadLibrary("libmipki.dll");
     if (miPKI.Libmipki == NULL) {
         Status = GetLastError();
-        QuicTraceLogVerbose(FN_cert_openssld6b5e25e1d67e3e335421dba90a1894a, "[cert] Failed to Load libmipki.dll, 0x%x",  Status);
+        QuicTraceLogVerbose(FN_cert_openssld6b5e25e1d67e3e335421dba90a1894a, "[cert] Failed to Load libmipki.dll, 0x%x", Status);
         goto Error;
     }
 
@@ -115,7 +115,7 @@ QuicCertLibraryInitialize(
 
     if (!miPKI.State) {
         Status = QUIC_STATUS_INVALID_STATE;
-        QuicTraceLogError(FN_cert_openssl3f546368f5b0d188716d7bebb25c249a, "[cert] mipki_init failed: %d.",  erridx);
+        QuicTraceLogError(FN_cert_openssl3f546368f5b0d188716d7bebb25c249a, "[cert] mipki_init failed: %d.", erridx);
         goto Error;
     }
 

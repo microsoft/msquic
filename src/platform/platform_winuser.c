@@ -86,7 +86,7 @@ QuicPlatformInitialize(
 
     if (!GlobalMemoryStatusEx(&memInfo)) {
         DWORD Error = GetLastError();
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.",  Error,  "GlobalMemoryStatusEx");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Error, "GlobalMemoryStatusEx");
         Status = HRESULT_FROM_WIN32(Error);
         goto Error;
     }
@@ -98,7 +98,7 @@ QuicPlatformInitialize(
 
     QuicTotalMemory = memInfo.ullTotalPageFile;
 
-    QuicTraceLogInfo(FN_platform_winuser73ea831dacee5fd83da7d83c77bdbcdb, "[ dll] Initialized (AvailMem = %llu bytes)",  QuicTotalMemory);
+    QuicTraceLogInfo(FN_platform_winuser73ea831dacee5fd83da7d83c77bdbcdb, "[ dll] Initialized (AvailMem = %llu bytes)", QuicTotalMemory);
 
 Error:
 
@@ -133,7 +133,7 @@ QuicPlatformLogAssert(
     _In_z_ const char* Expr
     )
 {
-    QuicTraceEvent(LibraryAssert, "[ lib] ASSERT, %d:%s - %s.",  (uint32_t)Line,  File,  Expr);
+    QuicTraceEvent(LibraryAssert, "[ lib] ASSERT, %d:%s - %s.", (uint32_t)Line, File, Expr);
 }
 
 #ifdef QUIC_FUZZER

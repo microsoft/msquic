@@ -901,7 +901,7 @@ QuicThreadCreate(
 
     pthread_attr_t Attr;
     if (pthread_attr_init(&Attr)) {
-        QuicTraceLogError(FN_platform_linux03f5cd9d08b25c9becba34623dd6e99f, "[qpal] pthread_attr_init failed, 0x%x.",  errno);
+        QuicTraceLogError(FN_platform_linux03f5cd9d08b25c9becba34623dd6e99f, "[qpal] pthread_attr_init failed, 0x%x.", errno);
         return errno;
     }
 
@@ -924,13 +924,13 @@ QuicThreadCreate(
         struct sched_param Params;
         Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
         if (!pthread_attr_setschedparam(&Attr, &Params)) {
-            QuicTraceLogWarning(FN_platform_linuxa4807bc3dec94112c855988b9765e9fd, "[qpal] pthread_attr_setschedparam failed, 0x%x.",  errno);
+            QuicTraceLogWarning(FN_platform_linuxa4807bc3dec94112c855988b9765e9fd, "[qpal] pthread_attr_setschedparam failed, 0x%x.", errno);
         }
     }
 
     if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
         Status = errno;
-        QuicTraceLogError(FN_platform_linux08258181693fbe069c934b3266761cbe, "[qpal] pthread_create failed, 0x%x.",  Status);
+        QuicTraceLogError(FN_platform_linux08258181693fbe069c934b3266761cbe, "[qpal] pthread_create failed, 0x%x.", Status);
     }
 
     pthread_attr_destroy(&Attr);
@@ -972,7 +972,7 @@ QuicPlatformLogAssert(
     _In_z_ const char* Expr
     )
 {
-    QuicTraceLogError(FN_platform_linuxb416645bcc56e4270130192a5505d003, "[Assert] %s:%s:%d:%s",  Expr,  Func,  Line,  File);
+    QuicTraceLogError(FN_platform_linuxb416645bcc56e4270130192a5505d003, "[Assert] %s:%s:%d:%s", Expr, Func, Line, File);
 }
 
 int

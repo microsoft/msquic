@@ -77,7 +77,7 @@ QuicTimerWheelInitialize(
     TimerWheel->Slots =
         QUIC_ALLOC_NONPAGED(QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(QUIC_LIST_ENTRY));
     if (TimerWheel->Slots == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "timerwheel slots", 
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "timerwheel slots", 
             QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(QUIC_LIST_ENTRY));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
@@ -130,12 +130,12 @@ QuicTimerWheelResize(
     QUIC_LIST_ENTRY* NewSlots =
         QUIC_ALLOC_NONPAGED(NewSlotCount * sizeof(QUIC_LIST_ENTRY));
     if (NewSlots == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "timerwheel slots (realloc)", 
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "timerwheel slots (realloc)", 
             NewSlotCount * sizeof(QUIC_LIST_ENTRY));
         return;
     }
 
-    QuicTraceLogVerbose(FN_timer_wheel1e0a61b64f7e1014a84e2e1acda0f141, "[time][%p] Resizing timer wheel (new slot count = %u).",  TimerWheel,  NewSlotCount);
+    QuicTraceLogVerbose(FN_timer_wheel1e0a61b64f7e1014a84e2e1acda0f141, "[time][%p] Resizing timer wheel (new slot count = %u).", TimerWheel, NewSlotCount);
 
     for (uint32_t i = 0; i < NewSlotCount; ++i) {
         QuicListInitializeHead(&NewSlots[i]);
@@ -222,10 +222,10 @@ QuicTimerWheelUpdate(
     }
 
     if (TimerWheel->NextConnection == NULL) {
-        QuicTraceLogVerbose(FN_timer_wheel6710b1772c27f37e5d396b939f79e97e, "[time][%p] Next Expiration = {NULL}.",  TimerWheel);
+        QuicTraceLogVerbose(FN_timer_wheel6710b1772c27f37e5d396b939f79e97e, "[time][%p] Next Expiration = {NULL}.", TimerWheel);
     } else {
         QuicTraceLogVerbose(FN_timer_wheeld1396a56d7866862f3bf91dd46f040ac, "[time][%p] Next Expiration = {%llu, %p}.", 
-            TimerWheel,  TimerWheel->NextExpirationTime,  TimerWheel->NextConnection);
+            TimerWheel, TimerWheel->NextExpirationTime, TimerWheel->NextConnection);
     }
 }
 
@@ -241,7 +241,7 @@ QuicTimerWheelRemoveConnection(
         // If the connection was in the timer wheel, remove its entry in the
         // doubly-link list.
         //
-        QuicTraceLogVerbose(FN_timer_wheel81cdeec6b49931c5023712a597202fd3, "[time][%p] Removing Connection %p.",  TimerWheel,  Connection);
+        QuicTraceLogVerbose(FN_timer_wheel81cdeec6b49931c5023712a597202fd3, "[time][%p] Removing Connection %p.", TimerWheel, Connection);
         QuicListEntryRemove(&Connection->TimerLink);
         Connection->TimerLink.Flink = NULL;
         TimerWheel->ConnectionCount--;
@@ -287,7 +287,7 @@ QuicTimerWheelUpdateConnection(
         // No more timers left, go ahead and invalidate its link.
         //
         Connection->TimerLink.Flink = NULL;
-        QuicTraceLogVerbose(FN_timer_wheel81cdeec6b49931c5023712a597202fd3, "[time][%p] Removing Connection %p.",  TimerWheel,  Connection);
+        QuicTraceLogVerbose(FN_timer_wheel81cdeec6b49931c5023712a597202fd3, "[time][%p] Removing Connection %p.", TimerWheel, Connection);
 
         if (Connection == TimerWheel->NextConnection) {
             QuicTimerWheelUpdate(TimerWheel);
@@ -322,7 +322,7 @@ QuicTimerWheelUpdateConnection(
         //
         QuicListInsertHead(Entry, &Connection->TimerLink);
 
-        QuicTraceLogVerbose(FN_timer_wheeld2b1827f1f200d2b4dbb6877c4a43410, "[time][%p] Updating Connection %p.",  TimerWheel,  Connection);
+        QuicTraceLogVerbose(FN_timer_wheeld2b1827f1f200d2b4dbb6877c4a43410, "[time][%p] Updating Connection %p.", TimerWheel, Connection);
 
         //
         // Make sure the next expiration time/connection is still correct.
@@ -331,7 +331,7 @@ QuicTimerWheelUpdateConnection(
             TimerWheel->NextExpirationTime = ExpirationTime;
             TimerWheel->NextConnection = Connection;
             QuicTraceLogVerbose(FN_timer_wheelfc323a336f8107161c44f48769b0a3fa, "[time][%p] Next Expiration = {%llu, %p}.", 
-                TimerWheel,  ExpirationTime,  Connection);
+                TimerWheel, ExpirationTime, Connection);
         } else if (Connection == TimerWheel->NextConnection) {
             QuicTimerWheelUpdate(TimerWheel);
         }

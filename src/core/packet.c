@@ -319,7 +319,7 @@ QuicPacketGenerateRetryV1Integrity(
     uint16_t RetryPseudoPacketLength = sizeof(uint8_t) + OrigDestCidLength + BufferLength;
     RetryPseudoPacket = (uint8_t*) QUIC_ALLOC_PAGED(RetryPseudoPacketLength);
     if (RetryPseudoPacket == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "RetryPseudoPacket",  RetryPseudoPacketLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "RetryPseudoPacket", RetryPseudoPacketLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }

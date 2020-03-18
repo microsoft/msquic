@@ -49,7 +49,7 @@ QuicBindingInitialize(
 
     Binding = QUIC_ALLOC_NONPAGED(sizeof(QUIC_BINDING));
     if (Binding == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "QUIC_BINDING",  sizeof(QUIC_BINDING));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "QUIC_BINDING", sizeof(QUIC_BINDING));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -83,7 +83,7 @@ QuicBindingInitialize(
             sizeof(HashSalt),
             &Binding->ResetTokenHash);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(BindingErrorStatus, "[bind][%p] ERROR, %d, %s.",  Binding,  Status,  "Create reset token hash");
+        QuicTraceEvent(BindingErrorStatus, "[bind][%p] ERROR, %d, %s.", Binding, Status, "Create reset token hash");
         goto Error;
     }
 
@@ -95,7 +95,7 @@ QuicBindingInitialize(
     if (PrevCompartmentId != CompartmentId) {
         Status = QuicCompartmentIdSetCurrent(CompartmentId);
         if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(BindingErrorStatus, "[bind][%p] ERROR, %d, %s.",  Binding,  Status,  "Set current compartment Id");
+            QuicTraceEvent(BindingErrorStatus, "[bind][%p] ERROR, %d, %s.", Binding, Status, "Set current compartment Id");
             goto Error;
         }
         RevertCompartmentId = TRUE;
@@ -117,7 +117,7 @@ QuicBindingInitialize(
 #endif
 
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(BindingErrorStatus, "[bind][%p] ERROR, %d, %s.",  Binding,  Status,  "Create datapath binding");
+        QuicTraceEvent(BindingErrorStatus, "[bind][%p] ERROR, %d, %s.", Binding, Status, "Create datapath binding");
         goto Error;
     }
 
@@ -125,7 +125,7 @@ QuicBindingInitialize(
     QuicDataPathBindingGetLocalAddress(Binding->DatapathBinding, &DatapathLocalAddr);
     QuicDataPathBindingGetRemoteAddress(Binding->DatapathBinding, &DatapathRemoteAddr);
     QuicTraceEvent(BindingCreated, "[bind][%p] Created, Udp=%p LocalAddr=%!BYTEARRAY! RemoteAddr=%!BYTEARRAY!", 
-        Binding,  Binding->DatapathBinding, CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathLocalAddr), (uint8_t*)&DatapathLocalAddr), CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathRemoteAddr), (uint8_t*)&DatapathRemoteAddr));
+        Binding, Binding->DatapathBinding, CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathLocalAddr), (uint8_t*)&DatapathLocalAddr), CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathRemoteAddr), (uint8_t*)&DatapathRemoteAddr));
 
     *NewBinding = Binding;
     Status = QUIC_STATUS_SUCCESS;
@@ -153,7 +153,7 @@ QuicBindingUninitialize(
     _In_ QUIC_BINDING* Binding
     )
 {
-    QuicTraceEvent(BindingCleanup, "[bind][%p] Cleaning up",  Binding);
+    QuicTraceEvent(BindingCleanup, "[bind][%p] Cleaning up", Binding);
 
     QUIC_TEL_ASSERT(Binding->RefCount == 0);
     QUIC_TEL_ASSERT(Binding->HandshakeConnections == 0);
@@ -210,7 +210,7 @@ QuicBindingTraceRundown(
     QuicDataPathBindingGetLocalAddress(Binding->DatapathBinding, &DatapathLocalAddr);
     QuicDataPathBindingGetRemoteAddress(Binding->DatapathBinding, &DatapathRemoteAddr);
     QuicTraceEvent(BindingRundown, "[bind][%p] Rundown, Udp=%p LocalAddr=%!BYTEARRAY! RemoteAddr=%!BYTEARRAY!", 
-        Binding,  Binding->DatapathBinding, CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathLocalAddr), (uint8_t*)&DatapathLocalAddr), CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathRemoteAddr), (uint8_t*)&DatapathRemoteAddr));
+        Binding, Binding->DatapathBinding, CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathLocalAddr), (uint8_t*)&DatapathLocalAddr), CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathRemoteAddr), (uint8_t*)&DatapathRemoteAddr));
 
     QuicDispatchRwLockAcquireShared(&Binding->RwLock);
 
@@ -294,7 +294,7 @@ QuicBindingRegisterListener(
         if (NewAlpnLength == ExistingAlpnLength &&
             memcmp(NewAlpn, ExistingAlpn, NewAlpnLength) == 0) { // Pre-existing match found.
             QuicTraceLogWarning(FN_bindingfe607224ba2a2e03d5f66c521059c160, "[bind][%p] Listener (%p) already registered on ALPN %s", 
-                Binding,  ExistingListener,  NewAlpn);
+                Binding, ExistingListener, NewAlpn);
             AddNewListener = FALSE;
             break;
         }
@@ -608,7 +608,7 @@ QuicBindingQueueStatelessOperation(
 
     QUIC_OPERATION* Oper = QuicOperationAlloc(Worker, OperType);
     if (Oper == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "stateless operation",  sizeof(QUIC_OPERATION));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "stateless operation", sizeof(QUIC_OPERATION));
         QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
             "Alloc failure for stateless operation");
         QuicBindingReleaseStatelessOperation(Context, FALSE);
@@ -635,12 +635,12 @@ QuicBindingProcessStatelessOperation(
 
     QUIC_DBG_ASSERT(RecvPacket->ValidatedHeaderInv);
 
-    QuicTraceEvent(BindingExecOper, "[bind][%p] Execute: %d",  Binding,  OperationType);
+    QuicTraceEvent(BindingExecOper, "[bind][%p] Execute: %d", Binding, OperationType);
 
     QUIC_DATAPATH_SEND_CONTEXT* SendContext =
         QuicDataPathBindingAllocSendContext(Binding->DatapathBinding, 0);
     if (SendContext == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "stateless send context",  0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "stateless send context", 0);
         goto Exit;
     }
 
@@ -660,7 +660,7 @@ QuicBindingProcessStatelessOperation(
         QUIC_BUFFER* SendDatagram =
             QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
         if (SendDatagram == NULL) {
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "vn datagram",  PacketLength);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "vn datagram", PacketLength);
             goto Exit;
         }
 
@@ -734,7 +734,7 @@ QuicBindingProcessStatelessOperation(
         QUIC_BUFFER* SendDatagram =
             QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
         if (SendDatagram == NULL) {
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "reset datagram",  PacketLength);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "reset datagram", PacketLength);
             goto Exit;
         }
 
@@ -768,7 +768,7 @@ QuicBindingProcessStatelessOperation(
         QUIC_BUFFER* SendDatagram =
             QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
         if (SendDatagram == NULL) {
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "retry datagram",  PacketLength);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "retry datagram", PacketLength);
             goto Exit;
         }
 
@@ -1477,11 +1477,11 @@ QuicBindingSendTo(
                 RemoteAddress,
                 SendContext);
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning(FN_binding75104ed3d2c2d06e15e4ae01cec68c6d, "[bind][%p] SendTo failed, 0x%x",  Binding,  Status);
+            QuicTraceLogWarning(FN_binding75104ed3d2c2d06e15e4ae01cec68c6d, "[bind][%p] SendTo failed, 0x%x", Binding, Status);
         }
 #if QUIC_SEND_FAKE_LOSS
     } else {
-        QuicTraceLogVerbose(FN_binding4b36568b714495e4231bf89d1ca50021, "[bind][%p] Dropped (fake loss) packet",  Binding);
+        QuicTraceLogVerbose(FN_binding4b36568b714495e4231bf89d1ca50021, "[bind][%p] Dropped (fake loss) packet", Binding);
         QuicDataPathBindingFreeSendContext(SendContext);
         Status = QUIC_STATUS_SUCCESS;
     }
@@ -1511,11 +1511,11 @@ QuicBindingSendFromTo(
                 RemoteAddress,
                 SendContext);
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning(FN_binding876f9daa4d31c3d046b6921b08477e3d, "[bind][%p] SendFromTo failed, 0x%x",  Binding,  Status);
+            QuicTraceLogWarning(FN_binding876f9daa4d31c3d046b6921b08477e3d, "[bind][%p] SendFromTo failed, 0x%x", Binding, Status);
         }
 #if QUIC_SEND_FAKE_LOSS
     } else {
-        QuicTraceLogVerbose(FN_binding4b36568b714495e4231bf89d1ca50021, "[bind][%p] Dropped (fake loss) packet",  Binding);
+        QuicTraceLogVerbose(FN_binding4b36568b714495e4231bf89d1ca50021, "[bind][%p] Dropped (fake loss) packet", Binding);
         QuicDataPathBindingFreeSendContext(SendContext);
         Status = QUIC_STATUS_SUCCESS;
     }

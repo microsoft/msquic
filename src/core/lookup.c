@@ -356,9 +356,9 @@ QuicLookupFindConnectionInternal(
 
 #if QUIC_DEBUG_HASHTABLE_LOOKUP
     if (Connection != NULL) {
-        QuicTraceLogVerbose(FN_lookup4d6a39f9c8572203bf3e0252c2e98686, "[bind][%p] Lookup Hash=%u found %p",  Lookup,  Hash,  Connection);
+        QuicTraceLogVerbose(FN_lookup4d6a39f9c8572203bf3e0252c2e98686, "[bind][%p] Lookup Hash=%u found %p", Lookup, Hash, Connection);
     } else {
-        QuicTraceLogVerbose(FN_lookup70420e94980f690ca12e8a277250b26e, "[bind][%p] Lookup Hash=%u not found",  Lookup,  Hash);
+        QuicTraceLogVerbose(FN_lookup70420e94980f690ca12e8a277250b26e, "[bind][%p] Lookup Hash=%u not found", Lookup, Hash);
     }
 #endif
 
@@ -417,7 +417,7 @@ QuicLookupInsertSourceConnectionID(
     }
 
 #if QUIC_DEBUG_HASHTABLE_LOOKUP
-    QuicTraceLogVerbose(FN_lookup08f411ebe70c98bcc531d9a1fc421691, "[bind][%p] Insert Conn=%p Hash=%u",  Lookup,  Connection,  Hash);
+    QuicTraceLogVerbose(FN_lookup08f411ebe70c98bcc531d9a1fc421691, "[bind][%p] Insert Conn=%p Hash=%u", Lookup, Connection, Hash);
 #endif
 
     return TRUE;
@@ -438,7 +438,7 @@ QuicLookupRemoveSourceConnectionIDInt(
     Lookup->CidCount--;
 
 #if QUIC_DEBUG_HASHTABLE_LOOKUP
-    QuicTraceLogVerbose(FN_lookupeff24288031c85be92f7f20338b8933f, "[bind][%p] Remove Conn=%p",  Lookup,  SourceCid->Connection);
+    QuicTraceLogVerbose(FN_lookupeff24288031c85be92f7f20338b8933f, "[bind][%p] Remove Conn=%p", Lookup, SourceCid->Connection);
 #endif
 
     if (Lookup->PartitionCount == 0) {

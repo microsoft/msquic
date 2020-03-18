@@ -43,7 +43,7 @@ MsQuicListenerOpen(
 
     Listener = QUIC_ALLOC_NONPAGED(sizeof(QUIC_LISTENER));
     if (Listener == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "listener",  sizeof(QUIC_LISTENER));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "listener", sizeof(QUIC_LISTENER));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -58,7 +58,7 @@ MsQuicListenerOpen(
 #pragma prefast(suppress: __WARNING_6031, "Will always succeed.")
     QuicRundownAcquire(&Session->Rundown);
 
-    QuicTraceEvent(ListenerCreated, "[list][%p] Created, Session=%p",  Listener,  Listener->Session);
+    QuicTraceEvent(ListenerCreated, "[list][%p] Created, Session=%p", Listener, Listener->Session);
     *NewListener = (HQUIC)Listener;
     Status = QUIC_STATUS_SUCCESS;
 
@@ -71,7 +71,7 @@ Error:
         }
     }
 
-    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d",  Status);
+    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d", Status);
 
     return Status;
 }
@@ -110,7 +110,7 @@ MsQuicListenerClose(
     QuicRundownUninitialize(&Listener->Rundown);
     QUIC_FREE(Listener);
 
-    QuicTraceEvent(ListenerDestroyed, "[list][%p] Destroyed",  Listener);
+    QuicTraceEvent(ListenerDestroyed, "[list][%p] Destroyed", Listener);
     QuicRundownRelease(&Session->Rundown);
 
     QuicTraceEvent(ApiExit, "[ api] Exit");
@@ -178,19 +178,19 @@ MsQuicListenerStart(
     Status =
         QuicLibraryGetBinding(
             Listener->Session,
-            TRUE,           // Listeners always share the binding.
+            TRUE,          // Listeners always share the binding.
             &BindingLocalAddress,
             NULL,
             &Listener->Binding);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(ListenerErrorStatus, "[list][%p] ERROR, %d, %s.",  Listener,  Status,  "Get binding");
+        QuicTraceEvent(ListenerErrorStatus, "[list][%p] ERROR, %d, %s.", Listener, Status, "Get binding");
         goto Error;
     }
 
     QuicRundownReInitialize(&Listener->Rundown);
 
     if (!QuicBindingRegisterListener(Listener->Binding, Listener)) {
-        QuicTraceEvent(ListenerError, "[list][%p] ERROR, %s.",  Listener,  "Register with binding");
+        QuicTraceEvent(ListenerError, "[list][%p] ERROR, %s.", Listener, "Register with binding");
         QuicRundownRelease(&Listener->Rundown);
         Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
@@ -220,7 +220,7 @@ Error:
 
 Exit:
 
-    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d",  Status);
+    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d", Status);
 
     return Status;
 }
@@ -245,7 +245,7 @@ MsQuicListenerStop(
             Listener->Binding = NULL;
 
             QuicRundownReleaseAndWait(&Listener->Rundown);
-            QuicTraceEvent(ListenerStopped, "[list][%p] Stopped",  Listener);
+            QuicTraceEvent(ListenerStopped, "[list][%p] Stopped", Listener);
         }
     }
 
@@ -258,7 +258,7 @@ QuicListenerTraceRundown(
     _In_ QUIC_LISTENER* Listener
     )
 {
-    QuicTraceEvent(ListenerRundown, "[list][%p] Rundown, Session=%p",  Listener,  Listener->Session);
+    QuicTraceEvent(ListenerRundown, "[list][%p] Rundown, Session=%p", Listener, Listener->Session);
     if (Listener->Binding != NULL) {
         QuicTraceEvent(ListenerStarted, "[list][%p] Started, Binding=%p, LocalAddr=%!BYTEARRAY!", 
             Listener, 
@@ -283,7 +283,7 @@ QuicListenerIndicateEvent(
     uint64_t EndTime = QuicTimeUs64();
     if (EndTime - StartTime > QUIC_MAX_CALLBACK_TIME_WARNING) {
         QuicTraceLogWarning(FN_listener2ee8b8e7111af9a2f69d8394569fd0cd, "[list][%p] App took excessive time (%llu us) in callback.", 
-            Listener,  (EndTime - StartTime));
+            Listener, (EndTime - StartTime));
         QUIC_TEL_ASSERTMSG_ARGS(
             EndTime - StartTime < QUIC_MAX_CALLBACK_TIME_ERROR,
             "App extremely long time in listener callback",
@@ -321,24 +321,24 @@ QuicListenerClaimConnection(
 
     QuicSessionAttachSilo(Listener->Session);
 
-    QuicTraceLogVerbose(FN_listener013e31f2d9fdbed41021d620db3e7fdc, "[list][%p] Indicating NEW_CONNECTION",  Listener);
+    QuicTraceLogVerbose(FN_listener013e31f2d9fdbed41021d620db3e7fdc, "[list][%p] Indicating NEW_CONNECTION", Listener);
     QUIC_STATUS Status = QuicListenerIndicateEvent(Listener, &Event);
 
     QuicSessionDetachSilo();
 
     if (Status == QUIC_STATUS_PENDING) {
-        QuicTraceLogVerbose(FN_listenerc851fdba0fb3f62171cb5831b92c1797, "[list][%p] App indicate pending NEW_CONNECTION",  Listener);
+        QuicTraceLogVerbose(FN_listenerc851fdba0fb3f62171cb5831b92c1797, "[list][%p] App indicate pending NEW_CONNECTION", Listener);
         QUIC_DBG_ASSERT(Event.NEW_CONNECTION.SecurityConfig == NULL);
         *SecConfig = NULL;
     } else if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(ListenerErrorStatus, "[list][%p] ERROR, %d, %s.",  Listener,  Status,  "NEW_CONNECTION callback");
+        QuicTraceEvent(ListenerErrorStatus, "[list][%p] ERROR, %d, %s.", Listener, Status, "NEW_CONNECTION callback");
         goto Exit;
     } else if (Event.NEW_CONNECTION.SecurityConfig == NULL) {
-        QuicTraceEvent(ListenerError, "[list][%p] ERROR, %s.",  Listener,  "NEW_CONNECTION callback didn't set SecConfig");
+        QuicTraceEvent(ListenerError, "[list][%p] ERROR, %s.", Listener, "NEW_CONNECTION callback didn't set SecConfig");
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     } else {
-        QuicTraceLogVerbose(FN_listener5f65ad552c764a2de94907d332894a52, "[list][%p] App accepted NEW_CONNECTION",  Listener);
+        QuicTraceLogVerbose(FN_listener5f65ad552c764a2de94907d332894a52, "[list][%p] App accepted NEW_CONNECTION", Listener);
         *SecConfig = Event.NEW_CONNECTION.SecurityConfig;
     }
 
