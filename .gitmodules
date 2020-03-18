@@ -15,3 +15,6 @@
 [submodule "submodules/clog"]
 	path = submodules/clog
 	url = https://github.com/microsoft/CLOG.git
+[submodule ".\\submodules\\clog"]
+	path = .\\submodules\\clog
+	url = https://github.com/microsoft/CLOG.git
