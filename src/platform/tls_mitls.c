@@ -10,12 +10,7 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "tls_mitls.c.clog"
-
-#endif
 
 #define IS_WINDOWS 1
 #pragma warning(disable:4996) // Deprecated APIs

@@ -46,6 +46,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#include "timer_wheel.c.clog"
 
 //
 // The initial count of slots in the timer wheel.
@@ -56,12 +57,6 @@ Abstract:
 // On average, the max number of connections per slot.
 //
 #define QUIC_TIMER_WHEEL_MAX_LOAD_FACTOR    32
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
-#include "timer_wheel.c.clog"
-
-#endif
 
 //
 // Helper to get the slot index for a given time.

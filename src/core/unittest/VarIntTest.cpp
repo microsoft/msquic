@@ -10,12 +10,7 @@ Abstract:
 --*/
 
 #include "main.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "VarIntTest.cpp.clog"
-
-#endif
 
 uint64_t Encode(uint64_t Value)
 {

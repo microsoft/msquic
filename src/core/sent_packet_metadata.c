@@ -17,12 +17,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "sent_packet_metadata.c.clog"
-
-#endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void

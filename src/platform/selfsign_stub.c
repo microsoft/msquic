@@ -12,12 +12,7 @@ Abstract:
 #define QUIC_TEST_APIS 1
 
 #include "platform_internal.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "selfsign_stub.c.clog"
-
-#endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_SEC_CONFIG_PARAMS*

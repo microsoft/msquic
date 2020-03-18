@@ -16,10 +16,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
 #include "inline.c.clog"
-#endif
 
 QUIC_CID_QUIC_LIST_ENTRY*
 QuicCidNewDestination(

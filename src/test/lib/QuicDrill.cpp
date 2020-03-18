@@ -16,11 +16,7 @@ Future:
 --*/
 
 #include "precomp.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
 #include "QuicDrill.cpp.clog"
-#endif
-
 
 extern "C" {
 #include <quic_datapath.h>

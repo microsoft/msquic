@@ -20,12 +20,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "worker.c.clog"
-
-#endif
 
 //
 // Thread callback for processing the work queued for the worker.

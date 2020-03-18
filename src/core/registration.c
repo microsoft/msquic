@@ -20,12 +20,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "registration.c.clog"
-
-#endif
 
 QUIC_DATAPATH_RECEIVE_CALLBACK MsQuicRecvCallback;
 

@@ -13,14 +13,8 @@ Abstract:
 #ifdef QUIC_FUZZER
 
 #include "precomp.h"
-
 #include <msquic_fuzz.h>
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "injection.c.clog"
-
-#endif
 
 __declspec(noinline)
 void

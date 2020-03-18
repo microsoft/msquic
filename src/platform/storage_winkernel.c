@@ -16,12 +16,7 @@ Environment:
 
 
 #include "platform_internal.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "storage_winkernel.c.clog"
-
-#endif
 
 //
 // Copied from wdm.h

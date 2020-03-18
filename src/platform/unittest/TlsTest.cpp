@@ -8,13 +8,7 @@
 #include "main.h"
 #include "msquic.h"
 #include "quic_tls.h"
-
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "TlsTest.cpp.clog"
-
-#endif
 
 const uint32_t CertValidationIgnoreFlags =
     QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |

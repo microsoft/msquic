@@ -6,11 +6,7 @@
 --*/
 
 #include "quic_gtest.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "quic_gtest.cpp.clog"
-#endif
 
 bool TestingKernelMode = false;
 QUIC_API_V1* MsQuic;

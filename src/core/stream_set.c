@@ -12,12 +12,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "stream_set.c.clog"
-
-#endif
 
 #if QUIC_TEST_MODE
 _IRQL_requires_max_(DISPATCH_LEVEL)
