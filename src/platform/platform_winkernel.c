@@ -86,7 +86,7 @@ QuicPlatformSystemLoad(
 #endif
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
-    EventRegisterCLOG_2_Microsoft_Quic();
+    EventRegisterMicrosoft_Quic();
 #endif
 
 #ifdef QUIC_TELEMETRY_ASSERTS
@@ -115,7 +115,7 @@ QuicPlatformSystemUnload(
 #endif
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
-    EventUnregisterCLOG_2_Microsoft_Quic();
+    EventUnregisterMicrosoft_Quic();
 #endif
 
 #ifdef QUIC_LOGS_WPP

@@ -44,7 +44,7 @@ QuicPlatformSystemLoad(
 #endif
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
-    EventRegisterCLOG_2_Microsoft_Quic();
+    EventRegisterMicrosoft_Quic();
 #endif
 
     (void)QueryPerformanceFrequency((LARGE_INTEGER*)&QuicPlatformPerfFreq);
@@ -61,7 +61,7 @@ QuicPlatformSystemUnload(
 {
     QuicTraceLogInfo(FN_platform_winuser0c22020f4491112ca1f62af9913bb8bd, "[ dll] Unloaded");
 #ifdef QUIC_EVENTS_MANIFEST_ETW
-    EventUnregisterCLOG_2_Microsoft_Quic();
+    EventUnregisterMicrosoft_Quic();
 #endif
 #if defined(QUIC_LOGS_WPP)
     FAST_WPP_CLEANUP();

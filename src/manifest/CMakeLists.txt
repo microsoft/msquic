@@ -12,7 +12,7 @@ file(WRITE ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.rc)
     
 add_custom_command(
     DEPENDS CLOG_GENERATED_FILES
-    DEPENDS ${CMAKE_SOURCE_DIR}/manifest/MsQuicEtw.man
+    DEPENDS ${CMAKE_SOURCE_DIR}/src/manifest/MsQuicEtw.man
     OUTPUT ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.h
     OUTPUT ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.rc
     COMMAND mc.exe -um -h ${CMAKE_SOURCE_DIR}/bld/inc -r ${CMAKE_SOURCE_DIR}/bld/inc ${CMAKE_SOURCE_DIR}/src/manifest/MsQuicEtw.man)
