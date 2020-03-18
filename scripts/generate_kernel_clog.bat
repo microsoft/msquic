@@ -32,4 +32,3 @@ for %%i in (*.c* *.c operation.h stream.h connection.h) do (
 	)
 )
 popd
-

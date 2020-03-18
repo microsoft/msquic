@@ -1581,7 +1581,7 @@ QuicDataPathBindingHandleUnreachableError(
             ErrorCode, 
             CLOG_BYTEARRAY((unsigned char)ntohs(RemoteAddr->Ipv6.sin6_port), &RemoteAddr->Ipv6.sin6_addr));
     }
-#endif    
+#endif
 #endif
     UNREFERENCED_PARAMETER(ErrorCode);
 

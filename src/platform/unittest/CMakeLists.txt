@@ -10,8 +10,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
 include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY})
 
-
-
 set(
     SOURCES
     main.cpp

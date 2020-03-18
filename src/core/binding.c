@@ -758,7 +758,7 @@ QuicBindingProcessStatelessOperation(
             RecvPacket->DestCid,
             SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH);
 
-        QuicTraceLogVerbose(FN_binding1e7eb5542a86d5b4071042189950a0e0, "[S][TX][-] SR %s", 
+        QuicTraceLogVerbose(FN_binding1e7eb5542a86d5b4071042189950a0e0, "[S][TX][-] SR %s",
             QuicCidBufToStr(
                 SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH,
                 QUIC_STATELESS_RESET_TOKEN_LENGTH

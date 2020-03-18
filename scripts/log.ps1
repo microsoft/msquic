@@ -83,12 +83,12 @@ function Log-Start {
         wpr.exe -start "$($WprpFile)!$($LogProfile)" -filemode -instancename $InstanceName
     } else {
         lttng destroy
-        Write-Host "------------"   
+        Write-Host "------------"
         pushd ~
         mkdir ./QUICLogs
         mkdir ./QUICLogs/$LogProfile
         pushd ./QUICLogs
-        ls
+
         lttng create $LogProfile -o=./$LogProfile
         popd
         Write-Host "------------" 

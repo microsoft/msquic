@@ -3,7 +3,6 @@
 
 # Include Files that need CLOG processing
 include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
-
 include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY})
 
 set(SOURCES
@@ -46,7 +45,7 @@ set(SOURCES
 if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(SOURCES ${SOURCES} inline.c)
 endif()
-    
+
 #
 # Setup CLOG by calling a helper function which sets up dependencies.  Then add the .c file
 #     ...it'd be preferred to have the helper function set this requirement
@@ -56,7 +55,6 @@ CLOG_ADD_SOURCEFILE(CORE_CLOG_LIB ${SOURCES})
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
 
 add_library(core STATIC ${SOURCES})
-
 target_link_libraries(core CORE_CLOG_LIB)
 
 target_compile_options(core PRIVATE

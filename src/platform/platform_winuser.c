@@ -238,6 +238,7 @@ QuicEtwCallback(
     case EVENT_CONTROL_CODE_ENABLE_PROVIDER:
     case EVENT_CONTROL_CODE_CAPTURE_STATE:
         if (CallbackContext == &MICROSOFT_MSQUIC_PROVIDER_Context) {
+            //BUGBUG : Nick, I'm unsure what you need here
             //QuicTraceRundown();
         }
         break;

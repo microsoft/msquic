@@ -352,7 +352,6 @@ QuicConnFree(
         &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].ConnectionPool,
         Connection);
 
-
 #if QUIC_TEST_MODE
     InterlockedDecrement(&MsQuicLib.ConnectionCount);
 #endif

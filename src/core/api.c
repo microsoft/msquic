@@ -48,7 +48,7 @@ MsQuicConnectionOpen(
     QUIC_SESSION* Session;
     QUIC_CONNECTION* Connection = NULL;
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
         QUIC_TRACE_API_CONNECTION_OPEN, 
         SessionHandle);
 
@@ -95,7 +95,7 @@ MsQuicConnectionClose(
 
     QUIC_PASSIVE_CODE();
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
         QUIC_TRACE_API_CONNECTION_CLOSE, 
         Handle);
 
@@ -168,7 +168,7 @@ MsQuicConnectionShutdown(
     QUIC_CONNECTION* Connection;
     QUIC_OPERATION* Oper;
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
         QUIC_TRACE_API_CONNECTION_SHUTDOWN, 
         Handle);
 
@@ -293,7 +293,7 @@ MsQuicConnectionStart(
         ServerNameCopy = QUIC_ALLOC_NONPAGED(ServerNameLength + 1);
         if (ServerNameCopy == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "Server name",  ServerNameLength + 1);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "Server name",  ServerNameLength + 1);
             goto Error;
         }
 
@@ -306,7 +306,7 @@ MsQuicConnectionStart(
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "CONN_START operation",  0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "CONN_START operation",  0);
         goto Error;
     }
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_START;
@@ -342,7 +342,7 @@ MsQuicStreamOpen(
     QUIC_STATUS Status;
     QUIC_CONNECTION* Connection;
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
         QUIC_TRACE_API_STREAM_OPEN, 
         Handle);
 
@@ -379,7 +379,7 @@ MsQuicStreamOpen(
 
 Error:
 
-    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d",  Status);
+    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d", Status);
 
     return Status;
 }
@@ -399,7 +399,7 @@ MsQuicStreamClose(
 
     QUIC_PASSIVE_CODE();
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
         QUIC_TRACE_API_STREAM_CLOSE, 
         Handle);
 
@@ -483,7 +483,7 @@ MsQuicStreamStart(
     QUIC_STREAM* Stream;
     QUIC_CONNECTION* Connection;
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
         QUIC_TRACE_API_STREAM_START, 
         Handle);
 
@@ -519,7 +519,7 @@ MsQuicStreamStart(
             QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
         if (Oper == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "STRM_START operation",  0);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "STRM_START operation",  0);
             goto Exit;
         }
         Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_START;
@@ -569,7 +569,7 @@ MsQuicStreamStart(
 
 Exit:
 
-    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d",  Status);
+    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d", Status);
 
     return Status;
 }
@@ -588,7 +588,7 @@ MsQuicStreamShutdown(
     QUIC_CONNECTION* Connection;
     QUIC_OPERATION* Oper;
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
         QUIC_TRACE_API_STREAM_SHUTDOWN, 
         Handle);
 
@@ -639,7 +639,7 @@ MsQuicStreamShutdown(
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "STRM_SHUTDOWN operation",  0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "STRM_SHUTDOWN operation",  0);
         goto Error;
     }
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_SHUTDOWN;
@@ -662,7 +662,7 @@ MsQuicStreamShutdown(
 
 Error:
 
-    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d",  Status);
+    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d", Status);
 
     return Status;
 }
@@ -687,7 +687,7 @@ MsQuicStreamSend(
     BOOLEAN QueueOper = TRUE;
     QUIC_OPERATION* Oper;
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
         QUIC_TRACE_API_STREAM_SEND, 
         Handle);
 
@@ -717,7 +717,7 @@ MsQuicStreamSend(
     }
 
     if (TotalLength > UINT32_MAX) {
-        QuicTraceEvent(StreamError, "[strm][%p] ERROR, %s.",  Stream,  "Send request total length exceeds max");
+        QuicTraceEvent(StreamError, "[strm][%p] ERROR, %s.", Stream, "Send request total length exceeds max");
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
@@ -731,7 +731,7 @@ MsQuicStreamSend(
     SendRequest = QuicPoolAlloc(&Connection->Worker->SendRequestPool);
     if (SendRequest == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "Stream Send request",  0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "Stream Send request",  0);
         goto Exit;
     }
 
@@ -765,7 +765,7 @@ MsQuicStreamSend(
         Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
         if (Oper == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "STRM_SEND operation",  0);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "STRM_SEND operation",  0);
             goto Exit;
         }
         Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_SEND;
@@ -788,7 +788,7 @@ MsQuicStreamSend(
 
 Exit:
 
-    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d",  Status);
+    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d", Status);
 
     return Status;
 }
@@ -806,7 +806,7 @@ MsQuicStreamReceiveSetEnabled(
     QUIC_CONNECTION* Connection;
     QUIC_OPERATION* Oper;
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
         QUIC_TRACE_API_STREAM_RECEIVE_SET_ENABLED, 
         Handle);
 
@@ -831,7 +831,7 @@ MsQuicStreamReceiveSetEnabled(
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "STRM_RECV_SET_ENABLED, operation",  0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "STRM_RECV_SET_ENABLED, operation",  0);
         goto Error;
     }
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_RECV_SET_ENABLED;
@@ -853,7 +853,7 @@ MsQuicStreamReceiveSetEnabled(
 
 Error:
 
-    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d",  Status);
+    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d", Status);
 
     return Status;
 }
@@ -871,7 +871,7 @@ MsQuicStreamReceiveComplete(
     QUIC_CONNECTION* Connection;
     QUIC_OPERATION* Oper;
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
         QUIC_TRACE_API_STREAM_RECEIVE_COMPLETE, 
         Handle);
 
@@ -901,7 +901,7 @@ MsQuicStreamReceiveComplete(
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)",  "STRM_RECV_COMPLETE operation",  0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "STRM_RECV_COMPLETE operation",  0);
         goto Exit;
     }
 
@@ -1017,7 +1017,7 @@ MsQuicSetParam(
 
 Error:
 
-    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d",  Status);
+    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d", Status);
 
     return Status;
 }
@@ -1042,7 +1042,7 @@ MsQuicGetParam(
 
     QUIC_STATUS Status;
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
         QUIC_TRACE_API_GET_PARAM, 
         Handle);
 

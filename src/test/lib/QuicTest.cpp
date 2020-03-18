@@ -15,7 +15,6 @@ Abstract:
 
 #if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
 ; //<-- WPP line was here
-//BUGBUG : CLOG BUG - C++ code isnt compiling/linking correctly - disabling CLOG for now
 #include "QuicTest.cpp.clog"
 #endif
 
