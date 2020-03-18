@@ -146,8 +146,6 @@ function Log-Stream {
         babeltrace -i lttng-live net://localhost
         
         babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquicLive | ../artifacts/tools/bin/clog/clog2text_lttng -s ../src/manifest/clog.sidecar
-
-        popd
     }
 }
 ##############################################################
@@ -157,4 +155,4 @@ function Log-Stream {
 if ($Start)  { Log-Start }
 if ($Cancel) { Log-Cancel }
 if ($Stop)   { Log-Stop }
-if ($STream) { Log-Stream }
+if ($Stream) { Log-Stream }
