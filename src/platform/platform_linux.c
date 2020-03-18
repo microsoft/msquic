@@ -25,12 +25,7 @@ Environment:
 #include <arpa/inet.h>
 #include "quic_trace.h"
 #include "quic_platform_dispatch.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "platform_linux.c.clog"
-
-#endif
 
 #define QUIC_MAX_LOG_MSG_LEN        1024 // Bytes
 

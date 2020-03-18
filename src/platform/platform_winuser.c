@@ -14,12 +14,7 @@ Environment:
 --*/
 
 #include "platform_internal.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "platform_winuser.c.clog"
-
-#endif
 
 #if defined(QUIC_LOGS_WPP)
 #include <fastwppimpl.h>

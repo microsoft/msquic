@@ -16,12 +16,7 @@ Abstract:
 #include "openssl/rsa.h"
 #include "openssl/x509.h"
 #include "openssl/pem.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "tls_openssl.c.clog"
-
-#endif
 
 uint16_t QuicTlsTPHeaderSize = 0;
 

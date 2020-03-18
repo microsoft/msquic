@@ -10,10 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
 #include "ApiTest.cpp.clog"
-#endif
 
 #pragma warning(disable:6387)  // '_Param_(1)' could be '0':  this does not adhere to the specification for the function
 

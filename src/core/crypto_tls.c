@@ -13,12 +13,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "crypto_tls.c.clog"
-
-#endif
 
 #define TLS1_PROTOCOL_VERSION 0x0301
 #define TLS_MESSAGE_HEADER_LENGTH 4

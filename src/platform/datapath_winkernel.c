@@ -10,12 +10,7 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "datapath_winkernel.c.clog"
-
-#endif
 
 //
 // Not yet available in the WDK. When available this code can be removed.

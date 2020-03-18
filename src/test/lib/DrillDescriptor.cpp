@@ -6,10 +6,7 @@
 --*/
 
 #include "precomp.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
 #include "DrillDescriptor.cpp.clog"
-#endif
 
 DrillBuffer
 QuicDrillEncodeQuicVarInt(

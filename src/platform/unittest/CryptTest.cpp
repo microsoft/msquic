@@ -10,13 +10,7 @@
 #include "quic_tls.h"
 
 #include "msquichelper.h"
-
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "CryptTest.cpp.clog"
-
-#endif
 
 #ifndef QUIC_TLS_STUB
 

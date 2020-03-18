@@ -10,10 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
 #include "TestStream.cpp.clog"
-#endif
 
 TestStream::TestStream(
     _In_ HQUIC Handle,

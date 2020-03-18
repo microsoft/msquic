@@ -11,12 +11,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "range.c.clog"
-
-#endif
 
 #define INITIAL_SUBRANGE_COUNT 8
 

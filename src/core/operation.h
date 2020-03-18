@@ -5,10 +5,7 @@
 
 --*/
 
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-//<-- WPP line was here
 #include "operation.h.clog"
-#endif
 
 typedef struct QUIC_SEND_REQUEST QUIC_SEND_REQUEST;
 

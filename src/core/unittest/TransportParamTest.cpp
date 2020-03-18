@@ -10,12 +10,7 @@ Abstract:
 --*/
 
 #include "main.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "TransportParamTest.cpp.clog"
-
-#endif
 
 static QUIC_CONNECTION JunkConnection;
 

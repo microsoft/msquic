@@ -12,12 +12,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "binding.c.clog"
-
-#endif
 
 //
 // Make sure we will always have enough room to fit our Version Negotiation packet,

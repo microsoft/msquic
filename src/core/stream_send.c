@@ -34,12 +34,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "stream_send.c.clog"
-
-#endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void

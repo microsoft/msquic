@@ -13,12 +13,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "packet_builder.c.clog"
-
-#endif
 
 #ifdef QUIC_FUZZER
 

@@ -18,12 +18,7 @@ Abstract:
 #include "openssl/rsa.h"
 #include "openssl/x509.h"
 #include "openssl/pem.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "selfsign_openssl.c.clog"
-
-#endif
 
 //
 // Generates a self signed cert using low level OpenSSL APIs.

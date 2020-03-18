@@ -14,11 +14,7 @@
 #undef min // gtest headers conflict with previous definitions of min/max.
 #undef max
 #include "gtest/gtest.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "quic_gtest.h.clog"
-#endif
 
 class WithBool : public testing::Test,
     public testing::WithParamInterface<bool> {

@@ -22,12 +22,7 @@ Future work:
 --*/
 
 #include "precomp.h"
- 
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "congestion_control.c.clog"
-
-#endif
 
 //
 // BETA and C from RFC8312. 10x multiples for integer arithmetic.

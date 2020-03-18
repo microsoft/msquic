@@ -15,10 +15,7 @@ Environment:
 
 #define _GNU_SOURCE
 #include "platform_internal.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
 #include "storage_linux.c.clog"
-#endif
 
 QUIC_STATUS
 QuicStorageOpen(

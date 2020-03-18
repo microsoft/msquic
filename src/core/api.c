@@ -10,12 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "api.c.clog"
-
-#endif
 
 #define IS_SESSION_HANDLE(Handle) \
 ( \

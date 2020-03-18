@@ -10,12 +10,7 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "datapath_winuser.c.clog"
-
-#endif
 
 #ifdef QUIC_FUZZER
 
@@ -1568,8 +1563,6 @@ QuicDataPathBindingHandleUnreachableError(
 
     QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG) // TODO - Change to ETW event
-#if 0
     if (RemoteAddr->si_family == AF_INET) {
         CLOG_BUG_TraceLogVerbose(FN_datapath_winuser98712c41f3c7a37b24466cc56356459a, "[sock][%p] Received unreachable error (0x%x) from %!BYTEARRAY!", 
             SocketContext, 
@@ -1581,8 +1574,6 @@ QuicDataPathBindingHandleUnreachableError(
             ErrorCode, 
             CLOG_BYTEARRAY((unsigned char)ntohs(RemoteAddr->Ipv6.sin6_port), &RemoteAddr->Ipv6.sin6_addr));
     }
-#endif
-#endif
     UNREFERENCED_PARAMETER(ErrorCode);
 
     QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->UnreachableHandler);
@@ -1723,8 +1714,6 @@ QuicDataPathRecvComplete(
 
         QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG) // TODO - Change to ETW event
-#if 0
         if (RemoteAddr->si_family == AF_INET) {
             CLOG_BUG_TraceLogVerbose(FN_datapath_winuser80f95372f363d78879faa71a2a91f95d, "[sock][%p] Received larger than expected datagram from %!IPV4ADDR!", 
                 SocketContext, 
@@ -1735,8 +1724,6 @@ QuicDataPathRecvComplete(
                 SocketContext, 
                 CLOG_BYTEARRAY(ntohs(RemoteAddr->Ipv6.sin6_port), &RemoteAddr->Ipv6.sin6_addr));
         }
-#endif
-#endif
 
         //
         // TODO - Indicate to Core library.

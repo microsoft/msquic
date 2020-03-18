@@ -12,12 +12,7 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "cert_openssl.c.clog"
-
-#endif
 
 #include <mitlsffi.h>
 #include <mipki.h>

@@ -10,12 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#if defined(QUIC_LOGS_WPP) || defined(QUIC_LOGS_CLOG)
-; //<-- WPP line was here
 #include "packet.c.clog"
-
-#endif
 
 //
 // The list of supported QUIC version numbers, in network byte order.
