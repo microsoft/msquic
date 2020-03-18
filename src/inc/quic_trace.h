@@ -19,12 +19,10 @@ Abstract:
     or build configurations can have their own desired behavior. The following
     configuration options are currently supported:
 
-    QUIC_EVENTS_STUB            No-op all Events
     QUIC_EVENTS_MANIFEST_ETW    Write to Windows ETW framework
     QUIC_EVENTS_SYSLOG          Write to Linux syslog
     QUIC_EVENTS_LTTNG           Write to Linux LTTng framework
 
-    QUIC_LOGS_STUB              No-op all Logs
     QUIC_LOGS_WPP               Write to Windows WPP framework
     QUIC_LOGS_MANIFEST_ETW      Write to Windows ETW framework
     QUIC_LOGS_SYSLOG            Write to Linux syslog

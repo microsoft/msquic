@@ -1964,7 +1964,6 @@ QuicDataPathBindingSendTo(
         RemoteAddress->Ipv4.sin_port != 0 &&
         SendContext != NULL);
 
-#ifndef QUIC_LOGS_STUB
     socklen_t RemoteAddrLen = 0;
     char Inet6AddrStr[INET6_ADDRSTRLEN] = {0};
     QUIC_SOCKET_CONTEXT* SocketContext =
@@ -1989,8 +1988,6 @@ QuicDataPathBindingSendTo(
                 SendContext);
         }
     }
-#endif
-
     return
         QuicDataPathBindingSend(
             Binding,
@@ -2023,7 +2020,6 @@ QuicDataPathBindingSendFromTo(
         SendContext != NULL &&
         SendContext->BufferCount != 0);
 
-#ifndef QUIC_LOGS_STUB
     char LocalInet6AddrStr[INET6_ADDRSTRLEN] = {0};
     char RemoteInet6AddrStr[INET6_ADDRSTRLEN] = {0};
     QUIC_SOCKET_CONTEXT* SocketContext =
@@ -2054,7 +2050,6 @@ QuicDataPathBindingSendFromTo(
                 SendContext);
         }
     }
-#endif
 
     return
         QuicDataPathBindingSend(
