@@ -1288,15 +1288,17 @@ QuicTlsInitialize(
         (ULONG)(Config->AlpnBufferLength +
             FIELD_OFFSET(SEC_APPLICATION_PROTOCOLS, ProtocolLists) +
             FIELD_OFFSET(SEC_APPLICATION_PROTOCOL_LIST, ProtocolList));
+    const size_t TlsSize = sizeof(QUIC_TLS) + (size_t)AppProtocolsSize;
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    QUIC_TLS* TlsContext = QUIC_ALLOC_NONPAGED(sizeof(QUIC_TLS) + AppProtocolsSize);
+    QUIC_TLS* TlsContext = QUIC_ALLOC_NONPAGED(TlsSize);
     if (TlsContext == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_TLS", sizeof(QUIC_TLS));
+        QuicTraceEvent(AllocFailure, "QUIC_TLS", TlsSize);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
+    QUIC_ANALYSIS_ASSUME(sizeof(*TlsContext) < TlsSize); // This should not be necessary.
     RtlZeroMemory(TlsContext, sizeof(*TlsContext));
     SecInvalidateHandle(&TlsContext->SchannelContext);
 
