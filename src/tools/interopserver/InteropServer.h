@@ -200,12 +200,15 @@ private:
 struct HttpSession {
     HttpSession(
         HQUIC Registration,
-        const char* Alpn,
+        _In_reads_(AlpnBufferCount) _Pre_defensive_
+            const QUIC_BUFFER* const AlpnBuffers,
+        _In_range_(>, 0) uint32_t AlpnBufferCount,
         const QUIC_ADDR* LocalAddress) {
         EXIT_ON_FAILURE(
             MsQuic->SessionOpen(
                 Registration,
-                Alpn,
+                AlpnBuffers,
+                AlpnBufferCount,
                 nullptr,
                 &Session));
 

@@ -220,6 +220,13 @@ QuicCryptoInitializeTls(
 
     TlsConfig.IsServer = IsServer;
     TlsConfig.TlsSession = Connection->Session->TlsSession;
+    if (IsServer) {
+        TlsConfig.AlpnBuffer = Crypto->TlsState.NegotiatedAlpn;
+        TlsConfig.AlpnBufferLength = 1 + Crypto->TlsState.NegotiatedAlpn[0];
+    } else {
+        TlsConfig.AlpnBuffer = Connection->Session->AlpnList;
+        TlsConfig.AlpnBufferLength = Connection->Session->AlpnListLength;
+    }
     TlsConfig.SecConfig = SecConfig;
     TlsConfig.Connection = Connection;
     TlsConfig.ProcessCompleteCallback = QuicTlsProcessDataCompleteCallback;
@@ -1258,9 +1265,25 @@ QuicCryptoProcessTlsCompletion(
             QuicTlsSecConfigRelease(SecConfig);
         }
 
+        //
+        // Currently, NegotiatedAlpn points into TLS state memory, which doesn't
+        // live as long as the connection. Update it to point to the session
+        // state memory instead.
+        //
+        QUIC_DBG_ASSERT(Crypto->TlsState.NegotiatedAlpn != NULL);
+        Crypto->TlsState.NegotiatedAlpn =
+            QuicTlsAlpnFindInList(
+                Connection->Session->AlpnListLength,
+                Connection->Session->AlpnList,
+                Crypto->TlsState.NegotiatedAlpn[0],
+                Crypto->TlsState.NegotiatedAlpn + 1);
+        QUIC_TEL_ASSERT(Crypto->TlsState.NegotiatedAlpn != NULL);
+
         QUIC_CONNECTION_EVENT Event;
         Event.Type = QUIC_CONNECTION_EVENT_CONNECTED;
         Event.CONNECTED.SessionResumed = Crypto->TlsState.SessionResumed;
+        Event.CONNECTED.NegotiatedAlpnLength = Crypto->TlsState.NegotiatedAlpn[0];
+        Event.CONNECTED.NegotiatedAlpn = Crypto->TlsState.NegotiatedAlpn + 1;
         QuicTraceLogConnVerbose(IndicateConnected, Connection, "Indicating QUIC_CONNECTION_EVENT_CONNECTED (Resume=%hu)",
             Event.CONNECTED.SessionResumed);
         (void)QuicConnIndicateEvent(Connection, &Event);
@@ -1439,7 +1462,15 @@ QuicCryptoProcessData(
                 }
                 goto Error;
 
-            } else if (SecConfig != NULL) {
+            }
+
+            //
+            // Save the negotiated ALPN (starting with the length prefix) to be
+            // used later in building up the TLS response.
+            //
+            Crypto->TlsState.NegotiatedAlpn = Info.NegotiatedAlpn - 1;
+
+            if (SecConfig != NULL) {
                 Status = QuicConnHandshakeConfigure(Connection, SecConfig);
                 if (QUIC_FAILED(Status)) {
                     QuicConnTransportError(

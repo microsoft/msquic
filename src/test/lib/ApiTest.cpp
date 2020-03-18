@@ -51,6 +51,11 @@ void QuicTestValidateSession()
 
     HQUIC Session = nullptr;
 
+    QUIC_CONST_BUFFER_STR(GoodAlpn, "Alpn");
+    QUIC_CONST_BUFFER_STR(EmptyAlpn, "");
+    QUIC_CONST_BUFFER_STR(LongAlpn, "makethisstringjuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuustright");
+    QUIC_CONST_BUFFER_STR(TooLongAlpn, "makethisextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextrlong");
+
     //
     // Test null out param.
     //
@@ -58,7 +63,8 @@ void QuicTestValidateSession()
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->SessionOpen(
             TestReg,
-            "alpn",
+            &GoodAlpn,
+            1,
             nullptr,
             nullptr));
 
@@ -69,7 +75,8 @@ void QuicTestValidateSession()
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->SessionOpen(
             nullptr,
-            "alpn",
+            &GoodAlpn,
+            1,
             nullptr,
             &Session));
 
@@ -81,6 +88,7 @@ void QuicTestValidateSession()
         MsQuic->SessionOpen(
             TestReg,
             nullptr,
+            0,
             nullptr,
             &Session));
 
@@ -91,7 +99,8 @@ void QuicTestValidateSession()
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->SessionOpen(
             TestReg,
-            "",
+            &EmptyAlpn,
+            1,
             nullptr,
             &Session));
 
@@ -101,7 +110,8 @@ void QuicTestValidateSession()
     TEST_QUIC_SUCCEEDED(
         MsQuic->SessionOpen(
             TestReg,
-            "makethisstringjuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuustright",
+            &LongAlpn,
+            1,
             nullptr,
             &Session));
 
@@ -116,7 +126,20 @@ void QuicTestValidateSession()
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->SessionOpen(
             TestReg,
-            "makethisextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextrlong",
+            &TooLongAlpn,
+            1,
+            nullptr,
+            &Session));
+
+    //
+    // Multiple ALPNs
+    //
+    QUIC_CONST_BUFFER_STR2(TwoAlpns, "alpn1", "alpn2");
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SessionOpen(
+            TestReg,
+            TwoAlpns,
+            2,
             nullptr,
             &Session));
 
@@ -128,7 +151,8 @@ void QuicTestValidateSession()
     TEST_QUIC_SUCCEEDED(
         MsQuic->SessionOpen(
             TestReg,
-            "test",
+            &GoodAlpn,
+            1,
             nullptr,
             &Session));
 
@@ -207,8 +231,8 @@ DummyListenerCallback(
 
 void QuicTestValidateListener()
 {
-    MsQuicSession TestSession;
-    TEST_TRUE(TestSession.IsValid());
+    MsQuicSession Session;
+    TEST_TRUE(Session.IsValid());
 
     HQUIC Listener = nullptr;
 
@@ -218,7 +242,7 @@ void QuicTestValidateListener()
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->ListenerOpen(
-            TestSession,
+            Session,
             nullptr,
             nullptr,
             &Listener));
@@ -240,7 +264,7 @@ void QuicTestValidateListener()
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->ListenerOpen(
-            TestSession,
+            Session,
             DummyListenerCallback,
             nullptr,
             nullptr));
@@ -250,7 +274,7 @@ void QuicTestValidateListener()
     //
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerOpen(
-            TestSession,
+            Session,
             DummyListenerCallback,
             nullptr,
             &Listener));
@@ -270,7 +294,7 @@ void QuicTestValidateListener()
     //
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerOpen(
-            TestSession,
+            Session,
             DummyListenerCallback,
             nullptr,
             &Listener));
@@ -288,7 +312,7 @@ void QuicTestValidateListener()
     //
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerOpen(
-            TestSession,
+            Session,
             DummyListenerCallback,
             nullptr,
             &Listener));
@@ -312,7 +336,7 @@ void QuicTestValidateListener()
     //
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerOpen(
-            TestSession,
+            Session,
             DummyListenerCallback,
             nullptr,
             &Listener));
@@ -345,8 +369,8 @@ DummyConnectionCallback(
 
 void QuicTestValidateConnection()
 {
-    MsQuicSession TestSession;
-    TEST_TRUE(TestSession.IsValid());
+    MsQuicSession Session;
+    TEST_TRUE(Session.IsValid());
 
     //
     // Null out-parameter.
@@ -354,7 +378,7 @@ void QuicTestValidateConnection()
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->ConnectionOpen(
-            TestSession,
+            Session,
             DummyConnectionCallback,
             nullptr,
             nullptr));
@@ -367,7 +391,7 @@ void QuicTestValidateConnection()
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->ConnectionOpen(
-                TestSession,
+                Session,
                 nullptr,
                 nullptr,
                 &Connection.Handle));
@@ -405,7 +429,7 @@ void QuicTestValidateConnection()
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
-                TestSession,
+                Session,
                 DummyConnectionCallback,
                 nullptr,
                 &Connection.Handle));
@@ -426,7 +450,7 @@ void QuicTestValidateConnection()
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
-                TestSession,
+                Session,
                 DummyConnectionCallback,
                 nullptr,
                 &Connection.Handle));
@@ -447,7 +471,7 @@ void QuicTestValidateConnection()
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
-                TestSession,
+                Session,
                 DummyConnectionCallback,
                 nullptr,
                 &Connection.Handle));
@@ -468,7 +492,7 @@ void QuicTestValidateConnection()
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
-                TestSession,
+                Session,
                 DummyConnectionCallback,
                 nullptr,
                 &Connection.Handle));
@@ -508,7 +532,7 @@ void QuicTestValidateConnection()
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
-                TestSession,
+                Session,
                 DummyConnectionCallback,
                 nullptr,
                 &Connection.Handle));
@@ -532,7 +556,7 @@ void QuicTestValidateConnection()
         ConnectionScope Connection;
         TEST_QUIC_SUCCEEDED(
             MsQuic->ConnectionOpen(
-                TestSession,
+                Session,
                 DummyConnectionCallback,
                 nullptr,
                 &Connection.Handle));
@@ -619,9 +643,9 @@ DummyStreamCallback(
 
 void QuicTestValidateStream(bool Connect)
 {
-    MsQuicSession TestSession;
-    TEST_TRUE(TestSession.IsValid());
-    TEST_QUIC_SUCCEEDED(TestSession.SetPeerBidiStreamCount(32));
+    MsQuicSession Session;
+    TEST_TRUE(Session.IsValid());
+    TEST_QUIC_SUCCEEDED(Session.SetPeerBidiStreamCount(32));
 
     QUIC_BUFFER Buffers[1] = {};
 
@@ -629,14 +653,14 @@ void QuicTestValidateStream(bool Connect)
     // Force the Client, Server, and Listener to clean up before the Session and Registration.
     //
     {
-        TestListener MyListener(TestSession, ListenerAcceptCallback);
+        TestListener MyListener(Session, ListenerAcceptCallback);
         TEST_TRUE(MyListener.IsValid());
 
         UniquePtr<TestConnection> Server;
         MyListener.Context = &Server;
 
         {
-            TestConnection Client(TestSession, ConnectionIgnoreStreamCallback, false);
+            TestConnection Client(Session, ConnectionIgnoreStreamCallback, false);
             TEST_TRUE(Client.IsValid());
             if (Connect) {
                 TEST_QUIC_SUCCEEDED(MyListener.Start());

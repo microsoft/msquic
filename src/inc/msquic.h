@@ -168,6 +168,22 @@ typedef struct QUIC_BUFFER {
     uint8_t* Buffer;
 } QUIC_BUFFER;
 
+#define QUIC_STR_TO_BUFFER(STR) \
+    { sizeof(STR) - 1, (uint8_t*)STR }
+
+#define QUIC_CONST_BUFFER_STR(VarName, Str) \
+    const char __##VarName##_RAW[] = Str; \
+    const QUIC_BUFFER VarName = \
+        QUIC_STR_TO_BUFFER(__##VarName##_RAW)
+
+#define QUIC_CONST_BUFFER_STR2(VarName, Str1, Str2) \
+    const char __##VarName##_RAW1[] = Str1; \
+    const char __##VarName##_RAW2[] = Str2; \
+    const QUIC_BUFFER VarName[2] = { \
+        QUIC_STR_TO_BUFFER(__##VarName##_RAW1), \
+        QUIC_STR_TO_BUFFER(__##VarName##_RAW2) \
+    }
+
 //
 // All the available information describing a new incoming connection.
 //
@@ -178,10 +194,13 @@ typedef struct QUIC_NEW_CONNECTION_INFO {
     uint32_t CryptoBufferLength;
     uint16_t AlpnListLength;
     uint16_t ServerNameLength;
+    uint8_t NegotiatedAlpnLength;
     _Field_size_bytes_(CryptoBufferLength)
     const uint8_t* CryptoBuffer;
     _Field_size_bytes_(AlpnListLength)
     const uint8_t* AlpnList;
+    _Field_size_bytes_(NegotiatedAlpnLength)
+    const uint8_t* NegotiatedAlpn;
     _Field_size_bytes_opt_(ServerNameLength)
     const char* ServerName;
 } QUIC_NEW_CONNECTION_INFO;
@@ -465,8 +484,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_SESSION_OPEN_FN)(
     _In_ _Pre_defensive_ HQUIC Registration,
-    _In_reads_z_(QUIC_MAX_ALPN_LENGTH)
-        const char* Alpn,    // Application-Layer Protocol Negotiation
+    _In_reads_(AlpnBufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const AlpnBuffers,
+    _In_range_(>, 0) uint32_t AlpnBufferCount,
     _In_opt_ void* Context,
     _Outptr_ _At_(*Session, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC* Session
@@ -599,6 +619,9 @@ typedef struct QUIC_CONNECTION_EVENT {
     union {
         struct {
             BOOLEAN SessionResumed;
+            uint8_t NegotiatedAlpnLength;
+            _Field_size_(NegotiatedAlpnLength)
+            const uint8_t* NegotiatedAlpn;
         } CONNECTED;
         struct {
             QUIC_STATUS Status;

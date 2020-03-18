@@ -107,37 +107,33 @@ public:
 struct MsQuicSession {
     HQUIC Handle;
     bool CloseAllConnectionsOnDelete;
-    MsQuicSession(_In_ const char* ALPN = "MsQuicTest", _In_ bool AutoCleanup = false)
-        : Handle(nullptr),
-        CloseAllConnectionsOnDelete(AutoCleanup) {
+    MsQuicSession(_In_ const char* RawAlpn = "MsQuicTest")
+        : Handle(nullptr), CloseAllConnectionsOnDelete(false) {
+        QUIC_BUFFER Alpn;
+        Alpn.Buffer = (uint8_t*)RawAlpn;
+        Alpn.Length = (uint32_t)strlen(RawAlpn);
         if (QUIC_FAILED(
             MsQuic->SessionOpen(
                 Registration,
-                ALPN,
+                &Alpn,
+                1,
                 nullptr,
                 &Handle))) {
             Handle = nullptr;
         }
     }
-    MsQuicSession(HQUIC Reg, _In_ const char* ALPN = "MsQuicTest", _In_ bool AutoCleanup = false)
-        : Handle(nullptr),
-        CloseAllConnectionsOnDelete(AutoCleanup) {
+    MsQuicSession(_In_ const char* RawAlpn1, _In_ const char* RawAlpn2)
+        : Handle(nullptr), CloseAllConnectionsOnDelete(false) {
+        QUIC_BUFFER Alpns[2];
+        Alpns[0].Buffer = (uint8_t*)RawAlpn1;
+        Alpns[0].Length = (uint32_t)strlen(RawAlpn1);
+        Alpns[1].Buffer = (uint8_t*)RawAlpn2;
+        Alpns[1].Length = (uint32_t)strlen(RawAlpn2);
         if (QUIC_FAILED(
             MsQuic->SessionOpen(
-                Reg,
-                ALPN,
-                nullptr,
-                &Handle))) {
-            Handle = nullptr;
-        }
-    }
-    MsQuicSession(MsQuicRegistration& Reg, _In_ const char* ALPN = "MsQuicTest", _In_ bool AutoCleanup = false)
-        : Handle(nullptr),
-        CloseAllConnectionsOnDelete(AutoCleanup) {
-        if (QUIC_FAILED(
-            MsQuic->SessionOpen(
-                Reg,
-                ALPN,
+                Registration,
+                Alpns,
+                ARRAYSIZE(Alpns),
                 nullptr,
                 &Handle))) {
             Handle = nullptr;
@@ -161,6 +157,9 @@ struct MsQuicSession {
     MsQuicSession operator=(MsQuicSession& Other) = delete;
     operator HQUIC () {
         return Handle;
+    }
+    void SetAutoCleanup() {
+        CloseAllConnectionsOnDelete = true;
     }
     QUIC_STATUS
     SetTlsTicketKey(

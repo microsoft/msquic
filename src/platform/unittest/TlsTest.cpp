@@ -17,6 +17,9 @@ const uint32_t CertValidationIgnoreFlags =
     QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
     QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID;
 
+const uint8_t Alpn[] = { 1, 'A' };
+const uint8_t MultiAlpn[] = { 1, 'A', 1, 'B', 1, 'C' };
+
 struct TlsTest : public ::testing::TestWithParam<bool>
 {
 protected:
@@ -92,7 +95,7 @@ protected:
     {
         QUIC_TLS_SESSION* Ptr;
         TlsSession() : Ptr(nullptr) {
-            EXPECT_EQ(QUIC_STATUS_SUCCESS, QuicTlsSessionInitialize("MsQuicTest", &Ptr));
+            EXPECT_EQ(QUIC_STATUS_SUCCESS, QuicTlsSessionInitialize(&Ptr));
         }
         ~TlsSession() {
             QuicTlsSessionUninitialize(Ptr);
@@ -139,12 +142,15 @@ protected:
             Config.IsServer = TRUE;
             Config.TlsSession = Session.Ptr;
             Config.SecConfig = (QUIC_SEC_CONFIG*)SecConfig;
+            Config.AlpnBuffer = Alpn;
+            Config.AlpnBufferLength = sizeof(Alpn);
             Config.LocalTPBuffer =
                 (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
             Config.Connection = (QUIC_CONNECTION*)this;
             Config.ProcessCompleteCallback = OnProcessComplete;
             Config.ReceiveTPCallback = OnRecvQuicTP;
+            State.NegotiatedAlpn = Alpn;
 
             VERIFY_QUIC_SUCCESS(
                 QuicTlsInitialize(
@@ -162,6 +168,8 @@ protected:
             Config.IsServer = FALSE;
             Config.TlsSession = Session.Ptr;
             Config.SecConfig = ClientConfig;
+            Config.AlpnBuffer = Alpn;
+            Config.AlpnBufferLength = sizeof(Alpn);
             Config.LocalTPBuffer =
                 (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;

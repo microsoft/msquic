@@ -11,8 +11,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_SESSION_OPEN_FN)(
     _In_ _Pre_defensive_ HQUIC Registration,
-    _In_reads_z_(QUIC_MAX_ALPN_LENGTH)
-        const char* Alpn,    // Application-Layer Protocol Negotiation
+    _In_reads_(AlpnBufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const AlpnBuffers,
+    _In_range_(>, 0) uint32_t AlpnBufferCount,
     _In_opt_ void* Context,
     _Outptr_ _At_(*Session, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC* Session
@@ -25,9 +26,13 @@ QUIC_STATUS
 
 The valid handle to an open registration object.
 
-`Alpn`
+`AlpnBuffers`
 
-A null-terminated string for the Application-Layer Protocol Negotiation (ALPN) TLS extension.
+A contiguous array of QUIC_BUFFERs containing all the Application-Layer Protocol Negotiation (ALPN) buffers.
+
+`AlpnBufferCount`
+
+The number of QUIC_BUFFERS in the AlpnBuffers array.
 
 `Context`
 

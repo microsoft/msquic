@@ -59,10 +59,12 @@ ConnectionHandler(
 
 QUIC_THREAD_CALLBACK(TestReachability, Context)
 {
-    const char* ALPN = (const char*)Context;
+    QUIC_BUFFER Alpn;
+    Alpn.Buffer = (uint8_t*)Context;
+    Alpn.Length = (uint32_t)strlen((char*)Context);
 
     HQUIC Session = nullptr;
-    if (QUIC_FAILED(MsQuic->SessionOpen(Registration, ALPN, nullptr, &Session))) {
+    if (QUIC_FAILED(MsQuic->SessionOpen(Registration, &Alpn, 1, nullptr, &Session))) {
         printf("SessionOpen failed.\n");
         exit(1);
     }
@@ -99,9 +101,9 @@ QUIC_THREAD_CALLBACK(TestReachability, Context)
     MsQuic->SessionClose(Session);
 
     if (GotConnected) {
-        printf("  %6s    reachable\n", ALPN);
+        printf("  %6s    reachable\n", (char*)Context);
     } else {
-        printf("  %6s  unreachable\n", ALPN);
+        printf("  %6s  unreachable\n", (char*)Context);
     }
 
     QUIC_THREAD_RETURN(0);

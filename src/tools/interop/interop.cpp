@@ -36,9 +36,9 @@ QUIC_PRIVATE_TRANSPORT_PARAMETER RandomTransportParameter = {
     RandomTransportParameterPayload
 };
 
-const char* Alpns[] = {
-    ALPN_HTTP_OVER_QUIC,
-    "h3-27"
+const QUIC_BUFFER Alpns[] = {
+    QUIC_STR_TO_BUFFER("hq-27"),
+    QUIC_STR_TO_BUFFER("h3-27"),
 };
 
 const uint16_t Ports[] = {
@@ -89,7 +89,6 @@ QuicTestResults TestResults[ARRAYSIZE(PublicEndpoints)];
 QUIC_LOCK TestResultsLock;
 
 const uint32_t MaxThreadCount =
-    ARRAYSIZE(Alpns) *
     ARRAYSIZE(Ports) *
     ARRAYSIZE(PublicEndpoints) *
     QuicTestFeatureCount;
@@ -133,6 +132,7 @@ class InteropConnection {
     QUIC_EVENT ConnectionComplete;
     QUIC_EVENT RequestComplete;
     QUIC_EVENT ShutdownComplete;
+    char* NegotiatedAlpn;
 public:
     bool VersionUnsupported : 1;
     bool Connected : 1;
@@ -142,6 +142,7 @@ public:
     InteropConnection(HQUIC Session, bool VerNeg = false, bool LargeTP = false) :
         Connection(nullptr),
         SendRequest("/"),
+        NegotiatedAlpn(nullptr),
         VersionUnsupported(false),
         Connected(false),
         Resumed(false),
@@ -206,6 +207,7 @@ public:
         QuicEventUninitialize(ShutdownComplete);
         QuicEventUninitialize(RequestComplete);
         QuicEventUninitialize(ConnectionComplete);
+        delete [] NegotiatedAlpn;
     }
     bool SetKeepAlive(uint32_t KeepAliveMs) {
         return
@@ -360,6 +362,11 @@ public:
         }
         return false;
     }
+    bool GetNegotiatedAlpn(const char* &Alpn) {
+        if (NegotiatedAlpn == nullptr) return false;
+        Alpn = strdup(NegotiatedAlpn);
+        return true;
+    }
     bool GetStatistics(QUIC_STATISTICS& Stats) {
         uint32_t BufferLength = sizeof(Stats);
         if (QUIC_SUCCEEDED(
@@ -390,6 +397,9 @@ private:
         switch (Event->Type) {
         case QUIC_CONNECTION_EVENT_CONNECTED:
             pThis->Connected = true;
+            pThis->NegotiatedAlpn = new char[Event->CONNECTED.NegotiatedAlpnLength + 1];
+            memcpy(pThis->NegotiatedAlpn, Event->CONNECTED.NegotiatedAlpn, Event->CONNECTED.NegotiatedAlpnLength);
+            pThis->NegotiatedAlpn[Event->CONNECTED.NegotiatedAlpnLength] = 0;
             if (Event->CONNECTED.SessionResumed) {
                 pThis->Resumed = true;
             }
@@ -487,10 +497,10 @@ private:
 bool
 RunInteropTest(
     const QuicPublicEndpoint& Endpoint,
-    const char* Alpn,
     uint16_t Port,
     QuicTestFeature Feature,
-    uint32_t& QuicVersionUsed
+    uint32_t& QuicVersionUsed,
+    const char* &NegotiatedAlpn
     )
 {
     bool Success = false;
@@ -499,7 +509,8 @@ RunInteropTest(
     VERIFY_QUIC_SUCCESS(
         MsQuic->SessionOpen(
             Registration,
-            Alpn,
+            Alpns,
+            ARRAYSIZE(Alpns),
             nullptr,
             &Session));
     uint16_t UniStreams = 3;
@@ -516,6 +527,7 @@ RunInteropTest(
         InteropConnection Connection(Session, true);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
+            Connection.GetNegotiatedAlpn(NegotiatedAlpn);
             QUIC_STATISTICS Stats;
             if (Connection.GetStatistics(Stats)) {
                 Success = Stats.VersionNegotiation != 0;
@@ -541,6 +553,7 @@ RunInteropTest(
         InteropConnection Connection(Session, false, Feature == PostQuantum);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
+            Connection.GetNegotiatedAlpn(NegotiatedAlpn);
             if (Feature == StatelessRetry) {
                 QUIC_STATISTICS Stats;
                 if (Connection.GetStatistics(Stats)) {
@@ -571,6 +584,7 @@ RunInteropTest(
             Connection.ConnectToServer(Endpoint.ServerName, Port) &&
             Connection.WaitForHttpResponse()) {
             Connection.GetQuicVersion(QuicVersionUsed);
+            Connection.GetNegotiatedAlpn(NegotiatedAlpn);
             if (Feature == ZeroRtt) {
                 Success = Connection.UsedZeroRtt;
             } else {
@@ -593,6 +607,7 @@ RunInteropTest(
         if (Connection.SetKeepAlive(50) &&
             Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
+            Connection.GetNegotiatedAlpn(NegotiatedAlpn);
             QuicSleep(2000); // Allow keep alive packets to trigger key updates.
             QUIC_STATISTICS Stats;
             if (Connection.GetStatistics(Stats)) {
@@ -606,6 +621,7 @@ RunInteropTest(
         InteropConnection Connection(Session);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
+            Connection.GetNegotiatedAlpn(NegotiatedAlpn);
             QuicSleep(250);
             if (Connection.SetDisconnectTimeout(1000) &&
                 Connection.ForceCidUpdate() &&
@@ -621,6 +637,7 @@ RunInteropTest(
         InteropConnection Connection(Session);
         if (Connection.ConnectToServer(Endpoint.ServerName, Port)) {
             Connection.GetQuicVersion(QuicVersionUsed);
+            Connection.GetNegotiatedAlpn(NegotiatedAlpn);
             QuicSleep(250);
             if (Connection.SetDisconnectTimeout(1000) &&
                 Connection.SimulateNatRebinding() &&
@@ -640,7 +657,6 @@ RunInteropTest(
 
 struct InteropTestContext {
     uint32_t EndpointIndex;
-    const char* Alpn;
     uint16_t Port;
     QuicTestFeature Feature;
 };
@@ -650,23 +666,26 @@ QUIC_THREAD_CALLBACK(InteropTestCallback, Context)
     auto TestContext = (InteropTestContext*)Context;
 
     uint32_t QuicVersion = 0;
+    const char* Alpn = nullptr;
     if (RunInteropTest(
             PublicEndpoints[TestContext->EndpointIndex],
-            TestContext->Alpn,
             TestContext->Port,
             TestContext->Feature,
-            QuicVersion)) {
+            QuicVersion,
+            Alpn)) {
         QuicLockAcquire(&TestResultsLock);
         TestResults[TestContext->EndpointIndex].Features |= TestContext->Feature;
         if (TestResults[TestContext->EndpointIndex].QuicVersion == 0) {
             TestResults[TestContext->EndpointIndex].QuicVersion = QuicVersion;
         }
         if (TestResults[TestContext->EndpointIndex].Alpn == nullptr) {
-            TestResults[TestContext->EndpointIndex].Alpn = TestContext->Alpn;
+            TestResults[TestContext->EndpointIndex].Alpn = Alpn;
+            Alpn = nullptr;
         }
         QuicLockRelease(&TestResultsLock);
     }
 
+    free((void*)Alpn);
     delete TestContext;
 
     QUIC_THREAD_RETURN(0);
@@ -675,14 +694,12 @@ QUIC_THREAD_CALLBACK(InteropTestCallback, Context)
 void
 StartTest(
     _In_ uint32_t EndpointIdx,
-    _In_ const char* Alpn,
     _In_ uint16_t Port,
     _In_ QuicTestFeature Feature
     )
 {
     auto TestContext = new InteropTestContext;
     TestContext->EndpointIndex = EndpointIdx;
-    TestContext->Alpn = Alpn;
     TestContext->Port = Port;
     TestContext->Feature = Feature;
 
@@ -721,17 +738,15 @@ PrintTestResults(
 void
 RunInteropTests()
 {
-    for (uint32_t a = 0; a < ARRAYSIZE(Alpns); ++a) {
-        for (uint32_t b = 0; b < ARRAYSIZE(Ports); ++b) {
-            for (uint32_t c = 0; c < QuicTestFeatureCount; ++c) {
-                if (TestCases & (1 << c)) {
-                    if (EndpointIndex == -1) {
-                        for (uint32_t d = 0; d < ARRAYSIZE(PublicEndpoints); ++d) {
-                            StartTest(d, Alpns[a], Ports[b], (QuicTestFeature)(1 << c));
-                        }
-                    } else {
-                        StartTest((uint32_t)EndpointIndex, Alpns[a], Ports[b], (QuicTestFeature)(1 << c));
+    for (uint32_t b = 0; b < ARRAYSIZE(Ports); ++b) {
+        for (uint32_t c = 0; c < QuicTestFeatureCount; ++c) {
+            if (TestCases & (1 << c)) {
+                if (EndpointIndex == -1) {
+                    for (uint32_t d = 0; d < ARRAYSIZE(PublicEndpoints); ++d) {
+                        StartTest(d, Ports[b], (QuicTestFeature)(1 << c));
                     }
+                } else {
+                    StartTest((uint32_t)EndpointIndex, Ports[b], (QuicTestFeature)(1 << c));
                 }
             }
         }
