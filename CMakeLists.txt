@@ -167,7 +167,7 @@ else()
     set(QUIC_CXX_FLAGS "${QUIC_COMMON_FLAGS} --std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format")
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR}/bld/inc)
+include_directories(${QUIC_BUILD_DIR}/inc)
 include_directories(${CMAKE_SOURCE_DIR}/src/inc)
 
 if(QUIC_TLS STREQUAL "openssl")
