@@ -52,11 +52,6 @@ option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
 option(QUIC_BUILD_TEST "Builds the test code" ON)
 option(QUIC_ENABLE_LOGGING "Enables logging" ON)
 option(QUIC_SANITIZE_ADDRESS "Enables address sanitizer" OFF)
-
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bld/obj)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/bin)
-set(MANIFESTED_HEADER_FILENAME ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.h)
 option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
 
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
