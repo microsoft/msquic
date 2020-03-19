@@ -639,7 +639,7 @@ QuicConnUpdateRtt(
     _In_ uint32_t LatestRtt
     )
 {
-    BOOLEAN RttUpdated;
+    BOOLEAN RttUpdatedX;
     UNREFERENCED_PARAMETER(Connection);
 
     if (LatestRtt == 0) {
@@ -662,7 +662,7 @@ QuicConnUpdateRtt(
 
         Path->SmoothedRtt = LatestRtt;
         Path->RttVariance = LatestRtt / 2;
-        RttUpdated = TRUE;
+        RttUpdatedX = TRUE;
 
     } else {
         uint32_t PrevRtt = Path->SmoothedRtt;
@@ -672,17 +672,17 @@ QuicConnUpdateRtt(
             Path->RttVariance = (3 * Path->RttVariance + LatestRtt - Path->SmoothedRtt) / 4;
         }
         Path->SmoothedRtt = (7 * Path->SmoothedRtt + LatestRtt) / 8;
-        RttUpdated = PrevRtt != Path->SmoothedRtt;
+        RttUpdatedX = PrevRtt != Path->SmoothedRtt;
     }
 
-    if (RttUpdated) {
+    if (RttUpdatedX) {
         QUIC_DBG_ASSERT(Path->SmoothedRtt != 0);
         QuicTraceLogConnVerbose(RttUpdated, Connection, "Updated Rtt=%u.%u ms, Var=%u.%u",
             Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
             Path->RttVariance / 1000, Path->RttVariance % 1000);
     }
 
-    return RttUpdated;
+    return RttUpdatedX;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1959,11 +1959,11 @@ QuicConnProcessPeerTransportParameters(
     if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_PREFERRED_ADDRESS) {
         /* TODO - Platform independent logging
         if (QuicAddrGetFamily(&Connection->PeerTransportParams.PreferredAddress) == AF_INET) {
-            uicTraceLogConnInfo(PeerPreferredAddressV4, Connection, "Peer configured preferred address %!IPV4ADDR!:%d",
+            CLOG_BUG_TraceLogConnInfo(PeerPreferredAddressV4, Connection, "Peer configured preferred address %!IPV4ADDR!:%d",
                 &Connection->PeerTransportParams.PreferredAddress.Ipv4.sin_addr,
                 QuicByteSwapUint16(Connection->PeerTransportParams.PreferredAddress.Ipv4.sin_port));
         } else {
-            uicTraceLogConnInfo(PeerPreferredAddressV6, Connection, "Peer configured preferred address [%!IPV6ADDR!]:%d",
+            CLOG_BUG_TraceLogConnInfo(PeerPreferredAddressV6, Connection, "Peer configured preferred address [%!IPV6ADDR!]:%d",
                 &Connection->PeerTransportParams.PreferredAddress.Ipv6.sin6_addr,
                 QuicByteSwapUint16(Connection->PeerTransportParams.PreferredAddress.Ipv6.sin6_port));
         }*/

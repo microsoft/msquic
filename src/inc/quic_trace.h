@@ -118,7 +118,7 @@ typedef enum QUIC_TRACE_LEVEL {
 #define CLOG_BUG_TraceLogError(...)
 #define CLOG_BUG_TraceLogInfo(...)
 #define CLOG_BUG_TraceEvent(...)
-
+#define CLOG_BUG_TraceLogConnInfo(...)
 
 
 #define QuicTraceLogStreamVerboseEnabled() TRUE
