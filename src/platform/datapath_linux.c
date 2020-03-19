@@ -1964,7 +1964,7 @@ QuicDataPathBindingSendTo(
         RemoteAddress->Ipv4.sin_port != 0 &&
         SendContext != NULL);
 
-    socklen_t RemoteAddrLen = 0;
+    //socklen_t RemoteAddrLen = 0;
     char Inet6AddrStr[INET6_ADDRSTRLEN] = {0};
     QUIC_SOCKET_CONTEXT* SocketContext =
         &Binding->SocketContexts[QuicProcCurrentNumber()];
