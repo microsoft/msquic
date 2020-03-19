@@ -975,7 +975,7 @@ struct Connection : Struct {
     }
 
     ULONG Version() {
-        return RtlUlongByteSwap(ReadType<ULONG>("Stats.QuicVersion"));
+        return ntohl(ReadType<ULONG>("Stats.QuicVersion"));
     }
 
     QUIC_HANDLE_TYPE Type() {
