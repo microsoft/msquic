@@ -42,11 +42,8 @@ param (
     [Parameter(Mandatory = $false, ParameterSetName='Start')]
     [switch]$Start = $false,
 
-    [Parameter(Mandatory = $false, ParameterSetName='Stream')]
-    [switch]$Stream = $false,
-
     [Parameter(Mandatory = $true, ParameterSetName='Start')]
-    [ValidateSet("Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
+    [ValidateSet("Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "Stream")]
     [string]$LogProfile,
 
     [Parameter(Mandatory = $false, ParameterSetName='Cancel')]
@@ -152,7 +149,13 @@ function Log-Stream {
 #                     Main Execution                         #
 ##############################################################
 
-if ($Start)  { Log-Start }
+if ($Start)  { 
+    if($LogProfile -eq "Stream") {
+        Log-Stream 
+    } else {
+        Log-Start 
+    }
+}
+
 if ($Cancel) { Log-Cancel }
 if ($Stop)   { Log-Stop }
-if ($Stream) { Log-Stream }
