@@ -5,6 +5,8 @@
 
 --*/
 
+#include "stream.h.clog"
+
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 
 //
@@ -639,7 +641,7 @@ QuicStreamAddOutFlowBlockedReason(
 {
     if (!(Stream->OutFlowBlockedReasons & Reason)) {
         Stream->OutFlowBlockedReasons |= Reason;
-        QuicTraceEvent(StreamOutFlowBlocked, Stream, Stream->OutFlowBlockedReasons);
+        QuicTraceEvent(StreamOutFlowBlocked, "[strm][%p] Send Blocked Flags: %c", Stream, Stream->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -654,7 +656,7 @@ QuicStreamRemoveOutFlowBlockedReason(
 {
     if ((Stream->OutFlowBlockedReasons & Reason)) {
         Stream->OutFlowBlockedReasons &= ~Reason;
-        QuicTraceEvent(StreamOutFlowBlocked, Stream, Stream->OutFlowBlockedReasons);
+        QuicTraceEvent(StreamOutFlowBlocked, "[strm][%p] Send Blocked Flags: %c", Stream, Stream->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;

@@ -11,10 +11,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "range.tmh"
-#endif
+#include "range.c.clog"
 
 #define INITIAL_SUBRANGE_COUNT 8
 
@@ -31,7 +28,7 @@ QuicRangeInitialize(
     QUIC_FRE_ASSERT(sizeof(QUIC_SUBRANGE) * INITIAL_SUBRANGE_COUNT < MaxAllocSize);
     Range->SubRanges = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SUBRANGE) * INITIAL_SUBRANGE_COUNT);
     if (Range->SubRanges == NULL) {
-        QuicTraceEvent(AllocFailure, "range", sizeof(QUIC_SUBRANGE) * INITIAL_SUBRANGE_COUNT);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "range", sizeof(QUIC_SUBRANGE) * INITIAL_SUBRANGE_COUNT);
     }
     return (Range->SubRanges == NULL) ? QUIC_STATUS_OUT_OF_MEMORY : QUIC_STATUS_SUCCESS;
 }
@@ -79,7 +76,7 @@ QuicRangeGrow(
 
     QUIC_SUBRANGE* NewSubRanges = QUIC_ALLOC_NONPAGED(NewAllocSize);
     if (NewSubRanges == NULL) {
-        QuicTraceEvent(AllocFailure, "range (realloc)", NewAllocLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "range (realloc)", NewAllocLength);
         return FALSE;
     }
 

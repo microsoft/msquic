@@ -15,6 +15,7 @@ Environment:
 
 #define _GNU_SOURCE
 #include "platform_internal.h"
+#include "storage_linux.c.clog"
 
 QUIC_STATUS
 QuicStorageOpen(

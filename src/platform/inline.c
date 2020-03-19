@@ -16,6 +16,7 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
+#include "inline.c.clog"
 
 uint16_t
 MaxUdpPayloadSizeFromMTU(

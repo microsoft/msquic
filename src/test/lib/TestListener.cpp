@@ -10,6 +10,8 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#include "TestListener.cpp.clog"
+
 
 volatile int64_t NextConnID = 0x10000;
 

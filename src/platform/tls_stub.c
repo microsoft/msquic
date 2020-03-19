@@ -10,10 +10,7 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "tls_stub.tmh"
-#endif
+#include "tls_stub.c.clog"
 
 uint16_t QuicTlsTPHeaderSize = 0;
 
@@ -278,7 +275,7 @@ QuicTlsServerSecConfigCreate(
     QUIC_SEC_CONFIG* SecurityConfig = NULL;
 
     if (!QuicRundownAcquire(Rundown)) {
-        QuicTraceLogError("[ tls] Failed to acquire sec config rundown.");
+        QuicTraceLogError(FN_tls_stub6a3b951ae6d9ca0d66a249fc67e1038e, "[ tls] Failed to acquire sec config rundown.");
         Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
     }
@@ -425,7 +422,7 @@ QuicTlsSessionInitialize(
 
     TlsSession = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS_SESSION) + ALPNLength);
     if (TlsSession == NULL) {
-        QuicTraceLogWarning("[ tls] Failed to allocate QUIC_TLS_SESSION.");
+        QuicTraceLogWarning(FN_tls_stubbeb87fff4fd6aff47c418f16532cd6af, "[ tls] Failed to allocate QUIC_TLS_SESSION.");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -503,7 +500,7 @@ QuicTlsInitialize(
 
     QUIC_TLS* TlsContext = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS));
     if (TlsContext == NULL) {
-        QuicTraceLogWarning("[ tls] Failed to allocate QUIC_TLS.");
+        QuicTraceLogWarning(FN_tls_stubd06ff44316f93f70545d466d919b1c5a, "[ tls] Failed to allocate QUIC_TLS.");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -518,14 +515,14 @@ QuicTlsInitialize(
     TlsContext->Connection = Config->Connection;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
 
-    QuicTraceLogVerbose("[ tls][%p][%c] Created.",
+    QuicTraceLogVerbose(FN_tls_stub8b8980417b7165619250b4160d5f5320, "[ tls][%p][%c] Created.", 
         TlsContext, GetTlsIdentifier(TlsContext));
 
     if (Config->ServerName != NULL) {
         const size_t ServerNameLength =
             strnlen(Config->ServerName, QUIC_MAX_SNI_LENGTH + 1);
         if (ServerNameLength == QUIC_MAX_SNI_LENGTH + 1) {
-            QuicTraceLogError("[ tls][%p][%c] Invalid / Too long server name!",
+            QuicTraceLogError(FN_tls_stub61decd62b3e6b4eca0f4862b9da6f3fb, "[ tls][%p][%c] Invalid / Too long server name!", 
                 TlsContext, GetTlsIdentifier(TlsContext));
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
@@ -533,7 +530,7 @@ QuicTlsInitialize(
 
         TlsContext->SNI = QUIC_ALLOC_PAGED(ServerNameLength + 1);
         if (TlsContext->SNI == NULL) {
-            QuicTraceLogWarning("[ tls][%p][%c] Failed to allocate SNI.",
+            QuicTraceLogWarning(FN_tls_stub187b833a8e70a2df93bc9f4d6087a46c, "[ tls][%p][%c] Failed to allocate SNI.", 
                 TlsContext, GetTlsIdentifier(TlsContext));
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
@@ -566,7 +563,7 @@ QuicTlsUninitialize(
     )
 {
     if (TlsContext != NULL) {
-        QuicTraceLogVerbose("[ tls][%p][%c] Cleaning up.",
+        QuicTraceLogVerbose(FN_tls_stub46416f9e948dc2d7e0da7dff4824650b, "[ tls][%p][%c] Cleaning up.", 
             TlsContext, GetTlsIdentifier(TlsContext));
 
         if (TlsContext->SecConfig != NULL) {
@@ -591,7 +588,7 @@ QuicTlsReset(
     _In_ QUIC_TLS* TlsContext
     )
 {
-    QuicTraceLogInfo("[ tls][%p][%c] Resetting TLS state.",
+    QuicTraceLogInfo(FN_tls_stub17f0d4ffbb3c4f80c2422125e4fa3a17, "[ tls][%p][%c] Resetting TLS state.", 
         TlsContext, GetTlsIdentifier(TlsContext));
 
     QUIC_DBG_ASSERT(TlsContext->IsServer == FALSE);
@@ -697,7 +694,7 @@ QuicTlsServerProcess(
                 &SignAlgo,
                 1,
                 &SelectedSignAlgo)) {
-            QuicTraceLogError("[ tls][%p][%c] No matching signature algorithm for the provided server certificate.",
+            QuicTraceLogError(FN_tls_stub626acb409e48c7baa74a65d39bb493cd, "[ tls][%p][%c] No matching signature algorithm for the provided server certificate.", 
                 TlsContext, GetTlsIdentifier(TlsContext));
             *ResultFlags |= QUIC_TLS_RESULT_ERROR;
             break;
@@ -768,7 +765,7 @@ QuicTlsServerProcess(
         if (ClientMessage->Type == QUIC_TLS_MESSAGE_CLIENT_HANDSHAKE) {
 
             if (ClientMessage->CLIENT_HANDSHAKE.Success == FALSE) {
-                QuicTraceLogError("[ tls][%p][%c] Failure client finish.",
+                QuicTraceLogError(FN_tls_stuba06e989b98c3ae49e1f0c115ed197093, "[ tls][%p][%c] Failure client finish.", 
                     TlsContext, GetTlsIdentifier(TlsContext));
                 *ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 break;
@@ -776,7 +773,7 @@ QuicTlsServerProcess(
 
             *ResultFlags |= QUIC_TLS_RESULT_COMPLETE;
 
-            QuicTraceLogInfo("[ tls][%p][%c] Handshake complete.",
+            QuicTraceLogInfo(FN_tls_stub1e675f312598da1e8d515f889e91072d, "[ tls][%p][%c] Handshake complete.", 
                 TlsContext, GetTlsIdentifier(TlsContext));
 
             QuicTlsSecConfigRelease(TlsContext->SecConfig);
@@ -803,7 +800,7 @@ QuicTlsServerProcess(
             TlsContext->LastMessageType = QUIC_TLS_MESSAGE_TICKET;
 
         } else {
-            QuicTraceLogError("[ tls][%p][%c] Invalid message, %u.",
+            QuicTraceLogError(FN_tls_stub42ebbc1e0ae86bf6fbc808fd8bb05dbf, "[ tls][%p][%c] Invalid message, %u.", 
                 TlsContext, GetTlsIdentifier(TlsContext), ClientMessage->Type);
             *ResultFlags |= QUIC_TLS_RESULT_ERROR;
             break;
@@ -815,7 +812,7 @@ QuicTlsServerProcess(
     }
 
     default: {
-        QuicTraceLogError("[ tls][%p][%c] Invalid last message, %u.",
+        QuicTraceLogError(FN_tls_stub66ba924fe65c4348b22bed51bd3f83c2, "[ tls][%p][%c] Invalid last message, %u.", 
             TlsContext, GetTlsIdentifier(TlsContext), TlsContext->LastMessageType);
         *ResultFlags |= QUIC_TLS_RESULT_ERROR;
         break;
@@ -955,7 +952,7 @@ QuicTlsClientProcess(
                 QuicTP);
 
             if (TlsContext->SecConfig->Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION) {
-                QuicTraceLogWarning("[ tls][%p][%c] Certificate validation disabled!",
+                QuicTraceLogWarning(FN_tls_stub1d989f8bd24b9c505928ded85f7dd974, "[ tls][%p][%c] Certificate validation disabled!", 
                     TlsContext, GetTlsIdentifier(TlsContext));
             } else {
 
@@ -965,7 +962,7 @@ QuicTlsClientProcess(
                         ServerMessage->SERVER_HANDSHAKE.Certificate);
 
                 if (ServerCert == NULL) {
-                    QuicTraceLogError("[ tls][%p][%c] Cert parse error.",
+                    QuicTraceLogError(FN_tls_stubbb2dec043e656055a5c3869a1f0f8939, "[ tls][%p][%c] Cert parse error.", 
                         TlsContext, GetTlsIdentifier(TlsContext));
                     *ResultFlags |= QUIC_TLS_RESULT_ERROR;
                     break;
@@ -975,7 +972,7 @@ QuicTlsClientProcess(
                         ServerCert,
                         TlsContext->SNI,
                         TlsContext->SecConfig->Flags)) {
-                    QuicTraceLogError("[ tls][%p][%c] Cert chain validation failed.",
+                    QuicTraceLogError(FN_tls_stub0cc5eed241d8365602003869cefaad02, "[ tls][%p][%c] Cert chain validation failed.", 
                         TlsContext, GetTlsIdentifier(TlsContext));
                     *ResultFlags |= QUIC_TLS_RESULT_ERROR;
                     break;
@@ -985,7 +982,7 @@ QuicTlsClientProcess(
             State->HandshakeComplete = TRUE;
             *ResultFlags |= QUIC_TLS_RESULT_COMPLETE;
 
-            QuicTraceLogInfo("[ tls][%p][%c] Handshake complete.",
+            QuicTraceLogInfo(FN_tls_stub1e675f312598da1e8d515f889e91072d, "[ tls][%p][%c] Handshake complete.", 
                 TlsContext, GetTlsIdentifier(TlsContext));
 
             if (MaxClientMessageLength < MinMessageLengths[QUIC_TLS_MESSAGE_CLIENT_HANDSHAKE]) {
@@ -1014,7 +1011,7 @@ QuicTlsClientProcess(
             TlsContext->LastMessageType = QUIC_TLS_MESSAGE_CLIENT_HANDSHAKE;
 
         } else {
-            QuicTraceLogError("[ tls][%p][%c] Invalid message, %u.",
+            QuicTraceLogError(FN_tls_stubd6ab59da5e6c82d95c00c16cd6b227d0, "[ tls][%p][%c] Invalid message, %u.", 
                 TlsContext, GetTlsIdentifier(TlsContext), ServerMessage->Type);
             *ResultFlags |= QUIC_TLS_RESULT_ERROR;
             break;
@@ -1027,7 +1024,7 @@ QuicTlsClientProcess(
 
     case QUIC_TLS_MESSAGE_CLIENT_HANDSHAKE: {
         if (ServerMessage->Type != QUIC_TLS_MESSAGE_TICKET) {
-            QuicTraceLogError("[ tls][%p][%c] Invalid message, %u.",
+            QuicTraceLogError(FN_tls_stubd6ab59da5e6c82d95c00c16cd6b227d0, "[ tls][%p][%c] Invalid message, %u.", 
                 TlsContext, GetTlsIdentifier(TlsContext), ServerMessage->Type);
             *ResultFlags |= QUIC_TLS_RESULT_ERROR;
             break;
@@ -1042,7 +1039,7 @@ QuicTlsClientProcess(
     }
 
     default: {
-        QuicTraceLogError("[ tls][%p][%c] Invalid last message, %u.",
+        QuicTraceLogError(FN_tls_stub66ba924fe65c4348b22bed51bd3f83c2, "[ tls][%p][%c] Invalid last message, %u.", 
             TlsContext, GetTlsIdentifier(TlsContext), TlsContext->LastMessageType);
         *ResultFlags |= QUIC_TLS_RESULT_ERROR;
         break;
@@ -1067,7 +1064,7 @@ QuicTlsHasValidMessageToProcess(
     }
 
     if (BufferLength < 7) {
-        QuicTraceLogVerbose("[ tls][%p][%c] Insufficient data to process header.",
+        QuicTraceLogVerbose(FN_tls_stub7238e53c70a5f473de837b2ff7cdab29, "[ tls][%p][%c] Insufficient data to process header.", 
             TlsContext, GetTlsIdentifier(TlsContext));
         return FALSE;
     }
@@ -1075,7 +1072,7 @@ QuicTlsHasValidMessageToProcess(
     const QUIC_FAKE_TLS_MESSAGE* Message = (QUIC_FAKE_TLS_MESSAGE*)Buffer;
     uint32_t MessageLength = TlsReadUint24(Message->Length) + 4;
     if (BufferLength < MessageLength) {
-        QuicTraceLogVerbose("[ tls][%p][%c] Insufficient data to process %u bytes.",
+        QuicTraceLogVerbose(FN_tls_stub78ae023383d5d669949477f2cde8592c, "[ tls][%p][%c] Insufficient data to process %u bytes.", 
             TlsContext, GetTlsIdentifier(TlsContext), MessageLength);
         return FALSE;
     }
@@ -1094,7 +1091,7 @@ QuicTlsProcessData(
     )
 {
     if (*BufferLength) {
-        QuicTraceLogVerbose("[ tls][%p][%c] Processing %u received bytes.",
+        QuicTraceLogVerbose(FN_tls_stub948e07444f7369140c04d67fbfd780bb, "[ tls][%p][%c] Processing %u received bytes.", 
             TlsContext, GetTlsIdentifier(TlsContext), *BufferLength);
     }
 
@@ -1109,11 +1106,11 @@ QuicTlsProcessData(
             QuicTlsClientProcess(TlsContext, &ResultFlags, State, BufferLength, Buffer);
         }
 
-        QuicTraceLogInfo("[ tls][%p][%c] Consumed %u bytes.",
+        QuicTraceLogInfo(FN_tls_stub777754bbda74f30f1f753374b8ab7412, "[ tls][%p][%c] Consumed %u bytes.", 
             TlsContext, GetTlsIdentifier(TlsContext), *BufferLength);
 
         if (State->BufferLength > PrevBufferLength) {
-            QuicTraceLogInfo("[ tls][%p][%c] Produced %hu bytes.",
+            QuicTraceLogInfo(FN_tls_stub032cc027c586042bc5d0f52cadb2d824, "[ tls][%p][%c] Produced %hu bytes.", 
                 TlsContext, GetTlsIdentifier(TlsContext), (State->BufferLength - PrevBufferLength));
         }
 
@@ -1203,7 +1200,7 @@ QUIC_STATUS
 QuicPacketKeyCreateInitial(
     _In_ BOOLEAN IsServer,
     _In_reads_(QUIC_VERSION_SALT_LENGTH)
-        const uint8_t* const Salt,  // Version Specific
+        const uint8_t* const Salt, // Version Specific
     _In_ uint8_t CIDLength,
     _In_reads_(CIDLength)
         const uint8_t* const CID,

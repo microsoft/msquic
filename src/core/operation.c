@@ -23,10 +23,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "operation.tmh"
-#endif
+#include "operation.c.clog"
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void

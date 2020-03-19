@@ -16,6 +16,8 @@ Future:
 --*/
 
 #include "precomp.h"
+#include "QuicDrill.cpp.clog"
+
 extern "C" {
 #include <quic_datapath.h>
 }

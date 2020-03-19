@@ -10,10 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "library.tmh"
-#endif
+#include "library.c.clog"
 
 QUIC_LIBRARY MsQuicLib = { 0 };
 
@@ -88,7 +85,7 @@ MsQuicLibraryReadSettings(
         QuicSettingsLoad(&MsQuicLib.Settings, MsQuicLib.Storage);
     }
 
-    QuicTraceLogInfo("[ lib] Settings %p Updated", &MsQuicLib.Settings);
+    QuicTraceLogInfo(FN_library44069ab9a4dc123108e58e00777db935, "[ lib] Settings %p Updated", &MsQuicLib.Settings);
     QuicSettingsDump(&MsQuicLib.Settings);
 
     BOOLEAN UpdateRegistrations = (Context != NULL);
@@ -132,7 +129,7 @@ MsQuicLibraryInitialize(
             (void*)TRUE, // Non-null indicates registrations should be updated
             &MsQuicLib.Storage);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogWarning("[ lib] Failed to open global settings, 0x%x", Status);
+        QuicTraceLogWarning(FN_library8441890d38c2db33e439a12ca0d3ac1f, "[ lib] Failed to open global settings, 0x%x", Status);
         Status = QUIC_STATUS_SUCCESS; // Non-fatal, as the process may not have access
     }
 
@@ -156,7 +153,7 @@ MsQuicLibraryInitialize(
     MsQuicLib.PerProc =
         QUIC_ALLOC_NONPAGED(MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
     if (MsQuicLib.PerProc == NULL) {
-        QuicTraceEvent(AllocFailure, "connection pools",
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "connection pools", 
             MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -176,12 +173,12 @@ MsQuicLibraryInitialize(
             QuicBindingUnreachable,
             &MsQuicLib.Datapath);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "QuicDataPathInitialize");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "QuicDataPathInitialize");
         goto Error;
     }
 
-    QuicTraceEvent(LibraryInitialized,
-        MsQuicLib.PartitionCount,
+    QuicTraceEvent(LibraryInitialized, "[ lib] Initialized, PartitionCount=%d DatapathFeatures=%d", 
+        MsQuicLib.PartitionCount, 
         QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 
 #ifdef QuicVerifierEnabled
@@ -189,9 +186,9 @@ MsQuicLibraryInitialize(
     MsQuicLib.IsVerifying = QuicVerifierEnabled(Flags);
     if (MsQuicLib.IsVerifying) {
 #ifdef QuicVerifierEnabledByAddr
-        QuicTraceLogInfo("[ lib] Verifing enabled, per-registration!");
+        QuicTraceLogInfo(FN_library4f534341e8933130bbf7f191b07714ea, "[ lib] Verifing enabled, per-registration!");
 #else
-        QuicTraceLogInfo("[ lib] Verifing enabled for all!");
+        QuicTraceLogInfo(FN_library9ae67895fdc3714630b01eb363eee4ad, "[ lib] Verifing enabled for all!");
 #endif
     }
 #endif
@@ -282,7 +279,7 @@ MsQuicLibraryUninitialize(
     QuicDataPathUninitialize(MsQuicLib.Datapath);
     MsQuicLib.Datapath = NULL;
 
-    QuicTraceEvent(LibraryUninitialized);
+    QuicTraceEvent(LibraryUninitialized, "[ lib] Uninitialized");
 
     QuicPlatformUninitialize();
 }
@@ -318,7 +315,7 @@ MsQuicAddRef(
         }
     }
 
-    QuicTraceEvent(LibraryAddRef);
+    QuicTraceEvent(LibraryAddRef, "[ lib] AddRef");
 
 Error:
 
@@ -341,7 +338,7 @@ MsQuicRelease(
     //
 
     QUIC_FRE_ASSERT(MsQuicLib.RefCount > 0);
-    QuicTraceEvent(LibraryRelease);
+    QuicTraceEvent(LibraryRelease, "[ lib] Release");
 
     if (--MsQuicLib.RefCount == 0) {
         MsQuicLibraryUninitialize();
@@ -698,12 +695,12 @@ MsQuicOpen(
     QUIC_STATUS Status;
 
     if (QuicApi == NULL) {
-        QuicTraceLogVerbose("[ api] MsQuicOpen, NULL");
+        QuicTraceLogVerbose(FN_library4ea4018c3a2c78d5649e9f8b6f3bc1dc, "[ api] MsQuicOpen, NULL");
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
-    QuicTraceLogVerbose("[ api] MsQuicOpen, %u", ApiVersion);
+    QuicTraceLogVerbose(FN_library1200b70fe511717df8e9a0fdad1f6efe, "[ api] MsQuicOpen, %u", ApiVersion);
 
     if ((ApiVersion == 0 || ApiVersion > QUIC_API_VERSION_1) &&
         ApiVersion != QUIC_API_VERSION_PRIVATE) {
@@ -826,7 +823,7 @@ Error:
 
 Exit:
 
-    QuicTraceLogVerbose("[ api] MsQuicOpen, status=0x%x", Status);
+    QuicTraceLogVerbose(FN_library053186b47e8b8a7520ef3db96676afc2, "[ api] MsQuicOpen, status=0x%x", Status);
 
     return Status;
 }
@@ -840,7 +837,7 @@ MsQuicClose(
     )
 {
     if (QuicApi != NULL) {
-        QuicTraceLogVerbose("[ api] MsQuicClose");
+        QuicTraceLogVerbose(FN_library98439707ef1d2f28d89e069d52a0713b, "[ api] MsQuicClose");
         QUIC_FREE(QuicApi);
         MsQuicRelease();
     }
@@ -1092,7 +1089,7 @@ QuicLibraryOnListenerRegistered(
         // Lazily initialize server specific state, such as worker threads and
         // the unregistered connection session.
         //
-        QuicTraceEvent(LibraryWorkerPoolInit);
+        QuicTraceEvent(LibraryWorkerPoolInit, "[ lib] Shared worker pool initializing");
 
         QUIC_DBG_ASSERT(MsQuicLib.UnregisteredSession == NULL);
         MsQuicLib.UnregisteredSession = QuicSessionAlloc(NULL, NULL, 0, NULL);
@@ -1146,8 +1143,8 @@ QuicTraceRundown(
     QuicLockAcquire(&MsQuicLib.Lock);
 
     if (MsQuicLib.RefCount > 0) {
-        QuicTraceEvent(LibraryRundown,
-            MsQuicLib.PartitionCount,
+        QuicTraceEvent(LibraryRundown, "[ lib] Rundown, PartitionCount=%d DatapathFeatures=%d", 
+            MsQuicLib.PartitionCount, 
             QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 
         for (QUIC_LIST_ENTRY* Link = MsQuicLib.Registrations.Flink;
@@ -1226,7 +1223,7 @@ QuicLibraryGetCurrentStatelessRetryKey(
                 RawKey,
                 &NewKey);
         if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(LibraryErrorStatus, Status, "Create stateless retry key");
+            QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "Create stateless retry key");
             return NULL;
         }
 

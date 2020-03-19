@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#include "TestConnection.cpp.clog"
 
 TestConnection::TestConnection(
     _In_ HQUIC Handle,

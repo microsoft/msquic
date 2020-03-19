@@ -43,7 +43,7 @@ param (
     [switch]$Start = $false,
 
     [Parameter(Mandatory = $true, ParameterSetName='Start')]
-    [ValidateSet("Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
+    [ValidateSet("Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "Stream")]
     [string]$LogProfile,
 
     [Parameter(Mandatory = $false, ParameterSetName='Cancel')]
@@ -71,16 +71,31 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
-# Path for the WPR profile.
-$WprpFile = $RootDir + "\src\manifest\msquic.wprp"
-
 # Start log collection.
 function Log-Start {
     if ($IsWindows) {
+        # Path for the WPR profile.
+        $WprpFile = $RootDir + "\src\manifest\msquic.wprp"
+
         wpr.exe -start "$($WprpFile)!$($LogProfile)" -filemode -instancename $InstanceName
     } else {
-        # TODO
-        Write-Warning "Logging not supported yet!"
+        lttng destroy
+        Write-Host "------------"
+        pushd ~
+        mkdir ./QUICLogs
+        mkdir ./QUICLogs/$LogProfile
+        pushd ./QUICLogs
+
+        lttng create $LogProfile -o=./$LogProfile
+        popd
+        Write-Host "------------" 
+        
+        Write-Host "Enabling all CLOG traces"
+        lttng enable-event --userspace CLOG_*
+
+        lttng start
+        lttng list
+        popd
     }
 }
 
@@ -89,8 +104,7 @@ function Log-Cancel {
     if ($IsWindows) {
         wpr.exe -cancel -instancename $InstanceName
     } else {
-        # TODO
-        Write-Warning "Logging not supported yet!"
+        lttng destroy
     }
 }
 
@@ -108,15 +122,40 @@ function Log-Stop {
             Invoke-Expression $Command
         }
     } else {
-        # TODO
-        Write-Warning "Logging not supported yet!"
+        Write-Host "Using traces from $LogProfile"
+        babeltrace --names all $OutputDirectory* | ../artifacts/tools/bin/clog/clog2text_lttng -s ../src/manifest/clog.sidecar
     }
 }
 
+
+# Start log collection.
+function Log-Stream {
+    if ($IsWindows) {
+       Write-Host "Not supported on Windows"
+    } else {
+        lttng destroy
+        Write-Host "------------"   
+        lttng destroy
+        lttng create msquicLive --live
+        lttng enable-event --userspace CLOG_*
+        lttng start
+        lttng list
+        babeltrace -i lttng-live net://localhost
+        
+        babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquicLive | ../artifacts/tools/bin/clog/clog2text_lttng -s ../src/manifest/clog.sidecar
+    }
+}
 ##############################################################
 #                     Main Execution                         #
 ##############################################################
 
-if ($Start)  { Log-Start }
+if ($Start)  { 
+    if($LogProfile -eq "Stream") {
+        Log-Stream 
+    } else {
+        Log-Start 
+    }
+}
+
 if ($Cancel) { Log-Cancel }
 if ($Stop)   { Log-Stop }
