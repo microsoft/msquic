@@ -639,7 +639,7 @@ QuicConnUpdateRtt(
     _In_ uint32_t LatestRtt
     )
 {
-    BOOLEAN RttUpdatedX;
+    BOOLEAN RttUpdated;
     UNREFERENCED_PARAMETER(Connection);
 
     if (LatestRtt == 0) {
@@ -662,7 +662,7 @@ QuicConnUpdateRtt(
 
         Path->SmoothedRtt = LatestRtt;
         Path->RttVariance = LatestRtt / 2;
-        RttUpdatedX = TRUE;
+        RttUpdated = TRUE;
 
     } else {
         uint32_t PrevRtt = Path->SmoothedRtt;
@@ -672,17 +672,17 @@ QuicConnUpdateRtt(
             Path->RttVariance = (3 * Path->RttVariance + LatestRtt - Path->SmoothedRtt) / 4;
         }
         Path->SmoothedRtt = (7 * Path->SmoothedRtt + LatestRtt) / 8;
-        RttUpdatedX = PrevRtt != Path->SmoothedRtt;
+        RttUpdated = PrevRtt != Path->SmoothedRtt;
     }
 
-    if (RttUpdatedX) {
+    if (RttUpdated) {
         QUIC_DBG_ASSERT(Path->SmoothedRtt != 0);
         QuicTraceLogConnVerbose(RttUpdated, Connection, "Updated Rtt=%u.%u ms, Var=%u.%u",
             Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
             Path->RttVariance / 1000, Path->RttVariance % 1000);
     }
 
-    return RttUpdatedX;
+    return RttUpdated;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
