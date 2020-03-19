@@ -281,8 +281,16 @@ struct String {
     ULONG64 Addr;
     char Data[256];
 
+    String() : Addr(0) { Data[0] = 0; }
+
     String(ULONG64 Addr) : Addr(Addr) {
         ReadStringAtAddr(Addr, sizeof(Data), Data);
+    }
+
+    String(ULONG64 Addr, ULONG Length) : Addr(Addr) {
+        ULONG cbRead;
+        ReadMemory(Addr, Data, Length, &cbRead);
+        Data[Length] = 0;
     }
 };
 
