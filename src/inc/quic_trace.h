@@ -99,6 +99,19 @@ typedef enum QUIC_TRACE_LEVEL {
 } QUIC_TRACE_LEVEL;
 
 
+//
+// Called from the platform code to trigger a tracing rundown for all objects
+// in the current process (or kernel mode).
+//
+#ifdef __cplusplus
+extern "C"
+#endif
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicTraceRundown(
+    void
+    );
+
 #pragma warning(push) // Don't care about warnings from generated files
 #pragma warning(disable:6001)
 #pragma warning(disable:26451)
