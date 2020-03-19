@@ -351,7 +351,7 @@ QuicStreamSetUpdateMaxStreams(
         QuicTraceLogConnVerbose(PeerStreamCountsUpdated, Connection, "Peer updated max stream count (%hu, %llu).",
             BidirectionalStreams, MaxStreams);
 
-        BOOLEAN FlushSendX = FALSE;
+        BOOLEAN FlushSend = FALSE;
         if (StreamSet->StreamTable != NULL) {
 
             QUIC_HASHTABLE_ENUMERATOR Enumerator;
@@ -365,7 +365,7 @@ QuicStreamSetUpdateMaxStreams(
                 if ((Stream->ID & STREAM_ID_MASK) == Mask &&
                     Count > Info->MaxTotalStreamCount &&
                     Count <= MaxStreams) {
-                    FlushSendX = TRUE;
+                    FlushSend = TRUE;
                     QuicStreamRemoveOutFlowBlockedReason(
                         Stream, QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
                 }
@@ -377,7 +377,7 @@ QuicStreamSetUpdateMaxStreams(
 
         QuicStreamSetIndicateStreamsAvailable(StreamSet);
 
-        if (FlushSendX) {
+        if (FlushSend) {
             //
             // Queue a flush, as we have unblocked a stream.
             //
