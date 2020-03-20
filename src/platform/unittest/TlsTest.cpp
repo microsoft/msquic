@@ -18,7 +18,7 @@ const uint32_t CertValidationIgnoreFlags =
     QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID;
 
 const uint8_t Alpn[] = { 1, 'A' };
-const uint8_t MultiAlpn[] = { 1, 'A', 1, 'B', 1, 'C' };
+const uint8_t MultiAlpn[] = { 1, 'C', 1, 'A', 1, 'B' };
 
 struct TlsTest : public ::testing::TestWithParam<bool>
 {
@@ -135,6 +135,7 @@ protected:
         void InitializeServer(
             TlsSession& Session,
             const QUIC_SEC_CONFIG* SecConfig,
+            bool MultipleAlpns = false,
             uint16_t TPLen = 64
             )
         {
@@ -142,8 +143,8 @@ protected:
             Config.IsServer = TRUE;
             Config.TlsSession = Session.Ptr;
             Config.SecConfig = (QUIC_SEC_CONFIG*)SecConfig;
-            Config.AlpnBuffer = Alpn;
-            Config.AlpnBufferLength = sizeof(Alpn);
+            Config.AlpnBuffer = MultipleAlpns ? MultiAlpn : Alpn;
+            Config.AlpnBufferLength = MultipleAlpns ? sizeof(MultiAlpn) : sizeof(Alpn);
             Config.LocalTPBuffer =
                 (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
@@ -161,6 +162,7 @@ protected:
         void InitializeClient(
             TlsSession& Session,
             QUIC_SEC_CONFIG* ClientConfig,
+            bool MultipleAlpns = false,
             uint16_t TPLen = 64
             )
         {
@@ -168,8 +170,8 @@ protected:
             Config.IsServer = FALSE;
             Config.TlsSession = Session.Ptr;
             Config.SecConfig = ClientConfig;
-            Config.AlpnBuffer = Alpn;
-            Config.AlpnBufferLength = sizeof(Alpn);
+            Config.AlpnBuffer = MultipleAlpns ? MultiAlpn : Alpn;
+            Config.AlpnBufferLength = MultipleAlpns ? sizeof(MultiAlpn) : sizeof(Alpn);
             Config.LocalTPBuffer =
                 (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
@@ -185,13 +187,14 @@ protected:
         }
 
         void InitializeClient(
-            TlsSession& Session
+            TlsSession& Session,
+            bool MultipleAlpns = false
             )
         {
             QUIC_SEC_CONFIG* ClientConfig;
             QuicTlsClientSecConfigCreate(
                 CertValidationIgnoreFlags, &ClientConfig);
-            InitializeClient(Session, ClientConfig);
+            InitializeClient(Session, ClientConfig, MultipleAlpns);
         }
 
     private:
@@ -568,6 +571,39 @@ TEST_F(TlsTest, Handshake)
         TlsContext ServerContext, ClientContext;
         ServerContext.InitializeServer(ServerSession, SecConfig);
         ClientContext.InitializeClient(ClientSession);
+        DoHandshake(ServerContext, ClientContext);
+    }
+}
+
+TEST_F(TlsTest, HandshakeMultiAlpnServer)
+{
+    TlsSession ServerSession, ClientSession;
+    {
+        TlsContext ServerContext, ClientContext;
+        ServerContext.InitializeServer(ServerSession, SecConfig, true);
+        ClientContext.InitializeClient(ClientSession);
+        DoHandshake(ServerContext, ClientContext);
+    }
+}
+
+TEST_F(TlsTest, HandshakeMultiAlpnClient)
+{
+    TlsSession ServerSession, ClientSession;
+    {
+        TlsContext ServerContext, ClientContext;
+        ServerContext.InitializeServer(ServerSession, SecConfig);
+        ClientContext.InitializeClient(ClientSession, true);
+        DoHandshake(ServerContext, ClientContext);
+    }
+}
+
+TEST_F(TlsTest, HandshakeMultiAlpnBoth)
+{
+    TlsSession ServerSession, ClientSession;
+    {
+        TlsContext ServerContext, ClientContext;
+        ServerContext.InitializeServer(ServerSession, SecConfig, true);
+        ClientContext.InitializeClient(ClientSession, true);
         DoHandshake(ServerContext, ClientContext);
     }
 }
