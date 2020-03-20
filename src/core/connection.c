@@ -3040,13 +3040,12 @@ QuicConnRecvDecryptAndAuthenticate(
 }
 
 //
-// Reads the payload (QUIC frames) of the packet, and if everything is
-// successful marks the packet for acknowledgement. Returns TRUE if the packet
-// was successfully processed.
+// Reads the frames in a packet, and if everything is successful marks the
+// packet for acknowledgement and returns TRUE.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
-QuicConnRecvPacket(
+QuicConnRecvFrames(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ QUIC_RECV_PACKET* Packet
@@ -3820,7 +3819,7 @@ QuicConnRecvDatagramBatch(
         if (QuicConnRecvPrepareDecrypt(
                 Connection, Packet, HpMask + i * QUIC_HP_SAMPLE_LENGTH) &&
             QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet) &&
-            QuicConnRecvPacket(Connection, Path, Packet)) {
+            QuicConnRecvFrames(Connection, Path, Packet)) {
 
             QuicConnRecvPostProcessing(Connection, &Path, Packet);
             RecvState->ResetIdleTimeout |= Packet->CompletelyValid;
