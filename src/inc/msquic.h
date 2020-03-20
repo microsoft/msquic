@@ -192,13 +192,13 @@ typedef struct QUIC_NEW_CONNECTION_INFO {
     const QUIC_ADDR* LocalAddress;
     const QUIC_ADDR* RemoteAddress;
     uint32_t CryptoBufferLength;
-    uint16_t AlpnListLength;
+    uint16_t ClientAlpnListLength;
     uint16_t ServerNameLength;
     uint8_t NegotiatedAlpnLength;
     _Field_size_bytes_(CryptoBufferLength)
     const uint8_t* CryptoBuffer;
-    _Field_size_bytes_(AlpnListLength)
-    const uint8_t* AlpnList;
+    _Field_size_bytes_(ClientAlpnListLength)
+    const uint8_t* ClientAlpnList;
     _Field_size_bytes_(NegotiatedAlpnLength)
     const uint8_t* NegotiatedAlpn;
     _Field_size_bytes_opt_(ServerNameLength)

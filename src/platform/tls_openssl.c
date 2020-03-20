@@ -1300,7 +1300,12 @@ QuicTlsProcessData(
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 goto Exit;
             }
-            QUIC_DBG_ASSERT(NegotiatedAlpnLength <= UINT8_MAX);
+            if (NegotiatedAlpnLength > UINT8_MAX) {
+                QuicTraceLogError("[ tls][%p][%c] Invalid negotiated ALPN length.",
+                    TlsContext, GetTlsIdentifier(TlsContext));
+                TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                goto Exit;
+            }
             TlsContext->State->NegotiatedAlpn =
                 QuicTlsAlpnFindInList(
                     TlsContext->AlpnBufferLength,

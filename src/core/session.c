@@ -426,7 +426,7 @@ QuicSessionMatchesAlpn(
     )
 {
     const uint8_t* Alpn =
-        QuicSessionFindAlpnInList(Session, Info->AlpnListLength, Info->AlpnList);
+        QuicSessionFindAlpnInList(Session, Info->ClientAlpnListLength, Info->ClientAlpnList);
     if (Alpn != NULL) {
         Info->NegotiatedAlpnLength = Alpn[0]; // The length prefixed to the ALPN buffer.
         Info->NegotiatedAlpn = Alpn + 1;

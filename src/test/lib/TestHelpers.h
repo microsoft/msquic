@@ -107,7 +107,7 @@ public:
 struct MsQuicSession {
     HQUIC Handle;
     bool CloseAllConnectionsOnDelete;
-    MsQuicSession(_In_ const char* RawAlpn = "MsQuicTest")
+    MsQuicSession(_In_z_ const char* RawAlpn = "MsQuicTest")
         : Handle(nullptr), CloseAllConnectionsOnDelete(false) {
         QUIC_BUFFER Alpn;
         Alpn.Buffer = (uint8_t*)RawAlpn;
@@ -122,7 +122,7 @@ struct MsQuicSession {
             Handle = nullptr;
         }
     }
-    MsQuicSession(_In_ const char* RawAlpn1, _In_ const char* RawAlpn2)
+    MsQuicSession(_In_z_ const char* RawAlpn1, _In_z_ const char* RawAlpn2)
         : Handle(nullptr), CloseAllConnectionsOnDelete(false) {
         QUIC_BUFFER Alpns[2];
         Alpns[0].Buffer = (uint8_t*)RawAlpn1;
