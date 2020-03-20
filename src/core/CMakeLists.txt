@@ -1,9 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-# Include Files that need CLOG processing
+# Include for CLOG processing
 include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
-include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY})
 
 set(SOURCES
     ack_tracker.c
@@ -46,10 +45,7 @@ if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(SOURCES ${SOURCES} inline.c)
 endif()
 
-#
-# Setup CLOG by calling a helper function which sets up dependencies.  Then add the .c file
-#     ...it'd be preferred to have the helper function set this requirement
-#
+# Allow CLOG to preprocess all the source files.
 CLOG_ADD_SOURCEFILE(CORE_CLOG_LIB ${SOURCES})
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")

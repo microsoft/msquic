@@ -16,16 +16,7 @@ Abstract:
                 consumption.
 
     Each class is individually configurable at compile time. Different platforms
-    or build configurations can have their own desired behavior. The following
-    configuration options are currently supported:
-
-    QUIC_EVENTS_MANIFEST_ETW    Write to Windows ETW framework
-    QUIC_EVENTS_SYSLOG          Write to Linux syslog
-
-    QUIC_LOGS_WPP               Write to Windows WPP framework
-    QUIC_LOGS_MANIFEST_ETW      Write to Windows ETW framework
-    QUIC_LOGS_SYSLOG            Write to Linux syslog
-    QUIC_LOGS_LTTNG             Write to Linux LTTng framework
+    or build configurations can have their own desired behavior.
 
  --*/
 

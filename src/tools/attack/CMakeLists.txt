@@ -1,8 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY})
-
 set(SOURCES
     attack.cpp
     packet_writer.cpp
