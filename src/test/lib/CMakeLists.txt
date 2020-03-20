@@ -1,10 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-
-# Include Files that need CLOG processing
+# Include for CLOG processing
 include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
-include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY})
 
 set(SOURCES
     ApiTest.cpp
@@ -12,7 +10,7 @@ set(SOURCES
     EventTest.cpp
     QuicDrill.cpp
     QuicTest.cpp
-    TestConnection.cpp  
+    TestConnection.cpp
     TestListener.cpp
     TestStream.cpp
 )
@@ -21,10 +19,7 @@ include_directories(${CMAKE_SOURCE_DIR}/src/test)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 
-#
-# Setup CLOG by calling a helper function which sets up dependencies.  Then add the .c file
-#     ...it'd be preferred to have the helper function set this requirement
-#
+# Allow CLOG to preprocess all the source files.
 CLOG_ADD_SOURCEFILE(TESTLIB_CLOG_LIB ${SOURCES})
 
 add_library(testlib ${SOURCES})

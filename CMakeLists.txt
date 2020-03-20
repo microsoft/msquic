@@ -68,8 +68,6 @@ set(CLOG_INCLUDE_DIRECTORY ${CLOG_SOURCE_DIRECTORY}/inc)
 
 set(MANIFESTED_HEADER_FILENAME ${CMAKE_SOURCE_DIR}/bld/inc/MsQuicEtw.h)
 
-include_directories(${CLOG_INCLUDE_DIRECTORY})
-
 add_custom_target(CLOG_GENERATED_FILES
     COMMENT "CREATED CMAKE Target for CLOG generated files"
 )
@@ -84,11 +82,10 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for manifested ETW events and logging")
         set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/src/manifest/msquic_windows.clog_config)
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_EVENTS_TRACELOGGING -DQUIC_LOGS_MANIFEST_ETW")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_EVENTS_TRACELOGGING")
     else()
         message(STATUS "Disabling events and logging")
         set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/src/manifest/msquic_stubs.clog_config)
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS}")
     endif()
 
     if(QUIC_TLS STREQUAL "openssl")
@@ -136,12 +133,10 @@ else()
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for LTTng events and disabling logging")
         set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/src/manifest/msquic_linux.clog_config)
-        include(FindLTTngUST)       
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS}")
+        include(FindLTTngUST)
     else()
         message(STATUS "Disabling events and logging")
         set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_SOURCE_DIR}/src/manifest/msquic_stubs.clog_config)
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS}")
         list(APPEND CLANG_GCC_WARNING_FLAGS -Wno-unused-parameter -Wno-unused-variable)
     endif()
 
@@ -169,6 +164,8 @@ endif()
 
 include_directories(${QUIC_BUILD_DIR}/inc)
 include_directories(${CMAKE_SOURCE_DIR}/src/inc)
+include_directories(${CLOG_INCLUDE_DIRECTORY})
+include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY})
 
 if(QUIC_TLS STREQUAL "openssl")
     # Configure and build OpenSSL.

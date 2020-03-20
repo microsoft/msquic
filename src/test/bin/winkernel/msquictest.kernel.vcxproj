@@ -102,7 +102,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_DISABLE_0RTT_TESTS;SECURITY_KERNEL;SECURITY_WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_DISABLE_0RTT_TESTS;SECURITY_KERNEL;SECURITY_WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <PreBuildEvent>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
@@ -123,7 +123,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
-      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_DISABLE_0RTT_TESTS;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_DISABLE_0RTT_TESTS;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <PreBuildEvent>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
