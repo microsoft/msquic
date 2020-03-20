@@ -4060,7 +4060,18 @@ QuicConnRecvDatagrams(
         QuicDataPathBindingReturnRecvDatagrams(ReleaseChain);
     }
 
-    QuicConnRemoveInvalidPaths(Connection);
+    //
+    // Any new paths created here were created before packet validation. Now
+    // remove any non-active paths that didn't get any valid packets.
+    // NB: Traversing the array backwards is simpler and more efficient here due
+    // to the array shifting that happens in QuicPathRemove.
+    //
+    for (uint8_t i = Connection->PathsCount - 1; i > 0; --i) {
+        if (!Connection->Paths[i].GotValidPacket) {
+            QuicTraceLogConnInfo(PathDiscarded, Connection, "Removing invalid path[%u]", Connection->Paths[i].ID);
+            QuicPathRemove(Connection, i);
+        }
+    }
 
     if (!Connection->State.UpdateWorker &&
         Connection->State.Connected &&
