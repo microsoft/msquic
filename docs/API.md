@@ -45,7 +45,7 @@ The API supports both server and client applications. All functionality is expos
 
 ## Versioning
 
-MsQuic API uses [semantic versioning](https://semver.org/) rules when updating the library version number (seen [here](../src/inc/msquic.ver)).
+MsQuic API follows [semantic versioning](https://semver.org/) rules for updating the library version number (seen [here](../src/inc/msquic.ver)).
 
 The **MAJOR** version **needs to change** when:
 - The signature of an existing function changes.
