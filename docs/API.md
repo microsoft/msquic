@@ -45,18 +45,18 @@ The API supports both server and client applications. All functionality is expos
 
 ## Versioning
 
-TODO - Update this text
+MsQuic API uses [semantic versioning](https://semver.org/) rules when updating the library version number (seen [here](../src/inc/msquic.ver)).
 
-MsQuic API is explicitly versioned by making the API function table version specific. The top level [MsQuicOpen](api/MsQuicOpen.md) function takes an `ApiVersion` parameter as input and returns the corresponding function table. This allows for new versions of the function table to be easily added in the future.
-
-The API version number **needs to change** when:
+The **MAJOR** version **needs to change** when:
 - The signature of an existing function changes.
 - The behavior of an existing function changes, that breaks existing clients.
 
-The API version number **does not need to change** when:
+The **MINOR** version **may change** when:
 - New values are added to existing flags or enums.
 - New functions are added. They are appended to the existing function table.
 - The behavior of an existing function changes but can either be controlled via a flags field or doesn't break existing clients.
+
+The **PATCH** version **only changes** when a servicing fix is made to an existing release.
 
 ## Execution Mode
 
