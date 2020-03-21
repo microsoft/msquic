@@ -20,7 +20,7 @@ Abstract:
 #define HTTP_NO_ERROR       0
 #define HTTP_INTERNAL_ERROR 3
 
-QUIC_API_V1* MsQuic;
+const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 int EndpointIndex = -1;
 uint32_t TestCases = QuicTestFeatureAll;
@@ -779,6 +779,8 @@ main(
     QuicPlatformSystemLoad();
 
     QUIC_STATUS Status;
+    const QUIC_REGISTRATION_CONFIG RegConfig = { "quicinterop", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
+
     if (QUIC_FAILED(Status = QuicPlatformInitialize())) {
         printf("QuicPlatformInitialize failed, 0x%x!\n", Status);
         QuicPlatformSystemUnload();
@@ -787,12 +789,12 @@ main(
 
     QuicLockInitialize(&TestResultsLock);
 
-    if (QUIC_FAILED(Status = MsQuicOpenV1(&MsQuic))) {
+    if (QUIC_FAILED(Status = MsQuicOpen(&MsQuic))) {
         printf("MsQuicOpen failed, 0x%x!\n", Status);
         goto Error;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->RegistrationOpen("quicinterop", &Registration))) {
+    if (QUIC_FAILED(Status = MsQuic->RegistrationOpen(&RegConfig, &Registration))) {
         printf("RegistrationOpen failed, 0x%x!\n", Status);
         goto Error;
     }

@@ -36,9 +36,9 @@ typedef struct QUIC_REGISTRATION {
     BOOLEAN NoPartitioning : 1;
 
     //
-    // App configured network profile type.
+    // App (optionally) configured execution profile.
     //
-    uint8_t ExecProfileType; // QUIC_EXEC_PROF_TYPE_*
+    QUIC_EXECUTION_PROFILE ExecProfile;
 
     //
     // An app configured prefix for all connection IDs in this registration.

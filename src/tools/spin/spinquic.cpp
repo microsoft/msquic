@@ -103,7 +103,7 @@ public:
 };
 
 static uint64_t StartTimeMs;
-static QUIC_API_V1* MsQuic;
+static const QUIC_API_TABLE* MsQuic;
 static HQUIC Registration;
 static QUIC_SEC_CONFIG* GlobalSecurityConfig;
 static std::vector<HQUIC> Sessions;
@@ -682,9 +682,10 @@ main(int argc, char **argv)
 
     SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
 
-    EXIT_ON_FAILURE(MsQuicOpenV1(&MsQuic));
+    EXIT_ON_FAILURE(MsQuicOpen(&MsQuic));
 
-    EXIT_ON_FAILURE(MsQuic->RegistrationOpen("spinquic", &Registration));
+    const QUIC_REGISTRATION_CONFIG RegConfig = { "spinquic", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
+    EXIT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
     
     const size_t AlpnLen = strlen(Settings.AlpnPrefix) + 5; // You can't have more than 10^4 SessionCount. :)
     char *AlpnBuffer = (char *)malloc(AlpnLen);

@@ -16,17 +16,17 @@ For this reason, each app controls the number of streams that the peer is allowe
 
 The protocol for synchronizing the maximum stream count is complicated, but MsQuic simplifies it by requiring the app to specify a number of simultaneous streams to allow the peer to open at any time. MsQuic then takes care of updating the maximum stream count for the peer as old streams get shut down.
 
-The app can configure the unidirectional and bidirectional limits separately. **The default value for these is 0.** If the app wants to allow the peer to open any streams, it must set a value. To set the limit on a connection, the app must call [SetParam](v1/SetParam.md) for `QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT` and/or `QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT`. MsQuic currently restricts this count to a maximum of 2 ^ 16.
+The app can configure the unidirectional and bidirectional limits separately. **The default value for these is 0.** If the app wants to allow the peer to open any streams, it must set a value. To set the limit on a connection, the app must call [SetParam](api/SetParam.md) for `QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT` and/or `QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT`. MsQuic currently restricts this count to a maximum of 2 ^ 16.
 
 # Opening and Starting Streams
 
-An app calls [StreamOpen](v1/StreamOpen.md) to allocate a new stream. The stream object returned from [StreamOpen](v1/StreamOpen.md) is locally usable. The app can call any other stream API on the object, but until the stream is started all operations are essentially queued. While in this state the stream has no ID and generates no "on-wire" changes.
+An app calls [StreamOpen](api/StreamOpen.md) to allocate a new stream. The stream object returned from [StreamOpen](api/StreamOpen.md) is locally usable. The app can call any other stream API on the object, but until the stream is started all operations are essentially queued. While in this state the stream has no ID and generates no "on-wire" changes.
 
-If a stream is closed ([StreamClose](v1/StreamClose.md)) before being successfully started, the app essentially abandons the stream. No on-wire changes will ever result from that stream.
+If a stream is closed ([StreamClose](api/StreamClose.md)) before being successfully started, the app essentially abandons the stream. No on-wire changes will ever result from that stream.
 
-To start using the stream on-wire, the app calls [StreamStart](v1/StreamStart.md). On success, all queued operations (i.e. sends or shutdown) will immediately trigger, and the stream can start receiving `QUIC_STREAM_EVENT_RECEIVE` events.
+To start using the stream on-wire, the app calls [StreamStart](api/StreamStart.md). On success, all queued operations (i.e. sends or shutdown) will immediately trigger, and the stream can start receiving `QUIC_STREAM_EVENT_RECEIVE` events.
 
-When calling [StreamStart](v1/StreamStart.md) the app passes a set of `QUIC_STREAM_START_FLAGS` flags to control the behavior:
+When calling [StreamStart](api/StreamStart.md) the app passes a set of `QUIC_STREAM_START_FLAGS` flags to control the behavior:
 
 - `QUIC_STREAM_START_FLAG_FAIL_BLOCKED` - If the peer's flow control currently limits the stream from actually being opened, then the start will fail. Without this flag, the stream will be queued until the peer's flow control allows the stream to be opened.
 
@@ -38,7 +38,7 @@ For peer initiated streams, the app gets a `QUIC_CONNECTION_EVENT_PEER_STREAM_ST
 
 # Sending
 
-An app can send on any locally initiated stream or a peer initiated bidirectional stream. The app uses the [StreamSend](v1/StreamSend.md) API send data. MsQuic holds on to any buffers queued via [StreamSend](v1/StreamSend.md) until they have been completed via the `QUIC_STREAM_EVENT_SEND_COMPLETE` event.
+An app can send on any locally initiated stream or a peer initiated bidirectional stream. The app uses the [StreamSend](api/StreamSend.md) API send data. MsQuic holds on to any buffers queued via [StreamSend](api/StreamSend.md) until they have been completed via the `QUIC_STREAM_EVENT_SEND_COMPLETE` event.
 
 ## Send Buffering
 
@@ -52,15 +52,15 @@ The other buffering mode supported by MsQuic requires no internal copy of the da
 
 To fill the pipe in this mode, the app is responsible for keeping enough sends pending at all times to ensure the connection doesn't go idle. MsQuic indicates the amount of data the app should keep pending in the `QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE` event. The app should always have at least two sends pending at a time. If only a single send is used, the connection can go idle for the time between that send is completed and the new send is queued.
 
-By default, this mode is not used. To enable this mode, the app must call [SetParam](v1/SetParam.md) on the connection with the `QUIC_PARAM_CONN_SEND_BUFFERING` parameter set to `FALSE`.
+By default, this mode is not used. To enable this mode, the app must call [SetParam](api/SetParam.md) on the connection with the `QUIC_PARAM_CONN_SEND_BUFFERING` parameter set to `FALSE`.
 
 ## Send Shutdown
 
 The send direction can be shut down in three different ways:
 
-- **Graceful** - The sender can gracefully shut down the send direction by calling [StreamShutdown](v1/StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL` flag or by including the `QUIC_SEND_FLAG_FIN` flag on the last [StreamSend](v1/StreamSend.md) call. In this scenario all data will be delivered to the peer and then the peer is informed the stream has been gracefully shut down.
+- **Graceful** - The sender can gracefully shut down the send direction by calling [StreamShutdown](api/StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL` flag or by including the `QUIC_SEND_FLAG_FIN` flag on the last [StreamSend](api/StreamSend.md) call. In this scenario all data will be delivered to the peer and then the peer is informed the stream has been gracefully shut down.
 
-- **Sender Abort** - The sender can abortively shut down the send direction by calling [StreamShutdown](v1/StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND` flag. In this scenario, all outstanding sends are immediately canceled and are not delivered to the peer. The peer is immediately informed of the abort.
+- **Sender Abort** - The sender can abortively shut down the send direction by calling [StreamShutdown](api/StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND` flag. In this scenario, all outstanding sends are immediately canceled and are not delivered to the peer. The peer is immediately informed of the abort.
 
 - **Receiver Abort** - The receiver can abortively shut down their peer's send direction. When this happens the sender will get a `QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED` event.
 
@@ -68,7 +68,7 @@ When the send has been completely shut down the app will get a `QUIC_STREAM_EVEN
 
 ## 0-RTT
 
-An app can opt in to sending stream data with 0-RTT keys (if available) by including the `QUIC_SEND_FLAG_ALLOW_0_RTT` flag on [StreamSend](v1/StreamSend.md) call. MsQuic doesn't make any guarantees that the data will actually be sent with 0-RTT keys. There are several reasons it may not happen, such as keys not being available, packet loss, flow control, etc.
+An app can opt in to sending stream data with 0-RTT keys (if available) by including the `QUIC_SEND_FLAG_ALLOW_0_RTT` flag on [StreamSend](api/StreamSend.md) call. MsQuic doesn't make any guarantees that the data will actually be sent with 0-RTT keys. There are several reasons it may not happen, such as keys not being available, packet loss, flow control, etc.
 
 # Receiving
 
@@ -78,7 +78,7 @@ Data is received and delivered to apps via the `QUIC_STREAM_EVENT_RECEIVE` event
 
 The app has the option of either processing the received data in the callback (synchronous) or queuing the work to a separate thread (asynchronous). If the app processes the data synchronously it must do so in a timely manner. Any significant delays will delay other QUIC processing (such as sending acknowledgements), which can cause protocol issues (dropped connections).
 
-If the app wants to queue the data to a separate thread, the app must return `QUIC_STATUS_PENDING` from the receive callback. This informs MsQuic that the app still has an outstanding reference on the buffers, and it will not modify or free them. Once the app is done with the buffers it must call [StreamReceiveComplete](v1/StreamReceiveComplete.md).
+If the app wants to queue the data to a separate thread, the app must return `QUIC_STATUS_PENDING` from the receive callback. This informs MsQuic that the app still has an outstanding reference on the buffers, and it will not modify or free them. Once the app is done with the buffers it must call [StreamReceiveComplete](api/StreamReceiveComplete.md).
 
 ## Partial Data Acceptance
 
@@ -86,10 +86,10 @@ Whenever the app gets the `QUIC_STREAM_EVENT_RECEIVE` event, it can partially ac
 
 For synchronous receives, the app indicates how much of the data it accepted via the **TotalBufferLength** variable in the payload of the `QUIC_STREAM_EVENT_RECEIVE` event. On input, that variable indicates the total amount of data being indicated. On output (return from the callback), the variable is taken as how much data the app consumed. By default, if the variable is left unmodified, then all data is assumed to be accepted.
 
-For asynchronous receives, the app indicates how much of the data it accepted via the **BufferLength** parameter passed into the [StreamReceiveComplete](v1/StreamReceiveComplete.md) API.
+For asynchronous receives, the app indicates how much of the data it accepted via the **BufferLength** parameter passed into the [StreamReceiveComplete](api/StreamReceiveComplete.md) API.
 
 Any value less than or equal to the initial **TotalBufferLength** value is allowed, including zero.
 
-Whenever a receive isn't fully accepted by the app, additional receive events are immediately disabled. The app is assumed to be at capacity and not able to consume more until further indication. To re-enable receive callbacks, the app must call [StreamReceiveSetEnabled](v1/StreamReceiveSetEnabled.md).
+Whenever a receive isn't fully accepted by the app, additional receive events are immediately disabled. The app is assumed to be at capacity and not able to consume more until further indication. To re-enable receive callbacks, the app must call [StreamReceiveSetEnabled](api/StreamReceiveSetEnabled.md).
 
 There are cases where an app may want to partially accept the current data, but still immediately get a callback with the rest of the data. To do this (only works in the synchronous flow) the app must return `QUIC_STATUS_CONTINUE`.

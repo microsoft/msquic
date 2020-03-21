@@ -10,7 +10,7 @@ typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_REGISTRATION_OPEN_FN)(
-    _In_opt_z_ _Pre_defensive_ const char* AppName,
+    _In_opt_ const QUIC_REGISTRATION_CONFIG* Config,
     _Outptr_ _At_(*Registration, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC* Registration
     );
@@ -18,9 +18,9 @@ QUIC_STATUS
 
 # Parameters
 
-`AppName`
+`Config`
 
-An optional name for the application layer, used purely for debugging purposes.
+An optional configuration for the registration.
 
 `Registration`
 
@@ -28,7 +28,7 @@ On success, returns a handle the the newly created registration.
 
 # Return Value
 
-The function returns a [QUIC_STATUS](../v0/QUIC_STATUS.md). The app may use `QUIC_FAILED` or `QUIC_SUCCEEDED` to determine if the function failed or succeeded.
+The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAILED` or `QUIC_SUCCEEDED` to determine if the function failed or succeeded.
 
 # Remarks
 

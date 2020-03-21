@@ -11,7 +11,7 @@ Abstract:
 
 #include "InteropServer.h"
 
-QUIC_API_V1* MsQuic;
+const QUIC_API_TABLE* MsQuic;
 QUIC_SEC_CONFIG* SecurityConfig;
 const char* RootFolderPath;
 
@@ -51,8 +51,9 @@ main(
     }
 
     HQUIC Registration = nullptr;
-    EXIT_ON_FAILURE(MsQuicOpenV1(&MsQuic));
-    EXIT_ON_FAILURE(MsQuic->RegistrationOpen("interopserver", &Registration));
+    EXIT_ON_FAILURE(MsQuicOpen(&MsQuic));
+    const QUIC_REGISTRATION_CONFIG RegConfig = { "interopserver", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
+    EXIT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
 
     //
     // Optional parameters.

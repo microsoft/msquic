@@ -67,7 +67,7 @@ QuicStatusToString(
 inline
 uint32_t
 GetConnRtt(
-    _In_ const QUIC_API_V1* MsQuic,
+    _In_ const QUIC_API_TABLE* MsQuic,
     _In_ HQUIC Handle
     )
 {
@@ -88,7 +88,7 @@ GetConnRtt(
 inline
 uint64_t
 GetStreamID(
-    _In_ const QUIC_API_V1* MsQuic,
+    _In_ const QUIC_API_TABLE* MsQuic,
     _In_ HQUIC Handle
     )
 {
@@ -110,7 +110,7 @@ GetStreamID(
 inline
 QUIC_ADDR_STR
 GetRemoteAddr(
-    _In_ const QUIC_API_V1* MsQuic,
+    _In_ const QUIC_API_TABLE* MsQuic,
     _In_ HQUIC Handle
     )
 {
@@ -133,7 +133,7 @@ GetRemoteAddr(
 inline
 QUIC_STATUS
 QuicForceRetry(
-    _In_ const QUIC_API_V1* MsQuic,
+    _In_ const QUIC_API_TABLE* MsQuic,
     _In_ HQUIC Handle,
     _In_ BOOLEAN Enabled
     )
@@ -205,7 +205,7 @@ DecodeHexBuffer(
 inline
 BOOLEAN
 SetResumptionState(
-    _In_ const QUIC_API_V1* MsQuic,
+    _In_ const QUIC_API_TABLE* MsQuic,
     _In_ HQUIC Handle,
     _In_z_ const char* SerializedState
     )
@@ -259,7 +259,7 @@ struct CreateSecConfigHelper {
 
     QUIC_SEC_CONFIG*
     Create(
-        _In_ const QUIC_API_V1* MsQuic,
+        _In_ const QUIC_API_TABLE* MsQuic,
         _In_ _Pre_defensive_ HQUIC Registration,
         _In_ QUIC_SEC_CONFIG_FLAGS Flags,
         _In_opt_ void* Certificate,
@@ -283,7 +283,7 @@ struct CreateSecConfigHelper {
 inline
 QUIC_SEC_CONFIG*
 GetNullSecConfig(
-    _In_ const QUIC_API_V1* MsQuic,
+    _In_ const QUIC_API_TABLE* MsQuic,
     _In_ HQUIC Registration
     )
 {
@@ -300,7 +300,7 @@ GetNullSecConfig(
 inline
 QUIC_SEC_CONFIG*
 GetSecConfigForCertContext(
-    _In_ const QUIC_API_V1* MsQuic,
+    _In_ const QUIC_API_TABLE* MsQuic,
     _In_ HQUIC Registration,
     _In_ void* CertContext
     )
@@ -318,7 +318,7 @@ GetSecConfigForCertContext(
 inline
 QUIC_SEC_CONFIG*
 GetSecConfigForSNI(
-    _In_ const QUIC_API_V1* MsQuic,
+    _In_ const QUIC_API_TABLE* MsQuic,
     _In_ HQUIC Registration,
     _In_z_ const char* ServerName
     )
@@ -336,7 +336,7 @@ GetSecConfigForSNI(
 inline
 QUIC_SEC_CONFIG*
 GetSecConfigForThumbprint(
-    _In_ const QUIC_API_V1* MsQuic,
+    _In_ const QUIC_API_TABLE* MsQuic,
     _In_ HQUIC Registration,
     _In_z_ const char* Thumbprint
     )
@@ -363,7 +363,7 @@ GetSecConfigForThumbprint(
 inline
 QUIC_SEC_CONFIG*
 GetSecConfigForThumbprintAndStore(
-    _In_ const QUIC_API_V1* MsQuic,
+    _In_ const QUIC_API_TABLE* MsQuic,
     _In_ HQUIC Registration,
     _In_ QUIC_CERTIFICATE_HASH_STORE_FLAGS Flags,
     _In_z_ const char* Thumbprint,
@@ -400,7 +400,7 @@ GetSecConfigForThumbprintAndStore(
 inline
 QUIC_SEC_CONFIG*
 GetSecConfigForFile(
-    _In_ const QUIC_API_V1* MsQuic,
+    _In_ const QUIC_API_TABLE* MsQuic,
     _In_ HQUIC Registration,
     _In_z_ const char *PrivateKeyFile,
     _In_z_ const char *CertificateFile

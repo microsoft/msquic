@@ -14,7 +14,7 @@ Abstract:
 //#define QUIC_NO_ENCRYPTION 1
 //#define QUIC_COMPARTMENT_TESTS 1
 
-extern QUIC_API_V1* MsQuic;
+extern const QUIC_API_TABLE* MsQuic;
 extern HQUIC Registration;
 extern QUIC_SEC_CONFIG* SecurityConfig;
 

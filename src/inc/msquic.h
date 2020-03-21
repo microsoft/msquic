@@ -67,11 +67,13 @@ typedef _In_range_(0, QUIC_UINT62_MAX) uint64_t QUIC_UINT62;
 //
 #define QUIC_MAX_SNI_LENGTH             65535
 
-//
-// API Version Numbers.
-//
-#define QUIC_API_VERSION_1              0x00000001
 
+typedef enum QUIC_EXECUTION_PROFILE {
+    QUIC_EXECUTION_PROFILE_LOW_LATENCY,     // Default
+    QUIC_EXEC_PROF_TYPE_MAX_THROUGHPUT,
+    QUIC_EXEC_PROF_TYPE_SCAVENGER,
+    QUIC_EXEC_PROF_TYPE_REAL_TIME
+} QUIC_EXECUTION_PROFILE;
 
 typedef enum QUIC_SEC_CONFIG_FLAGS {
     QUIC_SEC_CONFIG_FLAG_NONE                   = 0x00000000,
@@ -143,6 +145,11 @@ typedef enum QUIC_SEND_FLAGS {
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEND_FLAGS);
 
+
+typedef struct QUIC_REGISTRATION_CONFIG { // All fields may be NULL/zero.
+    const char* AppName;
+    QUIC_EXECUTION_PROFILE ExecutionProfile;
+} QUIC_REGISTRATION_CONFIG;
 
 typedef struct QUIC_CERTIFICATE_HASH {
     uint8_t ShaHash[20];
@@ -398,7 +405,7 @@ typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_REGISTRATION_OPEN_FN)(
-    _In_opt_z_ _Pre_defensive_ const char* AppName,
+    _In_opt_ const QUIC_REGISTRATION_CONFIG* Config,
     _Outptr_ _At_(*Registration, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC* Registration
     );
@@ -847,11 +854,9 @@ QUIC_STATUS
     );
 
 //
-// Version 1 API Function Table.
+// API Function Table.
 //
-typedef struct QUIC_API_V1 {
-
-    uint32_t                            Version;            // QUIC_API_VERSION_1
+typedef struct QUIC_API_TABLE {
 
     QUIC_SET_CONTEXT_FN                 SetContext;
     QUIC_GET_CONTEXT_FN                 GetContext;
@@ -888,43 +893,29 @@ typedef struct QUIC_API_V1 {
     QUIC_STREAM_RECEIVE_COMPLETE_FN     StreamReceiveComplete;
     QUIC_STREAM_RECEIVE_SET_ENABLED_FN  StreamReceiveSetEnabled;
 
-} QUIC_API_V1;
+} QUIC_API_TABLE;
 
 //
 // Opens the API library and initializes it if this is the first call for the
-// process. It returns version specific function pointers for the rest of the
-// API's functions. MsQuicClose must be called when the app is done with the
-// function table.
+// process. It returns API function table for the rest of the API's functions.
+// MsQuicClose must be called when the app is done with the function table.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Pre_defensive_
 QUIC_STATUS
 QUIC_API
 MsQuicOpen(
-    _In_ uint32_t ApiVersion,
-    _Out_ void** QuicApi     // struct QUIC_API_*
+    _Out_ _Pre_defensive_ const QUIC_API_TABLE** QuicApi
     );
-
-inline
-QUIC_STATUS
-QUIC_API
-MsQuicOpenV1(
-    _Out_ QUIC_API_V1** QuicApi
-    )
-{
-    return MsQuicOpen(QUIC_API_VERSION_1, (void**)QuicApi);
-}
 
 //
 // Cleans up the function table returned from MsQuicOpen and releases the
 // reference on the API.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Pre_defensive_
 void
 QUIC_API
 MsQuicClose(
-    _In_ const void* QuicApi
+    _In_ _Pre_defensive_ const QUIC_API_TABLE* QuicApi
     );
 
 #if defined(__cplusplus)
