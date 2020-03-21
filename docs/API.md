@@ -47,13 +47,14 @@ The API supports both server and client applications. All functionality is expos
 
 MsQuic API follows [semantic versioning](https://semver.org/) rules for updating the library version number (seen [here](../src/inc/msquic.ver)).
 
-The **MAJOR** version **needs to change** when:
+The **MAJOR** version **must change** when:
 - The signature of an existing function changes.
-- The behavior of an existing function changes, that breaks existing clients.
+- The position of any functions in the API function table changes.
+- The behavior of an existing function changes that breaks existing clients.
 
 The **MINOR** version **may change** when:
 - New values are added to existing flags or enums.
-- New functions are added. They are appended to the existing function table.
+- New functions are added to the end of the API function table.
 - The behavior of an existing function changes but can either be controlled via a flags field or doesn't break existing clients.
 
 The **PATCH** version **only changes** when a servicing fix is made to an existing release.
