@@ -75,10 +75,8 @@ One important aspect of this design is that all blocking calls invoked on a call
 
 There are only two top level functions:
 
-- [MsQuicOpen](api/MsQuicOpen.md) - Initializes the MsQuic library and returns a version specific function table.
+- [MsQuicOpen](api/MsQuicOpen.md) - Initializes the MsQuic library and returns a the API function table.
 - [MsQuicClose](api/MsQuicClose.md) - Cleans up the function table and releases the library reference from the previous [MsQuicOpen](api/MsQuicOpen.md) call.
-
-As mentioned above (see [Versioning](#versioning)), [MsQuicOpen](api/MsQuicOpen.md) takes an API version number as input and returns the corresponding version specific function table. This function table contains the functions for the rest of the MsQuic API.
 
 When the app is done with the MsQuic library, it **must** call [MsQuicClose](api/MsQuicClose.md) and pass in the function table it received from [MsQuicOpen](api/MsQuicOpen.md). This allows for the library state to be cleaned up.
 
