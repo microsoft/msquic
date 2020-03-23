@@ -84,6 +84,7 @@
     <EnableInf2cat>false</EnableInf2cat>
     <OutDir>$(SolutionDir)artifacts\winkernel\$(Platform)_$(Configuration)_schannel\</OutDir>
     <IntDir>$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
+    <SignMode>Off</SignMode>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <Link>

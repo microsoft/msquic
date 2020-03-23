@@ -41,6 +41,7 @@ typedef struct QUIC_RANGE {
     //
     // Array of subranges that represent the set of intervals.
     //
+    _Field_size_(AllocLength)
     QUIC_SUBRANGE* SubRanges;
 
     //
@@ -51,11 +52,13 @@ typedef struct QUIC_RANGE {
     //
     // The number of allocated subranges in the 'SubRanges' array.
     //
+    _Field_range_(1, QUIC_MAX_RANGE_ALLOC_SIZE)
     uint32_t AllocLength;
 
     //
     // The maximum allocation byte count for the 'SubRanges' array.
     //
+    _Field_range_(sizeof(QUIC_SUBRANGE), sizeof(QUIC_SUBRANGE) * QUIC_MAX_RANGE_ALLOC_SIZE)
     uint32_t MaxAllocSize;
 
 } QUIC_RANGE;
