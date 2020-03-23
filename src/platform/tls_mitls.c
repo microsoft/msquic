@@ -1575,18 +1575,22 @@ QuicTlsOnNegotiate(
             QuicTraceLogError("[ tls][%p] Missing ALPN extension.", TlsContext);
             goto Exit;
         }
+        QuicTraceLogVerbose("[ tls][%p] Processing server ALPN (Length=%u)", TlsContext,
+            (uint32_t)ExtensionDataLength);
         const uint16_t AlpnListLength = QuicByteSwapUint16(*(uint16_t*)ExtensionData);
+        if (AlpnListLength + sizeof(uint16_t) != ExtensionDataLength) {
+            QuicTraceLogError("[ tls][%p] ALPN list length is incorrect", TlsContext);
+            goto Exit;
+        }
         if (ExtensionDataLength < 4) {
             QuicTraceLogError("[ tls][%p] ALPN extension length is too short", TlsContext);
             goto Exit;
         }
         const uint8_t AlpnLength = ExtensionData[2];
-        if (AlpnLength + 3 > ExtensionDataLength) {
-            QuicTraceLogError("[ tls][%p] ALPN length is too long", TlsContext);
+        if (AlpnLength + sizeof(uint8_t) != AlpnListLength) {
+            QuicTraceLogError("[ tls][%p] ALPN length is incorrect", TlsContext);
             goto Exit;
         }
-        QuicTraceLogError("[ tls][%p] %u, %u, %u", TlsContext,
-            (uint32_t)ExtensionDataLength, AlpnListLength, AlpnLength);
         const uint8_t* Alpn = ExtensionData + 3;
         TlsContext->State->NegotiatedAlpn =
             QuicTlsAlpnFindInList(

@@ -143,8 +143,9 @@ protected:
             Config.IsServer = TRUE;
             Config.TlsSession = Session.Ptr;
             Config.SecConfig = (QUIC_SEC_CONFIG*)SecConfig;
-            Config.AlpnBuffer = MultipleAlpns ? MultiAlpn : Alpn;
-            Config.AlpnBufferLength = MultipleAlpns ? sizeof(MultiAlpn) : sizeof(Alpn);
+            UNREFERENCED_PARAMETER(MultipleAlpns); // The server must always send back the negotiated ALPN.
+            Config.AlpnBuffer = Alpn;
+            Config.AlpnBufferLength = sizeof(Alpn);
             Config.LocalTPBuffer =
                 (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
@@ -280,14 +281,14 @@ protected:
             uint32_t Result = 0;
             uint32_t ConsumedBuffer = FragmentSize;
             uint32_t Count = 1;
-            while (BufferLength != 0) {
+            while (BufferLength != 0 && !(Result & QUIC_TLS_RESULT_ERROR)) {
 
                 if (BufferLength < FragmentSize) {
                     FragmentSize = BufferLength;
                     ConsumedBuffer = FragmentSize;
                 }
 
-                std::cout << "Processing fragment of " << FragmentSize << " bytes" << std::endl;
+                //std::cout << "Processing fragment of " << FragmentSize << " bytes" << std::endl;
 
                 Result |= (uint32_t)ProcessData(BufferKey, Buffer, &ConsumedBuffer);
 
@@ -319,9 +320,9 @@ protected:
                 return ProcessData(QUIC_PACKET_KEY_INITIAL, nullptr, &Zero);
             }
 
-            uint32_t Result;
+            uint32_t Result = 0;
 
-            while (PeerState->BufferLength != 0) {
+            while (PeerState->BufferLength != 0 && !(Result & QUIC_TLS_RESULT_ERROR)) {
                 uint16_t BufferLength;
                 QUIC_PACKET_KEY_TYPE PeerWriteKey;
 
