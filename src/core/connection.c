@@ -3938,8 +3938,15 @@ QuicConnRecvDatagrams(
             QUIC_DBG_ASSERT(Datagram->Allocated);
             Connection->Stats.Recv.TotalPackets++;
 
-            Packet->BufferLength =
-                Datagram->BufferLength - (uint16_t)(Packet->Buffer - Datagram->Buffer);
+            if (!Packet->ValidatedHeaderInv) {
+                //
+                // Only calculate the buffer length from the available UDP
+                // payload length if the long header hasn't already been
+                // validated (which indicates the actual length);
+                //
+                Packet->BufferLength =
+                    Datagram->BufferLength - (uint16_t)(Packet->Buffer - Datagram->Buffer);
+            }
 
             if (!QuicConnRecvHeader(
                     Connection,
