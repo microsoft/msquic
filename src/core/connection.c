@@ -3892,8 +3892,6 @@ QuicConnRecvDatagrams(
         QUIC_DBG_ASSERT(Packet != NULL);
 
         QUIC_DBG_ASSERT(Packet->DecryptionDeferred == IsDeferred);
-        BOOLEAN WasDeferredPreviously = Packet->DecryptionDeferred;
-        UNREFERENCED_PARAMETER(WasDeferredPreviously);
         Packet->DecryptionDeferred = FALSE;
 
         QUIC_PATH* DatagramPath = QuicConnGetPathForDatagram(Connection, Datagram);
@@ -3938,15 +3936,21 @@ QuicConnRecvDatagrams(
             QUIC_DBG_ASSERT(Datagram->Allocated);
             Connection->Stats.Recv.TotalPackets++;
 
-            Packet->BufferLength =
-                Datagram->BufferLength - (uint16_t)(Packet->Buffer - Datagram->Buffer);
+            if (!Packet->ValidatedHeaderInv) {
+                //
+                // Only calculate the buffer length from the available UDP
+                // payload length if the long header hasn't already been
+                // validated (which indicates the actual length);
+                //
+                Packet->BufferLength =
+                    Datagram->BufferLength - (uint16_t)(Packet->Buffer - Datagram->Buffer);
+            }
 
             if (!QuicConnRecvHeader(
                     Connection,
                     Packet,
                     Cipher + BatchCount * QUIC_HP_SAMPLE_LENGTH)) {
                 if (Packet->DecryptionDeferred) {
-                    QUIC_DBG_ASSERT(!WasDeferredPreviously); // Should never be deferred twice.
                     Connection->Stats.Recv.TotalPackets--; // Don't count the packet right now.
                 } else {
                     Connection->Stats.Recv.DroppedPackets++;
