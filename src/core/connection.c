@@ -3892,8 +3892,6 @@ QuicConnRecvDatagrams(
         QUIC_DBG_ASSERT(Packet != NULL);
 
         QUIC_DBG_ASSERT(Packet->DecryptionDeferred == IsDeferred);
-        BOOLEAN WasDeferredPreviously = Packet->DecryptionDeferred;
-        UNREFERENCED_PARAMETER(WasDeferredPreviously);
         Packet->DecryptionDeferred = FALSE;
 
         QUIC_PATH* DatagramPath = QuicConnGetPathForDatagram(Connection, Datagram);
@@ -3953,7 +3951,6 @@ QuicConnRecvDatagrams(
                     Packet,
                     Cipher + BatchCount * QUIC_HP_SAMPLE_LENGTH)) {
                 if (Packet->DecryptionDeferred) {
-                    QUIC_DBG_ASSERT(!WasDeferredPreviously); // Should never be deferred twice.
                     Connection->Stats.Recv.TotalPackets--; // Don't count the packet right now.
                 } else {
                     Connection->Stats.Recv.DroppedPackets++;
