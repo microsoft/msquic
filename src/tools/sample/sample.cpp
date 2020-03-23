@@ -12,7 +12,7 @@ Abstract:
 #include <msquichelper.h>
 
 const char* AppName = "quicsample";
-QUIC_CONST_BUFFER_STR(Alpn, "sample");
+const QUIC_BUFFER Alpn = { sizeof("sample") - 1, (uint8_t*)"sample" };
 const uint16_t UdpPort = 4567;
 const uint64_t IdleTimeoutMs = 1000;
 const uint32_t SendBufferLength = 100;

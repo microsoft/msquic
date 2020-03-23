@@ -16,8 +16,8 @@ QUIC_SEC_CONFIG* SecurityConfig;
 const char* RootFolderPath;
 
 const QUIC_BUFFER SupportedALPNs[] = {
-    QUIC_STR_TO_BUFFER("hq-25"),
-    QUIC_STR_TO_BUFFER("hq-27"),
+    { sizeof("hq-27") - 1, (uint8_t*)"hq-27" },
+    { sizeof("hq-25") - 1, (uint8_t*)"hq-25" }
 };
 
 void

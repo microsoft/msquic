@@ -168,22 +168,6 @@ typedef struct QUIC_BUFFER {
     uint8_t* Buffer;
 } QUIC_BUFFER;
 
-#define QUIC_STR_TO_BUFFER(STR) \
-    { sizeof(STR) - 1, (uint8_t*)STR }
-
-#define QUIC_CONST_BUFFER_STR(VarName, Str) \
-    const char __##VarName##_RAW[] = Str; \
-    const QUIC_BUFFER VarName = \
-        QUIC_STR_TO_BUFFER(__##VarName##_RAW)
-
-#define QUIC_CONST_BUFFER_STR2(VarName, Str1, Str2) \
-    const char __##VarName##_RAW1[] = Str1; \
-    const char __##VarName##_RAW2[] = Str2; \
-    const QUIC_BUFFER VarName[2] = { \
-        QUIC_STR_TO_BUFFER(__##VarName##_RAW1), \
-        QUIC_STR_TO_BUFFER(__##VarName##_RAW2) \
-    }
-
 //
 // All the available information describing a new incoming connection.
 //

@@ -37,8 +37,8 @@ QUIC_PRIVATE_TRANSPORT_PARAMETER RandomTransportParameter = {
 };
 
 const QUIC_BUFFER Alpns[] = {
-    QUIC_STR_TO_BUFFER("hq-27"),
-    QUIC_STR_TO_BUFFER("h3-27"),
+    { sizeof("hq-27") - 1, (uint8_t*)"hq-27" },
+    { sizeof("h3-27") - 1, (uint8_t*)"h3-27" }
 };
 
 const uint16_t Ports[] = {

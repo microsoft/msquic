@@ -51,10 +51,15 @@ void QuicTestValidateSession()
 
     HQUIC Session = nullptr;
 
-    QUIC_CONST_BUFFER_STR(GoodAlpn, "Alpn");
-    QUIC_CONST_BUFFER_STR(EmptyAlpn, "");
-    QUIC_CONST_BUFFER_STR(LongAlpn, "makethisstringjuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuustright");
-    QUIC_CONST_BUFFER_STR(TooLongAlpn, "makethisextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextrlong");
+    const char RawGoodAlpn[]    = "Alpn";
+    const char RawEmptyAlpn[]   = "";
+    const char RawLongAlpn[]    = "makethisstringjuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuustright";
+    const char RawTooLongAlpn[] = "makethisextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextraextrlong";
+
+    const QUIC_BUFFER GoodAlpn = { sizeof(RawGoodAlpn) - 1, (uint8_t*)RawGoodAlpn };
+    const QUIC_BUFFER EmptyAlpn = { sizeof(RawEmptyAlpn) - 1, (uint8_t*)RawEmptyAlpn };
+    const QUIC_BUFFER LongAlpn = { sizeof(RawLongAlpn) - 1, (uint8_t*)RawLongAlpn };
+    const QUIC_BUFFER TooLongAlpn = { sizeof(RawTooLongAlpn) - 1, (uint8_t*)RawTooLongAlpn };
 
     //
     // Test null out param.
@@ -134,7 +139,10 @@ void QuicTestValidateSession()
     //
     // Multiple ALPNs
     //
-    QUIC_CONST_BUFFER_STR2(TwoAlpns, "alpn1", "alpn2");
+    const QUIC_BUFFER TwoAlpns[] = {
+        { sizeof("alpn1") - 1, (uint8_t*)"alpn1" },
+        { sizeof("alpn2") - 1, (uint8_t*)"alpn2" }
+    };
     TEST_QUIC_SUCCEEDED(
         MsQuic->SessionOpen(
             TestReg,
