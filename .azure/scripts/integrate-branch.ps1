@@ -22,6 +22,10 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 # Redirect stderr to stdout for git.
 $env:GIT_REDIRECT_STDERR = '2>&1'
 
+# Set identity for any git commands that need it.
+git config user.email "quicdev@microsoft.com"
+git config user.name "QUIC Dev Bot"
+
 # Remove the 'refs/heads/' prefix.
 $MirrorBranch = $Branch.Substring(11)
 
@@ -54,10 +58,6 @@ if ($LASTEXITCODE) {
     if ($LASTEXITCODE) { Write-Error "Push branch failed!" }
 
 } else {
-    # Set identity for any merge commits.
-    git config user.email "quicdev@microsoft.com"
-    git config user.name "QUIC Dev Bot"
-
     # Checkout successful. Merge the mirror changes.
     Write-Host "`n== Merging $MirrorBranch into $IntegrationBranch =="
     git merge $MirrorBranch
