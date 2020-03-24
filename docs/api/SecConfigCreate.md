@@ -56,7 +56,7 @@ A pointer to the app's callback handler to be executed when the security config 
 
 # Return Value
 
-The function returns a [QUIC_STATUS](../v0/QUIC_STATUS.md). The app may use `QUIC_FAILED` or `QUIC_SUCCEEDED` to determine if the function failed or succeeded.
+The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAILED` or `QUIC_SUCCEEDED` to determine if the function failed or succeeded.
 
 # Remarks
 

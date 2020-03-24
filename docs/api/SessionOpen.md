@@ -45,7 +45,7 @@ On success, returns a handle to the newly opened session object.
 
 # Return Value
 
-The function returns a [QUIC_STATUS](../v0/QUIC_STATUS.md). The app may use `QUIC_FAILED` or `QUIC_SUCCEEDED` to determine if the function failed or succeeded.
+The function returns a [QUIC_STATUS](../api/QUIC_STATUS.md). The app may use `QUIC_FAILED` or `QUIC_SUCCEEDED` to determine if the function failed or succeeded.
 
 # Remarks
 

@@ -25,7 +25,7 @@ std::vector<const char*> ALPNs(
       "hq-25", "hq-26", "hq-27",
       "smb" });
 
-QUIC_API_V1* MsQuic;
+const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 
 extern "C" void QuicTraceRundown(void) { }
@@ -159,12 +159,13 @@ main(int argc, char **argv)
         }
     }
 
-    if (QUIC_FAILED(MsQuicOpenV1(&MsQuic))) {
-        printf("MsQuicOpenV1 failed.\n");
+    if (QUIC_FAILED(MsQuicOpen(&MsQuic))) {
+        printf("MsQuicOpen failed.\n");
         exit(1);
     }
 
-    if (QUIC_FAILED(MsQuic->RegistrationOpen("reach", &Registration))) {
+    const QUIC_REGISTRATION_CONFIG RegConfig = { "reach", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
+    if (QUIC_FAILED(MsQuic->RegistrationOpen(&RegConfig, &Registration))) {
         printf("RegistrationOpen failed.\n");
         exit(1);
     }

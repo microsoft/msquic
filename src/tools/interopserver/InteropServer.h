@@ -9,7 +9,7 @@
 
 #include <msquichelper.h>
 
-extern QUIC_API_V1* MsQuic;
+extern const QUIC_API_TABLE* MsQuic;
 extern QUIC_SEC_CONFIG* SecurityConfig;
 
 //

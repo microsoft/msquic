@@ -11,24 +11,15 @@ _Pre_defensive_
 QUIC_STATUS
 QUIC_API
 MsQuicOpen(
-    _In_ uint32_t ApiVersion,
-    _Out_ void** QuicApi
+    _Out_ const QUIC_API_TABLE** QuicApi
     );
 ```
 
 # Parameters
 
-`ApiVersion`
-
-The version number of the API handle and function table to open.
-
-Value | Meaning
---- | ---
-**QUIC_API_VERSION_1**<br>0x00000001 | Version 1 of the MsQuic API.<br>`QuicApi` returns a pointer to a [QUIC_API_V1](../v1/QUIC_API_V1.md) function table.
-
 `QuicApi`
 
-On success, returns a pointer to the new version specific function table. The table above explains the mappings between `ApiVersion` to function table.
+On success, returns a pointer to the API function table.
 
 # Return Value
 
@@ -40,25 +31,7 @@ This function is the entry point for the MsQuic API. This function may be called
 
 For every successful call to **MsQuicOpen** the app must call [MsQuicClose](MsQuicClose.md), passing in the function table from *QuicApi* when the app is done with it.
 
-## Helpers
-
-Version specific helpers of this function are included inline:
-
-### MsQuicOpenV1
-
-```C
-inline
-QUIC_STATUS
-QUIC_API
-MsQuicOpenV1(
-    _Out_ QUIC_API_V1** QuicApi
-    )
-{
-    return MsQuicOpen(QUIC_API_VERSION_1, (void**)QuicApi);
-}
-```
-
 # See Also
 
 [MsQuicClose](MsQuicClose.md)<br>
-[QUIC_API_V1](../v1/QUIC_API_V1.md)<br>
+[QUIC_API_TABLE](QUIC_API_TABLE.md)<br>

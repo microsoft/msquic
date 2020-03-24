@@ -11,7 +11,7 @@ Abstract:
 
 #include "QuicPing.h"
 
-QUIC_API_V1* MsQuic;
+const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 QUIC_SEC_CONFIG* SecurityConfig;
 QUIC_PING_CONFIG PingConfig;
@@ -316,6 +316,7 @@ main(
     )
 {
     int ErrorCode = -1;
+    const QUIC_REGISTRATION_CONFIG RegConfig = { "quicping", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
 
     QuicPlatformSystemLoad();
     QuicPlatformInitialize();
@@ -325,12 +326,12 @@ main(
         goto Error;
     }
 
-    if (QUIC_FAILED(MsQuicOpenV1(&MsQuic))) {
+    if (QUIC_FAILED(MsQuicOpen(&MsQuic))) {
         printf("MsQuicOpen failed!\n");
         goto Error;
     }
 
-    if (QUIC_FAILED(MsQuic->RegistrationOpen("quicping", &Registration))) {
+    if (QUIC_FAILED(MsQuic->RegistrationOpen(&RegConfig, &Registration))) {
         printf("RegistrationOpen failed!\n");
         MsQuicClose(MsQuic);
         goto Error;

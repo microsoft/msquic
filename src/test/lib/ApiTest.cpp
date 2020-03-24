@@ -17,20 +17,7 @@ void QuicTestValidateApi()
 {
     TEST_QUIC_STATUS(
         QUIC_STATUS_INVALID_PARAMETER,
-        MsQuicOpenV1(nullptr));
-
-    QUIC_API_V1* BadVersion = nullptr;
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_NOT_SUPPORTED,
-        MsQuicOpen(0, (void**)&BadVersion));
-
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_NOT_SUPPORTED,
-        MsQuicOpen(QUIC_API_VERSION_1 + 1, (void**)&BadVersion));
-
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_NOT_SUPPORTED,
-        MsQuicOpen(0xFFFFFFFF, (void**)&BadVersion));
+        MsQuicOpen(nullptr));
 
     MsQuicClose(nullptr);
 }

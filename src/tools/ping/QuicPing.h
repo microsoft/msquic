@@ -17,7 +17,7 @@
 //
 // QUIC API Function Table.
 //
-extern QUIC_API_V1* MsQuic;
+extern const QUIC_API_TABLE* MsQuic;
 
 //
 // Registration context.

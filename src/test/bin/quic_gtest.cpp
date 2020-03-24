@@ -12,7 +12,7 @@
 #endif
 
 bool TestingKernelMode = false;
-QUIC_API_V1* MsQuic;
+const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 QUIC_SEC_CONFIG_PARAMS* SelfSignedCertParams;
 QUIC_SEC_CONFIG* SecurityConfig;
@@ -39,8 +39,9 @@ public:
             ASSERT_TRUE(DriverClient.Initialize(SelfSignedCertParams));
         } else {
             printf("Initializing for User Mode tests\n");
-            ASSERT_TRUE(QUIC_SUCCEEDED(MsQuicOpenV1(&MsQuic)));
-            ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->RegistrationOpen("MsQuicBVT", &Registration)));
+            ASSERT_TRUE(QUIC_SUCCEEDED(MsQuicOpen(&MsQuic)));
+            const QUIC_REGISTRATION_CONFIG RegConfig = { "MsQuicBVT", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
+            ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&RegConfig, &Registration)));
             ASSERT_TRUE(LoadSecConfig());
             QuicTestInitialize();
         }
