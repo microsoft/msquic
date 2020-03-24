@@ -80,7 +80,8 @@ void QuicPingServerRun()
     if (QUIC_FAILED(
         MsQuic->SessionOpen(
             Registration,
-            PingConfig.ALPN,
+            &PingConfig.ALPN,
+            1,
             NULL,
             &Session.Handle))) {
         printf("MsQuic->SessionOpen failed!\n");

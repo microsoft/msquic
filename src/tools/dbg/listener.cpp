@@ -31,7 +31,7 @@ EXT_COMMAND(
         Listener.WildCard() ? "true" : "false",
         Session.Addr,
         Session.Addr,
-        Session.GetAlpn().Data,
+        Session.GetAlpns().Data,
         Listener.GetBinding(),
         Listener.GetBinding(),
         Listener.GetLocalAddress().IpString);

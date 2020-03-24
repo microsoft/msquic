@@ -258,8 +258,8 @@ QuicCryptoTlsReadAlpnExtension(
     BufferLength -= sizeof(uint16_t);
     Buffer += sizeof(uint16_t);
 
-    Info->AlpnList = Buffer;
-    Info->AlpnListLength = BufferLength;
+    Info->ClientAlpnList = Buffer;
+    Info->ClientAlpnListLength = BufferLength;
 
     //
     // Loop through the contents of the extension to ensure it is properly
@@ -525,7 +525,7 @@ QuicCryptoTlsReadInitial(
 
     } while (BufferLength > 0);
 
-    if (Info->AlpnList == NULL) {
+    if (Info->ClientAlpnList == NULL) {
         QuicTraceEvent(ConnError, Connection, "No ALPN list extension present");
         return QUIC_STATUS_INVALID_PARAMETER;
     }

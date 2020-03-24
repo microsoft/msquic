@@ -1095,8 +1095,13 @@ QuicLibraryOnListenerRegistered(
         QuicTraceEvent(LibraryWorkerPoolInit);
 
         QUIC_DBG_ASSERT(MsQuicLib.UnregisteredSession == NULL);
-        MsQuicLib.UnregisteredSession = QuicSessionAlloc(NULL, NULL, 0, NULL);
-        if (MsQuicLib.UnregisteredSession == NULL) {
+        if (QUIC_FAILED(
+            QuicSessionAlloc(
+                NULL,
+                NULL,
+                NULL,
+                0,
+                &MsQuicLib.UnregisteredSession))) {
             Success = FALSE;
             goto Fail;
         }

@@ -17,6 +17,9 @@ const uint32_t CertValidationIgnoreFlags =
     QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
     QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID;
 
+const uint8_t Alpn[] = { 1, 'A' };
+const uint8_t MultiAlpn[] = { 1, 'C', 1, 'A', 1, 'B' };
+
 struct TlsTest : public ::testing::TestWithParam<bool>
 {
 protected:
@@ -92,7 +95,7 @@ protected:
     {
         QUIC_TLS_SESSION* Ptr;
         TlsSession() : Ptr(nullptr) {
-            EXPECT_EQ(QUIC_STATUS_SUCCESS, QuicTlsSessionInitialize("MsQuicTest", &Ptr));
+            EXPECT_EQ(QUIC_STATUS_SUCCESS, QuicTlsSessionInitialize(&Ptr));
         }
         ~TlsSession() {
             QuicTlsSessionUninitialize(Ptr);
@@ -132,6 +135,7 @@ protected:
         void InitializeServer(
             TlsSession& Session,
             const QUIC_SEC_CONFIG* SecConfig,
+            bool MultipleAlpns = false,
             uint16_t TPLen = 64
             )
         {
@@ -139,12 +143,16 @@ protected:
             Config.IsServer = TRUE;
             Config.TlsSession = Session.Ptr;
             Config.SecConfig = (QUIC_SEC_CONFIG*)SecConfig;
+            UNREFERENCED_PARAMETER(MultipleAlpns); // The server must always send back the negotiated ALPN.
+            Config.AlpnBuffer = Alpn;
+            Config.AlpnBufferLength = sizeof(Alpn);
             Config.LocalTPBuffer =
                 (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
             Config.Connection = (QUIC_CONNECTION*)this;
             Config.ProcessCompleteCallback = OnProcessComplete;
             Config.ReceiveTPCallback = OnRecvQuicTP;
+            State.NegotiatedAlpn = Alpn;
 
             VERIFY_QUIC_SUCCESS(
                 QuicTlsInitialize(
@@ -155,6 +163,7 @@ protected:
         void InitializeClient(
             TlsSession& Session,
             QUIC_SEC_CONFIG* ClientConfig,
+            bool MultipleAlpns = false,
             uint16_t TPLen = 64
             )
         {
@@ -162,6 +171,8 @@ protected:
             Config.IsServer = FALSE;
             Config.TlsSession = Session.Ptr;
             Config.SecConfig = ClientConfig;
+            Config.AlpnBuffer = MultipleAlpns ? MultiAlpn : Alpn;
+            Config.AlpnBufferLength = MultipleAlpns ? sizeof(MultiAlpn) : sizeof(Alpn);
             Config.LocalTPBuffer =
                 (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + TPLen);
             Config.LocalTPLength = QuicTlsTPHeaderSize + TPLen;
@@ -177,13 +188,14 @@ protected:
         }
 
         void InitializeClient(
-            TlsSession& Session
+            TlsSession& Session,
+            bool MultipleAlpns = false
             )
         {
             QUIC_SEC_CONFIG* ClientConfig;
             QuicTlsClientSecConfigCreate(
                 CertValidationIgnoreFlags, &ClientConfig);
-            InitializeClient(Session, ClientConfig);
+            InitializeClient(Session, ClientConfig, MultipleAlpns);
         }
 
     private:
@@ -269,14 +281,14 @@ protected:
             uint32_t Result = 0;
             uint32_t ConsumedBuffer = FragmentSize;
             uint32_t Count = 1;
-            while (BufferLength != 0) {
+            while (BufferLength != 0 && !(Result & QUIC_TLS_RESULT_ERROR)) {
 
                 if (BufferLength < FragmentSize) {
                     FragmentSize = BufferLength;
                     ConsumedBuffer = FragmentSize;
                 }
 
-                std::cout << "Processing fragment of " << FragmentSize << " bytes" << std::endl;
+                //std::cout << "Processing fragment of " << FragmentSize << " bytes" << std::endl;
 
                 Result |= (uint32_t)ProcessData(BufferKey, Buffer, &ConsumedBuffer);
 
@@ -308,9 +320,9 @@ protected:
                 return ProcessData(QUIC_PACKET_KEY_INITIAL, nullptr, &Zero);
             }
 
-            uint32_t Result;
+            uint32_t Result = 0;
 
-            while (PeerState->BufferLength != 0) {
+            while (PeerState->BufferLength != 0 && !(Result & QUIC_TLS_RESULT_ERROR)) {
                 uint16_t BufferLength;
                 QUIC_PACKET_KEY_TYPE PeerWriteKey;
 
@@ -560,6 +572,39 @@ TEST_F(TlsTest, Handshake)
         TlsContext ServerContext, ClientContext;
         ServerContext.InitializeServer(ServerSession, SecConfig);
         ClientContext.InitializeClient(ClientSession);
+        DoHandshake(ServerContext, ClientContext);
+    }
+}
+
+TEST_F(TlsTest, HandshakeMultiAlpnServer)
+{
+    TlsSession ServerSession, ClientSession;
+    {
+        TlsContext ServerContext, ClientContext;
+        ServerContext.InitializeServer(ServerSession, SecConfig, true);
+        ClientContext.InitializeClient(ClientSession);
+        DoHandshake(ServerContext, ClientContext);
+    }
+}
+
+TEST_F(TlsTest, HandshakeMultiAlpnClient)
+{
+    TlsSession ServerSession, ClientSession;
+    {
+        TlsContext ServerContext, ClientContext;
+        ServerContext.InitializeServer(ServerSession, SecConfig);
+        ClientContext.InitializeClient(ClientSession, true);
+        DoHandshake(ServerContext, ClientContext);
+    }
+}
+
+TEST_F(TlsTest, HandshakeMultiAlpnBoth)
+{
+    TlsSession ServerSession, ClientSession;
+    {
+        TlsContext ServerContext, ClientContext;
+        ServerContext.InitializeServer(ServerSession, SecConfig, true);
+        ClientContext.InitializeClient(ClientSession, true);
         DoHandshake(ServerContext, ClientContext);
     }
 }

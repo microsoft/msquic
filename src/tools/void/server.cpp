@@ -104,7 +104,8 @@ void VoidInitializeBaseObjects() {
 }
 
 void VoidInitializeSessionObjects() {
-    EXIT_ON_FAILURE(MsQuic->SessionOpen(Registration, "spin", nullptr, &Session));
+    const QUIC_BUFFER Alpn = { sizeof("spin") - 1, (uint8_t*)"spin" };
+    EXIT_ON_FAILURE(MsQuic->SessionOpen(Registration, &Alpn, 1, nullptr, &Session));
 
     uint16_t PeerStreamCount = 9999;
     EXIT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));

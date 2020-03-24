@@ -242,6 +242,15 @@ TEST(Basic, StartListener) {
     }
 }
 
+TEST(Basic, StartListenerMultiAlpns) {
+    TestLogger Logger("QuicTestStartListenerMultiAlpns");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_START_LISTENER_MULTI_ALPN));
+    } else {
+        QuicTestStartListenerMultiAlpns();
+    }
+}
+
 TEST_P(WithFamilyArgs, StartListenerImplicit) {
     TestLoggerT<ParamType> Logger("QuicTestStartListenerImplicit", GetParam());
     if (TestingKernelMode) {

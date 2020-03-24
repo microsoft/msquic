@@ -176,12 +176,15 @@ typedef struct QUIC_NEW_CONNECTION_INFO {
     const QUIC_ADDR* LocalAddress;
     const QUIC_ADDR* RemoteAddress;
     uint32_t CryptoBufferLength;
-    uint16_t AlpnListLength;
+    uint16_t ClientAlpnListLength;
     uint16_t ServerNameLength;
+    uint8_t NegotiatedAlpnLength;
     _Field_size_bytes_(CryptoBufferLength)
     const uint8_t* CryptoBuffer;
-    _Field_size_bytes_(AlpnListLength)
-    const uint8_t* AlpnList;
+    _Field_size_bytes_(ClientAlpnListLength)
+    const uint8_t* ClientAlpnList;
+    _Field_size_bytes_(NegotiatedAlpnLength)
+    const uint8_t* NegotiatedAlpn;
     _Field_size_bytes_opt_(ServerNameLength)
     const char* ServerName;
 } QUIC_NEW_CONNECTION_INFO;
@@ -465,8 +468,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_SESSION_OPEN_FN)(
     _In_ _Pre_defensive_ HQUIC Registration,
-    _In_reads_z_(QUIC_MAX_ALPN_LENGTH)
-        const char* Alpn,    // Application-Layer Protocol Negotiation
+    _In_reads_(AlpnBufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const AlpnBuffers,
+    _In_range_(>, 0) uint32_t AlpnBufferCount,
     _In_opt_ void* Context,
     _Outptr_ _At_(*Session, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC* Session
@@ -599,6 +603,9 @@ typedef struct QUIC_CONNECTION_EVENT {
     union {
         struct {
             BOOLEAN SessionResumed;
+            uint8_t NegotiatedAlpnLength;
+            _Field_size_(NegotiatedAlpnLength)
+            const uint8_t* NegotiatedAlpn;
         } CONNECTED;
         struct {
             QUIC_STATUS Status;
