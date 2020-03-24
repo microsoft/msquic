@@ -13,7 +13,7 @@ set CMAKE_CLOG_BINS_DIRECTORY=%CMAKE_SOURCE_DIR%\artifacts\tools\bin\clog
 set CMAKE_CLOG_SIDECAR_DIRECTORY=%CMAKE_SOURCE_DIR%\src\manifest
 set CLOG_SOURCE_DIRECTORY=%CMAKE_SOURCE_DIR%\submodules\clog
 set CLOG_INCLUDE_DIRECTORY=%CMAKE_SOURCE_DIR%\inc
-set CMAKE_CLOG_CONFIG_FILE=%CMAKE_SOURCE_DIR%\src\manifest\msquic_windows_kernel.clog_config
+set CMAKE_CLOG_CONFIG_FILE=%CMAKE_SOURCE_DIR%\src\manifest\msquic.clog_config
 
 echo %CMAKE_SOURCE_DIR%
 
@@ -27,7 +27,7 @@ pushd %CMAKE_PROJECTDIR%
 for %%i in (*.c* *.c operation.h stream.h connection.h) do (
     echo CLOG Processing %%i
     if NOT EXIST %CMAKE_CLOG_OUTPUT_DIRECTORY%\%%i.clog (
-        %CMAKE_CLOG_BINS_DIRECTORY%\clog.exe --scopePrefix %SCOPE_PREFIX% -c %CMAKE_CLOG_CONFIG_FILE% -s %CMAKE_CLOG_SIDECAR_DIRECTORY%\clog.sidecar -i %%i -o %CMAKE_CLOG_OUTPUT_DIRECTORY%\%%i.clog
+        %CMAKE_CLOG_BINS_DIRECTORY%\clog.exe -p windows_kernel --scopePrefix %SCOPE_PREFIX% -c %CMAKE_CLOG_CONFIG_FILE% -s %CMAKE_CLOG_SIDECAR_DIRECTORY%\clog.sidecar -i %%i -o %CMAKE_CLOG_OUTPUT_DIRECTORY%\%%i.clog
         echo %%i
     )
 )
