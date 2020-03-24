@@ -133,7 +133,7 @@ else()
 
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for LTTng events and disabling logging")        
-        set(CMAKE_CLOG_CONFIG_PROFILE linux_lttng)
+        set(CMAKE_CLOG_CONFIG_PROFILE linux)
         include(FindLTTngUST)
     else()
         message(STATUS "Disabling events and logging")        
