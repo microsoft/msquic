@@ -15,8 +15,9 @@ const QUIC_API_TABLE* MsQuic;
 QUIC_SEC_CONFIG* SecurityConfig;
 const char* RootFolderPath;
 
-const char* SupportedALPNs[] = {
-    ALPN_HTTP_OVER_QUIC,
+const QUIC_BUFFER SupportedALPNs[] = {
+    { sizeof("hq-27") - 1, (uint8_t*)"hq-27" },
+    { sizeof("hq-25") - 1, (uint8_t*)"hq-25" }
 };
 
 void
@@ -114,16 +115,10 @@ main(
         return -1;
     }
 
-    HttpSession* Sessions[ARRAYSIZE(SupportedALPNs)] = {0};
-    for (uint32_t i = 0; i < ARRAYSIZE(Sessions); ++i) {
-        Sessions[i] = new HttpSession(Registration, SupportedALPNs[i], &ListenAddr);
-    }
-
-    printf("Press Enter to exit.\n\n");
-    getchar();
-
-    for (uint32_t i = 0; i < ARRAYSIZE(Sessions); ++i) {
-        delete Sessions[i];
+    {
+        HttpSession Session(Registration, SupportedALPNs, ARRAYSIZE(SupportedALPNs), &ListenAddr);
+        printf("Press Enter to exit.\n\n");
+        getchar();
     }
 
     MsQuic->SecConfigDelete(SecurityConfig);

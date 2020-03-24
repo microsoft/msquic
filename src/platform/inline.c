@@ -169,3 +169,13 @@ QuicTraceStubVarArgs(
     _In_ const void* Fmt,
     ...
     );
+
+const uint8_t*
+QuicTlsAlpnFindInList(
+    _In_ uint16_t AlpnListLength,
+    _In_reads_(AlpnListLength)
+        const uint8_t* AlpnList,
+    _In_ uint8_t FindAlpnLength,
+    _In_reads_(FindAlpnLength)
+        const uint8_t* FindAlpn
+    );

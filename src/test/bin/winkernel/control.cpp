@@ -487,7 +487,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_RECEIVE_RESUME_PARAMS),
     0,
     sizeof(QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS),
-    sizeof(INT32)
+    sizeof(INT32),
+    0
 };
 
 static_assert(
@@ -813,6 +814,10 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(
             QuicDrillTestInitialToken(
                 Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_START_LISTENER_MULTI_ALPN:
+        QuicTestCtlRun(QuicTestStartListenerMultiAlpns());
         break;
 
     default:

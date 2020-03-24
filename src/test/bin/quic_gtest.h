@@ -127,10 +127,6 @@ std::ostream& operator << (std::ostream& o, const SendArgs1& args) {
         (args.ServerInitiatedStreams ? "Server" : "Client");
 }
 
-class WithSendArgs1 : public testing::Test,
-    public testing::WithParamInterface<SendArgs1> {
-};
-
 struct SendArgs2 {
     int Family;
     bool UseSendBuffer;
@@ -189,6 +185,66 @@ std::ostream& operator << (std::ostream& o, const SendArgs3& args) {
 
 class WithSendArgs3 : public testing::Test,
     public testing::WithParamInterface<SendArgs3> {
+};
+
+class WithSendArgs1 : public testing::Test,
+    public testing::WithParamInterface<SendArgs1> {
+};
+
+struct Send0RttArgs1 {
+    int Family;
+    uint64_t Length;
+    uint32_t ConnectionCount;
+    uint32_t StreamCount;
+    bool UseSendBuffer;
+    bool UnidirectionalStreams;
+    static ::std::vector<Send0RttArgs1> Generate() {
+        ::std::vector<Send0RttArgs1> list;
+        for (int Family : { 4, 6 })
+        for (uint64_t Length : { 0, 100, 1000, 2000 })
+        for (uint32_t ConnectionCount : { 1, 2, 4 })
+        for (uint32_t StreamCount : { 1, 2, 4 })
+        for (bool UseSendBuffer : { false, true })
+        for (bool UnidirectionalStreams : { false, true })
+            list.push_back({ Family, Length, ConnectionCount, StreamCount, UseSendBuffer, UnidirectionalStreams });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const Send0RttArgs1& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.Length << "/" <<
+        args.ConnectionCount << "/" <<
+        args.StreamCount << "/" <<
+        (args.UseSendBuffer ? "SendBuffer" : "NoSendBuffer") << "/" <<
+        (args.UnidirectionalStreams ? "Uni" : "Bidi");
+}
+
+class WithSend0RttArgs1 : public testing::Test,
+    public testing::WithParamInterface<Send0RttArgs1> {
+};
+
+struct Send0RttArgs2 {
+    int Family;
+    uint64_t Length;
+    static ::std::vector<Send0RttArgs2> Generate() {
+        ::std::vector<Send0RttArgs2> list;
+        for (int Family : { 4, 6 })
+        for (uint64_t Length : { 0, 1000, 10000, 20000 })
+            list.push_back({ Family, Length });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const Send0RttArgs2& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.Length;
+}
+
+class WithSend0RttArgs2 : public testing::Test,
+    public testing::WithParamInterface<Send0RttArgs2> {
 };
 
 struct KeyUpdateArgs1 {

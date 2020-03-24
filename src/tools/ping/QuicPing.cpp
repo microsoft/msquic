@@ -108,7 +108,9 @@ ParseCommonCommands(
 
     const char* alpn = DEFAULT_ALPN;
     TryGetValue(argc, argv, "alpn", &alpn);
-    strcpy(PingConfig.ALPN, alpn);
+    strcpy(PingConfig.RawALPN, alpn);
+    PingConfig.ALPN.Buffer = (uint8_t*)PingConfig.RawALPN;
+    PingConfig.ALPN.Length = (uint32_t)strlen(PingConfig.RawALPN);
 
     uint16_t port = DEFAULT_PORT;
     TryGetValue(argc, argv, "port", &port);

@@ -12,7 +12,7 @@ Abstract:
 #include <msquichelper.h>
 
 const QUIC_REGISTRATION_CONFIG RegConfig = { "quicsample", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
-const char* Alpn = "sample";
+const QUIC_BUFFER Alpn = { sizeof("sample") - 1, (uint8_t*)"sample" };
 const uint16_t UdpPort = 4567;
 const uint64_t IdleTimeoutMs = 1000;
 const uint32_t SendBufferLength = 100;
@@ -354,7 +354,7 @@ RunClient(
     printf("[conn][%p] Connecting...\n", Connection);
 
     if (QUIC_FAILED(Status = MsQuic->ConnectionStart(Connection, AF_UNSPEC, Target, UdpPort))) {
-        printf("SessionOpen failed, 0x%x!\n", Status);
+        printf("ConnectionStart failed, 0x%x!\n", Status);
         goto Error;
     }
 
@@ -391,7 +391,7 @@ main(
         goto Error;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->SessionOpen(Registration, Alpn, nullptr, &Session))) {
+    if (QUIC_FAILED(Status = MsQuic->SessionOpen(Registration, &Alpn, 1, nullptr, &Session))) {
         printf("SessionOpen failed, 0x%x!\n", Status);
         goto Error;
     }

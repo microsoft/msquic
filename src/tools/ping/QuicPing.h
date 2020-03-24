@@ -101,7 +101,8 @@ typedef struct QUIC_PING_CONFIG {
     bool UsePacing     : 1;
     bool PrintStats    : 1;
 
-    char ALPN[256];
+    char RawALPN[256];
+    QUIC_BUFFER ALPN;
     QUIC_ADDR LocalIpAddr;
 
     uint32_t DisconnectTimeout; // Milliseconds

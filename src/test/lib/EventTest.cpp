@@ -346,8 +346,9 @@ QuicTestValidateConnectionEvents2(
 
 void QuicTestValidateConnectionEvents()
 {
-    MsQuicSession Session(Registration, "MsQuicTest", true);
+    MsQuicSession Session;
     TEST_TRUE(Session.IsValid());
+    Session.SetAutoCleanup();
 
     { // Listener Scope
 
@@ -382,8 +383,9 @@ QuicTestValidateStreamEvents1(
     _In_ QuicAddr& ServerLocalAddr
     )
 {
-    MsQuicSession Session(Registration, "MsQuicTest", true);
+    MsQuicSession Session;
     TEST_TRUE(Session.IsValid());
+    Session.SetAutoCleanup();
 
     { // Connections scope
     ConnValidator Client, Server;
@@ -487,8 +489,9 @@ QuicTestValidateStreamEvents2(
     _In_ QuicAddr& ServerLocalAddr
     )
 {
-    MsQuicSession Session(Registration, "MsQuicTest", true);
+    MsQuicSession Session;
     TEST_TRUE(Session.IsValid());
+    Session.SetAutoCleanup();
 
     { // Connections scope
     ConnValidator Client, Server;
@@ -575,8 +578,9 @@ QuicTestValidateStreamEvents2(
 
 void QuicTestValidateStreamEvents()
 {
-    MsQuicSession Session(Registration, "MsQuicTest", true);
+    MsQuicSession Session;
     TEST_TRUE(Session.IsValid());
+    Session.SetAutoCleanup();
 
     uint16_t StreamCount = 1;
     TEST_QUIC_SUCCEEDED(

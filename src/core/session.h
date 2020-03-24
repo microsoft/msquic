@@ -100,15 +100,12 @@ typedef struct QUIC_SESSION {
     QUIC_DISPATCH_LOCK ConnectionsLock;
 
     //
-    // Length of the ALPN string (not including null terminator).
+    // The application layer protocol negotiation buffers. Encoded in the TLS
+    // extension format.
     //
-    uint8_t AlpnLength;
-
-    //
-    // The application layer protocol negotiation string.
-    //
-    _Field_z_ _Field_size_(AlpnLength + 1)
-    char Alpn[0];
+    uint16_t AlpnListLength;
+    _Field_size_(AlpnListLength)
+    uint8_t AlpnList[0];
 
 } QUIC_SESSION;
 
@@ -134,16 +131,37 @@ typedef struct QUIC_SESSION {
 // Initializes an empty session object.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-__drv_allocatesMem(Mem)
-_Must_inspect_result_
-_Success_(return != NULL)
-QUIC_SESSION*
+QUIC_STATUS
 QuicSessionAlloc(
     _In_opt_ QUIC_REGISTRATION* Registration,
     _In_opt_ void* Context,
-    _In_ uint8_t AlpnLength,
-    _In_reads_opt_(AlpnLength)
-        const uint8_t* Alpn
+    _When_(AlpnBufferCount > 0, _In_reads_(AlpnBufferCount))
+    _When_(AlpnBufferCount == 0, _In_opt_)
+        const QUIC_BUFFER* const AlpnBuffers,
+    _In_ uint32_t AlpnBufferCount,
+    _Outptr_ _At_(*NewSession, __drv_allocatesMem(Mem))
+        QUIC_SESSION** NewSession
+    );
+
+//
+// Returns TRUE if the two sessions have an overlapping ALPN.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicSessionHasAlpnOverlap(
+    _In_ const QUIC_SESSION* Session1,
+    _In_ const QUIC_SESSION* Session2
+    );
+
+//
+// Returns TRUE if the session has a matching ALPN. Also updates the new
+// connection info with the matching ALPN.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicSessionMatchesAlpn(
+    _In_ const QUIC_SESSION* Session,
+    _In_ QUIC_NEW_CONNECTION_INFO* Info
     );
 
 //
