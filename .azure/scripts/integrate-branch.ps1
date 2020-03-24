@@ -22,7 +22,7 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 # Redirect stderr to stdout for git.
 $env:GIT_REDIRECT_STDERR = '2>&1'
 
-# Set identity for any merge commits.
+# Set identity for any git commands that need it.
 git config user.email "quicdev@microsoft.com"
 git config user.name "QUIC Dev Bot"
 
