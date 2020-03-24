@@ -31,8 +31,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -44,8 +42,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -53,20 +49,12 @@
             {
               "ExportModule": "TRACELOGGING",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
-                "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
             },
             {
               "ExportModule": "DTRACE",
-              "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
-                "ETWManifestFile": "MsQuicEtw.man",
-                "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-              }
+              "CustomSettings": {}
             }
           ]
         }
@@ -97,8 +85,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -110,7 +96,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "WPPArgNumber": "2",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -118,18 +103,12 @@
             {
               "ExportModule": "TRACELOGGING",
               "CustomSettings": {
-                "WPPArgNumber": "2",
-                "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
             },
             {
               "ExportModule": "DTRACE",
-              "CustomSettings": {
-                "WPPArgNumber": "2",
-                "ETWManifestFile": "MsQuicEtw.man",
-                "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-              }
+              "CustomSettings": {}
             }
           ]
         }
@@ -160,8 +139,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -173,7 +150,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "WPPArgNumber": "2",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -181,18 +157,13 @@
             {
               "ExportModule": "TRACELOGGING",
               "CustomSettings": {
-                "WPPArgNumber": "2",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
             },
             {
               "ExportModule": "DTRACE",
-              "CustomSettings": {
-                "WPPArgNumber": "2",
-                "ETWManifestFile": "MsQuicEtw.man",
-                "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-              }
+              "CustomSettings": {}
             }
           ]
         }
@@ -223,8 +194,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -236,7 +205,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "WPPArgNumber": "2",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -244,18 +212,12 @@
             {
               "ExportModule": "TRACELOGGING",
               "CustomSettings": {
-                "WPPArgNumber": "2",
-                "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
             },
             {
               "ExportModule": "DTRACE",
-              "CustomSettings": {
-                "WPPArgNumber": "2",
-                "ETWManifestFile": "MsQuicEtw.man",
-                "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-              }
+              "CustomSettings": {}
             }
           ]
         }
@@ -286,8 +248,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -299,8 +259,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -308,20 +266,12 @@
             {
               "ExportModule": "TRACELOGGING",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
-                "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
             },
             {
               "ExportModule": "DTRACE",
-              "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
-                "ETWManifestFile": "MsQuicEtw.man",
-                "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-              }
+              "CustomSettings": {}
             }
           ]
         }
@@ -352,8 +302,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -365,8 +313,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -374,20 +320,12 @@
             {
               "ExportModule": "TRACELOGGING",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
-                "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
             },
             {
               "ExportModule": "DTRACE",
-              "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
-                "ETWManifestFile": "MsQuicEtw.man",
-                "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-              }
+              "CustomSettings": {}
             }
           ]
         }
@@ -418,8 +356,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -431,8 +367,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -440,20 +374,12 @@
             {
               "ExportModule": "TRACELOGGING",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
-                "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
             },
             {
               "ExportModule": "DTRACE",
-              "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
-                "ETWManifestFile": "MsQuicEtw.man",
-                "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-              }
+              "CustomSettings": {}
             }
           ]
         }
@@ -484,8 +410,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -497,20 +421,19 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "WPPArgNumber": "2"
+                "ETWManifestFile": "MsQuicEtw.man",
+                "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
             },
             {
               "ExportModule": "TRACELOGGING",
               "CustomSettings": {
-                "WPPArgNumber": "2"
+                "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
             },
             {
               "ExportModule": "DTRACE",
-              "CustomSettings": {
-                "WPPArgNumber": "2"
-              }
+              "CustomSettings": {}
             }
           ]
         }
@@ -541,8 +464,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -554,7 +475,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "WPPArgNumber": "2",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -562,18 +482,12 @@
             {
               "ExportModule": "TRACELOGGING",
               "CustomSettings": {
-                "WPPArgNumber": "2",
-                "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
             },
             {
               "ExportModule": "DTRACE",
-              "CustomSettings": {
-                "WPPArgNumber": "2",
-                "ETWManifestFile": "MsQuicEtw.man",
-                "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-              }
+              "CustomSettings": {}
             }
           ]
         }
@@ -604,8 +518,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -617,7 +529,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "WPPArgNumber": "2",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -625,18 +536,12 @@
             {
               "ExportModule": "TRACELOGGING",
               "CustomSettings": {
-                "WPPArgNumber": "2",
-                "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
             },
             {
               "ExportModule": "DTRACE",
-              "CustomSettings": {
-                "WPPArgNumber": "2",
-                "ETWManifestFile": "MsQuicEtw.man",
-                "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-              }
+              "CustomSettings": {}
             }
           ]
         }
@@ -667,8 +572,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -680,7 +583,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "WPPArgNumber": "2",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -688,18 +590,12 @@
             {
               "ExportModule": "TRACELOGGING",
               "CustomSettings": {
-                "WPPArgNumber": "2",
-                "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
             },
             {
               "ExportModule": "DTRACE",
-              "CustomSettings": {
-                "WPPArgNumber": "2",
-                "ETWManifestFile": "MsQuicEtw.man",
-                "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-              }
+              "CustomSettings": {}
             }
           ]
         }
@@ -730,8 +626,6 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "NeedsWPPConversion": "1",
-                "WPPArgNumber": "0",
                 "ETWManifestFile": "MsQuicEtw.man",
                 "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
@@ -743,32 +637,19 @@
             {
               "ExportModule": "MANIFESTED_ETW",
               "CustomSettings": {
-                "Quic2Clog": "1",
-                "EventNamePrefix": "Quic",
                 "ETWManifestFile": "MsQuicEtw.man",
-                "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
-                "Orig_EncodedArg": "1"
+                "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
             },
             {
               "ExportModule": "TRACELOGGING",
               "CustomSettings": {
-                "Quic2Clog": "1",
-                "EventNamePrefix": "Quic",
-                "ETWManifestFile": "MsQuicEtw.man",
-                "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
-                "Orig_EncodedArg": "1"
+                "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
               }
             },
             {
               "ExportModule": "DTRACE",
-              "CustomSettings": {
-                "Quic2Clog": "1",
-                "EventNamePrefix": "Quic",
-                "ETWManifestFile": "MsQuicEtw.man",
-                "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
-                "Orig_EncodedArg": "1"
-              }
+              "CustomSettings": {}
             }
           ]
         }
