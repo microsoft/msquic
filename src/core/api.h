@@ -5,25 +5,11 @@
 
 --*/
 
-//
-// Version 1 Declarations
-//
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicRegistrationOpen(
-    _In_opt_z_ const char* AppName,
-    _Outptr_ _At_(*Registration, __drv_allocatesMem(Mem)) _Pre_defensive_
-        HQUIC* Registration
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QUIC_API
-MsQuicRegistrationOpenPriv(
-    _In_opt_z_ const char* AppName,
-    _In_opt_ const QUIC_EXEC_PROFILE* ExecProfile,
+    _In_opt_ const QUIC_REGISTRATION_CONFIG* Config,
     _Outptr_ _At_(*Registration, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC* Registration
     );
@@ -61,8 +47,9 @@ QUIC_STATUS
 QUIC_API
 MsQuicSessionOpen(
     _In_ _Pre_defensive_ HQUIC RegistrationContext,
-    _In_reads_z_(QUIC_MAX_ALPN_LENGTH)
-        const char* Alpn,    // Application-Layer Protocol Negotiation
+    _In_reads_(AlpnBufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const AlpnBuffers,
+    _In_ uint32_t AlpnBufferCount,
     _In_opt_ void* Context,
     _Outptr_ _At_(*Session, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC *Session

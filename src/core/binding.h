@@ -292,7 +292,7 @@ _Success_(return != NULL)
 QUIC_LISTENER*
 QuicBindingGetListener(
     _In_ QUIC_BINDING* Binding,
-    _In_ const QUIC_NEW_CONNECTION_INFO* Info
+    _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     );
 
 //
@@ -435,10 +435,8 @@ QuicRetryTokenDecrypt(
     QuicCopyMemory(Token, TokenBuffer, sizeof(QUIC_RETRY_TOKEN_CONTENTS));
 
     uint8_t Iv[QUIC_IV_LENGTH];
+    QuicZeroMemory(Iv, sizeof(Iv));
     QuicCopyMemory(Iv, Packet->DestCid, MSQUIC_CONNECTION_ID_LENGTH);
-    QuicZeroMemory(
-        Iv + MSQUIC_CONNECTION_ID_LENGTH,
-        QUIC_IV_LENGTH - MSQUIC_CONNECTION_ID_LENGTH);
 
     QuicLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
 

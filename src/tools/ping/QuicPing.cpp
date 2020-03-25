@@ -11,7 +11,7 @@ Abstract:
 
 #include "QuicPing.h"
 
-QUIC_API_V1* MsQuic;
+const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 QUIC_SEC_CONFIG* SecurityConfig;
 QUIC_PING_CONFIG PingConfig;
@@ -108,7 +108,9 @@ ParseCommonCommands(
 
     const char* alpn = DEFAULT_ALPN;
     TryGetValue(argc, argv, "alpn", &alpn);
-    strcpy(PingConfig.ALPN, alpn);
+    strcpy(PingConfig.RawALPN, alpn);
+    PingConfig.ALPN.Buffer = (uint8_t*)PingConfig.RawALPN;
+    PingConfig.ALPN.Length = (uint32_t)strlen(PingConfig.RawALPN);
 
     uint16_t port = DEFAULT_PORT;
     TryGetValue(argc, argv, "port", &port);
@@ -314,6 +316,7 @@ main(
     )
 {
     int ErrorCode = -1;
+    const QUIC_REGISTRATION_CONFIG RegConfig = { "quicping", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
 
     QuicPlatformSystemLoad();
     QuicPlatformInitialize();
@@ -323,12 +326,12 @@ main(
         goto Error;
     }
 
-    if (QUIC_FAILED(MsQuicOpenV1(&MsQuic))) {
+    if (QUIC_FAILED(MsQuicOpen(&MsQuic))) {
         printf("MsQuicOpen failed!\n");
         goto Error;
     }
 
-    if (QUIC_FAILED(MsQuic->RegistrationOpen("quicping", &Registration))) {
+    if (QUIC_FAILED(MsQuic->RegistrationOpen(&RegConfig, &Registration))) {
         printf("RegistrationOpen failed!\n");
         MsQuicClose(MsQuic);
         goto Error;

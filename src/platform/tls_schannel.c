@@ -301,9 +301,7 @@ typedef struct QUIC_ACHA_CONTEXT {
 
 typedef struct QUIC_TLS_SESSION {
 
-    SEC_APPLICATION_PROTOCOLS* ApplicationProtocols;
-
-    ULONG AppProtocolsSize;
+    uint32_t Reserved;
 
 } QUIC_TLS_SESSION;
 
@@ -355,6 +353,10 @@ typedef struct QUIC_TLS {
     // SecurityConfig information for this TLS stream.
     //
     QUIC_SEC_CONFIG* SecConfig;
+
+    SEC_APPLICATION_PROTOCOLS* ApplicationProtocols;
+
+    ULONG AppProtocolsSize;
 
     //
     // Schannel encoded TLS extension buffer for QUIC TP.
@@ -781,8 +783,16 @@ QUIC_STATUS
 QuicTlsServerSecConfigCreate(
     _Inout_ QUIC_RUNDOWN_REF* Rundown,
     _In_ QUIC_SEC_CONFIG_FLAGS Flags,
-    _In_opt_ void* Certificate,
-    _In_opt_z_ const char* Principal,
+    _When_(Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH, _In_)
+    _When_(Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE, _In_)
+    _When_(Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT, _In_)
+    _When_(Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_NONE, _In_opt_)
+        void* Certificate,
+    _When_(Flags& QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH, _In_opt_z_)
+    _When_(Flags& QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE, _In_opt_z_)
+    _When_(Flags& QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT, _In_opt_z_)
+    _When_(Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_NONE, _In_z_)
+        const char* Principal,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
@@ -900,6 +910,10 @@ QuicTlsServerSecConfigCreate(
     // Set the parameters and then call ACHA.
     //
     if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH) {
+        if (Certificate == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
         QUIC_CERTIFICATE_HASH* CertHash = Certificate;
         AchaContext->CertHash.dwLength = sizeof(AchaContext->CertHash);
         AchaContext->CertHash.dwFlags |= SCH_MACHINE_CERT_HASH;
@@ -921,6 +935,10 @@ QuicTlsServerSecConfigCreate(
         Credentials->dwFlags |= SCH_MACHINE_CERT_HASH;
 
     } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE) {
+        if (Certificate == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
         QUIC_CERTIFICATE_HASH_STORE* CertHashStore = Certificate;
 
         AchaContext->CertHash.dwLength = sizeof(AchaContext->CertHash);
@@ -932,6 +950,9 @@ QuicTlsServerSecConfigCreate(
             &(CertHashStore->ShaHash),
             sizeof(AchaContext->CertHash.ShaHash));
 
+#pragma warning(push)
+#pragma warning(disable:6387) // Parameter 3 is allowed to be NULL when the value isn't wanted.
+#pragma warning(disable:6385) // SAL ignores the annotations on strnlen_s because of the (ULONG) cast. Probably.
         Status =
             RtlUTF8ToUnicodeN(
                 AchaContext->CertHash.pwszStoreName,
@@ -941,6 +962,7 @@ QuicTlsServerSecConfigCreate(
                 (ULONG) strnlen_s(
                     CertHashStore->StoreName,
                     sizeof(CertHashStore->StoreName)));
+#pragma warning(pop)
         if (!NT_SUCCESS(Status)) {
             QuicTraceEvent(LibraryErrorStatus, Status, "Convert cert store name to unicode");
             goto Error;
@@ -1203,52 +1225,15 @@ QuicTlsSecConfigRelease(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsSessionInitialize(
-    _In_z_ const char* ALPN,
     _Out_ QUIC_TLS_SESSION** NewTlsSession
     )
 {
-    QUIC_STATUS Status;
-    uint8_t AlpnStringLength = (uint8_t)strlen(ALPN);
-    ULONG AppProtocolsSize =
-        (ULONG)(AlpnStringLength + 1 +
-            sizeof(SEC_APPLICATION_PROTOCOLS) +
-            sizeof(SEC_APPLICATION_PROTOCOL_LIST));
-
-    QUIC_TLS_SESSION* TlsSession =
-        QUIC_ALLOC_NONPAGED(sizeof(QUIC_TLS_SESSION) + AppProtocolsSize);
-    if (TlsSession == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_TLS_SESSION", sizeof(QUIC_TLS_SESSION) + AppProtocolsSize);
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
+    *NewTlsSession = QUIC_ALLOC_NONPAGED(sizeof(QUIC_TLS_SESSION));
+    if (*NewTlsSession == NULL) {
+        QuicTraceEvent(AllocFailure, "QUIC_TLS_SESSION", sizeof(QUIC_TLS_SESSION));
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
-
-    TlsSession->AppProtocolsSize = AppProtocolsSize;
-    TlsSession->ApplicationProtocols = (SEC_APPLICATION_PROTOCOLS*)(TlsSession + 1);
-    TlsSession->ApplicationProtocols->ProtocolListsSize =
-        (ULONG)(sizeof(SEC_APPLICATION_PROTOCOL_LIST) + AlpnStringLength + 1);
-
-    SEC_APPLICATION_PROTOCOL_LIST* AlpnList = &TlsSession->ApplicationProtocols->ProtocolLists[0];
-    AlpnList->ProtoNegoExt = SecApplicationProtocolNegotiationExt_ALPN;
-    AlpnList->ProtocolListSize = (USHORT)AlpnStringLength + 1; // plus one for the length.
-    AlpnList->ProtocolList[0] = AlpnStringLength;
-    //
-    // Don't use strcpy because this is a counted string and we don't
-    // want or need the null at the end.
-    //
-    memcpy(&AlpnList->ProtocolList[1], ALPN, AlpnStringLength);
-
-    *NewTlsSession = TlsSession;
-    TlsSession = NULL;
-
-    Status = QUIC_STATUS_SUCCESS;
-
-Error:
-
-    if (TlsSession != NULL) {
-        QUIC_FREE(TlsSession);
-    }
-
-    return Status;
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1299,14 +1284,21 @@ QuicTlsInitialize(
 {
     UNREFERENCED_PARAMETER(Config->Connection);
 
+    const ULONG AppProtocolsSize =
+        (ULONG)(Config->AlpnBufferLength +
+            FIELD_OFFSET(SEC_APPLICATION_PROTOCOLS, ProtocolLists) +
+            FIELD_OFFSET(SEC_APPLICATION_PROTOCOL_LIST, ProtocolList));
+    const size_t TlsSize = sizeof(QUIC_TLS) + (size_t)AppProtocolsSize;
+
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    QUIC_TLS* TlsContext = QUIC_ALLOC_NONPAGED(sizeof(QUIC_TLS));
+    QUIC_TLS* TlsContext = QUIC_ALLOC_NONPAGED(TlsSize);
     if (TlsContext == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_TLS", sizeof(QUIC_TLS));
+        QuicTraceEvent(AllocFailure, "QUIC_TLS", TlsSize);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
+    QUIC_ANALYSIS_ASSUME(sizeof(*TlsContext) < TlsSize); // This should not be necessary.
     RtlZeroMemory(TlsContext, sizeof(*TlsContext));
     SecInvalidateHandle(&TlsContext->SchannelContext);
 
@@ -1315,6 +1307,16 @@ QuicTlsInitialize(
 
     QuicTraceLogVerbose("[ tls][%p][%c] Created.",
         TlsContext, GetTlsIdentifier(TlsContext));
+
+    TlsContext->AppProtocolsSize = AppProtocolsSize;
+    TlsContext->ApplicationProtocols = (SEC_APPLICATION_PROTOCOLS*)(TlsContext + 1);
+    TlsContext->ApplicationProtocols->ProtocolListsSize =
+        (ULONG)(FIELD_OFFSET(SEC_APPLICATION_PROTOCOL_LIST, ProtocolList) + Config->AlpnBufferLength);
+
+    SEC_APPLICATION_PROTOCOL_LIST* AlpnList = &TlsContext->ApplicationProtocols->ProtocolLists[0];
+    AlpnList->ProtoNegoExt = SecApplicationProtocolNegotiationExt_ALPN;
+    AlpnList->ProtocolListSize = Config->AlpnBufferLength;
+    memcpy(&AlpnList->ProtocolList, Config->AlpnBuffer, Config->AlpnBufferLength);
 
     TlsContext->TransportParams = (SEND_GENERIC_TLS_EXTENSION*)Config->LocalTPBuffer;
     TlsContext->TransportParams->ExtensionType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
@@ -1477,8 +1479,8 @@ QuicTlsWriteDataToSchannel(
         // The first (input) secbuffer holds the ALPN for client initials.
         //
         InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_APPLICATION_PROTOCOLS;
-        InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = TlsContext->TlsSession->AppProtocolsSize;
-        InSecBuffers[InSecBufferDesc.cBuffers].pvBuffer = TlsContext->TlsSession->ApplicationProtocols;
+        InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = TlsContext->AppProtocolsSize;
+        InSecBuffers[InSecBufferDesc.cBuffers].pvBuffer = TlsContext->ApplicationProtocols;
         InSecBufferDesc.cBuffers++;
 
     } else {
@@ -1528,8 +1530,8 @@ QuicTlsWriteDataToSchannel(
         // The last (input) secbuffer contains the ALPN on server.
         //
         InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_APPLICATION_PROTOCOLS;
-        InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = TlsContext->TlsSession->AppProtocolsSize;
-        InSecBuffers[InSecBufferDesc.cBuffers].pvBuffer = TlsContext->TlsSession->ApplicationProtocols;
+        InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = TlsContext->AppProtocolsSize;
+        InSecBuffers[InSecBufferDesc.cBuffers].pvBuffer = TlsContext->ApplicationProtocols;
         InSecBufferDesc.cBuffers++;
     }
 
@@ -1743,8 +1745,20 @@ QuicTlsWriteDataToSchannel(
                     Result |= QUIC_TLS_RESULT_ERROR;
                     break;
                 }
-                // TODO: When client supports multiple ALPNs, QUIC will need to
-                // signal in the upcall which ALPN(s) were negotiated.
+                const SEC_APPLICATION_PROTOCOL_LIST* AlpnList =
+                    &TlsContext->ApplicationProtocols->ProtocolLists[0];
+                State->NegotiatedAlpn =
+                    QuicTlsAlpnFindInList(
+                        AlpnList->ProtocolListSize,
+                        AlpnList->ProtocolList,
+                        NegotiatedAlpn.ProtocolIdSize,
+                        NegotiatedAlpn.ProtocolId);
+                if (State->NegotiatedAlpn == NULL) {
+                    QuicTraceEvent(TlsError, TlsContext->Connection, "ALPN Mismatch");
+                    QuicTraceLogError("[ tls][%p] Failed to find a matching ALPN", TlsContext);
+                    Result |= QUIC_TLS_RESULT_ERROR;
+                    break;
+                }
             }
 
             SecPkgContext_SessionInfo SessionInfo;
@@ -2065,7 +2079,7 @@ QuicTlsParamGet(
     _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
+    _Inout_updates_bytes_opt_(*BufferLength)
         void* Buffer
     )
 {
@@ -2706,7 +2720,8 @@ QuicEncrypt(
     _In_reads_bytes_opt_(AuthDataLength)
         const uint8_t* const AuthData,
     _In_ uint16_t BufferLength,
-    _Inout_updates_bytes_(BufferLength)
+    _When_(BufferLength > QUIC_ENCRYPTION_OVERHEAD, _Inout_updates_bytes_(BufferLength))
+    _When_(BufferLength <= QUIC_ENCRYPTION_OVERHEAD, _Out_writes_bytes_(BufferLength))
         uint8_t* Buffer
     )
 {

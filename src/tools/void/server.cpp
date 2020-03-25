@@ -24,7 +24,7 @@ Abstract:
     } \
 } while (0);
 
-static QUIC_API_V1 *MsQuic;
+static const QUIC_API_TABLE *MsQuic;
 static HQUIC Registration;
 static HQUIC Session;
 static HQUIC Listener;
@@ -77,8 +77,9 @@ void QUIC_API VoidGetSecConfigComplete(_In_opt_ void* Context, _In_ QUIC_STATUS 
 }
 
 void VoidInitializeBaseObjects() {
-    EXIT_ON_FAILURE(MsQuicOpen(QUIC_API_VERSION_1, (void**)&MsQuic));
-    EXIT_ON_FAILURE(MsQuic->RegistrationOpen("kqnc-srv", &Registration));
+    EXIT_ON_FAILURE(MsQuicOpen(&MsQuic));
+    const QUIC_REGISTRATION_CONFIG RegConfig = { "void", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
+    EXIT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
 
     auto SelfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
     if (!SelfSignedCertParams) {
@@ -104,7 +105,8 @@ void VoidInitializeBaseObjects() {
 }
 
 void VoidInitializeSessionObjects() {
-    EXIT_ON_FAILURE(MsQuic->SessionOpen(Registration, "spin", nullptr, &Session));
+    const QUIC_BUFFER Alpn = { sizeof("spin") - 1, (uint8_t*)"spin" };
+    EXIT_ON_FAILURE(MsQuic->SessionOpen(Registration, &Alpn, 1, nullptr, &Session));
 
     uint16_t PeerStreamCount = 9999;
     EXIT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));

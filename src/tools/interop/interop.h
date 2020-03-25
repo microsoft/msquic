@@ -5,6 +5,8 @@
 
 --*/
 
+#define _CRT_NONSTDC_NO_DEPRECATE 1
+
 #include <msquichelper.h>
 
 //

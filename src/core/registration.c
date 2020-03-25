@@ -25,27 +25,32 @@ Abstract:
 #include "registration.tmh"
 #endif
 
-QUIC_DATAPATH_RECEIVE_CALLBACK MsQuicRecvCallback;
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicRegistrationAlloc(
-    _In_opt_z_ const char* AppName,
-    _In_ uint8_t ExecProfileType,
-    _Outptr_ _At_(*NewRegistration, __drv_allocatesMem(Mem))
+QUIC_API
+MsQuicRegistrationOpen(
+    _In_opt_ const QUIC_REGISTRATION_CONFIG* Config,
+    _Outptr_ _At_(*Registration, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC* NewRegistration
     )
 {
     QUIC_STATUS Status;
-
-    size_t AppNameLength = AppName == NULL ? 0 : strlen(AppName);
+    QUIC_REGISTRATION* Registration = NULL;
+    size_t AppNameLength = 0;
+    if (Config != NULL && Config->AppName != NULL) {
+        AppNameLength = strlen(Config->AppName);
+    }
 
     QuicTraceEvent(ApiEnter,
         QUIC_TRACE_API_REGISTRATION_OPEN,
         NULL);
 
-    QUIC_REGISTRATION* Registration =
-        QUIC_ALLOC_NONPAGED(sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
+    if (NewRegistration == NULL) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    Registration = QUIC_ALLOC_NONPAGED(sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
     if (Registration == NULL) {
         QuicTraceEvent(AllocFailure, "registration", sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -55,22 +60,22 @@ QuicRegistrationAlloc(
     Registration->Type = QUIC_HANDLE_TYPE_REGISTRATION;
     Registration->ClientContext = NULL;
     Registration->NoPartitioning = FALSE;
-    Registration->ExecProfileType = ExecProfileType;
+    Registration->ExecProfile = Config == NULL ? QUIC_EXECUTION_PROFILE_LOW_LATENCY : Config->ExecutionProfile;
     Registration->CidPrefixLength = 0;
     Registration->CidPrefix = NULL;
     QuicLockInitialize(&Registration->Lock);
     QuicListInitializeHead(&Registration->Sessions);
     QuicRundownInitialize(&Registration->SecConfigRundown);
     if (AppNameLength != 0) {
-        QuicCopyMemory(Registration->AppName, AppName, AppNameLength + 1);
+        QuicCopyMemory(Registration->AppName, Config->AppName, AppNameLength + 1);
     } else {
         Registration->AppName[0] = '\0';
     }
 
     uint16_t WorkerThreadFlags = 0;
-    switch (Registration->ExecProfileType) {
+    switch (Registration->ExecProfile) {
     default:
-    case QUIC_EXEC_PROF_TYPE_LOW_LATENCY:
+    case QUIC_EXECUTION_PROFILE_LOW_LATENCY:
         WorkerThreadFlags = QUIC_THREAD_FLAG_SET_IDEAL_PROC;
         break;
     case QUIC_EXEC_PROF_TYPE_MAX_THROUGHPUT:
@@ -101,6 +106,7 @@ QuicRegistrationAlloc(
     QuicTraceEvent(RegistrationCreated, Registration, Registration->AppName);
 
 #ifdef QuicVerifierEnabledByAddr
+#pragma prefast(suppress:6001, "SAL doesn't understand checking whether memory is tracked by Verifier.")
     if (MsQuicLib.IsVerifying &&
         QuicVerifierEnabledByAddr(NewRegistration)) {
         Registration->IsVerifying = TRUE;
@@ -128,52 +134,6 @@ Error:
     QuicTraceEvent(ApiExitStatus, Status);
 
     return Status;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QUIC_API
-MsQuicRegistrationOpen(
-    _In_opt_z_ const char* AppName,
-    _Outptr_ _At_(*Registration, __drv_allocatesMem(Mem)) _Pre_defensive_
-        HQUIC* Registration
-    )
-{
-    if (Registration == NULL) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    return
-        QuicRegistrationAlloc(
-            AppName,
-            QUIC_EXEC_PROF_TYPE_LOW_LATENCY,
-            Registration);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QUIC_API
-MsQuicRegistrationOpenPriv(
-    _In_opt_z_ const char* AppName,
-    _In_opt_ const QUIC_EXEC_PROFILE* ExecProfile,
-    _Outptr_ _At_(*Registration, __drv_allocatesMem(Mem)) _Pre_defensive_
-        HQUIC* Registration
-    )
-{
-    if (Registration == NULL) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    uint8_t ExecProfileType = QUIC_EXEC_PROF_TYPE_LOW_LATENCY;
-    if (ExecProfile != NULL) {
-        ExecProfileType = ExecProfile->Type;
-    }
-
-    return
-        QuicRegistrationAlloc(
-            AppName,
-            ExecProfileType,
-            Registration);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -331,7 +291,7 @@ QuicRegistrationAcceptConnection(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    if (Registration->ExecProfileType == QUIC_EXEC_PROF_TYPE_MAX_THROUGHPUT) {
+    if (Registration->ExecProfile == QUIC_EXEC_PROF_TYPE_MAX_THROUGHPUT) {
         //
         // TODO - Figure out how to check to see if hyper-threading was enabled first
         // TODO - Constrain ++PartitionID to the same NUMA node.

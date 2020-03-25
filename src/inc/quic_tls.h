@@ -25,7 +25,8 @@ typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 typedef struct QUIC_TLS_SESSION QUIC_TLS_SESSION;
 typedef struct QUIC_TLS QUIC_TLS;
 
-#define TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS    0xffa5  // Host Byte Order
+#define TLS_EXTENSION_TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION   0x0010  // Host Byte Order
+#define TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS                0xffa5  // Host Byte Order
 
 //
 // The size of the header required by the TLS layer.
@@ -75,6 +76,14 @@ typedef struct QUIC_TLS_CONFIG {
     // The TLS configuration information and credentials.
     //
     QUIC_SEC_CONFIG* SecConfig;
+
+    //
+    // The Application Layer Protocol Negotiation TLS extension buffer to send
+    // in the TLS handshake. Buffer is owned by the caller and not freed by the
+    // TLS layer.
+    //
+    const uint8_t* AlpnBuffer;
+    uint16_t AlpnBufferLength;
 
     //
     // The local QUIC transport parameters to send. Buffer is freed by the TLS
@@ -198,6 +207,12 @@ typedef struct QUIC_TLS_PROCESS_STATE {
     uint8_t* Buffer;
 
     //
+    // The final negotiated ALPN of the connection. The first byte is the length
+    // followed by that many bytes for actual ALPN.
+    //
+    const uint8_t* NegotiatedAlpn;
+
+    //
     // All the keys available for decrypting packets with.
     //
     QUIC_PACKET_KEY* ReadKeys[QUIC_PACKET_KEY_COUNT];
@@ -259,7 +274,6 @@ QuicTlsSecConfigRelease(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsSessionInitialize(
-    _In_z_ const char* ALPN,
     _Out_ QUIC_TLS_SESSION** NewTlsSession
     );
 
@@ -397,9 +411,37 @@ QuicTlsParamGet(
     _In_ QUIC_TLS* TlsContext,
     _In_ uint32_t Param,
     _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
+    _Inout_updates_bytes_opt_(*BufferLength)
         void* Buffer
     );
+
+//
+// Helper function to search a TLS ALPN encoded list for a given ALPN buffer.
+// Returns a pointer in the 'AlpnList' that starts at the length field, if the
+// ALPN is found. Otherwise, it returns NULL.
+//
+inline
+const uint8_t*
+QuicTlsAlpnFindInList(
+    _In_ uint16_t AlpnListLength,
+    _In_reads_(AlpnListLength)
+        const uint8_t* AlpnList,
+    _In_ uint8_t FindAlpnLength,
+    _In_reads_(FindAlpnLength)
+        const uint8_t* FindAlpn
+    )
+{
+    while (AlpnListLength != 0) {
+        QUIC_ANALYSIS_ASSUME(AlpnList[0] + 1 <= AlpnListLength);
+        if (AlpnList[0] == FindAlpnLength &&
+            memcmp(AlpnList+1, FindAlpn, FindAlpnLength) == 0) {
+            return AlpnList;
+        }
+        AlpnListLength -= AlpnList[0] + 1;
+        AlpnList += AlpnList[0] + 1;
+    }
+    return NULL;
+}
 
 #if defined(__cplusplus)
 }

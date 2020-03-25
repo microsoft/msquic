@@ -227,29 +227,3 @@ QuicPathSetActive(
         QuicCongestionControlReset(&Connection->CongestionControl);
     }
 }
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicConnRemoveInvalidPaths(
-    _In_ QUIC_CONNECTION* Connection
-    )
-{
-    //
-    // Go through all non-active paths and remove any that were possibly created
-    // with invalid packets.
-    //
-    for (uint8_t i = 1; i < Connection->PathsCount; ++i) {
-        if (Connection->Paths[i].GotValidPacket) {
-            continue;
-        }
-        QuicTraceLogConnInfo(PathDiscarded, Connection, "Path[%u] Discarded (invalid)", Connection->Paths[i].ID);
-        if (i + 1 < Connection->PathsCount) {
-            QuicMoveMemory(
-                &Connection->Paths[i],
-                &Connection->Paths[i + 1],
-                (Connection->PathsCount - i - 1) * sizeof(QUIC_PATH));
-        }
-        --Connection->PathsCount;
-        --i;
-    }
-}

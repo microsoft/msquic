@@ -26,8 +26,8 @@ const uint32_t CertValidationIgnoreFlags =
 struct TlsSession
 {
     QUIC_TLS_SESSION* Ptr;
-    TlsSession(_In_z_ const char* Alpn) : Ptr(nullptr) {
-        VERIFY_QUIC_SUCCESS(QuicTlsSessionInitialize(Alpn, &Ptr));
+    TlsSession() : Ptr(nullptr) {
+        VERIFY_QUIC_SUCCESS(QuicTlsSessionInitialize(&Ptr));
     }
     ~TlsSession() {
         QuicTlsSessionUninitialize(Ptr);
@@ -40,10 +40,13 @@ struct TlsContext
     QUIC_SEC_CONFIG* SecConfig;
     QUIC_TLS_PROCESS_STATE State;
     QUIC_EVENT ProcessCompleteEvent;
+    uint8_t AlpnListBuffer[256];
 
-    TlsContext(TlsSession& Session, _In_z_ const char* Sni) :
+    TlsContext(TlsSession& Session, _In_z_ const char* Alpn, _In_z_ const char* Sni) :
         Ptr(nullptr), SecConfig(nullptr) {
-
+            
+        AlpnListBuffer[0] = (uint8_t)strlen(Alpn);
+        memcpy(&AlpnListBuffer[1], Alpn, AlpnListBuffer[0]);
         QuicEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
 
         QuicZeroMemory(&State, sizeof(State));
@@ -58,6 +61,8 @@ struct TlsContext
         Config.IsServer = FALSE;
         Config.TlsSession = Session.Ptr;
         Config.SecConfig = SecConfig;
+        Config.AlpnBuffer = AlpnListBuffer;
+        Config.AlpnBufferLength = AlpnListBuffer[0] + 1;
         Config.LocalTPBuffer =
             (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + 2);
         QuicZeroMemory((uint8_t*)Config.LocalTPBuffer, QuicTlsTPHeaderSize + 2);
@@ -203,9 +208,9 @@ PacketWriter::WriteInitialCryptoFrame(
         uint8_t* Buffer
     )
 {
-    TlsSession Session(Alpn);
+    TlsSession Session;
     {
-        TlsContext ClientContext(Session, Sni);
+        TlsContext ClientContext(Session, Alpn, Sni);
         ClientContext.ProcessData();
 
         QUIC_CRYPTO_EX Frame = {

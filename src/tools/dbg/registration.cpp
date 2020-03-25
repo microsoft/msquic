@@ -41,7 +41,7 @@ EXT_COMMAND(
         Dml("\t<link cmd=\"!quicsession 0x%I64X\">0x%I64X</link>\t\"%s\"\n",
             Session.Addr,
             Session.Addr,
-            Session.GetAlpn().Data);
+            Session.GetAlpns().Data);
     }
 
     Dml("\n<u>WORKERS</u>\n"
