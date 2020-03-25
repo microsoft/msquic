@@ -88,7 +88,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\;..\..\inc;..\..\..\submodules\wil\include;$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\inc;..\..\..\submodules\clog\inc;..\..\..\bld\clog_kernel;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\..\inc;$(SolutionDir)submodules\wil\include;$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(SolutionDir)submodules\clog\inc;$(SolutionDir)bld\clog_kernel;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
@@ -97,44 +97,12 @@
       <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_DISABLE_0RTT_TESTS;SECURITY_KERNEL;SECURITY_WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
-    <PreBuildEvent>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
-      </Command>
-    </PreBuildEvent>
-    <PreBuildEvent>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-      </Command>
-    </PreBuildEvent>
-    <PreBuildEvent>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-      </Command>
-    </PreBuildEvent>
-    <PreBuildEvent>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </Command>
-    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_DISABLE_0RTT_TESTS;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
-    <PreBuildEvent>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
-      </Command>
-    </PreBuildEvent>
-    <PreBuildEvent>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-      </Command>
-    </PreBuildEvent>
-    <PreBuildEvent>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-      </Command>
-    </PreBuildEvent>
-    <PreBuildEvent>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </Command>
-    </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

@@ -86,12 +86,8 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\inc;$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);..\..\submodules\clog\inc;..\..\bld\clog_kernel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\inc;$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);$(SolutionDir)submodules\clog\inc;$(SolutionDir)bld\clog_kernel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
-    <PreBuildEvent>
-      <Command>
-      </Command>
-    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
