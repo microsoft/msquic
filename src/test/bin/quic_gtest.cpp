@@ -638,7 +638,8 @@ TEST_P(WithSend0RttArgs1, Send0Rtt) {
             0,  // ServerRejectZeroRtt
             (uint8_t)GetParam().UseSendBuffer,
             (uint8_t)GetParam().UnidirectionalStreams,
-            0   // ServerInitiatedStreams
+            0,  // ServerInitiatedStreams
+            0   // FifoScheduling
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
     } else {
@@ -655,7 +656,8 @@ TEST_P(WithSend0RttArgs1, Send0Rtt) {
             false,  // ServerRejectZeroRtt
             GetParam().UseSendBuffer,
             GetParam().UnidirectionalStreams,
-            false); // ServerInitiatedStreams
+            false,  // ServerInitiatedStreams
+            false); // FifoScheduling
     }
 }
 
@@ -675,7 +677,8 @@ TEST_P(WithSend0RttArgs2, Reject0Rtt) {
             1,  // ServerRejectZeroRtt
             0,  // UseSendBuffer
             0,  // UnidirectionalStreams
-            0   // ServerInitiatedStreams
+            0,  // ServerInitiatedStreams
+            0   // FifoScheduling
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
     } else {
@@ -692,7 +695,8 @@ TEST_P(WithSend0RttArgs2, Reject0Rtt) {
             true,   // ServerRejectZeroRtt
             false,  // UseSendBuffer
             false,  // UnidirectionalStreams
-            false); // ServerInitiatedStreams
+            false,  // ServerInitiatedStreams
+            false); // FifoScheduling
     }
 }
 
