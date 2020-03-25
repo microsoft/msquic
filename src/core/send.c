@@ -490,7 +490,6 @@ QuicSendWriteFrames(
                     (uint8_t*)Builder->Datagram->Buffer)) {
 
                 TempPath->SendResponse = FALSE;
-                Builder->Metadata->Frames[Builder->Metadata->FrameCount].PATH_RESPONSE.OrigPathId = TempPath->ID;
                 QuicCopyMemory(
                     Builder->Metadata->Frames[Builder->Metadata->FrameCount].PATH_RESPONSE.Data,
                     Frame.Data,
