@@ -961,7 +961,7 @@ QuicTlsClientProcess(
                             AlpnList->AlpnList[0],
                             AlpnList->AlpnList+1);
                     if (State->NegotiatedAlpn == NULL) {
-                        QuicTraceLogError("[ tls][%p][%c] Failed to find a matching ALPN",
+                        QuicTraceLogError(TlsNoMatchingAlpn, "[ tls][%p][%c] Failed to find a matching ALPN",
                             TlsContext, GetTlsIdentifier(TlsContext));
                         *ResultFlags |= QUIC_TLS_RESULT_ERROR;
                     }
