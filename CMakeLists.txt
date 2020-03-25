@@ -167,15 +167,15 @@ if(QUIC_TLS STREQUAL "openssl")
     add_custom_command(
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/openssl
         OUTPUT ${QUIC_BUILD_DIR}/openssl/include
-        OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto.a
-        OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl.a
+        OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto.so
+        OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl.so
         COMMAND ./Configure linux-x86_64 enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
         COMMAND make -j$(nproc)
         COMMAND make install_sw)
     add_custom_target(OpenSSL
         DEPENDS ${QUIC_BUILD_DIR}/openssl/include
-        DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libcrypto.a
-        DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libssl.a)
+        DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libcrypto.so
+        DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libssl.so)
 endif()
 
 if(QUIC_TLS STREQUAL "mitls")
