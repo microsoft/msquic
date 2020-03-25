@@ -86,7 +86,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_EVENTS_TRACELOGGING")
     else()
         message(STATUS "Disabling events and logging")
-        set(CMAKE_CLOG_CONFIG_PROFILE stubs)        
+        set(CMAKE_CLOG_CONFIG_PROFILE stubs)
     endif()
 
     if(QUIC_TLS STREQUAL "openssl")
