@@ -1566,23 +1566,23 @@ QuicTlsOnNegotiate(
                 TLS_EXTENSION_TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION,
                 &ExtensionData,
                 &ExtensionDataLength)) {
-            QuicTraceLogError("[ tls][%p] Missing ALPN extension.", TlsContext);
+            QuicTraceLogError(TlsMissingAlpnExtension, "[ tls][%p] Missing ALPN extension.", TlsContext);
             goto Exit;
         }
-        QuicTraceLogVerbose("[ tls][%p] Processing server ALPN (Length=%u)", TlsContext,
+        QuicTraceLogVerbose(TlsProcessServerAlpn, "[ tls][%p] Processing server ALPN (Length=%u)", TlsContext,
             (uint32_t)ExtensionDataLength);
         if (ExtensionDataLength < 4) {
-            QuicTraceLogError("[ tls][%p] ALPN extension length is too short", TlsContext);
+            QuicTraceLogError(TlsAlpnExtLenTooShort, "[ tls][%p] ALPN extension length is too short", TlsContext);
             goto Exit;
         }
         const uint16_t AlpnListLength = QuicByteSwapUint16(*(uint16_t*)ExtensionData);
         if (AlpnListLength + sizeof(uint16_t) != ExtensionDataLength) {
-            QuicTraceLogError("[ tls][%p] ALPN list length is incorrect", TlsContext);
+            QuicTraceLogError(TlsAlpnListLenIncorrect, "[ tls][%p] ALPN list length is incorrect", TlsContext);
             goto Exit;
         }
         const uint8_t AlpnLength = ExtensionData[2];
         if (AlpnLength + sizeof(uint8_t) != AlpnListLength) {
-            QuicTraceLogError("[ tls][%p] ALPN length is incorrect", TlsContext);
+            QuicTraceLogError(TlsAlpnLenIncorrect, "[ tls][%p] ALPN length is incorrect", TlsContext);
             goto Exit;
         }
         const uint8_t* Alpn = ExtensionData + 3;
@@ -1593,7 +1593,7 @@ QuicTlsOnNegotiate(
                 AlpnLength,
                 Alpn);
         if (TlsContext->State->NegotiatedAlpn == NULL) {
-            QuicTraceLogError("[ tls][%p] Failed to find a matching ALPN", TlsContext);
+            QuicTraceLogError(TlsNoMatchingAlpn, "[ tls][%p] Failed to find a matching ALPN", TlsContext);
             goto Exit;
         }
     }
