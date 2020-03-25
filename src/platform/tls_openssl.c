@@ -26,14 +26,7 @@ uint16_t QuicTlsTPHeaderSize = 0;
 
 typedef struct QUIC_TLS_SESSION {
 
-    //
-    // AlpnBufferLength - The length of ALPN buffer.
-    // AlpnBuffer - Stores the Alpn Length in its first byte followed by the
-    // ALPN.
-    //
-
-    uint16_t AlpnBufferLength;
-    unsigned char AlpnBuffer[0];
+    uint32_t Reserved;
 
 } QUIC_TLS_SESSION;
 
@@ -73,32 +66,33 @@ typedef struct QUIC_TLS {
     //
     // TlsSession - The TLS session object that this context belong to.
     //
-
     QUIC_TLS_SESSION* TlsSession;
 
     //
     // The TLS configuration information and credentials.
     //
-
     QUIC_SEC_CONFIG* SecConfig;
 
     //
     // Indicates if this context belongs to server side or client side
     // connection.
     //
-
     BOOLEAN IsServer;
+
+    //
+    // The ALPN buffer.
+    //
+    uint16_t AlpnBufferLength;
+    const uint8_t* AlpnBuffer;
 
     //
     // On client side stores a NULL terminated SNI.
     //
-
     const char* SNI;
 
     //
     // Ssl - A SSL object associated with the connection.
     //
-
     SSL *Ssl;
 
     //
@@ -112,7 +106,6 @@ typedef struct QUIC_TLS {
     //
     // Callback context and handler for QUIC TP.
     //
-
     QUIC_CONNECTION* Connection;
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
 
@@ -455,28 +448,23 @@ QuicTlsAlpnSelectCallback(
     _In_ void *Arg
     )
 {
-    QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
-    unsigned char *Ptr = NULL;
-    unsigned char *End = NULL;
-
+    UNREFERENCED_PARAMETER(In);
+    UNREFERENCED_PARAMETER(InLen);
     UNREFERENCED_PARAMETER(Arg);
 
-    for (Ptr = (unsigned char *)In, End = (unsigned char *)In + InLen;
-        Ptr + TlsContext->TlsSession->AlpnBufferLength <= End;
-        Ptr += *Ptr + 1) {
-        if (memcmp(
-                Ptr,
-                TlsContext->TlsSession->AlpnBuffer,
-                TlsContext->TlsSession->AlpnBufferLength) == 0) {
-            *Out = Ptr + 1;
-            *OutLen = *Ptr;
-            return SSL_TLSEXT_ERR_OK;
-        }
-    }
+    QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
 
+    //
+    // QUIC already parsed and picked the ALPN to use and set it in the
+    // NegotiatedAlpn variable.
+    //
+
+    QUIC_DBG_ASSERT(TlsContext->State->NegotiatedAlpn != NULL);
+    *OutLen = TlsContext->State->NegotiatedAlpn[0];
+    *Out = TlsContext->State->NegotiatedAlpn + 1;
+
+    return SSL_TLSEXT_ERR_OK;
     QuicTraceLogError(FN_tls_openssl7183f6a6a36fb7822e00a33f86ff68d9, "[ tls] Client did not present correct ALPN");
-
-    return SSL_TLSEXT_ERR_NOACK;
 }
 
 QUIC_STATIC_ASSERT((int)ssl_encryption_initial == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
@@ -555,7 +543,7 @@ QuicTlsAddHandshakeDataCallback(
     QUIC_TLS_PROCESS_STATE* TlsState = TlsContext->State;
 
     QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)Level;
-    QUIC_DBG_ASSERT(TlsState->WriteKeys[KeyType] != NULL);
+    QUIC_DBG_ASSERT(KeyType == 0 || TlsState->WriteKeys[KeyType] != NULL);
 
     QuicTraceLogVerbose(FN_tls_opensslf2f87064588bde8f0ae0de92805bd612, "[ tls][%p][%c] Sending %llu handshake bytes (Level = %u).", 
         TlsContext, GetTlsIdentifier(TlsContext), Length, Level);
@@ -898,32 +886,47 @@ QuicTlsClientSecConfigCreate(
     // Configure the SSL defaults.
     //
 
-    SSL_CTX_set_min_proto_version(SecurityConfig->SSLCtx, TLS1_3_VERSION);
-    SSL_CTX_set_max_proto_version(SecurityConfig->SSLCtx, TLS1_3_VERSION);
+    Ret = SSL_CTX_set_min_proto_version(SecurityConfig->SSLCtx, TLS1_3_VERSION);
+    if (Ret != 1) {
+        QuicTraceLogError(FN_tls_openssl_CTX_SET_MIN_PROTO_FAILED, "[ tls] SSL_CTX_set_min_proto_version failed, error: %ld", ERR_get_error());
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
+    }
 
-    SSL_CTX_set_default_verify_paths(SecurityConfig->SSLCtx);
+    Ret = SSL_CTX_set_max_proto_version(SecurityConfig->SSLCtx, TLS1_3_VERSION);
+    if (Ret != 1) {
+        QuicTraceLogError(FN_tls_openssl_CTX_SET_MAX_PROTO_FAILED, "[ tls] SSL_CTX_set_max_proto_version failed, error: %ld", ERR_get_error());
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
+    }
 
-    Ret =
-        SSL_CTX_set_ciphersuites(
-            SecurityConfig->SSLCtx,
-            QUIC_TLS_DEFAULT_SSL_CIPHERS);
+    Ret = SSL_CTX_set_default_verify_paths(SecurityConfig->SSLCtx);
+    if (Ret != 1) {
+        QuicTraceLogError(FN_tls_openssl_CTX_SET_DEFAULT_VERIFY_PATHS_FAILED, "[ tls] SSL_CTX_set_default_verify_paths failed, error: %ld", ERR_get_error());
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
+    }
+
+    Ret = SSL_CTX_set_ciphersuites(SecurityConfig->SSLCtx, QUIC_TLS_DEFAULT_SSL_CIPHERS);
     if (Ret != 1) {
         QuicTraceLogError(FN_tls_openssl77f607afc7718f0d73990aee8025a22d, "[ tls] SSL_CTX_set_ciphersuites failed, error: %ld", ERR_get_error());
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
-    Ret =
-        SSL_CTX_set1_groups_list(
-            SecurityConfig->SSLCtx,
-            QUIC_TLS_DEFAULT_SSL_CURVES);
+    Ret = SSL_CTX_set1_groups_list(SecurityConfig->SSLCtx, QUIC_TLS_DEFAULT_SSL_CURVES);
     if (Ret != 1) {
         QuicTraceLogError(FN_tls_openssl5de667d2fdc3e76736e64269152e9606, "[ tls] SSL_CTX_set1_groups_list failed, error: %ld", ERR_get_error());
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
-    SSL_CTX_set_quic_method(SecurityConfig->SSLCtx, &OpenSslQuicCallbacks);
+    Ret = SSL_CTX_set_quic_method(SecurityConfig->SSLCtx, &OpenSslQuicCallbacks);
+    if (Ret != 1) {
+        QuicTraceLogError(FN_tls_openssl_CTX_SET_QUIC_METHOD_FAILED, "[ tls] SSL_CTX_set_quic_method failed, error: %ld", ERR_get_error());
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
+    }
 
     //
     // Cert related config.
@@ -994,45 +997,15 @@ QuicTlsSecConfigRelease(
 
 QUIC_STATUS
 QuicTlsSessionInitialize(
-    _In_z_ const char* ALPN,
     _Out_ QUIC_TLS_SESSION** NewTlsSession
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    QUIC_TLS_SESSION* TlsSession = NULL;
-    size_t ALPNLength = strlen(ALPN);
-
-    if (ALPNLength > QUIC_MAX_ALPN_LENGTH) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
-
-    TlsSession = QuicAlloc(sizeof(QUIC_TLS_SESSION) + ALPNLength + 1);
-    if (TlsSession == NULL) {
+    *NewTlsSession = QuicAlloc(sizeof(QUIC_TLS_SESSION));
+    if (*NewTlsSession == NULL) {
         QuicTraceLogWarning(FN_tls_opensslbeb87fff4fd6aff47c418f16532cd6af, "[ tls] Failed to allocate QUIC_TLS_SESSION.");
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
-
-    //
-    // Copy over the ALPN length followed by the ALPN into the ALPN buffer.
-    //
-
-    TlsSession->AlpnBuffer[0] = (unsigned char)ALPNLength;
-    QuicCopyMemory((char*)&TlsSession->AlpnBuffer[1], ALPN, ALPNLength);
-    TlsSession->AlpnBufferLength = (uint16_t)ALPNLength + 1;
-
-    *NewTlsSession = TlsSession;
-    TlsSession = NULL;
-
-Exit:
-
-    if (TlsSession != NULL) {
-        QUIC_FREE(TlsSession);
-        TlsSession = NULL;
-    }
-
-    return Status;
+    return QUIC_STATUS_SUCCESS;
 }
 
 void
@@ -1101,6 +1074,8 @@ QuicTlsInitialize(
     TlsContext->TlsSession = Config->TlsSession;
     TlsContext->IsServer = Config->IsServer;
     TlsContext->SecConfig = QuicTlsSecConfigAddRef(Config->SecConfig);
+    TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
+    TlsContext->AlpnBuffer = Config->AlpnBuffer;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
 
     QuicTraceLogVerbose(FN_tls_openssld2c76a13ec3224e52c2437c16c0b5b7c, "[ tls][%p][%c] Created.", TlsContext, GetTlsIdentifier(TlsContext));
@@ -1148,10 +1123,7 @@ QuicTlsInitialize(
     } else {
         SSL_set_connect_state(TlsContext->Ssl);
         SSL_set_tlsext_host_name(TlsContext->Ssl, TlsContext->SNI);
-        SSL_set_alpn_protos(
-            TlsContext->Ssl,
-            Config->TlsSession->AlpnBuffer,
-            Config->TlsSession->AlpnBufferLength);
+        SSL_set_alpn_protos(TlsContext->Ssl, TlsContext->AlpnBuffer, TlsContext->AlpnBufferLength);
     }
 
     if (SSL_set_quic_transport_params(
@@ -1238,10 +1210,7 @@ QuicTlsReset(
 
     SSL_set_connect_state(TlsContext->Ssl);
     SSL_set_tlsext_host_name(TlsContext->Ssl, TlsContext->SNI);
-    SSL_set_alpn_protos(
-        TlsContext->Ssl,
-        TlsContext->TlsSession->AlpnBuffer,
-        TlsContext->TlsSession->AlpnBufferLength);
+    SSL_set_alpn_protos(TlsContext->Ssl, TlsContext->AlpnBuffer, TlsContext->AlpnBufferLength);
 
     /* TODO - Figure out if this is necessary.
     if (SSL_set_quic_transport_params(
@@ -1314,6 +1283,36 @@ QuicTlsProcessData(
             default:
                 QuicTraceLogError(FN_tls_openssl61743e8150362a484225c69e9b06687f, "[ tls][%p][%c] TLS handshake error: %d.", 
                     TlsContext, GetTlsIdentifier(TlsContext), Err);
+                TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                goto Exit;
+            }
+        }
+
+        if (!TlsContext->IsServer) {
+            const uint8_t* NegotiatedAlpn;
+            uint32_t NegotiatedAlpnLength;
+            SSL_get0_alpn_selected(TlsContext->Ssl, &NegotiatedAlpn, &NegotiatedAlpnLength);
+            if (NegotiatedAlpnLength == 0) {
+                QuicTraceLogError(FN_tls_openssl_FAILED_ALPN_NEGOTIATE, "[ tls][%p][%c] Failed to negotiate ALPN.",
+                    TlsContext, GetTlsIdentifier(TlsContext));
+                TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                goto Exit;
+            }
+            if (NegotiatedAlpnLength > UINT8_MAX) {
+                QuicTraceLogError(FN_tls_openssl_INVALID_NEGOTIATED_ALPN_LENGTH, "[ tls][%p][%c] Invalid negotiated ALPN length.",
+                    TlsContext, GetTlsIdentifier(TlsContext));
+                TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                goto Exit;
+            }
+            TlsContext->State->NegotiatedAlpn =
+                QuicTlsAlpnFindInList(
+                    TlsContext->AlpnBufferLength,
+                    TlsContext->AlpnBuffer,
+                    (uint8_t)NegotiatedAlpnLength,
+                    NegotiatedAlpn);
+            if (TlsContext->State->NegotiatedAlpn == NULL) {
+                QuicTraceLogError(FN_tls_openssl_FAILED_MATCHING_ALPN, "[ tls][%p][%c] Failed to find a matching ALPN",
+                    TlsContext, GetTlsIdentifier(TlsContext));
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 goto Exit;
             }

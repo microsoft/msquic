@@ -25,7 +25,7 @@ std::vector<const char*> ALPNs(
       "hq-25", "hq-26", "hq-27",
       "smb" });
 
-QUIC_API_V1* MsQuic;
+const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 
 extern "C" void QuicTraceRundown(void) { }
@@ -59,10 +59,12 @@ ConnectionHandler(
 
 QUIC_THREAD_CALLBACK(TestReachability, Context)
 {
-    const char* ALPN = (const char*)Context;
+    QUIC_BUFFER Alpn;
+    Alpn.Buffer = (uint8_t*)Context;
+    Alpn.Length = (uint32_t)strlen((char*)Context);
 
     HQUIC Session = nullptr;
-    if (QUIC_FAILED(MsQuic->SessionOpen(Registration, ALPN, nullptr, &Session))) {
+    if (QUIC_FAILED(MsQuic->SessionOpen(Registration, &Alpn, 1, nullptr, &Session))) {
         printf("SessionOpen failed.\n");
         exit(1);
     }
@@ -99,9 +101,9 @@ QUIC_THREAD_CALLBACK(TestReachability, Context)
     MsQuic->SessionClose(Session);
 
     if (GotConnected) {
-        printf("  %6s    reachable\n", ALPN);
+        printf("  %6s    reachable\n", (char*)Context);
     } else {
-        printf("  %6s  unreachable\n", ALPN);
+        printf("  %6s  unreachable\n", (char*)Context);
     }
 
     QUIC_THREAD_RETURN(0);
@@ -157,12 +159,13 @@ main(int argc, char **argv)
         }
     }
 
-    if (QUIC_FAILED(MsQuicOpenV1(&MsQuic))) {
-        printf("MsQuicOpenV1 failed.\n");
+    if (QUIC_FAILED(MsQuicOpen(&MsQuic))) {
+        printf("MsQuicOpen failed.\n");
         exit(1);
     }
 
-    if (QUIC_FAILED(MsQuic->RegistrationOpen("reach", &Registration))) {
+    const QUIC_REGISTRATION_CONFIG RegConfig = { "reach", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
+    if (QUIC_FAILED(MsQuic->RegistrationOpen(&RegConfig, &Registration))) {
         printf("RegistrationOpen failed.\n");
         exit(1);
     }

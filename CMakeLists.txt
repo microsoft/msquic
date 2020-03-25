@@ -123,7 +123,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 
 else()
     # Custom build flags.
-    set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions -fPIC -pthread")
+    set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions -fPIC -pthread -Wl,--no-as-needed -ldl")
 
     #if(QUIC_TLS STREQUAL "x64")
     #    set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -m64")

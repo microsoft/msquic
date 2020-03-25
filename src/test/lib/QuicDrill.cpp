@@ -235,7 +235,7 @@ QuicDrillInitialPacketFailureTest(
         return false;
     }
 
-    MsQuicSession Session(Registration);
+    MsQuicSession Session;
     if (!Session.IsValid()) {
         TEST_FAILURE("Session not valid!");
         goto Failure;

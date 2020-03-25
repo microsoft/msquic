@@ -209,6 +209,7 @@ QuicPlatformLogAssert(
 
 #define QUIC_STATIC_ASSERT(X,Y) static_assert(X, Y);
 #define QUIC_ANALYSIS_ASSERT(X)
+#define QUIC_ANALYSIS_ASSUME(X)
 #define QUIC_FRE_ASSERT(exp) ((exp) ? (void)0 : (QuicPlatformLogAssert(__FILE__, __LINE__, __func__, #exp), quic_bugcheck()));
 
 #ifdef DEBUG

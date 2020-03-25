@@ -249,8 +249,6 @@ QuicBindingRegisterListener(
     const QUIC_ADDR* NewAddr = &NewListener->LocalAddress;
     const BOOLEAN NewWildCard = NewListener->WildCard;
     const QUIC_ADDRESS_FAMILY NewFamily = QuicAddrGetFamily(NewAddr);
-    const char* NewAlpn = NewListener->Session->Alpn;
-    const uint8_t NewAlpnLength = NewListener->Session->AlpnLength;
 
     QuicDispatchRwLockAcquireExclusive(&Binding->RwLock);
 
@@ -272,8 +270,6 @@ QuicBindingRegisterListener(
         const QUIC_ADDR* ExistingAddr = &ExistingListener->LocalAddress;
         const BOOLEAN ExistingWildCard = ExistingListener->WildCard;
         const QUIC_ADDRESS_FAMILY ExistingFamily = QuicAddrGetFamily(ExistingAddr);
-        const char* ExistingAlpn = ExistingListener->Session->Alpn;
-        const uint8_t ExistingAlpnLength = ExistingListener->Session->AlpnLength;
 
         if (NewFamily > ExistingFamily) {
             break; // End of possible family matches. Done searching.
@@ -291,10 +287,9 @@ QuicBindingRegisterListener(
             continue;
         }
 
-        if (NewAlpnLength == ExistingAlpnLength &&
-            memcmp(NewAlpn, ExistingAlpn, NewAlpnLength) == 0) { // Pre-existing match found.
-            QuicTraceLogWarning(FN_bindingfe607224ba2a2e03d5f66c521059c160, "[bind][%p] Listener (%p) already registered on ALPN %s", 
-                Binding, ExistingListener, NewAlpn);
+        if (QuicSessionHasAlpnOverlap(NewListener->Session, ExistingListener->Session)) {
+            QuicTraceLogWarning(FN_bindingfe607224ba2a2e03d5f66c521059c160, "[bind][%p] Listener (%p) already registered on ALPN %s",
+                Binding, ExistingListener);
             AddNewListener = FALSE;
             break;
         }
@@ -335,61 +330,39 @@ _Success_(return != NULL)
 QUIC_LISTENER*
 QuicBindingGetListener(
     _In_ QUIC_BINDING* Binding,
-    _In_ const QUIC_NEW_CONNECTION_INFO* Info
+    _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     )
 {
     QUIC_LISTENER* Listener = NULL;
 
     const QUIC_ADDR* Addr = Info->LocalAddress;
     const QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(Addr);
-    const uint8_t* AlpnList = Info->AlpnList;
-    uint16_t AlpnListLength = Info->AlpnListLength;
-
-    //
-    // The ALPN list has been prevalidated. We have a few asserts/assumes to
-    // ensure this and get OACR to not complain.
-    //
-    QUIC_DBG_ASSERT(AlpnListLength >= 2);
 
     QuicDispatchRwLockAcquireShared(&Binding->RwLock);
 
-    while (AlpnListLength != 0) {
+    for (QUIC_LIST_ENTRY* Link = Binding->Listeners.Flink;
+        Link != &Binding->Listeners;
+        Link = Link->Flink) {
+            
+        QUIC_LISTENER* ExistingListener =
+            QUIC_CONTAINING_RECORD(Link, QUIC_LISTENER, Link);
+        const QUIC_ADDR* ExistingAddr = &ExistingListener->LocalAddress;
+        const BOOLEAN ExistingWildCard = ExistingListener->WildCard;
+        const QUIC_ADDRESS_FAMILY ExistingFamily = QuicAddrGetFamily(ExistingAddr);
 
-        QUIC_DBG_ASSERT(AlpnListLength >= 2);
-        uint8_t Length = AlpnList[0];
-
-        AlpnList++;
-        AlpnListLength--;
-        QUIC_DBG_ASSERT(Length <= AlpnListLength);
-
-        for (QUIC_LIST_ENTRY* Link = Binding->Listeners.Flink;
-            Link != &Binding->Listeners;
-            Link = Link->Flink) {
-                
-            QUIC_LISTENER* ExistingListener =
-                QUIC_CONTAINING_RECORD(Link, QUIC_LISTENER, Link);
-            const QUIC_ADDR* ExistingAddr = &ExistingListener->LocalAddress;
-            const BOOLEAN ExistingWildCard = ExistingListener->WildCard;
-            const QUIC_ADDRESS_FAMILY ExistingFamily = QuicAddrGetFamily(ExistingAddr);
-
-            if (ExistingFamily != AF_UNSPEC) {
-                if (Family != ExistingFamily ||
-                    (!ExistingWildCard && !QuicAddrCompareIp(Addr, ExistingAddr))) {
-                    continue; // No IP match.
-                }
-            }
-
-            if (Length == ExistingListener->Session->AlpnLength &&
-                memcmp(AlpnList, ExistingListener->Session->Alpn, Length) == 0) {
-                if (QuicRundownAcquire(&ExistingListener->Rundown)) {
-                    Listener = ExistingListener;
-                }
-                goto Done;
+        if (ExistingFamily != AF_UNSPEC) {
+            if (Family != ExistingFamily ||
+                (!ExistingWildCard && !QuicAddrCompareIp(Addr, ExistingAddr))) {
+                continue; // No IP match.
             }
         }
 
-        AlpnList += Length;
-        AlpnListLength -= Length;
+        if (QuicSessionMatchesAlpn(ExistingListener->Session, Info)) {
+            if (QuicRundownAcquire(&ExistingListener->Rundown)) {
+                Listener = ExistingListener;
+            }
+            goto Done;
+        }
     }
 
 Done:

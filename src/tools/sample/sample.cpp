@@ -11,13 +11,13 @@ Abstract:
 
 #include <msquichelper.h>
 
-const char* AppName = "quicsample";
-const char* Alpn = "sample";
+const QUIC_REGISTRATION_CONFIG RegConfig = { "quicsample", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
+const QUIC_BUFFER Alpn = { sizeof("sample") - 1, (uint8_t*)"sample" };
 const uint16_t UdpPort = 4567;
 const uint64_t IdleTimeoutMs = 1000;
 const uint32_t SendBufferLength = 100;
 
-QUIC_API_V1* MsQuic;
+const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 HQUIC Session;
 QUIC_SEC_CONFIG* SecurityConfig;
@@ -354,7 +354,7 @@ RunClient(
     printf("[conn][%p] Connecting...\n", Connection);
 
     if (QUIC_FAILED(Status = MsQuic->ConnectionStart(Connection, AF_UNSPEC, Target, UdpPort))) {
-        printf("SessionOpen failed, 0x%x!\n", Status);
+        printf("ConnectionStart failed, 0x%x!\n", Status);
         goto Error;
     }
 
@@ -381,17 +381,17 @@ main(
         return Status;
     }
 
-    if (QUIC_FAILED(Status = MsQuicOpenV1(&MsQuic))) {
+    if (QUIC_FAILED(Status = MsQuicOpen(&MsQuic))) {
         printf("MsQuicOpen failed, 0x%x!\n", Status);
         goto Error;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->RegistrationOpen(AppName, &Registration))) {
+    if (QUIC_FAILED(Status = MsQuic->RegistrationOpen(&RegConfig, &Registration))) {
         printf("RegistrationOpen failed, 0x%x!\n", Status);
         goto Error;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->SessionOpen(Registration, Alpn, nullptr, &Session))) {
+    if (QUIC_FAILED(Status = MsQuic->SessionOpen(Registration, &Alpn, 1, nullptr, &Session))) {
         printf("SessionOpen failed, 0x%x!\n", Status);
         goto Error;
     }

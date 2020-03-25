@@ -15,7 +15,7 @@ Abstract:
 #include "quic_trace.h"
 #include "control.cpp.clog"
 
-QUIC_API_V1* MsQuic;
+const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 QUIC_SEC_CONFIG* SecurityConfig;
 
@@ -74,7 +74,7 @@ QuicTestCtlInitialize(
     WDF_IO_QUEUE_CONFIG QueueConfig;
     WDFQUEUE Queue;
 
-    Status = MsQuicOpenV1(&MsQuic);
+    Status = MsQuicOpen(&MsQuic);
     if (QUIC_FAILED(Status)) {
         QuicTraceLogError(FN_controld1d04f96d4a6d92e901529003169771a, "[test] MsQuicOpen failed: 0x%x", Status);
         goto Error;
@@ -225,7 +225,8 @@ QuicTestCtlEvtFileCreate(
         RtlZeroMemory(Client, sizeof(QUIC_TEST_CLIENT));
         KeInitializeEvent(&Client->SecConfigComplete, NotificationEvent, FALSE);
 
-        Status = MsQuic->RegistrationOpen("MsQuicBvt", &Client->Registration);
+        const QUIC_REGISTRATION_CONFIG RegConfig = { "MsQuicBvt", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
+        Status = MsQuic->RegistrationOpen(&RegConfig, &Client->Registration);
         if (QUIC_FAILED(Status)) {
             QuicTraceLogError(FN_control9dae8c6bd52734e00cb3e90451768212, "[test] RegistrationOpen failed: 0x%x", Status);
             break;
@@ -483,7 +484,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_RECEIVE_RESUME_PARAMS),
     0,
     sizeof(QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS),
-    sizeof(INT32)
+    sizeof(INT32),
+    0
 };
 
 static_assert(
@@ -809,6 +811,10 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(
             QuicDrillTestInitialToken(
                 Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_START_LISTENER_MULTI_ALPN:
+        QuicTestCtlRun(QuicTestStartListenerMultiAlpns());
         break;
 
     default:
