@@ -60,9 +60,13 @@ if ($IsWindows) {
 } else {
     switch ($Configuration) {
         "Build" {
+            sudo apt-add-repository ppa:lttng/stable-2.10
+            sudo apt-get update
             sudo apt-get install liblttng-ust-dev
         }
         "Test" {
+            sudo apt-add-repository ppa:lttng/stable-2.10
+            sudo apt-get update
             sudo apt-get install lttng-tools
 
             # Enable core dumps for the system.
@@ -79,6 +83,8 @@ if ($IsWindows) {
             #sudo cat /proc/sys/kernel/core_pattern
         }
         "Dev" {
+            sudo apt-add-repository ppa:lttng/stable-2.10
+            sudo apt-get update
             sudo apt-get install cmake
             sudo apt-get install build-essentials
             sudo apt-get install liblttng-ust-dev
