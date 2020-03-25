@@ -1,4 +1,4 @@
-QUIC_API_V1 structure
+QUIC_API_TABLE structure
 ======
 
 Deletes an existing registration.
@@ -6,7 +6,7 @@ Deletes an existing registration.
 # Syntax
 
 ```C
-typedef struct QUIC_API_V1 {
+typedef struct QUIC_API_TABLE {
 
     uint32_t                            Version;            // QUIC_API_VERSION_1
 
@@ -45,7 +45,7 @@ typedef struct QUIC_API_V1 {
     QUIC_STREAM_RECEIVE_COMPLETE_FN     StreamReceiveComplete;
     QUIC_STREAM_RECEIVE_SET_ENABLED_FN  StreamReceiveSetEnabled;
 
-} QUIC_API_V1;
+} QUIC_API_TABLE;
 ```
 
 # Members
@@ -164,4 +164,4 @@ See [StreamReceiveSetEnabled](StreamReceiveSetEnabled.md)
 
 # See Also
 
-[MsQuicOpen](..\v0/MsQuicOpen.md)<br>
+[MsQuicOpen](..\api/MsQuicOpen.md)<br>

@@ -526,7 +526,7 @@ QuicStreamOnBytesDelivered(
             Stream->Connection->Session->Settings.ConnFlowControlWindow) {
 
             uint32_t TimeThreshold = (uint32_t)
-                ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].SmoothedRtt) / RecvBufferDrainThreshold);
+                ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].MinRtt) / RecvBufferDrainThreshold);
             if (QuicTimeDiff32(Stream->RecvWindowLastUpdate, TimeNow) <= TimeThreshold) {
 
                 //
@@ -549,9 +549,9 @@ QuicStreamOnBytesDelivered(
                 //
 
                 QuicTraceLogStreamVerbose(IncreaseRxBuffer, Stream,
-                    "Increasing max RX buffer size to %u (SRtt=%u; TimeNow=%u; LastUpdate=%u)",
+                    "Increasing max RX buffer size to %u (MinRtt=%u; TimeNow=%u; LastUpdate=%u)",
                     Stream->RecvBuffer.VirtualBufferLength * 2,
-                    Stream->Connection->Paths[0].SmoothedRtt,
+                    Stream->Connection->Paths[0].MinRtt,
                     TimeNow,
                     Stream->RecvWindowLastUpdate);
 

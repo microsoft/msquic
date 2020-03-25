@@ -46,7 +46,7 @@ EXT_COMMAND(
             Dml("  <link cmd=\"!quicsession 0x%I64X\">Sess 0x%I64X</link>    \"%s\"\n",
                 Session.Addr,
                 Session.Addr,
-                Session.GetAlpn().Data);
+                Session.GetAlpns().Data);
 
             auto Connections = Session.GetConnections();
             while (!CheckControlC()) {

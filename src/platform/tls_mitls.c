@@ -215,16 +215,6 @@ typedef struct QUIC_TLS_SESSION {
     //
     QUIC_HASHTABLE TicketStore;
 
-    //
-    // Length of the Alpn array
-    //
-    uint16_t AlpnLength;
-
-    //
-    // Array of ALPN strings.
-    //
-    const char Alpn[0];
-
 } QUIC_TLS_SESSION;
 
 //
@@ -344,7 +334,6 @@ typedef struct QUIC_TLS {
     // miTLS Config.
     //
     quic_config miTlsConfig;
-    mitls_alpn miTlsConfigAlpn;
 
     //
     // Callbacks used my miTLS to operate on certificates.
@@ -362,9 +351,9 @@ typedef struct QUIC_TLS {
     mitls_ticket miTlsTicket;
 
     //
-    // Storage for encoded local transport parameters.
+    // Storage for encoded TLS extensions.
     //
-    mitls_extension LocalTP;
+    mitls_extension Extensions[2];
 
 } QUIC_TLS;
 
@@ -591,20 +580,11 @@ QuicTlsSecConfigRelease(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsSessionInitialize(
-    _In_z_ const char* ALPN,
     _Out_ QUIC_TLS_SESSION** NewTlsSession
     )
 {
     QUIC_STATUS Status;
-    QUIC_TLS_SESSION* TlsSession = NULL;
-
-    size_t ALPNLength = strlen(ALPN);
-    if (ALPNLength > UINT16_MAX) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Error;
-    }
-
-    TlsSession = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS_SESSION) + ALPNLength);
+    QUIC_TLS_SESSION* TlsSession = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS_SESSION));
     if (TlsSession == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -616,8 +596,6 @@ QuicTlsSessionInitialize(
     }
 
     QuicRwLockInitialize(&TlsSession->TicketStoreLock);
-    QuicCopyMemory((char*)TlsSession->Alpn, ALPN, ALPNLength);
-    TlsSession->AlpnLength = (uint16_t)ALPNLength;
     TlsSession->RefCount = 1;
 
     *NewTlsSession = TlsSession;
@@ -916,7 +894,7 @@ QuicTlsInitialize(
     QUIC_DBG_ASSERT(Config != NULL);
     QUIC_DBG_ASSERT(NewTlsContext != NULL);
 
-    TlsContext = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS));
+    TlsContext = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS) + sizeof(uint16_t) + Config->AlpnBufferLength);
     if (TlsContext == NULL) {
         QuicTraceLogWarning(FN_tls_mitlsd06ff44316f93f70545d466d919b1c5a, "[ tls] Failed to allocate QUIC_TLS.");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -937,18 +915,23 @@ QuicTlsInitialize(
     TlsContext->ProcessCompleteCallback = Config->ProcessCompleteCallback;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
 
-    TlsContext->LocalTP.ext_type = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
-    TlsContext->LocalTP.ext_data = Config->LocalTPBuffer;
-    TlsContext->LocalTP.ext_data_len = Config->LocalTPLength;
+    TlsContext->Extensions[0].ext_type = TLS_EXTENSION_TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION;
+    TlsContext->Extensions[0].ext_data_len = sizeof(uint16_t) + Config->AlpnBufferLength;
+    TlsContext->Extensions[0].ext_data = (uint8_t*)(TlsContext + 1);
+    *(uint16_t*)TlsContext->Extensions[0].ext_data = QuicByteSwapUint16(Config->AlpnBufferLength);
+    QuicCopyMemory(
+        (uint8_t*)TlsContext->Extensions[0].ext_data + sizeof(uint16_t),
+        Config->AlpnBuffer,
+        Config->AlpnBufferLength);
+
+    TlsContext->Extensions[1].ext_type = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
+    TlsContext->Extensions[1].ext_data_len = Config->LocalTPLength;
+    TlsContext->Extensions[1].ext_data = Config->LocalTPBuffer;
 
     TlsContext->miTlsConfig.enable_0rtt = TRUE;
-    TlsContext->miTlsConfig.exts = &TlsContext->LocalTP;
-    TlsContext->miTlsConfig.exts_count = 1;
+    TlsContext->miTlsConfig.exts = TlsContext->Extensions;
+    TlsContext->miTlsConfig.exts_count = ARRAYSIZE(TlsContext->Extensions);
     TlsContext->miTlsConfig.cipher_suites = QUIC_SUPPORTED_CIPHER_SUITES;
-    TlsContext->miTlsConfig.alpn = &TlsContext->miTlsConfigAlpn;
-    TlsContext->miTlsConfig.alpn_count = 1;
-    TlsContext->miTlsConfigAlpn.alpn = (const uint8_t*)Config->TlsSession->Alpn;
-    TlsContext->miTlsConfigAlpn.alpn_len = Config->TlsSession->AlpnLength;
     TlsContext->miTlsConfig.nego_callback = QuicTlsOnNegotiate;
     TlsContext->miTlsConfig.cert_callbacks = &TlsContext->miTlsCertCallbacks;
 
@@ -1075,8 +1058,8 @@ QuicTlsUninitialize(
             QUIC_FREE(TlsContext->SNI);
         }
         
-        if (TlsContext->LocalTP.ext_data != NULL) {
-            QUIC_FREE(TlsContext->LocalTP.ext_data);
+        if (TlsContext->Extensions[1].ext_data != NULL) {
+            QUIC_FREE(TlsContext->Extensions[1].ext_data);
         }
 
         QuicTlsSessionRelease(TlsContext->TlsSession);
@@ -1556,8 +1539,8 @@ QuicTlsOnNegotiate(
     QUIC_DBG_ASSERT(TlsContext);
 
     mitls_nego_action Action = TLS_nego_abort;
-    uint8_t *TransportParams;
-    size_t TransportParamsLength;
+    uint8_t *ExtensionData;
+    size_t ExtensionDataLength;
 
     UNREFERENCED_PARAMETER(Cookie);
     UNREFERENCED_PARAMETER(CookieLength);
@@ -1572,6 +1555,49 @@ QuicTlsOnNegotiate(
         goto Exit;
     }
 
+    if (!TlsContext->IsServer) {
+        //
+        // Decode and extract the negotiated ALPN.
+        //
+        if (!FFI_mitls_find_custom_extension(
+                TlsContext->IsServer,
+                RawExtensions,
+                RawExtensionsLength,
+                TLS_EXTENSION_TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION,
+                &ExtensionData,
+                &ExtensionDataLength)) {
+            QuicTraceLogError("[ tls][%p] Missing ALPN extension.", TlsContext);
+            goto Exit;
+        }
+        QuicTraceLogVerbose("[ tls][%p] Processing server ALPN (Length=%u)", TlsContext,
+            (uint32_t)ExtensionDataLength);
+        if (ExtensionDataLength < 4) {
+            QuicTraceLogError("[ tls][%p] ALPN extension length is too short", TlsContext);
+            goto Exit;
+        }
+        const uint16_t AlpnListLength = QuicByteSwapUint16(*(uint16_t*)ExtensionData);
+        if (AlpnListLength + sizeof(uint16_t) != ExtensionDataLength) {
+            QuicTraceLogError("[ tls][%p] ALPN list length is incorrect", TlsContext);
+            goto Exit;
+        }
+        const uint8_t AlpnLength = ExtensionData[2];
+        if (AlpnLength + sizeof(uint8_t) != AlpnListLength) {
+            QuicTraceLogError("[ tls][%p] ALPN length is incorrect", TlsContext);
+            goto Exit;
+        }
+        const uint8_t* Alpn = ExtensionData + 3;
+        TlsContext->State->NegotiatedAlpn =
+            QuicTlsAlpnFindInList(
+                (uint16_t)TlsContext->Extensions[0].ext_data_len - 2,
+                TlsContext->Extensions[0].ext_data + 2,
+                AlpnLength,
+                Alpn);
+        if (TlsContext->State->NegotiatedAlpn == NULL) {
+            QuicTraceLogError("[ tls][%p] Failed to find a matching ALPN", TlsContext);
+            goto Exit;
+        }
+    }
+
     //
     // Decode and validate peer's QUIC transport parameters.
     //
@@ -1581,16 +1607,16 @@ QuicTlsOnNegotiate(
             RawExtensions,
             RawExtensionsLength,
             TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS,
-            &TransportParams,
-            &TransportParamsLength)) {
+            &ExtensionData,
+            &ExtensionDataLength)) {
         QuicTraceLogError(FN_tls_mitls7311dd4a8d17392e0d12243e9c2d5c55, "[ tls][%p] Missing QUIC transport parameters.", TlsContext);
         goto Exit;
     }
 
     if (!TlsContext->ReceiveTPCallback(
             TlsContext->Connection,
-            (uint16_t)TransportParamsLength,
-            TransportParams)) {
+            (uint16_t)ExtensionDataLength,
+            ExtensionData)) {
         QuicTraceLogError(FN_tls_mitlsbafa18c408b3446024369717200eaea3, "[ tls][%p] Failed to process the QUIC transport parameters.", TlsContext);
         goto Exit;
     }
@@ -1602,10 +1628,8 @@ QuicTlsOnNegotiate(
         //
         // Configure output extensions.
         //
-        QUIC_DBG_ASSERT(TlsContext->LocalTP.ext_data != NULL);
-        QUIC_DBG_ASSERT(TlsContext->LocalTP.ext_data_len != 0);
-        *CustomExtensions = &TlsContext->LocalTP;
-        *CustomExtensionsLength = 1;
+        *CustomExtensions = TlsContext->Extensions;
+        *CustomExtensionsLength = ARRAYSIZE(TlsContext->Extensions);
     }
 
 Exit:

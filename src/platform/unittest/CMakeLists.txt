@@ -31,8 +31,8 @@ if(QUIC_TLS STREQUAL "schannel")
 elseif(QUIC_TLS STREQUAL "openssl")
     add_dependencies(msquicplatformtest OpenSSL)
     target_link_libraries(msquicplatformtest
-        ${QUIC_BUILD_DIR}/openssl/lib/libcrypto.so
-        ${QUIC_BUILD_DIR}/openssl/lib/libssl.so)
+        ${QUIC_BUILD_DIR}/openssl/lib/libssl.a
+        ${QUIC_BUILD_DIR}/openssl/lib/libcrypto.a)
 elseif(QUIC_TLS STREQUAL "mitls")
     target_link_libraries(msquicplatformtest kremlib evercrypt mitls quiccrypto ncrypt crypt32)
 endif()

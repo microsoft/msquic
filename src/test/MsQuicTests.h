@@ -14,7 +14,7 @@ Abstract:
 //#define QUIC_NO_ENCRYPTION 1
 //#define QUIC_COMPARTMENT_TESTS 1
 
-extern QUIC_API_V1* MsQuic;
+extern const QUIC_API_TABLE* MsQuic;
 extern HQUIC Registration;
 extern QUIC_SEC_CONFIG* SecurityConfig;
 
@@ -49,6 +49,7 @@ void QuicTestValidateStreamEvents();
 
 void QuicTestCreateListener();
 void QuicTestStartListener();
+void QuicTestStartListenerMultiAlpns();
 void QuicTestStartListenerImplicit(_In_ int Family);
 void QuicTestStartTwoListeners();
 void QuicTestStartTwoListenersSameALPN();
@@ -512,4 +513,7 @@ typedef struct {
     QUIC_CTL_CODE(37, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 37
+#define IOCTL_QUIC_RUN_START_LISTENER_MULTI_ALPN \
+    QUIC_CTL_CODE(38, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 38

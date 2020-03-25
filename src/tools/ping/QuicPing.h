@@ -17,7 +17,7 @@
 //
 // QUIC API Function Table.
 //
-extern QUIC_API_V1* MsQuic;
+extern const QUIC_API_TABLE* MsQuic;
 
 //
 // Registration context.
@@ -101,7 +101,8 @@ typedef struct QUIC_PING_CONFIG {
     bool UsePacing     : 1;
     bool PrintStats    : 1;
 
-    char ALPN[256];
+    char RawALPN[256];
+    QUIC_BUFFER ALPN;
     QUIC_ADDR LocalIpAddr;
 
     uint32_t DisconnectTimeout; // Milliseconds

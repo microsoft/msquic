@@ -109,6 +109,25 @@ void QuicTestStartListener()
     }
 }
 
+void QuicTestStartListenerMultiAlpns()
+{
+    MsQuicSession Session("MsQuicTest1", "MsQuicTest2");
+    TEST_TRUE(Session.IsValid());
+
+    {
+        TestListener Listener(Session.Handle, ListenerDoNothingCallback);
+        TEST_TRUE(Listener.IsValid());
+        TEST_QUIC_SUCCEEDED(Listener.Start());
+    }
+
+    {
+        TestListener Listener(Session.Handle, ListenerDoNothingCallback);
+        TEST_TRUE(Listener.IsValid());
+        QuicAddr LocalAddress(AF_UNSPEC);
+        TEST_QUIC_SUCCEEDED(Listener.Start(&LocalAddress.SockAddr));
+    }
+}
+
 void QuicTestStartListenerImplicit(_In_ int Family)
 {
     MsQuicSession Session;
@@ -148,8 +167,13 @@ void QuicTestStartTwoListenersSameALPN()
 {
     MsQuicSession Session;
     TEST_TRUE(Session.IsValid());
+    MsQuicSession Session2("MsQuicTest", "MsQuicTest2");
+    TEST_TRUE(Session2.IsValid());
 
     {
+        //
+        // Both try to listen on the same, single ALPN
+        //
         TestListener Listener1(Session.Handle, ListenerDoNothingCallback);
         TEST_TRUE(Listener1.IsValid());
         TEST_QUIC_SUCCEEDED(Listener1.Start());
@@ -158,6 +182,42 @@ void QuicTestStartTwoListenersSameALPN()
         TEST_QUIC_SUCCEEDED(Listener1.GetLocalAddr(LocalAddress));
 
         TestListener Listener2(Session.Handle, ListenerDoNothingCallback);
+        TEST_TRUE(Listener2.IsValid());
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_STATE,
+            Listener2.Start(&LocalAddress.SockAddr));
+    }
+
+    {
+        //
+        // First listener on two ALPNs and second overlaps one of those.
+        //
+        TestListener Listener1(Session2.Handle, ListenerDoNothingCallback);
+        TEST_TRUE(Listener1.IsValid());
+        TEST_QUIC_SUCCEEDED(Listener1.Start());
+
+        QuicAddr LocalAddress;
+        TEST_QUIC_SUCCEEDED(Listener1.GetLocalAddr(LocalAddress));
+
+        TestListener Listener2(Session.Handle, ListenerDoNothingCallback);
+        TEST_TRUE(Listener2.IsValid());
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_STATE,
+            Listener2.Start(&LocalAddress.SockAddr));
+    }
+
+    {
+        //
+        // First listener on one ALPN and second with two (one that overlaps).
+        //
+        TestListener Listener1(Session.Handle, ListenerDoNothingCallback);
+        TEST_TRUE(Listener1.IsValid());
+        TEST_QUIC_SUCCEEDED(Listener1.Start());
+
+        QuicAddr LocalAddress;
+        TEST_QUIC_SUCCEEDED(Listener1.GetLocalAddr(LocalAddress));
+
+        TestListener Listener2(Session2.Handle, ListenerDoNothingCallback);
         TEST_TRUE(Listener2.IsValid());
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_STATE,
@@ -337,7 +397,7 @@ QuicTestConnect(
     MsQuicSession Session;
     TEST_TRUE(Session.IsValid());
     TEST_QUIC_SUCCEEDED(Session.SetPeerBidiStreamCount(4));
-    MsQuicSession Session2("MsQuicTest2");
+    MsQuicSession Session2("MsQuicTest2", "MsQuicTest");
     TEST_TRUE(Session2.IsValid());
     TEST_QUIC_SUCCEEDED(Session2.SetPeerBidiStreamCount(4));
 
@@ -345,7 +405,10 @@ QuicTestConnect(
     PrivateTransportHelper TpHelper(MultiPacketClientInitial);
 
     {
-        TestListener Listener(Session.Handle, ListenerAcceptConnection, AsyncSecConfig);
+        TestListener Listener(
+            MultipleALPNs ? Session2.Handle : Session.Handle,
+            ListenerAcceptConnection,
+            AsyncSecConfig);
         TEST_TRUE(Listener.IsValid());
 
         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
@@ -353,17 +416,11 @@ QuicTestConnect(
         TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-        TestListener Listener2(Session2.Handle, ListenerAcceptConnection, AsyncSecConfig);
-        TEST_TRUE(Listener2.IsValid());
-        if (MultipleALPNs) {
-            TEST_QUIC_SUCCEEDED(Listener2.Start(&ServerLocalAddr.SockAddr));
-        }
-
         if (SessionResumption) {
             TestScopeLogger logScope("PrimeResumption");
             {
                 TestConnection Client(
-                    MultipleALPNs ? Session2.Handle : Session.Handle,
+                    Session.Handle,
                     ConnectionDoNothingCallback,
                     false);
                 TEST_TRUE(Client.IsValid());
@@ -394,11 +451,10 @@ QuicTestConnect(
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
             Listener.Context = &ServerAcceptCtx;
-            Listener2.Context = &ServerAcceptCtx;
 
             {
                 TestConnection Client(
-                    MultipleALPNs ? Session2.Handle : Session.Handle,
+                    Session.Handle,
                     ConnectionDoNothingCallback,
                     false);
                 TEST_TRUE(Client.IsValid());
@@ -821,8 +877,9 @@ QuicTestConnectAndPing(
     PingStats ServerStats(Length, ConnectionCount, TotalStreamCount, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
     PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
 
-    MsQuicSession Session("MsQuicTest", true);
+    MsQuicSession Session;
     TEST_TRUE(Session.IsValid());
+    Session.SetAutoCleanup();
     if (!ServerInitiatedStreams) {
         TEST_QUIC_SUCCEEDED(Session.SetPeerUnidiStreamCount(TotalStreamCount));
         TEST_QUIC_SUCCEEDED(Session.SetPeerBidiStreamCount(TotalStreamCount));

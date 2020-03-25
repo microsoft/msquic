@@ -3025,13 +3025,12 @@ QuicConnRecvDecryptAndAuthenticate(
 }
 
 //
-// Reads the payload (QUIC frames) of the packet, and if everything is
-// successful marks the packet for acknowledgement. Returns TRUE if the packet
-// was successfully processed.
+// Reads the frames in a packet, and if everything is successful marks the
+// packet for acknowledgement and returns TRUE.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
-QuicConnRecvPayload(
+QuicConnRecvFrames(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ QUIC_RECV_PACKET* Packet
@@ -3044,9 +3043,6 @@ QuicConnRecvPayload(
     const uint8_t* Payload = Packet->Buffer + Packet->HeaderLength;
     uint16_t PayloadLength = Packet->PayloadLength;
 
-    //
-    // Process the payload.
-    //
     uint16_t Offset = 0;
     while (Offset < PayloadLength) {
 
@@ -3765,7 +3761,7 @@ QuicConnRecvPostProcessing(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicConnRecvBatch(
+QuicConnRecvDatagramBatch(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ uint8_t BatchCount,
@@ -3808,7 +3804,7 @@ QuicConnRecvBatch(
         if (QuicConnRecvPrepareDecrypt(
                 Connection, Packet, HpMask + i * QUIC_HP_SAMPLE_LENGTH) &&
             QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet) &&
-            QuicConnRecvPayload(Connection, Path, Packet)) {
+            QuicConnRecvFrames(Connection, Path, Packet)) {
 
             QuicConnRecvPostProcessing(Connection, &Path, Packet);
             RecvState->ResetIdleTimeout |= Packet->CompletelyValid;
@@ -3840,7 +3836,7 @@ QuicConnRecvDatagrams(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_RECV_DATAGRAM* DatagramChain,
     _In_ uint32_t DatagramChainCount,
-    _In_ BOOLEAN IsDeferredDatagram
+    _In_ BOOLEAN IsDeferred
     )
 {
     QUIC_RECV_DATAGRAM* ReleaseChain = NULL;
@@ -3853,7 +3849,7 @@ QuicConnRecvDatagrams(
 
     QUIC_PASSIVE_CODE();
 
-    if (IsDeferredDatagram) {
+    if (IsDeferred) {
         QuicTraceLogConnVerbose(UdpRecvDeferred, Connection, "Recv %u deferred UDP datagrams", DatagramChainCount);
     } else {
         QuicTraceLogConnVerbose(UdpRecv, Connection, "Recv %u UDP datagrams", DatagramChainCount);
@@ -3867,7 +3863,7 @@ QuicConnRecvDatagrams(
     uint8_t BatchCount = 0;
     QUIC_RECV_DATAGRAM* Batch[QUIC_MAX_CRYPTO_BATCH_COUNT];
     uint8_t Cipher[QUIC_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
-    QUIC_PATH* Path = NULL;
+    QUIC_PATH* CurrentPath = NULL;
 
     QUIC_RECV_DATAGRAM* Datagram;
     while ((Datagram = DatagramChain) != NULL) {
@@ -3880,39 +3876,42 @@ QuicConnRecvDatagrams(
             QuicDataPathRecvDatagramToRecvPacket(Datagram);
         QUIC_DBG_ASSERT(Packet != NULL);
 
-        QUIC_DBG_ASSERT(Packet->DecryptionDeferred == IsDeferredDatagram);
-        BOOLEAN WasDeferredPreviously = Packet->DecryptionDeferred;
-        UNREFERENCED_PARAMETER(WasDeferredPreviously);
+        QUIC_DBG_ASSERT(Packet->DecryptionDeferred == IsDeferred);
         Packet->DecryptionDeferred = FALSE;
 
-        QUIC_PATH* PacketPath = QuicConnGetPathForDatagram(Connection, Datagram);
-        if (PacketPath == NULL) {
+        QUIC_PATH* DatagramPath = QuicConnGetPathForDatagram(Connection, Datagram);
+        if (DatagramPath == NULL) {
             QuicPacketLogDrop(Connection, Packet, "Max paths already tracked");
             goto Drop;
         }
 
-        if (PacketPath != Path) {
+        if (DatagramPath != CurrentPath) {
             if (BatchCount != 0) {
                 //
-                // This datagram is from a different path than the currently
-                // batched ones. Flush the current batch before continuing.
+                // This datagram is from a different path than the current
+                // batch. Flush the current batch before continuing.
                 //
-                QUIC_DBG_ASSERT(Path != NULL);
-                QuicConnRecvBatch(Connection, Path, BatchCount, Batch, Cipher, &RecvState);
+                QUIC_DBG_ASSERT(CurrentPath != NULL);
+                QuicConnRecvDatagramBatch(
+                    Connection,
+                    CurrentPath,
+                    BatchCount,
+                    Batch,
+                    Cipher,
+                    &RecvState);
                 BatchCount = 0;
             }
-
-            Path = PacketPath;
+            CurrentPath = DatagramPath;
         }
 
-        if (!IsDeferredDatagram) {
+        if (!IsDeferred) {
             Connection->Stats.Recv.TotalBytes += Datagram->BufferLength;
             QuicConnLogInFlowStats(Connection);
 
-            if (!Path->IsPeerValidated) {
+            if (!CurrentPath->IsPeerValidated) {
                 QuicPathIncrementAllowance(
                     Connection,
-                    Path,
+                    CurrentPath,
                     QUIC_AMPLIFICATION_RATIO * Datagram->BufferLength);
             }
         }
@@ -3922,15 +3921,21 @@ QuicConnRecvDatagrams(
             QUIC_DBG_ASSERT(Datagram->Allocated);
             Connection->Stats.Recv.TotalPackets++;
 
-            Packet->BufferLength =
-                Datagram->BufferLength - (uint16_t)(Packet->Buffer - Datagram->Buffer);
+            if (!Packet->ValidatedHeaderInv) {
+                //
+                // Only calculate the buffer length from the available UDP
+                // payload length if the long header hasn't already been
+                // validated (which indicates the actual length);
+                //
+                Packet->BufferLength =
+                    Datagram->BufferLength - (uint16_t)(Packet->Buffer - Datagram->Buffer);
+            }
 
             if (!QuicConnRecvHeader(
                     Connection,
                     Packet,
                     Cipher + BatchCount * QUIC_HP_SAMPLE_LENGTH)) {
                 if (Packet->DecryptionDeferred) {
-                    QUIC_DBG_ASSERT(!WasDeferredPreviously); // Should never be deferred twice.
                     Connection->Stats.Recv.TotalPackets--; // Don't count the packet right now.
                 } else {
                     Connection->Stats.Recv.DroppedPackets++;
@@ -3947,7 +3952,13 @@ QuicConnRecvDatagrams(
                 // encountered a long header packet. Finish off the short
                 // headers first and then continue with the current packet.
                 //
-                QuicConnRecvBatch(Connection, Path, BatchCount, Batch, Cipher, &RecvState);
+                QuicConnRecvDatagramBatch(
+                    Connection,
+                    CurrentPath,
+                    BatchCount,
+                    Batch,
+                    Cipher,
+                    &RecvState);
                 QuicMoveMemory(
                     Cipher + BatchCount * QUIC_HP_SAMPLE_LENGTH,
                     Cipher,
@@ -3960,7 +3971,13 @@ QuicConnRecvDatagrams(
                 break;
             }
 
-            QuicConnRecvBatch(Connection, Path, BatchCount, Batch, Cipher, &RecvState);
+            QuicConnRecvDatagramBatch(
+                Connection,
+                CurrentPath,
+                BatchCount,
+                Batch,
+                Cipher,
+                &RecvState);
             BatchCount = 0;
 
             if (Packet->IsShortHeader) {
@@ -3996,7 +4013,13 @@ QuicConnRecvDatagrams(
             Datagram->QueuedOnConnection = FALSE;
             if (++ReleaseChainCount == QUIC_MAX_RECEIVE_BATCH_COUNT) {
                 if (BatchCount != 0) {
-                    QuicConnRecvBatch(Connection, Path, BatchCount, Batch, Cipher, &RecvState);
+                    QuicConnRecvDatagramBatch(
+                        Connection,
+                        CurrentPath,
+                        BatchCount,
+                        Batch,
+                        Cipher,
+                        &RecvState);
                     BatchCount = 0;
                 }
                 QuicDataPathBindingReturnRecvDatagrams(ReleaseChain);
@@ -4008,7 +4031,13 @@ QuicConnRecvDatagrams(
     }
 
     if (BatchCount != 0) {
-        QuicConnRecvBatch(Connection, Path, BatchCount, Batch, Cipher, &RecvState);
+        QuicConnRecvDatagramBatch(
+            Connection,
+            CurrentPath,
+            BatchCount,
+            Batch,
+            Cipher,
+            &RecvState);
         BatchCount = 0;
     }
 
@@ -4020,7 +4049,18 @@ QuicConnRecvDatagrams(
         QuicDataPathBindingReturnRecvDatagrams(ReleaseChain);
     }
 
-    QuicConnRemoveInvalidPaths(Connection);
+    //
+    // Any new paths created here were created before packet validation. Now
+    // remove any non-active paths that didn't get any valid packets.
+    // NB: Traversing the array backwards is simpler and more efficient here due
+    // to the array shifting that happens in QuicPathRemove.
+    //
+    for (uint8_t i = Connection->PathsCount - 1; i > 0; --i) {
+        if (!Connection->Paths[i].GotValidPacket) {
+            QuicTraceLogConnInfo(PathDiscarded, Connection, "Removing invalid path[%u]", Connection->Paths[i].ID);
+            QuicPathRemove(Connection, i);
+        }
+    }
 
     if (!Connection->State.UpdateWorker &&
         Connection->State.Connected &&

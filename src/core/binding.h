@@ -292,7 +292,7 @@ _Success_(return != NULL)
 QUIC_LISTENER*
 QuicBindingGetListener(
     _In_ QUIC_BINDING* Binding,
-    _In_ const QUIC_NEW_CONNECTION_INFO* Info
+    _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     );
 
 //

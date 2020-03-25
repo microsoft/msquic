@@ -975,7 +975,7 @@ struct Connection : Struct {
     }
 
     ULONG Version() {
-        return RtlUlongByteSwap(ReadType<ULONG>("Stats.QuicVersion"));
+        return ntohl(ReadType<ULONG>("Stats.QuicVersion"));
     }
 
     QUIC_HANDLE_TYPE Type() {
@@ -1159,8 +1159,37 @@ struct Session : Struct {
         return LinkedList(AddrOf("Connections"));
     }
 
-    String GetAlpn() {
-        return String(AddrOf("ALPN"));
+    ULONG64 GetRawAlpnList() {
+        return AddrOf("AlpnList");
+    }
+
+    USHORT GetAlpnListLength() {
+        return ReadType<USHORT>("AlpnListLength");
+    }
+
+    String GetAlpns() {
+        ULONG64 AlpnList = GetRawAlpnList();
+        USHORT AlpnListLength = GetAlpnListLength();
+
+        String Str;
+        ULONG StrOffset = 0;
+        while (AlpnListLength != 0) {
+            UINT8 Length;
+            ReadTypeAtAddr<UINT8>(AlpnList, &Length);
+            AlpnList++;
+            AlpnListLength--;
+
+            ULONG cbRead;
+            ReadMemory(AlpnList, Str.Data+StrOffset, Length, &cbRead);
+            AlpnList += Length;
+            AlpnListLength -= Length;
+            StrOffset += Length + 1;
+            Str.Data[StrOffset] = ',';
+        }
+
+        Str.Data[StrOffset-1] = 0;
+
+        return Str;
     }
 };
 
