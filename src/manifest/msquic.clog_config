@@ -1,4 +1,49 @@
 {
+  "MacroConfigurations": {
+    "lttng_plus": {
+      "Modules": [
+        {
+          "ExportModule": "LTTNG",
+          "CustomSettings": {}
+        }
+      ]
+    },
+    "empty": {
+      "Modules": []
+    },
+    "etw_only": {
+      "Modules": [
+        {
+          "ExportModule": "MANIFESTED_ETW",
+          "CustomSettings": {
+            "ETWManifestFile": "MsQuicEtw.man",
+            "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
+          }
+        }
+      ]
+    },
+    "etw_plus": {
+      "Modules": [
+        {
+          "ExportModule": "MANIFESTED_ETW",
+          "CustomSettings": {
+            "ETWManifestFile": "MsQuicEtw.man",
+            "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
+          }
+        },
+        {
+          "ExportModule": "TRACELOGGING",
+          "CustomSettings": {
+            "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
+          }
+        },
+        {
+          "ExportModule": "DTRACE",
+          "CustomSettings": {}
+        }
+      ]
+    }
+  },
   "Version": 1,
   "CustomTypeClogCSharpFile": null,
   "TypeEncoders": {
@@ -10,185 +55,133 @@
       "MacroName": "QuicTraceLogWarning",
       "EncodedPrefix": null,
       "EncodedArgNumber": 1,
-      "CustomSettings": {
-        "NeedsWPPConversion": "1",
-        "WPPArgNumber": "0",
-        "ETWManifestFile": "MsQuicEtw.man",
-        "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-      },
-      "CLogExportModules": [
-        "MANIFESTED_ETW",
-        "XXX_TRACELOGGING",
-        "XXX_DTRACE"
-      ]
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "etw_only",
+        "windows": "etw_plus"
+      }
     },
     {
       "MacroName": "QuicTraceLogStreamWarning",
       "EncodedPrefix": "PREFIX : %p",
       "EncodedArgNumber": 2,
-      "CustomSettings": {
-        "WPPArgNumber": "2",
-        "ETWManifestFile": "MsQuicEtw.man",
-        "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-      },
-      "CLogExportModules": [
-        "MANIFESTED_ETW",
-        "XXX_TRACELOGGING",
-        "XXX_DTRACE"
-      ]
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "etw_only",
+        "windows": "etw_plus"
+      }
     },
     {
       "MacroName": "QuicTraceLogStreamInfo",
       "EncodedPrefix": "PREFIX : %p",
       "EncodedArgNumber": 2,
-      "CustomSettings": {
-        "WPPArgNumber": "2",
-        "ETWManifestFile": "MsQuicEtw.man",
-        "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-      },
-      "CLogExportModules": [
-        "MANIFESTED_ETW",
-        "XXX_TRACELOGGING",
-        "XXX_DTRACE"
-      ]
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "etw_only",
+        "windows": "etw_plus"
+      }
     },
     {
       "MacroName": "QuicTraceLogStreamVerbose",
       "EncodedPrefix": "PREFIX : %p",
       "EncodedArgNumber": 2,
-      "CustomSettings": {
-        "WPPArgNumber": "2",
-        "ETWManifestFile": "MsQuicEtw.man",
-        "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-      },
-      "CLogExportModules": [
-        "MANIFESTED_ETW",
-        "XXX_TRACELOGGING",
-        "XXX_DTRACE"
-      ]
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "etw_only",
+        "windows": "etw_plus"
+      }
     },
     {
       "MacroName": "QuicTraceLogInfo",
       "EncodedPrefix": null,
       "EncodedArgNumber": 1,
-      "CustomSettings": {
-        "NeedsWPPConversion": "1",
-        "WPPArgNumber": "0",
-        "ETWManifestFile": "MsQuicEtw.man",
-        "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-      },
-      "CLogExportModules": [
-        "MANIFESTED_ETW",
-        "XXX_TRACELOGGING",
-        "XXX_DTRACE"
-      ]
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "etw_only",
+        "windows": "etw_plus"
+      }
     },
     {
       "MacroName": "QuicTraceLogVerbose",
       "EncodedPrefix": null,
       "EncodedArgNumber": 1,
-      "CustomSettings": {
-        "NeedsWPPConversion": "1",
-        "WPPArgNumber": "0",
-        "ETWManifestFile": "MsQuicEtw.man",
-        "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-      },
-      "CLogExportModules": [
-        "MANIFESTED_ETW",
-        "XXX_TRACELOGGING",
-        "XXX_DTRACE"
-      ]
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "etw_only",
+        "windows": "etw_plus"
+      }
     },
     {
       "MacroName": "QuicTraceLogError",
       "EncodedPrefix": null,
       "EncodedArgNumber": 1,
-      "CustomSettings": {
-        "NeedsWPPConversion": "1",
-        "WPPArgNumber": "0",
-        "ETWManifestFile": "MsQuicEtw.man",
-        "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-      },
-      "CLogExportModules": [
-        "MANIFESTED_ETW",
-        "XXX_TRACELOGGING",
-        "XXX_DTRACE"
-      ]
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "etw_only",
+        "windows": "etw_plus"
+      }
     },
     {
       "MacroName": "QuicTraceLogConnError",
       "EncodedPrefix": "PREFIX %p : ",
       "EncodedArgNumber": 2,
-      "CustomSettings": {
-        "WPPArgNumber": "2"
-      },
-      "CLogExportModules": [
-        "MANIFESTED_ETW",
-        "XXX_TRACELOGGING",
-        "XXX_DTRACE"
-      ]
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "etw_only",
+        "windows": "etw_plus"
+      }
     },
     {
       "MacroName": "QuicTraceLogConnWarning",
       "EncodedPrefix": "PREFIX %p : ",
       "EncodedArgNumber": 2,
-      "CustomSettings": {
-        "WPPArgNumber": "2",
-        "ETWManifestFile": "MsQuicEtw.man",
-        "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-      },
-      "CLogExportModules": [
-        "MANIFESTED_ETW",
-        "XXX_TRACELOGGING",
-        "XXX_DTRACE"
-      ]
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "etw_only",
+        "windows": "etw_plus"
+      }
     },
     {
       "MacroName": "QuicTraceLogConnInfo",
       "EncodedPrefix": "PREFIX %p : ",
       "EncodedArgNumber": 2,
-      "CustomSettings": {
-        "WPPArgNumber": "2",
-        "ETWManifestFile": "MsQuicEtw.man",
-        "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-      },
-      "CLogExportModules": [
-        "MANIFESTED_ETW",
-        "XXX_TRACELOGGING",
-        "XXX_DTRACE"
-      ]
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "etw_only",
+        "windows": "etw_plus"
+      }
     },
     {
       "MacroName": "QuicTraceLogConnVerbose",
       "EncodedPrefix": "PREFIX %p : ",
       "EncodedArgNumber": 2,
-      "CustomSettings": {
-        "WPPArgNumber": "2",
-        "ETWManifestFile": "MsQuicEtw.man",
-        "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c"
-      },
-      "CLogExportModules": [
-        "MANIFESTED_ETW",
-        "XXX_TRACELOGGING",
-        "XXX_DTRACE"
-      ]
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "etw_only",
+        "windows": "etw_plus"
+      }
     },
     {
       "MacroName": "QuicTraceEvent",
       "EncodedPrefix": null,
       "EncodedArgNumber": 1,
-      "CustomSettings": {
-        "Quic2Clog": "1",
-        "EventNamePrefix": "Quic",
-        "ETWManifestFile": "MsQuicEtw.man",
-        "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
-        "Orig_EncodedArg": "1"
-      },
-      "CLogExportModules": [
-        "MANIFESTED_ETW",
-        "XXX_TRACELOGGING",
-        "XXX_DTRACE"
-      ]
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "etw_only",
+        "windows": "etw_plus"
+      }
     }
   ],
   "ChainedConfigFiles": [
@@ -2393,282 +2386,6 @@
         "TraceID": "FN_cert_openssl73ff9f2de79a42f0df4336c51a71be8b"
       },
       {
-        "UniquenessHash": "6686a6f0-1232-4d51-5495-f0740227cdbe",
-        "TraceID": "FN_datapath_linux3fa3c705814cf440901b3cdc82763d0e"
-      },
-      {
-        "UniquenessHash": "f8f47069-4cfe-08ec-92a7-7a9558063331",
-        "TraceID": "FN_datapath_linux6a1490694bb2a6cf3b0ca3b4f8ea6705"
-      },
-      {
-        "UniquenessHash": "66e644fe-c58e-26a6-1cb8-c1cb924c7ad1",
-        "TraceID": "FN_datapath_linux3b6790b90a378e2f0279d08e9790ad9e"
-      },
-      {
-        "UniquenessHash": "9c382ab3-69ee-62a6-8a60-ce0f1c670815",
-        "TraceID": "FN_datapath_linux3c5cc39edbda9002304d06a649a55d29"
-      },
-      {
-        "UniquenessHash": "00d3f328-b14a-22d8-dac0-96601461aaae",
-        "TraceID": "FN_datapath_linux59aad15150c0d7ffdbc4b549d8312c1d"
-      },
-      {
-        "UniquenessHash": "7c810c70-c9bc-e6c9-782d-ee064cfc875d",
-        "TraceID": "FN_datapath_linux61eb4268402d5c45ab8802aa6c00611c"
-      },
-      {
-        "UniquenessHash": "d8cc1796-1a4f-5cb0-f64b-5a9b79f10f8a",
-        "TraceID": "FN_datapath_linuxf5aef1cdbfb13bbb56b9db47a5d9bf4a"
-      },
-      {
-        "UniquenessHash": "875f0f42-730e-3c80-f3ca-7560c932a64d",
-        "TraceID": "FN_datapath_linux5c39e7ce20b72cc933a2d2fb57b0d272"
-      },
-      {
-        "UniquenessHash": "b8c5b02f-4b56-29d4-a07d-4b07320c379d",
-        "TraceID": "FN_datapath_linuxb802df54d54a4bc6143599cee561f8f3"
-      },
-      {
-        "UniquenessHash": "48a5c0a7-3baa-e611-bbfe-b2ae848fe171",
-        "TraceID": "FN_datapath_linuxde827e1cb26621b9975feaa0c9aade47"
-      },
-      {
-        "UniquenessHash": "d2e3d955-30bb-d059-7f1b-92667b48c963",
-        "TraceID": "FN_datapath_linux1a4cf7d41ec8fd1e829212c52385bb55"
-      },
-      {
-        "UniquenessHash": "7b3a8bd0-4b63-2356-2195-8906e478719c",
-        "TraceID": "FN_datapath_linux63f61334eaf08a02252ba074286d9fdb"
-      },
-      {
-        "UniquenessHash": "733cf67a-252d-ec8f-5d21-58a38a12c5e0",
-        "TraceID": "FN_datapath_linuxab9d8aecbf2d0e38eeb36d1769c40b0c"
-      },
-      {
-        "UniquenessHash": "99a97de2-f75f-1360-44e1-194bf442fc8d",
-        "TraceID": "FN_datapath_linuxc8c574f415fac8afb9eaa69d11886826"
-      },
-      {
-        "UniquenessHash": "e63277a5-0527-fb0d-deda-bb835d14b982",
-        "TraceID": "FN_datapath_linuxeffe372f69040808bb6dfa7efc48eaf2"
-      },
-      {
-        "UniquenessHash": "7e4ffb8b-7fbf-cc74-b116-d371dc7ed897",
-        "TraceID": "FN_datapath_linux55c63664d2640c0e7f6066ba3c3bcbc9"
-      },
-      {
-        "UniquenessHash": "a899e697-11de-75d7-2041-6e27d01bd59b",
-        "TraceID": "FN_datapath_linux19f2bf84e9d972cd7232119e1f7bfa5f"
-      },
-      {
-        "UniquenessHash": "81384f79-3e84-dc64-d0bf-86020d6dae3f",
-        "TraceID": "FN_datapath_linux1029b3b03e6182711394d88b277f288c"
-      },
-      {
-        "UniquenessHash": "1ee9f4c0-b5f7-dbf7-b1d7-6f49c4b0d731",
-        "TraceID": "FN_datapath_linux60ede27a1c5ad670ecffe4810e5d350a"
-      },
-      {
-        "UniquenessHash": "7b2e8aae-c263-bf8b-e17b-adda14684e26",
-        "TraceID": "FN_datapath_linux8492f15439dfbd6b576f900b8ec9a319"
-      },
-      {
-        "UniquenessHash": "0fd60613-8198-c4ba-dd02-37fc577f9339",
-        "TraceID": "FN_datapath_linux3b98ac193c78986a62dc8818437aaac3"
-      },
-      {
-        "UniquenessHash": "bc5db144-865d-5a41-ac57-94592f92a8d8",
-        "TraceID": "FN_datapath_linux8a3aa260f243d9c933a88d3f5f4c0321"
-      },
-      {
-        "UniquenessHash": "3129c0a1-087a-6fa1-ce2c-60c41e0bb1a2",
-        "TraceID": "FN_datapath_linuxbca492d3173b65591afb875ca167b44c"
-      },
-      {
-        "UniquenessHash": "23507232-9796-db0f-4ac4-fb0ede7448be",
-        "TraceID": "FN_datapath_linux80d463940366316e871279ee90e5c307"
-      },
-      {
-        "UniquenessHash": "46c60b5b-a16c-1603-4d2c-74fbfb7f0028",
-        "TraceID": "FN_datapath_linuxb8159a1f65ecbb0eb9c8b77b9be9122f"
-      },
-      {
-        "UniquenessHash": "6c98dfa2-ff28-83f9-50bd-fbc4b7775f9f",
-        "TraceID": "FN_datapath_linuxd0d27dc9f980729b226874b283255424"
-      },
-      {
-        "UniquenessHash": "9053b923-2a75-1f63-99ee-4e314843dd77",
-        "TraceID": "FN_datapath_linux8848703f05a0fe05539e919e0d365ba4"
-      },
-      {
-        "UniquenessHash": "91f0e281-3cad-7528-5037-c88f94f461c7",
-        "TraceID": "FN_datapath_linuxa4bf90a34d69dcbe9e96ed51f1b9021c"
-      },
-      {
-        "UniquenessHash": "32ff7850-af6d-01ba-10b3-ea19cc29f33e",
-        "TraceID": "FN_datapath_linuxfdc1f385a374eb7487032df67fae038b"
-      },
-      {
-        "UniquenessHash": "2ce90244-ec01-551a-ca26-c0369d954049",
-        "TraceID": "FN_datapath_linuxb6e785958cd8d50ccef0a6d36787da35"
-      },
-      {
-        "UniquenessHash": "32b024f8-f00b-e731-e6f7-8dee9894ed4a",
-        "TraceID": "FN_datapath_linuxe5e6b299d1a0081dd2afc32349f22ecd"
-      },
-      {
-        "UniquenessHash": "187fcf55-24ce-03e8-7ba2-81597fabd5b8",
-        "TraceID": "FN_datapath_linuxa4a94d76ae75beeb2d1d1c4a5098fea1"
-      },
-      {
-        "UniquenessHash": "39afa0c3-b84f-6624-8ffb-2749d311d174",
-        "TraceID": "FN_datapath_linuxdf7cb85f965e43368839b99f2415011e"
-      },
-      {
-        "UniquenessHash": "e0e9bacd-d43a-1f9e-8797-ff190411c65e",
-        "TraceID": "FN_datapath_linux59a04f4ccf742d10c8d11db4fb46b00e"
-      },
-      {
-        "UniquenessHash": "6a9c7b29-c84e-c4b3-60ac-562e459abd7e",
-        "TraceID": "FN_datapath_linux1ccd1de3f445cff3fe70092785fe43c3"
-      },
-      {
-        "UniquenessHash": "749dd0bc-21ef-4495-b641-000fdeaf5a5c",
-        "TraceID": "FN_datapath_linuxd4db8a00044550ffa4fb320c0d17bd5e"
-      },
-      {
-        "UniquenessHash": "7965c19b-8f56-abff-f745-b80479a7203d",
-        "TraceID": "FN_datapath_linux96a75e11317f285c36e073a349ed8ae6"
-      },
-      {
-        "UniquenessHash": "15155da3-5e19-cf1c-9111-72c6374b4b30",
-        "TraceID": "FN_datapath_linuxb58ac54cf20776df9c35e6d1469fcb43"
-      },
-      {
-        "UniquenessHash": "ed215e68-52ae-d78f-1e0c-13b2eb7c8cac",
-        "TraceID": "FN_datapath_linux9616bfff71a6ad3bd8a9028994b1f3ce"
-      },
-      {
-        "UniquenessHash": "cffd9ef7-2bfd-b973-2e0c-8b532f563737",
-        "TraceID": "FN_datapath_linux7c18fd32d3cc4386509a1c9a858d1a8c"
-      },
-      {
-        "UniquenessHash": "e10f9ea2-032e-efad-18cf-d508a5a1a9b7",
-        "TraceID": "FN_datapath_linux6bf174dd7705d220217784cf1b1fbd51"
-      },
-      {
-        "UniquenessHash": "86859dab-08cf-3ff6-62e2-ee2052f4a09d",
-        "TraceID": "FN_datapath_linuxaba234d30914c9012fb19a828a43a2cb"
-      },
-      {
-        "UniquenessHash": "c94a685b-c32f-03eb-6806-fbabec6ea4ed",
-        "TraceID": "FN_datapath_linux36e15fe80ecd2361189f45b0e3fc98d9"
-      },
-      {
-        "UniquenessHash": "ac5c8368-0f17-5cba-9d68-c37477fe5b22",
-        "TraceID": "FN_datapath_linuxbe45cb9fcf8f4e1e6970a5b140681c5d"
-      },
-      {
-        "UniquenessHash": "852fcc17-6dc1-5869-b611-142067d90f64",
-        "TraceID": "FN_datapath_linux86275c6bd95aff071fb8c7df8db5b1fe"
-      },
-      {
-        "UniquenessHash": "f0278cb2-de57-035e-12f2-3bc1a8dff7bd",
-        "TraceID": "FN_datapath_linuxf1e7fb33cf2002577b7b6ad6225d04bb"
-      },
-      {
-        "UniquenessHash": "1a5f07e8-18c5-f2e8-73ce-ef953af4ce41",
-        "TraceID": "FN_datapath_linux397f19d5cc013a05fa3ea6456e446ade"
-      },
-      {
-        "UniquenessHash": "c4e3ad77-fc1e-f2f9-ffc7-d772abc60412",
-        "TraceID": "FN_datapath_linux1f5f901030a987cf2a21f462a41812a9"
-      },
-      {
-        "UniquenessHash": "edbdc9da-ba30-1581-6829-e5082af5e20b",
-        "TraceID": "FN_datapath_linuxa7c850fad55357dac836f120c5a602a9"
-      },
-      {
-        "UniquenessHash": "a4dafd3d-a507-225e-4bff-1eba3a66b33f",
-        "TraceID": "FN_datapath_winkernel536a28a2cc566ae9496fcdc2dad1bc11"
-      },
-      {
-        "UniquenessHash": "392396e5-c68b-4904-4339-fc187402917f",
-        "TraceID": "FN_datapath_winkernel47ad1d2a3a581705a6c70703361a63a3"
-      },
-      {
-        "UniquenessHash": "f17530f6-650a-0bbd-e602-fbf0e38e0f91",
-        "TraceID": "FN_datapath_winkerneld9cd530b54fdc33f0e9780f42cdeacf0"
-      },
-      {
-        "UniquenessHash": "ca4035ef-23a6-b0b7-8b7d-740411887dcb",
-        "TraceID": "FN_datapath_winkernel1c1c5a9db5e0be21e86bc22356bf85a2"
-      },
-      {
-        "UniquenessHash": "26702806-3969-e150-8c73-49af800789fe",
-        "TraceID": "FN_datapath_winkernel2a2506743958edf053d61e0928f9fd40"
-      },
-      {
-        "UniquenessHash": "551da430-1b39-e48c-afd6-7743e57e43df",
-        "TraceID": "FN_datapath_winkernelc4017adb4452fb5f1b340ea7cb0a8c82"
-      },
-      {
-        "UniquenessHash": "3528de34-8f77-ec6f-29b8-e00e7dda38db",
-        "TraceID": "FN_datapath_winkernelcea2322f734ab5d4323953d9ee0afe25"
-      },
-      {
-        "UniquenessHash": "3f663465-fac8-b22d-0b23-deaa68dd3be8",
-        "TraceID": "FN_datapath_winkernel919ebf940a2a169176992905fc755ad3"
-      },
-      {
-        "UniquenessHash": "cb79c960-1e18-17ed-b194-0f7284e4dfc1",
-        "TraceID": "FN_datapath_winkernel114fbce36d1d5e27f51f67070ddfc15b"
-      },
-      {
-        "UniquenessHash": "05301f62-2f71-7268-f54b-2df775111aa4",
-        "TraceID": "FN_datapath_winkernelca58fac1e96d6975bd26514d2e67c44c"
-      },
-      {
-        "UniquenessHash": "d75aafd4-f25e-d6bb-390a-c1e1e6c9544d",
-        "TraceID": "FN_datapath_winkernel7478cae346c3ac8bb5271d6e65693a55"
-      },
-      {
-        "UniquenessHash": "cd574180-9eed-2cf9-a5d1-8e7144f4f12d",
-        "TraceID": "FN_datapath_winkernel0324e327f65fd558e2cd842bc3d2b067"
-      },
-      {
-        "UniquenessHash": "32e05016-1112-98ec-eea1-10b679750033",
-        "TraceID": "FN_datapath_winkernel7ace99c208f148bb120993f6b0cc6af7"
-      },
-      {
-        "UniquenessHash": "2687e00f-7807-599d-c2a7-e44f6680f5b0",
-        "TraceID": "FN_datapath_winkernel10b2cd6bd05f9d95d32af961e9a4a475"
-      },
-      {
-        "UniquenessHash": "2c661957-170b-8f66-6026-6ceaeaff7eaa",
-        "TraceID": "FN_datapath_winkerneld5ad6e016ca238333b94f0f930062153"
-      },
-      {
-        "UniquenessHash": "ffc81f9d-591e-87ad-0aa4-7637a42c1b8f",
-        "TraceID": "FN_datapath_winkernele6ccc5e3dd39066016a63b7ae7a6ee27"
-      },
-      {
-        "UniquenessHash": "484cb780-3038-b3d4-b1fb-463db4f6133f",
-        "TraceID": "FN_datapath_winkernel032b71cec12b7777ddde8d45635955d7"
-      },
-      {
-        "UniquenessHash": "30d1a05f-1b4f-5df7-0039-27222327be92",
-        "TraceID": "FN_datapath_winkernel0d5b73ad7e3f4e54d28b5b840116cd97"
-      },
-      {
-        "UniquenessHash": "3a6a5d80-2304-5cdf-e058-24ba41433e1e",
-        "TraceID": "FN_datapath_winkernele1fb7d63de75c9c0e44219d165a81f04"
-      },
-      {
-        "UniquenessHash": "fe5d30e7-d9ae-42c4-558f-25fcc82580e5",
-        "TraceID": "FN_datapath_winkernela4bf90a34d69dcbe9e96ed51f1b9021c"
-      },
-      {
         "UniquenessHash": "05b8e8f1-8b56-208f-144b-54d52f391653",
         "TraceID": "FN_platform_linux5b43549401edd168cb147c081480f701"
       },
@@ -3117,6 +2834,150 @@
         "TraceID": "FN_tls_stubd6ab59da5e6c82d95c00c16cd6b227d0"
       },
       {
+        "UniquenessHash": "ab68a00c-a28e-5ef8-f9c9-99bf58b2b154",
+        "TraceID": "FN_controlb6606769d9c978312eafa82a15a98139"
+      },
+      {
+        "UniquenessHash": "bdab751b-70de-5006-a875-a4f6799bca1f",
+        "TraceID": "FN_controld168b3f001f047843d6ecb1f3fcfd47a"
+      },
+      {
+        "UniquenessHash": "4395ba15-c8d6-84b1-71e5-551e67cdbdff",
+        "TraceID": "FN_control9c07f2de2e6692d9bbc34ea2d43b3efd"
+      },
+      {
+        "UniquenessHash": "c9d81371-d347-6463-cc90-b80163a5a0b0",
+        "TraceID": "FN_controldfa728711b714575e237abef49173c41"
+      },
+      {
+        "UniquenessHash": "6dfb364b-3d10-a2e8-4312-aa3266b0f13a",
+        "TraceID": "FN_control77c5a0adf44b5361c54147918d37e97b"
+      },
+      {
+        "UniquenessHash": "616554d4-26af-f9c7-1581-e20878ddb648",
+        "TraceID": "FN_controlb13dbc1a64995081e3cebf39b0f254de"
+      },
+      {
+        "UniquenessHash": "7162fb60-0d2a-4079-eab1-8fff3a213fc5",
+        "TraceID": "FN_controle5193f6ebf266b970f1e50b1341490ac"
+      },
+      {
+        "UniquenessHash": "da851eaa-b90d-6832-c611-c33b3fdef3f6",
+        "TraceID": "FN_controle39f156e7c33ef5d449ba2a5b670f8dc"
+      },
+      {
+        "UniquenessHash": "b8efb574-317b-e0bc-efa5-c52d947a4c87",
+        "TraceID": "FN_control928f1e9265e07ac92d6f7f99f3350848"
+      },
+      {
+        "UniquenessHash": "84c4b32f-79ea-91c9-5461-34c60bb7cd4b",
+        "TraceID": "FN_control79d5bb59ba655554979808ebcdfc4afc"
+      },
+      {
+        "UniquenessHash": "eb0448f0-92f2-7616-bfc4-d0127604c4e2",
+        "TraceID": "FN_controld1d04f96d4a6d92e901529003169771a"
+      },
+      {
+        "UniquenessHash": "a055397f-3c98-2c9c-06fa-3f2261e727da",
+        "TraceID": "FN_control65c950da4fc2d8f0c0251ef4a32c5b69"
+      },
+      {
+        "UniquenessHash": "6e37f202-c035-9981-7ffc-841d91b5b88d",
+        "TraceID": "FN_controlfbd2199c5659da13fdd4ef0a34e7d69b"
+      },
+      {
+        "UniquenessHash": "7f87c544-5584-f7ae-6dd7-1b03a62b6047",
+        "TraceID": "FN_control57892440719b0f253a787d295eb3aa14"
+      },
+      {
+        "UniquenessHash": "ec9fcb17-515b-08c6-e396-145bab7a0f7d",
+        "TraceID": "FN_control48d9bd8b3c4a9b5ba78e9d9a361a33ef"
+      },
+      {
+        "UniquenessHash": "c7d3d92c-086a-a2e1-cf1f-f77a2b8fa89b",
+        "TraceID": "FN_control1e3cd687a3261682179844826a48b06d"
+      },
+      {
+        "UniquenessHash": "7cd672ed-25ce-c218-71e2-3e1cc0977395",
+        "TraceID": "FN_controlfe649bf1be40d3d0e06cd0136c06d550"
+      },
+      {
+        "UniquenessHash": "2e44b22f-e0d4-21a3-7146-505f40523cf3",
+        "TraceID": "FN_controlcf3f19640b86c07daab4605e17eed7e1"
+      },
+      {
+        "UniquenessHash": "72d9d688-ec13-537c-91c6-d5f834f72f82",
+        "TraceID": "FN_control9dae8c6bd52734e00cb3e90451768212"
+      },
+      {
+        "UniquenessHash": "707ccafb-c945-0304-72d0-cff7cb207767",
+        "TraceID": "FN_control9c740cde42b8116cfc95fe3797249a35"
+      },
+      {
+        "UniquenessHash": "f462b1bc-53e3-08a3-61bf-30f2a6c8c49c",
+        "TraceID": "FN_controlc0479dcb8ee9e72085ba88d718e40e3d"
+      },
+      {
+        "UniquenessHash": "395b7227-f9c5-2b44-077a-ac889aca5136",
+        "TraceID": "FN_control2252efed476118adb31be54fe5829479"
+      },
+      {
+        "UniquenessHash": "d33458f2-e338-2e74-101f-e5f8ee2478f1",
+        "TraceID": "FN_control2f7b16fcedd0cad7f7d7d291e5565bf2"
+      },
+      {
+        "UniquenessHash": "49a756dd-05f2-0045-50cc-227b693f4caa",
+        "TraceID": "FN_controlad84e24e4d86ceaa678d3ad06c5d697f"
+      },
+      {
+        "UniquenessHash": "69cbd603-fcea-1984-de97-fa32914770fa",
+        "TraceID": "FN_controlf2cfcad1e01bd84dacc11ab018c83025"
+      },
+      {
+        "UniquenessHash": "5d4dcbf1-246f-14f5-c0a2-5ee18c79c1d8",
+        "TraceID": "FN_control3af5d477ca51e451eb07856f832960c8"
+      },
+      {
+        "UniquenessHash": "9418e3ee-0975-3626-01e2-2b1a68ef596a",
+        "TraceID": "FN_control11922ed65b74d9b846dec2af1ea27a37"
+      },
+      {
+        "UniquenessHash": "0d4e31be-e55d-90e3-0fb8-be6f36e159c6",
+        "TraceID": "FN_control2b3368fe49f36bc1446094ada9cd3930"
+      },
+      {
+        "UniquenessHash": "641423ea-1922-087a-450e-0f87b07c5f22",
+        "TraceID": "FN_control29f33308baa8406e1d914675d6a80714"
+      },
+      {
+        "UniquenessHash": "c179fd9a-30af-b8f3-2f3d-edb7e9de0818",
+        "TraceID": "FN_controlaac546ec85a3233833360cd7ab640553"
+      },
+      {
+        "UniquenessHash": "8ddb8892-81d1-00a7-8bb0-857483372064",
+        "TraceID": "FN_controle873f8dcb3ed431fa02ef1c6e5c2c525"
+      },
+      {
+        "UniquenessHash": "825c1bd2-f1cf-f74d-ef63-98fd326ae6dc",
+        "TraceID": "FN_driver33ec7eb98b419e59add5890fa61afa13"
+      },
+      {
+        "UniquenessHash": "dfa22223-fa4b-c0db-efae-0e8d79ec454e",
+        "TraceID": "FN_driver2914cfd7e479c844f78b638f668e3720"
+      },
+      {
+        "UniquenessHash": "e0d5ed37-8512-9122-a901-08c913e38e2f",
+        "TraceID": "FN_driver9dbc814f4f43ea517407f5b7c8143626"
+      },
+      {
+        "UniquenessHash": "c47678b9-9f8b-1ebb-0a22-e718ce428d98",
+        "TraceID": "FN_driver2b1325882fdd29ce47e4eb6224542b5f"
+      },
+      {
+        "UniquenessHash": "d021202a-b432-5b1e-e68a-141354a0c46e",
+        "TraceID": "FN_drivere2715f5ac91739cf9fdd047896c7912c"
+      },
+      {
         "UniquenessHash": "ed9b4fb9-eef6-52fb-4972-682d6c6ef696",
         "TraceID": "FN_tls_opensslbeb87fff4fd6aff47c418f16532cd6af"
       },
@@ -3453,148 +3314,280 @@
         "TraceID": "FN_tls_openssld5e18147a9aded463cabc2d95e068918"
       },
       {
-        "UniquenessHash": "ab68a00c-a28e-5ef8-f9c9-99bf58b2b154",
-        "TraceID": "FN_controlb6606769d9c978312eafa82a15a98139"
+        "UniquenessHash": "6686a6f0-1232-4d51-5495-f0740227cdbe",
+        "TraceID": "FN_datapath_linux3fa3c705814cf440901b3cdc82763d0e"
       },
       {
-        "UniquenessHash": "bdab751b-70de-5006-a875-a4f6799bca1f",
-        "TraceID": "FN_controld168b3f001f047843d6ecb1f3fcfd47a"
+        "UniquenessHash": "f8f47069-4cfe-08ec-92a7-7a9558063331",
+        "TraceID": "FN_datapath_linux6a1490694bb2a6cf3b0ca3b4f8ea6705"
       },
       {
-        "UniquenessHash": "4395ba15-c8d6-84b1-71e5-551e67cdbdff",
-        "TraceID": "FN_control9c07f2de2e6692d9bbc34ea2d43b3efd"
+        "UniquenessHash": "66e644fe-c58e-26a6-1cb8-c1cb924c7ad1",
+        "TraceID": "FN_datapath_linux3b6790b90a378e2f0279d08e9790ad9e"
       },
       {
-        "UniquenessHash": "c9d81371-d347-6463-cc90-b80163a5a0b0",
-        "TraceID": "FN_controldfa728711b714575e237abef49173c41"
+        "UniquenessHash": "9c382ab3-69ee-62a6-8a60-ce0f1c670815",
+        "TraceID": "FN_datapath_linux3c5cc39edbda9002304d06a649a55d29"
       },
       {
-        "UniquenessHash": "6dfb364b-3d10-a2e8-4312-aa3266b0f13a",
-        "TraceID": "FN_control77c5a0adf44b5361c54147918d37e97b"
+        "UniquenessHash": "00d3f328-b14a-22d8-dac0-96601461aaae",
+        "TraceID": "FN_datapath_linux59aad15150c0d7ffdbc4b549d8312c1d"
       },
       {
-        "UniquenessHash": "616554d4-26af-f9c7-1581-e20878ddb648",
-        "TraceID": "FN_controlb13dbc1a64995081e3cebf39b0f254de"
+        "UniquenessHash": "7c810c70-c9bc-e6c9-782d-ee064cfc875d",
+        "TraceID": "FN_datapath_linux61eb4268402d5c45ab8802aa6c00611c"
       },
       {
-        "UniquenessHash": "7162fb60-0d2a-4079-eab1-8fff3a213fc5",
-        "TraceID": "FN_controle5193f6ebf266b970f1e50b1341490ac"
+        "UniquenessHash": "d8cc1796-1a4f-5cb0-f64b-5a9b79f10f8a",
+        "TraceID": "FN_datapath_linuxf5aef1cdbfb13bbb56b9db47a5d9bf4a"
       },
       {
-        "UniquenessHash": "da851eaa-b90d-6832-c611-c33b3fdef3f6",
-        "TraceID": "FN_controle39f156e7c33ef5d449ba2a5b670f8dc"
+        "UniquenessHash": "875f0f42-730e-3c80-f3ca-7560c932a64d",
+        "TraceID": "FN_datapath_linux5c39e7ce20b72cc933a2d2fb57b0d272"
       },
       {
-        "UniquenessHash": "b8efb574-317b-e0bc-efa5-c52d947a4c87",
-        "TraceID": "FN_control928f1e9265e07ac92d6f7f99f3350848"
+        "UniquenessHash": "b8c5b02f-4b56-29d4-a07d-4b07320c379d",
+        "TraceID": "FN_datapath_linuxb802df54d54a4bc6143599cee561f8f3"
       },
       {
-        "UniquenessHash": "84c4b32f-79ea-91c9-5461-34c60bb7cd4b",
-        "TraceID": "FN_control79d5bb59ba655554979808ebcdfc4afc"
+        "UniquenessHash": "48a5c0a7-3baa-e611-bbfe-b2ae848fe171",
+        "TraceID": "FN_datapath_linuxde827e1cb26621b9975feaa0c9aade47"
       },
       {
-        "UniquenessHash": "eb0448f0-92f2-7616-bfc4-d0127604c4e2",
-        "TraceID": "FN_controld1d04f96d4a6d92e901529003169771a"
+        "UniquenessHash": "d2e3d955-30bb-d059-7f1b-92667b48c963",
+        "TraceID": "FN_datapath_linux1a4cf7d41ec8fd1e829212c52385bb55"
       },
       {
-        "UniquenessHash": "a055397f-3c98-2c9c-06fa-3f2261e727da",
-        "TraceID": "FN_control65c950da4fc2d8f0c0251ef4a32c5b69"
+        "UniquenessHash": "7b3a8bd0-4b63-2356-2195-8906e478719c",
+        "TraceID": "FN_datapath_linux63f61334eaf08a02252ba074286d9fdb"
       },
       {
-        "UniquenessHash": "6e37f202-c035-9981-7ffc-841d91b5b88d",
-        "TraceID": "FN_controlfbd2199c5659da13fdd4ef0a34e7d69b"
+        "UniquenessHash": "733cf67a-252d-ec8f-5d21-58a38a12c5e0",
+        "TraceID": "FN_datapath_linuxab9d8aecbf2d0e38eeb36d1769c40b0c"
       },
       {
-        "UniquenessHash": "7f87c544-5584-f7ae-6dd7-1b03a62b6047",
-        "TraceID": "FN_control57892440719b0f253a787d295eb3aa14"
+        "UniquenessHash": "99a97de2-f75f-1360-44e1-194bf442fc8d",
+        "TraceID": "FN_datapath_linuxc8c574f415fac8afb9eaa69d11886826"
       },
       {
-        "UniquenessHash": "ec9fcb17-515b-08c6-e396-145bab7a0f7d",
-        "TraceID": "FN_control48d9bd8b3c4a9b5ba78e9d9a361a33ef"
+        "UniquenessHash": "e63277a5-0527-fb0d-deda-bb835d14b982",
+        "TraceID": "FN_datapath_linuxeffe372f69040808bb6dfa7efc48eaf2"
       },
       {
-        "UniquenessHash": "c7d3d92c-086a-a2e1-cf1f-f77a2b8fa89b",
-        "TraceID": "FN_control1e3cd687a3261682179844826a48b06d"
+        "UniquenessHash": "7e4ffb8b-7fbf-cc74-b116-d371dc7ed897",
+        "TraceID": "FN_datapath_linux55c63664d2640c0e7f6066ba3c3bcbc9"
       },
       {
-        "UniquenessHash": "7cd672ed-25ce-c218-71e2-3e1cc0977395",
-        "TraceID": "FN_controlfe649bf1be40d3d0e06cd0136c06d550"
+        "UniquenessHash": "a899e697-11de-75d7-2041-6e27d01bd59b",
+        "TraceID": "FN_datapath_linux19f2bf84e9d972cd7232119e1f7bfa5f"
       },
       {
-        "UniquenessHash": "2e44b22f-e0d4-21a3-7146-505f40523cf3",
-        "TraceID": "FN_controlcf3f19640b86c07daab4605e17eed7e1"
+        "UniquenessHash": "81384f79-3e84-dc64-d0bf-86020d6dae3f",
+        "TraceID": "FN_datapath_linux1029b3b03e6182711394d88b277f288c"
       },
       {
-        "UniquenessHash": "72d9d688-ec13-537c-91c6-d5f834f72f82",
-        "TraceID": "FN_control9dae8c6bd52734e00cb3e90451768212"
+        "UniquenessHash": "1ee9f4c0-b5f7-dbf7-b1d7-6f49c4b0d731",
+        "TraceID": "FN_datapath_linux60ede27a1c5ad670ecffe4810e5d350a"
       },
       {
-        "UniquenessHash": "707ccafb-c945-0304-72d0-cff7cb207767",
-        "TraceID": "FN_control9c740cde42b8116cfc95fe3797249a35"
+        "UniquenessHash": "7b2e8aae-c263-bf8b-e17b-adda14684e26",
+        "TraceID": "FN_datapath_linux8492f15439dfbd6b576f900b8ec9a319"
       },
       {
-        "UniquenessHash": "f462b1bc-53e3-08a3-61bf-30f2a6c8c49c",
-        "TraceID": "FN_controlc0479dcb8ee9e72085ba88d718e40e3d"
+        "UniquenessHash": "0fd60613-8198-c4ba-dd02-37fc577f9339",
+        "TraceID": "FN_datapath_linux3b98ac193c78986a62dc8818437aaac3"
       },
       {
-        "UniquenessHash": "395b7227-f9c5-2b44-077a-ac889aca5136",
-        "TraceID": "FN_control2252efed476118adb31be54fe5829479"
+        "UniquenessHash": "bc5db144-865d-5a41-ac57-94592f92a8d8",
+        "TraceID": "FN_datapath_linux8a3aa260f243d9c933a88d3f5f4c0321"
       },
       {
-        "UniquenessHash": "d33458f2-e338-2e74-101f-e5f8ee2478f1",
-        "TraceID": "FN_control2f7b16fcedd0cad7f7d7d291e5565bf2"
+        "UniquenessHash": "3129c0a1-087a-6fa1-ce2c-60c41e0bb1a2",
+        "TraceID": "FN_datapath_linuxbca492d3173b65591afb875ca167b44c"
       },
       {
-        "UniquenessHash": "49a756dd-05f2-0045-50cc-227b693f4caa",
-        "TraceID": "FN_controlad84e24e4d86ceaa678d3ad06c5d697f"
+        "UniquenessHash": "23507232-9796-db0f-4ac4-fb0ede7448be",
+        "TraceID": "FN_datapath_linux80d463940366316e871279ee90e5c307"
       },
       {
-        "UniquenessHash": "69cbd603-fcea-1984-de97-fa32914770fa",
-        "TraceID": "FN_controlf2cfcad1e01bd84dacc11ab018c83025"
+        "UniquenessHash": "46c60b5b-a16c-1603-4d2c-74fbfb7f0028",
+        "TraceID": "FN_datapath_linuxb8159a1f65ecbb0eb9c8b77b9be9122f"
       },
       {
-        "UniquenessHash": "5d4dcbf1-246f-14f5-c0a2-5ee18c79c1d8",
-        "TraceID": "FN_control3af5d477ca51e451eb07856f832960c8"
+        "UniquenessHash": "6c98dfa2-ff28-83f9-50bd-fbc4b7775f9f",
+        "TraceID": "FN_datapath_linuxd0d27dc9f980729b226874b283255424"
       },
       {
-        "UniquenessHash": "9418e3ee-0975-3626-01e2-2b1a68ef596a",
-        "TraceID": "FN_control11922ed65b74d9b846dec2af1ea27a37"
+        "UniquenessHash": "9053b923-2a75-1f63-99ee-4e314843dd77",
+        "TraceID": "FN_datapath_linux8848703f05a0fe05539e919e0d365ba4"
       },
       {
-        "UniquenessHash": "0d4e31be-e55d-90e3-0fb8-be6f36e159c6",
-        "TraceID": "FN_control2b3368fe49f36bc1446094ada9cd3930"
+        "UniquenessHash": "91f0e281-3cad-7528-5037-c88f94f461c7",
+        "TraceID": "FN_datapath_linuxa4bf90a34d69dcbe9e96ed51f1b9021c"
       },
       {
-        "UniquenessHash": "641423ea-1922-087a-450e-0f87b07c5f22",
-        "TraceID": "FN_control29f33308baa8406e1d914675d6a80714"
+        "UniquenessHash": "32ff7850-af6d-01ba-10b3-ea19cc29f33e",
+        "TraceID": "FN_datapath_linuxfdc1f385a374eb7487032df67fae038b"
       },
       {
-        "UniquenessHash": "c179fd9a-30af-b8f3-2f3d-edb7e9de0818",
-        "TraceID": "FN_controlaac546ec85a3233833360cd7ab640553"
+        "UniquenessHash": "2ce90244-ec01-551a-ca26-c0369d954049",
+        "TraceID": "FN_datapath_linuxb6e785958cd8d50ccef0a6d36787da35"
       },
       {
-        "UniquenessHash": "8ddb8892-81d1-00a7-8bb0-857483372064",
-        "TraceID": "FN_controle873f8dcb3ed431fa02ef1c6e5c2c525"
+        "UniquenessHash": "32b024f8-f00b-e731-e6f7-8dee9894ed4a",
+        "TraceID": "FN_datapath_linuxe5e6b299d1a0081dd2afc32349f22ecd"
       },
       {
-        "UniquenessHash": "825c1bd2-f1cf-f74d-ef63-98fd326ae6dc",
-        "TraceID": "FN_driver33ec7eb98b419e59add5890fa61afa13"
+        "UniquenessHash": "187fcf55-24ce-03e8-7ba2-81597fabd5b8",
+        "TraceID": "FN_datapath_linuxa4a94d76ae75beeb2d1d1c4a5098fea1"
       },
       {
-        "UniquenessHash": "dfa22223-fa4b-c0db-efae-0e8d79ec454e",
-        "TraceID": "FN_driver2914cfd7e479c844f78b638f668e3720"
+        "UniquenessHash": "39afa0c3-b84f-6624-8ffb-2749d311d174",
+        "TraceID": "FN_datapath_linuxdf7cb85f965e43368839b99f2415011e"
       },
       {
-        "UniquenessHash": "e0d5ed37-8512-9122-a901-08c913e38e2f",
-        "TraceID": "FN_driver9dbc814f4f43ea517407f5b7c8143626"
+        "UniquenessHash": "e0e9bacd-d43a-1f9e-8797-ff190411c65e",
+        "TraceID": "FN_datapath_linux59a04f4ccf742d10c8d11db4fb46b00e"
       },
       {
-        "UniquenessHash": "c47678b9-9f8b-1ebb-0a22-e718ce428d98",
-        "TraceID": "FN_driver2b1325882fdd29ce47e4eb6224542b5f"
+        "UniquenessHash": "6a9c7b29-c84e-c4b3-60ac-562e459abd7e",
+        "TraceID": "FN_datapath_linux1ccd1de3f445cff3fe70092785fe43c3"
       },
       {
-        "UniquenessHash": "d021202a-b432-5b1e-e68a-141354a0c46e",
-        "TraceID": "FN_drivere2715f5ac91739cf9fdd047896c7912c"
+        "UniquenessHash": "749dd0bc-21ef-4495-b641-000fdeaf5a5c",
+        "TraceID": "FN_datapath_linuxd4db8a00044550ffa4fb320c0d17bd5e"
+      },
+      {
+        "UniquenessHash": "7965c19b-8f56-abff-f745-b80479a7203d",
+        "TraceID": "FN_datapath_linux96a75e11317f285c36e073a349ed8ae6"
+      },
+      {
+        "UniquenessHash": "15155da3-5e19-cf1c-9111-72c6374b4b30",
+        "TraceID": "FN_datapath_linuxb58ac54cf20776df9c35e6d1469fcb43"
+      },
+      {
+        "UniquenessHash": "ed215e68-52ae-d78f-1e0c-13b2eb7c8cac",
+        "TraceID": "FN_datapath_linux9616bfff71a6ad3bd8a9028994b1f3ce"
+      },
+      {
+        "UniquenessHash": "cffd9ef7-2bfd-b973-2e0c-8b532f563737",
+        "TraceID": "FN_datapath_linux7c18fd32d3cc4386509a1c9a858d1a8c"
+      },
+      {
+        "UniquenessHash": "e10f9ea2-032e-efad-18cf-d508a5a1a9b7",
+        "TraceID": "FN_datapath_linux6bf174dd7705d220217784cf1b1fbd51"
+      },
+      {
+        "UniquenessHash": "86859dab-08cf-3ff6-62e2-ee2052f4a09d",
+        "TraceID": "FN_datapath_linuxaba234d30914c9012fb19a828a43a2cb"
+      },
+      {
+        "UniquenessHash": "c94a685b-c32f-03eb-6806-fbabec6ea4ed",
+        "TraceID": "FN_datapath_linux36e15fe80ecd2361189f45b0e3fc98d9"
+      },
+      {
+        "UniquenessHash": "ac5c8368-0f17-5cba-9d68-c37477fe5b22",
+        "TraceID": "FN_datapath_linuxbe45cb9fcf8f4e1e6970a5b140681c5d"
+      },
+      {
+        "UniquenessHash": "852fcc17-6dc1-5869-b611-142067d90f64",
+        "TraceID": "FN_datapath_linux86275c6bd95aff071fb8c7df8db5b1fe"
+      },
+      {
+        "UniquenessHash": "f0278cb2-de57-035e-12f2-3bc1a8dff7bd",
+        "TraceID": "FN_datapath_linuxf1e7fb33cf2002577b7b6ad6225d04bb"
+      },
+      {
+        "UniquenessHash": "1a5f07e8-18c5-f2e8-73ce-ef953af4ce41",
+        "TraceID": "FN_datapath_linux397f19d5cc013a05fa3ea6456e446ade"
+      },
+      {
+        "UniquenessHash": "c4e3ad77-fc1e-f2f9-ffc7-d772abc60412",
+        "TraceID": "FN_datapath_linux1f5f901030a987cf2a21f462a41812a9"
+      },
+      {
+        "UniquenessHash": "edbdc9da-ba30-1581-6829-e5082af5e20b",
+        "TraceID": "FN_datapath_linuxa7c850fad55357dac836f120c5a602a9"
+      },
+      {
+        "UniquenessHash": "a4dafd3d-a507-225e-4bff-1eba3a66b33f",
+        "TraceID": "FN_datapath_winkernel536a28a2cc566ae9496fcdc2dad1bc11"
+      },
+      {
+        "UniquenessHash": "392396e5-c68b-4904-4339-fc187402917f",
+        "TraceID": "FN_datapath_winkernel47ad1d2a3a581705a6c70703361a63a3"
+      },
+      {
+        "UniquenessHash": "f17530f6-650a-0bbd-e602-fbf0e38e0f91",
+        "TraceID": "FN_datapath_winkerneld9cd530b54fdc33f0e9780f42cdeacf0"
+      },
+      {
+        "UniquenessHash": "ca4035ef-23a6-b0b7-8b7d-740411887dcb",
+        "TraceID": "FN_datapath_winkernel1c1c5a9db5e0be21e86bc22356bf85a2"
+      },
+      {
+        "UniquenessHash": "26702806-3969-e150-8c73-49af800789fe",
+        "TraceID": "FN_datapath_winkernel2a2506743958edf053d61e0928f9fd40"
+      },
+      {
+        "UniquenessHash": "551da430-1b39-e48c-afd6-7743e57e43df",
+        "TraceID": "FN_datapath_winkernelc4017adb4452fb5f1b340ea7cb0a8c82"
+      },
+      {
+        "UniquenessHash": "3528de34-8f77-ec6f-29b8-e00e7dda38db",
+        "TraceID": "FN_datapath_winkernelcea2322f734ab5d4323953d9ee0afe25"
+      },
+      {
+        "UniquenessHash": "3f663465-fac8-b22d-0b23-deaa68dd3be8",
+        "TraceID": "FN_datapath_winkernel919ebf940a2a169176992905fc755ad3"
+      },
+      {
+        "UniquenessHash": "cb79c960-1e18-17ed-b194-0f7284e4dfc1",
+        "TraceID": "FN_datapath_winkernel114fbce36d1d5e27f51f67070ddfc15b"
+      },
+      {
+        "UniquenessHash": "05301f62-2f71-7268-f54b-2df775111aa4",
+        "TraceID": "FN_datapath_winkernelca58fac1e96d6975bd26514d2e67c44c"
+      },
+      {
+        "UniquenessHash": "d75aafd4-f25e-d6bb-390a-c1e1e6c9544d",
+        "TraceID": "FN_datapath_winkernel7478cae346c3ac8bb5271d6e65693a55"
+      },
+      {
+        "UniquenessHash": "cd574180-9eed-2cf9-a5d1-8e7144f4f12d",
+        "TraceID": "FN_datapath_winkernel0324e327f65fd558e2cd842bc3d2b067"
+      },
+      {
+        "UniquenessHash": "32e05016-1112-98ec-eea1-10b679750033",
+        "TraceID": "FN_datapath_winkernel7ace99c208f148bb120993f6b0cc6af7"
+      },
+      {
+        "UniquenessHash": "2687e00f-7807-599d-c2a7-e44f6680f5b0",
+        "TraceID": "FN_datapath_winkernel10b2cd6bd05f9d95d32af961e9a4a475"
+      },
+      {
+        "UniquenessHash": "2c661957-170b-8f66-6026-6ceaeaff7eaa",
+        "TraceID": "FN_datapath_winkerneld5ad6e016ca238333b94f0f930062153"
+      },
+      {
+        "UniquenessHash": "ffc81f9d-591e-87ad-0aa4-7637a42c1b8f",
+        "TraceID": "FN_datapath_winkernele6ccc5e3dd39066016a63b7ae7a6ee27"
+      },
+      {
+        "UniquenessHash": "484cb780-3038-b3d4-b1fb-463db4f6133f",
+        "TraceID": "FN_datapath_winkernel032b71cec12b7777ddde8d45635955d7"
+      },
+      {
+        "UniquenessHash": "30d1a05f-1b4f-5df7-0039-27222327be92",
+        "TraceID": "FN_datapath_winkernel0d5b73ad7e3f4e54d28b5b840116cd97"
+      },
+      {
+        "UniquenessHash": "3a6a5d80-2304-5cdf-e058-24ba41433e1e",
+        "TraceID": "FN_datapath_winkernele1fb7d63de75c9c0e44219d165a81f04"
+      },
+      {
+        "UniquenessHash": "fe5d30e7-d9ae-42c4-558f-25fcc82580e5",
+        "TraceID": "FN_datapath_winkernela4bf90a34d69dcbe9e96ed51f1b9021c"
       }
     ]
   }
