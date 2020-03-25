@@ -622,19 +622,6 @@ QuicLossDetectionRetransmitFrames(
             break;
         }
 
-        case QUIC_FRAME_PATH_RESPONSE: {
-            QUIC_PATH* Path =
-                QuicConnGetPathByID(
-                    Connection, Packet->Frames[i].PATH_RESPONSE.OrigPathId);
-            if (Path != NULL) {
-                Path->SendResponse = TRUE;
-                QuicSendSetSendFlag(
-                    &Connection->Send,
-                    QUIC_CONN_SEND_FLAG_PATH_RESPONSE);
-            }
-            break;
-        }
-
         case QUIC_FRAME_PATH_CHALLENGE: {
             QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId);
             if (Path != NULL && !Path->IsPeerValidated) {

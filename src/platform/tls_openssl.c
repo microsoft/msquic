@@ -464,7 +464,6 @@ QuicTlsAlpnSelectCallback(
     *Out = TlsContext->State->NegotiatedAlpn + 1;
 
     return SSL_TLSEXT_ERR_OK;
-    QuicTraceLogError(FN_tls_openssl7183f6a6a36fb7822e00a33f86ff68d9, "[ tls] Client did not present correct ALPN");
 }
 
 QUIC_STATIC_ASSERT((int)ssl_encryption_initial == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
