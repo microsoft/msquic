@@ -288,7 +288,7 @@ QuicBindingRegisterListener(
         }
 
         if (QuicSessionHasAlpnOverlap(NewListener->Session, ExistingListener->Session)) {
-            QuicTraceLogWarning(FN_bindingfe607224ba2a2e03d5f66c521059c160, "[bind][%p] Listener (%p) already registered on ALPN %s",
+            QuicTraceLogWarning(FN_binding_ALREADY_REGISTERED_ON_ALPN, "[bind][%p] Listener (%p) already registered on ALPN",
                 Binding, ExistingListener);
             AddNewListener = FALSE;
             break;

@@ -782,10 +782,6 @@
         "TraceID": "FN_library4ea4018c3a2c78d5649e9f8b6f3bc1dc"
       },
       {
-        "UniquenessHash": "676b79c2-ae67-da26-c462-793d3f9dff1c",
-        "TraceID": "FN_library1200b70fe511717df8e9a0fdad1f6efe"
-      },
-      {
         "UniquenessHash": "ffc0034c-6962-5331-70c7-7c4a23eef25e",
         "TraceID": "FN_library053186b47e8b8a7520ef3db96676afc2"
       },
@@ -946,10 +942,6 @@
         "TraceID": "PathActive"
       },
       {
-        "UniquenessHash": "9184dcba-cc2c-74a6-7e8e-333f1b1cace9",
-        "TraceID": "PathDiscarded"
-      },
-      {
         "UniquenessHash": "1418b289-d9ff-0eb2-b322-86992cdc8a87",
         "TraceID": "FN_registrationdab4993b2508030f7c01169b90ab5a52"
       },
@@ -1068,10 +1060,6 @@
       {
         "UniquenessHash": "171b3d1c-0dd6-ff27-2aef-4a57fc872510",
         "TraceID": "SessionShutdown"
-      },
-      {
-        "UniquenessHash": "2ca189e0-b15b-5b16-98b1-7ea0c0f326c8",
-        "TraceID": "SessionRundown"
       },
       {
         "UniquenessHash": "cf82c2cd-9f33-dd50-a621-e700bfc9069b",
@@ -1232,10 +1220,6 @@
       {
         "UniquenessHash": "e0ec4484-5b99-0de1-8040-8f1eaad0c82b",
         "TraceID": "RemoteBlocked"
-      },
-      {
-        "UniquenessHash": "6dc35277-c97e-857c-70b7-45bf28eab4b3",
-        "TraceID": "IncreaseRxBuffer"
       },
       {
         "UniquenessHash": "09d82141-cf59-d06f-28c7-8d5aaeb6ff0d",
@@ -3588,6 +3572,58 @@
       {
         "UniquenessHash": "fe5d30e7-d9ae-42c4-558f-25fcc82580e5",
         "TraceID": "FN_datapath_winkernela4bf90a34d69dcbe9e96ed51f1b9021c"
+      },
+      {
+        "UniquenessHash": "58d59b26-50c7-8c56-8b4f-32e1fe8ac062",
+        "TraceID": "FN_tls_schannel_FAILED_FINDING_MATCHING_ALPN"
+      },
+      {
+        "UniquenessHash": "d7011a61-1b9a-585b-708e-891b4efb0ccb",
+        "TraceID": "FN_binding_ALREADY_REGISTERED_ON_ALPN"
+      },
+      {
+        "UniquenessHash": "f9234b0d-150c-0ab0-9248-f2f029b57ac8",
+        "TraceID": "PathDiscarded"
+      },
+      {
+        "UniquenessHash": "9f017e81-6d92-3436-a8e5-023d33db9c0f",
+        "TraceID": "SessionRundown"
+      },
+      {
+        "UniquenessHash": "842906f9-e0aa-f8f6-1104-c1fd84ecaeaf",
+        "TraceID": "IncreaseRxBuffer"
+      },
+      {
+        "UniquenessHash": "5d4279bd-cb27-d8e6-943b-394ffbd36c10",
+        "TraceID": "FN_library1200b70fe511717df8e9a0fdad1f6efe"
+      },
+      {
+        "UniquenessHash": "b82b6d92-0c44-626a-72b0-4810b1c38770",
+        "TraceID": "FN_tls_openssl_CTX_SET_MIN_PROTO_FAILED"
+      },
+      {
+        "UniquenessHash": "14978dd8-14e0-0bc8-057f-d99260760530",
+        "TraceID": "FN_tls_openssl_CTX_SET_MAX_PROTO_FAILED"
+      },
+      {
+        "UniquenessHash": "8a344da4-115f-f2fc-4a6f-e89d550bc5ea",
+        "TraceID": "FN_tls_openssl_CTX_SET_DEFAULT_VERIFY_PATHS_FAILED"
+      },
+      {
+        "UniquenessHash": "740787f8-f327-5012-cb2c-d690768e86b9",
+        "TraceID": "FN_tls_openssl_CTX_SET_QUIC_METHOD_FAILED"
+      },
+      {
+        "UniquenessHash": "9a2d5a90-a3cc-51e6-a3a8-dab87fe15418",
+        "TraceID": "FN_tls_openssl_FAILED_ALPN_NEGOTIATE"
+      },
+      {
+        "UniquenessHash": "b245e77c-d572-a11b-c98a-2befe87eaa45",
+        "TraceID": "FN_tls_openssl_INVALID_NEGOTIATED_ALPN_LENGTH"
+      },
+      {
+        "UniquenessHash": "ea3aea70-3346-4a2c-5edd-4b382daa9d03",
+        "TraceID": "FN_tls_openssl_FAILED_MATCHING_ALPN"
       }
     ]
   }

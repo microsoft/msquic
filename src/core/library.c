@@ -698,7 +698,7 @@ MsQuicOpen(
         goto Exit;
     }
 
-    QuicTraceLogVerbose(FN_library1200b70fe511717df8e9a0fdad1f6efe, "[ api] MsQuicOpen, %u", ApiVersion);
+    QuicTraceLogVerbose(FN_library1200b70fe511717df8e9a0fdad1f6efe, "[ api] MsQuicOpen");
 
     Status = MsQuicAddRef();
     if (QUIC_FAILED(Status)) {

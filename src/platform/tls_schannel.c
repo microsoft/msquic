@@ -1228,7 +1228,7 @@ QuicTlsSessionInitialize(
 {
     *NewTlsSession = QUIC_ALLOC_NONPAGED(sizeof(QUIC_TLS_SESSION));
     if (*NewTlsSession == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_TLS_SESSION", sizeof(QUIC_TLS_SESSION) + AppProtocolsSize);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "QUIC_TLS_SESSION", sizeof(QUIC_TLS_SESSION));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     return QUIC_STATUS_SUCCESS;
@@ -1291,7 +1291,7 @@ QuicTlsInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_TLS* TlsContext = QUIC_ALLOC_NONPAGED(TlsSize);
     if (TlsContext == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_TLS", sizeof(QUIC_TLS));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "QUIC_TLS", sizeof(QUIC_TLS));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -1752,7 +1752,7 @@ QuicTlsWriteDataToSchannel(
                         NegotiatedAlpn.ProtocolIdSize,
                         NegotiatedAlpn.ProtocolId);
                 if (State->NegotiatedAlpn == NULL) {
-                    QuicTraceEvent(TlsError, TlsContext->Connection, "ALPN Mismatch");
+                    QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "ALPN Mismatch");
                     QuicTraceLogError(FN_tls_schannel_FAILED_FINDING_MATCHING_ALPN, "[ tls][%p] Failed to find a matching ALPN", TlsContext);
                     Result |= QUIC_TLS_RESULT_ERROR;
                     break;

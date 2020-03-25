@@ -42,7 +42,7 @@ QuicSessionAlloc(
 
     QUIC_SESSION* Session = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SESSION) + AlpnListLength);
     if (Session == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "session", SessionSize);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "session" , AlpnListLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -76,7 +76,7 @@ QuicSessionAlloc(
 #endif
     }
 
-    QuicTraceEvent(SessionCreated, "[sess][%p] Created, Registration=%p, Alpn=%s", Session, Session->Registration, (const char*)Alpn); // TODO - Buffer and length
+    QuicTraceEvent(SessionCreated, "[sess][%p] Created, Registration=%p, Alpn=%s", Session, Session->Registration, ""); // TODO - Buffer and length
 
     QuicRundownInitialize(&Session->Rundown);
     QuicRwLockInitialize(&Session->ServerCacheLock);
@@ -438,7 +438,7 @@ QuicSessionTraceRundown(
     _In_ QUIC_SESSION* Session
     )
 {
-    QuicTraceEvent(SessionRundown, Session, Session->Registration, Session->Alpn);
+    QuicTraceEvent(SessionRundown, "[sess][%p] Rundown, Registration=%p, Alpn=%p", Session, Session->Registration, "");
 
     QuicDispatchLockAcquire(&Session->ConnectionsLock);
 
