@@ -51,7 +51,7 @@ endif()
 
 if(QUIC_TLS STREQUAL "openssl")
     add_dependencies(platform OpenSSL)
-    target_link_libraries(
+    target_link_libraries(platform
         ${QUIC_BUILD_DIR}/openssl/lib/libssl.a
         ${QUIC_BUILD_DIR}/openssl/lib/libcrypto.a)
 elseif(QUIC_TLS STREQUAL "mitls")
