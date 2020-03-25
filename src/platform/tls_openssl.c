@@ -545,7 +545,7 @@ QuicTlsAddHandshakeDataCallback(
     QUIC_TLS_PROCESS_STATE* TlsState = TlsContext->State;
 
     QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)Level;
-    QUIC_DBG_ASSERT(TlsState->WriteKeys[KeyType] != NULL);
+    QUIC_DBG_ASSERT(KeyType == 0 || TlsState->WriteKeys[KeyType] != NULL);
 
     QuicTraceLogVerbose("[ tls][%p][%c] Sending %llu handshake bytes (Level = %u).",
         TlsContext, GetTlsIdentifier(TlsContext), Length, Level);
