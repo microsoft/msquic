@@ -890,10 +890,10 @@ QuicBindingQueueStatelessReset(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicBindingPreprocessPacket(
+QuicBindingPreprocessDatagram(
     _In_ QUIC_BINDING* Binding,
     _Inout_ QUIC_RECV_DATAGRAM* Datagram,
-    _Out_ BOOLEAN* ReleasePacket
+    _Out_ BOOLEAN* ReleaseDatagram
     )
 {
     QUIC_RECV_PACKET* Packet = QuicDataPathRecvDatagramToRecvPacket(Datagram);
@@ -901,11 +901,11 @@ QuicBindingPreprocessPacket(
     Packet->Buffer = Datagram->Buffer;
     Packet->BufferLength = Datagram->BufferLength;
 
-    *ReleasePacket = TRUE;
+    *ReleaseDatagram = TRUE;
 
     //
     // Get the destination connection ID from the packet so we can use it for
-    // determining partition delivery. All this must be version INDEPENDENT as
+    // determining delivery partition. All this must be version INDEPENDENT as
     // we haven't done any version validation at this point.
     //
 
@@ -937,7 +937,7 @@ QuicBindingPreprocessPacket(
             if (!QuicBindingHasListenerRegistered(Binding)) {
                 QuicPacketLogDrop(Binding, Packet, "No listener to send VN");
             } else {
-                *ReleasePacket =
+                *ReleaseDatagram =
                     !QuicBindingQueueStatelessOperation(
                         Binding, QUIC_OPER_TYPE_VERSION_NEGOTIATION, Datagram);
             }
@@ -945,7 +945,7 @@ QuicBindingPreprocessPacket(
         }
     }
 
-    *ReleasePacket = FALSE;
+    *ReleaseDatagram = FALSE;
 
     return TRUE;
 }
@@ -1151,15 +1151,14 @@ Exit:
 }
 
 //
-// Takes a chain of validated receive packets that all have the same
-// destination connection ID (i.e. destined for the same connection) and does
-// the look up for the corresponding connection. Returns TRUE if delivered and
-// false if the packets weren't delivered and should be dropped.
+// Looks up or creates a connection to handle a chain of datagrams.
+// Returns TRUE if the datagrams were delivered, and FALSE if they should be
+// dropped.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(QUIC_DATAPATH_RECEIVE_CALLBACK)
 BOOLEAN
-QuicBindingDeliverPackets(
+QuicBindingDeliverDatagrams(
     _In_ QUIC_BINDING* Binding,
     _In_ QUIC_RECV_DATAGRAM* DatagramChain,
     _In_ uint32_t DatagramChainLength
@@ -1174,7 +1173,7 @@ QuicBindingDeliverPackets(
     // up the corresponding connection object. The DestCid encodes the
     // partition ID (PID) that can be used for partitioning the look up table.
     //
-    // The exact type of look up table associated with binding varies on the
+    // The exact type of lookup table associated with the binding varies on the
     // circumstances, but it allows for quick and easy lookup based on DestCid.
     //
     // If the lookup fails, and if there is a listener on the local 2-Tuple,
@@ -1276,7 +1275,7 @@ QuicBindingDeliverPackets(
     }
 
     if (Connection != NULL) {
-        QuicConnQueueRecvDatagram(Connection, DatagramChain, DatagramChainLength);
+        QuicConnQueueRecvDatagrams(Connection, DatagramChain, DatagramChainLength);
         QuicConnRelease(Connection, QUIC_CONN_REF_LOOKUP_RESULT);
         return TRUE;
     } else {
@@ -1300,35 +1299,38 @@ QuicBindingReceive(
     QUIC_BINDING* Binding = (QUIC_BINDING*)RecvCallbackContext;
     QUIC_RECV_DATAGRAM* ReleaseChain = NULL;
     QUIC_RECV_DATAGRAM** ReleaseChainTail = &ReleaseChain;
-    QUIC_RECV_DATAGRAM* ConnectionChain = NULL;
-    QUIC_RECV_DATAGRAM** ConnectionChainTail = &ConnectionChain;
-    QUIC_RECV_DATAGRAM** ConnectionChainDataTail = &ConnectionChain;
-    uint32_t ConnectionChainLength = 0;
+    QUIC_RECV_DATAGRAM* SubChain = NULL;
+    QUIC_RECV_DATAGRAM** SubChainTail = &SubChain;
+    QUIC_RECV_DATAGRAM** SubChainDataTail = &SubChain;
+    uint32_t SubChainLength = 0;
+    char* CurrentDestCid = NULL;
+    uint32_t CurrentDestCidLen = 0;
 
     //
-    // Now the goal is to find the connections that these packets should be
-    // delivered to, or if necessary create them.
+    // Breaks the chain of datagrams into subchains by destination CID and
+    // delivers the subchains.
     //
-    // The datapath can indicate a chain of multiple received packets at once.
-    // The following code breaks the chain up into subchains, by destination
-    // connection ID in each packet. Each subchain is then delivered to the
-    // connection with a single operation.
+    // NB: All packets in a datagram are required to have the same destination
+    // CID, so we don't split datagrams here. Later on, the packet handling
+    // code will check that each packet has a destination CID matching the
+    // connection it was delivered to.
     //
 
     QUIC_RECV_DATAGRAM* Datagram;
     while ((Datagram = DatagramChain) != NULL) {
+
         //
-        // Remove the recv buffer from the chain.
+        // Remove the head.
         //
         DatagramChain = Datagram->Next;
         Datagram->Next = NULL;
 
         //
-        // Perform initial packet validation.
+        // Perform initial validation.
         //
-        BOOLEAN ReleasePacket;
-        if (!QuicBindingPreprocessPacket(Binding, Datagram, &ReleasePacket)) {
-            if (ReleasePacket) {
+        BOOLEAN ReleaseDatagram;
+        if (!QuicBindingPreprocessDatagram(Binding, Datagram, &ReleaseDatagram)) {
+            if (ReleaseDatagram) {
                 *ReleaseChainTail = Datagram;
                 ReleaseChainTail = &Datagram->Next;
             }
@@ -1337,73 +1339,64 @@ QuicBindingReceive(
 
         QUIC_RECV_PACKET* Packet =
             QuicDataPathRecvDatagramToRecvPacket(Datagram);
-        QUIC_RECV_PACKET* ConnectionChainRecvCtx =
-            ConnectionChain == NULL ?
-                NULL : QuicDataPathRecvDatagramToRecvPacket(ConnectionChain);
         QUIC_DBG_ASSERT(Packet->DestCid != NULL);
         QUIC_DBG_ASSERT(Packet->DestCidLen != 0 || Binding->Exclusive);
         QUIC_DBG_ASSERT(Packet->ValidatedHeaderInv);
 
         //
-        // Add the packet to a connection subchain. If a the packet doesn't
-        // match the existing subchain, deliver the existing one and start a
-        // new one. If this UDP binding is exclusively owned. All packets are
-        // delivered to a single connection so there is no need to extra
-        // processing to split the chain.
+        // If the next datagram doesn't match the current subchain, deliver the
+        // current subchain and start a new one.
+        // (If the binding is exclusively owned, all datagrams are delivered to
+        // the same connection and this chain-splitting step is skipped.)
         //
-        if (!Binding->Exclusive && ConnectionChain != NULL &&
-            (Packet->DestCidLen != ConnectionChainRecvCtx->DestCidLen ||
-             memcmp(Packet->DestCid, ConnectionChainRecvCtx->DestCid, Packet->DestCidLen) != 0)) {
-            //
-            // This packet doesn't match the current connection chain. Deliver
-            // the current chain and start a new one.
-            //
-            if (!QuicBindingDeliverPackets(Binding, ConnectionChain, ConnectionChainLength)) {
-                *ReleaseChainTail = ConnectionChain;
-                ReleaseChainTail = ConnectionChainDataTail;
+        QUIC_RECV_PACKET* SubChainPacket =
+            SubChain == NULL ?
+                NULL : QuicDataPathRecvDatagramToRecvPacket(SubChain);
+        if (!Binding->Exclusive && SubChain != NULL &&
+            (Packet->DestCidLen != SubChainPacket->DestCidLen ||
+             memcmp(Packet->DestCid, SubChainPacket->DestCid, Packet->DestCidLen) != 0)) {
+            if (!QuicBindingDeliverDatagrams(Binding, SubChain, SubChainLength)) {
+                *ReleaseChainTail = SubChain;
+                ReleaseChainTail = SubChainDataTail;
             }
-            ConnectionChain = NULL;
-            ConnectionChainTail = &ConnectionChain;
-            ConnectionChainDataTail = &ConnectionChain;
-            ConnectionChainLength = 0;
+            SubChain = NULL;
+            SubChainTail = &SubChain;
+            SubChainDataTail = &SubChain;
+            SubChainLength = 0;
         }
 
         //
-        // Insert the packet in the current chain, with handshake packets first.
+        // Insert the datagram into the current chain, with handshake packets
+        // first (we assume handshake packets don't come after non-handshake
+        // packets in a datagram).
         // We do this so that we can more easily determine if the chain of
         // packets can create a new connection.
         //
 
-        ConnectionChainLength++;
+        SubChainLength++;
         if (!QuicPacketIsHandshake(Packet->Invariant)) {
-            //
-            // Data packets go at the end of the chain.
-            //
-            *ConnectionChainDataTail = Datagram;
-            ConnectionChainDataTail = &Datagram->Next;
+            *SubChainDataTail = Datagram;
+            SubChainDataTail = &Datagram->Next;
         } else {
-            //
-            // Other packets are ordered before data packets.
-            //
-            if (*ConnectionChainTail == NULL) {
-                *ConnectionChainTail = Datagram;
-                ConnectionChainTail = &Datagram->Next;
-                ConnectionChainDataTail = &Datagram->Next;
+            if (*SubChainTail == NULL) {
+                *SubChainTail = Datagram;
+                SubChainTail = &Datagram->Next;
+                SubChainDataTail = &Datagram->Next;
             } else {
-                Datagram->Next = *ConnectionChainTail;
-                *ConnectionChainTail = Datagram;
-                ConnectionChainTail = &Datagram->Next;
+                Datagram->Next = *SubChainTail;
+                *SubChainTail = Datagram;
+                SubChainTail = &Datagram->Next;
             }
         }
     }
 
-    if (ConnectionChain != NULL) {
+    if (SubChain != NULL) {
         //
-        // Deliver the last connection chain of packets.
+        // Deliver the last subchain.
         //
-        if (!QuicBindingDeliverPackets(Binding, ConnectionChain, ConnectionChainLength)) {
-            *ReleaseChainTail = ConnectionChain;
-            ReleaseChainTail = ConnectionChainTail;
+        if (!QuicBindingDeliverDatagrams(Binding, SubChain, SubChainLength)) {
+            *ReleaseChainTail = SubChain;
+            ReleaseChainTail = SubChainTail;
         }
     }
 
