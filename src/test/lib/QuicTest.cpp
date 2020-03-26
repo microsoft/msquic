@@ -39,6 +39,8 @@ void QuicTestInitialize()
         CLOG_BUG_TraceLogError(FN_quictest9eddd9dc5266f22ce5fe2958d12ddae0, "[test] Disabling encryption failed");
     }
 #endif
+
+TEST_FAILURE("Test Failure", 12345);            
 }
 
 void QuicTestCleanup()
