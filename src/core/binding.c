@@ -1307,13 +1307,13 @@ QuicBindingReceive(
     uint32_t CurrentDestCidLen = 0;
 
     //
-    // Breaks the chain of datagrams into subchains by connection ID and
+    // Breaks the chain of datagrams into subchains by destination CID and
     // delivers the subchains.
     //
-    // NB: All packets in the same datagram must be destined to the same
-    // connection, so we never have to split a datagram here. Later we will
-    // check that each packet in each datagram has a destination connection ID
-    // matching the connection it was delivered to.
+    // NB: All packets in a datagram are required to have the same destination
+    // CID, so we don't split datagrams here. Later on, the packet handling
+    // code will check that each packet has a destination CID matching the
+    // connection it was delivered to,
     //
 
     QUIC_RECV_DATAGRAM* Datagram;
