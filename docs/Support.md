@@ -18,7 +18,7 @@ This table describes the version, release date and end of support for MsQuic rel
 
 MsQuic has two types of branches **master** and **release** defined as:
 
-* **Master** - The master branch receives security and bug fixes just the same as the release branches. However, the master branch is where active development happens and because of this the master branch will experience breaking changes as we develop new features. 
+* **Master** - The master branch receives security and bug fixes just the same as the release branches. However, the master branch is where active development happens and because of this the master branch may experience breaking changes as we develop new features. 
 
 * **Release** - Release branches only receive security and bug fixes, and are considered stable. There should be no breaking changes in these branches, and they can be used for stable products.
 
