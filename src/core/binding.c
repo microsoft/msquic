@@ -1313,7 +1313,7 @@ QuicBindingReceive(
     // NB: All packets in a datagram are required to have the same destination
     // CID, so we don't split datagrams here. Later on, the packet handling
     // code will check that each packet has a destination CID matching the
-    // connection it was delivered to,
+    // connection it was delivered to.
     //
 
     QUIC_RECV_DATAGRAM* Datagram;
