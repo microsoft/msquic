@@ -132,6 +132,8 @@ function Log-Stop {
         Write-Host "Writing BabelTrace logs to $BabelLogPath"
         babeltrace --names all $OutputDirectory* > $BabelLogPath
 
+        ls $OutputDirectory
+
         Write-Host "Attempting CLOG conversion of BabelLogs into $LogPath"
         $Command = "babeltrace --names all $OutputDirectory* | $RootDir/artifacts/tools/clog/clog2text_lttng -s $RootDir/src/manifest/clog.sidecar > $LogPath"
         Write-Host "Command: $Command"
