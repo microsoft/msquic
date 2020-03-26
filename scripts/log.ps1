@@ -123,7 +123,7 @@ function Log-Stop {
         }
     } else {
         Write-Host "Using traces from $LogProfile"
-        babeltrace --names all $OutputDirectory* | ../artifacts/tools/bin/clog/clog2text_lttng -s ../src/manifest/clog.sidecar
+        babeltrace --names all $OutputDirectory* | $(RootDir)/artifacts/tools/bin/clog/clog2text_lttng -s $(RootDir)/src/manifest/clog.sidecar
     }
 }
 
@@ -159,3 +159,6 @@ if ($Start)  {
 
 if ($Cancel) { Log-Cancel }
 if ($Stop)   { Log-Stop }
+
+
+Write-Host "Finished and exiting"
