@@ -123,7 +123,8 @@ function Log-Stop {
         }
     } else {
         Write-Host "Using traces from $LogProfile"
-        babeltrace --names all $OutputDirectory* | $(RootDir)/artifacts/tools/bin/clog/clog2text_lttng -s $(RootDir)/src/manifest/clog.sidecar
+        $Command = "babeltrace --names all $OutputDirectory* | $(RootDir)/artifacts/tools/bin/clog/clog2text_lttng -s $(RootDir)/src/manifest/clog.sidecar"
+        Invoke-Expression $Command
     }
 }
 
