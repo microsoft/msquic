@@ -43,9 +43,6 @@ param (
     [string]$Tls = "schannel",
 
     [Parameter(Mandatory = $false)]
-    [Int32]$Timeout = 60000,
-
-    [Parameter(Mandatory = $false)]
     [switch]$KeepOutputOnSuccess = $false,
 
     [Parameter(Mandatory = $false)]
