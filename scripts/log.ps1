@@ -124,11 +124,16 @@ function Log-Stop {
         }
     } else {
         $LogPath = Join-Path $OutputDirectory "quic.log"
+        $BabelLogPath = Join-Path $OutputDirectory "babel.log"
         Write-Host "Formating traces into $LogPath"
 
         Get-ChildItem env:
         
-        $Command = "babeltrace --names all $OutputDirectory* | $RootDir/bld/tools/clog/clog2text_lttng -s $RootDir/src/manifest/clog.sidecar > $LogPath"
+        Write-Host "Writing BabelTrace logs to $BabelLogPath"
+        babeltrace --names all $OutputDirectory* > $BabelLogPath
+
+        Write-Host "Attempting CLOG conversion of BabelLogs into $LogPath"
+        $Command = "babeltrace --names all $OutputDirectory* | $RootDir/artifacts/tools/clog/clog2text_lttng -s $RootDir/src/manifest/clog.sidecar > $LogPath"
         Write-Host "Command: $Command"
         Invoke-Expression $Command
     }
