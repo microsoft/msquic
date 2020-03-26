@@ -122,8 +122,10 @@ function Log-Stop {
             Invoke-Expression $Command
         }
     } else {
-        Write-Host "Using traces from $LogProfile"
-        $Command = "babeltrace --names all $OutputDirectory* | $(RootDir)/artifacts/tools/bin/clog/clog2text_lttng -s $(RootDir)/src/manifest/clog.sidecar"
+        $LogPath = Join-Path $OutputDirectory "quic.log"
+        Write-Host "Formating traces into $LogPath"
+        
+        $Command = "babeltrace --names all $OutputDirectory* | $(RootDir)/artifacts/tools/bin/clog/clog2text_lttng -s $(RootDir)/src/manifest/clog.sidecar > $LogPath"
         Invoke-Expression $Command
     }
 }
