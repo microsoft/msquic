@@ -71,6 +71,7 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
+
 # Start log collection.
 function Log-Start {
     if ($IsWindows) {
@@ -124,8 +125,11 @@ function Log-Stop {
     } else {
         $LogPath = Join-Path $OutputDirectory "quic.log"
         Write-Host "Formating traces into $LogPath"
+
+        Get-ChildItem env:
         
-        $Command = "babeltrace --names all $OutputDirectory* | $(RootDir)/artifacts/tools/bin/clog/clog2text_lttng -s $(RootDir)/src/manifest/clog.sidecar > $LogPath"
+        $Command = "babeltrace --names all $OutputDirectory* | $RootDir/bld/tools/clog/clog2text_lttng -s $RootDir/src/manifest/clog.sidecar > $LogPath"
+        Write-Host "Command: $Command"
         Invoke-Expression $Command
     }
 }
