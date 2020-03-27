@@ -148,20 +148,18 @@ function Log-Stop {
 
         tar -cvf $LTTNGLog ~/QUICLogs/$LogProfile
 
+        mkdir $OutputDirectory | Out-Null
+        Write-Host "Writing BabelTrace logs to $BabelLogPath"
+        $Command = "babeltrace --names all ~/QUICLogs/$LogProfile/* > $BabelLogPath"
+        Write-Host "Command :$Command"
+        Invoke-Expression $Command
+        tail -n 100 $BabelLogPath
 
-
-        #mkdir $OutputDirectory | Out-Null
-        #Write-Host "Writing BabelTrace logs to $BabelLogPath"
-        #$Command = "babeltrace --names all ~/QUICLogs/$LogProfile/* > $BabelLogPath"
-        #Write-Host "Command :$Command"
-        #Invoke-Expression $Command
-        #tail -n 100 $BabelLogPath
-
-        #Write-Host "Attempting CLOG conversion of BabelLogs into $LogPath"
-        #$Command = "babeltrace --names all ~/QUICLogs/$LogProfile/* | $RootDir/artifacts/tools/clog/clog2text_lttng -s $RootDir/src/manifest/clog.sidecar > $LogPath"
-        #Write-Host "Command: $Command"
-        #Invoke-Expression $Command
-        #tail -n 100 $LogPath
+        Write-Host "Attempting CLOG conversion of BabelLogs into $LogPath"
+        $Command = "babeltrace --names all ~/QUICLogs/$LogProfile/* | $RootDir/artifacts/tools/clog/clog2text_lttng -s $RootDir/src/manifest/clog.sidecar > $LogPath"
+        Write-Host "Command: $Command"
+        Invoke-Expression $Command
+        tail -n 100 $LogPath
 
         Write-Host "Finished Creating LTTNG Log"
         ls -l $OutputDirectory
