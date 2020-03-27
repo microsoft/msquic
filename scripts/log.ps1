@@ -61,6 +61,15 @@ param (
     [Parameter(Mandatory = $false, ParameterSetName='Stop')]
     [string]$TmfPath = "",
 
+    [Parameter(Mandatory = $false, ParameterSetName='DecodeTrace')]
+    [switch]$DecodeTrace = $false,
+
+     [Parameter(Mandatory = $true, ParameterSetName='DecodeTrace')]
+    [string]$LogFile,
+
+     [Parameter(Mandatory = $true, ParameterSetName='DecodeTrace')]
+    [string]$WorkingDirectory,
+
     [Parameter(Mandatory = $false)]
     [string]$InstanceName = "msquic"
 )
@@ -174,7 +183,25 @@ function Log-Stream {
         lttng list
         babeltrace -i lttng-live net://localhost
         
-        babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquicLive | ../artifacts/tools/bin/clog/clog2text_lttng -s ../src/manifest/clog.sidecar
+        babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquicLive | ../artifacts/tools/clog/clog2text_lttng -s ../src/manifest/clog.sidecar
+    }
+}
+
+
+# Decode Log from file
+function Log-Decode {
+    if ($IsWindows) {
+       Write-Host "Not supported on Windows"
+    } else {
+        Write-Host $LogFile
+
+        $DecompressedLogs = Join-Path $WorkingDirectory "DecompressedLogs"
+
+        mkdir $WorkingDirectory
+        mkdir $DecompressedLogs
+        tar xvfz $Logfile -C $DecompressedLogs
+
+        babeltrace --names all /home/chris/fooboobaz/DecompressedLogs/* | ../artifacts/tools/clog/clog2text_lttng -s ../src/manifest/clog.sidecar > $WorkingDirectory/clog_decode.txt
     }
 }
 ##############################################################
@@ -191,6 +218,6 @@ if ($Start)  {
 
 if ($Cancel) { Log-Cancel }
 if ($Stop)   { Log-Stop }
-
+if ($DecodeTrace) {Log-Decode }
 
 Write-Host "Finished and exiting"
