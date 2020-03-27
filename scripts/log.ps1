@@ -83,16 +83,20 @@ function Log-Start {
         Write-Host "lttng-destroy"
         lttng destroy | Write-Host
         lttng | Write-Host
-        lttng -v | Write-Host
-        
+        lttng version | Write-Host
+
         Write-Host "making QUICLogs directory ./QUICLogs/$LogProfile"
         pushd ~
         mkdir ./QUICLogs | Out-Null
         mkdir ./QUICLogs/$LogProfile | Out-Null
         pushd ./QUICLogs | Out-Null
 
+        Write-Host "------------" 
         Write-Host "Creating LTTNG Profile $LogProfile into ./$LogProfile"
-        lttng create $LogProfile -o=./$LogProfile | Write-Host
+        $Command = "lttng create $LogProfile -o=./$LogProfile | Write-Host"
+        Write-Host $Command
+        Invoke-Expression $Command
+
         popd
         Write-Host "------------" 
         
