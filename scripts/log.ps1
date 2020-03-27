@@ -139,27 +139,22 @@ function Log-Stop {
 
         $LogPath = Join-Path $OutputDirectory "quic.log"
         $BabelLogPath = Join-Path $OutputDirectory "babel.log"
-        $LTTNGLog = Join-Path $OutputDirectory "lttng_trace.tar"
+        $LTTNGLog = Join-Path $OutputDirectory "lttng_trace.tgz"
         Write-Host "Formating traces into $LogPath"
-
-        Get-ChildItem env:
+       
         Write-Host "-------------------------------------"
         lttng list 
 
-        tar -cvf $LTTNGLog ~/QUICLogs/$LogProfile
+        Write-Host "tar/gzip LTTNG log files into ~/QUICLogs/$LogProfile"
+        tar -cvzf $LTTNGLog ~/QUICLogs/$LogProfile
 
         mkdir $OutputDirectory | Out-Null
         Write-Host "Writing BabelTrace logs to $BabelLogPath"
-        $Command = "babeltrace --names all ~/QUICLogs/$LogProfile/* > $BabelLogPath"
+        $Command = "time babeltrace --names all ~/QUICLogs/$LogProfile/* > $BabelLogPath"
         Write-Host "Command :$Command"
         Invoke-Expression $Command
-        tail -n 100 $BabelLogPath
 
-        Write-Host "Attempting CLOG conversion of BabelLogs into $LogPath"
-        $Command = "babeltrace --names all ~/QUICLogs/$LogProfile/* | $RootDir/artifacts/tools/clog/clog2text_lttng -s $RootDir/src/manifest/clog.sidecar > $LogPath"
-        Write-Host "Command: $Command"
-        Invoke-Expression $Command
-        tail -n 100 $LogPath
+        tail -n 1000 $BabelLogPath | Write-Host       
 
         Write-Host "Finished Creating LTTNG Log"
         ls -l $OutputDirectory
