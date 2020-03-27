@@ -1287,8 +1287,6 @@ QuicBindingReceive(
     QUIC_RECV_DATAGRAM** SubChainTail = &SubChain;
     QUIC_RECV_DATAGRAM** SubChainDataTail = &SubChain;
     uint32_t SubChainLength = 0;
-    char* CurrentDestCid = NULL;
-    uint32_t CurrentDestCidLen = 0;
 
     //
     // Breaks the chain of datagrams into subchains by destination CID and
