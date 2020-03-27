@@ -81,7 +81,7 @@ function Log-Start {
         wpr.exe -start "$($WprpFile)!$($LogProfile)" -filemode -instancename $InstanceName
     } else {
         Write-Host "lttng-destroy"
-        lttng destroy
+        lttng destroy | Write-Host
         Write-Host "making QUICLogs directory ./QUICLogs/$LogProfile"
         pushd ~
         mkdir ./QUICLogs | Out-Null
@@ -97,8 +97,8 @@ function Log-Start {
         lttng enable-event --userspace CLOG_*
 
         Write-Host "Starting LTTNG"
-        lttng start
-        lttng list
+        lttng start | Write-Host
+        lttng list | Write-Host
         popd
     }
 }
@@ -128,26 +128,31 @@ function Log-Stop {
     } else {
         $LogPath = Join-Path $OutputDirectory "quic.log"
         $BabelLogPath = Join-Path $OutputDirectory "babel.log"
+        $LTTNGLog = Join-Path $OutputDirectory "lttng_trace.tar"
         Write-Host "Formating traces into $LogPath"
 
         Get-ChildItem env:
         Write-Host "-------------------------------------"
         lttng list 
 
-        mkdir $OutputDirectory | Out-Null
-        Write-Host "Writing BabelTrace logs to $BabelLogPath"
-        $Command = "babeltrace --names all ~/QUICLogs/$LogProfile/* > $BabelLogPath"
-        Write-Host "Command :$Command"
-        Invoke-Expression $Command
-        tail -n 100 $BabelLogPath
+        tar -cvf $LTTNGLog ~/QUICLogs/$LogProfile
 
-        Write-Host "Attempting CLOG conversion of BabelLogs into $LogPath"
-        $Command = "babeltrace --names all ~/QUICLogs/$LogProfile/* | $RootDir/artifacts/tools/clog/clog2text_lttng -s $RootDir/src/manifest/clog.sidecar > $LogPath"
-        Write-Host "Command: $Command"
-        Invoke-Expression $Command
-        tail -n 100 $LogPath
 
-        
+
+        #mkdir $OutputDirectory | Out-Null
+        #Write-Host "Writing BabelTrace logs to $BabelLogPath"
+        #$Command = "babeltrace --names all ~/QUICLogs/$LogProfile/* > $BabelLogPath"
+        #Write-Host "Command :$Command"
+        #Invoke-Expression $Command
+        #tail -n 100 $BabelLogPath
+
+        #Write-Host "Attempting CLOG conversion of BabelLogs into $LogPath"
+        #$Command = "babeltrace --names all ~/QUICLogs/$LogProfile/* | $RootDir/artifacts/tools/clog/clog2text_lttng -s $RootDir/src/manifest/clog.sidecar > $LogPath"
+        #Write-Host "Command: $Command"
+        #Invoke-Expression $Command
+        #tail -n 100 $LogPath
+
+        Write-Host "Finished Creating LTTNG Log"
         ls -l $OutputDirectory
     }
 }
