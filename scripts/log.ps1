@@ -80,13 +80,15 @@ function Log-Start {
 
         wpr.exe -start "$($WprpFile)!$($LogProfile)" -filemode -instancename $InstanceName
     } else {
+        Write-Host "lttng-destroy"
         lttng destroy
-        Write-Host "------------"
+        Write-Host "making QUICLogs directory ./QUICLogs/$LogProfile"
         pushd ~
-        mkdir ./QUICLogs
-        mkdir ./QUICLogs/$LogProfile
-        pushd ./QUICLogs
+        mkdir ./QUICLogs | Out-Null
+        mkdir ./QUICLogs/$LogProfile | Out-Null
+        pushd ./QUICLogs | Out-Null
 
+        Write-Host "Creating LTTNG Profile $LogProfile into ./$LogProfile"
         lttng create $LogProfile -o=./$LogProfile
         popd
         Write-Host "------------" 
@@ -94,6 +96,7 @@ function Log-Start {
         Write-Host "Enabling all CLOG traces"
         lttng enable-event --userspace CLOG_*
 
+        Write-Host "Starting LTTNG"
         lttng start
         lttng list
         popd
@@ -128,16 +131,24 @@ function Log-Stop {
         Write-Host "Formating traces into $LogPath"
 
         Get-ChildItem env:
-        
-        Write-Host "Writing BabelTrace logs to $BabelLogPath"
-        babeltrace --names all $OutputDirectory* > $BabelLogPath
+        Write-Host "-------------------------------------"
+        lttng list 
 
-        ls $OutputDirectory
+        mkdir $OutputDirectory | Out-Null
+        Write-Host "Writing BabelTrace logs to $BabelLogPath"
+        $Command = "babeltrace --names all ~/QUICLogs/$LogProfile/* > $BabelLogPath"
+        Write-Host "Command :$Command"
+        Invoke-Expression $Command
+        tail -n 100 $BabelLogPath
 
         Write-Host "Attempting CLOG conversion of BabelLogs into $LogPath"
-        $Command = "babeltrace --names all $OutputDirectory* | $RootDir/artifacts/tools/clog/clog2text_lttng -s $RootDir/src/manifest/clog.sidecar > $LogPath"
+        $Command = "babeltrace --names all ~/QUICLogs/$LogProfile/* | $RootDir/artifacts/tools/clog/clog2text_lttng -s $RootDir/src/manifest/clog.sidecar > $LogPath"
         Write-Host "Command: $Command"
         Invoke-Expression $Command
+        tail -n 100 $LogPath
+
+        
+        ls -l $OutputDirectory
     }
 }
 
