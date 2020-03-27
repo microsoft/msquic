@@ -85,6 +85,8 @@ function Log-Start {
         lttng | Write-Host
         lttng version | Write-Host
 
+        $LogProfile = "lttngTest"
+
         Write-Host "making QUICLogs directory ./QUICLogs/$LogProfile"
         pushd ~
         mkdir ./QUICLogs | Out-Null
@@ -93,7 +95,7 @@ function Log-Start {
 
         Write-Host "------------" 
         Write-Host "Creating LTTNG Profile $LogProfile into ./$LogProfile"
-        $Command = "lttng create $LogProfile -o=./$LogProfile | Write-Host"
+        $Command = "lttng create $LogProfile -o=$LogProfile | Write-Host"
         Write-Host $Command
         Invoke-Expression $Command
 
@@ -133,6 +135,8 @@ function Log-Stop {
             Invoke-Expression $Command
         }
     } else {
+        $LogProfile = "lttngTest"
+
         $LogPath = Join-Path $OutputDirectory "quic.log"
         $BabelLogPath = Join-Path $OutputDirectory "babel.log"
         $LTTNGLog = Join-Path $OutputDirectory "lttng_trace.tar"
