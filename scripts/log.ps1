@@ -85,7 +85,7 @@ function Log-Start {
         lttng | Write-Host
         lttng version | Write-Host
 
-        $LogProfile = "lttngTest"
+        $LogProfile = "QuicLTTNG"
 
         Write-Host "making QUICLogs directory ./QUICLogs/$LogProfile"
         pushd ~
@@ -135,26 +135,24 @@ function Log-Stop {
             Invoke-Expression $Command
         }
     } else {
-        $LogProfile = "lttngTest"
+        $LogProfile = "QuicLTTNG"
 
         $LogPath = Join-Path $OutputDirectory "quic.log"
-        $BabelLogPath = Join-Path $OutputDirectory "babel.log"
+        # $BabelLogPath = Join-Path $OutputDirectory "babel.log"
         $LTTNGLog = Join-Path $OutputDirectory "lttng_trace.tgz"
         Write-Host "Formating traces into $LogPath"
-       
-        Write-Host "-------------------------------------"
-        lttng list 
+
 
         Write-Host "tar/gzip LTTNG log files into ~/QUICLogs/$LogProfile"
         tar -cvzf $LTTNGLog ~/QUICLogs/$LogProfile
 
-        mkdir $OutputDirectory | Out-Null
-        Write-Host "Writing BabelTrace logs to $BabelLogPath"
-        $Command = "time babeltrace --names all ~/QUICLogs/$LogProfile/* > $BabelLogPath"
-        Write-Host "Command :$Command"
-        Invoke-Expression $Command
+        # mkdir $OutputDirectory | Out-Null
+        # Write-Host "Writing BabelTrace logs to $BabelLogPath"
+        # $Command = "time babeltrace --names all ~/QUICLogs/$LogProfile/* > $BabelLogPath"
+        # Write-Host "Command :$Command"
+        # Invoke-Expression $Command
 
-        tail -n 1000 $BabelLogPath | Write-Host       
+        # tail -n 1000 $BabelLogPath | Write-Host       
 
         Write-Host "Finished Creating LTTNG Log"
         ls -l $OutputDirectory
