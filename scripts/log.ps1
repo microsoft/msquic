@@ -82,6 +82,9 @@ function Log-Start {
     } else {
         Write-Host "lttng-destroy"
         lttng destroy | Write-Host
+        lttng | Write-Host
+        lttng -v | Write-Host
+        
         Write-Host "making QUICLogs directory ./QUICLogs/$LogProfile"
         pushd ~
         mkdir ./QUICLogs | Out-Null
@@ -89,7 +92,7 @@ function Log-Start {
         pushd ./QUICLogs | Out-Null
 
         Write-Host "Creating LTTNG Profile $LogProfile into ./$LogProfile"
-        lttng create $LogProfile -o=./$LogProfile
+        lttng create $LogProfile -o=./$LogProfile | Write-Host
         popd
         Write-Host "------------" 
         
