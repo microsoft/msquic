@@ -26,7 +26,7 @@ void QuicTestValidateApi()
 void QuicTestValidateRegistration()
 {
     TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_PARAMETER,
+        QUIC_STATUS_SUCCESS,
         MsQuic->RegistrationOpen(nullptr, nullptr));
 
     MsQuic->RegistrationClose(nullptr);
