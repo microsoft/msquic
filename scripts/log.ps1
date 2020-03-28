@@ -61,6 +61,15 @@ param (
     [Parameter(Mandatory = $false, ParameterSetName='Stop')]
     [string]$TmfPath = "",
 
+    [Parameter(Mandatory = $false, ParameterSetName='DecodeTrace')]
+    [switch]$DecodeTrace = $false,
+
+     [Parameter(Mandatory = $true, ParameterSetName='DecodeTrace')]
+    [string]$LogFile,
+
+     [Parameter(Mandatory = $true, ParameterSetName='DecodeTrace')]
+    [string]$WorkingDirectory,
+
     [Parameter(Mandatory = $false)]
     [string]$InstanceName = "msquic"
 )
@@ -71,6 +80,7 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
+
 # Start log collection.
 function Log-Start {
     if ($IsWindows) {
@@ -79,22 +89,34 @@ function Log-Start {
 
         wpr.exe -start "$($WprpFile)!$($LogProfile)" -filemode -instancename $InstanceName
     } else {
-        lttng destroy
-        Write-Host "------------"
-        pushd ~
-        mkdir ./QUICLogs
-        mkdir ./QUICLogs/$LogProfile
-        pushd ./QUICLogs
+        Write-Host "lttng-destroy"
+        lttng destroy | Write-Host
+        lttng | Write-Host
+        lttng version | Write-Host
 
-        lttng create $LogProfile -o=./$LogProfile
+        $LogProfile = "QuicLTTNG"
+
+        Write-Host "making QUICLogs directory ./QUICLogs/$LogProfile"
+        pushd ~
+        mkdir ./QUICLogs | Out-Null
+        mkdir ./QUICLogs/$LogProfile | Out-Null
+        pushd ./QUICLogs | Out-Null
+
+        Write-Host "------------" 
+        Write-Host "Creating LTTNG Profile $LogProfile into ./$LogProfile"
+        $Command = "lttng create $LogProfile -o=$LogProfile | Write-Host"
+        Write-Host $Command
+        Invoke-Expression $Command
+
         popd
         Write-Host "------------" 
         
         Write-Host "Enabling all CLOG traces"
         lttng enable-event --userspace CLOG_*
 
-        lttng start
-        lttng list
+        Write-Host "Starting LTTNG"
+        lttng start | Write-Host
+        lttng list | Write-Host
         popd
     }
 }
@@ -122,8 +144,27 @@ function Log-Stop {
             Invoke-Expression $Command
         }
     } else {
-        Write-Host "Using traces from $LogProfile"
-        babeltrace --names all $OutputDirectory* | ../artifacts/tools/bin/clog/clog2text_lttng -s ../src/manifest/clog.sidecar
+        $LogProfile = "QuicLTTNG"
+
+        $LogPath = Join-Path $OutputDirectory "quic.log"
+        # $BabelLogPath = Join-Path $OutputDirectory "babel.log"
+        $LTTNGLog = Join-Path $OutputDirectory "lttng_trace.tgz"
+        Write-Host "Formating traces into $LogPath"
+
+
+        Write-Host "tar/gzip LTTNG log files into ~/QUICLogs/$LogProfile"
+        tar -cvzf $LTTNGLog ~/QUICLogs/$LogProfile
+
+        # mkdir $OutputDirectory | Out-Null
+        # Write-Host "Writing BabelTrace logs to $BabelLogPath"
+        # $Command = "time babeltrace --names all ~/QUICLogs/$LogProfile/* > $BabelLogPath"
+        # Write-Host "Command :$Command"
+        # Invoke-Expression $Command
+
+        # tail -n 1000 $BabelLogPath | Write-Host       
+
+        Write-Host "Finished Creating LTTNG Log"
+        ls -l $OutputDirectory
     }
 }
 
@@ -142,7 +183,25 @@ function Log-Stream {
         lttng list
         babeltrace -i lttng-live net://localhost
         
-        babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquicLive | ../artifacts/tools/bin/clog/clog2text_lttng -s ../src/manifest/clog.sidecar
+        babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquicLive | ../artifacts/tools/clog/clog2text_lttng -s ../src/manifest/clog.sidecar
+    }
+}
+
+
+# Decode Log from file
+function Log-Decode {
+    if ($IsWindows) {
+       Write-Host "Not supported on Windows"
+    } else {
+        Write-Host $LogFile
+
+        $DecompressedLogs = Join-Path $WorkingDirectory "DecompressedLogs"
+
+        mkdir $WorkingDirectory
+        mkdir $DecompressedLogs
+        tar xvfz $Logfile -C $DecompressedLogs
+
+        babeltrace --names all /home/chris/fooboobaz/DecompressedLogs/* | ../artifacts/tools/clog/clog2text_lttng -s ../src/manifest/clog.sidecar > $WorkingDirectory/clog_decode.txt
     }
 }
 ##############################################################
@@ -159,3 +218,6 @@ if ($Start)  {
 
 if ($Cancel) { Log-Cancel }
 if ($Stop)   { Log-Stop }
+if ($DecodeTrace) {Log-Decode }
+
+Write-Host "Finished and exiting"
