@@ -90,25 +90,32 @@ function Log-Start {
         wpr.exe -start "$($WprpFile)!$($LogProfile)" -filemode -instancename $InstanceName
     } else {
         Write-Host "lttng-destroy"
-        lttng destroy | Write-Host
-        lttng | Write-Host
-        lttng version | Write-Host
-
+        lttng destroy | Out-Null
+     
         $LogProfile = "QuicLTTNG"
 
-        Write-Host "making QUICLogs directory ./QUICLogs/$LogProfile"
-        pushd ~
-        mkdir ./QUICLogs | Out-Null
-        mkdir ./QUICLogs/$LogProfile | Out-Null
-        pushd ./QUICLogs | Out-Null
+        #find $HOME | Write-Host
 
+        $OutputDirectoryRoot = Join-Path $HOME "QUICLogs"
+        $LTTNGRawDirectory = Join-Path $OutputDirectoryRoot "LTTNGRaw"
+
+        Write-Host "making QUICLogs directory ./QUICLogs/$LogProfile"       
+
+        if (!(Test-Path $LTTNGRawDirectory)) { 
+            New-Item -Path $LTTNGRawDirectory -ItemType Directory -Force | Out-Null 
+        } else {
+            Write-Host "ERROR : Output Directory $LTTNGRawDirectory must not exist"
+            exit 1        
+        }       
+
+                 
         Write-Host "------------" 
-        Write-Host "Creating LTTNG Profile $LogProfile into ./$LogProfile"
-        $Command = "lttng create $LogProfile -o=$LogProfile | Write-Host"
+        Write-Host "Creating LTTNG Profile $LogProfile into $LTTNGRawDirectory"
+        $Command = "lttng create $LogProfile -o=$LTTNGRawDirectory | Write-Host"
         Write-Host $Command
         Invoke-Expression $Command
 
-        popd
+     
         Write-Host "------------" 
         
         Write-Host "Enabling all CLOG traces"
@@ -117,7 +124,6 @@ function Log-Start {
         Write-Host "Starting LTTNG"
         lttng start | Write-Host
         lttng list | Write-Host
-        popd
     }
 }
 
@@ -144,24 +150,24 @@ function Log-Stop {
             Invoke-Expression $Command
         }
     } else {
+        
         $LogProfile = "QuicLTTNG"
 
-        $LogPath = Join-Path $OutputDirectory "quic.log"
-        # $BabelLogPath = Join-Path $OutputDirectory "babel.log"
+        #find $HOME | Write-Host
+
+        $OutputDirectoryRoot = Join-Path $HOME "QUICLogs"
+        $LTTNGRawDirectory = Join-Path $OutputDirectoryRoot "LTTNGRaw"
+
+        if (!(Test-Path $LTTNGRawDirectory)) {            
+            Write-Host "ERROR : Output Directory $LTTNGRawDirectory must exist"
+            exit 1        
+        }       
+
         $LTTNGLog = Join-Path $OutputDirectory "lttng_trace.tgz"
-        Write-Host "Formating traces into $LogPath"
 
-
-        Write-Host "tar/gzip LTTNG log files into ~/QUICLogs/$LogProfile"
-        tar -cvzf $LTTNGLog ~/QUICLogs/$LogProfile
-
-        # mkdir $OutputDirectory | Out-Null
-        # Write-Host "Writing BabelTrace logs to $BabelLogPath"
-        # $Command = "time babeltrace --names all ~/QUICLogs/$LogProfile/* > $BabelLogPath"
-        # Write-Host "Command :$Command"
-        # Invoke-Expression $Command
-
-        # tail -n 1000 $BabelLogPath | Write-Host       
+        
+        Write-Host "tar/gzip LTTNG log files from $LTTNGRawDirectory into $LTTNGLog"
+        tar -cvzf $LTTNGLog $LTTNGRawDirectory
 
         Write-Host "Finished Creating LTTNG Log"
         ls -l $OutputDirectory
@@ -199,9 +205,15 @@ function Log-Decode {
 
         mkdir $WorkingDirectory
         mkdir $DecompressedLogs
+
+        Write-Host "Decompressing $Logfile into $DecompressedLogs"
         tar xvfz $Logfile -C $DecompressedLogs
 
-        babeltrace --names all /home/chris/fooboobaz/DecompressedLogs/* | ../artifacts/tools/clog/clog2text_lttng -s ../src/manifest/clog.sidecar > $WorkingDirectory/clog_decode.txt
+        Write-Host "Decoding LTTNG into BabelTrace format ($DecompressedLogs/decoded_babeltrace.txt)"
+        babeltrace --names all $DecompressedLogs/* > $WorkingDirectory/decoded_babeltrace.txt
+
+        Write-Host "Decoding Babeltrace into human text using CLOG"
+        ../artifacts/tools/clog/clog2text_lttng -i $WorkingDirectory/decoded_babeltrace.txt -s ../src/manifest/clog.sidecar -o $WorkingDirectory/clog_decode.txt
     }
 }
 ##############################################################
