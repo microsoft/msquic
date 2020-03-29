@@ -19,6 +19,6 @@ CLOG_ADD_SOURCEFILE(MSQUICTEST_CLOG_LIB ${SOURCES})
 
 add_executable(msquictest ${SOURCES})
 
-target_link_libraries(msquictest msquic testlib gtest TESTLIB_CLOG_LIB)
+target_link_libraries(msquictest msquic testlib gtest)
 
 add_test(msquictest msquictest)
