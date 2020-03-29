@@ -132,6 +132,7 @@ function Log-Cancel {
     if ($IsWindows) {
         wpr.exe -cancel -instancename $InstanceName
     } else {
+        Write-Host "Cancel LTTNG session"
         lttng destroy
     }
 }
@@ -171,6 +172,9 @@ function Log-Stop {
 
         Write-Host "Finished Creating LTTNG Log"
         ls -l $OutputDirectory
+
+        Write-Host "Deleting LTTNG Directory (the contents are now stored in the tgz file)"        
+        Remove-Item -Path $OutputDirectoryRoot -Recurse -Force
     }
 }
 
