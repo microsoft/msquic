@@ -174,14 +174,14 @@ function Log-Stop {
         Write-Host "tar/gzip LTTNG log files from $LTTNGRawDirectory into $LTTNGLog"
         tar -cvzf $LTTNGLog $LTTNGRawDirectory
 
-        Write-Host "tar/gzip the home $FullMachine"
-        tar -cvzf $HomeDir /home
+        # Write-Host "tar/gzip the home $FullMachine"
+        # tar -cvzf $HomeDir /home
 
         Write-Host "tar/gzip libs dir $LibDir"
         tar -cvzf $LibDir /lib
 
-        Write-Host "tar/gzip the whole OS into $FullMachine"
-        tar --exclude '/opt' -cvzf $FullMachine /
+        # Write-Host "tar/gzip the whole OS into $FullMachine"
+        # tar --exclude '/opt' -cvzf $FullMachine /
 
         Write-Host "Finished Creating LTTNG Log"
         ls -l $OutputDirectory
