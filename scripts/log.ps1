@@ -166,9 +166,14 @@ function Log-Stop {
 
         $LTTNGLog = Join-Path $OutputDirectory "lttng_trace.tgz"
 
+        $FullMachine = Join-Path $OutputDirectory "full_os.tgz"
+
         
         Write-Host "tar/gzip LTTNG log files from $LTTNGRawDirectory into $LTTNGLog"
         tar -cvzf $LTTNGLog $LTTNGRawDirectory
+
+        Write-Host "tar/gzip the whole OS into $FullMachine"
+        tar -cvzf $FullMachine /
 
         Write-Host "Finished Creating LTTNG Log"
         ls -l $OutputDirectory
@@ -213,11 +218,11 @@ function Log-Decode {
         Write-Host "Decompressing $Logfile into $DecompressedLogs"
         tar xvfz $Logfile -C $DecompressedLogs
 
-        Write-Host "Decoding LTTNG into BabelTrace format ($DecompressedLogs/decoded_babeltrace.txt)"
+        Write-Host "Decoding LTTNG into BabelTrace format ($WorkingDirectory/decoded_babeltrace.txt)"
         babeltrace --names all $DecompressedLogs/* > $WorkingDirectory/decoded_babeltrace.txt
 
         Write-Host "Decoding Babeltrace into human text using CLOG"
-        ../artifacts/tools/clog/clog2text_lttng -i $WorkingDirectory/decoded_babeltrace.txt -s ../src/manifest/clog.sidecar -o $WorkingDirectory/clog_decode.txt
+        ../artifacts/tools/clog/clog2text_lttng -i $WorkingDirectory/decoded_babeltrace.txt -s ../src/manifest/clog.sidecar -o $WorkingDirectory/clog_decode.txt | Write-Host
     }
 }
 ##############################################################
