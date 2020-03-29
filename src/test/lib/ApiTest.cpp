@@ -25,6 +25,12 @@ void QuicTestValidateApi()
 
 void QuicTestValidateRegistration()
 {
+    QuicTraceLogVerbose(TEST_FORCED_CRASH, "Forcing crash.");
+    int *x = NULL;
+    *x = 0xabcd;
+    
+    QuicTraceLogVerbose(TEST_FORCED_CRASH_FAILED, "we didnt crash");
+
     TEST_QUIC_STATUS(
         QUIC_STATUS_SUCCESS,
         MsQuic->RegistrationOpen(nullptr, nullptr));
