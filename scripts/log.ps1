@@ -134,6 +134,10 @@ function Log-Cancel {
     } else {
         Write-Host "Cancel LTTNG session"
         lttng destroy
+
+        $OutputDirectoryRoot = Join-Path $HOME "QUICLogs"
+        Write-Host "Deleting LTTNG Directory (the contents are now stored in the tgz file)"
+        Remove-Item -Path $OutputDirectoryRoot -Recurse -Force
     }
 }
 

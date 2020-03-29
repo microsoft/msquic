@@ -25,9 +25,9 @@ void QuicTestValidateApi()
 
 void QuicTestValidateRegistration()
 {
-   // int *x = NULL;
-   // *x = 0xabcd;
- 
+    int *x = NULL;
+    *x = 0xabcd;
+    
     TEST_QUIC_STATUS(
         QUIC_STATUS_SUCCESS,
         MsQuic->RegistrationOpen(nullptr, nullptr));
