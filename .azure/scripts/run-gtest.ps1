@@ -44,6 +44,9 @@ as necessary.
 .PARAMETER CompressOutput
     Compresses the output files generated for failed test cases.
 
+.PARAMETER NoProgress
+    Disables the progress bar.
+
 #>
 
 param (
@@ -87,7 +90,10 @@ param (
     [switch]$ConvertLogs = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$CompressOutput = $false
+    [switch]$CompressOutput = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$NoProgress = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -447,7 +453,9 @@ try {
             Log "Executing $TestCount test(s) in series..."
             for ($i = 0; $i -lt $TestCases.Length; $i++) {
                 Wait-TestCase (Start-TestCase $TestCases[$i])
-                Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+                if (!$NoProgress) {
+                    Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+                }
             }
 
         } else {
@@ -462,7 +470,9 @@ try {
             $Runs = New-Object System.Collections.ArrayList
             for ($i = 0; $i -lt $TestCases.Length; $i++) {
                 $Runs.Add((Start-TestCase $TestCases[$i])) | Out-Null
-                Write-Progress -Activity "Starting tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+                if (!$NoProgress) {
+                    Write-Progress -Activity "Starting tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+                }
                 Start-Sleep -Milliseconds 1
             }
 
@@ -470,7 +480,9 @@ try {
             Log "Waiting for test cases to complete..."
             for ($i = 0; $i -lt $Runs.Count; $i++) {
                 Wait-TestCase $Runs[$i]
-                Write-Progress -Activity "Finishing tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+                if (!$NoProgress) {
+                    Write-Progress -Activity "Finishing tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+                }
             }
         }
     }
