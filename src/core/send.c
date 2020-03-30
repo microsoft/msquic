@@ -854,8 +854,6 @@ QuicSendPathChallenges(
         uint16_t AvailableBufferLength =
             (uint16_t)Builder.Datagram->Length - Builder.EncryptionOverhead;
 
-        QuicRandom(sizeof(Path->Challenge), Path->Challenge);
-
         QUIC_PATH_CHALLENGE_EX Frame;
         QuicCopyMemory(Frame.Data, Path->Challenge, sizeof(Frame.Data));
 

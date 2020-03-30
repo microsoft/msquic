@@ -3739,7 +3739,7 @@ QuicConnRecvPostProcessing(
 
             (*Path)->SendChallenge = TRUE;
             (*Path)->PathValidationStartTime = QuicTimeUs32();
-
+            QuicRandom(sizeof((*Path)->Challenge), (*Path)->Challenge);
             QuicSendSetSendFlag(
                 &Connection->Send,
                 QUIC_CONN_SEND_FLAG_PATH_CHALLENGE);
