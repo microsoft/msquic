@@ -101,12 +101,10 @@ function Log-Start {
 
         Write-Host "making QUICLogs directory ./QUICLogs/$LogProfile"       
 
-        if (!(Test-Path $LTTNGRawDirectory)) { 
-            New-Item -Path $LTTNGRawDirectory -ItemType Directory -Force | Out-Null 
-        } else {
-            Write-Host "ERROR : Output Directory $LTTNGRawDirectory must not exist"
-            exit 1        
-        }       
+        if (Test-Path $LTTNGRawDirectory) {
+            Remove-Item -Path $LTTNGRawDirectory -Recurse -Force
+        }        
+        New-Item -Path $LTTNGRawDirectory -ItemType Directory -Force | Out-Null     
 
                  
         Write-Host "------------" 
@@ -158,20 +156,23 @@ function Log-Stop {
         
         $LogProfile = "QuicLTTNG"
 
-        #find $HOME | Write-Host
         lttng stop | Write-Host
 
         $LTTNGTempDirectory = Join-Path $HOME "QUICLogs"
-        $LTTNGLog = Join-Path $OutputDirectory "lttng_trace.tgz"
-        $LTTNGRawDirectory = Join-Path $LTTNGTempDirectory "LTTNGRaw"
+        $LTTNGRawDirectory = Join-Path $LTTNGTempDirectory "LTTNGRaw"        
+        $LTTNGTarFile = Join-Path $OutputDirectory "lttng_trace.tgz"
 
         if (!(Test-Path $LTTNGRawDirectory)) {            
             Write-Host "ERROR : Output Directory $LTTNGRawDirectory must exist"
             exit 1        
         }       
      
-        Write-Host "tar/gzip LTTNG log files from $LTTNGRawDirectory into $LTTNGLog"
-        tar -cvzf $LTTNGLog $LTTNGRawDirectory
+        if (!(Test-Path $OutputDirectory)) {            
+            New-Item -Path $OutputDirectory -ItemType Directory -Force | Out-Null
+        }       
+
+        Write-Host "tar/gzip LTTNG log files from $LTTNGRawDirectory into $LTTNGTarFile"
+        tar -cvzf $LTTNGTarFile $LTTNGRawDirectory
 
         Write-Host "Decoding LTTNG into BabelTrace format ($WorkingDirectory/decoded_babeltrace.txt)"
         babeltrace --names all $LTTNGRawDirectory/* > $OutputDirectory/decoded_babeltrace.txt
