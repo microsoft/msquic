@@ -3739,6 +3739,11 @@ QuicConnRecvPostProcessing(
 
             (*Path)->SendChallenge = TRUE;
             (*Path)->PathValidationStartTime = QuicTimeUs32();
+            //
+            // NB: The path challenge payload is initialized here and reused
+            // for any retransmits, but the spec requires a new payload in each
+            // path challenge.
+            //
             QuicRandom(sizeof((*Path)->Challenge), (*Path)->Challenge);
             QuicSendSetSendFlag(
                 &Connection->Send,
