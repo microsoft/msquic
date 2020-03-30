@@ -1593,7 +1593,8 @@ QuicTlsOnNegotiate(
                 AlpnLength,
                 Alpn);
         if (TlsContext->State->NegotiatedAlpn == NULL) {
-            QuicTraceLogError(TlsNoMatchingAlpn, "[ tls][%p] Failed to find a matching ALPN", TlsContext);
+            QuicTraceLogError(TlsNoMatchingAlpn, "[ tls][%p][%c] Failed to find a matching ALPN",
+                TlsContext, 'C');
             goto Exit;
         }
     }
