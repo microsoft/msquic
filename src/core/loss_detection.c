@@ -629,11 +629,10 @@ QuicLossDetectionRetransmitFrames(
             QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId);
             if (Path != NULL && !Path->IsPeerValidated) {
                 uint32_t TimeNow = QuicTimeUs32();
+                QUIC_DBG_ASSERT(Connection->Session != NULL);
                 uint32_t ValidationTimeout =
                     max(QuicLossDetectionComputeProbeTimeout(LossDetection, Path, 3),
-                        6 * (Connection->Session != NULL ?
-                             MS_TO_US(Connection->Session->Settings.InitialRttMs) :
-                             MS_TO_US(QUIC_INITIAL_RTT)));
+                        6 * MS_TO_US(Connection->Session->Settings.InitialRttMs));
                 if (QuicTimeDiff32(Path->PathValidationStartTime, TimeNow) > ValidationTimeout) {
                     QuicTraceLogConnInfo(
                         PathValidationTimeout,
