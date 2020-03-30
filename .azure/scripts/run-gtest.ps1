@@ -340,7 +340,7 @@ function Wait-TestCase($TestCase) {
                 Write-Host $stderr
             }
         } else {
-            if ($AnyTestFailed || $ProcessCrashed) {
+            if ($AnyTestFailed -or $ProcessCrashed) {
                 Log "$($TestCase.Name) failed"
             } else {
                 Log "$($TestCase.Name) succeeded"
