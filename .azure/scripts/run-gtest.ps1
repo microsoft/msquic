@@ -339,6 +339,12 @@ function Wait-TestCase($TestCase) {
             if ($null -ne $stderr -and "" -ne $stderr) {
                 Write-Host $stderr
             }
+        } else {
+            if ($AnyTestFailed || $ProcessCrashed) {
+                Log "$($TestCase.Name) failed"
+            } else {
+                Log "$($TestCase.Name) succeeded"
+            }
         }
 
         if ($KeepOutputOnSuccess -or $ProcessCrashed -or $AnyTestFailed) {
@@ -352,17 +358,17 @@ function Wait-TestCase($TestCase) {
             }
 
             if ($null -ne $stdout -and "" -ne $stdout) {
-                $stdout > (Join-Path $LogDir "stdout.txt")
+                $stdout > (Join-Path $TestCase.LogDir "stdout.txt")
             }
 
             if ($null -ne $stderr -and "" -ne $stderr) {
-                $stderr > (Join-Path $LogDir "stderr.txt")
+                $stderr > (Join-Path $TestCase.LogDir "stderr.txt")
             }
 
             if ($CompressOutput) {
                 # Zip the output.
                 CompressOutput-Archive -Path "$($TestCase.LogDir)\*" -DestinationPath "$($TestCase.LogDir).zip" | Out-Null
-                Remove-Item $LogDir -Recurse -Force | Out-Null
+                Remove-Item $TestCase.LogDir -Recurse -Force | Out-Null
             }
 
         } else {
@@ -500,7 +506,7 @@ try {
     # Print out the results.
     Log "$($TestCount) test(s) run. $($TestsFailed) test(s) failed."
     if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or $AnyProcessCrashes) {
-        Log "Logs can be found in $($LogDir)"
+        Log "Output can be found in $($LogDir)"
     } else {
         if (Test-Path $LogDir) {
             Remove-Item $LogDir -Recurse -Force | Out-Null
