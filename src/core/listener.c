@@ -205,7 +205,7 @@ MsQuicListenerStart(
             QuicAddrGetPort(&BindingLocalAddress));
     }
 
-    QuicTraceEvent(ListenerStarted, "[list][%p] Started, Binding=%p, LocalAddr=%!BYTEARRAY!", 
+    QuicTraceEvent(ListenerStarted, "[list][%p] Started, Binding=%p, LocalAddr=%SOCKADDR", 
         Listener, 
         Listener->Binding, CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), (uint8_t*)&Listener->LocalAddress));
 
@@ -260,7 +260,7 @@ QuicListenerTraceRundown(
 {
     QuicTraceEvent(ListenerRundown, "[list][%p] Rundown, Session=%p", Listener, Listener->Session);
     if (Listener->Binding != NULL) {
-        QuicTraceEvent(ListenerStarted, "[list][%p] Started, Binding=%p, LocalAddr=%!BYTEARRAY!", 
+        QuicTraceEvent(ListenerStarted, "[list][%p] Started, Binding=%p, LocalAddr=%SOCKADDR", 
             Listener, 
             Listener->Binding, CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), (uint8_t*)&Listener->LocalAddress));
     }
