@@ -159,25 +159,31 @@ function Log-Stop {
         $LogProfile = "QuicLTTNG"
 
         #find $HOME | Write-Host
+        lttng stop | Write-Host
 
-        $OutputDirectoryRoot = Join-Path $HOME "QUICLogs"
-        $LTTNGRawDirectory = Join-Path $OutputDirectoryRoot "LTTNGRaw"
+        $LTTNGTempDirectory = Join-Path $HOME "QUICLogs"
+        $LTTNGLog = Join-Path $OutputDirectory "lttng_trace.tgz"
+        $LTTNGRawDirectory = Join-Path $LTTNGTempDirectory "LTTNGRaw"
 
         if (!(Test-Path $LTTNGRawDirectory)) {            
             Write-Host "ERROR : Output Directory $LTTNGRawDirectory must exist"
             exit 1        
         }       
-
-        $LTTNGLog = Join-Path $OutputDirectory "lttng_trace.tgz"
- 
+     
         Write-Host "tar/gzip LTTNG log files from $LTTNGRawDirectory into $LTTNGLog"
         tar -cvzf $LTTNGLog $LTTNGRawDirectory
 
+        Write-Host "Decoding LTTNG into BabelTrace format ($WorkingDirectory/decoded_babeltrace.txt)"
+        babeltrace --names all $LTTNGRawDirectory/* > $OutputDirectory/decoded_babeltrace.txt
+
+        Write-Host "Decoding Babeltrace into human text using CLOG"
+        ../artifacts/tools/clog/clog2text_lttng -i $OutputDirectory/decoded_babeltrace.txt -s ../src/manifest/clog.sidecar -o $OutputDirectory/clog_decode.txt | Write-Host        
+
         Write-Host "Finished Creating LTTNG Log"
         ls -l $OutputDirectory
-
+        
         Write-Host "Deleting LTTNG Directory (the contents are now stored in the tgz file)"        
-        Remove-Item -Path $OutputDirectoryRoot -Recurse -Force
+        Remove-Item -Path $LTTNGTempDirectory -Recurse -Force
     }
 }
 
