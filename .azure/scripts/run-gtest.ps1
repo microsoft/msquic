@@ -414,6 +414,8 @@ function GetTestCases {
 #                     Main Execution                         #
 ##############################################################
 
+Log $Path
+
 # Query all the test cases.
 $TestCases = GetTestCases
 if ($null -eq $TestCases) {
