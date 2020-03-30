@@ -138,12 +138,12 @@ QuicConnAlloc(
 
         Path->LocalAddress = Datagram->Tuple->LocalAddress;
         Connection->State.LocalAddressSet = TRUE;
-        QuicTraceEvent(ConnLocalAddrAdded, "[conn][%p] New Local IP: %!BYTEARRAY!", 
+        QuicTraceEvent(ConnLocalAddrAdded, "[conn][%p] New Local IP: %SOCKADDR", 
             Connection, CLOG_BYTEARRAY(LOG_ADDR_LEN(Path->LocalAddress), (const uint8_t*)&Path->LocalAddress));
 
         Path->RemoteAddress = Datagram->Tuple->RemoteAddress;
         Connection->State.RemoteAddressSet = TRUE;
-        QuicTraceEvent(ConnRemoteAddrAdded, "[conn][%p] New Remote IP: %!BYTEARRAY!", 
+        QuicTraceEvent(ConnRemoteAddrAdded, "[conn][%p] New Remote IP: %SOCKADDR", 
             Connection, CLOG_BYTEARRAY(LOG_ADDR_LEN(Path->RemoteAddress), (const uint8_t*)&Path->RemoteAddress));
 
         Path->DestCid =
@@ -513,11 +513,11 @@ QuicConnTraceRundownOper(
     if (Connection->State.Started) {
         for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
             if (Connection->State.LocalAddressSet || i != 0) {
-                QuicTraceEvent(ConnLocalAddrAdded, "[conn][%p] New Local IP: %!BYTEARRAY!", 
+                QuicTraceEvent(ConnLocalAddrAdded, "[conn][%p] New Local IP: %SOCKADDR", 
                     Connection, CLOG_BYTEARRAY(LOG_ADDR_LEN(Connection->Paths[i].LocalAddress), (const uint8_t*)&Connection->Paths[i].LocalAddress));
             }
             if (Connection->State.RemoteAddressSet || i != 0) {
-                QuicTraceEvent(ConnRemoteAddrAdded, "[conn][%p] New Remote IP: %!BYTEARRAY!", 
+                QuicTraceEvent(ConnRemoteAddrAdded, "[conn][%p] New Remote IP: %SOCKADDR", 
                     Connection, CLOG_BYTEARRAY(LOG_ADDR_LEN(Connection->Paths[i].RemoteAddress), (const uint8_t*)&Connection->Paths[i].RemoteAddress));
             }
         }
@@ -1567,7 +1567,7 @@ QuicConnStart(
     }
 
     QuicAddrSetPort(&Path->RemoteAddress, ServerPort);
-    QuicTraceEvent(ConnRemoteAddrAdded, "[conn][%p] New Remote IP: %!BYTEARRAY!", 
+    QuicTraceEvent(ConnRemoteAddrAdded, "[conn][%p] New Remote IP: %SOCKADDR", 
         Connection, CLOG_BYTEARRAY(LOG_ADDR_LEN(Path->RemoteAddress), (const uint8_t*)&Path->RemoteAddress));
 
     //
@@ -1626,7 +1626,7 @@ QuicConnStart(
     QuicDataPathBindingGetLocalAddress(
         Path->Binding->DatapathBinding,
         &Path->LocalAddress);
-    QuicTraceEvent(ConnLocalAddrAdded, "[conn][%p] New Local IP: %!BYTEARRAY!", 
+    QuicTraceEvent(ConnLocalAddrAdded, "[conn][%p] New Local IP: %SOCKADDR", 
         Connection, CLOG_BYTEARRAY(LOG_ADDR_LEN(Path->LocalAddress), (const uint8_t*)&Path->LocalAddress));
 
     //
@@ -4312,7 +4312,7 @@ QuicConnParamSet(
 
         Connection->State.LocalAddressSet = TRUE;
         QuicCopyMemory(&Connection->Paths[0].LocalAddress, Buffer, sizeof(QUIC_ADDR));
-        QuicTraceEvent(ConnLocalAddrAdded, "[conn][%p] New Local IP: %!BYTEARRAY!", 
+        QuicTraceEvent(ConnLocalAddrAdded, "[conn][%p] New Local IP: %SOCKADDR", 
             Connection, CLOG_BYTEARRAY(LOG_ADDR_LEN(Connection->Paths[0].LocalAddress), (const uint8_t*)&Connection->Paths[0].LocalAddress));
 
         if (Connection->State.Started) {
@@ -4347,13 +4347,13 @@ QuicConnParamSet(
                     -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
             }
             QuicLibraryReleaseBinding(OldBinding);
-            QuicTraceEvent(ConnLocalAddrRemoved, "[conn][%p] Removed Local IP: %!BYTEARRAY!", 
+            QuicTraceEvent(ConnLocalAddrRemoved, "[conn][%p] Removed Local IP: %SOCKADDR", 
                 Connection, CLOG_BYTEARRAY(LOG_ADDR_LEN(Connection->Paths[0].LocalAddress), (const uint8_t*)&Connection->Paths[0].LocalAddress));
 
             QuicDataPathBindingGetLocalAddress(
                 Connection->Paths[0].Binding->DatapathBinding,
                 &Connection->Paths[0].LocalAddress);
-            QuicTraceEvent(ConnLocalAddrAdded, "[conn][%p] New Local IP: %!BYTEARRAY!", 
+            QuicTraceEvent(ConnLocalAddrAdded, "[conn][%p] New Local IP: %SOCKADDR", 
                 Connection, CLOG_BYTEARRAY(LOG_ADDR_LEN(Connection->Paths[0].LocalAddress), (const uint8_t*)&Connection->Paths[0].LocalAddress));
 
             QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PING);
