@@ -141,8 +141,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"QUIC_WORKER_POOL\"",
-            "UserSuppliedTrimmed": "\"QUIC_WORKER_POOL\"",
+            "UserSpecifiedUnModified": " \"QUIC_BINDING\"",
+            "UserSuppliedTrimmed": "\"QUIC_BINDING\"",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "s",
@@ -150,8 +150,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER)",
-            "UserSuppliedTrimmed": "sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER)",
+            "UserSpecifiedUnModified": " sizeof(QUIC_BINDING)",
+            "UserSuppliedTrimmed": "sizeof(QUIC_BINDING)",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "I",
@@ -18091,6 +18091,60 @@
           "windows": "etw_plus"
         }
       }
+    },
+    "\"BINARY_TEST\"": {
+      "ModuleProperites": {},
+      "TraceString": "TestPayload=%SOCKADDR",
+      "UniqueId": "\"BINARY_TEST\"",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(11, \"helloworld\")",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(11, \"helloworld\")",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "SOCKADDR",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "BINARY_TEST": {
+      "ModuleProperites": {},
+      "TraceString": "TestPayload=%SOCKADDR",
+      "UniqueId": "BINARY_TEST",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(11, \"helloworld\")",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(11, \"helloworld\")",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "SOCKADDR",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
     }
   },
   "Version": 1,
@@ -20124,6 +20178,10 @@
       {
         "UniquenessHash": "1dab6cb3-f85d-3f3a-4f62-1a2f3a5a3cd0",
         "TraceID": "FN_tls_stubd6ab59da5e6c82d95c00c16cd6b227d0"
+      },     
+      {
+        "UniquenessHash": "6680c4cc-ba6a-9762-f88a-cbd1d2841163",
+        "TraceID": "BINARY_TEST"
       }
     ]
   }
