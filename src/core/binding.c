@@ -125,8 +125,6 @@ QuicBindingInitialize(
     QuicDataPathBindingGetLocalAddress(Binding->DatapathBinding, &DatapathLocalAddr);
     QuicDataPathBindingGetRemoteAddress(Binding->DatapathBinding, &DatapathRemoteAddr);
 
-    QuicTraceEvent(BINARY_TEST, "TestPayload=%SOCKADDR", CLOG_BYTEARRAY(11, "helloworld"));
-
     QuicTraceEvent(BindingCreated, "[bind][%p] Created, Udp=%p LocalAddr=%SOCKADDR RemoteAddr=%SOCKADDR", 
         Binding, Binding->DatapathBinding, CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathLocalAddr), S2C(&DatapathLocalAddr)), CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathRemoteAddr), S2C(&DatapathRemoteAddr)));
 

@@ -44,8 +44,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n        QUIC_TRACE_API_LISTENER_OPEN",
-            "UserSuppliedTrimmed": "QUIC_TRACE_API_LISTENER_OPEN",
+            "UserSpecifiedUnModified": " \r\n        QUIC_TRACE_API_SESSION_OPEN",
+            "UserSuppliedTrimmed": "QUIC_TRACE_API_SESSION_OPEN",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "d",
@@ -53,8 +53,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n        SessionHandle",
-            "UserSuppliedTrimmed": "SessionHandle",
+            "UserSpecifiedUnModified": " \r\n        RegistrationContext",
+            "UserSuppliedTrimmed": "RegistrationContext",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "p",
@@ -141,8 +141,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"connection\"",
-            "UserSuppliedTrimmed": "\"connection\"",
+            "UserSpecifiedUnModified": " \"QUIC_WORKER_POOL\"",
+            "UserSuppliedTrimmed": "\"QUIC_WORKER_POOL\"",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "s",
@@ -150,8 +150,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " sizeof(QUIC_CONNECTION)",
-            "UserSuppliedTrimmed": "sizeof(QUIC_CONNECTION)",
+            "UserSpecifiedUnModified": " sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER)",
+            "UserSuppliedTrimmed": "sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER)",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "I",
@@ -2966,8 +2966,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Connection->Worker",
-            "UserSuppliedTrimmed": "Connection->Worker",
+            "UserSpecifiedUnModified": " Worker",
+            "UserSuppliedTrimmed": "Worker",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "p",
@@ -3002,8 +3002,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Connection->Session",
-            "UserSuppliedTrimmed": "Connection->Session",
+            "UserSpecifiedUnModified": " Session",
+            "UserSuppliedTrimmed": "Session",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "p",
@@ -3065,8 +3065,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"Too many CID collisions\"",
-            "UserSuppliedTrimmed": "\"Too many CID collisions\"",
+            "UserSpecifiedUnModified": " \"Peer used more streams than allowed\"",
+            "UserSuppliedTrimmed": "\"Peer used more streams than allowed\"",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "s",
@@ -3146,8 +3146,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " QUIC_CONN_TIMER_ACK_DELAY",
-            "UserSuppliedTrimmed": "QUIC_CONN_TIMER_ACK_DELAY",
+            "UserSpecifiedUnModified": " Oper->TIMER_EXPIRED.Type",
+            "UserSuppliedTrimmed": "Oper->TIMER_EXPIRED.Type",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "d",
@@ -3344,7 +3344,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Connection",
+            "UserSpecifiedUnModified": " \r\n                    Connection",
             "UserSuppliedTrimmed": "Connection",
             "SuggestedTelemetryName": "arg2"
           },
@@ -3353,7 +3353,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Status",
+            "UserSpecifiedUnModified": " \r\n                    Status",
             "UserSuppliedTrimmed": "Status",
             "SuggestedTelemetryName": "arg3"
           },
@@ -3362,8 +3362,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"Set current compartment Id\"",
-            "UserSuppliedTrimmed": "\"Set current compartment Id\"",
+            "UserSpecifiedUnModified": " \r\n                    \"Send-triggered key update\"",
+            "UserSuppliedTrimmed": "\"Send-triggered key update\"",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "s",
@@ -18247,7 +18247,7 @@
   },
   "CustomTypeProcessorsX": {
     "msquic.clog_config": null,
-    "defaults.clog_config": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\n\nusing System;\nusing System.Runtime.InteropServices;\n\nnamespace defaults.clog_config\n{\n    public class Types\n    {\n\n        [StructLayout(LayoutKind.Explicit)]\n        public struct SocketAddress\n        {\n            [FieldOffset(0)]\n            public ushort si_family;\n\n            [FieldOffset(2)]\n            public ushort sin_port;\n\n            // IPv4\n            [FieldOffset(4)]\n            public ulong S_addr;\n\n\n            // IPv6\n            [FieldOffset(4)]\n            public ulong sin6_flowinfo;\n\n            [FieldOffset(8)]\n            public ulong S_v6Addr1;\n\n            [FieldOffset(16)]\n            public ulong S_v6Addr2;\n        };\n\n        public static string QUIC_FLAGS(uint value)\n        {\n            return \"QUIC_FLAGS (good!) \" + value;\n        }\n\n        public static string QUIC_IP_ADDR(byte[] value)\n        {\n            int len = value.Length;\n            IntPtr i = System.Runtime.InteropServices.Marshal.AllocHGlobal(len);\n            System.Runtime.InteropServices.Marshal.Copy(value, 0, i, len);\n            string msg = \"\";\n            SocketAddress sa2 = (SocketAddress)System.Runtime.InteropServices.Marshal.PtrToStructure(i, typeof(SocketAddress));\n\n            switch (sa2.si_family)\n            {\n                case 23: //<--v6\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\n                    break;\n                case 2:  //< --v4\n                    msg += \"IPV4:\" + sa2.S_addr + \":\" + sa2.sin_port;\n                    break;\n                default:\n                    msg += \"Unknown Family: \" + sa2.si_family;\n                    break;\n            }\n\n            System.Runtime.InteropServices.Marshal.FreeHGlobal(i);\n            return msg;\n        }\n\n        public static string DecodeUInt32(uint value)\n        {\n            return \"CLOG_UINT32:\"+value.ToString();\n        }\n\n        public static string DecodeInt32(int value)\n        {\n            return \"CLOG_INT32\"+value.ToString();\n        }\n\n        public static string DecodeInt8(byte value)\n        {\n            return value.ToString();\n        }\n    }\n}"
+    "defaults.clog_config": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\n\nusing System;\nusing System.Runtime.InteropServices;\n\nnamespace defaults.clog_config\n{\n    public class Types\n    {\n\n        [StructLayout(LayoutKind.Explicit)]\n        public struct SocketAddress\n        {\n            [FieldOffset(0)]\n            public ushort si_family;\n\n            [FieldOffset(2)]\n            public ushort sin_port;\n\n            // IPv4\n            [FieldOffset(4)]\n            public ulong S_addr;\n\n\n            // IPv6\n            [FieldOffset(4)]\n            public ulong sin6_flowinfo;\n\n            [FieldOffset(8)]\n            public ulong S_v6Addr1;\n\n            [FieldOffset(16)]\n            public ulong S_v6Addr2;\n        };\n\n        public static string QUIC_FLAGS(uint value)\n        {\n            return \"QUIC_FLAGS (good!) \" + value;\n        }\n\n        public static string QUIC_IP_ADDR(byte[] value)\n        {\n            int len = value.Length;\n            IntPtr i = System.Runtime.InteropServices.Marshal.AllocHGlobal(len);\n            System.Runtime.InteropServices.Marshal.Copy(value, 0, i, len);\n            string msg = \"\";\n            SocketAddress sa2 = (SocketAddress)System.Runtime.InteropServices.Marshal.PtrToStructure(i, typeof(SocketAddress));\n\n            switch (sa2.si_family)\n            {\n                case 0:\n                    msg += \"<empty>\";\n                    break;\n                case 23: //<--v6\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\n                    break;\n                case 2:  //< --v4\n                    msg += \"IPV4:\" + sa2.S_addr + \":\" + sa2.sin_port;\n                    break;\n                default:\n                    throw new Exception(\"Invalid SI_FAMILY : \" + sa2.si_family);\n                    //msg += \"Unknown Family: \" + sa2.si_family;\n                    break;\n            }\n\n            System.Runtime.InteropServices.Marshal.FreeHGlobal(i);\n            return msg;\n        }\n\n        public static string DecodeUInt32(uint value)\n        {\n            return \"CLOG_UINT32:\"+value.ToString();\n        }\n\n        public static string DecodeInt32(int value)\n        {\n            return \"CLOG_INT32\"+value.ToString();\n        }\n\n        public static string DecodeInt8(byte value)\n        {\n            return value.ToString();\n        }\n    }\n}"
   },
   "ModuleUniqueness": {
     "TraceInformation": [
