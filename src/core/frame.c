@@ -1119,7 +1119,7 @@ QuicConnCloseFrameDecode(
         (uint64_t)BufferLength < *Offset + Frame->ReasonPhraseLength) {
         return FALSE;
     }
-    Frame->ReasonPhrase = (char*)Buffer;
+    Frame->ReasonPhrase = (char*)(Buffer + *Offset);
     *Offset += (uint16_t)Frame->ReasonPhraseLength;
     return TRUE;
 }

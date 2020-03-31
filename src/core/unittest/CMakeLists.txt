@@ -9,6 +9,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 set(
     SOURCES
     main.cpp
+    FrameTest.cpp
     PacketNumberTest.cpp
     RangeTest.cpp
     TransportParamTest.cpp
