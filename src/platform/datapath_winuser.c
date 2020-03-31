@@ -1567,12 +1567,12 @@ QuicDataPathBindingHandleUnreachableError(
         CLOG_BUG_TraceLogVerbose(FN_datapath_winuser98712c41f3c7a37b24466cc56356459a, "[sock][%p] Received unreachable error (0x%x) from %SOCKADDR", 
             SocketContext, 
             ErrorCode, 
-            CLOG_BYTEARRAY((unsigned char)ntohs(RemoteAddr->Ipv4.sin_port), &RemoteAddr->Ipv4.sin_addr));
+            CLOG_BYTEARRAY((unsigned char)ntohs(RemoteAddr->Ipv4.sin_port), RemoteAddr->Ipv4.sin_addr));
     } else {
         CLOG_BUG_TraceLogVerbose(FN_datapath_winuser12d869b81546180a6c851672aa59025c, "[sock][%p] Received unreachable error (0x%x) from [%SOCKADDR]", 
             SocketContext, 
             ErrorCode, 
-            CLOG_BYTEARRAY((unsigned char)ntohs(RemoteAddr->Ipv6.sin6_port), &RemoteAddr->Ipv6.sin6_addr));
+            CLOG_BYTEARRAY((unsigned char)ntohs(RemoteAddr->Ipv6.sin6_port), RemoteAddr->Ipv6.sin6_addr));
     }
     UNREFERENCED_PARAMETER(ErrorCode);
 
@@ -1717,12 +1717,12 @@ QuicDataPathRecvComplete(
         if (RemoteAddr->si_family == AF_INET) {
             CLOG_BUG_TraceLogVerbose(FN_datapath_winuser80f95372f363d78879faa71a2a91f95d, "[sock][%p] Received larger than expected datagram from %!IPV4ADDR!", 
                 SocketContext, 
-                CLOG_BYTEARRAY(ntohs(RemoteAddr->Ipv4.sin_port), &RemoteAddr->Ipv4.sin_addr));
+                CLOG_BYTEARRAY(ntohs(RemoteAddr->Ipv4.sin_port), RemoteAddr->Ipv4.sin_addr));
         }
         else {
             CLOG_BUG_TraceLogVerbose(FN_datapath_winuser565b55c86799256c4ab6aa11a0a736b9, "[sock][%p] Received larger than expected datagram from [%!IPV6ADDR!]", 
                 SocketContext, 
-                CLOG_BYTEARRAY(ntohs(RemoteAddr->Ipv6.sin6_port), &RemoteAddr->Ipv6.sin6_addr));
+                CLOG_BYTEARRAY(ntohs(RemoteAddr->Ipv6.sin6_port), RemoteAddr->Ipv6.sin6_addr));
         }
 
         //
@@ -1791,7 +1791,7 @@ QuicDataPathRecvComplete(
         QuicTraceEvent(DatapathRecv, "[ udp][%p] Recv %d bytes (segment=%hd) Src=%SOCKADDR Dst=%SOCKADDR", 
             SocketContext->Binding, 
             NumberOfBytesTransferred, 
-            MessageLength, CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddr), (UINT8*)LocalAddr), CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddr), (UINT8*)RemoteAddr));
+            MessageLength, CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddr), LocalAddr), CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddr), RemoteAddr));
 
         QUIC_DBG_ASSERT(NumberOfBytesTransferred <= SocketContext->RecvWsaBuf.len);
 
@@ -2235,7 +2235,7 @@ QuicDataPathBindingSendTo(
         Binding, 
         SendContext->TotalSize, 
         SendContext->WsaBufferCount, 
-        SendContext->SegmentSize, CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (UINT8*)RemoteAddress));
+        SendContext->SegmentSize, CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), RemoteAddress));
 
     WSAMSG WSAMhdr;
     WSAMhdr.dwFlags = 0;
@@ -2342,7 +2342,7 @@ QuicDataPathBindingSendFromTo(
         Binding, 
         SendContext->TotalSize, 
         SendContext->WsaBufferCount, 
-        SendContext->SegmentSize, CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (UINT8*)RemoteAddress), CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), (UINT8*)LocalAddress));
+        SendContext->SegmentSize, CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), RemoteAddress), CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), LocalAddress));
 
     //
     // Map V4 address to dual-stack socket format.

@@ -44,8 +44,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n        QUIC_TRACE_API_SESSION_OPEN",
-            "UserSuppliedTrimmed": "QUIC_TRACE_API_SESSION_OPEN",
+            "UserSpecifiedUnModified": " \r\n        QUIC_TRACE_API_LISTENER_OPEN",
+            "UserSuppliedTrimmed": "QUIC_TRACE_API_LISTENER_OPEN",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "d",
@@ -53,8 +53,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n        RegistrationContext",
-            "UserSuppliedTrimmed": "RegistrationContext",
+            "UserSpecifiedUnModified": " \r\n        SessionHandle",
+            "UserSuppliedTrimmed": "SessionHandle",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "p",
@@ -141,8 +141,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"QUIC_BINDING\"",
-            "UserSuppliedTrimmed": "\"QUIC_BINDING\"",
+            "UserSpecifiedUnModified": " \"RetryPseudoPacket\"",
+            "UserSuppliedTrimmed": "\"RetryPseudoPacket\"",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "s",
@@ -150,8 +150,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " sizeof(QUIC_BINDING)",
-            "UserSuppliedTrimmed": "sizeof(QUIC_BINDING)",
+            "UserSpecifiedUnModified": " RetryPseudoPacketLength",
+            "UserSuppliedTrimmed": "RetryPseudoPacketLength",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "I",
@@ -2678,8 +2678,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Path->LocalAddress), (const uint8_t*)&Path->LocalAddress)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Path->LocalAddress), (const uint8_t*)&Path->LocalAddress)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Path->LocalAddress), (const uint8_t*)&(Path->LocalAddress))",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Path->LocalAddress), (const uint8_t*)&(Path->LocalAddress))",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "SOCKADDR",
@@ -2714,8 +2714,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Path->RemoteAddress), (const uint8_t*)&Path->RemoteAddress)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Path->RemoteAddress), (const uint8_t*)&Path->RemoteAddress)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Path->RemoteAddress), (const uint8_t*)&(Path->RemoteAddress))",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Path->RemoteAddress), (const uint8_t*)&(Path->RemoteAddress))",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "SOCKADDR",
@@ -2966,8 +2966,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Worker",
-            "UserSuppliedTrimmed": "Worker",
+            "UserSpecifiedUnModified": " Connection->Worker",
+            "UserSuppliedTrimmed": "Connection->Worker",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "p",
@@ -3002,8 +3002,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Session",
-            "UserSuppliedTrimmed": "Session",
+            "UserSpecifiedUnModified": " Connection->Session",
+            "UserSuppliedTrimmed": "Connection->Session",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "p",
@@ -3065,8 +3065,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"Peer used more streams than allowed\"",
-            "UserSuppliedTrimmed": "\"Peer used more streams than allowed\"",
+            "UserSpecifiedUnModified": " \"Too many CID collisions\"",
+            "UserSuppliedTrimmed": "\"Too many CID collisions\"",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "s",
@@ -3146,8 +3146,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Oper->TIMER_EXPIRED.Type",
-            "UserSuppliedTrimmed": "Oper->TIMER_EXPIRED.Type",
+            "UserSpecifiedUnModified": " QUIC_CONN_TIMER_ACK_DELAY",
+            "UserSuppliedTrimmed": "QUIC_CONN_TIMER_ACK_DELAY",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "d",
@@ -3344,7 +3344,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                    Connection",
+            "UserSpecifiedUnModified": " Connection",
             "UserSuppliedTrimmed": "Connection",
             "SuggestedTelemetryName": "arg2"
           },
@@ -3353,7 +3353,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                    Status",
+            "UserSpecifiedUnModified": " Status",
             "UserSuppliedTrimmed": "Status",
             "SuggestedTelemetryName": "arg3"
           },
@@ -3362,8 +3362,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                    \"Send-triggered key update\"",
-            "UserSuppliedTrimmed": "\"Send-triggered key update\"",
+            "UserSpecifiedUnModified": " \"Set current compartment Id\"",
+            "UserSuppliedTrimmed": "\"Set current compartment Id\"",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "s",
@@ -3524,8 +3524,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Connection->Paths[0].LocalAddress), (const uint8_t*)&Connection->Paths[0].LocalAddress)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Connection->Paths[0].LocalAddress), (const uint8_t*)&Connection->Paths[0].LocalAddress)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Connection->Paths[0].LocalAddress), (const uint8_t*)&(Connection->Paths[0].LocalAddress))",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Connection->Paths[0].LocalAddress), (const uint8_t*)&(Connection->Paths[0].LocalAddress))",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "SOCKADDR",
@@ -8798,8 +8798,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), (uint8_t*)&Listener->LocalAddress)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), (uint8_t*)&Listener->LocalAddress)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), (uint8_t*)&(Listener->LocalAddress))",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), (uint8_t*)&(Listener->LocalAddress))",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "SOCKADDR",
@@ -10274,8 +10274,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&Datagram->Tuple->LocalAddress)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&Datagram->Tuple->LocalAddress)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&(Datagram->Tuple->LocalAddress))",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&(Datagram->Tuple->LocalAddress))",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "SOCKADDR",
@@ -10283,8 +10283,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&Datagram->Tuple->RemoteAddress)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&Datagram->Tuple->RemoteAddress)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&(Datagram->Tuple->RemoteAddress))",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&(Datagram->Tuple->RemoteAddress))",
             "SuggestedTelemetryName": "arg5"
           },
           "DefinationEncoding": "SOCKADDR",
@@ -10337,8 +10337,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&Datagram->Tuple->LocalAddress)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&Datagram->Tuple->LocalAddress)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&(Datagram->Tuple->LocalAddress))",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&(Datagram->Tuple->LocalAddress))",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "SOCKADDR",
@@ -10346,8 +10346,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&Datagram->Tuple->RemoteAddress)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&Datagram->Tuple->RemoteAddress)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&(Datagram->Tuple->RemoteAddress))",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&(Datagram->Tuple->RemoteAddress))",
             "SuggestedTelemetryName": "arg5"
           },
           "DefinationEncoding": "SOCKADDR",
@@ -10409,8 +10409,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&Datagram->Tuple->LocalAddress)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&Datagram->Tuple->LocalAddress)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&(Datagram->Tuple->LocalAddress))",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&(Datagram->Tuple->LocalAddress))",
             "SuggestedTelemetryName": "arg5"
           },
           "DefinationEncoding": "SOCKADDR",
@@ -10418,8 +10418,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&Datagram->Tuple->RemoteAddress)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&Datagram->Tuple->RemoteAddress)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&(Datagram->Tuple->RemoteAddress))",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&(Datagram->Tuple->RemoteAddress))",
             "SuggestedTelemetryName": "arg6"
           },
           "DefinationEncoding": "SOCKADDR",
@@ -10481,8 +10481,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&Datagram->Tuple->LocalAddress)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&Datagram->Tuple->LocalAddress)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&(Datagram->Tuple->LocalAddress))",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&(Datagram->Tuple->LocalAddress))",
             "SuggestedTelemetryName": "arg5"
           },
           "DefinationEncoding": "SOCKADDR",
@@ -10490,8 +10490,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&Datagram->Tuple->RemoteAddress)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&Datagram->Tuple->RemoteAddress)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&(Datagram->Tuple->RemoteAddress))",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&(Datagram->Tuple->RemoteAddress))",
             "SuggestedTelemetryName": "arg6"
           },
           "DefinationEncoding": "SOCKADDR",
@@ -20178,7 +20178,7 @@
       {
         "UniquenessHash": "1dab6cb3-f85d-3f3a-4f62-1a2f3a5a3cd0",
         "TraceID": "FN_tls_stubd6ab59da5e6c82d95c00c16cd6b227d0"
-      },     
+      },
       {
         "UniquenessHash": "6680c4cc-ba6a-9762-f88a-cbd1d2841163",
         "TraceID": "BINARY_TEST"
