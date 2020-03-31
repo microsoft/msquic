@@ -151,6 +151,10 @@ typedef union QUIC_ADDR {
     sa_family_t si_family;
 } QUIC_ADDR;
 
+
+
+char *S2C(QUIC_ADDR *x);
+
 #ifndef FALSE
 #define FALSE 0
 #define TRUE 1

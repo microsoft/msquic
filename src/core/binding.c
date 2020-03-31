@@ -128,7 +128,7 @@ QuicBindingInitialize(
     QuicTraceEvent(BINARY_TEST, "TestPayload=%SOCKADDR", CLOG_BYTEARRAY(11, "helloworld"));
 
     QuicTraceEvent(BindingCreated, "[bind][%p] Created, Udp=%p LocalAddr=%SOCKADDR RemoteAddr=%SOCKADDR", 
-        Binding, Binding->DatapathBinding, CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathLocalAddr), (uint8_t*)&DatapathLocalAddr), CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathRemoteAddr), (uint8_t*)&DatapathRemoteAddr));
+        Binding, Binding->DatapathBinding, CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathLocalAddr), S2C(&DatapathLocalAddr)), CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathRemoteAddr), S2C(&DatapathRemoteAddr)));
 
     *NewBinding = Binding;
     Status = QUIC_STATUS_SUCCESS;
@@ -213,7 +213,7 @@ QuicBindingTraceRundown(
     QuicDataPathBindingGetLocalAddress(Binding->DatapathBinding, &DatapathLocalAddr);
     QuicDataPathBindingGetRemoteAddress(Binding->DatapathBinding, &DatapathRemoteAddr);
     QuicTraceEvent(BindingRundown, "[bind][%p] Rundown, Udp=%p LocalAddr=%SOCKADDR RemoteAddr=%SOCKADDR", 
-        Binding, Binding->DatapathBinding, CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathLocalAddr), (uint8_t*)&DatapathLocalAddr), CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathRemoteAddr), (uint8_t*)&DatapathRemoteAddr));
+        Binding, Binding->DatapathBinding, CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathLocalAddr), S2C(&DatapathLocalAddr)), CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathRemoteAddr), S2C(&DatapathRemoteAddr)));
 
     QuicDispatchRwLockAcquireShared(&Binding->RwLock);
 
