@@ -114,8 +114,7 @@ function Log-Start {
         Invoke-Expression $Command
 
      
-        Write-Host "------------" 
-        
+        Write-Host "------------"         
         Write-Host "Enabling all CLOG traces"
         lttng enable-event --userspace CLOG_*
 
@@ -175,10 +174,10 @@ function Log-Stop {
         tar -cvzf $LTTNGTarFile $LTTNGRawDirectory
 
         # Write-Host "Decoding LTTNG into BabelTrace format ($WorkingDirectory/decoded_babeltrace.txt)"
-        # babeltrace --names all $LTTNGRawDirectory/* > $OutputDirectory/decoded_babeltrace.txt
+        babeltrace --names all $LTTNGRawDirectory/* > $OutputDirectory/decoded_babeltrace.txt
 
         # Write-Host "Decoding Babeltrace into human text using CLOG"
-        # ../artifacts/tools/clog/clog2text_lttng -i $OutputDirectory/decoded_babeltrace.txt -s ../src/manifest/clog.sidecar -o $OutputDirectory/clog_decode.txt | Write-Host        
+        ../artifacts/tools/clog/clog2text_lttng -i $OutputDirectory/decoded_babeltrace.txt -s ../src/manifest/clog.sidecar -o $OutputDirectory/clog_decode.txt | Write-Host        
 
         Write-Host "Finished Creating LTTNG Log"
         ls -l $OutputDirectory
