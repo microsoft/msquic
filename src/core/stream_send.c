@@ -1269,8 +1269,7 @@ QuicStreamOnAck(
         // bytes are acknowledged then we'll advance UnAckedOffset.
         //
 
-        if (Stream->UnAckedOffset < FollowingOffset ||
-            (Stream->UnAckedOffset == FollowingOffset && Length == 0)) {
+        if (Stream->UnAckedOffset < FollowingOffset) {
 
             Stream->UnAckedOffset = FollowingOffset;
 
@@ -1318,22 +1317,23 @@ QuicStreamOnAck(
             if (Stream->RecoveryEndOffset < Stream->UnAckedOffset) {
                 Stream->Flags.InRecovery = FALSE;
             }
-            if (Stream->UnAckedOffset == Stream->QueuedSendOffset && Stream->Flags.FinAcked) {
-                QUIC_DBG_ASSERT(Stream->SendRequests == NULL);
+        }
 
-                QuicTraceLogStreamVerbose(SendQueueDrained, Stream, "Send queue completely drained.");
+        if (Stream->UnAckedOffset == Stream->QueuedSendOffset && Stream->Flags.FinAcked) {
+            QUIC_DBG_ASSERT(Stream->SendRequests == NULL);
 
-                //
-                // We have completely sent all that needs to be sent. Update the Stream
-                // state to reflect this and try to complete the Stream close if the
-                // receive path has already been closed.
-                //
-                if (!Stream->Flags.LocalCloseAcked) {
-                    Stream->Flags.LocalCloseAcked = TRUE;
-                    QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
-                    QuicStreamIndicateSendShutdownComplete(Stream, TRUE);
-                    QuicStreamTryCompleteShutdown(Stream);
-                }
+            QuicTraceLogStreamVerbose(SendQueueDrained, Stream, "Send queue completely drained.");
+
+            //
+            // We have completely sent all that needs to be sent. Update the Stream
+            // state to reflect this and try to complete the Stream close if the
+            // receive path has already been closed.
+            //
+            if (!Stream->Flags.LocalCloseAcked) {
+                Stream->Flags.LocalCloseAcked = TRUE;
+                QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
+                QuicStreamIndicateSendShutdownComplete(Stream, TRUE);
+                QuicStreamTryCompleteShutdown(Stream);
             }
         }
 
