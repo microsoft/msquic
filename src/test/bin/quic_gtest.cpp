@@ -884,6 +884,8 @@ INSTANTIATE_TEST_CASE_P(
     WithSendArgs3,
     testing::ValuesIn(SendArgs3::Generate()));
 
+#ifndef QUIC_DISABLE_0RTT_TESTS
+
 INSTANTIATE_TEST_CASE_P(
     AppData,
     WithSend0RttArgs1,
@@ -893,6 +895,8 @@ INSTANTIATE_TEST_CASE_P(
     AppData,
     WithSend0RttArgs2,
     testing::ValuesIn(Send0RttArgs2::Generate()));
+
+#endif
 
 INSTANTIATE_TEST_CASE_P(
     Misc,
