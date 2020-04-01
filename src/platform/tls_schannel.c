@@ -2004,8 +2004,6 @@ QuicTlsProcessData(
     QuicTraceLogVerbose("[ tls][%p][%c] Processing %u received bytes.",
         TlsContext, GetTlsIdentifier(TlsContext), *BufferLength);
 
-    State->EarlyDataState = QUIC_TLS_EARLY_DATA_UNSUPPORTED; // Currently unsupported
-
     Result =
         QuicTlsWriteDataToSchannel(
             TlsContext,
