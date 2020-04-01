@@ -113,7 +113,7 @@ TEST(FrameTest, NewTokenFrameEncodeDecode)
 }
 
 //
-// Stream Tests
+//  TODO: Stream Tests
 //
 
 TEST(FrameTest, MaxDataFrameEncodeDecode)
@@ -149,10 +149,28 @@ TEST(FrameTest, MaxStreamDataFrameEncodeDecode)
     ASSERT_EQ(Frame.MaximumData, DecodedFrame.MaximumData);
 }
 
-TEST(FrameTest, MaxStreamsFrameEncodeDecode)
+struct MaxStreamsFrameTest : ::testing::TestWithParam<bool>
 {
-    QUIC_MAX_STREAMS_EX Frame = {1, 127};
+};
+
+TEST_P(MaxStreamsFrameTest, MaxStreamsFrameEncodeDecode)
+{
+    QUIC_MAX_STREAMS_EX Frame = {GetParam(), 127};
+    QUIC_MAX_STREAMS_EX DecodedFrame = {0, 0};
+    uint8_t Buffer[3];
+    uint16_t BufferLength = (uint16_t) sizeof(Buffer);
+    uint16_t Offset = 0;
+
+    QuicZeroMemory(Buffer, sizeof(Buffer));
+    ASSERT_TRUE(QuicMaxStreamsFrameEncode(&Frame, &Offset, BufferLength, Buffer));
+    Offset = 1;
+    ASSERT_TRUE(QuicMaxStreamsFrameDecode((QUIC_FRAME_TYPE)Buffer[0], BufferLength, Buffer, &Offset, &DecodedFrame));
+
+    ASSERT_EQ(Frame.BidirectionalStreams, DecodedFrame.BidirectionalStreams);
+    ASSERT_EQ(Frame.MaximumStreams, DecodedFrame.MaximumStreams);
 }
+
+INSTANTIATE_TEST_SUITE_P(FrameTest, MaxStreamsFrameTest, ::testing::Bool());
 
 TEST(FrameTest, DataBlockedFrameEncodeDecode)
 {
@@ -187,10 +205,28 @@ TEST(FrameTest, StreamDataBlockedFrameEncodeDecode)
     ASSERT_EQ(Frame.StreamDataLimit, DecodedFrame.StreamDataLimit);
 }
 
-TEST(FrameTest, StreamsBlockedFrameEncodeDecode)
+struct StreamsBlockedFrameTest : ::testing::TestWithParam<bool>
 {
+};
 
+TEST_P(StreamsBlockedFrameTest, StreamsBlockedFrameEncodeDecode)
+{
+    QUIC_STREAMS_BLOCKED_EX Frame = {GetParam(), 63};
+    QUIC_STREAMS_BLOCKED_EX DecodedFrame = {0, 0};
+    uint8_t Buffer[2];
+    uint16_t BufferLength = (uint16_t) sizeof(Buffer);
+    uint16_t Offset = 0;
+
+    QuicZeroMemory(Buffer, sizeof(Buffer));
+    ASSERT_TRUE(QuicStreamsBlockedFrameEncode(&Frame, &Offset, BufferLength, Buffer));
+    Offset = 1;
+    ASSERT_TRUE(QuicStreamsBlockedFrameDecode((QUIC_FRAME_TYPE)Buffer[0], BufferLength, Buffer, &Offset, &DecodedFrame));
+
+    ASSERT_EQ(Frame.BidirectionalStreams, DecodedFrame.BidirectionalStreams);
+    ASSERT_EQ(Frame.StreamLimit, DecodedFrame.StreamLimit);
 }
+
+INSTANTIATE_TEST_SUITE_P(FrameTest, StreamsBlockedFrameTest, ::testing::Bool());
 
 TEST(FrameTest, NewConnectionIdFrameEncodeDecode)
 {
@@ -230,8 +266,11 @@ TEST(FrameTest, RetireConnectionIdFrameEncodeDecode)
     ASSERT_EQ(Frame.Sequence, DecodedFrame.Sequence);
 }
 
-//TODO: parameter for challenge/response
-TEST(FrameTest, PathChallengeResponseFrameEncodeDecode)
+struct PathChallengeResponseFrameTest : ::testing::TestWithParam<QUIC_FRAME_TYPE>
+{
+};
+
+TEST_P(PathChallengeResponseFrameTest, PathChallengeResponseFrameEncodeDecode)
 {
     QUIC_PATH_CHALLENGE_EX Frame = {{8, 8, 8, 8, 8, 8, 8, 8}};
     QUIC_PATH_CHALLENGE_EX DecodedFrame;
@@ -242,17 +281,22 @@ TEST(FrameTest, PathChallengeResponseFrameEncodeDecode)
     QuicZeroMemory(Buffer, BufferLength);
     QuicZeroMemory(&DecodedFrame, sizeof(DecodedFrame));
 
-    ASSERT_TRUE(QuicPathChallengeFrameEncode(QUIC_FRAME_PATH_CHALLENGE, &Frame, &Offset, BufferLength, Buffer));
+    ASSERT_TRUE(QuicPathChallengeFrameEncode(GetParam(), &Frame, &Offset, BufferLength, Buffer));
     Offset = 1;
     ASSERT_TRUE(QuicPathChallengeFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame));
 
+    ASSERT_EQ(Buffer[0], GetParam());
     ASSERT_EQ(memcmp(Frame.Data, DecodedFrame.Data, sizeof(Frame.Data)), 0);
 }
 
-TEST(FrameTest, ConnectionCloseFrameEncodeDecode)
+INSTANTIATE_TEST_SUITE_P(FrameTest, PathChallengeResponseFrameTest, ::testing::Values(QUIC_FRAME_PATH_CHALLENGE, QUIC_FRAME_PATH_RESPONSE));
+
+struct ConnectionCloseFrameTest : ::testing::TestWithParam<bool> {};
+
+TEST_P(ConnectionCloseFrameTest, ConnectionCloseFrameEncodeDecode)
 {
     char* ReasonPhrase = "no";
-    QUIC_CONNECTION_CLOSE_EX Frame = {FALSE, 1, 63, 3, ReasonPhrase};
+    QUIC_CONNECTION_CLOSE_EX Frame = {FALSE, GetParam(), 63, 3, ReasonPhrase};
     QUIC_CONNECTION_CLOSE_EX DecodedFrame;
     uint8_t Buffer[7];
     uint16_t BufferLength = (uint16_t) sizeof(Buffer);
@@ -270,3 +314,5 @@ TEST(FrameTest, ConnectionCloseFrameEncodeDecode)
     ASSERT_EQ(Frame.ReasonPhraseLength, DecodedFrame.ReasonPhraseLength);
     ASSERT_EQ(strcmp(Frame.ReasonPhrase, DecodedFrame.ReasonPhrase), 0);
 }
+
+INSTANTIATE_TEST_SUITE_P(FrameTest, ConnectionCloseFrameTest, ::testing::Bool());
