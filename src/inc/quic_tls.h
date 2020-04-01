@@ -162,7 +162,7 @@ typedef struct QUIC_TLS_PROCESS_STATE {
     //
     // Indicates the state of early data support.
     //
-    QUIC_TLS_EARLY_DATA_STATE EarlyDataState : 2;
+    QUIC_TLS_EARLY_DATA_STATE EarlyDataState;
 
     //
     // The key that newly received data should be decrypted and read with.
