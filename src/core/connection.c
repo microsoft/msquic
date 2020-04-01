@@ -2454,46 +2454,49 @@ QuicConnGetKeyOrDeferDatagram(
 {
     if (Packet->KeyType > Connection->Crypto.TlsState.ReadKey) {
 
+        //
+        // We don't have the necessary key yet so try to defer the packet until
+        // we get the key.
+        //
+
         if (Packet->KeyType == QUIC_PACKET_KEY_0_RTT &&
             Connection->Crypto.TlsState.EarlyDataState != QUIC_TLS_EARLY_DATA_UNKNOWN) {
             //
             // We don't have the 0-RTT key, but we aren't in an unknown
-            // "early data" state, so it must be rejected/unsupported.
-            // Just drop the packets.
+            // "early data" state, so it must be rejected/unsupported. Just drop
+            // the packets.
             //
             QUIC_DBG_ASSERT(Connection->Crypto.TlsState.EarlyDataState != QUIC_TLS_EARLY_DATA_ACCEPTED);
             QuicPacketLogDrop(Connection, Packet, "0-RTT not currently accepted");
-        }
-
-        //
-        // We don't have the necessary key yet so defer the packet until we get
-        // the key.
-        //
-        QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(Packet->KeyType);
-        QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
-        if (Packets->DeferredDatagramsCount == QUIC_MAX_PENDING_DATAGRAMS) {
-            //
-            // We already have too many packets queued up. Just drop this one.
-            //
-            QuicPacketLogDrop(Connection, Packet, "Max deferred datagram count reached");
 
         } else {
-            QuicTraceLogConnVerbose(DeferDatagram, Connection, "Deferring datagram (type=%hu).",
-                Packet->KeyType);
+            QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(Packet->KeyType);
+            QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
+            if (Packets->DeferredDatagramsCount == QUIC_MAX_PENDING_DATAGRAMS) {
+                //
+                // We already have too many packets queued up. Just drop this
+                // one.
+                //
+                QuicPacketLogDrop(Connection, Packet, "Max deferred datagram count reached");
 
-            Packets->DeferredDatagramsCount++;
-            Packet->DecryptionDeferred = TRUE;
+            } else {
+                QuicTraceLogConnVerbose(DeferDatagram, Connection, "Deferring datagram (type=%hu).",
+                    Packet->KeyType);
 
-            //
-            // Add it to the list of pending packets that are waiting on a key
-            // to decrypt with.
-            //
-            QUIC_RECV_DATAGRAM** Tail = &Packets->DeferredDatagrams;
-            while (*Tail != NULL) {
-                Tail = &((*Tail)->Next);
+                Packets->DeferredDatagramsCount++;
+                Packet->DecryptionDeferred = TRUE;
+
+                //
+                // Add it to the list of pending packets that are waiting on a
+                // key to decrypt with.
+                //
+                QUIC_RECV_DATAGRAM** Tail = &Packets->DeferredDatagrams;
+                while (*Tail != NULL) {
+                    Tail = &((*Tail)->Next);
+                }
+                *Tail = QuicDataPathRecvPacketToRecvDatagram(Packet);
+                (*Tail)->Next = NULL;
             }
-            *Tail = QuicDataPathRecvPacketToRecvDatagram(Packet);
-            (*Tail)->Next = NULL;
         }
 
         return FALSE;
