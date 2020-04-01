@@ -1,5 +1,2062 @@
 {
-  "ModuleTraceData": {},
+  "ModuleTraceData": {
+    "MANIFESTED_ETW": {
+      "FN_ack_tracker3fe5caa2fc2f7b97bcbb8cd0a6c8602e": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "ApiEnter": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "ApiExitStatus": {
+        "arg2": "arg2"
+      },
+      "ApiWaitOperation": {},
+      "ApiExit": {},
+      "AllocFailure": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "StreamError": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_binding_ALREADY_REGISTERED_ON_ALPN": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_binding75104ed3d2c2d06e15e4ae01cec68c6d": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_binding876f9daa4d31c3d046b6921b08477e3d": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_binding8b244dfa4215590c94c15289c8d04ae7": {},
+      "FN_binding1e7eb5542a86d5b4071042189950a0e0": {
+        "arg2": "arg2"
+      },
+      "FN_bindingda2912dbb439879118c990ced87e39cd": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "FN_binding4b36568b714495e4231bf89d1ca50021": {
+        "arg2": "arg2"
+      },
+      "BindingErrorStatus": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "BindingCreated": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "BindingCleanup": {
+        "arg2": "arg2"
+      },
+      "BindingDestroyed": {
+        "arg2": "arg2"
+      },
+      "BindingRundown": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "BindingExecOper": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "ConnCubic": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "ConnCongestion": {
+        "arg2": "arg2"
+      },
+      "ConnPersistentCongestion": {
+        "arg2": "arg2"
+      },
+      "ConnRecoveryExit": {
+        "arg2": "arg2"
+      },
+      "FN_connection49a91e04834057f10c945d9d1f5005b1": {
+        "arg2": "arg2"
+      },
+      "FN_connection9874b298efc81e9a08e4033aeaee1aa7": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "ApiEventNoHandler": {
+        "arg1": "arg2"
+      },
+      "ApiEventTooLong": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "ApiEventAlreadyClosed": {
+        "arg1": "arg2"
+      },
+      "NoReplacementCidForRetire": {
+        "arg1": "arg2"
+      },
+      "NonActivePathCidRetired": {
+        "arg1": "arg2"
+      },
+      "IgnoreUnreachable": {
+        "arg1": "arg2"
+      },
+      "IgnoreFrameAfterClose": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "UnreachableIgnore": {
+        "arg1": "arg2"
+      },
+      "UnreachableInvalid": {
+        "arg1": "arg2"
+      },
+      "CloseComplete": {
+        "arg1": "arg2"
+      },
+      "Restart": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "PeerTPSet": {
+        "arg1": "arg2"
+      },
+      "RecvStatelessReset": {
+        "arg1": "arg2"
+      },
+      "HandshakeConfirmedFrame": {
+        "arg1": "arg2"
+      },
+      "FirstCidUsage": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "PathDiscarded": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "Unreachable": {
+        "arg1": "arg2"
+      },
+      "UpdateIdleTimeout": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "UpdateKeepAlive": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "UpdateDisconnectTimeout": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "SetSecurityConfig": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "UpdateUseSendBuffer": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "UpdateUsePacing": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "UpdateShareBinding": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "RttUpdated": {
+        "arg1": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "NewSrcCidNameCollision": {
+        "arg1": "arg2"
+      },
+      "ZeroLengthCidRetire": {
+        "arg1": "arg2"
+      },
+      "TimerExpired": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "IndicateShutdownByPeer": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "IndicateShutdownByTransport": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "IndicateConnectionShutdownComplete": {
+        "arg1": "arg2"
+      },
+      "FoundCachedServerState": {
+        "arg1": "arg2"
+      },
+      "QueueDatagrams": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "RecvVerNeg": {
+        "arg1": "arg2"
+      },
+      "VerNegItem": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "InvalidVerNeg": {
+        "arg1": "arg2"
+      },
+      "DeferDatagram": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "DecryptOldKey": {
+        "arg1": "arg2"
+      },
+      "PossiblePeerKeyUpdate": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "UpdateReadKeyPhase": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "PeerConnFCBlocked": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "PeerStreamFCBlocked": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "IndicatePeerNeedStreams": {
+        "arg1": "arg2"
+      },
+      "IndicatePeerAddrChanged": {
+        "arg1": "arg2"
+      },
+      "UdpRecvBatch": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "UdpRecvDeferred": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "UdpRecv": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "ForceKeyUpdate": {
+        "arg1": "arg2"
+      },
+      "ForceCidUpdate": {
+        "arg1": "arg2"
+      },
+      "TestTPSet": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "ReadTicketFailure": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "AbandonInternallyClosed": {
+        "arg1": "arg2"
+      },
+      "ConnCreated": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "ConnLocalAddrAdded": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "ConnRemoteAddrAdded": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "ConnDestCidAdded": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "ConnSourceCidAdded": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "ConnInitializeComplete": {
+        "arg2": "arg2"
+      },
+      "ConnDestroyed": {
+        "arg2": "arg2"
+      },
+      "ConnHandleClosed": {
+        "arg2": "arg2"
+      },
+      "ConnRundown": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "ConnAssignWorker": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "ConnRegisterSession": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "ConnHandshakeComplete": {
+        "arg2": "arg2"
+      },
+      "ConnError": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "ConnDestCidRemoved": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "ConnExecTimerOper": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "ConnShutdownComplete": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "ConnAppShutdown": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "ConnTransportShutdown": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "ConnVersionSet": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "ConnErrorStatus": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "ConnHandshakeStart": {
+        "arg2": "arg2"
+      },
+      "ConnPacketRecv": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "ConnSourceCidRemoved": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "ConnLocalAddrRemoved": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "IgnoreCryptoFrame": {
+        "arg1": "arg2"
+      },
+      "DiscardKeyType": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "CryptoStateDiscard": {
+        "arg1": "arg2"
+      },
+      "ZeroRttAccepted": {
+        "arg1": "arg2"
+      },
+      "ZeroRttRejected": {
+        "arg1": "arg2"
+      },
+      "HandshakeConfirmedServer": {
+        "arg1": "arg2"
+      },
+      "TicketReady": {
+        "arg1": "arg2"
+      },
+      "CryptoDump": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6",
+        "arg7": "arg7",
+        "arg8": "arg8"
+      },
+      "CryptoDumpUnacked": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "NoMoreRoomForCrypto": {
+        "arg1": "arg2"
+      },
+      "AddCryptoFrame": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "RecoverCrypto": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "AckCrypto": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "RecvCrypto": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "IndicateConnected": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "DrainCrypto": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "CryptoNotReady": {
+        "arg1": "arg2"
+      },
+      "ConnWriteKeyUpdated": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "ConnReadKeyUpdated": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "ConnNewPacketKeys": {
+        "arg2": "arg2"
+      },
+      "ConnKeyPhaseChange": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "NoSniPresent": {
+        "arg1": "arg2"
+      },
+      "DecodeTPReserved": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "DecodeTPUnknown": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "EncodeTPStart": {
+        "arg1": "arg2"
+      },
+      "EncodeTPOriginalCID": {
+        "arg1": "arg2"
+      },
+      "EncodeTPIdleTimeout": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "EncodeTPStatelessResetToken": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "EncodeTPMaxPacketSize": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "EncodeTPInitMaxData": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "EncodeTPInitMaxStreamDataBidiLocal": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "EncodeTPInitMaxStreamDataBidiRemote": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "EncodeTPInitMaxStreamUni": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "EncodeTPMaxBidiStreams": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "EncodeTPMaxUniStreams": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "EncodeTPAckDelayExponent": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "EncodeTPMaxAckDelay": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "EncodeTPDisableMigration": {
+        "arg1": "arg2"
+      },
+      "EncodeTPPreferredAddress": {
+        "arg1": "arg2"
+      },
+      "EncodeTPCIDLimit": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "EncodeTPTest": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "EncodeTPEnd": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "DecodeTPStart": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "DecodeTPOriginalCID": {
+        "arg1": "arg2"
+      },
+      "DecodeTPIdleTimeout": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "DecodeTPStatelessResetToken": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "DecodeTPMaxPacketSize": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "DecodeTPInitMaxData": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "DecodeTPInitMaxStreamDataBidiLocal": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "DecodeTPInitMaxStreamDataBidiRemote": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "DecodeTPInitMaxStreamDataBidiUni": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "DecodeTPMaxBidiStreams": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "DecodeTPMaxUniStreams": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "DecodeTPAckDelayExponent": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "DecodeTPMaxAckDelay": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "DecodeTPDisableActiveMigration": {
+        "arg1": "arg2"
+      },
+      "DecodeTPPreferredAddress": {
+        "arg1": "arg2"
+      },
+      "DecodeTPCIDLimit": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "FN_frame6d89c3ac2ccbdeff6b839eeae0b35825": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "FN_frameb507e7297c0b3c7e18bd9e2e517508a1": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "FN_frame15239a659ebcbcc9c6bdf2f7332e1145": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frame4d2c7a862977e2ff7f698a79166f01a4": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frame50ff50baac1f2231b7efc10bd36b8f6b": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "FN_frame9457a70845b3b9883c49db53238670d0": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "FN_frame54e3f21aef92935e7db61716bd687029": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "FN_framee3084627c6335964a549fa07d52a277e": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frame05fb966fb14c55546166f698f988f9ea": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "FN_frame06da42e6f37398567be31036c71ceb76": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "FN_framef503e929149b097adc9a0e21d8c3ffc3": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frame10c32ed80b1defdc870e7d5c7aaa2c87": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6",
+        "arg7": "arg7"
+      },
+      "FN_frame94be855d52017b5c0755ad89dce9eb6f": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frame42245a878c36be2227ac1019194e0f16": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6",
+        "arg7": "arg7"
+      },
+      "FN_frame8ce8065be7748f1beb390e131ef5b976": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frame766797f01a15ff2545352ceb026805bc": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "FN_frameb825cf0bf27d2e758b285d045c896a39": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frame4a1370ea5cccbb263cf09b62161e75ed": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "FN_frame54cba9ee814e604404d0857c0058177a": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frame62d7a7f46f4a04741f831144d0af0305": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "FN_frame7ede7b52d4bb17ac202157f99006b7c3": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frame4ed35f060231812da0973bbaa3bcb11f": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6",
+        "arg7": "arg7"
+      },
+      "FN_frame351a0d0c4a0ac51a53dca082d96fc1dd": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6",
+        "arg7": "arg7"
+      },
+      "FN_framefdc15617be3f5bf85f5585c1fe1b97b7": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frame25b87612ccad5e013770c292ef0da364": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "FN_frameecdc2d08970e0ee238d0ea1441c7327d": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frame2a1c1f61bc9e920763eb16823a5e6229": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "FN_frame567cd3220ef9dc39a37b948c08ee931b": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frame5c0266a6995db84cebe3257e68633fcd": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "FN_framec5d5361796feb4e1af88aae50ce9b6a6": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frame920864fb1610e11a96415c6a15869695": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "FN_frame3329506fbbe59b58f6ff7cb7658a95a4": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_framef7c15523d7c28613771bb45735d1d9bb": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "FN_framef3fecc4cdf406b98065f18738feab057": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frame34598f8220082d22efbfcc32e5545d1d": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "FN_framefeceaa69aa6e9ceb22d61433c9a7a4b9": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frameed6f73d458adbca8f05a63fb174c5da9": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6",
+        "arg7": "arg7",
+        "arg8": "arg8"
+      },
+      "FN_frame6cf3c4be4e5905c9502c798f10dc7ff2": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frame2aca8594c29dede4e4f8bd2b4be596d5": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "FN_frame39880fafda6a0865346c26b4757e134d": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frame7f07ff8a957b747848960126a4d43500": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "FN_frame56d9b41b6377d106cce0504471c724d9": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frame8b99195b8ffa2449fd747ab089e9f6c8": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "FN_framec0bc23962c9cb7e0255d27c806cac838": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_frame9e8d5b8346aa937b34a4d9e6b73f38c8": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "FN_frame5ad9ec5aaf498555a450db2d70c5f77b": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "FN_framef5cddee84c6341468d9090b90ab3208e": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_library8441890d38c2db33e439a12ca0d3ac1f": {
+        "arg2": "arg2"
+      },
+      "FN_library44069ab9a4dc123108e58e00777db935": {
+        "arg2": "arg2"
+      },
+      "FN_library4f534341e8933130bbf7f191b07714ea": {},
+      "FN_library9ae67895fdc3714630b01eb363eee4ad": {},
+      "FN_library4ea4018c3a2c78d5649e9f8b6f3bc1dc": {},
+      "FN_library1200b70fe511717df8e9a0fdad1f6efe": {},
+      "FN_library053186b47e8b8a7520ef3db96676afc2": {
+        "arg2": "arg2"
+      },
+      "FN_library98439707ef1d2f28d89e069d52a0713b": {},
+      "LibraryErrorStatus": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "LibraryInitialized": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "LibraryUninitialized": {},
+      "LibraryAddRef": {},
+      "LibraryRelease": {},
+      "LibraryWorkerPoolInit": {},
+      "LibraryRundown": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_listener2ee8b8e7111af9a2f69d8394569fd0cd": {
+        "arg2": "arg1",
+        "arg3": "arg3"
+      },
+      "FN_listener013e31f2d9fdbed41021d620db3e7fdc": {
+        "arg2": "arg2"
+      },
+      "FN_listenerc851fdba0fb3f62171cb5831b92c1797": {
+        "arg2": "arg2"
+      },
+      "FN_listener5f65ad552c764a2de94907d332894a52": {
+        "arg2": "arg2"
+      },
+      "NoSecurityConfigAvailable": {
+        "arg1": "arg2"
+      },
+      "ListenerCreated": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "ListenerDestroyed": {
+        "arg2": "arg2"
+      },
+      "ListenerErrorStatus": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "ListenerError": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "ListenerStarted": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "ListenerStopped": {
+        "arg2": "arg2"
+      },
+      "ListenerRundown": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_lookup4d6a39f9c8572203bf3e0252c2e98686": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_lookup70420e94980f690ca12e8a277250b26e": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_lookup08f411ebe70c98bcc531d9a1fc421691": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_lookupeff24288031c85be92f7f20338b8933f": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_loss_detection8e90a8ce9382e68c0b924d43672c2a5f": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_loss_detectionf10106b315c3f490c7f862fe7f361eb0": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_loss_detection92c87e0f2df7baa73685d553de54f39a": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_loss_detection8a4b29d3fcd88e3f3cd1b5eb07812977": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_loss_detectionceabe6a9f4a4b57c1d22a407b2aa0ceb": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_loss_detection3c974fbbdc44a506e4ce01903aca8d24": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_loss_detectionaf98922fb950dcf5a8690c34d82e4fe8": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_loss_detection5a6aff023ffdd96b240756e4e4c7d47f": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_loss_detectiona16a26f66ee07984bb898e24396a45ef": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "FN_loss_detection7317b1941fdec283fd38d8447de752e7": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "HandshakeConfirmedAck": {
+        "arg1": "arg2"
+      },
+      "ScheduleProbe": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "KeyChangeConfirmed": {
+        "arg1": "arg2"
+      },
+      "ConnLossDetectionTimerCancel": {
+        "arg2": "arg2"
+      },
+      "ConnLossDetectionTimerSet": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "ConnPacketLost": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "ConnPacketACKed": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_packet90ccc79fc6238b6379c9f2d0110c7855": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "FN_packeta4413873397d4ee4b262cc411ec706f4": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_packet525472688dabf619f866c5771120c7ba": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6",
+        "arg7": "arg7"
+      },
+      "FN_packet85487ff2d76aa8944f1e441b0abee08a": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6",
+        "arg7": "arg7",
+        "arg8": "arg8",
+        "arg9": "arg9",
+        "arg10": "arg10",
+        "arg11": "arg11"
+      },
+      "FN_packet33cae7b7d88f1a0a561d8abc592bb027": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6",
+        "arg7": "arg7",
+        "arg8": "arg8",
+        "arg9": "arg9",
+        "arg10": "arg10"
+      },
+      "FN_packetd9382d9761cefee7446ff5c4f3049c56": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6",
+        "arg7": "arg7"
+      },
+      "FN_packet61e31d5123d636bf45a77c08018ceb3a": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6",
+        "arg7": "arg7",
+        "arg8": "arg8"
+      },
+      "ConnDropPacket": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "BindingDropPacket": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "ConnDropPacketEx": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6",
+        "arg7": "arg7"
+      },
+      "BindingDropPacketEx": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6",
+        "arg7": "arg7"
+      },
+      "FN_packet_builder24bb96787b7b1cfae2d4688ab3213bf6": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_packet_builderaee4e5ee823e822959be3e96df4584aa": {
+        "arg2": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_packet_builderbe3ff1273f0941f8129a2f6dac9f12fc": {
+        "arg2": "arg1",
+        "arg3": "arg3"
+      },
+      "NoSrcCidAvailable": {
+        "arg1": "arg2"
+      },
+      "GetPacketTypeFailure": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "ConnPacketSent": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "PathInitialized": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "PathRemoved": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "PathValidated": {
+        "arg1": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "PathActive": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_registration711e1a8cca07c45faee6d20a450e9ec6": {
+        "arg2": "arg2"
+      },
+      "FN_registrationdab4993b2508030f7c01169b90ab5a52": {
+        "arg2": "arg2"
+      },
+      "RegistrationCreated": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "RegistrationCleanup": {
+        "arg2": "arg2"
+      },
+      "RegistrationRundown": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "SetSendFlag": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "ClearSendFlags": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "PathMtuUpdated": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "CancelAckDelayTimer": {
+        "arg1": "arg2"
+      },
+      "ScheduleSendFlags": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "RemoveSendFlags": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "FlushSend": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "AmplificationProtectionBlocked": {
+        "arg1": "arg2"
+      },
+      "SetPacingTimer": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "SendFlushComplete": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "StartAckDelayTimer": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "ConnQueueSendFlush": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "IndicateIdealSendBuffer": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "FN_session85a35349e97865b7b714a279e1dadc0e": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_sessionfd68a94fad16df513f0d042f4537c631": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_session6f0d4bd7234b294c9a99ad49c15c259d": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_session431d4cd1e01d1d19880d28b8484100fb": {
+        "arg2": "arg1",
+        "arg3": "arg3"
+      },
+      "FN_session044ad7f4e283138fd58759097cb00070": {
+        "arg2": "arg1",
+        "arg3": "arg3"
+      },
+      "FN_session784d9af2ef7948f61b6e6a24478000fa": {
+        "arg2": "arg1",
+        "arg3": "arg3"
+      },
+      "FN_session9feae89ff9b00177f8e5108c2f1e90da": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_session6cf23dcb0930e847c8cf1f4f94294219": {
+        "arg2": "arg1",
+        "arg3": "arg3"
+      },
+      "SessionCreated": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "SessionDestroyed": {
+        "arg2": "arg2"
+      },
+      "SessionError": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "SessionErrorStatus": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "SessionCleanup": {
+        "arg2": "arg2"
+      },
+      "SessionShutdown": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "SessionRundown": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "ConnUnregisterSession": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_settings6f5c7b4d47f2bc7a9a87c47495e915e4": {
+        "arg2": "arg2"
+      },
+      "FN_settingsd554fffdc6a34a822c77617a980a7725": {
+        "arg2": "arg2"
+      },
+      "FN_settingscf1a37abdccf8f36fdbf32977e7fb7df": {
+        "arg2": "arg2"
+      },
+      "FN_settings00fc7276f8b662d358928e0cfa29d043": {
+        "arg2": "arg2"
+      },
+      "FN_settings67321e2160737fdc324fb42093dae824": {
+        "arg2": "arg2"
+      },
+      "FN_settings51f359ba6d2ceb8234f9cb01656763be": {
+        "arg2": "arg2"
+      },
+      "FN_settingsb6cd3a0efb5f8db608f7fa16f6957ce0": {
+        "arg2": "arg2"
+      },
+      "FN_settingsb89c8661c5b265e52f8c7e86e8087bb9": {
+        "arg2": "arg2"
+      },
+      "FN_settingsdaa0f1e26a1af17445c7f77ce8551492": {
+        "arg2": "arg2"
+      },
+      "FN_settingse675344097e6f9bb84e4d03d8ff9be4d": {
+        "arg2": "arg2"
+      },
+      "FN_settings9e7a532745dc4d5567af3a575f923bac": {
+        "arg2": "arg2"
+      },
+      "FN_settings5d12e260586f0be6c4f808dffe30d4a7": {
+        "arg2": "arg2"
+      },
+      "FN_settingsb475e10d0ff099b06516e8abcb4f19c7": {
+        "arg2": "arg2"
+      },
+      "FN_settings33c9f29607d015655c8702e9cc5d8abb": {
+        "arg2": "arg2"
+      },
+      "FN_settings999de952663364f4ed3605c26a59794d": {
+        "arg2": "arg2"
+      },
+      "FN_settings618acfc75c83815ce1c13227574b9897": {
+        "arg2": "arg2"
+      },
+      "FN_settings2ca7254aa7cbdd713e9eed68144800b6": {
+        "arg2": "arg2"
+      },
+      "FN_settings9dab7b65b7e848389e5cdb2edbed3210": {
+        "arg2": "arg2"
+      },
+      "FN_settings1bb0aabcd202e8b720f4bdaaf5435eb5": {
+        "arg2": "arg2"
+      },
+      "FN_settings449b02f5fe7c5e954963dbab7ca016aa": {
+        "arg2": "arg2"
+      },
+      "FN_settings01739e9f48d20100fa4147ba2385f8eb": {
+        "arg2": "arg2"
+      },
+      "CloseWithoutShutdown": {
+        "arg1": "arg2"
+      },
+      "AppTooLong": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "EventSilentDiscard": {
+        "arg1": "arg2"
+      },
+      "IndicateStartComplete": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "IndicateStreamShutdownComplete": {
+        "arg1": "arg2"
+      },
+      "StreamDestroyed": {
+        "arg2": "arg2"
+      },
+      "StreamCreated": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "StreamSendState": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "StreamRecvState": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "StreamOutFlowBlocked": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "StreamRundown": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "ResetEarly": {
+        "arg1": "arg2"
+      },
+      "ResetTooBig": {
+        "arg1": "arg2"
+      },
+      "ReceiveTooBig": {
+        "arg1": "arg2"
+      },
+      "ReceiveBeyondFlowControl": {
+        "arg1": "arg2"
+      },
+      "RemoteCloseReset": {
+        "arg1": "arg2"
+      },
+      "LocalCloseStopSending": {
+        "arg1": "arg2"
+      },
+      "QueueRecvFlush": {
+        "arg1": "arg2"
+      },
+      "IndicatePeerSendAbort": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "IndicatePeerReceiveAborted": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "FlowControlExhausted": {
+        "arg1": "arg2"
+      },
+      "Receive": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "RemoteBlocked": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "IncreaseRxBuffer": {
+        "arg1": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "UpdateFlowControl": {
+        "arg1": "arg2"
+      },
+      "IgnoreRecvFlush": {
+        "arg1": "arg2"
+      },
+      "IndicateReceive": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "ReceiveComplete": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "IndicatePeerSendShutdown": {
+        "arg1": "arg2"
+      },
+      "IndicateSendShutdownComplete": {
+        "arg1": "arg2"
+      },
+      "IndicateSendCanceled": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "IndicateSendComplete": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "SendQueued": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "NoMoreRoom": {
+        "arg1": "arg2"
+      },
+      "NoMoreFrames": {
+        "arg1": "arg2"
+      },
+      "AddFrame": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "RecoverOpen": {
+        "arg1": "arg2"
+      },
+      "RecoverFin": {
+        "arg1": "arg2"
+      },
+      "RecoverRange": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "AckRange": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "Send0RttUpdated": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "SendQueueDrained": {
+        "arg1": "arg2"
+      },
+      "SendDump": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6",
+        "arg7": "arg7",
+        "arg8": "arg8",
+        "arg9": "arg9",
+        "arg10": "arg10"
+      },
+      "SendDumpAck": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "NotAccepted": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "MaxStreamCountUpdated": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "IndicateStreamsAvailable": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "PeerStreamCountsUpdated": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "IndicatePeerStreamStarted": {
+        "arg1": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_timer_wheel1e0a61b64f7e1014a84e2e1acda0f141": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_timer_wheel6710b1772c27f37e5d396b939f79e97e": {
+        "arg2": "arg2"
+      },
+      "FN_timer_wheeld1396a56d7866862f3bf91dd46f040ac": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_timer_wheel81cdeec6b49931c5023712a597202fd3": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_timer_wheeld2b1827f1f200d2b4dbb6877c4a43410": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_timer_wheelfc323a336f8107161c44f48769b0a3fa": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "StillInTimerWheel": {
+        "arg1": "arg2"
+      },
+      "IndicateIdealProcChanged": {
+        "arg1": "arg2"
+      },
+      "AbandonOnLibShutdown": {
+        "arg1": "arg2"
+      },
+      "WorkerCreated": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "WorkerErrorStatus": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "WorkerCleanup": {
+        "arg2": "arg2"
+      },
+      "WorkerDestroyed": {
+        "arg2": "arg2"
+      },
+      "ConnScheduleState": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "WorkerActivityStateUpdated": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "WorkerQueueDelayUpdated": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "WorkerStart": {
+        "arg2": "arg2"
+      },
+      "WorkerStop": {
+        "arg2": "arg2"
+      },
+      "ConnExecApiOper": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "ConnExecOper": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "ConnInFlowStats": {
+        "arg2": "arg1",
+        "arg3": "arg3"
+      },
+      "ConnOutFlowBlocked": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_datapath_winuser7e4a97fc94896da31a4993ff6f092e92": {
+        "arg2": "arg2"
+      },
+      "FN_datapath_winuser04a69f6520465d836d9ecc548aca205f": {
+        "arg2": "arg2"
+      },
+      "FN_datapath_winuser056b4205a8a1a853fc007943573434ec": {
+        "arg2": "arg2"
+      },
+      "FN_datapath_winuser52d7234dcb3f692b80f4c47c409307a1": {
+        "arg2": "arg2"
+      },
+      "FN_datapath_winusercd6a2a3cd4b5a709e0db1785a40f2c9c": {
+        "arg2": "arg2"
+      },
+      "FN_datapath_winuserc27b74d2172741bdcae0bfdc3bc1894b": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_datapath_winuser9833f9ce62f73a18d3abb7ad580e96c1": {
+        "arg2": "arg2"
+      },
+      "FN_datapath_winuser1289b688aef48a96adeda8208c753b21": {
+        "arg2": "arg2"
+      },
+      "FN_datapath_winuser032b71cec12b7777ddde8d45635955d7": {
+        "arg2": "arg2"
+      },
+      "FN_datapath_winusereffe372f69040808bb6dfa7efc48eaf2": {
+        "arg2": "arg2"
+      },
+      "FN_datapath_winuser412639938e8fc1b1ee3404c2931d0482": {
+        "arg2": "arg2"
+      },
+      "FN_datapath_winuser7cbaf8a9e6d9fdd2bd3510dc11d90bf6": {
+        "arg2": "arg2"
+      },
+      "FN_datapath_winusera4bf90a34d69dcbe9e96ed51f1b9021c": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "LibraryError": {
+        "arg2": "arg2"
+      },
+      "DatapathErrorStatus": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "DatapathRecv": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "DatapathSendTo": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "DatapathSendFromTo": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6",
+        "arg7": "arg7"
+      },
+      "FN_hashtable326faab9213339c91955ee3d43e0becf": {},
+      "FN_hashtable12abd3e77029de1e5e8fce713b6ed28c": {},
+      "FN_hashtableaad8c35db1c3ff2442383d4ca831a9b7": {},
+      "FN_platform_winuser8e387020259f41ef110ccaeebe910f40": {},
+      "FN_platform_winuser0c22020f4491112ca1f62af9913bb8bd": {},
+      "FN_platform_winuser73ea831dacee5fd83da7d83c77bdbcdb": {
+        "arg2": "arg2"
+      },
+      "FN_platform_winuserd673a9c82917e2cfa2aeed8357e33ee9": {},
+      "LibraryAssert": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_storage_winuserf1b76ae7b606aa4efae449ed9de18a9c": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capi332ce3a0478930dcc0f30a74d3b73bef": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capia03041865fc856d1e4ee6ce5628bdbaf": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_cert_capied863464d8821793b4154d75fcf32d5b": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capi5bb34b6704875d28cb94dc588d4b472a": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capi17d2c0488205ee4e61e1e86b9b6ff56b": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capiee6066640e45e7af6588ec052f0c067f": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capi9ce4f92e6428499177c1105cbdfaed28": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capi1f5a615a0ca68291825c1c035f552f11": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capi2a247724ef2fdb2817522e427f20c5b7": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_cert_capi0ea0bfe55114d53864b583880e28febd": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capie9f6ebfefedfe10ace186698160ca5e7": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_cert_capi566dce19e279b51310e501a3d10cb8bb": {},
+      "FN_cert_capi20392d28615e72bb1d59e5a6bc2751a4": {},
+      "FN_cert_capif85d28e87fb160b72a3e4062af703589": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capid7cda0467be9666b4624e1d824fa3e4f": {},
+      "FN_cert_capiaee49fa3187aab711dc50b0ce162f7c5": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capi5c2523d318ca5995bcc6dfa9f4edd05f": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capiaad93cae0528abd93349f2e1f0c0d733": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capiec620a1708e8f40da6e3a3fcffa2b044": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capi24d66c83bf0adc7239db5119b81b679c": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capi43b2d940a5becc6235628c85ce8ced33": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capiae80431d598b350efeb03382cbeb2b41": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capif08fb999578bf6d0c9eeaa0df652e2f0": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capid6bc56587e5b37506529ac0f2e978988": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capi74f600bbf24758be24c171307f786d93": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capi6ef52f7405a29bc4484fcb2478561c69": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capi9d9c3aecf5c804cd4f49710986e4e86f": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capi26376cc0986f6195c23953e735c21dff": {},
+      "FN_cert_capiaf9152a65b5a765ac869b83af9bbe4b2": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capid75c4943214f92a4e4aed3f409633d32": {
+        "arg2": "arg2"
+      },
+      "FN_cert_capif423b51efcd97ed754802562c64995f1": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capi0ea0bfe55114d53864b583880e28febd": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capib987d46256da02f01ee442873c55fc3a": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_selfsign_capicb36dc033ac9877463b0859504450655": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_selfsign_capi35f78be05fa1f09f40401bab17eb322e": {},
+      "FN_selfsign_capi7d9d27fd867edffa90d14735abcef13b": {},
+      "FN_selfsign_capi760f4991b08a42d6e34243caf688f6db": {},
+      "FN_selfsign_capi8650607e99507e1eb44a84f5cb4faff4": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capi9389d4c9e8922de376eb5fe3d0b2ec6e": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capib4167274625f54f8d7dae77b1badfa37": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capib54384b48c8de0ef32831df01792b822": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capif612c254501084f860a4d65f1d00f458": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capi12b6d068a1a9391246c76011697121e0": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capi0dde9310da399e50c6c40f7aa5805fe9": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capi78ec506566adfde5beacd100ed342b0a": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capi7224c0d1a17ab3a6ac156ed43aef923b": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capi2005562022de62909c3f0c7285426014": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capi577a364e6a706037a4d5314ede005085": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capibeb3d36073e270808487b7ad4e94759c": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capi50b9de74542ef82946afc0f3d0db3ed9": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capifcdde10fcd730b6d052d07c926b4176a": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capi7ef9c5e5ef97f389821078e31a11d45e": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capieb8ac18220159f03a2fc2869b2bfd275": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capi19a45b31070a77d6fccf2496fd8af96b": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capi3039c7954db54dd771a7e5cf2a2e8543": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capibb2e66d5c0fa329c33511153548609b9": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capib7f937400a87b8cc12ab6d021b98d0da": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capib3aab84f6a61d0f06607e50d73e64728": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capi9777e92b55d10041e8c1879083583602": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capi24fca425cd878eb28a4a89014d353835": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capi35d3b0c70fdf4ee038769a9a60d87ee8": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capi1b6739defef24561b3846cb5127a3644": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capi30cfec4d6480dd6e2ccca715e08c306a": {
+        "arg2": "arg2"
+      },
+      "FN_selfsign_capi47e693d98dffdb601a27fda197f23007": {
+        "arg2": "arg2"
+      },
+      "FN_tls_schannelf64eed1bdb2b3ad9b5977354e08be5bd": {},
+      "FN_tls_schannel17f0d4ffbb3c4f80c2422125e4fa3a17": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_tls_schannel30e07aa262881737030e9cf1ebd43162": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_tls_schannel1d944110e7ac29bb27332b45e704846e": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_tls_schannelc8b3f8ee595be8c34e988c062530e0b5": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_tls_schannele60d006afc2cab6e462c21e95ce14070": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_tls_schannel30391afe07b6d3f74572de151f17cbae": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_tls_schannel6970b6eabec6111fb0e2607f8de29955": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_tls_schannel2d1fad924513272aa57a5583188d4f3b": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_tls_schannel4317e3d2ceeb3b5573f957f9ed083e97": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_tls_schannelb65b8dca7f5151d13234fe346bafd955": {},
+      "FN_tls_schannele8a70813676523358183bd7ed391b113": {},
+      "FN_tls_schannel9c3e8aea1bec24709728acfa96449d4b": {},
+      "FN_tls_schannel6d361481ebf951cde4a4cf39643dfef0": {
+        "arg2": "arg2"
+      },
+      "FN_tls_schannel8b8980417b7165619250b4160d5f5320": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_tls_schannel46416f9e948dc2d7e0da7dff4824650b": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_tls_schannel1791055a5ed419b1993a1889e6a3c2f3": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6"
+      },
+      "FN_tls_schannel11388d903b526f90953cc5357d33da16": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_tls_schannel4f259e4b8596ae5c2c3a20b405dc2316": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_tls_schannel754265edd8c0f88042c680baa8685b2a": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "FN_tls_schannel_FAILED_FINDING_MATCHING_ALPN": {
+        "arg2": "arg2"
+      },
+      "TlsErrorStatus": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "TlsError": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      }
+    }
+  },
   "EventBundlesV2": {
     "FN_ack_tracker3fe5caa2fc2f7b97bcbb8cd0a6c8602e": {
       "ModuleProperites": {},
@@ -141,8 +2198,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"QUIC_WORKER_POOL\"",
-            "UserSuppliedTrimmed": "\"QUIC_WORKER_POOL\"",
+            "UserSpecifiedUnModified": " \"wchar string\"",
+            "UserSuppliedTrimmed": "\"wchar string\"",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "s",
@@ -150,8 +2207,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER)",
-            "UserSuppliedTrimmed": "sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER)",
+            "UserSpecifiedUnModified": " sizeof(WCHAR) * Size",
+            "UserSuppliedTrimmed": "sizeof(WCHAR) * Size",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "I",
@@ -8325,8 +10382,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"QuicDataPathInitialize\"",
-            "UserSuppliedTrimmed": "\"QuicDataPathInitialize\"",
+            "UserSpecifiedUnModified": " \"Open HMAC_SHA256 algorithm\"",
+            "UserSuppliedTrimmed": "\"Open HMAC_SHA256 algorithm\"",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "s",
@@ -18145,6 +20202,3349 @@
           "windows": "etw_plus"
         }
       }
+    },
+    "FN_datapath_winuser7e4a97fc94896da31a4993ff6f092e92": {
+      "ModuleProperites": {},
+      "TraceString": "[ dal] RSS helper socket failed to open, 0x%x",
+      "UniqueId": "FN_datapath_winuser7e4a97fc94896da31a4993ff6f092e92",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " WsaError",
+            "UserSuppliedTrimmed": "WsaError",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_datapath_winuser04a69f6520465d836d9ecc548aca205f": {
+      "ModuleProperites": {},
+      "TraceString": "[ dal] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x",
+      "UniqueId": "FN_datapath_winuser04a69f6520465d836d9ecc548aca205f",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " WsaError",
+            "UserSuppliedTrimmed": "WsaError",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_datapath_winuser056b4205a8a1a853fc007943573434ec": {
+      "ModuleProperites": {},
+      "TraceString": "[ dal] UDP send segmentation helper socket failed to open, 0x%x",
+      "UniqueId": "FN_datapath_winuser056b4205a8a1a853fc007943573434ec",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " WsaError",
+            "UserSuppliedTrimmed": "WsaError",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_datapath_winuser52d7234dcb3f692b80f4c47c409307a1": {
+      "ModuleProperites": {},
+      "TraceString": "[ dal] Query for UDP_SEND_MSG_SIZE failed, 0x%x",
+      "UniqueId": "FN_datapath_winuser52d7234dcb3f692b80f4c47c409307a1",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " WsaError",
+            "UserSuppliedTrimmed": "WsaError",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_datapath_winusercd6a2a3cd4b5a709e0db1785a40f2c9c": {
+      "ModuleProperites": {},
+      "TraceString": "[ dal] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x",
+      "UniqueId": "FN_datapath_winusercd6a2a3cd4b5a709e0db1785a40f2c9c",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " WsaError",
+            "UserSuppliedTrimmed": "WsaError",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_datapath_winuserc27b74d2172741bdcae0bfdc3bc1894b": {
+      "ModuleProperites": {},
+      "TraceString": "[sock][%p] WSAIoctl for SIO_QUERY_RSS_PROCESSOR_INFO failed, 0x%x",
+      "UniqueId": "FN_datapath_winuserc27b74d2172741bdcae0bfdc3bc1894b",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " SocketContext",
+            "UserSuppliedTrimmed": "SocketContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " WsaError",
+            "UserSuppliedTrimmed": "WsaError",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_datapath_winuser9833f9ce62f73a18d3abb7ad580e96c1": {
+      "ModuleProperites": {},
+      "TraceString": "[sock][%p] WSARecvMsg completion is missing IP_PKTINFO",
+      "UniqueId": "FN_datapath_winuser9833f9ce62f73a18d3abb7ad580e96c1",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " SocketContext",
+            "UserSuppliedTrimmed": "SocketContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_datapath_winuser1289b688aef48a96adeda8208c753b21": {
+      "ModuleProperites": {},
+      "TraceString": "[sock][%p] Dropping datagram with empty payload.",
+      "UniqueId": "FN_datapath_winuser1289b688aef48a96adeda8208c753b21",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " SocketContext",
+            "UserSuppliedTrimmed": "SocketContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_datapath_winuser032b71cec12b7777ddde8d45635955d7": {
+      "ModuleProperites": {},
+      "TraceString": "[%p] Exceeded URO preallocation capacity.",
+      "UniqueId": "FN_datapath_winuser032b71cec12b7777ddde8d45635955d7",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " SocketContext",
+            "UserSuppliedTrimmed": "SocketContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_datapath_winusereffe372f69040808bb6dfa7efc48eaf2": {
+      "ModuleProperites": {},
+      "TraceString": "[bind][%p] Binding shutting down",
+      "UniqueId": "FN_datapath_winusereffe372f69040808bb6dfa7efc48eaf2",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Binding",
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_datapath_winuser412639938e8fc1b1ee3404c2931d0482": {
+      "ModuleProperites": {},
+      "TraceString": "[bind][%p] Binding shutting down (return)",
+      "UniqueId": "FN_datapath_winuser412639938e8fc1b1ee3404c2931d0482",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Binding",
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_datapath_winuser7cbaf8a9e6d9fdd2bd3510dc11d90bf6": {
+      "ModuleProperites": {},
+      "TraceString": "[bind][%p] Binding shut down complete",
+      "UniqueId": "FN_datapath_winuser7cbaf8a9e6d9fdd2bd3510dc11d90bf6",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " SocketContext->Binding",
+            "UserSuppliedTrimmed": "SocketContext->Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_datapath_winusera4bf90a34d69dcbe9e96ed51f1b9021c": {
+      "ModuleProperites": {},
+      "TraceString": "[%p] Couldn't resolve hostname '%s' to an IP address",
+      "UniqueId": "FN_datapath_winusera4bf90a34d69dcbe9e96ed51f1b9021c",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Datapath",
+            "UserSuppliedTrimmed": "Datapath",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " HostName",
+            "UserSuppliedTrimmed": "HostName",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "LibraryError": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] ERROR, %s.",
+      "UniqueId": "LibraryError",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \"NULL CallbackData to QuicTlsSspiNotifyCallback\"",
+            "UserSuppliedTrimmed": "\"NULL CallbackData to QuicTlsSspiNotifyCallback\"",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "DatapathErrorStatus": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp][%p] ERROR, %d, %s.",
+      "UniqueId": "DatapathErrorStatus",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Binding",
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " WsaError",
+            "UserSuppliedTrimmed": "WsaError",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \"WSASocketW\"",
+            "UserSuppliedTrimmed": "\"WSASocketW\"",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "DatapathRecv": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp][%p] Recv %d bytes (segment=%hd) Src=%SOCKADDR Dst=%SOCKADDR",
+      "UniqueId": "DatapathRecv",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n            SocketContext->Binding",
+            "UserSuppliedTrimmed": "SocketContext->Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n            NumberOfBytesTransferred",
+            "UserSuppliedTrimmed": "NumberOfBytesTransferred",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n            MessageLength",
+            "UserSuppliedTrimmed": "MessageLength",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "hd",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddr), LocalAddr)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddr), LocalAddr)",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "SOCKADDR",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddr), S2C(&RemoteAddr))",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddr), S2C(&RemoteAddr))",
+            "SuggestedTelemetryName": "arg6"
+          },
+          "DefinationEncoding": "SOCKADDR",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "DatapathSendTo": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%SOCKADDR",
+      "UniqueId": "DatapathSendTo",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n        Binding",
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n        SendContext->TotalSize",
+            "UserSuppliedTrimmed": "SendContext->TotalSize",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n        SendContext->WsaBufferCount",
+            "UserSuppliedTrimmed": "SendContext->WsaBufferCount",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n        SendContext->SegmentSize",
+            "UserSuppliedTrimmed": "SendContext->SegmentSize",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "hd",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), S2C(&RemoteAddress))",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), S2C(&RemoteAddress))",
+            "SuggestedTelemetryName": "arg6"
+          },
+          "DefinationEncoding": "SOCKADDR",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "DatapathSendFromTo": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%SOCKADDR, Src=%SOCKADDR",
+      "UniqueId": "DatapathSendFromTo",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n        Binding",
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n        SendContext->TotalSize",
+            "UserSuppliedTrimmed": "SendContext->TotalSize",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n        SendContext->WsaBufferCount",
+            "UserSuppliedTrimmed": "SendContext->WsaBufferCount",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n        SendContext->SegmentSize",
+            "UserSuppliedTrimmed": "SendContext->SegmentSize",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "hd",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), S2C(&RemoteAddress))",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), S2C(&RemoteAddress))",
+            "SuggestedTelemetryName": "arg6"
+          },
+          "DefinationEncoding": "SOCKADDR",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), S2C(&LocalAddress))",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), S2C(&LocalAddress))",
+            "SuggestedTelemetryName": "arg7"
+          },
+          "DefinationEncoding": "SOCKADDR",
+          "MacroVariableName": "arg7"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_platform_winuser8e387020259f41ef110ccaeebe910f40": {
+      "ModuleProperites": {},
+      "TraceString": "[ dll] Loaded",
+      "UniqueId": "FN_platform_winuser8e387020259f41ef110ccaeebe910f40",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_platform_winuser0c22020f4491112ca1f62af9913bb8bd": {
+      "ModuleProperites": {},
+      "TraceString": "[ dll] Unloaded",
+      "UniqueId": "FN_platform_winuser0c22020f4491112ca1f62af9913bb8bd",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_platform_winuser73ea831dacee5fd83da7d83c77bdbcdb": {
+      "ModuleProperites": {},
+      "TraceString": "[ dll] Initialized (AvailMem = %llu bytes)",
+      "UniqueId": "FN_platform_winuser73ea831dacee5fd83da7d83c77bdbcdb",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " QuicTotalMemory",
+            "UserSuppliedTrimmed": "QuicTotalMemory",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_platform_winuserd673a9c82917e2cfa2aeed8357e33ee9": {
+      "ModuleProperites": {},
+      "TraceString": "[ dll] Uninitialized",
+      "UniqueId": "FN_platform_winuserd673a9c82917e2cfa2aeed8357e33ee9",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "LibraryAssert": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] ASSERT, %d:%s - %s.",
+      "UniqueId": "LibraryAssert",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " (uint32_t)Line",
+            "UserSuppliedTrimmed": "(uint32_t)Line",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " File",
+            "UserSuppliedTrimmed": "File",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Expr",
+            "UserSuppliedTrimmed": "Expr",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_storage_winuserf1b76ae7b606aa4efae449ed9de18a9c": {
+      "ModuleProperites": {},
+      "TraceString": "[ reg] Opening %s",
+      "UniqueId": "FN_storage_winuserf1b76ae7b606aa4efae449ed9de18a9c",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " FullKeyName",
+            "UserSuppliedTrimmed": "FullKeyName",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capi332ce3a0478930dcc0f30a74d3b73bef": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] Failed to alloc %u bytes for ServerName.",
+      "UniqueId": "FN_cert_capi332ce3a0478930dcc0f30a74d3b73bef",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " (uint32_t)(ServerNameLength * sizeof(WCHAR))",
+            "UserSuppliedTrimmed": "(uint32_t)(ServerNameLength * sizeof(WCHAR))",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capia03041865fc856d1e4ee6ce5628bdbaf": {
+      "ModuleProperites": {},
+      "TraceString": "CertVerifyChain: %S 0x%x, result=0x%x",
+      "UniqueId": "FN_cert_capia03041865fc856d1e4ee6ce5628bdbaf",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " ServerName",
+            "UserSuppliedTrimmed": "ServerName",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "S",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " IgnoreFlags",
+            "UserSuppliedTrimmed": "IgnoreFlags",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Status",
+            "UserSuppliedTrimmed": "Status",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capied863464d8821793b4154d75fcf32d5b": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] Successfully parsed chain of %u certificate(s).",
+      "UniqueId": "FN_cert_capied863464d8821793b4154d75fcf32d5b",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " CertNumber",
+            "UserSuppliedTrimmed": "CertNumber",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capi5bb34b6704875d28cb94dc588d4b472a": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] Successfully formatted chain of %u certificate(s).",
+      "UniqueId": "FN_cert_capi5bb34b6704875d28cb94dc588d4b472a",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " CertNumber",
+            "UserSuppliedTrimmed": "CertNumber",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capi17d2c0488205ee4e61e1e86b9b6ff56b": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] QuicCertSign alg=0x%4.4x",
+      "UniqueId": "FN_cert_capi17d2c0488205ee4e61e1e86b9b6ff56b",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " SignatureAlgorithm",
+            "UserSuppliedTrimmed": "SignatureAlgorithm",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "4.4x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capiee6066640e45e7af6588ec052f0c067f": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] QuicCertVerify alg=0x%4.4x",
+      "UniqueId": "FN_cert_capiee6066640e45e7af6588ec052f0c067f",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " SignatureAlgorithm",
+            "UserSuppliedTrimmed": "SignatureAlgorithm",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "4.4x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capi9ce4f92e6428499177c1105cbdfaed28": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] Get CERT_HASH_PROP_ID failed, 0x%x.",
+      "UniqueId": "FN_cert_capi9ce4f92e6428499177c1105cbdfaed28",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetLastError()",
+            "UserSuppliedTrimmed": "GetLastError()",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capi1f5a615a0ca68291825c1c035f552f11": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CERT_HASH_PROP_ID incorrect size, %u.",
+      "UniqueId": "FN_cert_capi1f5a615a0ca68291825c1c035f552f11",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " CertHashLength",
+            "UserSuppliedTrimmed": "CertHashLength",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capi2a247724ef2fdb2817522e427f20c5b7": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CertOpenStore failed '%s', 0x%x.",
+      "UniqueId": "FN_cert_capi2a247724ef2fdb2817522e427f20c5b7",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " CertHashStore->StoreName",
+            "UserSuppliedTrimmed": "CertHashStore->StoreName",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Status",
+            "UserSuppliedTrimmed": "Status",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capi0ea0bfe55114d53864b583880e28febd": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CertOpenStore failed, 0x%x.",
+      "UniqueId": "FN_cert_capi0ea0bfe55114d53864b583880e28febd",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetLastError()",
+            "UserSuppliedTrimmed": "GetLastError()",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capie9f6ebfefedfe10ace186698160ca5e7": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CertAddEncodedCertificateToStore failed for cert #%u, 0x%x.",
+      "UniqueId": "FN_cert_capie9f6ebfefedfe10ace186698160ca5e7",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n                CertNumber",
+            "UserSuppliedTrimmed": "CertNumber",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetLastError()",
+            "UserSuppliedTrimmed": "GetLastError()",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capi566dce19e279b51310e501a3d10cb8bb": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] Not all bytes were processed.",
+      "UniqueId": "FN_cert_capi566dce19e279b51310e501a3d10cb8bb",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capi20392d28615e72bb1d59e5a6bc2751a4": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] Insufficient buffer to store the empty formatted chain.",
+      "UniqueId": "FN_cert_capi20392d28615e72bb1d59e5a6bc2751a4",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capif85d28e87fb160b72a3e4062af703589": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CertGetCertificateChain failed, 0x%x.",
+      "UniqueId": "FN_cert_capif85d28e87fb160b72a3e4062af703589",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetLastError()",
+            "UserSuppliedTrimmed": "GetLastError()",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capid7cda0467be9666b4624e1d824fa3e4f": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] Insufficient buffer to store the formatted chain.",
+      "UniqueId": "FN_cert_capid7cda0467be9666b4624e1d824fa3e4f",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capiaee49fa3187aab711dc50b0ce162f7c5": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CertVerifyCertificateChainPolicy failed, 0x%x.",
+      "UniqueId": "FN_cert_capiaee49fa3187aab711dc50b0ce162f7c5",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Status",
+            "UserSuppliedTrimmed": "Status",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capi5c2523d318ca5995bcc6dfa9f4edd05f": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CertVerifyCertificateChainPolicy indicated a cert error, 0x%x.",
+      "UniqueId": "FN_cert_capi5c2523d318ca5995bcc6dfa9f4edd05f",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Status",
+            "UserSuppliedTrimmed": "Status",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capiaad93cae0528abd93349f2e1f0c0d733": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] MultiByteToWideChar(1) failed, 0x%x.",
+      "UniqueId": "FN_cert_capiaad93cae0528abd93349f2e1f0c0d733",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetLastError()",
+            "UserSuppliedTrimmed": "GetLastError()",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capiec620a1708e8f40da6e3a3fcffa2b044": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] MultiByteToWideChar(2) failed, 0x%x.",
+      "UniqueId": "FN_cert_capiec620a1708e8f40da6e3a3fcffa2b044",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetLastError()",
+            "UserSuppliedTrimmed": "GetLastError()",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capi24d66c83bf0adc7239db5119b81b679c": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CryptAcquireCertificatePrivateKey failed, 0x%x.",
+      "UniqueId": "FN_cert_capi24d66c83bf0adc7239db5119b81b679c",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetLastError()",
+            "UserSuppliedTrimmed": "GetLastError()",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capi43b2d940a5becc6235628c85ce8ced33": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] Cert KeySpec doesn't have CERT_NCRYPT_KEY_SPEC, 0x%x.",
+      "UniqueId": "FN_cert_capi43b2d940a5becc6235628c85ce8ced33",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " KeySpec",
+            "UserSuppliedTrimmed": "KeySpec",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capiae80431d598b350efeb03382cbeb2b41": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] Unsupported hash algorithm 0x%x (HashAlg).",
+      "UniqueId": "FN_cert_capiae80431d598b350efeb03382cbeb2b41",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " SignatureAlgorithm",
+            "UserSuppliedTrimmed": "SignatureAlgorithm",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capif08fb999578bf6d0c9eeaa0df652e2f0": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] Unsupported hash algorithm 0x%x.",
+      "UniqueId": "FN_cert_capif08fb999578bf6d0c9eeaa0df652e2f0",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " SignatureAlgorithm",
+            "UserSuppliedTrimmed": "SignatureAlgorithm",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capid6bc56587e5b37506529ac0f2e978988": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] Unsupported hash size 0x%x.",
+      "UniqueId": "FN_cert_capid6bc56587e5b37506529ac0f2e978988",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " SignatureAlgorithm",
+            "UserSuppliedTrimmed": "SignatureAlgorithm",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capi74f600bbf24758be24c171307f786d93": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] Unsupported padding scheme 0x%x.",
+      "UniqueId": "FN_cert_capi74f600bbf24758be24c171307f786d93",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " SignatureAlgorithm",
+            "UserSuppliedTrimmed": "SignatureAlgorithm",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capi6ef52f7405a29bc4484fcb2478561c69": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] BCryptHash failed, 0x%x.",
+      "UniqueId": "FN_cert_capi6ef52f7405a29bc4484fcb2478561c69",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Status",
+            "UserSuppliedTrimmed": "Status",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capi9d9c3aecf5c804cd4f49710986e4e86f": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] NCryptSignHash failed, 0x%x.",
+      "UniqueId": "FN_cert_capi9d9c3aecf5c804cd4f49710986e4e86f",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Status",
+            "UserSuppliedTrimmed": "Status",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capi26376cc0986f6195c23953e735c21dff": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CertListToVerify or Signature too large.",
+      "UniqueId": "FN_cert_capi26376cc0986f6195c23953e735c21dff",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capiaf9152a65b5a765ac869b83af9bbe4b2": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] Unsupported signature algorithm 0x%x (HashAlg).",
+      "UniqueId": "FN_cert_capiaf9152a65b5a765ac869b83af9bbe4b2",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " SignatureAlgorithm",
+            "UserSuppliedTrimmed": "SignatureAlgorithm",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capid75c4943214f92a4e4aed3f409633d32": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CryptImportPublicKeyInfoEx2 failed, 0x%x.",
+      "UniqueId": "FN_cert_capid75c4943214f92a4e4aed3f409633d32",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetLastError()",
+            "UserSuppliedTrimmed": "GetLastError()",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_cert_capif423b51efcd97ed754802562c64995f1": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] BCryptVerifySignature failed, 0x%x.",
+      "UniqueId": "FN_cert_capif423b51efcd97ed754802562c64995f1",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Status",
+            "UserSuppliedTrimmed": "Status",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi0ea0bfe55114d53864b583880e28febd": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CertOpenStore failed, 0x%x.",
+      "UniqueId": "FN_selfsign_capi0ea0bfe55114d53864b583880e28febd",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetLastError()",
+            "UserSuppliedTrimmed": "GetLastError()",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capib987d46256da02f01ee442873c55fc3a": {
+      "ModuleProperites": {},
+      "TraceString": "[test] WaitForSingleObject returned 0x%x, proceeding without caution... (GLE: 0x%x)",
+      "UniqueId": "FN_selfsign_capib987d46256da02f01ee442873c55fc3a",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n                WaitResult",
+            "UserSuppliedTrimmed": "WaitResult",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n                GetLastError()",
+            "UserSuppliedTrimmed": "GetLastError()",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capicb36dc033ac9877463b0859504450655": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] %d test certificates found, and %d deleted",
+      "UniqueId": "FN_selfsign_capicb36dc033ac9877463b0859504450655",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Found",
+            "UserSuppliedTrimmed": "Found",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Deleted",
+            "UserSuppliedTrimmed": "Deleted",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi35f78be05fa1f09f40401bab17eb322e": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] Successfully opened key",
+      "UniqueId": "FN_selfsign_capi35f78be05fa1f09f40401bab17eb322e",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi7d9d27fd867edffa90d14735abcef13b": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] Successfully created key",
+      "UniqueId": "FN_selfsign_capi7d9d27fd867edffa90d14735abcef13b",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi760f4991b08a42d6e34243caf688f6db": {
+      "ModuleProperites": {},
+      "TraceString": "[test] CreateEvent opened existing event",
+      "UniqueId": "FN_selfsign_capi760f4991b08a42d6e34243caf688f6db",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi8650607e99507e1eb44a84f5cb4faff4": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CryptEncodeObject failed, 0x%x",
+      "UniqueId": "FN_selfsign_capi8650607e99507e1eb44a84f5cb4faff4",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi9389d4c9e8922de376eb5fe3d0b2ec6e": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] malloc cbData(%d) Failed",
+      "UniqueId": "FN_selfsign_capi9389d4c9e8922de376eb5fe3d0b2ec6e",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " CryptDataBlob->cbData",
+            "UserSuppliedTrimmed": "CryptDataBlob->cbData",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capib4167274625f54f8d7dae77b1badfa37": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] AllocateAndEncodeObject X509_ENHANCED_KEY_USAGE failed, 0x%x",
+      "UniqueId": "FN_selfsign_capib4167274625f54f8d7dae77b1badfa37",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capib54384b48c8de0ef32831df01792b822": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] AllocateAndEncodeObject X509_KEY_USAGE failed, 0x%x",
+      "UniqueId": "FN_selfsign_capib54384b48c8de0ef32831df01792b822",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capif612c254501084f860a4d65f1d00f458": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] AllocateAndEncodeObject(szOID_SUBJECT_ALT_NAME) Failed, 0x%x",
+      "UniqueId": "FN_selfsign_capif612c254501084f860a4d65f1d00f458",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi12b6d068a1a9391246c76011697121e0": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CreateSubjectNameBlob failed, 0x%x",
+      "UniqueId": "FN_selfsign_capi12b6d068a1a9391246c76011697121e0",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi0dde9310da399e50c6c40f7aa5805fe9": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] Failed to allocate memory for the encoded name., 0x%x",
+      "UniqueId": "FN_selfsign_capi0dde9310da399e50c6c40f7aa5805fe9",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi78ec506566adfde5beacd100ed342b0a": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] malloc TmpCertExtensions Failed, 0x%x",
+      "UniqueId": "FN_selfsign_capi78ec506566adfde5beacd100ed342b0a",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi7224c0d1a17ab3a6ac156ed43aef923b": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CreateEnhancedKeyUsageCertExtension failed, 0x%x",
+      "UniqueId": "FN_selfsign_capi7224c0d1a17ab3a6ac156ed43aef923b",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi2005562022de62909c3f0c7285426014": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CreateKeyUsageCertExtension failed, 0x%x",
+      "UniqueId": "FN_selfsign_capi2005562022de62909c3f0c7285426014",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi577a364e6a706037a4d5314ede005085": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CreateSubjAltNameExtension failed, 0x%x",
+      "UniqueId": "FN_selfsign_capi577a364e6a706037a4d5314ede005085",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capibeb3d36073e270808487b7ad4e94759c": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] NCryptOpenStorageProvider failed, 0x%x",
+      "UniqueId": "FN_selfsign_capibeb3d36073e270808487b7ad4e94759c",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi50b9de74542ef82946afc0f3d0db3ed9": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] NCryptCreatePersistedKey failed, 0x%x",
+      "UniqueId": "FN_selfsign_capi50b9de74542ef82946afc0f3d0db3ed9",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capifcdde10fcd730b6d052d07c926b4176a": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] NCryptSetProperty NCRYPT_LENGTH_PROPERTY failed, 0x%x",
+      "UniqueId": "FN_selfsign_capifcdde10fcd730b6d052d07c926b4176a",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi7ef9c5e5ef97f389821078e31a11d45e": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] NCryptSetProperty NCRYPT_KEY_USAGE_PROPERTY failed, 0x%x",
+      "UniqueId": "FN_selfsign_capi7ef9c5e5ef97f389821078e31a11d45e",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capieb8ac18220159f03a2fc2869b2bfd275": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] NCryptFinalizeKey failed, 0x%x",
+      "UniqueId": "FN_selfsign_capieb8ac18220159f03a2fc2869b2bfd275",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi19a45b31070a77d6fccf2496fd8af96b": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] GetPrivateRsaKey failed, 0x%x",
+      "UniqueId": "FN_selfsign_capi19a45b31070a77d6fccf2496fd8af96b",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi3039c7954db54dd771a7e5cf2a2e8543": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CreateCertificateExtensions failed, 0x%x",
+      "UniqueId": "FN_selfsign_capi3039c7954db54dd771a7e5cf2a2e8543",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capibb2e66d5c0fa329c33511153548609b9": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] SystemTimeToFileTime failed, 0x%x",
+      "UniqueId": "FN_selfsign_capibb2e66d5c0fa329c33511153548609b9",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capib7f937400a87b8cc12ab6d021b98d0da": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] FileTimeToSystemTime failed, 0x%x",
+      "UniqueId": "FN_selfsign_capib7f937400a87b8cc12ab6d021b98d0da",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capib3aab84f6a61d0f06607e50d73e64728": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CertCreateSelfSignCertificate failed, 0x%x",
+      "UniqueId": "FN_selfsign_capib3aab84f6a61d0f06607e50d73e64728",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi9777e92b55d10041e8c1879083583602": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CertSetCertificateContextProperty failed, 0x%x",
+      "UniqueId": "FN_selfsign_capi9777e92b55d10041e8c1879083583602",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " hr",
+            "UserSuppliedTrimmed": "hr",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi24fca425cd878eb28a4a89014d353835": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] CertAddCertificateContextToStore failed, 0x%x",
+      "UniqueId": "FN_selfsign_capi24fca425cd878eb28a4a89014d353835",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetLastError()",
+            "UserSuppliedTrimmed": "GetLastError()",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi35d3b0c70fdf4ee038769a9a60d87ee8": {
+      "ModuleProperites": {},
+      "TraceString": "[test] CreateEvent failed, 0x%x",
+      "UniqueId": "FN_selfsign_capi35d3b0c70fdf4ee038769a9a60d87ee8",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetLastError()",
+            "UserSuppliedTrimmed": "GetLastError()",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi1b6739defef24561b3846cb5127a3644": {
+      "ModuleProperites": {},
+      "TraceString": "[test] CertOpenStore failed, 0x%x.",
+      "UniqueId": "FN_selfsign_capi1b6739defef24561b3846cb5127a3644",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetLastError()",
+            "UserSuppliedTrimmed": "GetLastError()",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi30cfec4d6480dd6e2ccca715e08c306a": {
+      "ModuleProperites": {},
+      "TraceString": "[test] CertAddCertificateContextToStore failed, 0x%x.",
+      "UniqueId": "FN_selfsign_capi30cfec4d6480dd6e2ccca715e08c306a",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetLastError()",
+            "UserSuppliedTrimmed": "GetLastError()",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_selfsign_capi47e693d98dffdb601a27fda197f23007": {
+      "ModuleProperites": {},
+      "TraceString": "[test] CertGetCertificateContextProperty failed, 0x%x.",
+      "UniqueId": "FN_selfsign_capi47e693d98dffdb601a27fda197f23007",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetLastError()",
+            "UserSuppliedTrimmed": "GetLastError()",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannelf64eed1bdb2b3ad9b5977354e08be5bd": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls] Failed to allocate packet key.",
+      "UniqueId": "FN_tls_schannelf64eed1bdb2b3ad9b5977354e08be5bd",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannel17f0d4ffbb3c4f80c2422125e4fa3a17": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p][%c] Resetting TLS state.",
+      "UniqueId": "FN_tls_schannel17f0d4ffbb3c4f80c2422125e4fa3a17",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n        TlsContext",
+            "UserSuppliedTrimmed": "TlsContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetTlsIdentifier(TlsContext)",
+            "UserSuppliedTrimmed": "GetTlsIdentifier(TlsContext)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannel30e07aa262881737030e9cf1ebd43162": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p][%c] Handshake complete (resume=%hu).",
+      "UniqueId": "FN_tls_schannel30e07aa262881737030e9cf1ebd43162",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n                TlsContext",
+            "UserSuppliedTrimmed": "TlsContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetTlsIdentifier(TlsContext)",
+            "UserSuppliedTrimmed": "GetTlsIdentifier(TlsContext)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " State->SessionResumed",
+            "UserSuppliedTrimmed": "State->SessionResumed",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannel1d944110e7ac29bb27332b45e704846e": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p][%c] Consumed %u bytes.",
+      "UniqueId": "FN_tls_schannel1d944110e7ac29bb27332b45e704846e",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n            TlsContext",
+            "UserSuppliedTrimmed": "TlsContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetTlsIdentifier(TlsContext)",
+            "UserSuppliedTrimmed": "GetTlsIdentifier(TlsContext)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " *InBufferLength",
+            "UserSuppliedTrimmed": "*InBufferLength",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannelc8b3f8ee595be8c34e988c062530e0b5": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p][%c] Reading Handshake data starts now.",
+      "UniqueId": "FN_tls_schannelc8b3f8ee595be8c34e988c062530e0b5",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n                        TlsContext",
+            "UserSuppliedTrimmed": "TlsContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetTlsIdentifier(TlsContext)",
+            "UserSuppliedTrimmed": "GetTlsIdentifier(TlsContext)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannele60d006afc2cab6e462c21e95ce14070": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p][%c] Reading 1-RTT data starts now.",
+      "UniqueId": "FN_tls_schannele60d006afc2cab6e462c21e95ce14070",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n                        TlsContext",
+            "UserSuppliedTrimmed": "TlsContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetTlsIdentifier(TlsContext)",
+            "UserSuppliedTrimmed": "GetTlsIdentifier(TlsContext)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannel30391afe07b6d3f74572de151f17cbae": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p][%c] Writing Handshake data starts at %u.",
+      "UniqueId": "FN_tls_schannel30391afe07b6d3f74572de151f17cbae",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n                        TlsContext",
+            "UserSuppliedTrimmed": "TlsContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetTlsIdentifier(TlsContext)",
+            "UserSuppliedTrimmed": "GetTlsIdentifier(TlsContext)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " State->BufferOffsetHandshake",
+            "UserSuppliedTrimmed": "State->BufferOffsetHandshake",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannel6970b6eabec6111fb0e2607f8de29955": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p][%c] Writing 1-RTT data starts at %u.",
+      "UniqueId": "FN_tls_schannel6970b6eabec6111fb0e2607f8de29955",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n                            TlsContext",
+            "UserSuppliedTrimmed": "TlsContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetTlsIdentifier(TlsContext)",
+            "UserSuppliedTrimmed": "GetTlsIdentifier(TlsContext)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " State->BufferOffset1Rtt",
+            "UserSuppliedTrimmed": "State->BufferOffset1Rtt",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannel2d1fad924513272aa57a5583188d4f3b": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p][%c] Produced %u bytes.",
+      "UniqueId": "FN_tls_schannel2d1fad924513272aa57a5583188d4f3b",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n                TlsContext",
+            "UserSuppliedTrimmed": "TlsContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetTlsIdentifier(TlsContext)",
+            "UserSuppliedTrimmed": "GetTlsIdentifier(TlsContext)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " OutputTokenBuffer->cbBuffer",
+            "UserSuppliedTrimmed": "OutputTokenBuffer->cbBuffer",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannel4317e3d2ceeb3b5573f957f9ed083e97": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p][%c] TLS message missing %u bytes of data.",
+      "UniqueId": "FN_tls_schannel4317e3d2ceeb3b5573f957f9ed083e97",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n                TlsContext",
+            "UserSuppliedTrimmed": "TlsContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetTlsIdentifier(TlsContext)",
+            "UserSuppliedTrimmed": "GetTlsIdentifier(TlsContext)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " MissingBuffer->cbBuffer",
+            "UserSuppliedTrimmed": "MissingBuffer->cbBuffer",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannelb65b8dca7f5151d13234fe346bafd955": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls] Library initialized",
+      "UniqueId": "FN_tls_schannelb65b8dca7f5151d13234fe346bafd955",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannele8a70813676523358183bd7ed391b113": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls] Library Uninitialized",
+      "UniqueId": "FN_tls_schannele8a70813676523358183bd7ed391b113",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannel9c3e8aea1bec24709728acfa96449d4b": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls] Calling ACH to create server security config",
+      "UniqueId": "FN_tls_schannel9c3e8aea1bec24709728acfa96449d4b",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannel6d361481ebf951cde4a4cf39643dfef0": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls] Invoking security config completion callback, 0x%x",
+      "UniqueId": "FN_tls_schannel6d361481ebf951cde4a4cf39643dfef0",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " SecStatus",
+            "UserSuppliedTrimmed": "SecStatus",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannel8b8980417b7165619250b4160d5f5320": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p][%c] Created.",
+      "UniqueId": "FN_tls_schannel8b8980417b7165619250b4160d5f5320",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n        TlsContext",
+            "UserSuppliedTrimmed": "TlsContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetTlsIdentifier(TlsContext)",
+            "UserSuppliedTrimmed": "GetTlsIdentifier(TlsContext)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannel46416f9e948dc2d7e0da7dff4824650b": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p][%c] Cleaning up.",
+      "UniqueId": "FN_tls_schannel46416f9e948dc2d7e0da7dff4824650b",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n            TlsContext",
+            "UserSuppliedTrimmed": "TlsContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetTlsIdentifier(TlsContext)",
+            "UserSuppliedTrimmed": "GetTlsIdentifier(TlsContext)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannel1791055a5ed419b1993a1889e6a3c2f3": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p][%c] Key Ready Type, %u [%hu to %hu].",
+      "UniqueId": "FN_tls_schannel1791055a5ed419b1993a1889e6a3c2f3",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n                TlsContext",
+            "UserSuppliedTrimmed": "TlsContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetTlsIdentifier(TlsContext)",
+            "UserSuppliedTrimmed": "GetTlsIdentifier(TlsContext)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " TrafficSecret->TrafficSecretType",
+            "UserSuppliedTrimmed": "TrafficSecret->TrafficSecretType",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n                TrafficSecret->MsgSequenceStart",
+            "UserSuppliedTrimmed": "TrafficSecret->MsgSequenceStart",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " TrafficSecret->MsgSequenceEnd",
+            "UserSuppliedTrimmed": "TrafficSecret->MsgSequenceEnd",
+            "SuggestedTelemetryName": "arg6"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannel11388d903b526f90953cc5357d33da16": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p][%c] Processing %u received bytes.",
+      "UniqueId": "FN_tls_schannel11388d903b526f90953cc5357d33da16",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n        TlsContext",
+            "UserSuppliedTrimmed": "TlsContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " GetTlsIdentifier(TlsContext)",
+            "UserSuppliedTrimmed": "GetTlsIdentifier(TlsContext)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " *BufferLength",
+            "UserSuppliedTrimmed": "*BufferLength",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannel4f259e4b8596ae5c2c3a20b405dc2316": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls] %s[%u]: %s",
+      "UniqueId": "FN_tls_schannel4f259e4b8596ae5c2c3a20b405dc2316",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Prefix",
+            "UserSuppliedTrimmed": "Prefix",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Length",
+            "UserSuppliedTrimmed": "Length",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " SecretStr",
+            "UserSuppliedTrimmed": "SecretStr",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannel754265edd8c0f88042c680baa8685b2a": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p] Failed to negotiate ALPN successfully: %d",
+      "UniqueId": "FN_tls_schannel754265edd8c0f88042c680baa8685b2a",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \r\n                        TlsContext",
+            "UserSuppliedTrimmed": "TlsContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " NegotiatedAlpn.ProtoNegoStatus",
+            "UserSuppliedTrimmed": "NegotiatedAlpn.ProtoNegoStatus",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_tls_schannel_FAILED_FINDING_MATCHING_ALPN": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p] Failed to find a matching ALPN",
+      "UniqueId": "FN_tls_schannel_FAILED_FINDING_MATCHING_ALPN",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " TlsContext",
+            "UserSuppliedTrimmed": "TlsContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "TlsErrorStatus": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p] ERROR, %d, %s.",
+      "UniqueId": "TlsErrorStatus",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Status",
+            "UserSuppliedTrimmed": "Status",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \"Convert SNI to unicode\"",
+            "UserSuppliedTrimmed": "\"Convert SNI to unicode\"",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "TlsError": {
+      "ModuleProperites": {},
+      "TraceString": "[ tls][%p] ERROR, %s.",
+      "UniqueId": "TlsError",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " \"No QUIC TP received\"",
+            "UserSuppliedTrimmed": "\"No QUIC TP received\"",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
     }
   },
   "Version": 1,
@@ -18242,12 +23642,17 @@
         "EncodingType": "Int64",
         "CType": "CLOG_INT64",
         "DefinationEncoding": "zd"
+      },
+      {
+        "EncodingType": "Int32",
+        "CType": "CLOG_INT32",
+        "DefinationEncoding": "4.4x"
       }
     ]
   },
   "CustomTypeProcessorsX": {
     "msquic.clog_config": null,
-    "defaults.clog_config": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\n\nusing System;\nusing System.Runtime.InteropServices;\n\nnamespace defaults.clog_config\n{\n    public class Types\n    {\n\n        [StructLayout(LayoutKind.Explicit)]\n        public struct SocketAddress\n        {\n            [FieldOffset(0)]\n            public ushort si_family;\n\n            [FieldOffset(2)]\n            public ushort sin_port;\n\n            // IPv4\n            [FieldOffset(4)]\n            public ulong S_addr;\n\n\n            // IPv6\n            [FieldOffset(4)]\n            public ulong sin6_flowinfo;\n\n            [FieldOffset(8)]\n            public ulong S_v6Addr1;\n\n            [FieldOffset(16)]\n            public ulong S_v6Addr2;\n        };\n\n        public static string QUIC_FLAGS(uint value)\n        {\n            return \"QUIC_FLAGS (good!) \" + value;\n        }\n\n        public static string QUIC_IP_ADDR(byte[] value)\n        {\n            int len = value.Length;\n            IntPtr i = System.Runtime.InteropServices.Marshal.AllocHGlobal(len);\n            System.Runtime.InteropServices.Marshal.Copy(value, 0, i, len);\n            string msg = \"\";\n            SocketAddress sa2 = (SocketAddress)System.Runtime.InteropServices.Marshal.PtrToStructure(i, typeof(SocketAddress));\n\n            switch (sa2.si_family)\n            {\n                case 0:\n                    msg += \"<empty>\";\n                    break;\n                case 23: //<--v6\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\n                    break;\n                case 2:  //< --v4\n                    msg += \"IPV4:\" + sa2.S_addr + \":\" + sa2.sin_port;\n                    break;\n                default:\n                    throw new Exception(\"Invalid SI_FAMILY : \" + sa2.si_family);\n                    //msg += \"Unknown Family: \" + sa2.si_family;\n                    break;\n            }\n\n            System.Runtime.InteropServices.Marshal.FreeHGlobal(i);\n            return msg;\n        }\n\n        public static string DecodeUInt32(uint value)\n        {\n            return \"CLOG_UINT32:\"+value.ToString();\n        }\n\n        public static string DecodeInt32(int value)\n        {\n            return \"CLOG_INT32\"+value.ToString();\n        }\n\n        public static string DecodeInt8(byte value)\n        {\n            return value.ToString();\n        }\n    }\n}"
+    "defaults.clog_config": "/*++\r\n\r\n    Copyright (c) Microsoft Corporation.\r\n    Licensed under the MIT License.\r\n\r\n--*/\r\n\r\n\r\nusing System;\r\nusing System.Runtime.InteropServices;\r\n\r\nnamespace defaults.clog_config\r\n{\r\n    public class Types\r\n    {\r\n\r\n        [StructLayout(LayoutKind.Explicit)]\r\n        public struct SocketAddress\r\n        {\r\n            [FieldOffset(0)]\r\n            public ushort si_family;\r\n\r\n            [FieldOffset(2)]\r\n            public ushort sin_port;\r\n\r\n            // IPv4\r\n            [FieldOffset(4)]\r\n            public ulong S_addr;\r\n\r\n\r\n            // IPv6\r\n            [FieldOffset(4)]\r\n            public ulong sin6_flowinfo;\r\n\r\n            [FieldOffset(8)]\r\n            public ulong S_v6Addr1;\r\n\r\n            [FieldOffset(16)]\r\n            public ulong S_v6Addr2;\r\n        };\r\n\r\n        public static string QUIC_FLAGS(uint value)\r\n        {\r\n            return \"QUIC_FLAGS (good!) \" + value;\r\n        }\r\n\r\n        public static string QUIC_IP_ADDR(byte[] value)\r\n        {\r\n            int len = value.Length;\r\n            IntPtr i = System.Runtime.InteropServices.Marshal.AllocHGlobal(len);\r\n            System.Runtime.InteropServices.Marshal.Copy(value, 0, i, len);\r\n            string msg = \"\";\r\n            SocketAddress sa2 = (SocketAddress)System.Runtime.InteropServices.Marshal.PtrToStructure(i, typeof(SocketAddress));\r\n\r\n            switch (sa2.si_family)\r\n            {\r\n                case 0:  //<--unspecified\r\n                    msg += \"Unspecified\";\r\n\r\n                    break;\r\n                case 23: //<--v6\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 10:  //<--v6 (linux)\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 2:  //< --v4\r\n                    msg += \"IPV4:\" + sa2.S_addr + \":\" + sa2.sin_port;\r\n                    break;\r\n                default:\r\n                    throw new Exception(\"Invalid SI_FAMILY : \" + sa2.si_family);\r\n                    //msg += \"Unknown Family: \" + sa2.si_family;\r\n                    break;\r\n            }\r\n\r\n            System.Runtime.InteropServices.Marshal.FreeHGlobal(i);\r\n            return msg;\r\n        }\r\n\r\n        public static string DecodeUInt32(uint value)\r\n        {\r\n            return \"CLOG_UINT32:\"+value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt32(int value)\r\n        {\r\n            return \"CLOG_INT32\"+value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt8(byte value)\r\n        {\r\n            return value.ToString();\r\n        }\r\n    }\r\n}"
   },
   "ModuleUniqueness": {
     "TraceInformation": [
@@ -20182,6 +25587,450 @@
       {
         "UniquenessHash": "6680c4cc-ba6a-9762-f88a-cbd1d2841163",
         "TraceID": "BINARY_TEST"
+      },
+      {
+        "UniquenessHash": "66d0b241-78e9-9f1a-94f6-bbac3eb59630",
+        "TraceID": "FN_datapath_winuser7e4a97fc94896da31a4993ff6f092e92"
+      },
+      {
+        "UniquenessHash": "e9f434c9-8533-3eb8-2ed3-24773f54c6f7",
+        "TraceID": "FN_datapath_winuser04a69f6520465d836d9ecc548aca205f"
+      },
+      {
+        "UniquenessHash": "e9b15a54-d97a-a963-9a68-69aa6580dd2f",
+        "TraceID": "FN_datapath_winuser056b4205a8a1a853fc007943573434ec"
+      },
+      {
+        "UniquenessHash": "2710bcaf-f4f8-890d-c461-08307fa633dd",
+        "TraceID": "FN_datapath_winuser52d7234dcb3f692b80f4c47c409307a1"
+      },
+      {
+        "UniquenessHash": "ed761303-8c9d-84b9-8a89-f5e54b51d167",
+        "TraceID": "FN_datapath_winusercd6a2a3cd4b5a709e0db1785a40f2c9c"
+      },
+      {
+        "UniquenessHash": "07766460-8045-b678-4d24-ab044d1090ef",
+        "TraceID": "FN_datapath_winuserc27b74d2172741bdcae0bfdc3bc1894b"
+      },
+      {
+        "UniquenessHash": "131b4871-575f-03de-e3d1-05645f2edc40",
+        "TraceID": "FN_datapath_winuser9833f9ce62f73a18d3abb7ad580e96c1"
+      },
+      {
+        "UniquenessHash": "e6ecdd42-c577-4035-2283-c303b819c5a1",
+        "TraceID": "FN_datapath_winuser1289b688aef48a96adeda8208c753b21"
+      },
+      {
+        "UniquenessHash": "5c0a594a-8ac2-6b77-2924-7d2e2fc42968",
+        "TraceID": "FN_datapath_winuser032b71cec12b7777ddde8d45635955d7"
+      },
+      {
+        "UniquenessHash": "d1959a6d-4933-651f-7367-befe32758ce4",
+        "TraceID": "FN_datapath_winusereffe372f69040808bb6dfa7efc48eaf2"
+      },
+      {
+        "UniquenessHash": "85211567-829a-4bd3-c02d-8d0692931119",
+        "TraceID": "FN_datapath_winuser412639938e8fc1b1ee3404c2931d0482"
+      },
+      {
+        "UniquenessHash": "200d8f09-ee7f-6ad1-8960-5ca34f47b3c1",
+        "TraceID": "FN_datapath_winuser7cbaf8a9e6d9fdd2bd3510dc11d90bf6"
+      },
+      {
+        "UniquenessHash": "3f41650a-9b57-9608-0877-9cd2fed09662",
+        "TraceID": "FN_datapath_winusera4bf90a34d69dcbe9e96ed51f1b9021c"
+      },
+      {
+        "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
+        "TraceID": "LibraryError"
+      },
+      {
+        "UniquenessHash": "619b2963-f552-bf08-f899-7ff25b992691",
+        "TraceID": "DatapathErrorStatus"
+      },
+      {
+        "UniquenessHash": "deb0ff59-6773-64e9-14a7-db67e9796a93",
+        "TraceID": "DatapathRecv"
+      },
+      {
+        "UniquenessHash": "04fbd15d-a70c-ffdb-6191-5f1d927405ff",
+        "TraceID": "DatapathSendTo"
+      },
+      {
+        "UniquenessHash": "c132650d-7013-924f-bde3-71bcbf333880",
+        "TraceID": "DatapathSendFromTo"
+      },
+      {
+        "UniquenessHash": "591653d8-b6ee-9bfa-2cd4-6dfbf3978cdc",
+        "TraceID": "FN_platform_winuser8e387020259f41ef110ccaeebe910f40"
+      },
+      {
+        "UniquenessHash": "36166fa3-38d3-d4a5-5f8f-63e0d6e922ac",
+        "TraceID": "FN_platform_winuser0c22020f4491112ca1f62af9913bb8bd"
+      },
+      {
+        "UniquenessHash": "6cda5ece-63d6-2b3e-4ccb-3cc780ab070b",
+        "TraceID": "FN_platform_winuser73ea831dacee5fd83da7d83c77bdbcdb"
+      },
+      {
+        "UniquenessHash": "54ff7274-5400-51dc-5c5f-6480b3287e23",
+        "TraceID": "FN_platform_winuserd673a9c82917e2cfa2aeed8357e33ee9"
+      },
+      {
+        "UniquenessHash": "722913fd-2014-2efa-8073-b8e8231edf87",
+        "TraceID": "LibraryAssert"
+      },
+      {
+        "UniquenessHash": "ee5e592e-18a5-ba71-6c0b-3b637d02c82d",
+        "TraceID": "FN_storage_winuserf1b76ae7b606aa4efae449ed9de18a9c"
+      },
+      {
+        "UniquenessHash": "0769c375-c2ab-d9ad-8c6a-d3d12728951b",
+        "TraceID": "FN_cert_capi332ce3a0478930dcc0f30a74d3b73bef"
+      },
+      {
+        "UniquenessHash": "f5d267fb-796a-75bf-94fe-b193f40e2582",
+        "TraceID": "FN_cert_capia03041865fc856d1e4ee6ce5628bdbaf"
+      },
+      {
+        "UniquenessHash": "f0b0b2e9-6d2c-4c41-4288-81b14fb27657",
+        "TraceID": "FN_cert_capied863464d8821793b4154d75fcf32d5b"
+      },
+      {
+        "UniquenessHash": "981383d2-2b13-b22d-16e4-87428239bba3",
+        "TraceID": "FN_cert_capi5bb34b6704875d28cb94dc588d4b472a"
+      },
+      {
+        "UniquenessHash": "ac79f181-91a7-fea8-c1df-5544e44fec20",
+        "TraceID": "FN_cert_capi17d2c0488205ee4e61e1e86b9b6ff56b"
+      },
+      {
+        "UniquenessHash": "27575d3e-3091-f821-2119-71d12e41c441",
+        "TraceID": "FN_cert_capiee6066640e45e7af6588ec052f0c067f"
+      },
+      {
+        "UniquenessHash": "b612344f-b7f8-239d-e7b9-d319b827589a",
+        "TraceID": "FN_cert_capi9ce4f92e6428499177c1105cbdfaed28"
+      },
+      {
+        "UniquenessHash": "a306f523-dee0-016a-8724-bdd22641c22f",
+        "TraceID": "FN_cert_capi1f5a615a0ca68291825c1c035f552f11"
+      },
+      {
+        "UniquenessHash": "13b9cb8f-22f8-3e57-8032-1dc894723f7f",
+        "TraceID": "FN_cert_capi2a247724ef2fdb2817522e427f20c5b7"
+      },
+      {
+        "UniquenessHash": "8b57ea01-ed1f-e5fc-61a1-ad566f5e337b",
+        "TraceID": "FN_cert_capi0ea0bfe55114d53864b583880e28febd"
+      },
+      {
+        "UniquenessHash": "f426f51c-043c-c61b-7bb2-8aeb58bd826d",
+        "TraceID": "FN_cert_capie9f6ebfefedfe10ace186698160ca5e7"
+      },
+      {
+        "UniquenessHash": "4ab6249c-3ade-54ae-0fe5-72e56b31463e",
+        "TraceID": "FN_cert_capi566dce19e279b51310e501a3d10cb8bb"
+      },
+      {
+        "UniquenessHash": "197ce8b5-4d4a-6b6c-2212-76925a4829d0",
+        "TraceID": "FN_cert_capi20392d28615e72bb1d59e5a6bc2751a4"
+      },
+      {
+        "UniquenessHash": "d5bde170-281f-8db3-8a82-da77fa56467b",
+        "TraceID": "FN_cert_capif85d28e87fb160b72a3e4062af703589"
+      },
+      {
+        "UniquenessHash": "06597174-c49d-8632-c824-26ee384f3650",
+        "TraceID": "FN_cert_capid7cda0467be9666b4624e1d824fa3e4f"
+      },
+      {
+        "UniquenessHash": "f04fcb16-d35d-fe8b-c06e-276240957e9e",
+        "TraceID": "FN_cert_capiaee49fa3187aab711dc50b0ce162f7c5"
+      },
+      {
+        "UniquenessHash": "695fa373-a965-6197-57f5-f54baa97da67",
+        "TraceID": "FN_cert_capi5c2523d318ca5995bcc6dfa9f4edd05f"
+      },
+      {
+        "UniquenessHash": "65f81c66-4e90-b73d-191b-5138ce8de5db",
+        "TraceID": "FN_cert_capiaad93cae0528abd93349f2e1f0c0d733"
+      },
+      {
+        "UniquenessHash": "439f9d66-3c93-e87b-2cff-5b29ce9148dc",
+        "TraceID": "FN_cert_capiec620a1708e8f40da6e3a3fcffa2b044"
+      },
+      {
+        "UniquenessHash": "dd74f006-dcdc-25da-2426-eea3084c24b0",
+        "TraceID": "FN_cert_capi24d66c83bf0adc7239db5119b81b679c"
+      },
+      {
+        "UniquenessHash": "9610c2ca-c79f-3b5a-3b9e-f018501cfee3",
+        "TraceID": "FN_cert_capi43b2d940a5becc6235628c85ce8ced33"
+      },
+      {
+        "UniquenessHash": "d09b333b-daa6-e270-db43-01109fd58721",
+        "TraceID": "FN_cert_capiae80431d598b350efeb03382cbeb2b41"
+      },
+      {
+        "UniquenessHash": "dea97e11-144e-f3fc-7794-8ecc50dee0af",
+        "TraceID": "FN_cert_capif08fb999578bf6d0c9eeaa0df652e2f0"
+      },
+      {
+        "UniquenessHash": "45c742b4-6e98-e455-f2fe-bf86c26e5902",
+        "TraceID": "FN_cert_capid6bc56587e5b37506529ac0f2e978988"
+      },
+      {
+        "UniquenessHash": "740a83c8-5552-abeb-6aed-927d1f7e072b",
+        "TraceID": "FN_cert_capi74f600bbf24758be24c171307f786d93"
+      },
+      {
+        "UniquenessHash": "a5d48e84-2cee-7741-f842-a5431e9531ed",
+        "TraceID": "FN_cert_capi6ef52f7405a29bc4484fcb2478561c69"
+      },
+      {
+        "UniquenessHash": "4e4ecde9-9805-52c7-72ce-344fbbee046b",
+        "TraceID": "FN_cert_capi9d9c3aecf5c804cd4f49710986e4e86f"
+      },
+      {
+        "UniquenessHash": "125fba3b-edbc-1908-77d8-8a1f0ce43627",
+        "TraceID": "FN_cert_capi26376cc0986f6195c23953e735c21dff"
+      },
+      {
+        "UniquenessHash": "539a45c7-5c5a-86f0-413c-d89aaef2d769",
+        "TraceID": "FN_cert_capiaf9152a65b5a765ac869b83af9bbe4b2"
+      },
+      {
+        "UniquenessHash": "e6a88cdf-7ec7-f9ab-b679-bf38ec8d3b63",
+        "TraceID": "FN_cert_capid75c4943214f92a4e4aed3f409633d32"
+      },
+      {
+        "UniquenessHash": "c15fe3af-4029-59ca-eb3c-e2ad1ea79735",
+        "TraceID": "FN_cert_capif423b51efcd97ed754802562c64995f1"
+      },
+      {
+        "UniquenessHash": "446140a2-9e85-1117-e0fe-b3b422961a7e",
+        "TraceID": "FN_selfsign_capi0ea0bfe55114d53864b583880e28febd"
+      },
+      {
+        "UniquenessHash": "9159e35a-1f11-f097-12a8-d11260195775",
+        "TraceID": "FN_selfsign_capib987d46256da02f01ee442873c55fc3a"
+      },
+      {
+        "UniquenessHash": "71b7d7d4-f62e-acf0-0e6d-3aed7f0e1c46",
+        "TraceID": "FN_selfsign_capicb36dc033ac9877463b0859504450655"
+      },
+      {
+        "UniquenessHash": "43c3d34f-0586-e7a3-b232-240abf60d086",
+        "TraceID": "FN_selfsign_capi35f78be05fa1f09f40401bab17eb322e"
+      },
+      {
+        "UniquenessHash": "dab8b2c3-48a9-cbf3-46f4-db6584b934bf",
+        "TraceID": "FN_selfsign_capi7d9d27fd867edffa90d14735abcef13b"
+      },
+      {
+        "UniquenessHash": "76ca1163-613d-0889-af2d-fba8a68d7749",
+        "TraceID": "FN_selfsign_capi760f4991b08a42d6e34243caf688f6db"
+      },
+      {
+        "UniquenessHash": "5aea0450-60df-412a-520d-1c341155eb0b",
+        "TraceID": "FN_selfsign_capi8650607e99507e1eb44a84f5cb4faff4"
+      },
+      {
+        "UniquenessHash": "799fb571-07bd-84d6-c7ba-670ccef05c35",
+        "TraceID": "FN_selfsign_capi9389d4c9e8922de376eb5fe3d0b2ec6e"
+      },
+      {
+        "UniquenessHash": "44bedcae-b0e8-4261-c682-b2265abd8185",
+        "TraceID": "FN_selfsign_capib4167274625f54f8d7dae77b1badfa37"
+      },
+      {
+        "UniquenessHash": "63f8db81-9b10-2f47-15d8-257e7dfe8253",
+        "TraceID": "FN_selfsign_capib54384b48c8de0ef32831df01792b822"
+      },
+      {
+        "UniquenessHash": "2815d22b-aea3-facd-6d3e-8c49ba946664",
+        "TraceID": "FN_selfsign_capif612c254501084f860a4d65f1d00f458"
+      },
+      {
+        "UniquenessHash": "5c6db2f1-54a9-c984-3088-4d1f071f0edf",
+        "TraceID": "FN_selfsign_capi12b6d068a1a9391246c76011697121e0"
+      },
+      {
+        "UniquenessHash": "e5c35062-529c-60e8-8f5f-545518106be6",
+        "TraceID": "FN_selfsign_capi0dde9310da399e50c6c40f7aa5805fe9"
+      },
+      {
+        "UniquenessHash": "3086b934-b23e-f53c-d73f-c4b14c8a9a3c",
+        "TraceID": "FN_selfsign_capi78ec506566adfde5beacd100ed342b0a"
+      },
+      {
+        "UniquenessHash": "fe8867d4-7d78-2b55-6141-5b5cd6b9e7ef",
+        "TraceID": "FN_selfsign_capi7224c0d1a17ab3a6ac156ed43aef923b"
+      },
+      {
+        "UniquenessHash": "8443c062-47b8-f4d4-cfa0-549128ce121c",
+        "TraceID": "FN_selfsign_capi2005562022de62909c3f0c7285426014"
+      },
+      {
+        "UniquenessHash": "add0daba-eb77-d4da-b1aa-cdf344c26e6c",
+        "TraceID": "FN_selfsign_capi577a364e6a706037a4d5314ede005085"
+      },
+      {
+        "UniquenessHash": "d375520a-c262-a124-b279-654b8ed6392c",
+        "TraceID": "FN_selfsign_capibeb3d36073e270808487b7ad4e94759c"
+      },
+      {
+        "UniquenessHash": "6eb7633b-58a4-af97-ff7b-799a3d314879",
+        "TraceID": "FN_selfsign_capi50b9de74542ef82946afc0f3d0db3ed9"
+      },
+      {
+        "UniquenessHash": "c933e9cb-b83a-5721-a6fb-c7221459b0df",
+        "TraceID": "FN_selfsign_capifcdde10fcd730b6d052d07c926b4176a"
+      },
+      {
+        "UniquenessHash": "979a2a18-f77f-ea15-4a71-3834b65faa7c",
+        "TraceID": "FN_selfsign_capi7ef9c5e5ef97f389821078e31a11d45e"
+      },
+      {
+        "UniquenessHash": "800c811d-1f24-1268-867a-3a550aae2fee",
+        "TraceID": "FN_selfsign_capieb8ac18220159f03a2fc2869b2bfd275"
+      },
+      {
+        "UniquenessHash": "b9fd8b6d-9eae-421e-160b-284450f5a664",
+        "TraceID": "FN_selfsign_capi19a45b31070a77d6fccf2496fd8af96b"
+      },
+      {
+        "UniquenessHash": "ce6d60e4-76b2-df5f-3d73-a90dfbecae6f",
+        "TraceID": "FN_selfsign_capi3039c7954db54dd771a7e5cf2a2e8543"
+      },
+      {
+        "UniquenessHash": "2a51f066-d3cb-eac0-025d-1a5029266b28",
+        "TraceID": "FN_selfsign_capibb2e66d5c0fa329c33511153548609b9"
+      },
+      {
+        "UniquenessHash": "0f21c99a-303e-a29d-0894-e9a687dc0bd2",
+        "TraceID": "FN_selfsign_capib7f937400a87b8cc12ab6d021b98d0da"
+      },
+      {
+        "UniquenessHash": "309efa67-4bfd-56e7-4caa-8f6f3ff9d446",
+        "TraceID": "FN_selfsign_capib3aab84f6a61d0f06607e50d73e64728"
+      },
+      {
+        "UniquenessHash": "9b621226-aa6a-4e4e-76a3-f2da99943652",
+        "TraceID": "FN_selfsign_capi9777e92b55d10041e8c1879083583602"
+      },
+      {
+        "UniquenessHash": "fb562e7b-8e0f-7314-510f-5dac47889df9",
+        "TraceID": "FN_selfsign_capi24fca425cd878eb28a4a89014d353835"
+      },
+      {
+        "UniquenessHash": "8ed4c9f7-b921-308d-81b8-e7141b53cd03",
+        "TraceID": "FN_selfsign_capi35d3b0c70fdf4ee038769a9a60d87ee8"
+      },
+      {
+        "UniquenessHash": "32ef3ffc-06be-a752-d94a-e9041640ad10",
+        "TraceID": "FN_selfsign_capi1b6739defef24561b3846cb5127a3644"
+      },
+      {
+        "UniquenessHash": "1d977b00-d251-3966-ea3c-e7a840e294f2",
+        "TraceID": "FN_selfsign_capi30cfec4d6480dd6e2ccca715e08c306a"
+      },
+      {
+        "UniquenessHash": "3aa00c2d-101c-134f-3ad0-f16566297b2b",
+        "TraceID": "FN_selfsign_capi47e693d98dffdb601a27fda197f23007"
+      },
+      {
+        "UniquenessHash": "89af2db8-cc51-7fdd-56c8-568fd9c93593",
+        "TraceID": "FN_tls_schannelf64eed1bdb2b3ad9b5977354e08be5bd"
+      },
+      {
+        "UniquenessHash": "7ae1e13f-730e-e752-dc16-9cbb439a808d",
+        "TraceID": "FN_tls_schannel17f0d4ffbb3c4f80c2422125e4fa3a17"
+      },
+      {
+        "UniquenessHash": "81f0da9f-ca84-b355-0649-64841ad1c4ed",
+        "TraceID": "FN_tls_schannel30e07aa262881737030e9cf1ebd43162"
+      },
+      {
+        "UniquenessHash": "f87de7cf-6341-a39f-1191-7eb2b0f80335",
+        "TraceID": "FN_tls_schannel1d944110e7ac29bb27332b45e704846e"
+      },
+      {
+        "UniquenessHash": "ecb89050-53e3-bbab-24a1-36ade09d1b88",
+        "TraceID": "FN_tls_schannelc8b3f8ee595be8c34e988c062530e0b5"
+      },
+      {
+        "UniquenessHash": "8746f0ac-ac29-aeb7-00c1-7799ac671915",
+        "TraceID": "FN_tls_schannele60d006afc2cab6e462c21e95ce14070"
+      },
+      {
+        "UniquenessHash": "5cfc8475-e091-5cc0-a00a-4eda2768718f",
+        "TraceID": "FN_tls_schannel30391afe07b6d3f74572de151f17cbae"
+      },
+      {
+        "UniquenessHash": "0c027f0d-b3f7-8398-8f9f-8d99db03f0e8",
+        "TraceID": "FN_tls_schannel6970b6eabec6111fb0e2607f8de29955"
+      },
+      {
+        "UniquenessHash": "14e02cd4-6d57-722a-da15-7956e4f58430",
+        "TraceID": "FN_tls_schannel2d1fad924513272aa57a5583188d4f3b"
+      },
+      {
+        "UniquenessHash": "0b6d55ee-b378-7c1c-707d-82cfe2e90543",
+        "TraceID": "FN_tls_schannel4317e3d2ceeb3b5573f957f9ed083e97"
+      },
+      {
+        "UniquenessHash": "50157ba4-e9bc-1dae-5311-e43ddaeec481",
+        "TraceID": "FN_tls_schannelb65b8dca7f5151d13234fe346bafd955"
+      },
+      {
+        "UniquenessHash": "bea951df-a480-1f21-5e2c-09a12f7b5fb3",
+        "TraceID": "FN_tls_schannele8a70813676523358183bd7ed391b113"
+      },
+      {
+        "UniquenessHash": "100450c2-4235-6de9-059d-60c24de915ea",
+        "TraceID": "FN_tls_schannel9c3e8aea1bec24709728acfa96449d4b"
+      },
+      {
+        "UniquenessHash": "9e85369e-12db-7276-9b13-df18f7196eab",
+        "TraceID": "FN_tls_schannel6d361481ebf951cde4a4cf39643dfef0"
+      },
+      {
+        "UniquenessHash": "33df7bd5-c393-c251-71d9-0aa7a29eb112",
+        "TraceID": "FN_tls_schannel8b8980417b7165619250b4160d5f5320"
+      },
+      {
+        "UniquenessHash": "c33610ac-2176-c407-5225-2f31d4d66a0f",
+        "TraceID": "FN_tls_schannel46416f9e948dc2d7e0da7dff4824650b"
+      },
+      {
+        "UniquenessHash": "200cf5f8-7a5c-1de6-6193-252717d0db6f",
+        "TraceID": "FN_tls_schannel1791055a5ed419b1993a1889e6a3c2f3"
+      },
+      {
+        "UniquenessHash": "e5f0c15d-ae63-531c-d423-b0e19bd5cc1e",
+        "TraceID": "FN_tls_schannel11388d903b526f90953cc5357d33da16"
+      },
+      {
+        "UniquenessHash": "fe2b838a-4bca-305b-3d75-7abec4d3d613",
+        "TraceID": "FN_tls_schannel4f259e4b8596ae5c2c3a20b405dc2316"
+      },
+      {
+        "UniquenessHash": "f9fe2e40-5955-dc6d-3a5a-6f4fbf35f104",
+        "TraceID": "FN_tls_schannel754265edd8c0f88042c680baa8685b2a"
+      },
+      {
+        "UniquenessHash": "58d59b26-50c7-8c56-8b4f-32e1fe8ac062",
+        "TraceID": "FN_tls_schannel_FAILED_FINDING_MATCHING_ALPN"
+      },
+      {
+        "UniquenessHash": "4465575d-da66-8105-b38c-bd370a6e8355",
+        "TraceID": "TlsErrorStatus"
+      },
+      {
+        "UniquenessHash": "9eac4540-061f-ff2b-c104-5c1e1b8b22b6",
+        "TraceID": "TlsError"
       }
     ]
   }

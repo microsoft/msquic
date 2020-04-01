@@ -207,7 +207,7 @@ MsQuicListenerStart(
 
     QuicTraceEvent(ListenerStarted, "[list][%p] Started, Binding=%p, LocalAddr=%SOCKADDR", 
         Listener, 
-        Listener->Binding, CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), S2C(&Listener->LocalAddress)));
+        Listener->Binding, CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), (uint8_t*)&Listener->LocalAddress));
 
 Error:
 
@@ -262,7 +262,7 @@ QuicListenerTraceRundown(
     if (Listener->Binding != NULL) {
         QuicTraceEvent(ListenerStarted, "[list][%p] Started, Binding=%p, LocalAddr=%SOCKADDR", 
             Listener, 
-            Listener->Binding, CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), S2C(&Listener->LocalAddress)));
+            Listener->Binding, CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), (uint8_t*)&Listener->LocalAddress));
     }
 }
 

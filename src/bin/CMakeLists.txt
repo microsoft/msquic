@@ -16,7 +16,7 @@ target_compile_options(msquic PRIVATE
      $<$<CXX_COMPILER_ID:MSVC>:
         ${MSVC_WARNING_FLAGS}>)
 
-target_link_libraries(msquic core platform PLATFORM_CLOG_LIB CORE_CLOG_LIB)
+target_link_libraries(msquic core platform CORE_CLOG_LIB PLATFORM_CLOG_LIB)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     target_link_libraries(msquic

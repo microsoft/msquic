@@ -839,12 +839,6 @@ QuicAddr6FromString(
     return TRUE;
 }
 
-char *S2C(QUIC_ADDR *x)
-{
-    return (char*)x;
-}
-
-
 BOOLEAN
 QuicAddrFromString(
     _In_z_ const char* AddrStr,

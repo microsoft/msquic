@@ -12,8 +12,8 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         storage_winuser.c
     )
 else()
-    set(SOURCES        
-        datapath_linux.c        
+    set(SOURCES
+        datapath_linux.c
         hashtable.c
         inline.c
         platform_linux.c
