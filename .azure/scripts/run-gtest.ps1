@@ -44,6 +44,9 @@ as necessary.
 .PARAMETER CompressOutput
     Compresses the output files generated for failed test cases.
 
+.PARAMETER NoProgress
+    Disables the progress bar.
+
 #>
 
 param (
@@ -87,7 +90,10 @@ param (
     [switch]$ConvertLogs = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$CompressOutput = $false
+    [switch]$CompressOutput = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$NoProgress = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -339,6 +345,12 @@ function Wait-TestCase($TestCase) {
             if ($null -ne $stderr -and "" -ne $stderr) {
                 Write-Host $stderr
             }
+        } else {
+            if ($AnyTestFailed -or $ProcessCrashed) {
+                Log "$($TestCase.Name) failed"
+            } else {
+                Log "$($TestCase.Name) succeeded"
+            }
         }
 
         if ($KeepOutputOnSuccess -or $ProcessCrashed -or $AnyTestFailed) {
@@ -352,17 +364,17 @@ function Wait-TestCase($TestCase) {
             }
 
             if ($null -ne $stdout -and "" -ne $stdout) {
-                $stdout > (Join-Path $LogDir "stdout.txt")
+                $stdout > (Join-Path $TestCase.LogDir "stdout.txt")
             }
 
             if ($null -ne $stderr -and "" -ne $stderr) {
-                $stderr > (Join-Path $LogDir "stderr.txt")
+                $stderr > (Join-Path $TestCase.LogDir "stderr.txt")
             }
 
             if ($CompressOutput) {
                 # Zip the output.
                 CompressOutput-Archive -Path "$($TestCase.LogDir)\*" -DestinationPath "$($TestCase.LogDir).zip" | Out-Null
-                Remove-Item $LogDir -Recurse -Force | Out-Null
+                Remove-Item $TestCase.LogDir -Recurse -Force | Out-Null
             }
 
         } else {
@@ -401,6 +413,8 @@ function GetTestCases {
 ##############################################################
 #                     Main Execution                         #
 ##############################################################
+
+Log $Path
 
 # Query all the test cases.
 $TestCases = GetTestCases
@@ -441,7 +455,9 @@ try {
             Log "Executing $TestCount test(s) in series..."
             for ($i = 0; $i -lt $TestCases.Length; $i++) {
                 Wait-TestCase (Start-TestCase $TestCases[$i])
-                Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+                if (!$NoProgress) {
+                    Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+                }
             }
 
         } else {
@@ -456,7 +472,9 @@ try {
             $Runs = New-Object System.Collections.ArrayList
             for ($i = 0; $i -lt $TestCases.Length; $i++) {
                 $Runs.Add((Start-TestCase $TestCases[$i])) | Out-Null
-                Write-Progress -Activity "Starting tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+                if (!$NoProgress) {
+                    Write-Progress -Activity "Starting tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+                }
                 Start-Sleep -Milliseconds 1
             }
 
@@ -464,7 +482,9 @@ try {
             Log "Waiting for test cases to complete..."
             for ($i = 0; $i -lt $Runs.Count; $i++) {
                 Wait-TestCase $Runs[$i]
-                Write-Progress -Activity "Finishing tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+                if (!$NoProgress) {
+                    Write-Progress -Activity "Finishing tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+                }
             }
         }
     }
@@ -500,7 +520,7 @@ try {
     # Print out the results.
     Log "$($TestCount) test(s) run. $($TestsFailed) test(s) failed."
     if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or $AnyProcessCrashes) {
-        Log "Logs can be found in $($LogDir)"
+        Log "Output can be found in $($LogDir)"
     } else {
         if (Test-Path $LogDir) {
             Remove-Item $LogDir -Recurse -Force | Out-Null
