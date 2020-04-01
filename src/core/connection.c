@@ -4145,6 +4145,7 @@ QuicConnDiscardDeferred0Rtt(
         const QUIC_RECV_PACKET* Packet =
             QuicDataPathRecvDatagramToRecvPacket(Datagram);
         if (Packet->KeyType == QUIC_PACKET_KEY_0_RTT) {
+            QuicPacketLogDrop(Connection, Packet, "0-RTT rejected");
             Packets->DeferredDatagramsCount--;
             *ReleaseChainTail = Datagram;
             ReleaseChainTail = &Datagram->Next;
