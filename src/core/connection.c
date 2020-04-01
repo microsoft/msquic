@@ -4140,7 +4140,7 @@ QuicConnDiscardDeferred0Rtt(
         DeferredDatagrams = DeferredDatagrams->Next;
 
         const QUIC_RECV_PACKET* Packet =
-            QuicDataPathRecvDatagramToRecvPacket(DeferredDatagrams);
+            QuicDataPathRecvDatagramToRecvPacket(Datagram);
         if (Packet->KeyType == QUIC_PACKET_KEY_0_RTT) {
             Packets->DeferredDatagramsCount--;
             *ReleaseChainTail = Datagram;
