@@ -14,7 +14,7 @@ Environment:
 --*/
 
 #include "platform_internal.h"
-#include "platform_winkernel.c.clog"
+#include "platform_winkernel.c.clog.h"
 
 #if QUIC_LOGS_WPP
 #pragma warning(push) // Don't care about OACR warnings in publics

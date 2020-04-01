@@ -10,7 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "packet.c.clog"
+#include "packet.c.clog.h"
 
 //
 // The list of supported QUIC version numbers, in network byte order.

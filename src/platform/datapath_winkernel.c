@@ -10,7 +10,7 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
-#include "datapath_winkernel.c.clog"
+#include "datapath_winkernel.c.clog.h"
 
 //
 // Not yet available in the WDK. When available this code can be removed.

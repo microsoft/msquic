@@ -16,7 +16,7 @@ Environment:
 
 
 #include "platform_internal.h"
-#include "storage_winuser.c.clog"
+#include "storage_winuser.c.clog.h"
 
 void
 NTAPI

@@ -10,7 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "library.c.clog"
+#include "library.c.clog.h"
 
 QUIC_LIBRARY MsQuicLib = { 0 };
 

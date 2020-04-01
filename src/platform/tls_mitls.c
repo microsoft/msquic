@@ -10,7 +10,7 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
-#include "tls_mitls.c.clog"
+#include "tls_mitls.c.clog.h"
 
 #define IS_WINDOWS 1
 #pragma warning(disable:4996) // Deprecated APIs

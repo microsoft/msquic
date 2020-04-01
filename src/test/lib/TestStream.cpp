@@ -10,7 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "TestStream.cpp.clog"
+#include "TestStream.cpp.clog.h"
 
 TestStream::TestStream(
     _In_ HQUIC Handle,

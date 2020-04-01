@@ -12,7 +12,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "binding.c.clog"
+#include "binding.c.clog.h"
 
 //
 // Make sure we will always have enough room to fit our Version Negotiation packet,

@@ -12,7 +12,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "stream_set.c.clog"
+#include "stream_set.c.clog.h"
 
 #if QUIC_TEST_MODE
 _IRQL_requires_max_(DISPATCH_LEVEL)

@@ -11,7 +11,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "stream_recv.c.clog"
+#include "stream_recv.c.clog.h"
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN

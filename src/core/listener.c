@@ -10,7 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "listener.c.clog"
+#include "listener.c.clog.h"
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS

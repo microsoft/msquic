@@ -20,7 +20,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "registration.c.clog"
+#include "registration.c.clog.h"
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS

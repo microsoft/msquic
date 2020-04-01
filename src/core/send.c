@@ -21,7 +21,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "send.c.clog"
+#include "send.c.clog.h"
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void

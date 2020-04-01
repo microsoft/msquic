@@ -34,7 +34,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "stream_send.c.clog"
+#include "stream_send.c.clog.h"
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void

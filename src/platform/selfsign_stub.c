@@ -12,7 +12,7 @@ Abstract:
 #define QUIC_TEST_APIS 1
 
 #include "platform_internal.h"
-#include "selfsign_stub.c.clog"
+#include "selfsign_stub.c.clog.h"
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_SEC_CONFIG_PARAMS*

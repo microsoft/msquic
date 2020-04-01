@@ -21,7 +21,7 @@ Environment:
 #include <linux/in6.h>
 #include <arpa/inet.h>
 #include "quic_platform_dispatch.h"
-#include "datapath_linux.c.clog"
+#include "datapath_linux.c.clog.h"
 
 
 QUIC_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t)), "(sizeof(QUIC_BUFFER.Length) == sizeof(size_t) must be TRUE.");

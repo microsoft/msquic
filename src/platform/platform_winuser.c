@@ -14,7 +14,7 @@ Environment:
 --*/
 
 #include "platform_internal.h"
-#include "platform_winuser.c.clog"
+#include "platform_winuser.c.clog.h"
 
 #if defined(QUIC_LOGS_WPP)
 #include <fastwppimpl.h>

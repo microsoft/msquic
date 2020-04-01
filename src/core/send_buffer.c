@@ -55,7 +55,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "send_buffer.c.clog"
+#include "send_buffer.c.clog.h"
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void

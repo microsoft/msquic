@@ -17,7 +17,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "sent_packet_metadata.c.clog"
+#include "sent_packet_metadata.c.clog.h"
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void

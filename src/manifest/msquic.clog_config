@@ -5,6 +5,9 @@
         {
           "ExportModule": "LTTNG",
           "CustomSettings": {}
+        }, {
+          "ExportModule": "DTRACE",
+          "CustomSettings": {}
         }
       ]
     },

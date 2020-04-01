@@ -15,7 +15,7 @@ Environment:
 --*/
 
 #include "platform_internal.h"
-#include "cert_capi.c.clog"
+#include "cert_capi.c.clog.h"
 
 #include <wincrypt.h>
 #include <msquic.h>

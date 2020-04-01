@@ -32,7 +32,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "connection.c.clog"
+#include "connection.c.clog.h"
 
 typedef struct QUIC_RECEIVE_PROCESSING_STATE {
     BOOLEAN ResetIdleTimeout;

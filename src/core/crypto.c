@@ -19,7 +19,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "crypto.c.clog"
+#include "crypto.c.clog.h"
 
 QUIC_TLS_PROCESS_COMPLETE_CALLBACK QuicTlsProcessDataCompleteCallback;
 QUIC_TLS_RECEIVE_TP_CALLBACK QuicConnReceiveTP;
