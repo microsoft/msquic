@@ -61,6 +61,12 @@ extern "C" {
 #include "congestion_control.h"
 #include "loss_detection.h"
 #include "send.h"
+
+
+#if defined(__cplusplus)
+}
+#endif
+
 #include "operation.h"
 #include "crypto.h"
 #include "stream.h"
@@ -68,7 +74,3 @@ extern "C" {
 #include "connection.h"
 #include "packet_builder.h"
 #include "listener.h"
-
-#if defined(__cplusplus)
-}
-#endif

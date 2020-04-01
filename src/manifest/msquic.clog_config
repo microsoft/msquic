@@ -5,8 +5,12 @@
         {
           "ExportModule": "LTTNG",
           "CustomSettings": {}
+        },
+        {
+          "ExportModule": "LTTNG",
+          "CustomSettings": {}
         }, {
-          "ExportModule": "DTRACE",
+          "ExportModule": "SYSTEMTAP",
           "CustomSettings": {}
         }
       ]
