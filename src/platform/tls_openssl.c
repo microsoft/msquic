@@ -1056,6 +1056,7 @@ QuicTlsSessionAddTicket(
 QUIC_STATUS
 QuicTlsInitialize(
     _In_ const QUIC_TLS_CONFIG* Config,
+    _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _Out_ QUIC_TLS** NewTlsContext
     )
 {
@@ -1137,6 +1138,8 @@ QuicTlsInitialize(
         goto Exit;
     }
     QUIC_FREE(Config->LocalTPBuffer);
+
+    State->EarlyDataState = QUIC_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
 
     *NewTlsContext = TlsContext;
     TlsContext = NULL;

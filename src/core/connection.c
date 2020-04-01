@@ -2453,6 +2453,18 @@ QuicConnGetKeyOrDeferDatagram(
     )
 {
     if (Packet->KeyType > Connection->Crypto.TlsState.ReadKey) {
+
+        if (Packet->KeyType == QUIC_PACKET_KEY_0_RTT &&
+            Connection->Crypto.TlsState.EarlyDataState != QUIC_TLS_EARLY_DATA_UNKNOWN) {
+            //
+            // We don't have the 0-RTT key, but we aren't in an unknown
+            // "early data" state, so it must be rejected/unsupported.
+            // Just drop the packets.
+            //
+            QUIC_DBG_ASSERT(Connection->Crypto.TlsState.EarlyDataState != QUIC_TLS_EARLY_DATA_ACCEPTED);
+            QuicPacketLogDrop(Connection, Packet, "0-RTT not currently accepted");
+        }
+
         //
         // We don't have the necessary key yet so defer the packet until we get
         // the key.
@@ -4106,6 +4118,42 @@ QuicConnFlushRecv(
 
     QuicConnRecvDatagrams(
         Connection, ReceiveQueue, ReceiveQueueCount, FALSE);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnDiscardDeferred0Rtt(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    QUIC_RECV_DATAGRAM* ReleaseChain = NULL;
+    QUIC_RECV_DATAGRAM** ReleaseChainTail = &ReleaseChain;
+    QUIC_PACKET_SPACE* Packets = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
+    QUIC_DBG_ASSERT(Packets != NULL);
+
+    QUIC_RECV_DATAGRAM* DeferredDatagrams = Packets->DeferredDatagrams;
+    QUIC_RECV_DATAGRAM** DeferredDatagramsTail = &Packets->DeferredDatagrams;
+    Packets->DeferredDatagrams = NULL;
+
+    while (DeferredDatagrams != NULL) {
+        QUIC_RECV_DATAGRAM* Datagram = DeferredDatagrams;
+        DeferredDatagrams = DeferredDatagrams->Next;
+
+        const QUIC_RECV_PACKET* Packet =
+            QuicDataPathRecvDatagramToRecvPacket(DeferredDatagrams);
+        if (Packet->KeyType == QUIC_PACKET_KEY_0_RTT) {
+            Packets->DeferredDatagramsCount--;
+            *ReleaseChainTail = Datagram;
+            ReleaseChainTail = &Datagram->Next;
+        } else {
+            *DeferredDatagramsTail = Datagram;
+            DeferredDatagramsTail = &Datagram->Next;
+        }
+    }
+    
+    if (ReleaseChain != NULL) {
+        QuicDataPathBindingReturnRecvDatagrams(ReleaseChain);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

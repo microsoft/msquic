@@ -245,7 +245,7 @@ QuicCryptoInitializeTls(
         goto Error;
     }
 
-    Status = QuicTlsInitialize(&TlsConfig, &Crypto->TLS);
+    Status = QuicTlsInitialize(&TlsConfig, &Crypto->TlsState, &Crypto->TLS);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(ConnErrorStatus, Connection, Status, "QuicTlsInitialize");
         QUIC_FREE(TlsConfig.LocalTPBuffer);
@@ -1075,17 +1075,17 @@ QuicCryptoProcessTlsCompletion(
 
     if (ResultFlags & QUIC_TLS_RESULT_EARLY_DATA_ACCEPT) {
         QuicTraceLogConnInfo(ZeroRttAccepted, Connection, "0-RTT accepted");
-        QUIC_TEL_ASSERT(Crypto->TlsState.EarlyDataAttempted);
-        QUIC_TEL_ASSERT(Crypto->TlsState.EarlyDataAccepted);
+        QUIC_TEL_ASSERT(Crypto->TlsState.EarlyDataState == QUIC_TLS_EARLY_DATA_ACCEPTED);
     }
 
     if (ResultFlags & QUIC_TLS_RESULT_EARLY_DATA_REJECT) {
         QuicTraceLogConnInfo(ZeroRttRejected, Connection, "0-RTT rejected");
-        QUIC_TEL_ASSERT(Crypto->TlsState.EarlyDataAttempted);
-        QUIC_TEL_ASSERT(!Crypto->TlsState.EarlyDataAccepted);
+        QUIC_TEL_ASSERT(Crypto->TlsState.EarlyDataState != QUIC_TLS_EARLY_DATA_ACCEPTED);
         if (!QuicConnIsServer(Connection)) {
             QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_0_RTT);
             QuicLossDetectionOnZeroRttRejected(&Connection->LossDetection);
+        } else {
+            QuicConnDiscardDeferred0Rtt(Connection);
         }
     }
 

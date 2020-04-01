@@ -1178,6 +1178,15 @@ QuicConnHandshakeConfigure(
     );
 
 //
+// Discard any 0-RTT deferred datagrams.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnDiscardDeferred0Rtt(
+    _In_ QUIC_CONNECTION* Connection
+    );
+
+//
 // Processes deferred datagrams for newly derived read keys.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
