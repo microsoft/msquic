@@ -758,7 +758,6 @@ QuicConnGenerateNewSourceCid(
         SourceCid->CID.IsInitial = TRUE;
         QUIC_DBG_ASSERT(!SourceCid->CID.IsInList);
         QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
-        SourceCid->CID.IsInList = TRUE;
     } else {
         QUIC_SINGLE_LIST_ENTRY** Tail = &Connection->SourceCids.Next;
         while (*Tail != NULL) {
@@ -768,7 +767,7 @@ QuicConnGenerateNewSourceCid(
         SourceCid->Link.Next = NULL;
     }
 
-    QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
+    SourceCid->CID.IsInList = TRUE;
 
     return SourceCid;
 }
