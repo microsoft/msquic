@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#include "EventTest.cpp.clog"
 
 #define QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION   1
 #define QUIC_EVENT_ACTION_SHUTDOWN_STREAM       2

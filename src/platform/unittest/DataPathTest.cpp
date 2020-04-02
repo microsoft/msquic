@@ -13,11 +13,7 @@ Abstract:
 #include "quic_datapath.h"
 
 #include "msquic.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "datapathtest.tmh"
-#endif
-
+#include "DataPathTest.cpp.clog"
 
 const uint32_t ExpectedDataSize = 1 * 1024;
 char* ExpectedData;

@@ -13,8 +13,8 @@ Abstract:
 #ifdef QUIC_FUZZER
 
 #include "precomp.h"
-
 #include <msquic_fuzz.h>
+#include "injection.c.clog"
 
 __declspec(noinline)
 void

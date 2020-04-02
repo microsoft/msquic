@@ -11,10 +11,8 @@ Abstract:
 
 #include "quic_platform.h"
 #include "quic_trace.h"
+#include "driver.c.clog"
 
-#ifdef QUIC_LOGS_WPP
-#include "driver.tmh"
-#endif
 
 INITCODE
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -91,7 +89,7 @@ Return Value:
             &Config,
             &Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "WdfDriverCreate");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "WdfDriverCreate");
         goto Error;
     }
 

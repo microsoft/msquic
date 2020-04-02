@@ -34,10 +34,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "stream_send.tmh"
-#endif
+#include "stream_send.c.clog"
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -223,7 +220,7 @@ QuicStreamSendShutdown(
 
 Exit:
 
-    QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
+    QuicTraceEvent(StreamSendState, "[strm][%p] Send State: %c", Stream, QuicStreamSendGetState(Stream));
 
     if (Silent) {
         QuicStreamTryCompleteShutdown(Stream);
@@ -1234,7 +1231,7 @@ QuicStreamOnAck(
     //
     uint64_t FollowingOffset = Offset + Length;
 
-    uint32_t RemoveSendFlags = 0;
+    uint32_t RemoveSendFlagsX = 0;
 
     QUIC_DBG_ASSERT(FollowingOffset <= Stream->QueuedSendOffset);
 
@@ -1254,12 +1251,12 @@ QuicStreamOnAck(
         // the stream is open.
         //
         Stream->Flags.SendOpenAcked = TRUE;
-        RemoveSendFlags |= QUIC_STREAM_SEND_FLAG_OPEN;
+        RemoveSendFlagsX |= QUIC_STREAM_SEND_FLAG_OPEN;
     }
 
     if (FrameMetadata->Flags & QUIC_SENT_FRAME_FLAG_STREAM_FIN) {
         Stream->Flags.FinAcked = TRUE;
-        RemoveSendFlags |= QUIC_STREAM_SEND_FLAG_FIN;
+        RemoveSendFlagsX |= QUIC_STREAM_SEND_FLAG_FIN;
     }
 
     if (Offset <= Stream->UnAckedOffset) {
@@ -1331,7 +1328,7 @@ QuicStreamOnAck(
             //
             if (!Stream->Flags.LocalCloseAcked) {
                 Stream->Flags.LocalCloseAcked = TRUE;
-                QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
+                QuicTraceEvent(StreamSendState, "[strm][%p] Send State: %c", Stream, QuicStreamSendGetState(Stream));
                 QuicStreamIndicateSendShutdownComplete(Stream, TRUE);
                 QuicStreamTryCompleteShutdown(Stream);
             }
@@ -1377,14 +1374,14 @@ QuicStreamOnAck(
         //
         // Make sure the stream isn't queued to send any stream data.
         //
-        RemoveSendFlags |= QUIC_STREAM_SEND_FLAG_DATA;
+        RemoveSendFlagsX |= QUIC_STREAM_SEND_FLAG_DATA;
     }
 
-    if (RemoveSendFlags != 0) {
+    if (RemoveSendFlagsX != 0) {
         QuicSendClearStreamSendFlag(
             &Stream->Connection->Send,
             Stream,
-            RemoveSendFlags);
+            RemoveSendFlagsX);
     }
 
     QuicStreamSendDumpState(Stream);
@@ -1399,7 +1396,7 @@ QuicStreamOnResetAck(
 {
     if (!Stream->Flags.LocalCloseAcked) {
         Stream->Flags.LocalCloseAcked = TRUE;
-        QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
+        QuicTraceEvent(StreamSendState, "[strm][%p] Send State: %c", Stream, QuicStreamSendGetState(Stream));
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
         QuicStreamTryCompleteShutdown(Stream);
     }

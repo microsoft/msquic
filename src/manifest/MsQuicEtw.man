@@ -1299,14 +1299,14 @@
                 name="LocalAddrLength"
                 />
             <data
-                inType="win:UInt8"
-                name="RemoteAddrLength"
-                />
-            <data
                 inType="win:Binary"
                 length="LocalAddrLength"
                 name="LocalAddr"
                 outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt8"
+                name="RemoteAddrLength"
                 />
             <data
                 inType="win:Binary"
@@ -1364,14 +1364,14 @@
                 name="LocalAddrLength"
                 />
             <data
-                inType="win:UInt8"
-                name="RemoteAddrLength"
-                />
-            <data
                 inType="win:Binary"
                 length="LocalAddrLength"
                 name="LocalAddr"
                 outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt8"
+                name="RemoteAddrLength"
                 />
             <data
                 inType="win:Binary"
@@ -1402,14 +1402,13 @@
                 name="LocalAddrLength"
                 />
             <data
-                inType="win:UInt8"
-                name="RemoteAddrLength"
-                />
-            <data
                 inType="win:Binary"
                 length="LocalAddrLength"
                 name="LocalAddr"
-                outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt8"
+                name="RemoteAddrLength"
                 />
             <data
                 inType="win:Binary"
@@ -1555,14 +1554,13 @@
                 name="RemoteAddrLength"
                 />
             <data
-                inType="win:UInt8"
-                name="LocalAddrLength"
-                />
-            <data
                 inType="win:Binary"
                 length="RemoteAddrLength"
                 name="RemoteAddr"
-                outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt8"
+                name="LocalAddrLength"
                 />
             <data
                 inType="win:Binary"
@@ -1589,14 +1587,14 @@
                 name="LocalAddrLength"
                 />
             <data
-                inType="win:UInt8"
-                name="RemoteAddrLength"
-                />
-            <data
                 inType="win:Binary"
                 length="LocalAddrLength"
                 name="LocalAddr"
                 outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt8"
+                name="RemoteAddrLength"
                 />
             <data
                 inType="win:Binary"
@@ -2860,19 +2858,19 @@
             />
         <string
             id="Etw.ConnSourceCidAdd"
-            value="[conn][%1] New Source CID: %4"
+            value="[conn][%1] (SeqNum=%2) New Source CID: %4"
             />
         <string
             id="Etw.ConnDestCidAdd"
-            value="[conn][%1] New Destination CID: %4"
+            value="[conn][%1] (SeqNum=%2) New Destination CID: %4"
             />
         <string
             id="Etw.ConnSourceCidRemove"
-            value="[conn][%1] Removed Source CID: %4"
+            value="[conn][%1] (SeqNum=%2) Removed Source CID: %4"
             />
         <string
             id="Etw.ConnDestCidRemove"
-            value="[conn][%1] Removed Destination CID: %4"
+            value="[conn][%1] (SeqNum=%2) Removed Destination CID: %4"
             />
         <string
             id="Etw.ConnAssignWorker"
@@ -2944,11 +2942,11 @@
             />
         <string
             id="Etw.ConnDropPacket"
-            value="[conn][%1] DROP packet[%2] Src=%6 Dst=%5 Reason=%7."
+            value="[conn][%1] DROP packet[%2] Dst=%4 Src=%6 Reason=%7."
             />
         <string
             id="Etw.ConnDropPacketEx"
-            value="[conn][%1] DROP packet[%2] Src=%7 Dst=%6 Reason=%8, %3."
+            value="[conn][%1] DROP packet[%2] Value=%3 Dst=%5 Src=%7 Reason=%8."
             />
         <string
             id="Etw.ConnError"
@@ -3132,7 +3130,7 @@
             />
         <string
             id="Etw.LibraryAssert"
-            value="[ lib] ASSERT, %2:%1 - %3."
+            value="[ lib] ASSERT, %1:%2 - %3."
             />
         <string
             id="Etw.SessionCreated"
@@ -3192,11 +3190,11 @@
             />
         <string
             id="Etw.BindingCreated"
-            value="[bind][%1] Created, Udp=%2 LocalAddr=%5 RemoteAddr=%6"
+            value="[bind][%1] Created, Udp=%2 LocalAddr=%4 RemoteAddr=%6"
             />
         <string
             id="Etw.BindingRundown"
-            value="[bind][%1] Rundown, Udp=%2 LocalAddr=%5 RemoteAddr=%6"
+            value="[bind][%1] Rundown, Udp=%2 LocalAddr=%4 RemoteAddr=%6"
             />
         <string
             id="Etw.BindingDestroyed"
@@ -3208,11 +3206,11 @@
             />
         <string
             id="Etw.BindingDropPacket"
-            value="[bind][%1] DROP packet[%2] Src=%6 Dst=%5 Reason=%7."
+            value="[bind][%1] DROP packet[%2] Dst=%4 Src=%6 Reason=%7."
             />
         <string
             id="Etw.BindingDropPacketEx"
-            value="[bind][%1] DROP packet[%2] Src=%7 Dst=%6 Reason=%8, %3."
+            value="[bind][%1] DROP packet[%2] %3. Dst=%5 Src=%7 Reason=%8"
             />
         <string
             id="Etw.BindingError"
@@ -3248,11 +3246,11 @@
             />
         <string
             id="Etw.DatapathSendFromTo"
-            value="[ udp][%1] Send %2 bytes in %3 buffers (segment=%4) Src=%8 Dst=%7"
+            value="[ udp][%1] Send %2 bytes in %3 buffers (segment=%4) Dst=%6, Src=%8"
             />
         <string
             id="Etw.DatapathRecv"
-            value="[ udp][%1] Recv %2 bytes (segment=%3) Src=%6 Dst=%7"
+            value="[ udp][%1] Recv %2 bytes (segment=%3) Src=%5 Dst=%7"
             />
         <string
             id="Etw.DatapathError"

@@ -16,6 +16,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "msquic.kernel", "src\bin\wi
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "msquictest.kernel", "src\test\bin\winkernel\msquictest.kernel.vcxproj", "{49E98DF4-7BC5-4E0B-8F13-295380652F94}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "manifest.kernel", "src\manifest\manifest.kernel.vcxproj", "{C1ADB76F-7005-4516-BADB-2A60797EF912}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
@@ -148,6 +150,30 @@ Global
 		{49E98DF4-7BC5-4E0B-8F13-295380652F94}.Release|x86.ActiveCfg = Release|Win32
 		{49E98DF4-7BC5-4E0B-8F13-295380652F94}.Release|x86.Build.0 = Release|Win32
 		{49E98DF4-7BC5-4E0B-8F13-295380652F94}.Release|x86.Deploy.0 = Release|Win32
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Debug|ARM.ActiveCfg = Debug|ARM
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Debug|ARM.Build.0 = Debug|ARM
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Debug|ARM.Deploy.0 = Debug|ARM
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Debug|ARM64.Build.0 = Debug|ARM64
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Debug|ARM64.Deploy.0 = Debug|ARM64
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Debug|x64.ActiveCfg = Debug|x64
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Debug|x64.Build.0 = Debug|x64
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Debug|x64.Deploy.0 = Debug|x64
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Debug|x86.ActiveCfg = Debug|Win32
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Debug|x86.Build.0 = Debug|Win32
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Debug|x86.Deploy.0 = Debug|Win32
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Release|ARM.ActiveCfg = Release|ARM
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Release|ARM.Build.0 = Release|ARM
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Release|ARM.Deploy.0 = Release|ARM
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Release|ARM64.ActiveCfg = Release|ARM64
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Release|ARM64.Build.0 = Release|ARM64
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Release|ARM64.Deploy.0 = Release|ARM64
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Release|x64.ActiveCfg = Release|x64
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Release|x64.Build.0 = Release|x64
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Release|x64.Deploy.0 = Release|x64
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Release|x86.ActiveCfg = Release|Win32
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Release|x86.Build.0 = Release|Win32
+		{C1ADB76F-7005-4516-BADB-2A60797EF912}.Release|x86.Deploy.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -14,9 +14,9 @@ Environment:
 --*/
 
 #include "platform_internal.h"
+#include "platform_winkernel.c.clog"
 
-#ifdef QUIC_LOGS_WPP
-#include "platform_winkernel.tmh"
+#if QUIC_LOGS_WPP
 #pragma warning(push) // Don't care about OACR warnings in publics
 #pragma warning(disable:28170)
 #include <fastwppimpl.h>
@@ -97,7 +97,7 @@ QuicPlatformSystemLoad(
     (VOID)KeQueryPerformanceCounter((LARGE_INTEGER*)&QuicPlatformPerfFreq);
     QuicPlatform.RngAlgorithm = NULL;
 
-    QuicTraceLogInfo("[ sys] Loaded");
+    QuicTraceLogInfo(FN_platform_winkernel2caf2e914a62a8911996ebd87a43a219, "[ sys] Loaded");
 }
 
 PAGEDX
@@ -108,7 +108,7 @@ QuicPlatformSystemUnload(
     )
 {
     PAGED_CODE();
-    QuicTraceLogInfo("[ sys] Unloaded");
+    QuicTraceLogInfo(FN_platform_winkernela5181157c57867f18093b29e28c56a9b, "[ sys] Unloaded");
 
 #ifdef QUIC_TELEMETRY_ASSERTS
     UninitializeTelemetryAssertsKM();
@@ -141,7 +141,7 @@ QuicPlatformInitialize(
             NULL,
             BCRYPT_PROV_DISPATCH);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "BCryptOpenAlgorithmProvider (RNG)");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "BCryptOpenAlgorithmProvider (RNG)");
         goto Error;
     }
     QUIC_DBG_ASSERT(QuicPlatform.RngAlgorithm != NULL);
@@ -150,13 +150,13 @@ QuicPlatformInitialize(
         ZwQuerySystemInformation(
             SystemBasicInformation, &Sbi, sizeof(Sbi), NULL);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "ZwQuerySystemInformation(SystemBasicInformation)");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "ZwQuerySystemInformation(SystemBasicInformation)");
         goto Error;
     }
 
     Status = QuicTlsLibraryInitialize();
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "QuicTlsLibraryInitialize");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "QuicTlsLibraryInitialize");
         goto Error;
     }
 
@@ -166,7 +166,7 @@ QuicPlatformInitialize(
     //
     QuicTotalMemory = (uint64_t)Sbi.NumberOfPhysicalPages * (uint64_t)Sbi.PageSize;
 
-    QuicTraceLogInfo("[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)",
+    QuicTraceLogInfo(FN_platform_winkernelfae6d131ade2e717f4aff25de71cf94a, "[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)", 
         Sbi.PageSize, QuicTotalMemory);
 
 Error:
@@ -192,7 +192,7 @@ QuicPlatformUninitialize(
     QuicTlsLibraryUninitialize();
     BCryptCloseAlgorithmProvider(QuicPlatform.RngAlgorithm, 0);
     QuicPlatform.RngAlgorithm = NULL;
-    QuicTraceLogInfo("[ sys] Uninitialized");
+    QuicTraceLogInfo(FN_platform_winkernel499d1a8d9eb7e1addb19c81283b7e516, "[ sys] Uninitialized");
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -206,7 +206,7 @@ QuicPlatformLogAssert(
     UNREFERENCED_PARAMETER(File);
     UNREFERENCED_PARAMETER(Line);
     UNREFERENCED_PARAMETER(Expr);
-    QuicTraceEvent(LibraryAssert, (uint32_t)Line, File, Expr);
+    QuicTraceEvent(LibraryAssert, "[ lib] ASSERT, %d:%s - %s.", (uint32_t)Line, File, Expr);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

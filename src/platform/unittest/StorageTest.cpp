@@ -15,10 +15,7 @@
 #include <logcontroller.h>
 
 #include "quic_trace.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "storagetest.tmh"
-#endif
+#include "StorageTest.cpp.clog"
 
 using namespace WEX::Common;
 

@@ -14,6 +14,7 @@
 #undef min // gtest headers conflict with previous definitions of min/max.
 #undef max
 #include "gtest/gtest.h"
+#include "quic_gtest.h.clog"
 
 class WithBool : public testing::Test,
     public testing::WithParamInterface<bool> {
@@ -446,7 +447,7 @@ public:
         ScmHandle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
         if (ScmHandle == nullptr) {
             Error = GetLastError();
-            QuicTraceLogError("[test] GetFullPathName failed, 0x%x.", Error);
+            CLOG_BUG_TraceLogError(FN_quic_gtest73178060cf679812c455d24149a83275, "[test] GetFullPathName failed, 0x%x.", Error);
             return false;
         }
     QueryService:
@@ -456,7 +457,7 @@ public:
                 QUIC_TEST_DRIVER_NAME,
                 SERVICE_ALL_ACCESS);
         if (ServiceHandle == nullptr) {
-            QuicTraceLogError("[test] OpenService failed, 0x%x.", GetLastError());
+            CLOG_BUG_TraceLogError(FN_quic_gtest5749aac4ddd4085d450bf1ae50c0e50a, "[test] OpenService failed, 0x%x.", GetLastError());
             char DriverFilePath[MAX_PATH];
             Error =
                 GetFullPathNameA(
@@ -466,7 +467,7 @@ public:
                     nullptr);
             if (Error == 0) {
                 Error = GetLastError();
-                QuicTraceLogError("[test] GetFullPathName failed, 0x%x.", Error);
+                CLOG_BUG_TraceLogError(FN_quic_gtest73178060cf679812c455d24149a83275, "[test] GetFullPathName failed, 0x%x.", Error);
                 return false;
             }
             ServiceHandle =
@@ -489,7 +490,7 @@ public:
                 if (Error == ERROR_SERVICE_EXISTS) {
                     goto QueryService;
                 }
-                QuicTraceLogError("[test] CreateService failed, 0x%x.", Error);
+                CLOG_BUG_TraceLogError(FN_quic_gtest5b07b27351d8ea042f59aa23e2e1a046, "[test] CreateService failed, 0x%x.", Error);
                 return false;
             }
         }
@@ -507,7 +508,7 @@ public:
         if (!StartServiceA(ServiceHandle, 0, nullptr)) {
             uint32_t Error = GetLastError();
             if (Error != ERROR_SERVICE_ALREADY_RUNNING) {
-                QuicTraceLogError("[test] StartService failed, 0x%x.", Error);
+                CLOG_BUG_TraceLogError(FN_quic_gtest54d8840a5ade9629a36e7dd348b8887d, "[test] StartService failed, 0x%x.", Error);
                 return false;
             }
         }
@@ -547,13 +548,13 @@ public:
                 nullptr);
         if (DeviceHandle == INVALID_HANDLE_VALUE) {
             Error = GetLastError();
-            QuicTraceLogError("[test] CreateFile failed, 0x%x.", Error);
+            CLOG_BUG_TraceLogError(FN_quic_gtest5a1fc330c5d2330b64c36d36354303a7, "[test] CreateFile failed, 0x%x.", Error);
             return false;
         }
         if (!Run(IOCTL_QUIC_SEC_CONFIG, SecConfigParams->Thumbprint, sizeof(SecConfigParams->Thumbprint), 30000)) {
             CloseHandle(DeviceHandle);
             DeviceHandle = INVALID_HANDLE_VALUE;
-            QuicTraceLogError("[test] Run(IOCTL_QUIC_SEC_CONFIG) failed.");
+            CLOG_BUG_TraceLogError(FN_quic_gtestd1e125594b412facc27a063c75f1499c, "[test] Run(IOCTL_QUIC_SEC_CONFIG) failed.");
             return false;
         }
         return true;
@@ -575,10 +576,10 @@ public:
         Overlapped.hEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
         if (Overlapped.hEvent == nullptr) {
             Error = GetLastError();
-            QuicTraceLogError("[test] CreateEvent failed, 0x%x.", Error);
+            CLOG_BUG_TraceLogError(FN_quic_gtest4bd843e92a166e3b41dbbc6269fcc977, "[test] CreateEvent failed, 0x%x.", Error);
             return false;
         }
-        QuicTraceLogVerbose("[test] Sending IOCTL %u with %u bytes.",
+        CLOG_BUG_TraceLogVerbose(FN_quic_gtestc29943650ba591527c20610d5e4341fa, "[test] Sending IOCTL %u with %u bytes.", 
             IoGetFunctionCodeFromCtlCode(IoControlCode), InBufferSize);
         if (!DeviceIoControl(
                 DeviceHandle,
@@ -590,7 +591,7 @@ public:
             Error = GetLastError();
             if (Error != ERROR_IO_PENDING) {
                 CloseHandle(Overlapped.hEvent);
-                QuicTraceLogError("[test] DeviceIoControl failed, 0x%x.", Error);
+                CLOG_BUG_TraceLogError(FN_quic_gtestc66971b364eb2012de0eac4474413cf3, "[test] DeviceIoControl failed, 0x%x.", Error);
                 return false;
             }
         }
@@ -606,7 +607,7 @@ public:
                 Error = ERROR_TIMEOUT;
                 CancelIoEx(DeviceHandle, &Overlapped);
             }
-            QuicTraceLogError("[test] GetOverlappedResultEx failed, 0x%x.", Error);
+            CLOG_BUG_TraceLogError(FN_quic_gteste294f437c33d1ade7d212999d4baddc2, "[test] GetOverlappedResultEx failed, 0x%x.", Error);
         } else {
             Error = ERROR_SUCCESS;
         }

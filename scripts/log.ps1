@@ -43,7 +43,7 @@ param (
     [switch]$Start = $false,
 
     [Parameter(Mandatory = $true, ParameterSetName='Start')]
-    [ValidateSet("Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
+    [ValidateSet("Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "Stream")]
     [string]$LogProfile,
 
     [Parameter(Mandatory = $false, ParameterSetName='Cancel')]
@@ -61,6 +61,15 @@ param (
     [Parameter(Mandatory = $false, ParameterSetName='Stop')]
     [string]$TmfPath = "",
 
+    [Parameter(Mandatory = $false, ParameterSetName='DecodeTrace')]
+    [switch]$DecodeTrace = $false,
+
+     [Parameter(Mandatory = $true, ParameterSetName='DecodeTrace')]
+    [string]$LogFile,
+
+     [Parameter(Mandatory = $true, ParameterSetName='DecodeTrace')]
+    [string]$WorkingDirectory,
+
     [Parameter(Mandatory = $false)]
     [string]$InstanceName = "msquic"
 )
@@ -71,16 +80,47 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
-# Path for the WPR profile.
-$WprpFile = $RootDir + "\src\manifest\msquic.wprp"
-
 # Start log collection.
 function Log-Start {
     if ($IsWindows) {
+        # Path for the WPR profile.
+        $WprpFile = $RootDir + "\src\manifest\msquic.wprp"
+
         wpr.exe -start "$($WprpFile)!$($LogProfile)" -filemode -instancename $InstanceName
     } else {
-        # TODO
-        Write-Debug "Logging not supported yet!"
+        Write-Host "lttng-destroy"
+        lttng destroy | Out-Null
+     
+        $LogProfile = "QuicLTTNG"
+
+        #find $HOME | Write-Host
+
+        $OutputDirectoryRoot = Join-Path $HOME "QUICLogs"
+        $LTTNGRawDirectory = Join-Path $OutputDirectoryRoot "LTTNGRaw"
+
+        Write-Host "making QUICLogs directory ./QUICLogs/$LogProfile"       
+
+        if (Test-Path $LTTNGRawDirectory) {
+            Remove-Item -Path $LTTNGRawDirectory -Recurse -Force
+        }        
+        New-Item -Path $LTTNGRawDirectory -ItemType Directory -Force | Out-Null     
+
+                 
+        Write-Host "------------" 
+        Write-Host "Creating LTTNG Profile $LogProfile into $LTTNGRawDirectory"
+        $Command = "lttng create $LogProfile -o=$LTTNGRawDirectory | Write-Host"
+        Write-Host $Command
+        Invoke-Expression $Command
+
+     
+        Write-Host "------------" 
+        
+        Write-Host "Enabling all CLOG traces"
+        lttng enable-event --userspace CLOG_*
+
+        Write-Host "Starting LTTNG"
+        lttng start | Write-Host
+        lttng list | Write-Host
     }
 }
 
@@ -89,8 +129,12 @@ function Log-Cancel {
     if ($IsWindows) {
         wpr.exe -cancel -instancename $InstanceName
     } else {
-        # TODO
-        Write-Debug "Logging not supported yet!"
+        Write-Host "Cancel LTTNG session"
+        lttng destroy
+
+        $OutputDirectoryRoot = Join-Path $HOME "QUICLogs"
+        Write-Host "Deleting LTTNG Directory (the contents are now stored in the tgz file)"
+        Remove-Item -Path $OutputDirectoryRoot -Recurse -Force
     }
 }
 
@@ -108,15 +152,97 @@ function Log-Stop {
             Invoke-Expression $Command
         }
     } else {
-        # TODO
-        Write-Debug "Logging not supported yet!"
+        
+        $LogProfile = "QuicLTTNG"
+
+        lttng stop | Write-Host
+
+        $LTTNGTempDirectory = Join-Path $HOME "QUICLogs"
+        $LTTNGRawDirectory = Join-Path $LTTNGTempDirectory "LTTNGRaw"        
+        $LTTNGTarFile = Join-Path $OutputDirectory "lttng_trace.tgz"
+
+        if (!(Test-Path $LTTNGRawDirectory)) {            
+            Write-Host "ERROR : Output Directory $LTTNGRawDirectory must exist"
+            exit 1        
+        }       
+     
+        if (!(Test-Path $OutputDirectory)) {            
+            New-Item -Path $OutputDirectory -ItemType Directory -Force | Out-Null
+        }       
+
+        Write-Host "tar/gzip LTTNG log files from $LTTNGRawDirectory into $LTTNGTarFile"
+        tar -cvzf $LTTNGTarFile $LTTNGRawDirectory
+
+        # Write-Host "Decoding LTTNG into BabelTrace format ($WorkingDirectory/decoded_babeltrace.txt)"
+        # babeltrace --names all $LTTNGRawDirectory/* > $OutputDirectory/decoded_babeltrace.txt
+
+        # Write-Host "Decoding Babeltrace into human text using CLOG"
+        # ../artifacts/tools/clog/clog2text_lttng -i $OutputDirectory/decoded_babeltrace.txt -s ../src/manifest/clog.sidecar -o $OutputDirectory/clog_decode.txt | Write-Host        
+
+        Write-Host "Finished Creating LTTNG Log"
+        ls -l $OutputDirectory
+        
+        Write-Host "Deleting LTTNG Directory (the contents are now stored in the tgz file)"        
+        Remove-Item -Path $LTTNGTempDirectory -Recurse -Force
     }
 }
 
+
+# Start log collection.
+function Log-Stream {
+    if ($IsWindows) {
+        Write-Host "Not supported on Windows"
+    } else {
+        lttng destroy
+        Write-Host "------------"   
+        lttng destroy
+        lttng create msquicLive --live
+        lttng enable-event --userspace CLOG_*
+        lttng start
+        lttng list
+        babeltrace -i lttng-live net://localhost
+        
+        babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquicLive | ../artifacts/tools/clog/clog2text_lttng -s ../src/manifest/clog.sidecar
+    }
+}
+
+
+# Decode Log from file
+function Log-Decode {
+    if ($IsWindows) {
+        Write-Host "Not supported on Windows"
+    } else {
+        Write-Host $LogFile
+
+        $DecompressedLogs = Join-Path $WorkingDirectory "DecompressedLogs"
+
+        mkdir $WorkingDirectory
+        mkdir $DecompressedLogs
+
+        Write-Host "Decompressing $Logfile into $DecompressedLogs"
+        tar xvfz $Logfile -C $DecompressedLogs
+
+        Write-Host "Decoding LTTNG into BabelTrace format ($WorkingDirectory/decoded_babeltrace.txt)"
+        babeltrace --names all $DecompressedLogs/* > $WorkingDirectory/decoded_babeltrace.txt
+
+        Write-Host "Decoding Babeltrace into human text using CLOG"
+        ../artifacts/tools/clog/clog2text_lttng -i $WorkingDirectory/decoded_babeltrace.txt -s ../src/manifest/clog.sidecar -o $WorkingDirectory/clog_decode.txt | Write-Host
+    }
+}
 ##############################################################
 #                     Main Execution                         #
 ##############################################################
 
-if ($Start)  { Log-Start }
+if ($Start)  { 
+    if($LogProfile -eq "Stream") {
+        Log-Stream 
+    } else {
+        Log-Start 
+    }
+}
+
 if ($Cancel) { Log-Cancel }
 if ($Stop)   { Log-Stop }
+if ($DecodeTrace) {Log-Decode }
+
+Write-Host "Finished and exiting"

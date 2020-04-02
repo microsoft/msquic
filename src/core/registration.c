@@ -20,10 +20,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "registration.tmh"
-#endif
+#include "registration.c.clog"
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -41,8 +38,8 @@ MsQuicRegistrationOpen(
         AppNameLength = strlen(Config->AppName);
     }
 
-    QuicTraceEvent(ApiEnter,
-        QUIC_TRACE_API_REGISTRATION_OPEN,
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
+        QUIC_TRACE_API_REGISTRATION_OPEN, 
         NULL);
 
     if (NewRegistration == NULL) {
@@ -52,7 +49,7 @@ MsQuicRegistrationOpen(
 
     Registration = QUIC_ALLOC_NONPAGED(sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
     if (Registration == NULL) {
-        QuicTraceEvent(AllocFailure, "registration", sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "registration", sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -103,14 +100,14 @@ MsQuicRegistrationOpen(
         goto Error;
     }
 
-    QuicTraceEvent(RegistrationCreated, Registration, Registration->AppName);
+    QuicTraceEvent(RegistrationCreated, "[ reg][%p] Created, AppName=%s", Registration, Registration->AppName);
 
 #ifdef QuicVerifierEnabledByAddr
 #pragma prefast(suppress:6001, "SAL doesn't understand checking whether memory is tracked by Verifier.")
     if (MsQuicLib.IsVerifying &&
         QuicVerifierEnabledByAddr(NewRegistration)) {
         Registration->IsVerifying = TRUE;
-        QuicTraceLogInfo("[ reg][%p] Verifing enabled!", Registration);
+        QuicTraceLogInfo(FN_registrationdab4993b2508030f7c01169b90ab5a52, "[ reg][%p] Verifing enabled!", Registration);
     } else {
         Registration->IsVerifying = FALSE;
     }
@@ -131,7 +128,7 @@ Error:
         QUIC_FREE(Registration);
     }
 
-    QuicTraceEvent(ApiExitStatus, Status);
+    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d", Status);
 
     return Status;
 }
@@ -153,14 +150,14 @@ MsQuicRegistrationClose(
         return;
     }
 
-    QuicTraceEvent(ApiEnter,
-        QUIC_TRACE_API_REGISTRATION_CLOSE,
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
+        QUIC_TRACE_API_REGISTRATION_CLOSE, 
         Handle);
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
 
-    QuicTraceEvent(RegistrationCleanup, Registration);
+    QuicTraceEvent(RegistrationCleanup, "[ reg][%p] Cleaning up", Registration);
 
     //
     // If you hit this assert, you are trying to clean up a registration without
@@ -184,7 +181,7 @@ MsQuicRegistrationClose(
 
     QUIC_FREE(Registration);
 
-    QuicTraceEvent(ApiExit);
+    QuicTraceEvent(ApiExit, "[ api] Exit");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -193,7 +190,7 @@ QuicRegistrationTraceRundown(
     _In_ QUIC_REGISTRATION* Registration
     )
 {
-    QuicTraceEvent(RegistrationRundown, Registration, Registration->AppName);
+    QuicTraceEvent(RegistrationRundown, "[ reg][%p] Rundown, AppName=%s", Registration, Registration->AppName);
 
     QuicLockAcquire(&Registration->Lock);
 
@@ -239,8 +236,8 @@ MsQuicSecConfigCreate(
 {
     QUIC_STATUS Status;
 
-    QuicTraceEvent(ApiEnter,
-        QUIC_TRACE_API_SEC_CONFIG_CREATE,
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
+        QUIC_TRACE_API_SEC_CONFIG_CREATE, 
         Handle);
 
     if (Handle == NULL || Handle->Type != QUIC_HANDLE_TYPE_REGISTRATION ||
@@ -261,7 +258,7 @@ MsQuicSecConfigCreate(
 
 Exit:
 
-    QuicTraceEvent(ApiExitStatus, Status);
+    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d", Status);
 
     return Status;
 }
@@ -273,15 +270,15 @@ MsQuicSecConfigDelete(
     _In_ _Pre_defensive_ QUIC_SEC_CONFIG* SecurityConfig
     )
 {
-    QuicTraceEvent(ApiEnter,
-        QUIC_TRACE_API_SEC_CONFIG_DELETE,
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
+        QUIC_TRACE_API_SEC_CONFIG_DELETE, 
         SecurityConfig);
 
     if (SecurityConfig != NULL) {
         QuicTlsSecConfigRelease(SecurityConfig);
     }
 
-    QuicTraceEvent(ApiExit);
+    QuicTraceEvent(ApiExit, "[ api] Exit");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -404,7 +401,7 @@ QuicRegistrationParamSet(
         }
 
         MsQuicLib.EncryptionDisabled = *(uint8_t*)Buffer == FALSE;
-        QuicTraceLogWarning("[ lib] Updated encryption disabled = %hu", MsQuicLib.EncryptionDisabled);
+        QuicTraceLogWarning(FN_registration711e1a8cca07c45faee6d20a450e9ec6, "[ lib] Updated encryption disabled = %hu", MsQuicLib.EncryptionDisabled);
 
         Status = QUIC_STATUS_SUCCESS;
         break;

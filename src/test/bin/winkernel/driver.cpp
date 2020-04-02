@@ -12,10 +12,7 @@ Abstract:
 #include <quic_platform.h>
 
 #include "quic_trace.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "driver.tmh"
-#endif
+#include "driver.cpp.clog"
 
 #define QUIC_TEST_TAG 'tsTQ' // QTst
 
@@ -106,7 +103,7 @@ Return Value:
 
     Status = QuicPlatformInitialize();
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] QuicPlatformInitialize failed: 0x%x", Status);
+        QuicTraceLogError(FN_driver9dbc814f4f43ea517407f5b7c8143626, "[test] QuicPlatformInitialize failed: 0x%x", Status);
         goto Error;
     }
     PlatformInitialized = TRUE;
@@ -127,7 +124,7 @@ Return Value:
             &Config,
             &Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] WdfDriverCreate failed: 0x%x", Status);
+        QuicTraceLogError(FN_driver2b1325882fdd29ce47e4eb6224542b5f, "[test] WdfDriverCreate failed: 0x%x", Status);
         goto Error;
     }
 
@@ -136,11 +133,11 @@ Return Value:
     //
     Status = QuicTestCtlInitialize(Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] QuicTestCtlInitialize failed: 0x%x", Status);
+        QuicTraceLogError(FN_drivere2715f5ac91739cf9fdd047896c7912c, "[test] QuicTestCtlInitialize failed: 0x%x", Status);
         goto Error;
     }
 
-    QuicTraceLogInfo("[test] Started.");
+    QuicTraceLogInfo(FN_driver33ec7eb98b419e59add5890fa61afa13, "[test] Started.");
 
 Error:
 
@@ -179,7 +176,7 @@ Arguments:
 
     QuicTestCtlUninitialize();
 
-    QuicTraceLogInfo("[test] Stopped.");
+    QuicTraceLogInfo(FN_driver2914cfd7e479c844f78b638f668e3720, "[test] Stopped.");
 
     QuicPlatformUninitialize();
     QuicPlatformSystemUnload();

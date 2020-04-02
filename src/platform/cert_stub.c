@@ -10,10 +10,7 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "cert_stub.tmh"
-#endif
+#include "cert_stub.c.clog"
 
 QUIC_STATUS
 QuicCertCreate(
