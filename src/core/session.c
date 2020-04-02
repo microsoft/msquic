@@ -18,31 +18,52 @@ Abstract:
 #endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-__drv_allocatesMem(Mem)
-_Must_inspect_result_
-_Success_(return != NULL)
-QUIC_SESSION*
+QUIC_STATUS
 QuicSessionAlloc(
     _In_opt_ QUIC_REGISTRATION* Registration,
     _In_opt_ void* Context,
-    _In_ uint8_t AlpnLength,
-    _In_reads_opt_(AlpnLength)
-        const uint8_t* Alpn
+    _When_(AlpnBufferCount > 0, _In_reads_(AlpnBufferCount))
+    _When_(AlpnBufferCount == 0, _In_opt_)
+        const QUIC_BUFFER* const AlpnBuffers,
+    _In_ uint32_t AlpnBufferCount,
+    _Outptr_ _At_(*NewSession, __drv_allocatesMem(Mem))
+        QUIC_SESSION** NewSession
     )
 {
-    const uint16_t SessionSize = sizeof(QUIC_SESSION) + AlpnLength + 1;
-    QUIC_SESSION* Session = QUIC_ALLOC_NONPAGED(SessionSize);
+    uint32_t AlpnListLength = 0;
+    for (uint32_t i = 0; i < AlpnBufferCount; ++i) {
+        if (AlpnBuffers[i].Length == 0 ||
+            AlpnBuffers[i].Length > QUIC_MAX_ALPN_LENGTH) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        AlpnListLength += sizeof(uint8_t) + AlpnBuffers[i].Length;
+    }
+    if (AlpnListLength > UINT16_MAX) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+    QUIC_ANALYSIS_ASSERT(AlpnListLength <= UINT16_MAX);
+
+    QUIC_SESSION* Session = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SESSION) + AlpnListLength);
     if (Session == NULL) {
-        QuicTraceEvent(AllocFailure, "session", SessionSize);
-        return NULL;
+        QuicTraceEvent(AllocFailure, "session", sizeof(QUIC_SESSION) + AlpnListLength);
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    QuicZeroMemory(Session, SessionSize);
+    QuicZeroMemory(Session, sizeof(QUIC_SESSION));
     Session->Type = QUIC_HANDLE_TYPE_SESSION;
     Session->ClientContext = Context;
-    Session->AlpnLength = AlpnLength;
-    if (Alpn != NULL) {
-        QuicCopyMemory(Session->Alpn, Alpn, AlpnLength + 1);
+    Session->AlpnListLength = (uint16_t)AlpnListLength;
+
+    uint8_t* AlpnList = Session->AlpnList;
+    for (uint32_t i = 0; i < AlpnBufferCount; ++i) {
+        AlpnList[0] = (uint8_t)AlpnBuffers[i].Length;
+        AlpnList++;
+
+        QuicCopyMemory(
+            AlpnList,
+            AlpnBuffers[i].Buffer,
+            AlpnBuffers[i].Length);
+        AlpnList += AlpnBuffers[i].Length;
     }
 
     if (Registration != NULL) {
@@ -58,14 +79,16 @@ QuicSessionAlloc(
 #endif
     }
 
-    QuicTraceEvent(SessionCreated, Session, Session->Registration, (const char*)Alpn); // TODO - Buffer and length
+    QuicTraceEvent(SessionCreated, Session, Session->Registration, ""); // TODO - Buffer and length
 
     QuicRundownInitialize(&Session->Rundown);
     QuicRwLockInitialize(&Session->ServerCacheLock);
     QuicDispatchLockInitialize(&Session->ConnectionsLock);
     QuicListInitializeHead(&Session->Connections);
 
-    return Session;
+    *NewSession = Session;
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -129,8 +152,9 @@ QUIC_STATUS
 QUIC_API
 MsQuicSessionOpen(
     _In_ _Pre_defensive_ HQUIC RegistrationContext,
-    _In_reads_z_(QUIC_MAX_ALPN_LENGTH)
-        const char* Alpn,    // Application-Layer Protocol Negotiation
+    _In_reads_(AlpnBufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const AlpnBuffers,
+    _In_range_(>, 0) uint32_t AlpnBufferCount,
     _In_opt_ void* Context,
     _Outptr_ _At_(*NewSession, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC *NewSession
@@ -138,7 +162,6 @@ MsQuicSessionOpen(
 {
     QUIC_STATUS Status;
     QUIC_SESSION* Session = NULL;
-    size_t AlpnLength = 0;
 
     QuicTraceEvent(ApiEnter,
         QUIC_TRACE_API_SESSION_OPEN,
@@ -147,26 +170,20 @@ MsQuicSessionOpen(
     if (RegistrationContext == NULL ||
         RegistrationContext->Type != QUIC_HANDLE_TYPE_REGISTRATION ||
         NewSession == NULL ||
-        Alpn == NULL) {
+        AlpnBufferCount == 0 ||
+        AlpnBuffers == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
 
-    AlpnLength = strnlen(Alpn, QUIC_MAX_ALPN_LENGTH + 1);
-    if (AlpnLength == 0 ||
-        AlpnLength > QUIC_MAX_ALPN_LENGTH) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Error;
-    }
-
-    Session =
+    Status =
         QuicSessionAlloc(
             (QUIC_REGISTRATION*)RegistrationContext,
             Context,
-            (uint8_t)AlpnLength,
-            (const uint8_t*)Alpn);
-    if (Session == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
+            AlpnBuffers,
+            AlpnBufferCount,
+            &Session);
+    if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
@@ -176,7 +193,7 @@ MsQuicSessionOpen(
         goto Error;
     }
 
-    Status = QuicTlsSessionInitialize(Session->Alpn, &Session->TlsSession);
+    Status = QuicTlsSessionInitialize(&Session->TlsSession);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(SessionErrorStatus, Session, Status, "QuicTlsSessionInitialize");
         QuicHashtableUninitialize(&Session->ServerCache);
@@ -347,13 +364,84 @@ MsQuicSessionShutdown(
     QuicTraceEvent(ApiExit);
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+const uint8_t*
+QuicSessionFindAlpnInList(
+    _In_ const QUIC_SESSION* Session,
+    _In_ uint16_t OtherAlpnListLength,
+    _In_reads_(OtherAlpnListLength)
+        const uint8_t* OtherAlpnList
+    )
+{
+    const uint8_t* AlpnList = Session->AlpnList;
+    uint16_t AlpnListLength = Session->AlpnListLength;
+
+    //
+    // We want to respect the server's ALPN preference order (i.e. Session) and
+    // not the client's. So we loop over every ALPN in the session and then see
+    // if there is a match in the client's list.
+    //
+
+    while (AlpnListLength != 0) {
+        QUIC_ANALYSIS_ASSUME(AlpnList[0] + 1 <= AlpnListLength);
+        const uint8_t* Result =
+            QuicTlsAlpnFindInList(
+                OtherAlpnListLength,
+                OtherAlpnList,
+                AlpnList[0],
+                AlpnList + 1);
+        if (Result != NULL) {
+            //
+            // Return AlpnList instead of Result, since Result points into what
+            // might be a temporary buffer.
+            //
+            return AlpnList;
+        }
+        AlpnListLength -= AlpnList[0] + 1;
+        AlpnList += AlpnList[0] + 1;
+    }
+
+    return NULL;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicSessionHasAlpnOverlap(
+    _In_ const QUIC_SESSION* Session1,
+    _In_ const QUIC_SESSION* Session2
+    )
+{
+    return
+        QuicSessionFindAlpnInList(
+            Session1,
+            Session2->AlpnListLength,
+            Session2->AlpnList) != NULL;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicSessionMatchesAlpn(
+    _In_ const QUIC_SESSION* Session,
+    _In_ QUIC_NEW_CONNECTION_INFO* Info
+    )
+{
+    const uint8_t* Alpn =
+        QuicSessionFindAlpnInList(Session, Info->ClientAlpnListLength, Info->ClientAlpnList);
+    if (Alpn != NULL) {
+        Info->NegotiatedAlpnLength = Alpn[0]; // The length prefixed to the ALPN buffer.
+        Info->NegotiatedAlpn = Alpn + 1;
+        return TRUE;
+    }
+    return FALSE;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSessionTraceRundown(
     _In_ QUIC_SESSION* Session
     )
 {
-    QuicTraceEvent(SessionRundown, Session, Session->Registration, Session->Alpn);
+    QuicTraceEvent(SessionRundown, Session, Session->Registration, ""); // TODO
 
     QuicDispatchLockAcquire(&Session->ConnectionsLock);
 

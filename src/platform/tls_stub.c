@@ -124,8 +124,7 @@ typedef struct QUIC_TLS_ALPN_EXT {
     uint8_t ExtType[2];                 // TlsExt_AppProtocolNegotiation
     uint8_t ExtLen[2];
     uint8_t AlpnListLength[2];
-    uint8_t AlpnLength;
-    uint8_t Alpn[0];
+    uint8_t AlpnList[0];
 } QUIC_TLS_ALPN_EXT;
 
 typedef struct QUIC_TLS_SESSION_TICKET_EXT {
@@ -169,9 +168,12 @@ typedef struct QUIC_FAKE_TLS_MESSAGE {
             uint8_t EarlyDataAccepted : 1;
         } SERVER_INITIAL;
         struct {
-            uint16_t QuicTPLength;
             uint16_t CertificateLength;
-            uint8_t Certificate[0]; // Followed by QuicTP
+            uint16_t ExtListLength;
+            uint8_t Certificate[0];
+            // uint8_t ExtList[0];
+            // QUIC_TLS_ALPN_EXT
+            // QUIC_TLS_QUIC_TP_EXT
         } SERVER_HANDSHAKE;
         struct {
             uint8_t HasTicket;
@@ -183,8 +185,7 @@ typedef struct QUIC_FAKE_TLS_MESSAGE {
 
 typedef struct QUIC_TLS_SESSION {
 
-    uint16_t AlpnLength;
-    const char* Alpn[0];
+    uint32_t Reserved;
 
 } QUIC_TLS_SESSION;
 
@@ -213,6 +214,9 @@ typedef struct QUIC_TLS {
 
     QUIC_CONNECTION* Connection;
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
+
+    uint16_t AlpnBufferLength;
+    const uint8_t* AlpnBuffer;
 
     const char* SNI;
 
@@ -410,41 +414,15 @@ QuicTlsSecConfigRelease(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsSessionInitialize(
-    _In_z_ const char* ALPN,
     _Out_ QUIC_TLS_SESSION** NewTlsSession
     )
 {
-    QUIC_STATUS Status;
-    QUIC_TLS_SESSION* TlsSession = NULL;
-
-    size_t ALPNLength = strlen(ALPN);
-    if (ALPNLength > UINT16_MAX) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Error;
-    }
-
-    TlsSession = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS_SESSION) + ALPNLength);
-    if (TlsSession == NULL) {
+    *NewTlsSession = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS_SESSION));
+    if (*NewTlsSession == NULL) {
         QuicTraceLogWarning("[ tls] Failed to allocate QUIC_TLS_SESSION.");
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
-
-    QuicCopyMemory((char*)TlsSession->Alpn, ALPN, ALPNLength);
-    TlsSession->AlpnLength = (uint16_t)ALPNLength;
-
-    *NewTlsSession = TlsSession;
-    TlsSession = NULL;
-
-    Status = QUIC_STATUS_SUCCESS;
-
-Error:
-
-    if (TlsSession != NULL) {
-        QUIC_FREE(TlsSession);
-    }
-
-    return Status;
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -512,6 +490,8 @@ QuicTlsInitialize(
 
     TlsContext->IsServer = Config->IsServer;
     TlsContext->TlsSession = Config->TlsSession;
+    TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
+    TlsContext->AlpnBuffer = Config->AlpnBuffer;
     TlsContext->LocalTPBuffer = Config->LocalTPBuffer;
     TlsContext->LocalTPLength = Config->LocalTPLength;
     TlsContext->SecConfig = QuicTlsSecConfigAddRef(Config->SecConfig);
@@ -656,7 +636,7 @@ QuicTlsServerProcess(
                 break;
             }
             case TlsExt_AppProtocolNegotiation: {
-                break; // Ignored in this code.
+                break; // Unused
             }
             case TlsExt_SessionTicket: {
                 State->SessionResumed = TRUE; // TODO - Support tickets
@@ -738,16 +718,37 @@ QuicTlsServerProcess(
         MessageLength =
             MinMessageLengths[QUIC_TLS_MESSAGE_SERVER_HANDSHAKE] +
             SecurityConfig->FormatLength +
-            (uint16_t)TlsContext->LocalTPLength;
+            6 + TlsContext->AlpnBufferLength +
+            4 + (uint16_t)TlsContext->LocalTPLength;
         TlsWriteUint24(ServerMessage->Length, MessageLength - 4);
         ServerMessage->Type = QUIC_TLS_MESSAGE_SERVER_HANDSHAKE;
-        ServerMessage->SERVER_HANDSHAKE.QuicTPLength = (uint16_t)TlsContext->LocalTPLength;
         ServerMessage->SERVER_HANDSHAKE.CertificateLength = SecurityConfig->FormatLength;
         memcpy(ServerMessage->SERVER_HANDSHAKE.Certificate, SecurityConfig->FormatBuffer, SecurityConfig->FormatLength);
-        uint8_t* QuicTP =
-            ServerMessage->SERVER_HANDSHAKE.Certificate +
-            ServerMessage->SERVER_HANDSHAKE.CertificateLength;
-        memcpy(QuicTP, TlsContext->LocalTPBuffer, TlsContext->LocalTPLength);
+
+        ExtListLength = 0;
+
+        QUIC_DBG_ASSERT(State->NegotiatedAlpn != NULL);
+
+        QUIC_TLS_ALPN_EXT* ALPN =
+            (QUIC_TLS_ALPN_EXT*)
+            (ServerMessage->SERVER_HANDSHAKE.Certificate +
+             SecurityConfig->FormatLength + ExtListLength);
+        TlsWriteUint16(ALPN->ExtType, TlsExt_AppProtocolNegotiation);
+        TlsWriteUint16(ALPN->ExtLen, 3 + State->NegotiatedAlpn[0]);
+        TlsWriteUint16(ALPN->AlpnListLength, 1 + State->NegotiatedAlpn[0]);
+        memcpy(ALPN->AlpnList, State->NegotiatedAlpn, State->NegotiatedAlpn[0]+1);
+        ExtListLength += 7 + State->NegotiatedAlpn[0];
+
+        QUIC_TLS_QUIC_TP_EXT* QuicTP =
+            (QUIC_TLS_QUIC_TP_EXT*)
+            (ServerMessage->SERVER_HANDSHAKE.Certificate +
+             SecurityConfig->FormatLength + ExtListLength);
+        TlsWriteUint16(QuicTP->ExtType, TlsExt_QuicTransportParameters);
+        TlsWriteUint16(QuicTP->ExtLen, (uint16_t)TlsContext->LocalTPLength);
+        memcpy(QuicTP->TP, TlsContext->LocalTPBuffer, TlsContext->LocalTPLength);
+        ExtListLength += 4 + (uint16_t)TlsContext->LocalTPLength;
+
+        ServerMessage->SERVER_HANDSHAKE.ExtListLength = ExtListLength;
 
         State->BufferLength += MessageLength;
         State->BufferTotalLength += MessageLength;
@@ -878,13 +879,11 @@ QuicTlsClientProcess(
         QUIC_TLS_ALPN_EXT* ALPN =
             (QUIC_TLS_ALPN_EXT*)
             (ClientMessage->CLIENT_INITIAL.ExtList + ExtListLength);
-        uint16_t AlpnLength = TlsContext->TlsSession->AlpnLength;
         TlsWriteUint16(ALPN->ExtType, TlsExt_AppProtocolNegotiation);
-        TlsWriteUint16(ALPN->ExtLen, 3 + AlpnLength);
-        TlsWriteUint16(ALPN->AlpnListLength, 1 + AlpnLength);
-        ALPN->AlpnLength = (uint8_t)AlpnLength;
-        memcpy(ALPN->Alpn, TlsContext->TlsSession->Alpn, AlpnLength);
-        ExtListLength += 7 + AlpnLength;
+        TlsWriteUint16(ALPN->ExtLen, 2 + TlsContext->AlpnBufferLength);
+        TlsWriteUint16(ALPN->AlpnListLength, TlsContext->AlpnBufferLength);
+        memcpy(ALPN->AlpnList, TlsContext->AlpnBuffer, TlsContext->AlpnBufferLength);
+        ExtListLength += 6 + TlsContext->AlpnBufferLength;
 
         if (State->EarlyDataAttempted) {
             QUIC_TLS_SESSION_TICKET_EXT* Ticket =
@@ -946,13 +945,47 @@ QuicTlsClientProcess(
 
         } else if (ServerMessage->Type == QUIC_TLS_MESSAGE_SERVER_HANDSHAKE) {
 
-            const uint8_t* QuicTP =
-                ServerMessage->SERVER_HANDSHAKE.Certificate +
-                ServerMessage->SERVER_HANDSHAKE.CertificateLength;
-            TlsContext->ReceiveTPCallback(
-                TlsContext->Connection,
-                ServerMessage->SERVER_HANDSHAKE.QuicTPLength,
-                QuicTP);
+            const uint8_t* ExtList =
+                    ServerMessage->SERVER_HANDSHAKE.Certificate +
+                    ServerMessage->SERVER_HANDSHAKE.CertificateLength;
+            uint16_t ExtListLength = ServerMessage->SERVER_HANDSHAKE.ExtListLength;
+            while (ExtListLength > 0) {
+                uint16_t ExtType = TlsReadUint16(ExtList);
+                uint16_t ExtLength = TlsReadUint16(ExtList + 2);
+                QUIC_FRE_ASSERT(ExtLength + 4 <= ExtListLength);
+
+                switch (ExtType) {
+                case TlsExt_AppProtocolNegotiation: {
+                    const QUIC_TLS_ALPN_EXT* AlpnList = (QUIC_TLS_ALPN_EXT*)ExtList;
+                    State->NegotiatedAlpn =
+                        QuicTlsAlpnFindInList(
+                            TlsContext->AlpnBufferLength,
+                            TlsContext->AlpnBuffer,
+                            AlpnList->AlpnList[0],
+                            AlpnList->AlpnList+1);
+                    if (State->NegotiatedAlpn == NULL) {
+                        QuicTraceLogError("[ tls][%p][%c] Failed to find a matching ALPN",
+                            TlsContext, GetTlsIdentifier(TlsContext));
+                        *ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                    }
+                    break;
+                }
+                case TlsExt_QuicTransportParameters: {
+                    const QUIC_TLS_QUIC_TP_EXT* QuicTP = (QUIC_TLS_QUIC_TP_EXT*)ExtList;
+                    TlsContext->ReceiveTPCallback(
+                        TlsContext->Connection,
+                        ExtLength,
+                        QuicTP->TP);
+                    break;
+                }
+                default:
+                    QUIC_FRE_ASSERT(FALSE);
+                    break;
+                }
+
+                ExtList += ExtLength + 4;
+                ExtListLength -= ExtLength + 4;
+            }
 
             if (TlsContext->SecConfig->Flags & QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION) {
                 QuicTraceLogWarning("[ tls][%p][%c] Certificate validation disabled!",

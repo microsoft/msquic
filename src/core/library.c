@@ -687,12 +687,10 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Pre_defensive_
 QUIC_STATUS
 QUIC_API
 MsQuicOpen(
-    _In_ uint32_t ApiVersion,
-    _Out_ void** QuicApi     // struct QUIC_API_*
+    _Out_ _Pre_defensive_ const QUIC_API_TABLE** QuicApi
     )
 {
     QUIC_STATUS Status;
@@ -703,120 +701,55 @@ MsQuicOpen(
         goto Exit;
     }
 
-    QuicTraceLogVerbose("[ api] MsQuicOpen, %u", ApiVersion);
-
-    if ((ApiVersion == 0 || ApiVersion > QUIC_API_VERSION_1) &&
-        ApiVersion != QUIC_API_VERSION_PRIVATE) {
-        Status = QUIC_STATUS_NOT_SUPPORTED;
-        goto Exit;
-    }
+    QuicTraceLogVerbose("[ api] MsQuicOpen");
 
     Status = MsQuicAddRef();
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
 
-    switch (ApiVersion) {
-    case QUIC_API_VERSION_1: {
-        QUIC_API_V1* ApiV1 = QUIC_ALLOC_NONPAGED(sizeof(QUIC_API_V1));
-        if (ApiV1 == NULL) {
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            goto Error;
-        }
-
-        *QuicApi = ApiV1;
-
-        ApiV1->Version = QUIC_API_VERSION_1;
-
-        ApiV1->SetContext = MsQuicSetContext;
-        ApiV1->GetContext = MsQuicGetContext;
-        ApiV1->SetCallbackHandler = MsQuicSetCallbackHandler;
-
-        ApiV1->SetParam = MsQuicSetParam;
-        ApiV1->GetParam = MsQuicGetParam;
-
-        ApiV1->RegistrationOpen = MsQuicRegistrationOpen;
-        ApiV1->RegistrationClose = MsQuicRegistrationClose;
-
-        ApiV1->SecConfigCreate = MsQuicSecConfigCreate;
-        ApiV1->SecConfigDelete = MsQuicSecConfigDelete;
-
-        ApiV1->SessionOpen = MsQuicSessionOpen;
-        ApiV1->SessionClose = MsQuicSessionClose;
-        ApiV1->SessionShutdown = MsQuicSessionShutdown;
-
-        ApiV1->ListenerOpen = MsQuicListenerOpen;
-        ApiV1->ListenerClose = MsQuicListenerClose;
-        ApiV1->ListenerStart = MsQuicListenerStart;
-        ApiV1->ListenerStop = MsQuicListenerStop;
-
-        ApiV1->ConnectionOpen = MsQuicConnectionOpen;
-        ApiV1->ConnectionClose = MsQuicConnectionClose;
-        ApiV1->ConnectionShutdown = MsQuicConnectionShutdown;
-        ApiV1->ConnectionStart = MsQuicConnectionStart;
-
-        ApiV1->StreamOpen = MsQuicStreamOpen;
-        ApiV1->StreamClose = MsQuicStreamClose;
-        ApiV1->StreamShutdown = MsQuicStreamShutdown;
-        ApiV1->StreamStart = MsQuicStreamStart;
-        ApiV1->StreamSend = MsQuicStreamSend;
-        ApiV1->StreamReceiveComplete = MsQuicStreamReceiveComplete;
-        ApiV1->StreamReceiveSetEnabled = MsQuicStreamReceiveSetEnabled;
-        break;
-    }
-    case QUIC_API_VERSION_PRIVATE: {
-        QUIC_API_PRIVATE* ApiPriv = QUIC_ALLOC_NONPAGED(sizeof(QUIC_API_PRIVATE));
-        if (ApiPriv == NULL) {
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            goto Error;
-        }
-
-        *QuicApi = ApiPriv;
-
-        ApiPriv->Version = QUIC_API_VERSION_PRIVATE;
-
-        ApiPriv->SetContext = MsQuicSetContext;
-        ApiPriv->GetContext = MsQuicGetContext;
-        ApiPriv->SetCallbackHandler = MsQuicSetCallbackHandler;
-
-        ApiPriv->SetParam = MsQuicSetParam;
-        ApiPriv->GetParam = MsQuicGetParam;
-
-        ApiPriv->RegistrationOpen = MsQuicRegistrationOpenPriv;
-        ApiPriv->RegistrationClose = MsQuicRegistrationClose;
-
-        ApiPriv->SecConfigCreate = MsQuicSecConfigCreate;
-        ApiPriv->SecConfigDelete = QuicTlsSecConfigRelease;
-
-        ApiPriv->SessionOpen = MsQuicSessionOpen;
-        ApiPriv->SessionClose = MsQuicSessionClose;
-        ApiPriv->SessionShutdown = MsQuicSessionShutdown;
-
-        ApiPriv->ListenerOpen = MsQuicListenerOpen;
-        ApiPriv->ListenerClose = MsQuicListenerClose;
-        ApiPriv->ListenerStart = MsQuicListenerStart;
-        ApiPriv->ListenerStop = MsQuicListenerStop;
-
-        ApiPriv->ConnectionOpen = MsQuicConnectionOpen;
-        ApiPriv->ConnectionClose = MsQuicConnectionClose;
-        ApiPriv->ConnectionShutdown = MsQuicConnectionShutdown;
-        ApiPriv->ConnectionStart = MsQuicConnectionStart;
-
-        ApiPriv->StreamOpen = MsQuicStreamOpen;
-        ApiPriv->StreamClose = MsQuicStreamClose;
-        ApiPriv->StreamShutdown = MsQuicStreamShutdown;
-        ApiPriv->StreamStart = MsQuicStreamStart;
-        ApiPriv->StreamSend = MsQuicStreamSend;
-        ApiPriv->StreamReceiveComplete = MsQuicStreamReceiveComplete;
-        ApiPriv->StreamReceiveSetEnabled = MsQuicStreamReceiveSetEnabled;
-        break;
-    }
-    default: {
-        QUIC_FRE_ASSERT(FALSE); // Should be unreachable code.
-        Status = QUIC_STATUS_NOT_SUPPORTED;
+    QUIC_API_TABLE* Api = QUIC_ALLOC_NONPAGED(sizeof(QUIC_API_TABLE));
+    if (Api == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-    }
+
+    Api->SetContext = MsQuicSetContext;
+    Api->GetContext = MsQuicGetContext;
+    Api->SetCallbackHandler = MsQuicSetCallbackHandler;
+
+    Api->SetParam = MsQuicSetParam;
+    Api->GetParam = MsQuicGetParam;
+
+    Api->RegistrationOpen = MsQuicRegistrationOpen;
+    Api->RegistrationClose = MsQuicRegistrationClose;
+
+    Api->SecConfigCreate = MsQuicSecConfigCreate;
+    Api->SecConfigDelete = MsQuicSecConfigDelete;
+
+    Api->SessionOpen = MsQuicSessionOpen;
+    Api->SessionClose = MsQuicSessionClose;
+    Api->SessionShutdown = MsQuicSessionShutdown;
+
+    Api->ListenerOpen = MsQuicListenerOpen;
+    Api->ListenerClose = MsQuicListenerClose;
+    Api->ListenerStart = MsQuicListenerStart;
+    Api->ListenerStop = MsQuicListenerStop;
+
+    Api->ConnectionOpen = MsQuicConnectionOpen;
+    Api->ConnectionClose = MsQuicConnectionClose;
+    Api->ConnectionShutdown = MsQuicConnectionShutdown;
+    Api->ConnectionStart = MsQuicConnectionStart;
+
+    Api->StreamOpen = MsQuicStreamOpen;
+    Api->StreamClose = MsQuicStreamClose;
+    Api->StreamShutdown = MsQuicStreamShutdown;
+    Api->StreamStart = MsQuicStreamStart;
+    Api->StreamSend = MsQuicStreamSend;
+    Api->StreamReceiveComplete = MsQuicStreamReceiveComplete;
+    Api->StreamReceiveSetEnabled = MsQuicStreamReceiveSetEnabled;
+
+    *QuicApi = Api;
 
 Error:
 
@@ -832,11 +765,10 @@ Exit:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Pre_defensive_
 void
 QUIC_API
 MsQuicClose(
-    _In_ const void* QuicApi
+    _In_ _Pre_defensive_ const QUIC_API_TABLE* QuicApi
     )
 {
     if (QuicApi != NULL) {
@@ -1095,8 +1027,13 @@ QuicLibraryOnListenerRegistered(
         QuicTraceEvent(LibraryWorkerPoolInit);
 
         QUIC_DBG_ASSERT(MsQuicLib.UnregisteredSession == NULL);
-        MsQuicLib.UnregisteredSession = QuicSessionAlloc(NULL, NULL, 0, NULL);
-        if (MsQuicLib.UnregisteredSession == NULL) {
+        if (QUIC_FAILED(
+            QuicSessionAlloc(
+                NULL,
+                NULL,
+                NULL,
+                0,
+                &MsQuicLib.UnregisteredSession))) {
             Success = FALSE;
             goto Fail;
         }

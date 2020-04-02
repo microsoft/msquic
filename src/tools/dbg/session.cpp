@@ -25,7 +25,7 @@ EXT_COMMAND(
         "\tALPN                %s\n"
         "\tRegistration        <link cmd=\"!quicregistration 0x%I64X\">0x%I64X</link>\n",
         Session.Addr,
-        Session.GetAlpn().Data,
+        Session.GetAlpns().Data,
         Session.GetRegistration(),
         Session.GetRegistration());
 

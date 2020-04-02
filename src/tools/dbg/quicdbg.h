@@ -14,14 +14,19 @@ Abstract:
 
 #pragma once
 
-#include <nt.h>
-#include <ntrtl.h>
-#include <nturtl.h>
-#include <engextcpp.hpp>
+#define WIN32_LEAN_AND_MEAN
+#define _CRT_SECURE_NO_WARNINGS
+#define EXTCPP_EXPORTS
 
+#include <windows.h>
 #include <ws2def.h>
 #include <ws2ipdef.h>
-#include <ip2string.h>
+#include <ws2tcpip.h>
+#include <mstcpip.h>
+#include <stdint.h>
+
+#include <engextcpp.hpp>
+
 #include <stdio.h>
 
 extern ULONG g_ulDebug;
@@ -276,8 +281,16 @@ struct String {
     ULONG64 Addr;
     char Data[256];
 
+    String() : Addr(0) { Data[0] = 0; }
+
     String(ULONG64 Addr) : Addr(Addr) {
         ReadStringAtAddr(Addr, sizeof(Data), Data);
+    }
+
+    String(ULONG64 Addr, ULONG Length) : Addr(Addr) {
+        ULONG cbRead;
+        ReadMemory(Addr, Data, Length, &cbRead);
+        Data[Length] = 0;
     }
 };
 
@@ -289,7 +302,7 @@ struct IpAddress {
         ReadTypeAtAddr(Addr, &Raw);
         ULONG StringLen = sizeof(String);
         if (Raw.si_family == AF_UNSPEC) {
-            sprintf(IpString, "UNSPEC:%u", RtlUshortByteSwap(Raw.Ipv4.sin_port));
+            sprintf(IpString, "UNSPEC:%u", ntohs(Raw.Ipv4.sin_port));
         } else if (Raw.si_family == AF_INET) {
             RtlIpv4AddressToStringExA(&Raw.Ipv4.sin_addr, Raw.Ipv4.sin_port, IpString, &StringLen);
         } else {

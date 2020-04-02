@@ -200,9 +200,3 @@ QuicConnGetPathForDatagram(
     _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_RECV_DATAGRAM* Datagram
     );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicConnRemoveInvalidPaths(
-    _In_ QUIC_CONNECTION* Connection
-    );

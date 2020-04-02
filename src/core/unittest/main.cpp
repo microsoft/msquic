@@ -17,7 +17,7 @@ class QuicCoreTestEnvironment : public ::testing::Environment {
 public:
     void SetUp() override {
         QuicPlatformSystemLoad();
-        ASSERT_TRUE(QUIC_SUCCEEDED(QuicPlatformInitialize()));
+        TEST_QUIC_SUCCEEDED(QuicPlatformInitialize());
     }
     void TearDown() override {
         QuicPlatformUninitialize();

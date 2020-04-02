@@ -103,7 +103,7 @@ public:
 };
 
 static uint64_t StartTimeMs;
-static QUIC_API_V1* MsQuic;
+static const QUIC_API_TABLE* MsQuic;
 static HQUIC Registration;
 static QUIC_SEC_CONFIG* GlobalSecurityConfig;
 static std::vector<HQUIC> Sessions;
@@ -682,19 +682,22 @@ main(int argc, char **argv)
 
     SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
 
-    EXIT_ON_FAILURE(MsQuicOpenV1(&MsQuic));
+    EXIT_ON_FAILURE(MsQuicOpen(&MsQuic));
 
-    EXIT_ON_FAILURE(MsQuic->RegistrationOpen("spinquic", &Registration));
-    
-    const size_t AlpnLen = strlen(Settings.AlpnPrefix) + 5; // You can't have more than 10^4 SessionCount. :)
-    char *AlpnBuffer = (char *)malloc(AlpnLen);
+    const QUIC_REGISTRATION_CONFIG RegConfig = { "spinquic", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
+    EXIT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
+
+    QUIC_BUFFER AlpnBuffer;
+    AlpnBuffer.Length = (uint32_t)strlen(Settings.AlpnPrefix) + 1; // You can't have more than 2^8 SessionCount. :)
+    AlpnBuffer.Buffer = (uint8_t*)malloc(AlpnBuffer.Length);
+    memcpy(AlpnBuffer.Buffer, Settings.AlpnPrefix, AlpnBuffer.Length);
 
     for (uint32_t i = 0; i < SessionCount; i++) {
 
-        sprintf_s(AlpnBuffer, AlpnLen, i > 0 ? "%s%d" : "%s", Settings.AlpnPrefix, i);
+        AlpnBuffer.Buffer[AlpnBuffer.Length-1] = (uint8_t)i;
 
         HQUIC Session;
-        QUIC_STATUS Status = MsQuic->SessionOpen(Registration, AlpnBuffer, nullptr, &Session);
+        QUIC_STATUS Status = MsQuic->SessionOpen(Registration, &AlpnBuffer, 1, nullptr, &Session);
         PRINT("Opening session #%d: %d\n", i, Status);
         if (QUIC_FAILED(Status)) {
             PRINT("Failed to open session #%d\n", i);
@@ -709,7 +712,7 @@ main(int argc, char **argv)
         EXIT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
     }
 
-    free(AlpnBuffer);
+    free(AlpnBuffer.Buffer);
 
     QUIC_THREAD Threads[2];
     QUIC_THREAD_CONFIG Config = { 0 };
