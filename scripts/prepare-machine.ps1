@@ -63,6 +63,7 @@ if ($IsWindows) {
             sudo apt-add-repository ppa:lttng/stable-2.10
             sudo apt-get update
             sudo apt-get install liblttng-ust-dev
+			sudo apt-get install systemtap-sdt-dev
         }
         "Test" {
             sudo apt-add-repository ppa:lttng/stable-2.10
