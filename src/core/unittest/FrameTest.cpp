@@ -10,7 +10,7 @@ Abstract:
 --*/
 
 #include "main.h"
-#include "FrameTest.cpp.clog"
+#include "FrameTest.cpp.clog.h"
 
 TEST(FrameTest, AckFrameEncodeDecode)
 {
