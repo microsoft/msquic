@@ -212,7 +212,7 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
                 $pinfo.Arguments = "-g -G $($Path) $($Arguments)"
             }
         } else {
-            $pinfo.FileName = $RootDir + "\bld\windows\procdump\procdump64.exe"
+            $pinfo.FileName = $RootDir + "\bld\tools\procdump64.exe"
             $pinfo.Arguments = "-ma -e -b -l -accepteula -x $($OutputDir) $($Path) $($Arguments)"
         }
     } else {
