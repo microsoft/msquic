@@ -1896,7 +1896,7 @@ QuicDataPathSocketReceive(
         QuicTraceEvent(DatapathRecv, "[ udp][%p] Recv %d bytes (segment=%hd) Src=%SOCKADDR Dst=%SOCKADDR", 
             SocketContext->Binding, 
             (uint32_t)DataLength, 
-            MessageLength, CLOG_BYTEARRAY(LOG_ADDR_LEN(LocalAddr), LocalAddr), CLOG_BYTEARRAY(LOG_ADDR_LEN(RemoteAddr), RemoteAddr));
+            MessageLength, CLOG_BYTEARRAY(LOG_ADDR_LEN(LocalAddr), (const uint8_t*)&LocalAddr), CLOG_BYTEARRAY(LOG_ADDR_LEN(RemoteAddr), (const uint8_t*)&RemoteAddr));
 
         for ( ; DataLength != 0; DataLength -= MessageLength) {
 
@@ -2536,7 +2536,7 @@ QuicDataPathBindingSendTo(
         Binding, 
         SendContext->TotalSize, 
         SendContext->WskBufferCount, 
-        SendContext->SegmentSize, CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), RemoteAddress));
+        SendContext->SegmentSize, CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)RemoteAddress));
 
     BYTE CMsgBuffer[WSA_CMSG_SPACE(sizeof(*SegmentSize))];
     PWSACMSGHDR CMsg = NULL;
@@ -2622,7 +2622,7 @@ QuicDataPathBindingSendFromTo(
         Binding, 
         SendContext->TotalSize, 
         SendContext->WskBufferCount, 
-        SendContext->SegmentSize, CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), RemoteAddress), CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), &LocalAddress));
+        SendContext->SegmentSize, CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)RemoteAddress), CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), (const uint8_t*)LocalAddress));
 
     //
     // Map V4 address to dual-stack socket format.
