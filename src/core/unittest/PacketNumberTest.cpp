@@ -55,7 +55,7 @@ TEST(PacketNumberTest, WellKnownDecompress)
     };
 
     for (uint8_t i = 0; i < ARRAYSIZE(Entries); i++) {
-        TEST_EQUAL(
+        ASSERT_EQ(
             QuicPktNumDecompress(
                 Entries[i].HighestReceived + 1,
                 Entries[i].Compressed,

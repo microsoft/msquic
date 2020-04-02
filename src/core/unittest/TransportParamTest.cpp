@@ -21,9 +21,9 @@ void CompareTransportParams(
     )
 {
 #define COMPARE_TP_FIELD(TpName, Field) \
-    if (A->Flags & QUIC_TP_FLAG_##TpName) { TEST_EQUAL(A->Field, B->Field); }
+    if (A->Flags & QUIC_TP_FLAG_##TpName) { ASSERT_EQ(A->Field, B->Field); }
 
-    TEST_EQUAL(A->Flags, B->Flags);
+    ASSERT_EQ(A->Flags, B->Flags);
     COMPARE_TP_FIELD(INITIAL_MAX_DATA, InitialMaxData);
     COMPARE_TP_FIELD(INITIAL_MAX_STRM_DATA_BIDI_LOCAL, InitialMaxStreamDataBidiLocal);
     COMPARE_TP_FIELD(INITIAL_MAX_STRM_DATA_BIDI_REMOTE, InitialMaxStreamDataBidiRemote);
@@ -52,9 +52,9 @@ void EncodeDecodeAndCompare(
     auto Buffer =
         QuicCryptoTlsEncodeTransportParameters(
             &JunkConnection, Original, &BufferLength);
-    TEST_NOT_EQUAL(nullptr, Buffer);
+    ASSERT_NE(nullptr, Buffer);
 
-    TEST_TRUE(UINT16_MAX >= (BufferLength - QuicTlsTPHeaderSize));
+    ASSERT_TRUE(UINT16_MAX >= (BufferLength - QuicTlsTPHeaderSize));
 
     auto TPBuffer = Buffer + QuicTlsTPHeaderSize;
     uint16_t TPBufferLength = (uint16_t)(BufferLength - QuicTlsTPHeaderSize);
@@ -66,7 +66,7 @@ void EncodeDecodeAndCompare(
 
     QUIC_FREE(Buffer);
 
-    TEST_TRUE(DecodedSuccessfully);
+    ASSERT_TRUE(DecodedSuccessfully);
 
     CompareTransportParams(Original, &Decoded, IsServer);
 }

@@ -632,6 +632,7 @@ QuicStreamFrameDecode(
             BufferLength < Frame->Length + *Offset) {
             return FALSE;
         }
+        Frame->ExplicitLength = TRUE;
     } else {
         QUIC_ANALYSIS_ASSERT(BufferLength >= *Offset);
         Frame->Length = BufferLength - *Offset;
@@ -1116,7 +1117,7 @@ QuicConnCloseFrameDecode(
         (uint64_t)BufferLength < *Offset + Frame->ReasonPhraseLength) {
         return FALSE;
     }
-    Frame->ReasonPhrase = (char*)Buffer;
+    Frame->ReasonPhrase = (char*)(Buffer + *Offset);
     *Offset += (uint16_t)Frame->ReasonPhraseLength;
     return TRUE;
 }

@@ -29,26 +29,26 @@ uint64_t Decode(uint64_t Encoded)
 
 TEST(VarIntTest, WellKnownEncode)
 {
-    TEST_EQUAL(Encode(0), 0);
-    TEST_EQUAL(Encode(0x3F), 0x3F);
-    TEST_EQUAL(Encode(0x40), 0x4040);
-    TEST_EQUAL(Encode(0x3FFF), 0xFF7F);
-    TEST_EQUAL(Encode(0x4000), 0x400080);
-    TEST_EQUAL(Encode(0x3FFFFFFF), 0xFFFFFFBF);
-    TEST_EQUAL(Encode(0x40000000), 0x40000000C0ULL);
-    TEST_EQUAL(Encode(0x3FFFFFFFFFFFFFFF), 0xFFFFFFFFFFFFFFFF);
+    ASSERT_EQ(Encode(0), 0);
+    ASSERT_EQ(Encode(0x3F), 0x3F);
+    ASSERT_EQ(Encode(0x40), 0x4040);
+    ASSERT_EQ(Encode(0x3FFF), 0xFF7F);
+    ASSERT_EQ(Encode(0x4000), 0x400080);
+    ASSERT_EQ(Encode(0x3FFFFFFF), 0xFFFFFFBF);
+    ASSERT_EQ(Encode(0x40000000), 0x40000000C0ULL);
+    ASSERT_EQ(Encode(0x3FFFFFFFFFFFFFFF), 0xFFFFFFFFFFFFFFFF);
 }
 
 TEST(VarIntTest, WellKnownDecode)
 {
-    TEST_EQUAL(Decode(0), 0);
-    TEST_EQUAL(Decode(0x3F), 0x3F);
-    TEST_EQUAL(Decode(0x4040), 0x40);
-    TEST_EQUAL(Decode(0xFF7F), 0x3FFF);
-    TEST_EQUAL(Decode(0x400080), 0x4000);
-    TEST_EQUAL(Decode(0xFFFFFFBF), 0x3FFFFFFF);
-    TEST_EQUAL(Decode(0x40000000C0ULL), 0x40000000);
-    TEST_EQUAL(Decode(0xFFFFFFFFFFFFFFFF), 0x3FFFFFFFFFFFFFFFULL);
+    ASSERT_EQ(Decode(0), 0);
+    ASSERT_EQ(Decode(0x3F), 0x3F);
+    ASSERT_EQ(Decode(0x4040), 0x40);
+    ASSERT_EQ(Decode(0xFF7F), 0x3FFF);
+    ASSERT_EQ(Decode(0x400080), 0x4000);
+    ASSERT_EQ(Decode(0xFFFFFFBF), 0x3FFFFFFF);
+    ASSERT_EQ(Decode(0x40000000C0ULL), 0x40000000);
+    ASSERT_EQ(Decode(0xFFFFFFFFFFFFFFFF), 0x3FFFFFFFFFFFFFFFULL);
 }
 
 TEST(VarIntTest, RandomEncodeDecode)
@@ -67,6 +67,6 @@ TEST(VarIntTest, RandomEncodeDecode)
         //
         uint64_t Encoded = Encode(Value);
         uint64_t Decoded = Decode(Encoded);
-        TEST_EQUAL(Value, Decoded);
+        ASSERT_EQ(Value, Decoded);
     }
 }

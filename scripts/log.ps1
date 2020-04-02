@@ -80,7 +80,6 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
-
 # Start log collection.
 function Log-Start {
     if ($IsWindows) {
@@ -191,7 +190,7 @@ function Log-Stop {
 # Start log collection.
 function Log-Stream {
     if ($IsWindows) {
-       Write-Host "Not supported on Windows"
+        Write-Host "Not supported on Windows"
     } else {
         lttng destroy
         Write-Host "------------"   
@@ -210,7 +209,7 @@ function Log-Stream {
 # Decode Log from file
 function Log-Decode {
     if ($IsWindows) {
-       Write-Host "Not supported on Windows"
+        Write-Host "Not supported on Windows"
     } else {
         Write-Host $LogFile
 

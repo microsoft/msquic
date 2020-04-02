@@ -1235,18 +1235,18 @@ QuicConnResetIdleTimeout(
     );
 
 //
-// Processes a received UDP datagram for a matching Connection.
+// Queues a received UDP datagram chain to a connection for processing.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicConnQueueRecvDatagram(
+QuicConnQueueRecvDatagrams(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_RECV_DATAGRAM* DatagramChain,
     _In_ uint32_t DatagramChainLength
     );
 
 //
-// Processes a unreachable event for a matching Connection.
+// Queues an unreachable event to a connection for processing.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void

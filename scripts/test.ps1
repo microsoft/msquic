@@ -49,6 +49,9 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER CompressOutput
     Compresses the output files generated for failed test cases.
 
+.PARAMETER NoProgress
+    Disables the progress bar.
+
 .EXAMPLE
     test.ps1
 
@@ -119,7 +122,10 @@ param (
     [switch]$ConvertLogs = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$CompressOutput = $false
+    [switch]$CompressOutput = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$NoProgress = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -177,6 +183,9 @@ if ($ConvertLogs) {
 }
 if ($CompressOutput) {
     $TestArguments += " -CompressOutput"
+}
+if ($NoProgress) {
+    $TestArguments += " -NoProgress"
 }
 
 # Run the script.
