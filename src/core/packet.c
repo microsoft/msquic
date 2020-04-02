@@ -92,10 +92,21 @@ QuicPacketValidateInvariant(
             QuicPacketLogDrop(Owner, Packet, "LH no room for DestCid");
             return FALSE;
         }
-        if (IsBindingShared && DestCidLen == 0) {
-            QuicPacketLogDrop(Owner, Packet, "Zero length DestCid");
-            return FALSE;
+        if (IsBindingShared) {
+            if (DestCidLen == 0) {
+                QuicPacketLogDrop(Owner, Packet, "Zero length DestCid");
+                return FALSE;
+            } else if (DestCidLen < QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH) {
+                QuicPacketLogDrop(Owner, Packet, "Less than min length CID on non-exclusive binding");
+                return FALSE;
+            }
+        } else {
+            if (DestCidLen != 0) {
+                QuicPacketLogDrop(Owner, Packet, "Non-zero length CID on exclusive binding");
+                return FALSE;
+            }
         }
+
         DestCid = Packet->Invariant->LONG_HDR.DestCid;
 
         SourceCidLen = *(DestCid + DestCidLen);
@@ -129,8 +140,8 @@ QuicPacketValidateInvariant(
     if (Packet->DestCid != NULL) {
 
         //
-        // The CID(s) have already been previously set for this UDP datagram.
-        // Make sure they match.
+        // CID(s) are cached from a previous packet in the datagram. Check that
+        // they match.
         //
 
         if (Packet->DestCidLen != DestCidLen ||
@@ -153,8 +164,7 @@ QuicPacketValidateInvariant(
     } else {
 
         //
-        // The first QUIC packet in the datagram, save the CIDs with the receive
-        // context.
+        // This is the first packet in the datagram. Cache the CIDs.
         //
 
         Packet->DestCidLen = DestCidLen;

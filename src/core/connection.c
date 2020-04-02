@@ -2048,7 +2048,7 @@ Error:
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicConnQueueRecvDatagram(
+QuicConnQueueRecvDatagrams(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_RECV_DATAGRAM* DatagramChain,
     _In_ uint32_t DatagramChainLength
@@ -2500,7 +2500,7 @@ QuicConnGetKeyOrDeferDatagram(
 }
 
 //
-// Validates the receives packet's header. Returns TRUE if the packet should be
+// Validates a received packet's header. Returns TRUE if the packet should be
 // processed further.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

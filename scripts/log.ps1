@@ -80,7 +80,7 @@ function Log-Start {
         wpr.exe -start "$($WprpFile)!$($LogProfile)" -filemode -instancename $InstanceName
     } else {
         # TODO
-        Write-Warning "Logging not supported yet!"
+        Write-Debug "Logging not supported yet!"
     }
 }
 
@@ -90,7 +90,7 @@ function Log-Cancel {
         wpr.exe -cancel -instancename $InstanceName
     } else {
         # TODO
-        Write-Warning "Logging not supported yet!"
+        Write-Debug "Logging not supported yet!"
     }
 }
 
@@ -109,7 +109,7 @@ function Log-Stop {
         }
     } else {
         # TODO
-        Write-Warning "Logging not supported yet!"
+        Write-Debug "Logging not supported yet!"
     }
 }
 
