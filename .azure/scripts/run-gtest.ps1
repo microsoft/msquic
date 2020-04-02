@@ -347,7 +347,13 @@ function Wait-TestCase($TestCase) {
             }
         } else {
             if ($AnyTestFailed -or $ProcessCrashed) {
-                Log "$($TestCase.Name) failed"
+                Log "$($TestCase.Name) failed:"
+                if ($null -ne $stdout -and "" -ne $stdout) {
+                    Write-Host $stdout
+                }
+                if ($null -ne $stderr -and "" -ne $stderr) {
+                    Write-Host $stderr
+                }
             } else {
                 Log "$($TestCase.Name) succeeded"
             }
@@ -526,4 +532,5 @@ try {
             Remove-Item $LogDir -Recurse -Force | Out-Null
         }
     }
+    Write-Host ""
 }
