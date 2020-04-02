@@ -15,12 +15,6 @@ Abstract:
 #include "frametest.tmh"
 #endif
 
-// struct FrameTest : public ::testing::Test
-// {
-// protected:
-
-// };
-
 TEST(FrameTest, AckFrameEncodeDecode)
 {
     QUIC_RANGE AckRange;
@@ -95,7 +89,7 @@ TEST(FrameTest, NewTokenFrameEncodeDecode)
     uint8_t* TokenData = FrameBuf + sizeof(QUIC_NEW_TOKEN_EX);
     QUIC_NEW_TOKEN_EX* Frame = (QUIC_NEW_TOKEN_EX*) FrameBuf;
     Frame->TokenLength = 3;
-    Frame->Token = &FrameBuf[8];
+    Frame->Token = &FrameBuf[sizeof(QUIC_NEW_TOKEN_EX)];
     TokenData[0] = TokenData[1] = TokenData[2] = 3;
     QUIC_NEW_TOKEN_EX DecodedFrame;
     uint8_t Buffer[5];
@@ -112,9 +106,62 @@ TEST(FrameTest, NewTokenFrameEncodeDecode)
     ASSERT_EQ(memcmp(Frame->Token, DecodedFrame.Token, DecodedFrame.TokenLength), 0);
 }
 
-//
-//  TODO: Stream Tests
-//
+struct StreamFrameTest : ::testing::TestWithParam<QUIC_FRAME_TYPE> {
+};
+
+TEST_P(StreamFrameTest, StreamFrameEncodeDecode)
+{
+    const uint8_t DataLen = 10;
+    QUIC_STREAM_FRAME_TYPE Type;
+    Type.Type = (uint8_t)GetParam();
+    QUIC_STREAM_EX Frame;
+    QUIC_STREAM_EX DecodedFrame;
+    uint8_t Buffer[6 + DataLen];
+    uint16_t BufferLength = (uint16_t) sizeof(Buffer);
+    uint16_t Offset = 0;
+
+    Frame.ExplicitLength = Type.LEN;
+    if (Type.LEN) {
+        Frame.Length = DataLen;
+    } else {
+        Frame.Length = 0;
+    }
+    Frame.Fin = Type.FIN;
+    if (Type.FIN) {
+        Frame.Length = DataLen;
+    }
+    if (Type.OFF) {
+        Frame.Offset = 127;
+    } else {
+        Frame.Offset = 0;
+    }
+    Frame.StreamID = 63;
+    Frame.Data = &Buffer[QuicStreamFrameHeaderSize(&Frame)];
+
+    QuicZeroMemory(&DecodedFrame, sizeof(DecodedFrame));
+    QuicZeroMemory(Buffer, sizeof(Buffer));
+    ASSERT_TRUE(QuicStreamFrameEncode(&Frame, &Offset, BufferLength, Buffer));
+    Offset = 1;
+    ASSERT_EQ(GetParam(), Buffer[0]);
+    ASSERT_TRUE(QuicStreamFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &DecodedFrame));
+
+    ASSERT_EQ(Frame.Fin, DecodedFrame.Fin);
+    ASSERT_EQ(Frame.ExplicitLength, DecodedFrame.ExplicitLength);
+    ASSERT_EQ(Frame.StreamID, DecodedFrame.StreamID);
+    ASSERT_EQ(Frame.Offset, DecodedFrame.Offset);
+    if (Type.LEN) {
+        ASSERT_EQ(Frame.Length, DecodedFrame.Length);
+    } else {
+        ASSERT_EQ(DecodedFrame.Length, BufferLength - QuicStreamFrameHeaderSize(&DecodedFrame));
+    }
+    //
+    // No stream data is actually copied into the buffer, so make sure the pointer is
+    // in the right location.
+    //
+    ASSERT_EQ(DecodedFrame.Data, &Buffer[QuicStreamFrameHeaderSize(&DecodedFrame)]);
+}
+
+INSTANTIATE_TEST_SUITE_P(FrameTest, StreamFrameTest, ::testing::Values(QUIC_FRAME_STREAM, QUIC_FRAME_STREAM_1, QUIC_FRAME_STREAM_2, QUIC_FRAME_STREAM_3, QUIC_FRAME_STREAM_4, QUIC_FRAME_STREAM_5, QUIC_FRAME_STREAM_6, QUIC_FRAME_STREAM_7), ::testing::PrintToStringParamName());
 
 TEST(FrameTest, MaxDataFrameEncodeDecode)
 {
@@ -170,7 +217,17 @@ TEST_P(MaxStreamsFrameTest, MaxStreamsFrameEncodeDecode)
     ASSERT_EQ(Frame.MaximumStreams, DecodedFrame.MaximumStreams);
 }
 
-INSTANTIATE_TEST_SUITE_P(FrameTest, MaxStreamsFrameTest, ::testing::Bool());
+INSTANTIATE_TEST_SUITE_P(
+    FrameTest,
+    MaxStreamsFrameTest,
+    ::testing::Bool(),
+    [] (const ::testing::TestParamInfo<MaxStreamsFrameTest::ParamType>& info)
+    {
+        if (info.param == true)
+            return "BidirectionalStream";
+        else
+            return "UnidirectionalStream";
+    });
 
 TEST(FrameTest, DataBlockedFrameEncodeDecode)
 {
@@ -226,7 +283,17 @@ TEST_P(StreamsBlockedFrameTest, StreamsBlockedFrameEncodeDecode)
     ASSERT_EQ(Frame.StreamLimit, DecodedFrame.StreamLimit);
 }
 
-INSTANTIATE_TEST_SUITE_P(FrameTest, StreamsBlockedFrameTest, ::testing::Bool());
+INSTANTIATE_TEST_SUITE_P(
+    FrameTest,
+    StreamsBlockedFrameTest,
+    ::testing::Bool(),
+    [] (const ::testing::TestParamInfo<StreamsBlockedFrameTest::ParamType>& info)
+    {
+        if (info.param == true)
+            return "BidirectionalStream";
+        else
+            return "UnidirectionalStream";
+    });
 
 TEST(FrameTest, NewConnectionIdFrameEncodeDecode)
 {
@@ -289,7 +356,11 @@ TEST_P(PathChallengeResponseFrameTest, PathChallengeResponseFrameEncodeDecode)
     ASSERT_EQ(memcmp(Frame.Data, DecodedFrame.Data, sizeof(Frame.Data)), 0);
 }
 
-INSTANTIATE_TEST_SUITE_P(FrameTest, PathChallengeResponseFrameTest, ::testing::Values(QUIC_FRAME_PATH_CHALLENGE, QUIC_FRAME_PATH_RESPONSE));
+INSTANTIATE_TEST_SUITE_P(
+    FrameTest,
+    PathChallengeResponseFrameTest,
+    ::testing::Values(QUIC_FRAME_PATH_CHALLENGE, QUIC_FRAME_PATH_RESPONSE),
+    ::testing::PrintToStringParamName());
 
 struct ConnectionCloseFrameTest : ::testing::TestWithParam<bool> {};
 
@@ -315,4 +386,13 @@ TEST_P(ConnectionCloseFrameTest, ConnectionCloseFrameEncodeDecode)
     ASSERT_EQ(strcmp(Frame.ReasonPhrase, DecodedFrame.ReasonPhrase), 0);
 }
 
-INSTANTIATE_TEST_SUITE_P(FrameTest, ConnectionCloseFrameTest, ::testing::Bool());
+INSTANTIATE_TEST_SUITE_P(
+    FrameTest,
+    ConnectionCloseFrameTest,
+    ::testing::Bool(),
+    [] (const ::testing::TestParamInfo<ConnectionCloseFrameTest::ParamType>& info) {
+        if (info.param == true)
+            return "ApplicationClosed";
+        else
+            return "QUICClosed";
+    });

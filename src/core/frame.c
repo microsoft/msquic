@@ -635,6 +635,7 @@ QuicStreamFrameDecode(
             BufferLength < Frame->Length + *Offset) {
             return FALSE;
         }
+        Frame->ExplicitLength = TRUE;
     } else {
         QUIC_ANALYSIS_ASSERT(BufferLength >= *Offset);
         Frame->Length = BufferLength - *Offset;
