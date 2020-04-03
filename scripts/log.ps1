@@ -178,9 +178,11 @@ function Log-Stop {
         babeltrace --names all $LTTNGRawDirectory/* > $OutputDirectory/decoded_babeltrace.txt
 
         Write-Host "Decoding Babeltrace into human text using CLOG"
+        find ../ | Write-Host
+        
         ../artifacts/tools/clog/clog2text_lttng -i $OutputDirectory/decoded_babeltrace.txt -s ../src/manifest/clog.sidecar -o $OutputDirectory/clog_decode.txt | Write-Host
 
-        find /home/vsts | Write-Host 
+
         
         Write-Host "Deleting LTTNG Directory (the contents are now stored in the tgz file)"        
         Remove-Item -Path $LTTNGTempDirectory -Recurse -Force
