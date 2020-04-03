@@ -952,6 +952,7 @@ QuicConnReplaceRetiredCids(
 
         Path->DestCid = NewDestCid;
         Path->DestCid->CID.UsedLocally = TRUE;
+        Path->InitiatedCidUpdate = TRUE;
     }
 
     return TRUE;
