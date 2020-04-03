@@ -1004,9 +1004,20 @@ QuicConnGetSourceCidFromSeq(
                 *Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);
+        QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
         if (SourceCid->CID.SequenceNumber == SequenceNumber) {
             if (RemoveFromList) {
+                QuicBindingRemoveSourceConnectionID(
+                    Connection->Paths[0].Binding,
+                    SourceCid);
+                QuicTraceEvent(
+                    ConnSourceCidRemoved,
+                    Connection,
+                    SourceCid->CID.SequenceNumber,
+                    SourceCid->CID.Length,
+                    SourceCid->CID.Data);
                 *Entry = (*Entry)->Next;
+                SourceCid->CID.IsInList = FALSE;
             }
             *IsLastCid = Connection->SourceCids.Next == NULL;
             return SourceCid;
@@ -1036,6 +1047,7 @@ QuicConnGetSourceCidFromBuf(
                 Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);
+        QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
         if (CidLength == SourceCid->CID.Length &&
             memcmp(CidBuffer, SourceCid->CID.Data, CidLength) == 0) {
             return SourceCid;
