@@ -15,15 +15,68 @@ Abstract:
 #include "frametest.tmh"
 #endif
 
-TEST(FrameTest, AckFrameEncodeDecode)
-{
-    QUIC_RANGE AckRange;
+struct AckFrameTest : ::testing::TestWithParam<QUIC_FRAME_TYPE> {
+};
 
-    TEST_QUIC_SUCCEEDED(QuicRangeInitialize((uint32_t)~0, &AckRange));
-    //
-    // TODO: Write test case
-    //
+TEST_P(AckFrameTest, AckFrameEncodeDecode)
+{
+    const uint64_t MaxPktNum = 10;
+    const uint64_t ContigPktCount = 4;
+    const uint64_t MinPktNum = 5;
+    const uint64_t AckDelay = 0;
+    QUIC_ACK_ECN_EX Ecn = {4, 4, 4};
+    QUIC_ACK_ECN_EX DecodedEcn = {0, 0, 0};
+    QUIC_RANGE AckRange;
+    QUIC_RANGE DecodedAckRange;
+    uint8_t Buffer[10];
+    uint16_t BufferLength = (uint16_t) sizeof(Buffer);
+    uint16_t Offset = 0;
+    uint64_t DecodedAckDelay = 0;
+    uint64_t RangeLength = 0;
+    BOOLEAN InvalidFrame = FALSE;
+    BOOLEAN IsLastRange = FALSE;
+    BOOLEAN Unused;
+
+    QuicZeroMemory(Buffer, sizeof(Buffer));
+
+    TEST_QUIC_SUCCEEDED(QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckRange));
+    TEST_QUIC_SUCCEEDED(QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &DecodedAckRange));
+
+    ASSERT_TRUE(QuicRangeAddRange(&AckRange, MinPktNum, ContigPktCount, &Unused) != nullptr);
+    ASSERT_TRUE(QuicRangeAddValue(&AckRange, MaxPktNum));
+
+    ASSERT_TRUE(QuicAckFrameEncode(&AckRange, AckDelay, (GetParam() == QUIC_FRAME_ACK ? nullptr : &Ecn), &Offset, BufferLength, Buffer));
+    Offset = 1;
+    ASSERT_EQ(Buffer[0], GetParam());
+    ASSERT_TRUE(QuicAckFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &InvalidFrame, &DecodedAckRange, &DecodedEcn, &DecodedAckDelay));
+
+    ASSERT_FALSE(InvalidFrame);
+    ASSERT_EQ(AckDelay, DecodedAckDelay);
+    ASSERT_EQ(QuicRangeSize(&DecodedAckRange), QuicRangeSize(&AckRange));
+    ASSERT_EQ(QuicRangeGetMin(&DecodedAckRange), MinPktNum);
+    ASSERT_EQ(QuicRangeGetMax(&DecodedAckRange), MaxPktNum);
+    ASSERT_TRUE(QuicRangeGetRange(&DecodedAckRange, MinPktNum, &RangeLength, &IsLastRange));
+    ASSERT_EQ(RangeLength, ContigPktCount);
+    ASSERT_FALSE(IsLastRange);
+    ASSERT_TRUE(QuicRangeGetRange(&DecodedAckRange, MaxPktNum, &RangeLength, &IsLastRange));
+    ASSERT_EQ(RangeLength, 1);
+    ASSERT_TRUE(IsLastRange);
+
+    if (GetParam() == QUIC_FRAME_ACK_1) {
+        ASSERT_EQ(Ecn.CE_Count, DecodedEcn.CE_Count);
+        ASSERT_EQ(Ecn.ECT_0_Count, DecodedEcn.ECT_0_Count);
+        ASSERT_EQ(Ecn.ECT_1_Count, DecodedEcn.ECT_1_Count);
+    }
+
+    QuicRangeUninitialize(&AckRange);
+    QuicRangeUninitialize(&DecodedAckRange);
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    FrameTest,
+    AckFrameTest,
+    ::testing::Values(QUIC_FRAME_ACK, QUIC_FRAME_ACK_1),
+    ::testing::PrintToStringParamName());
 
 TEST(FrameTest, ResetStreamFrameEncodeDecode)
 {
