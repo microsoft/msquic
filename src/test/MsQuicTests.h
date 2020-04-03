@@ -76,6 +76,11 @@ QuicTestConnect(
     );
 
 void
+QuicTestPathTimeout(
+    void
+    );
+
+void
 QuicTestVersionNegotiation(
     _In_ int Family
     );
