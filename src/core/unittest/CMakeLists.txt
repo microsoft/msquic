@@ -12,6 +12,7 @@ set(
     FrameTest.cpp
     PacketNumberTest.cpp
     RangeTest.cpp
+    SpinFrame.cpp
     TransportParamTest.cpp
     VarIntTest.cpp
 )
