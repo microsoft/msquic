@@ -93,8 +93,6 @@ function Log-Start {
      
         $LogProfile = "QuicLTTNG"
 
-        #find $HOME | Write-Host
-
         $OutputDirectoryRoot = Join-Path $HOME "QUICLogs"
         $LTTNGRawDirectory = Join-Path $OutputDirectoryRoot "LTTNGRaw"
 
@@ -103,15 +101,13 @@ function Log-Start {
         if (Test-Path $LTTNGRawDirectory) {
             Remove-Item -Path $LTTNGRawDirectory -Recurse -Force
         }        
-        New-Item -Path $LTTNGRawDirectory -ItemType Directory -Force | Out-Null     
-
+        New-Item -Path $LTTNGRawDirectory -ItemType Directory -Force | Out-Null    
                  
         Write-Host "------------" 
         Write-Host "Creating LTTNG Profile $LogProfile into $LTTNGRawDirectory"
         $Command = "lttng create $LogProfile -o=$LTTNGRawDirectory | Write-Host"
         Write-Host $Command
         Invoke-Expression $Command
-
      
         Write-Host "------------"         
         Write-Host "Enabling all CLOG traces"
@@ -159,6 +155,11 @@ function Log-Stop {
         $LTTNGTempDirectory = Join-Path $HOME "QUICLogs"
         $LTTNGRawDirectory = Join-Path $LTTNGTempDirectory "LTTNGRaw"        
         $LTTNGTarFile = Join-Path $OutputDirectory "lttng_trace.tgz"
+        $CLOG2TEXT = Join-Path $RootDir "artifacts/tools/clog/clog2text_lttng"
+        $SideCar = Join-Path $RootDir "src/manifest/clog.sidecar"
+        $BableTraceFile = Join-Path $OutputDirectory "decoded_babeltrace.txt"
+        $ClogOutputDecodeFile = Join-Path $OutputDirectory "clog_decode.txt"
+
 
         if (!(Test-Path $LTTNGRawDirectory)) {            
             Write-Host "ERROR : Output Directory $LTTNGRawDirectory must exist"
@@ -173,10 +174,10 @@ function Log-Stop {
         tar -cvzf $LTTNGTarFile $LTTNGRawDirectory
 
         Write-Host "Decoding LTTNG into BabelTrace format ($WorkingDirectory/decoded_babeltrace.txt)"
-        babeltrace --names all $LTTNGRawDirectory/* > $OutputDirectory/decoded_babeltrace.txt
+        babeltrace --names all $LTTNGRawDirectory/* > $BableTraceFile
 
         Write-Host "Decoding Babeltrace into human text using CLOG"
-        $Command = "$RootDir/artifacts/tools/clog/clog2text_lttng -i $OutputDirectory/decoded_babeltrace.txt -s $RootDir/src/manifest/clog.sidecar -o $OutputDirectory/clog_decode.txt"
+        $Command = "$CLOG2TEXT -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
         Write-Host $Command
         Invoke-Expression $Command
         
@@ -218,6 +219,10 @@ function Log-Decode {
         Write-Host $LogFile
 
         $DecompressedLogs = Join-Path $WorkingDirectory "DecompressedLogs"
+        $ClogOutputDecodeFile = Join-Path $WorkingDirectory "clog_decode.txt"
+        $SideCar = Join-Path $RootDir "src/manifest/clog.sidecar"        
+        $BableTraceFile = Join-Path $WorkingDirectory "decoded_babeltrace.txt"
+        $CLOG2TEXT = Join-Path $RootDir "artifacts/tools/clog/clog2text_lttng"
 
         mkdir $WorkingDirectory
         mkdir $DecompressedLogs
@@ -225,11 +230,13 @@ function Log-Decode {
         Write-Host "Decompressing $Logfile into $DecompressedLogs"
         tar xvfz $Logfile -C $DecompressedLogs
 
-        Write-Host "Decoding LTTNG into BabelTrace format ($WorkingDirectory/decoded_babeltrace.txt)"
-        babeltrace --names all $DecompressedLogs/* > $WorkingDirectory/decoded_babeltrace.txt
+        Write-Host "Decoding LTTNG into BabelTrace format ($BableTraceFile)"
+        babeltrace --names all $DecompressedLogs/* > $BableTraceFile
 
         Write-Host "Decoding Babeltrace into human text using CLOG"
-        ../artifacts/tools/clog/clog2text_lttng -i $WorkingDirectory/decoded_babeltrace.txt -s ../src/manifest/clog.sidecar -o $WorkingDirectory/clog_decode.txt | Write-Host
+        $Command = "$CLOG2TEXT -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
+        Write-Host $Command
+        Invoke-Expression $Command
     }
 }
 ##############################################################
