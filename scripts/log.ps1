@@ -179,8 +179,8 @@ function Log-Stop {
 
         Write-Host "Decoding Babeltrace into human text using CLOG"
         find ../ | Write-Host
-        
-        ../artifacts/tools/clog/clog2text_lttng -i $OutputDirectory/decoded_babeltrace.txt -s ../src/manifest/clog.sidecar -o $OutputDirectory/clog_decode.txt | Write-Host
+
+        $RootDir/artifacts/tools/clog/clog2text_lttng -i $OutputDirectory/decoded_babeltrace.txt -s $RootDir/src/manifest/clog.sidecar -o $OutputDirectory/clog_decode.txt | Write-Host
 
 
         
