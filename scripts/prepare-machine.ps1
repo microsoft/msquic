@@ -44,10 +44,10 @@ if ($IsWindows) {
         $TlsClientKeyPath = "HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client"
         reg.exe add $TlsClientKeyPath /v DisabledByDefault /t REG_DWORD /d 1 /f | Out-Null
         reg.exe add $TlsClientKeyPath /v Enabled /t REG_DWORD /d 0 /f | Out-Null
-    
+
         # Run procdump installation script.
         & (Join-Path $ScriptsDir "install-procdump.ps1")
-    
+
         # Enable SChannel TLS 1.3 (client and server).
         $TlsServerKeyPath = "HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server"
         reg.exe add $TlsServerKeyPath /v DisabledByDefault /t REG_DWORD /d 0 /f | Out-Null
@@ -63,7 +63,7 @@ if ($IsWindows) {
             sudo apt-add-repository ppa:lttng/stable-2.10
             sudo apt-get update
             sudo apt-get install liblttng-ust-dev
-			sudo apt-get install systemtap-sdt-dev
+            sudo apt-get install systemtap-sdt-dev
         }
         "Test" {
             sudo apt-add-repository ppa:lttng/stable-2.10
