@@ -278,7 +278,7 @@ ParseClientCommand(
             return;
         }
     }
-    
+
     const char* localAddress;
     if (TryGetValue(argc, argv, "bind", &localAddress)) {
         if (!ConvertArgToAddress(localAddress, 0, &PingConfig.LocalIpAddr)) {

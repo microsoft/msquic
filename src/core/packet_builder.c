@@ -241,7 +241,7 @@ QuicPacketBuilderPrepare(
             Builder->MinimumDatagramLength = NewDatagramLength;
         }
 
-        QuicTraceLogVerbose(FN_packet_builder24bb96787b7b1cfae2d4688ab3213bf6, "[pktb][%p] New UDP datagram. Space: %u", 
+        QuicTraceLogVerbose(FN_packet_builder24bb96787b7b1cfae2d4688ab3213bf6, "[pktb][%p] New UDP datagram. Space: %u",
             Connection, Builder->Datagram->Length);
     }
 
@@ -323,7 +323,7 @@ QuicPacketBuilderPrepare(
 
         Builder->DatagramLength += Builder->HeaderLength;
 
-        QuicTraceLogVerbose(FN_packet_builderaee4e5ee823e822959be3e96df4584aa, "[pktb][%p] New QUIC packet. Space: %hu. Type: %hx", 
+        QuicTraceLogVerbose(FN_packet_builderaee4e5ee823e822959be3e96df4584aa, "[pktb][%p] New QUIC packet. Space: %hu. Type: %hx",
             Connection, BufferSpaceAvailable, NewPacketType);
     }
 
@@ -747,9 +747,9 @@ QuicPacketBuilderFinalize(
 
             Status = QuicCryptoGenerateNewKeys(Connection);
             if (QUIC_FAILED(Status)) {
-                QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", 
-                    Connection, 
-                    Status, 
+                QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.",
+                    Connection,
+                    Status,
                     "Send-triggered key update");
                 QuicConnFatalError(Connection, Status, "Send-triggered key update");
                 goto Exit;
@@ -775,10 +775,10 @@ QuicPacketBuilderFinalize(
     Builder->Metadata->PacketLength =
         Builder->HeaderLength + PayloadLength;
 
-    QuicTraceEvent(ConnPacketSent, "[conn][%p][TX][%I] %c (%hd bytes)", 
-        Connection, 
-        Builder->Metadata->PacketNumber, 
-        QuicPacketTraceType(Builder->Metadata), 
+    QuicTraceEvent(ConnPacketSent, "[conn][%p][TX][%I] %c (%hd bytes)",
+        Connection,
+        Builder->Metadata->PacketNumber,
+        QuicPacketTraceType(Builder->Metadata),
         Builder->Metadata->PacketLength);
     QuicLossDetectionOnPacketSent(
         &Connection->LossDetection,
@@ -835,7 +835,7 @@ QuicPacketBuilderSendBatch(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
-    QuicTraceLogVerbose(FN_packet_builderbe3ff1273f0941f8129a2f6dac9f12fc, "[pktb][%p] Sending batch. %hu datagrams", 
+    QuicTraceLogVerbose(FN_packet_builderbe3ff1273f0941f8129a2f6dac9f12fc, "[pktb][%p] Sending batch. %hu datagrams",
         Builder->Connection, (uint16_t)Builder->TotalCountDatagrams);
 
     if (QuicAddrIsBoundExplicitly(&Builder->Path->LocalAddress)) {

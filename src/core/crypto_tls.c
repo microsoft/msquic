@@ -338,7 +338,7 @@ QuicCryptoTlsReadExtensions(
                 return Status;
             }
         }
-        
+
         BufferLength -= ExtLen;
         Buffer += ExtLen;
     }

@@ -695,8 +695,8 @@ FindOrCreateCertificate(
         QuicTraceLogInfo(FN_selfsign_capi760f4991b08a42d6e34243caf688f6db, "[test] CreateEvent opened existing event");
         DWORD WaitResult = WaitForSingleObject(Event, QUIC_CERT_CREATION_EVENT_WAIT);
         if (WaitResult != WAIT_OBJECT_0) {
-            QuicTraceLogWarning(FN_selfsign_capib987d46256da02f01ee442873c55fc3a, "[test] WaitForSingleObject returned 0x%x, proceeding without caution... (GLE: 0x%x)", 
-                WaitResult, 
+            QuicTraceLogWarning(FN_selfsign_capib987d46256da02f01ee442873c55fc3a, "[test] WaitForSingleObject returned 0x%x, proceeding without caution... (GLE: 0x%x)",
+                WaitResult,
                 GetLastError());
         }
     } else {

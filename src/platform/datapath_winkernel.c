@@ -1201,7 +1201,7 @@ QuicDataPathCloseSocketIoCompletion(
 
 #pragma prefast(suppress: 28182, "SAL doesn't understand how callbacks work.")
         if (QUIC_FAILED(SocketContext->Irp.IoStatus.Status)) {
-            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", SocketContext->Binding, 
+            QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", SocketContext->Binding,
                 SocketContext->Irp.IoStatus.Status, "WskCloseSocket completion");
         }
 
@@ -1849,14 +1849,14 @@ QuicDataPathSocketReceive(
         if (IsUnreachableError) {
 #ifdef QUIC_LOGS_WPP // TODO - Change to ETW event
             if (RemoteAddr.si_family == AF_INET) {
-                QuicTraceLogVerbose(FN_datapath_winkernel0d5b73ad7e3f4e54d28b5b840116cd97, "[sock][%p] Unreachable error from %!IPV4ADDR!:%hu", 
-                    SocketContext, 
-                    &RemoteAddr.Ipv4.sin_addr, 
+                QuicTraceLogVerbose(FN_datapath_winkernel0d5b73ad7e3f4e54d28b5b840116cd97, "[sock][%p] Unreachable error from %!IPV4ADDR!:%hu",
+                    SocketContext,
+                    &RemoteAddr.Ipv4.sin_addr,
                     RtlUshortByteSwap(RemoteAddr.Ipv4.sin_port));
             } else {
-                QuicTraceLogVerbose(FN_datapath_winkernele1fb7d63de75c9c0e44219d165a81f04, "[sock][%p] Unreachable error from [%!IPV6ADDR!]:%hu", 
-                    SocketContext, 
-                    &RemoteAddr.Ipv6.sin6_addr, 
+                QuicTraceLogVerbose(FN_datapath_winkernele1fb7d63de75c9c0e44219d165a81f04, "[sock][%p] Unreachable error from [%!IPV6ADDR!]:%hu",
+                    SocketContext,
+                    &RemoteAddr.Ipv6.sin6_addr,
                     RtlUshortByteSwap(RemoteAddr.Ipv6.sin6_port));
             }
 #endif
@@ -1881,7 +1881,7 @@ QuicDataPathSocketReceive(
             //
             QUIC_DBG_ASSERT(DataLength <= MAXUINT16);
             if (DataLength > MAXUINT16) {
-                QuicTraceLogWarning(FN_datapath_winkernel7ace99c208f148bb120993f6b0cc6af7, "[%p] Dropping datagram with too many bytes (%llu).", 
+                QuicTraceLogWarning(FN_datapath_winkernel7ace99c208f148bb120993f6b0cc6af7, "[%p] Dropping datagram with too many bytes (%llu).",
                     SocketContext, (uint64_t)DataLength);
                 goto Drop;
             }
@@ -1893,9 +1893,9 @@ QuicDataPathSocketReceive(
             goto Drop;
         }
 
-        QuicTraceEvent(DatapathRecv, "[ udp][%p] Recv %d bytes (segment=%hd) Src=%SOCKADDR Dst=%SOCKADDR", 
-            SocketContext->Binding, 
-            (uint32_t)DataLength, 
+        QuicTraceEvent(DatapathRecv, "[ udp][%p] Recv %d bytes (segment=%hd) Src=%SOCKADDR Dst=%SOCKADDR",
+            SocketContext->Binding,
+            (uint32_t)DataLength,
             MessageLength, CLOG_BYTEARRAY(LOG_ADDR_LEN(LocalAddr), (const uint8_t*)&LocalAddr), CLOG_BYTEARRAY(LOG_ADDR_LEN(RemoteAddr), (const uint8_t*)&RemoteAddr));
 
         for ( ; DataLength != 0; DataLength -= MessageLength) {
@@ -2470,7 +2470,7 @@ QuicDataPathSendComplete(
     QUIC_UDP_SOCKET_CONTEXT* SocketContext = SendContext->SocketContext;
 
     if (!NT_SUCCESS(Irp->IoStatus.Status)) {
-        QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", SocketContext->Binding, 
+        QuicTraceEvent(DatapathErrorStatus, "[ udp][%p] ERROR, %d, %s.", SocketContext->Binding,
             Irp->IoStatus.Status, "WskSendMessages completion");
     }
 
@@ -2532,10 +2532,10 @@ QuicDataPathBindingSendTo(
     SocketContext = &Binding->SocketContext;
     SendContext->SocketContext = SocketContext;
 
-    QuicTraceEvent(DatapathSendTo, "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%SOCKADDR", 
-        Binding, 
-        SendContext->TotalSize, 
-        SendContext->WskBufferCount, 
+    QuicTraceEvent(DatapathSendTo, "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%SOCKADDR",
+        Binding,
+        SendContext->TotalSize,
+        SendContext->WskBufferCount,
         SendContext->SegmentSize, CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)RemoteAddress));
 
     BYTE CMsgBuffer[WSA_CMSG_SPACE(sizeof(*SegmentSize))];
@@ -2618,10 +2618,10 @@ QuicDataPathBindingSendFromTo(
     SocketContext = &Binding->SocketContext;
     SendContext->SocketContext = SocketContext;
 
-    QuicTraceEvent(DatapathSendFromTo, "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%SOCKADDR, Src=%SOCKADDR", 
-        Binding, 
-        SendContext->TotalSize, 
-        SendContext->WskBufferCount, 
+    QuicTraceEvent(DatapathSendFromTo, "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%SOCKADDR, Src=%SOCKADDR",
+        Binding,
+        SendContext->TotalSize,
+        SendContext->WskBufferCount,
         SendContext->SegmentSize, CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)RemoteAddress), CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), (const uint8_t*)LocalAddress));
 
     //

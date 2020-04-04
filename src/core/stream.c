@@ -287,7 +287,7 @@ QuicStreamTraceRundown(
     _In_ QUIC_STREAM* Stream
     )
 {
-    QuicTraceEvent(StreamRundown, "[strm][%p] Rundown, Conn=%p ID=%I IsLocal=%c", Stream, Stream->Connection, Stream->ID, 
+    QuicTraceEvent(StreamRundown, "[strm][%p] Rundown, Conn=%p ID=%I IsLocal=%c", Stream, Stream->Connection, Stream->ID,
         (!QuicConnIsServer(Stream->Connection) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
     QuicTraceEvent(StreamOutFlowBlocked, "[strm][%p] Send Blocked Flags: %c", Stream, Stream->OutFlowBlockedReasons);
     // TODO - More state dump.
