@@ -17,7 +17,7 @@ Abstract:
 void QuicTestValidateApi()
 {
     TEST_QUIC_STATUS(
-        QUIC_STATUS_SUCCESS,
+        QUIC_STATUS_INVALID_PARAMETER,
         MsQuicOpen(nullptr));
 
     MsQuicClose(nullptr);
