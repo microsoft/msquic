@@ -631,9 +631,17 @@ QuicTestPathTimeout(
             Server->GetPeerBidiStreamCount(),
             Client.GetLocalBidiStreamCount());
 
+        //
+        // Close the listener and server before updating the client's address
+        // so the client will get no response on the new path, then wait for
+        // the client to time out its new path.
+        //
+        Server = nullptr;
+        Listener = nullptr;
+
         QuicAddr NewLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Client.SetLocalAddr(NewLocalAddr));
-        QuicSleep(100);
+        QuicSleep(500);
         TEST_QUIC_SUCCEEDED(Client.GetLocalAddr(NewLocalAddr));
         TEST_FALSE(Client.GetIsShutdown());
 
