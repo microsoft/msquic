@@ -976,7 +976,7 @@ QuicPlatformLogAssert(
     UNREFERENCED_PARAMETER(Line);
     UNREFERENCED_PARAMETER(Func);
     UNREFERENCED_PARAMETER(Expr);
-    
+
     //XuicTraceLogError(FN_platform_linuxb416645bcc56e4270130192a5505d003, "[Assert] %s:%s:%d:%s", Expr, Func, Line, File);
 }
 
