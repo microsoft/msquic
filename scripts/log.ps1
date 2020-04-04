@@ -180,9 +180,9 @@ function Log-Stop {
         Write-Host "Decoding Babeltrace into human text using CLOG"
         find ../ | Write-Host
 
-        $RootDir/artifacts/tools/clog/clog2text_lttng -i $OutputDirectory/decoded_babeltrace.txt -s $RootDir/src/manifest/clog.sidecar -o $OutputDirectory/clog_decode.txt | Write-Host
-
-
+        $Command = "$RootDir/artifacts/tools/clog/clog2text_lttng -i $OutputDirectory/decoded_babeltrace.txt -s $RootDir/src/manifest/clog.sidecar -o $OutputDirectory/clog_decode.txt"
+        Write-Host $Command
+        Invoke-Expression $Command
         
         Write-Host "Deleting LTTNG Directory (the contents are now stored in the tgz file)"        
         Remove-Item -Path $LTTNGTempDirectory -Recurse -Force
