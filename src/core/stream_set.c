@@ -413,7 +413,7 @@ QuicStreamSetUpdateMaxCount(
                     QUIC_CONN_SEND_FLAG_MAX_STREAMS_BIDI);
         }
     }
-    
+
     Info->MaxCurrentStreamCount = Count;
 }
 

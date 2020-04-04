@@ -153,7 +153,7 @@ MsQuicLibraryInitialize(
     MsQuicLib.PerProc =
         QUIC_ALLOC_NONPAGED(MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
     if (MsQuicLib.PerProc == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "connection pools", 
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "connection pools",
             MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -177,8 +177,8 @@ MsQuicLibraryInitialize(
         goto Error;
     }
 
-    QuicTraceEvent(LibraryInitialized, "[ lib] Initialized, PartitionCount=%d DatapathFeatures=%d", 
-        MsQuicLib.PartitionCount, 
+    QuicTraceEvent(LibraryInitialized, "[ lib] Initialized, PartitionCount=%d DatapathFeatures=%d",
+        MsQuicLib.PartitionCount,
         QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 
 #ifdef QuicVerifierEnabled
@@ -1080,8 +1080,8 @@ QuicTraceRundown(
     QuicLockAcquire(&MsQuicLib.Lock);
 
     if (MsQuicLib.RefCount > 0) {
-        QuicTraceEvent(LibraryRundown, "[ lib] Rundown, PartitionCount=%d DatapathFeatures=%d", 
-            MsQuicLib.PartitionCount, 
+        QuicTraceEvent(LibraryRundown, "[ lib] Rundown, PartitionCount=%d DatapathFeatures=%d",
+            MsQuicLib.PartitionCount,
             QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 
         for (QUIC_LIST_ENTRY* Link = MsQuicLib.Registrations.Flink;

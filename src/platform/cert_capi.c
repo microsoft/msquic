@@ -612,7 +612,7 @@ QuicCertParseChain(
                 CertLength,
                 CERT_STORE_ADD_USE_EXISTING,
                 &CertCtx)) {
-            QuicTraceLogError(FN_cert_capie9f6ebfefedfe10ace186698160ca5e7, "[cert] CertAddEncodedCertificateToStore failed for cert #%u, 0x%x.", 
+            QuicTraceLogError(FN_cert_capie9f6ebfefedfe10ace186698160ca5e7, "[cert] CertAddEncodedCertificateToStore failed for cert #%u, 0x%x.",
                 CertNumber, GetLastError());
             goto Error;
         }

@@ -27,8 +27,8 @@ MsQuicListenerOpen(
     QUIC_SESSION* Session;
     QUIC_LISTENER* Listener = NULL;
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
-        QUIC_TRACE_API_LISTENER_OPEN, 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
+        QUIC_TRACE_API_LISTENER_OPEN,
         SessionHandle);
 
     if (SessionHandle == NULL ||
@@ -94,8 +94,8 @@ MsQuicListenerClose(
         return;
     }
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
-        QUIC_TRACE_API_LISTENER_CLOSE, 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
+        QUIC_TRACE_API_LISTENER_CLOSE,
         Handle);
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
@@ -129,8 +129,8 @@ MsQuicListenerStart(
     BOOLEAN PortUnspecified;
     QUIC_ADDR BindingLocalAddress = {0};
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
-        QUIC_TRACE_API_LISTENER_START, 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
+        QUIC_TRACE_API_LISTENER_START,
         Handle);
 
     if (Handle == NULL ||
@@ -205,8 +205,8 @@ MsQuicListenerStart(
             QuicAddrGetPort(&BindingLocalAddress));
     }
 
-    QuicTraceEvent(ListenerStarted, "[list][%p] Started, Binding=%p, LocalAddr=%SOCKADDR", 
-        Listener, 
+    QuicTraceEvent(ListenerStarted, "[list][%p] Started, Binding=%p, LocalAddr=%SOCKADDR",
+        Listener,
         Listener->Binding, CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), (uint8_t*)&Listener->LocalAddress));
 
 Error:
@@ -232,8 +232,8 @@ MsQuicListenerStop(
     _In_ _Pre_defensive_ HQUIC Handle
     )
 {
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
-        QUIC_TRACE_API_LISTENER_STOP, 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
+        QUIC_TRACE_API_LISTENER_STOP,
         Handle);
 
     if (Handle != NULL && Handle->Type == QUIC_HANDLE_TYPE_LISTENER) {
@@ -260,8 +260,8 @@ QuicListenerTraceRundown(
 {
     QuicTraceEvent(ListenerRundown, "[list][%p] Rundown, Session=%p", Listener, Listener->Session);
     if (Listener->Binding != NULL) {
-        QuicTraceEvent(ListenerStarted, "[list][%p] Started, Binding=%p, LocalAddr=%SOCKADDR", 
-            Listener, 
+        QuicTraceEvent(ListenerStarted, "[list][%p] Started, Binding=%p, LocalAddr=%SOCKADDR",
+            Listener,
             Listener->Binding, CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), (uint8_t*)&Listener->LocalAddress));
     }
 }
@@ -282,7 +282,7 @@ QuicListenerIndicateEvent(
             Event);
     uint64_t EndTime = QuicTimeUs64();
     if (EndTime - StartTime > QUIC_MAX_CALLBACK_TIME_WARNING) {
-        QuicTraceLogWarning(FN_listener2ee8b8e7111af9a2f69d8394569fd0cd, "[list][%p] App took excessive time (%llu us) in callback.", 
+        QuicTraceLogWarning(FN_listener2ee8b8e7111af9a2f69d8394569fd0cd, "[list][%p] App took excessive time (%llu us) in callback.",
             Listener, (EndTime - StartTime));
         QUIC_TEL_ASSERTMSG_ARGS(
             EndTime - StartTime < QUIC_MAX_CALLBACK_TIME_ERROR,
