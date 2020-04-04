@@ -172,14 +172,10 @@ function Log-Stop {
         Write-Host "tar/gzip LTTNG log files from $LTTNGRawDirectory into $LTTNGTarFile"
         tar -cvzf $LTTNGTarFile $LTTNGRawDirectory
 
-        find /home/vsts | Write-Host
-
         Write-Host "Decoding LTTNG into BabelTrace format ($WorkingDirectory/decoded_babeltrace.txt)"
         babeltrace --names all $LTTNGRawDirectory/* > $OutputDirectory/decoded_babeltrace.txt
 
         Write-Host "Decoding Babeltrace into human text using CLOG"
-        find ../ | Write-Host
-
         $Command = "$RootDir/artifacts/tools/clog/clog2text_lttng -i $OutputDirectory/decoded_babeltrace.txt -s $RootDir/src/manifest/clog.sidecar -o $OutputDirectory/clog_decode.txt"
         Write-Host $Command
         Invoke-Expression $Command
@@ -203,8 +199,13 @@ function Log-Stream {
         lttng start
         lttng list
         babeltrace -i lttng-live net://localhost
+
+        Write-Host "Starting live decode of traces"
+        $Command = "babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquicLive | $RootDir/artifacts/tools/clog/clog2text_lttng -s $RootDir/src/manifest/clog.sidecar"
+        Write-Host $Command
+        Invoke-Expression $Command
         
-        babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquicLive | ../artifacts/tools/clog/clog2text_lttng -s ../src/manifest/clog.sidecar
+        
     }
 }
 
