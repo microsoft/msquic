@@ -901,7 +901,7 @@ QuicThreadCreate(
 
     pthread_attr_t Attr;
     if (pthread_attr_init(&Attr)) {
-        //Xu icTraceLogError(FN_platform_linux03f5cd9d08b25c9becba34623dd6e99f, "[qpal] pthread_attr_init failed, 0x%x.", errno);
+        QuicTraceLogError(FN_platform_linux03f5cd9d08b25c9becba34623dd6e99f, "[qpal] pthread_attr_init failed, 0x%x.", errno);
         return errno;
     }
 
