@@ -556,7 +556,7 @@ QuicTestCtlEvtIoDeviceControl(
 
     if (InputBufferLength < QUIC_IOCTL_BUFFER_SIZES[FunctionCode]) {
         Status = STATUS_INSUFFICIENT_RESOURCES;
-        QuicTraceLogError(FN_control3af5d477ca51e451eb07856f832960c8, "[test] Invalid buffer size for FunctionCode %u, %u (expected %u)", 
+        QuicTraceLogError(FN_control3af5d477ca51e451eb07856f832960c8, "[test] Invalid buffer size for FunctionCode %u, %u (expected %u)",
             FunctionCode, (UINT32)InputBufferLength, (UINT32)QUIC_IOCTL_BUFFER_SIZES[FunctionCode]);
         goto Error;
     }

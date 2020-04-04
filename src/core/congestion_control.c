@@ -75,11 +75,11 @@ QuicConnLogCubic(
     )
 {
     UNREFERENCED_PARAMETER(Connection);
-    QuicTraceEvent(ConnCubic, "[conn][%p] CUBIC: SlowStartThreshold=%d K=%d WindowMax=%d WindowLastMax=%d", 
-        Connection, 
-        Connection->CongestionControl.SlowStartThreshold, 
-        Connection->CongestionControl.KCubic, 
-        Connection->CongestionControl.WindowMax, 
+    QuicTraceEvent(ConnCubic, "[conn][%p] CUBIC: SlowStartThreshold=%d K=%d WindowMax=%d WindowLastMax=%d",
+        Connection,
+        Connection->CongestionControl.SlowStartThreshold,
+        Connection->CongestionControl.KCubic,
+        Connection->CongestionControl.WindowMax,
         Connection->CongestionControl.WindowLastMax);
 }
 

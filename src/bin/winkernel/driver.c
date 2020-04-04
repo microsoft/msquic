@@ -62,7 +62,7 @@ Parameters Description:
 Return Value:
 
     A success status as determined by NT_SUCCESS macro, if successful.
- 
+
 --*/
 {
     NTSTATUS Status;

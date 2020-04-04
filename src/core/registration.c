@@ -38,8 +38,8 @@ MsQuicRegistrationOpen(
         AppNameLength = strlen(Config->AppName);
     }
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
-        QUIC_TRACE_API_REGISTRATION_OPEN, 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
+        QUIC_TRACE_API_REGISTRATION_OPEN,
         NULL);
 
     if (NewRegistration == NULL) {
@@ -150,8 +150,8 @@ MsQuicRegistrationClose(
         return;
     }
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
-        QUIC_TRACE_API_REGISTRATION_CLOSE, 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
+        QUIC_TRACE_API_REGISTRATION_CLOSE,
         Handle);
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
@@ -236,8 +236,8 @@ MsQuicSecConfigCreate(
 {
     QUIC_STATUS Status;
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
-        QUIC_TRACE_API_SEC_CONFIG_CREATE, 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
+        QUIC_TRACE_API_SEC_CONFIG_CREATE,
         Handle);
 
     if (Handle == NULL || Handle->Type != QUIC_HANDLE_TYPE_REGISTRATION ||
@@ -270,8 +270,8 @@ MsQuicSecConfigDelete(
     _In_ _Pre_defensive_ QUIC_SEC_CONFIG* SecurityConfig
     )
 {
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
-        QUIC_TRACE_API_SEC_CONFIG_DELETE, 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
+        QUIC_TRACE_API_SEC_CONFIG_DELETE,
         SecurityConfig);
 
     if (SecurityConfig != NULL) {

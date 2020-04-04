@@ -1303,7 +1303,7 @@ QuicTlsInitialize(
     TlsContext->IsServer = Config->IsServer;
     TlsContext->TlsSession = Config->TlsSession;
 
-    QuicTraceLogVerbose(FN_tls_schannel8b8980417b7165619250b4160d5f5320, "[ tls][%p][%c] Created.", 
+    QuicTraceLogVerbose(FN_tls_schannel8b8980417b7165619250b4160d5f5320, "[ tls][%p][%c] Created.",
         TlsContext, GetTlsIdentifier(TlsContext));
 
     TlsContext->AppProtocolsSize = AppProtocolsSize;
@@ -1382,7 +1382,7 @@ QuicTlsUninitialize(
     )
 {
     if (TlsContext != NULL) {
-        QuicTraceLogVerbose(FN_tls_schannel46416f9e948dc2d7e0da7dff4824650b, "[ tls][%p][%c] Cleaning up.", 
+        QuicTraceLogVerbose(FN_tls_schannel46416f9e948dc2d7e0da7dff4824650b, "[ tls][%p][%c] Cleaning up.",
             TlsContext, GetTlsIdentifier(TlsContext));
 
         QuicTlsResetSchannel(TlsContext);
@@ -1402,7 +1402,7 @@ QuicTlsReset(
     _In_ QUIC_TLS* TlsContext
     )
 {
-    QuicTraceLogInfo(FN_tls_schannel17f0d4ffbb3c4f80c2422125e4fa3a17, "[ tls][%p][%c] Resetting TLS state.", 
+    QuicTraceLogInfo(FN_tls_schannel17f0d4ffbb3c4f80c2422125e4fa3a17, "[ tls][%p][%c] Resetting TLS state.",
         TlsContext, GetTlsIdentifier(TlsContext));
 
     //
@@ -1682,8 +1682,8 @@ QuicTlsWriteDataToSchannel(
             if (TrafficSecret->TrafficSecretType == SecTrafficSecret_None) {
                 continue;
             }
-            QuicTraceLogVerbose(FN_tls_schannel1791055a5ed419b1993a1889e6a3c2f3, "[ tls][%p][%c] Key Ready Type, %u [%hu to %hu].", 
-                TlsContext, GetTlsIdentifier(TlsContext), TrafficSecret->TrafficSecretType, 
+            QuicTraceLogVerbose(FN_tls_schannel1791055a5ed419b1993a1889e6a3c2f3, "[ tls][%p][%c] Key Ready Type, %u [%hu to %hu].",
+                TlsContext, GetTlsIdentifier(TlsContext), TrafficSecret->TrafficSecretType,
                 TrafficSecret->MsgSequenceStart, TrafficSecret->MsgSequenceEnd);
             if (TlsContext->IsServer) {
                 if (TrafficSecret->TrafficSecretType == SecTrafficSecret_Server) {
@@ -1738,7 +1738,7 @@ QuicTlsWriteDataToSchannel(
                 }
                 if (NegotiatedAlpn.ProtoNegoStatus != SecApplicationProtocolNegotiationStatus_Success) {
                     QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "ALPN negotiation status");
-                    QuicTraceLogError(FN_tls_schannel754265edd8c0f88042c680baa8685b2a, "[ tls][%p] Failed to negotiate ALPN successfully: %d", 
+                    QuicTraceLogError(FN_tls_schannel754265edd8c0f88042c680baa8685b2a, "[ tls][%p] Failed to negotiate ALPN successfully: %d",
                         TlsContext, NegotiatedAlpn.ProtoNegoStatus);
                     Result |= QUIC_TLS_RESULT_ERROR;
                     break;
@@ -1774,7 +1774,7 @@ QuicTlsWriteDataToSchannel(
                 State->SessionResumed = TRUE;
             }
 
-            QuicTraceLogInfo(FN_tls_schannel30e07aa262881737030e9cf1ebd43162, "[ tls][%p][%c] Handshake complete (resume=%hu).", 
+            QuicTraceLogInfo(FN_tls_schannel30e07aa262881737030e9cf1ebd43162, "[ tls][%p][%c] Handshake complete (resume=%hu).",
                 TlsContext, GetTlsIdentifier(TlsContext), State->SessionResumed);
             State->HandshakeComplete = TRUE;
             Result |= QUIC_TLS_RESULT_COMPLETE;
@@ -1809,7 +1809,7 @@ QuicTlsWriteDataToSchannel(
             *InBufferLength -= InSecBuffers[1].cbBuffer;
         }
 
-        QuicTraceLogInfo(FN_tls_schannel1d944110e7ac29bb27332b45e704846e, "[ tls][%p][%c] Consumed %u bytes.", 
+        QuicTraceLogInfo(FN_tls_schannel1d944110e7ac29bb27332b45e704846e, "[ tls][%p][%c] Consumed %u bytes.",
             TlsContext, GetTlsIdentifier(TlsContext), *InBufferLength);
 
         //
@@ -1831,7 +1831,7 @@ QuicTlsWriteDataToSchannel(
                         break;
                     }
                     State->ReadKey = QUIC_PACKET_KEY_HANDSHAKE;
-                    QuicTraceLogInfo(FN_tls_schannelc8b3f8ee595be8c34e988c062530e0b5, "[ tls][%p][%c] Reading Handshake data starts now.", 
+                    QuicTraceLogInfo(FN_tls_schannelc8b3f8ee595be8c34e988c062530e0b5, "[ tls][%p][%c] Reading Handshake data starts now.",
                         TlsContext, GetTlsIdentifier(TlsContext));
                 } else if (State->ReadKey == QUIC_PACKET_KEY_HANDSHAKE) {
                     if (!QuicPacketKeyCreate(
@@ -1844,7 +1844,7 @@ QuicTlsWriteDataToSchannel(
                         break;
                     }
                     State->ReadKey = QUIC_PACKET_KEY_1_RTT;
-                    QuicTraceLogInfo(FN_tls_schannele60d006afc2cab6e462c21e95ce14070, "[ tls][%p][%c] Reading 1-RTT data starts now.", 
+                    QuicTraceLogInfo(FN_tls_schannele60d006afc2cab6e462c21e95ce14070, "[ tls][%p][%c] Reading 1-RTT data starts now.",
                         TlsContext, GetTlsIdentifier(TlsContext));
                 }
             }
@@ -1873,7 +1873,7 @@ QuicTlsWriteDataToSchannel(
                     State->BufferOffset1Rtt = // HACK - Currently Schannel has weird output for 1-RTT start
                         State->BufferTotalLength + NewOwnTrafficSecrets[i]->MsgSequenceEnd;
                     State->WriteKey = QUIC_PACKET_KEY_HANDSHAKE;
-                    QuicTraceLogInfo(FN_tls_schannel30391afe07b6d3f74572de151f17cbae, "[ tls][%p][%c] Writing Handshake data starts at %u.", 
+                    QuicTraceLogInfo(FN_tls_schannel30391afe07b6d3f74572de151f17cbae, "[ tls][%p][%c] Writing Handshake data starts at %u.",
                         TlsContext, GetTlsIdentifier(TlsContext), State->BufferOffsetHandshake);
                 } else if (State->WriteKey == QUIC_PACKET_KEY_HANDSHAKE) {
                     if (!TlsContext->IsServer && State->BufferOffsetHandshake == State->BufferOffset1Rtt) {
@@ -1892,7 +1892,7 @@ QuicTlsWriteDataToSchannel(
                         //State->BufferOffset1Rtt = // Currently have to get the offset from the Handshake "end"
                         //    State->BufferTotalLength + NewOwnTrafficSecrets[i]->MsgSequenceStart;
                         State->WriteKey = QUIC_PACKET_KEY_1_RTT;
-                        QuicTraceLogInfo(FN_tls_schannel6970b6eabec6111fb0e2607f8de29955, "[ tls][%p][%c] Writing 1-RTT data starts at %u.", 
+                        QuicTraceLogInfo(FN_tls_schannel6970b6eabec6111fb0e2607f8de29955, "[ tls][%p][%c] Writing 1-RTT data starts at %u.",
                             TlsContext, GetTlsIdentifier(TlsContext), State->BufferOffset1Rtt);
                     }
                 }
@@ -1911,7 +1911,7 @@ QuicTlsWriteDataToSchannel(
             State->BufferLength += (uint16_t)OutputTokenBuffer->cbBuffer;
             State->BufferTotalLength += OutputTokenBuffer->cbBuffer;
 
-            QuicTraceLogInfo(FN_tls_schannel2d1fad924513272aa57a5583188d4f3b, "[ tls][%p][%c] Produced %u bytes.", 
+            QuicTraceLogInfo(FN_tls_schannel2d1fad924513272aa57a5583188d4f3b, "[ tls][%p][%c] Produced %u bytes.",
                 TlsContext, GetTlsIdentifier(TlsContext), OutputTokenBuffer->cbBuffer);
         }
 
@@ -1953,7 +1953,7 @@ QuicTlsWriteDataToSchannel(
         *InBufferLength = 0;
 
         if (MissingBuffer != NULL && MissingBuffer->cbBuffer != 0) {
-            QuicTraceLogInfo(FN_tls_schannel4317e3d2ceeb3b5573f957f9ed083e97, "[ tls][%p][%c] TLS message missing %u bytes of data.", 
+            QuicTraceLogInfo(FN_tls_schannel4317e3d2ceeb3b5573f957f9ed083e97, "[ tls][%p][%c] TLS message missing %u bytes of data.",
                 TlsContext, GetTlsIdentifier(TlsContext), MissingBuffer->cbBuffer);
         }
 
@@ -1996,7 +1996,7 @@ QuicTlsProcessData(
 {
     QUIC_TLS_RESULT_FLAGS Result = 0;
 
-    QuicTraceLogVerbose(FN_tls_schannel11388d903b526f90953cc5357d33da16, "[ tls][%p][%c] Processing %u received bytes.", 
+    QuicTraceLogVerbose(FN_tls_schannel11388d903b526f90953cc5357d33da16, "[ tls][%p][%c] Processing %u received bytes.",
         TlsContext, GetTlsIdentifier(TlsContext), *BufferLength);
 
     Result =
