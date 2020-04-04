@@ -44,7 +44,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "loss_detection.c.clog"
+#include "loss_detection.c.clog.h"
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void

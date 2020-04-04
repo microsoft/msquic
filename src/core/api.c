@@ -10,7 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "api.c.clog"
+#include "api.c.clog.h"
 
 #define IS_SESSION_HANDLE(Handle) \
 ( \

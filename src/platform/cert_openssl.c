@@ -12,7 +12,7 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
-#include "cert_openssl.c.clog"
+#include "cert_openssl.c.clog.h"
 
 #include <mitlsffi.h>
 #include <mipki.h>

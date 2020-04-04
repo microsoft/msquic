@@ -5,7 +5,7 @@
 
 --*/
 
-#include "stream.h.clog"
+#include "stream.h.clog.h"
 
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 

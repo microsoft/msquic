@@ -10,7 +10,7 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
-#include "datapath_winkernel.c.clog"
+#include "datapath_winkernel.c.clog.h"
 
 //
 // Not yet available in the WDK. When available this code can be removed.
@@ -1893,10 +1893,10 @@ QuicDataPathSocketReceive(
             goto Drop;
         }
 
-        QuicTraceEvent(DatapathRecv, "[ udp][%p] Recv %d bytes (segment=%hd) Src=%!BYTEARRAY! Dst=%!BYTEARRAY!", 
+        QuicTraceEvent(DatapathRecv, "[ udp][%p] Recv %d bytes (segment=%hd) Src=%SOCKADDR Dst=%SOCKADDR", 
             SocketContext->Binding, 
             (uint32_t)DataLength, 
-            MessageLength, CLOG_BYTEARRAY(LOG_ADDR_LEN(LocalAddr), (UINT8*)&LocalAddr), CLOG_BYTEARRAY(LOG_ADDR_LEN(RemoteAddr), (UINT8*)&RemoteAddr));
+            MessageLength, CLOG_BYTEARRAY(LOG_ADDR_LEN(LocalAddr), (const uint8_t*)&LocalAddr), CLOG_BYTEARRAY(LOG_ADDR_LEN(RemoteAddr), (const uint8_t*)&RemoteAddr));
 
         for ( ; DataLength != 0; DataLength -= MessageLength) {
 
@@ -2532,11 +2532,11 @@ QuicDataPathBindingSendTo(
     SocketContext = &Binding->SocketContext;
     SendContext->SocketContext = SocketContext;
 
-    QuicTraceEvent(DatapathSendTo, "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%!BYTEARRAY!", 
+    QuicTraceEvent(DatapathSendTo, "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%SOCKADDR", 
         Binding, 
         SendContext->TotalSize, 
         SendContext->WskBufferCount, 
-        SendContext->SegmentSize, CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (UINT8*)RemoteAddress));
+        SendContext->SegmentSize, CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)RemoteAddress));
 
     BYTE CMsgBuffer[WSA_CMSG_SPACE(sizeof(*SegmentSize))];
     PWSACMSGHDR CMsg = NULL;
@@ -2618,11 +2618,11 @@ QuicDataPathBindingSendFromTo(
     SocketContext = &Binding->SocketContext;
     SendContext->SocketContext = SocketContext;
 
-    QuicTraceEvent(DatapathSendFromTo, "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%!BYTEARRAY!, Src=%!BYTEARRAY!", 
+    QuicTraceEvent(DatapathSendFromTo, "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%SOCKADDR, Src=%SOCKADDR", 
         Binding, 
         SendContext->TotalSize, 
         SendContext->WskBufferCount, 
-        SendContext->SegmentSize, CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (UINT8*)RemoteAddress), CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), (UINT8*)LocalAddress));
+        SendContext->SegmentSize, CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)RemoteAddress), CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), (const uint8_t*)LocalAddress));
 
     //
     // Map V4 address to dual-stack socket format.

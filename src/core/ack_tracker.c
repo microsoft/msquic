@@ -38,7 +38,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "ack_tracker.c.clog"
+#include "ack_tracker.c.clog.h"
 
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

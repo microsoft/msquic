@@ -13,7 +13,7 @@ Abstract:
 #include <MsQuicTests.h>
 
 #include "quic_trace.h"
-#include "control.cpp.clog"
+#include "control.cpp.clog.h"
 
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;

@@ -12,7 +12,7 @@ Abstract:
 #define QUIC_TEST_APIS 1
 
 #include "platform_internal.h"
-#include "selfsign_capi.c.clog"
+#include "selfsign_capi.c.clog.h"
 
 #include <wincrypt.h>
 #include <msquic.h>

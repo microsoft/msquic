@@ -10,7 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "settings.c.clog"
+#include "settings.c.clog.h"
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void

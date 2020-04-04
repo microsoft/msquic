@@ -6,7 +6,7 @@
 --*/
 
 #include "quic_gtest.h"
-#include "quic_gtest.cpp.clog"
+#include "quic_gtest.cpp.clog.h"
 
 bool TestingKernelMode = false;
 const QUIC_API_TABLE* MsQuic;

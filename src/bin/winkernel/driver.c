@@ -11,7 +11,7 @@ Abstract:
 
 #include "quic_platform.h"
 #include "quic_trace.h"
-#include "driver.c.clog"
+#include "driver.c.clog.h"
 
 
 INITCODE

@@ -16,7 +16,7 @@ Environment:
 
 
 #include "platform_internal.h"
-#include "storage_winkernel.c.clog"
+#include "storage_winkernel.c.clog.h"
 
 //
 // Copied from wdm.h

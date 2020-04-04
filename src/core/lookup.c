@@ -10,7 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "lookup.c.clog"
+#include "lookup.c.clog.h"
 
 typedef struct QUIC_CACHEALIGN QUIC_PARTITIONED_HASHTABLE {
 

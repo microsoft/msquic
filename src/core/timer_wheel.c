@@ -46,7 +46,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "timer_wheel.c.clog"
+#include "timer_wheel.c.clog.h"
 
 //
 // The initial count of slots in the timer wheel.

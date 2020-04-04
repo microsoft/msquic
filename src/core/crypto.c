@@ -19,7 +19,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "crypto.c.clog"
+#include "crypto.c.clog.h"
 
 QUIC_TLS_PROCESS_COMPLETE_CALLBACK QuicTlsProcessDataCompleteCallback;
 QUIC_TLS_RECEIVE_TP_CALLBACK QuicConnReceiveTP;
@@ -975,7 +975,7 @@ QuicCryptoProcessDataFrame(
                 DataReady);
         if (QUIC_FAILED(Status)) {
             if (Status == QUIC_STATUS_BUFFER_TOO_SMALL) {
-                QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", 
+                QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.",
                     Connection, "Tried to write beyond crypto flow control limit.");
                 QuicConnTransportError(Connection, QUIC_ERROR_CRYPTO_BUFFER_EXCEEDED);
             }
@@ -1062,7 +1062,7 @@ QuicCryptoProcessTlsCompletion(
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
 
     if (ResultFlags & QUIC_TLS_RESULT_ERROR) {
-        QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", 
+        QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.",
             Connection, Crypto->TlsState.AlertCode, "Received alert from TLS.");
         QuicConnTransportError(
             Connection,
@@ -1144,7 +1144,7 @@ QuicCryptoProcessTlsCompletion(
         // at the previous encryption level.
         //
         if (QuicRecvBufferHasUnreadData(&Crypto->RecvBuffer)) {
-            QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", 
+            QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.",
                 Connection, "Leftover crypto data in previous encryption level.");
             QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
             return;
@@ -1444,7 +1444,7 @@ QuicCryptoProcessData(
             }
 
             if (AcceptResult != QUIC_CONNECTION_ACCEPT) {
-                QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", 
+                QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.",
                     Connection, AcceptResult, "Connection rejected");
                 if (AcceptResult == QUIC_CONNECTION_REJECT_NO_LISTENER) {
                     QuicConnTransportError(
@@ -1532,7 +1532,7 @@ QuicCryptoGenerateNewKeys(
                 Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT],
                 NewReadKey);
         if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", 
+            QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.",
                 Connection, Status, "Failed to update read packet key.");
             goto Error;
         }
@@ -1542,7 +1542,7 @@ QuicCryptoGenerateNewKeys(
                 Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT],
                 NewWriteKey);
         if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", 
+            QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.",
                 Connection, Status, "Failed to update write packet key");
             goto Error;
         }

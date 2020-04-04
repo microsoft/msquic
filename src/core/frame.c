@@ -10,7 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "frame.c.clog"
+#include "frame.c.clog.h"
 
 _Post_equal_to_(Buffer + sizeof(uint8_t))
 uint8_t*

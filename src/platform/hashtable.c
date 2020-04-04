@@ -43,7 +43,7 @@ Notes:
 --*/
 
 #include "platform_internal.h"
-#include "hashtable.c.clog"
+#include "hashtable.c.clog.h"
 
 #define QUIC_HASH_RESERVED_SIGNATURE 0
 

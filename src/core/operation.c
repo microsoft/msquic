@@ -23,7 +23,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "operation.c.clog"
+#include "operation.c.clog.h"
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void

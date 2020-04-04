@@ -13,7 +13,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "crypto_tls.c.clog"
+#include "crypto_tls.c.clog.h"
 
 #define TLS1_PROTOCOL_VERSION 0x0301
 #define TLS_MESSAGE_HEADER_LENGTH 4

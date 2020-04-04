@@ -51,7 +51,7 @@ CLOG_ADD_SOURCEFILE(CORE_CLOG_LIB ${SOURCES})
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
 
 add_library(core STATIC ${SOURCES})
-target_link_libraries(core CORE_CLOG_LIB)
+# target_link_libraries(core CORE_CLOG_LIB)
 
 target_compile_options(core PRIVATE
      $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
@@ -63,4 +63,4 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_dependencies(core MsQuicEtw)
 endif()
 
-add_dependencies(core CORE_CLOG_LIB)
+# add_dependencies(core CORE_CLOG_LIB)

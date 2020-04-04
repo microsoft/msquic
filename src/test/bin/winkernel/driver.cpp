@@ -12,7 +12,7 @@ Abstract:
 #include <quic_platform.h>
 
 #include "quic_trace.h"
-#include "driver.cpp.clog"
+#include "driver.cpp.clog.h"
 
 #define QUIC_TEST_TAG 'tsTQ' // QTst
 

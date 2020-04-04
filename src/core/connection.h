@@ -5,7 +5,7 @@
 
 --*/
 
-#include "connection.h.clog"
+#include "connection.h.clog.h"
 
 typedef struct QUIC_LISTENER QUIC_LISTENER;
 

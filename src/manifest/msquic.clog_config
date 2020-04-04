@@ -5,6 +5,10 @@
         {
           "ExportModule": "LTTNG",
           "CustomSettings": {}
+        },
+        {
+          "ExportModule": "SYSTEMTAP",
+          "CustomSettings": {}
         }
       ]
     },

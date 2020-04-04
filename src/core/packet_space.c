@@ -11,7 +11,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "packet_space.c.clog"
+#include "packet_space.c.clog.h"
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS

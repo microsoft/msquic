@@ -43,7 +43,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "recv_buffer.c.clog"
+#include "recv_buffer.c.clog.h"
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS

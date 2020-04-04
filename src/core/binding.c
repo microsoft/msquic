@@ -12,7 +12,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "binding.c.clog"
+#include "binding.c.clog.h"
 
 //
 // Make sure we will always have enough room to fit our Version Negotiation packet,
@@ -74,7 +74,7 @@ QuicBindingInitialize(
     Binding->RandomReservedVersion =
         (Binding->RandomReservedVersion & ~QUIC_VERSION_RESERVED_MASK) |
         QUIC_VERSION_RESERVED;
-    
+
     QuicRandom(sizeof(HashSalt), HashSalt);
     Status =
         QuicHashCreate(
@@ -124,9 +124,9 @@ QuicBindingInitialize(
     QUIC_ADDR DatapathLocalAddr, DatapathRemoteAddr;
     QuicDataPathBindingGetLocalAddress(Binding->DatapathBinding, &DatapathLocalAddr);
     QuicDataPathBindingGetRemoteAddress(Binding->DatapathBinding, &DatapathRemoteAddr);
-    QuicTraceEvent(BindingCreated, "[bind][%p] Created, Udp=%p LocalAddr=%!BYTEARRAY! RemoteAddr=%!BYTEARRAY!", 
-        Binding, Binding->DatapathBinding, CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathLocalAddr), (uint8_t*)&DatapathLocalAddr), CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathRemoteAddr), (uint8_t*)&DatapathRemoteAddr));
 
+    QuicTraceEvent(BindingCreated, "[bind][%p] Created, Udp=%p LocalAddr=%SOCKADDR RemoteAddr=%SOCKADDR",
+        Binding, Binding->DatapathBinding, CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathLocalAddr), (uint8_t*)&DatapathLocalAddr), CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathRemoteAddr), (uint8_t*)&DatapathRemoteAddr));
     *NewBinding = Binding;
     Status = QUIC_STATUS_SUCCESS;
 
@@ -209,7 +209,7 @@ QuicBindingTraceRundown(
     QUIC_ADDR DatapathLocalAddr, DatapathRemoteAddr;
     QuicDataPathBindingGetLocalAddress(Binding->DatapathBinding, &DatapathLocalAddr);
     QuicDataPathBindingGetRemoteAddress(Binding->DatapathBinding, &DatapathRemoteAddr);
-    QuicTraceEvent(BindingRundown, "[bind][%p] Rundown, Udp=%p LocalAddr=%!BYTEARRAY! RemoteAddr=%!BYTEARRAY!", 
+    QuicTraceEvent(BindingRundown, "[bind][%p] Rundown, Udp=%p LocalAddr=%SOCKADDR RemoteAddr=%SOCKADDR",
         Binding, Binding->DatapathBinding, CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathLocalAddr), (uint8_t*)&DatapathLocalAddr), CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathRemoteAddr), (uint8_t*)&DatapathRemoteAddr));
 
     QuicDispatchRwLockAcquireShared(&Binding->RwLock);
@@ -343,7 +343,7 @@ QuicBindingGetListener(
     for (QUIC_LIST_ENTRY* Link = Binding->Listeners.Flink;
         Link != &Binding->Listeners;
         Link = Link->Flink) {
-            
+
         QUIC_LISTENER* ExistingListener =
             QUIC_CONTAINING_RECORD(Link, QUIC_LISTENER, Link);
         const QUIC_ADDR* ExistingAddr = &ExistingListener->LocalAddress;
@@ -791,11 +791,11 @@ QuicBindingProcessStatelessOperation(
                 (uint8_t*)SendDatagram->Buffer);
         QUIC_DBG_ASSERT(SendDatagram->Length != 0);
 
-        QuicTraceLogVerbose(FN_bindingda2912dbb439879118c990ced87e39cd, "[S][TX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R OrigDestCid:%s (Token %hu bytes)", 
-            RecvPacket->LH->Version, 
-            QuicCidBufToStr(RecvPacket->SourceCid, RecvPacket->SourceCidLen).Buffer, 
-            QuicCidBufToStr(NewDestCid, MSQUIC_CONNECTION_ID_LENGTH).Buffer, 
-            QuicCidBufToStr(RecvPacket->DestCid, RecvPacket->DestCidLen).Buffer, 
+        QuicTraceLogVerbose(FN_bindingda2912dbb439879118c990ced87e39cd, "[S][TX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R OrigDestCid:%s (Token %hu bytes)",
+            RecvPacket->LH->Version,
+            QuicCidBufToStr(RecvPacket->SourceCid, RecvPacket->SourceCidLen).Buffer,
+            QuicCidBufToStr(NewDestCid, MSQUIC_CONNECTION_ID_LENGTH).Buffer,
+            QuicCidBufToStr(RecvPacket->DestCid, RecvPacket->DestCidLen).Buffer,
             (uint16_t)sizeof(Token));
 
     } else {

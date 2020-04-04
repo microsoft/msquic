@@ -15,7 +15,7 @@
 #include <logcontroller.h>
 
 #include "quic_trace.h"
-#include "StorageTest.cpp.clog"
+#include "StorageTest.cpp.clog.h"
 
 using namespace WEX::Common;
 

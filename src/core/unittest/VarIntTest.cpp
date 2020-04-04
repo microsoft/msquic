@@ -10,7 +10,7 @@ Abstract:
 --*/
 
 #include "main.h"
-#include "VarIntTest.cpp.clog"
+#include "VarIntTest.cpp.clog.h"
 
 uint64_t Encode(uint64_t Value)
 {

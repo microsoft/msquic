@@ -10,7 +10,7 @@ Abstract:
 --*/
 
 #include "main.h"
-#include "TransportParamTest.cpp.clog"
+#include "TransportParamTest.cpp.clog.h"
 
 static QUIC_CONNECTION JunkConnection;
 

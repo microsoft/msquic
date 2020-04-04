@@ -43,8 +43,6 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
 CLOG_ADD_SOURCEFILE(PLATFORM_CLOG_LIB ${SOURCES})
 
 add_library(platform STATIC ${SOURCES})
-add_dependencies(platform PLATFORM_CLOG_LIB)
-target_link_libraries(platform PLATFORM_CLOG_LIB)
 
 target_compile_options(platform PRIVATE
      $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:

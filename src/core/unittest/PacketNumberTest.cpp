@@ -10,7 +10,7 @@ Abstract:
 --*/
 
 #include "main.h"
-#include "PacketNumberTest.cpp.clog"
+#include "PacketNumberTest.cpp.clog.h"
 
 struct DecompressEntry {
     uint64_t HighestReceived;

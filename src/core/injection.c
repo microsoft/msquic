@@ -14,7 +14,7 @@ Abstract:
 
 #include "precomp.h"
 #include <msquic_fuzz.h>
-#include "injection.c.clog"
+#include "injection.c.clog.h"
 
 __declspec(noinline)
 void

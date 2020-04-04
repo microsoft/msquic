@@ -20,7 +20,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "worker.c.clog"
+#include "worker.c.clog.h"
 
 //
 // Thread callback for processing the work queued for the worker.

@@ -22,7 +22,7 @@ Future work:
 --*/
 
 #include "precomp.h"
-#include "congestion_control.c.clog"
+#include "congestion_control.c.clog.h"
 
 //
 // BETA and C from RFC8312. 10x multiples for integer arithmetic.

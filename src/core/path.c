@@ -14,7 +14,7 @@ TODO:
 --*/
 
 #include "precomp.h"
-#include "path.c.clog"
+#include "path.c.clog.h"
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void

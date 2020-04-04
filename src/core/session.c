@@ -12,7 +12,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "session.c.clog"
+#include "session.c.clog.h"
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS

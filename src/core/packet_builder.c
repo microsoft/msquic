@@ -13,7 +13,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "packet_builder.c.clog"
+#include "packet_builder.c.clog.h"
 
 #ifdef QUIC_FUZZER
 

@@ -14,7 +14,7 @@
 #undef min // gtest headers conflict with previous definitions of min/max.
 #undef max
 #include "gtest/gtest.h"
-#include "quic_gtest.h.clog"
+#include "quic_gtest.h.clog.h"
 
 class WithBool : public testing::Test,
     public testing::WithParamInterface<bool> {

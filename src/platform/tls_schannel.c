@@ -15,7 +15,7 @@ Environment:
 
 #include "platform_internal.h"
 #include <security.h>
-#include "tls_schannel.c.clog"
+#include "tls_schannel.c.clog.h"
 
 
 #ifdef _KERNEL_MODE

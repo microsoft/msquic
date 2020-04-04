@@ -11,7 +11,7 @@ Abstract:
 
 #include "precomp.h"
 #include "quic_trace.h"
-#include "QuicTest.cpp.clog"
+#include "QuicTest.cpp.clog.h"
 
 //#define QUIC_TEST_DISABLE_DNS 1
 
