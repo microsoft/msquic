@@ -44,7 +44,7 @@ MsQuicConnectionOpen(
     QUIC_CONNECTION* Connection = NULL;
 
     QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
-        QUIC_TRACE_API_CONNECTION_OPEN, 
+        QUIC_TRACE_API_CONNECTION_OPEN,
         SessionHandle);
 
     if (!IS_SESSION_HANDLE(SessionHandle) ||
@@ -91,7 +91,7 @@ MsQuicConnectionClose(
     QUIC_PASSIVE_CODE();
 
     QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
-        QUIC_TRACE_API_CONNECTION_CLOSE, 
+        QUIC_TRACE_API_CONNECTION_CLOSE,
         Handle);
 
     if (!IS_CONN_HANDLE(Handle)) {
@@ -164,7 +164,7 @@ MsQuicConnectionShutdown(
     QUIC_OPERATION* Oper;
 
     QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
-        QUIC_TRACE_API_CONNECTION_SHUTDOWN, 
+        QUIC_TRACE_API_CONNECTION_SHUTDOWN,
         Handle);
 
     if (IS_CONN_HANDLE(Handle)) {
@@ -230,8 +230,8 @@ MsQuicConnectionStart(
 
     QUIC_PASSIVE_CODE();
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
-        QUIC_TRACE_API_CONNECTION_START, 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
+        QUIC_TRACE_API_CONNECTION_START,
         Handle);
 
     if (ServerPort == 0) {
@@ -338,7 +338,7 @@ MsQuicStreamOpen(
     QUIC_CONNECTION* Connection;
 
     QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
-        QUIC_TRACE_API_STREAM_OPEN, 
+        QUIC_TRACE_API_STREAM_OPEN,
         Handle);
 
     if (!IS_CONN_HANDLE(Handle) ||
@@ -395,7 +395,7 @@ MsQuicStreamClose(
     QUIC_PASSIVE_CODE();
 
     QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
-        QUIC_TRACE_API_STREAM_CLOSE, 
+        QUIC_TRACE_API_STREAM_CLOSE,
         Handle);
 
     if (!IS_STREAM_HANDLE(Handle)) {
@@ -479,7 +479,7 @@ MsQuicStreamStart(
     QUIC_CONNECTION* Connection;
 
     QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
-        QUIC_TRACE_API_STREAM_START, 
+        QUIC_TRACE_API_STREAM_START,
         Handle);
 
     if (!IS_STREAM_HANDLE(Handle)) {
@@ -584,7 +584,7 @@ MsQuicStreamShutdown(
     QUIC_OPERATION* Oper;
 
     QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
-        QUIC_TRACE_API_STREAM_SHUTDOWN, 
+        QUIC_TRACE_API_STREAM_SHUTDOWN,
         Handle);
 
     if (!IS_STREAM_HANDLE(Handle) ||
@@ -683,7 +683,7 @@ MsQuicStreamSend(
     QUIC_OPERATION* Oper;
 
     QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
-        QUIC_TRACE_API_STREAM_SEND, 
+        QUIC_TRACE_API_STREAM_SEND,
         Handle);
 
     if (!IS_STREAM_HANDLE(Handle) ||
@@ -802,7 +802,7 @@ MsQuicStreamReceiveSetEnabled(
     QUIC_OPERATION* Oper;
 
     QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
-        QUIC_TRACE_API_STREAM_RECEIVE_SET_ENABLED, 
+        QUIC_TRACE_API_STREAM_RECEIVE_SET_ENABLED,
         Handle);
 
     if (!IS_STREAM_HANDLE(Handle)) {
@@ -867,7 +867,7 @@ MsQuicStreamReceiveComplete(
     QUIC_OPERATION* Oper;
 
     QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
-        QUIC_TRACE_API_STREAM_RECEIVE_COMPLETE, 
+        QUIC_TRACE_API_STREAM_RECEIVE_COMPLETE,
         Handle);
 
     if (!IS_STREAM_HANDLE(Handle)) {
@@ -942,8 +942,8 @@ MsQuicSetParam(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
-        QUIC_TRACE_API_SET_PARAM, 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
+        QUIC_TRACE_API_SET_PARAM,
         Handle);
 
     QUIC_STATUS Status;
@@ -1038,7 +1038,7 @@ MsQuicGetParam(
     QUIC_STATUS Status;
 
     QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
-        QUIC_TRACE_API_GET_PARAM, 
+        QUIC_TRACE_API_GET_PARAM,
         Handle);
 
     if (Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION ||

@@ -336,7 +336,7 @@ QuicStreamCanSendNow(
         return TRUE;
 
     }
-    
+
     if (QuicStreamSendCanWriteDataFrames(Stream)) {
         return ZeroRtt ? QuicStreamHasPending0RttData(Stream) : TRUE;
     }

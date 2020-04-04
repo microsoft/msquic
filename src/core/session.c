@@ -160,8 +160,8 @@ MsQuicSessionOpen(
     QUIC_STATUS Status;
     QUIC_SESSION* Session = NULL;
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
-        QUIC_TRACE_API_SESSION_OPEN, 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
+        QUIC_TRACE_API_SESSION_OPEN,
         RegistrationContext);
 
     if (RegistrationContext == NULL ||
@@ -272,8 +272,8 @@ MsQuicSessionClose(
         return;
     }
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
-        QUIC_TRACE_API_SESSION_CLOSE, 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
+        QUIC_TRACE_API_SESSION_CLOSE,
         Handle);
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
@@ -321,8 +321,8 @@ MsQuicSessionShutdown(
         return;
     }
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).", 
-        QUIC_TRACE_API_SESSION_SHUTDOWN, 
+    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
+        QUIC_TRACE_API_SESSION_SHUTDOWN,
         Handle);
 
     if (Handle && Handle->Type == QUIC_HANDLE_TYPE_SESSION) {
@@ -817,7 +817,7 @@ QuicSessionParamSet(
         Session->Settings.AppSet.BidiStreamCount = TRUE;
         Session->Settings.BidiStreamCount = *(uint16_t*)Buffer;
 
-        QuicTraceLogInfo(FN_session431d4cd1e01d1d19880d28b8484100fb, "[sess][%p] Updated bidirectional stream count = %hu", 
+        QuicTraceLogInfo(FN_session431d4cd1e01d1d19880d28b8484100fb, "[sess][%p] Updated bidirectional stream count = %hu",
             Session, Session->Settings.BidiStreamCount);
 
         Status = QUIC_STATUS_SUCCESS;
@@ -834,7 +834,7 @@ QuicSessionParamSet(
         Session->Settings.AppSet.UnidiStreamCount = TRUE;
         Session->Settings.UnidiStreamCount = *(uint16_t*)Buffer;
 
-        QuicTraceLogInfo(FN_session044ad7f4e283138fd58759097cb00070, "[sess][%p] Updated unidirectional stream count = %hu", 
+        QuicTraceLogInfo(FN_session044ad7f4e283138fd58759097cb00070, "[sess][%p] Updated unidirectional stream count = %hu",
             Session, Session->Settings.UnidiStreamCount);
 
         Status = QUIC_STATUS_SUCCESS;
@@ -851,7 +851,7 @@ QuicSessionParamSet(
         Session->Settings.AppSet.IdleTimeoutMs = TRUE;
         Session->Settings.IdleTimeoutMs = *(uint64_t*)Buffer;
 
-        QuicTraceLogInfo(FN_session784d9af2ef7948f61b6e6a24478000fa, "[sess][%p] Updated idle timeout to %llu milliseconds", 
+        QuicTraceLogInfo(FN_session784d9af2ef7948f61b6e6a24478000fa, "[sess][%p] Updated idle timeout to %llu milliseconds",
             Session, Session->Settings.IdleTimeoutMs);
 
         Status = QUIC_STATUS_SUCCESS;
@@ -868,7 +868,7 @@ QuicSessionParamSet(
         Session->Settings.AppSet.DisconnectTimeoutMs = TRUE;
         Session->Settings.DisconnectTimeoutMs = *(uint32_t*)Buffer;
 
-        QuicTraceLogInfo(FN_session9feae89ff9b00177f8e5108c2f1e90da, "[sess][%p] Updated disconnect timeout to %u milliseconds", 
+        QuicTraceLogInfo(FN_session9feae89ff9b00177f8e5108c2f1e90da, "[sess][%p] Updated disconnect timeout to %u milliseconds",
             Session, Session->Settings.DisconnectTimeoutMs);
 
         Status = QUIC_STATUS_SUCCESS;
@@ -925,8 +925,8 @@ QuicSessionParamSet(
         Session->Settings.AppSet.MaxBytesPerKey = TRUE;
         Session->Settings.MaxBytesPerKey = NewValue;
 
-        QuicTraceLogInfo(FN_session6cf23dcb0930e847c8cf1f4f94294219, "[sess][%p] Updated max bytes per key to %llu bytes", 
-            Session, 
+        QuicTraceLogInfo(FN_session6cf23dcb0930e847c8cf1f4f94294219, "[sess][%p] Updated max bytes per key to %llu bytes",
+            Session,
             Session->Settings.MaxBytesPerKey);
 
         Status = QUIC_STATUS_SUCCESS;

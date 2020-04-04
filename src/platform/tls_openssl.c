@@ -485,7 +485,7 @@ QuicTlsSetEncryptionSecretsCallback(
     QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)Level;
     QUIC_STATUS Status;
 
-    QuicTraceLogVerbose(FN_tls_openssl17614e2cf93914e3e8febee432e767cf, "[ tls][%p][%c] New encryption secrets (Level = %u).", 
+    QuicTraceLogVerbose(FN_tls_openssl17614e2cf93914e3e8febee432e767cf, "[ tls][%p][%c] New encryption secrets (Level = %u).",
         TlsContext, GetTlsIdentifier(TlsContext), Level);
 
     QUIC_DBG_ASSERT(TlsState->WriteKeys[KeyType] == NULL);
@@ -544,11 +544,11 @@ QuicTlsAddHandshakeDataCallback(
     QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)Level;
     QUIC_DBG_ASSERT(KeyType == 0 || TlsState->WriteKeys[KeyType] != NULL);
 
-    QuicTraceLogVerbose(FN_tls_opensslf2f87064588bde8f0ae0de92805bd612, "[ tls][%p][%c] Sending %llu handshake bytes (Level = %u).", 
+    QuicTraceLogVerbose(FN_tls_opensslf2f87064588bde8f0ae0de92805bd612, "[ tls][%p][%c] Sending %llu handshake bytes (Level = %u).",
         TlsContext, GetTlsIdentifier(TlsContext), Length, Level);
 
     if (Length + TlsState->BufferLength > (size_t)TlsState->BufferAllocLength) {
-        QuicTraceLogError(FN_tls_opensslafed13f43fc25eda4085433fbf682f78, "[ tls][%p][%c] Buffer overflow for output handshake data.", 
+        QuicTraceLogError(FN_tls_opensslafed13f43fc25eda4085433fbf682f78, "[ tls][%p][%c] Buffer overflow for output handshake data.",
             TlsContext, GetTlsIdentifier(TlsContext));
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
         return -1;
@@ -558,14 +558,14 @@ QuicTlsAddHandshakeDataCallback(
     case QUIC_PACKET_KEY_HANDSHAKE:
         if (TlsState->BufferOffsetHandshake == 0) {
             TlsState->BufferOffsetHandshake = TlsState->BufferTotalLength;
-            QuicTraceLogInfo(FN_tls_openssl1878a45ea8ee9d559ee0eabc85c97c6d, "[ tls][%p][%c] Writing Handshake data starts at %u.", 
+            QuicTraceLogInfo(FN_tls_openssl1878a45ea8ee9d559ee0eabc85c97c6d, "[ tls][%p][%c] Writing Handshake data starts at %u.",
                 TlsContext, GetTlsIdentifier(TlsContext), TlsState->BufferOffsetHandshake);
         }
         break;
     case QUIC_PACKET_KEY_1_RTT:
         if (TlsState->BufferOffset1Rtt == 0) {
             TlsState->BufferOffset1Rtt = TlsState->BufferTotalLength;
-            QuicTraceLogInfo(FN_tls_openssl41172f95bb9f270970e2278858802d89, "[ tls][%p][%c] Writing 1-RTT data starts at %u.", 
+            QuicTraceLogInfo(FN_tls_openssl41172f95bb9f270970e2278858802d89, "[ tls][%p][%c] Writing 1-RTT data starts at %u.",
                 TlsContext, GetTlsIdentifier(TlsContext), TlsState->BufferOffset1Rtt);
         }
         break;
@@ -605,7 +605,7 @@ QuicTlsSendAlertCallback(
 
     QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
 
-    QuicTraceLogError(FN_tls_openssl811042102773d53433a65cd85448f874, "[ tls][%p][%c] Send alert = %u (Level = %u).", 
+    QuicTraceLogError(FN_tls_openssl811042102773d53433a65cd85448f874, "[ tls][%p][%c] Send alert = %u (Level = %u).",
         TlsContext, GetTlsIdentifier(TlsContext), Alert, Level);
 
     TlsContext->State->AlertCode = Alert;
@@ -1248,7 +1248,7 @@ QuicTlsProcessData(
     QUIC_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
 
     if (*BufferLength != 0) {
-        QuicTraceLogVerbose(FN_tls_openssl948e07444f7369140c04d67fbfd780bb, "[ tls][%p][%c] Processing %u received bytes.", 
+        QuicTraceLogVerbose(FN_tls_openssl948e07444f7369140c04d67fbfd780bb, "[ tls][%p][%c] Processing %u received bytes.",
             TlsContext, GetTlsIdentifier(TlsContext), *BufferLength);
     }
 
@@ -1274,13 +1274,13 @@ QuicTlsProcessData(
                 goto Exit;
 
             case SSL_ERROR_SSL:
-                QuicTraceLogError(FN_tls_openssla59aef6e72e651b091de3d22c86c02b6, "[ tls][%p][%c] TLS handshake error: %s.", 
+                QuicTraceLogError(FN_tls_openssla59aef6e72e651b091de3d22c86c02b6, "[ tls][%p][%c] TLS handshake error: %s.",
                     TlsContext, GetTlsIdentifier(TlsContext), ERR_error_string(ERR_get_error(), NULL));
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 goto Exit;
 
             default:
-                QuicTraceLogError(FN_tls_openssl61743e8150362a484225c69e9b06687f, "[ tls][%p][%c] TLS handshake error: %d.", 
+                QuicTraceLogError(FN_tls_openssl61743e8150362a484225c69e9b06687f, "[ tls][%p][%c] TLS handshake error: %d.",
                     TlsContext, GetTlsIdentifier(TlsContext), Err);
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 goto Exit;
@@ -1330,7 +1330,7 @@ QuicTlsProcessData(
             SSL_get_peer_quic_transport_params(
                     TlsContext->Ssl, &TransportParams, &TransportParamLen);
             if (TransportParams == NULL || TransportParamLen == 0) {
-                QuicTraceLogError(FN_tls_openssle861a4ef7fcfbd00c9b1e9642f164ba6, "[ tls][%p][%c] No transport parameters received", 
+                QuicTraceLogError(FN_tls_openssle861a4ef7fcfbd00c9b1e9642f164ba6, "[ tls][%p][%c] No transport parameters received",
                     TlsContext, GetTlsIdentifier(TlsContext));
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 goto Exit;
@@ -1354,13 +1354,13 @@ QuicTlsProcessData(
             goto Exit;
 
         case SSL_ERROR_SSL:
-            QuicTraceLogError(FN_tls_openssl04e431e55360af28be501afc87ef6ad6, "[ tls][%p][%c] TLS handshake error: %s.", 
+            QuicTraceLogError(FN_tls_openssl04e431e55360af28be501afc87ef6ad6, "[ tls][%p][%c] TLS handshake error: %s.",
                 TlsContext, GetTlsIdentifier(TlsContext), ERR_error_string(ERR_get_error(), NULL));
             TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
             goto Exit;
 
         default:
-            QuicTraceLogError(FN_tls_openssl49b66ab03faf20fe5c73f2f8cc60308f, "[ tls][%p][%c] TLS handshake error: %d.", 
+            QuicTraceLogError(FN_tls_openssl49b66ab03faf20fe5c73f2f8cc60308f, "[ tls][%p][%c] TLS handshake error: %d.",
                 TlsContext, GetTlsIdentifier(TlsContext), Err);
             TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
             goto Exit;
@@ -2332,7 +2332,7 @@ QuicAllocatePacketKey(
     }
 
     *Key = TempKey;
-    
+
     return QUIC_STATUS_SUCCESS;
 
 Error:

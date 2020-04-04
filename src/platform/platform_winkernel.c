@@ -166,7 +166,7 @@ QuicPlatformInitialize(
     //
     QuicTotalMemory = (uint64_t)Sbi.NumberOfPhysicalPages * (uint64_t)Sbi.PageSize;
 
-    QuicTraceLogInfo(FN_platform_winkernelfae6d131ade2e717f4aff25de71cf94a, "[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)", 
+    QuicTraceLogInfo(FN_platform_winkernelfae6d131ade2e717f4aff25de71cf94a, "[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)",
         Sbi.PageSize, QuicTotalMemory);
 
 Error:
