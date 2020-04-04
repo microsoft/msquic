@@ -1057,7 +1057,7 @@ QuicTlsUninitialize(
         if (TlsContext->SNI != NULL) {
             QUIC_FREE(TlsContext->SNI);
         }
-        
+
         if (TlsContext->Extensions[1].ext_data != NULL) {
             QUIC_FREE(TlsContext->Extensions[1].ext_data);
         }
@@ -1191,21 +1191,21 @@ QuicTlsProcessDataComplete(
             0
         };
 
-        QuicTraceLogVerbose(FN_tls_mitls132772e24a8d5bcdbe582fd727d20951, "[ tls][%p] FFI_mitls_quic_process processing %d input bytes.", 
+        QuicTraceLogVerbose(FN_tls_mitls132772e24a8d5bcdbe582fd727d20951, "[ tls][%p] FFI_mitls_quic_process processing %d input bytes.",
             TlsContext, (uint32_t)Context.input_len);
 
         //
         // Pass the data to miTLS for processing.
         //
         if (!FFI_mitls_quic_process(TlsContext->miTlsState, &Context)) {
-            QuicTraceLogError(FN_tls_mitls4d46f6b660e1026c4da88729df6f96db, "[ tls][%p] FFI_mitls_quic_process failed, tls_error %hu, %s.", 
+            QuicTraceLogError(FN_tls_mitls4d46f6b660e1026c4da88729df6f96db, "[ tls][%p] FFI_mitls_quic_process failed, tls_error %hu, %s.",
                 TlsContext, Context.tls_error, Context.tls_error_desc);
             State->AlertCode = Context.tls_error;
             ResultFlags |= QUIC_TLS_RESULT_ERROR;
             break;
         }
 
-        QuicTraceLogVerbose(FN_tls_mitlsa836a06071c174bb5f77cd091b797299, "[ tls][%p] FFI_mitls_quic_process read %u bytes and has %u bytes ready to send.", 
+        QuicTraceLogVerbose(FN_tls_mitlsa836a06071c174bb5f77cd091b797299, "[ tls][%p] FFI_mitls_quic_process read %u bytes and has %u bytes ready to send.",
             TlsContext, (uint32_t)Context.consumed_bytes, (uint32_t)Context.output_len);
 
         QUIC_DBG_ASSERT(Context.consumed_bytes <= Context.input_len);
@@ -1483,32 +1483,32 @@ QuicTlsOnCertSelect(
             SignatureAlgorithmsLength,
             SelectedSignature)) {
         if (SignatureAlgorithmsLength == 1) {
-            QuicTraceLogError(FN_tls_mitls2b57b65b0be1f0fdb281e1055ffea064, "[ tls][%p] No matching signature algorithms, {0x%hx}", 
+            QuicTraceLogError(FN_tls_mitls2b57b65b0be1f0fdb281e1055ffea064, "[ tls][%p] No matching signature algorithms, {0x%hx}",
                 TlsContext, SignatureAlgorithms[0]);
         } else if (SignatureAlgorithmsLength == 2) {
-            QuicTraceLogError(FN_tls_mitlsd14369f0b74ba6fbe50a4ebf000568ac, "[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx}", 
+            QuicTraceLogError(FN_tls_mitlsd14369f0b74ba6fbe50a4ebf000568ac, "[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx}",
                 TlsContext, SignatureAlgorithms[0], SignatureAlgorithms[1]);
         } else if (SignatureAlgorithmsLength == 3) {
-            QuicTraceLogError(FN_tls_mitls35bbf79e5ec73d02e30e54182a1200bc, "[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx}", 
+            QuicTraceLogError(FN_tls_mitls35bbf79e5ec73d02e30e54182a1200bc, "[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx}",
                 TlsContext, SignatureAlgorithms[0], SignatureAlgorithms[1], SignatureAlgorithms[2]);
         } else if (SignatureAlgorithmsLength == 4) {
-            QuicTraceLogError(FN_tls_mitls67827f4a72ead14a3264b46d8597cf76, "[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx, 0x%hx}", 
-                TlsContext, SignatureAlgorithms[0], SignatureAlgorithms[1], SignatureAlgorithms[2], 
+            QuicTraceLogError(FN_tls_mitls67827f4a72ead14a3264b46d8597cf76, "[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx, 0x%hx}",
+                TlsContext, SignatureAlgorithms[0], SignatureAlgorithms[1], SignatureAlgorithms[2],
                 SignatureAlgorithms[3]);
         } else if (SignatureAlgorithmsLength == 5) {
-            QuicTraceLogError(FN_tls_mitlsa7f4e79bb9f5e0cd46deb27512358d7a, "[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx}", 
-                TlsContext, SignatureAlgorithms[0], SignatureAlgorithms[1], SignatureAlgorithms[2], 
+            QuicTraceLogError(FN_tls_mitlsa7f4e79bb9f5e0cd46deb27512358d7a, "[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx}",
+                TlsContext, SignatureAlgorithms[0], SignatureAlgorithms[1], SignatureAlgorithms[2],
                 SignatureAlgorithms[3], SignatureAlgorithms[4]);
         } else {
-            QuicTraceLogError(FN_tls_mitlsa5378f9628151212f0604036bb6fb20c, "[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, ...}", 
-                TlsContext, SignatureAlgorithms[0], SignatureAlgorithms[1], SignatureAlgorithms[2], 
+            QuicTraceLogError(FN_tls_mitlsa5378f9628151212f0604036bb6fb20c, "[ tls][%p] No matching signature algorithms, {0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, ...}",
+                TlsContext, SignatureAlgorithms[0], SignatureAlgorithms[1], SignatureAlgorithms[2],
                 SignatureAlgorithms[3], SignatureAlgorithms[4], SignatureAlgorithms[5]);
         }
         SecurityConfig = NULL;
         goto Error;
     }
 
-    QuicTraceLogInfo(FN_tls_mitlsf40198db99564073aa3e5226589a4243, "[ tls][%p] Server certificate selected. SNI: %s; Algorithm: 0x%4.4x", 
+    QuicTraceLogInfo(FN_tls_mitlsf40198db99564073aa3e5226589a4243, "[ tls][%p] Server certificate selected. SNI: %s; Algorithm: 0x%4.4x",
         TlsContext, TlsContext->SNI, *SelectedSignature);
 
 Error:
@@ -1593,8 +1593,6 @@ QuicTlsOnNegotiate(
                 AlpnLength,
                 Alpn);
         if (TlsContext->State->NegotiatedAlpn == NULL) {
-
-            //BUGBUG : Nick - make sure 'C' is a good value please
             QuicTraceLogError(TlsNoMatchingAlpn, "[ tls][%p][%c] Failed to find a matching ALPN", TlsContext, 'C');
             goto Exit;
         }
@@ -1777,7 +1775,7 @@ QuicTlsOnTicketReady(
     QUIC_TLS* TlsContext = (QUIC_TLS*)Context;
     QUIC_DBG_ASSERT(TlsContext);
 
-    QuicTraceLogVerbose(FN_tls_mitls81abb5295d39854b93921273b608b49e, "[ tls][%p] Received new ticket. ticket_len:%d session_len:%d for %s", 
+    QuicTraceLogVerbose(FN_tls_mitls81abb5295d39854b93921273b608b49e, "[ tls][%p] Received new ticket. ticket_len:%d session_len:%d for %s",
         TlsContext, (uint32_t)Ticket->ticket_len, (uint32_t)Ticket->session_len, ServerNameIndication);
 
     //
