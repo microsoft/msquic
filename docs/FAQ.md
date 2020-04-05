@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-> Will rest of Windows also go open source?
+> Will the rest of Windows also go open source?
 
 At this time there is no plan to open source the rest of Windows.
 
@@ -42,4 +42,4 @@ This is not recommended, as QUIC is seen as more secure than TCP/TLS. QUIC is a 
 
 > Why is MsQuic written in C?
 
-Windows Kernel mode is one of the supported platforms, and while it supports some C++ features, it does not support all of them. So, it was decided to use just pure C to reduce complexities.
+Windows Kernel mode is one of the supported platforms, and while it supports some C++ features, it does not support all of them. So, it was decided to use just pure C to reduce complexity.
