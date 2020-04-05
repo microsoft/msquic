@@ -1847,7 +1847,7 @@ QuicDataPathSocketReceive(
             &RemoteAddr);
 
         if (IsUnreachableError) {
-#ifdef QUIC_LOGS_WPP // TODO - Change to ETW event
+            // TODO - Change to ETW event
             if (RemoteAddr.si_family == AF_INET) {
                 QuicTraceLogVerbose(FN_datapath_winkernel0d5b73ad7e3f4e54d28b5b840116cd97, "[sock][%p] Unreachable error from %!IPV4ADDR!:%hu",
                     SocketContext,
@@ -1859,7 +1859,6 @@ QuicDataPathSocketReceive(
                     &RemoteAddr.Ipv6.sin6_addr,
                     RtlUshortByteSwap(RemoteAddr.Ipv6.sin6_port));
             }
-#endif
 
             QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->UnreachableHandler);
             SocketContext->Binding->Datapath->UnreachableHandler(

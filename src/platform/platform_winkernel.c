@@ -16,13 +16,6 @@ Environment:
 #include "platform_internal.h"
 #include "platform_winkernel.c.clog.h"
 
-#if QUIC_LOGS_WPP
-#pragma warning(push) // Don't care about OACR warnings in publics
-#pragma warning(disable:28170)
-#include <fastwppimpl.h>
-#pragma warning(pop)
-#endif
-
 /*
     This multiline comment forces WPP to generate the definitions for the
     initialization and cleanup code, which happens only if there is direct
@@ -81,10 +74,6 @@ QuicPlatformSystemLoad(
 {
     UNREFERENCED_PARAMETER(RegistryPath);
 
-#ifdef QUIC_LOGS_WPP
-    FAST_WPP_INIT_TRACING(DriverObject, RegistryPath);
-#endif
-
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventRegisterMicrosoft_Quic();
 #endif
@@ -116,10 +105,6 @@ QuicPlatformSystemUnload(
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventUnregisterMicrosoft_Quic();
-#endif
-
-#ifdef QUIC_LOGS_WPP
-    FAST_WPP_CLEANUP(QuicPlatform.DriverObject);
 #endif
 }
 

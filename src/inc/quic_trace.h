@@ -89,7 +89,6 @@ typedef enum QUIC_TRACE_LEVEL {
     QUIC_TRACE_LEVEL_PACKET_WARNING
 } QUIC_TRACE_LEVEL;
 
-
 //
 // Called from the platform code to trigger a tracing rundown for all objects
 // in the current process (or kernel mode).
@@ -103,21 +102,6 @@ QuicTraceRundown(
     void
     );
 
-#pragma warning(push) // Don't care about warnings from generated files
-#pragma warning(disable:6001)
-#pragma warning(disable:26451)
-#pragma warning(pop)
-#if 0
-
-
-#define EventWriteQuicConnSourceCidAdded(Connection, CidLen, Cid) \
-#define EventWriteQuicConnDestCidAdded(Connection, CidLen, Cid) \
-#define EventWriteQuicConnSourceCidRemoved(Connection, CidLen, Cid) \
-#define EventWriteQuicConnDestCidRemoved(Connection, CidLen, Cid) \
-
-#endif
-
-
 #define CLOG_BUG_TraceLogVerbose(...)
 #define CLOG_BUG_TraceLogError(...)
 #define CLOG_BUG_TraceLogWarning(...)
@@ -125,57 +109,12 @@ QuicTraceRundown(
 #define CLOG_BUG_TraceEvent(...)
 #define CLOG_BUG_TraceLogConnInfo(...)
 
-
 #define QuicTraceLogStreamVerboseEnabled() TRUE
 #define QuicTraceLogErrorEnabled()   TRUE
 #define QuicTraceLogWarningEnabled() TRUE
 #define QuicTraceLogInfoEnabled()    TRUE
 #define QuicTraceLogVerboseEnabled() TRUE
 #define QuicTraceEventEnabled(x) TRUE
-
-#if 0
-
-inline
-void
-QuicTraceStubVarArgs(
-    _In_ const void* Fmt,
-    ...
-    )
-{
-    UNREFERENCED_PARAMETER(Fmt);
-}
-
-
-#define QuicTraceLogError(...)
-#define IGNORE_FIRST_PARAM(A, ...) QuicTraceStubVarArgs(__VA_ARGS__)
-
-
-#define QuicTraceLogError(...) QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogWarning(...)
-#define QuicTraceLogInfo(...)
-#define QuicTraceLogVerbose(...)
-#define QuicTraceLogConnError(...)
-#define QuicTraceLogConnWarning(...)
-#define QuicTraceLogConnInfo(...)
-#define QuicTraceLogConnVerbose(...)
-
-#define QuicTraceLogStreamError(...)
-#define QuicTraceLogStreamWarning(...)
-#define QuicTraceLogStreamInfo(...)
-#define QuicTraceLogStreamVerbose(...)
-//#define QuicTraceLogError(...)
-
-#endif
-
-#pragma warning(push) // Don't care about warnings from generated files
-#pragma warning(disable:6001)
-#pragma warning(disable:26451)
-#pragma warning(pop)
-
-//#define QuicTraceLogConnError(...)
-//#define QuicTraceLogConnWarning(...)
-//#define QuicTraceLogConnInfo(...)
-//#define QuicTraceLogConnVerbose(...)
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
 #include "quic_trace_manifested_etw.h"
