@@ -1851,12 +1851,12 @@ QuicDataPathSocketReceive(
             if (RemoteAddr.si_family == AF_INET) {
                 QuicTraceLogVerbose(FN_datapath_winkernel0d5b73ad7e3f4e54d28b5b840116cd97, "[sock][%p] Unreachable error from %!IPV4ADDR!:%hu",
                     SocketContext,
-                    &RemoteAddr.Ipv4.sin_addr,
+                    CLOG_BYTEARRAY(sizeof(RemoteAddr.Ipv4.sin_addr), (const unsigned char *)&RemoteAddr.Ipv4.sin_addr),
                     RtlUshortByteSwap(RemoteAddr.Ipv4.sin_port));
             } else {
                 QuicTraceLogVerbose(FN_datapath_winkernele1fb7d63de75c9c0e44219d165a81f04, "[sock][%p] Unreachable error from [%!IPV6ADDR!]:%hu",
                     SocketContext,
-                    &RemoteAddr.Ipv6.sin6_addr,
+                    CLOG_BYTEARRAY(sizeof(RemoteAddr.Ipv6.sin6_addr), (const unsigned char *)&RemoteAddr.Ipv6.sin6_addr),
                     RtlUshortByteSwap(RemoteAddr.Ipv6.sin6_port));
             }
 
