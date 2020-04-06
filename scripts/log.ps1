@@ -88,34 +88,25 @@ function Log-Start {
 
         wpr.exe -start "$($WprpFile)!$($LogProfile)" -filemode -instancename $InstanceName
     } else {
-        Write-Host "lttng-destroy"
-        lttng destroy | Out-Null
-     
+        lttng -q destroy
+
         $LogProfile = "QuicLTTNG"
 
         $OutputDirectoryRoot = Join-Path $HOME "QUICLogs"
         $LTTNGRawDirectory = Join-Path $OutputDirectoryRoot "LTTNGRaw"
 
-        Write-Host "making QUICLogs directory ./QUICLogs/$LogProfile"       
-
         if (Test-Path $LTTNGRawDirectory) {
             Remove-Item -Path $LTTNGRawDirectory -Recurse -Force
-        }        
-        New-Item -Path $LTTNGRawDirectory -ItemType Directory -Force | Out-Null    
-                 
-        Write-Host "------------" 
-        Write-Host "Creating LTTNG Profile $LogProfile into $LTTNGRawDirectory"
-        $Command = "lttng create $LogProfile -o=$LTTNGRawDirectory | Write-Host"
-        Write-Host $Command
-        Invoke-Expression $Command
-     
-        Write-Host "------------"         
-        Write-Host "Enabling all CLOG traces"
-        lttng enable-event --userspace CLOG_*
+        }
+        New-Item -Path $LTTNGRawDirectory -ItemType Directory -Force | Out-Null
 
-        Write-Host "Starting LTTNG"
-        lttng start | Write-Host
-        lttng list | Write-Host
+        $Command = "lttng create $LogProfile -o=$LTTNGRawDirectory"
+        Invoke-Expression $Command
+
+        lttng -q enable-event --userspace CLOG_*
+        lttng -q start | Write-Host
+
+        Write-Host "Recording QUIC LTTNG into $LTTNGRawDirectory"
     }
 }
 
@@ -124,12 +115,16 @@ function Log-Cancel {
     if ($IsWindows) {
         wpr.exe -cancel -instancename $InstanceName
     } else {
-        Write-Host "Cancel LTTNG session"
-        lttng destroy
+        lttng -q destroy
 
         $OutputDirectoryRoot = Join-Path $HOME "QUICLogs"
-        Write-Host "Deleting LTTNG Directory (the contents are now stored in the tgz file)"
-        Remove-Item -Path $OutputDirectoryRoot -Recurse -Force
+
+        if (Test-Path $OutputDirectoryRoot) {
+           Remove-Item -Path $OutputDirectoryRoot -Recurse -Force
+            Write-Host "Stopped LTTNG recording and deleted $OutputDirectoryRoot"
+        } else {
+            Write-Host "ERROR : LTTNG events we not being recorded"
+        }
     }
 }
 
@@ -147,28 +142,26 @@ function Log-Stop {
             Invoke-Expression $Command
         }
     } else {
-        
         $LogProfile = "QuicLTTNG"
 
-        lttng stop | Write-Host
+        lttng -q stop
 
         $LTTNGTempDirectory = Join-Path $HOME "QUICLogs"
-        $LTTNGRawDirectory = Join-Path $LTTNGTempDirectory "LTTNGRaw"        
+        $LTTNGRawDirectory = Join-Path $LTTNGTempDirectory "LTTNGRaw"
         $LTTNGTarFile = Join-Path $OutputDirectory "lttng_trace.tgz"
         $CLOG2TEXT = Join-Path $RootDir "artifacts/tools/clog/clog2text_lttng"
         $SideCar = Join-Path $RootDir "src/manifest/clog.sidecar"
         $BableTraceFile = Join-Path $OutputDirectory "decoded_babeltrace.txt"
         $ClogOutputDecodeFile = Join-Path $OutputDirectory "clog_decode.txt"
 
-
-        if (!(Test-Path $LTTNGRawDirectory)) {            
+        if (!(Test-Path $LTTNGRawDirectory)) {
             Write-Host "ERROR : Output Directory $LTTNGRawDirectory must exist"
-            exit 1        
-        }       
-     
-        if (!(Test-Path $OutputDirectory)) {            
+            exit 1
+        }
+
+        if (!(Test-Path $OutputDirectory)) {
             New-Item -Path $OutputDirectory -ItemType Directory -Force | Out-Null
-        }       
+        }
 
         Write-Host "tar/gzip LTTNG log files from $LTTNGRawDirectory into $LTTNGTarFile"
         tar -cvzf $LTTNGTarFile $LTTNGRawDirectory
@@ -180,8 +173,8 @@ function Log-Stop {
         $Command = "$CLOG2TEXT -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
         Write-Host $Command
         Invoke-Expression $Command
-        
-        Write-Host "Deleting LTTNG Directory (the contents are now stored in the tgz file)"        
+
+        Write-Host "Deleting LTTNG Directory (the contents are now stored in the tgz file)"
         Remove-Item -Path $LTTNGTempDirectory -Recurse -Force
     }
 }
@@ -192,21 +185,25 @@ function Log-Stream {
     if ($IsWindows) {
         Write-Host "Not supported on Windows"
     } else {
-        lttng destroy
-        Write-Host "------------"   
-        lttng destroy
-        lttng create msquicLive --live
-        lttng enable-event --userspace CLOG_*
-        lttng start
-        lttng list
+        lttng -q destroy
+        lttng -q create msquicLive --live
+        lttng -q enable-event --userspace CLOG_*
+        lttng -q start
+        lttng -q list
         babeltrace -i lttng-live net://localhost
 
-        Write-Host "Starting live decode of traces"
-        $Command = "babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquicLive | $RootDir/artifacts/tools/clog/clog2text_lttng -s $RootDir/src/manifest/clog.sidecar"
-        Write-Host $Command
+
+        $CLOG2TEXT = Join-Path $RootDir "artifacts/tools/clog/clog2text_lttng"
+        $SideCar = Join-Path $RootDir "src/manifest/clog.sidecar"
+
+        Write-Host "***************************************************************"
+        Write-Host ""
+        Write-Host ""
+        Write-Host "   Starting live decode of traces"
+        Write-Host ""
+        Write-Host "   Please start your tests - your events should be decoded in realtime"
+        $Command = "babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquicLive | $CLOG2TEXT -s $SideCar"
         Invoke-Expression $Command
-        
-        
     }
 }
 
@@ -220,7 +217,7 @@ function Log-Decode {
 
         $DecompressedLogs = Join-Path $WorkingDirectory "DecompressedLogs"
         $ClogOutputDecodeFile = Join-Path $WorkingDirectory "clog_decode.txt"
-        $SideCar = Join-Path $RootDir "src/manifest/clog.sidecar"        
+        $SideCar = Join-Path $RootDir "src/manifest/clog.sidecar"
         $BableTraceFile = Join-Path $WorkingDirectory "decoded_babeltrace.txt"
         $CLOG2TEXT = Join-Path $RootDir "artifacts/tools/clog/clog2text_lttng"
 
@@ -243,16 +240,14 @@ function Log-Decode {
 #                     Main Execution                         #
 ##############################################################
 
-if ($Start)  { 
+if ($Start)  {
     if($LogProfile -eq "Stream") {
-        Log-Stream 
+        Log-Stream
     } else {
-        Log-Start 
+        Log-Start
     }
 }
 
 if ($Cancel) { Log-Cancel }
 if ($Stop)   { Log-Stop }
 if ($DecodeTrace) {Log-Decode }
-
-Write-Host "Finished and exiting"
