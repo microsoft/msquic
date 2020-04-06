@@ -411,13 +411,6 @@ TEST_P(WithFamilyArgs, Rebind) {
     }
 }
 
-TEST(Basic, PathTimeout) {
-    TestLogger Logger("QuicTestPathTimeout");
-    if (!TestingKernelMode) {
-        QuicTestPathTimeout();
-    }
-}
-
 TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-ChangeMaxStreamIDs", GetParam());
     if (TestingKernelMode) {
