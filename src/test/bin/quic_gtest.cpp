@@ -413,9 +413,7 @@ TEST_P(WithFamilyArgs, Rebind) {
 
 TEST(Basic, PathTimeout) {
     TestLogger Logger("QuicTestPathTimeout");
-    if (TestingKernelMode) {
-        GTEST_SKIP_(":Unsupported in kernel mode");
-    } else {
+    if (!TestingKernelMode) {
         QuicTestPathTimeout();
     }
 }
