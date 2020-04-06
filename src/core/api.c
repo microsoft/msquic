@@ -311,6 +311,7 @@ MsQuicConnectionStart(
     Oper->API_CALL.Context->CONN_START.ServerName = ServerNameCopy;
     Oper->API_CALL.Context->CONN_START.ServerPort = ServerPort;
     Oper->API_CALL.Context->CONN_START.Family = Family;
+    ServerNameCopy = NULL;
 
     //
     // Queue the operation but don't wait for the completion.
@@ -319,6 +320,10 @@ MsQuicConnectionStart(
     Status = QUIC_STATUS_PENDING;
 
 Error:
+
+    if (ServerNameCopy != NULL) {
+        QUIC_FREE(ServerNameCopy);
+    }
 
     QuicTraceEvent(ApiExitStatus, Status);
 
