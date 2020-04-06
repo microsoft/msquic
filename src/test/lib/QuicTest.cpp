@@ -642,8 +642,6 @@ QuicTestPathTimeout(
         QuicAddr NewLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Client.SetLocalAddr(NewLocalAddr));
         QuicSleep(500);
-        // TODO: What is the expected behavior after the path timeout, and how
-        // can we reliably wait for the path timeout to happen?
         TEST_QUIC_SUCCEEDED(Client.GetLocalAddr(NewLocalAddr));
         TEST_FALSE(Client.GetIsShutdown());
 
