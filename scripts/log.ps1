@@ -89,6 +89,7 @@ $SideCar = Join-Path $RootDir "src/manifest/clog.sidecar"
 $Clog2Text = Join-Path $RootDir "artifacts/tools/clog/clog2text_lttng"
 $TempDir = $null
 if ($IsLinux) {
+    $InstanceName = $InstanceName.Replace(".", "_")
     $TempDir = Join-Path $HOME "QUICLogs" $InstanceName
 }
 
