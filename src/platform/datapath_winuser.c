@@ -1563,17 +1563,12 @@ QuicDataPathBindingHandleUnreachableError(
 
     QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
-    if (RemoteAddr->si_family == AF_INET) {
-        CLOG_BUG_TraceLogVerbose(FN_datapath_winuser98712c41f3c7a37b24466cc56356459a, "[sock][%p] Received unreachable error (0x%x) from %SOCKADDR",
-            SocketContext,
-            ErrorCode,
-            CLOG_BYTEARRAY((unsigned char)ntohs(RemoteAddr->Ipv4.sin_port), RemoteAddr->Ipv4.sin_addr));
-    } else {
-        CLOG_BUG_TraceLogVerbose(FN_datapath_winuser12d869b81546180a6c851672aa59025c, "[sock][%p] Received unreachable error (0x%x) from [%SOCKADDR]",
-            SocketContext,
-            ErrorCode,
-            CLOG_BYTEARRAY((unsigned char)ntohs(RemoteAddr->Ipv6.sin6_port), RemoteAddr->Ipv6.sin6_addr));
-    }
+    QuicTraceLogVerbose(
+        FN_datapath_winuser98712c41f3c7a37b24466cc56356459a,
+        "[sock][%p] Received unreachable error (0x%x) from %SOCKADDR",
+        SocketContext,
+        ErrorCode,
+        CLOG_BYTEARRAY(LOG_ADDR_LEN(RemoteAddr), (uint8_t*)RemoteAddr));
     UNREFERENCED_PARAMETER(ErrorCode);
 
     QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->UnreachableHandler);
@@ -1714,16 +1709,11 @@ QuicDataPathRecvComplete(
 
         QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
-        if (RemoteAddr->si_family == AF_INET) {
-            CLOG_BUG_TraceLogVerbose(FN_datapath_winuser80f95372f363d78879faa71a2a91f95d, "[sock][%p] Received larger than expected datagram from %!IPV4ADDR!",
-                SocketContext,
-                CLOG_BYTEARRAY(ntohs(RemoteAddr->Ipv4.sin_port), RemoteAddr->Ipv4.sin_addr));
-        }
-        else {
-            CLOG_BUG_TraceLogVerbose(FN_datapath_winuser565b55c86799256c4ab6aa11a0a736b9, "[sock][%p] Received larger than expected datagram from [%!IPV6ADDR!]",
-                SocketContext,
-                CLOG_BYTEARRAY(ntohs(RemoteAddr->Ipv6.sin6_port), RemoteAddr->Ipv6.sin6_addr));
-        }
+        QuicTraceLogVerbose(
+            FN_datapath_winuser80f95372f363d78879faa71a2a91f95d,
+            "[sock][%p] Received larger than expected datagram from %SOCKADDR",
+            SocketContext,
+            CLOG_BYTEARRAY(LOG_ADDR_LEN(RemoteAddr), (uint8_t*)RemoteAddr));
 
         //
         // TODO - Indicate to Core library.
