@@ -132,16 +132,15 @@ inline
 QUIC_STATUS
 QuicForceRetry(
     _In_ const QUIC_API_TABLE* MsQuic,
-    _In_ HQUIC Handle,
     _In_ BOOLEAN Enabled
     )
 {
     uint16_t value = Enabled ? 0 : 65;
     return
         MsQuic->SetParam(
-            Handle,
-            QUIC_PARAM_LEVEL_REGISTRATION,
-            QUIC_PARAM_REGISTRATION_RETRY_MEMORY_PERCENT,
+            NULL,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
             sizeof(value),
             &value);
 }
