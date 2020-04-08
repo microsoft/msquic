@@ -90,6 +90,7 @@ if ($IsWindows) {
             sudo apt-get install build-essentials
             sudo apt-get install liblttng-ust-dev
             sudo apt-get install lttng-tools
+            sudo apt-get install systemtap-sdt-dev
         }
     }
 }
