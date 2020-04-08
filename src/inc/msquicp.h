@@ -27,9 +27,9 @@ extern "C" {
 #define QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION   0x80000000
 
 //
-// The different private parameters for QUIC_PARAM_LEVEL_REGISTRATION.
+// The different private parameters for QUIC_PARAM_LEVEL_GLOBAL.
 //
-#define QUIC_PARAM_REGISTRATION_ENCRYPTION              0x80000001  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_GLOBAL_ENCRYPTION                    0x80000001  // uint8_t (BOOLEAN)
 
 //
 // The different private parameters for QUIC_PARAM_LEVEL_SESSION.

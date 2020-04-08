@@ -185,12 +185,12 @@ ParseCommonCommands(
         uint8_t value = FALSE;
         if (QUIC_FAILED(
             MsQuic->SetParam(
-                Registration,
-                QUIC_PARAM_LEVEL_REGISTRATION,
-                QUIC_PARAM_REGISTRATION_ENCRYPTION,
+                nullptr,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_ENCRYPTION,
                 sizeof(value),
                 &value))) {
-            printf("MsQuic->SetParam (REGISTRATION_ENCRYPTION) failed!\n");
+            printf("MsQuic->SetParam (GLOBAL_ENCRYPTION) failed!\n");
         }
     }
 }

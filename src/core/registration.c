@@ -349,19 +349,6 @@ QuicRegistrationParamSet(
     QUIC_STATUS Status;
 
     switch (Param) {
-    case QUIC_PARAM_REGISTRATION_RETRY_MEMORY_PERCENT:
-
-        if (BufferLength != sizeof(MsQuicLib.Settings.RetryMemoryLimit)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        MsQuicLib.Settings.RetryMemoryLimit = *(uint16_t*)Buffer;
-        MsQuicLib.Settings.AppSet.RetryMemoryLimit = TRUE;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
     case QUIC_PARAM_REGISTRATION_CID_PREFIX:
 
         if (BufferLength == 0) {
@@ -396,19 +383,6 @@ QuicRegistrationParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_REGISTRATION_ENCRYPTION:
-
-        if (BufferLength != sizeof(uint8_t)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        MsQuicLib.EncryptionDisabled = *(uint8_t*)Buffer == FALSE;
-        QuicTraceLogWarning("[ lib] Updated encryption disabled = %hu", MsQuicLib.EncryptionDisabled);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -430,25 +404,6 @@ QuicRegistrationParamGet(
     QUIC_STATUS Status;
 
     switch (Param) {
-    case QUIC_PARAM_REGISTRATION_RETRY_MEMORY_PERCENT:
-
-        if (*BufferLength < sizeof(MsQuicLib.Settings.RetryMemoryLimit)) {
-            *BufferLength = sizeof(MsQuicLib.Settings.RetryMemoryLimit);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(MsQuicLib.Settings.RetryMemoryLimit);
-        *(uint16_t*)Buffer = MsQuicLib.Settings.RetryMemoryLimit;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
     case QUIC_PARAM_REGISTRATION_CID_PREFIX:
 
         if (*BufferLength < Registration->CidPrefixLength) {
@@ -469,25 +424,6 @@ QuicRegistrationParamGet(
         } else {
             *BufferLength = 0;
         }
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_REGISTRATION_ENCRYPTION:
-
-        if (*BufferLength < sizeof(uint8_t)) {
-            *BufferLength = sizeof(uint8_t);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(uint8_t);
-        *(uint8_t*)Buffer = !MsQuicLib.EncryptionDisabled;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
