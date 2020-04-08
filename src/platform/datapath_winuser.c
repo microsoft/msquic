@@ -1568,7 +1568,7 @@ QuicDataPathBindingHandleUnreachableError(
         "[sock][%p] Received unreachable error (0x%x) from %SOCKADDR",
         SocketContext,
         ErrorCode,
-        CLOG_BYTEARRAY(LOG_ADDR_LEN(RemoteAddr), (uint8_t*)RemoteAddr));
+        CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddr), (uint8_t*)RemoteAddr));
     UNREFERENCED_PARAMETER(ErrorCode);
 
     QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->UnreachableHandler);
@@ -1713,7 +1713,7 @@ QuicDataPathRecvComplete(
             FN_datapath_winuser80f95372f363d78879faa71a2a91f95d,
             "[sock][%p] Received larger than expected datagram from %SOCKADDR",
             SocketContext,
-            CLOG_BYTEARRAY(LOG_ADDR_LEN(RemoteAddr), (uint8_t*)RemoteAddr));
+            CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddr), (uint8_t*)RemoteAddr));
 
         //
         // TODO - Indicate to Core library.
