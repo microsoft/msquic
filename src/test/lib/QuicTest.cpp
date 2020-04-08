@@ -36,7 +36,7 @@ void QuicTestInitialize()
             QUIC_PARAM_REGISTRATION_ENCRYPTION,
             sizeof(Disabled),
             &Disabled))) {
-        CLOG_BUG_TraceLogError(FN_quictest9eddd9dc5266f22ce5fe2958d12ddae0, "[test] Disabling encryption failed");
+        QuicTraceLogError(FN_quictest9eddd9dc5266f22ce5fe2958d12ddae0, "[test] Disabling encryption failed");
     }
 #endif
 }
@@ -49,10 +49,10 @@ struct TestScopeLogger
 {
     const char* Name;
     TestScopeLogger(const char* name) : Name(name) {
-        CLOG_BUG_TraceLogInfo(FN_quictest0785c7e818b20fe296fb9343da4ad6c7, "[test]---> %s", Name);
+        QuicTraceLogInfo(FN_quictest0785c7e818b20fe296fb9343da4ad6c7, "[test]---> %s", Name);
     }
     ~TestScopeLogger() {
-        CLOG_BUG_TraceLogInfo(FN_quictest3a72f018a4cf860262d89c7671534363, "[test]<--- %s", Name);
+        QuicTraceLogInfo(FN_quictest3a72f018a4cf860262d89c7671534363, "[test]<--- %s", Name);
     }
 };
 
