@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #include "main.h"
+#include "SpinFrame.cpp.clog.h"
 
 #ifdef QUIC_LOGS_WPP
 #include "spinframe.tmh"
