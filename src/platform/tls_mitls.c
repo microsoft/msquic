@@ -268,6 +268,11 @@ typedef struct QUIC_TLS {
     BOOLEAN IsServer : 1;
 
     //
+    // Indicates the client attempted 0-RTT.
+    //
+    BOOLEAN EarlyDataAttempted;
+
+    //
     // Flag indicating the server has sent an updated ticket.
     //
     BOOLEAN TicketReady : 1;
@@ -885,6 +890,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsInitialize(
     _In_ const QUIC_TLS_CONFIG* Config,
+    _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _Out_ QUIC_TLS** NewTlsContext
     )
 {
@@ -893,6 +899,7 @@ QuicTlsInitialize(
 
     QUIC_DBG_ASSERT(Config != NULL);
     QUIC_DBG_ASSERT(NewTlsContext != NULL);
+    UNREFERENCED_PARAMETER(State);
 
     TlsContext = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS) + sizeof(uint16_t) + Config->AlpnBufferLength);
     if (TlsContext == NULL) {
@@ -1238,11 +1245,12 @@ QuicTlsProcessDataComplete(
 
         if (Context.flags & QFLAG_REJECTED_0RTT) {
             if (TlsContext->IsServer) {
-                State->EarlyDataAttempted = TRUE;
+                TlsContext->EarlyDataAttempted = TRUE;
             }
-            if (State->EarlyDataAttempted) {
+            if (TlsContext->EarlyDataAttempted) {
                 ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_REJECT;
             }
+            State->EarlyDataState = QUIC_TLS_EARLY_DATA_REJECTED;
             QuicTraceLogVerbose(FN_tls_mitls6569b967d8a1c7512d904b2db00acdb0, "[ tls][%p] Early data rejected", TlsContext);
         }
 
@@ -1269,8 +1277,8 @@ QuicTlsProcessDataComplete(
                     QuicTraceLogVerbose(FN_tls_mitls2130252c98cd8adeb814586ee3472ac3, "[ tls][%p] Early data accepted", TlsContext);
                     TlsContext->TlsKeySchedule = 1; // 0-RTT allowed.
                     State->SessionResumed = TRUE;
-                    State->EarlyDataAttempted = TRUE;
-                    State->EarlyDataAccepted = TRUE;
+                    TlsContext->EarlyDataAttempted = TRUE;
+                    State->EarlyDataState = QUIC_TLS_EARLY_DATA_ACCEPTED;
                 } else {
                     TlsContext->TlsKeySchedule = 0;
                     if (!(Context.flags & QFLAG_REJECTED_0RTT)) {
@@ -1281,7 +1289,7 @@ QuicTlsProcessDataComplete(
                 if (WriteKeyUpdated) {
                     QuicTraceLogVerbose(FN_tls_mitls04b56a24f67a73651ade622c07b162fc, "[ tls][%p] Early data attempted", TlsContext);
                     TlsContext->TlsKeySchedule = 1; // 0-RTT allowed.
-                    State->EarlyDataAttempted = TRUE;
+                    TlsContext->EarlyDataAttempted = TRUE;
                 } else {
                     TlsContext->TlsKeySchedule = 0;
                 }
@@ -1309,7 +1317,7 @@ QuicTlsProcessDataComplete(
                 case QUIC_PACKET_KEY_1_RTT:
                     QuicTraceLogVerbose(FN_tls_mitls80105292c04d4510435e66b70bb98a6c, "[ tls][%p] 1-RTT read key exported", TlsContext);
                     if (!TlsContext->IsServer) {
-                        if (State->EarlyDataAttempted &&
+                        if (TlsContext->EarlyDataAttempted &&
                             !(Context.flags & QFLAG_REJECTED_0RTT)) {
                             //
                             // We know 0-RTT was accepted by the server once we have
@@ -1318,7 +1326,7 @@ QuicTlsProcessDataComplete(
                             //
                             ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_ACCEPT;
                             State->SessionResumed = TRUE;
-                            State->EarlyDataAccepted = TRUE;
+                            State->EarlyDataState = QUIC_TLS_EARLY_DATA_ACCEPTED;
                             QuicTraceLogVerbose(FN_tls_mitls2130252c98cd8adeb814586ee3472ac3, "[ tls][%p] Early data accepted", TlsContext);
                         }
                     }

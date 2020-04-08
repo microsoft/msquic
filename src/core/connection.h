@@ -977,9 +977,20 @@ QuicConnGetSourceCidFromSeq(
                 *Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);
+        QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
         if (SourceCid->CID.SequenceNumber == SequenceNumber) {
             if (RemoveFromList) {
+                QuicBindingRemoveSourceConnectionID(
+                    Connection->Paths[0].Binding,
+                    SourceCid);
+                QuicTraceEvent(
+                    ConnSourceCidRemoved,
+                    "[conn][%p] (SeqNum=%I) Removed Source CID: %!BYTEARRAY!",
+                    Connection,
+                    SourceCid->CID.SequenceNumber,
+                    CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
                 *Entry = (*Entry)->Next;
+                SourceCid->CID.IsInList = FALSE;
             }
             *IsLastCid = Connection->SourceCids.Next == NULL;
             return SourceCid;
@@ -1009,6 +1020,7 @@ QuicConnGetSourceCidFromBuf(
                 Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);
+        QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
         if (CidLength == SourceCid->CID.Length &&
             memcmp(CidBuffer, SourceCid->CID.Data, CidLength) == 0) {
             return SourceCid;
@@ -1148,6 +1160,15 @@ QUIC_STATUS
 QuicConnHandshakeConfigure(
     _In_ QUIC_CONNECTION* Connection,
     _In_opt_ QUIC_SEC_CONFIG* SecConfig
+    );
+
+//
+// Discard any 0-RTT deferred datagrams.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnDiscardDeferred0Rtt(
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //

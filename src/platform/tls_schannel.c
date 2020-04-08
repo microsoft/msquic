@@ -1277,6 +1277,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsInitialize(
     _In_ const QUIC_TLS_CONFIG* Config,
+    _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _Out_ QUIC_TLS** NewTlsContext
     )
 {
@@ -1331,6 +1332,8 @@ QuicTlsInitialize(
     TlsContext->Connection = Config->Connection;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
     TlsContext->SNI = Config->ServerName;
+
+    State->EarlyDataState = QUIC_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
 
     Status = QUIC_STATUS_SUCCESS;
     *NewTlsContext = TlsContext;

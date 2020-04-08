@@ -598,6 +598,8 @@ QuicLookupRemoveSourceConnectionIDs(
                 QuicListPopEntry(&Connection->SourceCids),
                 QUIC_CID_HASH_ENTRY,
                 Link);
+        QUIC_DBG_ASSERT(CID->CID.IsInList);
+        CID->CID.IsInList = FALSE;
         QuicLookupRemoveSourceConnectionIDInt(Lookup, CID);
         QUIC_FREE(CID);
         ReleaseRefCount++;
