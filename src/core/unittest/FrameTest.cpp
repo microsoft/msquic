@@ -96,6 +96,58 @@ TEST(FrameTest, ResetStreamFrameEncodeDecode)
     ASSERT_EQ(Frame.FinalSize, DecodedFrame.FinalSize);
 }
 
+struct ResetStreamFrameParams {
+    uint8_t Buffer[4];
+    uint16_t BufferLength = 4;
+
+    static auto GenerateDecodeFailParams() {
+        std::vector<ResetStreamFrameParams> Params;
+        const uint16_t BufferLength = 4;
+        for (uint32_t i = 1; i < 8; ++i) {
+            ResetStreamFrameParams Temp;
+            Temp.Buffer[0] = QUIC_FRAME_RESET_STREAM;
+
+            for (uint32_t j = 0; j < 2; ++j) {
+                uint8_t TestValue = (j & 1) ? 64 : 255;
+
+                if (i & 1) {
+                    Temp.Buffer[1] = TestValue;
+                } else {
+                    Temp.Buffer[1] = 0;
+                }
+
+                if (i & 2) {
+                    Temp.Buffer[2] = TestValue;
+                } else {
+                    Temp.Buffer[2] = 0;
+                }
+
+                if (i & 4) {
+                    Temp.Buffer[3] = TestValue;
+                } else {
+                    Temp.Buffer[3] = 0;
+                }
+
+                Params.push_back(Temp);
+            }
+        }
+        return Params;
+    }
+};
+
+struct ResetStreamFrameTest : ::testing::TestWithParam<ResetStreamFrameParams> {};
+
+TEST_P(ResetStreamFrameTest, DecodeResetStreamFrameFail) {
+    uint16_t Offset = 1;
+    QUIC_RESET_STREAM_EX DecodedFrame;
+    ASSERT_FALSE(QuicResetStreamFrameDecode(GetParam().BufferLength, GetParam().Buffer, &Offset, &DecodedFrame));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    FrameTest,
+    ResetStreamFrameTest,
+    ::testing::ValuesIn(ResetStreamFrameParams::GenerateDecodeFailParams()));
+
 TEST(FrameTest, StopSendingFrameEncodeDecode)
 {
     QUIC_STOP_SENDING_EX Frame = {42, 64};
@@ -112,6 +164,48 @@ TEST(FrameTest, StopSendingFrameEncodeDecode)
     ASSERT_EQ(Frame.StreamID, DecodedFrame.StreamID);
     ASSERT_EQ(Frame.ErrorCode, DecodedFrame.ErrorCode);
 }
+
+struct StopSendingFrameParams {
+    uint8_t Buffer[3];
+    uint16_t BufferLength = 3;
+
+    static auto GenerateDecodeFailParams() {
+        std::vector<StopSendingFrameParams> Params;
+        for (uint32_t i = 1; i < 4; ++i) {
+            StopSendingFrameParams Temp;
+            Temp.Buffer[0] = QUIC_FRAME_STOP_SENDING;
+
+            for (uint32_t j = 0; j < 2; ++j) {
+                uint8_t TestValue = (j & 1) ? 64 : 255;
+
+                if (i & 1) {
+                    Temp.Buffer[1] = TestValue;
+                } else {
+                    Temp.Buffer[1] = 0;
+                }
+
+                if (i & 2) {
+                    Temp.Buffer[2] = TestValue;
+                } else {
+                    Temp.Buffer[2] = 0;
+                }
+
+                Params.push_back(Temp);
+            }
+        }
+        return Params;
+    }
+};
+
+struct StopSendingFrameTest : ::testing::TestWithParam<StopSendingFrameParams> {};
+
+TEST_P(StopSendingFrameTest, DecodeStopSendingFrameFail) {
+    QUIC_STOP_SENDING_EX DecodedFrame;
+    uint16_t Offset = 1;
+    ASSERT_FALSE(QuicStopSendingFrameDecode(GetParam().BufferLength, GetParam().Buffer, &Offset, &DecodedFrame));
+}
+
+INSTANTIATE_TEST_SUITE_P(FrameTest, StopSendingFrameTest, ::testing::ValuesIn(StopSendingFrameParams::GenerateDecodeFailParams()));
 
 TEST(FrameTest, CryptoFrameEncodeDecode)
 {
