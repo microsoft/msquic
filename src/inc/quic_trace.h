@@ -102,6 +102,13 @@ QuicTraceRundown(
     void
     );
 
+#define CLOG_BUG_TraceLogVerbose(...)
+#define CLOG_BUG_TraceLogError(...)
+#define CLOG_BUG_TraceLogWarning(...)
+#define CLOG_BUG_TraceLogInfo(...)
+#define CLOG_BUG_TraceEvent(...)
+#define CLOG_BUG_TraceLogConnInfo(...)
+
 #define QuicTraceLogStreamVerboseEnabled() TRUE
 #define QuicTraceLogErrorEnabled()   TRUE
 #define QuicTraceLogWarningEnabled() TRUE

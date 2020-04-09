@@ -15,30 +15,23 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $RootDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 
 # Installation directory for procdump.
-$ToolsDir = Join-Path $RootDir "bld" "tools"
-if (!(Test-Path $ToolsDir)) {
-    New-Item -Path $ToolsDir -ItemType Directory -Force | Out-Null
-}
+$ProcdumpDir = Join-Path $RootDir "bld" "windows" "procdump"
 
 # Install procdump on Windows if not already present.
-if ($IsWindows -and !(Test-Path (Join-Path $ToolsDir "procdump64.exe"))) {
+if ($IsWindows -and !(Test-Path $ProcdumpDir)) {
 
     Write-Host "[$(Get-Date)] Installing procdump..."
 
     # Create installation directory.
-    New-Item -Path $ToolsDir -ItemType Directory -Force | Out-Null
+    New-Item -Path $ProcdumpDir -ItemType Directory -Force | Out-Null
 
     # Download the zip file.
-    $ZipFile = Join-Path $ToolsDir "Procdump.zip"
+    $ZipFile = $ProcdumpDir + ".zip"
     Invoke-WebRequest -Uri https://download.sysinternals.com/files/Procdump.zip -OutFile $ZipFile
 
     # Extract the zip file.
-    Expand-Archive -Path $ZipFile $ToolsDir
+    Expand-Archive -Path $ZipFile $ProcdumpDir
 
-    # Delete the unused files.
+    # Delete the zip file.
     Remove-Item -Path $ZipFile
-    Remove-Item -Path (Join-Path $ToolsDir "Eula.txt")
-    Remove-Item -Path (Join-Path $ToolsDir "procdump.exe")
-
-    Write-Host "[$(Get-Date)] procdump installed."
 }

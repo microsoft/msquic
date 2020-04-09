@@ -200,7 +200,8 @@ typedef struct QUIC_SEC_CONFIG {
 typedef struct QUIC_TLS {
 
     BOOLEAN IsServer : 1;
-    BOOLEAN EarlyDataAttempted : 1;
+    //BOOLEAN EarlyDataConfigured : 1;
+    //BOOLEAN EarlyDataAccepted : 1;
     BOOLEAN TicketReady : 1;
 
     QUIC_FAKE_TLS_MESSAGE_TYPE LastMessageType; // Last message sent.
@@ -470,13 +471,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsInitialize(
     _In_ const QUIC_TLS_CONFIG* Config,
-    _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _Out_ QUIC_TLS** NewTlsContext
     )
 {
     QUIC_STATUS Status;
-
-    UNREFERENCED_PARAMETER(State);
 
     QUIC_TLS* TlsContext = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS));
     if (TlsContext == NULL) {
@@ -613,7 +611,8 @@ QuicTlsServerProcess(
     case QUIC_TLS_MESSAGE_INVALID: {
         QUIC_FRE_ASSERT(ClientMessage->Type == QUIC_TLS_MESSAGE_CLIENT_INITIAL);
 
-        TlsContext->EarlyDataAttempted = FALSE;
+        State->EarlyDataAttempted = FALSE;
+        State->EarlyDataAccepted = FALSE;
 
         const uint8_t* ExtList = ClientMessage->CLIENT_INITIAL.ExtList;
         uint16_t ExtListLength = TlsReadUint16(ClientMessage->CLIENT_INITIAL.ExtListLength);
@@ -638,8 +637,8 @@ QuicTlsServerProcess(
             }
             case TlsExt_SessionTicket: {
                 State->SessionResumed = TRUE; // TODO - Support tickets
-                TlsContext->EarlyDataAttempted = TRUE;
-                State->EarlyDataState = QUIC_TLS_EARLY_DATA_ACCEPTED;
+                State->EarlyDataAttempted = TRUE;
+                State->EarlyDataAccepted = TRUE;
                 break;
             }
             case TlsExt_QuicTransportParameters: {
@@ -684,8 +683,7 @@ QuicTlsServerProcess(
         uint16_t MessageLength = MinMessageLengths[QUIC_TLS_MESSAGE_SERVER_INITIAL];
         TlsWriteUint24(ServerMessage->Length, MessageLength - 4);
         ServerMessage->Type = QUIC_TLS_MESSAGE_SERVER_INITIAL;
-        ServerMessage->SERVER_INITIAL.EarlyDataAccepted =
-            State->EarlyDataState == QUIC_TLS_EARLY_DATA_ACCEPTED;
+        ServerMessage->SERVER_INITIAL.EarlyDataAccepted = State->EarlyDataAccepted;
 
         State->BufferLength = MessageLength;
         State->BufferTotalLength = MessageLength;
@@ -701,7 +699,7 @@ QuicTlsServerProcess(
             break;
         }
 
-        if (State->EarlyDataState == QUIC_TLS_EARLY_DATA_ACCEPTED) {
+        if (State->EarlyDataAccepted) {
             *ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_ACCEPT;
             State->ReadKeys[QUIC_PACKET_KEY_0_RTT] = QuicStubAllocKey(QUIC_PACKET_KEY_0_RTT);
         }
@@ -851,7 +849,8 @@ QuicTlsClientProcess(
 
     case QUIC_TLS_MESSAGE_INVALID: {
 
-        TlsContext->EarlyDataAttempted = TRUE; // TODO - Fake Ticket Store.
+        State->EarlyDataAttempted = TRUE; // TODO - Fake Ticket Store.
+        State->EarlyDataAccepted = FALSE; // Default to FALSE.
 
         ClientMessage->Type = TlsHandshake_ClientHello;
 
@@ -883,7 +882,7 @@ QuicTlsClientProcess(
         memcpy(ALPN->AlpnList, TlsContext->AlpnBuffer, TlsContext->AlpnBufferLength);
         ExtListLength += 6 + TlsContext->AlpnBufferLength;
 
-        if (TlsContext->EarlyDataAttempted) {
+        if (State->EarlyDataAttempted) {
             QUIC_TLS_SESSION_TICKET_EXT* Ticket =
                 (QUIC_TLS_SESSION_TICKET_EXT*)
                 (ClientMessage->CLIENT_INITIAL.ExtList + ExtListLength);
@@ -909,7 +908,7 @@ QuicTlsClientProcess(
         State->BufferLength = MessageLength;
         State->BufferTotalLength = MessageLength;
 
-        if (TlsContext->EarlyDataAttempted) {
+        if (State->EarlyDataAttempted) {
             State->WriteKey = QUIC_PACKET_KEY_0_RTT;
             State->WriteKeys[QUIC_PACKET_KEY_0_RTT] = QuicStubAllocKey(QUIC_PACKET_KEY_0_RTT);
         }
@@ -921,12 +920,9 @@ QuicTlsClientProcess(
     case QUIC_TLS_MESSAGE_CLIENT_INITIAL: {
         if (ServerMessage->Type == QUIC_TLS_MESSAGE_SERVER_INITIAL) {
 
-            if (TlsContext->EarlyDataAttempted) {
+            if (State->EarlyDataAttempted) {
                 State->SessionResumed = ServerMessage->SERVER_INITIAL.EarlyDataAccepted;
-                State->EarlyDataState =
-                    ServerMessage->SERVER_INITIAL.EarlyDataAccepted ?
-                        QUIC_TLS_EARLY_DATA_ACCEPTED :
-                        QUIC_TLS_EARLY_DATA_REJECTED;
+                State->EarlyDataAccepted = ServerMessage->SERVER_INITIAL.EarlyDataAccepted;
                 if (!ServerMessage->SERVER_INITIAL.EarlyDataAccepted) {
                     *ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_REJECT;
                 } else {

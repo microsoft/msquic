@@ -3050,6 +3050,25 @@
                 name="arg4"
                 />
           </template>
+          <template tid="template_ptr_ui32_ui8_binary_">
+            <data
+                inType="win:Pointer"
+                name="arg2"
+                />
+            <data
+                inType="win:UInt32"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg4_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg4_len"
+                name="arg4"
+                />
+          </template>
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
@@ -7830,6 +7849,20 @@
               symbol="TlsError"
               template="template_ptr_sz_"
               value="530"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_datapath_winuser98712c41f3c7a37b24466cc56356459a"
+              template="template_ptr_ui32_ui8_binary_"
+              value="531"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_datapath_winuser12d869b81546180a6c851672aa59025c"
+              template="template_ptr_ui32_ui8_binary_"
+              value="532"
               />
         </events>
       </provider>

@@ -133,18 +133,6 @@ typedef enum QUIC_TLS_RESULT_FLAGS {
 } QUIC_TLS_RESULT_FLAGS;
 
 //
-// Different possible results after writing new TLS data.
-//
-typedef enum QUIC_TLS_EARLY_DATA_STATE {
-
-    QUIC_TLS_EARLY_DATA_UNKNOWN,
-    QUIC_TLS_EARLY_DATA_UNSUPPORTED,
-    QUIC_TLS_EARLY_DATA_REJECTED,
-    QUIC_TLS_EARLY_DATA_ACCEPTED
-
-} QUIC_TLS_EARLY_DATA_STATE;
-
-//
 // The output processing state.
 //
 typedef struct QUIC_TLS_PROCESS_STATE {
@@ -160,9 +148,15 @@ typedef struct QUIC_TLS_PROCESS_STATE {
     BOOLEAN SessionResumed : 1;
 
     //
-    // Indicates the state of early data support.
+    // Indicates the client configured 0-RTT initially.
     //
-    QUIC_TLS_EARLY_DATA_STATE EarlyDataState;
+    BOOLEAN EarlyDataAttempted : 1;
+
+    //
+    // Indicates 0-RTT was accepted by the server. Set to FALSE if early data
+    // was never even attemtped.
+    //
+    BOOLEAN EarlyDataAccepted : 1;
 
     //
     // The key that newly received data should be decrypted and read with.
@@ -322,7 +316,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicTlsInitialize(
     _In_ const QUIC_TLS_CONFIG* Config,
-    _Inout_ QUIC_TLS_PROCESS_STATE* State,
     _Out_ QUIC_TLS** NewTlsContext
     );
 

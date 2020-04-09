@@ -153,7 +153,7 @@ MsQuicLibraryInitialize(
     MsQuicLib.PerProc =
         QUIC_ALLOC_NONPAGED(MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
     if (MsQuicLib.PerProc == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "connection pools",
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "connection pools",
             MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;

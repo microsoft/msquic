@@ -617,7 +617,7 @@ QuicWorkerPoolInitialize(
     QUIC_WORKER_POOL* WorkerPool =
         QUIC_ALLOC_NONPAGED(sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER));
     if (WorkerPool == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "QUIC_WORKER_POOL", sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_WORKER_POOL", sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }

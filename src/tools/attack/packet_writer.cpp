@@ -72,11 +72,9 @@ struct TlsContext
         Config.ReceiveTPCallback = OnRecvQuicTP;
         Config.ServerName = Sni;
 
-        QUIC_TLS_PROCESS_STATE State = {0};
         VERIFY_QUIC_SUCCESS(
             QuicTlsInitialize(
                 &Config,
-                &State,
                 &Ptr));
     }
 

@@ -117,11 +117,6 @@ typedef struct QUIC_CID {
     // with it (given to us by the peer).
     //
     uint8_t HasResetToken : 1;
-    //
-    // The CID is in the connection's list. Used for debugging purposes.
-    //
-    uint8_t IsInList : 1;
-
     uint8_t Length;
     QUIC_VAR_INT SequenceNumber;
     _Field_size_bytes_(Length)

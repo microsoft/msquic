@@ -108,7 +108,7 @@ QuicStreamRecvQueueFlush(
             QuicConnQueueOper(Stream->Connection, Oper);
             Stream->Flags.ReceiveFlushQueued = TRUE;
         } else {
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "Flush Stream Recv operation", 0);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "Flush Stream Recv operation", 0);
         }
     }
 }

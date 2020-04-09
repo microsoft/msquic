@@ -108,17 +108,17 @@ LogTestFailure(
     va_start(Args, Format);
     (void)_vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, Format, Args);
     va_end(Args);
-    QuicTraceLogError(FN_quic_gtestdad587a711d7f49ccd556377f5eff9ed, "[test] FAILURE - %s:%d - %s", File, Line, Buffer);
+    CLOG_BUG_TraceLogError(FN_quic_gtestdad587a711d7f49ccd556377f5eff9ed, "[test] FAILURE - %s:%d - %s", File, Line, Buffer);
     GTEST_MESSAGE_AT_(File, Line, Buffer, ::testing::TestPartResult::kFatalFailure);
 }
 
 struct TestLogger {
     const char* TestName;
     TestLogger(const char* Name) : TestName(Name) {
-        QuicTraceLogInfo(FN_quic_gtestbb702fe0fcf0a2c8153ffeaa97baed28, "[test] START %s", TestName);
+        CLOG_BUG_TraceLogInfo(FN_quic_gtestbb702fe0fcf0a2c8153ffeaa97baed28, "[test] START %s", TestName);
     }
     ~TestLogger() {
-        QuicTraceLogInfo(FN_quic_gtest94df3afe3f5519a593efadf4e20ffaa3, "[test] END %s", TestName);
+        CLOG_BUG_TraceLogInfo(FN_quic_gtest94df3afe3f5519a593efadf4e20ffaa3, "[test] END %s", TestName);
     }
 };
 
@@ -127,10 +127,10 @@ struct TestLoggerT {
     const char* TestName;
     TestLoggerT(const char* Name, const T& Params) : TestName(Name) {
         std::ostringstream stream; stream << Params;
-        QuicTraceLogInfo(FN_quic_gtestdd5240e195ab753f90e16d88b5739619, "[test] START %s, %s", TestName, stream.str().c_str());
+        CLOG_BUG_TraceLogInfo(FN_quic_gtestdd5240e195ab753f90e16d88b5739619, "[test] START %s, %s", TestName, stream.str().c_str());
     }
     ~TestLoggerT() {
-        QuicTraceLogInfo(FN_quic_gtest94df3afe3f5519a593efadf4e20ffaa3, "[test] END %s", TestName);
+        CLOG_BUG_TraceLogInfo(FN_quic_gtest94df3afe3f5519a593efadf4e20ffaa3, "[test] END %s", TestName);
     }
 };
 

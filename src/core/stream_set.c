@@ -93,7 +93,7 @@ QuicStreamSetInsertStream(
         // Lazily initialize the hash table.
         //
         if (!QuicHashtableInitialize(&StreamSet->StreamTable, QUIC_HASH_MIN_SIZE)) {
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "streamset hash table", 0);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "streamset hash table", 0);
             return FALSE;
         }
     }

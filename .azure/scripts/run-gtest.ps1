@@ -212,7 +212,7 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
                 $pinfo.Arguments = "-g -G $($Path) $($Arguments)"
             }
         } else {
-            $pinfo.FileName = $RootDir + "\bld\tools\procdump64.exe"
+            $pinfo.FileName = $RootDir + "\bld\windows\procdump\procdump64.exe"
             $pinfo.Arguments = "-ma -e -b -l -accepteula -x $($OutputDir) $($Path) $($Arguments)"
         }
     } else {
@@ -339,13 +339,15 @@ function Wait-TestCase($TestCase) {
         }
 
         if ($IsolationMode -eq "Batch") {
-            if ($stdout) { Write-Host $stdout }
-            if ($stderr) { Write-Host $stderr }
+            if ($null -ne $stdout -and "" -ne $stdout) {
+                Write-Host $stdout
+            }
+            if ($null -ne $stderr -and "" -ne $stderr) {
+                Write-Host $stderr
+            }
         } else {
             if ($AnyTestFailed -or $ProcessCrashed) {
-                Log "$($TestCase.Name) failed:"
-                if ($stdout) { Write-Host $stdout }
-                if ($stderr) { Write-Host $stderr }
+                Log "$($TestCase.Name) failed"
             } else {
                 Log "$($TestCase.Name) succeeded"
             }
@@ -361,11 +363,11 @@ function Wait-TestCase($TestCase) {
                 }
             }
 
-            if ($stdout) {
+            if ($null -ne $stdout -and "" -ne $stdout) {
                 $stdout > (Join-Path $TestCase.LogDir "stdout.txt")
             }
 
-            if ($stderr) {
+            if ($null -ne $stderr -and "" -ne $stderr) {
                 $stderr > (Join-Path $TestCase.LogDir "stderr.txt")
             }
 
@@ -524,5 +526,4 @@ try {
             Remove-Item $LogDir -Recurse -Force | Out-Null
         }
     }
-    Write-Host ""
 }

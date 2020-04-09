@@ -83,7 +83,7 @@ QuicCryptoInitialize(
     Crypto->TlsState.BufferAllocLength = SendBufferLength;
     Crypto->TlsState.Buffer = QUIC_ALLOC_NONPAGED(SendBufferLength);
     if (Crypto->TlsState.Buffer == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "crypto send buffer", SendBufferLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "crypto send buffer", SendBufferLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -242,7 +242,7 @@ QuicCryptoInitializeTls(
         goto Error;
     }
 
-    Status = QuicTlsInitialize(&TlsConfig, &Crypto->TlsState, &Crypto->TLS);
+    Status = QuicTlsInitialize(&TlsConfig, &Crypto->TLS);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Status, "QuicTlsInitialize");
         QUIC_FREE(TlsConfig.LocalTPBuffer);
@@ -1072,17 +1072,17 @@ QuicCryptoProcessTlsCompletion(
 
     if (ResultFlags & QUIC_TLS_RESULT_EARLY_DATA_ACCEPT) {
         QuicTraceLogConnInfo(ZeroRttAccepted, Connection, "0-RTT accepted");
-        QUIC_TEL_ASSERT(Crypto->TlsState.EarlyDataState == QUIC_TLS_EARLY_DATA_ACCEPTED);
+        QUIC_TEL_ASSERT(Crypto->TlsState.EarlyDataAttempted);
+        QUIC_TEL_ASSERT(Crypto->TlsState.EarlyDataAccepted);
     }
 
     if (ResultFlags & QUIC_TLS_RESULT_EARLY_DATA_REJECT) {
         QuicTraceLogConnInfo(ZeroRttRejected, Connection, "0-RTT rejected");
-        QUIC_TEL_ASSERT(Crypto->TlsState.EarlyDataState != QUIC_TLS_EARLY_DATA_ACCEPTED);
+        QUIC_TEL_ASSERT(Crypto->TlsState.EarlyDataAttempted);
+        QUIC_TEL_ASSERT(!Crypto->TlsState.EarlyDataAccepted);
         if (!QuicConnIsServer(Connection)) {
             QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_0_RTT);
             QuicLossDetectionOnZeroRttRejected(&Connection->LossDetection);
-        } else {
-            QuicConnDiscardDeferred0Rtt(Connection);
         }
     }
 
@@ -1338,7 +1338,7 @@ QuicTlsProcessDataCompleteCallback(
     if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_TLS_COMPLETE)) != NULL) {
         QuicConnQueueOper(Connection, Oper);
     } else {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "TLS complete operation", 0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "TLS complete operation", 0);
     }
 }
 

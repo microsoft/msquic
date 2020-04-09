@@ -65,7 +65,6 @@ For testing or experimentation purposes, MsQuic may be built with other configur
 
   * For building the library, see the [Build docs](./docs/BUILD.md).
   * For using the library, see the [API docs](./docs/API.md) or the [Sample](./src/tools/sample/sample.cpp).
-  * For other frequently asked questions, see the [FAQs](./docs/FAQ.md).
 
 # Contributing
 

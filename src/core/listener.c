@@ -43,7 +43,7 @@ MsQuicListenerOpen(
 
     Listener = QUIC_ALLOC_NONPAGED(sizeof(QUIC_LISTENER));
     if (Listener == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "listener", sizeof(QUIC_LISTENER));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "listener", sizeof(QUIC_LISTENER));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -205,7 +205,7 @@ MsQuicListenerStart(
             QuicAddrGetPort(&BindingLocalAddress));
     }
 
-    QuicTraceEvent(ListenerStarted, "[list][%p] Started, Binding=%p, LocalAddr=%SOCKADDR",
+    QuicTraceEvent(ListenerStarted, "[list][%p] Started, Binding=%p, LocalAddr=%!SOCKADDR!",
         Listener,
         Listener->Binding, CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), (uint8_t*)&Listener->LocalAddress));
 
@@ -260,7 +260,7 @@ QuicListenerTraceRundown(
 {
     QuicTraceEvent(ListenerRundown, "[list][%p] Rundown, Session=%p", Listener, Listener->Session);
     if (Listener->Binding != NULL) {
-        QuicTraceEvent(ListenerStarted, "[list][%p] Started, Binding=%p, LocalAddr=%SOCKADDR",
+        QuicTraceEvent(ListenerStarted, "[list][%p] Started, Binding=%p, LocalAddr=%!SOCKADDR!",
             Listener,
             Listener->Binding, CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), (uint8_t*)&Listener->LocalAddress));
     }
