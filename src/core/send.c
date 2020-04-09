@@ -624,6 +624,7 @@ QuicSendWriteFrames(
                         Entry,
                         QUIC_CID_HASH_ENTRY,
                         Link);
+                QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
                 if (!SourceCid->CID.NeedsToSend) {
                     continue;
                 }

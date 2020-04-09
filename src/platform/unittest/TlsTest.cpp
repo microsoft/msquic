@@ -154,6 +154,7 @@ protected:
             VERIFY_QUIC_SUCCESS(
                 QuicTlsInitialize(
                     &Config,
+                    &State,
                     &Ptr));
         }
 
@@ -181,6 +182,7 @@ protected:
             VERIFY_QUIC_SUCCESS(
                 QuicTlsInitialize(
                     &Config,
+                    &State,
                     &Ptr));
         }
 

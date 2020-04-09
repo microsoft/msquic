@@ -164,6 +164,7 @@ QuicConnAlloc(
         SourceCid->CID.IsInitial = TRUE;
         SourceCid->CID.UsedByPeer = TRUE;
         QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
+        SourceCid->CID.IsInList = TRUE;
         QuicTraceEvent(ConnSourceCidAdded, "[conn][%p] (SeqNum=%llu) New Source CID: %!BYTEARRAY!",
             Connection, SourceCid->CID.SequenceNumber, CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
 
@@ -744,6 +745,7 @@ QuicConnGenerateNewSourceCid(
 
     if (IsInitial) {
         SourceCid->CID.IsInitial = TRUE;
+        QUIC_DBG_ASSERT(!SourceCid->CID.IsInList);
         QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
     } else {
         QUIC_SINGLE_LIST_ENTRY** Tail = &Connection->SourceCids.Next;
@@ -753,6 +755,8 @@ QuicConnGenerateNewSourceCid(
         *Tail = &SourceCid->Link;
         SourceCid->Link.Next = NULL;
     }
+
+    SourceCid->CID.IsInList = TRUE;
 
     return SourceCid;
 }
@@ -802,6 +806,7 @@ QuicConnGenerateNewSourceCids(
         while (Entry != NULL) {
             QUIC_CID_HASH_ENTRY* SourceCid =
                 QUIC_CONTAINING_RECORD(Entry, QUIC_CID_HASH_ENTRY, Link);
+            QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
             SourceCid->CID.Retired = TRUE;
             Entry = Entry->Next;
         }
@@ -941,6 +946,7 @@ QuicConnReplaceRetiredCids(
 
         Path->DestCid = NewDestCid;
         Path->DestCid->CID.UsedLocally = TRUE;
+        Path->InitiatedCidUpdate = TRUE;
     }
 
     return TRUE;
@@ -1610,6 +1616,7 @@ QuicConnStart(
     Connection->NextSourceCidSequenceNumber++;
     QuicTraceEvent(ConnSourceCidAdded, "[conn][%p] (SeqNum=%llu) New Source CID: %!BYTEARRAY!", Connection, SourceCid->CID.SequenceNumber, CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
     QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
+    SourceCid->CID.IsInList = TRUE;
 
     if (!QuicBindingAddSourceConnectionID(Path->Binding, SourceCid)) {
         InterlockedDecrement(&Path->Binding->HandshakeConnections);
@@ -1957,17 +1964,13 @@ QuicConnProcessPeerTransportParameters(
     }
 
     if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_PREFERRED_ADDRESS) {
-        /* TODO - Platform independent logging
-        if (QuicAddrGetFamily(&Connection->PeerTransportParams.PreferredAddress) == AF_INET) {
-            CLOG_BUG_TraceLogConnInfo(PeerPreferredAddressV4, Connection, "Peer configured preferred address %!IPV4ADDR!:%d",
-                &Connection->PeerTransportParams.PreferredAddress.Ipv4.sin_addr,
-                QuicByteSwapUint16(Connection->PeerTransportParams.PreferredAddress.Ipv4.sin_port));
-        } else {
-            CLOG_BUG_TraceLogConnInfo(PeerPreferredAddressV6, Connection, "Peer configured preferred address [%!IPV6ADDR!]:%d",
-                &Connection->PeerTransportParams.PreferredAddress.Ipv6.sin6_addr,
-                QuicByteSwapUint16(Connection->PeerTransportParams.PreferredAddress.Ipv6.sin6_port));
-        }*/
-
+        QuicTraceLogConnInfo(
+            PeerPreferredAddressV4,
+            Connection,
+            "Peer configured preferred address %SOCKADDR",
+            CLOG_BYTEARRAY(
+                LOG_ADDR_LEN(Connection->PeerTransportParams.PreferredAddress),
+                (uint8_t*)&Connection->PeerTransportParams.PreferredAddress));
         //
         // TODO - Implement preferred address feature.
         //
@@ -2438,35 +2441,50 @@ QuicConnGetKeyOrDeferDatagram(
     )
 {
     if (Packet->KeyType > Connection->Crypto.TlsState.ReadKey) {
+
         //
-        // We don't have the necessary key yet so defer the packet until we get
-        // the key.
+        // We don't have the necessary key yet so try to defer the packet until
+        // we get the key.
         //
-        QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(Packet->KeyType);
-        QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
-        if (Packets->DeferredDatagramsCount == QUIC_MAX_PENDING_DATAGRAMS) {
+
+        if (Packet->KeyType == QUIC_PACKET_KEY_0_RTT &&
+            Connection->Crypto.TlsState.EarlyDataState != QUIC_TLS_EARLY_DATA_UNKNOWN) {
             //
-            // We already have too many packets queued up. Just drop this one.
+            // We don't have the 0-RTT key, but we aren't in an unknown
+            // "early data" state, so it must be rejected/unsupported. Just drop
+            // the packets.
             //
-            QuicPacketLogDrop(Connection, Packet, "Max deferred datagram count reached");
+            QUIC_DBG_ASSERT(Connection->Crypto.TlsState.EarlyDataState != QUIC_TLS_EARLY_DATA_ACCEPTED);
+            QuicPacketLogDrop(Connection, Packet, "0-RTT not currently accepted");
 
         } else {
-            QuicTraceLogConnVerbose(DeferDatagram, Connection, "Deferring datagram (type=%hu).",
-                Packet->KeyType);
+            QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(Packet->KeyType);
+            QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
+            if (Packets->DeferredDatagramsCount == QUIC_MAX_PENDING_DATAGRAMS) {
+                //
+                // We already have too many packets queued up. Just drop this
+                // one.
+                //
+                QuicPacketLogDrop(Connection, Packet, "Max deferred datagram count reached");
 
-            Packets->DeferredDatagramsCount++;
-            Packet->DecryptionDeferred = TRUE;
+            } else {
+                QuicTraceLogConnVerbose(DeferDatagram, Connection, "Deferring datagram (type=%hu).",
+                    Packet->KeyType);
 
-            //
-            // Add it to the list of pending packets that are waiting on a key
-            // to decrypt with.
-            //
-            QUIC_RECV_DATAGRAM** Tail = &Packets->DeferredDatagrams;
-            while (*Tail != NULL) {
-                Tail = &((*Tail)->Next);
+                Packets->DeferredDatagramsCount++;
+                Packet->DecryptionDeferred = TRUE;
+
+                //
+                // Add it to the list of pending packets that are waiting on a
+                // key to decrypt with.
+                //
+                QUIC_RECV_DATAGRAM** Tail = &Packets->DeferredDatagrams;
+                while (*Tail != NULL) {
+                    Tail = &((*Tail)->Next);
+                }
+                *Tail = QuicDataPathRecvPacketToRecvDatagram(Packet);
+                (*Tail)->Next = NULL;
             }
-            *Tail = QuicDataPathRecvPacketToRecvDatagram(Packet);
-            (*Tail)->Next = NULL;
         }
 
         return FALSE;
@@ -3495,10 +3513,6 @@ QuicConnRecvFrames(
                     &IsLastCid);
             if (SourceCid != NULL) {
                 BOOLEAN CidAlreadyRetired = SourceCid->CID.Retired;
-                QuicBindingRemoveSourceConnectionID(
-                    Connection->Paths[0].Binding, SourceCid);
-                QuicTraceEvent(ConnSourceCidRemoved, "[conn][%p] (SeqNum=%llu) Removed Source CID: %!BYTEARRAY!",
-                    Connection, SourceCid->CID.SequenceNumber, CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
                 QUIC_FREE(SourceCid);
                 if (IsLastCid) {
                     QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Last Source CID Retired!");
@@ -4091,6 +4105,43 @@ QuicConnFlushRecv(
 
     QuicConnRecvDatagrams(
         Connection, ReceiveQueue, ReceiveQueueCount, FALSE);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnDiscardDeferred0Rtt(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    QUIC_RECV_DATAGRAM* ReleaseChain = NULL;
+    QUIC_RECV_DATAGRAM** ReleaseChainTail = &ReleaseChain;
+    QUIC_PACKET_SPACE* Packets = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
+    QUIC_DBG_ASSERT(Packets != NULL);
+
+    QUIC_RECV_DATAGRAM* DeferredDatagrams = Packets->DeferredDatagrams;
+    QUIC_RECV_DATAGRAM** DeferredDatagramsTail = &Packets->DeferredDatagrams;
+    Packets->DeferredDatagrams = NULL;
+
+    while (DeferredDatagrams != NULL) {
+        QUIC_RECV_DATAGRAM* Datagram = DeferredDatagrams;
+        DeferredDatagrams = DeferredDatagrams->Next;
+
+        const QUIC_RECV_PACKET* Packet =
+            QuicDataPathRecvDatagramToRecvPacket(Datagram);
+        if (Packet->KeyType == QUIC_PACKET_KEY_0_RTT) {
+            QuicPacketLogDrop(Connection, Packet, "0-RTT rejected");
+            Packets->DeferredDatagramsCount--;
+            *ReleaseChainTail = Datagram;
+            ReleaseChainTail = &Datagram->Next;
+        } else {
+            *DeferredDatagramsTail = Datagram;
+            DeferredDatagramsTail = &Datagram->Next;
+        }
+    }
+    
+    if (ReleaseChain != NULL) {
+        QuicDataPathBindingReturnRecvDatagrams(ReleaseChain);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

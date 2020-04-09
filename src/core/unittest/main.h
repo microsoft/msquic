@@ -75,6 +75,6 @@ std::ostream& operator << (std::ostream& o, const QUIC_FRAME_TYPE& type) {
         case QUIC_FRAME_HANDSHAKE_DONE:
             return o << "QUIC_FRAME_HANDSHAKE_DONE";
         default:
-            return o;
+            return o << "UNRECOGNIZED_FRAME_TYPE(" << (uint32_t) type << ")";
     }
 }

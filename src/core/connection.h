@@ -658,11 +658,11 @@ QuicConnLogOutFlowStats(
         &FcAvailable,
         &SendWindow);
 
-    // LTTng has a max of 10 fields.  When addressing the CLOG_BUG_TraceEvent below, verify correctness of this event by
+    // LTTng has a max of 10 fields.  When addressing the QuicTraceEvent below, verify correctness of this event by
     //     comparison with the master branch
     const QUIC_PATH* Path = &Connection->Paths[0];
     UNREFERENCED_PARAMETER(Path);
-    CLOG_BUG_TraceEvent(ConnOutFlowStats, "[conn][%p] OUT: BytesSent=%I InFlight=%d InFlightMax=%d CWnd=%d SSThresh=%d ConnFC=%I StreamFC=%I ISB=%I PostedBytes=%I SRtt=%d StreamSendWindow=%I",
+    /*CLOG_BUG_TraceEvent(ConnOutFlowStats, "[conn][%p] OUT: BytesSent=%I InFlight=%d InFlightMax=%d CWnd=%d SSThresh=%d ConnFC=%I StreamFC=%I ISB=%I PostedBytes=%I SRtt=%d StreamSendWindow=%I",
         Connection,
         Connection->Stats.Send.TotalBytes,
         Connection->CongestionControl.BytesInFlight,
@@ -674,7 +674,7 @@ QuicConnLogOutFlowStats(
         Connection->SendBuffer.IdealBytes,
         Connection->SendBuffer.PostedBytes,
         Path->GotFirstRttSample ? Path->SmoothedRtt : 0,
-        SendWindow);
+        SendWindow);*/
 }
 
 inline
@@ -695,13 +695,11 @@ QuicConnLogStatistics(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
-    UNREFERENCED_PARAMETER(Connection);
-
-    // LTTng has a max of 10 fields.  When addressing the CLOG_BUG_TraceEvent below, verify correctness of this event by
+    // LTTng has a max of 10 fields.  When addressing the QuicTraceEvent below, verify correctness of this event by
     //     comparison with the master branch
-    //const QUIC_PATH* Path = &Connection->Paths[0];
-    //UNREFERENCED_PARAMETER(Path);
-    CLOG_BUG_TraceEvent(ConnStatistics, "[conn][%p] STATS: LifeTimeUs=%I SendTotalPackets=%I SendSuspectedLostPackets=%I SendSpuriousLostPackets=%I RecvTotalPackets=%I RecvReorderedPackets=%I RecvDroppedPackets=%I RecvDuplicatePackets=%I RecvDecryptionFailures=%I CongestionCount=%d PersistentCongestionCount=%d SendTotalBytes=%I RecvTotalBytes=%I SRtt=%d",
+    const QUIC_PATH* Path = &Connection->Paths[0];
+    UNREFERENCED_PARAMETER(Path);
+    /*CLOG_BUG_TraceEvent(ConnStatistics, "[conn][%p] STATS: LifeTimeUs=%I SendTotalPackets=%I SendSuspectedLostPackets=%I SendSpuriousLostPackets=%I RecvTotalPackets=%I RecvReorderedPackets=%I RecvDroppedPackets=%I RecvDuplicatePackets=%I RecvDecryptionFailures=%I CongestionCount=%d PersistentCongestionCount=%d SendTotalBytes=%I RecvTotalBytes=%I SRtt=%d",
         Connection,
         QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()),
         Connection->Stats.Send.TotalPackets,
@@ -716,7 +714,7 @@ QuicConnLogStatistics(
         Connection->Stats.Send.PersistentCongestionCount,
         Connection->Stats.Send.TotalBytes,
         Connection->Stats.Recv.TotalBytes,
-        Path->SmoothedRtt);
+        Path->SmoothedRtt);*/
 }
 
 inline
@@ -979,9 +977,20 @@ QuicConnGetSourceCidFromSeq(
                 *Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);
+        QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
         if (SourceCid->CID.SequenceNumber == SequenceNumber) {
             if (RemoveFromList) {
+                QuicBindingRemoveSourceConnectionID(
+                    Connection->Paths[0].Binding,
+                    SourceCid);
+                QuicTraceEvent(
+                    ConnSourceCidRemoved,
+                    "[conn][%p] (SeqNum=%I) Removed Source CID: %!BYTEARRAY!",
+                    Connection,
+                    SourceCid->CID.SequenceNumber,
+                    CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
                 *Entry = (*Entry)->Next;
+                SourceCid->CID.IsInList = FALSE;
             }
             *IsLastCid = Connection->SourceCids.Next == NULL;
             return SourceCid;
@@ -1011,6 +1020,7 @@ QuicConnGetSourceCidFromBuf(
                 Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);
+        QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
         if (CidLength == SourceCid->CID.Length &&
             memcmp(CidBuffer, SourceCid->CID.Data, CidLength) == 0) {
             return SourceCid;
@@ -1150,6 +1160,15 @@ QUIC_STATUS
 QuicConnHandshakeConfigure(
     _In_ QUIC_CONNECTION* Connection,
     _In_opt_ QUIC_SEC_CONFIG* SecConfig
+    );
+
+//
+// Discard any 0-RTT deferred datagrams.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnDiscardDeferred0Rtt(
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
