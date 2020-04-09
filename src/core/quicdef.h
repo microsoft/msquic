@@ -81,11 +81,6 @@ typedef struct QUIC_PATH QUIC_PATH;
 #define QUIC_MIN_ACK_SEND_NUMBER                2
 
 //
-// The default scaling factor for AckDelay field in the ACK_FRAME.
-//
-#define QUIC_DEFAULT_ACK_DELAY_EXPONENT         3
-
-//
 // The size of the stateless reset token.
 //
 #define QUIC_STATELESS_RESET_TOKEN_LENGTH       16
@@ -329,6 +324,10 @@ QUIC_STATIC_ASSERT(
 // Maximum number of connection IDs accepted from the peer.
 //
 #define QUIC_ACTIVE_CONNECTION_ID_LIMIT         4
+
+QUIC_STATIC_ASSERT(
+    2 <= QUIC_ACTIVE_CONNECTION_ID_LIMIT,
+    "Should always be more than the spec minimum");
 
 QUIC_STATIC_ASSERT(
     QUIC_MAX_PATH_COUNT <= QUIC_ACTIVE_CONNECTION_ID_LIMIT,

@@ -278,7 +278,7 @@ QuicSettingsLoad(
             QUIC_SETTING_MAX_ACK_DELAY,
             (uint8_t*)&Settings->MaxAckDelayMs,
             &ValueLen);
-        if (Settings->MaxAckDelayMs > QUIC_TP_MAX_MAX_ACK_DELAY) {
+        if (Settings->MaxAckDelayMs > QUIC_TP_MAX_ACK_DELAY_MAX) {
             Settings->MaxAckDelayMs = QUIC_TP_MAX_ACK_DELAY_DEFAULT;
         }
     }
