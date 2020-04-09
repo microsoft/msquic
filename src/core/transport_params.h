@@ -25,19 +25,23 @@ Abstract:
 #define QUIC_TP_FLAG_ORIGINAL_CONNECTION_ID                 0x2000
 #define QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT             0x4000
 
-#define QUIC_TP_MAX_PACKET_SIZE_MIN     1200ull
-#define QUIC_TP_MAX_PACKET_SIZE_MAX     65527ull
+#define QUIC_TP_MAX_PACKET_SIZE_MIN                         1200ull
+#define QUIC_TP_MAX_PACKET_SIZE_MAX                         65527ull
 
-#define QUIC_TP_MAX_ACK_DELAY_DEFAULT   25 // ms
-#define QUIC_TP_MAX_ACK_DELAY_EXPONENT  20
-#define QUIC_TP_MAX_MAX_ACK_DELAY       ((1 << 14) - 1)
+#define QUIC_TP_ACK_DELAY_EXPONENT_MAX                      20
+
+#define QUIC_TP_MAX_ACK_DELAY_DEFAULT                       25 // ms
+#define QUIC_TP_MAX_ACK_DELAY_MAX                           ((1 << 14) - 1)
+
+#define QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_DEFAULT          2
+#define QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN              2
 
 //
 // Max allowed value of a MAX_STREAMS frame or transport parameter.
 // Any larger value would allow a max stream ID that cannot be expressed
 // as a variable-length integer.
 //
-#define QUIC_TP_MAX_MAX_STREAMS         ((1ULL << 60) - 1)
+#define QUIC_TP_MAX_STREAMS_MAX                             ((1ULL << 60) - 1)
 
 //
 // The configuration parameters that QUIC exchanges in the TLS handshake.
@@ -58,11 +62,11 @@ typedef struct QUIC_TRANSPORT_PARAMETERS {
     //
     // The initial per-stream max data flow control value.
     //
-    _In_range_(0, QUIC_TP_MAX_MAX_STREAMS)
+    _In_range_(0, QUIC_TP_MAX_STREAMS_MAX)
     QUIC_VAR_INT InitialMaxStreamDataBidiLocal;
-    _In_range_(0, QUIC_TP_MAX_MAX_STREAMS)
+    _In_range_(0, QUIC_TP_MAX_STREAMS_MAX)
     QUIC_VAR_INT InitialMaxStreamDataBidiRemote;
-    _In_range_(0, QUIC_TP_MAX_MAX_STREAMS)
+    _In_range_(0, QUIC_TP_MAX_STREAMS_MAX)
     QUIC_VAR_INT InitialMaxStreamDataUni;
 
     //
@@ -104,9 +108,10 @@ typedef struct QUIC_TRANSPORT_PARAMETERS {
     //
     // The maximum number connection IDs from the peer that an endpoint is
     // willing to store. This value includes only connection IDs sent in
-    // NEW_CONNECTION_ID frames. If this parameter is absent, a default of 0 is
+    // NEW_CONNECTION_ID frames. If this parameter is absent, a default of 2 is
     // assumed.
     //
+    _Field_range_(QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN, QUIC_VAR_INT_MAX)
     QUIC_VAR_INT ActiveConnectionIdLimit;
 
     //

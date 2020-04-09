@@ -331,6 +331,10 @@ QUIC_STATIC_ASSERT(
 #define QUIC_ACTIVE_CONNECTION_ID_LIMIT         4
 
 QUIC_STATIC_ASSERT(
+    2 <= QUIC_ACTIVE_CONNECTION_ID_LIMIT,
+    "Should always be more than the spec minimum");
+
+QUIC_STATIC_ASSERT(
     QUIC_MAX_PATH_COUNT <= QUIC_ACTIVE_CONNECTION_ID_LIMIT,
     "Should always have enough CIDs for all paths");
 
