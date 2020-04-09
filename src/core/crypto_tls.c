@@ -827,8 +827,8 @@ QuicCryptoTlsDecodeTransportParameters(
     uint16_t Offset = 0;
 
     QuicZeroMemory(TransportParams, sizeof(QUIC_TRANSPORT_PARAMETERS));
-    TransportParams->MaxPacketSize = QUIC_TP_MAX_PACKET_SIZE_MAX;
-    TransportParams->AckDelayExponent = QUIC_DEFAULT_ACK_DELAY_EXPONENT;
+    TransportParams->MaxPacketSize = QUIC_TP_MAX_PACKET_SIZE_DEFAULT;
+    TransportParams->AckDelayExponent = QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT;
     TransportParams->MaxAckDelay = QUIC_TP_MAX_ACK_DELAY_DEFAULT;
     TransportParams->ActiveConnectionIdLimit = QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_DEFAULT;
 
@@ -945,10 +945,6 @@ QuicCryptoTlsDecodeTransportParameters(
                 QuicTraceEvent(ConnErrorStatus, Connection, Length, "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_BIDI_LOCAL");
                 goto Exit;
             }
-            if (TransportParams->InitialMaxStreamDataBidiLocal > QUIC_TP_MAX_STREAMS_MAX) {
-                QuicTraceEvent(ConnError, Connection, "TP InitialMaxStreamDataBidiLocal too big");
-                goto Exit;
-            }
             TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL;
             QuicTraceLogConnVerbose(DecodeTPInitMaxStreamDataBidiLocal, Connection, "TP: Max Local Bidirectional Stream Data (%llu bytes)", TransportParams->InitialMaxStreamDataBidiLocal);
             break;
@@ -956,10 +952,6 @@ QuicCryptoTlsDecodeTransportParameters(
         case QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_BIDI_REMOTE:
             if (!TRY_READ_VAR_INT(TransportParams->InitialMaxStreamDataBidiRemote)) {
                 QuicTraceEvent(ConnErrorStatus, Connection, Length, "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_BIDI_REMOTE");
-                goto Exit;
-            }
-            if (TransportParams->InitialMaxStreamDataBidiRemote > QUIC_TP_MAX_STREAMS_MAX) {
-                QuicTraceEvent(ConnError, Connection, "TP InitialMaxStreamDataBidiRemote too big");
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE;
@@ -971,10 +963,6 @@ QuicCryptoTlsDecodeTransportParameters(
                 QuicTraceEvent(ConnErrorStatus, Connection, Length, "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_UNI");
                 goto Exit;
             }
-            if (TransportParams->InitialMaxStreamDataUni > QUIC_TP_MAX_STREAMS_MAX) {
-                QuicTraceEvent(ConnError, Connection, "TP InitialMaxStreamDataUni too big");
-                goto Exit;
-            }
             TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI;
             QuicTraceLogConnVerbose(DecodeTPInitMaxStreamDataBidiUni, Connection, "TP: Max Unidirectional Stream Data (%llu)", TransportParams->InitialMaxStreamDataUni);
             break;
@@ -984,6 +972,10 @@ QuicCryptoTlsDecodeTransportParameters(
                 QuicTraceEvent(ConnErrorStatus, Connection, Length, "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAMS_BIDI");
                 goto Exit;
             }
+            if (TransportParams->InitialMaxBidiStreams > QUIC_TP_MAX_STREAMS_MAX) {
+                QuicTraceEvent(ConnError, Connection, "Invalid value of QUIC_TP_ID_INITIAL_MAX_STREAMS_BIDI");
+                goto Exit;
+            }
             TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI;
             QuicTraceLogConnVerbose(DecodeTPMaxBidiStreams, Connection, "TP: Max Bidirectional Streams (%llu)", TransportParams->InitialMaxBidiStreams);
             break;
@@ -991,6 +983,10 @@ QuicCryptoTlsDecodeTransportParameters(
         case QUIC_TP_ID_INITIAL_MAX_STREAMS_UNI:
             if (!TRY_READ_VAR_INT(TransportParams->InitialMaxUniStreams)) {
                 QuicTraceEvent(ConnErrorStatus, Connection, Length, "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAMS_UNI");
+                goto Exit;
+            }
+            if (TransportParams->InitialMaxUniStreams > QUIC_TP_MAX_STREAMS_MAX) {
+                QuicTraceEvent(ConnError, Connection, "Invalid value of QUIC_TP_ID_INITIAL_MAX_STREAMS_UNI");
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI;

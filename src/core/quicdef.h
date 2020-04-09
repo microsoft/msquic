@@ -81,11 +81,6 @@ typedef struct QUIC_PATH QUIC_PATH;
 #define QUIC_MIN_ACK_SEND_NUMBER                2
 
 //
-// The default scaling factor for AckDelay field in the ACK_FRAME.
-//
-#define QUIC_DEFAULT_ACK_DELAY_EXPONENT         3
-
-//
 // The size of the stateless reset token.
 //
 #define QUIC_STATELESS_RESET_TOKEN_LENGTH       16

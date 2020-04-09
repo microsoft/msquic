@@ -102,7 +102,7 @@ QuicConnAlloc(
     Connection->Stats.Timing.Start = QuicTimeUs64();
     Connection->SourceCidLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
     Connection->AckDelayExponent = QUIC_ACK_DELAY_EXPONENT;
-    Connection->PeerTransportParams.AckDelayExponent = QUIC_DEFAULT_ACK_DELAY_EXPONENT;
+    Connection->PeerTransportParams.AckDelayExponent = QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT;
     Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
     QuicDispatchLockInitialize(&Connection->ReceiveQueueLock);
     QuicListInitializeHead(&Connection->DestCids);
@@ -1818,7 +1818,7 @@ QuicConnHandshakeConfigure(
             goto Error;
         }
 
-        if (Connection->AckDelayExponent != QUIC_DEFAULT_ACK_DELAY_EXPONENT) {
+        if (Connection->AckDelayExponent != QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT) {
             LocalTP.Flags |= QUIC_TP_FLAG_ACK_DELAY_EXPONENT;
             LocalTP.AckDelayExponent = Connection->AckDelayExponent;
         }
@@ -1908,7 +1908,7 @@ QuicConnHandshakeConfigure(
         LocalTP.MaxAckDelay =
             Connection->MaxAckDelayMs + MsQuicLib.TimerResolutionMs;
 
-        if (Connection->AckDelayExponent != QUIC_DEFAULT_ACK_DELAY_EXPONENT) {
+        if (Connection->AckDelayExponent != QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT) {
             LocalTP.Flags |= QUIC_TP_FLAG_ACK_DELAY_EXPONENT;
             LocalTP.AckDelayExponent = Connection->AckDelayExponent;
         }
