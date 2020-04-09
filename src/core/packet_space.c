@@ -26,7 +26,7 @@ QuicPacketSpaceInitialize(
 
     Packets = QUIC_ALLOC_NONPAGED(sizeof(QUIC_PACKET_SPACE));
     if (Packets == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "packet space", sizeof(QUIC_PACKET_SPACE));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "packet space", sizeof(QUIC_PACKET_SPACE));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }

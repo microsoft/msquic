@@ -584,7 +584,7 @@ QuicTlsUtf8ToWideChar(
     Buffer = QUIC_ALLOC_NONPAGED(sizeof(WCHAR) * Size);
     if (Buffer == NULL) {
         Error = ERROR_NOT_ENOUGH_MEMORY;
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "wchar string", sizeof(WCHAR) * Size);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "wchar string", sizeof(WCHAR) * Size);
         goto Error;
     }
 
@@ -652,7 +652,7 @@ QuicTlsUtf8ToUnicodeString(
 
     UnicodeString = QUIC_ALLOC_NONPAGED(RequiredSize);
     if (UnicodeString == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "unicode string", RequiredSize);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "unicode string", RequiredSize);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -697,7 +697,7 @@ QuicTlsAllocateAchaContext(
 
     QUIC_ACHA_CONTEXT* NewAchaContext = QUIC_ALLOC_NONPAGED(sizeof(QUIC_ACHA_CONTEXT));
     if (NewAchaContext == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "QUIC_ACHA_CONTEXT", sizeof(QUIC_ACHA_CONTEXT));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_ACHA_CONTEXT", sizeof(QUIC_ACHA_CONTEXT));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -830,7 +830,7 @@ QuicTlsServerSecConfigCreate(
     QUIC_SERVER_SEC_CONFIG* Config = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SERVER_SEC_CONFIG));
     if (Config == NULL) {
         QuicRundownRelease(Rundown);
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "QUIC_SERVER_SEC_CONFIG", sizeof(QUIC_SERVER_SEC_CONFIG));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_SERVER_SEC_CONFIG", sizeof(QUIC_SERVER_SEC_CONFIG));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -1127,7 +1127,7 @@ QuicTlsClientSecConfigCreate(
 
     QUIC_CLIENT_SEC_CONFIG* Config = QUIC_ALLOC_PAGED(sizeof(QUIC_CLIENT_SEC_CONFIG));
     if (Config == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "QUIC_CLIENT_SEC_CONFIG", sizeof(QUIC_CLIENT_SEC_CONFIG));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_CLIENT_SEC_CONFIG", sizeof(QUIC_CLIENT_SEC_CONFIG));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -1228,7 +1228,7 @@ QuicTlsSessionInitialize(
 {
     *NewTlsSession = QUIC_ALLOC_NONPAGED(sizeof(QUIC_TLS_SESSION));
     if (*NewTlsSession == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "QUIC_TLS_SESSION", sizeof(QUIC_TLS_SESSION));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_TLS_SESSION", sizeof(QUIC_TLS_SESSION));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     return QUIC_STATUS_SUCCESS;
@@ -1292,7 +1292,7 @@ QuicTlsInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_TLS* TlsContext = QUIC_ALLOC_NONPAGED(TlsSize);
     if (TlsContext == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "QUIC_TLS", sizeof(QUIC_TLS));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_TLS", sizeof(QUIC_TLS));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }

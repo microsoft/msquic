@@ -183,7 +183,7 @@ QuicPacketBuilderPrepare(
                             QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                             DatagramSize));
             if (Builder->SendContext == NULL) {
-                QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "packet send context", 0);
+                QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "packet send context", 0);
                 goto Error;
             }
         }
@@ -202,7 +202,7 @@ QuicPacketBuilderPrepare(
                 Builder->SendContext,
                 NewDatagramLength);
         if (Builder->Datagram == NULL) {
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "packet datagram", NewDatagramLength);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "packet datagram", NewDatagramLength);
             goto Error;
         }
 
@@ -775,7 +775,7 @@ QuicPacketBuilderFinalize(
     Builder->Metadata->PacketLength =
         Builder->HeaderLength + PayloadLength;
 
-    QuicTraceEvent(ConnPacketSent, "[conn][%p][TX][%I] %c (%hd bytes)",
+    QuicTraceEvent(ConnPacketSent, "[conn][%p][TX][%llu] %c (%hd bytes)",
         Connection,
         Builder->Metadata->PacketNumber,
         QuicPacketTraceType(Builder->Metadata),

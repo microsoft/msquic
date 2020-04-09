@@ -569,7 +569,7 @@ QuicDataPathInitialize(
 
     Datapath = (QUIC_DATAPATH*)QUIC_ALLOC_PAGED(DatapathLength);
     if (Datapath == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "QUIC_DATAPATH", DatapathLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_DATAPATH", DatapathLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -857,7 +857,7 @@ QuicDataPathResolveAddress(
     HostNameW = QUIC_ALLOC_PAGED(sizeof(WCHAR) * Result);
     if (HostNameW == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "Wchar hostname", sizeof(WCHAR) * Result);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "Wchar hostname", sizeof(WCHAR) * Result);
         goto Exit;
     }
 
@@ -945,7 +945,7 @@ QuicDataPathBindingCreate(
 
     Binding = (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_PAGED(BindingLength);
     if (Binding == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "QUIC_DATAPATH_BINDING", BindingLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_DATAPATH_BINDING", BindingLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -1565,7 +1565,7 @@ QuicDataPathBindingHandleUnreachableError(
 
     QuicTraceLogVerbose(
         FN_datapath_winuser98712c41f3c7a37b24466cc56356459a,
-        "[sock][%p] Received unreachable error (0x%x) from %SOCKADDR",
+        "[sock][%p] Received unreachable error (0x%x) from %!SOCKADDR!",
         SocketContext,
         ErrorCode,
         CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddr), (uint8_t*)RemoteAddr));
@@ -1711,7 +1711,7 @@ QuicDataPathRecvComplete(
 
         QuicTraceLogVerbose(
             FN_datapath_winuser80f95372f363d78879faa71a2a91f95d,
-            "[sock][%p] Received larger than expected datagram from %SOCKADDR",
+            "[sock][%p] Received larger than expected datagram from %!SOCKADDR!",
             SocketContext,
             CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddr), (uint8_t*)RemoteAddr));
 
@@ -1778,7 +1778,7 @@ QuicDataPathRecvComplete(
 
         QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
-        QuicTraceEvent(DatapathRecv, "[ udp][%p] Recv %d bytes (segment=%hd) Src=%SOCKADDR Dst=%SOCKADDR",
+        QuicTraceEvent(DatapathRecv, "[ udp][%p] Recv %d bytes (segment=%hd) Src=%!SOCKADDR! Dst=%!SOCKADDR!",
             SocketContext->Binding,
             NumberOfBytesTransferred,
             MessageLength, CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddr), (const uint8_t*)LocalAddr), CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddr), (const uint8_t*)RemoteAddr));
@@ -2221,7 +2221,7 @@ QuicDataPathBindingSendTo(
     SocketContext = &Binding->SocketContexts[Binding->Connected ? 0 : GetCurrentProcessorNumber()];
     Socket = SocketContext->Socket;
 
-    QuicTraceEvent(DatapathSendTo, "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%SOCKADDR",
+    QuicTraceEvent(DatapathSendTo, "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%!SOCKADDR!",
         Binding,
         SendContext->TotalSize,
         SendContext->WsaBufferCount,
@@ -2328,7 +2328,7 @@ QuicDataPathBindingSendFromTo(
     SocketContext = &Binding->SocketContexts[Binding->Connected ? 0 : GetCurrentProcessorNumber()];
     Socket = SocketContext->Socket;
 
-    QuicTraceEvent(DatapathSendFromTo, "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%SOCKADDR, Src=%SOCKADDR",
+    QuicTraceEvent(DatapathSendFromTo, "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%!SOCKADDR!, Src=%!SOCKADDR!",
         Binding,
         SendContext->TotalSize,
         SendContext->WsaBufferCount,

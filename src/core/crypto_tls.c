@@ -656,7 +656,7 @@ QuicCryptoTlsEncodeTransportParameters(
 
     uint8_t* TPBufBase = QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + RequiredTPLen);
     if (TPBufBase == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "TP buffer", QuicTlsTPHeaderSize + RequiredTPLen);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "TP buffer", QuicTlsTPHeaderSize + RequiredTPLen);
         return NULL;
     }
 

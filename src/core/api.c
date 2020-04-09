@@ -288,7 +288,7 @@ MsQuicConnectionStart(
         ServerNameCopy = QUIC_ALLOC_NONPAGED(ServerNameLength + 1);
         if (ServerNameCopy == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "Server name", ServerNameLength + 1);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "Server name", ServerNameLength + 1);
             goto Error;
         }
 
@@ -301,7 +301,7 @@ MsQuicConnectionStart(
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "CONN_START operation", 0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "CONN_START operation", 0);
         goto Error;
     }
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_START;
@@ -514,7 +514,7 @@ MsQuicStreamStart(
             QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
         if (Oper == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "STRM_START operation", 0);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "STRM_START operation", 0);
             goto Exit;
         }
         Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_START;
@@ -634,7 +634,7 @@ MsQuicStreamShutdown(
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "STRM_SHUTDOWN operation", 0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "STRM_SHUTDOWN operation", 0);
         goto Error;
     }
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_SHUTDOWN;
@@ -726,7 +726,7 @@ MsQuicStreamSend(
     SendRequest = QuicPoolAlloc(&Connection->Worker->SendRequestPool);
     if (SendRequest == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "Stream Send request", 0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "Stream Send request", 0);
         goto Exit;
     }
 
@@ -760,7 +760,7 @@ MsQuicStreamSend(
         Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
         if (Oper == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "STRM_SEND operation", 0);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "STRM_SEND operation", 0);
             goto Exit;
         }
         Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_SEND;
@@ -826,7 +826,7 @@ MsQuicStreamReceiveSetEnabled(
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "STRM_RECV_SET_ENABLED, operation", 0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "STRM_RECV_SET_ENABLED, operation", 0);
         goto Error;
     }
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_RECV_SET_ENABLED;
@@ -896,7 +896,7 @@ MsQuicStreamReceiveComplete(
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "STRM_RECV_COMPLETE operation", 0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "STRM_RECV_COMPLETE operation", 0);
         goto Exit;
     }
 
