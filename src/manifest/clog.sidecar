@@ -3889,7 +3889,7 @@
     },
     "ApiEventNoHandler": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Event silently discarded (no handler).",
+      "TraceString": "[conn][%p] Event silently discarded (no handler).",
       "UniqueId": "ApiEventNoHandler",
       "splitArgs": [
         {
@@ -3904,7 +3904,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnWarning",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -3916,7 +3916,7 @@
     },
     "ApiEventTooLong": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : App took excessive time (%llu us) in callback.",
+      "TraceString": "[conn][%p] App took excessive time (%llu us) in callback.",
       "UniqueId": "ApiEventTooLong",
       "splitArgs": [
         {
@@ -3940,7 +3940,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnWarning",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -3952,7 +3952,7 @@
     },
     "ApiEventAlreadyClosed": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Event silently discarded.",
+      "TraceString": "[conn][%p] Event silently discarded.",
       "UniqueId": "ApiEventAlreadyClosed",
       "splitArgs": [
         {
@@ -3967,7 +3967,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnWarning",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -3979,7 +3979,7 @@
     },
     "NoReplacementCidForRetire": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Can't retire current CID because we don't have a replacement",
+      "TraceString": "[conn][%p] Can't retire current CID because we don't have a replacement",
       "UniqueId": "NoReplacementCidForRetire",
       "splitArgs": [
         {
@@ -3994,7 +3994,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnWarning",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4006,7 +4006,7 @@
     },
     "NonActivePathCidRetired": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Non-active path has no replacement for retired CID.",
+      "TraceString": "[conn][%p] Non-active path has no replacement for retired CID.",
       "UniqueId": "NonActivePathCidRetired",
       "splitArgs": [
         {
@@ -4021,7 +4021,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnWarning",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4033,7 +4033,7 @@
     },
     "IgnoreUnreachable": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Ignoring received unreachable event (inline).",
+      "TraceString": "[conn][%p] Ignoring received unreachable event (inline).",
       "UniqueId": "IgnoreUnreachable",
       "splitArgs": [
         {
@@ -4048,7 +4048,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnWarning",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4060,7 +4060,7 @@
     },
     "IgnoreFrameAfterClose": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Ignoring frame (%hu) for already closed stream id = %llu",
+      "TraceString": "[conn][%p] Ignoring frame (%hu) for already closed stream id = %llu",
       "UniqueId": "IgnoreFrameAfterClose",
       "splitArgs": [
         {
@@ -4093,7 +4093,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnWarning",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4105,7 +4105,7 @@
     },
     "UnreachableIgnore": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Ignoring received unreachable event.",
+      "TraceString": "[conn][%p] Ignoring received unreachable event.",
       "UniqueId": "UnreachableIgnore",
       "splitArgs": [
         {
@@ -4120,7 +4120,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnWarning",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4132,7 +4132,7 @@
     },
     "UnreachableInvalid": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Received invalid unreachable event.",
+      "TraceString": "[conn][%p] Received invalid unreachable event.",
       "UniqueId": "UnreachableInvalid",
       "splitArgs": [
         {
@@ -4147,7 +4147,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnWarning",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4159,7 +4159,7 @@
     },
     "CloseComplete": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Connection close complete.",
+      "TraceString": "[conn][%p] Connection close complete.",
       "UniqueId": "CloseComplete",
       "splitArgs": [
         {
@@ -4174,7 +4174,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4186,7 +4186,7 @@
     },
     "Restart": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Restart (CompleteReset=%hu)",
+      "TraceString": "[conn][%p] Restart (CompleteReset=%hu)",
       "UniqueId": "Restart",
       "splitArgs": [
         {
@@ -4210,7 +4210,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4222,7 +4222,7 @@
     },
     "PeerTPSet": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Peer Transport Parameters Set",
+      "TraceString": "[conn][%p] Peer Transport Parameters Set",
       "UniqueId": "PeerTPSet",
       "splitArgs": [
         {
@@ -4237,7 +4237,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4249,7 +4249,7 @@
     },
     "RecvStatelessReset": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Received stateless reset",
+      "TraceString": "[conn][%p] Received stateless reset",
       "UniqueId": "RecvStatelessReset",
       "splitArgs": [
         {
@@ -4264,7 +4264,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4276,7 +4276,7 @@
     },
     "HandshakeConfirmedFrame": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Handshake confirmed (frame).",
+      "TraceString": "[conn][%p] Handshake confirmed (frame).",
       "UniqueId": "HandshakeConfirmedFrame",
       "splitArgs": [
         {
@@ -4291,7 +4291,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4303,7 +4303,7 @@
     },
     "FirstCidUsage": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : First usage of SrcCid: %s",
+      "TraceString": "[conn][%p] First usage of SrcCid: %s",
       "UniqueId": "FirstCidUsage",
       "splitArgs": [
         {
@@ -4327,7 +4327,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4339,7 +4339,7 @@
     },
     "PathDiscarded": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Removing invalid path[%u]",
+      "TraceString": "[conn][%p] Removing invalid path[%u]",
       "UniqueId": "PathDiscarded",
       "splitArgs": [
         {
@@ -4363,7 +4363,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4375,7 +4375,7 @@
     },
     "Unreachable": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Received unreachable event.",
+      "TraceString": "[conn][%p] Received unreachable event.",
       "UniqueId": "Unreachable",
       "splitArgs": [
         {
@@ -4390,7 +4390,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4402,7 +4402,7 @@
     },
     "UpdateIdleTimeout": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Updated idle timeout to %llu milliseconds",
+      "TraceString": "[conn][%p] Updated idle timeout to %llu milliseconds",
       "UniqueId": "UpdateIdleTimeout",
       "splitArgs": [
         {
@@ -4426,7 +4426,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4438,7 +4438,7 @@
     },
     "UpdateKeepAlive": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Updated keep alive interval to %u milliseconds",
+      "TraceString": "[conn][%p] Updated keep alive interval to %u milliseconds",
       "UniqueId": "UpdateKeepAlive",
       "splitArgs": [
         {
@@ -4462,7 +4462,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4474,7 +4474,7 @@
     },
     "UpdateDisconnectTimeout": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Updated disconnect timeout = %u milliseconds",
+      "TraceString": "[conn][%p] Updated disconnect timeout = %u milliseconds",
       "UniqueId": "UpdateDisconnectTimeout",
       "splitArgs": [
         {
@@ -4498,7 +4498,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4510,7 +4510,7 @@
     },
     "SetSecurityConfig": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Security config set, %p.",
+      "TraceString": "[conn][%p] Security config set, %p.",
       "UniqueId": "SetSecurityConfig",
       "splitArgs": [
         {
@@ -4534,7 +4534,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4546,7 +4546,7 @@
     },
     "UpdateUseSendBuffer": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Updated UseSendBuffer = %u",
+      "TraceString": "[conn][%p] Updated UseSendBuffer = %u",
       "UniqueId": "UpdateUseSendBuffer",
       "splitArgs": [
         {
@@ -4570,7 +4570,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4582,7 +4582,7 @@
     },
     "UpdateUsePacing": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Updated UsePacing = %u",
+      "TraceString": "[conn][%p] Updated UsePacing = %u",
       "UniqueId": "UpdateUsePacing",
       "splitArgs": [
         {
@@ -4606,7 +4606,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4618,7 +4618,7 @@
     },
     "UpdateShareBinding": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Updated ShareBinding = %u",
+      "TraceString": "[conn][%p] Updated ShareBinding = %u",
       "UniqueId": "UpdateShareBinding",
       "splitArgs": [
         {
@@ -4642,7 +4642,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4654,7 +4654,7 @@
     },
     "RttUpdated": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Updated Rtt=%u.%u ms, Var=%u.%u",
+      "TraceString": "[conn][%p] Updated Rtt=%u.%u ms, Var=%u.%u",
       "UniqueId": "RttUpdated",
       "splitArgs": [
         {
@@ -4705,7 +4705,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4717,7 +4717,7 @@
     },
     "NewSrcCidNameCollision": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : CID collision, trying again.",
+      "TraceString": "[conn][%p] CID collision, trying again.",
       "UniqueId": "NewSrcCidNameCollision",
       "splitArgs": [
         {
@@ -4732,7 +4732,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4744,7 +4744,7 @@
     },
     "ZeroLengthCidRetire": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Can't retire current CID because it's zero length",
+      "TraceString": "[conn][%p] Can't retire current CID because it's zero length",
       "UniqueId": "ZeroLengthCidRetire",
       "splitArgs": [
         {
@@ -4759,7 +4759,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4771,7 +4771,7 @@
     },
     "TimerExpired": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : %s timer expired",
+      "TraceString": "[conn][%p] %s timer expired",
       "UniqueId": "TimerExpired",
       "splitArgs": [
         {
@@ -4795,7 +4795,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4807,7 +4807,7 @@
     },
     "IndicateShutdownByPeer": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER [0x%llx]",
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER [0x%llx]",
       "UniqueId": "IndicateShutdownByPeer",
       "splitArgs": [
         {
@@ -4831,7 +4831,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4843,7 +4843,7 @@
     },
     "IndicateShutdownByTransport": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT [0x%x]",
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT [0x%x]",
       "UniqueId": "IndicateShutdownByTransport",
       "splitArgs": [
         {
@@ -4867,7 +4867,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4879,7 +4879,7 @@
     },
     "IndicateConnectionShutdownComplete": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE",
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE",
       "UniqueId": "IndicateConnectionShutdownComplete",
       "splitArgs": [
         {
@@ -4894,7 +4894,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4906,7 +4906,7 @@
     },
     "FoundCachedServerState": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Found server cached state",
+      "TraceString": "[conn][%p] Found server cached state",
       "UniqueId": "FoundCachedServerState",
       "splitArgs": [
         {
@@ -4921,7 +4921,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4933,7 +4933,7 @@
     },
     "QueueDatagrams": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Queuing %u UDP datagrams",
+      "TraceString": "[conn][%p] Queuing %u UDP datagrams",
       "UniqueId": "QueueDatagrams",
       "splitArgs": [
         {
@@ -4957,7 +4957,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4969,7 +4969,7 @@
     },
     "RecvVerNeg": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Received Version Negotation:",
+      "TraceString": "[conn][%p] Received Version Negotation:",
       "UniqueId": "RecvVerNeg",
       "splitArgs": [
         {
@@ -4984,7 +4984,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -4996,7 +4996,7 @@
     },
     "VerNegItem": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p :   Ver[%d]: 0x%x",
+      "TraceString": "[conn][%p]   Ver[%d]: 0x%x",
       "UniqueId": "VerNegItem",
       "splitArgs": [
         {
@@ -5029,7 +5029,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -5041,7 +5041,7 @@
     },
     "InvalidVerNeg": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Dropping version negotation that includes the current version.",
+      "TraceString": "[conn][%p] Dropping version negotation that includes the current version.",
       "UniqueId": "InvalidVerNeg",
       "splitArgs": [
         {
@@ -5056,7 +5056,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -5068,7 +5068,7 @@
     },
     "DeferDatagram": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Deferring datagram (type=%hu).",
+      "TraceString": "[conn][%p] Deferring datagram (type=%hu).",
       "UniqueId": "DeferDatagram",
       "splitArgs": [
         {
@@ -5092,7 +5092,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -5104,7 +5104,7 @@
     },
     "DecryptOldKey": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Using old key to decrypt.",
+      "TraceString": "[conn][%p] Using old key to decrypt.",
       "UniqueId": "DecryptOldKey",
       "splitArgs": [
         {
@@ -5119,7 +5119,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -5131,7 +5131,7 @@
     },
     "PossiblePeerKeyUpdate": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Possible peer initiated key update [packet %llu]",
+      "TraceString": "[conn][%p] Possible peer initiated key update [packet %llu]",
       "UniqueId": "PossiblePeerKeyUpdate",
       "splitArgs": [
         {
@@ -5155,7 +5155,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -5167,7 +5167,7 @@
     },
     "UpdateReadKeyPhase": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Updating current read key phase and packet number[%llu]",
+      "TraceString": "[conn][%p] Updating current read key phase and packet number[%llu]",
       "UniqueId": "UpdateReadKeyPhase",
       "splitArgs": [
         {
@@ -5191,7 +5191,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -5203,7 +5203,7 @@
     },
     "PeerConnFCBlocked": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Peer Connection FC blocked (%llu).",
+      "TraceString": "[conn][%p] Peer Connection FC blocked (%llu).",
       "UniqueId": "PeerConnFCBlocked",
       "splitArgs": [
         {
@@ -5227,7 +5227,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -5239,7 +5239,7 @@
     },
     "PeerStreamFCBlocked": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Peer Streams[%hu] FC blocked (%llu).",
+      "TraceString": "[conn][%p] Peer Streams[%hu] FC blocked (%llu).",
       "UniqueId": "PeerStreamFCBlocked",
       "splitArgs": [
         {
@@ -5272,7 +5272,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -5284,7 +5284,7 @@
     },
     "IndicatePeerNeedStreams": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS",
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS",
       "UniqueId": "IndicatePeerNeedStreams",
       "splitArgs": [
         {
@@ -5299,7 +5299,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -5311,7 +5311,7 @@
     },
     "IndicatePeerAddrChanged": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED",
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED",
       "UniqueId": "IndicatePeerAddrChanged",
       "splitArgs": [
         {
@@ -5326,7 +5326,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -5338,7 +5338,7 @@
     },
     "UdpRecvBatch": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Batch Recv %u UDP datagrams",
+      "TraceString": "[conn][%p] Batch Recv %u UDP datagrams",
       "UniqueId": "UdpRecvBatch",
       "splitArgs": [
         {
@@ -5362,7 +5362,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -5374,7 +5374,7 @@
     },
     "UdpRecvDeferred": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Recv %u deferred UDP datagrams",
+      "TraceString": "[conn][%p] Recv %u deferred UDP datagrams",
       "UniqueId": "UdpRecvDeferred",
       "splitArgs": [
         {
@@ -5398,7 +5398,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -5410,7 +5410,7 @@
     },
     "UdpRecv": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Recv %u UDP datagrams",
+      "TraceString": "[conn][%p] Recv %u UDP datagrams",
       "UniqueId": "UdpRecv",
       "splitArgs": [
         {
@@ -5434,7 +5434,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -5446,7 +5446,7 @@
     },
     "ForceKeyUpdate": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Forcing key update.",
+      "TraceString": "[conn][%p] Forcing key update.",
       "UniqueId": "ForceKeyUpdate",
       "splitArgs": [
         {
@@ -5461,7 +5461,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -5473,7 +5473,7 @@
     },
     "ForceCidUpdate": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Forcing destination CID update.",
+      "TraceString": "[conn][%p] Forcing destination CID update.",
       "UniqueId": "ForceCidUpdate",
       "splitArgs": [
         {
@@ -5488,7 +5488,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -5500,7 +5500,7 @@
     },
     "TestTPSet": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Setting Test Transport Parameter (type %hu, %hu bytes).",
+      "TraceString": "[conn][%p] Setting Test Transport Parameter (type %hu, %hu bytes).",
       "UniqueId": "TestTPSet",
       "splitArgs": [
         {
@@ -5533,7 +5533,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -5545,7 +5545,7 @@
     },
     "ReadTicketFailure": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : QuicTlsReadTicket failed, 0x%x",
+      "TraceString": "[conn][%p] QuicTlsReadTicket failed, 0x%x",
       "UniqueId": "ReadTicketFailure",
       "splitArgs": [
         {
@@ -5569,7 +5569,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -5581,7 +5581,7 @@
     },
     "AbandonInternallyClosed": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Abandoning internal, closed connection",
+      "TraceString": "[conn][%p] Abandoning internal, closed connection",
       "UniqueId": "AbandonInternallyClosed",
       "splitArgs": [
         {
@@ -5596,7 +5596,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -6535,7 +6535,7 @@
     },
     "IgnoreCryptoFrame": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Ignoring received crypto after cleanup.",
+      "TraceString": "[conn][%p] Ignoring received crypto after cleanup.",
       "UniqueId": "IgnoreCryptoFrame",
       "splitArgs": [
         {
@@ -6550,7 +6550,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnWarning",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -6562,7 +6562,7 @@
     },
     "DiscardKeyType": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Discarding key type = %hu",
+      "TraceString": "[conn][%p] Discarding key type = %hu",
       "UniqueId": "DiscardKeyType",
       "splitArgs": [
         {
@@ -6586,7 +6586,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -6598,7 +6598,7 @@
     },
     "CryptoStateDiscard": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Crypto/TLS state no longer needed.",
+      "TraceString": "[conn][%p] Crypto/TLS state no longer needed.",
       "UniqueId": "CryptoStateDiscard",
       "splitArgs": [
         {
@@ -6613,7 +6613,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -6625,7 +6625,7 @@
     },
     "ZeroRttAccepted": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : 0-RTT accepted",
+      "TraceString": "[conn][%p] 0-RTT accepted",
       "UniqueId": "ZeroRttAccepted",
       "splitArgs": [
         {
@@ -6640,7 +6640,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -6652,7 +6652,7 @@
     },
     "ZeroRttRejected": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : 0-RTT rejected",
+      "TraceString": "[conn][%p] 0-RTT rejected",
       "UniqueId": "ZeroRttRejected",
       "splitArgs": [
         {
@@ -6667,7 +6667,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -6679,7 +6679,7 @@
     },
     "HandshakeConfirmedServer": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Handshake confirmed (server).",
+      "TraceString": "[conn][%p] Handshake confirmed (server).",
       "UniqueId": "HandshakeConfirmedServer",
       "splitArgs": [
         {
@@ -6694,7 +6694,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -6706,7 +6706,7 @@
     },
     "TicketReady": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Ticket ready",
+      "TraceString": "[conn][%p] Ticket ready",
       "UniqueId": "TicketReady",
       "splitArgs": [
         {
@@ -6721,7 +6721,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -6733,7 +6733,7 @@
     },
     "CryptoDump": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : QS:%u MAX:%u UNA:%u NXT:%u RECOV:%u-%u",
+      "TraceString": "[conn][%p] QS:%u MAX:%u UNA:%u NXT:%u RECOV:%u-%u",
       "UniqueId": "CryptoDump",
       "splitArgs": [
         {
@@ -6802,7 +6802,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -6814,7 +6814,7 @@
     },
     "CryptoDumpUnacked": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p :   unACKed: [%llu, %llu]",
+      "TraceString": "[conn][%p]   unACKed: [%llu, %llu]",
       "UniqueId": "CryptoDumpUnacked",
       "splitArgs": [
         {
@@ -6847,7 +6847,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -6859,7 +6859,7 @@
     },
     "NoMoreRoomForCrypto": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : No room for CRYPTO frame",
+      "TraceString": "[conn][%p] No room for CRYPTO frame",
       "UniqueId": "NoMoreRoomForCrypto",
       "splitArgs": [
         {
@@ -6874,7 +6874,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -6886,7 +6886,7 @@
     },
     "AddCryptoFrame": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Sending %hu crypto bytes, offset=%u",
+      "TraceString": "[conn][%p] Sending %hu crypto bytes, offset=%u",
       "UniqueId": "AddCryptoFrame",
       "splitArgs": [
         {
@@ -6919,7 +6919,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -6931,7 +6931,7 @@
     },
     "RecoverCrypto": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Recovering crypto from %llu up to %llu",
+      "TraceString": "[conn][%p] Recovering crypto from %llu up to %llu",
       "UniqueId": "RecoverCrypto",
       "splitArgs": [
         {
@@ -6964,7 +6964,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -6976,7 +6976,7 @@
     },
     "AckCrypto": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Received ack for %u crypto bytes, offset=%u",
+      "TraceString": "[conn][%p] Received ack for %u crypto bytes, offset=%u",
       "UniqueId": "AckCrypto",
       "splitArgs": [
         {
@@ -7009,7 +7009,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7021,7 +7021,7 @@
     },
     "RecvCrypto": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Received %hu crypto bytes, offset=%llu Ready=%hu",
+      "TraceString": "[conn][%p] Received %hu crypto bytes, offset=%llu Ready=%hu",
       "UniqueId": "RecvCrypto",
       "splitArgs": [
         {
@@ -7063,7 +7063,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7075,7 +7075,7 @@
     },
     "IndicateConnected": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Indicating QUIC_CONNECTION_EVENT_CONNECTED (Resume=%hu)",
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_CONNECTED (Resume=%hu)",
       "UniqueId": "IndicateConnected",
       "splitArgs": [
         {
@@ -7099,7 +7099,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7111,7 +7111,7 @@
     },
     "DrainCrypto": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Draining %u crypto bytes.",
+      "TraceString": "[conn][%p] Draining %u crypto bytes.",
       "UniqueId": "DrainCrypto",
       "splitArgs": [
         {
@@ -7135,7 +7135,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7147,7 +7147,7 @@
     },
     "CryptoNotReady": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : No complete TLS messages to process.",
+      "TraceString": "[conn][%p] No complete TLS messages to process.",
       "UniqueId": "CryptoNotReady",
       "splitArgs": [
         {
@@ -7162,7 +7162,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7309,7 +7309,7 @@
     },
     "NoSniPresent": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : No SNI extension present.",
+      "TraceString": "[conn][%p] No SNI extension present.",
       "UniqueId": "NoSniPresent",
       "splitArgs": [
         {
@@ -7324,7 +7324,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnWarning",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7336,7 +7336,7 @@
     },
     "DecodeTPReserved": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Reserved ID %llu, length %hu",
+      "TraceString": "[conn][%p] TP: Reserved ID %llu, length %hu",
       "UniqueId": "DecodeTPReserved",
       "splitArgs": [
         {
@@ -7369,7 +7369,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnWarning",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7381,7 +7381,7 @@
     },
     "DecodeTPUnknown": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Unknown ID %llu, length %hu",
+      "TraceString": "[conn][%p] TP: Unknown ID %llu, length %hu",
       "UniqueId": "DecodeTPUnknown",
       "splitArgs": [
         {
@@ -7414,7 +7414,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnWarning",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7426,7 +7426,7 @@
     },
     "EncodeTPStart": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Encoding Transport Parameters",
+      "TraceString": "[conn][%p] Encoding Transport Parameters",
       "UniqueId": "EncodeTPStart",
       "splitArgs": [
         {
@@ -7441,7 +7441,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7453,7 +7453,7 @@
     },
     "EncodeTPOriginalCID": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Original Connection ID",
+      "TraceString": "[conn][%p] TP: Original Connection ID",
       "UniqueId": "EncodeTPOriginalCID",
       "splitArgs": [
         {
@@ -7468,7 +7468,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7480,7 +7480,7 @@
     },
     "EncodeTPIdleTimeout": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Idle Timeout (%llu ms)",
+      "TraceString": "[conn][%p] TP: Idle Timeout (%llu ms)",
       "UniqueId": "EncodeTPIdleTimeout",
       "splitArgs": [
         {
@@ -7504,7 +7504,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7516,7 +7516,7 @@
     },
     "EncodeTPStatelessResetToken": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Stateless Reset Token (%s)",
+      "TraceString": "[conn][%p] TP: Stateless Reset Token (%s)",
       "UniqueId": "EncodeTPStatelessResetToken",
       "splitArgs": [
         {
@@ -7540,7 +7540,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7552,7 +7552,7 @@
     },
     "EncodeTPMaxPacketSize": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Max Packet Size (%llu bytes)",
+      "TraceString": "[conn][%p] TP: Max Packet Size (%llu bytes)",
       "UniqueId": "EncodeTPMaxPacketSize",
       "splitArgs": [
         {
@@ -7576,7 +7576,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7588,7 +7588,7 @@
     },
     "EncodeTPInitMaxData": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Max Data (%llu bytes)",
+      "TraceString": "[conn][%p] TP: Max Data (%llu bytes)",
       "UniqueId": "EncodeTPInitMaxData",
       "splitArgs": [
         {
@@ -7612,7 +7612,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7624,7 +7624,7 @@
     },
     "EncodeTPInitMaxStreamDataBidiLocal": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Max Local Bidirectional Stream Data (%llu bytes)",
+      "TraceString": "[conn][%p] TP: Max Local Bidirectional Stream Data (%llu bytes)",
       "UniqueId": "EncodeTPInitMaxStreamDataBidiLocal",
       "splitArgs": [
         {
@@ -7648,7 +7648,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7660,7 +7660,7 @@
     },
     "EncodeTPInitMaxStreamDataBidiRemote": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Max Remote Bidirectional Stream Data (%llu bytes)",
+      "TraceString": "[conn][%p] TP: Max Remote Bidirectional Stream Data (%llu bytes)",
       "UniqueId": "EncodeTPInitMaxStreamDataBidiRemote",
       "splitArgs": [
         {
@@ -7684,7 +7684,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7696,7 +7696,7 @@
     },
     "EncodeTPInitMaxStreamUni": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Max Unidirectional Stream Data (%llu)",
+      "TraceString": "[conn][%p] TP: Max Unidirectional Stream Data (%llu)",
       "UniqueId": "EncodeTPInitMaxStreamUni",
       "splitArgs": [
         {
@@ -7720,7 +7720,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7732,7 +7732,7 @@
     },
     "EncodeTPMaxBidiStreams": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Max Bidirectional Streams (%llu)",
+      "TraceString": "[conn][%p] TP: Max Bidirectional Streams (%llu)",
       "UniqueId": "EncodeTPMaxBidiStreams",
       "splitArgs": [
         {
@@ -7756,7 +7756,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7768,7 +7768,7 @@
     },
     "EncodeTPMaxUniStreams": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Max Unidirectional Streams (%llu)",
+      "TraceString": "[conn][%p] TP: Max Unidirectional Streams (%llu)",
       "UniqueId": "EncodeTPMaxUniStreams",
       "splitArgs": [
         {
@@ -7792,7 +7792,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7804,7 +7804,7 @@
     },
     "EncodeTPAckDelayExponent": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: ACK Delay Exponent (%llu)",
+      "TraceString": "[conn][%p] TP: ACK Delay Exponent (%llu)",
       "UniqueId": "EncodeTPAckDelayExponent",
       "splitArgs": [
         {
@@ -7828,7 +7828,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7840,7 +7840,7 @@
     },
     "EncodeTPMaxAckDelay": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Max ACK Delay (%llu ms)",
+      "TraceString": "[conn][%p] TP: Max ACK Delay (%llu ms)",
       "UniqueId": "EncodeTPMaxAckDelay",
       "splitArgs": [
         {
@@ -7864,7 +7864,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7876,7 +7876,7 @@
     },
     "EncodeTPDisableMigration": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Disable Active Migration",
+      "TraceString": "[conn][%p] TP: Disable Active Migration",
       "UniqueId": "EncodeTPDisableMigration",
       "splitArgs": [
         {
@@ -7891,7 +7891,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7903,7 +7903,7 @@
     },
     "EncodeTPPreferredAddress": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Preferred Address",
+      "TraceString": "[conn][%p] TP: Preferred Address",
       "UniqueId": "EncodeTPPreferredAddress",
       "splitArgs": [
         {
@@ -7918,7 +7918,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7930,7 +7930,7 @@
     },
     "EncodeTPCIDLimit": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Connection ID Limit (%llu)",
+      "TraceString": "[conn][%p] TP: Connection ID Limit (%llu)",
       "UniqueId": "EncodeTPCIDLimit",
       "splitArgs": [
         {
@@ -7954,7 +7954,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -7966,7 +7966,7 @@
     },
     "EncodeTPTest": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: TEST TP (Type %hu, Length %hu)",
+      "TraceString": "[conn][%p] TP: TEST TP (Type %hu, Length %hu)",
       "UniqueId": "EncodeTPTest",
       "splitArgs": [
         {
@@ -7999,7 +7999,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -8011,7 +8011,7 @@
     },
     "EncodeTPEnd": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Encoded %hu bytes for QUIC TP",
+      "TraceString": "[conn][%p] Encoded %hu bytes for QUIC TP",
       "UniqueId": "EncodeTPEnd",
       "splitArgs": [
         {
@@ -8035,7 +8035,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -8047,7 +8047,7 @@
     },
     "DecodeTPStart": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Decoding Peer Transport Parameters (%hu bytes)",
+      "TraceString": "[conn][%p] Decoding Peer Transport Parameters (%hu bytes)",
       "UniqueId": "DecodeTPStart",
       "splitArgs": [
         {
@@ -8071,7 +8071,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -8083,7 +8083,7 @@
     },
     "DecodeTPOriginalCID": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Original Connection ID",
+      "TraceString": "[conn][%p] TP: Original Connection ID",
       "UniqueId": "DecodeTPOriginalCID",
       "splitArgs": [
         {
@@ -8098,7 +8098,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -8110,7 +8110,7 @@
     },
     "DecodeTPIdleTimeout": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Idle Timeout (%llu ms)",
+      "TraceString": "[conn][%p] TP: Idle Timeout (%llu ms)",
       "UniqueId": "DecodeTPIdleTimeout",
       "splitArgs": [
         {
@@ -8134,7 +8134,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -8146,7 +8146,7 @@
     },
     "DecodeTPStatelessResetToken": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Stateless Reset Token (%s)",
+      "TraceString": "[conn][%p] TP: Stateless Reset Token (%s)",
       "UniqueId": "DecodeTPStatelessResetToken",
       "splitArgs": [
         {
@@ -8170,7 +8170,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -8182,7 +8182,7 @@
     },
     "DecodeTPMaxPacketSize": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Max Packet Size (%llu bytes)",
+      "TraceString": "[conn][%p] TP: Max Packet Size (%llu bytes)",
       "UniqueId": "DecodeTPMaxPacketSize",
       "splitArgs": [
         {
@@ -8206,7 +8206,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -8218,7 +8218,7 @@
     },
     "DecodeTPInitMaxData": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Max Data (%llu bytes)",
+      "TraceString": "[conn][%p] TP: Max Data (%llu bytes)",
       "UniqueId": "DecodeTPInitMaxData",
       "splitArgs": [
         {
@@ -8242,7 +8242,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -8254,7 +8254,7 @@
     },
     "DecodeTPInitMaxStreamDataBidiLocal": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Max Local Bidirectional Stream Data (%llu bytes)",
+      "TraceString": "[conn][%p] TP: Max Local Bidirectional Stream Data (%llu bytes)",
       "UniqueId": "DecodeTPInitMaxStreamDataBidiLocal",
       "splitArgs": [
         {
@@ -8278,7 +8278,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -8290,7 +8290,7 @@
     },
     "DecodeTPInitMaxStreamDataBidiRemote": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Max Remote Bidirectional Stream Data (%llu bytes)",
+      "TraceString": "[conn][%p] TP: Max Remote Bidirectional Stream Data (%llu bytes)",
       "UniqueId": "DecodeTPInitMaxStreamDataBidiRemote",
       "splitArgs": [
         {
@@ -8314,7 +8314,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -8326,7 +8326,7 @@
     },
     "DecodeTPInitMaxStreamDataBidiUni": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Max Unidirectional Stream Data (%llu)",
+      "TraceString": "[conn][%p] TP: Max Unidirectional Stream Data (%llu)",
       "UniqueId": "DecodeTPInitMaxStreamDataBidiUni",
       "splitArgs": [
         {
@@ -8350,7 +8350,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -8362,7 +8362,7 @@
     },
     "DecodeTPMaxBidiStreams": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Max Bidirectional Streams (%llu)",
+      "TraceString": "[conn][%p] TP: Max Bidirectional Streams (%llu)",
       "UniqueId": "DecodeTPMaxBidiStreams",
       "splitArgs": [
         {
@@ -8386,7 +8386,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -8398,7 +8398,7 @@
     },
     "DecodeTPMaxUniStreams": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Max Unidirectional Streams (%llu)",
+      "TraceString": "[conn][%p] TP: Max Unidirectional Streams (%llu)",
       "UniqueId": "DecodeTPMaxUniStreams",
       "splitArgs": [
         {
@@ -8422,7 +8422,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -8434,7 +8434,7 @@
     },
     "DecodeTPAckDelayExponent": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: ACK Delay Exponent (%llu)",
+      "TraceString": "[conn][%p] TP: ACK Delay Exponent (%llu)",
       "UniqueId": "DecodeTPAckDelayExponent",
       "splitArgs": [
         {
@@ -8458,7 +8458,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -8470,7 +8470,7 @@
     },
     "DecodeTPMaxAckDelay": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Max ACK Delay (%llu ms)",
+      "TraceString": "[conn][%p] TP: Max ACK Delay (%llu ms)",
       "UniqueId": "DecodeTPMaxAckDelay",
       "splitArgs": [
         {
@@ -8494,7 +8494,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -8506,7 +8506,7 @@
     },
     "DecodeTPDisableActiveMigration": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Disable Active Migration",
+      "TraceString": "[conn][%p] TP: Disable Active Migration",
       "UniqueId": "DecodeTPDisableActiveMigration",
       "splitArgs": [
         {
@@ -8521,7 +8521,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -8533,7 +8533,7 @@
     },
     "DecodeTPPreferredAddress": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Preferred Address",
+      "TraceString": "[conn][%p] TP: Preferred Address",
       "UniqueId": "DecodeTPPreferredAddress",
       "splitArgs": [
         {
@@ -8548,7 +8548,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -8560,7 +8560,7 @@
     },
     "DecodeTPCIDLimit": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : TP: Connection ID Limit (%llu)",
+      "TraceString": "[conn][%p] TP: Connection ID Limit (%llu)",
       "UniqueId": "DecodeTPCIDLimit",
       "splitArgs": [
         {
@@ -8584,7 +8584,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -11593,7 +11593,7 @@
     },
     "NoSecurityConfigAvailable": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : No security config was provided by the app.",
+      "TraceString": "[conn][%p] No security config was provided by the app.",
       "UniqueId": "NoSecurityConfigAvailable",
       "splitArgs": [
         {
@@ -11608,7 +11608,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -12430,7 +12430,7 @@
     },
     "HandshakeConfirmedAck": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Handshake confirmed (ack).",
+      "TraceString": "[conn][%p] Handshake confirmed (ack).",
       "UniqueId": "HandshakeConfirmedAck",
       "splitArgs": [
         {
@@ -12445,7 +12445,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -12457,7 +12457,7 @@
     },
     "ScheduleProbe": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : probe round %lu",
+      "TraceString": "[conn][%p] probe round %lu",
       "UniqueId": "ScheduleProbe",
       "splitArgs": [
         {
@@ -12481,7 +12481,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -12493,7 +12493,7 @@
     },
     "KeyChangeConfirmed": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Key change confirmed by peer.",
+      "TraceString": "[conn][%p] Key change confirmed by peer.",
       "UniqueId": "KeyChangeConfirmed",
       "splitArgs": [
         {
@@ -12508,7 +12508,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -13627,7 +13627,7 @@
     },
     "NoSrcCidAvailable": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : No src CID to send with.",
+      "TraceString": "[conn][%p] No src CID to send with.",
       "UniqueId": "NoSrcCidAvailable",
       "splitArgs": [
         {
@@ -13642,7 +13642,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnWarning",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -13654,7 +13654,7 @@
     },
     "GetPacketTypeFailure": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Failed to get packet type for control frames, 0x%x",
+      "TraceString": "[conn][%p] Failed to get packet type for control frames, 0x%x",
       "UniqueId": "GetPacketTypeFailure",
       "splitArgs": [
         {
@@ -13678,7 +13678,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnWarning",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -13744,7 +13744,7 @@
     },
     "PathInitialized": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Path[%u] Initialized",
+      "TraceString": "[conn][%p] Path[%u] Initialized",
       "UniqueId": "PathInitialized",
       "splitArgs": [
         {
@@ -13768,7 +13768,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -13780,7 +13780,7 @@
     },
     "PathRemoved": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Path[%u] Removed",
+      "TraceString": "[conn][%p] Path[%u] Removed",
       "UniqueId": "PathRemoved",
       "splitArgs": [
         {
@@ -13804,7 +13804,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -13816,7 +13816,7 @@
     },
     "PathValidated": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Path[%u] Validated (%s)",
+      "TraceString": "[conn][%p] Path[%u] Validated (%s)",
       "UniqueId": "PathValidated",
       "splitArgs": [
         {
@@ -13849,7 +13849,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -13861,7 +13861,7 @@
     },
     "PathActive": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Path[%u] Set active (rebind=%hu)",
+      "TraceString": "[conn][%p] Path[%u] Set active (rebind=%hu)",
       "UniqueId": "PathActive",
       "splitArgs": [
         {
@@ -13894,7 +13894,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -14059,7 +14059,7 @@
     },
     "SetSendFlag": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pSetting flags 0x%x (existing flags: 0x%x)",
+      "TraceString": "[strm][%p] Setting flags 0x%x (existing flags: 0x%x)",
       "UniqueId": "SetSendFlag",
       "splitArgs": [
         {
@@ -14092,7 +14092,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -14104,7 +14104,7 @@
     },
     "ClearSendFlags": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pRemoving flags %x",
+      "TraceString": "[strm][%p] Removing flags %x",
       "UniqueId": "ClearSendFlags",
       "splitArgs": [
         {
@@ -14128,7 +14128,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -14140,7 +14140,7 @@
     },
     "PathMtuUpdated": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Path[%hu] MTU updated to %u bytes",
+      "TraceString": "[conn][%p] Path[%hu] MTU updated to %u bytes",
       "UniqueId": "PathMtuUpdated",
       "splitArgs": [
         {
@@ -14173,7 +14173,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -14185,7 +14185,7 @@
     },
     "CancelAckDelayTimer": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Canceling ACK_DELAY timer",
+      "TraceString": "[conn][%p] Canceling ACK_DELAY timer",
       "UniqueId": "CancelAckDelayTimer",
       "splitArgs": [
         {
@@ -14200,7 +14200,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -14212,7 +14212,7 @@
     },
     "ScheduleSendFlags": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Scheduling flags 0x%x to 0x%x",
+      "TraceString": "[conn][%p] Scheduling flags 0x%x to 0x%x",
       "UniqueId": "ScheduleSendFlags",
       "splitArgs": [
         {
@@ -14245,7 +14245,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -14257,7 +14257,7 @@
     },
     "RemoveSendFlags": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Removing flags %x",
+      "TraceString": "[conn][%p] Removing flags %x",
       "UniqueId": "RemoveSendFlags",
       "splitArgs": [
         {
@@ -14281,7 +14281,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -14293,7 +14293,7 @@
     },
     "FlushSend": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Flushing send. Allowance=%u bytes",
+      "TraceString": "[conn][%p] Flushing send. Allowance=%u bytes",
       "UniqueId": "FlushSend",
       "splitArgs": [
         {
@@ -14317,7 +14317,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -14329,7 +14329,7 @@
     },
     "AmplificationProtectionBlocked": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Cannot send any more because of amplification protection",
+      "TraceString": "[conn][%p] Cannot send any more because of amplification protection",
       "UniqueId": "AmplificationProtectionBlocked",
       "splitArgs": [
         {
@@ -14344,7 +14344,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -14356,7 +14356,7 @@
     },
     "SetPacingTimer": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Setting delayed send (PACING) timer for %u ms",
+      "TraceString": "[conn][%p] Setting delayed send (PACING) timer for %u ms",
       "UniqueId": "SetPacingTimer",
       "splitArgs": [
         {
@@ -14380,7 +14380,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -14392,7 +14392,7 @@
     },
     "SendFlushComplete": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Flush complete flags=0x%x",
+      "TraceString": "[conn][%p] Flush complete flags=0x%x",
       "UniqueId": "SendFlushComplete",
       "splitArgs": [
         {
@@ -14416,7 +14416,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -14428,7 +14428,7 @@
     },
     "StartAckDelayTimer": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Starting ACK_DELAY timer for %u ms",
+      "TraceString": "[conn][%p] Starting ACK_DELAY timer for %u ms",
       "UniqueId": "StartAckDelayTimer",
       "splitArgs": [
         {
@@ -14452,7 +14452,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -14500,7 +14500,7 @@
     },
     "IndicateIdealSendBuffer": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pIndicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu",
       "UniqueId": "IndicateIdealSendBuffer",
       "splitArgs": [
         {
@@ -14524,7 +14524,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -15697,7 +15697,7 @@
     },
     "CloseWithoutShutdown": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pClosing handle without fully shutting down.",
+      "TraceString": "[strm][%p] Closing handle without fully shutting down.",
       "UniqueId": "CloseWithoutShutdown",
       "splitArgs": [
         {
@@ -15712,7 +15712,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamWarning",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -15724,7 +15724,7 @@
     },
     "AppTooLong": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pApp took excessive time (%llu us) in callback.",
+      "TraceString": "[strm][%p] App took excessive time (%llu us) in callback.",
       "UniqueId": "AppTooLong",
       "splitArgs": [
         {
@@ -15748,7 +15748,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamWarning",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -15760,7 +15760,7 @@
     },
     "EventSilentDiscard": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pEvent silently discarded.",
+      "TraceString": "[strm][%p] Event silently discarded.",
       "UniqueId": "EventSilentDiscard",
       "splitArgs": [
         {
@@ -15775,7 +15775,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamWarning",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -15787,7 +15787,7 @@
     },
     "IndicateStartComplete": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pIndicating QUIC_STREAM_EVENT_START_COMPLETE (0x%x)",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_START_COMPLETE (0x%x)",
       "UniqueId": "IndicateStartComplete",
       "splitArgs": [
         {
@@ -15811,7 +15811,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -15823,7 +15823,7 @@
     },
     "IndicateStreamShutdownComplete": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pIndicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE",
       "UniqueId": "IndicateStreamShutdownComplete",
       "splitArgs": [
         {
@@ -15838,7 +15838,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16093,7 +16093,7 @@
     },
     "ResetEarly": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pTried to reset at earlier final size!",
+      "TraceString": "[strm][%p] Tried to reset at earlier final size!",
       "UniqueId": "ResetEarly",
       "splitArgs": [
         {
@@ -16108,7 +16108,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamWarning",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16120,7 +16120,7 @@
     },
     "ResetTooBig": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pTried to reset with too big final size!",
+      "TraceString": "[strm][%p] Tried to reset with too big final size!",
       "UniqueId": "ResetTooBig",
       "splitArgs": [
         {
@@ -16135,7 +16135,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamWarning",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16147,7 +16147,7 @@
     },
     "ReceiveTooBig": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pTried to write beyond end of buffer!",
+      "TraceString": "[strm][%p] Tried to write beyond end of buffer!",
       "UniqueId": "ReceiveTooBig",
       "splitArgs": [
         {
@@ -16162,7 +16162,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamWarning",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16174,7 +16174,7 @@
     },
     "ReceiveBeyondFlowControl": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pTried to write beyond flow control limit!",
+      "TraceString": "[strm][%p] Tried to write beyond flow control limit!",
       "UniqueId": "ReceiveBeyondFlowControl",
       "splitArgs": [
         {
@@ -16189,7 +16189,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamWarning",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16201,7 +16201,7 @@
     },
     "RemoteCloseReset": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pClosed remotely (reset).",
+      "TraceString": "[strm][%p] Closed remotely (reset).",
       "UniqueId": "RemoteCloseReset",
       "splitArgs": [
         {
@@ -16216,7 +16216,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamInfo",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16228,7 +16228,7 @@
     },
     "LocalCloseStopSending": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pClosed locally (stop sending).",
+      "TraceString": "[strm][%p] Closed locally (stop sending).",
       "UniqueId": "LocalCloseStopSending",
       "splitArgs": [
         {
@@ -16243,7 +16243,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamInfo",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16255,7 +16255,7 @@
     },
     "QueueRecvFlush": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pQueuing recv flush",
+      "TraceString": "[strm][%p] Queuing recv flush",
       "UniqueId": "QueueRecvFlush",
       "splitArgs": [
         {
@@ -16270,7 +16270,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16282,7 +16282,7 @@
     },
     "IndicatePeerSendAbort": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pIndicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
       "UniqueId": "IndicatePeerSendAbort",
       "splitArgs": [
         {
@@ -16306,7 +16306,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16318,7 +16318,7 @@
     },
     "IndicatePeerReceiveAborted": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pIndicating QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED (0x%llX)",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED (0x%llX)",
       "UniqueId": "IndicatePeerReceiveAborted",
       "splitArgs": [
         {
@@ -16342,7 +16342,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16354,7 +16354,7 @@
     },
     "FlowControlExhausted": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pFlow control window exhausted!",
+      "TraceString": "[strm][%p] Flow control window exhausted!",
       "UniqueId": "FlowControlExhausted",
       "splitArgs": [
         {
@@ -16369,7 +16369,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16381,7 +16381,7 @@
     },
     "Receive": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pReceived %hu bytes, offset=%llu Ready=%hu",
+      "TraceString": "[strm][%p] Received %hu bytes, offset=%llu Ready=%hu",
       "UniqueId": "Receive",
       "splitArgs": [
         {
@@ -16423,7 +16423,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16435,7 +16435,7 @@
     },
     "RemoteBlocked": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pRemote FC blocked (%llu).",
+      "TraceString": "[strm][%p] Remote FC blocked (%llu).",
       "UniqueId": "RemoteBlocked",
       "splitArgs": [
         {
@@ -16459,7 +16459,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16471,7 +16471,7 @@
     },
     "IncreaseRxBuffer": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pIncreasing max RX buffer size to %u (MinRtt=%u; TimeNow=%u; LastUpdate=%u)",
+      "TraceString": "[strm][%p] Increasing max RX buffer size to %u (MinRtt=%u; TimeNow=%u; LastUpdate=%u)",
       "UniqueId": "IncreaseRxBuffer",
       "splitArgs": [
         {
@@ -16522,7 +16522,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16534,7 +16534,7 @@
     },
     "UpdateFlowControl": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pUpdating flow control window",
+      "TraceString": "[strm][%p] Updating flow control window",
       "UniqueId": "UpdateFlowControl",
       "splitArgs": [
         {
@@ -16549,7 +16549,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16561,7 +16561,7 @@
     },
     "IgnoreRecvFlush": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pIgnoring recv flush (recv disabled)",
+      "TraceString": "[strm][%p] Ignoring recv flush (recv disabled)",
       "UniqueId": "IgnoreRecvFlush",
       "splitArgs": [
         {
@@ -16576,7 +16576,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16588,7 +16588,7 @@
     },
     "IndicateReceive": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pIndicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]",
       "UniqueId": "IndicateReceive",
       "splitArgs": [
         {
@@ -16630,7 +16630,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16642,7 +16642,7 @@
     },
     "ReceiveComplete": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pRecv complete (%llu bytes).",
+      "TraceString": "[strm][%p] Recv complete (%llu bytes).",
       "UniqueId": "ReceiveComplete",
       "splitArgs": [
         {
@@ -16666,7 +16666,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16678,7 +16678,7 @@
     },
     "IndicatePeerSendShutdown": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pIndicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN",
       "UniqueId": "IndicatePeerSendShutdown",
       "splitArgs": [
         {
@@ -16693,7 +16693,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16705,7 +16705,7 @@
     },
     "IndicateSendShutdownComplete": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pIndicating QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE",
       "UniqueId": "IndicateSendShutdownComplete",
       "splitArgs": [
         {
@@ -16720,7 +16720,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16732,7 +16732,7 @@
     },
     "IndicateSendCanceled": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pIndicating QUIC_STREAM_EVENT_SEND_COMPLETE [%p] (Canceled)",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SEND_COMPLETE [%p] (Canceled)",
       "UniqueId": "IndicateSendCanceled",
       "splitArgs": [
         {
@@ -16756,7 +16756,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16768,7 +16768,7 @@
     },
     "IndicateSendComplete": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pIndicating QUIC_STREAM_EVENT_SEND_COMPLETE [%p]",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SEND_COMPLETE [%p]",
       "UniqueId": "IndicateSendComplete",
       "splitArgs": [
         {
@@ -16792,7 +16792,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16804,7 +16804,7 @@
     },
     "SendQueued": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pSend Request [%p] queued with %llu bytes at offset %llu (flags 0x%x)",
+      "TraceString": "[strm][%p] Send Request [%p] queued with %llu bytes at offset %llu (flags 0x%x)",
       "UniqueId": "SendQueued",
       "splitArgs": [
         {
@@ -16855,7 +16855,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16867,7 +16867,7 @@
     },
     "NoMoreRoom": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pCan't squeeze in a frame (no room for header)",
+      "TraceString": "[strm][%p] Can't squeeze in a frame (no room for header)",
       "UniqueId": "NoMoreRoom",
       "splitArgs": [
         {
@@ -16882,7 +16882,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16894,7 +16894,7 @@
     },
     "NoMoreFrames": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pNo more frames",
+      "TraceString": "[strm][%p] No more frames",
       "UniqueId": "NoMoreFrames",
       "splitArgs": [
         {
@@ -16909,7 +16909,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16921,7 +16921,7 @@
     },
     "AddFrame": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pBuilt stream frame, offset=%llu len=%lu fin=%d",
+      "TraceString": "[strm][%p] Built stream frame, offset=%llu len=%lu fin=%d",
       "UniqueId": "AddFrame",
       "splitArgs": [
         {
@@ -16963,7 +16963,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -16975,7 +16975,7 @@
     },
     "RecoverOpen": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pRecovering open STREAM frame",
+      "TraceString": "[strm][%p] Recovering open STREAM frame",
       "UniqueId": "RecoverOpen",
       "splitArgs": [
         {
@@ -16990,7 +16990,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -17002,7 +17002,7 @@
     },
     "RecoverFin": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pRecovering fin STREAM frame",
+      "TraceString": "[strm][%p] Recovering fin STREAM frame",
       "UniqueId": "RecoverFin",
       "splitArgs": [
         {
@@ -17017,7 +17017,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -17029,7 +17029,7 @@
     },
     "RecoverRange": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pRecovering offset %llu up to %llu",
+      "TraceString": "[strm][%p] Recovering offset %llu up to %llu",
       "UniqueId": "RecoverRange",
       "splitArgs": [
         {
@@ -17062,7 +17062,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -17074,7 +17074,7 @@
     },
     "AckRange": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pReceived ack for %d bytes, offset=%llu, FF=0x%hx",
+      "TraceString": "[strm][%p] Received ack for %d bytes, offset=%llu, FF=0x%hx",
       "UniqueId": "AckRange",
       "splitArgs": [
         {
@@ -17116,7 +17116,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -17128,7 +17128,7 @@
     },
     "Send0RttUpdated": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pUpdated sent 0RTT length to %llu",
+      "TraceString": "[strm][%p] Updated sent 0RTT length to %llu",
       "UniqueId": "Send0RttUpdated",
       "splitArgs": [
         {
@@ -17152,7 +17152,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -17164,7 +17164,7 @@
     },
     "SendQueueDrained": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pSend queue completely drained.",
+      "TraceString": "[strm][%p] Send queue completely drained.",
       "UniqueId": "SendQueueDrained",
       "splitArgs": [
         {
@@ -17179,7 +17179,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -17191,7 +17191,7 @@
     },
     "SendDump": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pSF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu",
+      "TraceString": "[strm][%p] SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu",
       "UniqueId": "SendDump",
       "splitArgs": [
         {
@@ -17278,7 +17278,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -17290,7 +17290,7 @@
     },
     "SendDumpAck": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %p  unACKed: [%llu, %llu]",
+      "TraceString": "[strm][%p]   unACKed: [%llu, %llu]",
       "UniqueId": "SendDumpAck",
       "splitArgs": [
         {
@@ -17323,7 +17323,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamVerbose",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -17335,7 +17335,7 @@
     },
     "NotAccepted": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX : %pNew stream wasn't accepted, 0x%x",
+      "TraceString": "[strm][%p] New stream wasn't accepted, 0x%x",
       "UniqueId": "NotAccepted",
       "splitArgs": [
         {
@@ -17359,7 +17359,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogStreamWarning",
-        "EncodedPrefix": "PREFIX : %p",
+        "EncodedPrefix": "[strm][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -17371,7 +17371,7 @@
     },
     "MaxStreamCountUpdated": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : App configured max stream count of %hu (type=%hu).",
+      "TraceString": "[conn][%p] App configured max stream count of %hu (type=%hu).",
       "UniqueId": "MaxStreamCountUpdated",
       "splitArgs": [
         {
@@ -17404,7 +17404,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnInfo",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -17416,7 +17416,7 @@
     },
     "IndicateStreamsAvailable": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [%u] [%u]",
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [%u] [%u]",
       "UniqueId": "IndicateStreamsAvailable",
       "splitArgs": [
         {
@@ -17449,7 +17449,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -17461,7 +17461,7 @@
     },
     "PeerStreamCountsUpdated": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Peer updated max stream count (%hu, %llu).",
+      "TraceString": "[conn][%p] Peer updated max stream count (%hu, %llu).",
       "UniqueId": "PeerStreamCountsUpdated",
       "splitArgs": [
         {
@@ -17494,7 +17494,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -17506,7 +17506,7 @@
     },
     "IndicatePeerStreamStarted": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Indicating QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED [%p, 0x%x]",
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED [%p, 0x%x]",
       "UniqueId": "IndicatePeerStreamStarted",
       "splitArgs": [
         {
@@ -17539,7 +17539,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -17776,7 +17776,7 @@
     },
     "StillInTimerWheel": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Still in timer wheel! Connection was likely leaked!",
+      "TraceString": "[conn][%p] Still in timer wheel! Connection was likely leaked!",
       "UniqueId": "StillInTimerWheel",
       "splitArgs": [
         {
@@ -17791,7 +17791,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnWarning",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -17803,7 +17803,7 @@
     },
     "IndicateIdealProcChanged": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED",
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED",
       "UniqueId": "IndicateIdealProcChanged",
       "splitArgs": [
         {
@@ -17818,7 +17818,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -17830,7 +17830,7 @@
     },
     "AbandonOnLibShutdown": {
       "ModuleProperites": {},
-      "TraceString": "PREFIX %p : Abandoning on shutdown",
+      "TraceString": "[conn][%p] Abandoning on shutdown",
       "UniqueId": "AbandonOnLibShutdown",
       "splitArgs": [
         {
@@ -17845,7 +17845,7 @@
       ],
       "macro": {
         "MacroName": "QuicTraceLogConnVerbose",
-        "EncodedPrefix": "PREFIX %p : ",
+        "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
@@ -33407,214 +33407,6 @@
         "TraceID": "FN_connection9874b298efc81e9a08e4033aeaee1aa7"
       },
       {
-        "UniquenessHash": "71053722-e3d0-3b74-ced9-ae62789dbd3a",
-        "TraceID": "ApiEventNoHandler"
-      },
-      {
-        "UniquenessHash": "a2efb665-3a19-7b8e-6d43-8b3026af2e41",
-        "TraceID": "ApiEventTooLong"
-      },
-      {
-        "UniquenessHash": "4dca56a4-429f-11c7-ac2e-9beab8b1002d",
-        "TraceID": "ApiEventAlreadyClosed"
-      },
-      {
-        "UniquenessHash": "dd63fa69-35ba-f812-b2e6-b51b81a84e47",
-        "TraceID": "NoReplacementCidForRetire"
-      },
-      {
-        "UniquenessHash": "c18415b7-7f5c-a9a6-b9c7-61e54ade1648",
-        "TraceID": "NonActivePathCidRetired"
-      },
-      {
-        "UniquenessHash": "0d680f1a-0a03-b7dc-12c4-19de0c337acb",
-        "TraceID": "IgnoreUnreachable"
-      },
-      {
-        "UniquenessHash": "822bee45-81a4-0e6b-d684-6732775ee994",
-        "TraceID": "IgnoreFrameAfterClose"
-      },
-      {
-        "UniquenessHash": "6e041cd1-dee2-5f66-e297-d5cff01f6609",
-        "TraceID": "UnreachableIgnore"
-      },
-      {
-        "UniquenessHash": "aae9f748-f716-91da-8dcd-213935529069",
-        "TraceID": "UnreachableInvalid"
-      },
-      {
-        "UniquenessHash": "e0764834-0549-4828-392a-f9a2b8b7dc78",
-        "TraceID": "CloseComplete"
-      },
-      {
-        "UniquenessHash": "427d5742-9d36-9ec5-acb3-fcf8a9ad364f",
-        "TraceID": "Restart"
-      },
-      {
-        "UniquenessHash": "520b695b-e24d-ad48-e6fb-f4b408628926",
-        "TraceID": "PeerTPSet"
-      },
-      {
-        "UniquenessHash": "a4a80586-7281-8479-8f51-9e8d7055a626",
-        "TraceID": "RecvStatelessReset"
-      },
-      {
-        "UniquenessHash": "e51ce1e9-9e9f-6cc2-f895-659c767346fa",
-        "TraceID": "HandshakeConfirmedFrame"
-      },
-      {
-        "UniquenessHash": "9a8d703c-e857-bf17-6eb0-767374a13ce2",
-        "TraceID": "FirstCidUsage"
-      },
-      {
-        "UniquenessHash": "f9234b0d-150c-0ab0-9248-f2f029b57ac8",
-        "TraceID": "PathDiscarded"
-      },
-      {
-        "UniquenessHash": "c6f930ba-035e-7bcf-2a9a-62d448fccccd",
-        "TraceID": "Unreachable"
-      },
-      {
-        "UniquenessHash": "c45cd373-3933-9cc7-ab05-b7d66792e5ed",
-        "TraceID": "UpdateIdleTimeout"
-      },
-      {
-        "UniquenessHash": "23e52230-219b-4fc3-1ddd-a517f4271446",
-        "TraceID": "UpdateKeepAlive"
-      },
-      {
-        "UniquenessHash": "17b10d21-e1b1-cfb8-4510-2b7d574832c8",
-        "TraceID": "UpdateDisconnectTimeout"
-      },
-      {
-        "UniquenessHash": "f872327a-1b78-6a43-53a8-b646054a6874",
-        "TraceID": "SetSecurityConfig"
-      },
-      {
-        "UniquenessHash": "05fac606-3bbe-11e0-497f-4e9b44fb1a6c",
-        "TraceID": "UpdateUseSendBuffer"
-      },
-      {
-        "UniquenessHash": "ea99cde5-e74a-7f40-0e01-7bf3744afc97",
-        "TraceID": "UpdateUsePacing"
-      },
-      {
-        "UniquenessHash": "8e13acd2-6005-6dfe-397f-39a082e75c2b",
-        "TraceID": "UpdateShareBinding"
-      },
-      {
-        "UniquenessHash": "172b3a5c-5654-7c2e-2c65-a8d0b62a0f5f",
-        "TraceID": "RttUpdated"
-      },
-      {
-        "UniquenessHash": "d21a31c8-fac4-480c-4b87-1d3a925e4107",
-        "TraceID": "NewSrcCidNameCollision"
-      },
-      {
-        "UniquenessHash": "f4cd5309-2231-856e-53f4-9e9381f663c9",
-        "TraceID": "ZeroLengthCidRetire"
-      },
-      {
-        "UniquenessHash": "1cd6fee7-5f84-bc03-b74a-179c8d6454dc",
-        "TraceID": "TimerExpired"
-      },
-      {
-        "UniquenessHash": "26db3f1a-211a-dd14-0d21-bedae30cf951",
-        "TraceID": "IndicateShutdownByPeer"
-      },
-      {
-        "UniquenessHash": "eeba39d8-de47-0abf-648f-e2bb732124b1",
-        "TraceID": "IndicateShutdownByTransport"
-      },
-      {
-        "UniquenessHash": "5e8a2e93-da3b-b1a9-581f-23380295d288",
-        "TraceID": "IndicateConnectionShutdownComplete"
-      },
-      {
-        "UniquenessHash": "4d61c637-1916-bb98-4e59-43838453d5d4",
-        "TraceID": "FoundCachedServerState"
-      },
-      {
-        "UniquenessHash": "00d66c7c-7a33-721b-2503-e7d78667e206",
-        "TraceID": "QueueDatagrams"
-      },
-      {
-        "UniquenessHash": "70e6cd71-c379-5c4d-ca67-a4149dc0f21f",
-        "TraceID": "RecvVerNeg"
-      },
-      {
-        "UniquenessHash": "300c1fa1-fca7-2683-162d-483cf0d9e4fd",
-        "TraceID": "VerNegItem"
-      },
-      {
-        "UniquenessHash": "1b0a199b-be12-e162-e9d8-65704ff6a036",
-        "TraceID": "InvalidVerNeg"
-      },
-      {
-        "UniquenessHash": "73e373d9-16bc-00bf-825e-d6af554463d3",
-        "TraceID": "DeferDatagram"
-      },
-      {
-        "UniquenessHash": "33fe1390-bb36-6a0f-2943-58bff5790bef",
-        "TraceID": "DecryptOldKey"
-      },
-      {
-        "UniquenessHash": "c9af5d54-954a-de68-32a9-ee4e786196a4",
-        "TraceID": "PossiblePeerKeyUpdate"
-      },
-      {
-        "UniquenessHash": "cddf1d8f-8e7e-c9e5-2b6c-f52704940992",
-        "TraceID": "UpdateReadKeyPhase"
-      },
-      {
-        "UniquenessHash": "08074026-f961-20da-76e5-ac352f6ce90c",
-        "TraceID": "PeerConnFCBlocked"
-      },
-      {
-        "UniquenessHash": "459cbf87-f6b7-876f-e4c2-f98a93462d83",
-        "TraceID": "PeerStreamFCBlocked"
-      },
-      {
-        "UniquenessHash": "ee899bf0-2a6a-ea94-6f3d-72c209415c62",
-        "TraceID": "IndicatePeerNeedStreams"
-      },
-      {
-        "UniquenessHash": "a3a37ff3-dee2-ddc0-929f-3ce2a4c7ca9b",
-        "TraceID": "IndicatePeerAddrChanged"
-      },
-      {
-        "UniquenessHash": "63e8a1ff-58bb-a8ba-23f6-ea14d45a8460",
-        "TraceID": "UdpRecvBatch"
-      },
-      {
-        "UniquenessHash": "58022595-dff2-e210-191c-1649c4e7e092",
-        "TraceID": "UdpRecvDeferred"
-      },
-      {
-        "UniquenessHash": "e8772a1f-72b5-bbb6-1a4a-1ed5c3386f83",
-        "TraceID": "UdpRecv"
-      },
-      {
-        "UniquenessHash": "aca47e52-4526-9bb5-3569-8a05febd8ad4",
-        "TraceID": "ForceKeyUpdate"
-      },
-      {
-        "UniquenessHash": "ebadc063-70c3-ea36-e5af-a21782cbb7a6",
-        "TraceID": "ForceCidUpdate"
-      },
-      {
-        "UniquenessHash": "9ffa3a0e-2f1e-2ab8-4f39-c5c13fa7080c",
-        "TraceID": "TestTPSet"
-      },
-      {
-        "UniquenessHash": "5c6155e2-5df0-6c6a-f0b4-bb45aa9060e4",
-        "TraceID": "ReadTicketFailure"
-      },
-      {
-        "UniquenessHash": "044b2adf-3141-df06-a18c-1c4070146173",
-        "TraceID": "AbandonInternallyClosed"
-      },
-      {
         "UniquenessHash": "3eff68f4-8d78-fbcc-d5cd-91388f6c65f3",
         "TraceID": "ConnLocalAddrAdded"
       },
@@ -33675,74 +33467,6 @@
         "TraceID": "ConnLocalAddrRemoved"
       },
       {
-        "UniquenessHash": "baa9ec69-d708-fcf0-a14b-0f17a52aa1e6",
-        "TraceID": "IgnoreCryptoFrame"
-      },
-      {
-        "UniquenessHash": "446ffaed-7bc0-1029-a79b-189e229ce90e",
-        "TraceID": "DiscardKeyType"
-      },
-      {
-        "UniquenessHash": "d0e33722-6e74-d90e-44b3-91a3f6a6061b",
-        "TraceID": "CryptoStateDiscard"
-      },
-      {
-        "UniquenessHash": "b8fd775e-6d19-3118-6fd0-11dfaab8ec87",
-        "TraceID": "ZeroRttAccepted"
-      },
-      {
-        "UniquenessHash": "2b72538e-55ae-8d61-9a6a-da1c7c13c469",
-        "TraceID": "ZeroRttRejected"
-      },
-      {
-        "UniquenessHash": "bf9957f7-d2b3-d088-73d7-2e2d176200c9",
-        "TraceID": "HandshakeConfirmedServer"
-      },
-      {
-        "UniquenessHash": "c041a466-d8bd-6c10-03ce-bd36db9aad9d",
-        "TraceID": "TicketReady"
-      },
-      {
-        "UniquenessHash": "3ce6025e-cf80-73d5-4665-1fc7071198ea",
-        "TraceID": "CryptoDump"
-      },
-      {
-        "UniquenessHash": "f7461311-586f-4d64-887f-5825c5b1d2ba",
-        "TraceID": "CryptoDumpUnacked"
-      },
-      {
-        "UniquenessHash": "7af13cd4-a73f-7636-f9ac-98b5014f953d",
-        "TraceID": "NoMoreRoomForCrypto"
-      },
-      {
-        "UniquenessHash": "a73e6bb1-192d-f4f8-e6ef-c98d3a3eedbf",
-        "TraceID": "AddCryptoFrame"
-      },
-      {
-        "UniquenessHash": "4f35c757-2954-163a-40d2-1967aafacddc",
-        "TraceID": "RecoverCrypto"
-      },
-      {
-        "UniquenessHash": "ee1f96e3-5f2f-6fdc-8e45-b4a14dc44e2e",
-        "TraceID": "AckCrypto"
-      },
-      {
-        "UniquenessHash": "ff21551f-b2dd-2b37-7cc1-100b379f59a1",
-        "TraceID": "RecvCrypto"
-      },
-      {
-        "UniquenessHash": "64564ab8-355f-f99c-ab6f-f7b5f55f8147",
-        "TraceID": "IndicateConnected"
-      },
-      {
-        "UniquenessHash": "702232ac-50c8-25a6-68d0-22987b67236d",
-        "TraceID": "DrainCrypto"
-      },
-      {
-        "UniquenessHash": "f5c85d7d-adac-dd7f-fee5-e8af396cb85e",
-        "TraceID": "CryptoNotReady"
-      },
-      {
         "UniquenessHash": "1ecaedcf-c721-6cb4-f2de-272d639007d4",
         "TraceID": "ConnWriteKeyUpdated"
       },
@@ -33757,154 +33481,6 @@
       {
         "UniquenessHash": "4a199d4f-1500-080a-3543-eb7a06950aa9",
         "TraceID": "ConnKeyPhaseChange"
-      },
-      {
-        "UniquenessHash": "a8e9f9da-c972-8c27-200c-ef66aadfa30f",
-        "TraceID": "NoSniPresent"
-      },
-      {
-        "UniquenessHash": "68101e09-d8da-bf34-65a2-6398a18668b4",
-        "TraceID": "DecodeTPReserved"
-      },
-      {
-        "UniquenessHash": "bcf9e193-4060-8f90-3447-602ecb402bfa",
-        "TraceID": "DecodeTPUnknown"
-      },
-      {
-        "UniquenessHash": "b3050ce5-ea39-fea6-ed54-0207b6395dde",
-        "TraceID": "EncodeTPStart"
-      },
-      {
-        "UniquenessHash": "280ea450-2bde-7e29-ca1d-97c7d65f2f51",
-        "TraceID": "EncodeTPOriginalCID"
-      },
-      {
-        "UniquenessHash": "43aa1a52-2a45-8bf6-8eda-fe9299456ac0",
-        "TraceID": "EncodeTPIdleTimeout"
-      },
-      {
-        "UniquenessHash": "bcbf5155-bc31-c200-ad73-6d3a411a08d7",
-        "TraceID": "EncodeTPStatelessResetToken"
-      },
-      {
-        "UniquenessHash": "2efbe672-e539-90a9-4081-e3e13c3ba815",
-        "TraceID": "EncodeTPMaxPacketSize"
-      },
-      {
-        "UniquenessHash": "c75cb94c-2ebd-e2b3-a1ab-a50b8805dd47",
-        "TraceID": "EncodeTPInitMaxData"
-      },
-      {
-        "UniquenessHash": "ecc87250-95c2-3658-bd45-1254305b8990",
-        "TraceID": "EncodeTPInitMaxStreamDataBidiLocal"
-      },
-      {
-        "UniquenessHash": "20940642-ecd4-a26d-d748-6d4ce745ad4d",
-        "TraceID": "EncodeTPInitMaxStreamDataBidiRemote"
-      },
-      {
-        "UniquenessHash": "af9de791-8b2c-bd33-0e7e-50493d2e9127",
-        "TraceID": "EncodeTPInitMaxStreamUni"
-      },
-      {
-        "UniquenessHash": "5c0eaa3d-02b3-a617-463a-c0ceb28c0f13",
-        "TraceID": "EncodeTPMaxBidiStreams"
-      },
-      {
-        "UniquenessHash": "6122c502-aaf3-1ee9-0420-526f42734563",
-        "TraceID": "EncodeTPMaxUniStreams"
-      },
-      {
-        "UniquenessHash": "5491ee33-7482-bafb-990f-7ea894678ece",
-        "TraceID": "EncodeTPAckDelayExponent"
-      },
-      {
-        "UniquenessHash": "e3faf36f-7eed-aa57-9876-062ed7672e8c",
-        "TraceID": "EncodeTPMaxAckDelay"
-      },
-      {
-        "UniquenessHash": "15070643-caf2-ba13-813e-9b8bdd82df2c",
-        "TraceID": "EncodeTPDisableMigration"
-      },
-      {
-        "UniquenessHash": "4f8b4801-d88f-6ba5-7a9d-bcbe1caee260",
-        "TraceID": "EncodeTPPreferredAddress"
-      },
-      {
-        "UniquenessHash": "67ce7de8-53c7-64d8-749c-12dd4b410f42",
-        "TraceID": "EncodeTPCIDLimit"
-      },
-      {
-        "UniquenessHash": "6312e312-864e-5090-5bed-1c87627a827b",
-        "TraceID": "EncodeTPTest"
-      },
-      {
-        "UniquenessHash": "c6cc9015-5f96-7535-7573-ed33ff18765d",
-        "TraceID": "EncodeTPEnd"
-      },
-      {
-        "UniquenessHash": "1ff7a7f5-c6dd-0c36-5fed-8c64f0fe4f3a",
-        "TraceID": "DecodeTPStart"
-      },
-      {
-        "UniquenessHash": "24ec02ad-1186-b6a9-2409-64218cd2e531",
-        "TraceID": "DecodeTPOriginalCID"
-      },
-      {
-        "UniquenessHash": "a6a75c17-4f9a-6ffc-33e3-3106fd604d1d",
-        "TraceID": "DecodeTPIdleTimeout"
-      },
-      {
-        "UniquenessHash": "3173623b-c278-9bd3-9858-2def50c59b02",
-        "TraceID": "DecodeTPStatelessResetToken"
-      },
-      {
-        "UniquenessHash": "029afe52-e506-0a19-c39a-3f49923713ba",
-        "TraceID": "DecodeTPMaxPacketSize"
-      },
-      {
-        "UniquenessHash": "5c2a8565-b765-4c00-9dea-417990c3c2ce",
-        "TraceID": "DecodeTPInitMaxData"
-      },
-      {
-        "UniquenessHash": "3ee2ad31-acd5-2f22-5e96-24d0268f9fa7",
-        "TraceID": "DecodeTPInitMaxStreamDataBidiLocal"
-      },
-      {
-        "UniquenessHash": "a2a29d86-2ff1-9b62-12fd-28150e0d86fe",
-        "TraceID": "DecodeTPInitMaxStreamDataBidiRemote"
-      },
-      {
-        "UniquenessHash": "3ee7b22d-231d-12b1-8b2a-ec31a69c4efb",
-        "TraceID": "DecodeTPInitMaxStreamDataBidiUni"
-      },
-      {
-        "UniquenessHash": "abb48a31-aa7d-4c21-af5e-729c6ab13514",
-        "TraceID": "DecodeTPMaxBidiStreams"
-      },
-      {
-        "UniquenessHash": "b0201d77-a639-e82c-49ea-2a3355c684ec",
-        "TraceID": "DecodeTPMaxUniStreams"
-      },
-      {
-        "UniquenessHash": "819b39de-874f-41b3-c943-f186fa8f39e5",
-        "TraceID": "DecodeTPAckDelayExponent"
-      },
-      {
-        "UniquenessHash": "1ed7f3e9-8a56-de18-6965-b770b6d4789e",
-        "TraceID": "DecodeTPMaxAckDelay"
-      },
-      {
-        "UniquenessHash": "238e4eab-16d3-ae58-0459-c7188df2a7ef",
-        "TraceID": "DecodeTPDisableActiveMigration"
-      },
-      {
-        "UniquenessHash": "639ac029-8502-7cf2-9b31-1043bd076fda",
-        "TraceID": "DecodeTPPreferredAddress"
-      },
-      {
-        "UniquenessHash": "785275c1-cc00-b981-3bd0-c15205a4943e",
-        "TraceID": "DecodeTPCIDLimit"
       },
       {
         "UniquenessHash": "7e1a654a-1739-4e18-3042-3d2d9c38e899",
@@ -34171,10 +33747,6 @@
         "TraceID": "FN_listener5f65ad552c764a2de94907d332894a52"
       },
       {
-        "UniquenessHash": "8333a9cb-4598-e078-bf03-3c76169067ed",
-        "TraceID": "NoSecurityConfigAvailable"
-      },
-      {
         "UniquenessHash": "b5ee3b99-bc14-024e-4f0a-8be10e90a5fa",
         "TraceID": "ListenerCreated"
       },
@@ -34259,18 +33831,6 @@
         "TraceID": "FN_loss_detection7317b1941fdec283fd38d8447de752e7"
       },
       {
-        "UniquenessHash": "cd6d8fdb-0cfc-f4f8-d60d-4c8d1b134a50",
-        "TraceID": "HandshakeConfirmedAck"
-      },
-      {
-        "UniquenessHash": "149ba949-84b9-913b-21d5-4ccb3160e185",
-        "TraceID": "ScheduleProbe"
-      },
-      {
-        "UniquenessHash": "f6633023-23e1-60e1-5ed4-889ce4322ca3",
-        "TraceID": "KeyChangeConfirmed"
-      },
-      {
         "UniquenessHash": "ec1df2bc-58d0-6ba3-a0ed-0ea6117c7fe7",
         "TraceID": "ConnLossDetectionTimerCancel"
       },
@@ -34319,30 +33879,6 @@
         "TraceID": "FN_packet_builderbe3ff1273f0941f8129a2f6dac9f12fc"
       },
       {
-        "UniquenessHash": "9b9abd40-b814-8f67-2fdb-a5df883a5301",
-        "TraceID": "NoSrcCidAvailable"
-      },
-      {
-        "UniquenessHash": "d47dfcd6-7986-84d9-1597-60b7710f1080",
-        "TraceID": "GetPacketTypeFailure"
-      },
-      {
-        "UniquenessHash": "0b7c7292-b790-b5a3-858f-3249e3e60aa0",
-        "TraceID": "PathInitialized"
-      },
-      {
-        "UniquenessHash": "44d4499e-ad40-0341-8051-a0bf3cd062c1",
-        "TraceID": "PathRemoved"
-      },
-      {
-        "UniquenessHash": "d8f26b18-7d1a-d6e1-7887-7bd0a7ca2d19",
-        "TraceID": "PathValidated"
-      },
-      {
-        "UniquenessHash": "8f48bde7-28f5-bf21-6cea-cf1655ab970d",
-        "TraceID": "PathActive"
-      },
-      {
         "UniquenessHash": "84c29f08-52db-0372-78a6-ab55a9022431",
         "TraceID": "FN_registration711e1a8cca07c45faee6d20a450e9ec6"
       },
@@ -34363,56 +33899,8 @@
         "TraceID": "RegistrationRundown"
       },
       {
-        "UniquenessHash": "264ae39b-1aba-8c84-a63e-53eeaaaa137f",
-        "TraceID": "SetSendFlag"
-      },
-      {
-        "UniquenessHash": "731354f7-0ffc-5be9-cdea-50c96cd01023",
-        "TraceID": "ClearSendFlags"
-      },
-      {
-        "UniquenessHash": "ce09c02c-5c2f-fcf6-b69d-0efc3249a944",
-        "TraceID": "PathMtuUpdated"
-      },
-      {
-        "UniquenessHash": "481f545d-e2a6-a007-0241-9e3684266e6f",
-        "TraceID": "CancelAckDelayTimer"
-      },
-      {
-        "UniquenessHash": "9e969969-aac7-79b8-23fe-e40d65638561",
-        "TraceID": "ScheduleSendFlags"
-      },
-      {
-        "UniquenessHash": "2bf77f7d-c927-d017-a9cc-234292fe4458",
-        "TraceID": "RemoveSendFlags"
-      },
-      {
-        "UniquenessHash": "12d7eb6a-f605-671e-76ad-4d555ec227b6",
-        "TraceID": "FlushSend"
-      },
-      {
-        "UniquenessHash": "b215f161-8d00-4445-6ae3-973312f4ebc3",
-        "TraceID": "AmplificationProtectionBlocked"
-      },
-      {
-        "UniquenessHash": "ca2339ef-de3e-9768-e745-57fece4d9c66",
-        "TraceID": "SetPacingTimer"
-      },
-      {
-        "UniquenessHash": "3e73271d-8e68-adb4-fd91-694ab531ebea",
-        "TraceID": "SendFlushComplete"
-      },
-      {
-        "UniquenessHash": "10234c85-20e3-c60b-6c3b-675bac55e06b",
-        "TraceID": "StartAckDelayTimer"
-      },
-      {
         "UniquenessHash": "5d310171-cd3d-0604-d8a6-bcd1fb29d022",
         "TraceID": "ConnQueueSendFlush"
-      },
-      {
-        "UniquenessHash": "cbc8db5a-0596-45eb-ed21-d8e3bf49f50f",
-        "TraceID": "IndicateIdealSendBuffer"
       },
       {
         "UniquenessHash": "92b62c5d-e799-0201-c4e5-3b7d822312d4",
@@ -34559,26 +34047,6 @@
         "TraceID": "FN_settings01739e9f48d20100fa4147ba2385f8eb"
       },
       {
-        "UniquenessHash": "f047a5d3-f677-26c8-dc82-cd127d6a44a8",
-        "TraceID": "CloseWithoutShutdown"
-      },
-      {
-        "UniquenessHash": "c4a31129-6405-1fa5-7676-524b8d247657",
-        "TraceID": "AppTooLong"
-      },
-      {
-        "UniquenessHash": "4fe999ae-119d-5c43-2707-75c0a45b2893",
-        "TraceID": "EventSilentDiscard"
-      },
-      {
-        "UniquenessHash": "07a8845f-46e7-de06-fae0-47c37c5b8554",
-        "TraceID": "IndicateStartComplete"
-      },
-      {
-        "UniquenessHash": "54c581b6-b321-c80c-426b-0626e898eeee",
-        "TraceID": "IndicateStreamShutdownComplete"
-      },
-      {
         "UniquenessHash": "cfaab7b3-b77b-3a94-a433-4c9b57907696",
         "TraceID": "StreamDestroyed"
       },
@@ -34593,158 +34061,6 @@
       {
         "UniquenessHash": "c920076b-b563-8dbd-b6bf-abf16aba3b36",
         "TraceID": "StreamOutFlowBlocked"
-      },
-      {
-        "UniquenessHash": "fc5f72b2-3ad9-e090-6abd-aee3d0bf5995",
-        "TraceID": "ResetEarly"
-      },
-      {
-        "UniquenessHash": "80018310-7f17-a0e4-9d4b-911f8cbf2f94",
-        "TraceID": "ResetTooBig"
-      },
-      {
-        "UniquenessHash": "ba9d9250-9821-0c6e-c420-6bd996343704",
-        "TraceID": "ReceiveTooBig"
-      },
-      {
-        "UniquenessHash": "02210838-bcda-1b91-b547-041d5154d7dd",
-        "TraceID": "ReceiveBeyondFlowControl"
-      },
-      {
-        "UniquenessHash": "441910f3-8478-c623-f04b-db19660d7a3f",
-        "TraceID": "RemoteCloseReset"
-      },
-      {
-        "UniquenessHash": "680b94ee-e9b0-9560-83b7-7e7466182851",
-        "TraceID": "LocalCloseStopSending"
-      },
-      {
-        "UniquenessHash": "99aaedcc-73a8-6500-f2a6-559a489a8be0",
-        "TraceID": "QueueRecvFlush"
-      },
-      {
-        "UniquenessHash": "355a5377-4cd8-f17c-460f-51bea13d7119",
-        "TraceID": "IndicatePeerSendAbort"
-      },
-      {
-        "UniquenessHash": "e586f61a-3405-5aec-3e46-e4dd97400e19",
-        "TraceID": "IndicatePeerReceiveAborted"
-      },
-      {
-        "UniquenessHash": "e7e34faa-6df4-1bc9-6daa-d2f70ecaa595",
-        "TraceID": "FlowControlExhausted"
-      },
-      {
-        "UniquenessHash": "105ed75d-e77a-c035-fd7e-33e28da413c7",
-        "TraceID": "Receive"
-      },
-      {
-        "UniquenessHash": "e0ec4484-5b99-0de1-8040-8f1eaad0c82b",
-        "TraceID": "RemoteBlocked"
-      },
-      {
-        "UniquenessHash": "842906f9-e0aa-f8f6-1104-c1fd84ecaeaf",
-        "TraceID": "IncreaseRxBuffer"
-      },
-      {
-        "UniquenessHash": "09d82141-cf59-d06f-28c7-8d5aaeb6ff0d",
-        "TraceID": "UpdateFlowControl"
-      },
-      {
-        "UniquenessHash": "53c81840-8f7b-69dc-2867-041ed73735a3",
-        "TraceID": "IgnoreRecvFlush"
-      },
-      {
-        "UniquenessHash": "e1d6151e-ea3e-e8de-6466-b30046403cc8",
-        "TraceID": "IndicateReceive"
-      },
-      {
-        "UniquenessHash": "8f31dd23-1bfb-1dbd-7f36-c48c21c4cf7f",
-        "TraceID": "ReceiveComplete"
-      },
-      {
-        "UniquenessHash": "f468e3e2-ab22-7ec6-ec78-284e4af76d38",
-        "TraceID": "IndicatePeerSendShutdown"
-      },
-      {
-        "UniquenessHash": "ab49ef87-864d-ff97-21af-86410c136847",
-        "TraceID": "IndicateSendShutdownComplete"
-      },
-      {
-        "UniquenessHash": "447eb9ee-13ef-434e-6a9e-a7ac592ce4bc",
-        "TraceID": "IndicateSendCanceled"
-      },
-      {
-        "UniquenessHash": "2b2fc465-f386-951f-e378-4396f1aae26c",
-        "TraceID": "IndicateSendComplete"
-      },
-      {
-        "UniquenessHash": "588b9db0-8fbb-f773-e5e4-0c8bb2a74647",
-        "TraceID": "SendQueued"
-      },
-      {
-        "UniquenessHash": "7c5efc66-205d-7966-0f47-b7449c6c3f18",
-        "TraceID": "NoMoreRoom"
-      },
-      {
-        "UniquenessHash": "2ff42b6e-b22b-8a39-f0be-bb962cf649da",
-        "TraceID": "NoMoreFrames"
-      },
-      {
-        "UniquenessHash": "37e5ca9d-a931-198f-fff5-831bff3753f6",
-        "TraceID": "AddFrame"
-      },
-      {
-        "UniquenessHash": "9f16cdca-422d-de49-4f3c-0229447bed46",
-        "TraceID": "RecoverOpen"
-      },
-      {
-        "UniquenessHash": "ec49fabd-f374-a063-9168-0419b901fb9d",
-        "TraceID": "RecoverFin"
-      },
-      {
-        "UniquenessHash": "8250704a-8ae7-f50b-be02-b3472b3d9c34",
-        "TraceID": "RecoverRange"
-      },
-      {
-        "UniquenessHash": "9f9580fd-2728-ebc7-1f53-be0fa97f2cf4",
-        "TraceID": "AckRange"
-      },
-      {
-        "UniquenessHash": "08666fb7-f155-a883-e869-ee2bfe1bcbff",
-        "TraceID": "Send0RttUpdated"
-      },
-      {
-        "UniquenessHash": "7e1170f1-2803-b960-f197-80ad467b0826",
-        "TraceID": "SendQueueDrained"
-      },
-      {
-        "UniquenessHash": "0df32e7a-4c2e-9907-55d4-3144a2c7759f",
-        "TraceID": "SendDump"
-      },
-      {
-        "UniquenessHash": "62cd0dd1-aade-6ea4-b819-3be7479dfa16",
-        "TraceID": "SendDumpAck"
-      },
-      {
-        "UniquenessHash": "cd4422fc-d2f2-a279-4854-a9a0925e7614",
-        "TraceID": "NotAccepted"
-      },
-      {
-        "UniquenessHash": "adbd27d7-b7ef-992c-ac9a-b9c8f4a9d458",
-        "TraceID": "MaxStreamCountUpdated"
-      },
-      {
-        "UniquenessHash": "47c41b9d-4ef4-043c-e397-0c8ec529f019",
-        "TraceID": "IndicateStreamsAvailable"
-      },
-      {
-        "UniquenessHash": "1cb57f40-ced7-282b-0399-3e6ee9f6e054",
-        "TraceID": "PeerStreamCountsUpdated"
-      },
-      {
-        "UniquenessHash": "0ab345d8-0dd6-e264-96bf-0002e50c73d5",
-        "TraceID": "IndicatePeerStreamStarted"
       },
       {
         "UniquenessHash": "8183a993-bcf1-5183-9f2d-ed1a56960270",
@@ -34769,18 +34085,6 @@
       {
         "UniquenessHash": "a1143635-b7b6-752b-a846-27616c9ee307",
         "TraceID": "FN_timer_wheelfc323a336f8107161c44f48769b0a3fa"
-      },
-      {
-        "UniquenessHash": "253e77bc-187e-c80f-7f97-8db16f0af581",
-        "TraceID": "StillInTimerWheel"
-      },
-      {
-        "UniquenessHash": "d32cc58f-9ee5-3ad1-ad65-3b38bc30bae7",
-        "TraceID": "IndicateIdealProcChanged"
-      },
-      {
-        "UniquenessHash": "aa4a85dd-5b04-6a25-bf55-ae9a159eb6a6",
-        "TraceID": "AbandonOnLibShutdown"
       },
       {
         "UniquenessHash": "f0f703c7-0ef7-1752-59e7-e6ea0729544f",
@@ -36649,6 +35953,702 @@
       {
         "UniquenessHash": "875b4c8e-b473-4010-03ea-b2ce69bb2b42",
         "TraceID": "ConnPacketACKed"
+      },
+      {
+        "UniquenessHash": "c69c6d33-2838-013a-936c-7fbc085570b4",
+        "TraceID": "ApiEventNoHandler"
+      },
+      {
+        "UniquenessHash": "92dbd984-bf8a-373b-62a3-ddaa921732df",
+        "TraceID": "ApiEventTooLong"
+      },
+      {
+        "UniquenessHash": "5ac2cec3-42ca-2321-6728-82a1188c0140",
+        "TraceID": "ApiEventAlreadyClosed"
+      },
+      {
+        "UniquenessHash": "9cc051a4-7fe8-2888-20cf-c5ada9208533",
+        "TraceID": "NoReplacementCidForRetire"
+      },
+      {
+        "UniquenessHash": "20b67d09-e893-9f23-3603-0b3993d48031",
+        "TraceID": "NonActivePathCidRetired"
+      },
+      {
+        "UniquenessHash": "1ea517d9-c69e-00e9-7283-ecfad19a42f5",
+        "TraceID": "IgnoreUnreachable"
+      },
+      {
+        "UniquenessHash": "e9005ec9-988e-c1c6-faa0-a576c004c50b",
+        "TraceID": "IgnoreFrameAfterClose"
+      },
+      {
+        "UniquenessHash": "f087a4f6-fe61-e618-753d-99e3c95c76cb",
+        "TraceID": "UnreachableIgnore"
+      },
+      {
+        "UniquenessHash": "6a4d5761-7fc8-c731-d576-0e3c43d16a18",
+        "TraceID": "UnreachableInvalid"
+      },
+      {
+        "UniquenessHash": "98ac189b-f782-5ce7-aeb2-d5398df528d1",
+        "TraceID": "CloseComplete"
+      },
+      {
+        "UniquenessHash": "7d697c88-df89-b079-c014-7a6c00ca8776",
+        "TraceID": "Restart"
+      },
+      {
+        "UniquenessHash": "63153436-bbba-4092-b061-5aab2692a9c9",
+        "TraceID": "PeerTPSet"
+      },
+      {
+        "UniquenessHash": "1a6051bf-393a-b704-7237-8d9d0881efb3",
+        "TraceID": "RecvStatelessReset"
+      },
+      {
+        "UniquenessHash": "426c5817-657d-d4b8-5864-908d0b91772e",
+        "TraceID": "HandshakeConfirmedFrame"
+      },
+      {
+        "UniquenessHash": "5e023c07-7bc3-8b2f-76d0-4a38701cef2d",
+        "TraceID": "FirstCidUsage"
+      },
+      {
+        "UniquenessHash": "41d39427-3e79-a800-a73b-7111c591ee12",
+        "TraceID": "PathDiscarded"
+      },
+      {
+        "UniquenessHash": "f8180a31-a071-793d-02c5-5600f8966c48",
+        "TraceID": "Unreachable"
+      },
+      {
+        "UniquenessHash": "5566ba17-a508-e348-c832-84523238b097",
+        "TraceID": "UpdateIdleTimeout"
+      },
+      {
+        "UniquenessHash": "5b5d01c1-4b5f-2107-e6bf-6438b293efa1",
+        "TraceID": "UpdateKeepAlive"
+      },
+      {
+        "UniquenessHash": "c12bc763-2609-6955-b54b-6514e5ddc0a4",
+        "TraceID": "UpdateDisconnectTimeout"
+      },
+      {
+        "UniquenessHash": "18ad8c68-eea5-3db4-9ebb-8c88d549afc8",
+        "TraceID": "SetSecurityConfig"
+      },
+      {
+        "UniquenessHash": "11d325a2-ce18-1ecd-f911-8b3103640c3b",
+        "TraceID": "UpdateUseSendBuffer"
+      },
+      {
+        "UniquenessHash": "76f33f7b-c5c9-224c-616e-62ba9a5bda0d",
+        "TraceID": "UpdateUsePacing"
+      },
+      {
+        "UniquenessHash": "c0bccce2-f790-9851-0222-6e9061314ab2",
+        "TraceID": "UpdateShareBinding"
+      },
+      {
+        "UniquenessHash": "8cc1a115-7dcb-e34c-67e0-911b9ed70a9c",
+        "TraceID": "RttUpdated"
+      },
+      {
+        "UniquenessHash": "61ae464a-2902-2d07-b588-f837afbc4048",
+        "TraceID": "NewSrcCidNameCollision"
+      },
+      {
+        "UniquenessHash": "544776e8-4877-d5da-4fa0-fc664dd8fd98",
+        "TraceID": "ZeroLengthCidRetire"
+      },
+      {
+        "UniquenessHash": "b1be65a8-cd8b-15bc-63f4-2505106e5960",
+        "TraceID": "TimerExpired"
+      },
+      {
+        "UniquenessHash": "5bda6698-e21b-b6c6-8eeb-1345b5b6fdb5",
+        "TraceID": "IndicateShutdownByPeer"
+      },
+      {
+        "UniquenessHash": "2fbfe723-9f02-173c-6f00-d6910945fc2b",
+        "TraceID": "IndicateShutdownByTransport"
+      },
+      {
+        "UniquenessHash": "f8280555-5057-232c-bc7d-b3cdd8f840f5",
+        "TraceID": "IndicateConnectionShutdownComplete"
+      },
+      {
+        "UniquenessHash": "3fd431ea-14e0-47c5-7242-475a64109172",
+        "TraceID": "FoundCachedServerState"
+      },
+      {
+        "UniquenessHash": "18ef147d-5376-d7f2-f624-3b27af96dd05",
+        "TraceID": "QueueDatagrams"
+      },
+      {
+        "UniquenessHash": "9727ad53-8a0f-e3b3-8def-c1fa820baaa9",
+        "TraceID": "RecvVerNeg"
+      },
+      {
+        "UniquenessHash": "a8835a51-c147-e8f1-4858-ee9b2d0e1ded",
+        "TraceID": "VerNegItem"
+      },
+      {
+        "UniquenessHash": "a8773338-8e30-bfbb-df54-3f7b53625827",
+        "TraceID": "InvalidVerNeg"
+      },
+      {
+        "UniquenessHash": "0579f6bf-d484-e06e-dc87-6729ba42a6d9",
+        "TraceID": "DeferDatagram"
+      },
+      {
+        "UniquenessHash": "8ba28392-d63e-7c9e-fd2d-1896a64f5100",
+        "TraceID": "DecryptOldKey"
+      },
+      {
+        "UniquenessHash": "3a28ad92-a692-7746-3bea-0309be06a558",
+        "TraceID": "PossiblePeerKeyUpdate"
+      },
+      {
+        "UniquenessHash": "e5011584-a82b-c64d-75a5-a18ec4670a1d",
+        "TraceID": "UpdateReadKeyPhase"
+      },
+      {
+        "UniquenessHash": "65a161c9-9690-1285-7eae-e92ffe786d50",
+        "TraceID": "PeerConnFCBlocked"
+      },
+      {
+        "UniquenessHash": "1fc573ea-2a1e-c098-ae2a-e3bf1c42d87c",
+        "TraceID": "PeerStreamFCBlocked"
+      },
+      {
+        "UniquenessHash": "df8cd7bd-ef29-fc9c-b3e0-7dc89bee82d5",
+        "TraceID": "IndicatePeerNeedStreams"
+      },
+      {
+        "UniquenessHash": "69bf030e-d811-6f6f-9b99-48c5b8571a4a",
+        "TraceID": "IndicatePeerAddrChanged"
+      },
+      {
+        "UniquenessHash": "d1b6f5eb-6243-10dc-b07a-0f545b66b5e6",
+        "TraceID": "UdpRecvBatch"
+      },
+      {
+        "UniquenessHash": "b2826750-692c-079a-196b-3ef9a77daf0b",
+        "TraceID": "UdpRecvDeferred"
+      },
+      {
+        "UniquenessHash": "cd3c6623-5c8b-d0a0-f653-dd7ae1b09077",
+        "TraceID": "UdpRecv"
+      },
+      {
+        "UniquenessHash": "7f9fc31d-5a1f-59b4-9301-44779f492925",
+        "TraceID": "ForceKeyUpdate"
+      },
+      {
+        "UniquenessHash": "ec5999c6-2d8d-a008-35cb-f46cd01ac4cd",
+        "TraceID": "ForceCidUpdate"
+      },
+      {
+        "UniquenessHash": "460bc8d3-608e-7038-d78e-d6820ddcd4e7",
+        "TraceID": "TestTPSet"
+      },
+      {
+        "UniquenessHash": "ec0cf6f5-fe6d-3708-e0e3-53203202704d",
+        "TraceID": "ReadTicketFailure"
+      },
+      {
+        "UniquenessHash": "4af24dff-9b3b-84ae-8868-0443f2ad6ec5",
+        "TraceID": "AbandonInternallyClosed"
+      },
+      {
+        "UniquenessHash": "bdbe0a96-28c1-1ee1-6cd8-219cf995711c",
+        "TraceID": "IgnoreCryptoFrame"
+      },
+      {
+        "UniquenessHash": "5ef379dc-0b9c-8bef-4617-9f8e7deed8bd",
+        "TraceID": "DiscardKeyType"
+      },
+      {
+        "UniquenessHash": "598fa0db-bfd6-8f99-ac73-d23a17032209",
+        "TraceID": "CryptoStateDiscard"
+      },
+      {
+        "UniquenessHash": "7add7bc7-5514-83ea-44ca-8acc7e6643b2",
+        "TraceID": "ZeroRttAccepted"
+      },
+      {
+        "UniquenessHash": "bb841825-a52e-8ecf-243e-1a65d10a3e75",
+        "TraceID": "ZeroRttRejected"
+      },
+      {
+        "UniquenessHash": "96ad4717-1474-2cc6-a27c-6c40daee91ee",
+        "TraceID": "HandshakeConfirmedServer"
+      },
+      {
+        "UniquenessHash": "b9d890f2-d479-8184-b0e5-948bdc1545d7",
+        "TraceID": "TicketReady"
+      },
+      {
+        "UniquenessHash": "4e785757-b1de-e65c-a7b1-7ac868748434",
+        "TraceID": "CryptoDump"
+      },
+      {
+        "UniquenessHash": "c2f15df5-6ae8-de48-4875-35d291565d96",
+        "TraceID": "CryptoDumpUnacked"
+      },
+      {
+        "UniquenessHash": "a2080700-161b-68e4-457e-40e07275acf5",
+        "TraceID": "NoMoreRoomForCrypto"
+      },
+      {
+        "UniquenessHash": "cef32e9a-1355-7a31-bd2d-a458b02e214d",
+        "TraceID": "AddCryptoFrame"
+      },
+      {
+        "UniquenessHash": "94b619d7-6b5a-e1b4-d3ee-1b66a383ebbc",
+        "TraceID": "RecoverCrypto"
+      },
+      {
+        "UniquenessHash": "60f13d90-f6b5-d1e2-41fd-0a5662d602e6",
+        "TraceID": "AckCrypto"
+      },
+      {
+        "UniquenessHash": "ef5cac3a-81c7-ff3c-8481-e241fec6772e",
+        "TraceID": "RecvCrypto"
+      },
+      {
+        "UniquenessHash": "01e0ae2f-b463-5448-9c77-cf716c3eb29b",
+        "TraceID": "IndicateConnected"
+      },
+      {
+        "UniquenessHash": "254b3d0a-698e-7fff-578b-35f5ffb4d8b5",
+        "TraceID": "DrainCrypto"
+      },
+      {
+        "UniquenessHash": "60a67c5d-536b-d2aa-9cea-c644db1dd40c",
+        "TraceID": "CryptoNotReady"
+      },
+      {
+        "UniquenessHash": "8735c3bc-c6b3-f2fe-498d-38b9f469aadf",
+        "TraceID": "NoSniPresent"
+      },
+      {
+        "UniquenessHash": "95f4176f-e0b5-1420-53d9-44e244c44ea5",
+        "TraceID": "DecodeTPReserved"
+      },
+      {
+        "UniquenessHash": "f1d31c20-28ed-b67e-9b71-05c7763658de",
+        "TraceID": "DecodeTPUnknown"
+      },
+      {
+        "UniquenessHash": "2c89f795-3932-98d9-2849-6ddf6675cfa9",
+        "TraceID": "EncodeTPStart"
+      },
+      {
+        "UniquenessHash": "c772dbaf-bba3-e796-2987-ee73d39b4311",
+        "TraceID": "EncodeTPOriginalCID"
+      },
+      {
+        "UniquenessHash": "a0423f9f-5528-282d-de58-b90aea239e3f",
+        "TraceID": "EncodeTPIdleTimeout"
+      },
+      {
+        "UniquenessHash": "c5a96b84-829e-1140-85af-18ab6924eb23",
+        "TraceID": "EncodeTPStatelessResetToken"
+      },
+      {
+        "UniquenessHash": "fbac9057-4f32-ed07-3a2f-c8e5765a83f2",
+        "TraceID": "EncodeTPMaxPacketSize"
+      },
+      {
+        "UniquenessHash": "c212483c-4211-8603-5f60-6773b67d2622",
+        "TraceID": "EncodeTPInitMaxData"
+      },
+      {
+        "UniquenessHash": "1cf3e10e-79dd-5aed-6c1c-f0675514be81",
+        "TraceID": "EncodeTPInitMaxStreamDataBidiLocal"
+      },
+      {
+        "UniquenessHash": "e9eaf5c8-bdb6-bd4e-beca-4207cd1fef91",
+        "TraceID": "EncodeTPInitMaxStreamDataBidiRemote"
+      },
+      {
+        "UniquenessHash": "24ac7692-c735-f737-d7d6-c3f65d595b67",
+        "TraceID": "EncodeTPInitMaxStreamUni"
+      },
+      {
+        "UniquenessHash": "c5697d69-e02a-7775-a151-c34f748320aa",
+        "TraceID": "EncodeTPMaxBidiStreams"
+      },
+      {
+        "UniquenessHash": "6154341e-5b61-63c0-da65-a3e9fe9cb0e0",
+        "TraceID": "EncodeTPMaxUniStreams"
+      },
+      {
+        "UniquenessHash": "0101cc93-9665-3cc3-b1ea-2a6be959530b",
+        "TraceID": "EncodeTPAckDelayExponent"
+      },
+      {
+        "UniquenessHash": "38340c32-a630-64c1-b93a-b1e7ca40397e",
+        "TraceID": "EncodeTPMaxAckDelay"
+      },
+      {
+        "UniquenessHash": "88f5bfbe-85c2-0a8e-869d-669c1f347170",
+        "TraceID": "EncodeTPDisableMigration"
+      },
+      {
+        "UniquenessHash": "7ae85c8f-532c-c622-19be-a82d9002385d",
+        "TraceID": "EncodeTPPreferredAddress"
+      },
+      {
+        "UniquenessHash": "a9ef9690-4a65-72f7-40ad-f09fd6976881",
+        "TraceID": "EncodeTPCIDLimit"
+      },
+      {
+        "UniquenessHash": "4650353e-149e-c99a-1ab8-9b7e6a1e698e",
+        "TraceID": "EncodeTPTest"
+      },
+      {
+        "UniquenessHash": "413f5682-4110-fabc-1552-daf76011b827",
+        "TraceID": "EncodeTPEnd"
+      },
+      {
+        "UniquenessHash": "7e43f912-3063-019a-bbcf-efe0eff8fbb4",
+        "TraceID": "DecodeTPStart"
+      },
+      {
+        "UniquenessHash": "f2cbe127-41b9-9936-f0f0-ad9204f231cb",
+        "TraceID": "DecodeTPOriginalCID"
+      },
+      {
+        "UniquenessHash": "17e21ccd-6314-9850-c892-6fc71b4e2339",
+        "TraceID": "DecodeTPIdleTimeout"
+      },
+      {
+        "UniquenessHash": "22774447-fb97-c333-ea55-96d7234b806f",
+        "TraceID": "DecodeTPStatelessResetToken"
+      },
+      {
+        "UniquenessHash": "598de5e5-3875-8427-610b-4102520c5e75",
+        "TraceID": "DecodeTPMaxPacketSize"
+      },
+      {
+        "UniquenessHash": "718ed4d4-ace9-2e3d-2f3b-c61bc224c852",
+        "TraceID": "DecodeTPInitMaxData"
+      },
+      {
+        "UniquenessHash": "e4d0eb5f-0f76-f0ac-1c84-f306c642b9a6",
+        "TraceID": "DecodeTPInitMaxStreamDataBidiLocal"
+      },
+      {
+        "UniquenessHash": "8ed9301a-b13d-9983-f34c-d2d124a7a3f1",
+        "TraceID": "DecodeTPInitMaxStreamDataBidiRemote"
+      },
+      {
+        "UniquenessHash": "e4979e9a-74a5-15f2-adb0-2e79e72bac62",
+        "TraceID": "DecodeTPInitMaxStreamDataBidiUni"
+      },
+      {
+        "UniquenessHash": "a8590572-737f-3dd9-d415-f1f9c63ab68b",
+        "TraceID": "DecodeTPMaxBidiStreams"
+      },
+      {
+        "UniquenessHash": "0120457e-9a38-b234-ef17-ec3bd85790ec",
+        "TraceID": "DecodeTPMaxUniStreams"
+      },
+      {
+        "UniquenessHash": "244561c5-e612-a194-99af-e39c0b17c234",
+        "TraceID": "DecodeTPAckDelayExponent"
+      },
+      {
+        "UniquenessHash": "f610329d-1292-7a18-4a2d-b745ecf7d4b7",
+        "TraceID": "DecodeTPMaxAckDelay"
+      },
+      {
+        "UniquenessHash": "bd9900ec-ea63-19c7-b852-d50c250f7441",
+        "TraceID": "DecodeTPDisableActiveMigration"
+      },
+      {
+        "UniquenessHash": "f922e6c2-c8b5-7e24-b451-55dd6c348335",
+        "TraceID": "DecodeTPPreferredAddress"
+      },
+      {
+        "UniquenessHash": "4c903962-3302-75ab-6ed6-52c50fb560a8",
+        "TraceID": "DecodeTPCIDLimit"
+      },
+      {
+        "UniquenessHash": "2f8d153a-0fcd-a7fd-a5f2-48a05dfd9a40",
+        "TraceID": "NoSecurityConfigAvailable"
+      },
+      {
+        "UniquenessHash": "e1db5dfa-e2f6-c4b7-a256-009be7213256",
+        "TraceID": "HandshakeConfirmedAck"
+      },
+      {
+        "UniquenessHash": "d5bc94ea-3db3-940a-0fb7-5ebfd5993d02",
+        "TraceID": "ScheduleProbe"
+      },
+      {
+        "UniquenessHash": "4d55cb8b-d871-44ed-5091-3dca12a2acd7",
+        "TraceID": "KeyChangeConfirmed"
+      },
+      {
+        "UniquenessHash": "d34b9f3a-f130-8ddd-47f8-437ce99ab034",
+        "TraceID": "NoSrcCidAvailable"
+      },
+      {
+        "UniquenessHash": "03e79f57-89b7-b2d2-b13f-cb2f995b47cd",
+        "TraceID": "GetPacketTypeFailure"
+      },
+      {
+        "UniquenessHash": "40c3c12e-639e-ce40-e46a-2e8f339f1ad4",
+        "TraceID": "PathInitialized"
+      },
+      {
+        "UniquenessHash": "746e4922-8deb-52c4-0685-c78d5bc5acf0",
+        "TraceID": "PathRemoved"
+      },
+      {
+        "UniquenessHash": "de59301c-3971-bf2f-c1f4-2f03dc85daf5",
+        "TraceID": "PathValidated"
+      },
+      {
+        "UniquenessHash": "cc1ec68a-aedb-485d-9cfa-09b23748e3be",
+        "TraceID": "PathActive"
+      },
+      {
+        "UniquenessHash": "c8982d54-5957-078c-2db7-dcfc5ff92003",
+        "TraceID": "SetSendFlag"
+      },
+      {
+        "UniquenessHash": "3a9eb05d-dcdf-b054-391e-e360e5d27e51",
+        "TraceID": "ClearSendFlags"
+      },
+      {
+        "UniquenessHash": "74e40e77-0195-6cd3-f598-aed824aa3be6",
+        "TraceID": "PathMtuUpdated"
+      },
+      {
+        "UniquenessHash": "5ce88c6c-6ea0-1f73-2a1f-15301e6565c2",
+        "TraceID": "CancelAckDelayTimer"
+      },
+      {
+        "UniquenessHash": "67214142-6506-1bc9-8571-1db21b754ea7",
+        "TraceID": "ScheduleSendFlags"
+      },
+      {
+        "UniquenessHash": "93fcf6ee-a709-3273-c039-2c2b81572b48",
+        "TraceID": "RemoveSendFlags"
+      },
+      {
+        "UniquenessHash": "4a595158-b864-777b-d90a-dbb944e765ac",
+        "TraceID": "FlushSend"
+      },
+      {
+        "UniquenessHash": "908d186e-4adc-6428-393d-cb3f4a90bdb3",
+        "TraceID": "AmplificationProtectionBlocked"
+      },
+      {
+        "UniquenessHash": "cd4142bd-57bd-ddd1-d16b-d811201c3d9f",
+        "TraceID": "SetPacingTimer"
+      },
+      {
+        "UniquenessHash": "6068f77b-96f9-706f-e3c0-02193c9c1c2a",
+        "TraceID": "SendFlushComplete"
+      },
+      {
+        "UniquenessHash": "3811b30b-84d6-43cc-8312-918d88c99d3e",
+        "TraceID": "StartAckDelayTimer"
+      },
+      {
+        "UniquenessHash": "537b9c54-10f5-965c-b3e5-6e6e5c66dc85",
+        "TraceID": "IndicateIdealSendBuffer"
+      },
+      {
+        "UniquenessHash": "4802f50f-cab3-d6b9-fccf-98bc7583cda5",
+        "TraceID": "CloseWithoutShutdown"
+      },
+      {
+        "UniquenessHash": "8d65ba51-5444-f313-29f7-332ef89123d5",
+        "TraceID": "AppTooLong"
+      },
+      {
+        "UniquenessHash": "186957ba-ac59-258c-04ef-c085c1f863b7",
+        "TraceID": "EventSilentDiscard"
+      },
+      {
+        "UniquenessHash": "f6a10aa5-a444-631e-8d6f-de27fd8a5565",
+        "TraceID": "IndicateStartComplete"
+      },
+      {
+        "UniquenessHash": "0640b2d1-a929-3d01-b4c9-08733e3f0196",
+        "TraceID": "IndicateStreamShutdownComplete"
+      },
+      {
+        "UniquenessHash": "1f2558ac-412e-da8c-33d7-7c45995dbcf9",
+        "TraceID": "ResetEarly"
+      },
+      {
+        "UniquenessHash": "a3253f53-3e9c-4e45-d114-c4e99cd3cdc6",
+        "TraceID": "ResetTooBig"
+      },
+      {
+        "UniquenessHash": "933b832f-9c45-2489-6266-de2ff7e2ac21",
+        "TraceID": "ReceiveTooBig"
+      },
+      {
+        "UniquenessHash": "d88819df-486c-d38b-2df6-d9045a4030f3",
+        "TraceID": "ReceiveBeyondFlowControl"
+      },
+      {
+        "UniquenessHash": "9431867f-5e8c-0928-e668-96a94f9af87a",
+        "TraceID": "RemoteCloseReset"
+      },
+      {
+        "UniquenessHash": "abe675da-ea9b-4edc-b07e-085a9b083984",
+        "TraceID": "LocalCloseStopSending"
+      },
+      {
+        "UniquenessHash": "80596bbb-20e9-07e5-07f3-ebc7078fa612",
+        "TraceID": "QueueRecvFlush"
+      },
+      {
+        "UniquenessHash": "5b791afd-1ad0-2715-7c99-2671ee5be40e",
+        "TraceID": "IndicatePeerSendAbort"
+      },
+      {
+        "UniquenessHash": "87c746b1-6bb4-6173-0f4e-f918641d4b80",
+        "TraceID": "IndicatePeerReceiveAborted"
+      },
+      {
+        "UniquenessHash": "337f803e-406e-0817-5804-7273bf3a07ec",
+        "TraceID": "FlowControlExhausted"
+      },
+      {
+        "UniquenessHash": "eb0d6f75-df2d-ea15-f19b-35cfa93c94b5",
+        "TraceID": "Receive"
+      },
+      {
+        "UniquenessHash": "beba03d8-2c68-1d7d-6dc6-c511d45d5164",
+        "TraceID": "RemoteBlocked"
+      },
+      {
+        "UniquenessHash": "5d5005c9-b064-899a-abec-29608ab4c745",
+        "TraceID": "IncreaseRxBuffer"
+      },
+      {
+        "UniquenessHash": "7b3aad91-15b8-6d79-7ad7-f634248db148",
+        "TraceID": "UpdateFlowControl"
+      },
+      {
+        "UniquenessHash": "b7d10598-79a4-31fa-8455-0d393b45c1e7",
+        "TraceID": "IgnoreRecvFlush"
+      },
+      {
+        "UniquenessHash": "e4987d94-23ad-702c-46c0-5e0ae549c4b7",
+        "TraceID": "IndicateReceive"
+      },
+      {
+        "UniquenessHash": "a54aa36d-fa2e-00fd-71ea-8ce30d014469",
+        "TraceID": "ReceiveComplete"
+      },
+      {
+        "UniquenessHash": "7b23cd90-0d41-8339-9622-e84277f95b5d",
+        "TraceID": "IndicatePeerSendShutdown"
+      },
+      {
+        "UniquenessHash": "e7d79111-7d5f-45a3-50b8-e4ca6de3c081",
+        "TraceID": "IndicateSendShutdownComplete"
+      },
+      {
+        "UniquenessHash": "5d9c2923-02fa-cd5d-1329-6a4b2a81cf37",
+        "TraceID": "IndicateSendCanceled"
+      },
+      {
+        "UniquenessHash": "a667dea0-1637-af92-3e52-b3d9824c4b35",
+        "TraceID": "IndicateSendComplete"
+      },
+      {
+        "UniquenessHash": "17bf6c28-0f23-8f48-f293-61afc78f4b87",
+        "TraceID": "SendQueued"
+      },
+      {
+        "UniquenessHash": "070e88f9-a986-449f-b2d9-645e7fd659cb",
+        "TraceID": "NoMoreRoom"
+      },
+      {
+        "UniquenessHash": "574dff3c-b925-a925-a951-10832b2c67c6",
+        "TraceID": "NoMoreFrames"
+      },
+      {
+        "UniquenessHash": "726a3cda-26dd-901f-3473-2bdb3f05d1c6",
+        "TraceID": "AddFrame"
+      },
+      {
+        "UniquenessHash": "cb6d043b-5ace-d8a5-3168-f60061823b3e",
+        "TraceID": "RecoverOpen"
+      },
+      {
+        "UniquenessHash": "2df32de8-d3e1-79f9-8d4f-f4f9c1fc8955",
+        "TraceID": "RecoverFin"
+      },
+      {
+        "UniquenessHash": "bf0a689f-15ce-34a3-a5bd-a09596792886",
+        "TraceID": "RecoverRange"
+      },
+      {
+        "UniquenessHash": "42c77c0f-03ee-0950-8835-f29cc48b19d3",
+        "TraceID": "AckRange"
+      },
+      {
+        "UniquenessHash": "0d9cddd5-17e7-d796-fa49-7f3450287fa6",
+        "TraceID": "Send0RttUpdated"
+      },
+      {
+        "UniquenessHash": "ba832d7e-bc3d-779e-2c60-1e35097e9aba",
+        "TraceID": "SendQueueDrained"
+      },
+      {
+        "UniquenessHash": "11454ad7-905b-ea01-1cdd-f9918ca502dc",
+        "TraceID": "SendDump"
+      },
+      {
+        "UniquenessHash": "b5af9a64-4d59-3aa3-f0d4-abcbbbfd0329",
+        "TraceID": "SendDumpAck"
+      },
+      {
+        "UniquenessHash": "48b0b691-89c1-4bb2-1ba4-5bc91586b2b3",
+        "TraceID": "NotAccepted"
+      },
+      {
+        "UniquenessHash": "72cc83a3-773c-8232-4a70-67037557a61d",
+        "TraceID": "MaxStreamCountUpdated"
+      },
+      {
+        "UniquenessHash": "d5fdf663-f74c-9bf0-979b-6236e50198e8",
+        "TraceID": "IndicateStreamsAvailable"
+      },
+      {
+        "UniquenessHash": "c7369813-eacb-e1f1-c0b3-1e6e2b61747a",
+        "TraceID": "PeerStreamCountsUpdated"
+      },
+      {
+        "UniquenessHash": "c5a168ed-97fa-1cb7-3c3f-15762d9e402a",
+        "TraceID": "IndicatePeerStreamStarted"
+      },
+      {
+        "UniquenessHash": "badaa7e5-aa9e-7979-b334-154a884827b6",
+        "TraceID": "StillInTimerWheel"
+      },
+      {
+        "UniquenessHash": "572f7bb6-23fa-8f9a-25cd-2098fb307a5c",
+        "TraceID": "IndicateIdealProcChanged"
+      },
+      {
+        "UniquenessHash": "2104f4e7-9cc0-74bc-f4b5-dfc645b5642a",
+        "TraceID": "AbandonOnLibShutdown"
       }
     ]
   }
