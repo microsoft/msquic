@@ -3033,8 +3033,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n        QUIC_TRACE_API_SESSION_OPEN",
-            "UserSuppliedTrimmed": "QUIC_TRACE_API_SESSION_OPEN",
+            "UserSpecifiedUnModified": "\r\n        QUIC_TRACE_API_LISTENER_OPEN",
+            "UserSuppliedTrimmed": "QUIC_TRACE_API_LISTENER_OPEN",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "d",
@@ -3042,8 +3042,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n        RegistrationContext",
-            "UserSuppliedTrimmed": "RegistrationContext",
+            "UserSpecifiedUnModified": "\r\n        SessionHandle",
+            "UserSuppliedTrimmed": "SessionHandle",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "p",
@@ -3130,8 +3130,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"QUIC_WORKER_POOL\"",
-            "UserSuppliedTrimmed": "\"QUIC_WORKER_POOL\"",
+            "UserSpecifiedUnModified": " \"RetryPseudoPacket\"",
+            "UserSuppliedTrimmed": "\"RetryPseudoPacket\"",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "s",
@@ -3139,8 +3139,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER)",
-            "UserSuppliedTrimmed": "sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER)",
+            "UserSpecifiedUnModified": " RetryPseudoPacketLength",
+            "UserSuppliedTrimmed": "RetryPseudoPacketLength",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "llu",
@@ -3484,7 +3484,7 @@
     },
     "BindingCreated": {
       "ModuleProperites": {},
-      "TraceString": "[bind][%p] Created, Udp=%p LocalAddr=%SOCKADDR RemoteAddr=%SOCKADDR",
+      "TraceString": "[bind][%p] Created, Udp=%p LocalAddr=%!SOCKADDR! RemoteAddr=%!SOCKADDR!",
       "UniqueId": "BindingCreated",
       "splitArgs": [
         {
@@ -3511,7 +3511,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathLocalAddr), (uint8_t*)&DatapathLocalAddr)",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "SOCKADDR",
+          "DefinationEncoding": "!SOCKADDR!",
           "MacroVariableName": "arg4"
         },
         {
@@ -3520,7 +3520,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathRemoteAddr), (uint8_t*)&DatapathRemoteAddr)",
             "SuggestedTelemetryName": "arg5"
           },
-          "DefinationEncoding": "SOCKADDR",
+          "DefinationEncoding": "!SOCKADDR!",
           "MacroVariableName": "arg5"
         }
       ],
@@ -3592,7 +3592,7 @@
     },
     "BindingRundown": {
       "ModuleProperites": {},
-      "TraceString": "[bind][%p] Rundown, Udp=%p LocalAddr=%SOCKADDR RemoteAddr=%SOCKADDR",
+      "TraceString": "[bind][%p] Rundown, Udp=%p LocalAddr=%!SOCKADDR! RemoteAddr=%!SOCKADDR!",
       "UniqueId": "BindingRundown",
       "splitArgs": [
         {
@@ -3619,7 +3619,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathLocalAddr), (uint8_t*)&DatapathLocalAddr)",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "SOCKADDR",
+          "DefinationEncoding": "!SOCKADDR!",
           "MacroVariableName": "arg4"
         },
         {
@@ -3628,7 +3628,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(DatapathRemoteAddr), (uint8_t*)&DatapathRemoteAddr)",
             "SuggestedTelemetryName": "arg5"
           },
-          "DefinationEncoding": "SOCKADDR",
+          "DefinationEncoding": "!SOCKADDR!",
           "MacroVariableName": "arg5"
         }
       ],
@@ -5653,7 +5653,7 @@
     },
     "ConnLocalAddrAdded": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] New Local IP: %SOCKADDR",
+      "TraceString": "[conn][%p] New Local IP: %!SOCKADDR!",
       "UniqueId": "ConnLocalAddrAdded",
       "splitArgs": [
         {
@@ -5671,7 +5671,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Path->LocalAddress), (const uint8_t*)&Path->LocalAddress)",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "SOCKADDR",
+          "DefinationEncoding": "!SOCKADDR!",
           "MacroVariableName": "arg3"
         }
       ],
@@ -5689,7 +5689,7 @@
     },
     "ConnRemoteAddrAdded": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] New Remote IP: %SOCKADDR",
+      "TraceString": "[conn][%p] New Remote IP: %!SOCKADDR!",
       "UniqueId": "ConnRemoteAddrAdded",
       "splitArgs": [
         {
@@ -5707,7 +5707,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Path->RemoteAddress), (const uint8_t*)&Path->RemoteAddress)",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "SOCKADDR",
+          "DefinationEncoding": "!SOCKADDR!",
           "MacroVariableName": "arg3"
         }
       ],
@@ -5955,8 +5955,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Worker",
-            "UserSuppliedTrimmed": "Worker",
+            "UserSpecifiedUnModified": " Connection->Worker",
+            "UserSuppliedTrimmed": "Connection->Worker",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "p",
@@ -5991,8 +5991,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Session",
-            "UserSuppliedTrimmed": "Session",
+            "UserSpecifiedUnModified": " Connection->Session",
+            "UserSuppliedTrimmed": "Connection->Session",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "p",
@@ -6054,8 +6054,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"Peer used more streams than allowed\"",
-            "UserSuppliedTrimmed": "\"Peer used more streams than allowed\"",
+            "UserSpecifiedUnModified": " \"Too many CID collisions\"",
+            "UserSuppliedTrimmed": "\"Too many CID collisions\"",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "s",
@@ -6135,8 +6135,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Oper->TIMER_EXPIRED.Type",
-            "UserSuppliedTrimmed": "Oper->TIMER_EXPIRED.Type",
+            "UserSpecifiedUnModified": " QUIC_CONN_TIMER_ACK_DELAY",
+            "UserSuppliedTrimmed": "QUIC_CONN_TIMER_ACK_DELAY",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "d",
@@ -6333,7 +6333,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    Connection",
+            "UserSpecifiedUnModified": " Connection",
             "UserSuppliedTrimmed": "Connection",
             "SuggestedTelemetryName": "arg2"
           },
@@ -6342,7 +6342,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    Status",
+            "UserSpecifiedUnModified": " Status",
             "UserSuppliedTrimmed": "Status",
             "SuggestedTelemetryName": "arg3"
           },
@@ -6351,8 +6351,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    \"Send-triggered key update\"",
-            "UserSuppliedTrimmed": "\"Send-triggered key update\"",
+            "UserSpecifiedUnModified": " \"Set current compartment Id\"",
+            "UserSuppliedTrimmed": "\"Set current compartment Id\"",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "s",
@@ -6499,7 +6499,7 @@
     },
     "ConnLocalAddrRemoved": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Removed Local IP: %SOCKADDR",
+      "TraceString": "[conn][%p] Removed Local IP: %!SOCKADDR!",
       "UniqueId": "ConnLocalAddrRemoved",
       "splitArgs": [
         {
@@ -6517,7 +6517,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Connection->Paths[0].LocalAddress), (const uint8_t*)&Connection->Paths[0].LocalAddress)",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "SOCKADDR",
+          "DefinationEncoding": "!SOCKADDR!",
           "MacroVariableName": "arg3"
         }
       ],
@@ -11764,7 +11764,7 @@
     },
     "ListenerStarted": {
       "ModuleProperites": {},
-      "TraceString": "[list][%p] Started, Binding=%p, LocalAddr=%SOCKADDR",
+      "TraceString": "[list][%p] Started, Binding=%p, LocalAddr=%!SOCKADDR!",
       "UniqueId": "ListenerStarted",
       "splitArgs": [
         {
@@ -11791,7 +11791,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), (uint8_t*)&Listener->LocalAddress)",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "SOCKADDR",
+          "DefinationEncoding": "!SOCKADDR!",
           "MacroVariableName": "arg4"
         }
       ],
@@ -13240,7 +13240,7 @@
     },
     "ConnDropPacket": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] DROP packet[%llu] Dst=%SOCKADDR Src=%SOCKADDR Reason=%s.",
+      "TraceString": "[conn][%p] DROP packet[%llu] Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
       "UniqueId": "ConnDropPacket",
       "splitArgs": [
         {
@@ -13267,7 +13267,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&Datagram->Tuple->LocalAddress)",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "SOCKADDR",
+          "DefinationEncoding": "!SOCKADDR!",
           "MacroVariableName": "arg4"
         },
         {
@@ -13276,7 +13276,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&Datagram->Tuple->RemoteAddress)",
             "SuggestedTelemetryName": "arg5"
           },
-          "DefinationEncoding": "SOCKADDR",
+          "DefinationEncoding": "!SOCKADDR!",
           "MacroVariableName": "arg5"
         },
         {
@@ -13303,7 +13303,7 @@
     },
     "BindingDropPacket": {
       "ModuleProperites": {},
-      "TraceString": "[bind][%p] DROP packet[%llu] Dst=%SOCKADDR Src=%SOCKADDR Reason=%s.",
+      "TraceString": "[bind][%p] DROP packet[%llu] Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
       "UniqueId": "BindingDropPacket",
       "splitArgs": [
         {
@@ -13330,7 +13330,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&Datagram->Tuple->LocalAddress)",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "SOCKADDR",
+          "DefinationEncoding": "!SOCKADDR!",
           "MacroVariableName": "arg4"
         },
         {
@@ -13339,7 +13339,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&Datagram->Tuple->RemoteAddress)",
             "SuggestedTelemetryName": "arg5"
           },
-          "DefinationEncoding": "SOCKADDR",
+          "DefinationEncoding": "!SOCKADDR!",
           "MacroVariableName": "arg5"
         },
         {
@@ -13366,7 +13366,7 @@
     },
     "ConnDropPacketEx": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] DROP packet[%llu] Value=%llu Dst=%SOCKADDR Src=%SOCKADDR Reason=%s.",
+      "TraceString": "[conn][%p] DROP packet[%llu] Value=%llu Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
       "UniqueId": "ConnDropPacketEx",
       "splitArgs": [
         {
@@ -13402,7 +13402,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&Datagram->Tuple->LocalAddress)",
             "SuggestedTelemetryName": "arg5"
           },
-          "DefinationEncoding": "SOCKADDR",
+          "DefinationEncoding": "!SOCKADDR!",
           "MacroVariableName": "arg5"
         },
         {
@@ -13411,7 +13411,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&Datagram->Tuple->RemoteAddress)",
             "SuggestedTelemetryName": "arg6"
           },
-          "DefinationEncoding": "SOCKADDR",
+          "DefinationEncoding": "!SOCKADDR!",
           "MacroVariableName": "arg6"
         },
         {
@@ -13438,7 +13438,7 @@
     },
     "BindingDropPacketEx": {
       "ModuleProperites": {},
-      "TraceString": "[bind][%p] DROP packet[%llu] %llu. Dst=%SOCKADDR Src=%SOCKADDR Reason=%s",
+      "TraceString": "[bind][%p] DROP packet[%llu] %llu. Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s",
       "UniqueId": "BindingDropPacketEx",
       "splitArgs": [
         {
@@ -13474,7 +13474,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->LocalAddress), (uint8_t*)&Datagram->Tuple->LocalAddress)",
             "SuggestedTelemetryName": "arg5"
           },
-          "DefinationEncoding": "SOCKADDR",
+          "DefinationEncoding": "!SOCKADDR!",
           "MacroVariableName": "arg5"
         },
         {
@@ -13483,7 +13483,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress), (uint8_t*)&Datagram->Tuple->RemoteAddress)",
             "SuggestedTelemetryName": "arg6"
           },
-          "DefinationEncoding": "SOCKADDR",
+          "DefinationEncoding": "!SOCKADDR!",
           "MacroVariableName": "arg6"
         },
         {
@@ -33297,6 +33297,12 @@
         "EncodingType": "Int64",
         "CType": "CLOG_INT64",
         "DefinationEncoding": "lld"
+      },
+      {
+        "EncodingType": "ByteArray",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!SOCKADDR!",
+        "CustomDecoder": "defaults.clog_config.Types.QUIC_IP_ADDR"
       }
     ]
   },
@@ -33363,20 +33369,12 @@
         "TraceID": "BindingErrorStatus"
       },
       {
-        "UniquenessHash": "5e0d16f5-a412-a471-32ad-dc120e8586db",
-        "TraceID": "BindingCreated"
-      },
-      {
         "UniquenessHash": "5d83e63e-7ce5-0102-8dd2-cbcf5946da2e",
         "TraceID": "BindingCleanup"
       },
       {
         "UniquenessHash": "9dc8a42f-5829-5abf-0bb0-5040ff1428b9",
         "TraceID": "BindingDestroyed"
-      },
-      {
-        "UniquenessHash": "055a3cc2-40e2-43ec-9a1d-229441f4364f",
-        "TraceID": "BindingRundown"
       },
       {
         "UniquenessHash": "cddbdc17-6bb3-e890-9246-40eee374ea62",
@@ -33405,14 +33403,6 @@
       {
         "UniquenessHash": "0067c68e-d2c9-7bc0-25f0-c4322033ce85",
         "TraceID": "FN_connection9874b298efc81e9a08e4033aeaee1aa7"
-      },
-      {
-        "UniquenessHash": "3eff68f4-8d78-fbcc-d5cd-91388f6c65f3",
-        "TraceID": "ConnLocalAddrAdded"
-      },
-      {
-        "UniquenessHash": "fd0b4aa8-667f-38fb-3805-197b2651900a",
-        "TraceID": "ConnRemoteAddrAdded"
       },
       {
         "UniquenessHash": "228c04ea-f275-6f9c-e29a-a8f058a5db5e",
@@ -33461,10 +33451,6 @@
       {
         "UniquenessHash": "01d5a727-8287-c441-9ff0-0ebbd899549f",
         "TraceID": "ConnHandshakeStart"
-      },
-      {
-        "UniquenessHash": "f715828e-352e-945b-3731-b52306004dfe",
-        "TraceID": "ConnLocalAddrRemoved"
       },
       {
         "UniquenessHash": "1ecaedcf-c721-6cb4-f2de-272d639007d4",
@@ -33761,10 +33747,6 @@
       {
         "UniquenessHash": "c11d30b9-28c1-6e74-528e-d5660eebfcc9",
         "TraceID": "ListenerError"
-      },
-      {
-        "UniquenessHash": "76d12c30-471e-237f-05ac-c395af58fdf6",
-        "TraceID": "ListenerStarted"
       },
       {
         "UniquenessHash": "da94a1b4-7135-7fd3-9216-36a5faf1ed7a",
@@ -35887,22 +35869,6 @@
         "TraceID": "ConnPacketRecv"
       },
       {
-        "UniquenessHash": "3defd68c-6f0d-960a-d85d-2cd7bcc3fc65",
-        "TraceID": "ConnDropPacket"
-      },
-      {
-        "UniquenessHash": "66e4b849-13b0-5ba1-80b9-89c8ae02c90f",
-        "TraceID": "BindingDropPacket"
-      },
-      {
-        "UniquenessHash": "38217796-6287-e6d7-0c5f-d78734c980ee",
-        "TraceID": "ConnDropPacketEx"
-      },
-      {
-        "UniquenessHash": "206a32dd-f6fc-f101-7979-f3f4deb03244",
-        "TraceID": "BindingDropPacketEx"
-      },
-      {
         "UniquenessHash": "52d321ad-3ea0-a42d-94f5-0b3753986e95",
         "TraceID": "ConnPacketSent"
       },
@@ -36649,6 +36615,46 @@
       {
         "UniquenessHash": "2104f4e7-9cc0-74bc-f4b5-dfc645b5642a",
         "TraceID": "AbandonOnLibShutdown"
+      },
+      {
+        "UniquenessHash": "f394b805-800b-c03a-6661-cc6241a33866",
+        "TraceID": "BindingCreated"
+      },
+      {
+        "UniquenessHash": "cb22c273-ad34-5bd1-b6bd-38a2ee4554f3",
+        "TraceID": "BindingRundown"
+      },
+      {
+        "UniquenessHash": "6564b56b-6aa8-120a-96b1-bbc573162489",
+        "TraceID": "ConnLocalAddrAdded"
+      },
+      {
+        "UniquenessHash": "9c697b6f-4db0-22aa-7143-bf009247a362",
+        "TraceID": "ConnRemoteAddrAdded"
+      },
+      {
+        "UniquenessHash": "3dff0c2f-b015-d575-c091-eb8fbcc74265",
+        "TraceID": "ConnLocalAddrRemoved"
+      },
+      {
+        "UniquenessHash": "2bebd8f7-b487-148b-f3a2-d1c7b0313fee",
+        "TraceID": "ListenerStarted"
+      },
+      {
+        "UniquenessHash": "19e4904d-0279-edda-d702-089be1a9ffdc",
+        "TraceID": "ConnDropPacket"
+      },
+      {
+        "UniquenessHash": "ae6ceeda-e33e-fc32-e4e6-2ca569fc4a36",
+        "TraceID": "BindingDropPacket"
+      },
+      {
+        "UniquenessHash": "986517b1-3630-5640-8761-fd0cb11ec4e1",
+        "TraceID": "ConnDropPacketEx"
+      },
+      {
+        "UniquenessHash": "c2b528ba-7224-b6e9-77b8-bb7eb39f2600",
+        "TraceID": "BindingDropPacketEx"
       }
     ]
   }

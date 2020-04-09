@@ -1788,7 +1788,7 @@ QuicDataPathRecvComplete(
 
         QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
-        QuicTraceEvent(DatapathRecv, "[ udp][%p] Recv %d bytes (segment=%hd) Src=%SOCKADDR Dst=%SOCKADDR",
+        QuicTraceEvent(DatapathRecv, "[ udp][%p] Recv %d bytes (segment=%hd) Src=%!SOCKADDR! Dst=%!SOCKADDR!",
             SocketContext->Binding,
             NumberOfBytesTransferred,
             MessageLength, CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddr), (const uint8_t*)LocalAddr), CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddr), (const uint8_t*)RemoteAddr));
@@ -2231,7 +2231,7 @@ QuicDataPathBindingSendTo(
     SocketContext = &Binding->SocketContexts[Binding->Connected ? 0 : GetCurrentProcessorNumber()];
     Socket = SocketContext->Socket;
 
-    QuicTraceEvent(DatapathSendTo, "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%SOCKADDR",
+    QuicTraceEvent(DatapathSendTo, "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%!SOCKADDR!",
         Binding,
         SendContext->TotalSize,
         SendContext->WsaBufferCount,
@@ -2338,7 +2338,7 @@ QuicDataPathBindingSendFromTo(
     SocketContext = &Binding->SocketContexts[Binding->Connected ? 0 : GetCurrentProcessorNumber()];
     Socket = SocketContext->Socket;
 
-    QuicTraceEvent(DatapathSendFromTo, "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%SOCKADDR, Src=%SOCKADDR",
+    QuicTraceEvent(DatapathSendFromTo, "[ udp][%p] Send %d bytes in %c buffers (segment=%hd) Dst=%!SOCKADDR!, Src=%!SOCKADDR!",
         Binding,
         SendContext->TotalSize,
         SendContext->WsaBufferCount,
