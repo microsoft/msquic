@@ -6372,8 +6372,16 @@
       }
     },
     "ConnDestCidAdded": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] (SeqNum=%I) New Destination CID: %!BYTEARRAY!",
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "96",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] (SeqNum=%llu) New Destination CID: %!BYTEARRAY!",
       "UniqueId": "ConnDestCidAdded",
       "splitArgs": [
         {
@@ -6391,7 +6399,7 @@
             "UserSuppliedTrimmed": "Path->DestCid->CID.SequenceNumber",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         },
         {
@@ -6417,13 +6425,21 @@
       }
     },
     "ConnSourceCidAdded": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] (SeqNum=%I) New Source CID: %!BYTEARRAY!",
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "97",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] (SeqNum=%llu) New Source CID: %!BYTEARRAY!",
       "UniqueId": "ConnSourceCidAdded",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                Connection",
+            "UserSpecifiedUnModified": "\r\n            Connection",
             "UserSuppliedTrimmed": "Connection",
             "SuggestedTelemetryName": "arg2"
           },
@@ -6436,7 +6452,7 @@
             "UserSuppliedTrimmed": "SourceCid->CID.SequenceNumber",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         },
         {
@@ -6787,8 +6803,16 @@
       }
     },
     "ConnDestCidRemoved": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] (SeqNum=%I) Removed Destination CID: %!BYTEARRAY!",
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "106",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] (SeqNum=%llu) Removed Destination CID: %!BYTEARRAY!",
       "UniqueId": "ConnDestCidRemoved",
       "splitArgs": [
         {
@@ -6806,7 +6830,7 @@
             "UserSuppliedTrimmed": "DestCid->CID.SequenceNumber",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         },
         {
@@ -7229,13 +7253,21 @@
       }
     },
     "ConnSourceCidRemoved": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] (SeqNum=%I) Removed Source CID: %!BYTEARRAY!",
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "115",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] (SeqNum=%llu) Removed Source CID: %!BYTEARRAY!",
       "UniqueId": "ConnSourceCidRemoved",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                            Connection",
+            "UserSpecifiedUnModified": "\r\n                    Connection",
             "UserSuppliedTrimmed": "Connection",
             "SuggestedTelemetryName": "arg2"
           },
@@ -7244,17 +7276,17 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " NextSourceCid->CID.SequenceNumber",
-            "UserSuppliedTrimmed": "NextSourceCid->CID.SequenceNumber",
+            "UserSpecifiedUnModified": " SourceCid->CID.SequenceNumber",
+            "UserSuppliedTrimmed": "SourceCid->CID.SequenceNumber",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data)",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "!BYTEARRAY!",
@@ -14592,13 +14624,21 @@
       }
     },
     "ConnPacketLost": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p][TX][%I] %c Lost: %c",
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "268",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p][TX][%llu] %c Lost: %c",
       "UniqueId": "ConnPacketLost",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                Connection",
+            "UserSpecifiedUnModified": "\r\n                        Connection",
             "UserSuppliedTrimmed": "Connection",
             "SuggestedTelemetryName": "arg2"
           },
@@ -14607,16 +14647,16 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                Packet->PacketNumber",
+            "UserSpecifiedUnModified": "\r\n                        Packet->PacketNumber",
             "UserSuppliedTrimmed": "Packet->PacketNumber",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                QuicPacketTraceType(Packet)",
+            "UserSpecifiedUnModified": "\r\n                        QuicPacketTraceType(Packet)",
             "UserSuppliedTrimmed": "QuicPacketTraceType(Packet)",
             "SuggestedTelemetryName": "arg4"
           },
@@ -14625,8 +14665,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                QUIC_TRACE_PACKET_LOSS_PROBE",
-            "UserSuppliedTrimmed": "QUIC_TRACE_PACKET_LOSS_PROBE",
+            "UserSpecifiedUnModified": "\r\n                        QUIC_TRACE_PACKET_LOSS_FACK",
+            "UserSuppliedTrimmed": "QUIC_TRACE_PACKET_LOSS_FACK",
             "SuggestedTelemetryName": "arg5"
           },
           "DefinationEncoding": "c",
@@ -14646,8 +14686,16 @@
       }
     },
     "ConnPacketACKed": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p][TX][%I] %c ACKed",
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "269",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p][TX][%llu] %c ACKed",
       "UniqueId": "ConnPacketACKed",
       "splitArgs": [
         {
@@ -14665,7 +14713,7 @@
             "UserSuppliedTrimmed": "Packet->PacketNumber",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         },
         {
@@ -40523,28 +40571,28 @@
         "TraceID": "FN_datapath_winuser12d869b81546180a6c851672aa59025c"
       },
       {
-        "UniquenessHash": "eb1dec0a-cf2e-5faf-3cd8-b8912cb7d390",
+        "UniquenessHash": "4fca6e96-85de-8900-7059-b1e99b2bbcf7",
         "TraceID": "ConnDestCidAdded"
       },
       {
-        "UniquenessHash": "95e0b796-ef03-5e49-040f-f282f266ca04",
+        "UniquenessHash": "77565f72-a280-c210-1507-ef0e04f2ed33",
         "TraceID": "ConnSourceCidAdded"
       },
       {
-        "UniquenessHash": "48f7b162-602a-f05f-1603-325a326c96d5",
+        "UniquenessHash": "e76aebc4-7a35-38fe-73fe-781eb97053ec",
         "TraceID": "ConnDestCidRemoved"
       },
       {
-        "UniquenessHash": "696ca1fc-9f80-1646-0be8-3f522f77c027",
+        "UniquenessHash": "07648ae4-eedb-840d-7d5a-d6ea1d90d275",
         "TraceID": "ConnSourceCidRemoved"
       },
       {
-        "UniquenessHash": "9fa273ba-53ae-3e96-a1a0-be0321b20bd8",
-        "TraceID": "ConnPacketACKed"
+        "UniquenessHash": "5dbdd220-5506-01ac-91c4-8add51266f43",
+        "TraceID": "ConnPacketLost"
       },
       {
-        "UniquenessHash": "f93288aa-3214-650c-3ff6-5db448ef6418",
-        "TraceID": "ConnPacketLost"
+        "UniquenessHash": "875b4c8e-b473-4010-03ea-b2ce69bb2b42",
+        "TraceID": "ConnPacketACKed"
       }
     ]
   }

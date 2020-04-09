@@ -180,7 +180,7 @@ QuicConnAlloc(
         Path->DestCid->CID.UsedLocally = TRUE;
         Connection->DestCidCount++;
         QuicListInsertTail(&Connection->DestCids, &Path->DestCid->Link);
-        QuicTraceEvent(ConnDestCidAdded, "[conn][%p] (SeqNum=%I) New Destination CID: %!BYTEARRAY!",
+        QuicTraceEvent(ConnDestCidAdded, "[conn][%p] (SeqNum=%llu) New Destination CID: %!BYTEARRAY!",
             Connection, Path->DestCid->CID.SequenceNumber, CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data));
     }
 
@@ -530,7 +530,7 @@ QuicConnTraceRundownOper(
                     QUIC_CID_HASH_ENTRY,
                     Link);
             UNREFERENCED_PARAMETER(SourceCid);
-            QuicTraceEvent(ConnSourceCidAdded, "[conn][%p] (SeqNum=%I) New Source CID: %!BYTEARRAY!",
+            QuicTraceEvent(ConnSourceCidAdded, "[conn][%p] (SeqNum=%llu) New Source CID: %!BYTEARRAY!",
                 Connection, SourceCid->CID.SequenceNumber, CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
         }
         for (QUIC_LIST_ENTRY* Entry = Connection->DestCids.Flink;
@@ -542,7 +542,7 @@ QuicConnTraceRundownOper(
                     QUIC_CID_QUIC_LIST_ENTRY,
                     Link);
             UNREFERENCED_PARAMETER(DestCid);
-            QuicTraceEvent(ConnDestCidAdded, "[conn][%p] (SeqNum=%I) New Destination CID: %!BYTEARRAY!",
+            QuicTraceEvent(ConnDestCidAdded, "[conn][%p] (SeqNum=%llu) New Destination CID: %!BYTEARRAY!",
                 Connection, DestCid->CID.SequenceNumber, CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
         }
     }
@@ -734,7 +734,7 @@ QuicConnGenerateNewSourceCid(
         }
     } while (SourceCid == NULL);
 
-    QuicTraceEvent(ConnSourceCidAdded, "[conn][%p] (SeqNum=%I) New Source CID: %!BYTEARRAY!", Connection, SourceCid->CID.SequenceNumber, CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
+    QuicTraceEvent(ConnSourceCidAdded, "[conn][%p] (SeqNum=%llu) New Source CID: %!BYTEARRAY!", Connection, SourceCid->CID.SequenceNumber, CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
 
     SourceCid->CID.SequenceNumber = Connection->NextSourceCidSequenceNumber++;
     if (SourceCid->CID.SequenceNumber > 0) {
@@ -1608,7 +1608,7 @@ QuicConnStart(
     }
 
     Connection->NextSourceCidSequenceNumber++;
-    QuicTraceEvent(ConnSourceCidAdded, "[conn][%p] (SeqNum=%I) New Source CID: %!BYTEARRAY!", Connection, SourceCid->CID.SequenceNumber, CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
+    QuicTraceEvent(ConnSourceCidAdded, "[conn][%p] (SeqNum=%llu) New Source CID: %!BYTEARRAY!", Connection, SourceCid->CID.SequenceNumber, CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
     QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
 
     if (!QuicBindingAddSourceConnectionID(Path->Binding, SourceCid)) {
@@ -2137,7 +2137,7 @@ QuicConnUpdateDestCid(
 
         // TODO - Only update for the first packet of each type (Initial and Retry).
 
-        QuicTraceEvent(ConnDestCidRemoved, "[conn][%p] (SeqNum=%I) Removed Destination CID: %!BYTEARRAY!", Connection, DestCid->CID.SequenceNumber, CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
+        QuicTraceEvent(ConnDestCidRemoved, "[conn][%p] (SeqNum=%llu) Removed Destination CID: %!BYTEARRAY!", Connection, DestCid->CID.SequenceNumber, CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
 
         //
         // We have just received the a packet from a new source CID
@@ -2176,7 +2176,7 @@ QuicConnUpdateDestCid(
         }
 
         if (DestCid != NULL) {
-            QuicTraceEvent(ConnDestCidAdded, "[conn][%p] (SeqNum=%I) New Destination CID: %!BYTEARRAY!", Connection, DestCid->CID.SequenceNumber, CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
+            QuicTraceEvent(ConnDestCidAdded, "[conn][%p] (SeqNum=%llu) New Destination CID: %!BYTEARRAY!", Connection, DestCid->CID.SequenceNumber, CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
         }
     }
 
@@ -3451,7 +3451,7 @@ QuicConnRecvFrames(
                     DestCid->ResetToken,
                     Frame.Buffer + Frame.Length,
                     QUIC_STATELESS_RESET_TOKEN_LENGTH);
-                QuicTraceEvent(ConnDestCidAdded, "[conn][%p] (SeqNum=%I) New Destination CID: %!BYTEARRAY!", Connection, DestCid->CID.SequenceNumber, CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
+                QuicTraceEvent(ConnDestCidAdded, "[conn][%p] (SeqNum=%llu) New Destination CID: %!BYTEARRAY!", Connection, DestCid->CID.SequenceNumber, CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
                 QuicListInsertTail(&Connection->DestCids, &DestCid->Link);
                 Connection->DestCidCount++;
 
@@ -3692,7 +3692,7 @@ QuicConnRecvPostProcessing(
                         SourceCid->Link.Next = NextSourceCid->Link.Next;
                         QuicBindingRemoveSourceConnectionID(
                             Connection->Paths[0].Binding, NextSourceCid);
-                        QuicTraceEvent(ConnSourceCidRemoved, "[conn][%p] (SeqNum=%I) Removed Source CID: %!BYTEARRAY!",
+                        QuicTraceEvent(ConnSourceCidRemoved, "[conn][%p] (SeqNum=%llu) Removed Source CID: %!BYTEARRAY!",
                             Connection, NextSourceCid->CID.SequenceNumber, CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data));
                         QUIC_FREE(NextSourceCid);
                     }
