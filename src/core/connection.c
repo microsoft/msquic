@@ -1790,12 +1790,15 @@ QuicConnHandshakeConfigure(
             QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI |
             QUIC_TP_FLAG_MAX_PACKET_SIZE |
             QUIC_TP_FLAG_MAX_ACK_DELAY |
-            /* QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION | TODO - Add config option to re-enable if behind 4-tuple LB */
             QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT;
 
         if (Connection->IdleTimeoutMs != 0) {
             LocalTP.Flags |= QUIC_TP_FLAG_IDLE_TIMEOUT;
             LocalTP.IdleTimeout = Connection->IdleTimeoutMs;
+        }
+
+        if (!Connection->Session->Settings.MigrationEnabled) {
+            LocalTP.Flags |= QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION;
         }
 
         LocalTP.MaxAckDelay =

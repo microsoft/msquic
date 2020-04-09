@@ -24,6 +24,9 @@ QuicSettingsSetDefault(
     if (!Settings->AppSet.PacingDefault) {
         Settings->PacingDefault = QUIC_DEFAULT_SEND_PACING;
     }
+    if (!Settings->AppSet.MigrationEnabled) {
+        Settings->MigrationEnabled = QUIC_DEFAULT_MIGRATION_ENABLED;
+    }
     if (!Settings->AppSet.MaxPartitionCount) {
         Settings->MaxPartitionCount = QUIC_MAX_PARTITION_COUNT;
     }
@@ -98,6 +101,9 @@ QuicSettingsCopy(
 {
     if (!Settings->AppSet.PacingDefault) {
         Settings->PacingDefault = ParentSettings->PacingDefault;
+    }
+    if (!Settings->AppSet.MigrationEnabled) {
+        Settings->MigrationEnabled = ParentSettings->MigrationEnabled;
     }
     if (!Settings->AppSet.MaxPartitionCount) {
         Settings->MaxPartitionCount = ParentSettings->MaxPartitionCount;
@@ -183,6 +189,17 @@ QuicSettingsLoad(
             (uint8_t*)&Value,
             &ValueLen);
         Settings->PacingDefault = !!Value;
+    }
+
+    if (!Settings->AppSet.MigrationEnabled) {
+        Value = QUIC_DEFAULT_MIGRATION_ENABLED;
+        ValueLen = sizeof(Value);
+        QuicStorageReadValue(
+            Storage,
+            QUIC_SETTING_MIGRATION_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->MigrationEnabled = !!Value;
     }
 
     if (!Settings->AppSet.MaxPartitionCount) {
@@ -414,9 +431,10 @@ QuicSettingsDump(
     _In_ const QUIC_SETTINGS* Settings
     )
 {
-    QuicTraceLogVerbose("[sett] PacingDefault          = %hu", (uint16_t)Settings->PacingDefault);
-    QuicTraceLogVerbose("[sett] MaxPartitionCount      = %hu", (uint16_t)Settings->MaxPartitionCount);
-    QuicTraceLogVerbose("[sett] MaxOperationsPerDrain  = %hu", (uint16_t)Settings->MaxOperationsPerDrain);
+    QuicTraceLogVerbose("[sett] PacingDefault          = %hhu", Settings->PacingDefault);
+    QuicTraceLogVerbose("[sett] MigrationEnabled       = %hhu", Settings->MigrationEnabled);
+    QuicTraceLogVerbose("[sett] MaxPartitionCount      = %hhu", Settings->MaxPartitionCount);
+    QuicTraceLogVerbose("[sett] MaxOperationsPerDrain  = %hhu", Settings->MaxOperationsPerDrain);
     QuicTraceLogVerbose("[sett] RetryMemoryLimit       = %hu", Settings->RetryMemoryLimit);
     QuicTraceLogVerbose("[sett] MaxStatelessOperations = %u", Settings->MaxStatelessOperations);
     QuicTraceLogVerbose("[sett] MaxWorkerQueueDelayUs  = %u", Settings->MaxWorkerQueueDelayUs);

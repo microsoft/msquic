@@ -321,6 +321,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_SESSION_IDLE_TIMEOUT                 3   // uint64_t - milliseconds
 #define QUIC_PARAM_SESSION_DISCONNECT_TIMEOUT           4   // uint32_t - milliseconds
 #define QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY            5   // uint64_t - bytes
+#define QUIC_PARAM_SESSION_MIGRATION_ENABLED            6   // uint8_t (BOOLEAN)
 
 //
 // Parameters for QUIC_PARAM_LEVEL_LISTENER.
