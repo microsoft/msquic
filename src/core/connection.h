@@ -985,7 +985,7 @@ QuicConnGetSourceCidFromSeq(
                     SourceCid);
                 QuicTraceEvent(
                     ConnSourceCidRemoved,
-                    "[conn][%p] (SeqNum=%I) Removed Source CID: %!BYTEARRAY!",
+                    "[conn][%p] (SeqNum=%llu) Removed Source CID: %!BYTEARRAY!",
                     Connection,
                     SourceCid->CID.SequenceNumber,
                     CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));

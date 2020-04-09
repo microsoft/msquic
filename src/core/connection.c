@@ -1967,7 +1967,7 @@ QuicConnProcessPeerTransportParameters(
         QuicTraceLogConnInfo(
             PeerPreferredAddressV4,
             Connection,
-            "Peer configured preferred address %SOCKADDR",
+            "Peer configured preferred address %!SOCKADDR!",
             CLOG_BYTEARRAY(
                 LOG_ADDR_LEN(Connection->PeerTransportParams.PreferredAddress),
                 (uint8_t*)&Connection->PeerTransportParams.PreferredAddress));
@@ -4138,7 +4138,7 @@ QuicConnDiscardDeferred0Rtt(
             DeferredDatagramsTail = &Datagram->Next;
         }
     }
-    
+
     if (ReleaseChain != NULL) {
         QuicDataPathBindingReturnRecvDatagrams(ReleaseChain);
     }

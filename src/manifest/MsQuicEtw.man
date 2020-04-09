@@ -3069,6 +3069,31 @@
                 name="arg4"
                 />
           </template>
+          <template tid="template_sz_sz_">
+            <data
+                inType="win:AnsiString"
+                name="arg2"
+                />
+            <data
+                inType="win:AnsiString"
+                name="arg3"
+                />
+          </template>
+          <template tid="template_ptr_ui8_binary_">
+            <data
+                inType="win:Pointer"
+                name="arg1"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg3_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg3_len"
+                name="arg3"
+                />
+          </template>
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
@@ -7863,6 +7888,139 @@
               symbol="FN_datapath_winuser12d869b81546180a6c851672aa59025c"
               template="template_ptr_ui32_ui8_binary_"
               value="532"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_quic_gtestbb702fe0fcf0a2c8153ffeaa97baed28"
+              template="template_sz_"
+              value="533"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_quic_gtest94df3afe3f5519a593efadf4e20ffaa3"
+              template="template_sz_"
+              value="534"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_quic_gtestdd5240e195ab753f90e16d88b5739619"
+              template="template_sz_sz_"
+              value="535"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_quic_gtestdad587a711d7f49ccd556377f5eff9ed"
+              template="template_sz_ui32_sz_"
+              value="536"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_quic_gtestc29943650ba591527c20610d5e4341fa"
+              template="template_ui32_ui32_"
+              value="537"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_quic_gtest73178060cf679812c455d24149a83275"
+              template="template_ui32_"
+              value="538"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_quic_gtest5749aac4ddd4085d450bf1ae50c0e50a"
+              template="template_ui32_"
+              value="539"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_quic_gtest5b07b27351d8ea042f59aa23e2e1a046"
+              template="template_ui32_"
+              value="540"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_quic_gtest54d8840a5ade9629a36e7dd348b8887d"
+              template="template_ui32_"
+              value="541"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_quic_gtest5a1fc330c5d2330b64c36d36354303a7"
+              template="template_ui32_"
+              value="542"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_quic_gtestd1e125594b412facc27a063c75f1499c"
+              template="template_"
+              value="543"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_quic_gtest4bd843e92a166e3b41dbbc6269fcc977"
+              template="template_ui32_"
+              value="544"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_quic_gtestc66971b364eb2012de0eac4474413cf3"
+              template="template_ui32_"
+              value="545"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_quic_gteste294f437c33d1ade7d212999d4baddc2"
+              template="template_ui32_"
+              value="546"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_quictest0785c7e818b20fe296fb9343da4ad6c7"
+              template="template_sz_"
+              value="547"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_quictest3a72f018a4cf860262d89c7671534363"
+              template="template_sz_"
+              value="548"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_quictest9eddd9dc5266f22ce5fe2958d12ddae0"
+              template="template_"
+              value="549"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="PeerPreferredAddressV4"
+              template="template_ptr_ui8_binary_"
+              value="550"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_datapath_winuser80f95372f363d78879faa71a2a91f95d"
+              template="template_ptr_ui8_binary_"
+              value="551"
               />
         </events>
       </provider>

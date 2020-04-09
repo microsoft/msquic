@@ -1565,7 +1565,7 @@ QuicDataPathBindingHandleUnreachableError(
 
     QuicTraceLogVerbose(
         FN_datapath_winuser98712c41f3c7a37b24466cc56356459a,
-        "[sock][%p] Received unreachable error (0x%x) from %SOCKADDR",
+        "[sock][%p] Received unreachable error (0x%x) from %!SOCKADDR!",
         SocketContext,
         ErrorCode,
         CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddr), (uint8_t*)RemoteAddr));
