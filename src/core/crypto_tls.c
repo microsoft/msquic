@@ -779,7 +779,7 @@ QuicCryptoTlsEncodeTransportParameters(
         QuicTraceLogConnVerbose(EncodeTPPreferredAddress, Connection, "TP: Preferred Address");
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT) {
-        QUIC_DBG_ASSERT(TransportParams->ActiveConnectionIdLimit >= QUIC_TP_DISABLE_ACTIVE_MIGRATION_MIN);
+        QUIC_DBG_ASSERT(TransportParams->ActiveConnectionIdLimit >= QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN);
         TPBuf =
             TlsWriteTransportParamVarInt(
                 QUIC_TP_ID_ACTIVE_CONNECTION_ID_LIMIT,
