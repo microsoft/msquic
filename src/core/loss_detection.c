@@ -712,7 +712,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                         PtkConnPre(Connection),
                         Packet->PacketNumber,
                         LossDetection->LargestAck - Packet->PacketNumber);
-                    QuicTraceEvent(ConnPacketLost, "[conn][%p][TX][%I] %c Lost: %c",
+                    QuicTraceEvent(ConnPacketLost, "[conn][%p][TX][%llu] %c Lost: %c",
                         Connection,
                         Packet->PacketNumber,
                         QuicPacketTraceType(Packet),
@@ -725,7 +725,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                         PtkConnPre(Connection),
                         Packet->PacketNumber,
                         QuicTimeDiff32(Packet->SentTime, TimeNow));
-                    QuicTraceEvent(ConnPacketLost, "[conn][%p][TX][%I] %c Lost: %c",
+                    QuicTraceEvent(ConnPacketLost, "[conn][%p][TX][%lld] %c Lost: %c",
                         Connection,
                         Packet->PacketNumber,
                         QuicPacketTraceType(Packet),
@@ -820,7 +820,7 @@ QuicLossDetectionDiscardPackets(
             QuicTraceLogVerbose(FN_loss_detection3c974fbbdc44a506e4ce01903aca8d24, "[%c][TX][%llu] ACKed (implicit)",
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
-            QuicTraceEvent(ConnPacketACKed, "[conn][%p][TX][%I] %c ACKed",
+            QuicTraceEvent(ConnPacketACKed, "[conn][%p][TX][%llu] %c ACKed",
                 Connection,
                 Packet->PacketNumber,
                 QuicPacketTraceType(Packet));
@@ -856,7 +856,7 @@ QuicLossDetectionDiscardPackets(
             QuicTraceLogVerbose(FN_loss_detection3c974fbbdc44a506e4ce01903aca8d24, "[%c][TX][%llu] ACKed (implicit)",
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
-            QuicTraceEvent(ConnPacketACKed, "[conn][%p][TX][%I] %c ACKed",
+            QuicTraceEvent(ConnPacketACKed, "[conn][%p][TX][%lld] %c ACKed",
                 Connection,
                 Packet->PacketNumber,
                 QuicPacketTraceType(Packet));

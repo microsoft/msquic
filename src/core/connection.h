@@ -684,7 +684,7 @@ QuicConnLogInFlowStats(
     )
 {
     UNREFERENCED_PARAMETER(Connection);
-    QuicTraceEvent(ConnInFlowStats, "[conn][%p] IN: BytesRecv=%I",
+    QuicTraceEvent(ConnInFlowStats, "[conn][%p] IN: BytesRecv=%llu",
         Connection,
         Connection->Stats.Recv.TotalBytes);
 }

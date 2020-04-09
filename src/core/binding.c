@@ -49,7 +49,7 @@ QuicBindingInitialize(
 
     Binding = QUIC_ALLOC_NONPAGED(sizeof(QUIC_BINDING));
     if (Binding == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "QUIC_BINDING", sizeof(QUIC_BINDING));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_BINDING", sizeof(QUIC_BINDING));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -581,7 +581,7 @@ QuicBindingQueueStatelessOperation(
 
     QUIC_OPERATION* Oper = QuicOperationAlloc(Worker, OperType);
     if (Oper == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "stateless operation", sizeof(QUIC_OPERATION));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "stateless operation", sizeof(QUIC_OPERATION));
         QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
             "Alloc failure for stateless operation");
         QuicBindingReleaseStatelessOperation(Context, FALSE);
@@ -613,7 +613,7 @@ QuicBindingProcessStatelessOperation(
     QUIC_DATAPATH_SEND_CONTEXT* SendContext =
         QuicDataPathBindingAllocSendContext(Binding->DatapathBinding, 0);
     if (SendContext == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "stateless send context", 0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "stateless send context", 0);
         goto Exit;
     }
 
@@ -633,7 +633,7 @@ QuicBindingProcessStatelessOperation(
         QUIC_BUFFER* SendDatagram =
             QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
         if (SendDatagram == NULL) {
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "vn datagram", PacketLength);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "vn datagram", PacketLength);
             goto Exit;
         }
 
@@ -707,7 +707,7 @@ QuicBindingProcessStatelessOperation(
         QUIC_BUFFER* SendDatagram =
             QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
         if (SendDatagram == NULL) {
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "reset datagram", PacketLength);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "reset datagram", PacketLength);
             goto Exit;
         }
 
@@ -741,7 +741,7 @@ QuicBindingProcessStatelessOperation(
         QUIC_BUFFER* SendDatagram =
             QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
         if (SendDatagram == NULL) {
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "retry datagram", PacketLength);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "retry datagram", PacketLength);
             goto Exit;
         }
 

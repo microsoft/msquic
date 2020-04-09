@@ -42,7 +42,7 @@ QuicSessionAlloc(
 
     QUIC_SESSION* Session = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SESSION) + AlpnListLength);
     if (Session == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "session" , AlpnListLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "session" , AlpnListLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -329,7 +329,7 @@ MsQuicSessionShutdown(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_SESSION* Session = (QUIC_SESSION*)Handle;
 
-        QuicTraceEvent(SessionShutdown, "[sess][%p] Shutting down connections, Flags=%d, ErrorCode=%I", Session, Flags, ErrorCode);
+        QuicTraceEvent(SessionShutdown, "[sess][%p] Shutting down connections, Flags=%d, ErrorCode=%llu", Session, Flags, ErrorCode);
 
         QuicDispatchLockAcquire(&Session->ConnectionsLock);
 
@@ -637,7 +637,7 @@ QuicSessionServerCacheSetStateInternal(
             QuicHashtableInsert(&Session->ServerCache, &Cache->Entry, Hash, NULL);
 
         } else {
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "server cache entry", sizeof(QUIC_SERVER_CACHE) + ServerNameLength);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "server cache entry", sizeof(QUIC_SERVER_CACHE) + ServerNameLength);
         }
     }
 

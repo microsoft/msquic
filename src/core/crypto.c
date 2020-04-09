@@ -83,7 +83,7 @@ QuicCryptoInitialize(
     Crypto->TlsState.BufferAllocLength = SendBufferLength;
     Crypto->TlsState.Buffer = QUIC_ALLOC_NONPAGED(SendBufferLength);
     if (Crypto->TlsState.Buffer == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "crypto send buffer", SendBufferLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "crypto send buffer", SendBufferLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -1338,7 +1338,7 @@ QuicTlsProcessDataCompleteCallback(
     if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_TLS_COMPLETE)) != NULL) {
         QuicConnQueueOper(Connection, Oper);
     } else {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "TLS complete operation", 0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "TLS complete operation", 0);
     }
 }
 

@@ -36,6 +36,7 @@ QuicPlatformSystemLoad(
 {
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventRegisterMicrosoft_Quic();
+    EventSetInformation(Microsoft_QuicHandle, EventProviderBinaryTrackInfo, NULL, 0);
 #endif
 
     (void)QueryPerformanceFrequency((LARGE_INTEGER*)&QuicPlatformPerfFreq);

@@ -2976,6 +2976,16 @@
         "arg2": "arg2",
         "arg3": "arg3",
         "arg4": "arg4"
+      },
+      "FN_datapath_winuser98712c41f3c7a37b24466cc56356459a": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_datapath_winuser12d869b81546180a6c851672aa59025c": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
       }
     }
   },
@@ -3163,7 +3173,7 @@
           "Keywords": "ut:Connection ut:LowVolume"
         }
       },
-      "TraceString": "Allocation of '%s' failed. (%I bytes)",
+      "TraceString": "Allocation of '%s' failed. (%llu bytes)",
       "UniqueId": "AllocFailure",
       "splitArgs": [
         {
@@ -3181,7 +3191,7 @@
             "UserSuppliedTrimmed": "sizeof(WCHAR) * Size",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         }
       ],
@@ -6230,7 +6240,7 @@
           "Keywords": "ut:Connection ut:LowVolume"
         }
       },
-      "TraceString": "[conn][%p] Created, IsServer=%d, CorrelationId=%I",
+      "TraceString": "[conn][%p] Created, IsServer=%d, CorrelationId=%llu",
       "UniqueId": "ConnCreated",
       "splitArgs": [
         {
@@ -6257,7 +6267,7 @@
             "UserSuppliedTrimmed": "Connection->Stats.CorrelationId",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg4"
         }
       ],
@@ -6362,15 +6372,7 @@
       }
     },
     "ConnDestCidAdded": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "96",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] (SeqNum=%I) New Destination CID: %!BYTEARRAY!",
       "UniqueId": "ConnDestCidAdded",
       "splitArgs": [
@@ -6415,21 +6417,13 @@
       }
     },
     "ConnSourceCidAdded": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "97",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] (SeqNum=%I) New Source CID: %!BYTEARRAY!",
       "UniqueId": "ConnSourceCidAdded",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n            Connection",
+            "UserSpecifiedUnModified": "\r\n                Connection",
             "UserSuppliedTrimmed": "Connection",
             "SuggestedTelemetryName": "arg2"
           },
@@ -6582,7 +6576,7 @@
           "Keywords": "ut:Connection ut:LowVolume"
         }
       },
-      "TraceString": "[conn][%p] Rundown, IsServer=%d, CorrelationId=%I",
+      "TraceString": "[conn][%p] Rundown, IsServer=%d, CorrelationId=%llu",
       "UniqueId": "ConnRundown",
       "splitArgs": [
         {
@@ -6609,7 +6603,7 @@
             "UserSuppliedTrimmed": "Connection->Stats.CorrelationId",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg4"
         }
       ],
@@ -6793,15 +6787,7 @@
       }
     },
     "ConnDestCidRemoved": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "106",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] (SeqNum=%I) Removed Destination CID: %!BYTEARRAY!",
       "UniqueId": "ConnDestCidRemoved",
       "splitArgs": [
@@ -6943,7 +6929,7 @@
           "Keywords": "ut:Connection ut:LowVolume"
         }
       },
-      "TraceString": "[conn][%p] App Shutdown: %I (Remote=%c)",
+      "TraceString": "[conn][%p] App Shutdown: %llu (Remote=%c)",
       "UniqueId": "ConnAppShutdown",
       "splitArgs": [
         {
@@ -6961,7 +6947,7 @@
             "UserSuppliedTrimmed": "ErrorCode",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         },
         {
@@ -6996,7 +6982,7 @@
           "Keywords": "ut:Connection ut:LowVolume"
         }
       },
-      "TraceString": "[conn][%p] Transport Shutdown: %I (Remote=%c) (QS=%c)",
+      "TraceString": "[conn][%p] Transport Shutdown: %llu (Remote=%c) (QS=%c)",
       "UniqueId": "ConnTransportShutdown",
       "splitArgs": [
         {
@@ -7014,7 +7000,7 @@
             "UserSuppliedTrimmed": "ErrorCode",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         },
         {
@@ -7190,7 +7176,7 @@
           "Keywords": "ut:Connection ut:LowVolume"
         }
       },
-      "TraceString": "[conn][%p][RX][%I] %c (%hd bytes)",
+      "TraceString": "[conn][%p][RX][%llu] %c (%hd bytes)",
       "UniqueId": "ConnPacketRecv",
       "splitArgs": [
         {
@@ -7208,7 +7194,7 @@
             "UserSuppliedTrimmed": "Packet->PacketNumber",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         },
         {
@@ -7243,21 +7229,13 @@
       }
     },
     "ConnSourceCidRemoved": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "115",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] (SeqNum=%I) Removed Source CID: %!BYTEARRAY!",
       "UniqueId": "ConnSourceCidRemoved",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    Connection",
+            "UserSpecifiedUnModified": "\r\n                            Connection",
             "UserSuppliedTrimmed": "Connection",
             "SuggestedTelemetryName": "arg2"
           },
@@ -7266,8 +7244,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " SourceCid->CID.SequenceNumber",
-            "UserSuppliedTrimmed": "SourceCid->CID.SequenceNumber",
+            "UserSpecifiedUnModified": " NextSourceCid->CID.SequenceNumber",
+            "UserSuppliedTrimmed": "NextSourceCid->CID.SequenceNumber",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "I",
@@ -7275,8 +7253,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data)",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "!BYTEARRAY!",
@@ -14614,21 +14592,13 @@
       }
     },
     "ConnPacketLost": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "268",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p][TX][%I] %c Lost: %c",
       "UniqueId": "ConnPacketLost",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                        Connection",
+            "UserSpecifiedUnModified": "\r\n                Connection",
             "UserSuppliedTrimmed": "Connection",
             "SuggestedTelemetryName": "arg2"
           },
@@ -14637,7 +14607,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                        Packet->PacketNumber",
+            "UserSpecifiedUnModified": "\r\n                Packet->PacketNumber",
             "UserSuppliedTrimmed": "Packet->PacketNumber",
             "SuggestedTelemetryName": "arg3"
           },
@@ -14646,7 +14616,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                        QuicPacketTraceType(Packet)",
+            "UserSpecifiedUnModified": "\r\n                QuicPacketTraceType(Packet)",
             "UserSuppliedTrimmed": "QuicPacketTraceType(Packet)",
             "SuggestedTelemetryName": "arg4"
           },
@@ -14655,8 +14625,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                        QUIC_TRACE_PACKET_LOSS_FACK",
-            "UserSuppliedTrimmed": "QUIC_TRACE_PACKET_LOSS_FACK",
+            "UserSpecifiedUnModified": "\r\n                QUIC_TRACE_PACKET_LOSS_PROBE",
+            "UserSuppliedTrimmed": "QUIC_TRACE_PACKET_LOSS_PROBE",
             "SuggestedTelemetryName": "arg5"
           },
           "DefinationEncoding": "c",
@@ -14676,15 +14646,7 @@
       }
     },
     "ConnPacketACKed": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "269",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p][TX][%I] %c ACKed",
       "UniqueId": "ConnPacketACKed",
       "splitArgs": [
@@ -15334,7 +15296,7 @@
           "Keywords": "ut:Connection ut:LowVolume"
         }
       },
-      "TraceString": "[conn][%p] DROP packet[%I] Dst=%SOCKADDR Src=%SOCKADDR Reason=%s.",
+      "TraceString": "[conn][%p] DROP packet[%llu] Dst=%SOCKADDR Src=%SOCKADDR Reason=%s.",
       "UniqueId": "ConnDropPacket",
       "splitArgs": [
         {
@@ -15352,7 +15314,7 @@
             "UserSuppliedTrimmed": "Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         },
         {
@@ -15405,7 +15367,7 @@
           "Keywords": "ut:Connection ut:LowVolume"
         }
       },
-      "TraceString": "[bind][%p] DROP packet[%I] Dst=%SOCKADDR Src=%SOCKADDR Reason=%s.",
+      "TraceString": "[bind][%p] DROP packet[%llu] Dst=%SOCKADDR Src=%SOCKADDR Reason=%s.",
       "UniqueId": "BindingDropPacket",
       "splitArgs": [
         {
@@ -15423,7 +15385,7 @@
             "UserSuppliedTrimmed": "Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         },
         {
@@ -15476,7 +15438,7 @@
           "Keywords": "ut:Connection ut:LowVolume"
         }
       },
-      "TraceString": "[conn][%p] DROP packet[%I] Value=%I Dst=%SOCKADDR Src=%SOCKADDR Reason=%s.",
+      "TraceString": "[conn][%p] DROP packet[%llu] Value=%llu Dst=%SOCKADDR Src=%SOCKADDR Reason=%s.",
       "UniqueId": "ConnDropPacketEx",
       "splitArgs": [
         {
@@ -15494,7 +15456,7 @@
             "UserSuppliedTrimmed": "Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         },
         {
@@ -15503,7 +15465,7 @@
             "UserSuppliedTrimmed": "Value",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg4"
         },
         {
@@ -15556,7 +15518,7 @@
           "Keywords": "ut:Connection ut:LowVolume"
         }
       },
-      "TraceString": "[bind][%p] DROP packet[%I] %I. Dst=%SOCKADDR Src=%SOCKADDR Reason=%s",
+      "TraceString": "[bind][%p] DROP packet[%llu] %llu. Dst=%SOCKADDR Src=%SOCKADDR Reason=%s",
       "UniqueId": "BindingDropPacketEx",
       "splitArgs": [
         {
@@ -15574,7 +15536,7 @@
             "UserSuppliedTrimmed": "Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         },
         {
@@ -15583,7 +15545,7 @@
             "UserSuppliedTrimmed": "Value",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg4"
         },
         {
@@ -15856,7 +15818,7 @@
           "Keywords": "ut:Connection ut:LowVolume"
         }
       },
-      "TraceString": "[conn][%p][TX][%I] %c (%hd bytes)",
+      "TraceString": "[conn][%p][TX][%llu] %c (%hd bytes)",
       "UniqueId": "ConnPacketSent",
       "splitArgs": [
         {
@@ -15874,7 +15836,7 @@
             "UserSuppliedTrimmed": "Builder->Metadata->PacketNumber",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         },
         {
@@ -17458,7 +17420,7 @@
           "Keywords": "ut:Connection ut:LowVolume"
         }
       },
-      "TraceString": "[sess][%p] Shutting down connections, Flags=%d, ErrorCode=%I",
+      "TraceString": "[sess][%p] Shutting down connections, Flags=%d, ErrorCode=%llu",
       "UniqueId": "SessionShutdown",
       "splitArgs": [
         {
@@ -17485,7 +17447,7 @@
             "UserSuppliedTrimmed": "ErrorCode",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg4"
         }
       ],
@@ -18571,7 +18533,7 @@
           "Keywords": "ut:Connection ut:LowVolume"
         }
       },
-      "TraceString": "[strm][%p] Created, Conn=%p ID=%I IsLocal=%c",
+      "TraceString": "[strm][%p] Created, Conn=%p ID=%llu IsLocal=%c",
       "UniqueId": "StreamCreated",
       "splitArgs": [
         {
@@ -18598,7 +18560,7 @@
             "UserSuppliedTrimmed": "Stream->ID",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg4"
         },
         {
@@ -18765,7 +18727,7 @@
           "Keywords": "ut:Connection ut:LowVolume"
         }
       },
-      "TraceString": "[strm][%p] Rundown, Conn=%p ID=%I IsLocal=%c",
+      "TraceString": "[strm][%p] Rundown, Conn=%p ID=%llu IsLocal=%c",
       "UniqueId": "StreamRundown",
       "splitArgs": [
         {
@@ -18792,7 +18754,7 @@
             "UserSuppliedTrimmed": "Stream->ID",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg4"
         },
         {
@@ -21442,7 +21404,7 @@
           "Keywords": "ut:Connection ut:LowVolume"
         }
       },
-      "TraceString": "[conn][%p] IN: BytesRecv=%I",
+      "TraceString": "[conn][%p] IN: BytesRecv=%llu",
       "UniqueId": "ConnInFlowStats",
       "splitArgs": [
         {
@@ -21460,7 +21422,7 @@
             "UserSuppliedTrimmed": "Connection->Stats.Recv.TotalBytes",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "I",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         }
       ],
@@ -37001,6 +36963,112 @@
           "windows": "etw_plus"
         }
       }
+    },
+    "FN_datapath_winuser98712c41f3c7a37b24466cc56356459a": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "531",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[sock][%p] Received unreachable error (0x%x) from %!IPV4ADDR!",
+      "UniqueId": "FN_datapath_winuser98712c41f3c7a37b24466cc56356459a",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            SocketContext",
+            "UserSuppliedTrimmed": "SocketContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            ErrorCode",
+            "UserSuppliedTrimmed": "ErrorCode",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            CLOG_BYTEARRAY((unsigned char)ntohs(RemoteAddr->Ipv4.sin_port), (uint8_t*)&RemoteAddr->Ipv4.sin_addr)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY((unsigned char)ntohs(RemoteAddr->Ipv4.sin_port), (uint8_t*)&RemoteAddr->Ipv4.sin_addr)",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "!IPV4ADDR!",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_datapath_winuser12d869b81546180a6c851672aa59025c": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "532",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[sock][%p] Received unreachable error (0x%x) from [%!IPV6ADDR!]",
+      "UniqueId": "FN_datapath_winuser12d869b81546180a6c851672aa59025c",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            SocketContext",
+            "UserSuppliedTrimmed": "SocketContext",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            ErrorCode",
+            "UserSuppliedTrimmed": "ErrorCode",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            CLOG_BYTEARRAY((unsigned char)ntohs(RemoteAddr->Ipv6.sin6_port), (uint8_t*)&RemoteAddr->Ipv6.sin6_addr)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY((unsigned char)ntohs(RemoteAddr->Ipv6.sin6_port), (uint8_t*)&RemoteAddr->Ipv6.sin6_addr)",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "!IPV6ADDR!",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
     }
   },
   "Version": 1,
@@ -37120,12 +37188,17 @@
         "EncodingType": "Int64",
         "CType": "CLOG_INT64",
         "DefinationEncoding": "ld"
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "CLOG_INT64",
+        "DefinationEncoding": "lld"
       }
     ]
   },
   "CustomTypeProcessorsX": {
     "msquic.clog_config": null,
-    "defaults.clog_config": "/*++\r\n\r\n    Copyright (c) Microsoft Corporation.\r\n    Licensed under the MIT License.\r\n\r\n--*/\r\n\r\n\r\nusing System;\r\nusing System.Runtime.InteropServices;\r\n\r\nnamespace defaults.clog_config\r\n{\r\n    public class Types\r\n    {\r\n\r\n        [StructLayout(LayoutKind.Explicit)]\r\n        public struct SocketAddress\r\n        {\r\n            [FieldOffset(0)]\r\n            public ushort si_family;\r\n\r\n            [FieldOffset(2)]\r\n            public ushort sin_port;\r\n\r\n            // IPv4\r\n            [FieldOffset(4)]\r\n            public ulong S_addr;\r\n\r\n\r\n            // IPv6\r\n            [FieldOffset(4)]\r\n            public ulong sin6_flowinfo;\r\n\r\n            [FieldOffset(8)]\r\n            public ulong S_v6Addr1;\r\n\r\n            [FieldOffset(16)]\r\n            public ulong S_v6Addr2;\r\n        };\r\n\r\n        public static string QUIC_FLAGS(uint value)\r\n        {\r\n            return \"QUIC_FLAGS (good!) \" + value;\r\n        }\r\n\r\n        public static string QUIC_IP_ADDR(byte[] value)\r\n        {\r\n            int len = value.Length;\r\n            IntPtr i = System.Runtime.InteropServices.Marshal.AllocHGlobal(len);\r\n            System.Runtime.InteropServices.Marshal.Copy(value, 0, i, len);\r\n            string msg = \"\";\r\n            SocketAddress sa2 = (SocketAddress)System.Runtime.InteropServices.Marshal.PtrToStructure(i, typeof(SocketAddress));\r\n\r\n            switch (sa2.si_family)\r\n            {\r\n                case 0:  //<--unspecified\r\n                    msg += \"Unspecified\";\r\n\r\n                    break;\r\n                case 23: //<--v6\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 10:  //<--v6 (linux)\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 2:  //< --v4\r\n                    msg += \"IPV4:\" + sa2.S_addr + \":\" + sa2.sin_port;\r\n                    break;\r\n                default:\r\n                    throw new Exception(\"Invalid SI_FAMILY : \" + sa2.si_family);\r\n                    //msg += \"Unknown Family: \" + sa2.si_family;\r\n                    break;\r\n            }\r\n\r\n            System.Runtime.InteropServices.Marshal.FreeHGlobal(i);\r\n            return msg;\r\n        }\r\n\r\n        public static string DecodeUInt32(uint value)\r\n        {\r\n            return \"CLOG_UINT32:\"+value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt32(int value)\r\n        {\r\n            return \"CLOG_INT32\"+value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt8(byte value)\r\n        {\r\n            return value.ToString();\r\n        }\r\n    }\r\n}"
+    "defaults.clog_config": "/*++\r\n\r\n    Copyright (c) Microsoft Corporation.\r\n    Licensed under the MIT License.\r\n\r\n--*/\r\n\r\n\r\nusing System;\r\nusing System.Runtime.InteropServices;\r\n\r\nnamespace defaults.clog_config\r\n{\r\n    public class Types\r\n    {\r\n\r\n        [StructLayout(LayoutKind.Explicit)]\r\n        public struct SocketAddress\r\n        {\r\n            [FieldOffset(0)]\r\n            public ushort si_family;\r\n\r\n            [FieldOffset(2)]\r\n            public ushort sin_port;\r\n\r\n            // IPv4\r\n            [FieldOffset(4)]\r\n            public ulong S_addr;\r\n\r\n\r\n            // IPv6\r\n            [FieldOffset(4)]\r\n            public ulong sin6_flowinfo;\r\n\r\n            [FieldOffset(8)]\r\n            public ulong S_v6Addr1;\r\n\r\n            [FieldOffset(16)]\r\n            public ulong S_v6Addr2;\r\n        };\r\n\r\n        public static string QUIC_FLAGS(uint value)\r\n        {\r\n            return \"QUIC_FLAGS (good!) \" + value;\r\n        }\r\n\r\n        public static string QUIC_IP_ADDR(byte[] value)\r\n        {\r\n            int len = value.Length;\r\n            IntPtr i = System.Runtime.InteropServices.Marshal.AllocHGlobal(len);\r\n            System.Runtime.InteropServices.Marshal.Copy(value, 0, i, len);\r\n            string msg = \"\";\r\n            SocketAddress sa2 = (SocketAddress)System.Runtime.InteropServices.Marshal.PtrToStructure(i, typeof(SocketAddress));\r\n\r\n            switch (sa2.si_family)\r\n            {\r\n                case 0:  //<--unspecified\r\n                    msg += \"Unspecified\";\r\n\r\n                    break;\r\n                case 23: //<--v6\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 10:  //<--v6 (linux)\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 2:  //< --v4\r\n                    msg += \"IPV4:\" + sa2.S_addr + \":\" + sa2.sin_port;\r\n                    break;\r\n                default:\r\n                    throw new Exception(\"Invalid SI_FAMILY : \" + sa2.si_family);\r\n            }\r\n\r\n            System.Runtime.InteropServices.Marshal.FreeHGlobal(i);\r\n            return msg;\r\n        }\r\n\r\n        public static string DecodeUInt32(uint value)\r\n        {\r\n            return \"CLOG_UINT32:\"+value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt32(int value)\r\n        {\r\n            return \"CLOG_INT32\"+value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt8(byte value)\r\n        {\r\n            return value.ToString();\r\n        }\r\n    }\r\n}"
   },
   "ModuleUniqueness": {
     "TraceInformation": [
@@ -37148,10 +37221,6 @@
       {
         "UniquenessHash": "fe671d01-61c1-337c-86f7-e918563cc313",
         "TraceID": "ApiExit"
-      },
-      {
-        "UniquenessHash": "e4fac6fc-5aef-f6ef-45b6-74c8b84f027d",
-        "TraceID": "AllocFailure"
       },
       {
         "UniquenessHash": "c3b546cc-e127-435d-8bf4-cf20ca3d2d5e",
@@ -37442,24 +37511,12 @@
         "TraceID": "AbandonInternallyClosed"
       },
       {
-        "UniquenessHash": "c7fbbbe9-2c04-86d6-5df1-799b7750091d",
-        "TraceID": "ConnCreated"
-      },
-      {
         "UniquenessHash": "3eff68f4-8d78-fbcc-d5cd-91388f6c65f3",
         "TraceID": "ConnLocalAddrAdded"
       },
       {
         "UniquenessHash": "fd0b4aa8-667f-38fb-3805-197b2651900a",
         "TraceID": "ConnRemoteAddrAdded"
-      },
-      {
-        "UniquenessHash": "69e923e7-7262-8b47-087f-860f372dcc67",
-        "TraceID": "ConnDestCidAdded"
-      },
-      {
-        "UniquenessHash": "d7e368d7-e5e3-c23d-8582-2d277025d417",
-        "TraceID": "ConnSourceCidAdded"
       },
       {
         "UniquenessHash": "228c04ea-f275-6f9c-e29a-a8f058a5db5e",
@@ -37472,10 +37529,6 @@
       {
         "UniquenessHash": "27cd4e17-599b-5429-699a-05377472f707",
         "TraceID": "ConnHandleClosed"
-      },
-      {
-        "UniquenessHash": "7c64ce80-c242-6993-c89b-13a4401c2569",
-        "TraceID": "ConnRundown"
       },
       {
         "UniquenessHash": "6815c8ca-4f06-e4ed-45ef-61e4440505b7",
@@ -37494,24 +37547,12 @@
         "TraceID": "ConnError"
       },
       {
-        "UniquenessHash": "5bce5311-2367-ea30-ce97-a03c4af57131",
-        "TraceID": "ConnDestCidRemoved"
-      },
-      {
         "UniquenessHash": "e60c48fb-a199-2842-564c-c4b6c6b15825",
         "TraceID": "ConnExecTimerOper"
       },
       {
         "UniquenessHash": "6e213d35-c012-ad23-e3e4-f4ba790dcc34",
         "TraceID": "ConnShutdownComplete"
-      },
-      {
-        "UniquenessHash": "6b63ca2a-52c1-0a29-9dbf-312f86868b31",
-        "TraceID": "ConnAppShutdown"
-      },
-      {
-        "UniquenessHash": "87501e41-0a0f-876a-7990-97dc56e5550a",
-        "TraceID": "ConnTransportShutdown"
       },
       {
         "UniquenessHash": "1ef92b85-de24-1ac3-ae82-f05a08fed2bc",
@@ -37524,14 +37565,6 @@
       {
         "UniquenessHash": "01d5a727-8287-c441-9ff0-0ebbd899549f",
         "TraceID": "ConnHandshakeStart"
-      },
-      {
-        "UniquenessHash": "14accb13-185e-5e50-78e1-62eede5e2bd3",
-        "TraceID": "ConnPacketRecv"
-      },
-      {
-        "UniquenessHash": "9ef9539e-2af8-135f-632a-ae580de686f1",
-        "TraceID": "ConnSourceCidRemoved"
       },
       {
         "UniquenessHash": "f715828e-352e-945b-3731-b52306004dfe",
@@ -38142,14 +38175,6 @@
         "TraceID": "ConnLossDetectionTimerSet"
       },
       {
-        "UniquenessHash": "6e0a8527-041d-6774-0d05-a70f909a5a1d",
-        "TraceID": "ConnPacketLost"
-      },
-      {
-        "UniquenessHash": "f03a01bd-4c95-3042-d107-10c3e40afee3",
-        "TraceID": "ConnPacketACKed"
-      },
-      {
         "UniquenessHash": "36af421f-5521-cf89-8421-12615abcb5d3",
         "TraceID": "FN_packet90ccc79fc6238b6379c9f2d0110c7855"
       },
@@ -38178,22 +38203,6 @@
         "TraceID": "FN_packet61e31d5123d636bf45a77c08018ceb3a"
       },
       {
-        "UniquenessHash": "049b189f-e72e-9782-e488-5d416ffce6ee",
-        "TraceID": "ConnDropPacket"
-      },
-      {
-        "UniquenessHash": "7e257f46-29d6-3cf0-466d-f120087d0070",
-        "TraceID": "BindingDropPacket"
-      },
-      {
-        "UniquenessHash": "dc257f39-0410-2ea4-fc03-ccf545390747",
-        "TraceID": "ConnDropPacketEx"
-      },
-      {
-        "UniquenessHash": "915561c8-8ac0-2c4d-19f4-4d9f65a374b9",
-        "TraceID": "BindingDropPacketEx"
-      },
-      {
         "UniquenessHash": "ae8d6511-2012-8041-9607-2af43217bce1",
         "TraceID": "FN_packet_builder24bb96787b7b1cfae2d4688ab3213bf6"
       },
@@ -38212,10 +38221,6 @@
       {
         "UniquenessHash": "d47dfcd6-7986-84d9-1597-60b7710f1080",
         "TraceID": "GetPacketTypeFailure"
-      },
-      {
-        "UniquenessHash": "0ef0b887-0570-0f4a-9ca6-e009a7ebd452",
-        "TraceID": "ConnPacketSent"
       },
       {
         "UniquenessHash": "0b7c7292-b790-b5a3-858f-3249e3e60aa0",
@@ -38358,10 +38363,6 @@
         "TraceID": "SessionCleanup"
       },
       {
-        "UniquenessHash": "171b3d1c-0dd6-ff27-2aef-4a57fc872510",
-        "TraceID": "SessionShutdown"
-      },
-      {
         "UniquenessHash": "9f017e81-6d92-3436-a8e5-023d33db9c0f",
         "TraceID": "SessionRundown"
       },
@@ -38478,10 +38479,6 @@
         "TraceID": "StreamDestroyed"
       },
       {
-        "UniquenessHash": "3bc5a574-883e-cdd8-6a14-59ae54440918",
-        "TraceID": "StreamCreated"
-      },
-      {
         "UniquenessHash": "3482729d-611c-3101-e975-e3b885eefb4c",
         "TraceID": "StreamSendState"
       },
@@ -38492,10 +38489,6 @@
       {
         "UniquenessHash": "c920076b-b563-8dbd-b6bf-abf16aba3b36",
         "TraceID": "StreamOutFlowBlocked"
-      },
-      {
-        "UniquenessHash": "ed4e546f-0494-e986-d155-4f1302eceb9d",
-        "TraceID": "StreamRundown"
       },
       {
         "UniquenessHash": "fc5f72b2-3ad9-e090-6abd-aee3d0bf5995",
@@ -38728,10 +38721,6 @@
       {
         "UniquenessHash": "1189b27a-3066-dbe8-b1c1-dc6a6c8ced95",
         "TraceID": "ConnExecOper"
-      },
-      {
-        "UniquenessHash": "e12cd302-f93e-ca55-64b3-dcd5e477d56f",
-        "TraceID": "ConnInFlowStats"
       },
       {
         "UniquenessHash": "d20a7088-d594-d0c2-2102-0b4b0ff58c10",
@@ -40464,6 +40453,98 @@
       {
         "UniquenessHash": "c41ce605-3a6e-3a4e-5f62-906947f5f52c",
         "TraceID": "TlsNoMatchingAlpn"
+      },
+      {
+        "UniquenessHash": "335643ef-1fdb-099b-6672-4452222524ff",
+        "TraceID": "AllocFailure"
+      },
+      {
+        "UniquenessHash": "840b9db0-166b-1658-f4d4-78ce32e0558f",
+        "TraceID": "ConnCreated"
+      },
+      {
+        "UniquenessHash": "f8f1b23e-9579-44df-141c-0ae55c09514d",
+        "TraceID": "ConnRundown"
+      },
+      {
+        "UniquenessHash": "7ee3ef0c-9ad4-5553-ca06-e0f221474c83",
+        "TraceID": "ConnAppShutdown"
+      },
+      {
+        "UniquenessHash": "77f143ea-475a-df72-5056-855df8c703fe",
+        "TraceID": "ConnTransportShutdown"
+      },
+      {
+        "UniquenessHash": "639f5619-f1c1-a60d-e3e4-d2ad06ea7566",
+        "TraceID": "ConnPacketRecv"
+      },
+      {
+        "UniquenessHash": "3defd68c-6f0d-960a-d85d-2cd7bcc3fc65",
+        "TraceID": "ConnDropPacket"
+      },
+      {
+        "UniquenessHash": "66e4b849-13b0-5ba1-80b9-89c8ae02c90f",
+        "TraceID": "BindingDropPacket"
+      },
+      {
+        "UniquenessHash": "38217796-6287-e6d7-0c5f-d78734c980ee",
+        "TraceID": "ConnDropPacketEx"
+      },
+      {
+        "UniquenessHash": "206a32dd-f6fc-f101-7979-f3f4deb03244",
+        "TraceID": "BindingDropPacketEx"
+      },
+      {
+        "UniquenessHash": "52d321ad-3ea0-a42d-94f5-0b3753986e95",
+        "TraceID": "ConnPacketSent"
+      },
+      {
+        "UniquenessHash": "16f58b10-e797-8e40-91d6-2a7ac159caf6",
+        "TraceID": "SessionShutdown"
+      },
+      {
+        "UniquenessHash": "84abcb9c-4f80-834f-fa6c-b3df77d9f51b",
+        "TraceID": "StreamCreated"
+      },
+      {
+        "UniquenessHash": "57cfe4e6-f610-ca59-9a80-253126f7a5c0",
+        "TraceID": "StreamRundown"
+      },
+      {
+        "UniquenessHash": "5e524dd5-fea0-3816-a291-92ed85eab29d",
+        "TraceID": "ConnInFlowStats"
+      },
+      {
+        "UniquenessHash": "14bc58cb-ea23-5fc4-1f8d-e1147dd8201f",
+        "TraceID": "FN_datapath_winuser98712c41f3c7a37b24466cc56356459a"
+      },
+      {
+        "UniquenessHash": "c1a8de66-1a41-dcc1-7287-a10e5e919bd4",
+        "TraceID": "FN_datapath_winuser12d869b81546180a6c851672aa59025c"
+      },
+      {
+        "UniquenessHash": "eb1dec0a-cf2e-5faf-3cd8-b8912cb7d390",
+        "TraceID": "ConnDestCidAdded"
+      },
+      {
+        "UniquenessHash": "95e0b796-ef03-5e49-040f-f282f266ca04",
+        "TraceID": "ConnSourceCidAdded"
+      },
+      {
+        "UniquenessHash": "48f7b162-602a-f05f-1603-325a326c96d5",
+        "TraceID": "ConnDestCidRemoved"
+      },
+      {
+        "UniquenessHash": "696ca1fc-9f80-1646-0be8-3f522f77c027",
+        "TraceID": "ConnSourceCidRemoved"
+      },
+      {
+        "UniquenessHash": "9fa273ba-53ae-3e96-a1a0-be0321b20bd8",
+        "TraceID": "ConnPacketACKed"
+      },
+      {
+        "UniquenessHash": "f93288aa-3214-650c-3ff6-5db448ef6418",
+        "TraceID": "ConnPacketLost"
       }
     ]
   }

@@ -43,7 +43,7 @@ MsQuicListenerOpen(
 
     Listener = QUIC_ALLOC_NONPAGED(sizeof(QUIC_LISTENER));
     if (Listener == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "listener", sizeof(QUIC_LISTENER));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "listener", sizeof(QUIC_LISTENER));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }

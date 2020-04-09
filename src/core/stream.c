@@ -188,7 +188,7 @@ QuicStreamStart(
 
     Stream->Flags.Started = TRUE;
 
-    QuicTraceEvent(StreamCreated, "[strm][%p] Created, Conn=%p ID=%I IsLocal=%c", Stream, Stream->Connection, Stream->ID, !IsRemoteStream);
+    QuicTraceEvent(StreamCreated, "[strm][%p] Created, Conn=%p ID=%llu IsLocal=%c", Stream, Stream->Connection, Stream->ID, !IsRemoteStream);
     QuicTraceEvent(StreamSendState, "[strm][%p] Send State: %c", Stream, QuicStreamSendGetState(Stream));
     QuicTraceEvent(StreamRecvState, "[strm][%p] Recv State: %c", Stream, QuicStreamRecvGetState(Stream));
 
@@ -287,7 +287,7 @@ QuicStreamTraceRundown(
     _In_ QUIC_STREAM* Stream
     )
 {
-    QuicTraceEvent(StreamRundown, "[strm][%p] Rundown, Conn=%p ID=%I IsLocal=%c", Stream, Stream->Connection, Stream->ID,
+    QuicTraceEvent(StreamRundown, "[strm][%p] Rundown, Conn=%p ID=%llu IsLocal=%c", Stream, Stream->Connection, Stream->ID,
         (!QuicConnIsServer(Stream->Connection) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
     QuicTraceEvent(StreamOutFlowBlocked, "[strm][%p] Send Blocked Flags: %c", Stream, Stream->OutFlowBlockedReasons);
     // TODO - More state dump.
