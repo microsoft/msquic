@@ -3253,8 +3253,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"QUIC_DATAPATH\"",
-            "UserSuppliedTrimmed": "\"QUIC_DATAPATH\"",
+            "UserSpecifiedUnModified": " \"wchar string\"",
+            "UserSuppliedTrimmed": "\"wchar string\"",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "s",
@@ -3262,8 +3262,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " DatapathLength",
-            "UserSuppliedTrimmed": "DatapathLength",
+            "UserSpecifiedUnModified": " sizeof(WCHAR) * Size",
+            "UserSuppliedTrimmed": "sizeof(WCHAR) * Size",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "llu",
@@ -13117,8 +13117,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"WskRegister\"",
-            "UserSuppliedTrimmed": "\"WskRegister\"",
+            "UserSpecifiedUnModified": " \"Open HMAC_SHA256 algorithm\"",
+            "UserSuppliedTrimmed": "\"Open HMAC_SHA256 algorithm\"",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "s",
@@ -25554,8 +25554,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"Resolving hostname to IP\"",
-            "UserSuppliedTrimmed": "\"Resolving hostname to IP\"",
+            "UserSpecifiedUnModified": " \"NULL CallbackData to QuicTlsSspiNotifyCallback\"",
+            "UserSuppliedTrimmed": "\"NULL CallbackData to QuicTlsSspiNotifyCallback\"",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "s",
@@ -25589,8 +25589,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " SocketContext->Binding",
-            "UserSuppliedTrimmed": "SocketContext->Binding",
+            "UserSpecifiedUnModified": " Binding",
+            "UserSuppliedTrimmed": "Binding",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "p",
@@ -25598,8 +25598,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                SocketContext->Irp.IoStatus.Status",
-            "UserSuppliedTrimmed": "SocketContext->Irp.IoStatus.Status",
+            "UserSpecifiedUnModified": " WsaError",
+            "UserSuppliedTrimmed": "WsaError",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "d",
@@ -25607,8 +25607,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"WskCloseSocket completion\"",
-            "UserSuppliedTrimmed": "\"WskCloseSocket completion\"",
+            "UserSpecifiedUnModified": " \"WSASocketW\"",
+            "UserSuppliedTrimmed": "\"WSASocketW\"",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "s",
@@ -25651,8 +25651,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n            (uint32_t)DataLength",
-            "UserSuppliedTrimmed": "(uint32_t)DataLength",
+            "UserSpecifiedUnModified": "\r\n            NumberOfBytesTransferred",
+            "UserSuppliedTrimmed": "NumberOfBytesTransferred",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "d",
@@ -25669,8 +25669,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(LocalAddr), (const uint8_t*)&LocalAddr)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(LocalAddr), (const uint8_t*)&LocalAddr)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddr), (const uint8_t*)LocalAddr)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddr), (const uint8_t*)LocalAddr)",
             "SuggestedTelemetryName": "arg5"
           },
           "DefinationEncoding": "!SOCKADDR!",
@@ -25678,8 +25678,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(RemoteAddr), (const uint8_t*)&RemoteAddr)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(RemoteAddr), (const uint8_t*)&RemoteAddr)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddr), (const uint8_t*)RemoteAddr)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddr), (const uint8_t*)RemoteAddr)",
             "SuggestedTelemetryName": "arg6"
           },
           "DefinationEncoding": "!SOCKADDR!",
@@ -25731,8 +25731,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n        SendContext->WskBufferCount",
-            "UserSuppliedTrimmed": "SendContext->WskBufferCount",
+            "UserSpecifiedUnModified": "\r\n        SendContext->WsaBufferCount",
+            "UserSuppliedTrimmed": "SendContext->WsaBufferCount",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "c",
@@ -25749,8 +25749,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)RemoteAddress)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)RemoteAddress)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)&RemoteAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)&RemoteAddress)",
             "SuggestedTelemetryName": "arg6"
           },
           "DefinationEncoding": "!SOCKADDR!",
@@ -25802,8 +25802,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n        SendContext->WskBufferCount",
-            "UserSuppliedTrimmed": "SendContext->WskBufferCount",
+            "UserSpecifiedUnModified": "\r\n        SendContext->WsaBufferCount",
+            "UserSuppliedTrimmed": "SendContext->WsaBufferCount",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "c",
@@ -25820,8 +25820,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)RemoteAddress)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)RemoteAddress)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)&RemoteAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)&RemoteAddress)",
             "SuggestedTelemetryName": "arg6"
           },
           "DefinationEncoding": "!SOCKADDR!",
@@ -25829,8 +25829,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), (const uint8_t*)LocalAddress)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), (const uint8_t*)LocalAddress)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), (const uint8_t*)&LocalAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), (const uint8_t*)&LocalAddress)",
             "SuggestedTelemetryName": "arg7"
           },
           "DefinationEncoding": "!SOCKADDR!",

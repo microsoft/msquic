@@ -86,7 +86,9 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 # Well-known files and directories used for the various logging commands.
 $WprProfile = Join-Path $RootDir "src\manifest\msquic.wprp"
 $SideCar = Join-Path $RootDir "src/manifest/clog.sidecar"
-$Clog2Text = Join-Path $RootDir "artifacts/tools/clog/clog2text_lttng"
+$Clog2Text_lttng = Join-Path $RootDir "artifacts/tools/clog/Clog2Text_lttng"
+$Clog2Text_windows = Join-Path $RootDir "artifacts/tools/clog/windows/Clog2Text_windows"
+
 $TempDir = $null
 if ($IsLinux) {
     $InstanceName = $InstanceName.Replace(".", "_")
@@ -115,9 +117,9 @@ function Log-Start {
 
             if ($Stream) {
                 lttng list | Write-Debug
-                babeltrace -i lttng-live net://localhost | Write-Debug        
-                Write-Host "Now decoding LTTng events in realtime...`n"        
-                Invoke-Expression "babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquiclive | $Clog2Text -s $SideCar"
+                babeltrace -i lttng-live net://localhost | Write-Debug
+                Write-Host "Now decoding LTTng events in realtime...`n"
+                Invoke-Expression "babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquiclive | $Clog2Text_lttng -s $SideCar"
             }
         } finally {
             if ($Stream) {
@@ -144,6 +146,12 @@ function Log-Cancel {
 
 # Stops log collection, keeping the logs.
 function Log-Stop {
+    $ClogOutputDecodeFile = Join-Path $OutputDirectory "quic.log"
+
+    if (!(Test-Path $OutputDirectory)) {
+        New-Item -Path $OutputDirectory -ItemType Directory -Force | Out-Null
+    }
+
     if ($IsWindows) {
         $EtlPath = Join-Path $OutputDirectory "quic.etl"
         wpr.exe -stop $EtlPath -instancename $InstanceName
@@ -154,6 +162,11 @@ function Log-Stop {
                 $Command += " tmfpath=$($TmfPath)"
             }
             Invoke-Expression $Command
+
+            Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
+            $Command = "$Clog2Text_windows -i $EtlPath -s $SideCar -o $ClogOutputDecodeFile"
+            Write-Debug $Command
+            Invoke-Expression $Command | Write-Debug
         }
     } else {
         if (!(Test-Path $TempDir)) {
@@ -164,11 +177,6 @@ function Log-Stop {
 
         $LTTNGTarFile = Join-Path $OutputDirectory "lttng_trace.tgz"
         $BableTraceFile = Join-Path $OutputDirectory "babeltrace.txt"
-        $ClogOutputDecodeFile = Join-Path $OutputDirectory "quic.log"
-
-        if (!(Test-Path $OutputDirectory)) {
-            New-Item -Path $OutputDirectory -ItemType Directory -Force | Out-Null
-        }
 
         Write-Host "tar/gzip LTTng log files: $LTTNGTarFile"
         tar -cvzf $LTTNGTarFile $TempDir | Write-Debug
@@ -178,7 +186,7 @@ function Log-Stop {
             babeltrace --names all $TempDir/* > $BableTraceFile
 
             Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
-            $Command = "$Clog2Text -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
+            $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
             Write-Debug $Command
             Invoke-Expression $Command | Write-Debug
             Remove-Item -Path $BableTraceFile -Force | Out-Null
@@ -192,8 +200,17 @@ function Log-Stop {
 
 # Decodes a log file.
 function Log-Decode {
+
+    if (!(Test-Path $WorkingDirectory)) {
+        New-Item -Path $WorkingDirectory -ItemType Directory -Force | Out-Null
+    }
+
     if ($IsWindows) {
-        Write-Debug "Not supported on Windows"
+        $ClogOutputDecodeFile = Join-Path $WorkingDirectory "clog_decode.txt"
+        Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
+        $Command = "$Clog2Text_windows -i $LogFile -s $SideCar -o $ClogOutputDecodeFile"
+        Write-Debug $Command
+        Invoke-Expression $Command | Write-Debug
     } else {
         Write-Host $LogFile
 
@@ -211,7 +228,7 @@ function Log-Decode {
         babeltrace --names all $DecompressedLogs/* > $BableTraceFile
 
         Write-Host "Decoding Babeltrace into human text using CLOG"
-        $Command = "$Clog2Text -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
+        $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
         Write-Host $Command
         Invoke-Expression $Command
     }
