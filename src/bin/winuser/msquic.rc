@@ -21,3 +21,5 @@
 #include "msquic.ver"
 
 #endif // QUIC_WINDOWS_INTERNAL
+
+#include "MsQuicEtw.rc"
