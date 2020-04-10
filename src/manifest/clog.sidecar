@@ -3045,6 +3045,22 @@
       "FN_datapath_winuser80f95372f363d78879faa71a2a91f95d": {
         "arg2": "arg1",
         "arg3": "arg3"
+      },
+      "FN_platform_linux5b43549401edd168cb147c081480f701": {},
+      "FN_platform_linuxa4807bc3dec94112c855988b9765e9fd": {
+        "arg2": "arg2"
+      },
+      "FN_platform_linux03f5cd9d08b25c9becba34623dd6e99f": {
+        "arg2": "arg2"
+      },
+      "FN_platform_linux08258181693fbe069c934b3266761cbe": {
+        "arg2": "arg2"
+      },
+      "FN_platform_linuxb416645bcc56e4270130192a5505d003": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
       }
     }
   },
@@ -3237,8 +3253,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"wchar string\"",
-            "UserSuppliedTrimmed": "\"wchar string\"",
+            "UserSpecifiedUnModified": " \"QUIC_DATAPATH\"",
+            "UserSuppliedTrimmed": "\"QUIC_DATAPATH\"",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "s",
@@ -3246,8 +3262,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " sizeof(WCHAR) * Size",
-            "UserSuppliedTrimmed": "sizeof(WCHAR) * Size",
+            "UserSpecifiedUnModified": " DatapathLength",
+            "UserSuppliedTrimmed": "DatapathLength",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "llu",
@@ -13101,8 +13117,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"Open HMAC_SHA256 algorithm\"",
-            "UserSuppliedTrimmed": "\"Open HMAC_SHA256 algorithm\"",
+            "UserSpecifiedUnModified": " \"WskRegister\"",
+            "UserSuppliedTrimmed": "\"WskRegister\"",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "s",
@@ -21590,7 +21606,15 @@
       }
     },
     "FN_datapath_linux3fa3c705814cf440901b3cdc82763d0e": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "556",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] RecvBlock allocation failed.",
       "UniqueId": "FN_datapath_linux3fa3c705814cf440901b3cdc82763d0e",
       "splitArgs": [],
@@ -21607,7 +21631,15 @@
       }
     },
     "FN_datapath_linux6a1490694bb2a6cf3b0ca3b4f8ea6705": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "557",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] QuicDataPathAllocRecvBlock failed.",
       "UniqueId": "FN_datapath_linux6a1490694bb2a6cf3b0ca3b4f8ea6705",
       "splitArgs": [
@@ -21634,7 +21666,15 @@
       }
     },
     "FN_datapath_linux3b6790b90a378e2f0279d08e9790ad9e": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "558",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] Send buffer allocation failed.",
       "UniqueId": "FN_datapath_linux3b6790b90a378e2f0279d08e9790ad9e",
       "splitArgs": [],
@@ -21651,7 +21691,15 @@
       }
     },
     "FN_datapath_linux3c5cc39edbda9002304d06a649a55d29": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "559",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[bind][%p] Created.",
       "UniqueId": "FN_datapath_linux3c5cc39edbda9002304d06a649a55d29",
       "splitArgs": [
@@ -21678,7 +21726,15 @@
       }
     },
     "FN_datapath_linux59aad15150c0d7ffdbc4b549d8312c1d": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "560",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] Initialized",
       "UniqueId": "FN_datapath_linux59aad15150c0d7ffdbc4b549d8312c1d",
       "splitArgs": [
@@ -21705,7 +21761,15 @@
       }
     },
     "FN_datapath_linux61eb4268402d5c45ab8802aa6c00611c": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "561",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] Uninitialize",
       "UniqueId": "FN_datapath_linux61eb4268402d5c45ab8802aa6c00611c",
       "splitArgs": [
@@ -21732,7 +21796,15 @@
       }
     },
     "FN_datapath_linuxf5aef1cdbfb13bbb56b9db47a5d9bf4a": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "562",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] Uninitialize complete.",
       "UniqueId": "FN_datapath_linuxf5aef1cdbfb13bbb56b9db47a5d9bf4a",
       "splitArgs": [
@@ -21759,7 +21831,15 @@
       }
     },
     "FN_datapath_linux5c39e7ce20b72cc933a2d2fb57b0d272": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "563",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] epoll ADD: IN | ET",
       "UniqueId": "FN_datapath_linux5c39e7ce20b72cc933a2d2fb57b0d272",
       "splitArgs": [
@@ -21786,13 +21866,21 @@
       }
     },
     "FN_datapath_linuxb802df54d54a4bc6143599cee561f8f3": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "564",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] Received [%zd] (buflen=[%hu]) bytes Src=[%s:%hu] Dst=[%s:%hu], bind=[%p].",
       "UniqueId": "FN_datapath_linuxb802df54d54a4bc6143599cee561f8f3",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            SocketContext",
+            "UserSpecifiedUnModified": "\r\n            SocketContext",
             "UserSuppliedTrimmed": "SocketContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -21810,7 +21898,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            RecvPacket->BufferLength",
+            "UserSpecifiedUnModified": "\r\n            RecvPacket->BufferLength",
             "UserSuppliedTrimmed": "RecvPacket->BufferLength",
             "SuggestedTelemetryName": "arg4"
           },
@@ -21819,7 +21907,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            inet_ntop(AF_INET, &RemoteAddr->Ipv4.sin_addr, RemoteInet6AddrStr, INET_ADDRSTRLEN)",
+            "UserSpecifiedUnModified": "\r\n            inet_ntop(AF_INET, &RemoteAddr->Ipv4.sin_addr, RemoteInet6AddrStr, INET_ADDRSTRLEN)",
             "UserSuppliedTrimmed": "inet_ntop(AF_INET, &RemoteAddr->Ipv4.sin_addr, RemoteInet6AddrStr, INET_ADDRSTRLEN)",
             "SuggestedTelemetryName": "arg5"
           },
@@ -21828,7 +21916,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            ntohs(RemoteAddr->Ipv4.sin_port)",
+            "UserSpecifiedUnModified": "\r\n            ntohs(RemoteAddr->Ipv4.sin_port)",
             "UserSuppliedTrimmed": "ntohs(RemoteAddr->Ipv4.sin_port)",
             "SuggestedTelemetryName": "arg6"
           },
@@ -21837,7 +21925,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            inet_ntop(AF_INET, &LocalAddr->Ipv4.sin_addr, LocalInet6AddrStr, INET_ADDRSTRLEN)",
+            "UserSpecifiedUnModified": "\r\n            inet_ntop(AF_INET, &LocalAddr->Ipv4.sin_addr, LocalInet6AddrStr, INET_ADDRSTRLEN)",
             "UserSuppliedTrimmed": "inet_ntop(AF_INET, &LocalAddr->Ipv4.sin_addr, LocalInet6AddrStr, INET_ADDRSTRLEN)",
             "SuggestedTelemetryName": "arg7"
           },
@@ -21846,7 +21934,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            ntohs(LocalAddr->Ipv4.sin_port)",
+            "UserSpecifiedUnModified": "\r\n            ntohs(LocalAddr->Ipv4.sin_port)",
             "UserSuppliedTrimmed": "ntohs(LocalAddr->Ipv4.sin_port)",
             "SuggestedTelemetryName": "arg8"
           },
@@ -21855,7 +21943,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            SocketContext->Binding",
+            "UserSpecifiedUnModified": "\r\n            SocketContext->Binding",
             "UserSuppliedTrimmed": "SocketContext->Binding",
             "SuggestedTelemetryName": "arg9"
           },
@@ -21876,13 +21964,21 @@
       }
     },
     "FN_datapath_linuxde827e1cb26621b9975feaa0c9aade47": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "565",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] Received [%zd] (buflen=[%hu]) bytes Src=[%s:%hu] Dst=[%s:%hu%u], bind=[%p].",
       "UniqueId": "FN_datapath_linuxde827e1cb26621b9975feaa0c9aade47",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            SocketContext",
+            "UserSpecifiedUnModified": "\r\n            SocketContext",
             "UserSuppliedTrimmed": "SocketContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -21900,7 +21996,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            RecvPacket->BufferLength",
+            "UserSpecifiedUnModified": "\r\n            RecvPacket->BufferLength",
             "UserSuppliedTrimmed": "RecvPacket->BufferLength",
             "SuggestedTelemetryName": "arg4"
           },
@@ -21909,7 +22005,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            inet_ntop(AF_INET6, &RemoteAddr->Ipv6.sin6_addr, RemoteInet6AddrStr, INET6_ADDRSTRLEN)",
+            "UserSpecifiedUnModified": "\r\n            inet_ntop(AF_INET6, &RemoteAddr->Ipv6.sin6_addr, RemoteInet6AddrStr, INET6_ADDRSTRLEN)",
             "UserSuppliedTrimmed": "inet_ntop(AF_INET6, &RemoteAddr->Ipv6.sin6_addr, RemoteInet6AddrStr, INET6_ADDRSTRLEN)",
             "SuggestedTelemetryName": "arg5"
           },
@@ -21918,7 +22014,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            ntohs(RemoteAddr->Ipv6.sin6_port)",
+            "UserSpecifiedUnModified": "\r\n            ntohs(RemoteAddr->Ipv6.sin6_port)",
             "UserSuppliedTrimmed": "ntohs(RemoteAddr->Ipv6.sin6_port)",
             "SuggestedTelemetryName": "arg6"
           },
@@ -21927,7 +22023,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            inet_ntop(AF_INET6, &LocalAddr->Ipv6.sin6_addr, LocalInet6AddrStr, INET6_ADDRSTRLEN)",
+            "UserSpecifiedUnModified": "\r\n            inet_ntop(AF_INET6, &LocalAddr->Ipv6.sin6_addr, LocalInet6AddrStr, INET6_ADDRSTRLEN)",
             "UserSuppliedTrimmed": "inet_ntop(AF_INET6, &LocalAddr->Ipv6.sin6_addr, LocalInet6AddrStr, INET6_ADDRSTRLEN)",
             "SuggestedTelemetryName": "arg7"
           },
@@ -21936,7 +22032,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            ntohs(LocalAddr->Ipv6.sin6_port)",
+            "UserSpecifiedUnModified": "\r\n            ntohs(LocalAddr->Ipv6.sin6_port)",
             "UserSuppliedTrimmed": "ntohs(LocalAddr->Ipv6.sin6_port)",
             "SuggestedTelemetryName": "arg8"
           },
@@ -21945,7 +22041,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            LocalAddr->Ipv6.sin6_scope_id",
+            "UserSpecifiedUnModified": "\r\n            LocalAddr->Ipv6.sin6_scope_id",
             "UserSuppliedTrimmed": "LocalAddr->Ipv6.sin6_scope_id",
             "SuggestedTelemetryName": "arg9"
           },
@@ -21954,7 +22050,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            SocketContext->Binding",
+            "UserSpecifiedUnModified": "\r\n            SocketContext->Binding",
             "UserSuppliedTrimmed": "SocketContext->Binding",
             "SuggestedTelemetryName": "arg10"
           },
@@ -21975,7 +22071,15 @@
       }
     },
     "FN_datapath_linux1a4cf7d41ec8fd1e829212c52385bb55": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "566",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] Pending send.",
       "UniqueId": "FN_datapath_linux1a4cf7d41ec8fd1e829212c52385bb55",
       "splitArgs": [
@@ -22002,7 +22106,15 @@
       }
     },
     "FN_datapath_linux63f61334eaf08a02252ba074286d9fdb": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "567",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] epoll MOD: IN | OUT | ET",
       "UniqueId": "FN_datapath_linux63f61334eaf08a02252ba074286d9fdb",
       "splitArgs": [
@@ -22029,7 +22141,15 @@
       }
     },
     "FN_datapath_linuxab9d8aecbf2d0e38eeb36d1769c40b0c": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "568",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] epoll MOD: IN | ET",
       "UniqueId": "FN_datapath_linuxab9d8aecbf2d0e38eeb36d1769c40b0c",
       "splitArgs": [
@@ -22056,7 +22176,15 @@
       }
     },
     "FN_datapath_linuxc8c574f415fac8afb9eaa69d11886826": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "569",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] Process Events: 0x%x.",
       "UniqueId": "FN_datapath_linuxc8c574f415fac8afb9eaa69d11886826",
       "splitArgs": [
@@ -22092,7 +22220,15 @@
       }
     },
     "FN_datapath_linuxeffe372f69040808bb6dfa7efc48eaf2": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "570",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[bind][%p] Binding shutting down",
       "UniqueId": "FN_datapath_linuxeffe372f69040808bb6dfa7efc48eaf2",
       "splitArgs": [
@@ -22119,7 +22255,15 @@
       }
     },
     "FN_datapath_linux55c63664d2640c0e7f6066ba3c3bcbc9": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "571",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] sendto() blocked.",
       "UniqueId": "FN_datapath_linux55c63664d2640c0e7f6066ba3c3bcbc9",
       "splitArgs": [],
@@ -22136,13 +22280,21 @@
       }
     },
     "FN_datapath_linux19f2bf84e9d972cd7232119e1f7bfa5f": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "572",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] Send (%p) completion succeeded, bytes transferred %d",
       "UniqueId": "FN_datapath_linux19f2bf84e9d972cd7232119e1f7bfa5f",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                    SocketContext",
+            "UserSpecifiedUnModified": "\r\n                    SocketContext",
             "UserSuppliedTrimmed": "SocketContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -22181,13 +22333,21 @@
       }
     },
     "FN_datapath_linux1029b3b03e6182711394d88b277f288c": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "573",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] Send (%p) completion succeeded, bytes transferred %d",
       "UniqueId": "FN_datapath_linux1029b3b03e6182711394d88b277f288c",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                SocketContext",
+            "UserSpecifiedUnModified": "\r\n                SocketContext",
             "UserSuppliedTrimmed": "SocketContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -22226,13 +22386,21 @@
       }
     },
     "FN_datapath_linux60ede27a1c5ad670ecffe4810e5d350a": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "574",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] SocketFd=[%d], sending %u bytes Dst=[%s:%hu] (%p)",
       "UniqueId": "FN_datapath_linux60ede27a1c5ad670ecffe4810e5d350a",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                SocketContext",
+            "UserSpecifiedUnModified": "\r\n                SocketContext",
             "UserSuppliedTrimmed": "SocketContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -22241,7 +22409,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                SocketContext->SocketFd",
+            "UserSpecifiedUnModified": "\r\n                SocketContext->SocketFd",
             "UserSuppliedTrimmed": "SocketContext->SocketFd",
             "SuggestedTelemetryName": "arg3"
           },
@@ -22250,7 +22418,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                SendContext->Buffers[i].Length",
+            "UserSpecifiedUnModified": "\r\n                SendContext->Buffers[i].Length",
             "UserSuppliedTrimmed": "SendContext->Buffers[i].Length",
             "SuggestedTelemetryName": "arg4"
           },
@@ -22259,7 +22427,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                inet_ntop(AF_INET, &RemoteAddress->Ipv4.sin_addr, Inet6AddrStr, INET_ADDRSTRLEN)",
+            "UserSpecifiedUnModified": "\r\n                inet_ntop(AF_INET, &RemoteAddress->Ipv4.sin_addr, Inet6AddrStr, INET_ADDRSTRLEN)",
             "UserSuppliedTrimmed": "inet_ntop(AF_INET, &RemoteAddress->Ipv4.sin_addr, Inet6AddrStr, INET_ADDRSTRLEN)",
             "SuggestedTelemetryName": "arg5"
           },
@@ -22268,7 +22436,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                ntohs(RemoteAddress->Ipv4.sin_port)",
+            "UserSpecifiedUnModified": "\r\n                ntohs(RemoteAddress->Ipv4.sin_port)",
             "UserSuppliedTrimmed": "ntohs(RemoteAddress->Ipv4.sin_port)",
             "SuggestedTelemetryName": "arg6"
           },
@@ -22277,7 +22445,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                SendContext",
+            "UserSpecifiedUnModified": "\r\n                SendContext",
             "UserSuppliedTrimmed": "SendContext",
             "SuggestedTelemetryName": "arg7"
           },
@@ -22298,13 +22466,21 @@
       }
     },
     "FN_datapath_linux8492f15439dfbd6b576f900b8ec9a319": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "575",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] SocketFd=[%d], sending %u bytes Dst=[%s:%hu] (%p)",
       "UniqueId": "FN_datapath_linux8492f15439dfbd6b576f900b8ec9a319",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                SocketContext",
+            "UserSpecifiedUnModified": "\r\n                SocketContext",
             "UserSuppliedTrimmed": "SocketContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -22313,7 +22489,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                SocketContext->SocketFd",
+            "UserSpecifiedUnModified": "\r\n                SocketContext->SocketFd",
             "UserSuppliedTrimmed": "SocketContext->SocketFd",
             "SuggestedTelemetryName": "arg3"
           },
@@ -22322,7 +22498,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                SendContext->Buffers[i].Length",
+            "UserSpecifiedUnModified": "\r\n                SendContext->Buffers[i].Length",
             "UserSuppliedTrimmed": "SendContext->Buffers[i].Length",
             "SuggestedTelemetryName": "arg4"
           },
@@ -22331,7 +22507,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                inet_ntop(AF_INET6, &RemoteAddress->Ipv6.sin6_addr, Inet6AddrStr, INET6_ADDRSTRLEN)",
+            "UserSpecifiedUnModified": "\r\n                inet_ntop(AF_INET6, &RemoteAddress->Ipv6.sin6_addr, Inet6AddrStr, INET6_ADDRSTRLEN)",
             "UserSuppliedTrimmed": "inet_ntop(AF_INET6, &RemoteAddress->Ipv6.sin6_addr, Inet6AddrStr, INET6_ADDRSTRLEN)",
             "SuggestedTelemetryName": "arg5"
           },
@@ -22340,7 +22516,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                ntohs(RemoteAddress->Ipv6.sin6_port)",
+            "UserSpecifiedUnModified": "\r\n                ntohs(RemoteAddress->Ipv6.sin6_port)",
             "UserSuppliedTrimmed": "ntohs(RemoteAddress->Ipv6.sin6_port)",
             "SuggestedTelemetryName": "arg6"
           },
@@ -22349,7 +22525,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                SendContext",
+            "UserSpecifiedUnModified": "\r\n                SendContext",
             "UserSuppliedTrimmed": "SendContext",
             "SuggestedTelemetryName": "arg7"
           },
@@ -22370,13 +22546,21 @@
       }
     },
     "FN_datapath_linux3b98ac193c78986a62dc8818437aaac3": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "576",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] SocketFd=[%d], sending %u bytes Src=[%s:%hu%u] Dst=[%s:%hu] (%p)",
       "UniqueId": "FN_datapath_linux3b98ac193c78986a62dc8818437aaac3",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                SocketContext",
+            "UserSpecifiedUnModified": "\r\n                SocketContext",
             "UserSuppliedTrimmed": "SocketContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -22385,7 +22569,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                SocketContext->SocketFd",
+            "UserSpecifiedUnModified": "\r\n                SocketContext->SocketFd",
             "UserSuppliedTrimmed": "SocketContext->SocketFd",
             "SuggestedTelemetryName": "arg3"
           },
@@ -22394,7 +22578,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                SendContext->Buffers[i].Length",
+            "UserSpecifiedUnModified": "\r\n                SendContext->Buffers[i].Length",
             "UserSuppliedTrimmed": "SendContext->Buffers[i].Length",
             "SuggestedTelemetryName": "arg4"
           },
@@ -22403,7 +22587,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                inet_ntop(AF_INET, &LocalAddress->Ipv4.sin_addr, LocalInet6AddrStr, INET_ADDRSTRLEN)",
+            "UserSpecifiedUnModified": "\r\n                inet_ntop(AF_INET, &LocalAddress->Ipv4.sin_addr, LocalInet6AddrStr, INET_ADDRSTRLEN)",
             "UserSuppliedTrimmed": "inet_ntop(AF_INET, &LocalAddress->Ipv4.sin_addr, LocalInet6AddrStr, INET_ADDRSTRLEN)",
             "SuggestedTelemetryName": "arg5"
           },
@@ -22412,7 +22596,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                ntohs(LocalAddress->Ipv4.sin_port)",
+            "UserSpecifiedUnModified": "\r\n                ntohs(LocalAddress->Ipv4.sin_port)",
             "UserSuppliedTrimmed": "ntohs(LocalAddress->Ipv4.sin_port)",
             "SuggestedTelemetryName": "arg6"
           },
@@ -22421,7 +22605,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                LocalAddress->Ipv6.sin6_scope_id",
+            "UserSpecifiedUnModified": "\r\n                LocalAddress->Ipv6.sin6_scope_id",
             "UserSuppliedTrimmed": "LocalAddress->Ipv6.sin6_scope_id",
             "SuggestedTelemetryName": "arg7"
           },
@@ -22430,7 +22614,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                inet_ntop(AF_INET, &RemoteAddress->Ipv4.sin_addr, RemoteInet6AddrStr, INET_ADDRSTRLEN)",
+            "UserSpecifiedUnModified": "\r\n                inet_ntop(AF_INET, &RemoteAddress->Ipv4.sin_addr, RemoteInet6AddrStr, INET_ADDRSTRLEN)",
             "UserSuppliedTrimmed": "inet_ntop(AF_INET, &RemoteAddress->Ipv4.sin_addr, RemoteInet6AddrStr, INET_ADDRSTRLEN)",
             "SuggestedTelemetryName": "arg8"
           },
@@ -22439,7 +22623,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                ntohs(RemoteAddress->Ipv4.sin_port)",
+            "UserSpecifiedUnModified": "\r\n                ntohs(RemoteAddress->Ipv4.sin_port)",
             "UserSuppliedTrimmed": "ntohs(RemoteAddress->Ipv4.sin_port)",
             "SuggestedTelemetryName": "arg9"
           },
@@ -22448,7 +22632,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                SendContext",
+            "UserSpecifiedUnModified": "\r\n                SendContext",
             "UserSuppliedTrimmed": "SendContext",
             "SuggestedTelemetryName": "arg10"
           },
@@ -22469,13 +22653,21 @@
       }
     },
     "FN_datapath_linux8a3aa260f243d9c933a88d3f5f4c0321": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "577",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] SocketFd=[%d], sending %u bytes Src=[%s:%hu%u] Dst=[%s:%hu] (%p)",
       "UniqueId": "FN_datapath_linux8a3aa260f243d9c933a88d3f5f4c0321",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                SocketContext",
+            "UserSpecifiedUnModified": "\r\n                SocketContext",
             "UserSuppliedTrimmed": "SocketContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -22484,7 +22676,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                SocketContext->SocketFd",
+            "UserSpecifiedUnModified": "\r\n                SocketContext->SocketFd",
             "UserSuppliedTrimmed": "SocketContext->SocketFd",
             "SuggestedTelemetryName": "arg3"
           },
@@ -22493,7 +22685,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                SendContext->Buffers[i].Length",
+            "UserSpecifiedUnModified": "\r\n                SendContext->Buffers[i].Length",
             "UserSuppliedTrimmed": "SendContext->Buffers[i].Length",
             "SuggestedTelemetryName": "arg4"
           },
@@ -22502,7 +22694,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                inet_ntop(AF_INET6, &LocalAddress->Ipv6.sin6_addr, LocalInet6AddrStr, INET6_ADDRSTRLEN)",
+            "UserSpecifiedUnModified": "\r\n                inet_ntop(AF_INET6, &LocalAddress->Ipv6.sin6_addr, LocalInet6AddrStr, INET6_ADDRSTRLEN)",
             "UserSuppliedTrimmed": "inet_ntop(AF_INET6, &LocalAddress->Ipv6.sin6_addr, LocalInet6AddrStr, INET6_ADDRSTRLEN)",
             "SuggestedTelemetryName": "arg5"
           },
@@ -22511,7 +22703,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                ntohs(LocalAddress->Ipv6.sin6_port)",
+            "UserSpecifiedUnModified": "\r\n                ntohs(LocalAddress->Ipv6.sin6_port)",
             "UserSuppliedTrimmed": "ntohs(LocalAddress->Ipv6.sin6_port)",
             "SuggestedTelemetryName": "arg6"
           },
@@ -22520,7 +22712,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                LocalAddress->Ipv6.sin6_scope_id",
+            "UserSpecifiedUnModified": "\r\n                LocalAddress->Ipv6.sin6_scope_id",
             "UserSuppliedTrimmed": "LocalAddress->Ipv6.sin6_scope_id",
             "SuggestedTelemetryName": "arg7"
           },
@@ -22529,7 +22721,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                inet_ntop(AF_INET6, &RemoteAddress->Ipv6.sin6_addr, RemoteInet6AddrStr, INET6_ADDRSTRLEN)",
+            "UserSpecifiedUnModified": "\r\n                inet_ntop(AF_INET6, &RemoteAddress->Ipv6.sin6_addr, RemoteInet6AddrStr, INET6_ADDRSTRLEN)",
             "UserSuppliedTrimmed": "inet_ntop(AF_INET6, &RemoteAddress->Ipv6.sin6_addr, RemoteInet6AddrStr, INET6_ADDRSTRLEN)",
             "SuggestedTelemetryName": "arg8"
           },
@@ -22538,7 +22730,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                ntohs(RemoteAddress->Ipv6.sin6_port)",
+            "UserSpecifiedUnModified": "\r\n                ntohs(RemoteAddress->Ipv6.sin6_port)",
             "UserSuppliedTrimmed": "ntohs(RemoteAddress->Ipv6.sin6_port)",
             "SuggestedTelemetryName": "arg9"
           },
@@ -22547,7 +22739,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                SendContext",
+            "UserSpecifiedUnModified": "\r\n                SendContext",
             "UserSuppliedTrimmed": "SendContext",
             "SuggestedTelemetryName": "arg10"
           },
@@ -22568,7 +22760,15 @@
       }
     },
     "FN_datapath_linuxbca492d3173b65591afb875ca167b44c": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "578",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] epoll_create1(EPOLL_CLOEXEC) failed, 0x%x.",
       "UniqueId": "FN_datapath_linuxbca492d3173b65591afb875ca167b44c",
       "splitArgs": [
@@ -22595,7 +22795,15 @@
       }
     },
     "FN_datapath_linux80d463940366316e871279ee90e5c307": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "579",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] eventfd failed, 0x%x.",
       "UniqueId": "FN_datapath_linux80d463940366316e871279ee90e5c307",
       "splitArgs": [
@@ -22622,7 +22830,15 @@
       }
     },
     "FN_datapath_linuxb8159a1f65ecbb0eb9c8b77b9be9122f": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "580",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] epoll_ctl(EPOLL_CTL_ADD) failed, 0x%x.",
       "UniqueId": "FN_datapath_linuxb8159a1f65ecbb0eb9c8b77b9be9122f",
       "splitArgs": [
@@ -22649,7 +22865,15 @@
       }
     },
     "FN_datapath_linuxd0d27dc9f980729b226874b283255424": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "581",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] QuicThreadCreate failed, 0x%x.",
       "UniqueId": "FN_datapath_linuxd0d27dc9f980729b226874b283255424",
       "splitArgs": [
@@ -22676,7 +22900,15 @@
       }
     },
     "FN_datapath_linux8848703f05a0fe05539e919e0d365ba4": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "582",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] Datapath allocation failure.",
       "UniqueId": "FN_datapath_linux8848703f05a0fe05539e919e0d365ba4",
       "splitArgs": [],
@@ -22693,7 +22925,15 @@
       }
     },
     "FN_datapath_linuxa4bf90a34d69dcbe9e96ed51f1b9021c": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "583",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[%p] Couldn't resolve hostname '%s' to an IP address",
       "UniqueId": "FN_datapath_linuxa4bf90a34d69dcbe9e96ed51f1b9021c",
       "splitArgs": [
@@ -22729,7 +22969,15 @@
       }
     },
     "FN_datapath_linuxfdc1f385a374eb7487032df67fae038b": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "584",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] socket failed, 0x%x.",
       "UniqueId": "FN_datapath_linuxfdc1f385a374eb7487032df67fae038b",
       "splitArgs": [
@@ -22756,7 +23004,15 @@
       }
     },
     "FN_datapath_linuxb6e785958cd8d50ccef0a6d36787da35": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "585",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] setsockopt(IPV6_V6ONLY) failed, 0x%x.",
       "UniqueId": "FN_datapath_linuxb6e785958cd8d50ccef0a6d36787da35",
       "splitArgs": [
@@ -22783,7 +23039,15 @@
       }
     },
     "FN_datapath_linuxe5e6b299d1a0081dd2afc32349f22ecd": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "586",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] setsockopt(IP_MTU_DISCOVER) failed, 0x%x.",
       "UniqueId": "FN_datapath_linuxe5e6b299d1a0081dd2afc32349f22ecd",
       "splitArgs": [
@@ -22810,7 +23074,15 @@
       }
     },
     "FN_datapath_linuxa4a94d76ae75beeb2d1d1c4a5098fea1": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "587",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] setsockopt(IPV6_DONTFRAG) failed, 0x%x.",
       "UniqueId": "FN_datapath_linuxa4a94d76ae75beeb2d1d1c4a5098fea1",
       "splitArgs": [
@@ -22837,7 +23109,15 @@
       }
     },
     "FN_datapath_linuxdf7cb85f965e43368839b99f2415011e": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "588",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] setsockopt(IPV6_RECVPKTINFO) failed, 0x%x.",
       "UniqueId": "FN_datapath_linuxdf7cb85f965e43368839b99f2415011e",
       "splitArgs": [
@@ -22864,7 +23144,15 @@
       }
     },
     "FN_datapath_linux59a04f4ccf742d10c8d11db4fb46b00e": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "589",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] setsockopt(IP_PKTINFO) failed, 0x%x.",
       "UniqueId": "FN_datapath_linux59a04f4ccf742d10c8d11db4fb46b00e",
       "splitArgs": [
@@ -22891,7 +23179,15 @@
       }
     },
     "FN_datapath_linux1ccd1de3f445cff3fe70092785fe43c3": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "590",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] setsockopt(SO_RCVBUF) failed, 0x%x.",
       "UniqueId": "FN_datapath_linux1ccd1de3f445cff3fe70092785fe43c3",
       "splitArgs": [
@@ -22918,7 +23214,15 @@
       }
     },
     "FN_datapath_linuxd4db8a00044550ffa4fb320c0d17bd5e": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "591",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] setsockopt(SO_REUSEADDR) failed, 0x%x.",
       "UniqueId": "FN_datapath_linuxd4db8a00044550ffa4fb320c0d17bd5e",
       "splitArgs": [
@@ -22945,7 +23249,15 @@
       }
     },
     "FN_datapath_linux96a75e11317f285c36e073a349ed8ae6": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "592",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] bind failed, 0x%x.",
       "UniqueId": "FN_datapath_linux96a75e11317f285c36e073a349ed8ae6",
       "splitArgs": [
@@ -22972,7 +23284,15 @@
       }
     },
     "FN_datapath_linuxb58ac54cf20776df9c35e6d1469fcb43": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "593",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] connect failed, 0x%x.",
       "UniqueId": "FN_datapath_linuxb58ac54cf20776df9c35e6d1469fcb43",
       "splitArgs": [
@@ -22999,7 +23319,15 @@
       }
     },
     "FN_datapath_linux9616bfff71a6ad3bd8a9028994b1f3ce": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "594",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] getsockname failed, 0x%x.",
       "UniqueId": "FN_datapath_linux9616bfff71a6ad3bd8a9028994b1f3ce",
       "splitArgs": [
@@ -23026,7 +23354,15 @@
       }
     },
     "FN_datapath_linux7c18fd32d3cc4386509a1c9a858d1a8c": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "595",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] epoll_ctl failed, 0x%x.",
       "UniqueId": "FN_datapath_linux7c18fd32d3cc4386509a1c9a858d1a8c",
       "splitArgs": [
@@ -23062,7 +23398,15 @@
       }
     },
     "FN_datapath_linux6bf174dd7705d220217784cf1b1fbd51": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "596",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] epoll_ctl failed, 0x%x.",
       "UniqueId": "FN_datapath_linux6bf174dd7705d220217784cf1b1fbd51",
       "splitArgs": [
@@ -23098,7 +23442,15 @@
       }
     },
     "FN_datapath_linuxaba234d30914c9012fb19a828a43a2cb": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "597",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] getsockopt(SO_ERROR) failed, 0x%x.",
       "UniqueId": "FN_datapath_linuxaba234d30914c9012fb19a828a43a2cb",
       "splitArgs": [
@@ -23134,7 +23486,15 @@
       }
     },
     "FN_datapath_linux36e15fe80ecd2361189f45b0e3fc98d9": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "598",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] Socket error event:, 0x%x (%s).",
       "UniqueId": "FN_datapath_linux36e15fe80ecd2361189f45b0e3fc98d9",
       "splitArgs": [
@@ -23179,7 +23539,15 @@
       }
     },
     "FN_datapath_linuxbe45cb9fcf8f4e1e6970a5b140681c5d": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "599",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[sock][%p] recvmsg failed, 0x%x.",
       "UniqueId": "FN_datapath_linuxbe45cb9fcf8f4e1e6970a5b140681c5d",
       "splitArgs": [
@@ -23215,7 +23583,15 @@
       }
     },
     "FN_datapath_linux86275c6bd95aff071fb8c7df8db5b1fe": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "600",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] Binding allocation failed",
       "UniqueId": "FN_datapath_linux86275c6bd95aff071fb8c7df8db5b1fe",
       "splitArgs": [],
@@ -23232,7 +23608,15 @@
       }
     },
     "FN_datapath_linuxf1e7fb33cf2002577b7b6ad6225d04bb": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "601",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] QuicPoolAlloc failed.",
       "UniqueId": "FN_datapath_linuxf1e7fb33cf2002577b7b6ad6225d04bb",
       "splitArgs": [],
@@ -23249,7 +23633,15 @@
       }
     },
     "FN_datapath_linux397f19d5cc013a05fa3ea6456e446ade": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "602",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] Max batch size limit hit.",
       "UniqueId": "FN_datapath_linux397f19d5cc013a05fa3ea6456e446ade",
       "splitArgs": [],
@@ -23266,7 +23658,15 @@
       }
     },
     "FN_datapath_linux1f5f901030a987cf2a21f462a41812a9": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "603",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] sendto failed, status: %u.",
       "UniqueId": "FN_datapath_linux1f5f901030a987cf2a21f462a41812a9",
       "splitArgs": [
@@ -23293,7 +23693,15 @@
       }
     },
     "FN_datapath_linuxa7c850fad55357dac836f120c5a602a9": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "604",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ dal] sendmsg failed, 0x%x.",
       "UniqueId": "FN_datapath_linuxa7c850fad55357dac836f120c5a602a9",
       "splitArgs": [
@@ -23395,7 +23803,15 @@
       }
     },
     "FN_platform_linux5b43549401edd168cb147c081480f701": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "625",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[qpal] pthread_attr_setaffinity_np failed.",
       "UniqueId": "FN_platform_linux5b43549401edd168cb147c081480f701",
       "splitArgs": [],
@@ -23412,7 +23828,15 @@
       }
     },
     "FN_platform_linuxa4807bc3dec94112c855988b9765e9fd": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "626",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[qpal] pthread_attr_setschedparam failed, 0x%x.",
       "UniqueId": "FN_platform_linuxa4807bc3dec94112c855988b9765e9fd",
       "splitArgs": [
@@ -23439,7 +23863,15 @@
       }
     },
     "FN_platform_linux03f5cd9d08b25c9becba34623dd6e99f": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "627",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[qpal] pthread_attr_init failed, 0x%x.",
       "UniqueId": "FN_platform_linux03f5cd9d08b25c9becba34623dd6e99f",
       "splitArgs": [
@@ -23466,7 +23898,15 @@
       }
     },
     "FN_platform_linux08258181693fbe069c934b3266761cbe": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "628",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[qpal] pthread_create failed, 0x%x.",
       "UniqueId": "FN_platform_linux08258181693fbe069c934b3266761cbe",
       "splitArgs": [
@@ -23493,13 +23933,21 @@
       }
     },
     "FN_platform_linuxb416645bcc56e4270130192a5505d003": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "629",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[Assert] %s:%s:%d:%s",
       "UniqueId": "FN_platform_linuxb416645bcc56e4270130192a5505d003",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Expr",
+            "UserSpecifiedUnModified": "\r\n        Expr",
             "UserSuppliedTrimmed": "Expr",
             "SuggestedTelemetryName": "arg2"
           },
@@ -23547,7 +23995,15 @@
       }
     },
     "FN_tls_stubbeb87fff4fd6aff47c418f16532cd6af": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "811",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls] Failed to allocate QUIC_TLS_SESSION.",
       "UniqueId": "FN_tls_stubbeb87fff4fd6aff47c418f16532cd6af",
       "splitArgs": [],
@@ -23564,7 +24020,15 @@
       }
     },
     "FN_tls_stubd06ff44316f93f70545d466d919b1c5a": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "812",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls] Failed to allocate QUIC_TLS.",
       "UniqueId": "FN_tls_stubd06ff44316f93f70545d466d919b1c5a",
       "splitArgs": [],
@@ -23581,7 +24045,15 @@
       }
     },
     "FN_tls_stub187b833a8e70a2df93bc9f4d6087a46c": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "813",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Failed to allocate SNI.",
       "UniqueId": "FN_tls_stub187b833a8e70a2df93bc9f4d6087a46c",
       "splitArgs": [
@@ -23617,7 +24089,15 @@
       }
     },
     "FN_tls_stub1d989f8bd24b9c505928ded85f7dd974": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "814",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Certificate validation disabled!",
       "UniqueId": "FN_tls_stub1d989f8bd24b9c505928ded85f7dd974",
       "splitArgs": [
@@ -23653,7 +24133,15 @@
       }
     },
     "FN_tls_stub17f0d4ffbb3c4f80c2422125e4fa3a17": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "815",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Resetting TLS state.",
       "UniqueId": "FN_tls_stub17f0d4ffbb3c4f80c2422125e4fa3a17",
       "splitArgs": [
@@ -23689,7 +24177,15 @@
       }
     },
     "FN_tls_stub1e675f312598da1e8d515f889e91072d": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "816",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Handshake complete.",
       "UniqueId": "FN_tls_stub1e675f312598da1e8d515f889e91072d",
       "splitArgs": [
@@ -23725,7 +24221,15 @@
       }
     },
     "FN_tls_stub777754bbda74f30f1f753374b8ab7412": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "817",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Consumed %u bytes.",
       "UniqueId": "FN_tls_stub777754bbda74f30f1f753374b8ab7412",
       "splitArgs": [
@@ -23770,7 +24274,15 @@
       }
     },
     "FN_tls_stub032cc027c586042bc5d0f52cadb2d824": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "818",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Produced %hu bytes.",
       "UniqueId": "FN_tls_stub032cc027c586042bc5d0f52cadb2d824",
       "splitArgs": [
@@ -23815,7 +24327,15 @@
       }
     },
     "FN_tls_stub8b8980417b7165619250b4160d5f5320": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "819",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Created.",
       "UniqueId": "FN_tls_stub8b8980417b7165619250b4160d5f5320",
       "splitArgs": [
@@ -23851,7 +24371,15 @@
       }
     },
     "FN_tls_stub46416f9e948dc2d7e0da7dff4824650b": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "820",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Cleaning up.",
       "UniqueId": "FN_tls_stub46416f9e948dc2d7e0da7dff4824650b",
       "splitArgs": [
@@ -23887,7 +24415,15 @@
       }
     },
     "FN_tls_stub7238e53c70a5f473de837b2ff7cdab29": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "821",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Insufficient data to process header.",
       "UniqueId": "FN_tls_stub7238e53c70a5f473de837b2ff7cdab29",
       "splitArgs": [
@@ -23923,7 +24459,15 @@
       }
     },
     "FN_tls_stub78ae023383d5d669949477f2cde8592c": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "822",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Insufficient data to process %u bytes.",
       "UniqueId": "FN_tls_stub78ae023383d5d669949477f2cde8592c",
       "splitArgs": [
@@ -23968,7 +24512,15 @@
       }
     },
     "FN_tls_stub948e07444f7369140c04d67fbfd780bb": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "823",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Processing %u received bytes.",
       "UniqueId": "FN_tls_stub948e07444f7369140c04d67fbfd780bb",
       "splitArgs": [
@@ -24013,7 +24565,15 @@
       }
     },
     "FN_tls_stub6a3b951ae6d9ca0d66a249fc67e1038e": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "824",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls] Failed to acquire sec config rundown.",
       "UniqueId": "FN_tls_stub6a3b951ae6d9ca0d66a249fc67e1038e",
       "splitArgs": [],
@@ -24030,7 +24590,15 @@
       }
     },
     "FN_tls_stub61decd62b3e6b4eca0f4862b9da6f3fb": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "825",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Invalid / Too long server name!",
       "UniqueId": "FN_tls_stub61decd62b3e6b4eca0f4862b9da6f3fb",
       "splitArgs": [
@@ -24066,7 +24634,15 @@
       }
     },
     "FN_tls_stub626acb409e48c7baa74a65d39bb493cd": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "826",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] No matching signature algorithm for the provided server certificate.",
       "UniqueId": "FN_tls_stub626acb409e48c7baa74a65d39bb493cd",
       "splitArgs": [
@@ -24102,7 +24678,15 @@
       }
     },
     "FN_tls_stuba06e989b98c3ae49e1f0c115ed197093": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "827",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Failure client finish.",
       "UniqueId": "FN_tls_stuba06e989b98c3ae49e1f0c115ed197093",
       "splitArgs": [
@@ -24138,7 +24722,15 @@
       }
     },
     "FN_tls_stub42ebbc1e0ae86bf6fbc808fd8bb05dbf": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "828",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Invalid message, %u.",
       "UniqueId": "FN_tls_stub42ebbc1e0ae86bf6fbc808fd8bb05dbf",
       "splitArgs": [
@@ -24183,7 +24775,15 @@
       }
     },
     "FN_tls_stub66ba924fe65c4348b22bed51bd3f83c2": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "829",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Invalid last message, %u.",
       "UniqueId": "FN_tls_stub66ba924fe65c4348b22bed51bd3f83c2",
       "splitArgs": [
@@ -24228,7 +24828,15 @@
       }
     },
     "TlsNoMatchingAlpn": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "712",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Failed to find a matching ALPN",
       "UniqueId": "TlsNoMatchingAlpn",
       "splitArgs": [
@@ -24264,7 +24872,15 @@
       }
     },
     "FN_tls_stubbb2dec043e656055a5c3869a1f0f8939": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "830",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Cert parse error.",
       "UniqueId": "FN_tls_stubbb2dec043e656055a5c3869a1f0f8939",
       "splitArgs": [
@@ -24300,7 +24916,15 @@
       }
     },
     "FN_tls_stub0cc5eed241d8365602003869cefaad02": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "831",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Cert chain validation failed.",
       "UniqueId": "FN_tls_stub0cc5eed241d8365602003869cefaad02",
       "splitArgs": [
@@ -24336,7 +24960,15 @@
       }
     },
     "FN_tls_stubd6ab59da5e6c82d95c00c16cd6b227d0": {
-      "ModuleProperites": {},
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "832",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
       "TraceString": "[ tls][%p][%c] Invalid message, %u.",
       "UniqueId": "FN_tls_stubd6ab59da5e6c82d95c00c16cd6b227d0",
       "splitArgs": [
@@ -24922,8 +25554,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"NULL CallbackData to QuicTlsSspiNotifyCallback\"",
-            "UserSuppliedTrimmed": "\"NULL CallbackData to QuicTlsSspiNotifyCallback\"",
+            "UserSpecifiedUnModified": " \"Resolving hostname to IP\"",
+            "UserSuppliedTrimmed": "\"Resolving hostname to IP\"",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "s",
@@ -24957,8 +25589,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Binding",
-            "UserSuppliedTrimmed": "Binding",
+            "UserSpecifiedUnModified": " SocketContext->Binding",
+            "UserSuppliedTrimmed": "SocketContext->Binding",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "p",
@@ -24966,8 +25598,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " WsaError",
-            "UserSuppliedTrimmed": "WsaError",
+            "UserSpecifiedUnModified": "\r\n                SocketContext->Irp.IoStatus.Status",
+            "UserSuppliedTrimmed": "SocketContext->Irp.IoStatus.Status",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "d",
@@ -24975,8 +25607,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"WSASocketW\"",
-            "UserSuppliedTrimmed": "\"WSASocketW\"",
+            "UserSpecifiedUnModified": " \"WskCloseSocket completion\"",
+            "UserSuppliedTrimmed": "\"WskCloseSocket completion\"",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "s",
@@ -25019,8 +25651,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n            NumberOfBytesTransferred",
-            "UserSuppliedTrimmed": "NumberOfBytesTransferred",
+            "UserSpecifiedUnModified": "\r\n            (uint32_t)DataLength",
+            "UserSuppliedTrimmed": "(uint32_t)DataLength",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "d",
@@ -25037,8 +25669,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddr), (const uint8_t*)LocalAddr)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddr), (const uint8_t*)LocalAddr)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(LocalAddr), (const uint8_t*)&LocalAddr)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(LocalAddr), (const uint8_t*)&LocalAddr)",
             "SuggestedTelemetryName": "arg5"
           },
           "DefinationEncoding": "!SOCKADDR!",
@@ -25046,8 +25678,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddr), (const uint8_t*)RemoteAddr)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddr), (const uint8_t*)RemoteAddr)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(RemoteAddr), (const uint8_t*)&RemoteAddr)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(RemoteAddr), (const uint8_t*)&RemoteAddr)",
             "SuggestedTelemetryName": "arg6"
           },
           "DefinationEncoding": "!SOCKADDR!",
@@ -25099,8 +25731,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n        SendContext->WsaBufferCount",
-            "UserSuppliedTrimmed": "SendContext->WsaBufferCount",
+            "UserSpecifiedUnModified": "\r\n        SendContext->WskBufferCount",
+            "UserSuppliedTrimmed": "SendContext->WskBufferCount",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "c",
@@ -25117,8 +25749,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)&RemoteAddress)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)&RemoteAddress)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)RemoteAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)RemoteAddress)",
             "SuggestedTelemetryName": "arg6"
           },
           "DefinationEncoding": "!SOCKADDR!",
@@ -25170,8 +25802,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n        SendContext->WsaBufferCount",
-            "UserSuppliedTrimmed": "SendContext->WsaBufferCount",
+            "UserSpecifiedUnModified": "\r\n        SendContext->WskBufferCount",
+            "UserSuppliedTrimmed": "SendContext->WskBufferCount",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "c",
@@ -25188,8 +25820,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)&RemoteAddress)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)&RemoteAddress)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)RemoteAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)RemoteAddress)",
             "SuggestedTelemetryName": "arg6"
           },
           "DefinationEncoding": "!SOCKADDR!",
@@ -25197,8 +25829,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), (const uint8_t*)&LocalAddress)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), (const uint8_t*)&LocalAddress)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), (const uint8_t*)LocalAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), (const uint8_t*)LocalAddress)",
             "SuggestedTelemetryName": "arg7"
           },
           "DefinationEncoding": "!SOCKADDR!",
@@ -28668,7 +29300,7 @@
     "FN_cert_openssl5b5f57e3d075abc22ec387bfa5371909": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "531",
+          "EventID": "552",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -28712,7 +29344,7 @@
     "FN_cert_openssld6b5e25e1d67e3e335421dba90a1894a": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "532",
+          "EventID": "553",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -28747,7 +29379,7 @@
     "FN_cert_openssl3f546368f5b0d188716d7bebb25c249a": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "533",
+          "EventID": "554",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -28782,7 +29414,7 @@
     "FN_cert_openssl73ff9f2de79a42f0df4336c51a71be8b": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "534",
+          "EventID": "555",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -28807,7 +29439,7 @@
     "FN_datapath_winkernel536a28a2cc566ae9496fcdc2dad1bc11": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "584",
+          "EventID": "605",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -28842,7 +29474,7 @@
     "FN_datapath_winkernel47ad1d2a3a581705a6c70703361a63a3": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "585",
+          "EventID": "606",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -28877,7 +29509,7 @@
     "FN_datapath_winkerneld9cd530b54fdc33f0e9780f42cdeacf0": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "586",
+          "EventID": "607",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -28912,7 +29544,7 @@
     "FN_datapath_winkernel1c1c5a9db5e0be21e86bc22356bf85a2": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "587",
+          "EventID": "608",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -28947,7 +29579,7 @@
     "FN_datapath_winkernel2a2506743958edf053d61e0928f9fd40": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "588",
+          "EventID": "609",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -28982,7 +29614,7 @@
     "FN_datapath_winkernelc4017adb4452fb5f1b340ea7cb0a8c82": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "589",
+          "EventID": "610",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29017,7 +29649,7 @@
     "FN_datapath_winkernelcea2322f734ab5d4323953d9ee0afe25": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "590",
+          "EventID": "611",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29052,7 +29684,7 @@
     "FN_datapath_winkernel919ebf940a2a169176992905fc755ad3": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "591",
+          "EventID": "612",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29087,7 +29719,7 @@
     "FN_datapath_winkernel114fbce36d1d5e27f51f67070ddfc15b": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "592",
+          "EventID": "613",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29122,7 +29754,7 @@
     "FN_datapath_winkernelca58fac1e96d6975bd26514d2e67c44c": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "593",
+          "EventID": "614",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29157,7 +29789,7 @@
     "FN_datapath_winkernel7478cae346c3ac8bb5271d6e65693a55": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "594",
+          "EventID": "615",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29192,7 +29824,7 @@
     "FN_datapath_winkernel0324e327f65fd558e2cd842bc3d2b067": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "595",
+          "EventID": "616",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29227,7 +29859,7 @@
     "FN_datapath_winkernel7ace99c208f148bb120993f6b0cc6af7": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "596",
+          "EventID": "617",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29239,7 +29871,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                    SocketContext",
+            "UserSpecifiedUnModified": "\r\n                    SocketContext",
             "UserSuppliedTrimmed": "SocketContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -29271,7 +29903,7 @@
     "FN_datapath_winkernel10b2cd6bd05f9d95d32af961e9a4a475": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "597",
+          "EventID": "618",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29306,7 +29938,7 @@
     "FN_datapath_winkerneld5ad6e016ca238333b94f0f930062153": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "598",
+          "EventID": "619",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29341,7 +29973,7 @@
     "FN_datapath_winkernele6ccc5e3dd39066016a63b7ae7a6ee27": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "599",
+          "EventID": "620",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29376,7 +30008,7 @@
     "FN_datapath_winkernel032b71cec12b7777ddde8d45635955d7": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "600",
+          "EventID": "621",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29411,7 +30043,7 @@
     "FN_datapath_winkernel0d5b73ad7e3f4e54d28b5b840116cd97": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "601",
+          "EventID": "622",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29423,7 +30055,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                    SocketContext",
+            "UserSpecifiedUnModified": "\r\n                    SocketContext",
             "UserSuppliedTrimmed": "SocketContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -29432,8 +30064,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                    &RemoteAddr.Ipv4.sin_addr",
-            "UserSuppliedTrimmed": "&RemoteAddr.Ipv4.sin_addr",
+            "UserSpecifiedUnModified": "\r\n                    CLOG_BYTEARRAY(sizeof(RemoteAddr.Ipv4.sin_addr), (const unsigned char *)&RemoteAddr.Ipv4.sin_addr)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(RemoteAddr.Ipv4.sin_addr), (const unsigned char *)&RemoteAddr.Ipv4.sin_addr)",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "!IPV4ADDR!",
@@ -29441,7 +30073,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                    RtlUshortByteSwap(RemoteAddr.Ipv4.sin_port)",
+            "UserSpecifiedUnModified": "\r\n                    RtlUshortByteSwap(RemoteAddr.Ipv4.sin_port)",
             "UserSuppliedTrimmed": "RtlUshortByteSwap(RemoteAddr.Ipv4.sin_port)",
             "SuggestedTelemetryName": "arg4"
           },
@@ -29464,7 +30096,7 @@
     "FN_datapath_winkernele1fb7d63de75c9c0e44219d165a81f04": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "602",
+          "EventID": "623",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29476,7 +30108,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                    SocketContext",
+            "UserSpecifiedUnModified": "\r\n                    SocketContext",
             "UserSuppliedTrimmed": "SocketContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -29485,8 +30117,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                    &RemoteAddr.Ipv6.sin6_addr",
-            "UserSuppliedTrimmed": "&RemoteAddr.Ipv6.sin6_addr",
+            "UserSpecifiedUnModified": "\r\n                    CLOG_BYTEARRAY(sizeof(RemoteAddr.Ipv6.sin6_addr), (const unsigned char *)&RemoteAddr.Ipv6.sin6_addr)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(RemoteAddr.Ipv6.sin6_addr), (const unsigned char *)&RemoteAddr.Ipv6.sin6_addr)",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "!IPV6ADDR!",
@@ -29494,7 +30126,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                    RtlUshortByteSwap(RemoteAddr.Ipv6.sin6_port)",
+            "UserSpecifiedUnModified": "\r\n                    RtlUshortByteSwap(RemoteAddr.Ipv6.sin6_port)",
             "UserSuppliedTrimmed": "RtlUshortByteSwap(RemoteAddr.Ipv6.sin6_port)",
             "SuggestedTelemetryName": "arg4"
           },
@@ -29517,7 +30149,7 @@
     "FN_datapath_winkernela4bf90a34d69dcbe9e96ed51f1b9021c": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "603",
+          "EventID": "624",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29561,7 +30193,7 @@
     "FN_platform_winkernel2caf2e914a62a8911996ebd87a43a219": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "604",
+          "EventID": "630",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29586,7 +30218,7 @@
     "FN_platform_winkernela5181157c57867f18093b29e28c56a9b": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "605",
+          "EventID": "631",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29611,7 +30243,7 @@
     "FN_platform_winkernelfae6d131ade2e717f4aff25de71cf94a": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "606",
+          "EventID": "632",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29623,7 +30255,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n        Sbi.PageSize",
+            "UserSpecifiedUnModified": "\r\n        Sbi.PageSize",
             "UserSuppliedTrimmed": "Sbi.PageSize",
             "SuggestedTelemetryName": "arg2"
           },
@@ -29655,7 +30287,7 @@
     "FN_platform_winkernel499d1a8d9eb7e1addb19c81283b7e516": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "607",
+          "EventID": "633",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29680,7 +30312,7 @@
     "FN_selfsign_opensslc127736118cc2d5595f12d8afb0bc56b": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "608",
+          "EventID": "634",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29705,7 +30337,7 @@
     "FN_selfsign_opensslfe5e8db30d1d3ecb6509556988c9b3a1": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "609",
+          "EventID": "635",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29730,7 +30362,7 @@
     "FN_selfsign_openssl805217919553b3b01cd7b0fcd2ad3d8e": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "610",
+          "EventID": "636",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29755,7 +30387,7 @@
     "FN_selfsign_openssl9ad9fa0b1072e8efa689e4bec75763d1": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "611",
+          "EventID": "637",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29780,7 +30412,7 @@
     "FN_selfsign_openssla0e51324c09915fcabf2444b1938ab2f": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "612",
+          "EventID": "638",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29805,7 +30437,7 @@
     "FN_selfsign_openssld38daeb187fe185dfb06653bde718d4c": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "613",
+          "EventID": "639",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29830,7 +30462,7 @@
     "FN_selfsign_opensslb9bf4ef0753f00337102eded740abde8": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "614",
+          "EventID": "640",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29855,7 +30487,7 @@
     "FN_selfsign_openssl174350b9ebb57b662c8c7b169fc55f1a": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "615",
+          "EventID": "641",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29880,7 +30512,7 @@
     "FN_selfsign_openssl8ddef828bc555ccfd88a6b2251f7292b": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "616",
+          "EventID": "642",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29905,7 +30537,7 @@
     "FN_selfsign_openssl49b07c01f59b641cdfce3bb0eda41ccc": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "617",
+          "EventID": "643",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29930,7 +30562,7 @@
     "FN_selfsign_openssl2aeca81363e26209e08f7710970beffd": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "618",
+          "EventID": "644",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29955,7 +30587,7 @@
     "FN_selfsign_openssl9bce86d6dcf2f55921124f561b62080f": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "619",
+          "EventID": "645",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -29980,7 +30612,7 @@
     "FN_selfsign_opensslc751bf4dc901c1a13f91a3bcd1d9b1d9": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "620",
+          "EventID": "646",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30005,7 +30637,7 @@
     "FN_selfsign_opensslcdfc999a26196eeb603320c983e61869": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "621",
+          "EventID": "647",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30030,7 +30662,7 @@
     "FN_selfsign_opensslfa73f8926cf0667c631d674bbaaa24d1": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "622",
+          "EventID": "648",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30055,7 +30687,7 @@
     "FN_selfsign_openssl0f54fbec435802718e07ac871986d61e": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "623",
+          "EventID": "649",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30080,7 +30712,7 @@
     "FN_tls_mitls102c19f4bec59d3dace660aab6fdc606": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "624",
+          "EventID": "650",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30124,7 +30756,7 @@
     "FN_tls_mitlsd06ff44316f93f70545d466d919b1c5a": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "625",
+          "EventID": "651",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30149,7 +30781,7 @@
     "FN_tls_mitls37ba0d472b40dadbf1d5b15d772bb1a9": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "626",
+          "EventID": "652",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30184,7 +30816,7 @@
     "FN_tls_mitls6c7dc739ef26e36473656ef1aae65365": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "627",
+          "EventID": "653",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30219,7 +30851,7 @@
     "FN_tls_mitlsf64eed1bdb2b3ad9b5977354e08be5bd": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "628",
+          "EventID": "654",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30244,7 +30876,7 @@
     "FN_tls_mitls66757a052b88f225106e71f68b6c20e8": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "629",
+          "EventID": "655",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30279,7 +30911,7 @@
     "FN_tls_mitls10d8849c1f86bc4a21346046914374ff": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "630",
+          "EventID": "656",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30304,7 +30936,7 @@
     "FN_tls_mitlsae9383cf5075be0251768414e35ec4a3": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "631",
+          "EventID": "657",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30329,7 +30961,7 @@
     "FN_tls_mitlsf40198db99564073aa3e5226589a4243": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "632",
+          "EventID": "658",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30341,7 +30973,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n        TlsContext",
+            "UserSpecifiedUnModified": "\r\n        TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -30382,7 +31014,7 @@
     "FN_tls_mitlsee8f6b180e9e167e75c198da16331d6f": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "633",
+          "EventID": "659",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30407,7 +31039,7 @@
     "FN_tls_mitlsb0546e97fcfe55d767dbf3adb980385f": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "634",
+          "EventID": "660",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30432,7 +31064,7 @@
     "FN_tls_mitlsc37fe137f61cf0e10b81aa5fe1e5d1ea": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "635",
+          "EventID": "661",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30467,7 +31099,7 @@
     "FN_tls_mitls90b4187f661fa35a9bcb6b2851622a29": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "636",
+          "EventID": "662",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30511,7 +31143,7 @@
     "FN_tls_mitls132772e24a8d5bcdbe582fd727d20951": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "637",
+          "EventID": "663",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30523,7 +31155,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n            TlsContext",
+            "UserSpecifiedUnModified": "\r\n            TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -30555,7 +31187,7 @@
     "FN_tls_mitlsa836a06071c174bb5f77cd091b797299": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "638",
+          "EventID": "664",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30567,7 +31199,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n            TlsContext",
+            "UserSpecifiedUnModified": "\r\n            TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -30608,7 +31240,7 @@
     "FN_tls_mitlsd6a6b895c5e1f67b6060fbd2a230dfc7": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "639",
+          "EventID": "665",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30643,7 +31275,7 @@
     "FN_tls_mitlsb4de992040201004014e478e328769de": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "640",
+          "EventID": "666",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30678,7 +31310,7 @@
     "FN_tls_mitls6569b967d8a1c7512d904b2db00acdb0": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "641",
+          "EventID": "667",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30713,7 +31345,7 @@
     "FN_tls_mitls2130252c98cd8adeb814586ee3472ac3": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "642",
+          "EventID": "668",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30748,7 +31380,7 @@
     "FN_tls_mitls72a905e2901486384b7e113b953ce9d3": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "643",
+          "EventID": "669",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30783,7 +31415,7 @@
     "FN_tls_mitls04b56a24f67a73651ade622c07b162fc": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "644",
+          "EventID": "670",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30818,7 +31450,7 @@
     "FN_tls_mitls3f100d18a021034819b20c71dd66909d": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "645",
+          "EventID": "671",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30862,7 +31494,7 @@
     "FN_tls_mitls1f9f25bed22c8725bc630dd86bde3952": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "646",
+          "EventID": "672",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30897,7 +31529,7 @@
     "FN_tls_mitlse55f267d5e0a22759daaf356bfe41fe4": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "647",
+          "EventID": "673",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30932,7 +31564,7 @@
     "FN_tls_mitls80105292c04d4510435e66b70bb98a6c": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "648",
+          "EventID": "674",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -30967,7 +31599,7 @@
     "FN_tls_mitls4af6288f56becc3c173700d7f2199b4f": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "649",
+          "EventID": "675",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31002,7 +31634,7 @@
     "FN_tls_mitls045814212696220bb1bc6aa0d64da1c7": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "650",
+          "EventID": "676",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31037,7 +31669,7 @@
     "FN_tls_mitls72ed17fb7d2ba16fd94175d492326096": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "651",
+          "EventID": "677",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31072,7 +31704,7 @@
     "FN_tls_mitls33003c454b08c9edaddad6f8f76b8466": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "652",
+          "EventID": "678",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31116,7 +31748,7 @@
     "FN_tls_mitls149c710690f9774242c8b8bb6a173ac2": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "653",
+          "EventID": "679",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31160,7 +31792,7 @@
     "FN_tls_mitlsd0901bbb86524cd16d6b969fb96e4a2b": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "654",
+          "EventID": "680",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31204,7 +31836,7 @@
     "FN_tls_mitlsd36099cedc66c6c8c16ade212b1767ed": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "655",
+          "EventID": "681",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31239,7 +31871,7 @@
     "FN_tls_mitlsb3bcc727603086bb5e8fbd7bb6d384aa": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "656",
+          "EventID": "682",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31274,7 +31906,7 @@
     "TlsProcessServerAlpn": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "657",
+          "EventID": "683",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31318,7 +31950,7 @@
     "FN_tls_mitls54dfff39d5ca4eb5ff4f3f410e25605a": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "658",
+          "EventID": "684",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31353,7 +31985,7 @@
     "FN_tls_mitls820c2a6a8dc21b0538f4b6fc9c116f1e": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "659",
+          "EventID": "685",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31388,7 +32020,7 @@
     "FN_tls_mitls724f1d5cba2cbfb93b8f06ee6f516c32": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "660",
+          "EventID": "686",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31423,7 +32055,7 @@
     "FN_tls_mitls81abb5295d39854b93921273b608b49e": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "661",
+          "EventID": "687",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31435,7 +32067,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n        TlsContext",
+            "UserSpecifiedUnModified": "\r\n        TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -31485,7 +32117,7 @@
     "FN_tls_mitls890188c3029a52a4120ef5d0d84250a5": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "662",
+          "EventID": "688",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31529,7 +32161,7 @@
     "FN_tls_mitls4f259e4b8596ae5c2c3a20b405dc2316": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "663",
+          "EventID": "689",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31582,7 +32214,7 @@
     "FN_tls_mitls5f774ae702b68187997eb72066d87b56": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "664",
+          "EventID": "690",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31607,7 +32239,7 @@
     "FN_tls_mitls6ff6eb9343dd649b1f7aa3bb8d750154": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "665",
+          "EventID": "691",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31632,7 +32264,7 @@
     "FN_tls_mitlsa1c5c3d40991dec478a2ee8e8c7bbcaf": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "666",
+          "EventID": "692",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31657,7 +32289,7 @@
     "FN_tls_mitls6a3b951ae6d9ca0d66a249fc67e1038e": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "667",
+          "EventID": "693",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31682,7 +32314,7 @@
     "FN_tls_mitlsfe2e4dc1785fc8e14fd6539f359922af": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "668",
+          "EventID": "694",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31717,7 +32349,7 @@
     "FN_tls_mitlsfdedc6c9a907c587410284650a074b1c": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "669",
+          "EventID": "695",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31752,7 +32384,7 @@
     "FN_tls_mitls99a2b668fe15eb273d54e7662830d8b3": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "670",
+          "EventID": "696",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31787,7 +32419,7 @@
     "FN_tls_mitls4d46f6b660e1026c4da88729df6f96db": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "671",
+          "EventID": "697",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31799,7 +32431,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                TlsContext",
+            "UserSpecifiedUnModified": "\r\n                TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -31840,7 +32472,7 @@
     "FN_tls_mitls7f69bdd34ceea10602f3120ba5a81f99": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "672",
+          "EventID": "698",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31875,7 +32507,7 @@
     "FN_tls_mitls3c9b3c3271eb5184119a5a8843fdb741": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "673",
+          "EventID": "699",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31919,7 +32551,7 @@
     "FN_tls_mitls151ede0577965fb7c0e4753f4ad25ec3": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "674",
+          "EventID": "700",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31954,7 +32586,7 @@
     "FN_tls_mitls2b57b65b0be1f0fdb281e1055ffea064": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "675",
+          "EventID": "701",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -31966,7 +32598,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                TlsContext",
+            "UserSpecifiedUnModified": "\r\n                TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -31998,7 +32630,7 @@
     "FN_tls_mitlsd14369f0b74ba6fbe50a4ebf000568ac": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "676",
+          "EventID": "702",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32010,7 +32642,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                TlsContext",
+            "UserSpecifiedUnModified": "\r\n                TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -32051,7 +32683,7 @@
     "FN_tls_mitls35bbf79e5ec73d02e30e54182a1200bc": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "677",
+          "EventID": "703",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32063,7 +32695,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                TlsContext",
+            "UserSpecifiedUnModified": "\r\n                TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -32113,7 +32745,7 @@
     "FN_tls_mitls67827f4a72ead14a3264b46d8597cf76": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "678",
+          "EventID": "704",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32125,7 +32757,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                TlsContext",
+            "UserSpecifiedUnModified": "\r\n                TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -32161,7 +32793,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                SignatureAlgorithms[3]",
+            "UserSpecifiedUnModified": "\r\n                SignatureAlgorithms[3]",
             "UserSuppliedTrimmed": "SignatureAlgorithms[3]",
             "SuggestedTelemetryName": "arg6"
           },
@@ -32184,7 +32816,7 @@
     "FN_tls_mitlsa7f4e79bb9f5e0cd46deb27512358d7a": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "679",
+          "EventID": "705",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32196,7 +32828,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                TlsContext",
+            "UserSpecifiedUnModified": "\r\n                TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -32232,7 +32864,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                SignatureAlgorithms[3]",
+            "UserSpecifiedUnModified": "\r\n                SignatureAlgorithms[3]",
             "UserSuppliedTrimmed": "SignatureAlgorithms[3]",
             "SuggestedTelemetryName": "arg6"
           },
@@ -32264,7 +32896,7 @@
     "FN_tls_mitlsa5378f9628151212f0604036bb6fb20c": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "680",
+          "EventID": "706",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32276,7 +32908,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                TlsContext",
+            "UserSpecifiedUnModified": "\r\n                TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -32312,7 +32944,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                SignatureAlgorithms[3]",
+            "UserSpecifiedUnModified": "\r\n                SignatureAlgorithms[3]",
             "UserSuppliedTrimmed": "SignatureAlgorithms[3]",
             "SuggestedTelemetryName": "arg6"
           },
@@ -32353,7 +32985,7 @@
     "FN_tls_mitls41fd58a3e931b88224db90da542d72a0": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "681",
+          "EventID": "707",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32397,7 +33029,7 @@
     "TlsMissingAlpnExtension": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "682",
+          "EventID": "708",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32432,7 +33064,7 @@
     "TlsAlpnExtLenTooShort": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "683",
+          "EventID": "709",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32467,7 +33099,7 @@
     "TlsAlpnListLenIncorrect": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "684",
+          "EventID": "710",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32502,7 +33134,7 @@
     "TlsAlpnLenIncorrect": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "685",
+          "EventID": "711",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32537,7 +33169,7 @@
     "FN_tls_mitls7311dd4a8d17392e0d12243e9c2d5c55": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "687",
+          "EventID": "713",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32572,7 +33204,7 @@
     "FN_tls_mitlsbafa18c408b3446024369717200eaea3": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "688",
+          "EventID": "714",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32607,7 +33239,7 @@
     "FN_tls_mitls5c78178a2d4248940c31c2bfac65cce3": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "689",
+          "EventID": "715",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32642,7 +33274,7 @@
     "FN_tls_mitls805006c91795110a6438196bae97f490": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "690",
+          "EventID": "716",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32677,7 +33309,7 @@
     "FN_tls_mitls02bc097017e9638848dd3edc17f31e5a": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "691",
+          "EventID": "717",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32712,7 +33344,7 @@
     "FN_tls_mitls67620ba3ef82710e016097152619a8b4": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "692",
+          "EventID": "718",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32747,7 +33379,7 @@
     "FN_tls_mitls274f703b551e308b4a69a0d7c9e01f56": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "693",
+          "EventID": "719",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32782,7 +33414,7 @@
     "TlsMessage": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "694",
+          "EventID": "720",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32826,7 +33458,7 @@
     "FN_tls_opensslbeb87fff4fd6aff47c418f16532cd6af": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "695",
+          "EventID": "721",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32851,7 +33483,7 @@
     "FN_tls_openssl1878a45ea8ee9d559ee0eabc85c97c6d": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "696",
+          "EventID": "722",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32863,7 +33495,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                TlsContext",
+            "UserSpecifiedUnModified": "\r\n                TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -32904,7 +33536,7 @@
     "FN_tls_openssl41172f95bb9f270970e2278858802d89": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "697",
+          "EventID": "723",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -32916,7 +33548,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                TlsContext",
+            "UserSpecifiedUnModified": "\r\n                TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -32957,7 +33589,7 @@
     "FN_tls_opensslfc5ceebf57a21e036166dfbd9f5f5841": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "698",
+          "EventID": "724",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33001,7 +33633,7 @@
     "FN_tls_openssl7cddfd039b47ef0bf60bfb2adb708d5e": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "699",
+          "EventID": "725",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33045,7 +33677,7 @@
     "FN_tls_openssl17614e2cf93914e3e8febee432e767cf": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "700",
+          "EventID": "726",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33057,7 +33689,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n        TlsContext",
+            "UserSpecifiedUnModified": "\r\n        TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -33098,7 +33730,7 @@
     "FN_tls_opensslf2f87064588bde8f0ae0de92805bd612": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "701",
+          "EventID": "727",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33110,7 +33742,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n        TlsContext",
+            "UserSpecifiedUnModified": "\r\n        TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -33160,7 +33792,7 @@
     "FN_tls_openssld2c76a13ec3224e52c2437c16c0b5b7c": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "702",
+          "EventID": "728",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33204,7 +33836,7 @@
     "FN_tls_opensslb3d2044358dd9167ca56734ff6291d11": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "703",
+          "EventID": "729",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33248,7 +33880,7 @@
     "FN_tls_openssl948e07444f7369140c04d67fbfd780bb": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "704",
+          "EventID": "730",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33260,7 +33892,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n            TlsContext",
+            "UserSpecifiedUnModified": "\r\n            TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -33301,7 +33933,7 @@
     "FN_tls_openssl60cac1e67eb98da5321a7c9545f0716d": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "705",
+          "EventID": "731",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33326,7 +33958,7 @@
     "FN_tls_opensslafed13f43fc25eda4085433fbf682f78": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "706",
+          "EventID": "732",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33338,7 +33970,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n            TlsContext",
+            "UserSpecifiedUnModified": "\r\n            TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -33370,7 +34002,7 @@
     "FN_tls_openssl811042102773d53433a65cd85448f874": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "707",
+          "EventID": "733",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33382,7 +34014,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n        TlsContext",
+            "UserSpecifiedUnModified": "\r\n        TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -33432,7 +34064,7 @@
     "FN_tls_opensslb84452a322bf75977e5c714ab23885c2": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "708",
+          "EventID": "734",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33467,7 +34099,7 @@
     "FN_tls_openssl389e537be4d3bf14d62def9c2df5013c": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "709",
+          "EventID": "735",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33492,7 +34124,7 @@
     "FN_tls_openssl6a3b951ae6d9ca0d66a249fc67e1038e": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "710",
+          "EventID": "736",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33517,7 +34149,7 @@
     "FN_tls_opensslc433cdce2b2fba9de75ae421f4ab3580": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "711",
+          "EventID": "737",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33542,7 +34174,7 @@
     "FN_tls_opensslab860b50eac7c325ea39d9ab87298208": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "712",
+          "EventID": "738",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33577,7 +34209,7 @@
     "FN_tls_openssl77f607afc7718f0d73990aee8025a22d": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "713",
+          "EventID": "739",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33612,7 +34244,7 @@
     "FN_tls_openssl5de667d2fdc3e76736e64269152e9606": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "714",
+          "EventID": "740",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33647,7 +34279,7 @@
     "FN_tls_opensslb3dea916b43e905a7773ff180c84360f": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "715",
+          "EventID": "741",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33682,7 +34314,7 @@
     "FN_tls_openssld9758300a9ef4d701b7388b05943f6fe": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "716",
+          "EventID": "742",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33717,7 +34349,7 @@
     "FN_tls_openssl72201348378d4d4dc8907bbb09d654be": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "717",
+          "EventID": "743",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33752,7 +34384,7 @@
     "FN_tls_openssl35b2c0eab8b436c392ef457e388bb8f8": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "718",
+          "EventID": "744",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33777,7 +34409,7 @@
     "FN_tls_openssl_CTX_SET_MIN_PROTO_FAILED": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "719",
+          "EventID": "745",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33812,7 +34444,7 @@
     "FN_tls_openssl_CTX_SET_MAX_PROTO_FAILED": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "720",
+          "EventID": "746",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33847,7 +34479,7 @@
     "FN_tls_openssl_CTX_SET_DEFAULT_VERIFY_PATHS_FAILED": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "721",
+          "EventID": "747",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33882,7 +34514,7 @@
     "FN_tls_openssl_CTX_SET_QUIC_METHOD_FAILED": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "722",
+          "EventID": "748",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33917,7 +34549,7 @@
     "FN_tls_openssl0339f6f32f9772515774d5ef2114a538": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "723",
+          "EventID": "749",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33952,7 +34584,7 @@
     "FN_tls_openssldf1e3f57e5b7210aec6f68942cb030b6": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "724",
+          "EventID": "750",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -33977,7 +34609,7 @@
     "FN_tls_openssl09dfff459247ec1feca343eb6b5850f3": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "725",
+          "EventID": "751",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34021,7 +34653,7 @@
     "FN_tls_openssl56d1d65cf830cd9da164340511afad48": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "726",
+          "EventID": "752",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34065,7 +34697,7 @@
     "FN_tls_openssl3e7711e803662760b5571141f7253248": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "727",
+          "EventID": "753",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34109,7 +34741,7 @@
     "FN_tls_openssla40bb2b89e176a23f02d8484eecb2b5a": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "728",
+          "EventID": "754",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34153,7 +34785,7 @@
     "FN_tls_openssla59aef6e72e651b091de3d22c86c02b6": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "729",
+          "EventID": "755",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34165,7 +34797,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                    TlsContext",
+            "UserSpecifiedUnModified": "\r\n                    TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -34206,7 +34838,7 @@
     "FN_tls_openssl61743e8150362a484225c69e9b06687f": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "730",
+          "EventID": "756",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34218,7 +34850,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                    TlsContext",
+            "UserSpecifiedUnModified": "\r\n                    TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -34259,7 +34891,7 @@
     "FN_tls_openssl_FAILED_ALPN_NEGOTIATE": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "731",
+          "EventID": "757",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34303,7 +34935,7 @@
     "FN_tls_openssl_INVALID_NEGOTIATED_ALPN_LENGTH": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "732",
+          "EventID": "758",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34347,7 +34979,7 @@
     "FN_tls_openssl_FAILED_MATCHING_ALPN": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "733",
+          "EventID": "759",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34391,7 +35023,7 @@
     "FN_tls_openssle861a4ef7fcfbd00c9b1e9642f164ba6": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "734",
+          "EventID": "760",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34403,7 +35035,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                    TlsContext",
+            "UserSpecifiedUnModified": "\r\n                    TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -34435,7 +35067,7 @@
     "FN_tls_openssl04e431e55360af28be501afc87ef6ad6": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "735",
+          "EventID": "761",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34447,7 +35079,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                TlsContext",
+            "UserSpecifiedUnModified": "\r\n                TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -34488,7 +35120,7 @@
     "FN_tls_openssl49b66ab03faf20fe5c73f2f8cc60308f": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "736",
+          "EventID": "762",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34500,7 +35132,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n                TlsContext",
+            "UserSpecifiedUnModified": "\r\n                TlsContext",
             "UserSuppliedTrimmed": "TlsContext",
             "SuggestedTelemetryName": "arg2"
           },
@@ -34541,7 +35173,7 @@
     "FN_tls_openssle82be3142cf48172078d14d9377992ac": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "737",
+          "EventID": "763",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34566,7 +35198,7 @@
     "FN_tls_openssla29c9b082db7b8aa46e1a26a3bafe9d8": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "738",
+          "EventID": "764",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34591,7 +35223,7 @@
     "FN_tls_openssled0c168c586279d947f1f4100186ab44": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "739",
+          "EventID": "765",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34616,7 +35248,7 @@
     "FN_tls_opensslac616e82c72d63a68386394f9b2bbc36": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "740",
+          "EventID": "766",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34641,7 +35273,7 @@
     "FN_tls_openssl407b8b39a62cfcc2a157c3106df05ed8": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "741",
+          "EventID": "767",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34676,7 +35308,7 @@
     "FN_tls_opensslc3a6918edf49b97af97ccfeb7b00e2d1": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "742",
+          "EventID": "768",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34711,7 +35343,7 @@
     "FN_tls_openssle68142c566545a620ea6c0b9e6abb755": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "743",
+          "EventID": "769",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34746,7 +35378,7 @@
     "FN_tls_openssla92fbc833693a10a2927de29700f1ffa": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "744",
+          "EventID": "770",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34771,7 +35403,7 @@
     "FN_tls_openssld2a443d4156357979e7192a50c95eee0": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "745",
+          "EventID": "771",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34806,7 +35438,7 @@
     "FN_tls_openssl10d8849c1f86bc4a21346046914374ff": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "746",
+          "EventID": "772",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34831,7 +35463,7 @@
     "FN_tls_opensslae9383cf5075be0251768414e35ec4a3": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "747",
+          "EventID": "773",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34856,7 +35488,7 @@
     "FN_tls_openssl7874563f7c9843b9ce98264dc2023d10": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "748",
+          "EventID": "774",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34881,7 +35513,7 @@
     "FN_tls_opensslf8217e380d78561227f74be97664c50b": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "749",
+          "EventID": "775",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34916,7 +35548,7 @@
     "FN_tls_opensslbbf1ec890b79dd718012ae7e1f14887e": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "750",
+          "EventID": "776",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34951,7 +35583,7 @@
     "FN_tls_openssl0fb819c8756d457c580995d79e34850b": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "751",
+          "EventID": "777",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -34986,7 +35618,7 @@
     "FN_tls_opensslf8d26281b4748cf9c80f1b1f0f12cf63": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "752",
+          "EventID": "778",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35011,7 +35643,7 @@
     "FN_tls_openssl7bf9b6c6272f01289229dd058d891852": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "753",
+          "EventID": "779",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35036,7 +35668,7 @@
     "FN_tls_opensslfe1483abe0f571420a155312a3621f48": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "754",
+          "EventID": "780",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35061,7 +35693,7 @@
     "FN_tls_openssl1ba4fc8be660f737b9413e1ef4e655c7": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "755",
+          "EventID": "781",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35086,7 +35718,7 @@
     "FN_tls_openssl913c33b43821605a2d3e10e147307ebd": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "756",
+          "EventID": "782",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35111,7 +35743,7 @@
     "FN_tls_openssl9ff6911654865f06436f04ea11d91052": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "757",
+          "EventID": "783",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35136,7 +35768,7 @@
     "FN_tls_openssl9407bc4aaa14a96bd67c7edfd2bbd086": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "758",
+          "EventID": "784",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35161,7 +35793,7 @@
     "FN_tls_openssl30e7f7a34ba977b760bc099d1342b379": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "759",
+          "EventID": "785",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35186,7 +35818,7 @@
     "FN_tls_openssl95a7788b761c3c27d9e97a66739fd771": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "760",
+          "EventID": "786",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35211,7 +35843,7 @@
     "FN_tls_openssl0aef2e0b2d51b74e2f22fe98c5a283a9": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "761",
+          "EventID": "787",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35236,7 +35868,7 @@
     "FN_tls_opensslcf5233c6c82f90d01fe6fd349f817eaa": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "762",
+          "EventID": "788",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35261,7 +35893,7 @@
     "FN_tls_openssl7b0b5c3fcfbc6baa74f8dadc7761e9db": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "763",
+          "EventID": "789",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35296,7 +35928,7 @@
     "FN_tls_openssl3d80e8b022a8c735a0e66b31f9dc5469": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "764",
+          "EventID": "790",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35321,7 +35953,7 @@
     "FN_tls_openssl98d0ddafc1912129a6afc515d7f67fb9": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "765",
+          "EventID": "791",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35346,7 +35978,7 @@
     "FN_tls_openssl32cae3164162146e879b5b90377bea58": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "766",
+          "EventID": "792",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35371,7 +36003,7 @@
     "FN_tls_openssl973b309bbf16c00822b9b8b5ca9f5a18": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "767",
+          "EventID": "793",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35396,7 +36028,7 @@
     "FN_tls_openssl401d8c3e59e6f87031214d3cf8881bc4": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "768",
+          "EventID": "794",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35421,7 +36053,7 @@
     "FN_tls_openssl71f5bad7503b233c15c19ac5b24f2914": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "769",
+          "EventID": "795",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35446,7 +36078,7 @@
     "FN_tls_opensslc2ec6d2b9feb3eb0ae11472dd31a23f7": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "770",
+          "EventID": "796",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35471,7 +36103,7 @@
     "FN_tls_opensslf6036de05c998cd55785bd97895a2645": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "771",
+          "EventID": "797",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35506,7 +36138,7 @@
     "FN_tls_openssl23fece4bb59289529c8e4aad3666ed88": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "772",
+          "EventID": "798",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35531,7 +36163,7 @@
     "FN_tls_openssl699af94135cadafad29195176b0db0b8": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "773",
+          "EventID": "799",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35556,7 +36188,7 @@
     "FN_tls_opensslbdd9c754746670203cca9a57e2cf7b14": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "774",
+          "EventID": "800",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35581,7 +36213,7 @@
     "FN_tls_openssla9c8b40427e3f9d9f0704710aad9dddc": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "775",
+          "EventID": "801",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35606,7 +36238,7 @@
     "FN_tls_openssl2492800570e132269936939cb02cd22c": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "776",
+          "EventID": "802",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35631,7 +36263,7 @@
     "FN_tls_openssl7a9de0c83c14f153a25d111ae8c19faf": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "777",
+          "EventID": "803",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35656,7 +36288,7 @@
     "FN_tls_opensslb680de1a0e6c1ad06336904550a2449f": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "778",
+          "EventID": "804",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35681,7 +36313,7 @@
     "FN_tls_openssl4f0946242ac783c45434010951c96cdd": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "779",
+          "EventID": "805",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35716,7 +36348,7 @@
     "FN_tls_openssl50436385dca206cf3e9009971260f08c": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "780",
+          "EventID": "806",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35751,7 +36383,7 @@
     "FN_tls_opensslf706af273dacd8600b6d300c5887c637": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "781",
+          "EventID": "807",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35786,7 +36418,7 @@
     "FN_tls_openssl39eb35ac7eac5751e9484c6e3d97bb38": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "782",
+          "EventID": "808",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35821,7 +36453,7 @@
     "FN_tls_openssld307701436e46fd1000a1ae8108915d2": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "783",
+          "EventID": "809",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35856,7 +36488,7 @@
     "FN_tls_openssld5e18147a9aded463cabc2d95e068918": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "784",
+          "EventID": "810",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35881,7 +36513,7 @@
     "FN_controlb6606769d9c978312eafa82a15a98139": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "804",
+          "EventID": "833",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35925,7 +36557,7 @@
     "FN_controld168b3f001f047843d6ecb1f3fcfd47a": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "805",
+          "EventID": "834",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35960,7 +36592,7 @@
     "FN_control9c07f2de2e6692d9bbc34ea2d43b3efd": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "806",
+          "EventID": "835",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -35995,7 +36627,7 @@
     "FN_controldfa728711b714575e237abef49173c41": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "807",
+          "EventID": "836",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36030,7 +36662,7 @@
     "FN_control77c5a0adf44b5361c54147918d37e97b": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "808",
+          "EventID": "837",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36065,7 +36697,7 @@
     "FN_controlb13dbc1a64995081e3cebf39b0f254de": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "809",
+          "EventID": "838",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36109,7 +36741,7 @@
     "FN_controle5193f6ebf266b970f1e50b1341490ac": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "810",
+          "EventID": "839",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36153,7 +36785,7 @@
     "FN_controle39f156e7c33ef5d449ba2a5b670f8dc": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "811",
+          "EventID": "840",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36178,7 +36810,7 @@
     "FN_control928f1e9265e07ac92d6f7f99f3350848": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "812",
+          "EventID": "841",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36203,7 +36835,7 @@
     "FN_control79d5bb59ba655554979808ebcdfc4afc": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "813",
+          "EventID": "842",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36228,7 +36860,7 @@
     "FN_controld1d04f96d4a6d92e901529003169771a": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "814",
+          "EventID": "843",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36263,7 +36895,7 @@
     "FN_control65c950da4fc2d8f0c0251ef4a32c5b69": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "815",
+          "EventID": "844",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36288,7 +36920,7 @@
     "FN_controlfbd2199c5659da13fdd4ef0a34e7d69b": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "816",
+          "EventID": "845",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36323,7 +36955,7 @@
     "FN_control57892440719b0f253a787d295eb3aa14": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "817",
+          "EventID": "846",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36358,7 +36990,7 @@
     "FN_control48d9bd8b3c4a9b5ba78e9d9a361a33ef": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "818",
+          "EventID": "847",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36393,7 +37025,7 @@
     "FN_control1e3cd687a3261682179844826a48b06d": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "819",
+          "EventID": "848",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36428,7 +37060,7 @@
     "FN_controlfe649bf1be40d3d0e06cd0136c06d550": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "820",
+          "EventID": "849",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36453,7 +37085,7 @@
     "FN_controlcf3f19640b86c07daab4605e17eed7e1": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "821",
+          "EventID": "850",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36478,7 +37110,7 @@
     "FN_control9dae8c6bd52734e00cb3e90451768212": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "822",
+          "EventID": "851",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36513,7 +37145,7 @@
     "FN_control9c740cde42b8116cfc95fe3797249a35": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "823",
+          "EventID": "852",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36548,7 +37180,7 @@
     "FN_controlc0479dcb8ee9e72085ba88d718e40e3d": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "824",
+          "EventID": "853",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36573,7 +37205,7 @@
     "FN_control2252efed476118adb31be54fe5829479": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "825",
+          "EventID": "854",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36598,7 +37230,7 @@
     "FN_control2f7b16fcedd0cad7f7d7d291e5565bf2": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "826",
+          "EventID": "855",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36623,7 +37255,7 @@
     "FN_controlad84e24e4d86ceaa678d3ad06c5d697f": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "827",
+          "EventID": "856",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36648,7 +37280,7 @@
     "FN_controlf2cfcad1e01bd84dacc11ab018c83025": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "828",
+          "EventID": "857",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36683,7 +37315,7 @@
     "FN_control3af5d477ca51e451eb07856f832960c8": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "829",
+          "EventID": "858",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36695,7 +37327,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \r\n            FunctionCode",
+            "UserSpecifiedUnModified": "\r\n            FunctionCode",
             "UserSuppliedTrimmed": "FunctionCode",
             "SuggestedTelemetryName": "arg2"
           },
@@ -36736,7 +37368,7 @@
     "FN_control11922ed65b74d9b846dec2af1ea27a37": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "830",
+          "EventID": "859",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36771,7 +37403,7 @@
     "FN_control2b3368fe49f36bc1446094ada9cd3930": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "831",
+          "EventID": "860",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36796,7 +37428,7 @@
     "FN_control29f33308baa8406e1d914675d6a80714": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "832",
+          "EventID": "861",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36831,7 +37463,7 @@
     "FN_controlaac546ec85a3233833360cd7ab640553": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "833",
+          "EventID": "862",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36884,7 +37516,7 @@
     "FN_controle873f8dcb3ed431fa02ef1c6e5c2c525": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "834",
+          "EventID": "863",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36919,7 +37551,7 @@
     "FN_driver33ec7eb98b419e59add5890fa61afa13": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "835",
+          "EventID": "864",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36944,7 +37576,7 @@
     "FN_driver2914cfd7e479c844f78b638f668e3720": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "836",
+          "EventID": "865",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -36969,7 +37601,7 @@
     "FN_driver9dbc814f4f43ea517407f5b7c8143626": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "837",
+          "EventID": "866",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -37004,7 +37636,7 @@
     "FN_driver2b1325882fdd29ce47e4eb6224542b5f": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "838",
+          "EventID": "867",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
@@ -37039,7 +37671,7 @@
     "FN_drivere2715f5ac91739cf9fdd047896c7912c": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
-          "EventID": "839",
+          "EventID": "868",
           "ETWManifestFile": "MsQuicEtw.man",
           "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",

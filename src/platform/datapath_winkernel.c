@@ -804,7 +804,7 @@ QuicDataPathInitialize(
 
     Datapath = QUIC_ALLOC_NONPAGED(DatapathLength);
     if (Datapath == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "QUIC_DATAPATH", DatapathLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_DATAPATH", DatapathLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -1032,7 +1032,7 @@ QuicDataPathResolveAddress(
     UniHostName.Buffer = QUIC_ALLOC_PAGED(UniHostName.MaximumLength);
     if (UniHostName.Buffer == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "Unicode Hostname", UniHostName.MaximumLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "Unicode Hostname", UniHostName.MaximumLength);
         goto Error;
     }
 
@@ -1303,7 +1303,7 @@ QuicDataPathBindingCreate(
 
     Binding = (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_DATAPATH_BINDING));
     if (Binding == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%I bytes)", "QUIC_DATAPATH_BINDING", sizeof(QUIC_DATAPATH_BINDING));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_DATAPATH_BINDING", sizeof(QUIC_DATAPATH_BINDING));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
