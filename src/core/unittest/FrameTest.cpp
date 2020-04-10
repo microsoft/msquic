@@ -231,6 +231,48 @@ TEST(FrameTest, CryptoFrameEncodeDecode)
     ASSERT_EQ(memcmp(Frame->Data, DecodedFrame.Data, DecodedFrame.Length), 0);
 }
 
+struct CryptoFrameParams {
+    uint8_t Buffer[7];
+    uint16_t BufferLength = 6;
+
+    static auto GenerateDecodeFailParams() {
+        std::vector<CryptoFrameParams> Params;
+        for (uint32_t i = 1; i < 4; ++i) {
+            CryptoFrameParams Temp;
+            Temp.Buffer[0] = QUIC_FRAME_CRYPTO;
+            Temp.Buffer[3] = Temp.Buffer[4] = Temp.Buffer[5] = Temp.Buffer[6] = 127;
+
+            for (uint32_t j = 0; j < 2; ++j) {
+                uint8_t TestValue = (j & 1) ? 64 : 255;
+
+                if (i & 1) {
+                    Temp.Buffer[1] = TestValue;
+                } else {
+                    Temp.Buffer[1] = 0;
+                }
+
+                if (i & 2) {
+                    Temp.Buffer[2] = TestValue;
+                } else {
+                    Temp.Buffer[2] = 0;
+                }
+                Params.push_back(Temp);
+            }
+        }
+        return Params;
+    }
+};
+
+struct CryptoFrameTest : ::testing::TestWithParam<CryptoFrameParams> {};
+
+TEST_P(CryptoFrameTest, DecodeCryptoFrameFail) {
+    QUIC_CRYPTO_EX DecodedFrame;
+    uint16_t Offset = 1;
+    ASSERT_FALSE(QuicCryptoFrameDecode(GetParam().BufferLength, GetParam().Buffer, &Offset, &DecodedFrame));
+}
+
+INSTANTIATE_TEST_SUITE_P(FrameTest, CryptoFrameTest, ::testing::ValuesIn(CryptoFrameParams::GenerateDecodeFailParams()));
+
 TEST(FrameTest, NewTokenFrameEncodeDecode)
 {
     uint8_t FrameBuf[sizeof(QUIC_NEW_TOKEN_EX) + 3];
@@ -253,6 +295,33 @@ TEST(FrameTest, NewTokenFrameEncodeDecode)
     ASSERT_EQ(Frame->TokenLength, DecodedFrame.TokenLength);
     ASSERT_EQ(memcmp(Frame->Token, DecodedFrame.Token, DecodedFrame.TokenLength), 0);
 }
+
+struct NewTokenFrameParams {
+    uint8_t Buffer[3];
+    uint16_t BufferLength = 3;
+
+    static auto GenerateDecodeFailParams() {
+        std::vector<NewTokenFrameParams> Params;
+        for (uint32_t i = 0; i < 2; ++i) {
+            NewTokenFrameParams Temp;
+            Temp.Buffer[0] = QUIC_FRAME_NEW_TOKEN;
+            Temp.Buffer[1] = (i & 1) ? 65 : 255;
+            Temp.Buffer[2] = 0;
+            Params.push_back(Temp);
+        }
+        return Params;
+    }
+};
+
+struct NewTokenFrameTest : ::testing::TestWithParam<NewTokenFrameParams> {};
+
+TEST_P(NewTokenFrameTest, DecodeNewTokenFrameFail) {
+    QUIC_NEW_TOKEN_EX DecodedFrame;
+    uint16_t Offset = 1;
+    ASSERT_FALSE(QuicNewTokenFrameDecode(GetParam().BufferLength, GetParam().Buffer, &Offset, &DecodedFrame));
+}
+
+INSTANTIATE_TEST_SUITE_P(FrameTest, NewTokenFrameTest, ::testing::ValuesIn(NewTokenFrameParams::GenerateDecodeFailParams()));
 
 struct StreamFrameTest : ::testing::TestWithParam<QUIC_FRAME_TYPE> {
 };
@@ -309,7 +378,11 @@ TEST_P(StreamFrameTest, StreamFrameEncodeDecode)
     ASSERT_EQ(DecodedFrame.Data, &Buffer[QuicStreamFrameHeaderSize(&DecodedFrame)]);
 }
 
-INSTANTIATE_TEST_SUITE_P(FrameTest, StreamFrameTest, ::testing::Values(QUIC_FRAME_STREAM, QUIC_FRAME_STREAM_1, QUIC_FRAME_STREAM_2, QUIC_FRAME_STREAM_3, QUIC_FRAME_STREAM_4, QUIC_FRAME_STREAM_5, QUIC_FRAME_STREAM_6, QUIC_FRAME_STREAM_7), ::testing::PrintToStringParamName());
+INSTANTIATE_TEST_SUITE_P(
+    FrameTest,
+    StreamFrameTest,
+    ::testing::Values(QUIC_FRAME_STREAM, QUIC_FRAME_STREAM_1, QUIC_FRAME_STREAM_2, QUIC_FRAME_STREAM_3, QUIC_FRAME_STREAM_4, QUIC_FRAME_STREAM_5, QUIC_FRAME_STREAM_6, QUIC_FRAME_STREAM_7),
+    ::testing::PrintToStringParamName());
 
 TEST(FrameTest, MaxDataFrameEncodeDecode)
 {
@@ -327,6 +400,32 @@ TEST(FrameTest, MaxDataFrameEncodeDecode)
     ASSERT_EQ(Frame.MaximumData, DecodedFrame.MaximumData);
 }
 
+struct MaxDataFrameParams {
+    uint8_t Buffer[2];
+    uint16_t BufferLength = 2;
+
+    static auto GenerateDecodeFailParams() {
+        std::vector<MaxDataFrameParams> Params;
+        for (uint32_t i = 0; i < 2; ++i) {
+            MaxDataFrameParams Temp;
+            Temp.Buffer[0] = QUIC_FRAME_MAX_DATA;
+            Temp.Buffer[1] = (i & 1) ? 64 : 255;
+            Params.push_back(Temp);
+        }
+        return Params;
+    }
+};
+
+struct MaxDataFrameTest : ::testing::TestWithParam<MaxDataFrameParams> {};
+
+TEST_P(MaxDataFrameTest, DecodeMaxDataFrameFail) {
+    QUIC_MAX_DATA_EX DecodedFrame;
+    uint16_t Offset = 1;
+    ASSERT_FALSE(QuicMaxDataFrameDecode(GetParam().BufferLength, GetParam().Buffer, &Offset, &DecodedFrame));
+}
+
+INSTANTIATE_TEST_SUITE_P(FrameTest, MaxDataFrameTest, ::testing::ValuesIn(MaxDataFrameParams::GenerateDecodeFailParams()));
+
 TEST(FrameTest, MaxStreamDataFrameEncodeDecode)
 {
     QUIC_MAX_STREAM_DATA_EX Frame = {65, 65537};
@@ -343,6 +442,45 @@ TEST(FrameTest, MaxStreamDataFrameEncodeDecode)
     ASSERT_EQ(Frame.StreamID, DecodedFrame.StreamID);
     ASSERT_EQ(Frame.MaximumData, DecodedFrame.MaximumData);
 }
+
+struct MaxStreamDataFrameParams {
+    uint8_t Buffer[3];
+    uint16_t BufferLength = 3;
+
+    static auto GenerateDecodeFailParams() {
+        std::vector<MaxStreamDataFrameParams> Params;
+        for (uint32_t i = 1; i < 4; ++i) {
+            MaxStreamDataFrameParams Temp;
+            Temp.Buffer[0] = QUIC_FRAME_MAX_STREAM_DATA;
+            for (uint32_t j = 0; j < 2; ++j) {
+                uint8_t TestValue = (j & 1) ? 64 : 255;
+                if (i & 1) {
+                    Temp.Buffer[1] = TestValue;
+                } else {
+                    Temp.Buffer[1] = 0;
+                }
+
+                if (i & 2) {
+                    Temp.Buffer[2] = TestValue;
+                } else {
+                    Temp.Buffer[2] = 0;
+                }
+                Params.push_back(Temp);
+            }
+        }
+        return Params;
+    }
+};
+
+struct MaxStreamDataFrameTest : ::testing::TestWithParam<MaxStreamDataFrameParams> {};
+
+TEST_P(MaxStreamDataFrameTest, DecodeMaxStreamDataFrameFail) {
+    QUIC_MAX_STREAM_DATA_EX DecodedFrame;
+    uint16_t Offset = 1;
+    ASSERT_FALSE(QuicMaxStreamDataFrameDecode(GetParam().BufferLength, GetParam().Buffer, &Offset, &DecodedFrame));
+}
+
+INSTANTIATE_TEST_SUITE_P(FrameTest, MaxStreamDataFrameTest, ::testing::ValuesIn(MaxStreamDataFrameParams::GenerateDecodeFailParams()));
 
 struct MaxStreamsFrameTest : ::testing::TestWithParam<bool>
 {
@@ -363,6 +501,19 @@ TEST_P(MaxStreamsFrameTest, MaxStreamsFrameEncodeDecode)
 
     ASSERT_EQ(Frame.BidirectionalStreams, DecodedFrame.BidirectionalStreams);
     ASSERT_EQ(Frame.MaximumStreams, DecodedFrame.MaximumStreams);
+}
+
+TEST_P(MaxStreamsFrameTest, MaxStreamsFrameDecodeFail) {
+    const uint16_t BufferLength = 2;
+    QUIC_MAX_STREAMS_EX DecodedFrame;
+    uint8_t Buffer[BufferLength];
+    uint16_t Offset;
+    for (uint32_t i = 0; i < 2; ++i) {
+        Buffer[0] = GetParam() ? QUIC_FRAME_MAX_STREAMS : QUIC_FRAME_MAX_STREAMS_1;
+        Buffer[1] = (i & 1) ? 64 : 255;
+        Offset = 1;
+        ASSERT_FALSE(QuicMaxStreamsFrameDecode((QUIC_FRAME_TYPE) Buffer[0], BufferLength, Buffer, &Offset, &DecodedFrame));
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -393,6 +544,32 @@ TEST(FrameTest, DataBlockedFrameEncodeDecode)
     ASSERT_EQ(Frame.DataLimit, DecodedFrame.DataLimit);
 }
 
+struct DataBlockedFrameParams {
+    uint8_t Buffer[2];
+    uint16_t BufferLength = 2;
+
+    static auto GenerateDecodeFailParams() {
+        std::vector<DataBlockedFrameParams> Params;
+        for (uint32_t i = 0; i < 2; ++i) {
+            DataBlockedFrameParams Temp;
+            Temp.Buffer[0] = QUIC_FRAME_DATA_BLOCKED;
+            Temp.Buffer[1] = (i & 1) ? 64 : 255;
+            Params.push_back(Temp);
+        }
+        return Params;
+    }
+};
+
+struct DataBlockedFrameTest : ::testing::TestWithParam<DataBlockedFrameParams> {};
+
+TEST_P(DataBlockedFrameTest, DecodeDataBlockedFrameFail) {
+    QUIC_DATA_BLOCKED_EX DecodedFrame;
+    uint16_t Offset = 1;
+    ASSERT_FALSE(QuicDataBlockedFrameDecode(GetParam().BufferLength, GetParam().Buffer, &Offset, &DecodedFrame));
+}
+
+INSTANTIATE_TEST_SUITE_P(FrameTest, DataBlockedFrameTest, ::testing::ValuesIn(DataBlockedFrameParams::GenerateDecodeFailParams()));
+
 TEST(FrameTest, StreamDataBlockedFrameEncodeDecode)
 {
     QUIC_STREAM_DATA_BLOCKED_EX Frame = {127, 255};
@@ -409,6 +586,45 @@ TEST(FrameTest, StreamDataBlockedFrameEncodeDecode)
     ASSERT_EQ(Frame.StreamID, DecodedFrame.StreamID);
     ASSERT_EQ(Frame.StreamDataLimit, DecodedFrame.StreamDataLimit);
 }
+
+struct StreamDataBlockedFrameParams {
+    uint8_t Buffer[3];
+    uint16_t BufferLength = 3;
+
+    static auto GenerateDecodeFailParams() {
+        std::vector<StreamDataBlockedFrameParams> Params;
+        for (uint32_t i = 1; i < 4; ++i) {
+            StreamDataBlockedFrameParams Temp;
+            Temp.Buffer[0] = QUIC_FRAME_STREAM_DATA_BLOCKED;
+            for (uint32_t j = 0; j < 2; ++j) {
+                uint8_t TestValue = (j & 1) ? 64 : 255;
+                if (i & 1) {
+                    Temp.Buffer[1] = TestValue;
+                } else {
+                    Temp.Buffer[1] = 0;
+                }
+
+                if (i & 2) {
+                    Temp.Buffer[2] = TestValue;
+                } else {
+                    Temp.Buffer[2] = 0;
+                }
+                Params.push_back(Temp);
+            }
+        }
+        return Params;
+    }
+};
+
+struct StreamDataBlockedFrameTest : ::testing::TestWithParam<StreamDataBlockedFrameParams> {};
+
+TEST_P(StreamDataBlockedFrameTest, DecodeStreamDataBlockedFrameFail) {
+    QUIC_STREAM_DATA_BLOCKED_EX DecodedFrame;
+    uint16_t Offset = 1;
+    ASSERT_FALSE(QuicStreamDataBlockedFrameDecode(GetParam().BufferLength, GetParam().Buffer, &Offset, &DecodedFrame));
+}
+
+INSTANTIATE_TEST_SUITE_P(FrameTest, StreamDataBlockedFrameTest, ::testing::ValuesIn(StreamDataBlockedFrameParams::GenerateDecodeFailParams()));
 
 struct StreamsBlockedFrameTest : ::testing::TestWithParam<bool>
 {
@@ -429,6 +645,19 @@ TEST_P(StreamsBlockedFrameTest, StreamsBlockedFrameEncodeDecode)
 
     ASSERT_EQ(Frame.BidirectionalStreams, DecodedFrame.BidirectionalStreams);
     ASSERT_EQ(Frame.StreamLimit, DecodedFrame.StreamLimit);
+}
+
+TEST_P(StreamsBlockedFrameTest, StreamsBlockedFrameDecodeFail) {
+    const uint16_t BufferLength = 2;
+    QUIC_STREAMS_BLOCKED_EX DecodedFrame;
+    uint8_t Buffer[BufferLength];
+    uint16_t Offset;
+    for (uint32_t i = 0; i < 2; ++i) {
+        Buffer[0] = GetParam() ? QUIC_FRAME_STREAMS_BLOCKED : QUIC_FRAME_STREAMS_BLOCKED_1;
+        Buffer[1] = (i & 1) ? 64 : 255;
+        Offset = 1;
+        ASSERT_FALSE(QuicStreamsBlockedFrameDecode((QUIC_FRAME_TYPE) Buffer[0], BufferLength, Buffer, &Offset, &DecodedFrame));
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -466,6 +695,137 @@ TEST(FrameTest, NewConnectionIdFrameEncodeDecode)
     ASSERT_EQ(memcmp(Frame.Buffer, DecodedFrame.Buffer, 22), 0);
 }
 
+struct NewConnectionIdFrameParams {
+    uint16_t BufferLength = 41;
+    uint8_t Buffer[41];
+
+    static auto GenerateDecodeFailParams() {
+        std::vector<NewConnectionIdFrameParams> Params;
+        for (uint32_t i = 1; i < 16; ++i) {
+            NewConnectionIdFrameParams Frame;
+            uint32_t Index = 0;
+            uint16_t BufferLength = 0;
+            Frame.Buffer[Index] = QUIC_FRAME_NEW_CONNECTION_ID;
+            Index++;
+            BufferLength++;
+
+            //
+            // Choose which fields to malform
+            //
+            if (i & 1) {
+                //
+                // Sequence number
+                //
+                Frame.Buffer[Index] = 255;
+            } else {
+                Frame.Buffer[Index] = 0;
+            }
+            Index++;
+            BufferLength++;
+
+            if (i & 2) {
+                //
+                // Retire prior to
+                //
+                Frame.Buffer[Index] = 255;
+            } else {
+                Frame.Buffer[Index] = 0;
+            }
+            Index++;
+            BufferLength++;
+
+            if (i & 4) {
+                //
+                // Connection ID.
+                // Length can be 0, 1, 20, or 21.
+                // When Length is 1 or 20, the buffer length should be adjusted to be too small.
+                //
+                uint16_t OldBufferLength = BufferLength;
+                uint32_t OldIndex = Index;
+                for (uint32_t j = 0; j < 4; ++j) {
+                    BufferLength = OldBufferLength;
+                    Index = OldIndex;
+                    uint8_t CidLen;
+                    if (j == 0) {
+                        CidLen = 0;
+                        BufferLength += 21;
+                    } else if (j == 1) {
+                        CidLen = 1;
+                        // Don't increment BufferLength
+                    } else if (j == 2) {
+                        CidLen = 20;
+                        BufferLength += 19;
+                    } else {
+                        CidLen = 21;
+                        BufferLength += 21;
+                    }
+                    Frame.Buffer[Index] = CidLen;
+                    Index++;
+                    BufferLength++;
+                    memset(&Frame.Buffer[Index], 127, CidLen);
+                    Index += CidLen;
+
+                    //
+                    // Stateless Reset token.
+                    // Since the contents of the token aren't specified, don't put enough buffer to hold it.
+                    //
+                    uint8_t TokenLen;
+                    if (i & 8) {
+                        TokenLen = 8;
+                    } else {
+                        TokenLen = 16;
+                    }
+                    memset(&Frame.Buffer[Index], 65, TokenLen);
+                    Index += TokenLen;
+                    BufferLength += TokenLen;
+
+                    Frame.BufferLength = BufferLength;
+                    Params.push_back(Frame);
+                }
+            } else {
+                //
+                // Connection ID is not altered, so use length of 1.
+                //
+                Frame.Buffer[Index] = 1;
+                Index++;
+                BufferLength++;
+                Frame.Buffer[Index] = 127;
+                Index++;
+                BufferLength++;
+
+                //
+                // Stateless Reset token.
+                // Since the contents of the token aren't specified, don't put enough buffer to hold it.
+                //
+                uint8_t TokenLen;
+                if (i & 8) {
+                    TokenLen = 8;
+                } else {
+                    TokenLen = 16;
+                }
+                memset(&Frame.Buffer[Index], 65, TokenLen);
+                Index += TokenLen;
+                BufferLength += TokenLen;
+
+                Frame.BufferLength = BufferLength;
+                Params.push_back(Frame);
+            }
+        }
+
+        return Params;
+    }
+};
+
+struct NewConnectionIdFrameTest : ::testing::TestWithParam<NewConnectionIdFrameParams> {};
+
+TEST_P(NewConnectionIdFrameTest, DecodeNewConnectionIdFrameFail) {
+    QUIC_NEW_CONNECTION_ID_EX DecodedFrame;
+    uint16_t Offset = 1;
+    ASSERT_FALSE(QuicNewConnectionIDFrameDecode(GetParam().BufferLength, GetParam().Buffer, &Offset, &DecodedFrame));
+}
+
+INSTANTIATE_TEST_SUITE_P(FrameTest, NewConnectionIdFrameTest, ::testing::ValuesIn(NewConnectionIdFrameParams::GenerateDecodeFailParams()));
+
 TEST(FrameTest, RetireConnectionIdFrameEncodeDecode)
 {
     QUIC_RETIRE_CONNECTION_ID_EX Frame = {63};
@@ -480,6 +840,32 @@ TEST(FrameTest, RetireConnectionIdFrameEncodeDecode)
 
     ASSERT_EQ(Frame.Sequence, DecodedFrame.Sequence);
 }
+
+struct RetireConnectionIdFrameParams {
+    uint8_t Buffer[2];
+    uint16_t BufferLength = 2;
+
+    static auto GenerateDecodeFailParams() {
+        std::vector<RetireConnectionIdFrameParams> Params;
+        for (uint32_t i = 0; i < 2; ++i) {
+            RetireConnectionIdFrameParams Temp;
+            Temp.Buffer[0] = QUIC_FRAME_RETIRE_CONNECTION_ID;
+            Temp.Buffer[1] = (i & 1) ? 64 : 255;
+            Params.push_back(Temp);
+        }
+        return Params;
+    }
+};
+
+struct RetireConnectionIdFrameTest : ::testing::TestWithParam<RetireConnectionIdFrameParams> {};
+
+TEST_P(RetireConnectionIdFrameTest, DecodeRetireConnectionIdFrameFail) {
+    QUIC_RETIRE_CONNECTION_ID_EX DecodedFrame;
+    uint16_t Offset = 1;
+    ASSERT_FALSE(QuicRetireConnectionIDFrameDecode(GetParam().BufferLength, GetParam().Buffer, &Offset, &DecodedFrame));
+}
+
+INSTANTIATE_TEST_SUITE_P(FrameTest, RetireConnectionIdFrameTest, ::testing::ValuesIn(RetireConnectionIdFrameParams::GenerateDecodeFailParams()));
 
 struct PathChallengeResponseFrameTest : ::testing::TestWithParam<QUIC_FRAME_TYPE>
 {
@@ -502,6 +888,17 @@ TEST_P(PathChallengeResponseFrameTest, PathChallengeResponseFrameEncodeDecode)
 
     ASSERT_EQ(Buffer[0], GetParam());
     ASSERT_EQ(memcmp(Frame.Data, DecodedFrame.Data, sizeof(Frame.Data)), 0);
+}
+
+TEST_P(PathChallengeResponseFrameTest, DecodePathChallengeResponseFrameFail) {
+    const uint16_t BufferLength = 2;
+    QUIC_PATH_CHALLENGE_EX DecodedFrame;
+    uint8_t Buffer[BufferLength];
+    uint16_t Offset = 1;
+
+    Buffer[0] = (uint8_t) GetParam();
+    Buffer[1] = 127;
+    ASSERT_FALSE(QuicPathChallengeFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame));
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -544,3 +941,59 @@ INSTANTIATE_TEST_SUITE_P(
         else
             return "QUICClosed";
     });
+
+struct ConnectionCloseFrameParams {
+    uint8_t Buffer[5];
+    uint16_t BufferLength;
+
+    static auto GenerateDecodeFailParams() {
+        std::vector<ConnectionCloseFrameParams> Params;
+        for (auto Type : {QUIC_FRAME_CONNECTION_CLOSE, QUIC_FRAME_CONNECTION_CLOSE_1}) {
+            ConnectionCloseFrameParams Frame;
+            Frame.Buffer[0] = (uint8_t) Type;
+
+            for (int TestValue : {65, 255}) {
+                for (uint32_t i = 1; i < 4; ++i) {
+                    Frame.Buffer[1] = (i & 1) ? TestValue : 0;
+
+                    if (Type == QUIC_FRAME_CONNECTION_CLOSE) {
+                        for (uint32_t j = 0; j < 2; ++j) {
+                            Frame.Buffer[2] = (j & 1) ? TestValue : 0;
+
+                            Frame.Buffer[3] = (i & 2) ? TestValue : 0;
+                            if (Frame.Buffer[3]  > 0) {
+                                Frame.Buffer[4] = 'Z';
+                            } else {
+                                Frame.Buffer[4] = 1;
+                            }
+
+                            Frame.BufferLength = 5;
+                            Params.push_back(Frame);
+                        }
+                    } else {
+                        Frame.Buffer[2] = (i & 2) ? TestValue : 0;
+                        if (Frame.Buffer[2]  > 0) {
+                            Frame.Buffer[3] = 'Z';
+                        } else {
+                            Frame.Buffer[3] = 1;
+                        }
+
+                        Frame.BufferLength = 4;
+                        Params.push_back(Frame);
+                    }
+                }
+            }
+        }
+        return Params;
+    }
+};
+
+struct ConnectionCloseFrameDecodeTest : ::testing::TestWithParam<ConnectionCloseFrameParams> {};
+
+TEST_P(ConnectionCloseFrameDecodeTest, ConnectionCloseFrameDecodeFail) {
+    QUIC_CONNECTION_CLOSE_EX DecodedFrame;
+    uint16_t Offset = 1;
+    ASSERT_FALSE(QuicConnCloseFrameDecode((QUIC_FRAME_TYPE)GetParam().Buffer[0], GetParam().BufferLength, GetParam().Buffer, &Offset, &DecodedFrame));
+}
+
+INSTANTIATE_TEST_SUITE_P(FrameTest, ConnectionCloseFrameDecodeTest, ::testing::ValuesIn(ConnectionCloseFrameParams::GenerateDecodeFailParams()));
