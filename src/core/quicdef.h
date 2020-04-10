@@ -374,7 +374,12 @@ QUIC_STATIC_ASSERT(
 // The lifetime of a QUIC stateless retry token encryption key.
 // This is also the interval that generates new keys.
 //
-#define QUIC_STATELESS_RETRY_KEY_LIFETIME_MS 30000
+#define QUIC_STATELESS_RETRY_KEY_LIFETIME_MS    30000
+
+//
+// The default value for migration being enabled or not.
+//
+#define QUIC_DEFAULT_MIGRATION_ENABLED          TRUE
 
 /*************************************************************
                   PERSISTENT SETTINGS
@@ -389,6 +394,7 @@ QUIC_STATIC_ASSERT(
 #define QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN   "MaxOperationsPerDrain"
 
 #define QUIC_SETTING_SEND_PACING_DEFAULT        "SendPacingDefault"
+#define QUIC_SETTING_MIGRATION_ENABLED          "MigrationEnabled"
 
 #define QUIC_SETTING_INITIAL_WINDOW_PACKETS     "InitialWindowPackets"
 #define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS       "SendIdleTimeoutMs"

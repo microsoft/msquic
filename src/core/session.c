@@ -774,6 +774,24 @@ QuicSessionParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_SESSION_MIGRATION_ENABLED:
+        if (*BufferLength < sizeof(Session->Settings.MigrationEnabled)) {
+            *BufferLength = sizeof(Session->Settings.MigrationEnabled);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(Session->Settings.MigrationEnabled);
+        *(BOOLEAN*)Buffer = Session->Settings.MigrationEnabled;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -931,6 +949,23 @@ QuicSessionParamSet(
         QuicTraceLogInfo("[sess][%p] Updated max bytes per key to %llu bytes",
             Session,
             Session->Settings.MaxBytesPerKey);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
+    case QUIC_PARAM_SESSION_MIGRATION_ENABLED: {
+        if (BufferLength != sizeof(Session->Settings.MigrationEnabled)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Session->Settings.AppSet.MigrationEnabled = TRUE;
+        Session->Settings.MigrationEnabled = *(BOOLEAN*)Buffer;
+
+        QuicTraceLogInfo("[sess][%p] Updated migration enabled to %hhu",
+            Session,
+            Session->Settings.MigrationEnabled);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
