@@ -156,7 +156,7 @@ function Log-Stop {
         $EtlPath = Join-Path $OutputDirectory "quic.etl"
         wpr.exe -stop $EtlPath -instancename $InstanceName
         if ($ConvertToText) {
-            $LogPath = Join-Path $OutputDirectory "quic.log"
+            $LogPath = Join-Path $OutputDirectory "quic.netsh.log"
             $Command = "netsh trace convert $($EtlPath) output=$($LogPath) overwrite=yes report=no"
             if ($TmfPath -ne "") {
                 $Command += " tmfpath=$($TmfPath)"
