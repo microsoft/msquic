@@ -378,6 +378,110 @@ TEST_P(StreamFrameTest, StreamFrameEncodeDecode)
     ASSERT_EQ(DecodedFrame.Data, &Buffer[QuicStreamFrameHeaderSize(&DecodedFrame)]);
 }
 
+TEST_P(StreamFrameTest, DecodeStreamFrameFail) {
+    const uint8_t DataLen = 1;
+    QUIC_STREAM_FRAME_TYPE Type;
+    Type.Type = (uint8_t)GetParam();
+    QUIC_STREAM_EX DecodedFrame;
+    uint8_t Buffer[1 + 1 + 1 + 1 + DataLen];
+    uint16_t BufferLength;
+    uint16_t Offset = 1;
+
+    Buffer[0] = Type.Type;
+
+    switch(GetParam()) {
+        case QUIC_FRAME_STREAM:
+        case QUIC_FRAME_STREAM_1:
+            QUIC_FRE_ASSERT(!Type.LEN && !Type.OFF);
+            for(uint8_t i = 0; i < 2; ++i) {
+                Offset = 1;
+                //
+                // Stream ID
+                //
+                if (i & 1) {
+                    Buffer[1] = 255;
+                    Buffer[2] = 0;
+                    BufferLength = 3;
+                } else {
+                    Buffer[1] = 64;
+                    BufferLength = 2;
+                }
+                ASSERT_FALSE(QuicStreamFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &DecodedFrame)) << "Test case: " << i;
+            }
+            break;
+
+        case QUIC_FRAME_STREAM_2: // LEN
+        case QUIC_FRAME_STREAM_3: // LEN + FIN
+        case QUIC_FRAME_STREAM_4: // OFF
+        case QUIC_FRAME_STREAM_5: // OFF + FIN
+            QUIC_FRE_ASSERT(Type.LEN || Type.OFF);
+            for (uint8_t i = 1; i < 4; ++i) {
+                Offset = 1;
+                //
+                // Stream ID
+                //
+                if (i & 1) {
+                    Buffer[1] = 255;
+                } else {
+                    Buffer[1] = 0;
+                }
+
+                //
+                // Length or Offset
+                //
+                if (i & 2) {
+                    Buffer[2] = 255;
+                } else {
+                    Buffer[2] = 0;
+                }
+                Buffer[3] = 1;
+                BufferLength = 4;
+                ASSERT_FALSE(QuicStreamFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &DecodedFrame)) << "Test case: " << i;
+            }
+            break;
+
+        case QUIC_FRAME_STREAM_6: // OFF + LEN
+        case QUIC_FRAME_STREAM_7: // OFF + LEN + FIN
+            QUIC_FRE_ASSERT(Type.LEN && Type.OFF);
+            for (uint8_t i = 1; i < 8; ++i) {
+                Offset = 1;
+                //
+                // Stream ID
+                //
+                if (i & 1) {
+                    Buffer[1] = 255;
+                } else {
+                    Buffer[1] = 0;
+                }
+
+                //
+                // Offset
+                //
+                if (i & 2) {
+                    Buffer[2] = 255;
+                } else {
+                    Buffer[2] = 0;
+                }
+
+                //
+                // Length
+                //
+                if (i & 4) {
+                    Buffer[3] = 255;
+                } else {
+                    Buffer[3] = 0;
+                }
+                Buffer[4] = 0;
+                BufferLength = 4;
+                ASSERT_FALSE(QuicStreamFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &DecodedFrame)) << "Test case: " << i;
+            }
+            break;
+        default:
+            FAIL() << "Missing test case for " << GetParam();
+            break;
+    }
+}
+
 INSTANTIATE_TEST_SUITE_P(
     FrameTest,
     StreamFrameTest,
@@ -503,7 +607,7 @@ TEST_P(MaxStreamsFrameTest, MaxStreamsFrameEncodeDecode)
     ASSERT_EQ(Frame.MaximumStreams, DecodedFrame.MaximumStreams);
 }
 
-TEST_P(MaxStreamsFrameTest, MaxStreamsFrameDecodeFail) {
+TEST_P(MaxStreamsFrameTest, DecodeMaxStreamsFrameFail) {
     const uint16_t BufferLength = 2;
     QUIC_MAX_STREAMS_EX DecodedFrame;
     uint8_t Buffer[BufferLength];
@@ -647,7 +751,7 @@ TEST_P(StreamsBlockedFrameTest, StreamsBlockedFrameEncodeDecode)
     ASSERT_EQ(Frame.StreamLimit, DecodedFrame.StreamLimit);
 }
 
-TEST_P(StreamsBlockedFrameTest, StreamsBlockedFrameDecodeFail) {
+TEST_P(StreamsBlockedFrameTest, DecodeStreamsBlockedFrameFail) {
     const uint16_t BufferLength = 2;
     QUIC_STREAMS_BLOCKED_EX DecodedFrame;
     uint8_t Buffer[BufferLength];
@@ -990,7 +1094,7 @@ struct ConnectionCloseFrameParams {
 
 struct ConnectionCloseFrameDecodeTest : ::testing::TestWithParam<ConnectionCloseFrameParams> {};
 
-TEST_P(ConnectionCloseFrameDecodeTest, ConnectionCloseFrameDecodeFail) {
+TEST_P(ConnectionCloseFrameDecodeTest, DecodeConnectionCloseFrameFail) {
     QUIC_CONNECTION_CLOSE_EX DecodedFrame;
     uint16_t Offset = 1;
     ASSERT_FALSE(QuicConnCloseFrameDecode((QUIC_FRAME_TYPE)GetParam().Buffer[0], GetParam().BufferLength, GetParam().Buffer, &Offset, &DecodedFrame));
