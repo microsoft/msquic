@@ -82,6 +82,11 @@ if ($IsWindows) {
     $SpinQuic = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/spinquic"
 }
 
+# Make sure the build is present.
+if (!(Test-Path $SpinQuic)) {
+    Write-Error "Build does not exist!`n `nRun the following to generate it:`n `n    $(Join-Path $RootDir "scripts" "build.ps1") -Config $Config -Arch $Arch -Tls $Tls`n"
+}
+
 # Build up all the arguments to pass to the Powershell script.
 $Arguments = "-Path $($SpinQuic) -Arguments 'both -timeout:$($Timeout)' -ShowOutput"
 if ($KeepOutputOnSuccess) {
