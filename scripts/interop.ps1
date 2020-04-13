@@ -69,15 +69,20 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $RunExecutable = Join-Path $RootDir ".azure/scripts/run-executable.ps1"
 
 # Path to the quicinterop exectuable.
-$SpinQuic = $null
+$QuicInterop = $null
 if ($IsWindows) {
-    $SpinQuic = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)\quicinterop.exe"
+    $QuicInterop = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)\quicinterop.exe"
 } else {
-    $SpinQuic = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/quicinterop"
+    $QuicInterop = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/quicinterop"
+}
+
+# Make sure the build is present.
+if (!(Test-Path $QuicInterop)) {
+    Write-Error "Build does not exist!`n `nRun the following to generate it:`n `n    $(Join-Path $RootDir "scripts" "build.ps1") -Config $Config -Arch $Arch -Tls $Tls`n"
 }
 
 # Build up all the arguments to pass to the Powershell script.
-$Arguments = "-Path $($SpinQuic) -ShowOutput"
+$Arguments = "-Path $($QuicInterop) -ShowOutput"
 if ($KeepOutputOnSuccess) {
     $Arguments += " -KeepOutputOnSuccess"
 }
