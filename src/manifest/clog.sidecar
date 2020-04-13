@@ -13117,8 +13117,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"Open HMAC_SHA256 algorithm\"",
-            "UserSuppliedTrimmed": "\"Open HMAC_SHA256 algorithm\"",
+            "UserSpecifiedUnModified": " \"WdfDriverCreate\"",
+            "UserSuppliedTrimmed": "\"WdfDriverCreate\"",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "s",

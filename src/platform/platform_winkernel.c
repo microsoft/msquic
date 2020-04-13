@@ -75,7 +75,7 @@ QuicPlatformSystemLoad(
     UNREFERENCED_PARAMETER(RegistryPath);
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
-    EventRegisterMicrosoft_Quic();
+    EventRegisterMicrosoft_Quic_ETW();
 #endif
 
 #ifdef QUIC_TELEMETRY_ASSERTS
@@ -104,7 +104,7 @@ QuicPlatformSystemUnload(
 #endif
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
-    EventUnregisterMicrosoft_Quic();
+    EventUnregisterMicrosoft_Quic_ETW();
 #endif
 }
 
@@ -238,7 +238,7 @@ QuicEtwCallback(
     switch(ControlCode) {
     case EVENT_CONTROL_CODE_ENABLE_PROVIDER:
     case EVENT_CONTROL_CODE_CAPTURE_STATE:
-        if (CallbackContext == &MICROSOFT_MSQUIC_PROVIDER_Context) {
+        if (CallbackContext == &MICROSOFT_MSQUIC_ETW_PROVIDER_Context) {
             QuicTraceRundown();
         }
         break;

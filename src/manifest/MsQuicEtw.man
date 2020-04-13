@@ -8,10 +8,10 @@
     <events xmlns="http://schemas.microsoft.com/win/2004/08/events">
       <provider
           guid="{6A7F6746-617F-40A3-8EAC-B84C022058FB}"
-          messageFileName="C:\Source\msquic\artifacts\windows\x64_Debug_schannel\msquic.dll"
-          name="Microsoft-Quic"
-          resourceFileName="C:\Source\msquic\artifacts\windows\x64_Debug_schannel\msquic.dll"
-          symbol="MICROSOFT_MSQUIC_PROVIDER"
+          messageFileName="msquic.dll"
+          name="Microsoft-Quic-ETW"
+          resourceFileName="msquic.dll"
+          symbol="MICROSOFT_MSQUIC_ETW_PROVIDER"
           >
         <keywords>
           <!-- Can only use lower 32 bits of the mask. -->
