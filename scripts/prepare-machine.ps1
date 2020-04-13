@@ -21,6 +21,8 @@ param (
     [string]$Configuration
 )
 
+#Requires -RunAsAdministrator
+
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
