@@ -291,7 +291,7 @@ QuicRegistrationAcceptConnection(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    if (Registration->ExecProfile == QUIC_EXEC_PROF_TYPE_MAX_THROUGHPUT) {
+    if (Registration->ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT) {
         //
         // TODO - Figure out how to check to see if hyper-threading was enabled first
         // TODO - Constrain ++PartitionID to the same NUMA node.
