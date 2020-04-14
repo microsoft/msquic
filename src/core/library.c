@@ -437,6 +437,7 @@ QuicLibrarySetGlobalParam(
 
         MsQuicLib.Settings.RetryMemoryLimit = *(uint16_t*)Buffer;
         MsQuicLib.Settings.AppSet.RetryMemoryLimit = TRUE;
+        QuicTraceLogInfo("[ lib] Updated retry memory limit = %hu", MsQuicLib.Settings.RetryMemoryLimit);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -453,6 +454,26 @@ QuicLibrarySetGlobalParam(
 
         Status = QUIC_STATUS_SUCCESS;
         break;
+
+    case QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE: {
+
+        if (BufferLength != sizeof(uint16_t)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (*(uint16_t*)Buffer > QUIC_LOAD_BALANCING_SERVER_ID_IP) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        MsQuicLib.Settings.LoadBalancingMode = *(uint16_t*)Buffer;
+        MsQuicLib.Settings.AppSet.LoadBalancingMode = TRUE;
+        QuicTraceLogInfo("[ lib] Updated load balancing mode = %hu", MsQuicLib.Settings.LoadBalancingMode);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -511,6 +532,25 @@ QuicLibraryGetGlobalParam(
             Buffer,
             QuicSupportedVersionList,
             sizeof(QuicSupportedVersionList));
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE:
+
+        if (*BufferLength < sizeof(uint16_t)) {
+            *BufferLength = sizeof(uint16_t);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(uint16_t);
+        *(uint16_t*)Buffer = MsQuicLib.Settings.LoadBalancingMode;
 
         Status = QUIC_STATUS_SUCCESS;
         break;

@@ -36,6 +36,9 @@ QuicSettingsSetDefault(
     if (!Settings->AppSet.RetryMemoryLimit) {
         Settings->RetryMemoryLimit = QUIC_DEFAULT_RETRY_MEMORY_FRACTION;
     }
+    if (!Settings->AppSet.LoadBalancingMode) {
+        Settings->LoadBalancingMode = QUIC_DEFAULT_LOAD_BALANCING_MODE;
+    }
     if (!Settings->AppSet.MaxWorkerQueueDelayUs) {
         Settings->MaxWorkerQueueDelayUs = MS_TO_US(QUIC_MAX_WORKER_QUEUE_DELAY);
     }
@@ -113,6 +116,9 @@ QuicSettingsCopy(
     }
     if (!Settings->AppSet.RetryMemoryLimit) {
         Settings->RetryMemoryLimit = ParentSettings->RetryMemoryLimit;
+    }
+    if (!Settings->AppSet.LoadBalancingMode) {
+        Settings->LoadBalancingMode = ParentSettings->LoadBalancingMode;
     }
     if (!Settings->AppSet.MaxWorkerQueueDelayUs) {
         Settings->MaxWorkerQueueDelayUs = ParentSettings->MaxWorkerQueueDelayUs;
@@ -238,6 +244,19 @@ QuicSettingsLoad(
             &ValueLen);
         if (Value <= UINT16_MAX) {
             Settings->RetryMemoryLimit = (uint16_t)Value;
+        }
+    }
+
+    if (!Settings->AppSet.LoadBalancingMode) {
+        Value = QUIC_DEFAULT_LOAD_BALANCING_MODE;
+        ValueLen = sizeof(Value);
+        QuicStorageReadValue(
+            Storage,
+            QUIC_SETTING_LOAD_BALANCING_MODE,
+            (uint8_t*)&Value,
+            &ValueLen);
+        if (Value <= QUIC_LOAD_BALANCING_SERVER_ID_IP) {
+            Settings->LoadBalancingMode = (uint16_t)Value;
         }
     }
 
