@@ -12,6 +12,7 @@ typedef struct QUIC_SETTINGS {
     uint8_t MaxPartitionCount;
     uint8_t MaxOperationsPerDrain;
     uint16_t RetryMemoryLimit;
+    uint16_t LoadBalancingMode;
     uint32_t MaxWorkerQueueDelayUs;
     uint32_t MaxStatelessOperations;
     uint32_t InitialWindowPackets;
@@ -37,6 +38,7 @@ typedef struct QUIC_SETTINGS {
         BOOLEAN MaxPartitionCount : 1;
         BOOLEAN MaxOperationsPerDrain : 1;
         BOOLEAN RetryMemoryLimit : 1;
+        BOOLEAN LoadBalancingMode : 1;
         BOOLEAN MaxWorkerQueueDelayUs : 1;
         BOOLEAN MaxStatelessOperations : 1;
         BOOLEAN InitialWindowPackets : 1;

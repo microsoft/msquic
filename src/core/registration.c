@@ -78,14 +78,14 @@ MsQuicRegistrationOpen(
     case QUIC_EXECUTION_PROFILE_LOW_LATENCY:
         WorkerThreadFlags = QUIC_THREAD_FLAG_SET_IDEAL_PROC;
         break;
-    case QUIC_EXEC_PROF_TYPE_MAX_THROUGHPUT:
+    case QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT:
         WorkerThreadFlags = QUIC_THREAD_FLAG_SET_IDEAL_PROC | QUIC_THREAD_FLAG_SET_AFFINITIZE;
         break;
-    case QUIC_EXEC_PROF_TYPE_SCAVENGER:
+    case QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER:
         WorkerThreadFlags = 0;
         Registration->NoPartitioning = TRUE;
         break;
-    case QUIC_EXEC_PROF_TYPE_REAL_TIME:
+    case QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME:
         WorkerThreadFlags =
             QUIC_THREAD_FLAG_SET_IDEAL_PROC |
             QUIC_THREAD_FLAG_SET_AFFINITIZE |
