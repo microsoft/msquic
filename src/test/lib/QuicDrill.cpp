@@ -225,9 +225,9 @@ QuicDrillInitialPacketFailureTest(
 
     Status =
         MsQuic->SetParam(
-            Registration,
-            QUIC_PARAM_LEVEL_REGISTRATION,
-            QUIC_PARAM_REGISTRATION_ENCRYPTION,
+            nullptr,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            QUIC_PARAM_GLOBAL_ENCRYPTION,
             sizeof(Disabled),
             &Disabled);
     if (QUIC_FAILED(Status)) {
@@ -318,9 +318,9 @@ QuicDrillInitialPacketFailureTest(
 Failure:
     Status =
         MsQuic->SetParam(
-            Registration,
-            QUIC_PARAM_LEVEL_REGISTRATION,
-            QUIC_PARAM_REGISTRATION_ENCRYPTION,
+            nullptr,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            QUIC_PARAM_GLOBAL_ENCRYPTION,
             sizeof(Enabled),
             &Enabled);
     if (QUIC_FAILED(Status)) {

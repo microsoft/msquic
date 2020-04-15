@@ -64,11 +64,7 @@ main(
     TryGetValue(argc, argv, "port", &LocalPort);
     TryGetValue(argc, argv, "retry", &Retry);
     if (Retry) {
-        EXIT_ON_FAILURE(
-            QuicForceRetry(
-                MsQuic,
-                Registration,
-                true));
+        EXIT_ON_FAILURE(QuicForceRetry(MsQuic, true));
         printf("Enabling forced RETRY on server.\n");
     }
 

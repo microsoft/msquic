@@ -928,7 +928,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicSetParam(
-    _In_ _Pre_defensive_ HQUIC Handle,
+    _When_(Level == QUIC_PARAM_LEVEL_GLOBAL, _Reserved_)
+    _When_(Level != QUIC_PARAM_LEVEL_GLOBAL, _In_ _Pre_defensive_)
+        HQUIC Handle,
     _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
@@ -938,7 +940,7 @@ MsQuicSetParam(
 {
     QUIC_PASSIVE_CODE();
 
-    if (Handle == NULL) {
+    if ((Handle == NULL) ^ (Level == QUIC_PARAM_LEVEL_GLOBAL)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -947,6 +949,14 @@ MsQuicSetParam(
         Handle);
 
     QUIC_STATUS Status;
+
+    if (Level == QUIC_PARAM_LEVEL_GLOBAL) {
+        //
+        // Global parameters are processed inline.
+        //
+        Status = QuicLibrarySetGlobalParam(Param, BufferLength, Buffer);
+        goto Error;
+    }
 
     if (Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION ||
         Handle->Type == QUIC_HANDLE_TYPE_SESSION ||
@@ -1021,7 +1031,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicGetParam(
-    _In_ _Pre_defensive_ HQUIC Handle,
+    _When_(Level == QUIC_PARAM_LEVEL_GLOBAL, _Reserved_)
+    _When_(Level != QUIC_PARAM_LEVEL_GLOBAL, _In_ _Pre_defensive_)
+        HQUIC Handle,
     _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _Inout_ _Pre_defensive_ uint32_t* BufferLength,
@@ -1031,7 +1043,8 @@ MsQuicGetParam(
 {
     QUIC_PASSIVE_CODE();
 
-    if (Handle == NULL || BufferLength == NULL) {
+    if (((Handle == NULL) ^ (Level == QUIC_PARAM_LEVEL_GLOBAL)) ||
+        BufferLength == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -1040,6 +1053,14 @@ MsQuicGetParam(
     QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
         QUIC_TRACE_API_GET_PARAM,
         Handle);
+
+    if (Level == QUIC_PARAM_LEVEL_GLOBAL) {
+        //
+        // Global parameters are processed inline.
+        //
+        Status = QuicLibraryGetGlobalParam(Param, BufferLength, Buffer);
+        goto Error;
+    }
 
     if (Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION ||
         Handle->Type == QUIC_HANDLE_TYPE_SESSION ||

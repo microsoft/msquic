@@ -14,9 +14,6 @@ Abstract:
 
 Future work:
 
-    -The congestion window (and the cubic curve epoch) should
-     be reset when the sender is idle for a while.
-
     -Early slowstart exit via HyStart or similar.
 
 --*/

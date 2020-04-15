@@ -75,14 +75,14 @@ MsQuicRegistrationOpen(
     case QUIC_EXECUTION_PROFILE_LOW_LATENCY:
         WorkerThreadFlags = QUIC_THREAD_FLAG_SET_IDEAL_PROC;
         break;
-    case QUIC_EXEC_PROF_TYPE_MAX_THROUGHPUT:
+    case QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT:
         WorkerThreadFlags = QUIC_THREAD_FLAG_SET_IDEAL_PROC | QUIC_THREAD_FLAG_SET_AFFINITIZE;
         break;
-    case QUIC_EXEC_PROF_TYPE_SCAVENGER:
+    case QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER:
         WorkerThreadFlags = 0;
         Registration->NoPartitioning = TRUE;
         break;
-    case QUIC_EXEC_PROF_TYPE_REAL_TIME:
+    case QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME:
         WorkerThreadFlags =
             QUIC_THREAD_FLAG_SET_IDEAL_PROC |
             QUIC_THREAD_FLAG_SET_AFFINITIZE |
@@ -288,7 +288,7 @@ QuicRegistrationAcceptConnection(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    if (Registration->ExecProfile == QUIC_EXEC_PROF_TYPE_MAX_THROUGHPUT) {
+    if (Registration->ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT) {
         //
         // TODO - Figure out how to check to see if hyper-threading was enabled first
         // TODO - Constrain ++PartitionID to the same NUMA node.
@@ -346,19 +346,6 @@ QuicRegistrationParamSet(
     QUIC_STATUS Status;
 
     switch (Param) {
-    case QUIC_PARAM_REGISTRATION_RETRY_MEMORY_PERCENT:
-
-        if (BufferLength != sizeof(MsQuicLib.Settings.RetryMemoryLimit)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        MsQuicLib.Settings.RetryMemoryLimit = *(uint16_t*)Buffer;
-        MsQuicLib.Settings.AppSet.RetryMemoryLimit = TRUE;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
     case QUIC_PARAM_REGISTRATION_CID_PREFIX:
 
         if (BufferLength == 0) {
@@ -393,19 +380,6 @@ QuicRegistrationParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_REGISTRATION_ENCRYPTION:
-
-        if (BufferLength != sizeof(uint8_t)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        MsQuicLib.EncryptionDisabled = *(uint8_t*)Buffer == FALSE;
-        QuicTraceLogWarning(FN_registration711e1a8cca07c45faee6d20a450e9ec6, "[ lib] Updated encryption disabled = %hu", MsQuicLib.EncryptionDisabled);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -427,25 +401,6 @@ QuicRegistrationParamGet(
     QUIC_STATUS Status;
 
     switch (Param) {
-    case QUIC_PARAM_REGISTRATION_RETRY_MEMORY_PERCENT:
-
-        if (*BufferLength < sizeof(MsQuicLib.Settings.RetryMemoryLimit)) {
-            *BufferLength = sizeof(MsQuicLib.Settings.RetryMemoryLimit);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(MsQuicLib.Settings.RetryMemoryLimit);
-        *(uint16_t*)Buffer = MsQuicLib.Settings.RetryMemoryLimit;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
     case QUIC_PARAM_REGISTRATION_CID_PREFIX:
 
         if (*BufferLength < Registration->CidPrefixLength) {
@@ -466,25 +421,6 @@ QuicRegistrationParamGet(
         } else {
             *BufferLength = 0;
         }
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_REGISTRATION_ENCRYPTION:
-
-        if (*BufferLength < sizeof(uint8_t)) {
-            *BufferLength = sizeof(uint8_t);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(uint8_t);
-        *(uint8_t*)Buffer = !MsQuicLib.EncryptionDisabled;
 
         Status = QUIC_STATUS_SUCCESS;
         break;

@@ -21,6 +21,9 @@ QuicSettingsSetDefault(
     if (!Settings->AppSet.PacingDefault) {
         Settings->PacingDefault = QUIC_DEFAULT_SEND_PACING;
     }
+    if (!Settings->AppSet.MigrationEnabled) {
+        Settings->MigrationEnabled = QUIC_DEFAULT_MIGRATION_ENABLED;
+    }
     if (!Settings->AppSet.MaxPartitionCount) {
         Settings->MaxPartitionCount = QUIC_MAX_PARTITION_COUNT;
     }
@@ -29,6 +32,9 @@ QuicSettingsSetDefault(
     }
     if (!Settings->AppSet.RetryMemoryLimit) {
         Settings->RetryMemoryLimit = QUIC_DEFAULT_RETRY_MEMORY_FRACTION;
+    }
+    if (!Settings->AppSet.LoadBalancingMode) {
+        Settings->LoadBalancingMode = QUIC_DEFAULT_LOAD_BALANCING_MODE;
     }
     if (!Settings->AppSet.MaxWorkerQueueDelayUs) {
         Settings->MaxWorkerQueueDelayUs = MS_TO_US(QUIC_MAX_WORKER_QUEUE_DELAY);
@@ -96,6 +102,9 @@ QuicSettingsCopy(
     if (!Settings->AppSet.PacingDefault) {
         Settings->PacingDefault = ParentSettings->PacingDefault;
     }
+    if (!Settings->AppSet.MigrationEnabled) {
+        Settings->MigrationEnabled = ParentSettings->MigrationEnabled;
+    }
     if (!Settings->AppSet.MaxPartitionCount) {
         Settings->MaxPartitionCount = ParentSettings->MaxPartitionCount;
     }
@@ -104,6 +113,9 @@ QuicSettingsCopy(
     }
     if (!Settings->AppSet.RetryMemoryLimit) {
         Settings->RetryMemoryLimit = ParentSettings->RetryMemoryLimit;
+    }
+    if (!Settings->AppSet.LoadBalancingMode) {
+        Settings->LoadBalancingMode = ParentSettings->LoadBalancingMode;
     }
     if (!Settings->AppSet.MaxWorkerQueueDelayUs) {
         Settings->MaxWorkerQueueDelayUs = ParentSettings->MaxWorkerQueueDelayUs;
@@ -182,6 +194,17 @@ QuicSettingsLoad(
         Settings->PacingDefault = !!Value;
     }
 
+    if (!Settings->AppSet.MigrationEnabled) {
+        Value = QUIC_DEFAULT_MIGRATION_ENABLED;
+        ValueLen = sizeof(Value);
+        QuicStorageReadValue(
+            Storage,
+            QUIC_SETTING_MIGRATION_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->MigrationEnabled = !!Value;
+    }
+
     if (!Settings->AppSet.MaxPartitionCount) {
         Value = QUIC_MAX_PARTITION_COUNT;
         ValueLen = sizeof(Value);
@@ -218,6 +241,19 @@ QuicSettingsLoad(
             &ValueLen);
         if (Value <= UINT16_MAX) {
             Settings->RetryMemoryLimit = (uint16_t)Value;
+        }
+    }
+
+    if (!Settings->AppSet.LoadBalancingMode) {
+        Value = QUIC_DEFAULT_LOAD_BALANCING_MODE;
+        ValueLen = sizeof(Value);
+        QuicStorageReadValue(
+            Storage,
+            QUIC_SETTING_LOAD_BALANCING_MODE,
+            (uint8_t*)&Value,
+            &ValueLen);
+        if (Value <= QUIC_LOAD_BALANCING_SERVER_ID_IP) {
+            Settings->LoadBalancingMode = (uint16_t)Value;
         }
     }
 
@@ -275,7 +311,7 @@ QuicSettingsLoad(
             QUIC_SETTING_MAX_ACK_DELAY,
             (uint8_t*)&Settings->MaxAckDelayMs,
             &ValueLen);
-        if (Settings->MaxAckDelayMs > QUIC_TP_MAX_MAX_ACK_DELAY) {
+        if (Settings->MaxAckDelayMs > QUIC_TP_MAX_ACK_DELAY_MAX) {
             Settings->MaxAckDelayMs = QUIC_TP_MAX_ACK_DELAY_DEFAULT;
         }
     }
@@ -411,9 +447,10 @@ QuicSettingsDump(
     _In_ const QUIC_SETTINGS* Settings
     )
 {
-    QuicTraceLogVerbose(FN_settings6f5c7b4d47f2bc7a9a87c47495e915e4, "[sett] PacingDefault          = %hu", (uint16_t)Settings->PacingDefault);
-    QuicTraceLogVerbose(FN_settingsd554fffdc6a34a822c77617a980a7725, "[sett] MaxPartitionCount      = %hu", (uint16_t)Settings->MaxPartitionCount);
-    QuicTraceLogVerbose(FN_settingscf1a37abdccf8f36fdbf32977e7fb7df, "[sett] MaxOperationsPerDrain  = %hu", (uint16_t)Settings->MaxOperationsPerDrain);
+    QuicTraceLogVerbose(FN_settings_Dump_PacingDefault, "[sett] PacingDefault          = %hhu", (uint16_t)Settings->PacingDefault);
+    QuicTraceLogVerbose(FN_settings_Dump_MigrationEnabled, "[sett] MigrationEnabled       = %hhu", Settings->MigrationEnabled);
+    QuicTraceLogVerbose(FN_settings_Dump_MaxPartitionCount, "[sett] MaxPartitionCount      = %hhu", (uint16_t)Settings->MaxPartitionCount);
+    QuicTraceLogVerbose(FN_settings_Dump_MaxOperationsPerDrain, "[sett] MaxOperationsPerDrain  = %hhu", (uint16_t)Settings->MaxOperationsPerDrain);
     QuicTraceLogVerbose(FN_settings00fc7276f8b662d358928e0cfa29d043, "[sett] RetryMemoryLimit       = %hu", Settings->RetryMemoryLimit);
     QuicTraceLogVerbose(FN_settings67321e2160737fdc324fb42093dae824, "[sett] MaxStatelessOperations = %u", Settings->MaxStatelessOperations);
     QuicTraceLogVerbose(FN_settings51f359ba6d2ceb8234f9cb01656763be, "[sett] MaxWorkerQueueDelayUs  = %u", Settings->MaxWorkerQueueDelayUs);

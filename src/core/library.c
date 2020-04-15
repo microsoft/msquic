@@ -415,6 +415,172 @@ MsQuicSetCallbackHandler(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
+QuicLibrarySetGlobalParam(
+    _In_ uint32_t Param,
+    _In_ uint32_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const void* Buffer
+    )
+{
+    QUIC_STATUS Status;
+
+    switch (Param) {
+    case QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT:
+
+        if (BufferLength != sizeof(MsQuicLib.Settings.RetryMemoryLimit)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        MsQuicLib.Settings.RetryMemoryLimit = *(uint16_t*)Buffer;
+        MsQuicLib.Settings.AppSet.RetryMemoryLimit = TRUE;
+        QuicTraceLogInfo("[ lib] Updated retry memory limit = %hu", MsQuicLib.Settings.RetryMemoryLimit);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_ENCRYPTION:
+
+        if (BufferLength != sizeof(uint8_t)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        MsQuicLib.EncryptionDisabled = *(uint8_t*)Buffer == FALSE;
+        QuicTraceLogWarning("[ lib] Updated encryption disabled = %hu", MsQuicLib.EncryptionDisabled);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE: {
+
+        if (BufferLength != sizeof(uint16_t)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (*(uint16_t*)Buffer > QUIC_LOAD_BALANCING_SERVER_ID_IP) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        MsQuicLib.Settings.LoadBalancingMode = *(uint16_t*)Buffer;
+        MsQuicLib.Settings.AppSet.LoadBalancingMode = TRUE;
+        QuicTraceLogInfo("[ lib] Updated load balancing mode = %hu", MsQuicLib.Settings.LoadBalancingMode);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
+    default:
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        break;
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibraryGetGlobalParam(
+    _In_ uint32_t Param,
+    _Inout_ uint32_t* BufferLength,
+    _Out_writes_bytes_opt_(*BufferLength)
+        void* Buffer
+    )
+{
+    QUIC_STATUS Status;
+
+    switch (Param) {
+    case QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT:
+
+        if (*BufferLength < sizeof(MsQuicLib.Settings.RetryMemoryLimit)) {
+            *BufferLength = sizeof(MsQuicLib.Settings.RetryMemoryLimit);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(MsQuicLib.Settings.RetryMemoryLimit);
+        *(uint16_t*)Buffer = MsQuicLib.Settings.RetryMemoryLimit;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS:
+
+        if (*BufferLength < sizeof(QuicSupportedVersionList)) {
+            *BufferLength = sizeof(QuicSupportedVersionList);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(QuicSupportedVersionList);
+        QuicCopyMemory(
+            Buffer,
+            QuicSupportedVersionList,
+            sizeof(QuicSupportedVersionList));
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE:
+
+        if (*BufferLength < sizeof(uint16_t)) {
+            *BufferLength = sizeof(uint16_t);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(uint16_t);
+        *(uint16_t*)Buffer = MsQuicLib.Settings.LoadBalancingMode;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_ENCRYPTION:
+
+        if (*BufferLength < sizeof(uint8_t)) {
+            *BufferLength = sizeof(uint8_t);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(uint8_t);
+        *(uint8_t*)Buffer = !MsQuicLib.EncryptionDisabled;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    default:
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        break;
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
 QuicLibrarySetParam(
     _In_ HQUIC Handle,
     _In_ QUIC_PARAM_LEVEL Level,

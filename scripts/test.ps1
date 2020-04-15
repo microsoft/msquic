@@ -151,6 +151,11 @@ if ($IsWindows) {
     $MsQuicPlatTest = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/msquicplatformtest"
 }
 
+# Make sure the build is present.
+if (!(Test-Path $MsQuicTest)) {
+    Write-Error "Build does not exist!`n `nRun the following to generate it:`n `n    $(Join-Path $RootDir "scripts" "build.ps1") -Config $Config -Arch $Arch -Tls $Tls`n"
+}
+
 # Build up all the arguments to pass to the Powershell script.
 $TestArguments =  "-ExecutionMode $($ExecutionMode) -IsolationMode $($IsolationMode)"
 
