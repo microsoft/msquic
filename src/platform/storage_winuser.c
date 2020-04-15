@@ -16,10 +16,7 @@ Environment:
 
 
 #include "platform_internal.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "storage_winuser.tmh"
-#endif
+#include "storage_winuser.c.clog.h"
 
 void
 NTAPI
@@ -96,7 +93,7 @@ QuicStorageOpen(
         goto Exit;
     }
 
-    QuicTraceLogVerbose("[ reg] Opening %s", FullKeyName);
+    QuicTraceLogVerbose(FN_storage_winuserf1b76ae7b606aa4efae449ed9de18a9c, "[ reg] Opening %s", FullKeyName);
 
     Status =
         HRESULT_FROM_WIN32(

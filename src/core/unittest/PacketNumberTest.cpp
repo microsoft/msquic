@@ -10,10 +10,7 @@ Abstract:
 --*/
 
 #include "main.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "frametest.tmh"
-#endif
+#include "PacketNumberTest.cpp.clog.h"
 
 struct DecompressEntry {
     uint64_t HighestReceived;

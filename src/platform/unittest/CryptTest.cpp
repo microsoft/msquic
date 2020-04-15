@@ -10,10 +10,7 @@
 #include "quic_tls.h"
 
 #include "msquichelper.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "crypttest.tmh"
-#endif
+#include "CryptTest.cpp.clog.h"
 
 #ifndef QUIC_TLS_STUB
 

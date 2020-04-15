@@ -5,6 +5,8 @@
 
 --*/
 
+#include "connection.h.clog.h"
+
 typedef struct QUIC_LISTENER QUIC_LISTENER;
 
 //
@@ -661,24 +663,11 @@ QuicConnLogOutFlowStats(
         &FcAvailable,
         &SendWindow);
 
-#ifdef QUIC_EVENTS_LTTNG // LTTng has a max of 10 fields.
-    QuicTraceEvent(
-        ConnOutFlowStats,
-        Connection,
-        Connection->Stats.Send.TotalBytes,
-        Connection->CongestionControl.BytesInFlight,
-        Connection->CongestionControl.BytesInFlightMax,
-        Connection->CongestionControl.CongestionWindow,
-        Connection->CongestionControl.SlowStartThreshold,
-        Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
-        FcAvailable,
-        Connection->SendBuffer.IdealBytes,
-        Connection->SendBuffer.PostedBytes);
-#else
+    // LTTng has a max of 10 fields.  When addressing the QuicTraceEvent below, verify correctness of this event by
+    //     comparison with the master branch
     const QUIC_PATH* Path = &Connection->Paths[0];
     UNREFERENCED_PARAMETER(Path);
-    QuicTraceEvent(
-        ConnOutFlowStats,
+    /*CLOG_BUG_TraceEvent(ConnOutFlowStats, "[conn][%p] OUT: BytesSent=%I InFlight=%d InFlightMax=%d CWnd=%d SSThresh=%d ConnFC=%I StreamFC=%I ISB=%I PostedBytes=%I SRtt=%d StreamSendWindow=%I",
         Connection,
         Connection->Stats.Send.TotalBytes,
         Connection->CongestionControl.BytesInFlight,
@@ -690,8 +679,7 @@ QuicConnLogOutFlowStats(
         Connection->SendBuffer.IdealBytes,
         Connection->SendBuffer.PostedBytes,
         Path->GotFirstRttSample ? Path->SmoothedRtt : 0,
-        SendWindow);
-#endif
+        SendWindow);*/
 }
 
 inline
@@ -701,8 +689,7 @@ QuicConnLogInFlowStats(
     )
 {
     UNREFERENCED_PARAMETER(Connection);
-    QuicTraceEvent(
-        ConnInFlowStats,
+    QuicTraceEvent(ConnInFlowStats, "[conn][%p] IN: BytesRecv=%llu",
         Connection,
         Connection->Stats.Recv.TotalBytes);
 }
@@ -713,24 +700,11 @@ QuicConnLogStatistics(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
-#ifdef QUIC_EVENTS_LTTNG // LTTng has a max of 10 fields.
-    QuicTraceEvent(
-        ConnStatistics,
-        Connection,
-        QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()),
-        Connection->Stats.Send.TotalPackets,
-        Connection->Stats.Send.SuspectedLostPackets,
-        Connection->Stats.Send.SpuriousLostPackets,
-        Connection->Stats.Recv.TotalPackets,
-        Connection->Stats.Recv.ReorderedPackets,
-        Connection->Stats.Recv.DroppedPackets,
-        Connection->Stats.Recv.DuplicatePackets,
-        Connection->Stats.Recv.DecryptionFailures);
-#else
+    // LTTng has a max of 10 fields.  When addressing the QuicTraceEvent below, verify correctness of this event by
+    //     comparison with the master branch
     const QUIC_PATH* Path = &Connection->Paths[0];
     UNREFERENCED_PARAMETER(Path);
-    QuicTraceEvent(
-        ConnStatistics,
+    /*CLOG_BUG_TraceEvent(ConnStatistics, "[conn][%p] STATS: LifeTimeUs=%I SendTotalPackets=%I SendSuspectedLostPackets=%I SendSpuriousLostPackets=%I RecvTotalPackets=%I RecvReorderedPackets=%I RecvDroppedPackets=%I RecvDuplicatePackets=%I RecvDecryptionFailures=%I CongestionCount=%d PersistentCongestionCount=%d SendTotalBytes=%I RecvTotalBytes=%I SRtt=%d",
         Connection,
         QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()),
         Connection->Stats.Send.TotalPackets,
@@ -745,8 +719,7 @@ QuicConnLogStatistics(
         Connection->Stats.Send.PersistentCongestionCount,
         Connection->Stats.Send.TotalBytes,
         Connection->Stats.Recv.TotalBytes,
-        Path->SmoothedRtt);
-#endif
+        Path->SmoothedRtt);*/
 }
 
 inline
@@ -758,7 +731,7 @@ QuicConnAddOutFlowBlockedReason(
 {
     if (!(Connection->OutFlowBlockedReasons & Reason)) {
         Connection->OutFlowBlockedReasons |= Reason;
-        QuicTraceEvent(ConnOutFlowBlocked, Connection, Connection->OutFlowBlockedReasons);
+        QuicTraceEvent(ConnOutFlowBlocked, "[conn][%p] Send Blocked Flags: %c", Connection, Connection->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -773,7 +746,7 @@ QuicConnRemoveOutFlowBlockedReason(
 {
     if ((Connection->OutFlowBlockedReasons & Reason)) {
         Connection->OutFlowBlockedReasons &= ~Reason;
-        QuicTraceEvent(ConnOutFlowBlocked, Connection, Connection->OutFlowBlockedReasons);
+        QuicTraceEvent(ConnOutFlowBlocked, "[conn][%p] Send Blocked Flags: %c", Connection, Connection->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -1017,10 +990,10 @@ QuicConnGetSourceCidFromSeq(
                     SourceCid);
                 QuicTraceEvent(
                     ConnSourceCidRemoved,
+                    "[conn][%p] (SeqNum=%llu) Removed Source CID: %!BYTEARRAY!",
                     Connection,
                     SourceCid->CID.SequenceNumber,
-                    SourceCid->CID.Length,
-                    SourceCid->CID.Data);
+                    CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
                 *Entry = (*Entry)->Next;
                 SourceCid->CID.IsInList = FALSE;
             }

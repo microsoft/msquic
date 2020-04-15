@@ -14,10 +14,7 @@ TODO:
 --*/
 
 #include "precomp.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "path.tmh"
-#endif
+#include "path.c.clog.h"
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void

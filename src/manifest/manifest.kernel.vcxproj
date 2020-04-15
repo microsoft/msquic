@@ -34,23 +34,8 @@
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="datapath_winkernel.c" />
-    <ClCompile Include="hashtable.c" />
-    <ClCompile Include="platform_winkernel.c" />
-    <ClCompile Include="storage_winkernel.c" />
-    <ClCompile Include="tls_schannel.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="platform_internal.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\manifest\manifest.kernel.vcxproj">
-      <Project>{c1adb76f-7005-4516-badb-2a60797ef912}</Project>
-    </ProjectReference>
-  </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{5f99f713-bf5f-44eb-90fe-fea03906bba9}</ProjectGuid>
+    <ProjectGuid>{c1adb76f-7005-4516-badb-2a60797ef912}</ProjectGuid>
     <TemplateGuid>{0a049372-4c4d-4ea0-a64e-dc6ad88ceca1}</TemplateGuid>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
@@ -80,14 +65,17 @@
     <RunCodeAnalysis>true</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup>
-    <TargetName>platform</TargetName>
-    <IntDir>$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
+    <TargetName>core</TargetName>
     <OutDir>$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\bin\</OutDir>
+    <IntDir>$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\inc;$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);$(SolutionDir)submodules\clog\inc;$(SolutionDir)bld\clog_kernel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\inc;$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\inc;..\..\submodules\clog\inc;..\..\bld\clog_kernel;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <PreBuildEvent>
+      <Command>cmd /C $(SolutionDir)\src\manifest\create_kernel_clog_dependencies.bat $(SolutionDir) $(Platform) $(Configuration)</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>

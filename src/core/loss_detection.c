@@ -44,10 +44,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "loss_detection.tmh"
-#endif
+#include "loss_detection.c.clog.h"
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -92,7 +89,7 @@ QuicLossDetectionUninitialize(
         LossDetection->SentPackets = LossDetection->SentPackets->Next;
 
         if (Packet->Flags.IsRetransmittable) {
-            QuicTraceLogVerbose("[%c][TX][%llu] Thrown away on shutdown",
+            QuicTraceLogVerbose(FN_loss_detection8e90a8ce9382e68c0b924d43672c2a5f, "[%c][TX][%llu] Thrown away on shutdown",
                 PtkConnPre(Connection), Packet->PacketNumber);
 
         }
@@ -103,7 +100,7 @@ QuicLossDetectionUninitialize(
         QUIC_SENT_PACKET_METADATA* Packet = LossDetection->LostPackets;
         LossDetection->LostPackets = LossDetection->LostPackets->Next;
 
-        QuicTraceLogVerbose("[%c][TX][%llu] Thrown away on shutdown (lost packet)",
+        QuicTraceLogVerbose(FN_loss_detectionf10106b315c3f490c7f862fe7f361eb0, "[%c][TX][%llu] Thrown away on shutdown (lost packet)",
             PtkConnPre(Connection), Packet->PacketNumber);
 
         QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
@@ -208,7 +205,7 @@ QuicLossDetectionUpdateTimer(
         //
         // No retransmission timer runs after the connection has been shut down.
         //
-        QuicTraceEvent(ConnLossDetectionTimerCancel, Connection);
+        QuicTraceEvent(ConnLossDetectionTimerCancel, "[conn][%p] Cancelling loss detection timer.", Connection);
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_LOSS_DETECTION);
         return;
     }
@@ -225,7 +222,7 @@ QuicLossDetectionUpdateTimer(
         // doing amplification protection, which means more data might need to
         // be sent to unblock it.
         //
-        QuicTraceEvent(ConnLossDetectionTimerCancel, Connection);
+        QuicTraceEvent(ConnLossDetectionTimerCancel, "[conn][%p] Cancelling loss detection timer.", Connection);
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_LOSS_DETECTION);
         return;
     }
@@ -237,7 +234,7 @@ QuicLossDetectionUpdateTimer(
         // Sending is restricted for amplification protection.
         // Don't run the timer, because nothing can be sent when it fires.
         //
-        QuicTraceEvent(ConnLossDetectionTimerCancel, Connection);
+        QuicTraceEvent(ConnLossDetectionTimerCancel, "[conn][%p] Cancelling loss detection timer.", Connection);
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_LOSS_DETECTION);
         return;
     }
@@ -319,7 +316,7 @@ QuicLossDetectionUpdateTimer(
         Delay = US_TO_MS(Delay) + 1;
     }
 
-    QuicTraceEvent(ConnLossDetectionTimerSet,
+    QuicTraceEvent(ConnLossDetectionTimerSet, "[conn][%p] Setting loss detection %c timer for %d ms. (ProbeCount=%hd)",
         Connection, TimeoutType, Delay, LossDetection->ProbeCount);
     UNREFERENCED_PARAMETER(TimeoutType);
     QuicConnTimerSet(Connection, QUIC_CONN_TIMER_LOSS_DETECTION, Delay);
@@ -672,7 +669,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
         while ((Packet = LossDetection->LostPackets) != NULL &&
                 Packet->PacketNumber < LossDetection->LargestAck &&
                 QuicTimeDiff32(Packet->SentTime, TimeNow) > TwoPto) {
-            QuicTraceLogVerbose("[%c][TX][%llu] Forgetting",
+            QuicTraceLogVerbose(FN_loss_detection92c87e0f2df7baa73685d553de54f39a, "[%c][TX][%llu] Forgetting",
                 PtkConnPre(Connection), Packet->PacketNumber);
             LossDetection->LostPackets = Packet->Next;
             QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
@@ -711,12 +708,11 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 continue;
             } else if (Packet->PacketNumber + QUIC_PACKET_REORDER_THRESHOLD < LossDetection->LargestAck) {
                 if (!NonretransmittableHandshakePacket) {
-                    QuicTraceLogVerbose(
-                        "[%c][TX][%llu] Lost: FACK %llu packets",
+                    QuicTraceLogVerbose(FN_loss_detection8a4b29d3fcd88e3f3cd1b5eb07812977, "[%c][TX][%llu] Lost: FACK %llu packets",
                         PtkConnPre(Connection),
                         Packet->PacketNumber,
                         LossDetection->LargestAck - Packet->PacketNumber);
-                    QuicTraceEvent(ConnPacketLost,
+                    QuicTraceEvent(ConnPacketLost, "[conn][%p][TX][%llu] %c Lost: %c",
                         Connection,
                         Packet->PacketNumber,
                         QuicPacketTraceType(Packet),
@@ -725,12 +721,11 @@ QuicLossDetectionDetectAndHandleLostPackets(
             } else if (Packet->PacketNumber < LossDetection->LargestAck &&
                         QuicTimeAtOrBefore32(Packet->SentTime + TimeReorderThreshold, TimeNow)) {
                 if (!NonretransmittableHandshakePacket) {
-                    QuicTraceLogVerbose(
-                        "[%c][TX][%llu] Lost: RACK %lu ms",
+                    QuicTraceLogVerbose(FN_loss_detectionceabe6a9f4a4b57c1d22a407b2aa0ceb, "[%c][TX][%llu] Lost: RACK %lu ms",
                         PtkConnPre(Connection),
                         Packet->PacketNumber,
                         QuicTimeDiff32(Packet->SentTime, TimeNow));
-                    QuicTraceEvent(ConnPacketLost,
+                    QuicTraceEvent(ConnPacketLost, "[conn][%p][TX][%llu] %c Lost: %c",
                         Connection,
                         Packet->PacketNumber,
                         QuicPacketTraceType(Packet),
@@ -822,10 +817,10 @@ QuicLossDetectionDiscardPackets(
                 }
             }
 
-            QuicTraceLogVerbose("[%c][TX][%llu] ACKed (implicit)",
+            QuicTraceLogVerbose(FN_loss_detection3c974fbbdc44a506e4ce01903aca8d24, "[%c][TX][%llu] ACKed (implicit)",
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
-            QuicTraceEvent(ConnPacketACKed,
+            QuicTraceEvent(ConnPacketACKed, "[conn][%p][TX][%llu] %c ACKed",
                 Connection,
                 Packet->PacketNumber,
                 QuicPacketTraceType(Packet));
@@ -858,10 +853,10 @@ QuicLossDetectionDiscardPackets(
                 }
             }
 
-            QuicTraceLogVerbose("[%c][TX][%llu] ACKed (implicit)",
+            QuicTraceLogVerbose(FN_loss_detection3c974fbbdc44a506e4ce01903aca8d24, "[%c][TX][%llu] ACKed (implicit)",
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
-            QuicTraceEvent(ConnPacketACKed,
+            QuicTraceEvent(ConnPacketACKed, "[conn][%p][TX][%llu] %c ACKed",
                 Connection,
                 Packet->PacketNumber,
                 QuicPacketTraceType(Packet));
@@ -931,7 +926,7 @@ QuicLossDetectionOnZeroRttRejected(
                 }
             }
 
-            QuicTraceLogVerbose("[%c][TX][%llu] Rejected",
+            QuicTraceLogVerbose(FN_loss_detectionaf98922fb950dcf5a8690c34d82e4fe8, "[%c][TX][%llu] Rejected",
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
 
@@ -1006,7 +1001,7 @@ QuicLossDetectionProcessAckBlocks(
             }
             QUIC_SENT_PACKET_METADATA** End = LostPacketsStart;
             while (*End && (*End)->PacketNumber <= QuicRangeGetHigh(AckBlock)) {
-                QuicTraceLogVerbose("[%c][TX][%llu] Spurious loss detected",
+                QuicTraceLogVerbose(FN_loss_detection5a6aff023ffdd96b240756e4e4c7d47f, "[%c][TX][%llu] Spurious loss detected",
                     PtkConnPre(Connection),
                     (*End)->PacketNumber);
                 Connection->Stats.Send.SpuriousLostPackets++;
@@ -1090,17 +1085,17 @@ QuicLossDetectionProcessAckBlocks(
             //
             // The packet was not acknowledged with the same encryption level.
             //
-            QuicTraceEvent(ConnError, Connection, "Incorrect ACK encryption level");
+            QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Incorrect ACK encryption level");
             *InvalidAckBlock = TRUE;
             return;
         }
 
         uint32_t PacketRtt = QuicTimeDiff32(Packet->SentTime, TimeNow);
-        QuicTraceLogVerbose("[%c][TX][%llu] ACKed (%u.%u ms)",
+        QuicTraceLogVerbose(FN_loss_detectiona16a26f66ee07984bb898e24396a45ef, "[%c][TX][%llu] ACKed (%u.%u ms)",
             PtkConnPre(Connection),
             Packet->PacketNumber,
             PacketRtt / 1000, PacketRtt % 1000);
-            QuicTraceEvent(ConnPacketACKed,
+            QuicTraceEvent(ConnPacketACKed, "[conn][%p][TX][%llu] %c ACKed",
                 Connection,
                 Packet->PacketNumber,
                 QuicPacketTraceType(Packet));
@@ -1286,11 +1281,10 @@ QuicLossDetectionScheduleProbe(
     QUIC_SENT_PACKET_METADATA* Packet = LossDetection->SentPackets;
     while (Packet != NULL) {
         if (Packet->Flags.IsRetransmittable) {
-            QuicTraceLogVerbose(
-                "[%c][TX][%llu] Probe Retransmit",
+            QuicTraceLogVerbose(FN_loss_detection7317b1941fdec283fd38d8447de752e7, "[%c][TX][%llu] Probe Retransmit",
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
-            QuicTraceEvent(ConnPacketLost,
+            QuicTraceEvent(ConnPacketLost, "[conn][%p][TX][%llu] %c Lost: %c",
                 Connection,
                 Packet->PacketNumber,
                 QuicPacketTraceType(Packet),

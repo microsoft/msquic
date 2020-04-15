@@ -19,10 +19,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "crypto.tmh"
-#endif
+#include "crypto.c.clog.h"
 
 QUIC_TLS_PROCESS_COMPLETE_CALLBACK QuicTlsProcessDataCompleteCallback;
 QUIC_TLS_RECEIVE_TP_CALLBACK QuicConnReceiveTP;
@@ -53,7 +50,7 @@ QuicCryptoDumpSendState(
             UnAcked = Sack->Low + Sack->Count;
         }
         if (UnAcked < (uint64_t)Crypto->MaxSentLength) {
-            QuicTraceLogConnVerbose(CryptoDumpUnacked, Connection, "  unACKed: [%llu, %u]", UnAcked, Crypto->MaxSentLength);
+            QuicTraceLogConnVerbose(CryptoDumpUnacked, Connection, "  unACKed: [%llu, %llu]", UnAcked, Crypto->MaxSentLength);
         }
 
         QUIC_DBG_ASSERT(Crypto->UnAckedOffset <= Crypto->NextSendOffset);
@@ -86,7 +83,7 @@ QuicCryptoInitialize(
     Crypto->TlsState.BufferAllocLength = SendBufferLength;
     Crypto->TlsState.Buffer = QUIC_ALLOC_NONPAGED(SendBufferLength);
     if (Crypto->TlsState.Buffer == NULL) {
-        QuicTraceEvent(AllocFailure, "crypto send buffer", SendBufferLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "crypto send buffer", SendBufferLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -143,7 +140,7 @@ QuicCryptoInitialize(
             &Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL],
             &Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL]);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(ConnErrorStatus, Connection, Status, "Creating initial keys");
+        QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Status, "Creating initial keys");
         goto Exit;
     }
     QUIC_DBG_ASSERT(Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL] != NULL);
@@ -247,7 +244,7 @@ QuicCryptoInitializeTls(
 
     Status = QuicTlsInitialize(&TlsConfig, &Crypto->TlsState, &Crypto->TLS);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(ConnErrorStatus, Connection, Status, "QuicTlsInitialize");
+        QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Status, "QuicTlsInitialize");
         QUIC_FREE(TlsConfig.LocalTPBuffer);
         goto Error;
     }
@@ -978,7 +975,7 @@ QuicCryptoProcessDataFrame(
                 DataReady);
         if (QUIC_FAILED(Status)) {
             if (Status == QUIC_STATUS_BUFFER_TOO_SMALL) {
-                QuicTraceEvent(ConnError,
+                QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.",
                     Connection, "Tried to write beyond crypto flow control limit.");
                 QuicConnTransportError(Connection, QUIC_ERROR_CRYPTO_BUFFER_EXCEEDED);
             }
@@ -1065,7 +1062,7 @@ QuicCryptoProcessTlsCompletion(
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
 
     if (ResultFlags & QUIC_TLS_RESULT_ERROR) {
-        QuicTraceEvent(ConnErrorStatus,
+        QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.",
             Connection, Crypto->TlsState.AlertCode, "Received alert from TLS.");
         QuicConnTransportError(
             Connection,
@@ -1090,7 +1087,7 @@ QuicCryptoProcessTlsCompletion(
     }
 
     if (ResultFlags & QUIC_TLS_RESULT_WRITE_KEY_UPDATED) {
-        QuicTraceEvent(ConnWriteKeyUpdated, Connection, Crypto->TlsState.WriteKey);
+        QuicTraceEvent(ConnWriteKeyUpdated, "[conn][%p] Write Key Updated, %c.", Connection, Crypto->TlsState.WriteKey);
         QUIC_DBG_ASSERT(Crypto->TlsState.WriteKey <= QUIC_PACKET_KEY_1_RTT);
         _Analysis_assume_(Crypto->TlsState.WriteKey >= 0);
         QUIC_TEL_ASSERT(Crypto->TlsState.WriteKeys[Crypto->TlsState.WriteKey] != NULL);
@@ -1147,14 +1144,14 @@ QuicCryptoProcessTlsCompletion(
         // at the previous encryption level.
         //
         if (QuicRecvBufferHasUnreadData(&Crypto->RecvBuffer)) {
-            QuicTraceEvent(ConnError,
+            QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.",
                 Connection, "Leftover crypto data in previous encryption level.");
             QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
             return;
         }
 
         Crypto->RecvEncryptLevelStartOffset = Crypto->RecvTotalConsumed;
-        QuicTraceEvent(ConnReadKeyUpdated, Connection, Crypto->TlsState.ReadKey);
+        QuicTraceEvent(ConnReadKeyUpdated, "[conn][%p] Read Key Updated, %c.", Connection, Crypto->TlsState.ReadKey);
 
         //
         // If we have the read key, we must also have the write key.
@@ -1215,7 +1212,7 @@ QuicCryptoProcessTlsCompletion(
         QUIC_DBG_ASSERT(!(ResultFlags & QUIC_TLS_RESULT_ERROR));
         QUIC_TEL_ASSERT(!Connection->State.Connected);
 
-        QuicTraceEvent(ConnHandshakeComplete, Connection);
+        QuicTraceEvent(ConnHandshakeComplete, "[conn][%p] Handshake complete", Connection);
         InterlockedDecrement(&Connection->Paths[0].Binding->HandshakeConnections);
         InterlockedExchangeAdd64(
             (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
@@ -1341,7 +1338,7 @@ QuicTlsProcessDataCompleteCallback(
     if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_TLS_COMPLETE)) != NULL) {
         QuicConnQueueOper(Connection, Oper);
     } else {
-        QuicTraceEvent(AllocFailure, "TLS complete operation", 0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "TLS complete operation", 0);
     }
 }
 
@@ -1447,7 +1444,7 @@ QuicCryptoProcessData(
             }
 
             if (AcceptResult != QUIC_CONNECTION_ACCEPT) {
-                QuicTraceEvent(ConnErrorStatus,
+                QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.",
                     Connection, AcceptResult, "Connection rejected");
                 if (AcceptResult == QUIC_CONNECTION_REJECT_NO_LISTENER) {
                     QuicConnTransportError(
@@ -1535,7 +1532,7 @@ QuicCryptoGenerateNewKeys(
                 Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT],
                 NewReadKey);
         if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(ConnErrorStatus,
+            QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.",
                 Connection, Status, "Failed to update read packet key.");
             goto Error;
         }
@@ -1545,7 +1542,7 @@ QuicCryptoGenerateNewKeys(
                 Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT],
                 NewWriteKey);
         if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(ConnErrorStatus,
+            QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.",
                 Connection, Status, "Failed to update write packet key");
             goto Error;
         }
@@ -1557,7 +1554,7 @@ Error:
         QuicPacketKeyFree(*NewReadKey);
         *NewReadKey = NULL;
     } else {
-        QuicTraceEvent(ConnNewPacketKeys, Connection);
+        QuicTraceEvent(ConnNewPacketKeys, "[conn][%p] New packet keys created successfully.", Connection);
     }
 
     return Status;
@@ -1627,7 +1624,7 @@ QuicCryptoUpdateKeyPhase(
     QUIC_PACKET_SPACE* PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
 
     UNREFERENCED_PARAMETER(LocalUpdate);
-    QuicTraceEvent(ConnKeyPhaseChange, Connection, LocalUpdate);
+    QuicTraceEvent(ConnKeyPhaseChange, "[conn][%p] Key phase change (locally initiated=%c).", Connection, LocalUpdate);
 
     PacketSpace->WriteKeyPhaseStartPacketNumber = Connection->Send.NextPacketNumber;
     PacketSpace->CurrentKeyPhase = !PacketSpace->CurrentKeyPhase;

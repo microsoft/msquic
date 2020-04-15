@@ -10,10 +10,7 @@ Abstract:
 --*/
 
 #include "main.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "frametest.tmh"
-#endif
+#include "FrameTest.cpp.clog.h"
 
 TEST(FrameTest, AckFrameEncodeDecode)
 {

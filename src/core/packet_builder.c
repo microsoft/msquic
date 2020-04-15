@@ -13,10 +13,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "packet_builder.tmh"
-#endif
+#include "packet_builder.c.clog.h"
 
 #ifdef QUIC_FUZZER
 
@@ -128,7 +125,7 @@ QuicPacketBuilderPrepare(
         // but without the key, nothing can be done. Just silently kill the
         // connection.
         //
-        QuicTraceEvent(ConnError, Connection, "NULL key in builder prepare");
+        QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "NULL key in builder prepare");
         QuicConnSilentlyAbort(Connection);
         return FALSE;
     }
@@ -186,7 +183,7 @@ QuicPacketBuilderPrepare(
                             QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                             DatagramSize));
             if (Builder->SendContext == NULL) {
-                QuicTraceEvent(AllocFailure, "packet send context", 0);
+                QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "packet send context", 0);
                 goto Error;
             }
         }
@@ -205,7 +202,7 @@ QuicPacketBuilderPrepare(
                 Builder->SendContext,
                 NewDatagramLength);
         if (Builder->Datagram == NULL) {
-            QuicTraceEvent(AllocFailure, "packet datagram", NewDatagramLength);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "packet datagram", NewDatagramLength);
             goto Error;
         }
 
@@ -244,7 +241,7 @@ QuicPacketBuilderPrepare(
             Builder->MinimumDatagramLength = NewDatagramLength;
         }
 
-        QuicTraceLogVerbose("[pktb][%p] New UDP datagram. Space: %u",
+        QuicTraceLogVerbose(FN_packet_builder24bb96787b7b1cfae2d4688ab3213bf6, "[pktb][%p] New UDP datagram. Space: %u",
             Connection, Builder->Datagram->Length);
     }
 
@@ -326,7 +323,7 @@ QuicPacketBuilderPrepare(
 
         Builder->DatagramLength += Builder->HeaderLength;
 
-        QuicTraceLogVerbose("[pktb][%p] New QUIC packet. Space: %hu. Type: %hx",
+        QuicTraceLogVerbose(FN_packet_builderaee4e5ee823e822959be3e96df4584aa, "[pktb][%p] New QUIC packet. Space: %hu. Type: %hx",
             Connection, BufferSpaceAvailable, NewPacketType);
     }
 
@@ -750,7 +747,7 @@ QuicPacketBuilderFinalize(
 
             Status = QuicCryptoGenerateNewKeys(Connection);
             if (QUIC_FAILED(Status)) {
-                QuicTraceEvent(ConnErrorStatus,
+                QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.",
                     Connection,
                     Status,
                     "Send-triggered key update");
@@ -778,7 +775,7 @@ QuicPacketBuilderFinalize(
     Builder->Metadata->PacketLength =
         Builder->HeaderLength + PayloadLength;
 
-    QuicTraceEvent(ConnPacketSent,
+    QuicTraceEvent(ConnPacketSent, "[conn][%p][TX][%llu] %c (%hd bytes)",
         Connection,
         Builder->Metadata->PacketNumber,
         QuicPacketTraceType(Builder->Metadata),
@@ -838,7 +835,7 @@ QuicPacketBuilderSendBatch(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
-    QuicTraceLogVerbose("[pktb][%p] Sending batch. %hu datagrams",
+    QuicTraceLogVerbose(FN_packet_builderbe3ff1273f0941f8129a2f6dac9f12fc, "[pktb][%p] Sending batch. %hu datagrams",
         Builder->Connection, (uint16_t)Builder->TotalCountDatagrams);
 
     if (QuicAddrIsBoundExplicitly(&Builder->Path->LocalAddress)) {

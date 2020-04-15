@@ -10,10 +10,7 @@ Abstract:
 --*/
 
 #include "main.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "varinttest.tmh"
-#endif
+#include "VarIntTest.cpp.clog.h"
 
 uint64_t Encode(uint64_t Value)
 {

@@ -10,10 +10,7 @@ Abstract:
 --*/
 
 #include "main.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "rangetest.tmh"
-#endif
+#include "RangeTest.cpp.clog.h"
 
 struct SmartRange {
     QUIC_RANGE range;

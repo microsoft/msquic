@@ -1,6 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+# Include for CLOG processing
+include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
+
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(SOURCES
         datapath_winuser.c
@@ -36,7 +39,11 @@ endif()
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
 
+# Allow CLOG to preprocess all the source files.
+CLOG_ADD_SOURCEFILE(PLATFORM_CLOG_LIB ${SOURCES})
+
 add_library(platform STATIC ${SOURCES})
+
 target_compile_options(platform PRIVATE
      $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
         ${CLANG_GCC_WARNING_FLAGS}>

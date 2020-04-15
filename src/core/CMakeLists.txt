@@ -1,6 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+# Include for CLOG processing
+include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
+
 set(SOURCES
     ack_tracker.c
     api.c
@@ -33,15 +36,22 @@ set(SOURCES
     stream_set.c
     timer_wheel.c
     worker.c
+    operation.h
+    stream.h
+    connection.h
 )
 
 if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(SOURCES ${SOURCES} inline.c)
 endif()
 
+# Allow CLOG to preprocess all the source files.
+CLOG_ADD_SOURCEFILE(CORE_CLOG_LIB ${SOURCES})
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
 
 add_library(core STATIC ${SOURCES})
+
 target_compile_options(core PRIVATE
      $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
         ${CLANG_GCC_WARNING_FLAGS}>

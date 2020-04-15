@@ -14,8 +14,6 @@ Environment:
 --*/
 
 #define _GNU_SOURCE
-#define TRACEPOINT_CREATE_PROBES
-#define TRACEPOINT_DEFINE
 #include "platform_internal.h"
 #include "quic_platform.h"
 #include <limits.h>
@@ -25,6 +23,7 @@ Environment:
 #include <arpa/inet.h>
 #include "quic_trace.h"
 #include "quic_platform_dispatch.h"
+#include "platform_linux.c.clog.h"
 
 #define QUIC_MAX_LOG_MSG_LEN        1024 // Bytes
 
@@ -900,7 +899,7 @@ QuicThreadCreate(
 
     pthread_attr_t Attr;
     if (pthread_attr_init(&Attr)) {
-        QuicTraceLogError("[qpal] pthread_attr_init failed, 0x%x.", errno);
+        QuicTraceLogError(FN_platform_linux03f5cd9d08b25c9becba34623dd6e99f, "[qpal] pthread_attr_init failed, 0x%x.", errno);
         return errno;
     }
 
@@ -912,7 +911,7 @@ QuicThreadCreate(
             CPU_ZERO(&CpuSet);
             CPU_SET(Config->IdealProcessor, &CpuSet);
             if (!pthread_attr_setaffinity_np(&Attr, sizeof(CpuSet), &CpuSet)) {
-                QuicTraceLogWarning("[qpal] pthread_attr_setaffinity_np failed.");
+                QuicTraceLogWarning(FN_platform_linux5b43549401edd168cb147c081480f701, "[qpal] pthread_attr_setaffinity_np failed.");
             }
         } else {
             // TODO - Set Linux equivalent of NUMA affinity.
@@ -923,13 +922,13 @@ QuicThreadCreate(
         struct sched_param Params;
         Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
         if (!pthread_attr_setschedparam(&Attr, &Params)) {
-            QuicTraceLogWarning("[qpal] pthread_attr_setschedparam failed, 0x%x.", errno);
+            QuicTraceLogWarning(FN_platform_linuxa4807bc3dec94112c855988b9765e9fd, "[qpal] pthread_attr_setschedparam failed, 0x%x.", errno);
         }
     }
 
     if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
         Status = errno;
-        QuicTraceLogError("[qpal] pthread_create failed, 0x%x.", Status);
+        QuicTraceLogError(FN_platform_linux08258181693fbe069c934b3266761cbe, "[qpal] pthread_create failed, 0x%x.", Status);
     }
 
     pthread_attr_destroy(&Attr);
@@ -971,7 +970,10 @@ QuicPlatformLogAssert(
     _In_z_ const char* Expr
     )
 {
-    QuicTraceLogError("[Assert] %s:%s:%d:%s", Expr, Func, Line, File);
+    QuicTraceLogError(
+        FN_platform_linuxb416645bcc56e4270130192a5505d003,
+        "[Assert] %s:%s:%d:%s",
+        Expr, Func, Line, File);
 }
 
 int

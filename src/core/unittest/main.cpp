@@ -6,10 +6,7 @@
 --*/
 
 #include "main.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "main.tmh"
-#endif
+#include "main.cpp.clog.h"
 
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 

@@ -10,10 +10,7 @@ Abstract:
 --*/
 
 #include "main.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "transportparamtest.tmh"
-#endif
+#include "TransportParamTest.cpp.clog.h"
 
 static QUIC_CONNECTION JunkConnection;
 

@@ -20,10 +20,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "worker.tmh"
-#endif
+#include "worker.c.clog.h"
 
 //
 // Thread callback for processing the work queued for the worker.
@@ -41,7 +38,7 @@ QuicWorkerInitialize(
 {
     QUIC_STATUS Status;
 
-    QuicTraceEvent(WorkerCreated, Worker, IdealProcessor, Owner);
+    QuicTraceEvent(WorkerCreated, "[wrkr][%p] Created, IdealProc=%c Owner=%p", Worker, IdealProcessor, Owner);
 
     Worker->Enabled = TRUE;
     Worker->IdealProcessor = IdealProcessor;
@@ -71,7 +68,7 @@ QuicWorkerInitialize(
 
     Status = QuicThreadCreate(&ThreadConfig, &Worker->Thread);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(WorkerErrorStatus, Worker, Status, "QuicThreadCreate");
+        QuicTraceEvent(WorkerErrorStatus, "[wrkr][%p] ERROR, %d, %s.", Worker, Status, "QuicThreadCreate");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTimerWheelUninitialize(&Worker->TimerWheel);
         goto Error;
@@ -101,7 +98,7 @@ QuicWorkerUninitialize(
     _In_ QUIC_WORKER* Worker
     )
 {
-    QuicTraceEvent(WorkerCleanup, Worker);
+    QuicTraceEvent(WorkerCleanup, "[wrkr][%p] Cleaning up", Worker);
 
     //
     // Prevent the thread from processing any more operations.
@@ -128,7 +125,7 @@ QuicWorkerUninitialize(
     QuicDispatchLockUninitialize(&Worker->Lock);
     QuicTimerWheelUninitialize(&Worker->TimerWheel);
 
-    QuicTraceEvent(WorkerDestroyed, Worker);
+    QuicTraceEvent(WorkerDestroyed, "[wrkr][%p] Destroyed", Worker);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -140,7 +137,7 @@ QuicWorkerAssignConnection(
 {
     QUIC_DBG_ASSERT(Connection->Worker != Worker);
     Connection->Worker = Worker;
-    QuicTraceEvent(ConnAssignWorker, Connection, Worker);
+    QuicTraceEvent(ConnAssignWorker, "[conn][%p] Assigned worker: %p", Connection, Worker);
 }
 
 BOOLEAN
@@ -168,7 +165,7 @@ QuicWorkerQueueConnection(
     if (!Connection->WorkerProcessing && !Connection->HasQueuedWork) {
         WakeWorkerThread = QuicWorkerIsIdle(Worker);
         Connection->Stats.Schedule.LastQueueTime = QuicTimeUs32();
-        QuicTraceEvent(ConnScheduleState, Connection, QUIC_SCHEDULE_QUEUED);
+        QuicTraceEvent(ConnScheduleState, "[conn][%p] Scheduling: %d", Connection, QUIC_SCHEDULE_QUEUED);
         QuicConnAddRef(Connection, QUIC_CONN_REF_WORKER);
         QuicListInsertTail(&Worker->Connections, &Connection->WorkerLink);
     } else {
@@ -199,7 +196,7 @@ QuicWorkerMoveConnection(
 
     if (Connection->HasQueuedWork) {
         Connection->Stats.Schedule.LastQueueTime = QuicTimeUs32();
-        QuicTraceEvent(ConnScheduleState, Connection, QUIC_SCHEDULE_QUEUED);
+        QuicTraceEvent(ConnScheduleState, "[conn][%p] Scheduling: %d", Connection, QUIC_SCHEDULE_QUEUED);
         QuicConnAddRef(Connection, QUIC_CONN_REF_WORKER);
         QuicListInsertTail(&Worker->Connections, &Connection->WorkerLink);
     }
@@ -259,7 +256,7 @@ QuicWorkerToggleActivityState(
     )
 {
     Worker->IsActive = !Worker->IsActive;
-    QuicTraceEvent(WorkerActivityStateUpdated, Worker, Worker->IsActive, Arg);
+    QuicTraceEvent(WorkerActivityStateUpdated, "[wrkr][%p] IsActive = %c, Arg = %d", Worker, Worker->IsActive, Arg);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -270,7 +267,7 @@ QuicWorkerUpdateQueueDelay(
     )
 {
     Worker->AverageQueueDelay = (7 * Worker->AverageQueueDelay + TimeInQueueUs) / 8;
-    QuicTraceEvent(WorkerQueueDelayUpdated, Worker, Worker->AverageQueueDelay);
+    QuicTraceEvent(WorkerQueueDelayUpdated, "[wrkr][%p] QueueDelay = %d", Worker, Worker->AverageQueueDelay);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -280,7 +277,7 @@ QuicWorkerResetQueueDelay(
     )
 {
     Worker->AverageQueueDelay = 0;
-    QuicTraceEvent(WorkerQueueDelayUpdated, Worker, Worker->AverageQueueDelay);
+    QuicTraceEvent(WorkerQueueDelayUpdated, "[wrkr][%p] QueueDelay = %d", Worker, Worker->AverageQueueDelay);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -384,7 +381,7 @@ QuicWorkerProcessConnection(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    QuicTraceEvent(ConnScheduleState, Connection, QUIC_SCHEDULE_PROCESSING);
+    QuicTraceEvent(ConnScheduleState, "[conn][%p] Scheduling: %d", Connection, QUIC_SCHEDULE_PROCESSING);
     QuicSessionAttachSilo(Connection->Session);
 
     if (Connection->Stats.Schedule.LastQueueTime != 0) {
@@ -445,10 +442,10 @@ QuicWorkerProcessConnection(
         if (Connection->HasQueuedWork) {
             Connection->Stats.Schedule.LastQueueTime = QuicTimeUs32();
             QuicListInsertTail(&Worker->Connections, &Connection->WorkerLink);
-            QuicTraceEvent(ConnScheduleState, Connection, QUIC_SCHEDULE_QUEUED);
+            QuicTraceEvent(ConnScheduleState, "[conn][%p] Scheduling: %d", Connection, QUIC_SCHEDULE_QUEUED);
             DoneWithConnection = FALSE;
         } else {
-            QuicTraceEvent(ConnScheduleState, Connection, QUIC_SCHEDULE_IDLE);
+            QuicTraceEvent(ConnScheduleState, "[conn][%p] Scheduling: %d", Connection, QUIC_SCHEDULE_IDLE);
         }
     }
     QuicDispatchLockRelease(&Worker->Lock);
@@ -489,7 +486,7 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
 
     Worker->ThreadID = QuicCurThreadID();
     Worker->IsActive = TRUE;
-    QuicTraceEvent(WorkerStart, Worker);
+    QuicTraceEvent(WorkerStart, "[wrkr][%p] Start", Worker);
 
     //
     // TODO - Review how often QuicTimeUs64() is called in the thread. Perhaps
@@ -602,7 +599,7 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
         QuicOperationFree(Worker, Operation);
     }
 
-    QuicTraceEvent(WorkerStop, Worker);
+    QuicTraceEvent(WorkerStop, "[wrkr][%p] Stop", Worker);
     QUIC_THREAD_RETURN(QUIC_STATUS_SUCCESS);
 }
 
@@ -620,7 +617,7 @@ QuicWorkerPoolInitialize(
     QUIC_WORKER_POOL* WorkerPool =
         QUIC_ALLOC_NONPAGED(sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER));
     if (WorkerPool == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_WORKER_POOL", sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_WORKER_POOL", sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }

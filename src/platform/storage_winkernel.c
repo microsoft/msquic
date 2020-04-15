@@ -16,10 +16,7 @@ Environment:
 
 
 #include "platform_internal.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "storage_winkernel.tmh"
-#endif
+#include "storage_winkernel.c.clog.h"
 
 //
 // Copied from wdm.h
