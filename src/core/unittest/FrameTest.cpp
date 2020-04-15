@@ -72,6 +72,135 @@ TEST_P(AckFrameTest, AckFrameEncodeDecode)
     QuicRangeUninitialize(&DecodedAckRange);
 }
 
+TEST_P(AckFrameTest, DecodeAckFrameFail) {
+    QUIC_ACK_ECN_EX DecodedEcn;
+    uint8_t Buffer[18];
+    uint16_t BufferLength;
+    uint16_t Offset = 1;
+    BOOLEAN InvalidFrame = FALSE;
+    QUIC_RANGE DecodedAckBlocks;
+    QUIC_VAR_INT AckDelay = 0;
+    TEST_QUIC_SUCCEEDED(QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &DecodedAckBlocks));
+    Buffer[0] = (uint8_t)GetParam();
+
+    //
+    // Test Case: ACK Range count > number of ACK ranges
+    //
+    BufferLength = 7;
+    Buffer[1] = 10; // Highest ACKed PN
+    Buffer[2] = 1; // ACK Delay
+    Buffer[3] = 3; // ACK range count
+    Buffer[4] = 4; // First ACK range
+    Buffer[5] = 4; // First ACK gap
+    Buffer[6] = 0; // Second ACK range
+
+    if (GetParam() == QUIC_FRAME_ACK_1) {
+        BufferLength += 3;
+        Buffer[7] = 1;
+        Buffer[8] = 2;
+        Buffer[9] = 3;
+    }
+
+    BOOLEAN Result = QuicAckFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &InvalidFrame, &DecodedAckBlocks, &DecodedEcn, &AckDelay);
+
+    ASSERT_TRUE(InvalidFrame);
+    ASSERT_FALSE(Result);
+    QuicRangeReset(&DecodedAckBlocks);
+
+    //
+    // Test Case: ACK Range count > Highest ACKed PN
+    //
+    Offset = 1;
+    InvalidFrame = FALSE;
+    BufferLength = 15;
+    Buffer[1] = 4; // Highest ACKed PN
+    Buffer[2] = 1; // ACK Delay
+    Buffer[3] = 5; // ACK range count
+    Buffer[4] = 0; // First ACK range
+    Buffer[5] = 0; // First ACK gap
+    Buffer[6] = 0; // Second ACK Range
+    Buffer[7] = 0; // Second ACK Gap
+    Buffer[8] = 0; // Third ACK Range
+    Buffer[9] = 0; // Third ACK Gap
+    Buffer[10] = 0; // Fourth ACK Range
+    Buffer[11] = 0; // Fourth ACK Gap
+    Buffer[12] = 0; // Fifth ACK Range
+    Buffer[13] = 0; // Fifth ACK Gap
+    Buffer[14] = 0; // Sixth ACK Range
+
+    if (GetParam() == QUIC_FRAME_ACK_1) {
+        BufferLength += 3;
+        Buffer[15] = 4;
+        Buffer[16] = 5;
+        Buffer[17] = 6;
+    }
+
+    Result = QuicAckFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &InvalidFrame, &DecodedAckBlocks, &DecodedEcn, &AckDelay);
+
+    ASSERT_TRUE(InvalidFrame);
+    ASSERT_FALSE(Result);
+    QuicRangeReset(&DecodedAckBlocks);
+
+    //
+    // Test Case: First ACK range > Highest ACKed PN
+    //
+    Offset = 1;
+    InvalidFrame = FALSE;
+    BufferLength = 5;
+    Buffer[1] = 5; // Highest ACKed PN
+    Buffer[2] = 1; // ACK Delay
+    Buffer[3] = 0; // ACK range count
+    Buffer[4] = 6; // First ACK range
+
+    if (GetParam() == QUIC_FRAME_ACK_1) {
+        BufferLength += 3;
+        Buffer[5] = 7;
+        Buffer[6] = 8;
+        Buffer[7] = 9;
+    }
+
+    Result = QuicAckFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &InvalidFrame, &DecodedAckBlocks, &DecodedEcn, &AckDelay);
+
+    ASSERT_TRUE(InvalidFrame);
+    ASSERT_FALSE(Result);
+    QuicRangeReset(&DecodedAckBlocks);
+
+    //
+    // Test Case: ECN fields contain improperly-formatted QUIC VAR INTs.
+    //
+    if (GetParam() == QUIC_FRAME_ACK_1) {
+        BufferLength = 8;
+        Buffer[1] = 5; // Highest ACKed PN
+        Buffer[2] = 1; // ACK Delay
+        Buffer[3] = 0; // ACK range count
+        Buffer[4] = 5; // First ACK range
+        for (auto TestValue : {64, 255}) {
+            for (uint8_t i = 1; i < 8; ++i) {
+                Offset = 1;
+                InvalidFrame = FALSE;
+                //
+                // ECT(0) COunt
+                //
+                Buffer[5] = (i & 1) ? TestValue : 0;
+                //
+                // ECT(1) Count
+                //
+                Buffer[6] = (i & 2) ? TestValue : 0;
+                //
+                // ECN-CE Count
+                //
+                Buffer[7] = (i & 4) ? TestValue : 0;
+
+                ASSERT_FALSE(QuicAckFrameDecode(GetParam(), BufferLength, Buffer, &Offset, &InvalidFrame, &DecodedAckBlocks, &DecodedEcn, &AckDelay));
+
+                QuicRangeReset(&DecodedAckBlocks);
+            }
+        }
+    }
+
+    QuicRangeUninitialize(&DecodedAckBlocks);
+}
+
 INSTANTIATE_TEST_SUITE_P(
     FrameTest,
     AckFrameTest,
