@@ -3253,8 +3253,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"wchar string\"",
-            "UserSuppliedTrimmed": "\"wchar string\"",
+            "UserSpecifiedUnModified": " \"QUIC_DATAPATH\"",
+            "UserSuppliedTrimmed": "\"QUIC_DATAPATH\"",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "s",
@@ -3262,8 +3262,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " sizeof(WCHAR) * Size",
-            "UserSuppliedTrimmed": "sizeof(WCHAR) * Size",
+            "UserSpecifiedUnModified": " DatapathLength",
+            "UserSuppliedTrimmed": "DatapathLength",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "llu",
@@ -13108,8 +13108,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Status",
-            "UserSuppliedTrimmed": "Status",
+            "UserSpecifiedUnModified": " Error",
+            "UserSuppliedTrimmed": "Error",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "d",
@@ -13117,8 +13117,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"WdfDriverCreate\"",
-            "UserSuppliedTrimmed": "\"WdfDriverCreate\"",
+            "UserSpecifiedUnModified": " \"GlobalMemoryStatusEx\"",
+            "UserSuppliedTrimmed": "\"GlobalMemoryStatusEx\"",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "s",
@@ -25554,8 +25554,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"NULL CallbackData to QuicTlsSspiNotifyCallback\"",
-            "UserSuppliedTrimmed": "\"NULL CallbackData to QuicTlsSspiNotifyCallback\"",
+            "UserSpecifiedUnModified": " \"Resolving hostname to IP\"",
+            "UserSuppliedTrimmed": "\"Resolving hostname to IP\"",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "s",

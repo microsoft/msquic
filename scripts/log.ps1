@@ -98,6 +98,7 @@ if ($IsLinux) {
 # Start log collection.
 function Log-Start {
     if ($IsWindows) {
+        Write-Host "WRP : $($WprProfile)!$($LogProfile)"
         wpr.exe -start "$($WprProfile)!$($LogProfile)" -filemode -instancename $InstanceName
         #Invoke-Expression "netsh.exe trace start overwrite=yes report=dis correlation=dis traceFile=quic.etl maxSize=1024 sessionname=$InstanceName provider={6A7F6746-617F-40A3-8EAC-B84C022058FB} level=0x5"
     } else {
@@ -157,9 +158,6 @@ function Log-Stop {
 
     if ($IsWindows) {
         $EtlPath = Join-Path $OutputDirectory "quic.etl"
-		
-		Sleep 5
-		
         wpr.exe -stop $EtlPath -instancename $InstanceName
         #Invoke-Expression "netsh.exe trace stop sessionname=$InstanceName"
         #Move-Item -Path "quic.etl" -Destination $EtlPath
@@ -168,6 +166,8 @@ function Log-Stop {
             $Command = "$Clog2Text_windows -i $EtlPath -s $SideCar -o $ClogOutputDecodeFile"
             Write-Debug $Command
             Invoke-Expression $Command | Write-Debug
+			
+			dir $OutputDirectory
         }
     } else {
         if (!(Test-Path $TempDir)) {
