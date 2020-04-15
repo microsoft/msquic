@@ -1181,9 +1181,9 @@ struct ConnectionCloseFrameParams {
 
     static auto GenerateDecodeFailParams() {
         std::vector<ConnectionCloseFrameParams> Params;
-        for (auto Type : {QUIC_FRAME_CONNECTION_CLOSE, QUIC_FRAME_CONNECTION_CLOSE_1}) {
+        for (uint8_t Type : {QUIC_FRAME_CONNECTION_CLOSE, QUIC_FRAME_CONNECTION_CLOSE_1}) {
             ConnectionCloseFrameParams Frame;
-            Frame.Buffer[0] = (uint8_t) Type;
+            Frame.Buffer[0] = Type;
 
             for (int TestValue : {65, 255}) {
                 for (uint32_t i = 1; i < 4; ++i) {
