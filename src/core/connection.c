@@ -1941,7 +1941,7 @@ QuicConnProcessPeerTransportParameters(
     Connection->State.PeerTransportParameterValid = TRUE;
 
     if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT) {
-        QUIC_DBG_ASSERT(Connection->PeerTransportParams.ActiveConnectionIdLimit >= QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN);
+        QUIC_DBG_ASSERT(Connection->PeerTransportParams.ActiveConnectionIdLimit >= QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN)
         if (Connection->SourceCidLimit > Connection->PeerTransportParams.ActiveConnectionIdLimit) {
             Connection->SourceCidLimit = (uint8_t) Connection->PeerTransportParams.ActiveConnectionIdLimit;
         }

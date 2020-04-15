@@ -969,10 +969,6 @@ QuicCryptoTlsDecodeTransportParameters(
                 QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Length, "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAMS_BIDI");
                 goto Exit;
             }
-            if (TransportParams->InitialMaxBidiStreams > QUIC_TP_MAX_STREAMS_MAX) {
-                QuicTraceEvent(ConnError, Connection, "Invalid value of QUIC_TP_ID_INITIAL_MAX_STREAMS_BIDI");
-                goto Exit;
-            }
             TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI;
             QuicTraceLogConnVerbose(DecodeTPMaxBidiStreams, Connection, "TP: Max Bidirectional Streams (%llu)", TransportParams->InitialMaxBidiStreams);
             break;
@@ -982,21 +978,17 @@ QuicCryptoTlsDecodeTransportParameters(
                 QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Length, "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAMS_UNI");
                 goto Exit;
             }
-            if (TransportParams->InitialMaxUniStreams > QUIC_TP_MAX_STREAMS_MAX) {
-                QuicTraceEvent(ConnError, Connection, "Invalid value of QUIC_TP_ID_INITIAL_MAX_STREAMS_UNI");
-                goto Exit;
-            }
             TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI;
             QuicTraceLogConnVerbose(DecodeTPMaxUniStreams, Connection, "TP: Max Unidirectional Streams (%llu)", TransportParams->InitialMaxUniStreams);
             break;
 
         case QUIC_TP_ID_ACK_DELAY_EXPONENT:
             if (!TRY_READ_VAR_INT(TransportParams->AckDelayExponent)) {
-                QuicTraceEvent(ConnErrorStatus, Connection, Length, "Invalid length of QUIC_TP_MAX_ACK_DELAY_EXPONENT");
+                QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Length, "Invalid length of QUIC_TP_MAX_ACK_DELAY_EXPONENT");
                 goto Exit;
             }
-            if (TransportParams->AckDelayExponent > QUIC_TP_ACK_DELAY_EXPONENT_MAX) {
-                QuicTraceEvent(ConnError, Connection, "Invalid value of QUIC_TP_MAX_ACK_DELAY_EXPONENT");
+            if (TransportParams->AckDelayExponent > QUIC_TP_MAX_ACK_DELAY_EXPONENT) {
+                QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Invalid value of QUIC_TP_MAX_ACK_DELAY_EXPONENT");
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_ACK_DELAY_EXPONENT;
@@ -1005,11 +997,11 @@ QuicCryptoTlsDecodeTransportParameters(
 
         case QUIC_TP_ID_MAX_ACK_DELAY:
             if (!TRY_READ_VAR_INT(TransportParams->MaxAckDelay)) {
-                QuicTraceEvent(ConnErrorStatus, Connection, Length, "Invalid length of QUIC_TP_MAX_MAX_ACK_DELAY");
+                QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Length, "Invalid length of QUIC_TP_MAX_MAX_ACK_DELAY");
                 goto Exit;
             }
-            if (TransportParams->MaxAckDelay > QUIC_TP_MAX_ACK_DELAY_MAX) {
-                QuicTraceEvent(ConnError, Connection, "Invalid value of QUIC_TP_MAX_MAX_ACK_DELAY");
+            if (TransportParams->MaxAckDelay > QUIC_TP_MAX_MAX_ACK_DELAY) {
+                QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Invalid value of QUIC_TP_MAX_MAX_ACK_DELAY");
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_MAX_ACK_DELAY;

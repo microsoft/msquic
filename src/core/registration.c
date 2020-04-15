@@ -379,6 +379,7 @@ QuicRegistrationParamSet(
 
         Status = QUIC_STATUS_SUCCESS;
         break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
