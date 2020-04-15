@@ -329,12 +329,6 @@ QuicConnFree(
     }
     QUIC_PATH* Path = &Connection->Paths[0];
     if (Path->Binding != NULL) {
-        if (!Connection->State.Connected) {
-            InterlockedDecrement(&Path->Binding->HandshakeConnections);
-            InterlockedExchangeAdd64(
-                (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-                -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
-        }
         QuicLibraryReleaseBinding(Path->Binding);
         Path->Binding = NULL;
     }
@@ -1603,11 +1597,6 @@ QuicConnStart(
         goto Exit;
     }
 
-    InterlockedIncrement(&Path->Binding->HandshakeConnections);
-    InterlockedExchangeAdd64(
-        (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-        (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
-
     //
     // Clients only need to generate a non-zero length source CID if it
     // intends to share the UDP binding.
@@ -1632,10 +1621,6 @@ QuicConnStart(
     SourceCid->CID.IsInList = TRUE;
 
     if (!QuicBindingAddSourceConnectionID(Path->Binding, SourceCid)) {
-        InterlockedDecrement(&Path->Binding->HandshakeConnections);
-        InterlockedExchangeAdd64(
-            (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-            -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
         QuicLibraryReleaseBinding(Path->Binding);
         Path->Binding = NULL;
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -4413,12 +4398,6 @@ QuicConnParamSet(
 
             QuicBindingMoveSourceConnectionIDs(
                 OldBinding, Connection->Paths[0].Binding, Connection);
-            if (!Connection->State.Connected) {
-                InterlockedDecrement(&OldBinding->HandshakeConnections);
-                InterlockedExchangeAdd64(
-                    (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-                    -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
-            }
             QuicLibraryReleaseBinding(OldBinding);
             QuicTraceEvent(ConnLocalAddrRemoved,
                 Connection,

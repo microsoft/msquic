@@ -461,6 +461,12 @@ typedef struct QUIC_CONNECTION {
     const char* RemoteServerName;
 
     //
+    // The entry into the remote hash lookup table, which is used only during the
+    // handshake.
+    //
+    QUIC_REMOTE_HASH_ENTRY* RemoteHashEntry;
+
+    //
     // Transport parameters received from the peer.
     //
     QUIC_TRANSPORT_PARAMETERS PeerTransportParams;

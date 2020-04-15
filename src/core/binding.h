@@ -182,7 +182,7 @@ typedef struct QUIC_BINDING {
     uint32_t RefCount;
 
     //
-    // The number of connections that haven't completed the handshake.
+    // The number of server connections that haven't confirmed the handshake.
     //
     long HandshakeConnections;
 
@@ -355,6 +355,17 @@ void
 QuicBindingMoveSourceConnectionIDs(
     _In_ QUIC_BINDING* BindingSrc,
     _In_ QUIC_BINDING* BindingDest,
+    _In_ QUIC_CONNECTION* Connection
+    );
+
+//
+// Indicates to the binding that the connection is no longer accepting
+// handshake/long header packets.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicBindingOnConnectionHandshakeConfirmed(
+    _In_ QUIC_BINDING* Binding,
     _In_ QUIC_CONNECTION* Connection
     );
 

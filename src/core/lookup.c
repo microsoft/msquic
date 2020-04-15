@@ -24,7 +24,7 @@ typedef struct QUIC_CACHEALIGN QUIC_PARTITIONED_HASHTABLE {
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicLookupInsertSourceConnectionID(
+QuicLookupInsertLocalCid(
     _In_ QUIC_LOOKUP* Lookup,
     _In_ uint32_t Hash,
     _In_ QUIC_CID_HASH_ENTRY* SourceCid,
@@ -60,6 +60,11 @@ QuicLookupUninitialize(
             QuicDispatchRwLockUninitialize(&Table->RwLock);
         }
         QUIC_FREE(Lookup->HASH.Tables);
+    }
+
+    if (Lookup->MaximizePartitioning) {
+        QUIC_DBG_ASSERT(Lookup->RemoteHashTable.NumEntries == 0);
+        QuicHashtableUninitialize(&Lookup->RemoteHashTable);
     }
 
     QuicDispatchRwLockUninitialize(&Lookup->RwLock);
@@ -175,7 +180,7 @@ QuicLookupRebalance(
                             Entry,
                             QUIC_CID_HASH_ENTRY,
                             Link);
-                    (void)QuicLookupInsertSourceConnectionID(
+                    (void)QuicLookupInsertLocalCid(
                         Lookup,
                         QuicHashSimple(CID->CID.Length, CID->CID.Data),
                         CID,
@@ -209,7 +214,7 @@ QuicLookupRebalance(
                             Entry,
                             QUIC_CID_HASH_ENTRY,
                             Entry);
-                    (void)QuicLookupInsertSourceConnectionID(
+                    (void)QuicLookupInsertLocalCid(
                         Lookup,
                         QuicHashSimple(CID->CID.Length, CID->CID.Data),
                         CID,
@@ -235,11 +240,17 @@ QuicLookupMaximizePartitioning(
     QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
 
     if (!Lookup->MaximizePartitioning) {
+        Result =
+            QuicHashtableInitializeEx(
+                &Lookup->RemoteHashTable, QUIC_HASH_MIN_SIZE);
+        if (Result) {
         Lookup->MaximizePartitioning = TRUE;
         Result = QuicLookupRebalance(Lookup, NULL);
         if (!Result) {
+                QuicHashtableUninitialize(&Lookup->RemoteHashTable);
             Lookup->MaximizePartitioning = FALSE;
         }
+    }
     }
 
     QuicDispatchRwLockReleaseExclusive(&Lookup->RwLock);
@@ -312,7 +323,7 @@ QuicHashLookupConnection(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_CONNECTION*
-QuicLookupFindConnectionInternal(
+QuicLookupFindConnectionByLocalCidInternal(
     _In_ QUIC_LOOKUP* Lookup,
     _In_reads_(CIDLen)
         const uint8_t* const CID,
@@ -369,12 +380,53 @@ QuicLookupFindConnectionInternal(
 }
 
 //
+// Requires the Lookup->RwLock to be held (shared).
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_CONNECTION*
+QuicLookupFindConnectionByRemoteHashInternal(
+    _In_ QUIC_LOOKUP* Lookup,
+    _In_ const QUIC_ADDR* const RemoteAddress,
+    _In_ uint8_t RemoteCidLength,
+    _In_reads_(RemoteCidLength)
+        const uint8_t* const RemoteCid,
+    _In_ uint32_t Hash
+    )
+{
+    QUIC_HASHTABLE_LOOKUP_CONTEXT Context;
+    QUIC_HASHTABLE_ENTRY* TableEntry =
+        QuicHashtableLookup(&Lookup->RemoteHashTable, Hash, &Context);
+
+    while (TableEntry != NULL) {
+        QUIC_REMOTE_HASH_ENTRY* Entry =
+            QUIC_CONTAINING_RECORD(TableEntry, QUIC_REMOTE_HASH_ENTRY, Entry);
+
+        if (QuicAddrCompare(RemoteAddress, &Entry->RemoteAddress) &&
+            RemoteCidLength == Entry->RemoteCidLength &&
+            memcmp(RemoteCid, Entry->RemoteCid, RemoteCidLength) == 0) {
+#if QUIC_DEBUG_HASHTABLE_LOOKUP
+            QuicTraceLogVerbose("[bind][%p] Lookup RemoteHash=%u found %p", Lookup, Hash, Connection);
+#endif
+            return Entry->Connection;
+        }
+
+        TableEntry = QuicHashtableLookupNext(&Lookup->RemoteHashTable, &Context);
+    }
+
+#if QUIC_DEBUG_HASHTABLE_LOOKUP
+    QuicTraceLogVerbose("[bind][%p] Lookup RemoteHash=%u not found", Lookup, Hash);
+#endif
+
+    return NULL;
+}
+
+//
 // Inserts a source connection ID into the lookup table. Requires the
 // Lookup->RwLock to be exlusively held.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicLookupInsertSourceConnectionID(
+QuicLookupInsertLocalCid(
     _In_ QUIC_LOOKUP* Lookup,
     _In_ uint32_t Hash,
     _In_ QUIC_CID_HASH_ENTRY* SourceCid,
@@ -427,12 +479,60 @@ QuicLookupInsertSourceConnectionID(
 }
 
 //
+// Requires the Lookup->RwLock to be exlusively held.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicLookupInsertRemoteHash(
+    _In_ QUIC_LOOKUP* Lookup,
+    _In_ uint32_t Hash,
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const QUIC_ADDR* const RemoteAddress,
+    _In_ uint8_t RemoteCidLength,
+    _In_reads_(RemoteCidLength)
+        const uint8_t* const RemoteCid,
+    _In_ BOOLEAN UpdateRefCount
+    )
+{
+    QUIC_REMOTE_HASH_ENTRY* Entry = QUIC_ALLOC_NONPAGED(sizeof(QUIC_REMOTE_HASH_ENTRY) + RemoteCidLength);
+    if (Entry == NULL) {
+        return FALSE;
+    }
+
+    Entry->Connection = Connection;
+    Entry->RemoteAddress = *RemoteAddress;
+    Entry->RemoteCidLength = RemoteCidLength;
+    QuicCopyMemory(
+        Entry->RemoteCid,
+        RemoteCid,
+        RemoteCidLength);
+        
+    QuicHashtableInsert(
+        &Lookup->RemoteHashTable,
+        &Entry->Entry,
+        Hash,
+        NULL);
+
+    Connection->RemoteHashEntry = Entry;
+
+    if (UpdateRefCount) {
+        QuicConnAddRef(Connection, QUIC_CONN_REF_LOOKUP_TABLE);
+    }
+
+#if QUIC_DEBUG_HASHTABLE_LOOKUP
+    QuicTraceLogVerbose("[bind][%p] Insert Conn=%p RemoteHash=%u", Lookup, Connection, Hash);
+#endif
+
+    return TRUE;
+}
+
+//
 // Removes a source connection ID from the lookup table. Requires the
 // Lookup->RwLock to be exlusively held.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicLookupRemoveSourceConnectionIDInt(
+QuicLookupRemoveLocalCidInt(
     _In_ QUIC_LOOKUP* Lookup,
     _In_ QUIC_CID_HASH_ENTRY* SourceCid
     )
@@ -472,7 +572,7 @@ QuicLookupRemoveSourceConnectionIDInt(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_CONNECTION*
-QuicLookupFindConnection(
+QuicLookupFindConnectionByLocalCid(
     _In_ QUIC_LOOKUP* Lookup,
     _In_reads_(CIDLen)
         const uint8_t* const CID,
@@ -484,10 +584,43 @@ QuicLookupFindConnection(
     QuicDispatchRwLockAcquireShared(&Lookup->RwLock);
 
     QUIC_CONNECTION* ExistingConnection =
-        QuicLookupFindConnectionInternal(
+        QuicLookupFindConnectionByLocalCidInternal(
             Lookup,
             CID,
             CIDLen,
+            Hash);
+
+    if (ExistingConnection != NULL) {
+        QuicConnAddRef(ExistingConnection, QUIC_CONN_REF_LOOKUP_RESULT);
+    }
+
+    QuicDispatchRwLockReleaseShared(&Lookup->RwLock);
+
+    return ExistingConnection;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_CONNECTION*
+QuicLookupFindConnectionByRemoteHash(
+    _In_ QUIC_LOOKUP* Lookup,
+    _In_ const QUIC_ADDR* const RemoteAddress,
+    _In_ uint8_t RemoteCidLength,
+    _In_reads_(RemoteCidLength)
+        const uint8_t* const RemoteCid
+    )
+{
+    QUIC_DBG_ASSERT(Lookup->MaximizePartitioning);
+
+    uint32_t Hash = QuicPacketHash(RemoteAddress, RemoteCidLength, RemoteCid);
+
+    QuicDispatchRwLockAcquireShared(&Lookup->RwLock);
+
+    QUIC_CONNECTION* ExistingConnection =
+        QuicLookupFindConnectionByRemoteHashInternal(
+            Lookup,
+            RemoteAddress,
+            RemoteCidLength,
+            RemoteCid,
             Hash);
 
     if (ExistingConnection != NULL) {
@@ -534,7 +667,7 @@ QuicLookupFindConnectionByRemoteAddr(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicLookupAddSourceConnectionID(
+QuicLookupAddLocalCid(
     _In_ QUIC_LOOKUP* Lookup,
     _In_ QUIC_CID_HASH_ENTRY* SourceCid,
     _Out_opt_ QUIC_CONNECTION** Collision
@@ -547,7 +680,7 @@ QuicLookupAddSourceConnectionID(
     QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
 
     ExistingConnection =
-        QuicLookupFindConnectionInternal(
+        QuicLookupFindConnectionByLocalCidInternal(
             Lookup,
             SourceCid->CID.Data,
             SourceCid->CID.Length,
@@ -555,7 +688,61 @@ QuicLookupAddSourceConnectionID(
 
     if (ExistingConnection == NULL) {
         Result =
-            QuicLookupInsertSourceConnectionID(Lookup, Hash, SourceCid, TRUE);
+            QuicLookupInsertLocalCid(Lookup, Hash, SourceCid, TRUE);
+        if (Collision != NULL) {
+            *Collision = NULL;
+        }
+    } else {
+        Result = FALSE;
+        if (Collision != NULL) {
+            *Collision = ExistingConnection;
+            QuicConnAddRef(ExistingConnection, QUIC_CONN_REF_LOOKUP_RESULT);
+        }
+    }
+
+    QuicDispatchRwLockReleaseExclusive(&Lookup->RwLock);
+
+    return Result;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicLookupAddRemoteHash(
+    _In_ QUIC_LOOKUP* Lookup,
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const QUIC_ADDR* const RemoteAddress,
+    _In_ uint8_t RemoteCidLength,
+    _In_reads_(RemoteCidLength)
+        const uint8_t* const RemoteCid,
+    _Out_opt_ QUIC_CONNECTION** Collision
+    )
+{
+    QUIC_DBG_ASSERT(Lookup->MaximizePartitioning);
+
+    BOOLEAN Result;
+    QUIC_CONNECTION* ExistingConnection;
+    uint32_t Hash = QuicPacketHash(RemoteAddress, RemoteCidLength, RemoteCid);
+
+    QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
+
+    ExistingConnection =
+        QuicLookupFindConnectionByRemoteHashInternal(
+            Lookup,
+            RemoteAddress,
+            RemoteCidLength,
+            RemoteCid,
+            Hash);
+
+    if (ExistingConnection == NULL) {
+        Result =
+            QuicLookupInsertRemoteHash(
+                Lookup,
+                Hash,
+                Connection,
+                RemoteAddress,
+                RemoteCidLength,
+                RemoteCid,
+                TRUE);
         if (Collision != NULL) {
             *Collision = NULL;
         }
@@ -574,20 +761,41 @@ QuicLookupAddSourceConnectionID(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicLookupRemoveSourceConnectionID(
+QuicLookupRemoveLocalCid(
     _In_ QUIC_LOOKUP* Lookup,
     _In_ QUIC_CID_HASH_ENTRY* SourceCid
     )
 {
     QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
-    QuicLookupRemoveSourceConnectionIDInt(Lookup, SourceCid);
+    QuicLookupRemoveLocalCidInt(Lookup, SourceCid);
     QuicDispatchRwLockReleaseExclusive(&Lookup->RwLock);
     QuicConnRelease(SourceCid->Connection, QUIC_CONN_REF_LOOKUP_TABLE);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicLookupRemoveSourceConnectionIDs(
+QuicLookupRemoveRemoteHash(
+    _In_ QUIC_LOOKUP* Lookup,
+    _In_ QUIC_REMOTE_HASH_ENTRY* RemoteHashEntry
+    )
+{
+    QUIC_DBG_ASSERT(Lookup->MaximizePartitioning);
+    QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
+    QuicHashtableRemove(
+        &Lookup->RemoteHashTable,
+        &RemoteHashEntry->Entry,
+        NULL);
+    QuicDispatchRwLockReleaseExclusive(&Lookup->RwLock);
+
+    QUIC_CONNECTION* Connection = RemoteHashEntry->Connection;
+    Connection->RemoteHashEntry = NULL;
+    QUIC_FREE(RemoteHashEntry);
+    QuicConnRelease(Connection, QUIC_CONN_REF_LOOKUP_TABLE);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicLookupRemoveLocalCids(
     _In_ QUIC_LOOKUP* Lookup,
     _In_ QUIC_CONNECTION* Connection
     )
@@ -603,7 +811,7 @@ QuicLookupRemoveSourceConnectionIDs(
                 Link);
         QUIC_DBG_ASSERT(CID->CID.IsInList);
         CID->CID.IsInList = FALSE;
-        QuicLookupRemoveSourceConnectionIDInt(Lookup, CID);
+        QuicLookupRemoveLocalCidInt(Lookup, CID);
         QUIC_FREE(CID);
         ReleaseRefCount++;
     }
@@ -617,7 +825,7 @@ QuicLookupRemoveSourceConnectionIDs(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicLookupMoveSourceConnectionIDs(
+QuicLookupMoveLocalConnectionIDs(
     _In_ QUIC_LOOKUP* LookupSrc,
     _In_ QUIC_LOOKUP* LookupDest,
     _In_ QUIC_CONNECTION* Connection
@@ -632,7 +840,7 @@ QuicLookupMoveSourceConnectionIDs(
                 Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);
-        QuicLookupRemoveSourceConnectionIDInt(LookupSrc, CID);
+        QuicLookupRemoveLocalCidInt(LookupSrc, CID);
         QuicConnRelease(Connection, QUIC_CONN_REF_LOOKUP_TABLE);
         Entry = Entry->Next;
     }
@@ -647,7 +855,7 @@ QuicLookupMoveSourceConnectionIDs(
                 QUIC_CID_HASH_ENTRY,
                 Link);
         BOOLEAN Result =
-            QuicLookupInsertSourceConnectionID(
+            QuicLookupInsertLocalCid(
                 LookupDest,
                 QuicHashSimple(CID->CID.Length, CID->CID.Data),
                 CID,

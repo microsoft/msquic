@@ -398,7 +398,7 @@ QuicBindingAddSourceConnectionID(
     _In_ QUIC_CID_HASH_ENTRY* SourceCid
     )
 {
-    return QuicLookupAddSourceConnectionID(&Binding->Lookup, SourceCid, NULL);
+    return QuicLookupAddLocalCid(&Binding->Lookup, SourceCid, NULL);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -408,7 +408,7 @@ QuicBindingRemoveSourceConnectionID(
     _In_ QUIC_CID_HASH_ENTRY* SourceCid
     )
 {
-    QuicLookupRemoveSourceConnectionID(&Binding->Lookup, SourceCid);
+    QuicLookupRemoveLocalCid(&Binding->Lookup, SourceCid);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -418,7 +418,10 @@ QuicBindingRemoveConnection(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    QuicLookupRemoveSourceConnectionIDs(&Binding->Lookup, Connection);
+    if (Connection->RemoteHashEntry != NULL) {
+        QuicLookupRemoveRemoteHash(&Binding->Lookup, Connection->RemoteHashEntry);
+}
+    QuicLookupRemoveLocalCids(&Binding->Lookup, Connection);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -429,8 +432,24 @@ QuicBindingMoveSourceConnectionIDs(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    QuicLookupMoveSourceConnectionIDs(
+    QuicLookupMoveLocalConnectionIDs(
         &BindingSrc->Lookup, &BindingDest->Lookup, Connection);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicBindingOnConnectionHandshakeConfirmed(
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    if (Connection->RemoteHashEntry != NULL) {
+        QuicLookupRemoveRemoteHash(&Binding->Lookup, Connection->RemoteHashEntry);
+        InterlockedDecrement(&Binding->HandshakeConnections);
+        InterlockedExchangeAdd64(
+            (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
+            -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+    }
 }
 
 //
@@ -1024,10 +1043,11 @@ QuicBindingCreateConnection(
     //
     // This function returns either a new connection, or an existing
     // connection if a collision is discovered on calling
-    // QuicLookupAddSourceConnectionID.
+    // QuicLookupAddRemoteHash.
     //
 
     QUIC_CONNECTION* Connection = NULL;
+    QUIC_RECV_PACKET* Packet = QuicDataPathRecvDatagramToRecvPacket(Datagram);
 
     QUIC_CONNECTION* NewConnection;
     QUIC_STATUS Status =
@@ -1037,7 +1057,7 @@ QuicBindingCreateConnection(
             &NewConnection);
     if (QUIC_FAILED(Status)) {
         QuicConnRelease(NewConnection, QUIC_CONN_REF_HANDLE_OWNER);
-        QuicPacketLogDropWithValue(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
+        QuicPacketLogDropWithValue(Binding, Packet,
             "Failed to initialize new connection", Status);
         return NULL;
     }
@@ -1058,8 +1078,7 @@ QuicBindingCreateConnection(
     //
     QUIC_WORKER* Worker = QuicLibraryGetWorker();
     if (QuicWorkerIsOverloaded(Worker)) {
-        QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
-            "Worker overloaded");
+        QuicPacketLogDrop(Binding, Packet, "Worker overloaded");
         goto Exit;
     }
     QuicWorkerAssignConnection(Worker, NewConnection);
@@ -1079,23 +1098,27 @@ QuicBindingCreateConnection(
 
     BindingRefAdded = TRUE;
     NewConnection->Paths[0].Binding = Binding;
-    InterlockedIncrement(&Binding->HandshakeConnections);
-    InterlockedExchangeAdd64(
-        (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-        (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
 
-    if (!QuicLookupAddSourceConnectionID(
+    if (!QuicLookupAddRemoteHash(
             &Binding->Lookup,
-            SourceCid,
+            NewConnection,
+            &Datagram->Tuple->RemoteAddress,
+            Packet->LH->DestCid[Packet->LH->DestCidLength],
+            Packet->LH->DestCid + Packet->LH->DestCidLength + 1,
             &Connection)) {
         //
         // Collision with an existing connection or a memory failure.
         //
         if (Connection == NULL) {
-            QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
-                "Failed to insert scid");
+            QuicPacketLogDrop(Binding, Packet, "Failed to insert remote hash");
+            InterlockedDecrement(&Binding->HandshakeConnections);
         }
         goto Exit;
+    } else {
+        InterlockedIncrement(&Binding->HandshakeConnections);
+        InterlockedExchangeAdd64(
+            (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
+            (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
     }
 
     QuicWorkerQueueConnection(NewConnection->Worker, NewConnection);
@@ -1175,11 +1198,21 @@ QuicBindingDeliverDatagrams(
     // packet, then the packet is dropped.
     //
 
-    QUIC_CONNECTION* Connection =
-        QuicLookupFindConnection(
+    QUIC_CONNECTION* Connection;
+    if (Packet->IsShortHeader) {
+        Connection =
+            QuicLookupFindConnectionByLocalCid(
             &Binding->Lookup,
             Packet->DestCid,
             Packet->DestCidLen);
+    } else {
+        Connection =
+            QuicLookupFindConnectionByRemoteHash(
+                &Binding->Lookup,
+                &DatagramChain->Tuple->RemoteAddress,
+                Packet->LH->DestCid[Packet->LH->DestCidLength],
+                Packet->LH->DestCid + Packet->LH->DestCidLength + 1);
+    }
 
     if (Connection == NULL) {
 

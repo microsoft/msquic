@@ -186,6 +186,11 @@ typedef struct QUIC_LIBRARY {
     //
     int64_t StatelessRetryKeysExpiration[2];
 
+    //
+    // The Toeplitz hash used for hashing received long header packets.
+    //
+    QUIC_TOEPLITZ_HASH ToeplitzHash;
+
 } QUIC_LIBRARY;
 
 extern QUIC_LIBRARY MsQuicLib;

@@ -124,6 +124,9 @@ MsQuicLibraryInitialize(
     QUIC_DBG_ASSERT(US_TO_MS(QuicGetTimerResolution()) + 1 <= UINT8_MAX);
     MsQuicLib.TimerResolutionMs = (uint8_t)US_TO_MS(QuicGetTimerResolution()) + 1;
 
+    QuicRandom(sizeof(MsQuicLib.ToeplitzHash.HashKey), MsQuicLib.ToeplitzHash.HashKey);
+    QuicToeplitzHashInitialize(&MsQuicLib.ToeplitzHash);
+
     QuicZeroMemory(&MsQuicLib.Settings, sizeof(MsQuicLib.Settings));
     Status =
         QuicStorageOpen(
