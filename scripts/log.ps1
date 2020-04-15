@@ -157,6 +157,9 @@ function Log-Stop {
 
     if ($IsWindows) {
         $EtlPath = Join-Path $OutputDirectory "quic.etl"
+		
+		Sleep 5
+		
         wpr.exe -stop $EtlPath -instancename $InstanceName
         #Invoke-Expression "netsh.exe trace stop sessionname=$InstanceName"
         #Move-Item -Path "quic.etl" -Destination $EtlPath
