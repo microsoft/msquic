@@ -638,7 +638,7 @@ QuicSendWriteFrames(
                     SourceCid->CID.SequenceNumber,
                     0,
                     { 0 } };
-                QUIC_DBG_ASSERT(Connection->SourceCidLimit > 1);
+                QUIC_DBG_ASSERT(Connection->SourceCidLimit > QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN);
                 if (Frame.Sequence >= Connection->SourceCidLimit) {
                     Frame.RetirePriorTo = Frame.Sequence + 1 - Connection->SourceCidLimit;
                 }

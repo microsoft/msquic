@@ -69,11 +69,16 @@ typedef _In_range_(0, QUIC_UINT62_MAX) uint64_t QUIC_UINT62;
 
 
 typedef enum QUIC_EXECUTION_PROFILE {
-    QUIC_EXECUTION_PROFILE_LOW_LATENCY,     // Default
-    QUIC_EXEC_PROF_TYPE_MAX_THROUGHPUT,
-    QUIC_EXEC_PROF_TYPE_SCAVENGER,
-    QUIC_EXEC_PROF_TYPE_REAL_TIME
+    QUIC_EXECUTION_PROFILE_LOW_LATENCY,         // Default
+    QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT,
+    QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER,
+    QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME
 } QUIC_EXECUTION_PROFILE;
+
+typedef enum QUIC_LOAD_BALANCING_MODE {
+    QUIC_LOAD_BALANCING_DISABLED,               // Default
+    QUIC_LOAD_BALANCING_SERVER_ID_IP            // Encodes IP address in Server ID
+} QUIC_LOAD_BALANCING_MODE;
 
 typedef enum QUIC_SEC_CONFIG_FLAGS {
     QUIC_SEC_CONFIG_FLAG_NONE                   = 0x00000000,
@@ -292,19 +297,26 @@ void
 //
 
 typedef enum QUIC_PARAM_LEVEL {
-    QUIC_PARAM_LEVEL_REGISTRATION       = 0,
-    QUIC_PARAM_LEVEL_SESSION            = 1,
-    QUIC_PARAM_LEVEL_LISTENER           = 2,
-    QUIC_PARAM_LEVEL_CONNECTION         = 3,
-    QUIC_PARAM_LEVEL_TLS                = 4,
-    QUIC_PARAM_LEVEL_STREAM             = 5
+    QUIC_PARAM_LEVEL_GLOBAL,
+    QUIC_PARAM_LEVEL_REGISTRATION,
+    QUIC_PARAM_LEVEL_SESSION,
+    QUIC_PARAM_LEVEL_LISTENER,
+    QUIC_PARAM_LEVEL_CONNECTION,
+    QUIC_PARAM_LEVEL_TLS,
+    QUIC_PARAM_LEVEL_STREAM
 } QUIC_PARAM_LEVEL;
+
+//
+// Parameters for QUIC_PARAM_LEVEL_GLOBAL.
+//
+#define QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT          0   // uint16_t
+#define QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS            1   // uint32_t[] - network byte order
+#define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE            2   // uint16_t - QUIC_LOAD_BALANCING_MODE
 
 //
 // Parameters for QUIC_PARAM_LEVEL_REGISTRATION.
 //
-#define QUIC_PARAM_REGISTRATION_RETRY_MEMORY_PERCENT    0   // uint16_t
-#define QUIC_PARAM_REGISTRATION_CID_PREFIX              1   // uint8_t[]
+#define QUIC_PARAM_REGISTRATION_CID_PREFIX              0   // uint8_t[]
 
 //
 // Parameters for QUIC_PARAM_LEVEL_SESSION.
@@ -315,6 +327,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_SESSION_IDLE_TIMEOUT                 3   // uint64_t - milliseconds
 #define QUIC_PARAM_SESSION_DISCONNECT_TIMEOUT           4   // uint32_t - milliseconds
 #define QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY            5   // uint64_t - bytes
+#define QUIC_PARAM_SESSION_MIGRATION_ENABLED            6   // uint8_t (BOOLEAN)
 
 //
 // Parameters for QUIC_PARAM_LEVEL_LISTENER.
@@ -377,7 +390,9 @@ typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_SET_PARAM_FN)(
-    _In_ _Pre_defensive_ HQUIC Handle,
+    _When_(Level == QUIC_PARAM_LEVEL_GLOBAL, _Reserved_)
+    _When_(Level != QUIC_PARAM_LEVEL_GLOBAL, _In_ _Pre_defensive_)
+        HQUIC Handle,
     _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
@@ -389,7 +404,9 @@ typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_GET_PARAM_FN)(
-    _In_ _Pre_defensive_ HQUIC Handle,
+    _When_(Level == QUIC_PARAM_LEVEL_GLOBAL, _Reserved_)
+    _When_(Level != QUIC_PARAM_LEVEL_GLOBAL, _In_ _Pre_defensive_)
+        HQUIC Handle,
     _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _Inout_ _Pre_defensive_ uint32_t* BufferLength,

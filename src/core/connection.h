@@ -98,6 +98,11 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN RemoteAddressSet : 1;
 
         //
+        // Indicates the peer transport parameters variable has been set.
+        //
+        BOOLEAN PeerTransportParameterValid : 1;
+
+        //
         // Indicates the connection needs to queue onto a new worker thread.
         //
         BOOLEAN UpdateWorker : 1;
