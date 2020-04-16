@@ -134,7 +134,22 @@ QuicConnAlloc(
             QuicDataPathRecvDatagramToRecvPacket(Datagram);
 
         Connection->Type = QUIC_HANDLE_TYPE_CHILD;
-        Connection->ServerID = Packet->DestCid[QUIC_CID_SID_INDEX];
+        if (MsQuicLib.Settings.LoadBalancingMode == QUIC_LOAD_BALANCING_DISABLED) {
+            Connection->ServerID[0] = Packet->DestCid[0];
+        } else {
+            Connection->ServerID[0] = 0; // TODO - Randomize?
+            if (QuicAddrGetFamily(&Datagram->Tuple->LocalAddress) == AF_INET) {
+                QuicCopyMemory(
+                    Connection->ServerID + 1,
+                    &Datagram->Tuple->LocalAddress.Ipv4.sin_addr,
+                    4);
+            } else {
+                QuicCopyMemory(
+                    Connection->ServerID + 1,
+                    ((uint8_t*)&Datagram->Tuple->LocalAddress.Ipv6.sin6_addr) + 8,
+                    4);
+            }
+        }
 
         Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
         QuicConnOnQuicVersionSet(Connection);
@@ -727,10 +742,9 @@ QuicConnGenerateNewSourceCid(
                 Connection->ServerID,
                 Connection->PartitionID,
                 Connection->Registration->CidPrefixLength,
-                Connection->Registration->CidPrefix,
-                MSQUIC_CONNECTION_ID_LENGTH);
+                Connection->Registration->CidPrefix);
         if (SourceCid == NULL) {
-            QuicTraceEvent(AllocFailure, "new Src CID", sizeof(QUIC_CID_HASH_ENTRY) + MSQUIC_CONNECTION_ID_LENGTH);
+            QuicTraceEvent(AllocFailure, "new Src CID", sizeof(QUIC_CID_HASH_ENTRY) + MsQuicLib.CidTotalLength);
             QuicConnFatalError(Connection, QUIC_STATUS_INTERNAL_ERROR, NULL);
             return NULL;
         }
@@ -1612,15 +1626,18 @@ QuicConnStart(
     // Clients only need to generate a non-zero length source CID if it
     // intends to share the UDP binding.
     //
-    QUIC_CID_HASH_ENTRY* SourceCid =
-        QuicCidNewRandomSource(
-            Connection,
-            0,
-            Connection->PartitionID,
-            Connection->Registration->CidPrefixLength,
-            Connection->Registration->CidPrefix,
-            Connection->State.ShareBinding ?
-                MSQUIC_CONNECTION_ID_LENGTH : 0);
+    QUIC_CID_HASH_ENTRY* SourceCid;
+    if (Connection->State.ShareBinding) {
+        SourceCid =
+            QuicCidNewRandomSource(
+                Connection,
+                NULL,
+                Connection->PartitionID,
+                Connection->Registration->CidPrefixLength,
+                Connection->Registration->CidPrefix);
+    } else {
+        SourceCid = QuicCidNewNullSource(Connection);
+    }
     if (SourceCid == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
@@ -2900,7 +2917,7 @@ QuicConnRecvDecryptAndAuthenticate(
             QuicPacketLogHeader(
                 Connection,
                 TRUE,
-                Connection->State.ShareBinding ? MSQUIC_CONNECTION_ID_LENGTH : 0,
+                Connection->State.ShareBinding ? MsQuicLib.CidTotalLength : 0,
                 Packet->PacketNumber,
                 Packet->HeaderLength,
                 Packet->Buffer,
@@ -2956,7 +2973,7 @@ QuicConnRecvDecryptAndAuthenticate(
             QuicPacketLogHeader(
                 Connection,
                 TRUE,
-                Connection->State.ShareBinding ? MSQUIC_CONNECTION_ID_LENGTH : 0,
+                Connection->State.ShareBinding ? MsQuicLib.CidTotalLength : 0,
                 Packet->PacketNumber,
                 Packet->BufferLength,
                 Packet->Buffer,
@@ -2975,7 +2992,7 @@ QuicConnRecvDecryptAndAuthenticate(
         QuicPacketLogHeader(
             Connection,
             TRUE,
-            Connection->State.ShareBinding ? MSQUIC_CONNECTION_ID_LENGTH : 0,
+            Connection->State.ShareBinding ? MsQuicLib.CidTotalLength : 0,
             Packet->PacketNumber,
             Packet->HeaderLength + Packet->PayloadLength,
             Packet->Buffer,

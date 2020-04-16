@@ -247,7 +247,8 @@ QuicSettingsLoad(
         }
     }
 
-    if (!Settings->AppSet.LoadBalancingMode) {
+    if (!Settings->AppSet.LoadBalancingMode &&
+        !MsQuicLib.InUse) {
         Value = QUIC_DEFAULT_LOAD_BALANCING_MODE;
         ValueLen = sizeof(Value);
         QuicStorageReadValue(
