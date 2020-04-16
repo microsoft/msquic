@@ -384,7 +384,7 @@ QUIC_STATIC_ASSERT(
 //
 // The default value for load balancing mode.
 //
-#define QUIC_DEFAULT_LOAD_BALANCING_MODE        QUIC_LOAD_BALANCING
+#define QUIC_DEFAULT_LOAD_BALANCING_MODE        QUIC_LOAD_BALANCING_DISABLED
 
 /*************************************************************
                   PERSISTENT SETTINGS
