@@ -38,7 +38,6 @@ DllMain(
         DisableThreadLibraryCalls(Instance);
         QuicPlatformSystemLoad();
         EventSetInformation(Microsoft_QuicHandle, EventProviderBinaryTrackInfo, NULL, 0);
-
         MsQuicLibraryLoad();
         break;
 
