@@ -21,7 +21,7 @@ QuicEtwCallback(
 // Defining MCGEN_PRIVATE_ENABLE_CALLBACK_V2, makes McGenControlCallbackV2
 // call our user-defined callback routine. See MsQuicEvents.h.
 //
-//#define MCGEN_PRIVATE_ENABLE_CALLBACK_V2 QuicEtwCallback
+#define MCGEN_PRIVATE_ENABLE_CALLBACK_V2 QuicEtwCallback
 
 #pragma warning(push) // Don't care about warnings from generated files
 #pragma warning(disable:6001)

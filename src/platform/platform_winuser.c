@@ -189,7 +189,6 @@ KrmlExit(
     QUIC_FRE_ASSERTMSG(FALSE, "miTLS hit a fatal error");
 }
 
-#if 0
 #ifdef QUIC_EVENTS_MANIFEST_ETW
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _IRQL_requires_same_
@@ -223,5 +222,4 @@ QuicEtwCallback(
         break;
     }
 }
-#endif
 #endif
