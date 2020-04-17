@@ -37,7 +37,8 @@ DllMain(
     case DLL_PROCESS_ATTACH:
         DisableThreadLibraryCalls(Instance);
         QuicPlatformSystemLoad();
-        EventSetInformation(Microsoft_Quic_ETWHandle, EventProviderBinaryTrackInfo, NULL, 0);
+        EventSetInformation(Microsoft_QuicHandle, EventProviderBinaryTrackInfo, NULL, 0);
+
         MsQuicLibraryLoad();
         break;
 
