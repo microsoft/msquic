@@ -456,6 +456,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose("[sett] MaxPartitionCount      = %hhu", Settings->MaxPartitionCount);
     QuicTraceLogVerbose("[sett] MaxOperationsPerDrain  = %hhu", Settings->MaxOperationsPerDrain);
     QuicTraceLogVerbose("[sett] RetryMemoryLimit       = %hu", Settings->RetryMemoryLimit);
+    QuicTraceLogVerbose("[sett] LoadBalancingMode      = %hu", Settings->LoadBalancingMode);
     QuicTraceLogVerbose("[sett] MaxStatelessOperations = %u", Settings->MaxStatelessOperations);
     QuicTraceLogVerbose("[sett] MaxWorkerQueueDelayUs  = %u", Settings->MaxWorkerQueueDelayUs);
     QuicTraceLogVerbose("[sett] InitialWindowPackets   = %u", Settings->InitialWindowPackets);
