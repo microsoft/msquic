@@ -292,6 +292,7 @@ QUIC_STATUS
 QuicLibraryGetBinding(
     _In_ QUIC_SESSION* Session,
     _In_ BOOLEAN ShareBinding,
+    _In_ BOOLEAN ServerOwned,
     _In_opt_ const QUIC_ADDR * LocalAddress,
     _In_opt_ const QUIC_ADDR * RemoteAddress,
     _Out_ QUIC_BINDING** NewBinding

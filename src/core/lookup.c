@@ -779,16 +779,18 @@ QuicLookupRemoveRemoteHash(
     _In_ QUIC_REMOTE_HASH_ENTRY* RemoteHashEntry
     )
 {
+    QUIC_CONNECTION* Connection = RemoteHashEntry->Connection;
     QUIC_DBG_ASSERT(Lookup->MaximizePartitioning);
+
     QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
+    QUIC_DBG_ASSERT(Connection->RemoteHashEntry != NULL);
     QuicHashtableRemove(
         &Lookup->RemoteHashTable,
         &RemoteHashEntry->Entry,
         NULL);
+    Connection->RemoteHashEntry = NULL;
     QuicDispatchRwLockReleaseExclusive(&Lookup->RwLock);
 
-    QUIC_CONNECTION* Connection = RemoteHashEntry->Connection;
-    Connection->RemoteHashEntry = NULL;
     QUIC_FREE(RemoteHashEntry);
     QuicConnRelease(Connection, QUIC_CONN_REF_LOOKUP_TABLE);
 }

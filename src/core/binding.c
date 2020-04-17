@@ -41,6 +41,7 @@ QuicBindingInitialize(
     _In_ QUIC_COMPARTMENT_ID CompartmentId,
 #endif
     _In_ BOOLEAN ShareBinding,
+    _In_ BOOLEAN ServerOwned,
     _In_opt_ const QUIC_ADDR * LocalAddress,
     _In_opt_ const QUIC_ADDR * RemoteAddress,
     _Out_ QUIC_BINDING** NewBinding
@@ -59,6 +60,7 @@ QuicBindingInitialize(
 
     Binding->RefCount = 1;
     Binding->Exclusive = !ShareBinding;
+    Binding->ServerOwned = ServerOwned;
     Binding->Connected = RemoteAddress == NULL ? FALSE : TRUE;
     Binding->HandshakeConnections = 0;
     Binding->StatelessOperCount = 0;
@@ -1176,12 +1178,20 @@ QuicBindingDeliverDatagrams(
     QUIC_DBG_ASSERT(Packet->ValidatedHeaderInv);
 
     //
-    // The packet's destination connection ID (DestCid) is the key for looking
-    // up the corresponding connection object. The DestCid encodes the
-    // partition ID (PID) that can be used for partitioning the look up table.
+    // For client owned bindings (for which we always control the CID) or for
+    // short header packets for server owned bindings, the packet's destination
+    // connection ID (DestCid) is the key for looking up the corresponding
+    // connection object. The DestCid encodes the partition ID (PID) that can
+    // be used for partitioning the look up table.
+    //
+    // For long header packets for server owned bindings, the packet's DestCid
+    // was not necessarily generated locally, so cannot be used for routing.
+    // Instead, a hash of the tuple and source connection ID (SourceCid) are
+    // used.
     //
     // The exact type of lookup table associated with the binding varies on the
-    // circumstances, but it allows for quick and easy lookup based on DestCid.
+    // circumstances, but it allows for quick and easy lookup based on DestCid
+    // (when used).
     //
     // If the lookup fails, and if there is a listener on the local 2-Tuple,
     // then a new connection is created and inserted into the binding's lookup
@@ -1199,7 +1209,7 @@ QuicBindingDeliverDatagrams(
     //
 
     QUIC_CONNECTION* Connection;
-    if (Packet->IsShortHeader) {
+    if (!Binding->ServerOwned || Packet->IsShortHeader) {
         Connection =
             QuicLookupFindConnectionByLocalCid(
             &Binding->Lookup,
@@ -1210,8 +1220,8 @@ QuicBindingDeliverDatagrams(
             QuicLookupFindConnectionByRemoteHash(
                 &Binding->Lookup,
                 &DatagramChain->Tuple->RemoteAddress,
-                Packet->LH->DestCid[Packet->LH->DestCidLength],
-                Packet->LH->DestCid + Packet->LH->DestCidLength + 1);
+                Packet->SourceCidLen,
+                Packet->SourceCid);
     }
 
     if (Connection == NULL) {
@@ -1278,6 +1288,8 @@ QuicBindingDeliverDatagrams(
             QuicPacketLogDrop(Binding, Packet, "No listeners registered to accept new connection.");
             return FALSE;
         }
+
+        QUIC_DBG_ASSERT(Binding->ServerOwned);
 
         BOOLEAN DropPacket = FALSE;
         if (QuicBindingShouldRetryConnection(

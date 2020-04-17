@@ -1590,6 +1590,7 @@ QuicConnStart(
         QuicLibraryGetBinding(
             Connection->Session,
             Connection->State.ShareBinding,
+            FALSE,
             Connection->State.LocalAddressSet ? &Path->LocalAddress : NULL,
             &Path->RemoteAddress,
             &Path->Binding);
@@ -4348,7 +4349,7 @@ QuicConnParamSet(
             break;
         }
 
-        if (Connection->Type == QUIC_HANDLE_TYPE_CHILD) {
+        if (QuicConnIsServer(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
@@ -4384,6 +4385,7 @@ QuicConnParamSet(
                 QuicLibraryGetBinding(
                     Connection->Session,
                     Connection->State.ShareBinding,
+                    FALSE,
                     LocalAddress,
                     &Connection->Paths[0].RemoteAddress,
                     &Connection->Paths[0].Binding);
