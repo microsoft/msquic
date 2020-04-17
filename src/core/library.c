@@ -441,7 +441,7 @@ QuicLibApplyLoadBalancingSetting(
     switch (MsQuicLib.Settings.LoadBalancingMode) {
     case QUIC_LOAD_BALANCING_DISABLED:
     default:
-        MsQuicLib.CidServerIdLength = 1; // TODO - Actually necessary?
+        MsQuicLib.CidServerIdLength = 0;
         break;
     case QUIC_LOAD_BALANCING_SERVER_ID_IP:
         MsQuicLib.CidServerIdLength = 5; // 1 + 4 for v4 IP address
@@ -450,12 +450,13 @@ QuicLibApplyLoadBalancingSetting(
     
     MsQuicLib.CidTotalLength =
         MsQuicLib.CidServerIdLength +
-        QUIC_CID_PID_LENGTH +
-        MSQUIC_CONNECTION_ID_PAYLOAD_LENGTH;
+        MSQUIC_CID_PID_LENGTH +
+        MSQUIC_CID_PAYLOAD_LENGTH;
 
-    QUIC_FRE_ASSERT(MsQuicLib.CidServerIdLength <= MSQUIC_MAX_SERVER_ID_LENGTH);
+    QUIC_FRE_ASSERT(MsQuicLib.CidServerIdLength >= MSQUIC_MIN_CID_SID_LENGTH);
+    QUIC_FRE_ASSERT(MsQuicLib.CidServerIdLength <= MSQUIC_MAX_CID_SID_LENGTH);
     QUIC_FRE_ASSERT(MsQuicLib.CidTotalLength >= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
-    QUIC_FRE_ASSERT(MsQuicLib.CidTotalLength <= QUIC_CONNECTION_ID_MAX_LOCAL_LENGTH);
+    QUIC_FRE_ASSERT(MsQuicLib.CidTotalLength <= MSQUIC_CID_MAX_LENGTH);
 
     QuicTraceLogInfo("[ lib] CID Length = %hhu", MsQuicLib.CidTotalLength);
 }

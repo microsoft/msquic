@@ -134,10 +134,10 @@ typedef struct QUIC_LIBRARY {
     //
     // Length of various parts of locally generated connection IDs.
     //
-    _Field_range_(0, MSQUIC_MAX_SERVER_ID_LENGTH)
+    _Field_range_(MSQUIC_MIN_CID_SID_LENGTH, MSQUIC_MAX_CID_SID_LENGTH)
     uint8_t CidServerIdLength;
-    // uint8_t CidPartitionIdLength; // Currently hard coded (QUIC_CID_PID_LENGTH)
-    _Field_range_(QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH, QUIC_CONNECTION_ID_MAX_LOCAL_LENGTH)
+    // uint8_t CidPartitionIdLength; // Currently hard coded (MSQUIC_CID_PID_LENGTH)
+    _Field_range_(QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH, MSQUIC_CID_MAX_LENGTH)
     uint8_t CidTotalLength;
 
     //
@@ -273,8 +273,8 @@ QuicCidNewRandomSource(
     )
 {
     QUIC_DBG_ASSERT(MsQuicLib.CidTotalLength <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
-    QUIC_DBG_ASSERT(MsQuicLib.CidTotalLength == MsQuicLib.CidServerIdLength + 1 + MSQUIC_CONNECTION_ID_PAYLOAD_LENGTH);
-    QUIC_DBG_ASSERT(MSQUIC_CONNECTION_ID_PAYLOAD_LENGTH > PrefixLength);
+    QUIC_DBG_ASSERT(MsQuicLib.CidTotalLength == MsQuicLib.CidServerIdLength + 1 + MSQUIC_CID_PAYLOAD_LENGTH);
+    QUIC_DBG_ASSERT(MSQUIC_CID_PAYLOAD_LENGTH > PrefixLength);
 
     QUIC_CID_HASH_ENTRY* Entry =
         (QUIC_CID_HASH_ENTRY*)
@@ -295,14 +295,14 @@ QuicCidNewRandomSource(
         }
         Data += MsQuicLib.CidServerIdLength;
 
-        QUIC_STATIC_ASSERT(QUIC_CID_PID_LENGTH == 1, "Assumes a single byte PID");
+        QUIC_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == 1, "Assumes a single byte PID");
         *Data = PartitionID;
         Data++;
 
         QuicCopyMemory(Data, Prefix, PrefixLength);
         Data += PrefixLength;
 
-        QuicRandom(MSQUIC_CONNECTION_ID_PAYLOAD_LENGTH - PrefixLength, Data);
+        QuicRandom(MSQUIC_CID_PAYLOAD_LENGTH - PrefixLength, Data);
     }
 
     return Entry;

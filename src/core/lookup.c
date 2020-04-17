@@ -341,7 +341,7 @@ QuicLookupFindConnectionInternal(
         // partitioned hash table array, and look up the connection in that
         // hash table.
         //
-        QUIC_STATIC_ASSERT(QUIC_CID_PID_LENGTH == 1, "The code below assumes 1 byte");
+        QUIC_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == 1, "The code below assumes 1 byte");
         uint32_t PartitionIndex = CID[MsQuicLib.CidServerIdLength];
         PartitionIndex &= MsQuicLib.PartitionMask;
         PartitionIndex %= Lookup->PartitionCount;
@@ -394,12 +394,12 @@ QuicLookupInsertSourceConnectionID(
         }
 
     } else {
-        QUIC_DBG_ASSERT(SourceCid->CID.Length >= MsQuicLib.CidServerIdLength + QUIC_CID_PID_LENGTH);
+        QUIC_DBG_ASSERT(SourceCid->CID.Length >= MsQuicLib.CidServerIdLength + MSQUIC_CID_PID_LENGTH);
 
         //
         // Insert the source connection ID into the hash table.
         //
-        QUIC_STATIC_ASSERT(QUIC_CID_PID_LENGTH == 1, "The code below assumes 1 byte");
+        QUIC_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == 1, "The code below assumes 1 byte");
         uint32_t PartitionIndex = SourceCid->CID.Data[MsQuicLib.CidServerIdLength];
         PartitionIndex &= MsQuicLib.PartitionMask;
         PartitionIndex %= Lookup->PartitionCount;
@@ -454,12 +454,12 @@ QuicLookupRemoveSourceConnectionIDInt(
             Lookup->SINGLE.Connection = NULL;
         }
     } else {
-        QUIC_DBG_ASSERT(SourceCid->CID.Length >= MsQuicLib.CidServerIdLength + QUIC_CID_PID_LENGTH);
+        QUIC_DBG_ASSERT(SourceCid->CID.Length >= MsQuicLib.CidServerIdLength + MSQUIC_CID_PID_LENGTH);
 
         //
         // Remove the source connection ID from the multi-hash table.
         //
-        QUIC_STATIC_ASSERT(QUIC_CID_PID_LENGTH == 1, "The code below assumes 1 byte");
+        QUIC_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == 1, "The code below assumes 1 byte");
         uint32_t PartitionIndex = SourceCid->CID.Data[MsQuicLib.CidServerIdLength];
         PartitionIndex &= MsQuicLib.PartitionMask;
         PartitionIndex %= Lookup->PartitionCount;

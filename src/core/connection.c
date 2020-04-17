@@ -134,10 +134,8 @@ QuicConnAlloc(
             QuicDataPathRecvDatagramToRecvPacket(Datagram);
 
         Connection->Type = QUIC_HANDLE_TYPE_CHILD;
-        if (MsQuicLib.Settings.LoadBalancingMode == QUIC_LOAD_BALANCING_DISABLED) {
-            Connection->ServerID[0] = Packet->DestCid[0];
-        } else {
-            Connection->ServerID[0] = 0; // TODO - Randomize?
+        if (MsQuicLib.Settings.LoadBalancingMode == QUIC_LOAD_BALANCING_SERVER_ID_IP) {
+            QuicRandom(1, Connection->ServerID); // Randomize the first bit.
             if (QuicAddrGetFamily(&Datagram->Tuple->LocalAddress) == AF_INET) {
                 QuicCopyMemory(
                     Connection->ServerID + 1,

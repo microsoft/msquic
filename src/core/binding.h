@@ -431,9 +431,12 @@ QuicRetryTokenDecrypt(
     QuicCopyMemory(Token, TokenBuffer, sizeof(QUIC_RETRY_TOKEN_CONTENTS));
 
     uint8_t Iv[QUIC_IV_LENGTH];
-    QuicZeroMemory(Iv, sizeof(Iv));
-    QUIC_DBG_ASSERT(MsQuicLib.CidTotalLength <= sizeof(Iv));
-    QuicCopyMemory(Iv, Packet->DestCid, MsQuicLib.CidTotalLength);
+    if (MsQuicLib.CidTotalLength > sizeof(Iv)) {
+        QuicCopyMemory(Iv, Packet->DestCid, sizeof(Iv)); // TODO - Use the whole thing?
+    } else {
+        QuicZeroMemory(Iv, sizeof(Iv));
+        QuicCopyMemory(Iv, Packet->DestCid, MsQuicLib.CidTotalLength);
+    }
 
     QuicLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
 

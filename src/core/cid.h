@@ -22,47 +22,65 @@ Abstract:
 #define QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH       8
 
 //
-// The number of bytes (and randomness) that MsQuic uses to uniquely
-// identify connections for a single server / partition combination.
+// The minimum and maximum CID server ID length used by MsQuic.
 //
-#define MSQUIC_CONNECTION_ID_PAYLOAD_LENGTH         6
-
-//
-// The maximum length CID ever generated locally, accouting for all possible
-// load balancing algorithms. This constant is used to statically allocate
-// CID buffers.
-//
-#define QUIC_CONNECTION_ID_MAX_LOCAL_LENGTH         12
-
-//
-// The maximum server ID length used by MsQuic.
-//
-#define MSQUIC_MAX_SERVER_ID_LENGTH                 5
+#define MSQUIC_MIN_CID_SID_LENGTH                   0
+#define MSQUIC_MAX_CID_SID_LENGTH                   5
 
 //
 // The index of the byte we use for partition ID lookup, in the connection ID.
 // The PID is just a single byte. The PID immediately follows the SID.
 //
-#define QUIC_CID_PID_LENGTH 1
+#define MSQUIC_CID_PID_LENGTH                       1
+
+//
+// The number of bytes (and randomness) that MsQuic uses to uniquely
+// identify connections for a single server / partition combination.
+//
+#define MSQUIC_CID_PAYLOAD_LENGTH                   7
 
 //
 // The minimum number of bytes that should be purely random in a CID.
 //
-#define QUIC_CID_MIN_RANDOM_BYTES 4
+#define MSQUIC_CID_MIN_RANDOM_BYTES                 4
+
+//
+// The minimum length CIDs that MsQuic ever will generate.
+//
+#define MSQUIC_CID_MIN_LENGTH \
+    (MSQUIC_MIN_CID_SID_LENGTH + \
+     MSQUIC_CID_PID_LENGTH + \
+     MSQUIC_CID_PAYLOAD_LENGTH)
+
+//
+// The maximum length CIDs that MsQuic ever will generate.
+//
+#define MSQUIC_CID_MAX_LENGTH \
+    (MSQUIC_MAX_CID_SID_LENGTH + \
+     MSQUIC_CID_PID_LENGTH + \
+     MSQUIC_CID_PAYLOAD_LENGTH)
+
+QUIC_STATIC_ASSERT(
+    MSQUIC_CID_MIN_LENGTH >= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH,
+    "MsQuic CID length must be at least the minimum initial length");
+
+QUIC_STATIC_ASSERT(
+    MSQUIC_CID_MAX_LENGTH <= QUIC_MAX_CONNECTION_ID_LENGTH_V1,
+    "MsQuic CID length must fit in v1");
 
 //
 // The maximum size of the prefix an app is allowed to configure is dependent on
 // the values of the other defines above; essentially constituting the left over
 // part of the CID buffer.
 //
-#define QUIC_CID_MAX_APP_PREFIX \
-    (MSQUIC_CONNECTION_ID_PAYLOAD_LENGTH - MSQUIC_CONNECTION_ID_PAYLOAD_LENGTH)
+#define MSQUIC_CID_MAX_APP_PREFIX \
+    (MSQUIC_CID_PAYLOAD_LENGTH - MSQUIC_CID_MIN_RANDOM_BYTES)
 
 //
 // The maximum number we will try to randomly calculate a new initial CID before
 // failing.
 //
-#define QUIC_CID_MAX_COLLISION_RETRY 8
+#define QUIC_CID_MAX_COLLISION_RETRY                8
 
 //
 // Connection ID Structures
@@ -147,9 +165,6 @@ QuicCidNewNullSource(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    //QUIC_DBG_ASSERT(Length == 0 ||
-    //    MsQuicLib.CidServerIdLength + QUIC_CID_PID_LENGTH + PrefixLength + QUIC_CID_MIN_RANDOM_BYTES <= Length);
-
     QUIC_CID_HASH_ENTRY* Entry = 
         (QUIC_CID_HASH_ENTRY*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_CID_HASH_ENTRY));
 

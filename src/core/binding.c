@@ -752,7 +752,7 @@ QuicBindingProcessStatelessOperation(
             goto Exit;
         }
 
-        uint8_t NewDestCid[QUIC_CONNECTION_ID_MAX_LOCAL_LENGTH];
+        uint8_t NewDestCid[MSQUIC_CID_MAX_LENGTH];
         QuicRandom(sizeof(NewDestCid), NewDestCid);
 
         QUIC_RETRY_TOKEN_CONTENTS Token = { 0 };
@@ -763,12 +763,12 @@ QuicBindingProcessStatelessOperation(
         Token.Encrypted.OrigConnIdLength = RecvPacket->DestCidLen;
 
         uint8_t Iv[QUIC_IV_LENGTH];
-        QuicZeroMemory(Iv, sizeof(Iv));
-        QUIC_STATIC_ASSERT(
-            sizeof(NewDestCid) <= sizeof(Iv),
-            "Below assumes all CIDs fit in Iv");
-        QUIC_DBG_ASSERT(MsQuicLib.CidTotalLength <= sizeof(Iv));
-        QuicCopyMemory(Iv, NewDestCid, MsQuicLib.CidTotalLength);
+        if (MsQuicLib.CidTotalLength > sizeof(Iv)) {
+            QuicCopyMemory(Iv, NewDestCid, sizeof(Iv)); // TODO - Use the whole thing?
+        } else {
+            QuicZeroMemory(Iv, sizeof(Iv));
+            QuicCopyMemory(Iv, NewDestCid, MsQuicLib.CidTotalLength);
+        }
 
         QuicLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
 
