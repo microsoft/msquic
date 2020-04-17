@@ -98,9 +98,7 @@ if ($IsLinux) {
 # Start log collection.
 function Log-Start {
     if ($IsWindows) {
-        Write-Host "WRP : $($WprProfile)!$($LogProfile)"
         wpr.exe -start "$($WprProfile)!$($LogProfile)" -filemode -instancename $InstanceName
-        #Invoke-Expression "netsh.exe trace start overwrite=yes report=dis correlation=dis traceFile=quic.etl maxSize=1024 sessionname=$InstanceName provider={6A7F6746-617F-40A3-8EAC-B84C022058FB} level=0x5"
     } else {
         if (Test-Path $TempDir) {
             Write-Error "LTTng session ($InstanceName) already running! ($TempDir)"
@@ -135,8 +133,6 @@ function Log-Start {
 function Log-Cancel {
     if ($IsWindows) {
         wpr.exe -cancel -instancename $InstanceName
-        #Invoke-Expression "netsh.exe trace stop sessionname=$InstanceName"
-        #Remove-Item "quic.etl" -Force
     } else {
         if (!(Test-Path $TempDir)) {
             Write-Error "LTTng session ($InstanceName) not currently running!"
@@ -159,15 +155,12 @@ function Log-Stop {
     if ($IsWindows) {
         $EtlPath = Join-Path $OutputDirectory "quic.etl"
         wpr.exe -stop $EtlPath -instancename $InstanceName
-        #Invoke-Expression "netsh.exe trace stop sessionname=$InstanceName"
-        #Move-Item -Path "quic.etl" -Destination $EtlPath
         if ($ConvertToText) {
             Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
             $Command = "$Clog2Text_windows -i $EtlPath -s $SideCar -o $ClogOutputDecodeFile"
             Write-Debug $Command
             Invoke-Expression $Command | Write-Debug
-			
-			dir $OutputDirectory
+            dir $OutputDirectory
         }
     } else {
         if (!(Test-Path $TempDir)) {
