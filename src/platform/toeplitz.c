@@ -112,7 +112,7 @@ QuicToeplitzHashInitialize(
         BaseShift ++;
         Signature3 = (Word1 << BaseShift) | (Word2 >> (8 * sizeof(uint8_t) - BaseShift));
         BaseShift ++;
-        Signature4 = (Word1 << BaseShift) | (Word2 >> (8 * sizeof(UCHAR) - BaseShift));
+        Signature4 = (Word1 << BaseShift) | (Word2 >> (8 * sizeof(uint8_t) - BaseShift));
 
         for (uint32_t j = 0; j < QUIC_TOEPLITZ_LOOKUP_TABLE_SIZE; j++) {
 

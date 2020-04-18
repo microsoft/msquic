@@ -1105,8 +1105,8 @@ QuicBindingCreateConnection(
             &Binding->Lookup,
             NewConnection,
             &Datagram->Tuple->RemoteAddress,
-            Packet->LH->DestCid[Packet->LH->DestCidLength],
-            Packet->LH->DestCid + Packet->LH->DestCidLength + 1,
+            Packet->SourceCidLen,
+            Packet->SourceCid,
             &Connection)) {
         //
         // Collision with an existing connection or a memory failure.
@@ -1212,9 +1212,9 @@ QuicBindingDeliverDatagrams(
     if (!Binding->ServerOwned || Packet->IsShortHeader) {
         Connection =
             QuicLookupFindConnectionByLocalCid(
-            &Binding->Lookup,
-            Packet->DestCid,
-            Packet->DestCidLen);
+                &Binding->Lookup,
+                Packet->DestCid,
+                Packet->DestCidLen);
     } else {
         Connection =
             QuicLookupFindConnectionByRemoteHash(
