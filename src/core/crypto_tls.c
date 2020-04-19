@@ -694,9 +694,9 @@ QuicCryptoTlsEncodeTransportParameters(
                 TransportParams->StatelessResetToken,
                 TPBuf);
         QuicTraceLogConnVerbose(EncodeTPStatelessResetToken, Connection, "TP: Stateless Reset Token (%s)",
-            QuicCidBufToStr(
+            &(QuicCidBufToStr(
                 TransportParams->StatelessResetToken,
-                QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
+                QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer));
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_MAX_PACKET_SIZE) {
         TPBuf =
@@ -906,9 +906,9 @@ QuicCryptoTlsDecodeTransportParameters(
                 TPBuf + Offset,
                 QUIC_STATELESS_RESET_TOKEN_LENGTH);
             QuicTraceLogConnVerbose(DecodeTPStatelessResetToken, Connection, "TP: Stateless Reset Token (%s)",
-                QuicCidBufToStr(
+                &(QuicCidBufToStr(
                     TransportParams->StatelessResetToken,
-                    QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
+                    QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer));
             break;
 
         case QUIC_TP_ID_MAX_PACKET_SIZE:
@@ -969,6 +969,10 @@ QuicCryptoTlsDecodeTransportParameters(
                 QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Length, "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAMS_BIDI");
                 goto Exit;
             }
+            if (TransportParams->InitialMaxBidiStreams > QUIC_TP_MAX_STREAMS_MAX) {
+                QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Invalid value of QUIC_TP_ID_INITIAL_MAX_STREAMS_BIDI");
+                goto Exit;
+            }
             TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI;
             QuicTraceLogConnVerbose(DecodeTPMaxBidiStreams, Connection, "TP: Max Bidirectional Streams (%llu)", TransportParams->InitialMaxBidiStreams);
             break;
@@ -976,6 +980,10 @@ QuicCryptoTlsDecodeTransportParameters(
         case QUIC_TP_ID_INITIAL_MAX_STREAMS_UNI:
             if (!TRY_READ_VAR_INT(TransportParams->InitialMaxUniStreams)) {
                 QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Length, "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAMS_UNI");
+                goto Exit;
+            }
+            if (TransportParams->InitialMaxUniStreams > QUIC_TP_MAX_STREAMS_MAX) {
+                QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Invalid value of QUIC_TP_ID_INITIAL_MAX_STREAMS_UNI");
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI;
@@ -987,7 +995,7 @@ QuicCryptoTlsDecodeTransportParameters(
                 QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Length, "Invalid length of QUIC_TP_MAX_ACK_DELAY_EXPONENT");
                 goto Exit;
             }
-            if (TransportParams->AckDelayExponent > QUIC_TP_MAX_ACK_DELAY_EXPONENT) {
+            if (TransportParams->AckDelayExponent > QUIC_TP_ACK_DELAY_EXPONENT_MAX) {
                 QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Invalid value of QUIC_TP_MAX_ACK_DELAY_EXPONENT");
                 goto Exit;
             }
@@ -1000,7 +1008,7 @@ QuicCryptoTlsDecodeTransportParameters(
                 QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Length, "Invalid length of QUIC_TP_MAX_MAX_ACK_DELAY");
                 goto Exit;
             }
-            if (TransportParams->MaxAckDelay > QUIC_TP_MAX_MAX_ACK_DELAY) {
+            if (TransportParams->MaxAckDelay > QUIC_TP_MAX_ACK_DELAY_MAX) {
                 QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Invalid value of QUIC_TP_MAX_MAX_ACK_DELAY");
                 goto Exit;
             }
@@ -1032,7 +1040,7 @@ QuicCryptoTlsDecodeTransportParameters(
                 goto Exit;
             }
             if (TransportParams->ActiveConnectionIdLimit < QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN) {
-                QuicTraceEvent(ConnError, Connection, "Invalid value of QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT");
+                QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Invalid value of QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT");
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT;

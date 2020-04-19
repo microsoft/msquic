@@ -727,10 +727,10 @@ QuicBindingProcessStatelessOperation(
             SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH);
 
         QuicTraceLogVerbose(FN_binding1e7eb5542a86d5b4071042189950a0e0, "[S][TX][-] SR %s",
-            QuicCidBufToStr(
+            &(QuicCidBufToStr(
                 SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH,
                 QUIC_STATELESS_RESET_TOKEN_LENGTH
-            ).Buffer);
+            ).Buffer));
 
     } else if (OperationType == QUIC_OPER_TYPE_RETRY) {
 
@@ -793,9 +793,9 @@ QuicBindingProcessStatelessOperation(
 
         QuicTraceLogVerbose(FN_bindingda2912dbb439879118c990ced87e39cd, "[S][TX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R OrigDestCid:%s (Token %hu bytes)",
             RecvPacket->LH->Version,
-            QuicCidBufToStr(RecvPacket->SourceCid, RecvPacket->SourceCidLen).Buffer,
-            QuicCidBufToStr(NewDestCid, MSQUIC_CONNECTION_ID_LENGTH).Buffer,
-            QuicCidBufToStr(RecvPacket->DestCid, RecvPacket->DestCidLen).Buffer,
+            &(QuicCidBufToStr(RecvPacket->SourceCid, RecvPacket->SourceCidLen).Buffer),
+            &(QuicCidBufToStr(NewDestCid, MSQUIC_CONNECTION_ID_LENGTH).Buffer),
+            &(QuicCidBufToStr(RecvPacket->DestCid, RecvPacket->DestCidLen).Buffer),
             (uint16_t)sizeof(Token));
 
     } else {

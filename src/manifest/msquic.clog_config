@@ -29,7 +29,7 @@
       ]
     },
     "etw_plus": {
-      "Modules": [
+      "Modules": [       
         {
           "ExportModule": "MANIFESTED_ETW",
           "CustomSettings": {
@@ -42,7 +42,9 @@
         {
           "ExportModule": "TRACELOGGING",
           "CustomSettings": {
-            "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB"
+            "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+            "Keyword": "0x0000000080000000",
+            "Level": "0x4"
           }
         },
         {

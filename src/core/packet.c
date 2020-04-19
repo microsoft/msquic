@@ -546,8 +546,8 @@ QuicPacketLogHeader(
             QuicTraceLogVerbose(FN_packet90ccc79fc6238b6379c9f2d0110c7855, "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %lu bytes)",
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
-                QuicCidBufToStr(DestCid, DestCidLen).Buffer,
-                QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
+                &(QuicCidBufToStr(DestCid, DestCidLen).Buffer),
+                &(QuicCidBufToStr(SourceCid, SourceCidLen).Buffer),
                 PacketLength - Offset);
 
             while (Offset < PacketLength) {
@@ -584,8 +584,8 @@ QuicPacketLogHeader(
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     LongHdr->Version,
-                    QuicCidBufToStr(DestCid, DestCidLen).Buffer,
-                    QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
+                    &(QuicCidBufToStr(DestCid, DestCidLen).Buffer),
+                    &(QuicCidBufToStr(SourceCid, SourceCidLen).Buffer),
                     PacketLength - (Offset + QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1));
                 break;
 
@@ -607,8 +607,8 @@ QuicPacketLogHeader(
                     PktRxPre(Rx),
                     PacketNumber,
                     LongHdr->Version,
-                    QuicCidBufToStr(DestCid, DestCidLen).Buffer,
-                    QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
+                    &(QuicCidBufToStr(DestCid, DestCidLen).Buffer),
+                    &(QuicCidBufToStr(SourceCid, SourceCidLen).Buffer),
                     QuicLongHeaderTypeToString(LongHdr->Type),
                     (uint16_t)TokenLength,
                     (uint16_t)Length,
@@ -619,8 +619,8 @@ QuicPacketLogHeader(
                     PktRxPre(Rx),
                     PacketNumber,
                     LongHdr->Version,
-                    QuicCidBufToStr(DestCid, DestCidLen).Buffer,
-                    QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
+                    &(QuicCidBufToStr(DestCid, DestCidLen).Buffer),
+                    &(QuicCidBufToStr(SourceCid, SourceCidLen).Buffer),
                     QuicLongHeaderTypeToString(LongHdr->Type),
                     (uint16_t)Length,
                     LongHdr->PnLength + 1);
@@ -634,8 +634,8 @@ QuicPacketLogHeader(
                 PktRxPre(Rx),
                 PacketNumber,
                 Invariant->LONG_HDR.Version,
-                QuicCidBufToStr(DestCid, DestCidLen).Buffer,
-                QuicCidBufToStr(SourceCid, SourceCidLen).Buffer);
+                &(QuicCidBufToStr(DestCid, DestCidLen).Buffer),
+                &(QuicCidBufToStr(SourceCid, SourceCidLen).Buffer));
             break;
         }
 
@@ -656,7 +656,7 @@ QuicPacketLogHeader(
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber,
-                QuicCidBufToStr(DestCid, DestCidLen).Buffer,
+                &(QuicCidBufToStr(DestCid, DestCidLen).Buffer),
                 Header->KeyPhase,
                 Header->SpinBit,
                 PacketLength - Offset);

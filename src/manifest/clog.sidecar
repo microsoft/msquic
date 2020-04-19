@@ -3239,22 +3239,14 @@
       }
     },
     "AllocFailure": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "20",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "Allocation of '%s' failed. (%llu bytes)",
       "UniqueId": "AllocFailure",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"QUIC_DATAPATH\"",
-            "UserSuppliedTrimmed": "\"QUIC_DATAPATH\"",
+            "UserSpecifiedUnModified": " \"connection\"",
+            "UserSuppliedTrimmed": "\"connection\"",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "s",
@@ -3262,8 +3254,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " DatapathLength",
-            "UserSuppliedTrimmed": "DatapathLength",
+            "UserSpecifiedUnModified": " sizeof(QUIC_CONNECTION)",
+            "UserSuppliedTrimmed": "sizeof(QUIC_CONNECTION)",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "llu",
@@ -4092,22 +4084,14 @@
       }
     },
     "FN_connection49a91e04834057f10c945d9d1f5005b1": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "39",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[S][RX][-] SR %s",
       "UniqueId": "FN_connection49a91e04834057f10c945d9d1f5005b1",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                        QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer",
-            "UserSuppliedTrimmed": "QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer",
+            "UserSpecifiedUnModified": "\r\n                        &(QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer)",
+            "UserSuppliedTrimmed": "&(QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer)",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "s",
@@ -4127,15 +4111,7 @@
       }
     },
     "FN_connection9874b298efc81e9a08e4033aeaee1aa7": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "40",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[%c][RX][%llu] not acked (connection is closed)",
       "UniqueId": "FN_connection9874b298efc81e9a08e4033aeaee1aa7",
       "splitArgs": [
@@ -4171,15 +4147,7 @@
       }
     },
     "ApiEventNoHandler": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "41",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Event silently discarded (no handler).",
       "UniqueId": "ApiEventNoHandler",
       "splitArgs": [
@@ -4206,15 +4174,7 @@
       }
     },
     "ApiEventTooLong": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "42",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] App took excessive time (%llu us) in callback.",
       "UniqueId": "ApiEventTooLong",
       "splitArgs": [
@@ -4250,15 +4210,7 @@
       }
     },
     "ApiEventAlreadyClosed": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "43",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Event silently discarded.",
       "UniqueId": "ApiEventAlreadyClosed",
       "splitArgs": [
@@ -4285,15 +4237,7 @@
       }
     },
     "NoReplacementCidForRetire": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "44",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Can't retire current CID because we don't have a replacement",
       "UniqueId": "NoReplacementCidForRetire",
       "splitArgs": [
@@ -4320,15 +4264,7 @@
       }
     },
     "NonActivePathCidRetired": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "45",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Non-active path has no replacement for retired CID.",
       "UniqueId": "NonActivePathCidRetired",
       "splitArgs": [
@@ -4355,15 +4291,7 @@
       }
     },
     "IgnoreUnreachable": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "46",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Ignoring received unreachable event (inline).",
       "UniqueId": "IgnoreUnreachable",
       "splitArgs": [
@@ -4390,15 +4318,7 @@
       }
     },
     "IgnoreFrameAfterClose": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "47",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Ignoring frame (%hu) for already closed stream id = %llu",
       "UniqueId": "IgnoreFrameAfterClose",
       "splitArgs": [
@@ -4443,15 +4363,7 @@
       }
     },
     "UnreachableIgnore": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "48",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Ignoring received unreachable event.",
       "UniqueId": "UnreachableIgnore",
       "splitArgs": [
@@ -4478,15 +4390,7 @@
       }
     },
     "UnreachableInvalid": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "49",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Received invalid unreachable event.",
       "UniqueId": "UnreachableInvalid",
       "splitArgs": [
@@ -4513,15 +4417,7 @@
       }
     },
     "CloseComplete": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "50",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Connection close complete.",
       "UniqueId": "CloseComplete",
       "splitArgs": [
@@ -4548,15 +4444,7 @@
       }
     },
     "Restart": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "51",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Restart (CompleteReset=%hu)",
       "UniqueId": "Restart",
       "splitArgs": [
@@ -4592,15 +4480,7 @@
       }
     },
     "PeerTPSet": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "52",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Peer Transport Parameters Set",
       "UniqueId": "PeerTPSet",
       "splitArgs": [
@@ -4627,15 +4507,7 @@
       }
     },
     "RecvStatelessReset": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "53",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Received stateless reset",
       "UniqueId": "RecvStatelessReset",
       "splitArgs": [
@@ -4662,15 +4534,7 @@
       }
     },
     "HandshakeConfirmedFrame": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "54",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Handshake confirmed (frame).",
       "UniqueId": "HandshakeConfirmedFrame",
       "splitArgs": [
@@ -4697,15 +4561,7 @@
       }
     },
     "FirstCidUsage": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "55",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] First usage of SrcCid: %s",
       "UniqueId": "FirstCidUsage",
       "splitArgs": [
@@ -4720,8 +4576,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                QuicCidBufToStr(Packet->DestCid, Packet->DestCidLen).Buffer",
-            "UserSuppliedTrimmed": "QuicCidBufToStr(Packet->DestCid, Packet->DestCidLen).Buffer",
+            "UserSpecifiedUnModified": "\r\n                &(QuicCidBufToStr(Packet->DestCid, Packet->DestCidLen).Buffer)",
+            "UserSuppliedTrimmed": "&(QuicCidBufToStr(Packet->DestCid, Packet->DestCidLen).Buffer)",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "s",
@@ -4741,15 +4597,7 @@
       }
     },
     "PathDiscarded": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "56",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Removing invalid path[%u]",
       "UniqueId": "PathDiscarded",
       "splitArgs": [
@@ -4785,15 +4633,7 @@
       }
     },
     "Unreachable": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "57",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Received unreachable event.",
       "UniqueId": "Unreachable",
       "splitArgs": [
@@ -4820,15 +4660,7 @@
       }
     },
     "UpdateIdleTimeout": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "58",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Updated idle timeout to %llu milliseconds",
       "UniqueId": "UpdateIdleTimeout",
       "splitArgs": [
@@ -4864,15 +4696,7 @@
       }
     },
     "UpdateKeepAlive": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "59",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Updated keep alive interval to %u milliseconds",
       "UniqueId": "UpdateKeepAlive",
       "splitArgs": [
@@ -4908,15 +4732,7 @@
       }
     },
     "UpdateDisconnectTimeout": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "60",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Updated disconnect timeout = %u milliseconds",
       "UniqueId": "UpdateDisconnectTimeout",
       "splitArgs": [
@@ -4952,15 +4768,7 @@
       }
     },
     "SetSecurityConfig": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "61",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Security config set, %p.",
       "UniqueId": "SetSecurityConfig",
       "splitArgs": [
@@ -4996,15 +4804,7 @@
       }
     },
     "UpdateUseSendBuffer": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "62",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Updated UseSendBuffer = %u",
       "UniqueId": "UpdateUseSendBuffer",
       "splitArgs": [
@@ -5040,15 +4840,7 @@
       }
     },
     "UpdateUsePacing": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "63",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Updated UsePacing = %u",
       "UniqueId": "UpdateUsePacing",
       "splitArgs": [
@@ -5084,15 +4876,7 @@
       }
     },
     "UpdateShareBinding": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "64",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Updated ShareBinding = %u",
       "UniqueId": "UpdateShareBinding",
       "splitArgs": [
@@ -5128,15 +4912,7 @@
       }
     },
     "RttUpdated": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "65",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Updated Rtt=%u.%u ms, Var=%u.%u",
       "UniqueId": "RttUpdated",
       "splitArgs": [
@@ -5199,15 +4975,7 @@
       }
     },
     "NewSrcCidNameCollision": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "66",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] CID collision, trying again.",
       "UniqueId": "NewSrcCidNameCollision",
       "splitArgs": [
@@ -5234,15 +5002,7 @@
       }
     },
     "ZeroLengthCidRetire": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "67",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Can't retire current CID because it's zero length",
       "UniqueId": "ZeroLengthCidRetire",
       "splitArgs": [
@@ -5269,15 +5029,7 @@
       }
     },
     "TimerExpired": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "68",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] %s timer expired",
       "UniqueId": "TimerExpired",
       "splitArgs": [
@@ -5313,15 +5065,7 @@
       }
     },
     "IndicateShutdownByPeer": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "69",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER [0x%llx]",
       "UniqueId": "IndicateShutdownByPeer",
       "splitArgs": [
@@ -5357,15 +5101,7 @@
       }
     },
     "IndicateShutdownByTransport": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "70",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT [0x%x]",
       "UniqueId": "IndicateShutdownByTransport",
       "splitArgs": [
@@ -5401,15 +5137,7 @@
       }
     },
     "IndicateConnectionShutdownComplete": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "71",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE",
       "UniqueId": "IndicateConnectionShutdownComplete",
       "splitArgs": [
@@ -5436,15 +5164,7 @@
       }
     },
     "FoundCachedServerState": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "72",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Found server cached state",
       "UniqueId": "FoundCachedServerState",
       "splitArgs": [
@@ -5471,15 +5191,7 @@
       }
     },
     "QueueDatagrams": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "73",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Queuing %u UDP datagrams",
       "UniqueId": "QueueDatagrams",
       "splitArgs": [
@@ -5515,15 +5227,7 @@
       }
     },
     "RecvVerNeg": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "74",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Received Version Negotation:",
       "UniqueId": "RecvVerNeg",
       "splitArgs": [
@@ -5550,15 +5254,7 @@
       }
     },
     "VerNegItem": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "75",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p]   Ver[%d]: 0x%x",
       "UniqueId": "VerNegItem",
       "splitArgs": [
@@ -5603,15 +5299,7 @@
       }
     },
     "InvalidVerNeg": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "76",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Dropping version negotation that includes the current version.",
       "UniqueId": "InvalidVerNeg",
       "splitArgs": [
@@ -5638,15 +5326,7 @@
       }
     },
     "DeferDatagram": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "77",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Deferring datagram (type=%hu).",
       "UniqueId": "DeferDatagram",
       "splitArgs": [
@@ -5682,15 +5362,7 @@
       }
     },
     "DecryptOldKey": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "78",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Using old key to decrypt.",
       "UniqueId": "DecryptOldKey",
       "splitArgs": [
@@ -5717,15 +5389,7 @@
       }
     },
     "PossiblePeerKeyUpdate": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "79",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Possible peer initiated key update [packet %llu]",
       "UniqueId": "PossiblePeerKeyUpdate",
       "splitArgs": [
@@ -5761,15 +5425,7 @@
       }
     },
     "UpdateReadKeyPhase": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "80",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Updating current read key phase and packet number[%llu]",
       "UniqueId": "UpdateReadKeyPhase",
       "splitArgs": [
@@ -5805,15 +5461,7 @@
       }
     },
     "PeerConnFCBlocked": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "81",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Peer Connection FC blocked (%llu).",
       "UniqueId": "PeerConnFCBlocked",
       "splitArgs": [
@@ -5849,15 +5497,7 @@
       }
     },
     "PeerStreamFCBlocked": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "82",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Peer Streams[%hu] FC blocked (%llu).",
       "UniqueId": "PeerStreamFCBlocked",
       "splitArgs": [
@@ -5902,15 +5542,7 @@
       }
     },
     "IndicatePeerNeedStreams": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "83",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS",
       "UniqueId": "IndicatePeerNeedStreams",
       "splitArgs": [
@@ -5937,15 +5569,7 @@
       }
     },
     "IndicatePeerAddrChanged": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "84",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED",
       "UniqueId": "IndicatePeerAddrChanged",
       "splitArgs": [
@@ -5972,15 +5596,7 @@
       }
     },
     "UdpRecvBatch": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "85",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Batch Recv %u UDP datagrams",
       "UniqueId": "UdpRecvBatch",
       "splitArgs": [
@@ -6016,15 +5632,7 @@
       }
     },
     "UdpRecvDeferred": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "86",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Recv %u deferred UDP datagrams",
       "UniqueId": "UdpRecvDeferred",
       "splitArgs": [
@@ -6060,15 +5668,7 @@
       }
     },
     "UdpRecv": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "87",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Recv %u UDP datagrams",
       "UniqueId": "UdpRecv",
       "splitArgs": [
@@ -6104,15 +5704,7 @@
       }
     },
     "ForceKeyUpdate": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "88",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Forcing key update.",
       "UniqueId": "ForceKeyUpdate",
       "splitArgs": [
@@ -6139,15 +5731,7 @@
       }
     },
     "ForceCidUpdate": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "89",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Forcing destination CID update.",
       "UniqueId": "ForceCidUpdate",
       "splitArgs": [
@@ -6174,15 +5758,7 @@
       }
     },
     "TestTPSet": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "90",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Setting Test Transport Parameter (type %hu, %hu bytes).",
       "UniqueId": "TestTPSet",
       "splitArgs": [
@@ -6227,15 +5803,7 @@
       }
     },
     "ReadTicketFailure": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "91",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] QuicTlsReadTicket failed, 0x%x",
       "UniqueId": "ReadTicketFailure",
       "splitArgs": [
@@ -6271,15 +5839,7 @@
       }
     },
     "AbandonInternallyClosed": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "92",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Abandoning internal, closed connection",
       "UniqueId": "AbandonInternallyClosed",
       "splitArgs": [
@@ -6306,15 +5866,7 @@
       }
     },
     "ConnCreated": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "93",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Created, IsServer=%d, CorrelationId=%llu",
       "UniqueId": "ConnCreated",
       "splitArgs": [
@@ -6359,15 +5911,7 @@
       }
     },
     "ConnLocalAddrAdded": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "94",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] New Local IP: %!SOCKADDR!",
       "UniqueId": "ConnLocalAddrAdded",
       "splitArgs": [
@@ -6403,15 +5947,7 @@
       }
     },
     "ConnRemoteAddrAdded": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "95",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] New Remote IP: %!SOCKADDR!",
       "UniqueId": "ConnRemoteAddrAdded",
       "splitArgs": [
@@ -6447,15 +5983,7 @@
       }
     },
     "ConnDestCidAdded": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "96",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] (SeqNum=%llu) New Destination CID: %!BYTEARRAY!",
       "UniqueId": "ConnDestCidAdded",
       "splitArgs": [
@@ -6500,15 +6028,7 @@
       }
     },
     "ConnSourceCidAdded": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "97",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] (SeqNum=%llu) New Source CID: %!BYTEARRAY!",
       "UniqueId": "ConnSourceCidAdded",
       "splitArgs": [
@@ -6553,15 +6073,7 @@
       }
     },
     "ConnInitializeComplete": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "98",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Initialize complete",
       "UniqueId": "ConnInitializeComplete",
       "splitArgs": [
@@ -6588,15 +6100,7 @@
       }
     },
     "ConnDestroyed": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "99",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Destroyed",
       "UniqueId": "ConnDestroyed",
       "splitArgs": [
@@ -6623,15 +6127,7 @@
       }
     },
     "ConnHandleClosed": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "100",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Handle closed",
       "UniqueId": "ConnHandleClosed",
       "splitArgs": [
@@ -6658,15 +6154,7 @@
       }
     },
     "ConnRundown": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "101",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Rundown, IsServer=%d, CorrelationId=%llu",
       "UniqueId": "ConnRundown",
       "splitArgs": [
@@ -6711,15 +6199,7 @@
       }
     },
     "ConnAssignWorker": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "102",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Assigned worker: %p",
       "UniqueId": "ConnAssignWorker",
       "splitArgs": [
@@ -6734,8 +6214,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Worker",
-            "UserSuppliedTrimmed": "Worker",
+            "UserSpecifiedUnModified": " Connection->Worker",
+            "UserSuppliedTrimmed": "Connection->Worker",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "p",
@@ -6755,15 +6235,7 @@
       }
     },
     "ConnRegisterSession": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "103",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Registered with session: %p",
       "UniqueId": "ConnRegisterSession",
       "splitArgs": [
@@ -6778,8 +6250,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Session",
-            "UserSuppliedTrimmed": "Session",
+            "UserSpecifiedUnModified": " Connection->Session",
+            "UserSuppliedTrimmed": "Connection->Session",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "p",
@@ -6799,15 +6271,7 @@
       }
     },
     "ConnHandshakeComplete": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "104",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Handshake complete",
       "UniqueId": "ConnHandshakeComplete",
       "splitArgs": [
@@ -6834,15 +6298,7 @@
       }
     },
     "ConnError": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "105",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] ERROR, %s.",
       "UniqueId": "ConnError",
       "splitArgs": [
@@ -6857,8 +6313,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"Peer used more streams than allowed\"",
-            "UserSuppliedTrimmed": "\"Peer used more streams than allowed\"",
+            "UserSpecifiedUnModified": " \"Too many CID collisions\"",
+            "UserSuppliedTrimmed": "\"Too many CID collisions\"",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "s",
@@ -6878,15 +6334,7 @@
       }
     },
     "ConnDestCidRemoved": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "106",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] (SeqNum=%llu) Removed Destination CID: %!BYTEARRAY!",
       "UniqueId": "ConnDestCidRemoved",
       "splitArgs": [
@@ -6931,15 +6379,7 @@
       }
     },
     "ConnExecTimerOper": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "107",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Execute: %d",
       "UniqueId": "ConnExecTimerOper",
       "splitArgs": [
@@ -6954,8 +6394,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Oper->TIMER_EXPIRED.Type",
-            "UserSuppliedTrimmed": "Oper->TIMER_EXPIRED.Type",
+            "UserSpecifiedUnModified": " QUIC_CONN_TIMER_ACK_DELAY",
+            "UserSuppliedTrimmed": "QUIC_CONN_TIMER_ACK_DELAY",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "d",
@@ -6975,15 +6415,7 @@
       }
     },
     "ConnShutdownComplete": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "108",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Shutdown complete, PeerFailedToAcknowledged=%c.",
       "UniqueId": "ConnShutdownComplete",
       "splitArgs": [
@@ -7019,15 +6451,7 @@
       }
     },
     "ConnAppShutdown": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "109",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] App Shutdown: %llu (Remote=%c)",
       "UniqueId": "ConnAppShutdown",
       "splitArgs": [
@@ -7072,15 +6496,7 @@
       }
     },
     "ConnTransportShutdown": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "110",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Transport Shutdown: %llu (Remote=%c) (QS=%c)",
       "UniqueId": "ConnTransportShutdown",
       "splitArgs": [
@@ -7134,15 +6550,7 @@
       }
     },
     "ConnVersionSet": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "111",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Version = %d",
       "UniqueId": "ConnVersionSet",
       "splitArgs": [
@@ -7178,21 +6586,13 @@
       }
     },
     "ConnErrorStatus": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "112",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] ERROR, %d, %s.",
       "UniqueId": "ConnErrorStatus",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    Connection",
+            "UserSpecifiedUnModified": " Connection",
             "UserSuppliedTrimmed": "Connection",
             "SuggestedTelemetryName": "arg2"
           },
@@ -7201,7 +6601,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    Status",
+            "UserSpecifiedUnModified": " Status",
             "UserSuppliedTrimmed": "Status",
             "SuggestedTelemetryName": "arg3"
           },
@@ -7210,8 +6610,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    \"Send-triggered key update\"",
-            "UserSuppliedTrimmed": "\"Send-triggered key update\"",
+            "UserSpecifiedUnModified": " \"Set current compartment Id\"",
+            "UserSuppliedTrimmed": "\"Set current compartment Id\"",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "s",
@@ -7231,15 +6631,7 @@
       }
     },
     "ConnHandshakeStart": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "113",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Handshake start",
       "UniqueId": "ConnHandshakeStart",
       "splitArgs": [
@@ -7266,15 +6658,7 @@
       }
     },
     "ConnPacketRecv": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "114",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p][RX][%llu] %c (%hd bytes)",
       "UniqueId": "ConnPacketRecv",
       "splitArgs": [
@@ -7328,21 +6712,13 @@
       }
     },
     "ConnSourceCidRemoved": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "115",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] (SeqNum=%llu) Removed Source CID: %!BYTEARRAY!",
       "UniqueId": "ConnSourceCidRemoved",
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    Connection",
+            "UserSpecifiedUnModified": "\r\n                            Connection",
             "UserSuppliedTrimmed": "Connection",
             "SuggestedTelemetryName": "arg2"
           },
@@ -7351,8 +6727,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    SourceCid->CID.SequenceNumber",
-            "UserSuppliedTrimmed": "SourceCid->CID.SequenceNumber",
+            "UserSpecifiedUnModified": " NextSourceCid->CID.SequenceNumber",
+            "UserSuppliedTrimmed": "NextSourceCid->CID.SequenceNumber",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "llu",
@@ -7360,8 +6736,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data)",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "!BYTEARRAY!",
@@ -7381,15 +6757,7 @@
       }
     },
     "ConnLocalAddrRemoved": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "116",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Removed Local IP: %!SOCKADDR!",
       "UniqueId": "ConnLocalAddrRemoved",
       "splitArgs": [
@@ -38421,15 +37789,7 @@
       }
     },
     "PeerPreferredAddressV4": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "550",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
+      "ModuleProperites": {},
       "TraceString": "[conn][%p] Peer configured preferred address %!SOCKADDR!",
       "UniqueId": "PeerPreferredAddressV4",
       "splitArgs": [
@@ -38515,13 +37875,38 @@
     "TypeEncoder": [
       {
         "EncodingType": "UInt8",
-        "CType": "CLOG_INT32",
+        "CType": "CLOG_UINT8",
         "DefinationEncoding": "c"
       },
       {
         "EncodingType": "UInt64",
         "CType": "CLOG_UINT64",
         "DefinationEncoding": "llu"
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "CLOG_UINT64",
+        "DefinationEncoding": "llx"
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "CLOG_UINT64",
+        "DefinationEncoding": "llX"
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "CLOG_INT64",
+        "DefinationEncoding": "lld"
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "CLOG_UINT64",
+        "DefinationEncoding": "lu"
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "CLOG_INT64",
+        "DefinationEncoding": "ld"
       },
       {
         "EncodingType": "UInt32",
@@ -38555,40 +37940,9 @@
         "DefinationEncoding": "hu"
       },
       {
-        "EncodingType": "ByteArray",
-        "CType": "CLOG_PTR",
-        "DefinationEncoding": "SOCKADDR",
-        "CustomDecoder": "defaults.clog_config.Types.QUIC_IP_ADDR"
-      },
-      {
-        "EncodingType": "UInt32",
-        "CType": "CLOG_UINT32",
-        "DefinationEncoding": "u"
-      },
-      {
-        "EncodingType": "UInt64",
-        "CType": "CLOG_UINT64",
-        "DefinationEncoding": "llx"
-      },
-      {
-        "EncodingType": "ByteArray",
-        "CType": "CLOG_PTR",
-        "DefinationEncoding": "!BYTEARRAY!"
-      },
-      {
         "EncodingType": "UInt16",
         "CType": "unsigned short",
         "DefinationEncoding": "hd"
-      },
-      {
-        "EncodingType": "UInt64",
-        "CType": "CLOG_UINT64",
-        "DefinationEncoding": "llX"
-      },
-      {
-        "EncodingType": "UInt64",
-        "CType": "CLOG_UINT64",
-        "DefinationEncoding": "lu"
       },
       {
         "EncodingType": "UInt16",
@@ -38601,14 +37955,20 @@
         "DefinationEncoding": "hX"
       },
       {
-        "EncodingType": "Int64",
-        "CType": "CLOG_INT64",
-        "DefinationEncoding": "zd"
+        "EncodingType": "ByteArray",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "SOCKADDR",
+        "CustomDecoder": "defaults.clog_config.Types.QUIC_IP_ADDR"
       },
       {
-        "EncodingType": "Int32",
-        "CType": "CLOG_INT32",
-        "DefinationEncoding": "4.4x"
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "u"
+      },
+      {
+        "EncodingType": "ByteArray",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!BYTEARRAY!"
       },
       {
         "EncodingType": "ByteArray",
@@ -38623,26 +37983,26 @@
         "CustomDecoder": "defaults.clog_config.Types.QUIC_IP_ADDR"
       },
       {
-        "EncodingType": "Int64",
-        "CType": "CLOG_INT64",
-        "DefinationEncoding": "ld"
-      },
-      {
-        "EncodingType": "Int64",
-        "CType": "CLOG_INT64",
-        "DefinationEncoding": "lld"
-      },
-      {
         "EncodingType": "ByteArray",
         "CType": "CLOG_PTR",
         "DefinationEncoding": "!SOCKADDR!",
         "CustomDecoder": "defaults.clog_config.Types.QUIC_IP_ADDR"
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "CLOG_INT64",
+        "DefinationEncoding": "zd"
+      },
+      {
+        "EncodingType": "Int32",
+        "CType": "CLOG_INT32",
+        "DefinationEncoding": "4.4x"
       }
     ]
   },
   "CustomTypeProcessorsX": {
     "msquic.clog_config": null,
-    "defaults.clog_config": "/*++\r\n\r\n    Copyright (c) Microsoft Corporation.\r\n    Licensed under the MIT License.\r\n\r\n--*/\r\n\r\n\r\nusing System;\r\nusing System.Runtime.InteropServices;\r\n\r\nnamespace defaults.clog_config\r\n{\r\n    public class Types\r\n    {\r\n\r\n        [StructLayout(LayoutKind.Explicit)]\r\n        public struct SocketAddress\r\n        {\r\n            [FieldOffset(0)]\r\n            public ushort si_family;\r\n\r\n            [FieldOffset(2)]\r\n            public ushort sin_port;\r\n\r\n            // IPv4\r\n            [FieldOffset(4)]\r\n            public ulong S_addr;\r\n\r\n\r\n            // IPv6\r\n            [FieldOffset(4)]\r\n            public ulong sin6_flowinfo;\r\n\r\n            [FieldOffset(8)]\r\n            public ulong S_v6Addr1;\r\n\r\n            [FieldOffset(16)]\r\n            public ulong S_v6Addr2;\r\n        };\r\n\r\n        public static string QUIC_FLAGS(uint value)\r\n        {\r\n            return \"QUIC_FLAGS (good!) \" + value;\r\n        }\r\n\r\n        public static string QUIC_IP_ADDR(byte[] value)\r\n        {\r\n            int len = value.Length;\r\n            IntPtr i = System.Runtime.InteropServices.Marshal.AllocHGlobal(len);\r\n            System.Runtime.InteropServices.Marshal.Copy(value, 0, i, len);\r\n            string msg = \"\";\r\n            SocketAddress sa2 = (SocketAddress)System.Runtime.InteropServices.Marshal.PtrToStructure(i, typeof(SocketAddress));\r\n\r\n            switch (sa2.si_family)\r\n            {\r\n                case 0:  //<--unspecified\r\n                    msg += \"Unspecified\";\r\n\r\n                    break;\r\n                case 23: //<--v6\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 10:  //<--v6 (linux)\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 2:  //< --v4\r\n                    msg += \"IPV4:\" + sa2.S_addr + \":\" + sa2.sin_port;\r\n                    break;\r\n                default:\r\n                    throw new Exception(\"Invalid SI_FAMILY : \" + sa2.si_family);\r\n            }\r\n\r\n            System.Runtime.InteropServices.Marshal.FreeHGlobal(i);\r\n            return msg;\r\n        }\r\n\r\n        public static string DecodeUInt32(uint value)\r\n        {\r\n            return \"CLOG_UINT32:\"+value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt32(int value)\r\n        {\r\n            return \"CLOG_INT32\"+value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt8(byte value)\r\n        {\r\n            return value.ToString();\r\n        }\r\n    }\r\n}"
+    "defaults.clog_config": "/*++\r\n\r\n    Copyright (c) Microsoft Corporation.\r\n    Licensed under the MIT License.\r\n\r\n--*/\r\n\r\n\r\nusing System;\r\nusing System.Runtime.InteropServices;\r\n\r\nnamespace defaults.clog_config\r\n{\r\n    public class Types\r\n    {\r\n\r\n        [StructLayout(LayoutKind.Explicit)]\r\n        public struct SocketAddress\r\n        {\r\n            [FieldOffset(0)]\r\n            public ushort si_family;\r\n\r\n            [FieldOffset(2)]\r\n            public ushort sin_port;\r\n\r\n            // IPv4\r\n            [FieldOffset(4)]\r\n            public ulong S_addr;\r\n\r\n\r\n            // IPv6\r\n            [FieldOffset(4)]\r\n            public ulong sin6_flowinfo;\r\n\r\n            [FieldOffset(8)]\r\n            public ulong S_v6Addr1;\r\n\r\n            [FieldOffset(16)]\r\n            public ulong S_v6Addr2;\r\n        };\r\n\r\n        public static string QUIC_FLAGS(uint value)\r\n        {\r\n            return \"QUIC_FLAGS (good!) \" + value;\r\n        }\r\n\r\n        public static string QUIC_IP_ADDR(byte[] value)\r\n        {\r\n            int len = value.Length;\r\n            IntPtr i = System.Runtime.InteropServices.Marshal.AllocHGlobal(len);\r\n            System.Runtime.InteropServices.Marshal.Copy(value, 0, i, len);\r\n            string msg = \"\";\r\n            SocketAddress sa2 = (SocketAddress)System.Runtime.InteropServices.Marshal.PtrToStructure(i, typeof(SocketAddress));\r\n\r\n            switch (sa2.si_family)\r\n            {\r\n                case 0:  //<--unspecified\r\n                    msg += \"Unspecified\";\r\n\r\n                    break;\r\n                case 23: //<--v6\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 10:  //<--v6 (linux)\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 2:  //< --v4\r\n                    msg += \"IPV4:\" + sa2.S_addr + \":\" + sa2.sin_port;\r\n                    break;\r\n                default:\r\n                    throw new Exception(\"Invalid SI_FAMILY : \" + sa2.si_family);\r\n            }\r\n\r\n            System.Runtime.InteropServices.Marshal.FreeHGlobal(i);\r\n            return msg;\r\n        }\r\n\r\n        public static string DecodePointer(ulong pointer)\r\n        {\r\n            return \"CLOG_PINTER:\" + pointer.ToString(\"x\");\r\n        }\r\n\r\n        public static string DecodeUInt32(uint value)\r\n        {\r\n            return \"CLOG_UINT32:\"+value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt32(int value)\r\n        {\r\n            return \"CLOG_INT32\"+value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt8(byte value)\r\n        {\r\n            return value.ToString();\r\n        }\r\n    }\r\n}"
   },
   "ModuleUniqueness": {
     "TraceInformation": [

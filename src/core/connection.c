@@ -1941,7 +1941,7 @@ QuicConnProcessPeerTransportParameters(
     Connection->State.PeerTransportParameterValid = TRUE;
 
     if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT) {
-        QUIC_DBG_ASSERT(Connection->PeerTransportParams.ActiveConnectionIdLimit >= QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN)
+        QUIC_DBG_ASSERT(Connection->PeerTransportParams.ActiveConnectionIdLimit >= QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN);
         if (Connection->SourceCidLimit > Connection->PeerTransportParams.ActiveConnectionIdLimit) {
             Connection->SourceCidLimit = (uint8_t) Connection->PeerTransportParams.ActiveConnectionIdLimit;
         }
@@ -2865,7 +2865,7 @@ QuicConnRecvDecryptAndAuthenticate(
                         PacketResetToken,
                         QUIC_STATELESS_RESET_TOKEN_LENGTH) == 0) {
                     QuicTraceLogVerbose(FN_connection49a91e04834057f10c945d9d1f5005b1, "[S][RX][-] SR %s",
-                        QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
+                        &(QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer));
                     QuicTraceLogConnInfo(RecvStatelessReset, Connection, "Received stateless reset");
                     QuicConnCloseLocally(
                         Connection,
@@ -3690,7 +3690,7 @@ QuicConnRecvPostProcessing(
                 Packet->DestCid);
         if (SourceCid != NULL && !SourceCid->CID.UsedByPeer) {
             QuicTraceLogConnInfo(FirstCidUsage, Connection, "First usage of SrcCid: %s",
-                QuicCidBufToStr(Packet->DestCid, Packet->DestCidLen).Buffer);
+                &(QuicCidBufToStr(Packet->DestCid, Packet->DestCidLen).Buffer));
             SourceCid->CID.UsedByPeer = TRUE;
             if (SourceCid->CID.IsInitial) {
                 if (QuicConnIsServer(Connection) && SourceCid->Link.Next != NULL) {
