@@ -244,13 +244,13 @@ QuicLookupMaximizePartitioning(
             QuicHashtableInitializeEx(
                 &Lookup->RemoteHashTable, QUIC_HASH_MIN_SIZE);
         if (Result) {
-        Lookup->MaximizePartitioning = TRUE;
-        Result = QuicLookupRebalance(Lookup, NULL);
-        if (!Result) {
-                QuicHashtableUninitialize(&Lookup->RemoteHashTable);
-            Lookup->MaximizePartitioning = FALSE;
+            Lookup->MaximizePartitioning = TRUE;
+            Result = QuicLookupRebalance(Lookup, NULL);
+            if (!Result) {
+                    QuicHashtableUninitialize(&Lookup->RemoteHashTable);
+                Lookup->MaximizePartitioning = FALSE;
+            }
         }
-    }
     }
 
     QuicDispatchRwLockReleaseExclusive(&Lookup->RwLock);
