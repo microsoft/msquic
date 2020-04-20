@@ -62,7 +62,6 @@ QuicBindingInitialize(
     Binding->Exclusive = !ShareBinding;
     Binding->ServerOwned = ServerOwned;
     Binding->Connected = RemoteAddress == NULL ? FALSE : TRUE;
-    Binding->HandshakeConnections = 0;
     Binding->StatelessOperCount = 0;
     QuicDispatchRwLockInitialize(&Binding->RwLock);
     QuicDispatchLockInitialize(&Binding->ResetTokenLock);
@@ -163,7 +162,6 @@ QuicBindingUninitialize(
     QuicTraceEvent(BindingCleanup, Binding);
 
     QUIC_TEL_ASSERT(Binding->RefCount == 0);
-    QUIC_TEL_ASSERT(Binding->HandshakeConnections == 0);
     QUIC_TEL_ASSERT(QuicListIsEmpty(&Binding->Listeners));
 
     //
@@ -422,7 +420,7 @@ QuicBindingRemoveConnection(
 {
     if (Connection->RemoteHashEntry != NULL) {
         QuicLookupRemoveRemoteHash(&Binding->Lookup, Connection->RemoteHashEntry);
-}
+    }
     QuicLookupRemoveLocalCids(&Binding->Lookup, Connection);
 }
 
@@ -447,10 +445,6 @@ QuicBindingOnConnectionHandshakeConfirmed(
 {
     if (Connection->RemoteHashEntry != NULL) {
         QuicLookupRemoveRemoteHash(&Binding->Lookup, Connection->RemoteHashEntry);
-        InterlockedDecrement(&Binding->HandshakeConnections);
-        InterlockedExchangeAdd64(
-            (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-            -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
     }
 }
 
@@ -1113,14 +1107,8 @@ QuicBindingCreateConnection(
         //
         if (Connection == NULL) {
             QuicPacketLogDrop(Binding, Packet, "Failed to insert remote hash");
-            InterlockedDecrement(&Binding->HandshakeConnections);
         }
         goto Exit;
-    } else {
-        InterlockedIncrement(&Binding->HandshakeConnections);
-        InterlockedExchangeAdd64(
-            (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-            (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
     }
 
     QuicWorkerQueueConnection(NewConnection->Worker, NewConnection);

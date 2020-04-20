@@ -475,6 +475,8 @@ QuicLookupInsertLocalCid(
     QuicTraceLogVerbose("[bind][%p] Insert Conn=%p Hash=%u", Lookup, Connection, Hash);
 #endif
 
+    SourceCid->CID.IsInLookupTable = TRUE;
+
     return TRUE;
 }
 
@@ -515,6 +517,10 @@ QuicLookupInsertRemoteHash(
 
     Connection->RemoteHashEntry = Entry;
 
+    InterlockedExchangeAdd64(
+        (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
+        (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
+
     if (UpdateRefCount) {
         QuicConnAddRef(Connection, QUIC_CONN_REF_LOOKUP_TABLE);
     }
@@ -537,6 +543,7 @@ QuicLookupRemoveLocalCidInt(
     _In_ QUIC_CID_HASH_ENTRY* SourceCid
     )
 {
+    QUIC_DBG_ASSERT(SourceCid->CID.IsInLookupTable);
     QUIC_DBG_ASSERT(Lookup->CidCount != 0);
     Lookup->CidCount--;
 
@@ -679,6 +686,8 @@ QuicLookupAddLocalCid(
 
     QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
 
+    QUIC_DBG_ASSERT(!SourceCid->CID.IsInLookupTable);
+
     ExistingConnection =
         QuicLookupFindConnectionByLocalCidInternal(
             Lookup,
@@ -768,6 +777,7 @@ QuicLookupRemoveLocalCid(
 {
     QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
     QuicLookupRemoveLocalCidInt(Lookup, SourceCid);
+    SourceCid->CID.IsInLookupTable = FALSE;
     QuicDispatchRwLockReleaseExclusive(&Lookup->RwLock);
     QuicConnRelease(SourceCid->Connection, QUIC_CONN_REF_LOOKUP_TABLE);
 }
@@ -781,6 +791,10 @@ QuicLookupRemoveRemoteHash(
 {
     QUIC_CONNECTION* Connection = RemoteHashEntry->Connection;
     QUIC_DBG_ASSERT(Lookup->MaximizePartitioning);
+
+    InterlockedExchangeAdd64(
+        (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
+        -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
 
     QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
     QUIC_DBG_ASSERT(Connection->RemoteHashEntry != NULL);
@@ -811,11 +825,12 @@ QuicLookupRemoveLocalCids(
                 QuicListPopEntry(&Connection->SourceCids),
                 QUIC_CID_HASH_ENTRY,
                 Link);
-        QUIC_DBG_ASSERT(CID->CID.IsInList);
-        CID->CID.IsInList = FALSE;
-        QuicLookupRemoveLocalCidInt(Lookup, CID);
+        if (CID->CID.IsInLookupTable) {
+            QuicLookupRemoveLocalCidInt(Lookup, CID);
+            CID->CID.IsInLookupTable = FALSE;
+            ReleaseRefCount++;
+        }
         QUIC_FREE(CID);
-        ReleaseRefCount++;
     }
     QuicDispatchRwLockReleaseExclusive(&Lookup->RwLock);
 
@@ -842,12 +857,15 @@ QuicLookupMoveLocalConnectionIDs(
                 Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);
-        QuicLookupRemoveLocalCidInt(LookupSrc, CID);
-        QuicConnRelease(Connection, QUIC_CONN_REF_LOOKUP_TABLE);
+        if (CID->CID.IsInLookupTable) {
+            QuicLookupRemoveLocalCidInt(LookupSrc, CID);
+            QuicConnRelease(Connection, QUIC_CONN_REF_LOOKUP_TABLE);
+        }
         Entry = Entry->Next;
     }
     QuicDispatchRwLockReleaseExclusive(&LookupSrc->RwLock);
 
+    QuicDispatchRwLockAcquireExclusive(&LookupDest->RwLock);
 #pragma prefast(suppress:6001, "SAL doesn't understand ref counts")
     Entry = Connection->SourceCids.Next;
     while (Entry != NULL) {
@@ -856,14 +874,17 @@ QuicLookupMoveLocalConnectionIDs(
                 Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);
-        BOOLEAN Result =
-            QuicLookupInsertLocalCid(
-                LookupDest,
-                QuicHashSimple(CID->CID.Length, CID->CID.Data),
-                CID,
-                TRUE);
-        QUIC_DBG_ASSERT(Result);
-        UNREFERENCED_PARAMETER(Result);
+        if (CID->CID.IsInLookupTable) {
+            BOOLEAN Result =
+                QuicLookupInsertLocalCid(
+                    LookupDest,
+                    QuicHashSimple(CID->CID.Length, CID->CID.Data),
+                    CID,
+                    TRUE);
+            QUIC_DBG_ASSERT(Result);
+            UNREFERENCED_PARAMETER(Result);
+        }
         Entry = Entry->Next;
     }
+    QuicDispatchRwLockReleaseExclusive(&LookupDest->RwLock);
 }

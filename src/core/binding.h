@@ -190,11 +190,6 @@ typedef struct QUIC_BINDING {
     uint32_t RefCount;
 
     //
-    // The number of server connections that haven't confirmed the handshake.
-    //
-    long HandshakeConnections;
-
-    //
     // A randomly created reserved version.
     //
     uint32_t RandomReservedVersion;

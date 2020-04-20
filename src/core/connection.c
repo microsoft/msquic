@@ -171,7 +171,6 @@ QuicConnAlloc(
         SourceCid->CID.IsInitial = TRUE;
         SourceCid->CID.UsedByPeer = TRUE;
         QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
-        SourceCid->CID.IsInList = TRUE;
         QuicTraceEvent(ConnSourceCidAdded,
             Connection, SourceCid->CID.SequenceNumber, SourceCid->CID.Length, SourceCid->CID.Data);
 
@@ -750,7 +749,6 @@ QuicConnGenerateNewSourceCid(
 
     if (IsInitial) {
         SourceCid->CID.IsInitial = TRUE;
-        QUIC_DBG_ASSERT(!SourceCid->CID.IsInList);
         QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
     } else {
         QUIC_SINGLE_LIST_ENTRY** Tail = &Connection->SourceCids.Next;
@@ -760,8 +758,6 @@ QuicConnGenerateNewSourceCid(
         *Tail = &SourceCid->Link;
         SourceCid->Link.Next = NULL;
     }
-
-    SourceCid->CID.IsInList = TRUE;
 
     return SourceCid;
 }
@@ -811,7 +807,6 @@ QuicConnGenerateNewSourceCids(
         while (Entry != NULL) {
             QUIC_CID_HASH_ENTRY* SourceCid =
                 QUIC_CONTAINING_RECORD(Entry, QUIC_CID_HASH_ENTRY, Link);
-            QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
             SourceCid->CID.Retired = TRUE;
             Entry = Entry->Next;
         }
@@ -1619,7 +1614,6 @@ QuicConnStart(
     Connection->NextSourceCidSequenceNumber++;
     QuicTraceEvent(ConnSourceCidAdded, Connection, SourceCid->CID.SequenceNumber, SourceCid->CID.Length, SourceCid->CID.Data);
     QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
-    SourceCid->CID.IsInList = TRUE;
 
     if (!QuicBindingAddSourceConnectionID(Path->Binding, SourceCid)) {
         QuicLibraryReleaseBinding(Path->Binding);
@@ -3710,10 +3704,9 @@ QuicConnRecvPostProcessing(
                         // can discard the old (client chosen) one now.
                         //
                         SourceCid->Link.Next = NextSourceCid->Link.Next;
-                        QUIC_DBG_ASSERT(NextSourceCid->CID.IsInList);
+                        QUIC_DBG_ASSERT(!NextSourceCid->CID.IsInLookupTable);
                         QuicTraceEvent(ConnSourceCidRemoved,
                             Connection, NextSourceCid->CID.SequenceNumber, NextSourceCid->CID.Length, NextSourceCid->CID.Data);
-                        NextSourceCid->CID.IsInList = FALSE;
                         QUIC_FREE(NextSourceCid);
                     }
                 }
