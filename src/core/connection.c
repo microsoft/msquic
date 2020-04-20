@@ -3710,10 +3710,10 @@ QuicConnRecvPostProcessing(
                         // can discard the old (client chosen) one now.
                         //
                         SourceCid->Link.Next = NextSourceCid->Link.Next;
-                        QuicBindingRemoveSourceConnectionID(
-                            Connection->Paths[0].Binding, NextSourceCid);
+                        QUIC_DBG_ASSERT(NextSourceCid->CID.IsInList);
                         QuicTraceEvent(ConnSourceCidRemoved,
                             Connection, NextSourceCid->CID.SequenceNumber, NextSourceCid->CID.Length, NextSourceCid->CID.Data);
+                        NextSourceCid->CID.IsInList = FALSE;
                         QUIC_FREE(NextSourceCid);
                     }
                 }
