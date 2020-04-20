@@ -3503,6 +3503,12 @@
                 name="arg4"
                 />
           </template>
+          <template tid="template_ui8_">
+            <data
+                inType="win:UInt8"
+                name="arg2"
+                />
+          </template>
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
@@ -10649,6 +10655,62 @@
               symbol="FN_drivere2715f5ac91739cf9fdd047896c7912c"
               template="template_ui32_"
               value="868"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="QuicLibrarySetGlobalParam_UpdatedEncryption"
+              template="template_ui16_"
+              value="869"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="QuicLibrarySetGlobalParam_MemoryRetryLimit"
+              template="template_ui16_"
+              value="870"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="QuicLibrarySetGlobalParam_UpdatedLoadBalancing"
+              template="template_ui16_"
+              value="871"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_session_QUIC_PARAM_SESSION_MIGRATION_ENABLED"
+              template="template_ptr_ui8_"
+              value="872"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_settings_Dump_PacingDefault"
+              template="template_ui8_"
+              value="873"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_settings_Dump_MigrationEnabled"
+              template="template_ui8_"
+              value="874"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_settings_Dump_MaxPartitionCount"
+              template="template_ui8_"
+              value="875"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_settings_Dump_MaxOperationsPerDrain"
+              template="template_ui8_"
+              value="876"
               />
         </events>
       </provider>
