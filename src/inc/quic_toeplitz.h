@@ -6,7 +6,8 @@
 Abstract:
 
     An implementation of the Toeplitz Hash Algorithm (adapted from Windows
-    RTL toeplitz hash implementation).
+    internal Toeplitz hash implementation).
+
 
 --*/
 
