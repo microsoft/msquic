@@ -394,10 +394,7 @@ HttpRequest::QuicUnidiCallbackHandler(
             Event->PEER_SEND_ABORTED.ErrorCode);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
-        //printf("[%s] Complete\n", GetRemoteAddr(MsQuic, Stream).Address);
         delete pThis;
-        break;
-    default:
         break;
     }
     return QUIC_STATUS_SUCCESS;

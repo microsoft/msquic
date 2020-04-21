@@ -97,7 +97,6 @@ private:
         _In_opt_ void* Context,
         _Inout_ QUIC_STREAM_EVENT* Event
         );
-
     static
     QUIC_STATUS
     QUIC_API
