@@ -17,6 +17,8 @@ extern "C" void QuicTraceRundown(void) { }
 
 #define IO_SIZE (64 * 1024)
 
+#define POST_HEADER_FORMAT "POST %s \r\n"
+
 #define EXIT_ON_FAILURE(x) do { \
     auto _Status = x; \
     if (QUIC_FAILED(_Status)) { \
@@ -75,10 +77,12 @@ StreamHandler(
 {
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
-        if (!Event->SEND_COMPLETE.Canceled) {
+        if (Event->SEND_COMPLETE.Canceled) {
             TransferCanceled = true;
+            printf("Send canceled!\n");
         }
         QuicEventSet(SendReady);
+        printf("Send complete!\n");
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         printf("Stream Shutdown Complete\n");
@@ -121,6 +125,16 @@ main(
         exit(1);
     }
 
+    const char* FileName = strrchr(FilePath, '\\');
+    if (FileName == nullptr) {
+        FileName = strrchr(FilePath, '/');
+        if (FileName == nullptr) {
+            printf("Failed to parse file name!\n");
+            exit(1);
+        }
+    }
+    FileName += 1;
+
     QuicEventInitialize(&SendReady, FALSE, FALSE);
 
     HQUIC Registration = nullptr;
@@ -142,12 +156,21 @@ main(
     uint8_t Buffer[IO_SIZE];
     QUIC_BUFFER SendBuffer = { 0, Buffer };
 
+    SendBuffer.Length = snprintf((char*)Buffer, sizeof(Buffer), POST_HEADER_FORMAT, FileName);
+    if (SendBuffer.Length >= sizeof(Buffer)) {
+        printf("Failed writing POST header!\n");
+        exit(1);
+    }
+
+    EXIT_ON_FAILURE(MsQuic->StreamSend(Stream, &SendBuffer, 1, QUIC_SEND_FLAG_NONE, nullptr));
+    QuicEventWaitForever(SendReady);
+
     do {
         SendBuffer.Length = (uint32_t)
             fread(
                 SendBuffer.Buffer,
-                sizeof(Buffer),
                 1,
+                sizeof(Buffer),
                 File);
         QUIC_SEND_FLAGS SendFlags =
             (SendBuffer.Length != sizeof(Buffer)) ? QUIC_SEND_FLAG_FIN : QUIC_SEND_FLAG_NONE;

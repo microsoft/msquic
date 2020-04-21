@@ -66,7 +66,7 @@ struct HttpSendBuffer {
 struct HttpConnection;
 
 struct HttpRequest {
-    HttpRequest(HttpConnection *connection, HQUIC stream);
+    HttpRequest(HttpConnection *connection, HQUIC stream, bool Unidirectional);
 private:
     HttpConnection *Connection;
     HQUIC QuicStream;
@@ -85,10 +85,23 @@ private:
     }
     void Process();
     void SendData();
+    void ReceiveData(
+        _In_ const QUIC_BUFFER* Buffers,
+        _In_ uint32_t BufferCount
+        );
     static
     QUIC_STATUS
     QUIC_API
     QuicCallbackHandler(
+        _In_ HQUIC Stream,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_STREAM_EVENT* Event
+        );
+
+    static
+    QUIC_STATUS
+    QUIC_API
+    UnidirectionalStreamCallback(
         _In_ HQUIC Stream,
         _In_opt_ void* Context,
         _Inout_ QUIC_STREAM_EVENT* Event
@@ -126,36 +139,14 @@ private:
         HttpConnection *pThis = (HttpConnection*)Context;
         switch (Event->Type) {
         case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
-            if (Event->PEER_STREAM_STARTED.Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL) {
-                MsQuic->SetCallbackHandler(
-                    Event->PEER_STREAM_STARTED.Stream,
-                    (void*)HttpUnidirectionalStreamCallback,
-                    nullptr);
-            } else {
-                new HttpRequest(pThis, Event->PEER_STREAM_STARTED.Stream);
-            }
+            new HttpRequest(
+                pThis,
+                Event->PEER_STREAM_STARTED.Stream,
+                Event->PEER_STREAM_STARTED.Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
             break;
         case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
             pThis->Release();
             break;
-        }
-        return QUIC_STATUS_SUCCESS;
-    }
-    static
-    _Function_class_(QUIC_STREAM_CALLBACK)
-    QUIC_STATUS
-    HttpUnidirectionalStreamCallback(
-        _In_ HQUIC Stream,
-        _In_opt_ void* /* Context */,
-        _Inout_ QUIC_STREAM_EVENT* Event
-        )
-    {
-        if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
-            //
-            // Don't care about anything else on the stream except closing it in
-            // resposne to shutdown complete.
-            //
-            MsQuic->StreamClose(Stream);
         }
         return QUIC_STATUS_SUCCESS;
     }
