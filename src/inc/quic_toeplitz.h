@@ -17,7 +17,8 @@ Abstract:
 #define BITS_PER_NIBBLE     4
 
 //
-// The size (in bytes) of the input for our Toeplitz hashes.
+// The size (in bytes) of the input.
+
 // This includes space for a 20 bytes for CID, 16 bytes for IPv6 address
 // and 2 bytes for UDP port.
 //
