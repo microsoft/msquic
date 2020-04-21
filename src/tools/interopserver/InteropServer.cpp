@@ -312,7 +312,7 @@ HttpRequest::ReceiveUniDiData(
 
     for (uint32_t i = 0; i < BufferCount; ++i) {
         uint32_t DataLength = Buffers[i].Length - SkipLength;
-        if (fwrite(Buffers[i].Buffer + SkipLength, 1, Buffers[i].Length, File) < DataLength) {
+        if (fwrite(Buffers[i].Buffer + SkipLength, 1, DataLength, File) < DataLength) {
             printf("[%s] Failed to write file\n", GetRemoteAddr(MsQuic, QuicStream).Address);
             return false;
         }
@@ -365,7 +365,6 @@ HttpRequest::QuicBidiCallbackHandler(
 
     return QUIC_STATUS_SUCCESS;
 }
-
 
 _Function_class_(QUIC_STREAM_CALLBACK)
 QUIC_STATUS
