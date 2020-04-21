@@ -15,9 +15,9 @@ Abstract:
 
 extern "C" void QuicTraceRundown(void) { }
 
-#define IO_SIZE (64 * 1024)
+#define IO_SIZE (128 * 1024)
 
-#define POST_HEADER_FORMAT "POST %s \r\n"
+#define POST_HEADER_FORMAT "POST %s\r\n"
 
 #define EXIT_ON_FAILURE(x) do { \
     auto _Status = x; \
@@ -34,6 +34,7 @@ const QUIC_BUFFER ALPNs[] = {
 };
 
 const QUIC_API_TABLE* MsQuic;
+const uint32_t CertificateValidationFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
 uint16_t Port = 4433;
 const char* ServerName = "localhost";
 const char* FilePath = nullptr;
@@ -55,8 +56,14 @@ ConnectionHandler(
     case QUIC_CONNECTION_EVENT_CONNECTED:
         printf("Connected\n");
         break;
+    case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
+        printf("Transport Shutdown 0x%x\n", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
+        break;
+    case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
+        printf("Peer Shutdown 0x%llx\n", Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
+        break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        printf("Shutdown Complete\n");
+        //printf("Shutdown Complete\n");
         MsQuic->ConnectionClose(Connection);
         break;
     default:
@@ -82,10 +89,11 @@ StreamHandler(
             printf("Send canceled!\n");
         }
         QuicEventSet(SendReady);
-        printf("Send complete!\n");
+        break;
+    case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
+        printf("Peer stream recv abort (0x%llx)\n", Event->PEER_RECEIVE_ABORTED.ErrorCode);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
-        printf("Stream Shutdown Complete\n");
         MsQuic->ConnectionShutdown(Stream, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         MsQuic->StreamClose(Stream);
         break;
@@ -102,13 +110,7 @@ main(
     _In_reads_(argc) _Null_terminated_ char* argv[]
     )
 {
-    if (argc < 2 ||
-        !TryGetValue(argc, argv, "file", &FilePath) ||
-        !strcmp(argv[1], "?") ||
-        !strcmp(argv[1], "-?") ||
-        !strcmp(argv[1], "--?") ||
-        !strcmp(argv[1], "/?") ||
-        !strcmp(argv[1], "help")) {
+    if (argc < 2 || !TryGetValue(argc, argv, "file", &FilePath)) {
         printf("Usage: quicpost.exe [-server:<name>] [-ip:<ip>] [-port:<number>] -file:<path>\n");
         exit(1);
     }
@@ -128,12 +130,12 @@ main(
     const char* FileName = strrchr(FilePath, '\\');
     if (FileName == nullptr) {
         FileName = strrchr(FilePath, '/');
-        if (FileName == nullptr) {
-            printf("Failed to parse file name!\n");
-            exit(1);
-        }
     }
-    FileName += 1;
+    if (FileName == nullptr) {
+        FileName = FilePath; // There was no path in FilePath
+    } else {
+        FileName += 1;
+    }
 
     QuicEventInitialize(&SendReady, FALSE, FALSE);
 
@@ -147,40 +149,49 @@ main(
     EXIT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
     EXIT_ON_FAILURE(MsQuic->SessionOpen(Registration, ALPNs, ARRAYSIZE(ALPNs), nullptr, &Session));
     EXIT_ON_FAILURE(MsQuic->ConnectionOpen(Session, ConnectionHandler, nullptr, &Connection));
+    EXIT_ON_FAILURE(MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS, sizeof(CertificateValidationFlags), &CertificateValidationFlags));
     EXIT_ON_FAILURE(MsQuic->StreamOpen(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, StreamHandler, nullptr, &Stream));
     EXIT_ON_FAILURE(MsQuic->StreamStart(Stream, QUIC_STREAM_START_FLAG_ASYNC));
     EXIT_ON_FAILURE(MsQuic->ConnectionStart(Connection, AF_UNSPEC, ServerName, Port));
 
-    printf("Starting send\n");
+    printf("POST '%s' to %s:%hu\n", FileName, ServerName, Port);
+
+    uint64_t TotalBytesSent = 0;
+    uint64_t TimeStart = QuicTimeUs64();
 
     uint8_t Buffer[IO_SIZE];
     QUIC_BUFFER SendBuffer = { 0, Buffer };
-
     SendBuffer.Length = snprintf((char*)Buffer, sizeof(Buffer), POST_HEADER_FORMAT, FileName);
-    if (SendBuffer.Length >= sizeof(Buffer)) {
-        printf("Failed writing POST header!\n");
-        exit(1);
-    }
 
-    EXIT_ON_FAILURE(MsQuic->StreamSend(Stream, &SendBuffer, 1, QUIC_SEND_FLAG_NONE, nullptr));
-    QuicEventWaitForever(SendReady);
-
+    bool EndOfFile = false;
     do {
-        SendBuffer.Length = (uint32_t)
+        SendBuffer.Length += (uint32_t)
             fread(
-                SendBuffer.Buffer,
+                SendBuffer.Buffer + SendBuffer.Length,
                 1,
-                sizeof(Buffer),
+                sizeof(Buffer) - SendBuffer.Length,
                 File);
-        QUIC_SEND_FLAGS SendFlags =
-            (SendBuffer.Length != sizeof(Buffer)) ? QUIC_SEND_FLAG_FIN : QUIC_SEND_FLAG_NONE;
-        EXIT_ON_FAILURE(MsQuic->StreamSend(Stream, &SendBuffer, 1, SendFlags, nullptr));
+        EndOfFile = SendBuffer.Length != sizeof(Buffer);
+        EXIT_ON_FAILURE(MsQuic->StreamSend(Stream, &SendBuffer, 1, EndOfFile ? QUIC_SEND_FLAG_FIN : QUIC_SEND_FLAG_NONE, nullptr));
         QuicEventWaitForever(SendReady);
-    } while (!TransferCanceled && SendBuffer.Length == sizeof(Buffer));
+        TotalBytesSent += SendBuffer.Length;
+        SendBuffer.Length = 0;
+    } while (!TransferCanceled && !EndOfFile);
 
     MsQuic->SessionClose(Session);
     MsQuic->RegistrationClose(Registration);
     MsQuicClose(MsQuic);
+
+    uint64_t TimeEnd = QuicTimeUs64();
+    uint64_t ElapsedUs = QuicTimeDiff64(TimeStart, TimeEnd);
+    uint64_t SendRateKbps = (TotalBytesSent * 1000 * 8) / ElapsedUs;
+
+    printf("%llu bytes sent in %llu.%03llu ms ", TotalBytesSent, ElapsedUs / 1000, ElapsedUs % 1000);
+    if (SendRateKbps > 1000) {
+        printf("(%llu.%03llu mbps)\n", SendRateKbps / 1000, SendRateKbps % 1000);
+    } else {
+        printf("(%llu kbps)\n", SendRateKbps);
+    }
 
     QuicEventUninitialize(SendReady);
     fclose(File);

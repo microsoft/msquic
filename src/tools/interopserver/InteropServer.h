@@ -85,14 +85,14 @@ private:
     }
     void Process();
     void SendData();
-    void ReceiveData(
+    bool ReceiveUniDiData(
         _In_ const QUIC_BUFFER* Buffers,
         _In_ uint32_t BufferCount
         );
     static
     QUIC_STATUS
     QUIC_API
-    QuicCallbackHandler(
+    QuicBidiCallbackHandler(
         _In_ HQUIC Stream,
         _In_opt_ void* Context,
         _Inout_ QUIC_STREAM_EVENT* Event
@@ -101,7 +101,7 @@ private:
     static
     QUIC_STATUS
     QUIC_API
-    UnidirectionalStreamCallback(
+    QuicUnidiCallbackHandler(
         _In_ HQUIC Stream,
         _In_opt_ void* Context,
         _Inout_ QUIC_STREAM_EVENT* Event

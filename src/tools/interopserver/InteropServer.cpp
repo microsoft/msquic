@@ -137,7 +137,9 @@ HttpRequest::HttpRequest(HttpConnection *connection, HQUIC stream, bool Unidirec
 {
     MsQuic->SetCallbackHandler(
         QuicStream,
-        (Unidirectional) ? (void*)UnidirectionalStreamCallback : (void*)QuicCallbackHandler,
+        Unidirectional ?
+            (void*)QuicUnidiCallbackHandler :
+            (void*)QuicBidiCallbackHandler,
         this);
     Connection->AddRef();
 }
@@ -145,8 +147,7 @@ HttpRequest::HttpRequest(HttpConnection *connection, HQUIC stream, bool Unidirec
 HttpRequest::~HttpRequest()
 {
     if (File) {
-        fflush(File);
-        fclose(File);
+        fclose(File); // TODO - If POST, abandon/delete file as it wasn't finished.
     }
     MsQuic->StreamClose(QuicStream);
     Connection->Release();
@@ -184,16 +185,16 @@ HttpRequest::Process()
         return;
     }
 
-    char fullFilePath[256];
-    strcpy(fullFilePath, RootFolderPath);
+    char FullFilePath[256];
+    strcpy(FullFilePath, RootFolderPath);
     if (strcmp("/", PathStart) == 0) {
-        strcat(fullFilePath, "/index.html");
+        strcat(FullFilePath, "/index.html");
     } else {
-        strcat(fullFilePath, PathStart);
+        strcat(FullFilePath, PathStart);
     }
 
     printf("[%s] GET '%s'\n", GetRemoteAddr(MsQuic, QuicStream).Address, PathStart);
-    File = fopen(fullFilePath, "rb"); // In case of failure, SendData still works.
+    File = fopen(FullFilePath, "rb"); // In case of failure, SendData still works.
 
     SendData();
 }
@@ -259,96 +260,71 @@ HttpRequest::SendData()
     }
 }
 
-void
-HttpRequest::ReceiveData(
+bool
+HttpRequest::ReceiveUniDiData(
     _In_ const QUIC_BUFFER* Buffers,
     _In_ uint32_t BufferCount
     )
 {
-    if (File != nullptr) {
-        //
-        // Write to the file
-        //
-        for(uint32_t i = 0; i < BufferCount; ++i) {
-            if (fwrite(Buffers[i].Buffer, 1, Buffers[i].Length, File) < Buffers[i].Length) {
-                printf("[%s] Failed to write file\n", GetRemoteAddr(MsQuic, QuicStream).Address);
-                Abort(QUIC_STATUS_INTERNAL_ERROR);
-                return;
-            }
-        }
-    } else {
-        //
-        // Parse the buffer for POST header
-        //
+    if (UploadFolderPath == nullptr) {
+        printf("[%s] Server not configured for POST!\n", GetRemoteAddr(MsQuic, QuicStream).Address);
+        return false;
+    }
+
+    uint32_t SkipLength = 0;
+    if (File == nullptr) {
         const QUIC_BUFFER* FirstBuffer = Buffers;
-
-        if (UploadFolderPath == nullptr) {
-            printf("[%s] Server not configured for POST!\n", GetRemoteAddr(MsQuic, QuicStream).Address);
-            Abort(QUIC_STATUS_NOT_SUPPORTED);
-            return;
-        }
-
         if (FirstBuffer->Length < 5 ||
             _strnicmp((const char*)FirstBuffer->Buffer, "post ", 5) != 0) {
-            printf("[%s] Invalid post\n", GetRemoteAddr(MsQuic, QuicStream).Address);
-            Abort(QUIC_STATUS_INVALID_PARAMETER);
-            return;
+            printf("[%s] Invalid post prefix\n", GetRemoteAddr(MsQuic, QuicStream).Address);
+            return false;
         }
 
         char* FileName = (char*)FirstBuffer->Buffer + 5;
-
-        char* end = strstr(FileName, " \r\n");
-        if (end != nullptr) {
-            //
-            // We shouldn't be writing to the buffer. Don't imitate this.
-            //
-            *end = '\0';
-        } else {
-            printf("[%s] Invalid post\n", GetRemoteAddr(MsQuic, QuicStream).Address);
-            Abort(QUIC_STATUS_INVALID_PARAMETER);
-            return;
+        char* FileNameEnd = strstr(FileName, "\r\n");
+        if (FileNameEnd == nullptr) {
+            printf("[%s] Invalid post suffix\n", GetRemoteAddr(MsQuic, QuicStream).Address);
+            return false;
         }
+        *FileNameEnd = '\0'; // We shouldn't be writing to the buffer. Don't imitate this.
 
         if (strstr(FileName, "..") != nullptr) {
             printf("[%s] '..' found\n", GetRemoteAddr(MsQuic, QuicStream).Address);
-            Abort(QUIC_STATUS_INVALID_PARAMETER); // Don't allow requests with ../ in them.
-            return;
+            return false;
         }
 
-        char fullFilePath[256];
-        if (snprintf(fullFilePath, sizeof(fullFilePath), "%s/%s", UploadFolderPath, FileName) < 0) {
-            printf("[%s] invalid path\n", GetRemoteAddr(MsQuic, QuicStream).Address);
-            Abort(QUIC_STATUS_INTERNAL_ERROR);
-            return;
+        char FullFilePath[256];
+        if (snprintf(FullFilePath, sizeof(FullFilePath), "%s/%s", UploadFolderPath, FileName) < 0) {
+            printf("[%s] Invalid path\n", GetRemoteAddr(MsQuic, QuicStream).Address);
+            return false;
         }
 
         printf("[%s] POST '%s'\n", GetRemoteAddr(MsQuic, QuicStream).Address, FileName);
-        File = fopen(fullFilePath, "wb");
-
-        //
-        // Write data received, if available.
-        //
-        uint32_t DataLength = FirstBuffer->Length - (5 + (uint32_t)(end - FileName) + 3);
-        if (DataLength > 0) {
-            if (fwrite(FirstBuffer->Buffer, 1, DataLength, File) < DataLength) {
-                printf("[%s] Failed to write file: %s\n", GetRemoteAddr(MsQuic, QuicStream).Address, fullFilePath);
-                Abort(QUIC_STATUS_INTERNAL_ERROR);
-                return;
-            }
+        File = fopen(FullFilePath, "wb");
+        if (!File) {
+            printf("[%s] Failed to open file\n", GetRemoteAddr(MsQuic, QuicStream).Address);
+            return false;
         }
 
-        if (BufferCount > 1) {
-            //
-            // Write the rest of the data in other buffers
-            //
-            ReceiveData(Buffers + 1, BufferCount - 1);
-        }
+        FileNameEnd += 2; // Skip "\r\n"
+        SkipLength = (uint32_t)((uint8_t*)FileNameEnd - FirstBuffer->Buffer);
     }
+
+    for (uint32_t i = 0; i < BufferCount; ++i) {
+        uint32_t DataLength = Buffers[i].Length - SkipLength;
+        if (fwrite(Buffers[i].Buffer + SkipLength, 1, Buffers[i].Length, File) < DataLength) {
+            printf("[%s] Failed to write file\n", GetRemoteAddr(MsQuic, QuicStream).Address);
+            return false;
+        }
+        SkipLength = 0;
+    }
+
+    return true;
 }
 
 QUIC_STATUS
 QUIC_API
-HttpRequest::QuicCallbackHandler(
+HttpRequest::QuicBidiCallbackHandler(
     _In_ HQUIC Stream,
     _In_opt_ void* Context,
     _Inout_ QUIC_STREAM_EVENT* Event
@@ -394,23 +370,36 @@ HttpRequest::QuicCallbackHandler(
 _Function_class_(QUIC_STREAM_CALLBACK)
 QUIC_STATUS
 QUIC_API
-HttpRequest::UnidirectionalStreamCallback(
+HttpRequest::QuicUnidiCallbackHandler(
     _In_ HQUIC Stream,
     _In_opt_ void* Context,
     _Inout_ QUIC_STREAM_EVENT* Event
     )
 {
     auto pThis = (HttpRequest*)Context;
-    if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
-        printf("Receiving data!\n");
-        pThis->ReceiveData(Event->RECEIVE.Buffers, Event->RECEIVE.BufferCount);
-        Event->RECEIVE.TotalBufferLength = 0; // Consume all data
-    } else if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
-        //
-        // Don't care about anything else on the stream except closing it in
-        // resposne to shutdown complete.
-        //
+    switch (Event->Type) {
+    case QUIC_STREAM_EVENT_RECEIVE:
+        if (!pThis->ReceiveUniDiData(Event->RECEIVE.Buffers, Event->RECEIVE.BufferCount)) {
+            pThis->Abort(1); // BUG - Seems like we continue to get receive callbacks!
+        }
+        break;
+    case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
+        if (pThis->File) {
+            fclose(pThis->File);
+            pThis->File = nullptr;
+        }
+        break;
+    case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
+        printf("[%s] Peer abort (0x%llx)\n",
+            GetRemoteAddr(MsQuic, Stream).Address,
+            Event->PEER_SEND_ABORTED.ErrorCode);
+        break;
+    case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
+        //printf("[%s] Complete\n", GetRemoteAddr(MsQuic, Stream).Address);
         delete pThis;
+        break;
+    default:
+        break;
     }
     return QUIC_STATUS_SUCCESS;
 }
