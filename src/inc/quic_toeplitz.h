@@ -24,7 +24,8 @@ Abstract:
 #define QUIC_TOEPLITZ_INPUT_SIZE            38
 
 //
-// The size (in bytes) of the output of our Toeplitz hashes.
+// The size (in bytes) of the output hash.
+
 //
 #define QUIC_TOEPLITZ_OUPUT_SIZE            sizeof(uint32_t)
 
