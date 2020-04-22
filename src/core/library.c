@@ -915,6 +915,8 @@ MsQuicOpen(
     Api->StreamReceiveComplete = MsQuicStreamReceiveComplete;
     Api->StreamReceiveSetEnabled = MsQuicStreamReceiveSetEnabled;
 
+    Api->DatagramSend = MsQuicDatagramSend;
+
     *QuicApi = Api;
 
 Error:

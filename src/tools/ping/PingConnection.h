@@ -82,6 +82,17 @@ struct PingConnection {
     uint64_t BytesSent;
     uint64_t BytesReceived;
 
+    uint16_t DatagramLength;
+
+    uint64_t DatagramsSent;
+    uint64_t DatagramsAcked;
+    uint64_t DatagramsLost;
+    uint64_t DatagramsCancelled;
+
+    uint64_t DatagramsReceived;
+    uint64_t DatagramsJitterTotal;
+    uint64_t DatagramLastTime;
+
     //
     // Constructor for creating a new connection.
     //
@@ -122,6 +133,11 @@ struct PingConnection {
         );
 
 private:
+
+    bool
+    QueueDatagram(
+        PingSendRequest* SendRequest
+        );
 
     void
     ProcessEvent(

@@ -732,6 +732,13 @@ QuicSendWriteFrames(
                 return TRUE;
             }
         }
+
+        if (Send->SendFlags & QUIC_CONN_SEND_FLAG_DATAGRAM) {
+            RanOutOfRoom = QuicDatagramWriteFrame(&Connection->Datagram, Builder);
+            if (Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
+                return TRUE;
+            }
+        }
     }
 
     if (Send->SendFlags & QUIC_CONN_SEND_FLAG_PING) {
@@ -1152,10 +1159,12 @@ QuicSendOnMtuProbePacketAcked(
     _In_ QUIC_SENT_PACKET_METADATA* Packet
     )
 {
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
     Path->Mtu =
         PacketSizeFromUdpPayloadSize(
             QuicAddrGetFamily(&Path->RemoteAddress),
             Packet->PacketLength);
     QuicTraceLogConnInfo(PathMtuUpdated, QuicSendGetConnection(Send), "Path[%hu] MTU updated to %u bytes",
         Path->ID, Path->Mtu);
+    QuicDatagramUpdateMaxLength(&Connection->Datagram);
 }

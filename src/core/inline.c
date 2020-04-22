@@ -260,6 +260,11 @@ QuicSendGetConnection(
     _In_ QUIC_SEND* Send
     );
 
+QUIC_CONNECTION*
+QuicDatagramGetConnection(
+    _In_ QUIC_DATAGRAM* Datagram
+    );
+
 uint8_t
 QuicEncryptLevelToPacketType(
     QUIC_ENCRYPT_LEVEL Level

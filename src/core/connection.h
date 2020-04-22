@@ -503,6 +503,11 @@ typedef struct QUIC_CONNECTION {
     QUIC_SEND_BUFFER SendBuffer;
 
     //
+    // Manages datagrams for the connection.
+    //
+    QUIC_DATAGRAM Datagram;
+
+    //
     // The handler for the API client's callbacks.
     //
     QUIC_CONNECTION_CALLBACK_HANDLER ClientCallbackHandler;
@@ -641,6 +646,19 @@ QuicLossDetectionGetConnection(
     )
 {
     return QUIC_CONTAINING_RECORD(LossDetection, QUIC_CONNECTION, LossDetection);
+}
+
+//
+// Helper to get the owning QUIC_CONNECTION for datagram.
+//
+inline
+_Ret_notnull_
+QUIC_CONNECTION*
+QuicDatagramGetConnection(
+    _In_ QUIC_DATAGRAM* Datagram
+    )
+{
+    return QUIC_CONTAINING_RECORD(Datagram, QUIC_CONNECTION, Datagram);
 }
 
 inline

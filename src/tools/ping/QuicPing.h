@@ -11,9 +11,6 @@
 
 #include <msquichelper.h>
 
-#include "PingStream.h"
-#include "PingConnection.h"
-
 //
 // QUIC API Function Table.
 //
@@ -28,6 +25,11 @@ extern HQUIC Registration;
 // Security configuration for server.
 //
 extern QUIC_SEC_CONFIG* SecurityConfig;
+
+//
+// Raw byte buffer for sending.
+//
+extern uint8_t* QuicPingRawIoBuffer;
 
 //
 // The protocol name used for QuicPing
@@ -79,6 +81,11 @@ extern QUIC_SEC_CONFIG* SecurityConfig;
 #define DEFAULT_SEND_COUNT_BUFFERED 1
 
 //
+// The default payload length of datagrams.
+//
+#define DEFAULT_DATAGRAM_MAX_LENGTH UINT16_MAX // Use connection max
+
+//
 // The disconnect timeout (in milliseconds) used.
 //
 #define DEFAULT_DISCONNECT_TIMEOUT (10 * 1000)
@@ -110,12 +117,14 @@ typedef struct QUIC_PING_CONFIG {
 
     uint64_t LocalUnidirStreamCount;    // Total
     uint64_t LocalBidirStreamCount;     // Total
+    uint64_t LocalDatagramCount;        // Total
     uint16_t PeerUnidirStreamCount;     // Max simultaneous
     uint16_t PeerBidirStreamCount;      // Max simultaneous
 
     uint64_t MaxBytesPerKey;            // Max bytes per key
 
     uint64_t StreamPayloadLength;
+    uint16_t DatagramMaxLength;
 
     uint32_t IoSize;
     uint32_t IoCount;
@@ -144,6 +153,50 @@ struct QuicSession
     }
 };
 
+struct PingSendRequest {
+
+    QUIC_SEND_FLAGS Flags;
+    QUIC_BUFFER QuicBuffer;
+    bool DeleteBufferOnDestruction;
+
+    PingSendRequest(
+        ) {
+        DeleteBufferOnDestruction = false;
+        Flags = QUIC_SEND_FLAG_ALLOW_0_RTT;
+        QuicBuffer.Buffer = QuicPingRawIoBuffer;
+        QuicBuffer.Length = 0;
+    }
+
+    PingSendRequest(
+        const uint8_t * buffer,
+        uint32_t bufferSize
+        ) {
+        DeleteBufferOnDestruction = true;
+        Flags = QUIC_SEND_FLAG_NONE;
+        QuicBuffer.Buffer = new uint8_t[bufferSize];
+        QuicBuffer.Length = bufferSize;
+        if (buffer) {
+            memcpy((uint8_t*)QuicBuffer.Buffer, buffer, bufferSize);
+        }
+    }
+
+    void SetLength(uint64_t BytesLeftToSend) {
+        if (BytesLeftToSend > PingConfig.IoSize) {
+            QuicBuffer.Length = PingConfig.IoSize;
+        } else {
+            Flags |= QUIC_SEND_FLAG_FIN;
+            QuicBuffer.Length = (uint32_t)BytesLeftToSend;
+        }
+    }
+
+    ~PingSendRequest(
+        ) {
+        if (DeleteBufferOnDestruction) {
+            delete[] QuicBuffer.Buffer;
+        }
+    }
+};
+
 //
 // Starts the server at the local address and waits for clients until a key is pressed.
 //
@@ -154,3 +207,5 @@ void QuicPingServerRun();
 //
 void QuicPingClientRun();
 
+#include "PingStream.h"
+#include "PingConnection.h"

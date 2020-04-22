@@ -59,11 +59,13 @@ PrintUsage()
         "  -stats:<0/1>                Enabled/disables printing statistics. (def:%u)\n"
         "  -uni:<####>                 The number of unidirectional streams to open locally. (def:0)\n"
         "  -bidi:<####>                The number of bidirectional streams to open locally. (def:0)\n"
-        "  -peer_uni:<####>            The number of unidirectional streams for the server to open. (def:0)\n"
-        "  -peer_bidi:<####>           The number of bidirectional streams for the server to open. (def:0)\n"
+        "  -peer_uni:<####>            The number of unidirectional streams for the peer to open. (def:0)\n"
+        "  -peer_bidi:<####>           The number of bidirectional streams for the peer to open. (def:0)\n"
         "  -length:<####>              The length of streams opened locally. (def:0)\n"
         "  -iosize:<####>              The size of each send request queued. (buffered def:%u) (nonbuffered def:%u)\n"
         "  -iocount:<####>             The number of outstanding send requests to queue per stream. (buffered def:%u) (nonbuffered def:%u)\n"
+        "  -datagrams:<####>           The number of datagrams to open locally. (def:0)\n"
+        "  -dlength:<####>             The max length of each datagram. (def:%u)\n"
         "  -timeout:<####>             Disconnect timeout for connection. (def:%u ms)\n"
         "  -idle:<####>                Idle timeout for connection. (def:%u ms)\n"
         "  -key_bytes:<####>           The number of bytes encrypted per key.\n",
@@ -75,6 +77,7 @@ PrintUsage()
         DEFAULT_PRINT_STATISTICS,
         DEFAULT_SEND_IO_SIZE_BUFFERED, DEFAULT_SEND_IO_SIZE_NONBUFFERED,
         DEFAULT_SEND_COUNT_BUFFERED, DEFAULT_SEND_COUNT_NONBUFFERED,
+        DEFAULT_DATAGRAM_MAX_LENGTH,
         DEFAULT_DISCONNECT_TIMEOUT,
         DEFAULT_IDLE_TIMEOUT);
 
@@ -163,6 +166,14 @@ ParseCommonCommands(
     uint32_t ioCount = PingConfig.UseSendBuffer ? DEFAULT_SEND_COUNT_BUFFERED : DEFAULT_SEND_COUNT_NONBUFFERED;
     TryGetValue(argc, argv, "iocount", &ioCount);
     PingConfig.IoCount = ioCount;
+
+    uint64_t datagrams = 0;
+    TryGetValue(argc, argv, "datagrams", &datagrams);
+    PingConfig.LocalDatagramCount = datagrams;
+
+    uint16_t datagramMaxLength = DEFAULT_DATAGRAM_MAX_LENGTH;
+    TryGetValue(argc, argv, "dlength", &datagramMaxLength);
+    PingConfig.DatagramMaxLength = datagramMaxLength;
 
     uint32_t disconnectTimeout = DEFAULT_DISCONNECT_TIMEOUT;
     TryGetValue(argc, argv, "timeout", &disconnectTimeout);
