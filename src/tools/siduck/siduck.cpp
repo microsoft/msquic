@@ -15,10 +15,10 @@ Abstract:
 
 const QUIC_REGISTRATION_CONFIG RegConfig = { "siduck", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
 const QUIC_BUFFER Alpn = { sizeof("siduck") - 1, (uint8_t*)"siduck" };
-const uint16_t UdpPort = 5000;
-const uint64_t IdleTimeoutMs = 3000;
-const uint32_t QuackPeriodMs = 500;
-const uint32_t QuackCount = 10;
+uint16_t UdpPort = 5000;
+uint64_t IdleTimeoutMs = 3000;
+uint32_t QuackPeriodMs = 500;
+uint32_t QuackCount = 10;
 
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
@@ -304,6 +304,11 @@ main(
         QuicPlatformSystemUnload();
         return Status;
     }
+
+    TryGetValue(argc, argv, "port", &UdpPort);
+    TryGetValue(argc, argv, "idle", &IdleTimeoutMs);
+    TryGetValue(argc, argv, "count", &QuackCount);
+    TryGetValue(argc, argv, "period", &QuackPeriodMs);
 
     if (QUIC_FAILED(Status = MsQuicOpen(&MsQuic))) {
         printf("MsQuicOpen failed, 0x%x!\n", Status);
