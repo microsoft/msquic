@@ -37,15 +37,53 @@
             "Keyword": "0x0000000080000000",
             "Level": "0x4"
           }
+        },
+        {
+          "ExportModule": "MANIFESTED_ETW",
+          "CustomSettings": {
+            "ETWManifestFile": "MsQuicEtw.man",
+            "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+            "Level": "win:Informational",
+            "Keywords": "ut:Connection ut:LowVolume"
+          }
+        },
+        {
+          "ExportModule": "DTRACE",
+          "CustomSettings": {}
         }
       ]
     }
   },
   "Version": 1,
-  "CustomTypeClogCSharpFile": null,
+  "CustomTypeClogCSharpFile": "msquic.clog.cs",
   "TypeEncoders": {
     "Version": 0,
-    "TypeEncoder": []
+    "TypeEncoder": [
+      {
+        "EncodingType": "ByteArray",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!SOCKADDR!",
+        "CustomDecoder": "msquic.clog_config.Types.QUIC_IP_ADDR"
+      },
+      {
+        "EncodingType": "ByteArray",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!IPV4ADDR!",
+        "CustomDecoder": "msquic.clog_config.Types.QUIC_IP_ADDR"
+      },
+      {
+        "EncodingType": "ByteArray",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!IPV6ADDR!",
+        "CustomDecoder": "msquic.clog_config.Types.QUIC_IP_ADDR"
+      },
+      {
+        "EncodingType": "ByteArray",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!CID!",
+        "CustomDecoder": "msquic.clog_config.Types.DecodeCID"
+      }
+    ]
   },
   "SourceCodeMacros": [
     {

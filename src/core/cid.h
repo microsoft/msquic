@@ -298,30 +298,3 @@ inline char QuicHalfByteToStr(uint8_t b)
 {
     return b < 10 ? ('0' + b) : ('a' + b - 10);
 }
-
-inline
-QUIC_CID_STR
-QuicCidBufToStr(
-    _In_reads_(Length)
-        const uint8_t* const Data,
-    _In_ uint8_t Length
-    )
-{
-    QUIC_CID_STR CidStr = { 0 };
-    for (uint8_t i = 0; i < Length; i++) {
-        CidStr.Buffer[i * 2] = QuicHalfByteToStr(Data[i] >> 4);
-        CidStr.Buffer[i * 2 + 1] = QuicHalfByteToStr(Data[i] & 0xF);
-    }
-    CidStr.Buffer[Length * 2] = 0;
-    return CidStr;
-}
-
-inline
-QUIC_CID_STR
-QuicCidToStr(
-    _In_ const QUIC_CID* const CID
-    )
-{
-    return QuicCidBufToStr(CID->Data, CID->Length);
-}
-

@@ -2864,8 +2864,8 @@ QuicConnRecvDecryptAndAuthenticate(
                         DestCid->ResetToken,
                         PacketResetToken,
                         QUIC_STATELESS_RESET_TOKEN_LENGTH) == 0) {
-                    QuicTraceLogVerbose(FN_connection49a91e04834057f10c945d9d1f5005b1, "[S][RX][-] SR %s",
-                        &(QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer));
+                    QuicTraceLogVerbose(FN_connection49a91e04834057f10c945d9d1f5005b1, "[S][RX][-] SR %!CID!",
+                    CLOG_BYTEARRAY(QUIC_STATELESS_RESET_TOKEN_LENGTH, PacketResetToken));
                     QuicTraceLogConnInfo(RecvStatelessReset, Connection, "Received stateless reset");
                     QuicConnCloseLocally(
                         Connection,
@@ -3689,8 +3689,8 @@ QuicConnRecvPostProcessing(
                 Packet->DestCidLen,
                 Packet->DestCid);
         if (SourceCid != NULL && !SourceCid->CID.UsedByPeer) {
-            QuicTraceLogConnInfo(FirstCidUsage, Connection, "First usage of SrcCid: %s",
-                &(QuicCidBufToStr(Packet->DestCid, Packet->DestCidLen).Buffer));
+            QuicTraceLogConnInfo(FirstCidUsage, Connection, "First usage of SrcCid: %!CID!",
+                CLOG_BYTEARRAY(Packet->DestCidLen, Packet->DestCid));
             SourceCid->CID.UsedByPeer = TRUE;
             if (SourceCid->CID.IsInitial) {
                 if (QuicConnIsServer(Connection) && SourceCid->Link.Next != NULL) {

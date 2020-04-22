@@ -3509,6 +3509,333 @@
                 name="arg2"
                 />
           </template>
+          <template tid="template_ui8_binary_">
+            <data
+                inType="win:UInt8"
+                name="arg2_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg2_len"
+                name="arg2"
+                />
+          </template>
+          <template tid="template_ui32_ui8_binary_ui8_binary_ui8_binary_ui16_">
+            <data
+                inType="win:UInt32"
+                name="arg2"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg3_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg3_len"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg4_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg4_len"
+                name="arg4"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg5_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg5_len"
+                name="arg5"
+                />
+            <data
+                inType="win:UInt16"
+                name="arg6"
+                />
+          </template>
+          <template tid="template_ui8_ui8_ui64_ui64_ui64_ui8_binary_ui8_binary_">
+            <data
+                inType="win:UInt8"
+                name="arg2"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt64"
+                name="arg4"
+                />
+            <data
+                inType="win:UInt64"
+                name="arg5"
+                />
+            <data
+                inType="win:UInt64"
+                name="arg6"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg7_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg7_len"
+                name="arg7"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg8_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg8_len"
+                name="arg8"
+                />
+          </template>
+          <template tid="template_ui8_ui8_ui8_binary_ui8_binary_ui64_">
+            <data
+                inType="win:UInt8"
+                name="arg2"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg4_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg4_len"
+                name="arg4"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg5_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg5_len"
+                name="arg5"
+                />
+            <data
+                inType="win:UInt64"
+                name="arg6"
+                />
+          </template>
+          <template tid="template_ui8_ui8_ui32_ui8_binary_ui8_binary_ui16_">
+            <data
+                inType="win:UInt8"
+                name="arg2"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt32"
+                name="arg4"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg5_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg5_len"
+                name="arg5"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg6_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg6_len"
+                name="arg6"
+                />
+            <data
+                inType="win:UInt16"
+                name="arg7"
+                />
+          </template>
+          <template tid="template_ui8_ui8_ui64_ui32_ui8_binary_ui8_binary_sz_ui16_ui16_ui16_">
+            <data
+                inType="win:UInt8"
+                name="arg2"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt64"
+                name="arg4"
+                />
+            <data
+                inType="win:UInt32"
+                name="arg5"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg6_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg6_len"
+                name="arg6"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg7_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg7_len"
+                name="arg7"
+                />
+            <data
+                inType="win:AnsiString"
+                name="arg8"
+                />
+            <data
+                inType="win:UInt16"
+                name="arg9"
+                />
+            <data
+                inType="win:UInt16"
+                name="arg10"
+                />
+            <data
+                inType="win:UInt16"
+                name="arg11"
+                />
+          </template>
+          <template tid="template_ui8_ui8_ui64_ui32_ui8_binary_ui8_binary_sz_ui16_ui16_">
+            <data
+                inType="win:UInt8"
+                name="arg2"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt64"
+                name="arg4"
+                />
+            <data
+                inType="win:UInt32"
+                name="arg5"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg6_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg6_len"
+                name="arg6"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg7_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg7_len"
+                name="arg7"
+                />
+            <data
+                inType="win:AnsiString"
+                name="arg8"
+                />
+            <data
+                inType="win:UInt16"
+                name="arg9"
+                />
+            <data
+                inType="win:UInt16"
+                name="arg10"
+                />
+          </template>
+          <template tid="template_ui8_ui8_ui64_ui32_ui8_binary_ui8_binary_">
+            <data
+                inType="win:UInt8"
+                name="arg2"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt64"
+                name="arg4"
+                />
+            <data
+                inType="win:UInt32"
+                name="arg5"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg6_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg6_len"
+                name="arg6"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg7_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg7_len"
+                name="arg7"
+                />
+          </template>
+          <template tid="template_ui8_ui8_ui64_ui8_binary_ui16_ui16_ui16_">
+            <data
+                inType="win:UInt8"
+                name="arg2"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt64"
+                name="arg4"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg5_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg5_len"
+                name="arg5"
+                />
+            <data
+                inType="win:UInt16"
+                name="arg6"
+                />
+            <data
+                inType="win:UInt16"
+                name="arg7"
+                />
+            <data
+                inType="win:UInt16"
+                name="arg8"
+                />
+          </template>
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
@@ -4730,55 +5057,6 @@
           <event
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
-              symbol="FN_binding_ALREADY_REGISTERED_ON_ALPN"
-              template="template_ptr_ptr_"
-              value="22"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_binding75104ed3d2c2d06e15e4ae01cec68c6d"
-              template="template_ptr_ui32_"
-              value="23"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_binding876f9daa4d31c3d046b6921b08477e3d"
-              template="template_ptr_ui32_"
-              value="24"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_binding8b244dfa4215590c94c15289c8d04ae7"
-              template="template_"
-              value="25"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_binding1e7eb5542a86d5b4071042189950a0e0"
-              template="template_sz_"
-              value="26"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_bindingda2912dbb439879118c990ced87e39cd"
-              template="template_ui32_sz_sz_sz_ui16_"
-              value="27"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_binding4b36568b714495e4231bf89d1ca50021"
-              template="template_ptr_"
-              value="28"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
               symbol="BindingErrorStatus"
               template="template_ptr_ui32_sz_"
               value="29"
@@ -4845,20 +5123,6 @@
               symbol="ConnRecoveryExit"
               template="template_ptr_"
               value="38"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_connection49a91e04834057f10c945d9d1f5005b1"
-              template="template_sz_"
-              value="39"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_connection9874b298efc81e9a08e4033aeaee1aa7"
-              template="template_ui8_ui64_"
-              value="40"
               />
           <event
               keywords="ut:Connection ut:LowVolume"
@@ -4962,7 +5226,7 @@
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="FirstCidUsage"
-              template="template_ptr_sz_"
+              template="template_ptr_ui8_binary_"
               value="55"
               />
           <event
@@ -5585,7 +5849,7 @@
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="EncodeTPStatelessResetToken"
-              template="template_ptr_sz_"
+              template="template_ptr_ui8_binary_"
               value="144"
               />
           <event
@@ -5711,7 +5975,7 @@
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="DecodeTPStatelessResetToken"
-              template="template_ptr_sz_"
+              template="template_ptr_ui8_binary_"
               value="162"
               />
           <event
@@ -5797,391 +6061,6 @@
               symbol="DecodeTPCIDLimit"
               template="template_ptr_ui64_"
               value="174"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame6d89c3ac2ccbdeff6b839eeae0b35825"
-              template="template_ui8_ui8_ui64_ui16_"
-              value="175"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frameb507e7297c0b3c7e18bd9e2e517508a1"
-              template="template_ui8_ui8_ui64_ui16_"
-              value="176"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame15239a659ebcbcc9c6bdf2f7332e1145"
-              template="template_ui8_ui8_ui64_"
-              value="177"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame4d2c7a862977e2ff7f698a79166f01a4"
-              template="template_ui8_ui8_ui64_"
-              value="178"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame50ff50baac1f2231b7efc10bd36b8f6b"
-              template="template_ui8_ui8_ui64_ui64_ui64_"
-              value="179"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame9457a70845b3b9883c49db53238670d0"
-              template="template_ui8_ui8_ui64_ui64_"
-              value="180"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame54e3f21aef92935e7db61716bd687029"
-              template="template_ui8_ui8_ui64_ui64_ui64_"
-              value="181"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_framee3084627c6335964a549fa07d52a277e"
-              template="template_ui8_ui8_ui64_"
-              value="182"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame05fb966fb14c55546166f698f988f9ea"
-              template="template_ui8_ui8_ui64_ui64_"
-              value="183"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame06da42e6f37398567be31036c71ceb76"
-              template="template_ui8_ui8_ui64_ui64_ui64_"
-              value="184"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_framef503e929149b097adc9a0e21d8c3ffc3"
-              template="template_ui8_ui8_ui64_"
-              value="185"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame10c32ed80b1defdc870e7d5c7aaa2c87"
-              template="template_ui8_ui8_ui64_ui64_ui64_ui64_"
-              value="186"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame94be855d52017b5c0755ad89dce9eb6f"
-              template="template_ui8_ui8_ui64_"
-              value="187"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame42245a878c36be2227ac1019194e0f16"
-              template="template_ui8_ui8_ui64_ui64_ui64_ui64_"
-              value="188"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame8ce8065be7748f1beb390e131ef5b976"
-              template="template_ui8_ui8_ui64_"
-              value="189"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame766797f01a15ff2545352ceb026805bc"
-              template="template_ui8_ui8_ui64_ui64_ui64_"
-              value="190"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frameb825cf0bf27d2e758b285d045c896a39"
-              template="template_ui8_ui8_ui64_"
-              value="191"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame4a1370ea5cccbb263cf09b62161e75ed"
-              template="template_ui8_ui8_ui64_ui64_ui16_"
-              value="192"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame54cba9ee814e604404d0857c0058177a"
-              template="template_ui8_ui8_ui64_"
-              value="193"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame62d7a7f46f4a04741f831144d0af0305"
-              template="template_ui8_ui8_ui64_ui64_"
-              value="194"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame7ede7b52d4bb17ac202157f99006b7c3"
-              template="template_ui8_ui8_ui64_"
-              value="195"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame4ed35f060231812da0973bbaa3bcb11f"
-              template="template_ui8_ui8_ui64_ui64_ui64_ui16_"
-              value="196"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame351a0d0c4a0ac51a53dca082d96fc1dd"
-              template="template_ui8_ui8_ui64_ui64_ui64_ui16_"
-              value="197"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_framefdc15617be3f5bf85f5585c1fe1b97b7"
-              template="template_ui8_ui8_ui64_"
-              value="198"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame25b87612ccad5e013770c292ef0da364"
-              template="template_ui8_ui8_ui64_ui64_"
-              value="199"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frameecdc2d08970e0ee238d0ea1441c7327d"
-              template="template_ui8_ui8_ui64_"
-              value="200"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame2a1c1f61bc9e920763eb16823a5e6229"
-              template="template_ui8_ui8_ui64_ui64_ui64_"
-              value="201"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame567cd3220ef9dc39a37b948c08ee931b"
-              template="template_ui8_ui8_ui64_"
-              value="202"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame5c0266a6995db84cebe3257e68633fcd"
-              template="template_ui8_ui8_ui64_ui16_ui64_"
-              value="203"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_framec5d5361796feb4e1af88aae50ce9b6a6"
-              template="template_ui8_ui8_ui64_"
-              value="204"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame920864fb1610e11a96415c6a15869695"
-              template="template_ui8_ui8_ui64_ui64_"
-              value="205"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame3329506fbbe59b58f6ff7cb7658a95a4"
-              template="template_ui8_ui8_ui64_"
-              value="206"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_framef7c15523d7c28613771bb45735d1d9bb"
-              template="template_ui8_ui8_ui64_ui64_ui64_"
-              value="207"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_framef3fecc4cdf406b98065f18738feab057"
-              template="template_ui8_ui8_ui64_"
-              value="208"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame34598f8220082d22efbfcc32e5545d1d"
-              template="template_ui8_ui8_ui64_ui16_ui64_"
-              value="209"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_framefeceaa69aa6e9ceb22d61433c9a7a4b9"
-              template="template_ui8_ui8_ui64_"
-              value="210"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frameed6f73d458adbca8f05a63fb174c5da9"
-              template="template_ui8_ui8_ui64_ui64_ui64_sz_sz_"
-              value="211"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame6cf3c4be4e5905c9502c798f10dc7ff2"
-              template="template_ui8_ui8_ui64_"
-              value="212"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame2aca8594c29dede4e4f8bd2b4be596d5"
-              template="template_ui8_ui8_ui64_ui64_"
-              value="213"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame39880fafda6a0865346c26b4757e134d"
-              template="template_ui8_ui8_ui64_"
-              value="214"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame7f07ff8a957b747848960126a4d43500"
-              template="template_ui8_ui8_ui64_ui64_"
-              value="215"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame56d9b41b6377d106cce0504471c724d9"
-              template="template_ui8_ui8_ui64_"
-              value="216"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame8b99195b8ffa2449fd747ab089e9f6c8"
-              template="template_ui8_ui8_ui64_ui64_"
-              value="217"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_framec0bc23962c9cb7e0255d27c806cac838"
-              template="template_ui8_ui8_ui64_"
-              value="218"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame9e8d5b8346aa937b34a4d9e6b73f38c8"
-              template="template_ui8_ui8_ui64_ui64_"
-              value="219"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_frame5ad9ec5aaf498555a450db2d70c5f77b"
-              template="template_ui8_ui8_ui64_ui64_ui64_"
-              value="220"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_framef5cddee84c6341468d9090b90ab3208e"
-              template="template_ui8_ui8_ui64_"
-              value="221"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_library8441890d38c2db33e439a12ca0d3ac1f"
-              template="template_ui32_"
-              value="222"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_library44069ab9a4dc123108e58e00777db935"
-              template="template_ptr_"
-              value="223"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_library4f534341e8933130bbf7f191b07714ea"
-              template="template_"
-              value="224"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_library9ae67895fdc3714630b01eb363eee4ad"
-              template="template_"
-              value="225"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_library4ea4018c3a2c78d5649e9f8b6f3bc1dc"
-              template="template_"
-              value="226"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_library1200b70fe511717df8e9a0fdad1f6efe"
-              template="template_"
-              value="227"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_library053186b47e8b8a7520ef3db96676afc2"
-              template="template_ui32_"
-              value="228"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_library98439707ef1d2f28d89e069d52a0713b"
-              template="template_"
-              value="229"
               />
           <event
               keywords="ut:Connection ut:LowVolume"
@@ -6462,55 +6341,6 @@
               symbol="ConnPacketACKed"
               template="template_ptr_ui64_ui8_"
               value="269"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_packet90ccc79fc6238b6379c9f2d0110c7855"
-              template="template_ui8_ui8_sz_sz_ui64_"
-              value="270"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_packeta4413873397d4ee4b262cc411ec706f4"
-              template="template_ui8_ui8_ui32_"
-              value="271"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_packet525472688dabf619f866c5771120c7ba"
-              template="template_ui8_ui8_ui32_sz_sz_ui16_"
-              value="272"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_packet85487ff2d76aa8944f1e441b0abee08a"
-              template="template_ui8_ui8_ui64_ui32_sz_sz_sz_ui16_ui16_ui16_"
-              value="273"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_packet33cae7b7d88f1a0a561d8abc592bb027"
-              template="template_ui8_ui8_ui64_ui32_sz_sz_sz_ui16_ui16_"
-              value="274"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_packetd9382d9761cefee7446ff5c4f3049c56"
-              template="template_ui8_ui8_ui64_ui32_sz_sz_"
-              value="275"
-              />
-          <event
-              keywords="ut:Connection ut:LowVolume"
-              level="win:Informational"
-              symbol="FN_packet61e31d5123d636bf45a77c08018ceb3a"
-              template="template_ui8_ui8_ui64_sz_ui16_ui16_ui16_"
-              value="276"
               />
           <event
               keywords="ut:Connection ut:LowVolume"
@@ -10711,6 +10541,503 @@
               symbol="FN_settings_Dump_MaxOperationsPerDrain"
               template="template_ui8_"
               value="876"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_binding1e7eb5542a86d5b4071042189950a0e0"
+              template="template_ui8_binary_"
+              value="26"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_binding_ALREADY_REGISTERED_ON_ALPN"
+              template="template_ptr_ptr_"
+              value="22"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_binding75104ed3d2c2d06e15e4ae01cec68c6d"
+              template="template_ptr_ui32_"
+              value="23"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_binding876f9daa4d31c3d046b6921b08477e3d"
+              template="template_ptr_ui32_"
+              value="24"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_binding8b244dfa4215590c94c15289c8d04ae7"
+              template="template_"
+              value="25"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_bindingda2912dbb439879118c990ced87e39cd"
+              template="template_ui32_ui8_binary_ui8_binary_ui8_binary_ui16_"
+              value="27"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_binding4b36568b714495e4231bf89d1ca50021"
+              template="template_ptr_"
+              value="28"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_connection49a91e04834057f10c945d9d1f5005b1"
+              template="template_ui8_binary_"
+              value="39"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_connection9874b298efc81e9a08e4033aeaee1aa7"
+              template="template_ui8_ui64_"
+              value="40"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame6d89c3ac2ccbdeff6b839eeae0b35825"
+              template="template_ui8_ui8_ui64_ui16_"
+              value="175"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frameb507e7297c0b3c7e18bd9e2e517508a1"
+              template="template_ui8_ui8_ui64_ui16_"
+              value="176"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame15239a659ebcbcc9c6bdf2f7332e1145"
+              template="template_ui8_ui8_ui64_"
+              value="177"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame4d2c7a862977e2ff7f698a79166f01a4"
+              template="template_ui8_ui8_ui64_"
+              value="178"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame50ff50baac1f2231b7efc10bd36b8f6b"
+              template="template_ui8_ui8_ui64_ui64_ui64_"
+              value="179"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame9457a70845b3b9883c49db53238670d0"
+              template="template_ui8_ui8_ui64_ui64_"
+              value="180"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame54e3f21aef92935e7db61716bd687029"
+              template="template_ui8_ui8_ui64_ui64_ui64_"
+              value="181"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_framee3084627c6335964a549fa07d52a277e"
+              template="template_ui8_ui8_ui64_"
+              value="182"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame05fb966fb14c55546166f698f988f9ea"
+              template="template_ui8_ui8_ui64_ui64_"
+              value="183"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame06da42e6f37398567be31036c71ceb76"
+              template="template_ui8_ui8_ui64_ui64_ui64_"
+              value="184"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_framef503e929149b097adc9a0e21d8c3ffc3"
+              template="template_ui8_ui8_ui64_"
+              value="185"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame10c32ed80b1defdc870e7d5c7aaa2c87"
+              template="template_ui8_ui8_ui64_ui64_ui64_ui64_"
+              value="186"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame94be855d52017b5c0755ad89dce9eb6f"
+              template="template_ui8_ui8_ui64_"
+              value="187"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame42245a878c36be2227ac1019194e0f16"
+              template="template_ui8_ui8_ui64_ui64_ui64_ui64_"
+              value="188"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame8ce8065be7748f1beb390e131ef5b976"
+              template="template_ui8_ui8_ui64_"
+              value="189"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame766797f01a15ff2545352ceb026805bc"
+              template="template_ui8_ui8_ui64_ui64_ui64_"
+              value="190"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frameb825cf0bf27d2e758b285d045c896a39"
+              template="template_ui8_ui8_ui64_"
+              value="191"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame4a1370ea5cccbb263cf09b62161e75ed"
+              template="template_ui8_ui8_ui64_ui64_ui16_"
+              value="192"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame54cba9ee814e604404d0857c0058177a"
+              template="template_ui8_ui8_ui64_"
+              value="193"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame62d7a7f46f4a04741f831144d0af0305"
+              template="template_ui8_ui8_ui64_ui64_"
+              value="194"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame7ede7b52d4bb17ac202157f99006b7c3"
+              template="template_ui8_ui8_ui64_"
+              value="195"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame4ed35f060231812da0973bbaa3bcb11f"
+              template="template_ui8_ui8_ui64_ui64_ui64_ui16_"
+              value="196"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame351a0d0c4a0ac51a53dca082d96fc1dd"
+              template="template_ui8_ui8_ui64_ui64_ui64_ui16_"
+              value="197"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_framefdc15617be3f5bf85f5585c1fe1b97b7"
+              template="template_ui8_ui8_ui64_"
+              value="198"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame25b87612ccad5e013770c292ef0da364"
+              template="template_ui8_ui8_ui64_ui64_"
+              value="199"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frameecdc2d08970e0ee238d0ea1441c7327d"
+              template="template_ui8_ui8_ui64_"
+              value="200"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame2a1c1f61bc9e920763eb16823a5e6229"
+              template="template_ui8_ui8_ui64_ui64_ui64_"
+              value="201"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame567cd3220ef9dc39a37b948c08ee931b"
+              template="template_ui8_ui8_ui64_"
+              value="202"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame5c0266a6995db84cebe3257e68633fcd"
+              template="template_ui8_ui8_ui64_ui16_ui64_"
+              value="203"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_framec5d5361796feb4e1af88aae50ce9b6a6"
+              template="template_ui8_ui8_ui64_"
+              value="204"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame920864fb1610e11a96415c6a15869695"
+              template="template_ui8_ui8_ui64_ui64_"
+              value="205"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame3329506fbbe59b58f6ff7cb7658a95a4"
+              template="template_ui8_ui8_ui64_"
+              value="206"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_framef7c15523d7c28613771bb45735d1d9bb"
+              template="template_ui8_ui8_ui64_ui64_ui64_"
+              value="207"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_framef3fecc4cdf406b98065f18738feab057"
+              template="template_ui8_ui8_ui64_"
+              value="208"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame34598f8220082d22efbfcc32e5545d1d"
+              template="template_ui8_ui8_ui64_ui16_ui64_"
+              value="209"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_framefeceaa69aa6e9ceb22d61433c9a7a4b9"
+              template="template_ui8_ui8_ui64_"
+              value="210"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frameed6f73d458adbca8f05a63fb174c5da9"
+              template="template_ui8_ui8_ui64_ui64_ui64_ui8_binary_ui8_binary_"
+              value="211"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame6cf3c4be4e5905c9502c798f10dc7ff2"
+              template="template_ui8_ui8_ui64_"
+              value="212"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame2aca8594c29dede4e4f8bd2b4be596d5"
+              template="template_ui8_ui8_ui64_ui64_"
+              value="213"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame39880fafda6a0865346c26b4757e134d"
+              template="template_ui8_ui8_ui64_"
+              value="214"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame7f07ff8a957b747848960126a4d43500"
+              template="template_ui8_ui8_ui64_ui64_"
+              value="215"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame56d9b41b6377d106cce0504471c724d9"
+              template="template_ui8_ui8_ui64_"
+              value="216"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame8b99195b8ffa2449fd747ab089e9f6c8"
+              template="template_ui8_ui8_ui64_ui64_"
+              value="217"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_framec0bc23962c9cb7e0255d27c806cac838"
+              template="template_ui8_ui8_ui64_"
+              value="218"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame9e8d5b8346aa937b34a4d9e6b73f38c8"
+              template="template_ui8_ui8_ui64_ui64_"
+              value="219"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_frame5ad9ec5aaf498555a450db2d70c5f77b"
+              template="template_ui8_ui8_ui64_ui64_ui64_"
+              value="220"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_framef5cddee84c6341468d9090b90ab3208e"
+              template="template_ui8_ui8_ui64_"
+              value="221"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_library8441890d38c2db33e439a12ca0d3ac1f"
+              template="template_ui32_"
+              value="222"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_library44069ab9a4dc123108e58e00777db935"
+              template="template_ptr_"
+              value="223"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_library4f534341e8933130bbf7f191b07714ea"
+              template="template_"
+              value="224"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_library9ae67895fdc3714630b01eb363eee4ad"
+              template="template_"
+              value="225"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_library4ea4018c3a2c78d5649e9f8b6f3bc1dc"
+              template="template_"
+              value="226"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_library1200b70fe511717df8e9a0fdad1f6efe"
+              template="template_"
+              value="227"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_library053186b47e8b8a7520ef3db96676afc2"
+              template="template_ui32_"
+              value="228"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_library98439707ef1d2f28d89e069d52a0713b"
+              template="template_"
+              value="229"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_packet90ccc79fc6238b6379c9f2d0110c7855"
+              template="template_ui8_ui8_ui8_binary_ui8_binary_ui64_"
+              value="270"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_packeta4413873397d4ee4b262cc411ec706f4"
+              template="template_ui8_ui8_ui32_"
+              value="271"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_packet525472688dabf619f866c5771120c7ba"
+              template="template_ui8_ui8_ui32_ui8_binary_ui8_binary_ui16_"
+              value="272"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_packet85487ff2d76aa8944f1e441b0abee08a"
+              template="template_ui8_ui8_ui64_ui32_ui8_binary_ui8_binary_sz_ui16_ui16_ui16_"
+              value="273"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_packet33cae7b7d88f1a0a561d8abc592bb027"
+              template="template_ui8_ui8_ui64_ui32_ui8_binary_ui8_binary_sz_ui16_ui16_"
+              value="274"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_packetd9382d9761cefee7446ff5c4f3049c56"
+              template="template_ui8_ui8_ui64_ui32_ui8_binary_ui8_binary_"
+              value="275"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_packet61e31d5123d636bf45a77c08018ceb3a"
+              template="template_ui8_ui8_ui64_ui8_binary_ui16_ui16_ui16_"
+              value="276"
               />
         </events>
       </provider>

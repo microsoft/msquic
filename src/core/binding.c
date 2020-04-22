@@ -726,11 +726,8 @@ QuicBindingProcessStatelessOperation(
             RecvPacket->DestCid,
             SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH);
 
-        QuicTraceLogVerbose(FN_binding1e7eb5542a86d5b4071042189950a0e0, "[S][TX][-] SR %s",
-            &(QuicCidBufToStr(
-                SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH,
-                QUIC_STATELESS_RESET_TOKEN_LENGTH
-            ).Buffer));
+        QuicTraceLogVerbose(FN_binding1e7eb5542a86d5b4071042189950a0e0, "[S][TX][-] SR %!CID!",
+            CLOG_BYTEARRAY(QUIC_STATELESS_RESET_TOKEN_LENGTH, SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH));
 
     } else if (OperationType == QUIC_OPER_TYPE_RETRY) {
 
@@ -791,11 +788,11 @@ QuicBindingProcessStatelessOperation(
                 (uint8_t*)SendDatagram->Buffer);
         QUIC_DBG_ASSERT(SendDatagram->Length != 0);
 
-        QuicTraceLogVerbose(FN_bindingda2912dbb439879118c990ced87e39cd, "[S][TX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R OrigDestCid:%s (Token %hu bytes)",
+        QuicTraceLogVerbose(FN_bindingda2912dbb439879118c990ced87e39cd, "[S][TX][-] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:R OrigDestCid:%!CID! (Token %hu bytes)",
             RecvPacket->LH->Version,
-            &(QuicCidBufToStr(RecvPacket->SourceCid, RecvPacket->SourceCidLen).Buffer),
-            &(QuicCidBufToStr(NewDestCid, MSQUIC_CONNECTION_ID_LENGTH).Buffer),
-            &(QuicCidBufToStr(RecvPacket->DestCid, RecvPacket->DestCidLen).Buffer),
+            CLOG_BYTEARRAY(RecvPacket->SourceCidLen, RecvPacket->SourceCid),
+            CLOG_BYTEARRAY(MSQUIC_CONNECTION_ID_LENGTH, NewDestCid),
+            CLOG_BYTEARRAY(RecvPacket->DestCidLen, RecvPacket->DestCid),
             (uint16_t)sizeof(Token));
 
     } else {

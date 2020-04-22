@@ -693,10 +693,8 @@ QuicCryptoTlsEncodeTransportParameters(
                 QUIC_STATELESS_RESET_TOKEN_LENGTH,
                 TransportParams->StatelessResetToken,
                 TPBuf);
-        QuicTraceLogConnVerbose(EncodeTPStatelessResetToken, Connection, "TP: Stateless Reset Token (%s)",
-            &(QuicCidBufToStr(
-                TransportParams->StatelessResetToken,
-                QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer));
+        QuicTraceLogConnVerbose(EncodeTPStatelessResetToken, Connection, "TP: Stateless Reset Token (%!CID!)",
+            CLOG_BYTEARRAY(QUIC_STATELESS_RESET_TOKEN_LENGTH, TransportParams->StatelessResetToken));
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_MAX_PACKET_SIZE) {
         TPBuf =
@@ -905,10 +903,8 @@ QuicCryptoTlsDecodeTransportParameters(
                 TransportParams->StatelessResetToken,
                 TPBuf + Offset,
                 QUIC_STATELESS_RESET_TOKEN_LENGTH);
-            QuicTraceLogConnVerbose(DecodeTPStatelessResetToken, Connection, "TP: Stateless Reset Token (%s)",
-                &(QuicCidBufToStr(
-                    TransportParams->StatelessResetToken,
-                    QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer));
+            QuicTraceLogConnVerbose(DecodeTPStatelessResetToken, Connection, "TP: Stateless Reset Token (%!CID!)",
+                CLOG_BYTEARRAY(QUIC_STATELESS_RESET_TOKEN_LENGTH, TransportParams->StatelessResetToken));
             break;
 
         case QUIC_TP_ID_MAX_PACKET_SIZE:
