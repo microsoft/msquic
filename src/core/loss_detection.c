@@ -535,8 +535,6 @@ QuicLossDetectionRetransmitFrames(
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
 
-    QUIC_DBG_ASSERT(!Packet->Flags.SuspectedLost);
-
     for (uint8_t i = 0; i < Packet->FrameCount; i++) {
         switch (Packet->Frames[i].Type) {
         case QUIC_FRAME_PING:
