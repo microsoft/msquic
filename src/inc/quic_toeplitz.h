@@ -3,12 +3,6 @@
     Copyright (c) Microsoft Corporation.
     Licensed under the MIT License.
 
-Abstract:
-
-    An implementation of the Toeplitz Hash Algorithm (adapted from Windows
-    internal Toeplitz hash implementation).
-
-
 --*/
 
 #pragma once
@@ -55,8 +49,7 @@ typedef struct QUIC_TOEPLITZ_HASH {
 } QUIC_TOEPLITZ_HASH;
 
 //
-// Initializes the Toeplitz hash structure. The Toeplitz->HashKey must be set
-// first.
+// Initializes the Toeplitz hash structure. Toeplitz->HashKey must be set first.
 //
 void
 QuicToeplitzHashInitialize(

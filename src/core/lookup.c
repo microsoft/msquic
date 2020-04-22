@@ -380,7 +380,8 @@ QuicLookupFindConnectionByLocalCidInternal(
 }
 
 //
-// Requires the Lookup->RwLock to be held (shared).
+// Requires Lookup->RwLock to be held (shared).
+
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_CONNECTION*
