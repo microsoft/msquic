@@ -201,9 +201,19 @@ LinkEntryToType(
     return LinkAddr - FieldOffset;
 }
 
+struct SingleListEntry : Struct {
+
+    SingleListEntry(ULONG64 addr) : Struct("msquic!QUIC_SINGLE_LIST_ENTRY", addr) {
+    }
+
+    ULONG64 Next() {
+        return ReadPointer("Next");
+    }
+};
+
 struct ListEntry : Struct {
 
-    ListEntry(ULONG64 addr) : Struct("msquic!_LIST_ENTRY", addr) {
+    ListEntry(ULONG64 addr) : Struct("msquic!QUIC_LIST_ENTRY", addr) {
     }
 
     ULONG64 Flink() {
@@ -265,7 +275,6 @@ ComputeDirIndices(
 struct HashTable : Struct {
 
     ULONG TableSize;
-    ULONG Pivot;
     ULONG64 Directory;
     ULONG EntryLinksOffset;
     int Indirection;
@@ -278,11 +287,10 @@ struct HashTable : Struct {
     ULONG64 BucketHead;
     ULONG64 Entry;
 
-    HashTable(ULONG64 addr) : Struct("nt!_RTL_DYNAMIC_HASH_TABLE", addr) {
+    HashTable(ULONG64 addr) : Struct("msquic!QUIC_HASHTABLE", addr) {
         TableSize = ReadType<ULONG>("TableSize");
-        Pivot = ReadType<ULONG>("Pivot");
-        ReadPointerAtAddr(addr + 8*sizeof(ULONG), &Directory);
-        GetFieldOffset("nt!_RTL_DYNAMIC_HASH_TABLE_ENTRY", "Linkage", &EntryLinksOffset);
+        Directory = ReadPointer("Directory");
+        GetFieldOffset("msquic!QUIC_HASHTABLE_ENTRY", "Linkage", &EntryLinksOffset);
         Indirection = (TableSize <= KDEXT_RTL_HT_SECOND_LEVEL_DIR_SIZE) ? 1 : 2;
 
         ReadBucketHead = true;
@@ -322,7 +330,7 @@ struct HashTable : Struct {
 
             if (!ReadPointerFromStructAddr(
                     Entry,
-                    "nt!_LIST_ENTRY",
+                    "msquic!QUIC_LIST_ENTRY",
                     "Flink",
                     &Entry)) {
                 dprintf("Failed to walk bucket %08lx at %p\n", Bucket, BucketHead);
@@ -342,6 +350,67 @@ struct HashTable : Struct {
 };
 
 // End of magic
+
+inline char QuicHalfByteToStr(UCHAR b)
+{
+    return b < 10 ? ('0' + b) : ('A' + b - 10);
+}
+
+struct CidStr {
+    char Data[256];
+
+    CidStr(ULONG64 Addr, UCHAR Length) {
+        for (UCHAR i = 0; i < Length; i++) {
+            UCHAR Byte;
+            ReadTypeAtAddr(Addr + i, &Byte);
+            Data[i * 2] = QuicHalfByteToStr(Byte >> 4);
+            Data[i * 2 + 1] = QuicHalfByteToStr(Byte & 0xF);
+        }
+        Data[Length * 2] = 0;
+    }
+};
+
+struct Cid : Struct {
+
+    Cid(ULONG64 Addr) : Struct("msquic!QUIC_CID", Addr) { }
+
+    UCHAR Length() {
+        return ReadType<UCHAR>("Length");
+    }
+
+    ULONG64 SequenceNumber() {
+        return ReadType<ULONG64>("SequenceNumber");
+    }
+
+    ULONG64 Data() {
+        return AddrOf("Data");
+    }
+
+    CidStr Str() {
+        return CidStr(Data(), Length());
+    }
+};
+
+struct CidHashEntry : Struct {
+
+    CidHashEntry(ULONG64 Addr) : Struct("msquic!QUIC_CID_HASH_ENTRY", Addr) { }
+
+    static CidHashEntry FromEntry(ULONG64 EntryAddr) {
+        return CidHashEntry(LinkEntryToType(EntryAddr, "msquic!QUIC_CID_HASH_ENTRY", "Entry"));
+    }
+
+    static CidHashEntry FromLink(ULONG64 LinkAddr) {
+        return CidHashEntry(LinkEntryToType(LinkAddr, "msquic!QUIC_CID_HASH_ENTRY", "Link"));
+    }
+
+    ULONG64 GetConnection() {
+        return ReadPointer("Connection");
+    }
+
+    Cid GetCid() {
+        return Cid(AddrOf("CID"));
+    }
+};
 
 struct QuicHandle : Struct {
 
@@ -1033,11 +1102,15 @@ struct Connection : Struct {
     }
 
     IpAddress GetLocalAddress() {
-        return IpAddress(AddrOf("LocalAddress"));
+        return IpAddress(AddrOf("LocalAddress")); // TODO - Broken
     }
 
     IpAddress GetRemoteAddress() {
-        return IpAddress(AddrOf("RemoteAddress"));
+        return IpAddress(AddrOf("RemoteAddress")); // TODO - Broken
+    }
+
+    SingleListEntry GetSourceCids() {
+        return SingleListEntry(AddrOf("SourceCids"));
     }
 
     Send GetSend() {
@@ -1054,15 +1127,6 @@ struct Connection : Struct {
 
     OperQueue GetOperQueue() {
         return OperQueue(AddrOf("OperQ"));
-    }
-};
-
-struct CidHashEntry : Struct {
-
-    CidHashEntry(ULONG64 Addr) : Struct("msquic!QUIC_CID_HASH_ENTRY", Addr) { }
-
-    ULONG64 GetConnection() {
-        return ReadPointer("Connection");
     }
 };
 
