@@ -764,7 +764,10 @@ QuicBindingProcessStatelessOperation(
 
         uint8_t Iv[QUIC_IV_LENGTH];
         if (MsQuicLib.CidTotalLength >= sizeof(Iv)) {
-            QuicCopyMemory(Iv, NewDestCid, sizeof(Iv)); // TODO - Use the whole CID?
+            QuicCopyMemory(Iv, NewDestCid, sizeof(Iv));
+            for (uint8_t i = sizeof(Iv); i < MsQuicLib.CidTotalLength; ++i) {
+                Iv[i % sizeof(Iv)] ^= NewDestCid[i];
+            }
         } else {
             QuicZeroMemory(Iv, sizeof(Iv));
             QuicCopyMemory(Iv, NewDestCid, MsQuicLib.CidTotalLength);

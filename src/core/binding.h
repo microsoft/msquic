@@ -432,7 +432,10 @@ QuicRetryTokenDecrypt(
 
     uint8_t Iv[QUIC_IV_LENGTH];
     if (MsQuicLib.CidTotalLength >= sizeof(Iv)) {
-        QuicCopyMemory(Iv, Packet->DestCid, sizeof(Iv)); // TODO - Use the whole CID?
+        QuicCopyMemory(Iv, Packet->DestCid, sizeof(Iv));
+        for (uint8_t i = sizeof(Iv); i < MsQuicLib.CidTotalLength; ++i) {
+            Iv[i % sizeof(Iv)] ^= Packet->DestCid[i];
+        }
     } else {
         QuicZeroMemory(Iv, sizeof(Iv));
         QuicCopyMemory(Iv, Packet->DestCid, MsQuicLib.CidTotalLength);
