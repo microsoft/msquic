@@ -48,6 +48,29 @@ EXT_COMMAND(
         Send.NextPacketNumber());
 
     //
+    // CIDs
+    //
+
+    Dml("\n\tSource CIDs          ");
+
+    auto SourceCids = Conn.GetSourceCids().Next();
+    if (!SourceCids) {
+        Dml("None\n");
+    } else {
+        while (!CheckControlC() && SourceCids) {
+            auto CidEntry = CidHashEntry::FromLink(SourceCids);
+            auto Cid = CidEntry.GetCid();
+            Dml("%s (%llu)\n\t                     ",
+                Cid.Str().Data,
+                Cid.SequenceNumber());
+            SourceCids = SingleListEntry(SourceCids).Next();
+        }
+    }
+
+    Dml("\n\tDestination CIDs     "); // TODO
+    Dml("TODO\n");
+
+    //
     // Streams
     //
 
