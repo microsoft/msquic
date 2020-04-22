@@ -135,7 +135,7 @@ QuicConnAlloc(
 
         Connection->Type = QUIC_HANDLE_TYPE_CHILD;
         if (MsQuicLib.Settings.LoadBalancingMode == QUIC_LOAD_BALANCING_SERVER_ID_IP) {
-            QuicRandom(1, Connection->ServerID); // Randomize the first bit.
+            QuicRandom(1, Connection->ServerID); // Randomize the first byte.
             if (QuicAddrGetFamily(&Datagram->Tuple->LocalAddress) == AF_INET) {
                 QuicCopyMemory(
                     Connection->ServerID + 1,
@@ -144,7 +144,7 @@ QuicConnAlloc(
             } else {
                 QuicCopyMemory(
                     Connection->ServerID + 1,
-                    ((uint8_t*)&Datagram->Tuple->LocalAddress.Ipv6.sin6_addr) + 8,
+                    ((uint8_t*)&Datagram->Tuple->LocalAddress.Ipv6.sin6_addr) + 12,
                     4);
             }
         }
