@@ -3,11 +3,6 @@
     Copyright (c) Microsoft Corporation.
     Licensed under the MIT License.
 
-Abstract:
-
-    An implementation of the Toeplitz Hash Algorithm (adapted from Windows
-    RTL toeplitz hash implementation).
-
 --*/
 
 #pragma once
@@ -16,14 +11,16 @@ Abstract:
 #define BITS_PER_NIBBLE     4
 
 //
-// The size (in bytes) of the input for our Toeplitz hashes.
+// The size (in bytes) of the input.
+
 // This includes space for a 20 bytes for CID, 16 bytes for IPv6 address
 // and 2 bytes for UDP port.
 //
 #define QUIC_TOEPLITZ_INPUT_SIZE            38
 
 //
-// The size (in bytes) of the output of our Toeplitz hashes.
+// The size (in bytes) of the output hash.
+
 //
 #define QUIC_TOEPLITZ_OUPUT_SIZE            sizeof(uint32_t)
 
@@ -52,8 +49,7 @@ typedef struct QUIC_TOEPLITZ_HASH {
 } QUIC_TOEPLITZ_HASH;
 
 //
-// Initializes the Toeplitz hash structure. The Toeplitz->HashKey must be set
-// first.
+// Initializes the Toeplitz hash structure. Toeplitz->HashKey must be set first.
 //
 void
 QuicToeplitzHashInitialize(

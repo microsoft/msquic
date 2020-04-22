@@ -13,7 +13,7 @@ Notes:
     The hash requires a key K that has (i + o - 1) bits, where i is the number
     of bits in the input and o is the number of bits in the output. In case,
     the input length is variable, i represents the number of bits in the
-    longest possible hash input. We simplify our algorithms by stipulating that
+    longest possible hash input. We simplify the algorithm by stipulating that
     K must be (i + o) bits long. Since we also mandate that output length is
     always 32 bits, the length of the key K is (i + 32) bits.
 
@@ -137,9 +137,9 @@ QuicToeplitzHashInitialize(
 }
 
 //
-// Computes the signature for the hash input by processing the input four-bits
-// at a time. It is assumed that the hash input is a whole number of bytes (no
-// partial byte-processing needs to be done at the end).
+// Computes the hash by processing the input four-bits at a time. It is assumed
+// that the hash input is a whole number of bytes (no partial byte-processing
+// needs to be done at the end).
 //
 uint32_t
 QuicToeplitzHashCompute(
