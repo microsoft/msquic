@@ -2126,7 +2126,7 @@ QuicTlsParamGet(
 // Key Encryption Functions
 //
 
-#ifdef QUIC_TEST_MODE
+#ifdef DEBUG
 void
 QuicTlsLogSecret(
     _In_z_ const char* const Prefix,

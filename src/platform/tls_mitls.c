@@ -1944,7 +1944,7 @@ HashTypeToEverCrypt(
             (Spec_Hash_Definitions_SHA2_256 + Type);
 }
 
-#ifdef QUIC_TEST_MODE
+#ifdef DEBUG
 void
 QuicTlsLogSecret(
     _In_z_ const char* const Prefix,
