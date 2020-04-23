@@ -767,8 +767,8 @@ QuicBindingProcessStatelessOperation(
             goto Exit;
         }
 
-        uint8_t NewDestCid[MSQUIC_CONNECTION_ID_LENGTH];
-        QuicRandom(MSQUIC_CONNECTION_ID_LENGTH, NewDestCid);
+        uint8_t NewDestCid[MSQUIC_CID_MAX_LENGTH];
+        QuicRandom(sizeof(NewDestCid), NewDestCid);
 
         QUIC_RETRY_TOKEN_CONTENTS Token = { 0 };
         Token.Authenticated.Timestamp = QuicTimeEpochMs64();
@@ -778,8 +778,15 @@ QuicBindingProcessStatelessOperation(
         Token.Encrypted.OrigConnIdLength = RecvPacket->DestCidLen;
 
         uint8_t Iv[QUIC_IV_LENGTH];
-        QuicZeroMemory(Iv, sizeof(Iv));
-        QuicCopyMemory(Iv, NewDestCid, MSQUIC_CONNECTION_ID_LENGTH);
+        if (MsQuicLib.CidTotalLength >= sizeof(Iv)) {
+            QuicCopyMemory(Iv, NewDestCid, sizeof(Iv));
+            for (uint8_t i = sizeof(Iv); i < MsQuicLib.CidTotalLength; ++i) {
+                Iv[i % sizeof(Iv)] ^= NewDestCid[i];
+            }
+        } else {
+            QuicZeroMemory(Iv, sizeof(Iv));
+            QuicCopyMemory(Iv, NewDestCid, MsQuicLib.CidTotalLength);
+        }
 
         QuicLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
 
@@ -805,7 +812,7 @@ QuicBindingProcessStatelessOperation(
             QuicPacketEncodeRetryV1(
                 RecvPacket->LH->Version,
                 RecvPacket->SourceCid, RecvPacket->SourceCidLen,
-                NewDestCid, MSQUIC_CONNECTION_ID_LENGTH,
+                NewDestCid, MsQuicLib.CidTotalLength,
                 RecvPacket->DestCid, RecvPacket->DestCidLen,
                 sizeof(Token),
                 (uint8_t*)&Token,
@@ -816,7 +823,7 @@ QuicBindingProcessStatelessOperation(
         QuicTraceLogVerbose("[S][TX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R OrigDestCid:%s (Token %hu bytes)",
             RecvPacket->LH->Version,
             QuicCidBufToStr(RecvPacket->SourceCid, RecvPacket->SourceCidLen).Buffer,
-            QuicCidBufToStr(NewDestCid, MSQUIC_CONNECTION_ID_LENGTH).Buffer,
+            QuicCidBufToStr(NewDestCid, MsQuicLib.CidTotalLength).Buffer,
             QuicCidBufToStr(RecvPacket->DestCid, RecvPacket->DestCidLen).Buffer,
             (uint16_t)sizeof(Token));
 
@@ -1521,7 +1528,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicBindingGenerateStatelessResetToken(
     _In_ QUIC_BINDING* Binding,
-    _In_reads_(MSQUIC_CONNECTION_ID_LENGTH)
+    _In_reads_(MsQuicLib.CidTotalLength)
         const uint8_t* const CID,
     _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)
         uint8_t* ResetToken
@@ -1533,7 +1540,7 @@ QuicBindingGenerateStatelessResetToken(
         QuicHashCompute(
             Binding->ResetTokenHash,
             CID,
-            MSQUIC_CONNECTION_ID_LENGTH,
+            MsQuicLib.CidTotalLength,
             sizeof(HashOutput),
             HashOutput);
     QuicDispatchLockRelease(&Binding->ResetTokenLock);

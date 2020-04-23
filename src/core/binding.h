@@ -23,10 +23,6 @@ typedef struct QUIC_RETRY_TOKEN_CONTENTS {
     uint8_t EncryptionTag[QUIC_ENCRYPTION_OVERHEAD];
 } QUIC_RETRY_TOKEN_CONTENTS;
 
-QUIC_STATIC_ASSERT(
-    MSQUIC_CONNECTION_ID_LENGTH <= QUIC_IV_LENGTH,
-    "CIDs are expected to be shorted than IV");
-
 //
 // The per recv buffer context type.
 //
@@ -425,7 +421,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicBindingGenerateStatelessResetToken(
     _In_ QUIC_BINDING* Binding,
-    _In_reads_(MSQUIC_CONNECTION_ID_LENGTH)
+    _In_reads_(MsQuicLib.CidTotalLength)
         const uint8_t* const CID,
     _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)
         uint8_t* ResetToken
@@ -450,8 +446,15 @@ QuicRetryTokenDecrypt(
     QuicCopyMemory(Token, TokenBuffer, sizeof(QUIC_RETRY_TOKEN_CONTENTS));
 
     uint8_t Iv[QUIC_IV_LENGTH];
-    QuicZeroMemory(Iv, sizeof(Iv));
-    QuicCopyMemory(Iv, Packet->DestCid, MSQUIC_CONNECTION_ID_LENGTH);
+    if (MsQuicLib.CidTotalLength >= sizeof(Iv)) {
+        QuicCopyMemory(Iv, Packet->DestCid, sizeof(Iv));
+        for (uint8_t i = sizeof(Iv); i < MsQuicLib.CidTotalLength; ++i) {
+            Iv[i % sizeof(Iv)] ^= Packet->DestCid[i];
+        }
+    } else {
+        QuicZeroMemory(Iv, sizeof(Iv));
+        QuicCopyMemory(Iv, Packet->DestCid, MsQuicLib.CidTotalLength);
+    }
 
     QuicLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
 

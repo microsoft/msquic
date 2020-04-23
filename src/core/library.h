@@ -66,6 +66,13 @@ typedef struct QUIC_LIBRARY {
 #endif
 
     //
+    // Tracks whether the library has started being used, either by a listener
+    // or a client connection being started. Once this state is set, some
+    // global settings are not allowed to change.
+    //
+    BOOLEAN InUse;
+
+    //
     // Indicates encryption is enabled or disabled for new connections.
     // Defaults to FALSE.
     //
@@ -123,6 +130,15 @@ typedef struct QUIC_LIBRARY {
     // Estimated timer resolution for the platform.
     //
     uint8_t TimerResolutionMs;
+
+    //
+    // Length of various parts of locally generated connection IDs.
+    //
+    _Field_range_(MSQUIC_MIN_CID_SID_LENGTH, MSQUIC_MAX_CID_SID_LENGTH)
+    uint8_t CidServerIdLength;
+    // uint8_t CidPartitionIdLength; // Currently hard coded (MSQUIC_CID_PID_LENGTH)
+    _Field_range_(QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH, MSQUIC_CID_MAX_LENGTH)
+    uint8_t CidTotalLength;
 
     //
     // An identifier used for correlating connection logs and statistics.
@@ -242,6 +258,59 @@ QuicPartitionIdGetIndex(
     )
 {
     return (PartitionId & MsQuicLib.PartitionMask) % MsQuicLib.PartitionCount;
+}
+
+//
+// Creates a random, new source connection ID, that will be used on the receive
+// path.
+//
+inline
+_Success_(return != NULL)
+QUIC_CID_HASH_ENTRY*
+QuicCidNewRandomSource(
+    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_reads_opt_(MsQuicLib.CidServerIdLength)
+        const void* ServerID,
+    _In_ uint8_t PartitionID,
+    _In_ uint8_t PrefixLength,
+    _In_reads_(PrefixLength)
+        const void* Prefix
+    )
+{
+    QUIC_DBG_ASSERT(MsQuicLib.CidTotalLength <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
+    QUIC_DBG_ASSERT(MsQuicLib.CidTotalLength == MsQuicLib.CidServerIdLength + 1 + MSQUIC_CID_PAYLOAD_LENGTH);
+    QUIC_DBG_ASSERT(MSQUIC_CID_PAYLOAD_LENGTH > PrefixLength);
+
+    QUIC_CID_HASH_ENTRY* Entry =
+        (QUIC_CID_HASH_ENTRY*)
+        QUIC_ALLOC_NONPAGED(
+            sizeof(QUIC_CID_HASH_ENTRY) +
+            MsQuicLib.CidTotalLength);
+
+    if (Entry != NULL) {
+        Entry->Connection = Connection;
+        QuicZeroMemory(&Entry->CID, sizeof(Entry->CID));
+        Entry->CID.Length = MsQuicLib.CidTotalLength;
+
+        uint8_t* Data = Entry->CID.Data;
+        if (ServerID != NULL) {
+            QuicCopyMemory(Data, ServerID, MsQuicLib.CidServerIdLength);
+        } else {
+            QuicRandom(MsQuicLib.CidServerIdLength, Data);
+        }
+        Data += MsQuicLib.CidServerIdLength;
+
+        QUIC_STATIC_ASSERT(MSQUIC_CID_PID_LENGTH == 1, "Assumes a single byte PID");
+        *Data = PartitionID;
+        Data++;
+
+        QuicCopyMemory(Data, Prefix, PrefixLength);
+        Data += PrefixLength;
+
+        QuicRandom(MSQUIC_CID_PAYLOAD_LENGTH - PrefixLength, Data);
+    }
+
+    return Entry;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

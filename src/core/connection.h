@@ -310,7 +310,7 @@ typedef struct QUIC_CONNECTION {
     //
     // The server ID for the connection ID.
     //
-    uint8_t ServerID;
+    uint8_t ServerID[MSQUIC_MAX_CID_SID_LENGTH];
 
     //
     // The partition ID for the connection ID.

@@ -33,14 +33,19 @@ QuicCidNewSource(
     );
 
 QUIC_CID_HASH_ENTRY*
+QuicCidNewNullSource(
+    _In_ QUIC_CONNECTION* Connection
+    );
+
+QUIC_CID_HASH_ENTRY*
 QuicCidNewRandomSource(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t ServerID,
+    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_reads_opt_(MsQuicLib.CidServerIdLength)
+        const void* ServerID,
     _In_ uint8_t PartitionID,
     _In_ uint8_t PrefixLength,
-    _In_reads_opt_(PrefixLength)
-        const uint8_t* Prefix,
-    _In_ uint8_t Length
+    _In_reads_(PrefixLength)
+        const void* Prefix
     );
 
 QUIC_CID_QUIC_LIST_ENTRY*
