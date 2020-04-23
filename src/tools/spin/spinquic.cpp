@@ -25,7 +25,7 @@ const QUIC_BUFFER Buffers[2] = {
     { ARRAYSIZE(pkt1) - 1, (uint8_t*)pkt1 }
 };
 
-#if DEBUG
+#if 0
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
 #define PRINT(fmt, ...)
