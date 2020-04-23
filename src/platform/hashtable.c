@@ -608,7 +608,7 @@ Arguments:
 
         if (HashTable->FirstLevelDir != NULL) {
 
-#if DBG || QUIC_TEST_MODE
+#if DEBUG
             uint32_t largestFirstLevelIndex, largestSecondLevelIndex;
             QuicComputeDirIndices(
                 (HashTable->TableSize - 1), &largestFirstLevelIndex, &largestSecondLevelIndex);
@@ -625,7 +625,7 @@ Arguments:
                     break;
                 }
 
-#if DBG || QUIC_TEST_MODE
+#if DEBUG
                 uint32_t initializedBucketCountInSecondLevelDir =
                     (FirstLevelIndex < largestFirstLevelIndex)
                         ? QuicComputeSecondLevelDirSize(FirstLevelIndex)
@@ -641,7 +641,7 @@ Arguments:
                 QUIC_FREE(SecondLevelDir);
             }
 
-#if DBG || QUIC_TEST_MODE
+#if DEBUG
             for (; FirstLevelIndex < HT_FIRST_LEVEL_DIR_SIZE; FirstLevelIndex++) {
                 QUIC_DBG_ASSERT(NULL == HashTable->FirstLevelDir[FirstLevelIndex]);
             }
