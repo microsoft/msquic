@@ -361,7 +361,7 @@ QuicRegistrationParamSet(
             break;
         }
 
-        if (BufferLength > QUIC_CID_MAX_APP_PREFIX) {
+        if (BufferLength > MSQUIC_CID_MAX_APP_PREFIX) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }

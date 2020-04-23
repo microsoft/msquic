@@ -120,7 +120,7 @@ QuicPacketValidateInvariant(
     } else {
 
         Packet->IsShortHeader = TRUE;
-        DestCidLen = IsBindingShared ? MSQUIC_CONNECTION_ID_LENGTH : 0;
+        DestCidLen = IsBindingShared ? MsQuicLib.CidTotalLength : 0;
         SourceCidLen = 0;
 
         //

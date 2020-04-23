@@ -23,10 +23,6 @@ typedef struct QUIC_RETRY_TOKEN_CONTENTS {
     uint8_t EncryptionTag[QUIC_ENCRYPTION_OVERHEAD];
 } QUIC_RETRY_TOKEN_CONTENTS;
 
-QUIC_STATIC_ASSERT(
-    MSQUIC_CONNECTION_ID_LENGTH <= QUIC_IV_LENGTH,
-    "CIDs are expected to be shorted than IV");
-
 //
 // The per recv buffer context type.
 //
@@ -171,6 +167,14 @@ typedef struct QUIC_BINDING {
     BOOLEAN Exclusive : 1;
 
     //
+    // Indicates whether the binding is owned by the server side (i.e. listener
+    // and server connections) or by the client side. Different receive side
+    // logic is used for each, so the binding cannot be shared between clients
+    // and servers.
+    //
+    BOOLEAN ServerOwned : 1;
+
+    //
     // Indicates that the binding is also explicitly connected to a remote
     // address, effectively fixing the 4-tuple of the binding.
     //
@@ -180,11 +184,6 @@ typedef struct QUIC_BINDING {
     // Number of (connection and listener) references to the binding.
     //
     uint32_t RefCount;
-
-    //
-    // The number of connections that haven't completed the handshake.
-    //
-    long HandshakeConnections;
 
     //
     // A randomly created reserved version.
@@ -259,6 +258,7 @@ QuicBindingInitialize(
     _In_ QUIC_COMPARTMENT_ID CompartmentId,
 #endif
     _In_ BOOLEAN ShareBinding,
+    _In_ BOOLEAN ServerOwned,
     _In_opt_ const QUIC_ADDR * LocalAddress,
     _In_opt_ const QUIC_ADDR * RemoteAddress,
     _Out_ QUIC_BINDING** NewBinding
@@ -359,6 +359,17 @@ QuicBindingMoveSourceConnectionIDs(
     );
 
 //
+// Indicates to the binding that the connection is no longer accepting
+// handshake/long header packets.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicBindingOnConnectionHandshakeConfirmed(
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_CONNECTION* Connection
+    );
+
+//
 // Processes a stateless operation that was queued.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -410,7 +421,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicBindingGenerateStatelessResetToken(
     _In_ QUIC_BINDING* Binding,
-    _In_reads_(MSQUIC_CONNECTION_ID_LENGTH)
+    _In_reads_(MsQuicLib.CidTotalLength)
         const uint8_t* const CID,
     _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)
         uint8_t* ResetToken
@@ -435,8 +446,15 @@ QuicRetryTokenDecrypt(
     QuicCopyMemory(Token, TokenBuffer, sizeof(QUIC_RETRY_TOKEN_CONTENTS));
 
     uint8_t Iv[QUIC_IV_LENGTH];
-    QuicZeroMemory(Iv, sizeof(Iv));
-    QuicCopyMemory(Iv, Packet->DestCid, MSQUIC_CONNECTION_ID_LENGTH);
+    if (MsQuicLib.CidTotalLength >= sizeof(Iv)) {
+        QuicCopyMemory(Iv, Packet->DestCid, sizeof(Iv));
+        for (uint8_t i = sizeof(Iv); i < MsQuicLib.CidTotalLength; ++i) {
+            Iv[i % sizeof(Iv)] ^= Packet->DestCid[i];
+        }
+    } else {
+        QuicZeroMemory(Iv, sizeof(Iv));
+        QuicCopyMemory(Iv, Packet->DestCid, MsQuicLib.CidTotalLength);
+    }
 
     QuicLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
 

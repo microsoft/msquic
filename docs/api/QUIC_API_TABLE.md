@@ -50,10 +50,6 @@ typedef struct QUIC_API_TABLE {
 
 # Members
 
-`Version`
-
-The API version this structure is for. Always `QUIC_API_VERSION_1`.
-
 `SetContext`
 
 See [SetContext](SetContext.md)

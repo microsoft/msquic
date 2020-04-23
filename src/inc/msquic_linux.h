@@ -151,6 +151,14 @@ typedef union QUIC_ADDR {
     sa_family_t si_family;
 } QUIC_ADDR;
 
+#define FIELD_OFFSET(type, field)       ((uint32_t)(size_t)&(((type *)0)->field))
+
+#define QUIC_ADDR_V4_PORT_OFFSET        FIELD_OFFSET(struct sockaddr_in, sin_port)
+#define QUIC_ADDR_V4_IP_OFFSET          FIELD_OFFSET(struct sockaddr_in, sin_addr)
+
+#define QUIC_ADDR_V6_PORT_OFFSET        FIELD_OFFSET(struct sockaddr_in6, sin6_port)
+#define QUIC_ADDR_V6_IP_OFFSET          FIELD_OFFSET(struct sockaddr_in6, sin6_addr)
+
 #ifndef FALSE
 #define FALSE 0
 #define TRUE 1

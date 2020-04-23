@@ -310,7 +310,7 @@ typedef struct QUIC_CONNECTION {
     //
     // The server ID for the connection ID.
     //
-    uint8_t ServerID;
+    uint8_t ServerID[MSQUIC_MAX_CID_SID_LENGTH];
 
     //
     // The partition ID for the connection ID.
@@ -459,6 +459,12 @@ typedef struct QUIC_CONNECTION {
     //
     _Field_z_
     const char* RemoteServerName;
+
+    //
+    // The entry into the remote hash lookup table, which is used only during the
+    // handshake.
+    //
+    QUIC_REMOTE_HASH_ENTRY* RemoteHashEntry;
 
     //
     // Transport parameters received from the peer.
@@ -1027,7 +1033,6 @@ QuicConnGetSourceCidFromSeq(
                 *Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);
-        QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
         if (SourceCid->CID.SequenceNumber == SequenceNumber) {
             if (RemoveFromList) {
                 QuicBindingRemoveSourceConnectionID(
@@ -1040,7 +1045,6 @@ QuicConnGetSourceCidFromSeq(
                     SourceCid->CID.Length,
                     SourceCid->CID.Data);
                 *Entry = (*Entry)->Next;
-                SourceCid->CID.IsInList = FALSE;
             }
             *IsLastCid = Connection->SourceCids.Next == NULL;
             return SourceCid;
@@ -1070,7 +1074,6 @@ QuicConnGetSourceCidFromBuf(
                 Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);
-        QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
         if (CidLength == SourceCid->CID.Length &&
             memcmp(CidBuffer, SourceCid->CID.Data, CidLength) == 0) {
             return SourceCid;

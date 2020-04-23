@@ -627,7 +627,6 @@ QuicSendWriteFrames(
                         Entry,
                         QUIC_CID_HASH_ENTRY,
                         Link);
-                QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
                 if (!SourceCid->CID.NeedsToSend) {
                     continue;
                 }
@@ -649,7 +648,7 @@ QuicSendWriteFrames(
                     Frame.Buffer,
                     SourceCid->CID.Data,
                     SourceCid->CID.Length);
-                QUIC_DBG_ASSERT(SourceCid->CID.Length == MSQUIC_CONNECTION_ID_LENGTH);
+                QUIC_DBG_ASSERT(SourceCid->CID.Length == MsQuicLib.CidTotalLength);
                 QuicBindingGenerateStatelessResetToken(
                     Builder->Path->Binding,
                     SourceCid->CID.Data,

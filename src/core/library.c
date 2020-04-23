@@ -17,6 +17,12 @@ Abstract:
 
 QUIC_LIBRARY MsQuicLib = { 0 };
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicLibApplyLoadBalancingSetting(
+    void
+    );
+
 //
 // Initializes all global variables.
 //
@@ -45,6 +51,7 @@ MsQuicLibraryUnload(
 {
     QUIC_FRE_ASSERT(MsQuicLib.Loaded);
     QUIC_LIB_VERIFY(MsQuicLib.RefCount == 0);
+    QUIC_LIB_VERIFY(!MsQuicLib.InUse);
     MsQuicLib.Loaded = FALSE;
     QuicDispatchLockUninitialize(&MsQuicLib.DatapathLock);
     QuicLockUninitialize(&MsQuicLib.Lock);
@@ -91,6 +98,15 @@ MsQuicLibraryReadSettings(
     QuicTraceLogInfo("[ lib] Settings %p Updated", &MsQuicLib.Settings);
     QuicSettingsDump(&MsQuicLib.Settings);
 
+    if (!MsQuicLib.InUse) {
+        //
+        // Load balancing settings can only change before the library is
+        // officially "in use", otherwise existing connections would be
+        // destroyed.
+        //
+        QuicLibApplyLoadBalancingSetting();
+    }
+
     BOOLEAN UpdateRegistrations = (Context != NULL);
     if (UpdateRegistrations) {
         QuicLockAcquire(&MsQuicLib.Lock);
@@ -123,6 +139,9 @@ MsQuicLibraryInitialize(
 
     QUIC_DBG_ASSERT(US_TO_MS(QuicGetTimerResolution()) + 1 <= UINT8_MAX);
     MsQuicLib.TimerResolutionMs = (uint8_t)US_TO_MS(QuicGetTimerResolution()) + 1;
+
+    QuicRandom(sizeof(MsQuicLib.ToeplitzHash.HashKey), MsQuicLib.ToeplitzHash.HashKey);
+    QuicToeplitzHashInitialize(&MsQuicLib.ToeplitzHash);
 
     QuicZeroMemory(&MsQuicLib.Settings, sizeof(MsQuicLib.Settings));
     Status =
@@ -417,6 +436,35 @@ MsQuicSetCallbackHandler(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicLibApplyLoadBalancingSetting(
+    void
+    )
+{
+    switch (MsQuicLib.Settings.LoadBalancingMode) {
+    case QUIC_LOAD_BALANCING_DISABLED:
+    default:
+        MsQuicLib.CidServerIdLength = 0;
+        break;
+    case QUIC_LOAD_BALANCING_SERVER_ID_IP:
+        MsQuicLib.CidServerIdLength = 5; // 1 + 4 for v4 IP address
+        break;
+    }
+    
+    MsQuicLib.CidTotalLength =
+        MsQuicLib.CidServerIdLength +
+        MSQUIC_CID_PID_LENGTH +
+        MSQUIC_CID_PAYLOAD_LENGTH;
+
+    QUIC_FRE_ASSERT(MsQuicLib.CidServerIdLength >= MSQUIC_MIN_CID_SID_LENGTH);
+    QUIC_FRE_ASSERT(MsQuicLib.CidServerIdLength <= MSQUIC_MAX_CID_SID_LENGTH);
+    QUIC_FRE_ASSERT(MsQuicLib.CidTotalLength >= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
+    QUIC_FRE_ASSERT(MsQuicLib.CidTotalLength <= MSQUIC_CID_MAX_LENGTH);
+
+    QuicTraceLogInfo("[ lib] CID Length = %hhu", MsQuicLib.CidTotalLength);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibrarySetGlobalParam(
     _In_ uint32_t Param,
@@ -449,6 +497,13 @@ QuicLibrarySetGlobalParam(
             break;
         }
 
+        if (MsQuicLib.InUse &&
+            MsQuicLib.EncryptionDisabled != (*(uint8_t*)Buffer == FALSE)) {
+            QuicTraceLogError("[ lib] Tried to change encryption state after library in use!");
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
         MsQuicLib.EncryptionDisabled = *(uint8_t*)Buffer == FALSE;
         QuicTraceLogWarning("[ lib] Updated encryption disabled = %hu", MsQuicLib.EncryptionDisabled);
 
@@ -464,6 +519,13 @@ QuicLibrarySetGlobalParam(
 
         if (*(uint16_t*)Buffer > QUIC_LOAD_BALANCING_SERVER_ID_IP) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (MsQuicLib.InUse &&
+            MsQuicLib.Settings.LoadBalancingMode != *(uint16_t*)Buffer) {
+            QuicTraceLogError("[ lib] Tried to change load balancing mode after library in use!");
+            Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
 
@@ -1002,6 +1064,7 @@ QUIC_STATUS
 QuicLibraryGetBinding(
     _In_ QUIC_SESSION* Session,
     _In_ BOOLEAN ShareBinding,
+    _In_ BOOLEAN ServerOwned,
     _In_opt_ const QUIC_ADDR * LocalAddress,
     _In_opt_ const QUIC_ADDR * RemoteAddress,
     _Out_ QUIC_BINDING** NewBinding
@@ -1034,15 +1097,16 @@ QuicLibraryGetBinding(
             LocalAddress,
             RemoteAddress);
     if (Binding != NULL) {
-        if (!ShareBinding || Binding->Exclusive) {
+        if (!ShareBinding || Binding->Exclusive ||
+            (ServerOwned != Binding->ServerOwned)) {
             //
-            // The binding does already exist, but its owner has exclusive
-            // ownership of the binding.
+            // The binding does already exist, but cannot be shared with the
+            // requested configuration.
             //
             Status = QUIC_STATUS_INVALID_STATE;
         } else {
             //
-            // Match found and its owner is willing to share.
+            // Match found and can be shared.
             //
             QUIC_DBG_ASSERT(Binding->RefCount > 0);
             Binding->RefCount++;
@@ -1069,6 +1133,7 @@ NewBinding:
             Session->CompartmentId,
 #endif
             ShareBinding,
+            ServerOwned,
             LocalAddress,
             RemoteAddress,
             NewBinding);
@@ -1113,6 +1178,10 @@ NewBinding:
         //
         // No other thread beat us, insert this binding into the list.
         //
+        if (QuicListIsEmpty(&MsQuicLib.Bindings)) {
+            QuicTraceLogInfo("[ lib] Now in use.");
+            MsQuicLib.InUse = TRUE;
+        }
         QuicListInsertTail(&MsQuicLib.Bindings, &(*NewBinding)->Link);
     }
 
@@ -1167,6 +1236,11 @@ QuicLibraryReleaseBinding(
     if (--Binding->RefCount == 0) {
         QuicListEntryRemove(&Binding->Link);
         Uninitialize = TRUE;
+
+        if (QuicListIsEmpty(&MsQuicLib.Bindings)) {
+            QuicTraceLogInfo("[ lib] No longer in use.");
+            MsQuicLib.InUse = FALSE;
+        }
     }
     QuicDispatchLockRelease(&MsQuicLib.DatapathLock);
 

@@ -135,7 +135,20 @@ QuicConnAlloc(
             QuicDataPathRecvDatagramToRecvPacket(Datagram);
 
         Connection->Type = QUIC_HANDLE_TYPE_CHILD;
-        Connection->ServerID = Packet->DestCid[QUIC_CID_SID_INDEX];
+        if (MsQuicLib.Settings.LoadBalancingMode == QUIC_LOAD_BALANCING_SERVER_ID_IP) {
+            QuicRandom(1, Connection->ServerID); // Randomize the first byte.
+            if (QuicAddrGetFamily(&Datagram->Tuple->LocalAddress) == AF_INET) {
+                QuicCopyMemory(
+                    Connection->ServerID + 1,
+                    &Datagram->Tuple->LocalAddress.Ipv4.sin_addr,
+                    4);
+            } else {
+                QuicCopyMemory(
+                    Connection->ServerID + 1,
+                    ((uint8_t*)&Datagram->Tuple->LocalAddress.Ipv6.sin6_addr) + 12,
+                    4);
+            }
+        }
 
         Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
         QuicConnOnQuicVersionSet(Connection);
@@ -172,7 +185,6 @@ QuicConnAlloc(
         SourceCid->CID.IsInitial = TRUE;
         SourceCid->CID.UsedByPeer = TRUE;
         QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
-        SourceCid->CID.IsInList = TRUE;
         QuicTraceEvent(ConnSourceCidAdded,
             Connection, SourceCid->CID.SequenceNumber, SourceCid->CID.Length, SourceCid->CID.Data);
 
@@ -330,12 +342,6 @@ QuicConnFree(
     }
     QUIC_PATH* Path = &Connection->Paths[0];
     if (Path->Binding != NULL) {
-        if (!Connection->State.Connected) {
-            InterlockedDecrement(&Path->Binding->HandshakeConnections);
-            InterlockedExchangeAdd64(
-                (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-                -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
-        }
         QuicLibraryReleaseBinding(Path->Binding);
         Path->Binding = NULL;
     }
@@ -729,10 +735,9 @@ QuicConnGenerateNewSourceCid(
                 Connection->ServerID,
                 Connection->PartitionID,
                 Connection->Registration->CidPrefixLength,
-                Connection->Registration->CidPrefix,
-                MSQUIC_CONNECTION_ID_LENGTH);
+                Connection->Registration->CidPrefix);
         if (SourceCid == NULL) {
-            QuicTraceEvent(AllocFailure, "new Src CID", sizeof(QUIC_CID_HASH_ENTRY) + MSQUIC_CONNECTION_ID_LENGTH);
+            QuicTraceEvent(AllocFailure, "new Src CID", sizeof(QUIC_CID_HASH_ENTRY) + MsQuicLib.CidTotalLength);
             QuicConnFatalError(Connection, QUIC_STATUS_INTERNAL_ERROR, NULL);
             return NULL;
         }
@@ -758,7 +763,6 @@ QuicConnGenerateNewSourceCid(
 
     if (IsInitial) {
         SourceCid->CID.IsInitial = TRUE;
-        QUIC_DBG_ASSERT(!SourceCid->CID.IsInList);
         QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
     } else {
         QUIC_SINGLE_LIST_ENTRY** Tail = &Connection->SourceCids.Next;
@@ -768,8 +772,6 @@ QuicConnGenerateNewSourceCid(
         *Tail = &SourceCid->Link;
         SourceCid->Link.Next = NULL;
     }
-
-    SourceCid->CID.IsInList = TRUE;
 
     return SourceCid;
 }
@@ -819,7 +821,6 @@ QuicConnGenerateNewSourceCids(
         while (Entry != NULL) {
             QUIC_CID_HASH_ENTRY* SourceCid =
                 QUIC_CONTAINING_RECORD(Entry, QUIC_CID_HASH_ENTRY, Link);
-            QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
             SourceCid->CID.Retired = TRUE;
             Entry = Entry->Next;
         }
@@ -1600,6 +1601,7 @@ QuicConnStart(
         QuicLibraryGetBinding(
             Connection->Session,
             Connection->State.ShareBinding,
+            FALSE,
             Connection->State.LocalAddressSet ? &Path->LocalAddress : NULL,
             &Path->RemoteAddress,
             &Path->Binding);
@@ -1607,24 +1609,22 @@ QuicConnStart(
         goto Exit;
     }
 
-    InterlockedIncrement(&Path->Binding->HandshakeConnections);
-    InterlockedExchangeAdd64(
-        (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-        (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
-
     //
     // Clients only need to generate a non-zero length source CID if it
     // intends to share the UDP binding.
     //
-    QUIC_CID_HASH_ENTRY* SourceCid =
-        QuicCidNewRandomSource(
-            Connection,
-            0,
-            Connection->PartitionID,
-            Connection->Registration->CidPrefixLength,
-            Connection->Registration->CidPrefix,
-            Connection->State.ShareBinding ?
-                MSQUIC_CONNECTION_ID_LENGTH : 0);
+    QUIC_CID_HASH_ENTRY* SourceCid;
+    if (Connection->State.ShareBinding) {
+        SourceCid =
+            QuicCidNewRandomSource(
+                Connection,
+                NULL,
+                Connection->PartitionID,
+                Connection->Registration->CidPrefixLength,
+                Connection->Registration->CidPrefix);
+    } else {
+        SourceCid = QuicCidNewNullSource(Connection);
+    }
     if (SourceCid == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
@@ -1633,13 +1633,8 @@ QuicConnStart(
     Connection->NextSourceCidSequenceNumber++;
     QuicTraceEvent(ConnSourceCidAdded, Connection, SourceCid->CID.SequenceNumber, SourceCid->CID.Length, SourceCid->CID.Data);
     QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
-    SourceCid->CID.IsInList = TRUE;
 
     if (!QuicBindingAddSourceConnectionID(Path->Binding, SourceCid)) {
-        InterlockedDecrement(&Path->Binding->HandshakeConnections);
-        InterlockedExchangeAdd64(
-            (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-            -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
         QuicLibraryReleaseBinding(Path->Binding);
         Path->Binding = NULL;
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -2916,7 +2911,7 @@ QuicConnRecvDecryptAndAuthenticate(
             QuicPacketLogHeader(
                 Connection,
                 TRUE,
-                Connection->State.ShareBinding ? MSQUIC_CONNECTION_ID_LENGTH : 0,
+                Connection->State.ShareBinding ? MsQuicLib.CidTotalLength : 0,
                 Packet->PacketNumber,
                 Packet->HeaderLength,
                 Packet->Buffer,
@@ -2972,7 +2967,7 @@ QuicConnRecvDecryptAndAuthenticate(
             QuicPacketLogHeader(
                 Connection,
                 TRUE,
-                Connection->State.ShareBinding ? MSQUIC_CONNECTION_ID_LENGTH : 0,
+                Connection->State.ShareBinding ? MsQuicLib.CidTotalLength : 0,
                 Packet->PacketNumber,
                 Packet->BufferLength,
                 Packet->Buffer,
@@ -2991,7 +2986,7 @@ QuicConnRecvDecryptAndAuthenticate(
         QuicPacketLogHeader(
             Connection,
             TRUE,
-            Connection->State.ShareBinding ? MSQUIC_CONNECTION_ID_LENGTH : 0,
+            Connection->State.ShareBinding ? MsQuicLib.CidTotalLength : 0,
             Packet->PacketNumber,
             Packet->HeaderLength + Packet->PayloadLength,
             Packet->Buffer,
@@ -3763,8 +3758,7 @@ QuicConnRecvPostProcessing(
                         // can discard the old (client chosen) one now.
                         //
                         SourceCid->Link.Next = NextSourceCid->Link.Next;
-                        QuicBindingRemoveSourceConnectionID(
-                            Connection->Paths[0].Binding, NextSourceCid);
+                        QUIC_DBG_ASSERT(!NextSourceCid->CID.IsInLookupTable);
                         QuicTraceEvent(ConnSourceCidRemoved,
                             Connection, NextSourceCid->CID.SequenceNumber, NextSourceCid->CID.Length, NextSourceCid->CID.Data);
                         QUIC_FREE(NextSourceCid);
@@ -4402,7 +4396,7 @@ QuicConnParamSet(
             break;
         }
 
-        if (Connection->Type == QUIC_HANDLE_TYPE_CHILD) {
+        if (QuicConnIsServer(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
@@ -4438,6 +4432,7 @@ QuicConnParamSet(
                 QuicLibraryGetBinding(
                     Connection->Session,
                     Connection->State.ShareBinding,
+                    FALSE,
                     LocalAddress,
                     &Connection->Paths[0].RemoteAddress,
                     &Connection->Paths[0].Binding);
@@ -4452,12 +4447,6 @@ QuicConnParamSet(
 
             QuicBindingMoveSourceConnectionIDs(
                 OldBinding, Connection->Paths[0].Binding, Connection);
-            if (!Connection->State.Connected) {
-                InterlockedDecrement(&OldBinding->HandshakeConnections);
-                InterlockedExchangeAdd64(
-                    (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-                    -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
-            }
             QuicLibraryReleaseBinding(OldBinding);
             QuicTraceEvent(ConnLocalAddrRemoved,
                 Connection,

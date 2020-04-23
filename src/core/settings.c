@@ -247,7 +247,8 @@ QuicSettingsLoad(
         }
     }
 
-    if (!Settings->AppSet.LoadBalancingMode) {
+    if (!Settings->AppSet.LoadBalancingMode &&
+        !MsQuicLib.InUse) {
         Value = QUIC_DEFAULT_LOAD_BALANCING_MODE;
         ValueLen = sizeof(Value);
         QuicStorageReadValue(
@@ -455,6 +456,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose("[sett] MaxPartitionCount      = %hhu", Settings->MaxPartitionCount);
     QuicTraceLogVerbose("[sett] MaxOperationsPerDrain  = %hhu", Settings->MaxOperationsPerDrain);
     QuicTraceLogVerbose("[sett] RetryMemoryLimit       = %hu", Settings->RetryMemoryLimit);
+    QuicTraceLogVerbose("[sett] LoadBalancingMode      = %hu", Settings->LoadBalancingMode);
     QuicTraceLogVerbose("[sett] MaxStatelessOperations = %u", Settings->MaxStatelessOperations);
     QuicTraceLogVerbose("[sett] MaxWorkerQueueDelayUs  = %u", Settings->MaxWorkerQueueDelayUs);
     QuicTraceLogVerbose("[sett] InitialWindowPackets   = %u", Settings->InitialWindowPackets);
