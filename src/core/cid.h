@@ -118,9 +118,9 @@ typedef struct QUIC_CID {
     //
     uint8_t HasResetToken : 1;
     //
-    // The CID is in the connection's list. Used for debugging purposes.
+    // Used for source CIDs. The CID is in the binding's lookup table.
     //
-    uint8_t IsInList : 1;
+    uint8_t IsInLookupTable : 1;
 
     uint8_t Length;
     QUIC_VAR_INT SequenceNumber;

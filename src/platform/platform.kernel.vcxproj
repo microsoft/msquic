@@ -40,6 +40,7 @@
     <ClCompile Include="platform_winkernel.c" />
     <ClCompile Include="storage_winkernel.c" />
     <ClCompile Include="tls_schannel.c" />
+    <ClCompile Include="toeplitz.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="platform_internal.h" />

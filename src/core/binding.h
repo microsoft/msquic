@@ -171,6 +171,14 @@ typedef struct QUIC_BINDING {
     BOOLEAN Exclusive : 1;
 
     //
+    // Indicates whether the binding is owned by the server side (i.e. listener
+    // and server connections) or by the client side. Different receive side
+    // logic is used for each, so the binding cannot be shared between clients
+    // and servers.
+    //
+    BOOLEAN ServerOwned : 1;
+
+    //
     // Indicates that the binding is also explicitly connected to a remote
     // address, effectively fixing the 4-tuple of the binding.
     //
@@ -180,11 +188,6 @@ typedef struct QUIC_BINDING {
     // Number of (connection and listener) references to the binding.
     //
     uint32_t RefCount;
-
-    //
-    // The number of connections that haven't completed the handshake.
-    //
-    long HandshakeConnections;
 
     //
     // A randomly created reserved version.
@@ -259,6 +262,7 @@ QuicBindingInitialize(
     _In_ QUIC_COMPARTMENT_ID CompartmentId,
 #endif
     _In_ BOOLEAN ShareBinding,
+    _In_ BOOLEAN ServerOwned,
     _In_opt_ const QUIC_ADDR * LocalAddress,
     _In_opt_ const QUIC_ADDR * RemoteAddress,
     _Out_ QUIC_BINDING** NewBinding
@@ -355,6 +359,17 @@ void
 QuicBindingMoveSourceConnectionIDs(
     _In_ QUIC_BINDING* BindingSrc,
     _In_ QUIC_BINDING* BindingDest,
+    _In_ QUIC_CONNECTION* Connection
+    );
+
+//
+// Indicates to the binding that the connection is no longer accepting
+// handshake/long header packets.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicBindingOnConnectionHandshakeConfirmed(
+    _In_ QUIC_BINDING* Binding,
     _In_ QUIC_CONNECTION* Connection
     );
 

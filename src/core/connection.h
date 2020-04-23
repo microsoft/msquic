@@ -461,6 +461,12 @@ typedef struct QUIC_CONNECTION {
     const char* RemoteServerName;
 
     //
+    // The entry into the remote hash lookup table, which is used only during the
+    // handshake.
+    //
+    QUIC_REMOTE_HASH_ENTRY* RemoteHashEntry;
+
+    //
     // Transport parameters received from the peer.
     //
     QUIC_TRANSPORT_PARAMETERS PeerTransportParams;
@@ -1009,7 +1015,6 @@ QuicConnGetSourceCidFromSeq(
                 *Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);
-        QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
         if (SourceCid->CID.SequenceNumber == SequenceNumber) {
             if (RemoveFromList) {
                 QuicBindingRemoveSourceConnectionID(
@@ -1022,7 +1027,6 @@ QuicConnGetSourceCidFromSeq(
                     SourceCid->CID.Length,
                     SourceCid->CID.Data);
                 *Entry = (*Entry)->Next;
-                SourceCid->CID.IsInList = FALSE;
             }
             *IsLastCid = Connection->SourceCids.Next == NULL;
             return SourceCid;
@@ -1052,7 +1056,6 @@ QuicConnGetSourceCidFromBuf(
                 Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);
-        QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
         if (CidLength == SourceCid->CID.Length &&
             memcmp(CidBuffer, SourceCid->CID.Data, CidLength) == 0) {
             return SourceCid;

@@ -366,6 +366,14 @@ QuicPacketEncodeShortHeaderV1(
         uint8_t* Buffer
     );
 
+uint32_t
+QuicPacketHash(
+    _In_ const QUIC_ADDR* const RemoteAddress,
+    _In_ uint8_t RemoteCidLength,
+    _In_reads_(RemoteCidLength)
+        const uint8_t* const RemoteCid
+    );
+
 QUIC_PACKET_KEY_TYPE
 QuicEncryptLevelToKeyType(
     QUIC_ENCRYPT_LEVEL Level

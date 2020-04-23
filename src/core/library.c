@@ -124,6 +124,9 @@ MsQuicLibraryInitialize(
     QUIC_DBG_ASSERT(US_TO_MS(QuicGetTimerResolution()) + 1 <= UINT8_MAX);
     MsQuicLib.TimerResolutionMs = (uint8_t)US_TO_MS(QuicGetTimerResolution()) + 1;
 
+    QuicRandom(sizeof(MsQuicLib.ToeplitzHash.HashKey), MsQuicLib.ToeplitzHash.HashKey);
+    QuicToeplitzHashInitialize(&MsQuicLib.ToeplitzHash);
+
     QuicZeroMemory(&MsQuicLib.Settings, sizeof(MsQuicLib.Settings));
     Status =
         QuicStorageOpen(
@@ -1000,6 +1003,7 @@ QUIC_STATUS
 QuicLibraryGetBinding(
     _In_ QUIC_SESSION* Session,
     _In_ BOOLEAN ShareBinding,
+    _In_ BOOLEAN ServerOwned,
     _In_opt_ const QUIC_ADDR * LocalAddress,
     _In_opt_ const QUIC_ADDR * RemoteAddress,
     _Out_ QUIC_BINDING** NewBinding
@@ -1032,15 +1036,16 @@ QuicLibraryGetBinding(
             LocalAddress,
             RemoteAddress);
     if (Binding != NULL) {
-        if (!ShareBinding || Binding->Exclusive) {
+        if (!ShareBinding || Binding->Exclusive ||
+            (ServerOwned != Binding->ServerOwned)) {
             //
-            // The binding does already exist, but its owner has exclusive
-            // ownership of the binding.
+            // The binding does already exist, but cannot be shared with the
+            // requested configuration.
             //
             Status = QUIC_STATUS_INVALID_STATE;
         } else {
             //
-            // Match found and its owner is willing to share.
+            // Match found and can be shared.
             //
             QUIC_DBG_ASSERT(Binding->RefCount > 0);
             Binding->RefCount++;
@@ -1067,6 +1072,7 @@ NewBinding:
             Session->CompartmentId,
 #endif
             ShareBinding,
+            ServerOwned,
             LocalAddress,
             RemoteAddress,
             NewBinding);
