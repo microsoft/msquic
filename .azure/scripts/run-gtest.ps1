@@ -105,7 +105,12 @@ function Log($msg) {
 
 # Make sure the test executable is present.
 if (!(Test-Path $Path)) {
-    Write-Error "[$(Get-Date)] $($Path) does not exist!"
+    Write-Error "$($Path) does not exist!"
+}
+
+# Make sure procdump is installed on Windows.
+if ($IsWindows -and !(Test-Path ($RootDir + "\bld\tools\procdump64.exe"))) {
+    Write-Error "Procdump not installed!`n `nRun the following to install it:`n `n    $(Join-Path $RootDir ".azure" "scripts" "install-procdump.ps1")`n"
 }
 
 # Root directory of the project.
@@ -212,7 +217,7 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
                 $pinfo.Arguments = "-g -G $($Path) $($Arguments)"
             }
         } else {
-            $pinfo.FileName = $RootDir + "\bld\windows\procdump\procdump64.exe"
+            $pinfo.FileName = $RootDir + "\bld\tools\procdump64.exe"
             $pinfo.Arguments = "-ma -e -b -l -accepteula -x $($OutputDir) $($Path) $($Arguments)"
         }
     } else {
@@ -339,15 +344,13 @@ function Wait-TestCase($TestCase) {
         }
 
         if ($IsolationMode -eq "Batch") {
-            if ($null -ne $stdout -and "" -ne $stdout) {
-                Write-Host $stdout
-            }
-            if ($null -ne $stderr -and "" -ne $stderr) {
-                Write-Host $stderr
-            }
+            if ($stdout) { Write-Host $stdout }
+            if ($stderr) { Write-Host $stderr }
         } else {
             if ($AnyTestFailed -or $ProcessCrashed) {
-                Log "$($TestCase.Name) failed"
+                Log "$($TestCase.Name) failed:"
+                if ($stdout) { Write-Host $stdout }
+                if ($stderr) { Write-Host $stderr }
             } else {
                 Log "$($TestCase.Name) succeeded"
             }
@@ -363,11 +366,11 @@ function Wait-TestCase($TestCase) {
                 }
             }
 
-            if ($null -ne $stdout -and "" -ne $stdout) {
+            if ($stdout) {
                 $stdout > (Join-Path $TestCase.LogDir "stdout.txt")
             }
 
-            if ($null -ne $stderr -and "" -ne $stderr) {
+            if ($stderr) {
                 $stderr > (Join-Path $TestCase.LogDir "stderr.txt")
             }
 
@@ -526,4 +529,5 @@ try {
             Remove-Item $LogDir -Recurse -Force | Out-Null
         }
     }
+    Write-Host ""
 }

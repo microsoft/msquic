@@ -245,7 +245,7 @@ QuicCryptoInitializeTls(
         goto Error;
     }
 
-    Status = QuicTlsInitialize(&TlsConfig, &Crypto->TLS);
+    Status = QuicTlsInitialize(&TlsConfig, &Crypto->TlsState, &Crypto->TLS);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(ConnErrorStatus, Connection, Status, "QuicTlsInitialize");
         QUIC_FREE(TlsConfig.LocalTPBuffer);
@@ -296,7 +296,13 @@ QuicCryptoHandshakeConfirmed(
     _In_ QUIC_CRYPTO* Crypto
     )
 {
-    QuicCryptoGetConnection(Crypto)->State.HandshakeConfirmed = TRUE;
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+    Connection->State.HandshakeConfirmed = TRUE;
+
+    QUIC_PATH* Path = &Connection->Paths[0];
+    QUIC_DBG_ASSERT(Path->Binding != NULL);
+    QuicBindingOnConnectionHandshakeConfirmed(Path->Binding, Connection);
+
     QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_HANDSHAKE);
 }
 
@@ -1075,17 +1081,17 @@ QuicCryptoProcessTlsCompletion(
 
     if (ResultFlags & QUIC_TLS_RESULT_EARLY_DATA_ACCEPT) {
         QuicTraceLogConnInfo(ZeroRttAccepted, Connection, "0-RTT accepted");
-        QUIC_TEL_ASSERT(Crypto->TlsState.EarlyDataAttempted);
-        QUIC_TEL_ASSERT(Crypto->TlsState.EarlyDataAccepted);
+        QUIC_TEL_ASSERT(Crypto->TlsState.EarlyDataState == QUIC_TLS_EARLY_DATA_ACCEPTED);
     }
 
     if (ResultFlags & QUIC_TLS_RESULT_EARLY_DATA_REJECT) {
         QuicTraceLogConnInfo(ZeroRttRejected, Connection, "0-RTT rejected");
-        QUIC_TEL_ASSERT(Crypto->TlsState.EarlyDataAttempted);
-        QUIC_TEL_ASSERT(!Crypto->TlsState.EarlyDataAccepted);
+        QUIC_TEL_ASSERT(Crypto->TlsState.EarlyDataState != QUIC_TLS_EARLY_DATA_ACCEPTED);
         if (!QuicConnIsServer(Connection)) {
             QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_0_RTT);
             QuicLossDetectionOnZeroRttRejected(&Connection->LossDetection);
+        } else {
+            QuicConnDiscardDeferred0Rtt(Connection);
         }
     }
 
@@ -1216,10 +1222,6 @@ QuicCryptoProcessTlsCompletion(
         QUIC_TEL_ASSERT(!Connection->State.Connected);
 
         QuicTraceEvent(ConnHandshakeComplete, Connection);
-        InterlockedDecrement(&Connection->Paths[0].Binding->HandshakeConnections);
-        InterlockedExchangeAdd64(
-            (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-            -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
 
         //
         // We should have the 1-RTT keys by connection complete time.

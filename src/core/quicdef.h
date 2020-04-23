@@ -81,11 +81,6 @@ typedef struct QUIC_PATH QUIC_PATH;
 #define QUIC_MIN_ACK_SEND_NUMBER                2
 
 //
-// The default scaling factor for AckDelay field in the ACK_FRAME.
-//
-#define QUIC_DEFAULT_ACK_DELAY_EXPONENT         3
-
-//
 // The size of the stateless reset token.
 //
 #define QUIC_STATELESS_RESET_TOKEN_LENGTH       16
@@ -331,6 +326,10 @@ QUIC_STATIC_ASSERT(
 #define QUIC_ACTIVE_CONNECTION_ID_LIMIT         4
 
 QUIC_STATIC_ASSERT(
+    2 <= QUIC_ACTIVE_CONNECTION_ID_LIMIT,
+    "Should always be more than the spec minimum");
+
+QUIC_STATIC_ASSERT(
     QUIC_MAX_PATH_COUNT <= QUIC_ACTIVE_CONNECTION_ID_LIMIT,
     "Should always have enough CIDs for all paths");
 
@@ -375,7 +374,17 @@ QUIC_STATIC_ASSERT(
 // The lifetime of a QUIC stateless retry token encryption key.
 // This is also the interval that generates new keys.
 //
-#define QUIC_STATELESS_RETRY_KEY_LIFETIME_MS 30000
+#define QUIC_STATELESS_RETRY_KEY_LIFETIME_MS    30000
+
+//
+// The default value for migration being enabled or not.
+//
+#define QUIC_DEFAULT_MIGRATION_ENABLED          TRUE
+
+//
+// The default value for load balancing mode.
+//
+#define QUIC_DEFAULT_LOAD_BALANCING_MODE        QUIC_LOAD_BALANCING_DISABLED
 
 /*************************************************************
                   PERSISTENT SETTINGS
@@ -385,11 +394,13 @@ QUIC_STATIC_ASSERT(
 
 #define QUIC_SETTING_MAX_PARTITION_COUNT        "MaxPartitionCount"
 #define QUIC_SETTING_RETRY_MEMORY_FRACTION      "RetryMemoryFraction"
+#define QUIC_SETTING_LOAD_BALANCING_MODE        "LoadBalancingMode"
 #define QUIC_SETTING_MAX_WORKER_QUEUE_DELAY     "MaxWorkerQueueDelayMs"
 #define QUIC_SETTING_MAX_STATELESS_OPERATIONS   "MaxStatelessOperations"
 #define QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN   "MaxOperationsPerDrain"
 
 #define QUIC_SETTING_SEND_PACING_DEFAULT        "SendPacingDefault"
+#define QUIC_SETTING_MIGRATION_ENABLED          "MigrationEnabled"
 
 #define QUIC_SETTING_INITIAL_WINDOW_PACKETS     "InitialWindowPackets"
 #define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS       "SendIdleTimeoutMs"

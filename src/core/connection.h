@@ -96,6 +96,11 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN RemoteAddressSet : 1;
 
         //
+        // Indicates the peer transport parameters variable has been set.
+        //
+        BOOLEAN PeerTransportParameterValid : 1;
+
+        //
         // Indicates the connection needs to queue onto a new worker thread.
         //
         BOOLEAN UpdateWorker : 1;
@@ -311,7 +316,7 @@ typedef struct QUIC_CONNECTION {
     //
     // The server ID for the connection ID.
     //
-    uint8_t ServerID;
+    uint8_t ServerID[MSQUIC_MAX_CID_SID_LENGTH];
 
     //
     // The partition ID for the connection ID.
@@ -460,6 +465,12 @@ typedef struct QUIC_CONNECTION {
     //
     _Field_z_
     const char* RemoteServerName;
+
+    //
+    // The entry into the remote hash lookup table, which is used only during the
+    // handshake.
+    //
+    QUIC_REMOTE_HASH_ENTRY* RemoteHashEntry;
 
     //
     // Transport parameters received from the peer.
@@ -1012,6 +1023,15 @@ QuicConnGetSourceCidFromSeq(
                 Link);
         if (SourceCid->CID.SequenceNumber == SequenceNumber) {
             if (RemoveFromList) {
+                QuicBindingRemoveSourceConnectionID(
+                    Connection->Paths[0].Binding,
+                    SourceCid);
+                QuicTraceEvent(
+                    ConnSourceCidRemoved,
+                    Connection,
+                    SourceCid->CID.SequenceNumber,
+                    SourceCid->CID.Length,
+                    SourceCid->CID.Data);
                 *Entry = (*Entry)->Next;
             }
             *IsLastCid = Connection->SourceCids.Next == NULL;
@@ -1181,6 +1201,15 @@ QUIC_STATUS
 QuicConnHandshakeConfigure(
     _In_ QUIC_CONNECTION* Connection,
     _In_opt_ QUIC_SEC_CONFIG* SecConfig
+    );
+
+//
+// Discard any 0-RTT deferred datagrams.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnDiscardDeferred0Rtt(
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //

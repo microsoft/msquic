@@ -102,7 +102,7 @@ QuicConnAlloc(
     Connection->Stats.Timing.Start = QuicTimeUs64();
     Connection->SourceCidLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
     Connection->AckDelayExponent = QUIC_ACK_DELAY_EXPONENT;
-    Connection->PeerTransportParams.AckDelayExponent = QUIC_DEFAULT_ACK_DELAY_EXPONENT;
+    Connection->PeerTransportParams.AckDelayExponent = QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT;
     Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
     QuicDispatchLockInitialize(&Connection->ReceiveQueueLock);
     QuicListInitializeHead(&Connection->DestCids);
@@ -134,7 +134,20 @@ QuicConnAlloc(
             QuicDataPathRecvDatagramToRecvPacket(Datagram);
 
         Connection->Type = QUIC_HANDLE_TYPE_CHILD;
-        Connection->ServerID = Packet->DestCid[QUIC_CID_SID_INDEX];
+        if (MsQuicLib.Settings.LoadBalancingMode == QUIC_LOAD_BALANCING_SERVER_ID_IP) {
+            QuicRandom(1, Connection->ServerID); // Randomize the first byte.
+            if (QuicAddrGetFamily(&Datagram->Tuple->LocalAddress) == AF_INET) {
+                QuicCopyMemory(
+                    Connection->ServerID + 1,
+                    &Datagram->Tuple->LocalAddress.Ipv4.sin_addr,
+                    4);
+            } else {
+                QuicCopyMemory(
+                    Connection->ServerID + 1,
+                    ((uint8_t*)&Datagram->Tuple->LocalAddress.Ipv6.sin6_addr) + 12,
+                    4);
+            }
+        }
 
         Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
         QuicConnOnQuicVersionSet(Connection);
@@ -328,12 +341,6 @@ QuicConnFree(
     }
     QUIC_PATH* Path = &Connection->Paths[0];
     if (Path->Binding != NULL) {
-        if (!Connection->State.Connected) {
-            InterlockedDecrement(&Path->Binding->HandshakeConnections);
-            InterlockedExchangeAdd64(
-                (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-                -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
-        }
         QuicLibraryReleaseBinding(Path->Binding);
         Path->Binding = NULL;
     }
@@ -726,10 +733,9 @@ QuicConnGenerateNewSourceCid(
                 Connection->ServerID,
                 Connection->PartitionID,
                 Connection->Registration->CidPrefixLength,
-                Connection->Registration->CidPrefix,
-                MSQUIC_CONNECTION_ID_LENGTH);
+                Connection->Registration->CidPrefix);
         if (SourceCid == NULL) {
-            QuicTraceEvent(AllocFailure, "new Src CID", sizeof(QUIC_CID_HASH_ENTRY) + MSQUIC_CONNECTION_ID_LENGTH);
+            QuicTraceEvent(AllocFailure, "new Src CID", sizeof(QUIC_CID_HASH_ENTRY) + MsQuicLib.CidTotalLength);
             QuicConnFatalError(Connection, QUIC_STATUS_INTERNAL_ERROR, NULL);
             return NULL;
         }
@@ -952,6 +958,7 @@ QuicConnReplaceRetiredCids(
 
         Path->DestCid = NewDestCid;
         Path->DestCid->CID.UsedLocally = TRUE;
+        Path->InitiatedCidUpdate = TRUE;
     }
 
     return TRUE;
@@ -1590,6 +1597,7 @@ QuicConnStart(
         QuicLibraryGetBinding(
             Connection->Session,
             Connection->State.ShareBinding,
+            FALSE,
             Connection->State.LocalAddressSet ? &Path->LocalAddress : NULL,
             &Path->RemoteAddress,
             &Path->Binding);
@@ -1597,24 +1605,22 @@ QuicConnStart(
         goto Exit;
     }
 
-    InterlockedIncrement(&Path->Binding->HandshakeConnections);
-    InterlockedExchangeAdd64(
-        (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-        (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
-
     //
     // Clients only need to generate a non-zero length source CID if it
     // intends to share the UDP binding.
     //
-    QUIC_CID_HASH_ENTRY* SourceCid =
-        QuicCidNewRandomSource(
-            Connection,
-            0,
-            Connection->PartitionID,
-            Connection->Registration->CidPrefixLength,
-            Connection->Registration->CidPrefix,
-            Connection->State.ShareBinding ?
-                MSQUIC_CONNECTION_ID_LENGTH : 0);
+    QUIC_CID_HASH_ENTRY* SourceCid;
+    if (Connection->State.ShareBinding) {
+        SourceCid =
+            QuicCidNewRandomSource(
+                Connection,
+                NULL,
+                Connection->PartitionID,
+                Connection->Registration->CidPrefixLength,
+                Connection->Registration->CidPrefix);
+    } else {
+        SourceCid = QuicCidNewNullSource(Connection);
+    }
     if (SourceCid == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
@@ -1625,10 +1631,6 @@ QuicConnStart(
     QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
 
     if (!QuicBindingAddSourceConnectionID(Path->Binding, SourceCid)) {
-        InterlockedDecrement(&Path->Binding->HandshakeConnections);
-        InterlockedExchangeAdd64(
-            (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-            -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
         QuicLibraryReleaseBinding(Path->Binding);
         Path->Binding = NULL;
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -1771,6 +1773,10 @@ QuicConnHandshakeConfigure(
         LocalTP.InitialMaxStreamDataBidiRemote = Connection->Session->Settings.StreamRecvWindowDefault;
         LocalTP.InitialMaxStreamDataUni = Connection->Session->Settings.StreamRecvWindowDefault;
         LocalTP.InitialMaxData = Connection->Send.MaxData;
+        LocalTP.MaxPacketSize =
+            MaxUdpPayloadSizeFromMTU(
+                QuicDataPathBindingGetLocalMtu(
+                    Connection->Paths[0].Binding->DatapathBinding));
         LocalTP.ActiveConnectionIdLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
         LocalTP.Flags =
             QUIC_TP_FLAG_INITIAL_MAX_DATA |
@@ -1779,16 +1785,15 @@ QuicConnHandshakeConfigure(
             QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI |
             QUIC_TP_FLAG_MAX_PACKET_SIZE |
             QUIC_TP_FLAG_MAX_ACK_DELAY |
-            /* QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION | TODO - Add config option to re-enable if behind 4-tuple LB */
             QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT;
-        LocalTP.MaxPacketSize =
-            MaxUdpPayloadSizeFromMTU(
-                QuicDataPathBindingGetLocalMtu(
-                    Connection->Paths[0].Binding->DatapathBinding));
 
         if (Connection->IdleTimeoutMs != 0) {
             LocalTP.Flags |= QUIC_TP_FLAG_IDLE_TIMEOUT;
             LocalTP.IdleTimeout = Connection->IdleTimeoutMs;
+        }
+
+        if (!Connection->Session->Settings.MigrationEnabled) {
+            LocalTP.Flags |= QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION;
         }
 
         LocalTP.MaxAckDelay =
@@ -1811,7 +1816,7 @@ QuicConnHandshakeConfigure(
             goto Error;
         }
 
-        if (Connection->AckDelayExponent != QUIC_DEFAULT_ACK_DELAY_EXPONENT) {
+        if (Connection->AckDelayExponent != QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT) {
             LocalTP.Flags |= QUIC_TP_FLAG_ACK_DELAY_EXPONENT;
             LocalTP.AckDelayExponent = Connection->AckDelayExponent;
         }
@@ -1879,6 +1884,10 @@ QuicConnHandshakeConfigure(
         LocalTP.InitialMaxStreamDataBidiRemote = Connection->Session->Settings.StreamRecvWindowDefault;
         LocalTP.InitialMaxStreamDataUni = Connection->Session->Settings.StreamRecvWindowDefault;
         LocalTP.InitialMaxData = Connection->Send.MaxData;
+        LocalTP.MaxPacketSize =
+            MaxUdpPayloadSizeFromMTU(
+                QuicDataPathBindingGetLocalMtu(
+                    Connection->Paths[0].Binding->DatapathBinding));
         LocalTP.ActiveConnectionIdLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
         LocalTP.Flags =
             QUIC_TP_FLAG_INITIAL_MAX_DATA |
@@ -1888,10 +1897,6 @@ QuicConnHandshakeConfigure(
             QUIC_TP_FLAG_MAX_PACKET_SIZE |
             QUIC_TP_FLAG_MAX_ACK_DELAY |
             QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT;
-        LocalTP.MaxPacketSize =
-            MaxUdpPayloadSizeFromMTU(
-                QuicDataPathBindingGetLocalMtu(
-                    Connection->Paths[0].Binding->DatapathBinding));
 
         if (Connection->IdleTimeoutMs != 0) {
             LocalTP.Flags |= QUIC_TP_FLAG_IDLE_TIMEOUT;
@@ -1901,7 +1906,7 @@ QuicConnHandshakeConfigure(
         LocalTP.MaxAckDelay =
             Connection->MaxAckDelayMs + MsQuicLib.TimerResolutionMs;
 
-        if (Connection->AckDelayExponent != QUIC_DEFAULT_ACK_DELAY_EXPONENT) {
+        if (Connection->AckDelayExponent != QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT) {
             LocalTP.Flags |= QUIC_TP_FLAG_ACK_DELAY_EXPONENT;
             LocalTP.AckDelayExponent = Connection->AckDelayExponent;
         }
@@ -1943,17 +1948,15 @@ QuicConnProcessPeerTransportParameters(
     )
 {
     QuicTraceLogConnInfo(PeerTPSet, Connection, "Peer Transport Parameters Set");
+    Connection->State.PeerTransportParameterValid = TRUE;
 
     if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT) {
-        if (Connection->PeerTransportParams.ActiveConnectionIdLimit == 0) {
-            QuicTraceEvent(ConnError, Connection, "Peer set ActiveConnectionIdLimit to 0");
-            goto Error;
-        }
+        QUIC_DBG_ASSERT(Connection->PeerTransportParams.ActiveConnectionIdLimit >= QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN);
         if (Connection->SourceCidLimit > Connection->PeerTransportParams.ActiveConnectionIdLimit) {
             Connection->SourceCidLimit = (uint8_t) Connection->PeerTransportParams.ActiveConnectionIdLimit;
         }
     } else {
-        Connection->SourceCidLimit = 1;
+        Connection->SourceCidLimit = QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_DEFAULT;
     }
 
     if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_STATELESS_RESET_TOKEN) {
@@ -2453,35 +2456,50 @@ QuicConnGetKeyOrDeferDatagram(
     )
 {
     if (Packet->KeyType > Connection->Crypto.TlsState.ReadKey) {
+
         //
-        // We don't have the necessary key yet so defer the packet until we get
-        // the key.
+        // We don't have the necessary key yet so try to defer the packet until
+        // we get the key.
         //
-        QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(Packet->KeyType);
-        QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
-        if (Packets->DeferredDatagramsCount == QUIC_MAX_PENDING_DATAGRAMS) {
+
+        if (Packet->KeyType == QUIC_PACKET_KEY_0_RTT &&
+            Connection->Crypto.TlsState.EarlyDataState != QUIC_TLS_EARLY_DATA_UNKNOWN) {
             //
-            // We already have too many packets queued up. Just drop this one.
+            // We don't have the 0-RTT key, but we aren't in an unknown
+            // "early data" state, so it must be rejected/unsupported. Just drop
+            // the packets.
             //
-            QuicPacketLogDrop(Connection, Packet, "Max deferred datagram count reached");
+            QUIC_DBG_ASSERT(Connection->Crypto.TlsState.EarlyDataState != QUIC_TLS_EARLY_DATA_ACCEPTED);
+            QuicPacketLogDrop(Connection, Packet, "0-RTT not currently accepted");
 
         } else {
-            QuicTraceLogConnVerbose(DeferDatagram, Connection, "Deferring datagram (type=%hu).",
-                Packet->KeyType);
+            QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(Packet->KeyType);
+            QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
+            if (Packets->DeferredDatagramsCount == QUIC_MAX_PENDING_DATAGRAMS) {
+                //
+                // We already have too many packets queued up. Just drop this
+                // one.
+                //
+                QuicPacketLogDrop(Connection, Packet, "Max deferred datagram count reached");
 
-            Packets->DeferredDatagramsCount++;
-            Packet->DecryptionDeferred = TRUE;
+            } else {
+                QuicTraceLogConnVerbose(DeferDatagram, Connection, "Deferring datagram (type=%hu).",
+                    Packet->KeyType);
 
-            //
-            // Add it to the list of pending packets that are waiting on a key
-            // to decrypt with.
-            //
-            QUIC_RECV_DATAGRAM** Tail = &Packets->DeferredDatagrams;
-            while (*Tail != NULL) {
-                Tail = &((*Tail)->Next);
+                Packets->DeferredDatagramsCount++;
+                Packet->DecryptionDeferred = TRUE;
+
+                //
+                // Add it to the list of pending packets that are waiting on a
+                // key to decrypt with.
+                //
+                QUIC_RECV_DATAGRAM** Tail = &Packets->DeferredDatagrams;
+                while (*Tail != NULL) {
+                    Tail = &((*Tail)->Next);
+                }
+                *Tail = QuicDataPathRecvPacketToRecvDatagram(Packet);
+                (*Tail)->Next = NULL;
             }
-            *Tail = QuicDataPathRecvPacketToRecvDatagram(Packet);
-            (*Tail)->Next = NULL;
         }
 
         return FALSE;
@@ -2877,7 +2895,7 @@ QuicConnRecvDecryptAndAuthenticate(
             QuicPacketLogHeader(
                 Connection,
                 TRUE,
-                Connection->State.ShareBinding ? MSQUIC_CONNECTION_ID_LENGTH : 0,
+                Connection->State.ShareBinding ? MsQuicLib.CidTotalLength : 0,
                 Packet->PacketNumber,
                 Packet->HeaderLength,
                 Packet->Buffer,
@@ -2933,7 +2951,7 @@ QuicConnRecvDecryptAndAuthenticate(
             QuicPacketLogHeader(
                 Connection,
                 TRUE,
-                Connection->State.ShareBinding ? MSQUIC_CONNECTION_ID_LENGTH : 0,
+                Connection->State.ShareBinding ? MsQuicLib.CidTotalLength : 0,
                 Packet->PacketNumber,
                 Packet->BufferLength,
                 Packet->Buffer,
@@ -2952,7 +2970,7 @@ QuicConnRecvDecryptAndAuthenticate(
         QuicPacketLogHeader(
             Connection,
             TRUE,
-            Connection->State.ShareBinding ? MSQUIC_CONNECTION_ID_LENGTH : 0,
+            Connection->State.ShareBinding ? MsQuicLib.CidTotalLength : 0,
             Packet->PacketNumber,
             Packet->HeaderLength + Packet->PayloadLength,
             Packet->Buffer,
@@ -3368,7 +3386,7 @@ QuicConnRecvFrames(
                 break; // Ignore frame if we are closed.
             }
 
-            if (Frame.MaximumStreams > QUIC_TP_MAX_MAX_STREAMS) {
+            if (Frame.MaximumStreams > QUIC_TP_MAX_STREAMS_MAX) {
                 QuicConnTransportError(Connection, QUIC_ERROR_STREAM_LIMIT_ERROR);
                 break;
             }
@@ -3510,10 +3528,6 @@ QuicConnRecvFrames(
                     &IsLastCid);
             if (SourceCid != NULL) {
                 BOOLEAN CidAlreadyRetired = SourceCid->CID.Retired;
-                QuicBindingRemoveSourceConnectionID(
-                    Connection->Paths[0].Binding, SourceCid);
-                QuicTraceEvent(ConnSourceCidRemoved,
-                    Connection, SourceCid->CID.SequenceNumber, SourceCid->CID.Length, SourceCid->CID.Data);
                 QUIC_FREE(SourceCid);
                 if (IsLastCid) {
                     QuicTraceEvent(ConnError, Connection, "Last Source CID Retired!");
@@ -3705,8 +3719,7 @@ QuicConnRecvPostProcessing(
                         // can discard the old (client chosen) one now.
                         //
                         SourceCid->Link.Next = NextSourceCid->Link.Next;
-                        QuicBindingRemoveSourceConnectionID(
-                            Connection->Paths[0].Binding, NextSourceCid);
+                        QUIC_DBG_ASSERT(!NextSourceCid->CID.IsInLookupTable);
                         QuicTraceEvent(ConnSourceCidRemoved,
                             Connection, NextSourceCid->CID.SequenceNumber, NextSourceCid->CID.Length, NextSourceCid->CID.Data);
                         QUIC_FREE(NextSourceCid);
@@ -4110,6 +4123,43 @@ QuicConnFlushRecv(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicConnDiscardDeferred0Rtt(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    QUIC_RECV_DATAGRAM* ReleaseChain = NULL;
+    QUIC_RECV_DATAGRAM** ReleaseChainTail = &ReleaseChain;
+    QUIC_PACKET_SPACE* Packets = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
+    QUIC_DBG_ASSERT(Packets != NULL);
+
+    QUIC_RECV_DATAGRAM* DeferredDatagrams = Packets->DeferredDatagrams;
+    QUIC_RECV_DATAGRAM** DeferredDatagramsTail = &Packets->DeferredDatagrams;
+    Packets->DeferredDatagrams = NULL;
+
+    while (DeferredDatagrams != NULL) {
+        QUIC_RECV_DATAGRAM* Datagram = DeferredDatagrams;
+        DeferredDatagrams = DeferredDatagrams->Next;
+
+        const QUIC_RECV_PACKET* Packet =
+            QuicDataPathRecvDatagramToRecvPacket(Datagram);
+        if (Packet->KeyType == QUIC_PACKET_KEY_0_RTT) {
+            QuicPacketLogDrop(Connection, Packet, "0-RTT rejected");
+            Packets->DeferredDatagramsCount--;
+            *ReleaseChainTail = Datagram;
+            ReleaseChainTail = &Datagram->Next;
+        } else {
+            *DeferredDatagramsTail = Datagram;
+            DeferredDatagramsTail = &Datagram->Next;
+        }
+    }
+    
+    if (ReleaseChain != NULL) {
+        QuicDataPathBindingReturnRecvDatagrams(ReleaseChain);
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 QuicConnFlushDeferred(
     _In_ QUIC_CONNECTION* Connection
     )
@@ -4307,7 +4357,7 @@ QuicConnParamSet(
             break;
         }
 
-        if (Connection->Type == QUIC_HANDLE_TYPE_CHILD) {
+        if (QuicConnIsServer(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
@@ -4343,6 +4393,7 @@ QuicConnParamSet(
                 QuicLibraryGetBinding(
                     Connection->Session,
                     Connection->State.ShareBinding,
+                    FALSE,
                     LocalAddress,
                     &Connection->Paths[0].RemoteAddress,
                     &Connection->Paths[0].Binding);
@@ -4357,12 +4408,6 @@ QuicConnParamSet(
 
             QuicBindingMoveSourceConnectionIDs(
                 OldBinding, Connection->Paths[0].Binding, Connection);
-            if (!Connection->State.Connected) {
-                InterlockedDecrement(&OldBinding->HandshakeConnections);
-                InterlockedExchangeAdd64(
-                    (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-                    -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
-            }
             QuicLibraryReleaseBinding(OldBinding);
             QuicTraceEvent(ConnLocalAddrRemoved,
                 Connection,

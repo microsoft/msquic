@@ -19,60 +19,68 @@ Abstract:
 // Minimum number of bytes required for a connection ID in the client's
 // Initial packet.
 //
-#define QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH 8
+#define QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH       8
 
 //
-// Hard coded number of bytes MsQuic uses for connection IDs.
-// TODO - Add a library setting for this.
+// The minimum and maximum CID server ID length used by MsQuic.
 //
-#define MSQUIC_CONNECTION_ID_LENGTH 8
-
-QUIC_STATIC_ASSERT(
-    MSQUIC_CONNECTION_ID_LENGTH >= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH,
-    "msquic never uses source CIDs less than the initial min");
-
-//
-// The number of bytes dedicated to server ID. The SID starts at the first byte
-// of the connection ID.
-//
-#define QUIC_CID_SID_LENGTH 1
-#define QUIC_CID_SID_INDEX 0
+#define MSQUIC_MIN_CID_SID_LENGTH                   0
+#define MSQUIC_MAX_CID_SID_LENGTH                   5
 
 //
 // The index of the byte we use for partition ID lookup, in the connection ID.
 // The PID is just a single byte. The PID immediately follows the SID.
 //
-#define QUIC_CID_PID_LENGTH 1
-#define QUIC_CID_PID_INDEX (QUIC_CID_SID_INDEX + QUIC_CID_SID_LENGTH)
-
-QUIC_STATIC_ASSERT(
-    QUIC_CID_PID_INDEX + QUIC_CID_PID_LENGTH <= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH,
-    "PID can't go larger than the min initial size");
+#define MSQUIC_CID_PID_LENGTH                       1
 
 //
-// The start of the rest of the CID, which consists of an optional app prefix
-// with the rest as random bytes.
+// The number of bytes (and randomness) that MsQuic uses to uniquely
+// identify connections for a single server / partition combination.
 //
-#define QUIC_CID_RANDOM_INDEX (QUIC_CID_PID_INDEX + QUIC_CID_PID_LENGTH)
+#define MSQUIC_CID_PAYLOAD_LENGTH                   7
 
 //
 // The minimum number of bytes that should be purely random in a CID.
 //
-#define QUIC_CID_MIN_RANDOM_BYTES 4
+#define MSQUIC_CID_MIN_RANDOM_BYTES                 4
+
+//
+// The minimum length CIDs that MsQuic ever will generate.
+//
+#define MSQUIC_CID_MIN_LENGTH \
+    (MSQUIC_MIN_CID_SID_LENGTH + \
+     MSQUIC_CID_PID_LENGTH + \
+     MSQUIC_CID_PAYLOAD_LENGTH)
+
+//
+// The maximum length CIDs that MsQuic ever will generate.
+//
+#define MSQUIC_CID_MAX_LENGTH \
+    (MSQUIC_MAX_CID_SID_LENGTH + \
+     MSQUIC_CID_PID_LENGTH + \
+     MSQUIC_CID_PAYLOAD_LENGTH)
+
+QUIC_STATIC_ASSERT(
+    MSQUIC_CID_MIN_LENGTH >= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH,
+    "MsQuic CID length must be at least the minimum initial length");
+
+QUIC_STATIC_ASSERT(
+    MSQUIC_CID_MAX_LENGTH <= QUIC_MAX_CONNECTION_ID_LENGTH_V1,
+    "MsQuic CID length must fit in v1");
 
 //
 // The maximum size of the prefix an app is allowed to configure is dependent on
 // the values of the other defines above; essentially constituting the left over
 // part of the CID buffer.
 //
-#define QUIC_CID_MAX_APP_PREFIX \
-    (MSQUIC_CONNECTION_ID_LENGTH - QUIC_CID_SID_LENGTH - QUIC_CID_PID_LENGTH - QUIC_CID_MIN_RANDOM_BYTES)
+#define MSQUIC_CID_MAX_APP_PREFIX \
+    (MSQUIC_CID_PAYLOAD_LENGTH - MSQUIC_CID_MIN_RANDOM_BYTES)
 
 //
 // The maximum number we will try to randomly calculate a new initial CID before
 // failing.
 //
-#define QUIC_CID_MAX_COLLISION_RETRY 8
+#define QUIC_CID_MAX_COLLISION_RETRY                8
 
 //
 // Connection ID Structures
@@ -117,6 +125,11 @@ typedef struct QUIC_CID {
     // with it (given to us by the peer).
     //
     uint8_t HasResetToken : 1;
+    //
+    // Used for source CIDs. The CID is in the binding's lookup table.
+    //
+    uint8_t IsInLookupTable : 1;
+
     uint8_t Length;
     QUIC_VAR_INT SequenceNumber;
     _Field_size_bytes_(Length)
@@ -142,55 +155,22 @@ typedef struct QUIC_CID_HASH_ENTRY {
 } QUIC_CID_HASH_ENTRY;
 
 //
-// Creates a random, new source connection ID, that will be used on the receive
-// path.
+// Creates a new null/empty source connection ID, that will be used on the
+// receive path.
 //
 inline
 _Success_(return != NULL)
 QUIC_CID_HASH_ENTRY*
-QuicCidNewRandomSource(
-    _In_opt_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t ServerID,
-    _In_ uint8_t PartitionID,
-    _In_ uint8_t PrefixLength,
-    _In_reads_(PrefixLength)
-        const uint8_t* Prefix,
-    _In_ uint8_t Length
+QuicCidNewNullSource(
+    _In_ QUIC_CONNECTION* Connection
     )
 {
-    QUIC_DBG_ASSERT(Length == 0 ||
-        QUIC_CID_SID_LENGTH + QUIC_CID_PID_LENGTH + PrefixLength + QUIC_CID_MIN_RANDOM_BYTES <= Length);
-
-    QUIC_CID_HASH_ENTRY* Entry =
-        (QUIC_CID_HASH_ENTRY*)
-        QUIC_ALLOC_NONPAGED(
-            sizeof(QUIC_CID_HASH_ENTRY) +
-            Length);
+    QUIC_CID_HASH_ENTRY* Entry = 
+        (QUIC_CID_HASH_ENTRY*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_CID_HASH_ENTRY));
 
     if (Entry != NULL) {
         Entry->Connection = Connection;
         QuicZeroMemory(&Entry->CID, sizeof(Entry->CID));
-        Entry->CID.SequenceNumber = 0;
-        Entry->CID.Length = Length;
-        if (Length != 0) {
-            QUIC_DBG_ASSERT(
-                Length <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
-
-            QUIC_STATIC_ASSERT(QUIC_CID_SID_LENGTH == 1, "Assumes a single byte SID");
-            Entry->CID.Data[QUIC_CID_SID_INDEX] = ServerID;
-
-            QUIC_STATIC_ASSERT(QUIC_CID_PID_LENGTH == 1, "Assumes a single byte PID");
-            Entry->CID.Data[QUIC_CID_PID_INDEX] = PartitionID;
-
-            QuicCopyMemory(
-                Entry->CID.Data + QUIC_CID_RANDOM_INDEX,
-                Prefix,
-                PrefixLength);
-
-            QuicRandom(
-                Length - PrefixLength - QUIC_CID_RANDOM_INDEX,
-                Entry->CID.Data + PrefixLength + QUIC_CID_RANDOM_INDEX);
-        }
     }
 
     return Entry;
