@@ -59,6 +59,7 @@ extern "C" {
 
 #if defined(DEBUG) || defined(_DEBUG)
 #define DBG 1
+#define DEBUG 1
 #endif
 
 #if _WIN64
@@ -159,13 +160,14 @@ QuicPlatformLogAssert(
 #define QUIC_ANALYSIS_ASSUME(_exp) _Analysis_assume_(_exp)
 #else // _PREFAST_
 // QUIC_ANALYSIS_ASSUME ensures that _exp is parsed in non-analysis compile.
-// On DBG, it's guaranteed to be parsed as part of the normal compile, but with
-// non-DBG, use __noop to ensure _exp is parseable but without code generation.
-#if DBG
+// On DEBUG, it's guaranteed to be parsed as part of the normal compile, but
+// with non-DEBUG, use __noop to ensure _exp is parseable but without code
+// generation.
+#if DEBUG
 #define QUIC_ANALYSIS_ASSUME(_exp) ((void) 0)
-#else // DBG
+#else // DEBUG
 #define QUIC_ANALYSIS_ASSUME(_exp) __noop(_exp)
-#endif // DBG
+#endif // DEBUG
 #endif // _PREFAST_
 
 //
@@ -177,7 +179,7 @@ QuicPlatformLogAssert(
 //  QUIC_FRE_ASSERT - Asserts that must always crash the process.
 //
 
-#if DBG || QUIC_TEST_MODE
+#if DEBUG
 #define QUIC_DBG_ASSERT(_exp)          (QUIC_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
 #define QUIC_DBG_ASSERTMSG(_exp, _msg) (QUIC_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
 #else
@@ -185,7 +187,7 @@ QuicPlatformLogAssert(
 #define QUIC_DBG_ASSERTMSG(_exp, _msg) (QUIC_ANALYSIS_ASSUME(_exp), 0)
 #endif
 
-#if DBG || QUIC_TEST_MODE
+#if DEBUG
 #define QUIC_TEL_ASSERT(_exp)          (QUIC_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
 #define QUIC_TEL_ASSERTMSG(_exp, _msg) (QUIC_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
 #define QUIC_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
@@ -258,7 +260,7 @@ typedef struct QUIC_POOL {
 
 #define QUIC_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
 
-#if DBG || QUIC_TEST_MODE
+#if DEBUG
 typedef struct QUIC_POOL_ENTRY {
     SLIST_ENTRY ListHead;
     uint32_t SpecialFlag;
@@ -274,7 +276,7 @@ QuicPoolInitialize(
     _Inout_ QUIC_POOL* Pool
     )
 {
-#if DBG || QUIC_TEST_MODE
+#if DEBUG
     QUIC_DBG_ASSERT(Size >= sizeof(QUIC_POOL_ENTRY));
 #endif
     Pool->Size = Size;
@@ -307,7 +309,7 @@ QuicPoolAlloc(
     if (Entry == NULL) {
         Entry = QuicAlloc(Pool->Size);
     }
-#if DBG || QUIC_TEST_MODE
+#if DEBUG
     if (Entry != NULL) {
         ((QUIC_POOL_ENTRY*)Entry)->SpecialFlag = 0;
     }
@@ -328,7 +330,7 @@ QuicPoolFree(
     QuicFree(Entry);
     return;
 #else
-#if DBG || QUIC_TEST_MODE
+#if DEBUG
     QUIC_DBG_ASSERT(((QUIC_POOL_ENTRY*)Entry)->SpecialFlag != QUIC_POOL_SPECIAL_FLAG);
     ((QUIC_POOL_ENTRY*)Entry)->SpecialFlag = QUIC_POOL_SPECIAL_FLAG;
 #endif

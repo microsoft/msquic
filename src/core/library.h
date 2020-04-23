@@ -114,7 +114,7 @@ typedef struct QUIC_LIBRARY {
     //
     uint8_t PartitionMask;
 
-#if QUIC_TEST_MODE
+#if DEBUG
     //
     // Number of connections current allocated.
     //

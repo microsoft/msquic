@@ -68,6 +68,10 @@ ZwSetInformationThread(
 extern "C" {
 #endif
 
+#if DBG
+#define DEBUG 1
+#endif
+
 #if _WIN64
 #define QUIC_64BIT 1
 #else
@@ -178,13 +182,14 @@ QuicPlatformLogAssert(
 #define QUIC_ANALYSIS_ASSUME(_exp) _Analysis_assume_(_exp)
 #else // _PREFAST_
 // QUIC_ANALYSIS_ASSUME ensures that _exp is parsed in non-analysis compile.
-// On DBG, it's guaranteed to be parsed as part of the normal compile, but with
-// non-DBG, use __noop to ensure _exp is parseable but without code generation.
-#if DBG
+// On DEBUG, it's guaranteed to be parsed as part of the normal compile, but
+// with non-DEBUG, use __noop to ensure _exp is parseable but without code
+// generation.
+#if DEBUG
 #define QUIC_ANALYSIS_ASSUME(_exp) ((void) 0)
-#else // DBG
+#else // DEBUG
 #define QUIC_ANALYSIS_ASSUME(_exp) __noop(_exp)
-#endif // DBG
+#endif // DEBUG
 #endif // _PREFAST_
 
 //
@@ -196,7 +201,7 @@ QuicPlatformLogAssert(
 //  QUIC_FRE_ASSERT - Asserts that must always crash the system.
 //
 
-#if DBG || QUIC_TEST_MODE
+#if DEBUG
 #define QUIC_DBG_ASSERT(_exp)          (QUIC_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
 #define QUIC_DBG_ASSERTMSG(_exp, _msg) (QUIC_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
 #else
@@ -204,7 +209,7 @@ QuicPlatformLogAssert(
 #define QUIC_DBG_ASSERTMSG(_exp, _msg) (QUIC_ANALYSIS_ASSUME(_exp), 0)
 #endif
 
-#if DBG || QUIC_TEST_MODE
+#if DEBUG
 #define QUIC_TEL_ASSERT(_exp)          (QUIC_ANALYSIS_ASSUME(_exp), QUIC_ASSERT_ACTION(_exp))
 #define QUIC_TEL_ASSERTMSG(_exp, _msg) (QUIC_ANALYSIS_ASSUME(_exp), QUIC_ASSERTMSG_ACTION(_msg, _exp))
 #define QUIC_TEL_ASSERTMSG_ARGS(_exp, _msg, _origin, _bucketArg1, _bucketArg2) \
