@@ -372,7 +372,7 @@ QuicRangeGetMaxSafe(
 // Use for debugging purposes.
 //
 
-#if QUIC_TEST_MODE
+#if DEBUG
 
 //
 // Some simple heuristics to try to make sure the range is valid.

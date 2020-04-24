@@ -24,6 +24,9 @@ QuicSettingsSetDefault(
     if (!Settings->AppSet.PacingDefault) {
         Settings->PacingDefault = QUIC_DEFAULT_SEND_PACING;
     }
+    if (!Settings->AppSet.MigrationEnabled) {
+        Settings->MigrationEnabled = QUIC_DEFAULT_MIGRATION_ENABLED;
+    }
     if (!Settings->AppSet.MaxPartitionCount) {
         Settings->MaxPartitionCount = QUIC_MAX_PARTITION_COUNT;
     }
@@ -32,6 +35,9 @@ QuicSettingsSetDefault(
     }
     if (!Settings->AppSet.RetryMemoryLimit) {
         Settings->RetryMemoryLimit = QUIC_DEFAULT_RETRY_MEMORY_FRACTION;
+    }
+    if (!Settings->AppSet.LoadBalancingMode) {
+        Settings->LoadBalancingMode = QUIC_DEFAULT_LOAD_BALANCING_MODE;
     }
     if (!Settings->AppSet.MaxWorkerQueueDelayUs) {
         Settings->MaxWorkerQueueDelayUs = MS_TO_US(QUIC_MAX_WORKER_QUEUE_DELAY);
@@ -99,6 +105,9 @@ QuicSettingsCopy(
     if (!Settings->AppSet.PacingDefault) {
         Settings->PacingDefault = ParentSettings->PacingDefault;
     }
+    if (!Settings->AppSet.MigrationEnabled) {
+        Settings->MigrationEnabled = ParentSettings->MigrationEnabled;
+    }
     if (!Settings->AppSet.MaxPartitionCount) {
         Settings->MaxPartitionCount = ParentSettings->MaxPartitionCount;
     }
@@ -107,6 +116,9 @@ QuicSettingsCopy(
     }
     if (!Settings->AppSet.RetryMemoryLimit) {
         Settings->RetryMemoryLimit = ParentSettings->RetryMemoryLimit;
+    }
+    if (!Settings->AppSet.LoadBalancingMode) {
+        Settings->LoadBalancingMode = ParentSettings->LoadBalancingMode;
     }
     if (!Settings->AppSet.MaxWorkerQueueDelayUs) {
         Settings->MaxWorkerQueueDelayUs = ParentSettings->MaxWorkerQueueDelayUs;
@@ -185,6 +197,17 @@ QuicSettingsLoad(
         Settings->PacingDefault = !!Value;
     }
 
+    if (!Settings->AppSet.MigrationEnabled) {
+        Value = QUIC_DEFAULT_MIGRATION_ENABLED;
+        ValueLen = sizeof(Value);
+        QuicStorageReadValue(
+            Storage,
+            QUIC_SETTING_MIGRATION_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->MigrationEnabled = !!Value;
+    }
+
     if (!Settings->AppSet.MaxPartitionCount) {
         Value = QUIC_MAX_PARTITION_COUNT;
         ValueLen = sizeof(Value);
@@ -221,6 +244,20 @@ QuicSettingsLoad(
             &ValueLen);
         if (Value <= UINT16_MAX) {
             Settings->RetryMemoryLimit = (uint16_t)Value;
+        }
+    }
+
+    if (!Settings->AppSet.LoadBalancingMode &&
+        !MsQuicLib.InUse) {
+        Value = QUIC_DEFAULT_LOAD_BALANCING_MODE;
+        ValueLen = sizeof(Value);
+        QuicStorageReadValue(
+            Storage,
+            QUIC_SETTING_LOAD_BALANCING_MODE,
+            (uint8_t*)&Value,
+            &ValueLen);
+        if (Value <= QUIC_LOAD_BALANCING_SERVER_ID_IP) {
+            Settings->LoadBalancingMode = (uint16_t)Value;
         }
     }
 
@@ -278,7 +315,7 @@ QuicSettingsLoad(
             QUIC_SETTING_MAX_ACK_DELAY,
             (uint8_t*)&Settings->MaxAckDelayMs,
             &ValueLen);
-        if (Settings->MaxAckDelayMs > QUIC_TP_MAX_MAX_ACK_DELAY) {
+        if (Settings->MaxAckDelayMs > QUIC_TP_MAX_ACK_DELAY_MAX) {
             Settings->MaxAckDelayMs = QUIC_TP_MAX_ACK_DELAY_DEFAULT;
         }
     }
@@ -414,10 +451,12 @@ QuicSettingsDump(
     _In_ const QUIC_SETTINGS* Settings
     )
 {
-    QuicTraceLogVerbose("[sett] PacingDefault          = %hu", (uint16_t)Settings->PacingDefault);
-    QuicTraceLogVerbose("[sett] MaxPartitionCount      = %hu", (uint16_t)Settings->MaxPartitionCount);
-    QuicTraceLogVerbose("[sett] MaxOperationsPerDrain  = %hu", (uint16_t)Settings->MaxOperationsPerDrain);
+    QuicTraceLogVerbose("[sett] PacingDefault          = %hhu", Settings->PacingDefault);
+    QuicTraceLogVerbose("[sett] MigrationEnabled       = %hhu", Settings->MigrationEnabled);
+    QuicTraceLogVerbose("[sett] MaxPartitionCount      = %hhu", Settings->MaxPartitionCount);
+    QuicTraceLogVerbose("[sett] MaxOperationsPerDrain  = %hhu", Settings->MaxOperationsPerDrain);
     QuicTraceLogVerbose("[sett] RetryMemoryLimit       = %hu", Settings->RetryMemoryLimit);
+    QuicTraceLogVerbose("[sett] LoadBalancingMode      = %hu", Settings->LoadBalancingMode);
     QuicTraceLogVerbose("[sett] MaxStatelessOperations = %u", Settings->MaxStatelessOperations);
     QuicTraceLogVerbose("[sett] MaxWorkerQueueDelayUs  = %u", Settings->MaxWorkerQueueDelayUs);
     QuicTraceLogVerbose("[sett] InitialWindowPackets   = %u", Settings->InitialWindowPackets);

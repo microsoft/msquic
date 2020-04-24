@@ -105,7 +105,12 @@ function Log($msg) {
 
 # Make sure the test executable is present.
 if (!(Test-Path $Path)) {
-    Write-Error "[$(Get-Date)] $($Path) does not exist!"
+    Write-Error "$($Path) does not exist!"
+}
+
+# Make sure procdump is installed on Windows.
+if ($IsWindows -and !(Test-Path ($RootDir + "\bld\tools\procdump64.exe"))) {
+    Write-Error "Procdump not installed!`n `nRun the following to install it:`n `n    $(Join-Path $RootDir ".azure" "scripts" "install-procdump.ps1")`n"
 }
 
 # Root directory of the project.

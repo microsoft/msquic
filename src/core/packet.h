@@ -520,6 +520,55 @@ QuicPacketEncodeShortHeaderV1(
     return RequiredBufferLength;
 }
 
+inline
+uint32_t
+QuicPacketHash(
+    _In_ const QUIC_ADDR* const RemoteAddress,
+    _In_ uint8_t RemoteCidLength,
+    _In_reads_(RemoteCidLength)
+        const uint8_t* const RemoteCid
+    )
+{
+    uint32_t Key, Offset;
+
+    if (QuicAddrGetFamily(RemoteAddress) == AF_INET) {
+        Key =
+            QuicToeplitzHashCompute(
+                &MsQuicLib.ToeplitzHash,
+                ((uint8_t*)RemoteAddress) + QUIC_ADDR_V4_PORT_OFFSET,
+                2, 0);
+        Key ^=
+            QuicToeplitzHashCompute(
+                &MsQuicLib.ToeplitzHash,
+                ((uint8_t*)RemoteAddress) + QUIC_ADDR_V4_IP_OFFSET,
+                4, 2);
+        Offset = 2 + 4;
+    } else {
+        Key =
+            QuicToeplitzHashCompute(
+                &MsQuicLib.ToeplitzHash,
+                ((uint8_t*)RemoteAddress) + QUIC_ADDR_V6_PORT_OFFSET,
+                2, 0);
+        Key ^=
+            QuicToeplitzHashCompute(
+                &MsQuicLib.ToeplitzHash,
+                ((uint8_t*)RemoteAddress) + QUIC_ADDR_V6_IP_OFFSET,
+                16, 2);
+        Offset = 2 + 16;
+    }
+
+    if (RemoteCidLength != 0) {
+        Key ^=
+            QuicToeplitzHashCompute(
+                &MsQuicLib.ToeplitzHash,
+                RemoteCid,
+                min(RemoteCidLength, QUIC_MAX_CONNECTION_ID_LENGTH_V1),
+                Offset);
+    }
+
+    return Key;
+}
+
 //
 // Logs a packet header.
 //

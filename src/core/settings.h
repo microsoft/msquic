@@ -8,9 +8,11 @@
 typedef struct QUIC_SETTINGS {
 
     BOOLEAN PacingDefault;
-    uint8_t MaxPartitionCount;
-    uint8_t MaxOperationsPerDrain;
-    uint16_t RetryMemoryLimit;
+    BOOLEAN MigrationEnabled;
+    uint8_t MaxPartitionCount;          // Global only
+    uint8_t MaxOperationsPerDrain;      // Global only
+    uint16_t RetryMemoryLimit;          // Global only
+    uint16_t LoadBalancingMode;         // Global only
     uint32_t MaxWorkerQueueDelayUs;
     uint32_t MaxStatelessOperations;
     uint32_t InitialWindowPackets;
@@ -32,9 +34,11 @@ typedef struct QUIC_SETTINGS {
 
     struct {
         BOOLEAN PacingDefault : 1;
+        BOOLEAN MigrationEnabled : 1;
         BOOLEAN MaxPartitionCount : 1;
         BOOLEAN MaxOperationsPerDrain : 1;
         BOOLEAN RetryMemoryLimit : 1;
+        BOOLEAN LoadBalancingMode : 1;
         BOOLEAN MaxWorkerQueueDelayUs : 1;
         BOOLEAN MaxStatelessOperations : 1;
         BOOLEAN InitialWindowPackets : 1;

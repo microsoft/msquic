@@ -34,9 +34,9 @@ void QuicTestInitialize()
     uint8_t Disabled = FALSE;
     if (QUIC_FAILED(
         MsQuic->SetParam(
-            MsQuic->Registration,
-            QUIC_PARAM_LEVEL_REGISTRATION,
-            QUIC_PARAM_REGISTRATION_ENCRYPTION,
+            nullptr,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            QUIC_PARAM_GLOBAL_ENCRYPTION,
             sizeof(Disabled),
             &Disabled))) {
         QuicTraceLogError("[test] Disabling encryption failed");
@@ -343,9 +343,9 @@ struct StatelessRetryHelper
             uint16_t value = 0;
             TEST_QUIC_SUCCEEDED(
                 MsQuic->SetParam(
-                    Registration,
-                    QUIC_PARAM_LEVEL_REGISTRATION,
-                    QUIC_PARAM_REGISTRATION_RETRY_MEMORY_PERCENT,
+                    nullptr,
+                    QUIC_PARAM_LEVEL_GLOBAL,
+                    QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
                     sizeof(value),
                     &value));
         }
@@ -355,9 +355,9 @@ struct StatelessRetryHelper
             uint16_t value = 65;
             TEST_QUIC_SUCCEEDED(
                 MsQuic->SetParam(
-                    Registration,
-                    QUIC_PARAM_LEVEL_REGISTRATION,
-                    QUIC_PARAM_REGISTRATION_RETRY_MEMORY_PERCENT,
+                    nullptr,
+                    QUIC_PARAM_LEVEL_GLOBAL,
+                    QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
                     sizeof(value),
                     &value));
         }

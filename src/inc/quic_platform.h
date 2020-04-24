@@ -233,5 +233,6 @@ QuicListPopEntry(
 }
 
 #include "quic_hashtable.h"
+#include "quic_toeplitz.h"
 
 #endif // QUIC_PLATFORM_
