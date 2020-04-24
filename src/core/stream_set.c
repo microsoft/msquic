@@ -17,7 +17,7 @@ Abstract:
 #include "stream_set.tmh"
 #endif
 
-#if QUIC_TEST_MODE
+#if DEBUG
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicStreamSetValidate(

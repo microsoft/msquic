@@ -288,7 +288,7 @@ typedef struct QUIC_CONNECTION {
     //
     long RefCount;
 
-#if QUIC_TEST_MODE
+#if DEBUG
     short RefTypeCount[QUIC_CONN_REF_COUNT];
 #endif
 
@@ -841,7 +841,7 @@ QuicConnOnShutdownComplete(
     _In_ QUIC_CONNECTION* Connection
     );
 
-#if QUIC_TEST_MODE
+#if DEBUG
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 void
@@ -868,7 +868,7 @@ QuicConnAddRef(
 {
     QuicConnValidate(Connection);
 
-#if QUIC_TEST_MODE
+#if DEBUG
     InterlockedIncrement16((volatile short*)&Connection->RefTypeCount[Ref]);
 #else
     UNREFERENCED_PARAMETER(Ref);
@@ -893,7 +893,7 @@ QuicConnRelease(
 {
     QuicConnValidate(Connection);
 
-#if QUIC_TEST_MODE
+#if DEBUG
     QUIC_TEL_ASSERT(Connection->RefTypeCount[Ref] > 0);
     uint16_t result = (uint16_t)InterlockedDecrement16((volatile short*)&Connection->RefTypeCount[Ref]);
     QUIC_TEL_ASSERT(result != 0xFFFF);
@@ -903,7 +903,7 @@ QuicConnRelease(
 
     QUIC_DBG_ASSERT(Connection->RefCount > 0);
     if (InterlockedDecrement((volatile long*)&Connection->RefCount) == 0) {
-#if QUIC_TEST_MODE
+#if DEBUG
         for (uint32_t i = 0; i < QUIC_CONN_REF_COUNT; i++) {
             QUIC_TEL_ASSERT(Connection->RefTypeCount[i] == 0);
         }

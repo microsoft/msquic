@@ -65,6 +65,14 @@ QuicConnFatalError(
     _In_opt_z_ const char* ErrorMsg
     );
 
+#if DEBUG
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicConnValidate(
+    _In_ QUIC_CONNECTION* Connection
+    );
+#endif
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnRelease(

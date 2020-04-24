@@ -272,7 +272,7 @@ MsQuicLibraryUninitialize(
         MsQuicLib.WorkerPool = NULL;
     }
 
-#if QUIC_TEST_MODE
+#if DEBUG
     //
     // If you hit this assert, MsQuic API is trying to be unloaded without
     // first cleaning up all connections.
