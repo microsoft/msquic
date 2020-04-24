@@ -82,7 +82,7 @@ QuicConnAlloc(
     }
     QuicZeroMemory(Connection, sizeof(QUIC_CONNECTION));
 
-#if QUIC_TEST_MODE
+#if DEBUG
     InterlockedIncrement(&MsQuicLib.ConnectionCount);
 #endif
 
@@ -91,7 +91,7 @@ QuicConnAlloc(
     QuicTraceEvent(ConnCreated, Connection, IsServer, Connection->Stats.CorrelationId);
 
     Connection->RefCount = 1;
-#if QUIC_TEST_MODE
+#if DEBUG
     Connection->RefTypeCount[QUIC_CONN_REF_HANDLE_OWNER] = 1;
 #endif
     Connection->PartitionID = PartitionId;
@@ -361,7 +361,7 @@ QuicConnFree(
         &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].ConnectionPool,
         Connection);
 
-#if QUIC_TEST_MODE
+#if DEBUG
     InterlockedDecrement(&MsQuicLib.ConnectionCount);
 #endif
 }

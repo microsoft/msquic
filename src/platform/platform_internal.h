@@ -54,7 +54,7 @@ typedef struct QUIC_PLATFORM {
 #include <ws2tcpip.h>
 #include <mswsock.h>
 #include <mstcpip.h>
-#if DBG
+#if DEBUG
 #include <crtdbg.h>
 #endif
 

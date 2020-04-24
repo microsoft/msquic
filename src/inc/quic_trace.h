@@ -606,17 +606,23 @@ log_hexbuf(const void* Buffer, UINT32 Length) {
 #define QuicTraceLogInfoEnabled()    EventEnabledQuicLogInfo()
 #define QuicTraceLogVerboseEnabled() EventEnabledQuicLogVerbose()
 
+#if DEBUG
+#define QUIC_ETW_BUFFER_LENGTH 512
+#else
+#define QUIC_ETW_BUFFER_LENGTH 256
+#endif
+
 #define LogEtw(EventName, Fmt, ...) \
     if (EventEnabledQuicLog##EventName()) { \
-        char EtwBuffer[256]; \
-        sprintf_s(EtwBuffer, 256, Fmt, ##__VA_ARGS__); \
+        char EtwBuffer[QUIC_ETW_BUFFER_LENGTH]; \
+        sprintf_s(EtwBuffer, sizeof(EtwBuffer), Fmt, ##__VA_ARGS__); \
         EventWriteQuicLog##EventName##_AssumeEnabled(EtwBuffer); \
     }
 
 #define LogEtwType(Type, EventName, Ptr, Fmt, ...) \
     if (EventEnabledQuic##Type##Log##EventName()) { \
-        char EtwBuffer[256]; \
-        sprintf_s(EtwBuffer, 256, Fmt, ##__VA_ARGS__); \
+        char EtwBuffer[QUIC_ETW_BUFFER_LENGTH]; \
+        sprintf_s(EtwBuffer, sizeof(EtwBuffer), Fmt, ##__VA_ARGS__); \
         EventWriteQuic##Type##Log##EventName##_AssumeEnabled(Ptr, EtwBuffer); \
     }
 

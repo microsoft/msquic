@@ -331,7 +331,7 @@ QuicWorkerGetNextOperation(
             Operation =
                 QUIC_CONTAINING_RECORD(
                     QuicListRemoveHead(&Worker->Operations), QUIC_OPERATION, Link);
-#if QUIC_TEST_MODE
+#if DEBUG
             Operation->Link.Flink = NULL;
 #endif
             Worker->OperationCount--;
@@ -596,7 +596,7 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
         QUIC_OPERATION* Operation =
             QUIC_CONTAINING_RECORD(
                 QuicListRemoveHead(&Worker->Operations), QUIC_OPERATION, Link);
-#if QUIC_TEST_MODE
+#if DEBUG
         Operation->Link.Flink = NULL;
 #endif
         QuicOperationFree(Worker, Operation);

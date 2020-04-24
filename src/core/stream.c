@@ -50,7 +50,7 @@ QuicStreamInitialize(
     Stream->SendRequestsTail = &Stream->SendRequests;
     QuicDispatchLockInitialize(&Stream->ApiSendRequestLock);
     QuicRefInitialize(&Stream->RefCount);
-#if QUIC_TEST_MODE
+#if DEBUG
     Stream->RefTypeCount[QUIC_STREAM_REF_APP] = 1;
 #endif
 
