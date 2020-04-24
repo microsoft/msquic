@@ -322,9 +322,9 @@ QuicEtwCallback(
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] Handle closed", Connection)
 #define EventWriteQuicConnVersionSet(Connection, Value) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] Version: 0x%x", Connection, Value)
-#define EventWriteQuicConnOutFlowStats(Connection, BytesSent, BytesInFlight, BytesInFlightMax, CongestionWindow, SlowStartThreshold, ConnectionFlowControl, StreamFlowControl, IdealBytes, PostedBytes, SmoothedRtt, StreamSendWindow) \
-    QuicSysLogWrite(QUIC_TRACE_LEVEL_VERBOSE, "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu StreamFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u StreamSndWnd=%llu", Connection, \
-        BytesSent, BytesInFlight, BytesInFlightMax, CongestionWindow, SlowStartThreshold, ConnectionFlowControl, StreamFlowControl, IdealBytes, PostedBytes, SmoothedRtt, StreamSendWindow)
+#define EventWriteQuicConnOutFlowStats(Connection, BytesSent, BytesInFlight, BytesInFlightMax, CongestionWindow, SlowStartThreshold, ConnectionFlowControl, IdealBytes, PostedBytes, SmoothedRtt) \
+    QuicSysLogWrite(QUIC_TRACE_LEVEL_VERBOSE, "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u", Connection, \
+        BytesSent, BytesInFlight, BytesInFlightMax, CongestionWindow, SlowStartThreshold, ConnectionFlowControl, IdealBytes, PostedBytes, SmoothedRtt)
 #define EventWriteQuicConnOutFlowBlocked(Connection, ReasonFlags) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] Send Blocked: 0x%x", Connection, ReasonFlags)
 #define EventEnabledQuicConnOutFlowStats() TRUE
@@ -364,9 +364,9 @@ QuicEtwCallback(
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] New packet keys generated", Connection)
 #define EventWriteQuicConnKeyPhaseChange(Connection, IsLocallyInitiated) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] Key phase change, IsLocallyInitiated=%u", Connection, IsLocallyInitiated)
-#define EventWriteQuicConnStatistics(Connection, LifeTimeUs, SendTotalPackets, SendSuspectedLostPackets, SendSpuriousLostPackets, RecvTotalPackets, RecvReorderedPackets, RecvDroppedPackets, RecvDuplicatePackets, RecvDecryptionFailures, CongestionCount, PersistentCongestionCount, SendTotalBytes, RecvTotalBytes, SmoothedRtt) \
-    QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] STATS: LifeTimeUs=%llu SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu SmoothedRtt=%u", \
-    Connection, LifeTimeUs, SendTotalPackets, SendSuspectedLostPackets, SendSpuriousLostPackets, RecvTotalPackets, RecvReorderedPackets, RecvDroppedPackets, RecvDuplicatePackets, RecvDecryptionFailures, CongestionCount, PersistentCongestionCount, SendTotalBytes, RecvTotalBytes, SmoothedRtt)
+#define EventWriteQuicConnStats(Connection, SmoothedRtt,CongestionCount, PersistentCongestionCount, SendTotalBytes, RecvTotalBytes) \
+    QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] STATS: SmoothedRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu", \
+    Connection, SmoothedRtt, CongestionCount, PersistentCongestionCount, SendTotalBytes, RecvTotalBytes)
 #define EventWriteQuicConnShutdownComplete(Connection, TimedOut) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] Shutdown Complete, PeerFailedToAcknowledged=%u", Connection, TimedOut)
 #define EventWriteQuicConnReadKeyUpdated(Connection, NewValue) \
@@ -383,6 +383,11 @@ QuicEtwCallback(
     QuicSysLogWrite(QUIC_TRACE_LEVEL_VERBOSE, "[conn][%p] [TX][%llu] %u ACKed", Connection, Number, Type)
 #define EventWriteQuicConnQueueSendFlush(Connection, Reason) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_VERBOSE, "[conn][%p] Queueing send flush, reason=%u", Connection, Reason)
+#define EventWriteQuicConnOutFlowStreamStats(Connection, StreamFlowControl, StreamSendWindow) \
+    QuicSysLogWrite(QUIC_TRACE_LEVEL_VERBOSE, "[conn][%p] OUT: StreamFC=%llu StreamSndWnd=%llu", Connection, StreamFlowControl, StreamSendWindow)
+#define EventWriteQuicConnPacketStats(Connection, SendTotalPackets, SendSuspectedLostPackets, SendSpuriousLostPackets, RecvTotalPackets, RecvReorderedPackets, RecvDroppedPackets, RecvDuplicatePackets, RecvDecryptionFailures, CongestionCount, PersistentCongestionCount, SendTotalBytes, RecvTotalBytes, SmoothedRtt) \
+    QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[conn][%p] STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu", \
+    Connection, SendTotalPackets, SendSuspectedLostPackets, SendSpuriousLostPackets, RecvTotalPackets, RecvReorderedPackets, RecvDroppedPackets, RecvDuplicatePackets, RecvDecryptionFailures)
 
 #define EventWriteQuicStreamCreated(Stream, Connection, ID, IsLocalOwned) \
     QuicSysLogWrite(QUIC_TRACE_LEVEL_INFO, "[strm][%p] Created, Connection=%p ID=%llu IsLocal=%hu", Stream, Connection, ID, IsLocalOwned)
