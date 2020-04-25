@@ -2323,8 +2323,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"wchar string\"",
-            "UserSuppliedTrimmed": "\"wchar string\"",
+            "UserSpecifiedUnModified": " \"connection\"",
+            "UserSuppliedTrimmed": "\"connection\"",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "s",
@@ -2332,8 +2332,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " sizeof(WCHAR) * Size",
-            "UserSuppliedTrimmed": "sizeof(WCHAR) * Size",
+            "UserSpecifiedUnModified": " sizeof(QUIC_CONNECTION)",
+            "UserSuppliedTrimmed": "sizeof(QUIC_CONNECTION)",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "llu",
@@ -5848,8 +5848,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Worker",
-            "UserSuppliedTrimmed": "Worker",
+            "UserSpecifiedUnModified": " Connection->Worker",
+            "UserSuppliedTrimmed": "Connection->Worker",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "p",
@@ -5892,8 +5892,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Session",
-            "UserSuppliedTrimmed": "Session",
+            "UserSpecifiedUnModified": " Connection->Session",
+            "UserSuppliedTrimmed": "Connection->Session",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "p",
@@ -5971,8 +5971,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"Peer used more streams than allowed\"",
-            "UserSuppliedTrimmed": "\"Peer used more streams than allowed\"",
+            "UserSpecifiedUnModified": " \"Too many CID collisions\"",
+            "UserSuppliedTrimmed": "\"Too many CID collisions\"",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "s",
@@ -6068,8 +6068,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Oper->TIMER_EXPIRED.Type",
-            "UserSuppliedTrimmed": "Oper->TIMER_EXPIRED.Type",
+            "UserSpecifiedUnModified": " QUIC_CONN_TIMER_ACK_DELAY",
+            "UserSuppliedTrimmed": "QUIC_CONN_TIMER_ACK_DELAY",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "d",
@@ -6306,7 +6306,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    Connection",
+            "UserSpecifiedUnModified": " Connection",
             "UserSuppliedTrimmed": "Connection",
             "SuggestedTelemetryName": "arg2"
           },
@@ -6315,7 +6315,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    Status",
+            "UserSpecifiedUnModified": " Status",
             "UserSuppliedTrimmed": "Status",
             "SuggestedTelemetryName": "arg3"
           },
@@ -6324,8 +6324,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    \"Send-triggered key update\"",
-            "UserSuppliedTrimmed": "\"Send-triggered key update\"",
+            "UserSpecifiedUnModified": " \"Set current compartment Id\"",
+            "UserSuppliedTrimmed": "\"Set current compartment Id\"",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "s",
@@ -6456,7 +6456,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    Connection",
+            "UserSpecifiedUnModified": "\r\n                            Connection",
             "UserSuppliedTrimmed": "Connection",
             "SuggestedTelemetryName": "arg2"
           },
@@ -6465,8 +6465,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    SourceCid->CID.SequenceNumber",
-            "UserSuppliedTrimmed": "SourceCid->CID.SequenceNumber",
+            "UserSpecifiedUnModified": " NextSourceCid->CID.SequenceNumber",
+            "UserSuppliedTrimmed": "NextSourceCid->CID.SequenceNumber",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "llu",
@@ -6474,8 +6474,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data)",
+            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data)",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "!BYTEARRAY!",
@@ -27382,14 +27382,6 @@
         "TraceID": "ConnRemoteAddrAdded"
       },
       {
-        "UniquenessHash": "4fca6e96-85de-8900-7059-b1e99b2bbcf7",
-        "TraceID": "ConnDestCidAdded"
-      },
-      {
-        "UniquenessHash": "77565f72-a280-c210-1507-ef0e04f2ed33",
-        "TraceID": "ConnSourceCidAdded"
-      },
-      {
         "UniquenessHash": "228c04ea-f275-6f9c-e29a-a8f058a5db5e",
         "TraceID": "ConnInitializeComplete"
       },
@@ -27422,10 +27414,6 @@
         "TraceID": "ConnError"
       },
       {
-        "UniquenessHash": "e76aebc4-7a35-38fe-73fe-781eb97053ec",
-        "TraceID": "ConnDestCidRemoved"
-      },
-      {
         "UniquenessHash": "e60c48fb-a199-2842-564c-c4b6c6b15825",
         "TraceID": "ConnExecTimerOper"
       },
@@ -27456,10 +27444,6 @@
       {
         "UniquenessHash": "639f5619-f1c1-a60d-e3e4-d2ad06ea7566",
         "TraceID": "ConnPacketRecv"
-      },
-      {
-        "UniquenessHash": "07648ae4-eedb-840d-7d5a-d6ea1d90d275",
-        "TraceID": "ConnSourceCidRemoved"
       },
       {
         "UniquenessHash": "3dff0c2f-b015-d575-c091-eb8fbcc74265",
@@ -29320,6 +29304,22 @@
       {
         "UniquenessHash": "db5444da-2773-ecfc-14f3-b1cbcf5d773f",
         "TraceID": "FN_frameed6f73d458adbca8f05a63fb174c5da9"
+      },
+      {
+        "UniquenessHash": "07648ae4-eedb-840d-7d5a-d6ea1d90d275",
+        "TraceID": "ConnSourceCidRemoved"
+      },
+      {
+        "UniquenessHash": "4fca6e96-85de-8900-7059-b1e99b2bbcf7",
+        "TraceID": "ConnDestCidAdded"
+      },
+      {
+        "UniquenessHash": "77565f72-a280-c210-1507-ef0e04f2ed33",
+        "TraceID": "ConnSourceCidAdded"
+      },
+      {
+        "UniquenessHash": "e76aebc4-7a35-38fe-73fe-781eb97053ec",
+        "TraceID": "ConnDestCidRemoved"
       }
     ]
   }
