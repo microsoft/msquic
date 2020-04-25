@@ -2134,352 +2134,6 @@
       "FN_quictest9eddd9dc5266f22ce5fe2958d12ddae0": {}
     }
   },
-  "SideCars": {
-    "root": {
-      "MacroConfigurations": {
-        "lttng_plus": {
-          "Modules": [
-            {
-              "ExportModule": "LTTNG",
-              "CustomSettings": {}
-            },
-            {
-              "ExportModule": "SYSTEMTAP",
-              "CustomSettings": {}
-            }
-          ]
-        },
-        "empty": {
-          "Modules": []
-        },
-        "etw_only": {
-          "Modules": [
-            {
-              "ExportModule": "MANIFESTED_ETW",
-              "CustomSettings": {
-                "ETWManifestFile": "MsQuicEtw.man",
-                "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-                "Level": "win:Informational",
-                "Keywords": "ut:Connection ut:LowVolume"
-              }
-            }
-          ]
-        },
-        "etw_plus": {
-          "Modules": [
-            {
-              "ExportModule": "TRACELOGGING",
-              "CustomSettings": {
-                "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-                "Keyword": "0x0000000080000000",
-                "Level": "0x4"
-              }
-            },
-            {
-              "ExportModule": "MANIFESTED_ETW",
-              "CustomSettings": {
-                "ETWManifestFile": "MsQuicEtw.man",
-                "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-                "Level": "win:Informational",
-                "Keywords": "ut:Connection ut:LowVolume"
-              }
-            },
-            {
-              "ExportModule": "DTRACE",
-              "CustomSettings": {}
-            }
-          ]
-        }
-      },
-      "Version": 1,
-      "CustomTypeClogCSharpFile": "msquic.clog.cs",
-      "TypeEncoders": {
-        "Version": 0,
-        "TypeEncoder": [
-          {
-            "EncodingType": "ByteArray",
-            "CType": "CLOG_PTR",
-            "DefinationEncoding": "!SOCKADDR!",
-            "CustomDecoder": "msquic.clog_config.Types.QUIC_IP_ADDR"
-          },
-          {
-            "EncodingType": "ByteArray",
-            "CType": "CLOG_PTR",
-            "DefinationEncoding": "!IPV4ADDR!",
-            "CustomDecoder": "msquic.clog_config.Types.QUIC_IP_ADDR"
-          },
-          {
-            "EncodingType": "ByteArray",
-            "CType": "CLOG_PTR",
-            "DefinationEncoding": "!IPV6ADDR!",
-            "CustomDecoder": "msquic.clog_config.Types.QUIC_IP_ADDR"
-          },
-          {
-            "EncodingType": "ByteArray",
-            "CType": "CLOG_PTR",
-            "DefinationEncoding": "!CID!",
-            "CustomDecoder": "msquic.clog_config.Types.DecodeCID"
-          }
-        ]
-      },
-      "SourceCodeMacros": [
-        {
-          "MacroName": "QuicTraceLogWarning",
-          "EncodedPrefix": null,
-          "EncodedArgNumber": 1,
-          "MacroConfiguration": {
-            "linux": "lttng_plus",
-            "stubs": "empty",
-            "windows_kernel": "etw_only",
-            "windows": "etw_plus"
-          }
-        },
-        {
-          "MacroName": "QuicTraceLogStreamWarning",
-          "EncodedPrefix": "[strm][%p] ",
-          "EncodedArgNumber": 2,
-          "MacroConfiguration": {
-            "linux": "lttng_plus",
-            "stubs": "empty",
-            "windows_kernel": "etw_only",
-            "windows": "etw_plus"
-          }
-        },
-        {
-          "MacroName": "QuicTraceLogStreamInfo",
-          "EncodedPrefix": "[strm][%p] ",
-          "EncodedArgNumber": 2,
-          "MacroConfiguration": {
-            "linux": "lttng_plus",
-            "stubs": "empty",
-            "windows_kernel": "etw_only",
-            "windows": "etw_plus"
-          }
-        },
-        {
-          "MacroName": "QuicTraceLogStreamVerbose",
-          "EncodedPrefix": "[strm][%p] ",
-          "EncodedArgNumber": 2,
-          "MacroConfiguration": {
-            "linux": "lttng_plus",
-            "stubs": "empty",
-            "windows_kernel": "etw_only",
-            "windows": "etw_plus"
-          }
-        },
-        {
-          "MacroName": "QuicTraceLogInfo",
-          "EncodedPrefix": null,
-          "EncodedArgNumber": 1,
-          "MacroConfiguration": {
-            "linux": "lttng_plus",
-            "stubs": "empty",
-            "windows_kernel": "etw_only",
-            "windows": "etw_plus"
-          }
-        },
-        {
-          "MacroName": "QuicTraceLogVerbose",
-          "EncodedPrefix": null,
-          "EncodedArgNumber": 1,
-          "MacroConfiguration": {
-            "linux": "lttng_plus",
-            "stubs": "empty",
-            "windows_kernel": "etw_only",
-            "windows": "etw_plus"
-          }
-        },
-        {
-          "MacroName": "QuicTraceLogError",
-          "EncodedPrefix": null,
-          "EncodedArgNumber": 1,
-          "MacroConfiguration": {
-            "linux": "lttng_plus",
-            "stubs": "empty",
-            "windows_kernel": "etw_only",
-            "windows": "etw_plus"
-          }
-        },
-        {
-          "MacroName": "QuicTraceLogConnError",
-          "EncodedPrefix": "[conn][%p] ",
-          "EncodedArgNumber": 2,
-          "MacroConfiguration": {
-            "linux": "lttng_plus",
-            "stubs": "empty",
-            "windows_kernel": "etw_only",
-            "windows": "etw_plus"
-          }
-        },
-        {
-          "MacroName": "QuicTraceLogConnWarning",
-          "EncodedPrefix": "[conn][%p] ",
-          "EncodedArgNumber": 2,
-          "MacroConfiguration": {
-            "linux": "lttng_plus",
-            "stubs": "empty",
-            "windows_kernel": "etw_only",
-            "windows": "etw_plus"
-          }
-        },
-        {
-          "MacroName": "QuicTraceLogConnInfo",
-          "EncodedPrefix": "[conn][%p] ",
-          "EncodedArgNumber": 2,
-          "MacroConfiguration": {
-            "linux": "lttng_plus",
-            "stubs": "empty",
-            "windows_kernel": "etw_only",
-            "windows": "etw_plus"
-          }
-        },
-        {
-          "MacroName": "QuicTraceLogConnVerbose",
-          "EncodedPrefix": "[conn][%p] ",
-          "EncodedArgNumber": 2,
-          "MacroConfiguration": {
-            "linux": "lttng_plus",
-            "stubs": "empty",
-            "windows_kernel": "etw_only",
-            "windows": "etw_plus"
-          }
-        },
-        {
-          "MacroName": "QuicTraceEvent",
-          "EncodedPrefix": null,
-          "EncodedArgNumber": 1,
-          "MacroConfiguration": {
-            "linux": "lttng_plus",
-            "stubs": "empty",
-            "windows_kernel": "etw_only",
-            "windows": "etw_plus"
-          }
-        }
-      ],
-      "ChainedConfigFiles": [
-        "../../submodules/clog/inc/defaults.clog_config"
-      ]
-    },
-    "../../submodules/clog/inc/defaults.clog_config": {
-      "MacroConfigurations": {},
-      "Version": 1,
-      "CustomTypeClogCSharpFile": "../decoderTest/defaults.clog.cs",
-      "TypeEncoders": {
-        "Version": 0,
-        "TypeEncoder": [
-          {
-            "EncodingType": "ByteArray",
-            "CType": "CLOG_PTR",
-            "DefinationEncoding": "!BYTEARRAY!"
-          },
-          {
-            "EncodingType": "UInt32",
-            "CType": "CLOG_INT32",
-            "DefinationEncoding": "d",
-            "CustomDecoder": "defaults.clog_config.Types.DecodeUInt32"
-          },
-          {
-            "EncodingType": "UInt8",
-            "CType": "CLOG_UINT8",
-            "DefinationEncoding": "hhu"
-          },
-          {
-            "EncodingType": "UInt16",
-            "CType": "unsigned short",
-            "DefinationEncoding": "hu"
-          },
-          {
-            "EncodingType": "UInt16",
-            "CType": "unsigned short",
-            "DefinationEncoding": "hd"
-          },
-          {
-            "EncodingType": "UInt16",
-            "CType": "unsigned short",
-            "DefinationEncoding": "hx"
-          },
-          {
-            "EncodingType": "UInt16",
-            "CType": "unsigned short",
-            "DefinationEncoding": "hX"
-          },
-          {
-            "EncodingType": "UInt8",
-            "CType": "CLOG_UINT8",
-            "DefinationEncoding": "c"
-          },
-          {
-            "EncodingType": "Int64",
-            "CType": "CLOG_INT64",
-            "DefinationEncoding": "ld"
-          },
-          {
-            "EncodingType": "UInt64",
-            "CType": "CLOG_UINT64",
-            "DefinationEncoding": "lu"
-          },
-          {
-            "EncodingType": "UInt64",
-            "CType": "CLOG_UINT64",
-            "DefinationEncoding": "llu"
-          },
-          {
-            "EncodingType": "UInt64",
-            "CType": "CLOG_UINT64",
-            "DefinationEncoding": "llx"
-          },
-          {
-            "EncodingType": "Int64",
-            "CType": "CLOG_INT64",
-            "DefinationEncoding": "lld"
-          },
-          {
-            "EncodingType": "UInt64",
-            "CType": "CLOG_UINT64",
-            "DefinationEncoding": "llX"
-          },
-          {
-            "EncodingType": "Int64",
-            "CType": "CLOG_INT64",
-            "DefinationEncoding": "zd"
-          },
-          {
-            "EncodingType": "Int32",
-            "CType": "CLOG_INT32",
-            "DefinationEncoding": "4.4x"
-          },
-          {
-            "EncodingType": "UInt32",
-            "CType": "CLOG_UINT32",
-            "DefinationEncoding": "u"
-          },
-          {
-            "EncodingType": "UNICODE_String",
-            "CType": "const unsigned short *",
-            "DefinationEncoding": "S"
-          },
-          {
-            "EncodingType": "ANSI_String",
-            "CType": "const char *",
-            "DefinationEncoding": "s"
-          },
-          {
-            "EncodingType": "Pointer",
-            "CType": "CLOG_PTR",
-            "DefinationEncoding": "p",
-            "CustomDecoder": "defaults.clog_config.Types.DecodePointer"
-          },
-          {
-            "EncodingType": "UInt32",
-            "CType": "CLOG_UINT32",
-            "DefinationEncoding": "x"
-          }
-        ]
-      },
-      "SourceCodeMacros": [],
-      "ChainedConfigFiles": []
-    }
-  },
   "EventBundlesV2": {
     "FN_ack_tracker3fe5caa2fc2f7b97bcbb8cd0a6c8602e": {
       "ModuleProperites": {
@@ -2669,8 +2323,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"QUIC_BINDING\"",
-            "UserSuppliedTrimmed": "\"QUIC_BINDING\"",
+            "UserSpecifiedUnModified": " \"wchar string\"",
+            "UserSuppliedTrimmed": "\"wchar string\"",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "s",
@@ -2678,8 +2332,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " sizeof(QUIC_BINDING)",
-            "UserSuppliedTrimmed": "sizeof(QUIC_BINDING)",
+            "UserSpecifiedUnModified": " sizeof(WCHAR) * Size",
+            "UserSuppliedTrimmed": "sizeof(WCHAR) * Size",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "llu",
@@ -27064,120 +26718,7 @@
     }
   },
   "Version": 1,
-  "TypeEncoder": {
-    "Version": 0,
-    "TypeEncoder": [
-      {
-        "EncodingType": "UInt8",
-        "CType": "CLOG_UINT8",
-        "DefinationEncoding": "c"
-      },
-      {
-        "EncodingType": "UInt64",
-        "CType": "CLOG_UINT64",
-        "DefinationEncoding": "llu"
-      },
-      {
-        "EncodingType": "UInt64",
-        "CType": "CLOG_UINT64",
-        "DefinationEncoding": "llx"
-      },
-      {
-        "EncodingType": "UInt64",
-        "CType": "CLOG_UINT64",
-        "DefinationEncoding": "llX"
-      },
-      {
-        "EncodingType": "UInt64",
-        "CType": "CLOG_UINT64",
-        "DefinationEncoding": "lu"
-      },
-      {
-        "EncodingType": "UInt32",
-        "CType": "CLOG_INT32",
-        "DefinationEncoding": "d",
-        "CustomDecoder": "defaults.clog_config.Types.DecodeUInt32"
-      },
-      {
-        "EncodingType": "Pointer",
-        "CType": "CLOG_PTR",
-        "DefinationEncoding": "p",
-        "CustomDecoder": "defaults.clog_config.Types.DecodePointer"
-      },
-      {
-        "EncodingType": "ANSI_String",
-        "CType": "const char *",
-        "DefinationEncoding": "s"
-      },
-      {
-        "EncodingType": "UInt32",
-        "CType": "CLOG_UINT32",
-        "DefinationEncoding": "x"
-      },
-      {
-        "EncodingType": "UInt16",
-        "CType": "unsigned short",
-        "DefinationEncoding": "hu"
-      },
-      {
-        "EncodingType": "UInt16",
-        "CType": "unsigned short",
-        "DefinationEncoding": "hd"
-      },
-      {
-        "EncodingType": "UInt16",
-        "CType": "unsigned short",
-        "DefinationEncoding": "hx"
-      },
-      {
-        "EncodingType": "UInt8",
-        "CType": "CLOG_UINT8",
-        "DefinationEncoding": "hhu"
-      },
-      {
-        "EncodingType": "UInt16",
-        "CType": "unsigned short",
-        "DefinationEncoding": "hX"
-      },
-      {
-        "EncodingType": "ByteArray",
-        "CType": "CLOG_PTR",
-        "DefinationEncoding": "!SOCKADDR!",
-        "CustomDecoder": "msquic.clog_config.Types.QUIC_IP_ADDR"
-      },
-      {
-        "EncodingType": "ByteArray",
-        "CType": "CLOG_PTR",
-        "DefinationEncoding": "!BYTEARRAY!"
-      },
-      {
-        "EncodingType": "ByteArray",
-        "CType": "CLOG_PTR",
-        "DefinationEncoding": "!CID!",
-        "CustomDecoder": "msquic.clog_config.Types.DecodeCID"
-      },
-      {
-        "EncodingType": "UInt32",
-        "CType": "CLOG_UINT32",
-        "DefinationEncoding": "u"
-      },
-      {
-        "EncodingType": "UNICODE_String",
-        "CType": "const unsigned short *",
-        "DefinationEncoding": "S"
-      },
-      {
-        "EncodingType": "Int32",
-        "CType": "CLOG_INT32",
-        "DefinationEncoding": "4.4x"
-      }
-    ]
-  },
-  "CustomTypeProcessorsX": {
-    "msquic.clog_config": "/*++\r\n\r\n    Copyright (c) Microsoft Corporation.\r\n    Licensed under the MIT License.\r\n\r\n--*/\r\n\r\n\r\nusing System;\r\nusing System.Runtime.InteropServices;\r\n\r\nnamespace msquic.clog_config\r\n{\r\n    public class Types\r\n    {\r\n\r\n        [StructLayout(LayoutKind.Explicit)]\r\n        public struct SocketAddress\r\n        {\r\n            [FieldOffset(0)]\r\n            public ushort si_family;\r\n\r\n            [FieldOffset(2)]\r\n            public ushort sin_port;\r\n\r\n            // IPv4\r\n            [FieldOffset(4)]\r\n            public ulong S_addr;\r\n\r\n\r\n            // IPv6\r\n            [FieldOffset(4)]\r\n            public ulong sin6_flowinfo;\r\n\r\n            [FieldOffset(8)]\r\n            public ulong S_v6Addr1;\r\n\r\n            [FieldOffset(16)]\r\n            public ulong S_v6Addr2;\r\n        };\r\n\r\n        public static string QUIC_FLAGS(uint value)\r\n        {\r\n            return \"QUIC_FLAGS (good!) \" + value;\r\n        }\r\n\r\n        public static string QUIC_IP_ADDR(byte[] value)\r\n        {\r\n            int len = value.Length;\r\n            IntPtr i = System.Runtime.InteropServices.Marshal.AllocHGlobal(len);\r\n            System.Runtime.InteropServices.Marshal.Copy(value, 0, i, len);\r\n            string msg = \"\";\r\n            SocketAddress sa2 = (SocketAddress)System.Runtime.InteropServices.Marshal.PtrToStructure(i, typeof(SocketAddress));\r\n\r\n            switch (sa2.si_family)\r\n            {\r\n                case 0:  //<--unspecified\r\n                    msg += \"Unspecified\";\r\n                    break;\r\n                case 23: //<--v6\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 10:  //<--v6 (linux)\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 2:  //< --v4\r\n                    msg += \"IPV4:\" + sa2.S_addr + \":\" + sa2.sin_port;\r\n                    break;\r\n                default:\r\n                    throw new Exception(\"Invalid SI_FAMILY : \" + sa2.si_family);\r\n            }\r\n\r\n            System.Runtime.InteropServices.Marshal.FreeHGlobal(i);\r\n            return msg;\r\n        }\r\n\r\n        public static string DecodeCID(byte [] value)\r\n        {\r\n            return \"CID!\";\r\n        }\r\n    }\r\n}",
-    "defaults.clog_config": "/*++\r\n\r\n    Copyright (c) Microsoft Corporation.\r\n    Licensed under the MIT License.\r\n\r\n--*/\r\n\r\n\r\nusing System;\r\nusing System.Runtime.InteropServices;\r\n\r\nnamespace defaults.clog_config\r\n{\r\n    public class Types\r\n    {\r\n        public static string DecodePointer(ulong pointer)\r\n        {\r\n            return \"CLOG_PINTER:\" + pointer.ToString(\"x\");\r\n        }\r\n\r\n        public static string DecodeUInt32(uint value)\r\n        {\r\n            return \"CLOG_UINT32:\"+value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt32(int value)\r\n        {\r\n            return \"CLOG_INT32:\"+value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt8(byte value)\r\n        {\r\n            return \"CLOG_INT8:\" + value.ToString();\r\n        }\r\n    }\r\n}"
-  },
-  "MyConfig": {
+  "ConfigFile": {
     "MacroConfigurations": {
       "lttng_plus": {
         "Modules": [
@@ -27235,6 +26776,7 @@
     },
     "Version": 1,
     "CustomTypeClogCSharpFile": "msquic.clog.cs",
+    "CustomTypeClogCSharpFileContents": "/*++\r\n\r\n    Copyright (c) Microsoft Corporation.\r\n    Licensed under the MIT License.\r\n\r\n--*/\r\n\r\n\r\nusing System;\r\nusing System.Runtime.InteropServices;\r\n\r\nnamespace msquic.clog_config\r\n{\r\n    public class Types\r\n    {\r\n\r\n        [StructLayout(LayoutKind.Explicit)]\r\n        public struct SocketAddress\r\n        {\r\n            [FieldOffset(0)]\r\n            public ushort si_family;\r\n\r\n            [FieldOffset(2)]\r\n            public ushort sin_port;\r\n\r\n            // IPv4\r\n            [FieldOffset(4)]\r\n            public ulong S_addr;\r\n\r\n\r\n            // IPv6\r\n            [FieldOffset(4)]\r\n            public ulong sin6_flowinfo;\r\n\r\n            [FieldOffset(8)]\r\n            public ulong S_v6Addr1;\r\n\r\n            [FieldOffset(16)]\r\n            public ulong S_v6Addr2;\r\n        };\r\n\r\n        public static string QUIC_FLAGS(uint value)\r\n        {\r\n            return \"QUIC_FLAGS (good!) \" + value;\r\n        }\r\n\r\n        public static string QUIC_IP_ADDR(byte[] value)\r\n        {\r\n            int len = value.Length;\r\n            IntPtr i = System.Runtime.InteropServices.Marshal.AllocHGlobal(len);\r\n            System.Runtime.InteropServices.Marshal.Copy(value, 0, i, len);\r\n            string msg = \"\";\r\n            SocketAddress sa2 = (SocketAddress)System.Runtime.InteropServices.Marshal.PtrToStructure(i, typeof(SocketAddress));\r\n\r\n            switch (sa2.si_family)\r\n            {\r\n                case 0:  //<--unspecified\r\n                    msg += \"Unspecified\";\r\n                    break;\r\n                case 23: //<--v6\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 10:  //<--v6 (linux)\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 2:  //< --v4\r\n                    msg += \"IPV4:\" + sa2.S_addr + \":\" + sa2.sin_port;\r\n                    break;\r\n                default:\r\n                    throw new Exception(\"Invalid SI_FAMILY : \" + sa2.si_family);\r\n            }\r\n\r\n            System.Runtime.InteropServices.Marshal.FreeHGlobal(i);\r\n            return msg;\r\n        }\r\n\r\n        public static string DecodeCID(byte [] value)\r\n        {\r\n            return \"CID!\";\r\n        }\r\n    }\r\n}",
     "TypeEncoders": {
       "Version": 0,
       "TypeEncoder": [
@@ -27400,6 +26942,129 @@
     ],
     "ChainedConfigFiles": [
       "../../submodules/clog/inc/defaults.clog_config"
+    ],
+    "ChainedConfigurations": [
+      {
+        "MacroConfigurations": {},
+        "Version": 1,
+        "CustomTypeClogCSharpFile": "../decoderTest/defaults.clog.cs",
+        "CustomTypeClogCSharpFileContents": "/*++\r\n\r\n    Copyright (c) Microsoft Corporation.\r\n    Licensed under the MIT License.\r\n\r\n--*/\r\n\r\n\r\nusing System;\r\nusing System.Runtime.InteropServices;\r\n\r\nnamespace defaults.clog_config\r\n{\r\n    public class Types\r\n    {\r\n        public static string DecodePointer(ulong pointer)\r\n        {\r\n            return \"CLOG_POINTER:\" + pointer.ToString(\"x\");\r\n        }\r\n\r\n        public static string DecodeUInt32(uint value)\r\n        {\r\n            return \"CLOG_UINT32:\"+value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt32(int value)\r\n        {\r\n            return \"CLOG_INT32:\"+value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt8(byte value)\r\n        {\r\n            return \"CLOG_INT8:\" + value.ToString();\r\n        }\r\n    }\r\n}",
+        "TypeEncoders": {
+          "Version": 0,
+          "TypeEncoder": [
+            {
+              "EncodingType": "ByteArray",
+              "CType": "CLOG_PTR",
+              "DefinationEncoding": "!BYTEARRAY!"
+            },
+            {
+              "EncodingType": "UInt32",
+              "CType": "CLOG_INT32",
+              "DefinationEncoding": "d",
+              "CustomDecoder": "defaults.clog_config.Types.DecodeUInt32"
+            },
+            {
+              "EncodingType": "UInt8",
+              "CType": "CLOG_UINT8",
+              "DefinationEncoding": "hhu"
+            },
+            {
+              "EncodingType": "UInt16",
+              "CType": "unsigned short",
+              "DefinationEncoding": "hu"
+            },
+            {
+              "EncodingType": "UInt16",
+              "CType": "unsigned short",
+              "DefinationEncoding": "hd"
+            },
+            {
+              "EncodingType": "UInt16",
+              "CType": "unsigned short",
+              "DefinationEncoding": "hx"
+            },
+            {
+              "EncodingType": "UInt16",
+              "CType": "unsigned short",
+              "DefinationEncoding": "hX"
+            },
+            {
+              "EncodingType": "UInt8",
+              "CType": "CLOG_UINT8",
+              "DefinationEncoding": "c"
+            },
+            {
+              "EncodingType": "Int64",
+              "CType": "CLOG_INT64",
+              "DefinationEncoding": "ld"
+            },
+            {
+              "EncodingType": "UInt64",
+              "CType": "CLOG_UINT64",
+              "DefinationEncoding": "lu"
+            },
+            {
+              "EncodingType": "UInt64",
+              "CType": "CLOG_UINT64",
+              "DefinationEncoding": "llu"
+            },
+            {
+              "EncodingType": "UInt64",
+              "CType": "CLOG_UINT64",
+              "DefinationEncoding": "llx"
+            },
+            {
+              "EncodingType": "Int64",
+              "CType": "CLOG_INT64",
+              "DefinationEncoding": "lld"
+            },
+            {
+              "EncodingType": "UInt64",
+              "CType": "CLOG_UINT64",
+              "DefinationEncoding": "llX"
+            },
+            {
+              "EncodingType": "Int64",
+              "CType": "CLOG_INT64",
+              "DefinationEncoding": "zd"
+            },
+            {
+              "EncodingType": "Int32",
+              "CType": "CLOG_INT32",
+              "DefinationEncoding": "4.4x"
+            },
+            {
+              "EncodingType": "UInt32",
+              "CType": "CLOG_UINT32",
+              "DefinationEncoding": "u"
+            },
+            {
+              "EncodingType": "UNICODE_String",
+              "CType": "const unsigned short *",
+              "DefinationEncoding": "S"
+            },
+            {
+              "EncodingType": "ANSI_String",
+              "CType": "const char *",
+              "DefinationEncoding": "s"
+            },
+            {
+              "EncodingType": "Pointer",
+              "CType": "CLOG_PTR",
+              "DefinationEncoding": "p",
+              "CustomDecoder": "defaults.clog_config.Types.DecodePointer"
+            },
+            {
+              "EncodingType": "UInt32",
+              "CType": "CLOG_UINT32",
+              "DefinationEncoding": "x"
+            }
+          ]
+        },
+        "SourceCodeMacros": [],
+        "ChainedConfigFiles": [],
+        "ChainedConfigurations": []
+      }
     ]
   },
   "ModuleUniqueness": {
