@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #include "quic_platform.h"
+#include "quic_trace.h"
 
 void
 MsQuicLibraryLoad(
@@ -35,6 +36,11 @@ DllMain(
 
     case DLL_PROCESS_ATTACH:
         DisableThreadLibraryCalls(Instance);
+
+        EventRegisterMicrosoft_Quic_ETW();
+        TraceLoggingRegister(clog_hTrace);
+        EventSetInformation(Microsoft_Quic_ETWHandle, EventProviderBinaryTrackInfo, NULL, 0);
+
         QuicPlatformSystemLoad();
         MsQuicLibraryLoad();
         break;
@@ -42,6 +48,8 @@ DllMain(
     case DLL_PROCESS_DETACH:
         MsQuicLibraryUnload();
         QuicPlatformSystemUnload();
+        EventUnregisterMicrosoft_Quic_ETW();
+        TraceLoggingUnregister(clog_hTrace);
         break;
     }
 

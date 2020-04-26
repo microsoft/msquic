@@ -1399,10 +1399,10 @@ QuicFrameLog(
             return FALSE;
         }
 
-        QuicTraceLogVerbose(FN_frameed6f73d458adbca8f05a63fb174c5da9, "[%c][%cX][%llu]   NEW_CONN_ID Seq:%llu RPT:%llu CID:%s Token:%s",
+        QuicTraceLogVerbose(FN_frameed6f73d458adbca8f05a63fb174c5da9, "[%c][%cX][%llu]   NEW_CONN_ID Seq:%llu RPT:%llu CID:%!CID! Token:%!CID!",
             PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, Frame.Sequence,
-            Frame.RetirePriorTo, QuicCidBufToStr(Frame.Buffer, Frame.Length).Buffer,
-            QuicCidBufToStr(Frame.Buffer + Frame.Length, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
+            Frame.RetirePriorTo, CLOG_BYTEARRAY(Frame.Length, Frame.Buffer),
+            CLOG_BYTEARRAY(QUIC_STATELESS_RESET_TOKEN_LENGTH, Frame.Buffer + Frame.Length));
         break;
     }
 

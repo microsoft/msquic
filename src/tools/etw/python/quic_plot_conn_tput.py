@@ -11,7 +11,7 @@ import matplotlib.ticker as plticker
 #
 # Usage:
 #
-#  netsh trace start overwrite=yes report=dis correlation=dis traceFile=quic.etl maxSize=1024 provider={ff15e657-4f26-570e-88ab-0796b258d11c} level=0x5 keywords=0xC0000100
+#  netsh trace start overwrite=yes report=dis correlation=dis traceFile=quic.etl maxSize=1024 provider={6A7F6746-617F-40A3-8EAC-B84C022058FB} level=0x5 keywords=0xC0000100
 #  (Run scenario)
 #  netsh trace stop
 #  (Find connection id of interest ("--id N") with "quicetw quic.etl --conn_list")

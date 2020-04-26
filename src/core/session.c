@@ -960,7 +960,7 @@ QuicSessionParamSet(
         Session->Settings.AppSet.MigrationEnabled = TRUE;
         Session->Settings.MigrationEnabled = *(BOOLEAN*)Buffer;
 
-        QuicTraceLogInfo("[sess][%p] Updated migration enabled to %hhu",
+        QuicTraceLogInfo(FN_session_QUIC_PARAM_SESSION_MIGRATION_ENABLED, "[sess][%p] Updated migration enabled to %hhu",
             Session,
             Session->Settings.MigrationEnabled);
 
