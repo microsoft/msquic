@@ -42,7 +42,6 @@ DllMain(
         EventSetInformation(Microsoft_Quic_ETWHandle, EventProviderBinaryTrackInfo, NULL, 0);
 
         QuicPlatformSystemLoad();
-        EventSetInformation(Microsoft_QuicHandle, EventProviderBinaryTrackInfo, NULL, 0);
         MsQuicLibraryLoad();
         break;
 
