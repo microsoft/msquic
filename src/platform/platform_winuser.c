@@ -17,11 +17,11 @@ Environment:
 #include "platform_winuser.c.clog.h"
 
 #if defined(QUIC_EVENTS_TRACELOGGING)
- // {6A7F6746-617F-40A3-8EAC-B84C022058FB}
+ // {ff15e657-4f26-570e-88ab-0796b258d11c}
 TRACELOGGING_DEFINE_PROVIDER(
     clog_hTrace,
     "MSQuic",
-    (0x6a7f6746, 0x617f, 0x40a3, 0x8e, 0xac, 0xb8, 0x4c, 0x2, 0x20, 0x58, 0xfb ));
+    (0xff15e657, 0x4f26, 0x570e, 0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c ));
 #endif
 
 uint64_t QuicPlatformPerfFreq;
