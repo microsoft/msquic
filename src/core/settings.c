@@ -244,7 +244,8 @@ QuicSettingsLoad(
         }
     }
 
-    if (!Settings->AppSet.LoadBalancingMode) {
+    if (!Settings->AppSet.LoadBalancingMode &&
+        !MsQuicLib.InUse) {
         Value = QUIC_DEFAULT_LOAD_BALANCING_MODE;
         ValueLen = sizeof(Value);
         QuicStorageReadValue(
@@ -447,11 +448,12 @@ QuicSettingsDump(
     _In_ const QUIC_SETTINGS* Settings
     )
 {
-    QuicTraceLogVerbose(FN_settings_Dump_PacingDefault, "[sett] PacingDefault          = %hhu", (uint16_t)Settings->PacingDefault);
-    QuicTraceLogVerbose(FN_settings_Dump_MigrationEnabled, "[sett] MigrationEnabled       = %hhu", Settings->MigrationEnabled);
-    QuicTraceLogVerbose(FN_settings_Dump_MaxPartitionCount, "[sett] MaxPartitionCount      = %hhu", (uint16_t)Settings->MaxPartitionCount);
-    QuicTraceLogVerbose(FN_settings_Dump_MaxOperationsPerDrain, "[sett] MaxOperationsPerDrain  = %hhu", (uint16_t)Settings->MaxOperationsPerDrain);
+    QuicTraceLogVerbose(FN_settings_Dump_PacingDefault,              "[sett] PacingDefault          = %hhu", Settings->PacingDefault);
+    QuicTraceLogVerbose(FN_settings_Dump_MigrationEnabled,           "[sett] MigrationEnabled       = %hhu", Settings->MigrationEnabled);
+    QuicTraceLogVerbose(FN_settings_Dump_MaxPartitionCount,          "[sett] MaxPartitionCount      = %hhu", Settings->MaxPartitionCount);
+    QuicTraceLogVerbose(FN_settings_Dump_MaxOperationsPerDrain,      "[sett] MaxOperationsPerDrain  = %hhu", Settings->MaxOperationsPerDrain);
     QuicTraceLogVerbose(FN_settings00fc7276f8b662d358928e0cfa29d043, "[sett] RetryMemoryLimit       = %hu", Settings->RetryMemoryLimit);
+    QuicTraceLogVerbose(FN_settings_Dump_LoadBalancingMode,          "[sett] LoadBalancingMode      = %hu", Settings->LoadBalancingMode);
     QuicTraceLogVerbose(FN_settings67321e2160737fdc324fb42093dae824, "[sett] MaxStatelessOperations = %u", Settings->MaxStatelessOperations);
     QuicTraceLogVerbose(FN_settings51f359ba6d2ceb8234f9cb01656763be, "[sett] MaxWorkerQueueDelayUs  = %u", Settings->MaxWorkerQueueDelayUs);
     QuicTraceLogVerbose(FN_settingsb6cd3a0efb5f8db608f7fa16f6957ce0, "[sett] InitialWindowPackets   = %u", Settings->InitialWindowPackets);

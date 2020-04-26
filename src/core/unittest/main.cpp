@@ -8,8 +8,6 @@
 #include "main.h"
 #include "main.cpp.clog.h"
 
-extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
-
 class QuicCoreTestEnvironment : public ::testing::Environment {
 public:
     void SetUp() override {

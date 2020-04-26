@@ -178,7 +178,8 @@ MsQuicListenerStart(
     Status =
         QuicLibraryGetBinding(
             Listener->Session,
-            TRUE,          // Listeners always share the binding.
+            TRUE,           // Listeners always share the binding.
+            TRUE,
             &BindingLocalAddress,
             NULL,
             &Listener->Binding);

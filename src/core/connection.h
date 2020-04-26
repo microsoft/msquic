@@ -290,7 +290,7 @@ typedef struct QUIC_CONNECTION {
     //
     long RefCount;
 
-#if QUIC_TEST_MODE
+#if DEBUG
     short RefTypeCount[QUIC_CONN_REF_COUNT];
 #endif
 
@@ -312,7 +312,7 @@ typedef struct QUIC_CONNECTION {
     //
     // The server ID for the connection ID.
     //
-    uint8_t ServerID;
+    uint8_t ServerID[MSQUIC_MAX_CID_SID_LENGTH];
 
     //
     // The partition ID for the connection ID.
@@ -461,6 +461,12 @@ typedef struct QUIC_CONNECTION {
     //
     _Field_z_
     const char* RemoteServerName;
+
+    //
+    // The entry into the remote hash lookup table, which is used only during the
+    // handshake.
+    //
+    QUIC_REMOTE_HASH_ENTRY* RemoteHashEntry;
 
     //
     // Transport parameters received from the peer.
@@ -790,7 +796,7 @@ QuicConnOnShutdownComplete(
     _In_ QUIC_CONNECTION* Connection
     );
 
-#if QUIC_TEST_MODE
+#if DEBUG
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 void
@@ -817,7 +823,7 @@ QuicConnAddRef(
 {
     QuicConnValidate(Connection);
 
-#if QUIC_TEST_MODE
+#if DEBUG
     InterlockedIncrement16((volatile short*)&Connection->RefTypeCount[Ref]);
 #else
     UNREFERENCED_PARAMETER(Ref);
@@ -842,7 +848,7 @@ QuicConnRelease(
 {
     QuicConnValidate(Connection);
 
-#if QUIC_TEST_MODE
+#if DEBUG
     QUIC_TEL_ASSERT(Connection->RefTypeCount[Ref] > 0);
     uint16_t result = (uint16_t)InterlockedDecrement16((volatile short*)&Connection->RefTypeCount[Ref]);
     QUIC_TEL_ASSERT(result != 0xFFFF);
@@ -852,7 +858,7 @@ QuicConnRelease(
 
     QUIC_DBG_ASSERT(Connection->RefCount > 0);
     if (InterlockedDecrement((volatile long*)&Connection->RefCount) == 0) {
-#if QUIC_TEST_MODE
+#if DEBUG
         for (uint32_t i = 0; i < QUIC_CONN_REF_COUNT; i++) {
             QUIC_TEL_ASSERT(Connection->RefTypeCount[i] == 0);
         }
@@ -982,7 +988,6 @@ QuicConnGetSourceCidFromSeq(
                 *Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);
-        QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
         if (SourceCid->CID.SequenceNumber == SequenceNumber) {
             if (RemoveFromList) {
                 QuicBindingRemoveSourceConnectionID(
@@ -995,7 +1000,6 @@ QuicConnGetSourceCidFromSeq(
                     SourceCid->CID.SequenceNumber,
                     CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
                 *Entry = (*Entry)->Next;
-                SourceCid->CID.IsInList = FALSE;
             }
             *IsLastCid = Connection->SourceCids.Next == NULL;
             return SourceCid;
@@ -1025,7 +1029,6 @@ QuicConnGetSourceCidFromBuf(
                 Entry,
                 QUIC_CID_HASH_ENTRY,
                 Link);
-        QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
         if (CidLength == SourceCid->CID.Length &&
             memcmp(CidBuffer, SourceCid->CID.Data, CidLength) == 0) {
             return SourceCid;

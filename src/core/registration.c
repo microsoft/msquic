@@ -100,7 +100,7 @@ MsQuicRegistrationOpen(
         goto Error;
     }
 
-    QuicTraceEvent(RegistrationCreated, "[ reg][%p] Created, AppName=%s", Registration, Registration->AppName);
+    QuicTraceEvent(RegistrationCreated, Registration, Registration->AppName);
 
 #ifdef QuicVerifierEnabledByAddr
 #pragma prefast(suppress:6001, "SAL doesn't understand checking whether memory is tracked by Verifier.")
@@ -358,7 +358,7 @@ QuicRegistrationParamSet(
             break;
         }
 
-        if (BufferLength > QUIC_CID_MAX_APP_PREFIX) {
+        if (BufferLength > MSQUIC_CID_MAX_APP_PREFIX) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }

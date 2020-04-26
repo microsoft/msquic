@@ -338,7 +338,7 @@ QuicCryptoTlsReadExtensions(
                 return Status;
             }
         }
-
+        
         BufferLength -= ExtLen;
         Buffer += ExtLen;
     }
@@ -883,7 +883,7 @@ QuicCryptoTlsDecodeTransportParameters(
 
         case QUIC_TP_ID_IDLE_TIMEOUT:
             if (!TRY_READ_VAR_INT(TransportParams->IdleTimeout)) {
-                QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Length, "Invalid length of QUIC_TP_ID_ORIGINAL_CONNECTION_ID");
+                QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Length, "Invalid length of QUIC_TP_ID_IDLE_TIMEOUT");
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_IDLE_TIMEOUT;
@@ -892,7 +892,7 @@ QuicCryptoTlsDecodeTransportParameters(
 
         case QUIC_TP_ID_STATELESS_RESET_TOKEN:
             if (Length != QUIC_STATELESS_RESET_TOKEN_LENGTH) {
-                QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Length, "Invalid length of QUIC_TP_ID_ORIGINAL_CONNECTION_ID");
+                QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Length, "Invalid length of QUIC_TP_ID_STATELESS_RESET_TOKEN");
                 goto Exit;
             } else if (QuicConnIsServer(Connection)) {
                 QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Client incorrectly provided stateless reset token");
@@ -988,11 +988,11 @@ QuicCryptoTlsDecodeTransportParameters(
 
         case QUIC_TP_ID_ACK_DELAY_EXPONENT:
             if (!TRY_READ_VAR_INT(TransportParams->AckDelayExponent)) {
-                QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Length, "Invalid length of QUIC_TP_MAX_ACK_DELAY_EXPONENT");
+                QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Length, "Invalid length of QUIC_TP_ACK_DELAY_EXPONENT");
                 goto Exit;
             }
             if (TransportParams->AckDelayExponent > QUIC_TP_ACK_DELAY_EXPONENT_MAX) {
-                QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Invalid value of QUIC_TP_MAX_ACK_DELAY_EXPONENT");
+                QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Invalid value of QUIC_TP_ACK_DELAY_EXPONENT");
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_ACK_DELAY_EXPONENT;
@@ -1001,11 +1001,11 @@ QuicCryptoTlsDecodeTransportParameters(
 
         case QUIC_TP_ID_MAX_ACK_DELAY:
             if (!TRY_READ_VAR_INT(TransportParams->MaxAckDelay)) {
-                QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Length, "Invalid length of QUIC_TP_MAX_MAX_ACK_DELAY");
+                QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Length, "Invalid length of QUIC_TP_MAX_ACK_DELAY");
                 goto Exit;
             }
             if (TransportParams->MaxAckDelay > QUIC_TP_MAX_ACK_DELAY_MAX) {
-                QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Invalid value of QUIC_TP_MAX_MAX_ACK_DELAY");
+                QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Invalid value of QUIC_TP_MAX_ACK_DELAY");
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_MAX_ACK_DELAY;

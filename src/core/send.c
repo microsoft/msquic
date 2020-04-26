@@ -150,7 +150,7 @@ QuicSendQueueFlushForStream(
     }
 }
 
-#if QUIC_TEST_MODE
+#if DEBUG
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendValidate(
@@ -624,7 +624,6 @@ QuicSendWriteFrames(
                         Entry,
                         QUIC_CID_HASH_ENTRY,
                         Link);
-                QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
                 if (!SourceCid->CID.NeedsToSend) {
                     continue;
                 }
@@ -646,7 +645,7 @@ QuicSendWriteFrames(
                     Frame.Buffer,
                     SourceCid->CID.Data,
                     SourceCid->CID.Length);
-                QUIC_DBG_ASSERT(SourceCid->CID.Length == MSQUIC_CONNECTION_ID_LENGTH);
+                QUIC_DBG_ASSERT(SourceCid->CID.Length == MsQuicLib.CidTotalLength);
                 QuicBindingGenerateStatelessResetToken(
                     Builder->Path->Binding,
                     SourceCid->CID.Data,

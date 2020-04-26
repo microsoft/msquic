@@ -1,14 +1,12 @@
 QUIC_API_TABLE structure
 ======
 
-Deletes an existing registration.
+The function table for all MsQuic APIs.
 
 # Syntax
 
 ```C
 typedef struct QUIC_API_TABLE {
-
-    uint32_t                            Version;            // QUIC_API_VERSION_1
 
     QUIC_SET_CONTEXT_FN                 SetContext;
     QUIC_GET_CONTEXT_FN                 GetContext;
@@ -49,10 +47,6 @@ typedef struct QUIC_API_TABLE {
 ```
 
 # Members
-
-`Version`
-
-The API version this structure is for. Always `QUIC_API_VERSION_1`.
 
 `SetContext`
 
@@ -164,4 +158,4 @@ See [StreamReceiveSetEnabled](StreamReceiveSetEnabled.md)
 
 # See Also
 
-[MsQuicOpen](..\api/MsQuicOpen.md)<br>
+[MsQuicOpen](MsQuicOpen.md)<br>

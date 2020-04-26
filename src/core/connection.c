@@ -79,7 +79,7 @@ QuicConnAlloc(
     }
     QuicZeroMemory(Connection, sizeof(QUIC_CONNECTION));
 
-#if QUIC_TEST_MODE
+#if DEBUG
     InterlockedIncrement(&MsQuicLib.ConnectionCount);
 #endif
 
@@ -88,7 +88,7 @@ QuicConnAlloc(
     QuicTraceEvent(ConnCreated, "[conn][%p] Created, IsServer=%d, CorrelationId=%llu", Connection, IsServer, Connection->Stats.CorrelationId);
 
     Connection->RefCount = 1;
-#if QUIC_TEST_MODE
+#if DEBUG
     Connection->RefTypeCount[QUIC_CONN_REF_HANDLE_OWNER] = 1;
 #endif
     Connection->PartitionID = PartitionId;
@@ -131,7 +131,20 @@ QuicConnAlloc(
             QuicDataPathRecvDatagramToRecvPacket(Datagram);
 
         Connection->Type = QUIC_HANDLE_TYPE_CHILD;
-        Connection->ServerID = Packet->DestCid[QUIC_CID_SID_INDEX];
+        if (MsQuicLib.Settings.LoadBalancingMode == QUIC_LOAD_BALANCING_SERVER_ID_IP) {
+            QuicRandom(1, Connection->ServerID); // Randomize the first byte.
+            if (QuicAddrGetFamily(&Datagram->Tuple->LocalAddress) == AF_INET) {
+                QuicCopyMemory(
+                    Connection->ServerID + 1,
+                    &Datagram->Tuple->LocalAddress.Ipv4.sin_addr,
+                    4);
+            } else {
+                QuicCopyMemory(
+                    Connection->ServerID + 1,
+                    ((uint8_t*)&Datagram->Tuple->LocalAddress.Ipv6.sin6_addr) + 12,
+                    4);
+            }
+        }
 
         Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
         QuicConnOnQuicVersionSet(Connection);
@@ -164,7 +177,6 @@ QuicConnAlloc(
         SourceCid->CID.IsInitial = TRUE;
         SourceCid->CID.UsedByPeer = TRUE;
         QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
-        SourceCid->CID.IsInList = TRUE;
         QuicTraceEvent(ConnSourceCidAdded, "[conn][%p] (SeqNum=%llu) New Source CID: %!BYTEARRAY!",
             Connection, SourceCid->CID.SequenceNumber, CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
 
@@ -322,12 +334,6 @@ QuicConnFree(
     }
     QUIC_PATH* Path = &Connection->Paths[0];
     if (Path->Binding != NULL) {
-        if (!Connection->State.Connected) {
-            InterlockedDecrement(&Path->Binding->HandshakeConnections);
-            InterlockedExchangeAdd64(
-                (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-                -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
-        }
         QuicLibraryReleaseBinding(Path->Binding);
         Path->Binding = NULL;
     }
@@ -348,7 +354,7 @@ QuicConnFree(
         &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].ConnectionPool,
         Connection);
 
-#if QUIC_TEST_MODE
+#if DEBUG
     InterlockedDecrement(&MsQuicLib.ConnectionCount);
 #endif
 }
@@ -716,8 +722,7 @@ QuicConnGenerateNewSourceCid(
                 Connection->ServerID,
                 Connection->PartitionID,
                 Connection->Registration->CidPrefixLength,
-                Connection->Registration->CidPrefix,
-                MSQUIC_CONNECTION_ID_LENGTH);
+                Connection->Registration->CidPrefix);
         if (SourceCid == NULL) {
             QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "new Src CID", sizeof(QUIC_CID_HASH_ENTRY) + MSQUIC_CONNECTION_ID_LENGTH);
             QuicConnFatalError(Connection, QUIC_STATUS_INTERNAL_ERROR, NULL);
@@ -745,7 +750,6 @@ QuicConnGenerateNewSourceCid(
 
     if (IsInitial) {
         SourceCid->CID.IsInitial = TRUE;
-        QUIC_DBG_ASSERT(!SourceCid->CID.IsInList);
         QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
     } else {
         QUIC_SINGLE_LIST_ENTRY** Tail = &Connection->SourceCids.Next;
@@ -755,8 +759,6 @@ QuicConnGenerateNewSourceCid(
         *Tail = &SourceCid->Link;
         SourceCid->Link.Next = NULL;
     }
-
-    SourceCid->CID.IsInList = TRUE;
 
     return SourceCid;
 }
@@ -806,7 +808,6 @@ QuicConnGenerateNewSourceCids(
         while (Entry != NULL) {
             QUIC_CID_HASH_ENTRY* SourceCid =
                 QUIC_CONTAINING_RECORD(Entry, QUIC_CID_HASH_ENTRY, Link);
-            QUIC_DBG_ASSERT(SourceCid->CID.IsInList);
             SourceCid->CID.Retired = TRUE;
             Entry = Entry->Next;
         }
@@ -1583,6 +1584,7 @@ QuicConnStart(
         QuicLibraryGetBinding(
             Connection->Session,
             Connection->State.ShareBinding,
+            FALSE,
             Connection->State.LocalAddressSet ? &Path->LocalAddress : NULL,
             &Path->RemoteAddress,
             &Path->Binding);
@@ -1590,24 +1592,22 @@ QuicConnStart(
         goto Exit;
     }
 
-    InterlockedIncrement(&Path->Binding->HandshakeConnections);
-    InterlockedExchangeAdd64(
-        (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-        (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
-
     //
     // Clients only need to generate a non-zero length source CID if it
     // intends to share the UDP binding.
     //
-    QUIC_CID_HASH_ENTRY* SourceCid =
+    QUIC_CID_HASH_ENTRY* SourceCid;
+    if (Connection->State.ShareBinding) {
+        SourceCid =
         QuicCidNewRandomSource(
             Connection,
-            0,
+                NULL,
             Connection->PartitionID,
             Connection->Registration->CidPrefixLength,
-            Connection->Registration->CidPrefix,
-            Connection->State.ShareBinding ?
-                MSQUIC_CONNECTION_ID_LENGTH : 0);
+                Connection->Registration->CidPrefix);
+    } else {
+        SourceCid = QuicCidNewNullSource(Connection);
+    }
     if (SourceCid == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
@@ -1616,13 +1616,8 @@ QuicConnStart(
     Connection->NextSourceCidSequenceNumber++;
     QuicTraceEvent(ConnSourceCidAdded, "[conn][%p] (SeqNum=%llu) New Source CID: %!BYTEARRAY!", Connection, SourceCid->CID.SequenceNumber, CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
     QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
-    SourceCid->CID.IsInList = TRUE;
 
     if (!QuicBindingAddSourceConnectionID(Path->Binding, SourceCid)) {
-        InterlockedDecrement(&Path->Binding->HandshakeConnections);
-        InterlockedExchangeAdd64(
-            (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-            -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
         QuicLibraryReleaseBinding(Path->Binding);
         Path->Binding = NULL;
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -3705,8 +3700,7 @@ QuicConnRecvPostProcessing(
                         // can discard the old (client chosen) one now.
                         //
                         SourceCid->Link.Next = NextSourceCid->Link.Next;
-                        QuicBindingRemoveSourceConnectionID(
-                            Connection->Paths[0].Binding, NextSourceCid);
+                        QUIC_DBG_ASSERT(!NextSourceCid->CID.IsInLookupTable);
                         QuicTraceEvent(ConnSourceCidRemoved, "[conn][%p] (SeqNum=%llu) Removed Source CID: %!BYTEARRAY!",
                             Connection, NextSourceCid->CID.SequenceNumber, CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data));
                         QUIC_FREE(NextSourceCid);
@@ -4378,6 +4372,7 @@ QuicConnParamSet(
                 QuicLibraryGetBinding(
                     Connection->Session,
                     Connection->State.ShareBinding,
+                    FALSE,
                     LocalAddress,
                     &Connection->Paths[0].RemoteAddress,
                     &Connection->Paths[0].Binding);
@@ -4392,12 +4387,6 @@ QuicConnParamSet(
 
             QuicBindingMoveSourceConnectionIDs(
                 OldBinding, Connection->Paths[0].Binding, Connection);
-            if (!Connection->State.Connected) {
-                InterlockedDecrement(&OldBinding->HandshakeConnections);
-                InterlockedExchangeAdd64(
-                    (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-                    -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
-            }
             QuicLibraryReleaseBinding(OldBinding);
             QuicTraceEvent(ConnLocalAddrRemoved, "[conn][%p] Removed Local IP: %!SOCKADDR!",
                 Connection, CLOG_BYTEARRAY(LOG_ADDR_LEN(Connection->Paths[0].LocalAddress), (const uint8_t*)&Connection->Paths[0].LocalAddress));
