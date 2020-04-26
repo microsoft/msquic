@@ -2876,7 +2876,7 @@ QuicConnRecvDecryptAndAuthenticate(
             QuicPacketLogHeader(
                 Connection,
                 TRUE,
-                Connection->State.ShareBinding ? MSQUIC_CONNECTION_ID_LENGTH : 0,
+                Connection->State.ShareBinding ? MsQuicLib.CidTotalLength : 0,
                 Packet->PacketNumber,
                 Packet->HeaderLength,
                 Packet->Buffer,
@@ -2932,7 +2932,7 @@ QuicConnRecvDecryptAndAuthenticate(
             QuicPacketLogHeader(
                 Connection,
                 TRUE,
-                Connection->State.ShareBinding ? MSQUIC_CONNECTION_ID_LENGTH : 0,
+                Connection->State.ShareBinding ? MsQuicLib.CidTotalLength : 0,
                 Packet->PacketNumber,
                 Packet->BufferLength,
                 Packet->Buffer,
@@ -2951,7 +2951,7 @@ QuicConnRecvDecryptAndAuthenticate(
         QuicPacketLogHeader(
             Connection,
             TRUE,
-            Connection->State.ShareBinding ? MSQUIC_CONNECTION_ID_LENGTH : 0,
+            Connection->State.ShareBinding ? MsQuicLib.CidTotalLength : 0,
             Packet->PacketNumber,
             Packet->HeaderLength + Packet->PayloadLength,
             Packet->Buffer,
@@ -4338,7 +4338,7 @@ QuicConnParamSet(
             break;
         }
 
-        if (Connection->Type == QUIC_HANDLE_TYPE_CHILD) {
+        if (QuicConnIsServer(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }

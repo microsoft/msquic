@@ -969,6 +969,10 @@ QuicCryptoTlsDecodeTransportParameters(
                 QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Invalid value of QUIC_TP_ID_INITIAL_MAX_STREAMS_BIDI");
                 goto Exit;
             }
+            if (TransportParams->InitialMaxBidiStreams > QUIC_TP_MAX_STREAMS_MAX) {
+                QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Invalid value of QUIC_TP_ID_INITIAL_MAX_STREAMS_BIDI");
+                goto Exit;
+            }
             TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI;
             QuicTraceLogConnVerbose(DecodeTPMaxBidiStreams, Connection, "TP: Max Bidirectional Streams (%llu)", TransportParams->InitialMaxBidiStreams);
             break;
@@ -976,6 +980,10 @@ QuicCryptoTlsDecodeTransportParameters(
         case QUIC_TP_ID_INITIAL_MAX_STREAMS_UNI:
             if (!TRY_READ_VAR_INT(TransportParams->InitialMaxUniStreams)) {
                 QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Length, "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAMS_UNI");
+                goto Exit;
+            }
+            if (TransportParams->InitialMaxUniStreams > QUIC_TP_MAX_STREAMS_MAX) {
+                QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Invalid value of QUIC_TP_ID_INITIAL_MAX_STREAMS_UNI");
                 goto Exit;
             }
             if (TransportParams->InitialMaxUniStreams > QUIC_TP_MAX_STREAMS_MAX) {
@@ -1033,6 +1041,10 @@ QuicCryptoTlsDecodeTransportParameters(
         case QUIC_TP_ID_ACTIVE_CONNECTION_ID_LIMIT:
             if (!TRY_READ_VAR_INT(TransportParams->ActiveConnectionIdLimit)) {
                 QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.", Connection, Length, "Invalid length of QUIC_TP_ID_ACTIVE_CONNECTION_ID_LIMIT");
+                goto Exit;
+            }
+            if (TransportParams->ActiveConnectionIdLimit < QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN) {
+                QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "Invalid value of QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT");
                 goto Exit;
             }
             if (TransportParams->ActiveConnectionIdLimit < QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN) {
