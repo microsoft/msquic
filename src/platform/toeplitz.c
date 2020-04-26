@@ -36,8 +36,8 @@ Notes:
 
     We have speeded the implementation by processing the hash input four bits
     at a time. This requires us to maintain a lookup table of 16 32-bit entries
-    for each nibble of the hash input. 
-    
+    for each nibble of the hash input.
+
     This implementation assumes that the output of the hash is always 32-bit.
     It also assumes that the caller will pass in a array of bytes to hash, and
     the number of bits in the hash input will always be a multiple of 8 -- that
@@ -47,10 +47,7 @@ Notes:
 --*/
 
 #include "platform_internal.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "toeplitz.tmh"
-#endif
+#include "toeplitz.c.clog.h"
 
 //
 // Initializes the state required for a Toeplitz hash computation. We
@@ -71,7 +68,7 @@ QuicToeplitzHashInitialize(
     // directly be looked up to find out what value needs to be XORed
     // into the result based on the value of the nibble. Therefore, a
     // 4 byte hash input will have 8 nibbles, and each of the nibbles
-    // has a separate lookup table. This lookup table is looked up 
+    // has a separate lookup table. This lookup table is looked up
     // based on the nibble value, the contents are XORed into the result
     // and we then move to the next nibble of the input, and the next
     // table.
@@ -81,7 +78,7 @@ QuicToeplitzHashInitialize(
     // Initialize the Toeplitz->LookupTables.
     //
     for (uint32_t i = 0; i < QUIC_TOEPLITZ_LOOKUP_TABLE_COUNT; i++) {
-        // 
+        //
         // First construct the 32-bit word that is obtained after
         // shifting the key left by i*4 bits. That goes into Word1
         //

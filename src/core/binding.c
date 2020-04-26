@@ -813,7 +813,7 @@ QuicBindingProcessStatelessOperation(
         QuicTraceLogVerbose(FN_bindingda2912dbb439879118c990ced87e39cd, "[S][TX][-] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:R OrigDestCid:%!CID! (Token %hu bytes)",
             RecvPacket->LH->Version,
             CLOG_BYTEARRAY(RecvPacket->SourceCidLen, RecvPacket->SourceCid),
-            CLOG_BYTEARRAY(NewDestCid, MsQuicLib.CidTotalLength),
+            CLOG_BYTEARRAY(MsQuicLib.CidTotalLength, NewDestCid),
             CLOG_BYTEARRAY(RecvPacket->DestCidLen, RecvPacket->DestCid),
             (uint16_t)sizeof(Token));
 
