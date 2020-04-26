@@ -10,6 +10,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         hashtable.c
         platform_winuser.c
         storage_winuser.c
+        toeplitz.c
     )
 else()
     set(SOURCES
@@ -18,6 +19,7 @@ else()
         inline.c
         platform_linux.c
         storage_linux.c
+        toeplitz.c
     )
 endif()
 

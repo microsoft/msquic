@@ -44,7 +44,7 @@ QuicStreamCompleteSendRequest(
     _In_ BOOLEAN Canceled
     );
 
-#if QUIC_TEST_MODE
+#if DEBUG
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void

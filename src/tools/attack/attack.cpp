@@ -161,7 +161,7 @@ RunAttackRandom(
         PacketCount, (PacketCount * 1000) / QuicTimeDiff64(TimeStart, TimeEnd));
 }
 
-#if DBG
+#if DEBUG
 void printf_buf(const char* name, void* buf, uint32_t len)
 {
     printf("%s: ", name);

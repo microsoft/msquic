@@ -537,7 +537,7 @@ QuicRangeGetMaxSafe(
     }
 }
 
-#if QUIC_TEST_MODE
+#if DEBUG
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void

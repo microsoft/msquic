@@ -38,6 +38,7 @@ QuicBindingInitialize(
     _In_ QUIC_COMPARTMENT_ID CompartmentId,
 #endif
     _In_ BOOLEAN ShareBinding,
+    _In_ BOOLEAN ServerOwned,
     _In_opt_ const QUIC_ADDR * LocalAddress,
     _In_opt_ const QUIC_ADDR * RemoteAddress,
     _Out_ QUIC_BINDING** NewBinding
@@ -56,8 +57,8 @@ QuicBindingInitialize(
 
     Binding->RefCount = 1;
     Binding->Exclusive = !ShareBinding;
+    Binding->ServerOwned = ServerOwned;
     Binding->Connected = RemoteAddress == NULL ? FALSE : TRUE;
-    Binding->HandshakeConnections = 0;
     Binding->StatelessOperCount = 0;
     QuicDispatchRwLockInitialize(&Binding->RwLock);
     QuicDispatchLockInitialize(&Binding->ResetTokenLock);
@@ -156,7 +157,6 @@ QuicBindingUninitialize(
     QuicTraceEvent(BindingCleanup, "[bind][%p] Cleaning up", Binding);
 
     QUIC_TEL_ASSERT(Binding->RefCount == 0);
-    QUIC_TEL_ASSERT(Binding->HandshakeConnections == 0);
     QUIC_TEL_ASSERT(QuicListIsEmpty(&Binding->Listeners));
 
     //
@@ -391,7 +391,7 @@ QuicBindingAddSourceConnectionID(
     _In_ QUIC_CID_HASH_ENTRY* SourceCid
     )
 {
-    return QuicLookupAddSourceConnectionID(&Binding->Lookup, SourceCid, NULL);
+    return QuicLookupAddLocalCid(&Binding->Lookup, SourceCid, NULL);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -401,7 +401,7 @@ QuicBindingRemoveSourceConnectionID(
     _In_ QUIC_CID_HASH_ENTRY* SourceCid
     )
 {
-    QuicLookupRemoveSourceConnectionID(&Binding->Lookup, SourceCid);
+    QuicLookupRemoveLocalCid(&Binding->Lookup, SourceCid);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -411,7 +411,10 @@ QuicBindingRemoveConnection(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    QuicLookupRemoveSourceConnectionIDs(&Binding->Lookup, Connection);
+    if (Connection->RemoteHashEntry != NULL) {
+        QuicLookupRemoveRemoteHash(&Binding->Lookup, Connection->RemoteHashEntry);
+    }
+    QuicLookupRemoveLocalCids(&Binding->Lookup, Connection);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -422,8 +425,20 @@ QuicBindingMoveSourceConnectionIDs(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    QuicLookupMoveSourceConnectionIDs(
+    QuicLookupMoveLocalConnectionIDs(
         &BindingSrc->Lookup, &BindingDest->Lookup, Connection);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicBindingOnConnectionHandshakeConfirmed(
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    if (Connection->RemoteHashEntry != NULL) {
+        QuicLookupRemoveRemoteHash(&Binding->Lookup, Connection->RemoteHashEntry);
+    }
 }
 
 //
@@ -742,8 +757,8 @@ QuicBindingProcessStatelessOperation(
             goto Exit;
         }
 
-        uint8_t NewDestCid[MSQUIC_CONNECTION_ID_LENGTH];
-        QuicRandom(MSQUIC_CONNECTION_ID_LENGTH, NewDestCid);
+        uint8_t NewDestCid[MSQUIC_CID_MAX_LENGTH];
+        QuicRandom(sizeof(NewDestCid), NewDestCid);
 
         QUIC_RETRY_TOKEN_CONTENTS Token = { 0 };
         Token.Authenticated.Timestamp = QuicTimeEpochMs64();
@@ -753,8 +768,15 @@ QuicBindingProcessStatelessOperation(
         Token.Encrypted.OrigConnIdLength = RecvPacket->DestCidLen;
 
         uint8_t Iv[QUIC_IV_LENGTH];
-        QuicZeroMemory(Iv, sizeof(Iv));
-        QuicCopyMemory(Iv, NewDestCid, MSQUIC_CONNECTION_ID_LENGTH);
+        if (MsQuicLib.CidTotalLength >= sizeof(Iv)) {
+            QuicCopyMemory(Iv, NewDestCid, sizeof(Iv));
+            for (uint8_t i = sizeof(Iv); i < MsQuicLib.CidTotalLength; ++i) {
+                Iv[i % sizeof(Iv)] ^= NewDestCid[i];
+            }
+        } else {
+            QuicZeroMemory(Iv, sizeof(Iv));
+            QuicCopyMemory(Iv, NewDestCid, MsQuicLib.CidTotalLength);
+        }
 
         QuicLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
 
@@ -780,7 +802,7 @@ QuicBindingProcessStatelessOperation(
             QuicPacketEncodeRetryV1(
                 RecvPacket->LH->Version,
                 RecvPacket->SourceCid, RecvPacket->SourceCidLen,
-                NewDestCid, MSQUIC_CONNECTION_ID_LENGTH,
+                NewDestCid, MsQuicLib.CidTotalLength,
                 RecvPacket->DestCid, RecvPacket->DestCidLen,
                 sizeof(Token),
                 (uint8_t*)&Token,
@@ -791,7 +813,7 @@ QuicBindingProcessStatelessOperation(
         QuicTraceLogVerbose(FN_bindingda2912dbb439879118c990ced87e39cd, "[S][TX][-] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:R OrigDestCid:%!CID! (Token %hu bytes)",
             RecvPacket->LH->Version,
             CLOG_BYTEARRAY(RecvPacket->SourceCidLen, RecvPacket->SourceCid),
-            CLOG_BYTEARRAY(MSQUIC_CONNECTION_ID_LENGTH, NewDestCid),
+            CLOG_BYTEARRAY(NewDestCid, MsQuicLib.CidTotalLength),
             CLOG_BYTEARRAY(RecvPacket->DestCidLen, RecvPacket->DestCid),
             (uint16_t)sizeof(Token));
 
@@ -1014,10 +1036,11 @@ QuicBindingCreateConnection(
     //
     // This function returns either a new connection, or an existing
     // connection if a collision is discovered on calling
-    // QuicLookupAddSourceConnectionID.
+    // QuicLookupAddRemoteHash.
     //
 
     QUIC_CONNECTION* Connection = NULL;
+    QUIC_RECV_PACKET* Packet = QuicDataPathRecvDatagramToRecvPacket(Datagram);
 
     QUIC_CONNECTION* NewConnection;
     QUIC_STATUS Status =
@@ -1027,7 +1050,7 @@ QuicBindingCreateConnection(
             &NewConnection);
     if (QUIC_FAILED(Status)) {
         QuicConnRelease(NewConnection, QUIC_CONN_REF_HANDLE_OWNER);
-        QuicPacketLogDropWithValue(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
+        QuicPacketLogDropWithValue(Binding, Packet,
             "Failed to initialize new connection", Status);
         return NULL;
     }
@@ -1048,8 +1071,7 @@ QuicBindingCreateConnection(
     //
     QUIC_WORKER* Worker = QuicLibraryGetWorker();
     if (QuicWorkerIsOverloaded(Worker)) {
-        QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
-            "Worker overloaded");
+        QuicPacketLogDrop(Binding, Packet, "Worker overloaded");
         goto Exit;
     }
     QuicWorkerAssignConnection(Worker, NewConnection);
@@ -1069,21 +1091,19 @@ QuicBindingCreateConnection(
 
     BindingRefAdded = TRUE;
     NewConnection->Paths[0].Binding = Binding;
-    InterlockedIncrement(&Binding->HandshakeConnections);
-    InterlockedExchangeAdd64(
-        (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-        (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
 
-    if (!QuicLookupAddSourceConnectionID(
+    if (!QuicLookupAddRemoteHash(
             &Binding->Lookup,
-            SourceCid,
+            NewConnection,
+            &Datagram->Tuple->RemoteAddress,
+            Packet->SourceCidLen,
+            Packet->SourceCid,
             &Connection)) {
         //
         // Collision with an existing connection or a memory failure.
         //
         if (Connection == NULL) {
-            QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
-                "Failed to insert scid");
+            QuicPacketLogDrop(Binding, Packet, "Failed to insert remote hash");
         }
         goto Exit;
     }
@@ -1143,12 +1163,21 @@ QuicBindingDeliverDatagrams(
     QUIC_DBG_ASSERT(Packet->ValidatedHeaderInv);
 
     //
-    // The packet's destination connection ID (DestCid) is the key for looking
-    // up the corresponding connection object. The DestCid encodes the
-    // partition ID (PID) that can be used for partitioning the look up table.
+    // For client owned bindings (for which we always control the CID) or for
+    // short header packets for server owned bindings, the packet's destination
+    // connection ID (DestCid) is the key for looking up the corresponding
+    // connection object. The DestCid encodes the partition ID (PID) that can
+    // be used for partitioning the look up table.
+    //
+    // For long header packets for server owned bindings, the packet's DestCid
+    // was not necessarily generated locally, so cannot be used for routing.
+    // Instead, a hash of the tuple and source connection ID (SourceCid) is
+
+    // used.
     //
     // The exact type of lookup table associated with the binding varies on the
-    // circumstances, but it allows for quick and easy lookup based on DestCid.
+    // circumstances, but it allows for quick and easy lookup based on DestCid
+    // (when used).
     //
     // If the lookup fails, and if there is a listener on the local 2-Tuple,
     // then a new connection is created and inserted into the binding's lookup
@@ -1165,11 +1194,21 @@ QuicBindingDeliverDatagrams(
     // packet, then the packet is dropped.
     //
 
-    QUIC_CONNECTION* Connection =
-        QuicLookupFindConnection(
-            &Binding->Lookup,
-            Packet->DestCid,
-            Packet->DestCidLen);
+    QUIC_CONNECTION* Connection;
+    if (!Binding->ServerOwned || Packet->IsShortHeader) {
+        Connection =
+            QuicLookupFindConnectionByLocalCid(
+                &Binding->Lookup,
+                Packet->DestCid,
+                Packet->DestCidLen);
+    } else {
+        Connection =
+            QuicLookupFindConnectionByRemoteHash(
+                &Binding->Lookup,
+                &DatagramChain->Tuple->RemoteAddress,
+                Packet->SourceCidLen,
+                Packet->SourceCid);
+    }
 
     if (Connection == NULL) {
 
@@ -1235,6 +1274,8 @@ QuicBindingDeliverDatagrams(
             QuicPacketLogDrop(Binding, Packet, "No listeners registered to accept new connection.");
             return FALSE;
         }
+
+        QUIC_DBG_ASSERT(Binding->ServerOwned);
 
         BOOLEAN DropPacket = FALSE;
         if (QuicBindingShouldRetryConnection(
@@ -1477,7 +1518,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicBindingGenerateStatelessResetToken(
     _In_ QUIC_BINDING* Binding,
-    _In_reads_(MSQUIC_CONNECTION_ID_LENGTH)
+    _In_reads_(MsQuicLib.CidTotalLength)
         const uint8_t* const CID,
     _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)
         uint8_t* ResetToken
@@ -1489,7 +1530,7 @@ QuicBindingGenerateStatelessResetToken(
         QuicHashCompute(
             Binding->ResetTokenHash,
             CID,
-            MSQUIC_CONNECTION_ID_LENGTH,
+            MsQuicLib.CidTotalLength,
             sizeof(HashOutput),
             HashOutput);
     QuicDispatchLockRelease(&Binding->ResetTokenLock);

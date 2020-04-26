@@ -190,7 +190,7 @@ typedef struct QUIC_STREAM {
     //
     QUIC_REF_COUNT RefCount;
 
-#if QUIC_TEST_MODE
+#if DEBUG
     short RefTypeCount[QUIC_STREAM_REF_COUNT];
 #endif
 
@@ -582,7 +582,7 @@ QuicStreamAddRef(
     QUIC_DBG_ASSERT(Stream->Connection);
     QUIC_DBG_ASSERT(Stream->RefCount > 0);
 
-#if QUIC_TEST_MODE
+#if DEBUG
     InterlockedIncrement16((volatile short*)&Stream->RefTypeCount[Ref]);
 #else
     UNREFERENCED_PARAMETER(Ref);
@@ -607,7 +607,7 @@ QuicStreamRelease(
     QUIC_DBG_ASSERT(Stream->Connection);
     QUIC_TEL_ASSERT(Stream->RefCount > 0);
 
-#if QUIC_TEST_MODE
+#if DEBUG
     QUIC_TEL_ASSERT(Stream->RefTypeCount[Ref] > 0);
     uint16_t result = (uint16_t)InterlockedDecrement16((volatile short*)&Stream->RefTypeCount[Ref]);
     QUIC_TEL_ASSERT(result != 0xFFFF);
@@ -616,7 +616,7 @@ QuicStreamRelease(
 #endif
 
     if (QuicRefDecrement(&Stream->RefCount)) {
-#if QUIC_TEST_MODE
+#if DEBUG
         for (uint32_t i = 0; i < QUIC_STREAM_REF_COUNT; i++) {
             QUIC_TEL_ASSERT(Stream->RefTypeCount[i] == 0);
         }

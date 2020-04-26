@@ -10,23 +10,23 @@ The kernel mode version, msquic.sys, will ship in future Windows releases. For m
 
 > Why isn’t there an HTTP/3 implementation along with MsQuic?
 
-MsQuic is designed as a generic QUIC transport for any application protocol. Several HTTP/3 stacks that use MsQuic exist, both internal to Windows and external (.NET).
+MsQuic is designed as a generic QUIC transport for any application protocol. Several HTTP/3 stacks that use MsQuic exist, both internal to Windows and external (.NET Core).
 
 > Do you plan to support other platforms?
 
-MsQuic currently supports Windows and Linux (in preview). In the future MacOS support may be added.
+MsQuic currently supports Windows and Linux (in preview). In the future support for other platforms may be added.
 
 > Why aren't you allowing community contributions?
 
-External contributions will be allowed once we stabilize our build and integration processes.
+We are currently stabilizing our build and integration processes. External contributions will be allowed at a later time.
 
 > Isn’t QUIC a Google product?
 
-QUIC was started by Google, but then was picked up by the IETF to be standardized (see [here](https://datatracker.ietf.org/wg/quic/about/)). MsQuic is an implementation of that standard.
+QUIC was started by Google, but then was picked up by the IETF to be standardized (see [here](https://datatracker.ietf.org/wg/quic/about/)). MsQuic is an implementation of that upcoming standard.
 
-> Isn’t releasing MsQuic premature given that the standard has not finalized?
+> When is the standard going to be finalized?
 
-The tradition of the IETF is to implement a protocol and see it perform in the real world before calling the protocol finished.
+The final date depends on the IETF process but the Internet-Drafts have already started to stabilize. We are already experimenting with using MsQuic in our internal services and we will continue updating MsQuic as the standard evolves.
 
 > Do you have any performance data?
 
@@ -35,10 +35,6 @@ We don't have any performance numbers to share at this time.
 > Does this mean Microsoft will stop investing in TCP?
 
 TCP will continue to be used widely for a long time and we will continue to improve it as necessary.
-
-> How can I block QUIC?
-
-This is not recommended, as QUIC is seen as more secure than TCP/TLS. QUIC is a UDP based protocol that may run on any UDP port. The only sure fire way to block QUIC would be to block UDP.
 
 > Why is MsQuic written in C?
 

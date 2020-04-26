@@ -293,7 +293,13 @@ QuicCryptoHandshakeConfirmed(
     _In_ QUIC_CRYPTO* Crypto
     )
 {
-    QuicCryptoGetConnection(Crypto)->State.HandshakeConfirmed = TRUE;
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+    Connection->State.HandshakeConfirmed = TRUE;
+
+    QUIC_PATH* Path = &Connection->Paths[0];
+    QUIC_DBG_ASSERT(Path->Binding != NULL);
+    QuicBindingOnConnectionHandshakeConfirmed(Path->Binding, Connection);
+
     QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_HANDSHAKE);
 }
 
@@ -1213,10 +1219,6 @@ QuicCryptoProcessTlsCompletion(
         QUIC_TEL_ASSERT(!Connection->State.Connected);
 
         QuicTraceEvent(ConnHandshakeComplete, "[conn][%p] Handshake complete", Connection);
-        InterlockedDecrement(&Connection->Paths[0].Binding->HandshakeConnections);
-        InterlockedExchangeAdd64(
-            (int64_t*)&MsQuicLib.CurrentHandshakeMemoryUsage,
-            -1 * (int64_t)QUIC_CONN_HANDSHAKE_MEMORY_USAGE);
 
         //
         // We should have the 1-RTT keys by connection complete time.

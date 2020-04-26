@@ -148,7 +148,7 @@ QuicSendBufferFill(
         QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
         Entry = Entry->Flink;
 
-#if QUIC_TEST_MODE
+#if DEBUG
         //
         // Sanity check: SendBufferBookmark should always point to the
         // first unbuffered send request (if there is one), and no requests

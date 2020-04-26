@@ -101,7 +101,8 @@ QuicAckHeaderDecode(
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->LargestAcknowledged) ||
         !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->AckDelay) ||
         !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->AdditionalAckBlockCount) ||
-        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->FirstAckBlock)) {
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->FirstAckBlock) ||
+        Frame->FirstAckBlock > Frame->LargestAcknowledged) {
         return FALSE;
     }
     return TRUE;
