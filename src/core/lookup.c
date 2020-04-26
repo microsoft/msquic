@@ -403,7 +403,7 @@ QuicLookupFindConnectionByRemoteHashInternal(
             RemoteCidLength == Entry->RemoteCidLength &&
             memcmp(RemoteCid, Entry->RemoteCid, RemoteCidLength) == 0) {
 #if QUIC_DEBUG_HASHTABLE_LOOKUP
-            QuicTraceLogVerbose("[bind][%p] Lookup RemoteHash=%u found %p", Lookup, Hash, Connection);
+            QuicTraceLogVerbose(LookupRemoteHashSuccess, "[bind][%p] Lookup RemoteHash=%u found %p", Lookup, Hash, Connection);
 #endif
             return Entry->Connection;
         }
@@ -412,7 +412,7 @@ QuicLookupFindConnectionByRemoteHashInternal(
     }
 
 #if QUIC_DEBUG_HASHTABLE_LOOKUP
-    QuicTraceLogVerbose("[bind][%p] Lookup RemoteHash=%u not found", Lookup, Hash);
+    QuicTraceLogVerbose(LookupRemoteHashFailure, "[bind][%p] Lookup RemoteHash=%u not found", Lookup, Hash);
 #endif
 
     return NULL;
@@ -524,7 +524,7 @@ QuicLookupInsertRemoteHash(
     }
 
 #if QUIC_DEBUG_HASHTABLE_LOOKUP
-    QuicTraceLogVerbose("[bind][%p] Insert Conn=%p RemoteHash=%u", Lookup, Connection, Hash);
+    QuicTraceLogVerbose(LookupRemoteHashInsert, "[bind][%p] Insert Conn=%p RemoteHash=%u", Lookup, Connection, Hash);
 #endif
 
     return TRUE;
