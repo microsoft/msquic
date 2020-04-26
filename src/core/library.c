@@ -434,7 +434,7 @@ QuicLibrarySetGlobalParam(
 
         MsQuicLib.Settings.RetryMemoryLimit = *(uint16_t*)Buffer;
         MsQuicLib.Settings.AppSet.RetryMemoryLimit = TRUE;
-        QuicTraceLogInfo("[ lib] Updated retry memory limit = %hu", MsQuicLib.Settings.RetryMemoryLimit);
+        QuicTraceLogInfo(QuicLibrarySetGlobalParam_MemoryRetryLimit, "[ lib] Updated retry memory limit = %hu", MsQuicLib.Settings.RetryMemoryLimit);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -447,7 +447,7 @@ QuicLibrarySetGlobalParam(
         }
 
         MsQuicLib.EncryptionDisabled = *(uint8_t*)Buffer == FALSE;
-        QuicTraceLogWarning("[ lib] Updated encryption disabled = %hu", MsQuicLib.EncryptionDisabled);
+        QuicTraceLogWarning(QuicLibrarySetGlobalParam_UpdatedEncryption, "[ lib] Updated encryption disabled = %hu", MsQuicLib.EncryptionDisabled);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -466,7 +466,7 @@ QuicLibrarySetGlobalParam(
 
         MsQuicLib.Settings.LoadBalancingMode = *(uint16_t*)Buffer;
         MsQuicLib.Settings.AppSet.LoadBalancingMode = TRUE;
-        QuicTraceLogInfo("[ lib] Updated load balancing mode = %hu", MsQuicLib.Settings.LoadBalancingMode);
+        QuicTraceLogInfo(QuicLibrarySetGlobalParam_UpdatedLoadBalancing, "[ lib] Updated load balancing mode = %hu", MsQuicLib.Settings.LoadBalancingMode);
 
         Status = QUIC_STATUS_SUCCESS;
         break;

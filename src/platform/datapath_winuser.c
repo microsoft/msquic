@@ -2225,7 +2225,7 @@ QuicDataPathBindingSendTo(
         Binding,
         SendContext->TotalSize,
         SendContext->WsaBufferCount,
-        SendContext->SegmentSize, CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)&RemoteAddress));
+        SendContext->SegmentSize, CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)RemoteAddress));
 
     WSAMSG WSAMhdr;
     WSAMhdr.dwFlags = 0;
@@ -2332,7 +2332,7 @@ QuicDataPathBindingSendFromTo(
         Binding,
         SendContext->TotalSize,
         SendContext->WsaBufferCount,
-        SendContext->SegmentSize, CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)&RemoteAddress), CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), (const uint8_t*)&LocalAddress));
+        SendContext->SegmentSize, CLOG_BYTEARRAY(LOG_ADDR_LEN(*RemoteAddress), (const uint8_t*)RemoteAddress), CLOG_BYTEARRAY(LOG_ADDR_LEN(*LocalAddress), (const uint8_t *)LocalAddress));
 
     //
     // Map V4 address to dual-stack socket format.

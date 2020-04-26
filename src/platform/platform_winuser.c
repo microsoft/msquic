@@ -17,11 +17,11 @@ Environment:
 #include "platform_winuser.c.clog.h"
 
 #if defined(QUIC_EVENTS_TRACELOGGING)
- // {23D715F1-898A-4003-A2D2-645B68B52C97}
+ // {6A7F6746-617F-40A3-8EAC-B84C022058FB}
 TRACELOGGING_DEFINE_PROVIDER(
     clog_hTrace,
     "MSQuic",
-    (0x23d715f1, 0x898a, 0x4003, 0xa2, 0xd2, 0x64, 0x5b, 0x68, 0xb5, 0x2c, 0x97));
+    (0x6a7f6746, 0x617f, 0x40a3, 0x8e, 0xac, 0xb8, 0x4c, 0x2, 0x20, 0x58, 0xfb ));
 #endif
 
 uint64_t QuicPlatformPerfFreq;
@@ -34,10 +34,6 @@ QuicPlatformSystemLoad(
     void
     )
 {
-#ifdef QUIC_EVENTS_MANIFEST_ETW
-    EventRegisterMicrosoft_Quic();
-#endif
-
     (void)QueryPerformanceFrequency((LARGE_INTEGER*)&QuicPlatformPerfFreq);
     QuicPlatform.Heap = NULL;
 
@@ -51,9 +47,6 @@ QuicPlatformSystemUnload(
     )
 {
     QuicTraceLogInfo(FN_platform_winuser0c22020f4491112ca1f62af9913bb8bd, "[ dll] Unloaded");
-#ifdef QUIC_EVENTS_MANIFEST_ETW
-    EventUnregisterMicrosoft_Quic();
-#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -120,7 +113,7 @@ QuicPlatformLogAssert(
     _In_ int Line,
     _In_z_ const char* Expr
     )
-{
+{ 
     QuicTraceEvent(LibraryAssert, "[ lib] ASSERT, %d:%s - %s.", (uint32_t)Line, File, Expr);
 }
 
@@ -196,6 +189,7 @@ KrmlExit(
     QUIC_FRE_ASSERTMSG(FALSE, "miTLS hit a fatal error");
 }
 
+#if 0
 #ifdef QUIC_EVENTS_MANIFEST_ETW
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _IRQL_requires_same_
@@ -229,4 +223,5 @@ QuicEtwCallback(
         break;
     }
 }
+#endif
 #endif
