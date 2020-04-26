@@ -602,7 +602,7 @@ QuicPacketLogHeader(
             }
 
             if (LongHdr->Type == QUIC_INITIAL) {
-                QuicTraceLogVerbose(FN_packet85487ff2d76aa8944f1e441b0abee08a, "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:%s (Token %hu bytes) (Payload %hu bytes) (PktNum %hu bytes)",
+                BUGBUG_TraceLogVerbose(FN_packet85487ff2d76aa8944f1e441b0abee08a, "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:%s (Token %hu bytes) (Payload %hu bytes) (PktNum %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     PacketNumber,
@@ -614,7 +614,7 @@ QuicPacketLogHeader(
                     (uint16_t)Length,
                     LongHdr->PnLength + 1);
             } else {
-                QuicTraceLogVerbose(FN_packet33cae7b7d88f1a0a561d8abc592bb027, "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:%s (Payload %hu bytes) (PktNum %hu bytes)",
+                BUGBUG_TraceLogVerbose(FN_packet33cae7b7d88f1a0a561d8abc592bb027, "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:%s (Payload %hu bytes) (PktNum %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     PacketNumber,
@@ -656,7 +656,7 @@ QuicPacketLogHeader(
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber,
-                CLOG_BYTEARRAY(DestCidLen, DestCid),                
+                CLOG_BYTEARRAY(DestCidLen, DestCid),
                 Header->KeyPhase,
                 Header->SpinBit,
                 PacketLength - Offset);
