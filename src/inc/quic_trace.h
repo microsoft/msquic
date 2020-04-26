@@ -109,6 +109,8 @@ QuicTraceRundown(
 #define QuicTraceLogVerboseEnabled() TRUE
 #define QuicTraceEventEnabled(x) TRUE
 
+#define BUGBUG_TraceLogVerbose(...)
+
 #ifdef QUIC_EVENTS_MANIFEST_ETW
 #include "quic_trace_manifested_etw.h"
 #endif
