@@ -34,6 +34,9 @@ QuicPlatformSystemLoad(
     void
     )
 {
+    EventRegisterMicrosoft_Quic_ETW();
+    TraceLoggingRegister(clog_hTrace);
+
     (void)QueryPerformanceFrequency((LARGE_INTEGER*)&QuicPlatformPerfFreq);
     QuicPlatform.Heap = NULL;
 
@@ -47,6 +50,8 @@ QuicPlatformSystemUnload(
     )
 {
     QuicTraceLogInfo(FN_platform_winuser0c22020f4491112ca1f62af9913bb8bd, "[ dll] Unloaded");
+    EventUnregisterMicrosoft_Quic_ETW();
+    TraceLoggingUnregister(clog_hTrace);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
