@@ -11039,6 +11039,90 @@
               template="template_ui8_ui8_ui64_ui8_binary_ui16_ui16_ui16_"
               value="276"
               />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="QuicLibrarySetGlobalParam_Encryption"
+              template="template_ui16_"
+              value="877"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="QuicLibApplyLoadBalancingSetting_CIDLength"
+              template="template_ui8_"
+              value="878"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="QuicLibrarySetGlobalParam_RetryMemoryLimit"
+              template="template_ui16_"
+              value="879"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="QuicLibrarySetGlobalParam_LoadBalancingMode"
+              template="template_ui16_"
+              value="880"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="LibraryInUse"
+              template="template_"
+              value="881"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="LibraryNotInUse"
+              template="template_"
+              value="882"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="SetGlobalEncryption_AlreadyInUse"
+              template="template_"
+              value="883"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="SetGlobalLoadBalancingMode_AlreadyInUse"
+              template="template_"
+              value="884"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="LookupRemoteHashSuccess"
+              template="template_ptr_ui32_ptr_"
+              value="885"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="LookupRemoteHashFailure"
+              template="template_ptr_ui32_"
+              value="886"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="LookupRemoteHashInsert"
+              template="template_ptr_ptr_ui32_"
+              value="887"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FN_settings_Dump_LoadBalancingMode"
+              template="template_ui16_"
+              value="888"
+              />
         </events>
       </provider>
     </events>

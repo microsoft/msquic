@@ -2131,7 +2131,40 @@
       "FN_quictest3a72f018a4cf860262d89c7671534363": {
         "arg2": "arg2"
       },
-      "FN_quictest9eddd9dc5266f22ce5fe2958d12ddae0": {}
+      "FN_quictest9eddd9dc5266f22ce5fe2958d12ddae0": {},
+      "QuicLibrarySetGlobalParam_Encryption": {
+        "arg2": "arg2"
+      },
+      "QuicLibApplyLoadBalancingSetting_CIDLength": {
+        "arg2": "arg2"
+      },
+      "QuicLibrarySetGlobalParam_RetryMemoryLimit": {
+        "arg2": "arg2"
+      },
+      "QuicLibrarySetGlobalParam_LoadBalancingMode": {
+        "arg2": "arg2"
+      },
+      "LibraryInUse": {},
+      "LibraryNotInUse": {},
+      "SetGlobalEncryption_AlreadyInUse": {},
+      "SetGlobalLoadBalancingMode_AlreadyInUse": {},
+      "LookupRemoteHashSuccess": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "LookupRemoteHashFailure": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "LookupRemoteHashInsert": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FN_settings_Dump_LoadBalancingMode": {
+        "arg2": "arg2"
+      }
     }
   },
   "EventBundlesV2": {
@@ -2621,8 +2654,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n            CLOG_BYTEARRAY(MSQUIC_CONNECTION_ID_LENGTH, NewDestCid)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(MSQUIC_CONNECTION_ID_LENGTH, NewDestCid)",
+            "UserSpecifiedUnModified": "\r\n            CLOG_BYTEARRAY(MsQuicLib.CidTotalLength, NewDestCid)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(MsQuicLib.CidTotalLength, NewDestCid)",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "!CID!",
@@ -16926,8 +16959,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " (uint16_t)Settings->PacingDefault",
-            "UserSuppliedTrimmed": "(uint16_t)Settings->PacingDefault",
+            "UserSpecifiedUnModified": " Settings->PacingDefault",
+            "UserSuppliedTrimmed": "Settings->PacingDefault",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "hhu",
@@ -16996,8 +17029,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " (uint16_t)Settings->MaxPartitionCount",
-            "UserSuppliedTrimmed": "(uint16_t)Settings->MaxPartitionCount",
+            "UserSpecifiedUnModified": " Settings->MaxPartitionCount",
+            "UserSuppliedTrimmed": "Settings->MaxPartitionCount",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "hhu",
@@ -17031,8 +17064,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " (uint16_t)Settings->MaxOperationsPerDrain",
-            "UserSuppliedTrimmed": "(uint16_t)Settings->MaxOperationsPerDrain",
+            "UserSpecifiedUnModified": " Settings->MaxOperationsPerDrain",
+            "UserSuppliedTrimmed": "Settings->MaxOperationsPerDrain",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "hhu",
@@ -26715,6 +26748,431 @@
           "windows": "etw_plus"
         }
       }
+    },
+    "QuicLibrarySetGlobalParam_Encryption": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "877",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[ lib] Updated encryption disabled = %hu",
+      "UniqueId": "QuicLibrarySetGlobalParam_Encryption",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " MsQuicLib.EncryptionDisabled",
+            "UserSuppliedTrimmed": "MsQuicLib.EncryptionDisabled",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "QuicLibApplyLoadBalancingSetting_CIDLength": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "878",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[ lib] CID Length = %hhu",
+      "UniqueId": "QuicLibApplyLoadBalancingSetting_CIDLength",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " MsQuicLib.CidTotalLength",
+            "UserSuppliedTrimmed": "MsQuicLib.CidTotalLength",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "QuicLibrarySetGlobalParam_RetryMemoryLimit": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "879",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[ lib] Updated retry memory limit = %hu",
+      "UniqueId": "QuicLibrarySetGlobalParam_RetryMemoryLimit",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " MsQuicLib.Settings.RetryMemoryLimit",
+            "UserSuppliedTrimmed": "MsQuicLib.Settings.RetryMemoryLimit",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "QuicLibrarySetGlobalParam_LoadBalancingMode": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "880",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[ lib] Updated load balancing mode = %hu",
+      "UniqueId": "QuicLibrarySetGlobalParam_LoadBalancingMode",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " MsQuicLib.Settings.LoadBalancingMode",
+            "UserSuppliedTrimmed": "MsQuicLib.Settings.LoadBalancingMode",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "LibraryInUse": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "881",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[ lib] Now in use.",
+      "UniqueId": "LibraryInUse",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "LibraryNotInUse": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "882",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[ lib] No longer in use.",
+      "UniqueId": "LibraryNotInUse",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "SetGlobalEncryption_AlreadyInUse": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "883",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[ lib] Tried to change encryption state after library in use!",
+      "UniqueId": "SetGlobalEncryption_AlreadyInUse",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "SetGlobalLoadBalancingMode_AlreadyInUse": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "884",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[ lib] Tried to change load balancing mode after library in use!",
+      "UniqueId": "SetGlobalLoadBalancingMode_AlreadyInUse",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "LookupRemoteHashSuccess": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "885",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[bind][%p] Lookup RemoteHash=%u found %p",
+      "UniqueId": "LookupRemoteHashSuccess",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Lookup",
+            "UserSuppliedTrimmed": "Lookup",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Hash",
+            "UserSuppliedTrimmed": "Hash",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "LookupRemoteHashFailure": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "886",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[bind][%p] Lookup RemoteHash=%u not found",
+      "UniqueId": "LookupRemoteHashFailure",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Lookup",
+            "UserSuppliedTrimmed": "Lookup",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Hash",
+            "UserSuppliedTrimmed": "Hash",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "LookupRemoteHashInsert": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "887",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[bind][%p] Insert Conn=%p RemoteHash=%u",
+      "UniqueId": "LookupRemoteHashInsert",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Lookup",
+            "UserSuppliedTrimmed": "Lookup",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Hash",
+            "UserSuppliedTrimmed": "Hash",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FN_settings_Dump_LoadBalancingMode": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "888",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[sett] LoadBalancingMode      = %hu",
+      "UniqueId": "FN_settings_Dump_LoadBalancingMode",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Settings->LoadBalancingMode",
+            "UserSuppliedTrimmed": "Settings->LoadBalancingMode",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
     }
   },
   "Version": 1,
@@ -29320,6 +29778,54 @@
       {
         "UniquenessHash": "e76aebc4-7a35-38fe-73fe-781eb97053ec",
         "TraceID": "ConnDestCidRemoved"
+      },
+      {
+        "UniquenessHash": "fe65c674-d80d-de28-3819-da41d60370ae",
+        "TraceID": "QuicLibrarySetGlobalParam_Encryption"
+      },
+      {
+        "UniquenessHash": "5cb3e57a-e1b1-2441-3ea4-758519c28bbb",
+        "TraceID": "QuicLibApplyLoadBalancingSetting_CIDLength"
+      },
+      {
+        "UniquenessHash": "0fd7a6c7-6563-8507-23ca-116295562946",
+        "TraceID": "QuicLibrarySetGlobalParam_RetryMemoryLimit"
+      },
+      {
+        "UniquenessHash": "33b4fafc-592c-4a8a-0287-aca91dc4d2b8",
+        "TraceID": "QuicLibrarySetGlobalParam_LoadBalancingMode"
+      },
+      {
+        "UniquenessHash": "80830820-d84f-0303-c862-a7d195fbca03",
+        "TraceID": "LibraryInUse"
+      },
+      {
+        "UniquenessHash": "1799d6aa-33d5-cb09-2058-09b8369d852f",
+        "TraceID": "LibraryNotInUse"
+      },
+      {
+        "UniquenessHash": "f9e02ddb-0d5b-e76b-501f-10eb96adc27a",
+        "TraceID": "SetGlobalEncryption_AlreadyInUse"
+      },
+      {
+        "UniquenessHash": "adbd72fa-9f36-6e3e-ebe9-f5976467a224",
+        "TraceID": "SetGlobalLoadBalancingMode_AlreadyInUse"
+      },
+      {
+        "UniquenessHash": "5bb228fd-62bf-ba24-6bb9-0a1393592933",
+        "TraceID": "LookupRemoteHashSuccess"
+      },
+      {
+        "UniquenessHash": "2a632eae-65a8-d1c1-8437-566482c7876e",
+        "TraceID": "LookupRemoteHashFailure"
+      },
+      {
+        "UniquenessHash": "d6ced804-6e5d-640f-b985-c53f83f3a93e",
+        "TraceID": "LookupRemoteHashInsert"
+      },
+      {
+        "UniquenessHash": "4ead1343-dcf5-eae0-5917-cb7af88531c6",
+        "TraceID": "FN_settings_Dump_LoadBalancingMode"
       }
     ]
   }
