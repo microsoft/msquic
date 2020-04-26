@@ -151,11 +151,6 @@
           </EventProviders>
         </EventCollectorId>
       </Collectors>
-      <!--TraceMergeProperties>
-        <TraceMergeProperty Id="TMP_Generic" Name="BaseTraceMergeProperties">
-          <DeletePreMergedTraceFiles Value="true"/>
-        </TraceMergeProperty>
-      </TraceMergeProperties -->
     </Profile>
     <Profile Id="Full.Light.Memory" Base="Full.Light.File" Name="Full" Description="All MsQuic and TAEF Events" LoggingMode="Memory" DetailLevel="Light"/>
 

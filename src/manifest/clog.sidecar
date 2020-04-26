@@ -2323,8 +2323,8 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"connection\"",
-            "UserSuppliedTrimmed": "\"connection\"",
+            "UserSpecifiedUnModified": " \"wchar string\"",
+            "UserSuppliedTrimmed": "\"wchar string\"",
             "SuggestedTelemetryName": "arg2"
           },
           "DefinationEncoding": "s",
@@ -2332,8 +2332,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " sizeof(QUIC_CONNECTION)",
-            "UserSuppliedTrimmed": "sizeof(QUIC_CONNECTION)",
+            "UserSpecifiedUnModified": " sizeof(WCHAR) * Size",
+            "UserSuppliedTrimmed": "sizeof(WCHAR) * Size",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "llu",
@@ -5848,8 +5848,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Connection->Worker",
-            "UserSuppliedTrimmed": "Connection->Worker",
+            "UserSpecifiedUnModified": " Worker",
+            "UserSuppliedTrimmed": "Worker",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "p",
@@ -5892,8 +5892,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Connection->Session",
-            "UserSuppliedTrimmed": "Connection->Session",
+            "UserSpecifiedUnModified": " Session",
+            "UserSuppliedTrimmed": "Session",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "p",
@@ -5971,8 +5971,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"Too many CID collisions\"",
-            "UserSuppliedTrimmed": "\"Too many CID collisions\"",
+            "UserSpecifiedUnModified": " \"Peer used more streams than allowed\"",
+            "UserSuppliedTrimmed": "\"Peer used more streams than allowed\"",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "s",
@@ -6068,8 +6068,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " QUIC_CONN_TIMER_ACK_DELAY",
-            "UserSuppliedTrimmed": "QUIC_CONN_TIMER_ACK_DELAY",
+            "UserSpecifiedUnModified": " Oper->TIMER_EXPIRED.Type",
+            "UserSuppliedTrimmed": "Oper->TIMER_EXPIRED.Type",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "d",
@@ -6306,7 +6306,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Connection",
+            "UserSpecifiedUnModified": "\r\n                    Connection",
             "UserSuppliedTrimmed": "Connection",
             "SuggestedTelemetryName": "arg2"
           },
@@ -6315,7 +6315,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " Status",
+            "UserSpecifiedUnModified": "\r\n                    Status",
             "UserSuppliedTrimmed": "Status",
             "SuggestedTelemetryName": "arg3"
           },
@@ -6324,8 +6324,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " \"Set current compartment Id\"",
-            "UserSuppliedTrimmed": "\"Set current compartment Id\"",
+            "UserSpecifiedUnModified": "\r\n                    \"Send-triggered key update\"",
+            "UserSuppliedTrimmed": "\"Send-triggered key update\"",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "s",
@@ -6456,7 +6456,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                            Connection",
+            "UserSpecifiedUnModified": "\r\n                    Connection",
             "UserSuppliedTrimmed": "Connection",
             "SuggestedTelemetryName": "arg2"
           },
@@ -6465,8 +6465,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " NextSourceCid->CID.SequenceNumber",
-            "UserSuppliedTrimmed": "NextSourceCid->CID.SequenceNumber",
+            "UserSpecifiedUnModified": "\r\n                    SourceCid->CID.SequenceNumber",
+            "UserSuppliedTrimmed": "SourceCid->CID.SequenceNumber",
             "SuggestedTelemetryName": "arg3"
           },
           "DefinationEncoding": "llu",
@@ -6474,8 +6474,8 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": " CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data)",
+            "UserSpecifiedUnModified": "\r\n                    CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data)",
             "SuggestedTelemetryName": "arg4"
           },
           "DefinationEncoding": "!BYTEARRAY!",
@@ -14590,7 +14590,7 @@
         },
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "                \r\n                Header->KeyPhase",
+            "UserSpecifiedUnModified": "\r\n                Header->KeyPhase",
             "UserSuppliedTrimmed": "Header->KeyPhase",
             "SuggestedTelemetryName": "arg6"
           },

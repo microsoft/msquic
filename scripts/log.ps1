@@ -166,8 +166,7 @@ function Log-Stop {
             $Command = "$Clog2Text_windows -i $EtlPath -s $SideCar -o $ClogOutputDecodeFile"
             Write-Debug $Command
             Invoke-Expression $Command | Write-Debug
-			
-			dir $OutputDirectory
+            dir $OutputDirectory
         }
     } else {
         if (!(Test-Path $TempDir)) {

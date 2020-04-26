@@ -38,9 +38,7 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $RootDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $ArtifactsDir = Join-Path $RootDir "artifacts"
 
-if ($IsWindows) {
-
-} elseif ($IsLinux) {
+if ($IsLinux) {
     # TODO - Figure out how to install openssl?
 
     # Make sure we have full permissions for all artifacts.
