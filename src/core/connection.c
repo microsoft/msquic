@@ -724,7 +724,7 @@ QuicConnGenerateNewSourceCid(
                 Connection->Registration->CidPrefixLength,
                 Connection->Registration->CidPrefix);
         if (SourceCid == NULL) {
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "new Src CID", sizeof(QUIC_CID_HASH_ENTRY) + MSQUIC_CONNECTION_ID_LENGTH);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "new Src CID", sizeof(QUIC_CID_HASH_ENTRY) + MsQuicLib.CidTotalLength);
             QuicConnFatalError(Connection, QUIC_STATUS_INTERNAL_ERROR, NULL);
             return NULL;
         }

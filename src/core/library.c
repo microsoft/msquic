@@ -447,7 +447,7 @@ QuicLibApplyLoadBalancingSetting(
         MsQuicLib.CidServerIdLength = 5; // 1 + 4 for v4 IP address
         break;
     }
-    
+
     MsQuicLib.CidTotalLength =
         MsQuicLib.CidServerIdLength +
         MSQUIC_CID_PID_LENGTH +
@@ -458,7 +458,7 @@ QuicLibApplyLoadBalancingSetting(
     QUIC_FRE_ASSERT(MsQuicLib.CidTotalLength >= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
     QUIC_FRE_ASSERT(MsQuicLib.CidTotalLength <= MSQUIC_CID_MAX_LENGTH);
 
-    QuicTraceLogInfo("[ lib] CID Length = %hhu", MsQuicLib.CidTotalLength);
+    QuicTraceLogInfo(QuicLibApplyLoadBalancingSetting_CIDLength, "[ lib] CID Length = %hhu", MsQuicLib.CidTotalLength);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
