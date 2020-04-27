@@ -16,10 +16,6 @@ Environment:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "cert_capi.tmh"
-#endif
-
 #include <wincrypt.h>
 #include <msquic.h>
 

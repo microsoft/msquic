@@ -44,10 +44,6 @@ Notes:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "hashtable.tmh"
-#endif
-
 #define QUIC_HASH_RESERVED_SIGNATURE 0
 
 //

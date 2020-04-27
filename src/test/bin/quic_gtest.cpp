@@ -7,10 +7,6 @@
 
 #include "quic_gtest.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "quic_gtest.tmh"
-#endif
-
 bool TestingKernelMode = false;
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;

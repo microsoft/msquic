@@ -11,10 +11,6 @@ Abstract:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "datapath_winuser.tmh"
-#endif
-
 #ifdef QUIC_FUZZER
 
 int
@@ -1566,7 +1562,7 @@ QuicDataPathBindingHandleUnreachableError(
 
     QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
-#ifdef QUIC_LOGS_WPP // TODO - Change to ETW event
+#ifdef 0 // TODO - Change to ETW event
     if (RemoteAddr->si_family == AF_INET) {
         QuicTraceLogVerbose("[sock][%p] Received unreachable error (0x%x) from %!IPV4ADDR!:%d",
             SocketContext,
@@ -1721,7 +1717,7 @@ QuicDataPathRecvComplete(
 
         QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
-#ifdef QUIC_LOGS_WPP // TODO - Change to ETW event
+#ifdef 0 // TODO - Change to ETW event
         if (RemoteAddr->si_family == AF_INET) {
             QuicTraceLogVerbose("[sock][%p] Received larger than expected datagram from %!IPV4ADDR!:%d",
                 SocketContext,

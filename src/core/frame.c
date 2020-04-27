@@ -11,10 +11,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "frame.tmh"
-#endif
-
 _Post_equal_to_(Buffer + sizeof(uint8_t))
 uint8_t*
 QuicUint8Encode(

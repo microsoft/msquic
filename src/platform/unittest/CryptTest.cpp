@@ -11,10 +11,6 @@
 
 #include "msquichelper.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "crypttest.tmh"
-#endif
-
 #ifndef QUIC_TLS_STUB
 
 void

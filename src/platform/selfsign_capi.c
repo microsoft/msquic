@@ -13,10 +13,6 @@ Abstract:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "selfsign_capi.tmh"
-#endif
-
 #include <wincrypt.h>
 #include <msquic.h>
 

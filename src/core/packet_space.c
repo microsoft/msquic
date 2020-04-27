@@ -12,10 +12,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "packet_space.tmh"
-#endif
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicPacketSpaceInitialize(

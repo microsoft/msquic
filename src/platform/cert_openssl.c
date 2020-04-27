@@ -13,10 +13,6 @@ Abstract:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "cert_openssl.tmh"
-#endif
-
 #include <mitlsffi.h>
 #include <mipki.h>
 

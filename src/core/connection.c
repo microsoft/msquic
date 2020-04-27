@@ -33,10 +33,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "connection.tmh"
-#endif
-
 typedef struct QUIC_RECEIVE_PROCESSING_STATE {
     BOOLEAN ResetIdleTimeout;
     BOOLEAN UpdatePartitionId;

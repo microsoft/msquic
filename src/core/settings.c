@@ -11,10 +11,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "settings.tmh"
-#endif
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsSetDefault(

@@ -11,10 +11,6 @@ Abstract:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "tls_stub.tmh"
-#endif
-
 uint16_t QuicTlsTPHeaderSize = 0;
 
 #define TLS1_PROTOCOL_VERSION 0x0301

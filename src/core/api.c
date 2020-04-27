@@ -11,10 +11,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "api.tmh"
-#endif
-
 #define IS_SESSION_HANDLE(Handle) \
 ( \
     (Handle) != NULL && (Handle)->Type == QUIC_HANDLE_TYPE_SESSION \

@@ -11,10 +11,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "packet.tmh"
-#endif
-
 //
 // The list of supported QUIC version numbers, in network byte order.
 // The list is in priority order (highest to lowest).

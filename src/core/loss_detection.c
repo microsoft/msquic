@@ -45,10 +45,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "loss_detection.tmh"
-#endif
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossDetectionRetransmitFrames(

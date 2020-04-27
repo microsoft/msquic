@@ -13,10 +13,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "binding.tmh"
-#endif
-
 //
 // Make sure we will always have enough room to fit our Version Negotiation packet,
 // which includes both the global, constant list of supported versions and the

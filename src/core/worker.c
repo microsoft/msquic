@@ -21,10 +21,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "worker.tmh"
-#endif
-
 //
 // Thread callback for processing the work queued for the worker.
 //

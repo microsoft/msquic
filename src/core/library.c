@@ -11,10 +11,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "library.tmh"
-#endif
-
 QUIC_LIBRARY MsQuicLib = { 0 };
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

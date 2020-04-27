@@ -11,10 +11,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "lookup.tmh"
-#endif
-
 typedef struct QUIC_CACHEALIGN QUIC_PARTITIONED_HASHTABLE {
 
     QUIC_DISPATCH_RW_LOCK RwLock;

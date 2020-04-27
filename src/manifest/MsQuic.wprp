@@ -47,11 +47,6 @@
 
     <EventProvider Id="EP_TcpIpEtw" Name="Microsoft-Windows-TCPIP" NonPagedMemory="true" />
     <EventProvider Id="EP_WinSockEtw" Name="Microsoft-Windows-Winsock-AFD" NonPagedMemory="true" />
-    <EventProvider Id="EP_MsQuicWpp" Name="620FD025-BE51-42EF-A5C0-50F13F183AD9" Level="5">
-      <Keywords>
-        <Keyword Value="0xFF"/>
-      </Keywords>
-    </EventProvider>
     <EventProvider Id="EP_SChannelWpp" Name="37D2C3CD-C5D4-4587-8531-4696C44244C8" Level="5">
       <Keywords>
         <Keyword Value="0x7FFFFF"/>
@@ -145,17 +140,7 @@
             <EventProviderId Value="EP_TaefEtw" />
           </EventProviders>
         </EventCollectorId>
-        <EventCollectorId Value="EC_HighVolume">
-          <EventProviders>
-            <EventProviderId Value="EP_MsQuicWpp" />
-          </EventProviders>
-        </EventCollectorId>
       </Collectors>
-      <TraceMergeProperties>
-        <TraceMergeProperty Id="TMP_Generic" Name="BaseTraceMergeProperties">
-          <DeletePreMergedTraceFiles Value="true"/>
-        </TraceMergeProperty>
-      </TraceMergeProperties>
     </Profile>
     <Profile Id="Full.Light.Memory" Base="Full.Light.File" Name="Full" Description="All MsQuic and TAEF Events" LoggingMode="Memory" DetailLevel="Light"/>
 
@@ -169,7 +154,6 @@
         </EventCollectorId>
         <EventCollectorId Value="EC_HighVolume">
           <EventProviders>
-            <EventProviderId Value="EP_MsQuicWpp" />
             <EventProviderId Value="EP_TcpIpEtw" />
             <EventProviderId Value="EP_WinSockEtw" />
             <EventProviderId Value="EP_SChannelWpp" />
@@ -177,11 +161,6 @@
           </EventProviders>
         </EventCollectorId>
       </Collectors>
-      <TraceMergeProperties>
-        <TraceMergeProperty Id="TMP_Generic" Name="BaseTraceMergeProperties">
-          <DeletePreMergedTraceFiles Value="true"/>
-        </TraceMergeProperty>
-      </TraceMergeProperties>
     </Profile>
     <Profile Id="Full.Verbose.Memory" Base="Full.Verbose.File" Name="Full" Description="Everything" LoggingMode="Memory" DetailLevel="Verbose"/>
 

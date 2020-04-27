@@ -11,10 +11,6 @@ Abstract:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "tls_mitls.tmh"
-#endif
-
 #define IS_WINDOWS 1
 #pragma warning(disable:4996) // Deprecated APIs
 #include <EverCrypt.h>

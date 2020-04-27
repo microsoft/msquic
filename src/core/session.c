@@ -13,10 +13,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "session.tmh"
-#endif
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicSessionAlloc(

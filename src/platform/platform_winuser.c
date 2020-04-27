@@ -15,11 +15,6 @@ Environment:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "platform_winuser.tmh"
-#include <fastwppimpl.h>
-#endif
-
 uint64_t QuicPlatformPerfFreq;
 uint64_t QuicTotalMemory;
 QUIC_PLATFORM QuicPlatform = { NULL };
@@ -30,10 +25,6 @@ QuicPlatformSystemLoad(
     void
     )
 {
-#ifdef QUIC_LOGS_WPP
-    FAST_WPP_INIT_TRACING(L"quic");
-#endif
-
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventRegisterMicrosoft_Quic();
 #endif
@@ -51,11 +42,9 @@ QuicPlatformSystemUnload(
     )
 {
     QuicTraceLogInfo("[ dll] Unloaded");
+
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventUnregisterMicrosoft_Quic();
-#endif
-#ifdef QUIC_LOGS_WPP
-    FAST_WPP_CLEANUP();
 #endif
 }
 
@@ -231,21 +220,5 @@ QuicEtwCallback(
     default:
         break;
     }
-}
-#endif
-
-#ifdef QUIC_LOGS_WPP
-void
-QuicForceWppInitCodeGeneration(
-    void
-    )
-{
-    //
-    // This function exists to to make WPP generate the definitions for the
-    // initialization and cleanup code, which happens only if there is direct
-    // textual reference to the WPP_INIT_TRACING macro. It isn't called by
-    // design.
-    //
-    WPP_INIT_TRACING(L"quic");
 }
 #endif

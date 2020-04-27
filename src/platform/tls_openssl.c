@@ -17,10 +17,6 @@ Abstract:
 #include "openssl/x509.h"
 #include "openssl/pem.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "tls_openssl.tmh"
-#endif
-
 uint16_t QuicTlsTPHeaderSize = 0;
 
 //

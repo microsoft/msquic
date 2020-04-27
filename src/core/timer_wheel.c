@@ -57,10 +57,6 @@ Abstract:
 //
 #define QUIC_TIMER_WHEEL_MAX_LOAD_FACTOR    32
 
-#ifdef QUIC_LOGS_WPP
-#include "timer_wheel.tmh"
-#endif
-
 //
 // Helper to get the slot index for a given time.
 //

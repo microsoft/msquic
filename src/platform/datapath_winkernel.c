@@ -11,10 +11,6 @@ Abstract:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "datapath_winkernel.tmh"
-#endif
-
 //
 // Not yet available in the WDK. When available this code can be removed.
 //
@@ -1850,7 +1846,7 @@ QuicDataPathSocketReceive(
             &RemoteAddr);
 
         if (IsUnreachableError) {
-#ifdef QUIC_LOGS_WPP // TODO - Change to ETW event
+#ifdef 0 // TODO - Change to ETW event
             if (RemoteAddr.si_family == AF_INET) {
                 QuicTraceLogVerbose("[sock][%p] Unreachable error from %!IPV4ADDR!:%hu",
                     SocketContext,

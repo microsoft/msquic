@@ -11,10 +11,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "listener.tmh"
-#endif
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API

@@ -11,10 +11,6 @@ Abstract:
 
 #include "main.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "varinttest.tmh"
-#endif
-
 uint64_t Encode(uint64_t Value)
 {
     uint64_t Encoded = 0;

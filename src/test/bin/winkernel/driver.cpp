@@ -13,10 +13,6 @@ Abstract:
 
 #include "quic_trace.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "driver.tmh"
-#endif
-
 #define QUIC_TEST_TAG 'tsTQ' // QTst
 
 EVT_WDF_DRIVER_UNLOAD QuicTestDriverUnload;
@@ -165,8 +161,8 @@ QuicTestDriverUnload(
 
 Routine Description:
 
-    QuicTestDriverUnload will clean up the WPP resources that were
-    allocated for this driver.
+    QuicTestDriverUnload will clean up any resources that were allocated for
+    this driver.
 
 Arguments:
 

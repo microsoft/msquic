@@ -18,10 +18,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "sent_packet_metadata.tmh"
-#endif
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSentPacketPoolInitialize(

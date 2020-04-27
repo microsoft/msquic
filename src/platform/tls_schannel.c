@@ -16,10 +16,6 @@ Environment:
 #include "platform_internal.h"
 #include <security.h>
 
-#ifdef QUIC_LOGS_WPP
-#include "tls_schannel.tmh"
-#endif
-
 #ifdef _KERNEL_MODE
 
 #include <winerror.h>

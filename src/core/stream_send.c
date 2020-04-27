@@ -35,10 +35,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "stream_send.tmh"
-#endif
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamCompleteSendRequest(

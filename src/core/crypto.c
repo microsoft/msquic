@@ -20,10 +20,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "crypto.tmh"
-#endif
-
 QUIC_TLS_PROCESS_COMPLETE_CALLBACK QuicTlsProcessDataCompleteCallback;
 QUIC_TLS_RECEIVE_TP_CALLBACK QuicConnReceiveTP;
 

@@ -22,10 +22,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "send.tmh"
-#endif
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendInitialize(

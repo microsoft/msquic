@@ -14,10 +14,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "packet_builder.tmh"
-#endif
-
 #ifdef QUIC_FUZZER
 
 __declspec(noinline)

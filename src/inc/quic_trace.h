@@ -24,7 +24,6 @@ Abstract:
     QUIC_EVENTS_LTTNG           Write to Linux LTTng framework
 
     QUIC_LOGS_STUB              No-op all Logs
-    QUIC_LOGS_WPP               Write to Windows WPP framework
     QUIC_LOGS_MANIFEST_ETW      Write to Windows ETW framework
     QUIC_LOGS_LTTNG             Write to Linux LTTng framework
 
@@ -39,7 +38,7 @@ Abstract:
 #error "Must define one QUIC_EVENTS_*"
 #endif
 
-#if !defined(QUIC_LOGS_STUB) && !defined(QUIC_LOGS_WPP) && !defined(QUIC_LOGS_MANIFEST_ETW) && !defined(QUIC_LOGS_LTTNG)
+#if !defined(QUIC_LOGS_STUB) && !defined(QUIC_LOGS_MANIFEST_ETW) && !defined(QUIC_LOGS_LTTNG)
 #error "Must define one QUIC_LOGS_*"
 #endif
 
@@ -213,109 +212,6 @@ QuicTraceStubVarArgs(
 #define QuicTraceLogStreamVerbose(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
 
 #endif // QUIC_LOGS_STUB
-
-#ifdef QUIC_LOGS_WPP
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#pragma warning(disable:4204)  // nonstandard extension used: non-constant aggregate initializer
-
-#include <fastwpp.h>
-
-//
-// WPP Tracing
-// {620FD025-BE51-42EF-A5C0-50F13F183AD9}
-//
-
-#define WPP_CONTROL_GUIDS \
-    WPP_DEFINE_CONTROL_GUID(quicGUID,(620FD025,BE51,42EF,A5C0,50F13F183AD9),  \
-        WPP_DEFINE_BIT(FLAG_DEFAULT)        \
-        WPP_DEFINE_BIT(FLAG_REGISTRATION)   \
-        WPP_DEFINE_BIT(FLAG_SESSION)        \
-        WPP_DEFINE_BIT(FLAG_LISTENER)       \
-        WPP_DEFINE_BIT(FLAG_WORKER)         \
-        WPP_DEFINE_BIT(FLAG_BINDING)        \
-        WPP_DEFINE_BIT(FLAG_CONNECTION)     \
-        WPP_DEFINE_BIT(FLAG_STREAM)         \
-        WPP_DEFINE_BIT(FLAG_UDP)            \
-        WPP_DEFINE_BIT(FLAG_PACKET)         \
-        WPP_DEFINE_BIT(FLAG_TLS)            \
-        WPP_DEFINE_BIT(FLAG_PLATFORM)       \
-        )
-
-#define WPP_LEVEL_FLAGS_NOOP_ENABLED(LEVEL,FLAGS,NOOP)   \
-    WPP_LEVEL_FLAGS_ENABLED(LEVEL,FLAGS)
-#define WPP_LEVEL_FLAGS_NOOP_LOGGER(LEVEL,FLAGS,NOOP)   \
-    WPP_LEVEL_FLAGS_LOGGER(LEVEL,FLAGS)
-
-#define WPP_LEVEL_FLAGS_NOOP_POINTER_ENABLED(LEVEL,FLAGS,NOOP,POINTER)   \
-    WPP_LEVEL_FLAGS_ENABLED(LEVEL,FLAGS)
-#define WPP_LEVEL_FLAGS_NOOP_POINTER_LOGGER(LEVEL,FLAGS,NOOP,POINTER)   \
-    WPP_LEVEL_FLAGS_LOGGER(LEVEL,FLAGS)
-
-#define QuicTraceLogErrorEnabled()   WPP_FLAGS_LEVEL_ENABLED(FLAG_DEFAULT, TRACE_LEVEL_ERROR)
-#define QuicTraceLogWarningEnabled() WPP_FLAGS_LEVEL_ENABLED(FLAG_DEFAULT, TRACE_LEVEL_WARNING)
-#define QuicTraceLogInfoEnabled()    WPP_FLAGS_LEVEL_ENABLED(FLAG_DEFAULT, TRACE_LEVEL_INFORMATION)
-#define QuicTraceLogVerboseEnabled() WPP_FLAGS_LEVEL_ENABLED(FLAG_DEFAULT, TRACE_LEVEL_VERBOSE)
-
-#define QuicTraceLogStreamVerboseEnabled() WPP_FLAGS_LEVEL_ENABLED(FLAG_STREAM, TRACE_LEVEL_VERBOSE)
-
-// begin_wpp config
-
-// FUNC QuicTraceLogError{LEVEL=TRACE_LEVEL_ERROR,FLAGS=FLAG_DEFAULT}(MSG,...);
-// FUNC QuicTraceLogWarning{LEVEL=TRACE_LEVEL_WARNING,FLAGS=FLAG_DEFAULT}(MSG,...);
-// FUNC QuicTraceLogInfo{LEVEL=TRACE_LEVEL_INFORMATION,FLAGS=FLAG_DEFAULT}(MSG,...);
-// FUNC QuicTraceLogVerbose{LEVEL=TRACE_LEVEL_VERBOSE,FLAGS=FLAG_DEFAULT}(MSG,...);
-
-// USEPREFIX(QuicTraceLogConnError,"%!STDPREFIX![conn][%p]%!SPACE!",POINTER);
-// FUNC QuicTraceLogConnError{LEVEL=TRACE_LEVEL_ERROR,FLAGS=FLAG_CONNECTION}(NOOP,POINTER,MSG,...);
-// USEPREFIX(QuicTraceLogConnWarning,"%!STDPREFIX![conn][%p]%!SPACE!",POINTER);
-// FUNC QuicTraceLogConnWarning{LEVEL=TRACE_LEVEL_WARNING,FLAGS=FLAG_CONNECTION}(NOOP,POINTER,MSG,...);
-// USEPREFIX(QuicTraceLogConnInfo,"%!STDPREFIX![conn][%p]%!SPACE!",POINTER);
-// FUNC QuicTraceLogConnInfo{LEVEL=TRACE_LEVEL_INFORMATION,FLAGS=FLAG_CONNECTION}(NOOP,POINTER,MSG,...);
-// USEPREFIX(QuicTraceLogConnVerbose,"%!STDPREFIX![conn][%p]%!SPACE!",POINTER);
-// FUNC QuicTraceLogConnVerbose{LEVEL=TRACE_LEVEL_VERBOSE,FLAGS=FLAG_CONNECTION}(NOOP,POINTER,MSG,...);
-
-// USEPREFIX(QuicTraceLogStreamError,"%!STDPREFIX![strm][%p]%!SPACE!",POINTER);
-// FUNC QuicTraceLogStreamError{LEVEL=TRACE_LEVEL_ERROR,FLAGS=FLAG_STREAM}(NOOP,POINTER,MSG,...);
-// USEPREFIX(QuicTraceLogStreamWarning,"%!STDPREFIX![strm][%p]%!SPACE!",POINTER);
-// FUNC QuicTraceLogStreamWarning{LEVEL=TRACE_LEVEL_WARNING,FLAGS=FLAG_STREAM}(NOOP,POINTER,MSG,...);
-// USEPREFIX(QuicTraceLogStreamInfo,"%!STDPREFIX![strm][%p]%!SPACE!",POINTER);
-// FUNC QuicTraceLogStreamInfo{LEVEL=TRACE_LEVEL_INFORMATION,FLAGS=FLAG_STREAM}(NOOP,POINTER,MSG,...);
-// USEPREFIX(QuicTraceLogStreamVerbose,"%!STDPREFIX![strm][%p]%!SPACE!",POINTER);
-// FUNC QuicTraceLogStreamVerbose{LEVEL=TRACE_LEVEL_VERBOSE,FLAGS=FLAG_STREAM}(NOOP,POINTER,MSG,...);
-
-// end_wpp
-
-typedef struct _ByteArray {
-    USHORT usLength;
-    const void * pvBuffer;
-} ByteArray;
-
-__inline ByteArray
-log_hexbuf(const void* Buffer, UINT32 Length) {
-    ByteArray Bytes = { (USHORT)Length, Buffer };
-    return Bytes;
-}
-
-#define WPP_LOGHEXBUF(x) \
-    WPP_LOGPAIR(2, &((x).usLength)) \
-    WPP_LOGPAIR((x).usLength, (x).pvBuffer)
-
-// begin_wpp config
-// DEFINE_CPLX_TYPE(IPV4ADDR, WPP_LOGIPV4, const IN_ADDR *, ItemIPAddr, "s", _IPV4_, 0);
-// DEFINE_CPLX_TYPE(IPV6ADDR, WPP_LOGIPV6, const IN6_ADDR *, ItemIPV6Addr, "s", _IPV6_, 0);
-// DEFINE_CPLX_TYPE(HEXBUF, WPP_LOGHEXBUF, ByteArray, ItemHEXDump,"s", _HEX_, 0, 2);
-// WPP_FLAGS(-DLOG_HEXBUF(buffer,length)=log_hexbuf(buffer,length));
-// end_wpp
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif // QUIC_LOGS_WPP
 
 #ifdef QUIC_LOGS_MANIFEST_ETW
 

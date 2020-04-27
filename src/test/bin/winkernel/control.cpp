@@ -14,10 +14,6 @@ Abstract:
 
 #include "quic_trace.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "control.tmh"
-#endif
-
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 QUIC_SEC_CONFIG* SecurityConfig;

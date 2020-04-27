@@ -19,10 +19,6 @@ Abstract:
 #include "openssl/x509.h"
 #include "openssl/pem.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "selfsign_openssl.tmh"
-#endif
-
 //
 // Generates a self signed cert using low level OpenSSL APIs.
 //

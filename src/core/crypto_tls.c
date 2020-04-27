@@ -14,10 +14,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "crypto_tls.tmh"
-#endif
-
 #define TLS1_PROTOCOL_VERSION 0x0301
 #define TLS_MESSAGE_HEADER_LENGTH 4
 #define TLS_RANDOM_LENGTH 32

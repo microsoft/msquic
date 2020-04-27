@@ -10,11 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
 #include "quic_trace.h"
-#ifdef QUIC_LOGS_WPP
-#include "quictest.tmh"
-#endif
 
 //#define QUIC_TEST_DISABLE_DNS 1
 

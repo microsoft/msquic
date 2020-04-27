@@ -13,10 +13,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "stream_set.tmh"
-#endif
-
 #if DEBUG
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
