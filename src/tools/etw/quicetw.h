@@ -323,7 +323,9 @@ typedef enum QUIC_EVENT_ID_CONNECTION {
     EventId_QuicConnLogWarning,
     EventId_QuicConnLogInfo,
     EventId_QuicConnLogVerbose,
-    EventId_QuicQueueSendFlush,
+    EventId_QuicConnQueueSendFlush,
+    EventId_QuicConnOutFlowStreamStats,
+    EventId_QuicConnPacketStats,
 
     EventId_QuicConnCount
 } QUIC_EVENT_ID_CONNECTION;
@@ -382,11 +384,9 @@ typedef struct QUIC_EVENT_DATA_CONNECTION {
             UINT32 CongestionWindow;
             UINT32 SlowStartThreshold;
             UINT64 ConnectionFlowControl;
-            UINT64 StreamFlowControl;
             UINT64 IdealBytes;
             UINT64 PostedBytes;
             UINT32 SmoothedRtt;
-            UINT64 StreamSendWindow;
         } OutFlowStats;
         struct {
             UINT8 ReasonFlags;
@@ -441,21 +441,12 @@ typedef struct QUIC_EVENT_DATA_CONNECTION {
             UINT8 IsLocallyInitiated;
         } KeyPhaseChange;
         struct {
-            UINT64 LifeTimeUs;
-            UINT64 SendTotalPackets;
-            UINT64 SendSuspectedLostPackets;
-            UINT64 SendSpuriousLostPackets;
-            UINT64 RecvTotalPackets;
-            UINT64 RecvReorderedPackets;
-            UINT64 RecvDroppedPackets;
-            UINT64 RecvDuplicatePackets;
-            UINT64 RecvDecryptionFailures;
+            UINT32 SmoothedRtt;
             UINT32 CongestionCount;
             UINT32 PersistentCongestionCount;
             UINT64 SendTotalBytes;
             UINT64 RecvTotalBytes;
-            UINT32 SmoothedRtt;
-        } Statistics;
+        } Stats;
         struct {
             UINT8 TimedOut;
         } ShutdownComplete;
@@ -482,6 +473,20 @@ typedef struct QUIC_EVENT_DATA_CONNECTION {
         struct {
             UINT32 Reason;
         } QueueSendFlush;
+        struct {
+            UINT64 StreamFlowControl;
+            UINT64 StreamSendWindow;
+        } OutFlowStreamStats;
+        struct {
+            UINT64 SendTotalPackets;
+            UINT64 SendSuspectedLostPackets;
+            UINT64 SendSpuriousLostPackets;
+            UINT64 RecvTotalPackets;
+            UINT64 RecvReorderedPackets;
+            UINT64 RecvDroppedPackets;
+            UINT64 RecvDuplicatePackets;
+            UINT64 RecvDecryptionFailures;
+        } PacketStats;
     };
 } QUIC_EVENT_DATA_CONNECTION;
 #pragma pack(pop)
