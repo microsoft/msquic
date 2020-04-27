@@ -1,2 +1,2 @@
-# Use Windows line endings for all files.
-* text eol=crlf
+# Standardize line endings for all text files.
+* text eol=auto
