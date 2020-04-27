@@ -26754,7 +26754,7 @@
         "MANIFESTED_ETW": {
           "EventID": "877",
           "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
           "Keywords": "ut:Connection ut:LowVolume"
         }
@@ -26789,7 +26789,7 @@
         "MANIFESTED_ETW": {
           "EventID": "878",
           "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
           "Keywords": "ut:Connection ut:LowVolume"
         }
@@ -26824,7 +26824,7 @@
         "MANIFESTED_ETW": {
           "EventID": "879",
           "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
           "Keywords": "ut:Connection ut:LowVolume"
         }
@@ -26859,7 +26859,7 @@
         "MANIFESTED_ETW": {
           "EventID": "880",
           "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
           "Keywords": "ut:Connection ut:LowVolume"
         }
@@ -26894,7 +26894,7 @@
         "MANIFESTED_ETW": {
           "EventID": "881",
           "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
           "Keywords": "ut:Connection ut:LowVolume"
         }
@@ -26919,7 +26919,7 @@
         "MANIFESTED_ETW": {
           "EventID": "882",
           "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
           "Keywords": "ut:Connection ut:LowVolume"
         }
@@ -26944,7 +26944,7 @@
         "MANIFESTED_ETW": {
           "EventID": "883",
           "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
           "Keywords": "ut:Connection ut:LowVolume"
         }
@@ -26969,7 +26969,7 @@
         "MANIFESTED_ETW": {
           "EventID": "884",
           "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
           "Keywords": "ut:Connection ut:LowVolume"
         }
@@ -26994,7 +26994,7 @@
         "MANIFESTED_ETW": {
           "EventID": "885",
           "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
           "Keywords": "ut:Connection ut:LowVolume"
         }
@@ -27047,7 +27047,7 @@
         "MANIFESTED_ETW": {
           "EventID": "886",
           "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
           "Keywords": "ut:Connection ut:LowVolume"
         }
@@ -27091,7 +27091,7 @@
         "MANIFESTED_ETW": {
           "EventID": "887",
           "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
           "Keywords": "ut:Connection ut:LowVolume"
         }
@@ -27144,7 +27144,7 @@
         "MANIFESTED_ETW": {
           "EventID": "888",
           "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
           "Level": "win:Informational",
           "Keywords": "ut:Connection ut:LowVolume"
         }
