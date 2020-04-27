@@ -1006,26 +1006,3 @@ QuicLogLevelToPriority(
 
     return LOG_DEBUG;
 }
-
-void
-QuicSysLogWrite(
-    _In_ QUIC_TRACE_LEVEL Level,
-    _In_ const char* Fmt,
-    ...
-    )
-{
-    va_list Args = {0};
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
-    va_start(Args, Fmt);
-    PlatDispatch->QuicTraceLog(Level, Fmt, Args);
-    va_end(Args);
-#else
-    char Buffer[QUIC_MAX_LOG_MSG_LEN] = {0};
-    va_start(Args, Fmt);
-    (void)vsnprintf(Buffer, sizeof(Buffer), Fmt, Args);
-    va_end(Args);
-    syslog(
-        LOG_MAKEPRI(LOG_DAEMON, QuicLogLevelToPriority(Level)),
-        "[%u][quic]%s", (uint32_t)syscall(__NR_gettid), Buffer);
-#endif
-}
