@@ -17,16 +17,18 @@ Abstract:
 void QuicTestValidateApi()
 {
     TEST_QUIC_STATUS(
-        QUIC_STATUS_SUCCESS,
+        QUIC_STATUS_INVALID_PARAMETER,
         MsQuicOpen(nullptr));
 
     MsQuicClose(nullptr);
+
+    TEST_FAILURE("Forcing test failure to test CLOG"); // TODO - Remove before merging feature/clog to master
 }
 
 void QuicTestValidateRegistration()
 {
     TEST_QUIC_STATUS(
-        QUIC_STATUS_SUCCESS,
+        QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->RegistrationOpen(nullptr, nullptr));
 
     MsQuic->RegistrationClose(nullptr);
