@@ -203,14 +203,13 @@ void
 QuicPlatformLogAssert(
     _In_z_ const char* File,
     _In_ int Line,
-    _In_z_ const char* Func,
     _In_z_ const char* Expr
     );
 
 #define QUIC_STATIC_ASSERT(X,Y) static_assert(X, Y);
 #define QUIC_ANALYSIS_ASSERT(X)
 #define QUIC_ANALYSIS_ASSUME(X)
-#define QUIC_FRE_ASSERT(exp) ((exp) ? (void)0 : (QuicPlatformLogAssert(__FILE__, __LINE__, __func__, #exp), quic_bugcheck()));
+#define QUIC_FRE_ASSERT(exp) ((exp) ? (void)0 : (QuicPlatformLogAssert(__FILE__, __LINE__, #exp), quic_bugcheck()));
 
 #ifdef DEBUG
 #define QUIC_DBG_ASSERT(exp) QUIC_FRE_ASSERT(exp)

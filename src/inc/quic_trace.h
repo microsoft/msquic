@@ -192,24 +192,22 @@ QuicTraceStubVarArgs(
     UNREFERENCED_PARAMETER(Fmt);
 }
 
-#define IGNORE_FIRST_PARAM(A, ...) QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogError(X,...)            QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogWarning(X,...)          QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogInfo(X,...)             QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogVerbose(X,...)          QuicTraceStubVarArgs(__VA_ARGS__)
 
-#define QuicTraceLogError(...) QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogWarning(...) QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogInfo(...) QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogVerbose(...) QuicTraceStubVarArgs(__VA_ARGS__)
-
-#define QuicTraceLogConnError(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
-#define QuicTraceLogConnWarning(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
-#define QuicTraceLogConnInfo(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
-#define QuicTraceLogConnVerbose(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
+#define QuicTraceLogConnError(X,...)        QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogConnWarning(X,...)      QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogConnInfo(X,...)         QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogConnVerbose(X,...)      QuicTraceStubVarArgs(__VA_ARGS__)
 
 #define QuicTraceLogStreamVerboseEnabled() FALSE
 
-#define QuicTraceLogStreamError(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
-#define QuicTraceLogStreamWarning(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
-#define QuicTraceLogStreamInfo(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
-#define QuicTraceLogStreamVerbose(...) IGNORE_FIRST_PARAM(__VA_ARGS__)
+#define QuicTraceLogStreamError(X,...)      QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogStreamWarning(X,...)    QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogStreamInfo(X,...)       QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogStreamVerbose(X,...)    QuicTraceStubVarArgs(__VA_ARGS__)
 
 #endif // QUIC_LOGS_STUB
 
@@ -248,15 +246,15 @@ QuicTraceStubVarArgs(
         EventWriteQuic##Type##Log##EventName##_AssumeEnabled(Ptr, EtwBuffer); \
     }
 
-#define QuicTraceLogError(Fmt, ...)          LogEtw(Error, Fmt, ##__VA_ARGS__)
-#define QuicTraceLogWarning(Fmt, ...)        LogEtw(Warning, Fmt, ##__VA_ARGS__)
-#define QuicTraceLogInfo(Fmt, ...)           LogEtw(Info, Fmt, ##__VA_ARGS__)
-#define QuicTraceLogVerbose(Fmt, ...)        LogEtw(Verbose, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogError(Name, Fmt, ...)               LogEtw(Error, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogWarning(Name, Fmt, ...)             LogEtw(Warning, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogInfo(Name, Fmt, ...)                LogEtw(Info, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogVerbose(Name, Fmt, ...)             LogEtw(Verbose, Fmt, ##__VA_ARGS__)
 
-#define QuicTraceLogConnError(Name, Ptr, Fmt, ...)    LogEtwType(Conn, Error, Ptr, Fmt, ##__VA_ARGS__)
-#define QuicTraceLogConnWarning(Name, Ptr, Fmt, ...)  LogEtwType(Conn, Warning, Ptr, Fmt, ##__VA_ARGS__)
-#define QuicTraceLogConnInfo(Name, Ptr, Fmt, ...)     LogEtwType(Conn, Info, Ptr, Fmt, ##__VA_ARGS__)
-#define QuicTraceLogConnVerbose(Name, Ptr, Fmt, ...)  LogEtwType(Conn, Verbose, Ptr, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogConnError(Name, Ptr, Fmt, ...)      LogEtwType(Conn, Error, Ptr, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogConnWarning(Name, Ptr, Fmt, ...)    LogEtwType(Conn, Warning, Ptr, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogConnInfo(Name, Ptr, Fmt, ...)       LogEtwType(Conn, Info, Ptr, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogConnVerbose(Name, Ptr, Fmt, ...)    LogEtwType(Conn, Verbose, Ptr, Fmt, ##__VA_ARGS__)
 
 #define QuicTraceLogStreamVerboseEnabled() EventEnabledQuicStreamLogVerbose()
 

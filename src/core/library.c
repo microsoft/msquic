@@ -91,7 +91,10 @@ MsQuicLibraryReadSettings(
         QuicSettingsLoad(&MsQuicLib.Settings, MsQuicLib.Storage);
     }
 
-    QuicTraceLogInfo("[ lib] Settings %p Updated", &MsQuicLib.Settings);
+    QuicTraceLogInfo(
+        LibrarySettingsUpdated,
+        "[ lib] Settings %p Updated",
+        &MsQuicLib.Settings);
     QuicSettingsDump(&MsQuicLib.Settings);
 
     if (!MsQuicLib.InUse) {
@@ -147,7 +150,10 @@ MsQuicLibraryInitialize(
             (void*)TRUE, // Non-null indicates registrations should be updated
             &MsQuicLib.Storage);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogWarning("[ lib] Failed to open global settings, 0x%x", Status);
+        QuicTraceLogWarning(
+            LibraryStorageOpenFailed,
+            "[ lib] Failed to open global settings, 0x%x",
+            Status);
         Status = QUIC_STATUS_SUCCESS; // Non-fatal, as the process may not have access
     }
 
@@ -204,9 +210,13 @@ MsQuicLibraryInitialize(
     MsQuicLib.IsVerifying = QuicVerifierEnabled(Flags);
     if (MsQuicLib.IsVerifying) {
 #ifdef QuicVerifierEnabledByAddr
-        QuicTraceLogInfo("[ lib] Verifing enabled, per-registration!");
+        QuicTraceLogInfo(
+            LibraryVerifierEnabledPerRegistration,
+            "[ lib] Verifing enabled, per-registration!");
 #else
-        QuicTraceLogInfo("[ lib] Verifing enabled for all!");
+        QuicTraceLogInfo(
+            LibraryVerifierEnabled,
+            "[ lib] Verifing enabled for all!");
 #endif
     }
 #endif
@@ -457,7 +467,10 @@ QuicLibApplyLoadBalancingSetting(
     QUIC_FRE_ASSERT(MsQuicLib.CidTotalLength >= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
     QUIC_FRE_ASSERT(MsQuicLib.CidTotalLength <= MSQUIC_CID_MAX_LENGTH);
 
-    QuicTraceLogInfo("[ lib] CID Length = %hhu", MsQuicLib.CidTotalLength);
+    QuicTraceLogInfo(
+        LibraryCidLengthSet,
+        "[ lib] CID Length = %hhu",
+        MsQuicLib.CidTotalLength);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -481,7 +494,10 @@ QuicLibrarySetGlobalParam(
 
         MsQuicLib.Settings.RetryMemoryLimit = *(uint16_t*)Buffer;
         MsQuicLib.Settings.AppSet.RetryMemoryLimit = TRUE;
-        QuicTraceLogInfo("[ lib] Updated retry memory limit = %hu", MsQuicLib.Settings.RetryMemoryLimit);
+        QuicTraceLogInfo(
+            LibraryRetryMemoryLimitSet,
+            "[ lib] Updated retry memory limit = %hu",
+            MsQuicLib.Settings.RetryMemoryLimit);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -495,13 +511,18 @@ QuicLibrarySetGlobalParam(
 
         if (MsQuicLib.InUse &&
             MsQuicLib.EncryptionDisabled != (*(uint8_t*)Buffer == FALSE)) {
-            QuicTraceLogError("[ lib] Tried to change encryption state after library in use!");
+            QuicTraceLogError(
+                LibraryEncryptionSetAfterInUse,
+                "[ lib] Tried to change encryption state after library in use!");
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
 
         MsQuicLib.EncryptionDisabled = *(uint8_t*)Buffer == FALSE;
-        QuicTraceLogWarning("[ lib] Updated encryption disabled = %hu", MsQuicLib.EncryptionDisabled);
+        QuicTraceLogWarning(
+            LibraryEncryptionSet,
+            "[ lib] Updated encryption disabled = %hu",
+            MsQuicLib.EncryptionDisabled);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -520,14 +541,19 @@ QuicLibrarySetGlobalParam(
 
         if (MsQuicLib.InUse &&
             MsQuicLib.Settings.LoadBalancingMode != *(uint16_t*)Buffer) {
-            QuicTraceLogError("[ lib] Tried to change load balancing mode after library in use!");
+            QuicTraceLogError(
+                LibraryLoadBalancingModeSetAfterInUse,
+                "[ lib] Tried to change load balancing mode after library in use!");
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
 
         MsQuicLib.Settings.LoadBalancingMode = *(uint16_t*)Buffer;
         MsQuicLib.Settings.AppSet.LoadBalancingMode = TRUE;
-        QuicTraceLogInfo("[ lib] Updated load balancing mode = %hu", MsQuicLib.Settings.LoadBalancingMode);
+        QuicTraceLogInfo(
+            LibraryLoadBalancingModeSet,
+            "[ lib] Updated load balancing mode = %hu",
+            MsQuicLib.Settings.LoadBalancingMode);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -920,12 +946,16 @@ MsQuicOpen(
     QUIC_STATUS Status;
 
     if (QuicApi == NULL) {
-        QuicTraceLogVerbose("[ api] MsQuicOpen, NULL");
+        QuicTraceLogVerbose(
+            LibraryMsQuicOpenNull,
+            "[ api] MsQuicOpen, NULL");
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
-    QuicTraceLogVerbose("[ api] MsQuicOpen");
+    QuicTraceLogVerbose(
+        LibraryMsQuicOpenEntry,
+        "[ api] MsQuicOpen");
 
     Status = MsQuicAddRef();
     if (QUIC_FAILED(Status)) {
@@ -983,7 +1013,10 @@ Error:
 
 Exit:
 
-    QuicTraceLogVerbose("[ api] MsQuicOpen, status=0x%x", Status);
+    QuicTraceLogVerbose(
+        LibraryMsQuicOpenExit,
+        "[ api] MsQuicOpen, status=0x%x",
+        Status);
 
     return Status;
 }
@@ -996,7 +1029,9 @@ MsQuicClose(
     )
 {
     if (QuicApi != NULL) {
-        QuicTraceLogVerbose("[ api] MsQuicClose");
+        QuicTraceLogVerbose(
+            LibraryMsQuicClose,
+            "[ api] MsQuicClose");
         QUIC_FREE(QuicApi);
         MsQuicRelease();
     }
@@ -1173,7 +1208,9 @@ NewBinding:
         // No other thread beat us, insert this binding into the list.
         //
         if (QuicListIsEmpty(&MsQuicLib.Bindings)) {
-            QuicTraceLogInfo("[ lib] Now in use.");
+            QuicTraceLogInfo(
+                LibraryInUse,
+                "[ lib] Now in use.");
             MsQuicLib.InUse = TRUE;
         }
         QuicListInsertTail(&MsQuicLib.Bindings, &(*NewBinding)->Link);
@@ -1232,7 +1269,9 @@ QuicLibraryReleaseBinding(
         Uninitialize = TRUE;
 
         if (QuicListIsEmpty(&MsQuicLib.Bindings)) {
-            QuicTraceLogInfo("[ lib] No longer in use.");
+            QuicTraceLogInfo(
+                LibraryNotInUse,
+                "[ lib] No longer in use.");
             MsQuicLib.InUse = FALSE;
         }
     }

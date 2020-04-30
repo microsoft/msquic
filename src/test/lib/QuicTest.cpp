@@ -35,7 +35,9 @@ void QuicTestInitialize()
             QUIC_PARAM_GLOBAL_ENCRYPTION,
             sizeof(Disabled),
             &Disabled))) {
-        QuicTraceLogError("[test] Disabling encryption failed");
+        QuicTraceLogError(
+            TestDisableEncryptionFailure,
+            "[test] Disabling encryption failed");
     }
 #endif
 }
@@ -48,10 +50,16 @@ struct TestScopeLogger
 {
     const char* Name;
     TestScopeLogger(const char* name) : Name(name) {
-        QuicTraceLogInfo("[test]---> %s", Name);
+        QuicTraceLogInfo(
+            TestScopeEntry,
+            "[test]---> %s",
+            Name);
     }
     ~TestScopeLogger() {
-        QuicTraceLogInfo("[test]<--- %s", Name);
+        QuicTraceLogInfo(
+            TestScopeExit,
+            "[test]<--- %s",
+            Name);
     }
 };
 

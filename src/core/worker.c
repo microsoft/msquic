@@ -418,7 +418,10 @@ QuicWorkerProcessConnection(
         QUIC_CONNECTION_EVENT Event;
         Event.Type = QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED;
         Event.IDEAL_PROCESSOR_CHANGED.IdealProcessor = Worker->IdealProcessor;
-        QuicTraceLogConnVerbose(IndicateIdealProcChanged, Connection, "Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED");
+        QuicTraceLogConnVerbose(
+            IndicateIdealProcChanged,
+            Connection,
+            "Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED");
         (void)QuicConnIndicateEvent(Connection, &Event);
     }
 
@@ -582,7 +585,10 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
             // If there is no external owner, shut down the connection so that
             // it's not leaked.
             //
-            QuicTraceLogConnVerbose(AbandonOnLibShutdown, Connection, "Abandoning on shutdown");
+            QuicTraceLogConnVerbose(
+                AbandonOnLibShutdown,
+                Connection,
+                "Abandoning on shutdown");
             QuicConnOnShutdownComplete(Connection);
         }
         QuicConnRelease(Connection, QUIC_CONN_REF_WORKER);

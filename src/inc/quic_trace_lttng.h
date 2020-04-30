@@ -1042,18 +1042,22 @@ QUIC_TRACE_EVENT(BindingExecOper,
 )
 QUIC_TRACE_EVENT(TlsError,
     TP_ARGS(
-        const void*, Connection),
+        const void*, Connection,
+        const char*, Msg),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, Connection, Connection))
+        ctf_integer_hex(uint64_t, Connection, Connection)
+        ctf_string(Msg, Msg))
 )
 QUIC_TRACE_LEVEL(TlsError, TRACE_ERR)
 QUIC_TRACE_EVENT(TlsErrorStatus,
     TP_ARGS(
         const void*, Connection,
-        uint32_t, arg3),
+        uint32_t, arg3,
+        const char*, Msg),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, Connection, Connection)
-        ctf_integer(uint32_t, arg3, arg3))
+        ctf_integer(uint32_t, arg3, arg3)
+        ctf_string(Msg, Msg))
 )
 QUIC_TRACE_LEVEL(TlsErrorStatus, TRACE_ERR)
 QUIC_TRACE_EVENT(TlsMessage,
@@ -1069,7 +1073,9 @@ QUIC_TRACE_EVENT(DatapathSendTo,
         const void*, UdpBinding,
         uint32_t, arg3,
         uint32_t, arg4,
-        uint32_t, arg5),
+        uint32_t, arg5,
+        uint8_t, LocalAddrLength,
+        const void*, LocalAddr),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, UdpBinding, UdpBinding)
         ctf_integer(uint32_t, arg3, arg3)
@@ -1081,7 +1087,11 @@ QUIC_TRACE_EVENT(DatapathSendFromTo,
         const void*, UdpBinding,
         uint32_t, arg3,
         uint32_t, arg4,
-        uint32_t, arg5),
+        uint32_t, arg5,
+        uint8_t, RemoteAddrLength,
+        uint8_t, LocalAddrLength,
+        const void*, RemoteAddr,
+        const void*, LocalAddr),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, UdpBinding, UdpBinding)
         ctf_integer(uint32_t, arg3, arg3)
@@ -1092,7 +1102,11 @@ QUIC_TRACE_EVENT(DatapathRecv,
     TP_ARGS(
         const void*, UdpBinding,
         uint32_t, arg3,
-        uint32_t, arg4),
+        uint32_t, arg4,
+        uint8_t, LocalAddrLength,
+        uint8_t, RemoteAddrLength,
+        const void*, LocalAddr,
+        const void*, RemoteAddr),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, UdpBinding, UdpBinding)
         ctf_integer(uint32_t, arg3, arg3)
@@ -1100,18 +1114,22 @@ QUIC_TRACE_EVENT(DatapathRecv,
 )
 QUIC_TRACE_EVENT(DatapathError,
     TP_ARGS(
-        const void*, UdpBinding),
+        const void*, UdpBinding,
+        const char*, Msg),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, UdpBinding, UdpBinding))
+        ctf_integer_hex(uint64_t, UdpBinding, UdpBinding)
+        ctf_string(Msg, Msg))
 )
 QUIC_TRACE_LEVEL(DatapathError, TRACE_ERR)
 QUIC_TRACE_EVENT(DatapathErrorStatus,
     TP_ARGS(
         const void*, UdpBinding,
-        uint32_t, arg3),
+        uint32_t, arg3,
+        const char*, Msg),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, UdpBinding, UdpBinding)
-        ctf_integer(uint32_t, arg3, arg3))
+        ctf_integer(uint32_t, arg3, arg3)
+        ctf_string(Msg, Msg))
 )
 QUIC_TRACE_LEVEL(DatapathErrorStatus, TRACE_ERR)
 

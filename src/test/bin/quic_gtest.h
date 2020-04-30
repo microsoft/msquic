@@ -446,7 +446,7 @@ public:
         ScmHandle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
         if (ScmHandle == nullptr) {
             Error = GetLastError();
-            QuicTraceLogError("[test] GetFullPathName failed, 0x%x.", Error);
+            QuicTraceEvent(LibraryErrorStatus, Error, "GetFullPathName failed");
             return false;
         }
     QueryService:
@@ -456,7 +456,7 @@ public:
                 QUIC_TEST_DRIVER_NAME,
                 SERVICE_ALL_ACCESS);
         if (ServiceHandle == nullptr) {
-            QuicTraceLogError("[test] OpenService failed, 0x%x.", GetLastError());
+            QuicTraceEvent(LibraryErrorStatus,  GetLastError(), "OpenService failed");
             char DriverFilePath[MAX_PATH];
             Error =
                 GetFullPathNameA(
@@ -466,7 +466,7 @@ public:
                     nullptr);
             if (Error == 0) {
                 Error = GetLastError();
-                QuicTraceLogError("[test] GetFullPathName failed, 0x%x.", Error);
+                QuicTraceEvent(LibraryErrorStatus, Error, "GetFullPathName failed");
                 return false;
             }
             ServiceHandle =
@@ -489,7 +489,7 @@ public:
                 if (Error == ERROR_SERVICE_EXISTS) {
                     goto QueryService;
                 }
-                QuicTraceLogError("[test] CreateService failed, 0x%x.", Error);
+                QuicTraceEvent(LibraryErrorStatus, Error, "CreateService failed");
                 return false;
             }
         }
@@ -507,7 +507,7 @@ public:
         if (!StartServiceA(ServiceHandle, 0, nullptr)) {
             uint32_t Error = GetLastError();
             if (Error != ERROR_SERVICE_ALREADY_RUNNING) {
-                QuicTraceLogError("[test] StartService failed, 0x%x.", Error);
+                QuicTraceEvent(LibraryErrorStatus, Error, "StartService failed");
                 return false;
             }
         }
@@ -547,13 +547,13 @@ public:
                 nullptr);
         if (DeviceHandle == INVALID_HANDLE_VALUE) {
             Error = GetLastError();
-            QuicTraceLogError("[test] CreateFile failed, 0x%x.", Error);
+            QuicTraceEvent(LibraryErrorStatus, Error, "CreateFile failed");
             return false;
         }
         if (!Run(IOCTL_QUIC_SEC_CONFIG, SecConfigParams->Thumbprint, sizeof(SecConfigParams->Thumbprint), 30000)) {
             CloseHandle(DeviceHandle);
             DeviceHandle = INVALID_HANDLE_VALUE;
-            QuicTraceLogError("[test] Run(IOCTL_QUIC_SEC_CONFIG) failed.");
+            QuicTraceEvent(LibraryError, "Run(IOCTL_QUIC_SEC_CONFIG) failed");
             return false;
         }
         return true;
@@ -575,11 +575,14 @@ public:
         Overlapped.hEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
         if (Overlapped.hEvent == nullptr) {
             Error = GetLastError();
-            QuicTraceLogError("[test] CreateEvent failed, 0x%x.", Error);
+            QuicTraceEvent(LibraryErrorStatus, Error, "CreateEvent failed");
             return false;
         }
-        QuicTraceLogVerbose("[test] Sending IOCTL %u with %u bytes.",
-            IoGetFunctionCodeFromCtlCode(IoControlCode), InBufferSize);
+        QuicTraceLogVerbose(
+            TestSendIoctl,
+            "[test] Sending IOCTL %u with %u bytes.",
+            IoGetFunctionCodeFromCtlCode(IoControlCode),
+            InBufferSize);
         if (!DeviceIoControl(
                 DeviceHandle,
                 IoControlCode,
@@ -590,7 +593,7 @@ public:
             Error = GetLastError();
             if (Error != ERROR_IO_PENDING) {
                 CloseHandle(Overlapped.hEvent);
-                QuicTraceLogError("[test] DeviceIoControl failed, 0x%x.", Error);
+                QuicTraceEvent(LibraryErrorStatus, Error, "DeviceIoControl failed");
                 return false;
             }
         }
@@ -606,7 +609,7 @@ public:
                 Error = ERROR_TIMEOUT;
                 CancelIoEx(DeviceHandle, &Overlapped);
             }
-            QuicTraceLogError("[test] GetOverlappedResultEx failed, 0x%x.", Error);
+            QuicTraceEvent(LibraryErrorStatus, Error, "GetOverlappedResultEx failed");
         } else {
             Error = ERROR_SUCCESS;
         }

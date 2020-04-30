@@ -32,7 +32,9 @@ QuicPlatformSystemLoad(
     (void)QueryPerformanceFrequency((LARGE_INTEGER*)&QuicPlatformPerfFreq);
     QuicPlatform.Heap = NULL;
 
-    QuicTraceLogInfo("[ dll] Loaded");
+    QuicTraceLogInfo(
+        WindowsUserLoaded,
+        "[ dll] Loaded");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -41,7 +43,9 @@ QuicPlatformSystemUnload(
     void
     )
 {
-    QuicTraceLogInfo("[ dll] Unloaded");
+    QuicTraceLogInfo(
+        WindowsUserUnloaded,
+        "[ dll] Unloaded");
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventUnregisterMicrosoft_Quic();
@@ -78,7 +82,10 @@ QuicPlatformInitialize(
 
     QuicTotalMemory = memInfo.ullTotalPageFile;
 
-    QuicTraceLogInfo("[ dll] Initialized (AvailMem = %llu bytes)", QuicTotalMemory);
+    QuicTraceLogInfo(
+        WindowsUserInitialized,
+        "[ dll] Initialized (AvailMem = %llu bytes)",
+        QuicTotalMemory);
 
 Error:
 
@@ -102,7 +109,9 @@ QuicPlatformUninitialize(
     QUIC_DBG_ASSERT(QuicPlatform.Heap);
     HeapDestroy(QuicPlatform.Heap);
     QuicPlatform.Heap = NULL;
-    QuicTraceLogInfo("[ dll] Uninitialized");
+    QuicTraceLogInfo(
+        WindowsUserUninitialized,
+        "[ dll] Uninitialized");
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

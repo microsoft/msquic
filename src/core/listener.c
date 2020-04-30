@@ -286,8 +286,11 @@ QuicListenerIndicateEvent(
             Event);
     uint64_t EndTime = QuicTimeUs64();
     if (EndTime - StartTime > QUIC_MAX_CALLBACK_TIME_WARNING) {
-        QuicTraceLogWarning("[list][%p] App took excessive time (%llu us) in callback.",
-            Listener, (EndTime - StartTime));
+        QuicTraceLogWarning(
+            ListenerExcessiveAppCallback,
+            "[list][%p] App took excessive time (%llu us) in callback.",
+            Listener,
+            (EndTime - StartTime));
         QUIC_TEL_ASSERTMSG_ARGS(
             EndTime - StartTime < QUIC_MAX_CALLBACK_TIME_ERROR,
             "App extremely long time in listener callback",
@@ -325,13 +328,19 @@ QuicListenerClaimConnection(
 
     QuicSessionAttachSilo(Listener->Session);
 
-    QuicTraceLogVerbose("[list][%p] Indicating NEW_CONNECTION", Listener);
+    QuicTraceLogVerbose(
+        ListenerIndicateNewConnection,
+        "[list][%p] Indicating NEW_CONNECTION",
+        Listener);
     QUIC_STATUS Status = QuicListenerIndicateEvent(Listener, &Event);
 
     QuicSessionDetachSilo();
 
     if (Status == QUIC_STATUS_PENDING) {
-        QuicTraceLogVerbose("[list][%p] App indicate pending NEW_CONNECTION", Listener);
+        QuicTraceLogVerbose(
+            ListenerNewConnectionPending,
+            "[list][%p] App indicate pending NEW_CONNECTION",
+            Listener);
         QUIC_DBG_ASSERT(Event.NEW_CONNECTION.SecurityConfig == NULL);
         *SecConfig = NULL;
     } else if (QUIC_FAILED(Status)) {
@@ -342,7 +351,10 @@ QuicListenerClaimConnection(
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     } else {
-        QuicTraceLogVerbose("[list][%p] App accepted NEW_CONNECTION", Listener);
+        QuicTraceLogVerbose(
+            ListenerNewConnectionAccepted,
+            "[list][%p] App accepted NEW_CONNECTION",
+            Listener);
         *SecConfig = Event.NEW_CONNECTION.SecurityConfig;
     }
 
@@ -405,7 +417,10 @@ QuicListenerAcceptConnection(
             QUIC_TEL_ASSERTMSG(*SecConfig == NULL, "App failed AND provided a sec config?");
             goto Error;
         } else if (*SecConfig == NULL) {
-            QuicTraceLogConnVerbose(NoSecurityConfigAvailable, Connection, "No security config was provided by the app.");
+            QuicTraceLogConnVerbose(
+                NoSecurityConfigAvailable,
+                Connection,
+                "No security config was provided by the app.");
             goto Error;
         }
     }

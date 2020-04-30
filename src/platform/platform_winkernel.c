@@ -79,7 +79,9 @@ QuicPlatformSystemLoad(
     (VOID)KeQueryPerformanceCounter((LARGE_INTEGER*)&QuicPlatformPerfFreq);
     QuicPlatform.RngAlgorithm = NULL;
 
-    QuicTraceLogInfo("[ sys] Loaded");
+    QuicTraceLogInfo(
+        WindowsKernelLoaded,
+        "[ sys] Loaded");
 }
 
 PAGEDX
@@ -90,7 +92,10 @@ QuicPlatformSystemUnload(
     )
 {
     PAGED_CODE();
-    QuicTraceLogInfo("[ sys] Unloaded");
+
+    QuicTraceLogInfo(
+        WindowsKernelUnloaded,
+        "[ sys] Unloaded");
 
 #ifdef QUIC_TELEMETRY_ASSERTS
     UninitializeTelemetryAssertsKM();
@@ -144,8 +149,11 @@ QuicPlatformInitialize(
     //
     QuicTotalMemory = (uint64_t)Sbi.NumberOfPhysicalPages * (uint64_t)Sbi.PageSize;
 
-    QuicTraceLogInfo("[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)",
-        Sbi.PageSize, QuicTotalMemory);
+    QuicTraceLogInfo(
+        WindowsKernelInitialized,
+        "[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)",
+        Sbi.PageSize,
+        QuicTotalMemory);
 
 Error:
 
@@ -170,7 +178,9 @@ QuicPlatformUninitialize(
     QuicTlsLibraryUninitialize();
     BCryptCloseAlgorithmProvider(QuicPlatform.RngAlgorithm, 0);
     QuicPlatform.RngAlgorithm = NULL;
-    QuicTraceLogInfo("[ sys] Uninitialized");
+    QuicTraceLogInfo(
+        WindowsKernelUninitialized,
+        "[ sys] Uninitialized");
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

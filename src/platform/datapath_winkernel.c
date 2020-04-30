@@ -536,14 +536,20 @@ QuicDataPathQueryRssScalabilityInfo(
     if (Status == STATUS_PENDING) {
         QuicEventWaitForever(CompletionEvent);
     } else if (QUIC_FAILED(Status)) {
-        QuicTraceLogWarning("[ dal] RSS helper socket failed to open, 0x%x", Status);
+        QuicTraceLogWarning(
+            DatapathOpenTcpSocketFailed,
+            "[ udp] RSS helper socket failed to open, 0x%x",
+            Status);
         goto Error;
     }
 
     Status = Irp->IoStatus.Status;
 
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogWarning("[ dal] RSS helper socket failed to open (async), 0x%x", Status);
+        QuicTraceLogWarning(
+            DatapathOpenTcpSocketFailedAsync,
+            "[ udp] RSS helper socket failed to open (async), 0x%x",
+            Status);
         goto Error;
     }
 
@@ -575,14 +581,20 @@ QuicDataPathQueryRssScalabilityInfo(
     if (Status == STATUS_PENDING) {
         QuicEventWaitForever(CompletionEvent);
     } else if (QUIC_FAILED(Status)) {
-        QuicTraceLogWarning("[ dal] Query for SIO_QUERY_RSS_PROCESSOR_INFO failed, 0x%x", Status);
+        QuicTraceLogWarning(
+            DatapathQueryRssProcessorInfoFailed,
+            "[ udp] Query for SIO_QUERY_RSS_PROCESSOR_INFO failed, 0x%x",
+            Status);
         goto Error;
     }
 
     Status = Irp->IoStatus.Status;
 
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogWarning("[ dal] Query for SIO_QUERY_RSS_PROCESSOR_INFO failed (async), 0x%x", Status);
+        QuicTraceLogWarning(
+            DatapathQueryRssProcessorInfoFailedAsync,
+            "[ udp] Query for SIO_QUERY_RSS_PROCESSOR_INFO failed (async), 0x%x",
+            Status);
         goto Error;
     }
 
@@ -656,14 +668,20 @@ QuicDataPathQuerySockoptSupport(
     if (Status == STATUS_PENDING) {
         QuicEventWaitForever(CompletionEvent);
     } else if (QUIC_FAILED(Status)) {
-        QuicTraceLogWarning("[ dal] UDP send segmentation helper socket failed to open, 0x%x", Status);
+        QuicTraceLogWarning(
+            DatapathOpenUdpSocketFailed,
+            "[ udp] UDP send segmentation helper socket failed to open, 0x%x",
+            Status);
         goto Error;
     }
 
     Status = Irp->IoStatus.Status;
 
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogWarning("[ dal] UDP send segmentation helper socket failed to open (async), 0x%x", Status);
+        QuicTraceLogWarning(
+            DatapathOpenUdpSocketFailedAsync,
+            "[ udp] UDP send segmentation helper socket failed to open (async), 0x%x",
+            Status);
         goto Error;
     }
 
@@ -698,13 +716,19 @@ QuicDataPathQuerySockoptSupport(
         if (Status == STATUS_PENDING) {
             QuicEventWaitForever(CompletionEvent);
         } else if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning("[ dal] Query for UDP_SEND_MSG_SIZE failed, 0x%x", Status);
+            QuicTraceLogWarning(
+                DatapathQueryUdpSendMsgFailed,
+                "[ udp] Query for UDP_SEND_MSG_SIZE failed, 0x%x",
+                Status);
             break;
         }
 
         Status = Irp->IoStatus.Status;
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning("[ dal] Query for UDP_SEND_MSG_SIZE failed (async), 0x%x", Status);
+            QuicTraceLogWarning(
+                DatapathQueryUdpSendMsgFailedAsync,
+                "[ udp] Query for UDP_SEND_MSG_SIZE failed (async), 0x%x",
+                Status);
             break;
         }
 
@@ -740,13 +764,19 @@ QuicDataPathQuerySockoptSupport(
         if (Status == STATUS_PENDING) {
             QuicEventWaitForever(CompletionEvent);
         } else if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning("[ dal] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x", Status);
+            QuicTraceLogWarning(
+                DatapathQueryRecvMaxCoalescedSizeFailed,
+                "[ udp] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x",
+                Status);
             break;
         }
 
         Status = Irp->IoStatus.Status;
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning("[ dal] Query for UDP_RECV_MAX_COALESCED_SIZE failed (async), 0x%x", Status);
+            QuicTraceLogWarning(
+                DatapathQueryRecvMaxCoalescedSizeFailedAsync,
+                "[ udp] Query for UDP_RECV_MAX_COALESCED_SIZE failed (async), 0x%x",
+                Status);
             break;
         }
 
@@ -1091,7 +1121,11 @@ QuicDataPathResolveAddress(
     }
 
     QuicTraceEvent(LibraryError, "Resolving hostname to IP");
-    QuicTraceLogError("[%p] Couldn't resolve hostname '%s' to an IP address", Datapath, HostName);
+    QuicTraceLogError(
+        DatapathResolveHostNameFailed,
+        "[%p] Couldn't resolve hostname '%s' to an IP address",
+        Datapath,
+        HostName);
     Status = STATUS_NOT_FOUND;
 
 Error:
@@ -1765,7 +1799,10 @@ QuicDataPathSocketReceive(
 
         if (DataIndication->Buffer.Mdl == NULL ||
             DataIndication->Buffer.Length == 0) {
-            QuicTraceLogWarning("[%p] Dropping datagram with empty mdl.", SocketContext);
+            QuicTraceLogWarning(
+                DatapathDropEmptyMdl,
+                "[%p] Dropping datagram with empty mdl.",
+                SocketContext);
             goto Drop;
         }
 
@@ -1837,7 +1874,10 @@ QuicDataPathSocketReceive(
             // The underlying data path does not guarantee ancillary data for
             // enabled socket options when the system is under memory pressure.
             //
-            QuicTraceLogWarning("[%p] Dropping datagram missing IP_PKTINFO/IP_RECVERR.", SocketContext);
+            QuicTraceLogWarning(
+                DatapathDropMissingInfo,
+                "[%p] Dropping datagram missing IP_PKTINFO/IP_RECVERR.",
+                SocketContext);
             goto Drop;
         }
 
@@ -1848,12 +1888,16 @@ QuicDataPathSocketReceive(
         if (IsUnreachableError) {
 #ifdef 0 // TODO - Change to ETW event
             if (RemoteAddr.si_family == AF_INET) {
-                QuicTraceLogVerbose("[sock][%p] Unreachable error from %!IPV4ADDR!:%hu",
+                QuicTraceLogVerbose(
+                    DatapathUnreachable,
+                    "[sock][%p] Unreachable error from %!IPV4ADDR!:%hu",
                     SocketContext,
                     &RemoteAddr.Ipv4.sin_addr,
                     RtlUshortByteSwap(RemoteAddr.Ipv4.sin_port));
             } else {
-                QuicTraceLogVerbose("[sock][%p] Unreachable error from [%!IPV6ADDR!]:%hu",
+                QuicTraceLogVerbose(
+                    DatapathUnreachableV6,
+                    "[sock][%p] Unreachable error from [%!IPV6ADDR!]:%hu",
                     SocketContext,
                     &RemoteAddr.Ipv6.sin6_addr,
                     RtlUshortByteSwap(RemoteAddr.Ipv6.sin6_port));
@@ -1880,19 +1924,26 @@ QuicDataPathSocketReceive(
             //
             QUIC_DBG_ASSERT(DataLength <= MAXUINT16);
             if (DataLength > MAXUINT16) {
-                QuicTraceLogWarning("[%p] Dropping datagram with too many bytes (%llu).",
-                    SocketContext, (uint64_t)DataLength);
+                QuicTraceLogWarning(
+                    DatapathDropTooBig,
+                    "[%p] Dropping datagram with too many bytes (%llu).",
+                    SocketContext,
+                    (uint64_t)DataLength);
                 goto Drop;
             }
             MessageLength = (UINT16)DataLength;
         }
 
         if (!QuicMdlMapChain(DataIndication->Buffer.Mdl)) {
-            QuicTraceLogWarning("[%p] Failed to map MDL chain", SocketContext);
+            QuicTraceLogWarning(
+                DatapathDropMdlMapFailure,
+                "[%p] Failed to map MDL chain",
+                SocketContext);
             goto Drop;
         }
 
-        QuicTraceEvent(DatapathRecv,
+        QuicTraceEvent(
+            DatapathRecv,
             SocketContext->Binding,
             (uint32_t)DataLength,
             MessageLength,
@@ -1915,7 +1966,10 @@ QuicDataPathSocketReceive(
             // We require contiguous buffers.
             //
             if ((SIZE_T)MessageLength > Mdl->ByteCount - MdlOffset) {
-                QuicTraceLogWarning("[%p] Dropping datagram with fragmented MDL.", SocketContext);
+                QuicTraceLogWarning(
+                    DatapathFragmented,
+                    "[%p] Dropping datagram with fragmented MDL.",
+                    SocketContext);
                 QUIC_DBG_ASSERT(FALSE);
                 goto Drop;
             }
@@ -1927,7 +1981,10 @@ QuicDataPathSocketReceive(
                         (UINT16)QuicProcCurrentNumber(),
                         IsCoalesced);
                 if (RecvContext == NULL) {
-                    QuicTraceLogWarning("[%p] Couldn't allocate receive context.", SocketContext);
+                    QuicTraceLogWarning(
+                        DatapathDropAllocRecvContextFailure,
+                        "[%p] Couldn't allocate receive context.",
+                        SocketContext);
                     goto Drop;
                 }
 
@@ -1959,7 +2016,10 @@ QuicDataPathSocketReceive(
             *DatagramChainTail = Datagram;
             DatagramChainTail = &Datagram->Next;
             if (++RecvContext->ReferenceCount == URO_MAX_DATAGRAMS_PER_INDICATION) {
-                QuicTraceLogWarning("[%p] Exceeded URO preallocation capacity.", SocketContext);
+                QuicTraceLogWarning(
+                    DatapathUroExceeded,
+                    "[%p] Exceeded URO preallocation capacity.",
+                    SocketContext);
                 break;
             }
 

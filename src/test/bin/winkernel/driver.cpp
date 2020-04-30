@@ -102,7 +102,7 @@ Return Value:
 
     Status = QuicPlatformInitialize();
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] QuicPlatformInitialize failed: 0x%x", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "QuicPlatformInitialize failed");
         goto Error;
     }
     PlatformInitialized = TRUE;
@@ -123,7 +123,7 @@ Return Value:
             &Config,
             &Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] WdfDriverCreate failed: 0x%x", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "WdfDriverCreate failed");
         goto Error;
     }
 
@@ -132,11 +132,13 @@ Return Value:
     //
     Status = QuicTestCtlInitialize(Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] QuicTestCtlInitialize failed: 0x%x", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "QuicTestCtlInitialize failed");
         goto Error;
     }
 
-    QuicTraceLogInfo("[test] Started.");
+    QuicTraceLogInfo(
+        TestDriverStarted,
+        "[test] Started");
 
 Error:
 
@@ -175,7 +177,9 @@ Arguments:
 
     QuicTestCtlUninitialize();
 
-    QuicTraceLogInfo("[test] Stopped.");
+    QuicTraceLogInfo(
+        TestDriverStopped,
+        "[test] Stopped");
 
     QuicPlatformUninitialize();
     QuicPlatformSystemUnload();

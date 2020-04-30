@@ -92,7 +92,10 @@ QuicStorageOpen(
         goto Exit;
     }
 
-    QuicTraceLogVerbose("[ reg] Opening %s", FullKeyName);
+    QuicTraceLogVerbose(
+        StorageOpenKey,
+        "[ reg] Opening %s",
+        FullKeyName);
 
     Status =
         HRESULT_FROM_WIN32(

@@ -140,7 +140,12 @@ QuicAckTrackerAckPacket(
         return;
     }
 
-    QuicTraceLogVerbose("[%c][RX][%llu] Marked for ACK", PtkConnPre(Connection), PacketNumber);
+    QuicTraceLogVerbose(
+        PacketRxMarkedForAck,
+        "[%c][RX][%llu] Marked for ACK",
+        PtkConnPre(Connection),
+        PacketNumber);
+
     QuicRangeValidate(&Tracker->PacketNumbersToAck);
 
     BOOLEAN NewLargestPacketNumber =

@@ -107,17 +107,28 @@ LogTestFailure(
     va_start(Args, Format);
     (void)_vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, Format, Args);
     va_end(Args);
-    QuicTraceLogError("[test] FAILURE - %s:%d - %s", File, Line, Buffer);
+    QuicTraceLogError(
+        TestLogFailure,
+        "[test] FAILURE - %s:%d - %s",
+        File,
+        Line,
+        Buffer);
     GTEST_MESSAGE_AT_(File, Line, Buffer, ::testing::TestPartResult::kFatalFailure);
 }
 
 struct TestLogger {
     const char* TestName;
     TestLogger(const char* Name) : TestName(Name) {
-        QuicTraceLogInfo("[test] START %s", TestName);
+        QuicTraceLogInfo(
+            TestCaseStart,
+            "[test] START %s",
+            TestName);
     }
     ~TestLogger() {
-        QuicTraceLogInfo("[test] END %s", TestName);
+        QuicTraceLogInfo(
+            TestCaseEnd,
+            "[test] END %s",
+            TestName);
     }
 };
 
@@ -126,10 +137,17 @@ struct TestLoggerT {
     const char* TestName;
     TestLoggerT(const char* Name, const T& Params) : TestName(Name) {
         std::ostringstream stream; stream << Params;
-        QuicTraceLogInfo("[test] START %s, %s", TestName, stream.str().c_str());
+        QuicTraceLogInfo(
+            TestCaseTStart,
+            "[test] START %s, %s",
+            TestName,
+            stream.str().c_str());
     }
     ~TestLoggerT() {
-        QuicTraceLogInfo("[test] END %s", TestName);
+        QuicTraceLogInfo(
+            TestCaseTEnd,
+            "[test] END %s",
+            TestName);
     }
 };
 
