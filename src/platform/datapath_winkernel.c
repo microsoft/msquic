@@ -1886,7 +1886,7 @@ QuicDataPathSocketReceive(
             &RemoteAddr);
 
         if (IsUnreachableError) {
-#ifdef 0 // TODO - Change to ETW event
+#if 0 // TODO - Change to ETW event
             if (RemoteAddr.si_family == AF_INET) {
                 QuicTraceLogVerbose(
                     DatapathUnreachable,
