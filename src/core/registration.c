@@ -21,10 +21,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "registration.tmh"
-#endif
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -110,7 +106,10 @@ MsQuicRegistrationOpen(
     if (MsQuicLib.IsVerifying &&
         QuicVerifierEnabledByAddr(NewRegistration)) {
         Registration->IsVerifying = TRUE;
-        QuicTraceLogInfo("[ reg][%p] Verifing enabled!", Registration);
+        QuicTraceLogInfo(
+            RegistrationVerifierEnabled,
+            "[ reg][%p] Verifing enabled!",
+            Registration);
     } else {
         Registration->IsVerifying = FALSE;
     }

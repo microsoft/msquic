@@ -56,10 +56,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "send_buffer.tmh"
-#endif
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendBufferInitialize(
@@ -206,7 +202,10 @@ QuicSendBufferStreamAdjust(
     QUIC_STREAM_EVENT Event;
     Event.Type = QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE;
     Event.IDEAL_SEND_BUFFER_SIZE.ByteCount = ByteCount;
-    QuicTraceLogStreamVerbose(IndicateIdealSendBuffer, Stream, "Indicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu",
+    QuicTraceLogStreamVerbose(
+        IndicateIdealSendBuffer,
+        Stream,
+        "Indicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu",
         Event.IDEAL_SEND_BUFFER_SIZE.ByteCount);
     (void)QuicStreamIndicateEvent(Stream, &Event);
 }

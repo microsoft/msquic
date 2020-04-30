@@ -14,10 +14,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "crypto_tls.tmh"
-#endif
-
 #define TLS1_PROTOCOL_VERSION 0x0301
 #define TLS_MESSAGE_HEADER_LENGTH 4
 #define TLS_RANDOM_LENGTH 32
@@ -531,7 +527,10 @@ QuicCryptoTlsReadInitial(
     }
 
     if (Info->ServerName == NULL) {
-        QuicTraceLogConnWarning(NoSniPresent, Connection, "No SNI extension present.");
+        QuicTraceLogConnWarning(
+            NoSniPresent,
+            Connection,
+            "No SNI extension present");
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -550,7 +549,10 @@ QuicCryptoTlsEncodeTransportParameters(
     // Precompute the required size so we can allocate all at once.
     //
 
-    QuicTraceLogConnVerbose(EncodeTPStart, Connection, "Encoding Transport Parameters");
+    QuicTraceLogConnVerbose(
+        EncodeTPStart,
+        Connection,
+        "Encoding Transport Parameters");
 
     size_t RequiredTPLen = 0;
     if (TransportParams->Flags & QUIC_TP_FLAG_ORIGINAL_CONNECTION_ID) {
@@ -679,14 +681,21 @@ QuicCryptoTlsEncodeTransportParameters(
                 TransportParams->OriginalConnectionIDLength,
                 TransportParams->OriginalConnectionID,
                 TPBuf);
-        QuicTraceLogConnVerbose(EncodeTPOriginalCID, Connection, "TP: Original Connection ID");
+        QuicTraceLogConnVerbose(
+            EncodeTPOriginalCID,
+            Connection,
+            "TP: Original Connection ID");
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_IDLE_TIMEOUT) {
         TPBuf =
             TlsWriteTransportParamVarInt(
                 QUIC_TP_ID_IDLE_TIMEOUT,
                 TransportParams->IdleTimeout, TPBuf);
-        QuicTraceLogConnVerbose(EncodeTPIdleTimeout, Connection, "TP: Idle Timeout (%llu ms)", TransportParams->IdleTimeout);
+        QuicTraceLogConnVerbose(
+            EncodeTPIdleTimeout,
+            Connection,
+            "TP: Idle Timeout (%llu ms)",
+            TransportParams->IdleTimeout);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_STATELESS_RESET_TOKEN) {
         QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
@@ -696,7 +705,10 @@ QuicCryptoTlsEncodeTransportParameters(
                 QUIC_STATELESS_RESET_TOKEN_LENGTH,
                 TransportParams->StatelessResetToken,
                 TPBuf);
-        QuicTraceLogConnVerbose(EncodeTPStatelessResetToken, Connection, "TP: Stateless Reset Token (%s)",
+        QuicTraceLogConnVerbose(
+            EncodeTPStatelessResetToken,
+            Connection,
+            "TP: Stateless Reset Token (%s)",
             QuicCidBufToStr(
                 TransportParams->StatelessResetToken,
                 QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
@@ -706,63 +718,99 @@ QuicCryptoTlsEncodeTransportParameters(
             TlsWriteTransportParamVarInt(
                 QUIC_TP_ID_MAX_PACKET_SIZE,
                 TransportParams->MaxPacketSize, TPBuf);
-        QuicTraceLogConnVerbose(EncodeTPMaxPacketSize, Connection, "TP: Max Packet Size (%llu bytes)", TransportParams->MaxPacketSize);
+        QuicTraceLogConnVerbose(
+            EncodeTPMaxPacketSize,
+            Connection,
+            "TP: Max Packet Size (%llu bytes)",
+            TransportParams->MaxPacketSize);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_DATA) {
         TPBuf =
             TlsWriteTransportParamVarInt(
                 QUIC_TP_ID_INITIAL_MAX_DATA,
                 TransportParams->InitialMaxData, TPBuf);
-        QuicTraceLogConnVerbose(EncodeTPInitMaxData, Connection, "TP: Max Data (%llu bytes)", TransportParams->InitialMaxData);
+        QuicTraceLogConnVerbose(
+            EncodeTPInitMaxData,
+            Connection,
+            "TP: Max Data (%llu bytes)",
+            TransportParams->InitialMaxData);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL) {
         TPBuf =
             TlsWriteTransportParamVarInt(
                 QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_BIDI_LOCAL,
                 TransportParams->InitialMaxStreamDataBidiLocal, TPBuf);
-        QuicTraceLogConnVerbose(EncodeTPInitMaxStreamDataBidiLocal, Connection, "TP: Max Local Bidirectional Stream Data (%llu bytes)", TransportParams->InitialMaxStreamDataBidiLocal);
+        QuicTraceLogConnVerbose(
+            EncodeTPInitMaxStreamDataBidiLocal,
+            Connection,
+            "TP: Max Local Bidirectional Stream Data (%llu bytes)",
+            TransportParams->InitialMaxStreamDataBidiLocal);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE) {
         TPBuf =
             TlsWriteTransportParamVarInt(
                 QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_BIDI_REMOTE,
                 TransportParams->InitialMaxStreamDataBidiRemote, TPBuf);
-        QuicTraceLogConnVerbose(EncodeTPInitMaxStreamDataBidiRemote, Connection, "TP: Max Remote Bidirectional Stream Data (%llu bytes)", TransportParams->InitialMaxStreamDataBidiRemote);
+        QuicTraceLogConnVerbose(
+            EncodeTPInitMaxStreamDataBidiRemote,
+            Connection,
+            "TP: Max Remote Bidirectional Stream Data (%llu bytes)",
+            TransportParams->InitialMaxStreamDataBidiRemote);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI) {
         TPBuf =
             TlsWriteTransportParamVarInt(
                 QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_UNI,
                 TransportParams->InitialMaxStreamDataUni, TPBuf);
-        QuicTraceLogConnVerbose(EncodeTPInitMaxStreamUni, Connection, "TP: Max Unidirectional Stream Data (%llu)", TransportParams->InitialMaxStreamDataUni);
+        QuicTraceLogConnVerbose(
+            EncodeTPInitMaxStreamUni,
+            Connection,
+            "TP: Max Unidirectional Stream Data (%llu)",
+            TransportParams->InitialMaxStreamDataUni);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI) {
         TPBuf =
             TlsWriteTransportParamVarInt(
                 QUIC_TP_ID_INITIAL_MAX_STREAMS_BIDI,
                 TransportParams->InitialMaxBidiStreams, TPBuf);
-        QuicTraceLogConnVerbose(EncodeTPMaxBidiStreams, Connection, "TP: Max Bidirectional Streams (%llu)", TransportParams->InitialMaxBidiStreams);
+        QuicTraceLogConnVerbose(
+            EncodeTPMaxBidiStreams,
+            Connection,
+            "TP: Max Bidirectional Streams (%llu)",
+            TransportParams->InitialMaxBidiStreams);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI) {
         TPBuf =
             TlsWriteTransportParamVarInt(
                 QUIC_TP_ID_INITIAL_MAX_STREAMS_UNI,
                 TransportParams->InitialMaxUniStreams, TPBuf);
-        QuicTraceLogConnVerbose(EncodeTPMaxUniStreams, Connection, "TP: Max Unidirectional Streams (%llu)", TransportParams->InitialMaxUniStreams);
+        QuicTraceLogConnVerbose(
+            EncodeTPMaxUniStreams,
+            Connection,
+            "TP: Max Unidirectional Streams (%llu)",
+            TransportParams->InitialMaxUniStreams);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_ACK_DELAY_EXPONENT) {
         TPBuf =
             TlsWriteTransportParamVarInt(
                 QUIC_TP_ID_ACK_DELAY_EXPONENT,
                 TransportParams->AckDelayExponent, TPBuf);
-        QuicTraceLogConnVerbose(EncodeTPAckDelayExponent, Connection, "TP: ACK Delay Exponent (%llu)", TransportParams->AckDelayExponent);
+        QuicTraceLogConnVerbose(
+            EncodeTPAckDelayExponent,
+            Connection,
+            "TP: ACK Delay Exponent (%llu)",
+            TransportParams->AckDelayExponent);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_MAX_ACK_DELAY) {
         TPBuf =
             TlsWriteTransportParamVarInt(
                 QUIC_TP_ID_MAX_ACK_DELAY,
                 TransportParams->MaxAckDelay, TPBuf);
-        QuicTraceLogConnVerbose(EncodeTPMaxAckDelay, Connection, "TP: Max ACK Delay (%llu ms)", TransportParams->MaxAckDelay);
+        QuicTraceLogConnVerbose(
+            EncodeTPMaxAckDelay,
+            Connection,
+            "TP: Max ACK Delay (%llu ms)",
+            TransportParams->MaxAckDelay);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION) {
         TPBuf =
@@ -771,12 +819,18 @@ QuicCryptoTlsEncodeTransportParameters(
                 0,
                 NULL,
                 TPBuf);
-        QuicTraceLogConnVerbose(EncodeTPDisableMigration, Connection, "TP: Disable Active Migration");
+        QuicTraceLogConnVerbose(
+            EncodeTPDisableMigration,
+            Connection,
+            "TP: Disable Active Migration");
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_PREFERRED_ADDRESS) {
         QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
         QUIC_FRE_ASSERT(FALSE); // TODO - Implement
-        QuicTraceLogConnVerbose(EncodeTPPreferredAddress, Connection, "TP: Preferred Address");
+        QuicTraceLogConnVerbose(
+            EncodeTPPreferredAddress,
+            Connection,
+            "TP: Preferred Address");
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT) {
         QUIC_DBG_ASSERT(TransportParams->ActiveConnectionIdLimit >= QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN);
@@ -784,7 +838,11 @@ QuicCryptoTlsEncodeTransportParameters(
             TlsWriteTransportParamVarInt(
                 QUIC_TP_ID_ACTIVE_CONNECTION_ID_LIMIT,
                 TransportParams->ActiveConnectionIdLimit, TPBuf);
-        QuicTraceLogConnVerbose(EncodeTPCIDLimit, Connection, "TP: Connection ID Limit (%llu)", TransportParams->ActiveConnectionIdLimit);
+        QuicTraceLogConnVerbose(
+            EncodeTPCIDLimit,
+            Connection,
+            "TP: Connection ID Limit (%llu)",
+            TransportParams->ActiveConnectionIdLimit);
     }
     if (Connection->State.TestTransportParameterSet) {
         TPBuf =
@@ -793,7 +851,10 @@ QuicCryptoTlsEncodeTransportParameters(
                 Connection->TestTransportParameter.Length,
                 Connection->TestTransportParameter.Buffer,
                 TPBuf);
-        QuicTraceLogConnVerbose(EncodeTPTest, Connection, "TP: TEST TP (Type %hu, Length %hu)",
+        QuicTraceLogConnVerbose(
+            EncodeTPTest,
+            Connection,
+            "TP: TEST TP (Type %hu, Length %hu)",
             Connection->TestTransportParameter.Type,
             Connection->TestTransportParameter.Length);
     }
@@ -805,7 +866,11 @@ QuicCryptoTlsEncodeTransportParameters(
         QUIC_FREE(TPBufBase);
         return NULL;
     } else {
-        QuicTraceLogConnVerbose(EncodeTPEnd, Connection, "Encoded %hu bytes for QUIC TP", (uint16_t)FinalTPLength);
+        QuicTraceLogConnVerbose(
+            EncodeTPEnd,
+            Connection,
+            "Encoded %hu bytes for QUIC TP",
+            (uint16_t)FinalTPLength);
     }
 
     return TPBufBase;
@@ -832,7 +897,11 @@ QuicCryptoTlsDecodeTransportParameters(
     TransportParams->MaxAckDelay = QUIC_TP_MAX_ACK_DELAY_DEFAULT;
     TransportParams->ActiveConnectionIdLimit = QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_DEFAULT;
 
-    QuicTraceLogConnVerbose(DecodeTPStart, Connection, "Decoding Peer Transport Parameters (%hu bytes)", TPLen);
+    QuicTraceLogConnVerbose(
+        DecodeTPStart,
+        Connection,
+        "Decoding Peer Transport Parameters (%hu bytes)",
+        TPLen);
 
     while (Offset < TPLen) {
 
@@ -883,7 +952,10 @@ QuicCryptoTlsDecodeTransportParameters(
                 TransportParams->OriginalConnectionID,
                 TPBuf + Offset,
                 Length);
-            QuicTraceLogConnVerbose(DecodeTPOriginalCID, Connection, "TP: Original Connection ID");
+            QuicTraceLogConnVerbose(
+                DecodeTPOriginalCID,
+                Connection,
+                "TP: Original Connection ID");
             break;
 
         case QUIC_TP_ID_IDLE_TIMEOUT:
@@ -892,7 +964,11 @@ QuicCryptoTlsDecodeTransportParameters(
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_IDLE_TIMEOUT;
-            QuicTraceLogConnVerbose(DecodeTPIdleTimeout, Connection, "TP: Idle Timeout (%llu ms)", TransportParams->IdleTimeout);
+            QuicTraceLogConnVerbose(
+                DecodeTPIdleTimeout,
+                Connection,
+                "TP: Idle Timeout (%llu ms)",
+                TransportParams->IdleTimeout);
             break;
 
         case QUIC_TP_ID_STATELESS_RESET_TOKEN:
@@ -908,7 +984,10 @@ QuicCryptoTlsDecodeTransportParameters(
                 TransportParams->StatelessResetToken,
                 TPBuf + Offset,
                 QUIC_STATELESS_RESET_TOKEN_LENGTH);
-            QuicTraceLogConnVerbose(DecodeTPStatelessResetToken, Connection, "TP: Stateless Reset Token (%s)",
+            QuicTraceLogConnVerbose(
+                DecodeTPStatelessResetToken,
+                Connection,
+                "TP: Stateless Reset Token (%s)",
                 QuicCidBufToStr(
                     TransportParams->StatelessResetToken,
                     QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
@@ -928,7 +1007,11 @@ QuicCryptoTlsDecodeTransportParameters(
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_MAX_PACKET_SIZE;
-            QuicTraceLogConnVerbose(DecodeTPMaxPacketSize, Connection, "TP: Max Packet Size (%llu bytes)", TransportParams->MaxPacketSize);
+            QuicTraceLogConnVerbose(
+                DecodeTPMaxPacketSize,
+                Connection,
+                "TP: Max Packet Size (%llu bytes)",
+                TransportParams->MaxPacketSize);
             break;
 
         case QUIC_TP_ID_INITIAL_MAX_DATA:
@@ -937,7 +1020,11 @@ QuicCryptoTlsDecodeTransportParameters(
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_DATA;
-            QuicTraceLogConnVerbose(DecodeTPInitMaxData, Connection, "TP: Max Data (%llu bytes)", TransportParams->InitialMaxData);
+            QuicTraceLogConnVerbose(
+                DecodeTPInitMaxData,
+                Connection,
+                "TP: Max Data (%llu bytes)",
+                TransportParams->InitialMaxData);
             break;
 
         case QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_BIDI_LOCAL:
@@ -946,7 +1033,11 @@ QuicCryptoTlsDecodeTransportParameters(
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL;
-            QuicTraceLogConnVerbose(DecodeTPInitMaxStreamDataBidiLocal, Connection, "TP: Max Local Bidirectional Stream Data (%llu bytes)", TransportParams->InitialMaxStreamDataBidiLocal);
+            QuicTraceLogConnVerbose(
+                DecodeTPInitMaxStreamDataBidiLocal,
+                Connection,
+                "TP: Max Local Bidirectional Stream Data (%llu bytes)",
+                TransportParams->InitialMaxStreamDataBidiLocal);
             break;
 
         case QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_BIDI_REMOTE:
@@ -955,7 +1046,11 @@ QuicCryptoTlsDecodeTransportParameters(
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE;
-            QuicTraceLogConnVerbose(DecodeTPInitMaxStreamDataBidiRemote, Connection, "TP: Max Remote Bidirectional Stream Data (%llu bytes)", TransportParams->InitialMaxStreamDataBidiRemote);
+            QuicTraceLogConnVerbose(
+                DecodeTPInitMaxStreamDataBidiRemote,
+                Connection,
+                "TP: Max Remote Bidirectional Stream Data (%llu bytes)",
+                TransportParams->InitialMaxStreamDataBidiRemote);
             break;
 
         case QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_UNI:
@@ -964,7 +1059,11 @@ QuicCryptoTlsDecodeTransportParameters(
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI;
-            QuicTraceLogConnVerbose(DecodeTPInitMaxStreamDataBidiUni, Connection, "TP: Max Unidirectional Stream Data (%llu)", TransportParams->InitialMaxStreamDataUni);
+            QuicTraceLogConnVerbose(
+                DecodeTPInitMaxStreamDataBidiUni,
+                Connection,
+                "TP: Max Unidirectional Stream Data (%llu)",
+                TransportParams->InitialMaxStreamDataUni);
             break;
 
         case QUIC_TP_ID_INITIAL_MAX_STREAMS_BIDI:
@@ -977,7 +1076,11 @@ QuicCryptoTlsDecodeTransportParameters(
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI;
-            QuicTraceLogConnVerbose(DecodeTPMaxBidiStreams, Connection, "TP: Max Bidirectional Streams (%llu)", TransportParams->InitialMaxBidiStreams);
+            QuicTraceLogConnVerbose(
+                DecodeTPMaxBidiStreams,
+                Connection,
+                "TP: Max Bidirectional Streams (%llu)",
+                TransportParams->InitialMaxBidiStreams);
             break;
 
         case QUIC_TP_ID_INITIAL_MAX_STREAMS_UNI:
@@ -990,7 +1093,11 @@ QuicCryptoTlsDecodeTransportParameters(
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI;
-            QuicTraceLogConnVerbose(DecodeTPMaxUniStreams, Connection, "TP: Max Unidirectional Streams (%llu)", TransportParams->InitialMaxUniStreams);
+            QuicTraceLogConnVerbose(
+                DecodeTPMaxUniStreams,
+                Connection,
+                "TP: Max Unidirectional Streams (%llu)",
+                TransportParams->InitialMaxUniStreams);
             break;
 
         case QUIC_TP_ID_ACK_DELAY_EXPONENT:
@@ -1003,7 +1110,11 @@ QuicCryptoTlsDecodeTransportParameters(
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_ACK_DELAY_EXPONENT;
-            QuicTraceLogConnVerbose(DecodeTPAckDelayExponent, Connection, "TP: ACK Delay Exponent (%llu)", TransportParams->AckDelayExponent);
+            QuicTraceLogConnVerbose(
+                DecodeTPAckDelayExponent,
+                Connection,
+                "TP: ACK Delay Exponent (%llu)",
+                TransportParams->AckDelayExponent);
             break;
 
         case QUIC_TP_ID_MAX_ACK_DELAY:
@@ -1016,7 +1127,11 @@ QuicCryptoTlsDecodeTransportParameters(
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_MAX_ACK_DELAY;
-            QuicTraceLogConnVerbose(DecodeTPMaxAckDelay, Connection, "TP: Max ACK Delay (%llu ms)", TransportParams->MaxAckDelay);
+            QuicTraceLogConnVerbose(
+                DecodeTPMaxAckDelay,
+                Connection,
+                "TP: Max ACK Delay (%llu ms)",
+                TransportParams->MaxAckDelay);
             break;
 
         case QUIC_TP_ID_DISABLE_ACTIVE_MIGRATION:
@@ -1025,7 +1140,10 @@ QuicCryptoTlsDecodeTransportParameters(
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION;
-            QuicTraceLogConnVerbose(DecodeTPDisableActiveMigration, Connection, "TP: Disable Active Migration");
+            QuicTraceLogConnVerbose(
+                DecodeTPDisableActiveMigration,
+                Connection,
+                "TP: Disable Active Migration");
             break;
 
         case QUIC_TP_ID_PREFERRED_ADDRESS:
@@ -1033,7 +1151,10 @@ QuicCryptoTlsDecodeTransportParameters(
                 QuicTraceEvent(ConnError, Connection, "Client incorrectly provided preferred address");
                 goto Exit;
             }
-            QuicTraceLogConnVerbose(DecodeTPPreferredAddress, Connection, "TP: Preferred Address");
+            QuicTraceLogConnVerbose(
+                DecodeTPPreferredAddress,
+                Connection,
+                "TP: Preferred Address");
             // TODO - Implement
             break;
 
@@ -1047,14 +1168,28 @@ QuicCryptoTlsDecodeTransportParameters(
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT;
-            QuicTraceLogConnVerbose(DecodeTPCIDLimit, Connection, "TP: Connection ID Limit (%llu)", TransportParams->ActiveConnectionIdLimit);
+            QuicTraceLogConnVerbose(
+                DecodeTPCIDLimit,
+                Connection,
+                "TP: Connection ID Limit (%llu)",
+                TransportParams->ActiveConnectionIdLimit);
             break;
 
         default:
             if (QuicTpIdIsReserved(Id)) {
-                QuicTraceLogConnWarning(DecodeTPReserved, Connection, "TP: Reserved ID %llu, length %hu", Id, Length);
+                QuicTraceLogConnWarning(
+                    DecodeTPReserved,
+                    Connection,
+                    "TP: Reserved ID %llu, length %hu",
+                    Id,
+                    Length);
             } else {
-                QuicTraceLogConnWarning(DecodeTPUnknown, Connection, "TP: Unknown ID %llu, length %hu", Id, Length);
+                QuicTraceLogConnWarning(
+                    DecodeTPUnknown,
+                    Connection,
+                    "TP: Unknown ID %llu, length %hu",
+                    Id,
+                    Length);
             }
             break;
         }

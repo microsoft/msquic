@@ -17,10 +17,6 @@ Environment:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "storage_winuser.tmh"
-#endif
-
 void
 NTAPI
 QuicStorageRegKeyChangeCallback(
@@ -96,7 +92,10 @@ QuicStorageOpen(
         goto Exit;
     }
 
-    QuicTraceLogVerbose("[ reg] Opening %s", FullKeyName);
+    QuicTraceLogVerbose(
+        StorageOpenKey,
+        "[ reg] Opening %s",
+        FullKeyName);
 
     Status =
         HRESULT_FROM_WIN32(

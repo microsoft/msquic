@@ -11,10 +11,6 @@ Abstract:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "cert_stub.tmh"
-#endif
-
 QUIC_STATUS
 QuicCertCreate(
     _In_ uint32_t Flags,

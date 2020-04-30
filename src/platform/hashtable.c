@@ -44,10 +44,6 @@ Notes:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "hashtable.tmh"
-#endif
-
 #define QUIC_HASH_RESERVED_SIGNATURE 0
 
 //
@@ -483,7 +479,7 @@ Return Value:
     if (*HashTable == NULL) {
         Table = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASHTABLE));
         if (Table == NULL) {
-            QuicTraceLogWarning("[ pal] Hashtable allocation failed.");
+            QuicTraceEvent(AllocFailure, "QUIC_HASHTABLE", sizeof(QUIC_HASHTABLE));
             return FALSE;
         }
 
@@ -516,7 +512,10 @@ Return Value:
             QUIC_ALLOC_NONPAGED(
                 QuicComputeSecondLevelDirSize(0) * sizeof(QUIC_LIST_ENTRY));
         if (Table->SecondLevelDir == NULL) {
-            QuicTraceLogWarning("[ pal] Allocate second level dir (0) failure.");
+            QuicTraceEvent(
+                AllocFailure,
+                "second level dir (0)",
+                QuicComputeSecondLevelDirSize(0) * sizeof(QUIC_LIST_ENTRY));
             QuicHashtableUninitialize(Table);
             return FALSE;
         }
@@ -549,7 +548,10 @@ Return Value:
                 QUIC_ALLOC_NONPAGED(
                     QuicComputeSecondLevelDirSize(i) * sizeof(QUIC_LIST_ENTRY));
             if (Table->FirstLevelDir[i] == NULL) {
-                QuicTraceLogWarning("[ pal] Allocate second level dir (i) failure.");
+                QuicTraceEvent(
+                    AllocFailure,
+                    "second level dir (i)",
+                    QuicComputeSecondLevelDirSize(i) * sizeof(QUIC_LIST_ENTRY));
                 QuicHashtableUninitialize(Table);
                 return FALSE;
             }

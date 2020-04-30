@@ -11,10 +11,6 @@ Abstract:
 
 #include "main.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "frametest.tmh"
-#endif
-
 struct AckFrameTest : ::testing::TestWithParam<QUIC_FRAME_TYPE> {
 };
 

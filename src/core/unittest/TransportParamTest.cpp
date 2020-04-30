@@ -11,10 +11,6 @@ Abstract:
 
 #include "main.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "transportparamtest.tmh"
-#endif
-
 static QUIC_CONNECTION JunkConnection;
 
 void CompareTransportParams(

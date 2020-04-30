@@ -9,10 +9,6 @@
 #include "msquic.h"
 #include "quic_tls.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "tlstest.tmh"
-#endif
-
 const uint32_t CertValidationIgnoreFlags =
     QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
     QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID;
