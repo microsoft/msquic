@@ -448,27 +448,27 @@ QuicSettingsDump(
     _In_ const QUIC_SETTINGS* Settings
     )
 {
-    QuicTraceLogVerbose(FN_settings_Dump_PacingDefault,              "[sett] PacingDefault          = %hhu", Settings->PacingDefault);
-    QuicTraceLogVerbose(FN_settings_Dump_MigrationEnabled,           "[sett] MigrationEnabled       = %hhu", Settings->MigrationEnabled);
-    QuicTraceLogVerbose(FN_settings_Dump_MaxPartitionCount,          "[sett] MaxPartitionCount      = %hhu", Settings->MaxPartitionCount);
-    QuicTraceLogVerbose(FN_settings_Dump_MaxOperationsPerDrain,      "[sett] MaxOperationsPerDrain  = %hhu", Settings->MaxOperationsPerDrain);
-    QuicTraceLogVerbose(FN_settings00fc7276f8b662d358928e0cfa29d043, "[sett] RetryMemoryLimit       = %hu", Settings->RetryMemoryLimit);
-    QuicTraceLogVerbose(FN_settings_Dump_LoadBalancingMode,          "[sett] LoadBalancingMode      = %hu", Settings->LoadBalancingMode);
-    QuicTraceLogVerbose(FN_settings67321e2160737fdc324fb42093dae824, "[sett] MaxStatelessOperations = %u", Settings->MaxStatelessOperations);
-    QuicTraceLogVerbose(FN_settings51f359ba6d2ceb8234f9cb01656763be, "[sett] MaxWorkerQueueDelayUs  = %u", Settings->MaxWorkerQueueDelayUs);
-    QuicTraceLogVerbose(FN_settingsb6cd3a0efb5f8db608f7fa16f6957ce0, "[sett] InitialWindowPackets   = %u", Settings->InitialWindowPackets);
-    QuicTraceLogVerbose(FN_settingsb89c8661c5b265e52f8c7e86e8087bb9, "[sett] SendIdleTimeoutMs      = %u", Settings->SendIdleTimeoutMs);
-    QuicTraceLogVerbose(FN_settingsdaa0f1e26a1af17445c7f77ce8551492, "[sett] InitialRttMs           = %u", Settings->InitialRttMs);
-    QuicTraceLogVerbose(FN_settingse675344097e6f9bb84e4d03d8ff9be4d, "[sett] MaxAckDelayMs          = %u", Settings->MaxAckDelayMs);
-    QuicTraceLogVerbose(FN_settings9e7a532745dc4d5567af3a575f923bac, "[sett] DisconnectTimeoutMs    = %u", Settings->DisconnectTimeoutMs);
-    QuicTraceLogVerbose(FN_settings5d12e260586f0be6c4f808dffe30d4a7, "[sett] KeepAliveIntervalMs    = %u", Settings->KeepAliveIntervalMs);
-    QuicTraceLogVerbose(FN_settingsb475e10d0ff099b06516e8abcb4f19c7, "[sett] IdleTimeoutMs          = %llu", Settings->IdleTimeoutMs);
-    QuicTraceLogVerbose(FN_settings33c9f29607d015655c8702e9cc5d8abb, "[sett] BidiStreamCount        = %hu", Settings->BidiStreamCount);
-    QuicTraceLogVerbose(FN_settings999de952663364f4ed3605c26a59794d, "[sett] UnidiStreamCount       = %hu", Settings->UnidiStreamCount);
-    QuicTraceLogVerbose(FN_settings618acfc75c83815ce1c13227574b9897, "[sett] TlsClientMaxSendBuffer = %u", Settings->TlsClientMaxSendBuffer);
-    QuicTraceLogVerbose(FN_settings2ca7254aa7cbdd713e9eed68144800b6, "[sett] TlsServerMaxSendBuffer = %u", Settings->TlsServerMaxSendBuffer);
-    QuicTraceLogVerbose(FN_settings9dab7b65b7e848389e5cdb2edbed3210, "[sett] StreamRecvWindowDefault= %u", Settings->StreamRecvWindowDefault);
-    QuicTraceLogVerbose(FN_settings1bb0aabcd202e8b720f4bdaaf5435eb5, "[sett] StreamRecvBufferDefault= %u", Settings->StreamRecvBufferDefault);
-    QuicTraceLogVerbose(FN_settings449b02f5fe7c5e954963dbab7ca016aa, "[sett] ConnFlowControlWindow  = %u", Settings->ConnFlowControlWindow);
-    QuicTraceLogVerbose(FN_settings01739e9f48d20100fa4147ba2385f8eb, "[sett] MaxBytesPerKey         = %llu", Settings->MaxBytesPerKey);
+    QuicTraceLogVerbose(SettingDumpPacingDefault,           "[sett] PacingDefault          = %hhu", Settings->PacingDefault);
+    QuicTraceLogVerbose(SettingDumpMigrationEnabled,        "[sett] MigrationEnabled       = %hhu", Settings->MigrationEnabled);
+    QuicTraceLogVerbose(SettingDumpMaxPartitionCount,       "[sett] MaxPartitionCount      = %hhu", Settings->MaxPartitionCount);
+    QuicTraceLogVerbose(SettingDumpMaxOperationsPerDrain,   "[sett] MaxOperationsPerDrain  = %hhu", Settings->MaxOperationsPerDrain);
+    QuicTraceLogVerbose(SettingDumpRetryMemoryLimit,        "[sett] RetryMemoryLimit       = %hu", Settings->RetryMemoryLimit);
+    QuicTraceLogVerbose(SettingDumpLoadBalancingMode,       "[sett] LoadBalancingMode      = %hu", Settings->LoadBalancingMode);
+    QuicTraceLogVerbose(SettingDumpMaxStatelessOperations,  "[sett] MaxStatelessOperations = %u", Settings->MaxStatelessOperations);
+    QuicTraceLogVerbose(SettingDumpMaxWorkerQueueDelayUs,   "[sett] MaxWorkerQueueDelayUs  = %u", Settings->MaxWorkerQueueDelayUs);
+    QuicTraceLogVerbose(SettingDumpInitialWindowPackets,    "[sett] InitialWindowPackets   = %u", Settings->InitialWindowPackets);
+    QuicTraceLogVerbose(SettingDumpSendIdleTimeoutMs,       "[sett] SendIdleTimeoutMs      = %u", Settings->SendIdleTimeoutMs);
+    QuicTraceLogVerbose(SettingDumpInitialRttMs,            "[sett] InitialRttMs           = %u", Settings->InitialRttMs);
+    QuicTraceLogVerbose(SettingDumpMaxAckDelayMs,           "[sett] MaxAckDelayMs          = %u", Settings->MaxAckDelayMs);
+    QuicTraceLogVerbose(SettingDumpDisconnectTimeoutMs,     "[sett] DisconnectTimeoutMs    = %u", Settings->DisconnectTimeoutMs);
+    QuicTraceLogVerbose(SettingDumpKeepAliveIntervalMs,     "[sett] KeepAliveIntervalMs    = %u", Settings->KeepAliveIntervalMs);
+    QuicTraceLogVerbose(SettingDumpIdleTimeoutMs,           "[sett] IdleTimeoutMs          = %llu", Settings->IdleTimeoutMs);
+    QuicTraceLogVerbose(SettingDumpBidiStreamCount,         "[sett] BidiStreamCount        = %hu", Settings->BidiStreamCount);
+    QuicTraceLogVerbose(SettingDumpUnidiStreamCount,        "[sett] UnidiStreamCount       = %hu", Settings->UnidiStreamCount);
+    QuicTraceLogVerbose(SettingDumpTlsClientMaxSendBuffer,  "[sett] TlsClientMaxSendBuffer = %u", Settings->TlsClientMaxSendBuffer);
+    QuicTraceLogVerbose(SettingDumpTlsServerMaxSendBuffer,  "[sett] TlsServerMaxSendBuffer = %u", Settings->TlsServerMaxSendBuffer);
+    QuicTraceLogVerbose(SettingDumpStreamRecvWindowDefault, "[sett] StreamRecvWindowDefault= %u", Settings->StreamRecvWindowDefault);
+    QuicTraceLogVerbose(SettingDumpStreamRecvBufferDefault, "[sett] StreamRecvBufferDefault= %u", Settings->StreamRecvBufferDefault);
+    QuicTraceLogVerbose(SettingDumpConnFlowControlWindow,   "[sett] ConnFlowControlWindow  = %u", Settings->ConnFlowControlWindow);
+    QuicTraceLogVerbose(SettingDumpMaxBytesPerKey,          "[sett] MaxBytesPerKey         = %llu", Settings->MaxBytesPerKey);
 }

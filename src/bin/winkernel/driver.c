@@ -13,7 +13,6 @@ Abstract:
 #include "quic_trace.h"
 #include "driver.c.clog.h"
 
-
 INITCODE
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -115,8 +114,8 @@ EvtDriverUnload(
 
 Routine Description:
 
-    EvtDriverUnload will clean up the WPP resources that was allocated
-    for this driver.
+    EvtDriverUnload will clean up any resources that were allocated for this
+    driver.
 
 Arguments:
 
@@ -128,6 +127,5 @@ Arguments:
 
     PAGED_CODE();
     MsQuicLibraryUnload();
-
     QuicPlatformSystemUnload();
 }

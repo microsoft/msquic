@@ -210,7 +210,11 @@ MsQuicSessionOpen(
                 Session,
                 &Session->Storage);
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning(FN_session85a35349e97865b7b714a279e1dadc0e, "[sess][%p] Failed to open settings, 0x%x", Session, Status);
+            QuicTraceLogWarning(
+                SessionOpenStorageFailed,
+                "[sess][%p] Failed to open settings, 0x%x",
+                Session,
+                Status);
             Status = QUIC_STATUS_SUCCESS; // Non-fatal, as the process may not have access
         }
     }
@@ -229,7 +233,11 @@ MsQuicSessionOpen(
                 Session,
                 &Session->AppSpecificStorage);
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning(FN_sessionfd68a94fad16df513f0d042f4537c631, "[sess][%p] Failed to open app specific settings, 0x%x", Session, Status);
+            QuicTraceLogWarning(
+                SessionOpenAppStorageFailed,
+                "[sess][%p] Failed to open app specific settings, 0x%x",
+                Session,
+                Status);
             Status = QUIC_STATUS_SUCCESS; // Non-fatal, as the process may not have access
         }
     }
@@ -474,7 +482,11 @@ QuicSessionSettingsChanged(
         QuicSettingsLoad(&Session->Settings, Session->AppSpecificStorage);
     }
 
-    QuicTraceLogInfo(FN_session6f0d4bd7234b294c9a99ad49c15c259d, "[sess][%p] Settings %p Updated", Session, &Session->Settings);
+    QuicTraceLogInfo(
+        SessionSettingsUpdated,
+        "[sess][%p] Settings %p Updated",
+        Session,
+        &Session->Settings);
     QuicSettingsDump(&Session->Settings);
 }
 
@@ -835,8 +847,11 @@ QuicSessionParamSet(
         Session->Settings.AppSet.BidiStreamCount = TRUE;
         Session->Settings.BidiStreamCount = *(uint16_t*)Buffer;
 
-        QuicTraceLogInfo(FN_session431d4cd1e01d1d19880d28b8484100fb, "[sess][%p] Updated bidirectional stream count = %hu",
-            Session, Session->Settings.BidiStreamCount);
+        QuicTraceLogInfo(
+            SessionBiDiStreamCountSet,
+            "[sess][%p] Updated bidirectional stream count = %hu",
+            Session,
+            Session->Settings.BidiStreamCount);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -852,8 +867,11 @@ QuicSessionParamSet(
         Session->Settings.AppSet.UnidiStreamCount = TRUE;
         Session->Settings.UnidiStreamCount = *(uint16_t*)Buffer;
 
-        QuicTraceLogInfo(FN_session044ad7f4e283138fd58759097cb00070, "[sess][%p] Updated unidirectional stream count = %hu",
-            Session, Session->Settings.UnidiStreamCount);
+        QuicTraceLogInfo(
+            SessionUniDiStreamCountSet,
+            "[sess][%p] Updated unidirectional stream count = %hu",
+            Session,
+            Session->Settings.UnidiStreamCount);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -869,8 +887,11 @@ QuicSessionParamSet(
         Session->Settings.AppSet.IdleTimeoutMs = TRUE;
         Session->Settings.IdleTimeoutMs = *(uint64_t*)Buffer;
 
-        QuicTraceLogInfo(FN_session784d9af2ef7948f61b6e6a24478000fa, "[sess][%p] Updated idle timeout to %llu milliseconds",
-            Session, Session->Settings.IdleTimeoutMs);
+        QuicTraceLogInfo(
+            SessionIdleTimeoutSet,
+            "[sess][%p] Updated idle timeout to %llu milliseconds",
+            Session,
+            Session->Settings.IdleTimeoutMs);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -886,8 +907,11 @@ QuicSessionParamSet(
         Session->Settings.AppSet.DisconnectTimeoutMs = TRUE;
         Session->Settings.DisconnectTimeoutMs = *(uint32_t*)Buffer;
 
-        QuicTraceLogInfo(FN_session9feae89ff9b00177f8e5108c2f1e90da, "[sess][%p] Updated disconnect timeout to %u milliseconds",
-            Session, Session->Settings.DisconnectTimeoutMs);
+        QuicTraceLogInfo(
+            SessionDisconnectTimeoutSet,
+            "[sess][%p] Updated disconnect timeout to %u milliseconds",
+            Session,
+            Session->Settings.DisconnectTimeoutMs);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -943,7 +967,9 @@ QuicSessionParamSet(
         Session->Settings.AppSet.MaxBytesPerKey = TRUE;
         Session->Settings.MaxBytesPerKey = NewValue;
 
-        QuicTraceLogInfo(FN_session6cf23dcb0930e847c8cf1f4f94294219, "[sess][%p] Updated max bytes per key to %llu bytes",
+        QuicTraceLogInfo(
+            SessionMaxBytesPerKeySet,
+            "[sess][%p] Updated max bytes per key to %llu bytes",
             Session,
             Session->Settings.MaxBytesPerKey);
 
@@ -960,7 +986,9 @@ QuicSessionParamSet(
         Session->Settings.AppSet.MigrationEnabled = TRUE;
         Session->Settings.MigrationEnabled = *(BOOLEAN*)Buffer;
 
-        QuicTraceLogInfo(FN_session_QUIC_PARAM_SESSION_MIGRATION_ENABLED, "[sess][%p] Updated migration enabled to %hhu",
+        QuicTraceLogInfo(
+            SessionMigrationEnabledSet,
+            "[sess][%p] Updated migration enabled to %hhu",
             Session,
             Session->Settings.MigrationEnabled);
 

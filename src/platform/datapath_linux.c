@@ -23,7 +23,6 @@ Environment:
 #include "quic_platform_dispatch.h"
 #include "datapath_linux.c.clog.h"
 
-
 QUIC_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t)), "(sizeof(QUIC_BUFFER.Length) == sizeof(size_t) must be TRUE.");
 QUIC_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)), "(sizeof(QUIC_BUFFER.Buffer) == sizeof(void*) must be TRUE.");
 
@@ -368,14 +367,14 @@ QuicProcessorContextInitialize(
     EpollFd = epoll_create1(EPOLL_CLOEXEC);
     if (EpollFd == INVALID_SOCKET_FD) {
         Status = errno;
-        QuicTraceLogError(FN_datapath_linuxbca492d3173b65591afb875ca167b44c, "[ dal] epoll_create1(EPOLL_CLOEXEC) failed, 0x%x.", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "epoll_create1(EPOLL_CLOEXEC) failed");
         goto Exit;
     }
 
     EventFd = eventfd(0, EFD_CLOEXEC);
     if (EventFd == INVALID_SOCKET_FD) {
         Status = errno;
-        QuicTraceLogError(FN_datapath_linux80d463940366316e871279ee90e5c307, "[ dal] eventfd failed, 0x%x.", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "eventfd failed");
         goto Exit;
     }
 
@@ -389,7 +388,7 @@ QuicProcessorContextInitialize(
     Ret = epoll_ctl(EpollFd, EPOLL_CTL_ADD, EventFd, &EvtFdEpEvt);
     if (Ret != 0) {
         Status = errno;
-        QuicTraceLogError(FN_datapath_linuxb8159a1f65ecbb0eb9c8b77b9be9122f, "[ dal] epoll_ctl(EPOLL_CTL_ADD) failed, 0x%x.", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "epoll_ctl(EPOLL_CTL_ADD) failed");
         goto Exit;
     }
 
@@ -415,7 +414,7 @@ QuicProcessorContextInitialize(
 
     Status = QuicThreadCreate(&ThreadConfig, &ProcContext->EpollWaitThread);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError(FN_datapath_linuxd0d27dc9f980729b226874b283255424, "[ dal] QuicThreadCreate failed, 0x%x.", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "QuicThreadCreate failed");
         goto Exit;
     }
 
@@ -488,7 +487,7 @@ QuicDataPathInitialize(
 
     QUIC_DATAPATH* Datapath = (QUIC_DATAPATH*)QUIC_ALLOC_PAGED(DatapathLength);
     if (Datapath == NULL) {
-        QuicTraceLogError(FN_datapath_linux8848703f05a0fe05539e919e0d365ba4, "[ dal] Datapath allocation failure.");
+        QuicTraceEvent(AllocFailure, "QUIC_DATAPATH", DatapathLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -589,7 +588,7 @@ QuicDataPathAllocRecvBlock(
     QUIC_DATAPATH_RECV_BLOCK* RecvBlock =
         QuicPoolAlloc(&Datapath->ProcContexts[ProcIndex].RecvBlockPool);
     if (RecvBlock == NULL) {
-        QuicTraceLogWarning(FN_datapath_linux3fa3c705814cf440901b3cdc82763d0e, "[ dal] RecvBlock allocation failed.");
+        QuicTraceEvent(AllocFailure, "QUIC_DATAPATH_RECV_BLOCK", 0);
     } else {
         QuicZeroMemory(RecvBlock, sizeof(*RecvBlock));
         RecvBlock->OwningPool = &Datapath->ProcContexts[ProcIndex].RecvBlockPool;
@@ -691,7 +690,12 @@ QuicDataPathResolveAddress(
         goto Exit;
     }
 
-    QuicTraceLogError(FN_datapath_linuxa4bf90a34d69dcbe9e96ed51f1b9021c, "[%p] Couldn't resolve hostname '%s' to an IP address", Datapath, HostName);
+    QuicTraceEvent(LibraryError, "Resolving hostname to IP");
+    QuicTraceLogError(
+        DatapathResolveHostNameFailed,
+        "[%p] Couldn't resolve hostname '%s' to an IP address",
+        Datapath,
+        HostName);
     Status = QUIC_STATUS_DNS_RESOLUTION_ERROR;
 
 Exit:
@@ -728,7 +732,7 @@ QuicSocketContextInitialize(
     SocketContext->CleanupFd = eventfd(0, EFD_CLOEXEC);
     if (SocketContext->CleanupFd == INVALID_SOCKET_FD) {
         Status = errno;
-        QuicTraceLogError(FN_datapath_linux80d463940366316e871279ee90e5c307, "[ dal] eventfd failed, 0x%x.", Status);
+        QuicTraceEvent(DatapathErrorStatus, Binding, Status, "eventfd failed");
         goto Exit;
     }
 
@@ -745,7 +749,7 @@ QuicSocketContextInitialize(
             SocketContext->CleanupFd,
             &EvtFdEpEvt) != 0) {
         Status = errno;
-        QuicTraceLogError(FN_datapath_linuxb8159a1f65ecbb0eb9c8b77b9be9122f, "[ dal] epoll_ctl(EPOLL_CTL_ADD) failed, 0x%x.", Status);
+        QuicTraceEvent(DatapathErrorStatus, Binding, Status, "epoll_ctl(EPOLL_CTL_ADD) failed");
         goto Exit;
     }
 
@@ -759,7 +763,7 @@ QuicSocketContextInitialize(
             IPPROTO_UDP);
     if (SocketContext->SocketFd == INVALID_SOCKET_FD) {
         Status = errno;
-        QuicTraceLogError(FN_datapath_linuxfdc1f385a374eb7487032df67fae038b, "[ dal] socket failed, 0x%x.", Status);
+        QuicTraceEvent(DatapathErrorStatus, Binding, Status, "socket failed");
         goto Exit;
     }
 
@@ -776,7 +780,7 @@ QuicSocketContextInitialize(
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
         Status = errno;
-        QuicTraceLogError(FN_datapath_linuxb6e785958cd8d50ccef0a6d36787da35, "[ dal] setsockopt(IPV6_V6ONLY) failed, 0x%x.", Status);
+        QuicTraceEvent(DatapathErrorStatus, Binding, Status, "setsockopt(IPV6_V6ONLY) failed");
         goto Exit;
     }
 
@@ -800,7 +804,7 @@ QuicSocketContextInitialize(
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
         Status = errno;
-        QuicTraceLogError(FN_datapath_linuxe5e6b299d1a0081dd2afc32349f22ecd, "[ dal] setsockopt(IP_MTU_DISCOVER) failed, 0x%x.", Status);
+        QuicTraceEvent(DatapathErrorStatus, Binding, Status, "setsockopt(IP_MTU_DISCOVER) failed");
         goto Exit;
     }
 
@@ -814,7 +818,7 @@ QuicSocketContextInitialize(
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
         Status = errno;
-        QuicTraceLogError(FN_datapath_linuxa4a94d76ae75beeb2d1d1c4a5098fea1, "[ dal] setsockopt(IPV6_DONTFRAG) failed, 0x%x.", Status);
+        QuicTraceEvent(DatapathErrorStatus, Binding, Status, "setsockopt(IPV6_DONTFRAG) failed");
         goto Exit;
     }
 
@@ -838,7 +842,7 @@ QuicSocketContextInitialize(
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
         Status = errno;
-        QuicTraceLogError(FN_datapath_linuxdf7cb85f965e43368839b99f2415011e, "[ dal] setsockopt(IPV6_RECVPKTINFO) failed, 0x%x.", Status);
+        QuicTraceEvent(DatapathErrorStatus, Binding, Status, "setsockopt(IPV6_RECVPKTINFO) failed");
         goto Exit;
     }
 
@@ -852,7 +856,7 @@ QuicSocketContextInitialize(
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
         Status = errno;
-        QuicTraceLogError(FN_datapath_linux59a04f4ccf742d10c8d11db4fb46b00e, "[ dal] setsockopt(IP_PKTINFO) failed, 0x%x.", Status);
+        QuicTraceEvent(DatapathErrorStatus, Binding, Status, "setsockopt(IP_PKTINFO) failed");
         goto Exit;
     }
 
@@ -870,7 +874,7 @@ QuicSocketContextInitialize(
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
         Status = errno;
-        QuicTraceLogError(FN_datapath_linux1ccd1de3f445cff3fe70092785fe43c3, "[ dal] setsockopt(SO_RCVBUF) failed, 0x%x.", Status);
+        QuicTraceEvent(DatapathErrorStatus, Binding, Status, "setsockopt(SO_RCVBUF) failed");
         goto Exit;
     }
 
@@ -887,7 +891,7 @@ QuicSocketContextInitialize(
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
         Status = errno;
-        QuicTraceLogError(FN_datapath_linuxd4db8a00044550ffa4fb320c0d17bd5e, "[ dal] setsockopt(SO_REUSEADDR) failed, 0x%x.", Status);
+        QuicTraceEvent(DatapathErrorStatus, Binding, Status, "setsockopt(SO_REUSEADDR) failed");
         goto Exit;
     }
 
@@ -898,7 +902,7 @@ QuicSocketContextInitialize(
             sizeof(Binding->LocalAddress));
     if (Result == SOCKET_ERROR) {
         Status = errno;
-        QuicTraceLogError(FN_datapath_linux96a75e11317f285c36e073a349ed8ae6, "[ dal] bind failed, 0x%x.", Status);
+        QuicTraceEvent(DatapathErrorStatus, Binding, Status, "bind failed");
         goto Exit;
     }
 
@@ -914,7 +918,7 @@ QuicSocketContextInitialize(
 
         if (Result == SOCKET_ERROR) {
             Status = errno;
-            QuicTraceLogError(FN_datapath_linuxb58ac54cf20776df9c35e6d1469fcb43, "[ dal] connect failed, 0x%x.", Status);
+            QuicTraceEvent(DatapathErrorStatus, Binding, Status, "connect failed");
             goto Exit;
         }
     }
@@ -932,15 +936,13 @@ QuicSocketContextInitialize(
             &AssignedLocalAddressLength);
     if (Result == SOCKET_ERROR) {
         Status = errno;
-        QuicTraceLogError(FN_datapath_linux9616bfff71a6ad3bd8a9028994b1f3ce, "[ dal] getsockname failed, 0x%x.", Status);
+        QuicTraceEvent(DatapathErrorStatus, Binding, Status, "getsockname failed");
         goto Exit;
     }
 
     if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
         QUIC_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
     }
-
-    //QuicTraceLogVerbose(FN_datapath_linux59aad15150c0d7ffdbc4b549d8312c1d, "[sock][%p] Initialized", SocketContext);
 
 Exit:
 
@@ -958,7 +960,6 @@ QuicSocketContextUninitialize(
     _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
-    //QuicTraceLogVerbose(FN_datapath_linux61eb4268402d5c45ab8802aa6c00611c, "[sock][%p] Uninitialize", SocketContext);
     epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
 
     const eventfd_t Value = 1;
@@ -971,8 +972,6 @@ QuicSocketContextUninitializeComplete(
     _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
-    //QuicTraceLogVerbose(FN_datapath_linuxf5aef1cdbfb13bbb56b9db47a5d9bf4a, "[sock][%p] Uninitialize complete.", SocketContext);
-
     if (SocketContext->CurrentRecvBlock != NULL) {
         QuicDataPathBindingReturnRecvDatagrams(&SocketContext->CurrentRecvBlock->RecvPacket);
     }
@@ -1004,7 +1003,7 @@ QuicSocketContextPrepareReceive(
                 SocketContext->Binding->Datapath,
                 QuicProcCurrentNumber());
         if (SocketContext->CurrentRecvBlock == NULL) {
-            QuicTraceLogWarning(FN_datapath_linux6a1490694bb2a6cf3b0ca3b4f8ea6705, "[sock][%p] QuicDataPathAllocRecvBlock failed.", SocketContext);
+            QuicTraceEvent(AllocFailure, "QUIC_DATAPATH_RECV_BLOCK", 0);
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
     }
@@ -1045,8 +1044,6 @@ QuicSocketContextStartReceive(
         }
     };
 
-    //QuicTraceLogVerbose(FN_datapath_linux5c39e7ce20b72cc933a2d2fb57b0d272, "[sock][%p] epoll ADD: IN | ET", SocketContext);
-
     int Ret =
         epoll_ctl(
             EpollFd,
@@ -1055,7 +1052,7 @@ QuicSocketContextStartReceive(
             &SockFdEpEvt);
     if (Ret != 0) {
         Status = Ret;
-        QuicTraceLogError(FN_datapath_linux7c18fd32d3cc4386509a1c9a858d1a8c, "[sock][%p] epoll_ctl failed, 0x%x.", SocketContext, Status);
+        QuicTraceEvent(DatapathErrorStatus, SocketContext->Binding, Status, "epoll_ctl failed");
         goto Error;
     }
 
@@ -1118,30 +1115,13 @@ QuicSocketContextRecvComplete(
 
     QUIC_FRE_ASSERT(FoundLocalAddr);
 
-#ifndef QUIC_TLS_STUB
-    char LocalInet6AddrStr[INET6_ADDRSTRLEN] = {0};
-    char RemoteInet6AddrStr[INET6_ADDRSTRLEN] = {0};
-    if (RemoteAddr->si_family == AF_INET) {
-        QuicTraceLogVerbose(FN_datapath_linuxb802df54d54a4bc6143599cee561f8f3, "[sock][%p] Received [%zd] (buflen=[%hu]) bytes Src=[%s:%hu] Dst=[%s:%hu], bind=[%p].",
-            SocketContext, BytesTransferred,
-            RecvPacket->BufferLength,
-            inet_ntop(AF_INET, &RemoteAddr->Ipv4.sin_addr, RemoteInet6AddrStr, INET_ADDRSTRLEN),
-            ntohs(RemoteAddr->Ipv4.sin_port),
-            inet_ntop(AF_INET, &LocalAddr->Ipv4.sin_addr, LocalInet6AddrStr, INET_ADDRSTRLEN),
-            ntohs(LocalAddr->Ipv4.sin_port),
-            SocketContext->Binding);
-    } else {
-        QuicTraceLogVerbose(FN_datapath_linuxde827e1cb26621b9975feaa0c9aade47, "[sock][%p] Received [%zd] (buflen=[%hu]) bytes Src=[%s:%hu] Dst=[%s:%hu%u], bind=[%p].",
-            SocketContext, BytesTransferred,
-            RecvPacket->BufferLength,
-            inet_ntop(AF_INET6, &RemoteAddr->Ipv6.sin6_addr, RemoteInet6AddrStr, INET6_ADDRSTRLEN),
-            ntohs(RemoteAddr->Ipv6.sin6_port),
-            inet_ntop(AF_INET6, &LocalAddr->Ipv6.sin6_addr, LocalInet6AddrStr, INET6_ADDRSTRLEN),
-            ntohs(LocalAddr->Ipv6.sin6_port),
-            LocalAddr->Ipv6.sin6_scope_id,
-            SocketContext->Binding);
-    }
-#endif
+    QuicTraceEvent(
+        DatapathRecv,
+        SocketContext->Binding,
+        (uint32_t)BytesTransferred,
+        (uint32_t)BytesTransferred,
+        LOG_ADDR_LEN(*LocalAddr), LOG_ADDR_LEN(*RemoteAddr),
+        (uint8_t*)LocalAddr, (uint8_t*)RemoteAddr);
 
     QUIC_DBG_ASSERT(BytesTransferred <= RecvPacket->BufferLength);
     RecvPacket->BufferLength = BytesTransferred;
@@ -1172,8 +1152,6 @@ QuicSocketContextPendSend(
     _In_ const QUIC_ADDR* RemoteAddress
     )
 {
-    //QuicTraceLogVerbose(FN_datapath_linux1a4cf7d41ec8fd1e829212c52385bb55, "[sock][%p] Pending send.", SocketContext);
-
     if (!SocketContext->SendWaiting) {
 
         struct epoll_event SockFdEpEvt = {
@@ -1183,8 +1161,6 @@ QuicSocketContextPendSend(
             }
         };
 
-        //QuicTraceLogVerbose(FN_datapath_linux63f61334eaf08a02252ba074286d9fdb, "[sock][%p] epoll MOD: IN | OUT | ET", SocketContext);
-
         int Ret =
             epoll_ctl(
                 ProcContext->EpollFd,
@@ -1192,7 +1168,7 @@ QuicSocketContextPendSend(
                 SocketContext->SocketFd,
                 &SockFdEpEvt);
         if (Ret != 0) {
-            QuicTraceLogError(FN_datapath_linux6bf174dd7705d220217784cf1b1fbd51, "[sock][%p] epoll_ctl failed, 0x%x.", SocketContext, errno);
+            QuicTraceEvent(DatapathErrorStatus, SocketContext->Binding, errno, "epoll_ctl failed");
             return errno;
         }
 
@@ -1251,8 +1227,6 @@ QuicSocketContextSendComplete(
             }
         };
 
-        //QuicTraceLogVerbose(FN_datapath_linuxab9d8aecbf2d0e38eeb36d1769c40b0c, "[sock][%p] epoll MOD: IN | ET", SocketContext);
-
         int Ret =
             epoll_ctl(
                 ProcContext->EpollFd,
@@ -1261,7 +1235,7 @@ QuicSocketContextSendComplete(
                 &SockFdEpEvt);
         if (Ret != 0) {
             Status = Ret;
-            QuicTraceLogError(FN_datapath_linux7c18fd32d3cc4386509a1c9a858d1a8c, "[sock][%p] epoll_ctl failed, 0x%x.", SocketContext, Status);
+            QuicTraceEvent(DatapathErrorStatus, SocketContext->Binding, Status, "epoll_ctl failed");
             goto Exit;
         }
 
@@ -1314,10 +1288,8 @@ QuicSocketContextProcessEvents(
         QuicSocketContextUninitializeComplete(SocketContext, ProcContext);
         return;
     }
-
+    
     QUIC_DBG_ASSERT(EventType == QUIC_SOCK_EVENT_SOCKET);
-
-    //QuicTraceLogVerbose(FN_datapath_linuxc8c574f415fac8afb9eaa69d11886826, "[sock][%p] Process Events: 0x%x.", SocketContext, Events);
 
     if (EPOLLERR & Events) {
         int ErrNum = 0;
@@ -1330,9 +1302,9 @@ QuicSocketContextProcessEvents(
                 &ErrNum,
                 &OptLen);
         if (Ret < 0) {
-            QuicTraceLogError(FN_datapath_linuxaba234d30914c9012fb19a828a43a2cb, "[sock][%p] getsockopt(SO_ERROR) failed, 0x%x.", SocketContext, errno);
+            QuicTraceEvent(DatapathErrorStatus, SocketContext->Binding, errno, "getsockopt(SO_ERROR) failed");
         } else {
-            QuicTraceLogError(FN_datapath_linux36e15fe80ecd2361189f45b0e3fc98d9, "[sock][%p] Socket error event:, 0x%x (%s).", SocketContext, ErrNum, strerror(ErrNum));
+            QuicTraceEvent(DatapathErrorStatus, SocketContext->Binding, ErrNum, "Socket error event");
 
             //
             // Send unreachable notification to MsQuic if any related
@@ -1360,7 +1332,7 @@ QuicSocketContextProcessEvents(
                     0);
             if (Ret < 0) {
                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
-                    QuicTraceLogError(FN_datapath_linuxbe45cb9fcf8f4e1e6970a5b140681c5d, "[sock][%p] recvmsg failed, 0x%x.", SocketContext, errno);
+                    QuicTraceEvent(LibraryErrorStatus, errno, "recvmsg failed");
                 }
                 break;
             } else {
@@ -1368,7 +1340,7 @@ QuicSocketContextProcessEvents(
             }
         }
     }
-
+    
     if (EPOLLOUT & Events) {
         QuicSocketContextSendComplete(SocketContext, ProcContext);
     }
@@ -1407,11 +1379,14 @@ QuicDataPathBindingCreate(
         (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_PAGED(BindingLength);
     if (Binding == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceLogError(FN_datapath_linux86275c6bd95aff071fb8c7df8db5b1fe, "[ dal] Binding allocation failed");
+        QuicTraceEvent(AllocFailure, "QUIC_DATAPATH_BINDING", BindingLength);
         goto Exit;
     }
 
-    QuicTraceLogInfo(FN_datapath_linux3c5cc39edbda9002304d06a649a55d29, "[bind][%p] Created.", Binding);
+    QuicTraceLogInfo(
+        DatapathCreate,
+        "[ udp][%p] Created.",
+        Binding);
 
     QuicZeroMemory(Binding, BindingLength);
     Binding->Datapath = Datapath;
@@ -1498,7 +1473,10 @@ QuicDataPathBindingDelete(
     return PlatDispatch->DatapathBindingDelete(Binding);
 #else
     QUIC_DBG_ASSERT(Binding != NULL);
-    QuicTraceLogVerbose(FN_datapath_linuxeffe372f69040808bb6dfa7efc48eaf2, "[bind][%p] Binding shutting down", Binding);
+    QuicTraceLogVerbose(
+        DatapathShuttingDown,
+        "[ udp][%p] Shutting down",
+        Binding);
 
     //
     // The function is called by the upper layer when it is completely done
@@ -1662,22 +1640,18 @@ QuicDataPathBindingAllocSendContext(
             MaxPacketSize);
 #else
     UNREFERENCED_PARAMETER(MaxPacketSize);
-    QUIC_DATAPATH_SEND_CONTEXT* SendContext = NULL;
-    QUIC_DATAPATH_PROC_CONTEXT* ProcContext = NULL;
-
     QUIC_DBG_ASSERT(Binding != NULL);
 
-    ProcContext = &Binding->Datapath->ProcContexts[QuicProcCurrentNumber()];
-
-    SendContext = QuicPoolAlloc(&ProcContext->SendContextPool);
-
+    QUIC_DATAPATH_PROC_CONTEXT* ProcContext =
+        &Binding->Datapath->ProcContexts[QuicProcCurrentNumber()];
+    QUIC_DATAPATH_SEND_CONTEXT* SendContext =
+        QuicPoolAlloc(&ProcContext->SendContextPool);
     if (SendContext == NULL) {
-        QuicTraceLogError(FN_datapath_linuxf1e7fb33cf2002577b7b6ad6225d04bb, "[ dal] QuicPoolAlloc failed.");
+        QuicTraceEvent(AllocFailure, "QUIC_DATAPATH_SEND_CONTEXT", 0);
         goto Exit;
     }
 
     QuicZeroMemory(SendContext, sizeof(*SendContext));
-
     SendContext->Owner = ProcContext;
 
 Exit:
@@ -1725,7 +1699,7 @@ QuicDataPathBindingAllocSendDatagram(
 
     if (SendContext->BufferCount ==
             SendContext->Owner->Datapath->MaxSendBatchSize) {
-        QuicTraceLogError(FN_datapath_linux397f19d5cc013a05fa3ea6456e446ade, "[ dal] Max batch size limit hit.");
+        QuicTraceEvent(LibraryError, "Max batch size limit hit");
         goto Exit;
     }
 
@@ -1734,7 +1708,7 @@ QuicDataPathBindingAllocSendDatagram(
 
     Buffer->Buffer = QuicPoolAlloc(&SendContext->Owner->SendBufferPool);
     if (Buffer->Buffer == NULL) {
-        QuicTraceLogWarning(FN_datapath_linux3b6790b90a378e2f0279d08e9790ad9e, "[ dal] Send buffer allocation failed.");
+        QuicTraceEvent(AllocFailure, "Send Buffer", 0);
         goto Exit;
     }
 
@@ -1808,6 +1782,14 @@ QuicDataPathBindingSend(
             i < SendContext->BufferCount;
             ++i, SendContext->CurrentIndex++) {
 
+            QuicTraceEvent(
+                DatapathSendTo,
+                Binding,
+                SendContext->Buffers[i].Length,
+                1,
+                SendContext->Buffers[i].Length,
+                LOG_ADDR_LEN(*RemoteAddress), (uint8_t*)RemoteAddress);
+
             SentByteCount =
                 sendto(
                     SocketContext->SocketFd,
@@ -1819,8 +1801,6 @@ QuicDataPathBindingSend(
 
             if (SentByteCount < 0) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                    QuicTraceLogVerbose(FN_datapath_linux55c63664d2640c0e7f6066ba3c3bcbc9, "[ dal] sendto() blocked.");
-
                     Status =
                         QuicSocketContextPendSend(
                             SocketContext,
@@ -1840,23 +1820,41 @@ QuicDataPathBindingSend(
                     //
 
                     Status = errno;
-                    QuicTraceLogError(FN_datapath_linux1f5f901030a987cf2a21f462a41812a9, "[ dal] sendto failed, status: %u.", Status);
+                    QuicTraceEvent(DatapathErrorStatus, SocketContext->Binding, Status, "sendto failed");
                     goto Exit;
                 }
             } else {
                 //
                 // Completed synchronously.
                 //
-
-                QuicTraceLogVerbose(FN_datapath_linux19f2bf84e9d972cd7232119e1f7bfa5f, "[sock][%p] Send (%p) completion succeeded, bytes transferred %d",
-                    SocketContext, SendContext, SentByteCount);
+                QuicTraceLogVerbose(
+                    DatapathSendToCompleted,
+                    "[ udp][%p] sendto succeeded, bytes transferred %d",
+                    SocketContext->Binding,
+                    SentByteCount);
             }
         }
     } else {
+
+        uint32_t TotalSize = 0;
+        for (i = 0; i < SendContext->BufferCount; ++i) {
+            SendContext->Iovs[i].iov_base = SendContext->Buffers[i].Buffer;
+            SendContext->Iovs[i].iov_len = SendContext->Buffers[i].Length;
+            TotalSize += SendContext->Buffers[i].Length;
+        }
+
+        QuicTraceEvent(
+            DatapathSendFromTo,
+            Binding,
+            TotalSize,
+            SendContext->BufferCount,
+            SendContext->Buffers[0].Length,
+            LOG_ADDR_LEN(*RemoteAddress), LOG_ADDR_LEN(*LocalAddress),
+            (uint8_t*)RemoteAddress, (uint8_t*)LocalAddress);
+
         //
         // Map V4 address to dual-stack socket format.
         //
-
         QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
 
         struct msghdr Mhdr = {
@@ -1866,11 +1864,6 @@ QuicDataPathBindingSend(
             .msg_iovlen = SendContext->BufferCount,
             .msg_flags = 0
         };
-
-        for (i = 0; i < SendContext->BufferCount; ++i) {
-            SendContext->Iovs[i].iov_base = SendContext->Buffers[i].Buffer;
-            SendContext->Iovs[i].iov_len = SendContext->Buffers[i].Length;
-        }
 
         // TODO: Avoid allocating both.
 
@@ -1920,16 +1913,18 @@ QuicDataPathBindingSend(
                 goto Exit;
             } else {
                 Status = errno;
-                QuicTraceLogError(FN_datapath_linuxa7c850fad55357dac836f120c5a602a9, "[ dal] sendmsg failed, 0x%x.", Status);
+                QuicTraceEvent(DatapathErrorStatus, SocketContext->Binding, Status, "sendmsg failed");
                 goto Exit;
             }
         } else {
             //
             // Completed synchronously.
             //
-
-            QuicTraceLogVerbose(FN_datapath_linux1029b3b03e6182711394d88b277f288c, "[sock][%p] Send (%p) completion succeeded, bytes transferred %d",
-                SocketContext, SendContext, SentByteCount);
+            QuicTraceLogVerbose(
+                DatapathSendToCompleted,
+                "[ udp][%p] sendmsg succeeded, bytes transferred %d",
+                SocketContext->Binding,
+                SentByteCount);
         }
     }
 
@@ -1964,30 +1959,6 @@ QuicDataPathBindingSendTo(
         RemoteAddress->Ipv4.sin_port != 0 &&
         SendContext != NULL);
 
-    //socklen_t RemoteAddrLen = 0;
-    char Inet6AddrStr[INET6_ADDRSTRLEN] = {0};
-    QUIC_SOCKET_CONTEXT* SocketContext =
-        &Binding->SocketContexts[QuicProcCurrentNumber()];
-
-    for (size_t i = 0; i < SendContext->BufferCount; ++i) {
-        if (RemoteAddress->si_family == AF_INET) {
-            QuicTraceLogVerbose(FN_datapath_linux60ede27a1c5ad670ecffe4810e5d350a, "[sock][%p] SocketFd=[%d], sending %u bytes Dst=[%s:%hu] (%p)",
-                SocketContext,
-                SocketContext->SocketFd,
-                SendContext->Buffers[i].Length,
-                inet_ntop(AF_INET, &RemoteAddress->Ipv4.sin_addr, Inet6AddrStr, INET_ADDRSTRLEN),
-                ntohs(RemoteAddress->Ipv4.sin_port),
-                SendContext);
-        } else {
-            QuicTraceLogVerbose(FN_datapath_linux8492f15439dfbd6b576f900b8ec9a319, "[sock][%p] SocketFd=[%d], sending %u bytes Dst=[%s:%hu] (%p)",
-                SocketContext,
-                SocketContext->SocketFd,
-                SendContext->Buffers[i].Length,
-                inet_ntop(AF_INET6, &RemoteAddress->Ipv6.sin6_addr, Inet6AddrStr, INET6_ADDRSTRLEN),
-                ntohs(RemoteAddress->Ipv6.sin6_port),
-                SendContext);
-        }
-    }
     return
         QuicDataPathBindingSend(
             Binding,
@@ -2019,37 +1990,6 @@ QuicDataPathBindingSendFromTo(
         RemoteAddress != NULL &&
         SendContext != NULL &&
         SendContext->BufferCount != 0);
-
-    char LocalInet6AddrStr[INET6_ADDRSTRLEN] = {0};
-    char RemoteInet6AddrStr[INET6_ADDRSTRLEN] = {0};
-    QUIC_SOCKET_CONTEXT* SocketContext =
-        &Binding->SocketContexts[QuicProcCurrentNumber()];
-
-    for (size_t i = 0; i < SendContext->BufferCount; ++i) {
-        if (RemoteAddress->si_family == AF_INET) {
-            QuicTraceLogVerbose(FN_datapath_linux3b98ac193c78986a62dc8818437aaac3, "[sock][%p] SocketFd=[%d], sending %u bytes Src=[%s:%hu%u] Dst=[%s:%hu] (%p)",
-                SocketContext,
-                SocketContext->SocketFd,
-                SendContext->Buffers[i].Length,
-                inet_ntop(AF_INET, &LocalAddress->Ipv4.sin_addr, LocalInet6AddrStr, INET_ADDRSTRLEN),
-                ntohs(LocalAddress->Ipv4.sin_port),
-                LocalAddress->Ipv6.sin6_scope_id,
-                inet_ntop(AF_INET, &RemoteAddress->Ipv4.sin_addr, RemoteInet6AddrStr, INET_ADDRSTRLEN),
-                ntohs(RemoteAddress->Ipv4.sin_port),
-                SendContext);
-        } else {
-            QuicTraceLogVerbose(FN_datapath_linux8a3aa260f243d9c933a88d3f5f4c0321, "[sock][%p] SocketFd=[%d], sending %u bytes Src=[%s:%hu%u] Dst=[%s:%hu] (%p)",
-                SocketContext,
-                SocketContext->SocketFd,
-                SendContext->Buffers[i].Length,
-                inet_ntop(AF_INET6, &LocalAddress->Ipv6.sin6_addr, LocalInet6AddrStr, INET6_ADDRSTRLEN),
-                ntohs(LocalAddress->Ipv6.sin6_port),
-                LocalAddress->Ipv6.sin6_scope_id,
-                inet_ntop(AF_INET6, &RemoteAddress->Ipv6.sin6_addr, RemoteInet6AddrStr, INET6_ADDRSTRLEN),
-                ntohs(RemoteAddress->Ipv6.sin6_port),
-                SendContext);
-        }
-    }
 
     return
         QuicDataPathBindingSend(

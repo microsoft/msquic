@@ -367,9 +367,18 @@ QuicLookupFindConnectionByLocalCidInternal(
 
 #if QUIC_DEBUG_HASHTABLE_LOOKUP
     if (Connection != NULL) {
-        QuicTraceLogVerbose(FN_lookup4d6a39f9c8572203bf3e0252c2e98686, "[bind][%p] Lookup Hash=%u found %p", Lookup, Hash, Connection);
+        QuicTraceLogVerbose(
+            LookupCidFound,
+            "[look][%p] Lookup Hash=%u found %p",
+            Lookup,
+            Hash,
+            Connection);
     } else {
-        QuicTraceLogVerbose(FN_lookup70420e94980f690ca12e8a277250b26e, "[bind][%p] Lookup Hash=%u not found", Lookup, Hash);
+        QuicTraceLogVerbose(
+            LookupCidNotFound,
+            "[look][%p] Lookup Hash=%u not found",
+            Lookup,
+            Hash);
     }
 #endif
 
@@ -403,7 +412,12 @@ QuicLookupFindConnectionByRemoteHashInternal(
             RemoteCidLength == Entry->RemoteCidLength &&
             memcmp(RemoteCid, Entry->RemoteCid, RemoteCidLength) == 0) {
 #if QUIC_DEBUG_HASHTABLE_LOOKUP
-            QuicTraceLogVerbose(LookupRemoteHashSuccess, "[bind][%p] Lookup RemoteHash=%u found %p", Lookup, Hash, Connection);
+            QuicTraceLogVerbose(
+                LookupRemoteHashFound,
+                "[look][%p] Lookup RemoteHash=%u found %p",
+                Lookup,
+                Hash,
+                Connection);
 #endif
             return Entry->Connection;
         }
@@ -412,7 +426,11 @@ QuicLookupFindConnectionByRemoteHashInternal(
     }
 
 #if QUIC_DEBUG_HASHTABLE_LOOKUP
-    QuicTraceLogVerbose(LookupRemoteHashFailure, "[bind][%p] Lookup RemoteHash=%u not found", Lookup, Hash);
+    QuicTraceLogVerbose(
+        LookupRemoteHashNotFound,
+        "[look][%p] Lookup RemoteHash=%u not found",
+        Lookup,
+        Hash);
 #endif
 
     return NULL;
@@ -470,7 +488,12 @@ QuicLookupInsertLocalCid(
     }
 
 #if QUIC_DEBUG_HASHTABLE_LOOKUP
-    QuicTraceLogVerbose(FN_lookup08f411ebe70c98bcc531d9a1fc421691, "[bind][%p] Insert Conn=%p Hash=%u", Lookup, Connection, Hash);
+    QuicTraceLogVerbose(
+        LookupCidInsert,
+        "[look][%p] Insert Conn=%p Hash=%u",
+        Lookup,
+        Connection,
+        Hash);
 #endif
 
     SourceCid->CID.IsInLookupTable = TRUE;
@@ -524,7 +547,12 @@ QuicLookupInsertRemoteHash(
     }
 
 #if QUIC_DEBUG_HASHTABLE_LOOKUP
-    QuicTraceLogVerbose(LookupRemoteHashInsert, "[bind][%p] Insert Conn=%p RemoteHash=%u", Lookup, Connection, Hash);
+    QuicTraceLogVerbose(
+        LookupRemoteHashInsert,
+        "[look][%p] Insert Conn=%p RemoteHash=%u",
+        Lookup,
+        Connection,
+        Hash);
 #endif
 
     return TRUE;
@@ -546,7 +574,11 @@ QuicLookupRemoveLocalCidInt(
     Lookup->CidCount--;
 
 #if QUIC_DEBUG_HASHTABLE_LOOKUP
-    QuicTraceLogVerbose(FN_lookupeff24288031c85be92f7f20338b8933f, "[bind][%p] Remove Conn=%p", Lookup, SourceCid->Connection);
+    QuicTraceLogVerbose(
+        LookupCidRemoved,
+        "[look][%p] Remove Conn=%p",
+        Lookup,
+        SourceCid->Connection);
 #endif
 
     if (Lookup->PartitionCount == 0) {

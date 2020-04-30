@@ -80,7 +80,10 @@ QuicSendReset(
     Send->SendFlags = 0;
     Send->LastFlushTime = 0;
     if (Send->DelayedAckTimerActive) {
-        QuicTraceLogConnVerbose(CancelAckDelayTimer, QuicSendGetConnection(Send), "Canceling ACK_DELAY timer");
+        QuicTraceLogConnVerbose(
+            CancelAckDelayTimer,
+            QuicSendGetConnection(Send),
+            "Canceling ACK_DELAY timer");
         QuicConnTimerCancel(QuicSendGetConnection(Send), QUIC_CONN_TIMER_ACK_DELAY);
         Send->DelayedAckTimerActive = FALSE;
     }
@@ -198,14 +201,21 @@ QuicSendSetSendFlag(
         !QuicConnIsClosed(Connection) || IsCloseFrame;
 
     if (SendFlags & QUIC_CONN_SEND_FLAG_ACK && Send->DelayedAckTimerActive) {
-        QuicTraceLogConnVerbose(CancelAckDelayTimer, Connection, "Canceling ACK_DELAY timer");
+        QuicTraceLogConnVerbose(
+            CancelAckDelayTimer,
+            Connection,
+            "Canceling ACK_DELAY timer");
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_ACK_DELAY);
         Send->DelayedAckTimerActive = FALSE;
     }
 
     if (CanSetFlag && (Send->SendFlags & SendFlags) != SendFlags) {
-        QuicTraceLogConnVerbose(ScheduleSendFlags, Connection, "Scheduling flags 0x%x to 0x%x",
-            SendFlags, Send->SendFlags);
+        QuicTraceLogConnVerbose(
+            ScheduleSendFlags,
+            Connection,
+            "Scheduling flags 0x%x to 0x%x",
+            SendFlags,
+            Send->SendFlags);
         Send->SendFlags |= SendFlags;
         QuicSendQueueFlush(Send, REASON_CONNECTION_FLAGS);
     }
@@ -246,7 +256,10 @@ QuicSendClearSendFlag(
     )
 {
     if (Send->SendFlags & SendFlags) {
-        QuicTraceLogConnVerbose(RemoveSendFlags, QuicSendGetConnection(Send), "Removing flags %x",
+        QuicTraceLogConnVerbose(
+            RemoveSendFlags,
+            QuicSendGetConnection(Send),
+            "Removing flags %x",
             (SendFlags & Send->SendFlags));
         Send->SendFlags &= ~SendFlags;
     }
@@ -276,7 +289,10 @@ QuicSendUpdateAckState(
             QUIC_DBG_ASSERT(!Send->DelayedAckTimerActive);
             Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_ACK;
         } else if (Send->DelayedAckTimerActive) {
-            QuicTraceLogConnVerbose(CancelAckDelayTimer, Connection, "Canceling ACK_DELAY timer");
+            QuicTraceLogConnVerbose(
+                CancelAckDelayTimer,
+                Connection,
+                "Canceling ACK_DELAY timer");
             QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_ACK_DELAY);
             Send->DelayedAckTimerActive = FALSE;
         }
@@ -326,8 +342,12 @@ QuicSendSetStreamSendFlag(
 
     if ((Stream->SendFlags | SendFlags) != Stream->SendFlags) {
 
-        QuicTraceLogStreamVerbose(SetSendFlag, Stream, "Setting flags 0x%x (existing flags: 0x%x)",
-            (SendFlags & (~Stream->SendFlags)), Stream->SendFlags);
+        QuicTraceLogStreamVerbose(
+            SetSendFlag,
+            Stream,
+            "Setting flags 0x%x (existing flags: 0x%x)",
+            (SendFlags & (~Stream->SendFlags)),
+            Stream->SendFlags);
 
         if (Stream->Flags.Started &&
             (Stream->SendFlags & SendFlags) != SendFlags) {
@@ -353,7 +373,10 @@ QuicSendClearStreamSendFlag(
 
     if (Stream->SendFlags & SendFlags) {
 
-        QuicTraceLogStreamVerbose(ClearSendFlags, Stream, "Removing flags %x",
+        QuicTraceLogStreamVerbose(
+            ClearSendFlags,
+            Stream,
+            "Removing flags %x",
             (SendFlags & Stream->SendFlags));
 
         //
@@ -933,12 +956,19 @@ QuicSendFlush(
     }
     _Analysis_assume_(Builder.Metadata != NULL);
 
-    QuicTraceLogConnVerbose(FlushSend, Connection, "Flushing send. Allowance=%u bytes", Builder.SendAllowance);
+    QuicTraceLogConnVerbose(
+        FlushSend,
+        Connection,
+        "Flushing send. Allowance=%u bytes",
+        Builder.SendAllowance);
 
     do {
 
         if (Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) {
-            QuicTraceLogConnVerbose(AmplificationProtectionBlocked, Connection, "Cannot send any more because of amplification protection");
+            QuicTraceLogConnVerbose(
+                AmplificationProtectionBlocked,
+                Connection,
+                "Cannot send any more because of amplification protection");
             Result = QUIC_SEND_COMPLETE;
             break;
         }
@@ -962,7 +992,10 @@ QuicSendFlush(
                     //
                     QuicConnAddOutFlowBlockedReason(
                         Connection, QUIC_FLOW_BLOCKED_PACING);
-                    QuicTraceLogConnVerbose(SetPacingTimer, Connection, "Setting delayed send (PACING) timer for %u ms",
+                    QuicTraceLogConnVerbose(
+                        SetPacingTimer,
+                        Connection,
+                        "Setting delayed send (PACING) timer for %u ms",
                         QUIC_SEND_PACING_INTERVAL);
                     QuicConnTimerSet(
                         Connection,
@@ -1070,7 +1103,11 @@ QuicSendFlush(
 
     QuicPacketBuilderCleanup(&Builder);
 
-    QuicTraceLogConnVerbose(SendFlushComplete, Connection, "Flush complete flags=0x%x", Send->SendFlags);
+    QuicTraceLogConnVerbose(
+        SendFlushComplete,
+        Connection,
+        "Flush complete flags=0x%x",
+        Send->SendFlags);
 
     if (Result == QUIC_SEND_INCOMPLETE) {
         //
@@ -1101,7 +1138,10 @@ QuicSendStartDelayedAckTimer(
         !Connection->State.ClosedLocally &&
         !Connection->State.ClosedRemotely) {
 
-        QuicTraceLogConnVerbose(StartAckDelayTimer, Connection, "Starting ACK_DELAY timer for %u ms",
+        QuicTraceLogConnVerbose(
+            StartAckDelayTimer,
+            Connection,
+            "Starting ACK_DELAY timer for %u ms",
             Connection->MaxAckDelayMs);
         QuicConnTimerSet(
             Connection,
@@ -1152,6 +1192,10 @@ QuicSendOnMtuProbePacketAcked(
         PacketSizeFromUdpPayloadSize(
             QuicAddrGetFamily(&Path->RemoteAddress),
             Packet->PacketLength);
-    QuicTraceLogConnInfo(PathMtuUpdated, QuicSendGetConnection(Send), "Path[%hu] MTU updated to %u bytes",
-        Path->ID, Path->Mtu);
+    QuicTraceLogConnInfo(
+        PathMtuUpdated,
+        QuicSendGetConnection(Send),
+        "Path[%hhu] MTU updated to %u bytes",
+        Path->ID,
+        Path->Mtu);
 }

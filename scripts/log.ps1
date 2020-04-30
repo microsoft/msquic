@@ -21,9 +21,6 @@ This script provides helpers for starting, stopping and canceling log collection
 .PARAMETER ConvertToText
     Converts the output logs to text.
 
-.PARAMETER TmfPath
-    Used for converting Windows WPP logs.
-
 .PARAMETER InstanceName
     A unique name for the logging instance.
 

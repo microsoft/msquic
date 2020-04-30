@@ -33,7 +33,11 @@ QuicPathInitialize(
         Path->SmoothedRtt = MS_TO_US(QUIC_INITIAL_RTT);
     }
 
-    QuicTraceLogConnInfo(PathInitialized, Connection, "Path[%u] Initialized", Path->ID);
+    QuicTraceLogConnInfo(
+        PathInitialized,
+        Connection,
+        "Path[%hhu] Initialized",
+        Path->ID);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -45,7 +49,11 @@ QuicPathRemove(
 {
     QUIC_DBG_ASSERT(Index < Connection->PathsCount);
     const QUIC_PATH* Path = &Connection->Paths[Index];
-    QuicTraceLogConnInfo(PathRemoved, Connection, "Path[%u] Removed", Path->ID);
+    QuicTraceLogConnInfo(
+        PathRemoved,
+        Connection,
+        "Path[%hhu] Removed",
+        Path->ID);
 
     if (Index + 1 < Connection->PathsCount) {
         QuicMoveMemory(
@@ -112,7 +120,12 @@ QuicPathSetValid(
         "Path Response"
     };
 
-    QuicTraceLogConnInfo(PathValidated, Connection, "Path[%u] Validated (%s)", Path->ID, ReasonStrings[Reason]);
+    QuicTraceLogConnInfo(
+        PathValidated,
+        Connection,
+        "Path[%hhu] Validated (%s)",
+        Path->ID,
+        ReasonStrings[Reason]);
 
     Path->IsPeerValidated = TRUE;
     QuicPathSetAllowance(Connection, Path, UINT32_MAX);
@@ -210,7 +223,12 @@ QuicPathSetActive(
         QuicAddrGetFamily(&Path->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[0].RemoteAddress) &&
         QuicAddrCompareIp(&Path->RemoteAddress, &Connection->Paths[0].RemoteAddress);
 
-    QuicTraceLogConnInfo(PathActive, Connection, "Path[%u] Set active (rebind=%hu)", Path->ID, UdpPortChangeOnly);
+    QuicTraceLogConnInfo(
+        PathActive,
+        Connection,
+        "Path[%hhu] Set active (rebind=%hhu)",
+        Path->ID,
+        UdpPortChangeOnly);
 
     QUIC_PATH PrevActivePath = Connection->Paths[0];
 

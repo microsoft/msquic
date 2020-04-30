@@ -288,7 +288,9 @@ QuicBindingRegisterListener(
         }
 
         if (QuicSessionHasAlpnOverlap(NewListener->Session, ExistingListener->Session)) {
-            QuicTraceLogWarning(FN_binding_ALREADY_REGISTERED_ON_ALPN, "[bind][%p] Listener (%p) already registered on ALPN",
+            QuicTraceLogWarning(
+                BindingListenerAlreadyRegistered,
+                "[bind][%p] Listener (%p) already registered on ALPN",
                 Binding, ExistingListener);
             AddNewListener = FALSE;
             break;
@@ -686,7 +688,9 @@ QuicBindingProcessStatelessOperation(
             QuicSupportedVersionList,
             sizeof(QuicSupportedVersionList));
 
-        QuicTraceLogVerbose(FN_binding8b244dfa4215590c94c15289c8d04ae7, "[S][TX][-] VN");
+        QuicTraceLogVerbose(
+            PacketTxVersionNegotiation,
+            "[S][TX][-] VN");
 
     } else if (OperationType == QUIC_OPER_TYPE_STATELESS_RESET) {
 
@@ -741,8 +745,12 @@ QuicBindingProcessStatelessOperation(
             RecvPacket->DestCid,
             SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH);
 
-        QuicTraceLogVerbose(FN_binding1e7eb5542a86d5b4071042189950a0e0, "[S][TX][-] SR %!CID!",
-            CLOG_BYTEARRAY(QUIC_STATELESS_RESET_TOKEN_LENGTH, SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH));
+        QuicTraceLogVerbose(
+            PacketTxStatelessReset,
+            "[S][TX][-] SR %!CID!",
+            CLOG_BYTEARRAY(
+                QUIC_STATELESS_RESET_TOKEN_LENGTH,
+                SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH));
 
     } else if (OperationType == QUIC_OPER_TYPE_RETRY) {
 
@@ -810,7 +818,9 @@ QuicBindingProcessStatelessOperation(
                 (uint8_t*)SendDatagram->Buffer);
         QUIC_DBG_ASSERT(SendDatagram->Length != 0);
 
-        QuicTraceLogVerbose(FN_bindingda2912dbb439879118c990ced87e39cd, "[S][TX][-] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:R OrigDestCid:%!CID! (Token %hu bytes)",
+        QuicTraceLogVerbose(
+            PacketTxRetry,
+            "[S][TX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R OrigDestCid:%s (Token %hu bytes)",
             RecvPacket->LH->Version,
             CLOG_BYTEARRAY(RecvPacket->SourceCidLen, RecvPacket->SourceCid),
             CLOG_BYTEARRAY(MsQuicLib.CidTotalLength, NewDestCid),
@@ -1463,11 +1473,18 @@ QuicBindingSendTo(
                 RemoteAddress,
                 SendContext);
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning(FN_binding75104ed3d2c2d06e15e4ae01cec68c6d, "[bind][%p] SendTo failed, 0x%x", Binding, Status);
+            QuicTraceLogWarning(
+                BindingSendToFailed,
+                "[bind][%p] SendTo failed, 0x%x",
+                Binding,
+                Status);
         }
 #if QUIC_SEND_FAKE_LOSS
     } else {
-        QuicTraceLogVerbose(FN_binding4b36568b714495e4231bf89d1ca50021, "[bind][%p] Dropped (fake loss) packet", Binding);
+        QuicTraceLogVerbose(
+            BindingSendToFakeDrop,
+            "[bind][%p] Dropped (fake loss) packet",
+            Binding);
         QuicDataPathBindingFreeSendContext(SendContext);
         Status = QUIC_STATUS_SUCCESS;
     }
@@ -1497,11 +1514,18 @@ QuicBindingSendFromTo(
                 RemoteAddress,
                 SendContext);
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning(FN_binding876f9daa4d31c3d046b6921b08477e3d, "[bind][%p] SendFromTo failed, 0x%x", Binding, Status);
+            QuicTraceLogWarning(
+                BindingSendFromToFailed,
+                "[bind][%p] SendFromTo failed, 0x%x",
+                Binding,
+                Status);
         }
 #if QUIC_SEND_FAKE_LOSS
     } else {
-        QuicTraceLogVerbose(FN_binding4b36568b714495e4231bf89d1ca50021, "[bind][%p] Dropped (fake loss) packet", Binding);
+        QuicTraceLogVerbose(
+            SendFromToFakeDrop,
+            "[bind][%p] Dropped (fake loss) packet",
+            Binding);
         QuicDataPathBindingFreeSendContext(SendContext);
         Status = QUIC_STATUS_SUCCESS;
     }

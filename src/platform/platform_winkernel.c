@@ -16,12 +16,6 @@ Environment:
 #include "platform_internal.h"
 #include "platform_winkernel.c.clog.h"
 
-/*
-    This multiline comment forces WPP to generate the definitions for the
-    initialization and cleanup code, which happens only if there is direct
-    textual reference to the "WPP_INIT_TRACING();" macro.
-*/
-
 typedef enum _SYSTEM_INFORMATION_CLASS {
     SystemBasicInformation                          = 0
 } SYSTEM_INFORMATION_CLASS;
@@ -86,7 +80,9 @@ QuicPlatformSystemLoad(
     (VOID)KeQueryPerformanceCounter((LARGE_INTEGER*)&QuicPlatformPerfFreq);
     QuicPlatform.RngAlgorithm = NULL;
 
-    QuicTraceLogInfo(FN_platform_winkernel2caf2e914a62a8911996ebd87a43a219, "[ sys] Loaded");
+    QuicTraceLogInfo(
+        WindowsKernelLoaded,
+        "[ sys] Loaded");
 }
 
 PAGEDX
@@ -97,7 +93,10 @@ QuicPlatformSystemUnload(
     )
 {
     PAGED_CODE();
-    QuicTraceLogInfo(FN_platform_winkernela5181157c57867f18093b29e28c56a9b, "[ sys] Unloaded");
+
+    QuicTraceLogInfo(
+        WindowsKernelUnloaded,
+        "[ sys] Unloaded");
 
 #ifdef QUIC_TELEMETRY_ASSERTS
     UninitializeTelemetryAssertsKM();
@@ -151,8 +150,11 @@ QuicPlatformInitialize(
     //
     QuicTotalMemory = (uint64_t)Sbi.NumberOfPhysicalPages * (uint64_t)Sbi.PageSize;
 
-    QuicTraceLogInfo(FN_platform_winkernelfae6d131ade2e717f4aff25de71cf94a, "[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)",
-        Sbi.PageSize, QuicTotalMemory);
+    QuicTraceLogInfo(
+        WindowsKernelInitialized,
+        "[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)",
+        Sbi.PageSize,
+        QuicTotalMemory);
 
 Error:
 
@@ -177,7 +179,9 @@ QuicPlatformUninitialize(
     QuicTlsLibraryUninitialize();
     BCryptCloseAlgorithmProvider(QuicPlatform.RngAlgorithm, 0);
     QuicPlatform.RngAlgorithm = NULL;
-    QuicTraceLogInfo(FN_platform_winkernel499d1a8d9eb7e1addb19c81283b7e516, "[ sys] Uninitialized");
+    QuicTraceLogInfo(
+        WindowsKernelUninitialized,
+        "[ sys] Uninitialized");
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

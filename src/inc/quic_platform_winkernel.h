@@ -39,7 +39,6 @@ Environment:
 #include <ntifs.h>
 #include <ntverp.h>
 #include <ntstrsafe.h>
-#include <WppRecorder.h>
 #include <wdf.h>
 #include <netioapi.h>
 #include <wsk.h>

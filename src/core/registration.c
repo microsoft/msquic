@@ -107,7 +107,10 @@ MsQuicRegistrationOpen(
     if (MsQuicLib.IsVerifying &&
         QuicVerifierEnabledByAddr(NewRegistration)) {
         Registration->IsVerifying = TRUE;
-        QuicTraceLogInfo(FN_registrationdab4993b2508030f7c01169b90ab5a52, "[ reg][%p] Verifing enabled!", Registration);
+        QuicTraceLogInfo(
+            RegistrationVerifierEnabled,
+            "[ reg][%p] Verifing enabled!",
+            Registration);
     } else {
         Registration->IsVerifying = FALSE;
     }

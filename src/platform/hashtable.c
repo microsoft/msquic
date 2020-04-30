@@ -66,7 +66,7 @@ Notes:
 // First level dir[2] covers a 4*minimum-size 2nd-level dirs. So on...
 // Hence, we can have at most (2^HT_FIRST_LEVEL_DIR_SIZE)-1
 // minimum-size hash bucket directories.
-// With a first-level directory size of 16 and a 2nd-level directory
+// With a first-level directory size of 16 and a 2nd-level directory 
 // minimum-size of 128, we get a max hash table size of 8,388,480 buckets.
 //
 #define MAX_HASH_TABLE_SIZE \
@@ -480,7 +480,7 @@ Return Value:
     if (*HashTable == NULL) {
         Table = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASHTABLE));
         if (Table == NULL) {
-            QuicTraceLogWarning(FN_hashtable326faab9213339c91955ee3d43e0becf, "[ pal] Hashtable allocation failed.");
+            QuicTraceEvent(AllocFailure, "QUIC_HASHTABLE", sizeof(QUIC_HASHTABLE));
             return FALSE;
         }
 
@@ -513,7 +513,10 @@ Return Value:
             QUIC_ALLOC_NONPAGED(
                 QuicComputeSecondLevelDirSize(0) * sizeof(QUIC_LIST_ENTRY));
         if (Table->SecondLevelDir == NULL) {
-            QuicTraceLogWarning(FN_hashtable12abd3e77029de1e5e8fce713b6ed28c, "[ pal] Allocate second level dir (0) failure.");
+            QuicTraceEvent(
+                AllocFailure,
+                "second level dir (0)",
+                QuicComputeSecondLevelDirSize(0) * sizeof(QUIC_LIST_ENTRY));
             QuicHashtableUninitialize(Table);
             return FALSE;
         }
@@ -546,7 +549,10 @@ Return Value:
                 QUIC_ALLOC_NONPAGED(
                     QuicComputeSecondLevelDirSize(i) * sizeof(QUIC_LIST_ENTRY));
             if (Table->FirstLevelDir[i] == NULL) {
-                QuicTraceLogWarning(FN_hashtableaad8c35db1c3ff2442383d4ca831a9b7, "[ pal] Allocate second level dir (i) failure.");
+                QuicTraceEvent(
+                    AllocFailure,
+                    "second level dir (i)",
+                    QuicComputeSecondLevelDirSize(i) * sizeof(QUIC_LIST_ENTRY));
                 QuicHashtableUninitialize(Table);
                 return FALSE;
             }

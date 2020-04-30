@@ -51,7 +51,10 @@ QuicPacketBuilderInitialize(
             QUIC_ENCRYPTION_OVERHEAD : 0;
 
     if (Connection->SourceCids.Next == NULL) {
-        QuicTraceLogConnWarning(NoSrcCidAvailable, Connection, "No src CID to send with.");
+        QuicTraceLogConnWarning(
+            NoSrcCidAvailable,
+            Connection,
+            "No src CID to send with");
         return FALSE;
     }
 
@@ -241,8 +244,11 @@ QuicPacketBuilderPrepare(
             Builder->MinimumDatagramLength = NewDatagramLength;
         }
 
-        QuicTraceLogVerbose(FN_packet_builder24bb96787b7b1cfae2d4688ab3213bf6, "[pktb][%p] New UDP datagram. Space: %u",
-            Connection, Builder->Datagram->Length);
+        QuicTraceLogConnVerbose(
+            PacketBuilderNewDatagram,
+            Connection,
+            "New UDP datagram. Space: %u",
+            Builder->Datagram->Length);
     }
 
     if (NewQuicPacket) {
@@ -323,8 +329,12 @@ QuicPacketBuilderPrepare(
 
         Builder->DatagramLength += Builder->HeaderLength;
 
-        QuicTraceLogVerbose(FN_packet_builderaee4e5ee823e822959be3e96df4584aa, "[pktb][%p] New QUIC packet. Space: %hu. Type: %hx",
-            Connection, BufferSpaceAvailable, NewPacketType);
+        QuicTraceLogConnVerbose(
+            PacketBuilderNewPacket,
+            Connection,
+            "New QUIC packet. Space: %hu. Type: %hx",
+            BufferSpaceAvailable,
+            NewPacketType);
     }
 
     QUIC_DBG_ASSERT(Builder->PacketType == NewPacketType);
@@ -434,7 +444,10 @@ QuicPacketBuilderPrepareForControlFrames(
             Builder,
             SendFlags,
             &PacketKeyType)) {
-        QuicTraceLogConnWarning(GetPacketTypeFailure, Builder->Connection, "Failed to get packet type for control frames, 0x%x",
+        QuicTraceLogConnWarning(
+            GetPacketTypeFailure,
+            Builder->Connection,
+            "Failed to get packet type for control frames, 0x%x",
             SendFlags);
         QUIC_DBG_ASSERT(FALSE); // This shouldn't have been called then!
         return FALSE;
@@ -835,8 +848,11 @@ QuicPacketBuilderSendBatch(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
-    QuicTraceLogVerbose(FN_packet_builderbe3ff1273f0941f8129a2f6dac9f12fc, "[pktb][%p] Sending batch. %hu datagrams",
-        Builder->Connection, (uint16_t)Builder->TotalCountDatagrams);
+    QuicTraceLogConnVerbose(
+        PacketBuilderSendBatch,
+        Builder->Connection,
+        "Sending batch. %hu datagrams",
+        (uint16_t)Builder->TotalCountDatagrams);
 
     if (QuicAddrIsBoundExplicitly(&Builder->Path->LocalAddress)) {
         QuicBindingSendTo(

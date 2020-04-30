@@ -103,7 +103,7 @@ Return Value:
 
     Status = QuicPlatformInitialize();
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError(FN_driver9dbc814f4f43ea517407f5b7c8143626, "[test] QuicPlatformInitialize failed: 0x%x", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "QuicPlatformInitialize failed");
         goto Error;
     }
     PlatformInitialized = TRUE;
@@ -124,7 +124,7 @@ Return Value:
             &Config,
             &Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError(FN_driver2b1325882fdd29ce47e4eb6224542b5f, "[test] WdfDriverCreate failed: 0x%x", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "WdfDriverCreate failed");
         goto Error;
     }
 
@@ -133,11 +133,13 @@ Return Value:
     //
     Status = QuicTestCtlInitialize(Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError(FN_drivere2715f5ac91739cf9fdd047896c7912c, "[test] QuicTestCtlInitialize failed: 0x%x", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "QuicTestCtlInitialize failed");
         goto Error;
     }
 
-    QuicTraceLogInfo(FN_driver33ec7eb98b419e59add5890fa61afa13, "[test] Started.");
+    QuicTraceLogInfo(
+        TestDriverStarted,
+        "[test] Started");
 
 Error:
 
@@ -162,8 +164,8 @@ QuicTestDriverUnload(
 
 Routine Description:
 
-    QuicTestDriverUnload will clean up the WPP resources that were
-    allocated for this driver.
+    QuicTestDriverUnload will clean up any resources that were allocated for
+    this driver.
 
 Arguments:
 
@@ -176,7 +178,9 @@ Arguments:
 
     QuicTestCtlUninitialize();
 
-    QuicTraceLogInfo(FN_driver2914cfd7e479c844f78b638f668e3720, "[test] Stopped.");
+    QuicTraceLogInfo(
+        TestDriverStopped,
+        "[test] Stopped");
 
     QuicPlatformUninitialize();
     QuicPlatformSystemUnload();

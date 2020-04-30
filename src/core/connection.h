@@ -661,19 +661,11 @@ QuicConnLogOutFlowStats(
         return;
     }
 
-    uint64_t FcAvailable;
-    uint64_t SendWindow;
-
-    QuicStreamSetGetFlowControlSummary(
-        &Connection->Streams,
-        &FcAvailable,
-        &SendWindow);
-
-    // LTTng has a max of 10 fields.  When addressing the QuicTraceEvent below, verify correctness of this event by
-    //     comparison with the master branch
     const QUIC_PATH* Path = &Connection->Paths[0];
     UNREFERENCED_PARAMETER(Path);
-    /*CLOG_BUG_TraceEvent(ConnOutFlowStats, "[conn][%p] OUT: BytesSent=%I InFlight=%d InFlightMax=%d CWnd=%d SSThresh=%d ConnFC=%I StreamFC=%I ISB=%I PostedBytes=%I SRtt=%d StreamSendWindow=%I",
+
+    QuicTraceEvent(
+        ConnOutFlowStats,
         Connection,
         Connection->Stats.Send.TotalBytes,
         Connection->CongestionControl.BytesInFlight,
@@ -681,11 +673,21 @@ QuicConnLogOutFlowStats(
         Connection->CongestionControl.CongestionWindow,
         Connection->CongestionControl.SlowStartThreshold,
         Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
-        FcAvailable,
         Connection->SendBuffer.IdealBytes,
         Connection->SendBuffer.PostedBytes,
-        Path->GotFirstRttSample ? Path->SmoothedRtt : 0,
-        SendWindow);*/
+        Path->GotFirstRttSample ? Path->SmoothedRtt : 0);
+
+    uint64_t FcAvailable, SendWindow;
+    QuicStreamSetGetFlowControlSummary(
+        &Connection->Streams,
+        &FcAvailable,
+        &SendWindow);
+
+    QuicTraceEvent(
+        ConnOutFlowStreamStats,
+        Connection,
+        FcAvailable,
+        SendWindow);
 }
 
 inline
@@ -706,13 +708,21 @@ QuicConnLogStatistics(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
-    // LTTng has a max of 10 fields.  When addressing the QuicTraceEvent below, verify correctness of this event by
-    //     comparison with the master branch
     const QUIC_PATH* Path = &Connection->Paths[0];
     UNREFERENCED_PARAMETER(Path);
-    /*CLOG_BUG_TraceEvent(ConnStatistics, "[conn][%p] STATS: LifeTimeUs=%I SendTotalPackets=%I SendSuspectedLostPackets=%I SendSpuriousLostPackets=%I RecvTotalPackets=%I RecvReorderedPackets=%I RecvDroppedPackets=%I RecvDuplicatePackets=%I RecvDecryptionFailures=%I CongestionCount=%d PersistentCongestionCount=%d SendTotalBytes=%I RecvTotalBytes=%I SRtt=%d",
+
+    QuicTraceEvent(
+        ConnStats,
         Connection,
-        QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()),
+        Path->SmoothedRtt,
+        Connection->Stats.Send.CongestionCount,
+        Connection->Stats.Send.PersistentCongestionCount,
+        Connection->Stats.Send.TotalBytes,
+        Connection->Stats.Recv.TotalBytes);
+
+    QuicTraceEvent(
+        ConnPacketStats,
+        Connection,
         Connection->Stats.Send.TotalPackets,
         Connection->Stats.Send.SuspectedLostPackets,
         Connection->Stats.Send.SpuriousLostPackets,
@@ -720,12 +730,7 @@ QuicConnLogStatistics(
         Connection->Stats.Recv.ReorderedPackets,
         Connection->Stats.Recv.DroppedPackets,
         Connection->Stats.Recv.DuplicatePackets,
-        Connection->Stats.Recv.DecryptionFailures,
-        Connection->Stats.Send.CongestionCount,
-        Connection->Stats.Send.PersistentCongestionCount,
-        Connection->Stats.Send.TotalBytes,
-        Connection->Stats.Recv.TotalBytes,
-        Path->SmoothedRtt);*/
+        Connection->Stats.Recv.DecryptionFailures);
 }
 
 inline

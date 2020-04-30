@@ -543,7 +543,9 @@ QuicPacketLogHeader(
 
         switch (Invariant->LONG_HDR.Version) {
         case QUIC_VERSION_VER_NEG: {
-            QuicTraceLogVerbose(FN_packet90ccc79fc6238b6379c9f2d0110c7855, "[%c][%cX][-] VerNeg DestCid:%!CID! SrcCid:%!CID! (Payload %lu bytes)",
+            QuicTraceLogVerbose(
+                LogPacketVersionNegotiation,
+                "[%c][%cX][-] VerNeg DestCid:%!CID! SrcCid:%!CID! (Payload %lu bytes)",
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 CLOG_BYTEARRAY(DestCidLen, DestCid),
@@ -551,7 +553,9 @@ QuicPacketLogHeader(
                 PacketLength - Offset);
 
             while (Offset < PacketLength) {
-                QuicTraceLogVerbose(FN_packeta4413873397d4ee4b262cc411ec706f4, "[%c][%cX][-]   Ver:0x%x",
+                QuicTraceLogVerbose(
+                    LogPacketVersionNegotiationVersion,
+                    "[%c][%cX][-]   Ver:0x%x",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     *(uint32_t*)(Packet + Offset));
@@ -580,7 +584,9 @@ QuicPacketLogHeader(
 
             } else if (LongHdr->Type == QUIC_RETRY) {
 
-                QuicTraceLogVerbose(FN_packet525472688dabf619f866c5771120c7ba, "[%c][%cX][-] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:R (Token %hu bytes)",
+                QuicTraceLogVerbose(
+                    LogPacketRetry,
+                    "[%c][%cX][-] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:R (Token %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     LongHdr->Version,
@@ -602,7 +608,9 @@ QuicPacketLogHeader(
             }
 
             if (LongHdr->Type == QUIC_INITIAL) {
-                BUGBUG_TraceLogVerbose(FN_packet85487ff2d76aa8944f1e441b0abee08a, "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:%s (Token %hu bytes) (Payload %hu bytes) (PktNum %hu bytes)",
+                QuicTraceLogVerbose(
+                    LogPacketLongHeaderInitial,
+                    "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:%s (Token %hu bytes) (Payload %hu bytes) (PktNum %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     PacketNumber,
@@ -614,7 +622,9 @@ QuicPacketLogHeader(
                     (uint16_t)Length,
                     LongHdr->PnLength + 1);
             } else {
-                BUGBUG_TraceLogVerbose(FN_packet33cae7b7d88f1a0a561d8abc592bb027, "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:%s (Payload %hu bytes) (PktNum %hu bytes)",
+                QuicTraceLogVerbose(
+                    LogPacketLongHeader,
+                    "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:%s (Payload %hu bytes) (PktNum %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     PacketNumber,
@@ -629,7 +639,9 @@ QuicPacketLogHeader(
         }
 
         default:
-            QuicTraceLogVerbose(FN_packetd9382d9761cefee7446ff5c4f3049c56, "[%c][%cX][%llu] LH Ver:[UNSUPPORTED,0x%x] DestCid:%!CID! SrcCid:%!CID!",
+            QuicTraceLogVerbose(
+                LogPacketLongHeaderUnsupported,
+                "[%c][%cX][%llu] LH Ver:[UNSUPPORTED,0x%x] DestCid:%!CID! SrcCid:%!CID!",
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber,
@@ -652,7 +664,9 @@ QuicPacketLogHeader(
 
             Offset = sizeof(QUIC_SHORT_HEADER_V1) + DestCidLen;
 
-            QuicTraceLogVerbose(FN_packet61e31d5123d636bf45a77c08018ceb3a, "[%c][%cX][%llu] SH DestCid:%!CID! KP:%hu SB:%hu (Payload %hu bytes)",
+            QuicTraceLogVerbose(
+                LogPacketShortHeader,
+                "[%c][%cX][%llu] SH DestCid:%!CID! KP:%hu SB:%hu (Payload %hu bytes)",
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber,

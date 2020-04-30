@@ -232,7 +232,10 @@ QuicStreamSetIndicateStreamsAvailable(
     Event.STREAMS_AVAILABLE.UnidirectionalCount =
         QuicStreamSetGetCountAvailable(StreamSet, Type | STREAM_ID_FLAG_IS_UNI_DIR);
 
-    QuicTraceLogConnVerbose(IndicateStreamsAvailable, Connection, "Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [%u] [%u]",
+    QuicTraceLogConnVerbose(
+        IndicateStreamsAvailable,
+        Connection,
+        "Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [%hu] [%hu]",
         Event.STREAMS_AVAILABLE.BidirectionalCount,
         Event.STREAMS_AVAILABLE.UnidirectionalCount);
     (void)QuicConnIndicateEvent(Connection, &Event);
@@ -348,8 +351,12 @@ QuicStreamSetUpdateMaxStreams(
 
     if (MaxStreams > Info->MaxTotalStreamCount) {
 
-        QuicTraceLogConnVerbose(PeerStreamCountsUpdated, Connection, "Peer updated max stream count (%hu, %llu).",
-            BidirectionalStreams, MaxStreams);
+        QuicTraceLogConnVerbose(
+            PeerStreamCountsUpdated,
+            Connection,
+            "Peer updated max stream count (%hhu, %llu).",
+            BidirectionalStreams,
+            MaxStreams);
 
         BOOLEAN FlushSendX = FALSE;
         if (StreamSet->StreamTable != NULL) {
@@ -397,8 +404,12 @@ QuicStreamSetUpdateMaxCount(
     QUIC_CONNECTION* Connection = QuicStreamSetGetConnection(StreamSet);
     QUIC_STREAM_TYPE_INFO* Info = &StreamSet->Types[Type];
 
-    QuicTraceLogConnInfo(MaxStreamCountUpdated, Connection, "App configured max stream count of %hu (type=%hu).",
-        Count, Type);
+    QuicTraceLogConnInfo(
+        MaxStreamCountUpdated,
+        Connection,
+        "App configured max stream count of %hu (type=%hhu).",
+        Count,
+        Type);
 
     if (!Connection->State.Started) {
         Info->MaxTotalStreamCount = Count;
@@ -621,12 +632,19 @@ QuicStreamSetGetStreamForPeer(
             Event.PEER_STREAM_STARTED.Stream = (HQUIC)Stream;
             Event.PEER_STREAM_STARTED.Flags = StreamFlags;
 
-            QuicTraceLogConnVerbose(IndicatePeerStreamStarted, Connection, "Indicating QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED [%p, 0x%x]",
-                Event.PEER_STREAM_STARTED.Stream, Event.PEER_STREAM_STARTED.Flags);
+            QuicTraceLogConnVerbose(
+                IndicatePeerStreamStarted,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED [%p, 0x%x]",
+                Event.PEER_STREAM_STARTED.Stream,
+                Event.PEER_STREAM_STARTED.Flags);
             Status = QuicConnIndicateEvent(Connection, &Event);
 
             if (QUIC_FAILED(Status)) {
-                QuicTraceLogStreamWarning(NotAccepted, Stream, "New stream wasn't accepted, 0x%x",
+                QuicTraceLogStreamWarning(
+                    NotAccepted,
+                    Stream,
+                    "New stream wasn't accepted, 0x%x",
                     Status);
                 QuicStreamClose(Stream);
                 Stream = NULL;
