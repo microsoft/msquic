@@ -820,7 +820,7 @@ QuicBindingProcessStatelessOperation(
 
         QuicTraceLogVerbose(
             PacketTxRetry,
-            "[S][TX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R OrigDestCid:%s (Token %hu bytes)",
+            "[S][TX][-] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:R OrigDestCid:%!CID! (Token %hu bytes)",
             RecvPacket->LH->Version,
             CLOG_BYTEARRAY(RecvPacket->SourceCidLen, RecvPacket->SourceCid),
             CLOG_BYTEARRAY(MsQuicLib.CidTotalLength, NewDestCid),

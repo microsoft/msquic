@@ -484,7 +484,7 @@ QuicCryptoWriteOneFrame(
     QuicTraceLogConnVerbose(
         AddCryptoFrame,
         Connection,
-        "Sending %hu crypto bytes, offset=%hu",
+        "Sending %hu crypto bytes, offset=%u",
         (uint16_t)Frame.Length,
         CryptoOffset);
 
