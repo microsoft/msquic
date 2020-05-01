@@ -969,7 +969,7 @@ QuicTlsInitialize(
             const size_t ServerNameLength =
                 strnlen(Config->ServerName, QUIC_MAX_SNI_LENGTH + 1);
             if (ServerNameLength == QUIC_MAX_SNI_LENGTH + 1) {
-                QuicTraceEvent(TlsError, TlsContext->Connection, "SNI Too Long");
+                QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "SNI Too Long");
                 Status = QUIC_STATUS_INVALID_PARAMETER;
                 goto Error;
             }
@@ -1027,7 +1027,7 @@ QuicTlsInitialize(
     // Initialize the miTLS library.
     //
     if (!FFI_mitls_quic_create(&TlsContext->miTlsState, &TlsContext->miTlsConfig)) {
-        QuicTraceEvent(TlsError, TlsContext->Connection, "FFI_mitls_quic_create failed");
+        QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "FFI_mitls_quic_create failed");
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
@@ -1105,7 +1105,7 @@ QuicTlsReset(
     // Reinitialize new miTLS state.
     //
     if (!FFI_mitls_quic_create(&TlsContext->miTlsState, &TlsContext->miTlsConfig)) {
-        QuicTraceEvent(TlsError, TlsContext->Connection, "FFI_mitls_quic_create failed");
+        QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "FFI_mitls_quic_create failed");
         QUIC_DBG_ASSERT(FALSE);
     }
 }
@@ -1139,7 +1139,7 @@ QuicTlsProcessData(
     //
     if (TlsContext->BufferLength + *BufferLength > QUIC_TLS_MAX_MESSAGE_LENGTH) {
         ResultFlags = QUIC_TLS_RESULT_ERROR;
-        QuicTraceEvent(TlsError, TlsContext->Connection, "TLS buffer too big");
+        QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "TLS buffer too big");
         goto Error;
     }
 
@@ -1267,7 +1267,7 @@ QuicTlsProcessDataComplete(
                     TlsContext->Connection,
                     "Sending new 0-RTT ticket");
                 if (!FFI_mitls_quic_send_ticket(TlsContext->miTlsState, NULL, 0)) {
-                    QuicTraceEvent(TlsError, TlsContext->Connection, "FFI_mitls_quic_send_ticket failed");
+                    QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "FFI_mitls_quic_send_ticket failed");
                 }
             }
         }
@@ -1529,7 +1529,7 @@ QuicTlsOnCertSelect(
     // Only allow TLS 1.3.
     //
     if (TlsVersion != TLS_1p3) {
-        QuicTraceEvent(TlsError, TlsContext->Connection, "Unsupported TLS version");
+        QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "Unsupported TLS version");
         goto Error;
     }
 
@@ -1538,7 +1538,7 @@ QuicTlsOnCertSelect(
     //
 
     if (ServerNameIndicationLength >= QUIC_MAX_SNI_LENGTH) {
-        QuicTraceEvent(TlsError, TlsContext->Connection, "SNI too long");
+        QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "SNI too long");
         goto Error;
     }
 
@@ -1571,7 +1571,7 @@ QuicTlsOnCertSelect(
             SignatureAlgorithms,
             SignatureAlgorithmsLength,
             SelectedSignature)) {
-        QuicTraceEvent(TlsError, TlsContext->Connection, "QuicCertSelect failed");
+        QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "QuicCertSelect failed");
         SecurityConfig = NULL;
         goto Error;
     }
@@ -1626,7 +1626,7 @@ QuicTlsOnNegotiate(
     // Only allow TLS 1.3.
     //
     if (Version != TLS_1p3) {
-        QuicTraceEvent(TlsError, TlsContext->Connection, "Unsupported TLS version");
+        QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "Unsupported TLS version");
         goto Exit;
     }
 
@@ -1641,7 +1641,7 @@ QuicTlsOnNegotiate(
                 TLS_EXTENSION_TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION,
                 &ExtensionData,
                 &ExtensionDataLength)) {
-            QuicTraceEvent(TlsError, TlsContext->Connection, "Missing ALPN extension");
+            QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "Missing ALPN extension");
             goto Exit;
         }
         QuicTraceLogConnVerbose(
@@ -1650,17 +1650,17 @@ QuicTlsOnNegotiate(
             "Processing server ALPN (Length=%u)",
             (uint32_t)ExtensionDataLength);
         if (ExtensionDataLength < 4) {
-            QuicTraceEvent(TlsError, TlsContext->Connection, "ALPN extension length is too short");
+            QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "ALPN extension length is too short");
             goto Exit;
         }
         const uint16_t AlpnListLength = QuicByteSwapUint16(*(uint16_t*)ExtensionData);
         if (AlpnListLength + sizeof(uint16_t) != ExtensionDataLength) {
-            QuicTraceEvent(TlsError, TlsContext->Connection, "ALPN list length is incorrect");
+            QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "ALPN list length is incorrect");
             goto Exit;
         }
         const uint8_t AlpnLength = ExtensionData[2];
         if (AlpnLength + sizeof(uint8_t) != AlpnListLength) {
-            QuicTraceEvent(TlsError, TlsContext->Connection, "ALPN length is incorrect");
+            QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "ALPN length is incorrect");
             goto Exit;
         }
         const uint8_t* Alpn = ExtensionData + 3;
@@ -1671,7 +1671,7 @@ QuicTlsOnNegotiate(
                 AlpnLength,
                 Alpn);
         if (TlsContext->State->NegotiatedAlpn == NULL) {
-            QuicTraceEvent(TlsError, TlsContext->Connection, "Failed to find a matching ALPN");
+            QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "Failed to find a matching ALPN");
             goto Exit;
         }
     }
@@ -1687,7 +1687,7 @@ QuicTlsOnNegotiate(
             TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS,
             &ExtensionData,
             &ExtensionDataLength)) {
-        QuicTraceEvent(TlsError, TlsContext->Connection, "Missing QUIC transport parameters");
+        QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "Missing QUIC transport parameters");
         goto Exit;
     }
 
@@ -1695,7 +1695,7 @@ QuicTlsOnNegotiate(
             TlsContext->Connection,
             (uint16_t)ExtensionDataLength,
             ExtensionData)) {
-        QuicTraceEvent(TlsError, TlsContext->Connection, "Failed to process the QUIC transport parameters");
+        QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "Failed to process the QUIC transport parameters");
         goto Exit;
     }
 
@@ -1822,7 +1822,7 @@ QuicTlsOnCertVerify(
             ChainBufferLength,
             ChainBuffer);
     if (Certificate == NULL) {
-        QuicTraceEvent(TlsError, TlsContext->Connection, "QuicCertParseChain failed");
+        QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "QuicCertParseChain failed");
         goto Error;
     }
 
@@ -1830,7 +1830,7 @@ QuicTlsOnCertVerify(
             Certificate,
             TlsContext->SNI,
             TlsContext->SecConfig->Flags)) {
-        QuicTraceEvent(TlsError, TlsContext->Connection, "Cert chain validation failed");
+        QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "Cert chain validation failed");
         Result = 0;
         goto Error;
     }
@@ -2426,7 +2426,7 @@ QuicPacketKeyCreate(
             Epoch,
             rw);
     if (Result == FALSE) {
-        QuicTraceEvent(TlsError, TlsContext->Connection, "FFI_mitls_quic_get_record_key failed");
+        QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "FFI_mitls_quic_get_record_key failed");
         goto Error;
     }
 
@@ -2470,7 +2470,7 @@ QuicPacketKeyCreate(
                 &ClientReadSecret,
                 &ServerReadSecret);
         if (Result == FALSE) {
-            QuicTraceEvent(TlsError, TlsContext->Connection, "FFI_mitls_quic_get_record_secrets failed");
+            QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "FFI_mitls_quic_get_record_secrets failed");
             goto Error;
         }
         quic_secret* CopySecret;
@@ -2491,7 +2491,7 @@ QuicPacketKeyCreate(
             Key->TrafficSecret->Hash = QUIC_HASH_SHA512;
             break;
         default:
-            QuicTraceEvent(TlsError, TlsContext->Connection, "Unsupported hash type");
+            QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "Unsupported hash type");
             Result = FALSE;
             goto Error;
         }

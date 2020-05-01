@@ -1878,6 +1878,49 @@
           <event value="494" symbol="TestScopeEntry" template="template_sz_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
           <event value="495" symbol="TestScopeExit" template="template_sz_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
           <event value="496" symbol="TestDisableEncryptionFailure" template="template_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="497" symbol="miTlsInitialize" template="template_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="498" symbol="miTlsUninitialize" template="template_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="499" symbol="miTlsLogSecret" template="template_sz_ui32_sz_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="500" symbol="miTlsFfiProcessFailed" template="template_ptr_ui16_sz_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="501" symbol="miTlsCertValidationDisabled" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="502" symbol="miTlsCertSelected" template="template_ptr_sz_i32_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="503" symbol="miTlsUsing0Rtt" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="504" symbol="miTlsProcess" template="template_ptr_ui32_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="505" symbol="miTlsFfiProces" template="template_ptr_ui32_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="506" symbol="miTlsFfiProcessResult" template="template_ptr_ui32_ui32_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="507" symbol="miTlsHandshakeComplete" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="508" symbol="miTlsSend0RttTicket" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="509" symbol="miTlsEarlyDataRejected" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="510" symbol="miTlsEarlyDataAccepted" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="511" symbol="miTlsEarlyDataNotAttempted" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="512" symbol="miTlsEarlyDataAttempted" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="513" symbol="miTlsKeySchedule" template="template_ptr_ui16_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="514" symbol="miTls0RttReadKeyExported" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="515" symbol="miTlsHandshakeReadKeyExported" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="516" symbol="miTls1RttReadKeyExported" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="517" symbol="miTls0RttWriteKeyExported" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="518" symbol="miTlsHandshakeWriteKeyExported" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="519" symbol="miTls1RttWriteKeyExported" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="520" symbol="miTlsHandshakeWriteOffsetSet" template="template_ptr_ui32_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="521" symbol="miTls1RttWriteOffsetSet" template="template_ptr_ui32_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="522" symbol="miTlsFfiProcesComplete" template="template_ptr_ui32_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="523" symbol="miTlsOnCertSelect" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="524" symbol="miTlsOnNegotiate" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="525" symbol="miTlsProcessServerAlpn" template="template_ptr_ui32_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="526" symbol="miTlsOnCertFormat" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="527" symbol="miTlsOnCertSign" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="528" symbol="miTlsOnCertVerify" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="529" symbol="miTlsRecvNewSessionTicket" template="template_ptr_ui32_ui32_sz_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="530" symbol="miTlsReadTicket" template="template_ptr_ui32_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="531" symbol="TlsMessage" template="template_ptr_sz_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="532" symbol="StubTlsCertValidationDisabled" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="533" symbol="StubTlsContextReset" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="534" symbol="StubTlsHandshakeComplete" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="535" symbol="StubTlsConsumedData" template="template_ptr_ui32_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="536" symbol="StubTlsProducedData" template="template_ptr_ui16_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="537" symbol="StubTlsContextCreated" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="538" symbol="StubTlsContextCleaningUp" template="template_ptr_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
+          <event value="539" symbol="StubTlsProcessData" template="template_ptr_ui32_" level="win:Informational" keywords="ut:Connection ut:LowVolume" />
         </events>
       </provider>
     </events>

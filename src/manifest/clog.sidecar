@@ -1975,7 +1975,155 @@
       "TestScopeExit": {
         "arg2": "arg2"
       },
-      "TestDisableEncryptionFailure": {}
+      "TestDisableEncryptionFailure": {},
+      "miTlsInitialize": {},
+      "miTlsUninitialize": {},
+      "miTlsLogSecret": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "miTlsFfiProcessFailed": {
+        "arg1": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "miTlsCertValidationDisabled": {
+        "arg1": "arg2"
+      },
+      "miTlsCertSelected": {
+        "arg1": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "miTlsUsing0Rtt": {
+        "arg1": "arg2"
+      },
+      "miTlsProcess": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "miTlsFfiProces": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "miTlsFfiProcessResult": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "miTlsHandshakeComplete": {
+        "arg1": "arg2"
+      },
+      "miTlsSend0RttTicket": {
+        "arg1": "arg2"
+      },
+      "miTlsEarlyDataRejected": {
+        "arg1": "arg2"
+      },
+      "miTlsEarlyDataAccepted": {
+        "arg1": "arg2"
+      },
+      "miTlsEarlyDataNotAttempted": {
+        "arg1": "arg2"
+      },
+      "miTlsEarlyDataAttempted": {
+        "arg1": "arg2"
+      },
+      "miTlsKeySchedule": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "miTls0RttReadKeyExported": {
+        "arg1": "arg2"
+      },
+      "miTlsHandshakeReadKeyExported": {
+        "arg1": "arg2"
+      },
+      "miTls1RttReadKeyExported": {
+        "arg1": "arg2"
+      },
+      "miTls0RttWriteKeyExported": {
+        "arg1": "arg2"
+      },
+      "miTlsHandshakeWriteKeyExported": {
+        "arg1": "arg2"
+      },
+      "miTls1RttWriteKeyExported": {
+        "arg1": "arg2"
+      },
+      "miTlsHandshakeWriteOffsetSet": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "miTls1RttWriteOffsetSet": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "miTlsFfiProcesComplete": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "miTlsOnCertSelect": {
+        "arg1": "arg2"
+      },
+      "miTlsOnNegotiate": {
+        "arg1": "arg2"
+      },
+      "miTlsProcessServerAlpn": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "miTlsOnCertFormat": {
+        "arg1": "arg2"
+      },
+      "miTlsOnCertSign": {
+        "arg1": "arg2"
+      },
+      "miTlsOnCertVerify": {
+        "arg1": "arg2"
+      },
+      "miTlsRecvNewSessionTicket": {
+        "arg1": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "miTlsReadTicket": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "TlsMessage": {
+        "arg2": "arg2",
+        "arg3": "arg3"
+      },
+      "StubTlsCertValidationDisabled": {
+        "arg1": "arg2"
+      },
+      "StubTlsContextReset": {
+        "arg1": "arg2"
+      },
+      "StubTlsHandshakeComplete": {
+        "arg1": "arg2"
+      },
+      "StubTlsConsumedData": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "StubTlsProducedData": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "StubTlsContextCreated": {
+        "arg1": "arg2"
+      },
+      "StubTlsContextCleaningUp": {
+        "arg1": "arg2"
+      },
+      "StubTlsProcessData": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      }
     }
   },
   "EventBundlesV2": {
@@ -23801,6 +23949,1698 @@
           "windows": "etw_plus"
         }
       }
+    },
+    "miTlsInitialize": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "497",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[ tls] Initializing miTLS library",
+      "UniqueId": "miTlsInitialize",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsUninitialize": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "498",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[ tls] Cleaning up miTLS library",
+      "UniqueId": "miTlsUninitialize",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsLogSecret": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "499",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[ tls] %s[%u]: %s",
+      "UniqueId": "miTlsLogSecret",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Prefix",
+            "UserSuppliedTrimmed": "Prefix",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Length",
+            "UserSuppliedTrimmed": "Length",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        SecretStr",
+            "UserSuppliedTrimmed": "SecretStr",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsFfiProcessFailed": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "500",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] FFI_mitls_quic_process failed, tls_error %hu, %s",
+      "UniqueId": "miTlsFfiProcessFailed",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                Context.tls_error",
+            "UserSuppliedTrimmed": "Context.tls_error",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                Context.tls_error_desc",
+            "UserSuppliedTrimmed": "Context.tls_error_desc",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnError",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsCertValidationDisabled": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "501",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Certificate validation disabled!",
+      "UniqueId": "miTlsCertValidationDisabled",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnWarning",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsCertSelected": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "502",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Server certificate selected. SNI: %s; Algorithm: 0x%4.4x",
+      "UniqueId": "miTlsCertSelected",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        TlsContext->SNI",
+            "UserSuppliedTrimmed": "TlsContext->SNI",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        *SelectedSignature",
+            "UserSuppliedTrimmed": "*SelectedSignature",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "4.4x",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnInfo",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsUsing0Rtt": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "503",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Using 0-RTT ticket.",
+      "UniqueId": "miTlsUsing0Rtt",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsProcess": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "504",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Processing %u bytes",
+      "UniqueId": "miTlsProcess",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            *BufferLength",
+            "UserSuppliedTrimmed": "*BufferLength",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsFfiProces": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "505",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] FFI_mitls_quic_process processing %u input bytes",
+      "UniqueId": "miTlsFfiProces",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            (uint32_t)Context.input_len",
+            "UserSuppliedTrimmed": "(uint32_t)Context.input_len",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsFfiProcessResult": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "506",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] FFI_mitls_quic_process read %u bytes and has %u bytes ready to send",
+      "UniqueId": "miTlsFfiProcessResult",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            (uint32_t)Context.consumed_bytes",
+            "UserSuppliedTrimmed": "(uint32_t)Context.consumed_bytes",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            (uint32_t)Context.output_len",
+            "UserSuppliedTrimmed": "(uint32_t)Context.output_len",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsHandshakeComplete": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "507",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Handshake complete",
+      "UniqueId": "miTlsHandshakeComplete",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsSend0RttTicket": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "508",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Sending new 0-RTT ticket",
+      "UniqueId": "miTlsSend0RttTicket",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsEarlyDataRejected": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "509",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Early data rejected",
+      "UniqueId": "miTlsEarlyDataRejected",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsEarlyDataAccepted": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "510",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Early data accepted",
+      "UniqueId": "miTlsEarlyDataAccepted",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsEarlyDataNotAttempted": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "511",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Early data not attempted",
+      "UniqueId": "miTlsEarlyDataNotAttempted",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                            TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsEarlyDataAttempted": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "512",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Early data attempted",
+      "UniqueId": "miTlsEarlyDataAttempted",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsKeySchedule": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "513",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Key schedule = %hu",
+      "UniqueId": "miTlsKeySchedule",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                TlsContext->TlsKeySchedule",
+            "UserSuppliedTrimmed": "TlsContext->TlsKeySchedule",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTls0RttReadKeyExported": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "514",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] 0-RTT read key exported",
+      "UniqueId": "miTls0RttReadKeyExported",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsHandshakeReadKeyExported": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "515",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Handshake read key exported",
+      "UniqueId": "miTlsHandshakeReadKeyExported",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTls1RttReadKeyExported": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "516",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] 1-RTT read key exported",
+      "UniqueId": "miTls1RttReadKeyExported",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTls0RttWriteKeyExported": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "517",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] 0-RTT write key exported",
+      "UniqueId": "miTls0RttWriteKeyExported",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsHandshakeWriteKeyExported": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "518",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Handshake write key exported",
+      "UniqueId": "miTlsHandshakeWriteKeyExported",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTls1RttWriteKeyExported": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "519",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] 1-RTT write key exported",
+      "UniqueId": "miTls1RttWriteKeyExported",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsHandshakeWriteOffsetSet": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "520",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Handshake write offset = %u",
+      "UniqueId": "miTlsHandshakeWriteOffsetSet",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    State->BufferOffsetHandshake",
+            "UserSuppliedTrimmed": "State->BufferOffsetHandshake",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTls1RttWriteOffsetSet": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "521",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] 1-RTT write offset = %u",
+      "UniqueId": "miTls1RttWriteOffsetSet",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    State->BufferOffset1Rtt",
+            "UserSuppliedTrimmed": "State->BufferOffset1Rtt",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsFfiProcesComplete": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "522",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Consumed %u bytes",
+      "UniqueId": "miTlsFfiProcesComplete",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        BufferOffset",
+            "UserSuppliedTrimmed": "BufferOffset",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsOnCertSelect": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "523",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] OnCertSelect",
+      "UniqueId": "miTlsOnCertSelect",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsOnNegotiate": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "524",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] OnNegotiate",
+      "UniqueId": "miTlsOnNegotiate",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsProcessServerAlpn": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "525",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Processing server ALPN (Length=%u)",
+      "UniqueId": "miTlsProcessServerAlpn",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            (uint32_t)ExtensionDataLength",
+            "UserSuppliedTrimmed": "(uint32_t)ExtensionDataLength",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsOnCertFormat": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "526",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] OnCertFormat",
+      "UniqueId": "miTlsOnCertFormat",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsOnCertSign": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "527",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] OnCertSign",
+      "UniqueId": "miTlsOnCertSign",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsOnCertVerify": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "528",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] OnCertVerify",
+      "UniqueId": "miTlsOnCertVerify",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsRecvNewSessionTicket": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "529",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Received new ticket. ticket_len:%u session_len:%u for %s",
+      "UniqueId": "miTlsRecvNewSessionTicket",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        (uint32_t)Ticket->ticket_len",
+            "UserSuppliedTrimmed": "(uint32_t)Ticket->ticket_len",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        (uint32_t)Ticket->session_len",
+            "UserSuppliedTrimmed": "(uint32_t)Ticket->session_len",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        ServerNameIndication",
+            "UserSuppliedTrimmed": "ServerNameIndication",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "miTlsReadTicket": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "530",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Ticket (%u bytes) read.",
+      "UniqueId": "miTlsReadTicket",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        TicketBufferLength",
+            "UserSuppliedTrimmed": "TicketBufferLength",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "TlsMessage": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "531",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[ tls][%p] %s",
+      "UniqueId": "TlsMessage",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " NULL",
+            "UserSuppliedTrimmed": "NULL",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Msg",
+            "UserSuppliedTrimmed": "Msg",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "StubTlsCertValidationDisabled": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "532",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Certificate validation disabled!",
+      "UniqueId": "StubTlsCertValidationDisabled",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnWarning",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "StubTlsContextReset": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "533",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Resetting TLS state",
+      "UniqueId": "StubTlsContextReset",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnInfo",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "StubTlsHandshakeComplete": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "534",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Handshake complete",
+      "UniqueId": "StubTlsHandshakeComplete",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnInfo",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "StubTlsConsumedData": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "535",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Consumed %u bytes",
+      "UniqueId": "StubTlsConsumedData",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            *BufferLength",
+            "UserSuppliedTrimmed": "*BufferLength",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnInfo",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "StubTlsProducedData": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "536",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Produced %hu bytes",
+      "UniqueId": "StubTlsProducedData",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                (State->BufferLength - PrevBufferLength)",
+            "UserSuppliedTrimmed": "(State->BufferLength - PrevBufferLength)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnInfo",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "StubTlsContextCreated": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "537",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Created",
+      "UniqueId": "StubTlsContextCreated",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "StubTlsContextCleaningUp": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "538",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Cleaning up",
+      "UniqueId": "StubTlsContextCleaningUp",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "StubTlsProcessData": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "539",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Processing %u received bytes",
+      "UniqueId": "StubTlsProcessData",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            *BufferLength",
+            "UserSuppliedTrimmed": "*BufferLength",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
     }
   },
   "Version": 1,
@@ -26087,6 +27927,178 @@
       {
         "UniquenessHash": "3cb6f7ec-3f32-af69-407b-2ff41f836164",
         "TraceID": "TestDisableEncryptionFailure"
+      },
+      {
+        "UniquenessHash": "892901ea-49a8-594b-6e05-edb0fc36be3d",
+        "TraceID": "miTlsInitialize"
+      },
+      {
+        "UniquenessHash": "912c1707-c315-0036-76ca-602ae12a94b7",
+        "TraceID": "miTlsUninitialize"
+      },
+      {
+        "UniquenessHash": "e0e483e0-e15e-e93b-6ec0-cb084e300cb3",
+        "TraceID": "miTlsLogSecret"
+      },
+      {
+        "UniquenessHash": "fc766c70-8cec-7846-ba14-63bc930b4e06",
+        "TraceID": "miTlsFfiProcessFailed"
+      },
+      {
+        "UniquenessHash": "76420f88-75d8-6a13-f42b-bea06884e542",
+        "TraceID": "miTlsCertValidationDisabled"
+      },
+      {
+        "UniquenessHash": "bd253ddf-0d46-79c4-b75f-d243d5f80c91",
+        "TraceID": "miTlsCertSelected"
+      },
+      {
+        "UniquenessHash": "0eb36a7a-47b3-271a-054b-94a5ebf6c257",
+        "TraceID": "miTlsUsing0Rtt"
+      },
+      {
+        "UniquenessHash": "4cb2a299-89dc-7245-b116-4dcc9875d5fe",
+        "TraceID": "miTlsProcess"
+      },
+      {
+        "UniquenessHash": "bdbaac9e-6abe-7c57-d354-df78a89838ce",
+        "TraceID": "miTlsFfiProces"
+      },
+      {
+        "UniquenessHash": "27d4a0a4-4e32-0043-3d90-166d1b378f92",
+        "TraceID": "miTlsFfiProcessResult"
+      },
+      {
+        "UniquenessHash": "cbc269aa-13ca-8f88-d61e-db9403a335de",
+        "TraceID": "miTlsHandshakeComplete"
+      },
+      {
+        "UniquenessHash": "c7ca4dd6-c60b-13f5-c06e-2c44e5bf6163",
+        "TraceID": "miTlsSend0RttTicket"
+      },
+      {
+        "UniquenessHash": "4833606e-5d9c-82d2-86e1-875d57efdaf6",
+        "TraceID": "miTlsEarlyDataRejected"
+      },
+      {
+        "UniquenessHash": "18f82502-f22b-ca5d-6393-cdd01c7bd873",
+        "TraceID": "miTlsEarlyDataAccepted"
+      },
+      {
+        "UniquenessHash": "717e49dd-7942-4cae-f517-3f001e43e7b5",
+        "TraceID": "miTlsEarlyDataNotAttempted"
+      },
+      {
+        "UniquenessHash": "21c32d30-e5c5-164a-e1ee-e9485d64813f",
+        "TraceID": "miTlsEarlyDataAttempted"
+      },
+      {
+        "UniquenessHash": "9a6e2c4c-9ed2-e2d4-56d1-f3453c281a20",
+        "TraceID": "miTlsKeySchedule"
+      },
+      {
+        "UniquenessHash": "a18ddb89-8c56-1236-6421-a14072f160f8",
+        "TraceID": "miTls0RttReadKeyExported"
+      },
+      {
+        "UniquenessHash": "dfaeb8b5-339e-c0e7-7289-15228d5f084a",
+        "TraceID": "miTlsHandshakeReadKeyExported"
+      },
+      {
+        "UniquenessHash": "9d6d3263-01ca-a734-569a-07f0f9b5d3da",
+        "TraceID": "miTls1RttReadKeyExported"
+      },
+      {
+        "UniquenessHash": "6baedb0e-b86a-72c2-b3ec-341ef8235aa9",
+        "TraceID": "miTls0RttWriteKeyExported"
+      },
+      {
+        "UniquenessHash": "f42df196-45dc-9a31-96ef-31226467df0e",
+        "TraceID": "miTlsHandshakeWriteKeyExported"
+      },
+      {
+        "UniquenessHash": "74e3e2f2-0fb6-e892-57ac-85fcda2a4a7a",
+        "TraceID": "miTls1RttWriteKeyExported"
+      },
+      {
+        "UniquenessHash": "d4d7056c-435c-b5b8-900c-f95f770ddb9d",
+        "TraceID": "miTlsHandshakeWriteOffsetSet"
+      },
+      {
+        "UniquenessHash": "dbd24fcc-7265-6088-8693-f8fdfc7030b5",
+        "TraceID": "miTls1RttWriteOffsetSet"
+      },
+      {
+        "UniquenessHash": "71ed54f4-e631-7f1d-2d2e-65e1b533d8e5",
+        "TraceID": "miTlsFfiProcesComplete"
+      },
+      {
+        "UniquenessHash": "0bd9bfa0-b1eb-3e4a-234b-bf10c2013d9c",
+        "TraceID": "miTlsOnCertSelect"
+      },
+      {
+        "UniquenessHash": "36f092f6-9fee-e5ec-bd11-6e3418458161",
+        "TraceID": "miTlsOnNegotiate"
+      },
+      {
+        "UniquenessHash": "7f747d9f-de9d-f24e-44e1-a097950c0429",
+        "TraceID": "miTlsProcessServerAlpn"
+      },
+      {
+        "UniquenessHash": "db04d0d6-a7a5-38c6-37a6-fa059a2b11f3",
+        "TraceID": "miTlsOnCertFormat"
+      },
+      {
+        "UniquenessHash": "e175542b-2cfb-6134-82ad-89a84cb3a964",
+        "TraceID": "miTlsOnCertSign"
+      },
+      {
+        "UniquenessHash": "22fc0283-1a6e-1ee5-1c6e-901b14517e07",
+        "TraceID": "miTlsOnCertVerify"
+      },
+      {
+        "UniquenessHash": "deb3fa41-4cad-e7b7-a02c-478a669346bd",
+        "TraceID": "miTlsRecvNewSessionTicket"
+      },
+      {
+        "UniquenessHash": "f5af39c5-d069-02f5-f72f-13e3cc524620",
+        "TraceID": "miTlsReadTicket"
+      },
+      {
+        "UniquenessHash": "71d0a82e-145c-f936-f56e-7dcb4099b96e",
+        "TraceID": "TlsMessage"
+      },
+      {
+        "UniquenessHash": "64ef2389-7553-24d5-62f5-94fa1ab55eac",
+        "TraceID": "StubTlsCertValidationDisabled"
+      },
+      {
+        "UniquenessHash": "ae0cc427-609d-ce4f-004d-6ef2c2d6c540",
+        "TraceID": "StubTlsContextReset"
+      },
+      {
+        "UniquenessHash": "2ca06c46-059c-c3e2-a6db-dc8f0d6292eb",
+        "TraceID": "StubTlsHandshakeComplete"
+      },
+      {
+        "UniquenessHash": "27a202b6-2090-aed6-26c8-4b193f0cb901",
+        "TraceID": "StubTlsConsumedData"
+      },
+      {
+        "UniquenessHash": "8671265f-83a7-8d8f-4fac-ea0d14b9da84",
+        "TraceID": "StubTlsProducedData"
+      },
+      {
+        "UniquenessHash": "df763e59-5b73-45da-9374-93b112b3ad87",
+        "TraceID": "StubTlsContextCreated"
+      },
+      {
+        "UniquenessHash": "068a93f4-8ad9-2eae-53e9-44da62c39494",
+        "TraceID": "StubTlsContextCleaningUp"
+      },
+      {
+        "UniquenessHash": "9b5f99a0-b1b6-bae7-12fd-89f89d1f1667",
+        "TraceID": "StubTlsProcessData"
       }
     ]
   }

@@ -1751,7 +1751,7 @@ QuicTlsWriteDataToSchannel(
                     break;
                 }
                 if (NegotiatedAlpn.ProtoNegoStatus != SecApplicationProtocolNegotiationStatus_Success) {
-                    QuicTraceEvent(TlsErrorStatus, "[ tls][%p] ERROR, %d, %s.", TlsContext->Connection, NegotiatedAlpn.ProtoNegoStatus, "ALPN negotiation status");
+                    QuicTraceEvent(TlsErrorStatus, TlsContext->Connection, NegotiatedAlpn.ProtoNegoStatus, "ALPN negotiation status");
                     Result |= QUIC_TLS_RESULT_ERROR;
                     break;
                 }
@@ -1764,7 +1764,7 @@ QuicTlsWriteDataToSchannel(
                         NegotiatedAlpn.ProtocolIdSize,
                         NegotiatedAlpn.ProtocolId);
                 if (State->NegotiatedAlpn == NULL) {
-                    QuicTraceEvent(TlsError,  "[ tls][%p] ERROR, %s.", TlsContext->Connection, "ALPN Mismatch");
+                    QuicTraceEvent(TlsError, TlsContext->Connection, "ALPN Mismatch");
                     Result |= QUIC_TLS_RESULT_ERROR;
                     break;
                 }

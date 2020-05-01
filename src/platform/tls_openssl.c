@@ -544,7 +544,7 @@ QuicTlsAddHandshakeDataCallback(
         Level);
 
     if (Length + TlsState->BufferLength > (size_t)TlsState->BufferAllocLength) {
-        QuicTraceEvent(TlsError, TlsContext->Connection, "Buffer overflow for output handshake data");
+        QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "Buffer overflow for output handshake data");
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
         return -1;
     }
@@ -1094,7 +1094,7 @@ QuicTlsInitialize(
 
             ServerNameLength = (uint16_t)strnlen(Config->ServerName, QUIC_MAX_SNI_LENGTH);
             if (ServerNameLength == QUIC_MAX_SNI_LENGTH) {
-                QuicTraceEvent(TlsError, TlsContext->Connection, "SNI Too Long");
+                QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "SNI Too Long");
                 Status = QUIC_STATUS_INVALID_PARAMETER;
                 goto Exit;
             }
@@ -1116,7 +1116,7 @@ QuicTlsInitialize(
 
     TlsContext->Ssl = SSL_new(Config->SecConfig->SSLCtx);
     if (TlsContext->Ssl == NULL) {
-        QuicTraceEvent(TlsError, TlsContext->Connection, "SSL_new failed");
+        QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "SSL_new failed");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -1136,7 +1136,7 @@ QuicTlsInitialize(
             TlsContext->Ssl,
             Config->LocalTPBuffer,
             Config->LocalTPLength) != 1) {
-        QuicTraceEvent(TlsError, TlsContext->Connection, "SSL_set_quic_transport_params failed");
+        QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "SSL_set_quic_transport_params failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -2167,7 +2167,7 @@ QuicTlsKeyCreate(
             QuicTlsKeyGetMd(HashType),
             TempKey);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(TlsErrorStatus, TlsContext->Connection, Status, "QuicTlsDerivePacketProtectionKey failed");
+        QuicTraceEvent(TlsErrorStatus, "[ tls][%p] ERROR, %d, %s.", TlsContext->Connection, Status, "QuicTlsDerivePacketProtectionKey failed");
         goto Exit;
     }
 
@@ -2178,7 +2178,7 @@ QuicTlsKeyCreate(
             QuicTlsKeyGetMd(HashType),
             TempKey);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(TlsErrorStatus, TlsContext->Connection, Status, "QuicTlsDeriveHeaderProtectionKey failed");
+        QuicTraceEvent(TlsErrorStatus, "[ tls][%p] ERROR, %d, %s.", TlsContext->Connection, Status, "QuicTlsDeriveHeaderProtectionKey failed");
         goto Exit;
     }
 
@@ -2189,7 +2189,7 @@ QuicTlsKeyCreate(
             QuicTlsKeyGetMd(HashType),
             TempKey);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(TlsErrorStatus, TlsContext->Connection, Status, "QuicTlsDerivePacketProtectionIv failed");
+        QuicTraceEvent(TlsErrorStatus, "[ tls][%p] ERROR, %d, %s.", TlsContext->Connection, Status, "QuicTlsDerivePacketProtectionIv failed");
         goto Exit;
     }
 
