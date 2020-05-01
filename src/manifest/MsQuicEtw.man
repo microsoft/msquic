@@ -9151,6 +9151,13 @@
               template="template_ptr_ui32_"
               value="539"
               />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="SchannelUninitialized"
+              template="template_"
+              value="540"
+              />
         </events>
       </provider>
     </events>
