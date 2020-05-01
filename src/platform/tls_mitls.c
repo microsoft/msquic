@@ -388,14 +388,14 @@ QuicTlsLibraryInitialize(
     FFI_mitls_set_trace_callback(MiTlsTraceCallback);
     if (!FFI_mitls_init()) {
         Status = QUIC_STATUS_INVALID_STATE;
-        QuicTraceEvent(LibraryError, "FFI_mitls_init failed");
+        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "FFI_mitls_init failed");
         goto Error;
     }
 
     uint8_t Key[QUIC_IV_LENGTH + 32] = { 0 }; // Always use the same null key client side right now.
     if (!FFI_mitls_set_sealing_key("AES256-GCM", Key, sizeof(Key))) {
         Status = QUIC_STATUS_INVALID_STATE;
-        QuicTraceEvent(LibraryError, "FFI_mitls_set_sealing_key failed");
+        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "FFI_mitls_set_sealing_key failed");
         FFI_mitls_cleanup();
         goto Error;
     }
@@ -406,7 +406,7 @@ QuicTlsLibraryInitialize(
     QuicRandom(sizeof(Key), Key);
     if (!FFI_mitls_set_ticket_key("AES256-GCM", Key, sizeof(Key))) {
         Status = QUIC_STATUS_INVALID_STATE;
-        QuicTraceEvent(LibraryError, "FFI_mitls_set_ticket_key failed");
+        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "FFI_mitls_set_ticket_key failed");
         FFI_mitls_cleanup();
         goto Error;
     }
@@ -469,7 +469,7 @@ QuicTlsServerSecConfigCreate(
     }
 
     if (!QuicRundownAcquire(Rundown)) {
-        QuicTraceEvent(LibraryError, "Acquire sec config rundown failed");
+        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "Acquire sec config rundown failed");
         Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
     }
@@ -693,7 +693,7 @@ QuicTlsSessionSetTicketKey(
 {
     UNREFERENCED_PARAMETER(TlsSession); // miTLS doesn't actually support sessions.
     if (!FFI_mitls_set_ticket_key("AES256-GCM", (uint8_t*)Buffer, 44)) {
-        QuicTraceEvent(LibraryError, "FFI_mitls_set_ticket_key failed");
+        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "FFI_mitls_set_ticket_key failed");
         return QUIC_STATUS_INVALID_STATE;
     }
     return QUIC_STATUS_SUCCESS;
@@ -840,7 +840,7 @@ QuicTlsSessionAddTicket(
     QUIC_TLS_TICKET_ENTRY* TicketEntry =
         (QUIC_TLS_TICKET_ENTRY*)QUIC_ALLOC_PAGED(TicketEntryLength);
     if (TicketEntry == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_TLS_TICKET_ENTRY", TicketEntryLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_TLS_TICKET_ENTRY", TicketEntryLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -871,7 +871,7 @@ QuicTlsSessionCreateTicket(
     QUIC_TLS_TICKET_ENTRY* TicketEntry =
         (QUIC_TLS_TICKET_ENTRY*)QUIC_ALLOC_PAGED(TicketEntryLength);
     if (TicketEntry == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_TLS_TICKET_ENTRY", TicketEntryLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_TLS_TICKET_ENTRY", TicketEntryLength);
         return NULL;
     }
 
@@ -906,7 +906,7 @@ QuicTlsInitialize(
     TlsContext = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS) + sizeof(uint16_t) + Config->AlpnBufferLength);
     if (TlsContext == NULL) {
         QuicTraceEvent(
-            AllocFailure,
+            AllocFailure, "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_TLS",
             sizeof(QUIC_TLS) + sizeof(uint16_t) + Config->AlpnBufferLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -976,7 +976,7 @@ QuicTlsInitialize(
 
             TlsContext->SNI = QUIC_ALLOC_PAGED(ServerNameLength + 1);
             if (TlsContext->SNI == NULL) {
-                QuicTraceEvent(AllocFailure, "SNI", ServerNameLength + 1);
+                QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "SNI", ServerNameLength + 1);
                 Status = QUIC_STATUS_OUT_OF_MEMORY;
                 goto Error;
             }
@@ -1545,7 +1545,7 @@ QuicTlsOnCertSelect(
     if (ServerNameIndicationLength != 0) {
         TlsContext->SNI = QUIC_ALLOC_PAGED((uint16_t)(ServerNameIndicationLength + 1));
         if (TlsContext->SNI == NULL) {
-            QuicTraceEvent(AllocFailure, "SNI", ServerNameIndicationLength + 1);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "SNI", ServerNameIndicationLength + 1);
             goto Error;
         }
 
@@ -2231,7 +2231,7 @@ QuicPacketKeyDerive(
         (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
     QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength);
     if (Key == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_PACKET_KEY", PacketKeyLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_PACKET_KEY", PacketKeyLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     QuicZeroMemory(Key, sizeof(QUIC_PACKET_KEY));
@@ -2435,7 +2435,7 @@ QuicPacketKeyCreate(
         (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
     Key = QUIC_ALLOC_NONPAGED(PacketKeyLength);
     if (Key == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_PACKET_KEY", PacketKeyLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_PACKET_KEY", PacketKeyLength);
         Result = FALSE;
         goto Error;
     }
@@ -2610,7 +2610,7 @@ QuicKeyCreate(
 
     QUIC_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_KEY));
     if (Key == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_KEY", sizeof(QUIC_KEY));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_KEY", sizeof(QUIC_KEY));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -2739,7 +2739,7 @@ QuicHpKeyCreate(
 
     QUIC_HP_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_KEY));
     if (Key == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_KEY", sizeof(QUIC_KEY));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_KEY", sizeof(QUIC_KEY));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -2824,7 +2824,7 @@ QuicHashCreate(
 
     QUIC_HASH* Hash = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASH) + SaltLength);
     if (Hash == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_HASH", sizeof(QUIC_HASH) + SaltLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_HASH", sizeof(QUIC_HASH) + SaltLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 

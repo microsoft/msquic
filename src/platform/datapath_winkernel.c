@@ -1121,7 +1121,7 @@ QuicDataPathResolveAddress(
         goto Error;
     }
 
-    QuicTraceEvent(LibraryError, "Resolving hostname to IP");
+    QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "Resolving hostname to IP");
     QuicTraceLogError(
         DatapathResolveHostNameFailed,
         "[%p] Couldn't resolve hostname '%s' to an IP address",

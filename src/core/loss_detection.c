@@ -1125,7 +1125,7 @@ QuicLossDetectionProcessAckBlocks(
             Packet->PacketNumber,
             PacketRtt / 1000,
             PacketRtt % 1000);
-        QuicTraceEvent(ConnPacketACKed,
+        QuicTraceEvent(ConnPacketACKed, "[conn][%p][TX][%llu] %c ACKed",
             Connection,
             Packet->PacketNumber,
             QuicPacketTraceType(Packet));

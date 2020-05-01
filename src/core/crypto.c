@@ -59,7 +59,7 @@ QuicCryptoDumpSendState(
         }
         if (UnAcked < (uint64_t)Crypto->MaxSentLength) {
             QuicTraceLogConnVerbose(
-                CryptoDumpUnacked,
+                CryptoDumpUnacked2,
                 Connection,
                 "  unACKed: [%llu, %u]",
                 UnAcked,

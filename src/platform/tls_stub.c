@@ -278,7 +278,7 @@ QuicTlsServerSecConfigCreate(
     QUIC_SEC_CONFIG* SecurityConfig = NULL;
 
     if (!QuicRundownAcquire(Rundown)) {
-        QuicTraceEvent(LibraryError, "Failed to acquire sec config rundown");
+        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "Failed to acquire sec config rundown");
         Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
     }
@@ -415,7 +415,7 @@ QuicTlsSessionInitialize(
 {
     *NewTlsSession = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS_SESSION));
     if (*NewTlsSession == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_TLS_SESSION", sizeof(QUIC_TLS_SESSION));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_TLS_SESSION", sizeof(QUIC_TLS_SESSION));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     return QUIC_STATUS_SUCCESS;
@@ -480,7 +480,7 @@ QuicTlsInitialize(
 
     QUIC_TLS* TlsContext = QUIC_ALLOC_PAGED(sizeof(QUIC_TLS));
     if (TlsContext == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_TLS", sizeof(QUIC_TLS));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_TLS", sizeof(QUIC_TLS));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -513,7 +513,7 @@ QuicTlsInitialize(
 
         TlsContext->SNI = QUIC_ALLOC_PAGED(ServerNameLength + 1);
         if (TlsContext->SNI == NULL) {
-            QuicTraceEvent(AllocFailure, "SNI", ServerNameLength + 1);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "SNI", ServerNameLength + 1);
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
         }

@@ -367,14 +367,14 @@ QuicProcessorContextInitialize(
     EpollFd = epoll_create1(EPOLL_CLOEXEC);
     if (EpollFd == INVALID_SOCKET_FD) {
         Status = errno;
-        QuicTraceEvent(LibraryErrorStatus, Status, "epoll_create1(EPOLL_CLOEXEC) failed");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "epoll_create1(EPOLL_CLOEXEC) failed");
         goto Exit;
     }
 
     EventFd = eventfd(0, EFD_CLOEXEC);
     if (EventFd == INVALID_SOCKET_FD) {
         Status = errno;
-        QuicTraceEvent(LibraryErrorStatus, Status, "eventfd failed");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "eventfd failed");
         goto Exit;
     }
 
@@ -388,7 +388,7 @@ QuicProcessorContextInitialize(
     Ret = epoll_ctl(EpollFd, EPOLL_CTL_ADD, EventFd, &EvtFdEpEvt);
     if (Ret != 0) {
         Status = errno;
-        QuicTraceEvent(LibraryErrorStatus, Status, "epoll_ctl(EPOLL_CTL_ADD) failed");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "epoll_ctl(EPOLL_CTL_ADD) failed");
         goto Exit;
     }
 
@@ -414,7 +414,7 @@ QuicProcessorContextInitialize(
 
     Status = QuicThreadCreate(&ThreadConfig, &ProcContext->EpollWaitThread);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "QuicThreadCreate failed");
+        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "QuicThreadCreate failed");
         goto Exit;
     }
 
@@ -487,7 +487,7 @@ QuicDataPathInitialize(
 
     QUIC_DATAPATH* Datapath = (QUIC_DATAPATH*)QUIC_ALLOC_PAGED(DatapathLength);
     if (Datapath == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_DATAPATH", DatapathLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_DATAPATH", DatapathLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -588,7 +588,7 @@ QuicDataPathAllocRecvBlock(
     QUIC_DATAPATH_RECV_BLOCK* RecvBlock =
         QuicPoolAlloc(&Datapath->ProcContexts[ProcIndex].RecvBlockPool);
     if (RecvBlock == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_DATAPATH_RECV_BLOCK", 0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_DATAPATH_RECV_BLOCK", 0);
     } else {
         QuicZeroMemory(RecvBlock, sizeof(*RecvBlock));
         RecvBlock->OwningPool = &Datapath->ProcContexts[ProcIndex].RecvBlockPool;
@@ -690,7 +690,7 @@ QuicDataPathResolveAddress(
         goto Exit;
     }
 
-    QuicTraceEvent(LibraryError, "Resolving hostname to IP");
+    QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "Resolving hostname to IP");
     QuicTraceLogError(
         DatapathResolveHostNameFailed,
         "[%p] Couldn't resolve hostname '%s' to an IP address",
@@ -1003,7 +1003,7 @@ QuicSocketContextPrepareReceive(
                 SocketContext->Binding->Datapath,
                 QuicProcCurrentNumber());
         if (SocketContext->CurrentRecvBlock == NULL) {
-            QuicTraceEvent(AllocFailure, "QUIC_DATAPATH_RECV_BLOCK", 0);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_DATAPATH_RECV_BLOCK", 0);
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
     }
@@ -1332,7 +1332,7 @@ QuicSocketContextProcessEvents(
                     0);
             if (Ret < 0) {
                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
-                    QuicTraceEvent(LibraryErrorStatus, errno, "recvmsg failed");
+                    QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", errno, "recvmsg failed");
                 }
                 break;
             } else {
@@ -1379,7 +1379,7 @@ QuicDataPathBindingCreate(
         (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_PAGED(BindingLength);
     if (Binding == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "QUIC_DATAPATH_BINDING", BindingLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_DATAPATH_BINDING", BindingLength);
         goto Exit;
     }
 
@@ -1647,7 +1647,7 @@ QuicDataPathBindingAllocSendContext(
     QUIC_DATAPATH_SEND_CONTEXT* SendContext =
         QuicPoolAlloc(&ProcContext->SendContextPool);
     if (SendContext == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_DATAPATH_SEND_CONTEXT", 0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_DATAPATH_SEND_CONTEXT", 0);
         goto Exit;
     }
 
@@ -1699,7 +1699,7 @@ QuicDataPathBindingAllocSendDatagram(
 
     if (SendContext->BufferCount ==
             SendContext->Owner->Datapath->MaxSendBatchSize) {
-        QuicTraceEvent(LibraryError, "Max batch size limit hit");
+        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "Max batch size limit hit");
         goto Exit;
     }
 
@@ -1708,7 +1708,7 @@ QuicDataPathBindingAllocSendDatagram(
 
     Buffer->Buffer = QuicPoolAlloc(&SendContext->Owner->SendBufferPool);
     if (Buffer->Buffer == NULL) {
-        QuicTraceEvent(AllocFailure, "Send Buffer", 0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "Send Buffer", 0);
         goto Exit;
     }
 

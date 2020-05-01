@@ -3106,7 +3106,7 @@ QuicConnRecvDecryptAndAuthenticate(
             QuicTraceLogConnVerbose(
                 UpdateReadKeyPhase,
                 Connection,
-                "Updating current key phase read packet number[%llu]",
+                "Updating current read key phase and packet number[%llu]",
                 Packet->PacketNumber);
         }
     }
