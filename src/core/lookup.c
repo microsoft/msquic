@@ -649,8 +649,6 @@ QuicLookupFindConnectionByRemoteHash(
         return NULL; // Nothing registered yet.
     }
 
-    QUIC_DBG_ASSERT(Lookup->MaximizePartitioning);
-
     uint32_t Hash = QuicPacketHash(RemoteAddress, RemoteCidLength, RemoteCid);
 
     QuicDispatchRwLockAcquireShared(&Lookup->RwLock);
