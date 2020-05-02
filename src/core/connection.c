@@ -4886,7 +4886,10 @@ QuicConnParamSet(
         Connection->State.UseRoundRobinStreamScheduling =
             Scheme == QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN;
 
-        QuicTraceLogConnInfo(UpdateStreamSchedulingScheme, Connection, "Updated Stream Scheduling Scheme = %u",
+        QuicTraceLogConnInfo(
+            UpdateStreamSchedulingScheme,
+            Connection,
+            "Updated Stream Scheduling Scheme = %u",
             Scheme);
 
         Status = QUIC_STATUS_SUCCESS;
