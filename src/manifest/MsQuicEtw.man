@@ -9158,6 +9158,20 @@
               template="template_"
               value="540"
               />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="IndicateConnectionShutdownComplete"
+              template="template_ptr_"
+              value="541"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="IndicateStreamShutdownComplete"
+              template="template_ptr_"
+              value="542"
+              />
         </events>
       </provider>
     </events>
