@@ -7,10 +7,6 @@
 
 #include "main.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "main.tmh"
-#endif
-
 class QuicCoreTestEnvironment : public ::testing::Environment {
 public:
     void SetUp() override {

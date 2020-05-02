@@ -10,11 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
 #include "quic_trace.h"
-#ifdef QUIC_LOGS_WPP
-#include "quictest.tmh"
-#endif
 
 //#define QUIC_TEST_DISABLE_DNS 1
 
@@ -39,7 +35,9 @@ void QuicTestInitialize()
             QUIC_PARAM_GLOBAL_ENCRYPTION,
             sizeof(Disabled),
             &Disabled))) {
-        QuicTraceLogError("[test] Disabling encryption failed");
+        QuicTraceLogError(
+            TestDisableEncryptionFailure,
+            "[test] Disabling encryption failed");
     }
 #endif
 }
@@ -52,10 +50,16 @@ struct TestScopeLogger
 {
     const char* Name;
     TestScopeLogger(const char* name) : Name(name) {
-        QuicTraceLogInfo("[test]---> %s", Name);
+        QuicTraceLogInfo(
+            TestScopeEntry,
+            "[test]---> %s",
+            Name);
     }
     ~TestScopeLogger() {
-        QuicTraceLogInfo("[test]<--- %s", Name);
+        QuicTraceLogInfo(
+            TestScopeExit,
+            "[test]<--- %s",
+            Name);
     }
 };
 

@@ -11,10 +11,6 @@ Abstract:
 
 #include "main.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "rangetest.tmh"
-#endif
-
 struct SmartRange {
     QUIC_RANGE range;
     SmartRange(uint32_t MaxAllocSize = QUIC_MAX_RANGE_ALLOC_SIZE) {

@@ -12,10 +12,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "range.tmh"
-#endif
-
 #define INITIAL_SUBRANGE_COUNT 8
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

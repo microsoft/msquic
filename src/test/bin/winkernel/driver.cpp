@@ -13,10 +13,6 @@ Abstract:
 
 #include "quic_trace.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "driver.tmh"
-#endif
-
 #define QUIC_TEST_TAG 'tsTQ' // QTst
 
 EVT_WDF_DRIVER_UNLOAD QuicTestDriverUnload;
@@ -106,7 +102,7 @@ Return Value:
 
     Status = QuicPlatformInitialize();
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] QuicPlatformInitialize failed: 0x%x", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "QuicPlatformInitialize failed");
         goto Error;
     }
     PlatformInitialized = TRUE;
@@ -127,7 +123,7 @@ Return Value:
             &Config,
             &Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] WdfDriverCreate failed: 0x%x", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "WdfDriverCreate failed");
         goto Error;
     }
 
@@ -136,11 +132,13 @@ Return Value:
     //
     Status = QuicTestCtlInitialize(Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] QuicTestCtlInitialize failed: 0x%x", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "QuicTestCtlInitialize failed");
         goto Error;
     }
 
-    QuicTraceLogInfo("[test] Started.");
+    QuicTraceLogInfo(
+        TestDriverStarted,
+        "[test] Started");
 
 Error:
 
@@ -165,8 +163,8 @@ QuicTestDriverUnload(
 
 Routine Description:
 
-    QuicTestDriverUnload will clean up the WPP resources that were
-    allocated for this driver.
+    QuicTestDriverUnload will clean up any resources that were allocated for
+    this driver.
 
 Arguments:
 
@@ -179,7 +177,9 @@ Arguments:
 
     QuicTestCtlUninitialize();
 
-    QuicTraceLogInfo("[test] Stopped.");
+    QuicTraceLogInfo(
+        TestDriverStopped,
+        "[test] Stopped");
 
     QuicPlatformUninitialize();
     QuicPlatformSystemUnload();

@@ -11,10 +11,6 @@ Abstract:
 
 #include "main.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "frametest.tmh"
-#endif
-
 struct DecompressEntry {
     uint64_t HighestReceived;
     uint8_t  CompressedBytes;
