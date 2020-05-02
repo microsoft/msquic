@@ -10,7 +10,7 @@ This table describes the version, release date and end of support for MsQuic rel
 
 |  Version  |  Release Date | Support Type | End of Support |
 | -- | -- | -- | -- |
-| [MsQuic 1.0](https://techcommunity.microsoft.com/t5/networking-blog/bg-p/NetworkingBlog) | TBD | SAC | TBD |
+| MsQuic 1.0 | TBD | SAC | TBD |
 
 \* Future release dates are subject to change.
 

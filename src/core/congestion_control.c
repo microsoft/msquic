@@ -20,10 +20,6 @@ Future work:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "congestion_control.tmh"
-#endif
-
 //
 // BETA and C from RFC8312. 10x multiples for integer arithmetic.
 //

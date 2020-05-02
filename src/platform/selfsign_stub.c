@@ -13,10 +13,6 @@ Abstract:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "selfsign_stub.tmh"
-#endif
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_SEC_CONFIG_PARAMS*
 QuicPlatGetSelfSignedCert(

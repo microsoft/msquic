@@ -571,18 +571,16 @@ QuicTraceConnEvent(
         break;
     }
     case EventId_QuicConnOutFlowStats: {
-        printf("OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu StreamFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u StreamSndWnd=%llu\n",
+        printf("OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u\n",
             EvData->OutFlowStats.BytesSent,
             EvData->OutFlowStats.BytesInFlight,
             EvData->OutFlowStats.BytesInFlightMax,
             EvData->OutFlowStats.CongestionWindow,
             EvData->OutFlowStats.SlowStartThreshold,
             EvData->OutFlowStats.ConnectionFlowControl,
-            EvData->OutFlowStats.StreamFlowControl,
             EvData->OutFlowStats.IdealBytes,
             EvData->OutFlowStats.PostedBytes,
-            EvData->OutFlowStats.SmoothedRtt,
-            EvData->OutFlowStats.StreamSendWindow);
+            EvData->OutFlowStats.SmoothedRtt);
         break;
     }
     case EventId_QuicConnOutFlowBlocked: {
@@ -723,21 +721,12 @@ QuicTraceConnEvent(
         break;
     }
     case EventId_QuicConnStatistics: {
-        printf("STATS: LifeTimeUs=%llu SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu SmoothedRtt=%u\n",
-            EvData->Statistics.LifeTimeUs,
-            EvData->Statistics.SendTotalPackets,
-            EvData->Statistics.SendSuspectedLostPackets,
-            EvData->Statistics.SendSpuriousLostPackets,
-            EvData->Statistics.RecvTotalPackets,
-            EvData->Statistics.RecvReorderedPackets,
-            EvData->Statistics.RecvDroppedPackets,
-            EvData->Statistics.RecvDuplicatePackets,
-            EvData->Statistics.RecvDecryptionFailures,
-            EvData->Statistics.CongestionCount,
-            EvData->Statistics.PersistentCongestionCount,
-            EvData->Statistics.SendTotalBytes,
-            EvData->Statistics.RecvTotalBytes,
-            EvData->Statistics.SmoothedRtt);
+        printf("STATS: SmoothedRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu\n",
+            EvData->Stats.SmoothedRtt,
+            EvData->Stats.CongestionCount,
+            EvData->Stats.PersistentCongestionCount,
+            EvData->Stats.SendTotalBytes,
+            EvData->Stats.RecvTotalBytes);
         break;
     }
     case EventId_QuicConnShutdownComplete: {
@@ -781,8 +770,26 @@ QuicTraceConnEvent(
         printf("%s\n", EvData->Log.Msg);
         break;
     }
-    case EventId_QuicQueueSendFlush: {
+    case EventId_QuicConnQueueSendFlush: {
         printf("Queueing send flush, reason=%s\n", SendFlushReasonStr[EvData->QueueSendFlush.Reason]);
+        break;
+    }
+    case EventId_QuicConnOutFlowStreamStats: {
+        printf("OUT: StreamFC=%llu StreamSndWnd=%llu\n",
+            EvData->OutFlowStreamStats.StreamFlowControl,
+            EvData->OutFlowStreamStats.StreamSendWindow);
+        break;
+    }
+    case EventId_QuicConnPacketStats: {
+        printf("STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu\n",
+            EvData->PacketStats.SendTotalPackets,
+            EvData->PacketStats.SendSuspectedLostPackets,
+            EvData->PacketStats.SendSpuriousLostPackets,
+            EvData->PacketStats.RecvTotalPackets,
+            EvData->PacketStats.RecvReorderedPackets,
+            EvData->PacketStats.RecvDroppedPackets,
+            EvData->PacketStats.RecvDuplicatePackets,
+            EvData->PacketStats.RecvDecryptionFailures);
         break;
     }
     default: {

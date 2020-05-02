@@ -48,10 +48,6 @@ Notes:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "toeplitz.tmh"
-#endif
-
 //
 // Initializes the state required for a Toeplitz hash computation. We
 // maintain per-nibble lookup tables, and we initialize them here.

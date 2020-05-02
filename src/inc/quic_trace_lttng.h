@@ -535,9 +535,9 @@ QUIC_TRACE_EVENT(ConnOutFlowStats,
         uint32_t, CongestionWindow,
         uint32_t, SlowStartThreshold,
         uint64_t, ConnectionFlowControl,
-        uint64_t, StreamFlowControl,
         uint64_t, IdealBytes,
-        uint64_t, PostedBytes),
+        uint64_t, PostedBytes,
+        uint32_t, SmoothedRtt),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, Connection, Connection)
         ctf_integer(uint64_t, BytesSent, BytesSent)
@@ -546,9 +546,19 @@ QUIC_TRACE_EVENT(ConnOutFlowStats,
         ctf_integer(uint32_t, CongestionWindow, CongestionWindow)
         ctf_integer(uint32_t, SlowStartThreshold, SlowStartThreshold)
         ctf_integer(uint64_t, ConnectionFlowControl, ConnectionFlowControl)
-        ctf_integer(uint64_t, StreamFlowControl, StreamFlowControl)
         ctf_integer(uint64_t, IdealBytes, IdealBytes)
-        ctf_integer(uint64_t, PostedBytes, PostedBytes))
+        ctf_integer(uint64_t, PostedBytes, PostedBytes)
+        ctf_integer(uint32_t, SmoothedRtt, SmoothedRtt))
+)
+QUIC_TRACE_EVENT(ConnOutFlowStreamStats,
+    TP_ARGS(
+        const void*, Connection,
+        uint64_t, StreamFlowControl,
+        uint64_t, StreamSendWindow),
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, Connection, Connection)
+        ctf_integer(uint64_t, StreamFlowControl, StreamFlowControl)
+        ctf_integer(uint64_t, StreamSendWindow, StreamSendWindow))
 )
 QUIC_TRACE_EVENT(ConnOutFlowBlocked,
     TP_ARGS(
@@ -738,10 +748,25 @@ QUIC_TRACE_EVENT(ConnKeyPhaseChange,
         ctf_integer_hex(uint64_t, Connection, Connection)
         ctf_integer(uint32_t, arg3, arg3))
 )
-QUIC_TRACE_EVENT(ConnStatistics,
+QUIC_TRACE_EVENT(ConnStats,
     TP_ARGS(
         const void*, Connection,
-        uint64_t, LifeTimeUs,
+        uint32_t, SmoothedRtt,
+        uint32_t, CongestionCount,
+        uint32_t, PersistentCongestionCount,
+        uint64_t, SendTotalBytes,
+        uint64_t, RecvTotalBytes),
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, Connection, Connection)
+        ctf_integer(uint32_t, SmoothedRtt, SmoothedRtt)
+        ctf_integer(uint32_t, CongestionCount, CongestionCount)
+        ctf_integer(uint32_t, PersistentCongestionCount, PersistentCongestionCount)
+        ctf_integer(uint64_t, SendTotalBytes, SendTotalBytes)
+        ctf_integer(uint64_t, RecvTotalBytes, RecvTotalBytes))
+)
+QUIC_TRACE_EVENT(ConnPacketStats,
+    TP_ARGS(
+        const void*, Connection,
         uint64_t, SendTotalPackets,
         uint64_t, SendSuspectedLostPackets,
         uint64_t, SendSpuriousLostPackets,
@@ -749,15 +774,9 @@ QUIC_TRACE_EVENT(ConnStatistics,
         uint64_t, RecvReorderedPackets,
         uint64_t, RecvDroppedPackets,
         uint64_t, RecvDuplicatePackets,
-        uint64_t, RecvDecryptionFailures/*,
-        uint32_t, CongestionCount,
-        uint32_t, PersistentCongestionCount,
-        uint64_t, SendTotalBytes,
-        uint64_t, RecvTotalBytes,
-        uint32_t, SmoothedRtt*/),
+        uint64_t, RecvDecryptionFailures),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, Connection, Connection)
-        ctf_integer(uint64_t, LifeTimeUs, LifeTimeUs)
         ctf_integer(uint64_t, SendTotalPackets, SendTotalPackets)
         ctf_integer(uint64_t, SendSuspectedLostPackets, SendSuspectedLostPackets)
         ctf_integer(uint64_t, SendSpuriousLostPackets, SendSpuriousLostPackets)
@@ -765,12 +784,7 @@ QUIC_TRACE_EVENT(ConnStatistics,
         ctf_integer(uint64_t, RecvReorderedPackets, RecvReorderedPackets)
         ctf_integer(uint64_t, RecvDroppedPackets, RecvDroppedPackets)
         ctf_integer(uint64_t, RecvDuplicatePackets, RecvDuplicatePackets)
-        ctf_integer(uint64_t, RecvDecryptionFailures, RecvDecryptionFailures)
-        /*ctf_integer(uint32_t, CongestionCount, CongestionCount)
-        ctf_integer(uint32_t, PersistentCongestionCount, PersistentCongestionCount)
-        ctf_integer(uint64_t, SendTotalBytes, SendTotalBytes)
-        ctf_integer(uint64_t, RecvTotalBytes, RecvTotalBytes)
-        ctf_integer(uint32_t, SmoothedRtt, SmoothedRtt)*/)
+        ctf_integer(uint64_t, RecvDecryptionFailures, RecvDecryptionFailures))
 )
 QUIC_TRACE_EVENT(ConnShutdownComplete,
     TP_ARGS(
@@ -1028,18 +1042,22 @@ QUIC_TRACE_EVENT(BindingExecOper,
 )
 QUIC_TRACE_EVENT(TlsError,
     TP_ARGS(
-        const void*, Connection),
+        const void*, Connection,
+        const char*, Msg),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, Connection, Connection))
+        ctf_integer_hex(uint64_t, Connection, Connection)
+        ctf_string(Msg, Msg))
 )
 QUIC_TRACE_LEVEL(TlsError, TRACE_ERR)
 QUIC_TRACE_EVENT(TlsErrorStatus,
     TP_ARGS(
         const void*, Connection,
-        uint32_t, arg3),
+        uint32_t, arg3,
+        const char*, Msg),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, Connection, Connection)
-        ctf_integer(uint32_t, arg3, arg3))
+        ctf_integer(uint32_t, arg3, arg3)
+        ctf_string(Msg, Msg))
 )
 QUIC_TRACE_LEVEL(TlsErrorStatus, TRACE_ERR)
 QUIC_TRACE_EVENT(TlsMessage,
@@ -1055,7 +1073,9 @@ QUIC_TRACE_EVENT(DatapathSendTo,
         const void*, UdpBinding,
         uint32_t, arg3,
         uint32_t, arg4,
-        uint32_t, arg5),
+        uint32_t, arg5,
+        uint8_t, LocalAddrLength,
+        const void*, LocalAddr),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, UdpBinding, UdpBinding)
         ctf_integer(uint32_t, arg3, arg3)
@@ -1067,7 +1087,11 @@ QUIC_TRACE_EVENT(DatapathSendFromTo,
         const void*, UdpBinding,
         uint32_t, arg3,
         uint32_t, arg4,
-        uint32_t, arg5),
+        uint32_t, arg5,
+        uint8_t, RemoteAddrLength,
+        uint8_t, LocalAddrLength,
+        const void*, RemoteAddr,
+        const void*, LocalAddr),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, UdpBinding, UdpBinding)
         ctf_integer(uint32_t, arg3, arg3)
@@ -1078,7 +1102,11 @@ QUIC_TRACE_EVENT(DatapathRecv,
     TP_ARGS(
         const void*, UdpBinding,
         uint32_t, arg3,
-        uint32_t, arg4),
+        uint32_t, arg4,
+        uint8_t, LocalAddrLength,
+        uint8_t, RemoteAddrLength,
+        const void*, LocalAddr,
+        const void*, RemoteAddr),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, UdpBinding, UdpBinding)
         ctf_integer(uint32_t, arg3, arg3)
@@ -1086,18 +1114,22 @@ QUIC_TRACE_EVENT(DatapathRecv,
 )
 QUIC_TRACE_EVENT(DatapathError,
     TP_ARGS(
-        const void*, UdpBinding),
+        const void*, UdpBinding,
+        const char*, Msg),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, UdpBinding, UdpBinding))
+        ctf_integer_hex(uint64_t, UdpBinding, UdpBinding)
+        ctf_string(Msg, Msg))
 )
 QUIC_TRACE_LEVEL(DatapathError, TRACE_ERR)
 QUIC_TRACE_EVENT(DatapathErrorStatus,
     TP_ARGS(
         const void*, UdpBinding,
-        uint32_t, arg3),
+        uint32_t, arg3,
+        const char*, Msg),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, UdpBinding, UdpBinding)
-        ctf_integer(uint32_t, arg3, arg3))
+        ctf_integer(uint32_t, arg3, arg3)
+        ctf_string(Msg, Msg))
 )
 QUIC_TRACE_LEVEL(DatapathErrorStatus, TRACE_ERR)
 

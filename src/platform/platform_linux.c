@@ -900,7 +900,7 @@ QuicThreadCreate(
 
     pthread_attr_t Attr;
     if (pthread_attr_init(&Attr)) {
-        QuicTraceLogError("[qpal] pthread_attr_init failed, 0x%x.", errno);
+        QuicTraceEvent(LibraryErrorStatus, errno, "pthread_attr_init failed");
         return errno;
     }
 
@@ -912,7 +912,7 @@ QuicThreadCreate(
             CPU_ZERO(&CpuSet);
             CPU_SET(Config->IdealProcessor, &CpuSet);
             if (!pthread_attr_setaffinity_np(&Attr, sizeof(CpuSet), &CpuSet)) {
-                QuicTraceLogWarning("[qpal] pthread_attr_setaffinity_np failed.");
+                QuicTraceEvent(LibraryError, "pthread_attr_setaffinity_np failed");
             }
         } else {
             // TODO - Set Linux equivalent of NUMA affinity.
@@ -923,13 +923,13 @@ QuicThreadCreate(
         struct sched_param Params;
         Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
         if (!pthread_attr_setschedparam(&Attr, &Params)) {
-            QuicTraceLogWarning("[qpal] pthread_attr_setschedparam failed, 0x%x.", errno);
+            QuicTraceEvent(LibraryErrorStatus, errno, "pthread_attr_setschedparam failed");
         }
     }
 
     if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
         Status = errno;
-        QuicTraceLogError("[qpal] pthread_create failed, 0x%x.", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "pthread_create failed");
     }
 
     pthread_attr_destroy(&Attr);
@@ -967,11 +967,10 @@ void
 QuicPlatformLogAssert(
     _In_z_ const char* File,
     _In_ int Line,
-    _In_z_ const char* Func,
     _In_z_ const char* Expr
     )
 {
-    QuicTraceLogError("[Assert] %s:%s:%d:%s", Expr, Func, Line, File);
+    QuicTraceEvent(LibraryAssert, (uint32_t)Line, File, Expr);
 }
 
 int
@@ -1005,27 +1004,4 @@ QuicLogLevelToPriority(
     }
 
     return LOG_DEBUG;
-}
-
-void
-QuicSysLogWrite(
-    _In_ QUIC_TRACE_LEVEL Level,
-    _In_ const char* Fmt,
-    ...
-    )
-{
-    va_list Args = {0};
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
-    va_start(Args, Fmt);
-    PlatDispatch->QuicTraceLog(Level, Fmt, Args);
-    va_end(Args);
-#else
-    char Buffer[QUIC_MAX_LOG_MSG_LEN] = {0};
-    va_start(Args, Fmt);
-    (void)vsnprintf(Buffer, sizeof(Buffer), Fmt, Args);
-    va_end(Args);
-    syslog(
-        LOG_MAKEPRI(LOG_DAEMON, QuicLogLevelToPriority(Level)),
-        "[%u][quic]%s", (uint32_t)syscall(__NR_gettid), Buffer);
-#endif
 }

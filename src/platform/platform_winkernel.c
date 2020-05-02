@@ -15,20 +15,6 @@ Environment:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "platform_winkernel.tmh"
-#pragma warning(push) // Don't care about OACR warnings in publics
-#pragma warning(disable:28170)
-#include <fastwppimpl.h>
-#pragma warning(pop)
-#endif
-
-/*
-    This multiline comment forces WPP to generate the definitions for the
-    initialization and cleanup code, which happens only if there is direct
-    textual reference to the "WPP_INIT_TRACING();" macro.
-*/
-
 typedef enum _SYSTEM_INFORMATION_CLASS {
     SystemBasicInformation                          = 0
 } SYSTEM_INFORMATION_CLASS;
@@ -81,10 +67,6 @@ QuicPlatformSystemLoad(
 {
     UNREFERENCED_PARAMETER(RegistryPath);
 
-#ifdef QUIC_LOGS_WPP
-    FAST_WPP_INIT_TRACING(DriverObject, RegistryPath);
-#endif
-
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventRegisterMicrosoft_Quic();
 #endif
@@ -97,7 +79,9 @@ QuicPlatformSystemLoad(
     (VOID)KeQueryPerformanceCounter((LARGE_INTEGER*)&QuicPlatformPerfFreq);
     QuicPlatform.RngAlgorithm = NULL;
 
-    QuicTraceLogInfo("[ sys] Loaded");
+    QuicTraceLogInfo(
+        WindowsKernelLoaded,
+        "[ sys] Loaded");
 }
 
 PAGEDX
@@ -108,7 +92,10 @@ QuicPlatformSystemUnload(
     )
 {
     PAGED_CODE();
-    QuicTraceLogInfo("[ sys] Unloaded");
+
+    QuicTraceLogInfo(
+        WindowsKernelUnloaded,
+        "[ sys] Unloaded");
 
 #ifdef QUIC_TELEMETRY_ASSERTS
     UninitializeTelemetryAssertsKM();
@@ -116,10 +103,6 @@ QuicPlatformSystemUnload(
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventUnregisterMicrosoft_Quic();
-#endif
-
-#ifdef QUIC_LOGS_WPP
-    FAST_WPP_CLEANUP(QuicPlatform.DriverObject);
 #endif
 }
 
@@ -166,8 +149,11 @@ QuicPlatformInitialize(
     //
     QuicTotalMemory = (uint64_t)Sbi.NumberOfPhysicalPages * (uint64_t)Sbi.PageSize;
 
-    QuicTraceLogInfo("[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)",
-        Sbi.PageSize, QuicTotalMemory);
+    QuicTraceLogInfo(
+        WindowsKernelInitialized,
+        "[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)",
+        Sbi.PageSize,
+        QuicTotalMemory);
 
 Error:
 
@@ -192,7 +178,9 @@ QuicPlatformUninitialize(
     QuicTlsLibraryUninitialize();
     BCryptCloseAlgorithmProvider(QuicPlatform.RngAlgorithm, 0);
     QuicPlatform.RngAlgorithm = NULL;
-    QuicTraceLogInfo("[ sys] Uninitialized");
+    QuicTraceLogInfo(
+        WindowsKernelUninitialized,
+        "[ sys] Uninitialized");
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

@@ -677,45 +677,33 @@ QuicConnLogOutFlowStats(
         return;
     }
 
-    uint64_t FcAvailable;
-    uint64_t SendWindow;
+    const QUIC_PATH* Path = &Connection->Paths[0];
+    UNREFERENCED_PARAMETER(Path);
 
+    QuicTraceEvent(
+        ConnOutFlowStats,
+        Connection,
+        Connection->Stats.Send.TotalBytes,
+        Connection->CongestionControl.BytesInFlight,
+        Connection->CongestionControl.BytesInFlightMax,
+        Connection->CongestionControl.CongestionWindow,
+        Connection->CongestionControl.SlowStartThreshold,
+        Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
+        Connection->SendBuffer.IdealBytes,
+        Connection->SendBuffer.PostedBytes,
+        Path->GotFirstRttSample ? Path->SmoothedRtt : 0);
+
+    uint64_t FcAvailable, SendWindow;
     QuicStreamSetGetFlowControlSummary(
         &Connection->Streams,
         &FcAvailable,
         &SendWindow);
 
-#ifdef QUIC_EVENTS_LTTNG // LTTng has a max of 10 fields.
     QuicTraceEvent(
-        ConnOutFlowStats,
+        ConnOutFlowStreamStats,
         Connection,
-        Connection->Stats.Send.TotalBytes,
-        Connection->CongestionControl.BytesInFlight,
-        Connection->CongestionControl.BytesInFlightMax,
-        Connection->CongestionControl.CongestionWindow,
-        Connection->CongestionControl.SlowStartThreshold,
-        Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
         FcAvailable,
-        Connection->SendBuffer.IdealBytes,
-        Connection->SendBuffer.PostedBytes);
-#else
-    const QUIC_PATH* Path = &Connection->Paths[0];
-    UNREFERENCED_PARAMETER(Path);
-    QuicTraceEvent(
-        ConnOutFlowStats,
-        Connection,
-        Connection->Stats.Send.TotalBytes,
-        Connection->CongestionControl.BytesInFlight,
-        Connection->CongestionControl.BytesInFlightMax,
-        Connection->CongestionControl.CongestionWindow,
-        Connection->CongestionControl.SlowStartThreshold,
-        Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
-        FcAvailable,
-        Connection->SendBuffer.IdealBytes,
-        Connection->SendBuffer.PostedBytes,
-        Path->GotFirstRttSample ? Path->SmoothedRtt : 0,
         SendWindow);
-#endif
 }
 
 inline
@@ -737,11 +725,21 @@ QuicConnLogStatistics(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
-#ifdef QUIC_EVENTS_LTTNG // LTTng has a max of 10 fields.
+    const QUIC_PATH* Path = &Connection->Paths[0];
+    UNREFERENCED_PARAMETER(Path);
+
     QuicTraceEvent(
-        ConnStatistics,
+        ConnStats,
         Connection,
-        QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()),
+        Path->SmoothedRtt,
+        Connection->Stats.Send.CongestionCount,
+        Connection->Stats.Send.PersistentCongestionCount,
+        Connection->Stats.Send.TotalBytes,
+        Connection->Stats.Recv.TotalBytes);
+
+    QuicTraceEvent(
+        ConnPacketStats,
+        Connection,
         Connection->Stats.Send.TotalPackets,
         Connection->Stats.Send.SuspectedLostPackets,
         Connection->Stats.Send.SpuriousLostPackets,
@@ -750,27 +748,6 @@ QuicConnLogStatistics(
         Connection->Stats.Recv.DroppedPackets,
         Connection->Stats.Recv.DuplicatePackets,
         Connection->Stats.Recv.DecryptionFailures);
-#else
-    const QUIC_PATH* Path = &Connection->Paths[0];
-    UNREFERENCED_PARAMETER(Path);
-    QuicTraceEvent(
-        ConnStatistics,
-        Connection,
-        QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()),
-        Connection->Stats.Send.TotalPackets,
-        Connection->Stats.Send.SuspectedLostPackets,
-        Connection->Stats.Send.SpuriousLostPackets,
-        Connection->Stats.Recv.TotalPackets,
-        Connection->Stats.Recv.ReorderedPackets,
-        Connection->Stats.Recv.DroppedPackets,
-        Connection->Stats.Recv.DuplicatePackets,
-        Connection->Stats.Recv.DecryptionFailures,
-        Connection->Stats.Send.CongestionCount,
-        Connection->Stats.Send.PersistentCongestionCount,
-        Connection->Stats.Send.TotalBytes,
-        Connection->Stats.Recv.TotalBytes,
-        Path->SmoothedRtt);
-#endif
 }
 
 inline

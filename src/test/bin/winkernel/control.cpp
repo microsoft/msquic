@@ -14,10 +14,6 @@ Abstract:
 
 #include "quic_trace.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "control.tmh"
-#endif
-
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 QUIC_SEC_CONFIG* SecurityConfig;
@@ -79,7 +75,7 @@ QuicTestCtlInitialize(
 
     Status = MsQuicOpen(&MsQuic);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError("[test] MsQuicOpen failed: 0x%x", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "MsQuicOpen");
         goto Error;
     }
 
@@ -88,7 +84,7 @@ QuicTestCtlInitialize(
             Driver,
             &SDDL_DEVOBJ_SYS_ALL_ADM_ALL);
     if (DeviceInit == nullptr) {
-        QuicTraceLogError("[test] WdfControlDeviceInitAllocate failed");
+        QuicTraceEvent(LibraryError, "WdfControlDeviceInitAllocate failed");
         Status = STATUS_INSUFFICIENT_RESOURCES;
         goto Error;
     }
@@ -98,7 +94,7 @@ QuicTestCtlInitialize(
             DeviceInit,
             &QuicTestCtlDeviceName);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] WdfDeviceInitAssignName failed, 0x%x", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "WdfDeviceInitAssignName failed");
         goto Error;
     }
 
@@ -122,7 +118,7 @@ QuicTestCtlInitialize(
             &Attribs,
             &Device);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] WdfDeviceCreate failed, 0x%x", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "WdfDeviceCreate failed");
         goto Error;
     }
 
@@ -133,7 +129,7 @@ QuicTestCtlInitialize(
 
     Status = WdfDeviceCreateSymbolicLink(Device, &QuicTestCtlDeviceSymLink);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] WdfDeviceCreateSymbolicLink failed, 0x%x", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "WdfDeviceCreateSymbolicLink failed");
         goto Error;
     }
 
@@ -151,7 +147,7 @@ QuicTestCtlInitialize(
     __analysis_assume(QueueConfig.EvtIoStop == 0);
 
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] WdfIoQueueCreate failed, 0x%x", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "WdfIoQueueCreate failed");
         goto Error;
     }
 
@@ -160,7 +156,9 @@ QuicTestCtlInitialize(
 
     WdfControlFinishInitializing(Device);
 
-    QuicTraceLogVerbose("[test] Control interface initialized.");
+    QuicTraceLogVerbose(
+        TestControlInitialized,
+        "[test] Control interface initialized");
 
 Error:
 
@@ -176,7 +174,9 @@ VOID
 QuicTestCtlUninitialize(
     )
 {
-    QuicTraceLogVerbose("[test] Control interface uninitializing.");
+    QuicTraceLogVerbose(
+        TestControlUninitializing,
+        "[test] Control interface uninitializing");
 
     if (QuicTestCtlDevice != nullptr) {
         NT_ASSERT(QuicTestCtlExtension != nullptr);
@@ -191,7 +191,9 @@ QuicTestCtlUninitialize(
         MsQuic = nullptr;
     }
 
-    QuicTraceLogVerbose("[test] Control interface uninitialized.");
+    QuicTraceLogVerbose(
+        TestControlUninitialized,
+        "[test] Control interface uninitialized");
 }
 
 PAGEDX
@@ -213,14 +215,14 @@ QuicTestCtlEvtFileCreate(
     do
     {
         if (QuicTestCtlExtension->ClientListSize >= 1) {
-            QuicTraceLogError("[test] Already have max clients!");
+            QuicTraceEvent(LibraryError, "Already have max clients");
             Status = STATUS_TOO_MANY_SESSIONS;
             break;
         }
 
         QUIC_TEST_CLIENT* Client = QuicTestCtlGetFileContext(FileObject);
         if (Client == nullptr) {
-            QuicTraceLogError("[test] nullptr File context in FileCreate!");
+            QuicTraceEvent(LibraryError, "nullptr File context in FileCreate");
             Status = STATUS_INVALID_PARAMETER;
             break;
         }
@@ -231,7 +233,7 @@ QuicTestCtlEvtFileCreate(
         const QUIC_REGISTRATION_CONFIG RegConfig = { "MsQuicBvt", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
         Status = MsQuic->RegistrationOpen(&RegConfig, &Client->Registration);
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogError("[test] RegistrationOpen failed: 0x%x", Status);
+            QuicTraceEvent(LibraryErrorStatus, Status, "RegistrationOpen");
             break;
         }
 
@@ -241,7 +243,10 @@ QuicTestCtlEvtFileCreate(
         InsertTailList(&QuicTestCtlExtension->ClientList, &Client->Link);
         QuicTestCtlExtension->ClientListSize++;
 
-        QuicTraceLogInfo("[test] Client %p created.", Client);
+        QuicTraceLogInfo(
+            TestControlClientCreated,
+            "[test] Client %p created",
+            Client);
 
         //
         // Update globals. (TODO: Add multiple device client support)
@@ -291,7 +296,10 @@ QuicTestCtlEvtFileCleanup(
 
         ExfReleasePushLockExclusive(&QuicTestCtlExtension->Lock);
 
-        QuicTraceLogInfo("[test] Client %p cleaning up.", Client);
+        QuicTraceLogInfo(
+            TestControlClientCleaningUp,
+            "[test] Client %p cleaning up",
+            Client);
 
         //
         // Clean up the tests.
@@ -341,7 +349,11 @@ QuicTestCtlEvtIoCanceled(
         goto error;
     }
 
-    QuicTraceLogWarning("[test] Client %p cancelled request %p.", Client, Request);
+    QuicTraceLogWarning(
+        TestControlClientCanceledRequest,
+        "[test] Client %p canceled request %p",
+        Client,
+        Request);
 
     Status = STATUS_CANCELLED;
 
@@ -371,7 +383,7 @@ QuicTestCtlSetSecurityConfig(
             Client,
             QuicTestSecConfigCreated);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError("[test] SecConfigCreate failed: 0x%x", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "SecConfigCreate");
         goto Error;
     }
 
@@ -380,7 +392,7 @@ QuicTestCtlSetSecurityConfig(
     //
     KeWaitForSingleObject(&Client->SecConfigComplete, Executive, KernelMode, FALSE, NULL);
     if (Client->SecurityConfig == nullptr) {
-        QuicTraceLogError("[test] SecConfigCreate failed to get certificate.");
+        QuicTraceEvent(LibraryError, "SecConfigCreate failed to get certificate");
         Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
     }
@@ -393,7 +405,10 @@ QuicTestCtlSetSecurityConfig(
     SecurityConfig = Client->SecurityConfig;
     Status = QUIC_STATUS_SUCCESS;
 
-    QuicTraceLogInfo("[test] Client %p set security config and initialized.", Client);
+    QuicTraceLogInfo(
+        TestControlClientInitialized,
+        "[test] Client %p set security config and initialized",
+        Client);
 
 Error:
 
@@ -440,7 +455,10 @@ Return Value:
     QUIC_TEST_CLIENT* Client = (QUIC_TEST_CLIENT*)Context;
     QUIC_FRE_ASSERT(Client != nullptr);
 
-    QuicTraceLogInfo("[test] SecConfigCreated: 0x%x", Status);
+    QuicTraceLogInfo(
+        TestControlSecConfigCreated,
+        "[test] SecConfigCreated: 0x%x",
+        Status);
 
     NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
 
@@ -532,35 +550,34 @@ QuicTestCtlEvtIoDeviceControl(
 
     if (KeGetCurrentIrql() > PASSIVE_LEVEL) {
         Status = STATUS_NOT_SUPPORTED;
-        QuicTraceLogError("[test] QuicTestCtlEvtIoDeviceControl not supported greater than PASSIVE_LEVEL");
+        QuicTraceEvent(LibraryError, "IOCTL not supported greater than PASSIVE_LEVEL");
         goto Error;
     }
 
     FileObject = WdfRequestGetFileObject(Request);
     if (FileObject == nullptr) {
         Status = STATUS_DEVICE_NOT_READY;
-        QuicTraceLogError("[test] WdfRequestGetFileObject failed");
+        QuicTraceEvent(LibraryError, "WdfRequestGetFileObject failed");
         goto Error;
     }
 
     Client = QuicTestCtlGetFileContext(FileObject);
     if (Client == nullptr) {
         Status = STATUS_DEVICE_NOT_READY;
-        QuicTraceLogError("[test] QuicTestCtlGetFileContext failed");
+        QuicTraceEvent(LibraryError, "QuicTestCtlGetFileContext failed");
         goto Error;
     }
 
     ULONG FunctionCode = IoGetFunctionCodeFromCtlCode(IoControlCode);
     if (FunctionCode == 0 || FunctionCode > QUIC_MAX_IOCTL_FUNC_CODE) {
         Status = STATUS_NOT_IMPLEMENTED;
-        QuicTraceLogError("[test] Invalid FunctionCode, %u", FunctionCode);
+        QuicTraceEvent(LibraryErrorStatus, FunctionCode, "Invalid FunctionCode");
         goto Error;
     }
 
     if (InputBufferLength < QUIC_IOCTL_BUFFER_SIZES[FunctionCode]) {
         Status = STATUS_INSUFFICIENT_RESOURCES;
-        QuicTraceLogError("[test] Invalid buffer size for FunctionCode %u, %u (expected %u)",
-            FunctionCode, (UINT32)InputBufferLength, (UINT32)QUIC_IOCTL_BUFFER_SIZES[FunctionCode]);
+        QuicTraceEvent(LibraryErrorStatus, FunctionCode, "Invalid buffer size for FunctionCode");
         goto Error;
     }
 
@@ -573,21 +590,25 @@ QuicTestCtlEvtIoDeviceControl(
                 (void**)&Params,
                 nullptr);
         if (!NT_SUCCESS(Status)) {
-            QuicTraceLogError("[test] WdfRequestRetrieveInputBuffer failed, 0x%x", Status);
+            QuicTraceEvent(LibraryErrorStatus, Status, "WdfRequestRetrieveInputBuffer failed");
             goto Error;
         } else if (Params == nullptr) {
-            QuicTraceLogError("[test] WdfRequestRetrieveInputBuffer failed to return parameter buffer");
+            QuicTraceEvent(LibraryError, "WdfRequestRetrieveInputBuffer failed to return parameter buffer");
             Status = STATUS_INVALID_PARAMETER;
             goto Error;
         }
     }
 
-    QuicTraceLogInfo("[test] Client %p executing IOCTL %u.", Client, FunctionCode);
+    QuicTraceLogInfo(
+        TestControlClientIoctl,
+        "[test] Client %p executing IOCTL %u",
+        Client,
+        FunctionCode);
 
     if (IoControlCode != IOCTL_QUIC_SEC_CONFIG &&
         Client->SecurityConfig == nullptr) {
         Status = STATUS_INVALID_DEVICE_STATE;
-        QuicTraceLogError("[test] Client %p didn't set Security Config!", Client);
+        QuicTraceEvent(LibraryError, "Client didn't set Security Config");
         goto Error;
     }
 
@@ -827,7 +848,11 @@ QuicTestCtlEvtIoDeviceControl(
 
 Error:
 
-    QuicTraceLogInfo("[test] Client %p completing request, 0x%x.", Client, Status);
+    QuicTraceLogInfo(
+        TestControlClientIoctlComplete,
+        "[test] Client %p completing request, 0x%x",
+        Client,
+        Status);
 
     WdfRequestComplete(Request, Status);
 }
@@ -871,8 +896,16 @@ Return Value:
     (void)_vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, Format, Args);
     va_end(Args);
 
-    QuicTraceLogError("[test] File: %s, Function: %s, Line: %d", File, Function, Line);
-    QuicTraceLogError("[test] FAIL: %s", Buffer);
+    QuicTraceLogError(
+        TestDriverFailureLocation,
+        "[test] File: %s, Function: %s, Line: %d",
+        File,
+        Function,
+        Line);
+    QuicTraceLogError(
+        TestDriverFailure,
+        "[test] FAIL: %s",
+        Buffer);
 
 #if QUIC_BREAK_TEST
     NT_FRE_ASSERT(FALSE);

@@ -13,10 +13,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "binding.tmh"
-#endif
-
 //
 // Make sure we will always have enough room to fit our Version Negotiation packet,
 // which includes both the global, constant list of supported versions and the
@@ -295,7 +291,9 @@ QuicBindingRegisterListener(
         }
 
         if (QuicSessionHasAlpnOverlap(NewListener->Session, ExistingListener->Session)) {
-            QuicTraceLogWarning("[bind][%p] Listener (%p) already registered on ALPN",
+            QuicTraceLogWarning(
+                BindingListenerAlreadyRegistered,
+                "[bind][%p] Listener (%p) already registered on ALPN",
                 Binding, ExistingListener);
             AddNewListener = FALSE;
             break;
@@ -693,7 +691,9 @@ QuicBindingProcessStatelessOperation(
             QuicSupportedVersionList,
             sizeof(QuicSupportedVersionList));
 
-        QuicTraceLogVerbose("[S][TX][-] VN");
+        QuicTraceLogVerbose(
+            PacketTxVersionNegotiation,
+            "[S][TX][-] VN");
 
     } else if (OperationType == QUIC_OPER_TYPE_STATELESS_RESET) {
 
@@ -748,7 +748,9 @@ QuicBindingProcessStatelessOperation(
             RecvPacket->DestCid,
             SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH);
 
-        QuicTraceLogVerbose("[S][TX][-] SR %s",
+        QuicTraceLogVerbose(
+            PacketTxStatelessReset,
+            "[S][TX][-] SR %s",
             QuicCidBufToStr(
                 SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH,
                 QUIC_STATELESS_RESET_TOKEN_LENGTH
@@ -820,7 +822,9 @@ QuicBindingProcessStatelessOperation(
                 (uint8_t*)SendDatagram->Buffer);
         QUIC_DBG_ASSERT(SendDatagram->Length != 0);
 
-        QuicTraceLogVerbose("[S][TX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R OrigDestCid:%s (Token %hu bytes)",
+        QuicTraceLogVerbose(
+            PacketTxRetry,
+            "[S][TX][-] LH Ver:0x%x DestCid:%s SrcCid:%s Type:R OrigDestCid:%s (Token %hu bytes)",
             RecvPacket->LH->Version,
             QuicCidBufToStr(RecvPacket->SourceCid, RecvPacket->SourceCidLen).Buffer,
             QuicCidBufToStr(NewDestCid, MsQuicLib.CidTotalLength).Buffer,
@@ -1473,11 +1477,18 @@ QuicBindingSendTo(
                 RemoteAddress,
                 SendContext);
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning("[bind][%p] SendTo failed, 0x%x", Binding, Status);
+            QuicTraceLogWarning(
+                BindingSendToFailed,
+                "[bind][%p] SendTo failed, 0x%x",
+                Binding,
+                Status);
         }
 #if QUIC_SEND_FAKE_LOSS
     } else {
-        QuicTraceLogVerbose("[bind][%p] Dropped (fake loss) packet", Binding);
+        QuicTraceLogVerbose(
+            BindingSendToFakeDrop,
+            "[bind][%p] Dropped (fake loss) packet",
+            Binding);
         QuicDataPathBindingFreeSendContext(SendContext);
         Status = QUIC_STATUS_SUCCESS;
     }
@@ -1507,11 +1518,18 @@ QuicBindingSendFromTo(
                 RemoteAddress,
                 SendContext);
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning("[bind][%p] SendFromTo failed, 0x%x", Binding, Status);
+            QuicTraceLogWarning(
+                BindingSendFromToFailed,
+                "[bind][%p] SendFromTo failed, 0x%x",
+                Binding,
+                Status);
         }
 #if QUIC_SEND_FAKE_LOSS
     } else {
-        QuicTraceLogVerbose("[bind][%p] Dropped (fake loss) packet", Binding);
+        QuicTraceLogVerbose(
+            SendFromToFakeDrop,
+            "[bind][%p] Dropped (fake loss) packet",
+            Binding);
         QuicDataPathBindingFreeSendContext(SendContext);
         Status = QUIC_STATUS_SUCCESS;
     }

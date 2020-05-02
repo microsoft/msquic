@@ -13,10 +13,6 @@ Abstract:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "cert_openssl.tmh"
-#endif
-
 #include <mitlsffi.h>
 #include <mipki.h>
 
@@ -61,7 +57,11 @@ LogGetProcAddressFailure(
     _In_ DWORD Error
     )
 {
-    QuicTraceLogVerbose("[cert] GetProcAddress failed for %s, 0x%x", FuncName, Error);
+    QuicTraceLogVerbose(
+        CertOpenSslGetProcessAddressFailure,
+        "[cert] GetProcAddress failed for %s, 0x%x",
+        FuncName,
+        Error);
 }
 
 QUIC_STATUS
@@ -82,7 +82,7 @@ QuicCertLibraryInitialize(
     miPKI.Libmipki = LoadLibrary("libmipki.dll");
     if (miPKI.Libmipki == NULL) {
         Status = GetLastError();
-        QuicTraceLogVerbose("[cert] Failed to Load libmipki.dll, 0x%x", Status);
+        QuicTraceEvent(LibraryErrorStatus, Status, "Failed to Load libmipki.dll");
         goto Error;
     }
 
@@ -118,13 +118,13 @@ QuicCertLibraryInitialize(
 
     if (!miPKI.State) {
         Status = QUIC_STATUS_INVALID_STATE;
-        QuicTraceLogError("[cert] mipki_init failed: %d.", erridx);
+        QuicTraceEvent(LibraryErrorStatus, erridx, "mipki_init failed");
         goto Error;
     }
 
     if (!miPKI.mipki_add_root_file_or_path(miPKI.State, "CAFile.pem")) {
         Status = QUIC_STATUS_INVALID_STATE;
-        QuicTraceLogError("[cert] mipki_add_root_file_or_path failed.");
+        QuicTraceEvent(LibraryError, "mipki_add_root_file_or_path failed");
         goto Error;
     }
 

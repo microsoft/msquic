@@ -39,10 +39,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "ack_tracker.tmh"
-#endif
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicAckTrackerInitialize(
@@ -144,7 +140,12 @@ QuicAckTrackerAckPacket(
         return;
     }
 
-    QuicTraceLogVerbose("[%c][RX][%llu] Marked for ACK", PtkConnPre(Connection), PacketNumber);
+    QuicTraceLogVerbose(
+        PacketRxMarkedForAck,
+        "[%c][RX][%llu] Marked for ACK",
+        PtkConnPre(Connection),
+        PacketNumber);
+
     QuicRangeValidate(&Tracker->PacketNumbersToAck);
 
     BOOLEAN NewLargestPacketNumber =
