@@ -1118,29 +1118,6 @@
         "arg6": "arg6",
         "arg7": "arg7"
       },
-      "LogPacketLongHeaderInitial": {
-        "arg2": "arg2",
-        "arg3": "arg3",
-        "arg4": "arg4",
-        "arg5": "arg5",
-        "arg6": "arg6",
-        "arg7": "arg7",
-        "arg8": "arg8",
-        "arg9": "arg9",
-        "arg10": "arg10",
-        "arg11": "arg11"
-      },
-      "LogPacketLongHeader": {
-        "arg2": "arg2",
-        "arg3": "arg3",
-        "arg4": "arg4",
-        "arg5": "arg5",
-        "arg6": "arg6",
-        "arg7": "arg7",
-        "arg8": "arg8",
-        "arg9": "arg9",
-        "arg10": "arg10"
-      },
       "LogPacketLongHeaderUnsupported": {
         "arg2": "arg2",
         "arg3": "arg3",
@@ -2294,6 +2271,27 @@
       "DatapathUnreachableKernel": {
         "arg2": "arg1",
         "arg3": "arg3"
+      },
+      "LogPacketLongHeaderInitial": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6",
+        "arg7": "arg7",
+        "arg8": "arg8",
+        "arg9": "arg9",
+        "arg10": "arg10"
+      },
+      "LogPacketLongHeader": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5",
+        "arg6": "arg6",
+        "arg7": "arg7",
+        "arg8": "arg8",
+        "arg9": "arg9"
       }
     }
   },
@@ -14625,229 +14623,6 @@
           },
           "DefinationEncoding": "hu",
           "MacroVariableName": "arg7"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogVerbose",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "empty",
-          "windows_kernel": "etw_only",
-          "windows": "etw_plus"
-        }
-      }
-    },
-    "LogPacketLongHeaderInitial": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "285",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
-      "TraceString": "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:%s (Token %hu bytes) (Payload %hu bytes) (PktNum %hu bytes)",
-      "UniqueId": "LogPacketLongHeaderInitial",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    PtkConnPre(Connection)",
-            "UserSuppliedTrimmed": "PtkConnPre(Connection)",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "c",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    PktRxPre(Rx)",
-            "UserSuppliedTrimmed": "PktRxPre(Rx)",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "c",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    PacketNumber",
-            "UserSuppliedTrimmed": "PacketNumber",
-            "SuggestedTelemetryName": "arg4"
-          },
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    LongHdr->Version",
-            "UserSuppliedTrimmed": "LongHdr->Version",
-            "SuggestedTelemetryName": "arg5"
-          },
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg5"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    CLOG_BYTEARRAY(DestCidLen, DestCid)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(DestCidLen, DestCid)",
-            "SuggestedTelemetryName": "arg6"
-          },
-          "DefinationEncoding": "!CID!",
-          "MacroVariableName": "arg6"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    CLOG_BYTEARRAY(SourceCidLen, SourceCid)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(SourceCidLen, SourceCid)",
-            "SuggestedTelemetryName": "arg7"
-          },
-          "DefinationEncoding": "!CID!",
-          "MacroVariableName": "arg7"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    QuicLongHeaderTypeToString(LongHdr->Type)",
-            "UserSuppliedTrimmed": "QuicLongHeaderTypeToString(LongHdr->Type)",
-            "SuggestedTelemetryName": "arg8"
-          },
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg8"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    (uint16_t)TokenLength",
-            "UserSuppliedTrimmed": "(uint16_t)TokenLength",
-            "SuggestedTelemetryName": "arg9"
-          },
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg9"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    (uint16_t)Length",
-            "UserSuppliedTrimmed": "(uint16_t)Length",
-            "SuggestedTelemetryName": "arg10"
-          },
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg10"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    LongHdr->PnLength + 1",
-            "UserSuppliedTrimmed": "LongHdr->PnLength + 1",
-            "SuggestedTelemetryName": "arg11"
-          },
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg11"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogVerbose",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "empty",
-          "windows_kernel": "etw_only",
-          "windows": "etw_plus"
-        }
-      }
-    },
-    "LogPacketLongHeader": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "286",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
-      "TraceString": "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:%s (Payload %hu bytes) (PktNum %hu bytes)",
-      "UniqueId": "LogPacketLongHeader",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    PtkConnPre(Connection)",
-            "UserSuppliedTrimmed": "PtkConnPre(Connection)",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "c",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    PktRxPre(Rx)",
-            "UserSuppliedTrimmed": "PktRxPre(Rx)",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "c",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    PacketNumber",
-            "UserSuppliedTrimmed": "PacketNumber",
-            "SuggestedTelemetryName": "arg4"
-          },
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    LongHdr->Version",
-            "UserSuppliedTrimmed": "LongHdr->Version",
-            "SuggestedTelemetryName": "arg5"
-          },
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg5"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    CLOG_BYTEARRAY(DestCidLen, DestCid)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(DestCidLen, DestCid)",
-            "SuggestedTelemetryName": "arg6"
-          },
-          "DefinationEncoding": "!CID!",
-          "MacroVariableName": "arg6"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    CLOG_BYTEARRAY(SourceCidLen, SourceCid)",
-            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(SourceCidLen, SourceCid)",
-            "SuggestedTelemetryName": "arg7"
-          },
-          "DefinationEncoding": "!CID!",
-          "MacroVariableName": "arg7"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    QuicLongHeaderTypeToString(LongHdr->Type)",
-            "UserSuppliedTrimmed": "QuicLongHeaderTypeToString(LongHdr->Type)",
-            "SuggestedTelemetryName": "arg8"
-          },
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg8"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    (uint16_t)Length",
-            "UserSuppliedTrimmed": "(uint16_t)Length",
-            "SuggestedTelemetryName": "arg9"
-          },
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg9"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n                    LongHdr->PnLength + 1",
-            "UserSuppliedTrimmed": "LongHdr->PnLength + 1",
-            "SuggestedTelemetryName": "arg10"
-          },
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg10"
         }
       ],
       "macro": {
@@ -27879,6 +27654,211 @@
           "windows": "etw_plus"
         }
       }
+    },
+    "LogPacketLongHeaderInitial": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "285",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:%s (Token %hu bytes) (Payload %hu bytes)",
+      "UniqueId": "LogPacketLongHeaderInitial",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    PtkConnPre(Connection)",
+            "UserSuppliedTrimmed": "PtkConnPre(Connection)",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    PktRxPre(Rx)",
+            "UserSuppliedTrimmed": "PktRxPre(Rx)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    PacketNumber",
+            "UserSuppliedTrimmed": "PacketNumber",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    LongHdr->Version",
+            "UserSuppliedTrimmed": "LongHdr->Version",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    CLOG_BYTEARRAY(DestCidLen, DestCid)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(DestCidLen, DestCid)",
+            "SuggestedTelemetryName": "arg6"
+          },
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    CLOG_BYTEARRAY(SourceCidLen, SourceCid)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(SourceCidLen, SourceCid)",
+            "SuggestedTelemetryName": "arg7"
+          },
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    QuicLongHeaderTypeToString(LongHdr->Type)",
+            "UserSuppliedTrimmed": "QuicLongHeaderTypeToString(LongHdr->Type)",
+            "SuggestedTelemetryName": "arg8"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg8"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    (uint16_t)TokenLength",
+            "UserSuppliedTrimmed": "(uint16_t)TokenLength",
+            "SuggestedTelemetryName": "arg9"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg9"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    (uint16_t)Length",
+            "UserSuppliedTrimmed": "(uint16_t)Length",
+            "SuggestedTelemetryName": "arg10"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg10"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "LogPacketLongHeader": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "286",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "6A7F6746-617F-40A3-8EAC-B84C022058FB",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:%s (Payload %hu bytes)",
+      "UniqueId": "LogPacketLongHeader",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    PtkConnPre(Connection)",
+            "UserSuppliedTrimmed": "PtkConnPre(Connection)",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    PktRxPre(Rx)",
+            "UserSuppliedTrimmed": "PktRxPre(Rx)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    PacketNumber",
+            "UserSuppliedTrimmed": "PacketNumber",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    LongHdr->Version",
+            "UserSuppliedTrimmed": "LongHdr->Version",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    CLOG_BYTEARRAY(DestCidLen, DestCid)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(DestCidLen, DestCid)",
+            "SuggestedTelemetryName": "arg6"
+          },
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    CLOG_BYTEARRAY(SourceCidLen, SourceCid)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(SourceCidLen, SourceCid)",
+            "SuggestedTelemetryName": "arg7"
+          },
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    QuicLongHeaderTypeToString(LongHdr->Type)",
+            "UserSuppliedTrimmed": "QuicLongHeaderTypeToString(LongHdr->Type)",
+            "SuggestedTelemetryName": "arg8"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg8"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    (uint16_t)Length",
+            "UserSuppliedTrimmed": "(uint16_t)Length",
+            "SuggestedTelemetryName": "arg9"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg9"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
     }
   },
   "Version": 1,
@@ -29315,14 +29295,6 @@
         "TraceID": "LogPacketRetry"
       },
       {
-        "UniquenessHash": "bdfd2a0a-d715-52bd-b80f-dd5785ac4c6a",
-        "TraceID": "LogPacketLongHeaderInitial"
-      },
-      {
-        "UniquenessHash": "db737346-dd2e-f08b-b60f-4a374ecf84f1",
-        "TraceID": "LogPacketLongHeader"
-      },
-      {
         "UniquenessHash": "0c34888b-957a-38c7-d9d4-836f28c6df92",
         "TraceID": "LogPacketLongHeaderUnsupported"
       },
@@ -30561,6 +30533,14 @@
       {
         "UniquenessHash": "fc17491e-8d41-fab2-94f8-fba23cd572a8",
         "TraceID": "DatapathUnreachableKernel"
+      },
+      {
+        "UniquenessHash": "cfaf200e-159e-bce4-2577-59f8f1a7a404",
+        "TraceID": "LogPacketLongHeaderInitial"
+      },
+      {
+        "UniquenessHash": "187b0a16-54f4-9e10-4d81-6fb6c470cd25",
+        "TraceID": "LogPacketLongHeader"
       }
     ]
   }
