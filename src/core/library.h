@@ -333,24 +333,6 @@ QuicLibraryGetGlobalParam(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicLibrarySetGlobalParam(
-    _In_ uint32_t Param,
-    _In_ uint32_t BufferLength,
-    _In_reads_bytes_(BufferLength)
-        const void* Buffer
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicLibraryGetGlobalParam(
-    _In_ uint32_t Param,
-    _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength)
-        void* Buffer
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
 QuicLibrarySetParam(
     _In_ HQUIC Handle,
     _In_ QUIC_PARAM_LEVEL Level,

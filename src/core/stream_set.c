@@ -603,7 +603,7 @@ QuicStreamSetGetStreamForPeer(
                     Connection,
                     TRUE,
                     STREAM_ID_IS_UNI_DIR(StreamId), // Unidirectional
-                    FrameIn0Rtt,                   // Opened0Rtt
+                    FrameIn0Rtt,                    // Opened0Rtt
                     &Stream);
             if (QUIC_FAILED(Status)) {
                 goto Exit;

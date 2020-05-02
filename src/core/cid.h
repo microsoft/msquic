@@ -260,16 +260,3 @@ QuicCidNewDestination(
 
     return Entry;
 }
-
-//
-// Helpers for logging connection IDs.
-//
-
-typedef struct QUIC_CID_STR {
-    char Buffer[2 * QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + 1];
-} QUIC_CID_STR;
-
-inline char QuicHalfByteToStr(uint8_t b)
-{
-    return b < 10 ? ('0' + b) : ('a' + b - 10);
-}

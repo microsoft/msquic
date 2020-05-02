@@ -608,9 +608,9 @@ QuicPacketLogHeader(
             }
 
             if (LongHdr->Type == QUIC_INITIAL) {
-                BUGBUG_TraceLogVerbose(
+                QuicTraceLogVerbose(
                     LogPacketLongHeaderInitial,
-                    "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:%s (Token %hu bytes) (Payload %hu bytes) (PktNum %hu bytes)",
+                    "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:%s (Token %hu bytes) (Payload %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     PacketNumber,
@@ -619,12 +619,11 @@ QuicPacketLogHeader(
                     CLOG_BYTEARRAY(SourceCidLen, SourceCid),
                     QuicLongHeaderTypeToString(LongHdr->Type),
                     (uint16_t)TokenLength,
-                    (uint16_t)Length,
-                    LongHdr->PnLength + 1);
+                    (uint16_t)Length);
             } else {
-                BUGBUG_TraceLogVerbose(
+                QuicTraceLogVerbose(
                     LogPacketLongHeader,
-                    "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:%s (Payload %hu bytes) (PktNum %hu bytes)",
+                    "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:%s (Payload %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     PacketNumber,
@@ -632,8 +631,7 @@ QuicPacketLogHeader(
                     CLOG_BYTEARRAY(DestCidLen, DestCid),
                     CLOG_BYTEARRAY(SourceCidLen, SourceCid),
                     QuicLongHeaderTypeToString(LongHdr->Type),
-                    (uint16_t)Length,
-                    LongHdr->PnLength + 1);
+                    (uint16_t)Length);
             }
             break;
         }

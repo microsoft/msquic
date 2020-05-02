@@ -305,20 +305,6 @@ QuicCongestionControlGetConnection(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     );
 
-QUIC_CID_STR
-QuicCidToStr(
-    _In_ const QUIC_CID* const CID
-    );
-
-QUIC_CID_STR
-QuicCidBufToStr(
-    _In_reads_(Length)
-        const uint8_t* const Data,
-    _In_ uint8_t Length
-    );
-
- char QuicHalfByteToStr(uint8_t b);
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicSendBufferHasSpace(
