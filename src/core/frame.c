@@ -1769,13 +1769,20 @@ QuicFrameLog(
         QUIC_DATAGRAM_EX Frame;
         if (!QuicDatagramFrameDecode(FrameType, PacketLength, Packet, Offset, &Frame)) {
             QuicTraceLogVerbose(
+                FrameLogDatagramInvalid,
                 "[%c][%cX][%llu]   DATAGRAM [Invalid]",
-                PtkConnPre(Connection), PktRxPre(Rx), PacketNumber);
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
             return FALSE;
         }
         QuicTraceLogVerbose(
+            FrameLogDatagram,
             "[%c][%cX][%llu]   DATAGRAM Len:%hu",
-            PtkConnPre(Connection), PktRxPre(Rx), PacketNumber, (uint16_t)Frame.Length);
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            (uint16_t)Frame.Length);
         break;
     }
 

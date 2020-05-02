@@ -865,7 +865,11 @@ QuicCryptoTlsEncodeTransportParameters(
             TlsWriteTransportParamVarInt(
                 QUIC_TP_ID_MAX_DATAGRAM_FRAME_SIZE,
                 TransportParams->MaxDatagramFrameSize, TPBuf);
-        QuicTraceLogConnVerbose(EncodeMaxDatagramFrameSize, Connection, "TP: Max Datagram Frame Size (%llu bytes)", TransportParams->MaxDatagramFrameSize);
+        QuicTraceLogConnVerbose(
+            EncodeMaxDatagramFrameSize,
+            Connection,
+            "TP: Max Datagram Frame Size (%llu bytes)",
+            TransportParams->MaxDatagramFrameSize);
     }
     if (Connection->State.TestTransportParameterSet) {
         TPBuf =
@@ -1204,7 +1208,11 @@ QuicCryptoTlsDecodeTransportParameters(
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE;
-            QuicTraceLogConnVerbose(DecodeTPMaxDatagramFrameSize, Connection, "TP: Max Datagram Frame Size (%llu bytes)", TransportParams->MaxDatagramFrameSize);
+            QuicTraceLogConnVerbose(
+                DecodeTPMaxDatagramFrameSize,
+                Connection,
+                "TP: Max Datagram Frame Size (%llu bytes)",
+                TransportParams->MaxDatagramFrameSize);
             break;
 
         default:

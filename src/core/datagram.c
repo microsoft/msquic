@@ -203,7 +203,11 @@ QuicDatagramUpdateMaxLength(
     Event.Type = QUIC_CONNECTION_EVENT_DATAGRAM_MAX_LENGTH_CHANGED;
     Event.DATAGRAM_MAX_LENGTH_CHANGED.Length = NewMaxLength;
 
-    QuicTraceLogConnVerbose(IndicateDatagramMaxLengthChanged, Connection, "Indicating DATAGRAM_MAX_LENGTH_CHANGED [%hu]", NewMaxLength);
+    QuicTraceLogConnVerbose(
+        IndicateDatagramMaxLengthChanged,
+        Connection,
+        "Indicating DATAGRAM_MAX_LENGTH_CHANGED [%hu]",
+        NewMaxLength);
     (void)QuicConnIndicateEvent(Connection, &Event);
 
     if (NewMaxLength == 0) {
@@ -304,9 +308,13 @@ QuicDatagramSendFlush(
             Datagram->SendQueueTail = &SendRequest->Next;
         }
 
-        QuicTraceLogConnVerbose(DatagramSendQueued, Connection,
+        QuicTraceLogConnVerbose(
+            DatagramSendQueued,
+            Connection,
             "Datagram [%p] queued with %llu bytes (flags 0x%x)",
-            SendRequest, SendRequest->TotalLength, SendRequest->Flags);
+            SendRequest,
+            SendRequest->TotalLength,
+            SendRequest->Flags);
     }
 
     if (Connection->State.PeerTransportParameterValid) {
@@ -411,8 +419,11 @@ QuicDatagramProcessFrame(
     }
 
     QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
-    QuicTraceLogConnVerbose(IndicateDatagramReceived, Connection,
-        "Indicating DATAGRAM_RECEIVED [len=%hu]", (uint16_t)Frame.Length);
+    QuicTraceLogConnVerbose(
+        IndicateDatagramReceived,
+        Connection,
+        "Indicating DATAGRAM_RECEIVED [len=%hu]",
+        (uint16_t)Frame.Length);
     (void)QuicConnIndicateEvent(Connection, &Event);
 
     return TRUE;
