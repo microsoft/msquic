@@ -25675,6 +25675,159 @@
           "windows": "etw_plus"
         }
       }
+    },
+    "IndicateConnectionShutdownComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE",
+      "UniqueId": "IndicateConnectionShutdownComplete",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "IndicateStreamShutdownComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE",
+      "UniqueId": "IndicateStreamShutdownComplete",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            Stream",
+            "UserSuppliedTrimmed": "Stream",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogStreamVerbose",
+        "EncodedPrefix": "[strm][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "DatapathCreate": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp][%p] Created.",
+      "UniqueId": "DatapathCreate",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        Binding",
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "DatapathSendToCompleted": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp][%p] sendto succeeded, bytes transferred %d",
+      "UniqueId": "DatapathSendToCompleted",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n                    SocketContext->Binding",
+            "UserSuppliedTrimmed": "SocketContext->Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n                    SentByteCount",
+            "UserSuppliedTrimmed": "SentByteCount",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "DatapathSendMsgCompleted": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp][%p] sendmsg succeeded, bytes transferred %d",
+      "UniqueId": "DatapathSendMsgCompleted",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n                SocketContext->Binding",
+            "UserSuppliedTrimmed": "SocketContext->Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n                SentByteCount",
+            "UserSuppliedTrimmed": "SentByteCount",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
     }
   },
   "Version": 1,
@@ -25736,7 +25889,7 @@
     },
     "Version": 1,
     "CustomTypeClogCSharpFile": "msquic.clog.cs",
-    "CustomTypeClogCSharpFileContents": "/*++\r\n\r\n    Copyright (c) Microsoft Corporation.\r\n    Licensed under the MIT License.\r\n\r\n--*/\r\n\r\n\r\nusing System;\r\nusing System.Runtime.InteropServices;\r\n\r\nnamespace msquic.clog_config\r\n{\r\n    public class Types\r\n    {\r\n\r\n        [StructLayout(LayoutKind.Explicit)]\r\n        public struct SocketAddress\r\n        {\r\n            [FieldOffset(0)]\r\n            public ushort si_family;\r\n\r\n            [FieldOffset(2)]\r\n            public ushort sin_port;\r\n\r\n            // IPv4\r\n            [FieldOffset(4)]\r\n            public ulong S_addr;\r\n\r\n\r\n            // IPv6\r\n            [FieldOffset(4)]\r\n            public ulong sin6_flowinfo;\r\n\r\n            [FieldOffset(8)]\r\n            public ulong S_v6Addr1;\r\n\r\n            [FieldOffset(16)]\r\n            public ulong S_v6Addr2;\r\n        };\r\n\r\n        public static string QUIC_FLAGS(uint value)\r\n        {\r\n            return \"QUIC_FLAGS (good!) \" + value;\r\n        }\r\n\r\n        public static string QUIC_IP_ADDR(byte[] value)\r\n        {\r\n            int len = value.Length;\r\n            IntPtr i = System.Runtime.InteropServices.Marshal.AllocHGlobal(len);\r\n            System.Runtime.InteropServices.Marshal.Copy(value, 0, i, len);\r\n            string msg = \"\";\r\n            SocketAddress sa2 = (SocketAddress)System.Runtime.InteropServices.Marshal.PtrToStructure(i, typeof(SocketAddress));\r\n\r\n            switch (sa2.si_family)\r\n            {\r\n                case 0:  //<--unspecified\r\n                    msg += \"Unspecified\";\r\n                    break;\r\n                case 23: //<--v6\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 10:  //<--v6 (linux)\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 2:  //< --v4\r\n                    msg += \"IPV4:\" + sa2.S_addr + \":\" + sa2.sin_port;\r\n                    break;\r\n                default:\r\n                    throw new Exception(\"Invalid SI_FAMILY : \" + sa2.si_family);\r\n            }\r\n\r\n            System.Runtime.InteropServices.Marshal.FreeHGlobal(i);\r\n            return msg;\r\n        }\r\n\r\n        public static string DecodeCID(byte [] value)\r\n        {\r\n            return \"CID!\";\r\n        }\r\n    }\r\n}",
+    "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\n\nusing System;\nusing System.Runtime.InteropServices;\n\nnamespace msquic.clog_config\n{\n    public class Types\n    {\n\n        [StructLayout(LayoutKind.Explicit)]\n        public struct SocketAddress\n        {\n            [FieldOffset(0)]\n            public ushort si_family;\n\n            [FieldOffset(2)]\n            public ushort sin_port;\n\n            // IPv4\n            [FieldOffset(4)]\n            public ulong S_addr;\n\n\n            // IPv6\n            [FieldOffset(4)]\n            public ulong sin6_flowinfo;\n\n            [FieldOffset(8)]\n            public ulong S_v6Addr1;\n\n            [FieldOffset(16)]\n            public ulong S_v6Addr2;\n        };\n\n        public static string QUIC_FLAGS(uint value)\n        {\n            return \"QUIC_FLAGS (good!) \" + value;\n        }\n\n        public static string QUIC_IP_ADDR(byte[] value)\n        {\n            int len = value.Length;\n            IntPtr i = System.Runtime.InteropServices.Marshal.AllocHGlobal(len);\n            System.Runtime.InteropServices.Marshal.Copy(value, 0, i, len);\n            string msg = \"\";\n            SocketAddress sa2 = (SocketAddress)System.Runtime.InteropServices.Marshal.PtrToStructure(i, typeof(SocketAddress));\n\n            switch (sa2.si_family)\n            {\n                case 0:  //<--unspecified\n                    msg += \"Unspecified\";\n                    break;\n                case 23: //<--v6\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\n                    break;\n                case 10:  //<--v6 (linux)\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\n                    break;\n                case 2:  //< --v4\n                    msg += \"IPV4:\" + sa2.S_addr + \":\" + sa2.sin_port;\n                    break;\n                default:\n                    throw new Exception(\"Invalid SI_FAMILY : \" + sa2.si_family);\n            }\n\n            System.Runtime.InteropServices.Marshal.FreeHGlobal(i);\n            return msg;\n        }\n\n        public static string DecodeCID(byte [] value)\n        {\n            return \"CID!\";\n        }\n    }\n}",
     "TypeEncoders": {
       "Version": 0,
       "TypeEncoder": [
@@ -25913,7 +26066,7 @@
         "MacroConfigurations": {},
         "Version": 1,
         "CustomTypeClogCSharpFile": "../decoderTest/defaults.clog.cs",
-        "CustomTypeClogCSharpFileContents": "/*++\r\n\r\n    Copyright (c) Microsoft Corporation.\r\n    Licensed under the MIT License.\r\n\r\n--*/\r\n\r\nnamespace defaults.clog_config\r\n{\r\n    public class Types\r\n    {\r\n        public static string DecodePointer(ulong pointer)\r\n        {\r\n            return \"CLOG_POINTER:\" + pointer.ToString(\"x\");\r\n        }\r\n\r\n        public static string DecodeUInt32(uint value)\r\n        {\r\n            return \"CLOG_UINT32:\" + value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt32(int value)\r\n        {\r\n            return \"CLOG_INT32:\" + value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt8(byte value)\r\n        {\r\n            return \"CLOG_INT8:\" + value.ToString();\r\n        }\r\n    }\r\n}\r\n",
+        "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nnamespace defaults.clog_config\n{\n    public class Types\n    {\n        public static string DecodePointer(ulong pointer)\n        {\n            return \"CLOG_POINTER:\" + pointer.ToString(\"x\");\n        }\n\n        public static string DecodeUInt32(uint value)\n        {\n            return \"CLOG_UINT32:\" + value.ToString();\n        }\n\n        public static string DecodeInt32(int value)\n        {\n            return \"CLOG_INT32:\" + value.ToString();\n        }\n\n        public static string DecodeInt8(byte value)\n        {\n            return \"CLOG_INT8:\" + value.ToString();\n        }\n    }\n}\n",
         "TypeEncoders": {
           "Version": 0,
           "TypeEncoder": [
@@ -28137,6 +28290,26 @@
       {
         "UniquenessHash": "b21a8d0d-c484-ac00-8081-90d5e8de9d1f",
         "TraceID": "SchannelUninitialized"
+      },
+      {
+        "UniquenessHash": "f8280555-5057-232c-bc7d-b3cdd8f840f5",
+        "TraceID": "IndicateConnectionShutdownComplete"
+      },
+      {
+        "UniquenessHash": "0640b2d1-a929-3d01-b4c9-08733e3f0196",
+        "TraceID": "IndicateStreamShutdownComplete"
+      },
+      {
+        "UniquenessHash": "eca69f63-4fd1-2302-5724-89ca1189754e",
+        "TraceID": "DatapathCreate"
+      },
+      {
+        "UniquenessHash": "cf23acb2-66ad-aead-0153-e767a321548c",
+        "TraceID": "DatapathSendToCompleted"
+      },
+      {
+        "UniquenessHash": "b2ecee97-cf85-536e-7600-9d7231a20e08",
+        "TraceID": "DatapathSendMsgCompleted"
       }
     ]
   }

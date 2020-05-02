@@ -969,7 +969,7 @@ QuicPlatformLogAssert(
     _In_z_ const char* Expr
     )
 {
-    QuicTraceEvent(LibraryAssert, (uint32_t)Line, File, Expr);
+    QuicTraceEvent(LibraryAssert, "[ lib] ASSERT, %d:%s - %s.", (uint32_t)Line, File, Expr);
 }
 
 int

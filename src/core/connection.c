@@ -1248,7 +1248,7 @@ QuicConnOnShutdownComplete(
             !Connection->State.ShutdownCompleteTimedOut;
 
         QuicTraceLogConnVerbose(
-            IndicateShutdownComplete,
+            IndicateConnectionShutdownComplete,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE");
         (void)QuicConnIndicateEvent(Connection, &Event);
