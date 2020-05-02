@@ -770,6 +770,7 @@ QuicBindingProcessStatelessOperation(
         }
 
         uint8_t NewDestCid[MSQUIC_CID_MAX_LENGTH];
+        QUIC_DBG_ASSERT(sizeof(NewDestCid) >= MsQuicLib.CidTotalLength);
         QuicRandom(sizeof(NewDestCid), NewDestCid);
 
         QUIC_RETRY_TOKEN_CONTENTS Token = { 0 };

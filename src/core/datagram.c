@@ -106,7 +106,7 @@ void
 QuicDatagramCompleteSend(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_SEND_REQUEST* SendRequest,
-    _Out_opt_ void** ClientContext
+    _Out_ void** ClientContext
     )
 {
     *ClientContext = SendRequest->ClientContext;

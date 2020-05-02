@@ -750,8 +750,7 @@ QuicDatagramFrameDecode(
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
     _Deref_in_range_(0, BufferLength)
-    _Deref_out_range_(0, BufferLength)
-        uint16_t* Offset,
+    _Inout_ uint16_t* Offset,
     _Out_ QUIC_DATAGRAM_EX* Frame
     );
 
