@@ -547,7 +547,7 @@ QuicTlsLibraryUninitialize(
     QUIC_AES_GCM_ALG_HANDLE = NULL;
 #endif
     QuicTraceLogVerbose(
-        SchannelInitialized,
+        SchannelUninitialized,
         "[ tls] Library uninitialized");
 }
 
@@ -1751,7 +1751,7 @@ QuicTlsWriteDataToSchannel(
                     break;
                 }
                 if (NegotiatedAlpn.ProtoNegoStatus != SecApplicationProtocolNegotiationStatus_Success) {
-                    QuicTraceEvent(TlsErrorStatus, TlsContext->Connection, NegotiatedAlpn.ProtoNegoStatus, "ALPN negotiation status");
+                    QuicTraceEvent(TlsErrorStatus, "[ tls][%p] ERROR, %d, %s.", TlsContext->Connection, NegotiatedAlpn.ProtoNegoStatus, "ALPN negotiation status");
                     Result |= QUIC_TLS_RESULT_ERROR;
                     break;
                 }
@@ -1764,7 +1764,7 @@ QuicTlsWriteDataToSchannel(
                         NegotiatedAlpn.ProtocolIdSize,
                         NegotiatedAlpn.ProtocolId);
                 if (State->NegotiatedAlpn == NULL) {
-                    QuicTraceEvent(TlsError, TlsContext->Connection, "ALPN Mismatch");
+                    QuicTraceEvent(TlsError, "[ tls][%p] ERROR, %s.", TlsContext->Connection, "ALPN Mismatch");
                     Result |= QUIC_TLS_RESULT_ERROR;
                     break;
                 }
@@ -2359,7 +2359,7 @@ QuicPacketKeyDerive(
         (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
     QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength);
     if (Key == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_PACKET_KEY", PacketKeyLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_PACKET_KEY", PacketKeyLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     QuicZeroMemory(Key, sizeof(QUIC_PACKET_KEY));

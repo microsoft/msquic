@@ -66,7 +66,7 @@ Notes:
 // First level dir[2] covers a 4*minimum-size 2nd-level dirs. So on...
 // Hence, we can have at most (2^HT_FIRST_LEVEL_DIR_SIZE)-1
 // minimum-size hash bucket directories.
-// With a first-level directory size of 16 and a 2nd-level directory 
+// With a first-level directory size of 16 and a 2nd-level directory
 // minimum-size of 128, we get a max hash table size of 8,388,480 buckets.
 //
 #define MAX_HASH_TABLE_SIZE \
@@ -480,7 +480,7 @@ Return Value:
     if (*HashTable == NULL) {
         Table = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASHTABLE));
         if (Table == NULL) {
-            QuicTraceEvent(AllocFailure, "QUIC_HASHTABLE", sizeof(QUIC_HASHTABLE));
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_HASHTABLE", sizeof(QUIC_HASHTABLE));
             return FALSE;
         }
 
@@ -515,6 +515,7 @@ Return Value:
         if (Table->SecondLevelDir == NULL) {
             QuicTraceEvent(
                 AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
                 "second level dir (0)",
                 QuicComputeSecondLevelDirSize(0) * sizeof(QUIC_LIST_ENTRY));
             QuicHashtableUninitialize(Table);
@@ -551,6 +552,7 @@ Return Value:
             if (Table->FirstLevelDir[i] == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
                     "second level dir (i)",
                     QuicComputeSecondLevelDirSize(i) * sizeof(QUIC_LIST_ENTRY));
                 QuicHashtableUninitialize(Table);

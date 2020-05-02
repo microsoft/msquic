@@ -1248,7 +1248,7 @@ QuicConnOnShutdownComplete(
             !Connection->State.ShutdownCompleteTimedOut;
 
         QuicTraceLogConnVerbose(
-            IndicateShutdownComplete,
+            IndicateConnectionShutdownComplete,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE");
         (void)QuicConnIndicateEvent(Connection, &Event);
@@ -3106,7 +3106,7 @@ QuicConnRecvDecryptAndAuthenticate(
             QuicTraceLogConnVerbose(
                 UpdateReadKeyPhase,
                 Connection,
-                "Updating current key phase read packet number[%llu]",
+                "Updating current read key phase and packet number[%llu]",
                 Packet->PacketNumber);
         }
     }

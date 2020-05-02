@@ -82,6 +82,11 @@
         "CType": "CLOG_PTR",
         "DefinationEncoding": "!CID!",
         "CustomDecoder": "msquic.clog_config.Types.DecodeCID"
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "03u"
       }
     ]
   },

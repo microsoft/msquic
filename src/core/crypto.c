@@ -59,7 +59,7 @@ QuicCryptoDumpSendState(
         }
         if (UnAcked < (uint64_t)Crypto->MaxSentLength) {
             QuicTraceLogConnVerbose(
-                CryptoDumpUnacked,
+                CryptoDumpUnacked2,
                 Connection,
                 "  unACKed: [%llu, %u]",
                 UnAcked,
@@ -484,7 +484,7 @@ QuicCryptoWriteOneFrame(
     QuicTraceLogConnVerbose(
         AddCryptoFrame,
         Connection,
-        "Sending %hu crypto bytes, offset=%hu",
+        "Sending %hu crypto bytes, offset=%u",
         (uint16_t)Frame.Length,
         CryptoOffset);
 

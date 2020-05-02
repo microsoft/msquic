@@ -366,7 +366,7 @@ QuicStreamIndicateShutdownComplete(
         QUIC_STREAM_EVENT Event;
         Event.Type = QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE;
         QuicTraceLogStreamVerbose(
-            IndicateShutdownComplete,
+            IndicateStreamShutdownComplete,
             Stream,
             "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE");
         (void)QuicStreamIndicateEvent(Stream, &Event);
