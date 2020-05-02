@@ -538,8 +538,8 @@ QuicTlsAddHandshakeDataCallback(
 
     QuicTraceLogConnVerbose(
         OpenSslAddHandshakeData,
-        "Sending %llu handshake bytes (Level = %u)",
         TlsContext->Connection,
+        "Sending %llu handshake bytes (Level = %u)",
         Length,
         Level);
 
@@ -565,8 +565,8 @@ QuicTlsAddHandshakeDataCallback(
             TlsState->BufferOffset1Rtt = TlsState->BufferTotalLength;
             QuicTraceLogConnInfo(
                 OpenSsl1RttDataStart,
-                "Writing 1-RTT data starts at %u",
                 TlsContext->Connection,
+                "Writing 1-RTT data starts at %u",
                 TlsState->BufferOffset1Rtt);
         }
         break;

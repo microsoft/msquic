@@ -9172,6 +9172,356 @@
               template="template_ptr_"
               value="542"
               />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathCreate"
+              template="template_ptr_"
+              value="543"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathSendToCompleted"
+              template="template_ptr_ui32_"
+              value="544"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathSendMsgCompleted"
+              template="template_ptr_ui32_"
+              value="545"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathOpenTcpSocketFailedAsync"
+              template="template_ui32_"
+              value="546"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="OpenSslAlert"
+              template="template_ptr_ui32_ui32_"
+              value="547"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="OpenSslHandshakeErrorStr"
+              template="template_ptr_sz_"
+              value="548"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="OpenSslHandshakeError"
+              template="template_ptr_ui32_"
+              value="549"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="OpenSslAlpnNegotiationFailure"
+              template="template_ptr_"
+              value="550"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="OpenSslInvalidAlpnLength"
+              template="template_ptr_"
+              value="551"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="OpenSslNoMatchingAlpn"
+              template="template_ptr_"
+              value="552"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="OpenSslMissingTransportParameters"
+              template="template_ptr_"
+              value="553"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="OpenSslHandshakeDataStart"
+              template="template_ptr_ui32_"
+              value="554"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathQueryRssProcessorInfoFailedAsync"
+              template="template_ui32_"
+              value="555"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathOpenUdpSocketFailedAsync"
+              template="template_ui32_"
+              value="556"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathQueryUdpSendMsgFailedAsync"
+              template="template_ui32_"
+              value="557"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathQueryRecvMaxCoalescedSizeFailedAsync"
+              template="template_ui32_"
+              value="558"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathDropEmptyMdl"
+              template="template_ptr_"
+              value="559"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathDropMissingInfo"
+              template="template_ptr_"
+              value="560"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathDropTooBig"
+              template="template_ptr_ui64_"
+              value="561"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathDropMdlMapFailure"
+              template="template_ptr_"
+              value="562"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathFragmented"
+              template="template_ptr_"
+              value="563"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathDropAllocRecvContextFailure"
+              template="template_ptr_"
+              value="564"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathUroExceeded"
+              template="template_ptr_"
+              value="565"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="OpenSsl1RttDataStart"
+              template="template_ptr_ui32_"
+              value="566"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="OpenSslContextReset"
+              template="template_ptr_"
+              value="567"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="OpenSslHandshakeComplete"
+              template="template_ptr_"
+              value="568"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="OpenSslNewEncryptionSecrets"
+              template="template_ptr_ui32_"
+              value="569"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="OpenSslAddHandshakeData"
+              template="template_ptr_ui64_ui32_"
+              value="570"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="OpenSslContextCreated"
+              template="template_ptr_"
+              value="571"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="OpenSslContextCleaningUp"
+              template="template_ptr_"
+              value="572"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="OpenSslProcessData"
+              template="template_ptr_ui32_"
+              value="573"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="CertOpenSslGetProcessAddressFailure"
+              template="template_sz_ui32_"
+              value="574"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="WindowsKernelLoaded"
+              template="template_"
+              value="575"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="WindowsKernelUnloaded"
+              template="template_"
+              value="576"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="WindowsKernelInitialized"
+              template="template_ui32_ui64_"
+              value="577"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="WindowsKernelUninitialized"
+              template="template_"
+              value="578"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestControlClientCanceledRequest"
+              template="template_ptr_ptr_"
+              value="579"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestControlClientCreated"
+              template="template_ptr_"
+              value="580"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestControlClientCleaningUp"
+              template="template_ptr_"
+              value="581"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestControlClientInitialized"
+              template="template_ptr_"
+              value="582"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestControlSecConfigCreated"
+              template="template_ui32_"
+              value="583"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestControlClientIoctl"
+              template="template_ptr_ui32_"
+              value="584"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestControlClientIoctlComplete"
+              template="template_ptr_ui32_"
+              value="585"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestControlInitialized"
+              template="template_"
+              value="586"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestControlUninitializing"
+              template="template_"
+              value="587"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestControlUninitialized"
+              template="template_"
+              value="588"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestDriverFailureLocation"
+              template="template_sz_sz_ui32_"
+              value="589"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestDriverFailure"
+              template="template_sz_"
+              value="590"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestDriverStarted"
+              template="template_"
+              value="591"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestDriverStopped"
+              template="template_"
+              value="592"
+              />
         </events>
       </provider>
     </events>

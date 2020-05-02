@@ -584,7 +584,7 @@ QuicDataPathQueryRssScalabilityInfo(
     } else if (QUIC_FAILED(Status)) {
         QuicTraceLogWarning(
             DatapathQueryRssProcessorInfoFailed,
-            "[ udp] Query for SIO_QUERY_RSS_PROCESSOR_INFO failed, 0x%x",
+            "[ udp] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x",            
             Status);
         goto Error;
     }
@@ -1887,12 +1887,12 @@ QuicDataPathSocketReceive(
             &RemoteAddr);
 
         if (IsUnreachableError) {
-            QuicTraceLogVerbose(
+            BUGBUG_TraceLogVerbose(
                 DatapathUnreachable,
-                "[sock][%p] Unreachable error from %!SOCKADDR!:%hu",
+                "[sock][%p] Received unreachable error (0x%x) from %!SOCKADDR!",
                 SocketContext,
-                CLOG_BYTEARRAY(sizeof(RemoteAddr.Ipv4.sin_addr), (const uint8_t*)&RemoteAddr.Ipv4.sin_addr),
-                RtlUshortByteSwap(RemoteAddr.Ipv4.sin_port));
+                0xAABBCCDEE,
+                CLOG_BYTEARRAY(sizeof(RemoteAddr.Ipv4.sin_addr), (const uint8_t*)&RemoteAddr.Ipv4.sin_addr));
 
             QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->UnreachableHandler);
             SocketContext->Binding->Datapath->UnreachableHandler(
