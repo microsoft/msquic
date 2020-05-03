@@ -583,8 +583,8 @@ QuicDataPathQueryRssScalabilityInfo(
         QuicEventWaitForever(CompletionEvent);
     } else if (QUIC_FAILED(Status)) {
         QuicTraceLogWarning(
-            DatapathQueryRssProcessorInfoFailed,
-            "[ udp] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x",            
+            DatapathQueryRssScalabilityInfoFailed,
+            "[ udp] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x",
             Status);
         goto Error;
     }
@@ -593,8 +593,8 @@ QuicDataPathQueryRssScalabilityInfo(
 
     if (QUIC_FAILED(Status)) {
         QuicTraceLogWarning(
-            DatapathQueryRssProcessorInfoFailedAsync,
-            "[ udp] Query for SIO_QUERY_RSS_PROCESSOR_INFO failed (async), 0x%x",
+            DatapathQueryRssScalabilityInfoFailedAsync,
+            "[ udp] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed (async), 0x%x",
             Status);
         goto Error;
     }
@@ -1887,11 +1887,10 @@ QuicDataPathSocketReceive(
             &RemoteAddr);
 
         if (IsUnreachableError) {
-            BUGBUG_TraceLogVerbose(
-                DatapathUnreachable,
-                "[sock][%p] Received unreachable error (0x%x) from %!SOCKADDR!",
+            QuicTraceLogVerbose(
+                DatapathUnreachableKernel,
+                "[sock][%p] Received unreachable error from %!SOCKADDR!",
                 SocketContext,
-                0xAABBCCDEE,
                 CLOG_BYTEARRAY(sizeof(RemoteAddr.Ipv4.sin_addr), (const uint8_t*)&RemoteAddr.Ipv4.sin_addr));
 
             QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->UnreachableHandler);

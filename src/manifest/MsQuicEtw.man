@@ -4289,6 +4289,94 @@
                 name="arg10"
                 />
           </template>
+          <template tid="template_ui8_ui8_ui64_ui32_ui8_binary_ui8_binary_sz_ui16_">
+            <data
+                inType="win:UInt8"
+                name="arg2"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt64"
+                name="arg4"
+                />
+            <data
+                inType="win:UInt32"
+                name="arg5"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg6_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg6_len"
+                name="arg6"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg7_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg7_len"
+                name="arg7"
+                />
+            <data
+                inType="win:AnsiString"
+                name="arg8"
+                />
+            <data
+                inType="win:UInt16"
+                name="arg9"
+                />
+          </template>
+          <template tid="template_ui8_ui8_ui64_ui32_ui8_binary_ui8_binary_ui16_ui16_">
+            <data
+                inType="win:UInt8"
+                name="arg2"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt64"
+                name="arg4"
+                />
+            <data
+                inType="win:UInt32"
+                name="arg5"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg6_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg6_len"
+                name="arg6"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg7_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg7_len"
+                name="arg7"
+                />
+            <data
+                inType="win:UInt16"
+                name="arg8"
+                />
+            <data
+                inType="win:UInt16"
+                name="arg9"
+                />
+          </template>
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
@@ -7370,14 +7458,14 @@
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="LogPacketLongHeaderInitial"
-              template="template_ui8_ui8_ui64_ui32_ui8_binary_ui8_binary_sz_ui16_ui16_ui16_"
+              template="template_ui8_ui8_ui64_ui32_ui8_binary_ui8_binary_ui16_ui16_"
               value="285"
               />
           <event
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="LogPacketLongHeader"
-              template="template_ui8_ui8_ui64_ui32_ui8_binary_ui8_binary_sz_ui16_ui16_"
+              template="template_ui8_ui8_ui64_ui32_ui8_binary_ui8_binary_sz_ui16_"
               value="286"
               />
           <event
@@ -9521,6 +9609,27 @@
               symbol="TestDriverStopped"
               template="template_"
               value="592"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathQueryRssScalabilityInfoFailed"
+              template="template_ui32_"
+              value="593"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathQueryRssScalabilityInfoFailedAsync"
+              template="template_ui32_"
+              value="594"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathUnreachableKernel"
+              template="template_ptr_ui8_binary_"
+              value="595"
               />
         </events>
       </provider>
