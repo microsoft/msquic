@@ -473,7 +473,7 @@ MsQuicStreamStart(
     _In_ QUIC_STREAM_START_FLAGS Flags
     )
 {
-    QUIC_STATUS Status;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_STREAM* Stream;
     QUIC_CONNECTION* Connection;
 
@@ -947,7 +947,7 @@ MsQuicSetParam(
         QUIC_TRACE_API_SET_PARAM,
         Handle);
 
-    QUIC_STATUS Status;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     if (Level == QUIC_PARAM_LEVEL_GLOBAL) {
         //
@@ -1047,7 +1047,7 @@ MsQuicGetParam(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    QUIC_STATUS Status;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     QuicTraceEvent(ApiEnter,
         QUIC_TRACE_API_GET_PARAM,
