@@ -608,16 +608,15 @@ QuicPacketLogHeader(
             }
 
             if (LongHdr->Type == QUIC_INITIAL) {
-                BUGBUG_TraceLogVerbose(
+                QuicTraceLogVerbose(
                     LogPacketLongHeaderInitial,
-                    "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:%s (Token %hu bytes) (Payload %hu bytes)",
+                    "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:I (Token %hu bytes) (Payload %hu bytes)",
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     PacketNumber,
                     LongHdr->Version,
                     CLOG_BYTEARRAY(DestCidLen, DestCid),
                     CLOG_BYTEARRAY(SourceCidLen, SourceCid),
-                    QuicLongHeaderTypeToString(LongHdr->Type),
                     (uint16_t)TokenLength,
                     (uint16_t)Length);
             } else {
