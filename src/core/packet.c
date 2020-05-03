@@ -621,7 +621,7 @@ QuicPacketLogHeader(
                     (uint16_t)TokenLength,
                     (uint16_t)Length);
             } else {
-                QuicTraceLogVerbose(
+                BUGBUG_TraceLogVerbose(
                     LogPacketLongHeader,
                     "[%c][%cX][%llu] LH Ver:0x%x DestCid:%!CID! SrcCid:%!CID! Type:%s (Payload %hu bytes)",
                     PtkConnPre(Connection),
