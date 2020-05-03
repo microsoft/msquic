@@ -49,7 +49,7 @@ QuicBindingInitialize(
 
     Binding = QUIC_ALLOC_NONPAGED(sizeof(QUIC_BINDING));
     if (Binding == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_BINDING", sizeof(QUIC_BINDING));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_BINDING", sizeof(QUIC_BINDING));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -83,7 +83,7 @@ QuicBindingInitialize(
             sizeof(HashSalt),
             &Binding->ResetTokenHash);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(BindingErrorStatus, Binding, Status, "Create reset token hash");
+        QuicTraceEvent(BindingErrorStatus, "[bind][%p] ERROR, %u, %s.", Binding, Status, "Create reset token hash");
         goto Error;
     }
 
@@ -95,7 +95,7 @@ QuicBindingInitialize(
     if (PrevCompartmentId != CompartmentId) {
         Status = QuicCompartmentIdSetCurrent(CompartmentId);
         if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(BindingErrorStatus, Binding, Status, "Set current compartment Id");
+            QuicTraceEvent(BindingErrorStatus, "[bind][%p] ERROR, %u, %s.", Binding, Status, "Set current compartment Id");
             goto Error;
         }
         RevertCompartmentId = TRUE;
@@ -117,7 +117,7 @@ QuicBindingInitialize(
 #endif
 
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(BindingErrorStatus, Binding, Status, "Create datapath binding");
+        QuicTraceEvent(BindingErrorStatus, "[bind][%p] ERROR, %u, %s.", Binding, Status, "Create datapath binding");
         goto Error;
     }
 
@@ -125,6 +125,7 @@ QuicBindingInitialize(
     QuicDataPathBindingGetLocalAddress(Binding->DatapathBinding, &DatapathLocalAddr);
     QuicDataPathBindingGetRemoteAddress(Binding->DatapathBinding, &DatapathRemoteAddr);
     QuicTraceEvent(BindingCreated,
+        "[bind][%p] Created, Udp=%p LocalAddr=%!SOCKADDR! RemoteAddr=%!SOCKADDR!",
         Binding, Binding->DatapathBinding,
         LOG_ADDR_LEN(DatapathLocalAddr), LOG_ADDR_LEN(DatapathRemoteAddr),
         (uint8_t*)&DatapathLocalAddr, (uint8_t*)&DatapathRemoteAddr);
@@ -155,7 +156,7 @@ QuicBindingUninitialize(
     _In_ QUIC_BINDING* Binding
     )
 {
-    QuicTraceEvent(BindingCleanup, Binding);
+    QuicTraceEvent(BindingCleanup, "[bind][%p] Cleaning up", Binding);
 
     QUIC_TEL_ASSERT(Binding->RefCount == 0);
     QUIC_TEL_ASSERT(QuicListIsEmpty(&Binding->Listeners));
@@ -195,7 +196,7 @@ QuicBindingUninitialize(
     QuicDispatchLockUninitialize(&Binding->ResetTokenLock);
     QuicDispatchRwLockUninitialize(&Binding->RwLock);
 
-    QuicTraceEvent(BindingDestroyed, Binding);
+    QuicTraceEvent(BindingDestroyed, "[bind][%p] Destroyed", Binding);
     QUIC_FREE(Binding);
 }
 
@@ -211,6 +212,7 @@ QuicBindingTraceRundown(
     QuicDataPathBindingGetLocalAddress(Binding->DatapathBinding, &DatapathLocalAddr);
     QuicDataPathBindingGetRemoteAddress(Binding->DatapathBinding, &DatapathRemoteAddr);
     QuicTraceEvent(BindingRundown,
+        "[bind][%p] Rundown, Udp=%p LocalAddr=%!SOCKADDR! RemoteAddr=%!SOCKADDR!",
         Binding, Binding->DatapathBinding,
         LOG_ADDR_LEN(DatapathLocalAddr), LOG_ADDR_LEN(DatapathRemoteAddr),
         (uint8_t*)&DatapathLocalAddr, (uint8_t*)&DatapathRemoteAddr);
@@ -601,7 +603,7 @@ QuicBindingQueueStatelessOperation(
 
     QUIC_OPERATION* Oper = QuicOperationAlloc(Worker, OperType);
     if (Oper == NULL) {
-        QuicTraceEvent(AllocFailure, "stateless operation", sizeof(QUIC_OPERATION));
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "stateless operation", sizeof(QUIC_OPERATION));
         QuicPacketLogDrop(Binding, QuicDataPathRecvDatagramToRecvPacket(Datagram),
             "Alloc failure for stateless operation");
         QuicBindingReleaseStatelessOperation(Context, FALSE);
@@ -628,12 +630,12 @@ QuicBindingProcessStatelessOperation(
 
     QUIC_DBG_ASSERT(RecvPacket->ValidatedHeaderInv);
 
-    QuicTraceEvent(BindingExecOper, Binding, OperationType);
+    QuicTraceEvent(BindingExecOper, "[bind][%p] Execute: %d", Binding, OperationType);
 
     QUIC_DATAPATH_SEND_CONTEXT* SendContext =
         QuicDataPathBindingAllocSendContext(Binding->DatapathBinding, 0);
     if (SendContext == NULL) {
-        QuicTraceEvent(AllocFailure, "stateless send context", 0);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "stateless send context", 0);
         goto Exit;
     }
 
@@ -653,7 +655,7 @@ QuicBindingProcessStatelessOperation(
         QUIC_BUFFER* SendDatagram =
             QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
         if (SendDatagram == NULL) {
-            QuicTraceEvent(AllocFailure, "vn datagram", PacketLength);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "vn datagram", PacketLength);
             goto Exit;
         }
 
@@ -729,7 +731,7 @@ QuicBindingProcessStatelessOperation(
         QUIC_BUFFER* SendDatagram =
             QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
         if (SendDatagram == NULL) {
-            QuicTraceEvent(AllocFailure, "reset datagram", PacketLength);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "reset datagram", PacketLength);
             goto Exit;
         }
 
@@ -765,7 +767,7 @@ QuicBindingProcessStatelessOperation(
         QUIC_BUFFER* SendDatagram =
             QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
         if (SendDatagram == NULL) {
-            QuicTraceEvent(AllocFailure, "retry datagram", PacketLength);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "retry datagram", PacketLength);
             goto Exit;
         }
 

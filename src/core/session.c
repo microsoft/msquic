@@ -41,7 +41,7 @@ QuicSessionAlloc(
 
     QUIC_SESSION* Session = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SESSION) + AlpnListLength);
     if (Session == NULL) {
-        QuicTraceEvent(AllocFailure, "session", sizeof(QUIC_SESSION) + AlpnListLength);
+        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "session" , AlpnListLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -75,7 +75,7 @@ QuicSessionAlloc(
 #endif
     }
 
-    QuicTraceEvent(SessionCreated, Session, Session->Registration, ""); // TODO - Buffer and length
+    QuicTraceEvent(SessionCreated, "[sess][%p] Created, Registration=%p, Alpn=%s", Session, Session->Registration, ""); // TODO - Buffer and length
 
     QuicRundownInitialize(&Session->Rundown);
     QuicRwLockInitialize(&Session->ServerCacheLock);
@@ -139,7 +139,7 @@ MsQuicSessionFree(
 
     QuicDispatchLockUninitialize(&Session->ConnectionsLock);
     QuicRwLockUninitialize(&Session->ServerCacheLock);
-    QuicTraceEvent(SessionDestroyed, Session);
+    QuicTraceEvent(SessionDestroyed, "[sess][%p] Destroyed", Session);
     QUIC_FREE(Session);
 }
 
@@ -159,7 +159,7 @@ MsQuicSessionOpen(
     QUIC_STATUS Status;
     QUIC_SESSION* Session = NULL;
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(ApiEnter, "[ api] Enter %u (%p).",
         QUIC_TRACE_API_SESSION_OPEN,
         RegistrationContext);
 
@@ -184,14 +184,14 @@ MsQuicSessionOpen(
     }
 
     if (!QuicHashtableInitializeEx(&Session->ServerCache, QUIC_HASH_MIN_SIZE)) {
-        QuicTraceEvent(SessionError, Session, "Server cache initialize");
+        QuicTraceEvent(SessionError, "[sess][%p] ERROR, %s.", Session, "Server cache initialize");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
     Status = QuicTlsSessionInitialize(&Session->TlsSession);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(SessionErrorStatus, Session, Status, "QuicTlsSessionInitialize");
+        QuicTraceEvent(SessionErrorStatus, "[sess][%p] ERROR, %u, %s.", Session, Status, "QuicTlsSessionInitialize");
         QuicHashtableUninitialize(&Session->ServerCache);
         goto Error;
     }
@@ -256,7 +256,7 @@ Error:
         MsQuicSessionFree(Session);
     }
 
-    QuicTraceEvent(ApiExitStatus, Status);
+    QuicTraceEvent(ApiExitStatus, "[ api] Exit %u", Status);
 
     return Status;
 }
@@ -279,14 +279,14 @@ MsQuicSessionClose(
         return;
     }
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(ApiEnter, "[ api] Enter %u (%p).",
         QUIC_TRACE_API_SESSION_CLOSE,
         Handle);
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     QUIC_SESSION* Session = (QUIC_SESSION*)Handle;
 
-    QuicTraceEvent(SessionCleanup, Session);
+    QuicTraceEvent(SessionCleanup, "[sess][%p] Cleaning up", Session);
 
     if (Session->Registration != NULL) {
         QuicLockAcquire(&Session->Registration->Lock);
@@ -309,7 +309,7 @@ MsQuicSessionClose(
     QuicRundownReleaseAndWait(&Session->Rundown);
     MsQuicSessionFree(Session);
 
-    QuicTraceEvent(ApiExit);
+    QuicTraceEvent(ApiExit, "[ api] Exit");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -328,7 +328,7 @@ MsQuicSessionShutdown(
         return;
     }
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(ApiEnter, "[ api] Enter %u (%p).",
         QUIC_TRACE_API_SESSION_SHUTDOWN,
         Handle);
 
@@ -336,7 +336,7 @@ MsQuicSessionShutdown(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_SESSION* Session = (QUIC_SESSION*)Handle;
 
-        QuicTraceEvent(SessionShutdown, Session, Flags, ErrorCode);
+        QuicTraceEvent(SessionShutdown, "[sess][%p] Shutting down connections, Flags=%u, ErrorCode=%llu", Session, Flags, ErrorCode);
 
         QuicDispatchLockAcquire(&Session->ConnectionsLock);
 
@@ -365,7 +365,7 @@ MsQuicSessionShutdown(
         QuicDispatchLockRelease(&Session->ConnectionsLock);
     }
 
-    QuicTraceEvent(ApiExit);
+    QuicTraceEvent(ApiExit, "[ api] Exit");
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -445,7 +445,7 @@ QuicSessionTraceRundown(
     _In_ QUIC_SESSION* Session
     )
 {
-    QuicTraceEvent(SessionRundown, Session, Session->Registration, ""); // TODO
+    QuicTraceEvent(SessionRundown, "[sess][%p] Rundown, Registration=%p, Alpn=%p", Session, Session->Registration, ""); // TODO
 
     QuicDispatchLockAcquire(&Session->ConnectionsLock);
 
@@ -507,7 +507,7 @@ QuicSessionRegisterConnection(
         QuicConnApplySettings(Connection, &Session->Settings);
     }
 
-    QuicTraceEvent(ConnRegisterSession, Connection, Session);
+    QuicTraceEvent(ConnRegisterSession, "[conn][%p] Registered with session: %p", Connection, Session);
     BOOLEAN Success = QuicRundownAcquire(&Session->Rundown);
     QUIC_DBG_ASSERT(Success); UNREFERENCED_PARAMETER(Success);
     QuicDispatchLockAcquire(&Session->ConnectionsLock);
@@ -526,7 +526,7 @@ QuicSessionUnregisterConnection(
     }
     QUIC_SESSION* Session = Connection->Session;
     Connection->Session = NULL;
-    QuicTraceEvent(ConnUnregisterSession, Connection, Session);
+    QuicTraceEvent(ConnUnregisterSession, "[conn][%p] Unregistered from session: %p", Connection, Session);
     QuicDispatchLockAcquire(&Session->ConnectionsLock);
     QuicListEntryRemove(&Connection->SessionLink);
     QuicDispatchLockRelease(&Session->ConnectionsLock);
@@ -648,7 +648,7 @@ QuicSessionServerCacheSetStateInternal(
             QuicHashtableInsert(&Session->ServerCache, &Cache->Entry, Hash, NULL);
 
         } else {
-            QuicTraceEvent(AllocFailure, "server cache entry", sizeof(QUIC_SERVER_CACHE) + ServerNameLength);
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "server cache entry", sizeof(QUIC_SERVER_CACHE) + ServerNameLength);
         }
     }
 

@@ -479,7 +479,7 @@ Return Value:
     if (*HashTable == NULL) {
         Table = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASHTABLE));
         if (Table == NULL) {
-            QuicTraceEvent(AllocFailure, "QUIC_HASHTABLE", sizeof(QUIC_HASHTABLE));
+            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_HASHTABLE", sizeof(QUIC_HASHTABLE));
             return FALSE;
         }
 
@@ -514,6 +514,7 @@ Return Value:
         if (Table->SecondLevelDir == NULL) {
             QuicTraceEvent(
                 AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
                 "second level dir (0)",
                 QuicComputeSecondLevelDirSize(0) * sizeof(QUIC_LIST_ENTRY));
             QuicHashtableUninitialize(Table);
@@ -550,6 +551,7 @@ Return Value:
             if (Table->FirstLevelDir[i] == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
                     "second level dir (i)",
                     QuicComputeSecondLevelDirSize(i) * sizeof(QUIC_LIST_ENTRY));
                 QuicHashtableUninitialize(Table);

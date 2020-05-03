@@ -1138,5 +1138,5 @@ QUIC_TRACE_LEVEL(DatapathErrorStatus, TRACE_ERR)
 #include <lttng/tracepoint-event.h>
 
 #define QuicTraceEventEnabled(Name) tracepoint_enabled(MsQuic, Name)
-#define QuicTraceEvent(Name, ...) tracepoint(MsQuic, Name, ##__VA_ARGS__)
+#define QuicTraceEvent(Name, Fmt, ...) tracepoint(MsQuic, Name, ##__VA_ARGS__)
 #define LOG_ADDR_LEN(Addr) sizeof(Addr)

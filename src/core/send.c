@@ -120,7 +120,7 @@ QuicSendQueueFlush(
         QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
         if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_FLUSH_SEND)) != NULL) {
             Send->FlushOperationPending = TRUE;
-            QuicTraceEvent(ConnQueueSendFlush, Connection, Reason);
+            QuicTraceEvent(ConnQueueSendFlush, "[conn][%p] Queueing send flush, reason=%u", Connection, Reason);
             QuicConnQueueOper(Connection, Oper);
         }
     }

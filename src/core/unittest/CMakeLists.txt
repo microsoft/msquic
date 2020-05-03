@@ -6,8 +6,7 @@ include_directories(${CMAKE_SOURCE_DIR}/submodules/googletest/googletest/include
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 
-set(
-    SOURCES
+set(SOURCES
     main.cpp
     FrameTest.cpp
     PacketNumberTest.cpp
