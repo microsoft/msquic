@@ -185,7 +185,7 @@ QuicSendValidate(
 #endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+BOOLEAN
 QuicSendSetSendFlag(
     _In_ QUIC_SEND* Send,
     _In_ uint32_t SendFlags
@@ -245,6 +245,8 @@ QuicSendSetSendFlag(
     }
 
     QuicSendValidate(Send);
+
+    return CanSetFlag;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -301,7 +303,7 @@ QuicSendUpdateAckState(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicSendSetStreamSendFlag(
     _In_ QUIC_SEND* Send,
     _In_ QUIC_STREAM* Stream,
@@ -313,7 +315,7 @@ QuicSendSetStreamSendFlag(
         //
         // Ignore all frames if the connection is closed.
         //
-        return;
+        return FALSE;
     }
 
     //
@@ -358,6 +360,8 @@ QuicSendSetStreamSendFlag(
         }
         Stream->SendFlags |= SendFlags;
     }
+
+    return SendFlags != 0;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
