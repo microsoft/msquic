@@ -388,6 +388,69 @@ struct PrivateTransportHelper : QUIC_PRIVATE_TRANSPORT_PARAMETER
     }
 };
 
+struct RandomLossHelper
+{
+    static uint8_t LossPercentage;
+    QUIC_TEST_DATAPATH_FUNC_TABLE DataPathFuncTable;
+    RandomLossHelper(uint8_t _LossPercentage) {
+        LossPercentage = _LossPercentage;
+        DataPathFuncTable.Receive = ReceiveCallback;
+        DataPathFuncTable.Send = SendCallback;
+        if (LossPercentage != 0) {
+            QUIC_TEST_DATAPATH_FUNC_TABLE* Value = &DataPathFuncTable;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_LEVEL_GLOBAL,
+                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_FUNC_TABLE,
+                    sizeof(Value),
+                    &Value));
+        }
+    }
+    ~RandomLossHelper() {
+        if (LossPercentage != 0) {
+            QUIC_TEST_DATAPATH_FUNC_TABLE* Value = nullptr;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_LEVEL_GLOBAL,
+                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_FUNC_TABLE,
+                    sizeof(Value),
+                    &Value));
+        }
+    }
+    static
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    void
+    QUIC_API
+    ReceiveCallback(
+        _Inout_ struct QUIC_RECV_DATAGRAM* DatagramChain
+        )
+    {
+        uint8_t RandomValue;
+        while (DatagramChain) {
+            QuicRandom(sizeof(RandomValue), &RandomValue);
+            DatagramChain->Drop = (RandomValue % 100) >= LossPercentage;
+            DatagramChain = DatagramChain->Next;
+        }
+    }
+    static
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    void
+    QUIC_API
+    SendCallback(
+        _Inout_ QUIC_ADDR* /* RemoteAddress */,
+        _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
+        _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */,
+        _Out_ BOOLEAN* Drop
+        )
+    {
+        *Drop = FALSE;
+    }
+};
+
+uint8_t RandomLossHelper::LossPercentage = 0;
+
 void
 QuicTestConnect(
     _In_ int Family,
@@ -398,7 +461,8 @@ QuicTestConnect(
     _In_ bool MultipleALPNs,
     _In_ bool AsyncSecConfig,
     _In_ bool MultiPacketClientInitial,
-    _In_ bool SessionResumption
+    _In_ bool SessionResumption,
+    _In_ uint8_t RandomLossPercentage
     )
 {
     MsQuicSession Session;
@@ -410,6 +474,7 @@ QuicTestConnect(
 
     StatelessRetryHelper RetryHelper(ServerStatelessRetry);
     PrivateTransportHelper TpHelper(MultiPacketClientInitial);
+    RandomLossHelper LossHelper(RandomLossPercentage);
 
     {
         TestListener Listener(
@@ -573,10 +638,10 @@ QuicTestConnect(
                 TEST_FALSE(Client.GetTransportClosed());
             }
 
-#if !QUIC_SEND_FAKE_LOSS
-            TEST_TRUE(Server->GetPeerClosed());
-            TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
-#endif
+            if (RandomLossPercentage == 0) {
+                TEST_TRUE(Server->GetPeerClosed());
+                TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
+            }
         }
     }
 }

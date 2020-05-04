@@ -32,14 +32,14 @@ extern "C" {
 
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 (QUIC_API * QUIC_TEST_DATAPATH_RECEIVE_CALLBACK)(
     _Inout_ struct QUIC_RECV_DATAGRAM* DatagramChain
     );
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+void
 (QUIC_API * QUIC_TEST_DATAPATH_SEND_CALLBACK)(
     _Inout_ QUIC_ADDR* RemoteAddress,
     _Inout_opt_ QUIC_ADDR* LocalAddress,
