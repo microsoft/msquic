@@ -4868,6 +4868,34 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME: {
+
+        if (BufferLength != sizeof(QUIC_STREAM_SCHEDULING_SCHEME)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        QUIC_STREAM_SCHEDULING_SCHEME Scheme =
+            *(QUIC_STREAM_SCHEDULING_SCHEME*)Buffer;
+
+        if (Scheme >= QUIC_STREAM_SCHEDULING_SCHEME_COUNT) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Connection->State.UseRoundRobinStreamScheduling =
+            Scheme == QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN;
+
+        QuicTraceLogConnInfo(
+            UpdateStreamSchedulingScheme,
+            Connection,
+            "Updated Stream Scheduling Scheme = %u",
+            Scheme);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
     case QUIC_PARAM_CONN_FORCE_KEY_UPDATE:
 
         if (!Connection->State.Connected ||
@@ -5391,6 +5419,27 @@ QuicConnParamGet(
 
         *BufferLength = sizeof(uint64_t) * NUMBER_OF_STREAM_TYPES;
         QuicStreamSetGetMaxStreamIDs(&Connection->Streams, (uint64_t*)Buffer);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME:
+
+        if (*BufferLength < sizeof(QUIC_STREAM_SCHEDULING_SCHEME)) {
+            *BufferLength = sizeof(QUIC_STREAM_SCHEDULING_SCHEME);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(QUIC_STREAM_SCHEDULING_SCHEME);
+        *(QUIC_STREAM_SCHEDULING_SCHEME*)Buffer =
+            Connection->State.UseRoundRobinStreamScheduling ?
+                QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN : QUIC_STREAM_SCHEDULING_SCHEME_FIFO;
 
         Status = QUIC_STATUS_SUCCESS;
         break;

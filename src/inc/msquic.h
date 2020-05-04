@@ -106,6 +106,12 @@ typedef enum QUIC_CONNECTION_SHUTDOWN_FLAGS {
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CONNECTION_SHUTDOWN_FLAGS);
 
+typedef enum QUIC_STREAM_SCHEDULING_SCHEME {
+    QUIC_STREAM_SCHEDULING_SCHEME_FIFO          = 0x0000,   // Sends stream data first come, first served. (Default)
+    QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN   = 0x0001,   // Sends stream data evenly multiplexed.
+    QUIC_STREAM_SCHEDULING_SCHEME_COUNT                     // The number of stream scheduling schemes. 
+} QUIC_STREAM_SCHEDULING_SCHEME;
+
 typedef enum QUIC_STREAM_OPEN_FLAGS {
     QUIC_STREAM_OPEN_FLAG_NONE              = 0x0000,
     QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL    = 0x0001,   // Indicates the stream is unidirectional.
@@ -358,6 +364,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_SHARE_UDP_BINDING               17  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_IDEAL_PROCESSOR                 18  // uint8_t
 #define QUIC_PARAM_CONN_MAX_STREAM_IDS                  19  // uint64_t[4]
+#define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME        20  // QUIC_STREAM_SCHEDULING_SCHEME
 
 #ifdef WIN32 // Windows certificate validation ignore flags.
 #define QUIC_CERTIFICATE_FLAG_IGNORE_REVOCATION                 0x00000080
