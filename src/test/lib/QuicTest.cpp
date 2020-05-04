@@ -391,11 +391,9 @@ struct PrivateTransportHelper : QUIC_PRIVATE_TRANSPORT_PARAMETER
 struct RandomLossHelper
 {
     static uint8_t LossPercentage;
-    QUIC_TEST_DATAPATH_FUNC_TABLE DataPathFuncTable;
+    static QUIC_TEST_DATAPATH_FUNC_TABLE DataPathFuncTable;
     RandomLossHelper(uint8_t _LossPercentage) {
         LossPercentage = _LossPercentage;
-        DataPathFuncTable.Receive = ReceiveCallback;
-        DataPathFuncTable.Send = SendCallback;
         if (LossPercentage != 0) {
             QUIC_TEST_DATAPATH_FUNC_TABLE* Value = &DataPathFuncTable;
             TEST_QUIC_SUCCEEDED(
@@ -410,46 +408,55 @@ struct RandomLossHelper
     ~RandomLossHelper() {
         if (LossPercentage != 0) {
             QUIC_TEST_DATAPATH_FUNC_TABLE* Value = nullptr;
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_LEVEL_GLOBAL,
-                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_FUNC_TABLE,
-                    sizeof(Value),
-                    &Value));
+            uint32_t TryCount = 0;
+            while (TryCount++ < 10) {
+                if (QUIC_SUCCEEDED(
+                    MsQuic->SetParam(
+                        nullptr,
+                        QUIC_PARAM_LEVEL_GLOBAL,
+                        QUIC_PARAM_GLOBAL_TEST_DATAPATH_FUNC_TABLE,
+                        sizeof(Value),
+                        &Value))) {
+                    break;
+                }
+                QuicSleep(100); // Let the current datapath queue drain.
+            }
+            if (TryCount == 10) {
+                TEST_FAILURE("Failed to disable test datapath hook");
+            }
         }
     }
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
-    void
+    BOOLEAN
     QUIC_API
     ReceiveCallback(
-        _Inout_ struct QUIC_RECV_DATAGRAM* DatagramChain
+        _Inout_ struct QUIC_RECV_DATAGRAM* /* Datagram */
         )
     {
         uint8_t RandomValue;
-        while (DatagramChain) {
-            QuicRandom(sizeof(RandomValue), &RandomValue);
-            DatagramChain->Drop = (RandomValue % 100) >= LossPercentage;
-            DatagramChain = DatagramChain->Next;
-        }
+        QuicRandom(sizeof(RandomValue), &RandomValue);
+        return (RandomValue % 100) < LossPercentage;
     }
     static
     _IRQL_requires_max_(PASSIVE_LEVEL)
-    void
+    BOOLEAN
     QUIC_API
     SendCallback(
         _Inout_ QUIC_ADDR* /* RemoteAddress */,
         _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
-        _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */,
-        _Out_ BOOLEAN* Drop
+        _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */
         )
     {
-        *Drop = FALSE;
+        return FALSE; // Don't drop
     }
 };
 
 uint8_t RandomLossHelper::LossPercentage = 0;
+QUIC_TEST_DATAPATH_FUNC_TABLE RandomLossHelper::DataPathFuncTable = {
+    RandomLossHelper::ReceiveCallback,
+    RandomLossHelper::SendCallback
+};
 
 void
 QuicTestConnect(
@@ -505,7 +512,7 @@ QuicTestConnect(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                         QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
-                if (!Client.WaitForConnectionComplete()) {
+                if (!Client.WaitForConnectionComplete(RandomLossPercentage != 0)) {
                     return;
                 }
                 TEST_TRUE(Client.GetIsConnected());
@@ -567,13 +574,13 @@ QuicTestConnect(
                     }
                 }
 
-                if (!Client.WaitForConnectionComplete()) {
+                if (!Client.WaitForConnectionComplete(RandomLossPercentage != 0)) {
                     return;
                 }
                 TEST_TRUE(Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
-                if (!Server->WaitForConnectionComplete()) {
+                if (!Server->WaitForConnectionComplete(RandomLossPercentage != 0)) {
                     return;
                 }
                 TEST_TRUE(Server->GetIsConnected());

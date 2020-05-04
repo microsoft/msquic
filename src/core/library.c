@@ -574,7 +574,7 @@ QuicLibrarySetGlobalParam(
             break;
         }
 
-        MsQuicLib.TestDatapathFuncTable = (QUIC_TEST_DATAPATH_FUNC_TABLE*)Buffer;
+        MsQuicLib.TestDatapathFuncTable = *(QUIC_TEST_DATAPATH_FUNC_TABLE**)Buffer;
         QuicTraceLogWarning(
             LibraryTestDatapathFuncTableSet,
             "[ lib] Updated test datapath func table");

@@ -1333,7 +1333,6 @@ QuicBindingReceive(
     QUIC_RECV_DATAGRAM** SubChainTail = &SubChain;
     QUIC_RECV_DATAGRAM** SubChainDataTail = &SubChain;
     uint32_t SubChainLength = 0;
-    QUIC_RECV_DATAGRAM* Datagram;
 
     //
     // Breaks the chain of datagrams into subchains by destination CID and
@@ -1345,40 +1344,7 @@ QuicBindingReceive(
     // connection it was delivered to.
     //
 
-#if DEBUG
-    if (MsQuicLib.TestDatapathFuncTable != NULL) {
-
-        //
-        // The test datapath receive callback allows for test code to modify
-        // the datagrams on the receive path, and optionally indicate one or
-        // more to be dropped.
-        //
-
-        MsQuicLib.TestDatapathFuncTable->Receive(DatagramChain);
-
-        QUIC_RECV_DATAGRAM* UpdatedDatagramChain = NULL;
-        QUIC_RECV_DATAGRAM** UpdatedDatagramChainTail = &UpdatedDatagramChain;
-
-        while ((Datagram = DatagramChain) != NULL) {
-            DatagramChain = Datagram->Next;
-            Datagram->Next = NULL;
-            if (Datagram->Drop) {
-                *ReleaseChainTail = Datagram;
-                ReleaseChainTail = &Datagram->Next;
-                QuicPacketLogDrop(
-                    Binding,
-                    QuicDataPathRecvDatagramToRecvPacket(Datagram),
-                    "Test Dopped");
-            } else {
-                *UpdatedDatagramChainTail = Datagram;
-                UpdatedDatagramChainTail = &Datagram->Next;
-            }
-        }
-
-        DatagramChain = UpdatedDatagramChain;
-    }
-#endif
-
+    QUIC_RECV_DATAGRAM* Datagram;
     while ((Datagram = DatagramChain) != NULL) {
 
         //
@@ -1386,6 +1352,28 @@ QuicBindingReceive(
         //
         DatagramChain = Datagram->Next;
         Datagram->Next = NULL;
+
+        QUIC_RECV_PACKET* Packet =
+            QuicDataPathRecvDatagramToRecvPacket(Datagram);
+        QuicZeroMemory(Packet, sizeof(QUIC_RECV_PACKET));
+        Packet->Buffer = Datagram->Buffer;
+        Packet->BufferLength = Datagram->BufferLength;
+
+#if DEBUG
+        //
+        // The test datapath receive callback allows for test code to modify
+        // the datagrams on the receive path, and optionally indicate one or
+        // more to be dropped.
+        //
+        if (MsQuicLib.TestDatapathFuncTable != NULL) {
+            if (MsQuicLib.TestDatapathFuncTable->Receive(Datagram)) {
+                *ReleaseChainTail = Datagram;
+                ReleaseChainTail = &Datagram->Next;
+                QuicPacketLogDrop(Binding, Packet, "Test Dopped");
+                continue;
+            }
+        }
+#endif
 
         //
         // Perform initial validation.
@@ -1399,8 +1387,6 @@ QuicBindingReceive(
             continue;
         }
 
-        QUIC_RECV_PACKET* Packet =
-            QuicDataPathRecvDatagramToRecvPacket(Datagram);
         QUIC_DBG_ASSERT(Packet->DestCid != NULL);
         QUIC_DBG_ASSERT(Packet->DestCidLen != 0 || Binding->Exclusive);
         QUIC_DBG_ASSERT(Packet->ValidatedHeaderInv);
@@ -1507,13 +1493,11 @@ QuicBindingSendTo(
     if (MsQuicLib.TestDatapathFuncTable != NULL) {
 
         QUIC_ADDR RemoteAddressCopy = *RemoteAddress;
-        BOOLEAN Drop = FALSE;
-
-        MsQuicLib.TestDatapathFuncTable->Send(
-            &RemoteAddressCopy,
-            NULL,
-            SendContext,
-            &Drop);
+        BOOLEAN Drop =
+            MsQuicLib.TestDatapathFuncTable->Send(
+                &RemoteAddressCopy,
+                NULL,
+                SendContext);
 
         if (Drop) {
             QuicTraceLogVerbose(
@@ -1573,13 +1557,11 @@ QuicBindingSendFromTo(
 
         QUIC_ADDR RemoteAddressCopy = *RemoteAddress;
         QUIC_ADDR LocalAddressCopy = *LocalAddress;
-        BOOLEAN Drop = FALSE;
-
-        MsQuicLib.TestDatapathFuncTable->Send(
-            &RemoteAddressCopy,
-            &LocalAddressCopy,
-            SendContext,
-            &Drop);
+        BOOLEAN Drop =
+            MsQuicLib.TestDatapathFuncTable->Send(
+                &RemoteAddressCopy,
+                &LocalAddressCopy,
+                SendContext);
 
         if (Drop) {
             QuicTraceLogVerbose(

@@ -147,7 +147,7 @@ std::ostream& operator << (std::ostream& o, const HandshakeArgs4& args) {
         (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
         (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial") << "/" <<
         (args.SessionResumption ? "Resume" : "NoResume") << "/" <<
-        args.RandomLossPercentage << "% loss";
+        (uint32_t)args.RandomLossPercentage << "% loss";
 }
 
 class WithHandshakeArgs4 : public testing::Test,

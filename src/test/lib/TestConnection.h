@@ -123,7 +123,7 @@ public:
         _In_ QUIC_STREAM_OPEN_FLAGS Flags
         );
 
-    bool WaitForConnectionComplete();
+    bool WaitForConnectionComplete(bool HasRandomLoss = false);
 
     bool WaitForZeroRttTicket();
 

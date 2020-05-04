@@ -30,21 +30,26 @@ extern "C" {
 // The different private parameters for QUIC_PARAM_LEVEL_GLOBAL.
 //
 
+//
+// Returns TRUE to drop the packet.
+//
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+BOOLEAN
 (QUIC_API * QUIC_TEST_DATAPATH_RECEIVE_CALLBACK)(
-    _Inout_ struct QUIC_RECV_DATAGRAM* DatagramChain
+    _Inout_ struct QUIC_RECV_DATAGRAM* Datagram
     );
 
+//
+// Returns TRUE to drop the packet.
+//
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 (QUIC_API * QUIC_TEST_DATAPATH_SEND_CALLBACK)(
     _Inout_ QUIC_ADDR* RemoteAddress,
     _Inout_opt_ QUIC_ADDR* LocalAddress,
-    _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* SendContext,
-    _Out_ BOOLEAN* Drop
+    _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* SendContext
     );
 
 typedef struct QUIC_TEST_DATAPATH_FUNC_TABLE {

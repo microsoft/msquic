@@ -164,8 +164,6 @@ typedef struct QUIC_RECV_DATAGRAM {
     //
     uint8_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
     uint8_t QueuedOnConnection : 1; // Used for debugging.
-    uint8_t Drop : 1;               // Test only flag. Used to indicate the
-                                    // datagram should be dropped.
 
 } QUIC_RECV_DATAGRAM;
 

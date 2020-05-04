@@ -121,10 +121,14 @@ TestConnection::NewStream(
 }
 
 bool
-TestConnection::WaitForConnectionComplete()
+TestConnection::WaitForConnectionComplete(bool HasRandomLoss)
 {
-    if (!QuicEventWaitWithTimeout(EventConnectionComplete, TestWaitTimeout)) {
-        TEST_FAILURE("WaitForConnectionComplete timed out after %u ms.", TestWaitTimeout);
+    uint32_t WaitTime = TestWaitTimeout;
+    if (HasRandomLoss) {
+        WaitTime *= 10; // TODO - Enough?
+    }
+    if (!QuicEventWaitWithTimeout(EventConnectionComplete, WaitTime)) {
+        TEST_FAILURE("WaitForConnectionComplete timed out after %u ms.", WaitTime);
         return false;
     }
     return true;
