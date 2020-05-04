@@ -133,9 +133,15 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ShareBinding : 1;
 
         //
-        // Indicate the TestTransportParameter variable has been set by the app.
+        // Indicates the TestTransportParameter variable has been set by the app.
         //
         BOOLEAN TestTransportParameterSet : 1;
+
+        //
+        // Indicates the connection is using the round robin stream scheduling
+        // scheme.
+        //
+        BOOLEAN UseRoundRobinStreamScheduling : 1;
 
 #ifdef QuicVerifierEnabledByAddr
         //
@@ -748,7 +754,11 @@ QuicConnAddOutFlowBlockedReason(
 {
     if (!(Connection->OutFlowBlockedReasons & Reason)) {
         Connection->OutFlowBlockedReasons |= Reason;
-        QuicTraceEvent(ConnOutFlowBlocked, "[conn][%p] Send Blocked Flags: %c", Connection, Connection->OutFlowBlockedReasons);
+        QuicTraceEvent(
+            ConnOutFlowBlocked,
+            "[conn][%p] Send Blocked Flags: %hhu",
+            Connection,
+            Connection->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -763,7 +773,11 @@ QuicConnRemoveOutFlowBlockedReason(
 {
     if ((Connection->OutFlowBlockedReasons & Reason)) {
         Connection->OutFlowBlockedReasons &= ~Reason;
-        QuicTraceEvent(ConnOutFlowBlocked, "[conn][%p] Send Blocked Flags: %c", Connection, Connection->OutFlowBlockedReasons);
+        QuicTraceEvent(
+            ConnOutFlowBlocked,
+            "[conn][%p] Send Blocked Flags: %hhu",
+            Connection,
+            Connection->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -1006,7 +1020,7 @@ QuicConnGetSourceCidFromSeq(
                     SourceCid);
                 QuicTraceEvent(
                     ConnSourceCidRemoved,
-                    "[conn][%p] (SeqNum=%llu) Removed Source CID: %!BYTEARRAY!",
+                    "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
                     Connection,
                     SourceCid->CID.SequenceNumber,
                     CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));

@@ -159,7 +159,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 // The number of packets we write for a single stream before going to the next
 // one in the round robin.
 //
-#define QUIC_STREAM_SEND_BATCH_COUNT            4
+#define QUIC_STREAM_SEND_BATCH_COUNT            8
 
 //
 // The maximum number of received packets to batch process at a time.

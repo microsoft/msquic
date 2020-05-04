@@ -608,6 +608,7 @@ struct PingStats
     const uint64_t PayloadLength;
     const uint32_t ConnectionCount;
     const uint32_t StreamCount;
+    const bool FifoScheduling;
     const bool UnidirectionalStreams;
     const bool ServerInitiatedStreams;
     const bool ZeroRtt;
@@ -623,6 +624,7 @@ struct PingStats
         uint64_t _PayloadLength,
         uint32_t _ConnectionCount,
         uint32_t _StreamCount,
+        bool _FifoScheduling,
         bool _UnidirectionalStreams,
         bool _ServerInitiatedStreams,
         bool _ZeroRtt,
@@ -633,6 +635,7 @@ struct PingStats
         PayloadLength(_PayloadLength),
         ConnectionCount(_ConnectionCount),
         StreamCount(_StreamCount),
+        FifoScheduling(_FifoScheduling),
         UnidirectionalStreams(_UnidirectionalStreams),
         ServerInitiatedStreams(_ServerInitiatedStreams),
         ZeroRtt(_ZeroRtt),
@@ -702,6 +705,7 @@ PingStreamShutdown(
 
 #if !QUIC_SEND_FAKE_LOSS
     if (!ConnState->GetPingStats()->ServerInitiatedStreams &&
+        !ConnState->GetPingStats()->FifoScheduling &&
         ConnState->GetPingStats()->ZeroRtt) {
         if (Stream->GetBytesReceived() != 0 && // TODO - Support 0-RTT indication for Stream Open callback.
             !Stream->GetUsedZeroRtt()) {
@@ -812,6 +816,11 @@ ListenerAcceptPingConnection(
             }
         }
 
+        Connection->SetPriorityScheme(
+            Stats->FifoScheduling ?
+                QUIC_STREAM_SCHEDULING_SCHEME_FIFO :
+                QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN);
+
         if (Stats->ServerInitiatedStreams) {
             SendPingBurst(
                 Connection,
@@ -850,6 +859,11 @@ NewPingConnection(
     Connection->SetShutdownCompleteCallback(PingConnectionShutdown);
     Connection->SetExpectedResumed(ClientStats->ZeroRtt);
 
+    Connection->SetPriorityScheme(
+        ClientStats->FifoScheduling ?
+            QUIC_STREAM_SCHEDULING_SCHEME_FIFO :
+            QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN);
+
     if (ClientStats->ServerInitiatedStreams) {
         Connection->SetPeerUnidiStreamCount((uint16_t)ClientStats->StreamCount);
         Connection->SetPeerBidiStreamCount((uint16_t)ClientStats->StreamCount);
@@ -876,14 +890,15 @@ QuicTestConnectAndPing(
     _In_ bool ServerRejectZeroRtt,
     _In_ bool UseSendBuffer,
     _In_ bool UnidirectionalStreams,
-    _In_ bool ServerInitiatedStreams
+    _In_ bool ServerInitiatedStreams,
+    _In_ bool FifoScheduling
     )
 {
     const uint32_t TimeoutMs = EstimateTimeoutMs(Length) * StreamBurstCount;
     const uint16_t TotalStreamCount = (uint16_t)(StreamCount * StreamBurstCount);
 
-    PingStats ServerStats(Length, ConnectionCount, TotalStreamCount, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
-    PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
+    PingStats ServerStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
+    PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
 
     MsQuicSession Session;
     TEST_TRUE(Session.IsValid());
@@ -1099,8 +1114,8 @@ QuicTestServerDisconnect(
     void
     )
 {
-    PingStats ServerStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, TRUE, QUIC_STATUS_CONNECTION_TIMEOUT);
-    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, TRUE);
+    PingStats ServerStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, TRUE, FALSE, TRUE, QUIC_STATUS_CONNECTION_TIMEOUT);
+    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, TRUE, FALSE, TRUE);
 
     {
         MsQuicSession Session;
@@ -1207,7 +1222,7 @@ QuicTestClientDisconnect(
     // back to the client as it continues to receive the client's UDP packets.
     //
 
-    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, FALSE, FALSE, TRUE,
+    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, FALSE, TRUE,
         StopListenerFirst ? QUIC_STATUS_CONNECTION_TIMEOUT : QUIC_STATUS_ABORTED);
 
     {

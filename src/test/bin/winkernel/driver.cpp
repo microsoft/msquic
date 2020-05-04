@@ -103,7 +103,11 @@ Return Value:
 
     Status = QuicPlatformInitialize();
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "QuicPlatformInitialize failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %d, %s.",
+            Status,
+            "QuicPlatformInitialize failed");
         goto Error;
     }
     PlatformInitialized = TRUE;
@@ -124,7 +128,11 @@ Return Value:
             &Config,
             &Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "WdfDriverCreate failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %d, %s.",
+            Status,
+            "WdfDriverCreate failed");
         goto Error;
     }
 
@@ -133,7 +141,11 @@ Return Value:
     //
     Status = QuicTestCtlInitialize(Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", Status, "QuicTestCtlInitialize failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %d, %s.",
+            Status,
+            "QuicTestCtlInitialize failed");
         goto Error;
     }
 

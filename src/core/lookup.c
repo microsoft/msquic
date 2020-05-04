@@ -646,7 +646,9 @@ QuicLookupFindConnectionByRemoteHash(
         const uint8_t* const RemoteCid
     )
 {
-    QUIC_DBG_ASSERT(Lookup->MaximizePartitioning);
+    if (!Lookup->MaximizePartitioning) {
+        return NULL; // Nothing registered yet.
+    }
 
     uint32_t Hash = QuicPacketHash(RemoteAddress, RemoteCidLength, RemoteCid);
 

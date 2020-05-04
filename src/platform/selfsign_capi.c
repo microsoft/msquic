@@ -39,7 +39,11 @@ CleanTestCertificatesFromStore(BOOLEAN UserStore)
             UserStore ? CERT_SYSTEM_STORE_CURRENT_USER : CERT_SYSTEM_STORE_LOCAL_MACHINE,
             "MY");
     if (CertStore == NULL) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", GetLastError(), "CertOpenStore failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "CertOpenStore failed");
         return;
     }
 
@@ -111,7 +115,11 @@ AllocateAndEncodeObject(
             NULL,
             &CryptDataBlob->cbData)) {
         hr = HRESULT_FROM_WIN32(GetLastError());
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "CryptEncodeObject failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "CryptEncodeObject failed");
         goto Cleanup;
     }
 
@@ -122,7 +130,11 @@ AllocateAndEncodeObject(
         HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, CryptDataBlob->cbData);
     hr = CryptDataBlob->pbData ? S_OK : E_OUTOFMEMORY;
     if (FAILED(hr)) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "CryptDataBlob", CryptDataBlob->cbData);
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CryptDataBlob",
+            CryptDataBlob->cbData);
         goto Cleanup;
     }
 
@@ -136,7 +148,11 @@ AllocateAndEncodeObject(
             CryptDataBlob->pbData,
             &CryptDataBlob->cbData)) {
         hr = HRESULT_FROM_WIN32(GetLastError());
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "CryptEncodeObject failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "CryptEncodeObject failed");
         goto Cleanup;
     }
 
@@ -169,7 +185,11 @@ CreateEnhancedKeyUsageCertExtension(
             X509_ENHANCED_KEY_USAGE,
             &CertEnhKeyUsage);
     if (FAILED(hr)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "AllocateAndEncodeObject X509_ENHANCED_KEY_USAGE failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "AllocateAndEncodeObject X509_ENHANCED_KEY_USAGE failed");
         goto Cleanup;
     }
 
@@ -198,7 +218,11 @@ CreateKeyUsageCertExtension(
             X509_KEY_USAGE,
             &KeyUsageBlob);
     if (FAILED(hr)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "AllocateAndEncodeObject X509_KEY_USAGE failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "AllocateAndEncodeObject X509_KEY_USAGE failed");
         goto Cleanup;
     }
 
@@ -229,7 +253,11 @@ CreateSubjAltNameExtension(
             szOID_SUBJECT_ALT_NAME,
             &NameInfo);
     if (FAILED(hr)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "AllocateAndEncodeObject szOID_SUBJECT_ALT_NAME failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "AllocateAndEncodeObject szOID_SUBJECT_ALT_NAME failed");
         goto Cleanup;
     }
 
@@ -260,14 +288,22 @@ CreateSubjectNameBlob(
             &BufferLength,
             NULL)) {
         hr = HRESULT_FROM_WIN32(GetLastError());
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "CreateSubjectNameBlob failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "CreateSubjectNameBlob failed");
         goto Cleanup;
     }
 
     Buffer = (PBYTE)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, BufferLength);
     hr = Buffer ? S_OK : E_OUTOFMEMORY;
     if (FAILED(hr)) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "SubjectNameBlob", BufferLength);
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "SubjectNameBlob",
+            BufferLength);
         goto Cleanup;
     }
 
@@ -280,7 +316,11 @@ CreateSubjectNameBlob(
             &BufferLength,
             NULL)) {
         hr = HRESULT_FROM_WIN32(GetLastError());
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "CreateSubjectNameBlob failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "CreateSubjectNameBlob failed");
         goto Cleanup;
     }
 
@@ -338,7 +378,11 @@ CreateCertificateExtensions(
         (PCERT_EXTENSION)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(CERT_EXTENSION) * cTmpCertExtension);
     hr = TmpCertExtensions ? S_OK : E_OUTOFMEMORY;
     if (FAILED(hr)) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "TmpCertExtensions", sizeof(CERT_EXTENSION) * cTmpCertExtension);
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "TmpCertExtensions",
+            sizeof(CERT_EXTENSION) * cTmpCertExtension);
         goto Cleanup;
     }
 
@@ -351,7 +395,11 @@ CreateCertificateExtensions(
     //
     hr = CreateEnhancedKeyUsageCertExtension(&TmpCertExtensions[0]);
     if (FAILED(hr)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "CreateEnhancedKeyUsageCertExtension failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "CreateEnhancedKeyUsageCertExtension failed");
         goto Cleanup;
     }
 
@@ -361,7 +409,11 @@ CreateCertificateExtensions(
     //
     hr = CreateKeyUsageCertExtension(&TmpCertExtensions[1]);
     if (FAILED(hr)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "CreateKeyUsageCertExtension failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "CreateKeyUsageCertExtension failed");
         goto Cleanup;
     }
 
@@ -370,7 +422,11 @@ CreateCertificateExtensions(
     //
     hr = CreateSubjAltNameExtension(&TmpCertExtensions[2]);
     if (FAILED(hr)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "CreateSubjAltNameExtension failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "CreateSubjAltNameExtension failed");
         goto Cleanup;
     }
 
@@ -400,7 +456,11 @@ GetPrivateRsaKey(
             &Provider,
             MS_KEY_STORAGE_PROVIDER,
             0))) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "NCryptOpenStorageProvider failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "NCryptOpenStorageProvider failed");
         goto Cleanup;
     }
 
@@ -422,7 +482,11 @@ ReadKey:
             "[cert] Successfully opened RSA key");
         goto Cleanup;
     } else if (hr != NTE_BAD_KEYSET) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "NCryptOpenKey failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "NCryptOpenKey failed");
         goto Cleanup;
     }
 
@@ -440,7 +504,11 @@ ReadKey:
     if (hr == NTE_EXISTS) {
         goto ReadKey; // Key already created, in other thread/process.
     } else if (FAILED(hr)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "NCryptCreatePersistedKey failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "NCryptCreatePersistedKey failed");
         goto Cleanup;
     }
 
@@ -450,7 +518,11 @@ ReadKey:
             (PBYTE)&KeySize,
             sizeof(KeySize),
             0))) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "NCryptSetProperty NCRYPT_LENGTH_PROPERTY failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "NCryptSetProperty NCRYPT_LENGTH_PROPERTY failed");
         goto Cleanup;
     }
 
@@ -460,12 +532,20 @@ ReadKey:
             (PBYTE)&KeyUsageProperty,
             sizeof(KeyUsageProperty),
             0))) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "NCryptSetProperty NCRYPT_KEY_USAGE_PROPERTY failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "NCryptSetProperty NCRYPT_KEY_USAGE_PROPERTY failed");
         goto Cleanup;
     }
 
     if (FAILED(hr = NCryptFinalizeKey(*Key, 0))) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "NCryptFinalizeKey failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "NCryptFinalizeKey failed");
         goto Cleanup;
     }
 
@@ -513,7 +593,11 @@ CreateSelfSignedCertificate(
     //
     hr = CreateSubjectNameBlob(SubjectName, &SubjectNameBlob);
     if (FAILED(hr)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "CreateSubjectNameBlob failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "CreateSubjectNameBlob failed");
         goto Cleanup;
     }
 
@@ -523,7 +607,11 @@ CreateSelfSignedCertificate(
     //
     hr = GetPrivateRsaKey(&Key);
     if (FAILED(hr)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "GetPrivateRsaKey failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "GetPrivateRsaKey failed");
         goto Cleanup;
     }
 
@@ -535,7 +623,11 @@ CreateSelfSignedCertificate(
     hr = CreateCertificateExtensions(&extensions);
     if (FAILED(hr)) {
         hr = HRESULT_FROM_WIN32(GetLastError());
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "CreateCertificateExtensions failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "CreateCertificateExtensions failed");
         goto Cleanup;
     }
     CleanupExtensions = TRUE;
@@ -548,7 +640,11 @@ CreateSelfSignedCertificate(
     FILETIME ExpiredFileTime;
     if (!SystemTimeToFileTime(&Now, &ExpiredFileTime)) {
         hr = HRESULT_FROM_WIN32(GetLastError());
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "SystemTimeToFileTime failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "SystemTimeToFileTime failed");
         goto Cleanup;
     }
     ULARGE_INTEGER FiveYearsFromNowLargeInt;
@@ -561,7 +657,11 @@ CreateSelfSignedCertificate(
     ExpiredFileTime.dwHighDateTime = FiveYearsFromNowLargeInt.HighPart;
     if (!FileTimeToSystemTime(&ExpiredFileTime, &Expiration)) {
         hr = HRESULT_FROM_WIN32(GetLastError());
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "FileTimeToSystemTime failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "FileTimeToSystemTime failed");
         goto Cleanup;
     }
 
@@ -588,7 +688,11 @@ CreateSelfSignedCertificate(
             &extensions);
     if (NULL == CertContext) {
         hr = HRESULT_FROM_WIN32(GetLastError());
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "CertCreateSelfSignCertificate failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "CertCreateSelfSignCertificate failed");
         goto Cleanup;
     }
 
@@ -602,7 +706,11 @@ CreateSelfSignedCertificate(
             0,
             &FriendlyNameBlob)) {
         hr = HRESULT_FROM_WIN32(GetLastError());
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", hr, "CertSetCertificateContextProperty failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "CertSetCertificateContextProperty failed");
         CertFreeCertificateContext(CertContext);
         goto Cleanup;
     }
@@ -652,7 +760,11 @@ CreateServerCertificate(
                 CertContext,
                 CERT_STORE_ADD_NEW,
                 NULL)) {
-            QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", GetLastError(), "CertAddCertificateContextToStore failed");
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                GetLastError(),
+                "CertAddCertificateContextToStore failed");
         }
         CertCloseStore(CertStore, 0);
     }
@@ -685,7 +797,10 @@ FindOrCreateCertificate(
     BOOLEAN First = FALSE;
     HANDLE Event = CreateEventW(NULL, TRUE, FALSE, QUIC_CERT_CREATION_EVENT_NAME);
     if (Event == NULL) {
-        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "CreateEvent failed");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "CreateEvent failed");
         return NULL;
     }
 
@@ -723,7 +838,11 @@ FindOrCreateCertificate(
             UserStore ? CERT_SYSTEM_STORE_CURRENT_USER : CERT_SYSTEM_STORE_LOCAL_MACHINE,
             "MY");
     if (CertStore == NULL) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", GetLastError(), "CertOpenStore failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "CertOpenStore failed");
         goto Done;
     }
 
@@ -767,7 +886,11 @@ FindOrCreateCertificate(
             Cert,
             CERT_STORE_ADD_ALWAYS,
             NULL)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", GetLastError(), "CertAddCertificateContextToStore failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "CertAddCertificateContextToStore failed");
         CertFreeCertificateContext(Cert);
         Cert = NULL;
     }
@@ -780,7 +903,11 @@ Done:
                 CERT_HASH_PROP_ID,
                 CertHash,
                 &CertHashLength)) {
-            QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %d, %s.", GetLastError(), "CertGetCertificateContextProperty failed");
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                GetLastError(),
+                "CertGetCertificateContextProperty failed");
             CertFreeCertificateContext(Cert);
             Cert = NULL;
         }

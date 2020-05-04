@@ -128,7 +128,11 @@ QuicPacketBuilderPrepare(
         // but without the key, nothing can be done. Just silently kill the
         // connection.
         //
-        QuicTraceEvent(ConnError, "[conn][%p] ERROR, %s.", Connection, "NULL key in builder prepare");
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "NULL key in builder prepare");
         QuicConnSilentlyAbort(Connection);
         return FALSE;
     }
@@ -186,7 +190,11 @@ QuicPacketBuilderPrepare(
                             QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                             DatagramSize));
             if (Builder->SendContext == NULL) {
-                QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "packet send context", 0);
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "packet send context",
+                    0);
                 goto Error;
             }
         }
@@ -205,7 +213,11 @@ QuicPacketBuilderPrepare(
                 Builder->SendContext,
                 NewDatagramLength);
         if (Builder->Datagram == NULL) {
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "packet datagram", NewDatagramLength);
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "packet datagram",
+                NewDatagramLength);
             goto Error;
         }
 
@@ -760,7 +772,9 @@ QuicPacketBuilderFinalize(
 
             Status = QuicCryptoGenerateNewKeys(Connection);
             if (QUIC_FAILED(Status)) {
-                QuicTraceEvent(ConnErrorStatus, "[conn][%p] ERROR, %d, %s.",
+                QuicTraceEvent(
+                    ConnErrorStatus,
+                    "[conn][%p] ERROR, %u, %s.",
                     Connection,
                     Status,
                     "Send-triggered key update");
@@ -788,7 +802,9 @@ QuicPacketBuilderFinalize(
     Builder->Metadata->PacketLength =
         Builder->HeaderLength + PayloadLength;
 
-    QuicTraceEvent(ConnPacketSent, "[conn][%p][TX][%llu] %c (%hd bytes)",
+    QuicTraceEvent(
+        ConnPacketSent,
+        "[conn][%p][TX][%llu] %hhu (%hu bytes)",
         Connection,
         Builder->Metadata->PacketNumber,
         QuicPacketTraceType(Builder->Metadata),

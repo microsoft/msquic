@@ -480,7 +480,11 @@ Return Value:
     if (*HashTable == NULL) {
         Table = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASHTABLE));
         if (Table == NULL) {
-            QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "QUIC_HASHTABLE", sizeof(QUIC_HASHTABLE));
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "QUIC_HASHTABLE",
+                sizeof(QUIC_HASHTABLE));
             return FALSE;
         }
 

@@ -27,7 +27,9 @@ MsQuicListenerOpen(
     QUIC_SESSION* Session;
     QUIC_LISTENER* Listener = NULL;
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_LISTENER_OPEN,
         SessionHandle);
 
@@ -43,7 +45,11 @@ MsQuicListenerOpen(
 
     Listener = QUIC_ALLOC_NONPAGED(sizeof(QUIC_LISTENER));
     if (Listener == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "listener", sizeof(QUIC_LISTENER));
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "listener",
+            sizeof(QUIC_LISTENER));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -58,7 +64,11 @@ MsQuicListenerOpen(
 #pragma prefast(suppress: __WARNING_6031, "Will always succeed.")
     QuicRundownAcquire(&Session->Rundown);
 
-    QuicTraceEvent(ListenerCreated, "[list][%p] Created, Session=%p", Listener, Listener->Session);
+    QuicTraceEvent(
+        ListenerCreated,
+        "[list][%p] Created, Session=%p",
+        Listener,
+        Listener->Session);
     *NewListener = (HQUIC)Listener;
     Status = QUIC_STATUS_SUCCESS;
 
@@ -71,7 +81,10 @@ Error:
         }
     }
 
-    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d", Status);
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
 
     return Status;
 }
@@ -94,7 +107,9 @@ MsQuicListenerClose(
         return;
     }
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_LISTENER_CLOSE,
         Handle);
 
@@ -110,10 +125,15 @@ MsQuicListenerClose(
     QuicRundownUninitialize(&Listener->Rundown);
     QUIC_FREE(Listener);
 
-    QuicTraceEvent(ListenerDestroyed, "[list][%p] Destroyed", Listener);
+    QuicTraceEvent(
+        ListenerDestroyed,
+        "[list][%p] Destroyed",
+        Listener);
     QuicRundownRelease(&Session->Rundown);
 
-    QuicTraceEvent(ApiExit, "[ api] Exit");
+    QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -129,7 +149,9 @@ MsQuicListenerStart(
     BOOLEAN PortUnspecified;
     QUIC_ADDR BindingLocalAddress = {0};
 
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_LISTENER_START,
         Handle);
 
@@ -184,14 +206,23 @@ MsQuicListenerStart(
             NULL,
             &Listener->Binding);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(ListenerErrorStatus, "[list][%p] ERROR, %d, %s.", Listener, Status, "Get binding");
+        QuicTraceEvent(
+            ListenerErrorStatus,
+            "[list][%p] ERROR, %u, %s.",
+            Listener,
+            Status,
+            "Get binding");
         goto Error;
     }
 
     QuicRundownReInitialize(&Listener->Rundown);
 
     if (!QuicBindingRegisterListener(Listener->Binding, Listener)) {
-        QuicTraceEvent(ListenerError, "[list][%p] ERROR, %s.", Listener, "Register with binding");
+        QuicTraceEvent(
+            ListenerError,
+            "[list][%p] ERROR, %s.",
+            Listener,
+            "Register with binding");
         QuicRundownRelease(&Listener->Rundown);
         Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
@@ -206,9 +237,12 @@ MsQuicListenerStart(
             QuicAddrGetPort(&BindingLocalAddress));
     }
 
-    QuicTraceEvent(ListenerStarted, "[list][%p] Started, Binding=%p, LocalAddr=%!SOCKADDR!",
+    QuicTraceEvent(
+        ListenerStarted,
+        "[list][%p] Started, Binding=%p, LocalAddr=%!SOCKADDR!",
         Listener,
-        Listener->Binding, CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), (uint8_t*)&Listener->LocalAddress));
+        Listener->Binding,
+        CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), (uint8_t*)&Listener->LocalAddress));
 
 Error:
 
@@ -221,7 +255,10 @@ Error:
 
 Exit:
 
-    QuicTraceEvent(ApiExitStatus, "[ api] Exit %d", Status);
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
 
     return Status;
 }
@@ -233,7 +270,9 @@ MsQuicListenerStop(
     _In_ _Pre_defensive_ HQUIC Handle
     )
 {
-    QuicTraceEvent(ApiEnter, "[ api] Enter %d (%p).",
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_LISTENER_STOP,
         Handle);
 
@@ -246,11 +285,16 @@ MsQuicListenerStop(
             Listener->Binding = NULL;
 
             QuicRundownReleaseAndWait(&Listener->Rundown);
-            QuicTraceEvent(ListenerStopped, "[list][%p] Stopped", Listener);
+            QuicTraceEvent(
+                ListenerStopped,
+                "[list][%p] Stopped",
+                Listener);
         }
     }
 
-    QuicTraceEvent(ApiExit, "[ api] Exit");
+    QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -259,11 +303,18 @@ QuicListenerTraceRundown(
     _In_ QUIC_LISTENER* Listener
     )
 {
-    QuicTraceEvent(ListenerRundown, "[list][%p] Rundown, Session=%p", Listener, Listener->Session);
+    QuicTraceEvent(
+        ListenerRundown,
+        "[list][%p] Rundown, Session=%p",
+        Listener,
+        Listener->Session);
     if (Listener->Binding != NULL) {
-        QuicTraceEvent(ListenerStarted, "[list][%p] Started, Binding=%p, LocalAddr=%!SOCKADDR!",
+        QuicTraceEvent(
+            ListenerStarted,
+            "[list][%p] Started, Binding=%p, LocalAddr=%!SOCKADDR!",
             Listener,
-            Listener->Binding, CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), (uint8_t*)&Listener->LocalAddress));
+            Listener->Binding,
+            CLOG_BYTEARRAY(LOG_ADDR_LEN(Listener->LocalAddress), (uint8_t*)&Listener->LocalAddress));
     }
 }
 
@@ -341,10 +392,19 @@ QuicListenerClaimConnection(
         QUIC_DBG_ASSERT(Event.NEW_CONNECTION.SecurityConfig == NULL);
         *SecConfig = NULL;
     } else if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(ListenerErrorStatus, "[list][%p] ERROR, %d, %s.", Listener, Status, "NEW_CONNECTION callback");
+        QuicTraceEvent(
+            ListenerErrorStatus,
+            "[list][%p] ERROR, %u, %s.",
+            Listener,
+            Status,
+            "NEW_CONNECTION callback");
         goto Exit;
     } else if (Event.NEW_CONNECTION.SecurityConfig == NULL) {
-        QuicTraceEvent(ListenerError, "[list][%p] ERROR, %s.", Listener, "NEW_CONNECTION callback didn't set SecConfig");
+        QuicTraceEvent(
+            ListenerError,
+            "[list][%p] ERROR, %s.",
+            Listener,
+            "NEW_CONNECTION callback didn't set SecConfig");
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     } else {

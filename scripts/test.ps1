@@ -83,7 +83,7 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
-    [string]$Tls = "schannel",
+    [string]$Tls = $null,
 
     [Parameter(Mandatory = $false)]
     [string]$Filter = "",
@@ -130,6 +130,15 @@ param (
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+# Default TLS based on current platform.
+if ($null -eq $Tls) {
+    if ($IsWindows) {
+        $Tls = "schannel"
+    } else {
+        $Tls = "openssl"
+    }
+}
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent

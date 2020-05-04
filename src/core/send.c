@@ -121,7 +121,11 @@ QuicSendQueueFlush(
         QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
         if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_FLUSH_SEND)) != NULL) {
             Send->FlushOperationPending = TRUE;
-            QuicTraceEvent(ConnQueueSendFlush, "[conn][%p] Queueing send flush, reason=%d", Connection, Reason);
+            QuicTraceEvent(
+                ConnQueueSendFlush,
+                "[conn][%p] Queueing send flush, reason=%u",
+                Connection,
+                Reason);
             QuicConnQueueOper(Connection, Oper);
         }
     }
@@ -186,7 +190,7 @@ QuicSendValidate(
 #endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+BOOLEAN
 QuicSendSetSendFlag(
     _In_ QUIC_SEND* Send,
     _In_ uint32_t SendFlags
@@ -246,6 +250,8 @@ QuicSendSetSendFlag(
     }
 
     QuicSendValidate(Send);
+
+    return CanSetFlag;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -302,7 +308,7 @@ QuicSendUpdateAckState(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicSendSetStreamSendFlag(
     _In_ QUIC_SEND* Send,
     _In_ QUIC_STREAM* Stream,
@@ -314,7 +320,7 @@ QuicSendSetStreamSendFlag(
         //
         // Ignore all frames if the connection is closed.
         //
-        return;
+        return FALSE;
     }
 
     //
@@ -359,6 +365,8 @@ QuicSendSetStreamSendFlag(
         }
         Stream->SendFlags |= SendFlags;
     }
+
+    return SendFlags != 0;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -660,7 +668,7 @@ QuicSendWriteFrames(
                     SourceCid->CID.SequenceNumber,
                     0,
                     { 0 } };
-                QUIC_DBG_ASSERT(Connection->SourceCidLimit > QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN);
+                QUIC_DBG_ASSERT(Connection->SourceCidLimit >= QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN);
                 if (Frame.Sequence >= Connection->SourceCidLimit) {
                     Frame.RetirePriorTo = Frame.Sequence + 1 - Connection->SourceCidLimit;
                 }
@@ -804,7 +812,8 @@ QuicSendGetNextStream(
     _Out_ uint32_t* PacketCount
     )
 {
-    QUIC_DBG_ASSERT(!QuicConnIsClosed(QuicSendGetConnection(Send)) || QuicListIsEmpty(&Send->SendStreams));
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
+    QUIC_DBG_ASSERT(!QuicConnIsClosed(Connection) || QuicListIsEmpty(&Send->SendStreams));
 
     QUIC_LIST_ENTRY* Entry = Send->SendStreams.Flink;
     while (Entry != &Send->SendStreams) {
@@ -822,13 +831,19 @@ QuicSendGetNextStream(
         //
         if (QuicSendCanSendStreamNow(Stream)) {
 
-            //
-            // Move the stream to the end of the queue.
-            //
-            QuicListEntryRemove(&Stream->SendLink);
-            QuicListInsertTail(&Send->SendStreams, &Stream->SendLink);
+            if (Connection->State.UseRoundRobinStreamScheduling) {
+                //
+                // Move the stream to the end of the queue.
+                //
+                QuicListEntryRemove(&Stream->SendLink);
+                QuicListInsertTail(&Send->SendStreams, &Stream->SendLink);
 
-            *PacketCount = QUIC_STREAM_SEND_BATCH_COUNT;
+                *PacketCount = QUIC_STREAM_SEND_BATCH_COUNT;
+
+            } else { // FIFO prioritization scheme
+                *PacketCount = UINT32_MAX;
+            }
+
             return Stream;
         }
 

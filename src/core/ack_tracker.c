@@ -147,8 +147,6 @@ QuicAckTrackerAckPacket(
         PtkConnPre(Connection),
         PacketNumber);
 
-    QuicRangeValidate(&Tracker->PacketNumbersToAck);
-
     BOOLEAN NewLargestPacketNumber =
         PacketNumber == QuicRangeGetMax(&Tracker->PacketNumbersToAck);
     if (NewLargestPacketNumber) {
