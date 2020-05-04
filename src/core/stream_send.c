@@ -222,7 +222,11 @@ QuicStreamSendShutdown(
 
 Exit:
 
-    QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
+    QuicTraceEvent(
+        StreamSendState,
+        "[strm][%p] Send State: %hhu",
+        Stream,
+        QuicStreamSendGetState(Stream));
 
     if (Silent) {
         QuicStreamTryCompleteShutdown(Stream);
@@ -338,7 +342,7 @@ QuicStreamCanSendNow(
         return TRUE;
 
     }
-    
+
     if (QuicStreamSendCanWriteDataFrames(Stream)) {
         return ZeroRtt ? QuicStreamHasPending0RttData(Stream) : TRUE;
     }
@@ -1377,7 +1381,11 @@ QuicStreamOnAck(
             //
             if (!Stream->Flags.LocalCloseAcked) {
                 Stream->Flags.LocalCloseAcked = TRUE;
-                QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
+                QuicTraceEvent(
+                    StreamSendState,
+                    "[strm][%p] Send State: %hhu",
+                    Stream,
+                    QuicStreamSendGetState(Stream));
                 QuicStreamIndicateSendShutdownComplete(Stream, TRUE);
                 QuicStreamTryCompleteShutdown(Stream);
             }
@@ -1445,7 +1453,11 @@ QuicStreamOnResetAck(
 {
     if (!Stream->Flags.LocalCloseAcked) {
         Stream->Flags.LocalCloseAcked = TRUE;
-        QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
+        QuicTraceEvent(
+            StreamSendState,
+            "[strm][%p] Send State: %hhu",
+            Stream,
+            QuicStreamSendGetState(Stream));
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
         QuicStreamTryCompleteShutdown(Stream);
     }
