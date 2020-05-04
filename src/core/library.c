@@ -559,9 +559,9 @@ QuicLibrarySetGlobalParam(
         break;
 
 #if DEBUG
-    case QUIC_PARAM_GLOBAL_TEST_DATAPATH_FUNC_TABLE:
+    case QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS:
 
-        if (BufferLength != sizeof(QUIC_TEST_DATAPATH_FUNC_TABLE*)) {
+        if (BufferLength != sizeof(QUIC_TEST_DATAPATH_HOOKS*)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -574,7 +574,7 @@ QuicLibrarySetGlobalParam(
             break;
         }
 
-        MsQuicLib.TestDatapathFuncTable = *(QUIC_TEST_DATAPATH_FUNC_TABLE**)Buffer;
+        MsQuicLib.TestDatapathFuncTable = *(QUIC_TEST_DATAPATH_HOOKS**)Buffer;
         QuicTraceLogWarning(
             LibraryTestDatapathFuncTableSet,
             "[ lib] Updated test datapath func table");

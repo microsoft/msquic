@@ -391,30 +391,30 @@ struct PrivateTransportHelper : QUIC_PRIVATE_TRANSPORT_PARAMETER
 struct RandomLossHelper
 {
     static uint8_t LossPercentage;
-    static QUIC_TEST_DATAPATH_FUNC_TABLE DataPathFuncTable;
+    static QUIC_TEST_DATAPATH_HOOKS DataPathFuncTable;
     RandomLossHelper(uint8_t _LossPercentage) {
         LossPercentage = _LossPercentage;
         if (LossPercentage != 0) {
-            QUIC_TEST_DATAPATH_FUNC_TABLE* Value = &DataPathFuncTable;
+            QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathFuncTable;
             TEST_QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     nullptr,
                     QUIC_PARAM_LEVEL_GLOBAL,
-                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_FUNC_TABLE,
+                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
                     sizeof(Value),
                     &Value));
         }
     }
     ~RandomLossHelper() {
         if (LossPercentage != 0) {
-            QUIC_TEST_DATAPATH_FUNC_TABLE* Value = nullptr;
+            QUIC_TEST_DATAPATH_HOOKS* Value = nullptr;
             uint32_t TryCount = 0;
             while (TryCount++ < 10) {
                 if (QUIC_SUCCEEDED(
                     MsQuic->SetParam(
                         nullptr,
                         QUIC_PARAM_LEVEL_GLOBAL,
-                        QUIC_PARAM_GLOBAL_TEST_DATAPATH_FUNC_TABLE,
+                        QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
                         sizeof(Value),
                         &Value))) {
                     break;
@@ -453,7 +453,7 @@ struct RandomLossHelper
 };
 
 uint8_t RandomLossHelper::LossPercentage = 0;
-QUIC_TEST_DATAPATH_FUNC_TABLE RandomLossHelper::DataPathFuncTable = {
+QUIC_TEST_DATAPATH_HOOKS RandomLossHelper::DataPathFuncTable = {
     RandomLossHelper::ReceiveCallback,
     RandomLossHelper::SendCallback
 };
