@@ -141,11 +141,13 @@ QuicStreamFree(
     QuicPoolFree(&Stream->Connection->Worker->StreamPool, Stream);
 
     if (WasStarted) {
+#pragma warning(push)
+#pragma warning(disable:6001) // SAL doesn't understand we're logging just the address
         QuicTraceEvent(
             StreamDestroyed,
             "[strm][%p] Destroyed",
-#pragma prefast(suppress:6001, "SAL doesn't understand we're logging just the address")
             Stream);
+#pragma warning(pop)
     }
 }
 
