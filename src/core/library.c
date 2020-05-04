@@ -568,16 +568,16 @@ QuicLibrarySetGlobalParam(
 
         if (MsQuicLib.InUse) {
             QuicTraceLogError(
-                LibraryTestDatapathFuncTableSetAfterInUse,
-                "[ lib] Tried to change test datapath func table after library in use!");
+                LibraryTestDatapathHooksSetAfterInUse,
+                "[ lib] Tried to change test datapath hooks after library in use!");
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
 
-        MsQuicLib.TestDatapathFuncTable = *(QUIC_TEST_DATAPATH_HOOKS**)Buffer;
+        MsQuicLib.TestDatapathHooks = *(QUIC_TEST_DATAPATH_HOOKS**)Buffer;
         QuicTraceLogWarning(
-            LibraryTestDatapathFuncTableSet,
-            "[ lib] Updated test datapath func table");
+            LibraryTestDatapathHooksSet,
+            "[ lib] Updated test datapath hooks");
 
         Status = QUIC_STATUS_SUCCESS;
         break;

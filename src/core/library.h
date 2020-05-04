@@ -211,7 +211,7 @@ typedef struct QUIC_LIBRARY {
     //
     // An optional callback to allow test code to modify the data path.
     //
-    QUIC_TEST_DATAPATH_HOOKS* TestDatapathFuncTable;
+    QUIC_TEST_DATAPATH_HOOKS* TestDatapathHooks;
 #endif
 
 } QUIC_LIBRARY;

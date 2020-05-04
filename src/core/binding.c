@@ -1365,8 +1365,8 @@ QuicBindingReceive(
         // the datagrams on the receive path, and optionally indicate one or
         // more to be dropped.
         //
-        if (MsQuicLib.TestDatapathFuncTable != NULL) {
-            if (MsQuicLib.TestDatapathFuncTable->Receive(Datagram)) {
+        if (MsQuicLib.TestDatapathHooks != NULL) {
+            if (MsQuicLib.TestDatapathHooks->Receive(Datagram)) {
                 *ReleaseChainTail = Datagram;
                 ReleaseChainTail = &Datagram->Next;
                 QuicPacketLogDrop(Binding, Packet, "Test Dopped");
@@ -1490,11 +1490,11 @@ QuicBindingSendTo(
     QUIC_STATUS Status;
 
 #if DEBUG
-    if (MsQuicLib.TestDatapathFuncTable != NULL) {
+    if (MsQuicLib.TestDatapathHooks != NULL) {
 
         QUIC_ADDR RemoteAddressCopy = *RemoteAddress;
         BOOLEAN Drop =
-            MsQuicLib.TestDatapathFuncTable->Send(
+            MsQuicLib.TestDatapathHooks->Send(
                 &RemoteAddressCopy,
                 NULL,
                 SendContext);
@@ -1553,12 +1553,12 @@ QuicBindingSendFromTo(
     QUIC_STATUS Status;
 
 #if DEBUG
-    if (MsQuicLib.TestDatapathFuncTable != NULL) {
+    if (MsQuicLib.TestDatapathHooks != NULL) {
 
         QUIC_ADDR RemoteAddressCopy = *RemoteAddress;
         QUIC_ADDR LocalAddressCopy = *LocalAddress;
         BOOLEAN Drop =
-            MsQuicLib.TestDatapathFuncTable->Send(
+            MsQuicLib.TestDatapathHooks->Send(
                 &RemoteAddressCopy,
                 &LocalAddressCopy,
                 SendContext);
