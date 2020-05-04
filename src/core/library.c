@@ -456,7 +456,7 @@ QuicLibApplyLoadBalancingSetting(
         MsQuicLib.CidServerIdLength = 5; // 1 + 4 for v4 IP address
         break;
     }
-    
+
     MsQuicLib.CidTotalLength =
         MsQuicLib.CidServerIdLength +
         MSQUIC_CID_PID_LENGTH +
@@ -502,31 +502,6 @@ QuicLibrarySetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_GLOBAL_ENCRYPTION:
-
-        if (BufferLength != sizeof(uint8_t)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        if (MsQuicLib.InUse &&
-            MsQuicLib.EncryptionDisabled != (*(uint8_t*)Buffer == FALSE)) {
-            QuicTraceLogError(
-                LibraryEncryptionSetAfterInUse,
-                "[ lib] Tried to change encryption state after library in use!");
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
-        MsQuicLib.EncryptionDisabled = *(uint8_t*)Buffer == FALSE;
-        QuicTraceLogWarning(
-            LibraryEncryptionSet,
-            "[ lib] Updated encryption disabled = %hu",
-            MsQuicLib.EncryptionDisabled);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
     case QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE: {
 
         if (BufferLength != sizeof(uint16_t)) {
@@ -557,6 +532,56 @@ QuicLibrarySetGlobalParam(
 
         Status = QUIC_STATUS_SUCCESS;
         break;
+
+    case QUIC_PARAM_GLOBAL_ENCRYPTION:
+
+        if (BufferLength != sizeof(uint8_t)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (MsQuicLib.InUse &&
+            MsQuicLib.EncryptionDisabled != (*(uint8_t*)Buffer == FALSE)) {
+            QuicTraceLogError(
+                LibraryEncryptionSetAfterInUse,
+                "[ lib] Tried to change encryption state after library in use!");
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        MsQuicLib.EncryptionDisabled = *(uint8_t*)Buffer == FALSE;
+        QuicTraceLogWarning(
+            LibraryEncryptionSet,
+            "[ lib] Updated encryption disabled = %hu",
+            MsQuicLib.EncryptionDisabled);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+#if DEBUG
+    case QUIC_PARAM_GLOBAL_TEST_DATAPATH_FUNC_TABLE:
+
+        if (BufferLength != sizeof(QUIC_TEST_DATAPATH_FUNC_TABLE*)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (MsQuicLib.InUse) {
+            QuicTraceLogError(
+                LibraryTestDatapathFuncTableSetAfterInUse,
+                "[ lib] Tried to change test datapath func table after library in use!");
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        MsQuicLib.TestDatapathFuncTable = (QUIC_TEST_DATAPATH_FUNC_TABLE*)Buffer;
+        QuicTraceLogWarning(
+            LibraryTestDatapathFuncTableSet,
+            "[ lib] Updated test datapath func table");
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+#endif
     }
 
     default:

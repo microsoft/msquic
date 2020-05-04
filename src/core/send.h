@@ -399,19 +399,3 @@ QuicSendOnMtuProbePacketAcked(
     _In_ QUIC_PATH* Path,
     _In_ QUIC_SENT_PACKET_METADATA* Packet
     );
-
-#if QUIC_SEND_FAKE_LOSS
-//
-// QUIC_SEND_FAKE_LOSS defines a percentage of dropped packets.
-//
-inline
-BOOLEAN
-QuicFakeLossCanSend(
-    void
-    )
-{
-    uint8_t RandomValue;
-    QuicRandom(sizeof(RandomValue), &RandomValue);
-    return (RandomValue % 100) >= QUIC_SEND_FAKE_LOSS;
-}
-#endif

@@ -207,6 +207,13 @@ typedef struct QUIC_LIBRARY {
     //
     QUIC_TOEPLITZ_HASH ToeplitzHash;
 
+#if DEBUG
+    //
+    // An optional callback to allow test code to modify the data path.
+    //
+    QUIC_TEST_DATAPATH_FUNC_TABLE* TestDatapathFuncTable;
+#endif
+
 } QUIC_LIBRARY;
 
 extern QUIC_LIBRARY MsQuicLib;

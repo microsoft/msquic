@@ -29,7 +29,31 @@ extern "C" {
 //
 // The different private parameters for QUIC_PARAM_LEVEL_GLOBAL.
 //
+
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_TEST_DATAPATH_RECEIVE_CALLBACK)(
+    _Inout_ struct QUIC_RECV_DATAGRAM* DatagramChain
+    );
+
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_TEST_DATAPATH_SEND_CALLBACK)(
+    _Inout_ QUIC_ADDR* RemoteAddress,
+    _Inout_opt_ QUIC_ADDR* LocalAddress,
+    _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _Out_ BOOLEAN* Drop
+    );
+
+typedef struct QUIC_TEST_DATAPATH_FUNC_TABLE {
+    QUIC_TEST_DATAPATH_RECEIVE_CALLBACK Receive;
+    QUIC_TEST_DATAPATH_SEND_CALLBACK Send;
+} QUIC_TEST_DATAPATH_FUNC_TABLE;
+
 #define QUIC_PARAM_GLOBAL_ENCRYPTION                    0x80000001  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_GLOBAL_TEST_DATAPATH_FUNC_TABLE      0x80000002  // QUIC_TEST_DATAPATH_FUNC_TABLE*
 
 //
 // The different private parameters for QUIC_PARAM_LEVEL_SESSION.
