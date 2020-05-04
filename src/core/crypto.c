@@ -725,7 +725,7 @@ QuicCryptoWriteFrames(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicCryptoOnLoss(
     _In_ QUIC_CRYPTO* Crypto,
     _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata
@@ -743,7 +743,7 @@ QuicCryptoOnLoss(
         //
         // Already completely acknowledged.
         //
-        return;
+        return FALSE;
     } else if (Start < Crypto->UnAckedOffset) {
         //
         // The 'lost' range overlaps with UNA. Move Start forward.
@@ -767,7 +767,7 @@ QuicCryptoOnLoss(
                     //
                     // The SACK fully covers the whole 'lost' range.
                     //
-                    return;
+                    return FALSE;
 
                 } else {
                     //
@@ -825,12 +825,17 @@ QuicCryptoOnLoss(
             Crypto->InRecovery = TRUE;
         }
 
-        QuicSendSetSendFlag(
-            &Connection->Send,
-            QUIC_CONN_SEND_FLAG_CRYPTO);
+        BOOLEAN DataQueued =
+            QuicSendSetSendFlag(
+                &Connection->Send,
+                QUIC_CONN_SEND_FLAG_CRYPTO);
 
         QuicCryptoDumpSendState(Crypto);
+
+        return DataQueued;
     }
+
+    return FALSE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -714,10 +714,11 @@ QuicStreamSendWrite(
     );
 
 //
-// Called when a stream frame is inferred to be lost.
+// Called when a stream frame is inferred to be lost. Returns TRUE if data is
+// queued to be sent.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicStreamOnLoss(
     _In_ QUIC_STREAM* Stream,
     _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata
