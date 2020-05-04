@@ -177,7 +177,9 @@ MsQuicLibraryInitialize(
     MsQuicLib.PerProc =
         QUIC_ALLOC_NONPAGED(MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
     if (MsQuicLib.PerProc == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "connection pools",
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)", "connection pools",
             MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -197,11 +199,17 @@ MsQuicLibraryInitialize(
             QuicBindingUnreachable,
             &MsQuicLib.Datapath);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", Status, "QuicDataPathInitialize");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "QuicDataPathInitialize");
         goto Error;
     }
 
-    QuicTraceEvent(LibraryInitialized, "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
+    QuicTraceEvent(
+        LibraryInitialized,
+        "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
         MsQuicLib.PartitionCount,
         QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 
@@ -307,7 +315,9 @@ MsQuicLibraryUninitialize(
     QuicDataPathUninitialize(MsQuicLib.Datapath);
     MsQuicLib.Datapath = NULL;
 
-    QuicTraceEvent(LibraryUninitialized, "[ lib] Uninitialized");
+    QuicTraceEvent(
+        LibraryUninitialized,
+        "[ lib] Uninitialized");
 
     QuicPlatformUninitialize();
 }
@@ -343,7 +353,9 @@ MsQuicAddRef(
         }
     }
 
-    QuicTraceEvent(LibraryAddRef, "[ lib] AddRef");
+    QuicTraceEvent(
+        LibraryAddRef,
+        "[ lib] AddRef");
 
 Error:
 
@@ -366,7 +378,9 @@ MsQuicRelease(
     //
 
     QUIC_FRE_ASSERT(MsQuicLib.RefCount > 0);
-    QuicTraceEvent(LibraryRelease, "[ lib] Release");
+    QuicTraceEvent(
+        LibraryRelease,
+        "[ lib] Release");
 
     if (--MsQuicLib.RefCount == 0) {
         MsQuicLibraryUninitialize();
@@ -456,7 +470,7 @@ QuicLibApplyLoadBalancingSetting(
         MsQuicLib.CidServerIdLength = 5; // 1 + 4 for v4 IP address
         break;
     }
-    
+
     MsQuicLib.CidTotalLength =
         MsQuicLib.CidServerIdLength +
         MSQUIC_CID_PID_LENGTH +
@@ -1299,7 +1313,9 @@ QuicLibraryOnListenerRegistered(
         // Lazily initialize server specific state, such as worker threads and
         // the unregistered connection session.
         //
-        QuicTraceEvent(LibraryWorkerPoolInit, "[ lib] Shared worker pool initializing");
+        QuicTraceEvent(
+            LibraryWorkerPoolInit,
+            "[ lib] Shared worker pool initializing");
 
         QUIC_DBG_ASSERT(MsQuicLib.UnregisteredSession == NULL);
         if (QUIC_FAILED(
@@ -1358,7 +1374,9 @@ QuicTraceRundown(
     QuicLockAcquire(&MsQuicLib.Lock);
 
     if (MsQuicLib.RefCount > 0) {
-        QuicTraceEvent(LibraryRundown, "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
+        QuicTraceEvent(
+            LibraryRundown,
+            "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
             MsQuicLib.PartitionCount,
             QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 
@@ -1438,7 +1456,11 @@ QuicLibraryGetCurrentStatelessRetryKey(
                 RawKey,
                 &NewKey);
         if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", Status, "Create stateless retry key");
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "Create stateless retry key");
             return NULL;
         }
 

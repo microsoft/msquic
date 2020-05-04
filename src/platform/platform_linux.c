@@ -900,7 +900,11 @@ QuicThreadCreate(
 
     pthread_attr_t Attr;
     if (pthread_attr_init(&Attr)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", errno, "pthread_attr_init failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            errno,
+            "pthread_attr_init failed");
         return errno;
     }
 
@@ -912,7 +916,10 @@ QuicThreadCreate(
             CPU_ZERO(&CpuSet);
             CPU_SET(Config->IdealProcessor, &CpuSet);
             if (!pthread_attr_setaffinity_np(&Attr, sizeof(CpuSet), &CpuSet)) {
-                QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "pthread_attr_setaffinity_np failed");
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "pthread_attr_setaffinity_np failed");
             }
         } else {
             // TODO - Set Linux equivalent of NUMA affinity.
@@ -923,13 +930,21 @@ QuicThreadCreate(
         struct sched_param Params;
         Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
         if (!pthread_attr_setschedparam(&Attr, &Params)) {
-            QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", errno, "pthread_attr_setschedparam failed");
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                errno,
+                "pthread_attr_setschedparam failed");
         }
     }
 
     if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
         Status = errno;
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", Status, "pthread_create failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "pthread_create failed");
     }
 
     pthread_attr_destroy(&Attr);
@@ -970,7 +985,12 @@ QuicPlatformLogAssert(
     _In_z_ const char* Expr
     )
 {
-    QuicTraceEvent(LibraryAssert, "[ lib] ASSERT, %u:%s - %s.", (uint32_t)Line, File, Expr);
+    QuicTraceEvent(
+        LibraryAssert,
+        "[ lib] ASSERT, %u:%s - %s.",
+        (uint32_t)Line,
+        File,
+        Expr);
 }
 
 int

@@ -328,7 +328,11 @@ QuicPacketGenerateRetryV1Integrity(
     uint16_t RetryPseudoPacketLength = sizeof(uint8_t) + OrigDestCidLength + BufferLength;
     RetryPseudoPacket = (uint8_t*) QUIC_ALLOC_PAGED(RetryPseudoPacketLength);
     if (RetryPseudoPacket == NULL) {
-        QuicTraceEvent(AllocFailure, "Allocation of '%s' failed. (%llu bytes)", "RetryPseudoPacket", RetryPseudoPacketLength);
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "RetryPseudoPacket",
+            RetryPseudoPacketLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -693,7 +697,9 @@ QuicPacketLogDrop(
 
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*) &((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
-        QuicTraceEvent(ConnDropPacket, "[conn][%p] DROP packet[%llu] Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
+        QuicTraceEvent(
+            ConnDropPacket,
+            "[conn][%p] DROP packet[%llu] Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
             LOG_ADDR_LEN(Datagram->Tuple->LocalAddress),
@@ -703,7 +709,9 @@ QuicPacketLogDrop(
             Reason);
     } else {
         InterlockedIncrement64((int64_t*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
-        QuicTraceEvent(BindingDropPacket, "[bind][%p] DROP packet[%llu] Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
+        QuicTraceEvent(
+            BindingDropPacket,
+            "[bind][%p] DROP packet[%llu] Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
             LOG_ADDR_LEN(Datagram->Tuple->LocalAddress),
@@ -728,7 +736,9 @@ QuicPacketLogDropWithValue(
 
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*) & ((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
-        QuicTraceEvent(ConnDropPacketEx, "[conn][%p] DROP packet[%llu] Value=%llu Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
+        QuicTraceEvent(
+            ConnDropPacketEx,
+            "[conn][%p] DROP packet[%llu] Value=%llu Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
             Value,
@@ -739,7 +749,9 @@ QuicPacketLogDropWithValue(
             Reason);
     } else {
         InterlockedIncrement64((int64_t*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
-        QuicTraceEvent(BindingDropPacketEx, "[bind][%p] DROP packet[%llu] %llu. Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s",
+        QuicTraceEvent(
+            BindingDropPacketEx,
+            "[bind][%p] DROP packet[%llu] %llu. Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s",
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
             Value,

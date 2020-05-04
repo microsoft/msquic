@@ -746,7 +746,11 @@ QuicConnAddOutFlowBlockedReason(
 {
     if (!(Connection->OutFlowBlockedReasons & Reason)) {
         Connection->OutFlowBlockedReasons |= Reason;
-        QuicTraceEvent(ConnOutFlowBlocked, "[conn][%p] Send Blocked Flags: %hhu", Connection, Connection->OutFlowBlockedReasons);
+        QuicTraceEvent(
+            ConnOutFlowBlocked,
+            "[conn][%p] Send Blocked Flags: %hhu",
+            Connection,
+            Connection->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -761,7 +765,11 @@ QuicConnRemoveOutFlowBlockedReason(
 {
     if ((Connection->OutFlowBlockedReasons & Reason)) {
         Connection->OutFlowBlockedReasons &= ~Reason;
-        QuicTraceEvent(ConnOutFlowBlocked, "[conn][%p] Send Blocked Flags: %hhu", Connection, Connection->OutFlowBlockedReasons);
+        QuicTraceEvent(
+            ConnOutFlowBlocked,
+            "[conn][%p] Send Blocked Flags: %hhu",
+            Connection,
+            Connection->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;

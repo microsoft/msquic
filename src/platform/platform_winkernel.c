@@ -124,7 +124,11 @@ QuicPlatformInitialize(
             NULL,
             BCRYPT_PROV_DISPATCH);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", Status, "BCryptOpenAlgorithmProvider (RNG)");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "BCryptOpenAlgorithmProvider (RNG)");
         goto Error;
     }
     QUIC_DBG_ASSERT(QuicPlatform.RngAlgorithm != NULL);
@@ -133,13 +137,21 @@ QuicPlatformInitialize(
         ZwQuerySystemInformation(
             SystemBasicInformation, &Sbi, sizeof(Sbi), NULL);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", Status, "ZwQuerySystemInformation(SystemBasicInformation)");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "ZwQuerySystemInformation(SystemBasicInformation)");
         goto Error;
     }
 
     Status = QuicTlsLibraryInitialize();
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", Status, "QuicTlsLibraryInitialize");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "QuicTlsLibraryInitialize");
         goto Error;
     }
 
@@ -194,7 +206,12 @@ QuicPlatformLogAssert(
     UNREFERENCED_PARAMETER(File);
     UNREFERENCED_PARAMETER(Line);
     UNREFERENCED_PARAMETER(Expr);
-    QuicTraceEvent(LibraryAssert, "[ lib] ASSERT, %u:%s - %s.", (uint32_t)Line, File, Expr);
+    QuicTraceEvent(
+        LibraryAssert,
+        "[ lib] ASSERT, %u:%s - %s.",
+        (uint32_t)Line,
+        File,
+        Expr);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

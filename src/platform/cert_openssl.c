@@ -82,7 +82,11 @@ QuicCertLibraryInitialize(
     miPKI.Libmipki = LoadLibrary("libmipki.dll");
     if (miPKI.Libmipki == NULL) {
         Status = GetLastError();
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", Status, "Failed to Load libmipki.dll");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Failed to Load libmipki.dll");
         goto Error;
     }
 
@@ -118,13 +122,20 @@ QuicCertLibraryInitialize(
 
     if (!miPKI.State) {
         Status = QUIC_STATUS_INVALID_STATE;
-        QuicTraceEvent(LibraryErrorStatus, "[ lib] ERROR, %u, %s.", erridx, "mipki_init failed");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            erridx,
+            "mipki_init failed");
         goto Error;
     }
 
     if (!miPKI.mipki_add_root_file_or_path(miPKI.State, "CAFile.pem")) {
         Status = QUIC_STATUS_INVALID_STATE;
-        QuicTraceEvent(LibraryError, "[ lib] ERROR, %s.", "mipki_add_root_file_or_path failed");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "mipki_add_root_file_or_path failed");
         goto Error;
     }
 
