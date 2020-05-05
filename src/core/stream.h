@@ -639,7 +639,11 @@ QuicStreamAddOutFlowBlockedReason(
 {
     if (!(Stream->OutFlowBlockedReasons & Reason)) {
         Stream->OutFlowBlockedReasons |= Reason;
-        QuicTraceEvent(StreamOutFlowBlocked, Stream, Stream->OutFlowBlockedReasons);
+        QuicTraceEvent(
+            StreamOutFlowBlocked,
+            "[strm][%p] Send Blocked Flags: %hhu",
+            Stream,
+            Stream->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -654,7 +658,11 @@ QuicStreamRemoveOutFlowBlockedReason(
 {
     if ((Stream->OutFlowBlockedReasons & Reason)) {
         Stream->OutFlowBlockedReasons &= ~Reason;
-        QuicTraceEvent(StreamOutFlowBlocked, Stream, Stream->OutFlowBlockedReasons);
+        QuicTraceEvent(
+            StreamOutFlowBlocked,
+            "[strm][%p] Send Blocked Flags: %hhu",
+            Stream,
+            Stream->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -714,10 +722,11 @@ QuicStreamSendWrite(
     );
 
 //
-// Called when a stream frame is inferred to be lost.
+// Called when a stream frame is inferred to be lost. Returns TRUE if data is
+// queued to be sent.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicStreamOnLoss(
     _In_ QUIC_STREAM* Stream,
     _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata

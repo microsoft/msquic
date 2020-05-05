@@ -120,7 +120,11 @@ QuicSendQueueFlush(
         QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
         if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_FLUSH_SEND)) != NULL) {
             Send->FlushOperationPending = TRUE;
-            QuicTraceEvent(ConnQueueSendFlush, Connection, Reason);
+            QuicTraceEvent(
+                ConnQueueSendFlush,
+                "[conn][%p] Queueing send flush, reason=%u",
+                Connection,
+                Reason);
             QuicConnQueueOper(Connection, Oper);
         }
     }
@@ -185,7 +189,7 @@ QuicSendValidate(
 #endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+BOOLEAN
 QuicSendSetSendFlag(
     _In_ QUIC_SEND* Send,
     _In_ uint32_t SendFlags
@@ -245,6 +249,8 @@ QuicSendSetSendFlag(
     }
 
     QuicSendValidate(Send);
+
+    return CanSetFlag;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -301,7 +307,7 @@ QuicSendUpdateAckState(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicSendSetStreamSendFlag(
     _In_ QUIC_SEND* Send,
     _In_ QUIC_STREAM* Stream,
@@ -313,7 +319,7 @@ QuicSendSetStreamSendFlag(
         //
         // Ignore all frames if the connection is closed.
         //
-        return;
+        return FALSE;
     }
 
     //
@@ -358,6 +364,8 @@ QuicSendSetStreamSendFlag(
         }
         Stream->SendFlags |= SendFlags;
     }
+
+    return SendFlags != 0;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
