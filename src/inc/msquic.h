@@ -365,6 +365,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_IDEAL_PROCESSOR                 18  // uint8_t
 #define QUIC_PARAM_CONN_MAX_STREAM_IDS                  19  // uint64_t[4]
 #define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME        20  // QUIC_STREAM_SCHEDULING_SCHEME
+#define QUIC_PARAM_CONN_RESUMPTION_STATE                21  // uint8_t[]
 
 #ifdef WIN32 // Windows certificate validation ignore flags.
 #define QUIC_CERTIFICATE_FLAG_IGNORE_REVOCATION                 0x00000080
@@ -626,7 +627,8 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED               = 6,
     QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE                 = 7,
     QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS                = 8,
-    QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED           = 9
+    QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED           = 9,
+    QUIC_CONNECTION_EVENT_RESUMPTION_STATE_ACCEPTED         = 10
 } QUIC_CONNECTION_EVENT_TYPE;
 
 typedef struct QUIC_CONNECTION_EVENT {
@@ -664,6 +666,10 @@ typedef struct QUIC_CONNECTION_EVENT {
         struct {
             uint8_t IdealProcessor;
         } IDEAL_PROCESSOR_CHANGED;
+        struct {
+            uint16_t ResumptionStateLength;
+            const uint8_t* ResumptionState;
+        } RESUMPTION_STATE_ACCEPTED;
     };
 } QUIC_CONNECTION_EVENT;
 
