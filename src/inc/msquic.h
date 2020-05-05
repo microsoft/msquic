@@ -628,7 +628,7 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE                 = 7,
     QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS                = 8,
     QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED           = 9,
-    QUIC_CONNECTION_EVENT_RESUMPTION_STATE_ACCEPTED         = 10
+    QUIC_CONNECTION_EVENT_RESUMED                           = 10
 } QUIC_CONNECTION_EVENT_TYPE;
 
 typedef struct QUIC_CONNECTION_EVENT {
@@ -669,7 +669,7 @@ typedef struct QUIC_CONNECTION_EVENT {
         struct {
             uint16_t ResumptionStateLength;
             const uint8_t* ResumptionState;
-        } RESUMPTION_STATE_ACCEPTED;
+        } RESUMED;
     };
 } QUIC_CONNECTION_EVENT;
 
