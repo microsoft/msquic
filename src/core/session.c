@@ -242,12 +242,12 @@ MsQuicSessionOpen(
     }
 #endif
 
-    if (Session->Registration->AppName[0] != '\0') {
-        char SpecificAppKey[256] = QUIC_SETTING_APP_KEY;
-        strcpy_s(
+    if (Session->Registration->AppNameLength != 0) {
+        char SpecificAppKey[261] = QUIC_SETTING_APP_KEY;
+        QuicCopyMemory(
             SpecificAppKey + sizeof(QUIC_SETTING_APP_KEY) - 1,
-            sizeof(SpecificAppKey) - (sizeof(QUIC_SETTING_APP_KEY) - 1),
-            Session->Registration->AppName);
+            Session->Registration->AppName,
+            Session->Registration->AppNameLength);
         Status =
             QuicStorageOpen(
                 SpecificAppKey,
