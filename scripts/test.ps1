@@ -83,7 +83,7 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
-    [string]$Tls = $null,
+    [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
     [string]$Filter = "",
@@ -132,7 +132,7 @@ Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 # Default TLS based on current platform.
-if ($null -eq $Tls) {
+if ("" -eq $Tls) {
     if ($IsWindows) {
         $Tls = "schannel"
     } else {
