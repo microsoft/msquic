@@ -243,7 +243,7 @@ MsQuicSessionOpen(
 #endif
 
     if (Session->Registration->AppNameLength != 0) {
-        char SpecificAppKey[261] = QUIC_SETTING_APP_KEY;
+        char SpecificAppKey[UINT8_MAX + sizeof(QUIC_SETTING_APP_KEY)] = QUIC_SETTING_APP_KEY;
         QuicCopyMemory(
             SpecificAppKey + sizeof(QUIC_SETTING_APP_KEY) - 1,
             Session->Registration->AppName,
