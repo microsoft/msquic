@@ -127,7 +127,6 @@ QuicPacketBuilderPrepare(
         // but without the key, nothing can be done. Just silently kill the
         // connection.
         //
-        QUIC_DBG_ASSERT(Connection->State.ClosedLocally); // The only valid reason to have a NULL key is to be shutting down.
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",

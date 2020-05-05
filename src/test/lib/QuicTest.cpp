@@ -10,7 +10,6 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "quic_trace.h"
 
 //#define QUIC_TEST_DISABLE_DNS 1
 
@@ -322,6 +321,8 @@ ListenerAcceptConnection(
             TEST_FAILURE("Failed to accept new TestConnection.");
             delete NewConnection;
             MsQuic->ConnectionClose(ConnectionHandle);
+        } else {
+            NewConnection->SetHasRandomLoss(Listener->GetHasRandomLoss());
         }
         return;
     }
@@ -335,6 +336,8 @@ ListenerAcceptConnection(
         delete *AcceptContext->NewConnection;
         *AcceptContext->NewConnection = nullptr;
         MsQuic->ConnectionClose(ConnectionHandle);
+    } else {
+        (*AcceptContext->NewConnection)->SetHasRandomLoss(Listener->GetHasRandomLoss());
     }
     QuicEventSet(AcceptContext->NewConnectionReady);
 }
@@ -475,9 +478,11 @@ QuicTestConnect(
     MsQuicSession Session;
     TEST_TRUE(Session.IsValid());
     TEST_QUIC_SUCCEEDED(Session.SetPeerBidiStreamCount(4));
+    TEST_QUIC_SUCCEEDED(Session.SetIdleTimeout(10000));
     MsQuicSession Session2("MsQuicTest2", "MsQuicTest");
     TEST_TRUE(Session2.IsValid());
     TEST_QUIC_SUCCEEDED(Session2.SetPeerBidiStreamCount(4));
+    TEST_QUIC_SUCCEEDED(Session2.SetIdleTimeout(10000));
 
     StatelessRetryHelper RetryHelper(ServerStatelessRetry);
     PrivateTransportHelper TpHelper(MultiPacketClientInitial);
@@ -489,6 +494,7 @@ QuicTestConnect(
             ListenerAcceptConnection,
             AsyncSecConfig);
         TEST_TRUE(Listener.IsValid());
+        Listener.SetHasRandomLoss(RandomLossPercentage != 0);
 
         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
@@ -503,6 +509,7 @@ QuicTestConnect(
                     ConnectionDoNothingCallback,
                     false);
                 TEST_TRUE(Client.IsValid());
+                Client.SetHasRandomLoss(RandomLossPercentage != 0);
                 #if QUIC_TEST_DISABLE_DNS
                 QuicAddr RemoteAddr(QuicAddrFamily, true);
                 TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
@@ -512,7 +519,7 @@ QuicTestConnect(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                         QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
-                if (!Client.WaitForConnectionComplete(RandomLossPercentage != 0)) {
+                if (!Client.WaitForConnectionComplete()) {
                     return;
                 }
                 TEST_TRUE(Client.GetIsConnected());
@@ -537,6 +544,7 @@ QuicTestConnect(
                     ConnectionDoNothingCallback,
                     false);
                 TEST_TRUE(Client.IsValid());
+                Client.SetHasRandomLoss(RandomLossPercentage != 0);
 
                 if (ClientUsesOldVersion) {
                     TEST_QUIC_SUCCEEDED(
@@ -574,13 +582,13 @@ QuicTestConnect(
                     }
                 }
 
-                if (!Client.WaitForConnectionComplete(RandomLossPercentage != 0)) {
+                if (!Client.WaitForConnectionComplete()) {
                     return;
                 }
                 TEST_TRUE(Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
-                if (!Server->WaitForConnectionComplete(RandomLossPercentage != 0)) {
+                if (!Server->WaitForConnectionComplete()) {
                     return;
                 }
                 TEST_TRUE(Server->GetIsConnected());

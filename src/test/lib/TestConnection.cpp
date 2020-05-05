@@ -121,14 +121,10 @@ TestConnection::NewStream(
 }
 
 bool
-TestConnection::WaitForConnectionComplete(bool HasRandomLoss)
+TestConnection::WaitForConnectionComplete()
 {
-    uint32_t WaitTime = TestWaitTimeout;
-    if (HasRandomLoss) {
-        WaitTime *= 10; // TODO - Enough?
-    }
-    if (!QuicEventWaitWithTimeout(EventConnectionComplete, WaitTime)) {
-        TEST_FAILURE("WaitForConnectionComplete timed out after %u ms.", WaitTime);
+    if (!QuicEventWaitWithTimeout(EventConnectionComplete, GetWaitTimeout())) {
+        TEST_FAILURE("WaitForConnectionComplete timed out after %u ms.", GetWaitTimeout());
         return false;
     }
     return true;
@@ -155,8 +151,8 @@ bool
 TestConnection::WaitForShutdownComplete()
 {
     if (IsStarted) {
-        if (!QuicEventWaitWithTimeout(EventShutdownComplete, TestWaitTimeout)) {
-            TEST_FAILURE("WaitForShutdownComplete timed out after %u ms.", TestWaitTimeout);
+        if (!QuicEventWaitWithTimeout(EventShutdownComplete, GetWaitTimeout())) {
+            TEST_FAILURE("WaitForShutdownComplete timed out after %u ms.", GetWaitTimeout());
             return false;
         }
     }
@@ -166,8 +162,8 @@ TestConnection::WaitForShutdownComplete()
 bool
 TestConnection::WaitForPeerClose()
 {
-    if (!QuicEventWaitWithTimeout(EventPeerClosed, TestWaitTimeout)) {
-        TEST_FAILURE("WaitForPeerClose timed out after %u ms.", TestWaitTimeout);
+    if (!QuicEventWaitWithTimeout(EventPeerClosed, GetWaitTimeout())) {
+        TEST_FAILURE("WaitForPeerClose timed out after %u ms.", GetWaitTimeout());
         return false;
     }
     return true;
@@ -728,7 +724,19 @@ TestConnection::HandleConnectionEvent(
         TransportClosed = true;
         TransportCloseStatus = Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status;
         if (Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status != ExpectedTransportCloseStatus) {
-            TEST_FAILURE("Unexpected transport Close Error, %u", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
+            bool IsTimeoutStatus =
+                Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status == QUIC_STATUS_CONNECTION_TIMEOUT ||
+                Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status == QUIC_STATUS_CONNECTION_IDLE;
+            if (IsTimeoutStatus && HasRandomLoss) {
+                //
+                // Ignoring unexpected status because of random loss
+                //
+                QuicTraceLogInfo(
+                    TestIgnoreConnectionTimeout,
+                    "[test] Ignoring timeout unexpected status because of random loss");
+            } else {
+                TEST_FAILURE("Unexpected transport Close Error, %u", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
+            }
         }
         QuicEventSet(EventConnectionComplete);
         break;

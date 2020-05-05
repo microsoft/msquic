@@ -55,6 +55,7 @@ class TestConnection
     bool ShutdownTimedOut   : 1;
     bool AutoDelete         : 1;
     bool UseSendBuffer      : 1;
+    bool HasRandomLoss      : 1;
 
     bool ExpectedResumed    : 1;
     QUIC_STATUS ExpectedTransportCloseStatus;
@@ -123,7 +124,15 @@ public:
         _In_ QUIC_STREAM_OPEN_FLAGS Flags
         );
 
-    bool WaitForConnectionComplete(bool HasRandomLoss = false);
+    uint32_t GetWaitTimeout() const {
+        uint32_t WaitTime = TestWaitTimeout;
+        if (HasRandomLoss) {
+            WaitTime *= 10; // TODO - Enough?
+        }
+        return WaitTime;
+    }
+
+    bool WaitForConnectionComplete();
 
     bool WaitForZeroRttTicket();
 
@@ -154,6 +163,9 @@ public:
 
     bool GetExpectedResumed() const { return ExpectedResumed; };
     void SetExpectedResumed(bool Value) { ExpectedResumed = Value; }
+
+    bool GetHasRandomLoss() const { return HasRandomLoss; }
+    void SetHasRandomLoss(bool Value) { HasRandomLoss = Value; }
 
     QUIC_STATUS GetTransportCloseStatus() const { return TransportCloseStatus; };
     QUIC_UINT62 GetPeerCloseErrorCode() const { return PeerCloseErrorCode; };
