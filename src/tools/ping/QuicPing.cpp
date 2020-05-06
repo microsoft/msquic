@@ -55,12 +55,13 @@ PrintUsage()
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
         "  -encrypt:<0/1>              Enables/disables encryption. (def:%u)\n"
         "  -sendbuf:<0/1>              Whether to use send buffering. (def:%u)\n"
-        "  -pacing:<0/1>               Enabled/disables pacing. (def:%u)\n"
-        "  -stats:<0/1>                Enabled/disables printing statistics. (def:%u)\n"
+        "  -pacing:<0/1>               Enables/disables pacing. (def:%u)\n"
+        "  -stats:<0/1>                Enables/disables printing statistics. (def:%u)\n"
+        "  -exec:<0/1/2/3>             The execution profile to use. (def:%u)\n"
         "  -uni:<####>                 The number of unidirectional streams to open locally. (def:0)\n"
         "  -bidi:<####>                The number of bidirectional streams to open locally. (def:0)\n"
-        "  -peer_uni:<####>            The number of unidirectional streams for the server to open. (def:0)\n"
-        "  -peer_bidi:<####>           The number of bidirectional streams for the server to open. (def:0)\n"
+        "  -peer_uni:<####>            The number of unidirectional streams for the peer to open. (def:0)\n"
+        "  -peer_bidi:<####>           The number of bidirectional streams for the peer to open. (def:0)\n"
         "  -length:<####>              The length of streams opened locally. (def:0)\n"
         "  -iosize:<####>              The size of each send request queued. (buffered def:%u) (nonbuffered def:%u)\n"
         "  -iocount:<####>             The number of outstanding send requests to queue per stream. (buffered def:%u) (nonbuffered def:%u)\n"
@@ -73,6 +74,7 @@ PrintUsage()
         DEFAULT_USE_SEND_BUF,
         DEFAULT_USE_PACING,
         DEFAULT_PRINT_STATISTICS,
+        DEFAULT_EXECUTION_PROFILE,
         DEFAULT_SEND_IO_SIZE_BUFFERED, DEFAULT_SEND_IO_SIZE_NONBUFFERED,
         DEFAULT_SEND_COUNT_BUFFERED, DEFAULT_SEND_COUNT_NONBUFFERED,
         DEFAULT_DISCONNECT_TIMEOUT,
@@ -310,7 +312,7 @@ main(
     )
 {
     int ErrorCode = -1;
-    const QUIC_REGISTRATION_CONFIG RegConfig = { "quicping", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
+    QUIC_REGISTRATION_CONFIG RegConfig = { "quicping", DEFAULT_EXECUTION_PROFILE };
 
     QuicPlatformSystemLoad();
     QuicPlatformInitialize();
@@ -324,6 +326,10 @@ main(
         printf("MsQuicOpen failed!\n");
         goto Error;
     }
+
+    uint16_t execProfile = DEFAULT_EXECUTION_PROFILE;
+    TryGetValue(argc, argv, "exec", &execProfile);
+    RegConfig.ExecutionProfile = (QUIC_EXECUTION_PROFILE)execProfile;
 
     if (QUIC_FAILED(MsQuic->RegistrationOpen(&RegConfig, &Registration))) {
         printf("RegistrationOpen failed!\n");
