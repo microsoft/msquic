@@ -105,7 +105,7 @@ Return Value:
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             Status,
             "QuicPlatformInitialize failed");
         goto Error;
@@ -130,7 +130,7 @@ Return Value:
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             Status,
             "WdfDriverCreate failed");
         goto Error;
@@ -143,7 +143,7 @@ Return Value:
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             Status,
             "QuicTestCtlInitialize failed");
         goto Error;

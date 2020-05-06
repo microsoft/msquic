@@ -449,7 +449,7 @@ public:
             Error = GetLastError();
             QuicTraceEvent(
                 LibraryErrorStatus,
-                "[ lib] ERROR, %d, %s.",
+                "[ lib] ERROR, %u, %s.",
                 Error,
                 "GetFullPathName failed");
             return false;
@@ -463,7 +463,7 @@ public:
         if (ServiceHandle == nullptr) {
             QuicTraceEvent(
                 LibraryErrorStatus,
-                "[ lib] ERROR, %d, %s.",
+                "[ lib] ERROR, %u, %s.",
                  GetLastError(),
                 "OpenService failed");
             char DriverFilePath[MAX_PATH];
@@ -477,7 +477,7 @@ public:
                 Error = GetLastError();
                 QuicTraceEvent(
                     LibraryErrorStatus,
-                    "[ lib] ERROR, %d, %s.",
+                    "[ lib] ERROR, %u, %s.",
                     Error,
                     "GetFullPathName failed");
                 return false;
@@ -504,7 +504,7 @@ public:
                 }
                 QuicTraceEvent(
                     LibraryErrorStatus,
-                    "[ lib] ERROR, %d, %s.",
+                    "[ lib] ERROR, %u, %s.",
                     Error,
                     "CreateService failed");
                 return false;
@@ -526,7 +526,7 @@ public:
             if (Error != ERROR_SERVICE_ALREADY_RUNNING) {
                 QuicTraceEvent(
                     LibraryErrorStatus,
-                    "[ lib] ERROR, %d, %s.",
+                    "[ lib] ERROR, %u, %s.",
                     Error,
                     "StartService failed");
                 return false;
@@ -570,7 +570,7 @@ public:
             Error = GetLastError();
             QuicTraceEvent(
                 LibraryErrorStatus,
-                "[ lib] ERROR, %d, %s.",
+                "[ lib] ERROR, %u, %s.",
                 Error,
                 "CreateFile failed");
             return false;
@@ -605,7 +605,7 @@ public:
             Error = GetLastError();
             QuicTraceEvent(
                 LibraryErrorStatus,
-                "[ lib] ERROR, %d, %s.",
+                "[ lib] ERROR, %u, %s.",
                 Error,
                 "CreateEvent failed");
             return false;
@@ -627,7 +627,7 @@ public:
                 CloseHandle(Overlapped.hEvent);
                 QuicTraceEvent(
                     LibraryErrorStatus,
-                    "[ lib] ERROR, %d, %s.",
+                    "[ lib] ERROR, %u, %s.",
                     Error,
                     "DeviceIoControl failed");
                 return false;
@@ -647,7 +647,7 @@ public:
             }
             QuicTraceEvent(
                 LibraryErrorStatus,
-                "[ lib] ERROR, %d, %s.",
+                "[ lib] ERROR, %u, %s.",
                 Error,
                 "GetOverlappedResultEx failed");
         } else {
