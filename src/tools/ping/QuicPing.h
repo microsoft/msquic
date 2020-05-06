@@ -101,7 +101,6 @@ typedef struct QUIC_PING_CONFIG {
     bool UsePacing     : 1;
     bool PrintStats    : 1;
 
-    char RawALPN[256];
     QUIC_BUFFER ALPN;
     QUIC_ADDR LocalIpAddr;
 
@@ -122,10 +121,10 @@ typedef struct QUIC_PING_CONFIG {
 
     struct {
         bool UseExplicitRemoteAddr : 1;
-        char Target[256];           // SNI
+        const char* Target;         // SNI
         QUIC_ADDR RemoteIpAddr;
         uint32_t Version;           // QUIC protocol version
-        char ResumeToken[256];
+        const char* ResumeToken;
         uint32_t ConnectionCount;
         uint32_t WaitTimeout;       // Milliseconds
     } Client;
