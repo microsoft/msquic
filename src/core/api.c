@@ -1255,7 +1255,9 @@ MsQuicDatagramSend(
     uint64_t TotalLength;
     QUIC_SEND_REQUEST* SendRequest;
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_DATAGRAM_SEND,
         Handle);
 
@@ -1272,7 +1274,11 @@ MsQuicDatagramSend(
     QUIC_TEL_ASSERT(!Connection->State.Freed);
 
     if (Connection->Datagram.MaxLength == 0) {
-        QuicTraceEvent(ConnError, Connection, "Datagrams extension not negotiated");
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Datagrams extension not negotiated");
         Status = QUIC_STATUS_NOT_SUPPORTED;
         goto Error;
     }
@@ -1283,7 +1289,11 @@ MsQuicDatagramSend(
     }
 
     if (TotalLength > (uint32_t)Connection->Datagram.MaxLength) {
-        QuicTraceEvent(ConnError, Connection, "Datagram is longer than allowed");
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Datagram is longer than allowed");
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
@@ -1306,7 +1316,10 @@ MsQuicDatagramSend(
 
 Error:
 
-    QuicTraceEvent(ApiExitStatus, Status);
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
 
     return Status;
 }

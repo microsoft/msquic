@@ -707,6 +707,7 @@ QuicLossDetectionRetransmitFrames(
                     QUIC_DATAGRAM_SEND_LOST_SUSPECT);
             }
             break;
+        }
     }
 
     Packet->Flags.SuspectedLost = TRUE;

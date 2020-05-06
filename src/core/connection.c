@@ -4085,7 +4085,11 @@ QuicConnRecvFrames(
         case QUIC_FRAME_DATAGRAM_1: {
             QUIC_DBG_ASSERT(Connection->State.PeerTransportParameterValid);
             if (Connection->PeerTransportParams.MaxDatagramFrameSize == 0) {
-                QuicTraceEvent(ConnError, Connection, "Received DATAGRAM frame when not negotiated");
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Received DATAGRAM frame when not negotiated");
                 QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
                 return FALSE;
             }
@@ -4096,7 +4100,11 @@ QuicConnRecvFrames(
                     PayloadLength,
                     Payload,
                     &Offset)) {
-                QuicTraceEvent(ConnError, Connection, "Decoding DATAGRAM frame");
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Decoding DATAGRAM frame");
                 QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
                 return FALSE;
             }
