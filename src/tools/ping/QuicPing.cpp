@@ -111,9 +111,8 @@ ParseCommonCommands(
 
     const char* alpn = DEFAULT_ALPN;
     TryGetValue(argc, argv, "alpn", &alpn);
-    strcpy(PingConfig.RawALPN, alpn);
-    PingConfig.ALPN.Buffer = (uint8_t*)PingConfig.RawALPN;
-    PingConfig.ALPN.Length = (uint32_t)strlen(PingConfig.RawALPN);
+    PingConfig.ALPN.Buffer = (uint8_t*)alpn;
+    PingConfig.ALPN.Length = (uint32_t)strlen(alpn);
 
     uint16_t port = DEFAULT_PORT;
     TryGetValue(argc, argv, "port", &port);
@@ -269,9 +268,7 @@ ParseClientCommand(
 {
     PingConfig.ServerMode = false;
 
-    const char* target;
-    TryGetValue(argc, argv, "target", &target);
-    strcpy(PingConfig.Client.Target, target);
+    TryGetValue(argc, argv, "target", &PingConfig.Client.Target);
 
     uint16_t ip;
     if (TryGetValue(argc, argv, "ip", &ip)) {
@@ -289,7 +286,7 @@ ParseClientCommand(
             return;
         }
     }
-    
+
     const char* localAddress;
     if (TryGetValue(argc, argv, "bind", &localAddress)) {
         if (!ConvertArgToAddress(localAddress, 0, &PingConfig.LocalIpAddr)) {
@@ -302,10 +299,7 @@ ParseClientCommand(
     TryGetValue(argc, argv, "ver", &version);
     PingConfig.Client.Version = version;
 
-    const char* resume;
-    if (TryGetValue(argc, argv, "resume", &resume)) {
-        strcpy(PingConfig.Client.ResumeToken, resume);
-    }
+    TryGetValue(argc, argv, "resume", &PingConfig.Client.ResumeToken);
 
     uint32_t connections = DEFAULT_CLIENT_CONNECTION_COUNT;
     TryGetValue(argc, argv, "connections", &connections);

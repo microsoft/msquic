@@ -27,7 +27,11 @@ QuicRangeInitialize(
     QUIC_FRE_ASSERT(sizeof(QUIC_SUBRANGE) * INITIAL_SUBRANGE_COUNT < MaxAllocSize);
     Range->SubRanges = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SUBRANGE) * INITIAL_SUBRANGE_COUNT);
     if (Range->SubRanges == NULL) {
-        QuicTraceEvent(AllocFailure, "range", sizeof(QUIC_SUBRANGE) * INITIAL_SUBRANGE_COUNT);
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "range",
+            sizeof(QUIC_SUBRANGE) * INITIAL_SUBRANGE_COUNT);
     }
     return (Range->SubRanges == NULL) ? QUIC_STATUS_OUT_OF_MEMORY : QUIC_STATUS_SUCCESS;
 }
@@ -75,7 +79,11 @@ QuicRangeGrow(
 
     QUIC_SUBRANGE* NewSubRanges = QUIC_ALLOC_NONPAGED(NewAllocSize);
     if (NewSubRanges == NULL) {
-        QuicTraceEvent(AllocFailure, "range (realloc)", NewAllocLength);
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "range (realloc)",
+            NewAllocLength);
         return FALSE;
     }
 
@@ -535,27 +543,3 @@ QuicRangeGetMaxSafe(
         return FALSE;
     }
 }
-
-#if DEBUG
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicRangeValidate(
-    _In_ QUIC_RANGE* Range
-    )
-{
-    for (uint32_t i = 0; i < QuicRangeSize(Range); i++) {
-        QUIC_SUBRANGE* Sub = QuicRangeGet(Range, i);
-        //
-        // In the current testing, our usage doesn't go into the full 64-bit
-        // range. So we assume any values greater than 32-bits are likely bugs
-        // from some kind of encoding or runaway thread issue. As test coverage
-        // expands these asserts will be relaxed and/or removed.
-        //
-        uint64_t High = QuicRangeGetHigh(Sub);
-        QUIC_DBG_ASSERT(Sub->Low <= 0xFFFFFFFFllu);
-        QUIC_DBG_ASSERT(High <= 0xFFFFFFFFllu);
-    }
-}
-
-#endif

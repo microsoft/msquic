@@ -222,7 +222,11 @@ QuicStreamSendShutdown(
 
 Exit:
 
-    QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
+    QuicTraceEvent(
+        StreamSendState,
+        "[strm][%p] Send State: %hhu",
+        Stream,
+        QuicStreamSendGetState(Stream));
 
     if (Silent) {
         QuicStreamTryCompleteShutdown(Stream);
@@ -338,7 +342,7 @@ QuicStreamCanSendNow(
         return TRUE;
 
     }
-    
+
     if (QuicStreamSendCanWriteDataFrames(Stream)) {
         return ZeroRtt ? QuicStreamHasPending0RttData(Stream) : TRUE;
     }
@@ -1109,7 +1113,7 @@ QuicStreamSendWrite(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicStreamOnLoss(
     _In_ QUIC_STREAM* Stream,
     _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata
@@ -1120,7 +1124,7 @@ QuicStreamOnLoss(
         // Ignore any STREAM frame packet loss if we have already aborted the
         // send path.
         //
-        return;
+        return FALSE;
     }
 
     uint32_t AddSendFlags = 0;
@@ -1238,14 +1242,19 @@ Done:
             Stream->Flags.InRecovery = TRUE; // TODO - Do we really need to be in recovery if no real data bytes need to be recovered?
         }
 
-        QuicSendSetStreamSendFlag(
-            &Stream->Connection->Send,
-            Stream,
-            AddSendFlags);
+        BOOLEAN DataQueued =
+            QuicSendSetStreamSendFlag(
+                &Stream->Connection->Send,
+                Stream,
+                AddSendFlags);
 
         QuicStreamSendDumpState(Stream);
         QuicStreamValidateRecoveryState(Stream);
+
+        return DataQueued;
     }
+
+    return FALSE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1372,7 +1381,11 @@ QuicStreamOnAck(
             //
             if (!Stream->Flags.LocalCloseAcked) {
                 Stream->Flags.LocalCloseAcked = TRUE;
-                QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
+                QuicTraceEvent(
+                    StreamSendState,
+                    "[strm][%p] Send State: %hhu",
+                    Stream,
+                    QuicStreamSendGetState(Stream));
                 QuicStreamIndicateSendShutdownComplete(Stream, TRUE);
                 QuicStreamTryCompleteShutdown(Stream);
             }
@@ -1440,7 +1453,11 @@ QuicStreamOnResetAck(
 {
     if (!Stream->Flags.LocalCloseAcked) {
         Stream->Flags.LocalCloseAcked = TRUE;
-        QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
+        QuicTraceEvent(
+            StreamSendState,
+            "[strm][%p] Send State: %hhu",
+            Stream,
+            QuicStreamSendGetState(Stream));
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
         QuicStreamTryCompleteShutdown(Stream);
     }

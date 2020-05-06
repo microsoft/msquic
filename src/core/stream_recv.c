@@ -75,7 +75,11 @@ QuicStreamRecvShutdown(
 
 Exit:
 
-    QuicTraceEvent(StreamRecvState, Stream, QuicStreamRecvGetState(Stream));
+    QuicTraceEvent(
+        StreamRecvState,
+        "[strm][%p] Recv State: %hhu",
+        Stream,
+        QuicStreamRecvGetState(Stream));
 
     if (Silent) {
         QuicStreamTryCompleteShutdown(Stream);
@@ -110,7 +114,11 @@ QuicStreamRecvQueueFlush(
             QuicConnQueueOper(Stream->Connection, Oper);
             Stream->Flags.ReceiveFlushQueued = TRUE;
         } else {
-            QuicTraceEvent(AllocFailure, "Flush Stream Recv operation", 0);
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Flush Stream Recv operation",
+                0);
         }
     }
 }
@@ -173,14 +181,18 @@ QuicStreamProcessResetFrame(
             }
         }
 
-        QuicTraceEvent(StreamRecvState, Stream, QuicStreamRecvGetState(Stream));
+        QuicTraceEvent(
+            StreamRecvState,
+            "[strm][%p] Recv State: %hhu",
+            Stream,
+            QuicStreamRecvGetState(Stream));
 
         if (!Stream->Flags.SentStopSending) {
             QuicTraceLogStreamInfo(
                 RemoteCloseReset,
                 Stream,
                 "Closed remotely (reset)");
-            
+
             QUIC_STREAM_EVENT Event;
             Event.Type = QUIC_STREAM_EVENT_PEER_SEND_ABORTED;
             Event.PEER_SEND_ABORTED.ErrorCode = ErrorCode;
@@ -259,7 +271,11 @@ QuicStreamProcessStreamFrame(
     uint64_t EndOffset = Frame->Offset + Frame->Length;
 
     if (Stream->Flags.RemoteNotAllowed) {
-        QuicTraceEvent(StreamError, Stream, "Receive on unidirectional stream");
+        QuicTraceEvent(
+            StreamError,
+            "[strm][%p] ERROR, %s.",
+            Stream,
+            "Receive on unidirectional stream");
         Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
     }
@@ -271,7 +287,11 @@ QuicStreamProcessStreamFrame(
         // Ignore the data if we are already closed remotely. Likely means we received
         // a copy of already processed data that was resent.
         //
-        QuicTraceEvent(StreamError, Stream, "Receive after close");
+        QuicTraceEvent(
+            StreamError,
+            "[strm][%p] ERROR, %s.",
+            Stream,
+            "Receive after close");
         Status = QUIC_STATUS_SUCCESS;
         goto Error;
     }
@@ -826,7 +846,11 @@ QuicStreamReceiveComplete(
         // The application layer can't drain any more right now. Pause the
         // receive callbacks until the application re-enables them.
         //
-        QuicTraceEvent(StreamRecvState, Stream, QuicStreamRecvGetState(Stream));
+        QuicTraceEvent(
+            StreamRecvState,
+            "[strm][%p] Recv State: %hhu",
+            Stream,
+            QuicStreamRecvGetState(Stream));
         return FALSE;
     }
 
@@ -847,7 +871,11 @@ QuicStreamReceiveComplete(
         Stream->Flags.RemoteCloseFin = TRUE;
         Stream->Flags.RemoteCloseAcked = TRUE;
 
-        QuicTraceEvent(StreamRecvState, Stream, QuicStreamRecvGetState(Stream));
+        QuicTraceEvent(
+            StreamRecvState,
+            "[strm][%p] Recv State: %hhu",
+            Stream,
+            QuicStreamRecvGetState(Stream));
 
         QUIC_STREAM_EVENT Event;
         Event.Type = QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN;
@@ -897,7 +925,11 @@ QuicStreamRecvSetEnabledState(
             // The application just resumed receive callbacks. Queue a
             // flush receive operation to start draining the receive buffer.
             //
-            QuicTraceEvent(StreamRecvState, Stream, QuicStreamRecvGetState(Stream));
+            QuicTraceEvent(
+                StreamRecvState,
+                "[strm][%p] Recv State: %hhu",
+                Stream,
+                QuicStreamRecvGetState(Stream));
             QuicStreamRecvQueueFlush(Stream);
         }
     }

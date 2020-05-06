@@ -182,10 +182,11 @@ QuicCryptoWriteFrames(
     );
 
 //
-// Called when a crypto frame is inferred to be lost.
+// Called when a crypto frame is inferred to be lost. Returns TRUE if data is
+// queued to be sent.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicCryptoOnLoss(
     _In_ QUIC_CRYPTO* Crypto,
     _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata

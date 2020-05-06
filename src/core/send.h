@@ -339,10 +339,10 @@ QuicSendProcessDelayedAckTimer(
 
 //
 // Indicates the connection has a given QUIC_CONN_SEND_FLAG_* that is ready
-// to be sent.
+// to be sent. Returns TRUE if the flag is (or already was) queued.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+BOOLEAN
 QuicSendSetSendFlag(
     _In_ QUIC_SEND* Send,
     _In_ uint32_t SendFlag
@@ -369,10 +369,10 @@ QuicSendUpdateAckState(
 
 //
 // Indicates the stream has a given QUIC_STREAM_SEND_FLAG_* that is ready
-// to be sent.
+// to be sent. Returns TRUE if the flag is (or already was) queued.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicSendSetStreamSendFlag(
     _In_ QUIC_SEND* Send,
     _In_ QUIC_STREAM* Stream,

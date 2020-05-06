@@ -74,6 +74,7 @@ typedef struct QUIC_REGISTRATION {
     //
     // Name of the application layer.
     //
+    uint8_t AppNameLength;
     char AppName[0];
 
 } QUIC_REGISTRATION;
