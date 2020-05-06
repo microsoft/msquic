@@ -312,6 +312,7 @@ main(
     )
 {
     int ErrorCode = -1;
+    uint16_t execProfile = DEFAULT_EXECUTION_PROFILE;
     QUIC_REGISTRATION_CONFIG RegConfig = { "quicping", DEFAULT_EXECUTION_PROFILE };
 
     QuicPlatformSystemLoad();
@@ -327,7 +328,6 @@ main(
         goto Error;
     }
 
-    uint16_t execProfile = DEFAULT_EXECUTION_PROFILE;
     TryGetValue(argc, argv, "exec", &execProfile);
     RegConfig.ExecutionProfile = (QUIC_EXECUTION_PROFILE)execProfile;
 
