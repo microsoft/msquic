@@ -365,6 +365,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_IDEAL_PROCESSOR                 18  // uint8_t
 #define QUIC_PARAM_CONN_MAX_STREAM_IDS                  19  // uint64_t[4]
 #define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME        20  // QUIC_STREAM_SCHEDULING_SCHEME
+#define QUIC_PARAM_CONN_RESUMPTION_TICKET               21  // uint8_t*
 
 #ifdef WIN32 // Windows certificate validation ignore flags.
 #define QUIC_CERTIFICATE_FLAG_IGNORE_REVOCATION                 0x00000080
@@ -627,7 +628,8 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE                 = 7,
     QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS                = 8,
     QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED           = 9,
-    QUIC_CONNECTION_EVENT_RESUMED                           = 10
+    QUIC_CONNECTION_EVENT_RESUMED                           = 10,
+    QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED        = 11
 } QUIC_CONNECTION_EVENT_TYPE;
 
 typedef struct QUIC_CONNECTION_EVENT {
@@ -669,6 +671,10 @@ typedef struct QUIC_CONNECTION_EVENT {
             uint16_t ResumptionStateLength;
             const uint8_t* ResumptionState;
         } RESUMED;
+        struct {
+            uint16_t ResumptionTicketLength;
+            const uint8_t* ResumptionTicket;
+        } RESUMPTION_TICKET_RECEIVED;
     };
 } QUIC_CONNECTION_EVENT;
 
@@ -745,7 +751,7 @@ QUIC_STATUS
 (QUIC_API * QUIC_CONNECTION_SEND_RESUMPTION_FN)(
     _In_ _Pre_defensive_ HQUIC Connection,
     _In_ uint16_t DataLength,
-    _In_reads_bytes_(DataLength)
+    _In_reads_bytes_opt_(DataLength)
         const uint8_t* ResumptionData
     );
 
@@ -930,7 +936,7 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_CLOSE_FN            ConnectionClose;
     QUIC_CONNECTION_SHUTDOWN_FN         ConnectionShutdown;
     QUIC_CONNECTION_START_FN            ConnectionStart;
-    QUIC_CONNECTION_SEND_RESUMPTION_FN  ConnectionSendResumptionData;
+    QUIC_CONNECTION_SEND_RESUMPTION_FN  ConnectionSendResumptionTicket;
 
     QUIC_STREAM_OPEN_FN                 StreamOpen;
     QUIC_STREAM_CLOSE_FN                StreamClose;
