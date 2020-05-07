@@ -516,31 +516,6 @@ QuicLibrarySetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_GLOBAL_ENCRYPTION:
-
-        if (BufferLength != sizeof(uint8_t)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        if (MsQuicLib.InUse &&
-            MsQuicLib.EncryptionDisabled != (*(uint8_t*)Buffer == FALSE)) {
-            QuicTraceLogError(
-                LibraryEncryptionSetAfterInUse,
-                "[ lib] Tried to change encryption state after library in use!");
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
-        MsQuicLib.EncryptionDisabled = *(uint8_t*)Buffer == FALSE;
-        QuicTraceLogWarning(
-            LibraryEncryptionSet,
-            "[ lib] Updated encryption disabled = %hu",
-            MsQuicLib.EncryptionDisabled);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
     case QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE: {
 
         if (BufferLength != sizeof(uint16_t)) {
@@ -571,6 +546,56 @@ QuicLibrarySetGlobalParam(
 
         Status = QUIC_STATUS_SUCCESS;
         break;
+
+    case QUIC_PARAM_GLOBAL_ENCRYPTION:
+
+        if (BufferLength != sizeof(uint8_t)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (MsQuicLib.InUse &&
+            MsQuicLib.EncryptionDisabled != (*(uint8_t*)Buffer == FALSE)) {
+            QuicTraceLogError(
+                LibraryEncryptionSetAfterInUse,
+                "[ lib] Tried to change encryption state after library in use!");
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        MsQuicLib.EncryptionDisabled = *(uint8_t*)Buffer == FALSE;
+        QuicTraceLogWarning(
+            LibraryEncryptionSet,
+            "[ lib] Updated encryption disabled = %hu",
+            MsQuicLib.EncryptionDisabled);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+#if DEBUG
+    case QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS:
+
+        if (BufferLength != sizeof(QUIC_TEST_DATAPATH_HOOKS*)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (MsQuicLib.InUse) {
+            QuicTraceLogError(
+                LibraryTestDatapathHooksSetAfterInUse,
+                "[ lib] Tried to change test datapath hooks after library in use!");
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        MsQuicLib.TestDatapathHooks = *(QUIC_TEST_DATAPATH_HOOKS**)Buffer;
+        QuicTraceLogWarning(
+            LibraryTestDatapathHooksSet,
+            "[ lib] Updated test datapath hooks");
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+#endif
     }
 
     default:

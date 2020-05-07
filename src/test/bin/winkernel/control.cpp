@@ -750,7 +750,8 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Params1.MultipleALPNs != 0,
                 Params->Params1.AsyncSecConfig != 0,
                 Params->Params1.MultiPacketClientInitial != 0,
-                Params->Params1.SessionResumption != 0
+                Params->Params1.SessionResumption != 0,
+                Params->Params1.RandomLossPercentage
                 ));
         break;
 

@@ -98,8 +98,7 @@ QuicSendCanSendFlagsNow(
     )
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
-    if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT &&
-        Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] == NULL) {
+    if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT) {
         if ((!Connection->State.Started && !QuicConnIsServer(Connection)) ||
             !(Send->SendFlags & QUIC_CONN_SEND_FLAG_ALLOWED_HANDSHAKE)) {
             return FALSE;
@@ -988,8 +987,7 @@ QuicSendFlush(
         }
 
         uint32_t SendFlags = Send->SendFlags;
-        if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT &&
-            Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] == NULL) {
+        if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT) {
             SendFlags &= QUIC_CONN_SEND_FLAG_ALLOWED_HANDSHAKE;
         }
 
@@ -1037,6 +1035,7 @@ QuicSendFlush(
         BOOLEAN WrotePacketFrames;
         BOOLEAN FlushBatchedDatagrams = FALSE;
         if ((SendFlags & ~QUIC_CONN_SEND_FLAG_PMTUD) != 0) {
+            QUIC_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
             if (!QuicPacketBuilderPrepareForControlFrames(
                     &Builder,
                     Send->TailLossProbeNeeded,
