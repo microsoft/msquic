@@ -65,6 +65,7 @@ extern "C" {
 #include "crypto.h"
 #include "stream.h"
 #include "stream_set.h"
+#include "datagram.h"
 #include "connection.h"
 #include "packet_builder.h"
 #include "listener.h"

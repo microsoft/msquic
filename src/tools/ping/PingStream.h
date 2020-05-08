@@ -10,10 +10,7 @@ Abstract:
 
 --*/
 
-//
-// Raw byte buffer for sending.
-//
-extern uint8_t* QuicPingRawIoBuffer;
+struct PingConnection;
 
 enum PingStreamMode {
     UniSendMode,
@@ -21,9 +18,6 @@ enum PingStreamMode {
     BidiSendMode,
     BidiEchoMode
 };
-
-struct PingConnection;
-struct PingSendRequest;
 
 struct PingStream {
 

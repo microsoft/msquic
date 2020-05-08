@@ -278,7 +278,7 @@ QuicPacketBuilderPrepare(
         Builder->Metadata->FrameCount = 0;
         Builder->Metadata->PacketNumber = Connection->Send.NextPacketNumber++;
         Builder->Metadata->Flags.KeyType = NewPacketKeyType;
-        Builder->Metadata->Flags.IsRetransmittable = FALSE;
+        Builder->Metadata->Flags.IsAckEliciting = FALSE;
         Builder->Metadata->Flags.HasCrypto = FALSE;
         Builder->Metadata->Flags.IsPMTUD = IsPathMtuDiscovery;
 
@@ -818,7 +818,7 @@ QuicPacketBuilderFinalize(
         Builder->Path,
         Builder->Metadata);
 
-    if (Builder->Metadata->Flags.IsRetransmittable) {
+    if (Builder->Metadata->Flags.IsAckEliciting) {
         Builder->PacketBatchRetransmittable = TRUE;
 
         //

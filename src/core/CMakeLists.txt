@@ -9,6 +9,7 @@ set(SOURCES
     connection.c
     crypto.c
     crypto_tls.c
+    datagram.c
     frame.c
     library.c
     listener.c

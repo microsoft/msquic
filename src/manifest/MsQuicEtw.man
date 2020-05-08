@@ -204,6 +204,10 @@
                 message="$(string.Enum.QUIC_API_TYPE.GET_PARAM)"
                 value="10"
                 />
+            <map
+                message="$(string.Enum.QUIC_API_TYPE.DATAGRAM_SEND)"
+                value="11"
+                />
           </valueMap>
           <valueMap name="map_QUIC_CONN_TIMER_TYPE">
             <map
@@ -433,6 +437,10 @@
             <map
                 message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_RECEIVE_SET_ENABLED)"
                 value="23"
+                />
+            <map
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.DATAGRAM_SEND)"
+                value="24"
                 />
           </valueMap>
           <valueMap name="map_QUIC_SEND_FLUSH_REASON">
@@ -3414,6 +3422,10 @@
             value="API.GET_PARAM"
             />
         <string
+            id="Enum.QUIC_API_TYPE.DATAGRAM_SEND"
+            value="API.DATAGRAM_SEND"
+            />
+        <string
             id="Enum.QUIC_CONN_TIMER_TYPE.IDLE"
             value="TIMER.IDLE"
             />
@@ -3628,6 +3640,10 @@
         <string
             id="Enum.QUIC_TRACE_API_TYPE.STREAM_RECEIVE_SET_ENABLED"
             value="STREAM_RECEIVE_SET_ENABLED"
+            />
+        <string
+            id="Enum.QUIC_TRACE_API_TYPE.DATAGRAM_SEND"
+            value="DATAGRAM_SEND"
             />
         <string
             id="Enum.QUIC_SEND_FLUSH_REASON.CONNECTION_FLAGS"
