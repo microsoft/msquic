@@ -914,6 +914,7 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_DATAGRAM_NEGOTIATION:
+        QUIC_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestDatagramNegotiation(
                 Params->DatagramNegotiationParams.Family,
@@ -921,6 +922,7 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_DATAGRAM_SEND:
+        QUIC_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestDatagramSend(
                 Params->Family));
