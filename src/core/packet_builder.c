@@ -376,13 +376,14 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
          KeyType <= Connection->Crypto.TlsState.WriteKey;
          ++KeyType) {
 
+        if (KeyType == QUIC_PACKET_KEY_0_RTT) {
+            continue; // Crypto is never written with 0-RTT key.
+        }
+
         QUIC_PACKET_KEY* PacketsKey =
             Connection->Crypto.TlsState.WriteKeys[KeyType];
         if (PacketsKey == NULL) {
-            //
-            // Key has been discarded.
-            //
-            continue;
+            continue; // Key has been discarded.
         }
 
         QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(KeyType);
@@ -427,7 +428,11 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
         // this key, so the CLOSE frame should be sent at the current and
         // previous encryption level if the handshake hasn't been confirmed.
         //
-        *PacketKeyType = Connection->Crypto.TlsState.WriteKey;
+        if (Connection->Crypto.TlsState.WriteKey == QUIC_PACKET_KEY_0_RTT) {
+            *PacketKeyType = QUIC_PACKET_KEY_INITIAL;
+        } else {
+            *PacketKeyType = Connection->Crypto.TlsState.WriteKey;
+        }
         return TRUE;
     }
 

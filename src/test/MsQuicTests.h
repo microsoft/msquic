@@ -72,7 +72,8 @@ QuicTestConnect(
     _In_ bool MultipleALPNs,
     _In_ bool AsyncSecConfig,
     _In_ bool MultiPacketClientInitial,
-    _In_ bool SessionResumption
+    _In_ bool SessionResumption,
+    _In_ uint8_t RandomLossPercentage // 0 to 100
     );
 
 void
@@ -361,6 +362,7 @@ typedef struct {
     uint8_t AsyncSecConfig;
     uint8_t MultiPacketClientInitial;
     uint8_t SessionResumption;
+    uint8_t RandomLossPercentage;
 } QUIC_RUN_CONNECT_PARAMS;
 
 #pragma pack(pop)

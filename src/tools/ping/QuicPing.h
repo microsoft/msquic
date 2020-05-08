@@ -62,6 +62,11 @@ extern uint8_t* QuicPingRawIoBuffer;
 #define DEFAULT_PRINT_STATISTICS 0
 
 //
+// QuicPing defaults to the low latency profile.
+//
+#define DEFAULT_EXECUTION_PROFILE QUIC_EXECUTION_PROFILE_LOW_LATENCY
+
+//
 // The default connection count count.
 //
 #define DEFAULT_CLIENT_CONNECTION_COUNT 1
