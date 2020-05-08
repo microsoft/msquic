@@ -4084,8 +4084,7 @@ QuicConnRecvFrames(
 
         case QUIC_FRAME_DATAGRAM:
         case QUIC_FRAME_DATAGRAM_1: {
-            QUIC_DBG_ASSERT(Connection->State.PeerTransportParameterValid);
-            if (Connection->PeerTransportParams.MaxDatagramFrameSize == 0) {
+            if (!Connection->Datagram.ReceiveEnabled) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",

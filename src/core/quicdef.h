@@ -389,7 +389,7 @@ QUIC_STATIC_ASSERT(
 //
 // The default value for datagrams being enabled or not.
 //
-#define QUIC_DEFAULT_DATAGRAM_RECEIVE_ENABLED           FALSE
+#define QUIC_DEFAULT_DATAGRAM_RECEIVE_ENABLED   FALSE
 
 //
 // The default max_datagram_frame_length transport parameter value we send. Set

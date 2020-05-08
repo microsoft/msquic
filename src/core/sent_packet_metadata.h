@@ -75,7 +75,7 @@ typedef struct QUIC_SENT_FRAME_METADATA {
 typedef struct QUIC_SEND_PACKET_FLAGS {
 
     uint8_t KeyType                 : 2;
-    BOOLEAN IsAckEliciting       : 1;
+    BOOLEAN IsAckEliciting          : 1;
     BOOLEAN HasCrypto               : 1;
     BOOLEAN IsPMTUD                 : 1;
     BOOLEAN KeyPhase                : 1;

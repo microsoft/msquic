@@ -374,10 +374,7 @@ QuicDatagramWriteFrame(
 
         if (Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_0_RTT &&
             !(SendRequest->Flags & QUIC_SEND_FLAG_ALLOW_0_RTT)) {
-            //
-            // TODO - Support 0-RTT
-            //
-            return FALSE;
+            return FALSE; // This datagram isn't allowed in 0-RTT.
         }
 
         BOOLEAN HadRoomForDatagram =
@@ -443,6 +440,8 @@ QuicDatagramProcessFrame(
     if (!QuicDatagramFrameDecode(FrameType, BufferLength, Buffer, Offset, &Frame)) {
         return FALSE;
     }
+
+    // TODO - If we ever limit max receive length, validate it here.
 
     const QUIC_BUFFER QuicBuffer = { (uint16_t)Frame.Length, (uint8_t*)Frame.Data };
 
