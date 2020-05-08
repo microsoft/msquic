@@ -43,8 +43,9 @@ QuicDatagramInitialize(
     _In_ QUIC_DATAGRAM* Datagram
     )
 {
-    Datagram->Enabled = FALSE;
-    Datagram->MaxLength = 0;
+    Datagram->ReceiveEnabled = FALSE;
+    Datagram->SendEnabled = TRUE;
+    Datagram->MaxSendLength = UINT16_MAX;
     Datagram->PrioritySendQueueTail = &Datagram->SendQueue;
     Datagram->SendQueueTail = &Datagram->SendQueue;
     QuicDispatchLockInitialize(&Datagram->ApiQueueLock);
@@ -52,15 +53,12 @@ QuicDatagramInitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDatagramSetEnabledState(
+QuicDatagramSetReceiveEnabledState(
     _In_ QUIC_DATAGRAM* Datagram,
     _In_ BOOLEAN Enabled
     )
 {
-    if (Datagram->Enabled != Enabled) {
-        Datagram->Enabled = Enabled;
-        QuicDatagramUpdateMaxLength(Datagram);
-    }
+    Datagram->ReceiveEnabled = Enabled;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -123,7 +121,7 @@ QuicDatagramUninitialize(
     _In_ QUIC_DATAGRAM* Datagram
     )
 {
-    QuicDatagramShutdown(Datagram);
+    QuicDatagramSendShutdown(Datagram);
     QUIC_DBG_ASSERT(Datagram->SendQueue == NULL);
     QUIC_DBG_ASSERT(Datagram->ApiQueue == NULL);
     QuicDispatchLockUninitialize(&Datagram->ApiQueueLock);
@@ -131,16 +129,21 @@ QuicDatagramUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDatagramShutdown(
+QuicDatagramSendShutdown(
     _In_ QUIC_DATAGRAM* Datagram
     )
 {
-    if (!Datagram->Enabled) {
+    if (!Datagram->SendEnabled) {
         return;
     }
 
+    QuicTraceLogConnVerbose(
+        DatagramSendShutdown,
+        QuicDatagramGetConnection(Datagram),
+        "Datagram send shutdown");
+
     QuicDispatchLockAcquire(&Datagram->ApiQueueLock);
-    Datagram->Enabled = FALSE;
+    Datagram->SendEnabled = FALSE;
     QUIC_SEND_REQUEST* ApiQueue = Datagram->ApiQueue;
     Datagram->ApiQueue = NULL;
     QuicDispatchLockRelease(&Datagram->ApiQueueLock);
@@ -166,52 +169,80 @@ QuicDatagramShutdown(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDatagramUpdateMaxLength(
+QuicDatagramOnSendStateChanged(
     _In_ QUIC_DATAGRAM* Datagram
     )
 {
     QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
 
-    uint16_t NewMaxLength;
-    if (!Datagram->Enabled) {
-        NewMaxLength = 0;
-    } else if (!Connection->State.Started) {
-        NewMaxLength =
-            QuicCalculateDatagramLength(
-                AF_INET6,
-                QUIC_DEFAULT_PATH_MTU,
-                QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
-    } else if (Connection->PeerTransportParams.MaxDatagramFrameSize == 0) {
-        NewMaxLength = 0;
-    } else {
-        const QUIC_PATH* Path = &Connection->Paths[0];
-        NewMaxLength =
-            QuicCalculateDatagramLength(
-                QuicAddrGetFamily(&Path->RemoteAddress),
-                Path->Mtu,
-                Path->DestCid->CID.Length);
-        // TODO - Take peer's MaxDatagramFrameSize into account.
+    //
+    // Until we receive the peer's transport parameters, we assume that
+    // datagrams are enabled, with unlimited max length. This allows for the
+    // app to still queue datagrams. We won't actually send them out until we
+    // have received the peer's transport parameters (either from a 0-RTT cache
+    // or during the handshake). If, when we do receive the transport
+    // parameters, we find that the feature is disabled or any of the queued
+    // datagrams are too long, then we will cancel and indicate state changes
+    // to the app, as appropriate.
+    //
+
+    BOOLEAN SendEnabled = TRUE;
+    uint16_t NewMaxSendLength = UINT16_MAX;
+    if (Connection->State.PeerTransportParameterValid) {
+        if (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE)) {
+            SendEnabled = FALSE;
+            NewMaxSendLength = 0;
+        } else {
+            if (Connection->PeerTransportParams.MaxDatagramFrameSize < UINT16_MAX) {
+                NewMaxSendLength = (uint16_t)Connection->PeerTransportParams.MaxDatagramFrameSize;
+            }
+        }
     }
 
-    if (NewMaxLength == Datagram->MaxLength) {
-        return;
+    if (SendEnabled) {
+        uint16_t MtuMaxSendLength;
+        if (!Connection->State.Started) {
+            MtuMaxSendLength =
+                QuicCalculateDatagramLength(
+                    AF_INET6,
+                    QUIC_DEFAULT_PATH_MTU,
+                    QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
+        } else {
+            const QUIC_PATH* Path = &Connection->Paths[0];
+            MtuMaxSendLength =
+                QuicCalculateDatagramLength(
+                    QuicAddrGetFamily(&Path->RemoteAddress),
+                    Path->Mtu,
+                    Path->DestCid->CID.Length);
+        }
+        if (NewMaxSendLength > MtuMaxSendLength) {
+            NewMaxSendLength = MtuMaxSendLength;
+        }
     }
 
-    Datagram->MaxLength = NewMaxLength;
+    if (SendEnabled == Datagram->SendEnabled) {
+        if (!SendEnabled || NewMaxSendLength == Datagram->MaxSendLength) {
+            return;
+        }
+    }
+
+    Datagram->MaxSendLength = NewMaxSendLength;
 
     QUIC_CONNECTION_EVENT Event;
-    Event.Type = QUIC_CONNECTION_EVENT_DATAGRAM_MAX_LENGTH_CHANGED;
-    Event.DATAGRAM_MAX_LENGTH_CHANGED.Length = NewMaxLength;
+    Event.Type = QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED;
+    Event.DATAGRAM_STATE_CHANGED.SendEnabled = SendEnabled;
+    Event.DATAGRAM_STATE_CHANGED.MaxSendLength = NewMaxSendLength;
 
     QuicTraceLogConnVerbose(
-        IndicateDatagramMaxLengthChanged,
+        IndicateDatagramStateChanged,
         Connection,
-        "Indicating DATAGRAM_MAX_LENGTH_CHANGED [%hu]",
-        NewMaxLength);
+        "Indicating DATAGRAM_STATE_CHANGED [SendEnabled=%hhu] [MaxSendLength=%hu]",
+        Event.DATAGRAM_STATE_CHANGED.SendEnabled,
+        Event.DATAGRAM_STATE_CHANGED.MaxSendLength);
     (void)QuicConnIndicateEvent(Connection, &Event);
 
-    if (NewMaxLength == 0) {
-        QuicDatagramShutdown(Datagram);
+    if (!SendEnabled) {
+        QuicDatagramSendShutdown(Datagram);
     } else if (Connection->State.Connected && Datagram->SendQueue != NULL) {
         QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
     }
@@ -229,7 +260,7 @@ QuicDatagramQueueSend(
     QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
 
     QuicDispatchLockAcquire(&Datagram->ApiQueueLock);
-    if (!Datagram->Enabled) {
+    if (!Datagram->SendEnabled) {
         Status = QUIC_STATUS_INVALID_STATE;
     } else {
         QUIC_SEND_REQUEST** ApiQueueTail = &Datagram->ApiQueue;
@@ -298,7 +329,7 @@ QuicDatagramSendFlush(
 
         QUIC_DBG_ASSERT(SendRequest->TotalLength != 0);
         QUIC_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
-        QUIC_TEL_ASSERT(Datagram->Enabled);
+        QUIC_TEL_ASSERT(Datagram->SendEnabled);
 
         if (SendRequest->Flags & QUIC_SEND_FLAG_DGRAM_PRIORITY) {
             SendRequest->Next = *Datagram->PrioritySendQueueTail;
@@ -334,7 +365,7 @@ QuicDatagramWriteFrame(
     )
 {
     QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
-    QUIC_DBG_ASSERT(Datagram->Enabled);
+    QUIC_DBG_ASSERT(Datagram->SendEnabled);
 
     while (Datagram->SendQueue != NULL) {
         QUIC_SEND_REQUEST* SendRequest = Datagram->SendQueue;
@@ -344,7 +375,7 @@ QuicDatagramWriteFrame(
         if (Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_0_RTT &&
             !(SendRequest->Flags & QUIC_SEND_FLAG_ALLOW_0_RTT)) {
             //
-            // Not allowed to send the datagram in 0-RTT.
+            // TODO - Support 0-RTT
             //
             return FALSE;
         }
@@ -374,7 +405,7 @@ QuicDatagramWriteFrame(
         Datagram->SendQueue = SendRequest->Next;
 
         if (HadRoomForDatagram) {
-            Builder->Metadata->Flags.IsRetransmittable = TRUE; // TODO - It's ack-eliciting but not really retransmittable
+            Builder->Metadata->Flags.IsAckEliciting = TRUE;
             Builder->Metadata->Frames[Builder->Metadata->FrameCount].Type = QUIC_FRAME_DATAGRAM;
             Builder->Metadata->Frames[Builder->Metadata->FrameCount].DATAGRAM.ClientContext = SendRequest->ClientContext;
             QuicDatagramCompleteSend(
@@ -406,6 +437,8 @@ QuicDatagramProcessFrame(
     _Inout_ uint16_t* Offset
     )
 {
+    QUIC_DBG_ASSERT(Datagram->ReceiveEnabled);
+
     QUIC_DATAGRAM_EX Frame;
     if (!QuicDatagramFrameDecode(FrameType, BufferLength, Buffer, Offset, &Frame)) {
         return FALSE;

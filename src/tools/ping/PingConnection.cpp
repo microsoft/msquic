@@ -90,7 +90,7 @@ PingConnection::Initialize(
             MsQuic->SetParam(
                 QuicConnection,
                 QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_DATAGRAMS,
+                QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
                 sizeof(Enabled),
                 &Enabled))) {
             printf("MsQuic->SetParam (DATAGRAMS) failed!\n");
@@ -435,9 +435,9 @@ PingConnection::ProcessEvent(
         break;
     }
 
-    case QUIC_CONNECTION_EVENT_DATAGRAM_MAX_LENGTH_CHANGED: {
+    case QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED: {
         DatagramLength =
-            min(PingConfig.DatagramMaxLength, Event->DATAGRAM_MAX_LENGTH_CHANGED.Length);
+            min(PingConfig.DatagramMaxLength, Event->DATAGRAM_STATE_CHANGED.MaxSendLength);
         printf("[%p] New Datagram Length = %hu\n", QuicConnection, DatagramLength);
         break;
     }

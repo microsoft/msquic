@@ -834,6 +834,19 @@ TEST_P(WithReceiveResumeNoDataArgs, ReceiveResumeNoData) {
     }
 }
 
+TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation) {
+    TestLoggerT<ParamType> Logger("QuicTestDatagramNegotiation", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_DATAGRAM_NEGOTIATION Params = {
+            GetParam().Family,
+            GetParam().DatagramReceiveEnabled
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_NEGOTIATION, Params));
+    } else {
+        QuicTestDatagramNegotiation(GetParam().Family, GetParam().DatagramReceiveEnabled);
+    }
+}
+
 TEST(Drill, VarIntEncoder) {
     TestLogger Logger("QuicDrillTestVarIntEncoder");
     if (TestingKernelMode) {
@@ -946,6 +959,11 @@ INSTANTIATE_TEST_CASE_P(
     Misc,
     WithReceiveResumeNoDataArgs,
     testing::ValuesIn(ReceiveResumeNoDataArgs::Generate()));
+
+INSTANTIATE_TEST_CASE_P(
+    Misc,
+    WithDatagramNegotiationArgs,
+    testing::ValuesIn(DatagramNegotiationArgs::Generate()));
 
 INSTANTIATE_TEST_CASE_P(
     Drill,

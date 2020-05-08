@@ -104,8 +104,8 @@ ServerListenerCallback(
         BOOLEAN EnableDatagrams = TRUE;
         if (QUIC_FAILED(Status = MsQuic->SetParam(
                 Event->NEW_CONNECTION.Connection, QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_DATAGRAMS, sizeof(EnableDatagrams), &EnableDatagrams))) {
-            printf("SetParam(QUIC_PARAM_CONN_DATAGRAMS) failed, 0x%x!\n", Status);
+                QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED, sizeof(EnableDatagrams), &EnableDatagrams))) {
+            printf("SetParam(QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED) failed, 0x%x!\n", Status);
         }
         Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
         MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)ServerConnectionCallback, nullptr);
@@ -247,7 +247,7 @@ RunClient(
     }
 
     if (QUIC_FAILED(Status = MsQuic->SetParam(
-            Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_DATAGRAMS,
+            Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
             sizeof(EnableDatagrams), &EnableDatagrams))) {
         printf("SetParam(QUIC_PARAM_CONN_DATAGRAMS) failed, 0x%x!\n", Status);
         goto Error;

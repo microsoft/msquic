@@ -581,7 +581,7 @@ BOOLEAN
 QuicPacketBuilderAddFrame(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
     _In_ uint8_t FrameType,
-    _In_ BOOLEAN IsRetransmittable
+    _In_ BOOLEAN IsAckEliciting
     );
 
 BOOLEAN

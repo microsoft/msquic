@@ -1220,5 +1220,5 @@ QuicSendOnMtuProbePacketAcked(
         "Path[%hhu] MTU updated to %hu bytes",
         Path->ID,
         Path->Mtu);
-    QuicDatagramUpdateMaxLength(&Connection->Datagram);
+    QuicDatagramOnSendStateChanged(&Connection->Datagram);
 }

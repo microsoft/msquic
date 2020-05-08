@@ -23,6 +23,9 @@ QuicSettingsSetDefault(
     if (!Settings->AppSet.MigrationEnabled) {
         Settings->MigrationEnabled = QUIC_DEFAULT_MIGRATION_ENABLED;
     }
+    if (!Settings->AppSet.DatagramReceiveEnabled) {
+        Settings->DatagramReceiveEnabled = QUIC_DEFAULT_DATAGRAM_RECEIVE_ENABLED;
+    }
     if (!Settings->AppSet.MaxPartitionCount) {
         Settings->MaxPartitionCount = QUIC_MAX_PARTITION_COUNT;
     }
@@ -103,6 +106,9 @@ QuicSettingsCopy(
     }
     if (!Settings->AppSet.MigrationEnabled) {
         Settings->MigrationEnabled = ParentSettings->MigrationEnabled;
+    }
+    if (!Settings->AppSet.DatagramReceiveEnabled) {
+        Settings->DatagramReceiveEnabled = ParentSettings->DatagramReceiveEnabled;
     }
     if (!Settings->AppSet.MaxPartitionCount) {
         Settings->MaxPartitionCount = ParentSettings->MaxPartitionCount;
@@ -202,6 +208,17 @@ QuicSettingsLoad(
             (uint8_t*)&Value,
             &ValueLen);
         Settings->MigrationEnabled = !!Value;
+    }
+
+    if (!Settings->AppSet.DatagramReceiveEnabled) {
+        Value = QUIC_DEFAULT_DATAGRAM_RECEIVE_ENABLED;
+        ValueLen = sizeof(Value);
+        QuicStorageReadValue(
+            Storage,
+            QUIC_SETTING_DATAGRAM_RECEIVE_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->DatagramReceiveEnabled = !!Value;
     }
 
     if (!Settings->AppSet.MaxPartitionCount) {
@@ -449,6 +466,7 @@ QuicSettingsDump(
 {
     QuicTraceLogVerbose(SettingDumpPacingDefault,           "[sett] PacingDefault          = %hhu", Settings->PacingDefault);
     QuicTraceLogVerbose(SettingDumpMigrationEnabled,        "[sett] MigrationEnabled       = %hhu", Settings->MigrationEnabled);
+    QuicTraceLogVerbose(SettingDumpDatagramReceiveEnabled,  "[sett] DatagramReceiveEnabled = %hhu", Settings->DatagramReceiveEnabled);
     QuicTraceLogVerbose(SettingDumpMaxPartitionCount,       "[sett] MaxPartitionCount      = %hhu", Settings->MaxPartitionCount);
     QuicTraceLogVerbose(SettingDumpMaxOperationsPerDrain,   "[sett] MaxOperationsPerDrain  = %hhu", Settings->MaxOperationsPerDrain);
     QuicTraceLogVerbose(SettingDumpRetryMemoryLimit,        "[sett] RetryMemoryLimit       = %hu", Settings->RetryMemoryLimit);

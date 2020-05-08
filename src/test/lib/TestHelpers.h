@@ -213,7 +213,7 @@ struct MsQuicSession {
     QUIC_STATUS
     SetMaxBytesPerKey(
         uint64_t value
-    ) {
+        ) {
         return
             MsQuic->SetParam(
                 Handle,
@@ -221,6 +221,19 @@ struct MsQuicSession {
                 QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY,
                 sizeof(value),
                 &value);
+    }
+    QUIC_STATUS
+    SetDatagramReceiveEnabled(
+        bool value
+        ) {
+        BOOLEAN Value = value ? TRUE : FALSE;
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_SESSION,
+                QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED,
+                sizeof(Value),
+                &Value);
     }
 };
 

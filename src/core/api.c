@@ -1273,12 +1273,12 @@ MsQuicDatagramSend(
 
     QUIC_TEL_ASSERT(!Connection->State.Freed);
 
-    if (Connection->Datagram.MaxLength == 0) {
+    if (!Connection->Datagram.SendEnabled) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",
             Connection,
-            "Datagrams extension not negotiated");
+            "Datagrams not enabled by peer");
         Status = QUIC_STATUS_NOT_SUPPORTED;
         goto Error;
     }
@@ -1288,7 +1288,7 @@ MsQuicDatagramSend(
         TotalLength += Buffers[i].Length;
     }
 
-    if (TotalLength > (uint32_t)Connection->Datagram.MaxLength) {
+    if (TotalLength > (uint32_t)Connection->Datagram.MaxSendLength) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",

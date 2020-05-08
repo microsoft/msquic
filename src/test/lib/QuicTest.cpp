@@ -2896,3 +2896,83 @@ QuicTestReceiveResumeNoData(
         }
     }
 }
+
+void
+QuicTestDatagramNegotiation(
+    _In_ int Family,
+    _In_ bool DatagramReceiveEnabled
+    )
+{
+    MsQuicSession ClientSession;
+    TEST_TRUE(ClientSession.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientSession.SetDatagramReceiveEnabled(true)); // Always enabled on client.
+
+    MsQuicSession ServerSession;
+    TEST_TRUE(ServerSession.IsValid());
+    TEST_QUIC_SUCCEEDED(ServerSession.SetDatagramReceiveEnabled(DatagramReceiveEnabled));
+
+    {
+        TestListener Listener(ServerSession.Handle, ListenerAcceptConnection);
+        TEST_TRUE(Listener.IsValid());
+
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(
+                    ClientSession.Handle,
+                    ConnectionDoNothingCallback,
+                    false);
+                TEST_TRUE(Client.IsValid());
+
+                TEST_TRUE(Client.GetDatagramSendEnabled()); // Datagrams start as enabled
+
+                #if QUIC_TEST_DISABLE_DNS
+                QuicAddr RemoteAddr(QuicAddrFamily, true);
+                TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+                #endif
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        QuicAddrFamily,
+                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_EQUAL(DatagramReceiveEnabled, Client.GetDatagramSendEnabled());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Server->GetIsConnected());
+
+                TEST_TRUE(Server->GetDatagramSendEnabled()); // Client always enabled
+
+                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+                if (!Client.WaitForShutdownComplete()) {
+                    return;
+                }
+
+                TEST_FALSE(Client.GetPeerClosed());
+                TEST_FALSE(Client.GetTransportClosed());
+            }
+
+#if !QUIC_SEND_FAKE_LOSS
+            TEST_TRUE(Server->GetPeerClosed());
+            TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
+#endif
+        }
+    }
+}

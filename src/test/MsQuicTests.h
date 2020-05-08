@@ -214,6 +214,12 @@ QuicTestReceiveResumeNoData(
     _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType
     );
 
+void
+QuicTestDatagramNegotiation(
+    _In_ int Family,
+    _In_ bool DatagramReceiveEnabled
+    );
+
 //
 // QuicDrill tests
 //
@@ -518,4 +524,13 @@ typedef struct {
 #define IOCTL_QUIC_RUN_START_LISTENER_MULTI_ALPN \
     QUIC_CTL_CODE(38, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 38
+typedef struct {
+    int Family;
+    BOOLEAN DatagramReceiveEnabled;
+} QUIC_RUN_DATAGRAM_NEGOTIATION;
+
+#define IOCTL_QUIC_RUN_DATAGRAM_NEGOTIATION \
+    QUIC_CTL_CODE(39, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_DATAGRAM_NEGOTIATION
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 39

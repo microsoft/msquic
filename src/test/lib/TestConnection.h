@@ -210,6 +210,11 @@ public:
     bool GetShareUdpBinding();
     QUIC_STATUS SetShareUdpBinding(bool value);
 
+    bool GetDatagramReceiveEnabled();
+    QUIC_STATUS SetDatagramReceiveEnabled(bool value);
+
+    bool GetDatagramSendEnabled();
+
     QUIC_STREAM_SCHEDULING_SCHEME GetPriorityScheme();
     QUIC_STATUS SetPriorityScheme(QUIC_STREAM_SCHEDULING_SCHEME value);
 

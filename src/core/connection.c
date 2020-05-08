@@ -412,6 +412,7 @@ QuicConnApplySettings(
     Connection->IdleTimeoutMs = Settings->IdleTimeoutMs;
     Connection->HandshakeIdleTimeoutMs = Settings->HandshakeIdleTimeoutMs;
     Connection->KeepAliveIntervalMs = Settings->KeepAliveIntervalMs;
+    Connection->Datagram.ReceiveEnabled = Settings->DatagramReceiveEnabled;
 
     uint8_t PeerStreamType =
         QuicConnIsServer(Connection) ?
@@ -1619,7 +1620,7 @@ QuicConnTryClose(
         // clean up pending datagrams.
         //
         QuicStreamSetShutdown(&Connection->Streams);
-        QuicDatagramShutdown(&Connection->Datagram);
+        QuicDatagramSendShutdown(&Connection->Datagram);
     }
 
     if (SilentClose ||
@@ -2029,7 +2030,7 @@ QuicConnHandshakeConfigure(
             Connection->OrigCID = NULL;
         }
 
-        if (Connection->Datagram.Enabled) {
+        if (Connection->Datagram.ReceiveEnabled) {
             LocalTP.Flags |= QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE;
             LocalTP.MaxDatagramFrameSize = QUIC_DEFAULT_MAX_DATAGRAM_LENGTH;
         }
@@ -2120,7 +2121,7 @@ QuicConnHandshakeConfigure(
                 Connection->Streams.Types[STREAM_ID_FLAG_IS_SERVER | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount;
         }
 
-        if (Connection->Datagram.Enabled) {
+        if (Connection->Datagram.ReceiveEnabled) {
             LocalTP.Flags |= QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE;
             LocalTP.MaxDatagramFrameSize = QUIC_DEFAULT_MAX_DATAGRAM_LENGTH;
         }
@@ -2272,7 +2273,7 @@ QuicConnProcessPeerTransportParameters(
         Connection->PeerTransportParams.InitialMaxUniStreams,
         !FromCache);
 
-    QuicDatagramUpdateMaxLength(&Connection->Datagram);
+    QuicDatagramOnSendStateChanged(&Connection->Datagram);
 
     return;
 
@@ -5318,7 +5319,7 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_DATAGRAMS:
+    case QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED:
 
         if (BufferLength != sizeof(BOOLEAN)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -5330,8 +5331,15 @@ QuicConnParamSet(
             break;
         }
 
-        QuicDatagramSetEnabledState(&Connection->Datagram, *(BOOLEAN*)Buffer);
+        Connection->Datagram.ReceiveEnabled = *(BOOLEAN*)Buffer;
         Status = QUIC_STATUS_SUCCESS;
+
+        QuicTraceLogConnVerbose(
+            DatagramReceiveEnableUpdated,
+            Connection,
+            "Updated datagram receive enabled to %hhu",
+            Connection->Datagram.ReceiveEnabled);
+
         break;
 
     case QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER:
@@ -5834,7 +5842,7 @@ QuicConnParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_DATAGRAMS:
+    case QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED:
 
         if (*BufferLength < sizeof(BOOLEAN)) {
             *BufferLength = sizeof(BOOLEAN);
@@ -5848,7 +5856,26 @@ QuicConnParamGet(
         }
 
         *BufferLength = sizeof(BOOLEAN);
-        *(BOOLEAN*)Buffer = Connection->Datagram.Enabled;
+        *(BOOLEAN*)Buffer = Connection->Datagram.ReceiveEnabled;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED:
+
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = Connection->Datagram.SendEnabled;
 
         Status = QUIC_STATUS_SUCCESS;
         break;

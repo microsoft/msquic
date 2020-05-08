@@ -546,7 +546,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS),
     sizeof(INT32),
-    0
+    0,
+    sizeof(QUIC_RUN_DATAGRAM_NEGOTIATION)
 };
 
 static_assert(
@@ -566,7 +567,8 @@ typedef union {
     QUIC_RUN_RECEIVE_RESUME_PARAMS Params6;
     UINT8 EnableKeepAlive;
     UINT8 StopListenerFirst;
-    QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS DrillParams1;
+    QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS DrillParams;
+    QUIC_RUN_DATAGRAM_NEGOTIATION DatagramNegotiationParams;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -891,11 +893,11 @@ QuicTestCtlEvtIoDeviceControl(
         QUIC_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicDrillTestInitialCid(
-                Params->DrillParams1.Family,
-                Params->DrillParams1.SourceOrDest,
-                Params->DrillParams1.ActualCidLengthValid,
-                Params->DrillParams1.ShortCidLength,
-                Params->DrillParams1.CidLengthFieldValid));
+                Params->DrillParams.Family,
+                Params->DrillParams.SourceOrDest,
+                Params->DrillParams.ActualCidLengthValid,
+                Params->DrillParams.ShortCidLength,
+                Params->DrillParams.CidLengthFieldValid));
         break;
 
     case IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_TOKEN:
@@ -907,6 +909,13 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_START_LISTENER_MULTI_ALPN:
         QuicTestCtlRun(QuicTestStartListenerMultiAlpns());
+        break;
+
+    case IOCTL_QUIC_RUN_DATAGRAM_NEGOTIATION:
+        QuicTestCtlRun(
+            QuicTestDatagramNegotiation(
+                Params->DatagramNegotiationParams.Family,
+                Params->DatagramNegotiationParams.DatagramReceiveEnabled));
         break;
 
     default:

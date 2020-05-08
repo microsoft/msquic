@@ -351,6 +351,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_SESSION_DISCONNECT_TIMEOUT           4   // uint32_t - milliseconds
 #define QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY            5   // uint64_t - bytes
 #define QUIC_PARAM_SESSION_MIGRATION_ENABLED            6   // uint8_t (BOOLEAN)
+#define QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED     7   // uint8_t (BOOLEAN)
 
 //
 // Parameters for QUIC_PARAM_LEVEL_LISTENER.
@@ -382,7 +383,8 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_IDEAL_PROCESSOR                 18  // uint8_t
 #define QUIC_PARAM_CONN_MAX_STREAM_IDS                  19  // uint64_t[4]
 #define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME        20  // QUIC_STREAM_SCHEDULING_SCHEME
-#define QUIC_PARAM_CONN_DATAGRAMS                       21  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED        21  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED           22  // uint8_t (BOOLEAN)
 
 #ifdef WIN32 // Windows certificate validation ignore flags.
 #define QUIC_CERTIFICATE_FLAG_IGNORE_REVOCATION                 0x00000080
@@ -645,7 +647,7 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE                 = 7,
     QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS                = 8,
     QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED           = 9,
-    QUIC_CONNECTION_EVENT_DATAGRAM_MAX_LENGTH_CHANGED       = 10,
+    QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED            = 10,
     QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED                 = 11,
     QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED       = 12
 } QUIC_CONNECTION_EVENT_TYPE;
@@ -686,8 +688,9 @@ typedef struct QUIC_CONNECTION_EVENT {
             uint8_t IdealProcessor;
         } IDEAL_PROCESSOR_CHANGED;
         struct {
-            uint16_t Length; // Zero indicates the feature isn't supported.
-        } DATAGRAM_MAX_LENGTH_CHANGED;
+            BOOLEAN SendEnabled;
+            uint16_t MaxSendLength;
+        } DATAGRAM_STATE_CHANGED;
         struct {
             const QUIC_BUFFER* Buffer;
             QUIC_RECEIVE_FLAGS Flags;

@@ -375,6 +375,28 @@ class WithReceiveResumeNoDataArgs : public testing::Test,
     public testing::WithParamInterface<ReceiveResumeNoDataArgs> {
 };
 
+struct DatagramNegotiationArgs {
+    int Family;
+    bool DatagramReceiveEnabled;
+    static ::std::vector<DatagramNegotiationArgs> Generate() {
+        ::std::vector<DatagramNegotiationArgs> list;
+        for (int Family : { 4, 6 })
+        for (bool DatagramReceiveEnabled : { false, true })
+            list.push_back({ Family, DatagramReceiveEnabled });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const DatagramNegotiationArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.DatagramReceiveEnabled ? "DatagramReceiveEnabled" : "DatagramReceiveDisabled");
+}
+
+class WithDatagramNegotiationArgs : public testing::Test,
+    public testing::WithParamInterface<DatagramNegotiationArgs> {
+};
+
 struct DrillInitialPacketCidArgs {
     int Family;
     bool SourceOrDest;

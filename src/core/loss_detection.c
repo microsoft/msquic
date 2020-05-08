@@ -95,7 +95,7 @@ QuicLossDetectionUninitialize(
         QUIC_SENT_PACKET_METADATA* Packet = LossDetection->SentPackets;
         LossDetection->SentPackets = LossDetection->SentPackets->Next;
 
-        if (Packet->Flags.IsRetransmittable) {
+        if (Packet->Flags.IsAckEliciting) {
             QuicTraceLogVerbose(
                 PacketTxDiscarded,
                 "[%c][TX][%llu] Thrown away on shutdown",
@@ -166,7 +166,7 @@ QuicLossDetectionOldestOutstandingPacket(
     )
 {
     QUIC_SENT_PACKET_METADATA* Packet = LossDetection->SentPackets;
-    while (Packet != NULL && !Packet->Flags.IsRetransmittable) {
+    while (Packet != NULL && !Packet->Flags.IsAckEliciting) {
         Packet = Packet->Next;
     }
     return Packet;
@@ -386,11 +386,11 @@ QuicLossDetectionOnPacketSent(
 
     QUIC_DBG_ASSERT(
         SentPacket->Flags.KeyType != QUIC_PACKET_KEY_0_RTT ||
-        SentPacket->Flags.IsRetransmittable);
+        SentPacket->Flags.IsAckEliciting);
 
     Connection->Stats.Send.TotalPackets++;
     Connection->Stats.Send.TotalBytes += TempSentPacket->PacketLength;
-    if (SentPacket->Flags.IsRetransmittable) {
+    if (SentPacket->Flags.IsAckEliciting) {
 
         if (LossDetection->PacketsInFlight == 0) {
             QuicConnResetIdleTimeout(Connection);
@@ -802,7 +802,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
         while (Packet != NULL) {
 
             BOOLEAN NonretransmittableHandshakePacket =
-                !Packet->Flags.IsRetransmittable &&
+                !Packet->Flags.IsAckEliciting &&
                 Packet->Flags.KeyType < QUIC_PACKET_KEY_1_RTT;
             QUIC_ENCRYPT_LEVEL EncryptLevel =
                 QuicKeyTypeToEncryptLevel(Packet->Flags.KeyType);
@@ -849,7 +849,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
             }
 
             Connection->Stats.Send.SuspectedLostPackets++;
-            if (Packet->Flags.IsRetransmittable) {
+            if (Packet->Flags.IsAckEliciting) {
                 --LossDetection->PacketsInFlight;
                 LostRetransmittableBytes += Packet->PacketLength;
                 QuicLossDetectionRetransmitFrames(LossDetection, Packet, FALSE);
@@ -981,7 +981,7 @@ QuicLossDetectionDiscardPackets(
                 Packet->PacketNumber,
                 QuicPacketTraceType(Packet));
 
-            if (Packet->Flags.IsRetransmittable) {
+            if (Packet->Flags.IsAckEliciting) {
                 LossDetection->PacketsInFlight--;
                 AckedRetransmittableBytes += Packet->PacketLength;
             }
@@ -1051,7 +1051,7 @@ QuicLossDetectionOnZeroRttRejected(
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
 
-            QUIC_DBG_ASSERT(Packet->Flags.IsRetransmittable);
+            QUIC_DBG_ASSERT(Packet->Flags.IsAckEliciting);
 
             LossDetection->PacketsInFlight--;
             CountRetransmittableBytes += Packet->PacketLength;
@@ -1156,7 +1156,7 @@ QuicLossDetectionProcessAckBlocks(
             QUIC_SENT_PACKET_METADATA** End = SentPacketsStart;
             while (*End && (*End)->PacketNumber <= QuicRangeGetHigh(AckBlock)) {
 
-                if ((*End)->Flags.IsRetransmittable) {
+                if ((*End)->Flags.IsAckEliciting) {
                     PacketsInFlight++;
                     AckedRetransmittableBytes += (*End)->PacketLength;
                 }
@@ -1186,7 +1186,7 @@ QuicLossDetectionProcessAckBlocks(
                 LossDetection->LargestAckEncryptLevel = EncryptLevel;
             }
             NewLargestAck = TRUE;
-            NewLargestAckRetransmittable = LargestAckedPacket->Flags.IsRetransmittable;
+            NewLargestAckRetransmittable = LargestAckedPacket->Flags.IsAckEliciting;
             NewLargestAckDifferentPath = Path->ID != LargestAckedPacket->PathId;
         }
     }
@@ -1414,7 +1414,7 @@ QuicLossDetectionScheduleProbe(
     //
     QUIC_SENT_PACKET_METADATA* Packet = LossDetection->SentPackets;
     while (Packet != NULL) {
-        if (Packet->Flags.IsRetransmittable) {
+        if (Packet->Flags.IsAckEliciting) {
             QuicTraceLogVerbose(
                 PacketTxProbeRetransmit,
                 "[%c][TX][%llu] Probe Retransmit",

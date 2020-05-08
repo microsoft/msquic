@@ -643,6 +643,59 @@ TestConnection::SetShareUdpBinding(
             &bValue);
 }
 
+bool
+TestConnection::GetDatagramReceiveEnabled()
+{
+    BOOLEAN value;
+    uint32_t valueSize = sizeof(value);
+    QUIC_STATUS Status =
+        MsQuic->GetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
+            &valueSize,
+            &value);
+    if (QUIC_FAILED(Status)) {
+        value = 0;
+        TEST_FAILURE("MsQuic->GetParam(CONN_DATAGRAM_RECEIVE_ENABLED) failed, 0x%x.", Status);
+    }
+    return value != FALSE;
+}
+
+QUIC_STATUS
+TestConnection::SetDatagramReceiveEnabled(
+    bool value
+    )
+{
+    BOOLEAN bValue = value ? TRUE : FALSE;
+    return
+        MsQuic->SetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
+            sizeof(bValue),
+            &bValue);
+}
+
+bool
+TestConnection::GetDatagramSendEnabled()
+{
+    BOOLEAN value;
+    uint32_t valueSize = sizeof(value);
+    QUIC_STATUS Status =
+        MsQuic->GetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED,
+            &valueSize,
+            &value);
+    if (QUIC_FAILED(Status)) {
+        value = 0;
+        TEST_FAILURE("MsQuic->GetParam(CONN_DATAGRAM_SEND_ENABLED) failed, 0x%x.", Status);
+    }
+    return value != FALSE;
+}
+
 QUIC_STREAM_SCHEDULING_SCHEME
 TestConnection::GetPriorityScheme()
 {
