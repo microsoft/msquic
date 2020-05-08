@@ -879,19 +879,6 @@ TEST_P(WithReceiveResumeNoDataArgs, ReceiveResumeNoData) {
     }
 }
 
-TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation) {
-    TestLoggerT<ParamType> Logger("QuicTestDatagramNegotiation", GetParam());
-    if (TestingKernelMode) {
-        QUIC_RUN_DATAGRAM_NEGOTIATION Params = {
-            GetParam().Family,
-            GetParam().DatagramReceiveEnabled
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_NEGOTIATION, Params));
-    } else {
-        QuicTestDatagramNegotiation(GetParam().Family, GetParam().DatagramReceiveEnabled);
-    }
-}
-
 TEST(Drill, VarIntEncoder) {
     TestLogger Logger("QuicDrillTestVarIntEncoder");
     if (TestingKernelMode) {
@@ -928,6 +915,28 @@ TEST_P(WithDrillInitialPacketTokenArgs, DrillInitialPacketToken) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_TOKEN, GetParam().Family));
     } else {
         QuicDrillTestInitialToken(GetParam().Family);
+    }
+}
+
+TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation) {
+    TestLoggerT<ParamType> Logger("QuicTestDatagramNegotiation", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_DATAGRAM_NEGOTIATION Params = {
+            GetParam().Family,
+            GetParam().DatagramReceiveEnabled
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_NEGOTIATION, Params));
+    } else {
+        QuicTestDatagramNegotiation(GetParam().Family, GetParam().DatagramReceiveEnabled);
+    }
+}
+
+TEST_P(WithFamilyArgs, DatagramSend) {
+    TestLoggerT<ParamType> Logger("QuicTestDatagramSend", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_SEND, GetParam().Family));
+    } else {
+        QuicTestDatagramSend(GetParam().Family);
     }
 }
 

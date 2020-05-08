@@ -215,12 +215,6 @@ QuicTestReceiveResumeNoData(
     _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownType
     );
 
-void
-QuicTestDatagramNegotiation(
-    _In_ int Family,
-    _In_ bool DatagramReceiveEnabled
-    );
-
 //
 // QuicDrill tests
 //
@@ -239,6 +233,20 @@ QuicDrillTestInitialCid(
 
 void
 QuicDrillTestInitialToken(
+    _In_ int Family
+    );
+
+//
+// Datagram tests
+//
+void
+QuicTestDatagramNegotiation(
+    _In_ int Family,
+    _In_ bool DatagramReceiveEnabled
+    );
+
+void
+QuicTestDatagramSend(
     _In_ int Family
     );
 
@@ -535,4 +543,8 @@ typedef struct {
     QUIC_CTL_CODE(39, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_DATAGRAM_NEGOTIATION
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 39
+#define IOCTL_QUIC_RUN_DATAGRAM_SEND \
+    QUIC_CTL_CODE(40, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 40

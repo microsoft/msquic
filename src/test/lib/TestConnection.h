@@ -71,6 +71,12 @@ class TestConnection
     NEW_STREAM_CALLBACK_HANDLER NewStreamCallback;
     CONN_SHUTDOWN_COMPLETE_CALLBACK_HANDLER ShutdownCompleteCallback;
 
+    uint32_t DatagramsSent;
+    uint32_t DatagramsCanceled;
+    uint32_t DatagramsSuspectLost;
+    uint32_t DatagramsLost;
+    uint32_t DatagramsAcknowledged;
+
     QUIC_STATUS
     HandleConnectionEvent(
         _Inout_ QUIC_CONNECTION_EVENT* Event
@@ -175,6 +181,12 @@ public:
 
     QUIC_UINT62 GetExpectedPeerCloseErrorCode() const { return ExpectedPeerCloseErrorCode; };
     void SetExpectedPeerCloseErrorCode(QUIC_UINT62 ErrorCode) { ExpectedPeerCloseErrorCode = ErrorCode; }
+
+    uint32_t GetDatagramsSent() const { return DatagramsSent; }
+    uint32_t GetDatagramsCanceled() const { return DatagramsCanceled; }
+    uint32_t GetDatagramsSuspectLost() const { return DatagramsSuspectLost; }
+    uint32_t GetDatagramsLost() const { return DatagramsLost; }
+    uint32_t GetDatagramsAcknowledged() const { return DatagramsAcknowledged; }
 
     //
     // Parameters

@@ -547,7 +547,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS),
     sizeof(INT32),
     0,
-    sizeof(QUIC_RUN_DATAGRAM_NEGOTIATION)
+    sizeof(QUIC_RUN_DATAGRAM_NEGOTIATION),
+    sizeof(INT32)
 };
 
 static_assert(
@@ -917,6 +918,12 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestDatagramNegotiation(
                 Params->DatagramNegotiationParams.Family,
                 Params->DatagramNegotiationParams.DatagramReceiveEnabled));
+        break;
+
+    case IOCTL_QUIC_RUN_DATAGRAM_SEND:
+        QuicTestCtlRun(
+            QuicTestDatagramSend(
+                Params->Family));
         break;
 
     default:

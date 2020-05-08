@@ -26,7 +26,9 @@ TestConnection::TestConnection(
     TransportClosed(false), IsShutdown(false),
     ShutdownTimedOut(false), AutoDelete(AutoDelete),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
-    UseSendBuffer(UseSendBuffer)
+    UseSendBuffer(UseSendBuffer),
+    DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
+    DatagramsLost(0), DatagramsAcknowledged(0)
 {
     QuicEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     QuicEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -828,6 +830,27 @@ TestConnection::HandleConnectionEvent(
             this,
             Event->PEER_STREAM_STARTED.Stream,
             Event->PEER_STREAM_STARTED.Flags);
+        break;
+
+    case QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED:
+        switch (Event->DATAGRAM_SEND_STATE_CHANGED.State) {
+        case QUIC_DATAGRAM_SEND_SENT:
+            DatagramsSent++;
+            break;
+        case QUIC_DATAGRAM_SEND_LOST_SUSPECT:
+            DatagramsSuspectLost++;
+            break;
+        case QUIC_DATAGRAM_SEND_LOST_DISCARDED:
+            DatagramsLost++;
+            break;
+        case QUIC_DATAGRAM_SEND_ACKNOWLEDGED:
+        case QUIC_DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS:
+            DatagramsAcknowledged++;
+            break;
+        case QUIC_DATAGRAM_SEND_CANCELED:
+            DatagramsCanceled++;
+            break;
+        }
         break;
 
     default:
