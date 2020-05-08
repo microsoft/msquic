@@ -69,7 +69,7 @@ QuicPlatformSystemLoad(
     UNREFERENCED_PARAMETER(RegistryPath);
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
-    EventRegisterMicrosoft_Quic_ETW();
+    EventRegisterMicrosoft_Quic();
 #endif
 
 #ifdef QUIC_TELEMETRY_ASSERTS
@@ -103,7 +103,7 @@ QuicPlatformSystemUnload(
 #endif
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
-    EventUnregisterMicrosoft_Quic_ETW();
+    EventUnregisterMicrosoft_Quic();
 #endif
 }
 
