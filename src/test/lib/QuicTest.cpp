@@ -1920,6 +1920,12 @@ QuicAbortiveConnectionHandler(
         case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
             __fallthrough;
         case QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE:
+            __fallthrough;
+        case QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED:
+            __fallthrough;
+        case QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED:
+            __fallthrough;
+        case QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED:
             return QUIC_STATUS_SUCCESS;
         default:
             TEST_FAILURE(
@@ -2485,6 +2491,12 @@ QuicRecvResumeConnectionHandler(
         case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
             __fallthrough;
         case QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE:
+            __fallthrough;
+        case QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED:
+            __fallthrough;
+        case QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED:
+            __fallthrough;
+        case QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED:
             return QUIC_STATUS_SUCCESS;
         default:
             TEST_FAILURE(
