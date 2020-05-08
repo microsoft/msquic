@@ -259,7 +259,7 @@ QuicEtwCallback(
     switch(ControlCode) {
     case EVENT_CONTROL_CODE_ENABLE_PROVIDER:
     case EVENT_CONTROL_CODE_CAPTURE_STATE:
-        if (CallbackContext == &MICROSOFT_MSQUIC_ETW_PROVIDER_Context) {
+        if (CallbackContext == &MICROSOFT_MSQUIC_PROVIDER_Context) {
             QuicTraceRundown();
         }
         break;
