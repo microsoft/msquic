@@ -302,9 +302,6 @@ QuicTlsServerSecConfigCreate(
         // Using NULL certificate.
         //
         goto Format;
-    } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Error;
     } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT) {
         if (Certificate == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
