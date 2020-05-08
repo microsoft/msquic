@@ -141,7 +141,7 @@ PingConnection::Initialize(
             }
         }
 
-        if (PingConfig.Client.ResumeToken[0] != 0 &&
+        if (PingConfig.Client.ResumeToken &&
             !SetResumptionState(
                 MsQuic,
                 QuicConnection,

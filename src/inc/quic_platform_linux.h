@@ -180,7 +180,6 @@ InterlockedIncrement64(
 // String utils.
 //
 
-#define strcpy_s(dst, dst_len, src) strcpy(dst, src) // TODO - Better solution for Linux
 int _strnicmp(const char * _Str1, const char * _Str2, size_t _MaxCount);
 
 #define sprintf_s(dst, dst_len, format, ...) \

@@ -95,6 +95,66 @@ class WithHandshakeArgs2 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs2> {
 };
 
+struct HandshakeArgs3 {
+    int Family;
+    bool ServerStatelessRetry;
+    bool MultipleALPNs;
+    static ::std::vector<HandshakeArgs3> Generate() {
+        ::std::vector<HandshakeArgs3> list;
+        for (int Family : { 4, 6})
+        for (bool ServerStatelessRetry : { false, true })
+        for (bool MultipleALPNs : { false, true })
+            list.push_back({ Family, ServerStatelessRetry, MultipleALPNs });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs3& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
+        (args.MultipleALPNs ? "MultipleALPNs" : "SingleALPN");
+}
+
+class WithHandshakeArgs3 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs3> {
+};
+
+struct HandshakeArgs4 {
+    int Family;
+    bool ServerStatelessRetry;
+    bool MultiPacketClientInitial;
+    bool SessionResumption;
+    uint8_t RandomLossPercentage;
+    static ::std::vector<HandshakeArgs4> Generate() {
+        ::std::vector<HandshakeArgs4> list;
+        for (int Family : { 4, 6})
+        for (bool ServerStatelessRetry : { false, true })
+        for (bool MultiPacketClientInitial : { false, true })
+#ifdef QUIC_DISABLE_RESUMPTION
+        for (bool SessionResumption : { false })
+#else
+        for (bool SessionResumption : { false, true })
+#endif
+        for (uint8_t RandomLossPercentage : { 1, 5, 10 })
+            list.push_back({ Family, ServerStatelessRetry, MultiPacketClientInitial, SessionResumption, RandomLossPercentage });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs4& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
+        (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial") << "/" <<
+        (args.SessionResumption ? "Resume" : "NoResume") << "/" <<
+        (uint32_t)args.RandomLossPercentage << "% loss";
+}
+
+class WithHandshakeArgs4 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs4> {
+};
+
 struct SendArgs1 {
     int Family;
     uint64_t Length;

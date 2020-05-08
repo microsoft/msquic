@@ -4,8 +4,8 @@
 # Include for CLOG processing
 include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
 
-include_directories(${CMAKE_SOURCE_DIR}/src/test)
-include_directories(${CMAKE_SOURCE_DIR}/submodules/googletest/googletest/include)
+include_directories(${PROJECT_SOURCE_DIR}/src/test)
+include_directories(${PROJECT_SOURCE_DIR}/submodules/googletest/googletest/include)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 

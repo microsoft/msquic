@@ -323,6 +323,8 @@ ListenerAcceptConnection(
             TEST_FAILURE("Failed to accept new TestConnection.");
             delete NewConnection;
             MsQuic->ConnectionClose(ConnectionHandle);
+        } else {
+            NewConnection->SetHasRandomLoss(Listener->GetHasRandomLoss());
         }
         return;
     }
@@ -336,6 +338,8 @@ ListenerAcceptConnection(
         delete *AcceptContext->NewConnection;
         *AcceptContext->NewConnection = nullptr;
         MsQuic->ConnectionClose(ConnectionHandle);
+    } else {
+        (*AcceptContext->NewConnection)->SetHasRandomLoss(Listener->GetHasRandomLoss());
     }
     QuicEventSet(AcceptContext->NewConnectionReady);
 }
@@ -389,6 +393,76 @@ struct PrivateTransportHelper : QUIC_PRIVATE_TRANSPORT_PARAMETER
     }
 };
 
+struct RandomLossHelper
+{
+    static uint8_t LossPercentage;
+    static QUIC_TEST_DATAPATH_HOOKS DataPathFuncTable;
+    RandomLossHelper(uint8_t _LossPercentage) {
+        LossPercentage = _LossPercentage;
+        if (LossPercentage != 0) {
+            QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathFuncTable;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_LEVEL_GLOBAL,
+                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
+                    sizeof(Value),
+                    &Value));
+        }
+    }
+    ~RandomLossHelper() {
+        if (LossPercentage != 0) {
+            QUIC_TEST_DATAPATH_HOOKS* Value = nullptr;
+            uint32_t TryCount = 0;
+            while (TryCount++ < 10) {
+                if (QUIC_SUCCEEDED(
+                    MsQuic->SetParam(
+                        nullptr,
+                        QUIC_PARAM_LEVEL_GLOBAL,
+                        QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
+                        sizeof(Value),
+                        &Value))) {
+                    break;
+                }
+                QuicSleep(100); // Let the current datapath queue drain.
+            }
+            if (TryCount == 10) {
+                TEST_FAILURE("Failed to disable test datapath hook");
+            }
+        }
+    }
+    static
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    BOOLEAN
+    QUIC_API
+    ReceiveCallback(
+        _Inout_ struct QUIC_RECV_DATAGRAM* /* Datagram */
+        )
+    {
+        uint8_t RandomValue;
+        QuicRandom(sizeof(RandomValue), &RandomValue);
+        return (RandomValue % 100) < LossPercentage;
+    }
+    static
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    BOOLEAN
+    QUIC_API
+    SendCallback(
+        _Inout_ QUIC_ADDR* /* RemoteAddress */,
+        _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
+        _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */
+        )
+    {
+        return FALSE; // Don't drop
+    }
+};
+
+uint8_t RandomLossHelper::LossPercentage = 0;
+QUIC_TEST_DATAPATH_HOOKS RandomLossHelper::DataPathFuncTable = {
+    RandomLossHelper::ReceiveCallback,
+    RandomLossHelper::SendCallback
+};
+
 void
 QuicTestConnect(
     _In_ int Family,
@@ -399,18 +473,22 @@ QuicTestConnect(
     _In_ bool MultipleALPNs,
     _In_ bool AsyncSecConfig,
     _In_ bool MultiPacketClientInitial,
-    _In_ bool SessionResumption
+    _In_ bool SessionResumption,
+    _In_ uint8_t RandomLossPercentage
     )
 {
     MsQuicSession Session;
     TEST_TRUE(Session.IsValid());
     TEST_QUIC_SUCCEEDED(Session.SetPeerBidiStreamCount(4));
+    TEST_QUIC_SUCCEEDED(Session.SetIdleTimeout(10000));
     MsQuicSession Session2("MsQuicTest2", "MsQuicTest");
     TEST_TRUE(Session2.IsValid());
     TEST_QUIC_SUCCEEDED(Session2.SetPeerBidiStreamCount(4));
+    TEST_QUIC_SUCCEEDED(Session2.SetIdleTimeout(10000));
 
     StatelessRetryHelper RetryHelper(ServerStatelessRetry);
     PrivateTransportHelper TpHelper(MultiPacketClientInitial);
+    RandomLossHelper LossHelper(RandomLossPercentage);
 
     {
         TestListener Listener(
@@ -418,6 +496,7 @@ QuicTestConnect(
             ListenerAcceptConnection,
             AsyncSecConfig);
         TEST_TRUE(Listener.IsValid());
+        Listener.SetHasRandomLoss(RandomLossPercentage != 0);
 
         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
@@ -432,6 +511,7 @@ QuicTestConnect(
                     ConnectionDoNothingCallback,
                     false);
                 TEST_TRUE(Client.IsValid());
+                Client.SetHasRandomLoss(RandomLossPercentage != 0);
                 #if QUIC_TEST_DISABLE_DNS
                 QuicAddr RemoteAddr(QuicAddrFamily, true);
                 TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
@@ -466,6 +546,7 @@ QuicTestConnect(
                     ConnectionDoNothingCallback,
                     false);
                 TEST_TRUE(Client.IsValid());
+                Client.SetHasRandomLoss(RandomLossPercentage != 0);
 
                 if (ClientUsesOldVersion) {
                     TEST_QUIC_SUCCEEDED(
@@ -574,10 +655,10 @@ QuicTestConnect(
                 TEST_FALSE(Client.GetTransportClosed());
             }
 
-#if !QUIC_SEND_FAKE_LOSS
-            TEST_TRUE(Server->GetPeerClosed());
-            TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
-#endif
+            if (RandomLossPercentage == 0) {
+                TEST_TRUE(Server->GetPeerClosed());
+                TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
+            }
         }
     }
 }

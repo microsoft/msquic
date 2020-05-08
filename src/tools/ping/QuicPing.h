@@ -60,6 +60,11 @@ extern QUIC_SEC_CONFIG* SecurityConfig;
 #define DEFAULT_PRINT_STATISTICS 0
 
 //
+// QuicPing defaults to the low latency profile.
+//
+#define DEFAULT_EXECUTION_PROFILE QUIC_EXECUTION_PROFILE_LOW_LATENCY
+
+//
 // The default connection count count.
 //
 #define DEFAULT_CLIENT_CONNECTION_COUNT 1
@@ -101,7 +106,6 @@ typedef struct QUIC_PING_CONFIG {
     bool UsePacing     : 1;
     bool PrintStats    : 1;
 
-    char RawALPN[256];
     QUIC_BUFFER ALPN;
     QUIC_ADDR LocalIpAddr;
 
@@ -122,10 +126,10 @@ typedef struct QUIC_PING_CONFIG {
 
     struct {
         bool UseExplicitRemoteAddr : 1;
-        char Target[256];           // SNI
+        const char* Target;         // SNI
         QUIC_ADDR RemoteIpAddr;
         uint32_t Version;           // QUIC protocol version
-        char ResumeToken[256];
+        const char* ResumeToken;
         uint32_t ConnectionCount;
         uint32_t WaitTimeout;       // Milliseconds
     } Client;

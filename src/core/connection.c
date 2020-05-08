@@ -1412,10 +1412,9 @@ QuicConnTryClose(
     if (!ClosedRemotely) {
 
         if ((Flags & QUIC_CLOSE_APPLICATION) &&
-            Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] == NULL &&
             Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] == NULL) {
             //
-            // Application close can only happen if we have 0/1-RTT keys.
+            // Application close can only happen if we have 1-RTT keys.
             // Otherwise we have to send "user_canceled" TLS error code as a
             // connection close. Overwrite all application provided parameters.
             //
