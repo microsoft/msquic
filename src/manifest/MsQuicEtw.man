@@ -3394,6 +3394,38 @@
                 name="arg4"
                 />
           </template>
+          <template tid="template_ptr_ui8_ui16_">
+            <data
+                inType="win:Pointer"
+                name="arg1"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt16"
+                name="arg4"
+                />
+          </template>
+          <template tid="template_ptr_ptr_ui64_ui32_">
+            <data
+                inType="win:Pointer"
+                name="arg1"
+                />
+            <data
+                inType="win:Pointer"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt64"
+                name="arg4"
+                />
+            <data
+                inType="win:UInt32"
+                name="arg5"
+                />
+          </template>
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
@@ -6614,7 +6646,7 @@
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="PathMtuUpdated"
-              template="template_ptr_ui8_ui32_"
+              template="template_ptr_ui8_ui16_"
               value="310"
               />
           <event
@@ -8639,6 +8671,90 @@
               symbol="TestIgnoreConnectionTimeout"
               template="template_"
               value="599"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatagramReceiveEnableUpdated"
+              template="template_ptr_ui8_"
+              value="600"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="EncodeMaxDatagramFrameSize"
+              template="template_ptr_ui64_"
+              value="601"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DecodeTPMaxDatagramFrameSize"
+              template="template_ptr_ui64_"
+              value="602"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatagramSendStateChanged"
+              template="template_ptr_ui32_"
+              value="603"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatagramSendShutdown"
+              template="template_ptr_"
+              value="604"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="IndicateDatagramStateChanged"
+              template="template_ptr_ui8_ui16_"
+              value="605"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatagramSendQueued"
+              template="template_ptr_ptr_ui64_ui32_"
+              value="606"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="IndicateDatagramReceived"
+              template="template_ptr_ui16_"
+              value="607"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FrameLogDatagramInvalid"
+              template="template_ui8_ui8_ui64_"
+              value="608"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="FrameLogDatagram"
+              template="template_ui8_ui8_ui64_ui16_"
+              value="609"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="SessionDatagramReceiveEnabledSet"
+              template="template_ptr_ui8_"
+              value="610"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="SettingDumpDatagramReceiveEnabled"
+              template="template_ui8_"
+              value="611"
               />
         </events>
       </provider>

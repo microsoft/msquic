@@ -2298,7 +2298,59 @@
       },
       "LibraryTestDatapathHooksSet": {},
       "LibraryTestDatapathHooksSetAfterInUse": {},
-      "TestIgnoreConnectionTimeout": {}
+      "TestIgnoreConnectionTimeout": {},
+      "DatagramReceiveEnableUpdated": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "EncodeMaxDatagramFrameSize": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "DecodeTPMaxDatagramFrameSize": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "DatagramSendStateChanged": {
+        "arg1": "arg2",
+        "arg3": "arg3"
+      },
+      "DatagramSendShutdown": {
+        "arg1": "arg2"
+      },
+      "IndicateDatagramStateChanged": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "DatagramSendQueued": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "IndicateDatagramReceived": {
+        "arg1": "arg1",
+        "arg3": "arg3"
+      },
+      "FrameLogDatagramInvalid": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4"
+      },
+      "FrameLogDatagram": {
+        "arg2": "arg2",
+        "arg3": "arg3",
+        "arg4": "arg4",
+        "arg5": "arg5"
+      },
+      "SessionDatagramReceiveEnabledSet": {
+        "arg2": "arg1",
+        "arg3": "arg3"
+      },
+      "SettingDumpDatagramReceiveEnabled": {
+        "arg2": "arg2"
+      }
     }
   },
   "EventBundlesV2": {
@@ -16095,7 +16147,7 @@
           "Keywords": "ut:Connection ut:LowVolume"
         }
       },
-      "TraceString": "[conn][%p] Path[%hhu] MTU updated to %u bytes",
+      "TraceString": "[conn][%p] Path[%hhu] MTU updated to %hu bytes",
       "UniqueId": "PathMtuUpdated",
       "splitArgs": [
         {
@@ -16122,7 +16174,7 @@
             "UserSuppliedTrimmed": "Path->Mtu",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "hu",
           "MacroVariableName": "arg4"
         }
       ],
@@ -27975,6 +28027,570 @@
           "windows": "etw_plus"
         }
       }
+    },
+    "DatagramReceiveEnableUpdated": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "600",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Updated datagram receive enabled to %hhu",
+      "UniqueId": "DatagramReceiveEnableUpdated",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            Connection->Datagram.ReceiveEnabled",
+            "UserSuppliedTrimmed": "Connection->Datagram.ReceiveEnabled",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "EncodeMaxDatagramFrameSize": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "601",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] TP: Max Datagram Frame Size (%llu bytes)",
+      "UniqueId": "EncodeMaxDatagramFrameSize",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            TransportParams->MaxDatagramFrameSize",
+            "UserSuppliedTrimmed": "TransportParams->MaxDatagramFrameSize",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "DecodeTPMaxDatagramFrameSize": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "602",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] TP: Max Datagram Frame Size (%llu bytes)",
+      "UniqueId": "DecodeTPMaxDatagramFrameSize",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                TransportParams->MaxDatagramFrameSize",
+            "UserSuppliedTrimmed": "TransportParams->MaxDatagramFrameSize",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "DatagramSendStateChanged": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "603",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Indicating DATAGRAM_SEND_STATE_CHANGED to %u",
+      "UniqueId": "DatagramSendStateChanged",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        State",
+            "UserSuppliedTrimmed": "State",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "DatagramSendShutdown": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "604",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Datagram send shutdown",
+      "UniqueId": "DatagramSendShutdown",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        QuicDatagramGetConnection(Datagram)",
+            "UserSuppliedTrimmed": "QuicDatagramGetConnection(Datagram)",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "IndicateDatagramStateChanged": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "605",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Indicating DATAGRAM_STATE_CHANGED [SendEnabled=%hhu] [MaxSendLength=%hu]",
+      "UniqueId": "IndicateDatagramStateChanged",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Event.DATAGRAM_STATE_CHANGED.SendEnabled",
+            "UserSuppliedTrimmed": "Event.DATAGRAM_STATE_CHANGED.SendEnabled",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Event.DATAGRAM_STATE_CHANGED.MaxSendLength",
+            "UserSuppliedTrimmed": "Event.DATAGRAM_STATE_CHANGED.MaxSendLength",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "DatagramSendQueued": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "606",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Datagram [%p] queued with %llu bytes (flags 0x%x)",
+      "UniqueId": "DatagramSendQueued",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            SendRequest",
+            "UserSuppliedTrimmed": "SendRequest",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            SendRequest->TotalLength",
+            "UserSuppliedTrimmed": "SendRequest->TotalLength",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            SendRequest->Flags",
+            "UserSuppliedTrimmed": "SendRequest->Flags",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "IndicateDatagramReceived": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "607",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] Indicating DATAGRAM_RECEIVED [len=%hu]",
+      "UniqueId": "IndicateDatagramReceived",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        (uint16_t)Frame.Length",
+            "UserSuppliedTrimmed": "(uint16_t)Frame.Length",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FrameLogDatagramInvalid": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "608",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[%c][%cX][%llu]   DATAGRAM [Invalid]",
+      "UniqueId": "FrameLogDatagramInvalid",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                PtkConnPre(Connection)",
+            "UserSuppliedTrimmed": "PtkConnPre(Connection)",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                PktRxPre(Rx)",
+            "UserSuppliedTrimmed": "PktRxPre(Rx)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                PacketNumber",
+            "UserSuppliedTrimmed": "PacketNumber",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "FrameLogDatagram": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "609",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[%c][%cX][%llu]   DATAGRAM Len:%hu",
+      "UniqueId": "FrameLogDatagram",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            PtkConnPre(Connection)",
+            "UserSuppliedTrimmed": "PtkConnPre(Connection)",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            PktRxPre(Rx)",
+            "UserSuppliedTrimmed": "PktRxPre(Rx)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            PacketNumber",
+            "UserSuppliedTrimmed": "PacketNumber",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            (uint16_t)Frame.Length",
+            "UserSuppliedTrimmed": "(uint16_t)Frame.Length",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "SessionDatagramReceiveEnabledSet": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "610",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[sess][%p] Updated datagram receive enabled to %hhu",
+      "UniqueId": "SessionDatagramReceiveEnabledSet",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            Session",
+            "UserSuppliedTrimmed": "Session",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            Session->Settings.DatagramReceiveEnabled",
+            "UserSuppliedTrimmed": "Session->Settings.DatagramReceiveEnabled",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
+    },
+    "SettingDumpDatagramReceiveEnabled": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "611",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[sett] DatagramReceiveEnabled = %hhu",
+      "UniqueId": "SettingDumpDatagramReceiveEnabled",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": " Settings->DatagramReceiveEnabled",
+            "UserSuppliedTrimmed": "Settings->DatagramReceiveEnabled",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
     }
   },
   "Version": 1,
@@ -29511,10 +30127,6 @@
         "TraceID": "ClearSendFlags"
       },
       {
-        "UniquenessHash": "c9c241f2-8af2-8bd6-76cd-1e5a6342573a",
-        "TraceID": "PathMtuUpdated"
-      },
-      {
         "UniquenessHash": "5ce88c6c-6ea0-1f73-2a1f-15301e6565c2",
         "TraceID": "CancelAckDelayTimer"
       },
@@ -30673,6 +31285,54 @@
       {
         "UniquenessHash": "f4248703-23be-e418-2b90-c9670966f154",
         "TraceID": "TestIgnoreConnectionTimeout"
+      },
+      {
+        "UniquenessHash": "886942eb-0bdc-fffd-0a3b-e2ea639228bb",
+        "TraceID": "DatagramReceiveEnableUpdated"
+      },
+      {
+        "UniquenessHash": "d276c997-5dfb-645e-b54a-7ec567967851",
+        "TraceID": "EncodeMaxDatagramFrameSize"
+      },
+      {
+        "UniquenessHash": "87156c11-9645-fbe7-66fe-c68ef5b80a18",
+        "TraceID": "DecodeTPMaxDatagramFrameSize"
+      },
+      {
+        "UniquenessHash": "152723b4-2b46-a936-ffaf-9cc429e8e66f",
+        "TraceID": "DatagramSendStateChanged"
+      },
+      {
+        "UniquenessHash": "61e4bec5-f94e-a8cd-1c05-04b24a1c89ff",
+        "TraceID": "DatagramSendShutdown"
+      },
+      {
+        "UniquenessHash": "bfbc130b-6496-c8c1-c193-82dc7dbfb83e",
+        "TraceID": "IndicateDatagramStateChanged"
+      },
+      {
+        "UniquenessHash": "02aca78b-b8be-4340-6f05-e81c018e6625",
+        "TraceID": "DatagramSendQueued"
+      },
+      {
+        "UniquenessHash": "6cac678c-2cc7-84af-5059-9622332c579b",
+        "TraceID": "IndicateDatagramReceived"
+      },
+      {
+        "UniquenessHash": "e447af81-8615-d95b-02a9-ba9dd4b1ea19",
+        "TraceID": "FrameLogDatagramInvalid"
+      },
+      {
+        "UniquenessHash": "a23b67c8-c2da-dfbe-2c86-728785bcdfb3",
+        "TraceID": "FrameLogDatagram"
+      },
+      {
+        "UniquenessHash": "6d4e7f68-5e0e-704a-b2e9-286af412d91b",
+        "TraceID": "SessionDatagramReceiveEnabledSet"
+      },
+      {
+        "UniquenessHash": "d4201eb3-a633-2e4e-e23a-2c5e045234fa",
+        "TraceID": "SettingDumpDatagramReceiveEnabled"
       }
     ]
   }
