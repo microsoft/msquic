@@ -109,6 +109,7 @@ ServerConnectionCallback(
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
         printf("[conn][%p] Connected\n", Connection);
+        MsQuic->ConnectionSendResumptionTicket(Connection, 0, NULL);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
@@ -121,6 +122,10 @@ ServerConnectionCallback(
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
         printf("[strm][%p] Peer started\n", Event->PEER_STREAM_STARTED.Stream);
         MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)ServerStreamCallback, nullptr);
+        MsQuic->ConnectionSendResumptionTicket(Connection, 0, NULL);
+        break;
+    case QUIC_CONNECTION_EVENT_RESUMED:
+        printf("[conn][%p] Connection resumed!\n", Connection);
         break;
     default:
         break;
@@ -316,6 +321,12 @@ ClientConnectionCallback(
         printf("[conn][%p] All done\n", Connection);
         MsQuic->ConnectionClose(Connection);
         break;
+    case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
+        printf("[conn][%p] Resumption ticket received!\n", Connection);
+        PrintResumptionTicket(
+            Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket,
+            Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
+        break;
     default:
         break;
     }
@@ -333,6 +344,21 @@ RunClient(
     if (QUIC_FAILED(Status = MsQuic->ConnectionOpen(Session, ClientConnectionCallback, nullptr, &Connection))) {
         printf("ConnectionOpen failed, 0x%x!\n", Status);
         goto Error;
+    }
+
+    const char* ResumptionTicketString;
+    if (!TryGetValue(argc, argv, "ticket", &ResumptionTicketString)) {
+        uint16_t TicketLength = strlen(ResumptionTicketString) / 2;
+        const uint8_t* ResumptionTicket = HexToByteArray(ResumptionTicketString);
+        if (QUIC_FAILED(Status = MsQuic->SetParam(
+                Connection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_RESUMPTION_TICKET,
+                TicketLength,
+                ResumptionTicket))) {
+            printf("SetParam(QUIC_PARAM_CONN_RESUMPTION_TICKET) failed, 0x%x!\n", Status);
+            goto Error;
+        }
     }
 
     if (GetValue(argc, argv, "unsecure")) {
