@@ -882,10 +882,10 @@ QuicCertValidateChain(
         int ServerNameLength = MultiByteToWideChar(CP_UTF8, 0, Host, -1, NULL, 0);
         if (ServerNameLength == 0) {
             QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            GetLastError(),
-            "MultiByteToWideChar(1) failed");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                GetLastError(),
+                "MultiByteToWideChar(1) failed");
             goto Exit;
         }
 
@@ -902,10 +902,10 @@ QuicCertValidateChain(
         ServerNameLength = MultiByteToWideChar(CP_UTF8, 0, Host, -1, ServerName, ServerNameLength);
         if (ServerNameLength == 0) {
             QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            GetLastError(),
-            "MultiByteToWideChar(2) failed");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                GetLastError(),
+                "MultiByteToWideChar(2) failed");
             goto Exit;
         }
     }
