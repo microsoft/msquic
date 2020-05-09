@@ -131,9 +131,15 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ShareBinding : 1;
 
         //
-        // Indicate the TestTransportParameter variable has been set by the app.
+        // Indicates the TestTransportParameter variable has been set by the app.
         //
         BOOLEAN TestTransportParameterSet : 1;
+
+        //
+        // Indicates the connection is using the round robin stream scheduling
+        // scheme.
+        //
+        BOOLEAN UseRoundRobinStreamScheduling : 1;
 
 #ifdef QuicVerifierEnabledByAddr
         //
@@ -509,6 +515,11 @@ typedef struct QUIC_CONNECTION {
     QUIC_SEND_BUFFER SendBuffer;
 
     //
+    // Manages datagrams for the connection.
+    //
+    QUIC_DATAGRAM Datagram;
+
+    //
     // The handler for the API client's callbacks.
     //
     QUIC_CONNECTION_CALLBACK_HANDLER ClientCallbackHandler;
@@ -649,6 +660,19 @@ QuicLossDetectionGetConnection(
     return QUIC_CONTAINING_RECORD(LossDetection, QUIC_CONNECTION, LossDetection);
 }
 
+//
+// Helper to get the owning QUIC_CONNECTION for datagram.
+//
+inline
+_Ret_notnull_
+QUIC_CONNECTION*
+QuicDatagramGetConnection(
+    _In_ QUIC_DATAGRAM* Datagram
+    )
+{
+    return QUIC_CONTAINING_RECORD(Datagram, QUIC_CONNECTION, Datagram);
+}
+
 inline
 void
 QuicConnLogOutFlowStats(
@@ -659,45 +683,35 @@ QuicConnLogOutFlowStats(
         return;
     }
 
-    uint64_t FcAvailable;
-    uint64_t SendWindow;
+    const QUIC_PATH* Path = &Connection->Paths[0];
+    UNREFERENCED_PARAMETER(Path);
 
+    QuicTraceEvent(
+        ConnOutFlowStats,
+        "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u",
+        Connection,
+        Connection->Stats.Send.TotalBytes,
+        Connection->CongestionControl.BytesInFlight,
+        Connection->CongestionControl.BytesInFlightMax,
+        Connection->CongestionControl.CongestionWindow,
+        Connection->CongestionControl.SlowStartThreshold,
+        Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
+        Connection->SendBuffer.IdealBytes,
+        Connection->SendBuffer.PostedBytes,
+        Path->GotFirstRttSample ? Path->SmoothedRtt : 0);
+
+    uint64_t FcAvailable, SendWindow;
     QuicStreamSetGetFlowControlSummary(
         &Connection->Streams,
         &FcAvailable,
         &SendWindow);
 
-#ifdef QUIC_EVENTS_LTTNG // LTTng has a max of 10 fields.
     QuicTraceEvent(
-        ConnOutFlowStats,
+        ConnOutFlowStreamStats,
+        "[conn][%p] OUT: StreamFC=%llu StreamSendWindow=%llu",
         Connection,
-        Connection->Stats.Send.TotalBytes,
-        Connection->CongestionControl.BytesInFlight,
-        Connection->CongestionControl.BytesInFlightMax,
-        Connection->CongestionControl.CongestionWindow,
-        Connection->CongestionControl.SlowStartThreshold,
-        Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
         FcAvailable,
-        Connection->SendBuffer.IdealBytes,
-        Connection->SendBuffer.PostedBytes);
-#else
-    const QUIC_PATH* Path = &Connection->Paths[0];
-    UNREFERENCED_PARAMETER(Path);
-    QuicTraceEvent(
-        ConnOutFlowStats,
-        Connection,
-        Connection->Stats.Send.TotalBytes,
-        Connection->CongestionControl.BytesInFlight,
-        Connection->CongestionControl.BytesInFlightMax,
-        Connection->CongestionControl.CongestionWindow,
-        Connection->CongestionControl.SlowStartThreshold,
-        Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
-        FcAvailable,
-        Connection->SendBuffer.IdealBytes,
-        Connection->SendBuffer.PostedBytes,
-        Path->GotFirstRttSample ? Path->SmoothedRtt : 0,
         SendWindow);
-#endif
 }
 
 inline
@@ -709,6 +723,7 @@ QuicConnLogInFlowStats(
     UNREFERENCED_PARAMETER(Connection);
     QuicTraceEvent(
         ConnInFlowStats,
+        "[conn][%p] IN: BytesRecv=%llu",
         Connection,
         Connection->Stats.Recv.TotalBytes);
 }
@@ -719,11 +734,23 @@ QuicConnLogStatistics(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
-#ifdef QUIC_EVENTS_LTTNG // LTTng has a max of 10 fields.
+    const QUIC_PATH* Path = &Connection->Paths[0];
+    UNREFERENCED_PARAMETER(Path);
+
     QuicTraceEvent(
-        ConnStatistics,
+        ConnStats,
+        "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu",
         Connection,
-        QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()),
+        Path->SmoothedRtt,
+        Connection->Stats.Send.CongestionCount,
+        Connection->Stats.Send.PersistentCongestionCount,
+        Connection->Stats.Send.TotalBytes,
+        Connection->Stats.Recv.TotalBytes);
+
+    QuicTraceEvent(
+        ConnPacketStats,
+        "[conn][%p] STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu",
+        Connection,
         Connection->Stats.Send.TotalPackets,
         Connection->Stats.Send.SuspectedLostPackets,
         Connection->Stats.Send.SpuriousLostPackets,
@@ -732,27 +759,6 @@ QuicConnLogStatistics(
         Connection->Stats.Recv.DroppedPackets,
         Connection->Stats.Recv.DuplicatePackets,
         Connection->Stats.Recv.DecryptionFailures);
-#else
-    const QUIC_PATH* Path = &Connection->Paths[0];
-    UNREFERENCED_PARAMETER(Path);
-    QuicTraceEvent(
-        ConnStatistics,
-        Connection,
-        QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()),
-        Connection->Stats.Send.TotalPackets,
-        Connection->Stats.Send.SuspectedLostPackets,
-        Connection->Stats.Send.SpuriousLostPackets,
-        Connection->Stats.Recv.TotalPackets,
-        Connection->Stats.Recv.ReorderedPackets,
-        Connection->Stats.Recv.DroppedPackets,
-        Connection->Stats.Recv.DuplicatePackets,
-        Connection->Stats.Recv.DecryptionFailures,
-        Connection->Stats.Send.CongestionCount,
-        Connection->Stats.Send.PersistentCongestionCount,
-        Connection->Stats.Send.TotalBytes,
-        Connection->Stats.Recv.TotalBytes,
-        Path->SmoothedRtt);
-#endif
 }
 
 inline
@@ -764,7 +770,11 @@ QuicConnAddOutFlowBlockedReason(
 {
     if (!(Connection->OutFlowBlockedReasons & Reason)) {
         Connection->OutFlowBlockedReasons |= Reason;
-        QuicTraceEvent(ConnOutFlowBlocked, Connection, Connection->OutFlowBlockedReasons);
+        QuicTraceEvent(
+            ConnOutFlowBlocked,
+            "[conn][%p] Send Blocked Flags: %hhu",
+            Connection,
+            Connection->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -779,7 +789,11 @@ QuicConnRemoveOutFlowBlockedReason(
 {
     if ((Connection->OutFlowBlockedReasons & Reason)) {
         Connection->OutFlowBlockedReasons &= ~Reason;
-        QuicTraceEvent(ConnOutFlowBlocked, Connection, Connection->OutFlowBlockedReasons);
+        QuicTraceEvent(
+            ConnOutFlowBlocked,
+            "[conn][%p] Send Blocked Flags: %hhu",
+            Connection,
+            Connection->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -1022,6 +1036,7 @@ QuicConnGetSourceCidFromSeq(
                     SourceCid);
                 QuicTraceEvent(
                     ConnSourceCidRemoved,
+                    "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
                     Connection,
                     SourceCid->CID.SequenceNumber,
                     SourceCid->CID.Length,

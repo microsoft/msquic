@@ -704,8 +704,6 @@ ConnEventCallback(
         Cxn->TxBufBytes = EvData->OutFlowStats.PostedBytes;
         Cxn->SmoothedRtt = EvData->OutFlowStats.SmoothedRtt;
         Cxn->ConnFlowAvailable = EvData->OutFlowStats.ConnectionFlowControl;
-        Cxn->StreamFlowAvailable = EvData->OutFlowStats.StreamFlowControl;
-        Cxn->StreamSendWindow = EvData->OutFlowStats.StreamSendWindow;
         if (TputEvent) {
             OutputCxnTputSample(Cxn);
         }
@@ -787,16 +785,11 @@ ConnEventCallback(
         break;
     }
     case EventId_QuicConnStatistics: {
-        Cxn->BytesSent = EvData->Statistics.SendTotalBytes;
-        Cxn->BytesReceived = EvData->Statistics.RecvTotalBytes;
-        Cxn->CongestionEvents = EvData->Statistics.CongestionCount;
-        Cxn->PersistentCongestionEvents = EvData->Statistics.PersistentCongestionCount;
-        Cxn->SmoothedRtt = EvData->Statistics.SmoothedRtt;
-        Cxn->SentPackets = EvData->Statistics.SendTotalPackets;
-        Cxn->LostPackets =
-            EvData->Statistics.SendSuspectedLostPackets - EvData->Statistics.SendSpuriousLostPackets;
-        Cxn->ReceivedPackets = EvData->Statistics.RecvTotalPackets;
-        Cxn->DroppedPackets = EvData->Statistics.RecvDroppedPackets;
+        Cxn->BytesSent = EvData->Stats.SendTotalBytes;
+        Cxn->BytesReceived = EvData->Stats.RecvTotalBytes;
+        Cxn->CongestionEvents = EvData->Stats.CongestionCount;
+        Cxn->PersistentCongestionEvents = EvData->Stats.PersistentCongestionCount;
+        Cxn->SmoothedRtt = EvData->Stats.SmoothedRtt;
         Cxn->StatsProcessed = TRUE;
         break;
     }
@@ -848,6 +841,24 @@ ConnEventCallback(
             QjObjectEnd(Qj);
             QjCxnEventEnd();
         }
+        break;
+    }
+    case EventId_QuicConnOutFlowStreamStats: {
+        Trace.HasDatapathEvents = TRUE;
+        Cxn->StreamFlowAvailable = EvData->OutFlowStreamStats.StreamFlowControl;
+        Cxn->StreamSendWindow = EvData->OutFlowStreamStats.StreamSendWindow;
+        if (TputEvent) {
+            OutputCxnTputSample(Cxn);
+        }
+        break;
+    }
+    case EventId_QuicConnPacketStats: {
+        Cxn->SentPackets = EvData->PacketStats.SendTotalPackets;
+        Cxn->LostPackets =
+            EvData->PacketStats.SendSuspectedLostPackets - EvData->PacketStats.SendSpuriousLostPackets;
+        Cxn->ReceivedPackets = EvData->PacketStats.RecvTotalPackets;
+        Cxn->DroppedPackets = EvData->PacketStats.RecvDroppedPackets;
+        Cxn->StatsProcessed = TRUE;
         break;
     }
     }

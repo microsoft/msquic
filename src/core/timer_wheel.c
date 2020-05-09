@@ -57,10 +57,6 @@ Abstract:
 //
 #define QUIC_TIMER_WHEEL_MAX_LOAD_FACTOR    32
 
-#ifdef QUIC_LOGS_WPP
-#include "timer_wheel.tmh"
-#endif
-
 //
 // Helper to get the slot index for a given time.
 //
@@ -80,7 +76,9 @@ QuicTimerWheelInitialize(
     TimerWheel->Slots =
         QUIC_ALLOC_NONPAGED(QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(QUIC_LIST_ENTRY));
     if (TimerWheel->Slots == NULL) {
-        QuicTraceEvent(AllocFailure, "timerwheel slots",
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)", "timerwheel slots",
             QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(QUIC_LIST_ENTRY));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
@@ -104,7 +102,10 @@ QuicTimerWheelUninitialize(
         while (Entry != ListHead) {
             QUIC_CONNECTION* Connection =
                 QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
-            QuicTraceLogConnWarning(StillInTimerWheel, Connection, "Still in timer wheel! Connection was likely leaked!");
+            QuicTraceLogConnWarning(
+                StillInTimerWheel,
+                Connection,
+                "Still in timer wheel! Connection was likely leaked!");
             Entry = Entry->Blink;
         }
         QUIC_TEL_ASSERT(QuicListIsEmpty(&TimerWheel->Slots[i]));
@@ -133,12 +134,18 @@ QuicTimerWheelResize(
     QUIC_LIST_ENTRY* NewSlots =
         QUIC_ALLOC_NONPAGED(NewSlotCount * sizeof(QUIC_LIST_ENTRY));
     if (NewSlots == NULL) {
-        QuicTraceEvent(AllocFailure, "timerwheel slots (realloc)",
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)", "timerwheel slots (realloc)",
             NewSlotCount * sizeof(QUIC_LIST_ENTRY));
         return;
     }
 
-    QuicTraceLogVerbose("[time][%p] Resizing timer wheel (new slot count = %u).", TimerWheel, NewSlotCount);
+    QuicTraceLogVerbose(
+        TimerWheelResize,
+        "[time][%p] Resizing timer wheel (new slot count = %u).",
+        TimerWheel,
+        NewSlotCount);
 
     for (uint32_t i = 0; i < NewSlotCount; ++i) {
         QuicListInitializeHead(&NewSlots[i]);
@@ -225,10 +232,17 @@ QuicTimerWheelUpdate(
     }
 
     if (TimerWheel->NextConnection == NULL) {
-        QuicTraceLogVerbose("[time][%p] Next Expiration = {NULL}.", TimerWheel);
+        QuicTraceLogVerbose(
+            TimerWheelNextExpirationNull,
+            "[time][%p] Next Expiration = {NULL}.",
+            TimerWheel);
     } else {
-        QuicTraceLogVerbose("[time][%p] Next Expiration = {%llu, %p}.",
-            TimerWheel, TimerWheel->NextExpirationTime, TimerWheel->NextConnection);
+        QuicTraceLogVerbose(
+            TimerWheelNextExpiration,
+            "[time][%p] Next Expiration = {%llu, %p}.",
+            TimerWheel,
+            TimerWheel->NextExpirationTime,
+            TimerWheel->NextConnection);
     }
 }
 
@@ -244,7 +258,11 @@ QuicTimerWheelRemoveConnection(
         // If the connection was in the timer wheel, remove its entry in the
         // doubly-link list.
         //
-        QuicTraceLogVerbose("[time][%p] Removing Connection %p.", TimerWheel, Connection);
+        QuicTraceLogVerbose(
+            TimerWheelRemoveConnection,
+            "[time][%p] Removing Connection %p.",
+            TimerWheel,
+            Connection);
         QuicListEntryRemove(&Connection->TimerLink);
         Connection->TimerLink.Flink = NULL;
         TimerWheel->ConnectionCount--;
@@ -290,7 +308,11 @@ QuicTimerWheelUpdateConnection(
         // No more timers left, go ahead and invalidate its link.
         //
         Connection->TimerLink.Flink = NULL;
-        QuicTraceLogVerbose("[time][%p] Removing Connection %p.", TimerWheel, Connection);
+        QuicTraceLogVerbose(
+            TimerWheelRemoveConnection,
+            "[time][%p] Removing Connection %p.",
+            TimerWheel,
+            Connection);
 
         if (Connection == TimerWheel->NextConnection) {
             QuicTimerWheelUpdate(TimerWheel);
@@ -325,7 +347,11 @@ QuicTimerWheelUpdateConnection(
         //
         QuicListInsertHead(Entry, &Connection->TimerLink);
 
-        QuicTraceLogVerbose("[time][%p] Updating Connection %p.", TimerWheel, Connection);
+        QuicTraceLogVerbose(
+            TimerWheelUpdateConnection,
+            "[time][%p] Updating Connection %p.",
+            TimerWheel,
+            Connection);
 
         //
         // Make sure the next expiration time/connection is still correct.
@@ -333,8 +359,12 @@ QuicTimerWheelUpdateConnection(
         if (ExpirationTime < TimerWheel->NextExpirationTime) {
             TimerWheel->NextExpirationTime = ExpirationTime;
             TimerWheel->NextConnection = Connection;
-            QuicTraceLogVerbose("[time][%p] Next Expiration = {%llu, %p}.",
-                TimerWheel, ExpirationTime, Connection);
+            QuicTraceLogVerbose(
+                TimerWheelNextExpiration,
+                "[time][%p] Next Expiration = {%llu, %p}.",
+                TimerWheel,
+                ExpirationTime,
+                Connection);
         } else if (Connection == TimerWheel->NextConnection) {
             QuicTimerWheelUpdate(TimerWheel);
         }

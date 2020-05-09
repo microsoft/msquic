@@ -106,6 +106,12 @@ typedef enum QUIC_CONNECTION_SHUTDOWN_FLAGS {
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CONNECTION_SHUTDOWN_FLAGS);
 
+typedef enum QUIC_STREAM_SCHEDULING_SCHEME {
+    QUIC_STREAM_SCHEDULING_SCHEME_FIFO          = 0x0000,   // Sends stream data first come, first served. (Default)
+    QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN   = 0x0001,   // Sends stream data evenly multiplexed.
+    QUIC_STREAM_SCHEDULING_SCHEME_COUNT                     // The number of stream scheduling schemes.
+} QUIC_STREAM_SCHEDULING_SCHEME;
+
 typedef enum QUIC_STREAM_OPEN_FLAGS {
     QUIC_STREAM_OPEN_FLAG_NONE              = 0x0000,
     QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL    = 0x0001,   // Indicates the stream is unidirectional.
@@ -145,10 +151,27 @@ DEFINE_ENUM_FLAG_OPERATORS(QUIC_RECEIVE_FLAGS);
 typedef enum QUIC_SEND_FLAGS {
     QUIC_SEND_FLAG_NONE                     = 0x0000,
     QUIC_SEND_FLAG_ALLOW_0_RTT              = 0x0001,   // Allows the use of encrypting with 0-RTT key.
-    QUIC_SEND_FLAG_FIN                      = 0x0002    // Indicates the request is the one last sent on the stream.
+    QUIC_SEND_FLAG_FIN                      = 0x0002,   // Indicates the request is the one last sent on the stream.
+    QUIC_SEND_FLAG_DGRAM_PRIORITY           = 0x0004    // Indicates the datagram is higher priority than others.
 } QUIC_SEND_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEND_FLAGS);
+
+typedef enum QUIC_DATAGRAM_SEND_STATE {
+    QUIC_DATAGRAM_SEND_SENT,                            // Sent and awaiting acknowledegment
+    QUIC_DATAGRAM_SEND_LOST_SUSPECT,                    // Suspected as lost, but still tracked
+    QUIC_DATAGRAM_SEND_LOST_DISCARDED,                  // Lost and not longer being tracked
+    QUIC_DATAGRAM_SEND_ACKNOWLEDGED,                    // Acknowledged
+    QUIC_DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS,           // Acknowledged after being suspected lost
+    QUIC_DATAGRAM_SEND_CANCELED                         // Canceled before send
+} QUIC_DATAGRAM_SEND_STATE;
+
+//
+// Helper to determine if a datagrams state is final, and no longer tracked
+// by MsQuic.
+//
+#define QUIC_DATAGRAM_SEND_STATE_IS_FINAL(State) \
+    (State >= QUIC_DATAGRAM_SEND_LOST_DISCARDED)
 
 
 typedef struct QUIC_REGISTRATION_CONFIG { // All fields may be NULL/zero.
@@ -328,6 +351,7 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_SESSION_DISCONNECT_TIMEOUT           4   // uint32_t - milliseconds
 #define QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY            5   // uint64_t - bytes
 #define QUIC_PARAM_SESSION_MIGRATION_ENABLED            6   // uint8_t (BOOLEAN)
+#define QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED     7   // uint8_t (BOOLEAN)
 
 //
 // Parameters for QUIC_PARAM_LEVEL_LISTENER.
@@ -358,6 +382,9 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_SHARE_UDP_BINDING               17  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_IDEAL_PROCESSOR                 18  // uint8_t
 #define QUIC_PARAM_CONN_MAX_STREAM_IDS                  19  // uint64_t[4]
+#define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME        20  // QUIC_STREAM_SCHEDULING_SCHEME
+#define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED        21  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED           22  // uint8_t (BOOLEAN)
 
 #ifdef WIN32 // Windows certificate validation ignore flags.
 #define QUIC_CERTIFICATE_FLAG_IGNORE_REVOCATION                 0x00000080
@@ -619,7 +646,10 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED               = 6,
     QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE                 = 7,
     QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS                = 8,
-    QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED           = 9
+    QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED           = 9,
+    QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED            = 10,
+    QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED                 = 11,
+    QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED       = 12
 } QUIC_CONNECTION_EVENT_TYPE;
 
 typedef struct QUIC_CONNECTION_EVENT {
@@ -657,6 +687,18 @@ typedef struct QUIC_CONNECTION_EVENT {
         struct {
             uint8_t IdealProcessor;
         } IDEAL_PROCESSOR_CHANGED;
+        struct {
+            BOOLEAN SendEnabled;
+            uint16_t MaxSendLength;
+        } DATAGRAM_STATE_CHANGED;
+        struct {
+            const QUIC_BUFFER* Buffer;
+            QUIC_RECEIVE_FLAGS Flags;
+        } DATAGRAM_RECEIVED;
+        struct {
+            /* inout */ void* ClientContext;
+            QUIC_DATAGRAM_SEND_STATE State;
+        } DATAGRAM_SEND_STATE_CHANGED;
     };
 } QUIC_CONNECTION_EVENT;
 
@@ -878,6 +920,26 @@ QUIC_STATUS
     );
 
 //
+// Datagrams
+//
+
+//
+// Sends an unreliable datagram on the connection. Note, the total payload
+// of the send must fit in a single QUIC packet.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_DATAGRAM_SEND_FN)(
+    _In_ _Pre_defensive_ HQUIC Connection,
+    _In_reads_(BufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const Buffers,
+    _In_ uint32_t BufferCount,
+    _In_ QUIC_SEND_FLAGS Flags,
+    _In_opt_ void* ClientSendContext
+    );
+
+//
 // API Function Table.
 //
 typedef struct QUIC_API_TABLE {
@@ -916,6 +978,8 @@ typedef struct QUIC_API_TABLE {
     QUIC_STREAM_SEND_FN                 StreamSend;
     QUIC_STREAM_RECEIVE_COMPLETE_FN     StreamReceiveComplete;
     QUIC_STREAM_RECEIVE_SET_ENABLED_FN  StreamReceiveSetEnabled;
+
+    QUIC_DATAGRAM_SEND_FN               DatagramSend;
 
 } QUIC_API_TABLE;
 

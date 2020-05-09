@@ -7,10 +7,6 @@
 
 #include "quic_gtest.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "quic_gtest.tmh"
-#endif
-
 bool TestingKernelMode = false;
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
@@ -111,17 +107,28 @@ LogTestFailure(
     va_start(Args, Format);
     (void)_vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, Format, Args);
     va_end(Args);
-    QuicTraceLogError("[test] FAILURE - %s:%d - %s", File, Line, Buffer);
+    QuicTraceLogError(
+        TestLogFailure,
+        "[test] FAILURE - %s:%d - %s",
+        File,
+        Line,
+        Buffer);
     GTEST_MESSAGE_AT_(File, Line, Buffer, ::testing::TestPartResult::kFatalFailure);
 }
 
 struct TestLogger {
     const char* TestName;
     TestLogger(const char* Name) : TestName(Name) {
-        QuicTraceLogInfo("[test] START %s", TestName);
+        QuicTraceLogInfo(
+            TestCaseStart,
+            "[test] START %s",
+            TestName);
     }
     ~TestLogger() {
-        QuicTraceLogInfo("[test] END %s", TestName);
+        QuicTraceLogInfo(
+            TestCaseEnd,
+            "[test] END %s",
+            TestName);
     }
 };
 
@@ -130,10 +137,17 @@ struct TestLoggerT {
     const char* TestName;
     TestLoggerT(const char* Name, const T& Params) : TestName(Name) {
         std::ostringstream stream; stream << Params;
-        QuicTraceLogInfo("[test] START %s, %s", TestName, stream.str().c_str());
+        QuicTraceLogInfo(
+            TestCaseTStart,
+            "[test] START %s, %s",
+            TestName,
+            stream.str().c_str());
     }
     ~TestLoggerT() {
-        QuicTraceLogInfo("[test] END %s", TestName);
+        QuicTraceLogInfo(
+            TestCaseTEnd,
+            "[test] END %s",
+            TestName);
     }
 };
 
@@ -327,7 +341,8 @@ TEST_P(WithHandshakeArgs1, Connect) {
             (uint8_t)GetParam().MultipleALPNs,
             0,  // AsyncSecConfig
             (uint8_t)GetParam().MultiPacketClientInitial,
-            (uint8_t)GetParam().SessionResumption
+            (uint8_t)GetParam().SessionResumption,
+            0   // RandomLossPercentage
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
     } else {
@@ -340,7 +355,8 @@ TEST_P(WithHandshakeArgs1, Connect) {
             GetParam().MultipleALPNs,
             false,  // AsyncSecConfig
             GetParam().MultiPacketClientInitial,
-            GetParam().SessionResumption);
+            GetParam().SessionResumption,
+            0);     // RandomLossPercentage
     }
 }
 
@@ -355,7 +371,9 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
             0,  // ChangeMaxStreamID
             0,  // MultipleALPNs
             0,  // AsyncSecConfig
-            0   // SessionResumption
+            0,  // MultiPacketClientInitial
+            0,  // SessionResumption
+            0   // RandomLossPercentage
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
     } else {
@@ -368,7 +386,8 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
             false,  // MultipleALPNs
             false,  // AsyncSecConfig
             false,  // MultiPacketClientInitial
-            false); // SessionResumption
+            false,  // SessionResumption
+            0);     // RandomLossPercentage
     }
 }
 
@@ -394,7 +413,9 @@ TEST_P(WithFamilyArgs, Rebind) {
             0,  // ChangeMaxStreamID
             0,  // MultipleALPNs
             0,  // AsyncSecConfig
-            0   // SessionResumption
+            0,  // MultiPacketClientInitial
+            0,  // SessionResumption
+            0   // RandomLossPercentage
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));*/
     } else {
@@ -407,7 +428,8 @@ TEST_P(WithFamilyArgs, Rebind) {
             false,  // MultipleALPNs
             false,  // AsyncSecConfig
             false,  // MultiPacketClientInitial
-            false); // SessionResumption
+            false,  // SessionResumption
+            0);     // RandomLossPercentage
     }
 }
 
@@ -422,7 +444,9 @@ TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
             1,  // ChangeMaxStreamID
             0,  // MultipleALPNs
             0,  // AsyncSecConfig
-            0   // SessionResumption
+            0,  // MultiPacketClientInitial
+            0,  // SessionResumption
+            0   // RandomLossPercentage
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
     } else {
@@ -435,11 +459,12 @@ TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
             false,  // MultipleALPNs
             false,  // AsyncSecConfig
             false,  // MultiPacketClientInitial
-            false); // SessionResumption
+            false,  // SessionResumption
+            0);     // RandomLossPercentage
     }
 }
 
-TEST_P(WithHandshakeArgs1, AsyncSecurityConfig) {
+TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-AsyncSecurityConfig", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_PARAMS Params = {
@@ -450,7 +475,9 @@ TEST_P(WithHandshakeArgs1, AsyncSecurityConfig) {
             0,  // ChangeMaxStreamID
             (uint8_t)GetParam().MultipleALPNs,
             1,  // AsyncSecConfig
-            0   // SessionResumption
+            0,  // MultiPacketClientInitial
+            0,  // SessionResumption
+            0   // RandomLossPercentage
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
     } else {
@@ -463,7 +490,39 @@ TEST_P(WithHandshakeArgs1, AsyncSecurityConfig) {
             GetParam().MultipleALPNs,
             true,   // AsyncSecConfig
             false,  // MultiPacketClientInitial
-            false); // SessionResumption
+            false,  // SessionResumption
+            0);     // RandomLossPercentage
+    }
+}
+
+TEST_P(WithHandshakeArgs4, RandomLoss) {
+    TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLoss", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CONNECT_PARAMS Params = {
+            GetParam().Family,
+            (uint8_t)GetParam().ServerStatelessRetry,
+            0,  // ClientUsesOldVersion
+            0,  // ClientRebind
+            0,  // ChangeMaxStreamID
+            0,  // MultipleALPNs
+            0,  // AsyncSecConfig
+            (uint8_t)GetParam().MultiPacketClientInitial,
+            (uint8_t)GetParam().SessionResumption,
+            GetParam().RandomLossPercentage
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
+    } else {
+        QuicTestConnect(
+            GetParam().Family,
+            GetParam().ServerStatelessRetry,
+            false,  // ClientUsesOldVersion
+            false,  // ClientRebind
+            false,  // ChangeMaxStreamID
+            false,  // MultipleALPNs,
+            false,  // AsyncSecConfig
+            GetParam().MultiPacketClientInitial,
+            GetParam().SessionResumption,
+            GetParam().RandomLossPercentage);
     }
 }
 
@@ -515,11 +574,12 @@ TEST_P(WithSendArgs1, Send) {
             0,  // StreamBurstDelayMs
             0,  // ServerStatelessRetry
             0,  // ClientRebind
-            0,  // ClientZeroRtt,
+            0,  // ClientZeroRtt
             0,  // ServerRejectZeroRtt
             (uint8_t)GetParam().UseSendBuffer,
             (uint8_t)GetParam().UnidirectionalStreams,
-            (uint8_t)GetParam().ServerInitiatedStreams
+            (uint8_t)GetParam().ServerInitiatedStreams,
+            0   // FifoScheduling
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
     } else {
@@ -536,7 +596,8 @@ TEST_P(WithSendArgs1, Send) {
             false,  // ServerRejectZeroRtt
             GetParam().UseSendBuffer,
             GetParam().UnidirectionalStreams,
-            GetParam().ServerInitiatedStreams);
+            GetParam().ServerInitiatedStreams,
+            false); // FifoScheduling
     }
 }
 
@@ -556,7 +617,8 @@ TEST_P(WithSendArgs2, SendLarge) {
             0,  // ServerRejectZeroRtt
             (uint8_t)GetParam().UseSendBuffer,
             0,  // UnidirectionalStreams
-            0   // ServerInitiatedStreams
+            0,  // ServerInitiatedStreams
+            1   // FifoScheduling
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
     } else {
@@ -573,7 +635,8 @@ TEST_P(WithSendArgs2, SendLarge) {
             false,  // ServerRejectZeroRtt
             GetParam().UseSendBuffer,
             false,  // UnidirectionalStreams
-            false); // ServerInitiatedStreams
+            false,  // ServerInitiatedStreams
+            true);  // FifoScheduling
     }
 }
 
@@ -593,7 +656,8 @@ TEST_P(WithSendArgs3, SendIntermittently) {
             0,  // ServerRejectZeroRtt
             (uint8_t)GetParam().UseSendBuffer,
             0,  // UnidirectionalStreams
-            0   // ServerInitiatedStreams
+            0,  // ServerInitiatedStreams
+            0   // FifoScheduling
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
     } else {
@@ -610,7 +674,8 @@ TEST_P(WithSendArgs3, SendIntermittently) {
             false,  // ServerRejectZeroRtt
             GetParam().UseSendBuffer,
             false,  // UnidirectionalStreams
-            false); // ServerInitiatedStreams
+            false,  // ServerInitiatedStreams
+            false); // FifoScheduling
     }
 }
 
@@ -632,7 +697,8 @@ TEST_P(WithSend0RttArgs1, Send0Rtt) {
             0,  // ServerRejectZeroRtt
             (uint8_t)GetParam().UseSendBuffer,
             (uint8_t)GetParam().UnidirectionalStreams,
-            0   // ServerInitiatedStreams
+            0,  // ServerInitiatedStreams
+            0   // FifoScheduling
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
     } else {
@@ -649,7 +715,8 @@ TEST_P(WithSend0RttArgs1, Send0Rtt) {
             false,  // ServerRejectZeroRtt
             GetParam().UseSendBuffer,
             GetParam().UnidirectionalStreams,
-            false); // ServerInitiatedStreams
+            false,  // ServerInitiatedStreams
+            false); // FifoScheduling
     }
 }
 
@@ -669,7 +736,8 @@ TEST_P(WithSend0RttArgs2, Reject0Rtt) {
             1,  // ServerRejectZeroRtt
             0,  // UseSendBuffer
             0,  // UnidirectionalStreams
-            0   // ServerInitiatedStreams
+            0,  // ServerInitiatedStreams
+            0   // FifoScheduling
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
     } else {
@@ -686,7 +754,8 @@ TEST_P(WithSend0RttArgs2, Reject0Rtt) {
             true,   // ServerRejectZeroRtt
             false,  // UseSendBuffer
             false,  // UnidirectionalStreams
-            false); // ServerInitiatedStreams
+            false,  // ServerInitiatedStreams
+            false); // FifoScheduling
     }
 }
 
@@ -849,6 +918,28 @@ TEST_P(WithDrillInitialPacketTokenArgs, DrillInitialPacketToken) {
     }
 }
 
+TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation) {
+    TestLoggerT<ParamType> Logger("QuicTestDatagramNegotiation", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_DATAGRAM_NEGOTIATION Params = {
+            GetParam().Family,
+            GetParam().DatagramReceiveEnabled
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_NEGOTIATION, Params));
+    } else {
+        QuicTestDatagramNegotiation(GetParam().Family, GetParam().DatagramReceiveEnabled);
+    }
+}
+
+TEST_P(WithFamilyArgs, DatagramSend) {
+    TestLoggerT<ParamType> Logger("QuicTestDatagramSend", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_SEND, GetParam().Family));
+    } else {
+        QuicTestDatagramSend(GetParam().Family);
+    }
+}
+
 INSTANTIATE_TEST_CASE_P(
     ParameterValidation,
     WithBool,
@@ -868,6 +959,16 @@ INSTANTIATE_TEST_CASE_P(
     Handshake,
     WithHandshakeArgs2,
     testing::ValuesIn(HandshakeArgs2::Generate()));
+
+INSTANTIATE_TEST_CASE_P(
+    Handshake,
+    WithHandshakeArgs3,
+    testing::ValuesIn(HandshakeArgs3::Generate()));
+
+INSTANTIATE_TEST_CASE_P(
+    Handshake,
+    WithHandshakeArgs4,
+    testing::ValuesIn(HandshakeArgs4::Generate()));
 
 INSTANTIATE_TEST_CASE_P(
     AppData,
@@ -922,6 +1023,11 @@ INSTANTIATE_TEST_CASE_P(
     Misc,
     WithReceiveResumeNoDataArgs,
     testing::ValuesIn(ReceiveResumeNoDataArgs::Generate()));
+
+INSTANTIATE_TEST_CASE_P(
+    Misc,
+    WithDatagramNegotiationArgs,
+    testing::ValuesIn(DatagramNegotiationArgs::Generate()));
 
 INSTANTIATE_TEST_CASE_P(
     Drill,

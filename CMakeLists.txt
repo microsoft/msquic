@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
-message(STATUS "Source Dir: ${CMAKE_SOURCE_DIR}")
+message(STATUS "Source Dir: ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "Host System name: ${CMAKE_HOST_SYSTEM_NAME}")
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
     set(CMAKE_SYSTEM_VERSION 10.0.18362.0 CACHE STRING INTERNAL FORCE)
@@ -50,15 +50,15 @@ endif()
 
 set(QUIC_ARCH "x64" CACHE STRING "CPU architecture to build for")
 
-set(QUIC_BUILD_DIR ${CMAKE_SOURCE_DIR}/bld/${QUIC_PLATFORM}/${QUIC_ARCH}_${QUIC_TLS})
+set(QUIC_BUILD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/bld/${QUIC_PLATFORM}/${QUIC_ARCH}_${QUIC_TLS})
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/obj)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_$<IF:$<CONFIG:Debug>,Debug,Release>_${QUIC_TLS})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_$<IF:$<CONFIG:Debug>,Debug,Release>_${QUIC_TLS})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_Release_${QUIC_TLS})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_Release_${QUIC_TLS})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_Debug_${QUIC_TLS})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_Debug_${QUIC_TLS})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_$<IF:$<CONFIG:Debug>,Debug,Release>_${QUIC_TLS})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_$<IF:$<CONFIG:Debug>,Debug,Release>_${QUIC_TLS})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_Release_${QUIC_TLS})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_Release_${QUIC_TLS})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_Debug_${QUIC_TLS})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/artifacts/${QUIC_PLATFORM}/${QUIC_ARCH}_Debug_${QUIC_TLS})
 
 set(CLANG_GCC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value CACHE INTERNAL "")
 set(MSVC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
@@ -71,7 +71,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_custom_command(
         OUTPUT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h
         OUTPUT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc
-        COMMAND mc.exe -um -h ${QUIC_BUILD_DIR}/inc -r ${QUIC_BUILD_DIR}/inc ${CMAKE_SOURCE_DIR}/src/manifest/MsQuicEtw.man)
+        COMMAND mc.exe -um -h ${QUIC_BUILD_DIR}/inc -r ${QUIC_BUILD_DIR}/inc ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/MsQuicEtw.man)
     add_custom_target(MsQuicEtw
         DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h
         DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
@@ -160,12 +160,12 @@ else()
     set(QUIC_CXX_FLAGS "${QUIC_COMMON_FLAGS} --std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format")
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR}/src/inc)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 
 if(QUIC_TLS STREQUAL "openssl")
     # Configure and build OpenSSL.
     add_custom_command(
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/openssl
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl
         OUTPUT ${QUIC_BUILD_DIR}/openssl/include
         OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto.so
         OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl.so
@@ -200,6 +200,7 @@ if(QUIC_BUILD_TOOLS)
     add_subdirectory(src/tools/post)
     add_subdirectory(src/tools/reach)
     add_subdirectory(src/tools/sample)
+    add_subdirectory(src/tools/siduck)
     add_subdirectory(src/tools/spin)
     add_subdirectory(src/tools/void)
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")

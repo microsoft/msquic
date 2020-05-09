@@ -22,10 +22,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "send.tmh"
-#endif
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendInitialize(
@@ -83,7 +79,10 @@ QuicSendReset(
     Send->SendFlags = 0;
     Send->LastFlushTime = 0;
     if (Send->DelayedAckTimerActive) {
-        QuicTraceLogConnVerbose(CancelAckDelayTimer, QuicSendGetConnection(Send), "Canceling ACK_DELAY timer");
+        QuicTraceLogConnVerbose(
+            CancelAckDelayTimer,
+            QuicSendGetConnection(Send),
+            "Canceling ACK_DELAY timer");
         QuicConnTimerCancel(QuicSendGetConnection(Send), QUIC_CONN_TIMER_ACK_DELAY);
         Send->DelayedAckTimerActive = FALSE;
     }
@@ -99,8 +98,7 @@ QuicSendCanSendFlagsNow(
     )
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
-    if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT &&
-        Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] == NULL) {
+    if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT) {
         if ((!Connection->State.Started && !QuicConnIsServer(Connection)) ||
             !(Send->SendFlags & QUIC_CONN_SEND_FLAG_ALLOWED_HANDSHAKE)) {
             return FALSE;
@@ -121,7 +119,11 @@ QuicSendQueueFlush(
         QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
         if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_FLUSH_SEND)) != NULL) {
             Send->FlushOperationPending = TRUE;
-            QuicTraceEvent(ConnQueueSendFlush, Connection, Reason);
+            QuicTraceEvent(
+                ConnQueueSendFlush,
+                "[conn][%p] Queueing send flush, reason=%u",
+                Connection,
+                Reason);
             QuicConnQueueOper(Connection, Oper);
         }
     }
@@ -186,7 +188,7 @@ QuicSendValidate(
 #endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+BOOLEAN
 QuicSendSetSendFlag(
     _In_ QUIC_SEND* Send,
     _In_ uint32_t SendFlags
@@ -201,14 +203,21 @@ QuicSendSetSendFlag(
         !QuicConnIsClosed(Connection) || IsCloseFrame;
 
     if (SendFlags & QUIC_CONN_SEND_FLAG_ACK && Send->DelayedAckTimerActive) {
-        QuicTraceLogConnVerbose(CancelAckDelayTimer, Connection, "Canceling ACK_DELAY timer");
+        QuicTraceLogConnVerbose(
+            CancelAckDelayTimer,
+            Connection,
+            "Canceling ACK_DELAY timer");
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_ACK_DELAY);
         Send->DelayedAckTimerActive = FALSE;
     }
 
     if (CanSetFlag && (Send->SendFlags & SendFlags) != SendFlags) {
-        QuicTraceLogConnVerbose(ScheduleSendFlags, Connection, "Scheduling flags 0x%x to 0x%x",
-            SendFlags, Send->SendFlags);
+        QuicTraceLogConnVerbose(
+            ScheduleSendFlags,
+            Connection,
+            "Scheduling flags 0x%x to 0x%x",
+            SendFlags,
+            Send->SendFlags);
         Send->SendFlags |= SendFlags;
         QuicSendQueueFlush(Send, REASON_CONNECTION_FLAGS);
     }
@@ -239,6 +248,8 @@ QuicSendSetSendFlag(
     }
 
     QuicSendValidate(Send);
+
+    return CanSetFlag;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -249,7 +260,10 @@ QuicSendClearSendFlag(
     )
 {
     if (Send->SendFlags & SendFlags) {
-        QuicTraceLogConnVerbose(RemoveSendFlags, QuicSendGetConnection(Send), "Removing flags %x",
+        QuicTraceLogConnVerbose(
+            RemoveSendFlags,
+            QuicSendGetConnection(Send),
+            "Removing flags %x",
             (SendFlags & Send->SendFlags));
         Send->SendFlags &= ~SendFlags;
     }
@@ -279,7 +293,10 @@ QuicSendUpdateAckState(
             QUIC_DBG_ASSERT(!Send->DelayedAckTimerActive);
             Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_ACK;
         } else if (Send->DelayedAckTimerActive) {
-            QuicTraceLogConnVerbose(CancelAckDelayTimer, Connection, "Canceling ACK_DELAY timer");
+            QuicTraceLogConnVerbose(
+                CancelAckDelayTimer,
+                Connection,
+                "Canceling ACK_DELAY timer");
             QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_ACK_DELAY);
             Send->DelayedAckTimerActive = FALSE;
         }
@@ -289,7 +306,7 @@ QuicSendUpdateAckState(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicSendSetStreamSendFlag(
     _In_ QUIC_SEND* Send,
     _In_ QUIC_STREAM* Stream,
@@ -301,7 +318,7 @@ QuicSendSetStreamSendFlag(
         //
         // Ignore all frames if the connection is closed.
         //
-        return;
+        return FALSE;
     }
 
     //
@@ -329,8 +346,12 @@ QuicSendSetStreamSendFlag(
 
     if ((Stream->SendFlags | SendFlags) != Stream->SendFlags) {
 
-        QuicTraceLogStreamVerbose(SetSendFlag, Stream, "Setting flags 0x%x (existing flags: 0x%x)",
-            (SendFlags & (~Stream->SendFlags)), Stream->SendFlags);
+        QuicTraceLogStreamVerbose(
+            SetSendFlag,
+            Stream,
+            "Setting flags 0x%x (existing flags: 0x%x)",
+            (SendFlags & (~Stream->SendFlags)),
+            Stream->SendFlags);
 
         if (Stream->Flags.Started &&
             (Stream->SendFlags & SendFlags) != SendFlags) {
@@ -342,6 +363,8 @@ QuicSendSetStreamSendFlag(
         }
         Stream->SendFlags |= SendFlags;
     }
+
+    return SendFlags != 0;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -356,7 +379,10 @@ QuicSendClearStreamSendFlag(
 
     if (Stream->SendFlags & SendFlags) {
 
-        QuicTraceLogStreamVerbose(ClearSendFlags, Stream, "Removing flags %x",
+        QuicTraceLogStreamVerbose(
+            ClearSendFlags,
+            Stream,
+            "Removing flags %x",
             (SendFlags & Stream->SendFlags));
 
         //
@@ -640,7 +666,7 @@ QuicSendWriteFrames(
                     SourceCid->CID.SequenceNumber,
                     0,
                     { 0 } };
-                QUIC_DBG_ASSERT(Connection->SourceCidLimit > QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN);
+                QUIC_DBG_ASSERT(Connection->SourceCidLimit >= QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN);
                 if (Frame.Sequence >= Connection->SourceCidLimit) {
                     Frame.RetirePriorTo = Frame.Sequence + 1 - Connection->SourceCidLimit;
                 }
@@ -731,6 +757,13 @@ QuicSendWriteFrames(
                 return TRUE;
             }
         }
+
+        if (Send->SendFlags & QUIC_CONN_SEND_FLAG_DATAGRAM) {
+            RanOutOfRoom = QuicDatagramWriteFrame(&Connection->Datagram, Builder);
+            if (Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
+                return TRUE;
+            }
+        }
     }
 
     if (Send->SendFlags & QUIC_CONN_SEND_FLAG_PING) {
@@ -784,7 +817,8 @@ QuicSendGetNextStream(
     _Out_ uint32_t* PacketCount
     )
 {
-    QUIC_DBG_ASSERT(!QuicConnIsClosed(QuicSendGetConnection(Send)) || QuicListIsEmpty(&Send->SendStreams));
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
+    QUIC_DBG_ASSERT(!QuicConnIsClosed(Connection) || QuicListIsEmpty(&Send->SendStreams));
 
     QUIC_LIST_ENTRY* Entry = Send->SendStreams.Flink;
     while (Entry != &Send->SendStreams) {
@@ -802,13 +836,19 @@ QuicSendGetNextStream(
         //
         if (QuicSendCanSendStreamNow(Stream)) {
 
-            //
-            // Move the stream to the end of the queue.
-            //
-            QuicListEntryRemove(&Stream->SendLink);
-            QuicListInsertTail(&Send->SendStreams, &Stream->SendLink);
+            if (Connection->State.UseRoundRobinStreamScheduling) {
+                //
+                // Move the stream to the end of the queue.
+                //
+                QuicListEntryRemove(&Stream->SendLink);
+                QuicListInsertTail(&Send->SendStreams, &Stream->SendLink);
 
-            *PacketCount = QUIC_STREAM_SEND_BATCH_COUNT;
+                *PacketCount = QUIC_STREAM_SEND_BATCH_COUNT;
+
+            } else { // FIFO prioritization scheme
+                *PacketCount = UINT32_MAX;
+            }
+
             return Stream;
         }
 
@@ -936,19 +976,25 @@ QuicSendFlush(
     }
     _Analysis_assume_(Builder.Metadata != NULL);
 
-    QuicTraceLogConnVerbose(FlushSend, Connection, "Flushing send. Allowance=%u bytes", Builder.SendAllowance);
+    QuicTraceLogConnVerbose(
+        FlushSend,
+        Connection,
+        "Flushing send. Allowance=%u bytes",
+        Builder.SendAllowance);
 
     do {
 
         if (Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) {
-            QuicTraceLogConnVerbose(AmplificationProtectionBlocked, Connection, "Cannot send any more because of amplification protection");
+            QuicTraceLogConnVerbose(
+                AmplificationProtectionBlocked,
+                Connection,
+                "Cannot send any more because of amplification protection");
             Result = QUIC_SEND_COMPLETE;
             break;
         }
 
         uint32_t SendFlags = Send->SendFlags;
-        if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT &&
-            Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] == NULL) {
+        if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT) {
             SendFlags &= QUIC_CONN_SEND_FLAG_ALLOWED_HANDSHAKE;
         }
 
@@ -965,7 +1011,10 @@ QuicSendFlush(
                     //
                     QuicConnAddOutFlowBlockedReason(
                         Connection, QUIC_FLOW_BLOCKED_PACING);
-                    QuicTraceLogConnVerbose(SetPacingTimer, Connection, "Setting delayed send (PACING) timer for %u ms",
+                    QuicTraceLogConnVerbose(
+                        SetPacingTimer,
+                        Connection,
+                        "Setting delayed send (PACING) timer for %u ms",
                         QUIC_SEND_PACING_INTERVAL);
                     QuicConnTimerSet(
                         Connection,
@@ -993,6 +1042,7 @@ QuicSendFlush(
         BOOLEAN WrotePacketFrames;
         BOOLEAN FlushBatchedDatagrams = FALSE;
         if ((SendFlags & ~QUIC_CONN_SEND_FLAG_PMTUD) != 0) {
+            QUIC_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
             if (!QuicPacketBuilderPrepareForControlFrames(
                     &Builder,
                     Send->TailLossProbeNeeded,
@@ -1073,7 +1123,11 @@ QuicSendFlush(
 
     QuicPacketBuilderCleanup(&Builder);
 
-    QuicTraceLogConnVerbose(SendFlushComplete, Connection, "Flush complete flags=0x%x", Send->SendFlags);
+    QuicTraceLogConnVerbose(
+        SendFlushComplete,
+        Connection,
+        "Flush complete flags=0x%x",
+        Send->SendFlags);
 
     if (Result == QUIC_SEND_INCOMPLETE) {
         //
@@ -1104,7 +1158,10 @@ QuicSendStartDelayedAckTimer(
         !Connection->State.ClosedLocally &&
         !Connection->State.ClosedRemotely) {
 
-        QuicTraceLogConnVerbose(StartAckDelayTimer, Connection, "Starting ACK_DELAY timer for %u ms",
+        QuicTraceLogConnVerbose(
+            StartAckDelayTimer,
+            Connection,
+            "Starting ACK_DELAY timer for %u ms",
             Connection->MaxAckDelayMs);
         QuicConnTimerSet(
             Connection,
@@ -1151,10 +1208,16 @@ QuicSendOnMtuProbePacketAcked(
     _In_ QUIC_SENT_PACKET_METADATA* Packet
     )
 {
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
     Path->Mtu =
         PacketSizeFromUdpPayloadSize(
             QuicAddrGetFamily(&Path->RemoteAddress),
             Packet->PacketLength);
-    QuicTraceLogConnInfo(PathMtuUpdated, QuicSendGetConnection(Send), "Path[%hu] MTU updated to %u bytes",
-        Path->ID, Path->Mtu);
+    QuicTraceLogConnInfo(
+        PathMtuUpdated,
+        QuicSendGetConnection(Send),
+        "Path[%hhu] MTU updated to %hu bytes",
+        Path->ID,
+        Path->Mtu);
+    QuicDatagramOnSendStateChanged(&Connection->Datagram);
 }

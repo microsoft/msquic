@@ -204,6 +204,10 @@
                 message="$(string.Enum.QUIC_API_TYPE.GET_PARAM)"
                 value="10"
                 />
+            <map
+                message="$(string.Enum.QUIC_API_TYPE.DATAGRAM_SEND)"
+                value="11"
+                />
           </valueMap>
           <valueMap name="map_QUIC_CONN_TIMER_TYPE">
             <map
@@ -433,6 +437,10 @@
             <map
                 message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_RECEIVE_SET_ENABLED)"
                 value="23"
+                />
+            <map
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.DATAGRAM_SEND)"
+                value="24"
                 />
           </valueMap>
           <valueMap name="map_QUIC_SEND_FLUSH_REASON">
@@ -982,10 +990,6 @@
                 />
             <data
                 inType="win:UInt64"
-                name="StreamFlowControl"
-                />
-            <data
-                inType="win:UInt64"
                 name="IdealBytes"
                 />
             <data
@@ -995,6 +999,16 @@
             <data
                 inType="win:UInt32"
                 name="SmoothedRtt"
+                />
+          </template>
+          <template tid="tid_CONN_OUT_FLOW_STREAM_STATS">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt64"
+                name="StreamFlowControl"
                 />
             <data
                 inType="win:UInt64"
@@ -1102,8 +1116,30 @@
                 name="Connection"
                 />
             <data
+                inType="win:UInt32"
+                name="SmoothedRtt"
+                />
+            <data
+                inType="win:UInt32"
+                name="CongestionCount"
+                />
+            <data
+                inType="win:UInt32"
+                name="PersistentCongestionCount"
+                />
+            <data
                 inType="win:UInt64"
-                name="LifeTimeUs"
+                name="SendTotalBytes"
+                />
+            <data
+                inType="win:UInt64"
+                name="RecvTotalBytes"
+                />
+          </template>
+          <template tid="tid_CONN_PACKET_STATISTICS">
+            <data
+                inType="win:Pointer"
+                name="Connection"
                 />
             <data
                 inType="win:UInt64"
@@ -1136,26 +1172,6 @@
             <data
                 inType="win:UInt64"
                 name="RecvDecryptionFailures"
-                />
-            <data
-                inType="win:UInt32"
-                name="CongestionCount"
-                />
-            <data
-                inType="win:UInt32"
-                name="PersistentCongestionCount"
-                />
-            <data
-                inType="win:UInt64"
-                name="SendTotalBytes"
-                />
-            <data
-                inType="win:UInt64"
-                name="RecvTotalBytes"
-                />
-            <data
-                inType="win:UInt32"
-                name="SmoothedRtt"
                 />
           </template>
           <template tid="tid_CONN_BOOL">
@@ -2382,9 +2398,9 @@
           <event
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
-              message="$(string.Etw.ConnStatistics)"
+              message="$(string.Etw.ConnStats)"
               opcode="win:Info"
-              symbol="QuicConnStatistics"
+              symbol="QuicConnStats"
               template="tid_CONN_STATISTICS"
               value="5160"
               />
@@ -2495,6 +2511,24 @@
               symbol="QuicConnQueueSendFlush"
               template="tid_CONN_FLUSH_REASON"
               value="5172"
+              />
+          <event
+              keywords="ut:Connection ut:DataFlow"
+              level="win:Verbose"
+              message="$(string.Etw.ConnOutFlowStreamStats)"
+              opcode="win:Info"
+              symbol="QuicConnOutFlowStreamStats"
+              template="tid_CONN_OUT_FLOW_STREAM_STATS"
+              value="5173"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnPacketStats)"
+              opcode="win:Info"
+              symbol="QuicConnPacketStats"
+              template="tid_CONN_PACKET_STATISTICS"
+              value="5174"
               />
           <!-- 6144 - 7167 | Stream Events -->
           <event
@@ -2908,7 +2942,11 @@
             />
         <string
             id="Etw.ConnOutFlowStats"
-            value="[conn][%1] OUT: BytesSent=%2 InFlight=%3 InFlightMax=%4 CWnd=%5 SSThresh=%6 ConnFC=%7 StreamFC=%8 ISB=%9 PostedBytes=%10 SRtt=%11 StreamSendWindow=%12"
+            value="[conn][%1] OUT: BytesSent=%2 InFlight=%3 InFlightMax=%4 CWnd=%5 SSThresh=%6 ConnFC=%7 ISB=%8 PostedBytes=%9 SRtt=%10"
+            />
+        <string
+            id="Etw.ConnOutFlowStreamStats"
+            value="[conn][%1] OUT: StreamFC=%2 StreamSendWindow=%3"
             />
         <string
             id="Etw.ConnInFlowStats"
@@ -2967,8 +3005,12 @@
             value="[conn][%1] Key phase change (locally initiated=%2)."
             />
         <string
-            id="Etw.ConnStatistics"
-            value="[conn][%1] STATS: LifeTimeUs=%2 SendTotalPackets=%3 SendSuspectedLostPackets=%4 SendSpuriousLostPackets=%5 RecvTotalPackets=%6 RecvReorderedPackets=%7 RecvDroppedPackets=%8 RecvDuplicatePackets=%9 RecvDecryptionFailures=%10 CongestionCount=%11 PersistentCongestionCount=%12 SendTotalBytes=%13 RecvTotalBytes=%14 SRtt=%15"
+            id="Etw.ConnStats"
+            value="[conn][%1] STATS: SRtt=%2 CongestionCount=%3 PersistentCongestionCount=%4 SendTotalBytes=%5 RecvTotalBytes=%6"
+            />
+        <string
+            id="Etw.ConnPacketStats"
+            value="[conn][%1] STATS: SendTotalPackets=%2 SendSuspectedLostPackets=%3 SendSpuriousLostPackets=%4 RecvTotalPackets=%5 RecvReorderedPackets=%6 RecvDroppedPackets=%7 RecvDuplicatePackets=%8 RecvDecryptionFailures=%9"
             />
         <string
             id="Etw.ConnShutdownComplete"
@@ -3380,6 +3422,10 @@
             value="API.GET_PARAM"
             />
         <string
+            id="Enum.QUIC_API_TYPE.DATAGRAM_SEND"
+            value="API.DATAGRAM_SEND"
+            />
+        <string
             id="Enum.QUIC_CONN_TIMER_TYPE.IDLE"
             value="TIMER.IDLE"
             />
@@ -3594,6 +3640,10 @@
         <string
             id="Enum.QUIC_TRACE_API_TYPE.STREAM_RECEIVE_SET_ENABLED"
             value="STREAM_RECEIVE_SET_ENABLED"
+            />
+        <string
+            id="Enum.QUIC_TRACE_API_TYPE.DATAGRAM_SEND"
+            value="DATAGRAM_SEND"
             />
         <string
             id="Enum.QUIC_SEND_FLUSH_REASON.CONNECTION_FLAGS"

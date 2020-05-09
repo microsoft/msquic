@@ -15,11 +15,6 @@ Environment:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "platform_winuser.tmh"
-#include <fastwppimpl.h>
-#endif
-
 uint64_t QuicPlatformPerfFreq;
 uint64_t QuicTotalMemory;
 QUIC_PLATFORM QuicPlatform = { NULL };
@@ -30,10 +25,6 @@ QuicPlatformSystemLoad(
     void
     )
 {
-#ifdef QUIC_LOGS_WPP
-    FAST_WPP_INIT_TRACING(L"quic");
-#endif
-
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventRegisterMicrosoft_Quic();
 #endif
@@ -41,7 +32,9 @@ QuicPlatformSystemLoad(
     (void)QueryPerformanceFrequency((LARGE_INTEGER*)&QuicPlatformPerfFreq);
     QuicPlatform.Heap = NULL;
 
-    QuicTraceLogInfo("[ dll] Loaded");
+    QuicTraceLogInfo(
+        WindowsUserLoaded,
+        "[ dll] Loaded");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -50,12 +43,12 @@ QuicPlatformSystemUnload(
     void
     )
 {
-    QuicTraceLogInfo("[ dll] Unloaded");
+    QuicTraceLogInfo(
+        WindowsUserUnloaded,
+        "[ dll] Unloaded");
+
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventUnregisterMicrosoft_Quic();
-#endif
-#ifdef QUIC_LOGS_WPP
-    FAST_WPP_CLEANUP();
 #endif
 }
 
@@ -77,7 +70,11 @@ QuicPlatformInitialize(
 
     if (!GlobalMemoryStatusEx(&memInfo)) {
         DWORD Error = GetLastError();
-        QuicTraceEvent(LibraryErrorStatus, Error, "GlobalMemoryStatusEx");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Error,
+            "GlobalMemoryStatusEx");
         Status = HRESULT_FROM_WIN32(Error);
         goto Error;
     }
@@ -89,7 +86,10 @@ QuicPlatformInitialize(
 
     QuicTotalMemory = memInfo.ullTotalPageFile;
 
-    QuicTraceLogInfo("[ dll] Initialized (AvailMem = %llu bytes)", QuicTotalMemory);
+    QuicTraceLogInfo(
+        WindowsUserInitialized,
+        "[ dll] Initialized (AvailMem = %llu bytes)",
+        QuicTotalMemory);
 
 Error:
 
@@ -113,7 +113,9 @@ QuicPlatformUninitialize(
     QUIC_DBG_ASSERT(QuicPlatform.Heap);
     HeapDestroy(QuicPlatform.Heap);
     QuicPlatform.Heap = NULL;
-    QuicTraceLogInfo("[ dll] Uninitialized");
+    QuicTraceLogInfo(
+        WindowsUserUninitialized,
+        "[ dll] Uninitialized");
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -124,7 +126,12 @@ QuicPlatformLogAssert(
     _In_z_ const char* Expr
     )
 {
-    QuicTraceEvent(LibraryAssert, (uint32_t)Line, File, Expr);
+    QuicTraceEvent(
+        LibraryAssert,
+        "[ lib] ASSERT, %u:%s - %s.",
+        (uint32_t)Line,
+        File,
+        Expr);
 }
 
 #ifdef QUIC_FUZZER
@@ -231,21 +238,5 @@ QuicEtwCallback(
     default:
         break;
     }
-}
-#endif
-
-#ifdef QUIC_LOGS_WPP
-void
-QuicForceWppInitCodeGeneration(
-    void
-    )
-{
-    //
-    // This function exists to to make WPP generate the definitions for the
-    // initialization and cleanup code, which happens only if there is direct
-    // textual reference to the WPP_INIT_TRACING macro. It isn't called by
-    // design.
-    //
-    WPP_INIT_TRACING(L"quic");
 }
 #endif

@@ -11,11 +11,6 @@ Abstract:
 
 #include "precomp.h"
 
-#include "quic_trace.h"
-#ifdef QUIC_LOGS_WPP
-#include "quictest.tmh"
-#endif
-
 //#define QUIC_TEST_DISABLE_DNS 1
 
 #define OLD_SUPPORTED_VERSION       QUIC_VERSION_1_MS_H
@@ -39,7 +34,9 @@ void QuicTestInitialize()
             QUIC_PARAM_GLOBAL_ENCRYPTION,
             sizeof(Disabled),
             &Disabled))) {
-        QuicTraceLogError("[test] Disabling encryption failed");
+        QuicTraceLogError(
+            TestDisableEncryptionFailure,
+            "[test] Disabling encryption failed");
     }
 #endif
 }
@@ -52,10 +49,16 @@ struct TestScopeLogger
 {
     const char* Name;
     TestScopeLogger(const char* name) : Name(name) {
-        QuicTraceLogInfo("[test]---> %s", Name);
+        QuicTraceLogInfo(
+            TestScopeEntry,
+            "[test]---> %s",
+            Name);
     }
     ~TestScopeLogger() {
-        QuicTraceLogInfo("[test]<--- %s", Name);
+        QuicTraceLogInfo(
+            TestScopeExit,
+            "[test]<--- %s",
+            Name);
     }
 };
 
@@ -318,6 +321,8 @@ ListenerAcceptConnection(
             TEST_FAILURE("Failed to accept new TestConnection.");
             delete NewConnection;
             MsQuic->ConnectionClose(ConnectionHandle);
+        } else {
+            NewConnection->SetHasRandomLoss(Listener->GetHasRandomLoss());
         }
         return;
     }
@@ -331,6 +336,8 @@ ListenerAcceptConnection(
         delete *AcceptContext->NewConnection;
         *AcceptContext->NewConnection = nullptr;
         MsQuic->ConnectionClose(ConnectionHandle);
+    } else {
+        (*AcceptContext->NewConnection)->SetHasRandomLoss(Listener->GetHasRandomLoss());
     }
     QuicEventSet(AcceptContext->NewConnectionReady);
 }
@@ -384,6 +391,76 @@ struct PrivateTransportHelper : QUIC_PRIVATE_TRANSPORT_PARAMETER
     }
 };
 
+struct RandomLossHelper
+{
+    static uint8_t LossPercentage;
+    static QUIC_TEST_DATAPATH_HOOKS DataPathFuncTable;
+    RandomLossHelper(uint8_t _LossPercentage) {
+        LossPercentage = _LossPercentage;
+        if (LossPercentage != 0) {
+            QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathFuncTable;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_LEVEL_GLOBAL,
+                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
+                    sizeof(Value),
+                    &Value));
+        }
+    }
+    ~RandomLossHelper() {
+        if (LossPercentage != 0) {
+            QUIC_TEST_DATAPATH_HOOKS* Value = nullptr;
+            uint32_t TryCount = 0;
+            while (TryCount++ < 10) {
+                if (QUIC_SUCCEEDED(
+                    MsQuic->SetParam(
+                        nullptr,
+                        QUIC_PARAM_LEVEL_GLOBAL,
+                        QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
+                        sizeof(Value),
+                        &Value))) {
+                    break;
+                }
+                QuicSleep(100); // Let the current datapath queue drain.
+            }
+            if (TryCount == 10) {
+                TEST_FAILURE("Failed to disable test datapath hook");
+            }
+        }
+    }
+    static
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    BOOLEAN
+    QUIC_API
+    ReceiveCallback(
+        _Inout_ struct QUIC_RECV_DATAGRAM* /* Datagram */
+        )
+    {
+        uint8_t RandomValue;
+        QuicRandom(sizeof(RandomValue), &RandomValue);
+        return (RandomValue % 100) < LossPercentage;
+    }
+    static
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    BOOLEAN
+    QUIC_API
+    SendCallback(
+        _Inout_ QUIC_ADDR* /* RemoteAddress */,
+        _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
+        _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */
+        )
+    {
+        return FALSE; // Don't drop
+    }
+};
+
+uint8_t RandomLossHelper::LossPercentage = 0;
+QUIC_TEST_DATAPATH_HOOKS RandomLossHelper::DataPathFuncTable = {
+    RandomLossHelper::ReceiveCallback,
+    RandomLossHelper::SendCallback
+};
+
 void
 QuicTestConnect(
     _In_ int Family,
@@ -394,18 +471,22 @@ QuicTestConnect(
     _In_ bool MultipleALPNs,
     _In_ bool AsyncSecConfig,
     _In_ bool MultiPacketClientInitial,
-    _In_ bool SessionResumption
+    _In_ bool SessionResumption,
+    _In_ uint8_t RandomLossPercentage
     )
 {
     MsQuicSession Session;
     TEST_TRUE(Session.IsValid());
     TEST_QUIC_SUCCEEDED(Session.SetPeerBidiStreamCount(4));
+    TEST_QUIC_SUCCEEDED(Session.SetIdleTimeout(10000));
     MsQuicSession Session2("MsQuicTest2", "MsQuicTest");
     TEST_TRUE(Session2.IsValid());
     TEST_QUIC_SUCCEEDED(Session2.SetPeerBidiStreamCount(4));
+    TEST_QUIC_SUCCEEDED(Session2.SetIdleTimeout(10000));
 
     StatelessRetryHelper RetryHelper(ServerStatelessRetry);
     PrivateTransportHelper TpHelper(MultiPacketClientInitial);
+    RandomLossHelper LossHelper(RandomLossPercentage);
 
     {
         TestListener Listener(
@@ -413,6 +494,7 @@ QuicTestConnect(
             ListenerAcceptConnection,
             AsyncSecConfig);
         TEST_TRUE(Listener.IsValid());
+        Listener.SetHasRandomLoss(RandomLossPercentage != 0);
 
         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
@@ -427,6 +509,7 @@ QuicTestConnect(
                     ConnectionDoNothingCallback,
                     false);
                 TEST_TRUE(Client.IsValid());
+                Client.SetHasRandomLoss(RandomLossPercentage != 0);
                 #if QUIC_TEST_DISABLE_DNS
                 QuicAddr RemoteAddr(QuicAddrFamily, true);
                 TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
@@ -461,6 +544,7 @@ QuicTestConnect(
                     ConnectionDoNothingCallback,
                     false);
                 TEST_TRUE(Client.IsValid());
+                Client.SetHasRandomLoss(RandomLossPercentage != 0);
 
                 if (ClientUsesOldVersion) {
                     TEST_QUIC_SUCCEEDED(
@@ -569,10 +653,10 @@ QuicTestConnect(
                 TEST_FALSE(Client.GetTransportClosed());
             }
 
-#if !QUIC_SEND_FAKE_LOSS
-            TEST_TRUE(Server->GetPeerClosed());
-            TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
-#endif
+            if (RandomLossPercentage == 0) {
+                TEST_TRUE(Server->GetPeerClosed());
+                TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
+            }
         }
     }
 }
@@ -603,6 +687,7 @@ struct PingStats
     const uint64_t PayloadLength;
     const uint32_t ConnectionCount;
     const uint32_t StreamCount;
+    const bool FifoScheduling;
     const bool UnidirectionalStreams;
     const bool ServerInitiatedStreams;
     const bool ZeroRtt;
@@ -618,6 +703,7 @@ struct PingStats
         uint64_t _PayloadLength,
         uint32_t _ConnectionCount,
         uint32_t _StreamCount,
+        bool _FifoScheduling,
         bool _UnidirectionalStreams,
         bool _ServerInitiatedStreams,
         bool _ZeroRtt,
@@ -628,6 +714,7 @@ struct PingStats
         PayloadLength(_PayloadLength),
         ConnectionCount(_ConnectionCount),
         StreamCount(_StreamCount),
+        FifoScheduling(_FifoScheduling),
         UnidirectionalStreams(_UnidirectionalStreams),
         ServerInitiatedStreams(_ServerInitiatedStreams),
         ZeroRtt(_ZeroRtt),
@@ -697,6 +784,7 @@ PingStreamShutdown(
 
 #if !QUIC_SEND_FAKE_LOSS
     if (!ConnState->GetPingStats()->ServerInitiatedStreams &&
+        !ConnState->GetPingStats()->FifoScheduling &&
         ConnState->GetPingStats()->ZeroRtt) {
         if (Stream->GetBytesReceived() != 0 && // TODO - Support 0-RTT indication for Stream Open callback.
             !Stream->GetUsedZeroRtt()) {
@@ -807,6 +895,11 @@ ListenerAcceptPingConnection(
             }
         }
 
+        Connection->SetPriorityScheme(
+            Stats->FifoScheduling ?
+                QUIC_STREAM_SCHEDULING_SCHEME_FIFO :
+                QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN);
+
         if (Stats->ServerInitiatedStreams) {
             SendPingBurst(
                 Connection,
@@ -845,6 +938,11 @@ NewPingConnection(
     Connection->SetShutdownCompleteCallback(PingConnectionShutdown);
     Connection->SetExpectedResumed(ClientStats->ZeroRtt);
 
+    Connection->SetPriorityScheme(
+        ClientStats->FifoScheduling ?
+            QUIC_STREAM_SCHEDULING_SCHEME_FIFO :
+            QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN);
+
     if (ClientStats->ServerInitiatedStreams) {
         Connection->SetPeerUnidiStreamCount((uint16_t)ClientStats->StreamCount);
         Connection->SetPeerBidiStreamCount((uint16_t)ClientStats->StreamCount);
@@ -871,14 +969,15 @@ QuicTestConnectAndPing(
     _In_ bool ServerRejectZeroRtt,
     _In_ bool UseSendBuffer,
     _In_ bool UnidirectionalStreams,
-    _In_ bool ServerInitiatedStreams
+    _In_ bool ServerInitiatedStreams,
+    _In_ bool FifoScheduling
     )
 {
     const uint32_t TimeoutMs = EstimateTimeoutMs(Length) * StreamBurstCount;
     const uint16_t TotalStreamCount = (uint16_t)(StreamCount * StreamBurstCount);
 
-    PingStats ServerStats(Length, ConnectionCount, TotalStreamCount, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
-    PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
+    PingStats ServerStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
+    PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
 
     MsQuicSession Session;
     TEST_TRUE(Session.IsValid());
@@ -1094,8 +1193,8 @@ QuicTestServerDisconnect(
     void
     )
 {
-    PingStats ServerStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, TRUE, QUIC_STATUS_CONNECTION_TIMEOUT);
-    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, TRUE);
+    PingStats ServerStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, TRUE, FALSE, TRUE, QUIC_STATUS_CONNECTION_TIMEOUT);
+    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, TRUE, FALSE, TRUE);
 
     {
         MsQuicSession Session;
@@ -1202,7 +1301,7 @@ QuicTestClientDisconnect(
     // back to the client as it continues to receive the client's UDP packets.
     //
 
-    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, FALSE, FALSE, TRUE,
+    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, FALSE, TRUE,
         StopListenerFirst ? QUIC_STATUS_CONNECTION_TIMEOUT : QUIC_STATUS_ABORTED);
 
     {
@@ -1821,6 +1920,12 @@ QuicAbortiveConnectionHandler(
         case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
             __fallthrough;
         case QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE:
+            __fallthrough;
+        case QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED:
+            __fallthrough;
+        case QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED:
+            __fallthrough;
+        case QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED:
             return QUIC_STATUS_SUCCESS;
         default:
             TEST_FAILURE(
@@ -2386,6 +2491,12 @@ QuicRecvResumeConnectionHandler(
         case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
             __fallthrough;
         case QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE:
+            __fallthrough;
+        case QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED:
+            __fallthrough;
+        case QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED:
+            __fallthrough;
+        case QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED:
             return QUIC_STATUS_SUCCESS;
         default:
             TEST_FAILURE(
@@ -2874,6 +2985,291 @@ QuicTestReceiveResumeNoData(
         if (!QuicEventWaitWithTimeout(ServerContext.TestEvent.Handle, TimeoutMs)) {
             TEST_FAILURE("Server failed to get shutdown before timeout!");
             return;
+        }
+    }
+}
+
+void
+QuicTestDatagramNegotiation(
+    _In_ int Family,
+    _In_ bool DatagramReceiveEnabled
+    )
+{
+    MsQuicSession ClientSession;
+    TEST_TRUE(ClientSession.IsValid());
+    TEST_QUIC_SUCCEEDED(ClientSession.SetDatagramReceiveEnabled(true)); // Always enabled on client.
+
+    MsQuicSession ServerSession;
+    TEST_TRUE(ServerSession.IsValid());
+    TEST_QUIC_SUCCEEDED(ServerSession.SetDatagramReceiveEnabled(DatagramReceiveEnabled));
+
+    uint8_t RawBuffer[] = "datagram";
+    QUIC_BUFFER DatagramBuffer = { sizeof(RawBuffer), RawBuffer };
+
+    {
+        TestListener Listener(ServerSession.Handle, ListenerAcceptConnection);
+        TEST_TRUE(Listener.IsValid());
+
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(
+                    ClientSession.Handle,
+                    ConnectionDoNothingCallback,
+                    false);
+                TEST_TRUE(Client.IsValid());
+
+                TEST_TRUE(Client.GetDatagramSendEnabled()); // Datagrams start as enabled
+
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->DatagramSend(
+                        Client.GetConnection(),
+                        &DatagramBuffer,
+                        1,
+                        QUIC_SEND_FLAG_NONE,
+                        nullptr));
+
+                #if QUIC_TEST_DISABLE_DNS
+                QuicAddr RemoteAddr(QuicAddrFamily, true);
+                TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+                #endif
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        QuicAddrFamily,
+                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_EQUAL(DatagramReceiveEnabled, Client.GetDatagramSendEnabled());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Server->GetIsConnected());
+
+                TEST_TRUE(Server->GetDatagramSendEnabled()); // Client always enabled
+
+                QuicSleep(100); // Necessary?
+
+                if (DatagramReceiveEnabled) {
+                    TEST_EQUAL(1, Client.GetDatagramsSent());
+                } else {
+                    TEST_EQUAL(1, Client.GetDatagramsCanceled());
+                }
+
+                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+                if (!Client.WaitForShutdownComplete()) {
+                    return;
+                }
+
+                TEST_FALSE(Client.GetPeerClosed());
+                TEST_FALSE(Client.GetTransportClosed());
+            }
+
+#if !QUIC_SEND_FAKE_LOSS
+            TEST_TRUE(Server->GetPeerClosed());
+            TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
+#endif
+        }
+    }
+}
+
+struct SelectiveLossHelper
+{
+    static uint32_t DropPacketCount;
+    static QUIC_TEST_DATAPATH_HOOKS DataPathFuncTable;
+    SelectiveLossHelper() {
+        QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathFuncTable;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
+                sizeof(Value),
+                &Value));
+    }
+    ~SelectiveLossHelper() {
+        QUIC_TEST_DATAPATH_HOOKS* Value = nullptr;
+        uint32_t TryCount = 0;
+        while (TryCount++ < 10) {
+            if (QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_LEVEL_GLOBAL,
+                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
+                    sizeof(Value),
+                    &Value))) {
+                break;
+            }
+            QuicSleep(100); // Let the current datapath queue drain.
+        }
+        if (TryCount == 10) {
+            TEST_FAILURE("Failed to disable test datapath hook");
+        }
+    }
+    void DropPackets(uint32_t Count) { DropPacketCount = Count; }
+    static
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    BOOLEAN
+    QUIC_API
+    ReceiveCallback(
+        _Inout_ struct QUIC_RECV_DATAGRAM* /* Datagram */
+        )
+    {
+        if (DropPacketCount == 0) {
+            return false;
+        }
+        DropPacketCount--;
+        return true;
+    }
+    static
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    BOOLEAN
+    QUIC_API
+    SendCallback(
+        _Inout_ QUIC_ADDR* /* RemoteAddress */,
+        _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
+        _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */
+        )
+    {
+        return FALSE; // Don't drop
+    }
+};
+
+uint32_t SelectiveLossHelper::DropPacketCount = false;
+QUIC_TEST_DATAPATH_HOOKS SelectiveLossHelper::DataPathFuncTable = {
+    SelectiveLossHelper::ReceiveCallback,
+    SelectiveLossHelper::SendCallback
+};
+
+void
+QuicTestDatagramSend(
+    _In_ int Family
+    )
+{
+    MsQuicSession Session;
+    TEST_TRUE(Session.IsValid());
+    TEST_QUIC_SUCCEEDED(Session.SetDatagramReceiveEnabled(true));
+
+    uint8_t RawBuffer[] = "datagram";
+    QUIC_BUFFER DatagramBuffer = { sizeof(RawBuffer), RawBuffer };
+
+    SelectiveLossHelper LossHelper;
+
+    {
+        TestListener Listener(Session.Handle, ListenerAcceptConnection);
+        TEST_TRUE(Listener.IsValid());
+
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(
+                    Session.Handle,
+                    ConnectionDoNothingCallback,
+                    false);
+                TEST_TRUE(Client.IsValid());
+
+                TEST_TRUE(Client.GetDatagramSendEnabled());
+
+                #if QUIC_TEST_DISABLE_DNS
+                QuicAddr RemoteAddr(QuicAddrFamily, true);
+                TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+                #endif
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        QuicAddrFamily,
+                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_TRUE(Client.GetDatagramSendEnabled());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Server->GetIsConnected());
+
+                TEST_TRUE(Server->GetDatagramSendEnabled());
+
+                QuicSleep(100);
+
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->DatagramSend(
+                        Client.GetConnection(),
+                        &DatagramBuffer,
+                        1,
+                        QUIC_SEND_FLAG_NONE,
+                        nullptr));
+
+                QuicSleep(100);
+
+                TEST_EQUAL(1, Client.GetDatagramsSent());
+
+                QuicSleep(100);
+
+                TEST_EQUAL(1, Client.GetDatagramsAcknowledged());
+
+                LossHelper.DropPackets(1);
+
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->DatagramSend(
+                        Client.GetConnection(),
+                        &DatagramBuffer,
+                        1,
+                        QUIC_SEND_FLAG_NONE,
+                        nullptr));
+
+                QuicSleep(100);
+
+                TEST_EQUAL(2, Client.GetDatagramsSent());
+
+                QuicSleep(500);
+
+                TEST_EQUAL(1, Client.GetDatagramsSuspectLost());
+
+                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+                if (!Client.WaitForShutdownComplete()) {
+                    return;
+                }
+
+                TEST_EQUAL(1, Client.GetDatagramsLost());
+
+                TEST_FALSE(Client.GetPeerClosed());
+                TEST_FALSE(Client.GetTransportClosed());
+            }
+
+#if !QUIC_SEND_FAKE_LOSS
+            TEST_TRUE(Server->GetPeerClosed());
+            TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
+#endif
         }
     }
 }

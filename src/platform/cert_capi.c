@@ -16,10 +16,6 @@ Environment:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "cert_capi.tmh"
-#endif
-
 #include <wincrypt.h>
 #include <msquic.h>
 
@@ -286,11 +282,19 @@ QuicCertMatchHash(
             CERT_HASH_PROP_ID,
             CertHash,
             &CertHashLength)) {
-        QuicTraceLogError("[cert] Get CERT_HASH_PROP_ID failed, 0x%x.", GetLastError());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "Get CERT_HASH_PROP_ID failed");
         return FALSE;
     }
     if (CertHashLength != sizeof(CertHash)) {
-        QuicTraceLogError("[cert] CERT_HASH_PROP_ID incorrect size, %u.", CertHashLength);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            CertHashLength,
+            "CERT_HASH_PROP_ID incorrect size");
         return FALSE;
     }
     return memcmp(InputCertHash, CertHash, CertHashLength) == 0;
@@ -462,7 +466,11 @@ QuicCertLookupHashStore(
             CertHashStore->StoreName);
     if (CertStore == NULL) {
         Status = HRESULT_FROM_WIN32(GetLastError());
-        QuicTraceLogError("[cert] CertOpenStore failed '%s', 0x%x.", CertHashStore->StoreName, Status);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CertOpenStore failed");
         goto Exit;
     }
 
@@ -593,7 +601,11 @@ QuicCertParseChain(
             CERT_STORE_DEFER_CLOSE_UNTIL_LAST_FREE_FLAG,
             0);
     if (TempStore == NULL) {
-        QuicTraceLogError("[cert] CertOpenStore failed, 0x%x.", GetLastError());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "CertOpenStore failed");
         goto Error;
     }
 
@@ -615,8 +627,11 @@ QuicCertParseChain(
                 CertLength,
                 CERT_STORE_ADD_USE_EXISTING,
                 &CertCtx)) {
-            QuicTraceLogError("[cert] CertAddEncodedCertificateToStore failed for cert #%u, 0x%x.",
-                CertNumber, GetLastError());
+            QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "CertAddEncodedCertificateToStore failed");
             goto Error;
         }
 
@@ -631,11 +646,17 @@ QuicCertParseChain(
     }
 
     if (ChainBufferLength != 0) {
-        QuicTraceLogError("[cert] Not all bytes were processed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Not all cert bytes were processed");
         goto Error;
     }
 
-    QuicTraceLogVerbose("[cert] Successfully parsed chain of %u certificate(s).", CertNumber);
+    QuicTraceLogVerbose(
+        CertCapiParsedChain,
+        "[cert] Successfully parsed chain of %u certificate(s)",
+        CertNumber);
 
     goto Exit;
 
@@ -675,7 +696,10 @@ QuicCertFormat(
 
     if (CertCtx == NULL) {
         if (BufferLength < SIZEOF_CERT_CHAIN_LIST_LENGTH) {
-            QuicTraceLogError("[cert] Insufficient buffer to store the empty formatted chain.");
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Insufficient buffer to store the empty formatted chain");
             return 0;
         }
         //
@@ -694,7 +718,7 @@ QuicCertFormat(
     ChainPara.RequestedUsage = CertUsage;
 
     if (!CertGetCertificateChain(
-            NULL,   // default chain engine
+            NULL,  // default chain engine
             CertCtx,
             NULL,
             NULL,
@@ -702,7 +726,11 @@ QuicCertFormat(
             0,
             NULL,
             &ChainContext)) {
-        QuicTraceLogError("[cert] CertGetCertificateChain failed, 0x%x.", GetLastError());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "CertGetCertificateChain failed");
         return 0;
     }
 
@@ -712,7 +740,10 @@ QuicCertFormat(
             PCERT_CHAIN_ELEMENT Element = SimpleChain->rgpElement[j];
             PCCERT_CONTEXT EncodedCert = Element->pCertContext;
             if (EncodedCert->cbCertEncoded + SIZEOF_CERT_CHAIN_LIST_LENGTH > BufferLength) {
-                QuicTraceLogError("[cert] Insufficient buffer to store the formatted chain.");
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "Insufficient buffer to store the formatted chain");
                 CertFreeCertificateChain(ChainContext);
                 return 0;
             }
@@ -731,7 +762,10 @@ QuicCertFormat(
 
 Exit:
 
-    QuicTraceLogVerbose("[cert] Successfully formatted chain of %u certificate(s).", CertNumber);
+    QuicTraceLogVerbose(
+        CertCapiFormattedChain,
+        "[cert] Successfully formatted chain of %u certificate(s)",
+        CertNumber);
 
     return (size_t)(Offset - Buffer);
 }
@@ -769,19 +803,32 @@ QuicCertVerifyCertChainPolicy(
             &PolicyPara,
             &PolicyStatus)) {
         Status = GetLastError();
-        QuicTraceLogError("[cert] CertVerifyCertificateChainPolicy failed, 0x%x.", Status);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CertVerifyCertificateChainPolicy failed");
         goto Exit;
 
     } else if (PolicyStatus.dwError != NO_ERROR) {
 
         Status = PolicyStatus.dwError;
-        QuicTraceLogError("[cert] CertVerifyCertificateChainPolicy indicated a cert error, 0x%x.", Status);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CertVerifyCertificateChainPolicy indicated a cert error");
         goto Exit;
     }
 
 Exit:
 
-    QuicTraceLogInfo("CertVerifyChain: %S 0x%x, result=0x%x", ServerName, IgnoreFlags, Status);
+    QuicTraceLogInfo(
+        CertCapiVerifiedChain,
+        "CertVerifyChain: %S 0x%x, result=0x%x",
+        ServerName,
+        IgnoreFlags,
+        Status);
 
     return Status;
 }
@@ -823,26 +870,42 @@ QuicCertValidateChain(
             0,
             NULL,
             &ChainContext)) {
-        QuicTraceLogError("[cert] CertGetCertificateChain failed, 0x%x.", GetLastError());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "CertGetCertificateChain failed");
         goto Exit;
     }
 
     if (Host != NULL) {
         int ServerNameLength = MultiByteToWideChar(CP_UTF8, 0, Host, -1, NULL, 0);
         if (ServerNameLength == 0) {
-            QuicTraceLogError("[cert] MultiByteToWideChar(1) failed, 0x%x.", GetLastError());
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                GetLastError(),
+                "MultiByteToWideChar(1) failed");
             goto Exit;
         }
 
         ServerName = (LPWSTR)QUIC_ALLOC_PAGED(ServerNameLength * sizeof(WCHAR));
         if (ServerName == NULL) {
-            QuicTraceLogWarning("[cert] Failed to alloc %u bytes for ServerName.", (uint32_t)(ServerNameLength * sizeof(WCHAR)));
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "ServerName",
+                ServerNameLength * sizeof(WCHAR));
             goto Exit;
         }
 
         ServerNameLength = MultiByteToWideChar(CP_UTF8, 0, Host, -1, ServerName, ServerNameLength);
         if (ServerNameLength == 0) {
-            QuicTraceLogError("[cert] MultiByteToWideChar(2) failed, 0x%x.", GetLastError());
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                GetLastError(),
+                "MultiByteToWideChar(2) failed");
             goto Exit;
         }
     }
@@ -884,14 +947,22 @@ QuicCertGetPrivateKey(
             &KeyProv,
             &KeySpec,
             &FreeKey)) {
-        QuicTraceLogError("[cert] CryptAcquireCertificatePrivateKey failed, 0x%x.", GetLastError());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "CryptAcquireCertificatePrivateKey failed");
         goto Exit;
     }
 
     QUIC_DBG_ASSERT(FreeKey);
 
     if (KeySpec != CERT_NCRYPT_KEY_SPEC) {
-        QuicTraceLogError("[cert] Cert KeySpec doesn't have CERT_NCRYPT_KEY_SPEC, 0x%x.", KeySpec);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            KeySpec,
+            "Cert KeySpec doesn't have CERT_NCRYPT_KEY_SPEC");
         NCryptFreeObject(KeyProv);
         KeyProv = (ULONG_PTR)NULL;
         goto Exit;
@@ -926,29 +997,48 @@ QuicCertSign(
 {
     NCRYPT_KEY_HANDLE KeyProv = (NCRYPT_KEY_HANDLE)PrivateKey;
 
-    QuicTraceLogVerbose("[cert] QuicCertSign alg=0x%4.4x", SignatureAlgorithm);
+    QuicTraceLogVerbose(
+        CertCapiSign,
+        "[cert] QuicCertSign alg=0x%4.4x",
+        SignatureAlgorithm);
 
     _Null_terminated_ const wchar_t * HashAlg = HashAlgFromTLS(SignatureAlgorithm);
     if (HashAlg == NULL) {
-        QuicTraceLogError("[cert] Unsupported hash algorithm 0x%x (HashAlg).", SignatureAlgorithm);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SignatureAlgorithm,
+            "Unsupported hash algorithm (HashAlg)");
         return FALSE;
     }
 
     BCRYPT_ALG_HANDLE HashProv = HashHandleFromTLS(SignatureAlgorithm);
     if (HashProv == NULL) {
-        QuicTraceLogError("[cert] Unsupported hash algorithm 0x%x.", SignatureAlgorithm);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SignatureAlgorithm,
+            "Unsupported hash algorithm");
         return FALSE;
     }
 
     DWORD HashSize = HashSizeFromTLS(SignatureAlgorithm);
     if (HashSize == 0 || HashSize > QUIC_CERTIFICATE_MAX_HASH_SIZE) {
-        QuicTraceLogError("[cert] Unsupported hash size 0x%x.", SignatureAlgorithm);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SignatureAlgorithm,
+            "Unsupported hash size");
         return FALSE;
     }
 
     DWORD PaddingScheme = PaddingTypeFromTLS(SignatureAlgorithm);
     if (PaddingScheme == ~0u) {
-        QuicTraceLogError("[cert] Unsupported padding scheme 0x%x.", SignatureAlgorithm);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SignatureAlgorithm,
+            "Unsupported padding scheme");
         return FALSE;
     }
 
@@ -966,7 +1056,11 @@ QuicCertSign(
             HashBuf,
             HashSize);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[cert] BCryptHash failed, 0x%x.", Status);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "BCryptHash failed");
         goto Exit;
     }
 
@@ -994,7 +1088,11 @@ QuicCertSign(
             &NewSignatureLength,
             SignFlags);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[cert] NCryptSignHash failed, 0x%x.", Status);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "NCryptSignHash failed");
         goto Exit;
     }
 
@@ -1024,34 +1122,56 @@ QuicCertVerify(
 {
     PCCERT_CONTEXT CertCtx = (PCCERT_CONTEXT)Certificate;
 
-    QuicTraceLogVerbose("[cert] QuicCertVerify alg=0x%4.4x", SignatureAlgorithm);
+    QuicTraceLogVerbose(
+        CertCapiVerify,
+        "[cert] QuicCertVerify alg=0x%4.4x",
+        SignatureAlgorithm);
 
     if (CertListToVerifyLength > MAXUINT32 || SignatureLength > MAXUINT32) {
-        QuicTraceLogError("[cert] CertListToVerify or Signature too large.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "CertListToVerify or Signature too large");
         return FALSE;
     }
 
     _Null_terminated_ const wchar_t * HashAlg = HashAlgFromTLS(SignatureAlgorithm);
     if (HashAlg == NULL) {
-        QuicTraceLogError("[cert] Unsupported signature algorithm 0x%x (HashAlg).", SignatureAlgorithm);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SignatureAlgorithm,
+            "Unsupported hash algorithm (HashAlg)");
         return FALSE;
     }
 
     DWORD PaddingScheme = PaddingTypeFromTLS(SignatureAlgorithm);
     if (PaddingScheme == ~0u) {
-        QuicTraceLogError("[cert] Unsupported padding scheme 0x%x.", SignatureAlgorithm);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SignatureAlgorithm,
+            "Unsupported padding scheme");
         return FALSE;
     }
 
     BCRYPT_ALG_HANDLE HashProv = HashHandleFromTLS(SignatureAlgorithm);
     if (HashProv == NULL) {
-        QuicTraceLogError("[cert] Unsupported hash algorithm 0x%x.", SignatureAlgorithm);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SignatureAlgorithm,
+            "Unsupported hash algorithm");
         return FALSE;
     }
 
     DWORD HashSize = HashSizeFromTLS(SignatureAlgorithm);
     if (HashSize == 0 || HashSize > QUIC_CERTIFICATE_MAX_HASH_SIZE) {
-        QuicTraceLogError("[cert] Unsupported hash size 0x%x.", SignatureAlgorithm);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SignatureAlgorithm,
+            "Unsupported hash size");
         return FALSE;
     }
 
@@ -1070,7 +1190,11 @@ QuicCertVerify(
             HashBuf,
             HashSize);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[cert] BCryptHash failed, 0x%x.", Status);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "BCryptHash failed");
         goto Exit;
     }
 
@@ -1080,7 +1204,11 @@ QuicCertVerify(
             0,
             NULL,
             &PublicKey)) {
-        QuicTraceLogError("[cert] CryptImportPublicKeyInfoEx2 failed, 0x%x.", GetLastError());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CryptImportPublicKeyInfoEx2 failed");
         goto Exit;
     }
 
@@ -1107,7 +1235,11 @@ QuicCertVerify(
             (ULONG)SignatureLength,
             SignFlags);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[cert] BCryptVerifySignature failed, 0x%x.", Status);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "BCryptVerifySignature failed");
         goto Exit;
     }
 

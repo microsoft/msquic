@@ -84,6 +84,7 @@ QuicPacketTypeToEncryptLevel(
 #define QUIC_CONN_SEND_FLAG_PATH_RESPONSE           0x00000800
 #define QUIC_CONN_SEND_FLAG_PING                    0x00001000
 #define QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE          0x00002000
+#define QUIC_CONN_SEND_FLAG_DATAGRAM                0x00004000
 #define QUIC_CONN_SEND_FLAG_PMTUD                   0x80000000
 
 //
@@ -111,6 +112,7 @@ QuicPacketTypeToEncryptLevel(
     QUIC_CONN_SEND_FLAG_PATH_CHALLENGE | \
     QUIC_CONN_SEND_FLAG_PATH_RESPONSE | \
     QUIC_CONN_SEND_FLAG_PING | \
+    QUIC_CONN_SEND_FLAG_DATAGRAM | \
     QUIC_CONN_SEND_FLAG_PMTUD \
 )
 
@@ -337,10 +339,10 @@ QuicSendProcessDelayedAckTimer(
 
 //
 // Indicates the connection has a given QUIC_CONN_SEND_FLAG_* that is ready
-// to be sent.
+// to be sent. Returns TRUE if the flag is (or already was) queued.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+BOOLEAN
 QuicSendSetSendFlag(
     _In_ QUIC_SEND* Send,
     _In_ uint32_t SendFlag
@@ -367,10 +369,10 @@ QuicSendUpdateAckState(
 
 //
 // Indicates the stream has a given QUIC_STREAM_SEND_FLAG_* that is ready
-// to be sent.
+// to be sent. Returns TRUE if the flag is (or already was) queued.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicSendSetStreamSendFlag(
     _In_ QUIC_SEND* Send,
     _In_ QUIC_STREAM* Stream,
@@ -399,19 +401,3 @@ QuicSendOnMtuProbePacketAcked(
     _In_ QUIC_PATH* Path,
     _In_ QUIC_SENT_PACKET_METADATA* Packet
     );
-
-#if QUIC_SEND_FAKE_LOSS
-//
-// QUIC_SEND_FAKE_LOSS defines a percentage of dropped packets.
-//
-inline
-BOOLEAN
-QuicFakeLossCanSend(
-    void
-    )
-{
-    uint8_t RandomValue;
-    QuicRandom(sizeof(RandomValue), &RandomValue);
-    return (RandomValue % 100) >= QUIC_SEND_FAKE_LOSS;
-}
-#endif

@@ -11,10 +11,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "settings.tmh"
-#endif
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSettingsSetDefault(
@@ -26,6 +22,9 @@ QuicSettingsSetDefault(
     }
     if (!Settings->AppSet.MigrationEnabled) {
         Settings->MigrationEnabled = QUIC_DEFAULT_MIGRATION_ENABLED;
+    }
+    if (!Settings->AppSet.DatagramReceiveEnabled) {
+        Settings->DatagramReceiveEnabled = QUIC_DEFAULT_DATAGRAM_RECEIVE_ENABLED;
     }
     if (!Settings->AppSet.MaxPartitionCount) {
         Settings->MaxPartitionCount = QUIC_MAX_PARTITION_COUNT;
@@ -107,6 +106,9 @@ QuicSettingsCopy(
     }
     if (!Settings->AppSet.MigrationEnabled) {
         Settings->MigrationEnabled = ParentSettings->MigrationEnabled;
+    }
+    if (!Settings->AppSet.DatagramReceiveEnabled) {
+        Settings->DatagramReceiveEnabled = ParentSettings->DatagramReceiveEnabled;
     }
     if (!Settings->AppSet.MaxPartitionCount) {
         Settings->MaxPartitionCount = ParentSettings->MaxPartitionCount;
@@ -206,6 +208,17 @@ QuicSettingsLoad(
             (uint8_t*)&Value,
             &ValueLen);
         Settings->MigrationEnabled = !!Value;
+    }
+
+    if (!Settings->AppSet.DatagramReceiveEnabled) {
+        Value = QUIC_DEFAULT_DATAGRAM_RECEIVE_ENABLED;
+        ValueLen = sizeof(Value);
+        QuicStorageReadValue(
+            Storage,
+            QUIC_SETTING_DATAGRAM_RECEIVE_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->DatagramReceiveEnabled = !!Value;
     }
 
     if (!Settings->AppSet.MaxPartitionCount) {
@@ -451,27 +464,28 @@ QuicSettingsDump(
     _In_ const QUIC_SETTINGS* Settings
     )
 {
-    QuicTraceLogVerbose("[sett] PacingDefault          = %hhu", Settings->PacingDefault);
-    QuicTraceLogVerbose("[sett] MigrationEnabled       = %hhu", Settings->MigrationEnabled);
-    QuicTraceLogVerbose("[sett] MaxPartitionCount      = %hhu", Settings->MaxPartitionCount);
-    QuicTraceLogVerbose("[sett] MaxOperationsPerDrain  = %hhu", Settings->MaxOperationsPerDrain);
-    QuicTraceLogVerbose("[sett] RetryMemoryLimit       = %hu", Settings->RetryMemoryLimit);
-    QuicTraceLogVerbose("[sett] LoadBalancingMode      = %hu", Settings->LoadBalancingMode);
-    QuicTraceLogVerbose("[sett] MaxStatelessOperations = %u", Settings->MaxStatelessOperations);
-    QuicTraceLogVerbose("[sett] MaxWorkerQueueDelayUs  = %u", Settings->MaxWorkerQueueDelayUs);
-    QuicTraceLogVerbose("[sett] InitialWindowPackets   = %u", Settings->InitialWindowPackets);
-    QuicTraceLogVerbose("[sett] SendIdleTimeoutMs      = %u", Settings->SendIdleTimeoutMs);
-    QuicTraceLogVerbose("[sett] InitialRttMs           = %u", Settings->InitialRttMs);
-    QuicTraceLogVerbose("[sett] MaxAckDelayMs          = %u", Settings->MaxAckDelayMs);
-    QuicTraceLogVerbose("[sett] DisconnectTimeoutMs    = %u", Settings->DisconnectTimeoutMs);
-    QuicTraceLogVerbose("[sett] KeepAliveIntervalMs    = %u", Settings->KeepAliveIntervalMs);
-    QuicTraceLogVerbose("[sett] IdleTimeoutMs          = %llu", Settings->IdleTimeoutMs);
-    QuicTraceLogVerbose("[sett] BidiStreamCount        = %hu", Settings->BidiStreamCount);
-    QuicTraceLogVerbose("[sett] UnidiStreamCount       = %hu", Settings->UnidiStreamCount);
-    QuicTraceLogVerbose("[sett] TlsClientMaxSendBuffer = %u", Settings->TlsClientMaxSendBuffer);
-    QuicTraceLogVerbose("[sett] TlsServerMaxSendBuffer = %u", Settings->TlsServerMaxSendBuffer);
-    QuicTraceLogVerbose("[sett] StreamRecvWindowDefault= %u", Settings->StreamRecvWindowDefault);
-    QuicTraceLogVerbose("[sett] StreamRecvBufferDefault= %u", Settings->StreamRecvBufferDefault);
-    QuicTraceLogVerbose("[sett] ConnFlowControlWindow  = %u", Settings->ConnFlowControlWindow);
-    QuicTraceLogVerbose("[sett] MaxBytesPerKey         = %llu", Settings->MaxBytesPerKey);
+    QuicTraceLogVerbose(SettingDumpPacingDefault,           "[sett] PacingDefault          = %hhu", Settings->PacingDefault);
+    QuicTraceLogVerbose(SettingDumpMigrationEnabled,        "[sett] MigrationEnabled       = %hhu", Settings->MigrationEnabled);
+    QuicTraceLogVerbose(SettingDumpDatagramReceiveEnabled,  "[sett] DatagramReceiveEnabled = %hhu", Settings->DatagramReceiveEnabled);
+    QuicTraceLogVerbose(SettingDumpMaxPartitionCount,       "[sett] MaxPartitionCount      = %hhu", Settings->MaxPartitionCount);
+    QuicTraceLogVerbose(SettingDumpMaxOperationsPerDrain,   "[sett] MaxOperationsPerDrain  = %hhu", Settings->MaxOperationsPerDrain);
+    QuicTraceLogVerbose(SettingDumpRetryMemoryLimit,        "[sett] RetryMemoryLimit       = %hu", Settings->RetryMemoryLimit);
+    QuicTraceLogVerbose(SettingDumpLoadBalancingMode,       "[sett] LoadBalancingMode      = %hu", Settings->LoadBalancingMode);
+    QuicTraceLogVerbose(SettingDumpMaxStatelessOperations,  "[sett] MaxStatelessOperations = %u", Settings->MaxStatelessOperations);
+    QuicTraceLogVerbose(SettingDumpMaxWorkerQueueDelayUs,   "[sett] MaxWorkerQueueDelayUs  = %u", Settings->MaxWorkerQueueDelayUs);
+    QuicTraceLogVerbose(SettingDumpInitialWindowPackets,    "[sett] InitialWindowPackets   = %u", Settings->InitialWindowPackets);
+    QuicTraceLogVerbose(SettingDumpSendIdleTimeoutMs,       "[sett] SendIdleTimeoutMs      = %u", Settings->SendIdleTimeoutMs);
+    QuicTraceLogVerbose(SettingDumpInitialRttMs,            "[sett] InitialRttMs           = %u", Settings->InitialRttMs);
+    QuicTraceLogVerbose(SettingDumpMaxAckDelayMs,           "[sett] MaxAckDelayMs          = %u", Settings->MaxAckDelayMs);
+    QuicTraceLogVerbose(SettingDumpDisconnectTimeoutMs,     "[sett] DisconnectTimeoutMs    = %u", Settings->DisconnectTimeoutMs);
+    QuicTraceLogVerbose(SettingDumpKeepAliveIntervalMs,     "[sett] KeepAliveIntervalMs    = %u", Settings->KeepAliveIntervalMs);
+    QuicTraceLogVerbose(SettingDumpIdleTimeoutMs,           "[sett] IdleTimeoutMs          = %llu", Settings->IdleTimeoutMs);
+    QuicTraceLogVerbose(SettingDumpBidiStreamCount,         "[sett] BidiStreamCount        = %hu", Settings->BidiStreamCount);
+    QuicTraceLogVerbose(SettingDumpUnidiStreamCount,        "[sett] UnidiStreamCount       = %hu", Settings->UnidiStreamCount);
+    QuicTraceLogVerbose(SettingDumpTlsClientMaxSendBuffer,  "[sett] TlsClientMaxSendBuffer = %u", Settings->TlsClientMaxSendBuffer);
+    QuicTraceLogVerbose(SettingDumpTlsServerMaxSendBuffer,  "[sett] TlsServerMaxSendBuffer = %u", Settings->TlsServerMaxSendBuffer);
+    QuicTraceLogVerbose(SettingDumpStreamRecvWindowDefault, "[sett] StreamRecvWindowDefault= %u", Settings->StreamRecvWindowDefault);
+    QuicTraceLogVerbose(SettingDumpStreamRecvBufferDefault, "[sett] StreamRecvBufferDefault= %u", Settings->StreamRecvBufferDefault);
+    QuicTraceLogVerbose(SettingDumpConnFlowControlWindow,   "[sett] ConnFlowControlWindow  = %u", Settings->ConnFlowControlWindow);
+    QuicTraceLogVerbose(SettingDumpMaxBytesPerKey,          "[sett] MaxBytesPerKey         = %llu", Settings->MaxBytesPerKey);
 }

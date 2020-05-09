@@ -44,10 +44,6 @@ Notes:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "hashtable.tmh"
-#endif
-
 #define QUIC_HASH_RESERVED_SIGNATURE 0
 
 //
@@ -69,7 +65,7 @@ Notes:
 // First level dir[2] covers a 4*minimum-size 2nd-level dirs. So on...
 // Hence, we can have at most (2^HT_FIRST_LEVEL_DIR_SIZE)-1
 // minimum-size hash bucket directories.
-// With a first-level directory size of 16 and a 2nd-level directory 
+// With a first-level directory size of 16 and a 2nd-level directory
 // minimum-size of 128, we get a max hash table size of 8,388,480 buckets.
 //
 #define MAX_HASH_TABLE_SIZE \
@@ -483,7 +479,11 @@ Return Value:
     if (*HashTable == NULL) {
         Table = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASHTABLE));
         if (Table == NULL) {
-            QuicTraceLogWarning("[ pal] Hashtable allocation failed.");
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "QUIC_HASHTABLE",
+                sizeof(QUIC_HASHTABLE));
             return FALSE;
         }
 
@@ -516,7 +516,11 @@ Return Value:
             QUIC_ALLOC_NONPAGED(
                 QuicComputeSecondLevelDirSize(0) * sizeof(QUIC_LIST_ENTRY));
         if (Table->SecondLevelDir == NULL) {
-            QuicTraceLogWarning("[ pal] Allocate second level dir (0) failure.");
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "second level dir (0)",
+                QuicComputeSecondLevelDirSize(0) * sizeof(QUIC_LIST_ENTRY));
             QuicHashtableUninitialize(Table);
             return FALSE;
         }
@@ -549,7 +553,11 @@ Return Value:
                 QUIC_ALLOC_NONPAGED(
                     QuicComputeSecondLevelDirSize(i) * sizeof(QUIC_LIST_ENTRY));
             if (Table->FirstLevelDir[i] == NULL) {
-                QuicTraceLogWarning("[ pal] Allocate second level dir (i) failure.");
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "second level dir (i)",
+                    QuicComputeSecondLevelDirSize(i) * sizeof(QUIC_LIST_ENTRY));
                 QuicHashtableUninitialize(Table);
                 return FALSE;
             }

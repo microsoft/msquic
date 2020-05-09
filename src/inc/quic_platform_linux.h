@@ -180,7 +180,6 @@ InterlockedIncrement64(
 // String utils.
 //
 
-#define strcpy_s(dst, dst_len, src) strcpy(dst, src) // TODO - Better solution for Linux
 int _strnicmp(const char * _Str1, const char * _Str2, size_t _MaxCount);
 
 #define sprintf_s(dst, dst_len, format, ...) \
@@ -203,14 +202,13 @@ void
 QuicPlatformLogAssert(
     _In_z_ const char* File,
     _In_ int Line,
-    _In_z_ const char* Func,
     _In_z_ const char* Expr
     );
 
 #define QUIC_STATIC_ASSERT(X,Y) static_assert(X, Y);
 #define QUIC_ANALYSIS_ASSERT(X)
 #define QUIC_ANALYSIS_ASSUME(X)
-#define QUIC_FRE_ASSERT(exp) ((exp) ? (void)0 : (QuicPlatformLogAssert(__FILE__, __LINE__, __func__, #exp), quic_bugcheck()));
+#define QUIC_FRE_ASSERT(exp) ((exp) ? (void)0 : (QuicPlatformLogAssert(__FILE__, __LINE__, #exp), quic_bugcheck()));
 
 #ifdef DEBUG
 #define QUIC_DBG_ASSERT(exp) QUIC_FRE_ASSERT(exp)

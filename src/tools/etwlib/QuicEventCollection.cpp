@@ -235,7 +235,6 @@ public:
                 Sample.CongestionWindow = Payload->OutFlowStats.CongestionWindow;
                 Sample.BytesBufferedForSend = Payload->OutFlowStats.PostedBytes;
                 Sample.FlowControlAvailable = Payload->OutFlowStats.ConnectionFlowControl;
-                Sample.StreamFlowControlAvailable = Payload->OutFlowStats.StreamFlowControl;
                 if (!InitialTxRateSampled) {
                     InitialTxRateSampled = true;
                     Sample.TxRate = Sample.BytesSent;
@@ -248,11 +247,13 @@ public:
                 }
             } else if (Event->Id == EventId_QuicConnCongestion) {
                 Sample.CongestionEvents++;
-            } else if (Event->Id == EventId_QuicConnStatistics && Sample.TimeStamp == 0) {
-                Sample.RttUs = Payload->Statistics.SmoothedRtt;
-                Sample.BytesSent = Payload->Statistics.SendTotalBytes;
-                Sample.BytesReceived = Payload->Statistics.RecvTotalBytes;
-                Sample.CongestionEvents = Payload->Statistics.CongestionCount;
+            } else if (Event->Id == EventId_QuicConnStats && Sample.TimeStamp == 0) {
+                Sample.RttUs = Payload->Stats.SmoothedRtt;
+                Sample.BytesSent = Payload->Stats.SendTotalBytes;
+                Sample.BytesReceived = Payload->Stats.RecvTotalBytes;
+                Sample.CongestionEvents = Payload->Stats.CongestionCount;
+            } else if (Event->Id == EventId_QuicConnOutFlowStreamStats) {
+                Sample.StreamFlowControlAvailable = Payload->OutFlowStreamStats.StreamFlowControl;
             } else {
                 continue;
             }
@@ -612,9 +613,9 @@ void QuicConnection::AddEvent(const QuicEvent* Event, QuicEventCollection* Event
         EventCollection->DataAvailableFlags |= QuicDataAvailableConnectionTput;
         BytesReceived = Payload->InFlowStats.BytesRecv;
         break;
-    case EventId_QuicConnStatistics:
-        BytesReceived = Payload->Statistics.SendTotalBytes;
-        BytesReceived = Payload->Statistics.RecvTotalBytes;
+    case EventId_QuicConnStats:
+        BytesReceived = Payload->Stats.SendTotalBytes;
+        BytesReceived = Payload->Stats.RecvTotalBytes;
         break;
     default:
         break;

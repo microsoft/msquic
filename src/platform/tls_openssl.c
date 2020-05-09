@@ -17,10 +17,6 @@ Abstract:
 #include "openssl/x509.h"
 #include "openssl/pem.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "tls_openssl.tmh"
-#endif
-
 uint16_t QuicTlsTPHeaderSize = 0;
 
 //
@@ -398,24 +394,16 @@ QuicTlsSecConfigDelete(
     _In_ QUIC_SEC_CONFIG* SecurityConfig
     );
 
-static
-inline
-char
-GetTlsIdentifier(
-    _In_ const QUIC_TLS* TlsContext
-    )
-{
-    const char IDs[2] = { 'C', 'S' };
-    return IDs[TlsContext->IsServer];
-}
-
 QUIC_STATUS
 QuicTlsLibraryInitialize(
     void
     )
 {
     if (OPENSSL_init_ssl(OPENSSL_INIT_LOAD_CONFIG, NULL) == 0) {
-        QuicTraceLogError("[ tls] OPENSSL_init_ssl failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "OPENSSL_init_ssl failed");
         return QUIC_STATUS_TLS_ERROR;
     }
 
@@ -488,8 +476,11 @@ QuicTlsSetEncryptionSecretsCallback(
     QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)Level;
     QUIC_STATUS Status;
 
-    QuicTraceLogVerbose("[ tls][%p][%c] New encryption secrets (Level = %u).",
-        TlsContext, GetTlsIdentifier(TlsContext), Level);
+    QuicTraceLogConnVerbose(
+        OpenSslNewEncryptionSecrets,
+        TlsContext->Connection,
+        "New encryption secrets (Level = %u)",
+        Level);
 
     QUIC_DBG_ASSERT(TlsState->WriteKeys[KeyType] == NULL);
     Status =
@@ -547,12 +538,19 @@ QuicTlsAddHandshakeDataCallback(
     QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)Level;
     QUIC_DBG_ASSERT(KeyType == 0 || TlsState->WriteKeys[KeyType] != NULL);
 
-    QuicTraceLogVerbose("[ tls][%p][%c] Sending %llu handshake bytes (Level = %u).",
-        TlsContext, GetTlsIdentifier(TlsContext), Length, Level);
+    QuicTraceLogConnVerbose(
+        OpenSslAddHandshakeData,
+        TlsContext->Connection,
+        "Sending %llu handshake bytes (Level = %u)",
+        Length,
+        Level);
 
     if (Length + TlsState->BufferLength > (size_t)TlsState->BufferAllocLength) {
-        QuicTraceLogError("[ tls][%p][%c] Buffer overflow for output handshake data.",
-            TlsContext, GetTlsIdentifier(TlsContext));
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "Buffer overflow for output handshake data");
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
         return -1;
     }
@@ -561,15 +559,21 @@ QuicTlsAddHandshakeDataCallback(
     case QUIC_PACKET_KEY_HANDSHAKE:
         if (TlsState->BufferOffsetHandshake == 0) {
             TlsState->BufferOffsetHandshake = TlsState->BufferTotalLength;
-            QuicTraceLogInfo("[ tls][%p][%c] Writing Handshake data starts at %u.",
-                TlsContext, GetTlsIdentifier(TlsContext), TlsState->BufferOffsetHandshake);
+            QuicTraceLogConnInfo(
+                OpenSslHandshakeDataStart,
+                TlsContext->Connection,
+                "Writing Handshake data starts at %u",
+                TlsState->BufferOffsetHandshake);
         }
         break;
     case QUIC_PACKET_KEY_1_RTT:
         if (TlsState->BufferOffset1Rtt == 0) {
             TlsState->BufferOffset1Rtt = TlsState->BufferTotalLength;
-            QuicTraceLogInfo("[ tls][%p][%c] Writing 1-RTT data starts at %u.",
-                TlsContext, GetTlsIdentifier(TlsContext), TlsState->BufferOffset1Rtt);
+            QuicTraceLogConnInfo(
+                OpenSsl1RttDataStart,
+                TlsContext->Connection,
+                "Writing 1-RTT data starts at %u",
+                TlsState->BufferOffset1Rtt);
         }
         break;
     default:
@@ -608,8 +612,12 @@ QuicTlsSendAlertCallback(
 
     QUIC_TLS* TlsContext = SSL_get_app_data(Ssl);
 
-    QuicTraceLogError("[ tls][%p][%c] Send alert = %u (Level = %u).",
-        TlsContext, GetTlsIdentifier(TlsContext), Alert, Level);
+    QuicTraceLogConnError(
+        OpenSslAlert,
+        TlsContext->Connection,
+        "Send alert = %u (Level = %u)",
+        Alert,
+        Level);
 
     TlsContext->State->AlertCode = Alert;
     TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
@@ -680,19 +688,29 @@ QuicTlsServerSecConfigCreate(
     //
 
     if (Flags != QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE) {
-        QuicTraceLogError("[ tls] Invalid flags: %lu.", Flags);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Flags,
+            "Invalid sec config flags");
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
     if (CertFile == NULL) {
-        QuicTraceLogError("[ tls] CertFile unspecified.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "CertFile unspecified");
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
     if (!QuicRundownAcquire(Rundown)) {
-        QuicTraceLogError("[ tls] Failed to acquire sec config rundown.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Failed to acquire sec config rundown");
         Status = QUIC_STATUS_INVALID_STATE;
         goto Exit;
     }
@@ -703,7 +721,11 @@ QuicTlsServerSecConfigCreate(
 
     SecurityConfig = QuicAlloc(sizeof(QUIC_SEC_CONFIG));
     if (SecurityConfig == NULL) {
-        QuicTraceLogError("[ tls] Security config allocation failure.");
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_SEC_CONFIG",
+            sizeof(QUIC_SEC_CONFIG));
         QuicRundownRelease(Rundown);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
@@ -723,7 +745,11 @@ QuicTlsServerSecConfigCreate(
 
     SecurityConfig->SSLCtx = SSL_CTX_new(TLS_method());
     if (SecurityConfig->SSLCtx == NULL) {
-        QuicTraceLogError("[ tls] SSL_CTX_new failed, error: %ld", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "SSL_CTX_new failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -745,7 +771,11 @@ QuicTlsServerSecConfigCreate(
             SecurityConfig->SSLCtx,
             QUIC_TLS_DEFAULT_SSL_CIPHERS);
     if (Ret != 1) {
-        QuicTraceLogError("[ tls] SSL_CTX_set_ciphersuites failed, error: %ld", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "SSL_CTX_set_ciphersuites failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -755,7 +785,11 @@ QuicTlsServerSecConfigCreate(
             SecurityConfig->SSLCtx,
             QUIC_TLS_DEFAULT_SSL_CURVES);
     if (Ret != 1) {
-        QuicTraceLogError("[ tls] SSL_CTX_set1_groups_list failed, error: %ld", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "SSL_CTX_set1_groups_list failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -779,7 +813,11 @@ QuicTlsServerSecConfigCreate(
             CertFile->PrivateKeyFile,
             SSL_FILETYPE_PEM);
     if (Ret != 1) {
-        QuicTraceLogError("[ tls] SSL_CTX_use_PrivateKey_file failed, error: %ld", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "SSL_CTX_use_PrivateKey_file failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -789,14 +827,22 @@ QuicTlsServerSecConfigCreate(
             SecurityConfig->SSLCtx,
             CertFile->CertificateFile);
     if (Ret != 1) {
-      QuicTraceLogError("[ tls] SSL_CTX_use_certificate_chain_file failed, error: %ld", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "SSL_CTX_use_certificate_chain_file failed");
       Status = QUIC_STATUS_TLS_ERROR;
       goto Exit;
     }
 
     Ret = SSL_CTX_check_private_key(SecurityConfig->SSLCtx);
     if (Ret != 1) {
-      QuicTraceLogError("TLS: SSL_CTX_check_private_key failed, error: %ld", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "SSL_CTX_check_private_key failed");
       Status = QUIC_STATUS_TLS_ERROR;
       goto Exit;
     }
@@ -863,7 +909,10 @@ QuicTlsClientSecConfigCreate(
 
     SecurityConfig = QuicAlloc(sizeof(QUIC_SEC_CONFIG));
     if (SecurityConfig == NULL) {
-        QuicTraceLogError("[ tls] SecurityConfig alloc failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "SecurityConfig alloc failed");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -879,7 +928,11 @@ QuicTlsClientSecConfigCreate(
 
     SecurityConfig->SSLCtx = SSL_CTX_new(TLS_method());
     if (SecurityConfig->SSLCtx == NULL) {
-        QuicTraceLogError("[ tls] SSL_CTX_new failed, error: %ld", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "SSL_CTX_new failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -890,42 +943,66 @@ QuicTlsClientSecConfigCreate(
 
     Ret = SSL_CTX_set_min_proto_version(SecurityConfig->SSLCtx, TLS1_3_VERSION);
     if (Ret != 1) {
-        QuicTraceLogError("[ tls] SSL_CTX_set_min_proto_version failed, error: %ld", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "SSL_CTX_set_min_proto_version failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
     Ret = SSL_CTX_set_max_proto_version(SecurityConfig->SSLCtx, TLS1_3_VERSION);
     if (Ret != 1) {
-        QuicTraceLogError("[ tls] SSL_CTX_set_max_proto_version failed, error: %ld", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "SSL_CTX_set_max_proto_version failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
     Ret = SSL_CTX_set_default_verify_paths(SecurityConfig->SSLCtx);
     if (Ret != 1) {
-        QuicTraceLogError("[ tls] SSL_CTX_set_default_verify_paths failed, error: %ld", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "SSL_CTX_set_default_verify_paths failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
     Ret = SSL_CTX_set_ciphersuites(SecurityConfig->SSLCtx, QUIC_TLS_DEFAULT_SSL_CIPHERS);
     if (Ret != 1) {
-        QuicTraceLogError("[ tls] SSL_CTX_set_ciphersuites failed, error: %ld", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "SSL_CTX_set_ciphersuites failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
     Ret = SSL_CTX_set1_groups_list(SecurityConfig->SSLCtx, QUIC_TLS_DEFAULT_SSL_CURVES);
     if (Ret != 1) {
-        QuicTraceLogError("[ tls] SSL_CTX_set1_groups_list failed, error: %ld", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "SSL_CTX_set1_groups_list failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
     Ret = SSL_CTX_set_quic_method(SecurityConfig->SSLCtx, &OpenSslQuicCallbacks);
     if (Ret != 1) {
-        QuicTraceLogError("[ tls] SSL_CTX_set_quic_method failed, error: %ld", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "SSL_CTX_set_quic_method failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -955,7 +1032,11 @@ QuicTlsClientSecConfigCreate(
                     QuicOpenSslClientTrustedCert,
                     NULL);
             if (Ret != 1) {
-                QuicTraceLogError("[ tls] SSL_CTX_load_verify_locations failed, error: %ld", ERR_get_error());
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    ERR_get_error(),
+                    "SSL_CTX_load_verify_locations failed");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }*/
@@ -1004,7 +1085,11 @@ QuicTlsSessionInitialize(
 {
     *NewTlsSession = QuicAlloc(sizeof(QUIC_TLS_SESSION));
     if (*NewTlsSession == NULL) {
-        QuicTraceLogWarning("[ tls] Failed to allocate QUIC_TLS_SESSION.");
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_TLS_SESSION",
+            sizeof(QUIC_TLS_SESSION));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     return QUIC_STATUS_SUCCESS;
@@ -1066,7 +1151,11 @@ QuicTlsInitialize(
 
     TlsContext = QuicAlloc(sizeof(QUIC_TLS));
     if (TlsContext == NULL) {
-        QuicTraceLogError("[ tls] Failed to allocate TLS context.");
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_TLS",
+            sizeof(QUIC_TLS));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -1081,24 +1170,33 @@ QuicTlsInitialize(
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
 
-    QuicTraceLogVerbose("[ tls][%p][%c] Created.", TlsContext, GetTlsIdentifier(TlsContext));
+    QuicTraceLogConnVerbose(
+        OpenSslContextCreated,
+        TlsContext->Connection,
+        "Created");
 
     if (!Config->IsServer) {
 
         if (Config->ServerName != NULL) {
 
             ServerNameLength = (uint16_t)strnlen(Config->ServerName, QUIC_MAX_SNI_LENGTH);
-
             if (ServerNameLength == QUIC_MAX_SNI_LENGTH) {
-                QuicTraceLogError("[ tls][%p][%c] Invalid / Too long server name!", TlsContext, GetTlsIdentifier(TlsContext));
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "SNI Too Long");
                 Status = QUIC_STATUS_INVALID_PARAMETER;
                 goto Exit;
             }
 
             TlsContext->SNI = QuicAlloc(ServerNameLength + 1);
-
             if (TlsContext->SNI == NULL) {
-                QuicTraceLogError("[ tls][%p][%c] Failed to allocate SNI.", TlsContext, GetTlsIdentifier(TlsContext));
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "SNI",
+                    ServerNameLength + 1);
                 Status = QUIC_STATUS_OUT_OF_MEMORY;
                 goto Exit;
             }
@@ -1113,7 +1211,11 @@ QuicTlsInitialize(
 
     TlsContext->Ssl = SSL_new(Config->SecConfig->SSLCtx);
     if (TlsContext->Ssl == NULL) {
-        QuicTraceLogError("[ tls][%p][%c] Failed to allocate Ssl object.", TlsContext, GetTlsIdentifier(TlsContext));
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "SSL_new failed");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -1133,7 +1235,11 @@ QuicTlsInitialize(
             TlsContext->Ssl,
             Config->LocalTPBuffer,
             Config->LocalTPLength) != 1) {
-        QuicTraceLogError("[ tls][%p][%c] Failed to set TP.", TlsContext, GetTlsIdentifier(TlsContext));
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "SSL_set_quic_transport_params failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -1160,7 +1266,10 @@ QuicTlsUninitialize(
     )
 {
     if (TlsContext != NULL) {
-        QuicTraceLogVerbose("[ tls][%p][%c] Cleaning up.", TlsContext, GetTlsIdentifier(TlsContext));
+        QuicTraceLogConnVerbose(
+            OpenSslContextCleaningUp,
+            TlsContext->Connection,
+            "Cleaning up");
 
         if (TlsContext->SecConfig != NULL) {
             QuicTlsSecConfigRelease(TlsContext->SecConfig);
@@ -1187,7 +1296,10 @@ QuicTlsReset(
     _In_ QUIC_TLS* TlsContext
     )
 {
-    QuicTraceLogInfo("[ tls][%p][%c] Resetting TLS state.", TlsContext, GetTlsIdentifier(TlsContext));
+    QuicTraceLogConnInfo(
+        OpenSslContextReset,
+        TlsContext->Connection,
+        "Resetting TLS state");
 
     QUIC_DBG_ASSERT(TlsContext->IsServer == FALSE);
 
@@ -1206,7 +1318,10 @@ QuicTlsReset(
 
     TlsContext->Ssl = SSL_new(TlsContext->SecConfig->SSLCtx);
     if (TlsContext->Ssl == NULL) {
-        QuicTraceLogError("[ tls][%p][%c] Failed to allocate Ssl object.", TlsContext, GetTlsIdentifier(TlsContext));
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "SSL_new failed");
         QUIC_DBG_ASSERT(FALSE);
         goto Exit;
     }
@@ -1222,7 +1337,10 @@ QuicTlsReset(
             TlsContext->Ssl,
             Config->LocalTPBuffer,
             Config->LocalTPLength) != 1) {
-        QuicTraceLogError("[ tls][%p][%c] Failed to set TP.", TlsContext, GetTlsIdentifier(TlsContext));
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "SSL_set_quic_transport_params failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }*/
@@ -1254,8 +1372,11 @@ QuicTlsProcessData(
     QUIC_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
 
     if (*BufferLength != 0) {
-        QuicTraceLogVerbose("[ tls][%p][%c] Processing %u received bytes.",
-            TlsContext, GetTlsIdentifier(TlsContext), *BufferLength);
+        QuicTraceLogConnVerbose(
+            OpenSslProcessData,
+            TlsContext->Connection,
+            "Processing %u received bytes",
+            *BufferLength);
     }
 
     TlsContext->State = State;
@@ -1280,14 +1401,20 @@ QuicTlsProcessData(
                 goto Exit;
 
             case SSL_ERROR_SSL:
-                QuicTraceLogError("[ tls][%p][%c] TLS handshake error: %s.",
-                    TlsContext, GetTlsIdentifier(TlsContext), ERR_error_string(ERR_get_error(), NULL));
+                QuicTraceLogConnError(
+                    OpenSslHandshakeErrorStr,
+                    TlsContext->Connection,
+                    "TLS handshake error: %s",
+                    ERR_error_string(ERR_get_error(), NULL));
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 goto Exit;
 
             default:
-                QuicTraceLogError("[ tls][%p][%c] TLS handshake error: %d.",
-                    TlsContext, GetTlsIdentifier(TlsContext), Err);
+                QuicTraceLogConnError(
+                    OpenSslHandshakeError,
+                    TlsContext->Connection,
+                    "TLS handshake error: %d",
+                    Err);
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 goto Exit;
             }
@@ -1298,14 +1425,18 @@ QuicTlsProcessData(
             uint32_t NegotiatedAlpnLength;
             SSL_get0_alpn_selected(TlsContext->Ssl, &NegotiatedAlpn, &NegotiatedAlpnLength);
             if (NegotiatedAlpnLength == 0) {
-                QuicTraceLogError("[ tls][%p][%c] Failed to negotiate ALPN.",
-                    TlsContext, GetTlsIdentifier(TlsContext));
+                QuicTraceLogConnError(
+                    OpenSslAlpnNegotiationFailure,
+                    TlsContext->Connection,
+                    "Failed to negotiate ALPN");
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 goto Exit;
             }
             if (NegotiatedAlpnLength > UINT8_MAX) {
-                QuicTraceLogError("[ tls][%p][%c] Invalid negotiated ALPN length.",
-                    TlsContext, GetTlsIdentifier(TlsContext));
+                QuicTraceLogConnError(
+                    OpenSslInvalidAlpnLength,
+                    TlsContext->Connection,
+                    "Invalid negotiated ALPN length");
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 goto Exit;
             }
@@ -1316,14 +1447,19 @@ QuicTlsProcessData(
                     (uint8_t)NegotiatedAlpnLength,
                     NegotiatedAlpn);
             if (TlsContext->State->NegotiatedAlpn == NULL) {
-                QuicTraceLogError("[ tls][%p][%c] Failed to find a matching ALPN",
-                    TlsContext, GetTlsIdentifier(TlsContext));
+                QuicTraceLogConnError(
+                    OpenSslNoMatchingAlpn,
+                    TlsContext->Connection,
+                    "Failed to find a matching ALPN");
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 goto Exit;
             }
         }
 
-        QuicTraceLogInfo("[ tls][%p][%c] Handshake complete.", TlsContext, GetTlsIdentifier(TlsContext));
+        QuicTraceLogConnInfo(
+            OpenSslHandshakeComplete,
+            TlsContext->Connection,
+            "Handshake complete");
         State->HandshakeComplete = TRUE;
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_COMPLETE;
 
@@ -1336,8 +1472,10 @@ QuicTlsProcessData(
             SSL_get_peer_quic_transport_params(
                     TlsContext->Ssl, &TransportParams, &TransportParamLen);
             if (TransportParams == NULL || TransportParamLen == 0) {
-                QuicTraceLogError("[ tls][%p][%c] No transport parameters received",
-                    TlsContext, GetTlsIdentifier(TlsContext));
+                QuicTraceLogConnError(
+                    OpenSslMissingTransportParameters,
+                    TlsContext->Connection,
+                    "No transport parameters received");
                 TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
                 goto Exit;
             }
@@ -1360,14 +1498,20 @@ QuicTlsProcessData(
             goto Exit;
 
         case SSL_ERROR_SSL:
-            QuicTraceLogError("[ tls][%p][%c] TLS handshake error: %s.",
-                TlsContext, GetTlsIdentifier(TlsContext), ERR_error_string(ERR_get_error(), NULL));
+            QuicTraceLogConnError(
+                OpenSslHandshakeErrorStr,
+                TlsContext->Connection,
+                "TLS handshake error: %s",
+                ERR_error_string(ERR_get_error(), NULL));
             TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
             goto Exit;
 
         default:
-            QuicTraceLogError("[ tls][%p][%c] TLS handshake error: %d.",
-                TlsContext, GetTlsIdentifier(TlsContext), Err);
+            QuicTraceLogConnError(
+                OpenSslHandshakeError,
+                TlsContext->Connection,
+                "TLS handshake error: %d",
+                Err);
             TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
             goto Exit;
         }
@@ -1456,9 +1600,7 @@ QuicPacketKeyCreateInitial(
 
     if (WriteKey != NULL) {
         Status = QuicAllocatePacketKey(QUIC_PACKET_KEY_INITIAL, TRUE, &TempWriteKey);
-
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogError("[ tls] Key alloc failure.");
             goto Exit;
         }
 
@@ -1473,7 +1615,10 @@ QuicPacketKeyCreateInitial(
                 Salt,
                 QUIC_VERSION_SALT_LENGTH,
                 EVP_sha256())) {
-            QuicTraceLogError("[ tls] QuicTlsHkdfExtract failed.");
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "QuicTlsHkdfExtract failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
@@ -1484,7 +1629,10 @@ QuicPacketKeyCreateInitial(
                     sizeof(Secret),
                     InitialSecret,
                     sizeof(InitialSecret))) {
-                QuicTraceLogError("[ tls] QuicTlsDeriveServerInitialSecret failed.");
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "QuicTlsDeriveServerInitialSecret failed");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
@@ -1494,7 +1642,10 @@ QuicPacketKeyCreateInitial(
                     sizeof(Secret),
                     InitialSecret,
                     sizeof(InitialSecret))) {
-                QuicTraceLogError("[ tls] QuicTlsDeriveClientInitialSecret failed.");
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "QuicTlsDeriveClientInitialSecret failed");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
@@ -1508,7 +1659,11 @@ QuicPacketKeyCreateInitial(
                 TempWriteKey);
 
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogError("[ tls] QuicTlsDerivePacketProtectionKey failed. error: %ld", Status);
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "QuicTlsDerivePacketProtectionKey failed");
             goto Exit;
         }
 
@@ -1520,7 +1675,11 @@ QuicPacketKeyCreateInitial(
                 TempWriteKey);
 
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogError("[ tls] QuicTlsDerivePacketProtectionIv failed. error: %ld", Status);
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "QuicTlsDerivePacketProtectionIv failed");
             goto Exit;
         }
 
@@ -1532,16 +1691,18 @@ QuicPacketKeyCreateInitial(
                 TempWriteKey);
 
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogError("[ tls] QuicTlsDeriveHeaderProtectionKey failed. error: %ld", Status);
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "QuicTlsDeriveHeaderProtectionKey failed");
             goto Exit;
         }
     }
 
     if (ReadKey != NULL) {
         Status = QuicAllocatePacketKey(QUIC_PACKET_KEY_INITIAL, TRUE, &TempReadKey);
-
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogError("[ tls] Key alloc failure.");
             goto Exit;
         }
 
@@ -1556,7 +1717,10 @@ QuicPacketKeyCreateInitial(
                 Salt,
                 QUIC_VERSION_SALT_LENGTH,
                 EVP_sha256())) {
-            QuicTraceLogError("[ tls] QuicTlsHkdfExtract failed.");
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "QuicTlsHkdfExtract failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }
@@ -1567,7 +1731,10 @@ QuicPacketKeyCreateInitial(
                     sizeof(Secret),
                     InitialSecret,
                     sizeof(InitialSecret))) {
-                QuicTraceLogError("[ tls] QuicTlsDeriveClientInitialSecret failed.");
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "QuicTlsDeriveClientInitialSecret failed");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
@@ -1577,7 +1744,10 @@ QuicPacketKeyCreateInitial(
                     sizeof(Secret),
                     InitialSecret,
                     sizeof(InitialSecret))) {
-                QuicTraceLogError("[ tls] QuicTlsDeriveServerInitialSecret failed.");
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "QuicTlsDeriveServerInitialSecret failed");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
             }
@@ -1591,7 +1761,11 @@ QuicPacketKeyCreateInitial(
                 TempReadKey);
 
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogError("[ tls] QuicTlsDerivePacketProtectionKey failed. error: %ld", Status);
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "QuicTlsDerivePacketProtectionKey failed");
             goto Exit;
         }
 
@@ -1603,7 +1777,11 @@ QuicPacketKeyCreateInitial(
                 TempReadKey);
 
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogError("[ tls] QuicTlsDerivePacketProtectionIv failed. error: %ld", Status);
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "QuicTlsDerivePacketProtectionIv failed");
             goto Exit;
         }
 
@@ -1615,7 +1793,11 @@ QuicPacketKeyCreateInitial(
                 TempReadKey);
 
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogError("[ tls] QuicTlsDeriveHeaderProtectionKey failed. error: %ld", Status);
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "QuicTlsDeriveHeaderProtectionKey failed");
             goto Exit;
         }
     }
@@ -1667,7 +1849,6 @@ QuicPacketKeyUpdate(
 
     Status = QuicAllocatePacketKey(QUIC_PACKET_KEY_1_RTT, FALSE, &TempKey);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError("[ tls] Key alloc failure");
         goto Exit;
     }
 
@@ -1686,7 +1867,11 @@ QuicPacketKeyUpdate(
             SecretLen,
             QuicTlsKeyGetMd(OldKey->TrafficSecret[0].Hash));
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError("[ tls] QuicTlsUpdateTrafficSecret failed. error: %ld", Status);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "QuicTlsUpdateTrafficSecret failed");
         goto Exit;
     }
 
@@ -1697,7 +1882,11 @@ QuicPacketKeyUpdate(
             QuicTlsKeyGetMd(OldKey->TrafficSecret[0].Hash),
             TempKey);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError("[ tls] QuicTlsDerivePacketProtectionKey failed. error: %ld", Status);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "QuicTlsDerivePacketProtectionKey failed");
         goto Exit;
     }
 
@@ -1708,7 +1897,11 @@ QuicPacketKeyUpdate(
             QuicTlsKeyGetMd(OldKey->TrafficSecret[0].Hash),
             TempKey);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError("[ tls] QuicTlsDerivePacketProtectionIv failed. error: %ld", Status);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "QuicTlsDerivePacketProtectionIv failed");
         goto Exit;
     }
 
@@ -1736,7 +1929,11 @@ QuicKeyCreate(
     QUIC_KEY* Key = QuicAlloc(sizeof(QUIC_KEY));
 
     if (Key == NULL) {
-        QuicTraceLogError("[ tls] Failed to allocate key.");
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_KEY",
+            sizeof(QUIC_KEY));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -1851,7 +2048,11 @@ QuicHpKeyCreate(
     QUIC_HP_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_KEY));
 
     if (Key == NULL) {
-        QuicTraceLogError("[ tls] Failed to allocate key.");
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_KEY",
+            sizeof(QUIC_KEY));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -1929,7 +2130,11 @@ QuicHashCreate(
     QUIC_HASH* Hash = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HASH) + SaltLength);
 
     if (Hash == NULL) {
-        QuicTraceLogError("[ tls] Failed to allocate hash.");
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_HASH",
+            sizeof(QUIC_HASH) + SaltLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -2123,7 +2328,10 @@ QuicTlsKeyCreate(
     Status = QuicAllocatePacketKey(KeyType, TRUE, &TempKey);
 
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError("[ tls] key alloc failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "key alloc failed");
         goto Exit;
     }
 
@@ -2137,7 +2345,12 @@ QuicTlsKeyCreate(
             QuicTlsKeyGetMd(HashType),
             TempKey);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError("[ tls] QuicTlsDerivePacketProtectionKey failed. Status: %ld", Status);
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            Status,
+            "QuicTlsDerivePacketProtectionKey failed");
         goto Exit;
     }
 
@@ -2148,7 +2361,12 @@ QuicTlsKeyCreate(
             QuicTlsKeyGetMd(HashType),
             TempKey);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError("[ tls] QuicTlsDeriveHeaderProtectionKey failed. Status: %ld", Status);
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            Status,
+            "QuicTlsDeriveHeaderProtectionKey failed");
         goto Exit;
     }
 
@@ -2159,7 +2377,12 @@ QuicTlsKeyCreate(
             QuicTlsKeyGetMd(HashType),
             TempKey);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError("[ tls] QuicTlsDerivePacketProtectionIv failed. Status: %ld", Status);
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            Status,
+            "QuicTlsDerivePacketProtectionIv failed");
         goto Exit;
     }
 
@@ -2194,51 +2417,74 @@ QuicTlsHdkfExpand(
 {
     BOOLEAN Ret = TRUE;
     EVP_PKEY_CTX *KeyCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
-
     if (KeyCtx == NULL) {
-        QuicTraceLogError("[ tls] Key ctx alloc failed");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Key ctx alloc failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_derive_init(KeyCtx) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_derive_init failed");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_PKEY_derive_init failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_hkdf_mode(KeyCtx, EVP_PKEY_HKDEF_MODE_EXPAND_ONLY) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_CTX_hkdf_mode failed");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_PKEY_CTX_hkdf_mode failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set_hkdf_md(KeyCtx, Md) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_CTX_set_hkdf_md failed");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_PKEY_CTX_set_hkdf_md failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set1_hkdf_salt(KeyCtx, "", 0) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_CTX_set1_hkdf_salt failed");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_PKEY_CTX_set1_hkdf_salt failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set1_hkdf_key(KeyCtx, Secret, SecretLen) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_CTX_set1_hkdf_key failed");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_PKEY_CTX_set1_hkdf_key failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_add1_hkdf_info(KeyCtx, Info, InfoLen) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_CTX_add1_hkdf_info failed");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_PKEY_CTX_add1_hkdf_info failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_derive(KeyCtx, OutputBuffer, &OutputBufferLen) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_derive failed");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_PKEY_derive failed");
         Ret = FALSE;
         goto Exit;
     }
@@ -2316,7 +2562,11 @@ QuicAllocatePacketKey(
 
     QUIC_PACKET_KEY * TempKey = QuicAlloc(PacketKeyLength);
     if (TempKey == NULL) {
-        QuicTraceLogError("[ tls] TempKey alloc failed.");
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_PACKET_KEY",
+            PacketKeyLength);
         goto Error;
     }
 
@@ -2326,19 +2576,27 @@ QuicAllocatePacketKey(
     if (AllocHpKey) {
         TempKey->HeaderKey = QuicAlloc(sizeof(QUIC_HP_KEY));
         if (TempKey->HeaderKey == NULL) {
-            QuicTraceLogError("[ tls] HeaderKey alloc failed.");
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "QUIC_PACKET_KEY",
+                sizeof(QUIC_HP_KEY));
             goto Error;
         }
     }
 
     TempKey->PacketKey = QuicAlloc(sizeof(QUIC_KEY));
     if (TempKey->PacketKey == NULL) {
-        QuicTraceLogError("[ tls] PacketKey alloc failed.");
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_KEY",
+            sizeof(QUIC_KEY));
         goto Error;
     }
 
     *Key = TempKey;
-    
+
     return QUIC_STATUS_SUCCESS;
 
 Error:
@@ -2374,7 +2632,10 @@ QuicTlsDerivePacketProtectionKey(
             Md);
 
     if (!Ret) {
-        QuicTraceLogError("[ tls] QuicTlsHkdfExpandLabel failed, error: %d", Ret);
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "QuicTlsHkdfExpandLabel failed");
         return QUIC_STATUS_TLS_ERROR;
     }
 
@@ -2405,7 +2666,10 @@ QuicTlsDerivePacketProtectionIv(
             Md);
 
     if (!Ret) {
-        QuicTraceLogError("[ tls] QuicTlsHkdfExpandLabel failed, error: %d", Ret);
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "QuicTlsHkdfExpandLabel failed");
         return QUIC_STATUS_TLS_ERROR;
     }
 
@@ -2437,7 +2701,10 @@ QuicTlsDeriveHeaderProtectionKey(
             Md);
 
     if (!Ret) {
-        QuicTraceLogError("[ tls] QuicTlsHkdfExpandLabel failed, error: %d", Ret);
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "QuicTlsHkdfExpandLabel failed");
         return QUIC_STATUS_TLS_ERROR;
     }
 
@@ -2536,7 +2803,10 @@ QuicTlsUpdateTrafficSecret(
             Md);
 
     if (!Ret) {
-        QuicTraceLogError("[ tls] QuicTlsHkdfExpandLabel failed, error: %d", Ret);
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "QuicTlsHkdfExpandLabel failed");
         return QUIC_STATUS_TLS_ERROR;
     }
 
@@ -2595,44 +2865,64 @@ QuicTlsHkdfExtract(
 {
     int Ret = TRUE;
     EVP_PKEY_CTX *KeyCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
-
     if (KeyCtx == NULL) {
-        QuicTraceLogError("[ tls] EVP_PKEY_CTX_new_id failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_PKEY_CTX_new_id failed");
         return FALSE;
     }
 
     if (EVP_PKEY_derive_init(KeyCtx) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_derive_init failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_PKEY_derive_init failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_hkdf_mode(KeyCtx, EVP_PKEY_HKDEF_MODE_EXTRACT_ONLY) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_CTX_hkdf_mode failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_PKEY_CTX_hkdf_mode failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set_hkdf_md(KeyCtx, Md) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_CTX_set_hkdf_md failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_PKEY_CTX_set_hkdf_md failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set1_hkdf_salt(KeyCtx, Salt, SaltLen) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_CTX_set1_hkdf_salt failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_PKEY_CTX_set1_hkdf_salt failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_CTX_set1_hkdf_key(KeyCtx, Secret, SecretLen) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_CTX_set1_hkdf_key failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_PKEY_CTX_set1_hkdf_key failed");
         Ret = FALSE;
         goto Exit;
     }
 
     if (EVP_PKEY_derive(KeyCtx, OutputBuffer, &OutputBufferLen) != 1) {
-        QuicTraceLogError("[ tls] EVP_PKEY_derive failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_PKEY_derive failed");
         Ret = FALSE;
         goto Exit;
     }
@@ -2691,46 +2981,68 @@ QuicTlsEncrypt(
     QUIC_FRE_ASSERT(TagLen == QUIC_ENCRYPTION_OVERHEAD);
 
     if (OutputBufferLen < PlainTextLen + TagLen) {
-        QuicTraceLogError("[ tls] Incorrect output buffer length :%ld.", OutputBufferLen);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            OutputBufferLen,
+            "Incorrect output buffer length");
         Ret = -1;
         goto Exit;
     }
 
     CipherCtx = EVP_CIPHER_CTX_new();
     if (CipherCtx == NULL) {
-        QuicTraceLogError("[ tls] CipherCtx alloc failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "CipherCtx alloc failed");
         Ret = -1;
         goto Exit;
     }
 
     if (EVP_EncryptInit_ex(CipherCtx, Aead, NULL, NULL, NULL) != 1) {
-        QuicTraceLogError("[ tls] EVP_EncryptInit_ex failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_EncryptInit_ex failed");
         Ret = -1;
         goto Exit;
     }
 
     if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, NonceLen, NULL) != 1) {
-        QuicTraceLogError("[ tls] EVP_CIPHER_CTX_ctrl failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_CIPHER_CTX_ctrl failed");
         Ret = -1;
         goto Exit;
     }
 
     if (EVP_EncryptInit_ex(CipherCtx, NULL, NULL, Key, Nonce) != 1) {
-        QuicTraceLogError("[ tls] EVP_EncryptInit_ex failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_EncryptInit_ex failed");
         Ret = -1;
         goto Exit;
     }
 
     if (Authdata != NULL) {
         if (EVP_EncryptUpdate(CipherCtx, NULL, &Len, Authdata, AuthDataLen) != 1) {
-            QuicTraceLogError("[ tls] EVP_EncryptUpdate failed.");
+            QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_EncryptUpdate failed");
             Ret = -1;
             goto Exit;
         }
     }
 
     if (EVP_EncryptUpdate(CipherCtx, OutputBuffer, &Len, PlainText, PlainTextLen) != 1) {
-        QuicTraceLogError("[ tls] EVP_EncryptUpdate failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_EncryptUpdate failed");
         Ret = -1;
         goto Exit;
     }
@@ -2738,7 +3050,10 @@ QuicTlsEncrypt(
     OutLen = Len;
 
     if (EVP_EncryptFinal_ex(CipherCtx, OutputBuffer + OutLen, &Len) != 1) {
-        QuicTraceLogError("[ tls] EVP_EncryptFinal_ex failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_EncryptFinal_ex failed");
         Ret = -1;
         goto Exit;
     }
@@ -2789,7 +3104,10 @@ QuicTlsDecrypt(
     QUIC_FRE_ASSERT(TagLen == QUIC_ENCRYPTION_OVERHEAD);
 
     if (TagLen > CipherTextLen || OutputBufferLen + TagLen < CipherTextLen) {
-        QuicTraceLogError("[ tls] Incorrect buffer length.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Incorrect buffer length");
         goto Exit;
     }
 
@@ -2798,22 +3116,37 @@ QuicTlsDecrypt(
 
     CipherCtx = EVP_CIPHER_CTX_new();
     if (CipherCtx == NULL) {
-        QuicTraceLogError("[ tls] EVP_CIPHER_CTX_new failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_CIPHER_CTX_new failed");
         goto Exit;
     }
 
     if (EVP_DecryptInit_ex(CipherCtx, Aead, NULL, NULL, NULL) != 1) {
-        QuicTraceLogError("[ tls] EVP_DecryptInit_ex failed, 0x%x.", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "EVP_DecryptInit_ex failed");
         goto Exit;
     }
 
     if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_IVLEN, NonceLen, NULL) != 1) {
-        QuicTraceLogError("[ tls] EVP_CIPHER_CTX_ctrl failed, 0x%x.", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "EVP_CIPHER_CTX_ctrl failed");
         goto Exit;
     }
 
     if (EVP_DecryptInit_ex(CipherCtx, NULL, NULL, Key, Nonce) != 1) {
-        QuicTraceLogError("[ tls] EVP_DecryptInit_ex failed, 0x%x.", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "EVP_DecryptInit_ex failed");
         goto Exit;
     }
 
@@ -2822,25 +3155,41 @@ QuicTlsDecrypt(
 
     if (AuthData != NULL) {
         if (EVP_DecryptUpdate(CipherCtx, NULL, &Len, AuthData, AuthDataLen) != 1) {
-            QuicTraceLogError("[ tls] EVP_DecryptUpdate (AD) failed, 0x%x.", ERR_get_error());
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "EVP_DecryptUpdate (AD) failed");
             goto Exit;
         }
     }
 
     if (EVP_DecryptUpdate(CipherCtx, OutputBuffer, &Len, CipherText, CipherTextLen) != 1) {
-        QuicTraceLogError("[ tls] EVP_DecryptUpdate (Cipher) failed, 0x%x.", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "EVP_DecryptUpdate (Cipher) failed");
         goto Exit;
     }
 
     OutLen = Len;
 
     if (EVP_CIPHER_CTX_ctrl(CipherCtx, EVP_CTRL_AEAD_SET_TAG, TagLen, Tag) != 1) {
-        QuicTraceLogError("[ tls] EVP_CIPHER_CTX_ctrl failed, 0x%x.", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "EVP_CIPHER_CTX_ctrl failed");
         goto Exit;
     }
 
     if (EVP_DecryptFinal_ex(CipherCtx, OutputBuffer + OutLen, &Len) != 1) {
-        QuicTraceLogError("[ tls] EVP_DecryptFinal_ex failed, 0x%x.", ERR_get_error());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "EVP_DecryptFinal_ex failed");
         goto Exit;
     }
 
@@ -2876,17 +3225,26 @@ QuicTlsHeaderMask(
 
     EVP_CIPHER_CTX *CipherCtx = EVP_CIPHER_CTX_new();
     if (CipherCtx == NULL) {
-        QuicTraceLogError("[ tls] Cipherctx alloc failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Cipherctx alloc failed");
         goto Exit;
     }
 
     if (EVP_EncryptInit_ex(CipherCtx, Aead, NULL, Key, Cipher) != 1) {
-        QuicTraceLogError("[ tls] EVP_EncryptInit_ex failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_EncryptInit_ex failed");
         goto Exit;
     }
 
     if (EVP_EncryptUpdate(CipherCtx, Temp, &Len, PLAINTEXT, sizeof(PLAINTEXT) - 1) != 1) {
-        QuicTraceLogError("[ tls] EVP_EncryptUpdate failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_EncryptUpdate failed");
         goto Exit;
     }
 
@@ -2894,7 +3252,10 @@ QuicTlsHeaderMask(
     OutputLen += Len;
 
     if (EVP_EncryptFinal_ex(CipherCtx, Temp + OutputLen, &Len) != 1) {
-        QuicTraceLogError("[ tls] EVP_EncryptFinal_ex failed.");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_EncryptFinal_ex failed");
         goto Exit;
     }
 
