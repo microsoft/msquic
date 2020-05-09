@@ -77,7 +77,7 @@ QuicTestCtlInitialize(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             Status,
             "MsQuicOpen");
         goto Error;
@@ -103,7 +103,7 @@ QuicTestCtlInitialize(
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             Status,
             "WdfDeviceInitAssignName failed");
         goto Error;
@@ -131,7 +131,7 @@ QuicTestCtlInitialize(
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             Status,
             "WdfDeviceCreate failed");
         goto Error;
@@ -146,7 +146,7 @@ QuicTestCtlInitialize(
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             Status,
             "WdfDeviceCreateSymbolicLink failed");
         goto Error;
@@ -168,7 +168,7 @@ QuicTestCtlInitialize(
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             Status,
             "WdfIoQueueCreate failed");
         goto Error;
@@ -264,7 +264,7 @@ QuicTestCtlEvtFileCreate(
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
-                "[ lib] ERROR, %d, %s.",
+                "[ lib] ERROR, %u, %s.",
                 Status,
                 "RegistrationOpen");
             break;
@@ -418,7 +418,7 @@ QuicTestCtlSetSecurityConfig(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             Status,
             "SecConfigCreate");
         goto Error;
@@ -625,7 +625,7 @@ QuicTestCtlEvtIoDeviceControl(
         Status = STATUS_NOT_IMPLEMENTED;
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             FunctionCode,
             "Invalid FunctionCode");
         goto Error;
@@ -635,7 +635,7 @@ QuicTestCtlEvtIoDeviceControl(
         Status = STATUS_INSUFFICIENT_RESOURCES;
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             FunctionCode,
             "Invalid buffer size for FunctionCode");
         goto Error;
@@ -652,7 +652,7 @@ QuicTestCtlEvtIoDeviceControl(
         if (!NT_SUCCESS(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
-                "[ lib] ERROR, %d, %s.",
+                "[ lib] ERROR, %u, %s.",
                 Status,
                 "WdfRequestRetrieveInputBuffer failed");
             goto Error;
