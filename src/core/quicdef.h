@@ -386,6 +386,17 @@ QUIC_STATIC_ASSERT(
 //
 #define QUIC_DEFAULT_LOAD_BALANCING_MODE        QUIC_LOAD_BALANCING_DISABLED
 
+//
+// The default value for datagrams being enabled or not.
+//
+#define QUIC_DEFAULT_DATAGRAM_RECEIVE_ENABLED   FALSE
+
+//
+// The default max_datagram_frame_length transport parameter value we send. Set
+// to max uint16 to not explicitly limit the length of datagrams.
+//
+#define QUIC_DEFAULT_MAX_DATAGRAM_LENGTH        0xFFFF
+
 /*************************************************************
                   PERSISTENT SETTINGS
 *************************************************************/
@@ -401,6 +412,7 @@ QUIC_STATIC_ASSERT(
 
 #define QUIC_SETTING_SEND_PACING_DEFAULT        "SendPacingDefault"
 #define QUIC_SETTING_MIGRATION_ENABLED          "MigrationEnabled"
+#define QUIC_SETTING_DATAGRAM_RECEIVE_ENABLED   "DatagramReceiveEnabled"
 
 #define QUIC_SETTING_INITIAL_WINDOW_PACKETS     "InitialWindowPackets"
 #define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS       "SendIdleTimeoutMs"

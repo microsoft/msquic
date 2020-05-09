@@ -29,6 +29,7 @@ union QuicV1Frames {
     QUIC_RETIRE_CONNECTION_ID_EX RetireConnectionIdFrame;
     QUIC_PATH_CHALLENGE_EX PathChallengeFrame;
     QUIC_CONNECTION_CLOSE_EX ConnectionCloseFrame;
+    QUIC_DATAGRAM_EX DatagramFrame;
 };
 
 TEST(SpinFrame, SpinFrame1000000)
@@ -64,10 +65,14 @@ TEST(SpinFrame, SpinFrame1000000)
             TEST_QUIC_SUCCEEDED(QuicRandom(BufferLength, Buffer));
         }
 
-        TEST_QUIC_SUCCEEDED(QuicRandom(sizeof(FrameType), &FrameType));
-        FrameType = (FrameType % (MAX_QUIC_FRAME - 3)) + 2;
+        do { 
+            TEST_QUIC_SUCCEEDED(QuicRandom(sizeof(FrameType), &FrameType));
+        } while (!QUIC_FRAME_IS_KNOWN(FrameType));
 
         switch(FrameType) {
+            case QUIC_FRAME_PADDING:
+            case QUIC_FRAME_PING:
+                break; // no-op
             case QUIC_FRAME_ACK:
             case QUIC_FRAME_ACK_1:
                 QuicZeroMemory(&Ecn, sizeof(Ecn));
@@ -189,6 +194,17 @@ TEST(SpinFrame, SpinFrame1000000)
             case QUIC_FRAME_CONNECTION_CLOSE:
             case QUIC_FRAME_CONNECTION_CLOSE_1:
                 if (QuicConnCloseFrameDecode((QUIC_FRAME_TYPE)FrameType, BufferLength, Buffer, &Offset, &DecodedFrame.ConnectionCloseFrame)) {
+                    SuccessfulDecodes++;
+                } else {
+                    FailedDecodes++;
+                }
+                break;
+            case QUIC_FRAME_HANDSHAKE_DONE:
+                // no-op
+                break;
+            case QUIC_FRAME_DATAGRAM:
+            case QUIC_FRAME_DATAGRAM_1:
+                if (QuicDatagramFrameDecode((QUIC_FRAME_TYPE) FrameType, BufferLength, Buffer, &Offset, &DecodedFrame.DatagramFrame)) {
                     SuccessfulDecodes++;
                 } else {
                     FailedDecodes++;

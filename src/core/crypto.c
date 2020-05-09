@@ -509,7 +509,7 @@ QuicCryptoWriteOneFrame(
     QUIC_FRE_ASSERT(
         QuicCryptoFrameEncode(&Frame, Offset, BufferLength, Buffer));
 
-    PacketMetadata->Flags.IsRetransmittable = TRUE;
+    PacketMetadata->Flags.IsAckEliciting = TRUE;
     PacketMetadata->Flags.HasCrypto = TRUE;
     PacketMetadata->Frames[PacketMetadata->FrameCount].Type = QUIC_FRAME_CRYPTO;
     PacketMetadata->Frames[PacketMetadata->FrameCount].CRYPTO.Offset = CryptoOffset;

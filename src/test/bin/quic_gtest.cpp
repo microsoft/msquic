@@ -919,6 +919,28 @@ TEST_P(WithDrillInitialPacketTokenArgs, DrillInitialPacketToken) {
     }
 }
 
+TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation) {
+    TestLoggerT<ParamType> Logger("QuicTestDatagramNegotiation", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_DATAGRAM_NEGOTIATION Params = {
+            GetParam().Family,
+            GetParam().DatagramReceiveEnabled
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_NEGOTIATION, Params));
+    } else {
+        QuicTestDatagramNegotiation(GetParam().Family, GetParam().DatagramReceiveEnabled);
+    }
+}
+
+TEST_P(WithFamilyArgs, DatagramSend) {
+    TestLoggerT<ParamType> Logger("QuicTestDatagramSend", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_SEND, GetParam().Family));
+    } else {
+        QuicTestDatagramSend(GetParam().Family);
+    }
+}
+
 INSTANTIATE_TEST_CASE_P(
     ParameterValidation,
     WithBool,
@@ -1002,6 +1024,11 @@ INSTANTIATE_TEST_CASE_P(
     Misc,
     WithReceiveResumeNoDataArgs,
     testing::ValuesIn(ReceiveResumeNoDataArgs::Generate()));
+
+INSTANTIATE_TEST_CASE_P(
+    Misc,
+    WithDatagramNegotiationArgs,
+    testing::ValuesIn(DatagramNegotiationArgs::Generate()));
 
 INSTANTIATE_TEST_CASE_P(
     Drill,

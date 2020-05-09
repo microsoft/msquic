@@ -761,7 +761,7 @@ QuicStreamWriteOneFrame(
         QUIC_FRE_ASSERT(FALSE);
     }
 
-    PacketMetadata->Flags.IsRetransmittable = TRUE;
+    PacketMetadata->Flags.IsAckEliciting = TRUE;
     PacketMetadata->Frames[PacketMetadata->FrameCount].Type = QUIC_FRAME_STREAM;
     PacketMetadata->Frames[PacketMetadata->FrameCount].STREAM.Stream = Stream;
     PacketMetadata->Frames[PacketMetadata->FrameCount].STREAM.Offset = Frame.Offset;

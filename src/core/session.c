@@ -843,8 +843,8 @@ QuicSessionParamGet(
         break;
 
     case QUIC_PARAM_SESSION_MIGRATION_ENABLED:
-        if (*BufferLength < sizeof(Session->Settings.MigrationEnabled)) {
-            *BufferLength = sizeof(Session->Settings.MigrationEnabled);
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             break;
         }
@@ -854,8 +854,26 @@ QuicSessionParamGet(
             break;
         }
 
-        *BufferLength = sizeof(Session->Settings.MigrationEnabled);
+        *BufferLength = sizeof(BOOLEAN);
         *(BOOLEAN*)Buffer = Session->Settings.MigrationEnabled;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED:
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = Session->Settings.DatagramReceiveEnabled;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -1037,7 +1055,7 @@ QuicSessionParamSet(
     }
 
     case QUIC_PARAM_SESSION_MIGRATION_ENABLED: {
-        if (BufferLength != sizeof(Session->Settings.MigrationEnabled)) {
+        if (BufferLength != sizeof(BOOLEAN)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -1050,6 +1068,25 @@ QuicSessionParamSet(
             "[sess][%p] Updated migration enabled to %hhu",
             Session,
             Session->Settings.MigrationEnabled);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
+    case QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED: {
+        if (BufferLength != sizeof(BOOLEAN)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Session->Settings.AppSet.DatagramReceiveEnabled = TRUE;
+        Session->Settings.DatagramReceiveEnabled = *(BOOLEAN*)Buffer;
+
+        QuicTraceLogInfo(
+            SessionDatagramReceiveEnabledSet,
+            "[sess][%p] Updated datagram receive enabled to %hhu",
+            Session,
+            Session->Settings.DatagramReceiveEnabled);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
