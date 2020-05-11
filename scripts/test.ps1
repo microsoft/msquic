@@ -125,7 +125,10 @@ param (
     [switch]$CompressOutput = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$NoProgress = $false
+    [switch]$NoProgress = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$NoProcDump = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -200,6 +203,9 @@ if ($CompressOutput) {
 }
 if ($NoProgress) {
     $TestArguments += " -NoProgress"
+}
+if ($NoProcDump) {
+    $TestArguments += " -NoProcDump"
 }
 
 # Run the script.
