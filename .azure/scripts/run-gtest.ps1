@@ -93,7 +93,10 @@ param (
     [switch]$CompressOutput = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$NoProgress = $false
+    [switch]$NoProgress = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$NoProcDump = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -216,6 +219,9 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
             } else {
                 $pinfo.Arguments = "-g -G $($Path) $($Arguments)"
             }
+        } elseif ($NoProcDump) {
+            $pinfo.FileName = $Path
+            $pinfo.Arguments = $Arguments
         } else {
             $pinfo.FileName = $RootDir + "\bld\tools\procdump64.exe"
             $pinfo.Arguments = "-ma -e -b -l -accepteula -x $($OutputDir) $($Path) $($Arguments)"
