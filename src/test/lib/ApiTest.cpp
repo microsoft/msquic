@@ -1177,7 +1177,7 @@ void QuicTestValidateServerSecConfig(void* CertContext, QUIC_CERTIFICATE_HASH_ST
         TEST_QUIC_SUCCEEDED(
             MsQuic->SecConfigCreate(
                 TestReg,
-                QUIC_SEC_CONFIG_FLAG_NONE,
+                QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH,
                 nullptr,                    // Certificate
                 Principal,                  // Principal
                 &TestContext,
