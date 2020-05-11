@@ -1142,7 +1142,7 @@ void QuicTestValidateServerSecConfig(void* CertContext, QUIC_CERTIFICATE_HASH_ST
     // Test null inputs.
     //
     TEST_QUIC_STATUS(
-        QUIC_STATUS_NOT_SUPPORTED,
+        QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->SecConfigCreate(
             TestReg,
             QUIC_SEC_CONFIG_FLAG_NONE,

@@ -537,7 +537,7 @@ QuicCertCreate(
         }
 
     } else {
-        Status = QUIC_STATUS_NOT_SUPPORTED;
+        Status = QUIC_STATUS_INVALID_PARAMETER;
     }
 
     return Status;

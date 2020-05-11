@@ -36,7 +36,7 @@ QuicCertCreate(
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     } else {
-        return QUIC_STATUS_NOT_SUPPORTED;
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
     *NewCertificate = (QUIC_CERT*)1;
     return QUIC_STATUS_SUCCESS;

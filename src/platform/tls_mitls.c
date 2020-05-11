@@ -474,11 +474,6 @@ QuicTlsServerSecConfigCreate(
     QUIC_STATUS Status;
     QUIC_SEC_CONFIG* SecurityConfig = NULL;
 
-    if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Error;
-    }
-
     if (!QuicRundownAcquire(Rundown)) {
         QuicTraceEvent(
             LibraryError,
