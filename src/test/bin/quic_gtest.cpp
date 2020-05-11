@@ -940,101 +940,101 @@ TEST_P(WithFamilyArgs, DatagramSend) {
     }
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
     WithBool,
     ::testing::Values(false, true));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     Basic,
     WithFamilyArgs,
     ::testing::ValuesIn(FamilyArgs::Generate()));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs1,
     testing::ValuesIn(HandshakeArgs1::Generate()));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs2,
     testing::ValuesIn(HandshakeArgs2::Generate()));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs3,
     testing::ValuesIn(HandshakeArgs3::Generate()));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs4,
     testing::ValuesIn(HandshakeArgs4::Generate()));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     AppData,
     WithSendArgs1,
     testing::ValuesIn(SendArgs1::Generate()));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     AppData,
     WithSendArgs2,
     testing::ValuesIn(SendArgs2::Generate()));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     AppData,
     WithSendArgs3,
     testing::ValuesIn(SendArgs3::Generate()));
 
 #ifndef QUIC_DISABLE_0RTT_TESTS
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     AppData,
     WithSend0RttArgs1,
     testing::ValuesIn(Send0RttArgs1::Generate()));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     AppData,
     WithSend0RttArgs2,
     testing::ValuesIn(Send0RttArgs2::Generate()));
 
 #endif
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithKeyUpdateArgs1,
     testing::ValuesIn(KeyUpdateArgs1::Generate()));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithAbortiveArgs,
     testing::ValuesIn(AbortiveArgs::Generate()));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithCidUpdateArgs,
     testing::ValuesIn(CidUpdateArgs::Generate()));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithReceiveResumeArgs,
     testing::ValuesIn(ReceiveResumeArgs::Generate()));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithReceiveResumeNoDataArgs,
     testing::ValuesIn(ReceiveResumeNoDataArgs::Generate()));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithDatagramNegotiationArgs,
     testing::ValuesIn(DatagramNegotiationArgs::Generate()));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     Drill,
     WithDrillInitialPacketCidArgs,
     testing::ValuesIn(DrillInitialPacketCidArgs::Generate()));
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     Drill,
     WithDrillInitialPacketTokenArgs,
     testing::ValuesIn(DrillInitialPacketTokenArgs::Generate()));
