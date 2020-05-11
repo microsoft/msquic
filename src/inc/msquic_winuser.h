@@ -41,7 +41,7 @@ Environment:
 #define ERROR_QUIC_USER_CANCELED        _HRESULT_TYPEDEF_(0x80410002L)
 #endif
 
-#define QUIC_API                        WINAPI
+#define QUIC_API                        __cdecl
 #define QUIC_MAIN_EXPORT                __cdecl
 #define QUIC_STATUS                     HRESULT
 #define QUIC_FAILED(X)                  FAILED(X)
