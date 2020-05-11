@@ -519,8 +519,6 @@ QuicTlsServerSecConfigCreate(
         goto Error;
     }
 
-Format:
-
     SecurityConfig->FormatLength =
         (uint16_t)QuicCertFormat(
             SecurityConfig->Certificate,
