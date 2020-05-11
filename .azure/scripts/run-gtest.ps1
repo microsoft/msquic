@@ -155,6 +155,9 @@ $FailXmlText = @"
 # Global state for tracking if any crashes occurred.
 $AnyProcessCrashes = $false
 
+# Path to the WER registry key used for collecting dumps.
+$WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\$TestExeName"
+
 # Helper script to build up a combined XML file for all test cases. This
 # function just appends the given test case's xml output to the existing xml
 # file. If not present (because of a crash) it generates one instead and appends
@@ -222,6 +225,9 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
         } elseif ($NoProcDump) {
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments
+            # Enable WER dump collection.
+            New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
+            New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $OutputDir -Force | Out-Null
         } else {
             $pinfo.FileName = $RootDir + "\bld\tools\procdump64.exe"
             $pinfo.Arguments = "-ma -e -b -l -accepteula -x $($OutputDir) $($Path) $($Arguments)"
@@ -423,16 +429,16 @@ function GetTestCases {
 #                     Main Execution                         #
 ##############################################################
 
-Log $Path
-
 # Query all the test cases.
 $TestCases = GetTestCases
 if ($null -eq $TestCases) {
-    Log "No test cases found."
+    Log "$Path (Skipped)"
     exit
 }
 
 $TestCount = ($TestCases -as [String[]]).Length
+
+Log "$Path ($TestCount test case(s))"
 
 if ($ListTestCases) {
     # List the tst cases.
@@ -440,10 +446,21 @@ if ($ListTestCases) {
     exit
 }
 
-# Log collection doesn't work for parallel right now.
+# Debugger doesn't work for parallel right now.
 if ($Debugger -and $ExecutionMode -eq "Parallel") {
     Log "Warning: Disabling parallel execution for debugger runs!"
     $ExecutionMode = "IsolatedSerial"
+}
+
+# NoProcDump mode doesn't work for parallel right now.
+if ($NoProcDump -and $ExecutionMode -eq "Parallel") {
+    Log "Warning: Disabling parallel execution for NoProcDump runs!"
+    $ExecutionMode = "IsolatedSerial"
+}
+
+# Initialize WER dump registry key if necessary.
+if ($IsWindows -and $NoProcDump -and !(Test-Path $WerDumpRegPath)) {
+    New-Item -Path $WerDumpRegPath -Force | Out-Null
 }
 
 try {
@@ -455,17 +472,15 @@ try {
         }
 
         # Run the the test process once for all tests.
-        Log "Executing $TestCount test(s) in batch..."
         Wait-TestCase (Start-AllTestCases)
 
     } else {
         if ($ExecutionMode -eq "Serial") {
             # Run the test cases serially.
-            Log "Executing $TestCount test(s) in series..."
-            for ($i = 0; $i -lt $TestCases.Length; $i++) {
-                Wait-TestCase (Start-TestCase $TestCases[$i])
+            for ($i = 0; $i -lt $TestCount; $i++) {
+                Wait-TestCase (Start-TestCase ($TestCases -as [String[]])[$i])
                 if (!$NoProgress) {
-                    Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+                    Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCount*100)
                 }
             }
 
@@ -477,27 +492,31 @@ try {
             }
 
             # Starting the test cases all in parallel.
-            Log "Starting $TestCount test(s) in parallel..."
             $Runs = New-Object System.Collections.ArrayList
-            for ($i = 0; $i -lt $TestCases.Length; $i++) {
-                $Runs.Add((Start-TestCase $TestCases[$i])) | Out-Null
+            for ($i = 0; $i -lt $TestCount; $i++) {
+                $Runs.Add((Start-TestCase ($TestCases -as [String[]]))) | Out-Null
                 if (!$NoProgress) {
-                    Write-Progress -Activity "Starting tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+                    Write-Progress -Activity "Starting tests" -Status "Progress:" -PercentComplete ($i/$TestCount*100)
                 }
                 Start-Sleep -Milliseconds 1
             }
 
             # Wait for the test cases to complete.
-            Log "Waiting for test cases to complete..."
+            Log "Waiting for all test cases to complete..."
             for ($i = 0; $i -lt $Runs.Count; $i++) {
                 Wait-TestCase $Runs[$i]
                 if (!$NoProgress) {
-                    Write-Progress -Activity "Finishing tests" -Status "Progress:" -PercentComplete ($i/$TestCases.Length*100)
+                    Write-Progress -Activity "Finishing tests" -Status "Progress:" -PercentComplete ($i/$TestCount*100)
                 }
             }
         }
     }
 } finally {
+    if ($isWindows -and $NoProcDump) {
+        # Cleanup the WER registry.
+        Remove-Item -Path $WerDumpRegPath -Force | Out-Null
+    }
+
     if ($IsolationMode -eq "Batch") {
         if (Test-Path $FinalResultsPath) {
             $XmlResults = [xml](Get-Content $FinalResultsPath)
