@@ -529,7 +529,7 @@ QuicLookupInsertRemoteHash(
         Entry->RemoteCid,
         RemoteCid,
         RemoteCidLength);
-        
+
     QuicHashtableInsert(
         &Lookup->RemoteHashTable,
         &Entry->Entry,

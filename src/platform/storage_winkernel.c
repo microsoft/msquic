@@ -217,7 +217,7 @@ QuicStorageOpen(
     QuicLockInitialize(&Storage->Lock);
     Storage->Callback = Callback;
     Storage->CallbackContext = CallbackContext;
-    
+
     ExInitializeWorkItem(
         &Storage->WorkItem,
         QuicStorageRegKeyChangeCallback,
@@ -231,7 +231,7 @@ QuicStorageOpen(
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
-    
+
     Status =
         ZwNotifyChangeKey(
             Storage->RegKey,

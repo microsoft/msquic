@@ -165,7 +165,7 @@ QuicCidNewNullSource(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    QUIC_CID_HASH_ENTRY* Entry = 
+    QUIC_CID_HASH_ENTRY* Entry =
         (QUIC_CID_HASH_ENTRY*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_CID_HASH_ENTRY));
 
     if (Entry != NULL) {

@@ -1414,7 +1414,7 @@ QuicFrameLog(
         }
 
         QuicTraceLogVerbose(
-            FrameLogCrypto, 
+            FrameLogCrypto,
             "[%c][%cX][%llu]   CRYPTO Offset:%llu Len:%hu",
             PtkConnPre(Connection),
             PktRxPre(Rx),
