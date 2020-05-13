@@ -273,6 +273,11 @@ QuicSendGetConnection(
     _In_ QUIC_SEND* Send
     );
 
+QUIC_CONNECTION*
+QuicDatagramGetConnection(
+    _In_ QUIC_DATAGRAM* Datagram
+    );
+
 uint8_t
 QuicEncryptLevelToPacketType(
     QUIC_ENCRYPT_LEVEL Level
@@ -576,7 +581,7 @@ BOOLEAN
 QuicPacketBuilderAddFrame(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
     _In_ uint8_t FrameType,
-    _In_ BOOLEAN IsRetransmittable
+    _In_ BOOLEAN IsAckEliciting
     );
 
 BOOLEAN

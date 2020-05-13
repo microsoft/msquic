@@ -77,7 +77,7 @@ QuicTestCtlInitialize(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             Status,
             "MsQuicOpen");
         goto Error;
@@ -103,7 +103,7 @@ QuicTestCtlInitialize(
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             Status,
             "WdfDeviceInitAssignName failed");
         goto Error;
@@ -131,7 +131,7 @@ QuicTestCtlInitialize(
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             Status,
             "WdfDeviceCreate failed");
         goto Error;
@@ -146,7 +146,7 @@ QuicTestCtlInitialize(
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             Status,
             "WdfDeviceCreateSymbolicLink failed");
         goto Error;
@@ -168,7 +168,7 @@ QuicTestCtlInitialize(
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             Status,
             "WdfIoQueueCreate failed");
         goto Error;
@@ -264,7 +264,7 @@ QuicTestCtlEvtFileCreate(
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
-                "[ lib] ERROR, %d, %s.",
+                "[ lib] ERROR, %u, %s.",
                 Status,
                 "RegistrationOpen");
             break;
@@ -333,11 +333,6 @@ QuicTestCtlEvtFileCleanup(
             TestControlClientCleaningUp,
             "[test] Client %p cleaning up",
             Client);
-
-        //
-        // Clean up the tests.
-        //
-        QuicTestCleanup();
 
         //
         // Delete the security configuration.
@@ -418,7 +413,7 @@ QuicTestCtlSetSecurityConfig(
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             Status,
             "SecConfigCreate");
         goto Error;
@@ -436,11 +431,6 @@ QuicTestCtlSetSecurityConfig(
         Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
     }
-
-    //
-    // Initialize the tests.
-    //
-    QuicTestInitialize();
 
     SecurityConfig = Client->SecurityConfig;
     Status = QUIC_STATUS_SUCCESS;
@@ -546,7 +536,9 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS),
     sizeof(INT32),
-    0
+    0,
+    sizeof(QUIC_RUN_DATAGRAM_NEGOTIATION),
+    sizeof(INT32)
 };
 
 static_assert(
@@ -566,7 +558,8 @@ typedef union {
     QUIC_RUN_RECEIVE_RESUME_PARAMS Params6;
     UINT8 EnableKeepAlive;
     UINT8 StopListenerFirst;
-    QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS DrillParams1;
+    QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS DrillParams;
+    QUIC_RUN_DATAGRAM_NEGOTIATION DatagramNegotiationParams;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -622,7 +615,7 @@ QuicTestCtlEvtIoDeviceControl(
         Status = STATUS_NOT_IMPLEMENTED;
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             FunctionCode,
             "Invalid FunctionCode");
         goto Error;
@@ -632,7 +625,7 @@ QuicTestCtlEvtIoDeviceControl(
         Status = STATUS_INSUFFICIENT_RESOURCES;
         QuicTraceEvent(
             LibraryErrorStatus,
-            "[ lib] ERROR, %d, %s.",
+            "[ lib] ERROR, %u, %s.",
             FunctionCode,
             "Invalid buffer size for FunctionCode");
         goto Error;
@@ -649,7 +642,7 @@ QuicTestCtlEvtIoDeviceControl(
         if (!NT_SUCCESS(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
-                "[ lib] ERROR, %d, %s.",
+                "[ lib] ERROR, %u, %s.",
                 Status,
                 "WdfRequestRetrieveInputBuffer failed");
             goto Error;
@@ -750,7 +743,8 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Params1.MultipleALPNs != 0,
                 Params->Params1.AsyncSecConfig != 0,
                 Params->Params1.MultiPacketClientInitial != 0,
-                Params->Params1.SessionResumption != 0
+                Params->Params1.SessionResumption != 0,
+                Params->Params1.RandomLossPercentage
                 ));
         break;
 
@@ -891,11 +885,11 @@ QuicTestCtlEvtIoDeviceControl(
         QUIC_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicDrillTestInitialCid(
-                Params->DrillParams1.Family,
-                Params->DrillParams1.SourceOrDest,
-                Params->DrillParams1.ActualCidLengthValid,
-                Params->DrillParams1.ShortCidLength,
-                Params->DrillParams1.CidLengthFieldValid));
+                Params->DrillParams.Family,
+                Params->DrillParams.SourceOrDest,
+                Params->DrillParams.ActualCidLengthValid,
+                Params->DrillParams.ShortCidLength,
+                Params->DrillParams.CidLengthFieldValid));
         break;
 
     case IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_TOKEN:
@@ -907,6 +901,21 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_START_LISTENER_MULTI_ALPN:
         QuicTestCtlRun(QuicTestStartListenerMultiAlpns());
+        break;
+
+    case IOCTL_QUIC_RUN_DATAGRAM_NEGOTIATION:
+        QUIC_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestDatagramNegotiation(
+                Params->DatagramNegotiationParams.Family,
+                Params->DatagramNegotiationParams.DatagramReceiveEnabled));
+        break;
+
+    case IOCTL_QUIC_RUN_DATAGRAM_SEND:
+        QUIC_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestDatagramSend(
+                Params->Family));
         break;
 
     default:

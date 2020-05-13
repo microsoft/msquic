@@ -26,7 +26,9 @@ TestConnection::TestConnection(
     TransportClosed(false), IsShutdown(false),
     ShutdownTimedOut(false), AutoDelete(AutoDelete),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
-    UseSendBuffer(UseSendBuffer)
+    UseSendBuffer(UseSendBuffer),
+    DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
+    DatagramsLost(0), DatagramsAcknowledged(0)
 {
     QuicEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     QuicEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -123,8 +125,8 @@ TestConnection::NewStream(
 bool
 TestConnection::WaitForConnectionComplete()
 {
-    if (!QuicEventWaitWithTimeout(EventConnectionComplete, TestWaitTimeout)) {
-        TEST_FAILURE("WaitForConnectionComplete timed out after %u ms.", TestWaitTimeout);
+    if (!QuicEventWaitWithTimeout(EventConnectionComplete, GetWaitTimeout())) {
+        TEST_FAILURE("WaitForConnectionComplete timed out after %u ms.", GetWaitTimeout());
         return false;
     }
     return true;
@@ -151,8 +153,8 @@ bool
 TestConnection::WaitForShutdownComplete()
 {
     if (IsStarted) {
-        if (!QuicEventWaitWithTimeout(EventShutdownComplete, TestWaitTimeout)) {
-            TEST_FAILURE("WaitForShutdownComplete timed out after %u ms.", TestWaitTimeout);
+        if (!QuicEventWaitWithTimeout(EventShutdownComplete, GetWaitTimeout())) {
+            TEST_FAILURE("WaitForShutdownComplete timed out after %u ms.", GetWaitTimeout());
             return false;
         }
     }
@@ -162,8 +164,8 @@ TestConnection::WaitForShutdownComplete()
 bool
 TestConnection::WaitForPeerClose()
 {
-    if (!QuicEventWaitWithTimeout(EventPeerClosed, TestWaitTimeout)) {
-        TEST_FAILURE("WaitForPeerClose timed out after %u ms.", TestWaitTimeout);
+    if (!QuicEventWaitWithTimeout(EventPeerClosed, GetWaitTimeout())) {
+        TEST_FAILURE("WaitForPeerClose timed out after %u ms.", GetWaitTimeout());
         return false;
     }
     return true;
@@ -643,6 +645,59 @@ TestConnection::SetShareUdpBinding(
             &bValue);
 }
 
+bool
+TestConnection::GetDatagramReceiveEnabled()
+{
+    BOOLEAN value;
+    uint32_t valueSize = sizeof(value);
+    QUIC_STATUS Status =
+        MsQuic->GetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
+            &valueSize,
+            &value);
+    if (QUIC_FAILED(Status)) {
+        value = 0;
+        TEST_FAILURE("MsQuic->GetParam(CONN_DATAGRAM_RECEIVE_ENABLED) failed, 0x%x.", Status);
+    }
+    return value != FALSE;
+}
+
+QUIC_STATUS
+TestConnection::SetDatagramReceiveEnabled(
+    bool value
+    )
+{
+    BOOLEAN bValue = value ? TRUE : FALSE;
+    return
+        MsQuic->SetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
+            sizeof(bValue),
+            &bValue);
+}
+
+bool
+TestConnection::GetDatagramSendEnabled()
+{
+    BOOLEAN value;
+    uint32_t valueSize = sizeof(value);
+    QUIC_STATUS Status =
+        MsQuic->GetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED,
+            &valueSize,
+            &value);
+    if (QUIC_FAILED(Status)) {
+        value = 0;
+        TEST_FAILURE("MsQuic->GetParam(CONN_DATAGRAM_SEND_ENABLED) failed, 0x%x.", Status);
+    }
+    return value != FALSE;
+}
+
 QUIC_STREAM_SCHEDULING_SCHEME
 TestConnection::GetPriorityScheme()
 {
@@ -724,7 +779,19 @@ TestConnection::HandleConnectionEvent(
         TransportClosed = true;
         TransportCloseStatus = Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status;
         if (Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status != ExpectedTransportCloseStatus) {
-            TEST_FAILURE("Unexpected transport Close Error, %u", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
+            bool IsTimeoutStatus =
+                Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status == QUIC_STATUS_CONNECTION_TIMEOUT ||
+                Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status == QUIC_STATUS_CONNECTION_IDLE;
+            if (IsTimeoutStatus && HasRandomLoss) {
+                //
+                // Ignoring unexpected status because of random loss
+                //
+                QuicTraceLogInfo(
+                    TestIgnoreConnectionTimeout,
+                    "[test] Ignoring timeout unexpected status because of random loss");
+            } else {
+                TEST_FAILURE("Unexpected transport Close Error, %u", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
+            }
         }
         QuicEventSet(EventConnectionComplete);
         break;
@@ -763,6 +830,27 @@ TestConnection::HandleConnectionEvent(
             this,
             Event->PEER_STREAM_STARTED.Stream,
             Event->PEER_STREAM_STARTED.Flags);
+        break;
+
+    case QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED:
+        switch (Event->DATAGRAM_SEND_STATE_CHANGED.State) {
+        case QUIC_DATAGRAM_SEND_SENT:
+            DatagramsSent++;
+            break;
+        case QUIC_DATAGRAM_SEND_LOST_SUSPECT:
+            DatagramsSuspectLost++;
+            break;
+        case QUIC_DATAGRAM_SEND_LOST_DISCARDED:
+            DatagramsLost++;
+            break;
+        case QUIC_DATAGRAM_SEND_ACKNOWLEDGED:
+        case QUIC_DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS:
+            DatagramsAcknowledged++;
+            break;
+        case QUIC_DATAGRAM_SEND_CANCELED:
+            DatagramsCanceled++;
+            break;
+        }
         break;
 
     default:

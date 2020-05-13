@@ -237,3 +237,15 @@ MsQuicGetParam(
     _Out_writes_bytes_opt_(*BufferLength)
         void* Buffer
     );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicDatagramSend(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_reads_(BufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const Buffers,
+    _In_ uint32_t BufferCount,
+    _In_ QUIC_SEND_FLAGS Flags,
+    _In_opt_ void* ClientSendContext
+    );

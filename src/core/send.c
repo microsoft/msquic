@@ -98,8 +98,7 @@ QuicSendCanSendFlagsNow(
     )
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
-    if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT &&
-        Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] == NULL) {
+    if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT) {
         if ((!Connection->State.Started && !QuicConnIsServer(Connection)) ||
             !(Send->SendFlags & QUIC_CONN_SEND_FLAG_ALLOWED_HANDSHAKE)) {
             return FALSE;
@@ -758,6 +757,13 @@ QuicSendWriteFrames(
                 return TRUE;
             }
         }
+
+        if (Send->SendFlags & QUIC_CONN_SEND_FLAG_DATAGRAM) {
+            RanOutOfRoom = QuicDatagramWriteFrame(&Connection->Datagram, Builder);
+            if (Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
+                return TRUE;
+            }
+        }
     }
 
     if (Send->SendFlags & QUIC_CONN_SEND_FLAG_PING) {
@@ -988,8 +994,7 @@ QuicSendFlush(
         }
 
         uint32_t SendFlags = Send->SendFlags;
-        if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT &&
-            Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_0_RTT] == NULL) {
+        if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT) {
             SendFlags &= QUIC_CONN_SEND_FLAG_ALLOWED_HANDSHAKE;
         }
 
@@ -1037,6 +1042,7 @@ QuicSendFlush(
         BOOLEAN WrotePacketFrames;
         BOOLEAN FlushBatchedDatagrams = FALSE;
         if ((SendFlags & ~QUIC_CONN_SEND_FLAG_PMTUD) != 0) {
+            QUIC_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
             if (!QuicPacketBuilderPrepareForControlFrames(
                     &Builder,
                     Send->TailLossProbeNeeded,
@@ -1202,6 +1208,7 @@ QuicSendOnMtuProbePacketAcked(
     _In_ QUIC_SENT_PACKET_METADATA* Packet
     )
 {
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
     Path->Mtu =
         PacketSizeFromUdpPayloadSize(
             QuicAddrGetFamily(&Path->RemoteAddress),
@@ -1209,7 +1216,8 @@ QuicSendOnMtuProbePacketAcked(
     QuicTraceLogConnInfo(
         PathMtuUpdated,
         QuicSendGetConnection(Send),
-        "Path[%hhu] MTU updated to %u bytes",
+        "Path[%hhu] MTU updated to %hu bytes",
         Path->ID,
         Path->Mtu);
+    QuicDatagramOnSendStateChanged(&Connection->Datagram);
 }

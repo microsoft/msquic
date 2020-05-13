@@ -264,7 +264,7 @@ ComputeDirIndices(
     _Out_ PULONG FirstLevelIndex,
     _Out_ PULONG SecondLevelIndex
     )
-{        
+{
     CONST ULONG AbsoluteIndex = BucketIndex + KDEXT_RTL_HT_SECOND_LEVEL_DIR_SIZE;
 
     BitScanReverse(FirstLevelIndex, AbsoluteIndex);
@@ -344,7 +344,7 @@ struct HashTable : Struct {
 
             ReadBucketHead = true;
         }
-    
+
         return false;
     }
 };
@@ -814,7 +814,7 @@ struct SentFrameMetadata : Struct {
 typedef struct QUIC_SEND_PACKET_FLAGS {
 
     UINT8 KeyType                   : 2;
-    BOOLEAN IsRetransmittable       : 1;
+    BOOLEAN IsAckEliciting          : 1;
     BOOLEAN HasCrypto               : 1;
     BOOLEAN IsPMTUD                 : 1;
 

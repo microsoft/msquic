@@ -94,6 +94,66 @@ class WithHandshakeArgs2 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs2> {
 };
 
+struct HandshakeArgs3 {
+    int Family;
+    bool ServerStatelessRetry;
+    bool MultipleALPNs;
+    static ::std::vector<HandshakeArgs3> Generate() {
+        ::std::vector<HandshakeArgs3> list;
+        for (int Family : { 4, 6})
+        for (bool ServerStatelessRetry : { false, true })
+        for (bool MultipleALPNs : { false, true })
+            list.push_back({ Family, ServerStatelessRetry, MultipleALPNs });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs3& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
+        (args.MultipleALPNs ? "MultipleALPNs" : "SingleALPN");
+}
+
+class WithHandshakeArgs3 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs3> {
+};
+
+struct HandshakeArgs4 {
+    int Family;
+    bool ServerStatelessRetry;
+    bool MultiPacketClientInitial;
+    bool SessionResumption;
+    uint8_t RandomLossPercentage;
+    static ::std::vector<HandshakeArgs4> Generate() {
+        ::std::vector<HandshakeArgs4> list;
+        for (int Family : { 4, 6})
+        for (bool ServerStatelessRetry : { false, true })
+        for (bool MultiPacketClientInitial : { false, true })
+#ifdef QUIC_DISABLE_RESUMPTION
+        for (bool SessionResumption : { false })
+#else
+        for (bool SessionResumption : { false, true })
+#endif
+        for (uint8_t RandomLossPercentage : { 1, 5, 10 })
+            list.push_back({ Family, ServerStatelessRetry, MultiPacketClientInitial, SessionResumption, RandomLossPercentage });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs4& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
+        (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial") << "/" <<
+        (args.SessionResumption ? "Resume" : "NoResume") << "/" <<
+        (uint32_t)args.RandomLossPercentage << "% loss";
+}
+
+class WithHandshakeArgs4 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs4> {
+};
+
 struct SendArgs1 {
     int Family;
     uint64_t Length;
@@ -375,6 +435,28 @@ class WithReceiveResumeNoDataArgs : public testing::Test,
     public testing::WithParamInterface<ReceiveResumeNoDataArgs> {
 };
 
+struct DatagramNegotiationArgs {
+    int Family;
+    bool DatagramReceiveEnabled;
+    static ::std::vector<DatagramNegotiationArgs> Generate() {
+        ::std::vector<DatagramNegotiationArgs> list;
+        for (int Family : { 4, 6 })
+        for (bool DatagramReceiveEnabled : { false, true })
+            list.push_back({ Family, DatagramReceiveEnabled });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const DatagramNegotiationArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.DatagramReceiveEnabled ? "DatagramReceiveEnabled" : "DatagramReceiveDisabled");
+}
+
+class WithDatagramNegotiationArgs : public testing::Test,
+    public testing::WithParamInterface<DatagramNegotiationArgs> {
+};
+
 struct DrillInitialPacketCidArgs {
     int Family;
     bool SourceOrDest;
@@ -448,7 +530,7 @@ public:
             Error = GetLastError();
             QuicTraceEvent(
                 LibraryErrorStatus,
-                "[ lib] ERROR, %d, %s.",
+                "[ lib] ERROR, %u, %s.",
                 Error,
                 "GetFullPathName failed");
             return false;
@@ -462,7 +544,7 @@ public:
         if (ServiceHandle == nullptr) {
             QuicTraceEvent(
                 LibraryErrorStatus,
-                "[ lib] ERROR, %d, %s.",
+                "[ lib] ERROR, %u, %s.",
                  GetLastError(),
                 "OpenService failed");
             char DriverFilePath[MAX_PATH];
@@ -476,7 +558,7 @@ public:
                 Error = GetLastError();
                 QuicTraceEvent(
                     LibraryErrorStatus,
-                    "[ lib] ERROR, %d, %s.",
+                    "[ lib] ERROR, %u, %s.",
                     Error,
                     "GetFullPathName failed");
                 return false;
@@ -503,7 +585,7 @@ public:
                 }
                 QuicTraceEvent(
                     LibraryErrorStatus,
-                    "[ lib] ERROR, %d, %s.",
+                    "[ lib] ERROR, %u, %s.",
                     Error,
                     "CreateService failed");
                 return false;
@@ -525,7 +607,7 @@ public:
             if (Error != ERROR_SERVICE_ALREADY_RUNNING) {
                 QuicTraceEvent(
                     LibraryErrorStatus,
-                    "[ lib] ERROR, %d, %s.",
+                    "[ lib] ERROR, %u, %s.",
                     Error,
                     "StartService failed");
                 return false;
@@ -569,7 +651,7 @@ public:
             Error = GetLastError();
             QuicTraceEvent(
                 LibraryErrorStatus,
-                "[ lib] ERROR, %d, %s.",
+                "[ lib] ERROR, %u, %s.",
                 Error,
                 "CreateFile failed");
             return false;
@@ -604,7 +686,7 @@ public:
             Error = GetLastError();
             QuicTraceEvent(
                 LibraryErrorStatus,
-                "[ lib] ERROR, %d, %s.",
+                "[ lib] ERROR, %u, %s.",
                 Error,
                 "CreateEvent failed");
             return false;
@@ -626,7 +708,7 @@ public:
                 CloseHandle(Overlapped.hEvent);
                 QuicTraceEvent(
                     LibraryErrorStatus,
-                    "[ lib] ERROR, %d, %s.",
+                    "[ lib] ERROR, %u, %s.",
                     Error,
                     "DeviceIoControl failed");
                 return false;
@@ -646,7 +728,7 @@ public:
             }
             QuicTraceEvent(
                 LibraryErrorStatus,
-                "[ lib] ERROR, %d, %s.",
+                "[ lib] ERROR, %u, %s.",
                 Error,
                 "GetOverlappedResultEx failed");
         } else {

@@ -34,6 +34,7 @@ class TestListener
     bool FilterConnections  : 1;
     bool SetSecConfig  : 1;
     bool UseSendBuffer : 1;
+    bool HasRandomLoss : 1;
 
     NEW_CONNECTION_CALLBACK_HANDLER NewConnectionCallback;
 
@@ -93,4 +94,7 @@ public:
 
     QUIC_STATUS GetLocalAddr(_Out_ QuicAddr &localAddr);
     QUIC_STATUS GetStatistics(_Out_ QUIC_LISTENER_STATISTICS &stats);
+
+    bool GetHasRandomLoss() const { return HasRandomLoss; }
+    void SetHasRandomLoss(bool Value) { HasRandomLoss = Value; }
 };

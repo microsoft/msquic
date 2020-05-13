@@ -3,16 +3,19 @@
 
 set(SOURCES
     ApiTest.cpp
+    BasicTest.cpp
+    DatagramTest.cpp
+    DataTest.cpp
     DrillDescriptor.cpp
     EventTest.cpp
+    HandshakeTest.cpp
     QuicDrill.cpp
-    QuicTest.cpp
     TestConnection.cpp
     TestListener.cpp
     TestStream.cpp
 )
 
-include_directories(${CMAKE_SOURCE_DIR}/src/test)
+include_directories(${PROJECT_SOURCE_DIR}/src/test)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 

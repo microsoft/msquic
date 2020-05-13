@@ -36,10 +36,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ApiTest.cpp" />
+    <ClCompile Include="BasicTest.cpp" />
+    <ClCompile Include="DatagramTest.cpp" />
+    <ClCompile Include="DataTest.cpp" />
     <ClCompile Include="DrillDescriptor.cpp" />
     <ClCompile Include="EventTest.cpp" />
+    <ClCompile Include="HandshakeTest.cpp" />
     <ClCompile Include="QuicDrill.cpp" />
-    <ClCompile Include="QuicTest.cpp" />
     <ClCompile Include="TestConnection.cpp" />
     <ClCompile Include="TestListener.cpp" />
     <ClCompile Include="TestStream.cpp" />

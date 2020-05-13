@@ -185,12 +185,14 @@ HttpRequest::Process()
         return;
     }
 
-    char FullFilePath[256];
-    strcpy(FullFilePath, RootFolderPath);
     if (strcmp("/", PathStart) == 0) {
-        strcat(FullFilePath, "/index.html");
-    } else {
-        strcat(FullFilePath, PathStart);
+        PathStart = "/index.html";
+    }
+
+    char FullFilePath[256];
+    if (snprintf(FullFilePath, sizeof(FullFilePath), "%s%s", RootFolderPath, PathStart) < 0) {
+        printf("[%s] Invalid get\n", GetRemoteAddr(MsQuic, QuicStream).Address);
+        return;
     }
 
     printf("[%s] GET '%s'\n", GetRemoteAddr(MsQuic, QuicStream).Address, PathStart);

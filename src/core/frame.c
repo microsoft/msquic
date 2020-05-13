@@ -1122,6 +1122,77 @@ QuicConnCloseFrameDecode(
     return TRUE;
 }
 
+_Success_(return != FALSE)
+BOOLEAN
+QuicDatagramFrameEncodeEx(
+    _In_reads_(BufferCount)
+        const QUIC_BUFFER* const Buffers,
+    _In_ uint32_t BufferCount,
+    _In_ uint64_t TotalLength,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset)
+        uint8_t* Buffer
+    )
+{
+    QUIC_DATAGRAM_FRAME_TYPE Type = {{{
+        TRUE,
+        0b0011000
+    }}};
+
+    uint16_t RequiredLength =
+        sizeof(uint8_t) +     // Type
+        (Type.LEN ? QuicVarIntSize(TotalLength) : 0) +
+        (uint16_t)TotalLength;
+
+    if (BufferLength < *Offset + RequiredLength) {
+        return FALSE;
+    }
+
+    Buffer = Buffer + *Offset;
+    Buffer = QuicUint8Encode(Type.Type, Buffer);
+    if (Type.LEN) {
+        Buffer = QuicVarIntEncode(TotalLength, Buffer);
+    }
+    for (uint32_t i = 0; i < BufferCount; ++i) {
+        if (Buffers[i].Length != 0) {
+            QuicCopyMemory(Buffer, Buffers[i].Buffer, Buffers[i].Length);
+            Buffer += Buffers[i].Length;
+        }
+    }
+
+    *Offset += RequiredLength;
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicDatagramFrameDecode(
+    _In_ QUIC_FRAME_TYPE FrameType,
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Deref_in_range_(0, BufferLength)
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_DATAGRAM_EX* Frame
+    )
+{
+    QUIC_DATAGRAM_FRAME_TYPE Type = { .Type = FrameType };
+    if (Type.LEN) {
+        if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->Length) ||
+            BufferLength < Frame->Length + *Offset) {
+            return FALSE;
+        }
+    } else {
+        QUIC_ANALYSIS_ASSERT(BufferLength >= *Offset);
+        Frame->Length = BufferLength - *Offset;
+    }
+    Frame->Data = Buffer + *Offset;
+    *Offset += (uint16_t)Frame->Length;
+    return TRUE;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicFrameLog(
@@ -1135,7 +1206,7 @@ QuicFrameLog(
     )
 {
     QUIC_FRAME_TYPE FrameType = Packet[*Offset];
-    if (FrameType > MAX_QUIC_FRAME) {
+    if (!QUIC_FRAME_IS_KNOWN(FrameType)) {
         QuicTraceLogVerbose(
             FrameLogUnknownType,
             "[%c][%cX][%llu]   unknown frame (%hu)",
@@ -1691,6 +1762,32 @@ QuicFrameLog(
             PacketNumber);
         break;
     }
+
+    case QUIC_FRAME_DATAGRAM:
+    case QUIC_FRAME_DATAGRAM_1: {
+        QUIC_DATAGRAM_EX Frame;
+        if (!QuicDatagramFrameDecode(FrameType, PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogDatagramInvalid,
+                "[%c][%cX][%llu]   DATAGRAM [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+        QuicTraceLogVerbose(
+            FrameLogDatagram,
+            "[%c][%cX][%llu]   DATAGRAM Len:%hu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            (uint16_t)Frame.Length);
+        break;
+    }
+
+    default:
+        QUIC_FRE_ASSERT(FALSE);
+        break;
     }
 
     return TRUE;

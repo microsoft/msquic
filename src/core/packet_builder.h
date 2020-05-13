@@ -231,12 +231,12 @@ BOOLEAN
 QuicPacketBuilderAddFrame(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
     _In_ uint8_t FrameType,
-    _In_ BOOLEAN IsRetransmittable
+    _In_ BOOLEAN IsAckEliciting
     )
 {
     QUIC_DBG_ASSERT(Builder->Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET);
     Builder->Metadata->Frames[Builder->Metadata->FrameCount].Type = FrameType;
-    Builder->Metadata->Flags.IsRetransmittable |= IsRetransmittable;
+    Builder->Metadata->Flags.IsAckEliciting |= IsAckEliciting;
     return ++Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET;
 }
 

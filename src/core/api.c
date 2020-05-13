@@ -1237,3 +1237,89 @@ Error:
 
     return Status;
 }
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicDatagramSend(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_reads_(BufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const Buffers,
+    _In_ uint32_t BufferCount,
+    _In_ QUIC_SEND_FLAGS Flags,
+    _In_opt_ void* ClientSendContext
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_CONNECTION* Connection;
+    uint64_t TotalLength;
+    QUIC_SEND_REQUEST* SendRequest;
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_DATAGRAM_SEND,
+        Handle);
+
+    if (!IS_CONN_HANDLE(Handle) ||
+        Buffers == NULL ||
+        BufferCount == 0) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+    Connection = (QUIC_CONNECTION*)Handle;
+
+    QUIC_TEL_ASSERT(!Connection->State.Freed);
+
+    if (!Connection->Datagram.SendEnabled) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Datagrams not enabled by peer");
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+        goto Error;
+    }
+
+    TotalLength = 0;
+    for (uint32_t i = 0; i < BufferCount; ++i) {
+        TotalLength += Buffers[i].Length;
+    }
+
+    if (TotalLength > (uint32_t)Connection->Datagram.MaxSendLength) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Datagram is longer than allowed");
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+#pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (...).")
+    SendRequest = QuicPoolAlloc(&Connection->Worker->SendRequestPool);
+    if (SendRequest == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    SendRequest->Next = NULL;
+    SendRequest->Buffers = Buffers;
+    SendRequest->BufferCount = BufferCount;
+    SendRequest->Flags = Flags;
+    SendRequest->TotalLength = TotalLength;
+    SendRequest->ClientContext = ClientSendContext;
+
+    Status = QuicDatagramQueueSend(&Connection->Datagram, SendRequest);
+
+Error:
+
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+
+    return Status;
+}

@@ -579,6 +579,95 @@ void QuicTestValidateConnection()
     // ConnectionClose null handle.
     //
     MsQuic->ConnectionClose(nullptr);
+
+    //
+    // Invalid datagram send calls.
+    //
+    {
+        ConnectionScope Connection;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConnectionOpen(
+                Session,
+                DummyConnectionCallback,
+                nullptr,
+                &Connection.Handle));
+
+        uint8_t RawBuffer[] = "datagram";
+        QUIC_BUFFER DatagramBuffer = { sizeof(RawBuffer), RawBuffer };
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->DatagramSend(
+                Connection.Handle,
+                nullptr,
+                1,
+                QUIC_SEND_FLAG_NONE,
+                nullptr));
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->DatagramSend(
+                Connection.Handle,
+                &DatagramBuffer,
+                0,
+                QUIC_SEND_FLAG_NONE,
+                nullptr));
+    }
+
+    //
+    // Successful send datagram calls.
+    //
+    {
+        ConnectionScope Connection;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConnectionOpen(
+                Session,
+                DummyConnectionCallback,
+                nullptr,
+                &Connection.Handle));
+
+        uint8_t RawBuffer[] = "datagram";
+        QUIC_BUFFER DatagramBuffer = { sizeof(RawBuffer), RawBuffer };
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->DatagramSend(
+                Connection.Handle,
+                &DatagramBuffer,
+                1,
+                QUIC_SEND_FLAG_NONE,
+                nullptr));
+    }
+
+    //
+    // Successful set datagram receive parameter.
+    //
+    {
+        ConnectionScope Connection;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConnectionOpen(
+                Session,
+                DummyConnectionCallback,
+                nullptr,
+                &Connection.Handle));
+
+        BOOLEAN ReceiveDatagrams = TRUE;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                Connection.Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
+                sizeof(ReceiveDatagrams),
+                &ReceiveDatagrams));
+
+        ReceiveDatagrams = FALSE;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                Connection.Handle,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
+                sizeof(ReceiveDatagrams),
+                &ReceiveDatagrams));
+    }
 }
 
 _Function_class_(NEW_STREAM_CALLBACK)
@@ -1088,7 +1177,7 @@ void QuicTestValidateServerSecConfig(void* CertContext, QUIC_CERTIFICATE_HASH_ST
         TEST_QUIC_SUCCEEDED(
             MsQuic->SecConfigCreate(
                 TestReg,
-                QUIC_SEC_CONFIG_FLAG_NONE,
+                QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH,
                 nullptr,                    // Certificate
                 Principal,                  // Principal
                 &TestContext,

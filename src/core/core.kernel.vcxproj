@@ -42,6 +42,7 @@
     <ClCompile Include="connection.c" />
     <ClCompile Include="crypto.c" />
     <ClCompile Include="crypto_tls.c" />
+    <ClCompile Include="datagram.c" />
     <ClCompile Include="frame.c" />
     <ClCompile Include="injection.c" />
     <ClCompile Include="library.c" />
@@ -76,6 +77,7 @@
     <ClInclude Include="congestion_control.h" />
     <ClInclude Include="connection.h" />
     <ClInclude Include="crypto.h" />
+    <ClInclude Include="datagram.h" />
     <ClInclude Include="frame.h" />
     <ClInclude Include="library.h" />
     <ClInclude Include="listener.h" />

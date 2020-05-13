@@ -242,12 +242,12 @@ MsQuicSessionOpen(
     }
 #endif
 
-    if (Session->Registration->AppName[0] != '\0') {
-        char SpecificAppKey[256] = QUIC_SETTING_APP_KEY;
-        strcpy_s(
+    if (Session->Registration->AppNameLength != 0) {
+        char SpecificAppKey[UINT8_MAX + sizeof(QUIC_SETTING_APP_KEY)] = QUIC_SETTING_APP_KEY;
+        QuicCopyMemory(
             SpecificAppKey + sizeof(QUIC_SETTING_APP_KEY) - 1,
-            sizeof(SpecificAppKey) - (sizeof(QUIC_SETTING_APP_KEY) - 1),
-            Session->Registration->AppName);
+            Session->Registration->AppName,
+            Session->Registration->AppNameLength);
         Status =
             QuicStorageOpen(
                 SpecificAppKey,
@@ -842,8 +842,8 @@ QuicSessionParamGet(
         break;
 
     case QUIC_PARAM_SESSION_MIGRATION_ENABLED:
-        if (*BufferLength < sizeof(Session->Settings.MigrationEnabled)) {
-            *BufferLength = sizeof(Session->Settings.MigrationEnabled);
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             break;
         }
@@ -853,8 +853,26 @@ QuicSessionParamGet(
             break;
         }
 
-        *BufferLength = sizeof(Session->Settings.MigrationEnabled);
+        *BufferLength = sizeof(BOOLEAN);
         *(BOOLEAN*)Buffer = Session->Settings.MigrationEnabled;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED:
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = Session->Settings.DatagramReceiveEnabled;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -1036,7 +1054,7 @@ QuicSessionParamSet(
     }
 
     case QUIC_PARAM_SESSION_MIGRATION_ENABLED: {
-        if (BufferLength != sizeof(Session->Settings.MigrationEnabled)) {
+        if (BufferLength != sizeof(BOOLEAN)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -1049,6 +1067,25 @@ QuicSessionParamSet(
             "[sess][%p] Updated migration enabled to %hhu",
             Session,
             Session->Settings.MigrationEnabled);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
+    case QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED: {
+        if (BufferLength != sizeof(BOOLEAN)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Session->Settings.AppSet.DatagramReceiveEnabled = TRUE;
+        Session->Settings.DatagramReceiveEnabled = *(BOOLEAN*)Buffer;
+
+        QuicTraceLogInfo(
+            SessionDatagramReceiveEnabledSet,
+            "[sess][%p] Updated datagram receive enabled to %hhu",
+            Session,
+            Session->Settings.DatagramReceiveEnabled);
 
         Status = QUIC_STATUS_SUCCESS;
         break;

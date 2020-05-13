@@ -83,7 +83,7 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
-    [string]$Tls = $null,
+    [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
     [string]$Filter = "",
@@ -125,14 +125,17 @@ param (
     [switch]$CompressOutput = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$NoProgress = $false
+    [switch]$NoProgress = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$NoProcDump = $false
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 # Default TLS based on current platform.
-if ($null -eq $Tls) {
+if ("" -eq $Tls) {
     if ($IsWindows) {
         $Tls = "schannel"
     } else {
@@ -200,6 +203,9 @@ if ($CompressOutput) {
 }
 if ($NoProgress) {
     $TestArguments += " -NoProgress"
+}
+if ($NoProcDump) {
+    $TestArguments += " -NoProcDump"
 }
 
 # Run the script.

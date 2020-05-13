@@ -78,7 +78,7 @@ QuicBindingInitialize(
     Binding->RandomReservedVersion =
         (Binding->RandomReservedVersion & ~QUIC_VERSION_RESERVED_MASK) |
         QUIC_VERSION_RESERVED;
-    
+
     QuicRandom(sizeof(HashSalt), HashSalt);
     Status =
         QuicHashCreate(
@@ -383,7 +383,7 @@ QuicBindingGetListener(
     for (QUIC_LIST_ENTRY* Link = Binding->Listeners.Flink;
         Link != &Binding->Listeners;
         Link = Link->Flink) {
-            
+
         QUIC_LISTENER* ExistingListener =
             QUIC_CONTAINING_RECORD(Link, QUIC_LISTENER, Link);
         const QUIC_ADDR* ExistingAddr = &ExistingListener->LocalAddress;
@@ -1414,6 +1414,28 @@ QuicBindingReceive(
         DatagramChain = Datagram->Next;
         Datagram->Next = NULL;
 
+        QUIC_RECV_PACKET* Packet =
+            QuicDataPathRecvDatagramToRecvPacket(Datagram);
+        QuicZeroMemory(Packet, sizeof(QUIC_RECV_PACKET));
+        Packet->Buffer = Datagram->Buffer;
+        Packet->BufferLength = Datagram->BufferLength;
+
+#if DEBUG
+        //
+        // The test datapath receive callback allows for test code to modify
+        // the datagrams on the receive path, and optionally indicate one or
+        // more to be dropped.
+        //
+        if (MsQuicLib.TestDatapathHooks != NULL) {
+            if (MsQuicLib.TestDatapathHooks->Receive(Datagram)) {
+                *ReleaseChainTail = Datagram;
+                ReleaseChainTail = &Datagram->Next;
+                QuicPacketLogDrop(Binding, Packet, "Test Dopped");
+                continue;
+            }
+        }
+#endif
+
         //
         // Perform initial validation.
         //
@@ -1426,8 +1448,6 @@ QuicBindingReceive(
             continue;
         }
 
-        QUIC_RECV_PACKET* Packet =
-            QuicDataPathRecvDatagramToRecvPacket(Datagram);
         QUIC_DBG_ASSERT(Packet->DestCid != NULL);
         QUIC_DBG_ASSERT(Packet->DestCidLen != 0 || Binding->Exclusive);
         QUIC_DBG_ASSERT(Packet->ValidatedHeaderInv);
@@ -1530,8 +1550,38 @@ QuicBindingSendTo(
 {
     QUIC_STATUS Status;
 
-#if QUIC_SEND_FAKE_LOSS
-    if (QuicFakeLossCanSend()) {
+#if DEBUG
+    if (MsQuicLib.TestDatapathHooks != NULL) {
+
+        QUIC_ADDR RemoteAddressCopy = *RemoteAddress;
+        BOOLEAN Drop =
+            MsQuicLib.TestDatapathHooks->Send(
+                &RemoteAddressCopy,
+                NULL,
+                SendContext);
+
+        if (Drop) {
+            QuicTraceLogVerbose(
+                BindingSendToTestDrop,
+                "[bind][%p] Test dropped packet",
+                Binding);
+            QuicDataPathBindingFreeSendContext(SendContext);
+            Status = QUIC_STATUS_SUCCESS;
+        } else {
+            Status =
+                QuicDataPathBindingSendTo(
+                    Binding->DatapathBinding,
+                    &RemoteAddressCopy,
+                    SendContext);
+            if (QUIC_FAILED(Status)) {
+                QuicTraceLogWarning(
+                    BindingSendToFailed,
+                    "[bind][%p] SendTo failed, 0x%x",
+                    Binding,
+                    Status);
+            }
+        }
+    } else {
 #endif
         Status =
             QuicDataPathBindingSendTo(
@@ -1545,14 +1595,7 @@ QuicBindingSendTo(
                 Binding,
                 Status);
         }
-#if QUIC_SEND_FAKE_LOSS
-    } else {
-        QuicTraceLogVerbose(
-            BindingSendToFakeDrop,
-            "[bind][%p] Dropped (fake loss) packet",
-            Binding);
-        QuicDataPathBindingFreeSendContext(SendContext);
-        Status = QUIC_STATUS_SUCCESS;
+#if DEBUG
     }
 #endif
 
@@ -1570,8 +1613,40 @@ QuicBindingSendFromTo(
 {
     QUIC_STATUS Status;
 
-#if QUIC_SEND_FAKE_LOSS
-    if (QuicFakeLossCanSend()) {
+#if DEBUG
+    if (MsQuicLib.TestDatapathHooks != NULL) {
+
+        QUIC_ADDR RemoteAddressCopy = *RemoteAddress;
+        QUIC_ADDR LocalAddressCopy = *LocalAddress;
+        BOOLEAN Drop =
+            MsQuicLib.TestDatapathHooks->Send(
+                &RemoteAddressCopy,
+                &LocalAddressCopy,
+                SendContext);
+
+        if (Drop) {
+            QuicTraceLogVerbose(
+                BindingSendFromToTestDrop,
+                "[bind][%p] Test dropped packet",
+                Binding);
+            QuicDataPathBindingFreeSendContext(SendContext);
+            Status = QUIC_STATUS_SUCCESS;
+        } else {
+            Status =
+                QuicDataPathBindingSendFromTo(
+                    Binding->DatapathBinding,
+                    &LocalAddressCopy,
+                    &RemoteAddressCopy,
+                    SendContext);
+            if (QUIC_FAILED(Status)) {
+                QuicTraceLogWarning(
+                    BindingSendFromToFailed,
+                    "[bind][%p] SendFromTo failed, 0x%x",
+                    Binding,
+                    Status);
+            }
+        }
+    } else {
 #endif
         Status =
             QuicDataPathBindingSendFromTo(
@@ -1586,14 +1661,7 @@ QuicBindingSendFromTo(
                 Binding,
                 Status);
         }
-#if QUIC_SEND_FAKE_LOSS
-    } else {
-        QuicTraceLogVerbose(
-            SendFromToFakeDrop,
-            "[bind][%p] Dropped (fake loss) packet",
-            Binding);
-        QuicDataPathBindingFreeSendContext(SendContext);
-        Status = QUIC_STATUS_SUCCESS;
+#if DEBUG
     }
 #endif
 

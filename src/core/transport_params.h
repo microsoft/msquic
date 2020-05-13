@@ -24,6 +24,7 @@ Abstract:
 #define QUIC_TP_FLAG_MAX_ACK_DELAY                          0x1000
 #define QUIC_TP_FLAG_ORIGINAL_CONNECTION_ID                 0x2000
 #define QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT             0x4000
+#define QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE                0x8000
 
 #define QUIC_TP_MAX_PACKET_SIZE_DEFAULT                     65527
 #define QUIC_TP_MAX_PACKET_SIZE_MIN                         1200
@@ -116,6 +117,12 @@ typedef struct QUIC_TRANSPORT_PARAMETERS {
     //
     _Field_range_(QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN, QUIC_VAR_INT_MAX)
     QUIC_VAR_INT ActiveConnectionIdLimit;
+
+    //
+    // The maximum size of a DATAGRAM frame (including the frame type, length,
+    // and payload) the endpoint is willing to receive, in bytes.
+    //
+    QUIC_VAR_INT MaxDatagramFrameSize;
 
     //
     // Server specific.

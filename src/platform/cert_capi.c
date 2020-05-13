@@ -506,36 +506,39 @@ QuicCertCreate(
 {
     QUIC_STATUS Status;
 
-    if (CertConfig == NULL) {
-        Flags &= ~(QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH | QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE);
-    }
-
-    if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE) {
-        if (CertConfig == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Exit;
-        }
-
-        Status =
-            QuicCertLookupHashStore(
-                (const QUIC_CERTIFICATE_HASH_STORE*)CertConfig,
-                Principal,
-                NewCertificate);
-
-    } else {
+    if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH) {
         if (CertConfig == NULL && Principal == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Exit;
+        } else {
+            Status =
+                QuicCertLookupHash(
+                    (const QUIC_CERTIFICATE_HASH*)CertConfig,
+                    Principal,
+                    NewCertificate);
         }
 
-        Status =
-            QuicCertLookupHash(
-                (const QUIC_CERTIFICATE_HASH*)CertConfig,
-                Principal,
-                NewCertificate);
-    }
+    } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE) {
+        if (CertConfig == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+        } else {
+            Status =
+                QuicCertLookupHashStore(
+                    (const QUIC_CERTIFICATE_HASH_STORE*)CertConfig,
+                    Principal,
+                    NewCertificate);
+        }
 
-Exit:
+    } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT) {
+        if (CertConfig == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+        } else {
+            *NewCertificate = (QUIC_CERT*)CertConfig;
+            Status = QUIC_STATUS_SUCCESS;
+        }
+
+    } else {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+    }
 
     return Status;
 }
@@ -882,10 +885,10 @@ QuicCertValidateChain(
         int ServerNameLength = MultiByteToWideChar(CP_UTF8, 0, Host, -1, NULL, 0);
         if (ServerNameLength == 0) {
             QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            GetLastError(),
-            "MultiByteToWideChar(1) failed");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                GetLastError(),
+                "MultiByteToWideChar(1) failed");
             goto Exit;
         }
 
@@ -902,10 +905,10 @@ QuicCertValidateChain(
         ServerNameLength = MultiByteToWideChar(CP_UTF8, 0, Host, -1, ServerName, ServerNameLength);
         if (ServerNameLength == 0) {
             QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            GetLastError(),
-            "MultiByteToWideChar(2) failed");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                GetLastError(),
+                "MultiByteToWideChar(2) failed");
             goto Exit;
         }
     }

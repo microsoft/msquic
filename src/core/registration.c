@@ -43,7 +43,7 @@ MsQuicRegistrationOpen(
         QUIC_TRACE_API_REGISTRATION_OPEN,
         NULL);
 
-    if (NewRegistration == NULL) {
+    if (NewRegistration == NULL || AppNameLength >= UINT8_MAX) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
@@ -68,6 +68,7 @@ MsQuicRegistrationOpen(
     QuicLockInitialize(&Registration->Lock);
     QuicListInitializeHead(&Registration->Sessions);
     QuicRundownInitialize(&Registration->SecConfigRundown);
+    Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
     if (AppNameLength != 0) {
         QuicCopyMemory(Registration->AppName, Config->AppName, AppNameLength + 1);
     } else {

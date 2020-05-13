@@ -35,7 +35,7 @@ EXT_COMMAND(
         Packet.SentTime(),
         Packet.PacketLength());
 
-    if (Flags.IsRetransmittable) {
+    if (Flags.IsAckEliciting) {
         Dml("Retransmittable\n"
             "\t                     ");
     }
