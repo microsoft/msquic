@@ -87,7 +87,7 @@ Feel free to update `$OutputDir` to whatever local directory you wish.
 
 ## Linux Instructions
 
-The following commands (run as root) shoud configure core dumps to be created in the local directory:
+The following commands (run as root) should configure core dumps to be created in the local directory:
 
 ```
 # Enable core dumps for the system.
