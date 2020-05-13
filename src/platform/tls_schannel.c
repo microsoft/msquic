@@ -1110,23 +1110,19 @@ QuicTlsServerSecConfigCreate(
     TimeStamp CredExpiration;
     PCERT_CONTEXT CertContext = NULL;
 
-    if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT) {
-        CertContext = (PCERT_CONTEXT) Certificate;
-    } else {
-        Status =
-            QuicCertCreate(
-                Flags,
-                Certificate,
-                Principal,
-                &CertContext);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "QuicCertCreate");
-            goto Error;
-        }
+    Status =
+        QuicCertCreate(
+            Flags,
+            Certificate,
+            Principal,
+            &CertContext);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "QuicCertCreate");
+        goto Error;
     }
 
     Credentials->cCreds = 1;

@@ -6,10 +6,13 @@ include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
 
 set(SOURCES
     ApiTest.cpp
+    BasicTest.cpp
+    DatagramTest.cpp
+    DataTest.cpp
     DrillDescriptor.cpp
     EventTest.cpp
+    HandshakeTest.cpp
     QuicDrill.cpp
-    QuicTest.cpp
     TestConnection.cpp
     TestListener.cpp
     TestStream.cpp

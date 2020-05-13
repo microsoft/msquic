@@ -298,20 +298,8 @@ QuicTlsServerSecConfigCreate(
     SecurityConfig->RefCount = 1;
     SecurityConfig->Flags = Flags;
 
-    if (Flags == QUIC_SEC_CONFIG_FLAG_CERTIFICATE_NULL) {
-        //
-        // Using NULL certificate.
-        //
-        goto Format;
-    } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Error;
-    } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT) {
-        if (Certificate == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Error;
-        }
-        SecurityConfig->Certificate = (QUIC_CERT*)Certificate;
+    if ((uint32_t)Flags == QUIC_SEC_CONFIG_FLAG_CERTIFICATE_NULL) {
+        goto Format; // Using NULL certificate (stub-only).
     } else {
         Status =
             QuicCertCreate(
