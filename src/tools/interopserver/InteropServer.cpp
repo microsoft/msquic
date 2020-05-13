@@ -24,10 +24,10 @@ const QUIC_BUFFER SupportedALPNs[] = {
 void
 PrintUsage()
 {
-    printf("interopserver is simple http 0.9/1.1 server.\n\n");
+    printf("quicinteropserver is simple http 0.9/1.1 server.\n\n");
 
     printf("Usage:\n");
-    printf("  interopserver.exe -listen:<addr or *> -root:<path>"
+    printf("  quicinteropserver -listen:<addr or *> -root:<path>"
            " [-thumbprint:<cert_thumbprint>] [-name:<cert_name>]"
            " [-file:<cert_filepath> AND -key:<cert_key_filepath>]"
            " [-port:<####> (def:%u)]  [-retry:<0/1> (def:%u)]"
@@ -35,8 +35,8 @@ PrintUsage()
            DEFAULT_QUIC_HTTP_SERVER_PORT, DEFAULT_QUIC_HTTP_SERVER_RETRY);
 
     printf("Examples:\n");
-    printf("  interopserver.exe -listen:127.0.0.1 -name:localhost -port:443 -root:c:\\temp\n");
-    printf("  interopserver.exe -listen:* -retry:1 -thumbprint:175342733b39d81c997817296c9b691172ca6b6e -root:c:\\temp\n");
+    printf("  quicinteropserver -listen:127.0.0.1 -name:localhost -port:443 -root:c:\\temp\n");
+    printf("  quicinteropserver -listen:* -retry:1 -thumbprint:175342733b39d81c997817296c9b691172ca6b6e -root:c:\\temp\n");
 }
 
 int
