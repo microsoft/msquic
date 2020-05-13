@@ -16,6 +16,7 @@ set(SOURCES
     TestConnection.cpp
     TestListener.cpp
     TestStream.cpp
+    TestHelpers.h
 )
 
 include_directories(${PROJECT_SOURCE_DIR}/src/test)

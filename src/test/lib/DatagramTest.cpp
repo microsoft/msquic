@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#include "DatagramTest.cpp.clog.h"
 
 _Function_class_(NEW_STREAM_CALLBACK)
 static

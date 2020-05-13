@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#include "HandshakeTest.cpp.clog.h"
 
 uint8_t RandomLossHelper::LossPercentage = 0;
 QUIC_TEST_DATAPATH_HOOKS RandomLossHelper::DataPathFuncTable = {

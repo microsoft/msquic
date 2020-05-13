@@ -10,8 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "quic_trace.h"
-#include "QuicTest.cpp.clog.h"
+#include "DataTest.cpp.clog.h"
 
 _Function_class_(NEW_STREAM_CALLBACK)
 static

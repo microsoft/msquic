@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#include "BasicTest.cpp.clog.h"
 
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
