@@ -222,8 +222,8 @@ HttpRequest::SendData()
             size_t BytesRead =
                 fread(
                     Buffer.RawBuffer + Buffer.QuicBuffer.Length,
-                    BytesAvail,
                     1,
+                    BytesAvail,
                     File);
             Buffer.QuicBuffer.Length += (uint32_t)BytesRead;
             if (BytesAvail != BytesRead) {
