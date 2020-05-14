@@ -165,7 +165,7 @@ HttpRequest::Process()
     if (QuicBuffer->Length < 5 ||
         _strnicmp((const char*)QuicBuffer->Buffer, "get ", 4) != 0) {
         printf("[%s] Invalid get\n", GetRemoteAddr(MsQuic, QuicStream).Address);
-        Abort();
+        Abort(HttpRequestNotGet);
         return;
     }
 
@@ -181,7 +181,7 @@ HttpRequest::Process()
 
     if (strstr(PathStart, "..") != nullptr) {
         printf("[%s] '..' found\n", GetRemoteAddr(MsQuic, QuicStream).Address);
-        Abort(); // Don't allow requests with ../ in them.
+        Abort(HttpRequestFoundDots); // Don't allow requests with ../ in them.
         return;
     }
 
@@ -192,6 +192,7 @@ HttpRequest::Process()
     char FullFilePath[256];
     if (snprintf(FullFilePath, sizeof(FullFilePath), "%s%s", RootFolderPath, PathStart) < 0) {
         printf("[%s] Invalid get\n", GetRemoteAddr(MsQuic, QuicStream).Address);
+        Abort(HttpRequestGetTooBig);
         return;
     }
 
@@ -258,7 +259,7 @@ HttpRequest::SendData()
             Buffer.Flags,
             this))) {
         printf("[%s] Send failed\n", GetRemoteAddr(MsQuic, QuicStream).Address);
-        Abort();
+        Abort(HttpRequestSendFailed);
     }
 }
 
@@ -339,7 +340,7 @@ HttpRequest::QuicBidiCallbackHandler(
     case QUIC_STREAM_EVENT_RECEIVE:
         if (!Buffer->HasRoom(Event->RECEIVE.TotalBufferLength)) {
             printf("[%s] No room for recv\n", GetRemoteAddr(MsQuic, Stream).Address);
-            pThis->Abort();
+            pThis->Abort(HttpRequestRecvNoRoom);
         } else {
             for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
                 Buffer->Write(
@@ -358,7 +359,7 @@ HttpRequest::QuicBidiCallbackHandler(
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
         printf("[%s] Peer abort\n", GetRemoteAddr(MsQuic, Stream).Address);
-        pThis->Abort();
+        pThis->Abort(HttpRequestPeerAbort);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         delete pThis;
@@ -381,7 +382,7 @@ HttpRequest::QuicUnidiCallbackHandler(
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_RECEIVE:
         if (!pThis->ReceiveUniDiData(Event->RECEIVE.Buffers, Event->RECEIVE.BufferCount)) {
-            pThis->Abort(1); // BUG - Seems like we continue to get receive callbacks!
+            pThis->Abort(HttpRequestExtraRecv); // BUG - Seems like we continue to get receive callbacks!
         }
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
