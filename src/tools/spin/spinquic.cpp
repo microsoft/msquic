@@ -375,7 +375,7 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
         }
 
         switch (GetRandom(SpinQuicAPICallCount)) {
-        case SpinQuicAPICallCreateConnection :
+        case SpinQuicAPICallCreateConnection:
             if (!IsServer) {
                 auto ctx = new SpinQuicConnection();
                 if (ctx == nullptr) continue;
@@ -615,19 +615,19 @@ QUIC_THREAD_CALLBACK(ClientSpin, Context)
     QUIC_THREAD_RETURN(0);
 }
 
-static BOOLEAN QUIC_API DatapathHookReceiveCallback(struct QUIC_RECV_DATAGRAM* /* Datagram */)
+BOOLEAN QUIC_API DatapathHookReceiveCallback(struct QUIC_RECV_DATAGRAM* /* Datagram */)
 {
     uint8_t RandomValue;
     QuicRandom(sizeof(RandomValue), &RandomValue);
     return (RandomValue % 100) < Settings.LossPercent;
 }
 
-static BOOLEAN QUIC_API DatapathHookSendCallback(QUIC_ADDR* /* RemoteAddress */, QUIC_ADDR* /* LocalAddress */, struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */)
+BOOLEAN QUIC_API DatapathHookSendCallback(QUIC_ADDR* /* RemoteAddress */, QUIC_ADDR* /* LocalAddress */, struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */)
 {
     return FALSE; // Don't drop
 }
 
-static QUIC_TEST_DATAPATH_HOOKS DataPathHooks = {
+QUIC_TEST_DATAPATH_HOOKS DataPathHooks = {
     DatapathHookReceiveCallback, DatapathHookSendCallback
 };
 
@@ -637,12 +637,12 @@ void PrintHelpText(void)
           "\n" \
           "  -alpn:<alpn>         default: 'spin'\n" \
           "  -dstport:<port>      default: 9999\n" \
+          "  -loss:<percent>      default: 1\n" \
           "  -max_ops:<count>     default: UINT64_MAX\n"
           "  -seed:<seed>         default: 6\n" \
           "  -sessions:<count>    default: 4\n" \
           "  -target:<ip>         default: '127.0.0.1'\n" \
           "  -timeout:<count_ms>  default: 60000\n" \
-          "  -loss:<percent>      default: 1\n" \
           );
     exit(1);
 }
