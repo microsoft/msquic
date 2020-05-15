@@ -39,7 +39,6 @@ public:
             const QUIC_REGISTRATION_CONFIG RegConfig = { "MsQuicBVT", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&RegConfig, &Registration)));
             ASSERT_TRUE(LoadSecConfig());
-            QuicTestInitialize();
         }
     }
     void TearDown() override {
@@ -47,7 +46,6 @@ public:
             DriverClient.Uninitialize();
             DriverService.Uninitialize();
         } else {
-            QuicTestCleanup();
             MsQuic->SecConfigDelete(SecurityConfig);
             MsQuic->RegistrationClose(Registration);
             MsQuicClose(MsQuic);

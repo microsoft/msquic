@@ -186,6 +186,11 @@ QuicSettingsLoad(
     )
 {
     uint32_t Value;
+    union {
+        uint32_t Half;
+        uint64_t Full;
+        uint8_t Array[sizeof(uint64_t)];
+    } MultiValue;
     uint32_t ValueLen;
 
     if (!Settings->AppSet.PacingDefault) {
@@ -355,48 +360,42 @@ QuicSettingsLoad(
     }
 
     if (!Settings->AppSet.IdleTimeoutMs) {
-        union {
-            uint32_t Half;
-            uint64_t Full;
-            uint8_t Array[sizeof(uint64_t)];
-        } TempIdleTimeoutMs;
-        QUIC_STATIC_ASSERT(sizeof(TempIdleTimeoutMs) == sizeof(Settings->IdleTimeoutMs), "These must be the same size");
-        ValueLen = sizeof(TempIdleTimeoutMs);
-        QuicStorageReadValue(
-            Storage,
-            QUIC_SETTING_IDLE_TIMEOUT,
-            TempIdleTimeoutMs.Array,
-            &ValueLen);
-        if (ValueLen == sizeof(uint32_t)) {
-            Settings->IdleTimeoutMs = TempIdleTimeoutMs.Half;
-        } else {
-            Settings->IdleTimeoutMs = TempIdleTimeoutMs.Full;
-        }
-        if (Settings->IdleTimeoutMs > QUIC_VAR_INT_MAX) {
-            Settings->IdleTimeoutMs = QUIC_DEFAULT_IDLE_TIMEOUT;
+        QUIC_STATIC_ASSERT(sizeof(MultiValue) == sizeof(Settings->IdleTimeoutMs), "These must be the same size");
+        ValueLen = sizeof(MultiValue);
+        if (QUIC_SUCCEEDED(
+            QuicStorageReadValue(
+                Storage,
+                QUIC_SETTING_IDLE_TIMEOUT,
+                MultiValue.Array,
+                &ValueLen))) {
+            if (ValueLen == sizeof(uint32_t)) {
+                Settings->IdleTimeoutMs = MultiValue.Half;
+            } else {
+                Settings->IdleTimeoutMs = MultiValue.Full;
+            }
+            if (Settings->IdleTimeoutMs > QUIC_VAR_INT_MAX) {
+                Settings->IdleTimeoutMs = QUIC_DEFAULT_IDLE_TIMEOUT;
+            }
         }
     }
 
     if (!Settings->AppSet.HandshakeIdleTimeoutMs) {
-        union {
-            uint32_t Half;
-            uint64_t Full;
-            uint8_t Array[sizeof(uint64_t)];
-        } TempHandshakeIdleTimeoutMs;
-        QUIC_STATIC_ASSERT(sizeof(TempHandshakeIdleTimeoutMs) == sizeof(Settings->HandshakeIdleTimeoutMs), "These must be the same size");
-        ValueLen = sizeof(TempHandshakeIdleTimeoutMs);
-        QuicStorageReadValue(
-            Storage,
-            QUIC_SETTING_HANDSHAKE_IDLE_TIMEOUT,
-            TempHandshakeIdleTimeoutMs.Array,
-            &ValueLen);
-        if (ValueLen == sizeof(uint32_t)) {
-            Settings->HandshakeIdleTimeoutMs = TempHandshakeIdleTimeoutMs.Half;
-        } else {
-            Settings->HandshakeIdleTimeoutMs = TempHandshakeIdleTimeoutMs.Full;
-        }
-        if (Settings->HandshakeIdleTimeoutMs > QUIC_VAR_INT_MAX) {
-            Settings->HandshakeIdleTimeoutMs = QUIC_DEFAULT_IDLE_TIMEOUT;
+        QUIC_STATIC_ASSERT(sizeof(MultiValue) == sizeof(Settings->HandshakeIdleTimeoutMs), "These must be the same size");
+        ValueLen = sizeof(MultiValue);
+        if (QUIC_SUCCEEDED(
+            QuicStorageReadValue(
+                Storage,
+                QUIC_SETTING_HANDSHAKE_IDLE_TIMEOUT,
+                MultiValue.Array,
+                &ValueLen))) {
+            if (ValueLen == sizeof(uint32_t)) {
+                Settings->HandshakeIdleTimeoutMs = MultiValue.Half;
+            } else {
+                Settings->HandshakeIdleTimeoutMs = MultiValue.Full;
+            }
+            if (Settings->HandshakeIdleTimeoutMs > QUIC_VAR_INT_MAX) {
+                Settings->HandshakeIdleTimeoutMs = QUIC_DEFAULT_IDLE_TIMEOUT;
+            }
         }
     }
 
@@ -480,6 +479,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpDisconnectTimeoutMs,     "[sett] DisconnectTimeoutMs    = %u", Settings->DisconnectTimeoutMs);
     QuicTraceLogVerbose(SettingDumpKeepAliveIntervalMs,     "[sett] KeepAliveIntervalMs    = %u", Settings->KeepAliveIntervalMs);
     QuicTraceLogVerbose(SettingDumpIdleTimeoutMs,           "[sett] IdleTimeoutMs          = %llu", Settings->IdleTimeoutMs);
+    QuicTraceLogVerbose(SettingDumpHandshakeIdleTimeoutMs,  "[sett] HandshakeIdleTimeoutMs = %llu", Settings->HandshakeIdleTimeoutMs);
     QuicTraceLogVerbose(SettingDumpBidiStreamCount,         "[sett] BidiStreamCount        = %hu", Settings->BidiStreamCount);
     QuicTraceLogVerbose(SettingDumpUnidiStreamCount,        "[sett] UnidiStreamCount       = %hu", Settings->UnidiStreamCount);
     QuicTraceLogVerbose(SettingDumpTlsClientMaxSendBuffer,  "[sett] TlsClientMaxSendBuffer = %u", Settings->TlsClientMaxSendBuffer);

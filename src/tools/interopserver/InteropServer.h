@@ -65,6 +65,17 @@ struct HttpSendBuffer {
 
 struct HttpConnection;
 
+enum HttpRequestErrorCodes {
+    HttpRequestNoError,
+    HttpRequestNotGet,
+    HttpRequestFoundDots,
+    HttpRequestGetTooBig,
+    HttpRequestSendFailed,
+    HttpRequestRecvNoRoom,
+    HttpRequestPeerAbort,
+    HttpRequestExtraRecv,
+};
+
 struct HttpRequest {
     HttpRequest(HttpConnection *connection, HQUIC stream, bool Unidirectional);
 private:
@@ -76,7 +87,7 @@ private:
     bool WriteHttp11Header;
 private:
     ~HttpRequest();
-    void Abort(QUIC_UINT62 ErrorCode = 0) {
+    void Abort(HttpRequestErrorCodes ErrorCode) {
         Shutdown = true;
         MsQuic->StreamShutdown(
             QuicStream,

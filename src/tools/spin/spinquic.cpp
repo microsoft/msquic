@@ -200,6 +200,7 @@ static struct {
     const char* AlpnPrefix;
     std::vector<uint16_t> Ports;
     const char* ServerName;
+    uint8_t LossPercent;
 } Settings;
 
 extern "C" void QuicTraceRundown(void) { }
@@ -374,7 +375,7 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
         }
 
         switch (GetRandom(SpinQuicAPICallCount)) {
-        case SpinQuicAPICallCreateConnection :
+        case SpinQuicAPICallCreateConnection:
             if (!IsServer) {
                 auto ctx = new SpinQuicConnection();
                 if (ctx == nullptr) continue;
@@ -614,12 +615,29 @@ QUIC_THREAD_CALLBACK(ClientSpin, Context)
     QUIC_THREAD_RETURN(0);
 }
 
+BOOLEAN QUIC_API DatapathHookReceiveCallback(struct QUIC_RECV_DATAGRAM* /* Datagram */)
+{
+    uint8_t RandomValue;
+    QuicRandom(sizeof(RandomValue), &RandomValue);
+    return (RandomValue % 100) < Settings.LossPercent;
+}
+
+BOOLEAN QUIC_API DatapathHookSendCallback(QUIC_ADDR* /* RemoteAddress */, QUIC_ADDR* /* LocalAddress */, struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */)
+{
+    return FALSE; // Don't drop
+}
+
+QUIC_TEST_DATAPATH_HOOKS DataPathHooks = {
+    DatapathHookReceiveCallback, DatapathHookSendCallback
+};
+
 void PrintHelpText(void)
 {
     printf("Usage: spinquic.exe [client/server/both] [options]\n" \
           "\n" \
           "  -alpn:<alpn>         default: 'spin'\n" \
           "  -dstport:<port>      default: 9999\n" \
+          "  -loss:<percent>      default: 1\n" \
           "  -max_ops:<count>     default: UINT64_MAX\n"
           "  -seed:<seed>         default: 6\n" \
           "  -sessions:<count>    default: 4\n" \
@@ -662,9 +680,11 @@ main(int argc, char **argv)
     Settings.Ports = std::vector<uint16_t>({9998, 9999});
     Settings.AlpnPrefix = "spin";
     Settings.MaxOperationCount = UINT64_MAX;
+    Settings.LossPercent = 1;
 
     TryGetValue(argc, argv, "timeout", &Settings.RunTimeMs);
     TryGetValue(argc, argv, "max_ops", &Settings.MaxOperationCount);
+    TryGetValue(argc, argv, "loss", &Settings.LossPercent);
 
     if (RunClient) {
         uint16_t dstPort = 0;
@@ -683,6 +703,17 @@ main(int argc, char **argv)
     SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
 
     EXIT_ON_FAILURE(MsQuicOpen(&MsQuic));
+
+    if (Settings.LossPercent != 0) {
+        QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathHooks;
+        EXIT_ON_FAILURE(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
+                sizeof(Value),
+                &Value));
+    }
 
     const QUIC_REGISTRATION_CONFIG RegConfig = { "spinquic", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
     EXIT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
@@ -760,6 +791,27 @@ main(int argc, char **argv)
     }
 
     MsQuic->RegistrationClose(Registration);
+
+    if (Settings.LossPercent != 0) {
+        QUIC_TEST_DATAPATH_HOOKS* Value = nullptr;
+        uint32_t TryCount = 0;
+        while (TryCount++ < 10) {
+            if (QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_LEVEL_GLOBAL,
+                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
+                    sizeof(Value),
+                    &Value))) {
+                break;
+            }
+            QuicSleep(100); // Let the current datapath queue drain.
+        }
+        if (TryCount == 10) {
+            printf("Failed to disable test datapath hook!\n");
+            QUIC_FRE_ASSERTMSG(FALSE, "Failed to disable test datapath hook!");
+        }
+    }
 
     MsQuicClose(MsQuic);
 

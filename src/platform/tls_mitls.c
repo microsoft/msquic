@@ -474,11 +474,6 @@ QuicTlsServerSecConfigCreate(
     QUIC_STATUS Status;
     QUIC_SEC_CONFIG* SecurityConfig = NULL;
 
-    if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Error;
-    }
-
     if (!QuicRundownAcquire(Rundown)) {
         QuicTraceEvent(
             LibraryError,
@@ -502,27 +497,14 @@ QuicTlsServerSecConfigCreate(
     SecurityConfig->Certificate = NULL;
     SecurityConfig->PrivateKey = NULL;
 
-    if (Flags == QUIC_SEC_CONFIG_FLAG_CERTIFICATE_NULL) {
-        //
-        // Using NULL certificate and private key.
-        //
-        goto Format;
-    } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT) {
-        if (Certificate == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Error;
-        }
-        SecurityConfig->Certificate = (QUIC_CERT*)Certificate;
-    } else {
-        Status =
-            QuicCertCreate(
-                Flags,
-                Certificate,
-                Principal,
-                &SecurityConfig->Certificate);
-        if (QUIC_FAILED(Status)) {
-            goto Error;
-        }
+    Status =
+        QuicCertCreate(
+            Flags,
+            Certificate,
+            Principal,
+            &SecurityConfig->Certificate);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
     }
 
     SecurityConfig->PrivateKey =
@@ -531,8 +513,6 @@ QuicTlsServerSecConfigCreate(
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
-
-Format:
 
     SecurityConfig->FormatLength =
         (uint16_t)QuicCertFormat(

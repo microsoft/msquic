@@ -24,10 +24,10 @@ const QUIC_BUFFER SupportedALPNs[] = {
 void
 PrintUsage()
 {
-    printf("interopserver is simple http 0.9/1.1 server.\n\n");
+    printf("quicinteropserver is simple http 0.9/1.1 server.\n\n");
 
     printf("Usage:\n");
-    printf("  interopserver.exe -listen:<addr or *> -root:<path>"
+    printf("  quicinteropserver -listen:<addr or *> -root:<path>"
            " [-thumbprint:<cert_thumbprint>] [-name:<cert_name>]"
            " [-file:<cert_filepath> AND -key:<cert_key_filepath>]"
            " [-port:<####> (def:%u)]  [-retry:<0/1> (def:%u)]"
@@ -35,8 +35,8 @@ PrintUsage()
            DEFAULT_QUIC_HTTP_SERVER_PORT, DEFAULT_QUIC_HTTP_SERVER_RETRY);
 
     printf("Examples:\n");
-    printf("  interopserver.exe -listen:127.0.0.1 -name:localhost -port:443 -root:c:\\temp\n");
-    printf("  interopserver.exe -listen:* -retry:1 -thumbprint:175342733b39d81c997817296c9b691172ca6b6e -root:c:\\temp\n");
+    printf("  quicinteropserver -listen:127.0.0.1 -name:localhost -port:443 -root:c:\\temp\n");
+    printf("  quicinteropserver -listen:* -retry:1 -thumbprint:175342733b39d81c997817296c9b691172ca6b6e -root:c:\\temp\n");
 }
 
 int
@@ -165,7 +165,7 @@ HttpRequest::Process()
     if (QuicBuffer->Length < 5 ||
         _strnicmp((const char*)QuicBuffer->Buffer, "get ", 4) != 0) {
         printf("[%s] Invalid get\n", GetRemoteAddr(MsQuic, QuicStream).Address);
-        Abort();
+        Abort(HttpRequestNotGet);
         return;
     }
 
@@ -181,7 +181,7 @@ HttpRequest::Process()
 
     if (strstr(PathStart, "..") != nullptr) {
         printf("[%s] '..' found\n", GetRemoteAddr(MsQuic, QuicStream).Address);
-        Abort(); // Don't allow requests with ../ in them.
+        Abort(HttpRequestFoundDots); // Don't allow requests with ../ in them.
         return;
     }
 
@@ -192,6 +192,7 @@ HttpRequest::Process()
     char FullFilePath[256];
     if (snprintf(FullFilePath, sizeof(FullFilePath), "%s%s", RootFolderPath, PathStart) < 0) {
         printf("[%s] Invalid get\n", GetRemoteAddr(MsQuic, QuicStream).Address);
+        Abort(HttpRequestGetTooBig);
         return;
     }
 
@@ -222,8 +223,8 @@ HttpRequest::SendData()
             size_t BytesRead =
                 fread(
                     Buffer.RawBuffer + Buffer.QuicBuffer.Length,
-                    BytesAvail,
                     1,
+                    BytesAvail,
                     File);
             Buffer.QuicBuffer.Length += (uint32_t)BytesRead;
             if (BytesAvail != BytesRead) {
@@ -258,7 +259,7 @@ HttpRequest::SendData()
             Buffer.Flags,
             this))) {
         printf("[%s] Send failed\n", GetRemoteAddr(MsQuic, QuicStream).Address);
-        Abort();
+        Abort(HttpRequestSendFailed);
     }
 }
 
@@ -339,7 +340,7 @@ HttpRequest::QuicBidiCallbackHandler(
     case QUIC_STREAM_EVENT_RECEIVE:
         if (!Buffer->HasRoom(Event->RECEIVE.TotalBufferLength)) {
             printf("[%s] No room for recv\n", GetRemoteAddr(MsQuic, Stream).Address);
-            pThis->Abort();
+            pThis->Abort(HttpRequestRecvNoRoom);
         } else {
             for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
                 Buffer->Write(
@@ -358,7 +359,7 @@ HttpRequest::QuicBidiCallbackHandler(
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
         printf("[%s] Peer abort\n", GetRemoteAddr(MsQuic, Stream).Address);
-        pThis->Abort();
+        pThis->Abort(HttpRequestPeerAbort);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         delete pThis;
@@ -381,7 +382,7 @@ HttpRequest::QuicUnidiCallbackHandler(
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_RECEIVE:
         if (!pThis->ReceiveUniDiData(Event->RECEIVE.Buffers, Event->RECEIVE.BufferCount)) {
-            pThis->Abort(1); // BUG - Seems like we continue to get receive callbacks!
+            pThis->Abort(HttpRequestExtraRecv); // BUG - Seems like we continue to get receive callbacks!
         }
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:

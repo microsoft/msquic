@@ -6,7 +6,7 @@
       <Buffers Value="20"/>
     </SystemCollector>
     <EventCollector Id="EC_LowVolume" Name="LowVolume">
-      <BufferSize Value="32"/>
+      <BufferSize Value="16"/>
       <Buffers Value="32"/>
     </EventCollector>
     <EventCollector Id="EC_HighVolume" Name="High Volume">
