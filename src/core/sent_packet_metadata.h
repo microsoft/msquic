@@ -80,7 +80,9 @@ typedef struct QUIC_SEND_PACKET_FLAGS {
     BOOLEAN IsPMTUD                 : 1;
     BOOLEAN KeyPhase                : 1;
     BOOLEAN SuspectedLost           : 1;
-    BOOLEAN RESERVED                : 1;
+#if DEBUG
+    BOOLEAN Freed                   : 1;
+#endif
 
 } QUIC_SEND_PACKET_FLAGS;
 
