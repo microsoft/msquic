@@ -811,6 +811,8 @@ QuicLossDetectionDetectAndHandleLostPackets(
         if (LossDetection->LostPackets == NULL) {
             LossDetection->LostPacketsTail = &LossDetection->LostPackets;
         }
+
+        QuicLossValidate(LossDetection);
     }
 
     if (LossDetection->SentPackets != NULL) {
@@ -887,8 +889,14 @@ QuicLossDetectionDetectAndHandleLostPackets(
             LargestLostPacketNumber = Packet->PacketNumber;
             if (PrevPacket == NULL) {
                 LossDetection->SentPackets = Packet->Next;
+                if (Packet->Next == NULL) {
+                    LossDetection->SentPacketsTail = &LossDetection->SentPackets;
+                }
             } else {
                 PrevPacket->Next = Packet->Next;
+                if (Packet->Next == NULL) {
+                    LossDetection->SentPacketsTail = &PrevPacket->Next;
+                }
             }
 
             *LossDetection->LostPacketsTail = Packet;
@@ -896,10 +904,13 @@ QuicLossDetectionDetectAndHandleLostPackets(
             Packet = Packet->Next;
             *LossDetection->LostPacketsTail = NULL;
         }
+
         if (LossDetection->SentPackets == NULL) {
             LossDetection->SentPacketsTail = &LossDetection->SentPackets;
             QUIC_DBG_ASSERT(LossDetection->PacketsInFlight == 0);
         }
+
+        QuicLossValidate(LossDetection);
 
         if (LostRetransmittableBytes > 0) {
             QuicCongestionControlOnDataLost(
