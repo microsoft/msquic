@@ -77,12 +77,17 @@ QuicLossValidate(
     _In_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
+    uint32_t AckElicitingPackets = 0;
     QUIC_SENT_PACKET_METADATA** Tail = &LossDetection->SentPackets;
     while (*Tail) {
         QUIC_DBG_ASSERT(!(*Tail)->Flags.Freed);
+        if ((*Tail)->Flags.IsAckEliciting) {
+            AckElicitingPackets++;
+        }
         Tail = &((*Tail)->Next);
     }
     QUIC_DBG_ASSERT(Tail == LossDetection->SentPacketsTail);
+    QUIC_DBG_ASSERT(LossDetection->PacketsInFlight == AckElicitingPackets);
 
     Tail = &LossDetection->LostPackets;
     while (*Tail) {
@@ -903,11 +908,6 @@ QuicLossDetectionDetectAndHandleLostPackets(
             LossDetection->LostPacketsTail = &Packet->Next;
             Packet = Packet->Next;
             *LossDetection->LostPacketsTail = NULL;
-        }
-
-        if (LossDetection->SentPackets == NULL) {
-            LossDetection->SentPacketsTail = &LossDetection->SentPackets;
-            QUIC_DBG_ASSERT(LossDetection->PacketsInFlight == 0);
         }
 
         QuicLossValidate(LossDetection);
