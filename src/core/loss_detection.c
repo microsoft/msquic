@@ -1164,6 +1164,7 @@ QuicLossDetectionProcessAckBlocks(
             while (*LostPacketsStart && (*LostPacketsStart)->PacketNumber < AckBlock->Low) {
                 LostPacketsStart = &((*LostPacketsStart)->Next);
             }
+
             QUIC_SENT_PACKET_METADATA** End = LostPacketsStart;
             while (*End && (*End)->PacketNumber <= QuicRangeGetHigh(AckBlock)) {
                 QuicTraceLogVerbose(
@@ -1179,6 +1180,7 @@ QuicLossDetectionProcessAckBlocks(
                 //
                 End = &((*End)->Next);
             }
+
             if (LostPacketsStart != End) {
                 *AckedPacketsTail = *LostPacketsStart;
                 AckedPacketsTail = End;
@@ -1187,10 +1189,9 @@ QuicLossDetectionProcessAckBlocks(
                 if (End == LossDetection->LostPacketsTail) {
                     LossDetection->LostPacketsTail = LostPacketsStart;
                 }
-                QUIC_DBG_ASSERT(LossDetection->LostPackets != NULL || LossDetection->LostPacketsTail == &LossDetection->LostPackets);
-            }
 
-            QuicLossValidate(LossDetection);
+                QuicLossValidate(LossDetection);
+            }
         }
 
         //
@@ -1200,6 +1201,7 @@ QuicLossDetectionProcessAckBlocks(
             while (*SentPacketsStart && (*SentPacketsStart)->PacketNumber < AckBlock->Low) {
                 SentPacketsStart = &((*SentPacketsStart)->Next);
             }
+
             QUIC_SENT_PACKET_METADATA** End = SentPacketsStart;
             while (*End && (*End)->PacketNumber <= QuicRangeGetHigh(AckBlock)) {
 
@@ -1222,10 +1224,9 @@ QuicLossDetectionProcessAckBlocks(
                 if (End == LossDetection->SentPacketsTail) {
                     LossDetection->SentPacketsTail = SentPacketsStart;
                 }
-                QUIC_DBG_ASSERT(LossDetection->SentPackets != NULL || LossDetection->SentPacketsTail == &LossDetection->SentPackets);
-            }
 
-            QuicLossValidate(LossDetection);
+                QuicLossValidate(LossDetection);
+            }
         }
 
         if (LargestAckedPacket != NULL &&
