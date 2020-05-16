@@ -88,7 +88,9 @@ QuicLossValidate(
         Tail = &((*Tail)->Next);
     }
     QUIC_DBG_ASSERT(Tail == LossDetection->SentPacketsTail);
-    QUIC_DBG_ASSERT(LossDetection->PacketsInFlight == AckElicitingPackets);
+    if (ValidatePacketCounts) {
+        QUIC_DBG_ASSERT(LossDetection->PacketsInFlight == AckElicitingPackets);
+    }
 
     Tail = &LossDetection->LostPackets;
     while (*Tail) {
