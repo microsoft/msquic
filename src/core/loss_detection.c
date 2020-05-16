@@ -74,8 +74,7 @@ QuicLossDetectionInitializeInternalState(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLossValidate(
-    _In_ QUIC_LOSS_DETECTION* LossDetection,
-    _In_ BOOLEAN ValidatePacketCounts
+    _In_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
     uint32_t AckElicitingPackets = 0;
@@ -88,9 +87,7 @@ QuicLossValidate(
         Tail = &((*Tail)->Next);
     }
     QUIC_DBG_ASSERT(Tail == LossDetection->SentPacketsTail);
-    if (ValidatePacketCounts) {
-        QUIC_DBG_ASSERT(LossDetection->PacketsInFlight == AckElicitingPackets);
-    }
+    QUIC_DBG_ASSERT(LossDetection->PacketsInFlight == AckElicitingPackets);
 
     Tail = &LossDetection->LostPackets;
     while (*Tail) {
@@ -100,7 +97,7 @@ QuicLossValidate(
     QUIC_DBG_ASSERT(Tail == LossDetection->LostPacketsTail);
 }
 #else
-#define QuicLossValidate(LossDetection, ValidatePacketCounts)
+#define QuicLossValidate(LossDetection)
 #endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -186,7 +183,7 @@ QuicLossDetectionReset(
     }
     LossDetection->LostPacketsTail = &LossDetection->LostPackets;
 
-    QuicLossValidate(LossDetection, FALSE);
+    QuicLossValidate(LossDetection);
 }
 
 //
@@ -444,7 +441,7 @@ QuicLossDetectionOnPacketSent(
             &Connection->CongestionControl, SentPacket->PacketLength);
     }
 
-    QuicLossValidate(LossDetection, TRUE);
+    QuicLossValidate(LossDetection);
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -820,7 +817,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
             LossDetection->LostPacketsTail = &LossDetection->LostPackets;
         }
 
-        QuicLossValidate(LossDetection, TRUE);
+        QuicLossValidate(LossDetection);
     }
 
     if (LossDetection->SentPackets != NULL) {
@@ -889,7 +886,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
 
             Connection->Stats.Send.SuspectedLostPackets++;
             if (Packet->Flags.IsAckEliciting) {
-                --LossDetection->PacketsInFlight;
+                LossDetection->PacketsInFlight--;
                 LostRetransmittableBytes += Packet->PacketLength;
                 QuicLossDetectionRetransmitFrames(LossDetection, Packet, FALSE);
             }
@@ -913,7 +910,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
             *LossDetection->LostPacketsTail = NULL;
         }
 
-        QuicLossValidate(LossDetection, TRUE);
+        QuicLossValidate(LossDetection);
 
         if (LostRetransmittableBytes > 0) {
             QuicCongestionControlOnDataLost(
@@ -929,7 +926,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
         }
     }
 
-    QuicLossValidate(LossDetection, TRUE);
+    QuicLossValidate(LossDetection);
 
     return LostRetransmittableBytes > 0;
 }
@@ -993,7 +990,7 @@ QuicLossDetectionDiscardPackets(
         }
     }
 
-    QuicLossValidate(LossDetection, TRUE);
+    QuicLossValidate(LossDetection);
 
     PrevPacket = NULL;
     Packet = LossDetection->SentPackets;
@@ -1040,7 +1037,7 @@ QuicLossDetectionDiscardPackets(
         }
     }
 
-    QuicLossValidate(LossDetection, TRUE);
+    QuicLossValidate(LossDetection);
 
     if (AckedRetransmittableBytes > 0) {
         const QUIC_PATH* Path = &Connection->Paths[0]; // TODO - Correct?
@@ -1112,7 +1109,7 @@ QuicLossDetectionOnZeroRttRejected(
         }
     }
 
-    QuicLossValidate(LossDetection, TRUE);
+    QuicLossValidate(LossDetection);
 
     if (CountRetransmittableBytes > 0) {
         if (QuicCongestionControlOnDataInvalidated(
@@ -1140,7 +1137,6 @@ QuicLossDetectionProcessAckBlocks(
     QUIC_SENT_PACKET_METADATA* AckedPackets = NULL;
     QUIC_SENT_PACKET_METADATA** AckedPacketsTail = &AckedPackets;
 
-    uint32_t PacketsInFlight = 0;
     uint32_t AckedRetransmittableBytes = 0;
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
     uint32_t TimeNow = QuicTimeUs32();
@@ -1193,7 +1189,7 @@ QuicLossDetectionProcessAckBlocks(
                     LossDetection->LostPacketsTail = LostPacketsStart;
                 }
 
-                QuicLossValidate(LossDetection, TRUE);
+                QuicLossValidate(LossDetection);
             }
         }
 
@@ -1209,7 +1205,7 @@ QuicLossDetectionProcessAckBlocks(
             while (*End && (*End)->PacketNumber <= QuicRangeGetHigh(AckBlock)) {
 
                 if ((*End)->Flags.IsAckEliciting) {
-                    PacketsInFlight++;
+                    LossDetection->PacketsInFlight--;
                     AckedRetransmittableBytes += (*End)->PacketLength;
                 }
                 LargestAckedPacket = *End;
@@ -1228,7 +1224,7 @@ QuicLossDetectionProcessAckBlocks(
                     LossDetection->SentPacketsTail = SentPacketsStart;
                 }
 
-                QuicLossValidate(LossDetection, FALSE);
+                QuicLossValidate(LossDetection);
             }
         }
 
@@ -1289,8 +1285,7 @@ QuicLossDetectionProcessAckBlocks(
         QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet);
     }
 
-    LossDetection->PacketsInFlight -= PacketsInFlight;
-    QuicLossValidate(LossDetection, TRUE);
+    QuicLossValidate(LossDetection);
 
     if (NewLargestAckRetransmittable && !NewLargestAckDifferentPath) {
         //
