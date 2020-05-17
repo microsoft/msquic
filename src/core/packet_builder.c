@@ -280,7 +280,6 @@ QuicPacketBuilderPrepare(
         Builder->Metadata->Flags.KeyType = NewPacketKeyType;
         Builder->Metadata->Flags.IsAckEliciting = FALSE;
         Builder->Metadata->Flags.IsPMTUD = IsPathMtuDiscovery;
-        Builder->Metadata->Flags.HasAckFrame = FALSE;
         Builder->Metadata->Flags.SuspectedLost = FALSE;
 #if DEBUG
         Builder->Metadata->Flags.Freed = FALSE;

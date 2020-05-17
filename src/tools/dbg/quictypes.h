@@ -816,7 +816,6 @@ typedef struct QUIC_SEND_PACKET_FLAGS {
     UINT8 KeyType                   : 2;
     BOOLEAN IsAckEliciting          : 1;
     BOOLEAN IsPMTUD                 : 1;
-    BOOLEAN HasAckFrame             : 1;
     BOOLEAN SuspectedLost           : 1;
 
     PCSTR KeyTypeStr() {
