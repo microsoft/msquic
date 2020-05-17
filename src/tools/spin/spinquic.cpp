@@ -805,11 +805,10 @@ main(int argc, char **argv)
                     &Value))) {
                 break;
             }
-            QuicSleep(100); // Let the current datapath queue drain.
+            QuicSleep(500); // Let the current datapath queue drain.
         }
         if (TryCount == 10) {
             printf("Failed to disable test datapath hook!\n");
-            QUIC_FRE_ASSERTMSG(FALSE, "Failed to disable test datapath hook!");
         }
     }
 
