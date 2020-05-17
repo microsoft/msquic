@@ -509,7 +509,6 @@ QuicCryptoWriteOneFrame(
         QuicCryptoFrameEncode(&Frame, Offset, BufferLength, Buffer));
 
     PacketMetadata->Flags.IsAckEliciting = TRUE;
-    PacketMetadata->Flags.HasCrypto = TRUE;
     PacketMetadata->Frames[PacketMetadata->FrameCount].Type = QUIC_FRAME_CRYPTO;
     PacketMetadata->Frames[PacketMetadata->FrameCount].CRYPTO.Offset = CryptoOffset;
     PacketMetadata->Frames[PacketMetadata->FrameCount].CRYPTO.Length = (uint16_t)Frame.Length;

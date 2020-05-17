@@ -76,9 +76,9 @@ typedef struct QUIC_SEND_PACKET_FLAGS {
 
     uint8_t KeyType                 : 2;
     BOOLEAN IsAckEliciting          : 1;
-    BOOLEAN HasCrypto               : 1;
     BOOLEAN IsPMTUD                 : 1;
     BOOLEAN KeyPhase                : 1;
+    BOOLEAN HasAckFrame             : 1;
     BOOLEAN SuspectedLost           : 1;
 #if DEBUG
     BOOLEAN Freed                   : 1;

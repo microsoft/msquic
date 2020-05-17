@@ -234,6 +234,7 @@ QuicAckTrackerAckFrameEncode(
     Tracker->LargestPacketNumberAcknowledged =
         Builder->Metadata->Frames[Builder->Metadata->FrameCount].ACK.LargestAckedPacketNumber =
         QuicRangeGetMax(&Tracker->PacketNumbersToAck);
+    Builder->Metadata->Flags.HasAckFrame = TRUE;
     (void)QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_ACK, FALSE);
 
     return TRUE;

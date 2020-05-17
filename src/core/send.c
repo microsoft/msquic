@@ -434,7 +434,8 @@ QuicSendWriteFrames(
     // specific frames.
     //
 
-    if (Builder->PacketType != QUIC_0_RTT_PROTECTED &&
+    if (!Builder->Metadata->Flags.HasAckFrame &&
+        Builder->PacketType != QUIC_0_RTT_PROTECTED &&
         QuicAckTrackerHasPacketsToAck(&Packets->AckTracker)) {
         if (!QuicAckTrackerAckFrameEncode(&Packets->AckTracker, Builder)) {
             RanOutOfRoom = TRUE;
