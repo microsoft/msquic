@@ -792,26 +792,6 @@ main(int argc, char **argv)
 
     MsQuic->RegistrationClose(Registration);
 
-    if (Settings.LossPercent != 0) {
-        QUIC_TEST_DATAPATH_HOOKS* Value = nullptr;
-        uint32_t TryCount = 0;
-        while (TryCount++ < 10) {
-            if (QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_LEVEL_GLOBAL,
-                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
-                    sizeof(Value),
-                    &Value))) {
-                break;
-            }
-            QuicSleep(500); // Let the current datapath queue drain.
-        }
-        if (TryCount == 10) {
-            printf("Failed to disable test datapath hook!\n");
-        }
-    }
-
     MsQuicClose(MsQuic);
 
     return 0;
