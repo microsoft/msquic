@@ -291,6 +291,7 @@ QuicCryptoReset(
     _In_ BOOLEAN ResetTls
     )
 {
+    QUIC_DBG_ASSERT(!QuicConnIsServer(QuicCryptoGetConnection(Crypto)));
     QUIC_TEL_ASSERT(!Crypto->TlsDataPending);
     QUIC_TEL_ASSERT(!Crypto->TlsCallPending);
     QUIC_TEL_ASSERT(Crypto->RecvTotalConsumed == 0);
