@@ -376,6 +376,23 @@ QuicCryptoDiscardKeys(
     QuicPacketSpaceUninitialize(Connection->Packets[EncryptLevel]);
     Connection->Packets[EncryptLevel] = NULL;
 
+    //
+    // Clean up any possible left over recovery state.
+    //
+    uint32_t BufferOffset =
+        KeyType == QUIC_PACKET_KEY_INITIAL ?
+            Crypto->TlsState.BufferOffsetHandshake :
+            Crypto->TlsState.BufferOffset1Rtt;
+    QUIC_DBG_ASSERT(BufferOffset != 0);
+    QUIC_DBG_ASSERT(Crypto->MaxSentLength >= BufferOffset);
+    if (Crypto->NextSendOffset < BufferOffset) {
+        Crypto->NextSendOffset = BufferOffset;
+    }
+    if (Crypto->UnAckedOffset < BufferOffset) {
+        Crypto->UnAckedOffset = BufferOffset;
+        QuicRangeSetMin(&Crypto->SparseAckRanges, Crypto->UnAckedOffset);
+    }
+
     if (HasAckElicitingPacketsToAcknowledge) {
         QuicSendUpdateAckState(&Connection->Send);
     }
