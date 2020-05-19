@@ -384,14 +384,16 @@ QuicCryptoDiscardKeys(
         KeyType == QUIC_PACKET_KEY_INITIAL ?
             Crypto->TlsState.BufferOffsetHandshake :
             Crypto->TlsState.BufferOffset1Rtt;
-    QUIC_DBG_ASSERT(BufferOffset != 0);
-    QUIC_DBG_ASSERT(Crypto->MaxSentLength >= BufferOffset);
-    if (Crypto->NextSendOffset < BufferOffset) {
-        Crypto->NextSendOffset = BufferOffset;
-    }
-    if (Crypto->UnAckedOffset < BufferOffset) {
-        Crypto->UnAckedOffset = BufferOffset;
-        QuicRangeSetMin(&Crypto->SparseAckRanges, Crypto->UnAckedOffset);
+    //QUIC_DBG_ASSERT(BufferOffset != 0); // TODO - Get OpenSSL working properly so this can be enabled.
+    if (BufferOffset != 0) {
+        QUIC_DBG_ASSERT(Crypto->MaxSentLength >= BufferOffset);
+        if (Crypto->NextSendOffset < BufferOffset) {
+            Crypto->NextSendOffset = BufferOffset;
+        }
+        if (Crypto->UnAckedOffset < BufferOffset) {
+            Crypto->UnAckedOffset = BufferOffset;
+            QuicRangeSetMin(&Crypto->SparseAckRanges, Crypto->UnAckedOffset);
+        }
     }
 
     if (HasAckElicitingPacketsToAcknowledge) {
