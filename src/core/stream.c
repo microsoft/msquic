@@ -267,7 +267,6 @@ QuicStreamClose(
 {
     if (!Stream->Flags.ShutdownComplete) {
 
-        QUIC_CONN_VERIFY(Stream->Connection, !Stream->Flags.Started);
         if (Stream->Flags.Started) {
             //
             // TODO - If the stream hasn't been aborted already, then this is a

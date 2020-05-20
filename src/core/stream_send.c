@@ -129,7 +129,6 @@ QuicStreamSendShutdown(
             goto Exit;
         }
 
-        QUIC_CONN_VERIFY(Stream->Connection, ApiSendRequests == NULL);
         while (ApiSendRequests != NULL) {
             //
             // These sends were queued by the app after queueing a graceful

@@ -292,6 +292,7 @@ QuicCryptoReset(
     _In_ BOOLEAN ResetTls
     )
 {
+    QUIC_DBG_ASSERT(!QuicConnIsServer(QuicCryptoGetConnection(Crypto)));
     QUIC_TEL_ASSERT(!Crypto->TlsDataPending);
     QUIC_TEL_ASSERT(!Crypto->TlsCallPending);
     QUIC_TEL_ASSERT(Crypto->RecvTotalConsumed == 0);
@@ -376,6 +377,23 @@ QuicCryptoDiscardKeys(
     QuicLossDetectionDiscardPackets(&Connection->LossDetection, KeyType);
     QuicPacketSpaceUninitialize(Connection->Packets[EncryptLevel]);
     Connection->Packets[EncryptLevel] = NULL;
+
+    //
+    // Clean up any possible left over recovery state.
+    //
+    uint32_t BufferOffset =
+        KeyType == QUIC_PACKET_KEY_INITIAL ?
+            Crypto->TlsState.BufferOffsetHandshake :
+            Crypto->TlsState.BufferOffset1Rtt;
+    QUIC_DBG_ASSERT(BufferOffset != 0);
+    QUIC_DBG_ASSERT(Crypto->MaxSentLength >= BufferOffset);
+    if (Crypto->NextSendOffset < BufferOffset) {
+        Crypto->NextSendOffset = BufferOffset;
+    }
+    if (Crypto->UnAckedOffset < BufferOffset) {
+        Crypto->UnAckedOffset = BufferOffset;
+        QuicRangeSetMin(&Crypto->SparseAckRanges, Crypto->UnAckedOffset);
+    }
 
     if (HasAckElicitingPacketsToAcknowledge) {
         QuicSendUpdateAckState(&Connection->Send);
@@ -510,7 +528,6 @@ QuicCryptoWriteOneFrame(
         QuicCryptoFrameEncode(&Frame, Offset, BufferLength, Buffer));
 
     PacketMetadata->Flags.IsAckEliciting = TRUE;
-    PacketMetadata->Flags.HasCrypto = TRUE;
     PacketMetadata->Frames[PacketMetadata->FrameCount].Type = QUIC_FRAME_CRYPTO;
     PacketMetadata->Frames[PacketMetadata->FrameCount].CRYPTO.Offset = CryptoOffset;
     PacketMetadata->Frames[PacketMetadata->FrameCount].CRYPTO.Length = (uint16_t)Frame.Length;
