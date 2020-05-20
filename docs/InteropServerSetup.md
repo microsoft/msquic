@@ -1,6 +1,6 @@
 # Setting Up an MsQuic Interop Server
 
-One of the tools in the MsQuic repo is `quicinteropserver` ([source](../src/tools/interopserver)). It is our server solution used for QUIC interoperability testing. You can find the general requirements for this on the [QUIC WG Wiki](https://github.com/quicwg/base-drafts/wiki/17th-Implementation-Draft).
+One of the tools in the MsQuic repo is `quicinteropserver` ([source](../src/tools/interopserver)). It is our server solution used for QUIC interoperability testing. You can find the general requirements for this on the [QUIC WG Wiki](https://github.com/quicwg/base-drafts/wiki/18th-Implementation-Draft).
 
 # Building
 
