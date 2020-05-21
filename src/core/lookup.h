@@ -156,7 +156,7 @@ QuicLookupAddRemoteHash(
     _In_ uint8_t RemoteCidLength,
     _In_reads_(RemoteCidLength)
         const uint8_t* const RemoteCid,
-    _Out_opt_ QUIC_CONNECTION** Collision
+    _Out_ QUIC_CONNECTION** Collision
     );
 
 //
