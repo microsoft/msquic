@@ -69,6 +69,20 @@ QuicCryptoDumpSendState(
     }
 }
 
+#ifdef DEBUG
+inline
+void
+QuicCryptoValidate(QUIC_CRYPTO* Crypto) {
+    QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->UnAckedOffset);
+    QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->NextSendOffset);
+    QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->RecoveryNextOffset);
+    QUIC_FRE_ASSERT(Crypto->MaxSentLength <=  Crypto->TlsState.BufferTotalLength);
+    QUIC_FRE_ASSERT(Crypto->TlsState.BufferLength + Crypto->UnAckedOffset == Crypto->TlsState.BufferTotalLength);
+}
+#else
+#define ValidateCrypto(Crypto)
+#endif
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoInitialize(
@@ -397,6 +411,7 @@ QuicCryptoDiscardKeys(
     if (HasAckElicitingPacketsToAcknowledge) {
         QuicSendUpdateAckState(&Connection->Send);
     }
+    QuicCryptoValidate(Crypto);
 
     return TRUE;
 }
@@ -715,6 +730,7 @@ QuicCryptoWriteCryptoFrames(
     }
 
     QuicCryptoDumpSendState(Crypto);
+    QuicCryptoValidate(Crypto);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -862,6 +878,7 @@ QuicCryptoOnLoss(
                 QUIC_CONN_SEND_FLAG_CRYPTO);
 
         QuicCryptoDumpSendState(Crypto);
+        QuicCryptoValidate(Crypto);
 
         return DataQueued;
     }
@@ -996,6 +1013,7 @@ QuicCryptoOnAck(
     }
 
     QuicCryptoDumpSendState(Crypto);
+    QuicCryptoValidate(Crypto);
 }
 
 //
