@@ -3498,6 +3498,11 @@ QuicConnRecvFrames(
                 return FALSE;
             }
 
+            if (!QuicConnIsServer(Connection) &&
+                !Connection->State.GotFirstServerResponse) {
+                Connection->State.GotFirstServerResponse = TRUE;
+            }
+
             Packet->HasNonProbingFrame = TRUE;
             break;
         }
