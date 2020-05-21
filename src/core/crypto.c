@@ -319,7 +319,9 @@ QuicCryptoReset(
     Crypto->MaxSentLength = 0;
     Crypto->UnAckedOffset = 0;
     Crypto->NextSendOffset = 0;
+    Crypto->RecoveryNextOffset = 0;
     Crypto->RecoveryEndOffset = 0;
+    Crypto->InRecovery = FALSE;
 
     if (ResetTls) {
         Crypto->TlsState.BufferLength = 0;
