@@ -106,24 +106,6 @@ QuicCryptoHasPendingCryptoFrame(
         (Crypto->NextSendOffset < Crypto->TlsState.BufferTotalLength);
 }
 
-#if DEBUG
-_IRQL_requires_max_(DISPATCH_LEVEL)
-inline
-void
-QuicCryptoValidate(
-    _In_ const QUIC_CRYPTO* Crypto
-    )
-{
-    QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->UnAckedOffset);
-    QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->NextSendOffset);
-    QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->RecoveryNextOffset);
-    QUIC_FRE_ASSERT(Crypto->MaxSentLength <=  Crypto->TlsState.BufferTotalLength);
-    QUIC_FRE_ASSERT(Crypto->TlsState.BufferLength + Crypto->UnAckedOffset == Crypto->TlsState.BufferTotalLength);
-}
-#else
-#define QuicCryptoValidate(Crypto)
-#endif
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoInitialize(

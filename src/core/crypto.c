@@ -69,6 +69,23 @@ QuicCryptoDumpSendState(
     }
 }
 
+#if DEBUG
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCryptoValidate(
+    _In_ const QUIC_CRYPTO* Crypto
+    )
+{
+    QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->UnAckedOffset);
+    QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->NextSendOffset);
+    QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->RecoveryNextOffset);
+    QUIC_FRE_ASSERT(Crypto->MaxSentLength <=  Crypto->TlsState.BufferTotalLength);
+    QUIC_FRE_ASSERT(Crypto->TlsState.BufferLength + Crypto->UnAckedOffset == Crypto->TlsState.BufferTotalLength);
+}
+#else
+#define QuicCryptoValidate(Crypto)
+#endif
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoInitialize(
@@ -397,6 +414,7 @@ QuicCryptoDiscardKeys(
     if (HasAckElicitingPacketsToAcknowledge) {
         QuicSendUpdateAckState(&Connection->Send);
     }
+
     QuicCryptoValidate(Crypto);
 
     return TRUE;
@@ -1448,6 +1466,8 @@ QuicCryptoProcessDataComplete(
             RecvBufferConsumed);
         QuicRecvBufferDrain(&Crypto->RecvBuffer, RecvBufferConsumed);
     }
+
+    QuicCryptoValidate(Crypto);
     QuicCryptoProcessTlsCompletion(Crypto, ResultFlags);
 
     if (Crypto->TlsDataPending && !Crypto->TlsCallPending) {
