@@ -76,13 +76,13 @@ QuicCryptoValidate(
     _In_ const QUIC_CRYPTO* Crypto
     )
 {
-    QUIC_FRE_ASSERT(Crypto->TlsState.BufferTotalLength >= Crypto->MaxSentLength);
-    QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->UnAckedOffset);
-    QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->NextSendOffset);
-    QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->RecoveryNextOffset);
-    QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->RecoveryEndOffset);
-    QUIC_FRE_ASSERT(Crypto->NextSendOffset >= Crypto->UnAckedOffset);
-    QUIC_FRE_ASSERT(Crypto->TlsState.BufferLength + Crypto->UnAckedOffset == Crypto->TlsState.BufferTotalLength);
+    QUIC_DBG_ASSERT(Crypto->TlsState.BufferTotalLength >= Crypto->MaxSentLength);
+    QUIC_DBG_ASSERT(Crypto->MaxSentLength >= Crypto->UnAckedOffset);
+    QUIC_DBG_ASSERT(Crypto->MaxSentLength >= Crypto->NextSendOffset);
+    QUIC_DBG_ASSERT(Crypto->MaxSentLength >= Crypto->RecoveryNextOffset);
+    QUIC_DBG_ASSERT(Crypto->MaxSentLength >= Crypto->RecoveryEndOffset);
+    QUIC_DBG_ASSERT(Crypto->NextSendOffset >= Crypto->UnAckedOffset);
+    QUIC_DBG_ASSERT(Crypto->TlsState.BufferLength + Crypto->UnAckedOffset == Crypto->TlsState.BufferTotalLength);
 }
 #else
 #define QuicCryptoValidate(Crypto)
@@ -492,6 +492,7 @@ QuicCryptoWriteOneFrame(
     _Inout_ QUIC_SENT_PACKET_METADATA* PacketMetadata
     )
 {
+    QuicCryptoValidate(Crypto);
     QUIC_DBG_ASSERT(*FramePayloadBytes > 0);
     QUIC_DBG_ASSERT(CryptoOffset >= EncryptLevelStart);
     QUIC_DBG_ASSERT(CryptoOffset <= Crypto->TlsState.BufferTotalLength);
@@ -571,6 +572,7 @@ QuicCryptoWriteCryptoFrames(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
+    QuicCryptoValidate(Crypto);
 
     //
     // Write frames until we've filled the provided space.
