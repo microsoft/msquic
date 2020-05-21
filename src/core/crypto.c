@@ -81,7 +81,6 @@ QuicCryptoValidate(
     QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->NextSendOffset);
     QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->RecoveryNextOffset);
     QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->RecoveryEndOffset);
-    QUIC_FRE_ASSERT(Crypto->RecoveryEndOffset >= Crypto->RecoveryNextOffset);
     QUIC_FRE_ASSERT(Crypto->NextSendOffset >= Crypto->UnAckedOffset);
     QUIC_FRE_ASSERT(Crypto->TlsState.BufferLength + Crypto->UnAckedOffset == Crypto->TlsState.BufferTotalLength);
 }
