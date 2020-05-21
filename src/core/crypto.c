@@ -319,6 +319,7 @@ QuicCryptoReset(
     Crypto->MaxSentLength = 0;
     Crypto->UnAckedOffset = 0;
     Crypto->NextSendOffset = 0;
+    Crypto->RecoveryEndOffset = 0;
 
     if (ResetTls) {
         Crypto->TlsState.BufferLength = 0;
@@ -332,6 +333,8 @@ QuicCryptoReset(
             &QuicCryptoGetConnection(Crypto)->Send,
             QUIC_CONN_SEND_FLAG_CRYPTO);
     }
+
+    QuicCryptoValidate(Crypto);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -741,6 +744,7 @@ QuicCryptoWriteCryptoFrames(
     }
 
     QuicCryptoDumpSendState(Crypto);
+    QuicCryptoValidate(Crypto);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
