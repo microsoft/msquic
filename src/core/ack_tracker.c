@@ -50,6 +50,7 @@ QuicAckTrackerInitialize(
     Tracker->AckElicitingPacketsToAcknowledge = 0;
     Tracker->LargestPacketNumberAcknowledged = 0;
     Tracker->LargestPacketNumberRecvTime = 0;
+    Tracker->AlreadyWrittenAckFrame = FALSE;
 
     Status =
         QuicRangeInitialize(
@@ -92,6 +93,7 @@ QuicAckTrackerReset(
     Tracker->AckElicitingPacketsToAcknowledge = 0;
     Tracker->LargestPacketNumberAcknowledged = 0;
     Tracker->LargestPacketNumberRecvTime = 0;
+    Tracker->AlreadyWrittenAckFrame = FALSE;
     QuicRangeReset(&Tracker->PacketNumbersToAck);
     QuicRangeReset(&Tracker->PacketNumbersReceived);
 }
@@ -151,6 +153,8 @@ QuicAckTrackerAckPacket(
     if (NewLargestPacketNumber) {
         Tracker->LargestPacketNumberRecvTime = QuicTimeUs64();
     }
+
+    Tracker->AlreadyWrittenAckFrame = FALSE;
 
     if (!AckElicitingPayload) {
         goto Exit;
@@ -231,6 +235,7 @@ QuicAckTrackerAckFrameEncode(
         QuicSendUpdateAckState(&Builder->Connection->Send);
     }
 
+    Tracker->AlreadyWrittenAckFrame = TRUE;
     Tracker->LargestPacketNumberAcknowledged =
         Builder->Metadata->Frames[Builder->Metadata->FrameCount].ACK.LargestAckedPacketNumber =
         QuicRangeGetMax(&Tracker->PacketNumbersToAck);

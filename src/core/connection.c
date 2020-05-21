@@ -1701,6 +1701,9 @@ QuicConnStart(
     QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
 
     if (Connection->State.ClosedLocally || Connection->State.Started) {
+        if (ServerName != NULL) {
+            QUIC_FREE(ServerName);
+        }
         return QUIC_STATUS_INVALID_STATE;
     }
 

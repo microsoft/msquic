@@ -528,7 +528,7 @@ QuicLookupInsertRemoteHash(
         Entry->RemoteCid,
         RemoteCid,
         RemoteCidLength);
-        
+
     QuicHashtableInsert(
         &Lookup->RemoteHashTable,
         &Entry->Entry,
@@ -645,24 +645,26 @@ QuicLookupFindConnectionByRemoteHash(
         const uint8_t* const RemoteCid
     )
 {
-    if (!Lookup->MaximizePartitioning) {
-        return NULL; // Nothing registered yet.
-    }
-
     uint32_t Hash = QuicPacketHash(RemoteAddress, RemoteCidLength, RemoteCid);
 
     QuicDispatchRwLockAcquireShared(&Lookup->RwLock);
 
-    QUIC_CONNECTION* ExistingConnection =
-        QuicLookupFindConnectionByRemoteHashInternal(
-            Lookup,
-            RemoteAddress,
-            RemoteCidLength,
-            RemoteCid,
-            Hash);
+    QUIC_CONNECTION* ExistingConnection;
+    if (Lookup->MaximizePartitioning) {
+        ExistingConnection =
+            QuicLookupFindConnectionByRemoteHashInternal(
+                Lookup,
+                RemoteAddress,
+                RemoteCidLength,
+                RemoteCid,
+                Hash);
 
-    if (ExistingConnection != NULL) {
-        QuicConnAddRef(ExistingConnection, QUIC_CONN_REF_LOOKUP_RESULT);
+        if (ExistingConnection != NULL) {
+            QuicConnAddRef(ExistingConnection, QUIC_CONN_REF_LOOKUP_RESULT);
+        }
+
+    } else {
+        ExistingConnection = NULL;
     }
 
     QuicDispatchRwLockReleaseShared(&Lookup->RwLock);
@@ -754,10 +756,9 @@ QuicLookupAddRemoteHash(
     _In_ uint8_t RemoteCidLength,
     _In_reads_(RemoteCidLength)
         const uint8_t* const RemoteCid,
-    _Out_opt_ QUIC_CONNECTION** Collision
+    _Out_ QUIC_CONNECTION** Collision
     )
 {
-    QUIC_DBG_ASSERT(Lookup->MaximizePartitioning);
 
     BOOLEAN Result;
     QUIC_CONNECTION* ExistingConnection;
@@ -765,33 +766,34 @@ QuicLookupAddRemoteHash(
 
     QuicDispatchRwLockAcquireExclusive(&Lookup->RwLock);
 
-    ExistingConnection =
-        QuicLookupFindConnectionByRemoteHashInternal(
-            Lookup,
-            RemoteAddress,
-            RemoteCidLength,
-            RemoteCid,
-            Hash);
-
-    if (ExistingConnection == NULL) {
-        Result =
-            QuicLookupInsertRemoteHash(
+    if (Lookup->MaximizePartitioning) {
+        ExistingConnection =
+            QuicLookupFindConnectionByRemoteHashInternal(
                 Lookup,
-                Hash,
-                Connection,
                 RemoteAddress,
                 RemoteCidLength,
                 RemoteCid,
-                TRUE);
-        if (Collision != NULL) {
+                Hash);
+
+        if (ExistingConnection == NULL) {
+            Result =
+                QuicLookupInsertRemoteHash(
+                    Lookup,
+                    Hash,
+                    Connection,
+                    RemoteAddress,
+                    RemoteCidLength,
+                    RemoteCid,
+                    TRUE);
             *Collision = NULL;
-        }
-    } else {
-        Result = FALSE;
-        if (Collision != NULL) {
+        } else {
+            Result = FALSE;
             *Collision = ExistingConnection;
             QuicConnAddRef(ExistingConnection, QUIC_CONN_REF_LOOKUP_RESULT);
         }
+    } else {
+        Result = FALSE;
+        *Collision = NULL;
     }
 
     QuicDispatchRwLockReleaseExclusive(&Lookup->RwLock);
