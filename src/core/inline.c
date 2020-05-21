@@ -213,7 +213,6 @@ QuicCryptoCombineIvAndPacketNumber(
 
 #if DEBUG
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
 void
 QuicCryptoValidate(
     _In_ const QUIC_CRYPTO* Crypto
