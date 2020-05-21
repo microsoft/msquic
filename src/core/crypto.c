@@ -1192,6 +1192,8 @@ QuicCryptoProcessTlsCompletion(
         return;
     }
 
+    QuicCryptoValidate(Crypto);
+
     if (ResultFlags & QUIC_TLS_RESULT_EARLY_DATA_ACCEPT) {
         QuicTraceLogConnInfo(
             ZeroRttAccepted,
@@ -1345,6 +1347,7 @@ QuicCryptoProcessTlsCompletion(
             &QuicCryptoGetConnection(Crypto)->Send,
             QUIC_CONN_SEND_FLAG_CRYPTO);
         QuicCryptoDumpSendState(Crypto);
+        QuicCryptoValidate(Crypto);
     }
 
     if (ResultFlags & QUIC_TLS_RESULT_COMPLETE) {
@@ -1448,6 +1451,8 @@ QuicCryptoProcessTlsCompletion(
             Connection,
             "Ticket ready");
     }
+
+    QuicCryptoValidate(Crypto);
 
     if (ResultFlags & QUIC_TLS_RESULT_READ_KEY_UPDATED) {
         QuicConnFlushDeferred(Connection);
@@ -1672,6 +1677,7 @@ QuicCryptoProcessData(
 Error:
 
     QuicRecvBufferDrain(&Crypto->RecvBuffer, 0);
+    QuicCryptoValidate(Crypto);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
