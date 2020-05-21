@@ -907,10 +907,24 @@ QuicCryptoOnAck(
 
         if (Crypto->UnAckedOffset < FollowingOffset) {
 
+            uint32_t OldUnAckedOffset = Crypto->UnAckedOffset;
+            Crypto->UnAckedOffset = FollowingOffset;
+
+            //
+            // Delete any SACKs that UnAckedOffset caught up to.
+            //
+            QuicRangeSetMin(&Crypto->SparseAckRanges, Crypto->UnAckedOffset);
+            QUIC_SUBRANGE* Sack = QuicRangeGetSafe(&Crypto->SparseAckRanges, 0);
+            if (Sack && Sack->Low == (uint64_t)Crypto->UnAckedOffset) {
+                Crypto->UnAckedOffset = (uint32_t)(Sack->Low + Sack->Count);
+                QuicRangeRemoveSubranges(&Crypto->SparseAckRanges, 0, 1);
+            }
+
             //
             // Drain the front of the send buffer.
             //
-            uint32_t DrainLength = FollowingOffset - Crypto->UnAckedOffset;
+            uint32_t DrainLength = Crypto->UnAckedOffset - OldUnAckedOffset;
+            QUIC_DBG_ASSERT(DrainLength <= (uint32_t)Crypto->TlsState.BufferLength);
             if ((uint32_t)Crypto->TlsState.BufferLength > DrainLength) {
                 Crypto->TlsState.BufferLength -= (uint16_t)DrainLength;
                 QuicMoveMemory(
@@ -919,19 +933,6 @@ QuicCryptoOnAck(
                     Crypto->TlsState.BufferLength);
             } else {
                 Crypto->TlsState.BufferLength = 0;
-            }
-
-            Crypto->UnAckedOffset = FollowingOffset;
-
-            //
-            // Delete any SACKs that UnAckedOffset caught up to.
-            //
-            QuicRangeSetMin(&Crypto->SparseAckRanges, Crypto->UnAckedOffset);
-
-            QUIC_SUBRANGE* Sack = QuicRangeGetSafe(&Crypto->SparseAckRanges, 0);
-            if (Sack && Sack->Low == (uint64_t)Crypto->UnAckedOffset) {
-                Crypto->UnAckedOffset = (uint32_t)(Sack->Low + Sack->Count);
-                QuicRangeRemoveSubranges(&Crypto->SparseAckRanges, 0, 1);
             }
 
             if (Crypto->NextSendOffset < Crypto->UnAckedOffset) {
