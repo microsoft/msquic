@@ -211,6 +211,15 @@ QuicCryptoCombineIvAndPacketNumber(
         uint8_t* IvOut
     );
 
+#if DEBUG
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+void
+QuicCryptoValidate(
+    _In_ const QUIC_CRYPTO* Crypto
+    );
+#endif
+
 QUIC_SUBRANGE*
 QuicRangeGetSafe(
     _In_ const QUIC_RANGE * const Range,
