@@ -76,10 +76,13 @@ QuicCryptoValidate(
     _In_ const QUIC_CRYPTO* Crypto
     )
 {
+    QUIC_FRE_ASSERT(Crypto->TlsState.BufferTotalLength >= Crypto->MaxSentLength);
     QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->UnAckedOffset);
     QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->NextSendOffset);
     QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->RecoveryNextOffset);
-    QUIC_FRE_ASSERT(Crypto->MaxSentLength <=  Crypto->TlsState.BufferTotalLength);
+    QUIC_FRE_ASSERT(Crypto->MaxSentLength >= Crypto->RecoveryEndOffset);
+    QUIC_FRE_ASSERT(Crypto->RecoveryEndOffset >= Crypto->RecoveryNextOffset);
+    QUIC_FRE_ASSERT(Crypto->NextSendOffset >= Crypto->UnAckedOffset);
     QUIC_FRE_ASSERT(Crypto->TlsState.BufferLength + Crypto->UnAckedOffset == Crypto->TlsState.BufferTotalLength);
 }
 #else
@@ -185,6 +188,7 @@ QuicCryptoInitialize(
     QUIC_DBG_ASSERT(Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL] != NULL);
 
     Crypto->Initialized = TRUE;
+    QuicCryptoValidate(Crypto);
 
 Exit:
 
@@ -731,10 +735,11 @@ QuicCryptoWriteCryptoFrames(
         if (Crypto->MaxSentLength < Right) {
             Crypto->MaxSentLength = Right;
         }
+
+        QuicCryptoValidate(Crypto);
     }
 
     QuicCryptoDumpSendState(Crypto);
-    QuicCryptoValidate(Crypto);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1649,6 +1654,8 @@ QuicCryptoProcessData(
 
     Crypto->TlsDataPending = FALSE;
     Crypto->TlsCallPending = TRUE;
+
+    QuicCryptoValidate(Crypto);
 
     QUIC_TLS_RESULT_FLAGS ResultFlags =
         QuicTlsProcessData(Crypto->TLS, Buffer.Buffer, &Buffer.Length, &Crypto->TlsState);
