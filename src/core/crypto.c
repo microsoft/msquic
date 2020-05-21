@@ -80,7 +80,7 @@ QuicCryptoValidate(QUIC_CRYPTO* Crypto) {
     QUIC_FRE_ASSERT(Crypto->TlsState.BufferLength + Crypto->UnAckedOffset == Crypto->TlsState.BufferTotalLength);
 }
 #else
-#define ValidateCrypto(Crypto)
+#define QuicCryptoValidate(Crypto)
 #endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
