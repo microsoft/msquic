@@ -210,7 +210,7 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context *
 {
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
-        MsQuic->StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)(rand() % 16), 0);
+        MsQuic->StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
         break;
     default:
         break;
@@ -283,31 +283,31 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
     int ParamFlag = -1;
 
    // Move this to the enum
-    switch (rand() % 13) {
+    switch (GetRandom(23)) {
     case 0: // QUIC_PARAM_CONN_IDLE_TIMEOUT                    3   // uint64_t - milliseconds
         ParamFlag = QUIC_PARAM_CONN_IDLE_TIMEOUT;
         ParamSize = 8;
-        Param.u64 = (rand() % 20000);
+        Param.u64 = GetRandom(20000);
         break;
     case 1: // QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT          4   // uint16_t
         ParamFlag = QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT;
         ParamSize = 2;
-        Param.u16 = (rand() % 50000);
+        Param.u16 = GetRandom(50000);
         break;
     case 2: // QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT         5   // uint16_t
         ParamFlag = QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT;
         ParamSize = 2;
-        Param.u16 = (rand() % 50000);
+        Param.u16 = GetRandom(50000);
         break;
     case 3: // QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT         6   // uint16_t
         ParamFlag = QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT;
         ParamSize = 2;
-        Param.u16 = (rand() % 50000);
+        Param.u16 = GetRandom(50000);
         break;
     case 4: // QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT        7   // uint16_t
         ParamFlag = QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT;
         ParamSize = 2;
-        Param.u16 = (rand() % 50000);
+        Param.u16 = GetRandom(50000);
         break;
     case 5: // QUIC_PARAM_CONN_CLOSE_REASON_PHRASE             8   // char[]
         ParamFlag = QUIC_PARAM_CONN_CLOSE_REASON_PHRASE;
@@ -321,33 +321,47 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
     case 7: // QUIC_PARAM_CONN_KEEP_ALIVE                      12  // uint32_t - milliseconds
         ParamFlag = QUIC_PARAM_CONN_KEEP_ALIVE;
         ParamSize = 4;
-        Param.u32 = (rand() % 200);
+        Param.u32 = GetRandom(200);
         break;
     case 8: // QUIC_PARAM_CONN_DISCONNECT_TIMEOUT              13  // uint32_t - milliseconds
         ParamFlag = QUIC_PARAM_CONN_DISCONNECT_TIMEOUT;
         ParamSize = 4;
-        Param.u32 = (rand() % 200);
+        Param.u32 = GetRandom(200);
         break;
     case 9: // QUIC_PARAM_CONN_SEND_BUFFERING                  15  // uint8_t (BOOLEAN)
         ParamFlag = QUIC_PARAM_CONN_SEND_BUFFERING;
         ParamSize = 1;
-        Param.u8 = (rand() % 2);
+        Param.u8 = GetRandom(2);
         break;
     case 10: // QUIC_PARAM_CONN_SEND_PACING                     16  // uint8_t (BOOLEAN)
         ParamFlag = QUIC_PARAM_CONN_SEND_PACING;
         ParamSize = 1;
-        Param.u8 = (rand() % 2);
+        Param.u8 = GetRandom(2);
         break;
     case 11: // QUIC_PARAM_CONN_SHARE_UDP_BINDING               17  // uint8_t (BOOLEAN)
         ParamFlag = QUIC_PARAM_CONN_SHARE_UDP_BINDING;
         ParamSize = 1;
-        Param.u8 = (rand() % 2);
+        Param.u8 = GetRandom(2);
         break;
     case 12: // QUIC_PARAM_CONN_IDEAL_PROCESSOR                 18  // uint8_t
         ParamFlag = QUIC_PARAM_CONN_IDEAL_PROCESSOR;
         ParamSize = 1;
-        Param.u8 = (rand() % 254);
+        Param.u8 = GetRandom(254);
         break;
+    case 13: // QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME	20 // QUIC_STREAM_SCHEDULING_SCHEME
+	ParamFlag = QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME;
+	ParamSize = 4;
+	Param.u32 = GetRandom(QUIC_STREAM_SCHEDULING_SCHEME_COUNT);
+    case 14: // QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED	21 // uint8_t (BOOLEAN)
+	ParamFlag = QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED;
+	ParamSize = 1;
+	Param.u8 = GetRandom(2);
+	break;
+    case 15: // QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED		22 // uint8_t (BOOLEAN)
+	ParamFlag = QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED;
+	ParamSize = 1;
+	Param.u8 = GetRandom(2);
+	break;
     default:
         break;
     }
@@ -509,7 +523,7 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
 	case SpinQuicAPICallDatagramSend: {
 	   auto Connection = Connections.TryGetRandom();
 	   BAIL_ON_NULL_CONNECTION(Connection);
-	   MsQuic->DatagramSend(Connection, Buffers, ARRAYSIZE(Buffers), (QUIC_SEND_FLAGS)GetRandom(QUIC_SEND_FLAG_DGRAM_PRIORITY + 1), nullptr);
+	   MsQuic->DatagramSend(Connection, Buffers, ARRAYSIZE(Buffers), (QUIC_SEND_FLAGS)GetRandom(8), nullptr);
 	}
         default:
             break;
@@ -557,7 +571,7 @@ QUIC_THREAD_CALLBACK(ServerSpin, Context)
             UNREFERENCED_PARAMETER(Status);
 
             QUIC_ADDR sockAddr = { 0 };
-            QuicAddrSetFamily(&sockAddr, (rand() % 2) ? AF_INET : AF_UNSPEC);
+            QuicAddrSetFamily(&sockAddr, GetRandom(2) ? AF_INET : AF_UNSPEC);
             QuicAddrSetPort(&sockAddr, pt);
 
             PRINT("MsQuic->ListenerStart(%p, {*:%d}) = ", Listener, pt);
