@@ -269,6 +269,67 @@ QUIC_STATUS QUIC_API SpinQuicServerHandleListenerEvent(HQUIC /* Listener */, voi
     return QUIC_STATUS_SUCCESS;
 }
 
+void SpinQuicSetRandomSesssioParam(HQUIC Session)
+{
+    union {
+        uint64_t u64;
+        uint32_t u32;
+        uint16_t u16;
+        uint8_t  u8;
+        const char *cp;
+    } Param;
+    Param.cp = 0;
+    uint32_t ParamSize = 0;
+    int ParamFlag = -1;
+
+    auto PeerStreamCount = GetRandom((uint16_t)10);
+
+    switch (GetRandom(7)) {
+	    case 0: // QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT       1   // uint16_t
+		ParamFlag = QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT;
+		ParamSize = 2;
+		Param.u16 = GetRandom(10);
+		break;
+	    case 1: // QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT      2   // uint16_t
+		ParamFlag = QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT;
+		ParamSize = 2;
+		Param.u16 = GetRandom(10);
+		break;
+	    case 2: // QUIC_PARAM_SESSION_IDLE_TIMEOUT                 3   // uint64_t - milliseconds
+		ParamFlag = QUIC_PARAM_SESSION_IDLE_TIMEOUT;
+		ParamSize = 8;
+		Param.u8 = GetRandom(32000);
+		break;
+	    case 3: // QUIC_PARAM_SESSION_DISCONNECT_TIMEOUT           4   // uint32_t - milliseconds
+		ParamFlag = QUIC_PARAM_SESSION_DISCONNECT_TIMEOUT;
+		ParamSize = 4;
+		Param.u8 = GetRandom(32000);
+		break;
+	    case 4: // QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY            5   // uint64_t - bytes
+		ParamFlag = QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY;
+		ParamSize = 8;
+		Param.u8 = GetRandom(32000);
+		break;
+	    case 5: // QUIC_PARAM_SESSION_MIGRATION_ENABLED            6   // uint8_t (BOOLEAN)
+		ParamFlag = QUIC_PARAM_SESSION_MIGRATION_ENABLED;
+		ParamSize = 1;
+		Param.u8 = GetRandom(2);
+		break;
+	    case 6: // QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED     7   // uint8_t (BOOLEAN)
+		ParamFlag = QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED;
+		ParamSize = 1;
+		Param.u8 = GetRandom(2);
+		break;
+	    default:
+		    break;
+
+    }
+
+    if (ParamFlag != -1) {
+	MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, ParamFlag, ParamSize, &Param);
+    }
+}
+
 void SpinQuicSetRandomConnectionParam(HQUIC Connection)
 {
     union {
@@ -505,13 +566,7 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
         }
         case SpinQuicAPICallSetParamSession: {
             auto Session = GetRandomFromVector(Sessions);
-            auto PeerStreamCount = GetRandom((uint16_t)10);
-            MsQuic->SetParam(
-                Session,
-                QUIC_PARAM_LEVEL_SESSION,
-                (GetRandom(2) == 0 ? QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT : QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT),
-                sizeof(PeerStreamCount),
-                &PeerStreamCount);
+	    SpinQuicSetRandomSesssioParam(Session);
             break;
         }
         case SpinQuicAPICallSetParamConnection: {
