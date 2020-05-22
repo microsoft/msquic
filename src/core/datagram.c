@@ -220,12 +220,10 @@ QuicDatagramOnMaxSendLengthChanged(
     }
     Datagram->SendQueueTail = SendQueue;
 
-    /* if (Connection->Crypto.TlsState.WriteKey >= QUIC_PACKET_KEY_1_RTT) */ {
-        if (Datagram->SendQueue != NULL) {
-            QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
-        } else {
-            QuicSendClearSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
-        }
+    if (Datagram->SendQueue != NULL) {
+        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
+    } else {
+        QuicSendClearSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
     }
 
     QuicDatagramValidate(Datagram);
@@ -309,7 +307,7 @@ QuicDatagramOnSendStateChanged(
         QuicDatagramSendShutdown(Datagram);
     } else {
         if (!Datagram->SendEnabled) {
-            Datagram->SendEnabled = TRUE; // TODO - What scenario has this go from FALSE to TRUE? 0-RTT?
+            Datagram->SendEnabled = TRUE; // This can happen for 0-RTT connections that didn't previously support Datagrams
         }
         QuicDatagramOnMaxSendLengthChanged(Datagram);
     }
@@ -485,11 +483,14 @@ QuicDatagramWriteFrame(
         if (!HadRoomForDatagram) {
             //
             // We didn't have room to frame this datagram. This should only
-            // happen if because there was other data in the packet already.
-            // Otherwise it means we have a bug where we allowed a datagram
-            // to be queued that was too big.
+            // happen if there was other data in the packet already. Otherwise
+            // it means we have a bug where we allowed a datagram to be queued
+            // (or stay queued, after max length changed) that was too big.
             //
-            QUIC_DBG_ASSERT(Builder->Metadata->FrameCount != 0 || Builder->PacketStart != 0);
+            QUIC_DBG_ASSERT(
+                Builder->Datagram->Length < Datagram->MaxSendLength ||
+                Builder->Metadata->FrameCount != 0 ||
+                Builder->PacketStart != 0);
             return TRUE;
         }
 

@@ -452,7 +452,7 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
         case SpinQuicAPICallShutdownConnection: {
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
-            MsQuic->ConnectionShutdown(Connection, (QUIC_CONNECTION_SHUTDOWN_FLAGS)(rand() % 2), 0);
+            MsQuic->ConnectionShutdown(Connection, (QUIC_CONNECTION_SHUTDOWN_FLAGS)GetRandom(2), 0);
             break;
         }
         case SpinQuicAPICallCloseConnection: {
@@ -465,7 +465,7 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
             HQUIC Stream;
-            QUIC_STATUS Status = MsQuic->StreamOpen(Connection, (QUIC_STREAM_OPEN_FLAGS)(rand() % 2), SpinQuicHandleStreamEvent, nullptr, &Stream);
+            QUIC_STATUS Status = MsQuic->StreamOpen(Connection, (QUIC_STREAM_OPEN_FLAGS)GetRandom(2), SpinQuicHandleStreamEvent, nullptr, &Stream);
             if (QUIC_SUCCEEDED(Status)) {
                 SpinQuicConnection::Get(Connection)->AddStream(Stream);
             }
@@ -479,7 +479,7 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
                 std::lock_guard<std::mutex> Lock(ctx->Lock);
                 auto Stream = ctx->TryGetStream();
                 if (Stream == nullptr) continue;
-                MsQuic->StreamStart(Stream, (QUIC_STREAM_START_FLAGS)(rand() % 2) | QUIC_STREAM_START_FLAG_ASYNC);
+                MsQuic->StreamStart(Stream, (QUIC_STREAM_START_FLAGS)GetRandom(2) | QUIC_STREAM_START_FLAG_ASYNC);
             }
             break;
         }
