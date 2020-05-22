@@ -62,7 +62,7 @@ public:
 // The amount of extra time (in milliseconds) to give the watchdog before
 // actually firing.
 //
-#define WATCHDOG_WIGGLE_ROOM 5000
+#define WATCHDOG_WIGGLE_ROOM 15000
 
 class SpinQuicWatchdog {
     QUIC_THREAD WatchdogThread;
@@ -602,6 +602,10 @@ QUIC_THREAD_CALLBACK(ServerSpin, Context)
         MsQuic->ListenerClose(Listener);
     }
 
+    for (auto &Connection : Connections) {
+        MsQuic->ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+    }
+
     while (Connections.size() > 0) {
         auto Connection = Connections.back();
         Connections.pop_back();
@@ -628,6 +632,10 @@ QUIC_THREAD_CALLBACK(ClientSpin, Context)
     //
     // Clean up
     //
+
+    for (auto &Connection : Connections) {
+        MsQuic->ConnectionShutdown(Connection, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+    }
 
     while (Connections.size() > 0) {
         auto Connection = Connections.back();

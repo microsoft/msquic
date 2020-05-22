@@ -1283,6 +1283,16 @@ MsQuicDatagramSend(
         TotalLength += Buffers[i].Length;
     }
 
+    if (TotalLength > UINT16_MAX) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Send request total length exceeds max");
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (...).")
     SendRequest = QuicPoolAlloc(&Connection->Worker->SendRequestPool);
     if (SendRequest == NULL) {
