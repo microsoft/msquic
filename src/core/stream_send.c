@@ -481,13 +481,13 @@ QuicStreamSendFlush(
 
         QUIC_DBG_ASSERT(SendRequest->TotalLength != 0);
         QUIC_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
-        QUIC_TEL_ASSERT(Stream->Flags.SendEnabled);
 
         if (!Stream->Flags.SendEnabled) {
             //
             // Only possible if they queue muliple sends, with a FIN flag set
             // NOT in the last one.
             //
+            QuicStreamCompleteSendRequest(Stream, SendRequest, TRUE);
             break;
         }
 

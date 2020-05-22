@@ -24,6 +24,27 @@ Abstract:
     DATAGRAM_FRAME_HEADER_LENGTH \
 )
 
+#if DEBUG
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicDatagramValidate(
+    _In_ const QUIC_DATAGRAM* Datagram
+    )
+{
+    if (!Datagram->SendEnabled) {
+        QUIC_DBG_ASSERT(Datagram->MaxSendLength == 0);
+    } else {
+        QUIC_SEND_REQUEST* SendRequest = Datagram->SendQueue;
+        while (SendRequest) {
+            QUIC_DBG_ASSERT(SendRequest->TotalLength <= (uint64_t)Datagram->MaxSendLength);
+            SendRequest = SendRequest->Next;
+        }
+    }
+}
+#else
+#define QuicDatagramValidate(Datagram)
+#endif
+
 uint16_t
 QuicCalculateDatagramLength(
     _In_ QUIC_ADDRESS_FAMILY Family,
@@ -49,6 +70,7 @@ QuicDatagramInitialize(
     Datagram->PrioritySendQueueTail = &Datagram->SendQueue;
     Datagram->SendQueueTail = &Datagram->SendQueue;
     QuicDispatchLockInitialize(&Datagram->ApiQueueLock);
+    QuicDatagramValidate(Datagram);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -145,6 +167,7 @@ QuicDatagramSendShutdown(
 
     QuicDispatchLockAcquire(&Datagram->ApiQueueLock);
     Datagram->SendEnabled = FALSE;
+    Datagram->MaxSendLength = 0;
     QUIC_SEND_REQUEST* ApiQueue = Datagram->ApiQueue;
     Datagram->ApiQueue = NULL;
     QuicDispatchLockRelease(&Datagram->ApiQueueLock);
@@ -167,6 +190,45 @@ QuicDatagramSendShutdown(
         ApiQueue = ApiQueue->Next;
         QuicDatagramCancelSend(Connection, SendRequest);
     }
+
+    QuicDatagramValidate(Datagram);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicDatagramOnMaxSendLengthChanged(
+    _In_ QUIC_DATAGRAM* Datagram
+    )
+{
+    QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
+
+    //
+    // Cancel any outstanding requests that might not fit any more.
+    //
+    QUIC_SEND_REQUEST** SendQueue = &Datagram->SendQueue;
+    while (*SendQueue != NULL) {
+        if ((*SendQueue)->TotalLength > (uint64_t)Datagram->MaxSendLength) {
+            QUIC_SEND_REQUEST* SendRequest = *SendQueue;
+            if (Datagram->PrioritySendQueueTail == &SendRequest->Next) {
+                Datagram->PrioritySendQueueTail = SendQueue;
+            }
+            *SendQueue = SendRequest->Next;
+            QuicDatagramCancelSend(Connection, SendRequest);
+        } else {
+            SendQueue = &((*SendQueue)->Next);
+        }
+    }
+    Datagram->SendQueueTail = SendQueue;
+
+    /* if (Connection->Crypto.TlsState.WriteKey >= QUIC_PACKET_KEY_1_RTT) */ {
+        if (Datagram->SendQueue != NULL) {
+            QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
+        } else {
+            QuicSendClearSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
+        }
+    }
+
+    QuicDatagramValidate(Datagram);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -245,10 +307,14 @@ QuicDatagramOnSendStateChanged(
 
     if (!SendEnabled) {
         QuicDatagramSendShutdown(Datagram);
-    } else if (Connection->State.Connected && Datagram->SendQueue != NULL) {
-        QUIC_DBG_ASSERT(Datagram->SendEnabled);
-        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
+    } else {
+        if (!Datagram->SendEnabled) {
+            Datagram->SendEnabled = TRUE; // TODO - What scenario has this go from FALSE to TRUE? 0-RTT?
+        }
+        QuicDatagramOnMaxSendLengthChanged(Datagram);
     }
+
+    QuicDatagramValidate(Datagram);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -264,15 +330,29 @@ QuicDatagramQueueSend(
 
     QuicDispatchLockAcquire(&Datagram->ApiQueueLock);
     if (!Datagram->SendEnabled) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Datagram send while disabled");
         Status = QUIC_STATUS_INVALID_STATE;
     } else {
-        QUIC_SEND_REQUEST** ApiQueueTail = &Datagram->ApiQueue;
-        while (*ApiQueueTail != NULL) {
-            ApiQueueTail = &((*ApiQueueTail)->Next);
-            QueueOper = FALSE; // Not necessary if the previous send hasn't been flushed yet.
+        if (SendRequest->TotalLength > (uint64_t)Datagram->MaxSendLength) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Datagram send request is longer than allowed");
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+        } else {
+            QUIC_SEND_REQUEST** ApiQueueTail = &Datagram->ApiQueue;
+            while (*ApiQueueTail != NULL) {
+                ApiQueueTail = &((*ApiQueueTail)->Next);
+                QueueOper = FALSE; // Not necessary if the previous send hasn't been flushed yet.
+            }
+            *ApiQueueTail = SendRequest;
+            Status = QUIC_STATUS_SUCCESS;
         }
-        *ApiQueueTail = SendRequest;
-        Status = QUIC_STATUS_SUCCESS;
     }
     QuicDispatchLockRelease(&Datagram->ApiQueueLock);
 
@@ -334,6 +414,11 @@ QuicDatagramSendFlush(
         QUIC_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
         QUIC_TEL_ASSERT(Datagram->SendEnabled);
 
+        if (SendRequest->TotalLength > (uint64_t)Datagram->MaxSendLength) {
+            QuicDatagramCancelSend(Connection, SendRequest);
+            continue;
+        }
+
         if (SendRequest->Flags & QUIC_SEND_FLAG_DGRAM_PRIORITY) {
             SendRequest->Next = *Datagram->PrioritySendQueueTail;
             *Datagram->PrioritySendQueueTail = SendRequest;
@@ -355,10 +440,12 @@ QuicDatagramSendFlush(
             SendRequest->Flags);
     }
 
-    if (Connection->State.PeerTransportParameterValid) {
+    if (Connection->State.PeerTransportParameterValid && Datagram->SendQueue != NULL) {
         QUIC_DBG_ASSERT(Datagram->SendEnabled);
         QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
     }
+
+    QuicDatagramValidate(Datagram);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -371,15 +458,21 @@ QuicDatagramWriteFrame(
     QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
     QUIC_DBG_ASSERT(Datagram->SendEnabled);
 
+    QuicDatagramValidate(Datagram);
+
     while (Datagram->SendQueue != NULL) {
         QUIC_SEND_REQUEST* SendRequest = Datagram->SendQueue;
-        uint16_t AvailableBufferLength =
-            (uint16_t)Builder->Datagram->Length - Builder->EncryptionOverhead;
 
         if (Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_0_RTT &&
             !(SendRequest->Flags & QUIC_SEND_FLAG_ALLOW_0_RTT)) {
+            QUIC_DBG_ASSERT(FALSE);
             return FALSE; // This datagram isn't allowed in 0-RTT.
         }
+
+        QUIC_DBG_ASSERT(SendRequest->TotalLength <= Datagram->MaxSendLength);
+
+        uint16_t AvailableBufferLength =
+            (uint16_t)Builder->Datagram->Length - Builder->EncryptionOverhead;
 
         BOOLEAN HadRoomForDatagram =
             QuicDatagramFrameEncodeEx(
@@ -389,12 +482,15 @@ QuicDatagramWriteFrame(
                 &Builder->DatagramLength,
                 AvailableBufferLength,
                 (uint8_t*)Builder->Datagram->Buffer);
-        if (!HadRoomForDatagram && Builder->Metadata->FrameCount != 0) {
+        if (!HadRoomForDatagram) {
             //
-            // Part of the packet was used already and we didn't have room to frame
-            // this datagram. We need to try again in an unused packet.
+            // We didn't have room to frame this datagram. This should only
+            // happen if because there was other data in the packet already.
+            // Otherwise it means we have a bug where we allowed a datagram
+            // to be queued that was too big.
             //
-            return FALSE;
+            QUIC_DBG_ASSERT(Builder->Metadata->FrameCount != 0 || Builder->PacketStart != 0);
+            return TRUE;
         }
 
         if (Datagram->PrioritySendQueueTail == &SendRequest->Next) {
@@ -405,25 +501,21 @@ QuicDatagramWriteFrame(
         }
         Datagram->SendQueue = SendRequest->Next;
 
-        if (HadRoomForDatagram) {
-            Builder->Metadata->Flags.IsAckEliciting = TRUE;
-            Builder->Metadata->Frames[Builder->Metadata->FrameCount].Type = QUIC_FRAME_DATAGRAM;
-            Builder->Metadata->Frames[Builder->Metadata->FrameCount].DATAGRAM.ClientContext = SendRequest->ClientContext;
-            QuicDatagramCompleteSend(
-                Connection,
-                SendRequest,
-                &Builder->Metadata->Frames[Builder->Metadata->FrameCount].DATAGRAM.ClientContext);
-            if (++Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
-                return TRUE;
-            }
-        } else {
-            QuicDatagramCancelSend(Connection, SendRequest);
+        Builder->Metadata->Flags.IsAckEliciting = TRUE;
+        Builder->Metadata->Frames[Builder->Metadata->FrameCount].Type = QUIC_FRAME_DATAGRAM;
+        Builder->Metadata->Frames[Builder->Metadata->FrameCount].DATAGRAM.ClientContext = SendRequest->ClientContext;
+        QuicDatagramCompleteSend(
+            Connection,
+            SendRequest,
+            &Builder->Metadata->Frames[Builder->Metadata->FrameCount].DATAGRAM.ClientContext);
+        if (++Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
+            return TRUE;
         }
     }
 
     Connection->Send.SendFlags &= ~QUIC_CONN_SEND_FLAG_DATAGRAM;
 
-    return TRUE;
+    return FALSE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
