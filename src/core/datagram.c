@@ -136,9 +136,11 @@ QuicDatagramSendShutdown(
         return;
     }
 
+    QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
+
     QuicTraceLogConnVerbose(
         DatagramSendShutdown,
-        QuicDatagramGetConnection(Datagram),
+        Connection,
         "Datagram send shutdown");
 
     QuicDispatchLockAcquire(&Datagram->ApiQueueLock);
@@ -147,10 +149,11 @@ QuicDatagramSendShutdown(
     Datagram->ApiQueue = NULL;
     QuicDispatchLockRelease(&Datagram->ApiQueueLock);
 
+    QuicSendClearSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
+
     //
     // Cancel all outstanding send requests.
     //
-    QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
     while (Datagram->SendQueue != NULL) {
         QUIC_SEND_REQUEST* SendRequest = Datagram->SendQueue;
         Datagram->SendQueue = SendRequest->Next;
@@ -243,6 +246,7 @@ QuicDatagramOnSendStateChanged(
     if (!SendEnabled) {
         QuicDatagramSendShutdown(Datagram);
     } else if (Connection->State.Connected && Datagram->SendQueue != NULL) {
+        QUIC_DBG_ASSERT(Datagram->SendEnabled);
         QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
     }
 }
@@ -352,6 +356,7 @@ QuicDatagramSendFlush(
     }
 
     if (Connection->State.PeerTransportParameterValid) {
+        QUIC_DBG_ASSERT(Datagram->SendEnabled);
         QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
     }
 }
