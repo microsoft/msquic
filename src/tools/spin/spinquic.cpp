@@ -120,6 +120,7 @@ typedef enum {
     SpinQuicAPICallStreamClose,
     SpinQuicAPICallSetParamSession,
     SpinQuicAPICallSetParamConnection,
+    SpinQuicAPICallDatagramSend,
     SpinQuicAPICallCount    // Always the last element
 } SpinQuicAPICall;
 
@@ -468,7 +469,7 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
                 auto Stream = ctx->TryGetStream();
                 if (Stream == nullptr) continue;
                 PRINT("MsQuic->StreamShutdown(%p, ...) = ", Stream);
-                QUIC_STATUS Status = MsQuic->StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)(rand() % 16), 0);
+                QUIC_STATUS Status = MsQuic->StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
                 PRINT("0x%x\n", Status);
                 UNREFERENCED_PARAMETER(Status);
             }
@@ -505,6 +506,11 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
             SpinQuicSetRandomConnectionParam(Connection);
             break;
         }
+	case SpinQuicAPICallDatagramSend: {
+	   auto Connection = Connections.TryGetRandom();
+	   BAIL_ON_NULL_CONNECTION(Connection);
+	   MsQuic->DatagramSend(Connection, Buffers, ARRAYSIZE(Buffers), (QUIC_SEND_FLAGS)GetRandom(QUIC_SEND_FLAG_DGRAM_PRIORITY + 1), nullptr);
+	}
         default:
             break;
         }
