@@ -50,6 +50,7 @@ PrintUsage()
     printf(
 #if _WIN32
         "  -comp:<####>                The compartment ID to run in.\n"
+        "  -core:<####>                The CPU core to use for the main thread.\n"
 #endif
         "  -alpn:<str>                 The ALPN to use. (def:%s)\n"
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
@@ -108,6 +109,11 @@ ParseCommonCommands(
         } else {
             printf("Running in Compartment %d\n", compartmentid);
         }
+    }
+
+    uint8_t cpuCore;
+    if (TryGetValue(argc, argv, "core",  &cpuCore)) {
+        SetThreadAffinityMask(GetCurrentThread(), (DWORD_PTR)(1ull << cpuCore));
     }
 #endif
 
