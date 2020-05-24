@@ -4,7 +4,7 @@
 This script provides helpers for building msquic.
 
 .PARAMETER Config
-    The debug or release configurationto build for.
+    The debug or release configuration to build for.
 
 .PARAMETER Arch
     The CPU architecture to build for.
@@ -36,8 +36,8 @@ This script provides helpers for building msquic.
 .PARAMETER DynamicCRT
     Builds msquic with dynamic C runtime (Windows-only).
 
-.EXAMPLE
-    build.ps1 -InstallDependencies
+.PARAMETER PGO
+    Builds msquic with profile guided optimization support (Windows-only).
 
 .EXAMPLE
     build.ps1
@@ -79,7 +79,10 @@ param (
     [int32]$Parallel = -1,
 
     [Parameter(Mandatory = $false)]
-    [switch]$DynamicCRT = $false
+    [switch]$DynamicCRT = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$PGO = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -175,9 +178,20 @@ function CMake-Generate {
     if ($DynamicCRT) {
         $Arguments += " -DQUIC_STATIC_LINK_CRT=off"
     }
+    if ($PGO) {
+        $Arguments += " -DQUIC_PGO=on"
+    }
     $Arguments += " ../../.."
 
     CMake-Execute $Arguments
+
+    if ($PGO -and $Config -eq "Release") {
+        # Manually edit project file, since CMake doesn't seem to have a way to do it.
+        $FindText = "  <PropertyGroup Label=`"UserMacros`" />"
+        $ReplaceText = "  <PropertyGroup Label=`"UserMacros`" />`r`n  <PropertyGroup><LibraryPath>`$(LibraryPath);`$(VC_LibraryPath_VC_$($Arch)_Desktop)</LibraryPath></PropertyGroup>"
+        $ProjectFile = Join-Path $BuildDir "src\bin\msquic.vcxproj"
+        (Get-Content $ProjectFile) -replace $FindText, $ReplaceText | Out-File $ProjectFile
+    }
 }
 
 # Uses cmake to generate the build configuration files.
