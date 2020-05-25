@@ -3613,10 +3613,6 @@ QuicConnRecvFrames(
                     &Frame);
             if (QUIC_SUCCEEDED(Status)) {
                 AckPacketImmediately = TRUE;
-                if (!QuicConnIsServer(Connection) &&
-                    !Connection->State.GotFirstServerResponse) {
-                    Connection->State.GotFirstServerResponse = TRUE;
-                }
             } else if (Status == QUIC_STATUS_OUT_OF_MEMORY) {
                 return FALSE;
             } else {
@@ -4212,6 +4208,11 @@ QuicConnRecvFrames(
     }
 
 Done:
+
+    if (!QuicConnIsServer(Connection) &&
+        !Connection->State.GotFirstServerResponse) {
+        Connection->State.GotFirstServerResponse = TRUE;
+    }
 
     if (UpdatedFlowControl) {
         QuicConnLogOutFlowStats(Connection);

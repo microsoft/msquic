@@ -1278,27 +1278,17 @@ MsQuicDatagramSend(
 
     QUIC_TEL_ASSERT(!Connection->State.Freed);
 
-    if (!Connection->Datagram.SendEnabled) {
-        QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Datagrams not enabled by peer");
-        Status = QUIC_STATUS_NOT_SUPPORTED;
-        goto Error;
-    }
-
     TotalLength = 0;
     for (uint32_t i = 0; i < BufferCount; ++i) {
         TotalLength += Buffers[i].Length;
     }
 
-    if (TotalLength > (uint32_t)Connection->Datagram.MaxSendLength) {
+    if (TotalLength > UINT16_MAX) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",
             Connection,
-            "Datagram is longer than allowed");
+            "Send request total length exceeds max");
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
