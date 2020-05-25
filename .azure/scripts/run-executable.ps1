@@ -81,7 +81,7 @@ if (!(Test-Path $Path)) {
 }
 
 # Make sure procdump is installed on Windows.
-if ($IsWindows -and !(Test-Path ($RootDir + "\bld\tools\procdump64.exe"))) {
+if ($IsWindows -and !(Test-Path ($RootDir + "\build\tools\procdump64.exe"))) {
     Write-Error "Procdump not installed!`n `nRun the following to install it:`n `n    $(Join-Path $RootDir ".azure" "scripts" "install-procdump.ps1")`n"
 }
 
@@ -137,7 +137,7 @@ function Start-Executable {
                 $pinfo.Arguments = "-g -G $($Path) $($Arguments)"
             }
         } else {
-            $pinfo.FileName = $RootDir + "\bld\tools\procdump64.exe"
+            $pinfo.FileName = $RootDir + "\build\tools\procdump64.exe"
             $pinfo.Arguments = "-ma -e -b -l -accepteula -x $($LogDir) $($Path) $($Arguments)"
         }
     } else {
@@ -205,7 +205,7 @@ function Wait-Executable($Exe) {
             $XmlResults = [xml]($XmlText)
             $XmlResults.Save($LogDir + "-results.xml") | Out-Null
         }
-        
+
         if ($ShowOutput) {
             if ($null -ne $stdout -and "" -ne $stdout) {
                 Write-Host $stdout

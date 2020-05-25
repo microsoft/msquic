@@ -15,7 +15,7 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $RootDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 
 # Installation directory for procdump.
-$ToolsDir = Join-Path $RootDir "bld" "tools"
+$ToolsDir = Join-Path $RootDir "build" "tools"
 if (!(Test-Path $ToolsDir)) {
     New-Item -Path $ToolsDir -ItemType Directory -Force | Out-Null
 }

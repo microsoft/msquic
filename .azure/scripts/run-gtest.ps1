@@ -112,7 +112,7 @@ if (!(Test-Path $Path)) {
 }
 
 # Make sure procdump is installed on Windows.
-if ($IsWindows -and !(Test-Path ($RootDir + "\bld\tools\procdump64.exe"))) {
+if ($IsWindows -and !(Test-Path ($RootDir + "\build\tools\procdump64.exe"))) {
     Write-Error "Procdump not installed!`n `nRun the following to install it:`n `n    $(Join-Path $RootDir ".azure" "scripts" "install-procdump.ps1")`n"
 }
 
@@ -229,7 +229,7 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
             New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
             New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $OutputDir -Force | Out-Null
         } else {
-            $pinfo.FileName = $RootDir + "\bld\tools\procdump64.exe"
+            $pinfo.FileName = $RootDir + "\build\tools\procdump64.exe"
             $pinfo.Arguments = "-ma -e -b -l -accepteula -x $($OutputDir) $($Path) $($Arguments)"
         }
     } else {
