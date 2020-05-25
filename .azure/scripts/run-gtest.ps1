@@ -93,10 +93,7 @@ param (
     [switch]$CompressOutput = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$NoProgress = $false,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$NoProcDump = $false
+    [switch]$NoProgress = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -109,11 +106,6 @@ function Log($msg) {
 # Make sure the test executable is present.
 if (!(Test-Path $Path)) {
     Write-Error "$($Path) does not exist!"
-}
-
-# Make sure procdump is installed on Windows.
-if ($IsWindows -and !(Test-Path ($RootDir + "\build\tools\procdump64.exe"))) {
-    Write-Error "Procdump not installed!`n `nRun the following to install it:`n `n    $(Join-Path $RootDir ".azure" "scripts" "install-procdump.ps1")`n"
 }
 
 # Root directory of the project.
@@ -222,15 +214,12 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
             } else {
                 $pinfo.Arguments = "-g -G $($Path) $($Arguments)"
             }
-        } elseif ($NoProcDump) {
+        } else {
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments
             # Enable WER dump collection.
             New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
             New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $OutputDir -Force | Out-Null
-        } else {
-            $pinfo.FileName = $RootDir + "\build\tools\procdump64.exe"
-            $pinfo.Arguments = "-ma -e -b -l -accepteula -x $($OutputDir) $($Path) $($Arguments)"
         }
     } else {
         if ($Debugger) {
@@ -452,14 +441,13 @@ if ($Debugger -and $ExecutionMode -eq "Parallel") {
     $ExecutionMode = "IsolatedSerial"
 }
 
-# NoProcDump mode doesn't work for parallel right now.
-if ($NoProcDump -and $ExecutionMode -eq "Parallel") {
-    Log "Warning: Disabling parallel execution for NoProcDump runs!"
-    $ExecutionMode = "IsolatedSerial"
+# Parallel execution doesn't work well. Warn.
+if ($ExecutionMode -eq "Parallel") {
+    Log "Warning: Parallel execution doesn't work very well"
 }
 
 # Initialize WER dump registry key if necessary.
-if ($IsWindows -and $NoProcDump -and !(Test-Path $WerDumpRegPath)) {
+if ($IsWindows -and !(Test-Path $WerDumpRegPath)) {
     New-Item -Path $WerDumpRegPath -Force | Out-Null
 }
 
@@ -512,7 +500,7 @@ try {
         }
     }
 } finally {
-    if ($isWindows -and $NoProcDump) {
+    if ($isWindows) {
         # Cleanup the WER registry.
         Remove-Item -Path $WerDumpRegPath -Force | Out-Null
     }
