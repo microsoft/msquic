@@ -44,7 +44,7 @@ EXT_COMMAND(
         }
 
         Connection Conn = Connection::FromWorkerLink(LinkAddr);
-        Dml("\t<link cmd=\"!quicconnection 0x%I64X\">Connection 0x%I64X [%s]</link>\n",
+        Dml("\t<link cmd=\"!quicconnection 0x%I64X\">Connection 0x%I64X</link> [%s]\n",
             Conn.Addr,
             Conn.Addr,
             Conn.TypeStr());
