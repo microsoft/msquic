@@ -155,8 +155,8 @@ function CMake-Generate {
     } else {
         $Arguments += " 'Linux Makefiles'"
     }
-    $Arguments += " -DQUIC_ARCH=" + $Arch
     $Arguments += " -DQUIC_TLS=" + $Tls
+    $Arguments += " -DQUIC_OUTPUT_DIR=" + $ArtifactsDir
     if ($DisableLogs) {
         $Arguments += " -DQUIC_ENABLE_LOGGING=off"
     }

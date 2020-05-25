@@ -142,14 +142,14 @@ sudo apt-get install lttng-tools
 
 ```
 mkdir build && cd build
-cmake -g 'Visual Studio 16 2019' -A x64 -DQUIC_ARCH=x64 -DQUIC_TLS=schannel ..
+cmake -g 'Visual Studio 16 2019' -A x64 ..
 ```
 
 ### Linux
 
 ```
 mkdir build && cd build
-cmake -g 'Linux Makefiles' -A x64 -DQUIC_ARCH=x64 -DQUIC_TLS=openssl ..
+cmake -g 'Linux Makefiles' ..
 ```
 
 ## Running a Build
