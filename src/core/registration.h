@@ -98,7 +98,7 @@ QuicRegistrationIsSplitPartitioning(
     //
     // When hyper-threading is enabled, better bulk throughput can sometimes
     // be gained by sharing the same physical core, but not the logical one.
-    // The shared one is always one greater than the RSS core.
+    // The shared core is always one greater than the RSS core.
     //
     // TODO - Figure out how to check to see if hyper-threading is enabled
     // TODO - Constrain ++PartitionID to the same NUMA node.
