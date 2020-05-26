@@ -113,7 +113,7 @@ For more info, take a look at the [build.ps1](../scripts/build.ps1) script.
 
 ## Build Output
 
-By default the build output should go to in the `bld` folder and the final build binaries in the `artifacts` folder. Under that it will create per-platform folders, and then sub folders for architecture/tls combinations. This allows for building different platforms and configurations at the same time.
+By default the build output should go to in the `build` folder and the final build binaries in the `artifacts` folder. Under that it will create per-platform folders, and then sub folders for architecture/tls combinations. This allows for building different platforms and configurations at the same time.
 
 # Building with CMake
 
@@ -141,15 +141,15 @@ sudo apt-get install lttng-tools
 ### Windows
 
 ```
-mkdir bld && cd bld
-cmake -g 'Visual Studio 16 2019' -A x64 -DQUIC_ARCH=x64 -DQUIC_TLS=schannel ..
+mkdir build && cd build
+cmake -g 'Visual Studio 16 2019' -A x64 ..
 ```
 
 ### Linux
 
 ```
-mkdir bld && cd bld
-cmake -g 'Linux Makefiles' -A x64 -DQUIC_ARCH=x64 -DQUIC_TLS=openssl ..
+mkdir build && cd build
+cmake -g 'Linux Makefiles' ..
 ```
 
 ## Running a Build

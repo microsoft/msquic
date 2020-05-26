@@ -236,14 +236,14 @@ QuicTraceStubVarArgs(
 #define LogEtw(EventName, Fmt, ...) \
     if (EventEnabledQuicLog##EventName()) { \
         char EtwBuffer[QUIC_ETW_BUFFER_LENGTH]; \
-        sprintf_s(EtwBuffer, sizeof(EtwBuffer), Fmt, ##__VA_ARGS__); \
+        _snprintf_s(EtwBuffer, sizeof(EtwBuffer), _TRUNCATE, Fmt, ##__VA_ARGS__); \
         EventWriteQuicLog##EventName##_AssumeEnabled(EtwBuffer); \
     }
 
 #define LogEtwType(Type, EventName, Ptr, Fmt, ...) \
     if (EventEnabledQuic##Type##Log##EventName()) { \
         char EtwBuffer[QUIC_ETW_BUFFER_LENGTH]; \
-        sprintf_s(EtwBuffer, sizeof(EtwBuffer), Fmt, ##__VA_ARGS__); \
+        _snprintf_s(EtwBuffer, sizeof(EtwBuffer), _TRUNCATE, Fmt, ##__VA_ARGS__); \
         EventWriteQuic##Type##Log##EventName##_AssumeEnabled(Ptr, EtwBuffer); \
     }
 

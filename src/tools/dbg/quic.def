@@ -18,6 +18,7 @@ EXPORTS
     quicconn
     quicconnection
     quicdump
+    quicdumpqueue
     quichandle
     quiclib
     quiclibrary
