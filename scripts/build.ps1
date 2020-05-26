@@ -99,7 +99,7 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 
 # Important directory paths.
 $BaseArtifactsDir = Join-Path $RootDir "artifacts"
-$BaseBuildDir = Join-Path $RootDir "bld"
+$BaseBuildDir = Join-Path $RootDir "build"
 $SrcDir = Join-Path $RootDir "src"
 $ArtifactsDir = $null
 $BuildDir = $null
@@ -155,8 +155,8 @@ function CMake-Generate {
     } else {
         $Arguments += " 'Linux Makefiles'"
     }
-    $Arguments += " -DQUIC_ARCH=" + $Arch
     $Arguments += " -DQUIC_TLS=" + $Tls
+    $Arguments += " -DQUIC_OUTPUT_DIR=" + $ArtifactsDir
     if ($DisableLogs) {
         $Arguments += " -DQUIC_ENABLE_LOGGING=off"
     }
