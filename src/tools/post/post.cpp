@@ -29,8 +29,8 @@ extern "C" void QuicTraceRundown(void) { }
 
 #define ALPN_BUFFER(str) { sizeof(str) - 1, (uint8_t*)str }
 const QUIC_BUFFER ALPNs[] = {
-    ALPN_BUFFER("hq-27"),
-    ALPN_BUFFER("hq-25")
+    ALPN_BUFFER("hq-28"),
+    ALPN_BUFFER("hq-27")
 };
 
 const QUIC_API_TABLE* MsQuic;

@@ -2149,7 +2149,7 @@ Error:
     return Status;
 }
 
-bool
+BOOLEAN
 QuicConnValidateTransportParameterDraft27CIDs(
     _In_ QUIC_CONNECTION* Connection
     )
@@ -2157,7 +2157,6 @@ QuicConnValidateTransportParameterDraft27CIDs(
     if (Connection->State.ReceivedRetryPacket) {
         QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
         QUIC_DBG_ASSERT(Connection->OrigDestCID != NULL);
-        QUIC_DBG_ASSERT(!FromCache);
         //
         // If we received a Retry packet during the handshake, we (the client)
         // must validate that the server knew the original connection ID we sent,
@@ -2212,7 +2211,7 @@ QuicConnValidateTransportParameterDraft27CIDs(
     return TRUE;
 }
 
-bool
+BOOLEAN
 QuicConnValidateTransportParameterCIDs(
     _In_ QUIC_CONNECTION* Connection
     )
@@ -2345,11 +2344,11 @@ QuicConnProcessPeerTransportParameters(
         //
         if (Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27) {
             if (!QuicConnValidateTransportParameterDraft27CIDs(Connection)) {
-                goto Exit;
+                goto Error;
             }
         } else {
             if (!QuicConnValidateTransportParameterCIDs(Connection)) {
-                goto Exit;
+                goto Error;
             }
         }
     }
