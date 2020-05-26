@@ -170,35 +170,56 @@ function Start-Executable {
     }
 }
 
+# Uses CDB.exe to print the crashing callstack in the dump file.
+function PrintDumpCallStack($DumpFile) {
+    $env:_NT_SYMBOL_PATH = Split-Path $Path
+    $Output = cdb.exe -z $File -c "kn;q" | Join-String -Separator "`n"
+    Write-Host "=================================================================================="
+    Write-Host " $(Split-Path $DumpFile -Leaf)"
+    Write-Host "=================================================================================="
+    try {
+        $Output = ($Output | Select-String -Pattern " # Child-SP(?s).*quit:").Matches[0].Groups[0].Value
+        $Output -replace "quit:", "=================================================================================="
+    } catch {
+        Log "Failed to extract callstack"
+        $Output
+    }
+}
+
 # Waits for the executable to finish and processes the results.
 function Wait-Executable($Exe) {
     $stdout = $null
     $stderr = $null
-    $ProcessCrashed = $false
+    $KeepOutput = $KeepOutputOnSuccess
 
     try {
         if (!$Debugger) {
             $stdout = $Exe.Process.StandardOutput.ReadToEnd()
             $stderr = $Exe.Process.StandardError.ReadToEnd()
-            if ($isWindows) {
-                $ProcessCrashed = $stdout.Contains("Dump 1 complete")
-            } else {
-                $ProcessCrashed = $stderr.Contains("Aborted")
+            if (!$isWindows) {
+                $KeepOutput = $stderr.Contains("Aborted")
             }
         }
         $Exe.Process.WaitForExit()
-        $DumpFiles = ((Get-ChildItem $LogDir) | where { $_.Extension -eq ".dmp" })
+        if ($Exe.Process.ExitCode -ne 0) {
+            Log "Process had nonzero exit code: $($Exe.Process.ExitCode)"
+            $KeepOutput = $true
+        }
+        $DumpFiles = (Get-ChildItem $LogDir) | Where-Object { $_.Extension -eq ".dmp" }
         if ($DumpFiles) {
-            Log "Found dump file on exit: $DumpFiles"
-            $ProcessCrashed = $true
+            Log "Dump file(s) generated"
+            foreach ($File in $DumpFiles) {
+                PrintDumpCallStack($File)
+            }
+            $KeepOutput = $true
         }
     } catch {
-        Log "Treating exception as crash!"
-        $ProcessCrashed = $true
+        Log "Treating exception as failure!"
+        $KeepOutput = $true
         throw
     } finally {
         $XmlText = $null
-        if ($ProcessCrashed) {
+        if ($KeepOutput) {
             $XmlText = $FailXmlText;
         } else {
             $XmlText = $SuccessXmlText;
@@ -221,8 +242,7 @@ function Wait-Executable($Exe) {
             }
         }
 
-        if ($ProcessCrashed -or $KeepOutputOnSuccess) {
-
+        if ($KeepOutput) {
             if ($LogProfile -ne "None") {
                 if ($ConvertLogs) {
                     & $LogScript -Stop -OutputDirectory $LogDir -ConvertToText

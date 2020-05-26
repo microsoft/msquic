@@ -307,6 +307,22 @@ function Start-AllTestCases {
     }
 }
 
+# Uses CDB.exe to print the crashing callstack in the dump file.
+function PrintDumpCallStack($DumpFile) {
+    $env:_NT_SYMBOL_PATH = Split-Path $Path
+    $Output = cdb.exe -z $File -c "kn;q" | Join-String -Separator "`n"
+    Write-Host "=================================================================================="
+    Write-Host " $(Split-Path $DumpFile -Leaf)"
+    Write-Host "=================================================================================="
+    try {
+        $Output = ($Output | Select-String -Pattern " # Child-SP(?s).*quit:").Matches[0].Groups[0].Value
+        $Output -replace "quit:", "=================================================================================="
+    } catch {
+        Log "Failed to extract callstack"
+        $Output
+    }
+}
+
 # Waits for the executable to finish and processes the results.
 function Wait-TestCase($TestCase) {
     $stdout = $null
@@ -318,9 +334,7 @@ function Wait-TestCase($TestCase) {
         if (!$Debugger) {
             $stdout = $TestCase.Process.StandardOutput.ReadToEnd()
             $stderr = $TestCase.Process.StandardError.ReadToEnd()
-            if ($isWindows) {
-                $ProcessCrashed = $stdout.Contains("Dump 1 complete")
-            } else {
+            if (!$isWindows) {
                 $ProcessCrashed = $stderr.Contains("Aborted")
             }
             $AnyTestFailed = $stdout.Contains("[  FAILED  ]")
@@ -330,6 +344,18 @@ function Wait-TestCase($TestCase) {
             }
         }
         $TestCase.Process.WaitForExit()
+        if ($TestCase.Process.ExitCode -ne 0) {
+            Log "Process had nonzero exit code: $($TestCase.Process.ExitCode)"
+            $ProcessCrashed = $true
+        }
+        $DumpFiles = (Get-ChildItem $TestCase.LogDir) | Where-Object { $_.Extension -eq ".dmp" }
+        if ($DumpFiles) {
+            Log "Dump file(s) generated"
+            foreach ($File in $DumpFiles) {
+                PrintDumpCallStack($File)
+            }
+            $ProcessCrashed = $true
+        }
     } catch {
         Log "Treating exception as crash!"
         $ProcessCrashed = $true
