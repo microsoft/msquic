@@ -187,6 +187,11 @@ function Wait-Executable($Exe) {
             }
         }
         $Exe.Process.WaitForExit()
+        $DumpFiles = ((Get-ChildItem $LogDir) | where { $_.Extension -eq ".dmp" })
+        if ($DumpFiles) {
+            Log "Found dump file on exit: $DumpFiles"
+            $ProcessCrashed = $true
+        }
     } catch {
         Log "Treating exception as crash!"
         $ProcessCrashed = $true
