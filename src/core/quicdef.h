@@ -114,6 +114,12 @@ typedef struct QUIC_PATH QUIC_PATH;
 #define QUIC_MAX_PARTITION_COUNT                64
 
 //
+// The number of partitions (cores) to offset from the receive (RSS) core when
+// using the QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT profile.
+//
+#define QUIC_MAX_THROUGHPUT_PARTITION_OFFSET    2 // Two to skip over hyper-threaded cores
+
+//
 // The fraction ((0 to UINT16_MAX) / UINT16_MAX) of memory that must be
 // exhausted before enabling retry.
 //
