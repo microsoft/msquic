@@ -174,6 +174,9 @@ function Start-Executable {
 function PrintDumpCallStack($DumpFile) {
     $env:_NT_SYMBOL_PATH = Split-Path $Path
     try {
+        if ($env:BUILD_BUILDNUMBER -ne $null) {
+            $env:PATH += ";c:\Program Files (x86)\Windows Kits\10\Debuggers\x64" 
+        }
         $Output = cdb.exe -z $File -c "kn;q" | Join-String -Separator "`n"
         $Output = ($Output | Select-String -Pattern " # Child-SP(?s).*quit:").Matches[0].Groups[0].Value
         Write-Host "=================================================================================="
