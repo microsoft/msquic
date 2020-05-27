@@ -44,6 +44,13 @@ if ($IsWindows) {
         Set-ItemProperty -Path "$RegKey" -Name PATH –Value $NewPath
         
         $env:PATH += ";c:\Program Files (x86)\Windows Kits\10\Debuggers\x64" 
+
+        Write-Host "Local Path:"
+        Write-Host $env:PATH
+
+        Write-Host ""
+        Write-Host "Reg Path"
+        Write-Host (Get-ItemProperty -Path "$RegKey" -Name PATH).Path
     }
 
     if ($Configuration -eq "Test" -or $Configuration -eq "Dev") {
