@@ -185,6 +185,7 @@ function PrintDumpCallStack($DumpFile) {
         Write-Host "=================================================================================="
         $Output -replace "quit:", "=================================================================================="
     } catch {
+        Write-Host "Failed to print call stack"
         # Silently fail
     }
 }
