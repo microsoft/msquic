@@ -51,6 +51,8 @@ if ($IsWindows) {
         Write-Host ""
         Write-Host "Reg Path"
         Write-Host (Get-ItemProperty -Path "$RegKey" -Name PATH).Path
+
+        Write-Host "::add-path::c:\Program Files (x86)\Windows Kits\10\Debuggers\x64"
     }
 
     if ($Configuration -eq "Test" -or $Configuration -eq "Dev") {
