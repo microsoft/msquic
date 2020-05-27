@@ -33,7 +33,6 @@ QuicTlsGenerateSelfSignedCert(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
     EVP_PKEY *PKey = NULL;
-    BIGNUM *BigNum = NULL;
     EVP_PKEY_CTX * EcKeyCtx = NULL;
     X509 *X509 = NULL;
     X509_NAME *Name = NULL;
@@ -50,29 +49,7 @@ QuicTlsGenerateSelfSignedCert(
         goto Exit;
     }
 
-    BigNum = BN_new();
-
-    if (BigNum == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "BN_new() failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    Ret = BN_set_word(BigNum, RSA_F4);
-
-    if (Ret != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "BN_set_word() failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    EcKeyCtx = EVP_PKEY_CTX_new_id(NID_ED25519, NULL);
+    EcKeyCtx = EVP_PKEY_CTX_new_id(NID_X25519, NULL);
     if (EcKeyCtx == NULL) {
         QuicTraceEvent(
             LibraryError,
@@ -265,11 +242,6 @@ Exit:
     if (PKey != NULL) {
         EVP_PKEY_free(PKey);
         PKey= NULL;
-    }
-
-    if (BigNum != NULL) {
-        BN_free(BigNum);
-        BigNum = NULL;
     }
 
     if (EcKeyCtx != NULL) {
