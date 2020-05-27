@@ -9,9 +9,6 @@ This script runs an executable and collects and logs or process dumps as necessa
 .PARAMETER Arguments
     The arguments to pass to the executable.
 
-.PARAMETER Arch
-    The arch of the executable
-
 .PARAMETER KeepOutputOnSuccess
     Don't discard console output or logs on success.
 
@@ -44,9 +41,6 @@ param (
 
     [Parameter(Mandatory = $false)]
     [string]$Arguments = "",
-
-    [Parameter(Arch = $true)]
-    [string]$Arch,
 
     [Parameter(Mandatory = $false)]
     [switch]$KeepOutputOnSuccess = $false,
@@ -180,11 +174,6 @@ function Start-Executable {
 function PrintDumpCallStack($DumpFile) {
     $env:_NT_SYMBOL_PATH = Split-Path $Path
     try {
-        if ($Arch -eq "x64") {
-            $env:Path += ";c:\Program Files (x86)\Windows Kits\10\Debuggers\x64"
-        } else {
-            $env:Path += ";c:\Program Files (x86)\Windows Kits\10\Debuggers\x32"
-        }
         $Output = cdb.exe -z $File -c "kn;q" | Join-String -Separator "`n"
         $Output = ($Output | Select-String -Pattern " # Child-SP(?s).*quit:").Matches[0].Groups[0].Value
         Write-Host "=================================================================================="
@@ -193,7 +182,6 @@ function PrintDumpCallStack($DumpFile) {
         $Output -replace "quit:", "=================================================================================="
     } catch {
         # Silently fail
-        Write-Host "Printing Call Stack Failed"
     }
 }
 

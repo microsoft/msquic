@@ -113,7 +113,6 @@ if ("None" -ne $LogProfile) {
 if ($ConvertLogs) {
     $Arguments += " -ConvertLogs"
 }
-$Arguments += " -Arch $Arch"
 
 # Run the script.
 Invoke-Expression ($RunExecutable + " " + $Arguments)
