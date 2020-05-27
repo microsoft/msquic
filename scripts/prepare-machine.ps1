@@ -34,6 +34,16 @@ if ($IsWindows) {
         # TODO - Check for Windows preview
     }
 
+    if ($env:BUILD_BUILDNUMBER -ne $null) {
+        Write-Host "Setting PATH to include cdb"
+        # Must set PATH manually through the registry. 
+        $DebuggerLocation ="c:\Program Files (x86)\Windows Kits\10\Debuggers\x64"
+        $RegKey = "Registry::HKLM\System\CurrentControlSet\Control\Session Manager\Environment"
+        $OldPath = (Get-ItemProperty -Path "$RegKey" -Name PATH).Path
+        $NewPath= $OldPath + ’;’ + $DebuggerLocation
+        Set-ItemProperty -Path "$RegKey" -Name PATH –Value $NewPath
+    }
+
     if ($Configuration -eq "Test" -or $Configuration -eq "Dev") {
         # Enable SChannel TLS 1.3 (client and server).
         $TlsServerKeyPath = "HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server"

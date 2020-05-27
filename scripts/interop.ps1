@@ -62,6 +62,9 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+# Test to see if the prepare machine change takes
+Write-Host $env:PATH
+
 # Default TLS based on current platform.
 if ("" -eq $Tls) {
     if ($IsWindows) {
