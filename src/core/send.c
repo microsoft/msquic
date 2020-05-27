@@ -227,17 +227,10 @@ QuicSendSetSendFlag(
     if (IsCloseFrame) {
 
         //
-        // Remove all flags for things we aren't allowed to send once the
-        // connection has been closed.
+        // Remove all flags for things we aren't allowed to send once the connection
+        // has been closed.
         //
         Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_CONN_CLOSED_MASK;
-        if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT) {
-            //
-            // No need to continue to exchange CRYPTO frames during the
-            // handshake if the connection has been closed.
-            //
-            Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_CRYPTO;
-        }
 
         //
         // Remove any queued up streams.
