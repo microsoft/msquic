@@ -488,7 +488,7 @@ QuicStreamSendFlush(
             // NOT in the last one.
             //
             QuicStreamCompleteSendRequest(Stream, SendRequest, TRUE);
-            break;
+            continue;
         }
 
         Stream->Connection->SendBuffer.PostedBytes += SendRequest->TotalLength;
