@@ -4320,7 +4320,7 @@ QuicConnRecvDatagramBatch(
             QuicConnRecvPostProcessing(Connection, &Path, Packet);
             RecvState->ResetIdleTimeout |= Packet->CompletelyValid;
 
-            if (Path->IsActive && Packet->CompletelyValid &&
+            if (Path->IsActive && !Path->IsPeerValidated && Packet->CompletelyValid &&
                 (Datagrams[i]->PartitionIndex % MsQuicLib.PartitionCount) != RecvState->PartitionIndex) {
                 RecvState->PartitionIndex = Datagrams[i]->PartitionIndex % MsQuicLib.PartitionCount;
                 RecvState->UpdatePartitionId = TRUE;
