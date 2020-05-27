@@ -1950,6 +1950,7 @@ QuicTlsOnTicketReady(
 {
     QUIC_TLS* TlsContext = (QUIC_TLS*)Context;
     QUIC_DBG_ASSERT(TlsContext);
+    QUIC_DBG_ASSERT(!TlsContext->IsServer);
 
     QuicTraceLogConnVerbose(
         miTlsRecvNewSessionTicket,
@@ -1978,6 +1979,22 @@ QuicTlsOnTicketReady(
     if (TlsContext->Ticket != NULL) {
         TlsContext->TicketReady = TRUE;
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicTlsSendTicket(
+    _In_ QUIC_TLS* TlsContext,
+    _In_ uint32_t EncodedTicketLength,
+    _In_reads_bytes_(EncodedTicketLength)
+        const uint8_t* EncodedTicket
+    )
+{
+    // TODO
+    UNREFERENCED_PARAMETER(TlsContext);
+    UNREFERENCED_PARAMETER(EncodedTicketLength);
+    UNREFERENCED_PARAMETER(EncodedTicket);
+    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

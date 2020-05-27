@@ -520,6 +520,11 @@ typedef struct QUIC_CONNECTION {
     QUIC_DATAGRAM Datagram;
 
     //
+    // Local transport parameters as chosen for the handshake
+    //
+    QUIC_TRANSPORT_PARAMETERS LocalTP;
+
+    //
     // The handler for the API client's callbacks.
     //
     QUIC_CONNECTION_CALLBACK_HANDLER ClientCallbackHandler;

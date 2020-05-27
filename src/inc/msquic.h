@@ -697,6 +697,7 @@ typedef struct QUIC_CONNECTION_EVENT {
             uint16_t ResumptionTicketLength;
             const uint8_t* ResumptionTicket;
         } RESUMPTION_TICKET_RECEIVED;
+        struct {
             BOOLEAN SendEnabled;
             uint16_t MaxSendLength;
         } DATAGRAM_STATE_CHANGED;
@@ -778,6 +779,10 @@ QUIC_STATUS
     _In_ uint16_t ServerPort // Host byte order
     );
 
+//
+// Uses the QUIC (server) handle to send a resumption ticket to the remote
+// client, optionally with app-specific data useful during resumption.
+//
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS

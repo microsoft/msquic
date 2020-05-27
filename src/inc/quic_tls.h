@@ -230,6 +230,41 @@ typedef struct QUIC_TLS_PROCESS_STATE {
 
 } QUIC_TLS_PROCESS_STATE;
 
+#define QUIC_TLS_RESUMPTION_TICKET_VERSION 1
+
+//
+// In-memory representation of a resumption ticket.
+//
+typedef struct QUIC_TLS_RESUMPTION_TICKET {
+    //
+    // Version of this structure.
+    //
+    uint64_t TicketVersion;
+
+    //
+    // QUIC protocol version that generated this ticket.
+    // In network order.
+    //
+    uint32_t QuicVersion;
+
+    //
+    // ALPN length.
+    //
+    uint64_t AlpnLength;
+
+    //
+    // Encoded transport parameters length.
+    //
+    uint64_t TransportParamsLength;
+
+    //
+    // App-supplied resumption ticket length.
+    //
+    uint64_t AppTicketLength;
+
+} QUIC_TLS_RESUMPTION_TICKET;
+
+
 //
 // Creates a new TLS security configuration.
 //
@@ -394,6 +429,18 @@ QuicTlsReadTicket(
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
         uint8_t* Buffer
+    );
+
+//
+// Called to send a TLS ticket.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicTlsSendTicket(
+    _In_ QUIC_TLS* TlsContext,
+    _In_ uint32_t EncodedTicketLength,
+    _In_reads_bytes_(EncodedTicketLength)
+        const uint8_t* EncodedTicket
     );
 
 //

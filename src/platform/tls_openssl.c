@@ -1567,6 +1567,21 @@ QuicTlsReadTicket(
     return QUIC_STATUS_INVALID_STATE;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicTlsSendTicket(
+    _In_ QUIC_TLS* TlsContext,
+    _In_ uint32_t EncodedTicketLength,
+    _In_reads_bytes_(EncodedTicketLength)
+        const uint8_t* EncodedTicket
+    )
+{
+    UNREFERENCED_PARAMETER(TlsContext);
+    UNREFERENCED_PARAMETER(EncodedTicketLength);
+    UNREFERENCED_PARAMETER(EncodedTicket);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
 QUIC_STATUS
 QuicTlsParamSet(
     _In_ QUIC_TLS* TlsContext,

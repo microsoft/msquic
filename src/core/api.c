@@ -354,6 +354,105 @@ Error:
     return Status;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionSendResumptionTicket(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ uint16_t DataLength,
+    _In_reads_bytes_opt_(DataLength)
+        const uint8_t* ResumptionData
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_CONNECTION* Connection;
+    QUIC_OPERATION* Oper;
+    uint8_t* ResumptionDataCopy = NULL;
+
+    QUIC_PASSIVE_CODE();
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_CONNECTION_SEND_RESUMPTION_TICKET,
+        Handle);
+
+    if (DataLength > 1000 || (ResumptionData == NULL && DataLength != 0)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    if (IS_CONN_HANDLE(Handle)) {
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+        Connection = (QUIC_CONNECTION*)Handle;
+    } else {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
+
+    if (!QuicConnIsServer(Connection)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    if (!Connection->State.Connected || !Connection->Crypto.TlsState.HandshakeComplete) {
+        Status = QUIC_STATUS_INVALID_STATE; // TODO - Support queueing up the ticket to send once connected.
+        goto Error;
+    }
+
+    if (DataLength > 0) {
+        ResumptionDataCopy = QUIC_ALLOC_NONPAGED(DataLength);
+        if (ResumptionDataCopy == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Resumption data copy",
+                DataLength);
+            goto Error;
+        }
+        QuicCopyMemory(ResumptionDataCopy, ResumptionData, DataLength);
+    }
+
+
+    QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
+    Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+    if (Oper == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CONN_SEND_RESUMPTION_TICKET operation",
+            0);
+        goto Error;
+    }
+    Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET;
+    Oper->API_CALL.Context->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData = ResumptionDataCopy;
+    Oper->API_CALL.Context->CONN_SEND_RESUMPTION_TICKET.AppDataLength = DataLength;
+
+    //
+    // Queue the operation but don't wait for the completion.
+    //
+    QuicConnQueueOper(Connection, Oper);
+    Status = QUIC_STATUS_SUCCESS;
+    ResumptionDataCopy = NULL;
+
+Error:
+
+    if (ResumptionDataCopy != NULL) {
+        QUIC_FREE(ResumptionDataCopy);
+    }
+
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+
+    return Status;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API

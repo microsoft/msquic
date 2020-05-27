@@ -1894,6 +1894,103 @@ QuicConnRestart(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
+QuicConnSendResumptionTicket(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint16_t AppDataLength,
+    _In_reads_bytes_opt_(AppDataLength)
+        const uint8_t* AppResumptionData
+    )
+{
+    QUIC_STATUS Status;
+    uint32_t EncodedTransportParametersLength = 0;
+    uint8_t* TicketBuffer = NULL;
+
+    QUIC_TLS_RESUMPTION_TICKET Ticket = { 0, };
+    Ticket.TicketVersion = QUIC_TLS_RESUMPTION_TICKET_VERSION;
+    Ticket.QuicVersion = QUIC_VERSION_LATEST;
+    Ticket.AlpnLength = *(Connection->Crypto.TlsState.NegotiatedAlpn);
+    Ticket.AppTicketLength = AppDataLength;
+
+    QUIC_TRANSPORT_PARAMETERS LocalTPCopy;
+    QuicCopyMemory(&LocalTPCopy, &Connection->LocalTP, sizeof(LocalTPCopy));
+    LocalTPCopy.Flags = LocalTPCopy.Flags & (
+        QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
+        QUIC_TP_FLAG_INITIAL_MAX_DATA |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI |
+        QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI |
+        QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI);
+
+    const uint8_t* EncodedLocalTP = QuicCryptoTlsEncodeTransportParameters(
+        Connection,
+        &LocalTPCopy,
+        &EncodedTransportParametersLength);
+
+    if (EncodedLocalTP == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+    Ticket.TransportParamsLength = EncodedTransportParametersLength;
+
+    uint32_t TotalTicketLength = (uint32_t) (QuicVarIntSize(Ticket.TicketVersion) +
+        QuicVarIntSize(Ticket.AlpnLength) +
+        QuicVarIntSize(Ticket.TransportParamsLength) +
+        QuicVarIntSize(Ticket.AppTicketLength) +
+        sizeof(Ticket.QuicVersion) +
+        Ticket.AlpnLength +
+        Ticket.TransportParamsLength +
+        Ticket.AppTicketLength);
+
+    TicketBuffer = QUIC_ALLOC_NONPAGED(TotalTicketLength);
+    if (TicketBuffer == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Server resumption ticket",
+            TotalTicketLength);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    uint8_t* TicketCursor = QuicVarIntEncode(Ticket.TicketVersion, TicketBuffer);
+    QuicCopyMemory(TicketCursor, &Ticket.QuicVersion, sizeof(Ticket.QuicVersion));
+    TicketCursor += sizeof(Ticket.QuicVersion);
+    TicketCursor = QuicVarIntEncode(Ticket.AlpnLength, TicketCursor);
+    QuicCopyMemory(TicketCursor, Connection->Crypto.TlsState.NegotiatedAlpn + 1, Ticket.AlpnLength);
+    TicketCursor += Ticket.AlpnLength;
+    TicketCursor = QuicVarIntEncode(Ticket.TransportParamsLength, TicketCursor);
+    QuicCopyMemory(TicketCursor, EncodedLocalTP, EncodedTransportParametersLength);
+    TicketCursor += EncodedTransportParametersLength;
+    TicketCursor = QuicVarIntEncode(Ticket.AppTicketLength, TicketCursor);
+    if (Ticket.AppTicketLength > 0) {
+        QuicCopyMemory(TicketCursor, AppResumptionData, Ticket.AppTicketLength);
+    }
+
+    Status = QuicTlsSendTicket(
+        Connection->Crypto.TLS,
+        TotalTicketLength,
+        TicketBuffer);
+
+Error:
+    if (TicketBuffer != NULL) {
+        // This might need to be kept around for longer depending on TLS implementation...
+        QUIC_FREE(TicketBuffer);
+    }
+
+    if (EncodedLocalTP != NULL) {
+        QUIC_FREE(EncodedLocalTP);
+    }
+
+    if (AppResumptionData != NULL) {
+        QUIC_FREE(AppResumptionData);
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
 QuicConnInitializeCrypto(
     _In_ QUIC_CONNECTION* Connection
     )
@@ -1944,7 +2041,7 @@ QuicConnHandshakeConfigure(
     )
 {
     QUIC_STATUS Status;
-    QUIC_TRANSPORT_PARAMETERS LocalTP = { 0 };
+    QUIC_TRANSPORT_PARAMETERS* LocalTP = &Connection->LocalTP;
 
     QUIC_TEL_ASSERT(Connection->Session != NULL);
 
@@ -1952,16 +2049,16 @@ QuicConnHandshakeConfigure(
 
         QUIC_TEL_ASSERT(SecConfig != NULL);
 
-        LocalTP.InitialMaxStreamDataBidiLocal = Connection->Session->Settings.StreamRecvWindowDefault;
-        LocalTP.InitialMaxStreamDataBidiRemote = Connection->Session->Settings.StreamRecvWindowDefault;
-        LocalTP.InitialMaxStreamDataUni = Connection->Session->Settings.StreamRecvWindowDefault;
-        LocalTP.InitialMaxData = Connection->Send.MaxData;
-        LocalTP.MaxPacketSize =
+        LocalTP->InitialMaxStreamDataBidiLocal = Connection->Session->Settings.StreamRecvWindowDefault;
+        LocalTP->InitialMaxStreamDataBidiRemote = Connection->Session->Settings.StreamRecvWindowDefault;
+        LocalTP->InitialMaxStreamDataUni = Connection->Session->Settings.StreamRecvWindowDefault;
+        LocalTP->InitialMaxData = Connection->Send.MaxData;
+        LocalTP->MaxPacketSize =
             MaxUdpPayloadSizeFromMTU(
                 QuicDataPathBindingGetLocalMtu(
                     Connection->Paths[0].Binding->DatapathBinding));
-        LocalTP.ActiveConnectionIdLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
-        LocalTP.Flags =
+        LocalTP->ActiveConnectionIdLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
+        LocalTP->Flags =
             QUIC_TP_FLAG_INITIAL_MAX_DATA |
             QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL |
             QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE |
@@ -1971,15 +2068,15 @@ QuicConnHandshakeConfigure(
             QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT;
 
         if (Connection->IdleTimeoutMs != 0) {
-            LocalTP.Flags |= QUIC_TP_FLAG_IDLE_TIMEOUT;
-            LocalTP.IdleTimeout = Connection->IdleTimeoutMs;
+            LocalTP->Flags |= QUIC_TP_FLAG_IDLE_TIMEOUT;
+            LocalTP->IdleTimeout = Connection->IdleTimeoutMs;
         }
 
         if (!Connection->Session->Settings.MigrationEnabled) {
-            LocalTP.Flags |= QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION;
+            LocalTP->Flags |= QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION;
         }
 
-        LocalTP.MaxAckDelay =
+        LocalTP->MaxAckDelay =
             Connection->MaxAckDelayMs + (uint32_t)MsQuicLib.TimerResolutionMs;
 
         const QUIC_CID_HASH_ENTRY* SourceCid =
@@ -1987,12 +2084,12 @@ QuicConnHandshakeConfigure(
                 Connection->SourceCids.Next,
                 QUIC_CID_HASH_ENTRY,
                 Link);
-        LocalTP.Flags |= QUIC_TP_FLAG_STATELESS_RESET_TOKEN;
+        LocalTP->Flags |= QUIC_TP_FLAG_STATELESS_RESET_TOKEN;
         Status =
             QuicBindingGenerateStatelessResetToken(
                 Connection->Paths[0].Binding,
                 SourceCid->CID.Data,
-                LocalTP.StatelessResetToken);
+                LocalTP->StatelessResetToken);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 ConnErrorStatus,
@@ -2004,28 +2101,28 @@ QuicConnHandshakeConfigure(
         }
 
         if (Connection->AckDelayExponent != QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT) {
-            LocalTP.Flags |= QUIC_TP_FLAG_ACK_DELAY_EXPONENT;
-            LocalTP.AckDelayExponent = Connection->AckDelayExponent;
+            LocalTP->Flags |= QUIC_TP_FLAG_ACK_DELAY_EXPONENT;
+            LocalTP->AckDelayExponent = Connection->AckDelayExponent;
         }
 
         if (Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount) {
-            LocalTP.Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI;
-            LocalTP.InitialMaxBidiStreams =
+            LocalTP->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI;
+            LocalTP->InitialMaxBidiStreams =
                 Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount;
         }
 
         if (Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount) {
-            LocalTP.Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI;
-            LocalTP.InitialMaxUniStreams =
+            LocalTP->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI;
+            LocalTP->InitialMaxUniStreams =
                 Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount;
         }
 
         if (Connection->OrigCID != NULL) {
             QUIC_DBG_ASSERT(Connection->OrigCID->Length <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
-            LocalTP.Flags |= QUIC_TP_FLAG_ORIGINAL_CONNECTION_ID;
-            LocalTP.OriginalConnectionIDLength = Connection->OrigCID->Length;
+            LocalTP->Flags |= QUIC_TP_FLAG_ORIGINAL_CONNECTION_ID;
+            LocalTP->OriginalConnectionIDLength = Connection->OrigCID->Length;
             QuicCopyMemory(
-                LocalTP.OriginalConnectionID,
+                LocalTP->OriginalConnectionID,
                 Connection->OrigCID->Data,
                 Connection->OrigCID->Length);
             QUIC_FREE(Connection->OrigCID);
@@ -2033,8 +2130,8 @@ QuicConnHandshakeConfigure(
         }
 
         if (Connection->Datagram.ReceiveEnabled) {
-            LocalTP.Flags |= QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE;
-            LocalTP.MaxDatagramFrameSize = QUIC_DEFAULT_MAX_DATAGRAM_LENGTH;
+            LocalTP->Flags |= QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE;
+            LocalTP->MaxDatagramFrameSize = QUIC_DEFAULT_MAX_DATAGRAM_LENGTH;
         }
 
     } else {
@@ -2080,16 +2177,16 @@ QuicConnHandshakeConfigure(
             }
         }
 
-        LocalTP.InitialMaxStreamDataBidiLocal = Connection->Session->Settings.StreamRecvWindowDefault;
-        LocalTP.InitialMaxStreamDataBidiRemote = Connection->Session->Settings.StreamRecvWindowDefault;
-        LocalTP.InitialMaxStreamDataUni = Connection->Session->Settings.StreamRecvWindowDefault;
-        LocalTP.InitialMaxData = Connection->Send.MaxData;
-        LocalTP.MaxPacketSize =
+        LocalTP->InitialMaxStreamDataBidiLocal = Connection->Session->Settings.StreamRecvWindowDefault;
+        LocalTP->InitialMaxStreamDataBidiRemote = Connection->Session->Settings.StreamRecvWindowDefault;
+        LocalTP->InitialMaxStreamDataUni = Connection->Session->Settings.StreamRecvWindowDefault;
+        LocalTP->InitialMaxData = Connection->Send.MaxData;
+        LocalTP->MaxPacketSize =
             MaxUdpPayloadSizeFromMTU(
                 QuicDataPathBindingGetLocalMtu(
                     Connection->Paths[0].Binding->DatapathBinding));
-        LocalTP.ActiveConnectionIdLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
-        LocalTP.Flags =
+        LocalTP->ActiveConnectionIdLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
+        LocalTP->Flags =
             QUIC_TP_FLAG_INITIAL_MAX_DATA |
             QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL |
             QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE |
@@ -2099,33 +2196,33 @@ QuicConnHandshakeConfigure(
             QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT;
 
         if (Connection->IdleTimeoutMs != 0) {
-            LocalTP.Flags |= QUIC_TP_FLAG_IDLE_TIMEOUT;
-            LocalTP.IdleTimeout = Connection->IdleTimeoutMs;
+            LocalTP->Flags |= QUIC_TP_FLAG_IDLE_TIMEOUT;
+            LocalTP->IdleTimeout = Connection->IdleTimeoutMs;
         }
 
-        LocalTP.MaxAckDelay =
+        LocalTP->MaxAckDelay =
             Connection->MaxAckDelayMs + MsQuicLib.TimerResolutionMs;
 
         if (Connection->AckDelayExponent != QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT) {
-            LocalTP.Flags |= QUIC_TP_FLAG_ACK_DELAY_EXPONENT;
-            LocalTP.AckDelayExponent = Connection->AckDelayExponent;
+            LocalTP->Flags |= QUIC_TP_FLAG_ACK_DELAY_EXPONENT;
+            LocalTP->AckDelayExponent = Connection->AckDelayExponent;
         }
 
         if (Connection->Streams.Types[STREAM_ID_FLAG_IS_SERVER | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount) {
-            LocalTP.Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI;
-            LocalTP.InitialMaxBidiStreams =
+            LocalTP->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI;
+            LocalTP->InitialMaxBidiStreams =
                 Connection->Streams.Types[STREAM_ID_FLAG_IS_SERVER | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount;
         }
 
         if (Connection->Streams.Types[STREAM_ID_FLAG_IS_SERVER | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount) {
-            LocalTP.Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI;
-            LocalTP.InitialMaxUniStreams =
+            LocalTP->Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI;
+            LocalTP->InitialMaxUniStreams =
                 Connection->Streams.Types[STREAM_ID_FLAG_IS_SERVER | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount;
         }
 
         if (Connection->Datagram.ReceiveEnabled) {
-            LocalTP.Flags |= QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE;
-            LocalTP.MaxDatagramFrameSize = QUIC_DEFAULT_MAX_DATAGRAM_LENGTH;
+            LocalTP->Flags |= QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE;
+            LocalTP->MaxDatagramFrameSize = QUIC_DEFAULT_MAX_DATAGRAM_LENGTH;
         }
     }
 
@@ -2140,7 +2237,7 @@ QuicConnHandshakeConfigure(
         QuicCryptoInitializeTls(
             &Connection->Crypto,
             SecConfig,
-            &LocalTP);
+            LocalTP);
     QuicTlsSecConfigRelease(SecConfig); // No longer need local ref.
 
 Error:
@@ -5918,6 +6015,15 @@ QuicConnProcessApiOperation(
                 ApiCtx->CONN_START.ServerName,
                 ApiCtx->CONN_START.ServerPort);
         ApiCtx->CONN_START.ServerName = NULL;
+        break;
+
+    case QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET:
+        Status =
+            QuicConnSendResumptionTicket(
+                Connection,
+                ApiCtx->CONN_SEND_RESUMPTION_TICKET.AppDataLength,
+                ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData);
+        ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData = NULL;
         break;
 
     case QUIC_API_TYPE_STRM_CLOSE:
