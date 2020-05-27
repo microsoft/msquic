@@ -42,6 +42,8 @@ if ($IsWindows) {
         $OldPath = (Get-ItemProperty -Path "$RegKey" -Name PATH).Path
         $NewPath= $OldPath + ’;’ + $DebuggerLocation
         Set-ItemProperty -Path "$RegKey" -Name PATH –Value $NewPath
+        
+        $env:PATH += ";c:\Program Files (x86)\Windows Kits\10\Debuggers\x64" 
     }
 
     if ($Configuration -eq "Test" -or $Configuration -eq "Dev") {
