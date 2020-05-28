@@ -210,7 +210,7 @@ function CMake-Build {
 
     # Copy clog to a common location.
     $ClogPath = $ArtifactsDir = Join-Path $BaseArtifactsDir "clog"
-    if (!(Test-Path ClogPath)) {
+    if (!(Test-Path $ClogPath)) {
         Copy-Item (Join-Path $BuildDir "submodules/clog") -Destination $ClogPath -Recurse
     }
 
