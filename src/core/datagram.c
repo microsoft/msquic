@@ -38,7 +38,7 @@ QuicDatagramValidate(
     //
     if ((Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_DATAGRAM) != 0) {
         QUIC_DBG_ASSERT(Datagram->SendQueue != NULL);
-    } else {
+    } else if (Connection->State.PeerTransportParameterValid) {
         QUIC_DBG_ASSERT(Datagram->SendQueue == NULL);
     }
 
