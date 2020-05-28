@@ -36,10 +36,12 @@ QuicDatagramValidate(
     // If a datagram is to be sent down the connection, the datagram must have
     // items in its queue. Otherwise, sending will have an error case.
     //
-    if ((Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_DATAGRAM) != 0) {
-        QUIC_DBG_ASSERT(Datagram->SendQueue != NULL);
-    } else if (Connection->State.PeerTransportParameterValid) {
-        QUIC_DBG_ASSERT(Datagram->SendQueue == NULL);
+    if (!QuicConnIsClosed(Connection)) {
+        if ((Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_DATAGRAM) != 0) {
+            QUIC_DBG_ASSERT(Datagram->SendQueue != NULL);
+        } else if (Connection->State.PeerTransportParameterValid) {
+            QUIC_DBG_ASSERT(Datagram->SendQueue == NULL);
+        }
     }
 
     if (!Datagram->SendEnabled) {
@@ -423,7 +425,7 @@ QuicDatagramSendFlush(
         QUIC_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
         QUIC_TEL_ASSERT(Datagram->SendEnabled);
 
-        if (SendRequest->TotalLength > (uint64_t)Datagram->MaxSendLength) {
+        if (SendRequest->TotalLength > (uint64_t)Datagram->MaxSendLength || QuicConnIsClosed(Connection)) {
             QuicDatagramCancelSend(Connection, SendRequest);
             continue;
         }
