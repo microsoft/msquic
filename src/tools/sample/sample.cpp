@@ -347,8 +347,8 @@ RunClient(
         goto Error;
     }
 
-    const char* ResumptionTicketString;
-    if (!TryGetValue(argc, argv, "ticket", &ResumptionTicketString)) {
+    const char* ResumptionTicketString = nullptr;
+    if (TryGetValue(argc, argv, "ticket", &ResumptionTicketString) && ResumptionTicketString != nullptr) {
         uint8_t ResumptionTicket[1024];
          uint16_t TicketLength = (uint16_t) DecodeHexBuffer(ResumptionTicketString, sizeof(ResumptionTicket), ResumptionTicket);
         if (QUIC_FAILED(Status = MsQuic->SetParam(

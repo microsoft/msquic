@@ -1953,18 +1953,29 @@ QuicConnSendResumptionTicket(
         goto Error;
     }
 
+    /*
+        Encoded ticket format is as follows:
+        Ticket Version (QUIC_VAR_INT) [1..4]
+        Quic Version [4]
+        Negotiated ALPN length (QUIC_VAR_INT) [1..4]
+        Negotiated ALPN [...]
+        Transport Parameters length (QUIC_VAR_INT) [1..4]
+        Transport Parameters [...]
+        App Ticket length (QUIC_VAR_INT) [1..4]
+        App Ticket (omitted if length is zero) [...]
+    */
     uint8_t* TicketCursor = QuicVarIntEncode(Ticket.TicketVersion, TicketBuffer);
     QuicCopyMemory(TicketCursor, &Ticket.QuicVersion, sizeof(Ticket.QuicVersion));
     TicketCursor += sizeof(Ticket.QuicVersion);
     TicketCursor = QuicVarIntEncode(Ticket.AlpnLength, TicketCursor);
-    QuicCopyMemory(TicketCursor, Connection->Crypto.TlsState.NegotiatedAlpn + 1, Ticket.AlpnLength);
+    QuicCopyMemory(TicketCursor, Connection->Crypto.TlsState.NegotiatedAlpn + 1, (size_t) Ticket.AlpnLength);
     TicketCursor += Ticket.AlpnLength;
     TicketCursor = QuicVarIntEncode(Ticket.TransportParamsLength, TicketCursor);
-    QuicCopyMemory(TicketCursor, EncodedLocalTP, EncodedTransportParametersLength);
+    QuicCopyMemory(TicketCursor, EncodedLocalTP, (size_t) Ticket.TransportParamsLength);
     TicketCursor += EncodedTransportParametersLength;
     TicketCursor = QuicVarIntEncode(Ticket.AppTicketLength, TicketCursor);
     if (Ticket.AppTicketLength > 0) {
-        QuicCopyMemory(TicketCursor, AppResumptionData, Ticket.AppTicketLength);
+        QuicCopyMemory(TicketCursor, AppResumptionData, (size_t) Ticket.AppTicketLength);
     }
 
     Status = QuicTlsSendTicket(

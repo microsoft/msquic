@@ -148,6 +148,9 @@ private:
         ) {
         HttpConnection *pThis = (HttpConnection*)Context;
         switch (Event->Type) {
+        case QUIC_CONNECTION_EVENT_CONNECTED:
+            MsQuic->ConnectionSendResumptionTicket(pThis->QuicConnection, 0, nullptr);
+            break;
         case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
             new HttpRequest(
                 pThis,
