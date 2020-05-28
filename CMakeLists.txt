@@ -174,7 +174,7 @@ if(QUIC_TLS STREQUAL "openssl")
         OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto.so
         OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl.so
         COMMAND ./Configure linux-x86_64 enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
-        COMMAND make -j$(nproc)
+        COMMAND make -j$$(nproc)
         COMMAND make install_sw)
     add_custom_target(OpenSSL
         DEPENDS ${QUIC_BUILD_DIR}/openssl/include
