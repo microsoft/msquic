@@ -275,7 +275,7 @@ QuicSendGetConnection(
 
 QUIC_CONNECTION*
 QuicDatagramGetConnection(
-    _In_ QUIC_DATAGRAM* Datagram
+    _In_ const QUIC_DATAGRAM* const Datagram
     );
 
 uint8_t
