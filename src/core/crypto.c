@@ -441,16 +441,10 @@ QuicCryptoOnServerComplete(
     QuicTraceLogConnInfo(
         CryptoStateDiscard,
         QuicCryptoGetConnection(Crypto),
-        "Crypto/TLS state no longer needed");
-    if (Crypto->TLS != NULL) {
-        QuicTlsUninitialize(Crypto->TLS);
-        Crypto->TLS = NULL;
-    }
+        "Some crypto/TLS state no longer needed");
     if (Crypto->Initialized) {
         QuicRecvBufferUninitialize(&Crypto->RecvBuffer);
         QuicRangeUninitialize(&Crypto->SparseAckRanges);
-        QUIC_FREE(Crypto->TlsState.Buffer);
-        Crypto->TlsState.Buffer = NULL;
         Crypto->Initialized = FALSE;
     }
 }

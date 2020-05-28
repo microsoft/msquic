@@ -1221,7 +1221,7 @@ QuicTlsProcessDataComplete(
     QUIC_TLS_PROCESS_STATE* State = TlsContext->State;
 
     if (TlsContext->IsServer) {
-        QUIC_DBG_ASSERT(TlsContext->Buffer != NULL);
+        QUIC_DBG_ASSERT(TlsContext->State->HandshakeComplete || TlsContext->Buffer != NULL);
     }
 
     uint32_t BufferOffset = 0;
@@ -1286,20 +1286,6 @@ QuicTlsProcessDataComplete(
                 "Handshake complete");
             State->HandshakeComplete = TRUE;
             ResultFlags |= QUIC_TLS_RESULT_COMPLETE;
-
-            if (TlsContext->IsServer) {
-                QuicTraceLogConnVerbose(
-                    miTlsSend0RttTicket,
-                    TlsContext->Connection,
-                    "Sending new 0-RTT ticket");
-                if (!FFI_mitls_quic_send_ticket(TlsContext->miTlsState, NULL, 0)) {
-                    QuicTraceEvent(
-                        TlsError,
-                        "[ tls][%p] ERROR, %s.",
-                        TlsContext->Connection,
-                        "FFI_mitls_quic_send_ticket failed");
-                }
-            }
         }
 
         if (Context.flags & QFLAG_REJECTED_0RTT) {
@@ -1990,11 +1976,28 @@ QuicTlsSendTicket(
         const uint8_t* EncodedTicket
     )
 {
-    // TODO
-    UNREFERENCED_PARAMETER(TlsContext);
-    UNREFERENCED_PARAMETER(EncodedTicketLength);
-    UNREFERENCED_PARAMETER(EncodedTicket);
-    return QUIC_STATUS_NOT_SUPPORTED;
+    QUIC_DBG_ASSERT(TlsContext->IsServer);
+    QUIC_DBG_ASSERT((EncodedTicketLength > 0 && EncodedTicket != NULL) ||
+        (EncodedTicketLength == 0 && EncodedTicket == NULL));
+
+    QuicTraceLogConnVerbose(
+        miTlsSend0RttTicket,
+        TlsContext->Connection,
+        "Sending 0-RTT ticket");
+    if (!FFI_mitls_quic_send_ticket(TlsContext->miTlsState, EncodedTicket, EncodedTicketLength)) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "FFI_mitls_quic_send_ticket failed");
+        return QUIC_STATUS_TLS_ERROR;
+    }
+
+    //
+    // Indicate data is ready from TLS.
+    //
+    TlsContext->ProcessCompleteCallback(TlsContext->Connection);
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
