@@ -38,6 +38,8 @@ QuicSendUninitialize(
     _In_ QUIC_SEND* Send
     )
 {
+    Send->DelayedAckTimerActive = FALSE;
+
     if (Send->InitialToken != NULL) {
         QUIC_FREE(Send->InitialToken);
         Send->InitialToken = NULL;
@@ -998,6 +1000,13 @@ QuicSendFlush(
         if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT) {
             SendFlags &= QUIC_CONN_SEND_FLAG_ALLOWED_HANDSHAKE;
         }
+        if (Path->Allowance != UINT32_MAX) {
+            //
+            // Don't try to send datagrams until the peer's source address has
+            // been validated because they might not fit in the limited space.
+            //
+            SendFlags &= ~QUIC_CONN_SEND_FLAG_DATAGRAM;
+        }
 
         if (!QuicPacketBuilderHasAllowance(&Builder)) {
             //
@@ -1107,6 +1116,13 @@ QuicSendFlush(
         }
 
         Send->TailLossProbeNeeded = FALSE;
+
+        //
+        // If the following assert is hit, then we just went through the
+        // framing logic and nothing was written to the packet. This is bad!
+        // It likely indicates an infinite loop will follow.
+        //
+        QUIC_DBG_ASSERT(Builder.Metadata->FrameCount != 0 || Builder.PacketStart != 0);
 
         if (!WrotePacketFrames ||
             Builder.Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET ||

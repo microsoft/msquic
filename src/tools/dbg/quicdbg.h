@@ -60,6 +60,7 @@ public:
     EXT_COMMAND_METHOD(quicconn);
     EXT_COMMAND_METHOD(quicconnection);
     EXT_COMMAND_METHOD(quicdump);
+    EXT_COMMAND_METHOD(quicdumpqueue);
     EXT_COMMAND_METHOD(quichandle);
     EXT_COMMAND_METHOD(quiclib);
     EXT_COMMAND_METHOD(quiclibrary);

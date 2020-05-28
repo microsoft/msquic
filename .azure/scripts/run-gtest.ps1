@@ -93,10 +93,7 @@ param (
     [switch]$CompressOutput = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$NoProgress = $false,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$NoProcDump = $false
+    [switch]$NoProgress = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -109,11 +106,6 @@ function Log($msg) {
 # Make sure the test executable is present.
 if (!(Test-Path $Path)) {
     Write-Error "$($Path) does not exist!"
-}
-
-# Make sure procdump is installed on Windows.
-if ($IsWindows -and !(Test-Path ($RootDir + "\bld\tools\procdump64.exe"))) {
-    Write-Error "Procdump not installed!`n `nRun the following to install it:`n `n    $(Join-Path $RootDir ".azure" "scripts" "install-procdump.ps1")`n"
 }
 
 # Root directory of the project.
@@ -222,15 +214,12 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
             } else {
                 $pinfo.Arguments = "-g -G $($Path) $($Arguments)"
             }
-        } elseif ($NoProcDump) {
+        } else {
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments
             # Enable WER dump collection.
             New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
             New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $OutputDir -Force | Out-Null
-        } else {
-            $pinfo.FileName = $RootDir + "\bld\tools\procdump64.exe"
-            $pinfo.Arguments = "-ma -e -b -l -accepteula -x $($OutputDir) $($Path) $($Arguments)"
         }
     } else {
         if ($Debugger) {
@@ -318,6 +307,24 @@ function Start-AllTestCases {
     }
 }
 
+# Uses CDB.exe to print the crashing callstack in the dump file.
+function PrintDumpCallStack($DumpFile) {
+    $env:_NT_SYMBOL_PATH = Split-Path $Path
+    try {
+        if ($env:BUILD_BUILDNUMBER -ne $null) {
+            $env:PATH += ";c:\Program Files (x86)\Windows Kits\10\Debuggers\x64" 
+        }
+        $Output = cdb.exe -z $File -c "kn;q" | Join-String -Separator "`n"
+        $Output = ($Output | Select-String -Pattern " # Child-SP(?s).*quit:").Matches[0].Groups[0].Value
+        Write-Host "=================================================================================="
+        Write-Host " $(Split-Path $DumpFile -Leaf)"
+        Write-Host "=================================================================================="
+        $Output -replace "quit:", "=================================================================================="
+    } catch {
+        # Silently fail
+    }
+}
+
 # Waits for the executable to finish and processes the results.
 function Wait-TestCase($TestCase) {
     $stdout = $null
@@ -329,9 +336,7 @@ function Wait-TestCase($TestCase) {
         if (!$Debugger) {
             $stdout = $TestCase.Process.StandardOutput.ReadToEnd()
             $stderr = $TestCase.Process.StandardError.ReadToEnd()
-            if ($isWindows) {
-                $ProcessCrashed = $stdout.Contains("Dump 1 complete")
-            } else {
+            if (!$isWindows) {
                 $ProcessCrashed = $stderr.Contains("Aborted")
             }
             $AnyTestFailed = $stdout.Contains("[  FAILED  ]")
@@ -341,6 +346,18 @@ function Wait-TestCase($TestCase) {
             }
         }
         $TestCase.Process.WaitForExit()
+        if ($TestCase.Process.ExitCode -ne 0) {
+            Log "Process had nonzero exit code: $($TestCase.Process.ExitCode)"
+            $ProcessCrashed = $true
+        }
+        $DumpFiles = (Get-ChildItem $TestCase.LogDir) | Where-Object { $_.Extension -eq ".dmp" }
+        if ($DumpFiles) {
+            Log "Dump file(s) generated"
+            foreach ($File in $DumpFiles) {
+                PrintDumpCallStack($File)
+            }
+            $ProcessCrashed = $true
+        }
     } catch {
         Log "Treating exception as crash!"
         $ProcessCrashed = $true
@@ -452,14 +469,13 @@ if ($Debugger -and $ExecutionMode -eq "Parallel") {
     $ExecutionMode = "IsolatedSerial"
 }
 
-# NoProcDump mode doesn't work for parallel right now.
-if ($NoProcDump -and $ExecutionMode -eq "Parallel") {
-    Log "Warning: Disabling parallel execution for NoProcDump runs!"
-    $ExecutionMode = "IsolatedSerial"
+# Parallel execution doesn't work well. Warn.
+if ($ExecutionMode -eq "Parallel") {
+    Log "Warning: Parallel execution doesn't work very well"
 }
 
 # Initialize WER dump registry key if necessary.
-if ($IsWindows -and $NoProcDump -and !(Test-Path $WerDumpRegPath)) {
+if ($IsWindows -and !(Test-Path $WerDumpRegPath)) {
     New-Item -Path $WerDumpRegPath -Force | Out-Null
 }
 
@@ -512,7 +528,7 @@ try {
         }
     }
 } finally {
-    if ($isWindows -and $NoProcDump) {
+    if ($isWindows) {
         # Cleanup the WER registry.
         Remove-Item -Path $WerDumpRegPath -Force | Out-Null
     }

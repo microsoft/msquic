@@ -82,12 +82,12 @@
   </PropertyGroup>
   <PropertyGroup>
     <TargetName>platform</TargetName>
-    <IntDir>$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
-    <OutDir>$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\bin\</OutDir>
+    <IntDir>$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\lib\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\inc;$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);$(SolutionDir)submodules\clog\inc;$(SolutionDir)bld\clog_kernel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(SolutionDir)submodules\clog\inc;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">

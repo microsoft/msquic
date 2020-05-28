@@ -87,7 +87,7 @@
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
     <EnableInf2cat>false</EnableInf2cat>
     <OutDir>$(SolutionDir)artifacts\winkernel\$(Platform)_$(Configuration)_schannel\</OutDir>
-    <IntDir>$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
+    <IntDir>$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
     <SignMode>Off</SignMode>
   </PropertyGroup>
   <ItemDefinitionGroup>
@@ -96,7 +96,7 @@
       <AdditionalDependencies>cng.lib;ksecdd.lib;msnetioid.lib;netio.lib;wdmsec.lib;uuid.lib;msquic.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..;..\..\..\inc;$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);$(SolutionDir)submodules\clog\inc;$(SolutionDir)bld\clog_kernel;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..;..\..\..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(SolutionDir)submodules\clog\inc;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
