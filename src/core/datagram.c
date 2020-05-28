@@ -32,8 +32,10 @@ QuicDatagramValidate(
     )
 {
     QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
-    // If Datagram flag is set, SendQueue must not be null,
-    // Otherwise SendQueue must be null
+    //
+    // If a datagram is to be sent down the connection, the datagram must have
+    // items in its queue. Otherwise, sending will have an error case.
+    //
     if ((Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_DATAGRAM) != 0) {
         QUIC_DBG_ASSERT(Datagram->SendQueue != NULL);
     } else {
