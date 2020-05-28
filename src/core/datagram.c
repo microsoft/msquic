@@ -31,6 +31,15 @@ QuicDatagramValidate(
     _In_ const QUIC_DATAGRAM* Datagram
     )
 {
+    QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
+    // If Datagram flag is set, SendQueue must not be null,
+    // Otherwise SendQueue must be null
+    if ((Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_DATAGRAM) != 0) {
+        QUIC_DBG_ASSERT(Datagram->SendQueue != NULL);
+    } else {
+        QUIC_DBG_ASSERT(Datagram->SendQueue == NULL);
+    }
+
     if (!Datagram->SendEnabled) {
         QUIC_DBG_ASSERT(Datagram->MaxSendLength == 0);
     } else {
