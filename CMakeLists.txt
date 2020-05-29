@@ -1,6 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+# Disable in-source builds to prevent source tree corruption.
+if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
+  message(FATAL_ERROR "
+FATAL: In-source builds are not allowed.
+       You should create a separate directory for build files.
+")
+endif()
+
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
 message(STATUS "Source Dir: ${CMAKE_CURRENT_SOURCE_DIR}")
@@ -165,15 +173,15 @@ if(QUIC_TLS STREQUAL "openssl")
     add_custom_command(
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl
         OUTPUT ${QUIC_BUILD_DIR}/openssl/include
-        OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto.a
-        OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl.a
+        OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+        OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
         COMMAND ./config enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
         COMMAND make -j$$(nproc)
         COMMAND make install_sw)
     add_custom_target(OpenSSL
         DEPENDS ${QUIC_BUILD_DIR}/openssl/include
-        DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libcrypto.a
-        DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libssl.a)
+        DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+        DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 endif()
 
 if(QUIC_TLS STREQUAL "mitls")
