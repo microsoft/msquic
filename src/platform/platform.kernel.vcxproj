@@ -83,7 +83,13 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <AdditionalOptions>/Gw /kernel /ZH:SHA_256 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
+    <Lib>
+      <LinkTimeCodeGeneration>true</LinkTimeCodeGeneration>
+    </Lib>
     <PreBuildEvent>
       <Command>mkdir $(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc
 mc.exe -um -h $(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc -r $(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc $(SolutionDir)src\manifest\MsQuicEtw.man</Command>

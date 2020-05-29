@@ -87,15 +87,21 @@
     <SignMode>Off</SignMode>
   </PropertyGroup>
   <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <AdditionalOptions>/Gw /kernel /ZH:SHA_256 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
     <Link>
       <ModuleDefinitionFile>msquic.src</ModuleDefinitionFile>
       <AdditionalDependencies>cng.lib;ksecdd.lib;msnetioid.lib;ndis.lib;netio.lib;uuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <MergeSections />
-      <AdditionalOptions>/kernel /NOOPTIDATA %(AdditionalOptions)</AdditionalOptions>
+      <MergeSections>.gfids=GFIDS,.orpc=.text,_PAGE=PAGE,_RDATA=.rdata,_TEXT=.text</MergeSections>
+      <AdditionalOptions>/kernel /NOOPTIDATA /pdbcompress %(AdditionalOptions)</AdditionalOptions>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <SpecifySectionAttributes Condition="'$(Platform)'=='Win32'">GFIDS,d</SpecifySectionAttributes>
+      <SpecifySectionAttributes Condition="'$(Platform)'=='x64'">GFIDS,d</SpecifySectionAttributes>
     </Link>
-    <ClCompile>
-      <AdditionalIncludeDirectories>..\..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(UM_IncludePath);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
