@@ -175,7 +175,7 @@ if(QUIC_TLS STREQUAL "openssl")
         OUTPUT ${QUIC_BUILD_DIR}/openssl/include
         OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
         OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-        COMMAND ./config enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
+        COMMAND SYSTEM=`uname -s` ./config enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
         COMMAND make -j$$(nproc)
         COMMAND make install_sw)
     add_custom_target(OpenSSL
