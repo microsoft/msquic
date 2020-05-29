@@ -16,7 +16,7 @@ set(SOURCES
 
 add_executable(msquicplatformtest ${SOURCES})
 
-target_link_libraries(msquicplatformtest ${ATOMIC})
+target_link_libraries(msquicplatformtest)
 
 if(WIN32)
     target_link_libraries(msquicplatformtest ntdll ws2_32 bcrypt advapi32)
