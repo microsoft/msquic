@@ -126,12 +126,6 @@ else()
     # Custom build flags.
     set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions -fPIC -pthread -Wl,--no-as-needed -ldl")
 
-    #if(QUIC_TLS STREQUAL "x64")
-    #    set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -m64")
-    #else()
-    #    set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -m32")
-    #endif()
-
     if(QUIC_ENABLE_LOGGING)
         include(FindLTTngUST)
         message(STATUS "Configuring for LTTng events and disabling logging")
