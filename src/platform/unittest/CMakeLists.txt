@@ -16,13 +16,6 @@ set(SOURCES
 
 add_executable(msquicplatformtest ${SOURCES})
 
-if (NOT MSVC AND NOT APPLE)
-    find_library(ATOMIC NAMES atomic libatomic.so.1)
-    if (ATOMIC)
-        message(STATUS "Found libatomic: ${ATOMIC}")
-    endif()
-endif()
-
 target_link_libraries(msquicplatformtest ${ATOMIC})
 
 if(WIN32)

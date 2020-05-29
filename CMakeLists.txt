@@ -184,6 +184,13 @@ if(QUIC_TLS STREQUAL "mitls")
     add_subdirectory(submodules/everest/msquic/msvc/quiccrypto)
 endif()
 
+if (NOT MSVC AND NOT APPLE)
+    find_library(ATOMIC NAMES atomic libatomic.so.1)
+    if (ATOMIC)
+        message(STATUS "Found libatomic: ${ATOMIC}")
+    endif()
+endif()
+
 # Product code
 add_subdirectory(src/core)
 add_subdirectory(src/platform)
