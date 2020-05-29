@@ -1163,6 +1163,7 @@ QuicConnReceiveTP(
             Connection,
             TPBuffer,
             TPLength,
+            TRUE,
             &Connection->PeerTransportParams)) {
         return FALSE;
     }

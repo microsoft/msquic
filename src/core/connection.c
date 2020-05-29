@@ -2070,8 +2070,11 @@ QuicConnRecvResumptionTicket(
             return;
         }
         if (!QuicCryptoTlsDecodeTransportParameters(
-                Connection, Ticket + Offset,
-                (uint16_t) DecodedTicket.TransportParamsLength, &Connection->LocalTP)) {
+                Connection,
+                Ticket + Offset,
+                (uint16_t) DecodedTicket.TransportParamsLength,
+                FALSE,
+                &Connection->LocalTP)) {
             QuicTraceEvent(
                 ConnError,
                 "[conn][%p] ERROR, %s.",
