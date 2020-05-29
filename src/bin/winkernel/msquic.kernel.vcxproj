@@ -97,9 +97,10 @@
       <ModuleDefinitionFile>msquic.src</ModuleDefinitionFile>
       <AdditionalDependencies>cng.lib;ksecdd.lib;msnetioid.lib;ndis.lib;netio.lib;uuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <MergeSections>.gfids=GFIDS,.orpc=.text,_PAGE=PAGE,_RDATA=.rdata,_TEXT=.text</MergeSections>
-      <AdditionalOptions>/kernel /NOOPTIDATA /pdbcompress %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/allpdata /base:0x1C0000000 /baserelocclustering /d2:-CoroOptsWorkaround /d2:-FH4- /d2:-guard4 /d2:-guardcfgdispatch /d2:-guardcfgfuncptr /d2:-guardehcont /d2:-guardretpoline /d2:-guardspecanalysismode:v1_0 /d2:-guardspecload /d2:-guardspecmode2 /d2:-nocfgrngchk /d2:-pagesize16384 /d2:-PogoColdOpt /d2:-PogoDeadOpt /d2:-PPhase0 /d2:-SpecDevirt- /d2:-TypeProp- /filealign:0x1000 /force:pgorepro /functionpadmin:6 /guard:cf /guard:export /guard:exportsuppress /guard:longjmp /guard:mixed /guard:retpoline /kernel /NOOPTIDATA /NOVCFEATURE /pdbcompress %(AdditionalOptions)</AdditionalOptions>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <SpecifySectionAttributes>GFIDS,d</SpecifySectionAttributes>
+      <SpecifySectionAttributes Condition="'$(Platform)'=='Win32'">GFIDS,d</SpecifySectionAttributes>
+      <SpecifySectionAttributes Condition="'$(Platform)'=='x64'">GFIDS,d</SpecifySectionAttributes>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(UM_IncludePath);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
