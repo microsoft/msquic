@@ -333,6 +333,7 @@ typedef struct QUIC_TLS {
     QUIC_CONNECTION* Connection;
     QUIC_TLS_PROCESS_COMPLETE_CALLBACK_HANDLER ProcessCompleteCallback;
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
+    QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK_HANDLER ReceiveResumptionTicketCallback;
 
     //
     // miTLS Config.
@@ -932,6 +933,7 @@ QuicTlsInitialize(
     TlsContext->Connection = Config->Connection;
     TlsContext->ProcessCompleteCallback = Config->ProcessCompleteCallback;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
+    TlsContext->ReceiveResumptionTicketCallback = Config->ReceiveResumptionCallback;
 
     TlsContext->Extensions[0].ext_type = TLS_EXTENSION_TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION;
     TlsContext->Extensions[0].ext_data_len = sizeof(uint16_t) + Config->AlpnBufferLength;
@@ -1199,6 +1201,7 @@ QuicTlsProcessData(
 
         //
         // We process the inital data inline.
+        // Also process sending resumption tickets inline.
         //
         TlsContext->BufferLength = 0;
         ResultFlags = QuicTlsProcessDataComplete(TlsContext, &ConsumedBytes);
@@ -1330,6 +1333,41 @@ QuicTlsProcessDataComplete(
                     State->SessionResumed = TRUE;
                     TlsContext->EarlyDataAttempted = TRUE;
                     State->EarlyDataState = QUIC_TLS_EARLY_DATA_ACCEPTED;
+                    //
+                    // Get resumption data from the client hello
+                    //
+                    uint32_t PreviousOffset = BufferOffset - (uint32_t)Context.consumed_bytes;
+                    mitls_hello_summary HelloSummary = { 0 };
+                    uint8_t* Cookie = NULL;
+                    size_t CookieLen = 0;
+                    uint8_t* Ticket = NULL;
+                    size_t TicketLen = 0;
+                    if (!FFI_mitls_get_hello_summary(
+                            TlsContext->Buffer + PreviousOffset, TlsContext->BufferLength - PreviousOffset,
+                            FALSE, // TODO: Not sure if this is the correct value...
+                            &HelloSummary,
+                            &Cookie, &CookieLen,
+                            &Ticket, &TicketLen)) {
+                        QuicTraceLogConnError(
+                            miTlsFfiProcessFailed,
+                            TlsContext->Connection,
+                            "FFI_mitls_get_hello_summary failed, cookie_len: %zu, ticket_len: %zu",
+                            CookieLen,
+                            TicketLen);
+                        ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                    }
+                    QUIC_FRE_ASSERT(TicketLen <= UINT16_MAX);
+                    TlsContext->ReceiveResumptionTicketCallback(
+                        TlsContext->Connection,
+                        (uint16_t)TicketLen, Ticket);
+                    if (Cookie) {
+                        FFI_mitls_global_free(Cookie);
+                        Cookie = NULL;
+                    };
+                    if (Ticket) {
+                        FFI_mitls_global_free(Ticket);
+                        Ticket = NULL;
+                    }
                 } else {
                     TlsContext->TlsKeySchedule = 0;
                     if (!(Context.flags & QFLAG_REJECTED_0RTT)) {

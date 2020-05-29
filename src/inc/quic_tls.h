@@ -61,6 +61,21 @@ BOOLEAN
 typedef QUIC_TLS_RECEIVE_TP_CALLBACK *QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER;
 
 //
+// Callback for indicating received resumption ticket. Callback always happens
+// in the context of a QuicTlsProcessData call; not on a separate thread.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK)(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint16_t TicketLength,
+    _In_reads_(TicketLength) const uint8_t* Ticket
+    );
+
+typedef QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK *QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK_HANDLER;
+
+//
 // The input configuration for creation of a TLS context.
 //
 typedef struct QUIC_TLS_CONFIG {
@@ -106,6 +121,11 @@ typedef struct QUIC_TLS_CONFIG {
     // Invoked when QUIC TP are received.
     //
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
+
+    //
+    // Invoked when the resumption ticket is received.
+    //
+    QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK_HANDLER ReceiveResumptionCallback;
 
     //
     // Name of the server we are connecting to (client side only).

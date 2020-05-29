@@ -22,6 +22,7 @@ Abstract:
 
 QUIC_TLS_PROCESS_COMPLETE_CALLBACK QuicTlsProcessDataCompleteCallback;
 QUIC_TLS_RECEIVE_TP_CALLBACK QuicConnReceiveTP;
+QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK QuicConnRecvResumptionTicket;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -269,6 +270,7 @@ QuicCryptoInitializeTls(
     TlsConfig.Connection = Connection;
     TlsConfig.ProcessCompleteCallback = QuicTlsProcessDataCompleteCallback;
     TlsConfig.ReceiveTPCallback = QuicConnReceiveTP;
+    TlsConfig.ReceiveResumptionCallback = QuicConnRecvResumptionTicket;
     if (!QuicConnIsServer(Connection)) {
         TlsConfig.ServerName = Connection->RemoteServerName;
     }

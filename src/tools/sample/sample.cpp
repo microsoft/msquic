@@ -341,13 +341,13 @@ RunClient(
     )
 {
     QUIC_STATUS Status;
+    const char* ResumptionTicketString = nullptr;
     HQUIC Connection = nullptr;
     if (QUIC_FAILED(Status = MsQuic->ConnectionOpen(Session, ClientConnectionCallback, nullptr, &Connection))) {
         printf("ConnectionOpen failed, 0x%x!\n", Status);
         goto Error;
     }
 
-    const char* ResumptionTicketString = nullptr;
     if (TryGetValue(argc, argv, "ticket", &ResumptionTicketString) && ResumptionTicketString != nullptr) {
         uint8_t ResumptionTicket[1024];
          uint16_t TicketLength = (uint16_t) DecodeHexBuffer(ResumptionTicketString, sizeof(ResumptionTicket), ResumptionTicket);

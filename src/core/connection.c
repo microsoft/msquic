@@ -1965,7 +1965,7 @@ QuicConnSendResumptionTicket(
         App Ticket (omitted if length is zero) [...]
     */
     uint8_t* TicketCursor = QuicVarIntEncode(Ticket.TicketVersion, TicketBuffer);
-    QuicCopyMemory(TicketCursor, &Ticket.QuicVersion, sizeof(Ticket.QuicVersion));
+    *(uint32_t*)TicketCursor = QuicByteSwapUint32(Ticket.QuicVersion);
     TicketCursor += sizeof(Ticket.QuicVersion);
     TicketCursor = QuicVarIntEncode(Ticket.AlpnLength, TicketCursor);
     QuicCopyMemory(TicketCursor, Connection->Crypto.TlsState.NegotiatedAlpn + 1, (size_t) Ticket.AlpnLength);
@@ -1998,6 +1998,112 @@ Error:
     }
 
     return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnRecvResumptionTicket(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint16_t TicketLength,
+    _In_reads_(TicketLength)
+        const uint8_t* Ticket
+    )
+{
+    if (QuicConnIsServer(Connection)) {
+        uint16_t Offset = 0;
+        QUIC_TLS_RESUMPTION_TICKET DecodedTicket = { 0, };
+        // check that the ticket version is the current supported version
+        if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &DecodedTicket.TicketVersion)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket version failed to decode");
+            return;
+        }
+        if (DecodedTicket.TicketVersion != QUIC_TLS_RESUMPTION_TICKET_VERSION) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket version unsupported");
+            return;
+        }
+        // check that the QUIC version is supported.
+        uint32_t QuicVersionHost = QuicByteSwapUint32(*(uint32_t*)(Ticket + Offset));
+        if (!QuicIsVersionSupported(QuicVersionHost)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket for unsupported QUIC version");
+            return;
+        }
+        Offset += sizeof(uint32_t);
+        // check that the ticket ALPN is one of the ones offered by this server.
+        if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &DecodedTicket.AlpnLength)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket ALPN length failed to decode");
+            return;
+        }
+        if (QuicTlsAlpnFindInList(
+                Connection->Session->AlpnListLength, Connection->Session->AlpnList,
+                (uint8_t) DecodedTicket.AlpnLength, Ticket + Offset) == NULL) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket ALPN not present in ALPN list");
+            return;
+        }
+        Offset += (uint16_t)DecodedTicket.AlpnLength;
+        // decode and apply the transport parameters
+        if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &DecodedTicket.TransportParamsLength)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket TP length failed to decode");
+            return;
+        }
+        if (!QuicCryptoTlsDecodeTransportParameters(
+                Connection, Ticket + Offset,
+                (uint16_t) DecodedTicket.TransportParamsLength, &Connection->LocalTP)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket TParams failed to decode");
+            return;
+        }
+        Offset += (uint16_t)DecodedTicket.TransportParamsLength;
+
+        if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &DecodedTicket.AppTicketLength)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket app data length failed to decode");
+            return;
+        }
+
+        QUIC_CONNECTION_EVENT Event = { 0, };
+        Event.Type = QUIC_CONNECTION_EVENT_RESUMED;
+        Event.RESUMED.ResumptionStateLength = (uint16_t) DecodedTicket.AppTicketLength;
+        Event.RESUMED.ResumptionState = (DecodedTicket.AppTicketLength > 0) ? Ticket + Offset : NULL;
+        QuicConnIndicateEvent(Connection, &Event);
+
+        QUIC_DBG_ASSERT(Offset + DecodedTicket.AppTicketLength == TicketLength);
+    } else {
+        //
+        // TODO Client-side processing.
+        // Until then, this shouldn't ever get called.
+        //
+        QUIC_FRE_ASSERT(FALSE);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -492,6 +492,11 @@ PingConnection::ProcessEvent(
         break;
     }
 
+    case QUIC_CONNECTION_EVENT_RESUMED: {
+        printf("[%p] Received 0-RTT resumption ticket!\n", QuicConnection);
+        break;
+    }
+
     default:
         break;
     }
