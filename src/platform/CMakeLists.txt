@@ -67,5 +67,4 @@ if (NOT MSVC AND NOT APPLE)
     endif()
 endif()
 
-
 target_link_libraries(platform ${ATOMIC})
