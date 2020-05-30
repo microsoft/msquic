@@ -59,3 +59,12 @@ if(QUIC_TLS STREQUAL "openssl")
 elseif(QUIC_TLS STREQUAL "mitls")
     target_link_libraries(platform kremlib evercrypt mitls quiccrypto)
 endif()
+
+if (NOT MSVC AND NOT APPLE)
+    find_library(ATOMIC NAMES atomic libatomic.so.1)
+    if (ATOMIC)
+        message(STATUS "Found libatomic: ${ATOMIC}")
+    endif()
+endif()
+
+target_link_libraries(platform ${ATOMIC})
