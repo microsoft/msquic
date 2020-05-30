@@ -289,9 +289,7 @@ PingConnection::ProcessEvent(
             (uint32_t)(ElapsedMicroseconds % 1000));
 
         if (this->IsServer) {
-            if (QUIC_SUCCEEDED(MsQuic->ConnectionSendResumptionTicket(QuicConnection, 0, nullptr))) {
-                printf("[%p] Sending 0-RTT resumption ticket...\n", QuicConnection);
-            } else {
+            if (!QUIC_SUCCEEDED(MsQuic->ConnectionSendResumptionTicket(QuicConnection, 0, nullptr))) {
                 printf("[%p] Failed to send 0-RTT resumption ticket!\n", QuicConnection);
             }
         }
@@ -395,7 +393,7 @@ PingConnection::ProcessEvent(
                     SerializedResumptionState))) {
                 printf("[%p] Resumption state (%u bytes):\n", QuicConnection, SerializedResumptionStateLength);
                 for (uint32_t i = 0; i < SerializedResumptionStateLength; i++) {
-                    printf("%0.2X", (uint8_t) SerializedResumptionState[i]);
+                    printf("%0.2X", (uint8_t)SerializedResumptionState[i]);
                 }
                 printf("\n");
             }
@@ -489,11 +487,6 @@ PingConnection::ProcessEvent(
         }
 
         delete SendRequest;
-        break;
-    }
-
-    case QUIC_CONNECTION_EVENT_RESUMED: {
-        printf("[%p] Received 0-RTT resumption ticket!\n", QuicConnection);
         break;
     }
 

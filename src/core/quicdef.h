@@ -397,6 +397,12 @@ QUIC_STATIC_ASSERT(
 //
 #define QUIC_DEFAULT_MAX_DATAGRAM_LENGTH        0xFFFF
 
+//
+// The maximum number of bytes of application data a server application can
+// send in a resumption ticket.
+//
+#define QUIC_MAX_RESUMPTION_APP_DATA_LENGTH     1000 
+
 /*************************************************************
                   PERSISTENT SETTINGS
 *************************************************************/

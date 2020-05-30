@@ -1344,22 +1344,31 @@ QuicTlsProcessDataComplete(
                     size_t TicketLen = 0;
                     if (!FFI_mitls_get_hello_summary(
                             TlsContext->Buffer + PreviousOffset, TlsContext->BufferLength - PreviousOffset,
-                            FALSE, // TODO: Not sure if this is the correct value...
+                            FALSE,
                             &HelloSummary,
                             &Cookie, &CookieLen,
                             &Ticket, &TicketLen)) {
                         QuicTraceLogConnError(
-                            miTlsFfiProcessFailed,
+                            miTlsFfiGetHelloSummaryFailed,
                             TlsContext->Connection,
                             "FFI_mitls_get_hello_summary failed, cookie_len: %zu, ticket_len: %zu",
                             CookieLen,
                             TicketLen);
                         ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                        break;
                     }
                     QUIC_FRE_ASSERT(TicketLen <= UINT16_MAX);
-                    TlsContext->ReceiveResumptionTicketCallback(
-                        TlsContext->Connection,
-                        (uint16_t)TicketLen, Ticket);
+                    if (!TlsContext->ReceiveResumptionTicketCallback(
+                            TlsContext->Connection,
+                            (uint16_t)TicketLen, Ticket)) {
+                        //
+                        // QUIC or the app rejected the resumption ticket.
+                        // Abandon the early data and continue the handshake.
+                        //
+                        ResultFlags &= ~QUIC_TLS_RESULT_EARLY_DATA_ACCEPT;
+                        ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_REJECT;
+                        State->EarlyDataState = QUIC_TLS_EARLY_DATA_REJECTED;
+                    }
                     if (Cookie) {
                         FFI_mitls_global_free(Cookie);
                         Cookie = NULL;

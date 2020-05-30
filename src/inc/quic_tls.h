@@ -66,7 +66,7 @@ typedef QUIC_TLS_RECEIVE_TP_CALLBACK *QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER;
 //
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 (QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK)(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint16_t TicketLength,
@@ -250,40 +250,11 @@ typedef struct QUIC_TLS_PROCESS_STATE {
 
 } QUIC_TLS_PROCESS_STATE;
 
+//
+// Version of the wire-format for resumption tickets.
+// This needs to be incremented for each change in order or count of fields.
+//
 #define QUIC_TLS_RESUMPTION_TICKET_VERSION 1
-
-//
-// In-memory representation of a resumption ticket.
-//
-typedef struct QUIC_TLS_RESUMPTION_TICKET {
-    //
-    // Version of this structure.
-    //
-    uint64_t TicketVersion;
-
-    //
-    // QUIC protocol version that generated this ticket.
-    // In network order.
-    //
-    uint32_t QuicVersion;
-
-    //
-    // ALPN length.
-    //
-    uint64_t AlpnLength;
-
-    //
-    // Encoded transport parameters length.
-    //
-    uint64_t TransportParamsLength;
-
-    //
-    // App-supplied resumption ticket length.
-    //
-    uint64_t AppTicketLength;
-
-} QUIC_TLS_RESUMPTION_TICKET;
-
 
 //
 // Creates a new TLS security configuration.

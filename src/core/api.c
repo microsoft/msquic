@@ -377,7 +377,8 @@ MsQuicConnectionSendResumptionTicket(
         QUIC_TRACE_API_CONNECTION_SEND_RESUMPTION_TICKET,
         Handle);
 
-    if (DataLength > 1000 || (ResumptionData == NULL && DataLength != 0)) {
+    if (DataLength > QUIC_MAX_RESUMPTION_APP_DATA_LENGTH ||
+        (ResumptionData == NULL && DataLength != 0)) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
@@ -391,6 +392,7 @@ MsQuicConnectionSendResumptionTicket(
     }
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
+    QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
 
     if (!QuicConnIsServer(Connection)) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -416,8 +418,6 @@ MsQuicConnectionSendResumptionTicket(
         QuicCopyMemory(ResumptionDataCopy, ResumptionData, DataLength);
     }
 
-
-    QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;

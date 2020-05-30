@@ -324,7 +324,7 @@ ClientConnectionCallback(
     case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
         printf("[conn][%p] Resumption ticket received (%u bytes):\n", Connection, Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
         for (uint32_t i = 0; i < Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength; i++) {
-            printf("%.2X", Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket[i]);
+            printf("%.2X", (uint8_t)Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket[i]);
         }
         printf("\n");
         break;
@@ -350,7 +350,7 @@ RunClient(
 
     if (TryGetValue(argc, argv, "ticket", &ResumptionTicketString) && ResumptionTicketString != nullptr) {
         uint8_t ResumptionTicket[1024];
-         uint16_t TicketLength = (uint16_t) DecodeHexBuffer(ResumptionTicketString, sizeof(ResumptionTicket), ResumptionTicket);
+         uint16_t TicketLength = (uint16_t)DecodeHexBuffer(ResumptionTicketString, sizeof(ResumptionTicket), ResumptionTicket);
         if (QUIC_FAILED(Status = MsQuic->SetParam(
                 Connection,
                 QUIC_PARAM_LEVEL_CONNECTION,
