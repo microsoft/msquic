@@ -221,6 +221,15 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context *
 QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void * /* Context */, QUIC_CONNECTION_EVENT *Event)
 {
     switch (Event->Type) {
+    case QUIC_CONNECTION_EVENT_CONNECTED: {
+        uint16_t DataLength = (rand() % 2) ? (rand() % 1000) + 1 : 0;
+        uint8_t* Data = (DataLength > 0) ? (uint8_t*)malloc(DataLength) : nullptr;
+        MsQuic->ConnectionSendResumptionTicket(Connection, DataLength, Data);
+        if (Data) {
+            free(Data);
+        }
+        break;
+    }
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         PRINT("[Shutdown] %p\n", Connection);
         SpinQuicConnection::Get(Connection)->OnShutdownComplete();
