@@ -232,6 +232,18 @@ struct MsQuicSession {
                 &value);
     }
     QUIC_STATUS
+    SetDisconnectTimeout(
+        uint64_t value  // milliseconds
+        ) {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_SESSION,
+                QUIC_PARAM_SESSION_DISCONNECT_TIMEOUT,
+                sizeof(value),
+                &value);
+    }
+    QUIC_STATUS
     SetMaxBytesPerKey(
         uint64_t value
         ) {

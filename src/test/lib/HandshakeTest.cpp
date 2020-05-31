@@ -94,7 +94,6 @@ QuicTestConnect(
     MsQuicSession Session;
     TEST_TRUE(Session.IsValid());
     TEST_QUIC_SUCCEEDED(Session.SetPeerBidiStreamCount(4));
-    TEST_QUIC_SUCCEEDED(Session.SetIdleTimeout(10000));
     MsQuicSession Session2("MsQuicTest2", "MsQuicTest");
     TEST_TRUE(Session2.IsValid());
     TEST_QUIC_SUCCEEDED(Session2.SetPeerBidiStreamCount(4));
@@ -103,6 +102,16 @@ QuicTestConnect(
     StatelessRetryHelper RetryHelper(ServerStatelessRetry);
     PrivateTransportHelper TpHelper(MultiPacketClientInitial);
     RandomLossHelper LossHelper(RandomLossPercentage);
+
+    if (RandomLossPercentage != 0) {
+        TEST_QUIC_SUCCEEDED(Session.SetIdleTimeout(30000));
+        TEST_QUIC_SUCCEEDED(Session.SetDisconnectTimeout(30000));
+        TEST_QUIC_SUCCEEDED(Session2.SetIdleTimeout(30000));
+        TEST_QUIC_SUCCEEDED(Session2.SetDisconnectTimeout(30000));
+    } else {
+        TEST_QUIC_SUCCEEDED(Session.SetIdleTimeout(10000));
+        TEST_QUIC_SUCCEEDED(Session2.SetIdleTimeout(10000));
+    }
 
     {
         TestListener Listener(
