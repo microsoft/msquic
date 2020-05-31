@@ -260,13 +260,20 @@ QuicTestConnect(
                     TEST_EQUAL(100, Client.GetLocalBidiStreamCount());
                 }
 
-                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
-                if (!Client.WaitForShutdownComplete()) {
-                    return;
-                }
+                if (RandomLossPercentage == 0) {
+                    //
+                    // Don't worry about graceful shutdown if we have random
+                    // loss. It will likely just result in the maximum wait
+                    // timeout, causing the test to run longer.
+                    //
+                    Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+                    if (!Client.WaitForShutdownComplete()) {
+                        return;
+                    }
 
-                TEST_FALSE(Client.GetPeerClosed());
-                TEST_FALSE(Client.GetTransportClosed());
+                    TEST_FALSE(Client.GetPeerClosed());
+                    TEST_FALSE(Client.GetTransportClosed());
+                }
             }
 
             if (RandomLossPercentage == 0) {
