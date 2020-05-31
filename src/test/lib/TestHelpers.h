@@ -233,7 +233,7 @@ struct MsQuicSession {
     }
     QUIC_STATUS
     SetDisconnectTimeout(
-        uint64_t value  // milliseconds
+        uint32_t value  // milliseconds
         ) {
         return
             MsQuic->SetParam(
