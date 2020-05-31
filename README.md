@@ -69,4 +69,4 @@ For testing or experimentation purposes, MsQuic may be built with other configur
 
 # Contributing
 
-For information on contributing, please see our guidlines in [CONTRIBUTING.md](./.github/CONTRIBUTING.md).
+For information on contributing, please see our [contribution guidlines](./.github/CONTRIBUTING.md).

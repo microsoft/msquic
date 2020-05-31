@@ -18,15 +18,15 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 
 One of the easiest ways to contribute is to participate in discussion on GitHub issues.
 
-If you find a non-security related bug, you can help us by [submitting a GitHub Issue](https://github.com/microsoft/msquic/issues/new). The best bug reports provide a detailed description of the issue and step-by-step instructions for predictably reproducing the issue. Even better, you can submit a Pull Request with a fix.
+If you find a non-security related bug, you can help us by [submitting a GitHub Issue](https://github.com/microsoft/msquic/issues/new/choose). The best bug reports provide a detailed description of the issue and step-by-step instructions for predictably reproducing the issue. Even better, you can submit a Pull Request with a fix.
 
 If you find a security issue, please **do not open a GitHub Issue**, and instead follow [these instructions](SECURITY.md).
 
 ## New Features
 
-You can request a new feature by [submitting a GitHub Issue](https://github.com/microsoft/msquic/issues/new).
+You can request a new feature by [submitting a GitHub Issue](https://github.com/microsoft/msquic/issues/new/choose).
 
-If you would like to implement a new feature, please first [submit a GitHub Issue](https://github.com/microsoft/msquic/issues/new) and communicate your proposal so that the community can review and provide feedback. Getting early feedback will help ensure your implementation work is accepted by the community. This will also allow us to better coordinate our efforts and minimize duplicated effort.
+If you would like to implement a new feature, please first [submit a GitHub Issue](https://github.com/microsoft/msquic/issues/new/choose) and communicate your proposal so that the community can review and provide feedback. Getting early feedback will help ensure your implementation work is accepted by the community. This will also allow us to better coordinate our efforts and minimize duplicated effort.
 
 ## Contributor License Agreement
 
@@ -42,7 +42,7 @@ We accept fixes and features! Here are some resources to help you get started on
 
 ### Process and Restrictions
 
-For all but the absolute simplest changes we request that you please first [submit a GitHub Issue](https://github.com/microsoft/msquic/issues/new) so that the community can review and provide feedback. Getting early feedback will help ensure your work is accepted by the community. This will also allow us to better coordinate our efforts and minimize duplicated effort.
+For all but the absolute simplest changes we request that you please first [submit a GitHub Issue](https://github.com/microsoft/msquic/issues/new/choose) so that the community can review and provide feedback. Getting early feedback will help ensure your work is accepted by the community. This will also allow us to better coordinate our efforts and minimize duplicated effort.
 
 If you would like to contribute, first identify the scale of what you would like to contribute. If it is small (grammar/spelling or a bug fix) feel free to start working on a fix. If you are submitting a feature or substantial code contribution, please discuss it with the team and ensure it follows the product roadmap. You might also read these two blogs posts on contributing code: [Open Source Contribution Etiquette](http://tirania.org/blog/archive/2010/Dec-31.html) by Miguel de Icaza and [Don't "Push" Your Pull Requests](https://www.igvita.com/2011/12/19/dont-push-your-pull-requests/) by Ilya Grigorik. All code submissions will be rigorously reviewed and tested by the team, and only those that meet an extremely high bar for both quality and design/roadmap appropriateness will be merged into the source.
 
