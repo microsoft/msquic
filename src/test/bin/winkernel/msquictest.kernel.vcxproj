@@ -93,7 +93,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <StringPooling>false</StringPooling>
-      <AdditionalOptions>/Gw /kernel /ZH:SHA_256 -d2jumptablerdata -d2epilogunwindrequirev2 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Gw /kernel /ZH:SHA_256 -d2jumptablerdata %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(SolutionDir)artifacts\winkernel\$(Platform)_$(Configuration)_schannel\</AdditionalLibraryDirectories>
