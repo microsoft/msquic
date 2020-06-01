@@ -51,6 +51,4 @@ target_compile_options(core PRIVATE
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_dependencies(core MsQuicEtw)
-else() 
-    set_target_properties(core PROPERTIES C_VISIBILITY_PRESET hidden) 
 endif()

@@ -49,7 +49,6 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_dependencies(platform MsQuicEtw)
 else()
     target_link_libraries(platform ${LTTNGUST_LIBRARIES})
-    set_target_properties(core PROPERTIES C_VISIBILITY_PRESET hidden) 
 endif()
 
 if(QUIC_TLS STREQUAL "openssl")

@@ -8,6 +8,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 
 add_executable(msquictest quic_gtest.cpp)
 
-target_link_libraries(msquictest msquic testlib gtest)
+target_link_libraries(msquictest msquic testlib platform gtest)
 
 add_test(msquictest msquictest)

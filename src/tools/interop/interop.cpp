@@ -100,8 +100,6 @@ uint32_t CurrentThreadCount;
 
 uint16_t CustomPort = 0;
 
-extern "C" void QuicTraceRundown(void) { }
-
 void
 PrintUsage()
 {
