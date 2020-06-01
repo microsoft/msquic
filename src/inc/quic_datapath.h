@@ -248,7 +248,17 @@ QuicDataPathInitialize(
     );
 
 //
+// Shuts down all workers in a QUIC Datapath handle.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicDataPathShutdownWorkers(
+    _In_ QUIC_DATAPATH* Datapath
+    );
+
+//
 // Closes a QUIC Datapath library handle.
+// It is expected that QuicDataPathShutdownWorkers is called before this
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void

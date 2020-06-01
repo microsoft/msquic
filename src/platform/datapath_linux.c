@@ -548,6 +548,25 @@ Exit:
 }
 
 void
+QuicDataPathShutdownWorkers(
+    _In_ QUIC_DATAPATH* Datapath
+    )
+{
+    if (Datapath == NULL) {
+        return;
+    }
+
+#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+    PlatDispatch->DatapathShutdownWorkers(Datapath);
+#else
+    Datapath->Shutdown = TRUE;
+    for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
+        QuicProcessorContextUninitialize(&Datapath->ProcContexts[i]);
+    }
+#endif
+}
+
+void
 QuicDataPathUninitialize(
     _Inout_ QUIC_DATAPATH* Datapath
     )
@@ -560,12 +579,6 @@ QuicDataPathUninitialize(
     PlatDispatch->DatapathUninitialize(Datapath);
 #else
     QuicRundownReleaseAndWait(&Datapath->BindingsRundown);
-
-    Datapath->Shutdown = TRUE;
-    for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
-        QuicProcessorContextUninitialize(&Datapath->ProcContexts[i]);
-    }
-
     QuicRundownUninitialize(&Datapath->BindingsRundown);
     QUIC_FREE(Datapath);
 #endif

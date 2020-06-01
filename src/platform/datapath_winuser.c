@@ -770,18 +770,13 @@ Exit:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDataPathUninitialize(
+QuicDataPathShutdownWorkers(
     _In_ QUIC_DATAPATH* Datapath
     )
 {
     if (Datapath == NULL) {
         return;
     }
-
-    //
-    // Wait for all outstanding binding to clean up.
-    //
-    QuicRundownReleaseAndWait(&Datapath->BindingsRundown);
 
     //
     // Disable processing on the completion threads and kick the IOCPs to make
@@ -800,6 +795,22 @@ QuicDataPathUninitialize(
         WaitForSingleObject(Datapath->ProcContexts[i].CompletionThread, INFINITE);
         CloseHandle(Datapath->ProcContexts[i].CompletionThread);
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicDataPathUninitialize(
+    _In_ QUIC_DATAPATH* Datapath
+    )
+{
+    if (Datapath == NULL) {
+        return;
+    }
+
+    //
+    // Wait for all outstanding binding to clean up.
+    //
+    QuicRundownReleaseAndWait(&Datapath->BindingsRundown);
 
     for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
         CloseHandle(Datapath->ProcContexts[i].IOCP);

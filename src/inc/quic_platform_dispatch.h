@@ -101,6 +101,12 @@ void
     );
 
 typedef
+void
+(*QUIC_DATAPATH_SHUTDOWN_WORKERS)(
+    _In_ QUIC_DATAPATH* Datapath
+    );
+
+typedef
 BOOLEAN
 (*QUIC_DATAPATH_IS_PADDING_PREFERRED)(
     _In_ QUIC_DATAPATH* Datapath
@@ -245,6 +251,7 @@ typedef struct QUIC_PLATFORM_DISPATCH {
     QUIC_RANDOM Random;
 
     QUIC_DATAPATH_INITIALIZE DatapathInitialize;
+    QUIC_DATAPATH_SHUTDOWN_WORKERS DatapathShutdownWorkers;
     QUIC_DATAPATH_UNINITIALIZE DatapathUninitialize;
     QUIC_DATAPATH_RECVCONTEXT_TO_RECVBUFFER DatapathRecvContextToRecvPacket;
     QUIC_DATAPATH_RECVBUFFER_TO_RECVCONTEXT DatapathRecvPacketToRecvContext;

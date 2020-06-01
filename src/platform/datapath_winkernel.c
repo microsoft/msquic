@@ -946,7 +946,7 @@ Exit:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDataPathUninitialize(
+QuicDataPathShutdownWorkers(
     _In_ QUIC_DATAPATH* Datapath
     )
 {
@@ -956,6 +956,19 @@ QuicDataPathUninitialize(
 
     WskReleaseProviderNPI(&Datapath->WskRegistration);
     WskDeregister(&Datapath->WskRegistration);
+
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicDataPathUninitialize(
+    _In_ QUIC_DATAPATH* Datapath
+    )
+{
+    if (Datapath == NULL) {
+        return;
+    }
+
     for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
         QuicPoolUninitialize(&Datapath->ProcContexts[i].SendContextPool);
         QuicPoolUninitialize(&Datapath->ProcContexts[i].SendBufferPool);
@@ -963,6 +976,7 @@ QuicDataPathUninitialize(
         QuicPoolUninitialize(&Datapath->ProcContexts[i].RecvDatagramPool);
         QuicPoolUninitialize(&Datapath->ProcContexts[i].UroRecvDatagramPool);
     }
+
     QUIC_FREE(Datapath);
 }
 
