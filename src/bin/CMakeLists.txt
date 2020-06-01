@@ -16,11 +16,14 @@ target_compile_options(msquic PRIVATE
      $<$<CXX_COMPILER_ID:MSVC>:
         ${MSVC_WARNING_FLAGS}>)
 
-target_link_libraries(msquic core platform)
+target_link_libraries(msquic PRIVATE core platform)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    target_link_libraries(msquic
+    target_link_libraries(msquic PUBLIC
         ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
     SET_TARGET_PROPERTIES(msquic
         PROPERTIES LINK_FLAGS "/DEF:\"${CMAKE_CURRENT_SOURCE_DIR}/winuser/msquic.def\"")
+else()
+    SET_TARGET_PROPERTIES(msquic
+        PROPERTIES LINK_FLAGS "-Wl,--version-script=\"${CMAKE_CURRENT_SOURCE_DIR}/linux/exports.txt\"")
 endif()
