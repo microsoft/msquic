@@ -39,7 +39,7 @@ ServerSend(
     _In_ HQUIC Stream
     )
 {
-    auto SendBufferRaw = QUIC_ALLOC_PAGED(sizeof(QUIC_BUFFER) + SendBufferLength);
+    auto SendBufferRaw = malloc(sizeof(QUIC_BUFFER) + SendBufferLength);
     if (SendBufferRaw == nullptr) {
         printf("SendBuffer allocation failed!\n");
         MsQuic->StreamShutdown(Stream, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
@@ -55,7 +55,7 @@ ServerSend(
     QUIC_STATUS Status;
     if (QUIC_FAILED(Status = MsQuic->StreamSend(Stream, SendBuffer, 1, QUIC_SEND_FLAG_FIN, SendBuffer))) {
         printf("StreamSend failed, 0x%x!\n", Status);
-        QUIC_FREE(SendBufferRaw);
+        free(SendBufferRaw);
         MsQuic->StreamShutdown(Stream, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
     }
 }
@@ -72,7 +72,7 @@ ServerStreamCallback(
 {
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
-        QUIC_FREE(Event->SEND_COMPLETE.ClientContext);
+        free(Event->SEND_COMPLETE.ClientContext);
         printf("[strm][%p] Data sent\n", Stream);
         break;
     case QUIC_STREAM_EVENT_RECEIVE:
@@ -223,7 +223,7 @@ ClientStreamCallback(
 {
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
-        QUIC_FREE(Event->SEND_COMPLETE.ClientContext);
+        free(Event->SEND_COMPLETE.ClientContext);
         printf("[strm][%p] Data sent\n", Stream);
         break;
     case QUIC_STREAM_EVENT_RECEIVE:
@@ -267,7 +267,7 @@ ClientSend(
         goto Error;
     }
 
-    SendBufferRaw = (uint8_t*)QUIC_ALLOC_PAGED(sizeof(QUIC_BUFFER) + SendBufferLength);
+    SendBufferRaw = (uint8_t*)malloc(sizeof(QUIC_BUFFER) + SendBufferLength);
     if (SendBufferRaw == nullptr) {
         printf("SendBuffer allocation failed!\n");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -282,7 +282,7 @@ ClientSend(
 
     if (QUIC_FAILED(Status = MsQuic->StreamSend(Stream, SendBuffer, 1, QUIC_SEND_FLAG_FIN, SendBuffer))) {
         printf("StreamSend failed, 0x%x!\n", Status);
-        QUIC_FREE(SendBufferRaw);
+        free(SendBufferRaw);
         goto Error;
     }
 
@@ -372,14 +372,7 @@ main(
     _In_reads_(argc) _Null_terminated_ char* argv[]
     )
 {
-    QuicPlatformSystemLoad();
-
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    if (QUIC_FAILED(Status = QuicPlatformInitialize())) {
-        printf("QuicPlatformInitialize failed, 0x%x!\n", Status);
-        QuicPlatformSystemUnload();
-        return Status;
-    }
 
     if (QUIC_FAILED(Status = MsQuicOpen(&MsQuic))) {
         printf("MsQuicOpen failed, 0x%x!\n", Status);
@@ -425,9 +418,6 @@ Error:
         }
         MsQuicClose(MsQuic);
     }
-
-    QuicPlatformUninitialize();
-    QuicPlatformSystemUnload();
 
     return (int)Status;
 }
