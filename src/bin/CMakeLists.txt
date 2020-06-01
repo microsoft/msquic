@@ -19,7 +19,7 @@ target_compile_options(msquic PRIVATE
 target_link_libraries(msquic PRIVATE core platform)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    target_link_libraries(msquic
+    target_link_libraries(msquic PUBLIC
         ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
     SET_TARGET_PROPERTIES(msquic
         PROPERTIES LINK_FLAGS "/DEF:\"${CMAKE_CURRENT_SOURCE_DIR}/winuser/msquic.def\"")
