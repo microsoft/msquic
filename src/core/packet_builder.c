@@ -444,6 +444,13 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
         return TRUE;
     }
 
+    QuicTraceLogConnWarning(
+        GetPacketTypeFailure,
+        Builder->Connection,
+        "Failed to get packet type for control frames, 0x%x",
+        SendFlags);
+    QUIC_DBG_ASSERT(FALSE); // This shouldn't have been called then!
+
     return FALSE;
 }
 
@@ -457,22 +464,17 @@ QuicPacketBuilderPrepareForControlFrames(
     )
 {
     QUIC_DBG_ASSERT(!(SendFlags & QUIC_CONN_SEND_FLAG_PMTUD));
-
     QUIC_PACKET_KEY_TYPE PacketKeyType;
-    if (!QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
+    return
+        QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
             Builder,
             SendFlags,
-            &PacketKeyType)) {
-        QuicTraceLogConnWarning(
-            GetPacketTypeFailure,
-            Builder->Connection,
-            "Failed to get packet type for control frames, 0x%x",
-            SendFlags);
-        QUIC_DBG_ASSERT(FALSE); // This shouldn't have been called then!
-        return FALSE;
-    }
-
-    return QuicPacketBuilderPrepare(Builder, PacketKeyType, IsTailLossProbe, FALSE);
+            &PacketKeyType) &&
+        QuicPacketBuilderPrepare(
+            Builder,
+            PacketKeyType,
+            IsTailLossProbe,
+            FALSE);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
