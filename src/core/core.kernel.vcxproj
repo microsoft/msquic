@@ -144,7 +144,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <AdditionalOptions Condition="'$(Platform)'!='x64'">/Gw /kernel /ZH:SHA_256</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Platform)'=='x64'">/Gw /kernel /ZH:SHA_256 -d2jumptablerdata</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Platform)'=='x64'">/Gw /kernel /ZH:SHA_256 -d2jumptablerdata -d2epilogunwindrequirev2</AdditionalOptions>
     </ClCompile>
     <Lib>
       <LinkTimeCodeGeneration>true</LinkTimeCodeGeneration>
