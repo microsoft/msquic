@@ -417,7 +417,11 @@ GetValue(
 {
     const size_t nameLen = strlen(name);
     for (int i = 1; i < argc; i++) {
+#ifdef _WIN32
         if (_strnicmp(argv[i] + 1, name, nameLen) == 0) {
+#else
+        if (strncasecmp(argv[i] + 1, name, nameLen) == 0) {
+#endif
             return argv[i] + 1 + nameLen + 1;
         }
     }
