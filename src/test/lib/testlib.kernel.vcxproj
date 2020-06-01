@@ -89,8 +89,8 @@
       <AdditionalIncludeDirectories>..\;..\..\inc;..\..\..\submodules\wil\include;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <StringPooling>false</StringPooling>
-      <AdditionalOptions>/Gw /kernel /ZH:SHA_256 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Platform)'!='x64'">/Gw /kernel /ZH:SHA_256</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Platform)'=='x64'">/Gw /kernel /ZH:SHA_256 -d2jumptablerdata</AdditionalOptions>
     </ClCompile>
     <Lib>
       <LinkTimeCodeGeneration>true</LinkTimeCodeGeneration>

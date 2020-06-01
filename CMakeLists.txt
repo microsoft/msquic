@@ -134,12 +134,6 @@ else()
     # Custom build flags.
     set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions -fPIC -pthread -Wl,--no-as-needed -ldl")
 
-    #if(QUIC_TLS STREQUAL "x64")
-    #    set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -m64")
-    #else()
-    #    set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -m32")
-    #endif()
-
     if(QUIC_ENABLE_LOGGING)
         include(FindLTTngUST)
         message(STATUS "Configuring for LTTng events and disabling logging")
@@ -181,7 +175,7 @@ if(QUIC_TLS STREQUAL "openssl")
         OUTPUT ${QUIC_BUILD_DIR}/openssl/include
         OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
         OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-        COMMAND ./Configure linux-x86_64 enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
+        COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ./config enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
         COMMAND make -j$$(nproc)
         COMMAND make install_sw)
     add_custom_target(OpenSSL
