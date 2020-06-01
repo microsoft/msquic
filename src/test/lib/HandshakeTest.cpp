@@ -147,6 +147,9 @@ QuicTestConnect(
                 if (!Client.WaitForZeroRttTicket()) {
                     return;
                 }
+                //
+                // TODO - Don't wait for client/server shutdown when using random loss.
+                //
                 Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
                 if (!Client.WaitForShutdownComplete()) {
                     return;
@@ -279,6 +282,8 @@ QuicTestConnect(
             if (RandomLossPercentage == 0) {
                 TEST_TRUE(Server->GetPeerClosed());
                 TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
+            } else {
+                Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
             }
         }
     }
