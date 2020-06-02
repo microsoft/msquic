@@ -9,7 +9,7 @@ Abstract:
 
 Environment:
 
-    Linux user mode
+    Darwin
 
 --*/
 
