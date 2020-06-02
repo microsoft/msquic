@@ -133,7 +133,6 @@ if ($IsWindows) {
 $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)"
 $BuildDir = Join-Path $BuildDir "$($Arch)_$($Tls)"
 
-
 if ($Clean) {
     # Delete old build/config directories.
     if (Test-Path $ArtifactsDir) { Remove-Item $ArtifactsDir -Recurse -Force | Out-Null }
