@@ -23,6 +23,7 @@ QUIC_RECV_DATAGRAM*
 QuicDataPathRecvPacketToRecvDatagram(
     _In_ const QUIC_RECV_PACKET* const Packet
     ) {
+    QUIC_FRE_ASSERT(FALSE);
     return NULL;
 }
 
@@ -33,6 +34,7 @@ QUIC_RECV_PACKET*
 QuicDataPathRecvDatagramToRecvPacket(
     _In_ const QUIC_RECV_DATAGRAM* const Datagram
     ) {
+    QUIC_FRE_ASSERT(FALSE);
     return NULL;
 }
 
@@ -46,6 +48,7 @@ QuicDataPathInitialize(
     _In_ QUIC_DATAPATH_UNREACHABLE_CALLBACK_HANDLER UnreachableCallback,
     _Out_ QUIC_DATAPATH* *NewDatapath
     ) {
+    QUIC_FRE_ASSERT(FALSE);
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -57,7 +60,9 @@ void
 QuicDataPathUninitialize(
     _In_ QUIC_DATAPATH* Datapath
     )
-{ }
+{
+    QUIC_FRE_ASSERT(FALSE);
+}
 
 //
 // Queries the currently supported features of the datapath.
@@ -68,6 +73,7 @@ QuicDataPathGetSupportedFeatures(
     _In_ QUIC_DATAPATH* Datapath
     )
 {
+    QUIC_FRE_ASSERT(FALSE);
     return 0;
 }
 
@@ -80,6 +86,7 @@ QuicDataPathIsPaddingPreferred(
     _In_ QUIC_DATAPATH* Datapath
     )
 {
+    QUIC_FRE_ASSERT(FALSE);
     return FALSE;
 }
 
@@ -93,6 +100,7 @@ QuicDataPathResolveAddress(
     _In_z_ const char* HostName,
     _Inout_ QUIC_ADDR * Address
     ) {
+    QUIC_FRE_ASSERT(FALSE);
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -110,6 +118,7 @@ QuicDataPathBindingCreate(
     _In_opt_ void* RecvCallbackContext,
     _Out_ QUIC_DATAPATH_BINDING** Binding
     ) {
+    QUIC_FRE_ASSERT(FALSE);
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -123,7 +132,9 @@ void
 QuicDataPathBindingDelete(
     _In_ QUIC_DATAPATH_BINDING* Binding
     )
-{ }
+{
+    QUIC_FRE_ASSERT(FALSE);
+}
 
 //
 // Queries the locally bound interface's MTU. Returns QUIC_MIN_MTU if not
@@ -135,6 +146,7 @@ QuicDataPathBindingGetLocalMtu(
     _In_ QUIC_DATAPATH_BINDING* Binding
     )
 {
+    QUIC_FRE_ASSERT(FALSE);
     return 0;
 }
 
@@ -147,7 +159,9 @@ QuicDataPathBindingGetLocalAddress(
     _In_ QUIC_DATAPATH_BINDING* Binding,
     _Out_ QUIC_ADDR * Address
     )
-{ }
+{
+    QUIC_FRE_ASSERT(FALSE);
+}
 
 //
 // Queries the connected remote IP address. Only valid if the binding was
@@ -159,7 +173,9 @@ QuicDataPathBindingGetRemoteAddress(
     _In_ QUIC_DATAPATH_BINDING* Binding,
     _Out_ QUIC_ADDR * Address
     )
-{ }
+{
+    QUIC_FRE_ASSERT(FALSE);
+}
 
 //
 // Called to return a chain of datagrams received from the registered receive
@@ -170,7 +186,9 @@ void
 QuicDataPathBindingReturnRecvDatagrams(
     _In_opt_ QUIC_RECV_DATAGRAM* DatagramChain
     )
-{ }
+{
+    QUIC_FRE_ASSERT(FALSE);
+}
 
 //
 // Allocates a new send context to be used to call QuicDataPathBindingSendTo. It
@@ -184,6 +202,7 @@ QuicDataPathBindingAllocSendContext(
     _In_ uint16_t MaxPacketSize
     )
 { 
+    QUIC_FRE_ASSERT(FALSE);
     return NULL;
 }
 
@@ -196,7 +215,9 @@ void
 QuicDataPathBindingFreeSendContext(
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
-{ }
+{ 
+    QUIC_FRE_ASSERT(FALSE);
+}
 
 //
 // Allocates a new UDP datagram buffer for sending.
@@ -209,6 +230,7 @@ QuicDataPathBindingAllocSendDatagram(
     _In_ uint16_t MaxBufferLength
     )
 {
+    QUIC_FRE_ASSERT(FALSE);
     return NULL;
 }
 
@@ -222,7 +244,9 @@ QuicDataPathBindingFreeSendDatagram(
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
     _In_ QUIC_BUFFER* SendDatagram
     )
-{ }
+{ 
+    QUIC_FRE_ASSERT(FALSE);
+}
 
 //
 // Returns whether the send context buffer limit has been reached.
@@ -233,6 +257,7 @@ QuicDataPathBindingIsSendContextFull(
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
 {
+    QUIC_FRE_ASSERT(FALSE);
     return FALSE;
 }
 
@@ -248,6 +273,7 @@ QuicDataPathBindingSendTo(
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
 {
+    QUIC_FRE_ASSERT(FALSE);
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -264,6 +290,7 @@ QuicDataPathBindingSendFromTo(
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
 {
+    QUIC_FRE_ASSERT(FALSE);
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -279,6 +306,7 @@ QuicDataPathBindingSetParam(
     _In_reads_bytes_(BufferLength) const uint8_t * Buffer
     )
 {
+    QUIC_FRE_ASSERT(FALSE);
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -294,6 +322,7 @@ QuicDataPathBindingGetParam(
     _Out_writes_bytes_opt_(*BufferLength) uint8_t * Buffer
     )
 {
+    QUIC_FRE_ASSERT(FALSE);
     return QUIC_STATUS_SUCCESS;
 }
 
