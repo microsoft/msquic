@@ -34,8 +34,13 @@ DllMain(
     switch (Reason) {
 
     case DLL_PROCESS_ATTACH:
+//
+// Don't disable thread library calls with static CRT!
+//
 #ifndef _MT
         DisableThreadLibraryCalls(Instance);
+#else
+        UNREFERENCED_PARAMETER(Instance);
 #endif
         QuicPlatformSystemLoad();
         MsQuicLibraryLoad();
