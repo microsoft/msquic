@@ -221,7 +221,7 @@ ParseServerCommand(
 {
     PingConfig.ServerMode = true;
 
-    const char* localAddress;
+    const char* localAddress = nullptr;
     TryGetValue(argc, argv, "listen", &localAddress);
     if (!ConvertArgToAddress(localAddress, 0, &PingConfig.LocalIpAddr)) {
         printf("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", localAddress);

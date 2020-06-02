@@ -118,19 +118,21 @@ $SrcDir = Join-Path $RootDir "src"
 $ArtifactsDir = $null
 $BuildDir = $null
 if ($IsWindows) {
-    $ArtifactsDir = Join-Path $BaseArtifactsDir "windows"
-    $BuildDir = Join-Path $BaseBuildDir "windows"
+    if ($IsUwp) {
+        $ArtifactsDir = Join-Path $BaseArtifactsDir "windows-uwp"
+        $BuildDir = Join-Path $BaseBuildDir "windows-uwp"
+    } else {
+        $ArtifactsDir = Join-Path $BaseArtifactsDir "windows"
+        $BuildDir = Join-Path $BaseBuildDir "windows"
+    }
 } else {
     $ArtifactsDir = Join-Path $BaseArtifactsDir "linux"
     $BuildDir = Join-Path $BaseBuildDir "linux"
 }
-if ($UWP) {
-    $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_uwp_$($Config)_$($Tls)"
-    $BuildDir = Join-Path $BuildDir "$($Arch)_uwp_$($Tls)"
-} else {
-    $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)"
-    $BuildDir = Join-Path $BuildDir "$($Arch)_$($Tls)"
-}
+
+$ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)"
+$BuildDir = Join-Path $BuildDir "$($Arch)_$($Tls)"
+
 
 if ($Clean) {
     # Delete old build/config directories.
