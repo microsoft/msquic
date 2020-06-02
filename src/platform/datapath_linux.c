@@ -549,7 +549,7 @@ Exit:
 
 void
 QuicDataPathUninitialize(
-    _Inout_ QUIC_DATAPATH* Datapath
+    _In_ QUIC_DATAPATH* Datapath
     )
 {
     if (Datapath == NULL) {
