@@ -7,7 +7,7 @@ We would love for you to contribute to MsQuic and help make it even better than 
 - [New Features](#new-features)
 - [Contributor License Agreement](#contributor-license-agreement)
 - [Contributing Code](#contributing-code)
-  - [Process and Restrictions](#process-and-restrictions)
+  - [Process](#process)
   - [Tests](#tests)
 
 > **Important** - Since much of MsQuic is directly included in the Windows kernel, we have to take certain precautions to protect from any bug being introduced (accidental or otherwise). We are still working on bringing up the necessary tests and CI systems for these purposes. Until they are completely onboarded, any external contributions to the [core](../src/core) or kernel mode files in the [platform](../src/platform) will not be accepted. This is only a **temporary restriction** and will hopefully be removed in the coming months.
