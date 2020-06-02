@@ -182,6 +182,12 @@ struct MsQuicSession {
     void SetAutoCleanup() {
         CloseAllConnectionsOnDelete = true;
     }
+    void Shutdown(
+        _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags,
+        _In_ QUIC_UINT62 ErrorCode
+        ) {
+        MsQuic->SessionShutdown(Handle, Flags, ErrorCode);
+    }
     QUIC_STATUS
     SetTlsTicketKey(
         _In_reads_bytes_(44)
@@ -228,6 +234,18 @@ struct MsQuicSession {
                 Handle,
                 QUIC_PARAM_LEVEL_SESSION,
                 QUIC_PARAM_SESSION_IDLE_TIMEOUT,
+                sizeof(value),
+                &value);
+    }
+    QUIC_STATUS
+    SetDisconnectTimeout(
+        uint32_t value  // milliseconds
+        ) {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_SESSION,
+                QUIC_PARAM_SESSION_DISCONNECT_TIMEOUT,
                 sizeof(value),
                 &value);
     }
