@@ -182,6 +182,12 @@ struct MsQuicSession {
     void SetAutoCleanup() {
         CloseAllConnectionsOnDelete = true;
     }
+    void Shutdown(
+        _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags,
+        _In_ QUIC_UINT62 ErrorCode
+        ) {
+        MsQuic->SessionShutdown(Handle, Flags, ErrorCode);
+    }
     QUIC_STATUS
     SetTlsTicketKey(
         _In_reads_bytes_(44)

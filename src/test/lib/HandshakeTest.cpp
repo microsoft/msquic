@@ -147,13 +147,8 @@ QuicTestConnect(
                 if (!Client.WaitForZeroRttTicket()) {
                     return;
                 }
-                //
-                // TODO - Don't wait for client/server shutdown when using random loss.
-                //
-                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
-                if (!Client.WaitForShutdownComplete()) {
-                    return;
-                }
+                Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+                Session2.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
             }
         }
 
