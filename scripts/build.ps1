@@ -60,6 +60,7 @@ param (
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
+    [ValidateSet("UWP", "windows", "linux")] # For future expansion
     [switch]$Platform = $null,
 
     [Parameter(Mandatory = $false)]
