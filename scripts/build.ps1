@@ -9,6 +9,9 @@ This script provides helpers for building msquic.
 .PARAMETER Arch
     The CPU architecture to build for.
 
+.PARAMETER Uwp
+    Set to build for UWP platform
+
 .PARAMETER Tls
     The TLS library to use.
 
@@ -57,6 +60,9 @@ param (
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
+    [switch]$Uwp = $false,
+
+    [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
     [string]$Tls = "",
 
@@ -97,7 +103,7 @@ if ("" -eq $Tls) {
     }
 }
 
-if (!$IsWindows -And $Arch -like "*uwp") {
+if (!$IsWindows -And $Uwp) {
     Write-Error "[$(Get-Date)] Cannot build UWP on non windows platforms"
     exit
 }
@@ -118,8 +124,13 @@ if ($IsWindows) {
     $ArtifactsDir = Join-Path $BaseArtifactsDir "linux"
     $BuildDir = Join-Path $BaseBuildDir "linux"
 }
-$ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)"
-$BuildDir = Join-Path $BuildDir "$($Arch)_$($Tls)"
+if ($Uwp) {
+    $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_uwp_$($Config)_$($Tls)"
+    $BuildDir = Join-Path $BuildDir "$($Arch)_uwp_$($Tls)"
+} else {
+    $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)"
+    $BuildDir = Join-Path $BuildDir "$($Arch)_$($Tls)"
+}
 
 if ($Clean) {
     # Delete old build/config directories.
@@ -159,10 +170,6 @@ function CMake-Generate {
             "x64"   { $Arguments += "x64" }
             "arm"   { $Arguments += "arm" }
             "arm64" { $Arguments += "arm64" }
-            "x86_uwp"   { $Arguments += "Win32" }
-            "x64_uwp"   { $Arguments += "x64" }
-            "arm_uwp"   { $Arguments += "arm" }
-            "arm64_uwp" { $Arguments += "arm64" }
         }
     } else {
         $Arguments += " 'Linux Makefiles'"
@@ -190,10 +197,8 @@ function CMake-Generate {
     if ($PGO) {
         $Arguments += " -DQUIC_PGO=on"
     }
-    Write-Host "Checking UWP"
-    Write-Host $Arch
-    if ($Arch -like "*uwp") {
-        Write-Host "Addind UWP"
+    if ($Uwp) {
+        Write-Host "UWP Build"
         $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
 
     }
