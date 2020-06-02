@@ -56,7 +56,7 @@ param (
     [string]$Config = "Debug",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("x86", "x64", "arm", "arm64", "x86_uwp", "x64_uwp", "arm_uwp", "arm64_uwp")]
+    [ValidateSet("x86", "x64", "arm", "arm64")]
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
