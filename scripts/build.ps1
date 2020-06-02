@@ -9,7 +9,7 @@ This script provides helpers for building msquic.
 .PARAMETER Arch
     The CPU architecture to build for.
 
-.PARAMETER Uwp
+.PARAMETER UWP
     Set to build for UWP platform
 
 .PARAMETER Tls
@@ -60,7 +60,7 @@ param (
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [switch]$Uwp = $false,
+    [switch]$UWP = $false,
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
@@ -103,7 +103,7 @@ if ("" -eq $Tls) {
     }
 }
 
-if (!$IsWindows -And $Uwp) {
+if (!$IsWindows -And $UWP) {
     Write-Error "[$(Get-Date)] Cannot build UWP on non windows platforms"
     exit
 }
@@ -124,7 +124,7 @@ if ($IsWindows) {
     $ArtifactsDir = Join-Path $BaseArtifactsDir "linux"
     $BuildDir = Join-Path $BaseBuildDir "linux"
 }
-if ($Uwp) {
+if ($UWP) {
     $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_uwp_$($Config)_$($Tls)"
     $BuildDir = Join-Path $BuildDir "$($Arch)_uwp_$($Tls)"
 } else {
@@ -197,7 +197,7 @@ function CMake-Generate {
     if ($PGO) {
         $Arguments += " -DQUIC_PGO=on"
     }
-    if ($Uwp) {
+    if ($UWP) {
         Write-Host "UWP Build"
         $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
 
