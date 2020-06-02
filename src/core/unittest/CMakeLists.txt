@@ -18,6 +18,6 @@ set(SOURCES
 
 add_executable(msquiccoretest ${SOURCES})
 
-target_link_libraries(msquiccoretest msquic gtest)
+target_link_libraries(msquiccoretest msquic core platform gtest)
 
 add_test(msquiccoretest msquiccoretest)

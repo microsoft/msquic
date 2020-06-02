@@ -94,7 +94,6 @@ QuicTestConnect(
     MsQuicSession Session;
     TEST_TRUE(Session.IsValid());
     TEST_QUIC_SUCCEEDED(Session.SetPeerBidiStreamCount(4));
-    TEST_QUIC_SUCCEEDED(Session.SetIdleTimeout(10000));
     MsQuicSession Session2("MsQuicTest2", "MsQuicTest");
     TEST_TRUE(Session2.IsValid());
     TEST_QUIC_SUCCEEDED(Session2.SetPeerBidiStreamCount(4));
@@ -103,6 +102,16 @@ QuicTestConnect(
     StatelessRetryHelper RetryHelper(ServerStatelessRetry);
     PrivateTransportHelper TpHelper(MultiPacketClientInitial);
     RandomLossHelper LossHelper(RandomLossPercentage);
+
+    if (RandomLossPercentage != 0) {
+        TEST_QUIC_SUCCEEDED(Session.SetIdleTimeout(30000));
+        TEST_QUIC_SUCCEEDED(Session.SetDisconnectTimeout(30000));
+        TEST_QUIC_SUCCEEDED(Session2.SetIdleTimeout(30000));
+        TEST_QUIC_SUCCEEDED(Session2.SetDisconnectTimeout(30000));
+    } else {
+        TEST_QUIC_SUCCEEDED(Session.SetIdleTimeout(10000));
+        TEST_QUIC_SUCCEEDED(Session2.SetIdleTimeout(10000));
+    }
 
     {
         TestListener Listener(
@@ -138,10 +147,8 @@ QuicTestConnect(
                 if (!Client.WaitForZeroRttTicket()) {
                     return;
                 }
-                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
-                if (!Client.WaitForShutdownComplete()) {
-                    return;
-                }
+                Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+                Session2.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
             }
         }
 
@@ -251,18 +258,27 @@ QuicTestConnect(
                     TEST_EQUAL(100, Client.GetLocalBidiStreamCount());
                 }
 
-                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
-                if (!Client.WaitForShutdownComplete()) {
-                    return;
-                }
+                if (RandomLossPercentage == 0) {
+                    //
+                    // Don't worry about graceful shutdown if we have random
+                    // loss. It will likely just result in the maximum wait
+                    // timeout, causing the test to run longer.
+                    //
+                    Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+                    if (!Client.WaitForShutdownComplete()) {
+                        return;
+                    }
 
-                TEST_FALSE(Client.GetPeerClosed());
-                TEST_FALSE(Client.GetTransportClosed());
+                    TEST_FALSE(Client.GetPeerClosed());
+                    TEST_FALSE(Client.GetTransportClosed());
+                }
             }
 
             if (RandomLossPercentage == 0) {
                 TEST_TRUE(Server->GetPeerClosed());
                 TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
+            } else {
+                Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
             }
         }
     }
