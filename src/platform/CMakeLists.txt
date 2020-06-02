@@ -10,14 +10,25 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         toeplitz.c
     )
 else()
-    set(SOURCES
-        datapath_linux.c
-        hashtable.c
-        inline.c
-        platform_linux.c
-        storage_linux.c
-        toeplitz.c
-    )
+    if(QUIC_PLATFORM STREQUAL "linux")
+        set(SOURCES
+            datapath_linux.c
+            hashtable.c
+            inline.c
+            platform_linux.c
+            storage_linux.c
+            toeplitz.c
+        )
+    else()
+        set(SOURCES
+            datapath_darwin.c
+            hashtable.c
+            inline.c
+            platform_darwin.c
+            storage_darwin.c
+            toeplitz.c
+        )
+    endif()
 endif()
 
 if (QUIC_TLS STREQUAL "schannel")

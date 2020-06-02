@@ -146,7 +146,7 @@ MsQuicListenerStart(
     QUIC_STATUS Status;
     QUIC_LISTENER* Listener;
     BOOLEAN PortUnspecified;
-    QUIC_ADDR BindingLocalAddress = {0};
+    QUIC_ADDR BindingLocalAddress = { };
 
     QuicTraceEvent(
         ApiEnter,
