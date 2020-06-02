@@ -94,8 +94,10 @@ option(QUIC_PGO "Enables profile guided optimizations" OFF)
 
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
     set(QUIC_PLATFORM "windows")
-else()
+elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Linux")
     set(QUIC_PLATFORM "linux")
+elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Darwin")
+    set(QUIC_PLATFORM "darwin")
 endif()
 
 set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
@@ -200,7 +202,13 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 
 else()
     # Custom build flags.
-    set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions -fPIC -pthread -Wl,--no-as-needed -ldl")
+
+    set(QUIC_COMMON_FLAGS "-fms-extensions -fPIC -pthread")
+    if (QUIC_PLATFORM STREQUAL "darwin")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_PLATFORM_DARWIN -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wmissing-field-initializers")
+    else()
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_PLATFORM_LINUX -Wl,--no-as-needed -ldl")
+    endif()
 
     if(QUIC_ENABLE_LOGGING)
         include(FindLTTngUST)
@@ -231,7 +239,7 @@ else()
     endif()
 
     set(QUIC_C_FLAGS "${QUIC_COMMON_FLAGS}")
-    set(QUIC_CXX_FLAGS "${QUIC_COMMON_FLAGS} --std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format")
+    set(QUIC_CXX_FLAGS "${QUIC_COMMON_FLAGS} -std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format")
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/inc)

@@ -34,6 +34,8 @@ Supported Platforms:
 #include <msquic_winuser.h>
 #elif __linux__
 #include <msquic_linux.h>
+#elif QUIC_PLATFORM_DARWIN
+#include <msquic_darwin.h>
 #else
 #error "Unsupported Platform"
 #endif

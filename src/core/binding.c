@@ -833,7 +833,7 @@ QuicBindingProcessStatelessOperation(
         QUIC_DBG_ASSERT(sizeof(NewDestCid) >= MsQuicLib.CidTotalLength);
         QuicRandom(sizeof(NewDestCid), NewDestCid);
 
-        QUIC_RETRY_TOKEN_CONTENTS Token = { 0 };
+        QUIC_RETRY_TOKEN_CONTENTS Token = { };
         Token.Authenticated.Timestamp = QuicTimeEpochMs64();
 
         Token.Encrypted.RemoteAddress = RecvDatagram->Tuple->RemoteAddress;

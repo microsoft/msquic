@@ -29,7 +29,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     endif()
     SET_TARGET_PROPERTIES(msquic
         PROPERTIES LINK_FLAGS "/DEF:\"${CMAKE_CURRENT_SOURCE_DIR}/winuser/msquic.def\"")
-else()
+elseif (QUIC_PLATFORM STREQUAL "linux")
     SET_TARGET_PROPERTIES(msquic
         PROPERTIES LINK_FLAGS "-Wl,--version-script=\"${CMAKE_CURRENT_SOURCE_DIR}/linux/exports.txt\"")
 endif()
