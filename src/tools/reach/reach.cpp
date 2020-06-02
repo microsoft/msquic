@@ -151,6 +151,7 @@ main(int argc, char **argv)
             printf("Failed to resolve IP address of '%s'.\n", ServerName);
             exit(1);
         }
+        QuicDataPathShutdown(Datapath);
         QuicDataPathUninitialize(Datapath);
     } else {
         if (!QuicAddrFromString(ServerIp, Port, &ServerAddress)) {

@@ -381,6 +381,7 @@ Error:
     }
 
     if (Datapath != nullptr) {
+        QuicDataPathShutdown(Datapath);
         QuicDataPathUninitialize(Datapath);
     }
 }

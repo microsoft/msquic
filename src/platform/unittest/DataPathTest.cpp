@@ -62,6 +62,7 @@ struct QuicAddr
                 &SockAddr))) {
             GTEST_FATAL_FAILURE_("Failed to resolve IP address.");
         }
+        QuicDataPathShutdown(Datapath);
         QuicDataPathUninitialize(Datapath);
     }
 };
@@ -229,6 +230,7 @@ TEST_F(DataPathTest, Initialize)
             &datapath));
     ASSERT_NE(datapath, nullptr);
 
+    QuicDataPathShutdown(datapath);
     QuicDataPathUninitialize(
         datapath);
 }
@@ -285,6 +287,7 @@ TEST_F(DataPathTest, Bind)
 
     QuicDataPathBindingDelete(binding);
 
+    QuicDataPathShutdown(datapath);
     QuicDataPathUninitialize(
         datapath);
 }
@@ -332,6 +335,7 @@ TEST_F(DataPathTest, Rebind)
     QuicDataPathBindingDelete(binding1);
     QuicDataPathBindingDelete(binding2);
 
+    QuicDataPathShutdown(datapath);
     QuicDataPathUninitialize(
         datapath);
 }
@@ -409,6 +413,7 @@ TEST_P(DataPathTest, Data)
     QuicDataPathBindingDelete(client);
     QuicDataPathBindingDelete(server);
 
+    QuicDataPathShutdown(datapath);
     QuicDataPathUninitialize(
         datapath);
 
@@ -519,6 +524,7 @@ TEST_P(DataPathTest, DataRebind)
     QuicDataPathBindingDelete(client);
     QuicDataPathBindingDelete(server);
 
+    QuicDataPathShutdown(datapath);
     QuicDataPathUninitialize(
         datapath);
 

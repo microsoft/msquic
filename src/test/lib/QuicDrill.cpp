@@ -116,6 +116,7 @@ struct DrillSender {
         }
 
         if (Datapath != nullptr) {
+            QuicDataPathShutdown(Datapath);
             QuicDataPathUninitialize(Datapath);
         }
     }

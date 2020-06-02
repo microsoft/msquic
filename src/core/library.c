@@ -280,9 +280,7 @@ MsQuicLibraryUninitialize(
     // Ensure all datapath workers are shut down, so new connections won't be 
     // created while we shut down worker threads.
     //
-    if (MsQuicLib.Datapath != NULL) {
-        QuicDataPathShutdownWorkers(MsQuicLib.Datapath);
-    }
+    QuicDataPathShutdown(MsQuicLib.Datapath);
 
     //
     // The library's worker pool for processing half-opened connections

@@ -548,14 +548,10 @@ Exit:
 }
 
 void
-QuicDataPathShutdownWorkers(
+QuicDataPathShutdown(
     _In_ QUIC_DATAPATH* Datapath
     )
 {
-    if (Datapath == NULL) {
-        return;
-    }
-
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     PlatDispatch->DatapathShutdownWorkers(Datapath);
 #else
@@ -571,10 +567,6 @@ QuicDataPathUninitialize(
     _Inout_ QUIC_DATAPATH* Datapath
     )
 {
-    if (Datapath == NULL) {
-        return;
-    }
-
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     PlatDispatch->DatapathUninitialize(Datapath);
 #else

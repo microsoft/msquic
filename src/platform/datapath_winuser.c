@@ -770,14 +770,10 @@ Exit:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDataPathShutdownWorkers(
+QuicDataPathShutdown(
     _In_ QUIC_DATAPATH* Datapath
     )
 {
-    if (Datapath == NULL) {
-        return;
-    }
-
     //
     // Disable processing on the completion threads and kick the IOCPs to make
     // sure the threads knows they are disabled.
@@ -803,10 +799,6 @@ QuicDataPathUninitialize(
     _In_ QUIC_DATAPATH* Datapath
     )
 {
-    if (Datapath == NULL) {
-        return;
-    }
-
     //
     // Wait for all outstanding binding to clean up.
     //
