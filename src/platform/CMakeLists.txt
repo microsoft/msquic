@@ -54,8 +54,17 @@ endif()
 if(QUIC_TLS STREQUAL "openssl")
     add_dependencies(platform OpenSSL)
     target_link_libraries(platform
-        ${QUIC_BUILD_DIR}/openssl/lib/libssl.a
-        ${QUIC_BUILD_DIR}/openssl/lib/libcrypto.a)
+        ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+        ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
 elseif(QUIC_TLS STREQUAL "mitls")
     target_link_libraries(platform kremlib evercrypt mitls quiccrypto)
 endif()
+
+if (NOT MSVC AND NOT APPLE)
+    find_library(ATOMIC NAMES atomic libatomic.so.1)
+    if (ATOMIC)
+        message(STATUS "Found libatomic: ${ATOMIC}")
+    endif()
+endif()
+
+target_link_libraries(platform ${ATOMIC})

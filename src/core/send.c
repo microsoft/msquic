@@ -1012,7 +1012,8 @@ QuicSendFlush(
             // While we are CC blocked, very few things are still allowed to
             // be sent. If those are queued then we can still send.
             //
-            if (!(SendFlags & QUIC_CONN_SEND_FLAGS_BYPASS_CC)) {
+            SendFlags &= QUIC_CONN_SEND_FLAGS_BYPASS_CC;
+            if (!SendFlags) {
                 if (QuicCongestionControlCanSend(&Connection->CongestionControl)) {
                     //
                     // The current pacing chunk is finished. We need to schedule a
@@ -1055,7 +1056,7 @@ QuicSendFlush(
             if (!QuicPacketBuilderPrepareForControlFrames(
                     &Builder,
                     Send->TailLossProbeNeeded,
-                    Send->SendFlags & ~QUIC_CONN_SEND_FLAG_PMTUD)) {
+                    SendFlags & ~QUIC_CONN_SEND_FLAG_PMTUD)) {
                 break;
             }
             WrotePacketFrames = QuicSendWriteFrames(Send, &Builder);

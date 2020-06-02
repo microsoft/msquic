@@ -1,6 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+# Disable in-source builds to prevent source tree corruption.
+if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
+  message(FATAL_ERROR "
+FATAL: In-source builds are not allowed.
+       You should create a separate directory for build files.
+")
+endif()
+
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
 message(STATUS "Source Dir: ${CMAKE_CURRENT_SOURCE_DIR}")
@@ -112,7 +120,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /GL /Zi")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL /Zi")
-    set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /LTCG /DEBUG /OPT:REF /OPT:ICF")
+    set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /LTCG /USERPROFILE:PGD=${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/msquic.pgd /DEBUG /OPT:REF /OPT:ICF")
     if(QUIC_PGO)
         set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /GENPROFILE")
     endif()
@@ -125,12 +133,6 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 else()
     # Custom build flags.
     set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions -fPIC -pthread -Wl,--no-as-needed -ldl")
-
-    #if(QUIC_TLS STREQUAL "x64")
-    #    set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -m64")
-    #else()
-    #    set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -m32")
-    #endif()
 
     if(QUIC_ENABLE_LOGGING)
         include(FindLTTngUST)
@@ -171,15 +173,15 @@ if(QUIC_TLS STREQUAL "openssl")
     add_custom_command(
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl
         OUTPUT ${QUIC_BUILD_DIR}/openssl/include
-        OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto.so
-        OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl.so
-        COMMAND ./Configure linux-x86_64 enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
-        COMMAND make -j$(nproc)
+        OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+        OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+        COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ./config enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
+        COMMAND make -j$$(nproc)
         COMMAND make install_sw)
     add_custom_target(OpenSSL
         DEPENDS ${QUIC_BUILD_DIR}/openssl/include
-        DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libcrypto.so
-        DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libssl.so)
+        DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+        DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 endif()
 
 if(QUIC_TLS STREQUAL "mitls")

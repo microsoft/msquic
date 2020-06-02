@@ -310,16 +310,18 @@ function Start-AllTestCases {
 # Uses CDB.exe to print the crashing callstack in the dump file.
 function PrintDumpCallStack($DumpFile) {
     $env:_NT_SYMBOL_PATH = Split-Path $Path
-    $Output = cdb.exe -z $File -c "kn;q" | Join-String -Separator "`n"
-    Write-Host "=================================================================================="
-    Write-Host " $(Split-Path $DumpFile -Leaf)"
-    Write-Host "=================================================================================="
     try {
+        if ($env:BUILD_BUILDNUMBER -ne $null) {
+            $env:PATH += ";c:\Program Files (x86)\Windows Kits\10\Debuggers\x64" 
+        }
+        $Output = cdb.exe -z $File -c "kn;q" | Join-String -Separator "`n"
         $Output = ($Output | Select-String -Pattern " # Child-SP(?s).*quit:").Matches[0].Groups[0].Value
+        Write-Host "=================================================================================="
+        Write-Host " $(Split-Path $DumpFile -Leaf)"
+        Write-Host "=================================================================================="
         $Output -replace "quit:", "=================================================================================="
     } catch {
-        Log "Failed to extract callstack"
-        $Output
+        # Silently fail
     }
 }
 
