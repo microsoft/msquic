@@ -25,6 +25,7 @@ HQUIC Registration;
 int EndpointIndex = -1;
 uint32_t TestCases = QuicTestFeatureAll;
 uint32_t WaitTimeoutMs = 5000;
+uint32_t InitialVersion = 0;
 
 const BOOLEAN UseSendBuffering = FALSE;
 const uint32_t CertificateValidationFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
@@ -38,7 +39,7 @@ QUIC_PRIVATE_TRANSPORT_PARAMETER RandomTransportParameter = {
 
 const QUIC_BUFFER Alpns[] = {
     { sizeof("hq-28") - 1, (uint8_t*)"hq-28" },
-    { sizeof("h3-28") - 1, (uint8_t*)"h3-28" }
+    { sizeof("h3-28") - 1, (uint8_t*)"h3-28" },
     { sizeof("hq-27") - 1, (uint8_t*)"hq-27" },
     { sizeof("h3-27") - 1, (uint8_t*)"h3-27" }
 };
@@ -112,8 +113,8 @@ PrintUsage()
     printf("Usage:\n");
     printf("  quicinterop.exe -help\n");
     printf("  quicinterop.exe -list\n");
-    printf("  quicinterop.exe [-target:<implementation>] [-test:<test case>] [-timeout:<milliseconds>]\n\n");
-    printf("  quicinterop.exe [-custom:<hostname>] [-port:<####>] [-test:<test case>] [-timeout:<milliseconds>]\n\n");
+    printf("  quicinterop.exe [-target:<implementation>] [-test:<test case>] [-timeout:<milliseconds>] [-version:<####>]\n\n");
+    printf("  quicinterop.exe [-custom:<hostname>] [-port:<####>] [-test:<test case>] [-timeout:<milliseconds>] [-version:<####>]\n\n");
 
     printf("Examples:\n");
     printf("  quicinterop.exe\n");
@@ -197,6 +198,14 @@ public:
                     QUIC_PARAM_CONN_QUIC_VERSION,
                     sizeof(RandomReservedVersion),
                     &RandomReservedVersion));
+        } else if (InitialVersion != 0) {
+            VERIFY_QUIC_SUCCESS(
+                MsQuic->SetParam(
+                    Connection,
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_QUIC_VERSION,
+                    sizeof(InitialVersion),
+                    &InitialVersion));
         }
         if (LargeTP) {
             VERIFY_QUIC_SUCCESS(
@@ -826,6 +835,7 @@ main(
     }
 
     TryGetValue(argc, argv, "timeout", &WaitTimeoutMs);
+    TryGetValue(argc, argv, "version", &InitialVersion);
     if (TryGetValue(argc, argv, "test", &TestCases)) {
         TestCases &= QuicTestFeatureAll;
         if (TestCases == 0) {

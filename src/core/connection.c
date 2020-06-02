@@ -1949,6 +1949,13 @@ QuicConnHandshakeConfigure(
 
     QUIC_TEL_ASSERT(Connection->Session != NULL);
 
+    QUIC_DBG_ASSERT(Connection->SourceCids.Next != NULL);
+    const QUIC_CID_HASH_ENTRY* SourceCid =
+        QUIC_CONTAINING_RECORD(
+            Connection->SourceCids.Next,
+            QUIC_CID_HASH_ENTRY,
+            Link);
+
     if (QuicConnIsServer(Connection)) {
 
         QUIC_TEL_ASSERT(SecConfig != NULL);
@@ -1983,11 +1990,6 @@ QuicConnHandshakeConfigure(
         LocalTP.MaxAckDelay =
             Connection->MaxAckDelayMs + (uint32_t)MsQuicLib.TimerResolutionMs;
 
-        const QUIC_CID_HASH_ENTRY* SourceCid =
-            QUIC_CONTAINING_RECORD(
-                Connection->SourceCids.Next,
-                QUIC_CID_HASH_ENTRY,
-                Link);
         LocalTP.Flags |= QUIC_TP_FLAG_STATELESS_RESET_TOKEN;
         Status =
             QuicBindingGenerateStatelessResetToken(
@@ -2127,6 +2129,15 @@ QuicConnHandshakeConfigure(
         if (Connection->Datagram.ReceiveEnabled) {
             LocalTP.Flags |= QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE;
             LocalTP.MaxDatagramFrameSize = QUIC_DEFAULT_MAX_DATAGRAM_LENGTH;
+        }
+
+        if (Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27) {
+            LocalTP.Flags |= QUIC_TP_FLAG_INITIAL_SOURCE_CONNECTION_ID;
+            LocalTP.InitialSourceConnectionIDLength = SourceCid->CID.Length;
+            QuicCopyMemory(
+                LocalTP.InitialSourceConnectionID,
+                SourceCid->CID.Data,
+                SourceCid->CID.Length);
         }
     }
 
@@ -2342,7 +2353,7 @@ QuicConnProcessPeerTransportParameters(
         // Version draft-28 and later fully validate all exchanged connection IDs.
         // Version draft-27 only validates in the Retry scenario.
         //
-        if (Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27) {
+        if (Connection->Stats.QuicVersion == QUIC_VERSION_DRAFT_27) {
             if (!QuicConnValidateTransportParameterDraft27CIDs(Connection)) {
                 goto Error;
             }
