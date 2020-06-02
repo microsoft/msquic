@@ -9,8 +9,8 @@ This script provides helpers for building msquic.
 .PARAMETER Arch
     The CPU architecture to build for.
 
-.PARAMETER UWP
-    Set to build for UWP platform
+.PARAMETER Platform
+    Specify which platform to build for
 
 .PARAMETER Tls
     The TLS library to use.
@@ -60,7 +60,7 @@ param (
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [switch]$UWP = $false,
+    [switch]$Platform = $null,
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
@@ -103,7 +103,7 @@ if ("" -eq $Tls) {
     }
 }
 
-if (!$IsWindows -And $UWP) {
+if (!$IsWindows -And $Platform -eq "UWP") {
     Write-Error "[$(Get-Date)] Cannot build UWP on non windows platforms"
     exit
 }
@@ -118,9 +118,9 @@ $SrcDir = Join-Path $RootDir "src"
 $ArtifactsDir = $null
 $BuildDir = $null
 if ($IsWindows) {
-    if ($IsUwp) {
-        $ArtifactsDir = Join-Path $BaseArtifactsDir "windows-uwp"
-        $BuildDir = Join-Path $BaseBuildDir "windows-uwp"
+    if ($Platform -eq "UWP") {
+        $ArtifactsDir = Join-Path $BaseArtifactsDir "uwp"
+        $BuildDir = Join-Path $BaseBuildDir "uwp"
     } else {
         $ArtifactsDir = Join-Path $BaseArtifactsDir "windows"
         $BuildDir = Join-Path $BaseBuildDir "windows"
@@ -198,8 +198,7 @@ function CMake-Generate {
     if ($PGO) {
         $Arguments += " -DQUIC_PGO=on"
     }
-    if ($UWP) {
-        Write-Host "UWP Build"
+    if ($Platform -eq "UWP") {
         $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
 
     }
