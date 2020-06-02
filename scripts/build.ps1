@@ -61,7 +61,7 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("uwp", "windows", "linux")] # For future expansion
-    [switch]$Platform = $null,
+    [switch]$Platform = "",
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
