@@ -135,14 +135,15 @@ TestConnection::WaitForConnectionComplete()
 bool
 TestConnection::WaitForZeroRttTicket()
 {
+    const uint32_t MaxTryCount = 1 + GetWaitTimeout() / 100;
     uint32_t TryCount = 0;
-    while (TryCount++ < 20) {
+    while (TryCount++ < MaxTryCount) {
         if (HasNewZeroRttTicket()) {
             break;
         }
         QuicSleep(100);
     }
-    if (TryCount == 20) {
+    if (TryCount == MaxTryCount) {
         TEST_FAILURE("WaitForZeroRttTicket failed.");
         return false;
     }

@@ -138,6 +138,10 @@ void QuicTestValidateSession()
             nullptr,
             &Session));
 
+    MsQuic->SessionClose(
+        Session);
+    Session = nullptr;
+
     //
     // Can't call SessionClose with invalid values as MsQuic asserts
     // (on purpose).

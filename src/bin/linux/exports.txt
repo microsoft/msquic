@@ -1,0 +1,5 @@
+msquic
+{
+  global: MsQuicOpen; MsQuicClose;
+  local: *;
+};
