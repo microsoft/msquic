@@ -10,6 +10,8 @@ We would love for you to contribute to MsQuic and help make it even better than 
   - [Process and Restrictions](#process-and-restrictions)
   - [Tests](#tests)
 
+> **Important** - Since much of MsQuic is directly included in the Windows kernel, we have to take certain precautions to protect from any bug being introduced (accidental or otherwise). We are still working on bringing up the necessary tests and CI systems for these purposes. Until they are completely onboarded, any external contributions to the [core](../src/core) or kernel mode files in the [platform](../src/platform) will not be accepted. This is only a **temporary restriction** and will hopefully be removed in the coming months.
+
 ## Code of Conduct
 
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Microsoft Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with additional questions or comments.
@@ -40,13 +42,11 @@ We accept fixes and features! Here are some resources to help you get started on
 * ["Help wanted" issues](https://github.com/microsoft/msquic/labels/help%20wanted) - these issues are up for grabs. Comment on an issue if you want to create a fix.
 * ["Good first issue" issues](https://github.com/microsoft/msquic/labels/good%20first%20issue) - we think these are a good for newcomers.
 
-### Process and Restrictions
+### Process
 
 For all but the absolute simplest changes we request that you please first [submit a GitHub Issue](https://github.com/microsoft/msquic/issues/new/choose) so that the community can review and provide feedback. Getting early feedback will help ensure your work is accepted by the community. This will also allow us to better coordinate our efforts and minimize duplicated effort.
 
 If you would like to contribute, first identify the scale of what you would like to contribute. If it is small (grammar/spelling or a bug fix) feel free to start working on a fix. If you are submitting a feature or substantial code contribution, please discuss it with the team and ensure it follows the product roadmap. You might also read these two blogs posts on contributing code: [Open Source Contribution Etiquette](http://tirania.org/blog/archive/2010/Dec-31.html) by Miguel de Icaza and [Don't "Push" Your Pull Requests](https://www.igvita.com/2011/12/19/dont-push-your-pull-requests/) by Ilya Grigorik. All code submissions will be rigorously reviewed and tested by the team, and only those that meet an extremely high bar for both quality and design/roadmap appropriateness will be merged into the source.
-
-> **Important** - Since much of this code is directly included in the latest Windows kernel, we have to take certain precautions to protect from any bug being introduced (accidental or otherwise). We are still working on bringing up the necessary tests and CI systems for these purposes. Until they are completely onboarded, any external contributions to the [core](../src/core) or kernel mode files in the [platform](../src/platform) will not be accepted. This is only a **temporary restriction** and will hopefully be removed in the coming months.
 
 ### Tests
 
