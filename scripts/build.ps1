@@ -53,7 +53,7 @@ param (
     [string]$Config = "Debug",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("x86", "x64", "arm", "arm64")]
+    [ValidateSet("x86", "x64", "arm", "arm64", "x86_uwp", "x64_uwp", "arm_uwp", "arm64_uwp")]
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
@@ -95,6 +95,11 @@ if ("" -eq $Tls) {
     } else {
         $Tls = "openssl"
     }
+}
+
+if (!$IsWindows -And $Arch -like "*uwp") {
+    Write-Error "[$(Get-Date)] Cannot build UWP on non windows platforms"
+    exit
 }
 
 # Root directory of the project.
@@ -154,6 +159,10 @@ function CMake-Generate {
             "x64"   { $Arguments += "x64" }
             "arm"   { $Arguments += "arm" }
             "arm64" { $Arguments += "arm64" }
+            "x86_uwp"   { $Arguments += "Win32" }
+            "x64_uwp"   { $Arguments += "x64" }
+            "arm_uwp"   { $Arguments += "arm" }
+            "arm64_uwp" { $Arguments += "arm64" }
         }
     } else {
         $Arguments += " 'Linux Makefiles'"
@@ -180,6 +189,13 @@ function CMake-Generate {
     }
     if ($PGO) {
         $Arguments += " -DQUIC_PGO=on"
+    }
+    Write-Host "Checking UWP"
+    Write-Host $Arch
+    if ($Arch -like "*uwp") {
+        Write-Host "Addind UWP"
+        $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
+
     }
     $Arguments += " ../../.."
 
