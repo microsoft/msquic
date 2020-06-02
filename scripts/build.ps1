@@ -60,7 +60,7 @@ param (
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("UWP", "windows", "linux")] # For future expansion
+    [ValidateSet("uwp", "windows", "linux")] # For future expansion
     [switch]$Platform = $null,
 
     [Parameter(Mandatory = $false)]
@@ -104,8 +104,8 @@ if ("" -eq $Tls) {
     }
 }
 
-if (!$IsWindows -And $Platform -eq "UWP") {
-    Write-Error "[$(Get-Date)] Cannot build UWP on non windows platforms"
+if (!$IsWindows -And $Platform -eq "uwp") {
+    Write-Error "[$(Get-Date)] Cannot build uwp on non windows platforms"
     exit
 }
 
@@ -119,7 +119,7 @@ $SrcDir = Join-Path $RootDir "src"
 $ArtifactsDir = $null
 $BuildDir = $null
 if ($IsWindows) {
-    if ($Platform -eq "UWP") {
+    if ($Platform -eq "uwp") {
         $ArtifactsDir = Join-Path $BaseArtifactsDir "uwp"
         $BuildDir = Join-Path $BaseBuildDir "uwp"
     } else {
@@ -199,7 +199,7 @@ function CMake-Generate {
     if ($PGO) {
         $Arguments += " -DQUIC_PGO=on"
     }
-    if ($Platform -eq "UWP") {
+    if ($Platform -eq "uwp") {
         $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
 
     }
