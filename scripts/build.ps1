@@ -61,7 +61,7 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("uwp", "windows", "linux")] # For future expansion
-    [switch]$Platform = "",
+    [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
@@ -104,6 +104,14 @@ if ("" -eq $Tls) {
     }
 }
 
+if ("" -eq $Platform) {
+    if ($IsWindows) {
+        $Platform = "windows"
+    } else {
+        $Platform = "linux"
+    }
+}
+
 if (!$IsWindows -And $Platform -eq "uwp") {
     Write-Error "[$(Get-Date)] Cannot build uwp on non windows platforms"
     exit
@@ -116,20 +124,9 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $BaseArtifactsDir = Join-Path $RootDir "artifacts"
 $BaseBuildDir = Join-Path $RootDir "build"
 $SrcDir = Join-Path $RootDir "src"
-$ArtifactsDir = $null
-$BuildDir = $null
-if ($IsWindows) {
-    if ($Platform -eq "uwp") {
-        $ArtifactsDir = Join-Path $BaseArtifactsDir "uwp"
-        $BuildDir = Join-Path $BaseBuildDir "uwp"
-    } else {
-        $ArtifactsDir = Join-Path $BaseArtifactsDir "windows"
-        $BuildDir = Join-Path $BaseBuildDir "windows"
-    }
-} else {
-    $ArtifactsDir = Join-Path $BaseArtifactsDir "linux"
-    $BuildDir = Join-Path $BaseBuildDir "linux"
-}
+
+$ArtifactsDir = Join-Path $BaseArtifactsDir $Platform
+$BuildDir = Join-Path $BaseBuildDir $Platform
 
 $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)"
 $BuildDir = Join-Path $BuildDir "$($Arch)_$($Tls)"
