@@ -28,12 +28,7 @@ Environment:
 
 #define QUIC_MAX_LOG_MSG_LEN        1024 // Bytes
 
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
-QUIC_PLATFORM_DISPATCH* PlatDispatch = NULL;
-#else
 int RandomFd; // Used for reading random numbers.
-#endif
-
 uint64_t QuicTotalMemory;
 
 __attribute__((noinline))
@@ -520,6 +515,7 @@ QuicProcCurrentNumber(
     void
     )
 {
+    QUIC_FRE_ASSERT(FALSE);
     return 0;
 }
 
@@ -529,9 +525,6 @@ QuicRandom(
     _Out_writes_bytes_(BufferLen) void* Buffer
     )
 {
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
-    return PlatDispatch->Random(BufferLen, Buffer);
-#else
     if (read(RandomFd, Buffer, BufferLen) == -1) {
         return (QUIC_STATUS)errno;
     }
@@ -867,6 +860,8 @@ QuicThreadCreate(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
+    QUIC_FRE_ASSERT(FALSE);
+
     return Status;
 }
 
@@ -892,6 +887,7 @@ QuicCurThreadID(
     void
     )
 {
+    QUIC_FRE_ASSERT(FALSE);
     return 0;
 }
 
