@@ -100,7 +100,9 @@ DllMain(
     switch (Reason) {
 
     case DLL_PROCESS_ATTACH:
+#ifndef _MT
         DisableThreadLibraryCalls(Instance);
+#endif
         QuicPlatformSystemLoad();
         MsQuicLibraryLoad();
         break;
