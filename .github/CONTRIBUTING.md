@@ -1,6 +1,6 @@
 # Contributing to MsQuic
 
-We would love for you to contribute to MsQuic and help make it even better than it is today! As a contributor, here are the guidelines we would like you to follow.
+We'd love your help with MsQuic! Here are our contribution guidelines.
 
 - [Code of Conduct](#code-of-conduct)
 - [Bugs](#bugs)
@@ -10,7 +10,7 @@ We would love for you to contribute to MsQuic and help make it even better than 
   - [Process](#process)
   - [Tests](#tests)
 
-> **Important** - Since much of MsQuic is directly included in the Windows kernel, we have to take certain precautions to protect from any bug being introduced (accidental or otherwise). We are still working on bringing up the necessary tests and CI systems for these purposes. Until they are completely onboarded, any external contributions to the [core](../src/core) or kernel mode files in the [platform](../src/platform) will not be accepted. This is only a **temporary restriction** and will hopefully be removed in the coming months.
+> **Important** - We are still bringing up important regression tests for the core code. Until they are onboarded, any external contributions to the [core](../src/core) or kernel mode files in the [platform](../src/platform) will not be accepted. This is only a **temporary restriction** and will hopefully be removed in the coming months.
 
 ## Code of Conduct
 
@@ -44,13 +44,13 @@ We accept fixes and features! Here are some resources to help you get started on
 
 ### Process
 
-For all but the absolute simplest changes we request that you please first [submit a GitHub Issue](https://github.com/microsoft/msquic/issues/new/choose) so that the community can review and provide feedback. Getting early feedback will help ensure your work is accepted by the community. This will also allow us to better coordinate our efforts and minimize duplicated effort.
+For all but the absolute simplest changes, first [submit a GitHub Issue](https://github.com/microsoft/msquic/issues/new/choose) so that the community can review and provide feedback. Getting early feedback will help ensure your work is accepted by the community. This will also allow us to better coordinate our efforts and minimize duplicated effort.
 
-If you would like to contribute, first identify the scale of what you would like to contribute. If it is small (grammar/spelling or a bug fix) feel free to start working on a fix. If you are submitting a feature or substantial code contribution, please discuss it with the team and ensure it follows the product roadmap. You might also read these two blogs posts on contributing code: [Open Source Contribution Etiquette](http://tirania.org/blog/archive/2010/Dec-31.html) by Miguel de Icaza and [Don't "Push" Your Pull Requests](https://www.igvita.com/2011/12/19/dont-push-your-pull-requests/) by Ilya Grigorik. All code submissions will be rigorously reviewed and tested by the team, and only those that meet an extremely high bar for both quality and design/roadmap appropriateness will be merged into the source.
+If you would like to contribute, first identify the scale of what you would like to contribute. If it is small (grammar/spelling or a bug fix) feel free to start working on a fix. If you are submitting a feature or substantial code contribution, please discuss it with the team and ensure it follows the product roadmap. You might also read these two blogs posts on contributing code: [Open Source Contribution Etiquette](http://tirania.org/blog/archive/2010/Dec-31.html) by Miguel de Icaza and [Don't "Push" Your Pull Requests](https://www.igvita.com/2011/12/19/dont-push-your-pull-requests/) by Ilya Grigorik. All code submissions will be rigorously reviewed and tested by the team, and only those that meet the bar for both quality and design/roadmap appropriateness will be merged into the source.
 
 ### Tests
 
-We have a significant number of existing tests to prevent any regressions and ensure expected functionality. For all new Pull Requests the following rules apply:
+We have tests to prevent regressions and validate functionality. For all new Pull Requests the following rules apply:
 
 - Existing tests should continue to pass.
 - Tests need to be provided for every bug/feature that is completed.
