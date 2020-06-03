@@ -12,7 +12,7 @@ include_directories(${PROJECT_SOURCE_DIR}/src/core)
 
 add_executable(quicattack ${SOURCES})
 
-target_link_libraries(quicattack core platform)
+target_link_libraries(quicattack msquic core platform)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     target_link_libraries(quicattack
