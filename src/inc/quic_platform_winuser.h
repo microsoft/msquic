@@ -862,6 +862,8 @@ QuicRandom(
 // Network Compartment ID interfaces
 //
 
+#ifndef QUIC_UWP_BUILD
+
 #define QUIC_COMPARTMENT_ID NET_IF_COMPARTMENT_ID
 
 #define QUIC_UNSPECIFIED_COMPARTMENT_ID NET_IF_COMPARTMENT_ID_UNSPECIFIED
@@ -870,6 +872,8 @@ QuicRandom(
 #define QuicCompartmentIdGetCurrent() GetCurrentThreadCompartmentId()
 #define QuicCompartmentIdSetCurrent(CompartmentId) \
     HRESULT_FROM_WIN32(SetCurrentThreadCompartmentId(CompartmentId))
+
+#endif
 
 //
 // Test Interface for loading a self-signed certificate.
