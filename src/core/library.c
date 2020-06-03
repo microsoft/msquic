@@ -276,6 +276,9 @@ MsQuicLibraryUninitialize(
         MsQuicLib.UnregisteredSession = NULL;
     }
 
+    QuicDataPathUninitialize(MsQuicLib.Datapath);
+    MsQuicLib.Datapath = NULL;
+
     //
     // The library's worker pool for processing half-opened connections
     // needs to be cleaned up first, as it's the last thing that can be
@@ -311,9 +314,6 @@ MsQuicLibraryUninitialize(
         MsQuicLib.StatelessRetryKeys[i] = NULL;
     }
     QuicLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
-
-    QuicDataPathUninitialize(MsQuicLib.Datapath);
-    MsQuicLib.Datapath = NULL;
 
     QuicTraceEvent(
         LibraryUninitialized,
