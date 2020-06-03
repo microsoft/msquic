@@ -245,4 +245,5 @@ public:
     QUIC_STATUS SetSecurityConfig(QUIC_SEC_CONFIG* value);
 
     bool HasNewZeroRttTicket();
+    QUIC_STATUS GetResumptionTicket(uint8_t* Buffer, uint32_t* BufferLength);
 };

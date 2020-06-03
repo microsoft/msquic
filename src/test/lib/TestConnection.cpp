@@ -760,6 +760,21 @@ TestConnection::HasNewZeroRttTicket()
 }
 
 QUIC_STATUS
+TestConnection::GetResumptionTicket(
+    uint8_t* Buffer,
+    uint32_t* BufferLength
+    )
+{
+    return
+        MsQuic->GetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_RESUMPTION_STATE,
+            BufferLength,
+            Buffer);
+}
+
+QUIC_STATUS
 TestConnection::HandleConnectionEvent(
     _Inout_ QUIC_CONNECTION_EVENT* Event
     )
