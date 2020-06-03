@@ -20,7 +20,7 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 
 One of the easiest ways to contribute is to participate in discussion on GitHub issues.
 
-If you find a non-security related bug, you can help us by [submitting a GitHub Issue](https://github.com/microsoft/msquic/issues/new/choose). The best bug reports provide a detailed description of the issue and step-by-step instructions for predictably reproducing the issue. Even better, you can submit a Pull Request with a fix.
+If you find a non-security related bug, you can help us by [submitting a GitHub Issue](https://github.com/microsoft/msquic/issues/new/choose). The best bug reports provide a detailed description of the issue and step-by-step instructions for reliably reproducing the issue. Even better, you can submit a Pull Request with a fix.
 
 If you find a security issue, please **do not open a GitHub Issue**, and instead follow [these instructions](SECURITY.md).
 
