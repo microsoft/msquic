@@ -718,7 +718,9 @@ QuicDataPathInitialize(
             Status = HRESULT_FROM_WIN32(LastError);
             goto Error;
         }
-
+#ifdef QUIC_UWP_BUILD
+        SetThreadDescription(Datapath->ProcContexts[i].CompletionThread, L"quic_datapath");
+#else
         THREAD_NAME_INFORMATION ThreadNameInfo;
         RtlInitUnicodeString(&ThreadNameInfo.ThreadName, L"quic_datapath");
         NTSTATUS NtStatus =
@@ -734,6 +736,7 @@ QuicDataPathInitialize(
                 NtStatus,
                 "NtSetInformationThread(name)");
         }
+#endif
 
         // TODO - Set thread priority higher to better match kernel at dispatch?
     }
