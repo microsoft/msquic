@@ -515,7 +515,7 @@ QuicProcCurrentNumber(
     void
     )
 {
-    QUIC_FRE_ASSERT(FALSE);
+    //QUIC_FRE_ASSERT(FALSE);
     return 0;
 }
 
@@ -529,7 +529,6 @@ QuicRandom(
         return (QUIC_STATUS)errno;
     }
     return QUIC_STATUS_SUCCESS;
-#endif
 }
 
 void
@@ -859,8 +858,40 @@ QuicThreadCreate(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    pthread_attr_t Attr;
+    if (pthread_attr_init(&Attr)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            errno,
+            "pthread_attr_init failed");
+        return errno;
+    }
 
-    QUIC_FRE_ASSERT(FALSE);
+    // XXX: Set processor affinity
+
+    if (Config->Flags & QUIC_THREAD_FLAG_HIGH_PRIORITY) {
+        struct sched_param Params;
+        Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
+        if (!pthread_attr_setschedparam(&Attr, &Params)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                errno,
+                "pthread_attr_setschedparam failed");
+        }
+    }
+
+    if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
+        Status = errno;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "pthread_create failed");
+    }
+
+    pthread_attr_destroy(&Attr);
 
     return Status;
 }
@@ -887,8 +918,10 @@ QuicCurThreadID(
     void
     )
 {
-    QUIC_FRE_ASSERT(FALSE);
-    return 0;
+    uint64_t tid;
+    pthread_threadid_np(NULL, &tid);
+    // XXX: check for failure
+    return (uint32_t)tid;
 }
 
 void
