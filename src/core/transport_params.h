@@ -171,6 +171,5 @@ QuicCryptoTlsDecodeTransportParameters(
     _In_reads_(TPLen)
         const uint8_t* TPBuf,
     _In_ uint16_t TPLen,
-    _In_ BOOLEAN ClearExisting,
     _Out_ QUIC_TRANSPORT_PARAMETERS* TransportParams
     );

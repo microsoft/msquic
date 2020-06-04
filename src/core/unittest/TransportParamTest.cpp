@@ -61,7 +61,7 @@ void EncodeDecodeAndCompare(
     QUIC_TRANSPORT_PARAMETERS Decoded;
     BOOLEAN DecodedSuccessfully =
         QuicCryptoTlsDecodeTransportParameters(
-            &JunkConnection, TPBuffer, TPBufferLength, TRUE, &Decoded);
+            &JunkConnection, TPBuffer, TPBufferLength, &Decoded);
 
     QUIC_FREE(Buffer);
 

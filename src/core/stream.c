@@ -25,6 +25,7 @@ QuicStreamInitialize(
 {
     QUIC_STATUS Status;
     QUIC_STREAM* Stream;
+    uint64_t MaxInitialStreamData = Connection->Session->Settings.StreamRecvBufferDefault;
 
     Stream = QuicPoolAlloc(&Connection->Worker->StreamPool);
     if (Stream == NULL) {
@@ -74,6 +75,14 @@ QuicStreamInitialize(
             Stream->Flags.SendEnabled = FALSE;
             Stream->Flags.HandleSendShutdown = TRUE;
         }
+        if (Opened0Rtt) {
+            MaxInitialStreamData = Connection->ResumedTP->InitialMaxStreamDataUni;
+        }
+    } else if (Opened0Rtt) {
+        MaxInitialStreamData =
+            (OpenedRemotely) ?
+                Connection->ResumedTP->InitialMaxStreamDataBidiRemote :
+                Connection->ResumedTP->InitialMaxStreamDataBidiLocal;
     }
 
     Status =
@@ -87,7 +96,7 @@ QuicStreamInitialize(
     Status =
         QuicRecvBufferInitialize(
             &Stream->RecvBuffer,
-            Connection->Session->Settings.StreamRecvBufferDefault,
+            (uint32_t) MaxInitialStreamData,
             Connection->Session->Settings.StreamRecvWindowDefault,
             FALSE);
     if (QUIC_FAILED(Status)) {

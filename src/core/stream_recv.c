@@ -329,6 +329,10 @@ QuicStreamProcessStreamFrame(
 
     } else {
 
+        uint64_t MaxData =
+            (EncryptedWith0Rtt) ?
+                Stream->Connection->ResumedTP->InitialMaxData :
+                Stream->Connection->Send.MaxData;
         //
         // This is initialized to inform QuicRecvBufferWrite of the
         // max number of allowed bytes per connection flow control.
@@ -336,7 +340,7 @@ QuicStreamProcessStreamFrame(
         // actual number of bytes written.
         //
         uint64_t WriteLength =
-            Stream->Connection->Send.MaxData -
+            MaxData -
             Stream->Connection->Send.OrderedStreamBytesReceived;
 
         //
@@ -359,7 +363,7 @@ QuicStreamProcessStreamFrame(
         // Keep track of the total ordered bytes received.
         //
         Stream->Connection->Send.OrderedStreamBytesReceived += WriteLength;
-        QUIC_DBG_ASSERT(Stream->Connection->Send.OrderedStreamBytesReceived < Stream->Connection->Send.MaxData);
+        QUIC_DBG_ASSERT(Stream->Connection->Send.OrderedStreamBytesReceived < MaxData);
         QUIC_DBG_ASSERT(Stream->Connection->Send.OrderedStreamBytesReceived >= WriteLength);
 
         if (QuicRecvBufferGetTotalLength(&Stream->RecvBuffer) == Stream->MaxAllowedRecvOffset) {
@@ -533,8 +537,7 @@ QuicStreamRecv(
         break;
     }
 
-    default: // QUIC_FRAME_STREAM*
-    {
+    default: { // QUIC_FRAME_STREAM*
         QUIC_STREAM_EX Frame;
         if (!QuicStreamFrameDecode(FrameType, BufferLength, Buffer, Offset, &Frame)) {
             return QUIC_STATUS_INVALID_PARAMETER;
@@ -571,7 +574,7 @@ QuicStreamOnBytesDelivered(
         Stream->RecvBuffer.VirtualBufferLength / QUIC_RECV_BUFFER_DRAIN_RATIO;
 
     Stream->RecvWindowBytesDelivered += BytesDelivered;
-    Stream->Connection->Send.MaxData += BytesDelivered;
+    Stream->Connection->Send.MaxData += BytesDelivered; // TODO: Do I need to do something here for 0-RTT?
 
     if (Stream->RecvWindowBytesDelivered >= RecvBufferDrainThreshold) {
 

@@ -520,9 +520,15 @@ typedef struct QUIC_CONNECTION {
     QUIC_DATAGRAM Datagram;
 
     //
-    // Local transport parameters as chosen for the handshake
+    // (Server-only) Transport parameters received during resumption.
     //
-    QUIC_TRANSPORT_PARAMETERS LocalTP;
+    QUIC_TRANSPORT_PARAMETERS* ResumedTP;
+
+    //
+    // (Server-only) Transport parameters used during handshake.
+    // Only non-null when resumption is enabled.
+    //
+    QUIC_TRANSPORT_PARAMETERS* HandshakeTP;
 
     //
     // The handler for the API client's callbacks.

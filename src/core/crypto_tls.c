@@ -995,7 +995,6 @@ QuicCryptoTlsDecodeTransportParameters(
     _In_reads_(TPLen)
         const uint8_t* TPBuf,
     _In_ uint16_t TPLen,
-    _In_ BOOLEAN ClearExisting,
     _Out_ QUIC_TRANSPORT_PARAMETERS* TransportParams
     )
 {
@@ -1003,13 +1002,11 @@ QuicCryptoTlsDecodeTransportParameters(
     uint64_t ParamsPresent = 0;
     uint16_t Offset = 0;
 
-    if (ClearExisting) {
-        QuicZeroMemory(TransportParams, sizeof(QUIC_TRANSPORT_PARAMETERS));
-        TransportParams->MaxPacketSize = QUIC_TP_MAX_PACKET_SIZE_DEFAULT;
-        TransportParams->AckDelayExponent = QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT;
-        TransportParams->MaxAckDelay = QUIC_TP_MAX_ACK_DELAY_DEFAULT;
-        TransportParams->ActiveConnectionIdLimit = QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_DEFAULT;
-    }
+    QuicZeroMemory(TransportParams, sizeof(QUIC_TRANSPORT_PARAMETERS));
+    TransportParams->MaxPacketSize = QUIC_TP_MAX_PACKET_SIZE_DEFAULT;
+    TransportParams->AckDelayExponent = QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT;
+    TransportParams->MaxAckDelay = QUIC_TP_MAX_ACK_DELAY_DEFAULT;
+    TransportParams->ActiveConnectionIdLimit = QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_DEFAULT;
 
     QuicTraceLogConnVerbose(
         DecodeTPStart,
