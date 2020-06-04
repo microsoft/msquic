@@ -92,6 +92,9 @@ QuicSettingsSetDefault(
     if (!Settings->AppSet.MaxBytesPerKey) {
         Settings->MaxBytesPerKey = QUIC_DEFAULT_MAX_BYTES_PER_KEY;
     }
+    if (!Settings->AppSet.ServerResumeOrZeroRtt) {
+        Settings->ServerResumeOrZeroRtt = QUIC_DEFAULT_SERVER_RESUMPTION_OR_ZERORTT;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -175,6 +178,9 @@ QuicSettingsCopy(
     }
     if (!Settings->AppSet.MaxBytesPerKey) {
         Settings->MaxBytesPerKey = ParentSettings->MaxBytesPerKey;
+    }
+    if (!Settings->AppSet.ServerResumeOrZeroRtt) {
+        Settings->ServerResumeOrZeroRtt = ParentSettings->ServerResumeOrZeroRtt;
     }
 }
 
@@ -488,4 +494,5 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpStreamRecvBufferDefault, "[sett] StreamRecvBufferDefault= %u", Settings->StreamRecvBufferDefault);
     QuicTraceLogVerbose(SettingDumpConnFlowControlWindow,   "[sett] ConnFlowControlWindow  = %u", Settings->ConnFlowControlWindow);
     QuicTraceLogVerbose(SettingDumpMaxBytesPerKey,          "[sett] MaxBytesPerKey         = %llu", Settings->MaxBytesPerKey);
+    QuicTraceLogVerbose(SettingDumpServerResumeOrZeroRtt,   "[sett] ServerResumeOrZeroRtt  = %u", Settings->ServerResumeOrZeroRtt);
 }

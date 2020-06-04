@@ -76,9 +76,11 @@ QuicStreamInitialize(
             Stream->Flags.HandleSendShutdown = TRUE;
         }
         if (Opened0Rtt) {
+            QUIC_FRE_ASSERT(Connection->ResumedTP);
             MaxInitialStreamData = Connection->ResumedTP->InitialMaxStreamDataUni;
         }
     } else if (Opened0Rtt) {
+        QUIC_FRE_ASSERT(Connection->ResumedTP);
         MaxInitialStreamData =
             (OpenedRemotely) ?
                 Connection->ResumedTP->InitialMaxStreamDataBidiRemote :

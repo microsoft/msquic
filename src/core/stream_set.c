@@ -562,6 +562,7 @@ QuicStreamSetGetStreamForPeer(
         StreamFlags |= QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL;
     }
     if (FrameIn0Rtt) {
+        QUIC_FRE_ASSERT(Connection->ResumedTP);
         StreamFlags |= QUIC_STREAM_OPEN_FLAG_0_RTT;
         MaxTotalStreamCount =
             STREAM_ID_IS_UNI_DIR(StreamId) ?

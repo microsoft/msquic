@@ -403,6 +403,12 @@ QUIC_STATIC_ASSERT(
 //
 #define QUIC_MAX_RESUMPTION_APP_DATA_LENGTH     1000 
 
+//
+// By default, resumption and 0-RTT are not enabled for servers.
+// If an application want to use these features, it must explicitly enable them.
+//
+#define QUIC_DEFAULT_SERVER_RESUMPTION_OR_ZERORTT QUIC_SERVER_NO_RESUME;
+
 /*************************************************************
                   PERSISTENT SETTINGS
 *************************************************************/

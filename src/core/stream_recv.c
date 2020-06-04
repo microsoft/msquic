@@ -328,11 +328,12 @@ QuicStreamProcessStreamFrame(
         Status = QUIC_STATUS_SUCCESS;
 
     } else {
+        uint64_t MaxData = Stream->Connection->Send.MaxData;
+        if (EncryptedWith0Rtt) {
+            QUIC_FRE_ASSERT(Stream->Connection->ResumedTP);
+            MaxData = Stream->Connection->ResumedTP->InitialMaxData;
+        }
 
-        uint64_t MaxData =
-            (EncryptedWith0Rtt) ?
-                Stream->Connection->ResumedTP->InitialMaxData :
-                Stream->Connection->Send.MaxData;
         //
         // This is initialized to inform QuicRecvBufferWrite of the
         // max number of allowed bytes per connection flow control.

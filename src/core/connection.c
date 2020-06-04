@@ -207,30 +207,31 @@ QuicConnAlloc(
             SourceCid->CID.Length,
             SourceCid->CID.Data);
 
-        // TODO: Check if Session has enabled resumption
-        Connection->HandshakeTP =
-            QuicPoolAlloc(&MsQuicLib.PerProc[CurProcIndex].TransportParamPool);
-        if (Connection->HandshakeTP == NULL) {
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "handshake TP",
-                sizeof(QUIC_TRANSPORT_PARAMETERS));
-            goto Error;
-        }
-        QuicZeroMemory(Connection->HandshakeTP, sizeof(QUIC_TRANSPORT_PARAMETERS));
+        if (Session->Settings.ServerResumeOrZeroRtt) {
+            Connection->HandshakeTP =
+                QuicPoolAlloc(&MsQuicLib.PerProc[CurProcIndex].TransportParamPool);
+            if (Connection->HandshakeTP == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "handshake TP",
+                    sizeof(QUIC_TRANSPORT_PARAMETERS));
+                goto Error;
+            }
+            QuicZeroMemory(Connection->HandshakeTP, sizeof(QUIC_TRANSPORT_PARAMETERS));
 
-        Connection->ResumedTP =
-            QuicPoolAlloc(&MsQuicLib.PerProc[CurProcIndex].TransportParamPool);
-        if (Connection->ResumedTP == NULL) {
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "resumption TP",
-                sizeof(QUIC_TRANSPORT_PARAMETERS));
-            goto Error;
+            Connection->ResumedTP =
+                QuicPoolAlloc(&MsQuicLib.PerProc[CurProcIndex].TransportParamPool);
+            if (Connection->ResumedTP == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "resumption TP",
+                    sizeof(QUIC_TRANSPORT_PARAMETERS));
+                goto Error;
+            }
+            QuicZeroMemory(Connection->ResumedTP, sizeof(QUIC_TRANSPORT_PARAMETERS));
         }
-        QuicZeroMemory(Connection->ResumedTP, sizeof(QUIC_TRANSPORT_PARAMETERS));
 
     } else {
         Connection->Type = QUIC_HANDLE_TYPE_CLIENT;
@@ -5628,6 +5629,60 @@ QuicConnParamSet(
 
         Status = QUIC_STATUS_SUCCESS;
         break;
+
+    case QUIC_PARAM_CONN_SERVER_ENABLE_RESUME_ZERORTT: {
+        if (BufferLength != sizeof(uint8_t) ||
+            *(uint8_t*)Buffer > QUIC_SERVER_RESUME_AND_ZERORTT) {
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                break;
+        }
+
+        if (Connection->State.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        if (*(uint8_t*)Buffer > QUIC_SERVER_NO_RESUME &&
+            Connection->HandshakeTP == NULL && Connection->ResumedTP == NULL) {
+            //
+            // TODO: specific logic to enable/disable 0-RTT
+            //
+            uint8_t CurProcIndex = QuicLibraryGetCurrentPartition(); // N.B. this could result in the wrong pool being used on free()
+
+            Connection->HandshakeTP =
+                QuicPoolAlloc(&MsQuicLib.PerProc[CurProcIndex].TransportParamPool);
+            if (Connection->HandshakeTP == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "handshake TP",
+                    sizeof(QUIC_TRANSPORT_PARAMETERS));
+                Status = QUIC_STATUS_OUT_OF_MEMORY;
+                break;
+            }
+            QuicZeroMemory(Connection->HandshakeTP, sizeof(QUIC_TRANSPORT_PARAMETERS));
+
+            Connection->ResumedTP =
+                QuicPoolAlloc(&MsQuicLib.PerProc[CurProcIndex].TransportParamPool);
+            if (Connection->ResumedTP == NULL) {
+                QuicPoolFree(
+                    &MsQuicLib.PerProc[CurProcIndex].TransportParamPool,
+                    Connection->HandshakeTP);
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "resumption TP",
+                    sizeof(QUIC_TRANSPORT_PARAMETERS));
+                Status = QUIC_STATUS_OUT_OF_MEMORY;
+                break;
+            }
+            QuicZeroMemory(Connection->ResumedTP, sizeof(QUIC_TRANSPORT_PARAMETERS));
+            Status = QUIC_STATUS_SUCCESS;
+        } else {
+            Status = QUIC_STATUS_INVALID_STATE;
+        }
+        break;
+    }
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
