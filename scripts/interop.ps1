@@ -27,6 +27,9 @@ This script runs quicinterop locally.
 .PARAMETER ConvertLogs
     Convert any collected logs to text. Only works when LogProfile is set.
 
+.PARAMETER Target
+    A target to connect to.
+
 .PARAMETER Custom
     A custom hostname to connect to.
 
@@ -66,6 +69,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$ConvertLogs = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$Target = "",
 
     [Parameter(Mandatory = $false)]
     [string]$Custom = "",
@@ -127,6 +133,9 @@ if ($ConvertLogs) {
 }
 
 $ExtraArgs = ""
+if ($Target -ne "") {
+    $ExtraArgs += " -target:$Target"
+}
 if ($Custom -ne "") {
     $ExtraArgs += " -custom:$Custom"
 }
