@@ -9,6 +9,9 @@ This script provides helpers for building msquic.
 .PARAMETER Arch
     The CPU architecture to build for.
 
+.PARAMETER Platform
+    Specify which platform to build for
+
 .PARAMETER Tls
     The TLS library to use.
 
@@ -57,6 +60,10 @@ param (
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
+    [ValidateSet("uwp", "windows", "linux")] # For future expansion
+    [string]$Platform = "",
+
+    [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
     [string]$Tls = "",
 
@@ -97,6 +104,19 @@ if ("" -eq $Tls) {
     }
 }
 
+if ("" -eq $Platform) {
+    if ($IsWindows) {
+        $Platform = "windows"
+    } else {
+        $Platform = "linux"
+    }
+}
+
+if (!$IsWindows -And $Platform -eq "uwp") {
+    Write-Error "[$(Get-Date)] Cannot build uwp on non windows platforms"
+    exit
+}
+
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
@@ -104,15 +124,10 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $BaseArtifactsDir = Join-Path $RootDir "artifacts"
 $BaseBuildDir = Join-Path $RootDir "build"
 $SrcDir = Join-Path $RootDir "src"
-$ArtifactsDir = $null
-$BuildDir = $null
-if ($IsWindows) {
-    $ArtifactsDir = Join-Path $BaseArtifactsDir "windows"
-    $BuildDir = Join-Path $BaseBuildDir "windows"
-} else {
-    $ArtifactsDir = Join-Path $BaseArtifactsDir "linux"
-    $BuildDir = Join-Path $BaseBuildDir "linux"
-}
+
+$ArtifactsDir = Join-Path $BaseArtifactsDir $Platform
+$BuildDir = Join-Path $BaseBuildDir $Platform
+
 $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)"
 $BuildDir = Join-Path $BuildDir "$($Arch)_$($Tls)"
 
@@ -180,6 +195,10 @@ function CMake-Generate {
     }
     if ($PGO) {
         $Arguments += " -DQUIC_PGO=on"
+    }
+    if ($Platform -eq "uwp") {
+        $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
+
     }
     $Arguments += " ../../.."
 

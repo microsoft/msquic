@@ -49,6 +49,7 @@ option(QUIC_BUILD_TEST "Builds the test code" ON)
 option(QUIC_ENABLE_LOGGING "Enables logging" ON)
 option(QUIC_SANITIZE_ADDRESS "Enables address sanitizer" OFF)
 option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
+option(QUIC_UWP_BUILD "Build for UWP" OFF)
 option(QUIC_PGO "Enables profile guided optimizations" OFF)
 
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
@@ -87,6 +88,11 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 
     # Custom build flags.
     set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 /MP")
+
+    if(QUIC_UWP_BUILD)
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DWINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP -DQUIC_UWP_BUILD")
+    endif()
+
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for manifested ETW events and logging")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW")
