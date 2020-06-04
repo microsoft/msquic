@@ -1099,7 +1099,7 @@ QuicBindingShouldRetryConnection(
     uint64_t CurrentMemoryLimit =
         (MsQuicLib.Settings.RetryMemoryLimit * QuicTotalMemory) / UINT16_MAX;
 
-    return MsQuicLib.CurrentHandshakeMemoryUsage > CurrentMemoryLimit;
+    return MsQuicLib.CurrentHandshakeMemoryUsage >= CurrentMemoryLimit;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

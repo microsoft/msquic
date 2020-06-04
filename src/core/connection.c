@@ -2023,6 +2023,7 @@ QuicConnHandshakeConfigure(
                 Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount;
         }
 
+
         if (Connection->OrigDestCID != NULL) {
             QUIC_DBG_ASSERT(Connection->OrigDestCID->Length <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
             LocalTP.Flags |= QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID;
@@ -2033,6 +2034,37 @@ QuicConnHandshakeConfigure(
                 Connection->OrigDestCID->Length);
             QUIC_FREE(Connection->OrigDestCID);
             Connection->OrigDestCID = NULL;
+
+            if (Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27) {
+                LocalTP.Flags |= QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID;
+                LocalTP.RetrySourceConnectionIDLength = SourceCid->CID.Length; // TODO
+                QuicCopyMemory(
+                    LocalTP.RetrySourceConnectionID,
+                    SourceCid->CID.Data,
+                    SourceCid->CID.Length);
+            }
+        } else if (Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27) {
+            const QUIC_CID_QUIC_LIST_ENTRY* DestCid =
+                QUIC_CONTAINING_RECORD(
+                    Connection->DestCids.Flink->Flink,
+                    QUIC_CID_QUIC_LIST_ENTRY,
+                    Link);
+            QUIC_DBG_ASSERT(DestCid->CID.Length <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
+            LocalTP.Flags |= QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID;
+            LocalTP.OriginalDestinationConnectionIDLength = DestCid->CID.Length;
+            QuicCopyMemory(
+                LocalTP.OriginalDestinationConnectionID,
+                DestCid->CID.Data,
+                DestCid->CID.Length);
+        }
+
+        if (Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27) {
+            LocalTP.Flags |= QUIC_TP_FLAG_INITIAL_SOURCE_CONNECTION_ID;
+            LocalTP.InitialSourceConnectionIDLength = SourceCid->CID.Length;
+            QuicCopyMemory(
+                LocalTP.InitialSourceConnectionID,
+                SourceCid->CID.Data,
+                SourceCid->CID.Length);
         }
 
         if (Connection->Datagram.ReceiveEnabled) {
@@ -2227,64 +2259,81 @@ QuicConnValidateTransportParameterCIDs(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    UNREFERENCED_PARAMETER(Connection);
-    /*if (Connection->State.ReceivedRetryPacket) {
-        QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
-        QUIC_DBG_ASSERT(Connection->OrigDestCID != NULL);
-        QUIC_DBG_ASSERT(!FromCache);
-        //
-        // If we received a Retry packet during the handshake, we (the client)
-        // must validate that the server knew the original connection ID we sent,
-        // so that we can be sure that no middle box injected the Retry packet.
-        //
-        BOOLEAN ValidOrigCID = FALSE;
+    if (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_INITIAL_SOURCE_CONNECTION_ID)) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Peer didn't provide the initial source CID in TP");
+        return FALSE;
+    }
+    const QUIC_CID_QUIC_LIST_ENTRY* DestCid =
+        QUIC_CONTAINING_RECORD(
+            Connection->DestCids.Flink,
+            QUIC_CID_QUIC_LIST_ENTRY,
+            Link);
+    if (DestCid->CID.Length != Connection->PeerTransportParams.InitialSourceConnectionIDLength ||
+        memcmp(DestCid->CID.Data, Connection->PeerTransportParams.InitialSourceConnectionID, DestCid->CID.Length) != 0) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Initial source CID from TP doesn't match");
+        return FALSE;
+    }
+
+    if (!QuicConnIsServer(Connection)) {
         if (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID)) {
             QuicTraceEvent(
                 ConnError,
                 "[conn][%p] ERROR, %s.",
                 Connection,
-                "Peer didn't provide the original destination CID in TP");
-        } else if (Connection->PeerTransportParams.OriginalDestinationConnectionIDLength != Connection->OrigDestCID->Length) {
+                "Server didn't provide the original destination CID in TP");
+            return FALSE;
+        }
+        /*const QUIC_CID* OrigDestCid =
+            Connection->OrigDestCID ?
+                Connection->OrigDestCID :
+                &QUIC_CONTAINING_RECORD(
+                    Connection->SourceCids.Next,
+                    QUIC_CID_HASH_ENTRY,
+                    Link)->CID;
+        if (OrigDestCid->Length != Connection->PeerTransportParams.OriginalDestinationConnectionIDLength ||
+            memcmp(OrigDestCid->Data, Connection->PeerTransportParams.OriginalDestinationConnectionID, OrigDestCid->Length) != 0) {
             QuicTraceEvent(
                 ConnError,
                 "[conn][%p] ERROR, %s.",
                 Connection,
-                "Peer provided incorrect length of original destination CID in TP");
-        } else if (
-            memcmp(
-                Connection->PeerTransportParams.OriginalDestinationConnectionID,
-                Connection->OrigDestCID->Data,
-                Connection->OrigDestCID->Length) != 0) {
-            QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Peer provided incorrect original destination CID in TP");
-        } else {
-            ValidOrigCID = TRUE;
+                "Original destination CID from TP doesn't match");
+            return FALSE;
+        }*/
+        if (Connection->OrigDestCID != NULL) {
             QUIC_FREE(Connection->OrigDestCID);
             Connection->OrigDestCID = NULL;
         }
-
-        if (!ValidOrigCID) {
-            goto Error;
+        if (Connection->State.ReceivedRetryPacket) {
+            if (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID)) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Server didn't provide the retry source CID in TP");
+                return FALSE;
+            }
+            // TODO - Validate
+        } else {
+            if (Connection->State.ReceivedRetryPacket) {
+                if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID) {
+                    QuicTraceEvent(
+                        ConnError,
+                        "[conn][%p] ERROR, %s.",
+                        Connection,
+                        "Server incorrectly provided the retry source CID in TP");
+                    return FALSE;
+                }
+            }
         }
-
-    } else if (!QuicConnIsServer(Connection)) {
-        //
-        // Per spec, the client must validate no original destination CID TP
-        // was sent if no Retry occurred. No need to validate cached values, as
-        // they don't apply to the current connection attempt.
-        //
-        if (!!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID)) {
-            QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Peer provided the original destination CID in TP when no Retry occurred");
-            goto Error;
-        }
-    }*/
+    }
     return TRUE;
 }
 
