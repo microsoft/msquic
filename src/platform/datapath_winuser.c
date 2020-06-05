@@ -2679,6 +2679,11 @@ QuicDataPathWorkerThread(
 {
     QUIC_DATAPATH_PROC_CONTEXT* ProcContext = (QUIC_DATAPATH_PROC_CONTEXT*)CompletionContext;
 
+    QuicTraceEvent(
+        DatapathWorkerStart,
+        "[dpwrkr][%p] Start",
+        ProcContext);
+
     QUIC_DBG_ASSERT(ProcContext != NULL);
     QUIC_DBG_ASSERT(ProcContext->Datapath != NULL);
 
@@ -2757,6 +2762,11 @@ QuicDataPathWorkerThread(
                 IoResult);
         }
     }
+
+    QuicTraceEvent(
+        DatapathWorkerStop,
+        "[dpwrkr][%p] Stop",
+        ProcContext);
 
     return NO_ERROR;
 }

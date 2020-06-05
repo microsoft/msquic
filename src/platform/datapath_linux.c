@@ -2179,6 +2179,11 @@ QuicDataPathWorkerThread(
     QUIC_DATAPATH_PROC_CONTEXT* ProcContext = (QUIC_DATAPATH_PROC_CONTEXT*)Context;
     QUIC_DBG_ASSERT(ProcContext != NULL && ProcContext->Datapath != NULL);
 
+    QuicTraceEvent(
+        DatapathWorkerStart,
+        "[dpwrkr][%p] Start",
+        ProcContext);
+
     const size_t EpollEventCtMax = 16; // TODO: Experiment.
     struct epoll_event EpollEvents[EpollEventCtMax];
 
@@ -2208,6 +2213,11 @@ QuicDataPathWorkerThread(
                 EpollEvents[i].events);
         }
     }
+
+    QuicTraceEvent(
+        DatapathWorkerStop,
+        "[dpwrkr][%p] Stop",
+        ProcContext);
 
     return NO_ERROR;
 }
