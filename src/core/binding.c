@@ -55,6 +55,7 @@ QuicBindingInitialize(
             "QUIC_BINDING",
             sizeof(QUIC_BINDING));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
+        printf("%s:%d\n", __FILE__, __LINE__);
         goto Error;
     }
 
@@ -99,6 +100,7 @@ QuicBindingInitialize(
 #ifdef QUIC_COMPARTMENT_ID
     Binding->CompartmentId = CompartmentId;
 
+        printf("%s:%d\n", __FILE__, __LINE__);
     BOOLEAN RevertCompartmentId = FALSE;
     QUIC_COMPARTMENT_ID PrevCompartmentId = QuicCompartmentIdGetCurrent();
     if (PrevCompartmentId != CompartmentId) {
@@ -110,6 +112,7 @@ QuicBindingInitialize(
                 Binding,
                 Status,
                 "Set current compartment Id");
+        printf("%s:%d\n", __FILE__, __LINE__);
             goto Error;
         }
         RevertCompartmentId = TRUE;
@@ -131,6 +134,7 @@ QuicBindingInitialize(
 #endif
 
     if (QUIC_FAILED(Status)) {
+        printf("%s:%d\n", __FILE__, __LINE__);
         QuicTraceEvent(
             BindingErrorStatus,
             "[bind][%p] ERROR, %u, %s.",
@@ -155,6 +159,7 @@ QuicBindingInitialize(
 
     *NewBinding = Binding;
     Status = QUIC_STATUS_SUCCESS;
+        printf("%s:%d\n", __FILE__, __LINE__);
 
 Error:
 

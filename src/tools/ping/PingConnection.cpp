@@ -294,6 +294,7 @@ PingConnection::ProcessEvent(
 
             uint64_t ElapsedMicroseconds = ConnectTime - StartTime;
 
+            __asm__("int3");
             printf("[%p] Failed to connect: %s (0x%x) in %u.%03u milliseconds.\n",
                 QuicConnection,
                 QuicStatusToString(Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status),

@@ -145,9 +145,12 @@ typedef struct in6_addr IN6_ADDR;
 typedef struct addrinfo ADDRINFO;
 typedef sa_family_t QUIC_ADDRESS_FAMILY;
 
-typedef union QUIC_ADDR {
-    struct sockaddr_in Ipv4;
-    struct sockaddr_in6 Ipv6;
+// This structure is awful; It's expected to be a union in other places, 
+typedef struct QUIC_ADDR {
+    union {
+        struct sockaddr_in Ipv4;
+        struct sockaddr_in6 Ipv6;
+    };
     sa_family_t si_family;
 } QUIC_ADDR;
 

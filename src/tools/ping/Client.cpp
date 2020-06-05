@@ -70,6 +70,7 @@ void QuicPingClientRun()
 
         delete[] Connections;
 
+        printf("PingCOnfig.Client.WaitTimeout: %d\n", PingConfig.Client.WaitTimeout);
         if (Tracker.Wait(PingConfig.Client.WaitTimeout)) {
             printf("Cancelling remaining connections.\n");
             Session.Cancel();

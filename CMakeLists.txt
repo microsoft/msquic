@@ -135,7 +135,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 else()
     # Custom build flags.
 
-    set(QUIC_COMMON_FLAGS "-fms-extensions -fPIC -pthread -g -Og")
+    set(QUIC_COMMON_FLAGS "-fms-extensions -fPIC -pthread -g -O0 -fno-inline -fno-omit-frame-pointer -glldb")
     if (QUIC_PLATFORM STREQUAL "darwin")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_PLATFORM_DARWIN -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wmissing-field-initializers")
     else()
@@ -163,7 +163,7 @@ else()
 
     if(QUIC_SANITIZE_ADDRESS)
         message(STATUS "Configuring address sanitizer")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -fsanitize=address -fno-omit-frame-pointer -Wno-maybe-uninitialized -O0 -Og -g")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -fsanitize=address -fno-omit-frame-pointer -O0 -g")
     endif()
 
     if(QUIC_TLS STREQUAL "stub")

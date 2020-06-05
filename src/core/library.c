@@ -1184,10 +1184,12 @@ QuicLibraryGetBinding(
             Status = QUIC_STATUS_SUCCESS;
         }
     }
+        printf("%s:%d\n", __FILE__, __LINE__);
 
     QuicDispatchLockRelease(&MsQuicLib.DatapathLock);
 
     if (Status != QUIC_STATUS_NOT_FOUND) {
+        printf("%s:%d\n", __FILE__, __LINE__);
         goto Exit;
     }
 
@@ -1208,6 +1210,7 @@ NewBinding:
             RemoteAddress,
             NewBinding);
     if (QUIC_FAILED(Status)) {
+        printf("%s:%d\n", __FILE__, __LINE__);
         goto Exit;
     }
 
@@ -1258,11 +1261,13 @@ NewBinding:
     }
 
     QuicDispatchLockRelease(&MsQuicLib.DatapathLock);
+        printf("%s:%d\n", __FILE__, __LINE__);
 
     if (Binding != NULL) {
         if (Binding->Exclusive) {
             Status = QUIC_STATUS_INVALID_STATE;
         } else {
+        printf("%s:%d\n", __FILE__, __LINE__);
             (*NewBinding)->RefCount--;
             QuicBindingUninitialize(*NewBinding);
             *NewBinding = Binding;
