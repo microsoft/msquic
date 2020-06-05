@@ -327,7 +327,7 @@ QuicPacketGenerateRetryV1Integrity(
     }
 
     uint16_t RetryPseudoPacketLength = sizeof(uint8_t) + OrigDestCidLength + BufferLength;
-    RetryPseudoPacket = (uint8_t*) QUIC_ALLOC_PAGED(RetryPseudoPacketLength);
+    RetryPseudoPacket = (uint8_t*)QUIC_ALLOC_PAGED(RetryPseudoPacketLength);
     if (RetryPseudoPacket == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -425,7 +425,7 @@ QuicPacketEncodeRetryV1(
             OrigDestCidLength,
             OrigDestCid,
             RequiredBufferLength - QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1,
-            (uint8_t*) Header,
+            (uint8_t*)Header,
             HeaderBuffer))) {
         return 0;
     }

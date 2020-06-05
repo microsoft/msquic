@@ -2768,7 +2768,7 @@ QuicConnRecvRetry(
     if (QUIC_FAILED(
         QuicPacketGenerateRetryV1Integrity(
             DestCid->CID.Length,
-             DestCid->CID.Data,
+            DestCid->CID.Data,
             Packet->BufferLength - QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1,
             Packet->Buffer,
             CalculatedIntegrityValue))) {
