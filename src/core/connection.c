@@ -372,15 +372,15 @@ QuicConnFree(
         QuicLibraryReleaseBinding(Path->Binding);
         Path->Binding = NULL;
     }
-    if (Connection->Registration != NULL) {
-        QuicRundownRelease(&Connection->Registration->ConnectionRundown);
-    }
     QuicDispatchLockUninitialize(&Connection->ReceiveQueueLock);
     QuicOperationQueueUninitialize(&Connection->OperQ);
     QuicStreamSetUninitialize(&Connection->Streams);
     QuicSendBufferUninitialize(&Connection->SendBuffer);
     QuicDatagramUninitialize(&Connection->Datagram);
     QuicSessionUnregisterConnection(Connection);
+    if (Connection->Registration != NULL) {
+        QuicRundownRelease(&Connection->Registration->ConnectionRundown);
+    }
     Connection->State.Freed = TRUE;
     if (Connection->RemoteServerName != NULL) {
         QUIC_FREE(Connection->RemoteServerName);
