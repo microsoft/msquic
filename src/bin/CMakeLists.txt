@@ -42,6 +42,7 @@ set(PUBLIC_HEADERS
     ../inc/msquic.h
     ../inc/msquic_winuser.h
     ../inc/msquic_linux.h
+    ../inc/quic_sal_stub.h
 )
 
 install(TARGETS msquic EXPORT msquic DESTINATION "${main_lib_dest}")
