@@ -202,9 +202,9 @@ QuicPacketBuilderPrepare(
             MaxUdpPayloadSizeForFamily(
                 QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                 IsPathMtuDiscovery ? QUIC_MAX_MTU : DatagramSize);
-        if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_PACKET_SIZE) &&
-            NewDatagramLength > Connection->PeerTransportParams.MaxPacketSize) {
-            NewDatagramLength = (uint16_t)Connection->PeerTransportParams.MaxPacketSize;
+        if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE) &&
+            NewDatagramLength > Connection->PeerTransportParams.MaxUdpPayloadSize) {
+            NewDatagramLength = (uint16_t)Connection->PeerTransportParams.MaxUdpPayloadSize;
         }
 
         Builder->Datagram =
@@ -300,6 +300,7 @@ QuicPacketBuilderPrepare(
 
             switch (Connection->Stats.QuicVersion) {
             case QUIC_VERSION_DRAFT_27:
+            case QUIC_VERSION_DRAFT_28:
             case QUIC_VERSION_MS_1:
                 Builder->HeaderLength =
                     QuicPacketEncodeShortHeaderV1(
@@ -322,6 +323,7 @@ QuicPacketBuilderPrepare(
 
             switch (Connection->Stats.QuicVersion) {
             case QUIC_VERSION_DRAFT_27:
+            case QUIC_VERSION_DRAFT_28:
             case QUIC_VERSION_MS_1:
             default:
                 Builder->HeaderLength =
@@ -654,6 +656,7 @@ QuicPacketBuilderFinalize(
     if (Builder->PacketType != SEND_PACKET_SHORT_HEADER_TYPE) {
         switch (Connection->Stats.QuicVersion) {
         case QUIC_VERSION_DRAFT_27:
+        case QUIC_VERSION_DRAFT_28:
         case QUIC_VERSION_MS_1:
         default:
             QuicVarIntEncode2Bytes(

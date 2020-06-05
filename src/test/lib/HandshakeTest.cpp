@@ -213,6 +213,10 @@ QuicTestConnect(
                     TEST_EQUAL(Server->GetQuicVersion(), LATEST_SUPPORTED_VERSION);
                 }
 
+                if (ServerStatelessRetry) {
+                    TEST_TRUE(Client.GetStatistics().StatelessRetry);
+                }
+
                 if (SessionResumption) {
                     TEST_TRUE(Client.GetResumed());
                     TEST_TRUE(Server->GetResumed());

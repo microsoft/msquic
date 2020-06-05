@@ -27,6 +27,18 @@ This script runs quicinterop locally.
 .PARAMETER ConvertLogs
     Convert any collected logs to text. Only works when LogProfile is set.
 
+.PARAMETER Target
+    A target to connect to.
+
+.PARAMETER Custom
+    A custom hostname to connect to.
+
+.PARAMETER Port
+    A UDP port to connect to.
+
+.PARAMETER Test
+    A particular test case to run.
+
 #>
 
 param (
@@ -56,7 +68,19 @@ param (
     [string]$LogProfile = "None",
 
     [Parameter(Mandatory = $false)]
-    [switch]$ConvertLogs = $false
+    [switch]$ConvertLogs = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$Target = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$Custom = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$Port = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$Test = ""
 )
 
 Set-StrictMode -Version 'Latest'
@@ -106,6 +130,24 @@ if ("None" -ne $LogProfile) {
 }
 if ($ConvertLogs) {
     $Arguments += " -ConvertLogs"
+}
+
+$ExtraArgs = ""
+if ($Target -ne "") {
+    $ExtraArgs += " -target:$Target"
+}
+if ($Custom -ne "") {
+    $ExtraArgs += " -custom:$Custom"
+}
+if ($Port -ne "") {
+    $ExtraArgs += " -port:$Port"
+}
+if ($Test -ne "") {
+    $ExtraArgs += " -test:$Test"
+}
+
+if ($ExtraArgs -ne "") {
+    $Arguments += " -Arguments `"$ExtraArgs`""
 }
 
 # Run the script.

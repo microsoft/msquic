@@ -1448,12 +1448,12 @@ QuicEncrypt(
         uint8_t* Buffer
     )
 {
-    UNREFERENCED_PARAMETER(Key);
     UNREFERENCED_PARAMETER(Iv);
     UNREFERENCED_PARAMETER(AuthDataLength);
     UNREFERENCED_PARAMETER(AuthData);
     uint16_t PlainTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
-    *(uint64_t*)(Buffer + PlainTextLength) = Key->Secret;
+    ((uint64_t*)(Buffer + PlainTextLength))[0] = Key->Secret;
+    ((uint64_t*)(Buffer + PlainTextLength))[1] = 0;
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -1471,7 +1471,6 @@ QuicDecrypt(
         uint8_t* Buffer
     )
 {
-    UNREFERENCED_PARAMETER(Key);
     UNREFERENCED_PARAMETER(Iv);
     UNREFERENCED_PARAMETER(AuthDataLength);
     UNREFERENCED_PARAMETER(AuthData);

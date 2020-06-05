@@ -1099,7 +1099,7 @@ QuicBindingShouldRetryConnection(
     uint64_t CurrentMemoryLimit =
         (MsQuicLib.Settings.RetryMemoryLimit * QuicTotalMemory) / UINT16_MAX;
 
-    return MsQuicLib.CurrentHandshakeMemoryUsage > CurrentMemoryLimit;
+    return MsQuicLib.CurrentHandshakeMemoryUsage >= CurrentMemoryLimit;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1326,6 +1326,7 @@ QuicBindingDeliverDatagrams(
         //
         switch (Packet->Invariant->LONG_HDR.Version) {
         case QUIC_VERSION_DRAFT_27:
+        case QUIC_VERSION_DRAFT_28:
         case QUIC_VERSION_MS_1:
             if (Packet->LH->Type != QUIC_INITIAL) {
                 QuicPacketLogDrop(Binding, Packet, "Non-initial packet not matched with a connection");

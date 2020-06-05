@@ -8,7 +8,7 @@
 //
 // The list of supported QUIC version numbers, in network byte order.
 //
-extern const uint32_t QuicSupportedVersionList[2];
+extern const uint32_t QuicSupportedVersionList[3];
 
 //
 // Version specific salts.
@@ -234,6 +234,7 @@ QuicPacketIsHandshake(
 
     switch (Packet->LONG_HDR.Version) {
         case QUIC_VERSION_DRAFT_27:
+        case QUIC_VERSION_DRAFT_28:
         case QUIC_VERSION_MS_1:
             return ((QUIC_LONG_HEADER_V1*)Packet)->Type != QUIC_0_RTT_PROTECTED;
         default:

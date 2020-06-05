@@ -421,7 +421,7 @@ typedef struct QUIC_CONNECTION {
     //
     // The original CID used by the Client in its first Initial packet.
     //
-    QUIC_CID* OrigCID;
+    QUIC_CID* OrigDestCID;
 
     //
     // Sorted array of all timers for the connection.
