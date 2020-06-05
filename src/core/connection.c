@@ -479,6 +479,8 @@ QuicConnUninitialize(
         QuicBindingRemoveConnection(Connection->Paths[0].Binding, Connection);
     }
 
+    // Rundown all the binding connections
+
     //
     // Clean up the packet space first, to return any deferred received
     // packets back to the binding.

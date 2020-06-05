@@ -377,7 +377,7 @@ QuicAddr4FromString(
         }
 
         char TmpAddrStr[16];
-        ptrdiff_t AddrLength = PortStart - AddrStr;
+        size_t AddrLength = PortStart - AddrStr;
         if (AddrLength >= sizeof(TmpAddrStr)) {
             return FALSE;
         }
@@ -409,9 +409,9 @@ QuicAddr6FromString(
         if (BracketEnd == NULL || *(BracketEnd+1) != ':') {
             return FALSE;
         }
+        
         char TmpAddrStr[64];
-
-        ptrdiff_t AddrLength = BracketEnd - AddrStr;
+        size_t AddrLength = BracketEnd - AddrStr;
         if (AddrLength >= sizeof(TmpAddrStr)) {
             return FALSE;
         }
