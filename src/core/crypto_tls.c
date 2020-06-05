@@ -739,11 +739,11 @@ QuicCryptoTlsEncodeTransportParameters(
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID) {
         QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
-        QUIC_FRE_ASSERT(TransportParams->InitialSourceConnectionIDLength <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
+        QUIC_FRE_ASSERT(TransportParams->RetrySourceConnectionIDLength <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
         RequiredTPLen +=
             TlsTransportParamLength(
                 QUIC_TP_ID_RETRY_SOURCE_CONNECTION_ID,
-                TransportParams->InitialSourceConnectionIDLength);
+                TransportParams->RetrySourceConnectionIDLength);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE) {
         RequiredTPLen +=
@@ -1481,7 +1481,7 @@ QuicCryptoTlsDecodeTransportParameters(
                     "[conn][%p] ERROR, %u, %s.",
                     Connection,
                     Length,
-                    "Invalid length of QUIC_TP_IDINITIAL_SOURCE_CONNECTION_ID");
+                    "Invalid length of QUIC_TP_ID_INITIAL_SOURCE_CONNECTION_ID");
                 goto Exit;
             }
             TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_SOURCE_CONNECTION_ID;
