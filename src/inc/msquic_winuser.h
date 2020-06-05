@@ -19,11 +19,6 @@ Environment:
 #ifndef _MSQUIC_WINUSER_
 #define _MSQUIC_WINUSER_
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
-#include <windows.h>
 #include <ws2def.h>
 #include <ws2ipdef.h>
 #include <ws2tcpip.h>
