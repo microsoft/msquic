@@ -369,22 +369,30 @@ QuicAddr4FromString(
     if (AddrStr[0] == '[') {
         return FALSE;
     }
-    char* PortStart = strchr(AddrStr, ':');
+    char* AddrStrCopy = malloc(strlen(AddrStr) + 1);
+    if (!AddrStrCopy) {
+        return FALSE;
+    }
+    char* PortStart = strchr(AddrStrCopy, ':');
     if (PortStart != NULL) {
         if (strchr(PortStart+1, ':') != NULL) {
+            free(AddrStrCopy);
             return FALSE;
         }
         *PortStart = '\0';
-        if (inet_pton(AF_INET, AddrStr, &Addr->Ipv4.sin_addr) != 1) {
+        if (inet_pton(AF_INET, AddrStrCopy, &Addr->Ipv4.sin_addr) != 1) {
+            free(AddrStrCopy);
             return FALSE;
         }
         *PortStart = ':';
         Addr->Ipv4.sin_port = htons(atoi(PortStart+1));
     } else {
-        if (inet_pton(AF_INET, AddrStr, &Addr->Ipv4.sin_addr) != 1) {
+        if (inet_pton(AF_INET, AddrStrCopy, &Addr->Ipv4.sin_addr) != 1) {
+            free(AddrStrCopy);
             return FALSE;
         }
     }
+    free(AddrStrCopy);
     Addr->si_family = AF_INET;
     return TRUE;
 }
@@ -396,17 +404,25 @@ QuicAddr6FromString(
     _Out_ QUIC_ADDR* Addr
     )
 {
-    if (AddrStr[0] == '[') {
-        char* BracketEnd = strchr(AddrStr, ']');
+    if (AddrStrCopy[0] == '[') {
+        char* AddrStrCopy = malloc(strlen(AddrStr) + 1);
+        if (!AddrStrCopy) {
+            return FALSE;
+        }
+        strcpy(AddrStrCopy, AddrStr);
+        char* BracketEnd = strchr(AddrStrCopy, ']');
         if (BracketEnd == NULL || *(BracketEnd+1) != ':') {
+            free(AddrStrCopy);
             return FALSE;
         }
         *BracketEnd = '\0';
-        if (inet_pton(AF_INET6, AddrStr+1, &Addr->Ipv6.sin6_addr) != 1) {
+        if (inet_pton(AF_INET6, AddrStrCopy+1, &Addr->Ipv6.sin6_addr) != 1) {
+            free(AddrStrCopy);
             return FALSE;
         }
         *BracketEnd = ']';
         Addr->Ipv6.sin6_port = htons(atoi(BracketEnd+2));
+        free(AddrStrCopy);
     } else {
         if (inet_pton(AF_INET6, AddrStr, &Addr->Ipv6.sin6_addr) != 1) {
             return FALSE;
