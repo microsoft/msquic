@@ -68,6 +68,7 @@ MsQuicRegistrationOpen(
     QuicLockInitialize(&Registration->Lock);
     QuicListInitializeHead(&Registration->Sessions);
     QuicRundownInitialize(&Registration->SecConfigRundown);
+    QuicRundownInitialize(&Registration->ConnectionRundown);
     Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
     if (AppNameLength != 0) {
         QuicCopyMemory(Registration->AppName, Config->AppName, AppNameLength + 1);
@@ -139,6 +140,7 @@ Error:
 
     if (Registration != NULL) {
         QuicRundownUninitialize(&Registration->SecConfigRundown);
+        QuicRundownUninitialize(&Registration->ConnectionRundown);
         QuicLockUninitialize(&Registration->Lock);
         QUIC_FREE(Registration);
     }
@@ -192,10 +194,13 @@ MsQuicRegistrationClose(
     QuicListEntryRemove(&Registration->Link);
     QuicLockRelease(&MsQuicLib.Lock);
 
+    QuicRundownReleaseAndWait(&Registration->ConnectionRundown);
+
     QuicWorkerPoolUninitialize(Registration->WorkerPool);
     QuicRundownReleaseAndWait(&Registration->SecConfigRundown);
 
     QuicRundownUninitialize(&Registration->SecConfigRundown);
+    QuicRundownUninitialize(&Registration->ConnectionRundown);
     QuicLockUninitialize(&Registration->Lock);
 
     if (Registration->CidPrefix != NULL) {
