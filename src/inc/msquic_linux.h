@@ -369,7 +369,7 @@ QuicAddr4FromString(
     if (AddrStr[0] == '[') {
         return FALSE;
     }
-    char* AddrStrCopy = malloc(strlen(AddrStr) + 1);
+    char* AddrStrCopy = (char*)malloc(strlen(AddrStr) + 1);
     if (!AddrStrCopy) {
         return FALSE;
     }
@@ -405,7 +405,7 @@ QuicAddr6FromString(
     )
 {
     if (AddrStr[0] == '[') {
-        char* AddrStrCopy = malloc(strlen(AddrStr) + 1);
+        char* AddrStrCopy = (char*)malloc(strlen(AddrStr) + 1);
         if (!AddrStrCopy) {
             return FALSE;
         }
