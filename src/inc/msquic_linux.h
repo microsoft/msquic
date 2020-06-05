@@ -404,7 +404,7 @@ QuicAddr6FromString(
     _Out_ QUIC_ADDR* Addr
     )
 {
-    if (AddrStrCopy[0] == '[') {
+    if (AddrStr[0] == '[') {
         char* AddrStrCopy = malloc(strlen(AddrStr) + 1);
         if (!AddrStrCopy) {
             return FALSE;
