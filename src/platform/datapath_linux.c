@@ -2181,7 +2181,7 @@ QuicDataPathWorkerThread(
 
     QuicTraceEvent(
         DatapathWorkerStart,
-        "[dpwrkr][%p] Start",
+        "[ udp][%p] Worker start",
         ProcContext);
 
     const size_t EpollEventCtMax = 16; // TODO: Experiment.
@@ -2216,7 +2216,7 @@ QuicDataPathWorkerThread(
 
     QuicTraceEvent(
         DatapathWorkerStop,
-        "[dpwrkr][%p] Stop",
+        "[ udp][%p] Worker stop",
         ProcContext);
 
     return NO_ERROR;
