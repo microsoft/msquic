@@ -37,10 +37,6 @@ message(STATUS "System name: ${CMAKE_SYSTEM_NAME}")
 message(STATUS "System version: ${CMAKE_SYSTEM_VERSION}")
 message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND MSVC)
-    set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "Default install dir on windows" FORCE)
-endif()
-
 # Setup for Install. We set this up in here rather then in the main library folder for future use.
 # i.e. don't skip the full RPATH for the build tree
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
