@@ -2042,12 +2042,19 @@ QuicConnHandshakeConfigure(
             Connection->OrigDestCID = NULL;
 
             if (Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27) {
+                QUIC_DBG_ASSERT(SourceCid->Link.Next != NULL);
+                const QUIC_CID_HASH_ENTRY* PrevSourceCid =
+                    QUIC_CONTAINING_RECORD(
+                        SourceCid->Link.Next,
+                        QUIC_CID_HASH_ENTRY,
+                        Link);
+
                 LocalTP.Flags |= QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID;
-                LocalTP.RetrySourceConnectionIDLength = SourceCid->CID.Length; // TODO - Is this correct?
+                LocalTP.RetrySourceConnectionIDLength = PrevSourceCid->CID.Length;
                 QuicCopyMemory(
                     LocalTP.RetrySourceConnectionID,
-                    SourceCid->CID.Data,
-                    SourceCid->CID.Length);
+                    PrevSourceCid->CID.Data,
+                    PrevSourceCid->CID.Length);
             }
         }
 
