@@ -37,29 +37,40 @@ message(STATUS "System name: ${CMAKE_SYSTEM_NAME}")
 message(STATUS "System version: ${CMAKE_SYSTEM_VERSION}")
 message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 
-# Setup for Install. We set this up in here rather then in the main library folder for future use.
-# i.e. don't skip the full RPATH for the build tree
-set(CMAKE_SKIP_BUILD_RPATH FALSE)
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    # On Windows, we just need to set the destination variables
+    # This will allow the build to be picked up by other projects
+    set(msquic_dest ${CMAKE_INSTALL_PREFIX})
+    set(main_lib_dest lib)
+    set(include_dest include)
+else()
+    # On unix platforms, we need to do rpath manipulation for the shared library
+    # In addition, we install into a subfolder of install to not polute the global namespace
 
-# When building, don't use the install RPATH already
-# (but later on when installing)
-set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+    # Setup for Install. We set this up in here rather then in the main library folder for future use.
+    # i.e. don't skip the full RPATH for the build tree
+    set(CMAKE_SKIP_BUILD_RPATH FALSE)
 
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
+    # When building, don't use the install RPATH already
+    # (but later on when installing)
+    set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 
-# Add the automatically determined parts of the RPATH
-# which point to directories outside the build tree to the install RPATH
-set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
 
-# The RPATH to be used when installing, but only if it's not a system directory
-list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/msquic/lib" isSystemDir)
-if("${isSystemDir}" STREQUAL "-1")
-   set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
-endif("${isSystemDir}" STREQUAL "-1")
+    # Add the automatically determined parts of the RPATH
+    # which point to directories outside the build tree to the install RPATH
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-set(msquic_dest msquic)
-set(main_lib_dest msquic/lib)
-set(include_dest msquic/include)
+    # The RPATH to be used when installing, but only if it's not a system directory
+    list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/msquic/lib" isSystemDir)
+    if("${isSystemDir}" STREQUAL "-1")
+    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
+    endif("${isSystemDir}" STREQUAL "-1")
+
+    set(msquic_dest msquic)
+    set(main_lib_dest msquic/lib)
+    set(include_dest msquic/include)
+endif()
 
 set(FILENAME_DEP_REPLACE "get_filename_component(SELF_DIR \"$\{CMAKE_CURRENT_LIST_FILE\}\" PATH)")
 set(SELF_DIR "$\{SELF_DIR\}")
