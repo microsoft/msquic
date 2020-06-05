@@ -20,6 +20,9 @@ include_directories(${PROJECT_SOURCE_DIR}/src/test)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 
 add_library(testlib ${SOURCES})
+
+set_property(TARGET testlib PROPERTY FOLDER "tests")
+
 target_compile_options(testlib PRIVATE
      $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
         ${CLANG_GCC_WARNING_FLAGS}>

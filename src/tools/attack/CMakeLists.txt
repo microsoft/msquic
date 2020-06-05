@@ -12,6 +12,8 @@ include_directories(${PROJECT_SOURCE_DIR}/src/core)
 
 add_executable(quicattack ${SOURCES})
 
+set_property(TARGET quicattack PROPERTY FOLDER "tools")
+
 target_link_libraries(quicattack msquic core platform)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")

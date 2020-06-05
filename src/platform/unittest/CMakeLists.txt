@@ -16,6 +16,8 @@ set(SOURCES
 
 add_executable(msquicplatformtest ${SOURCES})
 
+set_property(TARGET msquicplatformtest PROPERTY FOLDER "tests")
+
 if(WIN32)
     target_link_libraries(msquicplatformtest ntdll ws2_32 bcrypt advapi32)
 endif()

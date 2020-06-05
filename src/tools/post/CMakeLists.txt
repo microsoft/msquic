@@ -9,6 +9,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 
 add_executable(quicpost ${SOURCES})
 
+set_property(TARGET quicpost PROPERTY FOLDER "tools")
+
 target_link_libraries(quicpost msquic platform)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")

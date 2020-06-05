@@ -18,6 +18,8 @@ set(SOURCES
 
 add_executable(msquiccoretest ${SOURCES})
 
+set_property(TARGET msquiccoretest PROPERTY FOLDER "tests")
+
 target_link_libraries(msquiccoretest msquic core platform gtest)
 
 add_test(msquiccoretest msquiccoretest)
