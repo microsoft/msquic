@@ -19,6 +19,14 @@ Environment:
 #ifndef _MSQUIC_WINUSER_
 #define _MSQUIC_WINUSER_
 
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#ifndef SECURITY_WIN32
+#define SECURITY_WIN32
+#endif
+
 #include <windows.h>
 #include <ws2def.h>
 #include <ws2ipdef.h>
