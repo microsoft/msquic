@@ -369,30 +369,30 @@ QuicAddr4FromString(
     if (AddrStr[0] == '[') {
         return FALSE;
     }
-    char* AddrStrCopy = (char*)malloc(strlen(AddrStr) + 1);
-    if (!AddrStrCopy) {
-        return FALSE;
-    }
-    char* PortStart = strchr(AddrStrCopy, ':');
+
+    const char* PortStart = strchr(AddrStr, ':');
     if (PortStart != NULL) {
         if (strchr(PortStart+1, ':') != NULL) {
-            free(AddrStrCopy);
             return FALSE;
         }
-        *PortStart = '\0';
-        if (inet_pton(AF_INET, AddrStrCopy, &Addr->Ipv4.sin_addr) != 1) {
-            free(AddrStrCopy);
+
+        char TmpAddrStr[16];
+        ptrdiff_t AddrLength = PortStart - AddrStr;
+        if (AddrLength >= sizeof(TmpAddrStr)) {
+            return false;
+        }
+        memcpy(TmpAddrStr, AddrStr, AddrLength);
+        TmpAddrStr[AddrLength] = '\0';
+
+        if (inet_pton(AF_INET, TmpAddrStr, &Addr->Ipv4.sin_addr) != 1) {
             return FALSE;
         }
-        *PortStart = ':';
         Addr->Ipv4.sin_port = htons(atoi(PortStart+1));
     } else {
-        if (inet_pton(AF_INET, AddrStrCopy, &Addr->Ipv4.sin_addr) != 1) {
-            free(AddrStrCopy);
+        if (inet_pton(AF_INET, AddrStr, &Addr->Ipv4.sin_addr) != 1) {
             return FALSE;
         }
     }
-    free(AddrStrCopy);
     Addr->si_family = AF_INET;
     return TRUE;
 }
@@ -405,24 +405,23 @@ QuicAddr6FromString(
     )
 {
     if (AddrStr[0] == '[') {
-        char* AddrStrCopy = (char*)malloc(strlen(AddrStr) + 1);
-        if (!AddrStrCopy) {
-            return FALSE;
-        }
-        strcpy(AddrStrCopy, AddrStr);
-        char* BracketEnd = strchr(AddrStrCopy, ']');
+        const char* BracketEnd = strchr(AddrStr, ']');
         if (BracketEnd == NULL || *(BracketEnd+1) != ':') {
-            free(AddrStrCopy);
             return FALSE;
         }
-        *BracketEnd = '\0';
-        if (inet_pton(AF_INET6, AddrStrCopy+1, &Addr->Ipv6.sin6_addr) != 1) {
-            free(AddrStrCopy);
+        char TmpAddrStr[41];
+
+        ptrdiff_t AddrLength = BracketEnd - AddrStr;
+        if (AddrLength >= sizeof(TmpAddrStr)) {
+            return false;
+        }
+        memcpy(TmpAddrStr, AddrStr, AddrLength);
+        TmpAddrStr[AddrLength] = '\0';
+
+        if (inet_pton(AF_INET6, TmpAddrStr, &Addr->Ipv6.sin6_addr) != 1) {
             return FALSE;
         }
-        *BracketEnd = ']';
         Addr->Ipv6.sin6_port = htons(atoi(BracketEnd+2));
-        free(AddrStrCopy);
     } else {
         if (inet_pton(AF_INET6, AddrStr, &Addr->Ipv6.sin6_addr) != 1) {
             return FALSE;
