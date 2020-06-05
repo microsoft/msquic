@@ -383,7 +383,7 @@ QuicEventWaitWithTimeout(
     )
 {
     QUIC_EVENT_OBJECT* EventObj = Event;
-    BOOLEAN WaitSatisfied = FALSE;
+    BOOLEAN TimedOut = FALSE;
     struct timespec Ts = {0};
     int Result = 0;
 
@@ -400,7 +400,7 @@ QuicEventWaitWithTimeout(
         Result = pthread_cond_timedwait(&EventObj->Cond, &EventObj->Mutex, &Ts);
 
         if (Result == ETIMEDOUT) {
-            WaitSatisfied = FALSE;
+            TimedOut = TRUE;
             goto Exit;
         }
 
@@ -412,13 +412,13 @@ QuicEventWaitWithTimeout(
         EventObj->Signaled = FALSE;
     }
 
-    WaitSatisfied = TRUE;
+    TimedOut = TRUE;
 
 Exit:
 
     QUIC_FRE_ASSERT(pthread_mutex_unlock(&EventObj->Mutex) == 0);
 
-    return WaitSatisfied;
+    return !TimedOut;
 }
 
 uint64_t
@@ -459,11 +459,14 @@ QuicGetAbsoluteTime(
     _Out_ struct timespec *Time
     )
 {
+    printf("Getting time with delta: %lu\n", DeltaMs);
     int ErrorCode = 0;
 
     QuicZeroMemory(Time, sizeof(struct timespec));
 
-    ErrorCode = clock_gettime(CLOCK_MONOTONIC, Time);
+    timespec_get(Time, TIME_UTC);
+
+    printf("1: ts/ns: %ld/%ld\n", Time->tv_sec, Time->tv_nsec);
 
     QUIC_DBG_ASSERT(ErrorCode == 0);
     UNREFERENCED_PARAMETER(ErrorCode);
@@ -476,6 +479,7 @@ QuicGetAbsoluteTime(
         Time->tv_sec += 1;
         Time->tv_nsec -= QUIC_NANOSEC_PER_SEC;
     }
+    printf("2: ts/ns: %ld/%ld\n", Time->tv_sec, Time->tv_nsec);
 }
 
 void
@@ -515,8 +519,15 @@ QuicProcCurrentNumber(
     void
     )
 {
-    //QUIC_FRE_ASSERT(FALSE);
-    return 0;
+   int cpuinfo[4];   
+   asm("cpuid"
+           : "=a" (cpuinfo[0]),
+             "=b" (cpuinfo[1]),
+             "=c" (cpuinfo[2]),
+             "=d" (cpuinfo[3])
+           : "a"(1));
+   QUIC_FRE_ASSERT((cpuinfo[3] & (1 << 9)) != 0);
+   return (uint32_t)cpuinfo[1] >> 24;
 }
 
 QUIC_STATUS
