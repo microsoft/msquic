@@ -378,6 +378,9 @@ QuicConnFree(
     QuicSendBufferUninitialize(&Connection->SendBuffer);
     QuicDatagramUninitialize(&Connection->Datagram);
     QuicSessionUnregisterConnection(Connection);
+    if (Connection->Registration != NULL) {
+        QuicRundownRelease(&Connection->Registration->ConnectionRundown);
+    }
     Connection->State.Freed = TRUE;
     if (Connection->RemoteServerName != NULL) {
         QUIC_FREE(Connection->RemoteServerName);
