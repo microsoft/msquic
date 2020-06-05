@@ -117,7 +117,6 @@ QuicConnAlloc(
     QuicSendInitialize(&Connection->Send);
     QuicLossDetectionInitialize(&Connection->LossDetection);
     QuicDatagramInitialize(&Connection->Datagram);
-    QuicRundownAcquire(&Session->Registration->ConnectionRundown);
 
     QUIC_PATH* Path = &Connection->Paths[0];
     QuicPathInitialize(Connection, Path);
@@ -373,7 +372,9 @@ QuicConnFree(
         QuicLibraryReleaseBinding(Path->Binding);
         Path->Binding = NULL;
     }
-    QuicRundownRelease(&Connection->Registration->ConnectionRundown);
+    if (Connection->Registration != NULL) {
+        QuicRundownRelease(&Connection->Registration->ConnectionRundown);
+    }
     QuicDispatchLockUninitialize(&Connection->ReceiveQueueLock);
     QuicOperationQueueUninitialize(&Connection->OperQ);
     QuicStreamSetUninitialize(&Connection->Streams);

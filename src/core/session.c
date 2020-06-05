@@ -548,6 +548,7 @@ QuicSessionRegisterConnection(
 
     if (Session->Registration != NULL) {
         Connection->Registration = Session->Registration;
+        QuicRundownAcquire(&Session->Registration->ConnectionRundown);
 #ifdef QuicVerifierEnabledByAddr
         Connection->State.IsVerifying = Session->Registration->IsVerifying;
 #endif
