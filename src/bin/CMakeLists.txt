@@ -33,3 +33,20 @@ else()
     SET_TARGET_PROPERTIES(msquic
         PROPERTIES LINK_FLAGS "-Wl,--version-script=\"${CMAKE_CURRENT_SOURCE_DIR}/linux/exports.txt\"")
 endif()
+
+target_include_directories(msquic PUBLIC
+                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
+                            $<INSTALL_INTERFACE:${include_dest}>)
+
+set(PUBLIC_HEADERS 
+    ../inc/msquic.h
+    ../inc/msquic_winuser.h
+    ../inc/msquic_linux.h
+)
+
+install(TARGETS msquic EXPORT msquic DESTINATION "${main_lib_dest}")
+install(FILES ${PUBLIC_HEADERS} DESTINATION "${include_dest}")
+
+configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake )
+install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION ${msquic_dest})
+install(EXPORT msquic DESTINATION ${msquic_dest})
