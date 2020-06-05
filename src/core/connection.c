@@ -1956,6 +1956,13 @@ QuicConnHandshakeConfigure(
             QUIC_CID_HASH_ENTRY,
             Link);
 
+    QUIC_DBG_ASSERT(!QuicListIsEmpty(&Connection->DestCids));
+    const QUIC_CID_QUIC_LIST_ENTRY* DestCid =
+        QUIC_CONTAINING_RECORD(
+            Connection->DestCids.Flink,
+            QUIC_CID_QUIC_LIST_ENTRY,
+            Link);
+
     if (QuicConnIsServer(Connection)) {
 
         QUIC_TEL_ASSERT(SecConfig != NULL);
@@ -2023,7 +2030,6 @@ QuicConnHandshakeConfigure(
                 Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount;
         }
 
-
         if (Connection->OrigDestCID != NULL) {
             QUIC_DBG_ASSERT(Connection->OrigDestCID->Length <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
             LocalTP.Flags |= QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID;
@@ -2037,25 +2043,12 @@ QuicConnHandshakeConfigure(
 
             if (Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27) {
                 LocalTP.Flags |= QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID;
-                LocalTP.RetrySourceConnectionIDLength = SourceCid->CID.Length; // TODO
+                LocalTP.RetrySourceConnectionIDLength = SourceCid->CID.Length; // TODO - Is this correct?
                 QuicCopyMemory(
                     LocalTP.RetrySourceConnectionID,
                     SourceCid->CID.Data,
                     SourceCid->CID.Length);
             }
-        } else if (Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27) {
-            const QUIC_CID_QUIC_LIST_ENTRY* DestCid =
-                QUIC_CONTAINING_RECORD(
-                    Connection->DestCids.Flink->Flink,
-                    QUIC_CID_QUIC_LIST_ENTRY,
-                    Link);
-            QUIC_DBG_ASSERT(DestCid->CID.Length <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
-            LocalTP.Flags |= QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID;
-            LocalTP.OriginalDestinationConnectionIDLength = DestCid->CID.Length;
-            QuicCopyMemory(
-                LocalTP.OriginalDestinationConnectionID,
-                DestCid->CID.Data,
-                DestCid->CID.Length);
         }
 
         if (Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27) {
@@ -2171,6 +2164,28 @@ QuicConnHandshakeConfigure(
                 SourceCid->CID.Data,
                 SourceCid->CID.Length);
         }
+
+        //
+        // Save the original CID for later validation in the TP.
+        //
+        Connection->OrigDestCID =
+            QUIC_ALLOC_NONPAGED(
+                sizeof(QUIC_CID) +
+                DestCid->CID.Length);
+        if (Connection->OrigDestCID == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "OrigDestCID",
+                sizeof(QUIC_CID) + DestCid->CID.Length);
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+
+        Connection->OrigDestCID->Length = DestCid->CID.Length;
+        QuicCopyMemory(
+            Connection->OrigDestCID->Data,
+            DestCid->CID.Data,
+            DestCid->CID.Length);
     }
 
     Connection->State.Started = TRUE;
@@ -2267,6 +2282,7 @@ QuicConnValidateTransportParameterCIDs(
             "Peer didn't provide the initial source CID in TP");
         return FALSE;
     }
+
     const QUIC_CID_QUIC_LIST_ENTRY* DestCid =
         QUIC_CONTAINING_RECORD(
             Connection->DestCids.Flink,
@@ -2291,26 +2307,18 @@ QuicConnValidateTransportParameterCIDs(
                 "Server didn't provide the original destination CID in TP");
             return FALSE;
         }
-        /*const QUIC_CID* OrigDestCid =
-            Connection->OrigDestCID ?
-                Connection->OrigDestCID :
-                &QUIC_CONTAINING_RECORD(
-                    Connection->SourceCids.Next,
-                    QUIC_CID_HASH_ENTRY,
-                    Link)->CID;
-        if (OrigDestCid->Length != Connection->PeerTransportParams.OriginalDestinationConnectionIDLength ||
-            memcmp(OrigDestCid->Data, Connection->PeerTransportParams.OriginalDestinationConnectionID, OrigDestCid->Length) != 0) {
+        QUIC_DBG_ASSERT(Connection->OrigDestCID);
+        if (Connection->OrigDestCID->Length != Connection->PeerTransportParams.OriginalDestinationConnectionIDLength ||
+            memcmp(Connection->OrigDestCID->Data, Connection->PeerTransportParams.OriginalDestinationConnectionID, Connection->OrigDestCID->Length) != 0) {
             QuicTraceEvent(
                 ConnError,
                 "[conn][%p] ERROR, %s.",
                 Connection,
                 "Original destination CID from TP doesn't match");
             return FALSE;
-        }*/
-        if (Connection->OrigDestCID != NULL) {
-            QUIC_FREE(Connection->OrigDestCID);
-            Connection->OrigDestCID = NULL;
         }
+        QUIC_FREE(Connection->OrigDestCID);
+        Connection->OrigDestCID = NULL;
         if (Connection->State.ReceivedRetryPacket) {
             if (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID)) {
                 QuicTraceEvent(
@@ -2749,20 +2757,18 @@ QuicConnRecvRetry(
         0);
 
     QUIC_DBG_ASSERT(!QuicListIsEmpty(&Connection->DestCids));
-    QUIC_CID_QUIC_LIST_ENTRY* DestCid =
+    const QUIC_CID_QUIC_LIST_ENTRY* DestCid =
         QUIC_CONTAINING_RECORD(
             Connection->DestCids.Flink,
             QUIC_CID_QUIC_LIST_ENTRY,
             Link);
-    const uint8_t* OrigDestCid = DestCid->CID.Data;
-    uint8_t OrigDestCidLength = DestCid->CID.Length;
 
     uint8_t CalculatedIntegrityValue[QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1];
 
     if (QUIC_FAILED(
         QuicPacketGenerateRetryV1Integrity(
-            OrigDestCidLength,
-            OrigDestCid,
+            DestCid->CID.Length,
+             DestCid->CID.Data,
             Packet->BufferLength - QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1,
             Packet->Buffer,
             CalculatedIntegrityValue))) {
@@ -2777,8 +2783,6 @@ QuicConnRecvRetry(
         QuicPacketLogDrop(Connection, Packet, "Invalid integrity field");
         return;
     }
-
-    QUIC_DBG_ASSERT(OrigDestCidLength <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
 
     //
     // Cache the Retry token.
@@ -2797,29 +2801,6 @@ QuicConnRecvRetry(
 
     Connection->Send.InitialTokenLength = TokenLength;
     memcpy((uint8_t*)Connection->Send.InitialToken, Token, TokenLength);
-
-    //
-    // Save the original CID for later validation in the TP.
-    //
-    Connection->OrigDestCID =
-        QUIC_ALLOC_NONPAGED(
-            sizeof(QUIC_CID) +
-            OrigDestCidLength);
-    if (Connection->OrigDestCID == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "OrigDestCID",
-            TokenLength);
-        QuicPacketLogDrop(Connection, Packet, "OrigDestCID alloc failed");
-        return;
-    }
-
-    Connection->OrigDestCID->Length = OrigDestCidLength;
-    QuicCopyMemory(
-        Connection->OrigDestCID->Data,
-        OrigDestCid,
-        OrigDestCidLength);
 
     //
     // Update the (destination) server's CID.
@@ -3043,6 +3024,7 @@ QuicConnRecvHeader(
 
             QUIC_DBG_ASSERT(Token.Encrypted.OrigConnIdLength <= sizeof(Token.Encrypted.OrigConnId));
             QUIC_DBG_ASSERT(QuicAddrCompare(&Path->RemoteAddress, &Token.Encrypted.RemoteAddress));
+            QUIC_DBG_ASSERT(Connection->OrigDestCID == NULL);
 
             Connection->OrigDestCID =
                 QUIC_ALLOC_NONPAGED(
@@ -3064,6 +3046,30 @@ QuicConnRecvHeader(
                 Token.Encrypted.OrigConnIdLength);
 
             QuicPathSetValid(Connection, Path, QUIC_PATH_VALID_INITIAL_TOKEN);
+
+        } else if (
+            Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27 &&
+            Connection->OrigDestCID == NULL) {
+
+            Connection->OrigDestCID =
+                QUIC_ALLOC_NONPAGED(
+                    sizeof(QUIC_CID) +
+                    Packet->DestCidLen);
+            if (Connection->OrigDestCID == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "OrigDestCID",
+                    sizeof(QUIC_CID) + Packet->DestCidLen);
+                return FALSE;
+            }
+
+            Connection->OrigDestCID->Length = Packet->DestCidLen;
+            QuicCopyMemory(
+                Connection->OrigDestCID->Data,
+                Packet->DestCid,
+                Packet->DestCidLen);
+
         }
 
         Packet->KeyType = QuicPacketTypeToKeyType(Packet->LH->Type);
