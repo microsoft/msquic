@@ -30,6 +30,7 @@ Environment:
 #include <netinet/ip.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <quic_sal_stub.h>
 
@@ -452,7 +453,7 @@ QuicAddrToString(
             Addr->si_family,
             &Addr->Ipv4.sin_addr,
             Address,
-            sizeof(QUIC_ADDR_STR)) != NULL) {
+            sizeof(QUIC_ADDR_STR)) != 0) {
         return FALSE;
     }
     if (Addr->Ipv4.sin_port != 0) {

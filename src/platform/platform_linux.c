@@ -21,7 +21,6 @@ Environment:
 #include <sched.h>
 #include <fcntl.h>
 #include <syslog.h>
-#include <arpa/inet.h>
 #include "quic_trace.h"
 #include "quic_platform_dispatch.h"
 
