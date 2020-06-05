@@ -11,6 +11,8 @@ endif()
 
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 message(STATUS "Source Dir: ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "Host System name: ${CMAKE_HOST_SYSTEM_NAME}")
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
@@ -85,6 +87,8 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_custom_target(MsQuicEtw
         DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h
         DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
+
+    set_property(TARGET MsQuicEtw PROPERTY FOLDER "libraries")
 
     # Custom build flags.
     set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 /MP")
@@ -231,6 +235,9 @@ if(QUIC_BUILD_TEST)
     endif()
     enable_testing()
     add_subdirectory(submodules/googletest)
+
+    set_property(TARGET gtest PROPERTY FOLDER "tests")
+    set_property(TARGET gtest_main PROPERTY FOLDER "tests")
 
     add_subdirectory(src/core/unittest)
     add_subdirectory(src/platform/unittest)

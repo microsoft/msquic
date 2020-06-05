@@ -39,6 +39,9 @@ endif()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
 
 add_library(platform STATIC ${SOURCES})
+
+set_property(TARGET platform PROPERTY FOLDER "libraries")
+
 target_compile_options(platform PRIVATE
      $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
         ${CLANG_GCC_WARNING_FLAGS}>

@@ -10,6 +10,9 @@ endif()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
 
 add_library(msquic SHARED ${SOURCES})
+
+set_property(TARGET msquic PROPERTY FOLDER "libraries")
+
 target_compile_options(msquic PRIVATE
      $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
         ${CLANG_GCC_WARNING_FLAGS}>

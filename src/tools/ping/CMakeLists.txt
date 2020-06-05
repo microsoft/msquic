@@ -13,6 +13,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 
 add_executable(quicping ${SOURCES})
 
+set_property(TARGET quicping PROPERTY FOLDER "tools")
+
 target_link_libraries(quicping msquic platform)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
