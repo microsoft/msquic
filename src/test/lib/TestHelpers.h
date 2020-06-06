@@ -256,6 +256,18 @@ struct MsQuicSession {
                 sizeof(Value),
                 &Value);
     }
+    QUIC_STATUS
+    SetServerResumptionLevel(
+        QUIC_SERVER_RESUME_ZERORTT_LEVEL Level
+    ) {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LEVEL_SESSION,
+                QUIC_PARAM_SESSION_SERVER_ENABLE_RESUME_ZERORTT,
+                sizeof(Level),
+                &Level);
+    }
 };
 
 struct ListenerScope {

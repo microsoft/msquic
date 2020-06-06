@@ -324,7 +324,7 @@ ClientConnectionCallback(
     case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
         printf("[conn][%p] Resumption ticket received (%u bytes):\n", Connection, Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
         for (uint32_t i = 0; i < Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength; i++) {
-            printf("%.2X", (uint8_t)Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket[i]);
+            printf("%0.2X", (uint8_t)Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket[i]);
         }
         printf("\n");
         break;

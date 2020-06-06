@@ -80,16 +80,28 @@ struct StreamValidator {
 struct ConnEventValidator {
     bool Success;
     bool Optional;
+    bool Resumed;
     QUIC_CONNECTION_EVENT_TYPE Type;
     uint8_t Actions;
-    ConnEventValidator(QUIC_CONNECTION_EVENT_TYPE type, uint8_t actions = 0, bool optional = false) : Success(false),
-        Type(type), Actions(actions), Optional(optional) { }
+    ConnEventValidator(QUIC_CONNECTION_EVENT_TYPE type, uint8_t actions = 0, bool optional = false, bool resumed = false) : Success(false),
+        Type(type), Actions(actions), Optional(optional), Resumed(resumed) { }
     virtual void Validate(_In_ HQUIC Connection, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         if (Event->Type != Type) {
             if (!Optional) {
                 TEST_FAILURE("ConnEventValidator: Expected %u. Actual %u", Type, Event->Type);
             }
             return;
+        }
+        if (Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+            if ((bool)Event->CONNECTED.SessionResumed != Resumed) {
+                if (!Optional) {
+                    TEST_FAILURE(
+                        "ConnEventValidator: SessionResumed: Expected: %hhu. Actual: %hhu",
+                        Resumed,
+                        Event->CONNECTED.SessionResumed);
+                }
+                return;
+            }
         }
         Success = true;
         if (Actions & QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION) {
@@ -262,13 +274,20 @@ ListenerEventResumptionCallback(
     _Inout_ QUIC_LISTENER_EVENT* Event
     )
 {
-    if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
-        MsQuic->SetCallbackHandler(
-            Event->NEW_CONNECTION.Connection,
-            (void *)ConnServerResumptionCallback,
-            nullptr);
-        Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
-    }
+    MsQuic->SetCallbackHandler(
+        Event->NEW_CONNECTION.Connection,
+        (void *)ConnServerResumptionCallback,
+        nullptr);
+
+    QUIC_SERVER_RESUME_ZERORTT_LEVEL Level = QUIC_SERVER_RESUME_ONLY;
+    MsQuic->SetParam(
+        Event->NEW_CONNECTION.Connection,
+        QUIC_PARAM_LEVEL_CONNECTION,
+        QUIC_PARAM_CONN_SERVER_ENABLE_RESUME_ZERORTT,
+        sizeof(Level),
+        &Level);
+
+    Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -404,7 +423,7 @@ QuicTestValidateConnectionEvents3(
     ConnValidator Client(
         new ConnEventValidator* [4] {
             new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION, false, true),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         }
@@ -413,7 +432,7 @@ QuicTestValidateConnectionEvents3(
         new ConnEventValidator* [6] {
             new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_RESUMED),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, false, true),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
@@ -480,11 +499,11 @@ QuicTestValidateConnectionEvents3(
             &StreamCount));
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
-                Client.Handle,
-                QUIC_PARAM_LEVEL_SESSION,
-                QUIC_PARAM_SESSION_ADD_RESUMPTION_STATE,
-                ResumptionBuffer->Length,
-                ResumptionBuffer->Buffer));
+            Client.Handle,
+            QUIC_PARAM_LEVEL_SESSION,
+            QUIC_PARAM_SESSION_ADD_RESUMPTION_STATE,
+            ResumptionBuffer->Length,
+            ResumptionBuffer->Buffer));
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,

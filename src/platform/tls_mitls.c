@@ -1368,11 +1368,12 @@ QuicTlsProcessDataComplete(
                         ResultFlags &= ~QUIC_TLS_RESULT_EARLY_DATA_ACCEPT;
                         ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_REJECT;
                         State->EarlyDataState = QUIC_TLS_EARLY_DATA_REJECTED;
+                        State->SessionResumed = FALSE;
                     }
                     if (Cookie) {
                         FFI_mitls_global_free(Cookie);
                         Cookie = NULL;
-                    };
+                    }
                     if (Ticket) {
                         FFI_mitls_global_free(Ticket);
                         Ticket = NULL;
