@@ -398,16 +398,10 @@ QUIC_STATIC_ASSERT(
 #define QUIC_DEFAULT_MAX_DATAGRAM_LENGTH        0xFFFF
 
 //
-// The maximum number of bytes of application data a server application can
-// send in a resumption ticket.
-//
-#define QUIC_MAX_RESUMPTION_APP_DATA_LENGTH     1000 
-
-//
 // By default, resumption and 0-RTT are not enabled for servers.
 // If an application want to use these features, it must explicitly enable them.
 //
-#define QUIC_DEFAULT_SERVER_RESUMPTION_OR_ZERORTT QUIC_SERVER_NO_RESUME;
+#define QUIC_DEFAULT_SERVER_RESUMPTION_OR_ZERORTT QUIC_SERVER_NO_RESUME
 
 /*************************************************************
                   PERSISTENT SETTINGS
@@ -443,3 +437,5 @@ QUIC_STATIC_ASSERT(
 #define QUIC_SETTING_CONN_FLOW_CONTROL_WINDOW   "ConnFlowControlWindow"
 
 #define QUIC_SETTING_MAX_BYTES_PER_KEY_PHASE    "MaxBytesPerKey"
+
+#define QUIC_SETTING_SERVER_RESUMPTION_OR_ZERORTT "ResumptionLevel"

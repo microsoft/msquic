@@ -289,7 +289,8 @@ PingConnection::ProcessEvent(
             (uint32_t)(ElapsedMicroseconds % 1000));
 
         if (this->IsServer) {
-            if (!QUIC_SUCCEEDED(MsQuic->ConnectionSendResumptionTicket(QuicConnection, 0, nullptr))) {
+            if (!QUIC_SUCCEEDED(
+                    MsQuic->ConnectionSendResumptionTicket(QuicConnection, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr))) {
                 printf("[%p] Failed to send 0-RTT resumption ticket!\n", QuicConnection);
             }
         }

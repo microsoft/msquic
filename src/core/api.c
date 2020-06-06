@@ -354,11 +354,12 @@ Error:
     return Status;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicConnectionSendResumptionTicket(
     _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ QUIC_SEND_RESUMPTION_FLAGS Flags,
     _In_ uint16_t DataLength,
     _In_reads_bytes_opt_(DataLength)
         const uint8_t* ResumptionData
@@ -429,6 +430,7 @@ MsQuicConnectionSendResumptionTicket(
         goto Error;
     }
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET;
+    Oper->API_CALL.Context->CONN_SEND_RESUMPTION_TICKET.Flags = Flags;
     Oper->API_CALL.Context->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData = ResumptionDataCopy;
     Oper->API_CALL.Context->CONN_SEND_RESUMPTION_TICKET.AppDataLength = DataLength;
 

@@ -109,7 +109,7 @@ ServerConnectionCallback(
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
         printf("[conn][%p] Connected\n", Connection);
-        MsQuic->ConnectionSendResumptionTicket(Connection, 0, NULL);
+        MsQuic->ConnectionSendResumptionTicket(Connection, QUIC_SEND_RESUMPTION_FLAG_NONE, 0, NULL);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
@@ -122,7 +122,7 @@ ServerConnectionCallback(
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
         printf("[strm][%p] Peer started\n", Event->PEER_STREAM_STARTED.Stream);
         MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)ServerStreamCallback, nullptr);
-        MsQuic->ConnectionSendResumptionTicket(Connection, 0, NULL);
+        MsQuic->ConnectionSendResumptionTicket(Connection, QUIC_SEND_RESUMPTION_FLAG_NONE, 0, NULL);
         break;
     case QUIC_CONNECTION_EVENT_RESUMED:
         printf("[conn][%p] Connection resumed!\n", Connection);

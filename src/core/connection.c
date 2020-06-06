@@ -207,32 +207,6 @@ QuicConnAlloc(
             SourceCid->CID.Length,
             SourceCid->CID.Data);
 
-        if (Session->Settings.ServerResumeOrZeroRtt) {
-            Connection->HandshakeTP =
-                QuicPoolAlloc(&MsQuicLib.PerProc[CurProcIndex].TransportParamPool);
-            if (Connection->HandshakeTP == NULL) {
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "handshake TP",
-                    sizeof(QUIC_TRANSPORT_PARAMETERS));
-                goto Error;
-            }
-            QuicZeroMemory(Connection->HandshakeTP, sizeof(QUIC_TRANSPORT_PARAMETERS));
-
-            Connection->ResumedTP =
-                QuicPoolAlloc(&MsQuicLib.PerProc[CurProcIndex].TransportParamPool);
-            if (Connection->ResumedTP == NULL) {
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "resumption TP",
-                    sizeof(QUIC_TRANSPORT_PARAMETERS));
-                goto Error;
-            }
-            QuicZeroMemory(Connection->ResumedTP, sizeof(QUIC_TRANSPORT_PARAMETERS));
-        }
-
     } else {
         Connection->Type = QUIC_HANDLE_TYPE_CLIENT;
         Connection->State.ExternalOwner = TRUE;
@@ -415,11 +389,7 @@ QuicConnFree(
         QuicPoolFree(
             &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].TransportParamPool,
             Connection->HandshakeTP);
-    }
-    if (Connection->ResumedTP != NULL) {
-        QuicPoolFree(
-            &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].TransportParamPool,
-            Connection->ResumedTP);
+        Connection->HandshakeTP = NULL;
     }
     QuicTraceEvent(
         ConnDestroyed,
@@ -464,6 +434,22 @@ QuicConnApplySettings(
             &Connection->Streams,
             PeerStreamType | STREAM_ID_FLAG_IS_UNI_DIR,
             Settings->UnidiStreamCount);
+    }
+
+    if (Settings->ServerResumeOrZeroRtt > QUIC_SERVER_NO_RESUME) {
+        QUIC_DBG_ASSERT(!Connection->State.Started);
+        Connection->HandshakeTP =
+                QuicPoolAlloc(&MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].TransportParamPool);
+            if (Connection->HandshakeTP == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "handshake TP",
+                    sizeof(QUIC_TRANSPORT_PARAMETERS));
+            } else {
+                QuicZeroMemory(Connection->HandshakeTP, sizeof(QUIC_TRANSPORT_PARAMETERS));
+                Connection->State.ResumptionEnabled = TRUE;
+            }
     }
 
     QuicSendApplySettings(&Connection->Send, Settings);
@@ -1942,8 +1928,7 @@ QuicConnSendResumptionTicket(
     uint8_t* TicketBuffer = NULL;
     uint16_t AlpnLength = *(Connection->Crypto.TlsState.NegotiatedAlpn);
 
-    QUIC_TRANSPORT_PARAMETERS HSTPCopy;
-    QuicCopyMemory(&HSTPCopy, &Connection->HandshakeTP, sizeof(HSTPCopy));
+    QUIC_TRANSPORT_PARAMETERS HSTPCopy = *Connection->HandshakeTP;
     HSTPCopy.Flags = HSTPCopy.Flags & (
         QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
         QUIC_TP_FLAG_INITIAL_MAX_DATA |
@@ -2043,6 +2028,7 @@ QuicConnRecvResumptionTicket(
     )
 {
     BOOLEAN ResumptionAccepted = FALSE;
+    QUIC_TRANSPORT_PARAMETERS ResumedTP;
     if (QuicConnIsServer(Connection)) {
         uint16_t Offset = 0;
         QUIC_VAR_INT TicketVersion = 0, AlpnLength = 0, TPLength = 0, AppTicketLength = 0;
@@ -2106,7 +2092,7 @@ QuicConnRecvResumptionTicket(
                 Connection,
                 Ticket + Offset,
                 (uint16_t)TPLength,
-                Connection->ResumedTP)) {
+                &ResumedTP)) {
             QuicTraceEvent(
                 ConnError,
                 "[conn][%p] ERROR, %s.",
@@ -2115,6 +2101,23 @@ QuicConnRecvResumptionTicket(
             goto Error;
         }
         Offset += (uint16_t)TPLength;
+
+        //
+        // Validate resumed TP are <= current settings
+        //
+        if (ResumedTP.ActiveConnectionIdLimit > QUIC_ACTIVE_CONNECTION_ID_LIMIT ||
+            ResumedTP.InitialMaxData > Connection->Send.MaxData ||
+            ResumedTP.InitialMaxStreamDataBidiLocal > Connection->Session->Settings.StreamRecvWindowDefault ||
+            ResumedTP.InitialMaxStreamDataBidiRemote > Connection->Session->Settings.StreamRecvWindowDefault ||
+            ResumedTP.InitialMaxStreamDataUni > Connection->Session->Settings.StreamRecvWindowDefault ||
+            ResumedTP.InitialMaxUniStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount ||
+            ResumedTP.InitialMaxBidiStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount) {
+            //
+            // Server settings have changed since the resumption ticket was
+            // encoded, so reject resumption.
+            //
+            goto Error;
+        }
 
         if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &AppTicketLength)) {
             QuicTraceEvent(
@@ -2144,6 +2147,41 @@ QuicConnRecvResumptionTicket(
 Error:
 
     return ResumptionAccepted;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnCleanupServerResumptionState(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
+    if (!Connection->State.ResumptionEnabled) {
+        if (Connection->HandshakeTP != NULL) {
+            QuicPoolFree(
+                &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].TransportParamPool,
+                Connection->HandshakeTP);
+            Connection->HandshakeTP = NULL;
+        }
+
+        QUIC_CRYPTO* Crypto = &Connection->Crypto;
+
+        QuicTraceLogConnInfo(
+            CryptoStateDiscard,
+            Connection,
+            "TLS state no longer needed");
+        if (Crypto->TLS != NULL) {
+            QuicTlsUninitialize(Crypto->TLS);
+            Crypto->TLS = NULL;
+        }
+        if (Crypto->Initialized) {
+            QuicRecvBufferUninitialize(&Crypto->RecvBuffer);
+            QuicRangeUninitialize(&Crypto->SparseAckRanges);
+            QUIC_FREE(Crypto->TlsState.Buffer);
+            Crypto->TlsState.Buffer = NULL;
+            Crypto->Initialized = FALSE;
+        }
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -2295,7 +2333,7 @@ QuicConnHandshakeConfigure(
         // Persist the transport parameters used during handshake for resumption.
         // (if resumption is enabled)
         if (Connection->HandshakeTP != NULL) {
-            QuicCopyMemory(&Connection->HandshakeTP, &LocalTP, sizeof(LocalTP));
+            *Connection->HandshakeTP = LocalTP;
         }
 
     } else {
@@ -5631,8 +5669,8 @@ QuicConnParamSet(
         break;
 
     case QUIC_PARAM_CONN_SERVER_ENABLE_RESUME_ZERORTT: {
-        if (BufferLength != sizeof(uint8_t) ||
-            *(uint8_t*)Buffer > QUIC_SERVER_RESUME_AND_ZERORTT) {
+        if (BufferLength != sizeof(QUIC_SERVER_RESUME_ZERORTT_LEVEL) ||
+            *(QUIC_SERVER_RESUME_ZERORTT_LEVEL*)Buffer > QUIC_SERVER_RESUME_AND_ZERORTT) {
                 Status = QUIC_STATUS_INVALID_PARAMETER;
                 break;
         }
@@ -5642,8 +5680,8 @@ QuicConnParamSet(
             break;
         }
 
-        if (*(uint8_t*)Buffer > QUIC_SERVER_NO_RESUME &&
-            Connection->HandshakeTP == NULL && Connection->ResumedTP == NULL) {
+        if (*(QUIC_SERVER_RESUME_ZERORTT_LEVEL*)Buffer > QUIC_SERVER_NO_RESUME &&
+            !Connection->State.ResumptionEnabled) {
             //
             // TODO: specific logic to enable/disable 0-RTT
             //
@@ -5661,22 +5699,7 @@ QuicConnParamSet(
                 break;
             }
             QuicZeroMemory(Connection->HandshakeTP, sizeof(QUIC_TRANSPORT_PARAMETERS));
-
-            Connection->ResumedTP =
-                QuicPoolAlloc(&MsQuicLib.PerProc[CurProcIndex].TransportParamPool);
-            if (Connection->ResumedTP == NULL) {
-                QuicPoolFree(
-                    &MsQuicLib.PerProc[CurProcIndex].TransportParamPool,
-                    Connection->HandshakeTP);
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "resumption TP",
-                    sizeof(QUIC_TRANSPORT_PARAMETERS));
-                Status = QUIC_STATUS_OUT_OF_MEMORY;
-                break;
-            }
-            QuicZeroMemory(Connection->ResumedTP, sizeof(QUIC_TRANSPORT_PARAMETERS));
+            Connection->State.ResumptionEnabled = TRUE;
             Status = QUIC_STATUS_SUCCESS;
         } else {
             Status = QUIC_STATUS_INVALID_STATE;
@@ -6242,6 +6265,11 @@ QuicConnProcessApiOperation(
                 ApiCtx->CONN_SEND_RESUMPTION_TICKET.AppDataLength,
                 ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData);
         ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData = NULL;
+        if (ApiCtx->CONN_SEND_RESUMPTION_TICKET.Flags & QUIC_SEND_RESUMPTION_FLAG_FINAL) {
+            QUIC_DBG_ASSERT(QuicConnIsServer(Connection)); // TODO: handle client-side
+            Connection->State.ResumptionEnabled = FALSE;
+            QuicConnCleanupServerResumptionState(Connection);
+        }
         break;
 
     case QUIC_API_TYPE_STRM_CLOSE:

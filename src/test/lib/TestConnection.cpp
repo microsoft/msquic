@@ -788,7 +788,7 @@ TestConnection::HandleConnectionEvent(
             TEST_FAILURE("Resumption was expected!");
         }
         if (IsServer) {
-            MsQuic->ConnectionSendResumptionTicket(QuicConnection, 0, nullptr);
+            MsQuic->ConnectionSendResumptionTicket(QuicConnection, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr);
         }
         QuicEventSet(EventConnectionComplete);
         break;

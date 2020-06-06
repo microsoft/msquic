@@ -98,6 +98,7 @@ typedef struct QUIC_API_CONTEXT {
             QUIC_ADDRESS_FAMILY Family;
         } CONN_START;
         struct {
+            QUIC_SEND_RESUMPTION_FLAGS Flags;
             uint8_t* ResumptionAppData;
             uint16_t AppDataLength;
         } CONN_SEND_RESUMPTION_TICKET;

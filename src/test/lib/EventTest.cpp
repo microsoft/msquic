@@ -220,7 +220,7 @@ ConnServerResumptionCallback(
 {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
-        MsQuic->ConnectionSendResumptionTicket(Connection, 0, nullptr);
+        MsQuic->ConnectionSendResumptionTicket(Connection, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         MsQuic->ConnectionClose(Connection);

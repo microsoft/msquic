@@ -141,6 +141,13 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN UseRoundRobinStreamScheduling : 1;
 
+        //
+        // Indicates that this connection has resumption enabled and needs to
+        // keep the TLS state and transport parameters until it is done sending
+        // resumption tickets.
+        //
+        BOOLEAN ResumptionEnabled : 1;
+
 #ifdef QuicVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).
@@ -518,11 +525,6 @@ typedef struct QUIC_CONNECTION {
     // Manages datagrams for the connection.
     //
     QUIC_DATAGRAM Datagram;
-
-    //
-    // (Server-only) Transport parameters received during resumption.
-    //
-    QUIC_TRANSPORT_PARAMETERS* ResumedTP;
 
     //
     // (Server-only) Transport parameters used during handshake.
@@ -1221,6 +1223,18 @@ QUIC_STATUS
 QuicConnHandshakeConfigure(
     _In_ QUIC_CONNECTION* Connection,
     _In_opt_ QUIC_SEC_CONFIG* SecConfig
+    );
+
+//
+// Check if the resumption state is ready to be cleaned up and free it.
+//
+// Called when the server has sent everything it will ever send and it has all
+// been acknowledged.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnCleanupServerResumptionState(
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //

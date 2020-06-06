@@ -555,25 +555,19 @@ QuicStreamSetGetStreamForPeer(
     uint64_t StreamType = StreamId & STREAM_ID_MASK;
     uint64_t StreamCount = (StreamId >> 2) + 1;
     QUIC_STREAM_TYPE_INFO* Info = &StreamSet->Types[StreamType];
-    uint64_t MaxTotalStreamCount = Info->MaxTotalStreamCount;
 
     uint32_t StreamFlags = 0;
     if (STREAM_ID_IS_UNI_DIR(StreamId)) {
         StreamFlags |= QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL;
     }
     if (FrameIn0Rtt) {
-        QUIC_FRE_ASSERT(Connection->ResumedTP);
         StreamFlags |= QUIC_STREAM_OPEN_FLAG_0_RTT;
-        MaxTotalStreamCount =
-            STREAM_ID_IS_UNI_DIR(StreamId) ?
-                Connection->ResumedTP->InitialMaxUniStreams :
-                Connection->ResumedTP->InitialMaxBidiStreams;
     }
 
     //
     // Validate the stream ID isn't above the allowed max.
     //
-    if (StreamCount > MaxTotalStreamCount) {
+    if (StreamCount > Info->MaxTotalStreamCount) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",
