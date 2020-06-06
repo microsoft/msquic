@@ -30,6 +30,7 @@ Environment:
 #include <netinet/ip.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <quic_sal_stub.h>
 
@@ -192,76 +193,257 @@ extern char *QuicOpenSslClientTrustedCert;
 // IP Address Abstraction Helpers
 //
 
+inline
 BOOLEAN
 QuicAddrFamilyIsValid(
-    QUIC_ADDRESS_FAMILY Family
-    );
-    
+    _In_ QUIC_ADDRESS_FAMILY Family
+    )
+{
+    return Family == AF_INET || Family == AF_INET6 || Family == AF_UNSPEC;
+}
+
+inline
 BOOLEAN
 QuicAddrIsValid(
     _In_ const QUIC_ADDR* const Addr
-    );
+    )
+{
+    return QuicAddrFamilyIsValid(Addr->si_family);
+}
 
+inline
 BOOLEAN
 QuicAddrCompareIp(
     _In_ const QUIC_ADDR* const Addr1,
     _In_ const QUIC_ADDR* const Addr2
-    );
+    )
+{
+    if (AF_INET == Addr1->si_family) {
+        return memcmp(&Addr1->Ipv4.sin_addr, &Addr2->Ipv4.sin_addr, sizeof(IN_ADDR)) == 0;
+    } else {
+        return memcmp(&Addr1->Ipv6.sin6_addr, &Addr2->Ipv6.sin6_addr, sizeof(IN6_ADDR)) == 0;
+    }
+}
 
+inline
 BOOLEAN
 QuicAddrCompare(
     _In_ const QUIC_ADDR* const Addr1,
     _In_ const QUIC_ADDR* const Addr2
-    );
+    )
+{
+    if (Addr1->si_family != Addr2->si_family ||
+        Addr1->Ipv4.sin_port != Addr2->Ipv4.sin_port) {
+        return FALSE;
+    }
 
+    if (AF_INET == Addr1->si_family) {
+        return memcmp(&Addr1->Ipv4.sin_addr, &Addr2->Ipv4.sin_addr, sizeof(IN_ADDR)) == 0;
+    } else {
+        return memcmp(&Addr1->Ipv6.sin6_addr, &Addr2->Ipv6.sin6_addr, sizeof(IN6_ADDR)) == 0;
+    }
+}
+
+inline
 uint16_t
 QuicAddrGetFamily(
     _In_ const QUIC_ADDR* const Addr
-    );
+    )
+{
+    return Addr->si_family;
+}
 
+inline
 void
 QuicAddrSetFamily(
     _In_ QUIC_ADDR* Addr,
     _In_ uint16_t Family
-    );
+    )
+{
+    Addr->si_family = Family;
+}
 
-uint16_t // Returns in host byte order.
+inline
+uint16_t
 QuicAddrGetPort(
     _In_ const QUIC_ADDR* const Addr
-    );
+    )
+{
+    if (AF_INET == Addr->si_family) {
+        return ntohs(Addr->Ipv4.sin_port);
+    } else {
+        return ntohs(Addr->Ipv6.sin6_port);
+    }
+}
 
+inline
 void
 QuicAddrSetPort(
-    _In_ QUIC_ADDR* Addr,
-    _In_ uint16_t Port // Host byte order
-    );
+    _Out_ QUIC_ADDR* Addr,
+    _In_ uint16_t Port
+    )
+{
+    if (AF_INET == Addr->si_family) {
+        Addr->Ipv4.sin_port = htons(Port);
+    } else {
+        Addr->Ipv6.sin6_port = htons(Port);
+    }
+}
 
+inline
 BOOLEAN
 QuicAddrIsBoundExplicitly(
     _In_ const QUIC_ADDR* const Addr
-    );
+    )
+{
+    // LINUX_TODO: How to handle IPv4? Windows just does the below.
 
+    //
+    // Scope ID of zero indicates we are sending from a connected binding.
+    //
+
+    return Addr->Ipv6.sin6_scope_id == 0;
+}
+
+inline
 void
 QuicAddrSetToLoopback(
-    _In_ QUIC_ADDR* Addr
-    );
+    _Inout_ QUIC_ADDR* Addr
+    )
+{
+    if (Addr->si_family == AF_INET) {
+        Addr->Ipv4.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    } else {
+        Addr->Ipv6.sin6_addr = in6addr_loopback;
+    }
+}
 
+inline
 uint32_t
 QuicAddrHash(
     _In_ const QUIC_ADDR* Addr
-    );
+    )
+{
+    uint32_t Hash = 5387; // A random prime number.
+#define UPDATE_HASH(byte) Hash = ((Hash << 5) - Hash) + (byte)
+    if (Addr->si_family == AF_INET) {
+        UPDATE_HASH(Addr->Ipv4.sin_port & 0xFF);
+        UPDATE_HASH(Addr->Ipv4.sin_port >> 8);
+        for (uint8_t i = 0; i < sizeof(Addr->Ipv4.sin_addr); ++i) {
+            UPDATE_HASH(((uint8_t*)&Addr->Ipv4.sin_addr)[i]);
+        }
+    } else {
+        UPDATE_HASH(Addr->Ipv6.sin6_port & 0xFF);
+        UPDATE_HASH(Addr->Ipv6.sin6_port >> 8);
+        for (uint8_t i = 0; i < sizeof(Addr->Ipv6.sin6_addr); ++i) {
+            UPDATE_HASH(((uint8_t*)&Addr->Ipv6.sin6_addr)[i]);
+        }
+    }
+    return Hash;
+}
 
+inline
 BOOLEAN
 QuicAddrIsWildCard(
     _In_ const QUIC_ADDR* const Addr
-    );
+    )
+{
+    if (Addr->si_family == AF_UNSPEC) {
+        return TRUE;
+    } else if (Addr->si_family == AF_INET) {
+        const IN_ADDR ZeroAddr = {0};
+        return memcmp(&Addr->Ipv4.sin_addr.s_addr, &ZeroAddr, sizeof(IN_ADDR)) == 0;
+    } else {
+        const IN6_ADDR ZeroAddr = {0};
+        return memcmp(&Addr->Ipv6.sin6_addr, &ZeroAddr, sizeof(IN6_ADDR)) == 0;
+    }
+}
 
+inline
+BOOLEAN
+QuicAddr4FromString(
+    _In_z_ const char* AddrStr,
+    _Out_ QUIC_ADDR* Addr
+    )
+{
+    if (AddrStr[0] == '[') {
+        return FALSE;
+    }
+
+    const char* PortStart = strchr(AddrStr, ':');
+    if (PortStart != NULL) {
+        if (strchr(PortStart+1, ':') != NULL) {
+            return FALSE;
+        }
+
+        char TmpAddrStr[16];
+        size_t AddrLength = PortStart - AddrStr;
+        if (AddrLength >= sizeof(TmpAddrStr)) {
+            return FALSE;
+        }
+        memcpy(TmpAddrStr, AddrStr, AddrLength);
+        TmpAddrStr[AddrLength] = '\0';
+
+        if (inet_pton(AF_INET, TmpAddrStr, &Addr->Ipv4.sin_addr) != 1) {
+            return FALSE;
+        }
+        Addr->Ipv4.sin_port = htons(atoi(PortStart+1));
+    } else {
+        if (inet_pton(AF_INET, AddrStr, &Addr->Ipv4.sin_addr) != 1) {
+            return FALSE;
+        }
+    }
+    Addr->si_family = AF_INET;
+    return TRUE;
+}
+
+inline
+BOOLEAN
+QuicAddr6FromString(
+    _In_z_ const char* AddrStr,
+    _Out_ QUIC_ADDR* Addr
+    )
+{
+    if (AddrStr[0] == '[') {
+        const char* BracketEnd = strchr(AddrStr, ']');
+        if (BracketEnd == NULL || *(BracketEnd+1) != ':') {
+            return FALSE;
+        }
+        
+        char TmpAddrStr[64];
+        size_t AddrLength = BracketEnd - AddrStr;
+        if (AddrLength >= sizeof(TmpAddrStr)) {
+            return FALSE;
+        }
+        memcpy(TmpAddrStr, AddrStr, AddrLength);
+        TmpAddrStr[AddrLength] = '\0';
+
+        if (inet_pton(AF_INET6, TmpAddrStr, &Addr->Ipv6.sin6_addr) != 1) {
+            return FALSE;
+        }
+        Addr->Ipv6.sin6_port = htons(atoi(BracketEnd+2));
+    } else {
+        if (inet_pton(AF_INET6, AddrStr, &Addr->Ipv6.sin6_addr) != 1) {
+            return FALSE;
+        }
+    }
+    Addr->si_family = AF_INET6;
+    return TRUE;
+}
+
+inline
 BOOLEAN
 QuicAddrFromString(
     _In_z_ const char* AddrStr,
     _In_ uint16_t Port, // Host byte order
     _Out_ QUIC_ADDR* Addr
-    );
+    )
+{
+    Addr->Ipv4.sin_port = htons(Port);
+    return
+        QuicAddr4FromString(AddrStr, Addr) ||
+        QuicAddr6FromString(AddrStr, Addr);
+}
 
 //
 // Represents an IP address and (optionally) port number as a string.
@@ -270,11 +452,35 @@ typedef struct QUIC_ADDR_STR {
     char Address[64];
 } QUIC_ADDR_STR;
 
+inline
 BOOLEAN
 QuicAddrToString(
     _In_ const QUIC_ADDR* Addr,
     _Out_ QUIC_ADDR_STR* AddrStr
-    );
+    )
+{
+    char* Address = AddrStr->Address;
+    if (Addr->si_family == AF_INET6 && Addr->Ipv6.sin6_port != 0) {
+        Address[0] = '[';
+        Address++;
+    }
+    if (inet_ntop(
+            Addr->si_family,
+            &Addr->Ipv4.sin_addr,
+            Address,
+            sizeof(QUIC_ADDR_STR)) != 0) {
+        return FALSE;
+    }
+    if (Addr->Ipv4.sin_port != 0) {
+        Address += strlen(Address);
+        if (Addr->si_family == AF_INET6) {
+            Address[0] = ']';
+            Address++;
+        }
+        sprintf(Address, ":%hu", ntohs(Addr->Ipv4.sin_port));
+    }
+    return TRUE;
+}
 
 #if defined(__cplusplus)
 }
