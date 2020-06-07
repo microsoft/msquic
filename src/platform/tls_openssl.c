@@ -1386,7 +1386,7 @@ QuicTlsProcessData(
 
     if (SSL_provide_quic_data(
             TlsContext->Ssl,
-            TlsContext->State->ReadKey,
+            (OSSL_ENCRYPTION_LEVEL)TlsContext->State->ReadKey,
             Buffer,
             *BufferLength) != 1) {
         TlsContext->ResultFlags |= QUIC_TLS_RESULT_ERROR;
