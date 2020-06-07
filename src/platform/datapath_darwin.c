@@ -13,13 +13,18 @@ Environment:
 
 --*/
 
+#define __APPLE_USE_RFC_3542 1
+// See netinet6/in6.h:46 for an explanation
+
 #include "platform_internal.h"
 #include "quic_platform_dispatch.h"
 
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/sysctl.h>
 #include <sys/event.h>
 #include <sys/time.h>
+
 
 #define QUIC_MAX_BATCH_SEND                 10
 
@@ -347,17 +352,27 @@ QuicDataPathWorkerThread(
 {
     QUIC_DATAPATH_PROC_CONTEXT* ProcContext = (QUIC_DATAPATH_PROC_CONTEXT*)Context;
     QUIC_DBG_ASSERT(ProcContext != NULL && ProcContext->Datapath != NULL);
+    struct kevent evSet;
+    struct kevent evList[32];
+    int Kqueue = ProcContext->KqueueFd; 
+
+    printf("Entering worker...\n");
 
     while (!ProcContext->Datapath->Shutdown) {
-        //for (int i = 0; i < ReadyEventCount; i++) {
-        //    if (EpollEvents[i].data.ptr == NULL) {
-        //        //
-        //        // The processor context is shutting down and the worker thread
-        //        // needs to clean up.
-        //        //
-        //        QUIC_DBG_ASSERT(ProcContext->Datapath->Shutdown);
-        //        break;
-        //    }
+        int nev = kevent(Kqueue, NULL, 0, evList, 32, NULL);
+        if (nev < 1) { __asm__("int3"); }
+
+        // XXX: I feel like this is a better place to check if the Datapath is
+        // in shutdown. Consider kevent() having waited like, a minute or so,
+        // and then we get data here, still going to try to process it instead
+        // of throwing it out. Maybe it has a close frame we're waiting for?
+        
+        printf("Got events..???\n");
+        for (int i = 0; i < nev; i++) {
+            if (evList[i].filter == EVFILT_READ) {
+                printf("TIME TO READ !!!!!!!!!!\n");
+            }
+        }
 
         //    QuicSocketContextProcessEvents(
         //        EpollEvents[i].data.ptr,
@@ -701,7 +716,8 @@ QuicSocketContextInitialize(
     SocketContext->SocketFd = socket(AF_INET, SOCK_DGRAM, 0);
 
     if (SocketContext->SocketFd == INVALID_SOCKET_FD) {
-            printf("%s:%d\n", __FILE__, __LINE__);
+        __asm__("int3");
+        printf("%s:%d\n", __FILE__, __LINE__);
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -956,8 +972,9 @@ QuicSocketContextStartReceive(
     }
 
     struct kevent evSet = { };
-    EV_SET(&evSet, SocketContext->SocketFd, EVFILT_READ, EV_ADD, 0, 0, NULL);
-    if (kevent(KqueueFd, &evSet, 1, NULL, 0, NULL) == -1)  {
+    printf("ADDING SOCKET TO KQUEUE. %d\n", SocketContext->SocketFd);
+    EV_SET(&evSet, SocketContext->SocketFd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, NULL);
+    if (kevent(KqueueFd, &evSet, 1, NULL, 0, NULL) < 0)  {
         QUIC_DBG_ASSERT(1);
         // Should be QUIC_STATUS_KQUEUE_ERROR
         QuicTraceEvent(
@@ -1216,7 +1233,15 @@ QuicDataPathBindingFreeSendContext(
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
 { 
-    QUIC_FRE_ASSERT(FALSE);
+    size_t i = 0;
+    for (i = 0; i < SendContext->BufferCount; ++i) {
+        QuicPoolFree(
+            &SendContext->Owner->SendBufferPool,
+            SendContext->Buffers[i].Buffer);
+        SendContext->Buffers[i].Buffer = NULL;
+    }
+
+    QuicPoolFree(&SendContext->Owner->SendContextPool, SendContext);
 }
 
 //
@@ -1295,6 +1320,227 @@ QuicDataPathBindingIsSendContextFull(
     return FALSE;
 }
 
+QUIC_STATUS
+QuicDataPathBindingSend(
+    _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    QUIC_SOCKET_CONTEXT* SocketContext = NULL;
+    QUIC_DATAPATH_PROC_CONTEXT* ProcContext = NULL;
+    ssize_t SentByteCount = 0;
+    size_t i = 0;
+    socklen_t RemoteAddrLen = 0;
+    QUIC_ADDR MappedRemoteAddress = { };
+    struct cmsghdr *CMsg = NULL;
+    struct in_pktinfo *PktInfo = NULL;
+    struct in6_pktinfo *PktInfo6 = NULL;
+    BOOLEAN SendPending = FALSE;
+
+    // static_assert(CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
+    // XXX: On macOS, this isn't computable as a constexpr; I can make a true
+    // compile time guarantee here, but it'll depend on the implementation
+    // details of CMSG_SPACE, which i don't want to do
+    char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo))] = {0};
+
+    QUIC_DBG_ASSERT(Binding != NULL && RemoteAddress != NULL && SendContext != NULL);
+
+    SocketContext = &Binding->SocketContexts[0];
+    ProcContext = &Binding->Datapath->ProcContexts[0];
+
+    RemoteAddrLen =
+        (AF_INET == RemoteAddress->si_family) ?
+            sizeof(RemoteAddress->Ipv4) : sizeof(RemoteAddress->Ipv6);
+
+    if (LocalAddress == NULL) {
+        QUIC_DBG_ASSERT(Binding->RemoteAddress.Ipv4.sin_port != 0);
+
+        for (i = SendContext->CurrentIndex;
+            i < SendContext->BufferCount;
+            ++i, SendContext->CurrentIndex++) {
+
+            QuicTraceEvent(
+                DatapathSendTo,
+                "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!",
+                Binding,
+                SendContext->Buffers[i].Length,
+                1,
+                SendContext->Buffers[i].Length,
+                LOG_ADDR_LEN(*RemoteAddress),
+                (uint8_t*)RemoteAddress);
+
+            // XXX: If we already connect()'d this socket, we cannot pass 
+            // an address, otherwise we get EISCONN
+            
+            SentByteCount =
+                sendto(
+                    SocketContext->SocketFd,
+                    SendContext->Buffers[i].Buffer,
+                    SendContext->Buffers[i].Length,
+                    0,
+                    NULL, 0); //(struct sockaddr *)RemoteAddress,
+                    //RemoteAddrLen);
+
+            if (SentByteCount < 0) {
+                printf("%zd:%d\n", SentByteCount, errno);
+                printf("COULDN'T SEND FRAME...\n");
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    //Status =
+                    //    QuicSocketContextPendSend(
+                    //        SocketContext,
+                    //        SendContext,
+                    //        ProcContext,
+                    //        LocalAddress,
+                    //        RemoteAddress);
+                    //if (QUIC_FAILED(Status)) {
+                    //    goto Exit;
+                    //}
+
+                    SendPending = TRUE;
+                    goto Exit;
+                } else {
+                    //
+                    // Completed with error.
+                    //
+
+                    Status = errno;
+                    QuicTraceEvent(
+                        DatapathErrorStatus,
+                        "[ udp][%p] ERROR, %u, %s.",
+                        SocketContext->Binding,
+                        Status,
+                        "sendto failed");
+                    goto Exit;
+                }
+            } else {
+                //
+                // Completed synchronously.
+                //
+                QuicTraceLogVerbose(
+                    DatapathSendToCompleted,
+                    "[ udp][%p] sendto succeeded, bytes transferred %d",
+                    SocketContext->Binding,
+                    SentByteCount);
+            }
+        }
+    } else {
+
+        uint32_t TotalSize = 0;
+        for (i = 0; i < SendContext->BufferCount; ++i) {
+            SendContext->Iovs[i].iov_base = SendContext->Buffers[i].Buffer;
+            SendContext->Iovs[i].iov_len = SendContext->Buffers[i].Length;
+            TotalSize += SendContext->Buffers[i].Length;
+        }
+
+        QuicTraceEvent(
+            DatapathSendFromTo,
+            "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!, Src=%!SOCKADDR!",
+            Binding,
+            TotalSize,
+            SendContext->BufferCount,
+            SendContext->Buffers[0].Length,
+            LOG_ADDR_LEN(*RemoteAddress),
+            LOG_ADDR_LEN(*LocalAddress),
+            (uint8_t*)RemoteAddress,
+            (uint8_t*)LocalAddress);
+
+        //
+        // Map V4 address to dual-stack socket format.
+        //
+        QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
+
+        struct msghdr Mhdr = {
+            .msg_name = &MappedRemoteAddress,
+            .msg_namelen = sizeof(MappedRemoteAddress),
+            .msg_iov = SendContext->Iovs,
+            .msg_iovlen = SendContext->BufferCount,
+            .msg_flags = 0
+        };
+
+        // TODO: Avoid allocating both.
+
+        if (LocalAddress->si_family == AF_INET) {
+            Mhdr.msg_control = ControlBuffer;
+            Mhdr.msg_controllen = CMSG_SPACE(sizeof(struct in_pktinfo));
+
+            CMsg = CMSG_FIRSTHDR(&Mhdr);
+            CMsg->cmsg_level = IPPROTO_IP;
+            CMsg->cmsg_type = IP_PKTINFO;
+            CMsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
+
+            PktInfo = (struct in_pktinfo*) CMSG_DATA(CMsg);
+            // TODO: Use Ipv4 instead of Ipv6.
+            PktInfo->ipi_ifindex = LocalAddress->Ipv6.sin6_scope_id;
+            PktInfo->ipi_addr = LocalAddress->Ipv4.sin_addr;
+        } else {
+            Mhdr.msg_control = ControlBuffer;
+            Mhdr.msg_controllen = CMSG_SPACE(sizeof(struct in6_pktinfo));
+
+            CMsg = CMSG_FIRSTHDR(&Mhdr);
+            CMsg->cmsg_level = IPPROTO_IPV6;
+            CMsg->cmsg_type = IPV6_PKTINFO;
+            CMsg->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
+
+            PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
+            PktInfo6->ipi6_ifindex = LocalAddress->Ipv6.sin6_scope_id;
+            PktInfo6->ipi6_addr = LocalAddress->Ipv6.sin6_addr;
+        }
+
+        printf("sendmsg....\n");
+        SentByteCount = sendmsg(SocketContext->SocketFd, &Mhdr, 0);
+
+        if (SentByteCount < 0) {
+            printf("COULDN'T SEND FRAME...\n");
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                //Status =
+                //    QuicSocketContextPendSend(
+                //        SocketContext,
+                //        SendContext,
+                //        ProcContext,
+                //        LocalAddress,
+                //        RemoteAddress);
+                //if (QUIC_FAILED(Status)) {
+                //    goto Exit;
+                //}
+
+                SendPending = TRUE;
+                goto Exit;
+            } else {
+                Status = errno;
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[ udp][%p] ERROR, %u, %s.",
+                    SocketContext->Binding,
+                    Status,
+                    "sendmsg failed");
+                goto Exit;
+            }
+        } else {
+            //
+            // Completed synchronously.
+            //
+            QuicTraceLogVerbose(
+                DatapathSendMsgCompleted,
+                "[ udp][%p] sendmsg succeeded, bytes transferred %d",
+                SocketContext->Binding,
+                SentByteCount);
+        }
+    }
+
+    Status = QUIC_STATUS_SUCCESS;
+
+Exit:
+
+    if (!SendPending) {
+        QuicDataPathBindingFreeSendContext(SendContext);
+    }
+
+    return Status;
+}
+
 //
 // Sends data to a remote host. Note, the buffer must remain valid for
 // the duration of the send operation.
@@ -1307,8 +1553,18 @@ QuicDataPathBindingSendTo(
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
 {
-    QUIC_FRE_ASSERT(FALSE);
-    return QUIC_STATUS_SUCCESS;
+    QUIC_DBG_ASSERT(
+        Binding != NULL &&
+        RemoteAddress != NULL &&
+        RemoteAddress->Ipv4.sin_port != 0 &&
+        SendContext != NULL);
+
+    return
+        QuicDataPathBindingSend(
+            Binding,
+            NULL,
+            RemoteAddress,
+            SendContext);
 }
 
 //

@@ -459,14 +459,11 @@ QuicGetAbsoluteTime(
     _Out_ struct timespec *Time
     )
 {
-    printf("Getting time with delta: %lu\n", DeltaMs);
     int ErrorCode = 0;
 
     QuicZeroMemory(Time, sizeof(struct timespec));
 
     timespec_get(Time, TIME_UTC);
-
-    printf("1: ts/ns: %ld/%ld\n", Time->tv_sec, Time->tv_nsec);
 
     QUIC_DBG_ASSERT(ErrorCode == 0);
     UNREFERENCED_PARAMETER(ErrorCode);
@@ -479,7 +476,6 @@ QuicGetAbsoluteTime(
         Time->tv_sec += 1;
         Time->tv_nsec -= QUIC_NANOSEC_PER_SEC;
     }
-    printf("2: ts/ns: %ld/%ld\n", Time->tv_sec, Time->tv_nsec);
 }
 
 void
