@@ -1,0 +1,4 @@
+include(CMakeFindDependencyMacro)
+@FILENAME_DEP_REPLACE@
+
+include(${SELF_DIR}/msquic.cmake)
