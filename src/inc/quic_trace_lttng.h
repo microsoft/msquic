@@ -1132,12 +1132,6 @@ QUIC_TRACE_EVENT(DatapathErrorStatus,
         ctf_string(Msg, Msg))
 )
 QUIC_TRACE_LEVEL(DatapathErrorStatus, TRACE_ERR)
-QUIC_TRACE_EVENT(DatapathWorkerThread, 
-    TP_ARGS(const void*, UdpBinding),
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, UdpBinding, UdpBinding))
-)
-QUIC_TRACE_LEVEL(DatapathWorkerThread, TRACE_INFO)
 
 #endif /* _QUIC_TRACE_LTTNG_H */
 

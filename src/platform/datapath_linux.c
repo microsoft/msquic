@@ -2180,7 +2180,7 @@ QuicDataPathWorkerThread(
     QUIC_DBG_ASSERT(ProcContext != NULL && ProcContext->Datapath != NULL);
 
     QuicTraceLogInfo(
-        DatapathWorkerThread,
+        DatapathWorkerThreadStart,
         "[ udp][%p] Worker start",
         ProcContext);
 
@@ -2215,7 +2215,7 @@ QuicDataPathWorkerThread(
     }
 
     QuicTraceLogInfo(
-        DatapathWorkerThread,
+        DatapathWorkerThreadStop,
         "[ udp][%p] Worker stop",
         ProcContext);
 
