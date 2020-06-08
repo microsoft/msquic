@@ -268,14 +268,6 @@ MsQuicLibraryUninitialize(
         MsQuicLib.Storage = NULL;
     }
 
-    //
-    // Clean up all the leftover, unregistered server connections.
-    //
-    if (MsQuicLib.UnregisteredSession != NULL) {
-        MsQuicSessionClose((HQUIC)MsQuicLib.UnregisteredSession);
-        MsQuicLib.UnregisteredSession = NULL;
-    }
-
     QuicDataPathUninitialize(MsQuicLib.Datapath);
     MsQuicLib.Datapath = NULL;
 
@@ -287,6 +279,14 @@ MsQuicLibraryUninitialize(
     if (MsQuicLib.WorkerPool != NULL) {
         QuicWorkerPoolUninitialize(MsQuicLib.WorkerPool);
         MsQuicLib.WorkerPool = NULL;
+    }
+
+    //
+    // Clean up all the leftover, unregistered server connections.
+    //
+    if (MsQuicLib.UnregisteredSession != NULL) {
+        MsQuicSessionClose((HQUIC)MsQuicLib.UnregisteredSession);
+        MsQuicLib.UnregisteredSession = NULL;
     }
 
 #if DEBUG
