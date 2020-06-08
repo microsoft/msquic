@@ -1095,6 +1095,27 @@ QuicSessionParamSet(
         break;
     }
 
+    case QUIC_PARAM_SESSION_SERVER_ENABLE_RESUME_ZERORTT: {
+        if (BufferLength != sizeof(QUIC_SERVER_RESUME_ZERORTT_LEVEL) ||
+            *(QUIC_SERVER_RESUME_ZERORTT_LEVEL*)Buffer > QUIC_SERVER_RESUME_AND_ZERORTT) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Session->Settings.AppSet.ServerResumeOrZeroRtt = TRUE;
+        Session->Settings.ServerResumeOrZeroRtt =
+            *(QUIC_SERVER_RESUME_ZERORTT_LEVEL*)Buffer;
+
+        QuicTraceLogInfo(
+            SessionServerResumeOrZeroRttSet,
+            "[sess][%p] Updated Server resume/0-RTT to %hhu",
+            Session,
+            Session->Settings.ServerResumeOrZeroRtt);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
