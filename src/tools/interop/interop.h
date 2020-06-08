@@ -35,3 +35,5 @@ inline QuicTestFeature operator|(QuicTestFeature a, QuicTestFeature b)
 {
     return static_cast<QuicTestFeature>(static_cast<int>(a) | static_cast<int>(b));
 }
+
+const QuicTestFeature QuicTestFeatureDataPath = StreamData | ZeroRtt;
