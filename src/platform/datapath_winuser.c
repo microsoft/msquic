@@ -2679,8 +2679,8 @@ QuicDataPathWorkerThread(
 {
     QUIC_DATAPATH_PROC_CONTEXT* ProcContext = (QUIC_DATAPATH_PROC_CONTEXT*)CompletionContext;
 
-    QuicTraceEvent(
-        DatapathWorkerStart,
+    QuicTraceLogInfo(
+        DatapathWorkerThread,
         "[ udp][%p] Worker start",
         ProcContext);
 
@@ -2763,8 +2763,8 @@ QuicDataPathWorkerThread(
         }
     }
 
-    QuicTraceEvent(
-        DatapathWorkerStop,
+    QuicTraceLogInfo(
+        DatapathWorkerThread,
         "[ udp][%p] Worker stop",
         ProcContext);
 
