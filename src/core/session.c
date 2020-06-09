@@ -328,13 +328,21 @@ MsQuicSessionClose(
         // This is the global unregistered session. All connections need to be
         // immediately cleaned up.
         //
+        QuicDispatchLockAcquire(&Session->ConnectionsLock);
         QUIC_LIST_ENTRY* Entry = Session->Connections.Flink;
         while (Entry != &Session->Connections) {
             QUIC_CONNECTION* Connection =
                 QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, SessionLink);
-            Entry = Entry->Flink;
+            //
+            // If connection has an external owner, this will spin loop
+            //
+            QUIC_DBG_ASSERT(Connection->State.ExternalOwner == FALSE);
+            QuicDispatchLockRelease(&Session->ConnectionsLock);
             QuicConnOnShutdownComplete(Connection);
+            QuicDispatchLockAcquire(&Session->ConnectionsLock);
+            Entry = Session->Connections.Flink;
         }
+        QuicDispatchLockRelease(&Session->ConnectionsLock);
     }
 
     QuicRundownReleaseAndWait(&Session->Rundown);
