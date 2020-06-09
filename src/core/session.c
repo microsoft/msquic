@@ -881,6 +881,25 @@ QuicSessionParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL:
+        if (*BufferLength  < sizeof(QUIC_SERVER_RESUMPTION_LEVEL)) {
+            *BufferLength = sizeof(QUIC_SERVER_RESUMPTION_LEVEL);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(QUIC_SERVER_RESUMPTION_LEVEL);
+        *(QUIC_SERVER_RESUMPTION_LEVEL*)Buffer =
+            (QUIC_SERVER_RESUMPTION_LEVEL)Session->Settings.ServerResumptionLevel;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -1095,22 +1114,22 @@ QuicSessionParamSet(
         break;
     }
 
-    case QUIC_PARAM_SESSION_SERVER_ENABLE_RESUME_ZERORTT: {
-        if (BufferLength != sizeof(QUIC_SERVER_RESUME_ZERORTT_LEVEL) ||
-            *(QUIC_SERVER_RESUME_ZERORTT_LEVEL*)Buffer > QUIC_SERVER_RESUME_AND_ZERORTT) {
+    case QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL: {
+        if (BufferLength != sizeof(QUIC_SERVER_RESUMPTION_LEVEL) ||
+            *(QUIC_SERVER_RESUMPTION_LEVEL*)Buffer > QUIC_SERVER_RESUME_AND_ZERORTT) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        Session->Settings.AppSet.ServerResumeOrZeroRtt = TRUE;
-        Session->Settings.ServerResumeOrZeroRtt =
-            *(QUIC_SERVER_RESUME_ZERORTT_LEVEL*)Buffer;
+        Session->Settings.AppSet.ServerResumptionLevel = TRUE;
+        Session->Settings.ServerResumptionLevel =
+            *(QUIC_SERVER_RESUMPTION_LEVEL*)Buffer;
 
         QuicTraceLogInfo(
-            SessionServerResumeOrZeroRttSet,
+            SessionServerResumptionLevelSet,
             "[sess][%p] Updated Server resume/0-RTT to %hhu",
             Session,
-            Session->Settings.ServerResumeOrZeroRtt);
+            Session->Settings.ServerResumptionLevel);
 
         Status = QUIC_STATUS_SUCCESS;
         break;

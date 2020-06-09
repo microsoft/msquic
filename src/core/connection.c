@@ -433,7 +433,7 @@ QuicConnApplySettings(
             Settings->UnidiStreamCount);
     }
 
-    if (Settings->ServerResumeOrZeroRtt > QUIC_SERVER_NO_RESUME) {
+    if (Settings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME) {
         QUIC_DBG_ASSERT(!Connection->State.Started);
         //
         // TODO: allocate memory for handshake TP here
@@ -5550,33 +5550,6 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_SERVER_ENABLE_RESUME_ZERORTT: {
-        if (BufferLength != sizeof(QUIC_SERVER_RESUME_ZERORTT_LEVEL) ||
-            *(QUIC_SERVER_RESUME_ZERORTT_LEVEL*)Buffer > QUIC_SERVER_RESUME_AND_ZERORTT) {
-                Status = QUIC_STATUS_INVALID_PARAMETER;
-                break;
-        }
-
-        if (Connection->State.Started) {
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
-        if (*(QUIC_SERVER_RESUME_ZERORTT_LEVEL*)Buffer > QUIC_SERVER_NO_RESUME &&
-            !Connection->State.ResumptionEnabled) {
-            //
-            // TODO: Allocate memory for transport params and
-            // add specific logic to enable/disable 0-RTT
-            //
-
-            Connection->State.ResumptionEnabled = TRUE;
-            Status = QUIC_STATUS_SUCCESS;
-        } else {
-            Status = QUIC_STATUS_INVALID_STATE;
-        }
-        break;
-    }
-
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -6085,28 +6058,6 @@ QuicConnParamGet(
 
         *BufferLength = sizeof(BOOLEAN);
         *(BOOLEAN*)Buffer = Connection->Datagram.SendEnabled;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_CONN_SERVER_ENABLE_RESUME_ZERORTT:
-
-        if (*BufferLength < sizeof(QUIC_SERVER_RESUME_ZERORTT_LEVEL)) {
-            *BufferLength = sizeof(QUIC_SERVER_RESUME_ZERORTT_LEVEL);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(QUIC_SERVER_RESUME_ZERORTT_LEVEL);
-        *(QUIC_SERVER_RESUME_ZERORTT_LEVEL*)Buffer =
-            (Connection->State.ResumptionEnabled) ?
-                QUIC_SERVER_RESUME_ONLY : QUIC_SERVER_NO_RESUME;
-        // TODO: Check whether 0-RTT is also enabled.
 
         Status = QUIC_STATUS_SUCCESS;
         break;

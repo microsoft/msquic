@@ -92,8 +92,8 @@ QuicSettingsSetDefault(
     if (!Settings->AppSet.MaxBytesPerKey) {
         Settings->MaxBytesPerKey = QUIC_DEFAULT_MAX_BYTES_PER_KEY;
     }
-    if (!Settings->AppSet.ServerResumeOrZeroRtt) {
-        Settings->ServerResumeOrZeroRtt = QUIC_DEFAULT_SERVER_RESUMPTION_OR_ZERORTT;
+    if (!Settings->AppSet.ServerResumptionLevel) {
+        Settings->ServerResumptionLevel = QUIC_DEFAULT_SERVER_RESUMPTION_LEVEL;
     }
 }
 
@@ -179,8 +179,8 @@ QuicSettingsCopy(
     if (!Settings->AppSet.MaxBytesPerKey) {
         Settings->MaxBytesPerKey = ParentSettings->MaxBytesPerKey;
     }
-    if (!Settings->AppSet.ServerResumeOrZeroRtt) {
-        Settings->ServerResumeOrZeroRtt = ParentSettings->ServerResumeOrZeroRtt;
+    if (!Settings->AppSet.ServerResumptionLevel) {
+        Settings->ServerResumptionLevel = ParentSettings->ServerResumptionLevel;
     }
 }
 
@@ -462,7 +462,7 @@ QuicSettingsLoad(
         }
     }
 
-    if (!Settings->AppSet.ServerResumeOrZeroRtt) {
+    if (!Settings->AppSet.ServerResumptionLevel) {
         ValueLen = sizeof(Value);
         QuicStorageReadValue(
             Storage,
@@ -472,7 +472,7 @@ QuicSettingsLoad(
         if (Value > QUIC_SERVER_RESUME_AND_ZERORTT) {
             Value = QUIC_SERVER_RESUME_AND_ZERORTT;
         }
-        Settings->ServerResumeOrZeroRtt = (uint8_t)Value;
+        Settings->ServerResumptionLevel = (uint8_t)Value;
     }
 }
 
@@ -507,5 +507,5 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpStreamRecvBufferDefault, "[sett] StreamRecvBufferDefault= %u", Settings->StreamRecvBufferDefault);
     QuicTraceLogVerbose(SettingDumpConnFlowControlWindow,   "[sett] ConnFlowControlWindow  = %u", Settings->ConnFlowControlWindow);
     QuicTraceLogVerbose(SettingDumpMaxBytesPerKey,          "[sett] MaxBytesPerKey         = %llu", Settings->MaxBytesPerKey);
-    QuicTraceLogVerbose(SettingDumpServerResumeOrZeroRtt,   "[sett] ServerResumeOrZeroRtt  = %hhu", Settings->ServerResumeOrZeroRtt);
+    QuicTraceLogVerbose(SettingDumpServerResumptionLevel,   "[sett] ServerResumptionLevel  = %hhu", Settings->ServerResumptionLevel);
 }

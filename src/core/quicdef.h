@@ -407,7 +407,7 @@ QUIC_STATIC_ASSERT(
 // By default, resumption and 0-RTT are not enabled for servers.
 // If an application want to use these features, it must explicitly enable them.
 //
-#define QUIC_DEFAULT_SERVER_RESUMPTION_OR_ZERORTT QUIC_SERVER_NO_RESUME
+#define QUIC_DEFAULT_SERVER_RESUMPTION_LEVEL    QUIC_SERVER_NO_RESUME
 
 /*************************************************************
                   PERSISTENT SETTINGS
