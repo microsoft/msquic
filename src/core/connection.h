@@ -140,6 +140,13 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN UseRoundRobinStreamScheduling : 1;
 
+        //
+        // Indicates that this connection has resumption enabled and needs to
+        // keep the TLS state and transport parameters until it is done sending
+        // resumption tickets.
+        //
+        BOOLEAN ResumptionEnabled : 1;
+
 #ifdef QuicVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).

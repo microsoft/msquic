@@ -881,6 +881,25 @@ QuicSessionParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL:
+        if (*BufferLength  < sizeof(QUIC_SERVER_RESUMPTION_LEVEL)) {
+            *BufferLength = sizeof(QUIC_SERVER_RESUMPTION_LEVEL);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(QUIC_SERVER_RESUMPTION_LEVEL);
+        *(QUIC_SERVER_RESUMPTION_LEVEL*)Buffer =
+            (QUIC_SERVER_RESUMPTION_LEVEL)Session->Settings.ServerResumptionLevel;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -1090,6 +1109,27 @@ QuicSessionParamSet(
             "[sess][%p] Updated datagram receive enabled to %hhu",
             Session,
             Session->Settings.DatagramReceiveEnabled);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
+    case QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL: {
+        if (BufferLength != sizeof(QUIC_SERVER_RESUMPTION_LEVEL) ||
+            *(QUIC_SERVER_RESUMPTION_LEVEL*)Buffer > QUIC_SERVER_RESUME_AND_ZERORTT) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Session->Settings.AppSet.ServerResumptionLevel = TRUE;
+        Session->Settings.ServerResumptionLevel =
+            *(QUIC_SERVER_RESUMPTION_LEVEL*)Buffer;
+
+        QuicTraceLogInfo(
+            SessionServerResumptionLevelSet,
+            "[sess][%p] Updated Server resume/0-RTT to %hhu",
+            Session,
+            Session->Settings.ServerResumptionLevel);
 
         Status = QUIC_STATUS_SUCCESS;
         break;

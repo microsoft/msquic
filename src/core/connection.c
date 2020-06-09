@@ -433,6 +433,14 @@ QuicConnApplySettings(
             Settings->UnidiStreamCount);
     }
 
+    if (Settings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME) {
+        QUIC_DBG_ASSERT(!Connection->State.Started);
+        //
+        // TODO: allocate memory for handshake TP here
+        //
+        Connection->State.ResumptionEnabled = TRUE;
+    }
+
     QuicSendApplySettings(&Connection->Send, Settings);
     QuicCongestionControlInitialize(&Connection->CongestionControl, Settings);
 }
