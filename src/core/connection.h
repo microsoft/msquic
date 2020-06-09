@@ -65,10 +65,9 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN GotFirstServerResponse : 1;
 
         //
-        // This flag indicates the client received a Retry packet during the
-        // handshake.
+        // This flag indicates the Retry packet was used during the handshake.
         //
-        BOOLEAN ReceivedRetryPacket : 1;
+        BOOLEAN HandshakeUsedRetryPacket : 1;
 
         //
         // We have confirmed that the peer has completed the handshake.
