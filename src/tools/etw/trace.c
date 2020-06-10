@@ -83,7 +83,7 @@ const char* ApiTypeStr[] = {
     "CONNECTION_CLOSE",
     "CONNECTION_SHUTDOWN",
     "CONNECTION_START",
-    "CONNECTION_SEND_RESUMPTION_TICKET"
+    "CONNECTION_SEND_RESUMPTION_TICKET",
     "STREAM_OPEN",
     "STREAM_CLOSE",
     "STREAM_START",
@@ -92,6 +92,8 @@ const char* ApiTypeStr[] = {
     "STREAM_RECEIVE_COMPLETE",
     "STREAM_RECEIVE_SET_ENABLED"
 };
+
+QUIC_STATIC_ASSERT(ARRAYSIZE(ApiTypeStr) == QUIC_API_COUNT, "Keep the count in sync with array");
 
 const char* SendFlushReasonStr[] = {
     "Flags",
