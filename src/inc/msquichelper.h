@@ -406,7 +406,7 @@ GetSecConfigForSelfSigned(
     _In_ const QUIC_API_TABLE* MsQuic,
     _In_ HQUIC Registration,
     _In_ const QUIC_SEC_CONFIG_PARAMS* Params
-)
+    )
 {
     CreateSecConfigHelper Helper;
     return Helper.Create(

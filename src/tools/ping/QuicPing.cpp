@@ -71,7 +71,7 @@ PrintUsage()
         "  -timeout:<####>             Disconnect timeout for connection. (def:%u ms)\n"
         "  -idle:<####>                Idle timeout for connection. (def:%u ms)\n"
         "  -key_bytes:<####>           The number of bytes encrypted per key.\n"
-        "  -selfsign:<0/1>             Use self signed test certificates. Required on both client and server if used.\n",
+        "  -selfsign:<0/1>             Use self signed test certificates.\n",
         DEFAULT_ALPN,
         DEFAULT_PORT,
         DEFAULT_USE_ENCRYPTION,
@@ -146,10 +146,6 @@ ParseCommonCommands(
     uint16_t printStats = DEFAULT_PRINT_STATISTICS;
     TryGetValue(argc, argv, "stats", &printStats);
     PingConfig.PrintStats = printStats != 0;
-
-    uint16_t useSelfSigned = DEFAULT_USE_SELF_SIGNED_CERT;
-    TryGetValue(argc, argv, "selfsigned", &useSelfSigned);
-    PingConfig.UseSelfSigned = useSelfSigned != 0;
 
     uint64_t uniStreams = 0;
     TryGetValue(argc, argv, "uni", &uniStreams);
@@ -235,7 +231,6 @@ ParseServerCommand(
 
     QUIC_SEC_CONFIG_PARAMS* selfSignedCertParams = nullptr;
 
-    // Parsed twice to be able to skip loading thumbprint
     uint16_t useSelfSigned = 0;
     if (!TryGetValue(argc, argv, "selfsigned", &useSelfSigned)) {
 
