@@ -91,6 +91,8 @@ function Run-Foreground-Executable($File, $Arguments) {
 $GitPath = Join-Path $RootDir "build/PerfData"
 
 function Clone-Data-Repo() {
+    # Redirect stderr to stdout for git.
+    $env:GIT_REDIRECT_STDERR = '2>&1'
     git clone https://github.com/microsoft/msquic $GitPath
     $currentLoc = Get-Location
     Set-Location -Path $GitPath
