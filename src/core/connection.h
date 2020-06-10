@@ -65,10 +65,9 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN GotFirstServerResponse : 1;
 
         //
-        // This flag indicates the client received a Retry packet during the
-        // handshake.
+        // This flag indicates the Retry packet was used during the handshake.
         //
-        BOOLEAN ReceivedRetryPacket : 1;
+        BOOLEAN HandshakeUsedRetryPacket : 1;
 
         //
         // We have confirmed that the peer has completed the handshake.
@@ -140,6 +139,13 @@ typedef union QUIC_CONNECTION_STATE {
         // scheme.
         //
         BOOLEAN UseRoundRobinStreamScheduling : 1;
+
+        //
+        // Indicates that this connection has resumption enabled and needs to
+        // keep the TLS state and transport parameters until it is done sending
+        // resumption tickets.
+        //
+        BOOLEAN ResumptionEnabled : 1;
 
 #ifdef QuicVerifierEnabledByAddr
         //

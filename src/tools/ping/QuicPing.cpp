@@ -70,7 +70,8 @@ PrintUsage()
         "  -dlength:<####>             The max length of each datagram. (def:%u)\n"
         "  -timeout:<####>             Disconnect timeout for connection. (def:%u ms)\n"
         "  -idle:<####>                Idle timeout for connection. (def:%u ms)\n"
-        "  -key_bytes:<####>           The number of bytes encrypted per key.\n",
+        "  -key_bytes:<####>           The number of bytes encrypted per key.\n"
+        "  -selfsign:<0/1>             Use self signed test certificates.\n",
         DEFAULT_ALPN,
         DEFAULT_PORT,
         DEFAULT_USE_ENCRYPTION,
@@ -228,44 +229,66 @@ ParseServerCommand(
         return;
     }
 
-#if _WIN32
-    const char* certThumbprint;
-    if (!TryGetValue(argc, argv, "thumbprint", &certThumbprint)) {
-        printf("Must specify -thumbprint: for server mode.\n");
-        return;
-    }
-    const char* certStoreName;
-    if (!TryGetValue(argc, argv, "cert_store", &certStoreName)) {
-        SecurityConfig = GetSecConfigForThumbprint(MsQuic, Registration, certThumbprint);
-        if (SecurityConfig == nullptr) {
-            printf("Failed to create security configuration for thumbprint:'%s'.\n", certThumbprint);
-            return;
-        }
-    } else {
-        uint32_t machineCert = 0;
-        TryGetValue(argc, argv, "machine_cert", &machineCert);
-        QUIC_CERTIFICATE_HASH_STORE_FLAGS flags =
-            machineCert ? QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE : QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE;
+    QUIC_SEC_CONFIG_PARAMS* selfSignedCertParams = nullptr;
 
-        SecurityConfig = GetSecConfigForThumbprintAndStore(MsQuic, Registration, flags, certThumbprint, certStoreName);
-        if (SecurityConfig == nullptr) {
-            printf(
-                "Failed to create security configuration for thumbprint:'%s' and store: '%s'.\n",
-                certThumbprint,
-                certStoreName);
+    uint16_t useSelfSigned = 0;
+    if (!TryGetValue(argc, argv, "selfsigned", &useSelfSigned)) {
+
+#if _WIN32
+        const char* certThumbprint;
+        if (!TryGetValue(argc, argv, "thumbprint", &certThumbprint)) {
+            printf("Must specify -thumbprint: for server mode.\n");
+            return;
+        }
+        const char* certStoreName;
+        if (!TryGetValue(argc, argv, "cert_store", &certStoreName)) {
+            SecurityConfig = GetSecConfigForThumbprint(MsQuic, Registration, certThumbprint);
+            if (SecurityConfig == nullptr) {
+                printf("Failed to create security configuration for thumbprint:'%s'.\n", certThumbprint);
+                return;
+            }
+        } else {
+            uint32_t machineCert = 0;
+            TryGetValue(argc, argv, "machine_cert", &machineCert);
+            QUIC_CERTIFICATE_HASH_STORE_FLAGS flags =
+                machineCert ? QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE : QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE;
+
+            SecurityConfig = GetSecConfigForThumbprintAndStore(MsQuic, Registration, flags, certThumbprint, certStoreName);
+            if (SecurityConfig == nullptr) {
+                printf(
+                    "Failed to create security configuration for thumbprint:'%s' and store: '%s'.\n",
+                    certThumbprint,
+                    certStoreName);
+                return;
+            }
+        }
+#else
+        // TODO - Support getting sec config on Linux.
+        printf("Loading sec config on Linux unsupported right now.\n");
+        return;
+#endif
+    } else {
+        selfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
+        if (!selfSignedCertParams) {
+            printf("Failed to create platform self signed certificate\n");
+            return;
+        }
+
+        SecurityConfig = GetSecConfigForSelfSigned(MsQuic, Registration, selfSignedCertParams);
+        if (!SecurityConfig) {
+            printf("Failed to create security config for self signed certificate\n");
+            QuicPlatFreeSelfSignedCert(selfSignedCertParams);
             return;
         }
     }
-#else
-    // TODO - Support getting sec config on Linux.
-    printf("Loading sec config on Linux unsupported right now.\n");
-    return;
-#endif
 
     ParseCommonCommands(argc, argv);
     QuicPingServerRun();
 
     MsQuic->SecConfigDelete(SecurityConfig);
+    if (selfSignedCertParams) {
+        QuicPlatFreeSelfSignedCert(selfSignedCertParams);
+    }
 }
 
 void

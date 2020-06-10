@@ -8,7 +8,7 @@
 #pragma once
 
 #define _CRT_SECURE_NO_WARNINGS 1
-
+#define QUIC_TEST_APIS 1 // Needed for self signed cert API
 #include <msquichelper.h>
 
 //

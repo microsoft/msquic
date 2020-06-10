@@ -433,6 +433,14 @@ QuicConnApplySettings(
             Settings->UnidiStreamCount);
     }
 
+    if (Settings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME) {
+        QUIC_DBG_ASSERT(!Connection->State.Started);
+        //
+        // TODO: allocate memory for handshake TP here
+        //
+        Connection->State.ResumptionEnabled = TRUE;
+    }
+
     QuicSendApplySettings(&Connection->Send, Settings);
     QuicCongestionControlInitialize(&Connection->CongestionControl, Settings);
 }
@@ -2044,7 +2052,8 @@ QuicConnHandshakeConfigure(
             QUIC_FREE(Connection->OrigDestCID);
             Connection->OrigDestCID = NULL;
 
-            if (Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27) {
+            if (Connection->State.HandshakeUsedRetryPacket &&
+                Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27) {
                 QUIC_DBG_ASSERT(SourceCid->Link.Next != NULL);
                 const QUIC_CID_HASH_ENTRY* PrevSourceCid =
                     QUIC_CONTAINING_RECORD(
@@ -2222,7 +2231,7 @@ QuicConnValidateTransportParameterDraft27CIDs(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    if (Connection->State.ReceivedRetryPacket) {
+    if (Connection->State.HandshakeUsedRetryPacket) {
         QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
         QUIC_DBG_ASSERT(Connection->OrigDestCID != NULL);
         //
@@ -2329,7 +2338,7 @@ QuicConnValidateTransportParameterCIDs(
         }
         QUIC_FREE(Connection->OrigDestCID);
         Connection->OrigDestCID = NULL;
-        if (Connection->State.ReceivedRetryPacket) {
+        if (Connection->State.HandshakeUsedRetryPacket) {
             if (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID)) {
                 QuicTraceEvent(
                     ConnError,
@@ -2340,15 +2349,13 @@ QuicConnValidateTransportParameterCIDs(
             }
             // TODO - Validate
         } else {
-            if (Connection->State.ReceivedRetryPacket) {
-                if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID) {
-                    QuicTraceEvent(
-                        ConnError,
-                        "[conn][%p] ERROR, %s.",
-                        Connection,
-                        "Server incorrectly provided the retry source CID in TP");
-                    return FALSE;
-                }
+            if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Server incorrectly provided the retry source CID in TP");
+                return FALSE;
             }
         }
     }
@@ -2820,7 +2827,7 @@ QuicConnRecvRetry(
     }
 
     Connection->State.GotFirstServerResponse = TRUE;
-    Connection->State.ReceivedRetryPacket = TRUE;
+    Connection->State.HandshakeUsedRetryPacket = TRUE;
 
     //
     // Update the Initial packet's key based on the new CID.
@@ -3054,6 +3061,7 @@ QuicConnRecvHeader(
                 Connection->OrigDestCID->Data,
                 Token.Encrypted.OrigConnId,
                 Token.Encrypted.OrigConnIdLength);
+            Connection->State.HandshakeUsedRetryPacket = TRUE;
 
             QuicPathSetValid(Connection, Path, QUIC_PATH_VALID_INITIAL_TOKEN);
 
