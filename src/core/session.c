@@ -329,7 +329,7 @@ MsQuicSessionClose(
         // immediately cleaned up. Use shutdown to ensure this all gets placed
         // on the worker queue.
         //
-        MsQuicSessionShutdown(Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+        MsQuicSessionShutdown(Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
     }
 
     QuicRundownReleaseAndWait(&Session->Rundown);
