@@ -8,7 +8,7 @@
 #pragma once
 
 #define _CRT_SECURE_NO_WARNINGS 1
-
+#define QUIC_TEST_APIS 1 // Needed for self signed cert API
 #include <msquichelper.h>
 
 //
@@ -62,6 +62,11 @@ extern uint8_t* QuicPingRawIoBuffer;
 #define DEFAULT_PRINT_STATISTICS 0
 
 //
+// QuicPing defaults to requiring normal certificates.
+//
+#define DEFAULT_USE_SELF_SIGNED_CERT 0
+
+//
 // QuicPing defaults to the low latency profile.
 //
 #define DEFAULT_EXECUTION_PROFILE QUIC_EXECUTION_PROFILE_LOW_LATENCY
@@ -112,6 +117,7 @@ typedef struct QUIC_PING_CONFIG {
     bool UseSendBuffer : 1;
     bool UsePacing     : 1;
     bool PrintStats    : 1;
+    bool UseSelfSigned : 1;
 
     QUIC_BUFFER ALPN;
     QUIC_ADDR LocalIpAddr;

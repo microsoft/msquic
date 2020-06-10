@@ -14,6 +14,7 @@ Abstract:
 PingConnection::PingConnection(
     _In_ PingTracker* Tracker,
     _In_ HQUIC Session,
+    _In_ bool DisableValidation,
     _In_ bool DumpResumption
     ) :
     Tracker(Tracker), QuicConnection(nullptr), DumpResumption(DumpResumption),
@@ -29,6 +30,10 @@ PingConnection::PingConnection(
             this,
             &QuicConnection))) {
         printf("Failed to open connection!\n");
+    }
+    if (DisableValidation) {
+        uint32_t DisableCertValidation = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
+        MsQuic->SetParam(QuicConnection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS, sizeof(uint32_t), &DisableCertValidation);
     }
 }
 

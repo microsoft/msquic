@@ -99,6 +99,7 @@ struct PingConnection {
     PingConnection(
         _In_ PingTracker* Tracker,
         _In_ HQUIC Session,
+        _In_ bool DisableValidation,
         _In_ bool DumpResumption = false
         );
 

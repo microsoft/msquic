@@ -48,6 +48,7 @@ void QuicPingClientRun()
                 new PingConnection(
                     &Tracker,
                     Session.Handle,
+                    PingConfig.UseSelfSigned,
                     PingConfig.Client.ConnectionCount == 1);
             if (!Connections[i]) {
                 printf("Failed to open a connection!\n");
