@@ -67,6 +67,11 @@ typedef _In_range_(0, QUIC_UINT62_MAX) uint64_t QUIC_UINT62;
 //
 #define QUIC_MAX_SNI_LENGTH             65535
 
+//
+// The maximum number of bytes of application data a server application can
+// send in a resumption ticket.
+//
+#define QUIC_MAX_RESUMPTION_APP_DATA_LENGTH     1000
 
 typedef enum QUIC_EXECUTION_PROFILE {
     QUIC_EXECUTION_PROFILE_LOW_LATENCY,         // Default
@@ -104,6 +109,13 @@ typedef enum QUIC_CONNECTION_SHUTDOWN_FLAGS {
 } QUIC_CONNECTION_SHUTDOWN_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CONNECTION_SHUTDOWN_FLAGS);
+
+typedef enum QUIC_SEND_RESUMPTION_FLAGS {
+    QUIC_SEND_RESUMPTION_FLAG_NONE          = 0x0000,
+    QUIC_SEND_RESUMPTION_FLAG_FINAL         = 0x0001    // Free TLS state after sending this ticket.
+} QUIC_SEND_RESUMPTION_FLAGS;
+
+DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEND_RESUMPTION_FLAGS);
 
 typedef enum QUIC_STREAM_SCHEDULING_SCHEME {
     QUIC_STREAM_SCHEDULING_SCHEME_FIFO          = 0x0000,   // Sends stream data first come, first served. (Default)
@@ -655,7 +667,9 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED           = 9,
     QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED            = 10,
     QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED                 = 11,
-    QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED       = 12
+    QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED       = 12,
+    QUIC_CONNECTION_EVENT_RESUMED                           = 13,   // Server-only; provides resumption data, if any.
+    QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED        = 14    // Client-only; provides ticket to persist, if any.
 } QUIC_CONNECTION_EVENT_TYPE;
 
 typedef struct QUIC_CONNECTION_EVENT {
@@ -705,6 +719,14 @@ typedef struct QUIC_CONNECTION_EVENT {
             /* inout */ void* ClientContext;
             QUIC_DATAGRAM_SEND_STATE State;
         } DATAGRAM_SEND_STATE_CHANGED;
+        struct {
+            uint16_t ResumptionStateLength;
+            const uint8_t* ResumptionState;
+        } RESUMED;
+        struct {
+            uint16_t ResumptionTicketLength;
+            const uint8_t* ResumptionTicket;
+        } RESUMPTION_TICKET_RECEIVED;
     };
 } QUIC_CONNECTION_EVENT;
 
@@ -773,6 +795,21 @@ QUIC_STATUS
     _In_reads_opt_z_(QUIC_MAX_SNI_LENGTH)
         const char* ServerName,
     _In_ uint16_t ServerPort // Host byte order
+    );
+
+//
+// Uses the QUIC (server) handle to send a resumption ticket to the remote
+// client, optionally with app-specific data useful during resumption.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_CONNECTION_SEND_RESUMPTION_FN)(
+    _In_ _Pre_defensive_ HQUIC Connection,
+    _In_ QUIC_SEND_RESUMPTION_FLAGS Flags,
+    _In_ uint16_t DataLength,
+    _In_reads_bytes_opt_(DataLength)
+        const uint8_t* ResumptionData
     );
 
 //
@@ -976,6 +1013,7 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_CLOSE_FN            ConnectionClose;
     QUIC_CONNECTION_SHUTDOWN_FN         ConnectionShutdown;
     QUIC_CONNECTION_START_FN            ConnectionStart;
+    QUIC_CONNECTION_SEND_RESUMPTION_FN  ConnectionSendResumptionTicket;
 
     QUIC_STREAM_OPEN_FN                 StreamOpen;
     QUIC_STREAM_CLOSE_FN                StreamClose;
