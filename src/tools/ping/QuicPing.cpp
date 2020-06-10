@@ -232,7 +232,7 @@ ParseServerCommand(
     QUIC_SEC_CONFIG_PARAMS* selfSignedCertParams = nullptr;
 
     uint16_t useSelfSigned = 0;
-    if (!TryGetValue(argc, argv, "selfsigned", &useSelfSigned)) {
+    if (!TryGetValue(argc, argv, "selfsign", &useSelfSigned)) {
 
 #if _WIN32
         const char* certThumbprint;

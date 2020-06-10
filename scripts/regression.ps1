@@ -73,6 +73,7 @@ function Stop-Background-Executable($Process) {
     $Process.StandardInput.WriteLine("")
     $Process.StandardInput.Flush()
     $Process.WaitForExit()
+    Write-Host $Process.StandardOutput.ReadToEnd()
 }
 
 function Run-Foreground-Executable($File, $Arguments) {
@@ -89,11 +90,12 @@ function Run-Foreground-Executable($File, $Arguments) {
 }
 
 function Parse-Results($Results) {
-    $Results -match "Total rate.*\(TX.*bytes @ (.*) kbps \|"
+    #Unused variable on purpose
+    $m = $Results -match "Total rate.*\(TX.*bytes @ (.*) kbps \|"
     return $Matches[1]
 }
 
-$proc = Start-Background-Executable -File $PingClient -Arguments "-listen:* -thumbprint:41A3E100CD61CFCE8DCC79FC1973CE1ECFE87747 -peer_uni:1"
+$proc = Start-Background-Executable -File $PingClient -Arguments "-listen:* -selfsign:1 -peer_uni:1"
 
 Start-Sleep 4
 
@@ -103,6 +105,8 @@ $allRunsResults = @()
     $runResult = Run-Foreground-Executable -File $PingClient -Arguments "-target:localhost -uni:1 -length:100000000"
     $parsedRunResult = Parse-Results -Results $runResult
     $allRunsResults += $parsedRunResult
+    Write-Host $runResult
+    Write-Host $parsedRunResult
 }
 
 
