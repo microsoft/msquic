@@ -71,7 +71,7 @@ PrintUsage()
         "  -timeout:<####>             Disconnect timeout for connection. (def:%u ms)\n"
         "  -idle:<####>                Idle timeout for connection. (def:%u ms)\n"
         "  -key_bytes:<####>           The number of bytes encrypted per key.\n"
-        "  -selfsign:<0/1>             Use self signed test certificates. Required on both client and server if used",
+        "  -selfsign:<0/1>             Use self signed test certificates. Required on both client and server if used.\n",
         DEFAULT_ALPN,
         DEFAULT_PORT,
         DEFAULT_USE_ENCRYPTION,
