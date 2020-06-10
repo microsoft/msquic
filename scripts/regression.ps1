@@ -89,7 +89,7 @@ function Run-Foreground-Executable($File, $Arguments) {
 }
 
 function Parse-Results($Results) {
-    $matching =  $Results -match "Total rate.*\(TX.*bytes @ (.*) kbps \|"
+    $Results -match "Total rate.*\(TX.*bytes @ (.*) kbps \|"
     return $Matches[1]
 }
 
