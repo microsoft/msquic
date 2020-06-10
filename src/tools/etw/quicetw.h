@@ -25,7 +25,7 @@ typedef struct _BINDING BINDING;
 
 #define CAP_TO_32(uint64) (uint64 > UINT_MAX ? UINT_MAX : (ULONG)uint64)
 
-#define QUIC_API_COUNT 24
+#define QUIC_API_COUNT 26
 
 #pragma warning(disable:4200)  // nonstandard extension used: zero-sized array in struct/union
 #pragma warning(disable:4366)  // The result of the unary '&' operator may be unaligned
