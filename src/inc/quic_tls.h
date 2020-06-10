@@ -397,6 +397,18 @@ QuicTlsReadTicket(
     );
 
 //
+// Called to send a TLS ticket.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicTlsSendTicket(
+    _In_ QUIC_TLS* TlsContext,
+    _In_ uint32_t SerializedTicketLength,
+    _In_reads_bytes_(SerializedTicketLength)
+        const uint8_t* SerializedTicket
+    );
+
+//
 // Sets a TLS parameter.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

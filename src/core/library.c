@@ -1033,6 +1033,7 @@ MsQuicOpen(
     Api->ConnectionClose = MsQuicConnectionClose;
     Api->ConnectionShutdown = MsQuicConnectionShutdown;
     Api->ConnectionStart = MsQuicConnectionStart;
+    Api->ConnectionSendResumptionTicket = MsQuicConnectionSendResumptionTicket;
 
     Api->StreamOpen = MsQuicStreamOpen;
     Api->StreamClose = MsQuicStreamClose;

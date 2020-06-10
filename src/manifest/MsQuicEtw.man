@@ -411,36 +411,40 @@
                 value="16"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_OPEN)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_SEND_RESUMPTION_TICKET)"
                 value="17"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_CLOSE)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_OPEN)"
                 value="18"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_START)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_CLOSE)"
                 value="19"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_SHUTDOWN)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_START)"
                 value="20"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_SEND)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_SHUTDOWN)"
                 value="21"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_RECEIVE_COMPLETE)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_SEND)"
                 value="22"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_RECEIVE_SET_ENABLED)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_RECEIVE_COMPLETE)"
                 value="23"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.DATAGRAM_SEND)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_RECEIVE_SET_ENABLED)"
                 value="24"
+                />
+            <map
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.DATAGRAM_SEND)"
+                value="25"
                 />
           </valueMap>
           <valueMap name="map_QUIC_SEND_FLUSH_REASON">
@@ -3612,6 +3616,10 @@
         <string
             id="Enum.QUIC_TRACE_API_TYPE.CONNECTION_START"
             value="CONNECTION_START"
+            />
+        <string
+            id="Enum.QUIC_TRACE_API_TYPE.CONNECTION_SEND_RESUMPTION_TICKET"
+            value="CONNECTION_SEND_RESUMPTION_TICKET"
             />
         <string
             id="Enum.QUIC_TRACE_API_TYPE.STREAM_OPEN"
