@@ -62,8 +62,18 @@ if (!(Test-Path $PingClient)) {
 # Build up all the arguments to pass to the Powershell script.
 $Arguments = "-Path $($PingClient) -Arguments '-target:localhost -uni:1 -length:100000000' -ShowOutput"
 
+$LogPath = Join-Path $RootDir "artifacts/regressions/logs"
 
+$ServerLogPath = Join-Path $LogPath "ServerPingLog.txt"
+$ClientLogPath = Join-Path $LogPath "ClientPingLog.txt"
 
+$proc = Start-Process -NoNewWindow $PingClient "-listen:* -thumbprint:41A3E100CD61CFCE8DCC79FC1973CE1ECFE87747 -peer_uni:1" -RedirectStandardInput  $ServerLogPath -PassThru 
+
+Write-Host $proc
+
+Start-Sleep 1
 
 # Run the script.
 Invoke-Expression ($RunExecutable + " " + $Arguments)
+
+$proc.Kill()
