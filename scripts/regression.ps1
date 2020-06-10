@@ -73,7 +73,6 @@ function Stop-Background-Executable($Process) {
     $Process.StandardInput.WriteLine("")
     $Process.StandardInput.Flush()
     $Process.WaitForExit()
-    Write-Host $Process.StandardOutput.ReadToEnd()
 }
 
 function Run-Foreground-Executable($File, $Arguments) {
@@ -89,37 +88,61 @@ function Run-Foreground-Executable($File, $Arguments) {
     return $p.StandardOutput.ReadToEnd()
 }
 
-function Parse-Results($Results) {
+$GitPath = Join-Path $RootDir "build/PerfData"
+
+function Clone-Data-Repo() {
+    git clone https://github.com/microsoft/msquic $GitPath
+    $currentLoc = Get-Location
+    Set-Location -Path $GitPath
+    git clean -d -x -f
+    git reset --hard
+    git checkout data/performance
+    git pull
+    Set-Location -Path $currentLoc
+}
+
+function Get-Last-Result($Path) {
+    $FullLatestResult = Get-Item -Path $Path | Get-Content -Tail 1
+    $SplitLatestResult =  $FullLatestResult -split ','
+    $LatestResult = $SplitLatestResult[$SplitLatestResult.Length - 1].Trim()
+    return $LatestResult
+}
+
+function Parse-Loopback-Results($Results) {
     #Unused variable on purpose
     $m = $Results -match "Total rate.*\(TX.*bytes @ (.*) kbps \|"
     return $Matches[1]
 }
 
-$proc = Start-Background-Executable -File $PingClient -Arguments "-listen:* -selfsign:1 -peer_uni:1"
+function Run-Loopback-Test() {
+    Write-Host "Running Loopback Test"
+    $proc = Start-Background-Executable -File $PingClient -Arguments "-listen:* -selfsign:1 -peer_uni:1"
+    Start-Sleep 4
 
-Start-Sleep 4
+    $allRunsResults = @()
 
-$allRunsResults = @()
+    1..6 | ForEach-Object {
+        $runResult = Run-Foreground-Executable -File $PingClient -Arguments "-target:localhost -uni:1 -length:100000000"
+        $parsedRunResult = Parse-Loopback-Results -Results $runResult
+        $allRunsResults += $parsedRunResult
+        Write-Host "Client $_ Finished"
+    }
 
-1..6 | ForEach-Object {
-    $runResult = Run-Foreground-Executable -File $PingClient -Arguments "-target:localhost -uni:1 -length:100000000"
-    $parsedRunResult = Parse-Results -Results $runResult
-    $allRunsResults += $parsedRunResult
-    Write-Host $runResult
-    Write-Host $parsedRunResult
+    Stop-Background-Executable -Process $proc
+
+    $sum = 0
+    $allRunsResults | ForEach-Object { $sum += $_ }
+    $average = $sum / $allRunsResults.Length
+
+    $WindowsLoopbackPath = Join-Path $GitPath "windows/loopback/results.csv"
+    $LoopbackResult = Get-Last-Result -Path $WindowsLoopbackPath
+
+    Write-Host $average
+    Write-Host $LoopbackResult
 }
 
 
+Clone-Data-Repo
 
-Stop-Background-Executable -Process $proc
 
-Write-Host $allRunsResults
-
-$sum = 0
-$allRunsResults | ForEach-Object { $sum += $_ }
-
-Write-Host $sum
-
-$average = $sum / $allRunsResults.Length
-
-Write-Host $average
+Run-Loopback-Test
