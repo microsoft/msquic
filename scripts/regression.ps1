@@ -12,6 +12,9 @@ This script runs spinquic locally for a period of time.
 .PARAMETER Tls
     The TLS library use.
 
+.PARAMETER WriteResults
+    Write results 
+
 #>
 
 param (
@@ -25,7 +28,10 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
-    [string]$Tls = ""
+    [string]$Tls = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$WriteResults = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -123,7 +129,7 @@ function Run-Loopback-Test() {
 
     $allRunsResults = @()
 
-    1..6 | ForEach-Object {
+    1..3 | ForEach-Object {
         $runResult = Run-Foreground-Executable -File $PingClient -Arguments "-target:localhost -uni:1 -length:100000000"
         $parsedRunResult = Parse-Loopback-Results -Results $runResult
         $allRunsResults += $parsedRunResult
@@ -136,11 +142,29 @@ function Run-Loopback-Test() {
     $allRunsResults | ForEach-Object { $sum += $_ }
     $average = $sum / $allRunsResults.Length
 
-    $WindowsLoopbackPath = Join-Path $GitPath "windows/loopback/results.csv"
-    $LoopbackResult = Get-Last-Result -Path $WindowsLoopbackPath
+    $osPath = "linux"
+    if ($IsWindows) {
+        $osPath = "windows"
+    }
 
-    Write-Host $average
-    Write-Host $LoopbackResult
+    $LoopbackPath = Join-Path $GitPath "$osPath/loopback/results.csv"
+    $LastResult = Get-Last-Result -Path $LoopbackPath
+
+    if ($WriteResults) {
+        # Redirect stderr to stdout for git.
+        $env:GIT_REDIRECT_STDERR = '2>&1'
+        $time = [DateTime]::UtcNow.ToString("u")
+        $currentLoc = Get-Location
+        Set-Location -Path $RootDir
+        $fullHash = git rev-parse HEAD
+        $hash = $fullHash.Substring(0, 7)
+        $newResult = "$time, $hash, $average"
+        Add-Content -Path $LoopbackPath -Value $newResult
+        Set-Location -Path $currentLoc
+    }
+
+    Write-Host "Current Run: $average kbps"
+    Write-Host "Last Master Run: $LastResult kbps"
 }
 
 
