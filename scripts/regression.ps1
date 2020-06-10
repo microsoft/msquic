@@ -43,9 +43,6 @@ if ("" -eq $Tls) {
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
-# Path to the run-executable Powershell script.
-$RunExecutable = Join-Path $RootDir ".azure/scripts/run-executable.ps1"
-
 # Path to the spinquic exectuable.
 $PingClient = $null
 if ($IsWindows) {
@@ -59,21 +56,66 @@ if (!(Test-Path $PingClient)) {
     Write-Error "Build does not exist!`n `nRun the following to generate it:`n `n    $(Join-Path $RootDir "scripts" "build.ps1") -Config $Config -Arch $Arch -Tls $Tls`n"
 }
 
-# Build up all the arguments to pass to the Powershell script.
-$Arguments = "-Path $($PingClient) -Arguments '-target:localhost -uni:1 -length:100000000' -ShowOutput"
+function Start-Background-Executable($File, $Arguments) {
+    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+    $pinfo.FileName = $File
+    $pinfo.RedirectStandardOutput = $true
+    $pinfo.RedirectStandardInput = $true
+    $pinfo.UseShellExecute = $false
+    $pinfo.Arguments = $Arguments
+    $p = New-Object System.Diagnostics.Process
+    $p.StartInfo = $pinfo
+    $p.Start() | Out-Null
+    return $p
+}
 
-$LogPath = Join-Path $RootDir "artifacts/regressions/logs"
+function Stop-Background-Executable($Process) {
+    $Process.StandardInput.WriteLine("")
+    $Process.StandardInput.Flush()
+    $Process.WaitForExit()
+}
 
-$ServerLogPath = Join-Path $LogPath "ServerPingLog.txt"
-$ClientLogPath = Join-Path $LogPath "ClientPingLog.txt"
+function Run-Foreground-Executable($File, $Arguments) {
+    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+    $pinfo.FileName = $File
+    $pinfo.RedirectStandardOutput = $true
+    $pinfo.UseShellExecute = $false
+    $pinfo.Arguments = $Arguments
+    $p = New-Object System.Diagnostics.Process
+    $p.StartInfo = $pinfo
+    $p.Start() | Out-Null
+    $p.WaitForExit()
+    return $p.StandardOutput.ReadToEnd()
+}
 
-$proc = Start-Process -NoNewWindow $PingClient "-listen:* -thumbprint:41A3E100CD61CFCE8DCC79FC1973CE1ECFE87747 -peer_uni:1" -RedirectStandardInput  $ServerLogPath -PassThru 
+function Parse-Results($Results) {
+    $matching =  $Results -match "Total rate.*\(TX.*bytes @ (.*) kbps \|"
+    return $Matches[1]
+}
 
-Write-Host $proc
+$proc = Start-Background-Executable -File $PingClient -Arguments "-listen:* -thumbprint:41A3E100CD61CFCE8DCC79FC1973CE1ECFE87747 -peer_uni:1"
 
-Start-Sleep 1
+Start-Sleep 4
 
-# Run the script.
-Invoke-Expression ($RunExecutable + " " + $Arguments)
+$allRunsResults = @()
 
-$proc.Kill()
+1..6 | ForEach-Object {
+    $runResult = Run-Foreground-Executable -File $PingClient -Arguments "-target:localhost -uni:1 -length:100000000"
+    $parsedRunResult = Parse-Results -Results $runResult
+    $allRunsResults += $parsedRunResult
+}
+
+
+
+Stop-Background-Executable -Process $proc
+
+Write-Host $allRunsResults
+
+$sum = 0
+$allRunsResults | ForEach-Object { $sum += $_ }
+
+Write-Host $sum
+
+$average = $sum / $allRunsResults.Length
+
+Write-Host $average
