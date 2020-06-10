@@ -928,7 +928,7 @@ struct ApiCall : Struct {
             return "API_CONN_SHUTDOWN";
         case QUIC_API_TYPE_CONN_START:
             return "API_CONN_START";
-        case: QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET:
+        case QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET:
             return "QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET";
         case QUIC_API_TYPE_STRM_CLOSE:
             return "API_STRM_CLOSE";
