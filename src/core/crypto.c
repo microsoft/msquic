@@ -107,6 +107,14 @@ QuicCryptoInitialize(
     BOOLEAN SparseAckRangesInitialized = FALSE;
     BOOLEAN RecvBufferInitialized = FALSE;
 
+    const uint8_t* Salt = QuicSupportedVersionList[0].Salt; // Default to latest
+    for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
+        if (QuicSupportedVersionList[i].Number == Connection->Stats.QuicVersion) {
+            Salt = QuicSupportedVersionList[i].Salt;
+            break;
+        }
+    }
+
     QUIC_PASSIVE_CODE();
 
     QuicZeroMemory(Crypto, sizeof(QUIC_CRYPTO));
@@ -169,7 +177,7 @@ QuicCryptoInitialize(
     Status =
         QuicPacketKeyCreateInitial(
             QuicConnIsServer(Connection),
-            QuicInitialSaltVersion1,
+            Salt,
             HandshakeCidLength,
             HandshakeCid,
             &Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL],
@@ -1628,7 +1636,7 @@ QuicCryptoProcessData(
                 } else if (AcceptResult == QUIC_CONNECTION_REJECT_BUSY) {
                     QuicConnTransportError(
                         Connection,
-                        QUIC_ERROR_SERVER_BUSY);
+                        QUIC_ERROR_CONNECTION_REFUSED);
                 } else {    // QUIC_CONNECTION_REJECT_APP
                     QuicConnTransportError(
                         Connection,

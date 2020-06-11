@@ -129,7 +129,7 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 #define QUIC_STATUS_CONNECTION_TIMEOUT  ((QUIC_STATUS)ETIMEDOUT)
 #define QUIC_STATUS_CONNECTION_IDLE     ((QUIC_STATUS)ERROR_CONNECTION_ABORTED)
 #define QUIC_STATUS_INTERNAL_ERROR      ((QUIC_STATUS)ERROR_INTERNAL_ERROR)
-#define QUIC_STATUS_SERVER_BUSY         ((QUIC_STATUS)ERROR_CONNECTION_REFUSED)
+#define QUIC_STATUS_CONNECTION_REFUSED  ((QUIC_STATUS)ERROR_CONNECTION_REFUSED)
 #define QUIC_STATUS_PROTOCOL_ERROR      ((QUIC_STATUS)ERROR_CONNECTION_INVALID)
 #define QUIC_STATUS_VER_NEG_ERROR       ((QUIC_STATUS)ERROR_VERSION_PARSE_ERROR)
 #define QUIC_STATUS_UNREACHABLE         ((QUIC_STATUS)EHOSTUNREACH)
@@ -409,7 +409,7 @@ QuicAddr6FromString(
         if (BracketEnd == NULL || *(BracketEnd+1) != ':') {
             return FALSE;
         }
-        
+
         char TmpAddrStr[64];
         size_t AddrLength = BracketEnd - AddrStr;
         if (AddrLength >= sizeof(TmpAddrStr)) {

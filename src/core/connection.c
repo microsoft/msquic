@@ -1395,7 +1395,7 @@ QuicErrorCodeToStatus(
 {
     switch (ErrorCode) {
     case QUIC_ERROR_NO_ERROR:               return QUIC_STATUS_SUCCESS;
-    case QUIC_ERROR_SERVER_BUSY:            return QUIC_STATUS_SERVER_BUSY;
+    case QUIC_ERROR_CONNECTION_REFUSED:     return QUIC_STATUS_CONNECTION_REFUSED;
     case QUIC_ERROR_PROTOCOL_VIOLATION:     return QUIC_STATUS_PROTOCOL_ERROR;
     case QUIC_ERROR_CRYPTO_USER_CANCELED:   return QUIC_STATUS_USER_CANCELED;
     default:                                return QUIC_STATUS_INTERNAL_ERROR;
@@ -1692,6 +1692,7 @@ QuicConnOnQuicVersionSet(
     switch (Connection->Stats.QuicVersion) {
     case QUIC_VERSION_DRAFT_27:
     case QUIC_VERSION_DRAFT_28:
+    case QUIC_VERSION_DRAFT_29:
     case QUIC_VERSION_MS_1:
     default:
         Connection->State.HeaderProtectionEnabled = TRUE;
@@ -2761,6 +2762,15 @@ QuicConnRecvRetry(
         return;
     }
 
+    const QUIC_VERSION_INFO* VersionInfo = NULL;
+    for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
+        if (QuicSupportedVersionList[i].Number == Packet->LH->Version) {
+            VersionInfo = &QuicSupportedVersionList[i];
+            break;
+        }
+    }
+    QUIC_FRE_ASSERT(VersionInfo != NULL);
+
     const uint8_t* Token = (Packet->Buffer + Packet->HeaderLength);
     uint16_t TokenLength = Packet->BufferLength - (Packet->HeaderLength + QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1);
 
@@ -2783,7 +2793,8 @@ QuicConnRecvRetry(
     uint8_t CalculatedIntegrityValue[QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1];
 
     if (QUIC_FAILED(
-        QuicPacketGenerateRetryV1Integrity(
+        QuicPacketGenerateRetryIntegrity(
+            VersionInfo->RetryIntegritySecret,
             DestCid->CID.Length,
             DestCid->CID.Data,
             Packet->BufferLength - QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1,
@@ -2849,7 +2860,7 @@ QuicConnRecvRetry(
         Status =
         QuicPacketKeyCreateInitial(
             QuicConnIsServer(Connection),
-            QuicInitialSaltVersion1,
+            VersionInfo->Salt,
             DestCid->CID.Length,
             DestCid->CID.Data,
             &Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL],
