@@ -129,7 +129,7 @@ function Run-Loopback-Test() {
 
     $allRunsResults = @()
 
-    1..2 | ForEach-Object {
+    1..10 | ForEach-Object {
         $runResult = Run-Foreground-Executable -File $PingClient -Arguments "-target:localhost -uni:1 -length:100000000"
         $parsedRunResult = Parse-Loopback-Results -Results $runResult
         $allRunsResults += $parsedRunResult
@@ -141,6 +141,9 @@ function Run-Loopback-Test() {
     $sum = 0
     $allRunsResults | ForEach-Object { $sum += $_ }
     $average = $sum / $allRunsResults.Length
+
+    $combinedResults = ""
+    $allRunsResults | ForEach-Object { $combinedResults += "$_, " }
 
     $osPath = "linux"
     if ($IsWindows) {
@@ -161,7 +164,8 @@ function Run-Loopback-Test() {
         Set-Location -Path $RootDir
         $fullHash = git rev-parse HEAD
         $hash = $fullHash.Substring(0, 7)
-        $newResult = "$time, $hash, $average"
+
+        $newResult = "$time, $hash, $allRunsResults $average"
 
         $NewFilePath = Join-Path $RootDir "build/PerfDataResults/$ResultsFolderRoot"
         $NewFileLocation = Join-Path $NewFilePath $ResultsFileName
@@ -174,6 +178,7 @@ function Run-Loopback-Test() {
 
     Write-Host "Current Run: $average kbps"
     Write-Host "Last Master Run: $LastResult kbps"
+    Write-Host "All Results: $allRunsResults"
 }
 
 
