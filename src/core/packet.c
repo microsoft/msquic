@@ -320,10 +320,9 @@ QuicPacketGenerateRetryIntegrity(
         uint8_t* IntegrityField
     )
 {
-    QUIC_SECRET Secret = {
-        QUIC_HASH_SHA256,
-        QUIC_AEAD_AES_128_GCM
-    };
+    QUIC_SECRET Secret;
+    Secret.Hash = QUIC_HASH_SHA256;
+    Secret.Aead = QUIC_AEAD_AES_128_GCM;
     QuicCopyMemory(
         Secret.Secret,
         IntegritySecret,
