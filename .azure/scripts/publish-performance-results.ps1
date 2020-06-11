@@ -15,6 +15,9 @@ Copy-Item -Path $ResultsPath -Destination $GitPath -Recurse -Force
 git config user.email "quicdev@microsoft.com"
 git config user.name "QUIC Dev Bot"
 
+git config --global credential.helper store
+Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:MAPPED_DEPLOYMENT_KEY):x-oauth-basic@github.com`n"
+
 git add .
 git status
 
