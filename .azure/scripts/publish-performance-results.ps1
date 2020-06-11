@@ -2,7 +2,7 @@
 $RootDir = Split-Path $PSScriptRoot -Parent
 
 $GitPath = Join-Path $RootDir "artifacts/PerfDataGit"
-$ResultsPath = Join-Path $RootDir "artifacts/PerfDataResult"
+$ResultsPath = Join-Path $RootDir "artifacts/PerfDataResults"
 
 $env:GIT_REDIRECT_STDERR = '2>&1'
 git clone https://github.com/microsoft/msquic $GitPath
