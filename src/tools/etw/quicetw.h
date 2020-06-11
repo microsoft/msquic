@@ -1138,7 +1138,7 @@ inline void ReadCid(_In_z_ const char* Cid)
 
 #define QUIC_ERROR_NO_ERROR                     0x0
 #define QUIC_ERROR_INTERNAL_ERROR               0x1
-#define QUIC_ERROR_SERVER_BUSY                  0x2
+#define QUIC_ERROR_CONNECTION_REFUSED           0x2
 #define QUIC_ERROR_FLOW_CONTROL_ERROR           0x3
 #define QUIC_ERROR_STREAM_LIMIT_ERROR           0x4
 #define QUIC_ERROR_STREAM_STATE_ERROR           0x5
@@ -1162,7 +1162,7 @@ QuicErrorToString(
         switch (ErrorCode) {
         case QUIC_ERROR_NO_ERROR:                   return "NO_ERROR";
         case QUIC_ERROR_INTERNAL_ERROR:             return "INTERNAL_ERROR";
-        case QUIC_ERROR_SERVER_BUSY:                return "SERVER_BUSY";
+        case QUIC_ERROR_CONNECTION_REFUSED:         return "CONNECTION_REFUSED";
         case QUIC_ERROR_FLOW_CONTROL_ERROR:         return "FLOW_CONTROL_ERROR";
         case QUIC_ERROR_STREAM_LIMIT_ERROR:         return "STREAM_LIMIT_ERROR";
         case QUIC_ERROR_STREAM_STATE_ERROR:         return "STREAM_STATE_ERROR";

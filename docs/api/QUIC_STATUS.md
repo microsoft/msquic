@@ -47,7 +47,7 @@ Value | Meaning
 **QUIC_STATUS_CONNECTION_IDLE** | The connection timed out from inactivity.
 **QUIC_STATUS_INTERNAL_ERROR** | An internal error was encountered.
 **QUIC_STATUS_UNREACHABLE** | The server is currently unreachable.
-**QUIC_STATUS_SERVER_BUSY** | The server is currently busy.
+**QUIC_STATUS_CONNECTION_REFUSED** | The server refused the connection.
 **QUIC_STATUS_PROTOCOL_ERROR** | A protocol error was encountered.
 **QUIC_STATUS_VER_NEG_ERROR** | A version negotiation error was encountered.
 **QUIC_STATUS_TLS_ERROR** | A TLS layer error was encountered.

@@ -22,7 +22,7 @@
 //
 // The server is currently busy and does not accept any new connections.
 //
-#define QUIC_ERROR_SERVER_BUSY                  0x2
+#define QUIC_ERROR_CONNECTION_REFUSED                  0x2
 //
 // An endpoint received more data than it permitted in its advertised data
 // limits.

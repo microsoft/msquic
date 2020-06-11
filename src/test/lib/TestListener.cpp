@@ -123,7 +123,7 @@ TestListener::HandleListenerEvent(
         }
 
         if (FilterConnections) {
-            Status = QUIC_STATUS_SERVER_BUSY;
+            Status = QUIC_STATUS_CONNECTION_REFUSED;
             break;
         }
 
