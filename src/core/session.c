@@ -326,15 +326,10 @@ MsQuicSessionClose(
     } else {
         //
         // This is the global unregistered session. All connections need to be
-        // immediately cleaned up.
+        // immediately cleaned up. Use shutdown to ensure this all gets placed
+        // on the worker queue.
         //
-        QUIC_LIST_ENTRY* Entry = Session->Connections.Flink;
-        while (Entry != &Session->Connections) {
-            QUIC_CONNECTION* Connection =
-                QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, SessionLink);
-            Entry = Entry->Flink;
-            QuicConnOnShutdownComplete(Connection);
-        }
+        MsQuicSessionShutdown(Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
     }
 
     QuicRundownReleaseAndWait(&Session->Rundown);
