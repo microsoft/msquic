@@ -25,7 +25,7 @@ struct QuicAddr
     QUIC_ADDR SockAddr;
 
     uint16_t Port() {
-        if (SockAddr.si_family == AF_INET) {
+        if (QuicAddrGetFamily(&SockAddr) == AF_INET) {
             return SockAddr.Ipv4.sin_port;
         } else {
             return SockAddr.Ipv6.sin6_port;
@@ -34,7 +34,7 @@ struct QuicAddr
 
     #undef SetPort
     void SetPort(uint16_t port) {
-        if (SockAddr.si_family == AF_INET) {
+        if (QuicAddrGetFamily(&SockAddr) == AF_INET) {
             SockAddr.Ipv4.sin_port = port;
         } else {
             SockAddr.Ipv6.sin6_port = port;
