@@ -11,6 +11,15 @@ $currentLoc = Get-Location
 Set-Location -Path $GitPath
 
 Copy-Item -Path $ResultsPath -Destination $GitPath -Recurse -Force
+
+git config user.email "quicdev@microsoft.com"
+git config user.name "QUIC Dev Bot"
+
 git add .
 git status
+
+git commit -m "Update latest perf results"
+
+git push
+
 Set-Location -Path $currentLoc

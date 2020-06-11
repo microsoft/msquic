@@ -141,8 +141,7 @@ function Run-Loopback-Test() {
     $allRunsResults | ForEach-Object { $sum += $_ }
     $average = $sum / $allRunsResults.Length
 
-    $combinedResults = ""
-    $allRunsResults | ForEach-Object { $combinedResults += "$_, " }
+    $combinedResults = [System.String]::Join(", ", $allRunsResults)
 
     $osPath = "linux"
     if ($IsWindows) {
@@ -164,7 +163,7 @@ function Run-Loopback-Test() {
         $fullHash = git rev-parse HEAD
         $hash = $fullHash.Substring(0, 7)
 
-        $newResult = "$time, $hash, $allRunsResults $average"
+        $newResult = "$time, $hash, $combinedResults $average"
 
         $NewFilePath = Join-Path $RootDir "artifacts/PerfDataResults/$ResultsFolderRoot"
         $NewFileLocation = Join-Path $NewFilePath $ResultsFileName
@@ -177,7 +176,7 @@ function Run-Loopback-Test() {
 
     Write-Host "Current Run: $average kbps"
     Write-Host "Last Master Run: $LastResult kbps"
-    Write-Host "All Results: $allRunsResults"
+    Write-Host "All Results: $combinedResults"
 }
 
 
