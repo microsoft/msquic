@@ -733,9 +733,8 @@ main(int argc, char **argv)
     TryGetValue(argc, argv, "seed", &RngSeed);
     srand(RngSeed);
 
-    SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
-
     for (uint32_t i = 0; i < RepeatCount; i++) {
+         SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
         
         for (size_t i = 0; i < BufferCount; ++i) {
             Buffers[i].Length = MaxBufferSizes[i]; // TODO - Randomize?
