@@ -324,7 +324,8 @@ QuicTestConnectAndIdle(
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
                         AF_UNSPEC,
-                        QUIC_LOCALHOST_FOR_AF(ServerLocalAddr.SockAddr.si_family),
+                        QUIC_LOCALHOST_FOR_AF(
+                            QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                         QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
 
                 if (!Client.WaitForConnectionComplete()) {
