@@ -94,7 +94,7 @@ function Run-Foreground-Executable($File, $Arguments) {
     return $p.StandardOutput.ReadToEnd()
 }
 
-$GitPath = Join-Path $RootDir "build/PerfData"
+$GitPath = Join-Path $RootDir "build/PerfDataGit"
 
 function Clone-Data-Repo() {
     # Redirect stderr to stdout for git.
@@ -129,7 +129,7 @@ function Run-Loopback-Test() {
 
     $allRunsResults = @()
 
-    1..10 | ForEach-Object {
+    1..2 | ForEach-Object {
         $runResult = Run-Foreground-Executable -File $PingClient -Arguments "-target:localhost -uni:1 -length:100000000"
         $parsedRunResult = Parse-Loopback-Results -Results $runResult
         $allRunsResults += $parsedRunResult
@@ -147,7 +147,8 @@ function Run-Loopback-Test() {
         $osPath = "windows"
     }
 
-    $LoopbackPath = Join-Path $GitPath "$osPath/loopback/results.csv"
+    $FileNamePath = "$osPath/loopback/results.csv"
+    $LoopbackPath = Join-Path $GitPath $FileNamePath
     $LastResult = Get-Last-Result -Path $LoopbackPath
 
     if ($WriteResults) {
@@ -159,7 +160,13 @@ function Run-Loopback-Test() {
         $fullHash = git rev-parse HEAD
         $hash = $fullHash.Substring(0, 7)
         $newResult = "$time, $hash, $average"
-        Add-Content -Path $LoopbackPath -Value $newResult
+
+        $NewFilePath = Join-Path $RootDir "build/PerfDataResults"
+        New-Item $NewFilePath -ItemType "directory"
+        $NewFileLocation = Join-Path $NewFilePath $FileNamePath
+        Copy-Item $LoopbackPath -Destination $NewFileLocation
+
+        Add-Content -Path $NewFilePath -Value $newResult
         Set-Location -Path $currentLoc
     }
 
