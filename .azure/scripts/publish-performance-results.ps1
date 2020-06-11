@@ -11,6 +11,6 @@ $currentLoc = Get-Location
 Set-Location -Path $GitPath
 
 Copy-Item -Path $ResultsPath -Destination $GitPath -Recurse
-
+git add .
 git status
 Set-Location -Path $currentLoc
