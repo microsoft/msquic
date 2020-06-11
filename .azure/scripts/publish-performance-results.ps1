@@ -1,9 +1,3 @@
-param (
-    [Parameter(DeploymentKey = $true)]
-    [string]$Path
-)
-
-
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 $RootDir = Split-Path $RootDir -Parent
@@ -22,7 +16,7 @@ git config user.email "quicdev@microsoft.com"
 git config user.name "QUIC Dev Bot"
 
 git config --global credential.helper store
-Add-Content "$env:USERPROFILE\.git-credentials" "https://$($DeploymentKey):x-oauth-basic@github.com`n"
+Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:MAPPED_DEPLOYMENT_KEY):x-oauth-basic@github.com`n"
 
 git add .
 git status
