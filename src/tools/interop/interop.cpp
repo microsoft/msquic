@@ -67,7 +67,7 @@ struct QuicPublicEndpoint {
 QuicPublicEndpoint PublicEndpoints[] = {
     { "aioquic",        "quic.aiortc.org" },
     { "akamaiquic",     "ietf.akaquic.com" },
-    { "applequic",      "12.181.55.166" },
+    { "applequic",      "71.202.41.169" },
     { "ats",            "quic.ogre.com" },
     { "f5",             "f5quic.com" },
     { "gquic",          "quic.rocks" },
@@ -82,7 +82,7 @@ QuicPublicEndpoint PublicEndpoints[] = {
     { "Pandora",        "pandora.cm.in.tum.de" },
     { "picoquic",       "test.privateoctopus.com" },
     { "quant",          "quant.eggert.org" },
-    { "quinn",          "ralith.com" },
+    { "quinn",          "h3.stammw.eu" },
     { "quic-go",        "quic.seemann.io" },
     { "quiche",         "quic.tech" },
     { "quicker",        "quicker.edm.uhasselt.be" },
