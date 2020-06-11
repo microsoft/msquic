@@ -1,7 +1,7 @@
 <#
 
 .SYNOPSIS
-This script runs spinquic locally for a period of time.
+This script runs performance tests locally for a period of time.
 
 .PARAMETER Config
     Specifies the build configuration to use.
