@@ -147,9 +147,9 @@ typedef struct addrinfo ADDRINFO;
 typedef sa_family_t QUIC_ADDRESS_FAMILY;
 
 typedef union QUIC_ADDR {
+    struct sockaddr Ip;
     struct sockaddr_in Ipv4;
     struct sockaddr_in6 Ipv6;
-    sa_family_t si_family;
 } QUIC_ADDR;
 
 #define FIELD_OFFSET(type, field)       ((uint32_t)(size_t)&(((type *)0)->field))
@@ -208,7 +208,7 @@ QuicAddrIsValid(
     _In_ const QUIC_ADDR* const Addr
     )
 {
-    return QuicAddrFamilyIsValid(Addr->si_family);
+    return QuicAddrFamilyIsValid(Addr->Ip.sa_family);
 }
 
 inline
@@ -218,7 +218,7 @@ QuicAddrCompareIp(
     _In_ const QUIC_ADDR* const Addr2
     )
 {
-    if (AF_INET == Addr1->si_family) {
+    if (AF_INET == Addr1->Ip.sa_family) {
         return memcmp(&Addr1->Ipv4.sin_addr, &Addr2->Ipv4.sin_addr, sizeof(IN_ADDR)) == 0;
     } else {
         return memcmp(&Addr1->Ipv6.sin6_addr, &Addr2->Ipv6.sin6_addr, sizeof(IN6_ADDR)) == 0;
@@ -232,12 +232,12 @@ QuicAddrCompare(
     _In_ const QUIC_ADDR* const Addr2
     )
 {
-    if (Addr1->si_family != Addr2->si_family ||
+    if (Addr1->Ip.sa_family != Addr2->Ip.sa_family ||
         Addr1->Ipv4.sin_port != Addr2->Ipv4.sin_port) {
         return FALSE;
     }
 
-    if (AF_INET == Addr1->si_family) {
+    if (AF_INET == Addr1->Ip.sa_family) {
         return memcmp(&Addr1->Ipv4.sin_addr, &Addr2->Ipv4.sin_addr, sizeof(IN_ADDR)) == 0;
     } else {
         return memcmp(&Addr1->Ipv6.sin6_addr, &Addr2->Ipv6.sin6_addr, sizeof(IN6_ADDR)) == 0;
@@ -250,7 +250,7 @@ QuicAddrGetFamily(
     _In_ const QUIC_ADDR* const Addr
     )
 {
-    return Addr->si_family;
+    return Addr->Ip.sa_family;
 }
 
 inline
@@ -260,7 +260,7 @@ QuicAddrSetFamily(
     _In_ uint16_t Family
     )
 {
-    Addr->si_family = Family;
+    Addr->Ip.sa_family = Family;
 }
 
 inline
@@ -269,7 +269,7 @@ QuicAddrGetPort(
     _In_ const QUIC_ADDR* const Addr
     )
 {
-    if (AF_INET == Addr->si_family) {
+    if (AF_INET == Addr->Ip.sa_family) {
         return ntohs(Addr->Ipv4.sin_port);
     } else {
         return ntohs(Addr->Ipv6.sin6_port);
@@ -283,7 +283,7 @@ QuicAddrSetPort(
     _In_ uint16_t Port
     )
 {
-    if (AF_INET == Addr->si_family) {
+    if (AF_INET == Addr->Ip.sa_family) {
         Addr->Ipv4.sin_port = htons(Port);
     } else {
         Addr->Ipv6.sin6_port = htons(Port);
@@ -311,7 +311,7 @@ QuicAddrSetToLoopback(
     _Inout_ QUIC_ADDR* Addr
     )
 {
-    if (Addr->si_family == AF_INET) {
+    if (Addr->Ip.sa_family == AF_INET) {
         Addr->Ipv4.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     } else {
         Addr->Ipv6.sin6_addr = in6addr_loopback;
@@ -326,7 +326,7 @@ QuicAddrHash(
 {
     uint32_t Hash = 5387; // A random prime number.
 #define UPDATE_HASH(byte) Hash = ((Hash << 5) - Hash) + (byte)
-    if (Addr->si_family == AF_INET) {
+    if (Addr->Ip.sa_family == AF_INET) {
         UPDATE_HASH(Addr->Ipv4.sin_port & 0xFF);
         UPDATE_HASH(Addr->Ipv4.sin_port >> 8);
         for (uint8_t i = 0; i < sizeof(Addr->Ipv4.sin_addr); ++i) {
@@ -348,9 +348,9 @@ QuicAddrIsWildCard(
     _In_ const QUIC_ADDR* const Addr
     )
 {
-    if (Addr->si_family == AF_UNSPEC) {
+    if (Addr->Ip.sa_family == AF_UNSPEC) {
         return TRUE;
-    } else if (Addr->si_family == AF_INET) {
+    } else if (Addr->Ip.sa_family == AF_INET) {
         const IN_ADDR ZeroAddr = {0};
         return memcmp(&Addr->Ipv4.sin_addr.s_addr, &ZeroAddr, sizeof(IN_ADDR)) == 0;
     } else {
@@ -393,7 +393,7 @@ QuicAddr4FromString(
             return FALSE;
         }
     }
-    Addr->si_family = AF_INET;
+    Addr->Ip.sa_family = AF_INET;
     return TRUE;
 }
 
@@ -427,7 +427,7 @@ QuicAddr6FromString(
             return FALSE;
         }
     }
-    Addr->si_family = AF_INET6;
+    Addr->Ip.sa_family = AF_INET6;
     return TRUE;
 }
 
@@ -460,12 +460,12 @@ QuicAddrToString(
     )
 {
     char* Address = AddrStr->Address;
-    if (Addr->si_family == AF_INET6 && Addr->Ipv6.sin6_port != 0) {
+    if (Addr->Ip.sa_family == AF_INET6 && Addr->Ipv6.sin6_port != 0) {
         Address[0] = '[';
         Address++;
     }
     if (inet_ntop(
-            Addr->si_family,
+            Addr->Ip.sa_family,
             &Addr->Ipv4.sin_addr,
             Address,
             sizeof(QUIC_ADDR_STR)) != 0) {
@@ -473,7 +473,7 @@ QuicAddrToString(
     }
     if (Addr->Ipv4.sin_port != 0) {
         Address += strlen(Address);
-        if (Addr->si_family == AF_INET6) {
+        if (Addr->Ip.sa_family == AF_INET6) {
             Address[0] = ']';
             Address++;
         }

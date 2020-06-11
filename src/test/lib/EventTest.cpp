@@ -279,8 +279,9 @@ QuicTestValidateConnectionEvents1(
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
-            ServerLocalAddr.SockAddr.si_family,
-            QUIC_LOCALHOST_FOR_AF(ServerLocalAddr.SockAddr.si_family),
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QUIC_LOCALHOST_FOR_AF(
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
 
     TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
@@ -340,8 +341,9 @@ QuicTestValidateConnectionEvents2(
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
-            ServerLocalAddr.SockAddr.si_family,
-            QUIC_LOCALHOST_FOR_AF(ServerLocalAddr.SockAddr.si_family),
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QUIC_LOCALHOST_FOR_AF(
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
 
     TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
@@ -478,8 +480,9 @@ QuicTestValidateStreamEvents1(
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
-            ServerLocalAddr.SockAddr.si_family,
-            QUIC_LOCALHOST_FOR_AF(ServerLocalAddr.SockAddr.si_family),
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QUIC_LOCALHOST_FOR_AF(
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
 
     TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
@@ -573,8 +576,9 @@ QuicTestValidateStreamEvents2(
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
-            ServerLocalAddr.SockAddr.si_family,
-            QUIC_LOCALHOST_FOR_AF(ServerLocalAddr.SockAddr.si_family),
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QUIC_LOCALHOST_FOR_AF(
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
 
     TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));

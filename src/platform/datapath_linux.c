@@ -687,7 +687,7 @@ QuicDataPathResolveAddress(
     //
     // Prepopulate hint with input family. It might be unspecified.
     //
-    Hints.ai_family = Address->si_family;
+    Hints.ai_family = Address->Ip.sa_family;
 
     //
     // Try numeric name first.
@@ -1192,7 +1192,7 @@ QuicSocketContextRecvComplete(
         if (CMsg->cmsg_level == IPPROTO_IPV6 &&
             CMsg->cmsg_type == IPV6_PKTINFO) {
             struct in6_pktinfo* PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
-            LocalAddr->si_family = AF_INET6;
+            LocalAddr->Ip.sa_family = AF_INET6;
             LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
             LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
             QuicConvertFromMappedV6(LocalAddr, LocalAddr);
@@ -1204,7 +1204,7 @@ QuicSocketContextRecvComplete(
 
         if (CMsg->cmsg_level == IPPROTO_IP && CMsg->cmsg_type == IP_PKTINFO) {
             struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
-            LocalAddr->si_family = AF_INET;
+            LocalAddr->Ip.sa_family = AF_INET;
             LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
             LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
             LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
@@ -1528,7 +1528,7 @@ QuicDataPathBindingCreate(
     if (LocalAddress) {
         QuicConvertToMappedV6(LocalAddress, &Binding->LocalAddress);
     } else {
-        Binding->LocalAddress.si_family = AF_INET6;
+        Binding->LocalAddress.Ip.sa_family = AF_INET6;
     }
     for (uint32_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
@@ -1915,7 +1915,7 @@ QuicDataPathBindingSend(
     ProcContext = &Binding->Datapath->ProcContexts[QuicProcCurrentNumber()];
 
     RemoteAddrLen =
-        (AF_INET == RemoteAddress->si_family) ?
+        (AF_INET == RemoteAddress->Ip.sa_family) ?
             sizeof(RemoteAddress->Ipv4) : sizeof(RemoteAddress->Ipv6);
 
     if (LocalAddress == NULL) {
@@ -2020,7 +2020,7 @@ QuicDataPathBindingSend(
 
         // TODO: Avoid allocating both.
 
-        if (LocalAddress->si_family == AF_INET) {
+        if (LocalAddress->Ip.sa_family == AF_INET) {
             Mhdr.msg_control = ControlBuffer;
             Mhdr.msg_controllen = CMSG_SPACE(sizeof(struct in_pktinfo));
 
