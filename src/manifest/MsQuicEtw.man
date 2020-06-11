@@ -501,6 +501,16 @@
                 value="12"
                 />
           </valueMap>
+          <valueMap name="map_QUIC_RESUME_TICKET_STATE">
+            <map
+                message="$(string.Enum.QUIC_RESUME_TICKET_STATE.REJECTED)"
+                value="0"
+                />
+            <map
+                message="$(string.Enum.QUIC_RESUME_TICKET_STATE.ACCEPTED)"
+                value="1"
+                />
+          </valueMap>
         </maps>
         <templates>
           <template tid="tid_MESSAGE">
@@ -1207,6 +1217,17 @@
                 inType="win:UInt32"
                 map="map_QUIC_SEND_FLUSH_REASON"
                 name="Type"
+                />
+          </template>
+          <template tid="tid_CONN_SERVER_RESUME_TICKET">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt8"
+                map="map_QUIC_RESUME_TICKET_STATE"
+                name="TicketState"
                 />
           </template>
           <template tid="tid_STREAM">
@@ -2534,6 +2555,15 @@
               template="tid_CONN_PACKET_STATISTICS"
               value="5174"
               />
+          <event
+              keywords="ut:Connection"
+              level="win:Informational"
+              message="$(string.Etw.ConnServerResumeTicket)"
+              opcode="win:Info"
+              symbol="QuicConnServerResumeTicket"
+              template="tid_CONN_SERVER_RESUME_TICKET"
+              value="5175"
+              />
           <!-- 6144 - 7167 | Stream Events -->
           <event
               keywords="ut:Stream ut:LowVolume"
@@ -3039,6 +3069,10 @@
         <string
             id="Etw.ConnPacketLost"
             value="[conn][%1][TX][%2] %3 Lost: %4"
+            />
+        <string
+            id="Etw.ConnServerResumeTicket"
+            value="[conn][%1] Server app %2 ticket"
             />
         <string
             id="Etw.ConnPacketAcked"
@@ -3704,6 +3738,14 @@
         <string
             id="Enum.QUIC_SEND_FLUSH_REASON.SCHEDULING"
             value="SCHEDULING"
+            />
+        <string
+            id="Enum.QUIC_RESUME_TICKET_STATE.REJECTED"
+            value="REJECTED"
+            />
+        <string
+            id="Enum.QUIC_RESUME_TICKET_STATE.ACCEPTED"
+            value="ACCEPTED"
             />
       </stringTable>
     </resources>

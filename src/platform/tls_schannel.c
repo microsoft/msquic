@@ -2181,12 +2181,14 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessData(
     _In_ QUIC_TLS* TlsContext,
+    _In_ QUIC_TLS_DATA_FLAGS DataFlags,
     _In_reads_bytes_(*BufferLength)
         const uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength,
     _Inout_ QUIC_TLS_PROCESS_STATE* State
     )
 {
+    UNREFERENCED_PARAMETER(DataFlags);
     QUIC_TLS_RESULT_FLAGS Result = 0;
 
     QuicTraceLogConnVerbose(
@@ -2248,21 +2250,6 @@ QuicTlsReadTicket(
     UNREFERENCED_PARAMETER(BufferLength);
     UNREFERENCED_PARAMETER(Buffer);
     return QUIC_STATUS_INVALID_STATE;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsSendTicket(
-    _In_ QUIC_TLS* TlsContext,
-    _In_ uint32_t SerializedTicketLength,
-    _In_reads_bytes_(SerializedTicketLength)
-        const uint8_t* SerializedTicket
-    )
-{
-    UNREFERENCED_PARAMETER(TlsContext);
-    UNREFERENCED_PARAMETER(SerializedTicketLength);
-    UNREFERENCED_PARAMETER(SerializedTicket);
-    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

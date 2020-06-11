@@ -439,6 +439,9 @@ QuicConnApplySettings(
 
     if (Settings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME) {
         QUIC_DBG_ASSERT(!Connection->State.Started);
+        //
+        // TODO: Replace with pool allocator for performance.
+        //
         Connection->HandshakeTP = QUIC_ALLOC_NONPAGED(sizeof(*Connection->HandshakeTP));
         if (Connection->HandshakeTP == NULL) {
             QuicTraceEvent(
@@ -1927,6 +1930,12 @@ QuicConnSendResumptionTicket(
     uint32_t EncodedTransportParametersLength = 0;
     uint8_t* TicketBuffer = NULL;
     uint16_t AlpnLength = *(Connection->Crypto.TlsState.NegotiatedAlpn);
+    const uint8_t* EncodedHSTP = NULL;
+
+    if (Connection->HandshakeTP == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
 
     QUIC_TRANSPORT_PARAMETERS HSTPCopy = *Connection->HandshakeTP;
     HSTPCopy.Flags = HSTPCopy.Flags & (
@@ -1938,12 +1947,11 @@ QuicConnSendResumptionTicket(
         QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI |
         QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI);
 
-    const uint8_t* EncodedHSTP =
+    EncodedHSTP =
         QuicCryptoTlsEncodeTransportParameters(
             Connection,
             &HSTPCopy,
             &EncodedTransportParametersLength);
-
     if (EncodedHSTP == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -1996,8 +2004,7 @@ QuicConnSendResumptionTicket(
         QuicCopyMemory(TicketCursor, AppResumptionData, AppDataLength);
     }
 
-    Status =
-        QuicTlsSendTicket(Connection->Crypto.TLS, TotalTicketLength, TicketBuffer);
+    Status = QuicCryptoProcessAppData(&Connection->Crypto, TotalTicketLength, TicketBuffer);
 
 Error:
     if (TicketBuffer != NULL) {
@@ -2116,6 +2123,11 @@ QuicConnRecvResumptionTicket(
             // Server settings have changed since the resumption ticket was
             // encoded, so reject resumption.
             //
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket transport params greater than current server settings");
             goto Error;
         }
 
@@ -2134,6 +2146,12 @@ QuicConnRecvResumptionTicket(
         Event.RESUMED.ResumptionState = (AppTicketLength > 0) ? Ticket + Offset : NULL;
         ResumptionAccepted =
             QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
+
+        QuicTraceEvent(
+            ConnServerResumeTicket,
+            "[conn][%p] Server app %b ticket.",
+            Connection,
+            ResumptionAccepted);
 
         QUIC_DBG_ASSERT(Offset + AppTicketLength == TicketLength);
     } else {
@@ -6396,7 +6414,7 @@ QuicConnProcessApiOperation(
                 ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData);
         ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData = NULL;
         if (ApiCtx->CONN_SEND_RESUMPTION_TICKET.Flags & QUIC_SEND_RESUMPTION_FLAG_FINAL) {
-            QUIC_DBG_ASSERT(QuicConnIsServer(Connection)); // TODO: handle client-side
+            QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
             Connection->State.ResumptionEnabled = FALSE;
             QuicConnCleanupServerResumptionState(Connection); // BUG: With Async processing, this frees the memory before it's used.
         }

@@ -413,7 +413,7 @@ QUIC_STATIC_ASSERT(
 // Version of the wire-format for resumption tickets.
 // This needs to be incremented for each change in order or count of fields.
 //
-#define QUIC_TLS_RESUMPTION_TICKET_VERSION 1
+#define QUIC_TLS_RESUMPTION_TICKET_VERSION      1
 
 /*************************************************************
                   PERSISTENT SETTINGS

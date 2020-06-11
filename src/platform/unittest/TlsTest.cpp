@@ -258,6 +258,7 @@ protected:
             auto Result =
                 QuicTlsProcessData(
                     Ptr,
+                    QUIC_TLS_CRYPTO_DATA,
                     Buffer,
                     BufferLength,
                     &State);
