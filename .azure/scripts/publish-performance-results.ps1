@@ -6,10 +6,9 @@ $GitPath = Join-Path $RootDir "artifacts/PerfDataGit"
 $ResultsPath = Join-Path $RootDir "artifacts/PerfDataResults"
 
 $env:GIT_REDIRECT_STDERR = '2>&1'
-git clone https://github.com/microsoft/msquic $GitPath
+git clone  --single-branch --branch data/performance https://github.com/microsoft/msquic $GitPath
 $currentLoc = Get-Location
 Set-Location -Path $GitPath
-git checkout data/performance
 
 Copy-Item -Path $ResultsPath -Destination $GitPath -Recurse
 

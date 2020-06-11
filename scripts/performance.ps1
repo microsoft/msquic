@@ -99,12 +99,11 @@ $GitPath = Join-Path $RootDir "artifacts/PerfDataGit"
 function Clone-Data-Repo() {
     # Redirect stderr to stdout for git.
     $env:GIT_REDIRECT_STDERR = '2>&1'
-    git clone https://github.com/microsoft/msquic $GitPath
+    git clone --single-branch --branch data/performance https://github.com/microsoft/msquic $GitPath
     $currentLoc = Get-Location
     Set-Location -Path $GitPath
     git clean -d -x -f
     git reset --hard
-    git checkout data/performance
     git pull
     Set-Location -Path $currentLoc
 }
