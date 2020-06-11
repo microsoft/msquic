@@ -666,14 +666,15 @@ void PrintHelpText(void)
 {
     printf("Usage: spinquic.exe [client/server/both] [options]\n" \
           "\n" \
-          "  -alpn:<alpn>         default: 'spin'\n" \
-          "  -dstport:<port>      default: 9999\n" \
-          "  -loss:<percent>      default: 1\n" \
-          "  -max_ops:<count>     default: UINT64_MAX\n"
-          "  -seed:<seed>         default: 6\n" \
-          "  -sessions:<count>    default: 4\n" \
-          "  -target:<ip>         default: '127.0.0.1'\n" \
-          "  -timeout:<count_ms>  default: 60000\n" \
+          "  -alpn:<alpn>           default: 'spin'\n" \
+          "  -dstport:<port>        default: 9999\n" \
+          "  -loss:<percent>        default: 1\n" \
+          "  -max_ops:<count>       default: UINT64_MAX\n"
+          "  -seed:<seed>           default: 6\n" \
+          "  -sessions:<count>      default: 4\n" \
+          "  -target:<ip>           default: '127.0.0.1'\n" \
+          "  -timeout:<count_ms>    default: 60000\n" \
+          "  -repeat_count:<count>  default: 1\n" \
           );
     exit(1);
 }
@@ -719,6 +720,11 @@ main(int argc, char **argv)
     TryGetValue(argc, argv, "loss", &Settings.LossPercent);
     TryGetValue(argc, argv, "repeat_count", &RepeatCount);
 
+    if (RepeatCount == 0) {
+        printf("Must specify a non 0 repeat count\n");
+        PrintHelpText();
+    }
+
     if (RunClient) {
         uint16_t dstPort = 0;
         if (TryGetValue(argc, argv, "dstport", &dstPort)) {
@@ -733,8 +739,12 @@ main(int argc, char **argv)
     TryGetValue(argc, argv, "seed", &RngSeed);
     srand(RngSeed);
 
+    SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
+
+    Settings.RunTimeMs = Settings.RunTimeMs / RepeatCount;
+
     for (uint32_t i = 0; i < RepeatCount; i++) {
-         SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
+         
         
         for (size_t i = 0; i < BufferCount; ++i) {
             Buffers[i].Length = MaxBufferSizes[i]; // TODO - Randomize?
