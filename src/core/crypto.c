@@ -429,33 +429,6 @@ QuicCryptoDiscardKeys(
 }
 
 //
-// Called when the server has sent everything it will ever send and it has all
-// been acknowledged.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicCryptoOnServerComplete(
-    _In_ QUIC_CRYPTO* Crypto
-    )
-{
-    QuicTraceLogConnInfo(
-        CryptoStateDiscard,
-        QuicCryptoGetConnection(Crypto),
-        "Crypto/TLS state no longer needed");
-    if (Crypto->TLS != NULL) {
-        QuicTlsUninitialize(Crypto->TLS);
-        Crypto->TLS = NULL;
-    }
-    if (Crypto->Initialized) {
-        QuicRecvBufferUninitialize(&Crypto->RecvBuffer);
-        QuicRangeUninitialize(&Crypto->SparseAckRanges);
-        QUIC_FREE(Crypto->TlsState.Buffer);
-        Crypto->TlsState.Buffer = NULL;
-        Crypto->Initialized = FALSE;
-    }
-}
-
-//
 // Send Interfaces
 //
 
@@ -977,9 +950,7 @@ QuicCryptoOnAck(
             if (Connection->State.Connected && QuicConnIsServer(Connection) &&
                 Crypto->TlsState.BufferOffset1Rtt != 0 &&
                 Crypto->UnAckedOffset == Crypto->TlsState.BufferTotalLength) {
-                QuicCryptoOnServerComplete(Crypto); // TODO - If sending 0-RTT tickets ever becomes
-                                                    // controllable by the app, this logic will have
-                                                    // to take that into account.
+                QuicConnCleanupServerResumptionState(Connection);
             }
         }
 
@@ -1445,9 +1416,7 @@ QuicCryptoProcessTlsCompletion(
         if (QuicConnIsServer(Connection) &&
             Crypto->TlsState.BufferOffset1Rtt != 0 &&
             Crypto->UnAckedOffset == Crypto->TlsState.BufferTotalLength) {
-            QuicCryptoOnServerComplete(Crypto); // TODO - If sending 0-RTT tickets ever becomes
-                                                // controllable by the app, this logic will have
-                                                // to take that into account.
+            QuicConnCleanupServerResumptionState(Connection);
         }
     }
 

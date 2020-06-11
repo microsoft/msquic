@@ -409,6 +409,12 @@ QUIC_STATIC_ASSERT(
 //
 #define QUIC_DEFAULT_SERVER_RESUMPTION_LEVEL    QUIC_SERVER_NO_RESUME
 
+//
+// Version of the wire-format for resumption tickets.
+// This needs to be incremented for each change in order or count of fields.
+//
+#define QUIC_TLS_RESUMPTION_TICKET_VERSION 1
+
 /*************************************************************
                   PERSISTENT SETTINGS
 *************************************************************/

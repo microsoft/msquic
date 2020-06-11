@@ -531,6 +531,12 @@ typedef struct QUIC_CONNECTION {
     QUIC_CONNECTION_CALLBACK_HANDLER ClientCallbackHandler;
 
     //
+    // (Server-only) Transport parameters used during handshake.
+    // Only non-null when resumption is enabled.
+    //
+    QUIC_TRANSPORT_PARAMETERS* HandshakeTP;
+
+    //
     // Statistics
     //
     QUIC_CONN_STATS Stats;
@@ -1216,6 +1222,18 @@ QUIC_STATUS
 QuicConnHandshakeConfigure(
     _In_ QUIC_CONNECTION* Connection,
     _In_opt_ QUIC_SEC_CONFIG* SecConfig
+    );
+
+//
+// Check if the resumption state is ready to be cleaned up and free it.
+//
+// Called when the server has sent everything it will ever send and it has all
+// been acknowledged.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnCleanupServerResumptionState(
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
