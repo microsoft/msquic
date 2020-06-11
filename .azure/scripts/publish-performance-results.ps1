@@ -1,5 +1,6 @@
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
+$RootDir = Split-Path $RootDir -Parent
 
 $GitPath = Join-Path $RootDir "artifacts/PerfDataGit"
 $ResultsPath = Join-Path $RootDir "artifacts/PerfDataResults"
