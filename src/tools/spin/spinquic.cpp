@@ -705,6 +705,7 @@ main(int argc, char **argv)
     QuicPlatformInitialize();
 
     uint32_t SessionCount = 4;
+    uint32_t RepeatCount = 1;
 
     Settings.RunTimeMs = 60000;
     Settings.ServerName = "127.0.0.1";
@@ -716,6 +717,7 @@ main(int argc, char **argv)
     TryGetValue(argc, argv, "timeout", &Settings.RunTimeMs);
     TryGetValue(argc, argv, "max_ops", &Settings.MaxOperationCount);
     TryGetValue(argc, argv, "loss", &Settings.LossPercent);
+    TryGetValue(argc, argv, "repeat_count", &RepeatCount);
 
     if (RunClient) {
         uint16_t dstPort = 0;
@@ -731,103 +733,108 @@ main(int argc, char **argv)
     TryGetValue(argc, argv, "seed", &RngSeed);
     srand(RngSeed);
 
-    for (size_t i = 0; i < BufferCount; ++i) {
-        Buffers[i].Length = MaxBufferSizes[i]; // TODO - Randomize?
-        Buffers[i].Buffer = (uint8_t*)malloc(Buffers[i].Length);
-        EXIT_ON_NOT(Buffers[i].Buffer);
-    }
-
     SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
 
-    EXIT_ON_FAILURE(MsQuicOpen(&MsQuic));
+    for (uint32_t i = 0; i < RepeatCount; i++) {
+        
+        for (size_t i = 0; i < BufferCount; ++i) {
+            Buffers[i].Length = MaxBufferSizes[i]; // TODO - Randomize?
+            Buffers[i].Buffer = (uint8_t*)malloc(Buffers[i].Length);
+            EXIT_ON_NOT(Buffers[i].Buffer);
+        }
 
-    if (Settings.LossPercent != 0) {
-        QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathHooks;
-        EXIT_ON_FAILURE(
-            MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_LEVEL_GLOBAL,
-                QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
-                sizeof(Value),
-                &Value));
-    }
+        EXIT_ON_FAILURE(MsQuicOpen(&MsQuic));
 
-    const QUIC_REGISTRATION_CONFIG RegConfig = { "spinquic", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
-    EXIT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
+        if (Settings.LossPercent != 0) {
+            QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathHooks;
+            EXIT_ON_FAILURE(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_LEVEL_GLOBAL,
+                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
+                    sizeof(Value),
+                    &Value));
+        }
 
-    QUIC_BUFFER AlpnBuffer;
-    AlpnBuffer.Length = (uint32_t)strlen(Settings.AlpnPrefix) + 1; // You can't have more than 2^8 SessionCount. :)
-    AlpnBuffer.Buffer = (uint8_t*)malloc(AlpnBuffer.Length);
-    EXIT_ON_NOT(AlpnBuffer.Buffer);
-    memcpy(AlpnBuffer.Buffer, Settings.AlpnPrefix, AlpnBuffer.Length);
+        const QUIC_REGISTRATION_CONFIG RegConfig = { "spinquic", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
+        EXIT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
 
-    for (uint32_t i = 0; i < SessionCount; i++) {
+        QUIC_BUFFER AlpnBuffer;
+        AlpnBuffer.Length = (uint32_t)strlen(Settings.AlpnPrefix) + 1; // You can't have more than 2^8 SessionCount. :)
+        AlpnBuffer.Buffer = (uint8_t*)malloc(AlpnBuffer.Length);
+        EXIT_ON_NOT(AlpnBuffer.Buffer);
+        memcpy(AlpnBuffer.Buffer, Settings.AlpnPrefix, AlpnBuffer.Length);
 
-        AlpnBuffer.Buffer[AlpnBuffer.Length-1] = (uint8_t)i;
+        for (uint32_t i = 0; i < SessionCount; i++) {
 
-        HQUIC Session;
-        EXIT_ON_FAILURE(MsQuic->SessionOpen(Registration, &AlpnBuffer, 1, nullptr, &Session));
-        Sessions.push_back(Session);
+            AlpnBuffer.Buffer[AlpnBuffer.Length-1] = (uint8_t)i;
 
-        // Configure Session
-        auto PeerStreamCount = GetRandom((uint16_t)10);
-        EXIT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
-        EXIT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
-    }
+            HQUIC Session;
+            EXIT_ON_FAILURE(MsQuic->SessionOpen(Registration, &AlpnBuffer, 1, nullptr, &Session));
+            Sessions.push_back(Session);
 
-    free(AlpnBuffer.Buffer);
+            // Configure Session
+            auto PeerStreamCount = GetRandom((uint16_t)10);
+            EXIT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
+            EXIT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
+        }
 
-    QUIC_THREAD Threads[2];
-    QUIC_THREAD_CONFIG Config = { 0 };
+        free(AlpnBuffer.Buffer);
 
-    StartTimeMs = QuicTimeMs64();
+        QUIC_THREAD Threads[2];
+        QUIC_THREAD_CONFIG Config = { 0 };
 
-    //
-    // Start worker threads
-    //
+        StartTimeMs = QuicTimeMs64();
 
-    if (RunServer) {
-        Config.Name = "spin_server";
-        Config.Callback = ServerSpin;
-        EXIT_ON_FAILURE(QuicThreadCreate(&Config, &Threads[0]));
-    }
+        //
+        // Start worker threads
+        //
 
-    if (RunClient) {
-        Config.Name = "spin_client";
-        Config.Callback = ClientSpin;
-        EXIT_ON_FAILURE(QuicThreadCreate(&Config, &Threads[1]));
-    }
+        if (RunServer) {
+            Config.Name = "spin_server";
+            Config.Callback = ServerSpin;
+            EXIT_ON_FAILURE(QuicThreadCreate(&Config, &Threads[0]));
+        }
 
-    //
-    // Wait on worker threads
-    //
+        if (RunClient) {
+            Config.Name = "spin_client";
+            Config.Callback = ClientSpin;
+            EXIT_ON_FAILURE(QuicThreadCreate(&Config, &Threads[1]));
+        }
 
-    if (RunClient) {
-        QuicThreadWait(&Threads[1]);
-        QuicThreadDelete(&Threads[1]);
-    }
+        //
+        // Wait on worker threads
+        //
 
-    if (RunServer) {
-        QuicThreadWait(&Threads[0]);
-        QuicThreadDelete(&Threads[0]);
-    }
+        if (RunClient) {
+            QuicThreadWait(&Threads[1]);
+            QuicThreadDelete(&Threads[1]);
+        }
 
-    //
-    // Clean up
-    //
+        if (RunServer) {
+            QuicThreadWait(&Threads[0]);
+            QuicThreadDelete(&Threads[0]);
+        }
 
-    while (Sessions.size() > 0) {
-        auto Session = Sessions.back();
-        Sessions.pop_back();
-        MsQuic->SessionClose(Session);
-    }
+        //
+        // Clean up
+        //
 
-    MsQuic->RegistrationClose(Registration);
+        while (Sessions.size() > 0) {
+            auto Session = Sessions.back();
+            Sessions.pop_back();
+            MsQuic->SessionClose(Session);
+        }
 
-    MsQuicClose(MsQuic);
+        MsQuic->RegistrationClose(Registration);
+        Registration = nullptr;
 
-    for (size_t i = 0; i < BufferCount; ++i) {
-        free(Buffers[i].Buffer);
+        MsQuicClose(MsQuic);
+        MsQuic = nullptr;
+
+        for (size_t i = 0; i < BufferCount; ++i) {
+            free(Buffers[i].Buffer);
+        }
     }
 
     return 0;
