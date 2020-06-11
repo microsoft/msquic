@@ -147,9 +147,11 @@ function Run-Loopback-Test() {
         $osPath = "windows"
     }
 
-    $FileNamePath = "$osPath/loopback/results.csv"
-    $LoopbackPath = Join-Path $GitPath $FileNamePath
-    $LastResult = Get-Last-Result -Path $LoopbackPath
+    $ResultsFolderRoot = "$osPath/loopback"
+    $ResultsFileName = "/results.csv"
+    $ResultsFileNamePath = "$ResultsFolderRoot/$ResultsFileName"
+    $LastResultsPath = Join-Path $GitPath $ResultsFileNamePath
+    $LastResult = Get-Last-Result -Path $LastResultsPath
 
     if ($WriteResults) {
         # Redirect stderr to stdout for git.
@@ -161,12 +163,12 @@ function Run-Loopback-Test() {
         $hash = $fullHash.Substring(0, 7)
         $newResult = "$time, $hash, $average"
 
-        $NewFilePath = Join-Path $RootDir "build/PerfDataResults"
-        New-Item $NewFilePath -ItemType "directory"
-        $NewFileLocation = Join-Path $NewFilePath $FileNamePath
-        Copy-Item $LoopbackPath -Destination $NewFileLocation
+        $NewFilePath = Join-Path $RootDir "build/PerfDataResults/$ResultsFolderRoot"
+        $NewFileLocation = Join-Path $NewFilePath $ResultsFileName
+        New-Item $NewFilePath -ItemType Directory -Force
+        Copy-Item $LastResultsPath -Destination $NewFileLocation -Force
 
-        Add-Content -Path $NewFilePath -Value $newResult
+        Add-Content -Path $NewFileLocation -Value $newResult
         Set-Location -Path $currentLoc
     }
 
