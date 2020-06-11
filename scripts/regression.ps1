@@ -94,7 +94,7 @@ function Run-Foreground-Executable($File, $Arguments) {
     return $p.StandardOutput.ReadToEnd()
 }
 
-$GitPath = Join-Path $RootDir "build/PerfDataGit"
+$GitPath = Join-Path $RootDir "artifacts/PerfDataGit"
 
 function Clone-Data-Repo() {
     # Redirect stderr to stdout for git.
@@ -167,7 +167,7 @@ function Run-Loopback-Test() {
 
         $newResult = "$time, $hash, $allRunsResults $average"
 
-        $NewFilePath = Join-Path $RootDir "build/PerfDataResults/$ResultsFolderRoot"
+        $NewFilePath = Join-Path $RootDir "artifacts/PerfDataResults/$ResultsFolderRoot"
         $NewFileLocation = Join-Path $NewFilePath $ResultsFileName
         New-Item $NewFilePath -ItemType Directory -Force
         Copy-Item $LastResultsPath -Destination $NewFileLocation -Force
