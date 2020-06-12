@@ -491,7 +491,7 @@ QuicTestConnectBadAlpn(
                     false);
                 TEST_TRUE(Client.IsValid());
 
-                Client.SetExpectedTransportCloseStatus(QUIC_STATUS_INTERNAL_ERROR);
+                Client.SetExpectedTransportCloseStatus(ERROR_QUIC_ALPN_NEG_FAILURE);
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
                         QuicAddrFamily,
