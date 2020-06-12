@@ -233,6 +233,18 @@ QuicCryptoProcessCompleteOperation(
     );
 
 //
+// Processes app-provided data for TLS (i.e. resumption ticket data).
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicCryptoProcessAppData(
+    _In_ QUIC_CRYPTO* Crypto,
+    _In_ uint32_t DataLength,
+    _In_reads_bytes_(DataLength)
+        const uint8_t* AppData
+    );
+
+//
 // Helper function to determine how much complete TLS data is contained in the
 // buffer, and should be passed to TLS.
 //

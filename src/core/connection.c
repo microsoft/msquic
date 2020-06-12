@@ -388,6 +388,10 @@ QuicConnFree(
     if (Connection->OrigDestCID != NULL) {
         QUIC_FREE(Connection->OrigDestCID);
     }
+    if (Connection->HandshakeTP != NULL) {
+        QUIC_FREE(Connection->HandshakeTP);
+        Connection->HandshakeTP = NULL;
+    }
     QuicTraceEvent(
         ConnDestroyed,
         "[conn][%p] Destroyed",
@@ -436,9 +440,19 @@ QuicConnApplySettings(
     if (Settings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME) {
         QUIC_DBG_ASSERT(!Connection->State.Started);
         //
-        // TODO: allocate memory for handshake TP here
+        // TODO: Replace with pool allocator for performance.
         //
-        Connection->State.ResumptionEnabled = TRUE;
+        Connection->HandshakeTP = QUIC_ALLOC_NONPAGED(sizeof(*Connection->HandshakeTP));
+        if (Connection->HandshakeTP == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "handshake TP",
+                sizeof(*Connection->HandshakeTP));
+        } else {
+            QuicZeroMemory(Connection->HandshakeTP, sizeof(*Connection->HandshakeTP));
+            Connection->State.ResumptionEnabled = TRUE;
+        }
     }
 
     QuicSendApplySettings(&Connection->Send, Settings);
@@ -1904,6 +1918,296 @@ QuicConnRestart(
     QuicLossDetectionReset(&Connection->LossDetection);
     QuicCryptoReset(&Connection->Crypto, CompleteReset);
 }
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnSendResumptionTicket(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint16_t AppDataLength,
+    _In_reads_bytes_opt_(AppDataLength)
+        const uint8_t* AppResumptionData
+    )
+{
+    QUIC_STATUS Status;
+    uint32_t EncodedTransportParametersLength = 0;
+    uint8_t* TicketBuffer = NULL;
+    uint16_t AlpnLength = *(Connection->Crypto.TlsState.NegotiatedAlpn);
+    const uint8_t* EncodedHSTP = NULL;
+
+    if (Connection->HandshakeTP == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    QUIC_TRANSPORT_PARAMETERS HSTPCopy = *Connection->HandshakeTP;
+    HSTPCopy.Flags = HSTPCopy.Flags & (
+        QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
+        QUIC_TP_FLAG_INITIAL_MAX_DATA |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI |
+        QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI |
+        QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI);
+
+    EncodedHSTP =
+        QuicCryptoTlsEncodeTransportParameters(
+            Connection,
+            &HSTPCopy,
+            &EncodedTransportParametersLength);
+    if (EncodedHSTP == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    uint32_t TotalTicketLength =
+        (uint32_t)(QuicVarIntSize(QUIC_TLS_RESUMPTION_TICKET_VERSION) +
+        QuicVarIntSize(AlpnLength) +
+        QuicVarIntSize(EncodedTransportParametersLength) +
+        QuicVarIntSize(AppDataLength) +
+        sizeof(QUIC_VERSION_LATEST) +
+        AlpnLength +
+        EncodedTransportParametersLength +
+        AppDataLength);
+
+    TicketBuffer = QUIC_ALLOC_NONPAGED(TotalTicketLength);
+    if (TicketBuffer == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Server resumption ticket",
+            TotalTicketLength);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    //
+    // Encoded ticket format is as follows:
+    //   Ticket Version (QUIC_VAR_INT) [1..4]
+    //   Quic Version [4]
+    //   Negotiated ALPN length (QUIC_VAR_INT) [1..2]
+    //   Negotiated ALPN [...]
+    //   Transport Parameters length (QUIC_VAR_INT) [1..2]
+    //   Transport Parameters [...]
+    //   App Ticket length (QUIC_VAR_INT) [1..2]
+    //   App Ticket (omitted if length is zero) [...]
+    //
+
+    uint8_t* TicketCursor = QuicVarIntEncode(QUIC_TLS_RESUMPTION_TICKET_VERSION, TicketBuffer);
+    *(uint32_t*)TicketCursor = QuicByteSwapUint32(QUIC_VERSION_LATEST);
+    TicketCursor += sizeof(QUIC_VERSION_LATEST);
+    TicketCursor = QuicVarIntEncode(AlpnLength, TicketCursor);
+    QuicCopyMemory(TicketCursor, Connection->Crypto.TlsState.NegotiatedAlpn + 1, AlpnLength);
+    TicketCursor += AlpnLength;
+    TicketCursor = QuicVarIntEncode(EncodedTransportParametersLength, TicketCursor);
+    QuicCopyMemory(TicketCursor, EncodedHSTP, EncodedTransportParametersLength);
+    TicketCursor += EncodedTransportParametersLength;
+    TicketCursor = QuicVarIntEncode(AppDataLength, TicketCursor);
+    if (AppDataLength > 0) {
+        QuicCopyMemory(TicketCursor, AppResumptionData, AppDataLength);
+    }
+
+    Status = QuicCryptoProcessAppData(&Connection->Crypto, TotalTicketLength, TicketBuffer);
+
+Error:
+    if (TicketBuffer != NULL) {
+        //
+        // TODO: This might need to be kept around for longer depending on TLS implementation...
+        //
+        QUIC_FREE(TicketBuffer);
+    }
+
+    if (EncodedHSTP != NULL) {
+        QUIC_FREE(EncodedHSTP);
+    }
+
+    if (AppResumptionData != NULL) {
+        QUIC_FREE(AppResumptionData);
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicConnRecvResumptionTicket(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint16_t TicketLength,
+    _In_reads_(TicketLength)
+        const uint8_t* Ticket
+    )
+{
+    BOOLEAN ResumptionAccepted = FALSE;
+    QUIC_TRANSPORT_PARAMETERS ResumedTP;
+    if (QuicConnIsServer(Connection)) {
+        uint16_t Offset = 0;
+        QUIC_VAR_INT TicketVersion = 0, AlpnLength = 0, TPLength = 0, AppTicketLength = 0;
+        if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &TicketVersion)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket version failed to decode");
+            goto Error;
+        }
+        if (TicketVersion != QUIC_TLS_RESUMPTION_TICKET_VERSION) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket version unsupported");
+            goto Error;
+        }
+
+        uint32_t QuicVersionHost = QuicByteSwapUint32(*(uint32_t*)(Ticket + Offset));
+        if (!QuicIsVersionSupported(QuicVersionHost)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket for unsupported QUIC version");
+            goto Error;
+        }
+        Offset += sizeof(QuicVersionHost);
+
+        if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &AlpnLength)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket ALPN length failed to decode");
+            goto Error;
+        }
+        if (QuicTlsAlpnFindInList(
+                Connection->Session->AlpnListLength, Connection->Session->AlpnList,
+                (uint8_t)AlpnLength, Ticket + Offset) == NULL) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket ALPN not present in ALPN list");
+            goto Error;
+        }
+        Offset += (uint16_t)AlpnLength;
+
+        if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &TPLength)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket TP length failed to decode");
+            goto Error;
+        }
+        if (!QuicCryptoTlsDecodeTransportParameters(
+                Connection,
+                Ticket + Offset,
+                (uint16_t)TPLength,
+                &ResumedTP)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket TParams failed to decode");
+            goto Error;
+        }
+        Offset += (uint16_t)TPLength;
+
+        //
+        // Validate resumed TP are <= current settings
+        //
+        if (ResumedTP.ActiveConnectionIdLimit > QUIC_ACTIVE_CONNECTION_ID_LIMIT ||
+            ResumedTP.InitialMaxData > Connection->Send.MaxData ||
+            ResumedTP.InitialMaxStreamDataBidiLocal > Connection->Session->Settings.StreamRecvWindowDefault ||
+            ResumedTP.InitialMaxStreamDataBidiRemote > Connection->Session->Settings.StreamRecvWindowDefault ||
+            ResumedTP.InitialMaxStreamDataUni > Connection->Session->Settings.StreamRecvWindowDefault ||
+            ResumedTP.InitialMaxUniStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount ||
+            ResumedTP.InitialMaxBidiStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount) {
+            //
+            // Server settings have changed since the resumption ticket was
+            // encoded, so reject resumption.
+            //
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket transport params greater than current server settings");
+            goto Error;
+        }
+
+        if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &AppTicketLength)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket app data length failed to decode");
+            goto Error;
+        }
+
+        QUIC_CONNECTION_EVENT Event = { 0, };
+        Event.Type = QUIC_CONNECTION_EVENT_RESUMED;
+        Event.RESUMED.ResumptionStateLength = (uint16_t)AppTicketLength;
+        Event.RESUMED.ResumptionState = (AppTicketLength > 0) ? Ticket + Offset : NULL;
+        ResumptionAccepted =
+            QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
+
+
+        if (ResumptionAccepted) {
+            QuicTraceEvent(
+                ConnServerResumeTicket,
+                "[conn][%p] Server app accepted resumption ticket",
+                Connection);
+        } else {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket rejected by server app");
+        }
+
+        QUIC_DBG_ASSERT(Offset + AppTicketLength == TicketLength);
+    } else {
+        //
+        // TODO Client-side processing.
+        // Until then, this shouldn't ever get called.
+        //
+        QUIC_FRE_ASSERT(FALSE);
+    }
+
+Error:
+
+    return ResumptionAccepted;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnCleanupServerResumptionState(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
+    if (!Connection->State.ResumptionEnabled) {
+        if (Connection->HandshakeTP != NULL) {
+            QUIC_FREE(Connection->HandshakeTP);
+            Connection->HandshakeTP = NULL;
+        }
+
+        QUIC_CRYPTO* Crypto = &Connection->Crypto;
+
+        QuicTraceLogConnInfo(
+            CryptoStateDiscard,
+            Connection,
+            "TLS state no longer needed");
+        if (Crypto->TLS != NULL) {
+            QuicTlsUninitialize(Crypto->TLS);
+            Crypto->TLS = NULL;
+        }
+        if (Crypto->Initialized) {
+            QuicRecvBufferUninitialize(&Crypto->RecvBuffer);
+            QuicRangeUninitialize(&Crypto->SparseAckRanges);
+            QUIC_FREE(Crypto->TlsState.Buffer);
+            Crypto->TlsState.Buffer = NULL;
+            Crypto->Initialized = FALSE;
+        }
+    }
+}
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -2083,6 +2387,15 @@ QuicConnHandshakeConfigure(
         if (Connection->Datagram.ReceiveEnabled) {
             LocalTP.Flags |= QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE;
             LocalTP.MaxDatagramFrameSize = QUIC_DEFAULT_MAX_DATAGRAM_LENGTH;
+        }
+
+        //
+        // Persist the transport parameters used during handshake for resumption.
+        // (if resumption is enabled)
+        //
+        if (Connection->HandshakeTP != NULL) {
+            QUIC_DBG_ASSERT(Connection->State.ResumptionEnabled);
+            *Connection->HandshakeTP = LocalTP;
         }
 
     } else {
@@ -6110,6 +6423,20 @@ QuicConnProcessApiOperation(
                 ApiCtx->CONN_START.ServerName,
                 ApiCtx->CONN_START.ServerPort);
         ApiCtx->CONN_START.ServerName = NULL;
+        break;
+
+    case QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET:
+        Status =
+            QuicConnSendResumptionTicket(
+                Connection,
+                ApiCtx->CONN_SEND_RESUMPTION_TICKET.AppDataLength,
+                ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData);
+        ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData = NULL;
+        if (ApiCtx->CONN_SEND_RESUMPTION_TICKET.Flags & QUIC_SEND_RESUMPTION_FLAG_FINAL) {
+            QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
+            Connection->State.ResumptionEnabled = FALSE;
+            QuicConnCleanupServerResumptionState(Connection); // BUG: With Async processing, this frees the memory before it's used.
+        }
         break;
 
     case QUIC_API_TYPE_STRM_CLOSE:

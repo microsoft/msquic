@@ -1145,12 +1145,14 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessData(
     _In_ QUIC_TLS* TlsContext,
+    _In_ QUIC_TLS_DATA_FLAGS DataFlags,
     _In_reads_bytes_(*BufferLength)
         const uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength,
     _Inout_ QUIC_TLS_PROCESS_STATE* State
     )
 {
+    UNREFERENCED_PARAMETER(DataFlags);
     QUIC_TLS_RESULT_FLAGS ResultFlags = 0;
     uint32_t ConsumedBytes;
 

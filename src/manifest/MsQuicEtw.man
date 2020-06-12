@@ -1209,6 +1209,12 @@
                 name="Type"
                 />
           </template>
+          <template tid="tid_CONN_SERVER_RESUME_TICKET">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+          </template>
           <template tid="tid_STREAM">
             <data
                 inType="win:Pointer"
@@ -2534,6 +2540,15 @@
               template="tid_CONN_PACKET_STATISTICS"
               value="5174"
               />
+          <event
+              keywords="ut:Connection"
+              level="win:Informational"
+              message="$(string.Etw.ConnServerResumeTicket)"
+              opcode="win:Info"
+              symbol="QuicConnServerResumeTicket"
+              template="tid_CONN_SERVER_RESUME_TICKET"
+              value="5175"
+              />
           <!-- 6144 - 7167 | Stream Events -->
           <event
               keywords="ut:Stream ut:LowVolume"
@@ -3039,6 +3054,10 @@
         <string
             id="Etw.ConnPacketLost"
             value="[conn][%1][TX][%2] %3 Lost: %4"
+            />
+        <string
+            id="Etw.ConnServerResumeTicket"
+            value="[conn][%1] Server app accepted resumption ticket"
             />
         <string
             id="Etw.ConnPacketAcked"
