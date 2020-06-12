@@ -49,6 +49,12 @@ if ("" -eq $Tls) {
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
+$OsPlat = "Linux"
+if ($IsWindows) {
+    $OsPlat = "Windows"
+}
+$Platform = "$($OsPlat)_$($Arch)_$($Tls)"
+
 # Path to the spinquic exectuable.
 $PingClient = $null
 if ($IsWindows) {
@@ -94,31 +100,20 @@ function Run-Foreground-Executable($File, $Arguments) {
     return $p.StandardOutput.ReadToEnd()
 }
 
-$GitPath = Join-Path $RootDir "artifacts/PerfDataGit"
-
-function Clone-Data-Repo() {
-    # Redirect stderr to stdout for git.
-    $env:GIT_REDIRECT_STDERR = '2>&1'
-    git clone --single-branch --branch data/performance https://github.com/microsoft/msquic $GitPath
-    $currentLoc = Get-Location
-    Set-Location -Path $GitPath
-    git clean -d -x -f
-    git reset --hard
-    git pull
-    Set-Location -Path $currentLoc
-}
-
-function Get-Last-Result($Path) {
-    $FullLatestResult = Get-Item -Path $Path | Get-Content -Tail 1
-    $SplitLatestResult =  $FullLatestResult -split ','
-    $LatestResult = $SplitLatestResult[$SplitLatestResult.Length - 1].Trim()
-    return $LatestResult
-}
-
 function Parse-Loopback-Results($Results) {
     #Unused variable on purpose
     $m = $Results -match "Total rate.*\(TX.*bytes @ (.*) kbps \|"
     return $Matches[1]
+}
+
+function Get-Latest-Test-Results($Platform, $Test) {
+    $Uri = "https://msquicperformanceresults.azurewebsites.net/performance/$Platform/$Test"
+    Write-Host $Uri
+    $LatestResult =  Invoke-RestMethod -Uri $Uri
+
+    Write-Host $LatestResult
+
+    return $LatestResult
 }
 
 function Run-Loopback-Test() {
@@ -128,7 +123,7 @@ function Run-Loopback-Test() {
 
     $allRunsResults = @()
 
-    1..10 | ForEach-Object {
+    1..2 | ForEach-Object {
         $runResult = Run-Foreground-Executable -File $PingClient -Arguments "-target:localhost -uni:1 -length:100000000"
         $parsedRunResult = Parse-Loopback-Results -Results $runResult
         $allRunsResults += $parsedRunResult
@@ -143,44 +138,43 @@ function Run-Loopback-Test() {
 
     $combinedResults = [System.String]::Join(", ", $allRunsResults)
 
-    $osPath = "linux"
-    if ($IsWindows) {
-        $osPath = "windows"
-    }
+    $fullLastResult = Get-Latest-Test-Results -Platform $Platform -Test "loopback"
+    $LastResult = $fullLastResult.individualRunResults
 
-    $ResultsFolderRoot = "$osPath/loopback"
-    $ResultsFileName = "/results.csv"
-    $ResultsFileNamePath = "$ResultsFolderRoot/$ResultsFileName"
-    $LastResultsPath = Join-Path $GitPath $ResultsFileNamePath
-    $LastResult = Get-Last-Result -Path $LastResultsPath
+    # $osPath = "linux"
+    # if ($IsWindows) {
+    #     $osPath = "windows"
+    # }
 
-    if ($WriteResults) {
-        # Redirect stderr to stdout for git.
-        $env:GIT_REDIRECT_STDERR = '2>&1'
-        $time = [DateTime]::UtcNow.ToString("u")
-        $currentLoc = Get-Location
-        Set-Location -Path $RootDir
-        $fullHash = git rev-parse HEAD
-        $hash = $fullHash.Substring(0, 7)
+    # $ResultsFolderRoot = "$osPath/loopback"
+    # $ResultsFileName = "/results.csv"
+    # $ResultsFileNamePath = "$ResultsFolderRoot/$ResultsFileName"
+    # $LastResultsPath = Join-Path $GitPath $ResultsFileNamePath
+    # $LastResult = Get-Last-Result -Path $LastResultsPath
 
-        $newResult = "$time, $hash, $combinedResults, $average"
+    # if ($WriteResults) {
+    #     # Redirect stderr to stdout for git.
+    #     $env:GIT_REDIRECT_STDERR = '2>&1'
+    #     $time = [DateTime]::UtcNow.ToString("u")
+    #     $currentLoc = Get-Location
+    #     Set-Location -Path $RootDir
+    #     $fullHash = git rev-parse HEAD
+    #     $hash = $fullHash.Substring(0, 7)
 
-        $NewFilePath = Join-Path $RootDir "artifacts/PerfDataResults/$ResultsFolderRoot"
-        $NewFileLocation = Join-Path $NewFilePath $ResultsFileName
-        New-Item $NewFilePath -ItemType Directory -Force
-        Copy-Item $LastResultsPath -Destination $NewFileLocation -Force
+    #     $newResult = "$time, $hash, $combinedResults, $average"
 
-        Add-Content -Path $NewFileLocation -Value $newResult
-        Set-Location -Path $currentLoc
-    }
+    #     $NewFilePath = Join-Path $RootDir "artifacts/PerfDataResults/$ResultsFolderRoot"
+    #     $NewFileLocation = Join-Path $NewFilePath $ResultsFileName
+    #     New-Item $NewFilePath -ItemType Directory -Force
+    #     Copy-Item $LastResultsPath -Destination $NewFileLocation -Force
+
+    #     Add-Content -Path $NewFileLocation -Value $newResult
+    #     Set-Location -Path $currentLoc
+    # }
 
     Write-Host "Current Run: $average kbps"
     Write-Host "Last Master Run: $LastResult kbps"
     Write-Host "All Results: $combinedResults"
 }
-
-
-Clone-Data-Repo
-
 
 Run-Loopback-Test
