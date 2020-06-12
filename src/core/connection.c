@@ -1408,11 +1408,13 @@ QuicErrorCodeToStatus(
     )
 {
     switch (ErrorCode) {
-    case QUIC_ERROR_NO_ERROR:               return QUIC_STATUS_SUCCESS;
-    case QUIC_ERROR_CONNECTION_REFUSED:     return QUIC_STATUS_CONNECTION_REFUSED;
-    case QUIC_ERROR_PROTOCOL_VIOLATION:     return QUIC_STATUS_PROTOCOL_ERROR;
-    case QUIC_ERROR_CRYPTO_USER_CANCELED:   return QUIC_STATUS_USER_CANCELED;
-    default:                                return QUIC_STATUS_INTERNAL_ERROR;
+    case QUIC_ERROR_NO_ERROR:                       return QUIC_STATUS_SUCCESS;
+    case QUIC_ERROR_CONNECTION_REFUSED:             return QUIC_STATUS_CONNECTION_REFUSED;
+    case QUIC_ERROR_PROTOCOL_VIOLATION:             return QUIC_STATUS_PROTOCOL_ERROR;
+    case QUIC_ERROR_CRYPTO_USER_CANCELED:           return QUIC_STATUS_USER_CANCELED;
+    case QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE:       return QUIC_STATUS_HANDSHAKE_FAILURE;
+    case QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL: return QUIC_STATUS_ALPN_NEG_FAILURE;
+    default:                                        return QUIC_STATUS_INTERNAL_ERROR;
     }
 }
 
