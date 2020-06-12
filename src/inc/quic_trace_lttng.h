@@ -864,6 +864,13 @@ QUIC_TRACE_EVENT(ConnQueueSendFlush,
         ctf_integer_hex(uint64_t, Connection, Connection)
         ctf_integer(uint32_t, Reason, Reason))
 )
+QUIC_TRACE_EVENT(ConnServerResumeTicket,
+    TP_ARGS(
+        const void*, Connection),
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, Connection, Connection))
+)
+QUIC_TRACE_LEVEL(ConnServerResumeTicket, TRACE_INFO)
 QUIC_TRACE_EVENT(StreamCreated,
     TP_ARGS(
         const void*, Stream,
