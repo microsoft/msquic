@@ -501,16 +501,6 @@
                 value="12"
                 />
           </valueMap>
-          <valueMap name="map_QUIC_RESUME_TICKET_STATE">
-            <map
-                message="$(string.Enum.QUIC_RESUME_TICKET_STATE.REJECTED)"
-                value="0"
-                />
-            <map
-                message="$(string.Enum.QUIC_RESUME_TICKET_STATE.ACCEPTED)"
-                value="1"
-                />
-          </valueMap>
         </maps>
         <templates>
           <template tid="tid_MESSAGE">
@@ -1223,11 +1213,6 @@
             <data
                 inType="win:Pointer"
                 name="Connection"
-                />
-            <data
-                inType="win:UInt8"
-                map="map_QUIC_RESUME_TICKET_STATE"
-                name="TicketState"
                 />
           </template>
           <template tid="tid_STREAM">
@@ -3072,7 +3057,7 @@
             />
         <string
             id="Etw.ConnServerResumeTicket"
-            value="[conn][%1] Server app %2 ticket"
+            value="[conn][%1] Server app accepted resumption ticket"
             />
         <string
             id="Etw.ConnPacketAcked"
@@ -3738,14 +3723,6 @@
         <string
             id="Enum.QUIC_SEND_FLUSH_REASON.SCHEDULING"
             value="SCHEDULING"
-            />
-        <string
-            id="Enum.QUIC_RESUME_TICKET_STATE.REJECTED"
-            value="REJECTED"
-            />
-        <string
-            id="Enum.QUIC_RESUME_TICKET_STATE.ACCEPTED"
-            value="ACCEPTED"
             />
       </stringTable>
     </resources>

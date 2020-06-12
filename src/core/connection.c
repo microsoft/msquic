@@ -2147,11 +2147,19 @@ QuicConnRecvResumptionTicket(
         ResumptionAccepted =
             QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
 
-        QuicTraceEvent(
-            ConnServerResumeTicket,
-            "[conn][%p] Server app %b ticket.",
-            Connection,
-            ResumptionAccepted);
+
+        if (ResumptionAccepted) {
+            QuicTraceEvent(
+                ConnServerResumeTicket,
+                "[conn][%p] Server app accepted resumption ticket",
+                Connection);
+        } else {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket rejected by server app");
+        }
 
         QUIC_DBG_ASSERT(Offset + AppTicketLength == TicketLength);
     } else {
