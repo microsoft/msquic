@@ -5,4 +5,5 @@
 *.xml text
 
 # Ensure binary files stay binary
+*.pgd binary
 *.png binary
