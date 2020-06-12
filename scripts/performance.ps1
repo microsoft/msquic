@@ -12,9 +12,6 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Tls
     The TLS library use.
 
-.PARAMETER WriteResults
-    Write results 
-
 #>
 
 param (
@@ -28,10 +25,7 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
-    [string]$Tls = "",
-
-    [Parameter(Mandatory = $false)]
-    [switch]$WriteResults = $false
+    [string]$Tls = ""
 )
 
 Set-StrictMode -Version 'Latest'
@@ -116,6 +110,24 @@ function Get-Latest-Test-Results($Platform, $Test) {
     return $LatestResult
 }
 
+function Median-Test-Results($FullResults) {
+    $sorted = $FullResults | Sort-Object
+    return $sorted[[int](($sorted.Length - 1) / 2)]
+}
+
+class TestPublishResult {
+    [string]$PlatformName
+    [string]$TestName
+    [string]$CommitHash
+    [double[]]$IndividualRunResults
+}
+
+$currentLoc = Get-Location
+Set-Location -Path $RootDir
+$env:GIT_REDIRECT_STDERR = '2>&1'
+$CurrentCommitHash = git rev-parse HEAD
+Set-Location -Path $currentLoc
+
 function Run-Loopback-Test() {
     Write-Host "Running Loopback Test"
     $proc = Start-Background-Executable -File $PingClient -Arguments "-listen:* -selfsign:1 -peer_uni:1"
@@ -132,49 +144,30 @@ function Run-Loopback-Test() {
 
     Stop-Background-Executable -Process $proc
 
-    $sum = 0
-    $allRunsResults | ForEach-Object { $sum += $_ }
-    $average = $sum / $allRunsResults.Length
-
-    $combinedResults = [System.String]::Join(", ", $allRunsResults)
+    $MedianCurrentResult = Median-Test-Results -FullResults $allRunsResults
 
     $fullLastResult = Get-Latest-Test-Results -Platform $Platform -Test "loopback"
-    $LastResult = $fullLastResult.individualRunResults
 
-    # $osPath = "linux"
-    # if ($IsWindows) {
-    #     $osPath = "windows"
-    # }
+    $MedianLastResult = Median-Test-Results -FullResults $fullLastResult.individualRunResults
 
-    # $ResultsFolderRoot = "$osPath/loopback"
-    # $ResultsFileName = "/results.csv"
-    # $ResultsFileNamePath = "$ResultsFolderRoot/$ResultsFileName"
-    # $LastResultsPath = Join-Path $GitPath $ResultsFileNamePath
-    # $LastResult = Get-Last-Result -Path $LastResultsPath
+    $ToPublishResults = [TestPublishResult]::new()
 
-    # if ($WriteResults) {
-    #     # Redirect stderr to stdout for git.
-    #     $env:GIT_REDIRECT_STDERR = '2>&1'
-    #     $time = [DateTime]::UtcNow.ToString("u")
-    #     $currentLoc = Get-Location
-    #     Set-Location -Path $RootDir
-    #     $fullHash = git rev-parse HEAD
-    #     $hash = $fullHash.Substring(0, 7)
+    $ToPublishResults.CommitHash = $CurrentCommitHash.Substring(0, 7)
+    $ToPublishResults.PlatformName = $Platform
+    $ToPublishResults.TestName = "loopback"
+    $ToPublishResults.IndividualRunResults = $allRunsResults
 
-    #     $newResult = "$time, $hash, $combinedResults, $average"
+    $ResultsFolderRoot = "$Platform/loopback"
+    $ResultsFileName = "/results.json"
 
-    #     $NewFilePath = Join-Path $RootDir "artifacts/PerfDataResults/$ResultsFolderRoot"
-    #     $NewFileLocation = Join-Path $NewFilePath $ResultsFileName
-    #     New-Item $NewFilePath -ItemType Directory -Force
-    #     Copy-Item $LastResultsPath -Destination $NewFileLocation -Force
+    $NewFilePath = Join-Path $RootDir "artifacts/PerfDataResults/$ResultsFolderRoot"
+    $NewFileLocation = Join-Path $NewFilePath $ResultsFileName
+    New-Item $NewFilePath -ItemType Directory -Force
 
-    #     Add-Content -Path $NewFileLocation -Value $newResult
-    #     Set-Location -Path $currentLoc
-    # }
+    $ToPublishResults | ConvertTo-Json | Out-File $NewFileLocation
 
-    Write-Host "Current Run: $average kbps"
-    Write-Host "Last Master Run: $LastResult kbps"
-    Write-Host "All Results: $combinedResults"
+    Write-Host "Current Run: $MedianCurrentResult kbps"
+    Write-Host "Last Master Run: $MedianLastResult kbps"
 }
 
 Run-Loopback-Test
