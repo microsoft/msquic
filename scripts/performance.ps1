@@ -135,7 +135,7 @@ function Run-Loopback-Test() {
 
     $allRunsResults = @()
 
-    1..2 | ForEach-Object {
+    1..10 | ForEach-Object {
         $runResult = Run-Foreground-Executable -File $PingClient -Arguments "-target:localhost -uni:1 -length:100000000"
         $parsedRunResult = Parse-Loopback-Results -Results $runResult
         $allRunsResults += $parsedRunResult
