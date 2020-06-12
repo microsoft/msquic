@@ -46,7 +46,7 @@
 // frame or a RESET_STREAM frame containing a different final size to the one
 // already established.
 //
-#define QUIC_ERROR_FINAL_SIZE_ERROR           0x6
+#define QUIC_ERROR_FINAL_SIZE_ERROR             0x6
 //
 // An endpoint received a frame that was badly formatted. For instance, an empty
 // STREAM frame that omitted the FIN flag, or an ACK frame that has more
