@@ -163,7 +163,7 @@ function Run-Loopback-Test() {
         $fullHash = git rev-parse HEAD
         $hash = $fullHash.Substring(0, 7)
 
-        $newResult = "$time, $hash, $combinedResults $average"
+        $newResult = "$time, $hash, $combinedResults, $average"
 
         $NewFilePath = Join-Path $RootDir "artifacts/PerfDataResults/$ResultsFolderRoot"
         $NewFileLocation = Join-Path $NewFilePath $ResultsFileName
