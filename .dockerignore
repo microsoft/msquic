@@ -1,6 +1,6 @@
 *
 !CMakeLists.txt
-!run_endpoint.sh
+!scripts/run_endpoint.sh
 !src
 !submodules/openssl
 submodules/openssl/pyca-cryptography
