@@ -24,7 +24,7 @@ Abstract:
     QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + \
     QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + \
     sizeof(uint32_t) + \
-    (ARRAYSZIE(QuicSupportedVersionList) * sizeof(uint32_t)) \
+    (ARRAYSIZE(QuicSupportedVersionList) * sizeof(uint32_t)) \
 )
 QUIC_STATIC_ASSERT(
     QUIC_DEFAULT_PATH_MTU - 48 >= MAX_VER_NEG_PACKET_LENGTH,
@@ -697,7 +697,7 @@ QuicBindingProcessStatelessOperation(
             sizeof(uint8_t) +
             RecvPacket->DestCidLen +
             sizeof(uint32_t) +                                      // One random version
-            ARRAYSZIE(QuicSupportedVersionList) * sizeof(uint32_t); // Our actual supported versions
+            ARRAYSIZE(QuicSupportedVersionList) * sizeof(uint32_t); // Our actual supported versions
 
         QUIC_BUFFER* SendDatagram =
             QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
