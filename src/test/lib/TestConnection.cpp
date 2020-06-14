@@ -761,6 +761,21 @@ TestConnection::HasNewZeroRttTicket()
 }
 
 QUIC_STATUS
+TestConnection::GetResumptionTicket(
+    uint8_t* Buffer,
+    uint32_t* BufferLength
+    )
+{
+    return
+        MsQuic->GetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_RESUMPTION_STATE,
+            BufferLength,
+            Buffer);
+}
+
+QUIC_STATUS
 TestConnection::HandleConnectionEvent(
     _Inout_ QUIC_CONNECTION_EVENT* Event
     )
@@ -772,6 +787,9 @@ TestConnection::HandleConnectionEvent(
         Resumed = Event->CONNECTED.SessionResumed != FALSE;
         if (!Resumed && ExpectedResumed) {
             TEST_FAILURE("Resumption was expected!");
+        }
+        if (IsServer) {
+            MsQuic->ConnectionSendResumptionTicket(QuicConnection, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr);
         }
         QuicEventSet(EventConnectionComplete);
         break;

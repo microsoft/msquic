@@ -109,6 +109,7 @@ ServerConnectionCallback(
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
         printf("[conn][%p] Connected\n", Connection);
+        MsQuic->ConnectionSendResumptionTicket(Connection, QUIC_SEND_RESUMPTION_FLAG_NONE, 0, NULL);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
@@ -121,6 +122,10 @@ ServerConnectionCallback(
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
         printf("[strm][%p] Peer started\n", Event->PEER_STREAM_STARTED.Stream);
         MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)ServerStreamCallback, nullptr);
+        MsQuic->ConnectionSendResumptionTicket(Connection, QUIC_SEND_RESUMPTION_FLAG_NONE, 0, NULL);
+        break;
+    case QUIC_CONNECTION_EVENT_RESUMED:
+        printf("[conn][%p] Connection resumed!\n", Connection);
         break;
     default:
         break;
@@ -316,6 +321,13 @@ ClientConnectionCallback(
         printf("[conn][%p] All done\n", Connection);
         MsQuic->ConnectionClose(Connection);
         break;
+    case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
+        printf("[conn][%p] Resumption ticket received (%u bytes):\n", Connection, Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
+        for (uint32_t i = 0; i < Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength; i++) {
+            printf("%0.2X", (uint8_t)Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket[i]);
+        }
+        printf("\n");
+        break;
     default:
         break;
     }
@@ -329,10 +341,25 @@ RunClient(
     )
 {
     QUIC_STATUS Status;
+    const char* ResumptionTicketString = nullptr;
     HQUIC Connection = nullptr;
     if (QUIC_FAILED(Status = MsQuic->ConnectionOpen(Session, ClientConnectionCallback, nullptr, &Connection))) {
         printf("ConnectionOpen failed, 0x%x!\n", Status);
         goto Error;
+    }
+
+    if (TryGetValue(argc, argv, "ticket", &ResumptionTicketString) && ResumptionTicketString != nullptr) {
+        uint8_t ResumptionTicket[1024];
+         uint16_t TicketLength = (uint16_t)DecodeHexBuffer(ResumptionTicketString, sizeof(ResumptionTicket), ResumptionTicket);
+        if (QUIC_FAILED(Status = MsQuic->SetParam(
+                Connection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_RESUMPTION_STATE,
+                TicketLength,
+                ResumptionTicket))) {
+            printf("SetParam(QUIC_PARAM_CONN_RESUMPTION_TICKET) failed, 0x%x!\n", Status);
+            goto Error;
+        }
     }
 
     if (GetValue(argc, argv, "unsecure")) {
@@ -402,6 +429,14 @@ main(
         printf("SetParam(QUIC_PARAM_SESSION_IDLE_TIMEOUT) failed, 0x%x!\n", Status);
         goto Error;
     }
+
+    QUIC_SERVER_RESUMPTION_LEVEL ResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT;
+    if (QUIC_FAILED(Status = MsQuic->SetParam(
+        Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+        sizeof(ResumptionLevel), &ResumptionLevel))) {
+            printf("SetParam(QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL) failed, 0x%x!\n", Status);
+            goto Error;
+        }
 
     if (GetValue(argc, argv, "help") ||
         GetValue(argc, argv, "?")) {

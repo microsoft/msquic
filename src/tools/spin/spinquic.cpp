@@ -215,6 +215,33 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context *
 QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void * /* Context */, QUIC_CONNECTION_EVENT *Event)
 {
     switch (Event->Type) {
+    case QUIC_CONNECTION_EVENT_CONNECTED: {
+        int Selector = rand() % 3;
+        uint16_t DataLength = 0;
+        uint8_t* Data = nullptr;
+        if (Selector == 1) {
+            //
+            // Send ticket with some data
+            //
+            DataLength = rand() % 1000;
+        } else if (Selector == 2) {
+            //
+            // Send ticket with too much data
+            //
+            DataLength = QUIC_MAX_RESUMPTION_APP_DATA_LENGTH + 1;
+        } else {
+            //
+            // Send ticket with no app data (no-op)
+            //
+        }
+        if (DataLength) {
+            Data = (uint8_t*)malloc(DataLength);
+        }
+        QUIC_SEND_RESUMPTION_FLAGS Flags = (rand() % 2) ? QUIC_SEND_RESUMPTION_FLAG_NONE : QUIC_SEND_RESUMPTION_FLAG_FINAL;
+        MsQuic->ConnectionSendResumptionTicket(Connection, Flags, DataLength, Data);
+        free(Data);
+        break;
+    }
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         SpinQuicConnection::Get(Connection)->OnShutdownComplete();
         break;

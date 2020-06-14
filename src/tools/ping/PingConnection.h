@@ -72,6 +72,7 @@ struct PingConnection {
     PingTracker* Tracker;
     HQUIC QuicConnection;
     bool DumpResumption;
+    bool IsServer;
 
     uint64_t StartTime;
     uint64_t ConnectTime;

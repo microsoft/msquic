@@ -356,6 +356,9 @@ QuicTestConnectAndPing(
     MsQuicSession Session;
     TEST_TRUE(Session.IsValid());
     Session.SetAutoCleanup();
+    if (ClientZeroRtt) {
+        Session.SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT);
+    }
     if (!ServerInitiatedStreams) {
         TEST_QUIC_SUCCEEDED(Session.SetPeerUnidiStreamCount(TotalStreamCount));
         TEST_QUIC_SUCCEEDED(Session.SetPeerBidiStreamCount(TotalStreamCount));

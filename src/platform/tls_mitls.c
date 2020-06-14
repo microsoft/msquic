@@ -333,7 +333,7 @@ typedef struct QUIC_TLS {
     QUIC_CONNECTION* Connection;
     QUIC_TLS_PROCESS_COMPLETE_CALLBACK_HANDLER ProcessCompleteCallback;
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
-
+    QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK_HANDLER ReceiveResumptionTicketCallback;
     //
     // miTLS Config.
     //
@@ -931,6 +931,7 @@ QuicTlsInitialize(
     TlsContext->CurrentWriterKey = -1;
     TlsContext->Connection = Config->Connection;
     TlsContext->ProcessCompleteCallback = Config->ProcessCompleteCallback;
+    TlsContext->ReceiveResumptionTicketCallback = Config->ReceiveResumptionCallback;
     TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
 
     TlsContext->Extensions[0].ext_type = TLS_EXTENSION_TYPE_APPLICATION_LAYER_PROTOCOL_NEGOTIATION;
@@ -1152,7 +1153,6 @@ QuicTlsProcessData(
     _Inout_ QUIC_TLS_PROCESS_STATE* State
     )
 {
-    UNREFERENCED_PARAMETER(DataFlags);
     QUIC_TLS_RESULT_FLAGS ResultFlags = 0;
     uint32_t ConsumedBytes;
 
@@ -1173,38 +1173,64 @@ QuicTlsProcessData(
 
     TlsContext->State = State;
 
-    if (*BufferLength) {
+    if (DataFlags & QUIC_TLS_CRYPTO_DATA) {
+        QUIC_DBG_ASSERT((DataFlags & QUIC_TLS_TICKET_DATA) == 0);
+
+        if (*BufferLength) {
+            QuicTraceLogConnVerbose(
+                miTlsProcess,
+                TlsContext->Connection,
+                "Processing %u bytes",
+                *BufferLength);
+
+            //
+            // Copy the data pointer into our buffer pointer.
+            //
+            TlsContext->Buffer = Buffer;
+
+            //
+            // Store new buffer length.
+            //
+            TlsContext->BufferLength = *BufferLength;
+
+            //
+            // Indicate that we will return pending, but just immediately invoke
+            // the completed callback.
+            //
+            ResultFlags = QUIC_TLS_RESULT_PENDING;
+            TlsContext->ProcessCompleteCallback(TlsContext->Connection);
+
+        } else {
+
+            //
+            // We process the inital data inline.
+            //
+            TlsContext->BufferLength = 0;
+            ResultFlags = QuicTlsProcessDataComplete(TlsContext, &ConsumedBytes);
+            *BufferLength = ConsumedBytes;
+        }
+    } else if (DataFlags & QUIC_TLS_TICKET_DATA) {
+        QUIC_DBG_ASSERT((DataFlags & QUIC_TLS_CRYPTO_DATA) == 0);
+
+        QUIC_DBG_ASSERT(TlsContext->IsServer);
+        QUIC_DBG_ASSERT((*BufferLength > 0 && Buffer != NULL) ||
+            (*BufferLength == 0 && Buffer == NULL));
+
         QuicTraceLogConnVerbose(
-            miTlsProcess,
+            miTlsSend0RttTicket,
             TlsContext->Connection,
-            "Processing %u bytes",
-            *BufferLength);
+            "Sending 0-RTT ticket");
 
-        //
-        // Copy the data pointer into our buffer pointer.
-        //
-        TlsContext->Buffer = Buffer;
-
-        //
-        // Store new buffer length.
-        //
-        TlsContext->BufferLength = *BufferLength;
-
-        //
-        // Indicate that we will return pending, but just immediately invoke
-        // the completed callback.
-        //
-        ResultFlags = QUIC_TLS_RESULT_PENDING;
-        TlsContext->ProcessCompleteCallback(TlsContext->Connection);
-
-    } else {
-
-        //
-        // We process the inital data inline.
-        //
-        TlsContext->BufferLength = 0;
-        ResultFlags = QuicTlsProcessDataComplete(TlsContext, &ConsumedBytes);
-        *BufferLength = ConsumedBytes;
+        if (!FFI_mitls_quic_send_ticket(TlsContext->miTlsState, Buffer, *BufferLength)) {
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "FFI_mitls_quic_send_ticket failed");
+            ResultFlags |= QUIC_TLS_RESULT_ERROR;
+        } else {
+            ResultFlags |= QUIC_TLS_RESULT_PENDING;
+        }
     }
 
 Error:
@@ -1346,6 +1372,51 @@ QuicTlsProcessDataComplete(
                     State->SessionResumed = TRUE;
                     TlsContext->EarlyDataAttempted = TRUE;
                     State->EarlyDataState = QUIC_TLS_EARLY_DATA_ACCEPTED;
+                    //
+                    // Get resumption data from the client hello
+                    //
+                    uint32_t PreviousOffset = BufferOffset - (uint32_t)Context.consumed_bytes;
+                    mitls_hello_summary HelloSummary = { 0 };
+                    uint8_t* Cookie = NULL;
+                    size_t CookieLen = 0;
+                    uint8_t* Ticket = NULL;
+                    size_t TicketLen = 0;
+                    if (!FFI_mitls_get_hello_summary(
+                            TlsContext->Buffer + PreviousOffset, TlsContext->BufferLength - PreviousOffset,
+                            FALSE,
+                            &HelloSummary,
+                            &Cookie, &CookieLen,
+                            &Ticket, &TicketLen)) {
+                        QuicTraceLogConnError(
+                            miTlsFfiGetHelloSummaryFailed,
+                            TlsContext->Connection,
+                            "FFI_mitls_get_hello_summary failed, cookie_len: %zu, ticket_len: %zu",
+                            CookieLen,
+                            TicketLen);
+                        ResultFlags |= QUIC_TLS_RESULT_ERROR;
+                        break;
+                    }
+                    QUIC_FRE_ASSERT(TicketLen <= UINT16_MAX);
+                    if (!TlsContext->ReceiveResumptionTicketCallback(
+                            TlsContext->Connection,
+                            (uint16_t)TicketLen, Ticket)) {
+                        //
+                        // QUIC or the app rejected the resumption ticket.
+                        // Abandon the early data and continue the handshake.
+                        //
+                        ResultFlags &= ~QUIC_TLS_RESULT_EARLY_DATA_ACCEPT;
+                        ResultFlags |= QUIC_TLS_RESULT_EARLY_DATA_REJECT;
+                        State->EarlyDataState = QUIC_TLS_EARLY_DATA_REJECTED;
+                        State->SessionResumed = FALSE;
+                    }
+                    if (Cookie) {
+                        FFI_mitls_global_free(Cookie);
+                        Cookie = NULL;
+                    }
+                    if (Ticket) {
+                        FFI_mitls_global_free(Ticket);
+                        Ticket = NULL;
+                    }
                 } else {
                     TlsContext->TlsKeySchedule = 0;
                     if (!(Context.flags & QFLAG_REJECTED_0RTT)) {

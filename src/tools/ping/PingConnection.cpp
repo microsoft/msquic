@@ -20,7 +20,7 @@ PingConnection::PingConnection(
     ConnectedSuccessfully(false), BytesSent(0), BytesReceived(0), DatagramLength(0),
     DatagramsSent(0), DatagramsAcked(0), DatagramsLost(0), DatagramsCancelled(0),
     DatagramsReceived(0), DatagramsJitterTotal(0), DatagramLastTime(0),
-    TimedOut(false) {
+    TimedOut(false), IsServer(false)  {
 
     if (QUIC_FAILED(
         MsQuic->ConnectionOpen(
@@ -56,6 +56,8 @@ PingConnection::Initialize(
     bool IsServer
     )
 {
+    this->IsServer = IsServer;
+
     if (!PingConfig.UseSendBuffer) {
         BOOLEAN Opt = FALSE;
         if (QUIC_FAILED(
@@ -285,6 +287,13 @@ PingConnection::ProcessEvent(
             QuicConnection,
             (uint32_t)(ElapsedMicroseconds / 1000),
             (uint32_t)(ElapsedMicroseconds % 1000));
+
+        if (this->IsServer) {
+            if (!QUIC_SUCCEEDED(
+                    MsQuic->ConnectionSendResumptionTicket(QuicConnection, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr))) {
+                printf("[%p] Failed to send 0-RTT resumption ticket!\n", QuicConnection);
+            }
+        }
         break;
     }
 
@@ -385,7 +394,7 @@ PingConnection::ProcessEvent(
                     SerializedResumptionState))) {
                 printf("[%p] Resumption state (%u bytes):\n", QuicConnection, SerializedResumptionStateLength);
                 for (uint32_t i = 0; i < SerializedResumptionStateLength; i++) {
-                    printf("%.2X", SerializedResumptionState[i]);
+                    printf("%0.2X", (uint8_t)SerializedResumptionState[i]);
                 }
                 printf("\n");
             }
