@@ -132,6 +132,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <RunCodeAnalysis>true</RunCodeAnalysis>
+    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
   </PropertyGroup>
   <PropertyGroup>
     <TargetName>core</TargetName>

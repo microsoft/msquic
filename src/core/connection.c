@@ -1993,6 +1993,7 @@ QuicConnSendResumptionTicket(
     //   App Ticket (omitted if length is zero) [...]
     //
 
+    _Analysis_assume_(sizeof(*TicketBuffer) >= 8);
     uint8_t* TicketCursor = QuicVarIntEncode(QUIC_TLS_RESUMPTION_TICKET_VERSION, TicketBuffer);
     *(uint32_t*)TicketCursor = QuicByteSwapUint32(QUIC_VERSION_LATEST);
     TicketCursor += sizeof(QUIC_VERSION_LATEST);
@@ -2005,7 +2006,9 @@ QuicConnSendResumptionTicket(
     TicketCursor = QuicVarIntEncode(AppDataLength, TicketCursor);
     if (AppDataLength > 0) {
         QuicCopyMemory(TicketCursor, AppResumptionData, AppDataLength);
+        TicketCursor += AppDataLength;
     }
+    QUIC_DBG_ASSERT(TicketCursor == TicketBuffer + TotalTicketLength);
 
     Status = QuicCryptoProcessAppData(&Connection->Crypto, TotalTicketLength, TicketBuffer);
 
