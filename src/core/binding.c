@@ -55,7 +55,6 @@ QuicBindingInitialize(
             "QUIC_BINDING",
             sizeof(QUIC_BINDING));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        printf("%s:%d\n", __FILE__, __LINE__);
         goto Error;
     }
 
@@ -100,7 +99,6 @@ QuicBindingInitialize(
 #ifdef QUIC_COMPARTMENT_ID
     Binding->CompartmentId = CompartmentId;
 
-        printf("%s:%d\n", __FILE__, __LINE__);
     BOOLEAN RevertCompartmentId = FALSE;
     QUIC_COMPARTMENT_ID PrevCompartmentId = QuicCompartmentIdGetCurrent();
     if (PrevCompartmentId != CompartmentId) {
@@ -112,7 +110,6 @@ QuicBindingInitialize(
                 Binding,
                 Status,
                 "Set current compartment Id");
-        printf("%s:%d\n", __FILE__, __LINE__);
             goto Error;
         }
         RevertCompartmentId = TRUE;
@@ -134,7 +131,6 @@ QuicBindingInitialize(
 #endif
 
     if (QUIC_FAILED(Status)) {
-        printf("%s:%d\n", __FILE__, __LINE__);
         QuicTraceEvent(
             BindingErrorStatus,
             "[bind][%p] ERROR, %u, %s.",
@@ -159,7 +155,6 @@ QuicBindingInitialize(
 
     *NewBinding = Binding;
     Status = QUIC_STATUS_SUCCESS;
-        printf("%s:%d\n", __FILE__, __LINE__);
 
 Error:
 
@@ -1241,6 +1236,7 @@ QuicBindingDeliverDatagrams(
     QUIC_RECV_PACKET* Packet =
             QuicDataPathRecvDatagramToRecvPacket(DatagramChain);
     QUIC_DBG_ASSERT(Packet->ValidatedHeaderInv);
+    printf("\nNOTE: %s:%d", __FILE__, __LINE__);
 
     //
     // For client owned bindings (for which we always control the CID) or for
@@ -1276,12 +1272,19 @@ QuicBindingDeliverDatagrams(
 
     QUIC_CONNECTION* Connection;
     if (!Binding->ServerOwned || Packet->IsShortHeader) {
+        printf("\nNOTE: %s:%d", __FILE__, __LINE__);
+        __asm__("int3");
+        for (int i = 0; i < Packet->DestCidLen; i++) {
+            printf("%x ", Packet->DestCid[i]);
+        }
+        printf("\n");
         Connection =
             QuicLookupFindConnectionByLocalCid(
                 &Binding->Lookup,
                 Packet->DestCid,
                 Packet->DestCidLen);
     } else {
+        printf("\nNOTE: %s:%d", __FILE__, __LINE__);
         Connection =
             QuicLookupFindConnectionByRemoteHash(
                 &Binding->Lookup,
@@ -1291,6 +1294,7 @@ QuicBindingDeliverDatagrams(
     }
 
     if (Connection == NULL) {
+            printf("\nNOTE: %s:%d", __FILE__, __LINE__);
 
         //
         // Because the packet chain is ordered by control packets first, we
@@ -1302,6 +1306,7 @@ QuicBindingDeliverDatagrams(
 
         if (Binding->Exclusive) {
             QuicPacketLogDrop(Binding, Packet, "No connection on exclusive binding");
+            printf("\nNOTE: %s:%d", __FILE__, __LINE__);
             return FALSE;
         }
 
@@ -1310,10 +1315,12 @@ QuicBindingDeliverDatagrams(
             // For unattributed short header packets we can try to send a
             // stateless reset back in response.
             //
+            printf("\nNOTE: %s:%d", __FILE__, __LINE__);
             return QuicBindingQueueStatelessReset(Binding, DatagramChain);
         }
 
         if (Packet->Invariant->LONG_HDR.Version == QUIC_VERSION_VER_NEG) {
+            printf("\nNOTE: %s:%d", __FILE__, __LINE__);
             QuicPacketLogDrop(Binding, Packet, "Version negotiation packet not matched with a connection");
             return FALSE;
         }
@@ -1334,6 +1341,7 @@ QuicBindingDeliverDatagrams(
         case QUIC_VERSION_DRAFT_29:
         case QUIC_VERSION_MS_1:
             if (Packet->LH->Type != QUIC_INITIAL) {
+            printf("\nNOTE: %s:%d", __FILE__, __LINE__);
                 QuicPacketLogDrop(Binding, Packet, "Non-initial packet not matched with a connection");
                 return FALSE;
             }
@@ -1352,6 +1360,7 @@ QuicBindingDeliverDatagrams(
 
         QUIC_DBG_ASSERT(Token != NULL);
 
+            printf("\nNOTE: %s:%d", __FILE__, __LINE__);
         if (!QuicBindingHasListenerRegistered(Binding)) {
             QuicPacketLogDrop(Binding, Packet, "No listeners registered to accept new connection.");
             return FALSE;
@@ -1362,16 +1371,19 @@ QuicBindingDeliverDatagrams(
         BOOLEAN DropPacket = FALSE;
         if (QuicBindingShouldRetryConnection(
                 Binding, Packet, TokenLength, Token, &DropPacket)) {
+            printf("\nNOTE: %s:%d", __FILE__, __LINE__);
             return
                 QuicBindingQueueStatelessOperation(
                     Binding, QUIC_OPER_TYPE_RETRY, DatagramChain);
 
         } else if (!DropPacket) {
+            printf("\nNOTE: %s:%d", __FILE__, __LINE__);
             Connection = QuicBindingCreateConnection(Binding, DatagramChain);
         }
     }
 
     if (Connection != NULL) {
+        printf("\nNOTE: %s:%d", __FILE__, __LINE__);
         QuicConnQueueRecvDatagrams(Connection, DatagramChain, DatagramChainLength);
         QuicConnRelease(Connection, QUIC_CONN_REF_LOOKUP_RESULT);
         return TRUE;
@@ -1447,6 +1459,7 @@ QuicBindingReceive(
         //
         BOOLEAN ReleaseDatagram;
         if (!QuicBindingPreprocessDatagram(Binding, Datagram, &ReleaseDatagram)) {
+            printf("NOTE: %s:%d", __FILE__, __LINE__);
             if (ReleaseDatagram) {
                 *ReleaseChainTail = Datagram;
                 ReleaseChainTail = &Datagram->Next;

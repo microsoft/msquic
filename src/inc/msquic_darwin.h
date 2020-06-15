@@ -145,13 +145,11 @@ typedef struct in6_addr IN6_ADDR;
 typedef struct addrinfo ADDRINFO;
 typedef sa_family_t QUIC_ADDRESS_FAMILY;
 
-// This structure is awful; It's expected to be a union in other places, 
-typedef struct QUIC_ADDR {
-    union {
-        struct sockaddr_in Ipv4;
-        struct sockaddr_in6 Ipv6;
-    };
-    sa_family_t si_family;
+// Linux code should likely look this too.
+typedef union QUIC_ADDR {
+    struct sockaddr Ip;
+    struct sockaddr_in Ipv4;
+    struct sockaddr_in6 Ipv6;
 } QUIC_ADDR;
 
 #define FIELD_OFFSET(type, field)       ((uint32_t)(size_t)&(((type *)0)->field))

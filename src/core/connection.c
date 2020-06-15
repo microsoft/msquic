@@ -1776,7 +1776,6 @@ QuicConnStart(
 #endif
 
         if (QUIC_FAILED(Status)) {
-        printf("%s:%d\n", __FILE__, __LINE__);
             goto Exit;
         }
 
@@ -1803,7 +1802,6 @@ QuicConnStart(
             &Path->RemoteAddress,
             &Path->Binding);
     if (QUIC_FAILED(Status)) {
-        printf("%s:%d\n", __FILE__, __LINE__);
         goto Exit;
     }
 
@@ -1824,7 +1822,6 @@ QuicConnStart(
         SourceCid = QuicCidNewNullSource(Connection);
     }
     if (SourceCid == NULL) {
-        printf("%s:%d\n", __FILE__, __LINE__);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -1842,7 +1839,6 @@ QuicConnStart(
     if (!QuicBindingAddSourceConnectionID(Path->Binding, SourceCid)) {
         QuicLibraryReleaseBinding(Path->Binding);
         Path->Binding = NULL;
-        printf("%s:%d\n", __FILE__, __LINE__);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -1869,7 +1865,6 @@ QuicConnStart(
     //
     Status = QuicConnInitializeCrypto(Connection);
     if (QUIC_FAILED(Status)) {
-        printf("%s:%d\n", __FILE__, __LINE__);
         goto Exit;
     }
 

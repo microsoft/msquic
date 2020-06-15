@@ -430,6 +430,7 @@ private:
                 pThis->Resumed = true;
             }
             QuicEventSet(pThis->ConnectionComplete);
+            printf("!!!!!!!!!!!! CONNECTED !!!!!!!!!!!!!!!!!\n");
             break;
         case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
             if (Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status == QUIC_STATUS_VER_NEG_ERROR) {
