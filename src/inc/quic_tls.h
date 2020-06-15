@@ -154,8 +154,8 @@ typedef enum QUIC_TLS_RESULT_FLAGS {
 
 typedef enum QUIC_TLS_DATA_FLAGS {
 
-    QUIC_TLS_CRYPTO_DATA,
-    QUIC_TLS_TICKET_DATA
+    QUIC_TLS_CRYPTO_DATA                = 0x01,
+    QUIC_TLS_TICKET_DATA                = 0x02
 
 } QUIC_TLS_DATA_FLAGS;
 

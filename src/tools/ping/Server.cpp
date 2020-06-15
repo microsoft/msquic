@@ -138,6 +138,17 @@ void QuicPingServerRun()
         printf("MsQuic.SetParam (SESSION_MAX_BYTES_PER_KEY) failed!\n");
         return;
     }
+    QUIC_SERVER_RESUMPTION_LEVEL ResumeLevel = QUIC_SERVER_RESUME_ONLY;
+    if (QUIC_FAILED(
+        MsQuic->SetParam(
+            Session.Handle,
+            QUIC_PARAM_LEVEL_SESSION,
+            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+            sizeof(ResumeLevel),
+            &ResumeLevel))) {
+        printf("MsQuic.SetParam (SESSION_SERVER_RESUMPTION_LEVEL) failed!\n");
+        return;
+    }
 
     {
         PingServer Server;

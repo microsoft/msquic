@@ -1209,7 +1209,8 @@ QuicTlsProcessData(
             ResultFlags = QuicTlsProcessDataComplete(TlsContext, &ConsumedBytes);
             *BufferLength = ConsumedBytes;
         }
-    } else if (DataFlags & QUIC_TLS_TICKET_DATA) {
+    } else {
+        QUIC_DBG_ASSERT(DataFlags & QUIC_TLS_TICKET_DATA);
         QUIC_DBG_ASSERT((DataFlags & QUIC_TLS_CRYPTO_DATA) == 0);
 
         QUIC_DBG_ASSERT(TlsContext->IsServer);
@@ -1249,7 +1250,7 @@ QuicTlsProcessDataComplete(
     QUIC_TLS_PROCESS_STATE* State = TlsContext->State;
 
     if (TlsContext->IsServer) {
-        QUIC_DBG_ASSERT(TlsContext->Buffer != NULL);
+        QUIC_DBG_ASSERT(TlsContext->State->HandshakeComplete || TlsContext->Buffer != NULL);
     }
 
     uint32_t BufferOffset = 0;

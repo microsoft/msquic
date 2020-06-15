@@ -38,6 +38,7 @@ typedef struct QUIC_SETTINGS {
         BOOLEAN PacingDefault : 1;
         BOOLEAN MigrationEnabled : 1;
         BOOLEAN DatagramReceiveEnabled : 1;
+        BOOLEAN ServerResumptionLevel : 1;
         BOOLEAN MaxPartitionCount : 1;
         BOOLEAN MaxOperationsPerDrain : 1;
         BOOLEAN RetryMemoryLimit : 1;
@@ -60,7 +61,6 @@ typedef struct QUIC_SETTINGS {
         BOOLEAN StreamRecvBufferDefault : 1;
         BOOLEAN ConnFlowControlWindow : 1;
         BOOLEAN MaxBytesPerKey : 1;
-        BOOLEAN ServerResumptionLevel : 1;
     } AppSet;
 
 } QUIC_SETTINGS;

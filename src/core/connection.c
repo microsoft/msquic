@@ -2014,9 +2014,6 @@ QuicConnSendResumptionTicket(
 
 Error:
     if (TicketBuffer != NULL) {
-        //
-        // TODO: This might need to be kept around for longer depending on TLS implementation...
-        //
         QUIC_FREE(TicketBuffer);
     }
 
@@ -6431,6 +6428,7 @@ QuicConnProcessApiOperation(
         break;
 
     case QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET:
+        QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
         Status =
             QuicConnSendResumptionTicket(
                 Connection,
@@ -6438,9 +6436,7 @@ QuicConnProcessApiOperation(
                 ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData);
         ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData = NULL;
         if (ApiCtx->CONN_SEND_RESUMPTION_TICKET.Flags & QUIC_SEND_RESUMPTION_FLAG_FINAL) {
-            QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
             Connection->State.ResumptionEnabled = FALSE;
-            QuicConnCleanupServerResumptionState(Connection); // BUG: With Async processing, this frees the memory before it's used.
         }
         break;
 
