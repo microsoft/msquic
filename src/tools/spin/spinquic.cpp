@@ -216,14 +216,14 @@ QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void * /* C
 {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED: {
-        int Selector = rand() % 3;
+        int Selector = GetRandom(3);
         uint16_t DataLength = 0;
         uint8_t* Data = nullptr;
         if (Selector == 1) {
             //
             // Send ticket with some data
             //
-            DataLength = rand() % 1000;
+            DataLength = GetRandom(999) + 1;
         } else if (Selector == 2) {
             //
             // Send ticket with too much data
@@ -236,8 +236,11 @@ QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void * /* C
         }
         if (DataLength) {
             Data = (uint8_t*)malloc(DataLength);
+            if (Data == nullptr) {
+                DataLength = 0;
+            }
         }
-        QUIC_SEND_RESUMPTION_FLAGS Flags = (rand() % 2) ? QUIC_SEND_RESUMPTION_FLAG_NONE : QUIC_SEND_RESUMPTION_FLAG_FINAL;
+        QUIC_SEND_RESUMPTION_FLAGS Flags = (GetRandom(2) == 0) ? QUIC_SEND_RESUMPTION_FLAG_NONE : QUIC_SEND_RESUMPTION_FLAG_FINAL;
         MsQuic->ConnectionSendResumptionTicket(Connection, Flags, DataLength, Data);
         free(Data);
         break;

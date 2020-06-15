@@ -1674,30 +1674,27 @@ QuicCryptoProcessAppData(
         const uint8_t* AppData
     )
 {
+    QUIC_STATUS Status;
     if (Crypto->TlsCallPending) {
-        return QUIC_STATUS_INVALID_STATE;
+        Status = QUIC_STATUS_INVALID_STATE;
+        goto Error;
     }
 
     QUIC_TLS_RESULT_FLAGS ResultFlags =
         QuicTlsProcessData(Crypto->TLS, QUIC_TLS_TICKET_DATA, AppData, &DataLength, &Crypto->TlsState);
     if (ResultFlags & QUIC_TLS_RESULT_ERROR) {
-        return QUIC_STATUS_TLS_ERROR;
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
     }
 
-    if (ResultFlags & QUIC_TLS_RESULT_PENDING) {
-        //
-        // Process async calls in-line.
-        //
-        uint32_t BufferConsumed = 0;
-        ResultFlags = QuicTlsProcessDataComplete(Crypto->TLS, &BufferConsumed);
-        QUIC_DBG_ASSERT(BufferConsumed == 0);
-    }
-
-    if (ResultFlags != QUIC_TLS_RESULT_PENDING) {
+    if (!(ResultFlags & QUIC_TLS_RESULT_PENDING)) {
         QuicCryptoProcessDataComplete(Crypto, ResultFlags, 0);
     }
 
-    return (ResultFlags & QUIC_TLS_RESULT_ERROR) ? QUIC_STATUS_TLS_ERROR : QUIC_STATUS_SUCCESS;
+    Status = QUIC_STATUS_SUCCESS;
+
+Error:
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

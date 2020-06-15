@@ -1230,6 +1230,7 @@ QuicTlsProcessData(
                 "FFI_mitls_quic_send_ticket failed");
             ResultFlags |= QUIC_TLS_RESULT_ERROR;
         } else {
+            TlsContext->ProcessCompleteCallback(TlsContext->Connection);
             ResultFlags |= QUIC_TLS_RESULT_PENDING;
         }
     }
