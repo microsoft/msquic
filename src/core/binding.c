@@ -24,7 +24,7 @@ Abstract:
     QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + \
     QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + \
     sizeof(uint32_t) + \
-    sizeof(QuicSupportedVersionList) \
+    (ARRAYSIZE(QuicSupportedVersionList) * sizeof(uint32_t)) \
 )
 QUIC_STATIC_ASSERT(
     QUIC_DEFAULT_PATH_MTU - 48 >= MAX_VER_NEG_PACKET_LENGTH,
@@ -691,13 +691,13 @@ QuicBindingProcessStatelessOperation(
         QUIC_DBG_ASSERT(RecvPacket->DestCid != NULL);
         QUIC_DBG_ASSERT(RecvPacket->SourceCid != NULL);
 
-        uint16_t PacketLength =
-            sizeof(QUIC_VERSION_NEGOTIATION_PACKET) +   // Header
+        const uint16_t PacketLength =
+            sizeof(QUIC_VERSION_NEGOTIATION_PACKET) +               // Header
             RecvPacket->SourceCidLen +
             sizeof(uint8_t) +
             RecvPacket->DestCidLen +
-            sizeof(uint32_t) +                          // One random version
-            sizeof(QuicSupportedVersionList);           // Our actual supported versions
+            sizeof(uint32_t) +                                      // One random version
+            ARRAYSIZE(QuicSupportedVersionList) * sizeof(uint32_t); // Our actual supported versions
 
         QUIC_BUFFER* SendDatagram =
             QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
@@ -739,10 +739,9 @@ QuicBindingProcessStatelessOperation(
 
         uint32_t* SupportedVersion = (uint32_t*)Buffer;
         SupportedVersion[0] = Binding->RandomReservedVersion;
-        QuicCopyMemory(
-            &SupportedVersion[1],
-            QuicSupportedVersionList,
-            sizeof(QuicSupportedVersionList));
+        for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
+            SupportedVersion[1 + i] = QuicSupportedVersionList[i].Number;
+        }
 
         QuicTraceLogVerbose(
             PacketTxVersionNegotiation,
