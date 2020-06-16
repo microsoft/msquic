@@ -39,6 +39,7 @@ public:
             const QUIC_REGISTRATION_CONFIG RegConfig = { "MsQuicBVT", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&RegConfig, &Registration)));
             ASSERT_TRUE(LoadSecConfig());
+            QuicTestInitialize();
         }
     }
     void TearDown() override {
@@ -46,6 +47,7 @@ public:
             DriverClient.Uninitialize();
             DriverService.Uninitialize();
         } else {
+            QuicTestUninitialize();
             MsQuic->SecConfigDelete(SecurityConfig);
             MsQuic->RegistrationClose(Registration);
             MsQuicClose(MsQuic);
@@ -398,11 +400,11 @@ TEST_P(WithFamilyArgs, VersionNegotiation) {
     }
 }
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithFamilyArgs, Rebind) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-Rebind", GetParam());
     if (TestingKernelMode) {
         GTEST_SKIP_(":Unsupported in kernel mode");
-        /* Not supported in kernel mode yet.
         QUIC_RUN_CONNECT_PARAMS Params = {
             GetParam().Family,
             0,  // ServerStatelessRetry
@@ -415,7 +417,7 @@ TEST_P(WithFamilyArgs, Rebind) {
             0,  // SessionResumption
             0   // RandomLossPercentage
         };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));*/
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
     } else {
         QuicTestConnect(
             GetParam().Family,
@@ -430,6 +432,7 @@ TEST_P(WithFamilyArgs, Rebind) {
             0);     // RandomLossPercentage
     }
 }
+#endif
 
 TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-ChangeMaxStreamIDs", GetParam());
@@ -493,6 +496,7 @@ TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
     }
 }
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithHandshakeArgs4, RandomLoss) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLoss", GetParam());
     if (TestingKernelMode) {
@@ -523,6 +527,7 @@ TEST_P(WithHandshakeArgs4, RandomLoss) {
             GetParam().RandomLossPercentage);
     }
 }
+#endif
 
 TEST_P(WithFamilyArgs, Unreachable) {
     TestLoggerT<ParamType> Logger("QuicTestConnectUnreachable", GetParam());

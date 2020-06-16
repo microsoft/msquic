@@ -21,6 +21,9 @@ extern QUIC_SEC_CONFIG* SecurityConfig;
 extern "C" {
 #endif
 
+void QuicTestInitialize();
+void QuicTestUninitialize();
+
 //
 // Parameter Validation Tests
 //

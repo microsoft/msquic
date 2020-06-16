@@ -57,6 +57,14 @@ typedef struct QUIC_TEST_DATAPATH_HOOKS {
     QUIC_TEST_DATAPATH_SEND_HOOK Send;
 } QUIC_TEST_DATAPATH_HOOKS;
 
+#if DEBUG
+//
+// Datapath hooks are currently only enabled on debug builds for functional
+// testing helpers.
+//
+#define QUIC_TEST_DATAPATH_HOOKS_ENABLED 1
+#endif
+
 #define QUIC_PARAM_GLOBAL_ENCRYPTION                    0x80000001  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS           0x80000002  // QUIC_TEST_DATAPATH_HOOKS*
 

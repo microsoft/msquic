@@ -165,74 +165,6 @@ QuicTestDatagramNegotiation(
     }
 }
 
-struct SelectiveLossHelper
-{
-    static uint32_t DropPacketCount;
-    static QUIC_TEST_DATAPATH_HOOKS DataPathFuncTable;
-    SelectiveLossHelper() {
-        QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathFuncTable;
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_LEVEL_GLOBAL,
-                QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
-                sizeof(Value),
-                &Value));
-    }
-    ~SelectiveLossHelper() {
-        QUIC_TEST_DATAPATH_HOOKS* Value = nullptr;
-        uint32_t TryCount = 0;
-        while (TryCount++ < 10) {
-            if (QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_LEVEL_GLOBAL,
-                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
-                    sizeof(Value),
-                    &Value))) {
-                break;
-            }
-            QuicSleep(100); // Let the current datapath queue drain.
-        }
-        if (TryCount == 10) {
-            TEST_FAILURE("Failed to disable test datapath hook");
-        }
-    }
-    void DropPackets(uint32_t Count) { DropPacketCount = Count; }
-    static
-    _IRQL_requires_max_(DISPATCH_LEVEL)
-    BOOLEAN
-    QUIC_API
-    ReceiveCallback(
-        _Inout_ struct QUIC_RECV_DATAGRAM* /* Datagram */
-        )
-    {
-        if (DropPacketCount == 0) {
-            return false;
-        }
-        DropPacketCount--;
-        return true;
-    }
-    static
-    _IRQL_requires_max_(PASSIVE_LEVEL)
-    BOOLEAN
-    QUIC_API
-    SendCallback(
-        _Inout_ QUIC_ADDR* /* RemoteAddress */,
-        _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
-        _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */
-        )
-    {
-        return FALSE; // Don't drop
-    }
-};
-
-uint32_t SelectiveLossHelper::DropPacketCount = false;
-QUIC_TEST_DATAPATH_HOOKS SelectiveLossHelper::DataPathFuncTable = {
-    SelectiveLossHelper::ReceiveCallback,
-    SelectiveLossHelper::SendCallback
-};
-
 void
 QuicTestDatagramSend(
     _In_ int Family
@@ -309,6 +241,7 @@ QuicTestDatagramSend(
 
                 TEST_EQUAL(1, Client.GetDatagramsAcknowledged());
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
                 LossHelper.DropPackets(1);
 
                 TEST_QUIC_SUCCEEDED(
@@ -326,6 +259,7 @@ QuicTestDatagramSend(
                 QuicSleep(500);
 
                 TEST_EQUAL(1, Client.GetDatagramsSuspectLost());
+#endif
 
                 Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
                 if (!Client.WaitForShutdownComplete()) {
@@ -337,11 +271,6 @@ QuicTestDatagramSend(
                 TEST_FALSE(Client.GetPeerClosed());
                 TEST_FALSE(Client.GetTransportClosed());
             }
-
-#if !QUIC_SEND_FAKE_LOSS
-            TEST_TRUE(Server->GetPeerClosed());
-            TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
-#endif
         }
     }
 }
