@@ -11,7 +11,6 @@ Abstract:
 
 #include <msquic.h>
 
-//#define QUIC_NO_ENCRYPTION 1
 //#define QUIC_COMPARTMENT_TESTS 1
 
 extern const QUIC_API_TABLE* MsQuic;
@@ -23,7 +22,7 @@ extern "C" {
 #endif
 
 void QuicTestInitialize();
-void QuicTestCleanup();
+void QuicTestUninitialize();
 
 //
 // Parameter Validation Tests
@@ -72,7 +71,8 @@ QuicTestConnect(
     _In_ bool MultipleALPNs,
     _In_ bool AsyncSecConfig,
     _In_ bool MultiPacketClientInitial,
-    _In_ bool SessionResumption
+    _In_ bool SessionResumption,
+    _In_ uint8_t RandomLossPercentage // 0 to 100
     );
 
 void
@@ -122,7 +122,8 @@ QuicTestConnectAndPing(
     _In_ bool ServerRejectZeroRtt,
     _In_ bool UseSendBuffer,
     _In_ bool UnidirectionalStreams,
-    _In_ bool ServerInitiatedStreams
+    _In_ bool ServerInitiatedStreams,
+    _In_ bool FifoScheduling
     );
 
 //
@@ -231,6 +232,20 @@ QuicDrillTestInitialCid(
 
 void
 QuicDrillTestInitialToken(
+    _In_ int Family
+    );
+
+//
+// Datagram tests
+//
+void
+QuicTestDatagramNegotiation(
+    _In_ int Family,
+    _In_ bool DatagramReceiveEnabled
+    );
+
+void
+QuicTestDatagramSend(
     _In_ int Family
     );
 
@@ -354,6 +369,7 @@ typedef struct {
     uint8_t AsyncSecConfig;
     uint8_t MultiPacketClientInitial;
     uint8_t SessionResumption;
+    uint8_t RandomLossPercentage;
 } QUIC_RUN_CONNECT_PARAMS;
 
 #pragma pack(pop)
@@ -379,6 +395,7 @@ typedef struct {
     uint8_t UseSendBuffer;
     uint8_t UnidirectionalStreams;
     uint8_t ServerInitiatedStreams;
+    uint8_t FifoScheduling;
 } QUIC_RUN_CONNECT_AND_PING_PARAMS;
 
 #pragma pack(pop)
@@ -516,4 +533,17 @@ typedef struct {
 #define IOCTL_QUIC_RUN_START_LISTENER_MULTI_ALPN \
     QUIC_CTL_CODE(38, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 38
+typedef struct {
+    int Family;
+    BOOLEAN DatagramReceiveEnabled;
+} QUIC_RUN_DATAGRAM_NEGOTIATION;
+
+#define IOCTL_QUIC_RUN_DATAGRAM_NEGOTIATION \
+    QUIC_CTL_CODE(39, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_DATAGRAM_NEGOTIATION
+
+#define IOCTL_QUIC_RUN_DATAGRAM_SEND \
+    QUIC_CTL_CODE(40, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 40

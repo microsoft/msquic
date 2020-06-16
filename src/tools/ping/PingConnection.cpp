@@ -17,7 +17,9 @@ PingConnection::PingConnection(
     _In_ bool DumpResumption
     ) :
     Tracker(Tracker), QuicConnection(nullptr), DumpResumption(DumpResumption),
-    ConnectedSuccessfully(false), BytesSent(0), BytesReceived(0),
+    ConnectedSuccessfully(false), BytesSent(0), BytesReceived(0), DatagramLength(0),
+    DatagramsSent(0), DatagramsAcked(0), DatagramsLost(0), DatagramsCancelled(0),
+    DatagramsReceived(0), DatagramsJitterTotal(0), DatagramLastTime(0),
     TimedOut(false) {
 
     if (QUIC_FAILED(
@@ -34,7 +36,9 @@ PingConnection::PingConnection(
     _In_ HQUIC Connection
     ) :
     Tracker(nullptr), QuicConnection(Connection), DumpResumption(false),
-    ConnectedSuccessfully(false), BytesSent(0), BytesReceived(0),
+    ConnectedSuccessfully(false), BytesSent(0), BytesReceived(0), DatagramLength(0),
+    DatagramsSent(0), DatagramsAcked(0), DatagramsLost(0), DatagramsCancelled(0),
+    DatagramsReceived(0), DatagramsJitterTotal(0), DatagramLastTime(0),
     TimedOut(false) {
 
     StartTime = QuicTimeUs64();
@@ -76,6 +80,20 @@ PingConnection::Initialize(
                 sizeof(Opt),
                 &Opt))) {
             printf("MsQuic->SetParam (SEND_PACING) failed!\n");
+            return false;
+        }
+    }
+
+    {
+        BOOLEAN Enabled = TRUE;
+        if (QUIC_FAILED(
+            MsQuic->SetParam(
+                QuicConnection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
+                sizeof(Enabled),
+                &Enabled))) {
+            printf("MsQuic->SetParam (DATAGRAMS) failed!\n");
             return false;
         }
     }
@@ -141,7 +159,7 @@ PingConnection::Initialize(
             }
         }
 
-        if (PingConfig.Client.ResumeToken[0] != 0 &&
+        if (PingConfig.Client.ResumeToken &&
             !SetResumptionState(
                 MsQuic,
                 QuicConnection,
@@ -178,7 +196,34 @@ PingConnection::Initialize(
         }
     }
 
+    while (DatagramsSent < PingConfig.LocalDatagramCount) {
+        auto SendRequest = new PingSendRequest();
+        SendRequest->SetLength(DatagramLength);
+        if (!QueueDatagram(SendRequest)) {
+            delete SendRequest;
+            return false;
+        }
+    }
+
     return true;
+}
+
+bool
+PingConnection::QueueDatagram(
+    PingSendRequest* SendRequest
+    )
+{
+    BytesSent += SendRequest->QuicBuffer.Length;
+    DatagramsSent++;
+
+    return
+        QUIC_SUCCEEDED(
+        MsQuic->DatagramSend(
+            QuicConnection,
+            &SendRequest->QuicBuffer,
+            1,
+            SendRequest->Flags,
+            SendRequest));
 }
 
 bool
@@ -236,7 +281,7 @@ PingConnection::ProcessEvent(
 
         uint64_t ElapsedMicroseconds = ConnectTime - StartTime;
 
-        printf("[%p] Connected in %u.%u milliseconds.\n",
+        printf("[%p] Connected in %u.%03u milliseconds.\n",
             QuicConnection,
             (uint32_t)(ElapsedMicroseconds / 1000),
             (uint32_t)(ElapsedMicroseconds % 1000));
@@ -249,7 +294,7 @@ PingConnection::ProcessEvent(
 
             uint64_t ElapsedMicroseconds = ConnectTime - StartTime;
 
-            printf("[%p] Failed to connect: %s (0x%x) in %u.%u milliseconds.\n",
+            printf("[%p] Failed to connect: %s (0x%x) in %u.%03u milliseconds.\n",
                 QuicConnection,
                 QuicStatusToString(Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status),
                 Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status,
@@ -275,7 +320,7 @@ PingConnection::ProcessEvent(
 
             uint64_t ElapsedMicroseconds = ConnectTime - StartTime;
 
-            printf("[%p] Failed to connect: 0x%llx in %u.%u milliseconds.\n",
+            printf("[%p] Failed to connect: 0x%llx in %u.%03u milliseconds.\n",
                 QuicConnection,
                 Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode,
                 (uint32_t)(ElapsedMicroseconds / 1000),
@@ -304,11 +349,24 @@ PingConnection::ProcessEvent(
             uint32_t SendRate = (uint32_t)((BytesSent * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
             uint32_t RecvRate = (uint32_t)((BytesReceived * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
 
-            printf("[%p] Total rate after %u.%u ms. (TX %llu bytes @ %u kbps | RX %llu bytes @ %u kbps).\n",
+            printf("[%p] Total rate after %u.%03u ms. (TX %llu bytes @ %u kbps | RX %llu bytes @ %u kbps).\n",
                 QuicConnection,
                 (uint32_t)(ElapsedMicroseconds / 1000),
                 (uint32_t)(ElapsedMicroseconds % 1000),
                 BytesSent, SendRate, BytesReceived, RecvRate);
+
+            if (DatagramsReceived != 0) {
+                uint64_t Jitter = DatagramsJitterTotal / (DatagramsReceived - 1);
+                printf("[%p] Datagrams: %llu recv | %u.%03u ms jitter\n",
+                    QuicConnection,
+                    DatagramsReceived,
+                    (uint32_t)(Jitter / 1000),
+                    (uint32_t)(Jitter % 1000));
+            } else if (DatagramsSent != 0) {
+                printf("[%p] Datagrams: %llu sent | %llu acked | %llu lost | %llu cancelled\n",
+                    QuicConnection,
+                    DatagramsSent, DatagramsAcked, DatagramsLost, DatagramsCancelled);
+            }
         }
 
         if (Tracker != nullptr) {
@@ -374,6 +432,53 @@ PingConnection::ProcessEvent(
             this,
             Event->PEER_STREAM_STARTED.Stream,
             (Event->PEER_STREAM_STARTED.Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL) ? UniRecvMode : BidiEchoMode);
+        break;
+    }
+
+    case QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED: {
+        DatagramLength =
+            min(PingConfig.DatagramMaxLength, Event->DATAGRAM_STATE_CHANGED.MaxSendLength);
+        printf("[%p] New Datagram Length = %hu\n", QuicConnection, DatagramLength);
+        break;
+    }
+
+    case QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED: {
+        BytesReceived += Event->DATAGRAM_RECEIVED.Buffer->Length;
+        DatagramsReceived++;
+        uint64_t RecvTime = QuicTimeUs64();
+        if (DatagramLastTime != 0) {
+            DatagramsJitterTotal += RecvTime - DatagramLastTime;
+        }
+        DatagramLastTime = RecvTime;
+        break;
+    }
+
+    case QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED: {
+        auto SendRequest = (PingSendRequest*)Event->DATAGRAM_SEND_STATE_CHANGED.ClientContext;
+        Event->DATAGRAM_SEND_STATE_CHANGED.ClientContext = nullptr;
+
+        switch (Event->DATAGRAM_SEND_STATE_CHANGED.State) {
+        case QUIC_DATAGRAM_SEND_SENT:
+            if (DatagramsSent != PingConfig.LocalDatagramCount) {
+                SendRequest->SetLength(DatagramLength);
+                if (!QueueDatagram(SendRequest)) {
+                    SendRequest = nullptr;
+                }
+            }
+            break;
+        case QUIC_DATAGRAM_SEND_LOST_DISCARDED:
+            DatagramsLost++;
+            break;
+        case QUIC_DATAGRAM_SEND_ACKNOWLEDGED:
+        case QUIC_DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS:
+            DatagramsAcked++;
+            break;
+        case QUIC_DATAGRAM_SEND_CANCELED:
+            DatagramsCancelled++;
+            break;
+        }
+
+        delete SendRequest;
         break;
     }
 

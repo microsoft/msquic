@@ -58,6 +58,11 @@ typedef struct QUIC_PATH {
     BOOLEAN SendResponse : 1;
 
     //
+    // Indicates the partition has updated for this path.
+    //
+    uint8_t PartitionUpdated : 1;
+
+    //
     // The currently calculated path MTU.
     //
     uint16_t Mtu;

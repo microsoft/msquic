@@ -83,7 +83,7 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
-    [string]$Tls = "schannel",
+    [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
     [string]$Filter = "",
@@ -131,6 +131,15 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+# Default TLS based on current platform.
+if ("" -eq $Tls) {
+    if ($IsWindows) {
+        $Tls = "schannel"
+    } else {
+        $Tls = "openssl"
+    }
+}
+
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
@@ -149,6 +158,11 @@ if ($IsWindows) {
     $MsQuicTest = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/msquictest"
     $MsQuicCoreTest = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/msquiccoretest"
     $MsQuicPlatTest = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/msquicplatformtest"
+}
+
+# Make sure the build is present.
+if (!(Test-Path $MsQuicTest)) {
+    Write-Error "Build does not exist!`n `nRun the following to generate it:`n `n    $(Join-Path $RootDir "scripts" "build.ps1") -Config $Config -Arch $Arch -Tls $Tls`n"
 }
 
 # Build up all the arguments to pass to the Powershell script.

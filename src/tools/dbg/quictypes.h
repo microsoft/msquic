@@ -111,10 +111,9 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN GotFirstServerResponse : 1;
 
         //
-        // This flag indicates the client received a Retry packet during the
-        // handshake.
+        // This flag indicates the Retry packet was used during the handshake.
         //
-        BOOLEAN ReceivedRetryPacket : 1;
+        BOOLEAN HandshakeUsedRetryPacket : 1;
 
         //
         // We have confirmed that the peer has completed the handshake.
@@ -201,9 +200,19 @@ LinkEntryToType(
     return LinkAddr - FieldOffset;
 }
 
+struct SingleListEntry : Struct {
+
+    SingleListEntry(ULONG64 addr) : Struct("msquic!QUIC_SINGLE_LIST_ENTRY", addr) {
+    }
+
+    ULONG64 Next() {
+        return ReadPointer("Next");
+    }
+};
+
 struct ListEntry : Struct {
 
-    ListEntry(ULONG64 addr) : Struct("msquic!_LIST_ENTRY", addr) {
+    ListEntry(ULONG64 addr) : Struct("msquic!QUIC_LIST_ENTRY", addr) {
     }
 
     ULONG64 Flink() {
@@ -254,7 +263,7 @@ ComputeDirIndices(
     _Out_ PULONG FirstLevelIndex,
     _Out_ PULONG SecondLevelIndex
     )
-{        
+{
     CONST ULONG AbsoluteIndex = BucketIndex + KDEXT_RTL_HT_SECOND_LEVEL_DIR_SIZE;
 
     BitScanReverse(FirstLevelIndex, AbsoluteIndex);
@@ -265,7 +274,6 @@ ComputeDirIndices(
 struct HashTable : Struct {
 
     ULONG TableSize;
-    ULONG Pivot;
     ULONG64 Directory;
     ULONG EntryLinksOffset;
     int Indirection;
@@ -278,11 +286,10 @@ struct HashTable : Struct {
     ULONG64 BucketHead;
     ULONG64 Entry;
 
-    HashTable(ULONG64 addr) : Struct("nt!_RTL_DYNAMIC_HASH_TABLE", addr) {
+    HashTable(ULONG64 addr) : Struct("msquic!QUIC_HASHTABLE", addr) {
         TableSize = ReadType<ULONG>("TableSize");
-        Pivot = ReadType<ULONG>("Pivot");
-        ReadPointerAtAddr(addr + 8*sizeof(ULONG), &Directory);
-        GetFieldOffset("nt!_RTL_DYNAMIC_HASH_TABLE_ENTRY", "Linkage", &EntryLinksOffset);
+        Directory = ReadPointer("Directory");
+        GetFieldOffset("msquic!QUIC_HASHTABLE_ENTRY", "Linkage", &EntryLinksOffset);
         Indirection = (TableSize <= KDEXT_RTL_HT_SECOND_LEVEL_DIR_SIZE) ? 1 : 2;
 
         ReadBucketHead = true;
@@ -322,7 +329,7 @@ struct HashTable : Struct {
 
             if (!ReadPointerFromStructAddr(
                     Entry,
-                    "nt!_LIST_ENTRY",
+                    "msquic!QUIC_LIST_ENTRY",
                     "Flink",
                     &Entry)) {
                 dprintf("Failed to walk bucket %08lx at %p\n", Bucket, BucketHead);
@@ -336,12 +343,73 @@ struct HashTable : Struct {
 
             ReadBucketHead = true;
         }
-    
+
         return false;
     }
 };
 
 // End of magic
+
+inline char QuicHalfByteToStr(UCHAR b)
+{
+    return b < 10 ? ('0' + b) : ('A' + b - 10);
+}
+
+struct CidStr {
+    char Data[256];
+
+    CidStr(ULONG64 Addr, UCHAR Length) {
+        for (UCHAR i = 0; i < Length; i++) {
+            UCHAR Byte;
+            ReadTypeAtAddr(Addr + i, &Byte);
+            Data[i * 2] = QuicHalfByteToStr(Byte >> 4);
+            Data[i * 2 + 1] = QuicHalfByteToStr(Byte & 0xF);
+        }
+        Data[Length * 2] = 0;
+    }
+};
+
+struct Cid : Struct {
+
+    Cid(ULONG64 Addr) : Struct("msquic!QUIC_CID", Addr) { }
+
+    UCHAR Length() {
+        return ReadType<UCHAR>("Length");
+    }
+
+    ULONG64 SequenceNumber() {
+        return ReadType<ULONG64>("SequenceNumber");
+    }
+
+    ULONG64 Data() {
+        return AddrOf("Data");
+    }
+
+    CidStr Str() {
+        return CidStr(Data(), Length());
+    }
+};
+
+struct CidHashEntry : Struct {
+
+    CidHashEntry(ULONG64 Addr) : Struct("msquic!QUIC_CID_HASH_ENTRY", Addr) { }
+
+    static CidHashEntry FromEntry(ULONG64 EntryAddr) {
+        return CidHashEntry(LinkEntryToType(EntryAddr, "msquic!QUIC_CID_HASH_ENTRY", "Entry"));
+    }
+
+    static CidHashEntry FromLink(ULONG64 LinkAddr) {
+        return CidHashEntry(LinkEntryToType(LinkAddr, "msquic!QUIC_CID_HASH_ENTRY", "Link"));
+    }
+
+    ULONG64 GetConnection() {
+        return ReadPointer("Connection");
+    }
+
+    Cid GetCid() {
+        return Cid(AddrOf("CID"));
+    }
+};
 
 struct QuicHandle : Struct {
 
@@ -611,11 +679,12 @@ struct Stream : Struct {
 #define QUIC_CONN_SEND_FLAG_MAX_STREAMS_BIDI        0x00000040
 #define QUIC_CONN_SEND_FLAG_MAX_STREAMS_UNI         0x00000080
 #define QUIC_CONN_SEND_FLAG_NEW_CONNECTION_ID       0x00000100
-#define QUIC_CONN_SEND_FLAG_PATH_CHALLENGE          0x00000200
-#define QUIC_CONN_SEND_FLAG_PATH_RESPONSE           0x00000400
-#define QUIC_CONN_SEND_FLAG_PING                    0x00000800
-#define QUIC_CONN_SEND_FLAG_STATELESS_RESET_PADDING 0x00001000
-#define QUIC_CONN_SEND_FLAG_MTU_PADDING             0x00002000
+#define QUIC_CONN_SEND_FLAG_RETIRE_CONNECTION_ID    0x00000200
+#define QUIC_CONN_SEND_FLAG_PATH_CHALLENGE          0x00000400
+#define QUIC_CONN_SEND_FLAG_PATH_RESPONSE           0x00000800
+#define QUIC_CONN_SEND_FLAG_PING                    0x00001000
+#define QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE          0x00002000
+#define QUIC_CONN_SEND_FLAG_DATAGRAM                0x00004000
 #define QUIC_CONN_SEND_FLAG_PMTUD                   0x80000000
 
 struct Send : Struct {
@@ -745,9 +814,9 @@ struct SentFrameMetadata : Struct {
 typedef struct QUIC_SEND_PACKET_FLAGS {
 
     UINT8 KeyType                   : 2;
-    BOOLEAN IsRetransmittable       : 1;
-    BOOLEAN HasCrypto               : 1;
+    BOOLEAN IsAckEliciting          : 1;
     BOOLEAN IsPMTUD                 : 1;
+    BOOLEAN SuspectedLost           : 1;
 
     PCSTR KeyTypeStr() {
         switch (KeyType) {
@@ -827,6 +896,7 @@ typedef enum QUIC_API_TYPE {
     QUIC_API_TYPE_CONN_CLOSE,
     QUIC_API_TYPE_CONN_SHUTDOWN,
     QUIC_API_TYPE_CONN_START,
+    QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET,
 
     QUIC_API_TYPE_STRM_CLOSE,
     QUIC_API_TYPE_STRM_SHUTDOWN,
@@ -836,7 +906,9 @@ typedef enum QUIC_API_TYPE {
     QUIC_API_TYPE_STRM_RECV_SET_ENABLED,
 
     QUIC_API_TYPE_SET_PARAM,
-    QUIC_API_TYPE_GET_PARAM
+    QUIC_API_TYPE_GET_PARAM,
+
+    QUIC_API_TYPE_DATAGRAM_SEND,
 
 } QUIC_API_TYPE;
 
@@ -856,10 +928,14 @@ struct ApiCall : Struct {
             return "API_CONN_SHUTDOWN";
         case QUIC_API_TYPE_CONN_START:
             return "API_CONN_START";
+        case QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET:
+            return "QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET";
         case QUIC_API_TYPE_STRM_CLOSE:
             return "API_STRM_CLOSE";
         case QUIC_API_TYPE_STRM_SHUTDOWN:
             return "API_STRM_SHUTDOWN";
+        case QUIC_API_TYPE_STRM_START:
+            return "API_TYPE_STRM_START";
         case QUIC_API_TYPE_STRM_SEND:
             return "API_STRM_SEND";
         case QUIC_API_TYPE_STRM_RECV_COMPLETE:
@@ -870,6 +946,8 @@ struct ApiCall : Struct {
             return "API_SET_PARAM";
         case QUIC_API_TYPE_GET_PARAM:
             return "API_GET_PARAM";
+        case QUIC_API_TYPE_DATAGRAM_SEND:
+            return "API_TYPE_DATAGRAM_SEND";
         default:
             return "INVALID API";
         }
@@ -924,6 +1002,8 @@ struct Operation : Struct {
             return "TLS_COMPLETE";
         case QUIC_OPER_TYPE_TIMER_EXPIRED:
             return "TIMER_EXPIRED"; // TODO - Timer details.
+        case QUIC_OPER_TYPE_TRACE_RUNDOWN:
+            return "TRACE_RUNDOWN";
         case QUIC_OPER_TYPE_VERSION_NEGOTIATION:
             return "VERSION_NEGOTIATION";
         case QUIC_OPER_TYPE_STATELESS_RESET:
@@ -1033,11 +1113,15 @@ struct Connection : Struct {
     }
 
     IpAddress GetLocalAddress() {
-        return IpAddress(AddrOf("LocalAddress"));
+        return IpAddress(AddrOf("LocalAddress")); // TODO - Broken
     }
 
     IpAddress GetRemoteAddress() {
-        return IpAddress(AddrOf("RemoteAddress"));
+        return IpAddress(AddrOf("RemoteAddress")); // TODO - Broken
+    }
+
+    SingleListEntry GetSourceCids() {
+        return SingleListEntry(AddrOf("SourceCids"));
     }
 
     Send GetSend() {
@@ -1054,15 +1138,6 @@ struct Connection : Struct {
 
     OperQueue GetOperQueue() {
         return OperQueue(AddrOf("OperQ"));
-    }
-};
-
-struct CidHashEntry : Struct {
-
-    CidHashEntry(ULONG64 Addr) : Struct("msquic!QUIC_CID_HASH_ENTRY", Addr) { }
-
-    ULONG64 GetConnection() {
-        return ReadPointer("Connection");
     }
 };
 

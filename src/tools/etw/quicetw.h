@@ -25,7 +25,7 @@ typedef struct _BINDING BINDING;
 
 #define CAP_TO_32(uint64) (uint64 > UINT_MAX ? UINT_MAX : (ULONG)uint64)
 
-#define QUIC_API_COUNT 24
+#define QUIC_API_COUNT 26
 
 #pragma warning(disable:4200)  // nonstandard extension used: zero-sized array in struct/union
 #pragma warning(disable:4366)  // The result of the unary '&' operator may be unaligned
@@ -323,7 +323,9 @@ typedef enum QUIC_EVENT_ID_CONNECTION {
     EventId_QuicConnLogWarning,
     EventId_QuicConnLogInfo,
     EventId_QuicConnLogVerbose,
-    EventId_QuicQueueSendFlush,
+    EventId_QuicConnQueueSendFlush,
+    EventId_QuicConnOutFlowStreamStats,
+    EventId_QuicConnPacketStats,
 
     EventId_QuicConnCount
 } QUIC_EVENT_ID_CONNECTION;
@@ -382,11 +384,9 @@ typedef struct QUIC_EVENT_DATA_CONNECTION {
             UINT32 CongestionWindow;
             UINT32 SlowStartThreshold;
             UINT64 ConnectionFlowControl;
-            UINT64 StreamFlowControl;
             UINT64 IdealBytes;
             UINT64 PostedBytes;
             UINT32 SmoothedRtt;
-            UINT64 StreamSendWindow;
         } OutFlowStats;
         struct {
             UINT8 ReasonFlags;
@@ -441,21 +441,12 @@ typedef struct QUIC_EVENT_DATA_CONNECTION {
             UINT8 IsLocallyInitiated;
         } KeyPhaseChange;
         struct {
-            UINT64 LifeTimeUs;
-            UINT64 SendTotalPackets;
-            UINT64 SendSuspectedLostPackets;
-            UINT64 SendSpuriousLostPackets;
-            UINT64 RecvTotalPackets;
-            UINT64 RecvReorderedPackets;
-            UINT64 RecvDroppedPackets;
-            UINT64 RecvDuplicatePackets;
-            UINT64 RecvDecryptionFailures;
+            UINT32 SmoothedRtt;
             UINT32 CongestionCount;
             UINT32 PersistentCongestionCount;
             UINT64 SendTotalBytes;
             UINT64 RecvTotalBytes;
-            UINT32 SmoothedRtt;
-        } Statistics;
+        } Stats;
         struct {
             UINT8 TimedOut;
         } ShutdownComplete;
@@ -482,6 +473,20 @@ typedef struct QUIC_EVENT_DATA_CONNECTION {
         struct {
             UINT32 Reason;
         } QueueSendFlush;
+        struct {
+            UINT64 StreamFlowControl;
+            UINT64 StreamSendWindow;
+        } OutFlowStreamStats;
+        struct {
+            UINT64 SendTotalPackets;
+            UINT64 SendSuspectedLostPackets;
+            UINT64 SendSpuriousLostPackets;
+            UINT64 RecvTotalPackets;
+            UINT64 RecvReorderedPackets;
+            UINT64 RecvDroppedPackets;
+            UINT64 RecvDuplicatePackets;
+            UINT64 RecvDecryptionFailures;
+        } PacketStats;
     };
 } QUIC_EVENT_DATA_CONNECTION;
 #pragma pack(pop)
@@ -1133,7 +1138,7 @@ inline void ReadCid(_In_z_ const char* Cid)
 
 #define QUIC_ERROR_NO_ERROR                     0x0
 #define QUIC_ERROR_INTERNAL_ERROR               0x1
-#define QUIC_ERROR_SERVER_BUSY                  0x2
+#define QUIC_ERROR_CONNECTION_REFUSED           0x2
 #define QUIC_ERROR_FLOW_CONTROL_ERROR           0x3
 #define QUIC_ERROR_STREAM_LIMIT_ERROR           0x4
 #define QUIC_ERROR_STREAM_STATE_ERROR           0x5
@@ -1157,7 +1162,7 @@ QuicErrorToString(
         switch (ErrorCode) {
         case QUIC_ERROR_NO_ERROR:                   return "NO_ERROR";
         case QUIC_ERROR_INTERNAL_ERROR:             return "INTERNAL_ERROR";
-        case QUIC_ERROR_SERVER_BUSY:                return "SERVER_BUSY";
+        case QUIC_ERROR_CONNECTION_REFUSED:         return "CONNECTION_REFUSED";
         case QUIC_ERROR_FLOW_CONTROL_ERROR:         return "FLOW_CONTROL_ERROR";
         case QUIC_ERROR_STREAM_LIMIT_ERROR:         return "STREAM_LIMIT_ERROR";
         case QUIC_ERROR_STREAM_STATE_ERROR:         return "STREAM_STATE_ERROR";

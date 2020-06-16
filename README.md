@@ -6,7 +6,7 @@ protocol. It is cross platform, written in C and designed to be a general purpos
 
 > **Important** The MsQuic library, as well as the protocol itself, is still a work in progress. Version 1 is not yet finalized and may continue to experience breaking changes until it is finalized.
 
-[![Build Status](https://microsoft.visualstudio.com/OS/_apis/build/status/microsoft.msquic?branchName=master)](https://microsoft.visualstudio.com/OS/_build/latest?definitionId=45975&branchName=master)
+[![Build Status](https://dev.azure.com/ms/msquic/_apis/build/status/microsoft.msquic?branchName=master)](https://dev.azure.com/ms/msquic/_build?definitionId=347)
 
 ## Protocol Features
 
@@ -53,7 +53,7 @@ On Windows 10, MsQuic relies on built-in support from [Schannel](https://docs.mi
 
 On Linux, MsQuic relies on [OpenSSL](https://www.openssl.org/) for TLS 1.3 functionality.
 
-> **Important** This configuration relies on an [outstanding pull request](https://github.com/openssl/openssl/pull/8797) to OpenSSL master for TLS 1.3 support. It is still currently unknown as to when it will be merged into master. See [here](https://www.openssl.org/blog/blog/2020/02/17/QUIC-and-OpenSSL/) for more details.
+> **Important** This configuration relies on an [outstanding pull request](https://github.com/openssl/openssl/pull/8797) to OpenSSL master for QUIC/TLS support. It is still currently unknown as to when it will be merged into master. See [here](https://www.openssl.org/blog/blog/2020/02/17/QUIC-and-OpenSSL/) for more details.
 
 > **Important** This configuration does not support 0-RTT. Complete integration with OpenSSL is an ongoing effort.
 
@@ -65,22 +65,10 @@ For testing or experimentation purposes, MsQuic may be built with other configur
 
   * For building the library, see the [Build docs](./docs/BUILD.md).
   * For using the library, see the [API docs](./docs/API.md) or the [Sample](./src/tools/sample/sample.cpp).
+  * For other frequently asked questions, see the [FAQs](./docs/FAQ.md).
 
 # Contributing
 
-> For the time being, **external code contributions will not be accepted**. We are still
-working on setting up internal repository sycnhronization, continuous integration,
-and generally ironing out our processes.
+For information on contributing, please see our [contribution guidlines](./.github/CONTRIBUTING.md).
 
-Most contributions require you to agree to a Contributor License Agreement (CLA)
-declaring that you have the right to, and actually do, grant us the rights to use
-your contribution. For details, visit https://cla.opensource.microsoft.com.
-
-When you submit a pull request, a CLA bot will automatically determine whether you
-need to provide a CLA and decorate the PR appropriately (e.g., status check, comment).
-Simply follow the instructions provided by the bot. You will only need to do this
-once across all repos using our CLA.
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+> **Important** - We are still bringing up important regression tests for the core code. Until they are onboarded, any external contributions to the [core](./src/core) or kernel mode files in the [platform](./src/platform) will not be accepted. This is only a **temporary restriction** and we are working to complete it by the end of 2020.

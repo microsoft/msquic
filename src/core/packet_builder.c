@@ -14,10 +14,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "packet_builder.tmh"
-#endif
-
 #ifdef QUIC_FUZZER
 
 __declspec(noinline)
@@ -54,7 +50,10 @@ QuicPacketBuilderInitialize(
             QUIC_ENCRYPTION_OVERHEAD : 0;
 
     if (Connection->SourceCids.Next == NULL) {
-        QuicTraceLogConnWarning(NoSrcCidAvailable, Connection, "No src CID to send with.");
+        QuicTraceLogConnWarning(
+            NoSrcCidAvailable,
+            Connection,
+            "No src CID to send with");
         return FALSE;
     }
 
@@ -128,7 +127,11 @@ QuicPacketBuilderPrepare(
         // but without the key, nothing can be done. Just silently kill the
         // connection.
         //
-        QuicTraceEvent(ConnError, Connection, "NULL key in builder prepare");
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "NULL key in builder prepare");
         QuicConnSilentlyAbort(Connection);
         return FALSE;
     }
@@ -186,7 +189,11 @@ QuicPacketBuilderPrepare(
                             QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                             DatagramSize));
             if (Builder->SendContext == NULL) {
-                QuicTraceEvent(AllocFailure, "packet send context", 0);
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "packet send context",
+                    0);
                 goto Error;
             }
         }
@@ -195,9 +202,9 @@ QuicPacketBuilderPrepare(
             MaxUdpPayloadSizeForFamily(
                 QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                 IsPathMtuDiscovery ? QUIC_MAX_MTU : DatagramSize);
-        if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_PACKET_SIZE) &&
-            NewDatagramLength > Connection->PeerTransportParams.MaxPacketSize) {
-            NewDatagramLength = (uint16_t)Connection->PeerTransportParams.MaxPacketSize;
+        if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE) &&
+            NewDatagramLength > Connection->PeerTransportParams.MaxUdpPayloadSize) {
+            NewDatagramLength = (uint16_t)Connection->PeerTransportParams.MaxUdpPayloadSize;
         }
 
         Builder->Datagram =
@@ -205,7 +212,11 @@ QuicPacketBuilderPrepare(
                 Builder->SendContext,
                 NewDatagramLength);
         if (Builder->Datagram == NULL) {
-            QuicTraceEvent(AllocFailure, "packet datagram", NewDatagramLength);
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "packet datagram",
+                NewDatagramLength);
             goto Error;
         }
 
@@ -244,8 +255,11 @@ QuicPacketBuilderPrepare(
             Builder->MinimumDatagramLength = NewDatagramLength;
         }
 
-        QuicTraceLogVerbose("[pktb][%p] New UDP datagram. Space: %u",
-            Connection, Builder->Datagram->Length);
+        QuicTraceLogConnVerbose(
+            PacketBuilderNewDatagram,
+            Connection,
+            "New UDP datagram. Space: %u",
+            Builder->Datagram->Length);
     }
 
     if (NewQuicPacket) {
@@ -264,9 +278,12 @@ QuicPacketBuilderPrepare(
         Builder->Metadata->FrameCount = 0;
         Builder->Metadata->PacketNumber = Connection->Send.NextPacketNumber++;
         Builder->Metadata->Flags.KeyType = NewPacketKeyType;
-        Builder->Metadata->Flags.IsRetransmittable = FALSE;
-        Builder->Metadata->Flags.HasCrypto = FALSE;
+        Builder->Metadata->Flags.IsAckEliciting = FALSE;
         Builder->Metadata->Flags.IsPMTUD = IsPathMtuDiscovery;
+        Builder->Metadata->Flags.SuspectedLost = FALSE;
+#if DEBUG
+        Builder->Metadata->Flags.Freed = FALSE;
+#endif
 
         Builder->PacketStart = Builder->DatagramLength;
         Builder->HeaderLength = 0;
@@ -283,6 +300,8 @@ QuicPacketBuilderPrepare(
 
             switch (Connection->Stats.QuicVersion) {
             case QUIC_VERSION_DRAFT_27:
+            case QUIC_VERSION_DRAFT_28:
+            case QUIC_VERSION_DRAFT_29:
             case QUIC_VERSION_MS_1:
                 Builder->HeaderLength =
                     QuicPacketEncodeShortHeaderV1(
@@ -305,6 +324,8 @@ QuicPacketBuilderPrepare(
 
             switch (Connection->Stats.QuicVersion) {
             case QUIC_VERSION_DRAFT_27:
+            case QUIC_VERSION_DRAFT_28:
+            case QUIC_VERSION_DRAFT_29:
             case QUIC_VERSION_MS_1:
             default:
                 Builder->HeaderLength =
@@ -326,8 +347,12 @@ QuicPacketBuilderPrepare(
 
         Builder->DatagramLength += Builder->HeaderLength;
 
-        QuicTraceLogVerbose("[pktb][%p] New QUIC packet. Space: %hu. Type: %hx",
-            Connection, BufferSpaceAvailable, NewPacketType);
+        QuicTraceLogConnVerbose(
+            PacketBuilderNewPacket,
+            Connection,
+            "New QUIC packet. Space: %hu. Type: %hx",
+            BufferSpaceAvailable,
+            NewPacketType);
     }
 
     QUIC_DBG_ASSERT(Builder->PacketType == NewPacketType);
@@ -358,13 +383,14 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
          KeyType <= Connection->Crypto.TlsState.WriteKey;
          ++KeyType) {
 
+        if (KeyType == QUIC_PACKET_KEY_0_RTT) {
+            continue; // Crypto is never written with 0-RTT key.
+        }
+
         QUIC_PACKET_KEY* PacketsKey =
             Connection->Crypto.TlsState.WriteKeys[KeyType];
         if (PacketsKey == NULL) {
-            //
-            // Key has been discarded.
-            //
-            continue;
+            continue; // Key has been discarded.
         }
 
         QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(KeyType);
@@ -409,7 +435,11 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
         // this key, so the CLOSE frame should be sent at the current and
         // previous encryption level if the handshake hasn't been confirmed.
         //
-        *PacketKeyType = Connection->Crypto.TlsState.WriteKey;
+        if (Connection->Crypto.TlsState.WriteKey == QUIC_PACKET_KEY_0_RTT) {
+            *PacketKeyType = QUIC_PACKET_KEY_INITIAL;
+        } else {
+            *PacketKeyType = Connection->Crypto.TlsState.WriteKey;
+        }
         return TRUE;
     }
 
@@ -417,6 +447,13 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
         *PacketKeyType = QUIC_PACKET_KEY_1_RTT;
         return TRUE;
     }
+
+    QuicTraceLogConnWarning(
+        GetPacketTypeFailure,
+        Builder->Connection,
+        "Failed to get packet type for control frames, 0x%x",
+        SendFlags);
+    QUIC_DBG_ASSERT(FALSE); // This shouldn't have been called then!
 
     return FALSE;
 }
@@ -431,19 +468,17 @@ QuicPacketBuilderPrepareForControlFrames(
     )
 {
     QUIC_DBG_ASSERT(!(SendFlags & QUIC_CONN_SEND_FLAG_PMTUD));
-
     QUIC_PACKET_KEY_TYPE PacketKeyType;
-    if (!QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
+    return
+        QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
             Builder,
             SendFlags,
-            &PacketKeyType)) {
-        QuicTraceLogConnWarning(GetPacketTypeFailure, Builder->Connection, "Failed to get packet type for control frames, 0x%x",
-            SendFlags);
-        QUIC_DBG_ASSERT(FALSE); // This shouldn't have been called then!
-        return FALSE;
-    }
-
-    return QuicPacketBuilderPrepare(Builder, PacketKeyType, IsTailLossProbe, FALSE);
+            &PacketKeyType) &&
+        QuicPacketBuilderPrepare(
+            Builder,
+            PacketKeyType,
+            IsTailLossProbe,
+            FALSE);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -623,6 +658,8 @@ QuicPacketBuilderFinalize(
     if (Builder->PacketType != SEND_PACKET_SHORT_HEADER_TYPE) {
         switch (Connection->Stats.QuicVersion) {
         case QUIC_VERSION_DRAFT_27:
+        case QUIC_VERSION_DRAFT_28:
+        case QUIC_VERSION_DRAFT_29:
         case QUIC_VERSION_MS_1:
         default:
             QuicVarIntEncode2Bytes(
@@ -750,7 +787,9 @@ QuicPacketBuilderFinalize(
 
             Status = QuicCryptoGenerateNewKeys(Connection);
             if (QUIC_FAILED(Status)) {
-                QuicTraceEvent(ConnErrorStatus,
+                QuicTraceEvent(
+                    ConnErrorStatus,
+                    "[conn][%p] ERROR, %u, %s.",
                     Connection,
                     Status,
                     "Send-triggered key update");
@@ -778,7 +817,9 @@ QuicPacketBuilderFinalize(
     Builder->Metadata->PacketLength =
         Builder->HeaderLength + PayloadLength;
 
-    QuicTraceEvent(ConnPacketSent,
+    QuicTraceEvent(
+        ConnPacketSent,
+        "[conn][%p][TX][%llu] %hhu (%hu bytes)",
         Connection,
         Builder->Metadata->PacketNumber,
         QuicPacketTraceType(Builder->Metadata),
@@ -788,7 +829,7 @@ QuicPacketBuilderFinalize(
         Builder->Path,
         Builder->Metadata);
 
-    if (Builder->Metadata->Flags.IsRetransmittable) {
+    if (Builder->Metadata->Flags.IsAckEliciting) {
         Builder->PacketBatchRetransmittable = TRUE;
 
         //
@@ -838,8 +879,11 @@ QuicPacketBuilderSendBatch(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
-    QuicTraceLogVerbose("[pktb][%p] Sending batch. %hu datagrams",
-        Builder->Connection, (uint16_t)Builder->TotalCountDatagrams);
+    QuicTraceLogConnVerbose(
+        PacketBuilderSendBatch,
+        Builder->Connection,
+        "Sending batch. %hu datagrams",
+        (uint16_t)Builder->TotalCountDatagrams);
 
     if (QuicAddrIsBoundExplicitly(&Builder->Path->LocalAddress)) {
         QuicBindingSendTo(

@@ -12,10 +12,6 @@ Abstract:
 #include "quic_platform.h"
 #include "quic_trace.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "driver.tmh"
-#endif
-
 INITCODE
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -64,7 +60,7 @@ Parameters Description:
 Return Value:
 
     A success status as determined by NT_SUCCESS macro, if successful.
- 
+
 --*/
 {
     NTSTATUS Status;
@@ -91,7 +87,11 @@ Return Value:
             &Config,
             &Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "WdfDriverCreate");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "WdfDriverCreate");
         goto Error;
     }
 
@@ -117,8 +117,8 @@ EvtDriverUnload(
 
 Routine Description:
 
-    EvtDriverUnload will clean up the WPP resources that was allocated
-    for this driver.
+    EvtDriverUnload will clean up any resources that were allocated for this
+    driver.
 
 Arguments:
 
@@ -130,6 +130,5 @@ Arguments:
 
     PAGED_CODE();
     MsQuicLibraryUnload();
-
     QuicPlatformSystemUnload();
 }

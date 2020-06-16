@@ -33,14 +33,19 @@ QuicCidNewSource(
     );
 
 QUIC_CID_HASH_ENTRY*
+QuicCidNewNullSource(
+    _In_ QUIC_CONNECTION* Connection
+    );
+
+QUIC_CID_HASH_ENTRY*
 QuicCidNewRandomSource(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t ServerID,
+    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_reads_opt_(MsQuicLib.CidServerIdLength)
+        const void* ServerID,
     _In_ uint8_t PartitionID,
     _In_ uint8_t PrefixLength,
-    _In_reads_opt_(PrefixLength)
-        const uint8_t* Prefix,
-    _In_ uint8_t Length
+    _In_reads_(PrefixLength)
+        const void* Prefix
     );
 
 QUIC_CID_QUIC_LIST_ENTRY*
@@ -59,6 +64,14 @@ QuicConnFatalError(
     _In_ QUIC_STATUS Status,
     _In_opt_z_ const char* ErrorMsg
     );
+
+#if DEBUG
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicConnValidate(
+    _In_ QUIC_CONNECTION* Connection
+    );
+#endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
@@ -260,6 +273,11 @@ QuicSendGetConnection(
     _In_ QUIC_SEND* Send
     );
 
+QUIC_CONNECTION*
+QuicDatagramGetConnection(
+    _In_ const QUIC_DATAGRAM* const Datagram
+    );
+
 uint8_t
 QuicEncryptLevelToPacketType(
     QUIC_ENCRYPT_LEVEL Level
@@ -364,6 +382,14 @@ QuicPacketEncodeShortHeaderV1(
     _In_ uint16_t BufferLength,
     _Out_writes_bytes_opt_(BufferLength)
         uint8_t* Buffer
+    );
+
+uint32_t
+QuicPacketHash(
+    _In_ const QUIC_ADDR* const RemoteAddress,
+    _In_ uint8_t RemoteCidLength,
+    _In_reads_(RemoteCidLength)
+        const uint8_t* const RemoteCid
     );
 
 QUIC_PACKET_KEY_TYPE
@@ -555,7 +581,7 @@ BOOLEAN
 QuicPacketBuilderAddFrame(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
     _In_ uint8_t FrameType,
-    _In_ BOOLEAN IsRetransmittable
+    _In_ BOOLEAN IsAckEliciting
     );
 
 BOOLEAN
@@ -606,4 +632,9 @@ QuicPacketTraceType(
 int64_t
 QuicTimeEpochMs64(
     void
+    );
+
+BOOLEAN
+QuicRegistrationIsSplitPartitioning(
+    _In_ const QUIC_REGISTRATION* Registration
     );

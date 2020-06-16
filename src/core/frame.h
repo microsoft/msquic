@@ -20,9 +20,9 @@
 //
 #define QUIC_ERROR_INTERNAL_ERROR               0x1
 //
-// The server is currently busy and does not accept any new connections.
+// The server refused to accept the new connection.
 //
-#define QUIC_ERROR_SERVER_BUSY                  0x2
+#define QUIC_ERROR_CONNECTION_REFUSED           0x2
 //
 // An endpoint received more data than it permitted in its advertised data
 // limits.
@@ -46,7 +46,7 @@
 // frame or a RESET_STREAM frame containing a different final size to the one
 // already established.
 //
-#define QUIC_ERROR_FINAL_SIZE_ERROR           0x6
+#define QUIC_ERROR_FINAL_SIZE_ERROR             0x6
 //
 // An endpoint received a frame that was badly formatted. For instance, an empty
 // STREAM frame that omitted the FIN flag, or an ACK frame that has more
@@ -114,11 +114,16 @@ typedef enum QUIC_FRAME_TYPE {
     QUIC_FRAME_PATH_RESPONSE        = 0x1b,
     QUIC_FRAME_CONNECTION_CLOSE     = 0x1c, // to 0x1d
     QUIC_FRAME_CONNECTION_CLOSE_1   = 0x1d,
-    QUIC_FRAME_HANDSHAKE_DONE       = 0x1e
+    QUIC_FRAME_HANDSHAKE_DONE       = 0x1e,
+    /* 0x1f to 0x2f are unused currently */
+    QUIC_FRAME_DATAGRAM             = 0x30, // to 0x31
+    QUIC_FRAME_DATAGRAM_1           = 0x31,
 
 } QUIC_FRAME_TYPE;
 
-#define MAX_QUIC_FRAME QUIC_FRAME_HANDSHAKE_DONE
+#define QUIC_FRAME_IS_KNOWN(X) \
+    (X <= QUIC_FRAME_HANDSHAKE_DONE || \
+    (X >= QUIC_FRAME_DATAGRAM && X <= QUIC_FRAME_DATAGRAM_1))
 
 //
 // QUIC_FRAME_ACK Encoding/Decoding
@@ -697,6 +702,56 @@ QuicConnCloseFrameDecode(
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
     _Out_ QUIC_CONNECTION_CLOSE_EX* Frame
+    );
+
+//
+// QUIC_FRAME_DATAGRAM Encoding/Decoding
+//
+
+typedef struct _QUIC_DATAGRAM_FRAME_TYPE {
+
+    union {
+        struct {
+            uint8_t LEN : 1;
+            uint8_t FrameType : 7; // Always 0b0011000
+        };
+        uint8_t Type;
+    };
+
+} QUIC_DATAGRAM_FRAME_TYPE;
+
+typedef struct _QUIC_DATAGRAM_EX {
+
+    BOOLEAN ExplicitLength;
+    QUIC_VAR_INT Length;
+    _Field_size_bytes_(Length)
+    const uint8_t* Data;
+
+} QUIC_DATAGRAM_EX;
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicDatagramFrameEncodeEx(
+    _In_reads_(BufferCount)
+        const QUIC_BUFFER* const Buffers,
+    _In_ uint32_t BufferCount,
+    _In_ uint64_t TotalLength,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset)
+        uint8_t* Buffer
+    );
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicDatagramFrameDecode(
+    _In_ QUIC_FRAME_TYPE FrameType,
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Deref_in_range_(0, BufferLength)
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_DATAGRAM_EX* Frame
     );
 
 //

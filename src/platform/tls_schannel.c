@@ -16,10 +16,6 @@ Environment:
 #include "platform_internal.h"
 #include <security.h>
 
-#ifdef QUIC_LOGS_WPP
-#include "tls_schannel.tmh"
-#endif
-
 #ifdef _KERNEL_MODE
 
 #include <winerror.h>
@@ -386,15 +382,6 @@ QuicPacketKeyCreate(
     _Out_ QUIC_PACKET_KEY** Key
     );
 
-char
-GetTlsIdentifier(
-    _In_ const QUIC_TLS* TlsContext
-    )
-{
-    const char IDs[2] = { 'C', 'S' };
-    return IDs[TlsContext->IsServer];
-}
-
 #define SecStatusToQuicStatus(x) (QUIC_STATUS)(x)
 
 #ifdef _KERNEL_MODE
@@ -431,7 +418,11 @@ QuicTlsLibraryInitialize(
             MS_PRIMITIVE_PROVIDER,
             Flags);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "Open HMAC_SHA256 algorithm");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Open HMAC_SHA256 algorithm");
         goto Error;
     }
 
@@ -442,7 +433,11 @@ QuicTlsLibraryInitialize(
             MS_PRIMITIVE_PROVIDER,
             Flags);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "Open HMAC_SHA384 algorithm");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Open HMAC_SHA384 algorithm");
         goto Error;
     }
 
@@ -453,7 +448,11 @@ QuicTlsLibraryInitialize(
             MS_PRIMITIVE_PROVIDER,
             Flags);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "Open HMAC_SHA512 algorithm");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Open HMAC_SHA512 algorithm");
         goto Error;
     }
 
@@ -464,7 +463,11 @@ QuicTlsLibraryInitialize(
             MS_PRIMITIVE_PROVIDER,
             BCRYPT_PROV_DISPATCH);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "Open AES algorithm");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Open AES algorithm");
         goto Error;
     }
 
@@ -476,7 +479,11 @@ QuicTlsLibraryInitialize(
             sizeof(BCRYPT_CHAIN_MODE_ECB),
             0);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "Set ECB chaining mode");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Set ECB chaining mode");
         goto Error;
     }
 
@@ -487,7 +494,11 @@ QuicTlsLibraryInitialize(
             MS_PRIMITIVE_PROVIDER,
             BCRYPT_PROV_DISPATCH);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "Open AES algorithm");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Open AES algorithm");
         goto Error;
     }
 
@@ -499,11 +510,17 @@ QuicTlsLibraryInitialize(
             sizeof(BCRYPT_CHAIN_MODE_GCM),
             0);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "Set GCM chaining mode");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Set GCM chaining mode");
         goto Error;
     }
 
-    QuicTraceLogVerbose("[ tls] Library initialized");
+    QuicTraceLogVerbose(
+        SchannelInitialized,
+        "[ tls] Library initialized");
 
 Error:
 
@@ -532,7 +549,9 @@ Error:
 
     return NtStatusToQuicStatus(Status);
 #else
-    QuicTraceLogVerbose("[ tls] Library initialized");
+    QuicTraceLogVerbose(
+        SchannelInitialized,
+        "[ tls] Library initialized");
     return QUIC_STATUS_SUCCESS;
 #endif
 }
@@ -554,7 +573,9 @@ QuicTlsLibraryUninitialize(
     QUIC_AES_ECB_ALG_HANDLE = NULL;
     QUIC_AES_GCM_ALG_HANDLE = NULL;
 #endif
-    QuicTraceLogVerbose("[ tls] Library Uninitialized");
+    QuicTraceLogVerbose(
+        SchannelUninitialized,
+        "[ tls] Library uninitialized");
 }
 
 #ifndef _KERNEL_MODE
@@ -579,14 +600,22 @@ QuicTlsUtf8ToWideChar(
             0);
     if (Size == 0) {
         Error = GetLastError();
-        QuicTraceEvent(LibraryErrorStatus, Error, "Get wchar string size");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Error,
+            "Get wchar string size");
         goto Error;
     }
 
     Buffer = QUIC_ALLOC_NONPAGED(sizeof(WCHAR) * Size);
     if (Buffer == NULL) {
         Error = ERROR_NOT_ENOUGH_MEMORY;
-        QuicTraceEvent(AllocFailure, "wchar string", sizeof(WCHAR) * Size);
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "wchar string",
+            sizeof(WCHAR) * Size);
         goto Error;
     }
 
@@ -600,7 +629,11 @@ QuicTlsUtf8ToWideChar(
             Size);
     if (Size == 0) {
         Error = GetLastError();
-        QuicTraceEvent(LibraryErrorStatus, Error, "Convert string to wchar");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Error,
+            "Convert string to wchar");
         goto Error;
     }
 
@@ -648,13 +681,21 @@ QuicTlsUtf8ToUnicodeString(
             Input,
             (ULONG) InputLength);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "Get unicode string size");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Get unicode string size");
         goto Error;
     }
 
     UnicodeString = QUIC_ALLOC_NONPAGED(RequiredSize);
     if (UnicodeString == NULL) {
-        QuicTraceEvent(AllocFailure, "unicode string", RequiredSize);
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "unicode string",
+            RequiredSize);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -667,7 +708,11 @@ QuicTlsUtf8ToUnicodeString(
             Input,
             (ULONG) InputLength);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "Convert string to unicode");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Convert string to unicode");
         goto Error;
     }
 
@@ -699,7 +744,11 @@ QuicTlsAllocateAchaContext(
 
     QUIC_ACHA_CONTEXT* NewAchaContext = QUIC_ALLOC_NONPAGED(sizeof(QUIC_ACHA_CONTEXT));
     if (NewAchaContext == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_ACHA_CONTEXT", sizeof(QUIC_ACHA_CONTEXT));
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_ACHA_CONTEXT",
+            sizeof(QUIC_ACHA_CONTEXT));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -731,7 +780,10 @@ QuicTlsSspiNotifyCallback(
     )
 {
     if (CallbackData == NULL) {
-        QuicTraceEvent(LibraryError, "NULL CallbackData to QuicTlsSspiNotifyCallback");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "NULL CallbackData to QuicTlsSspiNotifyCallback");
         return;
     }
     QUIC_ACHA_CONTEXT* Context = CallbackData;
@@ -741,7 +793,11 @@ QuicTlsSspiNotifyCallback(
     SECURITY_STATUS Status = SspiGetAsyncCallStatus(Handle);
     QuicTlsFreeAchaContext(Context);
     if (Status != SEC_E_OK) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "Completion for SspiAcquireCredentialsHandleAsyncW");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Completion for SspiAcquireCredentialsHandleAsyncW");
         CompletionCallback(CompletionContext, SecStatusToQuicStatus(Status), NULL);
         QuicTlsSecConfigRelease(SecConfig); // *MUST* be last call to prevent crash in platform cleanup.
     } else {
@@ -824,15 +880,22 @@ QuicTlsServerSecConfigCreate(
 
     QUIC_DBG_ASSERT(Rundown != NULL);
     if (!QuicRundownAcquire(Rundown)) {
-        QuicTraceEvent(LibraryError, "Acquire SecConfig rundown");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Acquire SecConfig rundown");
         return QUIC_STATUS_INVALID_STATE;
     }
 
-#pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (QuicTlsSecConfigDelete).")
+#pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (QuicTlsSecConfigDelete)")
     QUIC_SERVER_SEC_CONFIG* Config = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SERVER_SEC_CONFIG));
     if (Config == NULL) {
         QuicRundownRelease(Rundown);
-        QuicTraceEvent(AllocFailure, "QUIC_SERVER_SEC_CONFIG", sizeof(QUIC_SERVER_SEC_CONFIG));
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_SERVER_SEC_CONFIG",
+            sizeof(QUIC_SERVER_SEC_CONFIG));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -890,7 +953,10 @@ QuicTlsServerSecConfigCreate(
 
     Config->SspiContext = SspiCreateAsyncContext();
     if (Config->SspiContext == NULL) {
-        QuicTraceEvent(LibraryError, "SspiCreateAsyncContext");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "SspiCreateAsyncContext");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -901,7 +967,11 @@ QuicTlsServerSecConfigCreate(
             QuicTlsSspiNotifyCallback,
             AchaContext);
     if (SecStatus != SEC_E_OK) {
-        QuicTraceEvent(LibraryErrorStatus, SecStatus, "SspiSetAsyncNotifyCallback");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SecStatus,
+            "SspiSetAsyncNotifyCallback");
         Status = SecStatusToQuicStatus(SecStatus);
         goto Error;
     }
@@ -964,7 +1034,11 @@ QuicTlsServerSecConfigCreate(
                     sizeof(CertHashStore->StoreName)));
 #pragma warning(pop)
         if (!NT_SUCCESS(Status)) {
-            QuicTraceEvent(LibraryErrorStatus, Status, "Convert cert store name to unicode");
+            QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Convert cert store name to unicode");
             goto Error;
         }
 
@@ -981,7 +1055,10 @@ QuicTlsServerSecConfigCreate(
         Credentials->paCred = NULL;
     } else {
         Status = QUIC_STATUS_INVALID_PARAMETER;
-        QuicTraceEvent(LibraryError, "Invalid flags passed in to QuicTlsSecConfigCreate");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Invalid flags passed in to QuicTlsSecConfigCreate");
         goto Error;
     }
 
@@ -989,7 +1066,11 @@ QuicTlsServerSecConfigCreate(
 
         Status = QuicTlsUtf8ToUnicodeString(Principal, &AchaContext->Principal);
         if (!NT_SUCCESS(Status)) {
-            QuicTraceEvent(LibraryErrorStatus, Status, "Convert principal to unicode");
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "Convert principal to unicode");
             goto Error;
         }
 
@@ -1009,7 +1090,11 @@ QuicTlsServerSecConfigCreate(
             &Config->CertificateHandle,
             NULL);
     if (SecStatus != SEC_E_OK) {
-        QuicTraceEvent(LibraryErrorStatus, SecStatus, "SspiAcquireCredentialsHandleAsyncW");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SecStatus,
+            "SspiAcquireCredentialsHandleAsyncW");
         Status = SecStatusToQuicStatus(SecStatus);
         goto Error;
     }
@@ -1024,25 +1109,27 @@ QuicTlsServerSecConfigCreate(
     TimeStamp CredExpiration;
     PCERT_CONTEXT CertContext = NULL;
 
-    if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT) {
-        CertContext = (PCERT_CONTEXT) Certificate;
-    } else {
-        Status =
-            QuicCertCreate(
-                Flags,
-                Certificate,
-                Principal,
-                &CertContext);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(LibraryErrorStatus, Status, "QuicCertCreate");
-            goto Error;
-        }
+    Status =
+        QuicCertCreate(
+            Flags,
+            Certificate,
+            Principal,
+            &CertContext);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "QuicCertCreate");
+        goto Error;
     }
 
     Credentials->cCreds = 1;
     Credentials->paCred = &CertContext;
 
-    QuicTraceLogVerbose("[ tls] Calling ACH to create server security config");
+    QuicTraceLogVerbose(
+        SchannelAch,
+        "[ tls] Calling ACH to create server security config");
 
     SecStatus =
         AcquireCredentialsHandleW(
@@ -1056,7 +1143,11 @@ QuicTlsServerSecConfigCreate(
             &Config->CertificateHandle,
             &CredExpiration);
     if (SecStatus != SEC_E_OK) {
-        QuicTraceEvent(LibraryErrorStatus, SecStatus, "AcquireCredentialsHandleW");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SecStatus,
+            "AcquireCredentialsHandleW");
         Status = SecStatusToQuicStatus(SecStatus);
         goto Error;
     }
@@ -1064,7 +1155,10 @@ QuicTlsServerSecConfigCreate(
     //
     // In user mode, call the completion in-line.
     //
-    QuicTraceLogVerbose("[ tls] Invoking security config completion callback, 0x%x", SecStatus);
+    QuicTraceLogVerbose(
+        SchannelAchCompleteInline,
+        "[ tls] Invoking security config completion callback, 0x%x",
+        SecStatus);
     CompletionHandler(Context, SecStatusToQuicStatus(SecStatus), (QUIC_SEC_CONFIG*)Config);
     Status = QUIC_STATUS_PENDING;
 #endif
@@ -1129,7 +1223,10 @@ QuicTlsClientSecConfigCreate(
 
     QUIC_CLIENT_SEC_CONFIG* Config = QUIC_ALLOC_PAGED(sizeof(QUIC_CLIENT_SEC_CONFIG));
     if (Config == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_CLIENT_SEC_CONFIG", sizeof(QUIC_CLIENT_SEC_CONFIG));
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_CLIENT_SEC_CONFIG", sizeof(QUIC_CLIENT_SEC_CONFIG));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -1177,7 +1274,11 @@ QuicTlsClientSecConfigCreate(
             &Config->SchannelHandle,
             &CredExpiration);
     if (SecStatus != SEC_E_OK) {
-        QuicTraceEvent(LibraryErrorStatus, SecStatus, "AcquireCredentialsHandleW");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SecStatus,
+            "AcquireCredentialsHandleW");
         Status = SecStatusToQuicStatus(SecStatus);
         QUIC_DBG_ASSERT(QUIC_FAILED(Status));
         goto Error;
@@ -1230,7 +1331,11 @@ QuicTlsSessionInitialize(
 {
     *NewTlsSession = QUIC_ALLOC_NONPAGED(sizeof(QUIC_TLS_SESSION));
     if (*NewTlsSession == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_TLS_SESSION", sizeof(QUIC_TLS_SESSION));
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_TLS_SESSION",
+            sizeof(QUIC_TLS_SESSION));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     return QUIC_STATUS_SUCCESS;
@@ -1294,7 +1399,11 @@ QuicTlsInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_TLS* TlsContext = QUIC_ALLOC_NONPAGED(TlsSize);
     if (TlsContext == NULL) {
-        QuicTraceEvent(AllocFailure, "QUIC_TLS", TlsSize);
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_TLS",
+            sizeof(QUIC_TLS));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -1306,8 +1415,10 @@ QuicTlsInitialize(
     TlsContext->IsServer = Config->IsServer;
     TlsContext->TlsSession = Config->TlsSession;
 
-    QuicTraceLogVerbose("[ tls][%p][%c] Created.",
-        TlsContext, GetTlsIdentifier(TlsContext));
+    QuicTraceLogConnVerbose(
+        SchannelContextCreated,
+        TlsContext->Connection,
+        "Created");
 
     TlsContext->AppProtocolsSize = AppProtocolsSize;
     TlsContext->ApplicationProtocols = (SEC_APPLICATION_PROTOCOLS*)(TlsContext + 1);
@@ -1387,8 +1498,10 @@ QuicTlsUninitialize(
     )
 {
     if (TlsContext != NULL) {
-        QuicTraceLogVerbose("[ tls][%p][%c] Cleaning up.",
-            TlsContext, GetTlsIdentifier(TlsContext));
+        QuicTraceLogConnVerbose(
+            SchannelContextCleaningUp,
+            TlsContext->Connection,
+            "Cleaning up");
 
         QuicTlsResetSchannel(TlsContext);
         if (TlsContext->SecConfig != NULL) {
@@ -1407,8 +1520,10 @@ QuicTlsReset(
     _In_ QUIC_TLS* TlsContext
     )
 {
-    QuicTraceLogInfo("[ tls][%p][%c] Resetting TLS state.",
-        TlsContext, GetTlsIdentifier(TlsContext));
+    QuicTraceLogConnInfo(
+        SchannelContextReset,
+        TlsContext->Connection,
+        "Resetting TLS state");
 
     //
     // Clean up and then re-create Schannel state.
@@ -1473,7 +1588,12 @@ QuicTlsWriteDataToSchannel(
             QUIC_STATUS Status = QuicTlsUtf8ToWideChar(TlsContext->SNI, &TargetServerName);
 #endif
             if (QUIC_FAILED(Status)) {
-                QuicTraceEvent(TlsErrorStatus, TlsContext->Connection, Status, "Convert SNI to unicode");
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    Status,
+                    "Convert SNI to unicode");
                 return QUIC_TLS_RESULT_ERROR;
             }
         }
@@ -1687,9 +1807,13 @@ QuicTlsWriteDataToSchannel(
             if (TrafficSecret->TrafficSecretType == SecTrafficSecret_None) {
                 continue;
             }
-            QuicTraceLogVerbose("[ tls][%p][%c] Key Ready Type, %u [%hu to %hu].",
-                TlsContext, GetTlsIdentifier(TlsContext), TrafficSecret->TrafficSecretType,
-                TrafficSecret->MsgSequenceStart, TrafficSecret->MsgSequenceEnd);
+            QuicTraceLogConnVerbose(
+                SchannelKeyReady,
+                TlsContext->Connection,
+                "Key Ready Type, %u [%hu to %hu]",
+                TrafficSecret->TrafficSecretType,
+                TrafficSecret->MsgSequenceStart,
+                TrafficSecret->MsgSequenceEnd);
             if (TlsContext->IsServer) {
                 if (TrafficSecret->TrafficSecretType == SecTrafficSecret_Server) {
                     NewOwnTrafficSecrets[NewOwnTrafficSecretsCount++] = TrafficSecret;
@@ -1714,7 +1838,11 @@ QuicTlsWriteDataToSchannel(
         // that needs to be sent back in response (depending on client/server).
         //
         if (!TlsContext->PeerTransportParamsReceived) {
-            QuicTraceEvent(TlsError, TlsContext->Connection, "No QUIC TP received");
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "No QUIC TP received");
             Result |= QUIC_TLS_RESULT_ERROR;
             break;
         }
@@ -1737,14 +1865,22 @@ QuicTlsWriteDataToSchannel(
                         SECPKG_ATTR_APPLICATION_PROTOCOL,
                         &NegotiatedAlpn);
                 if (SecStatus != SEC_E_OK) {
-                    QuicTraceEvent(TlsErrorStatus, TlsContext->Connection, SecStatus, "query negotiated ALPN");
+                    QuicTraceEvent(
+                        TlsErrorStatus,
+                        "[ tls][%p] ERROR, %u, %s.",
+                        TlsContext->Connection,
+                        SecStatus,
+                        "query negotiated ALPN");
                     Result |= QUIC_TLS_RESULT_ERROR;
                     break;
                 }
                 if (NegotiatedAlpn.ProtoNegoStatus != SecApplicationProtocolNegotiationStatus_Success) {
-                    QuicTraceEvent(TlsError, TlsContext->Connection, "ALPN negotiation status");
-                    QuicTraceLogError("[ tls][%p] Failed to negotiate ALPN successfully: %d",
-                        TlsContext, NegotiatedAlpn.ProtoNegoStatus);
+                    QuicTraceEvent(
+                        TlsErrorStatus,
+                        "[ tls][%p] ERROR, %u, %s.",
+                        TlsContext->Connection,
+                        NegotiatedAlpn.ProtoNegoStatus,
+                        "ALPN negotiation status");
                     Result |= QUIC_TLS_RESULT_ERROR;
                     break;
                 }
@@ -1757,8 +1893,11 @@ QuicTlsWriteDataToSchannel(
                         NegotiatedAlpn.ProtocolIdSize,
                         NegotiatedAlpn.ProtocolId);
                 if (State->NegotiatedAlpn == NULL) {
-                    QuicTraceEvent(TlsError, TlsContext->Connection, "ALPN Mismatch");
-                    QuicTraceLogError("[ tls][%p] Failed to find a matching ALPN", TlsContext);
+                    QuicTraceEvent(
+                        TlsError,
+                        "[ tls][%p] ERROR, %s.",
+                        TlsContext->Connection,
+                        "ALPN Mismatch");
                     Result |= QUIC_TLS_RESULT_ERROR;
                     break;
                 }
@@ -1771,7 +1910,12 @@ QuicTlsWriteDataToSchannel(
                     SECPKG_ATTR_SESSION_INFO,
                     &SessionInfo);
             if (SecStatus != SEC_E_OK) {
-                QuicTraceEvent(TlsErrorStatus, TlsContext->Connection, SecStatus, "query session info");
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    SecStatus,
+                    "query session info");
                 Result |= QUIC_TLS_RESULT_ERROR;
                 break;
             }
@@ -1779,8 +1923,11 @@ QuicTlsWriteDataToSchannel(
                 State->SessionResumed = TRUE;
             }
 
-            QuicTraceLogInfo("[ tls][%p][%c] Handshake complete (resume=%hu).",
-                TlsContext, GetTlsIdentifier(TlsContext), State->SessionResumed);
+            QuicTraceLogConnInfo(
+                SchannelHandshakeComplete,
+                TlsContext->Connection,
+                "Handshake complete (resume=%hu)",
+                State->SessionResumed);
             State->HandshakeComplete = TRUE;
             Result |= QUIC_TLS_RESULT_COMPLETE;
         }
@@ -1792,10 +1939,19 @@ QuicTlsWriteDataToSchannel(
 
         if (AlertBuffer != NULL) {
             if (AlertBuffer->cbBuffer < 2) {
-                QuicTraceEvent(TlsError, TlsContext->Connection, "TLS alert message received (invalid)");
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "TLS alert message received (invalid)");
             } else {
                 State->AlertCode = ((uint8_t*)AlertBuffer->pvBuffer)[1];
-                QuicTraceEvent(TlsErrorStatus, TlsContext->Connection, State->AlertCode, "TLS alert message received");
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    State->AlertCode,
+                    "TLS alert message received");
             }
             Result |= QUIC_TLS_RESULT_ERROR;
             break;
@@ -1814,8 +1970,11 @@ QuicTlsWriteDataToSchannel(
             *InBufferLength -= InSecBuffers[1].cbBuffer;
         }
 
-        QuicTraceLogInfo("[ tls][%p][%c] Consumed %u bytes.",
-            TlsContext, GetTlsIdentifier(TlsContext), *InBufferLength);
+        QuicTraceLogConnInfo(
+            SchannelConsumedBytes,
+            TlsContext->Connection,
+            "Consumed %u bytes",
+            *InBufferLength);
 
         //
         // Update our "read" key state based on any new peer keys being available.
@@ -1836,8 +1995,10 @@ QuicTlsWriteDataToSchannel(
                         break;
                     }
                     State->ReadKey = QUIC_PACKET_KEY_HANDSHAKE;
-                    QuicTraceLogInfo("[ tls][%p][%c] Reading Handshake data starts now.",
-                        TlsContext, GetTlsIdentifier(TlsContext));
+                    QuicTraceLogConnInfo(
+                        SchannelReadHandshakeStart,
+                        TlsContext->Connection,
+                        "Reading Handshake data starts now");
                 } else if (State->ReadKey == QUIC_PACKET_KEY_HANDSHAKE) {
                     if (!QuicPacketKeyCreate(
                             TlsContext,
@@ -1849,8 +2010,10 @@ QuicTlsWriteDataToSchannel(
                         break;
                     }
                     State->ReadKey = QUIC_PACKET_KEY_1_RTT;
-                    QuicTraceLogInfo("[ tls][%p][%c] Reading 1-RTT data starts now.",
-                        TlsContext, GetTlsIdentifier(TlsContext));
+                    QuicTraceLogConnInfo(
+                        SchannelRead1RttStart,
+                        TlsContext->Connection,
+                        "Reading 1-RTT data starts now");
                 }
             }
         }
@@ -1878,8 +2041,11 @@ QuicTlsWriteDataToSchannel(
                     State->BufferOffset1Rtt = // HACK - Currently Schannel has weird output for 1-RTT start
                         State->BufferTotalLength + NewOwnTrafficSecrets[i]->MsgSequenceEnd;
                     State->WriteKey = QUIC_PACKET_KEY_HANDSHAKE;
-                    QuicTraceLogInfo("[ tls][%p][%c] Writing Handshake data starts at %u.",
-                        TlsContext, GetTlsIdentifier(TlsContext), State->BufferOffsetHandshake);
+                    QuicTraceLogConnInfo(
+                        SchannelWriteHandshakeStart,
+                        TlsContext->Connection,
+                        "Writing Handshake data starts at %u",
+                        State->BufferOffsetHandshake);
                 } else if (State->WriteKey == QUIC_PACKET_KEY_HANDSHAKE) {
                     if (!TlsContext->IsServer && State->BufferOffsetHandshake == State->BufferOffset1Rtt) {
                         State->BufferOffset1Rtt = // HACK - Currently Schannel has weird output for 1-RTT start
@@ -1897,8 +2063,11 @@ QuicTlsWriteDataToSchannel(
                         //State->BufferOffset1Rtt = // Currently have to get the offset from the Handshake "end"
                         //    State->BufferTotalLength + NewOwnTrafficSecrets[i]->MsgSequenceStart;
                         State->WriteKey = QUIC_PACKET_KEY_1_RTT;
-                        QuicTraceLogInfo("[ tls][%p][%c] Writing 1-RTT data starts at %u.",
-                            TlsContext, GetTlsIdentifier(TlsContext), State->BufferOffset1Rtt);
+                        QuicTraceLogConnInfo(
+                            SchannelWrite1RttStart,
+                            TlsContext->Connection,
+                            "Writing 1-RTT data starts at %u",
+                            State->BufferOffset1Rtt);
                     }
                 }
             }
@@ -1916,8 +2085,11 @@ QuicTlsWriteDataToSchannel(
             State->BufferLength += (uint16_t)OutputTokenBuffer->cbBuffer;
             State->BufferTotalLength += OutputTokenBuffer->cbBuffer;
 
-            QuicTraceLogInfo("[ tls][%p][%c] Produced %u bytes.",
-                TlsContext, GetTlsIdentifier(TlsContext), OutputTokenBuffer->cbBuffer);
+            QuicTraceLogConnInfo(
+                SchannelProducedData,
+                TlsContext->Connection,
+                "Produced %u bytes",
+                OutputTokenBuffer->cbBuffer);
         }
 
         break;
@@ -1925,7 +2097,11 @@ QuicTlsWriteDataToSchannel(
     case SEC_I_GENERIC_EXTENSION_RECEIVED:
 
         if (TlsExtensionBuffer == NULL) {
-            QuicTraceEvent(TlsError, TlsContext->Connection, "QUIC TP wasn't present");
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "QUIC TP wasn't present");
             Result |= QUIC_TLS_RESULT_ERROR;
             break;
         }
@@ -1938,7 +2114,11 @@ QuicTlsWriteDataToSchannel(
                 TlsContext->Connection,
                 (uint16_t)(TlsExtensionBuffer->cbBuffer - 4),
                 ((uint8_t*)TlsExtensionBuffer->pvBuffer) + 4)) {
-            QuicTraceEvent(TlsError, TlsContext->Connection, "Process QUIC TP");
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "Process QUIC TP");
             Result |= QUIC_TLS_RESULT_ERROR;
             break;
         }
@@ -1958,8 +2138,11 @@ QuicTlsWriteDataToSchannel(
         *InBufferLength = 0;
 
         if (MissingBuffer != NULL && MissingBuffer->cbBuffer != 0) {
-            QuicTraceLogInfo("[ tls][%p][%c] TLS message missing %u bytes of data.",
-                TlsContext, GetTlsIdentifier(TlsContext), MissingBuffer->cbBuffer);
+            QuicTraceLogConnInfo(
+                SchannelMissingData,
+                TlsContext->Connection,
+                "TLS message missing %u bytes of data",
+                MissingBuffer->cbBuffer);
         }
 
         break;
@@ -1970,7 +2153,12 @@ QuicTlsWriteDataToSchannel(
         // processed successfully.
         //
         *InBufferLength = 0;
-        QuicTraceEvent(TlsErrorStatus, TlsContext->Connection, SecStatus, "Accept/InitializeSecurityContext");
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            SecStatus,
+            "Accept/InitializeSecurityContext");
         Result |= QUIC_TLS_RESULT_ERROR;
         break;
     }
@@ -1993,16 +2181,21 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessData(
     _In_ QUIC_TLS* TlsContext,
+    _In_ QUIC_TLS_DATA_FLAGS DataFlags,
     _In_reads_bytes_(*BufferLength)
         const uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength,
     _Inout_ QUIC_TLS_PROCESS_STATE* State
     )
 {
+    UNREFERENCED_PARAMETER(DataFlags);
     QUIC_TLS_RESULT_FLAGS Result = 0;
 
-    QuicTraceLogVerbose("[ tls][%p][%c] Processing %u received bytes.",
-        TlsContext, GetTlsIdentifier(TlsContext), *BufferLength);
+    QuicTraceLogConnVerbose(
+        SchannelProcessingData,
+        TlsContext->Connection,
+        "Processing %u received bytes",
+        *BufferLength);
 
     Result =
         QuicTlsWriteDataToSchannel(
@@ -2126,7 +2319,7 @@ QuicTlsParamGet(
 // Key Encryption Functions
 //
 
-#ifdef QUIC_TEST_MODE
+#ifdef DEBUG
 void
 QuicTlsLogSecret(
     _In_z_ const char* const Prefix,
@@ -2136,12 +2329,18 @@ QuicTlsLogSecret(
     )
 {
     #define HEX_TO_CHAR(x) ((x) > 9 ? ('a' + ((x) - 10)) : '0' + (x))
-    char SecretStr[256] = {0};
+    char SecretStr[256 + 1] = {0};
+    QUIC_DBG_ASSERT(Length * 2 < sizeof(SecretStr));
     for (uint8_t i = 0; i < Length; i++) {
         SecretStr[i*2]     = HEX_TO_CHAR(Secret[i] >> 4);
         SecretStr[i*2 + 1] = HEX_TO_CHAR(Secret[i] & 0xf);
     }
-    QuicTraceLogVerbose("[ tls] %s[%u]: %s", Prefix, Length, SecretStr);
+    QuicTraceLogVerbose(
+        SchannelLogSecret,
+        "[ tls] %s[%u]: %s",
+        Prefix,
+        Length,
+        SecretStr);
 }
 #else
 #define QuicTlsLogSecret(Prefix, Secret, Length) UNREFERENCED_PARAMETER(Prefix);
@@ -2322,7 +2521,11 @@ QuicPacketKeyDerive(
         (KeyType == QUIC_PACKET_KEY_1_RTT ? sizeof(QUIC_SECRET) : 0);
     QUIC_PACKET_KEY *Key = QUIC_ALLOC_NONPAGED(PacketKeyLength);
     if (Key == NULL) {
-        QuicTraceLogWarning("[ tls] Failed to allocate packet key.");
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QUIC_PACKET_KEY",
+            PacketKeyLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     QuicZeroMemory(Key, sizeof(QUIC_PACKET_KEY));
@@ -2506,12 +2709,20 @@ QuicParseTrafficSecrets(
     UNREFERENCED_PARAMETER(TlsContext);
 
     if (wcscmp(TrafficSecrets->SymmetricAlgId, BCRYPT_AES_ALGORITHM) != 0) {
-        QuicTraceEvent(TlsError, TlsContext->Connection, "Unsupported symmetric algorithm");
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "Unsupported symmetric algorithm");
         return FALSE;
     }
 
     if (wcscmp(TrafficSecrets->ChainingMode, BCRYPT_CHAIN_MODE_GCM) != 0) {
-        QuicTraceEvent(TlsError, TlsContext->Connection, "Unsupported chaining mode");
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "Unsupported chaining mode");
         return FALSE;
     }
 
@@ -2523,7 +2734,11 @@ QuicParseTrafficSecrets(
         Secret->Aead = QUIC_AEAD_AES_256_GCM;
         break;
     default:
-        QuicTraceEvent(TlsError, TlsContext->Connection, "Unsupported key size");
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "Unsupported key size");
         return FALSE;
     }
 
@@ -2534,7 +2749,11 @@ QuicParseTrafficSecrets(
     } else if (wcscmp(TrafficSecrets->HashAlgId, BCRYPT_SHA512_ALGORITHM) == 0) {
         Secret->Hash = QUIC_HASH_SHA512;
     } else {
-        QuicTraceEvent(TlsError, TlsContext->Connection, "Unsupported hash algorithm");
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "Unsupported hash algorithm");
         return FALSE;
     }
 
@@ -2572,7 +2791,12 @@ QuicPacketKeyCreate(
             TRUE,
             Key);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(TlsErrorStatus, TlsContext->Connection, Status, "QuicPacketKeyDerive");
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            Status,
+            "QuicPacketKeyDerive");
         goto Error;
     }
 
@@ -2693,7 +2917,11 @@ QuicKeyCreate(
             KeyLength,
             0);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "BCryptGenerateSymmetricKey");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "BCryptGenerateSymmetricKey");
         goto Error;
     }
 
@@ -2737,7 +2965,7 @@ QuicEncrypt(
 
 #ifdef QUIC_FUZZER
     if (MsQuicFuzzerContext.EncryptCallback) {
-#pragma prefast(suppress: __WARNING_26000, "Auth Data and Buffer are always contiguous.")
+#pragma prefast(suppress: __WARNING_26000, "Auth Data and Buffer are always contiguous")
         MsQuicFuzzerContext.EncryptCallback(
             MsQuicFuzzerContext.CallbackContext,
             (uint8_t*)AuthData,
@@ -2854,7 +3082,11 @@ QuicHpKeyCreate(
             KeyLength,
             0);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "BCryptGenerateSymmetricKey (ECB)");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "BCryptGenerateSymmetricKey (ECB)");
         goto Error;
     }
 
@@ -2940,7 +3172,11 @@ QuicHashCreate(
             (ULONG)SaltLength,
             BCRYPT_HASH_REUSABLE_FLAG);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "BCryptCreateHash");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "BCryptCreateHash");
         goto Error;
     }
 
@@ -2981,7 +3217,11 @@ QuicHashCompute(
             InputLength,
             0);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "BCryptHashData");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "BCryptHashData");
         goto Error;
     }
 
@@ -2992,7 +3232,11 @@ QuicHashCompute(
             OutputLength,
             0);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "BCryptFinishHash");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "BCryptFinishHash");
         goto Error;
     }
 

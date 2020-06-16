@@ -27,9 +27,46 @@ extern "C" {
 #define QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION   0x80000000
 
 //
-// The different private parameters for QUIC_PARAM_LEVEL_REGISTRATION.
+// The different private parameters for QUIC_PARAM_LEVEL_GLOBAL.
 //
-#define QUIC_PARAM_REGISTRATION_ENCRYPTION              0x80000001  // uint8_t (BOOLEAN)
+
+//
+// Returns TRUE to drop the packet.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+(QUIC_API * QUIC_TEST_DATAPATH_RECEIVE_HOOK)(
+    _Inout_ struct QUIC_RECV_DATAGRAM* Datagram
+    );
+
+//
+// Returns TRUE to drop the packet.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+(QUIC_API * QUIC_TEST_DATAPATH_SEND_HOOK)(
+    _Inout_ QUIC_ADDR* RemoteAddress,
+    _Inout_opt_ QUIC_ADDR* LocalAddress,
+    _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* SendContext
+    );
+
+typedef struct QUIC_TEST_DATAPATH_HOOKS {
+    QUIC_TEST_DATAPATH_RECEIVE_HOOK Receive;
+    QUIC_TEST_DATAPATH_SEND_HOOK Send;
+} QUIC_TEST_DATAPATH_HOOKS;
+
+#if DEBUG
+//
+// Datapath hooks are currently only enabled on debug builds for functional
+// testing helpers.
+//
+#define QUIC_TEST_DATAPATH_HOOKS_ENABLED 1
+#endif
+
+#define QUIC_PARAM_GLOBAL_ENCRYPTION                    0x80000001  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS           0x80000002  // QUIC_TEST_DATAPATH_HOOKS*
 
 //
 // The different private parameters for QUIC_PARAM_LEVEL_SESSION.

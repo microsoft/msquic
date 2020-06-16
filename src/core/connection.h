@@ -65,10 +65,9 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN GotFirstServerResponse : 1;
 
         //
-        // This flag indicates the client received a Retry packet during the
-        // handshake.
+        // This flag indicates the Retry packet was used during the handshake.
         //
-        BOOLEAN ReceivedRetryPacket : 1;
+        BOOLEAN HandshakeUsedRetryPacket : 1;
 
         //
         // We have confirmed that the peer has completed the handshake.
@@ -94,6 +93,11 @@ typedef union QUIC_CONNECTION_STATE {
         // connection start phase.
         //
         BOOLEAN RemoteAddressSet : 1;
+
+        //
+        // Indicates the peer transport parameters variable has been set.
+        //
+        BOOLEAN PeerTransportParameterValid : 1;
 
         //
         // Indicates the connection needs to queue onto a new worker thread.
@@ -126,9 +130,22 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ShareBinding : 1;
 
         //
-        // Indicate the TestTransportParameter variable has been set by the app.
+        // Indicates the TestTransportParameter variable has been set by the app.
         //
         BOOLEAN TestTransportParameterSet : 1;
+
+        //
+        // Indicates the connection is using the round robin stream scheduling
+        // scheme.
+        //
+        BOOLEAN UseRoundRobinStreamScheduling : 1;
+
+        //
+        // Indicates that this connection has resumption enabled and needs to
+        // keep the TLS state and transport parameters until it is done sending
+        // resumption tickets.
+        //
+        BOOLEAN ResumptionEnabled : 1;
 
 #ifdef QuicVerifierEnabledByAddr
         //
@@ -283,7 +300,7 @@ typedef struct QUIC_CONNECTION {
     //
     long RefCount;
 
-#if QUIC_TEST_MODE
+#if DEBUG
     short RefTypeCount[QUIC_CONN_REF_COUNT];
 #endif
 
@@ -305,7 +322,7 @@ typedef struct QUIC_CONNECTION {
     //
     // The server ID for the connection ID.
     //
-    uint8_t ServerID;
+    uint8_t ServerID[MSQUIC_MAX_CID_SID_LENGTH];
 
     //
     // The partition ID for the connection ID.
@@ -410,7 +427,7 @@ typedef struct QUIC_CONNECTION {
     //
     // The original CID used by the Client in its first Initial packet.
     //
-    QUIC_CID* OrigCID;
+    QUIC_CID* OrigDestCID;
 
     //
     // Sorted array of all timers for the connection.
@@ -456,6 +473,12 @@ typedef struct QUIC_CONNECTION {
     const char* RemoteServerName;
 
     //
+    // The entry into the remote hash lookup table, which is used only during the
+    // handshake.
+    //
+    QUIC_REMOTE_HASH_ENTRY* RemoteHashEntry;
+
+    //
     // Transport parameters received from the peer.
     //
     QUIC_TRANSPORT_PARAMETERS PeerTransportParams;
@@ -498,9 +521,20 @@ typedef struct QUIC_CONNECTION {
     QUIC_SEND_BUFFER SendBuffer;
 
     //
+    // Manages datagrams for the connection.
+    //
+    QUIC_DATAGRAM Datagram;
+
+    //
     // The handler for the API client's callbacks.
     //
     QUIC_CONNECTION_CALLBACK_HANDLER ClientCallbackHandler;
+
+    //
+    // (Server-only) Transport parameters used during handshake.
+    // Only non-null when resumption is enabled.
+    //
+    QUIC_TRANSPORT_PARAMETERS* HandshakeTP;
 
     //
     // Statistics
@@ -638,6 +672,19 @@ QuicLossDetectionGetConnection(
     return QUIC_CONTAINING_RECORD(LossDetection, QUIC_CONNECTION, LossDetection);
 }
 
+//
+// Helper to get the owning QUIC_CONNECTION for datagram.
+//
+inline
+_Ret_notnull_
+QUIC_CONNECTION*
+QuicDatagramGetConnection(
+    _In_ const QUIC_DATAGRAM* const Datagram
+    )
+{
+    return QUIC_CONTAINING_RECORD(Datagram, QUIC_CONNECTION, Datagram);
+}
+
 inline
 void
 QuicConnLogOutFlowStats(
@@ -648,45 +695,35 @@ QuicConnLogOutFlowStats(
         return;
     }
 
-    uint64_t FcAvailable;
-    uint64_t SendWindow;
+    const QUIC_PATH* Path = &Connection->Paths[0];
+    UNREFERENCED_PARAMETER(Path);
 
+    QuicTraceEvent(
+        ConnOutFlowStats,
+        "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u",
+        Connection,
+        Connection->Stats.Send.TotalBytes,
+        Connection->CongestionControl.BytesInFlight,
+        Connection->CongestionControl.BytesInFlightMax,
+        Connection->CongestionControl.CongestionWindow,
+        Connection->CongestionControl.SlowStartThreshold,
+        Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
+        Connection->SendBuffer.IdealBytes,
+        Connection->SendBuffer.PostedBytes,
+        Path->GotFirstRttSample ? Path->SmoothedRtt : 0);
+
+    uint64_t FcAvailable, SendWindow;
     QuicStreamSetGetFlowControlSummary(
         &Connection->Streams,
         &FcAvailable,
         &SendWindow);
 
-#ifdef QUIC_EVENTS_LTTNG // LTTng has a max of 10 fields.
     QuicTraceEvent(
-        ConnOutFlowStats,
+        ConnOutFlowStreamStats,
+        "[conn][%p] OUT: StreamFC=%llu StreamSendWindow=%llu",
         Connection,
-        Connection->Stats.Send.TotalBytes,
-        Connection->CongestionControl.BytesInFlight,
-        Connection->CongestionControl.BytesInFlightMax,
-        Connection->CongestionControl.CongestionWindow,
-        Connection->CongestionControl.SlowStartThreshold,
-        Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
         FcAvailable,
-        Connection->SendBuffer.IdealBytes,
-        Connection->SendBuffer.PostedBytes);
-#else
-    const QUIC_PATH* Path = &Connection->Paths[0];
-    UNREFERENCED_PARAMETER(Path);
-    QuicTraceEvent(
-        ConnOutFlowStats,
-        Connection,
-        Connection->Stats.Send.TotalBytes,
-        Connection->CongestionControl.BytesInFlight,
-        Connection->CongestionControl.BytesInFlightMax,
-        Connection->CongestionControl.CongestionWindow,
-        Connection->CongestionControl.SlowStartThreshold,
-        Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
-        FcAvailable,
-        Connection->SendBuffer.IdealBytes,
-        Connection->SendBuffer.PostedBytes,
-        Path->GotFirstRttSample ? Path->SmoothedRtt : 0,
         SendWindow);
-#endif
 }
 
 inline
@@ -698,6 +735,7 @@ QuicConnLogInFlowStats(
     UNREFERENCED_PARAMETER(Connection);
     QuicTraceEvent(
         ConnInFlowStats,
+        "[conn][%p] IN: BytesRecv=%llu",
         Connection,
         Connection->Stats.Recv.TotalBytes);
 }
@@ -708,11 +746,23 @@ QuicConnLogStatistics(
     _In_ const QUIC_CONNECTION* const Connection
     )
 {
-#ifdef QUIC_EVENTS_LTTNG // LTTng has a max of 10 fields.
+    const QUIC_PATH* Path = &Connection->Paths[0];
+    UNREFERENCED_PARAMETER(Path);
+
     QuicTraceEvent(
-        ConnStatistics,
+        ConnStats,
+        "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu",
         Connection,
-        QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()),
+        Path->SmoothedRtt,
+        Connection->Stats.Send.CongestionCount,
+        Connection->Stats.Send.PersistentCongestionCount,
+        Connection->Stats.Send.TotalBytes,
+        Connection->Stats.Recv.TotalBytes);
+
+    QuicTraceEvent(
+        ConnPacketStats,
+        "[conn][%p] STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu",
+        Connection,
         Connection->Stats.Send.TotalPackets,
         Connection->Stats.Send.SuspectedLostPackets,
         Connection->Stats.Send.SpuriousLostPackets,
@@ -721,27 +771,6 @@ QuicConnLogStatistics(
         Connection->Stats.Recv.DroppedPackets,
         Connection->Stats.Recv.DuplicatePackets,
         Connection->Stats.Recv.DecryptionFailures);
-#else
-    const QUIC_PATH* Path = &Connection->Paths[0];
-    UNREFERENCED_PARAMETER(Path);
-    QuicTraceEvent(
-        ConnStatistics,
-        Connection,
-        QuicTimeDiff64(Connection->Stats.Timing.Start, QuicTimeUs64()),
-        Connection->Stats.Send.TotalPackets,
-        Connection->Stats.Send.SuspectedLostPackets,
-        Connection->Stats.Send.SpuriousLostPackets,
-        Connection->Stats.Recv.TotalPackets,
-        Connection->Stats.Recv.ReorderedPackets,
-        Connection->Stats.Recv.DroppedPackets,
-        Connection->Stats.Recv.DuplicatePackets,
-        Connection->Stats.Recv.DecryptionFailures,
-        Connection->Stats.Send.CongestionCount,
-        Connection->Stats.Send.PersistentCongestionCount,
-        Connection->Stats.Send.TotalBytes,
-        Connection->Stats.Recv.TotalBytes,
-        Path->SmoothedRtt);
-#endif
 }
 
 inline
@@ -753,7 +782,11 @@ QuicConnAddOutFlowBlockedReason(
 {
     if (!(Connection->OutFlowBlockedReasons & Reason)) {
         Connection->OutFlowBlockedReasons |= Reason;
-        QuicTraceEvent(ConnOutFlowBlocked, Connection, Connection->OutFlowBlockedReasons);
+        QuicTraceEvent(
+            ConnOutFlowBlocked,
+            "[conn][%p] Send Blocked Flags: %hhu",
+            Connection,
+            Connection->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -768,7 +801,11 @@ QuicConnRemoveOutFlowBlockedReason(
 {
     if ((Connection->OutFlowBlockedReasons & Reason)) {
         Connection->OutFlowBlockedReasons &= ~Reason;
-        QuicTraceEvent(ConnOutFlowBlocked, Connection, Connection->OutFlowBlockedReasons);
+        QuicTraceEvent(
+            ConnOutFlowBlocked,
+            "[conn][%p] Send Blocked Flags: %hhu",
+            Connection,
+            Connection->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -812,7 +849,7 @@ QuicConnOnShutdownComplete(
     _In_ QUIC_CONNECTION* Connection
     );
 
-#if QUIC_TEST_MODE
+#if DEBUG
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 void
@@ -839,7 +876,7 @@ QuicConnAddRef(
 {
     QuicConnValidate(Connection);
 
-#if QUIC_TEST_MODE
+#if DEBUG
     InterlockedIncrement16((volatile short*)&Connection->RefTypeCount[Ref]);
 #else
     UNREFERENCED_PARAMETER(Ref);
@@ -864,7 +901,7 @@ QuicConnRelease(
 {
     QuicConnValidate(Connection);
 
-#if QUIC_TEST_MODE
+#if DEBUG
     QUIC_TEL_ASSERT(Connection->RefTypeCount[Ref] > 0);
     uint16_t result = (uint16_t)InterlockedDecrement16((volatile short*)&Connection->RefTypeCount[Ref]);
     QUIC_TEL_ASSERT(result != 0xFFFF);
@@ -874,7 +911,7 @@ QuicConnRelease(
 
     QUIC_DBG_ASSERT(Connection->RefCount > 0);
     if (InterlockedDecrement((volatile long*)&Connection->RefCount) == 0) {
-#if QUIC_TEST_MODE
+#if DEBUG
         for (uint32_t i = 0; i < QUIC_CONN_REF_COUNT; i++) {
             QUIC_TEL_ASSERT(Connection->RefTypeCount[i] == 0);
         }
@@ -1006,6 +1043,16 @@ QuicConnGetSourceCidFromSeq(
                 Link);
         if (SourceCid->CID.SequenceNumber == SequenceNumber) {
             if (RemoveFromList) {
+                QuicBindingRemoveSourceConnectionID(
+                    Connection->Paths[0].Binding,
+                    SourceCid);
+                QuicTraceEvent(
+                    ConnSourceCidRemoved,
+                    "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
+                    Connection,
+                    SourceCid->CID.SequenceNumber,
+                    SourceCid->CID.Length,
+                    SourceCid->CID.Data);
                 *Entry = (*Entry)->Next;
             }
             *IsLastCid = Connection->SourceCids.Next == NULL;
@@ -1175,6 +1222,18 @@ QUIC_STATUS
 QuicConnHandshakeConfigure(
     _In_ QUIC_CONNECTION* Connection,
     _In_opt_ QUIC_SEC_CONFIG* SecConfig
+    );
+
+//
+// Check if the resumption state is ready to be cleaned up and free it.
+//
+// Called when the server has sent everything it will ever send and it has all
+// been acknowledged.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnCleanupServerResumptionState(
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //

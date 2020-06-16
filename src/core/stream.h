@@ -188,7 +188,7 @@ typedef struct QUIC_STREAM {
     //
     QUIC_REF_COUNT RefCount;
 
-#if QUIC_TEST_MODE
+#if DEBUG
     short RefTypeCount[QUIC_STREAM_REF_COUNT];
 #endif
 
@@ -580,7 +580,7 @@ QuicStreamAddRef(
     QUIC_DBG_ASSERT(Stream->Connection);
     QUIC_DBG_ASSERT(Stream->RefCount > 0);
 
-#if QUIC_TEST_MODE
+#if DEBUG
     InterlockedIncrement16((volatile short*)&Stream->RefTypeCount[Ref]);
 #else
     UNREFERENCED_PARAMETER(Ref);
@@ -605,7 +605,7 @@ QuicStreamRelease(
     QUIC_DBG_ASSERT(Stream->Connection);
     QUIC_TEL_ASSERT(Stream->RefCount > 0);
 
-#if QUIC_TEST_MODE
+#if DEBUG
     QUIC_TEL_ASSERT(Stream->RefTypeCount[Ref] > 0);
     uint16_t result = (uint16_t)InterlockedDecrement16((volatile short*)&Stream->RefTypeCount[Ref]);
     QUIC_TEL_ASSERT(result != 0xFFFF);
@@ -614,7 +614,7 @@ QuicStreamRelease(
 #endif
 
     if (QuicRefDecrement(&Stream->RefCount)) {
-#if QUIC_TEST_MODE
+#if DEBUG
         for (uint32_t i = 0; i < QUIC_STREAM_REF_COUNT; i++) {
             QUIC_TEL_ASSERT(Stream->RefTypeCount[i] == 0);
         }
@@ -639,7 +639,11 @@ QuicStreamAddOutFlowBlockedReason(
 {
     if (!(Stream->OutFlowBlockedReasons & Reason)) {
         Stream->OutFlowBlockedReasons |= Reason;
-        QuicTraceEvent(StreamOutFlowBlocked, Stream, Stream->OutFlowBlockedReasons);
+        QuicTraceEvent(
+            StreamOutFlowBlocked,
+            "[strm][%p] Send Blocked Flags: %hhu",
+            Stream,
+            Stream->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -654,7 +658,11 @@ QuicStreamRemoveOutFlowBlockedReason(
 {
     if ((Stream->OutFlowBlockedReasons & Reason)) {
         Stream->OutFlowBlockedReasons &= ~Reason;
-        QuicTraceEvent(StreamOutFlowBlocked, Stream, Stream->OutFlowBlockedReasons);
+        QuicTraceEvent(
+            StreamOutFlowBlocked,
+            "[strm][%p] Send Blocked Flags: %hhu",
+            Stream,
+            Stream->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -714,10 +722,11 @@ QuicStreamSendWrite(
     );
 
 //
-// Called when a stream frame is inferred to be lost.
+// Called when a stream frame is inferred to be lost. Returns TRUE if data is
+// queued to be sent.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicStreamOnLoss(
     _In_ QUIC_STREAM* Stream,
     _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata

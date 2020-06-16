@@ -7,12 +7,6 @@
 
 #include "main.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "main.tmh"
-#endif
-
-extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
-
 class QuicCoreTestEnvironment : public ::testing::Environment {
 public:
     void SetUp() override {

@@ -50,31 +50,38 @@ PrintUsage()
     printf(
 #if _WIN32
         "  -comp:<####>                The compartment ID to run in.\n"
+        "  -core:<####>                The CPU core to use for the main thread.\n"
 #endif
         "  -alpn:<str>                 The ALPN to use. (def:%s)\n"
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
         "  -encrypt:<0/1>              Enables/disables encryption. (def:%u)\n"
         "  -sendbuf:<0/1>              Whether to use send buffering. (def:%u)\n"
-        "  -pacing:<0/1>               Enabled/disables pacing. (def:%u)\n"
-        "  -stats:<0/1>                Enabled/disables printing statistics. (def:%u)\n"
+        "  -pacing:<0/1>               Enables/disables pacing. (def:%u)\n"
+        "  -stats:<0/1>                Enables/disables printing statistics. (def:%u)\n"
+        "  -exec:<0/1/2/3>             The execution profile to use. (def:%u)\n"
         "  -uni:<####>                 The number of unidirectional streams to open locally. (def:0)\n"
         "  -bidi:<####>                The number of bidirectional streams to open locally. (def:0)\n"
-        "  -peer_uni:<####>            The number of unidirectional streams for the server to open. (def:0)\n"
-        "  -peer_bidi:<####>           The number of bidirectional streams for the server to open. (def:0)\n"
+        "  -peer_uni:<####>            The number of unidirectional streams for the peer to open. (def:0)\n"
+        "  -peer_bidi:<####>           The number of bidirectional streams for the peer to open. (def:0)\n"
         "  -length:<####>              The length of streams opened locally. (def:0)\n"
         "  -iosize:<####>              The size of each send request queued. (buffered def:%u) (nonbuffered def:%u)\n"
         "  -iocount:<####>             The number of outstanding send requests to queue per stream. (buffered def:%u) (nonbuffered def:%u)\n"
+        "  -datagrams:<####>           The number of datagrams to open locally. (def:0)\n"
+        "  -dlength:<####>             The max length of each datagram. (def:%u)\n"
         "  -timeout:<####>             Disconnect timeout for connection. (def:%u ms)\n"
         "  -idle:<####>                Idle timeout for connection. (def:%u ms)\n"
-        "  -key_bytes:<####>           The number of bytes encrypted per key.\n",
+        "  -key_bytes:<####>           The number of bytes encrypted per key.\n"
+        "  -selfsign:<0/1>             Use self signed test certificates.\n",
         DEFAULT_ALPN,
         DEFAULT_PORT,
         DEFAULT_USE_ENCRYPTION,
         DEFAULT_USE_SEND_BUF,
         DEFAULT_USE_PACING,
         DEFAULT_PRINT_STATISTICS,
+        DEFAULT_EXECUTION_PROFILE,
         DEFAULT_SEND_IO_SIZE_BUFFERED, DEFAULT_SEND_IO_SIZE_NONBUFFERED,
         DEFAULT_SEND_COUNT_BUFFERED, DEFAULT_SEND_COUNT_NONBUFFERED,
+        DEFAULT_DATAGRAM_MAX_LENGTH,
         DEFAULT_DISCONNECT_TIMEOUT,
         DEFAULT_IDLE_TIMEOUT);
 
@@ -104,13 +111,17 @@ ParseCommonCommands(
             printf("Running in Compartment %d\n", compartmentid);
         }
     }
+
+    uint8_t cpuCore;
+    if (TryGetValue(argc, argv, "core",  &cpuCore)) {
+        SetThreadAffinityMask(GetCurrentThread(), (DWORD_PTR)(1ull << cpuCore));
+    }
 #endif
 
     const char* alpn = DEFAULT_ALPN;
     TryGetValue(argc, argv, "alpn", &alpn);
-    strcpy(PingConfig.RawALPN, alpn);
-    PingConfig.ALPN.Buffer = (uint8_t*)PingConfig.RawALPN;
-    PingConfig.ALPN.Length = (uint32_t)strlen(PingConfig.RawALPN);
+    PingConfig.ALPN.Buffer = (uint8_t*)alpn;
+    PingConfig.ALPN.Length = (uint32_t)strlen(alpn);
 
     uint16_t port = DEFAULT_PORT;
     TryGetValue(argc, argv, "port", &port);
@@ -164,6 +175,14 @@ ParseCommonCommands(
     TryGetValue(argc, argv, "iocount", &ioCount);
     PingConfig.IoCount = ioCount;
 
+    uint64_t datagrams = 0;
+    TryGetValue(argc, argv, "datagrams", &datagrams);
+    PingConfig.LocalDatagramCount = datagrams;
+
+    uint16_t datagramMaxLength = DEFAULT_DATAGRAM_MAX_LENGTH;
+    TryGetValue(argc, argv, "dlength", &datagramMaxLength);
+    PingConfig.DatagramMaxLength = datagramMaxLength;
+
     uint32_t disconnectTimeout = DEFAULT_DISCONNECT_TIMEOUT;
     TryGetValue(argc, argv, "timeout", &disconnectTimeout);
     PingConfig.DisconnectTimeout = disconnectTimeout;
@@ -185,12 +204,12 @@ ParseCommonCommands(
         uint8_t value = FALSE;
         if (QUIC_FAILED(
             MsQuic->SetParam(
-                Registration,
-                QUIC_PARAM_LEVEL_REGISTRATION,
-                QUIC_PARAM_REGISTRATION_ENCRYPTION,
+                nullptr,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_ENCRYPTION,
                 sizeof(value),
                 &value))) {
-            printf("MsQuic->SetParam (REGISTRATION_ENCRYPTION) failed!\n");
+            printf("MsQuic->SetParam (GLOBAL_ENCRYPTION) failed!\n");
         }
     }
 }
@@ -203,51 +222,73 @@ ParseServerCommand(
 {
     PingConfig.ServerMode = true;
 
-    const char* localAddress;
+    const char* localAddress = nullptr;
     TryGetValue(argc, argv, "listen", &localAddress);
     if (!ConvertArgToAddress(localAddress, 0, &PingConfig.LocalIpAddr)) {
         printf("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", localAddress);
         return;
     }
 
-#if _WIN32
-    const char* certThumbprint;
-    if (!TryGetValue(argc, argv, "thumbprint", &certThumbprint)) {
-        printf("Must specify -thumbprint: for server mode.\n");
-        return;
-    }
-    const char* certStoreName;
-    if (!TryGetValue(argc, argv, "cert_store", &certStoreName)) {
-        SecurityConfig = GetSecConfigForThumbprint(MsQuic, Registration, certThumbprint);
-        if (SecurityConfig == nullptr) {
-            printf("Failed to create security configuration for thumbprint:'%s'.\n", certThumbprint);
-            return;
-        }
-    } else {
-        uint32_t machineCert = 0;
-        TryGetValue(argc, argv, "machine_cert", &machineCert);
-        QUIC_CERTIFICATE_HASH_STORE_FLAGS flags =
-            machineCert ? QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE : QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE;
+    QUIC_SEC_CONFIG_PARAMS* selfSignedCertParams = nullptr;
 
-        SecurityConfig = GetSecConfigForThumbprintAndStore(MsQuic, Registration, flags, certThumbprint, certStoreName);
-        if (SecurityConfig == nullptr) {
-            printf(
-                "Failed to create security configuration for thumbprint:'%s' and store: '%s'.\n",
-                certThumbprint,
-                certStoreName);
+    uint16_t useSelfSigned = 0;
+    if (!TryGetValue(argc, argv, "selfsign", &useSelfSigned)) {
+
+#if _WIN32
+        const char* certThumbprint;
+        if (!TryGetValue(argc, argv, "thumbprint", &certThumbprint)) {
+            printf("Must specify -thumbprint: for server mode.\n");
+            return;
+        }
+        const char* certStoreName;
+        if (!TryGetValue(argc, argv, "cert_store", &certStoreName)) {
+            SecurityConfig = GetSecConfigForThumbprint(MsQuic, Registration, certThumbprint);
+            if (SecurityConfig == nullptr) {
+                printf("Failed to create security configuration for thumbprint:'%s'.\n", certThumbprint);
+                return;
+            }
+        } else {
+            uint32_t machineCert = 0;
+            TryGetValue(argc, argv, "machine_cert", &machineCert);
+            QUIC_CERTIFICATE_HASH_STORE_FLAGS flags =
+                machineCert ? QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE : QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE;
+
+            SecurityConfig = GetSecConfigForThumbprintAndStore(MsQuic, Registration, flags, certThumbprint, certStoreName);
+            if (SecurityConfig == nullptr) {
+                printf(
+                    "Failed to create security configuration for thumbprint:'%s' and store: '%s'.\n",
+                    certThumbprint,
+                    certStoreName);
+                return;
+            }
+        }
+#else
+        // TODO - Support getting sec config on Linux.
+        printf("Loading sec config on Linux unsupported right now.\n");
+        return;
+#endif
+    } else {
+        selfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
+        if (!selfSignedCertParams) {
+            printf("Failed to create platform self signed certificate\n");
+            return;
+        }
+
+        SecurityConfig = GetSecConfigForSelfSigned(MsQuic, Registration, selfSignedCertParams);
+        if (!SecurityConfig) {
+            printf("Failed to create security config for self signed certificate\n");
+            QuicPlatFreeSelfSignedCert(selfSignedCertParams);
             return;
         }
     }
-#else
-    // TODO - Support getting sec config on Linux.
-    printf("Loading sec config on Linux unsupported right now.\n");
-    return;
-#endif
 
     ParseCommonCommands(argc, argv);
     QuicPingServerRun();
 
     MsQuic->SecConfigDelete(SecurityConfig);
+    if (selfSignedCertParams) {
+        QuicPlatFreeSelfSignedCert(selfSignedCertParams);
+    }
 }
 
 void
@@ -258,15 +299,13 @@ ParseClientCommand(
 {
     PingConfig.ServerMode = false;
 
-    const char* target;
-    TryGetValue(argc, argv, "target", &target);
-    strcpy(PingConfig.Client.Target, target);
+    TryGetValue(argc, argv, "target", &PingConfig.Client.Target);
 
     uint16_t ip;
     if (TryGetValue(argc, argv, "ip", &ip)) {
         switch (ip) {
-        case 4: PingConfig.Client.RemoteIpAddr.si_family = AF_INET; break;
-        case 6: PingConfig.Client.RemoteIpAddr.si_family = AF_INET6; break;
+        case 4: QuicAddrSetFamily(&PingConfig.Client.RemoteIpAddr, AF_INET); break;
+        case 6: QuicAddrSetFamily(&PingConfig.Client.RemoteIpAddr, AF_INET6); break;
         }
     }
 
@@ -278,7 +317,7 @@ ParseClientCommand(
             return;
         }
     }
-    
+
     const char* localAddress;
     if (TryGetValue(argc, argv, "bind", &localAddress)) {
         if (!ConvertArgToAddress(localAddress, 0, &PingConfig.LocalIpAddr)) {
@@ -291,10 +330,7 @@ ParseClientCommand(
     TryGetValue(argc, argv, "ver", &version);
     PingConfig.Client.Version = version;
 
-    const char* resume;
-    if (TryGetValue(argc, argv, "resume", &resume)) {
-        strcpy(PingConfig.Client.ResumeToken, resume);
-    }
+    TryGetValue(argc, argv, "resume", &PingConfig.Client.ResumeToken);
 
     uint32_t connections = DEFAULT_CLIENT_CONNECTION_COUNT;
     TryGetValue(argc, argv, "connections", &connections);
@@ -316,7 +352,8 @@ main(
     )
 {
     int ErrorCode = -1;
-    const QUIC_REGISTRATION_CONFIG RegConfig = { "quicping", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
+    uint16_t execProfile = DEFAULT_EXECUTION_PROFILE;
+    QUIC_REGISTRATION_CONFIG RegConfig = { "quicping", DEFAULT_EXECUTION_PROFILE };
 
     QuicPlatformSystemLoad();
     QuicPlatformInitialize();
@@ -330,6 +367,9 @@ main(
         printf("MsQuicOpen failed!\n");
         goto Error;
     }
+
+    TryGetValue(argc, argv, "exec", &execProfile);
+    RegConfig.ExecutionProfile = (QUIC_EXECUTION_PROFILE)execProfile;
 
     if (QUIC_FAILED(MsQuic->RegistrationOpen(&RegConfig, &Registration))) {
         printf("RegistrationOpen failed!\n");

@@ -367,24 +367,3 @@ QuicRangeGetMaxSafe(
     _In_ QUIC_RANGE* Range,
     _Out_ uint64_t* Value
     );
-
-//
-// Use for debugging purposes.
-//
-
-#if QUIC_TEST_MODE
-
-//
-// Some simple heuristics to try to make sure the range is valid.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicRangeValidate(
-    _In_ QUIC_RANGE* Range
-    );
-
-#else
-
-#define QuicRangeValidate(range) UNREFERENCED_PARAMETER(range)
-
-#endif

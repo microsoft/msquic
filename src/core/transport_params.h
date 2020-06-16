@@ -9,35 +9,44 @@ Abstract:
 
 --*/
 
-#define QUIC_TP_FLAG_INITIAL_MAX_DATA                       0x0001
-#define QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL       0x0002
-#define QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE      0x0004
-#define QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI              0x0008
-#define QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI                 0x0010
-#define QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI                  0x0020
-#define QUIC_TP_FLAG_MAX_PACKET_SIZE                        0x0040
-#define QUIC_TP_FLAG_ACK_DELAY_EXPONENT                     0x0080
-#define QUIC_TP_FLAG_STATELESS_RESET_TOKEN                  0x0100
-#define QUIC_TP_FLAG_PREFERRED_ADDRESS                      0x0200
-#define QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION               0x0400
-#define QUIC_TP_FLAG_IDLE_TIMEOUT                           0x0800
-#define QUIC_TP_FLAG_MAX_ACK_DELAY                          0x1000
-#define QUIC_TP_FLAG_ORIGINAL_CONNECTION_ID                 0x2000
-#define QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT             0x4000
+#define QUIC_TP_FLAG_INITIAL_MAX_DATA                       0x00000001
+#define QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL       0x00000002
+#define QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE      0x00000004
+#define QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI              0x00000008
+#define QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI                 0x00000010
+#define QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI                  0x00000020
+#define QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE                   0x00000040
+#define QUIC_TP_FLAG_ACK_DELAY_EXPONENT                     0x00000080
+#define QUIC_TP_FLAG_STATELESS_RESET_TOKEN                  0x00000100
+#define QUIC_TP_FLAG_PREFERRED_ADDRESS                      0x00000200
+#define QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION               0x00000400
+#define QUIC_TP_FLAG_IDLE_TIMEOUT                           0x00000800
+#define QUIC_TP_FLAG_MAX_ACK_DELAY                          0x00001000
+#define QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID     0x00002000
+#define QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT             0x00004000
+#define QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE                0x00008000
+#define QUIC_TP_FLAG_INITIAL_SOURCE_CONNECTION_ID           0x00010000
+#define QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID             0x00020000
 
-#define QUIC_TP_MAX_PACKET_SIZE_MIN     1200ull
-#define QUIC_TP_MAX_PACKET_SIZE_MAX     65527ull
+#define QUIC_TP_MAX_PACKET_SIZE_DEFAULT                     65527
+#define QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MIN                    1200
+#define QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MAX                    65527
 
-#define QUIC_TP_MAX_ACK_DELAY_DEFAULT   25 // ms
-#define QUIC_TP_MAX_ACK_DELAY_EXPONENT  20
-#define QUIC_TP_MAX_MAX_ACK_DELAY       ((1 << 14) - 1)
+#define QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT                  3
+#define QUIC_TP_ACK_DELAY_EXPONENT_MAX                      20
+
+#define QUIC_TP_MAX_ACK_DELAY_DEFAULT                       25 // ms
+#define QUIC_TP_MAX_ACK_DELAY_MAX                           ((1 << 14) - 1)
+
+#define QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_DEFAULT          2
+#define QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN              2
 
 //
 // Max allowed value of a MAX_STREAMS frame or transport parameter.
 // Any larger value would allow a max stream ID that cannot be expressed
 // as a variable-length integer.
 //
-#define QUIC_TP_MAX_MAX_STREAMS         ((1ULL << 60) - 1)
+#define QUIC_TP_MAX_STREAMS_MAX                             ((1ULL << 60) - 1)
 
 //
 // The configuration parameters that QUIC exchanges in the TLS handshake.
@@ -58,11 +67,8 @@ typedef struct QUIC_TRANSPORT_PARAMETERS {
     //
     // The initial per-stream max data flow control value.
     //
-    _In_range_(0, QUIC_TP_MAX_MAX_STREAMS)
     QUIC_VAR_INT InitialMaxStreamDataBidiLocal;
-    _In_range_(0, QUIC_TP_MAX_MAX_STREAMS)
     QUIC_VAR_INT InitialMaxStreamDataBidiRemote;
-    _In_range_(0, QUIC_TP_MAX_MAX_STREAMS)
     QUIC_VAR_INT InitialMaxStreamDataUni;
 
     //
@@ -73,25 +79,27 @@ typedef struct QUIC_TRANSPORT_PARAMETERS {
     //
     // The initial maximum number of bi-directional streams allowed.
     //
+    _Field_range_(0, QUIC_TP_MAX_STREAMS_MAX)
     QUIC_VAR_INT InitialMaxBidiStreams;
 
     //
     // The initial maximum number of uni-directional streams allowed.
     //
+    _Field_range_(0, QUIC_TP_MAX_STREAMS_MAX)
     QUIC_VAR_INT InitialMaxUniStreams;
 
     //
-    // The maximum size, in bytes, the receiver is willing to receive. Valid
-    // values are between 1200 and 65527, inclusive. Limit only applied to
-    // protected packets.
+    // The maximum UDP payload size, in bytes, the receiver is willing to
+    // receive. Valid values are between 1200 and 65527, inclusive.
     //
-    _Field_range_(QUIC_TP_MAX_PACKET_SIZE_MIN, QUIC_TP_MAX_PACKET_SIZE_MAX)
-    QUIC_VAR_INT MaxPacketSize;
+    _Field_range_(QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MIN, QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MAX)
+    QUIC_VAR_INT MaxUdpPayloadSize;
 
     //
     // Indicates the exponent used to decode the ACK Delay field in the ACK
     // frame. If not present, a default value of 3 is assumed.
     //
+    _Field_range_(0, QUIC_TP_ACK_DELAY_EXPONENT_MAX)
     QUIC_VAR_INT AckDelayExponent;
 
     //
@@ -99,15 +107,31 @@ typedef struct QUIC_TRANSPORT_PARAMETERS {
     // delay sending of acknowledgments. If this value is absent, a default of
     // 25 milliseconds is assumed.
     //
+    _Field_range_(0, QUIC_TP_MAX_ACK_DELAY_MAX)
     QUIC_VAR_INT MaxAckDelay;
 
     //
     // The maximum number connection IDs from the peer that an endpoint is
     // willing to store. This value includes only connection IDs sent in
-    // NEW_CONNECTION_ID frames. If this parameter is absent, a default of 0 is
+    // NEW_CONNECTION_ID frames. If this parameter is absent, a default of 2 is
     // assumed.
     //
+    _Field_range_(QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN, QUIC_VAR_INT_MAX)
     QUIC_VAR_INT ActiveConnectionIdLimit;
+
+    //
+    // The maximum size of a DATAGRAM frame (including the frame type, length,
+    // and payload) the endpoint is willing to receive, in bytes.
+    //
+    QUIC_VAR_INT MaxDatagramFrameSize;
+
+    //
+    // The value that the endpoint included in the Source Connection ID field
+    // of the first Initial packet it sends for the connection.
+    //
+    uint8_t InitialSourceConnectionID[QUIC_MAX_CONNECTION_ID_LENGTH_V1];
+    _Field_range_(0, QUIC_MAX_CONNECTION_ID_LENGTH_V1)
+    uint8_t InitialSourceConnectionIDLength;
 
     //
     // Server specific.
@@ -125,11 +149,20 @@ typedef struct QUIC_TRANSPORT_PARAMETERS {
 
     //
     // The value of the Destination Connection ID field from the first Initial
-    // packet sent by the client.
+    // packet sent by the client. This transport parameter is only sent by a
+    // server.
     //
-    uint8_t OriginalConnectionID[QUIC_MAX_CONNECTION_ID_LENGTH_V1];
+    uint8_t OriginalDestinationConnectionID[QUIC_MAX_CONNECTION_ID_LENGTH_V1];
     _Field_range_(0, QUIC_MAX_CONNECTION_ID_LENGTH_V1)
-    uint8_t OriginalConnectionIDLength;
+    uint8_t OriginalDestinationConnectionIDLength;
+
+    //
+    // The value that the server included in the Source Connection ID field
+    // of a Retry packet.
+    //
+    uint8_t RetrySourceConnectionID[QUIC_MAX_CONNECTION_ID_LENGTH_V1];
+    _Field_range_(0, QUIC_MAX_CONNECTION_ID_LENGTH_V1)
+    uint8_t RetrySourceConnectionIDLength;
 
 } QUIC_TRANSPORT_PARAMETERS;
 

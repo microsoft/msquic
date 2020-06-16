@@ -235,13 +235,15 @@ QuicTestValidateConnectionEvents1(
 {
     ConnValidator Client(
         new ConnEventValidator* [4] {
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         }
     );
     ConnValidator Server(
-        new ConnEventValidator* [4] {
+        new ConnEventValidator* [5] {
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
@@ -277,8 +279,9 @@ QuicTestValidateConnectionEvents1(
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
-            ServerLocalAddr.SockAddr.si_family,
-            QUIC_LOCALHOST_FOR_AF(ServerLocalAddr.SockAddr.si_family),
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QUIC_LOCALHOST_FOR_AF(
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
 
     TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
@@ -294,6 +297,7 @@ QuicTestValidateConnectionEvents2(
 {
     ConnValidator Client(
         new ConnEventValidator* [5] {
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
@@ -301,7 +305,8 @@ QuicTestValidateConnectionEvents2(
         }
     );
     ConnValidator Server(
-        new ConnEventValidator* [3] {
+        new ConnEventValidator* [4] {
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
@@ -336,8 +341,9 @@ QuicTestValidateConnectionEvents2(
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
-            ServerLocalAddr.SockAddr.si_family,
-            QUIC_LOCALHOST_FOR_AF(ServerLocalAddr.SockAddr.si_family),
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QUIC_LOCALHOST_FOR_AF(
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
 
     TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
@@ -360,7 +366,7 @@ void QuicTestValidateConnectionEvents()
             nullptr,
             &Listener.Handle));
     TEST_QUIC_SUCCEEDED(MsQuic->ListenerStart(Listener.Handle, nullptr));
-    
+
     QuicAddr ServerLocalAddr;
     uint32_t ServerLocalAddrSize = sizeof(ServerLocalAddr.SockAddr);
     TEST_QUIC_SUCCEEDED(
@@ -438,13 +444,15 @@ QuicTestValidateStreamEvents1(
     Client.SetExpectedEvents(
         new ConnEventValidator* [6] {
             new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE),
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         });
     Server.SetExpectedEvents(
-        new ConnEventValidator* [5] {
+        new ConnEventValidator* [6] {
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
             new NewStreamEventValidator(&ServerStream),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
@@ -472,8 +480,9 @@ QuicTestValidateStreamEvents1(
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
-            ServerLocalAddr.SockAddr.si_family,
-            QUIC_LOCALHOST_FOR_AF(ServerLocalAddr.SockAddr.si_family),
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QUIC_LOCALHOST_FOR_AF(
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
 
     TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
@@ -537,13 +546,15 @@ QuicTestValidateStreamEvents2(
         new ConnEventValidator* [7] {
             new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         });
     Server.SetExpectedEvents(
-        new ConnEventValidator* [4] {
+        new ConnEventValidator* [5] {
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
@@ -565,8 +576,9 @@ QuicTestValidateStreamEvents2(
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
-            ServerLocalAddr.SockAddr.si_family,
-            QUIC_LOCALHOST_FOR_AF(ServerLocalAddr.SockAddr.si_family),
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QUIC_LOCALHOST_FOR_AF(
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
 
     TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
@@ -601,7 +613,7 @@ void QuicTestValidateStreamEvents()
             nullptr,
             &Listener.Handle));
     TEST_QUIC_SUCCEEDED(MsQuic->ListenerStart(Listener.Handle, nullptr));
-    
+
     QuicAddr ServerLocalAddr;
     uint32_t ServerLocalAddrSize = sizeof(ServerLocalAddr.SockAddr);
     TEST_QUIC_SUCCEEDED(

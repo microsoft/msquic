@@ -16,50 +16,6 @@ Abstract:
 
 uint8_t* QuicPingRawIoBuffer = nullptr;
 
-struct PingSendRequest {
-
-    QUIC_SEND_FLAGS Flags;
-    QUIC_BUFFER QuicBuffer;
-    bool DeleteBufferOnDestruction;
-
-    PingSendRequest(
-        ) {
-        DeleteBufferOnDestruction = false;
-        Flags = QUIC_SEND_FLAG_ALLOW_0_RTT;
-        QuicBuffer.Buffer = QuicPingRawIoBuffer;
-        QuicBuffer.Length = 0;
-    }
-
-    PingSendRequest(
-        const uint8_t * buffer,
-        uint32_t bufferSize
-        ) {
-        DeleteBufferOnDestruction = true;
-        Flags = QUIC_SEND_FLAG_NONE;
-        QuicBuffer.Buffer = new uint8_t[bufferSize];
-        QuicBuffer.Length = bufferSize;
-        if (buffer) {
-            memcpy((uint8_t*)QuicBuffer.Buffer, buffer, bufferSize);
-        }
-    }
-
-    void SetLength(uint64_t BytesLeftToSend) {
-        if (BytesLeftToSend > PingConfig.IoSize) {
-            QuicBuffer.Length = PingConfig.IoSize;
-        } else {
-            Flags |= QUIC_SEND_FLAG_FIN;
-            QuicBuffer.Length = (uint32_t)BytesLeftToSend;
-        }
-    }
-
-    ~PingSendRequest(
-        ) {
-        if (DeleteBufferOnDestruction) {
-            delete[] QuicBuffer.Buffer;
-        }
-    }
-};
-
 PingStream::PingStream(
     _In_ PingConnection *connection,
     _In_ PingStreamMode mode

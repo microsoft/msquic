@@ -94,6 +94,66 @@ class WithHandshakeArgs2 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs2> {
 };
 
+struct HandshakeArgs3 {
+    int Family;
+    bool ServerStatelessRetry;
+    bool MultipleALPNs;
+    static ::std::vector<HandshakeArgs3> Generate() {
+        ::std::vector<HandshakeArgs3> list;
+        for (int Family : { 4, 6})
+        for (bool ServerStatelessRetry : { false, true })
+        for (bool MultipleALPNs : { false, true })
+            list.push_back({ Family, ServerStatelessRetry, MultipleALPNs });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs3& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
+        (args.MultipleALPNs ? "MultipleALPNs" : "SingleALPN");
+}
+
+class WithHandshakeArgs3 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs3> {
+};
+
+struct HandshakeArgs4 {
+    int Family;
+    bool ServerStatelessRetry;
+    bool MultiPacketClientInitial;
+    bool SessionResumption;
+    uint8_t RandomLossPercentage;
+    static ::std::vector<HandshakeArgs4> Generate() {
+        ::std::vector<HandshakeArgs4> list;
+        for (int Family : { 4, 6})
+        for (bool ServerStatelessRetry : { false, true })
+        for (bool MultiPacketClientInitial : { false, true })
+#ifdef QUIC_DISABLE_RESUMPTION
+        for (bool SessionResumption : { false })
+#else
+        for (bool SessionResumption : { false, true })
+#endif
+        for (uint8_t RandomLossPercentage : { 1, 5, 10 })
+            list.push_back({ Family, ServerStatelessRetry, MultiPacketClientInitial, SessionResumption, RandomLossPercentage });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs4& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
+        (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial") << "/" <<
+        (args.SessionResumption ? "Resume" : "NoResume") << "/" <<
+        (uint32_t)args.RandomLossPercentage << "% loss";
+}
+
+class WithHandshakeArgs4 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs4> {
+};
+
 struct SendArgs1 {
     int Family;
     uint64_t Length;
@@ -375,6 +435,28 @@ class WithReceiveResumeNoDataArgs : public testing::Test,
     public testing::WithParamInterface<ReceiveResumeNoDataArgs> {
 };
 
+struct DatagramNegotiationArgs {
+    int Family;
+    bool DatagramReceiveEnabled;
+    static ::std::vector<DatagramNegotiationArgs> Generate() {
+        ::std::vector<DatagramNegotiationArgs> list;
+        for (int Family : { 4, 6 })
+        for (bool DatagramReceiveEnabled : { false, true })
+            list.push_back({ Family, DatagramReceiveEnabled });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const DatagramNegotiationArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.DatagramReceiveEnabled ? "DatagramReceiveEnabled" : "DatagramReceiveDisabled");
+}
+
+class WithDatagramNegotiationArgs : public testing::Test,
+    public testing::WithParamInterface<DatagramNegotiationArgs> {
+};
+
 struct DrillInitialPacketCidArgs {
     int Family;
     bool SourceOrDest;
@@ -446,7 +528,11 @@ public:
         ScmHandle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
         if (ScmHandle == nullptr) {
             Error = GetLastError();
-            QuicTraceLogError("[test] GetFullPathName failed, 0x%x.", Error);
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Error,
+                "GetFullPathName failed");
             return false;
         }
     QueryService:
@@ -456,7 +542,11 @@ public:
                 QUIC_TEST_DRIVER_NAME,
                 SERVICE_ALL_ACCESS);
         if (ServiceHandle == nullptr) {
-            QuicTraceLogError("[test] OpenService failed, 0x%x.", GetLastError());
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                 GetLastError(),
+                "OpenService failed");
             char DriverFilePath[MAX_PATH];
             Error =
                 GetFullPathNameA(
@@ -466,7 +556,11 @@ public:
                     nullptr);
             if (Error == 0) {
                 Error = GetLastError();
-                QuicTraceLogError("[test] GetFullPathName failed, 0x%x.", Error);
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    Error,
+                    "GetFullPathName failed");
                 return false;
             }
             ServiceHandle =
@@ -489,7 +583,11 @@ public:
                 if (Error == ERROR_SERVICE_EXISTS) {
                     goto QueryService;
                 }
-                QuicTraceLogError("[test] CreateService failed, 0x%x.", Error);
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    Error,
+                    "CreateService failed");
                 return false;
             }
         }
@@ -507,7 +605,11 @@ public:
         if (!StartServiceA(ServiceHandle, 0, nullptr)) {
             uint32_t Error = GetLastError();
             if (Error != ERROR_SERVICE_ALREADY_RUNNING) {
-                QuicTraceLogError("[test] StartService failed, 0x%x.", Error);
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    Error,
+                    "StartService failed");
                 return false;
             }
         }
@@ -547,13 +649,20 @@ public:
                 nullptr);
         if (DeviceHandle == INVALID_HANDLE_VALUE) {
             Error = GetLastError();
-            QuicTraceLogError("[test] CreateFile failed, 0x%x.", Error);
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Error,
+                "CreateFile failed");
             return false;
         }
         if (!Run(IOCTL_QUIC_SEC_CONFIG, SecConfigParams->Thumbprint, sizeof(SecConfigParams->Thumbprint), 30000)) {
             CloseHandle(DeviceHandle);
             DeviceHandle = INVALID_HANDLE_VALUE;
-            QuicTraceLogError("[test] Run(IOCTL_QUIC_SEC_CONFIG) failed.");
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Run(IOCTL_QUIC_SEC_CONFIG) failed");
             return false;
         }
         return true;
@@ -575,11 +684,18 @@ public:
         Overlapped.hEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
         if (Overlapped.hEvent == nullptr) {
             Error = GetLastError();
-            QuicTraceLogError("[test] CreateEvent failed, 0x%x.", Error);
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Error,
+                "CreateEvent failed");
             return false;
         }
-        QuicTraceLogVerbose("[test] Sending IOCTL %u with %u bytes.",
-            IoGetFunctionCodeFromCtlCode(IoControlCode), InBufferSize);
+        QuicTraceLogVerbose(
+            TestSendIoctl,
+            "[test] Sending IOCTL %u with %u bytes.",
+            IoGetFunctionCodeFromCtlCode(IoControlCode),
+            InBufferSize);
         if (!DeviceIoControl(
                 DeviceHandle,
                 IoControlCode,
@@ -590,7 +706,11 @@ public:
             Error = GetLastError();
             if (Error != ERROR_IO_PENDING) {
                 CloseHandle(Overlapped.hEvent);
-                QuicTraceLogError("[test] DeviceIoControl failed, 0x%x.", Error);
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    Error,
+                    "DeviceIoControl failed");
                 return false;
             }
         }
@@ -606,7 +726,11 @@ public:
                 Error = ERROR_TIMEOUT;
                 CancelIoEx(DeviceHandle, &Overlapped);
             }
-            QuicTraceLogError("[test] GetOverlappedResultEx failed, 0x%x.", Error);
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Error,
+                "GetOverlappedResultEx failed");
         } else {
             Error = ERROR_SUCCESS;
         }

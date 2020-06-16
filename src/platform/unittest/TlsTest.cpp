@@ -9,10 +9,6 @@
 #include "msquic.h"
 #include "quic_tls.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "tlstest.tmh"
-#endif
-
 const uint32_t CertValidationIgnoreFlags =
     QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
     QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID;
@@ -105,6 +101,7 @@ protected:
     struct TlsContext
     {
         QUIC_TLS* Ptr;
+        QUIC_SEC_CONFIG* ClientConfig;
         QUIC_EVENT ProcessCompleteEvent;
 
         QUIC_TLS_PROCESS_STATE State;
@@ -115,6 +112,7 @@ protected:
 
         TlsContext() :
             Ptr(nullptr),
+            ClientConfig(nullptr),
             Connected(false) {
             QuicEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
             QuicZeroMemory(&State, sizeof(State));
@@ -124,6 +122,9 @@ protected:
 
         ~TlsContext() {
             QuicTlsUninitialize(Ptr);
+            if (ClientConfig != nullptr) {
+                QuicTlsSecConfigRelease(ClientConfig);
+            }
             QuicEventUninitialize(ProcessCompleteEvent);
             QUIC_FREE(State.Buffer);
             for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
@@ -163,7 +164,7 @@ protected:
 
         void InitializeClient(
             TlsSession& Session,
-            QUIC_SEC_CONFIG* ClientConfig,
+            QUIC_SEC_CONFIG* SecConfig,
             bool MultipleAlpns = false,
             uint16_t TPLen = 64
             )
@@ -171,7 +172,7 @@ protected:
             QUIC_TLS_CONFIG Config = {0};
             Config.IsServer = FALSE;
             Config.TlsSession = Session.Ptr;
-            Config.SecConfig = ClientConfig;
+            Config.SecConfig = SecConfig;
             Config.AlpnBuffer = MultipleAlpns ? MultiAlpn : Alpn;
             Config.AlpnBufferLength = MultipleAlpns ? sizeof(MultiAlpn) : sizeof(Alpn);
             Config.LocalTPBuffer =
@@ -194,7 +195,6 @@ protected:
             bool MultipleAlpns = false
             )
         {
-            QUIC_SEC_CONFIG* ClientConfig;
             QuicTlsClientSecConfigCreate(
                 CertValidationIgnoreFlags, &ClientConfig);
             InitializeClient(Session, ClientConfig, MultipleAlpns);
@@ -258,6 +258,7 @@ protected:
             auto Result =
                 QuicTlsProcessData(
                     Ptr,
+                    QUIC_TLS_CRYPTO_DATA,
                     Buffer,
                     BufferLength,
                     &State);

@@ -42,6 +42,7 @@ typedef enum QUIC_API_TYPE {
     QUIC_API_TYPE_CONN_CLOSE,
     QUIC_API_TYPE_CONN_SHUTDOWN,
     QUIC_API_TYPE_CONN_START,
+    QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET,
 
     QUIC_API_TYPE_STRM_CLOSE,
     QUIC_API_TYPE_STRM_SHUTDOWN,
@@ -51,7 +52,9 @@ typedef enum QUIC_API_TYPE {
     QUIC_API_TYPE_STRM_RECV_SET_ENABLED,
 
     QUIC_API_TYPE_SET_PARAM,
-    QUIC_API_TYPE_GET_PARAM
+    QUIC_API_TYPE_GET_PARAM,
+
+    QUIC_API_TYPE_DATAGRAM_SEND,
 
 } QUIC_API_TYPE;
 
@@ -94,6 +97,11 @@ typedef struct QUIC_API_CONTEXT {
             uint16_t ServerPort;
             QUIC_ADDRESS_FAMILY Family;
         } CONN_START;
+        struct {
+            QUIC_SEND_RESUMPTION_FLAGS Flags;
+            uint8_t* ResumptionAppData;
+            uint16_t AppDataLength;
+        } CONN_SEND_RESUMPTION_TICKET;
 
         struct {
             QUIC_STREAM_OPEN_FLAGS Flags;
@@ -225,13 +233,25 @@ QuicOperLog(
     UNREFERENCED_PARAMETER(Connection);
     switch (Oper->Type) {
         case QUIC_OPER_TYPE_API_CALL:
-            QuicTraceEvent(ConnExecApiOper, Connection, Oper->API_CALL.Context->Type);
+            QuicTraceEvent(
+                ConnExecApiOper,
+                "[conn][%p] Execute: %u",
+                Connection,
+                Oper->API_CALL.Context->Type);
             break;
         case QUIC_OPER_TYPE_TIMER_EXPIRED:
-            QuicTraceEvent(ConnExecTimerOper, Connection, Oper->TIMER_EXPIRED.Type);
+            QuicTraceEvent(
+                ConnExecTimerOper,
+                "[conn][%p] Execute: %u",
+                Connection,
+                Oper->TIMER_EXPIRED.Type);
             break;
         default:
-            QuicTraceEvent(ConnExecOper, Connection, Oper->Type);
+            QuicTraceEvent(
+                ConnExecOper,
+                "[conn][%p] Execute: %u",
+                Connection,
+                Oper->Type);
             break;
     }
 }

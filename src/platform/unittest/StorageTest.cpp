@@ -16,10 +16,6 @@
 
 #include "quic_trace.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "storagetest.tmh"
-#endif
-
 using namespace WEX::Common;
 
 #define VERIFY_QUIC_SUCCESS(result, ...) VERIFY_ARE_EQUAL(QUIC_STATUS_SUCCESS, result, __VA_ARGS__)

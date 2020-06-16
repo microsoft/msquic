@@ -11,10 +11,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "api.tmh"
-#endif
-
 #define IS_SESSION_HANDLE(Handle) \
 ( \
     (Handle) != NULL && (Handle)->Type == QUIC_HANDLE_TYPE_SESSION \
@@ -46,7 +42,9 @@ MsQuicConnectionOpen(
     QUIC_SESSION* Session;
     QUIC_CONNECTION* Connection = NULL;
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_CONNECTION_OPEN,
         SessionHandle);
 
@@ -74,7 +72,10 @@ MsQuicConnectionOpen(
 
 Error:
 
-    QuicTraceEvent(ApiExitStatus, Status);
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
 
     return Status;
 }
@@ -93,7 +94,9 @@ MsQuicConnectionClose(
 
     QUIC_PASSIVE_CODE();
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_CONNECTION_CLOSE,
         Handle);
 
@@ -132,7 +135,9 @@ MsQuicConnectionClose(
         // Queue the operation and wait for it to be processed.
         //
         QuicConnQueueOper(Connection, &Oper);
-        QuicTraceEvent(ApiWaitOperation);
+        QuicTraceEvent(
+            ApiWaitOperation,
+            "[ api] Waiting on operation");
         QuicEventWaitForever(CompletionEvent);
         QuicEventUninitialize(CompletionEvent);
     }
@@ -150,7 +155,9 @@ MsQuicConnectionClose(
 
 Error:
 
-    QuicTraceEvent(ApiExit);
+    QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
 }
 #pragma warning(pop)
 
@@ -166,7 +173,9 @@ MsQuicConnectionShutdown(
     QUIC_CONNECTION* Connection;
     QUIC_OPERATION* Oper;
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_CONNECTION_SHUTDOWN,
         Handle);
 
@@ -212,7 +221,9 @@ MsQuicConnectionShutdown(
 
 Error:
 
-    QuicTraceEvent(ApiExit);
+    QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -233,7 +244,9 @@ MsQuicConnectionStart(
 
     QUIC_PASSIVE_CODE();
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_CONNECTION_START,
         Handle);
 
@@ -291,7 +304,11 @@ MsQuicConnectionStart(
         ServerNameCopy = QUIC_ALLOC_NONPAGED(ServerNameLength + 1);
         if (ServerNameCopy == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
-            QuicTraceEvent(AllocFailure, "Server name", ServerNameLength + 1);
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Server name",
+                ServerNameLength + 1);
             goto Error;
         }
 
@@ -304,13 +321,18 @@ MsQuicConnectionStart(
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "CONN_START operation", 0);
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CONN_START operation",
+            0);
         goto Error;
     }
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_START;
     Oper->API_CALL.Context->CONN_START.ServerName = ServerNameCopy;
     Oper->API_CALL.Context->CONN_START.ServerPort = ServerPort;
     Oper->API_CALL.Context->CONN_START.Family = Family;
+    ServerNameCopy = NULL;
 
     //
     // Queue the operation but don't wait for the completion.
@@ -320,7 +342,117 @@ MsQuicConnectionStart(
 
 Error:
 
-    QuicTraceEvent(ApiExitStatus, Status);
+    if (ServerNameCopy != NULL) {
+        QUIC_FREE(ServerNameCopy);
+    }
+
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+
+    return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionSendResumptionTicket(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ QUIC_SEND_RESUMPTION_FLAGS Flags,
+    _In_ uint16_t DataLength,
+    _In_reads_bytes_opt_(DataLength)
+        const uint8_t* ResumptionData
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_CONNECTION* Connection;
+    QUIC_OPERATION* Oper;
+    uint8_t* ResumptionDataCopy = NULL;
+
+    QUIC_PASSIVE_CODE();
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_CONNECTION_SEND_RESUMPTION_TICKET,
+        Handle);
+
+    if (DataLength > QUIC_MAX_RESUMPTION_APP_DATA_LENGTH ||
+        (ResumptionData == NULL && DataLength != 0)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    if (IS_CONN_HANDLE(Handle)) {
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+        Connection = (QUIC_CONNECTION*)Handle;
+    } else {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
+    QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
+
+    if (!QuicConnIsServer(Connection)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    if (!Connection->State.ResumptionEnabled ||
+        !Connection->State.Connected ||
+        !Connection->Crypto.TlsState.HandshakeComplete) {
+        Status = QUIC_STATUS_INVALID_STATE; // TODO - Support queueing up the ticket to send once connected.
+        goto Error;
+    }
+
+    if (DataLength > 0) {
+        ResumptionDataCopy = QUIC_ALLOC_NONPAGED(DataLength);
+        if (ResumptionDataCopy == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Resumption data copy",
+                DataLength);
+            goto Error;
+        }
+        QuicCopyMemory(ResumptionDataCopy, ResumptionData, DataLength);
+    }
+
+    Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+    if (Oper == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CONN_SEND_RESUMPTION_TICKET operation",
+            0);
+        goto Error;
+    }
+    Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET;
+    Oper->API_CALL.Context->CONN_SEND_RESUMPTION_TICKET.Flags = Flags;
+    Oper->API_CALL.Context->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData = ResumptionDataCopy;
+    Oper->API_CALL.Context->CONN_SEND_RESUMPTION_TICKET.AppDataLength = DataLength;
+
+    //
+    // Queue the operation but don't wait for the completion.
+    //
+    QuicConnQueueOper(Connection, Oper);
+    Status = QUIC_STATUS_SUCCESS;
+    ResumptionDataCopy = NULL;
+
+Error:
+
+    if (ResumptionDataCopy != NULL) {
+        QUIC_FREE(ResumptionDataCopy);
+    }
+
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
 
     return Status;
 }
@@ -340,7 +472,9 @@ MsQuicStreamOpen(
     QUIC_STATUS Status;
     QUIC_CONNECTION* Connection;
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_STREAM_OPEN,
         Handle);
 
@@ -377,7 +511,10 @@ MsQuicStreamOpen(
 
 Error:
 
-    QuicTraceEvent(ApiExitStatus, Status);
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
 
     return Status;
 }
@@ -397,7 +534,9 @@ MsQuicStreamClose(
 
     QUIC_PASSIVE_CODE();
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_STREAM_CLOSE,
         Handle);
 
@@ -458,14 +597,18 @@ MsQuicStreamClose(
         // Queue the operation and wait for it to be processed.
         //
         QuicConnQueueOper(Connection, &Oper);
-        QuicTraceEvent(ApiWaitOperation);
+        QuicTraceEvent(
+            ApiWaitOperation,
+            "[ api] Waiting on operation");
         QuicEventWaitForever(CompletionEvent);
         QuicEventUninitialize(CompletionEvent);
     }
 
 Error:
 
-    QuicTraceEvent(ApiExit);
+    QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
 }
 #pragma warning(pop)
 
@@ -481,7 +624,9 @@ MsQuicStreamStart(
     QUIC_STREAM* Stream;
     QUIC_CONNECTION* Connection;
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_STREAM_START,
         Handle);
 
@@ -517,7 +662,11 @@ MsQuicStreamStart(
             QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
         if (Oper == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
-            QuicTraceEvent(AllocFailure, "STRM_START operation", 0);
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "STRM_START operation",
+                0);
             goto Exit;
         }
         Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_START;
@@ -560,14 +709,19 @@ MsQuicStreamStart(
         // Queue the operation and wait for it to be processed.
         //
         QuicConnQueueOper(Connection, &Oper);
-        QuicTraceEvent(ApiWaitOperation);
+        QuicTraceEvent(
+            ApiWaitOperation,
+            "[ api] Waiting on operation");
         QuicEventWaitForever(CompletionEvent);
         QuicEventUninitialize(CompletionEvent);
     }
 
 Exit:
 
-    QuicTraceEvent(ApiExitStatus, Status);
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
 
     return Status;
 }
@@ -586,7 +740,9 @@ MsQuicStreamShutdown(
     QUIC_CONNECTION* Connection;
     QUIC_OPERATION* Oper;
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_STREAM_SHUTDOWN,
         Handle);
 
@@ -637,7 +793,11 @@ MsQuicStreamShutdown(
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "STRM_SHUTDOWN operation", 0);
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "STRM_SHUTDOWN operation",
+            0);
         goto Error;
     }
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_SHUTDOWN;
@@ -660,7 +820,10 @@ MsQuicStreamShutdown(
 
 Error:
 
-    QuicTraceEvent(ApiExitStatus, Status);
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
 
     return Status;
 }
@@ -685,7 +848,9 @@ MsQuicStreamSend(
     BOOLEAN QueueOper = TRUE;
     QUIC_OPERATION* Oper;
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_STREAM_SEND,
         Handle);
 
@@ -715,7 +880,11 @@ MsQuicStreamSend(
     }
 
     if (TotalLength > UINT32_MAX) {
-        QuicTraceEvent(StreamError, Stream, "Send request total length exceeds max");
+        QuicTraceEvent(
+            StreamError,
+            "[strm][%p] ERROR, %s.",
+            Stream,
+            "Send request total length exceeds max");
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
@@ -729,7 +898,11 @@ MsQuicStreamSend(
     SendRequest = QuicPoolAlloc(&Connection->Worker->SendRequestPool);
     if (SendRequest == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "Stream Send request", 0);
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Stream Send request",
+            0);
         goto Exit;
     }
 
@@ -763,7 +936,11 @@ MsQuicStreamSend(
         Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
         if (Oper == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
-            QuicTraceEvent(AllocFailure, "STRM_SEND operation", 0);
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "STRM_SEND operation",
+                0);
             goto Exit;
         }
         Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_SEND;
@@ -786,7 +963,10 @@ MsQuicStreamSend(
 
 Exit:
 
-    QuicTraceEvent(ApiExitStatus, Status);
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
 
     return Status;
 }
@@ -804,7 +984,9 @@ MsQuicStreamReceiveSetEnabled(
     QUIC_CONNECTION* Connection;
     QUIC_OPERATION* Oper;
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_STREAM_RECEIVE_SET_ENABLED,
         Handle);
 
@@ -829,7 +1011,11 @@ MsQuicStreamReceiveSetEnabled(
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "STRM_RECV_SET_ENABLED, operation", 0);
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "STRM_RECV_SET_ENABLED, operation",
+            0);
         goto Error;
     }
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_RECV_SET_ENABLED;
@@ -851,7 +1037,10 @@ MsQuicStreamReceiveSetEnabled(
 
 Error:
 
-    QuicTraceEvent(ApiExitStatus, Status);
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
 
     return Status;
 }
@@ -869,7 +1058,9 @@ MsQuicStreamReceiveComplete(
     QUIC_CONNECTION* Connection;
     QUIC_OPERATION* Oper;
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_STREAM_RECEIVE_COMPLETE,
         Handle);
 
@@ -899,7 +1090,11 @@ MsQuicStreamReceiveComplete(
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(AllocFailure, "STRM_RECV_COMPLETE operation", 0);
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "STRM_RECV_COMPLETE operation",
+            0);
         goto Exit;
     }
 
@@ -922,7 +1117,10 @@ MsQuicStreamReceiveComplete(
 
 Exit:
 
-    QuicTraceEvent(ApiExitStatus, Status);
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
 
     return Status;
 }
@@ -931,7 +1129,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicSetParam(
-    _In_ _Pre_defensive_ HQUIC Handle,
+    _When_(Level == QUIC_PARAM_LEVEL_GLOBAL, _Reserved_)
+    _When_(Level != QUIC_PARAM_LEVEL_GLOBAL, _In_ _Pre_defensive_)
+        HQUIC Handle,
     _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
@@ -941,15 +1141,25 @@ MsQuicSetParam(
 {
     QUIC_PASSIVE_CODE();
 
-    if (Handle == NULL) {
+    if ((Handle == NULL) ^ (Level == QUIC_PARAM_LEVEL_GLOBAL)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_SET_PARAM,
         Handle);
 
     QUIC_STATUS Status;
+
+    if (Level == QUIC_PARAM_LEVEL_GLOBAL) {
+        //
+        // Global parameters are processed inline.
+        //
+        Status = QuicLibrarySetGlobalParam(Param, BufferLength, Buffer);
+        goto Error;
+    }
 
     if (Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION ||
         Handle->Type == QUIC_HANDLE_TYPE_SESSION ||
@@ -1009,13 +1219,18 @@ MsQuicSetParam(
     // Queue the operation and wait for it to be processed.
     //
     QuicConnQueueOper(Connection, &Oper);
-    QuicTraceEvent(ApiWaitOperation);
+    QuicTraceEvent(
+        ApiWaitOperation,
+        "[ api] Waiting on operation");
     QuicEventWaitForever(CompletionEvent);
     QuicEventUninitialize(CompletionEvent);
 
 Error:
 
-    QuicTraceEvent(ApiExitStatus, Status);
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
 
     return Status;
 }
@@ -1024,7 +1239,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicGetParam(
-    _In_ _Pre_defensive_ HQUIC Handle,
+    _When_(Level == QUIC_PARAM_LEVEL_GLOBAL, _Reserved_)
+    _When_(Level != QUIC_PARAM_LEVEL_GLOBAL, _In_ _Pre_defensive_)
+        HQUIC Handle,
     _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _Inout_ _Pre_defensive_ uint32_t* BufferLength,
@@ -1034,15 +1251,26 @@ MsQuicGetParam(
 {
     QUIC_PASSIVE_CODE();
 
-    if (Handle == NULL || BufferLength == NULL) {
+    if (((Handle == NULL) ^ (Level == QUIC_PARAM_LEVEL_GLOBAL)) ||
+        BufferLength == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     QUIC_STATUS Status;
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_GET_PARAM,
         Handle);
+
+    if (Level == QUIC_PARAM_LEVEL_GLOBAL) {
+        //
+        // Global parameters are processed inline.
+        //
+        Status = QuicLibraryGetGlobalParam(Param, BufferLength, Buffer);
+        goto Error;
+    }
 
     if (Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION ||
         Handle->Type == QUIC_HANDLE_TYPE_SESSION ||
@@ -1102,13 +1330,94 @@ MsQuicGetParam(
     // Queue the operation and wait for it to be processed.
     //
     QuicConnQueueOper(Connection, &Oper);
-    QuicTraceEvent(ApiWaitOperation);
+    QuicTraceEvent(
+        ApiWaitOperation,
+        "[ api] Waiting on operation");
     QuicEventWaitForever(CompletionEvent);
     QuicEventUninitialize(CompletionEvent);
 
 Error:
 
-    QuicTraceEvent(ApiExitStatus, Status);
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+
+    return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicDatagramSend(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_reads_(BufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const Buffers,
+    _In_ uint32_t BufferCount,
+    _In_ QUIC_SEND_FLAGS Flags,
+    _In_opt_ void* ClientSendContext
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_CONNECTION* Connection;
+    uint64_t TotalLength;
+    QUIC_SEND_REQUEST* SendRequest;
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_DATAGRAM_SEND,
+        Handle);
+
+    if (!IS_CONN_HANDLE(Handle) ||
+        Buffers == NULL ||
+        BufferCount == 0) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+    Connection = (QUIC_CONNECTION*)Handle;
+
+    QUIC_TEL_ASSERT(!Connection->State.Freed);
+
+    TotalLength = 0;
+    for (uint32_t i = 0; i < BufferCount; ++i) {
+        TotalLength += Buffers[i].Length;
+    }
+
+    if (TotalLength > UINT16_MAX) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Send request total length exceeds max");
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+#pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (...).")
+    SendRequest = QuicPoolAlloc(&Connection->Worker->SendRequestPool);
+    if (SendRequest == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    SendRequest->Next = NULL;
+    SendRequest->Buffers = Buffers;
+    SendRequest->BufferCount = BufferCount;
+    SendRequest->Flags = Flags;
+    SendRequest->TotalLength = TotalLength;
+    SendRequest->ClientContext = ClientSendContext;
+
+    Status = QuicDatagramQueueSend(&Connection->Datagram, SendRequest);
+
+Error:
+
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
 
     return Status;
 }

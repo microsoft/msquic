@@ -36,6 +36,12 @@ typedef struct QUIC_ACK_TRACKER {
     //
     uint16_t AckElicitingPacketsToAcknowledge;
 
+    //
+    // Indicates an ACK frame has already been written for all the currently
+    // queued packet numbers.
+    //
+    BOOLEAN AlreadyWrittenAckFrame;
+
 } QUIC_ACK_TRACKER;
 
 //
@@ -109,7 +115,7 @@ QuicAckTrackerOnAckFrameAcked(
 
 //
 // Helper function that indicates if any (even non-ACK eliciting) packets are
-// queued up to be acknowledged.
+// queued up to be acknowledged in a new ACK frame.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
@@ -118,5 +124,7 @@ QuicAckTrackerHasPacketsToAck(
     _In_ const QUIC_ACK_TRACKER* Tracker
     )
 {
-    return QuicRangeSize(&Tracker->PacketNumbersToAck) != 0;
+    return
+        !Tracker->AlreadyWrittenAckFrame &&
+        QuicRangeSize(&Tracker->PacketNumbersToAck) != 0;
 }

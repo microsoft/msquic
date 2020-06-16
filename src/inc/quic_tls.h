@@ -132,6 +132,13 @@ typedef enum QUIC_TLS_RESULT_FLAGS {
 
 } QUIC_TLS_RESULT_FLAGS;
 
+typedef enum QUIC_TLS_DATA_FLAGS {
+
+    QUIC_TLS_CRYPTO_DATA,
+    QUIC_TLS_TICKET_DATA
+
+} QUIC_TLS_DATA_FLAGS;
+
 //
 // Different possible results after writing new TLS data.
 //
@@ -368,6 +375,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessData(
     _In_ QUIC_TLS* TlsContext,
+    _In_ QUIC_TLS_DATA_FLAGS DataFlags,
     _In_reads_bytes_(*BufferLength)
         const uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength,

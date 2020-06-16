@@ -36,10 +36,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ApiTest.cpp" />
+    <ClCompile Include="BasicTest.cpp" />
+    <ClCompile Include="DatagramTest.cpp" />
+    <ClCompile Include="DataTest.cpp" />
     <ClCompile Include="DrillDescriptor.cpp" />
     <ClCompile Include="EventTest.cpp" />
+    <ClCompile Include="HandshakeTest.cpp" />
     <ClCompile Include="QuicDrill.cpp" />
-    <ClCompile Include="QuicTest.cpp" />
     <ClCompile Include="TestConnection.cpp" />
     <ClCompile Include="TestListener.cpp" />
     <ClCompile Include="TestStream.cpp" />
@@ -54,7 +57,6 @@
     <TemplateGuid>{0a049372-4c4d-4ea0-a64e-dc6ad88ceca1}</TemplateGuid>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
-    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
     <DriverType>KMDF</DriverType>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -78,13 +80,20 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <TargetName>testlib</TargetName>
-    <IntDir>$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
-    <OutDir>$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\bin\</OutDir>
+    <IntDir>$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\bin\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\;..\..\inc;..\..\..\submodules\wil\include;$(SolutionDir)bld\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\..\inc;..\..\..\submodules\wil\include;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <AdditionalOptions Condition="'$(Platform)'!='x64'">/Gw /kernel /ZH:SHA_256</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Platform)'=='x64'">/Gw /kernel /ZH:SHA_256 -d2jumptablerdata -d2epilogunwindrequirev2</AdditionalOptions>
     </ClCompile>
+    <Lib>
+      <LinkTimeCodeGeneration>true</LinkTimeCodeGeneration>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>

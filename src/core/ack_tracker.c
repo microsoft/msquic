@@ -39,10 +39,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "ack_tracker.tmh"
-#endif
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicAckTrackerInitialize(
@@ -54,6 +50,7 @@ QuicAckTrackerInitialize(
     Tracker->AckElicitingPacketsToAcknowledge = 0;
     Tracker->LargestPacketNumberAcknowledged = 0;
     Tracker->LargestPacketNumberRecvTime = 0;
+    Tracker->AlreadyWrittenAckFrame = FALSE;
 
     Status =
         QuicRangeInitialize(
@@ -96,6 +93,7 @@ QuicAckTrackerReset(
     Tracker->AckElicitingPacketsToAcknowledge = 0;
     Tracker->LargestPacketNumberAcknowledged = 0;
     Tracker->LargestPacketNumberRecvTime = 0;
+    Tracker->AlreadyWrittenAckFrame = FALSE;
     QuicRangeReset(&Tracker->PacketNumbersToAck);
     QuicRangeReset(&Tracker->PacketNumbersReceived);
 }
@@ -144,14 +142,19 @@ QuicAckTrackerAckPacket(
         return;
     }
 
-    QuicTraceLogVerbose("[%c][RX][%llu] Marked for ACK", PtkConnPre(Connection), PacketNumber);
-    QuicRangeValidate(&Tracker->PacketNumbersToAck);
+    QuicTraceLogVerbose(
+        PacketRxMarkedForAck,
+        "[%c][RX][%llu] Marked for ACK",
+        PtkConnPre(Connection),
+        PacketNumber);
 
     BOOLEAN NewLargestPacketNumber =
         PacketNumber == QuicRangeGetMax(&Tracker->PacketNumbersToAck);
     if (NewLargestPacketNumber) {
         Tracker->LargestPacketNumberRecvTime = QuicTimeUs64();
     }
+
+    Tracker->AlreadyWrittenAckFrame = FALSE;
 
     if (!AckElicitingPayload) {
         goto Exit;
@@ -232,6 +235,7 @@ QuicAckTrackerAckFrameEncode(
         QuicSendUpdateAckState(&Builder->Connection->Send);
     }
 
+    Tracker->AlreadyWrittenAckFrame = TRUE;
     Tracker->LargestPacketNumberAcknowledged =
         Builder->Metadata->Frames[Builder->Metadata->FrameCount].ACK.LargestAckedPacketNumber =
         QuicRangeGetMax(&Tracker->PacketNumbersToAck);

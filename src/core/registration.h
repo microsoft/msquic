@@ -67,6 +67,11 @@ typedef struct QUIC_REGISTRATION {
     QUIC_LIST_ENTRY Sessions;
 
     //
+    // Rundown for all connections
+    //
+    QUIC_RUNDOWN_REF ConnectionRundown;
+
+    //
     // Rundown for all outstanding security configs.
     //
     QUIC_RUNDOWN_REF SecConfigRundown;
@@ -74,6 +79,7 @@ typedef struct QUIC_REGISTRATION {
     //
     // Name of the application layer.
     //
+    uint8_t AppNameLength;
     char AppName[0];
 
 } QUIC_REGISTRATION;
@@ -87,6 +93,23 @@ typedef struct QUIC_REGISTRATION {
 #else
 #define QUIC_REG_VERIFY(Registration, Expr)
 #endif
+
+inline
+BOOLEAN
+QuicRegistrationIsSplitPartitioning(
+    _In_ const QUIC_REGISTRATION* Registration
+    )
+{
+    //
+    // When hyper-threading is enabled, better bulk throughput can sometimes
+    // be gained by sharing the same physical core, but not the logical one.
+    // The shared core is always one greater than the RSS core.
+    //
+    // TODO - Figure out how to check to see if hyper-threading is enabled
+    // TODO - Constrain ++PartitionID to the same NUMA node.
+    //
+    return Registration->ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT;
+}
 
 //
 // Tracing rundown for the registration.

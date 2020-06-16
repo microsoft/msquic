@@ -4,10 +4,13 @@
 This script provides helpers for building msquic.
 
 .PARAMETER Config
-    The debug or release configurationto build for.
+    The debug or release configuration to build for.
 
 .PARAMETER Arch
     The CPU architecture to build for.
+
+.PARAMETER Platform
+    Specify which platform to build for
 
 .PARAMETER Tls
     The TLS library to use.
@@ -36,8 +39,8 @@ This script provides helpers for building msquic.
 .PARAMETER DynamicCRT
     Builds msquic with dynamic C runtime (Windows-only).
 
-.EXAMPLE
-    build.ps1 -InstallDependencies
+.PARAMETER PGO
+    Builds msquic with profile guided optimization support (Windows-only).
 
 .EXAMPLE
     build.ps1
@@ -57,8 +60,12 @@ param (
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
+    [ValidateSet("uwp", "windows", "linux")] # For future expansion
+    [string]$Platform = "",
+
+    [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
-    [string]$Tls = "schannel",
+    [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
     [switch]$DisableLogs = $false,
@@ -79,28 +86,48 @@ param (
     [int32]$Parallel = -1,
 
     [Parameter(Mandatory = $false)]
-    [switch]$DynamicCRT = $false
+    [switch]$DynamicCRT = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$PGO = $false
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+# Default TLS based on current platform.
+if ("" -eq $Tls) {
+    if ($IsWindows) {
+        $Tls = "schannel"
+    } else {
+        $Tls = "openssl"
+    }
+}
+
+if ("" -eq $Platform) {
+    if ($IsWindows) {
+        $Platform = "windows"
+    } else {
+        $Platform = "linux"
+    }
+}
+
+if (!$IsWindows -And $Platform -eq "uwp") {
+    Write-Error "[$(Get-Date)] Cannot build uwp on non windows platforms"
+    exit
+}
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
 # Important directory paths.
 $BaseArtifactsDir = Join-Path $RootDir "artifacts"
-$BaseBuildDir = Join-Path $RootDir "bld"
+$BaseBuildDir = Join-Path $RootDir "build"
 $SrcDir = Join-Path $RootDir "src"
-$ArtifactsDir = $null
-$BuildDir = $null
-if ($IsWindows) {
-    $ArtifactsDir = Join-Path $BaseArtifactsDir "windows"
-    $BuildDir = Join-Path $BaseBuildDir "windows"
-} else {
-    $ArtifactsDir = Join-Path $BaseArtifactsDir "linux"
-    $BuildDir = Join-Path $BaseBuildDir "linux"
-}
+
+$ArtifactsDir = Join-Path $BaseArtifactsDir $Platform
+$BuildDir = Join-Path $BaseBuildDir $Platform
+
 $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)"
 $BuildDir = Join-Path $BuildDir "$($Arch)_$($Tls)"
 
@@ -146,8 +173,8 @@ function CMake-Generate {
     } else {
         $Arguments += " 'Linux Makefiles'"
     }
-    $Arguments += " -DQUIC_ARCH=" + $Arch
     $Arguments += " -DQUIC_TLS=" + $Tls
+    $Arguments += " -DQUIC_OUTPUT_DIR=" + $ArtifactsDir
     if ($DisableLogs) {
         $Arguments += " -DQUIC_ENABLE_LOGGING=off"
     }
@@ -166,9 +193,24 @@ function CMake-Generate {
     if ($DynamicCRT) {
         $Arguments += " -DQUIC_STATIC_LINK_CRT=off"
     }
+    if ($PGO) {
+        $Arguments += " -DQUIC_PGO=on"
+    }
+    if ($Platform -eq "uwp") {
+        $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
+
+    }
     $Arguments += " ../../.."
 
     CMake-Execute $Arguments
+
+    if ($PGO -and $Config -eq "Release") {
+        # Manually edit project file, since CMake doesn't seem to have a way to do it.
+        $FindText = "  <PropertyGroup Label=`"UserMacros`" />"
+        $ReplaceText = "  <PropertyGroup Label=`"UserMacros`" />`r`n  <PropertyGroup><LibraryPath>`$(LibraryPath);`$(VC_LibraryPath_VC_$($Arch)_Desktop)</LibraryPath></PropertyGroup>"
+        $ProjectFile = Join-Path $BuildDir "src\bin\msquic.vcxproj"
+        (Get-Content $ProjectFile) -replace $FindText, $ReplaceText | Out-File $ProjectFile
+    }
 }
 
 # Uses cmake to generate the build configuration files.

@@ -7,10 +7,14 @@
 
 typedef struct QUIC_SETTINGS {
 
-    BOOLEAN PacingDefault;
-    uint8_t MaxPartitionCount;
-    uint8_t MaxOperationsPerDrain;
-    uint16_t RetryMemoryLimit;
+    BOOLEAN PacingDefault    : 1;
+    BOOLEAN MigrationEnabled : 1;
+    BOOLEAN DatagramReceiveEnabled  : 1;
+    uint8_t ServerResumptionLevel : 2;
+    uint8_t MaxPartitionCount;          // Global only
+    uint8_t MaxOperationsPerDrain;      // Global only
+    uint16_t RetryMemoryLimit;          // Global only
+    uint16_t LoadBalancingMode;         // Global only
     uint32_t MaxWorkerQueueDelayUs;
     uint32_t MaxStatelessOperations;
     uint32_t InitialWindowPackets;
@@ -32,9 +36,12 @@ typedef struct QUIC_SETTINGS {
 
     struct {
         BOOLEAN PacingDefault : 1;
+        BOOLEAN MigrationEnabled : 1;
+        BOOLEAN DatagramReceiveEnabled : 1;
         BOOLEAN MaxPartitionCount : 1;
         BOOLEAN MaxOperationsPerDrain : 1;
         BOOLEAN RetryMemoryLimit : 1;
+        BOOLEAN LoadBalancingMode : 1;
         BOOLEAN MaxWorkerQueueDelayUs : 1;
         BOOLEAN MaxStatelessOperations : 1;
         BOOLEAN InitialWindowPackets : 1;
@@ -53,6 +60,7 @@ typedef struct QUIC_SETTINGS {
         BOOLEAN StreamRecvBufferDefault : 1;
         BOOLEAN ConnFlowControlWindow : 1;
         BOOLEAN MaxBytesPerKey : 1;
+        BOOLEAN ServerResumptionLevel : 1;
     } AppSet;
 
 } QUIC_SETTINGS;

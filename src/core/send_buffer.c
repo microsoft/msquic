@@ -56,10 +56,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "send_buffer.tmh"
-#endif
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSendBufferInitialize(
@@ -91,7 +87,11 @@ QuicSendBufferAlloc(
     if (Buf != NULL) {
         SendBuffer->BufferedBytes += Size;
     } else {
-        QuicTraceEvent(AllocFailure, "sendbuffer", Size);
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "sendbuffer",
+            Size);
     }
 
     return Buf;
@@ -151,7 +151,7 @@ QuicSendBufferFill(
         QUIC_STREAM* Stream = QUIC_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
         Entry = Entry->Flink;
 
-#if QUIC_TEST_MODE
+#if DEBUG
         //
         // Sanity check: SendBufferBookmark should always point to the
         // first unbuffered send request (if there is one), and no requests
@@ -206,7 +206,10 @@ QuicSendBufferStreamAdjust(
     QUIC_STREAM_EVENT Event;
     Event.Type = QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE;
     Event.IDEAL_SEND_BUFFER_SIZE.ByteCount = ByteCount;
-    QuicTraceLogStreamVerbose(IndicateIdealSendBuffer, Stream, "Indicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu",
+    QuicTraceLogStreamVerbose(
+        IndicateIdealSendBuffer,
+        Stream,
+        "Indicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu",
         Event.IDEAL_SEND_BUFFER_SIZE.ByteCount);
     (void)QuicStreamIndicateEvent(Stream, &Event);
 }

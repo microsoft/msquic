@@ -63,6 +63,9 @@ typedef struct QUIC_SENT_FRAME_METADATA {
         struct {
             uint8_t Data[8];
         } PATH_RESPONSE;
+        struct {
+            void* ClientContext;
+        } DATAGRAM;
     };
     uint8_t Type; // QUIC_FRAME_*
     uint8_t Flags; // QUIC_SENT_FRAME_FLAG_*
@@ -72,10 +75,13 @@ typedef struct QUIC_SENT_FRAME_METADATA {
 typedef struct QUIC_SEND_PACKET_FLAGS {
 
     uint8_t KeyType                 : 2;
-    BOOLEAN IsRetransmittable       : 1;
-    BOOLEAN HasCrypto               : 1;
+    BOOLEAN IsAckEliciting          : 1;
     BOOLEAN IsPMTUD                 : 1;
     BOOLEAN KeyPhase                : 1;
+    BOOLEAN SuspectedLost           : 1;
+#if DEBUG
+    BOOLEAN Freed                   : 1;
+#endif
 
 } QUIC_SEND_PACKET_FLAGS;
 

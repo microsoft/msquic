@@ -11,10 +11,6 @@ Abstract:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "cert_stub.tmh"
-#endif
-
 QUIC_STATUS
 QuicCertCreate(
     _In_ uint32_t Flags,
@@ -23,10 +19,25 @@ QuicCertCreate(
     _Out_ QUIC_CERT** NewCertificate
     )
 {
-    if (CertConfig == NULL && Principal == NULL) {
+    if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH) {
+        if (CertConfig == NULL && Principal == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE) {
+        if (CertConfig == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT) {
+        if (CertConfig == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    } else if (Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE) {
+        if (CertConfig == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    } else {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
-    UNREFERENCED_PARAMETER(Flags);
     *NewCertificate = (QUIC_CERT*)1;
     return QUIC_STATUS_SUCCESS;
 }

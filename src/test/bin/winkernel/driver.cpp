@@ -10,12 +10,9 @@ Abstract:
 --*/
 
 #include <quic_platform.h>
+#include <MsQuicTests.h>
 
 #include "quic_trace.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "driver.tmh"
-#endif
 
 #define QUIC_TEST_TAG 'tsTQ' // QTst
 
@@ -106,7 +103,11 @@ Return Value:
 
     Status = QuicPlatformInitialize();
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] QuicPlatformInitialize failed: 0x%x", Status);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "QuicPlatformInitialize failed");
         goto Error;
     }
     PlatformInitialized = TRUE;
@@ -127,7 +128,11 @@ Return Value:
             &Config,
             &Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] WdfDriverCreate failed: 0x%x", Status);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "WdfDriverCreate failed");
         goto Error;
     }
 
@@ -136,11 +141,19 @@ Return Value:
     //
     Status = QuicTestCtlInitialize(Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceLogError("[test] QuicTestCtlInitialize failed: 0x%x", Status);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "QuicTestCtlInitialize failed");
         goto Error;
     }
 
-    QuicTraceLogInfo("[test] Started.");
+    QuicTestInitialize();
+
+    QuicTraceLogInfo(
+        TestDriverStarted,
+        "[test] Started");
 
 Error:
 
@@ -165,8 +178,8 @@ QuicTestDriverUnload(
 
 Routine Description:
 
-    QuicTestDriverUnload will clean up the WPP resources that were
-    allocated for this driver.
+    QuicTestDriverUnload will clean up any resources that were allocated for
+    this driver.
 
 Arguments:
 
@@ -177,9 +190,13 @@ Arguments:
     UNREFERENCED_PARAMETER(Driver);
     NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
 
+    QuicTestUninitialize();
+
     QuicTestCtlUninitialize();
 
-    QuicTraceLogInfo("[test] Stopped.");
+    QuicTraceLogInfo(
+        TestDriverStopped,
+        "[test] Stopped");
 
     QuicPlatformUninitialize();
     QuicPlatformSystemUnload();

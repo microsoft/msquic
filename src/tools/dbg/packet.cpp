@@ -35,12 +35,8 @@ EXT_COMMAND(
         Packet.SentTime(),
         Packet.PacketLength());
 
-    if (Flags.IsRetransmittable) {
-        Dml("Retransmittable\n"
-            "\t                     ");
-    }
-    if (Flags.HasCrypto) {
-        Dml("Crypto Frames\n"
+    if (Flags.IsAckEliciting) {
+        Dml("Ack Eliciting\n"
             "\t                     ");
     }
     if (Flags.IsPMTUD) {

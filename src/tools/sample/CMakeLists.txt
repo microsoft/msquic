@@ -12,6 +12,8 @@ target_compile_options(quicsample PRIVATE
 
 target_link_libraries(quicsample msquic platform)
 
+set_property(TARGET quicsample PROPERTY FOLDER "tools")
+
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     target_link_libraries(quicsample
         ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)

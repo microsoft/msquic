@@ -17,10 +17,6 @@ Environment:
 
 #include "platform_internal.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "storage_winkernel.tmh"
-#endif
-
 //
 // Copied from wdm.h
 //
@@ -220,11 +216,14 @@ QuicStorageOpen(
     QuicLockInitialize(&Storage->Lock);
     Storage->Callback = Callback;
     Storage->CallbackContext = CallbackContext;
-    
+
+#pragma warning(push)
+#pragma warning(disable: 4996)
     ExInitializeWorkItem(
         &Storage->WorkItem,
         QuicStorageRegKeyChangeCallback,
         Storage);
+#pragma warning(pop)
 
     Status =
         ZwOpenKey(

@@ -14,7 +14,6 @@ Environment:
 --*/
 
 #define _GNU_SOURCE
-#define TRACEPOINT_CREATE_PROBES
 #define TRACEPOINT_DEFINE
 #include "platform_internal.h"
 #include "quic_platform.h"
@@ -22,7 +21,6 @@ Environment:
 #include <sched.h>
 #include <fcntl.h>
 #include <syslog.h>
-#include <arpa/inet.h>
 #include "quic_trace.h"
 #include "quic_platform_dispatch.h"
 
@@ -580,7 +578,7 @@ QuicConvertToMappedV6(
 
     QuicZeroMemory(OutAddr, sizeof(QUIC_ADDR));
 
-    if (InAddr->si_family == AF_INET) {
+    if (InAddr->Ip.sa_family == AF_INET) {
         OutAddr->Ipv6.sin6_family = AF_INET6;
         OutAddr->Ipv6.sin6_port = InAddr->Ipv4.sin_port;
         memset(&(OutAddr->Ipv6.sin6_addr.s6_addr[10]), 0xff, 2);
@@ -596,7 +594,7 @@ QuicConvertFromMappedV6(
     _Out_ QUIC_ADDR* OutAddr
     )
 {
-    QUIC_DBG_ASSERT(InAddr->si_family == AF_INET6);
+    QUIC_DBG_ASSERT(InAddr->Ip.sa_family == AF_INET6);
 
     if (IN6_IS_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr)) {
         QUIC_ADDR TmpAddrS = {0};
@@ -609,275 +607,6 @@ QuicConvertFromMappedV6(
     } else if (OutAddr != InAddr) {
         *OutAddr = *InAddr;
     }
-}
-
-BOOLEAN
-QuicAddrFamilyIsValid(
-    _In_ QUIC_ADDRESS_FAMILY Family
-    )
-{
-    return Family == AF_INET || Family == AF_INET6 || Family == AF_UNSPEC;
-}
-
-BOOLEAN
-QuicAddrIsValid(
-    _In_ const QUIC_ADDR* const Addr
-    )
-{
-    QUIC_DBG_ASSERT(Addr);
-    return QuicAddrFamilyIsValid(Addr->si_family);
-}
-
-BOOLEAN
-QuicAddrCompareIp(
-    _In_ const QUIC_ADDR* const Addr1,
-    _In_ const QUIC_ADDR* const Addr2
-    )
-{
-    QUIC_DBG_ASSERT(QuicAddrIsValid(Addr1));
-    QUIC_DBG_ASSERT(QuicAddrIsValid(Addr2));
-
-    if (AF_INET == Addr1->si_family) {
-        return memcmp(&Addr1->Ipv4.sin_addr, &Addr2->Ipv4.sin_addr, sizeof(IN_ADDR)) == 0;
-    } else {
-        return memcmp(&Addr1->Ipv6.sin6_addr, &Addr2->Ipv6.sin6_addr, sizeof(IN6_ADDR)) == 0;
-    }
-}
-
-BOOLEAN
-QuicAddrCompare(
-    _In_ const QUIC_ADDR* const Addr1,
-    _In_ const QUIC_ADDR* const Addr2
-    )
-{
-    QUIC_DBG_ASSERT(QuicAddrIsValid(Addr1));
-    QUIC_DBG_ASSERT(QuicAddrIsValid(Addr2));
-
-    if (Addr1->si_family != Addr2->si_family ||
-        Addr1->Ipv4.sin_port != Addr2->Ipv4.sin_port) {
-        return FALSE;
-    }
-
-    if (AF_INET == Addr1->si_family) {
-        return memcmp(&Addr1->Ipv4.sin_addr, &Addr2->Ipv4.sin_addr, sizeof(IN_ADDR)) == 0;
-    } else {
-        return memcmp(&Addr1->Ipv6.sin6_addr, &Addr2->Ipv6.sin6_addr, sizeof(IN6_ADDR)) == 0;
-    }
-}
-
-uint16_t
-QuicAddrGetFamily(
-    _In_ const QUIC_ADDR* const Addr
-    )
-{
-    QUIC_DBG_ASSERT(QuicAddrIsValid(Addr));
-    return Addr->si_family;
-}
-
-void
-QuicAddrSetFamily(
-    _In_ QUIC_ADDR* Addr,
-    _In_ uint16_t Family
-    )
-{
-    QUIC_DBG_ASSERT(Addr);
-    QUIC_DBG_ASSERT(QuicAddrFamilyIsValid(Family));
-    Addr->si_family = Family;
-}
-
-uint16_t
-QuicAddrGetPort(
-    _In_ const QUIC_ADDR* const Addr
-    )
-{
-    QUIC_DBG_ASSERT(QuicAddrIsValid(Addr));
-
-    if (AF_INET == Addr->si_family) {
-        return ntohs(Addr->Ipv4.sin_port);
-    } else {
-        return ntohs(Addr->Ipv6.sin6_port);
-    }
-}
-
-void
-QuicAddrSetPort(
-    _Out_ QUIC_ADDR* Addr,
-    _In_ uint16_t Port
-    )
-{
-    QUIC_DBG_ASSERT(QuicAddrIsValid(Addr));
-
-    if (AF_INET == Addr->si_family) {
-        Addr->Ipv4.sin_port = htons(Port);
-    } else {
-        Addr->Ipv6.sin6_port = htons(Port);
-    }
-}
-
-BOOLEAN
-QuicAddrIsBoundExplicitly(
-    _In_ const QUIC_ADDR* const Addr
-    )
-{
-    QUIC_DBG_ASSERT(QuicAddrIsValid(Addr));
-
-    // LINUX_TODO: How to handle IPv4? Windows just does the below.
-
-    //
-    // Scope ID of zero indicates we are sending from a connected binding.
-    //
-
-    return Addr->Ipv6.sin6_scope_id == 0;
-}
-
-void
-QuicAddrSetToLoopback(
-    _Inout_ QUIC_ADDR* Addr
-    )
-{
-    QUIC_DBG_ASSERT(QuicAddrIsValid(Addr));
-
-    if (Addr->si_family == AF_INET) {
-        Addr->Ipv4.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    } else {
-        Addr->Ipv6.sin6_addr = in6addr_loopback;
-    }
-}
-
-uint32_t
-QuicAddrHash(
-    _In_ const QUIC_ADDR* Addr
-    )
-{
-    uint32_t Hash = 5387; // A random prime number.
-#define UPDATE_HASH(byte) Hash = ((Hash << 5) - Hash) + (byte)
-    if (Addr->si_family == AF_INET) {
-        UPDATE_HASH(Addr->Ipv4.sin_port & 0xFF);
-        UPDATE_HASH(Addr->Ipv4.sin_port >> 8);
-        for (uint8_t i = 0; i < sizeof(Addr->Ipv4.sin_addr); ++i) {
-            UPDATE_HASH(((uint8_t*)&Addr->Ipv4.sin_addr)[i]);
-        }
-    } else {
-        UPDATE_HASH(Addr->Ipv6.sin6_port & 0xFF);
-        UPDATE_HASH(Addr->Ipv6.sin6_port >> 8);
-        for (uint8_t i = 0; i < sizeof(Addr->Ipv6.sin6_addr); ++i) {
-            UPDATE_HASH(((uint8_t*)&Addr->Ipv6.sin6_addr)[i]);
-        }
-    }
-    return Hash;
-}
-
-BOOLEAN
-QuicAddrIsWildCard(
-    _In_ const QUIC_ADDR* const Addr
-    )
-{
-    if (Addr->si_family == AF_UNSPEC) {
-        return TRUE;
-    } else if (Addr->si_family == AF_INET) {
-        const IN_ADDR ZeroAddr = {0};
-        return memcmp(&Addr->Ipv4.sin_addr.s_addr, &ZeroAddr, sizeof(IN_ADDR)) == 0;
-    } else {
-        const IN6_ADDR ZeroAddr = {0};
-        return memcmp(&Addr->Ipv6.sin6_addr, &ZeroAddr, sizeof(IN6_ADDR)) == 0;
-    }
-}
-
-BOOLEAN
-QuicAddr4FromString(
-    _In_z_ const char* AddrStr,
-    _Out_ QUIC_ADDR* Addr
-    )
-{
-    if (AddrStr[0] == '[') {
-        return FALSE;
-    }
-    char* PortStart = strchr(AddrStr, ':');
-    if (PortStart != NULL) {
-        if (strchr(PortStart+1, ':') != NULL) {
-            return FALSE;
-        }
-        *PortStart = '\0';
-        if (inet_pton(AF_INET, AddrStr, &Addr->Ipv4.sin_addr) != 1) {
-            return FALSE;
-        }
-        *PortStart = ':';
-        Addr->Ipv4.sin_port = htons(atoi(PortStart+1));
-    } else {
-        if (inet_pton(AF_INET, AddrStr, &Addr->Ipv4.sin_addr) != 1) {
-            return FALSE;
-        }
-    }
-    Addr->si_family = AF_INET;
-    return TRUE;
-}
-
-BOOLEAN
-QuicAddr6FromString(
-    _In_z_ const char* AddrStr,
-    _Out_ QUIC_ADDR* Addr
-    )
-{
-    if (AddrStr[0] == '[') {
-        char* BracketEnd = strchr(AddrStr, ']');
-        if (BracketEnd == NULL || *(BracketEnd+1) != ':') {
-            return FALSE;
-        }
-        *BracketEnd = '\0';
-        if (inet_pton(AF_INET6, AddrStr+1, &Addr->Ipv6.sin6_addr) != 1) {
-            return FALSE;
-        }
-        *BracketEnd = ']';
-        Addr->Ipv6.sin6_port = htons(atoi(BracketEnd+2));
-    } else {
-        if (inet_pton(AF_INET6, AddrStr, &Addr->Ipv6.sin6_addr) != 1) {
-            return FALSE;
-        }
-    }
-    Addr->si_family = AF_INET6;
-    return TRUE;
-}
-
-BOOLEAN
-QuicAddrFromString(
-    _In_z_ const char* AddrStr,
-    _In_ uint16_t Port, // Host byte order
-    _Out_ QUIC_ADDR* Addr
-    )
-{
-    Addr->Ipv4.sin_port = htons(Port);
-    return
-        QuicAddr4FromString(AddrStr, Addr) ||
-        QuicAddr6FromString(AddrStr, Addr);
-}
-
-BOOLEAN
-QuicAddrToString(
-    _In_ const QUIC_ADDR* Addr,
-    _Out_ QUIC_ADDR_STR* AddrStr
-    )
-{
-    char* Address = AddrStr->Address;
-    if (Addr->si_family == AF_INET6 && Addr->Ipv6.sin6_port != 0) {
-        Address[0] = '[';
-        Address++;
-    }
-    if (inet_ntop(
-            Addr->si_family,
-            &Addr->Ipv4.sin_addr,
-            Address,
-            sizeof(QUIC_ADDR_STR)) != NULL) {
-        return FALSE;
-    }
-    if (Addr->Ipv4.sin_port != 0) {
-        Address += strlen(Address);
-        if (Addr->si_family == AF_INET6) {
-            Address[0] = ']';
-            Address++;
-        }
-        sprintf(Address, ":%hu", ntohs(Addr->Ipv4.sin_port));
-    }
-    return TRUE;
 }
 
 int
@@ -900,7 +629,11 @@ QuicThreadCreate(
 
     pthread_attr_t Attr;
     if (pthread_attr_init(&Attr)) {
-        QuicTraceLogError("[qpal] pthread_attr_init failed, 0x%x.", errno);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            errno,
+            "pthread_attr_init failed");
         return errno;
     }
 
@@ -912,7 +645,10 @@ QuicThreadCreate(
             CPU_ZERO(&CpuSet);
             CPU_SET(Config->IdealProcessor, &CpuSet);
             if (!pthread_attr_setaffinity_np(&Attr, sizeof(CpuSet), &CpuSet)) {
-                QuicTraceLogWarning("[qpal] pthread_attr_setaffinity_np failed.");
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "pthread_attr_setaffinity_np failed");
             }
         } else {
             // TODO - Set Linux equivalent of NUMA affinity.
@@ -923,13 +659,21 @@ QuicThreadCreate(
         struct sched_param Params;
         Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
         if (!pthread_attr_setschedparam(&Attr, &Params)) {
-            QuicTraceLogWarning("[qpal] pthread_attr_setschedparam failed, 0x%x.", errno);
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                errno,
+                "pthread_attr_setschedparam failed");
         }
     }
 
     if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
         Status = errno;
-        QuicTraceLogError("[qpal] pthread_create failed, 0x%x.", Status);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "pthread_create failed");
     }
 
     pthread_attr_destroy(&Attr);
@@ -967,11 +711,15 @@ void
 QuicPlatformLogAssert(
     _In_z_ const char* File,
     _In_ int Line,
-    _In_z_ const char* Func,
     _In_z_ const char* Expr
     )
 {
-    QuicTraceLogError("[Assert] %s:%s:%d:%s", Expr, Func, Line, File);
+    QuicTraceEvent(
+        LibraryAssert,
+        "[ lib] ASSERT, %u:%s - %s.",
+        (uint32_t)Line,
+        File,
+        Expr);
 }
 
 int
@@ -1005,27 +753,4 @@ QuicLogLevelToPriority(
     }
 
     return LOG_DEBUG;
-}
-
-void
-QuicSysLogWrite(
-    _In_ QUIC_TRACE_LEVEL Level,
-    _In_ const char* Fmt,
-    ...
-    )
-{
-    va_list Args = {0};
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
-    va_start(Args, Fmt);
-    PlatDispatch->QuicTraceLog(Level, Fmt, Args);
-    va_end(Args);
-#else
-    char Buffer[QUIC_MAX_LOG_MSG_LEN] = {0};
-    va_start(Args, Fmt);
-    (void)vsnprintf(Buffer, sizeof(Buffer), Fmt, Args);
-    va_end(Args);
-    syslog(
-        LOG_MAKEPRI(LOG_DAEMON, QuicLogLevelToPriority(Level)),
-        "[%u][quic]%s", (uint32_t)syscall(__NR_gettid), Buffer);
-#endif
 }

@@ -182,10 +182,11 @@ QuicCryptoWriteFrames(
     );
 
 //
-// Called when a crypto frame is inferred to be lost.
+// Called when a crypto frame is inferred to be lost. Returns TRUE if data is
+// queued to be sent.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+BOOLEAN
 QuicCryptoOnLoss(
     _In_ QUIC_CRYPTO* Crypto,
     _In_ QUIC_SENT_FRAME_METADATA* FrameMetadata
@@ -229,6 +230,18 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoProcessCompleteOperation(
     _In_ QUIC_CRYPTO* Crypto
+    );
+
+//
+// Processes app-provided data for TLS (i.e. resumption ticket data).
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicCryptoProcessAppData(
+    _In_ QUIC_CRYPTO* Crypto,
+    _In_ uint32_t DataLength,
+    _In_reads_bytes_(DataLength)
+        const uint8_t* AppData
     );
 
 //

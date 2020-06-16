@@ -3,20 +3,26 @@
 
 set(SOURCES
     ApiTest.cpp
+    BasicTest.cpp
+    DatagramTest.cpp
+    DataTest.cpp
     DrillDescriptor.cpp
     EventTest.cpp
+    HandshakeTest.cpp
     QuicDrill.cpp
-    QuicTest.cpp
     TestConnection.cpp
     TestListener.cpp
     TestStream.cpp
 )
 
-include_directories(${CMAKE_SOURCE_DIR}/src/test)
+include_directories(${PROJECT_SOURCE_DIR}/src/test)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 
 add_library(testlib ${SOURCES})
+
+set_property(TARGET testlib PROPERTY FOLDER "tests")
+
 target_compile_options(testlib PRIVATE
      $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
         ${CLANG_GCC_WARNING_FLAGS}>

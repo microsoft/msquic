@@ -21,10 +21,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "registration.tmh"
-#endif
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -41,18 +37,24 @@ MsQuicRegistrationOpen(
         AppNameLength = strlen(Config->AppName);
     }
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_REGISTRATION_OPEN,
         NULL);
 
-    if (NewRegistration == NULL) {
+    if (NewRegistration == NULL || AppNameLength >= UINT8_MAX) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
 
     Registration = QUIC_ALLOC_NONPAGED(sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
     if (Registration == NULL) {
-        QuicTraceEvent(AllocFailure, "registration", sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "registration",
+            sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -66,6 +68,8 @@ MsQuicRegistrationOpen(
     QuicLockInitialize(&Registration->Lock);
     QuicListInitializeHead(&Registration->Sessions);
     QuicRundownInitialize(&Registration->SecConfigRundown);
+    QuicRundownInitialize(&Registration->ConnectionRundown);
+    Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
     if (AppNameLength != 0) {
         QuicCopyMemory(Registration->AppName, Config->AppName, AppNameLength + 1);
     } else {
@@ -76,20 +80,22 @@ MsQuicRegistrationOpen(
     switch (Registration->ExecProfile) {
     default:
     case QUIC_EXECUTION_PROFILE_LOW_LATENCY:
-        WorkerThreadFlags = QUIC_THREAD_FLAG_SET_IDEAL_PROC;
+        WorkerThreadFlags =
+            QUIC_THREAD_FLAG_SET_IDEAL_PROC;
         break;
-    case QUIC_EXEC_PROF_TYPE_MAX_THROUGHPUT:
-        WorkerThreadFlags = QUIC_THREAD_FLAG_SET_IDEAL_PROC | QUIC_THREAD_FLAG_SET_AFFINITIZE;
+    case QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT:
+        WorkerThreadFlags =
+            QUIC_THREAD_FLAG_SET_IDEAL_PROC |
+            QUIC_THREAD_FLAG_SET_AFFINITIZE;
         break;
-    case QUIC_EXEC_PROF_TYPE_SCAVENGER:
+    case QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER:
         WorkerThreadFlags = 0;
         Registration->NoPartitioning = TRUE;
         break;
-    case QUIC_EXEC_PROF_TYPE_REAL_TIME:
+    case QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME:
         WorkerThreadFlags =
             QUIC_THREAD_FLAG_SET_IDEAL_PROC |
-            QUIC_THREAD_FLAG_SET_AFFINITIZE |
-            QUIC_THREAD_FLAG_HIGH_PRIORITY;
+            QUIC_THREAD_FLAG_SET_AFFINITIZE;
         break;
     }
 
@@ -103,14 +109,21 @@ MsQuicRegistrationOpen(
         goto Error;
     }
 
-    QuicTraceEvent(RegistrationCreated, Registration, Registration->AppName);
+    QuicTraceEvent(
+        RegistrationCreated,
+        "[ reg][%p] Created, AppName=%s",
+        Registration,
+        Registration->AppName);
 
 #ifdef QuicVerifierEnabledByAddr
 #pragma prefast(suppress:6001, "SAL doesn't understand checking whether memory is tracked by Verifier.")
     if (MsQuicLib.IsVerifying &&
         QuicVerifierEnabledByAddr(NewRegistration)) {
         Registration->IsVerifying = TRUE;
-        QuicTraceLogInfo("[ reg][%p] Verifing enabled!", Registration);
+        QuicTraceLogInfo(
+            RegistrationVerifierEnabled,
+            "[ reg][%p] Verifing enabled!",
+            Registration);
     } else {
         Registration->IsVerifying = FALSE;
     }
@@ -127,11 +140,15 @@ Error:
 
     if (Registration != NULL) {
         QuicRundownUninitialize(&Registration->SecConfigRundown);
+        QuicRundownUninitialize(&Registration->ConnectionRundown);
         QuicLockUninitialize(&Registration->Lock);
         QUIC_FREE(Registration);
     }
 
-    QuicTraceEvent(ApiExitStatus, Status);
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
 
     return Status;
 }
@@ -153,14 +170,19 @@ MsQuicRegistrationClose(
         return;
     }
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_REGISTRATION_CLOSE,
         Handle);
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
 
-    QuicTraceEvent(RegistrationCleanup, Registration);
+    QuicTraceEvent(
+        RegistrationCleanup,
+        "[ reg][%p] Cleaning up",
+        Registration);
 
     //
     // If you hit this assert, you are trying to clean up a registration without
@@ -172,10 +194,13 @@ MsQuicRegistrationClose(
     QuicListEntryRemove(&Registration->Link);
     QuicLockRelease(&MsQuicLib.Lock);
 
+    QuicRundownReleaseAndWait(&Registration->ConnectionRundown);
+
     QuicWorkerPoolUninitialize(Registration->WorkerPool);
     QuicRundownReleaseAndWait(&Registration->SecConfigRundown);
 
     QuicRundownUninitialize(&Registration->SecConfigRundown);
+    QuicRundownUninitialize(&Registration->ConnectionRundown);
     QuicLockUninitialize(&Registration->Lock);
 
     if (Registration->CidPrefix != NULL) {
@@ -184,7 +209,9 @@ MsQuicRegistrationClose(
 
     QUIC_FREE(Registration);
 
-    QuicTraceEvent(ApiExit);
+    QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -193,7 +220,11 @@ QuicRegistrationTraceRundown(
     _In_ QUIC_REGISTRATION* Registration
     )
 {
-    QuicTraceEvent(RegistrationRundown, Registration, Registration->AppName);
+    QuicTraceEvent(
+        RegistrationRundown,
+        "[ reg][%p] Rundown, AppName=%s",
+        Registration,
+        Registration->AppName);
 
     QuicLockAcquire(&Registration->Lock);
 
@@ -239,7 +270,9 @@ MsQuicSecConfigCreate(
 {
     QUIC_STATUS Status;
 
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_SEC_CONFIG_CREATE,
         Handle);
 
@@ -261,7 +294,10 @@ MsQuicSecConfigCreate(
 
 Exit:
 
-    QuicTraceEvent(ApiExitStatus, Status);
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
 
     return Status;
 }
@@ -273,7 +309,9 @@ MsQuicSecConfigDelete(
     _In_ _Pre_defensive_ QUIC_SEC_CONFIG* SecurityConfig
     )
 {
-    QuicTraceEvent(ApiEnter,
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
         QUIC_TRACE_API_SEC_CONFIG_DELETE,
         SecurityConfig);
 
@@ -281,7 +319,9 @@ MsQuicSecConfigDelete(
         QuicTlsSecConfigRelease(SecurityConfig);
     }
 
-    QuicTraceEvent(ApiExit);
+    QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -291,16 +331,16 @@ QuicRegistrationAcceptConnection(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    if (Registration->ExecProfile == QUIC_EXEC_PROF_TYPE_MAX_THROUGHPUT) {
+    if (QuicRegistrationIsSplitPartitioning(Registration)) {
         //
         // TODO - Figure out how to check to see if hyper-threading was enabled first
-        // TODO - Constrain ++PartitionID to the same NUMA node.
+        // TODO - Constrain PartitionID to the same NUMA node.
         //
         // When hyper-threading is enabled, better bulk throughput can sometimes
         // be gained by sharing the same physical core, but not the logical one.
         // The shared one is always one greater than the RSS core.
         //
-        Connection->PartitionID++;
+        Connection->PartitionID += QUIC_MAX_THROUGHPUT_PARTITION_OFFSET;
     }
 
     uint8_t Index =
@@ -349,19 +389,6 @@ QuicRegistrationParamSet(
     QUIC_STATUS Status;
 
     switch (Param) {
-    case QUIC_PARAM_REGISTRATION_RETRY_MEMORY_PERCENT:
-
-        if (BufferLength != sizeof(MsQuicLib.Settings.RetryMemoryLimit)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        MsQuicLib.Settings.RetryMemoryLimit = *(uint16_t*)Buffer;
-        MsQuicLib.Settings.AppSet.RetryMemoryLimit = TRUE;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
     case QUIC_PARAM_REGISTRATION_CID_PREFIX:
 
         if (BufferLength == 0) {
@@ -374,7 +401,7 @@ QuicRegistrationParamSet(
             break;
         }
 
-        if (BufferLength > QUIC_CID_MAX_APP_PREFIX) {
+        if (BufferLength > MSQUIC_CID_MAX_APP_PREFIX) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -392,19 +419,6 @@ QuicRegistrationParamSet(
 
         Registration->CidPrefixLength = (uint8_t)BufferLength;
         memcpy(Registration->CidPrefix, Buffer, BufferLength);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_REGISTRATION_ENCRYPTION:
-
-        if (BufferLength != sizeof(uint8_t)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        MsQuicLib.EncryptionDisabled = *(uint8_t*)Buffer == FALSE;
-        QuicTraceLogWarning("[ lib] Updated encryption disabled = %hu", MsQuicLib.EncryptionDisabled);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -430,25 +444,6 @@ QuicRegistrationParamGet(
     QUIC_STATUS Status;
 
     switch (Param) {
-    case QUIC_PARAM_REGISTRATION_RETRY_MEMORY_PERCENT:
-
-        if (*BufferLength < sizeof(MsQuicLib.Settings.RetryMemoryLimit)) {
-            *BufferLength = sizeof(MsQuicLib.Settings.RetryMemoryLimit);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(MsQuicLib.Settings.RetryMemoryLimit);
-        *(uint16_t*)Buffer = MsQuicLib.Settings.RetryMemoryLimit;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
     case QUIC_PARAM_REGISTRATION_CID_PREFIX:
 
         if (*BufferLength < Registration->CidPrefixLength) {
@@ -469,25 +464,6 @@ QuicRegistrationParamGet(
         } else {
             *BufferLength = 0;
         }
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_REGISTRATION_ENCRYPTION:
-
-        if (*BufferLength < sizeof(uint8_t)) {
-            *BufferLength = sizeof(uint8_t);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(uint8_t);
-        *(uint8_t*)Buffer = !MsQuicLib.EncryptionDisabled;
 
         Status = QUIC_STATUS_SUCCESS;
         break;

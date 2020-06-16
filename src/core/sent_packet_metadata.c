@@ -18,10 +18,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "sent_packet_metadata.tmh"
-#endif
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSentPacketPoolInitialize(
@@ -58,9 +54,12 @@ QuicSentPacketPoolGetPacketMetadata(
     _In_ uint8_t FrameCount
     )
 {
-    return
-        (QUIC_SENT_PACKET_METADATA*)
+    QUIC_SENT_PACKET_METADATA* Metadata =
         QuicPoolAlloc(Pool->Pools + FrameCount - 1);
+#if DEBUG
+    Metadata->Flags.Freed = FALSE;
+#endif
+    return Metadata;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -73,6 +72,10 @@ QuicSentPacketPoolReturnPacketMetadata(
     _Analysis_assume_(
         Metadata->FrameCount > 0 &&
         Metadata->FrameCount <= QUIC_MAX_FRAMES_PER_PACKET);
+
+#if DEBUG
+    Metadata->Flags.Freed = TRUE;
+#endif
 
     for (uint8_t i = 0; i < Metadata->FrameCount; i++) {
         switch (Metadata->Frames[i].Type)

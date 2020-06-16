@@ -85,7 +85,7 @@ enum QuicEventIdConnection {
     EventId_QuicConnErrorStatus,
     EventId_QuicConnNewPacketKeys,
     EventId_QuicConnKeyPhaseChange,
-    EventId_QuicConnStatistics,
+    EventId_QuicConnStats,
     EventId_QuicConnShutdownComplete,
     EventId_QuicConnReadKeyUpdated,
     EventId_QuicConnWriteKeyUpdated,
@@ -97,6 +97,9 @@ enum QuicEventIdConnection {
     EventId_QuicConnLogWarning,
     EventId_QuicConnLogInfo,
     EventId_QuicConnLogVerbose,
+    EventId_QuicConnQueueSendFlush,
+    EventId_QuicConnOutFlowStreamStats,
+    EventId_QuicConnPacketStats,
 
     EventId_QuicConnCount
 };
@@ -125,7 +128,7 @@ struct QuicGlobalEventPayload {
         } LibraryInitialized, LibraryRundown;
         struct {
             char Desc[1];
-            // UINT64 ByteCount - TODO
+            // uint64_t ByteCount - TODO
         } QuicAllocFailure;
         struct {
             char ErrStr[1];
@@ -223,11 +226,9 @@ struct QuicConnEventPayload {
             uint32_t CongestionWindow;
             uint32_t SlowStartThreshold;
             uint64_t ConnectionFlowControl;
-            uint64_t StreamFlowControl;
             uint64_t IdealBytes;
             uint64_t PostedBytes;
             uint32_t SmoothedRtt;
-            uint64_t StreamSendWindow;
         } OutFlowStats;
         struct {
             uint8_t ReasonFlags;
@@ -282,21 +283,12 @@ struct QuicConnEventPayload {
             uint8_t IsLocallyInitiated;
         } KeyPhaseChange;
         struct {
-            uint64_t LifeTimeUs;
-            uint64_t SendTotalPackets;
-            uint64_t SendSuspectedLostPackets;
-            uint64_t SendSpuriousLostPackets;
-            uint64_t RecvTotalPackets;
-            uint64_t RecvReorderedPackets;
-            uint64_t RecvDroppedPackets;
-            uint64_t RecvDuplicatePackets;
-            uint64_t RecvDecryptionFailures;
+            uint32_t SmoothedRtt;
             uint32_t CongestionCount;
             uint32_t PersistentCongestionCount;
             uint64_t SendTotalBytes;
             uint64_t RecvTotalBytes;
-            uint32_t SmoothedRtt;
-        } Statistics;
+        } Stats;
         struct {
             uint8_t TimedOut;
         } ShutdownComplete;
@@ -320,6 +312,23 @@ struct QuicConnEventPayload {
         struct {
             char Msg[1];
         } Log;
+        struct {
+            UINT32 Reason;
+        } QueueSendFlush;
+        struct {
+            uint64_t StreamFlowControl;
+            uint64_t StreamSendWindow;
+        } OutFlowStreamStats;
+        struct {
+            uint64_t SendTotalPackets;
+            uint64_t SendSuspectedLostPackets;
+            uint64_t SendSpuriousLostPackets;
+            uint64_t RecvTotalPackets;
+            uint64_t RecvReorderedPackets;
+            uint64_t RecvDroppedPackets;
+            uint64_t RecvDuplicatePackets;
+            uint64_t RecvDecryptionFailures;
+        } PacketStats;
     };
 };
 

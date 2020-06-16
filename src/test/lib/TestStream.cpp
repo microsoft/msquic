@@ -146,6 +146,12 @@ TestStream::StartPing(
                 TEST_FAILURE("MsQuic->StreamSend failed, 0x%x.", Status);
                 return false;
             }
+            if (resultingBytesLeft == 0) {
+                // On the finish packet if it succeeds, the instance
+                // we are executing in will be deleted. Return
+                // so we don't execute the while on a deleted instance.
+                return true;
+            }
         }
 
     } else {

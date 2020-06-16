@@ -11,11 +11,13 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "library.tmh"
-#endif
-
 QUIC_LIBRARY MsQuicLib = { 0 };
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicLibApplyLoadBalancingSetting(
+    void
+    );
 
 //
 // Initializes all global variables.
@@ -45,6 +47,7 @@ MsQuicLibraryUnload(
 {
     QUIC_FRE_ASSERT(MsQuicLib.Loaded);
     QUIC_LIB_VERIFY(MsQuicLib.RefCount == 0);
+    QUIC_LIB_VERIFY(!MsQuicLib.InUse);
     MsQuicLib.Loaded = FALSE;
     QuicDispatchLockUninitialize(&MsQuicLib.DatapathLock);
     QuicLockUninitialize(&MsQuicLib.Lock);
@@ -88,8 +91,20 @@ MsQuicLibraryReadSettings(
         QuicSettingsLoad(&MsQuicLib.Settings, MsQuicLib.Storage);
     }
 
-    QuicTraceLogInfo("[ lib] Settings %p Updated", &MsQuicLib.Settings);
+    QuicTraceLogInfo(
+        LibrarySettingsUpdated,
+        "[ lib] Settings %p Updated",
+        &MsQuicLib.Settings);
     QuicSettingsDump(&MsQuicLib.Settings);
+
+    if (!MsQuicLib.InUse) {
+        //
+        // Load balancing settings can only change before the library is
+        // officially "in use", otherwise existing connections would be
+        // destroyed.
+        //
+        QuicLibApplyLoadBalancingSetting();
+    }
 
     BOOLEAN UpdateRegistrations = (Context != NULL);
     if (UpdateRegistrations) {
@@ -124,6 +139,9 @@ MsQuicLibraryInitialize(
     QUIC_DBG_ASSERT(US_TO_MS(QuicGetTimerResolution()) + 1 <= UINT8_MAX);
     MsQuicLib.TimerResolutionMs = (uint8_t)US_TO_MS(QuicGetTimerResolution()) + 1;
 
+    QuicRandom(sizeof(MsQuicLib.ToeplitzHash.HashKey), MsQuicLib.ToeplitzHash.HashKey);
+    QuicToeplitzHashInitialize(&MsQuicLib.ToeplitzHash);
+
     QuicZeroMemory(&MsQuicLib.Settings, sizeof(MsQuicLib.Settings));
     Status =
         QuicStorageOpen(
@@ -132,7 +150,10 @@ MsQuicLibraryInitialize(
             (void*)TRUE, // Non-null indicates registrations should be updated
             &MsQuicLib.Storage);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogWarning("[ lib] Failed to open global settings, 0x%x", Status);
+        QuicTraceLogWarning(
+            LibraryStorageOpenFailed,
+            "[ lib] Failed to open global settings, 0x%x",
+            Status);
         Status = QUIC_STATUS_SUCCESS; // Non-fatal, as the process may not have access
     }
 
@@ -156,7 +177,9 @@ MsQuicLibraryInitialize(
     MsQuicLib.PerProc =
         QUIC_ALLOC_NONPAGED(MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
     if (MsQuicLib.PerProc == NULL) {
-        QuicTraceEvent(AllocFailure, "connection pools",
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)", "connection pools",
             MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -176,11 +199,17 @@ MsQuicLibraryInitialize(
             QuicBindingUnreachable,
             &MsQuicLib.Datapath);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(LibraryErrorStatus, Status, "QuicDataPathInitialize");
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "QuicDataPathInitialize");
         goto Error;
     }
 
-    QuicTraceEvent(LibraryInitialized,
+    QuicTraceEvent(
+        LibraryInitialized,
+        "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
         MsQuicLib.PartitionCount,
         QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 
@@ -189,9 +218,13 @@ MsQuicLibraryInitialize(
     MsQuicLib.IsVerifying = QuicVerifierEnabled(Flags);
     if (MsQuicLib.IsVerifying) {
 #ifdef QuicVerifierEnabledByAddr
-        QuicTraceLogInfo("[ lib] Verifing enabled, per-registration!");
+        QuicTraceLogInfo(
+            LibraryVerifierEnabledPerRegistration,
+            "[ lib] Verifing enabled, per-registration!");
 #else
-        QuicTraceLogInfo("[ lib] Verifing enabled for all!");
+        QuicTraceLogInfo(
+            LibraryVerifierEnabled,
+            "[ lib] Verifing enabled for all!");
 #endif
     }
 #endif
@@ -243,6 +276,9 @@ MsQuicLibraryUninitialize(
         MsQuicLib.UnregisteredSession = NULL;
     }
 
+    QuicDataPathUninitialize(MsQuicLib.Datapath);
+    MsQuicLib.Datapath = NULL;
+
     //
     // The library's worker pool for processing half-opened connections
     // needs to be cleaned up first, as it's the last thing that can be
@@ -253,7 +289,7 @@ MsQuicLibraryUninitialize(
         MsQuicLib.WorkerPool = NULL;
     }
 
-#if QUIC_TEST_MODE
+#if DEBUG
     //
     // If you hit this assert, MsQuic API is trying to be unloaded without
     // first cleaning up all connections.
@@ -279,10 +315,9 @@ MsQuicLibraryUninitialize(
     }
     QuicLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
 
-    QuicDataPathUninitialize(MsQuicLib.Datapath);
-    MsQuicLib.Datapath = NULL;
-
-    QuicTraceEvent(LibraryUninitialized);
+    QuicTraceEvent(
+        LibraryUninitialized,
+        "[ lib] Uninitialized");
 
     QuicPlatformUninitialize();
 }
@@ -318,7 +353,9 @@ MsQuicAddRef(
         }
     }
 
-    QuicTraceEvent(LibraryAddRef);
+    QuicTraceEvent(
+        LibraryAddRef,
+        "[ lib] AddRef");
 
 Error:
 
@@ -341,7 +378,9 @@ MsQuicRelease(
     //
 
     QUIC_FRE_ASSERT(MsQuicLib.RefCount > 0);
-    QuicTraceEvent(LibraryRelease);
+    QuicTraceEvent(
+        LibraryRelease,
+        "[ lib] Release");
 
     if (--MsQuicLib.RefCount == 0) {
         MsQuicLibraryUninitialize();
@@ -414,6 +453,248 @@ MsQuicSetCallbackHandler(
     }
 
     Handle->ClientContext = Context;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicLibApplyLoadBalancingSetting(
+    void
+    )
+{
+    switch (MsQuicLib.Settings.LoadBalancingMode) {
+    case QUIC_LOAD_BALANCING_DISABLED:
+    default:
+        MsQuicLib.CidServerIdLength = 0;
+        break;
+    case QUIC_LOAD_BALANCING_SERVER_ID_IP:
+        MsQuicLib.CidServerIdLength = 5; // 1 + 4 for v4 IP address
+        break;
+    }
+
+    MsQuicLib.CidTotalLength =
+        MsQuicLib.CidServerIdLength +
+        MSQUIC_CID_PID_LENGTH +
+        MSQUIC_CID_PAYLOAD_LENGTH;
+
+    QUIC_FRE_ASSERT(MsQuicLib.CidServerIdLength >= MSQUIC_MIN_CID_SID_LENGTH);
+    QUIC_FRE_ASSERT(MsQuicLib.CidServerIdLength <= MSQUIC_MAX_CID_SID_LENGTH);
+    QUIC_FRE_ASSERT(MsQuicLib.CidTotalLength >= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
+    QUIC_FRE_ASSERT(MsQuicLib.CidTotalLength <= MSQUIC_CID_MAX_LENGTH);
+
+    QuicTraceLogInfo(
+        LibraryCidLengthSet,
+        "[ lib] CID Length = %hhu",
+        MsQuicLib.CidTotalLength);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibrarySetGlobalParam(
+    _In_ uint32_t Param,
+    _In_ uint32_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const void* Buffer
+    )
+{
+    QUIC_STATUS Status;
+
+    switch (Param) {
+    case QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT:
+
+        if (BufferLength != sizeof(MsQuicLib.Settings.RetryMemoryLimit)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        MsQuicLib.Settings.RetryMemoryLimit = *(uint16_t*)Buffer;
+        MsQuicLib.Settings.AppSet.RetryMemoryLimit = TRUE;
+        QuicTraceLogInfo(
+            LibraryRetryMemoryLimitSet,
+            "[ lib] Updated retry memory limit = %hu",
+            MsQuicLib.Settings.RetryMemoryLimit);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE: {
+
+        if (BufferLength != sizeof(uint16_t)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (*(uint16_t*)Buffer > QUIC_LOAD_BALANCING_SERVER_ID_IP) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (MsQuicLib.InUse &&
+            MsQuicLib.Settings.LoadBalancingMode != *(uint16_t*)Buffer) {
+            QuicTraceLogError(
+                LibraryLoadBalancingModeSetAfterInUse,
+                "[ lib] Tried to change load balancing mode after library in use!");
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        MsQuicLib.Settings.LoadBalancingMode = *(uint16_t*)Buffer;
+        MsQuicLib.Settings.AppSet.LoadBalancingMode = TRUE;
+        QuicTraceLogInfo(
+            LibraryLoadBalancingModeSet,
+            "[ lib] Updated load balancing mode = %hu",
+            MsQuicLib.Settings.LoadBalancingMode);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_ENCRYPTION:
+
+        if (BufferLength != sizeof(uint8_t)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (MsQuicLib.InUse &&
+            MsQuicLib.EncryptionDisabled != (*(uint8_t*)Buffer == FALSE)) {
+            QuicTraceLogError(
+                LibraryEncryptionSetAfterInUse,
+                "[ lib] Tried to change encryption state after library in use!");
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        MsQuicLib.EncryptionDisabled = *(uint8_t*)Buffer == FALSE;
+        QuicTraceLogWarning(
+            LibraryEncryptionSet,
+            "[ lib] Updated encryption disabled = %hu",
+            MsQuicLib.EncryptionDisabled);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    case QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS:
+
+        if (BufferLength != sizeof(QUIC_TEST_DATAPATH_HOOKS*)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        MsQuicLib.TestDatapathHooks = *(QUIC_TEST_DATAPATH_HOOKS**)Buffer;
+        QuicTraceLogWarning(
+            LibraryTestDatapathHooksSet,
+            "[ lib] Updated test datapath hooks");
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+#endif
+    }
+
+    default:
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        break;
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibraryGetGlobalParam(
+    _In_ uint32_t Param,
+    _Inout_ uint32_t* BufferLength,
+    _Out_writes_bytes_opt_(*BufferLength)
+        void* Buffer
+    )
+{
+    QUIC_STATUS Status;
+
+    switch (Param) {
+    case QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT:
+
+        if (*BufferLength < sizeof(MsQuicLib.Settings.RetryMemoryLimit)) {
+            *BufferLength = sizeof(MsQuicLib.Settings.RetryMemoryLimit);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(MsQuicLib.Settings.RetryMemoryLimit);
+        *(uint16_t*)Buffer = MsQuicLib.Settings.RetryMemoryLimit;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS:
+
+        if (*BufferLength < sizeof(QuicSupportedVersionList)) {
+            *BufferLength = sizeof(QuicSupportedVersionList);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(QuicSupportedVersionList);
+        QuicCopyMemory(
+            Buffer,
+            QuicSupportedVersionList,
+            sizeof(QuicSupportedVersionList));
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE:
+
+        if (*BufferLength < sizeof(uint16_t)) {
+            *BufferLength = sizeof(uint16_t);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(uint16_t);
+        *(uint16_t*)Buffer = MsQuicLib.Settings.LoadBalancingMode;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_ENCRYPTION:
+
+        if (*BufferLength < sizeof(uint8_t)) {
+            *BufferLength = sizeof(uint8_t);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(uint8_t);
+        *(uint8_t*)Buffer = !MsQuicLib.EncryptionDisabled;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    default:
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        break;
+    }
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -696,12 +977,16 @@ MsQuicOpen(
     QUIC_STATUS Status;
 
     if (QuicApi == NULL) {
-        QuicTraceLogVerbose("[ api] MsQuicOpen, NULL");
+        QuicTraceLogVerbose(
+            LibraryMsQuicOpenNull,
+            "[ api] MsQuicOpen, NULL");
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
-    QuicTraceLogVerbose("[ api] MsQuicOpen");
+    QuicTraceLogVerbose(
+        LibraryMsQuicOpenEntry,
+        "[ api] MsQuicOpen");
 
     Status = MsQuicAddRef();
     if (QUIC_FAILED(Status)) {
@@ -740,6 +1025,7 @@ MsQuicOpen(
     Api->ConnectionClose = MsQuicConnectionClose;
     Api->ConnectionShutdown = MsQuicConnectionShutdown;
     Api->ConnectionStart = MsQuicConnectionStart;
+    Api->ConnectionSendResumptionTicket = MsQuicConnectionSendResumptionTicket;
 
     Api->StreamOpen = MsQuicStreamOpen;
     Api->StreamClose = MsQuicStreamClose;
@@ -748,6 +1034,8 @@ MsQuicOpen(
     Api->StreamSend = MsQuicStreamSend;
     Api->StreamReceiveComplete = MsQuicStreamReceiveComplete;
     Api->StreamReceiveSetEnabled = MsQuicStreamReceiveSetEnabled;
+
+    Api->DatagramSend = MsQuicDatagramSend;
 
     *QuicApi = Api;
 
@@ -759,7 +1047,10 @@ Error:
 
 Exit:
 
-    QuicTraceLogVerbose("[ api] MsQuicOpen, status=0x%x", Status);
+    QuicTraceLogVerbose(
+        LibraryMsQuicOpenExit,
+        "[ api] MsQuicOpen, status=0x%x",
+        Status);
 
     return Status;
 }
@@ -772,7 +1063,9 @@ MsQuicClose(
     )
 {
     if (QuicApi != NULL) {
-        QuicTraceLogVerbose("[ api] MsQuicClose");
+        QuicTraceLogVerbose(
+            LibraryMsQuicClose,
+            "[ api] MsQuicClose");
         QUIC_FREE(QuicApi);
         MsQuicRelease();
     }
@@ -834,6 +1127,7 @@ QUIC_STATUS
 QuicLibraryGetBinding(
     _In_ QUIC_SESSION* Session,
     _In_ BOOLEAN ShareBinding,
+    _In_ BOOLEAN ServerOwned,
     _In_opt_ const QUIC_ADDR * LocalAddress,
     _In_opt_ const QUIC_ADDR * RemoteAddress,
     _Out_ QUIC_BINDING** NewBinding
@@ -866,15 +1160,16 @@ QuicLibraryGetBinding(
             LocalAddress,
             RemoteAddress);
     if (Binding != NULL) {
-        if (!ShareBinding || Binding->Exclusive) {
+        if (!ShareBinding || Binding->Exclusive ||
+            (ServerOwned != Binding->ServerOwned)) {
             //
-            // The binding does already exist, but its owner has exclusive
-            // ownership of the binding.
+            // The binding does already exist, but cannot be shared with the
+            // requested configuration.
             //
             Status = QUIC_STATUS_INVALID_STATE;
         } else {
             //
-            // Match found and its owner is willing to share.
+            // Match found and can be shared.
             //
             QUIC_DBG_ASSERT(Binding->RefCount > 0);
             Binding->RefCount++;
@@ -901,6 +1196,7 @@ NewBinding:
             Session->CompartmentId,
 #endif
             ShareBinding,
+            ServerOwned,
             LocalAddress,
             RemoteAddress,
             NewBinding);
@@ -945,6 +1241,12 @@ NewBinding:
         //
         // No other thread beat us, insert this binding into the list.
         //
+        if (QuicListIsEmpty(&MsQuicLib.Bindings)) {
+            QuicTraceLogInfo(
+                LibraryInUse,
+                "[ lib] Now in use.");
+            MsQuicLib.InUse = TRUE;
+        }
         QuicListInsertTail(&MsQuicLib.Bindings, &(*NewBinding)->Link);
     }
 
@@ -999,6 +1301,13 @@ QuicLibraryReleaseBinding(
     if (--Binding->RefCount == 0) {
         QuicListEntryRemove(&Binding->Link);
         Uninitialize = TRUE;
+
+        if (QuicListIsEmpty(&MsQuicLib.Bindings)) {
+            QuicTraceLogInfo(
+                LibraryNotInUse,
+                "[ lib] No longer in use.");
+            MsQuicLib.InUse = FALSE;
+        }
     }
     QuicDispatchLockRelease(&MsQuicLib.DatapathLock);
 
@@ -1024,7 +1333,9 @@ QuicLibraryOnListenerRegistered(
         // Lazily initialize server specific state, such as worker threads and
         // the unregistered connection session.
         //
-        QuicTraceEvent(LibraryWorkerPoolInit);
+        QuicTraceEvent(
+            LibraryWorkerPoolInit,
+            "[ lib] Shared worker pool initializing");
 
         QUIC_DBG_ASSERT(MsQuicLib.UnregisteredSession == NULL);
         if (QUIC_FAILED(
@@ -1083,7 +1394,9 @@ QuicTraceRundown(
     QuicLockAcquire(&MsQuicLib.Lock);
 
     if (MsQuicLib.RefCount > 0) {
-        QuicTraceEvent(LibraryRundown,
+        QuicTraceEvent(
+            LibraryRundown,
+            "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
             MsQuicLib.PartitionCount,
             QuicDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 
@@ -1163,7 +1476,11 @@ QuicLibraryGetCurrentStatelessRetryKey(
                 RawKey,
                 &NewKey);
         if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(LibraryErrorStatus, Status, "Create stateless retry key");
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "Create stateless retry key");
             return NULL;
         }
 

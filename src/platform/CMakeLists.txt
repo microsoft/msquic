@@ -7,6 +7,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         hashtable.c
         platform_winuser.c
         storage_winuser.c
+        toeplitz.c
     )
 else()
     set(SOURCES
@@ -15,6 +16,7 @@ else()
         inline.c
         platform_linux.c
         storage_linux.c
+        toeplitz.c
     )
 endif()
 
@@ -28,7 +30,7 @@ elseif(QUIC_TLS STREQUAL "openssl")
 elseif(QUIC_TLS STREQUAL "mitls")
     message(STATUS "Configuring for miTLS")
     set(SOURCES ${SOURCES} cert_capi.c selfsign_capi.c tls_mitls.c)
-    include_directories(${CMAKE_SOURCE_DIR}/submodules/everest/msquic/msvc/include)
+    include_directories(${PROJECT_SOURCE_DIR}/submodules/everest/msquic/msvc/include)
 else()
     message(STATUS "Configuring for stub TLS")
     set(SOURCES ${SOURCES} cert_stub.c selfsign_stub.c tls_stub.c)
@@ -37,6 +39,9 @@ endif()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
 
 add_library(platform STATIC ${SOURCES})
+
+set_property(TARGET platform PROPERTY FOLDER "libraries")
+
 target_compile_options(platform PRIVATE
      $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
         ${CLANG_GCC_WARNING_FLAGS}>
@@ -52,8 +57,17 @@ endif()
 if(QUIC_TLS STREQUAL "openssl")
     add_dependencies(platform OpenSSL)
     target_link_libraries(platform
-        ${QUIC_BUILD_DIR}/openssl/lib/libssl.a
-        ${QUIC_BUILD_DIR}/openssl/lib/libcrypto.a)
+        ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+        ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
 elseif(QUIC_TLS STREQUAL "mitls")
     target_link_libraries(platform kremlib evercrypt mitls quiccrypto)
 endif()
+
+if (NOT MSVC AND NOT APPLE)
+    find_library(ATOMIC NAMES atomic libatomic.so.1)
+    if (ATOMIC)
+        message(STATUS "Found libatomic: ${ATOMIC}")
+    endif()
+endif()
+
+target_link_libraries(platform ${ATOMIC})

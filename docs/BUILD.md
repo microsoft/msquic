@@ -5,7 +5,7 @@ MsQuic uses [CMake](https://cmake.org/) to generate build files.
 > **Note** - clone the repo recursively or run `git submodule update --init --recursive`
 to get all the submodules.
 
-## Source Code
+# Source Code
 
 The source (found in the `src` directory) is divided into several directories:
 
@@ -16,30 +16,22 @@ The source (found in the `src` directory) is divided into several directories:
   * `platform` - Platform specific code for OS types, sockets and TLS.
   * `test` - Test code for the MsQuic API / protocol.
   * `tools` - Tools for exercising MsQuic.
-    * `attack` - Adversarial tool for exploiting protocol weaknesses.
-    * `etw` - Windows specific tool for processing MsQuic ETW logs.
-    * `interop` - Runs through the [IETF interop scenarios](https://github.com/quicwg/base-drafts/wiki/16th-Implementation-Draft).
-    * `ping` - Simple tool for gathering throughput measurements. Read more [here](../src/tools/ping/readme.md).
-    * `reach` - Tests for QUIC reachability of a server for several well-known ALPNs.
-    * `sample` - Minimal example of how to use the MsQuic API.
-    * `spin` - Randomly executes the MsQuic API to discover bugs.
-    * `void` - Randomly starts and stops the server to discover bugs.
 
-## PowerShell (6 or greater) Requirement
+# PowerShell Usage
 
-MsQuic uses several cross platform PowerShell build scripts to simplify build and test operations. PowerShell 6 or greater will need to be installed for them to work.
+MsQuic uses several cross-platform PowerShell scripts to simplify build and test operations. The latest PowerShell will need to be installed for them to work. These scripts are the **recommended** way to build and test MsQuic, but they are **not required**. If you prefer to use CMake directly, please scroll down to the end of this page and start with the **Building with CMake** instructions.
 
-### Install on Windows
+## Install on Windows
 
-You can install PowerShell 7.0 on Windows by running the following **PowerShell** script:
+You can install the latest PowerShell on Windows by running the following **PowerShell** script or read the complete instructions [here](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-windows).
 
 ```PowerShell
 iex "& { $(irm https://aka.ms/install-powershell.ps1) } -UseMSI"
 ```
 
-Then you will need to manually launch "PowerShell 7" to continue.
+Then you will need to **manually** launch "PowerShell 7" to continue. This install does not replace the built-in version of PowerShell.
 
-### Install on Linux
+## Install on Linux
 
 You find the full installation instructions for PowerShell on Linux [here](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?). For Ubuntu you can run the following:
 
@@ -79,7 +71,9 @@ wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.0.0_1.0.2g-1u
 sudo dpkg -i libssl1.0.0_1.0.2g-1ubuntu4.15_amd64.deb
 ```
 
-# Build Instructions
+Then you will need to manually run "pwsh" to continue.
+
+# Building with PowerShell
 
 ## Install Dependencies
 
@@ -93,11 +87,11 @@ For the very first time you build, it's recommend to make sure you have all the 
 
   * [CMake](https://cmake.org/)
   * [Visual Studio 2019](https://www.visualstudio.com/vs/) or higher
-  * Latest [Windows Insider](https://insider.windows.com/en-us/) builds.
+  * Latest [Windows Insider](https://insider.windows.com/en-us/) builds
 
 ## Running a Build
 
-To actually build the code, you just need to run:
+To build the code, you just need to run `build.ps1` in the `scripts` folder:
 
 ```PowerShell
 ./scripts/build.ps1
@@ -105,54 +99,61 @@ To actually build the code, you just need to run:
 
 The script has a lot of additional configuration options, but the default should be fine for most.
 
-**TODO** - Document additional configuration options.
+### Config options
 
-# Test Instructions
+`-Config <Debug/Release>` Allows for building in debug or release mode. **Debug** is the default configuration.
 
-### Additional Windows Configuration
+`-Arch <x86/x64/arm/arm64>` Allow for building for different architectures. **x64** is the defualt architecture.
 
-There is a one time registry setup required before the tests can be run when using
-SChannel TLS. These registry keys allow QUIC to use TLS 1.3
-```cmd
-reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server" /v Enabled /t REG_DWORD /d 1 /f
-reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server" /v DisabledByDefault /t REG_DWORD /d 0 /f
-reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client" /v Enabled /t REG_DWORD /d 1 /f
-reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client" /v DisabledByDefault /t REG_DWORD /d 0 /f
+`-Tls <stub/schannel/openssl/mitls>` Allows for building with different TLS providers. The default is platform dependent (Windows = schannel, Linux = openssl).
+
+`-Clean` Forces a clean build of everything.
+
+For more info, take a look at the [build.ps1](../scripts/build.ps1) script.
+
+## Build Output
+
+By default the build output should go to in the `build` folder and the final build binaries in the `artifacts` folder. Under that it will create per-platform folders, and then sub folders for architecture/tls combinations. This allows for building different platforms and configurations at the same time.
+
+# Building with CMake
+
+The following section details how to build MsQuic purely with CMake commands.
+
+> **Please note** that since using CMake directly is not the recommended way of building MsQuic, it's likely that these instructions may fall out of date more often than the **Building with PowerShell** ones.
+
+## Install Dependencies
+
+### Linux
+
+The following are generally required. Actual installations may vary.
+
+```
+sudo apt-add-repository ppa:lttng/stable-2.10
+sudo apt-get update
+sudo apt-get install cmake
+sudo apt-get install build-essentials
+sudo apt-get install liblttng-ust-dev
+sudo apt-get install lttng-tools
 ```
 
-## Running the Tests
+## Generating Build Files
 
-To run the tests, simply run:
+### Windows
 
-```PowerShell
-./scripts/test.ps1
+```
+mkdir build && cd build
+cmake -g 'Visual Studio 16 2019' -A x64 ..
 ```
 
-By default this will run all tests in series. To run in parallel, use the `-Parallel` switch. Running in parallel is much faster than in series, but it sometimes can cause additional test failures because of the increased (likely maximum) CPU load it creates. Additionally, while running in parallel, you cannot collect the logs.
+### Linux
 
-So, for a reliable run, that also includes logs for failed tests, run:
-
-```PowerShell
-./scripts/test.ps1 -LogProfile Full.Light
+```
+mkdir build && cd build
+cmake -g 'Linux Makefiles' ..
 ```
 
-If there are any failed tests, this will generate a directory for each failed test that incldues the console output from running the test and any logs collected.
+## Running a Build
 
-**Example Output**
 ```
-PS G:\msquic> ./scripts/test.ps1 -LogProfile Full.Light
-[01/21/2020 07:20:29] Executing 967 tests in series...
-[01/21/2020 07:46:42] 963 test(s) passed.
-[01/21/2020 07:46:42] 4 test(s) failed:
-[01/21/2020 07:46:42]   Basic/WithFamilyArgs.BadALPN/0
-[01/21/2020 07:46:42]   Basic/WithFamilyArgs.BadALPN/1
-[01/21/2020 07:46:42]   Basic/WithFamilyArgs.BadSNI/0
-[01/21/2020 07:46:42]   Basic/WithFamilyArgs.BadSNI/1
-[01/21/2020 07:46:42] Logs can be found in G:\msquic\artifacts\logs\01.21.2020.07.20.29
+cmake --build .
 ```
-
-**TODO** - Document additional configuration options.
-
-## Using Log Files
-
-**TODO** - Instructions for converting logs to text.

@@ -21,9 +21,6 @@ This script provides helpers for starting, stopping and canceling log collection
 .PARAMETER ConvertToText
     Converts the output logs to text.
 
-.PARAMETER TmfPath
-    Used for converting Windows WPP logs.
-
 .PARAMETER InstanceName
     A unique name for the logging instance.
 
@@ -102,9 +99,6 @@ function Log-Stop {
         if ($ConvertToText) {
             $LogPath = Join-Path $OutputDirectory "quic.log"
             $Command = "netsh trace convert $($EtlPath) output=$($LogPath) overwrite=yes report=no"
-            if ($TmfPath -ne "") {
-                $Command += " tmfpath=$($TmfPath)"
-            }
             Invoke-Expression $Command
         }
     } else {

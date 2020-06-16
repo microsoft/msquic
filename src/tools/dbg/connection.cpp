@@ -48,6 +48,29 @@ EXT_COMMAND(
         Send.NextPacketNumber());
 
     //
+    // CIDs
+    //
+
+    Dml("\n\tSource CIDs          ");
+
+    auto SourceCids = Conn.GetSourceCids().Next();
+    if (!SourceCids) {
+        Dml("None\n");
+    } else {
+        while (!CheckControlC() && SourceCids) {
+            auto CidEntry = CidHashEntry::FromLink(SourceCids);
+            auto Cid = CidEntry.GetCid();
+            Dml("%s (%llu)\n\t                     ",
+                Cid.Str().Data,
+                Cid.SequenceNumber());
+            SourceCids = SingleListEntry(SourceCids).Next();
+        }
+    }
+
+    Dml("\n\tDestination CIDs     "); // TODO
+    Dml("TODO\n");
+
+    //
     // Streams
     //
 
@@ -145,16 +168,24 @@ EXT_COMMAND(
             Dml("NEW_CONNECTION_ID\n"
                 "\t                     ");
         }
-        if (SendFlags & QUIC_CONN_SEND_FLAG_PING) {
-            Dml("PING\n"
-                "\t                     ");
-        }
         if (SendFlags & QUIC_CONN_SEND_FLAG_PATH_CHALLENGE) {
             Dml("PATH_CHALLENGE\n"
                 "\t                     ");
         }
         if (SendFlags & QUIC_CONN_SEND_FLAG_PATH_RESPONSE) {
             Dml("PATH_RESPONSE\n"
+                "\t                     ");
+        }
+        if (SendFlags & QUIC_CONN_SEND_FLAG_PING) {
+            Dml("PING\n"
+                "\t                     ");
+        }
+        if (SendFlags & QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE) {
+            Dml("HANDSHAKE_DONE\n"
+                "\t                     ");
+        }
+        if (SendFlags & QUIC_CONN_SEND_FLAG_DATAGRAM) {
+            Dml("DATAGRAM\n"
                 "\t                     ");
         }
         if (SendFlags & QUIC_CONN_SEND_FLAG_PMTUD) {

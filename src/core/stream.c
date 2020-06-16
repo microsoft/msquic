@@ -12,10 +12,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "stream.tmh"
-#endif
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicStreamInitialize(
@@ -50,7 +46,7 @@ QuicStreamInitialize(
     Stream->SendRequestsTail = &Stream->SendRequests;
     QuicDispatchLockInitialize(&Stream->ApiSendRequestLock);
     QuicRefInitialize(&Stream->RefCount);
-#if QUIC_TEST_MODE
+#if DEBUG
     Stream->RefTypeCount[QUIC_STREAM_REF_APP] = 1;
 #endif
 
@@ -145,8 +141,13 @@ QuicStreamFree(
     QuicPoolFree(&Stream->Connection->Worker->StreamPool, Stream);
 
     if (WasStarted) {
-#pragma prefast(suppress:6001, "SAL doesn't understand we're logging just the address")
-        QuicTraceEvent(StreamDestroyed, Stream);
+#pragma warning(push)
+#pragma warning(disable:6001) // SAL doesn't understand we're logging just the address
+        QuicTraceEvent(
+            StreamDestroyed,
+            "[strm][%p] Destroyed",
+            Stream);
+#pragma warning(pop)
     }
 }
 
@@ -191,9 +192,23 @@ QuicStreamStart(
 
     Stream->Flags.Started = TRUE;
 
-    QuicTraceEvent(StreamCreated, Stream, Stream->Connection, Stream->ID, !IsRemoteStream);
-    QuicTraceEvent(StreamSendState, Stream, QuicStreamSendGetState(Stream));
-    QuicTraceEvent(StreamRecvState, Stream, QuicStreamRecvGetState(Stream));
+    QuicTraceEvent(
+        StreamCreated,
+        "[strm][%p] Created, Conn=%p ID=%llu IsLocal=%hhu",
+        Stream,
+        Stream->Connection,
+        Stream->ID,
+        !IsRemoteStream);
+    QuicTraceEvent(
+        StreamSendState,
+        "[strm][%p] Send State: %hhu",
+        Stream,
+        QuicStreamSendGetState(Stream));
+    QuicTraceEvent(
+        StreamRecvState,
+        "[strm][%p] Recv State: %hhu",
+        Stream,
+        QuicStreamRecvGetState(Stream));
 
     if (Stream->Flags.SendEnabled) {
         Stream->OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_APP;
@@ -227,7 +242,11 @@ QuicStreamStart(
     Stream->SendWindow = (uint32_t)min(Stream->MaxAllowedSendOffset, UINT32_MAX);
 
     if (Stream->OutFlowBlockedReasons != 0) {
-        QuicTraceEvent(StreamOutFlowBlocked, Stream, Stream->OutFlowBlockedReasons);
+        QuicTraceEvent(
+            StreamOutFlowBlocked,
+            "[strm][%p] Send Blocked Flags: %hhu",
+            Stream,
+            Stream->OutFlowBlockedReasons);
     }
 
 Exit:
@@ -247,7 +266,6 @@ QuicStreamClose(
 {
     if (!Stream->Flags.ShutdownComplete) {
 
-        QUIC_CONN_VERIFY(Stream->Connection, !Stream->Flags.Started);
         if (Stream->Flags.Started) {
             //
             // TODO - If the stream hasn't been aborted already, then this is a
@@ -255,7 +273,10 @@ QuicStreamClose(
             // pick an error" to shutdown the stream with. It must abort the
             // entire connection.
             //
-            QuicTraceLogStreamWarning(CloseWithoutShutdown, Stream, "Closing handle without fully shutting down.");
+            QuicTraceLogStreamWarning(
+                CloseWithoutShutdown,
+                Stream,
+                "Closing handle without fully shutting down");
         }
 
         //
@@ -290,9 +311,18 @@ QuicStreamTraceRundown(
     _In_ QUIC_STREAM* Stream
     )
 {
-    QuicTraceEvent(StreamRundown, Stream, Stream->Connection, Stream->ID,
+    QuicTraceEvent(
+        StreamRundown,
+        "[strm][%p] Rundown, Conn=%p ID=%llu IsLocal=%hhu",
+        Stream,
+        Stream->Connection,
+        Stream->ID,
         (!QuicConnIsServer(Stream->Connection) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
-    QuicTraceEvent(StreamOutFlowBlocked, Stream, Stream->OutFlowBlockedReasons);
+    QuicTraceEvent(
+        StreamOutFlowBlocked,
+        "[strm][%p] Send Blocked Flags: %hhu",
+        Stream,
+        Stream->OutFlowBlockedReasons);
     // TODO - More state dump.
 }
 
@@ -313,7 +343,9 @@ QuicStreamIndicateEvent(
                 Event);
         uint64_t EndTime = QuicTimeUs64();
         if (EndTime - StartTime > QUIC_MAX_CALLBACK_TIME_WARNING) {
-            QuicTraceLogStreamWarning(AppTooLong, Stream,
+            QuicTraceLogStreamWarning(
+                AppTooLong,
+                Stream,
                 "App took excessive time (%llu us) in callback.",
                 (EndTime - StartTime));
             QUIC_TEL_ASSERTMSG_ARGS(
@@ -325,7 +357,10 @@ QuicStreamIndicateEvent(
         }
     } else {
         Status = QUIC_STATUS_INVALID_STATE;
-        QuicTraceLogStreamWarning(EventSilentDiscard, Stream, "Event silently discarded.");
+        QuicTraceLogStreamWarning(
+            EventSilentDiscard,
+            Stream,
+            "Event silently discarded");
     }
     return Status;
 }
@@ -341,7 +376,10 @@ QuicStreamIndicateStartComplete(
     Event.Type = QUIC_STREAM_EVENT_START_COMPLETE;
     Event.START_COMPLETE.Status = Status;
     Event.START_COMPLETE.ID = Stream->ID;
-    QuicTraceLogStreamVerbose(IndicateStartComplete, Stream, "Indicating QUIC_STREAM_EVENT_START_COMPLETE (0x%x)",
+    QuicTraceLogStreamVerbose(
+        IndicateStartComplete,
+        Stream,
+        "Indicating QUIC_STREAM_EVENT_START_COMPLETE (0x%x)",
         Status);
     (void)QuicStreamIndicateEvent(Stream, &Event);
 }
@@ -357,7 +395,10 @@ QuicStreamIndicateShutdownComplete(
 
         QUIC_STREAM_EVENT Event;
         Event.Type = QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE;
-        QuicTraceLogStreamVerbose(IndicateShutdownComplete, Stream, "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE");
+        QuicTraceLogStreamVerbose(
+            IndicateStreamShutdownComplete,
+            Stream,
+            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE");
         (void)QuicStreamIndicateEvent(Stream, &Event);
 
         Stream->ClientCallbackHandler = NULL;

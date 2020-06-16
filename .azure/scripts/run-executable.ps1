@@ -77,7 +77,7 @@ function Log($msg) {
 
 # Make sure the executable is present.
 if (!(Test-Path $Path)) {
-    Write-Error "[$(Get-Date)] $($Path) does not exist!"
+    Write-Error "$($Path) does not exist!"
 }
 
 # Root directory of the project.
@@ -98,7 +98,7 @@ $FailXmlText = @"
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites tests="1" failures="1" disabled="0" errors="0" time="0" name="Executable">
   <testsuite name="ExeName" tests="1" failures="1" disabled="0" errors="0" timestamp="date" time="0" >
-    <testcase name="Run" status="run" result="completed" time="0" timestamp="date" classname="ExeName">
+    <testcase name="ExeName" status="run" result="completed" time="0" timestamp="date" classname="ExeName">
       <failure message="Application Crashed" type=""><![CDATA[Application Crashed]]></failure>
     </testcase>
   </testsuite>
@@ -110,10 +110,13 @@ $SuccessXmlText = @"
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites tests="1" failures="1" disabled="0" errors="0" time="0" name="Executable">
   <testsuite name="ExeName" tests="1" failures="1" disabled="0" errors="0" timestamp="date" time="0" >
-    <testcase name="Run" status="run" result="completed" time="0" timestamp="date" classname="ExeName" />
+    <testcase name="ExeName" status="run" result="completed" time="0" timestamp="date" classname="ExeName" />
   </testsuite>
 </testsuites>
 "@
+
+# Path to the WER registry key used for collecting dumps.
+$WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\$ExeName"
 
 # Asynchronously starts the executable with the given arguments.
 function Start-Executable {
@@ -132,8 +135,11 @@ function Start-Executable {
                 $pinfo.Arguments = "-g -G $($Path) $($Arguments)"
             }
         } else {
-            $pinfo.FileName = $RootDir + "\bld\tools\procdump64.exe"
-            $pinfo.Arguments = "-ma -e -b -l -accepteula -x $($LogDir) $($Path) $($Arguments)"
+            $pinfo.FileName = $Path
+            $pinfo.Arguments = $Arguments
+            # Enable WER dump collection.
+            New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
+            New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $LogDir -Force | Out-Null
         }
     } else {
         if ($Debugger) {
@@ -145,7 +151,7 @@ function Start-Executable {
             }
         } else {
             $pinfo.FileName = "bash"
-            $pinfo.Arguments = "-c `"ulimit -c unlimited && ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 $($Path) $($Arguments) && echo Done`""
+            $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 $($Path) $($Arguments) && echo Done`""
             $pinfo.WorkingDirectory = $LogDir
         }
     }
@@ -164,30 +170,58 @@ function Start-Executable {
     }
 }
 
+# Uses CDB.exe to print the crashing callstack in the dump file.
+function PrintDumpCallStack($DumpFile) {
+    $env:_NT_SYMBOL_PATH = Split-Path $Path
+    try {
+        if ($env:BUILD_BUILDNUMBER -ne $null) {
+            $env:PATH += ";c:\Program Files (x86)\Windows Kits\10\Debuggers\x64"
+        }
+        $Output = cdb.exe -z $File -c "kn;q" | Join-String -Separator "`n"
+        $Output = ($Output | Select-String -Pattern " # Child-SP(?s).*quit:").Matches[0].Groups[0].Value
+        Write-Host "=================================================================================="
+        Write-Host " $(Split-Path $DumpFile -Leaf)"
+        Write-Host "=================================================================================="
+        $Output -replace "quit:", "=================================================================================="
+    } catch {
+        # Silently fail
+    }
+}
+
 # Waits for the executable to finish and processes the results.
 function Wait-Executable($Exe) {
     $stdout = $null
     $stderr = $null
-    $ProcessCrashed = $false
+    $KeepOutput = $KeepOutputOnSuccess
 
     try {
         if (!$Debugger) {
             $stdout = $Exe.Process.StandardOutput.ReadToEnd()
             $stderr = $Exe.Process.StandardError.ReadToEnd()
-            if ($isWindows) {
-                $ProcessCrashed = $stdout.Contains("Dump 1 complete")
-            } else {
-                $ProcessCrashed = $stderr.Contains("Aborted")
+            if (!$isWindows) {
+                $KeepOutput = $stderr.Contains("Aborted")
             }
         }
         $Exe.Process.WaitForExit()
+        if ($Exe.Process.ExitCode -ne 0) {
+            Log "Process had nonzero exit code: $($Exe.Process.ExitCode)"
+            $KeepOutput = $true
+        }
+        $DumpFiles = (Get-ChildItem $LogDir) | Where-Object { $_.Extension -eq ".dmp" }
+        if ($DumpFiles) {
+            Log "Dump file(s) generated"
+            foreach ($File in $DumpFiles) {
+                PrintDumpCallStack($File)
+            }
+            $KeepOutput = $true
+        }
     } catch {
-        Log "Treating exception as crash!"
-        $ProcessCrashed = $true
+        Log "Treating exception as failure!"
+        $KeepOutput = $true
         throw
     } finally {
         $XmlText = $null
-        if ($ProcessCrashed) {
+        if ($KeepOutput) {
             $XmlText = $FailXmlText;
         } else {
             $XmlText = $SuccessXmlText;
@@ -200,7 +234,7 @@ function Wait-Executable($Exe) {
             $XmlResults = [xml]($XmlText)
             $XmlResults.Save($LogDir + "-results.xml") | Out-Null
         }
-        
+
         if ($ShowOutput) {
             if ($null -ne $stdout -and "" -ne $stdout) {
                 Write-Host $stdout
@@ -210,8 +244,7 @@ function Wait-Executable($Exe) {
             }
         }
 
-        if ($ProcessCrashed -or $KeepOutputOnSuccess) {
-
+        if ($KeepOutput) {
             if ($LogProfile -ne "None") {
                 if ($ConvertLogs) {
                     & $LogScript -Stop -OutputDirectory $LogDir -ConvertToText
@@ -245,5 +278,15 @@ function Wait-Executable($Exe) {
     }
 }
 
+# Initialize WER dump registry key if necessary.
+if ($IsWindows -and !(Test-Path $WerDumpRegPath)) {
+    New-Item -Path $WerDumpRegPath -Force | Out-Null
+}
+
 # Start the executable, wait for it to complete and then generate any output.
 Wait-Executable (Start-Executable)
+
+if ($isWindows) {
+    # Cleanup the WER registry.
+    Remove-Item -Path $WerDumpRegPath -Force | Out-Null
+}

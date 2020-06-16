@@ -1,0 +1,9 @@
+# Standardize line endings for all text files.
+* text eol=auto
+
+# Ensure text files stay text
+*.xml text
+
+# Ensure binary files stay binary
+*.pgd binary
+*.png binary

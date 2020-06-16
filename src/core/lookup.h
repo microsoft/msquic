@@ -7,8 +7,18 @@
 
 typedef struct QUIC_PARTITIONED_HASHTABLE QUIC_PARTITIONED_HASHTABLE;
 
+typedef struct QUIC_REMOTE_HASH_ENTRY {
+
+    QUIC_HASHTABLE_ENTRY Entry;
+    QUIC_CONNECTION* Connection;
+    QUIC_ADDR RemoteAddress;
+    uint8_t RemoteCidLength;
+    uint8_t RemoteCid[0];
+
+} QUIC_REMOTE_HASH_ENTRY;
+
 //
-// CID-keyed lookup table for connections.
+// Lookup table for connections.
 //
 typedef struct QUIC_LOOKUP {
 
@@ -34,6 +44,9 @@ typedef struct QUIC_LOOKUP {
     //
     uint8_t PartitionCount;
 
+    //
+    // Local CID lookup.
+    //
     union {
         void* LookupTable;
         struct {
@@ -50,6 +63,11 @@ typedef struct QUIC_LOOKUP {
             QUIC_PARTITIONED_HASHTABLE* Tables;
         } HASH;
     };
+
+    //
+    // Remote Hash lookup.
+    //
+    QUIC_HASHTABLE RemoteHashTable;
 
 } QUIC_LOOKUP;
 
@@ -81,15 +99,28 @@ QuicLookupMaximizePartitioning(
     );
 
 //
-// Returns the connection with the given CID, or NULL.
+// Returns the connection with the given local CID, or NULL.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_CONNECTION*
-QuicLookupFindConnection(
+QuicLookupFindConnectionByLocalCid(
     _In_ QUIC_LOOKUP* Lookup,
     _In_reads_(CIDLen)
         const uint8_t* const CID,
     _In_ uint8_t CIDLen
+    );
+
+//
+// Returns the connection with the given remote hash, or NULL.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_CONNECTION*
+QuicLookupFindConnectionByRemoteHash(
+    _In_ QUIC_LOOKUP* Lookup,
+    _In_ const QUIC_ADDR* const RemoteAddress,
+    _In_ uint8_t RemoteCidLength,
+    _In_reads_(RemoteCidLength)
+        const uint8_t* const RemoteCid
     );
 
 //
@@ -103,42 +134,67 @@ QuicLookupFindConnectionByRemoteAddr(
     );
 
 //
-// Attempts to insert the source CID into the lookup.
+// Attempts to insert the local CID into the lookup.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicLookupAddSourceConnectionID(
+QuicLookupAddLocalCid(
     _In_ QUIC_LOOKUP* Lookup,
     _In_ QUIC_CID_HASH_ENTRY* SourceCid,
     _Out_opt_ QUIC_CONNECTION** Collision
     );
 
 //
-// Removes a source CID from the lookup.
+// Attempts to insert the remote hash into the lookup.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicLookupAddRemoteHash(
+    _In_ QUIC_LOOKUP* Lookup,
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const QUIC_ADDR* const RemoteAddress,
+    _In_ uint8_t RemoteCidLength,
+    _In_reads_(RemoteCidLength)
+        const uint8_t* const RemoteCid,
+    _Out_ QUIC_CONNECTION** Collision
+    );
+
+//
+// Removes a local CID from the lookup.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicLookupRemoveSourceConnectionID(
+QuicLookupRemoveLocalCid(
     _In_ QUIC_LOOKUP* Lookup,
     _In_ QUIC_CID_HASH_ENTRY* SourceCid
     );
 
 //
-// Removes all the connection's source CIDs from the lookup.
+// Removes a remote hash from the lookup.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicLookupRemoveSourceConnectionIDs(
+QuicLookupRemoveRemoteHash(
+    _In_ QUIC_LOOKUP* Lookup,
+    _In_ QUIC_REMOTE_HASH_ENTRY* RemoteHashEntry
+    );
+
+//
+// Removes all the connection's local CIDs from the lookup.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicLookupRemoveLocalCids(
     _In_ QUIC_LOOKUP* Lookup,
     _In_ QUIC_CONNECTION* Connection
     );
 
 //
-// Moves all the connection's source CIDs from the one lookup to another.
+// Moves all the connection's local CIDs from the one lookup to another.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicLookupMoveSourceConnectionIDs(
+QuicLookupMoveLocalConnectionIDs(
     _In_ QUIC_LOOKUP* LookupSrc,
     _In_ QUIC_LOOKUP* LookupDest,
     _In_ QUIC_CONNECTION* Connection

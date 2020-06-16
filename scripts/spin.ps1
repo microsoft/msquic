@@ -15,6 +15,9 @@ This script runs spinquic locally for a period of time.
 .PARAMETER Timeout
     The run time in milliseconds.
 
+.Parameter RepeatCount
+    The amount of times to repeat the full test
+
 .PARAMETER KeepOutputOnSuccess
     Don't discard console output or logs on success.
 
@@ -43,10 +46,13 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
-    [string]$Tls = "schannel",
+    [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
     [Int32]$Timeout = 60000,
+
+    [Parameter(Mandatory = $false)]
+    [Int32]$RepeatCount = 1,
 
     [Parameter(Mandatory = $false)]
     [switch]$KeepOutputOnSuccess = $false,
@@ -68,6 +74,15 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+# Default TLS based on current platform.
+if ("" -eq $Tls) {
+    if ($IsWindows) {
+        $Tls = "schannel"
+    } else {
+        $Tls = "openssl"
+    }
+}
+
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
@@ -82,8 +97,13 @@ if ($IsWindows) {
     $SpinQuic = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/spinquic"
 }
 
+# Make sure the build is present.
+if (!(Test-Path $SpinQuic)) {
+    Write-Error "Build does not exist!`n `nRun the following to generate it:`n `n    $(Join-Path $RootDir "scripts" "build.ps1") -Config $Config -Arch $Arch -Tls $Tls`n"
+}
+
 # Build up all the arguments to pass to the Powershell script.
-$Arguments = "-Path $($SpinQuic) -Arguments 'both -timeout:$($Timeout)' -ShowOutput"
+$Arguments = "-Path $($SpinQuic) -Arguments 'both -timeout:$($Timeout) -repeat_count:$($RepeatCount)' -ShowOutput"
 if ($KeepOutputOnSuccess) {
     $Arguments += " -KeepOutputOnSuccess"
 }

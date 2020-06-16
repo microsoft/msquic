@@ -81,11 +81,6 @@ typedef struct QUIC_PATH QUIC_PATH;
 #define QUIC_MIN_ACK_SEND_NUMBER                2
 
 //
-// The default scaling factor for AckDelay field in the ACK_FRAME.
-//
-#define QUIC_DEFAULT_ACK_DELAY_EXPONENT         3
-
-//
 // The size of the stateless reset token.
 //
 #define QUIC_STATELESS_RESET_TOKEN_LENGTH       16
@@ -101,12 +96,6 @@ typedef struct QUIC_PATH QUIC_PATH;
 //
 #define QUIC_RECOMMENDED_STATELESS_RESET_PACKET_LENGTH (25 + QUIC_STATELESS_RESET_TOKEN_LENGTH)
 
-//
-// The secret used to derive the encryption key and IV for the Retry Packet
-// Integrity field.
-//
-#define QUIC_RETRY_PACKET_INTEGRITY_SECRET 0x65, 0x6e, 0x61, 0xe3, 0x36, 0xae, 0x94, 0x17, 0xf7, 0xf0, 0xed, 0xd8, 0xd7, 0x8d, 0x46, 0x1e, 0x2a, 0xa7, 0x08, 0x4a, 0xba, 0x7a, 0x14, 0xc1, 0xe9, 0xf7, 0x26, 0xd5, 0x57, 0x09, 0x16, 0x9a
-
 
 /*************************************************************
                   IMPLEMENTATION CONSTANTS
@@ -117,6 +106,12 @@ typedef struct QUIC_PATH QUIC_PATH;
 // Maximum number of partitions to support.
 //
 #define QUIC_MAX_PARTITION_COUNT                64
+
+//
+// The number of partitions (cores) to offset from the receive (RSS) core when
+// using the QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT profile.
+//
+#define QUIC_MAX_THROUGHPUT_PARTITION_OFFSET    2 // Two to skip over hyper-threaded cores
 
 //
 // The fraction ((0 to UINT16_MAX) / UINT16_MAX) of memory that must be
@@ -164,7 +159,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 // The number of packets we write for a single stream before going to the next
 // one in the round robin.
 //
-#define QUIC_STREAM_SEND_BATCH_COUNT            4
+#define QUIC_STREAM_SEND_BATCH_COUNT            8
 
 //
 // The maximum number of received packets to batch process at a time.
@@ -312,7 +307,7 @@ QUIC_STATIC_ASSERT(
 // The minimum number of bytes of send allowance we must have before we will
 // send another packet.
 //
-#define QUIC_MIN_SEND_ALLOWANCE                 100
+#define QUIC_MIN_SEND_ALLOWANCE                 75
 
 //
 // The minimum buffer space that we require before we will pack another
@@ -329,6 +324,10 @@ QUIC_STATIC_ASSERT(
 // Maximum number of connection IDs accepted from the peer.
 //
 #define QUIC_ACTIVE_CONNECTION_ID_LIMIT         4
+
+QUIC_STATIC_ASSERT(
+    2 <= QUIC_ACTIVE_CONNECTION_ID_LIMIT,
+    "Should always be more than the spec minimum");
 
 QUIC_STATIC_ASSERT(
     QUIC_MAX_PATH_COUNT <= QUIC_ACTIVE_CONNECTION_ID_LIMIT,
@@ -375,7 +374,40 @@ QUIC_STATIC_ASSERT(
 // The lifetime of a QUIC stateless retry token encryption key.
 // This is also the interval that generates new keys.
 //
-#define QUIC_STATELESS_RETRY_KEY_LIFETIME_MS 30000
+#define QUIC_STATELESS_RETRY_KEY_LIFETIME_MS    30000
+
+//
+// The default value for migration being enabled or not.
+//
+#define QUIC_DEFAULT_MIGRATION_ENABLED          TRUE
+
+//
+// The default value for load balancing mode.
+//
+#define QUIC_DEFAULT_LOAD_BALANCING_MODE        QUIC_LOAD_BALANCING_DISABLED
+
+//
+// The default value for datagrams being enabled or not.
+//
+#define QUIC_DEFAULT_DATAGRAM_RECEIVE_ENABLED   FALSE
+
+//
+// The default max_datagram_frame_length transport parameter value we send. Set
+// to max uint16 to not explicitly limit the length of datagrams.
+//
+#define QUIC_DEFAULT_MAX_DATAGRAM_LENGTH        0xFFFF
+
+//
+// By default, resumption and 0-RTT are not enabled for servers.
+// If an application want to use these features, it must explicitly enable them.
+//
+#define QUIC_DEFAULT_SERVER_RESUMPTION_LEVEL    QUIC_SERVER_NO_RESUME
+
+//
+// Version of the wire-format for resumption tickets.
+// This needs to be incremented for each change in order or count of fields.
+//
+#define QUIC_TLS_RESUMPTION_TICKET_VERSION      1
 
 /*************************************************************
                   PERSISTENT SETTINGS
@@ -385,11 +417,14 @@ QUIC_STATIC_ASSERT(
 
 #define QUIC_SETTING_MAX_PARTITION_COUNT        "MaxPartitionCount"
 #define QUIC_SETTING_RETRY_MEMORY_FRACTION      "RetryMemoryFraction"
+#define QUIC_SETTING_LOAD_BALANCING_MODE        "LoadBalancingMode"
 #define QUIC_SETTING_MAX_WORKER_QUEUE_DELAY     "MaxWorkerQueueDelayMs"
 #define QUIC_SETTING_MAX_STATELESS_OPERATIONS   "MaxStatelessOperations"
 #define QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN   "MaxOperationsPerDrain"
 
 #define QUIC_SETTING_SEND_PACING_DEFAULT        "SendPacingDefault"
+#define QUIC_SETTING_MIGRATION_ENABLED          "MigrationEnabled"
+#define QUIC_SETTING_DATAGRAM_RECEIVE_ENABLED   "DatagramReceiveEnabled"
 
 #define QUIC_SETTING_INITIAL_WINDOW_PACKETS     "InitialWindowPackets"
 #define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS       "SendIdleTimeoutMs"
@@ -408,3 +443,5 @@ QUIC_STATIC_ASSERT(
 #define QUIC_SETTING_CONN_FLOW_CONTROL_WINDOW   "ConnFlowControlWindow"
 
 #define QUIC_SETTING_MAX_BYTES_PER_KEY_PHASE    "MaxBytesPerKey"
+
+#define QUIC_SETTING_SERVER_RESUMPTION_OR_ZERORTT "ResumptionLevel"

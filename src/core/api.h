@@ -148,6 +148,17 @@ MsQuicConnectionStart(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
+MsQuicConnectionSendResumptionTicket(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ QUIC_SEND_RESUMPTION_FLAGS Flags,
+    _In_ uint16_t DataLength,
+    _In_reads_bytes_opt_(DataLength)
+        const uint8_t* ResumptionData
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
 MsQuicStreamOpen(
     _In_ _Pre_defensive_ HQUIC Handle,
     _In_ QUIC_STREAM_OPEN_FLAGS Flags,
@@ -214,7 +225,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicSetParam(
-    _In_ _Pre_defensive_ HQUIC Handle,
+    _When_(Level == QUIC_PARAM_LEVEL_GLOBAL, _Reserved_)
+    _When_(Level != QUIC_PARAM_LEVEL_GLOBAL, _In_ _Pre_defensive_)
+        HQUIC Handle,
     _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
@@ -226,10 +239,24 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicGetParam(
-    _In_ _Pre_defensive_ HQUIC Handle,
+    _When_(Level == QUIC_PARAM_LEVEL_GLOBAL, _Reserved_)
+    _When_(Level != QUIC_PARAM_LEVEL_GLOBAL, _In_ _Pre_defensive_)
+        HQUIC Handle,
     _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _Inout_ _Pre_defensive_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
         void* Buffer
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicDatagramSend(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_reads_(BufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const Buffers,
+    _In_ uint32_t BufferCount,
+    _In_ QUIC_SEND_FLAGS Flags,
+    _In_opt_ void* ClientSendContext
     );

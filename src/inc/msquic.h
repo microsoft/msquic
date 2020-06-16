@@ -32,7 +32,7 @@ Supported Platforms:
 #include <msquic_winkernel.h>
 #elif _WIN32
 #include <msquic_winuser.h>
-#elif QUIC_PLATFORM_LINUX
+#elif __linux__
 #include <msquic_linux.h>
 #else
 #error "Unsupported Platform"
@@ -67,13 +67,23 @@ typedef _In_range_(0, QUIC_UINT62_MAX) uint64_t QUIC_UINT62;
 //
 #define QUIC_MAX_SNI_LENGTH             65535
 
+//
+// The maximum number of bytes of application data a server application can
+// send in a resumption ticket.
+//
+#define QUIC_MAX_RESUMPTION_APP_DATA_LENGTH     1000
 
 typedef enum QUIC_EXECUTION_PROFILE {
-    QUIC_EXECUTION_PROFILE_LOW_LATENCY,     // Default
-    QUIC_EXEC_PROF_TYPE_MAX_THROUGHPUT,
-    QUIC_EXEC_PROF_TYPE_SCAVENGER,
-    QUIC_EXEC_PROF_TYPE_REAL_TIME
+    QUIC_EXECUTION_PROFILE_LOW_LATENCY,         // Default
+    QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT,
+    QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER,
+    QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME
 } QUIC_EXECUTION_PROFILE;
+
+typedef enum QUIC_LOAD_BALANCING_MODE {
+    QUIC_LOAD_BALANCING_DISABLED,               // Default
+    QUIC_LOAD_BALANCING_SERVER_ID_IP            // Encodes IP address in Server ID
+} QUIC_LOAD_BALANCING_MODE;
 
 typedef enum QUIC_SEC_CONFIG_FLAGS {
     QUIC_SEC_CONFIG_FLAG_NONE                   = 0x00000000,
@@ -81,8 +91,7 @@ typedef enum QUIC_SEC_CONFIG_FLAGS {
     QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE = 0x00000002,
     QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT    = 0x00000004,
     QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE       = 0x00000008,
-    QUIC_SEC_CONFIG_FLAG_ENABLE_OCSP            = 0x00000010,
-    QUIC_SEC_CONFIG_FLAG_CERTIFICATE_NULL       = 0xF0000000    // Can't be used with anything else.
+    QUIC_SEC_CONFIG_FLAG_ENABLE_OCSP            = 0x00000010
 } QUIC_SEC_CONFIG_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEC_CONFIG_FLAGS);
@@ -100,6 +109,19 @@ typedef enum QUIC_CONNECTION_SHUTDOWN_FLAGS {
 } QUIC_CONNECTION_SHUTDOWN_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CONNECTION_SHUTDOWN_FLAGS);
+
+typedef enum QUIC_SEND_RESUMPTION_FLAGS {
+    QUIC_SEND_RESUMPTION_FLAG_NONE          = 0x0000,
+    QUIC_SEND_RESUMPTION_FLAG_FINAL         = 0x0001    // Free TLS state after sending this ticket.
+} QUIC_SEND_RESUMPTION_FLAGS;
+
+DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEND_RESUMPTION_FLAGS);
+
+typedef enum QUIC_STREAM_SCHEDULING_SCHEME {
+    QUIC_STREAM_SCHEDULING_SCHEME_FIFO          = 0x0000,   // Sends stream data first come, first served. (Default)
+    QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN   = 0x0001,   // Sends stream data evenly multiplexed.
+    QUIC_STREAM_SCHEDULING_SCHEME_COUNT                     // The number of stream scheduling schemes.
+} QUIC_STREAM_SCHEDULING_SCHEME;
 
 typedef enum QUIC_STREAM_OPEN_FLAGS {
     QUIC_STREAM_OPEN_FLAG_NONE              = 0x0000,
@@ -140,10 +162,27 @@ DEFINE_ENUM_FLAG_OPERATORS(QUIC_RECEIVE_FLAGS);
 typedef enum QUIC_SEND_FLAGS {
     QUIC_SEND_FLAG_NONE                     = 0x0000,
     QUIC_SEND_FLAG_ALLOW_0_RTT              = 0x0001,   // Allows the use of encrypting with 0-RTT key.
-    QUIC_SEND_FLAG_FIN                      = 0x0002    // Indicates the request is the one last sent on the stream.
+    QUIC_SEND_FLAG_FIN                      = 0x0002,   // Indicates the request is the one last sent on the stream.
+    QUIC_SEND_FLAG_DGRAM_PRIORITY           = 0x0004    // Indicates the datagram is higher priority than others.
 } QUIC_SEND_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEND_FLAGS);
+
+typedef enum QUIC_DATAGRAM_SEND_STATE {
+    QUIC_DATAGRAM_SEND_SENT,                            // Sent and awaiting acknowledegment
+    QUIC_DATAGRAM_SEND_LOST_SUSPECT,                    // Suspected as lost, but still tracked
+    QUIC_DATAGRAM_SEND_LOST_DISCARDED,                  // Lost and not longer being tracked
+    QUIC_DATAGRAM_SEND_ACKNOWLEDGED,                    // Acknowledged
+    QUIC_DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS,           // Acknowledged after being suspected lost
+    QUIC_DATAGRAM_SEND_CANCELED                         // Canceled before send
+} QUIC_DATAGRAM_SEND_STATE;
+
+//
+// Helper to determine if a datagrams state is final, and no longer tracked
+// by MsQuic.
+//
+#define QUIC_DATAGRAM_SEND_STATE_IS_FINAL(State) \
+    (State >= QUIC_DATAGRAM_SEND_LOST_DISCARDED)
 
 
 typedef struct QUIC_REGISTRATION_CONFIG { // All fields may be NULL/zero.
@@ -292,19 +331,32 @@ void
 //
 
 typedef enum QUIC_PARAM_LEVEL {
-    QUIC_PARAM_LEVEL_REGISTRATION       = 0,
-    QUIC_PARAM_LEVEL_SESSION            = 1,
-    QUIC_PARAM_LEVEL_LISTENER           = 2,
-    QUIC_PARAM_LEVEL_CONNECTION         = 3,
-    QUIC_PARAM_LEVEL_TLS                = 4,
-    QUIC_PARAM_LEVEL_STREAM             = 5
+    QUIC_PARAM_LEVEL_GLOBAL,
+    QUIC_PARAM_LEVEL_REGISTRATION,
+    QUIC_PARAM_LEVEL_SESSION,
+    QUIC_PARAM_LEVEL_LISTENER,
+    QUIC_PARAM_LEVEL_CONNECTION,
+    QUIC_PARAM_LEVEL_TLS,
+    QUIC_PARAM_LEVEL_STREAM
 } QUIC_PARAM_LEVEL;
+
+typedef enum QUIC_SERVER_RESUMPTION_LEVEL {
+    QUIC_SERVER_NO_RESUME,
+    QUIC_SERVER_RESUME_ONLY,
+    QUIC_SERVER_RESUME_AND_ZERORTT
+} QUIC_SERVER_RESUMPTION_LEVEL;
+
+//
+// Parameters for QUIC_PARAM_LEVEL_GLOBAL.
+//
+#define QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT          0   // uint16_t
+#define QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS            1   // uint32_t[] - network byte order
+#define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE            2   // uint16_t - QUIC_LOAD_BALANCING_MODE
 
 //
 // Parameters for QUIC_PARAM_LEVEL_REGISTRATION.
 //
-#define QUIC_PARAM_REGISTRATION_RETRY_MEMORY_PERCENT    0   // uint16_t
-#define QUIC_PARAM_REGISTRATION_CID_PREFIX              1   // uint8_t[]
+#define QUIC_PARAM_REGISTRATION_CID_PREFIX              0   // uint8_t[]
 
 //
 // Parameters for QUIC_PARAM_LEVEL_SESSION.
@@ -315,6 +367,9 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_SESSION_IDLE_TIMEOUT                 3   // uint64_t - milliseconds
 #define QUIC_PARAM_SESSION_DISCONNECT_TIMEOUT           4   // uint32_t - milliseconds
 #define QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY            5   // uint64_t - bytes
+#define QUIC_PARAM_SESSION_MIGRATION_ENABLED            6   // uint8_t (BOOLEAN)
+#define QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED     7   // uint8_t (BOOLEAN)
+#define QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL      8   // QUIC_SERVER_RESUMPTION_LEVEL
 
 //
 // Parameters for QUIC_PARAM_LEVEL_LISTENER.
@@ -345,6 +400,9 @@ typedef enum QUIC_PARAM_LEVEL {
 #define QUIC_PARAM_CONN_SHARE_UDP_BINDING               17  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_IDEAL_PROCESSOR                 18  // uint8_t
 #define QUIC_PARAM_CONN_MAX_STREAM_IDS                  19  // uint64_t[4]
+#define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME        20  // QUIC_STREAM_SCHEDULING_SCHEME
+#define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED        21  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED           22  // uint8_t (BOOLEAN)
 
 #ifdef WIN32 // Windows certificate validation ignore flags.
 #define QUIC_CERTIFICATE_FLAG_IGNORE_REVOCATION                 0x00000080
@@ -377,7 +435,9 @@ typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_SET_PARAM_FN)(
-    _In_ _Pre_defensive_ HQUIC Handle,
+    _When_(Level == QUIC_PARAM_LEVEL_GLOBAL, _Reserved_)
+    _When_(Level != QUIC_PARAM_LEVEL_GLOBAL, _In_ _Pre_defensive_)
+        HQUIC Handle,
     _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
@@ -389,7 +449,9 @@ typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_GET_PARAM_FN)(
-    _In_ _Pre_defensive_ HQUIC Handle,
+    _When_(Level == QUIC_PARAM_LEVEL_GLOBAL, _Reserved_)
+    _When_(Level != QUIC_PARAM_LEVEL_GLOBAL, _In_ _Pre_defensive_)
+        HQUIC Handle,
     _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
     _In_ uint32_t Param,
     _Inout_ _Pre_defensive_ uint32_t* BufferLength,
@@ -602,7 +664,12 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED               = 6,
     QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE                 = 7,
     QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS                = 8,
-    QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED           = 9
+    QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED           = 9,
+    QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED            = 10,
+    QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED                 = 11,
+    QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED       = 12,
+    QUIC_CONNECTION_EVENT_RESUMED                           = 13,   // Server-only; provides resumption data, if any.
+    QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED        = 14    // Client-only; provides ticket to persist, if any.
 } QUIC_CONNECTION_EVENT_TYPE;
 
 typedef struct QUIC_CONNECTION_EVENT {
@@ -640,6 +707,26 @@ typedef struct QUIC_CONNECTION_EVENT {
         struct {
             uint8_t IdealProcessor;
         } IDEAL_PROCESSOR_CHANGED;
+        struct {
+            BOOLEAN SendEnabled;
+            uint16_t MaxSendLength;
+        } DATAGRAM_STATE_CHANGED;
+        struct {
+            const QUIC_BUFFER* Buffer;
+            QUIC_RECEIVE_FLAGS Flags;
+        } DATAGRAM_RECEIVED;
+        struct {
+            /* inout */ void* ClientContext;
+            QUIC_DATAGRAM_SEND_STATE State;
+        } DATAGRAM_SEND_STATE_CHANGED;
+        struct {
+            uint16_t ResumptionStateLength;
+            const uint8_t* ResumptionState;
+        } RESUMED;
+        struct {
+            uint16_t ResumptionTicketLength;
+            const uint8_t* ResumptionTicket;
+        } RESUMPTION_TICKET_RECEIVED;
     };
 } QUIC_CONNECTION_EVENT;
 
@@ -708,6 +795,21 @@ QUIC_STATUS
     _In_reads_opt_z_(QUIC_MAX_SNI_LENGTH)
         const char* ServerName,
     _In_ uint16_t ServerPort // Host byte order
+    );
+
+//
+// Uses the QUIC (server) handle to send a resumption ticket to the remote
+// client, optionally with app-specific data useful during resumption.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_CONNECTION_SEND_RESUMPTION_FN)(
+    _In_ _Pre_defensive_ HQUIC Connection,
+    _In_ QUIC_SEND_RESUMPTION_FLAGS Flags,
+    _In_ uint16_t DataLength,
+    _In_reads_bytes_opt_(DataLength)
+        const uint8_t* ResumptionData
     );
 
 //
@@ -861,6 +963,26 @@ QUIC_STATUS
     );
 
 //
+// Datagrams
+//
+
+//
+// Sends an unreliable datagram on the connection. Note, the total payload
+// of the send must fit in a single QUIC packet.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_DATAGRAM_SEND_FN)(
+    _In_ _Pre_defensive_ HQUIC Connection,
+    _In_reads_(BufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const Buffers,
+    _In_ uint32_t BufferCount,
+    _In_ QUIC_SEND_FLAGS Flags,
+    _In_opt_ void* ClientSendContext
+    );
+
+//
 // API Function Table.
 //
 typedef struct QUIC_API_TABLE {
@@ -891,6 +1013,7 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_CLOSE_FN            ConnectionClose;
     QUIC_CONNECTION_SHUTDOWN_FN         ConnectionShutdown;
     QUIC_CONNECTION_START_FN            ConnectionStart;
+    QUIC_CONNECTION_SEND_RESUMPTION_FN  ConnectionSendResumptionTicket;
 
     QUIC_STREAM_OPEN_FN                 StreamOpen;
     QUIC_STREAM_CLOSE_FN                StreamClose;
@@ -899,6 +1022,8 @@ typedef struct QUIC_API_TABLE {
     QUIC_STREAM_SEND_FN                 StreamSend;
     QUIC_STREAM_RECEIVE_COMPLETE_FN     StreamReceiveComplete;
     QUIC_STREAM_RECEIVE_SET_ENABLED_FN  StreamReceiveSetEnabled;
+
+    QUIC_DATAGRAM_SEND_FN               DatagramSend;
 
 } QUIC_API_TABLE;
 

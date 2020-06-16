@@ -72,18 +72,20 @@ EXT_COMMAND(
     } else {
         for (UCHAR i = 0; i < PartitionCount; i++) {
             HashTable Hash(Lookup.GetLookupTable(i).GetTablePtr());
-            Dml("\t<link cmd=\"!hashtable 0x%I64X\">Hash Table %d</link> (%u entries)\n",
+            Dml("\t<link cmd=\"dt msquic!QUIC_HASHTABLE 0x%I64X\">Hash Table %d</link> (%u entries)\n",
                 Hash.Addr,
                 i,
                 Hash.NumEntries());
             ULONG64 EntryPtr;
             while (!CheckControlC() && Hash.GetNextEntry(&EntryPtr)) {
-                CidHashEntry Entry(EntryPtr);
+                CidHashEntry Entry = CidHashEntry::FromEntry(EntryPtr);
+                Cid Cid(Entry.GetCid());
                 Connection Conn(Entry.GetConnection());
-                Dml("\t  <link cmd=\"!quicconnection 0x%I64X\">Connection 0x%I64X</link> [%s]\n",
+                Dml("\t  <link cmd=\"!quicconnection 0x%I64X\">Connection 0x%I64X</link> [%s] [%s]\n",
                     Conn.Addr,
                     Conn.Addr,
-                    Conn.TypeStr());
+                    Conn.TypeStr(),
+                    Cid.Str().Data);
             }
         }
     }

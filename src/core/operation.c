@@ -24,10 +24,6 @@ Abstract:
 
 #include "precomp.h"
 
-#ifdef QUIC_LOGS_WPP
-#include "operation.tmh"
-#endif
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicOperationQueueInitialize(
@@ -59,7 +55,7 @@ QuicOperationAlloc(
 {
     QUIC_OPERATION* Oper = (QUIC_OPERATION*)QuicPoolAlloc(&Worker->OperPool);
     if (Oper != NULL) {
-#if QUIC_TEST_MODE
+#if DEBUG
         Oper->Link.Flink = NULL;
 #endif
         Oper->Type = Type;
@@ -87,7 +83,7 @@ QuicOperationFree(
     _In_ QUIC_OPERATION* Oper
     )
 {
-#if QUIC_TEST_MODE
+#if DEBUG
     QUIC_DBG_ASSERT(Oper->Link.Flink == NULL);
 #endif
     QUIC_DBG_ASSERT(Oper->FreeAfterProcess);
@@ -96,6 +92,11 @@ QuicOperationFree(
         if (ApiCtx->Type == QUIC_API_TYPE_CONN_START) {
             if (ApiCtx->CONN_START.ServerName != NULL) {
                 QUIC_FREE(ApiCtx->CONN_START.ServerName);
+            }
+        } else if (ApiCtx->Type == QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET) {
+            if (ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData != NULL) {
+                QUIC_DBG_ASSERT(ApiCtx->CONN_SEND_RESUMPTION_TICKET.AppDataLength != 0);
+                QUIC_FREE(ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData);
             }
         } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_START) {
             QUIC_DBG_ASSERT(ApiCtx->Completed == NULL);
@@ -129,7 +130,7 @@ QuicOperationEnqueue(
 {
     BOOLEAN StartProcessing;
     QuicDispatchLockAcquire(&OperQ->Lock);
-#if QUIC_TEST_MODE
+#if DEBUG
     QUIC_DBG_ASSERT(Oper->Link.Flink == NULL);
 #endif
     StartProcessing = QuicListIsEmpty(&OperQ->List) && !OperQ->ActivelyProcessing;
@@ -147,7 +148,7 @@ QuicOperationEnqueueFront(
 {
     BOOLEAN StartProcessing;
     QuicDispatchLockAcquire(&OperQ->Lock);
-#if QUIC_TEST_MODE
+#if DEBUG
     QUIC_DBG_ASSERT(Oper->Link.Flink == NULL);
 #endif
     StartProcessing = QuicListIsEmpty(&OperQ->List) && !OperQ->ActivelyProcessing;
@@ -172,7 +173,7 @@ QuicOperationDequeue(
         Oper =
             QUIC_CONTAINING_RECORD(
                 QuicListRemoveHead(&OperQ->List), QUIC_OPERATION, Link);
-#if QUIC_TEST_MODE
+#if DEBUG
         Oper->Link.Flink = NULL;
 #endif
     }
@@ -198,7 +199,7 @@ QuicOperationQueueClear(
     while (!QuicListIsEmpty(&OldList)) {
         QUIC_OPERATION* Oper =
             QUIC_CONTAINING_RECORD(QuicListRemoveHead(&OldList), QUIC_OPERATION, Link);
-#if QUIC_TEST_MODE
+#if DEBUG
         Oper->Link.Flink = NULL;
 #endif
         if (Oper->FreeAfterProcess) {
