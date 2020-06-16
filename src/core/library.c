@@ -572,7 +572,7 @@ QuicLibrarySetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-#if DEBUG
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     case QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS:
 
         if (BufferLength != sizeof(QUIC_TEST_DATAPATH_HOOKS*)) {

@@ -133,7 +133,7 @@ public:
     uint32_t GetWaitTimeout() const {
         uint32_t WaitTime = TestWaitTimeout;
         if (HasRandomLoss) {
-            WaitTime *= 10; // TODO - Enough?
+            WaitTime *= 20; // TODO - Enough?
         }
         return WaitTime;
     }

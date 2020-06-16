@@ -1421,7 +1421,7 @@ QuicBindingReceive(
         Packet->Buffer = Datagram->Buffer;
         Packet->BufferLength = Datagram->BufferLength;
 
-#if DEBUG
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
         //
         // The test datapath receive callback allows for test code to modify
         // the datagrams on the receive path, and optionally indicate one or
@@ -1552,7 +1552,7 @@ QuicBindingSendTo(
 {
     QUIC_STATUS Status;
 
-#if DEBUG
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     QUIC_TEST_DATAPATH_HOOKS* Hooks = MsQuicLib.TestDatapathHooks;
     if (Hooks != NULL) {
 
@@ -1598,7 +1598,7 @@ QuicBindingSendTo(
                 Binding,
                 Status);
         }
-#if DEBUG
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     }
 #endif
 
@@ -1616,7 +1616,7 @@ QuicBindingSendFromTo(
 {
     QUIC_STATUS Status;
 
-#if DEBUG
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     QUIC_TEST_DATAPATH_HOOKS* Hooks = MsQuicLib.TestDatapathHooks;
     if (Hooks != NULL) {
 
@@ -1665,7 +1665,7 @@ QuicBindingSendFromTo(
                 Binding,
                 Status);
         }
-#if DEBUG
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     }
 #endif
 

@@ -400,6 +400,7 @@ TEST_P(WithFamilyArgs, VersionNegotiation) {
     }
 }
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithFamilyArgs, Rebind) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-Rebind", GetParam());
     if (TestingKernelMode) {
@@ -431,6 +432,7 @@ TEST_P(WithFamilyArgs, Rebind) {
             0);     // RandomLossPercentage
     }
 }
+#endif
 
 TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-ChangeMaxStreamIDs", GetParam());
@@ -494,6 +496,7 @@ TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
     }
 }
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithHandshakeArgs4, RandomLoss) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLoss", GetParam());
     if (TestingKernelMode) {
@@ -524,6 +527,7 @@ TEST_P(WithHandshakeArgs4, RandomLoss) {
             GetParam().RandomLossPercentage);
     }
 }
+#endif
 
 TEST_P(WithFamilyArgs, Unreachable) {
     TestLoggerT<ParamType> Logger("QuicTestConnectUnreachable", GetParam());
