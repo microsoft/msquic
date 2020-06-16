@@ -446,6 +446,8 @@ QuicDataPathWorkerThread(
     struct kevent evList[32];
     int Kqueue = ProcContext->KqueueFd; 
 
+    printf("Entering worker...\n");
+
     while (!ProcContext->Datapath->Shutdown) {
         int nev = kevent(Kqueue, NULL, 0, evList, 32, NULL);
         if (nev < 1) { __asm__("int3"); }
@@ -833,8 +835,11 @@ QuicSocketContextInitialize(
     //if (LocalAddress) LOG_AF_TYPE(LocalAddress);
     //if (RemoteAddress) LOG_AF_TYPE(RemoteAddress);
 
+    SocketContext->SocketFd = socket(AF_INET, SOCK_DGRAM, 0);
+
     if (SocketContext->SocketFd == INVALID_SOCKET_FD) {
         __asm__("int3");
+        printf("%s:%d\n", __FILE__, __LINE__);
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -845,6 +850,8 @@ QuicSocketContextInitialize(
         goto Exit;
     }
 
+    socklen_t AddrSize = 0;
+
 #define LOGSOCKOPT(x) { \
     int __retv = (x); \
     if (__retv == -1) { \
@@ -852,22 +859,6 @@ QuicSocketContextInitialize(
         perror("setsockopt\n"); \
     } \
 }
-
-
-    //
-    //if (Result == SOCKET_ERROR) {
-    //    Status = errno;
-    //    __asm__("int3");
-    //    QuicTraceEvent(
-    //        DatapathErrorStatus,
-    //        "[ udp][%p] ERROR, %u, %s.",
-    //        Binding,
-    //        Status,
-    //        "bind failed");
-    //    goto Exit;
-    //}
-    
-    socklen_t AddrSize = 0;
 
     if (af_family == AF_INET) {
         Option = TRUE;
@@ -902,16 +893,6 @@ QuicSocketContextInitialize(
     //        (const void*)&Option,
     //        sizeof(Option));
     //if (Result == SOCKET_ERROR) {
-    //    __asm__("int3");
-    //    Status = errno;
-    //    QuicTraceEvent(
-    //        DatapathErrorStatus,
-    //        "[ udp][%p] ERROR, %u, %s.",
-    //        Binding,
-    //        Status,
-    //        "setsockopt(SO_RCVBUF) failed");
-    //    goto Exit;
-    //}
 
     //
     // The port is shared across processors.
@@ -925,7 +906,7 @@ QuicSocketContextInitialize(
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
-        __asm__("int3");
+        printf("%s:%d\n", __FILE__, __LINE__);
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -939,12 +920,15 @@ QuicSocketContextInitialize(
     Result =
         bind(
             SocketContext->SocketFd,
-            (const struct sockaddr *)&Binding->LocalAddress,
-            AddrSize);
-
+            (const struct sockaddr*)&Binding->LocalAddress,
+            sizeof(struct sockaddr));
+    // The above is a big hack. 
+    // Since QUIC_ADDR isn't a union, like on Linux, the sizing is wrong
+    // Unions are awful.
+    
     if (Result == SOCKET_ERROR) {
-        __asm__("int3");
         Status = errno;
+        printf("%s:%d => %d\n", __FILE__, __LINE__, errno);
         QuicTraceEvent(
             DatapathErrorStatus,
             "[ udp][%p] ERROR, %u, %s.",
@@ -993,7 +977,6 @@ QuicSocketContextInitialize(
             (struct sockaddr *)&Binding->LocalAddress,
             &AssignedLocalAddressLength);
     if (Result == SOCKET_ERROR) {
-        __asm__("int3");
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -1067,7 +1050,6 @@ QuicSocketContextPrepareReceive(
 
     QuicZeroMemory(&SocketContext->RecvMsgHdr, sizeof(SocketContext->RecvMsgHdr));
     QuicZeroMemory(&SocketContext->RecvMsgControl, sizeof(SocketContext->RecvMsgControl));
-    QuicZeroMemory(SocketContext->RecvIov.iov_base, 100);
 
     SocketContext->RecvMsgHdr.msg_name = &SocketContext->CurrentRecvBlock->RecvPacket.Tuple->RemoteAddress;
     SocketContext->RecvMsgHdr.msg_namelen = sizeof(SocketContext->CurrentRecvBlock->RecvPacket.Tuple->RemoteAddress);

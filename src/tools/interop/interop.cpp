@@ -69,10 +69,10 @@ struct QuicPublicEndpoint {
 
 QuicPublicEndpoint PublicEndpoints[] = {
     { "aioquic",        "quic.aiortc.org" },
-    { "akamaiquic",     "ietf.akaquic.com" },
-    { "applequic",      "71.202.41.169" },
-    { "ats",            "quic.ogre.com" },
-    { "f5",             "f5quic.com" },
+    // { "akamaiquic",     "ietf.akaquic.com" },
+    // { "applequic",      "71.202.41.169" },
+    // { "ats",            "quic.ogre.com" },
+    // { "f5",             "f5quic.com" },
     // { "gquic",          "quic.rocks" },
     // { "haskell",        "mew.org" },
     // { "lsquic",         "http3-test.litespeedtech.com" },
