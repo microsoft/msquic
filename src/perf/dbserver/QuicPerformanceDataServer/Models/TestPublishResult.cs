@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
-
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
@@ -11,14 +9,14 @@ namespace QuicDataServer.Models
     public class TestPublishResult : IAuthorizable
     {
         [Required]
-        public string PlatformName { get; set; }
+        public string PlatformName { get; set; } = null!;
         [Required]
-        public string TestName { get; set; }
+        public string TestName { get; set; } = null!;
         [Required]
-        public string CommitHash { get; set; }
+        public string CommitHash { get; set; } = null!;
         [Required]
-        public string AuthKey { get; set; }
+        public string AuthKey { get; set; } = null!;
         [Required]
-        public IEnumerable<double> IndividualRunResults { get; set; }
+        public IEnumerable<double> IndividualRunResults { get; set; } = null!;
     }
 }

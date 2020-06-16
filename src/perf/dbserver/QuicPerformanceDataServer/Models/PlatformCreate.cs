@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
-
 using System.ComponentModel.DataAnnotations;
 
 namespace QuicDataServer.Models
@@ -10,8 +8,8 @@ namespace QuicDataServer.Models
     public class PlatformCreate : IAuthorizable
     {
         [Required]
-        public string PlatformName { get; set; }
+        public string PlatformName { get; set; } = null!;
         [Required]
-        public string AuthKey { get; set; }
+        public string AuthKey { get; set; } = null!;
     }
 }
