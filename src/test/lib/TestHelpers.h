@@ -406,7 +406,7 @@ class DatapathHooks
     ReceiveCallback(
         _Inout_ struct QUIC_RECV_DATAGRAM* Datagram
         ) {
-        return Instance.Receive(Datagram);
+        return Instance->Receive(Datagram);
     }
 
     static
@@ -418,7 +418,7 @@ class DatapathHooks
         _Inout_opt_ QUIC_ADDR* LocalAddress,
         _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* SendContext
         ) {
-        return Instance.Send(RemoteAddress, LocalAddress, SendContext);
+        return Instance->Send(RemoteAddress, LocalAddress, SendContext);
     }
 
     void Register() {
@@ -492,7 +492,7 @@ class DatapathHooks
 
 public:
 
-    static DatapathHooks Instance;
+    static DatapathHooks* Instance;
 
     DatapathHooks() : Hooks(nullptr) {
         QuicDispatchLockInitialize(&Lock);
@@ -534,12 +534,12 @@ struct RandomLossHelper : public DatapathHook
     uint8_t LossPercentage;
     RandomLossHelper(uint8_t _LossPercentage) : LossPercentage(_LossPercentage) {
         if (LossPercentage != 0) {
-            DatapathHooks::Instance.AddHook(this);
+            DatapathHooks::Instance->AddHook(this);
         }
     }
     ~RandomLossHelper() {
         if (LossPercentage != 0) {
-            DatapathHooks::Instance.RemoveHook(this);
+            DatapathHooks::Instance->RemoveHook(this);
         }
     }
     _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -557,10 +557,10 @@ struct SelectiveLossHelper : public DatapathHook
 {
     uint32_t DropPacketCount;
     SelectiveLossHelper() : DropPacketCount(0) {
-        DatapathHooks::Instance.AddHook(this);
+        DatapathHooks::Instance->AddHook(this);
     }
     ~SelectiveLossHelper() {
-        DatapathHooks::Instance.RemoveHook(this);
+        DatapathHooks::Instance->RemoveHook(this);
     }
     void DropPackets(uint32_t Count) { DropPacketCount = Count; }
     _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -582,10 +582,10 @@ struct ReplaceAddressHelper : public DatapathHook
     QUIC_ADDR New;
     ReplaceAddressHelper(const QUIC_ADDR& OrigAddr, const QUIC_ADDR& NewAddr) :
         Original(OrigAddr), New(NewAddr) {
-        DatapathHooks::Instance.AddHook(this);
+        DatapathHooks::Instance->AddHook(this);
     }
     ~ReplaceAddressHelper() {
-        DatapathHooks::Instance.RemoveHook(this);
+        DatapathHooks::Instance->RemoveHook(this);
     }
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN

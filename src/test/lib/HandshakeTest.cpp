@@ -15,7 +15,18 @@ QUIC_TEST_DATAPATH_HOOKS DatapathHooks::FuncTable = {
     DatapathHooks::ReceiveCallback,
     DatapathHooks::SendCallback
 };
-DatapathHooks DatapathHooks::Instance;
+DatapathHooks* DatapathHooks::Instance;
+
+void QuicTestInitialize()
+{
+    DatapathHooks::Instance = new DatapathHooks;
+}
+
+void QuicTestUninitialize()
+{
+    delete DatapathHooks::Instance;
+    DatapathHooks::Instance = nullptr;
+}
 
 _Function_class_(NEW_STREAM_CALLBACK)
 static
