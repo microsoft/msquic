@@ -370,44 +370,39 @@ QuicSocketContextRecvComplete(
     QUIC_ADDR* RemoteAddr = &RecvPacket->Tuple->RemoteAddress;
    // QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
    
-    LocalAddr->Ip.sa_family = AF_INET6;
+    //LocalAddr->Ip.sa_family = AF_INET6;
 
-    //struct cmsghdr *CMsg;
-    //for (CMsg = CMSG_FIRSTHDR(&SocketContext->RecvMsgHdr);
-    //     CMsg != NULL;
-    //     CMsg = CMSG_NXTHDR(&SocketContext->RecvMsgHdr, CMsg)) {
-    //    __asm__("int3");
-    //    __asm__("int3");
-    //    __asm__("int3");
-    //    __asm__("int3");
-    //    __asm__("int3");
+    struct cmsghdr *CMsg;
+    for (CMsg = CMSG_FIRSTHDR(&SocketContext->RecvMsgHdr);
+         CMsg != NULL;
+         CMsg = CMSG_NXTHDR(&SocketContext->RecvMsgHdr, CMsg)) {
 
-    //    printf("cmsg_level: %d, cmsg_type: %d\n", CMsg->cmsg_level, CMsg->cmsg_type);
-    //    if (CMsg->cmsg_level == IPPROTO_IPV6 &&
-    //        CMsg->cmsg_type == IPV6_PKTINFO) {
-    //        struct in6_pktinfo* PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
-    //        LocalAddr->Ip.sa_family = AF_INET6;
-    //        LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
-    //        LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
-    //        QuicConvertFromMappedV6(LocalAddr, LocalAddr);
+        //printf("cmsg_level: %d, cmsg_type: %d\n", CMsg->cmsg_level, CMsg->cmsg_type);
+        if (CMsg->cmsg_level == IPPROTO_IPV6 &&
+            CMsg->cmsg_type == IPV6_PKTINFO) {
+            struct in6_pktinfo* PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
+            LocalAddr->Ip.sa_family = AF_INET6;
+            LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
+            LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
+            QuicConvertFromMappedV6(LocalAddr, LocalAddr);
 
-    //        LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
-    //        FoundLocalAddr = TRUE;
-    //        break;
-    //    }
+            LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
+            FoundLocalAddr = TRUE;
+            break;
+        }
 
-    //    if (CMsg->cmsg_level == IPPROTO_IP && CMsg->cmsg_type == IP_PKTINFO) {
-    //        struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
-    //        LocalAddr->Ip.sa_family = AF_INET;
-    //        LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
-    //        LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
-    //        LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
-    //        FoundLocalAddr = TRUE;
-    //        break;
-    //    }
-    //}
+        if (CMsg->cmsg_level == IPPROTO_IP && CMsg->cmsg_type == IP_PKTINFO) {
+            struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
+            LocalAddr->Ip.sa_family = AF_INET;
+            LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
+            LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
+            LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
+            FoundLocalAddr = TRUE;
+            break;
+        }
+    }
 
-    //QUIC_FRE_ASSERT(FoundLocalAddr);
+    QUIC_FRE_ASSERT(FoundLocalAddr);
 
     QuicTraceEvent(
         DatapathRecv,
@@ -461,15 +456,18 @@ QuicDataPathWorkerThread(
         // of throwing it out. Maybe it has a close frame we're waiting for?
         
         for (int i = 0; i < nev; i++) {
-           // printf("[kevent] ident = %zd, filter = %hu, flags = %hd, fflags = %d, data = %zd, udata = %p\n", 
-            ///        evList[i].ident, evList[i].filter, evList[i].flags, evList[i].fflags, evList[i].data, evList[i].udata);
+            printf("[kevent] ident = %zd\t\tfilter = %hu\tflags = %hd\tfflags = %d\tdata = %zd\tudata = %p\n", 
+                    evList[i].ident, evList[i].filter, evList[i].flags, evList[i].fflags, evList[i].data, evList[i].udata);
             if (evList[i].filter == EVFILT_READ) {
+                if (evList[i].data == 0) continue;
                 QUIC_SOCKET_CONTEXT *SocketContext = (QUIC_SOCKET_CONTEXT *)evList[i].udata;
                 int Ret = recvmsg(SocketContext->SocketFd, &SocketContext->RecvMsgHdr, 0);
+                printf("[recvmsg: %d]\n", Ret);
                 if (Ret != -1)
                     QuicSocketContextRecvComplete(SocketContext, ProcContext, Ret);
             }
             else {
+                __asm__("int3");
                 printf("Unhandled evlist filter type: %d\n", evList[i].filter);
             }
         }
@@ -817,7 +815,15 @@ QuicSocketContextInitialize(
     //
     // Create datagram socket.
     //
-    SocketContext->SocketFd = socket(AF_INET6, SOCK_DGRAM, 0);
+    sa_family_t af_family = AF_INET;
+    if (!RemoteAddress) {
+        af_family = LocalAddress->Ip.sa_family;
+    }
+    else {
+        af_family = RemoteAddress->Ip.sa_family;
+    }
+
+    SocketContext->SocketFd = socket(af_family, SOCK_DGRAM, 0);
 
 #define LOG_AF_TYPE(f) { \
     if (f->Ip.sa_family == AF_INET) printf("%s is AF_INET\n", #f);\
@@ -860,24 +866,27 @@ QuicSocketContextInitialize(
     //        "bind failed");
     //    goto Exit;
     //}
-
-    Option = FALSE;
-    LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IPV6, IPV6_V6ONLY, &Option, sizeof(Option)));
-
-    Option = TRUE;
-    LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &Option, sizeof(Option)));
-    //Option = TRUE;
-    //LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IP, IP_RECVDSTADDR, &Option, sizeof(Option)));
-    //Option = TRUE;
-    //LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IPV6, IPV6_PKTINFO, &Option, sizeof(Option)));
-    //Option = TRUE;
-    //LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IP, IP_PKTINFO, &Option, sizeof(Option)));
-    Option = TRUE;
-    LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IPV6, IP_RECVIF, &Option, sizeof(Option)));
-    //Option = TRUE;
-    //LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IP, IP_RECVIF, &Option, sizeof(Option)));
     
+    socklen_t AddrSize = 0;
 
+    if (af_family == AF_INET) {
+        Option = TRUE;
+        LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IP, IP_RECVDSTADDR, &Option, sizeof(Option)));
+        Option = TRUE;
+        LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IP, IP_PKTINFO, &Option, sizeof(Option)));
+        Option = TRUE;
+        LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IP, IP_RECVIF, &Option, sizeof(Option)));
+        AddrSize = sizeof(struct sockaddr_in);
+    }
+    else {
+        Option = TRUE;
+        LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &Option, sizeof(Option)));
+        Option = FALSE;
+        LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IPV6, IPV6_V6ONLY, &Option, sizeof(Option)));
+        Option = TRUE;
+        LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &Option, sizeof(Option)));
+        AddrSize = sizeof(struct sockaddr_in6);
+    }
 
     //
     // The socket is shared by multiple QUIC endpoints, so increase the receive
@@ -931,7 +940,7 @@ QuicSocketContextInitialize(
         bind(
             SocketContext->SocketFd,
             (const struct sockaddr *)&Binding->LocalAddress,
-            sizeof(Binding->LocalAddress));
+            AddrSize);
 
     if (Result == SOCKET_ERROR) {
         __asm__("int3");
@@ -947,7 +956,7 @@ QuicSocketContextInitialize(
 
     if (RemoteAddress != NULL) {
         QuicZeroMemory(&MappedRemoteAddress, sizeof(MappedRemoteAddress));
-        QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
+        //QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
 
         //           ensure(setsockopt((int)s->fd,
         //              s->ws_af == AF_INET ? IPPROTO_IP : IPPROTO_IPV6,
@@ -956,8 +965,8 @@ QuicSocketContextInitialize(
         Result =
             connect(
                 SocketContext->SocketFd,
-                (const struct sockaddr *)&MappedRemoteAddress,
-                sizeof(MappedRemoteAddress));
+                (const struct sockaddr *)RemoteAddress,
+                AddrSize);
 
         if (Result == SOCKET_ERROR) {
             __asm__("int3");
@@ -1083,6 +1092,7 @@ QuicSocketContextStartReceive(
     }
 
     struct kevent evSet = { };
+    printf("ADDING FD...\n");
     EV_SET(&evSet, SocketContext->SocketFd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, (void *)SocketContext);
     if (kevent(KqueueFd, &evSet, 1, NULL, 0, NULL) < 0)  {
         QUIC_DBG_ASSERT(1);
@@ -1153,9 +1163,9 @@ QuicDataPathBindingCreate(
     Binding->Mtu = QUIC_MAX_MTU;
     QuicRundownInitialize(&Binding->Rundown);
     if (LocalAddress) {
-        QuicConvertToMappedV6(LocalAddress, &Binding->LocalAddress);
+        //QuicConvertToMappedV6(LocalAddress, &Binding->LocalAddress);
     } else {
-        Binding->LocalAddress.Ip.sa_family = AF_INET6;
+        Binding->LocalAddress.Ip.sa_family = RemoteAddress->Ip.sa_family;
     }
     for (uint32_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
@@ -1181,12 +1191,12 @@ QuicDataPathBindingCreate(
     }
 
     //QuicConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
-    Binding->LocalAddress.Ipv6.sin6_scope_id = 0;
+    //Binding->LocalAddress.Ipv6.sin6_scope_id = 0;
 
     if (RemoteAddress != NULL) {
         Binding->RemoteAddress = *RemoteAddress;
     } else {
-        Binding->RemoteAddress.Ipv4.sin_port = 0;
+    //    Binding->RemoteAddress.Ipv4.sin_port = 0;
     }
 
     //
@@ -1227,7 +1237,23 @@ void QuicSocketContextUninitialize(
     _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
+    // struct kevent evSet = { };
+    // EV_SET(&evSet, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, (void *)SocketContext);
+    // if (kevent(ProcContext->KqueueFd, &evSet, 1, NULL, 0, NULL) < 0)  {
+    //     QUIC_DBG_ASSERT(1);
+    //     // Should be QUIC_STATUS_KQUEUE_ERROR
+    //     QuicTraceEvent(
+    //         DatapathErrorStatus,
+    //         "[ udp][%p] ERROR, %u, %s.",
+    //         SocketContext->Binding,
+    //         Status,
+    //         "kevent(..., sockfd EV_ADD, ...) failed");
+    //     Status = QUIC_STATUS_INTERNAL_ERROR;
+    //     goto Error;
+    // }
+    printf("CLOSING SOCKFD %d\n", SocketContext->SocketFd);
     close(SocketContext->SocketFd);
+    QuicRundownRelease(&SocketContext->Binding->Rundown);
 }
 
 //
