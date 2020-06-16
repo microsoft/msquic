@@ -14,7 +14,6 @@ This script creates a new test on the DB Server
 
 #>
 
-
 param (
     [Parameter(Mandatory = $true)]
     [string]$PlatformName,

@@ -1,4 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+using Microsoft.EntityFrameworkCore;
 using QuicDataServer.Models.Db;
 
 namespace QuicDataServer.Data

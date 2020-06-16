@@ -11,7 +11,6 @@ This script creates a new platform on the DB Server
 
 #>
 
-
 param (
     [Parameter(Mandatory = $true)]
     [string]$PlatformName,
