@@ -365,66 +365,260 @@ struct PrivateTransportHelper : QUIC_PRIVATE_TRANSPORT_PARAMETER
     }
 };
 
-struct RandomLossHelper
+struct DatapathHook
 {
-    static uint8_t LossPercentage;
-    static QUIC_TEST_DATAPATH_HOOKS DataPathFuncTable;
-    RandomLossHelper(uint8_t _LossPercentage) {
-        LossPercentage = _LossPercentage;
-        if (LossPercentage != 0) {
-            QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathFuncTable;
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_LEVEL_GLOBAL,
-                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
-                    sizeof(Value),
-                    &Value));
-        }
+    DatapathHook* Next;
+
+    DatapathHook() : Next(nullptr) { }
+
+    virtual
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    BOOLEAN
+    Receive(
+        _Inout_ struct QUIC_RECV_DATAGRAM* /* Datagram */
+        ) {
+        return FALSE; // Don't drop by default
     }
-    ~RandomLossHelper() {
-        if (LossPercentage != 0) {
-            QUIC_TEST_DATAPATH_HOOKS* Value = nullptr;
-            uint32_t TryCount = 0;
-            while (TryCount++ < 10) {
-                if (QUIC_SUCCEEDED(
-                    MsQuic->SetParam(
-                        nullptr,
-                        QUIC_PARAM_LEVEL_GLOBAL,
-                        QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
-                        sizeof(Value),
-                        &Value))) {
-                    break;
-                }
-                QuicSleep(100); // Let the current datapath queue drain.
-            }
-            if (TryCount == 10) {
-                TEST_FAILURE("Failed to disable test datapath hook");
-            }
-        }
+
+    virtual
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    BOOLEAN
+    Send(
+        _Inout_ QUIC_ADDR* /* RemoteAddress */,
+        _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
+        _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */
+        ) {
+        return FALSE; // Don't drop by default
     }
+};
+
+class DatapathHooks
+{
+    static QUIC_TEST_DATAPATH_HOOKS FuncTable;
+
+    DatapathHook* Hooks;
+    QUIC_DISPATCH_LOCK Lock;
+
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     QUIC_API
     ReceiveCallback(
-        _Inout_ struct QUIC_RECV_DATAGRAM* /* Datagram */
-        )
-    {
-        uint8_t RandomValue;
-        QuicRandom(sizeof(RandomValue), &RandomValue);
-        return (RandomValue % 100) < LossPercentage;
+        _Inout_ struct QUIC_RECV_DATAGRAM* Datagram
+        ) {
+        return Instance.Receive(Datagram);
     }
+
     static
     _IRQL_requires_max_(PASSIVE_LEVEL)
     BOOLEAN
     QUIC_API
     SendCallback(
-        _Inout_ QUIC_ADDR* /* RemoteAddress */,
+        _Inout_ QUIC_ADDR* RemoteAddress,
+        _Inout_opt_ QUIC_ADDR* LocalAddress,
+        _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* SendContext
+        ) {
+        return Instance.Send(RemoteAddress, LocalAddress, SendContext);
+    }
+
+    void Register() {
+        QUIC_TEST_DATAPATH_HOOKS* Value = &FuncTable;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_LEVEL_GLOBAL,
+                QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
+                sizeof(Value),
+                &Value));
+    }
+
+    void Unregister() {
+        QUIC_TEST_DATAPATH_HOOKS* Value = nullptr;
+        uint32_t TryCount = 0;
+        while (TryCount++ < 20) {
+            if (QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_LEVEL_GLOBAL,
+                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
+                    sizeof(Value),
+                    &Value))) {
+                break;
+            }
+            QuicSleep(100); // Let the current datapath queue drain.
+        }
+        if (TryCount == 20) {
+            TEST_FAILURE("Failed to disable test datapath hook");
+        }
+    }
+
+    BOOLEAN
+    Receive(
+        _Inout_ struct QUIC_RECV_DATAGRAM* Datagram
+        ) {
+        BOOLEAN Result = FALSE;
+        QuicDispatchLockAcquire(&Lock);
+        DatapathHook* Iter = Hooks;
+        while (Iter) {
+            if (Iter->Receive(Datagram)) {
+                Result = TRUE;
+                break;
+            }
+            Iter = Iter->Next;
+        }
+        QuicDispatchLockRelease(&Lock);
+        return Result;
+    }
+
+    BOOLEAN
+    Send(
+        _Inout_ QUIC_ADDR* RemoteAddress,
+        _Inout_opt_ QUIC_ADDR* LocalAddress,
+        _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* SendContext
+        ) {
+        BOOLEAN Result = FALSE;
+        QuicDispatchLockAcquire(&Lock);
+        DatapathHook* Iter = Hooks;
+        while (Iter) {
+            if (Iter->Send(RemoteAddress, LocalAddress, SendContext)) {
+                Result = TRUE;
+                break;
+            }
+            Iter = Iter->Next;
+        }
+        QuicDispatchLockRelease(&Lock);
+        return Result;
+    }
+
+public:
+
+    static DatapathHooks Instance;
+
+    DatapathHooks() : Hooks(nullptr) {
+        QuicDispatchLockInitialize(&Lock);
+    }
+
+    ~DatapathHooks() {
+        QuicDispatchLockUninitialize(&Lock);
+    }
+
+    void AddHook(DatapathHook* Hook) {
+        QuicDispatchLockAcquire(&Lock);
+        DatapathHook** Iter = &Hooks;
+        while (*Iter != nullptr) {
+            Iter = &((*Iter)->Next);
+        }
+        *Iter = Hook;
+        if (Hooks == Hook) {
+            Register();
+        }
+        QuicDispatchLockRelease(&Lock);
+    }
+
+    void RemoveHook(DatapathHook* Hook) {
+        QuicDispatchLockAcquire(&Lock);
+        DatapathHook** Iter = &Hooks;
+        while (*Iter != Hook) {
+            Iter = &((*Iter)->Next);
+        }
+        *Iter = Hook->Next;
+        if (Hooks == nullptr) {
+            Unregister();
+        }
+        QuicDispatchLockRelease(&Lock);
+    }
+};
+
+struct RandomLossHelper : public DatapathHook
+{
+    uint8_t LossPercentage;
+    RandomLossHelper(uint8_t _LossPercentage) : LossPercentage(_LossPercentage) {
+        if (LossPercentage != 0) {
+            DatapathHooks::Instance.AddHook(this);
+        }
+    }
+    ~RandomLossHelper() {
+        if (LossPercentage != 0) {
+            DatapathHooks::Instance.RemoveHook(this);
+        }
+    }
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    BOOLEAN
+    Receive(
+        _Inout_ struct QUIC_RECV_DATAGRAM* /* Datagram */
+        ) {
+        uint8_t RandomValue;
+        QuicRandom(sizeof(RandomValue), &RandomValue);
+        return (RandomValue % 100) < LossPercentage;
+    }
+};
+
+struct SelectiveLossHelper : public DatapathHook
+{
+    uint32_t DropPacketCount;
+    SelectiveLossHelper() : DropPacketCount(0) {
+        DatapathHooks::Instance.AddHook(this);
+    }
+    ~SelectiveLossHelper() {
+        DatapathHooks::Instance.RemoveHook(this);
+    }
+    void DropPackets(uint32_t Count) { DropPacketCount = Count; }
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    BOOLEAN
+    Receive(
+        _Inout_ struct QUIC_RECV_DATAGRAM* /* Datagram */
+        ) {
+        if (DropPacketCount == 0) {
+            return FALSE;
+        }
+        DropPacketCount--;
+        return TRUE;
+    }
+};
+
+struct ReplaceAddressHelper : public DatapathHook
+{
+    QUIC_ADDR Original;
+    QUIC_ADDR New;
+    ReplaceAddressHelper(const QUIC_ADDR& OrigAddr, const QUIC_ADDR& NewAddr) :
+        Original(OrigAddr), New(NewAddr) {
+        DatapathHooks::Instance.AddHook(this);
+    }
+    ~ReplaceAddressHelper() {
+        DatapathHooks::Instance.RemoveHook(this);
+    }
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    BOOLEAN
+    Receive(
+        _Inout_ struct QUIC_RECV_DATAGRAM* Datagram
+        ) {
+        if (QuicAddrCompare(
+                &Datagram->Tuple->RemoteAddress,
+                &Original)) {
+            Datagram->Tuple->RemoteAddress = New;
+            QuicTraceLogVerbose(
+                TestReplaceAddrRecv,
+                "[test] Recv Addr :%hu => :%hu",
+                QuicAddrGetPort(&Original),
+                QuicAddrGetPort(&New));
+        }
+        return FALSE;
+    }
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    BOOLEAN
+    Send(
+        _Inout_ QUIC_ADDR* RemoteAddress,
         _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
         _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */
-        )
-    {
-        return FALSE; // Don't drop
+        ) {
+        if (QuicAddrCompare(RemoteAddress, &New)) {
+            *RemoteAddress = Original;
+            QuicTraceLogVerbose(
+                TestReplaceAddrSend,
+                "[test] Send Addr :%hu => :%hu",
+                QuicAddrGetPort(&New),
+                QuicAddrGetPort(&Original));
+        }
+        return FALSE;
     }
 };

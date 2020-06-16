@@ -11,11 +11,11 @@ Abstract:
 
 #include "precomp.h"
 
-uint8_t RandomLossHelper::LossPercentage = 0;
-QUIC_TEST_DATAPATH_HOOKS RandomLossHelper::DataPathFuncTable = {
-    RandomLossHelper::ReceiveCallback,
-    RandomLossHelper::SendCallback
+QUIC_TEST_DATAPATH_HOOKS DatapathHooks::FuncTable = {
+    DatapathHooks::ReceiveCallback,
+    DatapathHooks::SendCallback
 };
+DatapathHooks DatapathHooks::Instance;
 
 _Function_class_(NEW_STREAM_CALLBACK)
 static
@@ -227,11 +227,13 @@ QuicTestConnect(
                     Client.GetLocalBidiStreamCount());
 
                 if (ClientRebind) {
-                    QuicAddr NewLocalAddr(QuicAddrFamily);
-                    TEST_QUIC_SUCCEEDED(Client.SetLocalAddr(NewLocalAddr));
+                    QuicAddr OrigLocalAddr;
+                    TEST_QUIC_SUCCEEDED(Client.GetLocalAddr(OrigLocalAddr));
+                    QuicAddr NewLocalAddr(OrigLocalAddr, 1);
                     QuicSleep(100);
-                    TEST_QUIC_SUCCEEDED(Client.GetLocalAddr(NewLocalAddr));
+                    ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, NewLocalAddr.SockAddr);
                     TEST_FALSE(Client.GetIsShutdown());
+                    Client.SetKeepAlive(25);
 
                     bool ServerAddressUpdated = false;
                     uint32_t Try = 0;

@@ -580,14 +580,6 @@ QuicLibrarySetGlobalParam(
             break;
         }
 
-        if (MsQuicLib.InUse) {
-            QuicTraceLogError(
-                LibraryTestDatapathHooksSetAfterInUse,
-                "[ lib] Tried to change test datapath hooks after library in use!");
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
         MsQuicLib.TestDatapathHooks = *(QUIC_TEST_DATAPATH_HOOKS**)Buffer;
         QuicTraceLogWarning(
             LibraryTestDatapathHooksSet,

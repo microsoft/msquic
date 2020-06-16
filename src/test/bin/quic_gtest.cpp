@@ -402,7 +402,6 @@ TEST_P(WithFamilyArgs, Rebind) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-Rebind", GetParam());
     if (TestingKernelMode) {
         GTEST_SKIP_(":Unsupported in kernel mode");
-        /* Not supported in kernel mode yet.
         QUIC_RUN_CONNECT_PARAMS Params = {
             GetParam().Family,
             0,  // ServerStatelessRetry
@@ -415,7 +414,7 @@ TEST_P(WithFamilyArgs, Rebind) {
             0,  // SessionResumption
             0   // RandomLossPercentage
         };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));*/
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
     } else {
         QuicTestConnect(
             GetParam().Family,
