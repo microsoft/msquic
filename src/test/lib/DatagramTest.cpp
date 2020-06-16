@@ -241,6 +241,7 @@ QuicTestDatagramSend(
 
                 TEST_EQUAL(1, Client.GetDatagramsAcknowledged());
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
                 LossHelper.DropPackets(1);
 
                 TEST_QUIC_SUCCEEDED(
@@ -258,6 +259,7 @@ QuicTestDatagramSend(
                 QuicSleep(500);
 
                 TEST_EQUAL(1, Client.GetDatagramsSuspectLost());
+#endif
 
                 Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
                 if (!Client.WaitForShutdownComplete()) {
@@ -269,11 +271,6 @@ QuicTestDatagramSend(
                 TEST_FALSE(Client.GetPeerClosed());
                 TEST_FALSE(Client.GetTransportClosed());
             }
-
-#if !QUIC_SEND_FAKE_LOSS
-            TEST_TRUE(Server->GetPeerClosed());
-            TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
-#endif
         }
     }
 }

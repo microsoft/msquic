@@ -422,6 +422,10 @@ class DatapathHooks
     }
 
     void Register() {
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+        QuicTraceLogInfo(
+            TestHookRegister,
+            "[test][hook] Registering");
         QUIC_TEST_DATAPATH_HOOKS* Value = &FuncTable;
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
@@ -430,9 +434,14 @@ class DatapathHooks
                 QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
                 sizeof(Value),
                 &Value));
+#endif
     }
 
     void Unregister() {
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+        QuicTraceLogInfo(
+            TestHookUnregistering,
+            "[test][hook] Unregistering");
         QUIC_TEST_DATAPATH_HOOKS* Value = nullptr;
         uint32_t TryCount = 0;
         while (TryCount++ < 20) {
@@ -450,6 +459,10 @@ class DatapathHooks
         if (TryCount == 20) {
             TEST_FAILURE("Failed to disable test datapath hook");
         }
+        QuicTraceLogInfo(
+            TestHookUnregistered,
+            "[test][hook] Unregistered");
+#endif
     }
 
     BOOLEAN
@@ -549,14 +562,20 @@ struct RandomLossHelper : public DatapathHook
         ) {
         uint8_t RandomValue;
         QuicRandom(sizeof(RandomValue), &RandomValue);
-        return (RandomValue % 100) < LossPercentage;
+        auto Result = (RandomValue % 100) < LossPercentage;
+        if (Result) {
+            QuicTraceLogVerbose(
+                TestHookDropPacketRandom,
+                "[test][hook] Random packet drop");
+        }
+        return Result;
     }
 };
 
 struct SelectiveLossHelper : public DatapathHook
 {
     uint32_t DropPacketCount;
-    SelectiveLossHelper() : DropPacketCount(0) {
+    SelectiveLossHelper(uint32_t Count = 0) : DropPacketCount(Count) {
         DatapathHooks::Instance->AddHook(this);
     }
     ~SelectiveLossHelper() {
@@ -571,6 +590,9 @@ struct SelectiveLossHelper : public DatapathHook
         if (DropPacketCount == 0) {
             return FALSE;
         }
+        QuicTraceLogVerbose(
+            TestHookDropPacketSelective,
+            "[test][hook] Selective packet drop");
         DropPacketCount--;
         return TRUE;
     }
@@ -597,8 +619,8 @@ struct ReplaceAddressHelper : public DatapathHook
                 &Original)) {
             Datagram->Tuple->RemoteAddress = New;
             QuicTraceLogVerbose(
-                TestReplaceAddrRecv,
-                "[test] Recv Addr :%hu => :%hu",
+                TestHookReplaceAddrRecv,
+                "[test][hook] Recv Addr :%hu => :%hu",
                 QuicAddrGetPort(&Original),
                 QuicAddrGetPort(&New));
         }
@@ -614,8 +636,8 @@ struct ReplaceAddressHelper : public DatapathHook
         if (QuicAddrCompare(RemoteAddress, &New)) {
             *RemoteAddress = Original;
             QuicTraceLogVerbose(
-                TestReplaceAddrSend,
-                "[test] Send Addr :%hu => :%hu",
+                TestHookReplaceAddrSend,
+                "[test][hook] Send Addr :%hu => :%hu",
                 QuicAddrGetPort(&New),
                 QuicAddrGetPort(&Original));
         }
