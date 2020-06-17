@@ -316,7 +316,7 @@ QuicAddrIncrement(
     _Inout_ QUIC_ADDR * Addr
     )
 {
-    if (Addr->si_family == AF_INET) {
+    if (Addr->Ip.sa_family == AF_INET) {
         ((uint8_t*)&Addr->Ipv4.sin_addr)[3]++
     } else {
         ((uint8_t*)&Addr->Ipv6.sin6_addr)[15]++

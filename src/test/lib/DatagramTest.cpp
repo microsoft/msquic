@@ -32,22 +32,6 @@ ListenerAcceptConnection(
     )
 {
     ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
-    if (AcceptContext == nullptr) { // Prime Resumption scenario.
-        auto NewConnection = new TestConnection(ConnectionHandle);
-        if (NewConnection == nullptr || !NewConnection->IsValid()) {
-            TEST_FAILURE("Failed to accept new TestConnection.");
-            delete NewConnection;
-            MsQuic->ConnectionClose(ConnectionHandle);
-        } else {
-            NewConnection->SetAutoDelete();
-            NewConnection->SetHasRandomLoss(Listener->GetHasRandomLoss());
-        }
-        return;
-    }
-    if (*AcceptContext->NewConnection != nullptr) { // Retry scenario.
-        delete *AcceptContext->NewConnection;
-        *AcceptContext->NewConnection = nullptr;
-    }
     *AcceptContext->NewConnection = new TestConnection(ConnectionHandle);
     if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
