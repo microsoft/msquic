@@ -31,9 +31,9 @@ namespace QuicDataServer.Controllers
         public PerformanceController(ILogger<PerformanceController> logger, PerformanceContext context,
             IConfiguration configuration)
         {
-            this._context = context;
-            this._logger = logger;
-            this._configuration = configuration;
+            _context = context;
+            _logger = logger;
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -191,22 +191,25 @@ namespace QuicDataServer.Controllers
                 return Unauthorized();
             }
 
-            var tests = await _context.Platforms.Where(x => x.PlatformName == testToCreate.PlatformName).Select(x => x.Tests).FirstOrDefaultAsync();
+            var tests = await _context.Platforms.Where(x => x.PlatformName == testToCreate.PlatformName).Select(x => new { x.Tests, x.DbPlatformId }).FirstOrDefaultAsync();
 
             if (tests == null)
             {
                 return BadRequest("Platform does not exist");
             }
 
-            if (tests.Select(x => x.TestName).Contains(testToCreate.TestName))
+            if (tests.Tests.Select(x => x.TestName).Contains(testToCreate.TestName))
             {
                 return Ok();
             }
 
-            tests.Add(new DbTest
+            var newTest = new DbTest
             {
-                TestName = testToCreate.TestName
-            });
+                TestName = testToCreate.TestName,
+                DbPlatformId = tests.DbPlatformId
+            };
+
+            _context.Tests.Add(newTest);
 
             await _context.SaveChangesAsync();
 
@@ -242,12 +245,12 @@ namespace QuicDataServer.Controllers
             }
 
             // Get Test Records 
-            var testRecords = await _context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform, test })
+            var testId = await _context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform, test })
                 .Where(x => x.test.TestName == testResult.TestName && x.platform.PlatformName == testResult.PlatformName)
-                .Select(x => x.test.TestRecords)
+                .Select(x => (int?)x.test.DbTestId)
                 .FirstOrDefaultAsync();
 
-            if (testRecords == null)
+            if (testId == null)
             {
                 return BadRequest("Platform and Test not found");
             }
@@ -257,9 +260,10 @@ namespace QuicDataServer.Controllers
                 CommitHash = testResult.CommitHash,
                 TestDate = testResult.Time,
                 TestResults = testResult.IndividualRunResults.Select(x => new TestResult { Result = x }).ToList(),
+                DbTestId = testId.Value,
             };
 
-            testRecords.Add(newRecord);
+            _context.TestRecords.Add(newRecord);
 
             await _context.SaveChangesAsync();
 
@@ -291,12 +295,12 @@ namespace QuicDataServer.Controllers
             }
 
             // Get Test Records 
-            var testRecords = await _context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform, test })
+            var testId = await _context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform, test })
                 .Where(x => x.test.TestName == testResult.TestName && x.platform.PlatformName == testResult.PlatformName)
-                .Select(x => x.test.TestRecords)
+                .Select(x => (int?)x.test.DbTestId)
                 .FirstOrDefaultAsync();
 
-            if (testRecords == null)
+            if (testId == null)
             {
                 return BadRequest("Platform and Test not found");
             }
@@ -306,9 +310,10 @@ namespace QuicDataServer.Controllers
                 CommitHash = testResult.CommitHash,
                 TestDate = DateTime.UtcNow,
                 TestResults = testResult.IndividualRunResults.Select(x => new TestResult { Result = x }).ToList(),
+                DbTestId = testId.Value,
             };
 
-            testRecords.Add(newRecord);
+            _context.TestRecords.Add(newRecord);
 
             await _context.SaveChangesAsync();
 
