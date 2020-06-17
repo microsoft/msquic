@@ -1,6 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,11 +14,6 @@ using Microsoft.Extensions.Logging;
 using QuicDataServer.Data;
 using QuicDataServer.Models;
 using QuicDataServer.Models.Db;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 #pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
 
@@ -24,16 +24,16 @@ namespace QuicDataServer.Controllers
     [Route("[controller]")]
     public class PerformanceController : ControllerBase
     {
-        private readonly PerformanceContext context;
-        private readonly ILogger<PerformanceController> logger;
-        private readonly IConfiguration configuration;
+        private readonly PerformanceContext _context;
+        private readonly ILogger<PerformanceController> _logger;
+        private readonly IConfiguration _configuration;
 
         public PerformanceController(ILogger<PerformanceController> logger, PerformanceContext context,
             IConfiguration configuration)
         {
-            this.context = context;
-            this.logger = logger;
-            this.configuration = configuration;
+            this._context = context;
+            this._logger = logger;
+            this._configuration = configuration;
         }
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace QuicDataServer.Controllers
         [HttpGet]
         public async Task<IEnumerable<TestRecord>> Get()
         {
-            var query = context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform, test })
+            var query = _context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform, test })
                 .SelectMany(x => x.test.TestRecords, (plattest, testrun) => new { plattest.platform, plattest.test, testrun })
                 .Select(x => new TestRecord
                 {
@@ -64,7 +64,7 @@ namespace QuicDataServer.Controllers
         [HttpGet("allTests")]
         public async Task<IEnumerable> GetAllTests()
         {
-            return await context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform.PlatformName, test.TestName }).ToListAsync();
+            return await _context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform.PlatformName, test.TestName }).ToListAsync();
         }
 
         /// <summary>
@@ -76,7 +76,7 @@ namespace QuicDataServer.Controllers
         [HttpGet("{platform}/{test}")]
         public async Task<TestRecord> GetLatestTestResultForPlatformAndTest(string platform, string test)
         {
-            return await context.Platforms.Where(x => x.PlatformName == platform)
+            return await _context.Platforms.Where(x => x.PlatformName == platform)
                 .SelectMany(x => x.Tests)
                 .Where(x => x.TestName == test)
                 .SelectMany(x => x.TestRecords)
@@ -102,7 +102,7 @@ namespace QuicDataServer.Controllers
         [HttpGet("{platform}/{test}/{numResults}")]
         public async Task<IEnumerable<TestRecord>> GetTestResultsForPlatformAndTest(string platform, string test, int numResults)
         {
-            return await context.Platforms.Where(x => x.PlatformName == platform)
+            return await _context.Platforms.Where(x => x.PlatformName == platform)
                 .SelectMany(x => x.Tests)
                 .Where(x => x.TestName == test)
                 .SelectMany(x => x.TestRecords)
@@ -121,7 +121,7 @@ namespace QuicDataServer.Controllers
 
         private bool Authorize(IAuthorizable authorization)
         {
-            return authorization.AuthKey == configuration["ApiAuthorizationKey"];
+            return authorization.AuthKey == _configuration["ApiAuthorizationKey"];
         }
 
         /// <summary>
@@ -137,7 +137,7 @@ namespace QuicDataServer.Controllers
         [HttpPost("createPlatform")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> CreatePlatform([FromBody]PlatformCreate platformToCreate)
+        public async Task<IActionResult> CreatePlatform([FromBody] PlatformCreate platformToCreate)
         {
             if (platformToCreate == null)
             {
@@ -149,17 +149,17 @@ namespace QuicDataServer.Controllers
                 return Unauthorized();
             }
 
-            if (await context.Platforms.Select(x => x.PlatformName == platformToCreate.PlatformName).AnyAsync())
+            if (await _context.Platforms.Select(x => x.PlatformName == platformToCreate.PlatformName).AnyAsync())
             {
                 return Ok();
             }
 
-            context.Platforms.Add(new DbPlatform
+            _context.Platforms.Add(new DbPlatform
             {
                 PlatformName = platformToCreate.PlatformName
             });
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
             return Ok();
         }
@@ -179,7 +179,7 @@ namespace QuicDataServer.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> CreateTest([FromBody]TestCreate testToCreate)
+        public async Task<IActionResult> CreateTest([FromBody] TestCreate testToCreate)
         {
             if (testToCreate == null)
             {
@@ -191,7 +191,7 @@ namespace QuicDataServer.Controllers
                 return Unauthorized();
             }
 
-            var tests = await context.Platforms.Where(x => x.PlatformName == testToCreate.PlatformName).Select(x => x.Tests).FirstOrDefaultAsync();
+            var tests = await _context.Platforms.Where(x => x.PlatformName == testToCreate.PlatformName).Select(x => x.Tests).FirstOrDefaultAsync();
 
             if (tests == null)
             {
@@ -208,7 +208,7 @@ namespace QuicDataServer.Controllers
                 TestName = testToCreate.TestName
             });
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
             return Ok();
         }
@@ -229,7 +229,7 @@ namespace QuicDataServer.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> PublishTestResultWithTime([FromBody]TestPublishResultWithTime testResult)
+        public async Task<IActionResult> PublishTestResultWithTime([FromBody] TestPublishResultWithTime testResult)
         {
             if (testResult == null)
             {
@@ -242,7 +242,7 @@ namespace QuicDataServer.Controllers
             }
 
             // Get Test Records 
-            var testRecords = await context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform, test })
+            var testRecords = await _context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform, test })
                 .Where(x => x.test.TestName == testResult.TestName && x.platform.PlatformName == testResult.PlatformName)
                 .Select(x => x.test.TestRecords)
                 .FirstOrDefaultAsync();
@@ -261,7 +261,7 @@ namespace QuicDataServer.Controllers
 
             testRecords.Add(newRecord);
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
             return Ok();
         }
@@ -278,7 +278,7 @@ namespace QuicDataServer.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> PublishTestResult([FromBody]TestPublishResult testResult)
+        public async Task<IActionResult> PublishTestResult([FromBody] TestPublishResult testResult)
         {
             if (testResult == null)
             {
@@ -291,7 +291,7 @@ namespace QuicDataServer.Controllers
             }
 
             // Get Test Records 
-            var testRecords = await context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform, test })
+            var testRecords = await _context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform, test })
                 .Where(x => x.test.TestName == testResult.TestName && x.platform.PlatformName == testResult.PlatformName)
                 .Select(x => x.test.TestRecords)
                 .FirstOrDefaultAsync();
@@ -310,7 +310,7 @@ namespace QuicDataServer.Controllers
 
             testRecords.Add(newRecord);
 
-            await context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
             return Ok();
         }
