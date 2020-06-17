@@ -31,6 +31,7 @@ void QuicTestUninitialize()
 void
 QuicTestPrimeResumption(
     MsQuicSession& Session,
+    QUIC_ADDRESS_FAMILY Family,
     bool& Success
     )
 {
@@ -54,7 +55,7 @@ QuicTestPrimeResumption(
     TestListener Listener(Session.Handle, PrimeResumption::ListenerAccept);
     TEST_TRUE(Listener.IsValid());
 
-    QuicAddr ServerLocalAddr(AF_INET);
+    QuicAddr ServerLocalAddr(Family);
     TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
@@ -63,8 +64,8 @@ QuicTestPrimeResumption(
         TEST_TRUE(Client.IsValid());
         TEST_QUIC_SUCCEEDED(
             Client.Start(
-                AF_INET,
-                QUIC_LOCALHOST_FOR_AF(AF_INET),
+                Family,
+                QUIC_LOCALHOST_FOR_AF(Family),
                 ServerLocalAddr.GetPort()));
         if (!Client.WaitForConnectionComplete()) {
             return;
@@ -142,9 +143,11 @@ QuicTestConnect(
         TEST_QUIC_SUCCEEDED(Session2.SetIdleTimeout(10000));
     }
 
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+
     if (SessionResumption) {
         bool Success;
-        QuicTestPrimeResumption(Session, Success);
+        QuicTestPrimeResumption(Session, QuicAddrFamily, Success);
         if (!Success) {
             return;
         }
@@ -162,7 +165,6 @@ QuicTestConnect(
         TEST_TRUE(Listener.IsValid());
         Listener.SetHasRandomLoss(RandomLossPercentage != 0);
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));

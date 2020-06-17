@@ -283,6 +283,7 @@ struct MsQuicSession {
 void
 QuicTestPrimeResumption(
     MsQuicSession& Session,
+    QUIC_ADDRESS_FAMILY Family,
     bool& Success
     );
 
