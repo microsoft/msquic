@@ -2172,14 +2172,14 @@ QuicDataPathBindingGetLocalMtu(
 }
 
 #ifndef TEMP_FAILURE_RETRY
-#define TEMP_FAILURE_RETRY(expression)                                  \
-        ({                                                              \
-            long int FailureRetryResult = 0;                            \
-            do {                                                        \
-                FailureRetryResult = (long int)(expression);            \
-            } while ((FailureRetryResult == -1L) && (errno == EINTR));  \
-            FailureRetryResult;                                         \
-        })
+#define TEMP_FAILURE_RETRY(expression)                              \
+    ({                                                              \
+        long int FailureRetryResult = 0;                            \
+        do {                                                        \
+            FailureRetryResult = (long int)(expression);            \
+        } while ((FailureRetryResult == -1L) && (errno == EINTR));  \
+        FailureRetryResult;                                         \
+    })
 #endif
 
 void*
