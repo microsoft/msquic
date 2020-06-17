@@ -888,38 +888,56 @@ QuicSocketContextInitialize(
 }
 
     if (af_family == AF_INET) {
-        Option = TRUE;
-        LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IP, IP_RECVDSTADDR, &Option, sizeof(Option)));
-        Option = TRUE;
-        LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IP, IP_PKTINFO, &Option, sizeof(Option)));
-        Option = TRUE;
-        LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IP, IP_RECVIF, &Option, sizeof(Option)));
         AddrSize = sizeof(struct sockaddr_in);
+
+        Option = TRUE;
+        Result =
+            setsockopt(SocketContext->SocketFd, IPPROTO_IP, IP_PKTINFO, &Option, sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[ udp][%p] ERROR, %u, %s.",
+                    Binding,
+                    Status,
+                    "setsockopt(IP_PKTINFO) failed");
+            goto Exit;
+        }
     }
     else {
-        Option = TRUE;
-        LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &Option, sizeof(Option)));
-        Option = FALSE;
-        LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IPV6, IPV6_V6ONLY, &Option, sizeof(Option)));
-        Option = TRUE;
-        LOGSOCKOPT(setsockopt(SocketContext->SocketFd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &Option, sizeof(Option)));
         AddrSize = sizeof(struct sockaddr_in6);
+
+        Option = TRUE;
+        Result = 
+            setsockopt(SocketContext->SocketFd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &Option, sizeof(Option));
+        Option = TRUE;
+        Result =
+            setsockopt(SocketContext->SocketFd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &Option, sizeof(Option));
     }
 
     //
     // The socket is shared by multiple QUIC endpoints, so increase the receive
     // buffer size.
     //
-    //Option = INT32_MAX / 400;
-    //// This is the largest value that actually works. I don't know why.
-    //Result =
-    //    setsockopt(
-    //        SocketContext->SocketFd,
-    //        SOL_SOCKET,
-    //        SO_RCVBUF,
-    //        (const void*)&Option,
-    //        sizeof(Option));
-    //if (Result == SOCKET_ERROR) {
+    Option = INT32_MAX / 400;
+    // This is the largest value that actually works. I don't know why.
+    Result =
+        setsockopt(
+            SocketContext->SocketFd,
+            SOL_SOCKET,
+            SO_RCVBUF,
+            (const void*)&Option,
+            sizeof(Option));
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(SO_RCVBUF) failed");
+        goto Exit;
+    }
 
     //
     // The port is shared across processors.
@@ -1530,7 +1548,8 @@ QuicDataPathBindingSend(
                     NULL, 0);
 
             if (SentByteCount < 0) {
-                printf("COULDN'T SEND FRAME...\n");
+                printf("FAILED TO SEND.. %d\n", errno);
+                // ENOBUFS is probably what we'll see here.
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
                     //Status =
                     //    QuicSocketContextPendSend(
@@ -1723,8 +1742,19 @@ QuicDataPathBindingSendFromTo(
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
 {
-    QUIC_FRE_ASSERT(FALSE);
-    return QUIC_STATUS_SUCCESS;
+    QUIC_DBG_ASSERT(
+        Binding != NULL &&
+        LocalAddress != NULL &&
+        RemoteAddress != NULL &&
+        SendContext != NULL &&
+        SendContext->BufferCount != 0);
+
+    return
+        QuicDataPathBindingSend(
+            Binding,
+            LocalAddress,
+            RemoteAddress,
+            SendContext);
 }
 
 //
