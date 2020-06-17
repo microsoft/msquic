@@ -2176,8 +2176,8 @@ QuicDataPathBindingGetLocalMtu(
         ({                                                              \
             long int FailureRetryResult = 0;                            \
             do {                                                        \
-                FailureRetryResult = (long int)(expression)             \
-            } while ((FalureRetryResult == -1L) && (errno == EINTR));   \
+                FailureRetryResult = (long int)(expression);            \
+            } while ((FailureRetryResult == -1L) && (errno == EINTR));  \
             FailureRetryResult;                                         \
         })
 #endif

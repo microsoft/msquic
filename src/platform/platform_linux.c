@@ -637,6 +637,7 @@ QuicThreadCreate(
         return errno;
     }
 
+#ifdef __GLIBC__  // TODO figure out 
     if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
         QUIC_TEL_ASSERT(Config->IdealProcessor < 64);
         // TODO - Set Linux equivalent of ideal processor.
@@ -654,6 +655,7 @@ QuicThreadCreate(
             // TODO - Set Linux equivalent of NUMA affinity.
         }
     }
+#endif
 
     if (Config->Flags & QUIC_THREAD_FLAG_HIGH_PRIORITY) {
         struct sched_param Params;
@@ -675,6 +677,26 @@ QuicThreadCreate(
             Status,
             "pthread_create failed");
     }
+
+#ifndef __GLIBC__
+    if (Status == QUIC_STATUS_SUCCESS && Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
+        QUIC_TEL_ASSERT(Config->IdealProcessor < 64);
+        // TODO - Set Linux equivalent of ideal processor.
+        if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
+            cpu_set_t CpuSet;
+            CPU_ZERO(&CpuSet);
+            CPU_SET(Config->IdealProcessor, &CpuSet);
+            if (!pthread_setaffinity_np(*Thread, sizeof(CpuSet), &CpuSet)) {
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "pthread_setaffinity_np failed");
+            }
+        } else {
+            // TODO - Set Linux equivalent of NUMA affinity.
+        }
+    }
+#endif
 
     pthread_attr_destroy(&Attr);
 
