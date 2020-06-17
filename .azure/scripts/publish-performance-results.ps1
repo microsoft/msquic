@@ -1,3 +1,6 @@
+Set-StrictMode -Version 'Latest'
+$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 $RootDir = Split-Path $RootDir -Parent
@@ -15,5 +18,6 @@ $Files | ForEach-Object {
     $DataToWrite | Add-Member -NotePropertyName "AuthKey" -NotePropertyValue $env:MAPPED_DEPLOYMENT_KEY
     $JsonToWrite = $DataToWrite | ConvertTo-Json
 
-    #Invoke-RestMethod -Uri "https://msquicperformanceresults.azurewebsites.net/performance" -Body $JsonToWrite -Method 'Post' -ContentType "application/json"
+    $Result = Invoke-RestMethod -Uri "https://msquicperformanceresults.azurewebsites.net/performance" -Body $JsonToWrite -Method 'Post' -ContentType "application/json"
+    Write-Host $Result
 }
