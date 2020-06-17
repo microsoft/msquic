@@ -25,7 +25,7 @@ QuicPlatGetSelfSignedCert(
     QUIC_SEC_CONFIG_PARAMS* Params = malloc(sizeof(QUIC_SEC_CONFIG_PARAMS));
     if (Params != NULL) {
         QuicZeroMemory(Params, sizeof(*Params));
-        Params->Flags = (uint32_t)QUIC_SEC_CONFIG_FLAG_CERTIFICATE_NULL;
+        Params->Flags = QUIC_SEC_CONFIG_FLAG_CERTIFICATE_NULL;
     }
     return Params;
 }

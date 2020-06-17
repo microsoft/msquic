@@ -663,7 +663,7 @@ QuicSessionServerCacheSetStateInternal(
     _In_ QUIC_SESSION* Session,
     _In_ uint16_t ServerNameLength,
     _In_reads_(ServerNameLength)
-    const char* ServerName,
+        const char* ServerName,
     _In_ uint32_t QuicVersion,
     _In_ const QUIC_TRANSPORT_PARAMETERS* Parameters,
     _In_opt_ QUIC_SEC_CONFIG* SecConfig
@@ -684,6 +684,9 @@ QuicSessionServerCacheSetStateInternal(
         Cache->QuicVersion = QuicVersion;
         Cache->TransportParameters = *Parameters;
         if (SecConfig != NULL) {
+            if (Cache->SecConfig != NULL) {
+                QuicTlsSecConfigRelease(Cache->SecConfig);
+            }
             Cache->SecConfig = QuicTlsSecConfigAddRef(SecConfig);
         }
 

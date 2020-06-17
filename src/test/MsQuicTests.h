@@ -11,7 +11,6 @@ Abstract:
 
 #include <msquic.h>
 
-//#define QUIC_NO_ENCRYPTION 1
 //#define QUIC_COMPARTMENT_TESTS 1
 
 extern const QUIC_API_TABLE* MsQuic;
@@ -21,9 +20,6 @@ extern QUIC_SEC_CONFIG* SecurityConfig;
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-void QuicTestInitialize();
-void QuicTestCleanup();
 
 //
 // Parameter Validation Tests

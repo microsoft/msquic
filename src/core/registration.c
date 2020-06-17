@@ -80,10 +80,13 @@ MsQuicRegistrationOpen(
     switch (Registration->ExecProfile) {
     default:
     case QUIC_EXECUTION_PROFILE_LOW_LATENCY:
-        WorkerThreadFlags = QUIC_THREAD_FLAG_SET_IDEAL_PROC;
+        WorkerThreadFlags =
+            QUIC_THREAD_FLAG_SET_IDEAL_PROC;
         break;
     case QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT:
-        WorkerThreadFlags = QUIC_THREAD_FLAG_SET_IDEAL_PROC | QUIC_THREAD_FLAG_SET_AFFINITIZE;
+        WorkerThreadFlags =
+            QUIC_THREAD_FLAG_SET_IDEAL_PROC |
+            QUIC_THREAD_FLAG_SET_AFFINITIZE;
         break;
     case QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER:
         WorkerThreadFlags = 0;
@@ -92,8 +95,7 @@ MsQuicRegistrationOpen(
     case QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME:
         WorkerThreadFlags =
             QUIC_THREAD_FLAG_SET_IDEAL_PROC |
-            QUIC_THREAD_FLAG_SET_AFFINITIZE |
-            QUIC_THREAD_FLAG_HIGH_PRIORITY;
+            QUIC_THREAD_FLAG_SET_AFFINITIZE;
         break;
     }
 
@@ -325,16 +327,16 @@ QuicRegistrationAcceptConnection(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    if (Registration->ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT) {
+    if (QuicRegistrationIsSplitPartitioning(Registration)) {
         //
         // TODO - Figure out how to check to see if hyper-threading was enabled first
-        // TODO - Constrain ++PartitionID to the same NUMA node.
+        // TODO - Constrain PartitionID to the same NUMA node.
         //
         // When hyper-threading is enabled, better bulk throughput can sometimes
         // be gained by sharing the same physical core, but not the logical one.
         // The shared one is always one greater than the RSS core.
         //
-        Connection->PartitionID++;
+        Connection->PartitionID += QUIC_MAX_THROUGHPUT_PARTITION_OFFSET;
     }
 
     uint8_t Index =

@@ -41,9 +41,11 @@ const QUIC_BUFFER Alpns[] = {
     { sizeof("h3-27") - 1, (uint8_t*)"h3-27" }
 };
 
-const uint16_t Ports[] = {
+const uint16_t PublicPorts[] = {
     443, 4433, 4434
 };
+
+const uint32_t PublicPortsCount = ARRAYSIZE(PublicPorts);
 
 //
 // Represents the information of a well-known public QUIC endpoint.
@@ -53,7 +55,7 @@ struct QuicPublicEndpoint {
     const char* ServerName;
 };
 
-const QuicPublicEndpoint PublicEndpoints[] = {
+QuicPublicEndpoint PublicEndpoints[] = {
     { "aioquic",        "quic.aiortc.org" },
     { "akamaiquic",     "ietf.akaquic.com" },
     { "applequic",      "12.181.55.166" },
@@ -77,7 +79,10 @@ const QuicPublicEndpoint PublicEndpoints[] = {
     { "quicker",        "quicker.edm.uhasselt.be" },
     { "quicly-quic",    "quic.examp1e.net" },
     { "quicly-h20",     "h2o.examp1e.net" },
+    { nullptr,          nullptr },              // Used for -custom cmd arg
 };
+
+const uint32_t PublicEndpointsCount = ARRAYSIZE(PublicEndpoints) - 1;
 
 struct QuicTestResults {
     const char* Alpn;
@@ -89,11 +94,11 @@ QuicTestResults TestResults[ARRAYSIZE(PublicEndpoints)];
 QUIC_LOCK TestResultsLock;
 
 const uint32_t MaxThreadCount =
-    ARRAYSIZE(Ports) *
-    ARRAYSIZE(PublicEndpoints) *
-    QuicTestFeatureCount;
+    PublicPortsCount * PublicEndpointsCount * QuicTestFeatureCount;
 QUIC_THREAD Threads[MaxThreadCount];
 uint32_t CurrentThreadCount;
+
+uint16_t CustomPort = 0;
 
 extern "C" void QuicTraceRundown(void) { }
 
@@ -105,12 +110,13 @@ PrintUsage()
     printf("Usage:\n");
     printf("  quicinterop.exe -help\n");
     printf("  quicinterop.exe -list\n");
-    printf("  quicinterop.exe [-target:<implementation>] [-test:<test case>]"
-           " [-timeout:<milliseconds>]\n\n");
+    printf("  quicinterop.exe [-target:<implementation>] [-test:<test case>] [-timeout:<milliseconds>]\n\n");
+    printf("  quicinterop.exe [-custom:<hostname>] [-port:<####>] [-test:<test case>] [-timeout:<milliseconds>]\n\n");
 
     printf("Examples:\n");
     printf("  quicinterop.exe\n");
     printf("  quicinterop.exe -target:msquic\n");
+    printf("  quicinterop.exe -custom:localhost -test:16\n");
 }
 
 class GetRequest : public QUIC_BUFFER {
@@ -738,11 +744,14 @@ PrintTestResults(
 void
 RunInteropTests()
 {
-    for (uint32_t b = 0; b < ARRAYSIZE(Ports); ++b) {
+    const uint16_t* Ports = CustomPort == 0 ? PublicPorts : &CustomPort;
+    const uint32_t PortsCount = CustomPort == 0 ? PublicPortsCount : 1;
+
+    for (uint32_t b = 0; b < PortsCount; ++b) {
         for (uint32_t c = 0; c < QuicTestFeatureCount; ++c) {
             if (TestCases & (1 << c)) {
                 if (EndpointIndex == -1) {
-                    for (uint32_t d = 0; d < ARRAYSIZE(PublicEndpoints); ++d) {
+                    for (uint32_t d = 0; d < PublicEndpointsCount; ++d) {
                         StartTest(d, Ports[b], (QuicTestFeature)(1 << c));
                     }
                 } else {
@@ -760,7 +769,7 @@ RunInteropTests()
     printf("\n%12s  %s    %s   %s\n", "TARGET", QuicTestFeatureCodes, "VERSION", "ALPN");
     printf(" ============================================\n");
     if (EndpointIndex == -1) {
-        for (uint32_t i = 0; i < ARRAYSIZE(PublicEndpoints); ++i) {
+        for (uint32_t i = 0; i < PublicEndpointsCount; ++i) {
             PrintTestResults(i);
         }
     } else {
@@ -784,7 +793,7 @@ main(
 
     if (GetValue(argc, argv, "list")) {
         printf("\nKnown implementations and servers:\n");
-        for (int i = 0; i < ARRAYSIZE(PublicEndpoints); ++i) {
+        for (uint32_t i = 0; i < PublicEndpointsCount; ++i) {
             printf("  %12s\t%s\n", PublicEndpoints[i].ImplementationName,
                 PublicEndpoints[i].ServerName);
         }
@@ -823,12 +832,12 @@ main(
         }
     }
 
-    const char* Target;
+    const char* Target, *Custom;
     if (TryGetValue(argc, argv, "target", &Target)) {
         bool Found = false;
-        for (int i = 0; i < ARRAYSIZE(PublicEndpoints); ++i) {
+        for (uint32_t i = 0; i < PublicEndpointsCount; ++i) {
             if (strcmp(Target, PublicEndpoints[i].ImplementationName) == 0) {
-                EndpointIndex = i;
+                EndpointIndex = (int)i;
                 Found = true;
                 break;
             }
@@ -837,6 +846,11 @@ main(
             printf("Unknown implementation '%s'\n", Target);
             goto Error;
         }
+    } else if (TryGetValue(argc, argv, "custom", &Custom)) {
+        PublicEndpoints[PublicEndpointsCount].ImplementationName = Custom;
+        PublicEndpoints[PublicEndpointsCount].ServerName = Custom;
+        EndpointIndex = (int)PublicEndpointsCount;
+        TryGetValue(argc, argv, "port", &CustomPort);
     }
 
     RunInteropTests();

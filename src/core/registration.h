@@ -89,6 +89,23 @@ typedef struct QUIC_REGISTRATION {
 #define QUIC_REG_VERIFY(Registration, Expr)
 #endif
 
+inline
+BOOLEAN
+QuicRegistrationIsSplitPartitioning(
+    _In_ const QUIC_REGISTRATION* Registration
+    )
+{
+    //
+    // When hyper-threading is enabled, better bulk throughput can sometimes
+    // be gained by sharing the same physical core, but not the logical one.
+    // The shared core is always one greater than the RSS core.
+    //
+    // TODO - Figure out how to check to see if hyper-threading is enabled
+    // TODO - Constrain ++PartitionID to the same NUMA node.
+    //
+    return Registration->ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT;
+}
+
 //
 // Tracing rundown for the registration.
 //

@@ -83,8 +83,8 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 # Well-known files and directories used for the various logging commands.
 $WprProfile = Join-Path $RootDir "src\manifest\msquic.wprp"
 $SideCar = Join-Path $RootDir "src/manifest/clog.sidecar"
-$Clog2Text_lttng = Join-Path $RootDir "artifacts/tools/clog/clog2text_lttng"
-$Clog2Text_windows = Join-Path $RootDir "artifacts/tools/clog/windows/clog2text_windows"
+$Clog2Text_lttng = Join-Path $RootDir "artifacts/clog/clog2text_lttng"
+$Clog2Text_windows = Join-Path $RootDir "artifacts/clog/windows/clog2text_windows"
 
 $TempDir = $null
 if ($IsLinux) {
@@ -95,7 +95,7 @@ if ($IsLinux) {
 # Start log collection.
 function Log-Start {
     if ($IsWindows) {
-        Write-Host "WRP : $($WprProfile)!$($LogProfile)"
+        Write-Debug "WRP : $($WprProfile)!$($LogProfile)"
         wpr.exe -start "$($WprProfile)!$($LogProfile)" -filemode -instancename $InstanceName
     } else {
         if (Test-Path $TempDir) {

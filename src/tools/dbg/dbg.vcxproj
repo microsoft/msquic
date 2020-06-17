@@ -54,7 +54,7 @@
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <PlatformToolset>v142</PlatformToolset>
     <OutDir>$(SolutionDir)artifacts\windbg\$(Platform)_$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bld\windbg\$(Platform)_$(Configuration)\obj\$(ProjectName)\</IntDir>
+    <IntDir>$(SolutionDir)build\windbg\$(Platform)_$(Configuration)\obj\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>

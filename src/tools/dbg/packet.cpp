@@ -36,11 +36,7 @@ EXT_COMMAND(
         Packet.PacketLength());
 
     if (Flags.IsAckEliciting) {
-        Dml("Retransmittable\n"
-            "\t                     ");
-    }
-    if (Flags.HasCrypto) {
-        Dml("Crypto Frames\n"
+        Dml("Ack Eliciting\n"
             "\t                     ");
     }
     if (Flags.IsPMTUD) {

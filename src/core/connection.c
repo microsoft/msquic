@@ -1415,9 +1415,9 @@ QuicConnTryClose(
     if (!ClosedRemotely) {
 
         if ((Flags & QUIC_CLOSE_APPLICATION) &&
-            Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] == NULL) {
+            Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT) {
             //
-            // Application close can only happen if we have 1-RTT keys.
+            // Application close can only happen if we are using 1-RTT keys.
             // Otherwise we have to send "user_canceled" TLS error code as a
             // connection close. Overwrite all application provided parameters.
             //
@@ -1691,6 +1691,9 @@ QuicConnStart(
     QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
 
     if (Connection->State.ClosedLocally || Connection->State.Started) {
+        if (ServerName != NULL) {
+            QUIC_FREE(ServerName);
+        }
         return QUIC_STATUS_INVALID_STATE;
     }
 
@@ -3497,10 +3500,6 @@ QuicConnRecvFrames(
                     &Frame);
             if (QUIC_SUCCEEDED(Status)) {
                 AckPacketImmediately = TRUE;
-                if (!QuicConnIsServer(Connection) &&
-                    !Connection->State.GotFirstServerResponse) {
-                    Connection->State.GotFirstServerResponse = TRUE;
-                }
             } else if (Status == QUIC_STATUS_OUT_OF_MEMORY) {
                 return FALSE;
             } else {
@@ -4096,6 +4095,11 @@ QuicConnRecvFrames(
 
 Done:
 
+    if (!QuicConnIsServer(Connection) &&
+        !Connection->State.GotFirstServerResponse) {
+        Connection->State.GotFirstServerResponse = TRUE;
+    }
+
     if (UpdatedFlowControl) {
         QuicConnLogOutFlowStats(Connection);
     }
@@ -4289,10 +4293,11 @@ QuicConnRecvDatagramBatch(
             QuicConnRecvPostProcessing(Connection, &Path, Packet);
             RecvState->ResetIdleTimeout |= Packet->CompletelyValid;
 
-            if (Path->IsActive && Packet->CompletelyValid &&
+            if (Path->IsActive && !Path->PartitionUpdated && Packet->CompletelyValid &&
                 (Datagrams[i]->PartitionIndex % MsQuicLib.PartitionCount) != RecvState->PartitionIndex) {
                 RecvState->PartitionIndex = Datagrams[i]->PartitionIndex % MsQuicLib.PartitionCount;
                 RecvState->UpdatePartitionId = TRUE;
+                Path->PartitionUpdated = TRUE;
             }
 
             if (Packet->IsShortHeader && Packet->NewLargestPacketNumber) {
@@ -4324,6 +4329,11 @@ QuicConnRecvDatagrams(
     uint32_t ReleaseChainCount = 0;
     QUIC_RECEIVE_PROCESSING_STATE RecvState = { FALSE, FALSE, 0 };
     RecvState.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
+    if (Connection->Registration &&
+        QuicRegistrationIsSplitPartitioning(Connection->Registration)) {
+        QUIC_DBG_ASSERT(RecvState.PartitionIndex != 0);
+        RecvState.PartitionIndex -= QUIC_MAX_THROUGHPUT_PARTITION_OFFSET;
+    }
 
     UNREFERENCED_PARAMETER(DatagramChainCount);
 
@@ -4557,6 +4567,9 @@ QuicConnRecvDatagrams(
     if (!Connection->State.UpdateWorker &&
         Connection->State.Connected &&
         RecvState.UpdatePartitionId) {
+        if (QuicRegistrationIsSplitPartitioning(Connection->Registration)) {
+            RecvState.PartitionIndex += QUIC_MAX_THROUGHPUT_PARTITION_OFFSET;
+        }
         QUIC_DBG_ASSERT(RecvState.PartitionIndex != QuicPartitionIdGetIndex(Connection->PartitionID));
         Connection->PartitionID = QuicPartitionIdCreate(RecvState.PartitionIndex);
         QuicConnGenerateNewSourceCids(Connection, TRUE);

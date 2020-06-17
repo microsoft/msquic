@@ -8756,6 +8756,13 @@
               template="template_ui8_"
               value="611"
               />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="SettingDumpHandshakeIdleTimeoutMs"
+              template="template_ui64_"
+              value="612"
+              />
         </events>
       </provider>
     </events>

@@ -168,16 +168,24 @@ EXT_COMMAND(
             Dml("NEW_CONNECTION_ID\n"
                 "\t                     ");
         }
-        if (SendFlags & QUIC_CONN_SEND_FLAG_PING) {
-            Dml("PING\n"
-                "\t                     ");
-        }
         if (SendFlags & QUIC_CONN_SEND_FLAG_PATH_CHALLENGE) {
             Dml("PATH_CHALLENGE\n"
                 "\t                     ");
         }
         if (SendFlags & QUIC_CONN_SEND_FLAG_PATH_RESPONSE) {
             Dml("PATH_RESPONSE\n"
+                "\t                     ");
+        }
+        if (SendFlags & QUIC_CONN_SEND_FLAG_PING) {
+            Dml("PING\n"
+                "\t                     ");
+        }
+        if (SendFlags & QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE) {
+            Dml("HANDSHAKE_DONE\n"
+                "\t                     ");
+        }
+        if (SendFlags & QUIC_CONN_SEND_FLAG_DATAGRAM) {
+            Dml("DATAGRAM\n"
                 "\t                     ");
         }
         if (SendFlags & QUIC_CONN_SEND_FLAG_PMTUD) {

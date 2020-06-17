@@ -65,7 +65,7 @@ TEST(SpinFrame, SpinFrame1000000)
             TEST_QUIC_SUCCEEDED(QuicRandom(BufferLength, Buffer));
         }
 
-        do { 
+        do {
             TEST_QUIC_SUCCEEDED(QuicRandom(sizeof(FrameType), &FrameType));
         } while (!QUIC_FRAME_IS_KNOWN(FrameType));
 

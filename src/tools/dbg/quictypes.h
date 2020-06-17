@@ -680,11 +680,12 @@ struct Stream : Struct {
 #define QUIC_CONN_SEND_FLAG_MAX_STREAMS_BIDI        0x00000040
 #define QUIC_CONN_SEND_FLAG_MAX_STREAMS_UNI         0x00000080
 #define QUIC_CONN_SEND_FLAG_NEW_CONNECTION_ID       0x00000100
-#define QUIC_CONN_SEND_FLAG_PATH_CHALLENGE          0x00000200
-#define QUIC_CONN_SEND_FLAG_PATH_RESPONSE           0x00000400
-#define QUIC_CONN_SEND_FLAG_PING                    0x00000800
-#define QUIC_CONN_SEND_FLAG_STATELESS_RESET_PADDING 0x00001000
-#define QUIC_CONN_SEND_FLAG_MTU_PADDING             0x00002000
+#define QUIC_CONN_SEND_FLAG_RETIRE_CONNECTION_ID    0x00000200
+#define QUIC_CONN_SEND_FLAG_PATH_CHALLENGE          0x00000400
+#define QUIC_CONN_SEND_FLAG_PATH_RESPONSE           0x00000800
+#define QUIC_CONN_SEND_FLAG_PING                    0x00001000
+#define QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE          0x00002000
+#define QUIC_CONN_SEND_FLAG_DATAGRAM                0x00004000
 #define QUIC_CONN_SEND_FLAG_PMTUD                   0x80000000
 
 struct Send : Struct {
@@ -815,8 +816,8 @@ typedef struct QUIC_SEND_PACKET_FLAGS {
 
     UINT8 KeyType                   : 2;
     BOOLEAN IsAckEliciting          : 1;
-    BOOLEAN HasCrypto               : 1;
     BOOLEAN IsPMTUD                 : 1;
+    BOOLEAN SuspectedLost           : 1;
 
     PCSTR KeyTypeStr() {
         switch (KeyType) {
@@ -905,7 +906,9 @@ typedef enum QUIC_API_TYPE {
     QUIC_API_TYPE_STRM_RECV_SET_ENABLED,
 
     QUIC_API_TYPE_SET_PARAM,
-    QUIC_API_TYPE_GET_PARAM
+    QUIC_API_TYPE_GET_PARAM,
+
+    QUIC_API_TYPE_DATAGRAM_SEND,
 
 } QUIC_API_TYPE;
 
@@ -929,6 +932,8 @@ struct ApiCall : Struct {
             return "API_STRM_CLOSE";
         case QUIC_API_TYPE_STRM_SHUTDOWN:
             return "API_STRM_SHUTDOWN";
+        case QUIC_API_TYPE_STRM_START:
+            return "API_TYPE_STRM_START";
         case QUIC_API_TYPE_STRM_SEND:
             return "API_STRM_SEND";
         case QUIC_API_TYPE_STRM_RECV_COMPLETE:
@@ -939,6 +944,8 @@ struct ApiCall : Struct {
             return "API_SET_PARAM";
         case QUIC_API_TYPE_GET_PARAM:
             return "API_GET_PARAM";
+        case QUIC_API_TYPE_DATAGRAM_SEND:
+            return "API_TYPE_DATAGRAM_SEND";
         default:
             return "INVALID API";
         }
@@ -993,6 +1000,8 @@ struct Operation : Struct {
             return "TLS_COMPLETE";
         case QUIC_OPER_TYPE_TIMER_EXPIRED:
             return "TIMER_EXPIRED"; // TODO - Timer details.
+        case QUIC_OPER_TYPE_TRACE_RUNDOWN:
+            return "TRACE_RUNDOWN";
         case QUIC_OPER_TYPE_VERSION_NEGOTIATION:
             return "VERSION_NEGOTIATION";
         case QUIC_OPER_TYPE_STATELESS_RESET:

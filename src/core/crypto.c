@@ -70,6 +70,25 @@ QuicCryptoDumpSendState(
     }
 }
 
+#if DEBUG
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCryptoValidate(
+    _In_ const QUIC_CRYPTO* Crypto
+    )
+{
+    QUIC_DBG_ASSERT(Crypto->TlsState.BufferTotalLength >= Crypto->MaxSentLength);
+    QUIC_DBG_ASSERT(Crypto->MaxSentLength >= Crypto->UnAckedOffset);
+    QUIC_DBG_ASSERT(Crypto->MaxSentLength >= Crypto->NextSendOffset);
+    QUIC_DBG_ASSERT(Crypto->MaxSentLength >= Crypto->RecoveryNextOffset);
+    QUIC_DBG_ASSERT(Crypto->MaxSentLength >= Crypto->RecoveryEndOffset);
+    QUIC_DBG_ASSERT(Crypto->NextSendOffset >= Crypto->UnAckedOffset);
+    QUIC_DBG_ASSERT(Crypto->TlsState.BufferLength + Crypto->UnAckedOffset == Crypto->TlsState.BufferTotalLength);
+}
+#else
+#define QuicCryptoValidate(Crypto)
+#endif
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoInitialize(
@@ -169,6 +188,7 @@ QuicCryptoInitialize(
     QUIC_DBG_ASSERT(Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL] != NULL);
 
     Crypto->Initialized = TRUE;
+    QuicCryptoValidate(Crypto);
 
 Exit:
 
@@ -292,6 +312,7 @@ QuicCryptoReset(
     _In_ BOOLEAN ResetTls
     )
 {
+    QUIC_DBG_ASSERT(!QuicConnIsServer(QuicCryptoGetConnection(Crypto)));
     QUIC_TEL_ASSERT(!Crypto->TlsDataPending);
     QUIC_TEL_ASSERT(!Crypto->TlsCallPending);
     QUIC_TEL_ASSERT(Crypto->RecvTotalConsumed == 0);
@@ -299,6 +320,9 @@ QuicCryptoReset(
     Crypto->MaxSentLength = 0;
     Crypto->UnAckedOffset = 0;
     Crypto->NextSendOffset = 0;
+    Crypto->RecoveryNextOffset = 0;
+    Crypto->RecoveryEndOffset = 0;
+    Crypto->InRecovery = FALSE;
 
     if (ResetTls) {
         Crypto->TlsState.BufferLength = 0;
@@ -312,6 +336,8 @@ QuicCryptoReset(
             &QuicCryptoGetConnection(Crypto)->Send,
             QUIC_CONN_SEND_FLAG_CRYPTO);
     }
+
+    QuicCryptoValidate(Crypto);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -377,9 +403,28 @@ QuicCryptoDiscardKeys(
     QuicPacketSpaceUninitialize(Connection->Packets[EncryptLevel]);
     Connection->Packets[EncryptLevel] = NULL;
 
+    //
+    // Clean up any possible left over recovery state.
+    //
+    uint32_t BufferOffset =
+        KeyType == QUIC_PACKET_KEY_INITIAL ?
+            Crypto->TlsState.BufferOffsetHandshake :
+            Crypto->TlsState.BufferOffset1Rtt;
+    QUIC_DBG_ASSERT(BufferOffset != 0);
+    QUIC_DBG_ASSERT(Crypto->MaxSentLength >= BufferOffset);
+    if (Crypto->NextSendOffset < BufferOffset) {
+        Crypto->NextSendOffset = BufferOffset;
+    }
+    if (Crypto->UnAckedOffset < BufferOffset) {
+        Crypto->UnAckedOffset = BufferOffset;
+        QuicRangeSetMin(&Crypto->SparseAckRanges, Crypto->UnAckedOffset);
+    }
+
     if (HasAckElicitingPacketsToAcknowledge) {
         QuicSendUpdateAckState(&Connection->Send);
     }
+
+    QuicCryptoValidate(Crypto);
 
     return TRUE;
 }
@@ -453,6 +498,7 @@ QuicCryptoWriteOneFrame(
     _Inout_ QUIC_SENT_PACKET_METADATA* PacketMetadata
     )
 {
+    QuicCryptoValidate(Crypto);
     QUIC_DBG_ASSERT(*FramePayloadBytes > 0);
     QUIC_DBG_ASSERT(CryptoOffset >= EncryptLevelStart);
     QUIC_DBG_ASSERT(CryptoOffset <= Crypto->TlsState.BufferTotalLength);
@@ -510,7 +556,6 @@ QuicCryptoWriteOneFrame(
         QuicCryptoFrameEncode(&Frame, Offset, BufferLength, Buffer));
 
     PacketMetadata->Flags.IsAckEliciting = TRUE;
-    PacketMetadata->Flags.HasCrypto = TRUE;
     PacketMetadata->Frames[PacketMetadata->FrameCount].Type = QUIC_FRAME_CRYPTO;
     PacketMetadata->Frames[PacketMetadata->FrameCount].CRYPTO.Offset = CryptoOffset;
     PacketMetadata->Frames[PacketMetadata->FrameCount].CRYPTO.Length = (uint16_t)Frame.Length;
@@ -533,6 +578,7 @@ QuicCryptoWriteCryptoFrames(
     _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
     )
 {
+    QuicCryptoValidate(Crypto);
 
     //
     // Write frames until we've filled the provided space.
@@ -696,9 +742,12 @@ QuicCryptoWriteCryptoFrames(
         if (Crypto->MaxSentLength < Right) {
             Crypto->MaxSentLength = Right;
         }
+
+        QuicCryptoValidate(Crypto);
     }
 
     QuicCryptoDumpSendState(Crypto);
+    QuicCryptoValidate(Crypto);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -846,6 +895,7 @@ QuicCryptoOnLoss(
                 QUIC_CONN_SEND_FLAG_CRYPTO);
 
         QuicCryptoDumpSendState(Crypto);
+        QuicCryptoValidate(Crypto);
 
         return DataQueued;
     }
@@ -888,10 +938,24 @@ QuicCryptoOnAck(
 
         if (Crypto->UnAckedOffset < FollowingOffset) {
 
+            uint32_t OldUnAckedOffset = Crypto->UnAckedOffset;
+            Crypto->UnAckedOffset = FollowingOffset;
+
+            //
+            // Delete any SACKs that UnAckedOffset caught up to.
+            //
+            QuicRangeSetMin(&Crypto->SparseAckRanges, Crypto->UnAckedOffset);
+            QUIC_SUBRANGE* Sack = QuicRangeGetSafe(&Crypto->SparseAckRanges, 0);
+            if (Sack && Sack->Low == (uint64_t)Crypto->UnAckedOffset) {
+                Crypto->UnAckedOffset = (uint32_t)(Sack->Low + Sack->Count);
+                QuicRangeRemoveSubranges(&Crypto->SparseAckRanges, 0, 1);
+            }
+
             //
             // Drain the front of the send buffer.
             //
-            uint32_t DrainLength = FollowingOffset - Crypto->UnAckedOffset;
+            uint32_t DrainLength = Crypto->UnAckedOffset - OldUnAckedOffset;
+            QUIC_DBG_ASSERT(DrainLength <= (uint32_t)Crypto->TlsState.BufferLength);
             if ((uint32_t)Crypto->TlsState.BufferLength > DrainLength) {
                 Crypto->TlsState.BufferLength -= (uint16_t)DrainLength;
                 QuicMoveMemory(
@@ -900,19 +964,6 @@ QuicCryptoOnAck(
                     Crypto->TlsState.BufferLength);
             } else {
                 Crypto->TlsState.BufferLength = 0;
-            }
-
-            Crypto->UnAckedOffset = FollowingOffset;
-
-            //
-            // Delete any SACKs that UnAckedOffset caught up to.
-            //
-            QuicRangeSetMin(&Crypto->SparseAckRanges, Crypto->UnAckedOffset);
-
-            QUIC_SUBRANGE* Sack = QuicRangeGetSafe(&Crypto->SparseAckRanges, 0);
-            if (Sack && Sack->Low == (uint64_t)Crypto->UnAckedOffset) {
-                Crypto->UnAckedOffset = (uint32_t)(Sack->Low + Sack->Count);
-                QuicRangeRemoveSubranges(&Crypto->SparseAckRanges, 0, 1);
             }
 
             if (Crypto->NextSendOffset < Crypto->UnAckedOffset) {
@@ -980,6 +1031,7 @@ QuicCryptoOnAck(
     }
 
     QuicCryptoDumpSendState(Crypto);
+    QuicCryptoValidate(Crypto);
 }
 
 //
@@ -1147,6 +1199,8 @@ QuicCryptoProcessTlsCompletion(
         return;
     }
 
+    QuicCryptoValidate(Crypto);
+
     if (ResultFlags & QUIC_TLS_RESULT_EARLY_DATA_ACCEPT) {
         QuicTraceLogConnInfo(
             ZeroRttAccepted,
@@ -1300,6 +1354,7 @@ QuicCryptoProcessTlsCompletion(
             &QuicCryptoGetConnection(Crypto)->Send,
             QUIC_CONN_SEND_FLAG_CRYPTO);
         QuicCryptoDumpSendState(Crypto);
+        QuicCryptoValidate(Crypto);
     }
 
     if (ResultFlags & QUIC_TLS_RESULT_COMPLETE) {
@@ -1404,6 +1459,8 @@ QuicCryptoProcessTlsCompletion(
             "Ticket ready");
     }
 
+    QuicCryptoValidate(Crypto);
+
     if (ResultFlags & QUIC_TLS_RESULT_READ_KEY_UPDATED) {
         QuicConnFlushDeferred(Connection);
     }
@@ -1427,6 +1484,8 @@ QuicCryptoProcessDataComplete(
             RecvBufferConsumed);
         QuicRecvBufferDrain(&Crypto->RecvBuffer, RecvBufferConsumed);
     }
+
+    QuicCryptoValidate(Crypto);
     QuicCryptoProcessTlsCompletion(Crypto, ResultFlags);
 
     if (Crypto->TlsDataPending && !Crypto->TlsCallPending) {
@@ -1609,6 +1668,8 @@ QuicCryptoProcessData(
     Crypto->TlsDataPending = FALSE;
     Crypto->TlsCallPending = TRUE;
 
+    QuicCryptoValidate(Crypto);
+
     QUIC_TLS_RESULT_FLAGS ResultFlags =
         QuicTlsProcessData(Crypto->TLS, Buffer.Buffer, &Buffer.Length, &Crypto->TlsState);
 
@@ -1623,6 +1684,7 @@ QuicCryptoProcessData(
 Error:
 
     QuicRecvBufferDrain(&Crypto->RecvBuffer, 0);
+    QuicCryptoValidate(Crypto);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

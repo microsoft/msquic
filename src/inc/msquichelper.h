@@ -279,23 +279,6 @@ struct CreateSecConfigHelper {
 
 inline
 QUIC_SEC_CONFIG*
-GetNullSecConfig(
-    _In_ const QUIC_API_TABLE* MsQuic,
-    _In_ HQUIC Registration
-    )
-{
-    CreateSecConfigHelper Helper;
-    return
-        Helper.Create(
-            MsQuic,
-            Registration,
-            QUIC_SEC_CONFIG_FLAG_CERTIFICATE_NULL,
-            nullptr,
-            nullptr);
-}
-
-inline
-QUIC_SEC_CONFIG*
 GetSecConfigForCertContext(
     _In_ const QUIC_API_TABLE* MsQuic,
     _In_ HQUIC Registration,

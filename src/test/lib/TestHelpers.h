@@ -9,9 +9,32 @@ Abstract:
 
 --*/
 
+#include "TestHelpers.h.clog.h"
+
+#define OLD_SUPPORTED_VERSION       QUIC_VERSION_1_MS_H
+#define LATEST_SUPPORTED_VERSION    QUIC_VERSION_LATEST_H
+
+const uint16_t TestUdpPortBase = 0x8000;
+
 #define QUIC_TEST_NO_ERROR          0
 #define QUIC_TEST_SESSION_CLOSED    1
 #define QUIC_TEST_SPECIAL_ERROR     0x1234
+
+struct TestScopeLogger {
+    const char* Name;
+    TestScopeLogger(const char* name) : Name(name) {
+        QuicTraceLogInfo(
+            TestScopeEntry,
+            "[test]---> %s",
+            Name);
+    }
+    ~TestScopeLogger() {
+        QuicTraceLogInfo(
+            TestScopeExit,
+            "[test]<--- %s",
+            Name);
+    }
+};
 
 //
 // No 64-bit version for this existed globally. This defines an interlocked
@@ -275,4 +298,117 @@ struct QuicBufferScope {
     }
     operator QUIC_BUFFER* () { return Buffer; }
     ~QuicBufferScope() { if (Buffer) { delete[](uint8_t*) Buffer; } }
+};
+
+struct StatelessRetryHelper
+{
+    bool DoRetry;
+    StatelessRetryHelper(bool Enabled) : DoRetry(Enabled) {
+        if (DoRetry) {
+            uint16_t value = 0;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_LEVEL_GLOBAL,
+                    QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
+                    sizeof(value),
+                    &value));
+        }
+    }
+    ~StatelessRetryHelper() {
+        if (DoRetry) {
+            uint16_t value = 65;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_LEVEL_GLOBAL,
+                    QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
+                    sizeof(value),
+                    &value));
+        }
+    }
+};
+
+#define PRIVATE_TP_TYPE   77
+#define PRIVATE_TP_LENGTH 2345
+
+struct PrivateTransportHelper : QUIC_PRIVATE_TRANSPORT_PARAMETER
+{
+    PrivateTransportHelper(bool Enabled) {
+        if (Enabled) {
+            Type = PRIVATE_TP_TYPE;
+            Length = PRIVATE_TP_LENGTH;
+            Buffer = new uint8_t[PRIVATE_TP_LENGTH];
+            TEST_TRUE(Buffer != nullptr);
+        } else {
+            Buffer = nullptr;
+        }
+    }
+    ~PrivateTransportHelper() {
+        delete [] Buffer;
+    }
+};
+
+struct RandomLossHelper
+{
+    static uint8_t LossPercentage;
+    static QUIC_TEST_DATAPATH_HOOKS DataPathFuncTable;
+    RandomLossHelper(uint8_t _LossPercentage) {
+        LossPercentage = _LossPercentage;
+        if (LossPercentage != 0) {
+            QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathFuncTable;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_LEVEL_GLOBAL,
+                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
+                    sizeof(Value),
+                    &Value));
+        }
+    }
+    ~RandomLossHelper() {
+        if (LossPercentage != 0) {
+            QUIC_TEST_DATAPATH_HOOKS* Value = nullptr;
+            uint32_t TryCount = 0;
+            while (TryCount++ < 10) {
+                if (QUIC_SUCCEEDED(
+                    MsQuic->SetParam(
+                        nullptr,
+                        QUIC_PARAM_LEVEL_GLOBAL,
+                        QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
+                        sizeof(Value),
+                        &Value))) {
+                    break;
+                }
+                QuicSleep(100); // Let the current datapath queue drain.
+            }
+            if (TryCount == 10) {
+                TEST_FAILURE("Failed to disable test datapath hook");
+            }
+        }
+    }
+    static
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    BOOLEAN
+    QUIC_API
+    ReceiveCallback(
+        _Inout_ struct QUIC_RECV_DATAGRAM* /* Datagram */
+        )
+    {
+        uint8_t RandomValue;
+        QuicRandom(sizeof(RandomValue), &RandomValue);
+        return (RandomValue % 100) < LossPercentage;
+    }
+    static
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    BOOLEAN
+    QUIC_API
+    SendCallback(
+        _Inout_ QUIC_ADDR* /* RemoteAddress */,
+        _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
+        _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */
+        )
+    {
+        return FALSE; // Don't drop
+    }
 };

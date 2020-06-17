@@ -335,11 +335,6 @@ QuicTestCtlEvtFileCleanup(
             Client);
 
         //
-        // Clean up the tests.
-        //
-        QuicTestCleanup();
-
-        //
         // Delete the security configuration.
         //
         if (Client->SecurityConfig != nullptr) {
@@ -436,11 +431,6 @@ QuicTestCtlSetSecurityConfig(
         Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
     }
-
-    //
-    // Initialize the tests.
-    //
-    QuicTestInitialize();
 
     SecurityConfig = Client->SecurityConfig;
     Status = QUIC_STATUS_SUCCESS;
