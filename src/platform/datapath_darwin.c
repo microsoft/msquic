@@ -844,7 +844,9 @@ QuicSocketContextInitialize(
     //
     // Create datagram socket.
     //
+    
     sa_family_t af_family = AF_INET;
+
     if (!RemoteAddress) {
         af_family = LocalAddress->Ip.sa_family;
     }
@@ -878,14 +880,6 @@ QuicSocketContextInitialize(
     }
 
     socklen_t AddrSize = 0;
-
-#define LOGSOCKOPT(x) { \
-    int __retv = (x); \
-    if (__retv == -1) { \
-        printf("\n[!!!] SETSOCKOPT FAILED: %s = -1, errno = %d\n", #x, errno); \
-        perror("setsockopt\n"); \
-    } \
-}
 
     if (af_family == AF_INET) {
         AddrSize = sizeof(struct sockaddr_in);
@@ -965,13 +959,11 @@ QuicSocketContextInitialize(
     Result =
         bind(
             SocketContext->SocketFd,
-            (const struct sockaddr*)&Binding->LocalAddress,
-            sizeof(struct sockaddr));
-    // The above is a big hack. 
-    // Since QUIC_ADDR isn't a union, like on Linux, the sizing is wrong
-    // Unions are awful.
+            (const struct sockaddr *)&Binding->LocalAddress,
+            AddrSize);
     
     if (Result == SOCKET_ERROR) {
+        __asm__("int3");
         Status = errno;
         printf("%s:%d => %d\n", __FILE__, __LINE__, errno);
         QuicTraceEvent(
