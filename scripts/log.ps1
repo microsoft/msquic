@@ -110,6 +110,7 @@ function Log-Start {
                 $Command = "lttng create $InstanceName -o=$TempDir"
                 Invoke-Expression $Command | Write-Debug
             }
+            lttng add-context --userspace --type=vpid --type=vtid
             lttng enable-event --userspace CLOG_* | Write-Debug
             lttng start | Write-Debug
 
@@ -117,7 +118,7 @@ function Log-Start {
                 lttng list | Write-Debug
                 babeltrace -i lttng-live net://localhost | Write-Debug
                 Write-Host "Now decoding LTTng events in realtime...`n"
-                Invoke-Expression "babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquiclive | $Clog2Text_lttng -s $SideCar"
+                Invoke-Expression "babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquiclive | $Clog2Text_lttng -s $SideCar -c -t"
             }
         } finally {
             if ($Stream) {
@@ -178,7 +179,7 @@ function Log-Stop {
             babeltrace --names all $TempDir/* > $BableTraceFile
 
             Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
-            $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
+            $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile -c -t"
             Write-Debug $Command
             Invoke-Expression $Command | Write-Debug
             Remove-Item -Path $BableTraceFile -Force | Out-Null
@@ -220,7 +221,7 @@ function Log-Decode {
         babeltrace --names all $DecompressedLogs/* > $BableTraceFile
 
         Write-Host "Decoding Babeltrace into human text using CLOG"
-        $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
+        $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile -c -t"
         Write-Host $Command
         Invoke-Expression $Command
     }
