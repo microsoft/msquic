@@ -69,6 +69,9 @@ struct QuicAddr {
         TEST_NOT_EQUAL(0xFFFF, QuicAddrGetPort(&SockAddr));
         QuicAddrSetPort(&SockAddr, (uint16_t)1 + QuicAddrGetPort(&SockAddr));
     }
+    void IncrementAddr() {
+        QuicAddrIncrement(&SockAddr);
+    }
 };
 
 template<class T>
