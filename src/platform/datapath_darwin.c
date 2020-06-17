@@ -377,7 +377,6 @@ QuicSocketContextRecvComplete(
          CMsg != NULL;
          CMsg = CMSG_NXTHDR(&SocketContext->RecvMsgHdr, CMsg)) {
 
-        //printf("cmsg_level: %d, cmsg_type: %d\n", CMsg->cmsg_level, CMsg->cmsg_type);
         if (CMsg->cmsg_level == IPPROTO_IPV6 &&
             CMsg->cmsg_type == IPV6_PKTINFO) {
             struct in6_pktinfo* PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
@@ -435,6 +434,53 @@ QuicSocketContextRecvComplete(
     QUIC_FRE_ASSERT(QUIC_SUCCEEDED(Status));
 }
 
+void
+QuicSocketContextUninitializeComplete(
+    _In_ QUIC_SOCKET_CONTEXT* SocketContext,
+    _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
+    )
+{
+    if (SocketContext->CurrentRecvBlock != NULL) {
+        QuicDataPathBindingReturnRecvDatagrams(&SocketContext->CurrentRecvBlock->RecvPacket);
+    }
+
+    while (!QuicListIsEmpty(&SocketContext->PendingSendContextHead)) {
+        QuicDataPathBindingFreeSendContext(
+            QUIC_CONTAINING_RECORD(
+                QuicListRemoveHead(&SocketContext->PendingSendContextHead),
+                QUIC_DATAPATH_SEND_CONTEXT,
+                PendingSendLinkage));
+    }
+
+    //epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
+    //epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, SocketContext->CleanupFd, NULL);
+    //close(SocketContext->CleanupFd);
+    close(SocketContext->SocketFd);
+
+    QuicRundownRelease(&SocketContext->Binding->Rundown);
+}
+
+void QuicSocketContextProcessEvent(QUIC_DATAPATH_PROC_CONTEXT *ProcContext, struct kevent *Event) {
+    //printf("[kevent] ident = %zd\t\tfilter = %hu\tflags = %hd\tfflags = %d\tdata = %zd\tudata = %p\n", 
+    //        Event->ident, Event->filter, 
+    //        Event->flags, Event->fflags, 
+    //        Event->data,  Event->udata);
+
+    QUIC_DBG_ASSERT(Event->filter == EVFILT_READ);
+
+    QUIC_SOCKET_CONTEXT *SocketContext = (QUIC_SOCKET_CONTEXT *)Event->udata;
+
+    if (Event->flags & EV_EOF) {
+        QUIC_DBG_ASSERT(SocketContext->Binding->Shutdown);
+        QuicSocketContextUninitializeComplete(SocketContext, ProcContext);
+        return;
+    }
+
+    int Ret = recvmsg(SocketContext->SocketFd, &SocketContext->RecvMsgHdr, 0);
+    if (Ret != -1)
+        QuicSocketContextRecvComplete(SocketContext, ProcContext, Ret);
+}
+
 void*
 QuicDataPathWorkerThread(
     _In_ void* Context
@@ -442,43 +488,24 @@ QuicDataPathWorkerThread(
 {
     QUIC_DATAPATH_PROC_CONTEXT* ProcContext = (QUIC_DATAPATH_PROC_CONTEXT*)Context;
     QUIC_DBG_ASSERT(ProcContext != NULL && ProcContext->Datapath != NULL);
-    struct kevent evSet;
-    struct kevent evList[32];
+    struct kevent EventList[32];
     int Kqueue = ProcContext->KqueueFd; 
 
-    printf("Entering worker...\n");
-
     while (!ProcContext->Datapath->Shutdown) {
-        int nev = kevent(Kqueue, NULL, 0, evList, 32, NULL);
-        if (nev < 1) { __asm__("int3"); }
+        int EventCount = kevent(Kqueue, NULL, 0, EventList, 32, NULL);
+        if (EventCount < 1) {
+            QUIC_DBG_ASSERT(ProcContext->Datapath->Shutdown);
+        }
 
         // XXX: I feel like this is a better place to check if the Datapath is
         // in shutdown. Consider kevent() having waited like, a minute or so,
         // and then we get data here, still going to try to process it instead
-        // of throwing it out. Maybe it has a close frame we're waiting for?
+        // of throwing it out. But maybe it has a close frame we're waiting for?
+        // I guess Shutdown won't be one until last close frame or timeout?
         
-        for (int i = 0; i < nev; i++) {
-            printf("[kevent] ident = %zd\t\tfilter = %hu\tflags = %hd\tfflags = %d\tdata = %zd\tudata = %p\n", 
-                    evList[i].ident, evList[i].filter, evList[i].flags, evList[i].fflags, evList[i].data, evList[i].udata);
-            if (evList[i].filter == EVFILT_READ) {
-                if (evList[i].data == 0) continue;
-                QUIC_SOCKET_CONTEXT *SocketContext = (QUIC_SOCKET_CONTEXT *)evList[i].udata;
-                int Ret = recvmsg(SocketContext->SocketFd, &SocketContext->RecvMsgHdr, 0);
-                printf("[recvmsg: %d]\n", Ret);
-                if (Ret != -1)
-                    QuicSocketContextRecvComplete(SocketContext, ProcContext, Ret);
-            }
-            else {
-                __asm__("int3");
-                printf("Unhandled evlist filter type: %d\n", evList[i].filter);
-            }
+        for (int i = 0; i < EventCount; i++) {
+            QuicSocketContextProcessEvent(ProcContext, &EventList[i]);
         }
-
-        //    QuicSocketContextProcessEvents(
-        //        EpollEvents[i].data.ptr,
-        //        ProcContext,
-        //        EpollEvents[i].events);
-        //}
     }
 
     return NO_ERROR;
@@ -626,8 +653,8 @@ QuicProcessorContextUninitialize(
     )
 {
     // do actual kqueue shutdown
-    QuicThreadWait(&ProcContext->EpollWaitThread);
-    QuicThreadDelete(&ProcContext->EpollWaitThread);
+    //QuicThreadWait(&ProcContext->EpollWaitThread);
+    //QuicThreadDelete(&ProcContext->EpollWaitThread);
 
     close(ProcContext->KqueueFd);
 
@@ -987,9 +1014,10 @@ QuicSocketContextInitialize(
         goto Exit;
     }
 
-    if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
-        QUIC_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
-    }
+    //if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
+    //    __asm__("int3");
+    //    QUIC_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
+    //}
 
 Exit:
 
@@ -1074,7 +1102,6 @@ QuicSocketContextStartReceive(
     }
 
     struct kevent evSet = { };
-    printf("ADDING FD...\n");
     EV_SET(&evSet, SocketContext->SocketFd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, (void *)SocketContext);
     if (kevent(KqueueFd, &evSet, 1, NULL, 0, NULL) < 0)  {
         QUIC_DBG_ASSERT(1);
@@ -1219,23 +1246,8 @@ void QuicSocketContextUninitialize(
     _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
-    // struct kevent evSet = { };
-    // EV_SET(&evSet, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, (void *)SocketContext);
-    // if (kevent(ProcContext->KqueueFd, &evSet, 1, NULL, 0, NULL) < 0)  {
-    //     QUIC_DBG_ASSERT(1);
-    //     // Should be QUIC_STATUS_KQUEUE_ERROR
-    //     QuicTraceEvent(
-    //         DatapathErrorStatus,
-    //         "[ udp][%p] ERROR, %u, %s.",
-    //         SocketContext->Binding,
-    //         Status,
-    //         "kevent(..., sockfd EV_ADD, ...) failed");
-    //     Status = QUIC_STATUS_INTERNAL_ERROR;
-    //     goto Error;
-    // }
-    printf("CLOSING SOCKFD %d\n", SocketContext->SocketFd);
-    close(SocketContext->SocketFd);
-    QuicRundownRelease(&SocketContext->Binding->Rundown);
+    // Invoking shutdown will trigger an EV_EOF on the socket, waking up the worker thread
+    shutdown(SocketContext->SocketFd, SHUT_RDWR);
 }
 
 //
@@ -1480,7 +1492,8 @@ QuicDataPathBindingSend(
     // XXX: On macOS, this isn't computable as a constexpr; I can make a true
     // compile time guarantee here, but it'll depend on the implementation
     // details of CMSG_SPACE, which i don't want to do
-    char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo))] = {0};
+    const size_t ControlSize = MAX(sizeof(struct in6_pktinfo), sizeof(struct in_pktinfo));
+    char ControlBuffer[CMSG_SPACE(ControlSize)] = {0};
 
     QUIC_DBG_ASSERT(Binding != NULL && RemoteAddress != NULL && SendContext != NULL);
 
@@ -1495,8 +1508,8 @@ QuicDataPathBindingSend(
         QUIC_DBG_ASSERT(Binding->RemoteAddress.Ipv4.sin_port != 0);
 
         for (i = SendContext->CurrentIndex;
-            i < SendContext->BufferCount;
-            ++i, SendContext->CurrentIndex++) {
+             i < SendContext->BufferCount;
+             ++i, SendContext->CurrentIndex++) {
 
             QuicTraceEvent(
                 DatapathSendTo,
@@ -1508,17 +1521,13 @@ QuicDataPathBindingSend(
                 LOG_ADDR_LEN(*RemoteAddress),
                 (uint8_t*)RemoteAddress);
 
-            // XXX: If we already connect()'d this socket, we cannot pass 
-            // an address, otherwise we get EISCONN
-            
             SentByteCount =
                 sendto(
                     SocketContext->SocketFd,
                     SendContext->Buffers[i].Buffer,
                     SendContext->Buffers[i].Length,
                     0,
-                    NULL, 0); //(struct sockaddr *)RemoteAddress,
-                    //RemoteAddrLen);
+                    NULL, 0);
 
             if (SentByteCount < 0) {
                 printf("COULDN'T SEND FRAME...\n");

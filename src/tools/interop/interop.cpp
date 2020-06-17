@@ -69,28 +69,28 @@ struct QuicPublicEndpoint {
 
 QuicPublicEndpoint PublicEndpoints[] = {
     { "aioquic",        "quic.aiortc.org" },
-    // { "akamaiquic",     "ietf.akaquic.com" },
-    // { "applequic",      "71.202.41.169" },
-    // { "ats",            "quic.ogre.com" },
-    // { "f5",             "f5quic.com" },
-    // { "gquic",          "quic.rocks" },
-    // { "haskell",        "mew.org" },
-    // { "lsquic",         "http3-test.litespeedtech.com" },
-    // { "mvfst",          "fb.mvfst.net" },
-    // { "msquic",         "quic.westus.cloudapp.azure.com" },
-    // { "msquic-west",    "http3.westus2.cloudapp.azure.com" },
-    // { "msquic-east",    "http3.eastus2.cloudapp.azure.com" },
-    // { "ngtcp2",         "nghttp2.org" },
-    // { "ngx_quic",       "cloudflare-quic.com" },
-    // { "Pandora",        "pandora.cm.in.tum.de" },
-    // { "picoquic",       "test.privateoctopus.com" },
-    // { "quant",          "quant.eggert.org" },
-    // { "quinn",          "h3.stammw.eu" },
-    // { "quic-go",        "quic.seemann.io" },
-    // { "quiche",         "quic.tech" },
-    // { "quicker",        "quicker.edm.uhasselt.be" },
-    // { "quicly-quic",    "quic.examp1e.net" },
-    // { "quicly-h20",     "h2o.examp1e.net" },
+    { "akamaiquic",     "ietf.akaquic.com" },
+    { "applequic",      "71.202.41.169" },
+    { "ats",            "quic.ogre.com" },
+    { "f5",             "f5quic.com" },
+    { "gquic",          "quic.rocks" },
+    { "haskell",        "mew.org" },
+    { "lsquic",         "http3-test.litespeedtech.com" },
+    { "mvfst",          "fb.mvfst.net" },
+    { "msquic",         "quic.westus.cloudapp.azure.com" },
+    { "msquic-west",    "http3.westus2.cloudapp.azure.com" },
+    { "msquic-east",    "http3.eastus2.cloudapp.azure.com" },
+    { "ngtcp2",         "nghttp2.org" },
+    { "ngx_quic",       "cloudflare-quic.com" },
+    { "Pandora",        "pandora.cm.in.tum.de" },
+    { "picoquic",       "test.privateoctopus.com" },
+    { "quant",          "quant.eggert.org" },
+    { "quinn",          "h3.stammw.eu" },
+    { "quic-go",        "quic.seemann.io" },
+    { "quiche",         "quic.tech" },
+    { "quicker",        "quicker.edm.uhasselt.be" },
+    { "quicly-quic",    "quic.examp1e.net" },
+    { "quicly-h20",     "h2o.examp1e.net" },
     { nullptr,          nullptr },              // Used for -custom cmd arg
 };
 
@@ -430,7 +430,6 @@ private:
                 pThis->Resumed = true;
             }
             QuicEventSet(pThis->ConnectionComplete);
-            printf("!!!!!!!!!!!! CONNECTED !!!!!!!!!!!!!!!!!\n");
             break;
         case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
             if (Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status == QUIC_STATUS_VER_NEG_ERROR) {
