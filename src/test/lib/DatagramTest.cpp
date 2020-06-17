@@ -11,18 +11,6 @@ Abstract:
 
 #include "precomp.h"
 
-_Function_class_(NEW_STREAM_CALLBACK)
-static
-void
-ConnectionDoNothingCallback(
-    _In_ TestConnection* /* Connection */,
-    _In_ HQUIC /* StreamHandle */,
-    _In_ QUIC_STREAM_OPEN_FLAGS /* Flags */
-    )
-{
-    TEST_FAILURE("This callback should never be called!");
-}
-
 struct ServerAcceptContext {
     QUIC_EVENT NewConnectionReady;
     TestConnection** NewConnection;
@@ -44,22 +32,7 @@ ListenerAcceptConnection(
     )
 {
     ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
-    if (AcceptContext == nullptr) { // Prime Resumption scenario.
-        auto NewConnection = new TestConnection(ConnectionHandle, ConnectionDoNothingCallback, true, true);
-        if (NewConnection == nullptr || !NewConnection->IsValid()) {
-            TEST_FAILURE("Failed to accept new TestConnection.");
-            delete NewConnection;
-            MsQuic->ConnectionClose(ConnectionHandle);
-        } else {
-            NewConnection->SetHasRandomLoss(Listener->GetHasRandomLoss());
-        }
-        return;
-    }
-    if (*AcceptContext->NewConnection != nullptr) { // Retry scenario.
-        delete *AcceptContext->NewConnection;
-        *AcceptContext->NewConnection = nullptr;
-    }
-    *AcceptContext->NewConnection = new TestConnection(ConnectionHandle, ConnectionDoNothingCallback, true);
+    *AcceptContext->NewConnection = new TestConnection(ConnectionHandle);
     if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *AcceptContext->NewConnection;
@@ -103,10 +76,7 @@ QuicTestDatagramNegotiation(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(
-                    ClientSession.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(ClientSession);
                 TEST_TRUE(Client.IsValid());
 
                 TEST_TRUE(Client.GetDatagramSendEnabled()); // Datagrams start as enabled
@@ -123,7 +93,7 @@ QuicTestDatagramNegotiation(
                     Client.Start(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
                     return;
@@ -194,10 +164,7 @@ QuicTestDatagramSend(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(
-                    Session.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(Session);
                 TEST_TRUE(Client.IsValid());
 
                 TEST_TRUE(Client.GetDatagramSendEnabled());
@@ -206,7 +173,7 @@ QuicTestDatagramSend(
                     Client.Start(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
                     return;

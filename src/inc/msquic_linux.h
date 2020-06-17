@@ -307,6 +307,22 @@ QuicAddrIsBoundExplicitly(
     return Addr->Ipv6.sin6_scope_id == 0;
 }
 
+//
+// Test only API to increment the IP address value.
+//
+inline
+void
+QuicAddrIncrement(
+    _Inout_ QUIC_ADDR * Addr
+    )
+{
+    if (Addr->Ip.sa_family == AF_INET) {
+        ((uint8_t*)&Addr->Ipv4.sin_addr)[3]++;
+    } else {
+        ((uint8_t*)&Addr->Ipv6.sin6_addr)[15]++;
+    }
+}
+
 inline
 void
 QuicAddrSetToLoopback(

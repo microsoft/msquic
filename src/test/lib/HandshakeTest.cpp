@@ -28,16 +28,56 @@ void QuicTestUninitialize()
     DatapathHooks::Instance = nullptr;
 }
 
-_Function_class_(NEW_STREAM_CALLBACK)
-static
 void
-ConnectionDoNothingCallback(
-    _In_ TestConnection* /* Connection */,
-    _In_ HQUIC /* StreamHandle */,
-    _In_ QUIC_STREAM_OPEN_FLAGS /* Flags */
+QuicTestPrimeResumption(
+    MsQuicSession& Session,
+    QUIC_ADDRESS_FAMILY Family,
+    bool& Success
     )
 {
-    TEST_FAILURE("This callback should never be called!");
+    TestScopeLogger logScope("PrimeResumption");
+    Success = false;
+
+    struct PrimeResumption {
+        _Function_class_(NEW_CONNECTION_CALLBACK) static void
+        ListenerAccept(_In_ TestListener* /* Listener */, _In_ HQUIC ConnectionHandle) {
+            auto NewConnection = new TestConnection(ConnectionHandle);
+            if (NewConnection == nullptr || !NewConnection->IsValid()) {
+                TEST_FAILURE("Failed to accept new TestConnection.");
+                delete NewConnection;
+                MsQuic->ConnectionClose(ConnectionHandle);
+            } else {
+                NewConnection->SetAutoDelete();
+            }
+        }
+    };
+
+    TestListener Listener(Session.Handle, PrimeResumption::ListenerAccept);
+    TEST_TRUE(Listener.IsValid());
+
+    QuicAddr ServerLocalAddr(Family);
+    TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    {
+        TestConnection Client(Session);
+        TEST_TRUE(Client.IsValid());
+        TEST_QUIC_SUCCEEDED(
+            Client.Start(
+                Family,
+                QUIC_LOCALHOST_FOR_AF(Family),
+                ServerLocalAddr.GetPort()));
+        if (!Client.WaitForConnectionComplete()) {
+            return;
+        }
+        TEST_TRUE(Client.GetIsConnected());
+        if (!Client.WaitForZeroRttTicket()) {
+            return;
+        }
+        Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+    }
+
+    Success = true;
 }
 
 struct ServerAcceptContext {
@@ -61,22 +101,7 @@ ListenerAcceptConnection(
     )
 {
     ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
-    if (AcceptContext == nullptr) { // Prime Resumption scenario.
-        auto NewConnection = new TestConnection(ConnectionHandle, ConnectionDoNothingCallback, true, true);
-        if (NewConnection == nullptr || !NewConnection->IsValid()) {
-            TEST_FAILURE("Failed to accept new TestConnection.");
-            delete NewConnection;
-            MsQuic->ConnectionClose(ConnectionHandle);
-        } else {
-            NewConnection->SetHasRandomLoss(Listener->GetHasRandomLoss());
-        }
-        return;
-    }
-    if (*AcceptContext->NewConnection != nullptr) { // Retry scenario.
-        delete *AcceptContext->NewConnection;
-        *AcceptContext->NewConnection = nullptr;
-    }
-    *AcceptContext->NewConnection = new TestConnection(ConnectionHandle, ConnectionDoNothingCallback, true);
+    *AcceptContext->NewConnection = new TestConnection(ConnectionHandle);
     if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *AcceptContext->NewConnection;
@@ -93,8 +118,6 @@ QuicTestConnect(
     _In_ int Family,
     _In_ bool ServerStatelessRetry,
     _In_ bool ClientUsesOldVersion,
-    _In_ bool ClientRebind,
-    _In_ bool ChangeMaxStreamID,
     _In_ bool MultipleALPNs,
     _In_ bool AsyncSecConfig,
     _In_ bool MultiPacketClientInitial,
@@ -110,10 +133,6 @@ QuicTestConnect(
     TEST_QUIC_SUCCEEDED(Session2.SetPeerBidiStreamCount(4));
     TEST_QUIC_SUCCEEDED(Session2.SetIdleTimeout(10000));
 
-    StatelessRetryHelper RetryHelper(ServerStatelessRetry);
-    PrivateTransportHelper TpHelper(MultiPacketClientInitial);
-    RandomLossHelper LossHelper(RandomLossPercentage);
-
     if (RandomLossPercentage != 0) {
         TEST_QUIC_SUCCEEDED(Session.SetIdleTimeout(30000));
         TEST_QUIC_SUCCEEDED(Session.SetDisconnectTimeout(30000));
@@ -124,6 +143,20 @@ QuicTestConnect(
         TEST_QUIC_SUCCEEDED(Session2.SetIdleTimeout(10000));
     }
 
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+
+    if (SessionResumption) {
+        bool Success;
+        QuicTestPrimeResumption(Session, QuicAddrFamily, Success);
+        if (!Success) {
+            return;
+        }
+    }
+
+    StatelessRetryHelper RetryHelper(ServerStatelessRetry);
+    PrivateTransportHelper TpHelper(MultiPacketClientInitial);
+    RandomLossHelper LossHelper(RandomLossPercentage);
+
     {
         TestListener Listener(
             MultipleALPNs ? Session2.Handle : Session.Handle,
@@ -132,36 +165,9 @@ QuicTestConnect(
         TEST_TRUE(Listener.IsValid());
         Listener.SetHasRandomLoss(RandomLossPercentage != 0);
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-        if (SessionResumption) {
-            TestScopeLogger logScope("PrimeResumption");
-            {
-                TestConnection Client(
-                    Session.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
-                TEST_TRUE(Client.IsValid());
-                Client.SetHasRandomLoss(RandomLossPercentage != 0);
-                TEST_QUIC_SUCCEEDED(
-                    Client.Start(
-                        QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
-                if (!Client.WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Client.GetIsConnected());
-                if (!Client.WaitForZeroRttTicket()) {
-                    return;
-                }
-                Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
-                Session2.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
-            }
-        }
 
         {
             UniquePtr<TestConnection> Server;
@@ -169,10 +175,7 @@ QuicTestConnect(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(
-                    Session.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(Session);
                 TEST_TRUE(Client.IsValid());
                 Client.SetHasRandomLoss(RandomLossPercentage != 0);
 
@@ -194,7 +197,7 @@ QuicTestConnect(
                     Client.Start(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
                 if (AsyncSecConfig) {
                     if (!QuicEventWaitWithTimeout(ServerAcceptCtx.NewConnectionReady, TestWaitTimeout)) {
@@ -237,44 +240,6 @@ QuicTestConnect(
                     Server->GetPeerBidiStreamCount(),
                     Client.GetLocalBidiStreamCount());
 
-                if (ClientRebind) {
-                    QuicAddr OrigLocalAddr;
-                    TEST_QUIC_SUCCEEDED(Client.GetLocalAddr(OrigLocalAddr));
-                    QuicAddr NewLocalAddr(OrigLocalAddr, 1);
-                    QuicSleep(100);
-                    ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, NewLocalAddr.SockAddr);
-                    TEST_FALSE(Client.GetIsShutdown());
-                    Client.SetKeepAlive(25);
-
-                    bool ServerAddressUpdated = false;
-                    uint32_t Try = 0;
-                    do {
-                        if (Try != 0) {
-                            QuicSleep(200);
-                        }
-                        QuicAddr ServerRemoteAddr;
-                        TEST_QUIC_SUCCEEDED(Server->GetRemoteAddr(ServerRemoteAddr));
-                        if (Server->GetPeerAddrChanged() &&
-                            QuicAddrCompare(&NewLocalAddr.SockAddr, &ServerRemoteAddr.SockAddr)) {
-                            ServerAddressUpdated = true;
-                            break;
-                        }
-                    } while (++Try <= 3);
-                    TEST_TRUE(ServerAddressUpdated);
-                }
-
-                if (ChangeMaxStreamID) {
-                    TEST_QUIC_SUCCEEDED(Client.SetPeerBidiStreamCount(101));
-                    TEST_EQUAL(101, Client.GetPeerBidiStreamCount());
-                    QuicSleep(100);
-                    TEST_EQUAL(101, Server->GetLocalBidiStreamCount());
-
-                    TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount(100));
-                    TEST_EQUAL(100, Server->GetPeerBidiStreamCount());
-                    QuicSleep(100);
-                    TEST_EQUAL(100, Client.GetLocalBidiStreamCount());
-                }
-
                 if (RandomLossPercentage == 0) {
                     //
                     // Don't worry about graceful shutdown if we have random
@@ -302,6 +267,259 @@ QuicTestConnect(
 }
 
 void
+QuicTestNatPortRebind(
+    _In_ int Family
+    )
+{
+    MsQuicSession Session;
+    TEST_TRUE(Session.IsValid());
+    TEST_QUIC_SUCCEEDED(Session.SetIdleTimeout(10000));
+
+    {
+        TestListener Listener(Session.Handle, ListenerAcceptConnection);
+        TEST_TRUE(Listener.IsValid());
+
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Session);
+                TEST_TRUE(Client.IsValid());
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        QuicAddrFamily,
+                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        ServerLocalAddr.GetPort()));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Server->GetIsConnected());
+
+                TEST_EQUAL(
+                    Server->GetPeerBidiStreamCount(),
+                    Client.GetLocalBidiStreamCount());
+
+                QuicAddr OrigLocalAddr;
+                TEST_QUIC_SUCCEEDED(Client.GetLocalAddr(OrigLocalAddr));
+                QuicAddr NewLocalAddr(OrigLocalAddr, 1);
+                QuicSleep(100);
+
+                ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, NewLocalAddr.SockAddr);
+                TEST_FALSE(Client.GetIsShutdown());
+                Client.SetKeepAlive(25);
+
+                bool ServerAddressUpdated = false;
+                uint32_t Try = 0;
+                do {
+                    if (Try != 0) {
+                        QuicSleep(200);
+                    }
+                    QuicAddr ServerRemoteAddr;
+                    TEST_QUIC_SUCCEEDED(Server->GetRemoteAddr(ServerRemoteAddr));
+                    if (Server->GetPeerAddrChanged() &&
+                        QuicAddrCompare(&NewLocalAddr.SockAddr, &ServerRemoteAddr.SockAddr)) {
+                        ServerAddressUpdated = true;
+                        break;
+                    }
+                } while (++Try <= 3);
+                TEST_TRUE(ServerAddressUpdated);
+
+                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+                if (!Client.WaitForShutdownComplete()) {
+                    return;
+                }
+
+                TEST_FALSE(Client.GetPeerClosed());
+                TEST_FALSE(Client.GetTransportClosed());
+            }
+
+            TEST_TRUE(Server->GetPeerClosed());
+            TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
+        }
+    }
+}
+
+void
+QuicTestNatAddrRebind(
+    _In_ int Family
+    )
+{
+    MsQuicSession Session;
+    TEST_TRUE(Session.IsValid());
+    TEST_QUIC_SUCCEEDED(Session.SetIdleTimeout(10000));
+
+    {
+        TestListener Listener(Session.Handle, ListenerAcceptConnection);
+        TEST_TRUE(Listener.IsValid());
+
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Session);
+                TEST_TRUE(Client.IsValid());
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        QuicAddrFamily,
+                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        ServerLocalAddr.GetPort()));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Server->GetIsConnected());
+
+                TEST_EQUAL(
+                    Server->GetPeerBidiStreamCount(),
+                    Client.GetLocalBidiStreamCount());
+
+                QuicAddr OrigLocalAddr;
+                TEST_QUIC_SUCCEEDED(Client.GetLocalAddr(OrigLocalAddr));
+                QuicAddr NewLocalAddr(OrigLocalAddr, 1);
+                NewLocalAddr.IncrementAddr();
+                QuicSleep(100);
+
+                ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, NewLocalAddr.SockAddr);
+                TEST_FALSE(Client.GetIsShutdown());
+                Client.SetKeepAlive(25);
+
+                bool ServerAddressUpdated = false;
+                uint32_t Try = 0;
+                do {
+                    if (Try != 0) {
+                        QuicSleep(200);
+                    }
+                    QuicAddr ServerRemoteAddr;
+                    TEST_QUIC_SUCCEEDED(Server->GetRemoteAddr(ServerRemoteAddr));
+                    if (Server->GetPeerAddrChanged() &&
+                        QuicAddrCompare(&NewLocalAddr.SockAddr, &ServerRemoteAddr.SockAddr)) {
+                        ServerAddressUpdated = true;
+                        break;
+                    }
+                } while (++Try <= 3);
+                TEST_TRUE(ServerAddressUpdated);
+
+                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+                if (!Client.WaitForShutdownComplete()) {
+                    return;
+                }
+
+                TEST_FALSE(Client.GetPeerClosed());
+                TEST_FALSE(Client.GetTransportClosed());
+            }
+
+            TEST_TRUE(Server->GetPeerClosed());
+            TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
+        }
+    }
+}
+
+void
+QuicTestChangeMaxStreamID(
+    _In_ int Family
+    )
+{
+    MsQuicSession Session;
+    TEST_TRUE(Session.IsValid());
+    TEST_QUIC_SUCCEEDED(Session.SetIdleTimeout(10000));
+
+    {
+        TestListener Listener(Session.Handle, ListenerAcceptConnection);
+        TEST_TRUE(Listener.IsValid());
+
+        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Session);
+                TEST_TRUE(Client.IsValid());
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        QuicAddrFamily,
+                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        ServerLocalAddr.GetPort()));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Client.GetIsConnected());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_TRUE(Server->GetIsConnected());
+
+                TEST_EQUAL(
+                    Server->GetPeerBidiStreamCount(),
+                    Client.GetLocalBidiStreamCount());
+
+                TEST_QUIC_SUCCEEDED(Client.SetPeerBidiStreamCount(101));
+                TEST_EQUAL(101, Client.GetPeerBidiStreamCount());
+                QuicSleep(100);
+                TEST_EQUAL(101, Server->GetLocalBidiStreamCount());
+
+                TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount(100));
+                TEST_EQUAL(100, Server->GetPeerBidiStreamCount());
+                QuicSleep(100);
+                TEST_EQUAL(100, Client.GetLocalBidiStreamCount());
+
+                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+                if (!Client.WaitForShutdownComplete()) {
+                    return;
+                }
+
+                TEST_FALSE(Client.GetPeerClosed());
+                TEST_FALSE(Client.GetTransportClosed());
+            }
+
+            TEST_TRUE(Server->GetPeerClosed());
+            TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
+        }
+    }
+}
+
+void
 QuicTestConnectAndIdle(
     _In_ bool EnableKeepAlive
     )
@@ -324,10 +542,7 @@ QuicTestConnectAndIdle(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(
-                    Session.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(Session);
                 TEST_TRUE(Client.IsValid());
 
                 if (!EnableKeepAlive) {
@@ -339,7 +554,7 @@ QuicTestConnectAndIdle(
                         AF_UNSPEC,
                         QUIC_LOCALHOST_FOR_AF(
                             QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
                     return;
@@ -399,10 +614,7 @@ QuicTestConnectUnreachable(
     {
         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
 
-        TestConnection Client(
-            Session.Handle,
-            ConnectionDoNothingCallback,
-            false);
+        TestConnection Client(Session);
         TEST_TRUE(Client.IsValid());
 
         Client.SetExpectedTransportCloseStatus(QUIC_STATUS_UNREACHABLE);
@@ -444,10 +656,7 @@ QuicTestVersionNegotiation(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(
-                    Session.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(Session);
                 TEST_TRUE(Client.IsValid());
 
                 TEST_QUIC_SUCCEEDED(
@@ -458,7 +667,7 @@ QuicTestVersionNegotiation(
                     Client.Start(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
                 if (!Client.WaitForConnectionComplete()) {
                     return;
                 }
@@ -498,10 +707,7 @@ QuicTestConnectBadAlpn(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(
-                    BadSession.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(BadSession);
                 TEST_TRUE(Client.IsValid());
 
                 Client.SetExpectedTransportCloseStatus(QUIC_STATUS_ALPN_NEG_FAILURE);
@@ -509,7 +715,7 @@ QuicTestConnectBadAlpn(
                     Client.Start(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
                 if (!Client.WaitForConnectionComplete()) {
                     return;
                 }
@@ -546,10 +752,7 @@ QuicTestConnectBadSni(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(
-                    Session.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(Session);
                 TEST_TRUE(Client.IsValid());
 
                 QuicAddr RemoteAddr(Family == 4 ? AF_INET : AF_INET6, true);
@@ -560,7 +763,7 @@ QuicTestConnectBadSni(
                     Client.Start(
                         Family == 4 ? AF_INET : AF_INET6,
                         "badlocalhost",
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
                 if (!Client.WaitForConnectionComplete()) {
                     return;
                 }
@@ -582,8 +785,15 @@ ListenerRejectConnection(
     _In_ HQUIC ConnectionHandle
     )
 {
-    auto Connection = new TestConnection(ConnectionHandle, ConnectionDoNothingCallback, true, true);
-    Connection->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_SPECIAL_ERROR);
+    auto Connection = new TestConnection(ConnectionHandle);
+    if (Connection == nullptr || !Connection->IsValid()) {
+        TEST_FAILURE("Failed to accept new TestConnection.");
+        delete Connection;
+        MsQuic->ConnectionClose(ConnectionHandle);
+    } else {
+        Connection->SetAutoDelete();
+        Connection->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_SPECIAL_ERROR);
+    }
 }
 
 void
@@ -605,10 +815,7 @@ QuicTestConnectServerRejected(
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
         {
-            TestConnection Client(
-                Session.Handle,
-                ConnectionDoNothingCallback,
-                false);
+            TestConnection Client(Session);
             TEST_TRUE(Client.IsValid());
 
             Client.SetExpectedTransportCloseStatus(QUIC_STATUS_USER_CANCELED);
@@ -616,7 +823,7 @@ QuicTestConnectServerRejected(
                 Client.Start(
                     QuicAddrFamily,
                     QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                    QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                    ServerLocalAddr.GetPort()));
             if (!Client.WaitForConnectionComplete()) {
                 return;
             }
@@ -659,17 +866,14 @@ QuicTestKeyUpdate(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(
-                    Session.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(Session);
                 TEST_TRUE(Client.IsValid());
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
                     return;
@@ -776,17 +980,14 @@ QuicTestCidUpdate(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(
-                    Session.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(Session);
                 TEST_TRUE(Client.IsValid());
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
                     return;

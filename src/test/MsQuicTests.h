@@ -39,6 +39,7 @@ void QuicTestValidateServerSecConfig(void* CertContext, QUIC_CERTIFICATE_HASH_ST
 //
 // Event Validation Tests
 //
+
 void QuicTestValidateConnectionEvents();
 void QuicTestValidateStreamEvents();
 
@@ -66,8 +67,6 @@ QuicTestConnect(
     _In_ int Family,
     _In_ bool ServerStatelessRetry,
     _In_ bool ClientUsesOldVersion,
-    _In_ bool ClientRebind,
-    _In_ bool ChangeMaxStreamID,
     _In_ bool MultipleALPNs,
     _In_ bool AsyncSecConfig,
     _In_ bool MultiPacketClientInitial,
@@ -101,6 +100,25 @@ QuicTestConnectBadSni(
 
 void
 QuicTestConnectServerRejected(
+    _In_ int Family
+    );
+
+//
+// Post Handshake Tests
+//
+
+void
+QuicTestNatPortRebind(
+    _In_ int Family
+    );
+
+void
+QuicTestNatAddrRebind(
+    _In_ int Family
+    );
+
+void
+QuicTestChangeMaxStreamID(
     _In_ int Family
     );
 
@@ -363,8 +381,6 @@ typedef struct {
     int Family;
     uint8_t ServerStatelessRetry;
     uint8_t ClientUsesOldVersion;
-    uint8_t ClientRebind;
-    uint8_t ChangeMaxStreamID;
     uint8_t MultipleALPNs;
     uint8_t AsyncSecConfig;
     uint8_t MultiPacketClientInitial;
@@ -546,4 +562,16 @@ typedef struct {
     QUIC_CTL_CODE(40, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 40
+#define IOCTL_QUIC_RUN_NAT_PORT_REBIND \
+    QUIC_CTL_CODE(41, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_NAT_ADDR_REBIND \
+    QUIC_CTL_CODE(42, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_CHANGE_MAX_STREAM_ID \
+    QUIC_CTL_CODE(43, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 43
