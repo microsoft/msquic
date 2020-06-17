@@ -54,7 +54,6 @@ class TestConnection
     bool IsShutdown         : 1;
     bool ShutdownTimedOut   : 1;
     bool AutoDelete         : 1;
-    bool UseSendBuffer      : 1;
     bool HasRandomLoss      : 1;
 
     bool ExpectedResumed    : 1;

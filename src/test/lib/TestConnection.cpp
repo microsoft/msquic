@@ -23,7 +23,6 @@ TestConnection::TestConnection(
     TransportClosed(false), IsShutdown(false),
     ShutdownTimedOut(false), AutoDelete(false),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
-    UseSendBuffer(UseSendBuffer),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0)
 {
@@ -57,7 +56,6 @@ TestConnection::TestConnection(
     TransportClosed(false), IsShutdown(false),
     ShutdownTimedOut(false), AutoDelete(false),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
-    UseSendBuffer(UseSendBuffer),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0)
 {
