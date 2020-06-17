@@ -282,7 +282,7 @@ QuicTestValidateConnectionEvents1(
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
             QUIC_LOCALHOST_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
-            QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+            ServerLocalAddr.GetPort()));
 
     TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
     TEST_TRUE(QuicEventWaitWithTimeout(Server.Complete, 1000));
@@ -344,7 +344,7 @@ QuicTestValidateConnectionEvents2(
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
             QUIC_LOCALHOST_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
-            QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+            ServerLocalAddr.GetPort()));
 
     TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
     TEST_TRUE(QuicEventWaitWithTimeout(Server.Complete, 1000));
@@ -483,7 +483,7 @@ QuicTestValidateStreamEvents1(
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
             QUIC_LOCALHOST_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
-            QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+            ServerLocalAddr.GetPort()));
 
     TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
     TEST_TRUE(QuicEventWaitWithTimeout(Server.Complete, 1000));
@@ -579,7 +579,7 @@ QuicTestValidateStreamEvents2(
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
             QUIC_LOCALHOST_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
-            QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+            ServerLocalAddr.GetPort()));
 
     TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
     TEST_TRUE(QuicEventWaitWithTimeout(Server.Complete, 1000));

@@ -751,7 +751,7 @@ void QuicTestValidateStream(bool Connect)
                         QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
                         QUIC_LOCALHOST_FOR_AF(
                             QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
                 //
                 // Wait for connection.

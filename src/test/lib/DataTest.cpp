@@ -237,48 +237,36 @@ ListenerAcceptPingConnection(
 {
     TestScopeLogger logScope(__FUNCTION__);
 
-    if (Listener->Context != nullptr) {
-        auto Connection = new TestConnection(ConnectionHandle, ConnectionAcceptPingStream);
-        if (Connection == nullptr || !(Connection)->IsValid()) {
-            TEST_FAILURE("Failed to accept new TestConnection.");
-            delete Connection;
-            MsQuic->ConnectionClose(ConnectionHandle);
-            return;
-        }
-        Connection->SetAutoDelete();
+    auto Connection = new TestConnection(ConnectionHandle, ConnectionAcceptPingStream);
+    if (Connection == nullptr || !(Connection)->IsValid()) {
+        TEST_FAILURE("Failed to accept new TestConnection.");
+        delete Connection;
+        MsQuic->ConnectionClose(ConnectionHandle);
+        return;
+    }
+    Connection->SetAutoDelete();
 
-        auto Stats = (PingStats*)Listener->Context;
-        Connection->Context = new PingConnState(Stats, Connection);
-        Connection->SetShutdownCompleteCallback(PingConnectionShutdown);
-        Connection->SetExpectedResumed(Stats->ZeroRtt);
-        if (Stats->ExpectedCloseStatus != QUIC_STATUS_SUCCESS) {
-            Connection->SetExpectedTransportCloseStatus(Stats->ExpectedCloseStatus);
-            if (Stats->ExpectedCloseStatus == QUIC_STATUS_CONNECTION_TIMEOUT) {
-                Connection->SetDisconnectTimeout(1000); // ms
-            }
+    auto Stats = (PingStats*)Listener->Context;
+    Connection->Context = new PingConnState(Stats, Connection);
+    Connection->SetShutdownCompleteCallback(PingConnectionShutdown);
+    Connection->SetExpectedResumed(Stats->ZeroRtt);
+    if (Stats->ExpectedCloseStatus != QUIC_STATUS_SUCCESS) {
+        Connection->SetExpectedTransportCloseStatus(Stats->ExpectedCloseStatus);
+        if (Stats->ExpectedCloseStatus == QUIC_STATUS_CONNECTION_TIMEOUT) {
+            Connection->SetDisconnectTimeout(1000); // ms
         }
+    }
 
-        Connection->SetPriorityScheme(
-            Stats->FifoScheduling ?
-                QUIC_STREAM_SCHEDULING_SCHEME_FIFO :
-                QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN);
+    Connection->SetPriorityScheme(
+        Stats->FifoScheduling ?
+            QUIC_STREAM_SCHEDULING_SCHEME_FIFO :
+            QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN);
 
-        if (Stats->ServerInitiatedStreams) {
-            SendPingBurst(
-                Connection,
-                Stats->StreamCount,
-                Stats->PayloadLength);
-        }
-
-    } else {
-        auto Connection = new TestConnection(ConnectionHandle);
-        if (Connection == nullptr || !(Connection)->IsValid()) {
-            TEST_FAILURE("Failed to accept new TestConnection.");
-            delete Connection;
-            MsQuic->ConnectionClose(ConnectionHandle);
-            return;
-        }
-        Connection->SetAutoDelete();
+    if (Stats->ServerInitiatedStreams) {
+        SendPingBurst(
+            Connection,
+            Stats->StreamCount,
+            Stats->PayloadLength);
     }
 }
 
@@ -365,6 +353,14 @@ QuicTestConnectAndPing(
         TEST_QUIC_SUCCEEDED(Session.SetTlsTicketKey(NewTicketKey));
     }
 
+    if (ClientZeroRtt) {
+        bool Success;
+        QuicTestPrimeResumption(Session, Success);
+        if (!Success) {
+            return;
+        }
+    }
+
     StatelessRetryHelper RetryHelper(ServerStatelessRetry);
 
     {
@@ -375,30 +371,6 @@ QuicTestConnectAndPing(
         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-        if (ClientZeroRtt) {
-            TestScopeLogger logScope("PrimeZeroRtt");
-            {
-                TestConnection Client(Session);
-                TEST_TRUE(Client.IsValid());
-                TEST_QUIC_SUCCEEDED(
-                    Client.Start(
-                        QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
-                if (!Client.WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Client.GetIsConnected());
-                if (!Client.WaitForZeroRttTicket()) {
-                    return;
-                }
-                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
-                if (!Client.WaitForShutdownComplete()) {
-                    return;
-                }
-            }
-        }
 
         if (ServerRejectZeroRtt) {
             uint8_t NewTicketKey[44] = {0};
@@ -446,7 +418,7 @@ QuicTestConnectAndPing(
                         Connections.get()[i]->Start(
                             QuicAddrFamily,
                             ClientZeroRtt ? QUIC_LOCALHOST_FOR_AF(QuicAddrFamily) : nullptr,
-                            QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                            ServerLocalAddr.GetPort()));
                     if (i == 0) {
                         Connections.get()[i]->GetLocalAddr(LocalAddr);
                     }
@@ -504,7 +476,7 @@ QuicTestServerDisconnect(
                         QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
                         QUIC_LOCALHOST_FOR_AF(
                             QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
 
                 QuicSleep(100); // Sleep for a little bit.
@@ -621,7 +593,7 @@ QuicTestClientDisconnect(
                     Client->Start(
                         AF_INET,
                         QUIC_LOCALHOST_FOR_AF(AF_INET),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
                 if (!Client->WaitForConnectionComplete()) {
                     return;
@@ -957,7 +929,7 @@ QuicAbortiveTransfers(
                 ClientContext.Conn.Handle,
                 QuicAddrFamily,
                 QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                QuicAddrGetPort(&ServerLocalAddr.SockAddr));
+                ServerLocalAddr.GetPort());
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("MsQuic->ConnectionStart failed, 0x%x.", Status);
             return;
@@ -1405,7 +1377,7 @@ QuicTestReceiveResume(
                 ClientContext.Conn.Handle,
                 QuicAddrFamily,
                 QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                QuicAddrGetPort(&ServerLocalAddr.SockAddr));
+                ServerLocalAddr.GetPort());
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("MsQuic->ConnectionStart failed, 0x%x.", Status);
             return;
@@ -1669,7 +1641,7 @@ QuicTestReceiveResumeNoData(
                 ClientContext.Conn.Handle,
                 QuicAddrFamily,
                 QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                QuicAddrGetPort(&ServerLocalAddr.SockAddr));
+                ServerLocalAddr.GetPort());
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("MsQuic->ConnectionStart failed, 0x%x.", Status);
             return;

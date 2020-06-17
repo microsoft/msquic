@@ -28,6 +28,57 @@ void QuicTestUninitialize()
     DatapathHooks::Instance = nullptr;
 }
 
+void
+QuicTestPrimeResumption(
+    MsQuicSession& Session,
+    bool& Success
+    )
+{
+    TestScopeLogger logScope("PrimeResumption");
+    Success = false;
+
+    struct PrimeResumption {
+        _Function_class_(NEW_CONNECTION_CALLBACK) static void
+        ListenerAccept(_In_ TestListener* /* Listener */, _In_ HQUIC ConnectionHandle) {
+            auto NewConnection = new TestConnection(ConnectionHandle);
+            if (NewConnection == nullptr || !NewConnection->IsValid()) {
+                TEST_FAILURE("Failed to accept new TestConnection.");
+                delete NewConnection;
+                MsQuic->ConnectionClose(ConnectionHandle);
+            } else {
+                NewConnection->SetAutoDelete();
+            }
+        }
+    };
+
+    TestListener Listener(Session.Handle, PrimeResumption::ListenerAccept);
+    TEST_TRUE(Listener.IsValid());
+
+    QuicAddr ServerLocalAddr(AF_INET);
+    TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    {
+        TestConnection Client(Session);
+        TEST_TRUE(Client.IsValid());
+        TEST_QUIC_SUCCEEDED(
+            Client.Start(
+                AF_INET,
+                QUIC_LOCALHOST_FOR_AF(AF_INET),
+                ServerLocalAddr.GetPort()));
+        if (!Client.WaitForConnectionComplete()) {
+            return;
+        }
+        TEST_TRUE(Client.GetIsConnected());
+        if (!Client.WaitForZeroRttTicket()) {
+            return;
+        }
+        Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+    }
+
+    Success = true;
+}
+
 struct ServerAcceptContext {
     QUIC_EVENT NewConnectionReady;
     TestConnection** NewConnection;
@@ -49,22 +100,6 @@ ListenerAcceptConnection(
     )
 {
     ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
-    if (AcceptContext == nullptr) { // Prime Resumption scenario.
-        auto NewConnection = new TestConnection(ConnectionHandle);
-        if (NewConnection == nullptr || !NewConnection->IsValid()) {
-            TEST_FAILURE("Failed to accept new TestConnection.");
-            delete NewConnection;
-            MsQuic->ConnectionClose(ConnectionHandle);
-        } else {
-            NewConnection->SetAutoDelete();
-            NewConnection->SetHasRandomLoss(Listener->GetHasRandomLoss());
-        }
-        return;
-    }
-    if (*AcceptContext->NewConnection != nullptr) { // Retry scenario.
-        delete *AcceptContext->NewConnection;
-        *AcceptContext->NewConnection = nullptr;
-    }
     *AcceptContext->NewConnection = new TestConnection(ConnectionHandle);
     if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
@@ -97,10 +132,6 @@ QuicTestConnect(
     TEST_QUIC_SUCCEEDED(Session2.SetPeerBidiStreamCount(4));
     TEST_QUIC_SUCCEEDED(Session2.SetIdleTimeout(10000));
 
-    StatelessRetryHelper RetryHelper(ServerStatelessRetry);
-    PrivateTransportHelper TpHelper(MultiPacketClientInitial);
-    RandomLossHelper LossHelper(RandomLossPercentage);
-
     if (RandomLossPercentage != 0) {
         TEST_QUIC_SUCCEEDED(Session.SetIdleTimeout(30000));
         TEST_QUIC_SUCCEEDED(Session.SetDisconnectTimeout(30000));
@@ -110,6 +141,18 @@ QuicTestConnect(
         TEST_QUIC_SUCCEEDED(Session.SetIdleTimeout(10000));
         TEST_QUIC_SUCCEEDED(Session2.SetIdleTimeout(10000));
     }
+
+    if (SessionResumption) {
+        bool Success;
+        QuicTestPrimeResumption(Session, Success);
+        if (!Success) {
+            return;
+        }
+    }
+
+    StatelessRetryHelper RetryHelper(ServerStatelessRetry);
+    PrivateTransportHelper TpHelper(MultiPacketClientInitial);
+    RandomLossHelper LossHelper(RandomLossPercentage);
 
     {
         TestListener Listener(
@@ -123,29 +166,6 @@ QuicTestConnect(
         QuicAddr ServerLocalAddr(QuicAddrFamily);
         TEST_QUIC_SUCCEEDED(Listener.Start(&ServerLocalAddr.SockAddr));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-        if (SessionResumption) {
-            TestScopeLogger logScope("PrimeResumption");
-            {
-                TestConnection Client(Session);
-                TEST_TRUE(Client.IsValid());
-                Client.SetHasRandomLoss(RandomLossPercentage != 0);
-                TEST_QUIC_SUCCEEDED(
-                    Client.Start(
-                        QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
-                if (!Client.WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Client.GetIsConnected());
-                if (!Client.WaitForZeroRttTicket()) {
-                    return;
-                }
-                Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
-                Session2.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
-            }
-        }
 
         {
             UniquePtr<TestConnection> Server;
@@ -175,7 +195,7 @@ QuicTestConnect(
                     Client.Start(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
                 if (AsyncSecConfig) {
                     if (!QuicEventWaitWithTimeout(ServerAcceptCtx.NewConnectionReady, TestWaitTimeout)) {
@@ -276,7 +296,7 @@ QuicTestNatPortRebind(
                     Client.Start(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
                     return;
@@ -365,7 +385,7 @@ QuicTestNatAddrRebind(
                     Client.Start(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
                     return;
@@ -455,7 +475,7 @@ QuicTestChangeMaxStreamID(
                     Client.Start(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
                     return;
@@ -532,7 +552,7 @@ QuicTestConnectAndIdle(
                         AF_UNSPEC,
                         QUIC_LOCALHOST_FOR_AF(
                             QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
                     return;
@@ -645,7 +665,7 @@ QuicTestVersionNegotiation(
                     Client.Start(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
                 if (!Client.WaitForConnectionComplete()) {
                     return;
                 }
@@ -693,7 +713,7 @@ QuicTestConnectBadAlpn(
                     Client.Start(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
                 if (!Client.WaitForConnectionComplete()) {
                     return;
                 }
@@ -741,7 +761,7 @@ QuicTestConnectBadSni(
                     Client.Start(
                         Family == 4 ? AF_INET : AF_INET6,
                         "badlocalhost",
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
                 if (!Client.WaitForConnectionComplete()) {
                     return;
                 }
@@ -801,7 +821,7 @@ QuicTestConnectServerRejected(
                 Client.Start(
                     QuicAddrFamily,
                     QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                    QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                    ServerLocalAddr.GetPort()));
             if (!Client.WaitForConnectionComplete()) {
                 return;
             }
@@ -851,7 +871,7 @@ QuicTestKeyUpdate(
                     Client.Start(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
                     return;
@@ -965,7 +985,7 @@ QuicTestCidUpdate(
                     Client.Start(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
                     return;

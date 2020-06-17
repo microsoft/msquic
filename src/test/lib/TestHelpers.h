@@ -72,6 +72,7 @@ struct QuicAddr {
     void IncrementAddr() {
         QuicAddrIncrement(&SockAddr);
     }
+    uint16_t GetPort() const { return QuicAddrGetPort(&SockAddr); }
 };
 
 template<class T>
@@ -278,6 +279,12 @@ struct MsQuicSession {
                 &Value);
     }
 };
+
+void
+QuicTestPrimeResumption(
+    MsQuicSession& Session,
+    bool& Success
+    );
 
 struct ListenerScope {
     HQUIC Handle;
