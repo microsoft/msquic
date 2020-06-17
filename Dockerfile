@@ -1,4 +1,5 @@
 FROM 	martenseemann/quic-network-simulator-endpoint as source
+ENV	DEBIAN_FRONTEND=noninteractive
 RUN 	apt-get update -y \
 	&& apt-get install -y \
 		build-essential \
