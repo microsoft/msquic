@@ -100,16 +100,20 @@ class TestConnection
 public:
 
     TestConnection(
-        _In_ HQUIC Handle, // Client: SessionHandle; Server:ConnectionHandle
-        _In_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler,
-        _In_ bool Server,
-        _In_ bool AutoDelete = false,
-        _In_ bool UseSendBuffer = true
+        _In_ HQUIC Handle, // Server:ConnectionHandle
+        _In_opt_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler = nullptr
+        );
+
+    TestConnection(
+        _In_ MsQuicSession& Session,
+        _In_opt_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler = nullptr
         );
 
     ~TestConnection();
 
     bool IsValid() const { return QuicConnection != nullptr; }
+
+    void SetAutoDelete() { AutoDelete = true; }
 
     QUIC_STATUS
     Start(
@@ -227,6 +231,9 @@ public:
 
     uint32_t GetCertValidationFlags();
     QUIC_STATUS SetCertValidationFlags(uint32_t value);
+
+    bool GetUseSendBuffer();
+    QUIC_STATUS SetUseSendBuffer(bool value);
 
     uint32_t GetKeepAlive();                    // milliseconds
     QUIC_STATUS SetKeepAlive(uint32_t value);   // milliseconds

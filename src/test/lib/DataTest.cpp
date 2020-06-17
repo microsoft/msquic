@@ -11,18 +11,6 @@ Abstract:
 
 #include "precomp.h"
 
-_Function_class_(NEW_STREAM_CALLBACK)
-static
-void
-ConnectionDoNothingCallback(
-    _In_ TestConnection* /* Connection */,
-    _In_ HQUIC /* StreamHandle */,
-    _In_ QUIC_STREAM_OPEN_FLAGS /* Flags */
-    )
-{
-    TEST_FAILURE("This callback should never be called!");
-}
-
 struct ServerAcceptContext {
     QUIC_EVENT NewConnectionReady;
     TestConnection** NewConnection;
@@ -250,13 +238,14 @@ ListenerAcceptPingConnection(
     TestScopeLogger logScope(__FUNCTION__);
 
     if (Listener->Context != nullptr) {
-        auto Connection = new TestConnection(ConnectionHandle, ConnectionAcceptPingStream, true, true);
+        auto Connection = new TestConnection(ConnectionHandle, ConnectionAcceptPingStream);
         if (Connection == nullptr || !(Connection)->IsValid()) {
             TEST_FAILURE("Failed to accept new TestConnection.");
             delete Connection;
             MsQuic->ConnectionClose(ConnectionHandle);
             return;
         }
+        Connection->SetAutoDelete();
 
         auto Stats = (PingStats*)Listener->Context;
         Connection->Context = new PingConnState(Stats, Connection);
@@ -282,30 +271,40 @@ ListenerAcceptPingConnection(
         }
 
     } else {
-        auto Connection = new TestConnection(ConnectionHandle, ConnectionDoNothingCallback, true, true);
+        auto Connection = new TestConnection(ConnectionHandle);
         if (Connection == nullptr || !(Connection)->IsValid()) {
             TEST_FAILURE("Failed to accept new TestConnection.");
             delete Connection;
             MsQuic->ConnectionClose(ConnectionHandle);
             return;
         }
+        Connection->SetAutoDelete();
     }
 }
 
 TestConnection*
 NewPingConnection(
-    _In_ HQUIC SessionHandle,
+    _In_ MsQuicSession& Session,
     _In_ PingStats* ClientStats,
     _In_ bool UseSendBuffer
     )
 {
     TestScopeLogger logScope(__FUNCTION__);
 
-    auto Connection = new TestConnection(SessionHandle, ConnectionAcceptPingStream, false, true, UseSendBuffer);
+    auto Connection = new TestConnection(Session, ConnectionAcceptPingStream);
     if (Connection == nullptr || !(Connection)->IsValid()) {
         TEST_FAILURE("Failed to create new TestConnection.");
         delete Connection;
         return nullptr;
+    }
+    Connection->SetAutoDelete();
+
+    if (UseSendBuffer) {
+        if (QUIC_FAILED(Connection->SetUseSendBuffer(true))) {
+            TEST_FAILURE("SetUseSendBuffer failed.");
+            delete Connection;
+            return nullptr;
+        }
     }
 
     Connection->Context = new PingConnState(ClientStats, Connection);
@@ -380,7 +379,7 @@ QuicTestConnectAndPing(
         if (ClientZeroRtt) {
             TestScopeLogger logScope("PrimeZeroRtt");
             {
-                TestConnection Client(Session.Handle, ConnectionDoNothingCallback, false);
+                TestConnection Client(Session);
                 TEST_TRUE(Client.IsValid());
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -413,7 +412,7 @@ QuicTestConnectAndPing(
         for (uint32_t i = 0; i < ClientStats.ConnectionCount; ++i) {
             Connections.get()[i] =
                 NewPingConnection(
-                    Session.Handle,
+                    Session,
                     &ClientStats,
                     UseSendBuffer);
             if (Connections.get()[i] == nullptr) {
@@ -492,7 +491,7 @@ QuicTestServerDisconnect(
             {
                 TestConnection* Client =
                     NewPingConnection(
-                        Session.Handle,
+                        Session,
                         &ClientStats,
                         FALSE);
                 if (Client == nullptr) {
@@ -554,7 +553,7 @@ ListenerAcceptConnectionAndStreams(
     )
 {
     ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
-    *AcceptContext->NewConnection = new TestConnection(ConnectionHandle, ConnectionAcceptAndIgnoreStream, true);
+    *AcceptContext->NewConnection = new TestConnection(ConnectionHandle, ConnectionAcceptAndIgnoreStream);
     if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *AcceptContext->NewConnection;
@@ -601,9 +600,9 @@ QuicTestClientDisconnect(
 
                 Client =
                     NewPingConnection(
-                        Session.Handle,
+                        Session,
                         &ClientStats,
-                        FALSE);
+                        false);
                 if (Client == nullptr) {
                     return;
                 }

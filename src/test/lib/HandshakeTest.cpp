@@ -28,18 +28,6 @@ void QuicTestUninitialize()
     DatapathHooks::Instance = nullptr;
 }
 
-_Function_class_(NEW_STREAM_CALLBACK)
-static
-void
-ConnectionDoNothingCallback(
-    _In_ TestConnection* /* Connection */,
-    _In_ HQUIC /* StreamHandle */,
-    _In_ QUIC_STREAM_OPEN_FLAGS /* Flags */
-    )
-{
-    TEST_FAILURE("This callback should never be called!");
-}
-
 struct ServerAcceptContext {
     QUIC_EVENT NewConnectionReady;
     TestConnection** NewConnection;
@@ -62,12 +50,13 @@ ListenerAcceptConnection(
 {
     ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
     if (AcceptContext == nullptr) { // Prime Resumption scenario.
-        auto NewConnection = new TestConnection(ConnectionHandle, ConnectionDoNothingCallback, true, true);
+        auto NewConnection = new TestConnection(ConnectionHandle);
         if (NewConnection == nullptr || !NewConnection->IsValid()) {
             TEST_FAILURE("Failed to accept new TestConnection.");
             delete NewConnection;
             MsQuic->ConnectionClose(ConnectionHandle);
         } else {
+            NewConnection->SetAutoDelete();
             NewConnection->SetHasRandomLoss(Listener->GetHasRandomLoss());
         }
         return;
@@ -76,7 +65,7 @@ ListenerAcceptConnection(
         delete *AcceptContext->NewConnection;
         *AcceptContext->NewConnection = nullptr;
     }
-    *AcceptContext->NewConnection = new TestConnection(ConnectionHandle, ConnectionDoNothingCallback, true);
+    *AcceptContext->NewConnection = new TestConnection(ConnectionHandle);
     if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *AcceptContext->NewConnection;
@@ -140,10 +129,7 @@ QuicTestConnect(
         if (SessionResumption) {
             TestScopeLogger logScope("PrimeResumption");
             {
-                TestConnection Client(
-                    Session.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(Session);
                 TEST_TRUE(Client.IsValid());
                 Client.SetHasRandomLoss(RandomLossPercentage != 0);
                 TEST_QUIC_SUCCEEDED(
@@ -169,10 +155,7 @@ QuicTestConnect(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(
-                    Session.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(Session);
                 TEST_TRUE(Client.IsValid());
                 Client.SetHasRandomLoss(RandomLossPercentage != 0);
 
@@ -324,10 +307,7 @@ QuicTestConnectAndIdle(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(
-                    Session.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(Session);
                 TEST_TRUE(Client.IsValid());
 
                 if (!EnableKeepAlive) {
@@ -399,10 +379,7 @@ QuicTestConnectUnreachable(
     {
         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
 
-        TestConnection Client(
-            Session.Handle,
-            ConnectionDoNothingCallback,
-            false);
+        TestConnection Client(Session.Handle);
         TEST_TRUE(Client.IsValid());
 
         Client.SetExpectedTransportCloseStatus(QUIC_STATUS_UNREACHABLE);
@@ -444,10 +421,7 @@ QuicTestVersionNegotiation(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(
-                    Session.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(Session);
                 TEST_TRUE(Client.IsValid());
 
                 TEST_QUIC_SUCCEEDED(
@@ -498,10 +472,7 @@ QuicTestConnectBadAlpn(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(
-                    BadSession.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(BadSession);
                 TEST_TRUE(Client.IsValid());
 
                 Client.SetExpectedTransportCloseStatus(QUIC_STATUS_ALPN_NEG_FAILURE);
@@ -546,10 +517,7 @@ QuicTestConnectBadSni(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(
-                    Session.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(Session);
                 TEST_TRUE(Client.IsValid());
 
                 QuicAddr RemoteAddr(Family == 4 ? AF_INET : AF_INET6, true);
@@ -582,8 +550,15 @@ ListenerRejectConnection(
     _In_ HQUIC ConnectionHandle
     )
 {
-    auto Connection = new TestConnection(ConnectionHandle, ConnectionDoNothingCallback, true, true);
-    Connection->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_SPECIAL_ERROR);
+    auto Connection = new TestConnection(ConnectionHandle);
+    if (Connection == nullptr || !Connection->IsValid()) {
+        TEST_FAILURE("Failed to accept new TestConnection.");
+        delete Connection;
+        MsQuic->ConnectionClose(ConnectionHandle);
+    } else {
+        Connection->SetAutoDelete();
+        Connection->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_SPECIAL_ERROR);
+    }
 }
 
 void
@@ -605,10 +580,7 @@ QuicTestConnectServerRejected(
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
         {
-            TestConnection Client(
-                Session.Handle,
-                ConnectionDoNothingCallback,
-                false);
+            TestConnection Client(Session);
             TEST_TRUE(Client.IsValid());
 
             Client.SetExpectedTransportCloseStatus(QUIC_STATUS_USER_CANCELED);
@@ -659,10 +631,7 @@ QuicTestKeyUpdate(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(
-                    Session.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(Session);
                 TEST_TRUE(Client.IsValid());
 
                 TEST_QUIC_SUCCEEDED(
@@ -776,10 +745,7 @@ QuicTestCidUpdate(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(
-                    Session.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(Session);
                 TEST_TRUE(Client.IsValid());
 
                 TEST_QUIC_SUCCEEDED(

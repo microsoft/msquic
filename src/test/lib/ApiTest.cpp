@@ -674,18 +674,6 @@ void QuicTestValidateConnection()
     }
 }
 
-_Function_class_(NEW_STREAM_CALLBACK)
-static
-void
-ConnectionIgnoreStreamCallback(
-    _In_ TestConnection* /* Connection */,
-    _In_ HQUIC Stream,
-    _In_ QUIC_STREAM_OPEN_FLAGS /* Flags */
-    )
-{
-    MsQuic->StreamClose(Stream);
-}
-
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 void
@@ -695,7 +683,7 @@ ListenerAcceptCallback(
     )
 {
     TestConnection** NewConnection = (TestConnection**)Listener->Context;
-    *NewConnection = new TestConnection(ConnectionHandle, ConnectionIgnoreStreamCallback, true);
+    *NewConnection = new TestConnection(ConnectionHandle);
     if (*NewConnection == nullptr || !(*NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *NewConnection;
@@ -748,7 +736,7 @@ void QuicTestValidateStream(bool Connect)
         MyListener.Context = &Server;
 
         {
-            TestConnection Client(Session, ConnectionIgnoreStreamCallback, false);
+            TestConnection Client(Session);
             TEST_TRUE(Client.IsValid());
             if (Connect) {
                 TEST_QUIC_SUCCEEDED(MyListener.Start());
