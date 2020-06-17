@@ -640,7 +640,7 @@ QuicThreadCreate(
 #ifdef __GLIBC__  // TODO figure out 
     if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
         QUIC_TEL_ASSERT(Config->IdealProcessor < 64);
-        // TODO - Set Linux equivalent of ideal processor.
+        // There is no way to set an ideal processor in Linux, so just set affinity
         if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
             cpu_set_t CpuSet;
             CPU_ZERO(&CpuSet);
@@ -681,7 +681,7 @@ QuicThreadCreate(
 #ifndef __GLIBC__
     if (Status == QUIC_STATUS_SUCCESS && Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
         QUIC_TEL_ASSERT(Config->IdealProcessor < 64);
-        // TODO - Set Linux equivalent of ideal processor.
+        // There is no way to set an ideal processor in Linux, so just set affinity
         if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
             cpu_set_t CpuSet;
             CPU_ZERO(&CpuSet);
