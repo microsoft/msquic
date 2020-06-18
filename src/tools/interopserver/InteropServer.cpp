@@ -252,14 +252,16 @@ HttpRequest::SendData()
         Shutdown = true;
     }
 
+    QUIC_STATUS Status;
     if (QUIC_FAILED(
+        Status =
         MsQuic->StreamSend(
             QuicStream,
             &Buffer.QuicBuffer,
             1,
             Buffer.Flags,
             this))) {
-        printf("[%s] Send failed\n", GetRemoteAddr(MsQuic, QuicStream).Address);
+        printf("[%s] Send failed, 0x%x\n", GetRemoteAddr(MsQuic, QuicStream).Address, Status);
         Abort(HttpRequestSendFailed);
     }
 }

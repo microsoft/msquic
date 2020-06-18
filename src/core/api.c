@@ -889,7 +889,7 @@ MsQuicStreamSend(
         goto Exit;
     }
 
-    if (TotalLength == 0) {
+    if (TotalLength == 0 && !(Flags & QUIC_SEND_FLAG_FIN)) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
