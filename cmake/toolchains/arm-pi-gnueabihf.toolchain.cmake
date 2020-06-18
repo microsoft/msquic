@@ -48,7 +48,7 @@ else()
 endif()
 
 if(NOT DEFINED ARM_LINUX_SYSROOT AND DEFINED GNU_MACHINE)
-  set(ARM_LINUX_SYSROOT /usr/local/raspbian10/sys-root)
+  set(ARM_LINUX_SYSROOT /usr/local/sys-root)
 endif()
 
 if(NOT DEFINED CMAKE_CXX_FLAGS)

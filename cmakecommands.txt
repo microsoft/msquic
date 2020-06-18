@@ -1,1 +1,1 @@
-cmake ../.. -DQUIC_TLS=stub -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/arm-pi-gnueabihf.toolchain.cmake
+cmake ../.. -DQUIC_TLS=stub -DQUIC_ENABLE_LOGGING=off -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/arm-pi-gnueabihf.toolchain.cmake
