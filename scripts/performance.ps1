@@ -143,7 +143,7 @@ function Run-Loopback-Test() {
         $runResult = Run-Foreground-Executable -File $PingClient -Arguments "-target:localhost -uni:1 -length:100000000"
         $parsedRunResult = Parse-Loopback-Results -Results $runResult
         $allRunsResults += $parsedRunResult
-        Write-Host "Client $_ Finished"
+        Write-Host "Client $_ Finished: $parsedRunResult kbps"
     }
 
     Stop-Background-Executable -Process $proc
@@ -151,18 +151,7 @@ function Run-Loopback-Test() {
     $MedianCurrentResult = Median-Test-Results -FullResults $allRunsResults
     Write-Host "Current Run: $MedianCurrentResult kbps"
 
-    if ($PGO) {
-        $Artifacts = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)"
-        $Command = "$Artifacts\pgomgr.exe /merge $Artifacts $Artifacts\msquic.pgd"
-        $Command
-        Invoke-Expression $Command
-
-        Write-Host "Copying $Artifacts\msquic.pgd out for publishing."
-        $OutPath = Join-Path $RootDir "artifacts\PerfDataResults\winuser\pgo_$($Arch)"
-        if (!(Test-Path $OutPath)) { New-Item -Path $OutPath -ItemType Directory -Force | Out-Null }
-        Copy-Item "$Artifacts\msquic.pgd" $OutPath
-
-    } else {
+    if (!$PGO) {
         $fullLastResult = Get-Latest-Test-Results -Platform $Platform -Test "loopback"
         $MedianLastResult = 0
         if ($fullLastResult -ne "") {
@@ -188,3 +177,15 @@ function Run-Loopback-Test() {
 }
 
 Run-Loopback-Test
+
+if ($PGO) {
+    $Artifacts = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)"
+    $Command = "$Artifacts\pgomgr.exe /merge $Artifacts $Artifacts\msquic.pgd"
+    $Command
+    Invoke-Expression $Command
+
+    Write-Host "Copying $Artifacts\msquic.pgd out for publishing."
+    $OutPath = Join-Path $RootDir "\artifacts\PerfDataResults\winuser\pgo_$($Arch)"
+    if (!(Test-Path $OutPath)) { New-Item -Path $OutPath -ItemType Directory -Force }
+    Copy-Item "$Artifacts\msquic.pgd" $OutPath
+}
