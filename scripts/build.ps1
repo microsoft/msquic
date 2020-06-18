@@ -236,6 +236,9 @@ function CMake-Build {
             # TODO - Figure out a better way to get the path?
             $VCToolsPath = "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\MSVC\14.26.28801\bin\Host$Arch\$Arch"
             if (!(Test-Path $VCToolsPath)) {
+                $VCToolsPath = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\14.26.28801\bin\Host$Arch\$Arch"
+            }
+            if (!(Test-Path $VCToolsPath)) {
                 $VCToolsPath = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.26.28801\bin\Host$Arch\$Arch"
             }
             if (Test-Path $VCToolsPath) {
