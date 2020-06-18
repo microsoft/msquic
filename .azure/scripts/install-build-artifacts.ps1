@@ -44,7 +44,11 @@ if ($IsWindows) {
     $ManifestPath = Join-Path $RootDir "\src\manifest\MsQuicEtw.man"
     $Command = "wevtutil.exe im $($ManifestPath) /rf:$($MsQuicDll) /mf:$($MsQuicDll)"
     Write-Host $Command
-    Invoke-Expression $Command
+    try {
+        Invoke-Expression $Command
+    } catch {
+        Write-Host "Failed to install manifest. ETW log decoding likely won't work!"
+    }
 
 } elseif ($IsLinux) {
     # TODO - Figure out how to install openssl?
