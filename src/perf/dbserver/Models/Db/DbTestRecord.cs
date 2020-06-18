@@ -10,6 +10,7 @@ namespace QuicDataServer.Models.Db
     {
         public int DbTestRecordId { get; set; }
         public int DbTestId { get; set; }
+        public int DbMachineId { get; set; }
         public DateTime TestDate { get; set; }
         public string CommitHash { get; set; } = null!;
         public ICollection<TestResult> TestResults { get; set; } = null!;
