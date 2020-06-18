@@ -216,6 +216,40 @@ namespace QuicDataServer.Controllers
             return Ok();
         }
 
+        private async Task<int> VerifyPlatformAndTest(string platformName, string testName)
+        {
+            var testId = await _context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform, test })
+                .Where(x => x.test.TestName == testName && x.platform.PlatformName == platformName)
+                .Select(x => (int?)x.test.DbTestId)
+                .FirstOrDefaultAsync();
+
+            if (testId != null)
+            {
+                return testId.Value;
+            }
+
+            var platformId = await _context.Platforms.Where(x => x.PlatformName == platformName)
+                .Select(x => (int?)x.DbPlatformId).FirstOrDefaultAsync();
+            if (platformId == null)
+            {
+                // Create platform
+                var entity = _context.Platforms.Add(new DbPlatform
+                {
+                    PlatformName = platformName,
+                });
+                await _context.SaveChangesAsync();
+                platformId = entity.Entity.DbPlatformId;
+            }
+
+            var testEntity = _context.Tests.Add(new DbTest
+            {
+                DbPlatformId = platformId.Value,
+                TestName = testName
+            });
+            await _context.SaveChangesAsync();
+            return testEntity.Entity.DbTestId;
+        }
+
 
         /// <summary>
         /// Adds a new test result, with the time specified in the submitted data.
@@ -245,15 +279,7 @@ namespace QuicDataServer.Controllers
             }
 
             // Get Test Records 
-            var testId = await _context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform, test })
-                .Where(x => x.test.TestName == testResult.TestName && x.platform.PlatformName == testResult.PlatformName)
-                .Select(x => (int?)x.test.DbTestId)
-                .FirstOrDefaultAsync();
-
-            if (testId == null)
-            {
-                return BadRequest("Platform and Test not found");
-            }
+            var testId = await VerifyPlatformAndTest(testResult.PlatformName, testResult.TestName);
 
             var newRecord = new DbTestRecord
             {
@@ -261,7 +287,7 @@ namespace QuicDataServer.Controllers
                 TestDate = testResult.Time,
                 TestResults = testResult.IndividualRunResults.Select(x => new TestResult { Result = x }).ToList(),
                 DbTestRecordId = 1, // Default, TODO add actual platforms
-                DbTestId = testId.Value,
+                DbTestId = testId,
             };
 
             _context.TestRecords.Add(newRecord);
@@ -296,15 +322,7 @@ namespace QuicDataServer.Controllers
             }
 
             // Get Test Records 
-            var testId = await _context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform, test })
-                .Where(x => x.test.TestName == testResult.TestName && x.platform.PlatformName == testResult.PlatformName)
-                .Select(x => (int?)x.test.DbTestId)
-                .FirstOrDefaultAsync();
-
-            if (testId == null)
-            {
-                return BadRequest("Platform and Test not found");
-            }
+            var testId = await VerifyPlatformAndTest(testResult.PlatformName, testResult.TestName);
 
             var newRecord = new DbTestRecord
             {
@@ -312,7 +330,7 @@ namespace QuicDataServer.Controllers
                 TestDate = DateTime.UtcNow,
                 TestResults = testResult.IndividualRunResults.Select(x => new TestResult { Result = x }).ToList(),
                 DbTestRecordId = 1, // Default, TODO add actual platforms
-                DbTestId = testId.Value,
+                DbTestId = testId,
             };
 
             _context.TestRecords.Add(newRecord);
