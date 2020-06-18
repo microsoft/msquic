@@ -239,7 +239,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 if(QUIC_TLS STREQUAL "openssl")
     # Configure and build OpenSSL.
     if (CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
-            add_custom_command(
+        add_custom_command(
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl
             OUTPUT ${QUIC_BUILD_DIR}/openssl/include
             OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
