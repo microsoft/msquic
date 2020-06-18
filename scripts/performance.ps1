@@ -160,6 +160,8 @@ function Run-Loopback-Test() {
     $ResultsFolderRoot = "$Platform/loopback"
     $ResultsFileName = "/results.json"
 
+    Write-Host $env:AGENT_MACHINENAME
+
     $NewFilePath = Join-Path $RootDir "artifacts/PerfDataResults/$ResultsFolderRoot"
     $NewFileLocation = Join-Path $NewFilePath $ResultsFileName
     New-Item $NewFilePath -ItemType Directory -Force
