@@ -206,7 +206,7 @@ function CMake-Generate {
         $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
     }
     if ($ToolchainFile -ne "") {
-        $Arguments += " -DCMAKE_TOOLCHAIN_FILE=" + $ToolchainFile
+        $Arguments += " ""-DCMAKE_TOOLCHAIN_FILE=" + $ToolchainFile + """"
     }
     $Arguments += " ../../.."
 
