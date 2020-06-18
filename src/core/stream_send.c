@@ -479,7 +479,7 @@ QuicStreamSendFlush(
         ApiSendRequests = ApiSendRequests->Next;
         SendRequest->Next = NULL;
 
-        QUIC_DBG_ASSERT(SendRequest->TotalLength != 0);
+        QUIC_DBG_ASSERT(SendRequest->TotalLength != 0 || SendRequest->Flags & QUIC_SEND_FLAG_FIN);
         QUIC_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
 
         if (!Stream->Flags.SendEnabled) {
