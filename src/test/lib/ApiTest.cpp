@@ -228,7 +228,7 @@ void QuicTestValidateSession()
     //
     Level = QUIC_SERVER_RESUME_ONLY;
     TEST_QUIC_STATUS(
-        QUIC_STATUS_BUFFER_TOO_SMALL,
+        QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->SetParam(
             Session,
             QUIC_PARAM_LEVEL_SESSION,
@@ -237,21 +237,21 @@ void QuicTestValidateSession()
             &Level));
 
     TEST_QUIC_STATUS(
-        QUIC_STATUS_BUFFER_TOO_SMALL,
-        MsQuic->SetParam(
-            Session,
-            QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
-            1,
-            &Level));
-
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_BUFFER_TOO_SMALL,
+        QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->SetParam(
             Session,
             QUIC_PARAM_LEVEL_SESSION,
             QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
             sizeof(Level) - 1,
+            &Level));
+
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->SetParam(
+            Session,
+            QUIC_PARAM_LEVEL_SESSION,
+            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+            sizeof(Level) + 1,
             &Level));
 
     //
@@ -428,6 +428,45 @@ DummyConnectionCallback(
     )
 {
     return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+static
+_Function_class_(QUIC_CONNECTION_CALLBACK)
+QUIC_STATUS
+QUIC_API
+AutoCloseConnectionCallback(
+    HQUIC Connection,
+    void*,
+    QUIC_CONNECTION_EVENT* Event
+    )
+{
+    if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+        MsQuic->ConnectionClose(Connection);
+        return QUIC_STATUS_SUCCESS;
+    }
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_Function_class_(NEW_CONNECTION_CALLBACK)
+static
+void
+ListenerFailSendResumeCallback(
+    _In_ TestListener*  Listener,
+    _In_ HQUIC ConnectionHandle
+    )
+{
+    //
+    // Validate sending the resumption ticket fails
+    //
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_STATE,
+        MsQuic->ConnectionSendResumptionTicket(
+            ConnectionHandle,
+            QUIC_SEND_RESUMPTION_FLAG_NONE,
+            0,
+            nullptr));
+    MsQuic->SetCallbackHandler(ConnectionHandle, AutoCloseConnectionCallback, nullptr);
+    QuicEventSet(Listener->Context);
 }
 
 void QuicTestValidateConnection()
@@ -750,6 +789,17 @@ void QuicTestValidateConnection()
                 &Connection.Handle));
 
         //
+        // NULL connection handle.
+        //
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionSendResumptionTicket(
+                nullptr,
+                QUIC_SEND_RESUMPTION_FLAG_NONE,
+                0,
+                nullptr));
+
+        //
         // Can only be called on server Connections.
         //
         TEST_QUIC_STATUS(
@@ -760,6 +810,9 @@ void QuicTestValidateConnection()
                 0,
                 nullptr));
 
+        //
+        // Validate flags are within range.
+        //
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->ConnectionSendResumptionTicket(
@@ -767,6 +820,82 @@ void QuicTestValidateConnection()
                 (QUIC_SEND_RESUMPTION_FLAGS)4,
                 0,
                 nullptr));
+    }
+
+    //
+    // Invalid send resumption, server-side
+    //
+    {
+        TestListener MyListener(Session, ListenerFailSendResumeCallback);
+        TEST_TRUE(MyListener.IsValid());
+
+        TEST_QUIC_SUCCEEDED(MyListener.Start());
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(MyListener.GetLocalAddr(ServerLocalAddr));
+
+        QUIC_EVENT Event;
+        QuicEventInitialize(&Event, FALSE, FALSE);
+        MyListener.Context = Event;
+
+        {
+            ConnectionScope Connection;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->ConnectionOpen(
+                    Session,
+                    DummyConnectionCallback,
+                    nullptr,
+                    &Connection.Handle));
+
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->ConnectionStart(
+                    Connection.Handle,
+                    QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+                    QUIC_LOCALHOST_FOR_AF(
+                        QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                    ServerLocalAddr.GetPort()));
+
+            TEST_TRUE(QuicEventWaitWithTimeout(Event, 1000));
+
+            MsQuic->ConnectionClose(Connection.Handle);
+
+            //
+            // Enable resumption but ensure failure because the connection 
+            // isn't in connected state yet.
+            //
+
+            QUIC_SERVER_RESUMPTION_LEVEL Level = QUIC_SERVER_RESUME_ONLY;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Session.Handle,
+                    QUIC_PARAM_LEVEL_SESSION,
+                    QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+                    sizeof(Level),
+                    &Level));
+
+            //
+            // Give time for the parameter to get set.
+            //
+            QuicSleep(100);
+
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->ConnectionOpen(
+                    Session,
+                    DummyConnectionCallback,
+                    nullptr,
+                    &Connection.Handle));
+
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->ConnectionStart(
+                    Connection.Handle,
+                    QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+                    QUIC_LOCALHOST_FOR_AF(
+                        QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                    ServerLocalAddr.GetPort()));
+
+            TEST_TRUE(QuicEventWaitWithTimeout(Event, 100));
+        }
+
+        QuicEventUninitialize(Event);
     }
 }
 

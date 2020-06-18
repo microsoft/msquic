@@ -1314,20 +1314,6 @@ QuicTlsProcessDataComplete(
                 "Handshake complete");
             State->HandshakeComplete = TRUE;
             ResultFlags |= QUIC_TLS_RESULT_COMPLETE;
-
-            if (TlsContext->IsServer) {
-                QuicTraceLogConnVerbose(
-                    miTlsSend0RttTicket,
-                    TlsContext->Connection,
-                    "Sending new 0-RTT ticket");
-                if (!FFI_mitls_quic_send_ticket(TlsContext->miTlsState, NULL, 0)) {
-                    QuicTraceEvent(
-                        TlsError,
-                        "[ tls][%p] ERROR, %s.",
-                        TlsContext->Connection,
-                        "FFI_mitls_quic_send_ticket failed");
-                }
-            }
         }
 
         if (Context.flags & QFLAG_REJECTED_0RTT) {

@@ -1245,6 +1245,16 @@ QuicTlsClientProcess(
         memcpy(ALPN->AlpnList, TlsContext->AlpnBuffer, TlsContext->AlpnBufferLength);
         ExtListLength += 6 + TlsContext->AlpnBufferLength;
 
+        QUIC_TLS_QUIC_TP_EXT* QuicTP =
+            (QUIC_TLS_QUIC_TP_EXT*)
+            (ClientMessage->CLIENT_INITIAL.ExtList + ExtListLength);
+        TlsWriteUint16(QuicTP->ExtType, TlsExt_QuicTransportParameters);
+        TlsWriteUint16(QuicTP->ExtLen, (uint16_t)TlsContext->LocalTPLength);
+        memcpy(QuicTP->TP, TlsContext->LocalTPBuffer, TlsContext->LocalTPLength);
+        ExtListLength += 4 + (uint16_t)TlsContext->LocalTPLength;
+
+        TlsWriteUint16(ClientMessage->CLIENT_INITIAL.ExtListLength, ExtListLength);
+
         if (TlsContext->Ticket != NULL) {
             TlsContext->EarlyDataAttempted = TRUE;
 
@@ -1261,16 +1271,6 @@ QuicTlsClientProcess(
         } else {
             TlsContext->EarlyDataAttempted = FALSE;
         }
-
-        QUIC_TLS_QUIC_TP_EXT* QuicTP =
-            (QUIC_TLS_QUIC_TP_EXT*)
-            (ClientMessage->CLIENT_INITIAL.ExtList + ExtListLength);
-        TlsWriteUint16(QuicTP->ExtType, TlsExt_QuicTransportParameters);
-        TlsWriteUint16(QuicTP->ExtLen, (uint16_t)TlsContext->LocalTPLength);
-        memcpy(QuicTP->TP, TlsContext->LocalTPBuffer, TlsContext->LocalTPLength);
-        ExtListLength += 4 + (uint16_t)TlsContext->LocalTPLength;
-
-        TlsWriteUint16(ClientMessage->CLIENT_INITIAL.ExtListLength, ExtListLength);
 
         uint16_t MessageLength = sizeof(QUIC_TLS_CLIENT_HELLO) + ExtListLength + 4;
         TlsWriteUint24(ClientMessage->Length, MessageLength - 4);

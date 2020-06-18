@@ -409,7 +409,7 @@ QuicTestValidateConnectionEvents2(
 
 void
 QuicTestValidateConnectionEvents3(
-    _In_ HQUIC Session,
+    _In_ MsQuicSession& Session,
     _In_ HQUIC Listener,
     _In_ QuicAddr& ServerLocalAddr
     )
@@ -448,14 +448,14 @@ QuicTestValidateConnectionEvents3(
     MsQuic->SetCallbackHandler(Listener, ListenerEventResumptionCallback, nullptr);
     Status =
         MsQuic->SetParam(
-            Session,
+            Session.Handle,
             QUIC_PARAM_LEVEL_SESSION,
             QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
             sizeof(Level),
             &Level);
     TEST_QUIC_SUCCEEDED(Status);
 
-    TestConnection FirstConnection(Session, nullptr, false);
+    TestConnection FirstConnection(Session, nullptr);
     FirstConnection.SetCertValidationFlags(CertFlags);
     FirstConnection.SetPeerBidiStreamCount(StreamCount);
     FirstConnection.Start(
@@ -483,7 +483,7 @@ QuicTestValidateConnectionEvents3(
     Level = QUIC_SERVER_NO_RESUME;
     Status =
         MsQuic->SetParam(
-            Session,
+            Session.Handle,
             QUIC_PARAM_LEVEL_SESSION,
             QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
             sizeof(Level),
@@ -492,7 +492,7 @@ QuicTestValidateConnectionEvents3(
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionOpen(
-            Session,
+            Session.Handle,
             ConnValidatorCallback,
             &Client,
             &Client.Handle));
@@ -558,7 +558,7 @@ void QuicTestValidateConnectionEvents()
     QuicTestValidateConnectionEvents1(Session.Handle, Listener.Handle, ServerLocalAddr);
     QuicTestValidateConnectionEvents2(Session.Handle, Listener.Handle, ServerLocalAddr);
 #ifndef QUIC_DISABLE_0RTT_TESTS
-    QuicTestValidateConnectionEvents3(Session.Handle, Listener.Handle, ServerLocalAddr);
+    QuicTestValidateConnectionEvents3(Session, Listener.Handle, ServerLocalAddr);
 #endif
 
     } // Listener Scope
