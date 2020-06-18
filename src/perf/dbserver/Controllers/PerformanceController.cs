@@ -149,7 +149,7 @@ namespace QuicDataServer.Controllers
                 return Unauthorized();
             }
 
-            if (await _context.Platforms.Select(x => x.PlatformName == platformToCreate.PlatformName).AnyAsync())
+            if (await _context.Platforms.Where(x => x.PlatformName == platformToCreate.PlatformName).AnyAsync())
             {
                 return Ok();
             }
