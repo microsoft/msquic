@@ -24,7 +24,7 @@ Abstract:
     QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + \
     QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT + \
     sizeof(uint32_t) + \
-    sizeof(QuicSupportedVersionList) \
+    (ARRAYSIZE(QuicSupportedVersionList) * sizeof(uint32_t)) \
 )
 QUIC_STATIC_ASSERT(
     QUIC_DEFAULT_PATH_MTU - 48 >= MAX_VER_NEG_PACKET_LENGTH,
@@ -691,13 +691,13 @@ QuicBindingProcessStatelessOperation(
         QUIC_DBG_ASSERT(RecvPacket->DestCid != NULL);
         QUIC_DBG_ASSERT(RecvPacket->SourceCid != NULL);
 
-        uint16_t PacketLength =
-            sizeof(QUIC_VERSION_NEGOTIATION_PACKET) +   // Header
+        const uint16_t PacketLength =
+            sizeof(QUIC_VERSION_NEGOTIATION_PACKET) +               // Header
             RecvPacket->SourceCidLen +
             sizeof(uint8_t) +
             RecvPacket->DestCidLen +
-            sizeof(uint32_t) +                          // One random version
-            sizeof(QuicSupportedVersionList);           // Our actual supported versions
+            sizeof(uint32_t) +                                      // One random version
+            ARRAYSIZE(QuicSupportedVersionList) * sizeof(uint32_t); // Our actual supported versions
 
         QUIC_BUFFER* SendDatagram =
             QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
@@ -739,10 +739,9 @@ QuicBindingProcessStatelessOperation(
 
         uint32_t* SupportedVersion = (uint32_t*)Buffer;
         SupportedVersion[0] = Binding->RandomReservedVersion;
-        QuicCopyMemory(
-            &SupportedVersion[1],
-            QuicSupportedVersionList,
-            sizeof(QuicSupportedVersionList));
+        for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
+            SupportedVersion[1 + i] = QuicSupportedVersionList[i].Number;
+        }
 
         QuicTraceLogVerbose(
             PacketTxVersionNegotiation,
@@ -1422,14 +1421,15 @@ QuicBindingReceive(
         Packet->Buffer = Datagram->Buffer;
         Packet->BufferLength = Datagram->BufferLength;
 
-#if DEBUG
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
         //
         // The test datapath receive callback allows for test code to modify
         // the datagrams on the receive path, and optionally indicate one or
         // more to be dropped.
         //
-        if (MsQuicLib.TestDatapathHooks != NULL) {
-            if (MsQuicLib.TestDatapathHooks->Receive(Datagram)) {
+        QUIC_TEST_DATAPATH_HOOKS* Hooks = MsQuicLib.TestDatapathHooks;
+        if (Hooks != NULL) {
+            if (Hooks->Receive(Datagram)) {
                 *ReleaseChainTail = Datagram;
                 ReleaseChainTail = &Datagram->Next;
                 QuicPacketLogDrop(Binding, Packet, "Test Dopped");
@@ -1552,12 +1552,13 @@ QuicBindingSendTo(
 {
     QUIC_STATUS Status;
 
-#if DEBUG
-    if (MsQuicLib.TestDatapathHooks != NULL) {
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    QUIC_TEST_DATAPATH_HOOKS* Hooks = MsQuicLib.TestDatapathHooks;
+    if (Hooks != NULL) {
 
         QUIC_ADDR RemoteAddressCopy = *RemoteAddress;
         BOOLEAN Drop =
-            MsQuicLib.TestDatapathHooks->Send(
+            Hooks->Send(
                 &RemoteAddressCopy,
                 NULL,
                 SendContext);
@@ -1597,7 +1598,7 @@ QuicBindingSendTo(
                 Binding,
                 Status);
         }
-#if DEBUG
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     }
 #endif
 
@@ -1615,13 +1616,14 @@ QuicBindingSendFromTo(
 {
     QUIC_STATUS Status;
 
-#if DEBUG
-    if (MsQuicLib.TestDatapathHooks != NULL) {
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+    QUIC_TEST_DATAPATH_HOOKS* Hooks = MsQuicLib.TestDatapathHooks;
+    if (Hooks != NULL) {
 
         QUIC_ADDR RemoteAddressCopy = *RemoteAddress;
         QUIC_ADDR LocalAddressCopy = *LocalAddress;
         BOOLEAN Drop =
-            MsQuicLib.TestDatapathHooks->Send(
+            Hooks->Send(
                 &RemoteAddressCopy,
                 &LocalAddressCopy,
                 SendContext);
@@ -1663,7 +1665,7 @@ QuicBindingSendFromTo(
                 Binding,
                 Status);
         }
-#if DEBUG
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     }
 #endif
 

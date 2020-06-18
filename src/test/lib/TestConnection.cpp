@@ -13,20 +13,16 @@ Abstract:
 
 TestConnection::TestConnection(
     _In_ HQUIC Handle,
-    _In_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler,
-    _In_ bool Server,
-    _In_ bool AutoDelete,
-    _In_ bool UseSendBuffer
+    _In_opt_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler
     ) :
-    QuicConnection(Server ? Handle : nullptr),
-    Context(nullptr), IsServer(Server), IsStarted(Server), IsConnected(false), Resumed(false),
+    QuicConnection(Handle),
+    Context(nullptr), IsServer(true), IsStarted(true), IsConnected(false), Resumed(false),
     PeerAddrChanged(false), PeerClosed(false), ExpectedResumed(false),
     ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS),
     ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
     TransportClosed(false), IsShutdown(false),
-    ShutdownTimedOut(false), AutoDelete(AutoDelete),
+    ShutdownTimedOut(false), AutoDelete(false),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
-    UseSendBuffer(UseSendBuffer),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0)
 {
@@ -34,35 +30,48 @@ TestConnection::TestConnection(
     QuicEventInitialize(&EventPeerClosed, TRUE, FALSE);
     QuicEventInitialize(&EventShutdownComplete, TRUE, FALSE);
 
-    if (IsServer) {
-        if (QuicConnection == nullptr) {
-            TEST_FAILURE("Invalid handle passed into TestConnection.");
-        } else {
-            MsQuic->SetCallbackHandler(QuicConnection, (void*)QuicConnectionHandler, this);
-        }
+    if (QuicConnection == nullptr) {
+        TEST_FAILURE("Invalid handle passed into TestConnection.");
     } else {
-        QUIC_STATUS Status =
-            MsQuic->ConnectionOpen(
-                Handle,
-                QuicConnectionHandler,
-                this,
-                &QuicConnection);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->ConnectionOpen failed, 0x%x.", Status);
-            QuicConnection = nullptr;
-        }
+        MsQuic->SetCallbackHandler(QuicConnection, (void*)QuicConnectionHandler, this);
+    }
 
-        BOOLEAN Opt = UseSendBuffer;
-        Status =
-            MsQuic->SetParam(
-                QuicConnection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_SEND_BUFFERING,
-                sizeof(Opt),
-                (uint8_t*)&Opt);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuicSetParam(SEND_BUFFERING) failed, 0x%x.", Status);
-        }
+    //
+    // Test code uses self-signed certificates, so we cannot validate the root.
+    //
+    SetCertValidationFlags(
+        QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
+        QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID);
+}
+
+TestConnection::TestConnection(
+    _In_ MsQuicSession& Session,
+    _In_opt_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler
+    ) :
+    QuicConnection(nullptr),
+    Context(nullptr), IsServer(false), IsStarted(false), IsConnected(false), Resumed(false),
+    PeerAddrChanged(false), PeerClosed(false), ExpectedResumed(false),
+    ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS),
+    ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
+    TransportClosed(false), IsShutdown(false),
+    ShutdownTimedOut(false), AutoDelete(false),
+    NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
+    DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
+    DatagramsLost(0), DatagramsAcknowledged(0)
+{
+    QuicEventInitialize(&EventConnectionComplete, TRUE, FALSE);
+    QuicEventInitialize(&EventPeerClosed, TRUE, FALSE);
+    QuicEventInitialize(&EventShutdownComplete, TRUE, FALSE);
+
+    QUIC_STATUS Status =
+        MsQuic->ConnectionOpen(
+            Session.Handle,
+            QuicConnectionHandler,
+            this,
+            &QuicConnection);
+    if (QUIC_FAILED(Status)) {
+        TEST_FAILURE("MsQuic->ConnectionOpen failed, 0x%x.", Status);
+        QuicConnection = nullptr;
     }
 
     //
@@ -579,6 +588,40 @@ TestConnection::SetCertValidationFlags(
             &value);
 }
 
+bool
+TestConnection::GetUseSendBuffer()
+{
+    BOOLEAN value;
+    uint32_t valueSize = sizeof(value);
+    QUIC_STATUS Status =
+        MsQuic->GetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_SEND_BUFFERING,
+            &valueSize,
+            &value);
+    if (QUIC_FAILED(Status)) {
+        value = 0;
+        TEST_FAILURE("MsQuic->GetParam(CONN_SEND_BUFFERING) failed, 0x%x.", Status);
+    }
+    return value != FALSE;
+}
+
+QUIC_STATUS
+TestConnection::SetUseSendBuffer(
+    bool value
+    )
+{
+    BOOLEAN bValue = value ? TRUE : FALSE;
+    return
+        MsQuic->SetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_SEND_BUFFERING,
+            sizeof(bValue),
+            &bValue);
+}
+
 uint32_t
 TestConnection::GetKeepAlive()
 {
@@ -844,6 +887,14 @@ TestConnection::HandleConnectionEvent(
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
         if (Event->PEER_STREAM_STARTED.Stream == nullptr) {
             TEST_FAILURE("Null Stream");
+            break;
+        }
+        if (NewStreamCallback == nullptr) {
+            //
+            // Test is ignoring streams. Just close it.
+            //
+            MsQuic->StreamClose(Event->PEER_STREAM_STARTED.Stream);
+            break;
         }
         NewStreamCallback(
             this,

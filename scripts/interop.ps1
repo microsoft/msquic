@@ -24,9 +24,6 @@ This script runs quicinterop locally.
 .PARAMETER LogProfile
     The name of the profile to use for log collection.
 
-.PARAMETER ConvertLogs
-    Convert any collected logs to text. Only works when LogProfile is set.
-
 .PARAMETER Target
     A target to connect to.
 
@@ -72,9 +69,6 @@ param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
     [string]$LogProfile = "None",
-
-    [Parameter(Mandatory = $false)]
-    [switch]$ConvertLogs = $false,
 
     [Parameter(Mandatory = $false)]
     [string]$Target = "",
@@ -138,10 +132,7 @@ if ($Debugger) {
     $Arguments += " -Debugger"
 }
 if ("None" -ne $LogProfile) {
-    $Arguments += " -LogProfile $($LogProfile)"
-}
-if ($ConvertLogs) {
-    $Arguments += " -ConvertLogs"
+    $Arguments += " -LogProfile $($LogProfile) -ConvertLogs"
 }
 
 $ExtraArgs = ""

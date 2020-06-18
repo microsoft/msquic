@@ -1,28 +1,23 @@
+Set-StrictMode -Version 'Latest'
+$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 $RootDir = Split-Path $RootDir -Parent
 
-$GitPath = Join-Path $RootDir "artifacts/PerfDataGit"
-$ResultsPath = Join-Path $RootDir "artifacts/PerfDataResults/*"
+$ResultsPath = Join-Path $RootDir "artifacts/PerfDataResults"
 
-$env:GIT_REDIRECT_STDERR = '2>&1'
-git clone  --single-branch --branch data/performance https://github.com/microsoft/msquic $GitPath
-$currentLoc = Get-Location
-Set-Location -Path $GitPath
+# Enumerate files
+$Files = Get-ChildItem -Path $ResultsPath -Recurse -File
 
-Copy-Item -Path $ResultsPath -Destination $GitPath -Recurse -Force
+Write-Host $Files
 
-git config user.email "quicdev@microsoft.com"
-git config user.name "QUIC Dev Bot"
+$Files | ForEach-Object {
+    $DataToWrite = Get-Content $_ | ConvertFrom-Json
+    Write-Host $DataToWrite
+    $DataToWrite | Add-Member -NotePropertyName "AuthKey" -NotePropertyValue $env:MAPPED_DEPLOYMENT_KEY
+    $JsonToWrite = $DataToWrite | ConvertTo-Json
 
-git config --global credential.helper store
-Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:MAPPED_DEPLOYMENT_KEY):x-oauth-basic@github.com`n"
-
-git add .
-git status
-
-git commit -m "Update latest perf results"
-
-git push
-
-Set-Location -Path $currentLoc
+    $Result = Invoke-RestMethod -Uri "https://msquicperformanceresults.azurewebsites.net/performance" -Body $JsonToWrite -Method 'Post' -ContentType "application/json"
+    Write-Host $Result
+}

@@ -230,6 +230,11 @@ QuicAddrIsBoundExplicitly(
     );
 
 void
+QuicAddrIncrement(
+    _Inout_ QUIC_ADDR * Addr
+    );
+
+void
 QuicAddrSetToLoopback(
     _Inout_ QUIC_ADDR* Addr
     );

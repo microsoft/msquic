@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #include <quic_platform.h>
+#include <MsQuicTests.h>
 
 #include "quic_trace.h"
 
@@ -148,6 +149,8 @@ Return Value:
         goto Error;
     }
 
+    QuicTestInitialize();
+
     QuicTraceLogInfo(
         TestDriverStarted,
         "[test] Started");
@@ -186,6 +189,8 @@ Arguments:
 {
     UNREFERENCED_PARAMETER(Driver);
     NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
+
+    QuicTestUninitialize();
 
     QuicTestCtlUninitialize();
 

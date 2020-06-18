@@ -207,7 +207,7 @@ typedef struct QUIC_LIBRARY {
     //
     QUIC_TOEPLITZ_HASH ToeplitzHash;
 
-#if DEBUG
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     //
     // An optional callback to allow test code to modify the data path.
     //

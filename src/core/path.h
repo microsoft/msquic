@@ -114,6 +114,11 @@ typedef struct QUIC_PATH {
     //
     uint8_t Challenge[8];
 
+    //
+    // Time when path validation was begun. Used for timing out path validation.
+    //
+    uint32_t PathValidationStartTime;
+
 } QUIC_PATH;
 
 QUIC_STATIC_ASSERT(

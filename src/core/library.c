@@ -572,19 +572,11 @@ QuicLibrarySetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-#if DEBUG
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     case QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS:
 
         if (BufferLength != sizeof(QUIC_TEST_DATAPATH_HOOKS*)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        if (MsQuicLib.InUse) {
-            QuicTraceLogError(
-                LibraryTestDatapathHooksSetAfterInUse,
-                "[ lib] Tried to change test datapath hooks after library in use!");
-            Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
 
