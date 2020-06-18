@@ -102,11 +102,9 @@ function Parse-Loopback-Results($Results) {
 
 function Get-Latest-Test-Results($Platform, $Test) {
     $Uri = "https://msquicperformanceresults.azurewebsites.net/performance/$Platform/$Test"
-    Write-Host $Uri
+    Write-Host "Requesting: $Uri"
     $LatestResult =  Invoke-RestMethod -Uri $Uri
-
-    Write-Host $LatestResult
-
+    Write-Host "Result: $LatestResult"
     return $LatestResult
 }
 
@@ -147,8 +145,10 @@ function Run-Loopback-Test() {
     $MedianCurrentResult = Median-Test-Results -FullResults $allRunsResults
 
     $fullLastResult = Get-Latest-Test-Results -Platform $Platform -Test "loopback"
-
-    $MedianLastResult = Median-Test-Results -FullResults $fullLastResult.individualRunResults
+    $MedianLastResult = 0
+    if ($fullLastResult -ne "") {
+        $MedianLastResult = Median-Test-Results -FullResults $fullLastResult.individualRunResults
+    }
 
     $ToPublishResults = [TestPublishResult]::new()
 
