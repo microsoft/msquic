@@ -286,7 +286,7 @@ namespace QuicDataServer.Controllers
                 CommitHash = testResult.CommitHash,
                 TestDate = testResult.Time,
                 TestResults = testResult.IndividualRunResults.Select(x => new TestResult { Result = x }).ToList(),
-                DbTestRecordId = 1, // Default, TODO add actual platforms
+                DbMachineId = 1, // Default, TODO add actual platforms
                 DbTestId = testId,
             };
 
@@ -329,7 +329,7 @@ namespace QuicDataServer.Controllers
                 CommitHash = testResult.CommitHash,
                 TestDate = DateTime.UtcNow,
                 TestResults = testResult.IndividualRunResults.Select(x => new TestResult { Result = x }).ToList(),
-                DbTestRecordId = 1, // Default, TODO add actual platforms
+                DbMachineId = 1, // Default, TODO add actual platforms
                 DbTestId = testId,
             };
 
