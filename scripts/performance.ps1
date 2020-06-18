@@ -12,12 +12,15 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Tls
     The TLS library use.
 
+.PARAMETER PGO
+    Uses pgomgr to merge the resulting .pgc files back to the .pgd.
+
 #>
 
 param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("Debug", "Release")]
-    [string]$Config = "Debug",
+    [string]$Config = "Release",
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("x86", "x64", "arm", "arm64")]
@@ -25,7 +28,10 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
-    [string]$Tls = ""
+    [string]$Tls = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$PGO = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -103,7 +109,7 @@ function Parse-Loopback-Results($Results) {
 function Get-Latest-Test-Results($Platform, $Test) {
     $Uri = "https://msquicperformanceresults.azurewebsites.net/performance/$Platform/$Test"
     Write-Host "Requesting: $Uri"
-    $LatestResult =  Invoke-RestMethod -Uri $Uri
+    $LatestResult = Invoke-RestMethod -Uri $Uri
     Write-Host "Result: $LatestResult"
     return $LatestResult
 }
@@ -143,31 +149,42 @@ function Run-Loopback-Test() {
     Stop-Background-Executable -Process $proc
 
     $MedianCurrentResult = Median-Test-Results -FullResults $allRunsResults
-
-    $fullLastResult = Get-Latest-Test-Results -Platform $Platform -Test "loopback"
-    $MedianLastResult = 0
-    if ($fullLastResult -ne "") {
-        $MedianLastResult = Median-Test-Results -FullResults $fullLastResult.individualRunResults
-    }
-
-    $ToPublishResults = [TestPublishResult]::new()
-
-    $ToPublishResults.CommitHash = $CurrentCommitHash.Substring(0, 7)
-    $ToPublishResults.PlatformName = $Platform
-    $ToPublishResults.TestName = "loopback"
-    $ToPublishResults.IndividualRunResults = $allRunsResults
-
-    $ResultsFolderRoot = "$Platform/loopback"
-    $ResultsFileName = "/results.json"
-
-    $NewFilePath = Join-Path $RootDir "artifacts/PerfDataResults/$ResultsFolderRoot"
-    $NewFileLocation = Join-Path $NewFilePath $ResultsFileName
-    New-Item $NewFilePath -ItemType Directory -Force
-
-    $ToPublishResults | ConvertTo-Json | Out-File $NewFileLocation
-
     Write-Host "Current Run: $MedianCurrentResult kbps"
-    Write-Host "Last Master Run: $MedianLastResult kbps"
+
+    if ($PGO) {
+        $Artifacts = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)"
+        $Command = "$Artifacts\pgomgr.exe /merge $Artifacts $Artifacts\msquic.pgd"
+        $Command
+        Invoke-Expression $Command
+
+        Write-Host "Copying $Artifacts\msquic.pgd out for publishing."
+        Copy-Item "$Artifacts\msquic.pgd" (Join-Path $RootDir "artifacts/PerfDataResults")
+
+    } else {
+        $fullLastResult = Get-Latest-Test-Results -Platform $Platform -Test "loopback"
+        $MedianLastResult = 0
+        if ($fullLastResult -ne "") {
+            $MedianLastResult = Median-Test-Results -FullResults $fullLastResult.individualRunResults
+        }
+
+        $ToPublishResults = [TestPublishResult]::new()
+
+        $ToPublishResults.CommitHash = $CurrentCommitHash.Substring(0, 7)
+        $ToPublishResults.PlatformName = $Platform
+        $ToPublishResults.TestName = "loopback"
+        $ToPublishResults.IndividualRunResults = $allRunsResults
+
+        $ResultsFolderRoot = "$Platform/loopback"
+        $ResultsFileName = "/results.json"
+
+        $NewFilePath = Join-Path $RootDir "artifacts/PerfDataResults/$ResultsFolderRoot"
+        $NewFileLocation = Join-Path $NewFilePath $ResultsFileName
+        New-Item $NewFilePath -ItemType Directory -Force
+
+        $ToPublishResults | ConvertTo-Json | Out-File $NewFileLocation
+
+        Write-Host "Last Master Run: $MedianLastResult kbps"
+    }
 }
 
 Run-Loopback-Test
