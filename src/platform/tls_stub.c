@@ -842,7 +842,7 @@ QuicTlsInitialize(
             if (TlsContext->Ticket != NULL) {
 
                 QuicTraceLogConnVerbose(
-                    miTlsUsing0Rtt,
+                    StubTlsUsing0Rtt,
                     TlsContext->Connection,
                     "Using 0-RTT ticket.");
             }
@@ -1464,7 +1464,7 @@ QuicTlsClientProcess(
             TlsReadUint24(ServerMessage->Length);
 
         QuicTraceLogConnVerbose(
-            miTlsRecvNewSessionTicket,
+            StubTlsRecvNewSessionTicket,
             TlsContext->Connection,
             "Received new ticket. ticket_len:%u session_len:%u for %s",
             (uint32_t)ServerMessageLength,
@@ -1555,7 +1555,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessData(
     _In_ QUIC_TLS* TlsContext,
-    _In_ QUIC_TLS_DATA_FLAGS DataFlags,
+    _In_ QUIC_TLS_DATA_TYPE DataType,
     _In_reads_bytes_(*BufferLength)
         const uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength,
@@ -1573,7 +1573,7 @@ QuicTlsProcessData(
     QUIC_TLS_RESULT_FLAGS ResultFlags = 0;
 
     if (QuicTlsHasValidMessageToProcess(TlsContext, *BufferLength, Buffer)) {
-        QUIC_FRE_ASSERT(DataFlags == QUIC_TLS_CRYPTO_DATA);
+        QUIC_FRE_ASSERT(DataType == QUIC_TLS_CRYPTO_DATA);
 
         uint16_t PrevBufferLength = State->BufferLength;
         if (TlsContext->IsServer) {
@@ -1596,7 +1596,7 @@ QuicTlsProcessData(
                 (State->BufferLength - PrevBufferLength));
         }
 
-    } else if (DataFlags == QUIC_TLS_TICKET_DATA) {
+    } else if (DataType == QUIC_TLS_TICKET_DATA) {
         QUIC_FRE_ASSERT(TlsContext->IsServer);
 
         uint16_t PrevBufferLength = State->BufferLength;
@@ -1680,7 +1680,7 @@ QuicTlsReadTicket(
     }
 
     QuicTraceLogConnVerbose(
-        miTlsReadTicket,
+        StubTlsReadTicket,
         TlsContext->Connection,
         "Ticket (%u bytes) read.",
         TicketBufferLength);

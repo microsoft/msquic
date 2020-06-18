@@ -210,6 +210,70 @@ void QuicTestValidateSession()
             TicketKey));
 #endif
 
+    //
+    // Server resumption level - invalid level
+    //
+    QUIC_SERVER_RESUMPTION_LEVEL Level = (QUIC_SERVER_RESUMPTION_LEVEL) 0xff;
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->SetParam(
+            Session,
+            QUIC_PARAM_LEVEL_SESSION,
+            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+            sizeof(Level),
+            nullptr));
+
+    //
+    // Server resumption level - Invalid length
+    //
+    Level = QUIC_SERVER_RESUME_ONLY;
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_BUFFER_TOO_SMALL,
+        MsQuic->SetParam(
+            Session,
+            QUIC_PARAM_LEVEL_SESSION,
+            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+            0,
+            &Level));
+
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_BUFFER_TOO_SMALL,
+        MsQuic->SetParam(
+            Session,
+            QUIC_PARAM_LEVEL_SESSION,
+            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+            1,
+            &Level));
+
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_BUFFER_TOO_SMALL,
+        MsQuic->SetParam(
+            Session,
+            QUIC_PARAM_LEVEL_SESSION,
+            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+            sizeof(Level) - 1,
+            &Level));
+
+    //
+    // Server resumption level - NULL level
+    //
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->SetParam(
+            Session,
+            QUIC_PARAM_LEVEL_SESSION,
+            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+            sizeof(Level),
+            nullptr));
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            Session,
+            QUIC_PARAM_LEVEL_SESSION,
+            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+            sizeof(Level),
+            &Level));
+
     MsQuic->SessionClose(
         Session);
     Session = nullptr;
@@ -671,6 +735,38 @@ void QuicTestValidateConnection()
                 QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
                 sizeof(ReceiveDatagrams),
                 &ReceiveDatagrams));
+    }
+
+    //
+    // Invalid send resumption.
+    //
+    {
+        ConnectionScope Connection;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConnectionOpen(
+                Session,
+                DummyConnectionCallback,
+                nullptr,
+                &Connection.Handle));
+
+        //
+        // Can only be called on server Connections.
+        //
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionSendResumptionTicket(
+                Connection.Handle,
+                QUIC_SEND_RESUMPTION_FLAG_NONE,
+                0,
+                nullptr));
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionSendResumptionTicket(
+                Connection.Handle,
+                (QUIC_SEND_RESUMPTION_FLAGS)4,
+                0,
+                nullptr));
     }
 }
 

@@ -1146,7 +1146,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessData(
     _In_ QUIC_TLS* TlsContext,
-    _In_ QUIC_TLS_DATA_FLAGS DataFlags,
+    _In_ QUIC_TLS_DATA_TYPE DataType,
     _In_reads_bytes_(*BufferLength)
         const uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength,
@@ -1173,8 +1173,7 @@ QuicTlsProcessData(
 
     TlsContext->State = State;
 
-    if (DataFlags & QUIC_TLS_CRYPTO_DATA) {
-        QUIC_DBG_ASSERT((DataFlags & QUIC_TLS_TICKET_DATA) == 0);
+    if (DataType == QUIC_TLS_CRYPTO_DATA) {
 
         if (*BufferLength) {
             QuicTraceLogConnVerbose(
@@ -1210,8 +1209,7 @@ QuicTlsProcessData(
             *BufferLength = ConsumedBytes;
         }
     } else {
-        QUIC_DBG_ASSERT(DataFlags & QUIC_TLS_TICKET_DATA);
-        QUIC_DBG_ASSERT((DataFlags & QUIC_TLS_CRYPTO_DATA) == 0);
+        QUIC_DBG_ASSERT(DataType == QUIC_TLS_TICKET_DATA);
 
         QUIC_DBG_ASSERT(TlsContext->IsServer);
         QUIC_DBG_ASSERT((*BufferLength > 0 && Buffer != NULL) ||

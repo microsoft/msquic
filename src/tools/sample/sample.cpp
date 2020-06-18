@@ -324,7 +324,7 @@ ClientConnectionCallback(
     case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
         printf("[conn][%p] Resumption ticket received (%u bytes):\n", Connection, Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
         for (uint32_t i = 0; i < Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength; i++) {
-            printf("%0.2X", (uint8_t)Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket[i]);
+            printf("%.2X", (uint8_t)Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket[i]);
         }
         printf("\n");
         break;
@@ -401,6 +401,7 @@ main(
 {
     QuicPlatformSystemLoad();
 
+    QUIC_SERVER_RESUMPTION_LEVEL ResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     if (QUIC_FAILED(Status = QuicPlatformInitialize())) {
         printf("QuicPlatformInitialize failed, 0x%x!\n", Status);
@@ -430,7 +431,6 @@ main(
         goto Error;
     }
 
-    QUIC_SERVER_RESUMPTION_LEVEL ResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT;
     if (QUIC_FAILED(Status = MsQuic->SetParam(
         Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
         sizeof(ResumptionLevel), &ResumptionLevel))) {
