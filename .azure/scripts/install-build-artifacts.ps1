@@ -39,15 +39,13 @@ $RootDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $ArtifactsDir = Join-Path $RootDir "artifacts"
 
 if ($IsWindows) {
-    # Install ETW manifest
-    $MsQuicDll = Join-Path $ArtifactsDir "\windows\$($Arch)_$($Config)_$($Tls)\msquic.dll"
-    $ManifestPath = Join-Path $RootDir "\src\manifest\MsQuicEtw.man"
-    $Command = "wevtutil.exe im $($ManifestPath) /rf:$($MsQuicDll) /mf:$($MsQuicDll)"
-    Write-Host $Command
-    try {
+    if (!(Test-Path "C:\Windows\System32\drivers\msquic.sys")) {
+        # Install ETW manifest, if not already present
+        $MsQuicDll = Join-Path $ArtifactsDir "\windows\$($Arch)_$($Config)_$($Tls)\msquic.dll"
+        $ManifestPath = Join-Path $RootDir "\src\manifest\MsQuicEtw.man"
+        $Command = "wevtutil.exe im $($ManifestPath) /rf:$($MsQuicDll) /mf:$($MsQuicDll)"
+        Write-Host $Command
         Invoke-Expression $Command
-    } catch {
-        Write-Host "Failed to install manifest. ETW log decoding likely won't work!"
     }
 
 } elseif ($IsLinux) {
