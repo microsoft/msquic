@@ -158,7 +158,9 @@ function Run-Loopback-Test() {
         Invoke-Expression $Command
 
         Write-Host "Copying $Artifacts\msquic.pgd out for publishing."
-        Copy-Item "$Artifacts\msquic.pgd" (Join-Path $RootDir "artifacts/PerfDataResults")
+        $OutPath = Join-Path $RootDir "artifacts\PerfDataResults\winuser\pgo_$($Arch)"
+        if (!(Test-Path $OutPath)) { New-Item -Path $OutPath -ItemType Directory -Force | Out-Null }
+        Copy-Item "$Artifacts\msquic.pgd" $OutPath
 
     } else {
         $fullLastResult = Get-Latest-Test-Results -Platform $Platform -Test "loopback"
@@ -166,9 +168,9 @@ function Run-Loopback-Test() {
         if ($fullLastResult -ne "") {
             $MedianLastResult = Median-Test-Results -FullResults $fullLastResult.individualRunResults
         }
+        Write-Host "Last Master Run: $MedianLastResult kbps"
 
         $ToPublishResults = [TestPublishResult]::new()
-
         $ToPublishResults.CommitHash = $CurrentCommitHash.Substring(0, 7)
         $ToPublishResults.PlatformName = $Platform
         $ToPublishResults.TestName = "loopback"
@@ -182,8 +184,6 @@ function Run-Loopback-Test() {
         New-Item $NewFilePath -ItemType Directory -Force
 
         $ToPublishResults | ConvertTo-Json | Out-File $NewFileLocation
-
-        Write-Host "Last Master Run: $MedianLastResult kbps"
     }
 }
 

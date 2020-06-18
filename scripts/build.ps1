@@ -123,7 +123,6 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 # Important directory paths.
 $BaseArtifactsDir = Join-Path $RootDir "artifacts"
 $BaseBuildDir = Join-Path $RootDir "build"
-$SrcDir = Join-Path $RootDir "src"
 
 $ArtifactsDir = Join-Path $BaseArtifactsDir $Platform
 $BuildDir = Join-Path $BaseBuildDir $Platform
