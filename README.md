@@ -6,7 +6,7 @@ protocol. It is cross platform, written in C and designed to be a general purpos
 
 > **Important** The MsQuic library, as well as the protocol itself, is still a work in progress. Version 1 is not yet finalized and may continue to experience breaking changes until it is finalized.
 
-[![Build Status](https://dev.azure.com/ms/msquic/_apis/build/status/microsoft.msquic?branchName=master)](https://dev.azure.com/ms/msquic/_build?definitionId=347)
+[![Build Status](https://dev.azure.com/ms/msquic/_apis/build/status/CI?branchName=master)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=master)
 
 ## Protocol Features
 
