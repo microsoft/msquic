@@ -35,41 +35,9 @@ Then you will need to **manually** launch "PowerShell 7" to continue. This insta
 
 You find the full installation instructions for PowerShell on Linux [here](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?). For Ubuntu you can run the following:
 
-```PowerShell
-# Download the Microsoft repository GPG keys
-wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb
+```DotNet
+./scripts/prepare-machine.sh
 
-# Register the Microsoft repository GPG keys
-sudo dpkg -i packages-microsoft-prod.deb
-
-# Update the list of products
-sudo apt-get update
-
-# Enable the "universe" repositories
-sudo add-apt-repository universe
-
-# Install PowerShell
-sudo apt-get install -y powershell
-
-# Start PowerShell
-pwsh
-```
-
-**Note** - If you get this error trying to install PowerShell:
-
-```
-powershell : Depends: libicu55 but it is not installable
-```
-
-Then you will need to run the following first (as a work around):
-
-```
-sudo apt-get remove libicu57
-wget http://security.ubuntu.com/ubuntu/pool/main/i/icu/libicu55_55.1-7ubuntu0.4_amd64.deb
-sudo dpkg -i libicu55_55.1-7ubuntu0.4_amd64.deb
-wget http://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.0.0_1.0.2g-1ubuntu4.15_amd64.deb
-sudo dpkg -i libssl1.0.0_1.0.2g-1ubuntu4.15_amd64.deb
-```
 
 Then you will need to manually run "pwsh" to continue.
 
