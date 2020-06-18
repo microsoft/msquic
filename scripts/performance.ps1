@@ -55,16 +55,19 @@ if ($IsWindows) {
 }
 $Platform = "$($OsPlat)_$($Arch)_$($Tls)"
 
-# Path to the spinquic exectuable.
-$PingClient = $null
+# Path to the build artifacts.
+$Artifacts = $null
+$QuicPing = $null
 if ($IsWindows) {
-    $PingClient = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)\quicping.exe"
+    $Artifacts = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)"
+    $QuicPing = "quicping.exe"
 } else {
-    $PingClient = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/quicping"
+    $Artifacts = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)"
+    $QuicPing = "quicping"
 }
 
 # Make sure the build is present.
-if (!(Test-Path $PingClient)) {
+if (!(Test-Path (Join-Path $Artifacts $QuicPing))) {
     Write-Error "Build does not exist!`n `nRun the following to generate it:`n `n    $(Join-Path $RootDir "scripts" "build.ps1") -Config $Config -Arch $Arch -Tls $Tls`n"
 }
 
@@ -132,21 +135,42 @@ $env:GIT_REDIRECT_STDERR = '2>&1'
 $CurrentCommitHash = git rev-parse HEAD
 Set-Location -Path $currentLoc
 
+function Merge-PGO-Counts($Path) {
+    $Command = "$Artifacts\pgomgr.exe /merge $Path $Artifacts\msquic.pgd"
+    Invoke-Expression $Command | Write-Debug
+    Remove-Item "$Path\*.pgc" | Out-Null
+}
+
 function Run-Loopback-Test() {
     Write-Host "Running Loopback Test"
-    $proc = Start-Background-Executable -File $PingClient -Arguments "-listen:* -selfsign:1 -peer_uni:1"
+
+    # Run server in it's own directory.
+    $ServerDir = "$($Artifacts)_server"
+    if (!(Test-Path $ServerDir)) { New-Item -Path $ServerDir -ItemType Directory -Force | Out-Null }
+    Copy-Item "$Artifacts\*" $ServerDir | Out-Null
+
+    $proc = Start-Background-Executable -File (Join-Path $ServerDir $QuicPing) -Arguments "-listen:* -selfsign:1 -peer_uni:1"
     Start-Sleep 4
 
     $allRunsResults = @()
 
     1..10 | ForEach-Object {
-        $runResult = Run-Foreground-Executable -File $PingClient -Arguments "-target:localhost -uni:1 -length:100000000"
+        $runResult = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments "-target:localhost -uni:1 -length:100000000"
         $parsedRunResult = Parse-Loopback-Results -Results $runResult
         $allRunsResults += $parsedRunResult
+        if ($PGO) {
+            # Merge client PGO counts.
+            Merge-PGO-Counts $Artifacts
+        }
         Write-Host "Client $_ Finished: $parsedRunResult kbps"
     }
 
     Stop-Background-Executable -Process $proc
+    if ($PGO) {
+        # Merge server PGO counts.
+        Merge-PGO-Counts $ServerDir
+    }
+    Remove-Item $ServerDir -Recurse -Force | Out-Null
 
     $MedianCurrentResult = Median-Test-Results -FullResults $allRunsResults
     Write-Host "Current Run: $MedianCurrentResult kbps"
@@ -179,12 +203,7 @@ function Run-Loopback-Test() {
 Run-Loopback-Test
 
 if ($PGO) {
-    $Artifacts = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)"
-    $Command = "$Artifacts\pgomgr.exe /merge $Artifacts $Artifacts\msquic.pgd"
-    $Command
-    Invoke-Expression $Command
-
-    Write-Host "Copying $Artifacts\msquic.pgd out for publishing."
+    Write-Host "Copying msquic.pgd out for publishing."
     $OutPath = Join-Path $RootDir "\artifacts\PerfDataResults\winuser\pgo_$($Arch)"
     if (!(Test-Path $OutPath)) { New-Item -Path $OutPath -ItemType Directory -Force }
     Copy-Item "$Artifacts\msquic.pgd" $OutPath
