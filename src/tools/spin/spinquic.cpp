@@ -756,7 +756,8 @@ main(int argc, char **argv)
 
         if (Settings.LossPercent != 0) {
             QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathHooks;
-            if (QUIC_FAILED(MsQuic->SetParam(
+            if (QUIC_FAILED(
+                MsQuic->SetParam(
                     nullptr,
                     QUIC_PARAM_LEVEL_GLOBAL,
                     QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
