@@ -61,6 +61,21 @@ BOOLEAN
 typedef QUIC_TLS_RECEIVE_TP_CALLBACK *QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER;
 
 //
+// Callback for indicating received resumption ticket. Callback always happens
+// in the context of a QuicTlsProcessData call; not on a separate thread.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+(QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK)(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint16_t TicketLength,
+    _In_reads_(TicketLength) const uint8_t* Ticket
+    );
+
+typedef QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK *QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK_HANDLER;
+
+//
 // The input configuration for creation of a TLS context.
 //
 typedef struct QUIC_TLS_CONFIG {
@@ -108,6 +123,11 @@ typedef struct QUIC_TLS_CONFIG {
     QUIC_TLS_RECEIVE_TP_CALLBACK_HANDLER ReceiveTPCallback;
 
     //
+    // Invoked when a resumption ticket is received.
+    //
+    QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK_HANDLER ReceiveResumptionCallback;
+
+    //
     // Name of the server we are connecting to (client side only).
     //
     const char* ServerName;
@@ -132,12 +152,12 @@ typedef enum QUIC_TLS_RESULT_FLAGS {
 
 } QUIC_TLS_RESULT_FLAGS;
 
-typedef enum QUIC_TLS_DATA_FLAGS {
+typedef enum QUIC_TLS_DATA_TYPE {
 
     QUIC_TLS_CRYPTO_DATA,
     QUIC_TLS_TICKET_DATA
 
-} QUIC_TLS_DATA_FLAGS;
+} QUIC_TLS_DATA_TYPE;
 
 //
 // Different possible results after writing new TLS data.
@@ -375,7 +395,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessData(
     _In_ QUIC_TLS* TlsContext,
-    _In_ QUIC_TLS_DATA_FLAGS DataFlags,
+    _In_ QUIC_TLS_DATA_TYPE DataType,
     _In_reads_bytes_(*BufferLength)
         const uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength,

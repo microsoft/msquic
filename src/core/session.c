@@ -1111,6 +1111,7 @@ QuicSessionParamSet(
 
     case QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL: {
         if (BufferLength != sizeof(QUIC_SERVER_RESUMPTION_LEVEL) ||
+            Buffer == NULL ||
             *(QUIC_SERVER_RESUMPTION_LEVEL*)Buffer > QUIC_SERVER_RESUME_AND_ZERORTT) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;

@@ -14,6 +14,9 @@ Abstract:
 #define QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION   1
 #define QUIC_EVENT_ACTION_SHUTDOWN_STREAM       2
 
+#define RESUMPTION_BUFFER_LENGTH 2048
+uint8_t SerializedResumptionStorage[sizeof(QUIC_BUFFER) + RESUMPTION_BUFFER_LENGTH];
+
 struct StreamEventValidator {
     bool Success;
     bool Optional;
@@ -77,16 +80,28 @@ struct StreamValidator {
 struct ConnEventValidator {
     bool Success;
     bool Optional;
+    bool Resumed;
     QUIC_CONNECTION_EVENT_TYPE Type;
     uint8_t Actions;
-    ConnEventValidator(QUIC_CONNECTION_EVENT_TYPE type, uint8_t actions = 0, bool optional = false) : Success(false),
-        Type(type), Actions(actions), Optional(optional) { }
+    ConnEventValidator(QUIC_CONNECTION_EVENT_TYPE type, uint8_t actions = 0, bool optional = false, bool resumed = false) : Success(false),
+        Type(type), Actions(actions), Optional(optional), Resumed(resumed) { }
     virtual void Validate(_In_ HQUIC Connection, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         if (Event->Type != Type) {
             if (!Optional) {
                 TEST_FAILURE("ConnEventValidator: Expected %u. Actual %u", Type, Event->Type);
             }
             return;
+        }
+        if (Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+            if ((bool)Event->CONNECTED.SessionResumed != Resumed) {
+                if (!Optional) {
+                    TEST_FAILURE(
+                        "ConnEventValidator: SessionResumed: Expected: %hhu. Actual: %hhu",
+                        Resumed,
+                        Event->CONNECTED.SessionResumed);
+                }
+                return;
+            }
         }
         Success = true;
         if (Actions & QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION) {
@@ -206,6 +221,29 @@ ConnValidatorCallback(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_CONNECTION_CALLBACK)
+QUIC_STATUS
+QUIC_API
+ConnServerResumptionCallback(
+    _In_ HQUIC Connection,
+    _In_opt_ void* /*Context*/,
+    _Inout_ QUIC_CONNECTION_EVENT* Event
+    )
+{
+    switch (Event->Type) {
+    case QUIC_CONNECTION_EVENT_CONNECTED:
+        MsQuic->ConnectionSendResumptionTicket(Connection, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr);
+        break;
+    case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
+        MsQuic->ConnectionClose(Connection);
+        break;
+    default:
+        break;
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Function_class_(QUIC_LISTENER_CALLBACK)
 QUIC_STATUS
 QUIC_API
@@ -222,6 +260,25 @@ ListenerEventValidatorCallback(
         Event->NEW_CONNECTION.Connection,
         (void *)ConnValidatorCallback,
         Validator);
+    Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_LISTENER_CALLBACK)
+QUIC_STATUS
+QUIC_API
+ListenerEventResumptionCallback(
+    _In_ HQUIC /* Listener */,
+    _In_opt_ void* /*Context*/,
+    _Inout_ QUIC_LISTENER_EVENT* Event
+    )
+{
+    MsQuic->SetCallbackHandler(
+        Event->NEW_CONNECTION.Connection,
+        (void *)ConnServerResumptionCallback,
+        nullptr);
+
     Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
     return QUIC_STATUS_SUCCESS;
 }
@@ -350,6 +407,128 @@ QuicTestValidateConnectionEvents2(
     TEST_TRUE(QuicEventWaitWithTimeout(Server.Complete, 1000));
 }
 
+void
+QuicTestValidateConnectionEvents3(
+    _In_ MsQuicSession& Session,
+    _In_ HQUIC Listener,
+    _In_ QuicAddr& ServerLocalAddr
+    )
+{
+    ConnValidator Client(
+        new ConnEventValidator* [4] {
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION, false, true),
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+            nullptr
+        }
+    );
+    ConnValidator Server(
+        new ConnEventValidator* [7] {
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_RESUMED, 0, true),
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_RESUMED, 0, true),
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, false, true),
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+            nullptr
+        }
+    );
+
+    uint32_t CertFlags =
+        QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
+    uint16_t StreamCount = 0; // Temp Work around.
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    QUIC_SERVER_RESUMPTION_LEVEL Level = QUIC_SERVER_RESUME_ONLY;
+    QUIC_BUFFER* ResumptionBuffer = (QUIC_BUFFER*) SerializedResumptionStorage;
+    ResumptionBuffer->Length = RESUMPTION_BUFFER_LENGTH;
+    ResumptionBuffer->Buffer = SerializedResumptionStorage + sizeof(QUIC_BUFFER);
+
+    //
+    // Create a connection just to get a resumption ticket.
+    //
+    MsQuic->SetCallbackHandler(Listener, (void*)ListenerEventResumptionCallback, nullptr);
+    Status =
+        MsQuic->SetParam(
+            Session.Handle,
+            QUIC_PARAM_LEVEL_SESSION,
+            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+            sizeof(Level),
+            &Level);
+    TEST_QUIC_SUCCEEDED(Status);
+
+    TestConnection FirstConnection(Session, nullptr);
+    FirstConnection.SetCertValidationFlags(CertFlags);
+    FirstConnection.SetPeerBidiStreamCount(StreamCount);
+    FirstConnection.Start(
+        QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+        QUIC_LOCALHOST_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+        QuicAddrGetPort(&ServerLocalAddr.SockAddr));
+    FirstConnection.WaitForConnectionComplete();
+    int i = 0;
+    do {
+        QuicSleep(100);
+        Status =
+            FirstConnection.GetResumptionTicket(
+                ResumptionBuffer->Buffer,
+                &ResumptionBuffer->Length);
+    } while (Status != QUIC_STATUS_SUCCESS && i++ < 10);
+    TEST_QUIC_SUCCEEDED(Status);
+    FirstConnection.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+    FirstConnection.WaitForShutdownComplete();
+
+    //
+    // Set up the listener for the actual test now.
+    //
+    MsQuic->SetCallbackHandler(Listener, (void*)ListenerEventValidatorCallback, &Server);
+
+    Level = QUIC_SERVER_NO_RESUME;
+    Status =
+        MsQuic->SetParam(
+            Session.Handle,
+            QUIC_PARAM_LEVEL_SESSION,
+            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+            sizeof(Level),
+            &Level);
+    TEST_QUIC_SUCCEEDED(Status);
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Session.Handle,
+            ConnValidatorCallback,
+            &Client,
+            &Client.Handle));
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            Client.Handle,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
+            sizeof(CertFlags),
+            &CertFlags));
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            Client.Handle,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT,
+            sizeof(StreamCount),
+            &StreamCount));
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            Client.Handle,
+            QUIC_PARAM_LEVEL_SESSION,
+            QUIC_PARAM_SESSION_ADD_RESUMPTION_STATE,
+            ResumptionBuffer->Length,
+            ResumptionBuffer->Buffer));
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionStart(
+            Client.Handle,
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QUIC_LOCALHOST_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+            QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+
+    TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
+    TEST_TRUE(QuicEventWaitWithTimeout(Server.Complete, 1000));
+}
+
 void QuicTestValidateConnectionEvents()
 {
     MsQuicSession Session;
@@ -379,6 +558,9 @@ void QuicTestValidateConnectionEvents()
 
     QuicTestValidateConnectionEvents1(Session.Handle, Listener.Handle, ServerLocalAddr);
     QuicTestValidateConnectionEvents2(Session.Handle, Listener.Handle, ServerLocalAddr);
+#ifndef QUIC_DISABLE_0RTT_TESTS
+    QuicTestValidateConnectionEvents3(Session, Listener.Handle, ServerLocalAddr);
+#endif
 
     } // Listener Scope
 }

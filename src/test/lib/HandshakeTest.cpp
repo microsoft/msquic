@@ -143,6 +143,11 @@ QuicTestConnect(
         TEST_QUIC_SUCCEEDED(Session2.SetIdleTimeout(10000));
     }
 
+    if (SessionResumption) {
+        TEST_QUIC_SUCCEEDED(Session.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY));
+        TEST_QUIC_SUCCEEDED(Session2.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY));
+    }
+
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
 
     if (SessionResumption) {
