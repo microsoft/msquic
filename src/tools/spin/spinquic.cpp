@@ -26,7 +26,7 @@
 
 #define EXIT_ON_NOT(x) do { \
     if (!(x)) { \
-       printf("%s:%d !'%s' ! %d\n", __FILE__, __LINE__, #x, _Status); \
+       printf("%s:%d !'%s' !\n", __FILE__, __LINE__, #x); \
        exit(10); \
     } \
 } while (0);
