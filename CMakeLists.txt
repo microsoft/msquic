@@ -92,6 +92,10 @@ option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
 option(QUIC_UWP_BUILD "Build for UWP" OFF)
 option(QUIC_PGO "Enables profile guided optimizations" OFF)
 
+if (${CMAKE_VERSION } VERSION_LESS "3.6.0")
+    set(QUIC_ENABLE_LOGGING OFF)
+endif()
+
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
     set(QUIC_PLATFORM "windows")
 else()
