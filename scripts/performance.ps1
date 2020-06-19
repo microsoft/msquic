@@ -88,6 +88,7 @@ function Stop-Background-Executable($Process) {
     $Process.StandardInput.WriteLine("")
     $Process.StandardInput.Flush()
     $Process.WaitForExit()
+    return $Process.StandardOutput.ReadToEnd()
 }
 
 function Run-Foreground-Executable($File, $Arguments) {
@@ -149,13 +150,13 @@ function Run-Loopback-Test() {
     if (!(Test-Path $ServerDir)) { New-Item -Path $ServerDir -ItemType Directory -Force | Out-Null }
     Copy-Item "$Artifacts\*" $ServerDir | Out-Null
 
-    $proc = Start-Background-Executable -File (Join-Path $ServerDir $QuicPing) -Arguments "-listen:* -selfsign:1 -peer_uni:1"
+    $proc = Start-Background-Executable -File (Join-Path $ServerDir $QuicPing) -Arguments "-listen:* -port:4433 -selfsign:1 -peer_uni:1"
     Start-Sleep 4
 
     $allRunsResults = @()
 
     1..10 | ForEach-Object {
-        $runResult = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments "-target:localhost -uni:1 -length:100000000"
+        $runResult = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments "-target:localhost -port:4433 -uni:1 -length:100000000"
         $parsedRunResult = Parse-Loopback-Results -Results $runResult
         $allRunsResults += $parsedRunResult
         if ($PGO) {
@@ -165,7 +166,9 @@ function Run-Loopback-Test() {
         Write-Host "Client $_ Finished: $parsedRunResult kbps"
     }
 
-    Stop-Background-Executable -Process $proc
+    $BackgroundText = Stop-Background-Executable -Process $proc
+    # Write server output so we can detect possible failures early
+    Write-Host $BackgroundText
     if ($PGO) {
         # Merge server PGO counts.
         Merge-PGO-Counts $ServerDir
