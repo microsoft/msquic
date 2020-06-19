@@ -12,6 +12,15 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Tls
     The TLS library use.
 
+.PARAMETER Runs
+    The number of runs to execute.
+
+.PARAMETER Length
+    The length of the data to transfer for each run.
+
+.PARAMETER Publish
+    Publishes the results to the artifacts directory.
+
 .PARAMETER PGO
     Uses pgomgr to merge the resulting .pgc files back to the .pgd.
 
@@ -29,6 +38,15 @@ param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
     [string]$Tls = "",
+
+    [Parameter(Mandatory = $false)]
+    [Int32]$Runs = 10,
+
+    [Parameter(Mandatory = $false)]
+    [Int64]$Length = 100000000,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Publish = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$PGO = $false
@@ -88,6 +106,7 @@ function Stop-Background-Executable($Process) {
     $Process.StandardInput.WriteLine("")
     $Process.StandardInput.Flush()
     $Process.WaitForExit()
+    return $Process.StandardOutput.ReadToEnd()
 }
 
 function Run-Foreground-Executable($File, $Arguments) {
@@ -104,16 +123,16 @@ function Run-Foreground-Executable($File, $Arguments) {
 }
 
 function Parse-Loopback-Results($Results) {
-    #Unused variable on purpose
-    $m = $Results -match "Total rate.*\(TX.*bytes @ (.*) kbps \|"
+    # Unused variable on purpose
+    $m = $Results -match "Closed.*\(TX.*bytes @ (.*) kbps \|"
     return $Matches[1]
 }
 
 function Get-Latest-Test-Results($Platform, $Test) {
     $Uri = "https://msquicperformanceresults.azurewebsites.net/performance/$Platform/$Test"
-    Write-Host "Requesting: $Uri"
+    Write-Debug "Requesting: $Uri"
     $LatestResult = Invoke-RestMethod -Uri $Uri
-    Write-Host "Result: $LatestResult"
+    Write-Debug "Result: $LatestResult"
     return $LatestResult
 }
 
@@ -147,25 +166,26 @@ function Run-Loopback-Test() {
     # Run server in it's own directory.
     $ServerDir = "$($Artifacts)_server"
     if (!(Test-Path $ServerDir)) { New-Item -Path $ServerDir -ItemType Directory -Force | Out-Null }
-    Copy-Item "$Artifacts\*" $ServerDir | Out-Null
+    Copy-Item "$Artifacts\*" $ServerDir
 
-    $proc = Start-Background-Executable -File (Join-Path $ServerDir $QuicPing) -Arguments "-listen:* -selfsign:1 -peer_uni:1"
+    $proc = Start-Background-Executable -File (Join-Path $ServerDir $QuicPing) -Arguments "-listen:* -port:4433 -selfsign:1 -peer_uni:1"
     Start-Sleep 4
 
     $allRunsResults = @()
 
-    1..10 | ForEach-Object {
-        $runResult = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments "-target:localhost -uni:1 -length:100000000"
-        $parsedRunResult = Parse-Loopback-Results -Results $runResult
+    1..$Runs | ForEach-Object {
+        $clientOutput = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments "-target:localhost -port:4433 -uni:1 -length:$Length"
+        $parsedRunResult = Parse-Loopback-Results -Results $clientOutput
         $allRunsResults += $parsedRunResult
         if ($PGO) {
             # Merge client PGO counts.
             Merge-PGO-Counts $Artifacts
         }
-        Write-Host "Client $_ Finished: $parsedRunResult kbps"
+        Write-Host "Run $($_): $parsedRunResult kbps"
+        $clientOutput | Write-Debug
     }
 
-    Stop-Background-Executable -Process $proc
+    $serverOutput = Stop-Background-Executable -Process $proc
     if ($PGO) {
         # Merge server PGO counts.
         Merge-PGO-Counts $ServerDir
@@ -173,16 +193,25 @@ function Run-Loopback-Test() {
     Remove-Item $ServerDir -Recurse -Force | Out-Null
 
     $MedianCurrentResult = Median-Test-Results -FullResults $allRunsResults
-    Write-Host "Current Run: $MedianCurrentResult kbps"
 
-    if (!$PGO) {
-        $fullLastResult = Get-Latest-Test-Results -Platform $Platform -Test "loopback"
-        $MedianLastResult = 0
-        if ($fullLastResult -ne "") {
-            $MedianLastResult = Median-Test-Results -FullResults $fullLastResult.individualRunResults
+    $fullLastResult = Get-Latest-Test-Results -Platform $Platform -Test "loopback"
+    if ($fullLastResult -ne "") {
+        $MedianLastResult = Median-Test-Results -FullResults $fullLastResult.individualRunResults
+        $PercentDiff = 100 * (($MedianCurrentResult - $MedianLastResult) / $MedianLastResult)
+        $PercentDiffStr = $PercentDiff.ToString("#.##")
+        if ($PercentDiff -ge 0) {
+            $PercentDiff = "+$PercentDiff"
         }
-        Write-Host "Last Master Run: $MedianLastResult kbps"
+        Write-Host "Median: $MedianCurrentResult kbps ($PercentDiffStr%)"
+        Write-Host "Master: $MedianLastResult kbps"
+    } else {
+        Write-Host "Median: $MedianCurrentResult kbps"
+    }
+    # Write server output so we can detect possible failures early.
+    Write-Debug $serverOutput
 
+    if ($Publish) {
+        Write-Host "Copying results.json out for publishing."
         $ToPublishResults = [TestPublishResult]::new()
         $ToPublishResults.CommitHash = $CurrentCommitHash.Substring(0, 7)
         $ToPublishResults.PlatformName = $Platform
@@ -194,7 +223,7 @@ function Run-Loopback-Test() {
 
         $NewFilePath = Join-Path $RootDir "artifacts/PerfDataResults/$ResultsFolderRoot"
         $NewFileLocation = Join-Path $NewFilePath $ResultsFileName
-        New-Item $NewFilePath -ItemType Directory -Force
+        New-Item $NewFilePath -ItemType Directory -Force | Out-Null
 
         $ToPublishResults | ConvertTo-Json | Out-File $NewFileLocation
     }
@@ -205,6 +234,6 @@ Run-Loopback-Test
 if ($PGO) {
     Write-Host "Copying msquic.pgd out for publishing."
     $OutPath = Join-Path $RootDir "\artifacts\PerfDataResults\winuser\pgo_$($Arch)"
-    if (!(Test-Path $OutPath)) { New-Item -Path $OutPath -ItemType Directory -Force }
+    if (!(Test-Path $OutPath)) { New-Item -Path $OutPath -ItemType Directory -Force | Write-Debug }
     Copy-Item "$Artifacts\msquic.pgd" $OutPath
 }
