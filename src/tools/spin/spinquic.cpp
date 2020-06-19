@@ -19,14 +19,14 @@
 #define EXIT_ON_FAILURE(x) do { \
     auto _Status = x; \
     if (QUIC_FAILED(_Status)) { \
-       printf("%s:%d %s failed!\n", __FILE__, __LINE__, #x); \
+       printf("%s:%d %s %d failed!\n", __FILE__, __LINE__, #x, _Status); \
        exit(10); \
     } \
 } while (0);
 
 #define EXIT_ON_NOT(x) do { \
     if (!(x)) { \
-       printf("%s:%d !'%s' !\n", __FILE__, __LINE__, #x); \
+       printf("%s:%d !'%s' ! %d\n", __FILE__, __LINE__, #x, _Status); \
        exit(10); \
     } \
 } while (0);
