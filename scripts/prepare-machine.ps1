@@ -46,9 +46,12 @@ if ($IsWindows) {
 
     if ($Configuration -eq "Test") {
         # Enable Application Verifier for test binaries
-        appverif.exe /verify msquiccoretest.exe
-        appverif.exe /verify msquicplatformtest.exe
-        appverif.exe /verify msquictest.exe
+        where.exe appverif.exe
+        if ($LastExitCode -eq 0) {
+            appverif.exe /verify msquiccoretest.exe
+            appverif.exe /verify msquicplatformtest.exe
+            appverif.exe /verify msquictest.exe
+        }
     }
 
 } else {
