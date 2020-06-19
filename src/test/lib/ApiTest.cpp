@@ -430,6 +430,7 @@ DummyConnectionCallback(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
+#ifndef QUIC_DISABLE_0RTT_TESTS
 static
 _Function_class_(QUIC_CONNECTION_CALLBACK)
 QUIC_STATUS
@@ -507,6 +508,7 @@ ListenerFailSendResumeCallback(
     MsQuic->SetCallbackHandler(ConnectionHandle, (void*)ResumptionFailConnectionCallback, Listener->Context);
     QuicEventSet(*(QUIC_EVENT*)Listener->Context);
 }
+#endif
 
 void QuicTestValidateConnection()
 {
@@ -863,7 +865,11 @@ void QuicTestValidateConnection()
 
     //
     // Invalid send resumption, server-side
+    // Some of these cases require an actual connection to succeed, so
+    // they won't work on Schannel in AZP.
+    // Currently disabling these test cases for TLS platforms without 0-RTT.
     //
+#ifndef QUIC_DISABLE_0RTT_TESTS
     {
         TestListener MyListener(Session, ListenerFailSendResumeCallback);
         TEST_TRUE(MyListener.IsValid());
@@ -896,15 +902,6 @@ void QuicTestValidateConnection()
                     QUIC_PARAM_CONN_IDLE_TIMEOUT,
                     sizeof(IdleTimeout),
                     &IdleTimeout));
-
-            uint32_t SecFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    Connection.Handle,
-                    QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-                    sizeof(SecFlags),
-                    &SecFlags));
 
             TEST_QUIC_SUCCEEDED(
                 MsQuic->ConnectionStart(
@@ -976,6 +973,14 @@ void QuicTestValidateConnection()
                     &Connection.Handle));
 
             TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Connection.Handle,
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_IDLE_TIMEOUT,
+                    sizeof(IdleTimeout),
+                    &IdleTimeout));
+
+            TEST_QUIC_SUCCEEDED(
                 MsQuic->ConnectionStart(
                     Connection.Handle,
                     QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
@@ -983,7 +988,7 @@ void QuicTestValidateConnection()
                         QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                     ServerLocalAddr.GetPort()));
 
-            TEST_TRUE(QuicEventWaitWithTimeout(Event, 100));
+            TEST_TRUE(QuicEventWaitWithTimeout(Event, 1000));
 
             //
             // TODO: add test case to validate ConnectionSendResumptionTicket:
@@ -993,6 +998,7 @@ void QuicTestValidateConnection()
 
         QuicEventUninitialize(Event);
     }
+#endif
 }
 
 _Function_class_(NEW_CONNECTION_CALLBACK)

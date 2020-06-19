@@ -394,7 +394,7 @@ PingConnection::ProcessEvent(
                     SerializedResumptionState))) {
                 printf("[%p] Resumption state (%u bytes):\n", QuicConnection, SerializedResumptionStateLength);
                 for (uint32_t i = 0; i < SerializedResumptionStateLength; i++) {
-                    printf("%0.2X", (uint8_t)SerializedResumptionState[i]);
+                    printf("%.2X", (uint8_t)SerializedResumptionState[i]);
                 }
                 printf("\n");
             }
