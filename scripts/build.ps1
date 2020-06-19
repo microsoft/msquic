@@ -15,6 +15,9 @@ This script provides helpers for building msquic.
 .PARAMETER Tls
     The TLS library to use.
 
+.PARAMETER ToolchainFile
+    Toolchain file to use (if cross)
+
 .PARAMETER DisableLogs
     Disables log collection.
 
@@ -66,6 +69,9 @@ param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
     [string]$Tls = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$ToolchainFile = "",
 
     [Parameter(Mandatory = $false)]
     [switch]$DisableLogs = $false,
@@ -197,7 +203,9 @@ function CMake-Generate {
     }
     if ($Platform -eq "uwp") {
         $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
-
+    }
+    if ($ToolchainFile -ne "") {
+        $Arguments += " ""-DCMAKE_TOOLCHAIN_FILE=" + $ToolchainFile + """"
     }
     $Arguments += " ../../.."
 

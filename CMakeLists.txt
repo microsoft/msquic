@@ -244,14 +244,26 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 
 if(QUIC_TLS STREQUAL "openssl")
     # Configure and build OpenSSL.
-    add_custom_command(
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl
-        OUTPUT ${QUIC_BUILD_DIR}/openssl/include
-        OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-        OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-        COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ./config enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
-        COMMAND make -j$$(nproc)
-        COMMAND make install_sw)
+    if (CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
+        add_custom_command(
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl
+            OUTPUT ${QUIC_BUILD_DIR}/openssl/include
+            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ./Configure linux-armv4 --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}- -DL_ENDIAN enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
+            COMMAND make clean
+            COMMAND make -j$$(nproc)
+            COMMAND make install_sw)
+    else ()
+        add_custom_command(
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl
+            OUTPUT ${QUIC_BUILD_DIR}/openssl/include
+            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ./config enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
+            COMMAND make -j$$(nproc)
+            COMMAND make install_sw)
+    endif()
     add_custom_target(OpenSSL
         DEPENDS ${QUIC_BUILD_DIR}/openssl/include
         DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
