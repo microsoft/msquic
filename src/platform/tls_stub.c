@@ -903,6 +903,10 @@ QuicTlsUninitialize(
             QUIC_FREE(TlsContext->LocalTPBuffer);
         }
 
+        if (TlsContext->Ticket != NULL) {
+            QuicTlsTicketRelease(TlsContext->Ticket);
+        }
+
         QUIC_FREE(TlsContext);
     }
 }

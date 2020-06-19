@@ -897,6 +897,15 @@ void QuicTestValidateConnection()
                     sizeof(IdleTimeout),
                     &IdleTimeout));
 
+            uint32_t SecFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Connection.Handle,
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
+                    sizeof(SecFlags),
+                    &SecFlags));
+
             TEST_QUIC_SUCCEEDED(
                 MsQuic->ConnectionStart(
                     Connection.Handle,
