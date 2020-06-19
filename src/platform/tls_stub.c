@@ -801,7 +801,7 @@ QuicTlsInitialize(
     QuicZeroMemory(TlsContext, sizeof(QUIC_TLS));
 
     TlsContext->IsServer = Config->IsServer;
-    TlsContext->TlsSession = Config->TlsSession;
+    TlsContext->TlsSession = QuicTlsSessionAddRef(Config->TlsSession);
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
     TlsContext->LocalTPBuffer = Config->LocalTPBuffer;
@@ -891,6 +891,10 @@ QuicTlsUninitialize(
             TlsContext->Connection,
             "Cleaning up");
 
+        if (TlsContext->Ticket != NULL) {
+            QuicTlsTicketRelease(TlsContext->Ticket);
+        }
+
         if (TlsContext->SecConfig != NULL) {
             QuicTlsSecConfigRelease(TlsContext->SecConfig);
         }
@@ -903,10 +907,7 @@ QuicTlsUninitialize(
             QUIC_FREE(TlsContext->LocalTPBuffer);
         }
 
-        if (TlsContext->Ticket != NULL) {
-            QuicTlsTicketRelease(TlsContext->Ticket);
-        }
-
+        QuicTlsSessionRelease(TlsContext->TlsSession);
         QUIC_FREE(TlsContext);
     }
 }
