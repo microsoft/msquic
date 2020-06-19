@@ -200,7 +200,7 @@ function Run-Loopback-Test() {
         $PercentDiff = 100 * (($MedianCurrentResult - $MedianLastResult) / $MedianLastResult)
         $PercentDiffStr = $PercentDiff.ToString("#.##")
         if ($PercentDiff -ge 0) {
-            $PercentDiff = "+$PercentDiff"
+            $PercentDiffStr = "+$PercentDiffStr"
         }
         Write-Host "Median: $MedianCurrentResult kbps ($PercentDiffStr%)"
         Write-Host "Master: $MedianLastResult kbps"
