@@ -123,7 +123,6 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 # Important directory paths.
 $BaseArtifactsDir = Join-Path $RootDir "artifacts"
 $BaseBuildDir = Join-Path $RootDir "build"
-$SrcDir = Join-Path $RootDir "src"
 
 $ArtifactsDir = Join-Path $BaseArtifactsDir $Platform
 $BuildDir = Join-Path $BaseBuildDir $Platform
@@ -231,6 +230,25 @@ function CMake-Build {
         Copy-Item (Join-Path $BuildDir "obj" $Config "msquic.lib") $ArtifactsDir
         if (!$DisableTools) {
             Copy-Item (Join-Path $BuildDir "obj" $Config "msquicetw.lib") $ArtifactsDir
+        }
+        if ($PGO -and $Config -eq "Release") {
+            # TODO - Figure out a better way to get the path?
+            $VCToolsPath = "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\MSVC\14.26.28801\bin\Host$Arch\$Arch"
+            if (!(Test-Path $VCToolsPath)) {
+                $VCToolsPath = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\14.26.28801\bin\Host$Arch\$Arch"
+            }
+            if (!(Test-Path $VCToolsPath)) {
+                $VCToolsPath = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.26.28801\bin\Host$Arch\$Arch"
+            }
+            if (Test-Path $VCToolsPath) {
+                Copy-Item (Join-Path $VCToolsPath "pgort140.dll") $ArtifactsDir
+                Copy-Item (Join-Path $VCToolsPath "pgodb140.dll") $ArtifactsDir
+                Copy-Item (Join-Path $VCToolsPath "mspdbcore.dll") $ArtifactsDir
+                Copy-Item (Join-Path $VCToolsPath "tbbmalloc.dll") $ArtifactsDir
+                Copy-Item (Join-Path $VCToolsPath "pgomgr.exe") $ArtifactsDir
+            } else {
+                Log "Failed to find VC Tools path!"
+            }
         }
     }
 }
