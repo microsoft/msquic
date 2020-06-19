@@ -446,7 +446,7 @@ QuicTestValidateConnectionEvents3(
     //
     // Create a connection just to get a resumption ticket.
     //
-    MsQuic->SetCallbackHandler(Listener, ListenerEventResumptionCallback, nullptr);
+    MsQuic->SetCallbackHandler(Listener, (void*)ListenerEventResumptionCallback, nullptr);
     Status =
         MsQuic->SetParam(
             Session.Handle,
@@ -460,8 +460,8 @@ QuicTestValidateConnectionEvents3(
     FirstConnection.SetCertValidationFlags(CertFlags);
     FirstConnection.SetPeerBidiStreamCount(StreamCount);
     FirstConnection.Start(
-        ServerLocalAddr.SockAddr.si_family,
-        QUIC_LOCALHOST_FOR_AF(ServerLocalAddr.SockAddr.si_family),
+        QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+        QUIC_LOCALHOST_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
         QuicAddrGetPort(&ServerLocalAddr.SockAddr));
     FirstConnection.WaitForConnectionComplete();
     int i = 0;
@@ -479,7 +479,7 @@ QuicTestValidateConnectionEvents3(
     //
     // Set up the listener for the actual test now.
     //
-    MsQuic->SetCallbackHandler(Listener, ListenerEventValidatorCallback, &Server);
+    MsQuic->SetCallbackHandler(Listener, (void*)ListenerEventValidatorCallback, &Server);
 
     Level = QUIC_SERVER_NO_RESUME;
     Status =
@@ -521,8 +521,8 @@ QuicTestValidateConnectionEvents3(
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
-            ServerLocalAddr.SockAddr.si_family,
-            QUIC_LOCALHOST_FOR_AF(ServerLocalAddr.SockAddr.si_family),
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QUIC_LOCALHOST_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
 
     TEST_TRUE(QuicEventWaitWithTimeout(Client.Complete, 2000));
