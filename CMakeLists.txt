@@ -92,6 +92,12 @@ option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
 option(QUIC_UWP_BUILD "Build for UWP" OFF)
 option(QUIC_PGO "Enables profile guided optimizations" OFF)
 
+# FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
+if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
+    message(WARNING "Logging unsupported on this version of CMake. Please upgrade to 3.6 or later.")
+    set(QUIC_ENABLE_LOGGING OFF)
+endif()
+
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
     set(QUIC_PLATFORM "windows")
 else()
