@@ -46,6 +46,11 @@ typedef struct QUIC_CACHEALIGN QUIC_LIBRARY_PP {
     //
     QUIC_POOL ConnectionPool;
 
+    //
+    // Pool for QUIC_TRANSPORT_PARAMETERs.
+    //
+    QUIC_POOL TransportParamPool;
+
 } QUIC_LIBRARY_PP;
 
 //

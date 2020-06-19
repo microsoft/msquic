@@ -190,6 +190,10 @@ MsQuicLibraryInitialize(
             FALSE,
             sizeof(QUIC_CONNECTION),
             &MsQuicLib.PerProc[i].ConnectionPool);
+        QuicPoolInitialize(
+            FALSE,
+            sizeof(QUIC_TRANSPORT_PARAMETERS),
+            &MsQuicLib.PerProc[i].TransportParamPool);
     }
 
     Status =
@@ -235,6 +239,7 @@ Error:
         if (MsQuicLib.PerProc != NULL) {
             for (uint8_t i = 0; i < MsQuicLib.PartitionCount; ++i) {
                 QuicPoolUninitialize(&MsQuicLib.PerProc[i].ConnectionPool);
+                QuicPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
             }
             QUIC_FREE(MsQuicLib.PerProc);
             MsQuicLib.PerProc = NULL;
@@ -305,6 +310,7 @@ MsQuicLibraryUninitialize(
 
     for (uint8_t i = 0; i < MsQuicLib.PartitionCount; ++i) {
         QuicPoolUninitialize(&MsQuicLib.PerProc[i].ConnectionPool);
+        QuicPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
     }
     QUIC_FREE(MsQuicLib.PerProc);
     MsQuicLib.PerProc = NULL;
