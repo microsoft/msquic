@@ -423,9 +423,10 @@ QuicTestValidateConnectionEvents3(
         }
     );
     ConnValidator Server(
-        new ConnEventValidator* [6] {
+        new ConnEventValidator* [7] {
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_RESUMED, 0, true),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_RESUMED),
+            new ConnEventValidator(QUIC_CONNECTION_EVENT_RESUMED, 0, true),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, false, true),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
             new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),

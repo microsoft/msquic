@@ -354,6 +354,9 @@ QuicTestConnectAndPing(
 
     if (ServerRejectZeroRtt) {
         uint8_t NewTicketKey[44] = {1};
+        //
+        // TODO: Validate new connections don't do 0-RTT
+        //
         TEST_QUIC_SUCCEEDED(Session.SetTlsTicketKey(NewTicketKey));
     }
 
