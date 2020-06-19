@@ -389,7 +389,9 @@ QuicConnFree(
         QUIC_FREE(Connection->OrigDestCID);
     }
     if (Connection->HandshakeTP != NULL) {
-        QUIC_FREE(Connection->HandshakeTP);
+        QuicPoolFree(
+            &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].TransportParamPool,
+            Connection->HandshakeTP);
         Connection->HandshakeTP = NULL;
     }
     QuicTraceEvent(
@@ -442,7 +444,8 @@ QuicConnApplySettings(
         //
         // TODO: Replace with pool allocator for performance.
         //
-        Connection->HandshakeTP = QUIC_ALLOC_NONPAGED(sizeof(*Connection->HandshakeTP));
+        Connection->HandshakeTP =
+            QuicPoolAlloc(&MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].TransportParamPool);
         if (Connection->HandshakeTP == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -2187,7 +2190,9 @@ QuicConnCleanupServerResumptionState(
     QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
     if (!Connection->State.ResumptionEnabled) {
         if (Connection->HandshakeTP != NULL) {
-            QUIC_FREE(Connection->HandshakeTP);
+            QuicPoolFree(
+                &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].TransportParamPool,
+                Connection->HandshakeTP);
             Connection->HandshakeTP = NULL;
         }
 
