@@ -19,7 +19,7 @@
 #define EXIT_ON_FAILURE(x) do { \
     auto _Status = x; \
     if (QUIC_FAILED(_Status)) { \
-       printf("%s:%d %s %d failed!\n", __FILE__, __LINE__, #x, _Status); \
+       printf("%s:%d %s failed!\n", __FILE__, __LINE__, #x); \
        exit(10); \
     } \
 } while (0);
