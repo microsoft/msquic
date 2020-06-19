@@ -88,6 +88,7 @@ function Stop-Background-Executable($Process) {
     $Process.StandardInput.WriteLine("")
     $Process.StandardInput.Flush()
     $Process.WaitForExit()
+    return $Process.StandardOutput.ReadToEnd()
 }
 
 function Run-Foreground-Executable($File, $Arguments) {
@@ -156,6 +157,7 @@ function Run-Loopback-Test() {
 
     1..10 | ForEach-Object {
         $runResult = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments "-target:localhost -uni:1 -length:100000000"
+        Write-Host $runResult
         $parsedRunResult = Parse-Loopback-Results -Results $runResult
         $allRunsResults += $parsedRunResult
         if ($PGO) {
@@ -165,7 +167,8 @@ function Run-Loopback-Test() {
         Write-Host "Client $_ Finished: $parsedRunResult kbps"
     }
 
-    Stop-Background-Executable -Process $proc
+    $BackgroundText = Stop-Background-Executable -Process $proc
+    Write-Host $BackgroundText
     if ($PGO) {
         # Merge server PGO counts.
         Merge-PGO-Counts $ServerDir
