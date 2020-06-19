@@ -123,9 +123,14 @@ function Run-Foreground-Executable($File, $Arguments) {
 }
 
 function Parse-Loopback-Results($Results) {
-    # Unused variable on purpose
-    $m = $Results -match "Closed.*\(TX.*bytes @ (.*) kbps \|"
-    return $Matches[1]
+    try {
+        # Unused variable on purpose
+        $m = $Results -match "Closed.*\(TX.*bytes @ (.*) kbps \|"
+        return $Matches[1]
+    } catch {
+        Write-Host "Error Processing Results:`n`n$Results"
+        throw
+    }
 }
 
 function Get-Latest-Test-Results($Platform, $Test) {
