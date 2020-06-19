@@ -44,6 +44,13 @@ if ($IsWindows) {
         reg.exe add $TlsClientKeyPath /v Enabled /t REG_DWORD /d 1 /f | Out-Null
     }
 
+    if ($Configuration -eq "Test") {
+        # Enable Application Verifier for test binaries
+        appverif.exe /verify msquiccoretest.exe
+        appverif.exe /verify msquicplatformtest.exe
+        appverif.exe /verify msquictest.exe
+    }
+
 } else {
     switch ($Configuration) {
         "Build" {
