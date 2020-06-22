@@ -35,7 +35,7 @@ Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 # Important directories.
-$RootDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$RootDir = Split-Path $PSScriptRoot -Parent
 $ArtifactsDir = Join-Path $RootDir "artifacts"
 
 if ($IsWindows) {

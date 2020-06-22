@@ -81,7 +81,7 @@ if (!(Test-Path $Path)) {
 }
 
 # Root directory of the project.
-$RootDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$RootDir = Split-Path $PSScriptRoot -Parent
 
 # Script for controlling loggings.
 $LogScript = Join-Path $RootDir "scripts" "log.ps1"
