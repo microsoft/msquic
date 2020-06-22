@@ -3426,6 +3426,116 @@
                 name="arg5"
                 />
           </template>
+          <template tid="template_ptr_i32_ui32_">
+            <data
+                inType="win:Pointer"
+                name="arg1"
+                />
+            <data
+                inType="win:Int32"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt32"
+                name="arg4"
+                />
+          </template>
+          <template tid="template_sz_i32_sz_">
+            <data
+                inType="win:AnsiString"
+                name="arg2"
+                />
+            <data
+                inType="win:Int32"
+                name="arg3"
+                />
+            <data
+                inType="win:AnsiString"
+                name="arg4"
+                />
+          </template>
+          <template tid="template_ui8_ui64_ui32_">
+            <data
+                inType="win:UInt8"
+                name="arg2"
+                />
+            <data
+                inType="win:UInt64"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt32"
+                name="arg4"
+                />
+          </template>
+          <template tid="template_ui8_ui8_ui8_binary_ui8_binary_ui32_">
+            <data
+                inType="win:UInt8"
+                name="arg2"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg4_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg4_len"
+                name="arg4"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg5_len"
+                />
+            <data
+                inType="win:Binary"
+                length="arg5_len"
+                name="arg5"
+                />
+            <data
+                inType="win:UInt32"
+                name="arg6"
+                />
+          </template>
+          <template tid="template_ptr_ui64_ui32_ui8_">
+            <data
+                inType="win:Pointer"
+                name="arg1"
+                />
+            <data
+                inType="win:UInt64"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt32"
+                name="arg4"
+                />
+            <data
+                inType="win:UInt8"
+                name="arg5"
+                />
+          </template>
+          <template tid="template_ptr_i32_ui64_ui16_">
+            <data
+                inType="win:Pointer"
+                name="arg1"
+                />
+            <data
+                inType="win:Int32"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt64"
+                name="arg4"
+                />
+            <data
+                inType="win:UInt16"
+                name="arg5"
+                />
+          </template>
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
@@ -5022,7 +5132,7 @@
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="VerNegItem"
-              template="template_ptr_ui32_ui32_"
+              template="template_ptr_i32_ui32_"
               value="78"
               />
           <event
@@ -6366,7 +6476,7 @@
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="PacketTxLostRack"
-              template="template_ui8_ui64_ui64_"
+              template="template_ui8_ui64_ui32_"
               value="270"
               />
           <event
@@ -6415,7 +6525,7 @@
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="ScheduleProbe"
-              template="template_ptr_ui64_"
+              template="template_ptr_ui32_"
               value="277"
               />
           <event
@@ -6457,7 +6567,7 @@
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="LogPacketVersionNegotiation"
-              template="template_ui8_ui8_ui8_binary_ui8_binary_ui64_"
+              template="template_ui8_ui8_ui8_binary_ui8_binary_ui32_"
               value="283"
               />
           <event
@@ -7248,7 +7358,7 @@
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="AddFrame"
-              template="template_ptr_ui64_ui64_ui8_"
+              template="template_ptr_ui64_ui32_ui8_"
               value="396"
               />
           <event
@@ -7276,7 +7386,7 @@
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="AckRange"
-              template="template_ptr_ui32_ui64_ui16_"
+              template="template_ptr_i32_ui64_ui16_"
               value="400"
               />
           <event
@@ -7549,7 +7659,7 @@
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="TestLogFailure"
-              template="template_sz_ui32_sz_"
+              template="template_sz_i32_sz_"
               value="439"
               />
           <event

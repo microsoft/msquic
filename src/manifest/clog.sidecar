@@ -1076,7 +1076,7 @@
         "arg1": "arg2"
       },
       "ScheduleProbe": {
-        "arg1": "arg1",
+        "arg1": "arg2",
         "arg3": "arg3"
       },
       "KeyChangeConfirmed": {
@@ -22921,41 +22921,6 @@
         }
       }
     },
-    "StorageOpenKey": {
-      "ModuleProperites": {
-        "MANIFESTED_ETW": {
-          "EventID": "466",
-          "ETWManifestFile": "MsQuicEtw.man",
-          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
-          "Level": "win:Informational",
-          "Keywords": "ut:Connection ut:LowVolume"
-        }
-      },
-      "TraceString": "[ reg] Opening %s",
-      "UniqueId": "StorageOpenKey",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n        FullKeyName",
-            "UserSuppliedTrimmed": "FullKeyName",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogVerbose",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "empty",
-          "windows_kernel": "etw_only",
-          "windows": "etw_plus"
-        }
-      }
-    },
     "StubTlsCertValidationDisabled": {
       "ModuleProperites": {
         "MANIFESTED_ETW": {
@@ -28629,6 +28594,41 @@
           "windows": "etw_plus"
         }
       }
+    },   
+    "StorageOpenKey": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "466",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[ reg] Opening %s",
+      "UniqueId": "StorageOpenKey",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        FullKeyName",
+            "UserSuppliedTrimmed": "FullKeyName",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
     }
   },
   "Version": 1,
@@ -28867,7 +28867,7 @@
         "MacroConfigurations": {},
         "Version": 1,
         "CustomTypeClogCSharpFile": "../decoderTest/defaults.clog.cs",
-        "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nnamespace defaults.clog_config\n{\n    public class Types\n    {\n        public static string DecodePointer(ulong pointer)\n        {\n            return \"CLOG_POINTER:\" + pointer.ToString(\"x\");\n        }\n\n        public static string DecodeUInt32(uint value)\n        {\n            return \"CLOG_UINT32:\" + value.ToString();\n        }\n\n        public static string DecodeInt32(int value)\n        {\n            return \"CLOG_INT32:\" + value.ToString();\n        }\n\n        public static string DecodeInt8(byte value)\n        {\n            return \"CLOG_INT8:\" + value.ToString();\n        }\n    }\n}\n",
+        "CustomTypeClogCSharpFileContents": "/*++\r\n\r\n    Copyright (c) Microsoft Corporation.\r\n    Licensed under the MIT License.\r\n\r\n--*/\r\n\r\nnamespace defaults.clog_config\r\n{\r\n    public class Types\r\n    {\r\n        public static string DecodePointer(ulong pointer)\r\n        {\r\n            return \"CLOG_POINTER:\" + pointer.ToString(\"x\");\r\n        }\r\n\r\n        public static string DecodeUInt32(uint value)\r\n        {\r\n            return \"CLOG_UINT32:\" + value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt32(int value)\r\n        {\r\n            return \"CLOG_INT32:\" + value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt8(byte value)\r\n        {\r\n            return \"CLOG_INT8:\" + value.ToString();\r\n        }\r\n    }\r\n}\r\n",
         "TypeEncoders": {
           "Version": 0,
           "TypeEncoder": [
@@ -28877,25 +28877,39 @@
               "DefinationEncoding": "!BYTEARRAY!"
             },
             {
-              "EncodingType": "UInt32",
-              "CType": "CLOG_INT32",
-              "DefinationEncoding": "d",
-              "CustomDecoder": "defaults.clog_config.Types.DecodeUInt32"
+              "EncodingType": "Int32",
+              "CType": "int",
+              "DefinationEncoding": "d"
+            },
+            {
+              "EncodingType": "Int8",
+              "CType": "signed char",
+              "DefinationEncoding": "hhd"
+            },
+            {
+              "EncodingType": "Int8",
+              "CType": "signed char",
+              "DefinationEncoding": "hhi"
             },
             {
               "EncodingType": "UInt8",
-              "CType": "CLOG_UINT8",
+              "CType": "unsigned char",
               "DefinationEncoding": "hhu"
+            },
+            {
+              "EncodingType": "UInt8",
+              "CType": "unsigned char",
+              "DefinationEncoding": "hhx"
+            },
+            {
+              "EncodingType": "UInt8",
+              "CType": "unsigned char",
+              "DefinationEncoding": "hhX"
             },
             {
               "EncodingType": "UInt16",
               "CType": "unsigned short",
               "DefinationEncoding": "hu"
-            },
-            {
-              "EncodingType": "UInt16",
-              "CType": "unsigned short",
-              "DefinationEncoding": "hd"
             },
             {
               "EncodingType": "UInt16",
@@ -28908,59 +28922,139 @@
               "DefinationEncoding": "hX"
             },
             {
-              "EncodingType": "UInt8",
-              "CType": "CLOG_UINT8",
-              "DefinationEncoding": "c"
-            },
-            {
-              "EncodingType": "Int64",
-              "CType": "CLOG_INT64",
+              "EncodingType": "Int32",
+              "CType": "long int",
               "DefinationEncoding": "ld"
             },
             {
-              "EncodingType": "UInt64",
-              "CType": "CLOG_UINT64",
-              "DefinationEncoding": "lu"
+              "EncodingType": "Int64",
+              "CType": "long long int",
+              "DefinationEncoding": "lld"
+            },
+            {
+              "EncodingType": "Int64",
+              "CType": "long long int",
+              "DefinationEncoding": "lli"
             },
             {
               "EncodingType": "UInt64",
-              "CType": "CLOG_UINT64",
+              "CType": "unsigned long long int",
               "DefinationEncoding": "llu"
             },
             {
               "EncodingType": "UInt64",
-              "CType": "CLOG_UINT64",
+              "CType": "unsigned long long int",
               "DefinationEncoding": "llx"
             },
             {
-              "EncodingType": "Int64",
-              "CType": "CLOG_INT64",
-              "DefinationEncoding": "lld"
-            },
-            {
               "EncodingType": "UInt64",
-              "CType": "CLOG_UINT64",
+              "CType": "unsigned long long int",
               "DefinationEncoding": "llX"
             },
             {
+              "EncodingType": "Int32",
+              "CType": "long int",
+              "DefinationEncoding": "li"
+            },
+            {
+              "EncodingType": "UInt32",
+              "CType": "unsigned long int",
+              "DefinationEncoding": "lu"
+            },
+            {
+              "EncodingType": "UInt32",
+              "CType": "unsigned long int",
+              "DefinationEncoding": "lx"
+            },
+            {
+              "EncodingType": "UInt32",
+              "CType": "unsigned long int",
+              "DefinationEncoding": "lX"
+            },
+            {
+              "EncodingType": "UNICODE_String",
+              "CType": "const wchar_t *",
+              "DefinationEncoding": "ls"
+            },
+            {
               "EncodingType": "Int64",
-              "CType": "CLOG_INT64",
+              "CType": "size_t",
               "DefinationEncoding": "zd"
             },
             {
+              "EncodingType": "Int64",
+              "CType": "size_t",
+              "DefinationEncoding": "zi"
+            },
+            {
+              "EncodingType": "UInt64",
+              "CType": "size_t",
+              "DefinationEncoding": "zu"
+            },
+            {
+              "EncodingType": "UInt64",
+              "CType": "size_t",
+              "DefinationEncoding": "zx"
+            },
+            {
+              "EncodingType": "UInt64",
+              "CType": "size_t",
+              "DefinationEncoding": "zX"
+            },
+            {
+              "EncodingType": "Int64",
+              "CType": "ptrdiff_t",
+              "DefinationEncoding": "td"
+            },
+            {
+              "EncodingType": "Int64",
+              "CType": "ptrdiff_t",
+              "DefinationEncoding": "ti"
+            },
+            {
+              "EncodingType": "UInt64",
+              "CType": "ptrdiff_t",
+              "DefinationEncoding": "tu"
+            },
+            {
+              "EncodingType": "UInt64",
+              "CType": "ptrdiff_t",
+              "DefinationEncoding": "tx"
+            },
+            {
+              "EncodingType": "UInt64",
+              "CType": "ptrdiff_t",
+              "DefinationEncoding": "tX"
+            },
+            {
               "EncodingType": "Int32",
-              "CType": "CLOG_INT32",
+              "CType": "int",
+              "DefinationEncoding": "i"
+            },
+            {
+              "EncodingType": "UInt32",
+              "CType": "unsigned int",
+              "DefinationEncoding": "u"
+            },
+            {
+              "EncodingType": "UInt32",
+              "CType": "unsigned int",
+              "DefinationEncoding": "x"
+            },
+            {
+              "EncodingType": "UInt32",
+              "CType": "unsigned int",
               "DefinationEncoding": "4.4x"
             },
             {
               "EncodingType": "UInt32",
-              "CType": "CLOG_UINT32",
-              "DefinationEncoding": "u"
+              "CType": "unsigned int",
+              "DefinationEncoding": "X"
             },
             {
-              "EncodingType": "UNICODE_String",
-              "CType": "const unsigned short *",
-              "DefinationEncoding": "S"
+              "EncodingType": "UInt8",
+              "CType": "char",
+              "DefinationEncoding": "c"
             },
             {
               "EncodingType": "ANSI_String",
@@ -28968,15 +29062,15 @@
               "DefinationEncoding": "s"
             },
             {
+              "EncodingType": "UNICODE_String",
+              "CType": "const wchar_t *",
+              "DefinationEncoding": "S"
+            },
+            {
               "EncodingType": "Pointer",
               "CType": "CLOG_PTR",
               "DefinationEncoding": "p",
               "CustomDecoder": "defaults.clog_config.Types.DecodePointer"
-            },
-            {
-              "EncodingType": "UInt32",
-              "CType": "CLOG_UINT32",
-              "DefinationEncoding": "x"
             }
           ]
         },
@@ -29239,10 +29333,6 @@
       {
         "UniquenessHash": "9727ad53-8a0f-e3b3-8def-c1fa820baaa9",
         "TraceID": "RecvVerNeg"
-      },
-      {
-        "UniquenessHash": "a8835a51-c147-e8f1-4858-ee9b2d0e1ded",
-        "TraceID": "VerNegItem"
       },
       {
         "UniquenessHash": "ed33a4f4-4591-33d1-1760-74e7f873aa11",
@@ -30005,10 +30095,6 @@
         "TraceID": "PacketTxLostFack"
       },
       {
-        "UniquenessHash": "92d093e8-9c6e-b689-77ab-43fdd0a1e9ef",
-        "TraceID": "PacketTxLostRack"
-      },
-      {
         "UniquenessHash": "d9674680-3227-ec67-7175-bd47736f1221",
         "TraceID": "PacketTxAckedImplicit"
       },
@@ -30033,10 +30119,6 @@
         "TraceID": "HandshakeConfirmedAck"
       },
       {
-        "UniquenessHash": "d5bc94ea-3db3-940a-0fb7-5ebfd5993d02",
-        "TraceID": "ScheduleProbe"
-      },
-      {
         "UniquenessHash": "7b311464-a259-71d2-ad45-dc4707dbefcc",
         "TraceID": "KeyChangeConfirmed"
       },
@@ -30055,10 +30137,6 @@
       {
         "UniquenessHash": "26dded12-d106-a37b-0903-9a3cb98e3618",
         "TraceID": "ConnPacketACKed"
-      },
-      {
-        "UniquenessHash": "c0b0cff2-a72c-31fb-9b93-041d5abace09",
-        "TraceID": "LogPacketVersionNegotiation"
       },
       {
         "UniquenessHash": "afa9276d-cc3c-6cb1-4df9-e4d2fdc0e66d",
@@ -30505,10 +30583,6 @@
         "TraceID": "NoMoreFrames"
       },
       {
-        "UniquenessHash": "d999905f-aa8f-6e8f-56a1-b7e0fe939dc5",
-        "TraceID": "AddFrame"
-      },
-      {
         "UniquenessHash": "cb6d043b-5ace-d8a5-3168-f60061823b3e",
         "TraceID": "RecoverOpen"
       },
@@ -30519,10 +30593,6 @@
       {
         "UniquenessHash": "bf0a689f-15ce-34a3-a5bd-a09596792886",
         "TraceID": "RecoverRange"
-      },
-      {
-        "UniquenessHash": "42c77c0f-03ee-0950-8835-f29cc48b19d3",
-        "TraceID": "AckRange"
       },
       {
         "UniquenessHash": "0d9cddd5-17e7-d796-fa49-7f3450287fa6",
@@ -30675,10 +30745,6 @@
       {
         "UniquenessHash": "36ce89a9-c16e-d08a-4bea-f8e25c22d2ce",
         "TraceID": "TestCaseTEnd"
-      },
-      {
-        "UniquenessHash": "ca917094-912e-b7ec-dec3-44817bacfa0e",
-        "TraceID": "TestLogFailure"
       },
       {
         "UniquenessHash": "1827e6b7-a91d-9d6a-eaff-318c2b79908e",
@@ -31359,10 +31425,6 @@
       {
         "UniquenessHash": "e447af81-8615-d95b-02a9-ba9dd4b1ea19",
         "TraceID": "FrameLogDatagramInvalid"
-      },
-      {
-        "UniquenessHash": "a23b67c8-c2da-dfbe-2c86-728785bcdfb3",
-        "TraceID": "FrameLogDatagram"
       },
       {
         "UniquenessHash": "6d4e7f68-5e0e-704a-b2e9-286af412d91b",
