@@ -123,9 +123,14 @@ function Run-Foreground-Executable($File, $Arguments) {
 }
 
 function Parse-Loopback-Results($Results) {
-    # Unused variable on purpose
-    $m = $Results -match "Closed.*\(TX.*bytes @ (.*) kbps \|"
-    return $Matches[1]
+    try {
+        # Unused variable on purpose
+        $m = $Results -match "Closed.*\(TX.*bytes @ (.*) kbps \|"
+        return $Matches[1]
+    } catch {
+        Write-Host "Error Processing Results:`n`n$Results"
+        throw
+    }
 }
 
 function Get-Latest-Test-Results($Platform, $Test) {
@@ -173,19 +178,24 @@ function Run-Loopback-Test() {
 
     $allRunsResults = @()
 
-    1..$Runs | ForEach-Object {
-        $clientOutput = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments "-target:localhost -port:4433 -uni:1 -length:$Length"
-        $parsedRunResult = Parse-Loopback-Results -Results $clientOutput
-        $allRunsResults += $parsedRunResult
-        if ($PGO) {
-            # Merge client PGO counts.
-            Merge-PGO-Counts $Artifacts
+    try {
+        1..$Runs | ForEach-Object {
+            $clientOutput = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments "-target:localhost -port:4433 -uni:1 -length:$Length"
+            $parsedRunResult = Parse-Loopback-Results -Results $clientOutput
+            $allRunsResults += $parsedRunResult
+            if ($PGO) {
+                # Merge client PGO counts.
+                Merge-PGO-Counts $Artifacts
+            }
+            Write-Host "Run $($_): $parsedRunResult kbps"
+            $clientOutput | Write-Debug
         }
-        Write-Host "Run $($_): $parsedRunResult kbps"
-        $clientOutput | Write-Debug
-    }
 
-    $serverOutput = Stop-Background-Executable -Process $proc
+        $serverOutput = Stop-Background-Executable -Process $proc
+    } catch {
+        Stop-Background-Executable -Process $proc | Write-Host
+        throw
+    }
     if ($PGO) {
         # Merge server PGO counts.
         Merge-PGO-Counts $ServerDir
