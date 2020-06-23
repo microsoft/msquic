@@ -101,6 +101,7 @@ if ($IsWindows) {
 
 # Base output path.
 $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$Platform"
+New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
 # Make sure the build is present.
 if (!(Test-Path (Join-Path $Artifacts $QuicPing))) {
@@ -323,7 +324,5 @@ Run-Loopback-Test
 
 if ($PGO) {
     Write-Host "Saving msquic.pgd out for publishing."
-    $PgoOutputDir = Join-Path $OutputDir "pgo_$($Arch)"
-    New-Item -Path $PgoOutputDir -ItemType Directory -Force | Out-Null
-    Copy-Item "$Artifacts\msquic.pgd" $PgoOutputDir
+    Copy-Item "$Artifacts\msquic.pgd" $OutputDir
 }
