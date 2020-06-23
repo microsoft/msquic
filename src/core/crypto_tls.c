@@ -38,10 +38,10 @@ typedef enum eSniNameType {
 //
 // Core Transport Parameters
 //
-#define QUIC_TP_ID_ORIGINAL_CONNECTION_ID                   0   // uint8_t[]
+#define QUIC_TP_ID_ORIGINAL_DESTINATION_CONNECTION_ID       0   // uint8_t[]
 #define QUIC_TP_ID_IDLE_TIMEOUT                             1   // varint
 #define QUIC_TP_ID_STATELESS_RESET_TOKEN                    2   // uint8_t[16]
-#define QUIC_TP_ID_MAX_PACKET_SIZE                          3   // varint
+#define QUIC_TP_ID_MAX_UDP_PAYLOAD_SIZE                     3   // varint
 #define QUIC_TP_ID_INITIAL_MAX_DATA                         4   // varint
 #define QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_BIDI_LOCAL       5   // varint
 #define QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_BIDI_REMOTE      6   // varint
@@ -53,6 +53,8 @@ typedef enum eSniNameType {
 #define QUIC_TP_ID_DISABLE_ACTIVE_MIGRATION                 12  // N/A
 #define QUIC_TP_ID_PREFERRED_ADDRESS                        13  // PreferredAddress
 #define QUIC_TP_ID_ACTIVE_CONNECTION_ID_LIMIT               14  // varint
+#define QUIC_TP_ID_INITIAL_SOURCE_CONNECTION_ID             15  // uint8_t[]
+#define QUIC_TP_ID_RETRY_SOURCE_CONNECTION_ID               16  // uint8_t[]
 
 //
 // Extensions
@@ -638,13 +640,13 @@ QuicCryptoTlsEncodeTransportParameters(
         "Encoding Transport Parameters");
 
     size_t RequiredTPLen = 0;
-    if (TransportParams->Flags & QUIC_TP_FLAG_ORIGINAL_CONNECTION_ID) {
+    if (TransportParams->Flags & QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID) {
         QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
-        QUIC_FRE_ASSERT(TransportParams->OriginalConnectionIDLength <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
+        QUIC_FRE_ASSERT(TransportParams->OriginalDestinationConnectionIDLength <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
         RequiredTPLen +=
             TlsTransportParamLength(
-                QUIC_TP_ID_ORIGINAL_CONNECTION_ID,
-                TransportParams->OriginalConnectionIDLength);
+                QUIC_TP_ID_ORIGINAL_DESTINATION_CONNECTION_ID,
+                TransportParams->OriginalDestinationConnectionIDLength);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_IDLE_TIMEOUT) {
         RequiredTPLen +=
@@ -659,11 +661,11 @@ QuicCryptoTlsEncodeTransportParameters(
                 QUIC_TP_ID_STATELESS_RESET_TOKEN,
                 QUIC_STATELESS_RESET_TOKEN_LENGTH);
     }
-    if (TransportParams->Flags & QUIC_TP_FLAG_MAX_PACKET_SIZE) {
+    if (TransportParams->Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE) {
         RequiredTPLen +=
             TlsTransportParamLength(
-                QUIC_TP_ID_MAX_PACKET_SIZE,
-                QuicVarIntSize(TransportParams->MaxPacketSize));
+                QUIC_TP_ID_MAX_UDP_PAYLOAD_SIZE,
+                QuicVarIntSize(TransportParams->MaxUdpPayloadSize));
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_DATA) {
         RequiredTPLen +=
@@ -729,6 +731,21 @@ QuicCryptoTlsEncodeTransportParameters(
                 QUIC_TP_ID_ACTIVE_CONNECTION_ID_LIMIT,
                 QuicVarIntSize(TransportParams->ActiveConnectionIdLimit));
     }
+    if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_SOURCE_CONNECTION_ID) {
+        QUIC_FRE_ASSERT(TransportParams->InitialSourceConnectionIDLength <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_INITIAL_SOURCE_CONNECTION_ID,
+                TransportParams->InitialSourceConnectionIDLength);
+    }
+    if (TransportParams->Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID) {
+        QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
+        QUIC_FRE_ASSERT(TransportParams->RetrySourceConnectionIDLength <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_RETRY_SOURCE_CONNECTION_ID,
+                TransportParams->RetrySourceConnectionIDLength);
+    }
     if (TransportParams->Flags & QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE) {
         RequiredTPLen +=
             TlsTransportParamLength(
@@ -770,18 +787,21 @@ QuicCryptoTlsEncodeTransportParameters(
     // buffer without checking any more lengths.
     //
 
-    if (TransportParams->Flags & QUIC_TP_FLAG_ORIGINAL_CONNECTION_ID) {
+    if (TransportParams->Flags & QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID) {
         QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
         TPBuf =
             TlsWriteTransportParam(
-                QUIC_TP_ID_ORIGINAL_CONNECTION_ID,
-                TransportParams->OriginalConnectionIDLength,
-                TransportParams->OriginalConnectionID,
+                QUIC_TP_ID_ORIGINAL_DESTINATION_CONNECTION_ID,
+                TransportParams->OriginalDestinationConnectionIDLength,
+                TransportParams->OriginalDestinationConnectionID,
                 TPBuf);
         QuicTraceLogConnVerbose(
-            EncodeTPOriginalCID,
+            EncodeTPOriginalDestinationCID,
             Connection,
-            "TP: Original Connection ID");
+            "TP: Original Destination Connection ID (%s)",
+            QuicCidBufToStr(
+                TransportParams->OriginalDestinationConnectionID,
+                TransportParams->OriginalDestinationConnectionIDLength).Buffer);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_IDLE_TIMEOUT) {
         TPBuf =
@@ -808,16 +828,16 @@ QuicCryptoTlsEncodeTransportParameters(
             "TP: Stateless Reset Token (%!CID!)",
             CLOG_BYTEARRAY(QUIC_STATELESS_RESET_TOKEN_LENGTH, TransportParams->StatelessResetToken));
     }
-    if (TransportParams->Flags & QUIC_TP_FLAG_MAX_PACKET_SIZE) {
+    if (TransportParams->Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE) {
         TPBuf =
             TlsWriteTransportParamVarInt(
-                QUIC_TP_ID_MAX_PACKET_SIZE,
-                TransportParams->MaxPacketSize, TPBuf);
+                QUIC_TP_ID_MAX_UDP_PAYLOAD_SIZE,
+                TransportParams->MaxUdpPayloadSize, TPBuf);
         QuicTraceLogConnVerbose(
-            EncodeTPMaxPacketSize,
+            EncodeTPMaxUdpPayloadSize,
             Connection,
-            "TP: Max Packet Size (%llu bytes)",
-            TransportParams->MaxPacketSize);
+            "TP: Max Udp Payload Size (%llu bytes)",
+            TransportParams->MaxUdpPayloadSize);
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_DATA) {
         TPBuf =
@@ -939,6 +959,37 @@ QuicCryptoTlsEncodeTransportParameters(
             "TP: Connection ID Limit (%llu)",
             TransportParams->ActiveConnectionIdLimit);
     }
+    if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_SOURCE_CONNECTION_ID) {
+        TPBuf =
+            TlsWriteTransportParam(
+                QUIC_TP_ID_INITIAL_SOURCE_CONNECTION_ID,
+                TransportParams->InitialSourceConnectionIDLength,
+                TransportParams->InitialSourceConnectionID,
+                TPBuf);
+        QuicTraceLogConnVerbose(
+            EncodeTPOriginalCID,
+            Connection,
+            "TP: Initial Source Connection ID (%s)",
+            QuicCidBufToStr(
+                TransportParams->InitialSourceConnectionID,
+                TransportParams->InitialSourceConnectionIDLength).Buffer);
+    }
+    if (TransportParams->Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID) {
+        QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
+        TPBuf =
+            TlsWriteTransportParam(
+                QUIC_TP_ID_RETRY_SOURCE_CONNECTION_ID,
+                TransportParams->RetrySourceConnectionIDLength,
+                TransportParams->RetrySourceConnectionID,
+                TPBuf);
+        QuicTraceLogConnVerbose(
+            EncodeTPOriginalCID,
+            Connection,
+            "TP: Retry Source Connection ID (%s)",
+            QuicCidBufToStr(
+                TransportParams->RetrySourceConnectionID,
+                TransportParams->RetrySourceConnectionIDLength).Buffer);
+    }
     if (TransportParams->Flags & QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE) {
         TPBuf =
             TlsWriteTransportParamVarInt(
@@ -1002,7 +1053,7 @@ QuicCryptoTlsDecodeTransportParameters(
     uint16_t Offset = 0;
 
     QuicZeroMemory(TransportParams, sizeof(QUIC_TRANSPORT_PARAMETERS));
-    TransportParams->MaxPacketSize = QUIC_TP_MAX_PACKET_SIZE_DEFAULT;
+    TransportParams->MaxUdpPayloadSize = QUIC_TP_MAX_PACKET_SIZE_DEFAULT;
     TransportParams->AckDelayExponent = QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT;
     TransportParams->MaxAckDelay = QUIC_TP_MAX_ACK_DELAY_DEFAULT;
     TransportParams->ActiveConnectionIdLimit = QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_DEFAULT;
@@ -1064,33 +1115,36 @@ QuicCryptoTlsDecodeTransportParameters(
 
         switch (Id) {
 
-        case QUIC_TP_ID_ORIGINAL_CONNECTION_ID:
+        case QUIC_TP_ID_ORIGINAL_DESTINATION_CONNECTION_ID:
             if (Length > QUIC_MAX_CONNECTION_ID_LENGTH_V1) {
                 QuicTraceEvent(
                     ConnErrorStatus,
                     "[conn][%p] ERROR, %u, %s.",
                     Connection,
                     Length,
-                    "Invalid length of QUIC_TP_ID_ORIGINAL_CONNECTION_ID");
+                    "Invalid length of QUIC_TP_ID_ORIGINAL_DESTINATION_CONNECTION_ID");
                 goto Exit;
             } else if (QuicConnIsServer(Connection)) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
                     Connection,
-                    "Client incorrectly provided original connection ID");
+                    "Client incorrectly provided original destination connection ID");
                 goto Exit;
             }
-            TransportParams->Flags |= QUIC_TP_FLAG_ORIGINAL_CONNECTION_ID;
-            TransportParams->OriginalConnectionIDLength = (uint8_t)Length;
+            TransportParams->Flags |= QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID;
+            TransportParams->OriginalDestinationConnectionIDLength = (uint8_t)Length;
             QuicCopyMemory(
-                TransportParams->OriginalConnectionID,
+                TransportParams->OriginalDestinationConnectionID,
                 TPBuf + Offset,
                 Length);
             QuicTraceLogConnVerbose(
-                DecodeTPOriginalCID,
+                DecodeTPOriginalDestinationCID,
                 Connection,
-                "TP: Original Connection ID");
+                "TP: Original Connection Destination ID (%s)",
+                QuicCidBufToStr(
+                    TransportParams->OriginalDestinationConnectionID,
+                    TransportParams->OriginalDestinationConnectionIDLength).Buffer);
             break;
 
         case QUIC_TP_ID_IDLE_TIMEOUT:
@@ -1140,38 +1194,38 @@ QuicCryptoTlsDecodeTransportParameters(
                 CLOG_BYTEARRAY(QUIC_STATELESS_RESET_TOKEN_LENGTH, TransportParams->StatelessResetToken));
             break;
 
-        case QUIC_TP_ID_MAX_PACKET_SIZE:
-            if (!TRY_READ_VAR_INT(TransportParams->MaxPacketSize)) {
+        case QUIC_TP_ID_MAX_UDP_PAYLOAD_SIZE:
+            if (!TRY_READ_VAR_INT(TransportParams->MaxUdpPayloadSize)) {
                 QuicTraceEvent(
                     ConnErrorStatus,
                     "[conn][%p] ERROR, %u, %s.",
                     Connection,
                     Length,
-                    "Invalid length of QUIC_TP_ID_MAX_PACKET_SIZE");
+                    "Invalid length of QUIC_TP_ID_MAX_UDP_PAYLOAD_SIZE");
                 goto Exit;
             }
-            if (TransportParams->MaxPacketSize < QUIC_TP_MAX_PACKET_SIZE_MIN) {
+            if (TransportParams->MaxUdpPayloadSize < QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MIN) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
                     Connection,
-                    "TP MaxPacketSize too small");
+                    "TP MaxUdpPayloadSize too small");
                 goto Exit;
             }
-            if (TransportParams->MaxPacketSize > QUIC_TP_MAX_PACKET_SIZE_MAX) {
+            if (TransportParams->MaxUdpPayloadSize > QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MAX) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
                     Connection,
-                    "TP MaxPacketSize too big");
+                    "TP MaxUdpPayloadSize too big");
                 goto Exit;
             }
-            TransportParams->Flags |= QUIC_TP_FLAG_MAX_PACKET_SIZE;
+            TransportParams->Flags |= QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE;
             QuicTraceLogConnVerbose(
-                DecodeTPMaxPacketSize,
+                DecodeTPMaxUdpPayloadSize,
                 Connection,
-                "TP: Max Packet Size (%llu bytes)",
-                TransportParams->MaxPacketSize);
+                "TP: Max Udp Payload Size (%llu bytes)",
+                TransportParams->MaxUdpPayloadSize);
             break;
 
         case QUIC_TP_ID_INITIAL_MAX_DATA:
@@ -1415,6 +1469,63 @@ QuicCryptoTlsDecodeTransportParameters(
                 Connection,
                 "TP: Connection ID Limit (%llu)",
                 TransportParams->ActiveConnectionIdLimit);
+            break;
+
+        case QUIC_TP_ID_INITIAL_SOURCE_CONNECTION_ID:
+            if (Length > QUIC_MAX_CONNECTION_ID_LENGTH_V1) {
+                QuicTraceEvent(
+                    ConnErrorStatus,
+                    "[conn][%p] ERROR, %u, %s.",
+                    Connection,
+                    Length,
+                    "Invalid length of QUIC_TP_ID_INITIAL_SOURCE_CONNECTION_ID");
+                goto Exit;
+            }
+            TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_SOURCE_CONNECTION_ID;
+            TransportParams->InitialSourceConnectionIDLength = (uint8_t)Length;
+            QuicCopyMemory(
+                TransportParams->InitialSourceConnectionID,
+                TPBuf + Offset,
+                Length);
+            QuicTraceLogConnVerbose(
+                DecodeTPInitialSourceCID,
+                Connection,
+                "TP: Initial Source Connection ID (%s)",
+                QuicCidBufToStr(
+                    TransportParams->InitialSourceConnectionID,
+                    TransportParams->InitialSourceConnectionIDLength).Buffer);
+            break;
+
+        case QUIC_TP_ID_RETRY_SOURCE_CONNECTION_ID:
+            if (Length > QUIC_MAX_CONNECTION_ID_LENGTH_V1) {
+                QuicTraceEvent(
+                    ConnErrorStatus,
+                    "[conn][%p] ERROR, %u, %s.",
+                    Connection,
+                    Length,
+                    "Invalid length of QUIC_TP_ID_RETRY_SOURCE_CONNECTION_ID");
+                goto Exit;
+            } else if (QuicConnIsServer(Connection)) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Client incorrectly provided retry source connection ID");
+                goto Exit;
+            }
+            TransportParams->Flags |= QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID;
+            TransportParams->RetrySourceConnectionIDLength = (uint8_t)Length;
+            QuicCopyMemory(
+                TransportParams->RetrySourceConnectionID,
+                TPBuf + Offset,
+                Length);
+            QuicTraceLogConnVerbose(
+                DecodeTPRetrySourceCID,
+                Connection,
+                "TP: Retry Source Connection ID (%s)",
+                QuicCidBufToStr(
+                    TransportParams->RetrySourceConnectionID,
+                    TransportParams->RetrySourceConnectionIDLength).Buffer);
             break;
 
         case QUIC_TP_ID_MAX_DATAGRAM_FRAME_SIZE:

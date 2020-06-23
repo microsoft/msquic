@@ -23,6 +23,7 @@ Abstract:
 
 QUIC_TLS_PROCESS_COMPLETE_CALLBACK QuicTlsProcessDataCompleteCallback;
 QUIC_TLS_RECEIVE_TP_CALLBACK QuicConnReceiveTP;
+QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK QuicConnRecvResumptionTicket;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -108,6 +109,14 @@ QuicCryptoInitialize(
     BOOLEAN SparseAckRangesInitialized = FALSE;
     BOOLEAN RecvBufferInitialized = FALSE;
 
+    const uint8_t* Salt = QuicSupportedVersionList[0].Salt; // Default to latest
+    for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
+        if (QuicSupportedVersionList[i].Number == Connection->Stats.QuicVersion) {
+            Salt = QuicSupportedVersionList[i].Salt;
+            break;
+        }
+    }
+
     QUIC_PASSIVE_CODE();
 
     QuicZeroMemory(Crypto, sizeof(QUIC_CRYPTO));
@@ -170,7 +179,7 @@ QuicCryptoInitialize(
     Status =
         QuicPacketKeyCreateInitial(
             QuicConnIsServer(Connection),
-            QuicInitialSaltVersion1,
+            Salt,
             HandshakeCidLength,
             HandshakeCid,
             &Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL],
@@ -270,6 +279,7 @@ QuicCryptoInitializeTls(
     TlsConfig.Connection = Connection;
     TlsConfig.ProcessCompleteCallback = QuicTlsProcessDataCompleteCallback;
     TlsConfig.ReceiveTPCallback = QuicConnReceiveTP;
+    TlsConfig.ReceiveResumptionCallback = QuicConnRecvResumptionTicket;
     if (!QuicConnIsServer(Connection)) {
         TlsConfig.ServerName = Connection->RemoteServerName;
     }
@@ -427,33 +437,6 @@ QuicCryptoDiscardKeys(
     QuicCryptoValidate(Crypto);
 
     return TRUE;
-}
-
-//
-// Called when the server has sent everything it will ever send and it has all
-// been acknowledged.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicCryptoOnServerComplete(
-    _In_ QUIC_CRYPTO* Crypto
-    )
-{
-    QuicTraceLogConnInfo(
-        CryptoStateDiscard,
-        QuicCryptoGetConnection(Crypto),
-        "Crypto/TLS state no longer needed");
-    if (Crypto->TLS != NULL) {
-        QuicTlsUninitialize(Crypto->TLS);
-        Crypto->TLS = NULL;
-    }
-    if (Crypto->Initialized) {
-        QuicRecvBufferUninitialize(&Crypto->RecvBuffer);
-        QuicRangeUninitialize(&Crypto->SparseAckRanges);
-        QUIC_FREE(Crypto->TlsState.Buffer);
-        Crypto->TlsState.Buffer = NULL;
-        Crypto->Initialized = FALSE;
-    }
 }
 
 //
@@ -978,9 +961,7 @@ QuicCryptoOnAck(
             if (Connection->State.Connected && QuicConnIsServer(Connection) &&
                 Crypto->TlsState.BufferOffset1Rtt != 0 &&
                 Crypto->UnAckedOffset == Crypto->TlsState.BufferTotalLength) {
-                QuicCryptoOnServerComplete(Crypto); // TODO - If sending 0-RTT tickets ever becomes
-                                                    // controllable by the app, this logic will have
-                                                    // to take that into account.
+                QuicConnCleanupServerResumptionState(Connection);
             }
         }
 
@@ -1446,9 +1427,7 @@ QuicCryptoProcessTlsCompletion(
         if (QuicConnIsServer(Connection) &&
             Crypto->TlsState.BufferOffset1Rtt != 0 &&
             Crypto->UnAckedOffset == Crypto->TlsState.BufferTotalLength) {
-            QuicCryptoOnServerComplete(Crypto); // TODO - If sending 0-RTT tickets ever becomes
-                                                // controllable by the app, this logic will have
-                                                // to take that into account.
+            QuicConnCleanupServerResumptionState(Connection);
         }
     }
 
@@ -1629,7 +1608,7 @@ QuicCryptoProcessData(
                 } else if (AcceptResult == QUIC_CONNECTION_REJECT_BUSY) {
                     QuicConnTransportError(
                         Connection,
-                        QUIC_ERROR_SERVER_BUSY);
+                        QUIC_ERROR_CONNECTION_REFUSED);
                 } else {    // QUIC_CONNECTION_REJECT_APP
                     QuicConnTransportError(
                         Connection,
@@ -1671,7 +1650,7 @@ QuicCryptoProcessData(
     QuicCryptoValidate(Crypto);
 
     QUIC_TLS_RESULT_FLAGS ResultFlags =
-        QuicTlsProcessData(Crypto->TLS, Buffer.Buffer, &Buffer.Length, &Crypto->TlsState);
+        QuicTlsProcessData(Crypto->TLS, QUIC_TLS_CRYPTO_DATA, Buffer.Buffer, &Buffer.Length, &Crypto->TlsState);
 
     QUIC_TEL_ASSERT(!IsClientInitial || ResultFlags != QUIC_TLS_RESULT_PENDING); // TODO - Support async for client Initial?
 
@@ -1685,6 +1664,38 @@ Error:
 
     QuicRecvBufferDrain(&Crypto->RecvBuffer, 0);
     QuicCryptoValidate(Crypto);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicCryptoProcessAppData(
+    _In_ QUIC_CRYPTO* Crypto,
+    _In_ uint32_t DataLength,
+    _In_reads_bytes_(DataLength)
+        const uint8_t* AppData
+    )
+{
+    QUIC_STATUS Status;
+    if (Crypto->TlsCallPending) {
+        Status = QUIC_STATUS_INVALID_STATE;
+        goto Error;
+    }
+
+    QUIC_TLS_RESULT_FLAGS ResultFlags =
+        QuicTlsProcessData(Crypto->TLS, QUIC_TLS_TICKET_DATA, AppData, &DataLength, &Crypto->TlsState);
+    if (ResultFlags & QUIC_TLS_RESULT_ERROR) {
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+
+    if (!(ResultFlags & QUIC_TLS_RESULT_PENDING)) {
+        QuicCryptoProcessDataComplete(Crypto, ResultFlags, 0);
+    }
+
+    Status = QUIC_STATUS_SUCCESS;
+
+Error:
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

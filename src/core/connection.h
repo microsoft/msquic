@@ -67,10 +67,9 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN GotFirstServerResponse : 1;
 
         //
-        // This flag indicates the client received a Retry packet during the
-        // handshake.
+        // This flag indicates the Retry packet was used during the handshake.
         //
-        BOOLEAN ReceivedRetryPacket : 1;
+        BOOLEAN HandshakeUsedRetryPacket : 1;
 
         //
         // We have confirmed that the peer has completed the handshake.
@@ -142,6 +141,13 @@ typedef union QUIC_CONNECTION_STATE {
         // scheme.
         //
         BOOLEAN UseRoundRobinStreamScheduling : 1;
+
+        //
+        // Indicates that this connection has resumption enabled and needs to
+        // keep the TLS state and transport parameters until it is done sending
+        // resumption tickets.
+        //
+        BOOLEAN ResumptionEnabled : 1;
 
 #ifdef QuicVerifierEnabledByAddr
         //
@@ -423,7 +429,7 @@ typedef struct QUIC_CONNECTION {
     //
     // The original CID used by the Client in its first Initial packet.
     //
-    QUIC_CID* OrigCID;
+    QUIC_CID* OrigDestCID;
 
     //
     // Sorted array of all timers for the connection.
@@ -525,6 +531,12 @@ typedef struct QUIC_CONNECTION {
     // The handler for the API client's callbacks.
     //
     QUIC_CONNECTION_CALLBACK_HANDLER ClientCallbackHandler;
+
+    //
+    // (Server-only) Transport parameters used during handshake.
+    // Only non-null when resumption is enabled.
+    //
+    QUIC_TRANSPORT_PARAMETERS* HandshakeTP;
 
     //
     // Statistics
@@ -669,7 +681,7 @@ inline
 _Ret_notnull_
 QUIC_CONNECTION*
 QuicDatagramGetConnection(
-    _In_ QUIC_DATAGRAM* Datagram
+    _In_ const QUIC_DATAGRAM* const Datagram
     )
 {
     return QUIC_CONTAINING_RECORD(Datagram, QUIC_CONNECTION, Datagram);
@@ -1211,6 +1223,18 @@ QUIC_STATUS
 QuicConnHandshakeConfigure(
     _In_ QUIC_CONNECTION* Connection,
     _In_opt_ QUIC_SEC_CONFIG* SecConfig
+    );
+
+//
+// Check if the resumption state is ready to be cleaned up and free it.
+//
+// Called when the server has sent everything it will ever send and it has all
+// been acknowledged.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnCleanupServerResumptionState(
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //

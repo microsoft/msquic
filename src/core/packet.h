@@ -5,16 +5,32 @@
 
 --*/
 
-//
-// The list of supported QUIC version numbers, in network byte order.
-//
-extern const uint32_t QuicSupportedVersionList[2];
+#define QUIC_VERSION_SALT_LENGTH 20
+#define QUIC_VERSION_RETRY_INTEGRITY_SECRET_LENGTH 32
+
+typedef struct QUIC_VERSION_INFO {
+
+    //
+    // In network byte order.
+    //
+    uint32_t Number;
+
+    //
+    // Version specific salt.
+    //
+    uint8_t Salt[QUIC_VERSION_SALT_LENGTH];
+
+    //
+    // Version specific Retry integrity secret.
+    //
+    uint8_t RetryIntegritySecret[QUIC_VERSION_RETRY_INTEGRITY_SECRET_LENGTH];
+
+} QUIC_VERSION_INFO;
 
 //
-// Version specific salts.
+// The list of supported QUIC versions.
 //
-
-extern const uint8_t QuicInitialSaltVersion1[20];
+extern const QUIC_VERSION_INFO QuicSupportedVersionList[4];
 
 //
 // Prefixes used in packet logging.
@@ -234,6 +250,8 @@ QuicPacketIsHandshake(
 
     switch (Packet->LONG_HDR.Version) {
         case QUIC_VERSION_DRAFT_27:
+        case QUIC_VERSION_DRAFT_28:
+        case QUIC_VERSION_DRAFT_29:
         case QUIC_VERSION_MS_1:
             return ((QUIC_LONG_HEADER_V1*)Packet)->Type != QUIC_0_RTT_PROTECTED;
         default:
@@ -440,7 +458,9 @@ QuicPacketEncodeLongHeaderV1(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-QuicPacketGenerateRetryV1Integrity(
+QuicPacketGenerateRetryIntegrity(
+    _In_reads_(QUIC_VERSION_RETRY_INTEGRITY_SECRET_LENGTH)
+        const uint8_t* IntegritySecret,
     _In_ uint8_t OrigDestCidLength,
     _In_reads_(OrigDestCidLength) const uint8_t* const OrigDestCid,
     _In_ uint16_t BufferLength,

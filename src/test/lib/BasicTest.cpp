@@ -23,18 +23,6 @@ ListenerDoNothingCallback(
     TEST_FAILURE("This callback should never be called!");
 }
 
-_Function_class_(NEW_STREAM_CALLBACK)
-static
-void
-ConnectionDoNothingCallback(
-    _In_ TestConnection* /* Connection */,
-    _In_ HQUIC /* StreamHandle */,
-    _In_ QUIC_STREAM_OPEN_FLAGS /* Flags */
-    )
-{
-    TEST_FAILURE("This callback should never be called!");
-}
-
 void QuicTestCreateListener()
 {
     MsQuicSession Session;
@@ -207,7 +195,7 @@ void QuicTestCreateConnection()
     TEST_TRUE(Session.IsValid());
 
     {
-        TestConnection Connection(Session.Handle, ConnectionDoNothingCallback, false);
+        TestConnection Connection(Session);
         TEST_TRUE(Connection.IsValid());
     }
 }
@@ -218,7 +206,7 @@ void QuicTestBindConnectionImplicit(_In_ int Family)
     TEST_TRUE(Session.IsValid());
 
     {
-        TestConnection Connection(Session.Handle, ConnectionDoNothingCallback, false);
+        TestConnection Connection(Session);
         TEST_TRUE(Connection.IsValid());
 
         QuicAddr LocalAddress(Family == 4 ? AF_INET : AF_INET6);
@@ -232,7 +220,7 @@ void QuicTestBindConnectionExplicit(_In_ int Family)
     TEST_TRUE(Session.IsValid());
 
     {
-        TestConnection Connection(Session.Handle, ConnectionDoNothingCallback, false);
+        TestConnection Connection(Session);
         TEST_TRUE(Connection.IsValid());
 
         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;

@@ -24,6 +24,8 @@ CLOG_ADD_SOURCEFILE(MSQUIC_CORETEST ${SOURCES})
 
 add_executable(msquiccoretest ${SOURCES})
 
-target_link_libraries(msquiccoretest msquic gtest MSQUIC_CORETEST)
+set_property(TARGET msquiccoretest PROPERTY FOLDER "tests")
+
+target_link_libraries(msquiccoretest msquic core platform gtest PLATFORM_CLOG_LIB MSQUIC_CORETEST)
 
 add_test(msquiccoretest msquiccoretest)

@@ -4,6 +4,9 @@
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 
 add_executable(quicreach reach.cpp)
+
+set_property(TARGET quicreach PROPERTY FOLDER "tools")
+
 target_link_libraries(quicreach msquic platform)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")

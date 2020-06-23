@@ -22,6 +22,8 @@ CLOG_ADD_SOURCEFILE(MSQUIC_PLATFORMTEST ${SOURCES})
 
 add_executable(msquicplatformtest ${SOURCES})
 
+set_property(TARGET msquicplatformtest PROPERTY FOLDER "tests")
+
 if(WIN32)
     target_link_libraries(msquicplatformtest ntdll ws2_32 bcrypt advapi32)
 endif()
@@ -31,12 +33,12 @@ if(QUIC_TLS STREQUAL "schannel")
 elseif(QUIC_TLS STREQUAL "openssl")
     add_dependencies(msquicplatformtest OpenSSL)
     target_link_libraries(msquicplatformtest
-        ${QUIC_BUILD_DIR}/openssl/lib/libssl.a
-        ${QUIC_BUILD_DIR}/openssl/lib/libcrypto.a)
+        ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+        ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
 elseif(QUIC_TLS STREQUAL "mitls")
     target_link_libraries(msquicplatformtest kremlib evercrypt mitls quiccrypto ncrypt crypt32)
 endif()
 
-target_link_libraries(msquicplatformtest platform gtest MSQUIC_PLATFORMTEST PLATFORM_CLOG_LIB CORE_CLOG_LIB)
+target_link_libraries(msquicplatformtest msquic platform gtest MSQUIC_PLATFORMTEST PLATFORM_CLOG_LIB CORE_CLOG_LIB))
 
 add_test(msquicplatformtest msquicplatformtest)

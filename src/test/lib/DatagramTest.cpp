@@ -12,18 +12,6 @@ Abstract:
 #include "precomp.h"
 #include "DatagramTest.cpp.clog.h"
 
-_Function_class_(NEW_STREAM_CALLBACK)
-static
-void
-ConnectionDoNothingCallback(
-    _In_ TestConnection* /* Connection */,
-    _In_ HQUIC /* StreamHandle */,
-    _In_ QUIC_STREAM_OPEN_FLAGS /* Flags */
-    )
-{
-    TEST_FAILURE("This callback should never be called!");
-}
-
 struct ServerAcceptContext {
     QUIC_EVENT NewConnectionReady;
     TestConnection** NewConnection;
@@ -45,22 +33,7 @@ ListenerAcceptConnection(
     )
 {
     ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
-    if (AcceptContext == nullptr) { // Prime Resumption scenario.
-        auto NewConnection = new TestConnection(ConnectionHandle, ConnectionDoNothingCallback, true, true);
-        if (NewConnection == nullptr || !NewConnection->IsValid()) {
-            TEST_FAILURE("Failed to accept new TestConnection.");
-            delete NewConnection;
-            MsQuic->ConnectionClose(ConnectionHandle);
-        } else {
-            NewConnection->SetHasRandomLoss(Listener->GetHasRandomLoss());
-        }
-        return;
-    }
-    if (*AcceptContext->NewConnection != nullptr) { // Retry scenario.
-        delete *AcceptContext->NewConnection;
-        *AcceptContext->NewConnection = nullptr;
-    }
-    *AcceptContext->NewConnection = new TestConnection(ConnectionHandle, ConnectionDoNothingCallback, true);
+    *AcceptContext->NewConnection = new TestConnection(ConnectionHandle);
     if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *AcceptContext->NewConnection;
@@ -104,10 +77,7 @@ QuicTestDatagramNegotiation(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(
-                    ClientSession.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(ClientSession);
                 TEST_TRUE(Client.IsValid());
 
                 TEST_TRUE(Client.GetDatagramSendEnabled()); // Datagrams start as enabled
@@ -124,7 +94,7 @@ QuicTestDatagramNegotiation(
                     Client.Start(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
                     return;
@@ -166,74 +136,6 @@ QuicTestDatagramNegotiation(
     }
 }
 
-struct SelectiveLossHelper
-{
-    static uint32_t DropPacketCount;
-    static QUIC_TEST_DATAPATH_HOOKS DataPathFuncTable;
-    SelectiveLossHelper() {
-        QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathFuncTable;
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_LEVEL_GLOBAL,
-                QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
-                sizeof(Value),
-                &Value));
-    }
-    ~SelectiveLossHelper() {
-        QUIC_TEST_DATAPATH_HOOKS* Value = nullptr;
-        uint32_t TryCount = 0;
-        while (TryCount++ < 10) {
-            if (QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_LEVEL_GLOBAL,
-                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
-                    sizeof(Value),
-                    &Value))) {
-                break;
-            }
-            QuicSleep(100); // Let the current datapath queue drain.
-        }
-        if (TryCount == 10) {
-            TEST_FAILURE("Failed to disable test datapath hook");
-        }
-    }
-    void DropPackets(uint32_t Count) { DropPacketCount = Count; }
-    static
-    _IRQL_requires_max_(DISPATCH_LEVEL)
-    BOOLEAN
-    QUIC_API
-    ReceiveCallback(
-        _Inout_ struct QUIC_RECV_DATAGRAM* /* Datagram */
-        )
-    {
-        if (DropPacketCount == 0) {
-            return false;
-        }
-        DropPacketCount--;
-        return true;
-    }
-    static
-    _IRQL_requires_max_(PASSIVE_LEVEL)
-    BOOLEAN
-    QUIC_API
-    SendCallback(
-        _Inout_ QUIC_ADDR* /* RemoteAddress */,
-        _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
-        _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */
-        )
-    {
-        return FALSE; // Don't drop
-    }
-};
-
-uint32_t SelectiveLossHelper::DropPacketCount = false;
-QUIC_TEST_DATAPATH_HOOKS SelectiveLossHelper::DataPathFuncTable = {
-    SelectiveLossHelper::ReceiveCallback,
-    SelectiveLossHelper::SendCallback
-};
-
 void
 QuicTestDatagramSend(
     _In_ int Family
@@ -263,10 +165,7 @@ QuicTestDatagramSend(
             Listener.Context = &ServerAcceptCtx;
 
             {
-                TestConnection Client(
-                    Session.Handle,
-                    ConnectionDoNothingCallback,
-                    false);
+                TestConnection Client(Session);
                 TEST_TRUE(Client.IsValid());
 
                 TEST_TRUE(Client.GetDatagramSendEnabled());
@@ -275,7 +174,7 @@ QuicTestDatagramSend(
                     Client.Start(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
                     return;
@@ -310,6 +209,7 @@ QuicTestDatagramSend(
 
                 TEST_EQUAL(1, Client.GetDatagramsAcknowledged());
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
                 LossHelper.DropPackets(1);
 
                 TEST_QUIC_SUCCEEDED(
@@ -327,6 +227,7 @@ QuicTestDatagramSend(
                 QuicSleep(500);
 
                 TEST_EQUAL(1, Client.GetDatagramsSuspectLost());
+#endif
 
                 Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
                 if (!Client.WaitForShutdownComplete()) {
@@ -338,11 +239,6 @@ QuicTestDatagramSend(
                 TEST_FALSE(Client.GetPeerClosed());
                 TEST_FALSE(Client.GetTransportClosed());
             }
-
-#if !QUIC_SEND_FAKE_LOSS
-            TEST_TRUE(Server->GetPeerClosed());
-            TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
-#endif
         }
     }
 }

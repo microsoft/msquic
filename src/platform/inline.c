@@ -180,3 +180,97 @@ QuicTlsAlpnFindInList(
     _In_reads_(FindAlpnLength)
         const uint8_t* FindAlpn
     );
+
+BOOLEAN
+QuicAddrFamilyIsValid(
+    _In_ QUIC_ADDRESS_FAMILY Family
+    );
+
+BOOLEAN
+QuicAddrIsValid(
+    _In_ const QUIC_ADDR* const Addr
+    );
+
+BOOLEAN
+QuicAddrCompareIp(
+    _In_ const QUIC_ADDR* const Addr1,
+    _In_ const QUIC_ADDR* const Addr2
+    );
+
+BOOLEAN
+QuicAddrCompare(
+    _In_ const QUIC_ADDR* const Addr1,
+    _In_ const QUIC_ADDR* const Addr2
+    );
+
+uint16_t
+QuicAddrGetFamily(
+    _In_ const QUIC_ADDR* const Addr
+    );
+
+void
+QuicAddrSetFamily(
+    _In_ QUIC_ADDR* Addr,
+    _In_ uint16_t Family
+    );
+
+uint16_t
+QuicAddrGetPort(
+    _In_ const QUIC_ADDR* const Addr
+    );
+
+void
+QuicAddrSetPort(
+    _Out_ QUIC_ADDR* Addr,
+    _In_ uint16_t Port
+    );
+
+BOOLEAN
+QuicAddrIsBoundExplicitly(
+    _In_ const QUIC_ADDR* const Addr
+    );
+
+void
+QuicAddrIncrement(
+    _Inout_ QUIC_ADDR * Addr
+    );
+
+void
+QuicAddrSetToLoopback(
+    _Inout_ QUIC_ADDR* Addr
+    );
+
+uint32_t
+QuicAddrHash(
+    _In_ const QUIC_ADDR* Addr
+    );
+
+BOOLEAN
+QuicAddrIsWildCard(
+    _In_ const QUIC_ADDR* const Addr
+    );
+
+BOOLEAN
+QuicAddr4FromString(
+    _In_z_ const char* AddrStr,
+    _Out_ QUIC_ADDR* Addr
+    );
+
+BOOLEAN
+QuicAddr6FromString(
+    _In_z_ const char* AddrStr,
+    _Out_ QUIC_ADDR* Addr
+    );
+
+BOOLEAN
+QuicAddrFromString(
+    _In_z_ const char* AddrStr,
+    _In_ uint16_t Port, // Host byte order
+    _Out_ QUIC_ADDR* Addr
+    );
+
+BOOLEAN
+QuicAddrToString(
+    _In_ const QUIC_ADDR* Addr,
+    _Out_ QUIC_ADDR_STR* AddrStr
+    );

@@ -538,6 +538,9 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),
     0,
     sizeof(QUIC_RUN_DATAGRAM_NEGOTIATION),
+    sizeof(INT32),
+    sizeof(INT32),
+    sizeof(INT32),
     sizeof(INT32)
 };
 
@@ -738,8 +741,6 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Params1.Family,
                 Params->Params1.ServerStatelessRetry != 0,
                 Params->Params1.ClientUsesOldVersion != 0,
-                Params->Params1.ClientRebind != 0,
-                Params->Params1.ChangeMaxStreamID != 0,
                 Params->Params1.MultipleALPNs != 0,
                 Params->Params1.AsyncSecConfig != 0,
                 Params->Params1.MultiPacketClientInitial != 0,
@@ -915,6 +916,27 @@ QuicTestCtlEvtIoDeviceControl(
         QUIC_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestDatagramSend(
+                Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_NAT_PORT_REBIND:
+        QUIC_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestNatPortRebind(
+                Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_NAT_ADDR_REBIND:
+        QUIC_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestNatAddrRebind(
+                Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_CHANGE_MAX_STREAM_ID:
+        QUIC_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestChangeMaxStreamID(
                 Params->Family));
         break;
 

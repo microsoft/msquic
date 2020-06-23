@@ -191,6 +191,10 @@ MsQuicLibraryInitialize(
             FALSE,
             sizeof(QUIC_CONNECTION),
             &MsQuicLib.PerProc[i].ConnectionPool);
+        QuicPoolInitialize(
+            FALSE,
+            sizeof(QUIC_TRANSPORT_PARAMETERS),
+            &MsQuicLib.PerProc[i].TransportParamPool);
     }
 
     Status =
@@ -236,6 +240,7 @@ Error:
         if (MsQuicLib.PerProc != NULL) {
             for (uint8_t i = 0; i < MsQuicLib.PartitionCount; ++i) {
                 QuicPoolUninitialize(&MsQuicLib.PerProc[i].ConnectionPool);
+                QuicPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
             }
             QUIC_FREE(MsQuicLib.PerProc);
             MsQuicLib.PerProc = NULL;
@@ -277,6 +282,9 @@ MsQuicLibraryUninitialize(
         MsQuicLib.UnregisteredSession = NULL;
     }
 
+    QuicDataPathUninitialize(MsQuicLib.Datapath);
+    MsQuicLib.Datapath = NULL;
+
     //
     // The library's worker pool for processing half-opened connections
     // needs to be cleaned up first, as it's the last thing that can be
@@ -303,6 +311,7 @@ MsQuicLibraryUninitialize(
 
     for (uint8_t i = 0; i < MsQuicLib.PartitionCount; ++i) {
         QuicPoolUninitialize(&MsQuicLib.PerProc[i].ConnectionPool);
+        QuicPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
     }
     QUIC_FREE(MsQuicLib.PerProc);
     MsQuicLib.PerProc = NULL;
@@ -312,9 +321,6 @@ MsQuicLibraryUninitialize(
         MsQuicLib.StatelessRetryKeys[i] = NULL;
     }
     QuicLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
-
-    QuicDataPathUninitialize(MsQuicLib.Datapath);
-    MsQuicLib.Datapath = NULL;
 
     QuicTraceEvent(
         LibraryUninitialized,
@@ -573,19 +579,11 @@ QuicLibrarySetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-#if DEBUG
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     case QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS:
 
         if (BufferLength != sizeof(QUIC_TEST_DATAPATH_HOOKS*)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        if (MsQuicLib.InUse) {
-            QuicTraceLogError(
-                LibraryTestDatapathHooksSetAfterInUse,
-                "[ lib] Tried to change test datapath hooks after library in use!");
-            Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
 
@@ -1034,6 +1032,7 @@ MsQuicOpen(
     Api->ConnectionClose = MsQuicConnectionClose;
     Api->ConnectionShutdown = MsQuicConnectionShutdown;
     Api->ConnectionStart = MsQuicConnectionStart;
+    Api->ConnectionSendResumptionTicket = MsQuicConnectionSendResumptionTicket;
 
     Api->StreamOpen = MsQuicStreamOpen;
     Api->StreamClose = MsQuicStreamClose;

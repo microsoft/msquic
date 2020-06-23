@@ -30,16 +30,20 @@ void CompareTransportParams(
     COMPARE_TP_FIELD(INITIAL_MAX_STRM_DATA_UNI, InitialMaxStreamDataUni);
     COMPARE_TP_FIELD(INITIAL_MAX_STRMS_BIDI, InitialMaxBidiStreams);
     COMPARE_TP_FIELD(INITIAL_MAX_STRMS_UNI, InitialMaxUniStreams);
-    COMPARE_TP_FIELD(MAX_PACKET_SIZE, MaxPacketSize);
+    COMPARE_TP_FIELD(MAX_UDP_PAYLOAD_SIZE, MaxUdpPayloadSize);
     COMPARE_TP_FIELD(ACK_DELAY_EXPONENT, AckDelayExponent);
     COMPARE_TP_FIELD(IDLE_TIMEOUT, IdleTimeout);
     COMPARE_TP_FIELD(MAX_ACK_DELAY, MaxAckDelay);
     COMPARE_TP_FIELD(ACTIVE_CONNECTION_ID_LIMIT, ActiveConnectionIdLimit);
+    //COMPARE_TP_FIELD(InitialSourceConnectionID);
+    //COMPARE_TP_FIELD(InitialSourceConnectionIDLength);
     if (IsServer) { // TODO
         //COMPARE_TP_FIELD(StatelessResetToken);
         //COMPARE_TP_FIELD(AckPreferredAddressDelayExponent);
-        //COMPARE_TP_FIELD(OriginalConnectionID);
-        //COMPARE_TP_FIELD(OriginalConnectionIDLength);
+        //COMPARE_TP_FIELD(OriginalDestinationConnectionID);
+        //COMPARE_TP_FIELD(OriginalDestinationConnectionIDLength);
+        //COMPARE_TP_FIELD(RetrySourceConnectionID);
+        //COMPARE_TP_FIELD(RetrySourceConnectionIDLength);
     }
 }
 

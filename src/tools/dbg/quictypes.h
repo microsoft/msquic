@@ -111,10 +111,9 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN GotFirstServerResponse : 1;
 
         //
-        // This flag indicates the client received a Retry packet during the
-        // handshake.
+        // This flag indicates the Retry packet was used during the handshake.
         //
-        BOOLEAN ReceivedRetryPacket : 1;
+        BOOLEAN HandshakeUsedRetryPacket : 1;
 
         //
         // We have confirmed that the peer has completed the handshake.
@@ -897,6 +896,7 @@ typedef enum QUIC_API_TYPE {
     QUIC_API_TYPE_CONN_CLOSE,
     QUIC_API_TYPE_CONN_SHUTDOWN,
     QUIC_API_TYPE_CONN_START,
+    QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET,
 
     QUIC_API_TYPE_STRM_CLOSE,
     QUIC_API_TYPE_STRM_SHUTDOWN,
@@ -928,6 +928,8 @@ struct ApiCall : Struct {
             return "API_CONN_SHUTDOWN";
         case QUIC_API_TYPE_CONN_START:
             return "API_CONN_START";
+        case QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET:
+            return "QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET";
         case QUIC_API_TYPE_STRM_CLOSE:
             return "API_STRM_CLOSE";
         case QUIC_API_TYPE_STRM_SHUTDOWN:

@@ -717,11 +717,24 @@ QuicLossDetectionRetransmitFrames(
         case QUIC_FRAME_PATH_CHALLENGE: {
             QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId);
             if (Path != NULL && !Path->IsPeerValidated) {
-                Path->SendChallenge = TRUE;
-                NewDataQueued |=
+                uint32_t TimeNow = QuicTimeUs32();
+                QUIC_DBG_ASSERT(Connection->Session != NULL);
+                uint32_t ValidationTimeout =
+                    max(QuicLossDetectionComputeProbeTimeout(LossDetection, Path, 3),
+                        6 * MS_TO_US(Connection->Session->Settings.InitialRttMs));
+                if (QuicTimeDiff32(Path->PathValidationStartTime, TimeNow) > ValidationTimeout) {
+                    QuicTraceLogConnInfo(
+                        PathValidationTimeout,
+                        Connection,
+                        "Path[%hhu] validation timed out",
+                        Path->ID);
+                    QuicPathRemove(Connection, Packet->PathId);
+                } else {
+                    Path->SendChallenge = TRUE;
                     QuicSendSetSendFlag(
                         &Connection->Send,
                         QUIC_CONN_SEND_FLAG_PATH_CHALLENGE);
+                }
             }
             break;
         }

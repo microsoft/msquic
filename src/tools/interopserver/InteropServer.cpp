@@ -17,8 +17,9 @@ const char* RootFolderPath;
 const char* UploadFolderPath;
 
 const QUIC_BUFFER SupportedALPNs[] = {
-    { sizeof("hq-27") - 1, (uint8_t*)"hq-27" },
-    { sizeof("hq-25") - 1, (uint8_t*)"hq-25" }
+    { sizeof("hq-29") - 1, (uint8_t*)"hq-29" },
+    { sizeof("hq-28") - 1, (uint8_t*)"hq-28" },
+    { sizeof("hq-27") - 1, (uint8_t*)"hq-27" }
 };
 
 void
@@ -251,14 +252,16 @@ HttpRequest::SendData()
         Shutdown = true;
     }
 
+    QUIC_STATUS Status;
     if (QUIC_FAILED(
+        Status =
         MsQuic->StreamSend(
             QuicStream,
             &Buffer.QuicBuffer,
             1,
             Buffer.Flags,
             this))) {
-        printf("[%s] Send failed\n", GetRemoteAddr(MsQuic, QuicStream).Address);
+        printf("[%s] Send failed, 0x%x\n", GetRemoteAddr(MsQuic, QuicStream).Address, Status);
         Abort(HttpRequestSendFailed);
     }
 }

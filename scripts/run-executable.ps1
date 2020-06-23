@@ -81,7 +81,7 @@ if (!(Test-Path $Path)) {
 }
 
 # Root directory of the project.
-$RootDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$RootDir = Split-Path $PSScriptRoot -Parent
 
 # Script for controlling loggings.
 $LogScript = Join-Path $RootDir "scripts" "log.ps1"
@@ -98,7 +98,7 @@ $FailXmlText = @"
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites tests="1" failures="1" disabled="0" errors="0" time="0" name="Executable">
   <testsuite name="ExeName" tests="1" failures="1" disabled="0" errors="0" timestamp="date" time="0" >
-    <testcase name="Run" status="run" result="completed" time="0" timestamp="date" classname="ExeName">
+    <testcase name="ExeName" status="run" result="completed" time="0" timestamp="date" classname="ExeName">
       <failure message="Application Crashed" type=""><![CDATA[Application Crashed]]></failure>
     </testcase>
   </testsuite>
@@ -110,7 +110,7 @@ $SuccessXmlText = @"
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites tests="1" failures="1" disabled="0" errors="0" time="0" name="Executable">
   <testsuite name="ExeName" tests="1" failures="1" disabled="0" errors="0" timestamp="date" time="0" >
-    <testcase name="Run" status="run" result="completed" time="0" timestamp="date" classname="ExeName" />
+    <testcase name="ExeName" status="run" result="completed" time="0" timestamp="date" classname="ExeName" />
   </testsuite>
 </testsuites>
 "@
@@ -175,7 +175,7 @@ function PrintDumpCallStack($DumpFile) {
     $env:_NT_SYMBOL_PATH = Split-Path $Path
     try {
         if ($env:BUILD_BUILDNUMBER -ne $null) {
-            $env:PATH += ";c:\Program Files (x86)\Windows Kits\10\Debuggers\x64" 
+            $env:PATH += ";c:\Program Files (x86)\Windows Kits\10\Debuggers\x64"
         }
         $Output = cdb.exe -z $File -c "kn;q" | Join-String -Separator "`n"
         $Output = ($Output | Select-String -Pattern " # Child-SP(?s).*quit:").Matches[0].Groups[0].Value

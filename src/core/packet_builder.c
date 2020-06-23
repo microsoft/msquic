@@ -203,9 +203,9 @@ QuicPacketBuilderPrepare(
             MaxUdpPayloadSizeForFamily(
                 QuicAddrGetFamily(&Builder->Path->RemoteAddress),
                 IsPathMtuDiscovery ? QUIC_MAX_MTU : DatagramSize);
-        if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_PACKET_SIZE) &&
-            NewDatagramLength > Connection->PeerTransportParams.MaxPacketSize) {
-            NewDatagramLength = (uint16_t)Connection->PeerTransportParams.MaxPacketSize;
+        if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE) &&
+            NewDatagramLength > Connection->PeerTransportParams.MaxUdpPayloadSize) {
+            NewDatagramLength = (uint16_t)Connection->PeerTransportParams.MaxUdpPayloadSize;
         }
 
         Builder->Datagram =
@@ -301,6 +301,8 @@ QuicPacketBuilderPrepare(
 
             switch (Connection->Stats.QuicVersion) {
             case QUIC_VERSION_DRAFT_27:
+            case QUIC_VERSION_DRAFT_28:
+            case QUIC_VERSION_DRAFT_29:
             case QUIC_VERSION_MS_1:
                 Builder->HeaderLength =
                     QuicPacketEncodeShortHeaderV1(
@@ -323,6 +325,8 @@ QuicPacketBuilderPrepare(
 
             switch (Connection->Stats.QuicVersion) {
             case QUIC_VERSION_DRAFT_27:
+            case QUIC_VERSION_DRAFT_28:
+            case QUIC_VERSION_DRAFT_29:
             case QUIC_VERSION_MS_1:
             default:
                 Builder->HeaderLength =
@@ -445,6 +449,13 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
         return TRUE;
     }
 
+    QuicTraceLogConnWarning(
+        GetPacketTypeFailure,
+        Builder->Connection,
+        "Failed to get packet type for control frames, 0x%x",
+        SendFlags);
+    QUIC_DBG_ASSERT(FALSE); // This shouldn't have been called then!
+
     return FALSE;
 }
 
@@ -458,22 +469,17 @@ QuicPacketBuilderPrepareForControlFrames(
     )
 {
     QUIC_DBG_ASSERT(!(SendFlags & QUIC_CONN_SEND_FLAG_PMTUD));
-
     QUIC_PACKET_KEY_TYPE PacketKeyType;
-    if (!QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
+    return
+        QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
             Builder,
             SendFlags,
-            &PacketKeyType)) {
-        QuicTraceLogConnWarning(
-            GetPacketTypeFailure,
-            Builder->Connection,
-            "Failed to get packet type for control frames, 0x%x",
-            SendFlags);
-        QUIC_DBG_ASSERT(FALSE); // This shouldn't have been called then!
-        return FALSE;
-    }
-
-    return QuicPacketBuilderPrepare(Builder, PacketKeyType, IsTailLossProbe, FALSE);
+            &PacketKeyType) &&
+        QuicPacketBuilderPrepare(
+            Builder,
+            PacketKeyType,
+            IsTailLossProbe,
+            FALSE);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -653,6 +659,8 @@ QuicPacketBuilderFinalize(
     if (Builder->PacketType != SEND_PACKET_SHORT_HEADER_TYPE) {
         switch (Connection->Stats.QuicVersion) {
         case QUIC_VERSION_DRAFT_27:
+        case QUIC_VERSION_DRAFT_28:
+        case QUIC_VERSION_DRAFT_29:
         case QUIC_VERSION_MS_1:
         default:
             QuicVarIntEncode2Bytes(

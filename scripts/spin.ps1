@@ -15,6 +15,9 @@ This script runs spinquic locally for a period of time.
 .PARAMETER Timeout
     The run time in milliseconds.
 
+.Parameter RepeatCount
+    The amount of times to repeat the full test
+
 .PARAMETER KeepOutputOnSuccess
     Don't discard console output or logs on success.
 
@@ -26,9 +29,6 @@ This script runs spinquic locally for a period of time.
 
 .PARAMETER LogProfile
     The name of the profile to use for log collection.
-
-.PARAMETER ConvertLogs
-    Convert any collected logs to text. Only works when LogProfile is set.
 
 #>
 
@@ -49,6 +49,9 @@ param (
     [Int32]$Timeout = 60000,
 
     [Parameter(Mandatory = $false)]
+    [Int32]$RepeatCount = 1,
+
+    [Parameter(Mandatory = $false)]
     [switch]$KeepOutputOnSuccess = $false,
 
     [Parameter(Mandatory = $false)]
@@ -59,10 +62,7 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
-    [string]$LogProfile = "None",
-
-    [Parameter(Mandatory = $false)]
-    [switch]$ConvertLogs = $false
+    [string]$LogProfile = "None"
 )
 
 Set-StrictMode -Version 'Latest'
@@ -81,7 +81,7 @@ if ("" -eq $Tls) {
 $RootDir = Split-Path $PSScriptRoot -Parent
 
 # Path to the run-executable Powershell script.
-$RunExecutable = Join-Path $RootDir ".azure/scripts/run-executable.ps1"
+$RunExecutable = Join-Path $RootDir "scripts/run-executable.ps1"
 
 # Path to the spinquic exectuable.
 $SpinQuic = $null
@@ -97,7 +97,7 @@ if (!(Test-Path $SpinQuic)) {
 }
 
 # Build up all the arguments to pass to the Powershell script.
-$Arguments = "-Path $($SpinQuic) -Arguments 'both -timeout:$($Timeout)' -ShowOutput"
+$Arguments = "-Path $($SpinQuic) -Arguments 'both -timeout:$($Timeout) -repeat_count:$($RepeatCount)' -ShowOutput"
 if ($KeepOutputOnSuccess) {
     $Arguments += " -KeepOutputOnSuccess"
 }
@@ -108,10 +108,7 @@ if ($Debugger) {
     $Arguments += " -Debugger"
 }
 if ("None" -ne $LogProfile) {
-    $Arguments += " -LogProfile $($LogProfile)"
-}
-if ($ConvertLogs) {
-    $Arguments += " -ConvertLogs"
+    $Arguments += " -LogProfile $($LogProfile) -ConvertLogs"
 }
 
 # Run the script.

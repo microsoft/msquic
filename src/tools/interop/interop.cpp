@@ -25,6 +25,8 @@ HQUIC Registration;
 int EndpointIndex = -1;
 uint32_t TestCases = QuicTestFeatureAll;
 uint32_t WaitTimeoutMs = 5000;
+uint32_t InitialVersion = 0;
+bool RunSerially = false;
 
 const BOOLEAN UseSendBuffering = FALSE;
 const uint32_t CertificateValidationFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
@@ -36,9 +38,19 @@ QUIC_PRIVATE_TRANSPORT_PARAMETER RandomTransportParameter = {
     RandomTransportParameterPayload
 };
 
-const QUIC_BUFFER Alpns[] = {
+const QUIC_BUFFER HandshakeAlpns[] = {
+    { sizeof("hq-29") - 1, (uint8_t*)"hq-29" },
+    { sizeof("h3-29") - 1, (uint8_t*)"h3-29" },
+    { sizeof("hq-28") - 1, (uint8_t*)"hq-28" },
+    { sizeof("h3-28") - 1, (uint8_t*)"h3-28" },
     { sizeof("hq-27") - 1, (uint8_t*)"hq-27" },
     { sizeof("h3-27") - 1, (uint8_t*)"h3-27" }
+};
+
+const QUIC_BUFFER DatapathAlpns[] = {
+    { sizeof("hq-29") - 1, (uint8_t*)"hq-29" },
+    { sizeof("hq-28") - 1, (uint8_t*)"hq-28" },
+    { sizeof("hq-27") - 1, (uint8_t*)"hq-27" },
 };
 
 const uint16_t PublicPorts[] = {
@@ -58,7 +70,7 @@ struct QuicPublicEndpoint {
 QuicPublicEndpoint PublicEndpoints[] = {
     { "aioquic",        "quic.aiortc.org" },
     { "akamaiquic",     "ietf.akaquic.com" },
-    { "applequic",      "12.181.55.166" },
+    { "applequic",      "71.202.41.169" },
     { "ats",            "quic.ogre.com" },
     { "f5",             "f5quic.com" },
     { "gquic",          "quic.rocks" },
@@ -73,7 +85,7 @@ QuicPublicEndpoint PublicEndpoints[] = {
     { "Pandora",        "pandora.cm.in.tum.de" },
     { "picoquic",       "test.privateoctopus.com" },
     { "quant",          "quant.eggert.org" },
-    { "quinn",          "ralith.com" },
+    { "quinn",          "h3.stammw.eu" },
     { "quic-go",        "quic.seemann.io" },
     { "quiche",         "quic.tech" },
     { "quicker",        "quicker.edm.uhasselt.be" },
@@ -110,11 +122,11 @@ PrintUsage()
     printf("Usage:\n");
     printf("  quicinterop.exe -help\n");
     printf("  quicinterop.exe -list\n");
-    printf("  quicinterop.exe [-target:<implementation>] [-test:<test case>] [-timeout:<milliseconds>]\n\n");
-    printf("  quicinterop.exe [-custom:<hostname>] [-port:<####>] [-test:<test case>] [-timeout:<milliseconds>]\n\n");
+    printf("  quicinterop.exe [-target:<implementation> | -custom:<hostname>] [-port:<####>] [-test:<test case>] [-timeout:<milliseconds>] [-version:<####>]\n\n");
 
     printf("Examples:\n");
     printf("  quicinterop.exe\n");
+    printf("  quicinterop.exe -test:H\n");
     printf("  quicinterop.exe -target:msquic\n");
     printf("  quicinterop.exe -custom:localhost -test:16\n");
 }
@@ -195,6 +207,14 @@ public:
                     QUIC_PARAM_CONN_QUIC_VERSION,
                     sizeof(RandomReservedVersion),
                     &RandomReservedVersion));
+        } else if (InitialVersion != 0) {
+            VERIFY_QUIC_SUCCESS(
+                MsQuic->SetParam(
+                    Connection,
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_QUIC_VERSION,
+                    sizeof(InitialVersion),
+                    &InitialVersion));
         }
         if (LargeTP) {
             VERIFY_QUIC_SUCCESS(
@@ -511,12 +531,15 @@ RunInteropTest(
 {
     bool Success = false;
 
+    const QUIC_BUFFER* Alpns = (Feature & QuicTestFeatureDataPath) ? DatapathAlpns : HandshakeAlpns;
+    const uint32_t AlpnCount = (Feature & QuicTestFeatureDataPath) ? ARRAYSIZE(DatapathAlpns) : ARRAYSIZE(HandshakeAlpns);
+
     HQUIC Session;
     VERIFY_QUIC_SUCCESS(
         MsQuic->SessionOpen(
             Registration,
             Alpns,
-            ARRAYSIZE(Alpns),
+            AlpnCount,
             nullptr,
             &Session));
     uint16_t UniStreams = 3;
@@ -719,6 +742,10 @@ StartTest(
 
     VERIFY_QUIC_SUCCESS(
         QuicThreadCreate(&ThreadConfig, &Threads[CurrentThreadCount++]));
+
+    if (RunSerially) {
+        QuicThreadWait(&Threads[CurrentThreadCount-1]);
+    }
 }
 
 void
@@ -800,6 +827,28 @@ main(
         return 0;
     }
 
+    const char* TestCaseStr = GetValue(argc, argv, "test");
+    if (TestCaseStr) {
+        TestCases = 0;
+        const uint32_t Len = (uint32_t)strlen(TestCaseStr);
+        for (uint32_t i = 0; i < QuicTestFeatureCount; ++i) {
+            for (uint32_t j = 0; j < Len; ++j) {
+                if (QuicTestFeatureCodes[i] == TestCaseStr[j]) {
+                    TestCases |= (1 << i);
+                }
+            }
+        }
+        if (TestCases == 0) {
+            TestCases = QuicTestFeatureAll & (uint32_t)atoi(TestCaseStr);
+            if (TestCases == 0) {
+                printf("Invalid test cases!\n");
+                return 0;
+            }
+        }
+    }
+
+    RunSerially = GetValue(argc, argv, "serial") != nullptr;
+
     QuicPlatformSystemLoad();
 
     QUIC_STATUS Status;
@@ -824,13 +873,8 @@ main(
     }
 
     TryGetValue(argc, argv, "timeout", &WaitTimeoutMs);
-    if (TryGetValue(argc, argv, "test", &TestCases)) {
-        TestCases &= QuicTestFeatureAll;
-        if (TestCases == 0) {
-            printf("Invalid test cases!\n");
-            goto Error;
-        }
-    }
+    TryGetValue(argc, argv, "version", &InitialVersion);
+    TryGetValue(argc, argv, "port", &CustomPort);
 
     const char* Target, *Custom;
     if (TryGetValue(argc, argv, "target", &Target)) {
@@ -850,7 +894,6 @@ main(
         PublicEndpoints[PublicEndpointsCount].ImplementationName = Custom;
         PublicEndpoints[PublicEndpointsCount].ServerName = Custom;
         EndpointIndex = (int)PublicEndpointsCount;
-        TryGetValue(argc, argv, "port", &CustomPort);
     }
 
     RunInteropTests();

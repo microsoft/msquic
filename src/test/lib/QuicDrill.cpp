@@ -140,7 +140,7 @@ struct DrillSender {
             return Status;
         }
 
-        ServerAddress.si_family = Family;
+        QuicAddrSetFamily(&ServerAddress, Family);
 
         Status =
             QuicDataPathResolveAddress(

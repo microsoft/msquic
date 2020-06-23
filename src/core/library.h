@@ -46,6 +46,11 @@ typedef struct QUIC_CACHEALIGN QUIC_LIBRARY_PP {
     //
     QUIC_POOL ConnectionPool;
 
+    //
+    // Pool for QUIC_TRANSPORT_PARAMETERs.
+    //
+    QUIC_POOL TransportParamPool;
+
 } QUIC_LIBRARY_PP;
 
 //
@@ -207,7 +212,7 @@ typedef struct QUIC_LIBRARY {
     //
     QUIC_TOEPLITZ_HASH ToeplitzHash;
 
-#if DEBUG
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     //
     // An optional callback to allow test code to modify the data path.
     //

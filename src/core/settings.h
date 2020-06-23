@@ -10,6 +10,7 @@ typedef struct QUIC_SETTINGS {
     BOOLEAN PacingDefault    : 1;
     BOOLEAN MigrationEnabled : 1;
     BOOLEAN DatagramReceiveEnabled  : 1;
+    uint8_t ServerResumptionLevel : 2;
     uint8_t MaxPartitionCount;          // Global only
     uint8_t MaxOperationsPerDrain;      // Global only
     uint16_t RetryMemoryLimit;          // Global only
@@ -37,6 +38,7 @@ typedef struct QUIC_SETTINGS {
         BOOLEAN PacingDefault : 1;
         BOOLEAN MigrationEnabled : 1;
         BOOLEAN DatagramReceiveEnabled : 1;
+        BOOLEAN ServerResumptionLevel : 1;
         BOOLEAN MaxPartitionCount : 1;
         BOOLEAN MaxOperationsPerDrain : 1;
         BOOLEAN RetryMemoryLimit : 1;

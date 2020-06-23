@@ -54,7 +54,6 @@ class TestConnection
     bool IsShutdown         : 1;
     bool ShutdownTimedOut   : 1;
     bool AutoDelete         : 1;
-    bool UseSendBuffer      : 1;
     bool HasRandomLoss      : 1;
 
     bool ExpectedResumed    : 1;
@@ -100,16 +99,20 @@ class TestConnection
 public:
 
     TestConnection(
-        _In_ HQUIC Handle, // Client: SessionHandle; Server:ConnectionHandle
-        _In_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler,
-        _In_ bool Server,
-        _In_ bool AutoDelete = false,
-        _In_ bool UseSendBuffer = true
+        _In_ HQUIC Handle, // Server:ConnectionHandle
+        _In_opt_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler = nullptr
+        );
+
+    TestConnection(
+        _In_ MsQuicSession& Session,
+        _In_opt_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler = nullptr
         );
 
     ~TestConnection();
 
     bool IsValid() const { return QuicConnection != nullptr; }
+
+    void SetAutoDelete() { AutoDelete = true; }
 
     QUIC_STATUS
     Start(
@@ -133,7 +136,7 @@ public:
     uint32_t GetWaitTimeout() const {
         uint32_t WaitTime = TestWaitTimeout;
         if (HasRandomLoss) {
-            WaitTime *= 10; // TODO - Enough?
+            WaitTime *= 20; // TODO - Enough?
         }
         return WaitTime;
     }
@@ -228,6 +231,9 @@ public:
     uint32_t GetCertValidationFlags();
     QUIC_STATUS SetCertValidationFlags(uint32_t value);
 
+    bool GetUseSendBuffer();
+    QUIC_STATUS SetUseSendBuffer(bool value);
+
     uint32_t GetKeepAlive();                    // milliseconds
     QUIC_STATUS SetKeepAlive(uint32_t value);   // milliseconds
 
@@ -245,4 +251,5 @@ public:
     QUIC_STATUS SetSecurityConfig(QUIC_SEC_CONFIG* value);
 
     bool HasNewZeroRttTicket();
+    QUIC_STATUS GetResumptionTicket(uint8_t* Buffer, uint32_t* BufferLength);
 };

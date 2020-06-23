@@ -327,15 +327,10 @@ MsQuicSessionClose(
     } else {
         //
         // This is the global unregistered session. All connections need to be
-        // immediately cleaned up.
+        // immediately cleaned up. Use shutdown to ensure this all gets placed
+        // on the worker queue.
         //
-        QUIC_LIST_ENTRY* Entry = Session->Connections.Flink;
-        while (Entry != &Session->Connections) {
-            QUIC_CONNECTION* Connection =
-                QUIC_CONTAINING_RECORD(Entry, QUIC_CONNECTION, SessionLink);
-            Entry = Entry->Flink;
-            QuicConnOnShutdownComplete(Connection);
-        }
+        MsQuicSessionShutdown(Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
     }
 
     QuicRundownReleaseAndWait(&Session->Rundown);
@@ -549,6 +544,7 @@ QuicSessionRegisterConnection(
 
     if (Session->Registration != NULL) {
         Connection->Registration = Session->Registration;
+        QuicRundownAcquire(&Session->Registration->ConnectionRundown);
 #ifdef QuicVerifierEnabledByAddr
         Connection->State.IsVerifying = Session->Registration->IsVerifying;
 #endif
@@ -881,6 +877,25 @@ QuicSessionParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL:
+        if (*BufferLength  < sizeof(QUIC_SERVER_RESUMPTION_LEVEL)) {
+            *BufferLength = sizeof(QUIC_SERVER_RESUMPTION_LEVEL);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(QUIC_SERVER_RESUMPTION_LEVEL);
+        *(QUIC_SERVER_RESUMPTION_LEVEL*)Buffer =
+            (QUIC_SERVER_RESUMPTION_LEVEL)Session->Settings.ServerResumptionLevel;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -1090,6 +1105,28 @@ QuicSessionParamSet(
             "[sess][%p] Updated datagram receive enabled to %hhu",
             Session,
             Session->Settings.DatagramReceiveEnabled);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
+    case QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL: {
+        if (BufferLength != sizeof(QUIC_SERVER_RESUMPTION_LEVEL) ||
+            Buffer == NULL ||
+            *(QUIC_SERVER_RESUMPTION_LEVEL*)Buffer > QUIC_SERVER_RESUME_AND_ZERORTT) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Session->Settings.AppSet.ServerResumptionLevel = TRUE;
+        Session->Settings.ServerResumptionLevel =
+            *(QUIC_SERVER_RESUMPTION_LEVEL*)Buffer;
+
+        QuicTraceLogInfo(
+            SessionServerResumptionLevelSet,
+            "[sess][%p] Updated Server resume/0-RTT to %hhu",
+            Session,
+            Session->Settings.ServerResumptionLevel);
 
         Status = QUIC_STATUS_SUCCESS;
         break;

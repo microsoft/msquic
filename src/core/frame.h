@@ -20,9 +20,9 @@
 //
 #define QUIC_ERROR_INTERNAL_ERROR               0x1
 //
-// The server is currently busy and does not accept any new connections.
+// The server refused to accept the new connection.
 //
-#define QUIC_ERROR_SERVER_BUSY                  0x2
+#define QUIC_ERROR_CONNECTION_REFUSED           0x2
 //
 // An endpoint received more data than it permitted in its advertised data
 // limits.
@@ -46,7 +46,7 @@
 // frame or a RESET_STREAM frame containing a different final size to the one
 // already established.
 //
-#define QUIC_ERROR_FINAL_SIZE_ERROR           0x6
+#define QUIC_ERROR_FINAL_SIZE_ERROR             0x6
 //
 // An endpoint received a frame that was badly formatted. For instance, an empty
 // STREAM frame that omitted the FIN flag, or an ACK frame that has more

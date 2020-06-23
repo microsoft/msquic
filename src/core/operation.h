@@ -44,6 +44,7 @@ typedef enum QUIC_API_TYPE {
     QUIC_API_TYPE_CONN_CLOSE,
     QUIC_API_TYPE_CONN_SHUTDOWN,
     QUIC_API_TYPE_CONN_START,
+    QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET,
 
     QUIC_API_TYPE_STRM_CLOSE,
     QUIC_API_TYPE_STRM_SHUTDOWN,
@@ -98,6 +99,11 @@ typedef struct QUIC_API_CONTEXT {
             uint16_t ServerPort;
             QUIC_ADDRESS_FAMILY Family;
         } CONN_START;
+        struct {
+            QUIC_SEND_RESUMPTION_FLAGS Flags;
+            uint8_t* ResumptionAppData;
+            uint16_t AppDataLength;
+        } CONN_SEND_RESUMPTION_TICKET;
 
         struct {
             QUIC_STREAM_OPEN_FLAGS Flags;

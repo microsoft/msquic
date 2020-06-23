@@ -30,6 +30,7 @@ Environment:
 #include <netinet/ip.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <quic_sal_stub.h>
 
@@ -101,17 +102,18 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 #define ERROR_BUFFER_OVERFLOW            6 + ERROR_BASE
 #define ERROR_CONNECTION_REFUSED         7 + ERROR_BASE
 #define ERROR_OPERATION_ABORTED          8 + ERROR_BASE
-#define ERROR_CONNECTION_UNAVAIL         9 + ERROR_BASE
+#define ERROR_HANDSHAKE_FAILURE          9 + ERROR_BASE
 #define ERROR_NETWORK_UNREACHABLE        10 + ERROR_BASE
-#define ERROR_CONNECTION_ABORTED         11 + ERROR_BASE
+#define ERROR_CONNECTION_IDLE            11 + ERROR_BASE
 #define ERROR_INTERNAL_ERROR             12 + ERROR_BASE
-#define ERROR_CONNECTION_INVALID         13 + ERROR_BASE
-#define ERROR_VERSION_PARSE_ERROR        14 + ERROR_BASE
+#define ERROR_PROTOCOL_ERROR             13 + ERROR_BASE
+#define ERROR_VER_NEG_ERROR              14 + ERROR_BASE
 #define ERROR_EPOLL_ERROR                15 + ERROR_BASE
 #define ERROR_DNS_RESOLUTION_ERROR       16 + ERROR_BASE
 #define ERROR_SOCKET_ERROR               17 + ERROR_BASE
 #define ERROR_SSL_ERROR                  18 + ERROR_BASE
 #define ERROR_USER_CANCELED              19 + ERROR_BASE
+#define ERROR_ALPN_NEG_FAILURE           20 + ERROR_BASE
 
 #define QUIC_STATUS_SUCCESS             ((QUIC_STATUS)ERROR_SUCCESS)
 #define QUIC_STATUS_PENDING             ((QUIC_STATUS)ERROR_NOT_READY)
@@ -122,15 +124,15 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 #define QUIC_STATUS_NOT_SUPPORTED       ((QUIC_STATUS)EOPNOTSUPP)
 #define QUIC_STATUS_NOT_FOUND           ((QUIC_STATUS)ENOENT)
 #define QUIC_STATUS_BUFFER_TOO_SMALL    ((QUIC_STATUS)EOVERFLOW)
-#define QUIC_STATUS_HANDSHAKE_FAILURE   ((QUIC_STATUS)ERROR_CONNECTION_UNAVAIL)
+#define QUIC_STATUS_HANDSHAKE_FAILURE   ((QUIC_STATUS)ERROR_HANDSHAKE_FAILURE)
 #define QUIC_STATUS_ABORTED             ((QUIC_STATUS)ERROR_OPERATION_ABORTED)
 #define QUIC_STATUS_ADDRESS_IN_USE      ((QUIC_STATUS)EADDRINUSE)
 #define QUIC_STATUS_CONNECTION_TIMEOUT  ((QUIC_STATUS)ETIMEDOUT)
-#define QUIC_STATUS_CONNECTION_IDLE     ((QUIC_STATUS)ERROR_CONNECTION_ABORTED)
+#define QUIC_STATUS_CONNECTION_IDLE     ((QUIC_STATUS)ERROR_CONNECTION_IDLE)
 #define QUIC_STATUS_INTERNAL_ERROR      ((QUIC_STATUS)ERROR_INTERNAL_ERROR)
-#define QUIC_STATUS_SERVER_BUSY         ((QUIC_STATUS)ERROR_CONNECTION_REFUSED)
-#define QUIC_STATUS_PROTOCOL_ERROR      ((QUIC_STATUS)ERROR_CONNECTION_INVALID)
-#define QUIC_STATUS_VER_NEG_ERROR       ((QUIC_STATUS)ERROR_VERSION_PARSE_ERROR)
+#define QUIC_STATUS_CONNECTION_REFUSED  ((QUIC_STATUS)ERROR_CONNECTION_REFUSED)
+#define QUIC_STATUS_PROTOCOL_ERROR      ((QUIC_STATUS)ERROR_PROTOCOL_ERROR)
+#define QUIC_STATUS_VER_NEG_ERROR       ((QUIC_STATUS)ERROR_VER_NEG_ERROR)
 #define QUIC_STATUS_UNREACHABLE         ((QUIC_STATUS)EHOSTUNREACH)
 #define QUIC_STATUS_PERMISSION_DENIED   ((QUIC_STATUS)EPERM)
 #define QUIC_STATUS_EPOLL_ERROR         ((QUIC_STATUS)ERROR_EPOLL_ERROR)
@@ -138,6 +140,7 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 #define QUIC_STATUS_SOCKET_ERROR        ((QUIC_STATUS)ERROR_SOCKET_ERROR)
 #define QUIC_STATUS_TLS_ERROR           ((QUIC_STATUS)ERROR_SSL_ERROR)
 #define QUIC_STATUS_USER_CANCELED       ((QUIC_STATUS)ERROR_USER_CANCELED)
+#define QUIC_STATUS_ALPN_NEG_FAILURE    ((QUIC_STATUS)ERROR_ALPN_NEG_FAILURE)
 
 typedef unsigned char BOOLEAN;
 typedef struct in_addr IN_ADDR;
@@ -146,9 +149,9 @@ typedef struct addrinfo ADDRINFO;
 typedef sa_family_t QUIC_ADDRESS_FAMILY;
 
 typedef union QUIC_ADDR {
+    struct sockaddr Ip;
     struct sockaddr_in Ipv4;
     struct sockaddr_in6 Ipv6;
-    sa_family_t si_family;
 } QUIC_ADDR;
 
 #define FIELD_OFFSET(type, field)       ((uint32_t)(size_t)&(((type *)0)->field))
@@ -192,76 +195,273 @@ extern char *QuicOpenSslClientTrustedCert;
 // IP Address Abstraction Helpers
 //
 
+inline
 BOOLEAN
 QuicAddrFamilyIsValid(
-    QUIC_ADDRESS_FAMILY Family
-    );
-    
+    _In_ QUIC_ADDRESS_FAMILY Family
+    )
+{
+    return Family == AF_INET || Family == AF_INET6 || Family == AF_UNSPEC;
+}
+
+inline
 BOOLEAN
 QuicAddrIsValid(
     _In_ const QUIC_ADDR* const Addr
-    );
+    )
+{
+    return QuicAddrFamilyIsValid(Addr->Ip.sa_family);
+}
 
+inline
 BOOLEAN
 QuicAddrCompareIp(
     _In_ const QUIC_ADDR* const Addr1,
     _In_ const QUIC_ADDR* const Addr2
-    );
+    )
+{
+    if (AF_INET == Addr1->Ip.sa_family) {
+        return memcmp(&Addr1->Ipv4.sin_addr, &Addr2->Ipv4.sin_addr, sizeof(IN_ADDR)) == 0;
+    } else {
+        return memcmp(&Addr1->Ipv6.sin6_addr, &Addr2->Ipv6.sin6_addr, sizeof(IN6_ADDR)) == 0;
+    }
+}
 
+inline
 BOOLEAN
 QuicAddrCompare(
     _In_ const QUIC_ADDR* const Addr1,
     _In_ const QUIC_ADDR* const Addr2
-    );
+    )
+{
+    if (Addr1->Ip.sa_family != Addr2->Ip.sa_family ||
+        Addr1->Ipv4.sin_port != Addr2->Ipv4.sin_port) {
+        return FALSE;
+    }
 
+    if (AF_INET == Addr1->Ip.sa_family) {
+        return memcmp(&Addr1->Ipv4.sin_addr, &Addr2->Ipv4.sin_addr, sizeof(IN_ADDR)) == 0;
+    } else {
+        return memcmp(&Addr1->Ipv6.sin6_addr, &Addr2->Ipv6.sin6_addr, sizeof(IN6_ADDR)) == 0;
+    }
+}
+
+inline
 uint16_t
 QuicAddrGetFamily(
     _In_ const QUIC_ADDR* const Addr
-    );
+    )
+{
+    return Addr->Ip.sa_family;
+}
 
+inline
 void
 QuicAddrSetFamily(
     _In_ QUIC_ADDR* Addr,
     _In_ uint16_t Family
-    );
+    )
+{
+    Addr->Ip.sa_family = Family;
+}
 
-uint16_t // Returns in host byte order.
+inline
+uint16_t
 QuicAddrGetPort(
     _In_ const QUIC_ADDR* const Addr
-    );
+    )
+{
+    if (AF_INET == Addr->Ip.sa_family) {
+        return ntohs(Addr->Ipv4.sin_port);
+    } else {
+        return ntohs(Addr->Ipv6.sin6_port);
+    }
+}
 
+inline
 void
 QuicAddrSetPort(
-    _In_ QUIC_ADDR* Addr,
-    _In_ uint16_t Port // Host byte order
-    );
+    _Out_ QUIC_ADDR* Addr,
+    _In_ uint16_t Port
+    )
+{
+    if (AF_INET == Addr->Ip.sa_family) {
+        Addr->Ipv4.sin_port = htons(Port);
+    } else {
+        Addr->Ipv6.sin6_port = htons(Port);
+    }
+}
 
+inline
 BOOLEAN
 QuicAddrIsBoundExplicitly(
     _In_ const QUIC_ADDR* const Addr
-    );
+    )
+{
+    // LINUX_TODO: How to handle IPv4? Windows just does the below.
 
+    //
+    // Scope ID of zero indicates we are sending from a connected binding.
+    //
+
+    return Addr->Ipv6.sin6_scope_id == 0;
+}
+
+//
+// Test only API to increment the IP address value.
+//
+inline
+void
+QuicAddrIncrement(
+    _Inout_ QUIC_ADDR * Addr
+    )
+{
+    if (Addr->Ip.sa_family == AF_INET) {
+        ((uint8_t*)&Addr->Ipv4.sin_addr)[3]++;
+    } else {
+        ((uint8_t*)&Addr->Ipv6.sin6_addr)[15]++;
+    }
+}
+
+inline
 void
 QuicAddrSetToLoopback(
-    _In_ QUIC_ADDR* Addr
-    );
+    _Inout_ QUIC_ADDR* Addr
+    )
+{
+    if (Addr->Ip.sa_family == AF_INET) {
+        Addr->Ipv4.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    } else {
+        Addr->Ipv6.sin6_addr = in6addr_loopback;
+    }
+}
 
+inline
 uint32_t
 QuicAddrHash(
     _In_ const QUIC_ADDR* Addr
-    );
+    )
+{
+    uint32_t Hash = 5387; // A random prime number.
+#define UPDATE_HASH(byte) Hash = ((Hash << 5) - Hash) + (byte)
+    if (Addr->Ip.sa_family == AF_INET) {
+        UPDATE_HASH(Addr->Ipv4.sin_port & 0xFF);
+        UPDATE_HASH(Addr->Ipv4.sin_port >> 8);
+        for (uint8_t i = 0; i < sizeof(Addr->Ipv4.sin_addr); ++i) {
+            UPDATE_HASH(((uint8_t*)&Addr->Ipv4.sin_addr)[i]);
+        }
+    } else {
+        UPDATE_HASH(Addr->Ipv6.sin6_port & 0xFF);
+        UPDATE_HASH(Addr->Ipv6.sin6_port >> 8);
+        for (uint8_t i = 0; i < sizeof(Addr->Ipv6.sin6_addr); ++i) {
+            UPDATE_HASH(((uint8_t*)&Addr->Ipv6.sin6_addr)[i]);
+        }
+    }
+    return Hash;
+}
 
+inline
 BOOLEAN
 QuicAddrIsWildCard(
     _In_ const QUIC_ADDR* const Addr
-    );
+    )
+{
+    if (Addr->Ip.sa_family == AF_UNSPEC) {
+        return TRUE;
+    } else if (Addr->Ip.sa_family == AF_INET) {
+        const IN_ADDR ZeroAddr = {0};
+        return memcmp(&Addr->Ipv4.sin_addr.s_addr, &ZeroAddr, sizeof(IN_ADDR)) == 0;
+    } else {
+        const IN6_ADDR ZeroAddr = {0};
+        return memcmp(&Addr->Ipv6.sin6_addr, &ZeroAddr, sizeof(IN6_ADDR)) == 0;
+    }
+}
 
+inline
+BOOLEAN
+QuicAddr4FromString(
+    _In_z_ const char* AddrStr,
+    _Out_ QUIC_ADDR* Addr
+    )
+{
+    if (AddrStr[0] == '[') {
+        return FALSE;
+    }
+
+    const char* PortStart = strchr(AddrStr, ':');
+    if (PortStart != NULL) {
+        if (strchr(PortStart+1, ':') != NULL) {
+            return FALSE;
+        }
+
+        char TmpAddrStr[16];
+        size_t AddrLength = PortStart - AddrStr;
+        if (AddrLength >= sizeof(TmpAddrStr)) {
+            return FALSE;
+        }
+        memcpy(TmpAddrStr, AddrStr, AddrLength);
+        TmpAddrStr[AddrLength] = '\0';
+
+        if (inet_pton(AF_INET, TmpAddrStr, &Addr->Ipv4.sin_addr) != 1) {
+            return FALSE;
+        }
+        Addr->Ipv4.sin_port = htons(atoi(PortStart+1));
+    } else {
+        if (inet_pton(AF_INET, AddrStr, &Addr->Ipv4.sin_addr) != 1) {
+            return FALSE;
+        }
+    }
+    Addr->Ip.sa_family = AF_INET;
+    return TRUE;
+}
+
+inline
+BOOLEAN
+QuicAddr6FromString(
+    _In_z_ const char* AddrStr,
+    _Out_ QUIC_ADDR* Addr
+    )
+{
+    if (AddrStr[0] == '[') {
+        const char* BracketEnd = strchr(AddrStr, ']');
+        if (BracketEnd == NULL || *(BracketEnd+1) != ':') {
+            return FALSE;
+        }
+
+        char TmpAddrStr[64];
+        size_t AddrLength = BracketEnd - AddrStr;
+        if (AddrLength >= sizeof(TmpAddrStr)) {
+            return FALSE;
+        }
+        memcpy(TmpAddrStr, AddrStr, AddrLength);
+        TmpAddrStr[AddrLength] = '\0';
+
+        if (inet_pton(AF_INET6, TmpAddrStr, &Addr->Ipv6.sin6_addr) != 1) {
+            return FALSE;
+        }
+        Addr->Ipv6.sin6_port = htons(atoi(BracketEnd+2));
+    } else {
+        if (inet_pton(AF_INET6, AddrStr, &Addr->Ipv6.sin6_addr) != 1) {
+            return FALSE;
+        }
+    }
+    Addr->Ip.sa_family = AF_INET6;
+    return TRUE;
+}
+
+inline
 BOOLEAN
 QuicAddrFromString(
     _In_z_ const char* AddrStr,
     _In_ uint16_t Port, // Host byte order
     _Out_ QUIC_ADDR* Addr
-    );
+    )
+{
+    Addr->Ipv4.sin_port = htons(Port);
+    return
+        QuicAddr4FromString(AddrStr, Addr) ||
+        QuicAddr6FromString(AddrStr, Addr);
+}
 
 //
 // Represents an IP address and (optionally) port number as a string.
@@ -270,11 +470,35 @@ typedef struct QUIC_ADDR_STR {
     char Address[64];
 } QUIC_ADDR_STR;
 
+inline
 BOOLEAN
 QuicAddrToString(
     _In_ const QUIC_ADDR* Addr,
     _Out_ QUIC_ADDR_STR* AddrStr
-    );
+    )
+{
+    char* Address = AddrStr->Address;
+    if (Addr->Ip.sa_family == AF_INET6 && Addr->Ipv6.sin6_port != 0) {
+        Address[0] = '[';
+        Address++;
+    }
+    if (inet_ntop(
+            Addr->Ip.sa_family,
+            &Addr->Ipv4.sin_addr,
+            Address,
+            sizeof(QUIC_ADDR_STR)) != 0) {
+        return FALSE;
+    }
+    if (Addr->Ipv4.sin_port != 0) {
+        Address += strlen(Address);
+        if (Addr->Ip.sa_family == AF_INET6) {
+            Address[0] = ']';
+            Address++;
+        }
+        sprintf(Address, ":%hu", ntohs(Addr->Ipv4.sin_port));
+    }
+    return TRUE;
+}
 
 #if defined(__cplusplus)
 }

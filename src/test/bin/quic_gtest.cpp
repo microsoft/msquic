@@ -40,6 +40,7 @@ public:
             const QUIC_REGISTRATION_CONFIG RegConfig = { "MsQuicBVT", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->RegistrationOpen(&RegConfig, &Registration)));
             ASSERT_TRUE(LoadSecConfig());
+            QuicTestInitialize();
         }
     }
     void TearDown() override {
@@ -47,6 +48,7 @@ public:
             DriverClient.Uninitialize();
             DriverService.Uninitialize();
         } else {
+            QuicTestUninitialize();
             MsQuic->SecConfigDelete(SecurityConfig);
             MsQuic->RegistrationClose(Registration);
             MsQuicClose(MsQuic);
@@ -335,8 +337,6 @@ TEST_P(WithHandshakeArgs1, Connect) {
             GetParam().Family,
             (uint8_t)GetParam().ServerStatelessRetry,
             0,  // ClientUsesOldVersion
-            0,  // ClientRebind
-            0,  // ChangeMaxStreamID
             (uint8_t)GetParam().MultipleALPNs,
             0,  // AsyncSecConfig
             (uint8_t)GetParam().MultiPacketClientInitial,
@@ -349,8 +349,6 @@ TEST_P(WithHandshakeArgs1, Connect) {
             GetParam().Family,
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
-            false,  // ClientRebind
-            false,  // ChangeMaxStreamID
             GetParam().MultipleALPNs,
             false,  // AsyncSecConfig
             GetParam().MultiPacketClientInitial,
@@ -366,8 +364,6 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
             GetParam().Family,
             (uint8_t)GetParam().ServerStatelessRetry,
             1,  // ClientUsesOldVersion
-            0,  // ClientRebind
-            0,  // ChangeMaxStreamID
             0,  // MultipleALPNs
             0,  // AsyncSecConfig
             0,  // MultiPacketClientInitial
@@ -380,81 +376,6 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
             GetParam().Family,
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
-            false,  // ClientRebind
-            false,  // ChangeMaxStreamID
-            false,  // MultipleALPNs
-            false,  // AsyncSecConfig
-            false,  // MultiPacketClientInitial
-            false,  // SessionResumption
-            0);     // RandomLossPercentage
-    }
-}
-
-TEST_P(WithFamilyArgs, VersionNegotiation) {
-    TestLoggerT<ParamType> Logger("QuicTestVersionNegotiation", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VERSION_NEGOTIATION, GetParam().Family));
-    } else {
-        QuicTestVersionNegotiation(GetParam().Family);
-    }
-}
-
-TEST_P(WithFamilyArgs, Rebind) {
-    TestLoggerT<ParamType> Logger("QuicTestConnect-Rebind", GetParam());
-    if (TestingKernelMode) {
-        GTEST_SKIP_(":Unsupported in kernel mode");
-        /* Not supported in kernel mode yet.
-        QUIC_RUN_CONNECT_PARAMS Params = {
-            GetParam().Family,
-            0,  // ServerStatelessRetry
-            0,  // ClientUsesOldVersion
-            1,  // ClientRebind
-            0,  // ChangeMaxStreamID
-            0,  // MultipleALPNs
-            0,  // AsyncSecConfig
-            0,  // MultiPacketClientInitial
-            0,  // SessionResumption
-            0   // RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));*/
-    } else {
-        QuicTestConnect(
-            GetParam().Family,
-            false,  // ServerStatelessRetry
-            false,  // ClientUsesOldVersion
-            true,   // ClientRebind
-            false,  // ChangeMaxStreamID
-            false,  // MultipleALPNs
-            false,  // AsyncSecConfig
-            false,  // MultiPacketClientInitial
-            false,  // SessionResumption
-            0);     // RandomLossPercentage
-    }
-}
-
-TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
-    TestLoggerT<ParamType> Logger("QuicTestConnect-ChangeMaxStreamIDs", GetParam());
-    if (TestingKernelMode) {
-        QUIC_RUN_CONNECT_PARAMS Params = {
-            GetParam().Family,
-            0,  // ServerStatelessRetry
-            0,  // ClientUsesOldVersion
-            0,  // ClientRebind
-            1,  // ChangeMaxStreamID
-            0,  // MultipleALPNs
-            0,  // AsyncSecConfig
-            0,  // MultiPacketClientInitial
-            0,  // SessionResumption
-            0   // RandomLossPercentage
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
-    } else {
-        QuicTestConnect(
-            GetParam().Family,
-            false,  // ServerStatelessRetry
-            false,  // ClientUsesOldVersion
-            false,  // ClientRebind
-            true,   // ChangeMaxStreamID
             false,  // MultipleALPNs
             false,  // AsyncSecConfig
             false,  // MultiPacketClientInitial
@@ -470,8 +391,6 @@ TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
             GetParam().Family,
             (uint8_t)GetParam().ServerStatelessRetry,
             0,  // ClientUsesOldVersion
-            0,  // ClientRebind
-            0,  // ChangeMaxStreamID
             (uint8_t)GetParam().MultipleALPNs,
             1,  // AsyncSecConfig
             0,  // MultiPacketClientInitial
@@ -484,8 +403,6 @@ TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
             GetParam().Family,
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
-            false,  // ClientRebind
-            false,  // ChangeMaxStreamID
             GetParam().MultipleALPNs,
             true,   // AsyncSecConfig
             false,  // MultiPacketClientInitial
@@ -494,6 +411,16 @@ TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
     }
 }
 
+TEST_P(WithFamilyArgs, VersionNegotiation) {
+    TestLoggerT<ParamType> Logger("QuicTestVersionNegotiation", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VERSION_NEGOTIATION, GetParam().Family));
+    } else {
+        QuicTestVersionNegotiation(GetParam().Family);
+    }
+}
+
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithHandshakeArgs4, RandomLoss) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLoss", GetParam());
     if (TestingKernelMode) {
@@ -501,8 +428,6 @@ TEST_P(WithHandshakeArgs4, RandomLoss) {
             GetParam().Family,
             (uint8_t)GetParam().ServerStatelessRetry,
             0,  // ClientUsesOldVersion
-            0,  // ClientRebind
-            0,  // ChangeMaxStreamID
             0,  // MultipleALPNs
             0,  // AsyncSecConfig
             (uint8_t)GetParam().MultiPacketClientInitial,
@@ -515,8 +440,6 @@ TEST_P(WithHandshakeArgs4, RandomLoss) {
             GetParam().Family,
             GetParam().ServerStatelessRetry,
             false,  // ClientUsesOldVersion
-            false,  // ClientRebind
-            false,  // ChangeMaxStreamID
             false,  // MultipleALPNs,
             false,  // AsyncSecConfig
             GetParam().MultiPacketClientInitial,
@@ -524,6 +447,7 @@ TEST_P(WithHandshakeArgs4, RandomLoss) {
             GetParam().RandomLossPercentage);
     }
 }
+#endif
 
 TEST_P(WithFamilyArgs, Unreachable) {
     TestLoggerT<ParamType> Logger("QuicTestConnectUnreachable", GetParam());
@@ -558,6 +482,35 @@ TEST_P(WithFamilyArgs, ServerRejected) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_SERVER_REJECTED, GetParam().Family));
     } else {
         QuicTestConnectServerRejected(GetParam().Family);
+    }
+}
+
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+TEST_P(WithFamilyArgs, RebindPort) {
+    TestLoggerT<ParamType> Logger("QuicTestNatPortRebind", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, GetParam().Family));
+    } else {
+        QuicTestNatPortRebind(GetParam().Family);
+    }
+}
+
+TEST_P(WithFamilyArgs, RebindAddr) {
+    TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_ADDR_REBIND, GetParam().Family));
+    } else {
+        QuicTestNatAddrRebind(GetParam().Family);
+    }
+}
+#endif
+
+TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
+    TestLoggerT<ParamType> Logger("QuicTestChangeMaxStreamID", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CHANGE_MAX_STREAM_ID, GetParam().Family));
+    } else {
+        QuicTestChangeMaxStreamID(GetParam().Family);
     }
 }
 

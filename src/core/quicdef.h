@@ -96,12 +96,6 @@ typedef struct QUIC_PATH QUIC_PATH;
 //
 #define QUIC_RECOMMENDED_STATELESS_RESET_PACKET_LENGTH (25 + QUIC_STATELESS_RESET_TOKEN_LENGTH)
 
-//
-// The secret used to derive the encryption key and IV for the Retry Packet
-// Integrity field.
-//
-#define QUIC_RETRY_PACKET_INTEGRITY_SECRET 0x65, 0x6e, 0x61, 0xe3, 0x36, 0xae, 0x94, 0x17, 0xf7, 0xf0, 0xed, 0xd8, 0xd7, 0x8d, 0x46, 0x1e, 0x2a, 0xa7, 0x08, 0x4a, 0xba, 0x7a, 0x14, 0xc1, 0xe9, 0xf7, 0x26, 0xd5, 0x57, 0x09, 0x16, 0x9a
-
 
 /*************************************************************
                   IMPLEMENTATION CONSTANTS
@@ -313,7 +307,7 @@ QUIC_STATIC_ASSERT(
 // The minimum number of bytes of send allowance we must have before we will
 // send another packet.
 //
-#define QUIC_MIN_SEND_ALLOWANCE                 100
+#define QUIC_MIN_SEND_ALLOWANCE                 75
 
 //
 // The minimum buffer space that we require before we will pack another
@@ -403,6 +397,18 @@ QUIC_STATIC_ASSERT(
 //
 #define QUIC_DEFAULT_MAX_DATAGRAM_LENGTH        0xFFFF
 
+//
+// By default, resumption and 0-RTT are not enabled for servers.
+// If an application want to use these features, it must explicitly enable them.
+//
+#define QUIC_DEFAULT_SERVER_RESUMPTION_LEVEL    QUIC_SERVER_NO_RESUME
+
+//
+// Version of the wire-format for resumption tickets.
+// This needs to be incremented for each change in order or count of fields.
+//
+#define QUIC_TLS_RESUMPTION_TICKET_VERSION      1
+
 /*************************************************************
                   PERSISTENT SETTINGS
 *************************************************************/
@@ -437,3 +443,5 @@ QUIC_STATIC_ASSERT(
 #define QUIC_SETTING_CONN_FLOW_CONTROL_WINDOW   "ConnFlowControlWindow"
 
 #define QUIC_SETTING_MAX_BYTES_PER_KEY_PHASE    "MaxBytesPerKey"
+
+#define QUIC_SETTING_SERVER_RESUMPTION_LEVEL    "ResumptionLevel"

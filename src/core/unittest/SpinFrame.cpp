@@ -216,6 +216,8 @@ TEST(SpinFrame, SpinFrame1000000)
         }
     }
 
+    QuicRangeUninitialize(&AckBlocks);
+
     RecordProperty("SuccessfulDecodes", SuccessfulDecodes);
     RecordProperty("FailedDecodes", FailedDecodes);
 }

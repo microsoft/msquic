@@ -387,7 +387,7 @@ QuicPlatFreeSelfSignedCert(
 
     char RmCmd[32] = {0};
     strncpy(RmCmd, "rm -rf ", 7 + 1);
-    strncat(RmCmd, Params->TempDir, strlen(Params->TempDir) + 1);
+    strcat(RmCmd, Params->TempDir);
     if (system(RmCmd) == -1) {
         QuicTraceEvent(
             LibraryError,

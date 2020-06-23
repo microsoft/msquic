@@ -28,6 +28,20 @@ QuicDatagramValidate(
     _In_ const QUIC_DATAGRAM* Datagram
     )
 {
+    QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
+    //
+    // If a datagram is to be sent down the connection, the datagram must have
+    // items in its queue. Otherwise, sending will have an error case.
+    //
+    if (QuicConnIsClosed(Connection)) {
+        QUIC_DBG_ASSERT(Datagram->SendQueue == NULL);
+        QUIC_DBG_ASSERT((Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_DATAGRAM) == 0);
+    } else if ((Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_DATAGRAM) != 0) {
+        QUIC_DBG_ASSERT(Datagram->SendQueue != NULL);
+    } else if (Connection->State.PeerTransportParameterValid) {
+        QUIC_DBG_ASSERT(Datagram->SendQueue == NULL);
+    }
+
     if (!Datagram->SendEnabled) {
         QUIC_DBG_ASSERT(Datagram->MaxSendLength == 0);
     } else {
@@ -409,7 +423,7 @@ QuicDatagramSendFlush(
         QUIC_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
         QUIC_TEL_ASSERT(Datagram->SendEnabled);
 
-        if (SendRequest->TotalLength > (uint64_t)Datagram->MaxSendLength) {
+        if (SendRequest->TotalLength > (uint64_t)Datagram->MaxSendLength || QuicConnIsClosed(Connection)) {
             QuicDatagramCancelSend(Connection, SendRequest);
             continue;
         }
@@ -452,6 +466,7 @@ QuicDatagramWriteFrame(
 {
     QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
     QUIC_DBG_ASSERT(Datagram->SendEnabled);
+    BOOLEAN Result = FALSE;
 
     QuicDatagramValidate(Datagram);
 
@@ -461,7 +476,8 @@ QuicDatagramWriteFrame(
         if (Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_0_RTT &&
             !(SendRequest->Flags & QUIC_SEND_FLAG_ALLOW_0_RTT)) {
             QUIC_DBG_ASSERT(FALSE);
-            return FALSE; // This datagram isn't allowed in 0-RTT.
+            Result = FALSE;
+            goto Exit; // This datagram isn't allowed in 0-RTT.
         }
 
         QUIC_DBG_ASSERT(SendRequest->TotalLength <= Datagram->MaxSendLength);
@@ -488,7 +504,8 @@ QuicDatagramWriteFrame(
                 Builder->Datagram->Length < Datagram->MaxSendLength ||
                 Builder->Metadata->FrameCount != 0 ||
                 Builder->PacketStart != 0);
-            return TRUE;
+            Result = TRUE;
+            goto Exit;
         }
 
         if (Datagram->PrioritySendQueueTail == &SendRequest->Next) {
@@ -507,13 +524,19 @@ QuicDatagramWriteFrame(
             SendRequest,
             &Builder->Metadata->Frames[Builder->Metadata->FrameCount].DATAGRAM.ClientContext);
         if (++Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
-            return TRUE;
+            Result = TRUE;
+            goto Exit;
         }
     }
 
-    Connection->Send.SendFlags &= ~QUIC_CONN_SEND_FLAG_DATAGRAM;
+Exit:
+    if (Datagram->SendQueue == NULL) {
+        Connection->Send.SendFlags &= ~QUIC_CONN_SEND_FLAG_DATAGRAM;
+    }
 
-    return FALSE;
+    QuicDatagramValidate(Datagram);
+
+    return Result;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

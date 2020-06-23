@@ -67,6 +67,11 @@ typedef struct QUIC_REGISTRATION {
     QUIC_LIST_ENTRY Sessions;
 
     //
+    // Rundown for all connections
+    //
+    QUIC_RUNDOWN_REF ConnectionRundown;
+
+    //
     // Rundown for all outstanding security configs.
     //
     QUIC_RUNDOWN_REF SecConfigRundown;

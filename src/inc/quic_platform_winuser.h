@@ -31,6 +31,11 @@ Environment:
 #define WIN32_LEAN_AND_MEAN 1
 #endif
 
+#ifdef QUIC_UWP_BUILD
+#undef WINAPI_FAMILY
+#define WINAPI_FAMILY WINAPI_FAMILY_DESKTOP_APP
+#endif
+
 #pragma warning(push) // Don't care about OACR warnings in publics
 #pragma warning(disable:26036)
 #pragma warning(disable:28252)
@@ -700,7 +705,7 @@ QuicTimeAtOrBefore32(
 // essentially what SetThreadDescription does, but that is not available in
 // older versions of Windows.
 //
-#if !defined(QUIC_WINDOWS_INTERNAL)
+#if !defined(QUIC_WINDOWS_INTERNAL) && !defined(QUIC_UWP_BUILD)
 #define ThreadNameInformation ((THREADINFOCLASS)38)
 
 typedef struct _THREAD_NAME_INFORMATION {
@@ -776,6 +781,9 @@ QuicThreadCreate(
             ARRAYSIZE(WideName) - 1,
             Config->Name,
             _TRUNCATE);
+#if defined(QUIC_UWP_BUILD)
+        SetThreadDescription(*Thread, WideName);
+#else
         THREAD_NAME_INFORMATION ThreadNameInfo;
         RtlInitUnicodeString(&ThreadNameInfo.ThreadName, WideName);
         NtSetInformationThread(
@@ -783,6 +791,7 @@ QuicThreadCreate(
             ThreadNameInformation,
             &ThreadNameInfo,
             sizeof(ThreadNameInfo));
+#endif
     }
     return QUIC_STATUS_SUCCESS;
 }
@@ -853,6 +862,8 @@ QuicRandom(
 // Network Compartment ID interfaces
 //
 
+#ifndef QUIC_UWP_BUILD
+
 #define QUIC_COMPARTMENT_ID NET_IF_COMPARTMENT_ID
 
 #define QUIC_UNSPECIFIED_COMPARTMENT_ID NET_IF_COMPARTMENT_ID_UNSPECIFIED
@@ -861,6 +872,8 @@ QuicRandom(
 #define QuicCompartmentIdGetCurrent() GetCurrentThreadCompartmentId()
 #define QuicCompartmentIdSetCurrent(CompartmentId) \
     HRESULT_FROM_WIN32(SetCurrentThreadCompartmentId(CompartmentId))
+
+#endif
 
 //
 // Test Interface for loading a self-signed certificate.

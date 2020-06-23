@@ -1,0 +1,10 @@
+*
+!CMakeLists.txt
+!scripts/run_endpoint.sh
+!src
+!submodules/openssl
+submodules/openssl/pyca-cryptography
+submodules/openssl/boringssl
+**/*.o
+**/*.a
+**/*.d
