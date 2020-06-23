@@ -628,6 +628,7 @@ QuicDataPathInitialize(
     Datapath->MaxSendBatchSize = QUIC_MAX_BATCH_SEND;
     QuicRundownInitialize(&Datapath->BindingsRundown);
 
+    // XXX: Should we spawn one of these per core?
     Status = QuicProcessorContextInitialize(Datapath, 0, &Datapath->ProcContexts[0]);
     if (QUIC_FAILED(Status)) {
         Datapath->Shutdown = TRUE;
@@ -635,7 +636,6 @@ QuicDataPathInitialize(
     }
 
     // As far as I can tell, there's no way to enable RSS in macOS.
-    
     *NewDataPath = Datapath;
     Datapath = NULL;
 Exit:
@@ -652,9 +652,7 @@ QuicProcessorContextUninitialize(
     _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
-    // do actual kqueue shutdown
-    //QuicThreadWait(&ProcContext->EpollWaitThread);
-    //QuicThreadDelete(&ProcContext->EpollWaitThread);
+    // TOOD: wait till the worker thread shuts down
 
     close(ProcContext->KqueueFd);
 
@@ -845,14 +843,7 @@ QuicSocketContextInitialize(
     // Create datagram socket.
     //
     
-    sa_family_t af_family = AF_INET;
-
-    if (!RemoteAddress) {
-        af_family = LocalAddress->Ip.sa_family;
-    }
-    else {
-        af_family = RemoteAddress->Ip.sa_family;
-    }
+    sa_family_t af_family = Binding->LocalAddress.Ip.sa_family;
 
     SocketContext->SocketFd = socket(af_family, SOCK_DGRAM, 0);
 
@@ -863,8 +854,6 @@ QuicSocketContextInitialize(
     //LOG_AF_TYPE((&Binding->LocalAddress));
     //if (LocalAddress) LOG_AF_TYPE(LocalAddress);
     //if (RemoteAddress) LOG_AF_TYPE(RemoteAddress);
-
-    SocketContext->SocketFd = socket(AF_INET, SOCK_DGRAM, 0);
 
     if (SocketContext->SocketFd == INVALID_SOCKET_FD) {
         __asm__("int3");
@@ -906,7 +895,7 @@ QuicSocketContextInitialize(
             setsockopt(SocketContext->SocketFd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &Option, sizeof(Option));
         Option = TRUE;
         Result =
-            setsockopt(SocketContext->SocketFd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &Option, sizeof(Option));
+            setsockopt(SocketContext->SocketFd, IPPROTO_IPV6, IPV6_PKTINFO, &Option, sizeof(Option));
     }
 
     //
@@ -963,7 +952,6 @@ QuicSocketContextInitialize(
             AddrSize);
     
     if (Result == SOCKET_ERROR) {
-        __asm__("int3");
         Status = errno;
         printf("%s:%d => %d\n", __FILE__, __LINE__, errno);
         QuicTraceEvent(
@@ -1181,11 +1169,20 @@ QuicDataPathBindingCreate(
     Binding->ClientContext = RecvCallbackContext;
     Binding->Mtu = QUIC_MAX_MTU;
     QuicRundownInitialize(&Binding->Rundown);
+
     if (LocalAddress) {
+        Binding->LocalAddress.Ip.sa_family = LocalAddress->Ip.sa_family;
         //QuicConvertToMappedV6(LocalAddress, &Binding->LocalAddress);
-    } else {
+    } else if (RemoteAddress) {
+        // We have no local address, but we have a remote address. 
+        // Let's match up AF types with the remote.
         Binding->LocalAddress.Ip.sa_family = RemoteAddress->Ip.sa_family;
+    } else {
+        // This indicates likely that the application wants a listener with a random port.
+        // Since we can't dual-stack socket, fall back to AF_INET6
+        Binding->LocalAddress.Ip.sa_family = AF_INET6;
     }
+
     for (uint32_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
         Binding->SocketContexts[i].SocketFd = INVALID_SOCKET_FD;
