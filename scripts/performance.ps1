@@ -136,7 +136,7 @@ $WpaStackWalkProfileXml = `
 </WindowsPerformanceRecorder>
 "@
 $WpaStackWalkProfile = Join-Path $Artifacts "stackwalk.wprp"
-if ($PGO) {
+if ($Record) {
     if ($IsWindows) {
         $WpaStackWalkProfileXml | Out-File $WpaStackWalkProfile
     }
@@ -221,6 +221,9 @@ function Merge-PGO-Counts($Path) {
 function Run-Loopback-Test() {
     Write-Host "Running Loopback Test"
 
+    $LoopbackOutputDir = Join-Path $OutputDir "loopback"
+    New-Item $LoopbackOutputDir -ItemType Directory -Force | Out-Null
+
     $ServerDir = $Artifacts
     if ($PGO) {
         # PGO needs the server and client executing out of separate directories.
@@ -232,7 +235,7 @@ function Run-Loopback-Test() {
     if ($Record) {
         # Start collecting performance information.
         if ($IsWindows) {
-            wpr.exe -start $WpaStackWalkProfile
+            wpr.exe -start $WpaStackWalkProfile -filemode
         }
     }
 
@@ -259,14 +262,20 @@ function Run-Loopback-Test() {
         $serverOutput = Stop-Background-Executable -Process $proc
 
     } catch {
+        if ($Record) {
+            if ($IsWindows) {
+                wpr.exe -cancel
+            }
+        }
         Stop-Background-Executable -Process $proc | Write-Host
         throw
     }
 
     if ($Record) {
-        # Stop the performance colletion.
+        # Stop the performance collection.
         if ($IsWindows) {
-            wpr.exe -stop
+            Write-Host "Saving perf.etl out for publishing."
+            wpr.exe -stop "$(Join-Path $LoopbackOutputDir perf.etl)"
         }
     }
 
@@ -277,8 +286,8 @@ function Run-Loopback-Test() {
         Remove-Item $ServerDir -Recurse -Force | Out-Null
     }
 
+    # Print current and latest master results to console.
     $MedianCurrentResult = Median-Test-Results -FullResults $allRunsResults
-
     $fullLastResult = Get-Latest-Test-Results -Platform $Platform -Test "loopback"
     if ($fullLastResult -ne "") {
         $MedianLastResult = Median-Test-Results -FullResults $fullLastResult.individualRunResults
@@ -297,15 +306,12 @@ function Run-Loopback-Test() {
     Write-Debug $serverOutput
 
     if ($Publish) {
-        Write-Host "Copying results.json out for publishing."
+        Write-Host "Saving results.json out for publishing."
         $Results = [TestPublishResult]::new()
         $Results.CommitHash = $CurrentCommitHash.Substring(0, 7)
         $Results.PlatformName = $Platform
         $Results.TestName = "loopback"
         $Results.IndividualRunResults = $allRunsResults
-
-        $LoopbackOutputDir = Join-Path $OutputDir "loopback"
-        New-Item $LoopbackOutputDir -ItemType Directory -Force | Out-Null
 
         $ResultFile = Join-Path $LoopbackOutputDir "results.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
@@ -316,7 +322,7 @@ function Run-Loopback-Test() {
 Run-Loopback-Test
 
 if ($PGO) {
-    Write-Host "Copying msquic.pgd out for publishing."
+    Write-Host "Saving msquic.pgd out for publishing."
     $PgoOutputDir = Join-Path $OutputDir "pgo_$($Arch)"
     New-Item -Path $PgoOutputDir -ItemType Directory -Force | Out-Null
     Copy-Item "$Artifacts\msquic.pgd" $PgoOutputDir
