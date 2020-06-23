@@ -4740,8 +4740,9 @@ QuicConnRecvPostProcessing(
             ConnRemoteAddrAdded,
             "[conn][%p] New Remote IP: %!SOCKADDR!",
             Connection,
-            LOG_ADDR_LEN(Connection->Paths[0].RemoteAddress),
-            (const uint8_t*)&Connection->Paths[0].RemoteAddress); // TODO - Addr removed event?
+            CLOG_BYTEARRAY(
+                LOG_ADDR_LEN(Connection->Paths[0].RemoteAddress),
+                (const uint8_t*)&Connection->Paths[0].RemoteAddress)); // TODO - Addr removed event?
 
         QUIC_CONNECTION_EVENT Event;
         Event.Type = QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED;

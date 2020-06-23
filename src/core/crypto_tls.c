@@ -798,10 +798,10 @@ QuicCryptoTlsEncodeTransportParameters(
         QuicTraceLogConnVerbose(
             EncodeTPOriginalDestinationCID,
             Connection,
-            "TP: Original Destination Connection ID (%s)",
-            QuicCidBufToStr(
-                TransportParams->OriginalDestinationConnectionID,
-                TransportParams->OriginalDestinationConnectionIDLength).Buffer);
+            "TP: Original Destination Connection ID (%!CID!)",
+            CLOG_BYTEARRAY(
+                TransportParams->OriginalDestinationConnectionIDLength,
+                TransportParams->OriginalDestinationConnectionID));
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_IDLE_TIMEOUT) {
         TPBuf =
@@ -826,7 +826,9 @@ QuicCryptoTlsEncodeTransportParameters(
             EncodeTPStatelessResetToken,
             Connection,
             "TP: Stateless Reset Token (%!CID!)",
-            CLOG_BYTEARRAY(QUIC_STATELESS_RESET_TOKEN_LENGTH, TransportParams->StatelessResetToken));
+            CLOG_BYTEARRAY(
+                QUIC_STATELESS_RESET_TOKEN_LENGTH,
+                TransportParams->StatelessResetToken));
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE) {
         TPBuf =
@@ -969,10 +971,10 @@ QuicCryptoTlsEncodeTransportParameters(
         QuicTraceLogConnVerbose(
             EncodeTPOriginalCID,
             Connection,
-            "TP: Initial Source Connection ID (%s)",
-            QuicCidBufToStr(
-                TransportParams->InitialSourceConnectionID,
-                TransportParams->InitialSourceConnectionIDLength).Buffer);
+            "TP: Initial Source Connection ID (%!CID!)",
+            CLOG_BYTEARRAY(
+                TransportParams->InitialSourceConnectionIDLength,
+                TransportParams->InitialSourceConnectionID));
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID) {
         QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
@@ -985,10 +987,10 @@ QuicCryptoTlsEncodeTransportParameters(
         QuicTraceLogConnVerbose(
             EncodeTPOriginalCID,
             Connection,
-            "TP: Retry Source Connection ID (%s)",
-            QuicCidBufToStr(
-                TransportParams->RetrySourceConnectionID,
-                TransportParams->RetrySourceConnectionIDLength).Buffer);
+            "TP: Retry Source Connection ID (%!CID!)",
+            CLOG_BYTEARRAY(
+                TransportParams->RetrySourceConnectionIDLength,
+                TransportParams->RetrySourceConnectionID));
     }
     if (TransportParams->Flags & QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE) {
         TPBuf =
@@ -1141,10 +1143,10 @@ QuicCryptoTlsDecodeTransportParameters(
             QuicTraceLogConnVerbose(
                 DecodeTPOriginalDestinationCID,
                 Connection,
-                "TP: Original Connection Destination ID (%s)",
-                QuicCidBufToStr(
-                    TransportParams->OriginalDestinationConnectionID,
-                    TransportParams->OriginalDestinationConnectionIDLength).Buffer);
+                "TP: Original Connection Destination ID (%!CID!)",
+                CLOG_BYTEARRAY(
+                    TransportParams->OriginalDestinationConnectionIDLength,
+                    TransportParams->OriginalDestinationConnectionID));
             break;
 
         case QUIC_TP_ID_IDLE_TIMEOUT:
@@ -1191,7 +1193,9 @@ QuicCryptoTlsDecodeTransportParameters(
                 DecodeTPStatelessResetToken,
                 Connection,
                 "TP: Stateless Reset Token (%!CID!)",
-                CLOG_BYTEARRAY(QUIC_STATELESS_RESET_TOKEN_LENGTH, TransportParams->StatelessResetToken));
+                CLOG_BYTEARRAY(
+                    QUIC_STATELESS_RESET_TOKEN_LENGTH,
+                    TransportParams->StatelessResetToken));
             break;
 
         case QUIC_TP_ID_MAX_UDP_PAYLOAD_SIZE:
@@ -1490,10 +1494,10 @@ QuicCryptoTlsDecodeTransportParameters(
             QuicTraceLogConnVerbose(
                 DecodeTPInitialSourceCID,
                 Connection,
-                "TP: Initial Source Connection ID (%s)",
-                QuicCidBufToStr(
-                    TransportParams->InitialSourceConnectionID,
-                    TransportParams->InitialSourceConnectionIDLength).Buffer);
+                "TP: Initial Source Connection ID (%!CID!)",
+                CLOG_BYTEARRAY(
+                    TransportParams->InitialSourceConnectionIDLength,
+                    TransportParams->InitialSourceConnectionID));
             break;
 
         case QUIC_TP_ID_RETRY_SOURCE_CONNECTION_ID:
@@ -1522,10 +1526,10 @@ QuicCryptoTlsDecodeTransportParameters(
             QuicTraceLogConnVerbose(
                 DecodeTPRetrySourceCID,
                 Connection,
-                "TP: Retry Source Connection ID (%s)",
-                QuicCidBufToStr(
-                    TransportParams->RetrySourceConnectionID,
-                    TransportParams->RetrySourceConnectionIDLength).Buffer);
+                "TP: Retry Source Connection ID (%!CID!)",
+                CLOG_BYTEARRAY(
+                    TransportParams->RetrySourceConnectionIDLength,
+                    TransportParams->RetrySourceConnectionID));
             break;
 
         case QUIC_TP_ID_MAX_DATAGRAM_FRAME_SIZE:
