@@ -18,3 +18,5 @@ add_custom_command(
 add_custom_target(MsQuicEtw
     DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h
     DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
+
+set_property(TARGET MsQuicEtw PROPERTY FOLDER "libraries")

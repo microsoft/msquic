@@ -134,8 +134,6 @@ set(MSVC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 
-    set_property(TARGET MsQuicEtw PROPERTY FOLDER "libraries")
-
     # Custom build flags.
     set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 /MP")
 
