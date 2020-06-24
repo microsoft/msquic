@@ -46,7 +46,7 @@ param (
     [Int32]$Runs = 10,
 
     [Parameter(Mandatory = $false)]
-    [Int64]$Length = 1000000000, # 1 GB
+    [Int64]$Length = 5000000000, # 5 GB
 
     [Parameter(Mandatory = $false)]
     [switch]$Publish = $false,
@@ -210,7 +210,12 @@ class TestPublishResult {
 $currentLoc = Get-Location
 Set-Location -Path $RootDir
 $env:GIT_REDIRECT_STDERR = '2>&1'
-$CurrentCommitHash = git rev-parse HEAD
+$CurrentCommitHash = $null
+try {
+    $CurrentCommitHash = git rev-parse HEAD
+} catch {
+    Write-Debug "Failed to get commit hash from git"
+}
 Set-Location -Path $currentLoc
 
 function Merge-PGO-Counts($Path) {
@@ -248,7 +253,7 @@ function Run-Loopback-Test() {
     $serverOutput = $null
     try {
         1..$Runs | ForEach-Object {
-            $clientOutput = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments "-target:localhost -port:4433 -uni:1 -length:$Length"
+            $clientOutput = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments "-target:localhost -port:4433 -core:0 -uni:1 -length:$Length"
             $parsedRunResult = Parse-Loopback-Results -Results $clientOutput
             $allRunsResults += $parsedRunResult
             if ($PGO) {
