@@ -317,6 +317,12 @@ typedef struct QUIC_DATAPATH {
 } QUIC_DATAPATH;
 
 QUIC_STATUS QuicSocketContextPrepareReceive( _In_ QUIC_SOCKET_CONTEXT* SocketContext);
+QUIC_STATUS
+QuicDataPathBindingSend(
+    _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext);
 
 //
 // Gets the corresponding recv datagram from its context pointer.
@@ -463,13 +469,48 @@ QuicSocketContextUninitializeComplete(
     QuicRundownRelease(&SocketContext->Binding->Rundown);
 }
 
+void QuicSocketContextSendPending(
+    _In_ QUIC_SOCKET_CONTEXT *SocketContext, 
+    _In_ QUIC_DATAPATH_PROC_CONTEXT *ProcContext) {
+
+    if (SocketContext->SendWaiting) {
+        SocketContext->SendWaiting = FALSE;
+    }
+
+    while (!QuicListIsEmpty(&SocketContext->PendingSendContextHead)) {
+        // This is .. funky?
+        // It seems possible that this will queue up the send again and we'll
+        // just spin until the kernel accepts it...
+        
+        QUIC_DATAPATH_SEND_CONTEXT* SendContext =
+            QUIC_CONTAINING_RECORD(
+                QuicListRemoveHead(&SocketContext->PendingSendContextHead),
+                QUIC_DATAPATH_SEND_CONTEXT,
+                PendingSendLinkage);
+
+        QUIC_STATUS Status =
+            QuicDataPathBindingSend(
+                SocketContext->Binding,
+                SendContext->Bind ? &SendContext->LocalAddress : NULL,
+                &SendContext->RemoteAddress,
+                SendContext);
+        if (QUIC_FAILED(Status)) {
+            break;
+        }
+
+        if (SocketContext->SendWaiting) {
+            break;
+        }
+    }
+}
+
 void QuicSocketContextProcessEvent(QUIC_DATAPATH_PROC_CONTEXT *ProcContext, struct kevent *Event) {
     //printf("[kevent] ident = %zd\t\tfilter = %hu\tflags = %hd\tfflags = %d\tdata = %zd\tudata = %p\n", 
     //        Event->ident, Event->filter, 
     //        Event->flags, Event->fflags, 
     //        Event->data,  Event->udata);
 
-    QUIC_DBG_ASSERT(Event->filter & (EVFILT_READ | EVFILT_USER));
+    QUIC_DBG_ASSERT(Event->filter & (EVFILT_READ | EVFILT_WRITE | EVFILT_USER));
 
     QUIC_SOCKET_CONTEXT *SocketContext = (QUIC_SOCKET_CONTEXT *)Event->udata;
 
@@ -479,9 +520,15 @@ void QuicSocketContextProcessEvent(QUIC_DATAPATH_PROC_CONTEXT *ProcContext, stru
         return;
     }
 
-    int Ret = recvmsg(SocketContext->SocketFd, &SocketContext->RecvMsgHdr, 0);
-    if (Ret != -1)
-        QuicSocketContextRecvComplete(SocketContext, ProcContext, Ret);
+    else if (Event->filter == EVFILT_READ) {
+        int Ret = recvmsg(SocketContext->SocketFd, &SocketContext->RecvMsgHdr, 0);
+        if (Ret != -1)
+            QuicSocketContextRecvComplete(SocketContext, ProcContext, Ret);
+    }
+
+    else if (Event->filter == EVFILT_WRITE) {
+        QuicSocketContextSendPending(SocketContext, ProcContext);
+    }
 }
 
 void*
@@ -494,17 +541,12 @@ QuicDataPathWorkerThread(
     struct kevent EventList[32];
     int Kqueue = ProcContext->KqueueFd; 
 
-    while (!ProcContext->Datapath->Shutdown) {
+    while (TRUE) {
         int EventCount = kevent(Kqueue, NULL, 0, EventList, 32, NULL);
-        if (EventCount < 1) {
-            QUIC_DBG_ASSERT(ProcContext->Datapath->Shutdown);
-        }
 
-        // XXX: I feel like this is a better place to check if the Datapath is
-        // in shutdown. Consider kevent() having waited like, a minute or so,
-        // and then we get data here, still going to try to process it instead
-        // of throwing it out. But maybe it has a close frame we're waiting for?
-        // I guess Shutdown won't be one until last close frame or timeout?
+        if (ProcContext->Datapath->Shutdown) break;
+
+        QUIC_DBG_ASSERT(EventCount > 0);
         
         for (int i = 0; i < EventCount; i++) {
             QuicSocketContextProcessEvent(ProcContext, &EventList[i]);
@@ -858,8 +900,6 @@ QuicSocketContextInitialize(
     //if (RemoteAddress) LOG_AF_TYPE(RemoteAddress);
 
     if (SocketContext->SocketFd == INVALID_SOCKET_FD) {
-        __asm__("int3");
-        printf("%s:%d\n", __FILE__, __LINE__);
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -936,7 +976,6 @@ QuicSocketContextInitialize(
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
-        printf("%s:%d\n", __FILE__, __LINE__);
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -955,7 +994,6 @@ QuicSocketContextInitialize(
     
     if (Result == SOCKET_ERROR) {
         Status = errno;
-        printf("%s:%d => %d\n", __FILE__, __LINE__, errno);
         QuicTraceEvent(
             DatapathErrorStatus,
             "[ udp][%p] ERROR, %u, %s.",
@@ -1488,6 +1526,77 @@ QuicDataPathBindingIsSendContextFull(
 }
 
 QUIC_STATUS
+QuicSocketContextPendSend(
+    _In_ QUIC_SOCKET_CONTEXT* SocketContext,
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress
+    )
+{
+    if (!SocketContext->SendWaiting) {
+        // We have to enable EVFILT_WRITE notifications here, since there's
+        // basically nowhere else to try and empty the send queue except the
+        // worker thread, and there's the possibility that the worker thread
+        // won't wake up fast enough.
+
+        // We can try to EV_ONESHOT this, s.t. we only get woken up for this
+        // once, attempt to empty the sendqueue, and if it fails, then add it
+        // again as oneshot.
+        //
+        // The alternate option is to add it normally, so we constantly get
+        // woken up for it, and after N missed writes (i.e. the kernel had room
+        // and we had nothing to write), we can turn it off.
+        //
+        // Or we could do some mix of both, and try to recognize how often
+        // we're missing writes or re-pending writes.
+        
+        // For now, we'll do the most naïve thing, and oneshot it everytime we
+        // hit this function.
+        
+        struct kevent Event = { };
+        EV_SET(&Event, SocketContext->SocketFd, EVFILT_WRITE, EV_ADD | EV_ONESHOT, 0, 0, (void *)SocketContext);
+        kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);
+
+        if (LocalAddress != NULL) {
+            QuicCopyMemory(
+                &SendContext->LocalAddress,
+                LocalAddress,
+                sizeof(*LocalAddress));
+            SendContext->Bind = TRUE;
+        }
+
+        QuicCopyMemory(
+            &SendContext->RemoteAddress,
+            RemoteAddress,
+            sizeof(*RemoteAddress));
+
+        SocketContext->SendWaiting = TRUE;
+    }
+
+    if (SendContext->Pending) {
+        //
+        // This was a send that was already pending, so we need to add it back
+        // to the head of the queue.
+        //
+        QuicListInsertHead(
+            &SocketContext->PendingSendContextHead,
+            &SendContext->PendingSendLinkage);
+    } else {
+        //
+        // This is a new send that wasn't previously pended. Add it to the end
+        // of the queue.
+        //
+        QuicListInsertTail(
+            &SocketContext->PendingSendContextHead,
+            &SendContext->PendingSendLinkage);
+        SendContext->Pending = TRUE;
+    }
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+QUIC_STATUS
 QuicDataPathBindingSend(
     _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ const QUIC_ADDR* LocalAddress,
@@ -1549,19 +1658,18 @@ QuicDataPathBindingSend(
                     NULL, 0);
 
             if (SentByteCount < 0) {
-                printf("FAILED TO SEND.. %d\n", errno);
-                // ENOBUFS is probably what we'll see here.
-                if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                    //Status =
-                    //    QuicSocketContextPendSend(
-                    //        SocketContext,
-                    //        SendContext,
-                    //        ProcContext,
-                    //        LocalAddress,
-                    //        RemoteAddress);
-                    //if (QUIC_FAILED(Status)) {
-                    //    goto Exit;
-                    //}
+                if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOBUFS) {
+                    Status =
+                        QuicSocketContextPendSend(
+                            SocketContext,
+                            SendContext,
+                            ProcContext,
+                            LocalAddress,
+                            RemoteAddress);
+
+                    if (QUIC_FAILED(Status)) {
+                        goto Exit;
+                    }
 
                     SendPending = TRUE;
                     goto Exit;
@@ -1569,6 +1677,9 @@ QuicDataPathBindingSend(
                     //
                     // Completed with error.
                     //
+
+                    // We get ECONNREFUSED here often. Need to invoke the UnreachHandler
+                    printf("COULDN'T SEND FRAME...%d\n", errno);
 
                     Status = errno;
                     QuicTraceEvent(
@@ -1656,22 +1767,23 @@ QuicDataPathBindingSend(
         SentByteCount = sendmsg(SocketContext->SocketFd, &Mhdr, 0);
 
         if (SentByteCount < 0) {
-            printf("COULDN'T SEND FRAME...\n");
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                //Status =
-                //    QuicSocketContextPendSend(
-                //        SocketContext,
-                //        SendContext,
-                //        ProcContext,
-                //        LocalAddress,
-                //        RemoteAddress);
-                //if (QUIC_FAILED(Status)) {
-                //    goto Exit;
-                //}
+            if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOBUFS) {
+                Status =
+                    QuicSocketContextPendSend(
+                        SocketContext,
+                        SendContext,
+                        ProcContext,
+                        LocalAddress,
+                        RemoteAddress);
+
+                if (QUIC_FAILED(Status)) {
+                    goto Exit;
+                }
 
                 SendPending = TRUE;
                 goto Exit;
             } else {
+                printf("COULDN'T SEND FRAME...%d\n", errno);
                 Status = errno;
                 QuicTraceEvent(
                     DatapathErrorStatus,
