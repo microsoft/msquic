@@ -1362,11 +1362,19 @@ QuicTlsProcessData(
     _Inout_ QUIC_TLS_PROCESS_STATE* State
     )
 {
-    UNREFERENCED_PARAMETER(DataType);
     int Ret = 0;
     int Err = 0;
 
     QUIC_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
+
+    if (DataType == QUIC_TLS_TICKET_DATA) {
+        QuicTraceLogConnVerbose(
+            OpenSslProcessData,
+            TlsContext->Connection,
+            "Ignoring %u ticket bytes",
+            *BufferLength);
+        goto Exit;
+    }
 
     if (*BufferLength != 0) {
         QuicTraceLogConnVerbose(
