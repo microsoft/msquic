@@ -18,7 +18,9 @@ on the provided configuration.
 param (
     [Parameter(Mandatory = $true)]
     [ValidateSet("Build", "Test", "Dev")]
-    [string]$Configuration
+    [string]$Configuration,
+    [Parameter(Mandatory = $false)]
+    [switch]$EnableAppVerifier = $false
 )
 
 #Requires -RunAsAdministrator
@@ -44,13 +46,15 @@ if ($IsWindows) {
         reg.exe add $TlsClientKeyPath /v Enabled /t REG_DWORD /d 1 /f | Out-Null
     }
 
-    if ($Configuration -eq "Test") {
+    if ($EnableAppVerifier) {
         # Enable Application Verifier for test binaries
         where.exe appverif.exe
         if ($LastExitCode -eq 0) {
             appverif.exe /verify msquiccoretest.exe
             appverif.exe /verify msquicplatformtest.exe
             appverif.exe /verify msquictest.exe
+        } else {
+            Write-Debug "Application Verifier not installed!"
         }
     }
 
