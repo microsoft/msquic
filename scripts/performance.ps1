@@ -159,7 +159,10 @@ function Start-Background-Executable($File, $Arguments) {
 function Stop-Background-Executable($Process) {
     $Process.StandardInput.WriteLine("")
     $Process.StandardInput.Flush()
-    $Process.WaitForExit()
+    if (!$p.WaitForExit(2000)) {
+        $p.Kill()
+        Write-Debug "Server Failed to Exit"
+    }
     return $Process.StandardOutput.ReadToEnd()
 }
 
@@ -172,7 +175,10 @@ function Run-Foreground-Executable($File, $Arguments) {
     $p = New-Object System.Diagnostics.Process
     $p.StartInfo = $pinfo
     $p.Start() | Out-Null
-    $p.WaitForExit()
+    if (!$p.WaitForExit(10000)) {
+        $p.Kill()
+        Write-Debug "Client Failed to Exit"
+    }
     return $p.StandardOutput.ReadToEnd()
 }
 
