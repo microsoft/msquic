@@ -1368,6 +1368,8 @@ QuicTlsProcessData(
     QUIC_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
 
     if (DataType == QUIC_TLS_TICKET_DATA) {
+        TlsContext->ResultFlags = QUIC_TLS_RESULT_ERROR;
+
         QuicTraceLogConnVerbose(
             OpenSslProcessData,
             TlsContext->Connection,
