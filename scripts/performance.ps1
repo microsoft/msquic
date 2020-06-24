@@ -159,8 +159,8 @@ function Start-Background-Executable($File, $Arguments) {
 function Stop-Background-Executable($Process) {
     $Process.StandardInput.WriteLine("")
     $Process.StandardInput.Flush()
-    if (!$p.WaitForExit(2000)) {
-        $p.Kill()
+    if (!$Process.WaitForExit(2000)) {
+        $Process.Kill()
         Write-Debug "Server Failed to Exit"
     }
     return $Process.StandardOutput.ReadToEnd()
@@ -175,10 +175,7 @@ function Run-Foreground-Executable($File, $Arguments) {
     $p = New-Object System.Diagnostics.Process
     $p.StartInfo = $pinfo
     $p.Start() | Out-Null
-    if (!$p.WaitForExit(10000)) {
-        $p.Kill()
-        Write-Debug "Client Failed to Exit"
-    }
+    $p.WaitForExit()
     return $p.StandardOutput.ReadToEnd()
 }
 
@@ -218,7 +215,7 @@ Set-Location -Path $RootDir
 $env:GIT_REDIRECT_STDERR = '2>&1'
 $CurrentCommitHash = $null
 try {
-    $CurrentCommitHash = git rev-parse HEAD
+    #$CurrentCommitHash = git rev-parse HEAD
 } catch {
     Write-Debug "Failed to get commit hash from git"
 }
@@ -317,7 +314,7 @@ function Run-Loopback-Test() {
     # Write server output so we can detect possible failures early.
     Write-Debug $serverOutput
 
-    if ($Publish) {
+    if ($Publish -and ($CurrentCommitHash -ne $null)) {
         Write-Host "Saving results.json out for publishing."
         $Results = [TestPublishResult]::new()
         $Results.CommitHash = $CurrentCommitHash.Substring(0, 7)
@@ -327,6 +324,8 @@ function Run-Loopback-Test() {
 
         $ResultFile = Join-Path $LoopbackOutputDir "results.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
+    } elseif ($Publish -and ($CurrentCommitHash -eq $null)) {
+        Write-Debug "Failed to publish because of missing commit hash"
     }
 }
 
