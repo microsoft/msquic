@@ -215,7 +215,7 @@ Set-Location -Path $RootDir
 $env:GIT_REDIRECT_STDERR = '2>&1'
 $CurrentCommitHash = $null
 try {
-    #$CurrentCommitHash = git rev-parse HEAD
+    $CurrentCommitHash = git rev-parse HEAD
 } catch {
     Write-Debug "Failed to get commit hash from git"
 }
