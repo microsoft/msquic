@@ -138,7 +138,7 @@ if ("" -eq $Tls) {
 $RootDir = Split-Path $PSScriptRoot -Parent
 
 # Path to the run-gtest Powershell script.
-$RunTest = Join-Path $RootDir ".azure/scripts/run-gtest.ps1"
+$RunTest = Join-Path $RootDir "scripts/run-gtest.ps1"
 
 # Path to the msquictest exectuable.
 $MsQuicTest = $null

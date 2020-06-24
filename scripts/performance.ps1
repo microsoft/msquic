@@ -12,8 +12,20 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Tls
     The TLS library use.
 
+.PARAMETER Runs
+    The number of runs to execute.
+
+.PARAMETER Length
+    The length of the data to transfer for each run.
+
+.PARAMETER Publish
+    Publishes the results to the artifacts directory.
+
 .PARAMETER PGO
     Uses pgomgr to merge the resulting .pgc files back to the .pgd.
+
+.PARAMETER Record
+    Records the run to collect performance information for analysis.
 
 #>
 
@@ -31,7 +43,19 @@ param (
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$PGO = $false
+    [Int32]$Runs = 10,
+
+    [Parameter(Mandatory = $false)]
+    [Int64]$Length = 2000000000, # 2 GB
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Publish = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$PGO = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Record = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -43,6 +67,15 @@ if ("" -eq $Tls) {
         $Tls = "schannel"
     } else {
         $Tls = "openssl"
+    }
+}
+
+if (!$IsWindows) {
+    if ($PGO) {
+        Write-Error "'-PGO' is not supported on this platform!"
+    }
+    if ($Record) {
+        Write-Error "'-Record' is not supported on this platform!"
     }
 }
 
@@ -66,9 +99,48 @@ if ($IsWindows) {
     $QuicPing = "quicping"
 }
 
+# Base output path.
+$OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$Platform"
+New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
+
 # Make sure the build is present.
 if (!(Test-Path (Join-Path $Artifacts $QuicPing))) {
     Write-Error "Build does not exist!`n `nRun the following to generate it:`n `n    $(Join-Path $RootDir "scripts" "build.ps1") -Config $Config -Arch $Arch -Tls $Tls`n"
+}
+
+# WPA Profile for collecting stacks.
+$WpaStackWalkProfileXml = `
+@"
+<?xml version="1.0" encoding="utf-8"?>
+<WindowsPerformanceRecorder Version="1.0" Author="MsQuic" Copyright="Microsoft Corporation" Company="Microsoft Corporation">
+  <Profiles>
+    <SystemCollector Id="SC_HighVolume" Realtime="false">
+      <BufferSize Value="1024"/>
+      <Buffers Value="20"/>
+    </SystemCollector>
+    <SystemProvider Id="SP_CPU">
+      <Keywords>
+        <Keyword Value="SampledProfile"/>
+      </Keywords>
+      <Stacks>
+        <Stack Value="SampledProfile"/>
+      </Stacks>
+    </SystemProvider>
+    <Profile Id="CPU.Light.File" Name="CPU" Description="CPU Stacks" LoggingMode="File" DetailLevel="Light">
+      <Collectors>
+        <SystemCollectorId Value="SC_HighVolume">
+          <SystemProviderId Value="SP_CPU" />
+        </SystemCollectorId>
+      </Collectors>
+    </Profile>
+  </Profiles>
+</WindowsPerformanceRecorder>
+"@
+$WpaStackWalkProfile = Join-Path $Artifacts "stackwalk.wprp"
+if ($Record) {
+    if ($IsWindows) {
+        $WpaStackWalkProfileXml | Out-File $WpaStackWalkProfile
+    }
 }
 
 function Start-Background-Executable($File, $Arguments) {
@@ -87,7 +159,10 @@ function Start-Background-Executable($File, $Arguments) {
 function Stop-Background-Executable($Process) {
     $Process.StandardInput.WriteLine("")
     $Process.StandardInput.Flush()
-    $Process.WaitForExit()
+    if (!$Process.WaitForExit(2000)) {
+        $Process.Kill()
+        Write-Debug "Server Failed to Exit"
+    }
     return $Process.StandardOutput.ReadToEnd()
 }
 
@@ -105,16 +180,21 @@ function Run-Foreground-Executable($File, $Arguments) {
 }
 
 function Parse-Loopback-Results($Results) {
-    #Unused variable on purpose
-    $m = $Results -match "Total rate.*\(TX.*bytes @ (.*) kbps \|"
-    return $Matches[1]
+    try {
+        # Unused variable on purpose
+        $m = $Results -match "Closed.*\(TX.*bytes @ (.*) kbps \|"
+        return $Matches[1]
+    } catch {
+        Write-Host "Error Processing Results:`n`n$Results"
+        throw
+    }
 }
 
 function Get-Latest-Test-Results($Platform, $Test) {
     $Uri = "https://msquicperformanceresults.azurewebsites.net/performance/$Platform/$Test"
-    Write-Host "Requesting: $Uri"
+    Write-Debug "Requesting: $Uri"
     $LatestResult = Invoke-RestMethod -Uri $Uri
-    Write-Host "Result: $LatestResult"
+    Write-Debug "Result: $LatestResult"
     return $LatestResult
 }
 
@@ -133,7 +213,12 @@ class TestPublishResult {
 $currentLoc = Get-Location
 Set-Location -Path $RootDir
 $env:GIT_REDIRECT_STDERR = '2>&1'
-$CurrentCommitHash = git rev-parse HEAD
+$CurrentCommitHash = $null
+try {
+    $CurrentCommitHash = git rev-parse HEAD
+} catch {
+    Write-Debug "Failed to get commit hash from git"
+}
 Set-Location -Path $currentLoc
 
 function Merge-PGO-Counts($Path) {
@@ -145,69 +230,109 @@ function Merge-PGO-Counts($Path) {
 function Run-Loopback-Test() {
     Write-Host "Running Loopback Test"
 
-    # Run server in it's own directory.
-    $ServerDir = "$($Artifacts)_server"
-    if (!(Test-Path $ServerDir)) { New-Item -Path $ServerDir -ItemType Directory -Force | Out-Null }
-    Copy-Item "$Artifacts\*" $ServerDir | Out-Null
+    $LoopbackOutputDir = Join-Path $OutputDir "loopback"
+    New-Item $LoopbackOutputDir -ItemType Directory -Force | Out-Null
 
+    $ServerDir = $Artifacts
+    if ($PGO) {
+        # PGO needs the server and client executing out of separate directories.
+        $ServerDir = "$($Artifacts)_server"
+        New-Item -Path $ServerDir -ItemType Directory -Force | Out-Null
+        Copy-Item "$Artifacts\*" $ServerDir
+    }
+
+    if ($Record) {
+        # Start collecting performance information.
+        if ($IsWindows) {
+            wpr.exe -start $WpaStackWalkProfile -filemode
+        }
+    }
+
+    # Start the server.
     $proc = Start-Background-Executable -File (Join-Path $ServerDir $QuicPing) -Arguments "-listen:* -port:4433 -selfsign:1 -peer_uni:1"
     Start-Sleep 4
 
     $allRunsResults = @()
-
-    1..10 | ForEach-Object {
-        $runResult = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments "-target:localhost -port:4433 -uni:1 -length:100000000"
-        $parsedRunResult = Parse-Loopback-Results -Results $runResult
-        $allRunsResults += $parsedRunResult
-        if ($PGO) {
-            # Merge client PGO counts.
-            Merge-PGO-Counts $Artifacts
+    $serverOutput = $null
+    try {
+        1..$Runs | ForEach-Object {
+            $clientOutput = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments "-target:localhost -port:4433 -core:0 -uni:1 -length:$Length"
+            $parsedRunResult = Parse-Loopback-Results -Results $clientOutput
+            $allRunsResults += $parsedRunResult
+            if ($PGO) {
+                # Merge client PGO counts.
+                Merge-PGO-Counts $Artifacts
+            }
+            Write-Host "Run $($_): $parsedRunResult kbps"
+            $clientOutput | Write-Debug
         }
-        Write-Host "Client $_ Finished: $parsedRunResult kbps"
+
+        # Stop the server.
+        $serverOutput = Stop-Background-Executable -Process $proc
+
+    } catch {
+        if ($Record) {
+            if ($IsWindows) {
+                wpr.exe -cancel
+            }
+        }
+        Stop-Background-Executable -Process $proc | Write-Host
+        throw
     }
 
-    $BackgroundText = Stop-Background-Executable -Process $proc
-    # Write server output so we can detect possible failures early
-    Write-Host $BackgroundText
+    if ($Record) {
+        # Stop the performance collection.
+        if ($IsWindows) {
+            Write-Host "Saving perf.etl out for publishing."
+            wpr.exe -stop "$(Join-Path $LoopbackOutputDir perf.etl)"
+        }
+    }
+
     if ($PGO) {
         # Merge server PGO counts.
         Merge-PGO-Counts $ServerDir
+        # Clean up server directory.
+        Remove-Item $ServerDir -Recurse -Force | Out-Null
     }
-    Remove-Item $ServerDir -Recurse -Force | Out-Null
 
+    # Print current and latest master results to console.
     $MedianCurrentResult = Median-Test-Results -FullResults $allRunsResults
-    Write-Host "Current Run: $MedianCurrentResult kbps"
-
-    if (!$PGO) {
-        $fullLastResult = Get-Latest-Test-Results -Platform $Platform -Test "loopback"
-        $MedianLastResult = 0
-        if ($fullLastResult -ne "") {
-            $MedianLastResult = Median-Test-Results -FullResults $fullLastResult.individualRunResults
+    $fullLastResult = Get-Latest-Test-Results -Platform $Platform -Test "loopback"
+    if ($fullLastResult -ne "") {
+        $MedianLastResult = Median-Test-Results -FullResults $fullLastResult.individualRunResults
+        $PercentDiff = 100 * (($MedianCurrentResult - $MedianLastResult) / $MedianLastResult)
+        $PercentDiffStr = $PercentDiff.ToString("#.##")
+        if ($PercentDiff -ge 0) {
+            $PercentDiffStr = "+$PercentDiffStr"
         }
-        Write-Host "Last Master Run: $MedianLastResult kbps"
+        Write-Host "Median: $MedianCurrentResult kbps ($PercentDiffStr%)"
+        Write-Host "Master: $MedianLastResult kbps"
+    } else {
+        Write-Host "Median: $MedianCurrentResult kbps"
+    }
 
-        $ToPublishResults = [TestPublishResult]::new()
-        $ToPublishResults.CommitHash = $CurrentCommitHash.Substring(0, 7)
-        $ToPublishResults.PlatformName = $Platform
-        $ToPublishResults.TestName = "loopback"
-        $ToPublishResults.IndividualRunResults = $allRunsResults
+    # Write server output so we can detect possible failures early.
+    Write-Debug $serverOutput
 
-        $ResultsFolderRoot = "$Platform/loopback"
-        $ResultsFileName = "/results.json"
+    if ($Publish -and ($CurrentCommitHash -ne $null)) {
+        Write-Host "Saving results.json out for publishing."
+        $Results = [TestPublishResult]::new()
+        $Results.CommitHash = $CurrentCommitHash.Substring(0, 7)
+        $Results.PlatformName = $Platform
+        $Results.TestName = "loopback"
+        $Results.IndividualRunResults = $allRunsResults
 
-        $NewFilePath = Join-Path $RootDir "artifacts/PerfDataResults/$ResultsFolderRoot"
-        $NewFileLocation = Join-Path $NewFilePath $ResultsFileName
-        New-Item $NewFilePath -ItemType Directory -Force
-
-        $ToPublishResults | ConvertTo-Json | Out-File $NewFileLocation
+        $ResultFile = Join-Path $LoopbackOutputDir "results.json"
+        $Results | ConvertTo-Json | Out-File $ResultFile
+    } elseif ($Publish -and ($CurrentCommitHash -eq $null)) {
+        Write-Debug "Failed to publish because of missing commit hash"
     }
 }
 
+# Run through all the test scenarios.
 Run-Loopback-Test
 
 if ($PGO) {
-    Write-Host "Copying msquic.pgd out for publishing."
-    $OutPath = Join-Path $RootDir "\artifacts\PerfDataResults\winuser\pgo_$($Arch)"
-    if (!(Test-Path $OutPath)) { New-Item -Path $OutPath -ItemType Directory -Force }
-    Copy-Item "$Artifacts\msquic.pgd" $OutPath
+    Write-Host "Saving msquic.pgd out for publishing."
+    Copy-Item "$Artifacts\msquic.pgd" $OutputDir
 }

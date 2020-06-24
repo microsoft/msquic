@@ -81,7 +81,7 @@ if ("" -eq $Tls) {
 $RootDir = Split-Path $PSScriptRoot -Parent
 
 # Path to the run-executable Powershell script.
-$RunExecutable = Join-Path $RootDir ".azure/scripts/run-executable.ps1"
+$RunExecutable = Join-Path $RootDir "scripts/run-executable.ps1"
 
 # Path to the spinquic exectuable.
 $SpinQuic = $null

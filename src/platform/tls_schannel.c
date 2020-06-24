@@ -2188,8 +2188,17 @@ QuicTlsProcessData(
     _Inout_ QUIC_TLS_PROCESS_STATE* State
     )
 {
-    UNREFERENCED_PARAMETER(DataType);
     QUIC_TLS_RESULT_FLAGS Result = 0;
+    if (DataType == QUIC_TLS_TICKET_DATA) {
+        Result = QUIC_TLS_RESULT_ERROR;
+
+        QuicTraceLogConnVerbose(
+            SchannelProcessingData,
+            TlsContext->Connection,
+            "Ignoring %u ticket bytes",
+            *BufferLength);
+        goto Error;
+    }
 
     QuicTraceLogConnVerbose(
         SchannelProcessingData,

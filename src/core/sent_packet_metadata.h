@@ -124,6 +124,11 @@ QuicPacketTraceType(
             QUIC_TRACE_PACKET_ONE_RTT : (Metadata->Flags.KeyType + 1);
 }
 
+void
+QuicSentPacketMetadataReleaseFrames(
+    _In_ QUIC_SENT_PACKET_METADATA* Metadata
+    );
+
 //
 // Helper for allocating the maximum sent packet metadata on the stack.
 //
