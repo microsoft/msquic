@@ -976,7 +976,7 @@ QuicTlsServerProcess(
             case TlsExt_ServerName: {
                 const QUIC_TLS_SNI_EXT* SNI = (QUIC_TLS_SNI_EXT*)ExtList;
                 uint16_t NameLength = TlsReadUint16(SNI->NameLength);
-                if (SNI->NameLength != 0) {
+                if (NameLength != 0) {
                     TlsContext->SNI = QUIC_ALLOC_PAGED(NameLength + 1);
                     memcpy((char*)TlsContext->SNI, SNI->Name, NameLength);
                     ((char*)TlsContext->SNI)[NameLength] = 0;
