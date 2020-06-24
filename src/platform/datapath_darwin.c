@@ -248,7 +248,7 @@ typedef struct QUIC_DATAPATH_PROC_CONTEXT {
     //
     // The epoll wait thread.
     //
-    QUIC_THREAD EpollWaitThread;
+    QUIC_THREAD KqueueThread;
 
     //
     // Pool of receive packet contexts and buffers to be shared by all sockets
@@ -452,6 +452,9 @@ QuicSocketContextUninitializeComplete(
                 PendingSendLinkage));
     }
 
+    //struct kevent evSet = { };
+    //EV_SET(&evSet, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, (void *)SocketContext);
+    //kevent(ProcContext->KqueueFd, &evSet, 1, NULL, 0, NULL);
     //epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
     //epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, SocketContext->CleanupFd, NULL);
     //close(SocketContext->CleanupFd);
@@ -466,11 +469,11 @@ void QuicSocketContextProcessEvent(QUIC_DATAPATH_PROC_CONTEXT *ProcContext, stru
     //        Event->flags, Event->fflags, 
     //        Event->data,  Event->udata);
 
-    QUIC_DBG_ASSERT(Event->filter == EVFILT_READ);
+    QUIC_DBG_ASSERT(Event->filter & (EVFILT_READ | EVFILT_USER));
 
     QUIC_SOCKET_CONTEXT *SocketContext = (QUIC_SOCKET_CONTEXT *)Event->udata;
 
-    if (Event->flags & EV_EOF) {
+    if (Event->filter == EVFILT_USER || Event->flags & EV_EOF) {
         QUIC_DBG_ASSERT(SocketContext->Binding->Shutdown);
         QuicSocketContextUninitializeComplete(SocketContext, ProcContext);
         return;
@@ -561,7 +564,7 @@ QuicProcessorContextInitialize(
         ProcContext
     };
 
-    Status = QuicThreadCreate(&ThreadConfig, &ProcContext->EpollWaitThread);
+    Status = QuicThreadCreate(&ThreadConfig, &ProcContext->KqueueThread);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -653,7 +656,6 @@ QuicProcessorContextUninitialize(
     )
 {
     // TOOD: wait till the worker thread shuts down
-
     close(ProcContext->KqueueFd);
 
     QuicPoolUninitialize(&ProcContext->RecvBlockPool);
@@ -842,7 +844,7 @@ QuicSocketContextInitialize(
     //
     // Create datagram socket.
     //
-    
+
     sa_family_t af_family = Binding->LocalAddress.Ip.sa_family;
 
     SocketContext->SocketFd = socket(af_family, SOCK_DGRAM, 0);
@@ -964,12 +966,13 @@ QuicSocketContextInitialize(
     }
 
     if (RemoteAddress != NULL) {
-        QuicZeroMemory(&MappedRemoteAddress, sizeof(MappedRemoteAddress));
-        //QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
+        // XXX: Don't map v4-to-v6 addresses for now.
+        // QuicZeroMemory(&MappedRemoteAddress, sizeof(MappedRemoteAddress));
+        // QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
 
-        //           ensure(setsockopt((int)s->fd,
-        //              s->ws_af == AF_INET ? IPPROTO_IP : IPPROTO_IPV6,
-        //              IP_RECVTTL, &(int){1}, sizeof(int)) >= 0,
+        //  setsockopt((int)s->fd,
+        //          s->ws_af == AF_INET ? IPPROTO_IP : IPPROTO_IPV6,
+        //          IP_RECVTTL, &(int){1}, sizeof(int)) >= 0,
         //   "cannot setsockopt IP_RECVTTL");
         Result =
             connect(
@@ -1012,10 +1015,9 @@ QuicSocketContextInitialize(
         goto Exit;
     }
 
-    //if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
-    //    __asm__("int3");
-    //    QUIC_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
-    //}
+    if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
+        QUIC_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
+    }
 
 Exit:
 
@@ -1100,9 +1102,9 @@ QuicSocketContextStartReceive(
     }
 
     struct kevent evSet = { };
-    EV_SET(&evSet, SocketContext->SocketFd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, (void *)SocketContext);
+    EV_SET(&evSet, SocketContext->SocketFd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, (void *)SocketContext);
     if (kevent(KqueueFd, &evSet, 1, NULL, 0, NULL) < 0)  {
-        QUIC_DBG_ASSERT(1);
+        QUIC_DBG_ASSERT(0);
         // Should be QUIC_STATUS_KQUEUE_ERROR
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -1171,7 +1173,7 @@ QuicDataPathBindingCreate(
     QuicRundownInitialize(&Binding->Rundown);
 
     if (LocalAddress) {
-        Binding->LocalAddress.Ip.sa_family = LocalAddress->Ip.sa_family;
+        memcpy(&Binding->LocalAddress, LocalAddress, sizeof(QUIC_ADDR));
         //QuicConvertToMappedV6(LocalAddress, &Binding->LocalAddress);
     } else if (RemoteAddress) {
         // We have no local address, but we have a remote address. 
@@ -1253,8 +1255,18 @@ void QuicSocketContextUninitialize(
     _In_ QUIC_DATAPATH_PROC_CONTEXT* ProcContext
     )
 {
-    // Invoking shutdown will trigger an EV_EOF on the socket, waking up the worker thread
-    shutdown(SocketContext->SocketFd, SHUT_RDWR);
+    // XXX: Documentation says shutdown(Sockfd, SHUT_RD) is enough to wake up the kqueue
+    // However, this seems to only happen after we've recieved some data..
+    // So we use EVFILT_USER to indicate that we want to destroy this socket
+    // context, and to wake up the worker thread. Perhaps we should pass an
+    // explicit CLOSE message to the worker thread, but for now, any
+    // EVFILT_USER event is a shutdown.
+    // shutdown(SocketContext->SocketFd, SHUT_RDWR);
+    
+    struct kevent EvSet[2] = { };
+    EV_SET(&EvSet[0], SocketContext->SocketFd, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, (void *)SocketContext);
+    EV_SET(&EvSet[1], SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, (void *)SocketContext);
+    kevent(ProcContext->KqueueFd, EvSet, 2, NULL, 0, NULL);
 }
 
 //
