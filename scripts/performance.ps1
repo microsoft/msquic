@@ -46,7 +46,7 @@ param (
     [Int32]$Runs = 10,
 
     [Parameter(Mandatory = $false)]
-    [Int64]$Length = 100000000,
+    [Int64]$Length = 2000000000, # 2 GB
 
     [Parameter(Mandatory = $false)]
     [switch]$Publish = $false,
@@ -159,7 +159,10 @@ function Start-Background-Executable($File, $Arguments) {
 function Stop-Background-Executable($Process) {
     $Process.StandardInput.WriteLine("")
     $Process.StandardInput.Flush()
-    $Process.WaitForExit()
+    if (!$Process.WaitForExit(2000)) {
+        $Process.Kill()
+        Write-Debug "Server Failed to Exit"
+    }
     return $Process.StandardOutput.ReadToEnd()
 }
 
@@ -210,7 +213,12 @@ class TestPublishResult {
 $currentLoc = Get-Location
 Set-Location -Path $RootDir
 $env:GIT_REDIRECT_STDERR = '2>&1'
-$CurrentCommitHash = git rev-parse HEAD
+$CurrentCommitHash = $null
+try {
+    $CurrentCommitHash = git rev-parse HEAD
+} catch {
+    Write-Debug "Failed to get commit hash from git"
+}
 Set-Location -Path $currentLoc
 
 function Merge-PGO-Counts($Path) {
@@ -248,7 +256,7 @@ function Run-Loopback-Test() {
     $serverOutput = $null
     try {
         1..$Runs | ForEach-Object {
-            $clientOutput = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments "-target:localhost -port:4433 -uni:1 -length:$Length"
+            $clientOutput = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments "-target:localhost -port:4433 -core:0 -uni:1 -length:$Length"
             $parsedRunResult = Parse-Loopback-Results -Results $clientOutput
             $allRunsResults += $parsedRunResult
             if ($PGO) {
@@ -306,7 +314,7 @@ function Run-Loopback-Test() {
     # Write server output so we can detect possible failures early.
     Write-Debug $serverOutput
 
-    if ($Publish) {
+    if ($Publish -and ($CurrentCommitHash -ne $null)) {
         Write-Host "Saving results.json out for publishing."
         $Results = [TestPublishResult]::new()
         $Results.CommitHash = $CurrentCommitHash.Substring(0, 7)
@@ -316,6 +324,8 @@ function Run-Loopback-Test() {
 
         $ResultFile = Join-Path $LoopbackOutputDir "results.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
+    } elseif ($Publish -and ($CurrentCommitHash -eq $null)) {
+        Write-Debug "Failed to publish because of missing commit hash"
     }
 }
 
