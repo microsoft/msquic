@@ -46,7 +46,7 @@ param (
     [Int32]$Runs = 10,
 
     [Parameter(Mandatory = $false)]
-    [Int64]$Length = 100000000,
+    [Int64]$Length = 1000000000, # 1 GB
 
     [Parameter(Mandatory = $false)]
     [switch]$Publish = $false,
