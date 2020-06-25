@@ -3546,6 +3546,16 @@
                 name="arg5"
                 />
           </template>
+          <template tid="template_ui16_ui16_">
+            <data
+                inType="win:UInt16"
+                name="arg2"
+                />
+            <data
+                inType="win:UInt16"
+                name="arg3"
+                />
+          </template>
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
@@ -5627,7 +5637,7 @@
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="EncodeTPOriginalCID"
-              template="template_ptr_"
+              template="template_ptr_ui8_binary_"
               value="146"
               />
           <event
@@ -8891,6 +8901,160 @@
               symbol="SettingDumpHandshakeIdleTimeoutMs"
               template="template_ui64_"
               value="612"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="ConnServerResumeTicket"
+              template="template_ptr_"
+              value="613"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="EncodeTPOriginalDestinationCID"
+              template="template_ptr_ui8_binary_"
+              value="614"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="EncodeTPMaxUdpPayloadSize"
+              template="template_ptr_ui64_"
+              value="615"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DecodeTPOriginalDestinationCID"
+              template="template_ptr_ui8_binary_"
+              value="616"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DecodeTPMaxUdpPayloadSize"
+              template="template_ptr_ui64_"
+              value="617"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DecodeTPInitialSourceCID"
+              template="template_ptr_ui8_binary_"
+              value="618"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DecodeTPRetrySourceCID"
+              template="template_ptr_ui8_binary_"
+              value="619"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="PathValidationTimeout"
+              template="template_ptr_ui8_"
+              value="620"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="SessionServerResumptionLevelSet"
+              template="template_ptr_ui8_"
+              value="621"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="SettingDumpServerResumptionLevel"
+              template="template_ui8_"
+              value="622"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathWorkerThreadStart"
+              template="template_ptr_"
+              value="623"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="DatapathWorkerThreadStop"
+              template="template_ptr_"
+              value="624"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="StubTlsUsing0Rtt"
+              template="template_ptr_"
+              value="625"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="StubTlsRecvNewSessionTicket"
+              template="template_ptr_ui32_ui32_sz_"
+              value="626"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="StubTlsReadTicket"
+              template="template_ptr_ui32_"
+              value="627"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestHookRegister"
+              template="template_"
+              value="628"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestHookUnregistering"
+              template="template_"
+              value="629"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestHookUnregistered"
+              template="template_"
+              value="630"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestHookDropPacketRandom"
+              template="template_"
+              value="631"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestHookDropPacketSelective"
+              template="template_"
+              value="632"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestHookReplaceAddrRecv"
+              template="template_ui16_ui16_"
+              value="633"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="TestHookReplaceAddrSend"
+              template="template_ui16_ui16_"
+              value="634"
               />
         </events>
       </provider>

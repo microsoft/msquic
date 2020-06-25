@@ -31,14 +31,6 @@
     "etw_plus": {
       "Modules": [
         {
-          "ExportModule": "TRACELOGGING",
-          "CustomSettings": {
-            "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
-            "Keyword": "0x0000000080000000",
-            "Level": "0x4"
-          }
-        },
-        {
           "ExportModule": "MANIFESTED_ETW",
           "CustomSettings": {
             "ETWManifestFile": "MsQuicEtw.man",
@@ -46,10 +38,6 @@
             "Level": "win:Informational",
             "Keywords": "ut:Connection ut:LowVolume"
           }
-        },
-        {
-          "ExportModule": "DTRACE",
-          "CustomSettings": {}
         }
       ]
     }
