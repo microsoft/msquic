@@ -4730,12 +4730,26 @@ QuicConnRecvPostProcessing(
 
             (*Path)->SendChallenge = TRUE;
             (*Path)->PathValidationStartTime = QuicTimeUs32();
+
             //
             // NB: The path challenge payload is initialized here and reused
             // for any retransmits, but the spec requires a new payload in each
             // path challenge.
             //
             QuicRandom(sizeof((*Path)->Challenge), (*Path)->Challenge);
+
+            //
+            // We need to also send a challenge on the active path to make sure
+            // it is still good.
+            //
+            QUIC_DBG_ASSERT(Connection->Paths[0].IsActive);
+            if (Connection->Paths[0].IsPeerValidated) { // Not already doing peer validation.
+                Connection->Paths[0].IsPeerValidated = FALSE;
+                Connection->Paths[0].SendChallenge = TRUE;
+                Connection->Paths[0].PathValidationStartTime = QuicTimeUs32();
+                QuicRandom(sizeof(Connection->Paths[0].Challenge), Connection->Paths[0].Challenge);
+            }
+
             QuicSendSetSendFlag(
                 &Connection->Send,
                 QUIC_CONN_SEND_FLAG_PATH_CHALLENGE);

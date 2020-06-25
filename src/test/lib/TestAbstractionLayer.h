@@ -13,7 +13,7 @@ Abstract:
 #include <quic_datapath.h>
 #include <MsQuicTests.h>
 
-const uint32_t TestWaitTimeout = 1000;
+const uint32_t TestWaitTimeout = 2000;
 
 #define TEST_FAILURE(Format, ...) \
     LogTestFailure(__FILE__, __FUNCTION__, __LINE__, Format, ##__VA_ARGS__)

@@ -922,6 +922,7 @@ QuicSendPathChallenges(
         }
 
         QuicPacketBuilderFinalize(&Builder, TRUE);
+        QuicPacketBuilderCleanup(&Builder);
     }
 }
 

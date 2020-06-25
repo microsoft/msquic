@@ -663,6 +663,78 @@ struct ReplaceAddressHelper : public DatapathHook
                 "[test][hook] Send Addr :%hu => :%hu",
                 QuicAddrGetPort(&New),
                 QuicAddrGetPort(&Original));
+        } else if (QuicAddrCompare(RemoteAddress, &Original)) {
+            QuicTraceLogVerbose(
+                TestHookDropOldAddrSend,
+                "[test][hook] Dropping send to old addr");
+            return TRUE; // Drop if it tries to explicitly send to the old address.
+        }
+        return FALSE;
+    }
+};
+
+struct ReplaceAddressThenDropHelper : public DatapathHook
+{
+    QUIC_ADDR Original;
+    QUIC_ADDR New;
+    uint32_t AllowPacketCount;
+    ReplaceAddressThenDropHelper(const QUIC_ADDR& OrigAddr, const QUIC_ADDR& NewAddr, uint32_t AllowCount) :
+        Original(OrigAddr), New(NewAddr), AllowPacketCount(AllowCount) {
+        DatapathHooks::Instance->AddHook(this);
+    }
+    ~ReplaceAddressThenDropHelper() {
+        DatapathHooks::Instance->RemoveHook(this);
+    }
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    BOOLEAN
+    Receive(
+        _Inout_ struct QUIC_RECV_DATAGRAM* Datagram
+        ) {
+        if (QuicAddrCompare(
+                &Datagram->Tuple->RemoteAddress,
+                &Original)) {
+            if (AllowPacketCount == 0) {
+                QuicTraceLogVerbose(
+                    TestHookDropLimitAddrRecv,
+                    "[test][hook] Dropping recv over limit to new addr");
+                return TRUE; // Drop
+            }
+            AllowPacketCount--;
+            Datagram->Tuple->RemoteAddress = New;
+            QuicTraceLogVerbose(
+                TestHookReplaceAddrRecv,
+                "[test][hook] Recv Addr :%hu => :%hu",
+                QuicAddrGetPort(&Original),
+                QuicAddrGetPort(&New));
+        }
+        return FALSE;
+    }
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    BOOLEAN
+    Send(
+        _Inout_ QUIC_ADDR* RemoteAddress,
+        _Inout_opt_ QUIC_ADDR* /* LocalAddress */,
+        _Inout_ struct QUIC_DATAPATH_SEND_CONTEXT* /* SendContext */
+        ) {
+        if (QuicAddrCompare(RemoteAddress, &New)) {
+            if (AllowPacketCount == 0) {
+                QuicTraceLogVerbose(
+                    TestHookDropLimitAddrSend,
+                    "[test][hook] Dropping send over limit to new addr");
+                return TRUE; // Drop
+            }
+            AllowPacketCount--;
+            *RemoteAddress = Original;
+            QuicTraceLogVerbose(
+                TestHookReplaceAddrSend,
+                "[test][hook] Send Addr :%hu => :%hu",
+                QuicAddrGetPort(&New),
+                QuicAddrGetPort(&Original));
+        } else if (QuicAddrCompare(RemoteAddress, &Original)) {
+            QuicTraceLogVerbose(
+                TestHookDropOldAddrSend,
+                "[test][hook] Dropping send to old addr");
+            return TRUE; // Drop if it tries to explicitly send to the old address.
         }
         return FALSE;
     }
