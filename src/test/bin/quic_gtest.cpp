@@ -502,6 +502,15 @@ TEST_P(WithFamilyArgs, RebindAddr) {
         QuicTestNatAddrRebind(GetParam().Family);
     }
 }
+
+TEST_P(WithFamilyArgs, PathValidationTimeout) {
+    TestLoggerT<ParamType> Logger("QuicTestPathValidationTimeout", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_PATH_VALIDATION_TIMEOUT, GetParam().Family));
+    } else {
+        QuicTestPathValidationTimeout(GetParam().Family);
+    }
+}
 #endif
 
 TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {

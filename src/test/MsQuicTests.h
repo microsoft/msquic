@@ -118,6 +118,11 @@ QuicTestNatAddrRebind(
     );
 
 void
+QuicTestPathValidationTimeout(
+    _In_ int Family
+    );
+
+void
 QuicTestChangeMaxStreamID(
     _In_ int Family
     );
@@ -574,4 +579,8 @@ typedef struct {
     QUIC_CTL_CODE(43, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 43
+#define IOCTL_QUIC_RUN_PATH_VALIDATION_TIMEOUT \
+    QUIC_CTL_CODE(44, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 44
