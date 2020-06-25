@@ -100,8 +100,10 @@ endif()
 
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
     set(QUIC_PLATFORM "windows")
-else()
+elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Linux")
     set(QUIC_PLATFORM "linux")
+elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Darwin")
+    set(QUIC_PLATFORM "darwin")
 endif()
 
 set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
@@ -206,7 +208,13 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 
 else()
     # Custom build flags.
-    set(QUIC_COMMON_FLAGS "-DQUIC_PLATFORM_LINUX -fms-extensions -fPIC -pthread -Wl,--no-as-needed -ldl")
+
+    set(QUIC_COMMON_FLAGS "-fms-extensions -fPIC -pthread -g -O0 -fno-inline -fno-omit-frame-pointer -glldb")
+    if (QUIC_PLATFORM STREQUAL "darwin")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_PLATFORM_DARWIN -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wmissing-field-initializers")
+    else()
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_PLATFORM_LINUX -Wl,--no-as-needed -ldl")
+    endif()
 
     if(QUIC_ENABLE_LOGGING)
         include(FindLTTngUST)
@@ -229,7 +237,7 @@ else()
 
     if(QUIC_SANITIZE_ADDRESS)
         message(STATUS "Configuring address sanitizer")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -fsanitize=address -fno-omit-frame-pointer -Wno-maybe-uninitialized -O0 -Og -g")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -fsanitize=address -fno-omit-frame-pointer -Wno-maybe-uninitialized -O0 -g")
     endif()
 
     if(QUIC_TLS STREQUAL "stub")
@@ -237,7 +245,7 @@ else()
     endif()
 
     set(QUIC_C_FLAGS "${QUIC_COMMON_FLAGS}")
-    set(QUIC_CXX_FLAGS "${QUIC_COMMON_FLAGS} --std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format")
+    set(QUIC_CXX_FLAGS "${QUIC_COMMON_FLAGS} -std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format")
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
@@ -308,7 +316,10 @@ if(QUIC_BUILD_TEST)
     set(INSTALL_GTEST OFF CACHE BOOL "Enable installation of googletest. (Projects embedding googletest may want to turn this OFF.)")
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         option(gtest_force_shared_crt "Use shared (DLL) run-time lib even when Google Test is built as static lib." ON)
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
     endif()
+
     enable_testing()
     add_subdirectory(submodules/googletest)
 
