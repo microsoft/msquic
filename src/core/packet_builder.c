@@ -91,13 +91,13 @@ QuicPacketBuilderCleanup(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
-    if (Builder->SendContext != NULL) {
-        QuicPacketBuilderFinalize(Builder, TRUE);
-    }
+    QUIC_DBG_ASSERT(Builder->SendContext == NULL);
 
     if (Builder->PacketBatchSent && Builder->PacketBatchRetransmittable) {
         QuicLossDetectionUpdateTimer(&Builder->Connection->LossDetection);
     }
+
+    QuicSentPacketMetadataReleaseFrames(Builder->Metadata);
 
     QuicSecureZeroMemory(Builder->HpMask, sizeof(Builder->HpMask));
 }
@@ -824,10 +824,15 @@ QuicPacketBuilderFinalize(
         Builder->Metadata->PacketNumber,
         QuicPacketTraceType(Builder->Metadata),
         Builder->Metadata->PacketLength);
-    QuicLossDetectionOnPacketSent(
-        &Connection->LossDetection,
-        Builder->Path,
-        Builder->Metadata);
+    if (QUIC_FAILED(
+        QuicLossDetectionOnPacketSent(
+            &Connection->LossDetection,
+            Builder->Path,
+            Builder->Metadata))) {
+        goto Exit;
+    }
+
+    Builder->Metadata->FrameCount = 0;
 
     if (Builder->Metadata->Flags.IsAckEliciting) {
         Builder->PacketBatchRetransmittable = TRUE;

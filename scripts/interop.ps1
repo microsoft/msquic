@@ -24,9 +24,6 @@ This script runs quicinterop locally.
 .PARAMETER LogProfile
     The name of the profile to use for log collection.
 
-.PARAMETER ConvertLogs
-    Convert any collected logs to text. Only works when LogProfile is set.
-
 .PARAMETER Target
     A target to connect to.
 
@@ -74,9 +71,6 @@ param (
     [string]$LogProfile = "None",
 
     [Parameter(Mandatory = $false)]
-    [switch]$ConvertLogs = $false,
-
-    [Parameter(Mandatory = $false)]
     [string]$Target = "",
 
     [Parameter(Mandatory = $false)]
@@ -111,7 +105,7 @@ if ("" -eq $Tls) {
 $RootDir = Split-Path $PSScriptRoot -Parent
 
 # Path to the run-executable Powershell script.
-$RunExecutable = Join-Path $RootDir ".azure/scripts/run-executable.ps1"
+$RunExecutable = Join-Path $RootDir "scripts/run-executable.ps1"
 
 # Path to the quicinterop exectuable.
 $QuicInterop = $null
@@ -138,10 +132,7 @@ if ($Debugger) {
     $Arguments += " -Debugger"
 }
 if ("None" -ne $LogProfile) {
-    $Arguments += " -LogProfile $($LogProfile)"
-}
-if ($ConvertLogs) {
-    $Arguments += " -ConvertLogs"
+    $Arguments += " -LogProfile $($LogProfile) -ConvertLogs"
 }
 
 $ExtraArgs = ""

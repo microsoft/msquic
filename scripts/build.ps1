@@ -15,6 +15,9 @@ This script provides helpers for building msquic.
 .PARAMETER Tls
     The TLS library to use.
 
+.PARAMETER ToolchainFile
+    Toolchain file to use (if cross)
+
 .PARAMETER DisableLogs
     Disables log collection.
 
@@ -66,6 +69,9 @@ param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
     [string]$Tls = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$ToolchainFile = "",
 
     [Parameter(Mandatory = $false)]
     [switch]$DisableLogs = $false,
@@ -123,7 +129,6 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 # Important directory paths.
 $BaseArtifactsDir = Join-Path $RootDir "artifacts"
 $BaseBuildDir = Join-Path $RootDir "build"
-$SrcDir = Join-Path $RootDir "src"
 
 $ArtifactsDir = Join-Path $BaseArtifactsDir $Platform
 $BuildDir = Join-Path $BaseBuildDir $Platform
@@ -198,7 +203,9 @@ function CMake-Generate {
     }
     if ($Platform -eq "uwp") {
         $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
-
+    }
+    if ($ToolchainFile -ne "") {
+        $Arguments += " ""-DCMAKE_TOOLCHAIN_FILE=" + $ToolchainFile + """"
     }
     $Arguments += " ../../.."
 
@@ -231,6 +238,25 @@ function CMake-Build {
         Copy-Item (Join-Path $BuildDir "obj" $Config "msquic.lib") $ArtifactsDir
         if (!$DisableTools) {
             Copy-Item (Join-Path $BuildDir "obj" $Config "msquicetw.lib") $ArtifactsDir
+        }
+        if ($PGO -and $Config -eq "Release") {
+            # TODO - Figure out a better way to get the path?
+            $VCToolsPath = "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\MSVC\14.26.28801\bin\Host$Arch\$Arch"
+            if (!(Test-Path $VCToolsPath)) {
+                $VCToolsPath = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\14.26.28801\bin\Host$Arch\$Arch"
+            }
+            if (!(Test-Path $VCToolsPath)) {
+                $VCToolsPath = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.26.28801\bin\Host$Arch\$Arch"
+            }
+            if (Test-Path $VCToolsPath) {
+                Copy-Item (Join-Path $VCToolsPath "pgort140.dll") $ArtifactsDir
+                Copy-Item (Join-Path $VCToolsPath "pgodb140.dll") $ArtifactsDir
+                Copy-Item (Join-Path $VCToolsPath "mspdbcore.dll") $ArtifactsDir
+                Copy-Item (Join-Path $VCToolsPath "tbbmalloc.dll") $ArtifactsDir
+                Copy-Item (Join-Path $VCToolsPath "pgomgr.exe") $ArtifactsDir
+            } else {
+                Log "Failed to find VC Tools path!"
+            }
         }
     }
 }

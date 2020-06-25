@@ -43,9 +43,6 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER LogProfile
     The name of the profile to use for log collection.
 
-.PARAMETER ConvertLogs
-    Convert any collected logs to text. Only works when LogProfile is set.
-
 .PARAMETER CompressOutput
     Compresses the output files generated for failed test cases.
 
@@ -119,9 +116,6 @@ param (
     [string]$LogProfile = "None",
 
     [Parameter(Mandatory = $false)]
-    [switch]$ConvertLogs = $false,
-
-    [Parameter(Mandatory = $false)]
     [switch]$CompressOutput = $false,
 
     [Parameter(Mandatory = $false)]
@@ -144,7 +138,7 @@ if ("" -eq $Tls) {
 $RootDir = Split-Path $PSScriptRoot -Parent
 
 # Path to the run-gtest Powershell script.
-$RunTest = Join-Path $RootDir ".azure/scripts/run-gtest.ps1"
+$RunTest = Join-Path $RootDir "scripts/run-gtest.ps1"
 
 # Path to the msquictest exectuable.
 $MsQuicTest = $null
@@ -190,10 +184,7 @@ if ($BreakOnFailure) {
     $TestArguments += " -BreakOnFailure"
 }
 if ("None" -ne $LogProfile) {
-    $TestArguments += " -LogProfile $($LogProfile)"
-}
-if ($ConvertLogs) {
-    $TestArguments += " -ConvertLogs"
+    $TestArguments += " -LogProfile $($LogProfile) -ConvertLogs"
 }
 if ($CompressOutput) {
     $TestArguments += " -CompressOutput"

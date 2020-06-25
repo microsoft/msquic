@@ -22,6 +22,7 @@ Abstract:
 
 QUIC_TLS_PROCESS_COMPLETE_CALLBACK QuicTlsProcessDataCompleteCallback;
 QUIC_TLS_RECEIVE_TP_CALLBACK QuicConnReceiveTP;
+QUIC_TLS_RECEIVE_RESUMPTION_CALLBACK QuicConnRecvResumptionTicket;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -277,6 +278,7 @@ QuicCryptoInitializeTls(
     TlsConfig.Connection = Connection;
     TlsConfig.ProcessCompleteCallback = QuicTlsProcessDataCompleteCallback;
     TlsConfig.ReceiveTPCallback = QuicConnReceiveTP;
+    TlsConfig.ReceiveResumptionCallback = QuicConnRecvResumptionTicket;
     if (!QuicConnIsServer(Connection)) {
         TlsConfig.ServerName = Connection->RemoteServerName;
     }
@@ -1672,11 +1674,27 @@ QuicCryptoProcessAppData(
         const uint8_t* AppData
     )
 {
-    UNREFERENCED_PARAMETER(Crypto);
-    UNREFERENCED_PARAMETER(DataLength);
-    UNREFERENCED_PARAMETER(AppData);
+    QUIC_STATUS Status;
+    if (Crypto->TlsCallPending) {
+        Status = QUIC_STATUS_INVALID_STATE;
+        goto Error;
+    }
 
-    return QUIC_STATUS_NOT_SUPPORTED;
+    QUIC_TLS_RESULT_FLAGS ResultFlags =
+        QuicTlsProcessData(Crypto->TLS, QUIC_TLS_TICKET_DATA, AppData, &DataLength, &Crypto->TlsState);
+    if (ResultFlags & QUIC_TLS_RESULT_ERROR) {
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+
+    if (!(ResultFlags & QUIC_TLS_RESULT_PENDING)) {
+        QuicCryptoProcessDataComplete(Crypto, ResultFlags, 0);
+    }
+
+    Status = QUIC_STATUS_SUCCESS;
+
+Error:
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

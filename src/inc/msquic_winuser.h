@@ -237,6 +237,22 @@ QuicAddrSetToLoopback(
     }
 }
 
+//
+// Test only API to increment the IP address value.
+//
+inline
+void
+QuicAddrIncrement(
+    _Inout_ QUIC_ADDR * Addr
+    )
+{
+    if (Addr->si_family == AF_INET) {
+        Addr->Ipv4.sin_addr.S_un.S_un_b.s_b4++;
+    } else {
+        Addr->Ipv6.sin6_addr.u.Byte[15]++;
+    }
+}
+
 inline
 uint32_t
 QuicAddrHash(

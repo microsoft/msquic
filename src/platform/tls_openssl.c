@@ -161,6 +161,11 @@ typedef struct QUIC_HP_KEY {
     const EVP_CIPHER *Aead;
 
     //
+    // The cipher context to use for encryption/decryption.
+    //
+    EVP_CIPHER_CTX *CipherCtx;
+
+    //
     // Buffer and BufferLen of the key.
     //
     int BufferLen;
@@ -375,16 +380,6 @@ QuicTlsDecrypt(
     _In_ size_t NonceLen,
     _In_reads_bytes_(AuthDataLen) const uint8_t *AuthData,
     _In_ size_t AuthDataLen,
-    _In_ const EVP_CIPHER *Aead
-    );
-
-static
-BOOLEAN
-QuicTlsHeaderMask(
-    _Out_writes_bytes_(5) uint8_t *OutputBuffer,
-    _In_reads_bytes_(keylen) const uint8_t *Key,
-    _In_ size_t keylen,
-    _In_reads_bytes_(16) const uint8_t *Sample,
     _In_ const EVP_CIPHER *Aead
     );
 
@@ -1361,17 +1356,27 @@ QuicTlsGetSecConfig(
 QUIC_TLS_RESULT_FLAGS
 QuicTlsProcessData(
     _In_ QUIC_TLS* TlsContext,
-    _In_ QUIC_TLS_DATA_FLAGS DataFlags,
+    _In_ QUIC_TLS_DATA_TYPE DataType,
     _In_reads_bytes_(*BufferLength) const uint8_t* Buffer,
     _Inout_ uint32_t* BufferLength,
     _Inout_ QUIC_TLS_PROCESS_STATE* State
     )
 {
-    UNREFERENCED_PARAMETER(DataFlags);
     int Ret = 0;
     int Err = 0;
 
     QUIC_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
+
+    if (DataType == QUIC_TLS_TICKET_DATA) {
+        TlsContext->ResultFlags = QUIC_TLS_RESULT_ERROR;
+
+        QuicTraceLogConnVerbose(
+            OpenSslProcessData,
+            TlsContext->Connection,
+            "Ignoring %u ticket bytes",
+            *BufferLength);
+        goto Exit;
+    }
 
     if (*BufferLength != 0) {
         QuicTraceLogConnVerbose(
@@ -2068,14 +2073,24 @@ QuicHpKeyCreate(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    QUIC_HP_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_KEY));
 
+    QUIC_HP_KEY* Key = QUIC_ALLOC_NONPAGED(sizeof(QUIC_HP_KEY));
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_KEY",
             sizeof(QUIC_KEY));
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
+
+    Key->CipherCtx = EVP_CIPHER_CTX_new();
+    if (Key->CipherCtx == NULL) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Cipherctx alloc failed");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -2114,8 +2129,10 @@ QuicHpKeyFree(
     )
 {
     if (Key != NULL) {
+        if (Key->CipherCtx != NULL) {
+            EVP_CIPHER_CTX_free(Key->CipherCtx);
+        }
         QuicFree(Key);
-        Key = NULL;
     }
 }
 
@@ -2127,18 +2144,46 @@ QuicHpComputeMask(
     _Out_writes_bytes_(QUIC_HP_SAMPLE_LENGTH * BatchSize) uint8_t* Mask
     )
 {
-    for (uint8_t i = 0; i < BatchSize; i++) {
-        if (!QuicTlsHeaderMask(
-                Mask + i * QUIC_HP_SAMPLE_LENGTH,
-                Key->Buffer,
-                Key->BufferLen,
-                Cipher + i * QUIC_HP_SAMPLE_LENGTH,
-                Key->Aead)) {
-            return QUIC_STATUS_TLS_ERROR;
+    BOOLEAN Ret = FALSE;
+    int Len = 0;
+    uint32_t Offset = 0;
+    static const uint8_t PLAINTEXT[] = "\x00\x00\x00\x00\x00";
+
+    for (uint8_t i = 0; i < BatchSize; ++i) { // TODO - Figure out how to not use a loop here!
+        if (EVP_EncryptInit_ex(Key->CipherCtx, Key->Aead, NULL, Key->Buffer, Cipher + Offset) != 1) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "EVP_EncryptInit_ex failed");
+            goto Exit;
         }
+
+        if (EVP_EncryptUpdate(Key->CipherCtx, Mask + Offset, &Len, PLAINTEXT, sizeof(PLAINTEXT) - 1) != 1) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "EVP_EncryptUpdate failed");
+            goto Exit;
+        }
+
+        QUIC_FRE_ASSERT(Len == 5);
+        if (EVP_EncryptFinal_ex(Key->CipherCtx, Mask + Offset + Len, &Len) != 1) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "EVP_EncryptFinal_ex failed");
+            goto Exit;
+        }
+
+        QUIC_FRE_ASSERT(Len == 0);
+        Offset += QUIC_HP_SAMPLE_LENGTH;
     }
 
-    return QUIC_STATUS_SUCCESS;
+    Ret = TRUE;
+
+Exit:
+
+    return Ret ? QUIC_STATUS_SUCCESS : QUIC_STATUS_TLS_ERROR;
 }
 
 QUIC_STATUS
@@ -2604,6 +2649,14 @@ QuicAllocatePacketKey(
                 "Allocation of '%s' failed. (%llu bytes)",
                 "QUIC_PACKET_KEY",
                 sizeof(QUIC_HP_KEY));
+            goto Error;
+        }
+        TempKey->HeaderKey->CipherCtx = EVP_CIPHER_CTX_new();
+        if (TempKey->HeaderKey->CipherCtx == NULL) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Cipherctx alloc failed");
             goto Error;
         }
     }
@@ -3218,73 +3271,6 @@ QuicTlsDecrypt(
 
     OutLen += Len;
     Ret = OutLen;
-
-Exit:
-
-    if (CipherCtx != NULL) {
-        EVP_CIPHER_CTX_free(CipherCtx);
-        CipherCtx = NULL;
-    }
-
-    return Ret;
-}
-
-static
-BOOLEAN
-QuicTlsHeaderMask(
-    _Out_writes_bytes_(5) uint8_t *OutputBuffer,
-    _In_reads_bytes_(keylen) const uint8_t *Key,
-    _In_ size_t KeyLen,
-    _In_reads_bytes_(16) const uint8_t *Cipher,
-    _In_ const EVP_CIPHER *Aead
-    )
-{
-    UNREFERENCED_PARAMETER(KeyLen);
-    BOOLEAN Ret = FALSE;
-    uint8_t Temp[16] = {0};
-    int OutputLen = 0;
-    int Len = 0;
-    static const uint8_t PLAINTEXT[] = "\x00\x00\x00\x00\x00";
-
-    EVP_CIPHER_CTX *CipherCtx = EVP_CIPHER_CTX_new();
-    if (CipherCtx == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Cipherctx alloc failed");
-        goto Exit;
-    }
-
-    if (EVP_EncryptInit_ex(CipherCtx, Aead, NULL, Key, Cipher) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_EncryptInit_ex failed");
-        goto Exit;
-    }
-
-    if (EVP_EncryptUpdate(CipherCtx, Temp, &Len, PLAINTEXT, sizeof(PLAINTEXT) - 1) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_EncryptUpdate failed");
-        goto Exit;
-    }
-
-    QUIC_FRE_ASSERT(Len == 5);
-    OutputLen += Len;
-
-    if (EVP_EncryptFinal_ex(CipherCtx, Temp + OutputLen, &Len) != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_EncryptFinal_ex failed");
-        goto Exit;
-    }
-
-    QUIC_FRE_ASSERT(Len == 0);
-    QuicCopyMemory(OutputBuffer, Temp, OutputLen);
-    Ret = TRUE;
 
 Exit:
 

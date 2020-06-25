@@ -109,7 +109,7 @@ if (!(Test-Path $Path)) {
 }
 
 # Root directory of the project.
-$RootDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$RootDir = Split-Path $PSScriptRoot -Parent
 
 # Script for controlling loggings.
 $LogScript = Join-Path $RootDir "scripts" "log.ps1"
@@ -312,7 +312,7 @@ function PrintDumpCallStack($DumpFile) {
     $env:_NT_SYMBOL_PATH = Split-Path $Path
     try {
         if ($env:BUILD_BUILDNUMBER -ne $null) {
-            $env:PATH += ";c:\Program Files (x86)\Windows Kits\10\Debuggers\x64" 
+            $env:PATH += ";c:\Program Files (x86)\Windows Kits\10\Debuggers\x64"
         }
         $Output = cdb.exe -z $File -c "kn;q" | Join-String -Separator "`n"
         $Output = ($Output | Select-String -Pattern " # Child-SP(?s).*quit:").Matches[0].Groups[0].Value

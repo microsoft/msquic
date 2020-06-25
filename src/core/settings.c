@@ -466,7 +466,7 @@ QuicSettingsLoad(
         ValueLen = sizeof(Value);
         QuicStorageReadValue(
             Storage,
-            QUIC_SETTING_SERVER_RESUMPTION_OR_ZERORTT,
+            QUIC_SETTING_SERVER_RESUMPTION_LEVEL,
             (uint8_t*)&Value,
             &ValueLen);
         if (Value > QUIC_SERVER_RESUME_AND_ZERORTT) {

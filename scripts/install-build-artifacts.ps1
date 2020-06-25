@@ -35,16 +35,18 @@ Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 # Important directories.
-$RootDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$RootDir = Split-Path $PSScriptRoot -Parent
 $ArtifactsDir = Join-Path $RootDir "artifacts"
 
 if ($IsWindows) {
-    # Install ETW manifest
-    $MsQuicDll = Join-Path $ArtifactsDir "\windows\$($Arch)_$($Config)_$($Tls)\msquic.dll"
-    $ManifestPath = Join-Path $RootDir "\src\manifest\MsQuicEtw.man"
-    $Command = "wevtutil.exe im $($ManifestPath) /rf:$($MsQuicDll) /mf:$($MsQuicDll)"
-    Write-Host $Command
-    Invoke-Expression $Command
+    if (!(Test-Path "C:\Windows\System32\drivers\msquic.sys")) {
+        # Install ETW manifest, if not already present
+        $MsQuicDll = Join-Path $ArtifactsDir "\windows\$($Arch)_$($Config)_$($Tls)\msquic.dll"
+        $ManifestPath = Join-Path $RootDir "\src\manifest\MsQuicEtw.man"
+        $Command = "wevtutil.exe im $($ManifestPath) /rf:$($MsQuicDll) /mf:$($MsQuicDll)"
+        Write-Host $Command
+        Invoke-Expression $Command
+    }
 
 } elseif ($IsLinux) {
     # TODO - Figure out how to install openssl?

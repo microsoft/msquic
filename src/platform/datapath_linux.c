@@ -2171,6 +2171,17 @@ QuicDataPathBindingGetLocalMtu(
 #endif
 }
 
+#ifndef TEMP_FAILURE_RETRY
+#define TEMP_FAILURE_RETRY(expression)                              \
+    ({                                                              \
+        long int FailureRetryResult = 0;                            \
+        do {                                                        \
+            FailureRetryResult = (long int)(expression);            \
+        } while ((FailureRetryResult == -1L) && (errno == EINTR));  \
+        FailureRetryResult;                                         \
+    })
+#endif
+
 void*
 QuicDataPathWorkerThread(
     _In_ void* Context

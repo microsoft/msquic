@@ -30,9 +30,6 @@ This script runs spinquic locally for a period of time.
 .PARAMETER LogProfile
     The name of the profile to use for log collection.
 
-.PARAMETER ConvertLogs
-    Convert any collected logs to text. Only works when LogProfile is set.
-
 #>
 
 param (
@@ -65,10 +62,7 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
-    [string]$LogProfile = "None",
-
-    [Parameter(Mandatory = $false)]
-    [switch]$ConvertLogs = $false
+    [string]$LogProfile = "None"
 )
 
 Set-StrictMode -Version 'Latest'
@@ -87,7 +81,7 @@ if ("" -eq $Tls) {
 $RootDir = Split-Path $PSScriptRoot -Parent
 
 # Path to the run-executable Powershell script.
-$RunExecutable = Join-Path $RootDir ".azure/scripts/run-executable.ps1"
+$RunExecutable = Join-Path $RootDir "scripts/run-executable.ps1"
 
 # Path to the spinquic exectuable.
 $SpinQuic = $null
@@ -114,10 +108,7 @@ if ($Debugger) {
     $Arguments += " -Debugger"
 }
 if ("None" -ne $LogProfile) {
-    $Arguments += " -LogProfile $($LogProfile)"
-}
-if ($ConvertLogs) {
-    $Arguments += " -ConvertLogs"
+    $Arguments += " -LogProfile $($LogProfile) -ConvertLogs"
 }
 
 # Run the script.

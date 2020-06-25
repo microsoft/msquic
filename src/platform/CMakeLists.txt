@@ -59,10 +59,12 @@ target_compile_options(platform PRIVATE
      $<$<CXX_COMPILER_ID:MSVC>:
         ${MSVC_WARNING_FLAGS}>)
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    add_dependencies(platform MsQuicEtw)
-else()
-    target_link_libraries(platform ${LTTNGUST_LIBRARIES})
+if(QUIC_ENABLE_LOGGING)
+    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+        add_dependencies(platform MsQuicEtw)
+    else()
+        target_link_libraries(platform ${LTTNGUST_LIBRARIES})
+    endif()
 endif()
 
 if(QUIC_TLS STREQUAL "openssl")

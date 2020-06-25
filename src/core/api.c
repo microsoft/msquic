@@ -384,6 +384,11 @@ MsQuicConnectionSendResumptionTicket(
         goto Error;
     }
 
+    if (Flags > (QUIC_SEND_RESUMPTION_FLAG_FINAL | QUIC_SEND_RESUMPTION_FLAG_NONE)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
     if (IS_CONN_HANDLE(Handle)) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Connection = (QUIC_CONNECTION*)Handle;
@@ -889,7 +894,7 @@ MsQuicStreamSend(
         goto Exit;
     }
 
-    if (TotalLength == 0) {
+    if (TotalLength == 0 && !(Flags & QUIC_SEND_FLAG_FIN)) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }

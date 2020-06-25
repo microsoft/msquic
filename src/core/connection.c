@@ -389,7 +389,9 @@ QuicConnFree(
         QUIC_FREE(Connection->OrigDestCID);
     }
     if (Connection->HandshakeTP != NULL) {
-        QUIC_FREE(Connection->HandshakeTP);
+        QuicPoolFree(
+            &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].TransportParamPool,
+            Connection->HandshakeTP);
         Connection->HandshakeTP = NULL;
     }
     QuicTraceEvent(
@@ -442,7 +444,8 @@ QuicConnApplySettings(
         //
         // TODO: Replace with pool allocator for performance.
         //
-        Connection->HandshakeTP = QUIC_ALLOC_NONPAGED(sizeof(*Connection->HandshakeTP));
+        Connection->HandshakeTP =
+            QuicPoolAlloc(&MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].TransportParamPool);
         if (Connection->HandshakeTP == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -2014,9 +2017,6 @@ QuicConnSendResumptionTicket(
 
 Error:
     if (TicketBuffer != NULL) {
-        //
-        // TODO: This might need to be kept around for longer depending on TLS implementation...
-        //
         QUIC_FREE(TicketBuffer);
     }
 
@@ -2190,7 +2190,9 @@ QuicConnCleanupServerResumptionState(
     QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
     if (!Connection->State.ResumptionEnabled) {
         if (Connection->HandshakeTP != NULL) {
-            QUIC_FREE(Connection->HandshakeTP);
+            QuicPoolFree(
+                &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].TransportParamPool,
+                Connection->HandshakeTP);
             Connection->HandshakeTP = NULL;
         }
 
@@ -4727,6 +4729,12 @@ QuicConnRecvPostProcessing(
             }
 
             (*Path)->SendChallenge = TRUE;
+            (*Path)->PathValidationStartTime = QuicTimeUs32();
+            //
+            // NB: The path challenge payload is initialized here and reused
+            // for any retransmits, but the spec requires a new payload in each
+            // path challenge.
+            //
             QuicRandom(sizeof((*Path)->Challenge), (*Path)->Challenge);
             QuicSendSetSendFlag(
                 &Connection->Send,
@@ -4754,6 +4762,13 @@ QuicConnRecvPostProcessing(
         //
         QuicPathSetActive(Connection, *Path);
         *Path = &Connection->Paths[0];
+
+        QuicTraceEvent(
+            ConnRemoteAddrAdded,
+            "[conn][%p] New Remote IP: %!SOCKADDR!",
+            Connection,
+            LOG_ADDR_LEN(Connection->Paths[0].RemoteAddress),
+            (const uint8_t*)&Connection->Paths[0].RemoteAddress); // TODO - Addr removed event?
 
         QUIC_CONNECTION_EVENT Event;
         Event.Type = QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED;
@@ -6431,6 +6446,7 @@ QuicConnProcessApiOperation(
         break;
 
     case QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET:
+        QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
         Status =
             QuicConnSendResumptionTicket(
                 Connection,
@@ -6438,9 +6454,7 @@ QuicConnProcessApiOperation(
                 ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData);
         ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData = NULL;
         if (ApiCtx->CONN_SEND_RESUMPTION_TICKET.Flags & QUIC_SEND_RESUMPTION_FLAG_FINAL) {
-            QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
             Connection->State.ResumptionEnabled = FALSE;
-            QuicConnCleanupServerResumptionState(Connection); // BUG: With Async processing, this frees the memory before it's used.
         }
         break;
 

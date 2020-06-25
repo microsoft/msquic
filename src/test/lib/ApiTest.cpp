@@ -210,6 +210,70 @@ void QuicTestValidateSession()
             TicketKey));
 #endif
 
+    //
+    // Server resumption level - invalid level
+    //
+    QUIC_SERVER_RESUMPTION_LEVEL Level = (QUIC_SERVER_RESUMPTION_LEVEL) 0xff;
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->SetParam(
+            Session,
+            QUIC_PARAM_LEVEL_SESSION,
+            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+            sizeof(Level),
+            nullptr));
+
+    //
+    // Server resumption level - Invalid length
+    //
+    Level = QUIC_SERVER_RESUME_ONLY;
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->SetParam(
+            Session,
+            QUIC_PARAM_LEVEL_SESSION,
+            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+            0,
+            &Level));
+
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->SetParam(
+            Session,
+            QUIC_PARAM_LEVEL_SESSION,
+            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+            sizeof(Level) - 1,
+            &Level));
+
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->SetParam(
+            Session,
+            QUIC_PARAM_LEVEL_SESSION,
+            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+            sizeof(Level) + 1,
+            &Level));
+
+    //
+    // Server resumption level - NULL level
+    //
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->SetParam(
+            Session,
+            QUIC_PARAM_LEVEL_SESSION,
+            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+            sizeof(Level),
+            nullptr));
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            Session,
+            QUIC_PARAM_LEVEL_SESSION,
+            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+            sizeof(Level),
+            &Level));
+
     MsQuic->SessionClose(
         Session);
     Session = nullptr;
@@ -365,6 +429,86 @@ DummyConnectionCallback(
 {
     return QUIC_STATUS_NOT_SUPPORTED;
 }
+
+#ifndef QUIC_DISABLE_0RTT_TESTS
+static
+_Function_class_(QUIC_CONNECTION_CALLBACK)
+QUIC_STATUS
+QUIC_API
+AutoShutdownConnectionCallback(
+    HQUIC Connection,
+    void* Context,
+    QUIC_CONNECTION_EVENT* Event
+    )
+{
+    if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+        if (Context != nullptr) {
+            if (!QuicEventWaitWithTimeout(*(QUIC_EVENT*)Context, 1000)) {
+                TEST_FAILURE("Peer never signaled connected event");
+            }
+        }
+        MsQuic->ConnectionShutdown(
+            Connection,
+            QUIC_CONNECTION_SHUTDOWN_FLAG_NONE,
+            0);
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+static
+_Function_class_(QUIC_CONNECTION_CALLBACK)
+QUIC_STATUS
+QUIC_API
+ResumptionFailConnectionCallback(
+    HQUIC Connection,
+    void* Context,
+    QUIC_CONNECTION_EVENT* Event
+    )
+{
+    if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+        QUIC_STATUS Status =
+            MsQuic->ConnectionSendResumptionTicket(
+                Connection,
+                QUIC_SEND_RESUMPTION_FLAG_NONE,
+                0,
+                nullptr);
+        if (Status != QUIC_STATUS_INVALID_STATE) {
+            TEST_FAILURE(
+                "ConnectionSendResumptionTicket has unexpected error! Expected 0x%x, actual 0x%x",
+                QUIC_STATUS_INVALID_STATE,
+                Status);
+        }
+        QuicEventSet(*(QUIC_EVENT*)Context);
+        return QUIC_STATUS_SUCCESS;
+    } else if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+        MsQuic->ConnectionClose(Connection);
+        return QUIC_STATUS_SUCCESS;
+    }
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_Function_class_(NEW_CONNECTION_CALLBACK)
+static
+void
+ListenerFailSendResumeCallback(
+    _In_ TestListener*  Listener,
+    _In_ HQUIC ConnectionHandle
+    )
+{
+    //
+    // Validate sending the resumption ticket fails
+    //
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_STATE,
+        MsQuic->ConnectionSendResumptionTicket(
+            ConnectionHandle,
+            QUIC_SEND_RESUMPTION_FLAG_NONE,
+            0,
+            nullptr));
+    MsQuic->SetCallbackHandler(ConnectionHandle, (void*)ResumptionFailConnectionCallback, Listener->Context);
+    QuicEventSet(*(QUIC_EVENT*)Listener->Context);
+}
+#endif
 
 void QuicTestValidateConnection()
 {
@@ -672,18 +816,189 @@ void QuicTestValidateConnection()
                 sizeof(ReceiveDatagrams),
                 &ReceiveDatagrams));
     }
-}
 
-_Function_class_(NEW_STREAM_CALLBACK)
-static
-void
-ConnectionIgnoreStreamCallback(
-    _In_ TestConnection* /* Connection */,
-    _In_ HQUIC Stream,
-    _In_ QUIC_STREAM_OPEN_FLAGS /* Flags */
-    )
-{
-    MsQuic->StreamClose(Stream);
+    //
+    // Invalid send resumption.
+    //
+    {
+        ConnectionScope Connection;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConnectionOpen(
+                Session,
+                DummyConnectionCallback,
+                nullptr,
+                &Connection.Handle));
+
+        //
+        // NULL connection handle.
+        //
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionSendResumptionTicket(
+                nullptr,
+                QUIC_SEND_RESUMPTION_FLAG_NONE,
+                0,
+                nullptr));
+
+        //
+        // Can only be called on server Connections.
+        //
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionSendResumptionTicket(
+                Connection.Handle,
+                QUIC_SEND_RESUMPTION_FLAG_NONE,
+                0,
+                nullptr));
+
+        //
+        // Validate flags are within range.
+        //
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionSendResumptionTicket(
+                Connection.Handle,
+                (QUIC_SEND_RESUMPTION_FLAGS)4,
+                0,
+                nullptr));
+    }
+
+    //
+    // Invalid send resumption, server-side
+    // Some of these cases require an actual connection to succeed, so
+    // they won't work on Schannel in AZP.
+    // Currently disabling these test cases for TLS platforms without 0-RTT.
+    //
+#ifndef QUIC_DISABLE_0RTT_TESTS
+    {
+        TestListener MyListener(Session, ListenerFailSendResumeCallback);
+        TEST_TRUE(MyListener.IsValid());
+
+        TEST_QUIC_SUCCEEDED(MyListener.Start());
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(MyListener.GetLocalAddr(ServerLocalAddr));
+
+        QUIC_EVENT Event;
+        QuicEventInitialize(&Event, FALSE, FALSE);
+        MyListener.Context = &Event;
+
+        {
+            //
+            // Validate that the resumption ticket call fails in the listener.
+            //
+            ConnectionScope Connection;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->ConnectionOpen(
+                    Session,
+                    AutoShutdownConnectionCallback,
+                    nullptr,
+                    &Connection.Handle));
+
+            const uint64_t IdleTimeout = 1000;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Connection.Handle,
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_IDLE_TIMEOUT,
+                    sizeof(IdleTimeout),
+                    &IdleTimeout));
+
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->ConnectionStart(
+                    Connection.Handle,
+                    QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+                    QUIC_LOCALHOST_FOR_AF(
+                        QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                    ServerLocalAddr.GetPort()));
+
+            TEST_TRUE(QuicEventWaitWithTimeout(Event, 1000));
+
+            MsQuic->ConnectionClose(Connection.Handle);
+
+            //
+            // Ensure sending a resumption ticket fails even when connected
+            // because resumption is not enabled.
+            //
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->ConnectionOpen(
+                    Session,
+                    AutoShutdownConnectionCallback,
+                    &Event,
+                    &Connection.Handle));
+
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Connection.Handle,
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_IDLE_TIMEOUT,
+                    sizeof(IdleTimeout),
+                    &IdleTimeout));
+
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->ConnectionStart(
+                    Connection.Handle,
+                    QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+                    QUIC_LOCALHOST_FOR_AF(
+                        QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                    ServerLocalAddr.GetPort()));
+
+            TEST_TRUE(QuicEventWaitWithTimeout(Event, 1000));
+
+            MsQuic->ConnectionClose(Connection.Handle);
+
+            //
+            // Enable resumption but ensure failure because the connection 
+            // isn't in connected state yet.
+            //
+
+            QUIC_SERVER_RESUMPTION_LEVEL Level = QUIC_SERVER_RESUME_ONLY;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Session.Handle,
+                    QUIC_PARAM_LEVEL_SESSION,
+                    QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
+                    sizeof(Level),
+                    &Level));
+
+            //
+            // Give time for the parameter to get set.
+            //
+            QuicSleep(100);
+
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->ConnectionOpen(
+                    Session,
+                    AutoShutdownConnectionCallback,
+                    nullptr,
+                    &Connection.Handle));
+
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Connection.Handle,
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_IDLE_TIMEOUT,
+                    sizeof(IdleTimeout),
+                    &IdleTimeout));
+
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->ConnectionStart(
+                    Connection.Handle,
+                    QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+                    QUIC_LOCALHOST_FOR_AF(
+                        QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                    ServerLocalAddr.GetPort()));
+
+            TEST_TRUE(QuicEventWaitWithTimeout(Event, 1000));
+
+            //
+            // TODO: add test case to validate ConnectionSendResumptionTicket:
+            // * succeeds when resumption is enabled and once connected.
+            //
+        }
+
+        QuicEventUninitialize(Event);
+    }
+#endif
 }
 
 _Function_class_(NEW_CONNECTION_CALLBACK)
@@ -695,7 +1010,7 @@ ListenerAcceptCallback(
     )
 {
     TestConnection** NewConnection = (TestConnection**)Listener->Context;
-    *NewConnection = new TestConnection(ConnectionHandle, ConnectionIgnoreStreamCallback, true);
+    *NewConnection = new TestConnection(ConnectionHandle);
     if (*NewConnection == nullptr || !(*NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *NewConnection;
@@ -748,7 +1063,7 @@ void QuicTestValidateStream(bool Connect)
         MyListener.Context = &Server;
 
         {
-            TestConnection Client(Session, ConnectionIgnoreStreamCallback, false);
+            TestConnection Client(Session);
             TEST_TRUE(Client.IsValid());
             if (Connect) {
                 TEST_QUIC_SUCCEEDED(MyListener.Start());
@@ -763,7 +1078,7 @@ void QuicTestValidateStream(bool Connect)
                         QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
                         QUIC_LOCALHOST_FOR_AF(
                             QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
-                        QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
+                        ServerLocalAddr.GetPort()));
 
                 //
                 // Wait for connection.

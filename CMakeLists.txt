@@ -92,6 +92,12 @@ option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
 option(QUIC_UWP_BUILD "Build for UWP" OFF)
 option(QUIC_PGO "Enables profile guided optimizations" OFF)
 
+# FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
+if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
+    message(WARNING "Logging unsupported on this version of CMake. Please upgrade to 3.6 or later.")
+    set(QUIC_ENABLE_LOGGING OFF)
+endif()
+
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
     set(QUIC_PLATFORM "windows")
 elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Linux")
@@ -203,7 +209,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 else()
     # Custom build flags.
 
-    set(QUIC_COMMON_FLAGS "-fms-extensions -fPIC -pthread -g -O0 -fno-inline -fno-omit-frame-pointer -glldb")
+    set(QUIC_COMMON_FLAGS "-fms-extensions -fPIC -pthread -fno-inline -fno-omit-frame-pointer")
     if (QUIC_PLATFORM STREQUAL "darwin")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_PLATFORM_DARWIN -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wmissing-field-initializers")
     else()
@@ -231,7 +237,7 @@ else()
 
     if(QUIC_SANITIZE_ADDRESS)
         message(STATUS "Configuring address sanitizer")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -fsanitize=address -fno-omit-frame-pointer -O0 -g")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -fsanitize=address -fno-omit-frame-pointer -Wno-maybe-uninitialized -O0 -g")
     endif()
 
     if(QUIC_TLS STREQUAL "stub")
@@ -246,14 +252,26 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 
 if(QUIC_TLS STREQUAL "openssl")
     # Configure and build OpenSSL.
-    add_custom_command(
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl
-        OUTPUT ${QUIC_BUILD_DIR}/openssl/include
-        OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-        OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-        COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ./config enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
-        COMMAND make -j$$(nproc)
-        COMMAND make install_sw)
+    if (CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
+        add_custom_command(
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl
+            OUTPUT ${QUIC_BUILD_DIR}/openssl/include
+            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ./Configure linux-armv4 --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}- -DL_ENDIAN enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
+            COMMAND make clean
+            COMMAND make -j$$(nproc)
+            COMMAND make install_sw)
+    else ()
+        add_custom_command(
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl
+            OUTPUT ${QUIC_BUILD_DIR}/openssl/include
+            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ./config enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
+            COMMAND make -j$$(nproc)
+            COMMAND make install_sw)
+    endif()
     add_custom_target(OpenSSL
         DEPENDS ${QUIC_BUILD_DIR}/openssl/include
         DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}

@@ -215,6 +215,36 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context *
 QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void * /* Context */, QUIC_CONNECTION_EVENT *Event)
 {
     switch (Event->Type) {
+    case QUIC_CONNECTION_EVENT_CONNECTED: {
+        int Selector = GetRandom(3);
+        uint16_t DataLength = 0;
+        uint8_t* Data = nullptr;
+        if (Selector == 1) {
+            //
+            // Send ticket with some data
+            //
+            DataLength = GetRandom(999) + 1;
+        } else if (Selector == 2) {
+            //
+            // Send ticket with too much data
+            //
+            DataLength = QUIC_MAX_RESUMPTION_APP_DATA_LENGTH + 1;
+        } else {
+            //
+            // Send ticket with no app data (no-op)
+            //
+        }
+        if (DataLength) {
+            Data = (uint8_t*)malloc(DataLength);
+            if (Data == nullptr) {
+                DataLength = 0;
+            }
+        }
+        QUIC_SEND_RESUMPTION_FLAGS Flags = (GetRandom(2) == 0) ? QUIC_SEND_RESUMPTION_FLAG_NONE : QUIC_SEND_RESUMPTION_FLAG_FINAL;
+        MsQuic->ConnectionSendResumptionTicket(Connection, Flags, DataLength, Data);
+        free(Data);
+        break;
+    }
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         SpinQuicConnection::Get(Connection)->OnShutdownComplete();
         break;
@@ -756,13 +786,15 @@ main(int argc, char **argv)
 
         if (Settings.LossPercent != 0) {
             QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathHooks;
-            EXIT_ON_FAILURE(
+            if (QUIC_FAILED(
                 MsQuic->SetParam(
                     nullptr,
                     QUIC_PARAM_LEVEL_GLOBAL,
                     QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
                     sizeof(Value),
-                    &Value));
+                    &Value))) {
+                printf("Setting Datapath hooks failed.\n");
+            }
         }
 
         const QUIC_REGISTRATION_CONFIG RegConfig = { "spinquic", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
