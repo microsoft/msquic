@@ -209,9 +209,9 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 else()
     # Custom build flags.
 
-    set(QUIC_COMMON_FLAGS "-fms-extensions -fPIC -pthread -g -O0 -fno-inline -fno-omit-frame-pointer -glldb")
+    set(QUIC_COMMON_FLAGS "-fms-extensions -fPIC -pthread -g -O0 -fno-inline -fno-omit-frame-pointer")
     if (QUIC_PLATFORM STREQUAL "darwin")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_PLATFORM_DARWIN -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wmissing-field-initializers")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_PLATFORM_DARWIN -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wmissing-field-initializers -glldb")
     else()
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_PLATFORM_LINUX -Wl,--no-as-needed -ldl")
     endif()
