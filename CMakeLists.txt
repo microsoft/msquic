@@ -317,7 +317,7 @@ if(QUIC_BUILD_TEST)
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         option(gtest_force_shared_crt "Use shared (DLL) run-time lib even when Google Test is built as static lib." ON)
     else()
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
     endif()
 
     enable_testing()
