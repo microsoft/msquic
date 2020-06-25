@@ -33,6 +33,9 @@ This script runs an executable and collects and logs or process dumps as necessa
 .PARAMETER ShowOutput
     Prints the standard output/error to the console.
 
+.Parameter EnableAppVerifier
+    Enables all basic Application Verifier checks on the executable.
+
 #>
 
 param (
@@ -65,7 +68,10 @@ param (
     [switch]$CompressOutput = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$ShowOutput = $false
+    [switch]$ShowOutput = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$EnableAppVerifier = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -127,6 +133,15 @@ function Start-Executable {
 
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
+        if ($EnableAppVerifier) {
+            where.exe appverif.exe
+            if ($LastExitCode -eq 0) {
+                appverif.exe /verify $Path
+            } else {
+                Write-Warning "Application Verifier not installed!"
+                $EnableAppVerifier = $false;
+            }
+        }
         if ($Debugger) {
             $pinfo.FileName = "windbg"
             if ($InitialBreak) {
@@ -200,6 +215,13 @@ function Wait-Executable($Exe) {
             $stderr = $Exe.Process.StandardError.ReadToEnd()
             if (!$isWindows) {
                 $KeepOutput = $stderr.Contains("Aborted")
+            }
+        } else {
+            if ($IsWindows -and $EnableAppVerifier) {
+                # Wait 10 seconds for the debugger to launch the application
+                Start-Sleep -Seconds 10
+                # Turn off App Verifier
+                appverif.exe -disable * -for $Path
             }
         }
         $Exe.Process.WaitForExit()

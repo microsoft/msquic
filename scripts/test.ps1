@@ -49,6 +49,9 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER NoProgress
     Disables the progress bar.
 
+.Parameter EnableAppVerifier
+    Enables all basic Application Verifier checks on test binaries.
+
 .EXAMPLE
     test.ps1
 
@@ -125,8 +128,6 @@ param (
     [switch]$EnableAppVerifier = $false
 )
 
-#Requires -RunAsAdministrator
-
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
@@ -197,31 +198,11 @@ if ($CompressOutput) {
 if ($NoProgress) {
     $TestArguments += " -NoProgress"
 }
-
 if ($EnableAppVerifier) {
-    # Enable Application Verifier for test binaries
-    where.exe appverif.exe
-    if ($LastExitCode -eq 0) {
-        appverif.exe /verify msquiccoretest.exe
-        appverif.exe /verify msquicplatformtest.exe
-        appverif.exe /verify msquictest.exe
-    } else {
-        Write-Debug "Application Verifier not installed!"
-        $EnableAppVerifier = $false;
-    }
+    $TestArguments += " -EnableAppVerifier"
 }
 
 # Run the script.
 Invoke-Expression ($RunTest + " -Path $($MsQuicCoreTest) " + $TestArguments)
 Invoke-Expression ($RunTest + " -Path $($MsQuicPlatTest) " + $TestArguments)
 Invoke-Expression ($RunTest + " -Path $($MsQuicTest) " + $TestArguments)
-
-if ($EnableAppVerifier) {
-    # Enable Application Verifier for test binaries
-    where.exe appverif.exe
-    if ($LastExitCode -eq 0) {
-        appverif.exe -disable * -for msquiccoretest.exe
-        appverif.exe -disable * -for msquicplatformtest.exe
-        appverif.exe -disable * -for msquictest.exe
-    }
-}
