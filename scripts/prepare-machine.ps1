@@ -18,9 +18,7 @@ on the provided configuration.
 param (
     [Parameter(Mandatory = $true)]
     [ValidateSet("Build", "Test", "Dev")]
-    [string]$Configuration,
-    [Parameter(Mandatory = $false)]
-    [switch]$EnableAppVerifier = $false
+    [string]$Configuration
 )
 
 #Requires -RunAsAdministrator
@@ -44,18 +42,6 @@ if ($IsWindows) {
         $TlsClientKeyPath = "HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client"
         reg.exe add $TlsClientKeyPath /v DisabledByDefault /t REG_DWORD /d 0 /f | Out-Null
         reg.exe add $TlsClientKeyPath /v Enabled /t REG_DWORD /d 1 /f | Out-Null
-    }
-
-    if ($EnableAppVerifier) {
-        # Enable Application Verifier for test binaries
-        where.exe appverif.exe
-        if ($LastExitCode -eq 0) {
-            appverif.exe /verify msquiccoretest.exe
-            appverif.exe /verify msquicplatformtest.exe
-            appverif.exe /verify msquictest.exe
-        } else {
-            Write-Debug "Application Verifier not installed!"
-        }
     }
 
 } else {
