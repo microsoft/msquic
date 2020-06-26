@@ -49,6 +49,9 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER NoProgress
     Disables the progress bar.
 
+.Parameter EnableAppVerifier
+    Enables all basic Application Verifier checks on test binaries.
+
 .EXAMPLE
     test.ps1
 
@@ -119,7 +122,10 @@ param (
     [switch]$CompressOutput = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$NoProgress = $false
+    [switch]$NoProgress = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$EnableAppVerifier = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -191,6 +197,9 @@ if ($CompressOutput) {
 }
 if ($NoProgress) {
     $TestArguments += " -NoProgress"
+}
+if ($EnableAppVerifier) {
+    $TestArguments += " -EnableAppVerifier"
 }
 
 # Run the script.
