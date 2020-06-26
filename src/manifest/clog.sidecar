@@ -2423,6 +2423,11 @@
       "TestHookReplaceAddrSend": {
         "arg2": "arg2",
         "arg3": "arg3"
+      },
+      "miTlsFfiGetHelloSummaryFailed": {
+        "arg1": "arg1",
+        "arg3": "arg3",
+        "arg4": "arg4"
       }
     }
   },
@@ -29545,6 +29550,59 @@
           "windows": "etw_plus"
         }
       }
+    },
+    "miTlsFfiGetHelloSummaryFailed": {
+      "ModuleProperites": {
+        "MANIFESTED_ETW": {
+          "EventID": "635",
+          "ETWManifestFile": "MsQuicEtw.man",
+          "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+          "Level": "win:Informational",
+          "Keywords": "ut:Connection ut:LowVolume"
+        }
+      },
+      "TraceString": "[conn][%p] FFI_mitls_get_hello_summary failed, cookie_len: %zu, ticket_len: %zu",
+      "UniqueId": "miTlsFfiGetHelloSummaryFailed",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                            TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                            CookieLen",
+            "UserSuppliedTrimmed": "CookieLen",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "zu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                            TicketLen",
+            "UserSuppliedTrimmed": "TicketLen",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "zu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnError",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "empty",
+          "windows_kernel": "etw_only",
+          "windows": "etw_plus"
+        }
+      }
     }
   },
   "Version": 1,
@@ -29581,14 +29639,6 @@
       "etw_plus": {
         "Modules": [
           {
-            "ExportModule": "TRACELOGGING",
-            "CustomSettings": {
-              "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
-              "Keyword": "0x0000000080000000",
-              "Level": "0x4"
-            }
-          },
-          {
             "ExportModule": "MANIFESTED_ETW",
             "CustomSettings": {
               "ETWManifestFile": "MsQuicEtw.man",
@@ -29596,10 +29646,6 @@
               "Level": "win:Informational",
               "Keywords": "ut:Connection ut:LowVolume"
             }
-          },
-          {
-            "ExportModule": "DTRACE",
-            "CustomSettings": {}
           }
         ]
       }
@@ -31831,20 +31877,8 @@
         "TraceID": "CertCapiFormattedChain"
       },
       {
-        "UniquenessHash": "1e5ceb8a-bfe0-6d2e-4b63-9f7fd9032062",
-        "TraceID": "CertCapiSign"
-      },
-      {
-        "UniquenessHash": "cc0386c7-496e-74be-4e91-321c18c19f54",
-        "TraceID": "CertCapiVerify"
-      },
-      {
         "UniquenessHash": "b3f755ee-8d5e-ee68-77ce-d28d21c60214",
         "TraceID": "CertWaitForCreationEvent"
-      },
-      {
-        "UniquenessHash": "90f98907-182c-68f5-72d4-af6b11df8684",
-        "TraceID": "CertCleanTestCerts"
       },
       {
         "UniquenessHash": "77982893-1b1e-c8f4-2410-5885f9f9debc",
@@ -31879,10 +31913,6 @@
         "TraceID": "miTlsCertValidationDisabled"
       },
       {
-        "UniquenessHash": "bd253ddf-0d46-79c4-b75f-d243d5f80c91",
-        "TraceID": "miTlsCertSelected"
-      },
-      {
         "UniquenessHash": "0eb36a7a-47b3-271a-054b-94a5ebf6c257",
         "TraceID": "miTlsUsing0Rtt"
       },
@@ -31901,10 +31931,6 @@
       {
         "UniquenessHash": "cbc269aa-13ca-8f88-d61e-db9403a335de",
         "TraceID": "miTlsHandshakeComplete"
-      },
-      {
-        "UniquenessHash": "c7ca4dd6-c60b-13f5-c06e-2c44e5bf6163",
-        "TraceID": "miTlsSend0RttTicket"
       },
       {
         "UniquenessHash": "4833606e-5d9c-82d2-86e1-875d57efdaf6",

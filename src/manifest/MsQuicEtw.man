@@ -2342,16 +2342,6 @@
                 name="arg3"
                 />
           </template>
-          <template tid="template_ui32_ui32_">
-            <data
-                inType="win:UInt32"
-                name="arg2"
-                />
-            <data
-                inType="win:UInt32"
-                name="arg3"
-                />
-          </template>
           <template tid="template_ptr_ptr_ui8_binary_">
             <data
                 inType="win:Pointer"
@@ -3300,12 +3290,6 @@
                 name="arg4"
                 />
           </template>
-          <template tid="template_i32_">
-            <data
-                inType="win:Int32"
-                name="arg2"
-                />
-          </template>
           <template tid="template_ptr_ui16_sz_">
             <data
                 inType="win:Pointer"
@@ -3317,20 +3301,6 @@
                 />
             <data
                 inType="win:AnsiString"
-                name="arg4"
-                />
-          </template>
-          <template tid="template_ptr_sz_i32_">
-            <data
-                inType="win:Pointer"
-                name="arg1"
-                />
-            <data
-                inType="win:AnsiString"
-                name="arg3"
-                />
-            <data
-                inType="win:Int32"
                 name="arg4"
                 />
           </template>
@@ -3554,6 +3524,30 @@
             <data
                 inType="win:UInt16"
                 name="arg3"
+                />
+          </template>
+          <template tid="template_i32_i32_">
+            <data
+                inType="win:Int32"
+                name="arg2"
+                />
+            <data
+                inType="win:Int32"
+                name="arg3"
+                />
+          </template>
+          <template tid="template_ptr_sz_ui32_">
+            <data
+                inType="win:Pointer"
+                name="arg1"
+                />
+            <data
+                inType="win:AnsiString"
+                name="arg3"
+                />
+            <data
+                inType="win:UInt32"
+                name="arg4"
                 />
           </template>
         </templates>
@@ -7996,7 +7990,7 @@
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="CertCapiSign"
-              template="template_i32_"
+              template="template_ui32_"
               value="483"
               />
           <event
@@ -8017,7 +8011,7 @@
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="CertCleanTestCerts"
-              template="template_ui32_ui32_"
+              template="template_i32_i32_"
               value="486"
               />
           <event
@@ -8080,7 +8074,7 @@
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="miTlsCertSelected"
-              template="template_ptr_sz_i32_"
+              template="template_ptr_sz_ui32_"
               value="495"
               />
           <event
@@ -9055,6 +9049,13 @@
               symbol="TestHookReplaceAddrSend"
               template="template_ui16_ui16_"
               value="634"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              symbol="miTlsFfiGetHelloSummaryFailed"
+              template="template_ptr_ui64_ui64_"
+              value="635"
               />
         </events>
       </provider>
