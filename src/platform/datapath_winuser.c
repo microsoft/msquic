@@ -63,10 +63,9 @@ QuicFuzzerRecvMsg(
 #define MAX_URO_PAYLOAD_LENGTH              (UINT16_MAX - QUIC_UDP_HEADER_SIZE)
 
 //
-// 60K is the largest buffer most NICs can offload without any software
-// segmentation. Current generation NICs advertise (60K < limit <= 64K).
+// The maximum single buffer size for sending coalesced payloads.
 //
-#define QUIC_LARGE_SEND_BUFFER_SIZE         0xF000
+#define QUIC_LARGE_SEND_BUFFER_SIZE         0xFFFF
 
 //
 // The maximum number of UDP datagrams to preallocate for URO.
