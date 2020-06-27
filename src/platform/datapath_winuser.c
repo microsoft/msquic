@@ -2211,7 +2211,8 @@ QuicSendContextCanAllocSend(
 static
 void
 QuicSendContextFinalizeSendBuffer(
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ BOOLEAN IsSendingImmediately
     )
 {
     if (SendContext->ClientBuffer.len == 0) {
@@ -2244,6 +2245,8 @@ QuicSendContextFinalizeSendBuffer(
         //
         // The next segment allocation must create a new backing buffer.
         //
+        QUIC_DBG_ASSERT(IsSendingImmediately); // Future: Refactor so it's impossible to hit this.
+        UNREFERENCED_PARAMETER(IsSendingImmediately);
         SendContext->ClientBuffer.buf = NULL;
         SendContext->ClientBuffer.len = 0;
     }
@@ -2337,7 +2340,7 @@ QuicDataPathBindingAllocSendDatagram(
     QUIC_DBG_ASSERT(MaxBufferLength > 0);
     QUIC_DBG_ASSERT(MaxBufferLength <= QUIC_MAX_MTU - QUIC_MIN_IPV4_HEADER_SIZE - QUIC_UDP_HEADER_SIZE);
 
-    QuicSendContextFinalizeSendBuffer(SendContext);
+    QuicSendContextFinalizeSendBuffer(SendContext, FALSE);
 
     if (!QuicSendContextCanAllocSend(SendContext, MaxBufferLength)) {
         return NULL;
@@ -2434,7 +2437,7 @@ QuicDataPathBindingSendTo(
         goto Exit;
     }
 
-    QuicSendContextFinalizeSendBuffer(SendContext);
+    QuicSendContextFinalizeSendBuffer(SendContext, TRUE);
 
     Datapath = Binding->Datapath;
     SocketContext = &Binding->SocketContexts[Binding->Connected ? 0 : GetCurrentProcessorNumber()];
@@ -2550,7 +2553,7 @@ QuicDataPathBindingSendFromTo(
         goto Exit;
     }
 
-    QuicSendContextFinalizeSendBuffer(SendContext);
+    QuicSendContextFinalizeSendBuffer(SendContext, TRUE);
 
     Datapath = Binding->Datapath;
     SocketContext = &Binding->SocketContexts[Binding->Connected ? 0 : GetCurrentProcessorNumber()];
