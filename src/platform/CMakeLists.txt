@@ -12,7 +12,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 else()
     if(QUIC_PLATFORM STREQUAL "linux")
         set(SOURCES
-            datapath_linux.c
+            datapath_epoll.c
             hashtable.c
             inline.c
             platform_linux.c
@@ -21,7 +21,7 @@ else()
         )
     else()
         set(SOURCES
-            datapath_darwin.c
+            datapath_kqueue.c
             hashtable.c
             inline.c
             platform_darwin.c

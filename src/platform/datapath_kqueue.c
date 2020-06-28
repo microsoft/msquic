@@ -130,18 +130,6 @@ typedef struct QUIC_SOCKET_CONTEXT {
     int SocketFd;
 
     //
-    // The cleanup event FD used by this socket context.
-    //
-    int CleanupFd;
-
-    //
-    // Used to register different event FD with epoll.
-    //
-#define QUIC_SOCK_EVENT_CLEANUP 0
-#define QUIC_SOCK_EVENT_SOCKET  1
-    uint8_t EventContexts[2];
-
-    //
     // Indicates if sends are waiting for the socket to be write ready.
     //
     BOOLEAN SendWaiting;
@@ -825,7 +813,7 @@ QuicDataPathResolveAddress(
     //
     // Prepopulate hint with input family. It might be unspecified.
     //
-    Hints.ai_family = AF_INET;
+    Hints.ai_family = AF_UNSPEC;
 
     //
     // Try numeric name first.
@@ -1266,6 +1254,7 @@ QuicDataPathBindingCreate(
             QuicSocketContextStartReceive(
                 &Binding->SocketContexts[i],
                 Datapath->ProcContexts[i].KqueueFd);
+
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
