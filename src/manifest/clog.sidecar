@@ -2140,7 +2140,7 @@
         "arg3": "arg3"
       },
       "OpenSslHandshakeError": {
-        "arg1": "arg2",
+        "arg1": "arg1",
         "arg3": "arg3"
       },
       "OpenSslAlpnNegotiationFailure": {
@@ -32035,10 +32035,6 @@
       {
         "UniquenessHash": "04956959-ecb5-9bea-dd79-ca22765f2c95",
         "TraceID": "OpenSslHandshakeErrorStr"
-      },
-      {
-        "UniquenessHash": "d5a3b3bf-8a7b-f1f7-3078-5cfe5fd8c25e",
-        "TraceID": "OpenSslHandshakeError"
       },
       {
         "UniquenessHash": "c279cde0-f02f-b00b-6d26-e4b9b7a7f136",
