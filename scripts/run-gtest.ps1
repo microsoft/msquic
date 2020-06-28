@@ -47,6 +47,9 @@ as necessary.
 .PARAMETER NoProgress
     Disables the progress bar.
 
+.Parameter EnableAppVerifier
+    Enables all basic Application Verifier checks on the test binary.
+
 #>
 
 param (
@@ -93,7 +96,10 @@ param (
     [switch]$CompressOutput = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$NoProgress = $false
+    [switch]$NoProgress = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$EnableAppVerifier = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -479,6 +485,16 @@ if ($IsWindows -and !(Test-Path $WerDumpRegPath)) {
     New-Item -Path $WerDumpRegPath -Force | Out-Null
 }
 
+if ($IsWindows -and $EnableAppVerifier) {
+    where.exe appverif.exe
+    if ($LastExitCode -eq 0) {
+        appverif.exe /verify $Path
+    } else {
+        Write-Warning "Application Verifier not installed!"
+        $EnableAppVerifier = $false;
+    }
+}
+
 try {
     if ($IsolationMode -eq "Batch") {
         # Batch/Parallel is an unsupported combination.
@@ -531,6 +547,10 @@ try {
     if ($isWindows) {
         # Cleanup the WER registry.
         Remove-Item -Path $WerDumpRegPath -Force | Out-Null
+        # Turn off App Verifier
+        if ($EnableAppVerifier) {
+            appverif.exe -disable * -for $Path
+        }
     }
 
     if ($IsolationMode -eq "Batch") {

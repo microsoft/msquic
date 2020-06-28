@@ -541,6 +541,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),
     sizeof(INT32),
     sizeof(INT32),
+    sizeof(INT32),
     sizeof(INT32)
 };
 
@@ -937,6 +938,13 @@ QuicTestCtlEvtIoDeviceControl(
         QUIC_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestChangeMaxStreamID(
+                Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_PATH_VALIDATION_TIMEOUT:
+        QUIC_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestPathValidationTimeout(
                 Params->Family));
         break;
 

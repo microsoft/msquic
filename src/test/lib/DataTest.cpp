@@ -761,9 +761,8 @@ QuicAbortiveConnectionHandler(
                     TestContext->TestResult = Status;
                 }
                 QuicEventSet(TestContext->TestEvent.Handle);
-            } else {
-                TestContext->Stream.Handle = Event->PEER_STREAM_STARTED.Stream;
             }
+            TestContext->Stream.Handle = Event->PEER_STREAM_STARTED.Stream;
             QuicEventSet(TestContext->StreamEvent.Handle);
             return QUIC_STATUS_SUCCESS;
         case QUIC_CONNECTION_EVENT_CONNECTED:
@@ -867,7 +866,7 @@ QuicAbortiveTransfers(
     }
 
     {
-        AbortiveTestContext ServerContext(true, Flags, ExpectedError, ShutdownFlags), ClientContext(false, Flags, ExpectedError, ShutdownFlags);
+        AbortiveTestContext ClientContext(false, Flags, ExpectedError, ShutdownFlags), ServerContext(true, Flags, ExpectedError, ShutdownFlags);
 
         ListenerScope Listener;
         QUIC_STATUS Status =
