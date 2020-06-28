@@ -105,6 +105,17 @@ if ($IsWindows) {
     $QuicPing = "quicping"
 }
 
+# QuicPing arguments
+$ServerArgs = "-listen:* -port:4433 -selfsign:1 -peer_uni:1"
+$ClientArgs = "-target:localhost -port:4433 -uni:1 -length:$Length"
+if ($DisableEncryption) {
+    $ClientArgs += " -encrypt:0"
+}
+if ($IsWindows) {
+    # Always use the same local address and core to provide more consistent results.
+    $ClientArgs += " -bind:127.0.0.1:4434 -ip:4 -core:0"
+}
+
 # Base output path.
 $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$Platform"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
@@ -255,14 +266,14 @@ function Run-Loopback-Test() {
     }
 
     # Start the server.
-    $proc = Start-Background-Executable -File (Join-Path $ServerDir $QuicPing) -Arguments "-listen:* -port:4433 -selfsign:1 -peer_uni:1"
+    $proc = Start-Background-Executable -File (Join-Path $ServerDir $QuicPing) -Arguments $ServerArgs
     Start-Sleep 4
 
     $allRunsResults = @()
     $serverOutput = $null
     try {
         1..$Runs | ForEach-Object {
-            $clientOutput = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments "-target:localhost -port:4433 -core:0 -uni:1 -length:$Length -encrypt:$($DisableEncryption ? 0 : 1)"
+            $clientOutput = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments $ClientArgs
             $parsedRunResult = Parse-Loopback-Results -Results $clientOutput
             $allRunsResults += $parsedRunResult
             if ($PGO) {
