@@ -761,7 +761,9 @@ main(int argc, char **argv)
             Settings.Ports = std::vector<uint16_t>({dstPort});
         }
         TryGetValue(argc, argv, "target", &Settings.ServerName);
-        TryGetValue(argc, argv, "alpn", &Settings.AlpnPrefix);
+        if (TryGetValue(argc, argv, "alpn", &Settings.AlpnPrefix)) {
+            SessionCount = 1; // Default session count to 1 if ALPN explicitly specified.
+        }
         TryGetValue(argc, argv, "sessions", &SessionCount);
     }
 
@@ -774,8 +776,7 @@ main(int argc, char **argv)
     Settings.RunTimeMs = Settings.RunTimeMs / RepeatCount;
 
     for (uint32_t i = 0; i < RepeatCount; i++) {
-         
-        
+
         for (size_t i = 0; i < BufferCount; ++i) {
             Buffers[i].Length = MaxBufferSizes[i]; // TODO - Randomize?
             Buffers[i].Buffer = (uint8_t*)malloc(Buffers[i].Length);
@@ -800,15 +801,10 @@ main(int argc, char **argv)
         const QUIC_REGISTRATION_CONFIG RegConfig = { "spinquic", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
         EXIT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
 
-        QUIC_BUFFER AlpnBuffer;
-        AlpnBuffer.Length = (uint32_t)strlen(Settings.AlpnPrefix) + 1; // You can't have more than 2^8 SessionCount. :)
-        AlpnBuffer.Buffer = (uint8_t*)malloc(AlpnBuffer.Length);
-        EXIT_ON_NOT(AlpnBuffer.Buffer);
-        memcpy(AlpnBuffer.Buffer, Settings.AlpnPrefix, AlpnBuffer.Length);
-
-        for (uint32_t i = 0; i < SessionCount; i++) {
-
-            AlpnBuffer.Buffer[AlpnBuffer.Length-1] = (uint8_t)i;
+        if (SessionCount == 1) {
+            QUIC_BUFFER AlpnBuffer;
+            AlpnBuffer.Length = (uint32_t)strlen(Settings.AlpnPrefix);
+            AlpnBuffer.Buffer = (uint8_t*)Settings.AlpnPrefix;
 
             HQUIC Session;
             EXIT_ON_FAILURE(MsQuic->SessionOpen(Registration, &AlpnBuffer, 1, nullptr, &Session));
@@ -818,9 +814,30 @@ main(int argc, char **argv)
             auto PeerStreamCount = GetRandom((uint16_t)10);
             EXIT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
             EXIT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
-        }
 
-        free(AlpnBuffer.Buffer);
+        } else {
+            QUIC_BUFFER AlpnBuffer;
+            AlpnBuffer.Length = (uint32_t)strlen(Settings.AlpnPrefix) + 1; // You can't have more than 2^8 SessionCount. :)
+            AlpnBuffer.Buffer = (uint8_t*)malloc(AlpnBuffer.Length);
+            EXIT_ON_NOT(AlpnBuffer.Buffer);
+            memcpy(AlpnBuffer.Buffer, Settings.AlpnPrefix, AlpnBuffer.Length);
+
+            for (uint32_t i = 0; i < SessionCount; i++) {
+
+                AlpnBuffer.Buffer[AlpnBuffer.Length-1] = (uint8_t)i;
+
+                HQUIC Session;
+                EXIT_ON_FAILURE(MsQuic->SessionOpen(Registration, &AlpnBuffer, 1, nullptr, &Session));
+                Sessions.push_back(Session);
+
+                // Configure Session
+                auto PeerStreamCount = GetRandom((uint16_t)10);
+                EXIT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
+                EXIT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
+            }
+
+            free(AlpnBuffer.Buffer);
+        }
 
         QUIC_THREAD Threads[2];
         QUIC_THREAD_CONFIG Config = { 0 };
