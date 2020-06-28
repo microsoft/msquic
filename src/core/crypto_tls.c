@@ -59,8 +59,9 @@ typedef enum eSniNameType {
 // Extensions
 //
 #define QUIC_TP_ID_MAX_DATAGRAM_FRAME_SIZE                  32  // varint
+#define QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION                  33  // N/A
 
-#define QUIC_TP_ID_MAX QUIC_TP_ID_MAX_DATAGRAM_FRAME_SIZE
+#define QUIC_TP_ID_MAX QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION
 
 QUIC_STATIC_ASSERT(QUIC_TP_ID_MAX < 64, "Only have 64 bits for duplicate detection");
 
@@ -751,6 +752,12 @@ QuicCryptoTlsEncodeTransportParameters(
                 QUIC_TP_ID_MAX_DATAGRAM_FRAME_SIZE,
                 QuicVarIntSize(TransportParams->MaxDatagramFrameSize));
     }
+    if (TransportParams->Flags & QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION) {
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION,
+                0);
+    }
     if (Connection->State.TestTransportParameterSet) {
         RequiredTPLen +=
             TlsTransportParamLength(
@@ -1001,6 +1008,18 @@ QuicCryptoTlsEncodeTransportParameters(
             Connection,
             "TP: Max Datagram Frame Size (%llu bytes)",
             TransportParams->MaxDatagramFrameSize);
+    }
+    if (TransportParams->Flags & QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION) {
+        TPBuf =
+            TlsWriteTransportParam(
+                QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION,
+                0,
+                NULL,
+                TPBuf);
+        QuicTraceLogConnVerbose(
+            EncodeTPDisable1RttEncryption,
+            Connection,
+            "TP: Disable 1-RTT Encryption");
     }
     if (Connection->State.TestTransportParameterSet) {
         TPBuf =
@@ -1547,6 +1566,23 @@ QuicCryptoTlsDecodeTransportParameters(
                 Connection,
                 "TP: Max Datagram Frame Size (%llu bytes)",
                 TransportParams->MaxDatagramFrameSize);
+            break;
+
+        case QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION:
+            if (Length != 0) {
+                QuicTraceEvent(
+                    ConnErrorStatus,
+                    "[conn][%p] ERROR, %u, %s.",
+                    Connection,
+                    Length,
+                    "Invalid length of QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION");
+                goto Exit;
+            }
+            TransportParams->Flags |= QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION;
+            QuicTraceLogConnVerbose(
+                DecodeTPDisable1RttEncryption,
+                Connection,
+                "TP: Disable 1-RTT Encryption");
             break;
 
         default:

@@ -114,6 +114,11 @@ typedef struct QUIC_RECV_PACKET {
     BOOLEAN PacketNumberSet : 1;
 
     //
+    // Flag indicating the packet is encrypted.
+    //
+    BOOLEAN Encrypted : 1;
+
+    //
     // Flag indicating 0-RTT encryption.
     //
     BOOLEAN EncryptedWith0Rtt : 1;

@@ -49,6 +49,8 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN HeaderProtectionEnabled : 1;
 
+        BOOLEAN Disable1RttEncrytion : 1;
+
         //
         // Indicates whether the current 'owner' of the connection is internal
         // or external. Client connections are always externally owned. Server

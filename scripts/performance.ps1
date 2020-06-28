@@ -18,6 +18,9 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Length
     The length of the data to transfer for each run.
 
+.PARAMETER DisableEncryption
+    Determines if encryption is used post-handshake.
+
 .PARAMETER Publish
     Publishes the results to the artifacts directory.
 
@@ -47,6 +50,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [Int64]$Length = 2000000000, # 2 GB
+
+    [Parameter(Mandatory = $false)]
+    [switch]$DisableEncryption = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$Publish = $false,
@@ -256,7 +262,7 @@ function Run-Loopback-Test() {
     $serverOutput = $null
     try {
         1..$Runs | ForEach-Object {
-            $clientOutput = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments "-target:localhost -port:4433 -core:0 -uni:1 -length:$Length"
+            $clientOutput = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments "-target:localhost -port:4433 -core:0 -uni:1 -length:$Length -encrypt:$($DisableEncryption ? 0 : 1)"
             $parsedRunResult = Parse-Loopback-Results -Results $clientOutput
             $allRunsResults += $parsedRunResult
             if ($PGO) {

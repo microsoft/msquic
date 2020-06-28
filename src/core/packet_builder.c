@@ -274,6 +274,10 @@ QuicPacketBuilderPrepare(
         QUIC_DBG_ASSERT(Builder->Key != NULL);
         QUIC_DBG_ASSERT(Builder->Key->PacketKey != NULL);
         QUIC_DBG_ASSERT(Builder->Key->HeaderKey != NULL);
+        if (NewPacketKeyType == QUIC_PACKET_KEY_1_RTT &&
+            Connection->State.Disable1RttEncrytion) {
+            Builder->EncryptionOverhead = 0;
+        }
 
         Builder->Metadata->FrameCount = 0;
         Builder->Metadata->PacketNumber = Connection->Send.NextPacketNumber++;
@@ -693,7 +697,7 @@ QuicPacketBuilderFinalize(
             Builder->HeaderLength);
     }
 
-    if (Connection->State.EncryptionEnabled) {
+    if (Builder->EncryptionOverhead != 0) {
 
         //
         // Encrypt the data.
