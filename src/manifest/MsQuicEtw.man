@@ -3590,6 +3590,20 @@
                 name="arg3"
                 />
           </template>
+          <template tid="template_sz_sz_i32_">
+            <data
+                inType="win:AnsiString"
+                name="arg2"
+                />
+            <data
+                inType="win:AnsiString"
+                name="arg3"
+                />
+            <data
+                inType="win:Int32"
+                name="arg4"
+                />
+          </template>
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
@@ -8338,14 +8352,14 @@
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="DatapathSendToCompleted"
-              template="template_ptr_ui32_"
+              template="template_ptr_i32_"
               value="527"
               />
           <event
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="DatapathSendMsgCompleted"
-              template="template_ptr_ui32_"
+              template="template_ptr_i32_"
               value="528"
               />
           <event
@@ -8786,7 +8800,7 @@
               keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               symbol="TestDriverFailureLocation"
-              template="template_sz_sz_ui32_"
+              template="template_sz_sz_i32_"
               value="591"
               />
           <event

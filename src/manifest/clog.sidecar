@@ -32277,10 +32277,6 @@
         "TraceID": "TestControlUninitialized"
       },
       {
-        "UniquenessHash": "25a2be79-a0d4-55dd-10e4-182af56ad903",
-        "TraceID": "TestDriverFailureLocation"
-      },
-      {
         "UniquenessHash": "eceb97df-f1b3-f467-bbe8-bab1c1659e78",
         "TraceID": "TestDriverFailure"
       },
