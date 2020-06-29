@@ -5,9 +5,9 @@ set(SOURCES
     post.cpp
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
-
 add_executable(quicpost ${SOURCES})
+
+target_compile_options(quicpost PRIVATE ${QUIC_CXX_FLAGS})
 
 set_property(TARGET quicpost PROPERTY FOLDER "tools")
 

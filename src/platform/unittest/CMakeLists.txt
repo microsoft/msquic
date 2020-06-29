@@ -4,8 +4,6 @@
 include_directories(${PROJECT_SOURCE_DIR}/src/platform)
 include_directories(${PROJECT_SOURCE_DIR}/submodules/googletest/googletest/include)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
-
 set(SOURCES
     main.cpp
     CryptTest.cpp
@@ -15,6 +13,8 @@ set(SOURCES
 )
 
 add_executable(msquicplatformtest ${SOURCES})
+
+target_compile_options(msquicplatformtest PRIVATE ${QUIC_CXX_FLAGS})
 
 set_property(TARGET msquicplatformtest PROPERTY FOLDER "tests")
 

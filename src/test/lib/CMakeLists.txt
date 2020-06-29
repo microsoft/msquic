@@ -17,8 +17,6 @@ set(SOURCES
 
 include_directories(${PROJECT_SOURCE_DIR}/src/test)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
-
 add_library(testlib ${SOURCES})
 
 set_property(TARGET testlib PROPERTY FOLDER "tests")
@@ -28,6 +26,8 @@ target_compile_options(testlib PRIVATE
         ${CLANG_GCC_WARNING_FLAGS}>
      $<$<CXX_COMPILER_ID:MSVC>:
         ${MSVC_WARNING_FLAGS}>)
+
+target_compile_options(testlib PRIVATE ${QUIC_CXX_FLAGS})
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_dependencies(platform MsQuicEtw)

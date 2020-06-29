@@ -5,9 +5,9 @@ set(SOURCES
     InteropServer.cpp
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
-
 add_executable(quicinteropserver ${SOURCES})
+
+target_compile_options(quicinteropserver PRIVATE ${QUIC_CXX_FLAGS})
 
 set_property(TARGET quicinteropserver PROPERTY FOLDER "tools")
 

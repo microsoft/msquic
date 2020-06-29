@@ -1,9 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
-
 add_executable(quicinterop interop.cpp)
+
+target_compile_options(quicinterop PRIVATE ${QUIC_CXX_FLAGS})
 
 set_property(TARGET quicinterop PROPERTY FOLDER "tools")
 

@@ -1,9 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
-
 add_executable(spinquic spinquic.cpp)
+
+target_compile_options(spinquic PRIVATE ${QUIC_CXX_FLAGS})
 
 target_link_libraries(spinquic msquic platform)
 

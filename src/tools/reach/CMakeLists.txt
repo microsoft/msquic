@@ -1,9 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
-
 add_executable(quicreach reach.cpp)
+
+target_compile_options(quicreach PRIVATE ${QUIC_CXX_FLAGS})
 
 set_property(TARGET quicreach PROPERTY FOLDER "tools")
 

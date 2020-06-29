@@ -9,9 +9,9 @@ set(SOURCES
     Server.cpp
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
-
 add_executable(quicping ${SOURCES})
+
+target_compile_options(quicping PRIVATE ${QUIC_CXX_FLAGS})
 
 set_property(TARGET quicping PROPERTY FOLDER "tools")
 

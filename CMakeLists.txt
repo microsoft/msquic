@@ -211,7 +211,7 @@ else()
 
     set(QUIC_COMMON_FLAGS "-fms-extensions -fPIC -pthread")
     if (QUIC_PLATFORM STREQUAL "darwin")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_PLATFORM_DARWIN -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_PLATFORM_DARWIN -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wno-missing-braces")
     else()
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_PLATFORM_LINUX -Wl,--no-as-needed -ldl")
     endif()
@@ -244,9 +244,14 @@ else()
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_TLS_STUB")
     endif()
 
-    set(QUIC_C_FLAGS "${QUIC_COMMON_FLAGS}")
+    # target_compile_options requires a ';' separated list.
+    set(QUIC_C_FLAGS "${QUIC_COMMON_FLAGS}")    
     set(QUIC_CXX_FLAGS "${QUIC_COMMON_FLAGS} -std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format")
 endif()
+
+# target_compile_options requires a ';' separated list.
+string(REPLACE " " ";" QUIC_C_FLAGS ${QUIC_C_FLAGS})
+string(REPLACE " " ";" QUIC_CXX_FLAGS ${QUIC_CXX_FLAGS})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 
