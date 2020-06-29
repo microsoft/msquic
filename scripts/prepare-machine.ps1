@@ -46,8 +46,7 @@ if ($IsWindows) {
 
 } else {
     switch ($Configuration) {
-        git submodule update --init --recursive
-        
+
         "Build" {
             sudo apt-add-repository ppa:lttng/stable-2.10
             sudo apt-get update
