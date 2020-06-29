@@ -128,6 +128,9 @@ $WpaStackWalkProfileXml = `
     </SystemCollector>
     <SystemProvider Id="SP_CPU">
       <Keywords>
+        <Keyword Value="CpuConfig"/>
+        <Keyword Value="Loader"/>
+        <Keyword Value="ProcessThread"/>
         <Keyword Value="SampledProfile"/>
       </Keywords>
       <Stacks>
