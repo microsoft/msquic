@@ -101,10 +101,6 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-$env:PATH+=":$HOME/.dotnet"
-$env:PATH+=":$HOME/.dotnet/tools"
-$env:DOTNET_ROOT="$HOME/.dotnet/"
-
 
 # Default TLS based on current platform.
 if ("" -eq $Tls) {
@@ -275,6 +271,12 @@ function CMake-Build {
 ##############################################################
 #                     Main Execution                         #
 ##############################################################
+
+if(!$IsWindows) {    
+    $env:PATH+=":$HOME/.dotnet"
+    $env:PATH+=":$HOME/.dotnet/tools"
+    $env:DOTNET_ROOT="$HOME/.dotnet/"
+}
 
 # Generate the build files.
 Log "Generating files..."
