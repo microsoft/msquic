@@ -181,7 +181,6 @@ function CMake-Generate {
         }
     } elseif ($IsLinux) {
         $Arguments += " 'Linux Makefiles'"
-    }
     } elseif ($IsMacOS) {
         $Arguments += " 'Unix Makefiles'"
     }
