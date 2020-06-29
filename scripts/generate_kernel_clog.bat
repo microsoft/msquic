@@ -31,7 +31,7 @@ for %%i in (*.c* *.c operation.h stream.h connection.h TestHelpers.h) do (
     echo CLOG Processing %%i
     if EXIST %%i (
         if NOT EXIST %CMAKE_CLOG_OUTPUT_DIRECTORY%\%%i.clog.h (
-            %CMAKE_CLOG_BINS_DIRECTORY%\clog.exe --developerMode -p windows_kernel --scopePrefix %SCOPE_PREFIX% -c %CMAKE_CLOG_CONFIG_FILE% -s %CMAKE_CLOG_SIDECAR_DIRECTORY%\clog.sidecar -i %%i -o %CMAKE_CLOG_OUTPUT_DIRECTORY%\%%i.clog.h
+            %CMAKE_CLOG_BINS_DIRECTORY%\clog.exe -p windows_kernel --scopePrefix %SCOPE_PREFIX% -c %CMAKE_CLOG_CONFIG_FILE% -s %CMAKE_CLOG_SIDECAR_DIRECTORY%\clog.sidecar -i %%i -o %CMAKE_CLOG_OUTPUT_DIRECTORY%\%%i.clog.h
             echo %%i
         )
     )
