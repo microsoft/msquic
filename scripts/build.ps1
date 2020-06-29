@@ -101,6 +101,11 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+$env:PATH+=":$HOME/.dotnet"
+$env:PATH+=":$HOME/.dotnet/tools"
+$env:DOTNET_ROOT="$HOME/.dotnet/"
+
+
 # Default TLS based on current platform.
 if ("" -eq $Tls) {
     if ($IsWindows) {
