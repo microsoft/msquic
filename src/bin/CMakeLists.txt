@@ -34,7 +34,7 @@ elseif (QUIC_PLATFORM STREQUAL "linux")
         PROPERTIES LINK_FLAGS "-Wl,--version-script=\"${CMAKE_CURRENT_SOURCE_DIR}/linux/exports.txt\"")
 elseif (QUIC_PLATFORM STREQUAL "darwin")
     SET_TARGET_PROPERTIES(msquic
-        PROPERTIES LINK_FLAGS "-exported_symbols_list \"${CMAKE_CURRENT_SOURCE_DIR}/linux/exports.txt\"")
+        PROPERTIES LINK_FLAGS "-exported_symbols_list \"${CMAKE_CURRENT_SOURCE_DIR}/darwin/exports.txt\"")
 endif()
 
 target_include_directories(msquic PUBLIC
