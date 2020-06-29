@@ -50,13 +50,13 @@ if ($IsWindows) {
         "Build" {
             sudo apt-add-repository ppa:lttng/stable-2.10
             sudo apt-get update
-            sudo apt-get install liblttng-ust-dev
-            sudo apt-get install systemtap-sdt-dev
+            sudo apt-get install -y liblttng-ust-dev
+            sudo apt-get install -y systemtap-sdt-dev
         }
         "Test" {
             sudo apt-add-repository ppa:lttng/stable-2.10
             sudo apt-get update
-            sudo apt-get install lttng-tools
+            sudo apt-get install -y lttng-tools
 
             # Enable core dumps for the system.
             Write-Host "[$(Get-Date)] Setting core dump size limit..."
@@ -74,11 +74,11 @@ if ($IsWindows) {
         "Dev" {
             sudo apt-add-repository ppa:lttng/stable-2.10
             sudo apt-get update
-            sudo apt-get install cmake
-            sudo apt-get install build-essentials
-            sudo apt-get install liblttng-ust-dev
-            sudo apt-get install lttng-tools
-            sudo apt-get install systemtap-sdt-dev
+            sudo apt-get install -y cmake
+            sudo apt-get install -y build-essentials
+            sudo apt-get install -y liblttng-ust-dev
+            sudo apt-get install -y lttng-tools
+            sudo apt-get install -y systemtap-sdt-dev
         }
     }
 }
