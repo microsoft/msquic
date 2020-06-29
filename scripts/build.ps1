@@ -113,7 +113,7 @@ if ("" -eq $Tls) {
 if ("" -eq $Platform) {
     if ($IsWindows) {
         $Platform = "windows"
-    } elseif ($IsLinx) {
+    } elseif ($IsLinux) {
         $Platform = "linux"
     } elseif ($IsMacOS) {
         $Platform = "macos"
