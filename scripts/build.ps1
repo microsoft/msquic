@@ -278,7 +278,7 @@ if(!$IsWindows) {
     $env:DOTNET_ROOT="$HOME/.dotnet/"
     Log "Set Linux env variables to include dotnet"
 } else {
-    Log "On Windows; dotnet assumed to be in the path"
+    Log "On Windows; dotnet assumed to be in the path"                
 }
 
 # Generate the build files.
