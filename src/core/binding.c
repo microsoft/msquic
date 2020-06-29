@@ -1270,7 +1270,6 @@ QuicBindingDeliverDatagrams(
     //
 
 
-    if (Packet->DestCidLen > 0) __asm__("int3");
     QUIC_CONNECTION* Connection;
     if (!Binding->ServerOwned || Packet->IsShortHeader) {
         Connection =

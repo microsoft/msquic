@@ -173,7 +173,6 @@ QuicConnGetPathForDatagram(
                 //
                 // Ignore packets on any other paths until connected/confirmed.
                 //
-                __asm__("int3");
                 return NULL;
             }
             continue;
