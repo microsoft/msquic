@@ -558,7 +558,7 @@ QuicProcCurrentNumber(
 #if defined(QUIC_PLATFORM_LINUX)
     return (uint32_t)sched_getcpu();
 #elif defined(QUIC_PLATFORM_DARWIN)
-    int cpuinfo[4];   
+    int cpuinfo[4];
     asm("cpuid"
             : "=a" (cpuinfo[0]),
             "=b" (cpuinfo[1]),
@@ -615,7 +615,7 @@ QuicConvertFromMappedV6(
     QUIC_DBG_ASSERT(InAddr->Ip.sa_family == AF_INET6);
 
     if (IN6_IS_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr)) {
-        QUIC_ADDR TmpAddrS = { };
+        QUIC_ADDR TmpAddrS = {0};
         QUIC_ADDR* TmpAddr = &TmpAddrS;
 
         TmpAddr->Ipv4.sin_family = AF_INET;
@@ -657,7 +657,7 @@ QuicThreadCreate(
         return errno;
     }
 
-#ifdef __GLIBC__ 
+#ifdef __GLIBC__
     if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
         QUIC_TEL_ASSERT(Config->IdealProcessor < 64);
         // There is no way to set an ideal processor in Linux, so just set affinity

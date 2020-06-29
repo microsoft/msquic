@@ -345,7 +345,7 @@ public:
                 nullptr));
     }
     bool SimulateNatRebinding() {
-        QUIC_ADDR LocalAddress = {}; // Unspecified
+        QUIC_ADDR LocalAddress = {0}; // Unspecified
         uint32_t LocalAddrSize = sizeof(LocalAddress);
         if (!QUIC_SUCCEEDED(
             MsQuic->GetParam(
