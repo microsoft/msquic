@@ -1,0 +1,2 @@
+_MsQuicOpen
+_MsQuicClose
