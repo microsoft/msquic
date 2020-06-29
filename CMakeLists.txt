@@ -211,7 +211,7 @@ else()
 
     set(QUIC_COMMON_FLAGS "-fms-extensions -fPIC -pthread")
     if (QUIC_PLATFORM STREQUAL "darwin")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_PLATFORM_DARWIN -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wmissing-braces")
+        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_PLATFORM_DARWIN -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wno-missing-braces")
     else()
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_PLATFORM_LINUX -Wl,--no-as-needed -ldl")
     endif()
