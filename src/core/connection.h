@@ -1050,7 +1050,7 @@ QuicConnGetSourceCidFromSeq(
                     ConnSourceCidRemoved,
                     "[conn][%p] (SeqNum=%llu) Removed Source CID: !CID!",
                     Connection,
-                    SourceCid->CID.SequenceNumber
+                    SourceCid->CID.SequenceNumber,
                     SourceCid->CID.Length,
                     SourceCid->CID.Data);
                 *Entry = (*Entry)->Next;
