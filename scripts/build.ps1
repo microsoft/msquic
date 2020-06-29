@@ -277,6 +277,7 @@ if(!$IsWindows) {
     $env:PATH+=":$HOME/.dotnet/tools"
     $env:DOTNET_ROOT="$HOME/.dotnet/"
     Log "Set Linux env variables to include dotnet"
+    ls $env:DOTNET_ROOT
 } else {
     Log "On Windows; dotnet assumed to be in the path"                
 }
