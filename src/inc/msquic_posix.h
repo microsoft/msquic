@@ -369,10 +369,10 @@ QuicAddrIsWildCard(
     if (Addr->Ip.sa_family == AF_UNSPEC) {
         return TRUE;
     } else if (Addr->Ip.sa_family == AF_INET) {
-        const IN_ADDR ZeroAddr = {0};
+        const IN_ADDR ZeroAddr = { };
         return memcmp(&Addr->Ipv4.sin_addr.s_addr, &ZeroAddr, sizeof(IN_ADDR)) == 0;
     } else {
-        const IN6_ADDR ZeroAddr = {0};
+        const IN6_ADDR ZeroAddr = { };
         return memcmp(&Addr->Ipv6.sin6_addr, &ZeroAddr, sizeof(IN6_ADDR)) == 0;
     }
 }
