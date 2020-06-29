@@ -71,15 +71,7 @@ typedef struct QUIC_PLATFORM {
 
 } QUIC_PLATFORM;
 
-#elif QUIC_PLATFORM_LINUX
-
-typedef struct QUIC_PLATFORM {
-
-    void* Reserved; // Nothing right now.
-
-} QUIC_PLATFORM;
-
-#elif QUIC_PLATFORM_DARWIN
+#elif defined(QUIC_PLATFORM_LINUX) || defined(QUIC_PLATFORM_DARWIN)
 
 typedef struct QUIC_PLATFORM {
 

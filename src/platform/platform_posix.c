@@ -9,7 +9,7 @@ Abstract:
 
 Environment:
 
-    Linux
+    Linux and Darwin
 
 --*/
 
@@ -26,7 +26,7 @@ Environment:
 
 #define QUIC_MAX_LOG_MSG_LEN        1024 // Bytes
 
-#ifdef QUIC_PLATFORM_DISPATCH_TABLE
+#if QUIC_PLATFORM_DISPATCH_TABLE
 QUIC_PLATFORM_DISPATCH* PlatDispatch = NULL;
 #else
 int RandomFd; // Used for reading random numbers.
@@ -332,7 +332,9 @@ QuicEventInitialize(
 
     QUIC_FRE_ASSERT(pthread_mutex_init(&EventObj->Mutex, NULL) == 0);
     QUIC_FRE_ASSERT(pthread_condattr_init(&Attr) == 0);
+#if defined(QUIC_PLATFORM_LINUX)
     QUIC_FRE_ASSERT(pthread_condattr_setclock(&Attr, CLOCK_MONOTONIC) == 0);
+#endif // QUIC_PLATFORM_LINUX
     QUIC_FRE_ASSERT(pthread_cond_init(&EventObj->Cond, &Attr) == 0);
     QUIC_FRE_ASSERT(pthread_condattr_destroy(&Attr) == 0);
 
@@ -497,7 +499,11 @@ QuicGetAbsoluteTime(
 
     QuicZeroMemory(Time, sizeof(struct timespec));
 
+#if defined(QUIC_PLATFORM_LINUX)
     ErrorCode = clock_gettime(CLOCK_MONOTONIC, Time);
+#elif defined(QUIC_PLATFORM_DARWIN)
+    timespec_get(Time, TIME_UTC);
+#endif // QUIC_PLATFORM_DARWIN
 
     QUIC_DBG_ASSERT(ErrorCode == 0);
     UNREFERENCED_PARAMETER(ErrorCode);
@@ -549,7 +555,19 @@ QuicProcCurrentNumber(
     void
     )
 {
+#if defined(QUIC_PLATFORM_LINUX)
     return (uint32_t)sched_getcpu();
+#elif defined(QUIC_PLATFORM_DARWIN)
+    int cpuinfo[4];   
+    asm("cpuid"
+            : "=a" (cpuinfo[0]),
+            "=b" (cpuinfo[1]),
+            "=c" (cpuinfo[2]),
+            "=d" (cpuinfo[3])
+            : "a"(1));
+    QUIC_FRE_ASSERT((cpuinfo[3] & (1 << 9)) != 0);
+    return (uint32_t)cpuinfo[1] >> 24;
+#endif // QUIC_PLATFORM_DARWIN
 }
 
 QUIC_STATUS
@@ -597,7 +615,7 @@ QuicConvertFromMappedV6(
     QUIC_DBG_ASSERT(InAddr->Ip.sa_family == AF_INET6);
 
     if (IN6_IS_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr)) {
-        QUIC_ADDR TmpAddrS = {0};
+        QUIC_ADDR TmpAddrS = { };
         QUIC_ADDR* TmpAddr = &TmpAddrS;
 
         TmpAddr->Ipv4.sin_family = AF_INET;
@@ -618,6 +636,8 @@ _strnicmp(
 {
     return strncasecmp(_Str1, _Str2, _MaxCount);
 }
+
+#if defined(QUIC_PLATFORM_LINUX)
 
 QUIC_STATUS
 QuicThreadCreate(
@@ -703,6 +723,55 @@ QuicThreadCreate(
     return Status;
 }
 
+#elif defined(QUIC_PLATFORM_DARWIN)
+
+QUIC_STATUS
+QuicThreadCreate(
+    _In_ QUIC_THREAD_CONFIG* Config,
+    _Out_ QUIC_THREAD* Thread
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    pthread_attr_t Attr;
+    if (pthread_attr_init(&Attr)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            errno,
+            "pthread_attr_init failed");
+        return errno;
+    }
+
+    // XXX: Set processor affinity
+
+    if (Config->Flags & QUIC_THREAD_FLAG_HIGH_PRIORITY) {
+        struct sched_param Params;
+        Params.sched_priority = sched_get_priority_max(SCHED_FIFO);
+        if (!pthread_attr_setschedparam(&Attr, &Params)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                errno,
+                "pthread_attr_setschedparam failed");
+        }
+    }
+
+    if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
+        Status = errno;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "pthread_create failed");
+    }
+
+    pthread_attr_destroy(&Attr);
+
+    return Status;
+}
+
+#endif // QUIC_PLATFORM
+
 void
 QuicThreadDelete(
     _Inout_ QUIC_THREAD* Thread
@@ -725,8 +794,20 @@ QuicCurThreadID(
     void
     )
 {
+
+#if defined(QUIC_PLATFORM_LINUX)
+
     QUIC_STATIC_ASSERT(sizeof(pid_t) <= sizeof(uint32_t), "PID size exceeds the expected size");
     return syscall(__NR_gettid);
+
+#elif defined(QUIC_PLATFORM_DARWIN)
+
+    uint64_t tid;
+    pthread_threadid_np(NULL, &tid);
+    // XXX: check for failure
+    return (uint32_t)tid;
+
+#endif // QUIC_PLATFORM_DARWIN
 }
 
 void

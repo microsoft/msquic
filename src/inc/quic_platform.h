@@ -69,11 +69,9 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 #elif _WIN32
 #define QUIC_PLATFORM_TYPE 2
 #include <quic_platform_winuser.h>
-#elif QUIC_PLATFORM_LINUX
+#elif QUIC_PLATFORM_LINUX || QUIC_PLATFORM_DARWIN
 #define QUIC_PLATFORM_TYPE 3
-#include <quic_platform_linux.h>
-#elif QUIC_PLATFORM_DARWIN
-#include <quic_platform_darwin.h>
+#include <quic_platform_posix.h>
 #else
 #define QUIC_PLATFORM_TYPE 0xFF
 #error "Unsupported Platform"

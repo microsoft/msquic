@@ -9,7 +9,7 @@ Abstract:
 
 Environment:
 
-    Linux
+    Linux and Darwin (Posix)
 
 --*/
 

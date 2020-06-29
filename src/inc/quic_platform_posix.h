@@ -17,8 +17,8 @@ Environment:
 #error "Must be included from quic_platform.h"
 #endif
 
-#ifndef QUIC_PLATFORM_LINUX
-#error "Incorrectly including Linux Platform Header from non-Linux platfrom"
+#if !defined(QUIC_PLATFORM_LINUX) && !defined(QUIC_PLATFORM_DARWIN)
+#error "Incorrectly including Posix Platform Header from unsupported platfrom"
 #endif
 
 #ifndef _PLATFORM_LINUX_
@@ -38,7 +38,7 @@ Environment:
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <msquic_linux.h>
+#include <msquic_posix.h>
 #include <stdbool.h>
 #include <pthread.h>
 #include <errno.h>

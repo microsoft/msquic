@@ -304,13 +304,19 @@ typedef struct QUIC_DATAPATH {
 
 } QUIC_DATAPATH;
 
-QUIC_STATUS QuicSocketContextPrepareReceive( _In_ QUIC_SOCKET_CONTEXT* SocketContext);
+QUIC_STATUS
+QuicSocketContextPrepareReceive(
+    _In_ QUIC_SOCKET_CONTEXT* SocketContext
+    );
+
 QUIC_STATUS
 QuicDataPathBindingSend(
     _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext);
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ BOOLEAN IsServer
+    );
 
 //
 // Gets the corresponding recv datagram from its context pointer.
@@ -449,9 +455,6 @@ QuicSocketContextUninitializeComplete(
     //struct kevent evSet = { };
     //EV_SET(&evSet, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, (void *)SocketContext);
     //kevent(ProcContext->KqueueFd, &evSet, 1, NULL, 0, NULL);
-    //epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
-    //epoll_ctl(ProcContext->EpollFd, EPOLL_CTL_DEL, SocketContext->CleanupFd, NULL);
-    //close(SocketContext->CleanupFd);
     close(SocketContext->SocketFd);
 
     QuicRundownRelease(&SocketContext->Binding->Rundown);
@@ -481,7 +484,8 @@ void QuicSocketContextSendPending(
                 SocketContext->Binding,
                 SendContext->Bind ? &SendContext->LocalAddress : NULL,
                 &SendContext->RemoteAddress,
-                SendContext);
+                SendContext,
+                !SocketContext->Binding->Connected);
         if (QUIC_FAILED(Status)) {
             break;
         }
@@ -1017,6 +1021,9 @@ QuicSocketContextInitialize(
                 "connect failed");
             goto Exit;
         }
+
+
+        Binding->Connected = TRUE;
     }
 
     //
@@ -1590,7 +1597,8 @@ QuicDataPathBindingSend(
     _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ BOOLEAN IsServer
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -1638,13 +1646,25 @@ QuicDataPathBindingSend(
                 LOG_ADDR_LEN(*RemoteAddress),
                 (uint8_t*)RemoteAddress);
 
-            SentByteCount =
-                sendto(
-                    SocketContext->SocketFd,
-                    SendContext->Buffers[i].Buffer,
-                    SendContext->Buffers[i].Length,
-                    0,
-                    NULL, 0);
+            if (IsServer) {
+                SentByteCount =
+                    sendto(
+                        SocketContext->SocketFd,
+                        SendContext->Buffers[i].Buffer,
+                        SendContext->Buffers[i].Length,
+                        0,
+                        (struct sockaddr *)RemoteAddress,
+                        RemoteAddrLen);
+            }
+            else {
+                SentByteCount =
+                    sendto(
+                        SocketContext->SocketFd,
+                        SendContext->Buffers[i].Buffer,
+                        SendContext->Buffers[i].Length,
+                        0,
+                        NULL, 0);
+            }
 
             if (SentByteCount < 0) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOBUFS) {
@@ -1828,7 +1848,8 @@ QuicDataPathBindingSendTo(
             Binding,
             NULL,
             RemoteAddress,
-            SendContext);
+            SendContext,
+            FALSE);
 }
 
 //
@@ -1856,7 +1877,8 @@ QuicDataPathBindingSendFromTo(
             Binding,
             LocalAddress,
             RemoteAddress,
-            SendContext);
+            SendContext,
+            TRUE);
 }
 
 //

@@ -15,8 +15,8 @@ else()
             datapath_epoll.c
             hashtable.c
             inline.c
-            platform_linux.c
-            storage_linux.c
+            platform_posix.c
+            storage_posix.c
             toeplitz.c
         )
     else()
@@ -24,8 +24,8 @@ else()
             datapath_kqueue.c
             hashtable.c
             inline.c
-            platform_darwin.c
-            storage_darwin.c
+            platform_posix.c
+            storage_posix.c
             toeplitz.c
         )
     endif()
