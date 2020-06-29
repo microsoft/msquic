@@ -44,7 +44,7 @@ if ($IsWindows) {
         reg.exe add $TlsClientKeyPath /v Enabled /t REG_DWORD /d 1 /f | Out-Null
     }
 
-} else if ($IsLinux) {
+} elseif ($IsLinux) {
     switch ($Configuration) {
         "Build" {
             sudo apt-add-repository ppa:lttng/stable-2.10

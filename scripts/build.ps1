@@ -113,8 +113,12 @@ if ("" -eq $Tls) {
 if ("" -eq $Platform) {
     if ($IsWindows) {
         $Platform = "windows"
-    } else {
+    } elseif ($IsLinx) {
         $Platform = "linux"
+    } elseif ($IsMacOS) {
+        $Platform = "macos"
+    } else {
+        Write-Error "Unsupported platform type!"
     }
 }
 
@@ -175,8 +179,11 @@ function CMake-Generate {
             "arm"   { $Arguments += "arm" }
             "arm64" { $Arguments += "arm64" }
         }
-    } else {
+    } elseif ($IsLinux) {
         $Arguments += " 'Linux Makefiles'"
+    }
+    } elseif ($IsMacOS) {
+        $Arguments += " 'Unix Makefiles'"
     }
     $Arguments += " -DQUIC_TLS=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=" + $ArtifactsDir
