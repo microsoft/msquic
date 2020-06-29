@@ -6,11 +6,11 @@ set(SOURCES
     packet_writer.cpp
 )
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
+
 include_directories(${PROJECT_SOURCE_DIR}/src/core)
 
 add_executable(quicattack ${SOURCES})
-
-target_compile_options(quicattack PRIVATE ${QUIC_CXX_FLAGS})
 
 set_property(TARGET quicattack PROPERTY FOLDER "tools")
 

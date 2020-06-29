@@ -47,6 +47,8 @@ else()
     set(SOURCES ${SOURCES} cert_stub.c selfsign_stub.c tls_stub.c)
 endif()
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
+
 add_library(platform STATIC ${SOURCES})
 
 set_property(TARGET platform PROPERTY FOLDER "libraries")
@@ -56,8 +58,6 @@ target_compile_options(platform PRIVATE
         ${CLANG_GCC_WARNING_FLAGS}>
      $<$<CXX_COMPILER_ID:MSVC>:
         ${MSVC_WARNING_FLAGS}>)
-
-target_compile_options(platform PRIVATE ${QUIC_C_FLAGS})
 
 if(QUIC_ENABLE_LOGGING)
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")

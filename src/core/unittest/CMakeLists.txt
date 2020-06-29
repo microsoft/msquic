@@ -4,6 +4,8 @@
 include_directories(${PROJECT_SOURCE_DIR}/src/core)
 include_directories(${PROJECT_SOURCE_DIR}/submodules/googletest/googletest/include)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
+
 set(SOURCES
     main.cpp
     FrameTest.cpp
@@ -15,8 +17,6 @@ set(SOURCES
 )
 
 add_executable(msquiccoretest ${SOURCES})
-
-target_compile_options(msquiccoretest PRIVATE ${QUIC_CXX_FLAGS})
 
 set_property(TARGET msquiccoretest PROPERTY FOLDER "tests")
 

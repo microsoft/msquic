@@ -1,9 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-add_executable(quicsiduck siduck.cpp)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 
-target_compile_options(quicsiduck PRIVATE ${QUIC_CXX_FLAGS})
+add_executable(quicsiduck siduck.cpp)
 
 set_property(TARGET quicsiduck PROPERTY FOLDER "tools")
 

@@ -7,6 +7,8 @@ else()
     set(SOURCES linux/init.c)
 endif()
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
+
 add_library(msquic SHARED ${SOURCES})
 
 set_property(TARGET msquic PROPERTY FOLDER "libraries")
@@ -17,7 +19,6 @@ target_compile_options(msquic PRIVATE
      $<$<CXX_COMPILER_ID:MSVC>:
         ${MSVC_WARNING_FLAGS}>)
 
-target_compile_options(msquic PRIVATE ${QUIC_C_FLAGS})
 target_link_libraries(msquic PRIVATE core platform)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")

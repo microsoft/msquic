@@ -40,6 +40,8 @@ if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(SOURCES ${SOURCES} inline.c)
 endif()
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
+
 add_library(core STATIC ${SOURCES})
 
 set_property(TARGET core PROPERTY FOLDER "libraries")
@@ -49,8 +51,6 @@ target_compile_options(core PRIVATE
         ${CLANG_GCC_WARNING_FLAGS}>
      $<$<CXX_COMPILER_ID:MSVC>:
         ${MSVC_WARNING_FLAGS}>)
-
-target_compile_options(core PRIVATE ${QUIC_C_FLAGS})
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_dependencies(core MsQuicEtw)
