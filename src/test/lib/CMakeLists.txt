@@ -1,6 +1,9 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+# Include for CLOG processing
+include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
+
 set(SOURCES
     ApiTest.cpp
     BasicTest.cpp
@@ -13,11 +16,15 @@ set(SOURCES
     TestConnection.cpp
     TestListener.cpp
     TestStream.cpp
+    TestHelpers.h
 )
 
 include_directories(${PROJECT_SOURCE_DIR}/src/test)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
+
+# Allow CLOG to preprocess all the source files.
+CLOG_ADD_SOURCEFILE(TESTLIB_CLOG_LIB ${SOURCES})
 
 add_library(testlib ${SOURCES})
 

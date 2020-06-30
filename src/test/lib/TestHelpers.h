@@ -8,6 +8,9 @@ Abstract:
     MsQuic API Test Helpers
 
 --*/
+#ifdef QUIC_CLOG
+#include "TestHelpers.h.clog.h"
+#endif
 
 #define OLD_SUPPORTED_VERSION       QUIC_VERSION_1_MS_H
 #define LATEST_SUPPORTED_VERSION    QUIC_VERSION_LATEST_H

@@ -18,6 +18,9 @@ Abstract:
 #include "openssl/rsa.h"
 #include "openssl/x509.h"
 #include "openssl/pem.h"
+#ifdef QUIC_CLOG
+#include "selfsign_openssl.c.clog.h"
+#endif
 
 //
 // Generates a self signed cert using low level OpenSSL APIs.
