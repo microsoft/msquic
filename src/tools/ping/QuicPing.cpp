@@ -299,6 +299,10 @@ ParseClientCommand(
 {
     PingConfig.ServerMode = false;
 
+    if (PingConfig.ConnectionCount == 0) {
+        PingConfig.ConnectionCount = DEFAULT_CLIENT_CONNECTION_COUNT;
+    }
+
     TryGetValue(argc, argv, "target", &PingConfig.Client.Target);
 
     uint16_t ip;
@@ -331,10 +335,6 @@ ParseClientCommand(
     PingConfig.Client.Version = version;
 
     TryGetValue(argc, argv, "resume", &PingConfig.Client.ResumeToken);
-
-    uint32_t connections = DEFAULT_CLIENT_CONNECTION_COUNT;
-    TryGetValue(argc, argv, "connections", &connections);
-    PingConfig.Client.ConnectionCount = connections;
 
     uint32_t waitTimeout = DEFAULT_WAIT_TIMEOUT;
     TryGetValue(argc, argv, "wait", &waitTimeout);
@@ -376,6 +376,14 @@ main(
         MsQuicClose(MsQuic);
         goto Error;
     }
+
+    //
+    // 0 to the server means infinite. For client, 0 will be coorced into
+    // DEFAULT_CLIENT_CONNECTION_COUNT
+    //
+    uint32_t connections = 0;
+    TryGetValue(argc, argv, "connections", &connections);
+    PingConfig.ConnectionCount = connections;
 
     //
     // Parse input to see if we are a client or server

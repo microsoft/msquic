@@ -27,6 +27,9 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Record
     Records the run to collect performance information for analysis.
 
+.PARAMETER SkipAPIPA
+    Skip setting the APIPA Settings.
+
 #>
 
 param (
@@ -55,7 +58,10 @@ param (
     [switch]$PGO = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Record = $false
+    [switch]$Record = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SkipAPIPA = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -100,7 +106,7 @@ if ($IsWindows) {
 }
 
 # QuicPing arguments
-$ServerArgs = "-listen:* -port:4433 -selfsign:1 -peer_uni:1"
+$ServerArgs = "-listen:* -port:4433 -selfsign:1 -peer_uni:1 -connections:$Runs"
 $ClientArgs = "-target:localhost -port:4433 -uni:1 -length:$Length"
 if ($IsWindows) {
     # Always use the same local address and core to provide more consistent results.
@@ -158,7 +164,6 @@ function Start-Background-Executable($File, $Arguments) {
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     $pinfo.FileName = $File
     $pinfo.RedirectStandardOutput = $true
-    $pinfo.RedirectStandardInput = $true
     $pinfo.UseShellExecute = $false
     $pinfo.Arguments = $Arguments
     $p = New-Object System.Diagnostics.Process
@@ -168,8 +173,6 @@ function Start-Background-Executable($File, $Arguments) {
 }
 
 function Stop-Background-Executable($Process) {
-    $Process.StandardInput.WriteLine("")
-    $Process.StandardInput.Flush()
     if (!$Process.WaitForExit(2000)) {
         $Process.Kill()
         Write-Debug "Server Failed to Exit"
@@ -245,7 +248,8 @@ function Run-Loopback-Test() {
     New-Item $LoopbackOutputDir -ItemType Directory -Force | Out-Null
 
     $apipaInterfaces = $null
-    if ($IsWindows) {
+    Write-Host $SkipAPIPA
+    if ($IsWindows -and !$SkipAPIPA) {
         $apipaAddr = Get-NetIPAddress 169.254.*
         if ($null -ne $apipaAddr) {
             # Disable all the APIPA interfaces for URO perf.

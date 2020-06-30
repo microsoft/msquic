@@ -49,6 +49,17 @@ struct PingTracker {
     }
 
     void
+    WaitForever(
+        ) {
+        if (InterlockedDecrement(&RefCount) == 0) {
+            CompleteTime = QuicTimeUs64();
+            return;
+        } else {
+            QuicEventWaitForever(Done);
+        }
+    }
+
+    void
     AddItem() {
         InterlockedIncrement(&RefCount);
     }
@@ -108,6 +119,17 @@ struct PingConnection {
     //
     PingConnection(
         _In_ HQUIC Connection
+        );
+
+    //
+    // Constructor for incoming connection with tracker.
+    // Overload token is because otherwise this matches the first constructor
+    // which is for clients.
+    //
+    PingConnection(
+        _In_ PingTracker* Tracker,
+        _In_ HQUIC Connection,
+        _In_ int OverloadToken
         );
 
     //

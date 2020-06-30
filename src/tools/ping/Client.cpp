@@ -42,13 +42,13 @@ void QuicPingClientRun()
             return;
         }
 
-        auto Connections = new PingConnection*[PingConfig.Client.ConnectionCount];
-        for (uint32_t i = 0; i < PingConfig.Client.ConnectionCount; i++) {
+        auto Connections = new PingConnection*[PingConfig.ConnectionCount];
+        for (uint32_t i = 0; i < PingConfig.ConnectionCount; i++) {
             Connections[i] =
                 new PingConnection(
                     &Tracker,
                     Session.Handle,
-                    PingConfig.Client.ConnectionCount == 1);
+                    PingConfig.ConnectionCount == 1);
             if (!Connections[i]) {
                 printf("Failed to open a connection!\n");
                 return;
@@ -64,7 +64,7 @@ void QuicPingClientRun()
         //
         // Start connecting to the remote server.
         //
-        for (uint32_t i = 0; i < PingConfig.Client.ConnectionCount; i++) {
+        for (uint32_t i = 0; i < PingConfig.ConnectionCount; i++) {
             Connections[i]->Connect();
         }
 
@@ -77,7 +77,7 @@ void QuicPingClientRun()
         }
     }
 
-    if (PingConfig.Client.ConnectionCount > 1 &&
+    if (PingConfig.ConnectionCount > 1 &&
         (Tracker.BytesSent != 0 || Tracker.BytesReceived != 0)) {
         uint64_t ElapsedMicroseconds = Tracker.CompleteTime - Tracker.StartTime;
         if (Timeout) {
