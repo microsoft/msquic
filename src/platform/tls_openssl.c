@@ -16,6 +16,9 @@ Abstract:
 #include "openssl/rsa.h"
 #include "openssl/x509.h"
 #include "openssl/pem.h"
+#ifdef QUIC_CLOG
+#include "tls_openssl.c.clog.h"
+#endif
 
 uint16_t QuicTlsTPHeaderSize = 0;
 

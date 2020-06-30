@@ -234,6 +234,12 @@ function CMake-Build {
 
     CMake-Execute $Arguments
 
+    # Copy clog to a common location.
+    $ClogPath = $ArtifactsDir = Join-Path $BaseArtifactsDir "clog"
+    if (!(Test-Path $ClogPath)) {
+        Copy-Item (Join-Path $BuildDir "submodules/clog") -Destination $ClogPath -Recurse
+    }
+
     if ($IsWindows) {
         Copy-Item (Join-Path $BuildDir "obj" $Config "msquic.lib") $ArtifactsDir
         if (!$DisableTools) {
@@ -264,6 +270,15 @@ function CMake-Build {
 ##############################################################
 #                     Main Execution                         #
 ##############################################################
+
+if(!$IsWindows) {    
+    $env:PATH+=":$HOME/.dotnet"
+    $env:PATH+=":$HOME/.dotnet/tools"
+    $env:DOTNET_ROOT="$HOME/.dotnet/"
+    Log "Set Linux env variables to include dotnet"
+} else {
+    Log "On Windows; dotnet must be in the path"                
+}
 
 # Generate the build files.
 Log "Generating files..."

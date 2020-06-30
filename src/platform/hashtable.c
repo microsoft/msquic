@@ -43,6 +43,9 @@ Notes:
 --*/
 
 #include "platform_internal.h"
+#ifdef QUIC_CLOG
+#include "hashtable.c.clog.h"
+#endif
 
 #define QUIC_HASH_RESERVED_SIGNATURE 0
 

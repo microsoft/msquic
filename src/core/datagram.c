@@ -15,6 +15,10 @@ Abstract:
 #include "datagram.tmh"
 #endif
 
+#ifdef QUIC_CLOG
+#include "datagram.c.clog.h"
+#endif
+
 #define DATAGRAM_FRAME_HEADER_LENGTH 3
 
 #define QUIC_DATAGRAM_OVERHEAD(CidLength) \

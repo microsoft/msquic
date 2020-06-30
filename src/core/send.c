@@ -21,6 +21,9 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#ifdef QUIC_CLOG
+#include "send.c.clog.h"
+#endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void

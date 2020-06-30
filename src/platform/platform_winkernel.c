@@ -14,6 +14,9 @@ Environment:
 --*/
 
 #include "platform_internal.h"
+#ifdef QUIC_CLOG
+#include "platform_winkernel.c.clog.h"
+#endif
 
 typedef enum _SYSTEM_INFORMATION_CLASS {
     SystemBasicInformation                          = 0

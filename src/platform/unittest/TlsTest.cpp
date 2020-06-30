@@ -8,6 +8,9 @@
 #include "main.h"
 #include "msquic.h"
 #include "quic_tls.h"
+#ifdef QUIC_CLOG
+#include "TlsTest.cpp.clog.h"
+#endif
 
 const uint32_t CertValidationIgnoreFlags =
     QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |

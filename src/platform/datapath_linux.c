@@ -21,6 +21,9 @@ Environment:
 #include <linux/in6.h>
 #include <arpa/inet.h>
 #include "quic_platform_dispatch.h"
+#ifdef QUIC_CLOG
+#include "datapath_linux.c.clog.h"
+#endif
 
 QUIC_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t)), "(sizeof(QUIC_BUFFER.Length) == sizeof(size_t) must be TRUE.");
 QUIC_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)), "(sizeof(QUIC_BUFFER.Buffer) == sizeof(void*) must be TRUE.");

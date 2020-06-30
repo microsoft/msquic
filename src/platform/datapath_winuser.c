@@ -10,6 +10,9 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
+#ifdef QUIC_CLOG
+#include "datapath_winuser.c.clog.h"
+#endif
 
 #ifdef QUIC_FUZZER
 

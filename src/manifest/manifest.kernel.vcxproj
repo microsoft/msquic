@@ -34,24 +34,8 @@
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="datapath_winkernel.c" />
-    <ClCompile Include="hashtable.c" />
-    <ClCompile Include="platform_winkernel.c" />
-    <ClCompile Include="storage_winkernel.c" />
-    <ClCompile Include="tls_schannel.c" />
-    <ClCompile Include="toeplitz.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="platform_internal.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\manifest\manifest.kernel.vcxproj">
-      <Project>{c1adb76f-7005-4516-badb-2a60797ef912}</Project>
-    </ProjectReference>
-  </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{5f99f713-bf5f-44eb-90fe-fea03906bba9}</ProjectGuid>
+    <ProjectGuid>{c1adb76f-7005-4516-badb-2a60797ef912}</ProjectGuid>
     <TemplateGuid>{0a049372-4c4d-4ea0-a64e-dc6ad88ceca1}</TemplateGuid>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
@@ -78,39 +62,30 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <RunCodeAnalysis>true</RunCodeAnalysis>
-    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
   </PropertyGroup>
   <PropertyGroup>
-    <TargetName>platform</TargetName>
+    <TargetName>core</TargetName>
     <IntDir>$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
-    <OutDir>$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\bin\</OutDir>
+    <OutDir>$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\lib\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
-      <AdditionalOptions Condition="'$(Platform)'!='x64'">/Gw /kernel /ZH:SHA_256</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Platform)'=='x64'">/Gw /kernel /ZH:SHA_256 -d2jumptablerdata -d2epilogunwindrequirev2</AdditionalOptions>
+      <AdditionalIncludeDirectories>..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;..\..\submodules\clog\inc;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
-    <Lib>
-      <LinkTimeCodeGeneration>true</LinkTimeCodeGeneration>
-    </Lib>
     <PreBuildEvent>
-      <Command>mkdir $(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc
-mc.exe -um -h $(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc -r $(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc $(SolutionDir)src\manifest\MsQuicEtw.man</Command>
+      <Command>cmd /C $(SolutionDir)\src\manifest\create_kernel_clog_dependencies.bat $(SolutionDir) $(Platform) $(Configuration)</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;SECURITY_KERNEL;SECURITY_WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;SECURITY_KERNEL;SECURITY_WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
-      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
   </ItemDefinitionGroup>
