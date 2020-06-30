@@ -50,7 +50,7 @@ struct PingServer {
         ) {
         switch (Event->Type) {
         case QUIC_LISTENER_EVENT_NEW_CONNECTION: {
-            auto Connection = new PingConnection(&Tracker, Event->NEW_CONNECTION.Connection, 42);
+            auto Connection = new PingConnection(&Tracker, Event->NEW_CONNECTION.Connection);
             if (Connection != NULL) {
                 Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
                 if (!Connection->Initialize(true)) {

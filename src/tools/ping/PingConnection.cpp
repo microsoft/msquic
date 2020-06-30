@@ -33,19 +33,6 @@ PingConnection::PingConnection(
 }
 
 PingConnection::PingConnection(
-    _In_ HQUIC Connection
-    ) :
-    Tracker(nullptr), QuicConnection(Connection), DumpResumption(false),
-    ConnectedSuccessfully(false), BytesSent(0), BytesReceived(0), DatagramLength(0),
-    DatagramsSent(0), DatagramsAcked(0), DatagramsLost(0), DatagramsCancelled(0),
-    DatagramsReceived(0), DatagramsJitterTotal(0), DatagramLastTime(0),
-    TimedOut(false) {
-
-    StartTime = QuicTimeUs64();
-    MsQuic->SetCallbackHandler(Connection, (void*)QuicCallbackHandler, this);
-}
-
-PingConnection::PingConnection(
     _In_ PingTracker* Tracker,
     _In_ HQUIC Connection
     ) :

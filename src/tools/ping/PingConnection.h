@@ -115,13 +115,6 @@ struct PingConnection {
         );
 
     //
-    // Constructor for incoming connection.
-    //
-    PingConnection(
-        _In_ HQUIC Connection
-        );
-
-    //
     // Constructor for incoming connection with tracker.
     //
     PingConnection(
