@@ -47,8 +47,7 @@ PingConnection::PingConnection(
 
 PingConnection::PingConnection(
     _In_ PingTracker* Tracker,
-    _In_ HQUIC Connection,
-    _In_ int OverloadToken
+    _In_ HQUIC Connection
     ) :
     Tracker(Tracker), QuicConnection(Connection), DumpResumption(false),
     ConnectedSuccessfully(false), BytesSent(0), BytesReceived(0), DatagramLength(0),

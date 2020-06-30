@@ -111,7 +111,7 @@ struct PingConnection {
     PingConnection(
         _In_ PingTracker* Tracker,
         _In_ HQUIC Session,
-        _In_ bool DumpResumption = false
+        _In_ bool DumpResumption
         );
 
     //
@@ -123,13 +123,10 @@ struct PingConnection {
 
     //
     // Constructor for incoming connection with tracker.
-    // Overload token is because otherwise this matches the first constructor
-    // which is for clients.
     //
     PingConnection(
         _In_ PingTracker* Tracker,
-        _In_ HQUIC Connection,
-        _In_ int OverloadToken
+        _In_ HQUIC Connection
         );
 
     //
