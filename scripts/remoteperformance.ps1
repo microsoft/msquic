@@ -200,6 +200,45 @@ function RunRemote-Exe {
     } -AsJob
 }
 
+function RunRemote-Exe2 {
+    param($Exe, $RunArgs)
+
+    # Command to run chmod if necessary, and get base path
+    $BasePath = Invoke-Command -Session $session -ScriptBlock {
+        if (!$IsWindows) {
+            chmod +x $Using:Exe
+            return Split-Path $Using:Exe -Parent
+        }
+        return $null
+    }
+
+    $LP = Invoke-Command -Session $session -ScriptBlock {
+        $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+        $pinfo.FileName = $Using:Exe
+        $pinfo.RedirectStandardOutput = $true
+        $pinfo.RedirectStandardInput = $true
+        $pinfo.UseShellExecute = $false
+        $pinfo.Arguments = $Using:RunArgs
+        $Process = New-Object System.Diagnostics.Process
+        $Process.StartInfo = $pinfo
+        $Process.Start() | Out-Null
+        return $Process
+    }
+
+    Write-Host $LP
+
+    return $LP
+    
+
+    # return Invoke-Command -Session $session -ScriptBlock {
+    #     if ($null -ne $Using:BasePath) {
+    #         $env:LD_LIBRARY_PATH = $Using:BasePath
+    #     }
+        
+    #     & $Using:Exe ($Using:RunArgs).Split(" ")
+    # } -AsJob
+}
+
 function RunLocal-Exe {
     param ($Exe, $RunArgs)
 
@@ -237,9 +276,13 @@ function Run-Test {
 
     $LocalArguments = $Test.Local.Arguments.Replace('$RemoteAddress', $RemoteAddress)
 
-    $RemoteJob = RunRemote-Exe -Exe $RemoteExe -RunArgs $Test.Remote.Arguments
+    $RemoteJob = RunRemote-Exe2 -Exe $RemoteExe -RunArgs $Test.Remote.Arguments
 
     Start-Sleep 3
+
+    # Invoke-Command -Session $session -ScriptBlock {
+    #     Write-Host $Process.StandardOutput.ReadLine()
+    # }
 
     # TODO figure out streaming output from remote jobs
     #WaitFor-Remote-Ready -Job $RemoteJob
@@ -258,7 +301,9 @@ function Run-Test {
         $LocalResults | Write-Debug
     }
 
-    $RemoteResults = WaitFor-Remote -Job $RemoteJob
+    $RemoteResults =  Invoke-Command -Session $session -ScriptBlock { # WaitFor-Remote -Job $RemoteJob
+        return $Process.StandardOutput.ReadToEnd()
+    }
 
     $Platform = $Test.ToString()
 
