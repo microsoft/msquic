@@ -273,11 +273,10 @@ function CMake-Build {
 ##############################################################
 
 if(!$IsWindows) {    
-#    $env:PATH+=":$HOME/.dotnet"
-#    $env:PATH+=":$HOME/.dotnet/tools"
-#    $env:DOTNET_ROOT="$HOME/.dotnet/"
-#    Log "Set Linux env variables to include dotnet"
-#    ls $env:DOTNET_ROOT
+    $env:PATH+=":$HOME/.dotnet"
+    $env:PATH+=":$HOME/.dotnet/tools"
+    $env:DOTNET_ROOT="$HOME/.dotnet/"
+    Log "Set Linux env variables to include dotnet"
 } else {
     Log "On Windows; dotnet must be in the path"                
 }
