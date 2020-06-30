@@ -1,0 +1,42 @@
+[
+    {
+        "TestName": "Throughput",
+        "Remote" : {
+            "Platform": "Windows",
+            "Tls": "stub",
+            "Arch": "x64",
+            "Exe": "quicping",
+            "Arguments": "-listen:* -port:4433 -selfsign:1 -peer_uni:1 -connections:10"
+        },
+        "Local" : {
+            "Platform": "Windows",
+            "Tls": "stub",
+            "Arch": "x64",
+            "Exe": "quicping",
+            "Arguments": "-target:$RemoteAddress -port:4433 -uni:1 -length:20000"
+        },
+        "Iterations": 10,
+        "RemoteReadyMatcher": "Ready For Connections!",
+        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps \\|"
+    },
+    {
+        "TestName": "Throughput",
+        "Remote" : {
+            "Platform": "Linux",
+            "Tls": "stub",
+            "Arch": "x64",
+            "Exe": "quicping",
+            "Arguments": "-listen:* -port:4433 -selfsign:1 -peer_uni:1 -connections:10"
+        },
+        "Local" : {
+            "Platform": "Windows",
+            "Tls": "stub",
+            "Arch": "x64",
+            "Exe": "quicping",
+            "Arguments": "-target:$RemoteAddress -timeout:1000 -port:4433 -uni:1 -length:20000"
+        },
+        "Iterations": 10,
+        "RemoteReadyMatcher": "Ready For Connections!",
+        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps \\|"
+    }
+]

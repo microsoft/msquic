@@ -6,12 +6,6 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Config
     Specifies the build configuration to use.
 
-.PARAMETER Arch
-    The CPU architecture to use.
-
-.PARAMETER Tls
-    The TLS library use.
-
 #>
 
 param (
@@ -20,15 +14,10 @@ param (
     [string]$Config = "Debug",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("x86", "x64", "arm", "arm64")]
-    [string]$Arch = "x64",
+    [string]$TestsFile = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "stub", "mitls")]
-    [string]$Tls = "stub",
-
-    [Parameter(Mandatory = $false)]
-    [string]$TestsFile = ""
+    [string]$RemoteAddressPair = "User@172.21.202.141"
 )
 
 Set-StrictMode -Version 'Latest'
@@ -37,45 +26,42 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
-# Default TLS based on current platform.
-if ("" -eq $Tls) {
-    if ($IsWindows) {
-        $Tls = "schannel"
-    } else {
-        $Tls = "openssl"
-    }
+Get-PSSession | Remove-PSSession
+
+$LocalPlatform = $null
+if ($IsWindows) {
+    $LocalPlatform = "windows"
+} else {
+    $LocalPlatform = "linux"
 }
+
 
 if ($TestsFile -eq "") {
-    $TestsFile = Join-Path $PSScriptRoot "RemoteTests-Windows.json"
+    $TestsFile = Join-Path $PSScriptRoot "RemoteTests.json"
 }
 
-$OsPlat = "Linux"
-if ($IsWindows) {
-    $OsPlat = "Windows"
-}
-$Platform = "$($OsPlat)_$($Arch)_$($Tls)"
 
+$session = New-PSSession -HostName "$RemoteAddressPair"
 
-$ArtifactsFolder = $null
-$RemoteDirectory = $null
-if ($IsWindows) {
-    $ArtifactsFolder = "artifacts\windows\$($Arch)_$($Config)_$($Tls)"
-    $RemoteDirectory = "C:\Test"
-} else {
-    $ArtifactsFolder = "artifacts/linux/$($Arch)_$($Config)_$($Tls)"
-    $RemoteDirectory = "/user/test/test"
-    
-}
-$LocalDirectory = Join-Path $RootDir $ArtifactsFolder
-
-$RemoteIp = "172.21.202.141"
-
-$session = New-PSSession -HostName $RemoteIp -UserName "User"
+$RemoteAddress = $session.ComputerName
 
 if ($null -eq $session) {
     exit
 }
+
+
+$RemotePlatform = Invoke-Command -Session $session -ScriptBlock { 
+    if ($IsWindows) {
+        return "windows"
+    } else {
+        return "linux"
+    }
+}
+
+# Join path in script to ensure right platform separator
+$RemoteDirectory = Invoke-Command -Session $session -ScriptBlock { Join-Path (Get-Location) "Tests" }
+
+$LocalDirectory = Join-Path $RootDir "artifacts"
 
 function Start-Remote {
     param($ScriptBlock)
@@ -108,24 +94,27 @@ function Copy-Artifacts {
     } catch {
         # Ignore failure
     }
+    # TODO Figure out how to filter this
     Copy-Item -Path "$From\*" -Destination $To -ToSession $session  -Recurse
 }
 
-function Run-Foreground-Executable($File, $Arguments) {
-    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    $pinfo.FileName = $File
-    $pinfo.RedirectStandardOutput = $true
-    $pinfo.UseShellExecute = $false
-    $pinfo.Arguments = $Arguments
-    $p = New-Object System.Diagnostics.Process
-    $p.StartInfo = $pinfo
-    $p.Start() | Out-Null
-    $p.WaitForExit()
-    return $p.StandardOutput.ReadToEnd()
-}
+# function Run-Foreground-Executable($File, $Arguments) {
+#     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+#     $pinfo.FileName = $File
+#     $pinfo.RedirectStandardOutput = $true
+#     $pinfo.UseShellExecute = $false
+#     $pinfo.Arguments = $Arguments
+#     $p = New-Object System.Diagnostics.Process
+#     $p.StartInfo = $pinfo
+#     $p.Start() | Out-Null
+#     $p.WaitForExit()
+#     return $p.StandardOutput.ReadToEnd()
+# }
 
 class ExecutableSpec {
     [string]$Platform;
+    [string]$Tls;
+    [string]$Arch;
     [string]$Exe;
     [string]$Arguments;
 }
@@ -137,22 +126,39 @@ class TestDefinition {
     [int]$Iterations;
     [string]$RemoteReadyMatcher;
     [string]$ResultsMatcher;
+
+    [string]ToString() {
+        return ("{0}_{1}_{2}_{3}_{4}_{5}_{6}" -f $this.TestName, 
+                                         $this.Local.Platform, 
+                                         $this.Local.Tls,
+                                         $this.Local.Arch,
+                                         $this.Remote.Platform,
+                                         $this.Remote.Tls,
+                                         $this.Remote.Arch
+                                         )
+    }
 }
 
-$Tests = [TestDefinition[]](Get-Content -Path $TestsFile | ConvertFrom-Json)
-
 function GetExe-Name {
-    param($PathRoot, $ExeName)
-    if ($IsWindows) {
+    param($PathRoot, $Platform, $IsRemote, $TestPlat)
+    $ExeName = $TestPlat.Exe
+    if ($Platform -eq "windows") {
         $ExeName += ".exe"
     }
-    return Join-Path $PathRoot $ExeName
+
+    $ConfigStr = "$($TestPlat.Arch)_$($Config)_$($TestPlat.Tls)"
+
+    if ($IsRemote) {
+        return Invoke-Command -Session $session -ScriptBlock { Join-Path $Using:PathRoot $Using:Platform $Using:ConfigStr $Using:ExeName  }
+    } else {
+        return Join-Path $PathRoot $Platform $ConfigStr $ExeName
+    }
 }
 
 function Parse-Test-Results($Results, $Matcher) {
     try {
         # Unused variable on purpose
-        $m = $Results -match $Matcher
+        $Results -match $Matcher | Out-Null
         return $Matches[1]
     } catch {
         Write-Host "Error Processing Results:`n`n$Results"
@@ -173,28 +179,75 @@ function Median-Test-Results($FullResults) {
     return $sorted[[int](($sorted.Length - 1) / 2)]
 }
 
+function RunRemote-Exe {
+    param($Exe, $RunArgs)
+
+    # Command to run chmod if necessary, and get base path
+    $BasePath = Invoke-Command -Session $session -ScriptBlock {
+        if (!$IsWindows) {
+            chmod +x $Using:Exe
+            return Split-Path $Using:Exe -Parent
+        }
+        return $null
+    }
+
+    return Invoke-Command -Session $session -ScriptBlock {
+        if ($null -ne $Using:BasePath) {
+            $env:LD_LIBRARY_PATH = $Using:BasePath
+        }
+        
+        & $Using:Exe ($Using:RunArgs).Split(" ")
+    } -AsJob
+}
+
+function RunLocal-Exe {
+    param ($Exe, $RunArgs)
+
+    if (!$IsWindows) {
+        $BasePath = Split-Path $Exe -Parent
+        $env:LD_LIBRARY_PATH = $BasePath
+        chmod +x $Exe | Out-Null
+    }
+    return (Invoke-Expression "$Exe $RunArgs") -join "`n"
+    #return (& $Exe $RunArgs.Split(" ")) 
+}
+
 function Run-Test {
     param($Test)
 
-    $RemoteExe = GetExe-Name -PathRoot $RemoteDirectory -ExeName $Test.Remote.Exe
-    $LocalExe = GetExe-Name -PathRoot $LocalDirectory -ExeName $Test.Local.Exe
+    Write-Host "Running Test $Test"
 
-    $LocalArguments = $Test.Local.Arguments.Replace('$RemoteTarget', $RemoteIp)
+    $RemoteExe = GetExe-Name -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $Test.Remote
+    $LocalExe = GetExe-Name -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local
 
-    $RemoteCommand = "$RemoteExe " + $Test.Remote.Arguments
+    # Check both Exes
+    $RemoteExeExists = Invoke-Command -Session $session -ScriptBlock { Test-Path $Using:RemoteExe }
+    $LocalExeExists = Test-Path $LocalExe
 
-    $RemoteScript = { Invoke-Expression $Using:RemoteCommand }
+    if (!$RemoteExeExists -or !$LocalExeExists) {
+        Write-Host "Failed to Run $Test because of missing exe"
+        if (!$RemoteExeExists) {
+            Write-Host "Missing Remote Exe $RemoteExe"
+        }
+        if (!$LocalExeExists) {
+            Write-Host "Missing Local Exe $LocalExe"
+        }
+        return
+    }
 
-    $RemoteJob = Start-Remote -ScriptBlock $RemoteScript
+    $LocalArguments = $Test.Local.Arguments.Replace('$RemoteAddress', $RemoteAddress)
+
+    $RemoteJob = RunRemote-Exe -Exe $RemoteExe -RunArgs $Test.Remote.Arguments
 
     Start-Sleep 3
 
+    # TODO figure out streaming output from remote jobs
     #WaitFor-Remote-Ready -Job $RemoteJob
 
     $AllRunsResults = @()
 
     1..$Test.Iterations | ForEach-Object {
-        $LocalResults = Run-Foreground-Executable -File $LocalExe -Arguments $LocalArguments
+        $LocalResults = RunLocal-Exe -Exe $LocalExe -RunArgs $LocalArguments 
 
         $LocalParsedResults = Parse-Test-Results -Results $LocalResults -Matcher $Test.ResultsMatcher
 
@@ -205,9 +258,9 @@ function Run-Test {
         $LocalResults | Write-Debug
     }
 
-    
-
     $RemoteResults = WaitFor-Remote -Job $RemoteJob
+
+    $Platform = $Test.ToString()
 
     # Print current and latest master results to console.
     $MedianCurrentResult = Median-Test-Results -FullResults $AllRunsResults
@@ -227,11 +280,22 @@ function Run-Test {
     Write-Debug $RemoteResults.ToString()
 }
 
+function Check-Test {
+    param($Test)
+    return ($Test.Local.Platform -eq $LocalPlatform) -and ($Test.Remote.Platform -eq $RemotePlatform)
+}
+
 try {
-    Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory
+    $Tests = [TestDefinition[]](Get-Content -Path $TestsFile | ConvertFrom-Json)
+
+    #Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory
 
     foreach ($Test in $Tests) {
-        Run-Test -Test $Test
+        if (Check-Test -Test $Test) {
+            Run-Test -Test $Test
+        } else {
+            Write-Host "Skipping $Test"
+        }
     }
 } finally {
     Remove-PSSession -Session $session 
