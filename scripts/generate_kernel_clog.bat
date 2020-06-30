@@ -23,6 +23,9 @@ echo -----------------------------------------------------------------------
 
 echo %CMAKE_SOURCE_DIR%
 
+echo Clearing the LIB environment varaible to avoid conflicting with the needs of dotnet
+set LIB=
+
 if NOT EXIST %CMAKE_CLOG_BINS_DIRECTORY%\clog.exe (
     echo Building CLOG
     echo dotnet build %CLOG_SOURCE_DIRECTORY%\clog.sln\clog_coreclr.sln -o %CMAKE_CLOG_BINS_DIRECTORY%
