@@ -194,6 +194,10 @@ ParseCommonCommands(
     PingConfig.MaxBytesPerKey = UINT64_MAX;
     TryGetValue(argc, argv, "key_bytes", &PingConfig.MaxBytesPerKey);
 
+    uint32_t connections = PingConfig.ConnectionCount;
+    TryGetValue(argc, argv, "connections", &connections);
+    PingConfig.ConnectionCount = connections;
+
     //
     // Initialize internal memory structures based on the configuration.
     //
@@ -282,6 +286,7 @@ ParseServerCommand(
         }
     }
 
+    PingConfig.ConnectionCount = 0;
     ParseCommonCommands(argc, argv);
     QuicPingServerRun();
 
@@ -298,10 +303,6 @@ ParseClientCommand(
     )
 {
     PingConfig.ServerMode = false;
-
-    if (PingConfig.ConnectionCount == 0) {
-        PingConfig.ConnectionCount = DEFAULT_CLIENT_CONNECTION_COUNT;
-    }
 
     TryGetValue(argc, argv, "target", &PingConfig.Client.Target);
 
@@ -340,6 +341,7 @@ ParseClientCommand(
     TryGetValue(argc, argv, "wait", &waitTimeout);
     PingConfig.Client.WaitTimeout = waitTimeout;
 
+    PingConfig.ConnectionCount = DEFAULT_CLIENT_CONNECTION_COUNT;
     ParseCommonCommands(argc, argv);
     QuicPingClientRun();
 }
@@ -354,7 +356,6 @@ main(
     int ErrorCode = -1;
     uint16_t execProfile = DEFAULT_EXECUTION_PROFILE;
     QUIC_REGISTRATION_CONFIG RegConfig = { "quicping", DEFAULT_EXECUTION_PROFILE };
-    uint32_t connections = 0;
 
     QuicPlatformSystemLoad();
     QuicPlatformInitialize();
@@ -377,13 +378,6 @@ main(
         MsQuicClose(MsQuic);
         goto Error;
     }
-
-    //
-    // 0 to the server means infinite. For client, 0 will be coorced into
-    // DEFAULT_CLIENT_CONNECTION_COUNT
-    //
-    TryGetValue(argc, argv, "connections", &connections);
-    PingConfig.ConnectionCount = connections;
 
     //
     // Parse input to see if we are a client or server

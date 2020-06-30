@@ -11,7 +11,6 @@ Abstract:
 
 #include "QuicPing.h"
 
-
 struct PingServer {
 
     HQUIC QuicListener;
