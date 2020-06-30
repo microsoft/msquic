@@ -354,6 +354,7 @@ main(
     int ErrorCode = -1;
     uint16_t execProfile = DEFAULT_EXECUTION_PROFILE;
     QUIC_REGISTRATION_CONFIG RegConfig = { "quicping", DEFAULT_EXECUTION_PROFILE };
+    uint32_t connections = 0;
 
     QuicPlatformSystemLoad();
     QuicPlatformInitialize();
@@ -381,7 +382,6 @@ main(
     // 0 to the server means infinite. For client, 0 will be coorced into
     // DEFAULT_CLIENT_CONNECTION_COUNT
     //
-    uint32_t connections = 0;
     TryGetValue(argc, argv, "connections", &connections);
     PingConfig.ConnectionCount = connections;
 
