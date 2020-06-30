@@ -311,7 +311,6 @@ if(QUIC_TLS STREQUAL "mitls")
 endif()
 
 # Product code
-add_subdirectory(src/manifest)
 add_subdirectory(src/core)
 add_subdirectory(src/platform)
 add_subdirectory(src/bin)
