@@ -164,6 +164,7 @@ void QuicPingServerRun()
                 Server.Tracker.AddItem();
             }
             Server.Tracker.Start();
+            printf("Ready For Connections!\n\n");
             Server.Tracker.WaitForever();
         } else {
             printf("Press Enter to exit.\n\n");
