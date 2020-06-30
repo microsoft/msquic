@@ -17,6 +17,10 @@ set CLOG_SOURCE_DIRECTORY=%CMAKE_SOURCE_DIR%\submodules\clog
 set CLOG_INCLUDE_DIRECTORY=%CMAKE_SOURCE_DIR%\inc
 set CMAKE_CLOG_CONFIG_FILE=%CMAKE_SOURCE_DIR%\src\manifest\msquic.clog_config
 
+echo --------------------------------------------------------------
+set 
+echo --------------------------------------------------------------
+
 echo %CMAKE_SOURCE_DIR%
 
 if NOT EXIST %CMAKE_CLOG_BINS_DIRECTORY%\clog.exe (
