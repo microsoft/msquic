@@ -6,6 +6,8 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Config
     Specifies the build configuration to use.
 
+# TODO Add LocalTls and RemoteTls flags
+
 .PARAMETER TestsFile
     Explcitly specifes a test file to run
 
@@ -62,8 +64,6 @@ if ($TestsFile -eq "") {
 }
 
 # -ComputerName
-
-whoami
 
 if ($Remote -eq "") {
     if ($WinRMUser -ne "") {

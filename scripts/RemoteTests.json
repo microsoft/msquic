@@ -3,14 +3,14 @@
         "TestName": "Throughput",
         "Remote" : {
             "Platform": "Windows",
-            "Tls": "schannel",
+            "Tls": "stub",
             "Arch": "x64",
             "Exe": "quicping",
             "Arguments": "-listen:* -port:4433 -selfsign:1 -peer_uni:1 -connections:10"
         },
         "Local" : {
             "Platform": "Windows",
-            "Tls": "schannel",
+            "Tls": "stub",
             "Arch": "x64",
             "Exe": "quicping",
             "Arguments": "-target:$RemoteAddress -sendbuf:0 -bind:127.0.0.1:4434 -ip:4 -core:0 -port:4433 -uni:1 -length:2000000000"
