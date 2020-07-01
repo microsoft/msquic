@@ -68,12 +68,6 @@ $RemoteDirectory = Invoke-Command -Session $session -ScriptBlock { Join-Path (Ge
 
 $LocalDirectory = Join-Path $RootDir "artifacts"
 
-function Start-Remote {
-    param($ScriptBlock)
-    $job =  Invoke-Command -Session $session -ScriptBlock $ScriptBlock -AsJob
-    return $job
-}
-
 function WaitFor-Remote-Ready {
     param ($Job, $Matcher)
     $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
@@ -109,19 +103,6 @@ function Copy-Artifacts {
     # TODO Figure out how to filter this
     Copy-Item -Path "$From\*" -Destination $To -ToSession $session  -Recurse
 }
-
-# function Run-Foreground-Executable($File, $Arguments) {
-#     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-#     $pinfo.FileName = $File
-#     $pinfo.RedirectStandardOutput = $true
-#     $pinfo.UseShellExecute = $false
-#     $pinfo.Arguments = $Arguments
-#     $p = New-Object System.Diagnostics.Process
-#     $p.StartInfo = $pinfo
-#     $p.Start() | Out-Null
-#     $p.WaitForExit()
-#     return $p.StandardOutput.ReadToEnd()
-# }
 
 class ExecutableSpec {
     [string]$Platform;
@@ -208,74 +189,8 @@ function RunRemote-Exe {
             $env:LD_LIBRARY_PATH = $Using:BasePath
         }
         
-        & $Using:Exe ($Using:RunArgs).Split(" ")
+        return Invoke-Expression "$Using:Exe $Using:RunArgs"
     } -AsJob
-}
-
-function RunRemote-Exe2 {
-    param($Exe, $RunArgs)
-
-    # Command to run chmod if necessary, and get base path
-    $BasePath = Invoke-Command -Session $session -ScriptBlock {
-        if (!$IsWindows) {
-            chmod +x $Using:Exe
-            return Split-Path $Using:Exe -Parent
-        }
-        return $null
-    }
-
-    $LP = Invoke-Command -Session $session -ScriptBlock {
-        $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-        $pinfo.FileName = $Using:Exe
-        $pinfo.RedirectStandardOutput = $true
-        $pinfo.RedirectStandardInput = $true
-        $pinfo.UseShellExecute = $false
-        $pinfo.Arguments = $Using:RunArgs
-        $Process = New-Object System.Diagnostics.Process
-        $Process.StartInfo = $pinfo
-
-        Write-Host $Using:Exe
-        Write-Host $Using:RunArgs
-
-        $StringBuilder = [System.Text.StringBuilder]::new();
-        $WriteCount = 0;
-        
-
-        $OutEvent = Register-ObjectEvent -InputObject $Process -EventName 'OutputDataReceived' -Action {
-            param
-            (
-                [System.Object] $sender,
-                [System.Diagnostics.DataReceivedEventArgs] $e
-            )
-            Write-Host "Received Event"
-            [System.Threading.Monitor]::Enter($StringBuilder)
-            try {
-                $StringBuilder.Append($e.Data);    
-                $WriteCount++;
-            } finally {
-                [System.Threading.Monitor]::Exit($StringBuilder)
-            }
-            
-        }
-
-        $Process.Start() | Out-Null
-        $Process.BeginOutputReadLine()
-
-        return $Process
-    }
-
-    Write-Host $LP
-
-    return $LP
-    
-
-    # return Invoke-Command -Session $session -ScriptBlock {
-    #     if ($null -ne $Using:BasePath) {
-    #         $env:LD_LIBRARY_PATH = $Using:BasePath
-    #     }
-        
-    #     & $Using:Exe ($Using:RunArgs).Split(" ")
-    # } -AsJob
 }
 
 function RunLocal-Exe {
@@ -286,8 +201,7 @@ function RunLocal-Exe {
         $env:LD_LIBRARY_PATH = $BasePath
         chmod +x $Exe | Out-Null
     }
-    return (Invoke-Expression "$Exe $RunArgs") -join "`n"
-    #return (& $Exe $RunArgs.Split(" ")) 
+    return Invoke-Expression "$Exe $RunArgs"
 }
 
 function Run-Test {
@@ -324,29 +238,6 @@ function Run-Test {
         Stop-Job -Job $Job
         return
     }
-
-    # Start-Sleep 3
-
-    # Invoke-Command -Session $session -ScriptBlock {
-    #     Write-Host $Process.StandardOutput.ReadLine()
-    # }
-
-    # $Vdd = Invoke-Command -Session $session -ScriptBlock {
-    #     [System.Threading.Monitor]::Enter($StringBuilder)
-    #     try {
-    #         Write-Host $StringBuilder.Length
-    #         Write-Host $WriteCount
-    #         return $StringBuilder.ToString()
-    #     } finally {
-    #         [System.Threading.Monitor]::Exit($StringBuilder)
-    #     }
-    # }
-
-    # Write-Host $Vdd
-
-    # TODO figure out streaming output from remote jobs
-
-    #WaitFor-Remote-Ready -Job $RemoteJob
 
     $AllRunsResults = @()
 
