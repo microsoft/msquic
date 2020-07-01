@@ -15,6 +15,8 @@ struct PingServer {
 
     HQUIC QuicListener;
 
+    PingTracker Tracker;
+
     PingServer() : QuicListener(nullptr) { }
 
     ~PingServer() {
@@ -48,7 +50,7 @@ struct PingServer {
         ) {
         switch (Event->Type) {
         case QUIC_LISTENER_EVENT_NEW_CONNECTION: {
-            auto Connection = new PingConnection(Event->NEW_CONNECTION.Connection);
+            auto Connection = new PingConnection(&Tracker, Event->NEW_CONNECTION.Connection);
             if (Connection != NULL) {
                 Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
                 if (!Connection->Initialize(true)) {
@@ -157,8 +159,16 @@ void QuicPingServerRun()
             return;
         }
 
-        printf("Press Enter to exit.\n\n");
-        getchar();
+        if (PingConfig.ConnectionCount > 0) {
+            for (uint32_t i = 0; i < PingConfig.ConnectionCount; i++) {
+                Server.Tracker.AddItem();
+            }
+            Server.Tracker.Start();
+            Server.Tracker.WaitForever();
+        } else {
+            printf("Press Enter to exit.\n\n");
+            getchar();
+        }
     }
 
     Session.Cancel();

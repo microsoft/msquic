@@ -49,6 +49,17 @@ struct PingTracker {
     }
 
     void
+    WaitForever(
+        ) {
+        if (InterlockedDecrement(&RefCount) == 0) {
+            CompleteTime = QuicTimeUs64();
+            return;
+        } else {
+            QuicEventWaitForever(Done);
+        }
+    }
+
+    void
     AddItem() {
         InterlockedIncrement(&RefCount);
     }
@@ -100,13 +111,14 @@ struct PingConnection {
     PingConnection(
         _In_ PingTracker* Tracker,
         _In_ HQUIC Session,
-        _In_ bool DumpResumption = false
+        _In_ bool DumpResumption
         );
 
     //
-    // Constructor for incoming connection.
+    // Constructor for incoming connection with tracker.
     //
     PingConnection(
+        _In_ PingTracker* Tracker,
         _In_ HQUIC Connection
         );
 
