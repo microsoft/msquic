@@ -29,7 +29,10 @@ param (
     [string]$TestsFile = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$Remote = "User@172.29.119.234",
+    [string]$Remote = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$WinRMUser = "",
 
     [Parameter(Mandatory = $false)]
     [switch]$SkipDeploy = $false,
@@ -58,8 +61,17 @@ if ($TestsFile -eq "") {
     $TestsFile = Join-Path $PSScriptRoot "RemoteTests.json"
 }
 
+# -ComputerName
 
-$session = New-PSSession -HostName "$Remote"
+if ($Remote -eq "") {
+    if ($WinRMUser -ne "") {
+        $session = New-PSSession -ComputerName quic-server -Credential $WinRMUser -ConfigurationName PowerShell.7
+    } else {
+        $session = New-PSSession -ComputerName quic-server -ConfigurationName PowerShell.7
+    }
+} else {
+    $session = New-PSSession -HostName "$Remote"
+}
 
 $RemoteAddress = $session.ComputerName
 
