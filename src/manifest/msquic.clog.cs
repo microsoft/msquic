@@ -5,7 +5,6 @@
 
 --*/
 
-
 using System;
 using System.Runtime.InteropServices;
 
@@ -13,7 +12,6 @@ namespace msquic.clog_config
 {
     public class Types
     {
-
         [StructLayout(LayoutKind.Explicit)]
         public struct SocketAddress
         {

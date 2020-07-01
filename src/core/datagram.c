@@ -10,11 +10,6 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "datagram.tmh"
-#endif
-
 #ifdef QUIC_CLOG
 #include "datagram.c.clog.h"
 #endif
