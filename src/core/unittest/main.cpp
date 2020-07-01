@@ -6,6 +6,9 @@
 --*/
 
 #include "main.h"
+#ifdef QUIC_CLOG
+#include "main.cpp.clog.h"
+#endif
 
 class QuicCoreTestEnvironment : public ::testing::Environment {
 public:

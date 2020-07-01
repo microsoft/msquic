@@ -10,6 +10,9 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#ifdef QUIC_CLOG
+#include "DatagramTest.cpp.clog.h"
+#endif
 
 struct ServerAcceptContext {
     QUIC_EVENT NewConnectionReady;
