@@ -107,7 +107,7 @@ if ($IsWindows) {
 
 # QuicPing arguments
 $ServerArgs = "-listen:* -port:4433 -selfsign:1 -peer_uni:1 -connections:$Runs"
-$ClientArgs = "-target:localhost -port:4433 -uni:1 -length:$Length"
+$ClientArgs = "-target:localhost -port:4433 -sendbuf:0 -uni:1 -length:$Length"
 if ($IsWindows) {
     # Always use the same local address and core to provide more consistent results.
     $ClientArgs += " -bind:127.0.0.1:4434 -ip:4 -core:0"
