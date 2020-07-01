@@ -13,7 +13,7 @@
             "Tls": "stub",
             "Arch": "x64",
             "Exe": "quicping",
-            "Arguments": "-target:$RemoteAddress -timeout:1000 sendbuf:0 -bind:127.0.0.1:4434 -ip:4 -core:0 -port:4433 -uni:1 -length:2000000000"
+            "Arguments": "-target:$RemoteAddress sendbuf:0 -bind:127.0.0.1:4434 -ip:4 -core:0 -port:4433 -uni:1 -length:2000000000"
         },
         "Iterations": 10,
         "RemoteReadyMatcher": "Ready For Connections!",
@@ -33,7 +33,7 @@
             "Tls": "stub",
             "Arch": "x64",
             "Exe": "quicping",
-            "Arguments": "-target:$RemoteAddress -timeout:1000 sendbuf:0 -port:4433 -uni:1 -length:2000000000"
+            "Arguments": "-target:$RemoteAddress sendbuf:0 -port:4433 -uni:1 -length:2000000000"
         },
         "Iterations": 10,
         "RemoteReadyMatcher": "Ready For Connections!",
