@@ -63,6 +63,8 @@ if ($TestsFile -eq "") {
 
 # -ComputerName
 
+whoami
+
 if ($Remote -eq "") {
     if ($WinRMUser -ne "") {
         $session = New-PSSession -ComputerName quic-server -Credential $WinRMUser -ConfigurationName PowerShell.7
