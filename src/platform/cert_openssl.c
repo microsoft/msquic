@@ -12,6 +12,9 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
+#ifdef QUIC_CLOG
+#include "cert_openssl.c.clog.h"
+#endif
 
 #include <mitlsffi.h>
 #include <mipki.h>

@@ -10,6 +10,9 @@ Abstract:
 --*/
 
 #include "quic_platform.h"
+#ifdef QUIC_CLOG
+#include "quic_trace.h"
+#endif
 
 void
 MsQuicLibraryLoad(

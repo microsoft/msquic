@@ -11,6 +11,9 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#ifdef QUIC_CLOG
+#include "stream_recv.c.clog.h"
+#endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN

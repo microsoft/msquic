@@ -10,6 +10,9 @@ Abstract:
 --*/
 
 #include "main.h"
+#ifdef QUIC_CLOG
+#include "FrameTest.cpp.clog.h"
+#endif
 
 struct AckFrameTest : ::testing::TestWithParam<QUIC_FRAME_TYPE> {
 };

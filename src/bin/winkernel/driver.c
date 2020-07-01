@@ -11,6 +11,9 @@ Abstract:
 
 #include "quic_platform.h"
 #include "quic_trace.h"
+#ifdef QUIC_CLOG
+#include "driver.c.clog.h"
+#endif
 
 INITCODE
 _IRQL_requires_max_(PASSIVE_LEVEL)

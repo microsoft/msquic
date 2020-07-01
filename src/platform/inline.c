@@ -16,6 +16,9 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
+#ifdef QUIC_CLOG
+#include "inline.c.clog.h"
+#endif
 
 uint16_t
 MaxUdpPayloadSizeFromMTU(

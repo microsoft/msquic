@@ -55,6 +55,9 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#ifdef QUIC_CLOG
+#include "send_buffer.c.clog.h"
+#endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void

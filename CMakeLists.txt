@@ -118,6 +118,19 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${QUIC_OUTPUT_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 
+set(CMAKE_CLOG_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/inc)
+set(CMAKE_CLOG_BINS_DIRECTORY ${QUIC_BUILD_DIR}/submodules/clog)
+set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest)
+set(CLOG_SOURCE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/clog)
+set(CLOG_INCLUDE_DIRECTORY ${CLOG_SOURCE_DIRECTORY}/inc)
+set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/msquic.clog_config)
+
+set(MANIFESTED_HEADER_FILENAME ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
+
+add_custom_target(CLOG_GENERATED_FILES
+    COMMENT "CREATED CMAKE Target for CLOG generated files"
+)
+
 set(CLANG_GCC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value CACHE INTERNAL "")
 set(MSVC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
 
@@ -145,10 +158,12 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     endif()
 
     if(QUIC_ENABLE_LOGGING)
-        message(STATUS "Configuring for manifested ETW events and logging")
+        message(STATUS "Configuring for manifested ETW tracing")
+        set(CMAKE_CLOG_CONFIG_PROFILE windows)
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW")
     else()
-        message(STATUS "Disabling events and logging")
+        message(STATUS "Disabling tracing")
+        set(CMAKE_CLOG_CONFIG_PROFILE stubs)
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_STUB")
     endif()
 
@@ -218,11 +233,13 @@ else()
     endif()
 
     if(QUIC_ENABLE_LOGGING)
+        message(STATUS "Configuring for LTTng tracing")
+        set(CMAKE_CLOG_CONFIG_PROFILE linux)
         include(FindLTTngUST)
-        message(STATUS "Configuring for LTTng events and disabling logging")
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_LTTNG -DQUIC_LOGS_STUB")
     else()
-        message(STATUS "Disabling events and logging")
+        message(STATUS "Disabling tracing")
+        set(CMAKE_CLOG_CONFIG_PROFILE stubs)
         set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_STUB")
         list(APPEND CLANG_GCC_WARNING_FLAGS -Wno-unused-parameter -Wno-unused-variable)
     endif()
@@ -249,7 +266,10 @@ else()
     set(QUIC_CXX_FLAGS "${QUIC_COMMON_FLAGS} -std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format")
 endif()
 
+include_directories(${QUIC_BUILD_DIR}/inc)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
+include_directories(${CLOG_INCLUDE_DIRECTORY})
+include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY})
 
 if(QUIC_TLS STREQUAL "openssl")
     # Configure and build OpenSSL.

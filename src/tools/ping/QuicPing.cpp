@@ -194,6 +194,10 @@ ParseCommonCommands(
     PingConfig.MaxBytesPerKey = UINT64_MAX;
     TryGetValue(argc, argv, "key_bytes", &PingConfig.MaxBytesPerKey);
 
+    uint32_t connections = PingConfig.ConnectionCount;
+    TryGetValue(argc, argv, "connections", &connections);
+    PingConfig.ConnectionCount = connections;
+
     //
     // Initialize internal memory structures based on the configuration.
     //
@@ -282,6 +286,7 @@ ParseServerCommand(
         }
     }
 
+    PingConfig.ConnectionCount = 0;
     ParseCommonCommands(argc, argv);
     QuicPingServerRun();
 
@@ -332,14 +337,11 @@ ParseClientCommand(
 
     TryGetValue(argc, argv, "resume", &PingConfig.Client.ResumeToken);
 
-    uint32_t connections = DEFAULT_CLIENT_CONNECTION_COUNT;
-    TryGetValue(argc, argv, "connections", &connections);
-    PingConfig.Client.ConnectionCount = connections;
-
     uint32_t waitTimeout = DEFAULT_WAIT_TIMEOUT;
     TryGetValue(argc, argv, "wait", &waitTimeout);
     PingConfig.Client.WaitTimeout = waitTimeout;
 
+    PingConfig.ConnectionCount = DEFAULT_CLIENT_CONNECTION_COUNT;
     ParseCommonCommands(argc, argv);
     QuicPingClientRun();
 }

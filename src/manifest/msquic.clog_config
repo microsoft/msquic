@@ -1,0 +1,82 @@
+{
+  "MacroConfigurations": {
+    "lttng_plus": {
+      "Modules": [
+        {
+          "ExportModule": "LTTNG",
+          "CustomSettings": {}
+        }
+      ]
+    },
+    "empty": {
+      "Modules": []
+    },
+    "etw_only": {
+      "Modules": [
+        {
+          "ExportModule": "MANIFESTED_ETW",
+          "CustomSettings": {
+            "ETWManifestFile": "MsQuicEtw.man",
+            "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+            "Level": "win:Informational",
+            "Keywords": "ut:Connection ut:LowVolume"
+          }
+        }
+      ]
+    },
+    "etw_plus": {
+      "Modules": [
+        {
+          "ExportModule": "MANIFESTED_ETW",
+          "CustomSettings": {
+            "ETWManifestFile": "MsQuicEtw.man",
+            "ETW_Provider": "ff15e657-4f26-570e-88ab-0796b258d11c",
+            "Level": "win:Informational",
+            "Keywords": "ut:Connection ut:LowVolume"
+          }
+        }
+      ]
+    }
+  },
+  "Version": 1,
+  "CustomTypeClogCSharpFile": "msquic.clog.cs",
+  "TypeEncoders": {
+    "Version": 0,
+    "TypeEncoder": [
+      {
+        "EncodingType": "ByteArray",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!SOCKADDR!",
+        "CustomDecoder": "msquic.clog_config.Types.QUIC_IP_ADDR"
+      },
+      {
+        "EncodingType": "ByteArray",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!IPV4ADDR!",
+        "CustomDecoder": "msquic.clog_config.Types.QUIC_IP_ADDR"
+      },
+      {
+        "EncodingType": "ByteArray",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!IPV6ADDR!",
+        "CustomDecoder": "msquic.clog_config.Types.QUIC_IP_ADDR"
+      },
+      {
+        "EncodingType": "ByteArray",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!CID!",
+        "CustomDecoder": "msquic.clog_config.Types.DecodeCID"
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "CLOG_UINT32",
+        "DefinationEncoding": "03u"
+      }
+    ]
+  },
+  "SourceCodeMacros": [
+  ],
+  "ChainedConfigFiles": [
+    "../../submodules/clog/inc/defaults.clog_config"
+  ]
+}

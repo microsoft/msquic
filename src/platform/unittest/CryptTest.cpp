@@ -10,6 +10,9 @@
 #include "quic_tls.h"
 
 #include "msquichelper.h"
+#ifdef QUIC_CLOG
+#include "CryptTest.cpp.clog.h"
+#endif
 
 #ifndef QUIC_TLS_STUB
 

@@ -12,6 +12,9 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#ifdef QUIC_CLOG
+#include "binding.c.clog.h"
+#endif
 
 //
 // Make sure we will always have enough room to fit our Version Negotiation packet,
