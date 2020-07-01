@@ -17,7 +17,10 @@ param (
     [string]$TestsFile = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$RemoteAddressPair = "User@172.21.202.141"
+    [string]$Remote = "User@172.29.119.234",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SkipDeploy
 )
 
 Set-StrictMode -Version 'Latest'
@@ -41,13 +44,15 @@ if ($TestsFile -eq "") {
 }
 
 
-$session = New-PSSession -HostName "$RemoteAddressPair"
+$session = New-PSSession -HostName "$Remote"
 
 $RemoteAddress = $session.ComputerName
 
 if ($null -eq $session) {
     exit
 }
+
+Write-Host "Connected to: $RemoteAddress"
 
 
 $RemotePlatform = Invoke-Command -Session $session -ScriptBlock { 
@@ -71,11 +76,18 @@ function Start-Remote {
 
 function WaitFor-Remote-Ready {
     param ($Job, $Matcher)
+    $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
     while ($true) {
         $CurrentResults = Receive-Job -Job $Job -Keep
         if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
-            Write-Host $CurrentResults
-            break;
+            $DidMatch = $CurrentResults -match $Matcher
+            if ($DidMatch) {
+                return $true
+            }
+        }
+        Start-Sleep -Seconds 0.1 | Out-Null
+        if ($StopWatch.ElapsedMilliseconds -gt 10000) {
+            return $false
         }
     }
 }
@@ -221,7 +233,34 @@ function RunRemote-Exe2 {
         $pinfo.Arguments = $Using:RunArgs
         $Process = New-Object System.Diagnostics.Process
         $Process.StartInfo = $pinfo
+
+        Write-Host $Using:Exe
+        Write-Host $Using:RunArgs
+
+        $StringBuilder = [System.Text.StringBuilder]::new();
+        $WriteCount = 0;
+        
+
+        $OutEvent = Register-ObjectEvent -InputObject $Process -EventName 'OutputDataReceived' -Action {
+            param
+            (
+                [System.Object] $sender,
+                [System.Diagnostics.DataReceivedEventArgs] $e
+            )
+            Write-Host "Received Event"
+            [System.Threading.Monitor]::Enter($StringBuilder)
+            try {
+                $StringBuilder.Append($e.Data);    
+                $WriteCount++;
+            } finally {
+                [System.Threading.Monitor]::Exit($StringBuilder)
+            }
+            
+        }
+
         $Process.Start() | Out-Null
+        $Process.BeginOutputReadLine()
+
         return $Process
     }
 
@@ -276,15 +315,37 @@ function Run-Test {
 
     $LocalArguments = $Test.Local.Arguments.Replace('$RemoteAddress', $RemoteAddress)
 
-    $RemoteJob = RunRemote-Exe2 -Exe $RemoteExe -RunArgs $Test.Remote.Arguments
+    $RemoteJob = RunRemote-Exe -Exe $RemoteExe -RunArgs $Test.Remote.Arguments
 
-    Start-Sleep 3
+    $ReadyToStart = WaitFor-Remote-Ready -Job $RemoteJob 
+
+    if (!$ReadyToStart) {
+        Write-Host "Test Remote for $Test failed to start"
+        Stop-Job -Job $Job
+        return
+    }
+
+    # Start-Sleep 3
 
     # Invoke-Command -Session $session -ScriptBlock {
     #     Write-Host $Process.StandardOutput.ReadLine()
     # }
 
+    # $Vdd = Invoke-Command -Session $session -ScriptBlock {
+    #     [System.Threading.Monitor]::Enter($StringBuilder)
+    #     try {
+    #         Write-Host $StringBuilder.Length
+    #         Write-Host $WriteCount
+    #         return $StringBuilder.ToString()
+    #     } finally {
+    #         [System.Threading.Monitor]::Exit($StringBuilder)
+    #     }
+    # }
+
+    # Write-Host $Vdd
+
     # TODO figure out streaming output from remote jobs
+
     #WaitFor-Remote-Ready -Job $RemoteJob
 
     $AllRunsResults = @()
@@ -301,9 +362,7 @@ function Run-Test {
         $LocalResults | Write-Debug
     }
 
-    $RemoteResults =  Invoke-Command -Session $session -ScriptBlock { # WaitFor-Remote -Job $RemoteJob
-        return $Process.StandardOutput.ReadToEnd()
-    }
+    $RemoteResults = WaitFor-Remote -Job $RemoteJob
 
     $Platform = $Test.ToString()
 
@@ -333,7 +392,9 @@ function Check-Test {
 try {
     $Tests = [TestDefinition[]](Get-Content -Path $TestsFile | ConvertFrom-Json)
 
-    #Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory
+    if (!$SkipDeploy) {
+        Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory
+    }
 
     foreach ($Test in $Tests) {
         if (Check-Test -Test $Test) {

@@ -165,6 +165,10 @@ void QuicPingServerRun()
             }
             Server.Tracker.Start();
             printf("Ready For Connections!\n\n");
+            //
+            // An explicit flush is needed in order to be detected in real time by the test runner
+            //
+            fflush(stdout);
             Server.Tracker.WaitForever();
         } else {
             printf("Press Enter to exit.\n\n");
