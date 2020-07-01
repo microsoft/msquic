@@ -10,6 +10,9 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#ifdef QUIC_CLOG
+#include "TestConnection.cpp.clog.h"
+#endif
 
 TestConnection::TestConnection(
     _In_ HQUIC Handle,

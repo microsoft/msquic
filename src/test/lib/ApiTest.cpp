@@ -10,6 +10,9 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#ifdef QUIC_CLOG
+#include "ApiTest.cpp.clog.h"
+#endif
 
 #pragma warning(disable:6387)  // '_Param_(1)' could be '0':  this does not adhere to the specification for the function
 

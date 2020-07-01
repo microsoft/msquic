@@ -10,6 +10,9 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#ifdef QUIC_CLOG
+#include "HandshakeTest.cpp.clog.h"
+#endif
 
 QUIC_TEST_DATAPATH_HOOKS DatapathHooks::FuncTable = {
     DatapathHooks::ReceiveCallback,

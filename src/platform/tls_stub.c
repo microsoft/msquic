@@ -10,6 +10,9 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
+#ifdef QUIC_CLOG
+#include "tls_stub.c.clog.h"
+#endif
 
 uint16_t QuicTlsTPHeaderSize = 0;
 

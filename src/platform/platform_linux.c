@@ -23,6 +23,9 @@ Environment:
 #include <syslog.h>
 #include "quic_trace.h"
 #include "quic_platform_dispatch.h"
+#ifdef QUIC_CLOG
+#include "platform_linux.c.clog.h"
+#endif
 
 #define QUIC_MAX_LOG_MSG_LEN        1024 // Bytes
 
