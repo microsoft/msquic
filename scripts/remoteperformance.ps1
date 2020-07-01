@@ -6,6 +6,18 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Config
     Specifies the build configuration to use.
 
+.PARAMETER TestsFile
+    Explcitly specifes a test file to run
+
+.PARAMETER Remote
+    The remote to connect to. Must have ssh remoting enabled, and public key auth. username@ip
+
+.PARAMETER SkipDeploy
+    Set flag to skip deploying test files
+
+.PARAMETER Publish
+    Publishes the results to the artifacts directory.
+
 #>
 
 param (
@@ -20,7 +32,10 @@ param (
     [string]$Remote = "User@172.29.119.234",
 
     [Parameter(Mandatory = $false)]
-    [switch]$SkipDeploy
+    [switch]$SkipDeploy = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Publish = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -53,6 +68,9 @@ if ($null -eq $session) {
 }
 
 Write-Host "Connected to: $RemoteAddress"
+
+$OutputDir = Join-Path $RootDir "artifacts/PerfDataResults"
+New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
 
 $RemotePlatform = Invoke-Command -Session $session -ScriptBlock { 
@@ -130,7 +148,36 @@ class TestDefinition {
                                          $this.Remote.Arch
                                          )
     }
+
+    [string]ToStringWithoutName() {
+        return ("{0}_{1}_{2}_{3}_{4}_{5}" -f $this.Local.Platform, 
+                                         $this.Local.Tls,
+                                         $this.Local.Arch,
+                                         $this.Remote.Platform,
+                                         $this.Remote.Tls,
+                                         $this.Remote.Arch
+                                         )
+    }
 }
+
+class TestPublishResult {
+    [string]$PlatformName
+    [string]$TestName
+    [string]$CommitHash
+    [double[]]$IndividualRunResults
+}
+
+$currentLoc = Get-Location
+Set-Location -Path $RootDir
+$env:GIT_REDIRECT_STDERR = '2>&1'
+$CurrentCommitHash = $null
+try {
+    $CurrentCommitHash = git rev-parse HEAD
+} catch {
+    Write-Debug "Failed to get commit hash from git"
+}
+Set-Location -Path $currentLoc
+
 
 function GetExe-Name {
     param($PathRoot, $Platform, $IsRemote, $TestPlat)
@@ -189,7 +236,7 @@ function RunRemote-Exe {
             $env:LD_LIBRARY_PATH = $Using:BasePath
         }
         
-        return Invoke-Expression "$Using:Exe $Using:RunArgs"
+        & $Using:Exe ($Using:RunArgs).Split(" ")
     } -AsJob
 }
 
@@ -201,7 +248,7 @@ function RunLocal-Exe {
         $env:LD_LIBRARY_PATH = $BasePath
         chmod +x $Exe | Out-Null
     }
-    return Invoke-Expression "$Exe $RunArgs"
+    return (Invoke-Expression "$Exe $RunArgs") -join "`n"
 }
 
 function Run-Test {
@@ -255,7 +302,7 @@ function Run-Test {
 
     $RemoteResults = WaitFor-Remote -Job $RemoteJob
 
-    $Platform = $Test.ToString()
+    $Platform = $Test.ToStringWithoutName()
 
     # Print current and latest master results to console.
     $MedianCurrentResult = Median-Test-Results -FullResults $AllRunsResults
@@ -273,6 +320,20 @@ function Run-Test {
         Write-Host "Median: $MedianCurrentResult kbps"
     }
     Write-Debug $RemoteResults.ToString()
+
+    if ($Publish -and ($CurrentCommitHash -ne $null)) {
+        Write-Host "Saving results.json out for publishing."
+        $Results = [TestPublishResult]::new()
+        $Results.CommitHash = $CurrentCommitHash.Substring(0, 7)
+        $Results.PlatformName = $Platform
+        $Results.TestName = $Test.TestName
+        $Results.IndividualRunResults = $allRunsResults
+
+        $ResultFile = Join-Path $OutputDir "results_$Test.json"
+        $Results | ConvertTo-Json | Out-File $ResultFile
+    } elseif ($Publish -and ($CurrentCommitHash -eq $null)) {
+        Write-Debug "Failed to publish because of missing commit hash"
+    }
 }
 
 function Check-Test {
