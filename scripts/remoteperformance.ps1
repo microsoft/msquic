@@ -381,7 +381,9 @@ function RunLocal-Exe {
 function Run-Test {
     param($Test)
 
-    Write-Host "Running Test $Test"
+    $TestFullName = $Test.ToTestPlatformStringWithTestName()
+
+    Write-Host "Running Test $TestFullName"
 
     $RemoteExe = GetExe-Name -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $Test.Remote
     $LocalExe = GetExe-Name -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local
@@ -455,7 +457,6 @@ function Run-Test {
         Write-Host "Median: $MedianCurrentResult kbps"
     }
     
-
     if ($Publish -and ($CurrentCommitHash -ne $null)) {
         Write-Host "Saving results.json out for publishing."
         $Results = [TestPublishResult]::new()
@@ -463,8 +464,8 @@ function Run-Test {
         $Results.PlatformName = $Platform
         $Results.TestName = $Test.TestName
         $Results.IndividualRunResults = $allRunsResults
-        $TestFileName = $Test.ToTestPlatformStringWithTestName()
-        $ResultFile = Join-Path $OutputDir "results_$TestFileName.json"
+        
+        $ResultFile = Join-Path $OutputDir "results_$TestFullName.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
     } elseif ($Publish -and ($CurrentCommitHash -eq $null)) {
         Write-Debug "Failed to publish because of missing commit hash"
