@@ -399,8 +399,8 @@ function Run-Test {
 
     if (!$ReadyToStart) {
         Write-Host "Test Remote for $Test failed to start"
-        Stop-Job -Job $RemoteJob
-        return
+        #Stop-Job -Job $RemoteJob
+        #return
     }
 
     $AllRunsResults = @()
