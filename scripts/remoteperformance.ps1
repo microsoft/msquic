@@ -128,13 +128,13 @@ if ($Local) {
 
     if ($MatchedIPs.Length -ne 1) {
         Write-Host "Failed to parse local address"
-        $LocalIpAddress = "127.0.0.1"
+        $LocalAddress = "127.0.0.1"
     } else {
-        $LocalIpAddress = $MatchedIPs[0]
+        $LocalAddress = $MatchedIPs[0]
     }
 
     Write-Host "Connected to: $RemoteAddress"
-    Write-Host "Local IP Connection $LocalIpAddress" 
+    Write-Host "Local IP Connection $LocalAddress" 
 }
 
 function Invoke-Test-Command {
@@ -375,6 +375,7 @@ function Run-Test {
     }
 
     $LocalArguments = $Test.Local.Arguments.Replace('$RemoteAddress', $RemoteAddress)
+    $LocalArguments = $Test.Local.Arguments.Replace('$LocalAddress', $LocalAddress)
 
     $RemoteJob = RunRemote-Exe -Exe $RemoteExe -RunArgs $Test.Remote.Arguments
 
