@@ -6,7 +6,11 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Config
     Specifies the build configuration to use.
 
-# TODO Add LocalTls and RemoteTls flags
+.PARAMETER LocalArch
+    Specifies what the local arch is
+
+.PARAMETER RemoteArch
+    Specifies what the remote arch is
 
 .PARAMETER LocalTls
     Specifies what local TLS provider to use
@@ -86,8 +90,6 @@ if ($IsWindows) {
 if ($TestsFile -eq "") {
     $TestsFile = Join-Path $PSScriptRoot "RemoteTests.json"
 }
-
-# -ComputerName
 
 function HostToNetworkOrder {
     param($Address)
@@ -257,11 +259,11 @@ class TestDefinition {
 
     [string]ToTestPlatformString() {
         return ("{0}_{1}_{2}_{3}_{4}_{5}" -f $this.Local.Platform, 
-                                         $global:LocalTls,
-                                         $global:LocalArch,
+                                         $script:LocalTls,
+                                         $script:LocalArch,
                                          $this.Remote.Platform,
-                                         $global:RemoteTls,
-                                         $global:RemoteArch
+                                         $script:RemoteTls,
+                                         $script:RemoteArch
                                          )
     }
 }
@@ -401,8 +403,8 @@ function Run-Test {
 
     if (!$ReadyToStart) {
         Write-Host "Test Remote for $Test failed to start"
-        #Stop-Job -Job $RemoteJob
-        #return
+        Stop-Job -Job $RemoteJob
+        return
     }
 
     $AllRunsResults = @()
