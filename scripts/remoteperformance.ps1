@@ -266,6 +266,17 @@ class TestDefinition {
                                          $script:RemoteArch
                                          )
     }
+
+    [string]ToTestPlatformStringWithTestName() {
+        return ("{0}_{1}_{2}_{3}_{4}_{5}_{6}" -f $this.TestName,
+                                        $this.Local.Platform, 
+                                        $script:LocalTls,
+                                        $script:LocalArch,
+                                        $this.Remote.Platform,
+                                        $script:RemoteTls,
+                                        $script:RemoteArch
+                                        )
+    }
 }
 
 class TestPublishResult {
@@ -452,8 +463,8 @@ function Run-Test {
         $Results.PlatformName = $Platform
         $Results.TestName = $Test.TestName
         $Results.IndividualRunResults = $allRunsResults
-
-        $ResultFile = Join-Path $OutputDir "results_$Test.json"
+        $TestFileName = $Test.ToTestPlatformStringWithTestName()
+        $ResultFile = Join-Path $OutputDir "results_$TestFileName.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
     } elseif ($Publish -and ($CurrentCommitHash -eq $null)) {
         Write-Debug "Failed to publish because of missing commit hash"
