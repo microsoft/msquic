@@ -25,6 +25,9 @@ Environment:
 #include <sys/event.h>
 #include <sys/time.h>
 
+#ifdef QUIC_CLOG
+#include "datapath_kqueue.c.clog.h"
+#endif
 
 #define QUIC_MAX_BATCH_SEND                 10
 
@@ -369,7 +372,7 @@ QuicSocketContextRecvComplete(
     QUIC_ADDR* LocalAddr = &RecvPacket->Tuple->LocalAddress;
     QUIC_ADDR* RemoteAddr = &RecvPacket->Tuple->RemoteAddress;
    // QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
-   
+
     //LocalAddr->Ip.sa_family = AF_INET6;
 
     struct cmsghdr *CMsg;
@@ -461,7 +464,7 @@ QuicSocketContextUninitializeComplete(
 }
 
 void QuicSocketContextSendPending(
-    _In_ QUIC_SOCKET_CONTEXT *SocketContext, 
+    _In_ QUIC_SOCKET_CONTEXT *SocketContext,
     _In_ QUIC_DATAPATH_PROC_CONTEXT *ProcContext) {
 
     if (SocketContext->SendWaiting) {
@@ -472,7 +475,7 @@ void QuicSocketContextSendPending(
         // This is .. funky?
         // It seems possible that this will queue up the send again and we'll
         // just spin until the kernel accepts it...
-        
+
         QUIC_DATAPATH_SEND_CONTEXT* SendContext =
             QUIC_CONTAINING_RECORD(
                 QuicListRemoveHead(&SocketContext->PendingSendContextHead),
@@ -497,9 +500,9 @@ void QuicSocketContextSendPending(
 }
 
 void QuicSocketContextProcessEvent(QUIC_DATAPATH_PROC_CONTEXT *ProcContext, struct kevent *Event) {
-    //printf("[kevent] ident = %zd\t\tfilter = %hu\tflags = %hd\tfflags = %d\tdata = %zd\tudata = %p\n", 
-    //        Event->ident, Event->filter, 
-    //        Event->flags, Event->fflags, 
+    //printf("[kevent] ident = %zd\t\tfilter = %hu\tflags = %hd\tfflags = %d\tdata = %zd\tudata = %p\n",
+    //        Event->ident, Event->filter,
+    //        Event->flags, Event->fflags,
     //        Event->data,  Event->udata);
 
     QUIC_DBG_ASSERT(Event->filter & (EVFILT_READ | EVFILT_WRITE | EVFILT_USER));
@@ -531,7 +534,7 @@ QuicDataPathWorkerThread(
     QUIC_DATAPATH_PROC_CONTEXT* ProcContext = (QUIC_DATAPATH_PROC_CONTEXT*)Context;
     QUIC_DBG_ASSERT(ProcContext != NULL && ProcContext->Datapath != NULL);
     struct kevent EventList[32];
-    int Kqueue = ProcContext->KqueueFd; 
+    int Kqueue = ProcContext->KqueueFd;
 
     while (TRUE) {
         int EventCount = kevent(Kqueue, NULL, 0, EventList, 32, NULL);
@@ -539,7 +542,7 @@ QuicDataPathWorkerThread(
         if (ProcContext->Datapath->Shutdown) break;
 
         QUIC_DBG_ASSERT(EventCount > 0);
-        
+
         for (int i = 0; i < EventCount; i++) {
             QuicSocketContextProcessEvent(ProcContext, &EventList[i]);
         }
@@ -643,7 +646,7 @@ QuicDataPathInitialize(
 
     QUIC_DATAPATH *Datapath = (QUIC_DATAPATH *)QUIC_ALLOC_PAGED(DatapathObjectSize);
     // Should this be QUIC_ALLOC_PAGED? this is usermode? QUIC_ALLOC instead?
-    
+
     if (Datapath == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -660,7 +663,7 @@ QuicDataPathInitialize(
     Datapath->UnreachableHandler = UnreachableCallback;
     Datapath->ClientRecvContextLength = ClientRecvContextLength;
     Datapath->ProcCount = 1;
-    
+
     // Using kqueue so batch UDP sending is enabled
     Datapath->MaxSendBatchSize = QUIC_MAX_BATCH_SEND;
     QuicRundownInitialize(&Datapath->BindingsRundown);
@@ -925,7 +928,7 @@ QuicSocketContextInitialize(
         AddrSize = sizeof(struct sockaddr_in6);
 
         Option = TRUE;
-        Result = 
+        Result =
             setsockopt(SocketContext->SocketFd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &Option, sizeof(Option));
         Option = TRUE;
         Result =
@@ -983,7 +986,7 @@ QuicSocketContextInitialize(
             SocketContext->SocketFd,
             (const struct sockaddr *)&Binding->LocalAddress,
             AddrSize);
-    
+
     if (Result == SOCKET_ERROR) {
         Status = errno;
         QuicTraceEvent(
@@ -1209,7 +1212,7 @@ QuicDataPathBindingCreate(
         memcpy(&Binding->LocalAddress, LocalAddress, sizeof(QUIC_ADDR));
         //QuicConvertToMappedV6(LocalAddress, &Binding->LocalAddress);
     } else if (RemoteAddress) {
-        // We have no local address, but we have a remote address. 
+        // We have no local address, but we have a remote address.
         // Let's match up AF types with the remote.
         Binding->LocalAddress.Ip.sa_family = RemoteAddress->Ip.sa_family;
     } else {
@@ -1296,7 +1299,7 @@ void QuicSocketContextUninitialize(
     // explicit CLOSE message to the worker thread, but for now, any
     // EVFILT_USER event is a shutdown.
     // shutdown(SocketContext->SocketFd, SHUT_RDWR);
-    
+
     struct kevent EvSet[2] = { };
     EV_SET(&EvSet[0], SocketContext->SocketFd, EVFILT_USER, EV_ADD | EV_CLEAR, NOTE_TRIGGER, 0, (void *)SocketContext);
     EV_SET(&EvSet[1], SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, (void *)SocketContext);
@@ -1401,7 +1404,7 @@ QuicDataPathBindingAllocSendContext(
     _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ uint16_t MaxPacketSize
     )
-{ 
+{
     UNREFERENCED_PARAMETER(MaxPacketSize);
     QUIC_DBG_ASSERT(Binding != NULL);
 
@@ -1434,7 +1437,7 @@ void
 QuicDataPathBindingFreeSendContext(
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
     )
-{ 
+{
     size_t i = 0;
     for (i = 0; i < SendContext->BufferCount; ++i) {
         QuicPoolFree(
@@ -1505,7 +1508,7 @@ QuicDataPathBindingFreeSendDatagram(
     _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
     _In_ QUIC_BUFFER* SendDatagram
     )
-{ 
+{
     QUIC_FRE_ASSERT(FALSE);
 }
 
@@ -1546,10 +1549,10 @@ QuicSocketContextPendSend(
         //
         // Or we could do some mix of both, and try to recognize how often
         // we're missing writes or re-pending writes.
-        
+
         // For now, we'll do the most naïve thing, and oneshot it everytime we
         // hit this function.
-        
+
         struct kevent Event = { };
         EV_SET(&Event, SocketContext->SocketFd, EVFILT_WRITE, EV_ADD | EV_ONESHOT, 0, 0, (void *)SocketContext);
         kevent(ProcContext->KqueueFd, &Event, 1, NULL, 0, NULL);

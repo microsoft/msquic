@@ -22,7 +22,7 @@ Environment:
 #include <arpa/inet.h>
 #include "quic_platform_dispatch.h"
 #ifdef QUIC_CLOG
-#include "datapath_linux.c.clog.h"
+#include "datapath_epoll.c.clog.h"
 #endif
 
 QUIC_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t)), "(sizeof(QUIC_BUFFER.Length) == sizeof(size_t) must be TRUE.");
