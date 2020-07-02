@@ -3,15 +3,15 @@
         "TestName": "Throughput",
         "Remote" : {
             "Platform": "Windows",
-            "Tls": "stub",
-            "Arch": "x64",
+            "Tls": ["stub", "schannel", "mitls"],
+            "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicping",
             "Arguments": "-listen:* -port:4433 -selfsign:1 -peer_uni:1 -connections:10"
         },
         "Local" : {
             "Platform": "Windows",
-            "Tls": "stub",
-            "Arch": "x64",
+            "Tls": ["stub", "schannel", "mitls"],
+            "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicping",
             "Arguments": "-target:$RemoteAddress -sendbuf:0 -bind:$LocalAddress:4434 -ip:4 -core:0 -port:4433 -uni:1 -length:2000000000"
         },
@@ -23,15 +23,15 @@
         "TestName": "Throughput",
         "Remote" : {
             "Platform": "Linux",
-            "Tls": "stub",
-            "Arch": "x64",
+            "Tls": ["stub", "openssl"],
+            "Arch": ["x64", "arm"],
             "Exe": "quicping",
             "Arguments": "-listen:* -port:4433 -selfsign:1 -peer_uni:1 -connections:10"
         },
         "Local" : {
             "Platform": "Windows",
-            "Tls": "stub",
-            "Arch": "x64",
+            "Tls": ["stub", "schannel", "mitls"],
+            "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicping",
             "Arguments": "-target:$RemoteAddress -sendbuf:0 -port:4433 -uni:1 -length:2000000000"
         },

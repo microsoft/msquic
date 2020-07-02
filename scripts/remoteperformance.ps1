@@ -8,6 +8,12 @@ This script runs performance tests locally for a period of time.
 
 # TODO Add LocalTls and RemoteTls flags
 
+.PARAMETER LocalTls
+    Specifies what local TLS provider to use
+
+.PARAMETER RemoteTls
+    Specifies what remote TLS provider to use
+
 .PARAMETER TestsFile
     Explcitly specifes a test file to run
 
@@ -35,6 +41,18 @@ param (
 
     [Parameter(Mandatory = $false)]
     [string]$Remote = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$LocalArch = "x64",
+
+    [Parameter(Mandatory = $false)]
+    [string]$LocalTls = "stub",
+
+    [Parameter(Mandatory = $false)]
+    [string]$RemoteArch = "x64",
+    
+    [Parameter(Mandatory = $false)]
+    [string]$RemoteTls = "stub",
 
     [Parameter(Mandatory = $false)]
     [string]$WinRMUser = "",
@@ -218,8 +236,8 @@ function Copy-Artifacts {
 
 class ExecutableSpec {
     [string]$Platform;
-    [string]$Tls;
-    [string]$Arch;
+    [string[]]$Tls;
+    [string[]]$Arch;
     [string]$Exe;
     [string]$Arguments;
 }
@@ -233,23 +251,19 @@ class TestDefinition {
     [string]$ResultsMatcher;
 
     [string]ToString() {
-        return ("{0}_{1}_{2}_{3}_{4}_{5}_{6}" -f $this.TestName, 
+        return ("{0}_{1}_{2}" -f $this.TestName, 
                                          $this.Local.Platform, 
-                                         $this.Local.Tls,
-                                         $this.Local.Arch,
-                                         $this.Remote.Platform,
-                                         $this.Remote.Tls,
-                                         $this.Remote.Arch
+                                         $this.Remote.Platform
                                          )
     }
 
-    [string]ToStringWithoutName() {
+    [string]ToTestPlatformString() {
         return ("{0}_{1}_{2}_{3}_{4}_{5}" -f $this.Local.Platform, 
-                                         $this.Local.Tls,
-                                         $this.Local.Arch,
+                                         $global:LocalTls,
+                                         $global:LocalArch,
                                          $this.Remote.Platform,
-                                         $this.Remote.Tls,
-                                         $this.Remote.Arch
+                                         $global:RemoteTls,
+                                         $global:RemoteArch
                                          )
     }
 }
@@ -280,11 +294,13 @@ function GetExe-Name {
         $ExeName += ".exe"
     }
 
-    $ConfigStr = "$($TestPlat.Arch)_$($Config)_$($TestPlat.Tls)"
+    
 
     if ($IsRemote) {
+        $ConfigStr = "$($RemoteArch)_$($Config)_$($RemoteTls)"
         return Invoke-Test-Command -Session $session -ScriptBlock { param($PathRoot, $Platform, $ConfigStr, $ExeName) Join-Path $PathRoot $Platform $ConfigStr $ExeName  } -ArgumentList $PathRoot, $Platform, $ConfigStr, $ExeName
     } else {
+        $ConfigStr = "$($LocalArch)_$($Config)_$($LocalTls)"
         return Join-Path $PathRoot $Platform $ConfigStr $ExeName
     }
 }
@@ -383,7 +399,7 @@ function Run-Test {
 
     if (!$ReadyToStart) {
         Write-Host "Test Remote for $Test failed to start"
-        Stop-Job -Job $Job
+        Stop-Job -Job $RemoteJob
         return
     }
 
@@ -403,7 +419,7 @@ function Run-Test {
 
     $RemoteResults = WaitFor-Remote -Job $RemoteJob
 
-    $Platform = $Test.ToStringWithoutName()
+    $Platform = $Test.ToTestPlatformString()
 
     # Print current and latest master results to console.
     $MedianCurrentResult = Median-Test-Results -FullResults $AllRunsResults
@@ -438,8 +454,18 @@ function Run-Test {
 }
 
 function Check-Test {
-    param($Test)
-    return ($Test.Local.Platform -eq $LocalPlatform) -and ($Test.Remote.Platform -eq $RemotePlatform)
+    param([TestDefinition]$Test)
+    $PlatformCorrect = ($Test.Local.Platform -eq $LocalPlatform) -and ($Test.Remote.Platform -eq $RemotePlatform)
+    if (!$PlatformCorrect) {
+        return $false
+    }
+    if (!$Test.Local.Tls.Contains($LocalTls)) {
+        return $false
+    }
+    if (!$Test.Remote.Tls.Contains($RemoteTls)) {
+        return $false
+    }
+    return $true
 }
 
 try {
