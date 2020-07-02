@@ -10,6 +10,9 @@ Abstract:
 --*/
 
 #include "main.h"
+#ifdef QUIC_CLOG
+#include "PacketNumberTest.cpp.clog.h"
+#endif
 
 struct DecompressEntry {
     uint64_t HighestReceived;

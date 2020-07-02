@@ -10,6 +10,9 @@ Abstract:
 --*/
 
 #include "main.h"
+#ifdef QUIC_CLOG
+#include "RangeTest.cpp.clog.h"
+#endif
 
 struct SmartRange {
     QUIC_RANGE range;

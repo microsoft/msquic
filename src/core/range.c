@@ -11,6 +11,9 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#ifdef QUIC_CLOG
+#include "range.c.clog.h"
+#endif
 
 #define INITIAL_SUBRANGE_COUNT 8
 

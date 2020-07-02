@@ -14,6 +14,9 @@ Environment:
 --*/
 
 #include "platform_internal.h"
+#ifdef QUIC_CLOG
+#include "platform_winuser.c.clog.h"
+#endif
 
 uint64_t QuicPlatformPerfFreq;
 uint64_t QuicTotalMemory;

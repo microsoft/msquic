@@ -10,6 +10,9 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#ifdef QUIC_CLOG
+#include "TestStream.cpp.clog.h"
+#endif
 
 TestStream::TestStream(
     _In_ HQUIC Handle,

@@ -10,6 +10,9 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
+#ifdef QUIC_CLOG
+#include "tls_mitls.c.clog.h"
+#endif
 
 #define IS_WINDOWS 1
 #pragma warning(disable:4996) // Deprecated APIs

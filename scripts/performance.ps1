@@ -27,6 +27,9 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Record
     Records the run to collect performance information for analysis.
 
+.PARAMETER SkipAPIPA
+    Skip setting the APIPA Settings.
+
 #>
 
 param (
@@ -55,7 +58,10 @@ param (
     [switch]$PGO = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Record = $false
+    [switch]$Record = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SkipAPIPA = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -100,8 +106,8 @@ if ($IsWindows) {
 }
 
 # QuicPing arguments
-$ServerArgs = "-listen:* -port:4433 -selfsign:1 -peer_uni:1"
-$ClientArgs = "-target:localhost -port:4433 -uni:1 -length:$Length"
+$ServerArgs = "-listen:* -port:4433 -selfsign:1 -peer_uni:1 -connections:$Runs"
+$ClientArgs = "-target:localhost -port:4433 -sendbuf:0 -uni:1 -length:$Length"
 if ($IsWindows) {
     # Always use the same local address and core to provide more consistent results.
     $ClientArgs += " -bind:127.0.0.1:4434 -ip:4 -core:0"
@@ -128,6 +134,9 @@ $WpaStackWalkProfileXml = `
     </SystemCollector>
     <SystemProvider Id="SP_CPU">
       <Keywords>
+        <Keyword Value="CpuConfig"/>
+        <Keyword Value="Loader"/>
+        <Keyword Value="ProcessThread"/>
         <Keyword Value="SampledProfile"/>
       </Keywords>
       <Stacks>
@@ -155,7 +164,6 @@ function Start-Background-Executable($File, $Arguments) {
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     $pinfo.FileName = $File
     $pinfo.RedirectStandardOutput = $true
-    $pinfo.RedirectStandardInput = $true
     $pinfo.UseShellExecute = $false
     $pinfo.Arguments = $Arguments
     $p = New-Object System.Diagnostics.Process
@@ -165,8 +173,6 @@ function Start-Background-Executable($File, $Arguments) {
 }
 
 function Stop-Background-Executable($Process) {
-    $Process.StandardInput.WriteLine("")
-    $Process.StandardInput.Flush()
     if (!$Process.WaitForExit(2000)) {
         $Process.Kill()
         Write-Debug "Server Failed to Exit"
@@ -241,6 +247,18 @@ function Run-Loopback-Test() {
     $LoopbackOutputDir = Join-Path $OutputDir "loopback"
     New-Item $LoopbackOutputDir -ItemType Directory -Force | Out-Null
 
+    $apipaInterfaces = $null
+    Write-Host $SkipAPIPA
+    if ($IsWindows -and !$SkipAPIPA) {
+        $apipaAddr = Get-NetIPAddress 169.254.*
+        if ($null -ne $apipaAddr) {
+            # Disable all the APIPA interfaces for URO perf.
+            Write-Debug "Temporarily disabling APIPA interfaces"
+            $apipaInterfaces = (Get-NetAdapter -InterfaceIndex $apipaAddr.InterfaceIndex) | where {$_.AdminStatus -eq "Up"}
+            $apipaInterfaces | Disable-NetAdapter -Confirm:$false
+        }
+    }
+
     $ServerDir = $Artifacts
     if ($PGO) {
         # PGO needs the server and client executing out of separate directories.
@@ -256,51 +274,62 @@ function Run-Loopback-Test() {
         }
     }
 
-    # Start the server.
-    $proc = Start-Background-Executable -File (Join-Path $ServerDir $QuicPing) -Arguments $ServerArgs
-    Start-Sleep 4
-
     $allRunsResults = @()
     $serverOutput = $null
     try {
-        1..$Runs | ForEach-Object {
-            $clientOutput = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments $ClientArgs
-            $parsedRunResult = Parse-Loopback-Results -Results $clientOutput
-            $allRunsResults += $parsedRunResult
-            if ($PGO) {
-                # Merge client PGO counts.
-                Merge-PGO-Counts $Artifacts
+
+        # Start the server.
+        $proc = Start-Background-Executable -File (Join-Path $ServerDir $QuicPing) -Arguments $ServerArgs
+        Start-Sleep 4
+
+        try {
+            1..$Runs | ForEach-Object {
+                $clientOutput = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments $ClientArgs
+                $parsedRunResult = Parse-Loopback-Results -Results $clientOutput
+                $allRunsResults += $parsedRunResult
+                if ($PGO) {
+                    # Merge client PGO counts.
+                    Merge-PGO-Counts $Artifacts
+                }
+                Write-Host "Run $($_): $parsedRunResult kbps"
+                $clientOutput | Write-Debug
             }
-            Write-Host "Run $($_): $parsedRunResult kbps"
-            $clientOutput | Write-Debug
+
+            # Stop the server.
+            $serverOutput = Stop-Background-Executable -Process $proc
+
+        } catch {
+            if ($Record) {
+                if ($IsWindows) {
+                    wpr.exe -cancel
+                }
+            }
+            Stop-Background-Executable -Process $proc | Write-Host
+            throw
         }
 
-        # Stop the server.
-        $serverOutput = Stop-Background-Executable -Process $proc
+    } finally {
 
-    } catch {
         if ($Record) {
+            # Stop the performance collection.
             if ($IsWindows) {
-                wpr.exe -cancel
+                Write-Host "Saving perf.etl out for publishing."
+                wpr.exe -stop "$(Join-Path $LoopbackOutputDir perf.etl)"
             }
         }
-        Stop-Background-Executable -Process $proc | Write-Host
-        throw
-    }
 
-    if ($Record) {
-        # Stop the performance collection.
-        if ($IsWindows) {
-            Write-Host "Saving perf.etl out for publishing."
-            wpr.exe -stop "$(Join-Path $LoopbackOutputDir perf.etl)"
+        if ($PGO) {
+            # Merge server PGO counts.
+            Merge-PGO-Counts $ServerDir
+            # Clean up server directory.
+            Remove-Item $ServerDir -Recurse -Force | Out-Null
         }
-    }
 
-    if ($PGO) {
-        # Merge server PGO counts.
-        Merge-PGO-Counts $ServerDir
-        # Clean up server directory.
-        Remove-Item $ServerDir -Recurse -Force | Out-Null
+        if ($null -ne $apipaInterfaces) {
+            # Re-enable the interfaces we disabled earlier.
+            Write-Debug "Re-enabling APIPA interfaces"
+            $apipaInterfaces | Enable-NetAdapter
+        }
     }
 
     # Print current and latest master results to console.

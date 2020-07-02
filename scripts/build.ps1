@@ -63,7 +63,7 @@ param (
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("uwp", "windows", "linux")] # For future expansion
+    [ValidateSet("uwp", "windows", "linux", "macos")] # For future expansion
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
@@ -113,8 +113,12 @@ if ("" -eq $Tls) {
 if ("" -eq $Platform) {
     if ($IsWindows) {
         $Platform = "windows"
-    } else {
+    } elseif ($IsLinux) {
         $Platform = "linux"
+    } elseif ($IsMacOS) {
+        $Platform = "macos"
+    } else {
+        Write-Error "Unsupported platform type!"
     }
 }
 
@@ -175,8 +179,10 @@ function CMake-Generate {
             "arm"   { $Arguments += "arm" }
             "arm64" { $Arguments += "arm64" }
         }
-    } else {
+    } elseif ($IsLinux) {
         $Arguments += " 'Linux Makefiles'"
+    } elseif ($IsMacOS) {
+        $Arguments += " 'Unix Makefiles'"
     }
     $Arguments += " -DQUIC_TLS=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=" + $ArtifactsDir
@@ -234,6 +240,12 @@ function CMake-Build {
 
     CMake-Execute $Arguments
 
+    # Copy clog to a common location.
+    $ClogPath = $ArtifactsDir = Join-Path $BaseArtifactsDir "clog"
+    if (!(Test-Path $ClogPath)) {
+        Copy-Item (Join-Path $BuildDir "submodules/clog") -Destination $ClogPath -Recurse
+    }
+
     if ($IsWindows) {
         Copy-Item (Join-Path $BuildDir "obj" $Config "msquic.lib") $ArtifactsDir
         if (!$DisableTools) {
@@ -264,6 +276,13 @@ function CMake-Build {
 ##############################################################
 #                     Main Execution                         #
 ##############################################################
+
+if (!$IsWindows) {
+    # Set Linux env variables to include dotnet.
+    $env:PATH+=":$HOME/.dotnet"
+    $env:PATH+=":$HOME/.dotnet/tools"
+    $env:DOTNET_ROOT="$HOME/.dotnet/"
+}
 
 # Generate the build files.
 Log "Generating files..."

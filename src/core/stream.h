@@ -5,6 +5,10 @@
 
 --*/
 
+#ifdef QUIC_CLOG
+#include "stream.h.clog.h"
+#endif
+
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 
 //

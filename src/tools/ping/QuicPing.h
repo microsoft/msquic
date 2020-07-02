@@ -133,13 +133,14 @@ typedef struct QUIC_PING_CONFIG {
     uint32_t IoSize;
     uint32_t IoCount;
 
+    uint32_t ConnectionCount;
+
     struct {
         bool UseExplicitRemoteAddr : 1;
         const char* Target;         // SNI
         QUIC_ADDR RemoteIpAddr;
         uint32_t Version;           // QUIC protocol version
         const char* ResumeToken;
-        uint32_t ConnectionCount;
         uint32_t WaitTimeout;       // Milliseconds
     } Client;
 

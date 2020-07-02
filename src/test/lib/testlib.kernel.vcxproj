@@ -50,6 +50,7 @@
   <ItemGroup>
     <ClInclude Include="KArray.h" />
     <ClInclude Include="precomp.h" />
+    <ClInclude Include="TestHelpers.h" />
     <ClInclude Include="..\MsQuicTests.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

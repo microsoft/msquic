@@ -12,6 +12,9 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#ifdef QUIC_CLOG
+#include "binding.c.clog.h"
+#endif
 
 //
 // Make sure we will always have enough room to fit our Version Negotiation packet,
@@ -833,7 +836,7 @@ QuicBindingProcessStatelessOperation(
         QUIC_DBG_ASSERT(sizeof(NewDestCid) >= MsQuicLib.CidTotalLength);
         QuicRandom(sizeof(NewDestCid), NewDestCid);
 
-        QUIC_RETRY_TOKEN_CONTENTS Token = { };
+        QUIC_RETRY_TOKEN_CONTENTS Token = { 0 };
         Token.Authenticated.Timestamp = QuicTimeEpochMs64();
 
         Token.Encrypted.RemoteAddress = RecvDatagram->Tuple->RemoteAddress;
@@ -1268,7 +1271,6 @@ QuicBindingDeliverDatagrams(
     // If all else fails, and no connection was found or created for the
     // packet, then the packet is dropped.
     //
-
 
     QUIC_CONNECTION* Connection;
     if (!Binding->ServerOwned || Packet->IsShortHeader) {

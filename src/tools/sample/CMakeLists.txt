@@ -10,7 +10,7 @@ target_compile_options(quicsample PRIVATE
      $<$<CXX_COMPILER_ID:MSVC>:
         ${MSVC_WARNING_FLAGS}>)
 
-target_link_libraries(quicsample msquic platform)
+target_link_libraries(quicsample msquic platform PLATFORM_CLOG_LIB CORE_CLOG_LIB)
 
 set_property(TARGET quicsample PROPERTY FOLDER "tools")
 
