@@ -16,7 +16,7 @@ Environment:
 #define _GNU_SOURCE
 #include "platform_internal.h"
 #ifdef QUIC_CLOG
-#include "storage_linux.c.clog.h"
+#include "storage_posix.c.clog.h"
 #endif
 
 QUIC_STATUS
