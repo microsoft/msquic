@@ -251,10 +251,14 @@ class TestDefinition {
     [string]$ResultsMatcher;
 
     [string]ToString() {
-        return ("{0}_{1}_{2}" -f $this.TestName, 
-                                         $this.Local.Platform, 
-                                         $this.Remote.Platform
-                                         )
+        return ("{0}_{1}_{2}_{3}_{4}_{5}_{6}" -f $this.TestName,
+                                        $this.Local.Platform, 
+                                        $script:LocalTls,
+                                        $script:LocalArch,
+                                        $this.Remote.Platform,
+                                        $script:RemoteTls,
+                                        $script:RemoteArch
+                                        )
     }
 
     [string]ToTestPlatformString() {
@@ -265,17 +269,6 @@ class TestDefinition {
                                          $script:RemoteTls,
                                          $script:RemoteArch
                                          )
-    }
-
-    [string]ToTestPlatformStringWithTestName() {
-        return ("{0}_{1}_{2}_{3}_{4}_{5}_{6}" -f $this.TestName,
-                                        $this.Local.Platform, 
-                                        $script:LocalTls,
-                                        $script:LocalArch,
-                                        $this.Remote.Platform,
-                                        $script:RemoteTls,
-                                        $script:RemoteArch
-                                        )
     }
 }
 
@@ -381,9 +374,7 @@ function RunLocal-Exe {
 function Run-Test {
     param($Test)
 
-    $TestFullName = $Test.ToTestPlatformStringWithTestName()
-
-    Write-Host "Running Test $TestFullName"
+    Write-Host "Running Test $Test"
 
     $RemoteExe = GetExe-Name -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $Test.Remote
     $LocalExe = GetExe-Name -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local
@@ -465,7 +456,7 @@ function Run-Test {
         $Results.TestName = $Test.TestName
         $Results.IndividualRunResults = $allRunsResults
         
-        $ResultFile = Join-Path $OutputDir "results_$TestFullName.json"
+        $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
     } elseif ($Publish -and ($CurrentCommitHash -eq $null)) {
         Write-Debug "Failed to publish because of missing commit hash"
