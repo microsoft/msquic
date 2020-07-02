@@ -272,7 +272,7 @@ ParseServerCommand(
         return;
 #endif
     } else {
-        selfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
+        selfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_MACHINE);
         if (!selfSignedCertParams) {
             printf("Failed to create platform self signed certificate\n");
             return;
