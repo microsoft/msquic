@@ -32,10 +32,7 @@ if ($IsWindows) {
         # TODO - Support installing VS and necessary addins
         # TODO - Install CMake
         # TODO - Check for Windows preview
-    }
-
-    if ($Configuration -eq "Test" -or $Configuration -eq "Dev") {
-        # Enable SChannel TLS 1.3 (client and server).
+        # Enable SChannel TLS 1.3 (client and server). Unnecessary on most recent builds.
         $TlsServerKeyPath = "HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server"
         reg.exe add $TlsServerKeyPath /v DisabledByDefault /t REG_DWORD /d 0 /f | Out-Null
         reg.exe add $TlsServerKeyPath /v Enabled /t REG_DWORD /d 1 /f | Out-Null
