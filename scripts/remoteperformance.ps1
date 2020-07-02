@@ -391,7 +391,7 @@ function Run-Test {
     $LocalArguments = $Test.Local.Arguments.Replace('$RemoteAddress', $RemoteAddress)
     $LocalArguments = $LocalArguments.Replace('$LocalAddress', $LocalAddress)
 
-    $RemoteArguments = $Test.Remote.Arguments.Replate('$Thumbprint', $env:QUICCERT)
+    $RemoteArguments = $Test.Remote.Arguments.Replace('$Thumbprint', $env:QUICCERT)
 
     $RemoteJob = RunRemote-Exe -Exe $RemoteExe -RunArgs $RemoteArguments
 
