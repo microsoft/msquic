@@ -145,11 +145,9 @@ if ($Local) {
     }
 
     if ($MatchedIPs.Length -ne 1) {
-        Write-Host "Failed to parse local address"
-        $LocalAddress = "127.0.0.1"
-    } else {
-        $LocalAddress = $MatchedIPs[0]
+        Write-Host "Failed to parse local address. Using first address"
     }
+    $LocalAddress = $MatchedIPs[0]
 
     Write-Host "Connected to: $RemoteAddress"
     Write-Host "Local IP Connection $LocalAddress" 
@@ -405,19 +403,22 @@ function Run-Test {
 
     $AllRunsResults = @()
 
-    1..$Test.Iterations | ForEach-Object {
-        $LocalResults = RunLocal-Exe -Exe $LocalExe -RunArgs $LocalArguments 
+    try {
+        1..$Test.Iterations | ForEach-Object {
+            $LocalResults = RunLocal-Exe -Exe $LocalExe -RunArgs $LocalArguments 
 
-        $LocalParsedResults = Parse-Test-Results -Results $LocalResults -Matcher $Test.ResultsMatcher
+            $LocalParsedResults = Parse-Test-Results -Results $LocalResults -Matcher $Test.ResultsMatcher
 
-        
-        $AllRunsResults += $LocalParsedResults
+            
+            $AllRunsResults += $LocalParsedResults
 
-        Write-Host "Run $($_): $LocalParsedResults kbps"
-        $LocalResults | Write-Debug
+            Write-Host "Run $($_): $LocalParsedResults kbps"
+            $LocalResults | Write-Debug
+        }
+    } finally {
+        $RemoteResults = WaitFor-Remote -Job $RemoteJob
+        Write-Debug $RemoteResults.ToString()
     }
-
-    $RemoteResults = WaitFor-Remote -Job $RemoteJob
 
     $Platform = $Test.ToTestPlatformString()
 
@@ -436,7 +437,7 @@ function Run-Test {
     } else {
         Write-Host "Median: $MedianCurrentResult kbps"
     }
-    Write-Debug $RemoteResults.ToString()
+    
 
     if ($Publish -and ($CurrentCommitHash -ne $null)) {
         Write-Host "Saving results.json out for publishing."
