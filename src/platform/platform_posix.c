@@ -29,7 +29,7 @@ Environment:
 
 #define QUIC_MAX_LOG_MSG_LEN        1024 // Bytes
 
-#if QUIC_PLATFORM_DISPATCH_TABLE
+#ifdef QUIC_PLATFORM_DISPATCH_TABLE
 QUIC_PLATFORM_DISPATCH* PlatDispatch = NULL;
 #else
 int RandomFd; // Used for reading random numbers.
