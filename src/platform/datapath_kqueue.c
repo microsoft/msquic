@@ -452,9 +452,6 @@ QuicSocketContextUninitializeComplete(
                 PendingSendLinkage));
     }
 
-    //struct kevent evSet = { };
-    //EV_SET(&evSet, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, (void *)SocketContext);
-    //kevent(ProcContext->KqueueFd, &evSet, 1, NULL, 0, NULL);
     close(SocketContext->SocketFd);
 
     QuicRundownRelease(&SocketContext->Binding->Rundown);
@@ -469,10 +466,6 @@ void QuicSocketContextSendPending(
     }
 
     while (!QuicListIsEmpty(&SocketContext->PendingSendContextHead)) {
-        // This is .. funky?
-        // It seems possible that this will queue up the send again and we'll
-        // just spin until the kernel accepts it...
-        
         QUIC_DATAPATH_SEND_CONTEXT* SendContext =
             QUIC_CONTAINING_RECORD(
                 QuicListRemoveHead(&SocketContext->PendingSendContextHead),
@@ -486,6 +479,7 @@ void QuicSocketContextSendPending(
                 &SendContext->RemoteAddress,
                 SendContext,
                 !SocketContext->Binding->Connected);
+        
         if (QUIC_FAILED(Status)) {
             break;
         }
@@ -496,12 +490,11 @@ void QuicSocketContextSendPending(
     }
 }
 
-void QuicSocketContextProcessEvent(QUIC_DATAPATH_PROC_CONTEXT *ProcContext, struct kevent *Event) {
-    //printf("[kevent] ident = %zd\t\tfilter = %hu\tflags = %hd\tfflags = %d\tdata = %zd\tudata = %p\n", 
-    //        Event->ident, Event->filter, 
-    //        Event->flags, Event->fflags, 
-    //        Event->data,  Event->udata);
-
+void
+QuicSocketContextProcessEvent(
+    _In_ QUIC_DATAPATH_PROC_CONTEXT *ProcContext, 
+    _In_ struct kevent *Event) 
+{
     QUIC_DBG_ASSERT(Event->filter & (EVFILT_READ | EVFILT_WRITE | EVFILT_USER));
 
     QUIC_SOCKET_CONTEXT *SocketContext = (QUIC_SOCKET_CONTEXT *)Event->udata;
@@ -620,6 +613,7 @@ Exit:
 
     return Status;
 }
+
 //
 // Opens a new handle to the QUIC Datapath library.
 //
@@ -883,14 +877,6 @@ QuicSocketContextInitialize(
 
     SocketContext->SocketFd = socket(af_family, SOCK_DGRAM, 0);
 
-#define LOG_AF_TYPE(f) { \
-    if (f->Ip.sa_family == AF_INET) printf("%s is AF_INET\n", #f);\
-    else if (f->Ip.sa_family == AF_INET6) printf("%s is AF_INET6\n", #f); \
-}
-    //LOG_AF_TYPE((&Binding->LocalAddress));
-    //if (LocalAddress) LOG_AF_TYPE(LocalAddress);
-    //if (RemoteAddress) LOG_AF_TYPE(RemoteAddress);
-
     if (SocketContext->SocketFd == INVALID_SOCKET_FD) {
         Status = errno;
         QuicTraceEvent(
@@ -927,6 +913,7 @@ QuicSocketContextInitialize(
         Option = TRUE;
         Result = 
             setsockopt(SocketContext->SocketFd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &Option, sizeof(Option));
+
         Option = TRUE;
         Result =
             setsockopt(SocketContext->SocketFd, IPPROTO_IPV6, IPV6_PKTINFO, &Option, sizeof(Option));
@@ -936,8 +923,10 @@ QuicSocketContextInitialize(
     // The socket is shared by multiple QUIC endpoints, so increase the receive
     // buffer size.
     //
+ 
     Option = INT32_MAX / 400;
     // This is the largest value that actually works. I don't know why.
+    
     Result =
         setsockopt(
             SocketContext->SocketFd,
@@ -1000,10 +989,6 @@ QuicSocketContextInitialize(
         // QuicZeroMemory(&MappedRemoteAddress, sizeof(MappedRemoteAddress));
         // QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
 
-        //  setsockopt((int)s->fd,
-        //          s->ws_af == AF_INET ? IPPROTO_IP : IPPROTO_IPV6,
-        //          IP_RECVTTL, &(int){1}, sizeof(int)) >= 0,
-        //   "cannot setsockopt IP_RECVTTL");
         Result =
             connect(
                 SocketContext->SocketFd,
@@ -1137,7 +1122,6 @@ QuicSocketContextStartReceive(
     struct kevent evSet = { };
     EV_SET(&evSet, SocketContext->SocketFd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, (void *)SocketContext);
     if (kevent(KqueueFd, &evSet, 1, NULL, 0, NULL) < 0)  {
-        QUIC_DBG_ASSERT(0);
         // Should be QUIC_STATUS_KQUEUE_ERROR
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -1614,9 +1598,7 @@ QuicDataPathBindingSend(
     BOOLEAN SendPending = FALSE;
 
     // static_assert(CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
-    // XXX: On macOS, this isn't computable as a constexpr; I can make a true
-    // compile time guarantee here, but it'll depend on the implementation
-    // details of CMSG_SPACE, which i don't want to do
+    // XXX: On macOS, this isn't computable as a constexpr; 
     const size_t ControlSize = MAX(sizeof(struct in6_pktinfo), sizeof(struct in_pktinfo));
     char ControlBuffer[CMSG_SPACE(ControlSize)] = {0};
 
