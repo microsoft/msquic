@@ -62,11 +62,7 @@ typedef enum eSniNameType {
 // Extensions
 //
 #define QUIC_TP_ID_MAX_DATAGRAM_FRAME_SIZE                  32  // varint
-#define QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION                  33  // N/A
-
-#define QUIC_TP_ID_MAX QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION
-
-QUIC_STATIC_ASSERT(QUIC_TP_ID_MAX < 64, "Only have 64 bits for duplicate detection");
+#define QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION                  0xBAAD  // N/A
 
 BOOLEAN
 QuicTpIdIsReserved(
@@ -1099,7 +1095,7 @@ QuicCryptoTlsDecodeTransportParameters(
             goto Exit;
         }
 
-        if (Id <= QUIC_TP_ID_MAX) {
+        if (Id < (8 * sizeof(uint64_t))) { // We only duplicate detection for the first 64 IDs.
 
             if (ParamsPresent & (1ull << Id)) {
                 QuicTraceEvent(
