@@ -155,7 +155,7 @@ if ($Local) {
 
 function Invoke-Test-Command {
     param (
-        $session,
+        $Session,
         $ScriptBlock,
         [Object[]]$ArgumentList = @(),
         [switch]$AsJob = $false
@@ -168,9 +168,9 @@ function Invoke-Test-Command {
         return Invoke-Command -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
     } else {
         if ($AsJob) {
-            return Invoke-Command -Session $session -ScriptBlock $ScriptBlock -AsJob -ArgumentList $ArgumentList
+            return Invoke-Command -Session $Session -ScriptBlock $ScriptBlock -AsJob -ArgumentList $ArgumentList
         }
-        return Invoke-Command -Session $session -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
+        return Invoke-Command -Session $Session -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
     }
     
 }
@@ -391,7 +391,9 @@ function Run-Test {
     $LocalArguments = $Test.Local.Arguments.Replace('$RemoteAddress', $RemoteAddress)
     $LocalArguments = $LocalArguments.Replace('$LocalAddress', $LocalAddress)
 
-    $RemoteArguments = $Test.Remote.Arguments.Replace('$Thumbprint', $env:QUICCERT)
+    $CertThumbprint = Invoke-Test-Command -Session $session -ScriptBlock { return $env:QUICCERT }
+
+    $RemoteArguments = $Test.Remote.Arguments.Replace('$Thumbprint', $CertThumbprint)
 
     $RemoteJob = RunRemote-Exe -Exe $RemoteExe -RunArgs $RemoteArguments
 

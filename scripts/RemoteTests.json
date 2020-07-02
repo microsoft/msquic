@@ -6,7 +6,7 @@
             "Tls": ["stub", "schannel", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicping",
-            "Arguments": "-listen:* -port:4433 -thumbprint:CBA30D2A367651C04AE9009DCB39C9702D930B17 -machine_cert:1 -cert_store:My -peer_uni:1 -connections:10"
+            "Arguments": "-listen:* -port:4433 -thumbprint:$Thumbprint -machine_cert:1 -cert_store:My -peer_uni:1 -connections:10"
         },
         "Local" : {
             "Platform": "Windows",
