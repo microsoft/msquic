@@ -391,7 +391,7 @@ function Run-Test {
     }
 
     $LocalArguments = $Test.Local.Arguments.Replace('$RemoteAddress', $RemoteAddress)
-    $LocalArguments = $Test.Local.Arguments.Replace('$LocalAddress', $LocalAddress)
+    $LocalArguments = $LocalArguments.Replace('$LocalAddress', $LocalAddress)
 
     $RemoteJob = RunRemote-Exe -Exe $RemoteExe -RunArgs $Test.Remote.Arguments
 
