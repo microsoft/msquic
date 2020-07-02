@@ -14,6 +14,9 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Remote
     The remote to connect to. Must have ssh remoting enabled, and public key auth. username@ip
 
+.PARAMETER Local
+    Use the local system as the remote
+
 .PARAMETER SkipDeploy
     Set flag to skip deploying test files
 
@@ -40,7 +43,10 @@ param (
     [switch]$SkipDeploy = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Publish = $false
+    [switch]$Publish = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Local = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -65,29 +71,99 @@ if ($TestsFile -eq "") {
 
 # -ComputerName
 
-if ($Remote -eq "") {
-    if ($WinRMUser -ne "") {
-        $session = New-PSSession -ComputerName quic-server -Credential $WinRMUser -ConfigurationName PowerShell.7
-    } else {
-        $session = New-PSSession -ComputerName quic-server -ConfigurationName PowerShell.7
-    }
+function HostToNetworkOrder {
+    param($Address)
+    $Bytes = $Address.GetAddressBytes()
+    [Array]::Reverse($Bytes) | Out-Null
+    return [System.BitConverter]::ToUInt32($Bytes, 0)
+}
+
+if ($Local) {
+    $RemoteAddress = "localhost"
+    $session = $null
+    $LocalAddress = "127.0.0.1"
 } else {
-    $session = New-PSSession -HostName "$Remote"
+    if ($Remote -eq "") {
+        if ($WinRMUser -ne "") {
+            $session = New-PSSession -ComputerName quic-server -Credential $WinRMUser -ConfigurationName PowerShell.7
+        } else {
+            $session = New-PSSession -ComputerName quic-server -ConfigurationName PowerShell.7
+        }
+    } else {
+        $session = New-PSSession -HostName "$Remote"
+    }
+
+    $RemoteAddress = $session.ComputerName
+
+    if ($null -eq $session) {
+        exit
+    }
+
+    $PossibleRemoteIPs = [System.Net.Dns]::GetHostAddresses($RemoteAddress) | Select-Object -Property IPAddressToString
+
+    $PossibleLocalIPs = Get-NetIPAddress -AddressFamily IPv4 | Select-Object -Property IPv4Address, PrefixLength
+
+    $MatchedIPs = @()
+
+    $PossibleLocalIPs | ForEach-Object {
+
+        [IPAddress]$LocalIpAddr = $_.IPv4Address
+
+        $ToMaskLocalAddress = HostToNetworkOrder($LocalIpAddr)
+
+        $Mask = (1ul -shl $_.PrefixLength) - 1
+        $Mask = $Mask -shl (32 - $_.PrefixLength)
+        $LocalSubnet = $ToMaskLocalAddress -band $Mask
+
+        $PossibleRemoteIPs | ForEach-Object {
+            [ipaddress]$RemoteIpAddr = $_.IPAddressToString
+            $ToMaskRemoteAddress = HostToNetworkOrder($RemoteIpAddr)
+            $RemoteMasked = $ToMaskRemoteAddress -band $Mask
+
+            if ($RemoteMasked -eq $LocalSubnet) {
+                $MatchedIPs += $LocalIpAddr.IPAddressToString
+            }
+        }
+    }
+
+    if ($MatchedIPs.Length -ne 1) {
+        Write-Host "Failed to parse local address"
+        $LocalIpAddress = "127.0.0.1"
+    } else {
+        $LocalIpAddress = $MatchedIPs[0]
+    }
+
+    Write-Host "Connected to: $RemoteAddress"
+    Write-Host "Local IP Connection $LocalIpAddress" 
 }
 
-$RemoteAddress = $session.ComputerName
+function Invoke-Test-Command {
+    param (
+        $session,
+        $ScriptBlock,
+        [Object[]]$ArgumentList = @(),
+        [switch]$AsJob = $false
+    )
 
-if ($null -eq $session) {
-    exit
+    if ($Local) {
+        if ($AsJob) {
+            return Start-Job -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
+        }
+        return Invoke-Command -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
+    } else {
+        if ($AsJob) {
+            return Invoke-Command -Session $session -ScriptBlock $ScriptBlock -AsJob -ArgumentList $ArgumentList
+        }
+        return Invoke-Command -Session $session -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
+    }
+    
 }
-
-Write-Host "Connected to: $RemoteAddress"
 
 $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
 
-$RemotePlatform = Invoke-Command -Session $session -ScriptBlock { 
+$RemotePlatform = Invoke-Test-Command -Session $session -ScriptBlock { 
     if ($IsWindows) {
         return "windows"
     } else {
@@ -96,9 +172,13 @@ $RemotePlatform = Invoke-Command -Session $session -ScriptBlock {
 }
 
 # Join path in script to ensure right platform separator
-$RemoteDirectory = Invoke-Command -Session $session -ScriptBlock { Join-Path (Get-Location) "Tests" }
+$RemoteDirectory = Invoke-Test-Command -Session $session -ScriptBlock { Join-Path (Get-Location) "Tests" }
 
 $LocalDirectory = Join-Path $RootDir "artifacts"
+
+if ($Local) {
+    $RemoteDirectory = $LocalDirectory
+}
 
 function WaitFor-Remote-Ready {
     param ($Job, $Matcher)
@@ -128,7 +208,7 @@ function WaitFor-Remote {
 function Copy-Artifacts {
     param([string]$From, [string]$To)
     try {
-        Invoke-Command $session -ScriptBlock {Remove-Item -Path "$Using:To/*" -Recurse -Force }
+        Invoke-Test-Command $session -ScriptBlock { param($To) Remove-Item -Path "$To/*" -Recurse -Force } -ArgumentList $To
     } catch {
         # Ignore failure
     }
@@ -203,7 +283,7 @@ function GetExe-Name {
     $ConfigStr = "$($TestPlat.Arch)_$($Config)_$($TestPlat.Tls)"
 
     if ($IsRemote) {
-        return Invoke-Command -Session $session -ScriptBlock { Join-Path $Using:PathRoot $Using:Platform $Using:ConfigStr $Using:ExeName  }
+        return Invoke-Test-Command -Session $session -ScriptBlock { param($PathRoot, $Platform, $ConfigStr, $ExeName) Join-Path $PathRoot $Platform $ConfigStr $ExeName  } -ArgumentList $PathRoot, $Platform, $ConfigStr, $ExeName
     } else {
         return Join-Path $PathRoot $Platform $ConfigStr $ExeName
     }
@@ -237,21 +317,25 @@ function RunRemote-Exe {
     param($Exe, $RunArgs)
 
     # Command to run chmod if necessary, and get base path
-    $BasePath = Invoke-Command -Session $session -ScriptBlock {
+    $BasePath = Invoke-Test-Command -Session $session -ScriptBlock {
+        param ($Exe)
         if (!$IsWindows) {
-            chmod +x $Using:Exe
-            return Split-Path $Using:Exe -Parent
+            chmod +x $Exe
+            return Split-Path $Exe -Parent
         }
         return $null
-    }
+    } -ArgumentList $Exe
 
-    return Invoke-Command -Session $session -ScriptBlock {
-        if ($null -ne $Using:BasePath) {
-            $env:LD_LIBRARY_PATH = $Using:BasePath
+    Write-Debug "Running Remote: $Exe $RunArgs" | Out-Null
+
+    return Invoke-Test-Command -Session $session -ScriptBlock {
+        param($Exe, $RunArgs, $BasePath)
+        if ($null -ne $BasePath) {
+            $env:LD_LIBRARY_PATH = $BasePath
         }
         
-        & $Using:Exe ($Using:RunArgs).Split(" ")
-    } -AsJob
+        & $Exe ($RunArgs).Split(" ")
+    } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath
 }
 
 function RunLocal-Exe {
@@ -262,7 +346,9 @@ function RunLocal-Exe {
         $env:LD_LIBRARY_PATH = $BasePath
         chmod +x $Exe | Out-Null
     }
-    return (Invoke-Expression "$Exe $RunArgs") -join "`n"
+    $FullCommand = "$Exe $RunArgs"
+    Write-Debug "Running Locally: $FullCommand"
+    return (Invoke-Expression $FullCommand) -join "`n"
 }
 
 function Run-Test {
@@ -274,7 +360,7 @@ function Run-Test {
     $LocalExe = GetExe-Name -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local
 
     # Check both Exes
-    $RemoteExeExists = Invoke-Command -Session $session -ScriptBlock { Test-Path $Using:RemoteExe }
+    $RemoteExeExists = Invoke-Test-Command -Session $session -ScriptBlock { param($RemoteExe) Test-Path $RemoteExe } -ArgumentList $RemoteExe
     $LocalExeExists = Test-Path $LocalExe
 
     if (!$RemoteExeExists -or !$LocalExeExists) {
@@ -358,7 +444,7 @@ function Check-Test {
 try {
     $Tests = [TestDefinition[]](Get-Content -Path $TestsFile | ConvertFrom-Json)
 
-    if (!$SkipDeploy) {
+    if (!$SkipDeploy -and !$Local) {
         Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory
     }
 
@@ -370,5 +456,7 @@ try {
         }
     }
 } finally {
-    Remove-PSSession -Session $session 
+    if ($null -ne $session) {
+        Remove-PSSession -Session $session 
+    }
 }
