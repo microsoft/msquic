@@ -1,3 +1,6 @@
+Set-StrictMode -Version 'Latest'
+$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
 function SetGlobals {
     param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config)
     $script:Local = $Local
@@ -9,14 +12,14 @@ function SetGlobals {
 }
 
 function HostToNetworkOrder {
-    param($Address)
+    param ($Address)
     $Bytes = $Address.GetAddressBytes()
     [Array]::Reverse($Bytes) | Out-Null
     return [System.BitConverter]::ToUInt32($Bytes, 0)
 }
 
 function ComputeLocalAddress {
-    param($RemoteAddress)
+    param ($RemoteAddress)
 
     $PossibleRemoteIPs = [System.Net.Dns]::GetHostAddresses($RemoteAddress) | Select-Object -Property IPAddressToString
 
@@ -52,12 +55,7 @@ function ComputeLocalAddress {
 }
 
 function Invoke-TestCommand {
-    param (
-        $Session,
-        $ScriptBlock,
-        [Object[]]$ArgumentList = @(),
-        [switch]$AsJob = $false
-    )
+    param ($Session, $ScriptBlock, [Object[]]$ArgumentList = @(), [switch]$AsJob = $false)
 
     if ($Local) {
         if ($AsJob) {
@@ -75,7 +73,7 @@ function Invoke-TestCommand {
 function Wait-ForRemoteReady {
     param ($Job, $Matcher)
     $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
-    while ($true) {
+    while ($StopWatch.ElapsedMilliseconds -lt 10000) {
         $CurrentResults = Receive-Job -Job $Job -Keep
         if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
             $DidMatch = $CurrentResults -match $Matcher
@@ -84,10 +82,8 @@ function Wait-ForRemoteReady {
             }
         }
         Start-Sleep -Seconds 0.1 | Out-Null
-        if ($StopWatch.ElapsedMilliseconds -gt 10000) {
-            return $false
-        }
     }
+    return $false
 }
 
 function Wait-ForRemote {
@@ -98,11 +94,14 @@ function Wait-ForRemote {
 }
 
 function Copy-Artifacts {
-    param([string]$From, [string]$To)
+    param ([string]$From, [string]$To)
     try {
-        Invoke-TestCommand $session -ScriptBlock { param($To) Remove-Item -Path "$To/*" -Recurse -Force } -ArgumentList $To
+        Invoke-TestCommand $session -ScriptBlock { 
+            param ($To) 
+            Remove-Item -Path "$To/*" -Recurse -Force 
+        } -ArgumentList $To
     } catch {
-        # Ignore failure
+        # Ignore failure, which occurs when directory does not exist
     }
     # TODO Figure out how to filter this
     Copy-Item -Path "$From\*" -Destination $To -ToSession $session  -Recurse
@@ -170,12 +169,12 @@ class TestPublishResult {
 }
 
 function Get-Tests {
-    param($Path)
+    param ($Path)
     return [TestDefinition[]](Get-Content -Path $Path | ConvertFrom-Json)
 }
 
 function Validate-Tests {
-    param([TestDefinition[]]$Test)
+    param ([TestDefinition[]]$Test)
 
     $TestSet = New-Object System.Collections.Generic.HashSet[string]
     foreach ($T in $Test) {
@@ -188,7 +187,7 @@ function Validate-Tests {
 }
 
 function Check-Test {
-    param([TestDefinition]$Test, $RemotePlatform, $LocalPlatform)
+    param ([TestDefinition]$Test, $RemotePlatform, $LocalPlatform)
     $PlatformCorrect = ($Test.Local.Platform -eq $LocalPlatform) -and ($Test.Remote.Platform -eq $RemotePlatform)
     if (!$PlatformCorrect) {
         return $false
@@ -203,7 +202,7 @@ function Check-Test {
 }
 
 function Get-GitHash {
-    param($RepoDir)
+    param ($RepoDir)
     $CurrentLoc = Get-Location
     Set-Location -Path $RootDir | Out-Null
     $env:GIT_REDIRECT_STDERR = '2>&1'
@@ -218,7 +217,7 @@ function Get-GitHash {
 }
 
 function Get-ExeName {
-    param($PathRoot, $Platform, $IsRemote, $TestPlat)
+    param ($PathRoot, $Platform, $IsRemote, $TestPlat)
     $ExeName = $TestPlat.Exe
     if ($Platform -eq "windows") {
         $ExeName += ".exe"
@@ -227,7 +226,7 @@ function Get-ExeName {
     if ($IsRemote) {
         $ConfigStr = "$($RemoteArch)_$($Config)_$($RemoteTls)"
         return Invoke-TestCommand -Session $session -ScriptBlock { 
-            param($PathRoot, $Platform, $ConfigStr, $ExeName) 
+            param ($PathRoot, $Platform, $ConfigStr, $ExeName) 
             Join-Path $PathRoot $Platform $ConfigStr $ExeName
         } -ArgumentList $PathRoot, $Platform, $ConfigStr, $ExeName
     } else {
@@ -237,7 +236,7 @@ function Get-ExeName {
 }
 
 function RunRemote-Exe {
-    param($Exe, $RunArgs, $TestName)
+    param ($Exe, $RunArgs, $TestName)
 
     # Command to run chmod if necessary, and get base path
     $BasePath = Invoke-TestCommand -Session $session -ScriptBlock {
@@ -252,7 +251,7 @@ function RunRemote-Exe {
     Write-Debug "Running Remote: $Exe $RunArgs" | Out-Null
 
     return Invoke-TestCommand -Session $session -ScriptBlock {
-        param($Exe, $RunArgs, $BasePath)
+        param ($Exe, $RunArgs, $BasePath)
         if ($null -ne $BasePath) {
             $env:LD_LIBRARY_PATH = $BasePath
         }
@@ -287,6 +286,5 @@ function Median-Test-Results($FullResults) {
     $sorted = $FullResults | Sort-Object
     return $sorted[[int](($sorted.Length - 1) / 2)]
 }
-
 
 Export-ModuleMember -Function * -Alias *

@@ -77,6 +77,7 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
+# Remove any previous remote PowerShell sessions
 Get-PSSession | Remove-PSSession
 
 $LocalPlatform = $null
@@ -85,7 +86,6 @@ if ($IsWindows) {
 } else {
     $LocalPlatform = "linux"
 }
-
 
 if ($TestsFile -eq "") {
     $TestsFile = Join-Path $PSScriptRoot "RemoteTests.json"
@@ -118,6 +118,7 @@ if ($Local) {
     $RemoteAddress = $session.ComputerName
 
     if ($null -eq $session) {
+        Write-Error "Failed to create remote session"
         exit
     }
 
@@ -130,7 +131,6 @@ if ($Local) {
 $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
-
 $RemotePlatform = Invoke-TestCommand -Session $session -ScriptBlock { 
     if ($IsWindows) {
         return "windows"
@@ -140,7 +140,9 @@ $RemotePlatform = Invoke-TestCommand -Session $session -ScriptBlock {
 }
 
 # Join path in script to ensure right platform separator
-$RemoteDirectory = Invoke-TestCommand -Session $session -ScriptBlock { Join-Path (Get-Location) "Tests" }
+$RemoteDirectory = Invoke-TestCommand -Session $session -ScriptBlock {
+    Join-Path (Get-Location) "Tests" 
+}
 
 $LocalDirectory = Join-Path $RootDir "artifacts"
 
@@ -182,7 +184,7 @@ function LocalSetup {
 }
 
 function LocalTeardown {
-    param($LocalCache)
+    param ($LocalCache)
     if ($null -ne $LocalCache.apipaInterfaces) {
         # Re-enable the interfaces we disabled earlier.
         Write-Debug "Re-enabling APIPA interfaces"
@@ -191,7 +193,7 @@ function LocalTeardown {
 }
 
 function Run-Test {
-    param($Test)
+    param ($Test)
 
     Write-Host "Running Test $Test"
 
@@ -199,7 +201,11 @@ function Run-Test {
     $LocalExe = Get-ExeName -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local
 
     # Check both Exes
-    $RemoteExeExists = Invoke-TestCommand -Session $session -ScriptBlock { param($RemoteExe) Test-Path $RemoteExe } -ArgumentList $RemoteExe
+    $RemoteExeExists = Invoke-TestCommand -Session $session -ScriptBlock {
+        param ($RemoteExe)
+        Test-Path $RemoteExe
+    } -ArgumentList $RemoteExe
+
     $LocalExeExists = Test-Path $LocalExe
 
     if (!$RemoteExeExists -or !$LocalExeExists) {
@@ -216,7 +222,9 @@ function Run-Test {
     $LocalArguments = $Test.Local.Arguments.GetArguments().Replace('$RemoteAddress', $RemoteAddress)
     $LocalArguments = $LocalArguments.Replace('$LocalAddress', $LocalAddress)
 
-    $CertThumbprint = Invoke-TestCommand -Session $session -ScriptBlock { return $env:QUICCERT }
+    $CertThumbprint = Invoke-TestCommand -Session $session -ScriptBlock { 
+        return $env:QUICCERT 
+    }
 
     $RemoteArguments = $Test.Remote.Arguments.GetArguments().Replace('$Thumbprint', $CertThumbprint)
 

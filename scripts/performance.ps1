@@ -276,11 +276,6 @@ function Run-Loopback-Test() {
     $allRunsResults = @()
     $serverOutput = $null
     try {
-
-        Write-Host $QuicPing
-        Write-Host $ServerArgs
-        Write-Host $ClientArgs
-
         # Start the server.
         $proc = Start-Background-Executable -File (Join-Path $ServerDir $QuicPing) -Arguments $ServerArgs
         Start-Sleep 4
