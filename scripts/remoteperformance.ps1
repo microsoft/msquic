@@ -102,14 +102,14 @@ if ($TestsFile -eq "") {
 
 Import-Module (Join-Path $PSScriptRoot 'performance-helper.psm1') -Force
 
-Set-Globals -Local $Local `
-            -LocalTls $LocalTls `
-            -LocalArch $LocalArch `
-            -RemoteTls $RemoteTls `
-            -RemoteArch $RemoteArch `
-            -Config $Config `
-            -Publish $Publish `
-            -Record $Record
+Set-ScriptVariables -Local $Local `
+                    -LocalTls $LocalTls `
+                    -LocalArch $LocalArch `
+                    -RemoteTls $RemoteTls `
+                    -RemoteArch $RemoteArch `
+                    -Config $Config `
+                    -Publish $Publish `
+                    -Record $Record
 
 if ($Local) {
     $RemoteAddress = "localhost"

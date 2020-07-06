@@ -1,3 +1,5 @@
+# Helper functions for msquic performance testing. As this is a module, this cannot be called directly.
+
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
@@ -33,7 +35,8 @@ $WpaStackWalkProfileXml = `
 </WindowsPerformanceRecorder>
 "@
 
-function Set-Globals {
+function Set-ScriptVariables {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
     param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record)
     $script:Local = $Local
     $script:LocalTls = $LocalTls
@@ -46,6 +49,7 @@ function Set-Globals {
 }
 
 function Set-Session {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
     param ($Session)
     $script:Session = $Session
 }
@@ -134,6 +138,7 @@ function Wait-ForRemote {
 }
 
 function Copy-Artifacts {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingEmptyCatchBlock', '')]
     param ([string]$From, [string]$To)
     try {
         Invoke-TestCommand $Session -ScriptBlock {
@@ -272,11 +277,11 @@ function Get-ExeName {
         $ConfigStr = "$($RemoteArch)_$($Config)_$($RemoteTls)"
         return Invoke-TestCommand -Session $Session -ScriptBlock {
             param ($PathRoot, $Platform, $ConfigStr, $ExeName)
-            Join-Path $PathRoot $Platform $ConfigStr $ExeName
+            Join-Path -Path $PathRoot, $Platform, $ConfigStr, $ExeName
         } -ArgumentList $PathRoot, $Platform, $ConfigStr, $ExeName
     } else {
         $ConfigStr = "$($LocalArch)_$($Config)_$($LocalTls)"
-        return Join-Path $PathRoot $Platform $ConfigStr $ExeName
+        return Join-Path -Path $PathRoot, $Platform, $ConfigStr, $ExeName
     }
 }
 
@@ -303,20 +308,9 @@ function Invoke-RemoteExe {
 
         if ($Record -and $IsWindows) {
             $EtwXmlName = $Exe + ".remote.wprp"
-
-            # try {
-            #     Write-Host "Trying to cancel"
-            #     cmd /c wpr.exe
-            #     Write-Host "Cancelling"
-            # } catch {
-            #     Write-Host "Exception Handler"
-            #     Write-Host $_
-            # }
-
             wpr.exe -cancel 2> $null
 
             $WpaStackWalkProfileXml | Out-File $EtwXmlName
-            Write-Host $EtwXmlName
             wpr.exe -start $EtwXmlName -filemode 2> $null
         }
 
@@ -339,8 +333,8 @@ function Get-RemoteFile {
     }
 }
 
-
 function Invoke-LocalExe {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '')]
     param ($Exe, $RunArgs)
 
     if (!$IsWindows) {
@@ -350,6 +344,7 @@ function Invoke-LocalExe {
     }
     $FullCommand = "$Exe $RunArgs"
     Write-Debug "Running Locally: $FullCommand"
+
     return (Invoke-Expression $FullCommand) -join "`n"
 }
 
