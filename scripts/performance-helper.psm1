@@ -2,7 +2,7 @@ Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 function Set-Globals {
-    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish)
+    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record)
     $script:Local = $Local
     $script:LocalTls = $LocalTls
     $script:LocalArch = $LocalArch
@@ -10,11 +10,12 @@ function Set-Globals {
     $script:RemoteArch = $RemoteArch
     $script:Config = $Config
     $script:Publish = $Publish
+    $script:Record = $Record
 }
 
 function Set-Session {
     param ($Session)
-    $script:session = $Session
+    $script:Session = $Session
 }
 
 function Convert-HostToNetworkOrder {
@@ -55,7 +56,7 @@ function Get-LocalAddress {
     }
 
     if ($MatchedIPs.Length -ne 1) {
-        Write-Host "Failed to parse local address. Using first address"
+        Write-Output "Failed to parse local address. Using first address"
     }
     return $MatchedIPs[0]
 }
@@ -73,7 +74,7 @@ function Invoke-TestCommand {
             return Invoke-Command -Session $Session -ScriptBlock $ScriptBlock -AsJob -ArgumentList $ArgumentList
         }
         return Invoke-Command -Session $Session -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
-    }   
+    }
 }
 
 function Wait-ForRemoteReady {
@@ -102,15 +103,15 @@ function Wait-ForRemote {
 function Copy-Artifacts {
     param ([string]$From, [string]$To)
     try {
-        Invoke-TestCommand $session -ScriptBlock { 
-            param ($To) 
-            Remove-Item -Path "$To/*" -Recurse -Force 
+        Invoke-TestCommand $Session -ScriptBlock {
+            param ($To)
+            Remove-Item -Path "$To/*" -Recurse -Force
         } -ArgumentList $To
     } catch {
         # Ignore failure, which occurs when directory does not exist
     }
     # TODO Figure out how to filter this
-    Copy-Item -Path "$From\*" -Destination $To -ToSession $session  -Recurse
+    Copy-Item -Path "$From\*" -Destination $To -ToSession $Session  -Recurse
 }
 
 class ArgumentsSpec {
@@ -236,8 +237,8 @@ function Get-ExeName {
 
     if ($IsRemote) {
         $ConfigStr = "$($RemoteArch)_$($Config)_$($RemoteTls)"
-        return Invoke-TestCommand -Session $session -ScriptBlock { 
-            param ($PathRoot, $Platform, $ConfigStr, $ExeName) 
+        return Invoke-TestCommand -Session $Session -ScriptBlock {
+            param ($PathRoot, $Platform, $ConfigStr, $ExeName)
             Join-Path $PathRoot $Platform $ConfigStr $ExeName
         } -ArgumentList $PathRoot, $Platform, $ConfigStr, $ExeName
     } else {
@@ -250,7 +251,7 @@ function Invoke-RemoteExe {
     param ($Exe, $RunArgs, $TestName)
 
     # Command to run chmod if necessary, and get base path
-    $BasePath = Invoke-TestCommand -Session $session -ScriptBlock {
+    $BasePath = Invoke-TestCommand -Session $Session -ScriptBlock {
         param ($Exe)
         if (!$IsWindows) {
             chmod +x $Exe
@@ -261,12 +262,12 @@ function Invoke-RemoteExe {
 
     Write-Debug "Running Remote: $Exe $RunArgs" | Out-Null
 
-    return Invoke-TestCommand -Session $session -ScriptBlock {
+    return Invoke-TestCommand -Session $Session -ScriptBlock {
         param ($Exe, $RunArgs, $BasePath)
         if ($null -ne $BasePath) {
             $env:LD_LIBRARY_PATH = $BasePath
         }
-        
+
         & $Exe ($RunArgs).Split(" ")
     } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath
 }
@@ -304,7 +305,7 @@ function Get-TestResult($Results, $Matcher) {
         $Results -match $Matcher | Out-Null
         return $Matches[1]
     } catch {
-        Write-Host "Error Processing Results:`n`n$Results"
+        Write-Output "Error Processing Results:`n`n$Results"
         throw
     }
 }
@@ -323,20 +324,20 @@ function Publish-TestResults {
         if ($PercentDiff -ge 0) {
             $PercentDiffStr = "+$PercentDiffStr"
         }
-        Write-Host "Median: $MedianCurrentResult kbps ($PercentDiffStr%)"
-        Write-Host "Master: $MedianLastResult kbps"
+        Write-Output "Median: $MedianCurrentResult kbps ($PercentDiffStr%)"
+        Write-Output "Master: $MedianLastResult kbps"
     } else {
-        Write-Host "Median: $MedianCurrentResult kbps"
+        Write-Output "Median: $MedianCurrentResult kbps"
     }
-    
+
     if ($Publish -and ($null -ne $CurrentCommitHash)) {
-        Write-Host "Saving results_$Test.json out for publishing."
+        Write-Output "Saving results_$Test.json out for publishing."
         $Results = [TestPublishResult]::new()
         $Results.CommitHash = $CurrentCommitHash.Substring(0, 7)
         $Results.PlatformName = $Platform
         $Results.TestName = $Test.TestName
         $Results.IndividualRunResults = $AllRunsResults
-        
+
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
     } elseif ($Publish -and ($null -ne $CurrentCommitHash)) {

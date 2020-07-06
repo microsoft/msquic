@@ -33,6 +33,9 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Publish
     Publishes the results to the artifacts directory.
 
+.PARAMETER Record
+    Records ETW traces
+
 #>
 
 param (
@@ -54,9 +57,12 @@ param (
 
     [Parameter(Mandatory = $false)]
     [string]$RemoteArch = "x64",
-    
+
     [Parameter(Mandatory = $false)]
     [string]$RemoteTls = "stub",
+
+    [Parameter(Mandatory = $false)]
+    [string]$ComputerName = "quic-server",
 
     [Parameter(Mandatory = $false)]
     [string]$WinRMUser = "",
@@ -68,7 +74,10 @@ param (
     [switch]$Publish = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Local = $false
+    [switch]$Local = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Record = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -99,42 +108,43 @@ Set-Globals -Local $Local `
             -RemoteTls $RemoteTls `
             -RemoteArch $RemoteArch `
             -Config $Config `
-            -Publish $Publish
+            -Publish $Publish `
+            -Record $Record
 
 if ($Local) {
     $RemoteAddress = "localhost"
-    $session = $null
+    $Session = $null
     $LocalAddress = "127.0.0.1"
 } else {
     if ($Remote -eq "") {
         if ($WinRMUser -ne "") {
-            $session = New-PSSession -ComputerName quic-server -Credential $WinRMUser -ConfigurationName PowerShell.7
+            $Session = New-PSSession -ComputerName $ComputerName -Credential $WinRMUser -ConfigurationName PowerShell.7
         } else {
-            $session = New-PSSession -ComputerName quic-server -ConfigurationName PowerShell.7
+            $Session = New-PSSession -ComputerName $ComputerName -ConfigurationName PowerShell.7
         }
     } else {
-        $session = New-PSSession -HostName "$Remote"
+        $Session = New-PSSession -HostName "$Remote"
     }
 
-    $RemoteAddress = $session.ComputerName
+    $RemoteAddress = $Session.ComputerName
 
-    if ($null -eq $session) {
+    if ($null -eq $Session) {
         Write-Error "Failed to create remote session"
         exit
     }
 
     $LocalAddress = Get-LocalAddress -RemoteAddress $RemoteAddress
 
-    Write-Host "Connected to: $RemoteAddress"
-    Write-Host "Local IP Connection $LocalAddress" 
+    Write-Output "Connected to: $RemoteAddress"
+    Write-Output "Local IP Connection $LocalAddress"
 }
 
-Set-Session -Session $session
+Set-Session -Session $Session
 
 $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
-$RemotePlatform = Invoke-TestCommand -Session $session -ScriptBlock { 
+$RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     if ($IsWindows) {
         return "windows"
     } else {
@@ -143,8 +153,8 @@ $RemotePlatform = Invoke-TestCommand -Session $session -ScriptBlock {
 }
 
 # Join path in script to ensure right platform separator
-$RemoteDirectory = Invoke-TestCommand -Session $session -ScriptBlock {
-    Join-Path (Get-Location) "Tests" 
+$RemoteDirectory = Invoke-TestCommand -Session $Session -ScriptBlock {
+    Join-Path (Get-Location) "Tests"
 }
 
 $LocalDirectory = Join-Path $RootDir "artifacts"
@@ -187,13 +197,13 @@ function LocalTeardown {
 function Invoke-Test {
     param ($Test)
 
-    Write-Host "Running Test $Test"
+    Write-Output "Running Test $Test"
 
     $RemoteExe = Get-ExeName -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $Test.Remote
     $LocalExe = Get-ExeName -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local
 
     # Check both Exes
-    $RemoteExeExists = Invoke-TestCommand -Session $session -ScriptBlock {
+    $RemoteExeExists = Invoke-TestCommand -Session $Session -ScriptBlock {
         param ($RemoteExe)
         Test-Path $RemoteExe
     } -ArgumentList $RemoteExe
@@ -201,12 +211,12 @@ function Invoke-Test {
     $LocalExeExists = Test-Path $LocalExe
 
     if (!$RemoteExeExists -or !$LocalExeExists) {
-        Write-Host "Failed to Run $Test because of missing exe"
+        Write-Output "Failed to Run $Test because of missing exe"
         if (!$RemoteExeExists) {
-            Write-Host "Missing Remote Exe $RemoteExe"
+            Write-Output "Missing Remote Exe $RemoteExe"
         }
         if (!$LocalExeExists) {
-            Write-Host "Missing Local Exe $LocalExe"
+            Write-Output "Missing Local Exe $LocalExe"
         }
         return
     }
@@ -214,18 +224,18 @@ function Invoke-Test {
     $LocalArguments = $Test.Local.Arguments.GetArguments().Replace('$RemoteAddress', $RemoteAddress)
     $LocalArguments = $LocalArguments.Replace('$LocalAddress', $LocalAddress)
 
-    $CertThumbprint = Invoke-TestCommand -Session $session -ScriptBlock { 
-        return $env:QUICCERT 
+    $CertThumbprint = Invoke-TestCommand -Session $Session -ScriptBlock {
+        return $env:QUICCERT
     }
 
     $RemoteArguments = $Test.Remote.Arguments.GetArguments().Replace('$Thumbprint', $CertThumbprint)
 
     $RemoteJob = Invoke-RemoteExe -Exe $RemoteExe -RunArgs $RemoteArguments
 
-    $ReadyToStart = Wait-ForRemoteReady -Job $RemoteJob 
+    $ReadyToStart = Wait-ForRemoteReady -Job $RemoteJob
 
     if (!$ReadyToStart) {
-        Write-Host "Test Remote for $Test failed to start"
+        Write-Output "Test Remote for $Test failed to start"
         Stop-Job -Job $RemoteJob
         return
     }
@@ -234,14 +244,14 @@ function Invoke-Test {
 
     try {
         1..$Test.Iterations | ForEach-Object {
-            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments 
+            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments
 
             $LocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
 
-            
+
             $AllRunsResults += $LocalParsedResults
 
-            Write-Host "Run $($_): $LocalParsedResults kbps"
+            Write-Output "Run $($_): $LocalParsedResults kbps"
             $LocalResults | Write-Debug
         }
     } finally {
@@ -261,7 +271,7 @@ try {
     $Tests = Get-Tests $TestsFile
 
     if ($null -eq $Tests) {
-        Write-Host "Tests are not valid"
+        Write-Output "Tests are not valid"
         exit
     }
 
@@ -273,12 +283,12 @@ try {
         if (Test-CanRunTest -Test $Test -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform) {
             Invoke-Test -Test $Test
         } else {
-            Write-Host "Skipping $Test"
+            Write-Output "Skipping $Test"
         }
     }
 } finally {
-    if ($null -ne $session) {
-        Remove-PSSession -Session $session 
+    if ($null -ne $Session) {
+        Remove-PSSession -Session $Session
     }
     LocalTeardown($LocalDataCache)
 }
