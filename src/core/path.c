@@ -34,6 +34,7 @@ QuicPathInitialize(
     } else {
         Path->SmoothedRtt = MS_TO_US(QUIC_INITIAL_RTT);
     }
+    Path->RttVariance = Path->SmoothedRtt / 2;
 
     QuicTraceLogConnInfo(
         PathInitialized,

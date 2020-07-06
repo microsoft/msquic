@@ -1128,7 +1128,7 @@ QuicConnGetDestCidFromSeq(
 // Adds a sample (in microsec) to the connection's RTT estimator.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
+void
 QuicConnUpdateRtt(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,

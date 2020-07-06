@@ -25,7 +25,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 // Until the first RTT sample is collected, this is the default estimate of the
 // RTT.
 //
-#define QUIC_INITIAL_RTT                        500 // millisec
+#define QUIC_INITIAL_RTT                        333 // millisec
 
 //
 // The minimum QUIC Packet Size (UDP payload size) for initial QUIC packets.
