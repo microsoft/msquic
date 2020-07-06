@@ -322,7 +322,7 @@ function Invoke-RemoteExe {
         & $Exe ($RunArgs).Split(" ")
 
         if ($Record -and $IsWindows) {
-            $EtwName = $Exe + ".remote.etw"
+            $EtwName = $Exe + ".remote.etl"
             wpr.exe -stop $EtwName 2> $null
         }
     } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $WpaStackWalkProfileXml
