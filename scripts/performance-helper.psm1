@@ -277,11 +277,11 @@ function Get-ExeName {
         $ConfigStr = "$($RemoteArch)_$($Config)_$($RemoteTls)"
         return Invoke-TestCommand -Session $Session -ScriptBlock {
             param ($PathRoot, $Platform, $ConfigStr, $ExeName)
-            Join-Path -Path $PathRoot, $Platform, $ConfigStr, $ExeName
+            Join-Path -Path $PathRoot, $Platform, $ConfigStr -ChildPath $ExeName
         } -ArgumentList $PathRoot, $Platform, $ConfigStr, $ExeName
     } else {
         $ConfigStr = "$($LocalArch)_$($Config)_$($LocalTls)"
-        return Join-Path -Path $PathRoot, $Platform, $ConfigStr, $ExeName
+        return Join-Path -Path $PathRoot, $Platform, $ConfigStr -ChildPath $ExeName
     }
 }
 
