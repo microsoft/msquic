@@ -248,7 +248,6 @@ function Run-Loopback-Test() {
     New-Item $LoopbackOutputDir -ItemType Directory -Force | Out-Null
 
     $apipaInterfaces = $null
-    Write-Host $SkipAPIPA
     if ($IsWindows -and !$SkipAPIPA) {
         $apipaAddr = Get-NetIPAddress 169.254.*
         if ($null -ne $apipaAddr) {
@@ -277,6 +276,10 @@ function Run-Loopback-Test() {
     $allRunsResults = @()
     $serverOutput = $null
     try {
+
+        Write-Host $QuicPing
+        Write-Host $ServerArgs
+        Write-Host $ClientArgs
 
         # Start the server.
         $proc = Start-Background-Executable -File (Join-Path $ServerDir $QuicPing) -Arguments $ServerArgs

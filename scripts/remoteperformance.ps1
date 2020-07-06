@@ -234,12 +234,26 @@ function Copy-Artifacts {
     Copy-Item -Path "$From\*" -Destination $To -ToSession $session  -Recurse
 }
 
+class ArgumentsSpec {
+    [string]$All;
+    [string]$Loopback;
+    [string]$Remote;
+
+    [string]GetArguments() {
+        if ($script:Local) {
+            return "$($this.All) $($this.Loopback)"
+        } else {
+            return "$($this.All) $($this.Remote)"
+        }
+    }
+}
+
 class ExecutableSpec {
     [string]$Platform;
     [string[]]$Tls;
     [string[]]$Arch;
     [string]$Exe;
-    [string]$Arguments;
+    [ArgumentsSpec]$Arguments;
 }
 
 class TestDefinition {
@@ -251,24 +265,26 @@ class TestDefinition {
     [string]$ResultsMatcher;
 
     [string]ToString() {
-        return ("{0}_{1}_{2}_{3}_{4}_{5}_{6}" -f $this.TestName,
-                                        $this.Local.Platform, 
-                                        $script:LocalTls,
-                                        $script:LocalArch,
+        $RetString = ("{0}_{1}_{2}_{3}" -f $this.TestName,
                                         $this.Remote.Platform,
                                         $script:RemoteTls,
                                         $script:RemoteArch
                                         )
+        if ($script:Local) {
+            $RetString += "_Loopback"
+        }
+        return $RetString
     }
 
     [string]ToTestPlatformString() {
-        return ("{0}_{1}_{2}_{3}_{4}_{5}" -f $this.Local.Platform, 
-                                         $script:LocalTls,
-                                         $script:LocalArch,
-                                         $this.Remote.Platform,
-                                         $script:RemoteTls,
-                                         $script:RemoteArch
+        $RetString = ("{0}_{1}_{2}" -f    $this.Remote.Platform,
+                                    $script:RemoteTls,
+                                    $script:RemoteArch
                                          )
+        if ($script:Local) {
+            $RetString += "_Loopback"
+        }
+        return $RetString
     }
 }
 
@@ -317,6 +333,35 @@ function Parse-Test-Results($Results, $Matcher) {
     } catch {
         Write-Host "Error Processing Results:`n`n$Results"
         throw
+    }
+}
+
+function LocalSetup {
+    $RetObj = New-Object -TypeName psobject
+    $RetObj | Add-Member -MemberType NoteProperty -Name apipaInterfaces -Value $null
+    try {
+        if ($IsWindows) {
+            $apipaAddr = Get-NetIPAddress 169.254.*
+            if ($null -ne $apipaAddr) {
+                # Disable all the APIPA interfaces for URO perf.
+                Write-Debug "Temporarily disabling APIPA interfaces"
+                $RetObj.apipaInterfaces = (Get-NetAdapter -InterfaceIndex $apipaAddr.InterfaceIndex) | where {$_.AdminStatus -eq "Up"}
+                $RetObj.apipaInterfaces | Disable-NetAdapter -Confirm:$false
+            }
+        }
+    } catch {
+        $RetObj.apipaInterfaces = $null
+    }
+
+    return $RetObj
+}
+
+function LocalTeardown {
+    param($LocalCache)
+    if ($null -ne $LocalCache.apipaInterfaces) {
+        # Re-enable the interfaces we disabled earlier.
+        Write-Debug "Re-enabling APIPA interfaces"
+        $LocalCache.apipaInterfaces | Enable-NetAdapter
     }
 }
 
@@ -394,12 +439,12 @@ function Run-Test {
         return
     }
 
-    $LocalArguments = $Test.Local.Arguments.Replace('$RemoteAddress', $RemoteAddress)
+    $LocalArguments = $Test.Local.Arguments.GetArguments().Replace('$RemoteAddress', $RemoteAddress)
     $LocalArguments = $LocalArguments.Replace('$LocalAddress', $LocalAddress)
 
     $CertThumbprint = Invoke-Test-Command -Session $session -ScriptBlock { return $env:QUICCERT }
 
-    $RemoteArguments = $Test.Remote.Arguments.Replace('$Thumbprint', $CertThumbprint)
+    $RemoteArguments = $Test.Remote.Arguments.GetArguments().Replace('$Thumbprint', $CertThumbprint)
 
     $RemoteJob = RunRemote-Exe -Exe $RemoteExe -RunArgs $RemoteArguments
 
@@ -478,8 +523,30 @@ function Check-Test {
     return $true
 }
 
+function Validate-Tests {
+    param([TestDefinition[]]$Test)
+
+    $TestSet = New-Object System.Collections.Generic.HashSet[string]
+    foreach ($T in $Test) {
+        if (!$TestSet.Add($T)) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
+$LocalDataCache = LocalSetup
+
 try {
     $Tests = [TestDefinition[]](Get-Content -Path $TestsFile | ConvertFrom-Json)
+
+    $TestsValid = Validate-Tests -Test $Tests
+
+    if (!$TestsValid) {
+        Write-Host "Tests are not valid"
+        exit
+    }
 
     if (!$SkipDeploy -and !$Local) {
         Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory
@@ -496,4 +563,5 @@ try {
     if ($null -ne $session) {
         Remove-PSSession -Session $session 
     }
+    LocalTeardown($LocalDataCache)
 }
