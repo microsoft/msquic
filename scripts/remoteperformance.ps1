@@ -260,7 +260,7 @@ function Invoke-Test {
     }
 
     if ($Record) {
-        Get-RemoteFile -From ($RemoteExe + ".remote.etw") -To (Join-Path $OutputDir $Test.ToString() + ".etw")
+        Get-RemoteFile -From ($RemoteExe + ".remote.etw") -To (Join-Path $OutputDir ($Test.ToString() + ".etw"))
     }
 
     Publish-TestResults -Test $Test `
@@ -275,8 +275,7 @@ try {
     $Tests = Get-Tests $TestsFile
 
     if ($null -eq $Tests) {
-        Write-Output "Tests are not valid"
-        exit
+        Write-Error "Tests are not valid"
     }
 
     if (!$SkipDeploy -and !$Local) {
