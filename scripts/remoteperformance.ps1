@@ -93,7 +93,7 @@ if ($TestsFile -eq "") {
 
 Import-Module (Join-Path $PSScriptRoot 'performance-helper.psm1') -Force
 
-SetGlobals  -Local $Local `
+Set-Globals -Local $Local `
             -LocalTls $LocalTls `
             -LocalArch $LocalArch `
             -RemoteTls $RemoteTls `
@@ -122,7 +122,7 @@ if ($Local) {
         exit
     }
 
-    $LocalAddress = ComputeLocalAddress -RemoteAddress $RemoteAddress
+    $LocalAddress = Get-LocalAddress -RemoteAddress $RemoteAddress
 
     Write-Host "Connected to: $RemoteAddress"
     Write-Host "Local IP Connection $LocalAddress" 
@@ -152,17 +152,6 @@ if ($Local) {
 
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
 
-function Parse-Test-Results($Results, $Matcher) {
-    try {
-        # Unused variable on purpose
-        $Results -match $Matcher | Out-Null
-        return $Matches[1]
-    } catch {
-        Write-Host "Error Processing Results:`n`n$Results"
-        throw
-    }
-}
-
 function LocalSetup {
     $RetObj = New-Object -TypeName psobject
     $RetObj | Add-Member -MemberType NoteProperty -Name apipaInterfaces -Value $null
@@ -172,7 +161,7 @@ function LocalSetup {
             if ($null -ne $apipaAddr) {
                 # Disable all the APIPA interfaces for URO perf.
                 Write-Debug "Temporarily disabling APIPA interfaces"
-                $RetObj.apipaInterfaces = (Get-NetAdapter -InterfaceIndex $apipaAddr.InterfaceIndex) | where {$_.AdminStatus -eq "Up"}
+                $RetObj.apipaInterfaces = (Get-NetAdapter -InterfaceIndex $apipaAddr.InterfaceIndex) | Where-Object {$_.AdminStatus -eq "Up"}
                 $RetObj.apipaInterfaces | Disable-NetAdapter -Confirm:$false
             }
         }
@@ -192,7 +181,7 @@ function LocalTeardown {
     }
 }
 
-function Run-Test {
+function Invoke-Test {
     param ($Test)
 
     Write-Host "Running Test $Test"
@@ -228,7 +217,7 @@ function Run-Test {
 
     $RemoteArguments = $Test.Remote.Arguments.GetArguments().Replace('$Thumbprint', $CertThumbprint)
 
-    $RemoteJob = RunRemote-Exe -Exe $RemoteExe -RunArgs $RemoteArguments
+    $RemoteJob = Invoke-RemoteExe -Exe $RemoteExe -RunArgs $RemoteArguments
 
     $ReadyToStart = Wait-ForRemoteReady -Job $RemoteJob 
 
@@ -242,9 +231,9 @@ function Run-Test {
 
     try {
         1..$Test.Iterations | ForEach-Object {
-            $LocalResults = RunLocal-Exe -Exe $LocalExe -RunArgs $LocalArguments 
+            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments 
 
-            $LocalParsedResults = Parse-Test-Results -Results $LocalResults -Matcher $Test.ResultsMatcher
+            $LocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
 
             
             $AllRunsResults += $LocalParsedResults
@@ -260,10 +249,10 @@ function Run-Test {
     $Platform = $Test.ToTestPlatformString()
 
     # Print current and latest master results to console.
-    $MedianCurrentResult = Median-Test-Results -FullResults $AllRunsResults
-    $fullLastResult = Get-Latest-Test-Results -Platform $Platform -Test $Test.TestName
+    $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
+    $fullLastResult = Get-LatestRemoteTestResults -Platform $Platform -Test $Test.TestName
     if ($fullLastResult -ne "") {
-        $MedianLastResult = Median-Test-Results -FullResults $fullLastResult.individualRunResults
+        $MedianLastResult = Get-MedianTestResults -FullResults $fullLastResult.individualRunResults
         $PercentDiff = 100 * (($MedianCurrentResult - $MedianLastResult) / $MedianLastResult)
         $PercentDiffStr = $PercentDiff.ToString("#.##")
         if ($PercentDiff -ge 0) {
@@ -275,7 +264,7 @@ function Run-Test {
         Write-Host "Median: $MedianCurrentResult kbps"
     }
     
-    if ($Publish -and ($CurrentCommitHash -ne $null)) {
+    if ($Publish -and ($null -ne $CurrentCommitHash)) {
         Write-Host "Saving results.json out for publishing."
         $Results = [TestPublishResult]::new()
         $Results.CommitHash = $CurrentCommitHash.Substring(0, 7)
@@ -285,7 +274,7 @@ function Run-Test {
         
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
-    } elseif ($Publish -and ($CurrentCommitHash -eq $null)) {
+    } elseif ($Publish -and ($null -ne $CurrentCommitHash)) {
         Write-Debug "Failed to publish because of missing commit hash"
     }
 }
@@ -295,9 +284,7 @@ $LocalDataCache = LocalSetup
 try {
     $Tests = Get-Tests $TestsFile
 
-    $TestsValid = Validate-Tests -Test $Tests
-
-    if (!$TestsValid) {
+    if ($null -eq $Tests) {
         Write-Host "Tests are not valid"
         exit
     }
@@ -307,8 +294,8 @@ try {
     }
 
     foreach ($Test in $Tests) {
-        if (Check-Test -Test $Test -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform) {
-            Run-Test -Test $Test
+        if (Test-CanRunTest -Test $Test -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform) {
+            Invoke-Test -Test $Test
         } else {
             Write-Host "Skipping $Test"
         }

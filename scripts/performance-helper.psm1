@@ -1,7 +1,7 @@
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-function SetGlobals {
+function Set-Globals {
     param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config)
     $script:Local = $Local
     $script:LocalTls = $LocalTls
@@ -11,14 +11,14 @@ function SetGlobals {
     $script:Config = $Config
 }
 
-function HostToNetworkOrder {
+function Convert-HostToNetworkOrder {
     param ($Address)
     $Bytes = $Address.GetAddressBytes()
     [Array]::Reverse($Bytes) | Out-Null
     return [System.BitConverter]::ToUInt32($Bytes, 0)
 }
 
-function ComputeLocalAddress {
+function Get-LocalAddress {
     param ($RemoteAddress)
 
     $PossibleRemoteIPs = [System.Net.Dns]::GetHostAddresses($RemoteAddress) | Select-Object -Property IPAddressToString
@@ -31,7 +31,7 @@ function ComputeLocalAddress {
 
         [IPAddress]$LocalIpAddr = $_.IPv4Address
 
-        $ToMaskLocalAddress = HostToNetworkOrder($LocalIpAddr)
+        $ToMaskLocalAddress = Convert-HostToNetworkOrder -Address $LocalIpAddr
 
         $Mask = (1ul -shl $_.PrefixLength) - 1
         $Mask = $Mask -shl (32 - $_.PrefixLength)
@@ -170,14 +170,19 @@ class TestPublishResult {
 
 function Get-Tests {
     param ($Path)
-    return [TestDefinition[]](Get-Content -Path $Path | ConvertFrom-Json)
+    $Tests = [TestDefinition[]](Get-Content -Path $Path | ConvertFrom-Json)
+    if (Test-AllTestsValid -Tests $Tests) {
+        return $Tests
+    } else {
+        return $null
+    }
 }
 
-function Validate-Tests {
-    param ([TestDefinition[]]$Test)
+function Test-AllTestsValid {
+    param ([TestDefinition[]]$Tests)
 
     $TestSet = New-Object System.Collections.Generic.HashSet[string]
-    foreach ($T in $Test) {
+    foreach ($T in $Tests) {
         if (!$TestSet.Add($T)) {
             return $false
         }
@@ -186,7 +191,7 @@ function Validate-Tests {
     return $true
 }
 
-function Check-Test {
+function Test-CanRunTest {
     param ([TestDefinition]$Test, $RemotePlatform, $LocalPlatform)
     $PlatformCorrect = ($Test.Local.Platform -eq $LocalPlatform) -and ($Test.Remote.Platform -eq $RemotePlatform)
     if (!$PlatformCorrect) {
@@ -235,7 +240,7 @@ function Get-ExeName {
     }
 }
 
-function RunRemote-Exe {
+function Invoke-RemoteExe {
     param ($Exe, $RunArgs, $TestName)
 
     # Command to run chmod if necessary, and get base path
@@ -261,7 +266,7 @@ function RunRemote-Exe {
 }
 
 
-function RunLocal-Exe {
+function Invoke-LocalExe {
     param ($Exe, $RunArgs)
 
     if (!$IsWindows) {
@@ -274,7 +279,7 @@ function RunLocal-Exe {
     return (Invoke-Expression $FullCommand) -join "`n"
 }
 
-function Get-Latest-Test-Results($Platform, $Test) {
+function Get-LatestRemoteTestResults($Platform, $Test) {
     $Uri = "https://msquicperformanceresults.azurewebsites.net/performance/$Platform/$Test"
     Write-Debug "Requesting: $Uri"
     $LatestResult = Invoke-RestMethod -Uri $Uri
@@ -282,9 +287,20 @@ function Get-Latest-Test-Results($Platform, $Test) {
     return $LatestResult
 }
 
-function Median-Test-Results($FullResults) {
+function Get-MedianTestResults($FullResults) {
     $sorted = $FullResults | Sort-Object
     return $sorted[[int](($sorted.Length - 1) / 2)]
+}
+
+function Get-TestResult($Results, $Matcher) {
+    try {
+        # Unused variable on purpose
+        $Results -match $Matcher | Out-Null
+        return $Matches[1]
+    } catch {
+        Write-Host "Error Processing Results:`n`n$Results"
+        throw
+    }
 }
 
 Export-ModuleMember -Function * -Alias *
