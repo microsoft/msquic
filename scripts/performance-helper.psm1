@@ -1,6 +1,38 @@
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+# WPA Profile for collecting stacks.
+$WpaStackWalkProfileXml = `
+@"
+<?xml version="1.0" encoding="utf-8"?>
+<WindowsPerformanceRecorder Version="1.0" Author="MsQuic" Copyright="Microsoft Corporation" Company="Microsoft Corporation">
+  <Profiles>
+    <SystemCollector Id="SC_HighVolume" Realtime="false">
+      <BufferSize Value="1024"/>
+      <Buffers Value="20"/>
+    </SystemCollector>
+    <SystemProvider Id="SP_CPU">
+      <Keywords>
+        <Keyword Value="CpuConfig"/>
+        <Keyword Value="Loader"/>
+        <Keyword Value="ProcessThread"/>
+        <Keyword Value="SampledProfile"/>
+      </Keywords>
+      <Stacks>
+        <Stack Value="SampledProfile"/>
+      </Stacks>
+    </SystemProvider>
+    <Profile Id="CPU.Light.File" Name="CPU" Description="CPU Stacks" LoggingMode="File" DetailLevel="Light">
+      <Collectors>
+        <SystemCollectorId Value="SC_HighVolume">
+          <SystemProviderId Value="SP_CPU" />
+        </SystemCollectorId>
+      </Collectors>
+    </Profile>
+  </Profiles>
+</WindowsPerformanceRecorder>
+"@
+
 function Set-Globals {
     param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record)
     $script:Local = $Local
@@ -248,7 +280,7 @@ function Get-ExeName {
 }
 
 function Invoke-RemoteExe {
-    param ($Exe, $RunArgs, $TestName)
+    param ($Exe, $RunArgs)
 
     # Command to run chmod if necessary, and get base path
     $BasePath = Invoke-TestCommand -Session $Session -ScriptBlock {
@@ -263,13 +295,45 @@ function Invoke-RemoteExe {
     Write-Debug "Running Remote: $Exe $RunArgs" | Out-Null
 
     return Invoke-TestCommand -Session $Session -ScriptBlock {
-        param ($Exe, $RunArgs, $BasePath)
+        param ($Exe, $RunArgs, $BasePath, $Record, $WpaStackWalkProfileXml)
         if ($null -ne $BasePath) {
             $env:LD_LIBRARY_PATH = $BasePath
         }
 
+        if ($Record -and $IsWindows) {
+            $EtwXmlName = $Exe + ".remote.wprp"
+
+            # try {
+            #     Write-Host "Trying to cancel"
+            #     cmd /c wpr.exe
+            #     Write-Host "Cancelling"
+            # } catch {
+            #     Write-Host "Exception Handler"
+            #     Write-Host $_
+            # }
+
+            $WpaStackWalkProfileXml | Out-File $EtwXmlName
+            Write-Host $EtwXmlName
+            wpr.exe -start $EtwXmlName -filemode
+        }
+
         & $Exe ($RunArgs).Split(" ")
-    } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath
+
+        if ($Record -and $IsWindows) {
+            $EtwName = $Exe + ".remote.etw"
+            wpr.exe -stop $EtwName
+        }
+    } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $WpaStackWalkProfileXml
+}
+
+function Get-RemoteFile {
+    param ($From, $To)
+
+    if ($Local) {
+        Copy-Item -Path $From -Destination $To
+    } else {
+        Copy-Item -Path $From -Destination $To -FromSession $Session
+    }
 }
 
 

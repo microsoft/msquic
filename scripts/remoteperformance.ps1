@@ -259,6 +259,10 @@ function Invoke-Test {
         Write-Debug $RemoteResults.ToString()
     }
 
+    if ($Record) {
+        Get-RemoteFile -From ($RemoteExe + ".remote.etw") -To $OutputDir
+    }
+
     Publish-TestResults -Test $Test `
                         -AllRunsResults $AllRunsResults `
                         -CurrentCommitHash $CurrentCommitHash `
