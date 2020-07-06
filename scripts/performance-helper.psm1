@@ -312,6 +312,8 @@ function Invoke-RemoteExe {
             #     Write-Host $_
             # }
 
+            wpr.exe -cancel 2> $null
+
             $WpaStackWalkProfileXml | Out-File $EtwXmlName
             Write-Host $EtwXmlName
             wpr.exe -start $EtwXmlName -filemode
