@@ -39,7 +39,7 @@ function Get-LocalAddress {
 
         $PossibleRemoteIPs | ForEach-Object {
             [ipaddress]$RemoteIpAddr = $_.IPAddressToString
-            $ToMaskRemoteAddress = HostToNetworkOrder($RemoteIpAddr)
+            $ToMaskRemoteAddress = Convert-HostToNetworkOrder($RemoteIpAddr)
             $RemoteMasked = $ToMaskRemoteAddress -band $Mask
 
             if ($RemoteMasked -eq $LocalSubnet) {
@@ -301,6 +301,10 @@ function Get-TestResult($Results, $Matcher) {
         Write-Host "Error Processing Results:`n`n$Results"
         throw
     }
+}
+
+function Publish-TestResults {
+    
 }
 
 Export-ModuleMember -Function * -Alias *
