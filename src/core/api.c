@@ -10,6 +10,9 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#ifdef QUIC_CLOG
+#include "api.c.clog.h"
+#endif
 
 #define IS_SESSION_HANDLE(Handle) \
 ( \

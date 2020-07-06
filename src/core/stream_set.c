@@ -12,6 +12,9 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#ifdef QUIC_CLOG
+#include "stream_set.c.clog.h"
+#endif
 
 #if DEBUG
 _IRQL_requires_max_(DISPATCH_LEVEL)

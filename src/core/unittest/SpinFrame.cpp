@@ -10,6 +10,9 @@ Abstract:
 --*/
 
 #include "main.h"
+#ifdef QUIC_CLOG
+#include "SpinFrame.cpp.clog.h"
+#endif
 
 union QuicV1Frames {
     QUIC_ACK_EX AckFrame;

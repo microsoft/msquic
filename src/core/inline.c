@@ -16,6 +16,9 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#ifdef QUIC_CLOG
+#include "inline.c.clog.h"
+#endif
 
 QUIC_CID_QUIC_LIST_ENTRY*
 QuicCidNewDestination(

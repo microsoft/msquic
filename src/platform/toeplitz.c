@@ -47,6 +47,9 @@ Notes:
 --*/
 
 #include "platform_internal.h"
+#ifdef QUIC_CLOG
+#include "toeplitz.c.clog.h"
+#endif
 
 //
 // Initializes the state required for a Toeplitz hash computation. We

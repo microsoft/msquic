@@ -19,6 +19,9 @@ Future work:
 --*/
 
 #include "precomp.h"
+#ifdef QUIC_CLOG
+#include "congestion_control.c.clog.h"
+#endif
 
 //
 // BETA and C from RFC8312. 10x multiples for integer arithmetic.

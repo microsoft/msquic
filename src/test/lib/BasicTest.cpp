@@ -10,6 +10,9 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#ifdef QUIC_CLOG
+#include "BasicTest.cpp.clog.h"
+#endif
 
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static

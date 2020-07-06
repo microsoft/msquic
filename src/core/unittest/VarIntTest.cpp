@@ -10,6 +10,9 @@ Abstract:
 --*/
 
 #include "main.h"
+#ifdef QUIC_CLOG
+#include "VarIntTest.cpp.clog.h"
+#endif
 
 uint64_t Encode(uint64_t Value)
 {

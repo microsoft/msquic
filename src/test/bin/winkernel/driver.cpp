@@ -13,6 +13,9 @@ Abstract:
 #include <MsQuicTests.h>
 
 #include "quic_trace.h"
+#ifdef QUIC_CLOG
+#include "driver.cpp.clog.h"
+#endif
 
 #define QUIC_TEST_TAG 'tsTQ' // QTst
 

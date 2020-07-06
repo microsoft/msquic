@@ -20,6 +20,9 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#ifdef QUIC_CLOG
+#include "worker.c.clog.h"
+#endif
 
 //
 // Thread callback for processing the work queued for the worker.

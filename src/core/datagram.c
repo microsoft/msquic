@@ -10,9 +10,8 @@ Abstract:
 --*/
 
 #include "precomp.h"
-
-#ifdef QUIC_LOGS_WPP
-#include "datagram.tmh"
+#ifdef QUIC_CLOG
+#include "datagram.c.clog.h"
 #endif
 
 #define DATAGRAM_FRAME_HEADER_LENGTH 3
