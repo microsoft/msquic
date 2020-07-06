@@ -88,8 +88,9 @@ function Get-LocalAddress {
     }
 
     if ($MatchedIPs.Length -ne 1) {
-        Write-Output "Failed to parse local address. Using first address"
+        Write-Error "Failed to parse local address matching remote"
     }
+
     return $MatchedIPs[0]
 }
 
