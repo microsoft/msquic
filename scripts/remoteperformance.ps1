@@ -211,14 +211,14 @@ function Invoke-Test {
     $LocalExeExists = Test-Path $LocalExe
 
     if (!$RemoteExeExists -or !$LocalExeExists) {
-        Write-Output "Failed to Run $Test because of missing exe"
+
         if (!$RemoteExeExists) {
             Write-Output "Missing Remote Exe $RemoteExe"
         }
         if (!$LocalExeExists) {
             Write-Output "Missing Local Exe $LocalExe"
         }
-        return
+        Write-Error "Failed to Run $Test because of missing exe"
     }
 
     $LocalArguments = $Test.Local.Arguments.GetArguments().Replace('$RemoteAddress', $RemoteAddress)
@@ -235,9 +235,9 @@ function Invoke-Test {
     $ReadyToStart = Wait-ForRemoteReady -Job $RemoteJob
 
     if (!$ReadyToStart) {
-        Write-Output "Test Remote for $Test failed to start"
+
         Stop-Job -Job $RemoteJob
-        return
+        Write-Error "Test Remote for $Test failed to start"
     }
 
     $AllRunsResults = @()
@@ -247,7 +247,6 @@ function Invoke-Test {
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments
 
             $LocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
-
 
             $AllRunsResults += $LocalParsedResults
 
