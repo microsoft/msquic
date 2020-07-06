@@ -316,14 +316,14 @@ function Invoke-RemoteExe {
 
             $WpaStackWalkProfileXml | Out-File $EtwXmlName
             Write-Host $EtwXmlName
-            wpr.exe -start $EtwXmlName -filemode
+            wpr.exe -start $EtwXmlName -filemode 2> $null
         }
 
         & $Exe ($RunArgs).Split(" ")
 
         if ($Record -and $IsWindows) {
             $EtwName = $Exe + ".remote.etw"
-            wpr.exe -stop $EtwName
+            wpr.exe -stop $EtwName 2> $null
         }
     } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $WpaStackWalkProfileXml
 }
