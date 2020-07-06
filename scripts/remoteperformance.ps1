@@ -91,12 +91,14 @@ if ($TestsFile -eq "") {
     $TestsFile = Join-Path $PSScriptRoot "RemoteTests.json"
 }
 
-function HostToNetworkOrder {
-    param($Address)
-    $Bytes = $Address.GetAddressBytes()
-    [Array]::Reverse($Bytes) | Out-Null
-    return [System.BitConverter]::ToUInt32($Bytes, 0)
-}
+Import-Module (Join-Path $PSScriptRoot 'performance-helper.psm1') -Force
+
+SetGlobals  -Local $Local `
+            -LocalTls $LocalTls `
+            -LocalArch $LocalArch `
+            -RemoteTls $RemoteTls `
+            -RemoteArch $RemoteArch `
+            -Config $Config
 
 if ($Local) {
     $RemoteAddress = "localhost"
@@ -119,69 +121,17 @@ if ($Local) {
         exit
     }
 
-    $PossibleRemoteIPs = [System.Net.Dns]::GetHostAddresses($RemoteAddress) | Select-Object -Property IPAddressToString
-
-    $PossibleLocalIPs = Get-NetIPAddress -AddressFamily IPv4 | Select-Object -Property IPv4Address, PrefixLength
-
-    $MatchedIPs = @()
-
-    $PossibleLocalIPs | ForEach-Object {
-
-        [IPAddress]$LocalIpAddr = $_.IPv4Address
-
-        $ToMaskLocalAddress = HostToNetworkOrder($LocalIpAddr)
-
-        $Mask = (1ul -shl $_.PrefixLength) - 1
-        $Mask = $Mask -shl (32 - $_.PrefixLength)
-        $LocalSubnet = $ToMaskLocalAddress -band $Mask
-
-        $PossibleRemoteIPs | ForEach-Object {
-            [ipaddress]$RemoteIpAddr = $_.IPAddressToString
-            $ToMaskRemoteAddress = HostToNetworkOrder($RemoteIpAddr)
-            $RemoteMasked = $ToMaskRemoteAddress -band $Mask
-
-            if ($RemoteMasked -eq $LocalSubnet) {
-                $MatchedIPs += $LocalIpAddr.IPAddressToString
-            }
-        }
-    }
-
-    if ($MatchedIPs.Length -ne 1) {
-        Write-Host "Failed to parse local address. Using first address"
-    }
-    $LocalAddress = $MatchedIPs[0]
+    $LocalAddress = ComputeLocalAddress -RemoteAddress $RemoteAddress
 
     Write-Host "Connected to: $RemoteAddress"
     Write-Host "Local IP Connection $LocalAddress" 
-}
-
-function Invoke-Test-Command {
-    param (
-        $Session,
-        $ScriptBlock,
-        [Object[]]$ArgumentList = @(),
-        [switch]$AsJob = $false
-    )
-
-    if ($Local) {
-        if ($AsJob) {
-            return Start-Job -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
-        }
-        return Invoke-Command -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
-    } else {
-        if ($AsJob) {
-            return Invoke-Command -Session $Session -ScriptBlock $ScriptBlock -AsJob -ArgumentList $ArgumentList
-        }
-        return Invoke-Command -Session $Session -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
-    }
-    
 }
 
 $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
 
-$RemotePlatform = Invoke-Test-Command -Session $session -ScriptBlock { 
+$RemotePlatform = Invoke-TestCommand -Session $session -ScriptBlock { 
     if ($IsWindows) {
         return "windows"
     } else {
@@ -190,7 +140,7 @@ $RemotePlatform = Invoke-Test-Command -Session $session -ScriptBlock {
 }
 
 # Join path in script to ensure right platform separator
-$RemoteDirectory = Invoke-Test-Command -Session $session -ScriptBlock { Join-Path (Get-Location) "Tests" }
+$RemoteDirectory = Invoke-TestCommand -Session $session -ScriptBlock { Join-Path (Get-Location) "Tests" }
 
 $LocalDirectory = Join-Path $RootDir "artifacts"
 
@@ -198,132 +148,7 @@ if ($Local) {
     $RemoteDirectory = $LocalDirectory
 }
 
-function WaitFor-Remote-Ready {
-    param ($Job, $Matcher)
-    $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
-    while ($true) {
-        $CurrentResults = Receive-Job -Job $Job -Keep
-        if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
-            $DidMatch = $CurrentResults -match $Matcher
-            if ($DidMatch) {
-                return $true
-            }
-        }
-        Start-Sleep -Seconds 0.1 | Out-Null
-        if ($StopWatch.ElapsedMilliseconds -gt 10000) {
-            return $false
-        }
-    }
-}
-
-function WaitFor-Remote {
-    param ($Job)
-    Wait-Job -Job $Job -Timeout 10 | Out-Null
-    $RetVal = Receive-Job -Job $Job
-    return $RetVal -join "`n"
-}
-
-function Copy-Artifacts {
-    param([string]$From, [string]$To)
-    try {
-        Invoke-Test-Command $session -ScriptBlock { param($To) Remove-Item -Path "$To/*" -Recurse -Force } -ArgumentList $To
-    } catch {
-        # Ignore failure
-    }
-    # TODO Figure out how to filter this
-    Copy-Item -Path "$From\*" -Destination $To -ToSession $session  -Recurse
-}
-
-class ArgumentsSpec {
-    [string]$All;
-    [string]$Loopback;
-    [string]$Remote;
-
-    [string]GetArguments() {
-        if ($script:Local) {
-            return "$($this.All) $($this.Loopback)"
-        } else {
-            return "$($this.All) $($this.Remote)"
-        }
-    }
-}
-
-class ExecutableSpec {
-    [string]$Platform;
-    [string[]]$Tls;
-    [string[]]$Arch;
-    [string]$Exe;
-    [ArgumentsSpec]$Arguments;
-}
-
-class TestDefinition {
-    [string]$TestName;
-    [ExecutableSpec]$Remote;
-    [ExecutableSpec]$Local;
-    [int]$Iterations;
-    [string]$RemoteReadyMatcher;
-    [string]$ResultsMatcher;
-
-    [string]ToString() {
-        $RetString = ("{0}_{1}_{2}_{3}" -f $this.TestName,
-                                        $this.Remote.Platform,
-                                        $script:RemoteTls,
-                                        $script:RemoteArch
-                                        )
-        if ($script:Local) {
-            $RetString += "_Loopback"
-        }
-        return $RetString
-    }
-
-    [string]ToTestPlatformString() {
-        $RetString = ("{0}_{1}_{2}" -f    $this.Remote.Platform,
-                                    $script:RemoteTls,
-                                    $script:RemoteArch
-                                         )
-        if ($script:Local) {
-            $RetString += "_Loopback"
-        }
-        return $RetString
-    }
-}
-
-class TestPublishResult {
-    [string]$PlatformName
-    [string]$TestName
-    [string]$CommitHash
-    [double[]]$IndividualRunResults
-}
-
-$currentLoc = Get-Location
-Set-Location -Path $RootDir
-$env:GIT_REDIRECT_STDERR = '2>&1'
-$CurrentCommitHash = $null
-try {
-    $CurrentCommitHash = git rev-parse HEAD
-} catch {
-    Write-Debug "Failed to get commit hash from git"
-}
-Set-Location -Path $currentLoc
-
-
-function GetExe-Name {
-    param($PathRoot, $Platform, $IsRemote, $TestPlat)
-    $ExeName = $TestPlat.Exe
-    if ($Platform -eq "windows") {
-        $ExeName += ".exe"
-    }
-
-    
-
-    if ($IsRemote) {
-        $ConfigStr = "$($RemoteArch)_$($Config)_$($RemoteTls)"
-        return Invoke-Test-Command -Session $session -ScriptBlock { param($PathRoot, $Platform, $ConfigStr, $ExeName) Join-Path $PathRoot $Platform $ConfigStr $ExeName  } -ArgumentList $PathRoot, $Platform, $ConfigStr, $ExeName
-    } else {
-        $ConfigStr = "$($LocalArch)_$($Config)_$($LocalTls)"
-        return Join-Path $PathRoot $Platform $ConfigStr $ExeName
-    }
-}
+$CurrentCommitHash = Get-GitHash -RepoDir $RootDir
 
 function Parse-Test-Results($Results, $Matcher) {
     try {
@@ -365,67 +190,16 @@ function LocalTeardown {
     }
 }
 
-function Get-Latest-Test-Results($Platform, $Test) {
-    $Uri = "https://msquicperformanceresults.azurewebsites.net/performance/$Platform/$Test"
-    Write-Debug "Requesting: $Uri"
-    $LatestResult = Invoke-RestMethod -Uri $Uri
-    Write-Debug "Result: $LatestResult"
-    return $LatestResult
-}
-
-function Median-Test-Results($FullResults) {
-    $sorted = $FullResults | Sort-Object
-    return $sorted[[int](($sorted.Length - 1) / 2)]
-}
-
-function RunRemote-Exe {
-    param($Exe, $RunArgs)
-
-    # Command to run chmod if necessary, and get base path
-    $BasePath = Invoke-Test-Command -Session $session -ScriptBlock {
-        param ($Exe)
-        if (!$IsWindows) {
-            chmod +x $Exe
-            return Split-Path $Exe -Parent
-        }
-        return $null
-    } -ArgumentList $Exe
-
-    Write-Debug "Running Remote: $Exe $RunArgs" | Out-Null
-
-    return Invoke-Test-Command -Session $session -ScriptBlock {
-        param($Exe, $RunArgs, $BasePath)
-        if ($null -ne $BasePath) {
-            $env:LD_LIBRARY_PATH = $BasePath
-        }
-        
-        & $Exe ($RunArgs).Split(" ")
-    } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath
-}
-
-function RunLocal-Exe {
-    param ($Exe, $RunArgs)
-
-    if (!$IsWindows) {
-        $BasePath = Split-Path $Exe -Parent
-        $env:LD_LIBRARY_PATH = $BasePath
-        chmod +x $Exe | Out-Null
-    }
-    $FullCommand = "$Exe $RunArgs"
-    Write-Debug "Running Locally: $FullCommand"
-    return (Invoke-Expression $FullCommand) -join "`n"
-}
-
 function Run-Test {
     param($Test)
 
     Write-Host "Running Test $Test"
 
-    $RemoteExe = GetExe-Name -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $Test.Remote
-    $LocalExe = GetExe-Name -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local
+    $RemoteExe = Get-ExeName -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $Test.Remote
+    $LocalExe = Get-ExeName -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local
 
     # Check both Exes
-    $RemoteExeExists = Invoke-Test-Command -Session $session -ScriptBlock { param($RemoteExe) Test-Path $RemoteExe } -ArgumentList $RemoteExe
+    $RemoteExeExists = Invoke-TestCommand -Session $session -ScriptBlock { param($RemoteExe) Test-Path $RemoteExe } -ArgumentList $RemoteExe
     $LocalExeExists = Test-Path $LocalExe
 
     if (!$RemoteExeExists -or !$LocalExeExists) {
@@ -442,13 +216,13 @@ function Run-Test {
     $LocalArguments = $Test.Local.Arguments.GetArguments().Replace('$RemoteAddress', $RemoteAddress)
     $LocalArguments = $LocalArguments.Replace('$LocalAddress', $LocalAddress)
 
-    $CertThumbprint = Invoke-Test-Command -Session $session -ScriptBlock { return $env:QUICCERT }
+    $CertThumbprint = Invoke-TestCommand -Session $session -ScriptBlock { return $env:QUICCERT }
 
     $RemoteArguments = $Test.Remote.Arguments.GetArguments().Replace('$Thumbprint', $CertThumbprint)
 
     $RemoteJob = RunRemote-Exe -Exe $RemoteExe -RunArgs $RemoteArguments
 
-    $ReadyToStart = WaitFor-Remote-Ready -Job $RemoteJob 
+    $ReadyToStart = Wait-ForRemoteReady -Job $RemoteJob 
 
     if (!$ReadyToStart) {
         Write-Host "Test Remote for $Test failed to start"
@@ -471,7 +245,7 @@ function Run-Test {
             $LocalResults | Write-Debug
         }
     } finally {
-        $RemoteResults = WaitFor-Remote -Job $RemoteJob
+        $RemoteResults = Wait-ForRemote -Job $RemoteJob
         Write-Debug $RemoteResults.ToString()
     }
 
@@ -508,38 +282,10 @@ function Run-Test {
     }
 }
 
-function Check-Test {
-    param([TestDefinition]$Test)
-    $PlatformCorrect = ($Test.Local.Platform -eq $LocalPlatform) -and ($Test.Remote.Platform -eq $RemotePlatform)
-    if (!$PlatformCorrect) {
-        return $false
-    }
-    if (!$Test.Local.Tls.Contains($LocalTls)) {
-        return $false
-    }
-    if (!$Test.Remote.Tls.Contains($RemoteTls)) {
-        return $false
-    }
-    return $true
-}
-
-function Validate-Tests {
-    param([TestDefinition[]]$Test)
-
-    $TestSet = New-Object System.Collections.Generic.HashSet[string]
-    foreach ($T in $Test) {
-        if (!$TestSet.Add($T)) {
-            return $false
-        }
-    }
-
-    return $true
-}
-
 $LocalDataCache = LocalSetup
 
 try {
-    $Tests = [TestDefinition[]](Get-Content -Path $TestsFile | ConvertFrom-Json)
+    $Tests = Get-Tests $TestsFile
 
     $TestsValid = Validate-Tests -Test $Tests
 
@@ -553,7 +299,7 @@ try {
     }
 
     foreach ($Test in $Tests) {
-        if (Check-Test -Test $Test) {
+        if (Check-Test -Test $Test -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform) {
             Run-Test -Test $Test
         } else {
             Write-Host "Skipping $Test"
