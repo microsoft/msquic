@@ -2,13 +2,19 @@ Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 function Set-Globals {
-    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config)
+    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish)
     $script:Local = $Local
     $script:LocalTls = $LocalTls
     $script:LocalArch = $LocalArch
     $script:RemoteTls = $RemoteTls
     $script:RemoteArch = $RemoteArch
     $script:Config = $Config
+    $script:Publish = $Publish
+}
+
+function Set-Session {
+    param ($Session)
+    $script:session = $Session
 }
 
 function Convert-HostToNetworkOrder {
@@ -209,7 +215,7 @@ function Test-CanRunTest {
 function Get-GitHash {
     param ($RepoDir)
     $CurrentLoc = Get-Location
-    Set-Location -Path $RootDir | Out-Null
+    Set-Location -Path $RepoDir | Out-Null
     $env:GIT_REDIRECT_STDERR = '2>&1'
     $CurrentCommitHash = $null
     try {
@@ -304,7 +310,38 @@ function Get-TestResult($Results, $Matcher) {
 }
 
 function Publish-TestResults {
+    param ([TestDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
+    $Platform = $Test.ToTestPlatformString()
+
+    # Print current and latest master results to console.
+    $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
+    $fullLastResult = Get-LatestRemoteTestResults -Platform $Platform -Test $Test.TestName
+    if ($fullLastResult -ne "") {
+        $MedianLastResult = Get-MedianTestResults -FullResults $fullLastResult.individualRunResults
+        $PercentDiff = 100 * (($MedianCurrentResult - $MedianLastResult) / $MedianLastResult)
+        $PercentDiffStr = $PercentDiff.ToString("#.##")
+        if ($PercentDiff -ge 0) {
+            $PercentDiffStr = "+$PercentDiffStr"
+        }
+        Write-Host "Median: $MedianCurrentResult kbps ($PercentDiffStr%)"
+        Write-Host "Master: $MedianLastResult kbps"
+    } else {
+        Write-Host "Median: $MedianCurrentResult kbps"
+    }
     
+    if ($Publish -and ($null -ne $CurrentCommitHash)) {
+        Write-Host "Saving results_$Test.json out for publishing."
+        $Results = [TestPublishResult]::new()
+        $Results.CommitHash = $CurrentCommitHash.Substring(0, 7)
+        $Results.PlatformName = $Platform
+        $Results.TestName = $Test.TestName
+        $Results.IndividualRunResults = $AllRunsResults
+        
+        $ResultFile = Join-Path $OutputDir "results_$Test.json"
+        $Results | ConvertTo-Json | Out-File $ResultFile
+    } elseif ($Publish -and ($null -ne $CurrentCommitHash)) {
+        Write-Debug "Failed to publish because of missing commit hash"
+    }
 }
 
 Export-ModuleMember -Function * -Alias *

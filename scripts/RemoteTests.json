@@ -18,7 +18,7 @@
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicping",
             "Arguments": {
-                "All": "-target:$RemoteAddress -port:4433 -sendbuf:0 -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -length:2000000000",
+                "All": "-target:$RemoteAddress -port:4433 -sendbuf:0 -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -length:2000",
                 "Loopback": "",
                 "Remote": ""
             }

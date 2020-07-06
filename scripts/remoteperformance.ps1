@@ -98,7 +98,8 @@ Set-Globals -Local $Local `
             -LocalArch $LocalArch `
             -RemoteTls $RemoteTls `
             -RemoteArch $RemoteArch `
-            -Config $Config
+            -Config $Config `
+            -Publish $Publish
 
 if ($Local) {
     $RemoteAddress = "localhost"
@@ -127,6 +128,8 @@ if ($Local) {
     Write-Host "Connected to: $RemoteAddress"
     Write-Host "Local IP Connection $LocalAddress" 
 }
+
+Set-Session -Session $session
 
 $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
@@ -246,37 +249,10 @@ function Invoke-Test {
         Write-Debug $RemoteResults.ToString()
     }
 
-    $Platform = $Test.ToTestPlatformString()
-
-    # Print current and latest master results to console.
-    $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
-    $fullLastResult = Get-LatestRemoteTestResults -Platform $Platform -Test $Test.TestName
-    if ($fullLastResult -ne "") {
-        $MedianLastResult = Get-MedianTestResults -FullResults $fullLastResult.individualRunResults
-        $PercentDiff = 100 * (($MedianCurrentResult - $MedianLastResult) / $MedianLastResult)
-        $PercentDiffStr = $PercentDiff.ToString("#.##")
-        if ($PercentDiff -ge 0) {
-            $PercentDiffStr = "+$PercentDiffStr"
-        }
-        Write-Host "Median: $MedianCurrentResult kbps ($PercentDiffStr%)"
-        Write-Host "Master: $MedianLastResult kbps"
-    } else {
-        Write-Host "Median: $MedianCurrentResult kbps"
-    }
-    
-    if ($Publish -and ($null -ne $CurrentCommitHash)) {
-        Write-Host "Saving results.json out for publishing."
-        $Results = [TestPublishResult]::new()
-        $Results.CommitHash = $CurrentCommitHash.Substring(0, 7)
-        $Results.PlatformName = $Platform
-        $Results.TestName = $Test.TestName
-        $Results.IndividualRunResults = $allRunsResults
-        
-        $ResultFile = Join-Path $OutputDir "results_$Test.json"
-        $Results | ConvertTo-Json | Out-File $ResultFile
-    } elseif ($Publish -and ($null -ne $CurrentCommitHash)) {
-        Write-Debug "Failed to publish because of missing commit hash"
-    }
+    Publish-TestResults -Test $Test `
+                        -AllRunsResults $AllRunsResults `
+                        -CurrentCommitHash $CurrentCommitHash `
+                        -OutputDir $OutputDir
 }
 
 $LocalDataCache = LocalSetup
