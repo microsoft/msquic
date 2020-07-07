@@ -259,7 +259,7 @@ function Invoke-Test {
     }
 
     if ($Record) {
-        Get-RemoteFile -From ($RemoteExe + ".remote.etw") -To (Join-Path $OutputDir ($Test.ToString() + ".etl"))
+        Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".etl"))
     }
 
     Publish-TestResults -Test $Test `
