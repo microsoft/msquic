@@ -101,11 +101,21 @@ param (
     [switch]$PGO = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$Generator = "Linux Makefiles"
+    [string]$Generator = ""
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+if ($IsWindows -and ($Generator -ne "")) {
+    Write-Error "Generator setting not supported on windows"
+} elseif ($Generator -ne "") {
+    if ($IsLinux) {
+        $Generator = "Linux Makefiles"
+    } else {
+        $Generator = "Unix Makefiles"
+    }
+}
 
 # Default TLS based on current platform.
 if ("" -eq $Tls) {
