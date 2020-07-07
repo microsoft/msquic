@@ -107,10 +107,10 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-if ($IsWindows -and ($Generator -ne "")) {
-    Write-Error "Generator setting not supported on windows"
-} elseif ($Generator -eq "") {
-    if ($IsLinux) {
+if ($Generator -eq "") {
+    if ($IsWindows) {
+        $Generator = "Visual Studio 16 2019"
+    } elseif ($IsLinux) {
         $Generator = "Linux Makefiles"
     } else {
         $Generator = "Unix Makefiles"
@@ -184,7 +184,7 @@ function CMake-Execute([String]$Arguments) {
 function CMake-Generate {
     $Arguments = "-g"
     if ($IsWindows) {
-        $Arguments += " 'Visual Studio 16 2019' -A "
+        $Arguments += " '$Generator' -A "
         switch ($Arch) {
             "x86"   { $Arguments += "Win32" }
             "x64"   { $Arguments += "x64" }
@@ -253,7 +253,8 @@ function CMake-Build {
     # Copy clog to a common location.
     $ClogPath = Join-Path $BaseArtifactsDir "clog"
     if (!(Test-Path $ClogPath)) {
-        Copy-Item (Join-Path $BuildDir "submodules/clog") -Destination $ClogPath -Recurse
+        # Copy only a single clog subproject
+        Copy-Item (Join-Path $BuildDir "submodules/clog/CORE_CLOG_LIB") -Destination $ClogPath -Recurse
     }
 
     if ($IsWindows) {
