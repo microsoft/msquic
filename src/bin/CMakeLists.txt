@@ -1,27 +1,24 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(SOURCES winuser/dllmain.c winuser/msquic.rc ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
 else()
     set(SOURCES linux/init.c)
 endif()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
-
 add_library(msquic SHARED ${SOURCES})
 
 set_property(TARGET msquic PROPERTY FOLDER "libraries")
 
-target_compile_options(msquic PRIVATE
-     $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-        ${CLANG_GCC_WARNING_FLAGS}>
-     $<$<CXX_COMPILER_ID:MSVC>:
-        ${MSVC_WARNING_FLAGS}>)
+target_compile_options(msquic PRIVATE ${QUIC_WARNING_FLAGS} ${QUIC_COMMON_FLAGS})
+target_compile_definitions(msquic PRIVATE ${QUIC_COMMON_DEFINES})
+
+target_include_directories(msquic PRIVATE ${QUIC_INCLUDE_DIR})
 
 target_link_libraries(msquic PRIVATE core platform PLATFORM_CLOG_LIB CORE_CLOG_LIB)
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     target_link_libraries(msquic PUBLIC
         ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
     if(QUIC_UWP_BUILD)
@@ -38,7 +35,7 @@ target_include_directories(msquic PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
     $<INSTALL_INTERFACE:${include_dest}>)
 
-set(PUBLIC_HEADERS 
+set(PUBLIC_HEADERS
     ../inc/msquic.h
     ../inc/msquic_winuser.h
     ../inc/msquic_linux.h

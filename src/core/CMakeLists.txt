@@ -49,18 +49,15 @@ endif()
 # Allow CLOG to preprocess all the source files.
 CLOG_ADD_SOURCEFILE(CORE_CLOG_LIB ${SOURCES})
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
-
 add_library(core STATIC ${SOURCES})
+
+target_compile_options(core PRIVATE ${QUIC_WARNING_FLAGS} ${QUIC_COMMON_FLAGS})
+target_compile_definitions(core PRIVATE ${QUIC_COMMON_DEFINES})
+
+target_include_directories(core PRIVATE ${QUIC_INCLUDE_DIR})
 
 set_property(TARGET core PROPERTY FOLDER "libraries")
 
-target_compile_options(core PRIVATE
-     $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-        ${CLANG_GCC_WARNING_FLAGS}>
-     $<$<CXX_COMPILER_ID:MSVC>:
-        ${MSVC_WARNING_FLAGS}>)
-
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     add_dependencies(core MsQuicEtw)
 endif()

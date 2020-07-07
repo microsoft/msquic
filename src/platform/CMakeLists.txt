@@ -4,7 +4,7 @@
 # Include for CLOG processing
 include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(SOURCES
         datapath_winuser.c
         hashtable.c
@@ -40,17 +40,15 @@ if (QUIC_TLS STREQUAL "schannel")
 elseif(QUIC_TLS STREQUAL "openssl")
     message(STATUS "Configuring for OpenSSL")
     set(SOURCES ${SOURCES} selfsign_openssl.c tls_openssl.c)
-    include_directories(${QUIC_BUILD_DIR}/openssl/include)
+    set(EXTRA_PLATFORM_INCLUDE_DIRECTORIES ${QUIC_BUILD_DIR}/openssl/include)
 elseif(QUIC_TLS STREQUAL "mitls")
     message(STATUS "Configuring for miTLS")
     set(SOURCES ${SOURCES} cert_capi.c selfsign_capi.c tls_mitls.c)
-    include_directories(${PROJECT_SOURCE_DIR}/submodules/everest/msquic/msvc/include)
+    set(EXTRA_PLATFORM_INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/submodules/everest/msquic/msvc/include)
 else()
     message(STATUS "Configuring for stub TLS")
     set(SOURCES ${SOURCES} cert_stub.c selfsign_stub.c tls_stub.c)
 endif()
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
 
 # Allow CLOG to preprocess all the source files.
 CLOG_ADD_SOURCEFILE(PLATFORM_CLOG_LIB ${SOURCES})
@@ -59,14 +57,15 @@ add_library(platform STATIC ${SOURCES})
 
 set_property(TARGET platform PROPERTY FOLDER "libraries")
 
-target_compile_options(platform PRIVATE
-     $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-        ${CLANG_GCC_WARNING_FLAGS}>
-     $<$<CXX_COMPILER_ID:MSVC>:
-        ${MSVC_WARNING_FLAGS}>)
+target_compile_options(platform PRIVATE ${QUIC_WARNING_FLAGS} ${QUIC_COMMON_FLAGS})
+target_compile_definitions(platform PRIVATE ${QUIC_COMMON_DEFINES})
+
+target_include_directories(platform PRIVATE ${QUIC_INCLUDE_DIR})
+
+target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 
 if(QUIC_ENABLE_LOGGING)
-    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
         add_dependencies(platform MsQuicEtw)
     else()
         target_link_libraries(platform ${LTTNGUST_LIBRARIES})
