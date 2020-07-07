@@ -27,6 +27,9 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Local
     Use the local system as the remote
 
+.PARAMETER PGO
+    Uses pgomgr to merge the resulting .pgc files back to the .pgd.
+
 .PARAMETER SkipDeploy
     Set flag to skip deploying test files
 
@@ -77,7 +80,10 @@ param (
     [switch]$Local = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Record = $false
+    [switch]$Record = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$PGO = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -95,6 +101,16 @@ if ($IsWindows) {
 } else {
     $LocalPlatform = "linux"
 }
+
+if (!$IsWindows) {
+    if ($PGO) {
+        Write-Error "'-PGO' is not supported on this platform!"
+    }
+    if ($Record) {
+        Write-Error "'-Record' is not supported on this platform!"
+    }
+}
+
 
 if ($TestsFile -eq "") {
     $TestsFile = Join-Path $PSScriptRoot "RemoteTests.json"
@@ -165,6 +181,19 @@ if ($Local) {
 
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
 
+if ($PGO -and $Local) {
+    # PGO needs the server and client executing out of separate directories.
+    $RemoteDirectoryOld = $RemoteDirectory
+    $RemoteDirectory = "$($RemoteDirectoryOld)_server"
+    try {
+        Remove-Item -Path "$RemoteDirectory/*" -Recurse -Force
+    } catch {
+        # Ignore failure, which occurs when directory does not exist
+    }
+    New-Item -Path $RemoteDirectory -ItemType Directory -Force | Out-Null
+    Copy-Item "$RemoteDirectoryOld\*" $RemoteDirectory -Recurse
+}
+
 function LocalSetup {
     $RetObj = New-Object -TypeName psobject
     $RetObj | Add-Member -MemberType NoteProperty -Name apipaInterfaces -Value $null
@@ -193,6 +222,9 @@ function LocalTeardown {
         $LocalCache.apipaInterfaces | Enable-NetAdapter
     }
 }
+
+$RemoteExePath = Get-ExePath -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true
+$LocalExePath = Get-ExePath -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false
 
 function Invoke-Test {
     param ($Test)
@@ -245,6 +277,10 @@ function Invoke-Test {
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments
             $LocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
             $AllRunsResults += $LocalParsedResults
+            if ($PGO) {
+                # Merge client PGO Counts
+                Merge-PGOCounts -Path $LocalExePath
+            }
 
             Write-Output "Run $($_): $LocalParsedResults kbps"
             $LocalResults | Write-Debug
@@ -256,6 +292,13 @@ function Invoke-Test {
 
     if ($Record) {
         Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".etl"))
+    }
+
+    if ($PGO) {
+        # Merge server PGO Counts
+        Get-RemoteFile -From (Join-Path $RemoteExePath *.pgc) -To $LocalExePath
+        Remove-RemoteFile -Path (Join-Path $RemoteExePath *.pgc)
+        Merge-PGOCounts -Path $LocalExePath
     }
 
     Publish-TestResults -Test $Test `
@@ -284,6 +327,12 @@ try {
             Write-Output "Skipping $Test"
         }
     }
+
+    if ($PGO) {
+        Write-Host "Saving msquic.pgd out for publishing."
+        Copy-Item "$LocalExePath\msquic.pgd" $OutputDir
+    }
+
 } finally {
     if ($null -ne $Session) {
         Remove-PSSession -Session $Session

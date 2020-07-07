@@ -253,6 +253,20 @@ function Get-GitHash {
     return $CurrentCommitHash
 }
 
+function Get-ExePath {
+    param ($PathRoot, $Platform, $IsRemote)
+    if ($IsRemote) {
+        $ConfigStr = "$($RemoteArch)_$($Config)_$($RemoteTls)"
+        return Invoke-TestCommand -Session $Session -ScriptBlock {
+            param ($PathRoot, $Platform, $ConfigStr)
+            Join-Path $PathRoot $Platform $ConfigStr
+        } -ArgumentList $PathRoot, $Platform, $ConfigStr
+    } else {
+        $ConfigStr = "$($LocalArch)_$($Config)_$($LocalTls)"
+        return Join-Path $PathRoot $Platform $ConfigStr
+    }
+}
+
 function Get-ExeName {
     param ($PathRoot, $Platform, $IsRemote, $TestPlat)
     $ExeName = $TestPlat.Exe
@@ -317,6 +331,15 @@ function Get-RemoteFile {
         Copy-Item -Path $From -Destination $To
     } else {
         Copy-Item -Path $From -Destination $To -FromSession $Session
+    }
+}
+
+function Remove-RemoteFile {
+    param ($Path)
+    if ($Local) {
+        Remove-Item -Path $Path -Force
+    } else {
+        Invoke-Command -Session $Session -ScriptBlock { Remove-Item -Path $using:Path -Force }
     }
 }
 
@@ -392,6 +415,13 @@ function Publish-TestResults {
     } elseif ($Publish -and ($null -ne $CurrentCommitHash)) {
         Write-Debug "Failed to publish because of missing commit hash"
     }
+}
+
+function Merge-PGOCounts {
+    param ($Path, $OutputDir)
+    $Command = "$Path\pgomgr.exe /merge $Path $Path\msquic.pgd"
+    Invoke-Expression $Command | Write-Debug
+    Remove-Item "$Path\*.pgc" | Out-Null
 }
 
 Export-ModuleMember -Function * -Alias *
