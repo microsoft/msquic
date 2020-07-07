@@ -63,13 +63,9 @@ function Convert-HostToNetworkOrder {
 
 function Get-LocalAddress {
     param ($RemoteAddress)
-
     $PossibleRemoteIPs = [System.Net.Dns]::GetHostAddresses($RemoteAddress) | Select-Object -Property IPAddressToString
-
     $PossibleLocalIPs = Get-NetIPAddress -AddressFamily IPv4 | Select-Object -Property IPv4Address, PrefixLength
-
     $MatchedIPs = @()
-
     $PossibleLocalIPs | ForEach-Object {
 
         [IPAddress]$LocalIpAddr = $_.IPv4Address
@@ -100,7 +96,6 @@ function Get-LocalAddress {
 
 function Invoke-TestCommand {
     param ($Session, $ScriptBlock, [Object[]]$ArgumentList = @(), [switch]$AsJob = $false)
-
     if ($Local) {
         if ($AsJob) {
             return Start-Job -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
@@ -148,7 +143,6 @@ function Copy-Artifacts {
     } catch {
         # Ignore failure, which occurs when directory does not exist
     }
-    # TODO Figure out how to filter this
     Copy-Item -Path "$From\*" -Destination $To -ToSession $Session  -Recurse
 }
 
@@ -183,11 +177,7 @@ class TestDefinition {
     [string]$ResultsMatcher;
 
     [string]ToString() {
-        $RetString = ("{0}_{1}_{2}_{3}" -f $this.TestName,
-                                        $this.Remote.Platform,
-                                        $script:RemoteTls,
-                                        $script:RemoteArch
-                                        )
+        $RetString = "$($this.TestName)_$($this.Remote.Platform)_$($script:RemoteTls)_$($script:RemoteArch)"
         if ($script:Local) {
             $RetString += "_Loopback"
         }
@@ -195,10 +185,7 @@ class TestDefinition {
     }
 
     [string]ToTestPlatformString() {
-        $RetString = ("{0}_{1}_{2}" -f    $this.Remote.Platform,
-                                    $script:RemoteTls,
-                                    $script:RemoteArch
-                                         )
+        $RetString = "$($this.Remote.Platform)_$($script:RemoteTls)_$($script:RemoteArch)"
         if ($script:Local) {
             $RetString += "_Loopback"
         }
@@ -298,7 +285,7 @@ function Invoke-RemoteExe {
         return $null
     } -ArgumentList $Exe
 
-    Write-Debug "Running Remote: $Exe $RunArgs" | Out-Null
+    Write-Debug "Running Remote: $Exe $RunArgs"
 
     return Invoke-TestCommand -Session $Session -ScriptBlock {
         param ($Exe, $RunArgs, $BasePath, $Record, $WpaStackWalkProfileXml)

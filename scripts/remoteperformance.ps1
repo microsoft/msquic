@@ -169,7 +169,7 @@ function LocalSetup {
     $RetObj = New-Object -TypeName psobject
     $RetObj | Add-Member -MemberType NoteProperty -Name apipaInterfaces -Value $null
     try {
-        if ($IsWindows) {
+        if ($IsWindows -and $Local) {
             $apipaAddr = Get-NetIPAddress 169.254.*
             if ($null -ne $apipaAddr) {
                 # Disable all the APIPA interfaces for URO perf.
@@ -211,7 +211,6 @@ function Invoke-Test {
     $LocalExeExists = Test-Path $LocalExe
 
     if (!$RemoteExeExists -or !$LocalExeExists) {
-
         if (!$RemoteExeExists) {
             Write-Output "Missing Remote Exe $RemoteExe"
         }
@@ -230,12 +229,11 @@ function Invoke-Test {
 
     $RemoteArguments = $Test.Remote.Arguments.GetArguments().Replace('$Thumbprint', $CertThumbprint)
 
+    # Starting the server
     $RemoteJob = Invoke-RemoteExe -Exe $RemoteExe -RunArgs $RemoteArguments
-
     $ReadyToStart = Wait-ForRemoteReady -Job $RemoteJob
 
     if (!$ReadyToStart) {
-
         Stop-Job -Job $RemoteJob
         Write-Error "Test Remote for $Test failed to start"
     }
@@ -245,9 +243,7 @@ function Invoke-Test {
     try {
         1..$Test.Iterations | ForEach-Object {
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments
-
             $LocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
-
             $AllRunsResults += $LocalParsedResults
 
             Write-Output "Run $($_): $LocalParsedResults kbps"
