@@ -51,6 +51,8 @@ CLOG_ADD_SOURCEFILE(CORE_CLOG_LIB ${SOURCES})
 
 add_library(core STATIC ${SOURCES})
 
+# Core is private, as Platform is the base build that we want public args for
+
 target_compile_options(core PRIVATE ${QUIC_WARNING_FLAGS} ${QUIC_COMMON_FLAGS})
 target_compile_definitions(core PRIVATE ${QUIC_COMMON_DEFINES})
 

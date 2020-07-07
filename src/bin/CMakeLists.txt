@@ -11,11 +11,6 @@ add_library(msquic SHARED ${SOURCES})
 
 set_property(TARGET msquic PROPERTY FOLDER "libraries")
 
-target_compile_options(msquic PRIVATE ${QUIC_WARNING_FLAGS} ${QUIC_COMMON_FLAGS})
-target_compile_definitions(msquic PRIVATE ${QUIC_COMMON_DEFINES})
-
-target_include_directories(msquic PRIVATE ${QUIC_INCLUDE_DIR})
-
 target_link_libraries(msquic PRIVATE core platform PLATFORM_CLOG_LIB CORE_CLOG_LIB)
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")

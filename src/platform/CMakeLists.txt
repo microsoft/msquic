@@ -57,10 +57,10 @@ add_library(platform STATIC ${SOURCES})
 
 set_property(TARGET platform PROPERTY FOLDER "libraries")
 
-target_compile_options(platform PRIVATE ${QUIC_WARNING_FLAGS} ${QUIC_COMMON_FLAGS})
-target_compile_definitions(platform PRIVATE ${QUIC_COMMON_DEFINES})
+target_compile_options(platform PUBLIC ${QUIC_WARNING_FLAGS} ${QUIC_COMMON_FLAGS})
+target_compile_definitions(platform PUBLIC ${QUIC_COMMON_DEFINES})
 
-target_include_directories(platform PRIVATE ${QUIC_INCLUDE_DIR})
+target_include_directories(platform PUBLIC ${QUIC_INCLUDE_DIR})
 
 target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 
