@@ -45,6 +45,9 @@ This script provides helpers for building msquic.
 .PARAMETER PGO
     Builds msquic with profile guided optimization support (Windows-only).
 
+.PARAMETER Generator
+    Specifies a specific cmake generator (Only supported on unix)
+
 .EXAMPLE
     build.ps1
 
@@ -95,7 +98,10 @@ param (
     [switch]$DynamicCRT = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$PGO = $false
+    [switch]$PGO = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$Generator = "Linux Makefiles"
 )
 
 Set-StrictMode -Version 'Latest'
@@ -176,7 +182,7 @@ function CMake-Generate {
             "arm64" { $Arguments += "arm64" }
         }
     } else {
-        $Arguments += " 'Linux Makefiles'"
+        $Arguments += " '$Generator'"
     }
     $Arguments += " -DQUIC_TLS=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=" + $ArtifactsDir
