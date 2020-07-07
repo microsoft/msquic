@@ -41,9 +41,9 @@
             }
         },
         "Local" : {
-            "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls"],
-            "Arch": ["x64", "x86", "arm", "arm64"],
+            "Platform": "linux",
+            "Tls": ["stub", "openssl"],
+            "Arch": ["x64", "arm"],
             "Exe": "quicping",
             "Arguments": {
                 "All": "-target:$RemoteAddress -port:4433 -sendbuf:0 -uni:1 -length:2000000000",
