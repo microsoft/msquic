@@ -19,22 +19,20 @@ set(SOURCES
     TestHelpers.h
 )
 
-include_directories(${PROJECT_SOURCE_DIR}/src/test)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
-
 # Allow CLOG to preprocess all the source files.
 CLOG_ADD_SOURCEFILE(TESTLIB_CLOG_LIB ${SOURCES})
 
 add_library(testlib ${SOURCES})
 
-set_property(TARGET testlib PROPERTY FOLDER "tests")
+target_include_directories(testlib PRIVATE ${PROJECT_SOURCE_DIR}/src/test)
 
-target_compile_options(testlib PRIVATE
-     $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-        ${CLANG_GCC_WARNING_FLAGS}>
-     $<$<CXX_COMPILER_ID:MSVC>:
-        ${MSVC_WARNING_FLAGS}>)
+target_include_directories(testlib PRIVATE ${QUIC_INCLUDE_DIR})
+
+target_compile_options(testlib PRIVATE ${QUIC_WARNING_FLAGS} ${QUIC_COMMON_FLAGS})
+target_compile_options(testlib PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${QUIC_CXX_FLAGS}>)
+target_compile_definitions(testlib PRIVATE ${QUIC_COMMON_DEFINES})
+
+set_property(TARGET testlib PROPERTY FOLDER "tests")
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_dependencies(platform MsQuicEtw)

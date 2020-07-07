@@ -9,7 +9,10 @@
 
 #include <quic_platform.h>
 #include <MsQuicTests.h>
+#pragma warning( push ) // Suppress shadow warning when including both MsQuicTests and msquichelper
+#pragma warning( disable : 4459 )
 #include <msquichelper.h>
+#pragma warning( pop )
 #include "quic_trace.h"
 #undef min // gtest headers conflict with previous definitions of min/max.
 #undef max
@@ -138,8 +141,10 @@ struct HandshakeArgs4 {
 #else
         for (bool SessionResumption : { false, true })
 #endif
-        for (uint8_t RandomLossPercentage : { 1, 5, 10 })
+        for (auto RandomLossPercentageRaw : { 1, 5, 10 }) {
+            uint8_t RandomLossPercentage = static_cast<uint8_t>(RandomLossPercentageRaw);
             list.push_back({ Family, ServerStatelessRetry, MultiPacketClientInitial, SessionResumption, RandomLossPercentage });
+        }
         return list;
     }
 };

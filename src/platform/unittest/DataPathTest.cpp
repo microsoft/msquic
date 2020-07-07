@@ -49,6 +49,7 @@ struct QuicAddr
     }
 
     void Resolve(QUIC_ADDRESS_FAMILY af, const char* hostname) {
+        UNREFERENCED_PARAMETER(af);
         QUIC_DATAPATH* Datapath = nullptr;
         if (QUIC_FAILED(
             QuicDataPathInitialize(

@@ -197,7 +197,7 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     endif()
 
     set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})
-    set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS} /std:c++17 /EHsc)
+    set(QUIC_CXX_FLAGS /std:c++17 /EHsc)
 
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /GL /Zi")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL /Zi")
@@ -212,8 +212,33 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     endif()
 else()
+ # TODO UNIX
 endif()
 
 add_subdirectory(src/core)
 add_subdirectory(src/platform)
 add_subdirectory(src/bin)
+
+# Test code
+if(QUIC_BUILD_TEST)
+    # Build the googletest framework.
+    set(BUILD_GMOCK OFF CACHE BOOL "Builds the googlemock subproject")
+    set(INSTALL_GTEST OFF CACHE BOOL "Enable installation of googletest. (Projects embedding googletest may want to turn this OFF.)")
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+        option(gtest_force_shared_crt "Use shared (DLL) run-time lib even when Google Test is built as static lib." ON)
+    endif()
+
+    enable_testing()
+    add_subdirectory(submodules/googletest)
+
+    set_property(TARGET gtest PROPERTY CXX_STANDARD 17)
+    set_property(TARGET gtest_main PROPERTY CXX_STANDARD 17)
+
+    set_property(TARGET gtest PROPERTY FOLDER "tests")
+    set_property(TARGET gtest_main PROPERTY FOLDER "tests")
+
+    add_subdirectory(src/core/unittest)
+    add_subdirectory(src/platform/unittest)
+    add_subdirectory(src/test/lib)
+    add_subdirectory(src/test/bin)
+endif()

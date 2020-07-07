@@ -58,6 +58,9 @@ add_library(platform STATIC ${SOURCES})
 set_property(TARGET platform PROPERTY FOLDER "libraries")
 
 target_compile_options(platform PUBLIC ${QUIC_WARNING_FLAGS} ${QUIC_COMMON_FLAGS})
+
+target_compile_options(platform PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${QUIC_CXX_FLAGS}>)
+
 target_compile_definitions(platform PUBLIC ${QUIC_COMMON_DEFINES})
 
 target_include_directories(platform PUBLIC ${QUIC_INCLUDE_DIR})

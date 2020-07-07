@@ -173,7 +173,8 @@ TEST_P(AckFrameTest, DecodeAckFrameFail) {
         Buffer[2] = 1; // ACK Delay
         Buffer[3] = 0; // ACK range count
         Buffer[4] = 5; // First ACK range
-        for (auto TestValue : {64, 255}) {
+        for (auto TestValueRaw : {64, 255}) {
+            uint8_t TestValue = static_cast<uint8_t>(TestValueRaw);
             for (uint8_t i = 1; i < 8; ++i) {
                 Offset = 1;
                 InvalidFrame = FALSE;
@@ -741,7 +742,7 @@ TEST_P(MaxStreamsFrameTest, DecodeMaxStreamsFrameFail) {
     uint8_t Buffer[BufferLength];
     uint16_t Offset;
     for (uint32_t i = 0; i < 2; ++i) {
-        Buffer[0] = GetParam() ? QUIC_FRAME_MAX_STREAMS : QUIC_FRAME_MAX_STREAMS_1;
+        Buffer[0] = static_cast<uint8_t>(GetParam() ? QUIC_FRAME_MAX_STREAMS : QUIC_FRAME_MAX_STREAMS_1);
         Buffer[1] = (i & 1) ? 64 : 255;
         Offset = 1;
         ASSERT_FALSE(QuicMaxStreamsFrameDecode((QUIC_FRAME_TYPE) Buffer[0], BufferLength, Buffer, &Offset, &DecodedFrame));
@@ -885,7 +886,7 @@ TEST_P(StreamsBlockedFrameTest, DecodeStreamsBlockedFrameFail) {
     uint8_t Buffer[BufferLength];
     uint16_t Offset;
     for (uint32_t i = 0; i < 2; ++i) {
-        Buffer[0] = GetParam() ? QUIC_FRAME_STREAMS_BLOCKED : QUIC_FRAME_STREAMS_BLOCKED_1;
+        Buffer[0] = static_cast<uint8_t>(GetParam() ? QUIC_FRAME_STREAMS_BLOCKED : QUIC_FRAME_STREAMS_BLOCKED_1);
         Buffer[1] = (i & 1) ? 64 : 255;
         Offset = 1;
         ASSERT_FALSE(QuicStreamsBlockedFrameDecode((QUIC_FRAME_TYPE) Buffer[0], BufferLength, Buffer, &Offset, &DecodedFrame));
@@ -1180,11 +1181,13 @@ struct ConnectionCloseFrameParams {
 
     static auto GenerateDecodeFailParams() {
         std::vector<ConnectionCloseFrameParams> Params;
-        for (uint8_t Type : {QUIC_FRAME_CONNECTION_CLOSE, QUIC_FRAME_CONNECTION_CLOSE_1}) {
+        for (auto TypeRaw : {QUIC_FRAME_CONNECTION_CLOSE, QUIC_FRAME_CONNECTION_CLOSE_1}) {
+            uint8_t Type = static_cast<uint8_t>(TypeRaw);
             ConnectionCloseFrameParams Frame;
             Frame.Buffer[0] = Type;
 
-            for (int TestValue : {65, 255}) {
+            for (auto TestValueRaw : {65, 255}) {
+                uint8_t TestValue = static_cast<uint8_t>(TestValueRaw);
                 for (uint32_t i = 1; i < 4; ++i) {
                     Frame.Buffer[1] = (i & 1) ? TestValue : 0;
 

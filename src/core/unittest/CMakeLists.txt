@@ -4,11 +4,6 @@
 # Include for CLOG processing
 include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
 
-include_directories(${PROJECT_SOURCE_DIR}/src/core)
-include_directories(${PROJECT_SOURCE_DIR}/submodules/googletest/googletest/include)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
-
 set(SOURCES
     main.cpp
     FrameTest.cpp
@@ -23,6 +18,8 @@ set(SOURCES
 CLOG_ADD_SOURCEFILE(MSQUIC_CORETEST ${SOURCES})
 
 add_executable(msquiccoretest ${SOURCES})
+
+target_include_directories(msquiccoretest PRIVATE ${PROJECT_SOURCE_DIR}/src/core)
 
 set_property(TARGET msquiccoretest PROPERTY FOLDER "tests")
 
