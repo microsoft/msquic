@@ -109,7 +109,7 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 if ($IsWindows -and ($Generator -ne "")) {
     Write-Error "Generator setting not supported on windows"
-} elseif ($Generator -ne "") {
+} elseif ($Generator -eq "") {
     if ($IsLinux) {
         $Generator = "Linux Makefiles"
     } else {
