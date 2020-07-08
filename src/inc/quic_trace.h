@@ -135,6 +135,7 @@ QuicTraceRundown(
 #ifdef QUIC_EVENTS_STUB
 #define QuicTraceEventEnabled(Name) FALSE
 #define QuicTraceEvent(Name, Fmt, ...)
+#define QuicTraceEvent_Skip(Name, Fmt, ...)
 #define LOG_ADDR_LEN(Addr)
 #endif // QUIC_EVENTS_STUB
 
@@ -174,7 +175,7 @@ QuicEtwCallback(
 #define QuicTraceEventEnabled(Name) EventEnabledQuic##Name()
 #define _QuicTraceEvent(Name, Args) EventWriteQuic##Name##Args
 #define QuicTraceEvent(Name, Fmt, ...) _QuicTraceEvent(Name, (__VA_ARGS__))
-
+#define QuicTraceEvent_Skip(Name, Fmt, ...) _QuicTraceEvent(Name, (__VA_ARGS__))
 #define LOG_ADDR_LEN(Addr) \
     (uint8_t)((Addr).si_family == AF_INET6 ? sizeof(SOCKADDR_IN6) : sizeof(SOCKADDR_IN))
 
