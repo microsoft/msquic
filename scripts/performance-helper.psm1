@@ -135,14 +135,10 @@ function Wait-ForRemote {
 function Copy-Artifacts {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingEmptyCatchBlock', '')]
     param ([string]$From, [string]$To)
-    try {
-        Invoke-TestCommand $Session -ScriptBlock {
-            param ($To)
-            Remove-Item -Path "$To/*" -Recurse -Force
-        } -ArgumentList $To
-    } catch {
-        # Ignore failure, which occurs when directory does not exist
-    }
+    Invoke-TestCommand $Session -ScriptBlock {
+        param ($To)
+        Remove-Item -Path "$To/*" -Recurse -Force
+    } -ArgumentList $To
     Copy-Item -Path "$From\*" -Destination $To -ToSession $Session  -Recurse
 }
 
