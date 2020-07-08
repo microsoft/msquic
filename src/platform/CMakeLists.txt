@@ -53,7 +53,7 @@ endif()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
 
 # Allow CLOG to preprocess all the source files.
-CLOG_ADD_SOURCEFILE(PLATFORM_CLOG_LIB ${SOURCES})
+CLOG_GENERATE_TARGET(PLATFORM_CLOG_LIB ${SOURCES})
 
 add_library(platform STATIC ${SOURCES})
 
