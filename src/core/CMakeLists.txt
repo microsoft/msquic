@@ -47,7 +47,7 @@ if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 endif()
 
 # Allow CLOG to preprocess all the source files.
-CLOG_ADD_SOURCEFILE(CORE_CLOG_LIB ${SOURCES})
+CLOG_GENERATE_TARGET(CORE_CLOG_LIB ${SOURCES})
 
 add_library(core STATIC ${SOURCES})
 

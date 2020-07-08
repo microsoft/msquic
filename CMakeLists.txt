@@ -129,10 +129,6 @@ set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 
 set(MANIFESTED_HEADER_FILENAME ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
-add_custom_target(CLOG_GENERATED_FILES
-    COMMENT "CREATED CMAKE Target for CLOG generated files"
-)
-
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
     set(QUIC_COMMON_FLAGS )
@@ -214,6 +210,8 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 else()
  # TODO UNIX
 endif()
+
+add_subdirectory(submodules/clog/inc)
 
 add_subdirectory(src/core)
 add_subdirectory(src/platform)
