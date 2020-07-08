@@ -193,6 +193,7 @@ class TestPublishResult {
     [string]$PlatformName
     [string]$TestName
     [string]$CommitHash
+    [string]$MachineName
     [double[]]$IndividualRunResults
 }
 
@@ -404,6 +405,10 @@ function Publish-TestResults {
         $Results.CommitHash = $CurrentCommitHash.Substring(0, 7)
         $Results.PlatformName = $Platform
         $Results.TestName = $Test.TestName
+        $Results.MachineName = $null
+        if (Test-Path 'env:AGENT_MACHINENAME') {
+            $Results.MachineName = $env:AGENT_MACHINENAME
+        }
         $Results.IndividualRunResults = $AllRunsResults
 
         $ResultFile = Join-Path $OutputDir "results_$Test.json"

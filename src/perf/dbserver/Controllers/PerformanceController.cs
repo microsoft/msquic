@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -216,16 +217,47 @@ namespace QuicDataServer.Controllers
             return Ok();
         }
 
-        private async Task<int> VerifyPlatformAndTest(string platformName, string testName)
+        private async Task<(int testId, int machineId)> VerifyPlatformTestAndMachine(string platformName, string testName, string? machineName)
         {
             var testId = await _context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform, test })
                 .Where(x => x.test.TestName == testName && x.platform.PlatformName == platformName)
                 .Select(x => (int?)x.test.DbTestId)
                 .FirstOrDefaultAsync();
 
+            var machineId = await _context.Machines.Where(x => x.MachineName == machineName)
+                .Select(x => (int?)x.DbMachineId)
+                .FirstOrDefaultAsync();
+
+            if (string.IsNullOrWhiteSpace(machineName))
+            {
+                machineId = 1;
+            }
+
+            if (testId != null && machineId != null)
+            {
+                return (testId.Value, machineId.Value);
+            }
+
+            // If machineId == null create
+            if (machineId == null)
+            {
+                var entity = _context.Machines.Add(new DbMachine
+                {
+                    CPUInfo = "",
+                    Description = "",
+                    ExtraInfo = "",
+                    MemoryInfo = "",
+                    NicInfo = "",
+                    OperatingSystem = "",
+                    MachineName = machineName!
+                });
+                await _context.SaveChangesAsync();
+                machineId = entity.Entity.DbMachineId;
+            }
+
             if (testId != null)
             {
-                return testId.Value;
+                return (testId.Value, machineId.Value);
             }
 
             var platformId = await _context.Platforms.Where(x => x.PlatformName == platformName)
@@ -247,7 +279,7 @@ namespace QuicDataServer.Controllers
                 TestName = testName
             });
             await _context.SaveChangesAsync();
-            return testEntity.Entity.DbTestId;
+            return (testEntity.Entity.DbTestId, machineId.Value);
         }
 
 
@@ -279,14 +311,14 @@ namespace QuicDataServer.Controllers
             }
 
             // Get Test Records 
-            var testId = await VerifyPlatformAndTest(testResult.PlatformName, testResult.TestName);
+            (var testId, var machineId) = await VerifyPlatformTestAndMachine(testResult.PlatformName, testResult.TestName, testResult.MachineName);
 
             var newRecord = new DbTestRecord
             {
                 CommitHash = testResult.CommitHash,
                 TestDate = testResult.Time,
                 TestResults = testResult.IndividualRunResults.Select(x => new TestResult { Result = x }).ToList(),
-                DbMachineId = 1, // Default, TODO add actual platforms
+                DbMachineId = machineId, // Default, TODO add actual platforms
                 DbTestId = testId,
             };
 
@@ -322,14 +354,14 @@ namespace QuicDataServer.Controllers
             }
 
             // Get Test Records 
-            var testId = await VerifyPlatformAndTest(testResult.PlatformName, testResult.TestName);
+            (var testId, var machineId) = await VerifyPlatformTestAndMachine(testResult.PlatformName, testResult.TestName, testResult.MachineName);
 
             var newRecord = new DbTestRecord
             {
                 CommitHash = testResult.CommitHash,
                 TestDate = DateTime.UtcNow,
                 TestResults = testResult.IndividualRunResults.Select(x => new TestResult { Result = x }).ToList(),
-                DbMachineId = 1, // Default, TODO add actual platforms
+                DbMachineId = machineId, // Default, TODO add actual platforms
                 DbTestId = testId,
             };
 
