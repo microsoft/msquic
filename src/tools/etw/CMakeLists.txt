@@ -13,11 +13,11 @@ set(SOURCES
     worker.c
 )
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS} -D_CRT_SECURE_NO_WARNINGS")
-
 add_executable(quicetw ${SOURCES})
 
 set_property(TARGET quicetw PROPERTY FOLDER "tools")
+
+target_compile_definitions(quicetw PRIVATE _CRT_SECURE_NO_WARNINGS)
 
 target_link_libraries(quicetw msquic platform)
 target_link_libraries(quicetw

@@ -3,8 +3,11 @@
 
 set(SOURCES QuicEventCollection.cpp)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
-
 add_library(msquicetw STATIC ${SOURCES})
+
+target_compile_options(msquicetw PRIVATE ${QUIC_WARNING_FLAGS} ${QUIC_COMMON_FLAGS})
+target_compile_definitions(msquicetw PRIVATE ${QUIC_COMMON_DEFINES})
+
+target_include_directories(msquicetw PRIVATE ${QUIC_INCLUDE_DIR})
 
 set_property(TARGET msquicetw PROPERTY FOLDER "tools")

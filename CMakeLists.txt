@@ -219,12 +219,30 @@ add_subdirectory(src/core)
 add_subdirectory(src/platform)
 add_subdirectory(src/bin)
 
+# Tool code
+if(QUIC_BUILD_TOOLS)
+    add_subdirectory(src/tools/attack)
+    add_subdirectory(src/tools/interop)
+    add_subdirectory(src/tools/interopserver)
+    add_subdirectory(src/tools/ping)
+    add_subdirectory(src/tools/post)
+    add_subdirectory(src/tools/reach)
+    add_subdirectory(src/tools/sample)
+    add_subdirectory(src/tools/siduck)
+    add_subdirectory(src/tools/spin)
+    add_subdirectory(src/tools/void)
+    if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+        add_subdirectory(src/tools/etwlib)
+        add_subdirectory(src/tools/etw)
+    endif()
+endif()
+
 # Test code
 if(QUIC_BUILD_TEST)
     # Build the googletest framework.
     set(BUILD_GMOCK OFF CACHE BOOL "Builds the googlemock subproject")
     set(INSTALL_GTEST OFF CACHE BOOL "Enable installation of googletest. (Projects embedding googletest may want to turn this OFF.)")
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
         option(gtest_force_shared_crt "Use shared (DLL) run-time lib even when Google Test is built as static lib." ON)
     endif()
 
