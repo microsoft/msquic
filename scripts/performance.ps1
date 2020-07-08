@@ -133,7 +133,7 @@ if ($Local) {
     $LocalAddress = "127.0.0.1"
 } else {
     if ($Remote -eq "") {
-        Set-Item WSMan:\localhost\Client\TrustedHosts -Value 'quic_server'
+        Set-Item WSMan:\localhost\Client\TrustedHosts -Value 'quic_server' -Force
         if ($WinRMUser -ne "") {
             $Session = New-PSSession -ComputerName $ComputerName -Credential $WinRMUser -ConfigurationName PowerShell.7
         } else {
