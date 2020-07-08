@@ -75,6 +75,138 @@
     ]
   },
   "SourceCodeMacros": [
+    {
+      "MacroName": "QuicTraceLogWarning",
+      "EncodedPrefix": null,
+      "EncodedArgNumber": 1,
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "empty",
+        "windows": "empty"
+      }
+    },
+    {
+      "MacroName": "QuicTraceLogStreamWarning",
+      "EncodedPrefix": "[strm][%p] ",
+      "EncodedArgNumber": 2,
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "empty",
+        "windows": "empty"
+      }
+    },
+    {
+      "MacroName": "QuicTraceLogStreamInfo",
+      "EncodedPrefix": "[strm][%p] ",
+      "EncodedArgNumber": 2,
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "empty",
+        "windows": "empty"
+      }
+    },
+    {
+      "MacroName": "QuicTraceLogStreamVerbose",
+      "EncodedPrefix": "[strm][%p] ",
+      "EncodedArgNumber": 2,
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "empty",
+        "windows": "empty"
+      }
+    },
+    {
+      "MacroName": "QuicTraceLogInfo",
+      "EncodedPrefix": null,
+      "EncodedArgNumber": 1,
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "empty",
+        "windows": "empty"
+      }
+    },
+    {
+      "MacroName": "QuicTraceLogVerbose",
+      "EncodedPrefix": null,
+      "EncodedArgNumber": 1,
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "empty",
+        "windows": "empty"
+      }
+    },
+    {
+      "MacroName": "QuicTraceLogError",
+      "EncodedPrefix": null,
+      "EncodedArgNumber": 1,
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "empty",
+        "windows": "empty"
+      }
+    },
+    {
+      "MacroName": "QuicTraceLogConnError",
+      "EncodedPrefix": "[conn][%p] ",
+      "EncodedArgNumber": 2,
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "empty",
+        "windows": "empty"
+      }
+    },
+    {
+      "MacroName": "QuicTraceLogConnWarning",
+      "EncodedPrefix": "[conn][%p] ",
+      "EncodedArgNumber": 2,
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "empty",
+        "windows": "empty"
+      }
+    },
+    {
+      "MacroName": "QuicTraceLogConnInfo",
+      "EncodedPrefix": "[conn][%p] ",
+      "EncodedArgNumber": 2,
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "empty",
+        "windows": "empty"
+      }
+    },
+    {
+      "MacroName": "QuicTraceLogConnVerbose",
+      "EncodedPrefix": "[conn][%p] ",
+      "EncodedArgNumber": 2,
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "empty",
+        "windows": "empty"
+      }
+    },
+    {
+      "MacroName": "QuicTraceEvent",
+      "EncodedPrefix": null,
+      "EncodedArgNumber": 1,
+      "MacroConfiguration": {
+        "linux": "lttng_plus",
+        "stubs": "empty",
+        "windows_kernel": "empty",
+        "windows": "empty"
+      }
+    }
   ],
   "ChainedConfigFiles": [
     "../../submodules/clog/inc/defaults.clog_config"
