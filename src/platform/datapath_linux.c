@@ -1218,7 +1218,7 @@ QuicSocketContextRecvComplete(
 
     QUIC_FRE_ASSERT(FoundLocalAddr);
 
-    QuicTraceEvent(
+    QuicTraceEvent_Skip(
         DatapathRecv,
         "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!SOCKADDR! Dst=%!SOCKADDR!",
         SocketContext->Binding,
@@ -1928,7 +1928,7 @@ QuicDataPathBindingSend(
             i < SendContext->BufferCount;
             ++i, SendContext->CurrentIndex++) {
 
-            QuicTraceEvent(
+            QuicTraceEvent_Skip(
                 DatapathSendTo,
                 "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!",
                 Binding,
@@ -1996,7 +1996,7 @@ QuicDataPathBindingSend(
             TotalSize += SendContext->Buffers[i].Length;
         }
 
-        QuicTraceEvent(
+        QuicTraceEvent_Skip(
             DatapathSendFromTo,
             "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!, Src=%!SOCKADDR!",
             Binding,

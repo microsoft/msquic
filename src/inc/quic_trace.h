@@ -34,12 +34,14 @@ Abstract:
 
 #pragma once
 
+#if !defined(QUIC_CLOG)
 #if !defined(QUIC_EVENTS_STUB) && !defined(QUIC_EVENTS_MANIFEST_ETW) && !defined(QUIC_EVENTS_LTTNG)
 #error "Must define one QUIC_EVENTS_*"
 #endif
 
 #if !defined(QUIC_LOGS_STUB) && !defined(QUIC_LOGS_MANIFEST_ETW) && !defined(QUIC_LOGS_LTTNG)
 #error "Must define one QUIC_LOGS_*"
+#endif
 #endif
 
 typedef enum QUIC_FLOW_BLOCK_REASON {
@@ -121,12 +123,19 @@ QuicTraceRundown(
     void
     );
 
+#ifdef QUIC_CLOG
+#define QuicTraceLogStreamVerboseEnabled() TRUE
+#define QuicTraceLogErrorEnabled()   TRUE
+#define QuicTraceLogWarningEnabled() TRUE
+#define QuicTraceLogInfoEnabled()    TRUE
+#define QuicTraceLogVerboseEnabled() TRUE
+#define QuicTraceEventEnabled(x) TRUE
+#define QuicTraceEvent_Skip(...)
+#else
 #ifdef QUIC_EVENTS_STUB
-
 #define QuicTraceEventEnabled(Name) FALSE
 #define QuicTraceEvent(Name, Fmt, ...)
 #define LOG_ADDR_LEN(Addr)
-
 #endif // QUIC_EVENTS_STUB
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
@@ -193,7 +202,6 @@ QuicTraceStubVarArgs(
 {
     UNREFERENCED_PARAMETER(Fmt);
 }
-
 #define QuicTraceLogError(X,...)            QuicTraceStubVarArgs(__VA_ARGS__)
 #define QuicTraceLogWarning(X,...)          QuicTraceStubVarArgs(__VA_ARGS__)
 #define QuicTraceLogInfo(X,...)             QuicTraceStubVarArgs(__VA_ARGS__)
@@ -248,6 +256,7 @@ QuicTraceStubVarArgs(
         EventWriteQuic##Type##Log##EventName##_AssumeEnabled(Ptr, EtwBuffer); \
     }
 
+
 #define QuicTraceLogError(Name, Fmt, ...)               LogEtw(Error, Fmt, ##__VA_ARGS__)
 #define QuicTraceLogWarning(Name, Fmt, ...)             LogEtw(Warning, Fmt, ##__VA_ARGS__)
 #define QuicTraceLogInfo(Name, Fmt, ...)                LogEtw(Info, Fmt, ##__VA_ARGS__)
@@ -272,5 +281,5 @@ QuicTraceStubVarArgs(
 #error "LTTng not supported yet!"
 
 #endif // QUIC_LOGS_LTTNG
-
+#endif // QUIC_CLOG
 #endif // _TRACE_H

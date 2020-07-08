@@ -163,7 +163,7 @@ QuicConnAlloc(
 
         Path->LocalAddress = Datagram->Tuple->LocalAddress;
         Connection->State.LocalAddressSet = TRUE;
-        QuicTraceEvent(
+        QuicTraceEvent_Skip(
             ConnLocalAddrAdded,
             "[conn][%p] New Local IP: %!SOCKADDR!",
             Connection,
@@ -172,7 +172,7 @@ QuicConnAlloc(
 
         Path->RemoteAddress = Datagram->Tuple->RemoteAddress;
         Connection->State.RemoteAddressSet = TRUE;
-        QuicTraceEvent(
+        QuicTraceEvent_Skip(
             ConnRemoteAddrAdded,
             "[conn][%p] New Remote IP: %!SOCKADDR!",
             Connection,
@@ -186,7 +186,7 @@ QuicConnAlloc(
         }
         Path->DestCid->CID.UsedLocally = TRUE;
         QuicListInsertTail(&Connection->DestCids, &Path->DestCid->Link);
-        QuicTraceEvent(
+        QuicTraceEvent_Skip(
             ConnDestCidAdded,
             "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
             Connection,
@@ -202,7 +202,7 @@ QuicConnAlloc(
         SourceCid->CID.IsInitial = TRUE;
         SourceCid->CID.UsedByPeer = TRUE;
         QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
-        QuicTraceEvent(
+        QuicTraceEvent_Skip(
             ConnSourceCidAdded,
             "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
             Connection,
@@ -223,7 +223,7 @@ QuicConnAlloc(
         Path->DestCid->CID.UsedLocally = TRUE;
         Connection->DestCidCount++;
         QuicListInsertTail(&Connection->DestCids, &Path->DestCid->Link);
-        QuicTraceEvent(
+        QuicTraceEvent_Skip(
             ConnDestCidAdded,
             "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
             Connection,
@@ -608,7 +608,7 @@ QuicConnTraceRundownOper(
     if (Connection->State.Started) {
         for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
             if (Connection->State.LocalAddressSet || i != 0) {
-                QuicTraceEvent(
+                QuicTraceEvent_Skip(
                     ConnLocalAddrAdded,
                      "[conn][%p] New Local IP: %!SOCKADDR!",
                     Connection,
@@ -616,7 +616,7 @@ QuicConnTraceRundownOper(
                     (const uint8_t*)&Connection->Paths[i].LocalAddress);
             }
             if (Connection->State.RemoteAddressSet || i != 0) {
-                QuicTraceEvent(
+                QuicTraceEvent_Skip(
                     ConnRemoteAddrAdded,
                     "[conn][%p] New Remote IP: %!SOCKADDR!",
                     Connection,
@@ -633,7 +633,7 @@ QuicConnTraceRundownOper(
                     QUIC_CID_HASH_ENTRY,
                     Link);
             UNREFERENCED_PARAMETER(SourceCid);
-            QuicTraceEvent(
+            QuicTraceEvent_Skip(
                 ConnSourceCidAdded,
                 "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
                 Connection,
@@ -650,7 +650,7 @@ QuicConnTraceRundownOper(
                     QUIC_CID_QUIC_LIST_ENTRY,
                     Link);
             UNREFERENCED_PARAMETER(DestCid);
-            QuicTraceEvent(
+            QuicTraceEvent_Skip(
                 ConnDestCidAdded,
                 "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
                 Connection,
@@ -875,7 +875,7 @@ QuicConnGenerateNewSourceCid(
         }
     } while (SourceCid == NULL);
 
-    QuicTraceEvent(
+    QuicTraceEvent_Skip(
         ConnSourceCidAdded,
         "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
         Connection,
@@ -997,7 +997,7 @@ QuicConnRetireCid(
     _In_ QUIC_CID_QUIC_LIST_ENTRY* DestCid
     )
 {
-    QuicTraceEvent(
+    QuicTraceEvent_Skip(
         ConnDestCidRemoved,
         "[conn][%p] (SeqNum=%llu) Removed Destination CID: %!CID!",
         Connection,
@@ -1789,7 +1789,7 @@ QuicConnStart(
     }
 
     QuicAddrSetPort(&Path->RemoteAddress, ServerPort);
-    QuicTraceEvent(
+    QuicTraceEvent_Skip(
         ConnRemoteAddrAdded,
         "[conn][%p] New Remote IP: %!SOCKADDR!",
         Connection,
@@ -1833,7 +1833,7 @@ QuicConnStart(
     }
 
     Connection->NextSourceCidSequenceNumber++;
-    QuicTraceEvent(
+    QuicTraceEvent_Skip(
         ConnSourceCidAdded,
         "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
         Connection,
@@ -1853,7 +1853,7 @@ QuicConnStart(
     QuicDataPathBindingGetLocalAddress(
         Path->Binding->DatapathBinding,
         &Path->LocalAddress);
-    QuicTraceEvent(
+    QuicTraceEvent_Skip(
         ConnLocalAddrAdded,
         "[conn][%p] New Local IP: %!SOCKADDR!",
         Connection,
@@ -2726,14 +2726,14 @@ QuicConnProcessPeerTransportParameters(
     if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_PREFERRED_ADDRESS) {
         /* TODO - Platform independent logging
         if (QuicAddrGetFamily(&Connection->PeerTransportParams.PreferredAddress) == AF_INET) {
-            QuicTraceLogConnInfo(
+            QuicTraceLogConnInfo_Skip(
                 PeerPreferredAddressV4,
                 Connection,
                 "Peer configured preferred address %!IPV4ADDR!:%d",
                 &Connection->PeerTransportParams.PreferredAddress.Ipv4.sin_addr,
                 QuicByteSwapUint16(Connection->PeerTransportParams.PreferredAddress.Ipv4.sin_port));
         } else {
-            QuicTraceLogConnInfo(
+            QuicTraceLogConnInfo_Skip(
                 PeerPreferredAddressV6,
                 Connection,
                 "Peer configured preferred address [%!IPV6ADDR!]:%d",
@@ -2901,7 +2901,7 @@ QuicConnUpdateDestCid(
 
         // TODO - Only update for the first packet of each type (Initial and Retry).
 
-        QuicTraceEvent(
+        QuicTraceEvent_Skip(
             ConnDestCidRemoved,
             "[conn][%p] (SeqNum=%llu) Removed Destination CID: %!CID!",
             Connection,
@@ -2946,7 +2946,7 @@ QuicConnUpdateDestCid(
         }
 
         if (DestCid != NULL) {
-            QuicTraceEvent(
+            QuicTraceEvent_Skip(
                 ConnDestCidAdded,
                 "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
                 Connection,
@@ -3786,7 +3786,7 @@ QuicConnRecvDecryptAndAuthenticate(
             Packet->HeaderLength);
     }
 
-    QuicTraceEvent(
+    QuicTraceEvent_Skip(
         ConnPacketRecv,
         "[conn][%p][RX][%llu] %c (%hd bytes)",
         Connection,
@@ -4382,7 +4382,7 @@ QuicConnRecvFrames(
                     DestCid->ResetToken,
                     Frame.Buffer + Frame.Length,
                     QUIC_STATELESS_RESET_TOKEN_LENGTH);
-                QuicTraceEvent(
+                QuicTraceEvent_Skip(
                     ConnDestCidAdded,
                     "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
                     Connection,
@@ -4696,7 +4696,7 @@ QuicConnRecvPostProcessing(
                         //
                         SourceCid->Link.Next = NextSourceCid->Link.Next;
                         QUIC_DBG_ASSERT(!NextSourceCid->CID.IsInLookupTable);
-                        QuicTraceEvent(
+                        QuicTraceEvent_Skip(
                             ConnSourceCidRemoved,
                             "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
                             Connection,
@@ -4780,7 +4780,7 @@ QuicConnRecvPostProcessing(
         QuicPathSetActive(Connection, *Path);
         *Path = &Connection->Paths[0];
 
-        QuicTraceEvent(
+        QuicTraceEvent_Skip(
             ConnRemoteAddrAdded,
             "[conn][%p] New Remote IP: %!SOCKADDR!",
             Connection,
@@ -5422,7 +5422,7 @@ QuicConnParamSet(
 
         Connection->State.LocalAddressSet = TRUE;
         QuicCopyMemory(&Connection->Paths[0].LocalAddress, Buffer, sizeof(QUIC_ADDR));
-        QuicTraceEvent(
+        QuicTraceEvent_Skip(
             ConnLocalAddrAdded,
             "[conn][%p] New Local IP: %!SOCKADDR!",
             Connection,
@@ -5457,7 +5457,7 @@ QuicConnParamSet(
                 OldBinding, Connection->Paths[0].Binding, Connection);
             QuicLibraryReleaseBinding(OldBinding);
 
-            QuicTraceEvent(
+            QuicTraceEvent_Skip(
                 ConnLocalAddrRemoved,
                 "[conn][%p] Removed Local IP: %!SOCKADDR!",
                 Connection,
@@ -5468,7 +5468,7 @@ QuicConnParamSet(
                 Connection->Paths[0].Binding->DatapathBinding,
                 &Connection->Paths[0].LocalAddress);
 
-            QuicTraceEvent(
+            QuicTraceEvent_Skip(
                 ConnLocalAddrAdded,
                 "[conn][%p] New Local IP: %!SOCKADDR!",
                 Connection,

@@ -1049,7 +1049,7 @@ QuicConnGetSourceCidFromSeq(
                 QuicBindingRemoveSourceConnectionID(
                     Connection->Paths[0].Binding,
                     SourceCid);
-                QuicTraceEvent(
+                QuicTraceEvent_Skip(
                     ConnSourceCidRemoved,
                     "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
                     Connection,

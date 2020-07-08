@@ -239,7 +239,7 @@ MsQuicListenerStart(
             QuicAddrGetPort(&BindingLocalAddress));
     }
 
-    QuicTraceEvent(
+    QuicTraceEvent_Skip(
         ListenerStarted,
         "[list][%p] Started, Binding=%p, LocalAddr=%!SOCKADDR!",
         Listener,
@@ -312,7 +312,7 @@ QuicListenerTraceRundown(
         Listener,
         Listener->Session);
     if (Listener->Binding != NULL) {
-        QuicTraceEvent(
+        QuicTraceEvent_Skip(
             ListenerStarted,
             "[list][%p] Started, Binding=%p, LocalAddr=%!SOCKADDR!",
             Listener,

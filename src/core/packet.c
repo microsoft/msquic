@@ -725,12 +725,17 @@ QuicPacketLogDrop(
     _In_z_ const char* Reason
     )
 {
+#ifndef QUIC_CLOG    
     const QUIC_RECV_DATAGRAM* Datagram =
         QuicDataPathRecvPacketToRecvDatagram(Packet);
+#else
+    UNREFERENCED_PARAMETER(Packet);
+    UNREFERENCED_PARAMETER(Reason);
+#endif
 
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*) &((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
-        QuicTraceEvent(
+        QuicTraceEvent_Skip(
             ConnDropPacket,
             "[conn][%p] DROP packet[%llu] Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
             Owner,
@@ -742,7 +747,7 @@ QuicPacketLogDrop(
             Reason);
     } else {
         InterlockedIncrement64((int64_t*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
-        QuicTraceEvent(
+        QuicTraceEvent_Skip(
             BindingDropPacket,
             "[bind][%p] DROP packet[%llu] Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
             Owner,
@@ -764,12 +769,17 @@ QuicPacketLogDropWithValue(
     _In_ uint64_t Value
     )
 {
+#ifndef QUIC_CLOG    
     const QUIC_RECV_DATAGRAM* Datagram =
         QuicDataPathRecvPacketToRecvDatagram(Packet);
+#else
+    UNREFERENCED_PARAMETER(Reason);
+    UNREFERENCED_PARAMETER(Value);        
+#endif
 
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*) & ((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
-        QuicTraceEvent(
+        QuicTraceEvent_Skip(
             ConnDropPacketEx,
             "[conn][%p] DROP packet[%llu] Value=%llu Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
             Owner,
@@ -782,7 +792,7 @@ QuicPacketLogDropWithValue(
             Reason);
     } else {
         InterlockedIncrement64((int64_t*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
-        QuicTraceEvent(
+        QuicTraceEvent_Skip(
             BindingDropPacketEx,
             "[bind][%p] DROP packet[%llu] %llu. Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s",
             Owner,

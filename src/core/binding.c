@@ -146,7 +146,7 @@ QuicBindingInitialize(
     QUIC_ADDR DatapathLocalAddr, DatapathRemoteAddr;
     QuicDataPathBindingGetLocalAddress(Binding->DatapathBinding, &DatapathLocalAddr);
     QuicDataPathBindingGetRemoteAddress(Binding->DatapathBinding, &DatapathRemoteAddr);
-    QuicTraceEvent(
+    QuicTraceEvent_Skip(
         BindingCreated,
         "[bind][%p] Created, Udp=%p LocalAddr=%!SOCKADDR! RemoteAddr=%!SOCKADDR!",
         Binding,
@@ -243,7 +243,7 @@ QuicBindingTraceRundown(
     QUIC_ADDR DatapathLocalAddr, DatapathRemoteAddr;
     QuicDataPathBindingGetLocalAddress(Binding->DatapathBinding, &DatapathLocalAddr);
     QuicDataPathBindingGetRemoteAddress(Binding->DatapathBinding, &DatapathRemoteAddr);
-    QuicTraceEvent(
+    QuicTraceEvent_Skip(
         BindingRundown,
         "[bind][%p] Rundown, Udp=%p LocalAddr=%!SOCKADDR! RemoteAddr=%!SOCKADDR!",
         Binding,
