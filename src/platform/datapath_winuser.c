@@ -581,11 +581,6 @@ QuicDataPathInitialize(
         sizeof(QUIC_DATAPATH) +
         MaxProcCount * sizeof(QUIC_DATAPATH_PROC_CONTEXT);
 
-    //
-    // Thread affinity uses a bit mask. We can't support more cores than bits.
-    //
-    QUIC_FRE_ASSERT(MaxProcCount <= sizeof(DWORD_PTR) * 8);
-
     Datapath = (QUIC_DATAPATH*)QUIC_ALLOC_PAGED(DatapathLength);
     if (Datapath == NULL) {
         QuicTraceEvent(
