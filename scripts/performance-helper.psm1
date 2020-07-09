@@ -385,13 +385,11 @@ function Get-MedianTestResults($FullResults) {
 }
 
 function Get-TestResult($Results, $Matcher) {
-    try {
-        # Unused variable on purpose
-        $Results -match $Matcher | Out-Null
+    $Found = $Results -match $Matcher
+    if ($Found) {
         return $Matches[1]
-    } catch {
-        Write-Output "Error Processing Results:`n`n$Results"
-        throw
+    } else {
+        Write-Error "Error Processing Results:`n`n$Results"
     }
 }
 
