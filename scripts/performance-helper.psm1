@@ -137,7 +137,13 @@ function Copy-Artifacts {
     param ([string]$From, [string]$To)
     Invoke-TestCommand $Session -ScriptBlock {
         param ($To)
-        Remove-Item -Path "$To/*" -Recurse -Force
+        try {
+            Remove-Item -Path "$To/*" -Recurse -Force
+        } catch [System.Management.Automation.ItemNotFoundException] {
+            # Ignore Not Found for when the directory does not exist
+            # This will still throw if a file cannot successfuly be deleted
+        }
+
     } -ArgumentList $To
     Copy-Item -Path "$From\*" -Destination $To -ToSession $Session  -Recurse
 }
