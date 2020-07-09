@@ -193,9 +193,6 @@ class TestDefinition {
 
     [string]ToTestPlatformString() {
         $RetString = "$($this.Remote.Platform)_$($script:RemoteTls)_$($script:RemoteArch)"
-        if ($script:Local) {
-            $RetString += "_Loopback"
-        }
         return $RetString
     }
 }
@@ -393,10 +390,14 @@ function Get-TestResult($Results, $Matcher) {
 function Publish-TestResults {
     param ([TestDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
     $Platform = $Test.ToTestPlatformString()
+    $TestName = $Test.TestName
+    if ($Local) {
+        $TestName += "_Loopback"
+    }
 
     # Print current and latest master results to console.
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
-    $fullLastResult = Get-LatestRemoteTestResults -Platform $Platform -Test $Test.TestName
+    $fullLastResult = Get-LatestRemoteTestResults -Platform $Platform -Test $TestName
     if ($fullLastResult -ne "") {
         $MedianLastResult = Get-MedianTestResults -FullResults $fullLastResult.individualRunResults
         $PercentDiff = 100 * (($MedianCurrentResult - $MedianLastResult) / $MedianLastResult)
@@ -415,7 +416,7 @@ function Publish-TestResults {
         $Results = [TestPublishResult]::new()
         $Results.CommitHash = $CurrentCommitHash.Substring(0, 7)
         $Results.PlatformName = $Platform
-        $Results.TestName = $Test.TestName
+        $Results.TestName = $TestName
         $Results.MachineName = $null
         if (Test-Path 'env:AGENT_MACHINENAME') {
             $Results.MachineName = $env:AGENT_MACHINENAME
