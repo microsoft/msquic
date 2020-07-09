@@ -71,7 +71,6 @@ QuicProcessorInfoInit(
     uint32_t MaxProcessorCount = QuicProcMaxCount();
     QuicProcessorInfo = QUIC_ALLOC_NONPAGED(MaxProcessorCount * sizeof(QUIC_PROCESSOR_INFO));
     if (QuicProcessorInfo == NULL) {
-        //printf("malloc failed, 0x%x!\n", GetLastError());
         goto Error;
     }
 
@@ -79,7 +78,6 @@ QuicProcessorInfoInit(
 
     Buffer = QUIC_ALLOC_NONPAGED(BufferLength);
     if (Buffer == NULL) {
-        //printf("malloc failed, 0x%x!\n", GetLastError());
         goto Error;
     }
 
@@ -87,7 +85,11 @@ QuicProcessorInfoInit(
             RelationAll,
             (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)Buffer,
             &BufferLength)) {
-        //printf("GetLogicalProcessorInformationEx failed, 0x%x!\n", GetLastError());
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "GetLogicalProcessorInformationEx");
         goto Error;
     }
 
@@ -109,7 +111,6 @@ QuicProcessorInfoInit(
 
     QuicNumaMasks = QUIC_ALLOC_NONPAGED(NumaNodeCount * sizeof(uint64_t));
     if (QuicNumaMasks == NULL) {
-        //printf("malloc failed, 0x%x!\n", GetLastError());
         goto Error;
     }
 
@@ -148,7 +149,10 @@ QuicProcessorInfoInit(
             Offset += Info->Size;
         }
 
-        //printf("Failed to determine group!\n");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Failed to determine processor group");
         goto Error;
 
 FindNumaNode:
@@ -173,8 +177,12 @@ FindNumaNode:
             Offset += Info->Size;
         }
 
-        //printf("Failed to determine numa!\n");
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Failed to determine NUMA node");
         goto Error;
+
 Next:
         ;
     }
@@ -257,6 +265,10 @@ QuicPlatformUninitialize(
 {
     QuicTlsLibraryUninitialize();
     QUIC_DBG_ASSERT(QuicPlatform.Heap);
+    QUIC_FREE(QuicNumaMasks);
+    QuicNumaMasks = NULL;
+    QUIC_FREE(QuicProcessorInfo);
+    QuicProcessorInfo = NULL;
     HeapDestroy(QuicPlatform.Heap);
     QuicPlatform.Heap = NULL;
     QuicTraceLogInfo(
