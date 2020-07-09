@@ -20,7 +20,7 @@ set(SOURCES
 )
 
 # Allow CLOG to preprocess all the source files.
-CLOG_ADD_SOURCEFILE(MSQUIC_CORETEST ${SOURCES})
+CLOG_GENERATE_TARGET(MSQUIC_CORETEST ${SOURCES})
 
 add_executable(msquiccoretest ${SOURCES})
 
