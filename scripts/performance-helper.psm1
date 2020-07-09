@@ -150,7 +150,7 @@ function Copy-Artifacts {
         }
 
     } -ArgumentList $To
-    Copy-Item -Path "$From\*" -Destination $To -ToSession $Session  -Recurse
+    Copy-Item -Path "$From\*" -Destination $To -ToSession $Session  -Recurse -Force
 }
 
 class ArgumentsSpec {
