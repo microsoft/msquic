@@ -267,7 +267,7 @@ namespace QuicDataServer.Controllers
                 CommitHash = testResult.CommitHash,
                 TestDate = DateTime.UtcNow,
                 TestResults = testResult.IndividualRunResults.Select(x => new TestResult { Result = x }).ToList(),
-                DbMachineId = machineId, 
+                DbMachineId = machineId,
                 DbTestId = testId,
             };
 
