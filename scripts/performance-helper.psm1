@@ -133,6 +133,7 @@ function Wait-ForRemoteReady {
 function Wait-ForRemote {
     param ($Job)
     Wait-Job -Job $Job -Timeout 10 | Out-Null
+    Stop-Job -Job $Job | Out-Null
     $RetVal = Receive-Job -Job $Job
     return $RetVal -join "`n"
 }
@@ -360,7 +361,14 @@ function Invoke-LocalExe {
     $FullCommand = "$Exe $RunArgs"
     Write-Debug "Running Locally: $FullCommand"
 
-    return (Invoke-Expression $FullCommand) -join "`n"
+    $LocalJob = Invoke-Command -ScriptBlock { & $Exe ($RunArgs).Split(" ") } -AsJob
+
+    # Wait 60 seconds for the job to finish
+    Wait-Job -Job $LocalJob -Timeout 60 | Out-Null
+    Stop-Job -Job $LocalJob | Out-Null
+
+    $RetVal = Receive-Job -Job $LocalJob
+    return $RetVal -join "`n"
 }
 
 function Get-LatestRemoteTestResults($Platform, $Test) {
