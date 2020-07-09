@@ -52,6 +52,11 @@ function Set-Session {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
     param ($Session)
     $script:Session = $Session
+    if ($null -ne $Session) {
+        Invoke-Command -Session $Session -ScriptBlock {
+            $ErrorActionPreference = "Stop"
+        }
+    }
 }
 
 function Convert-HostToNetworkOrder {
@@ -137,15 +142,11 @@ function Copy-Artifacts {
     param ([string]$From, [string]$To)
     Invoke-TestCommand $Session -ScriptBlock {
         param ($To)
-        $CurrentErrorAction = $ErrorActionPreference
-        $ErrorActionPreference = "Stop"
         try {
             Remove-Item -Path "$To/*" -Recurse -Force
         } catch [System.Management.Automation.ItemNotFoundException] {
             # Ignore Not Found for when the directory does not exist
             # This will still throw if a file cannot successfuly be deleted
-        } finally {
-            $ErrorActionPreference = $CurrentErrorAction
         }
 
     } -ArgumentList $To
