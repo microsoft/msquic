@@ -21,6 +21,8 @@ Environment:
 uint64_t QuicPlatformPerfFreq;
 uint64_t QuicTotalMemory;
 QUIC_PLATFORM QuicPlatform = { NULL };
+QUIC_PROCESSOR_INFO* QuicProcessorInfo;
+uint64_t* QuicNumaMasks;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -55,6 +57,142 @@ QuicPlatformSystemUnload(
 #endif
 }
 
+BOOLEAN
+QuicProcessorInfoInit(
+    void
+    )
+{
+    BOOLEAN Result = FALSE;
+    DWORD BufferLength = 0;
+    uint8_t* Buffer = NULL;
+    uint32_t Offset;
+
+    uint32_t NumaNodeCount = 0;
+    uint32_t MaxProcessorCount = QuicProcMaxCount();
+    QuicProcessorInfo = QUIC_ALLOC_NONPAGED(MaxProcessorCount * sizeof(QUIC_PROCESSOR_INFO));
+    if (QuicProcessorInfo == NULL) {
+        //printf("malloc failed, 0x%x!\n", GetLastError());
+        goto Error;
+    }
+
+    GetLogicalProcessorInformationEx(RelationAll, NULL, &BufferLength);
+
+    Buffer = QUIC_ALLOC_NONPAGED(BufferLength);
+    if (Buffer == NULL) {
+        //printf("malloc failed, 0x%x!\n", GetLastError());
+        goto Error;
+    }
+
+    if (!GetLogicalProcessorInformationEx(
+            RelationAll,
+            (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)Buffer,
+            &BufferLength)) {
+        //printf("GetLogicalProcessorInformationEx failed, 0x%x!\n", GetLastError());
+        goto Error;
+    }
+
+    Offset = 0;
+    while (Offset < BufferLength) {
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
+            (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
+        if (Info->Relationship == RelationNumaNode) {
+            if (Info->NumaNode.NodeNumber > NumaNodeCount) {
+                NumaNodeCount = Info->NumaNode.NodeNumber;
+            }
+        }
+        Offset += Info->Size;
+    }
+
+    if (NumaNodeCount == 0) {
+        goto Error;
+    }
+
+    QuicNumaMasks = QUIC_ALLOC_NONPAGED(NumaNodeCount * sizeof(uint64_t));
+    if (QuicNumaMasks == NULL) {
+        //printf("malloc failed, 0x%x!\n", GetLastError());
+        goto Error;
+    }
+
+    QuicTraceLogInfo(
+        WindowsUserProcessorState,
+        "[ dll] Max Processor Count = %u, NUMA Node Count = %u",
+        MaxProcessorCount, NumaNodeCount);
+
+    Offset = 0;
+    while (Offset < BufferLength) {
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
+            (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
+        if (Info->Relationship == RelationNumaNode) {
+            QuicNumaMasks[Info->NumaNode.NodeNumber] = (uint64_t)Info->NumaNode.GroupMask.Mask;
+        }
+        Offset += Info->Size;
+    }
+
+    for (uint32_t Index = 0; Index < MaxProcessorCount; ++Index) {
+
+        Offset = 0;
+        while (Offset < BufferLength) {
+            PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
+                (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
+            if (Info->Relationship == RelationGroup) {
+                uint32_t ProcessorOffset = 0;
+                for (WORD i = 0; i < Info->Group.ActiveGroupCount; ++i) {
+                    if (Index - ProcessorOffset < Info->Group.GroupInfo[i].ActiveProcessorCount) {
+                        QuicProcessorInfo[Index].Group = i;
+                        QuicProcessorInfo[Index].Index = Index - ProcessorOffset;
+                        goto FindNumaNode;
+                    }
+                    ProcessorOffset += Info->Group.GroupInfo[i].ActiveProcessorCount;
+                }
+            }
+            Offset += Info->Size;
+        }
+
+        //printf("Failed to determine group!\n");
+        goto Error;
+
+FindNumaNode:
+
+        Offset = 0;
+        while (Offset < BufferLength) {
+            PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
+                (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
+            if (Info->Relationship == RelationNumaNode) {
+                if (Info->NumaNode.GroupMask.Group == QuicProcessorInfo[Index].Group) {
+                    QuicProcessorInfo[Index].NumaNode = Info->NumaNode.NodeNumber;
+                    QuicTraceLogInfo(
+                        ProcessorInfo,
+                        "[ dll] Proc[%u] Group[%hu] Index[%u] NUMA[%u]",
+                        Index,
+                        QuicProcessorInfo[Index].Group,
+                        QuicProcessorInfo[Index].Index,
+                        QuicProcessorInfo[Index].NumaNode);
+                    goto Next;
+                }
+            }
+            Offset += Info->Size;
+        }
+
+        //printf("Failed to determine numa!\n");
+        goto Error;
+Next:
+        ;
+    }
+
+    Result = TRUE;
+
+Error:
+
+    QUIC_FREE(Buffer);
+
+    if (!Result) {
+        QUIC_FREE(QuicProcessorInfo);
+        QuicProcessorInfo = NULL;
+    }
+
+    return Result;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicPlatformInitialize(
@@ -67,6 +205,11 @@ QuicPlatformInitialize(
 
     QuicPlatform.Heap = HeapCreate(0, 0, 0);
     if (QuicPlatform.Heap == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    if (!QuicProcessorInfoInit()) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
