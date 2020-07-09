@@ -352,7 +352,6 @@ function Remove-RemoteFile {
 function Invoke-LocalExe {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '')]
     param ($Exe, $RunArgs, $Timeout)
-
     if (!$IsWindows) {
         $BasePath = Split-Path $Exe -Parent
         $env:LD_LIBRARY_PATH = $BasePath
@@ -361,7 +360,7 @@ function Invoke-LocalExe {
     $FullCommand = "$Exe $RunArgs"
     Write-Debug "Running Locally: $FullCommand"
 
-    $LocalJob = Invoke-Command -ScriptBlock { & $Exe ($RunArgs).Split(" ") } -AsJob
+    $LocalJob = Start-Job -ScriptBlock { & $Using:Exe ($Using:RunArgs).Split(" ") }
 
     # Wait 60 seconds for the job to finish
     Wait-Job -Job $LocalJob -Timeout $Timeout | Out-Null
