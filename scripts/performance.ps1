@@ -39,6 +39,9 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Record
     Records ETW traces
 
+.PARAMETER Timeout
+    Timeout in seconds for each individual client test invocation.
+
 #>
 
 param (
@@ -83,7 +86,9 @@ param (
     [switch]$Record = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$PGO = $false
+    [switch]$PGO = $false,
+
+    [number]$Timeout = 60
 )
 
 Set-StrictMode -Version 'Latest'
@@ -274,7 +279,7 @@ function Invoke-Test {
 
     try {
         1..$Test.Iterations | ForEach-Object {
-            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments
+            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout
             $LocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
             $AllRunsResults += $LocalParsedResults
             if ($PGO) {

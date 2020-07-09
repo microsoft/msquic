@@ -351,7 +351,7 @@ function Remove-RemoteFile {
 
 function Invoke-LocalExe {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '')]
-    param ($Exe, $RunArgs)
+    param ($Exe, $RunArgs, $Timeout)
 
     if (!$IsWindows) {
         $BasePath = Split-Path $Exe -Parent
@@ -364,7 +364,7 @@ function Invoke-LocalExe {
     $LocalJob = Invoke-Command -ScriptBlock { & $Exe ($RunArgs).Split(" ") } -AsJob
 
     # Wait 60 seconds for the job to finish
-    Wait-Job -Job $LocalJob -Timeout 60 | Out-Null
+    Wait-Job -Job $LocalJob -Timeout $Timeout | Out-Null
     Stop-Job -Job $LocalJob | Out-Null
 
     $RetVal = Receive-Job -Job $LocalJob
