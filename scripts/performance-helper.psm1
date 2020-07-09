@@ -135,15 +135,20 @@ function Wait-ForRemote {
 function Copy-Artifacts {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingEmptyCatchBlock', '')]
     param ([string]$From, [string]$To)
-    try {
-        Invoke-TestCommand $Session -ScriptBlock {
-            param ($To)
+    Invoke-TestCommand $Session -ScriptBlock {
+        param ($To)
+        $CurrentErrorAction = $ErrorActionPreference
+        $ErrorActionPreference = "Stop"
+        try {
             Remove-Item -Path "$To/*" -Recurse -Force
-        } -ArgumentList $To
-    } catch [System.Management.Automation.ItemNotFoundException] {
-        # Ignore Not Found for when the directory does not exist
-        # This will still throw if a file cannot successfuly be deleted
-    }
+        } catch [System.Management.Automation.ItemNotFoundException] {
+            # Ignore Not Found for when the directory does not exist
+            # This will still throw if a file cannot successfuly be deleted
+        } finally {
+            $ErrorActionPreference = $CurrentErrorAction
+        }
+
+    } -ArgumentList $To
     Copy-Item -Path "$From\*" -Destination $To -ToSession $Session  -Recurse
 }
 
