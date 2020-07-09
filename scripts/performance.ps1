@@ -124,9 +124,6 @@ if (($LocalTls -eq "") -and ($RemoteTls -eq "")) {
     Write-Error "Both TLS arguments must be set if a manual setting is done"
 }
 
-Write-Host $LocalTls
-Write-Host $RemoteTls
-
 if (!$IsWindows) {
     if ($PGO) {
         Write-Error "'-PGO' is not supported on this platform!"
