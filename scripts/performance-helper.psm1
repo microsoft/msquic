@@ -184,7 +184,7 @@ class TestDefinition {
     [string]$ResultsMatcher;
 
     [string]ToString() {
-        $RetString = "$($this.TestName)_$($this.Remote.Platform)_$($script:RemoteTls)_$($script:RemoteArch)"
+        $RetString = "$($this.TestName)_$($this.Remote.Platform)_$($script:RemoteArch)_$($script:RemoteTls)"
         if ($script:Local) {
             $RetString += "_Loopback"
         }
@@ -192,7 +192,7 @@ class TestDefinition {
     }
 
     [string]ToTestPlatformString() {
-        $RetString = "$($this.Remote.Platform)_$($script:RemoteTls)_$($script:RemoteArch)"
+        $RetString = "$($this.Remote.Platform)_$($script:RemoteArch)_$($script:RemoteTls)"
         return $RetString
     }
 }
