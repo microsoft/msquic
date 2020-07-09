@@ -194,6 +194,8 @@ Error:
     QUIC_FREE(Buffer);
 
     if (!Result) {
+        QUIC_FREE(QuicNumaMasks);
+        QuicNumaMasks = NULL;
         QUIC_FREE(QuicProcessorInfo);
         QuicProcessorInfo = NULL;
     }
