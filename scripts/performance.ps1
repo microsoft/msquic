@@ -47,7 +47,7 @@ This script runs performance tests locally for a period of time.
 param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("Debug", "Release")]
-    [string]$Config = "Debug",
+    [string]$Config = "Release",
 
     [Parameter(Mandatory = $false)]
     [string]$TestsFile = "",
@@ -56,16 +56,20 @@ param (
     [string]$Remote = "",
 
     [Parameter(Mandatory = $false)]
+    [ValidateSet("x86", "x64", "arm", "arm64")]
     [string]$LocalArch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [string]$LocalTls = "stub",
+    [ValidateSet("schannel", "openssl", "stub", "mitls")]
+    [string]$LocalTls = "",
 
     [Parameter(Mandatory = $false)]
+    [ValidateSet("x86", "x64", "arm", "arm64")]
     [string]$RemoteArch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [string]$RemoteTls = "stub",
+    [ValidateSet("schannel", "openssl", "stub", "mitls")]
+    [string]$RemoteTls = "",
 
     [Parameter(Mandatory = $false)]
     [string]$ComputerName = "quic-server",
@@ -88,7 +92,7 @@ param (
     [Parameter(Mandatory = $false)]
     [switch]$PGO = $false,
 
-    [number]$Timeout = 60
+    [int]$Timeout = 60
 )
 
 Set-StrictMode -Version 'Latest'
@@ -106,6 +110,22 @@ if ($IsWindows) {
 } else {
     $LocalPlatform = "linux"
 }
+
+# Set Tls
+if (($LocalTls -eq "") -and ($RemoteTls -eq "")) {
+    if ($IsWindows) {
+        $LocalTls = "schannel"
+        $RemoteTls = $LocalTls
+    } else {
+        $LocalTls = "openssl"
+        $RemoteTls = $LocalTls
+    }
+} elseif (($LocalTls -ne "") -xor ($RemoteTls -ne "")) {
+    Write-Error "Both TLS arguments must be set if a manual setting is done"
+}
+
+Write-Host $LocalTls
+Write-Host $RemoteTls
 
 if (!$IsWindows) {
     if ($PGO) {
