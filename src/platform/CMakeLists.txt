@@ -69,6 +69,10 @@ target_include_directories(platform PUBLIC ${QUIC_INCLUDE_DIR})
 
 target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 
+if (NOT MSVC AND QUIC_SANITIZE_ADDRESS)
+    target_link_libraries(platform PUBLIC -fsanitize=address)
+endif()
+
 if(QUIC_ENABLE_LOGGING)
     if("${QUIC_PLATFORM}" STREQUAL "windows")
         add_dependencies(platform MsQuicEtw)
@@ -91,8 +95,11 @@ if (NOT MSVC AND NOT APPLE)
     if (ATOMIC)
         message(STATUS "Found libatomic: ${ATOMIC}")
     endif()
-    target_link_libraries(platform PUBLIC ${ATOMIC})
 endif()
+
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+target_link_libraries(platform PUBLIC Threads::Threads ${ATOMIC})
 
 if("${QUIC_PLATFORM}" STREQUAL "windows")
     target_link_libraries(platform PUBLIC ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)

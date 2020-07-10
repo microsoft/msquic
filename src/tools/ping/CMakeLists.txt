@@ -14,3 +14,7 @@ add_executable(quicping ${SOURCES})
 set_property(TARGET quicping PROPERTY FOLDER "tools")
 
 target_link_libraries(quicping msquic platform)
+
+if (NOT MSVC)
+    target_compile_options(quicping PRIVATE -Wno-switch)
+endif()

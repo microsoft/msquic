@@ -30,6 +30,13 @@ elseif(QUIC_TLS STREQUAL "mitls")
     target_link_libraries(msquicplatformtest kremlib evercrypt mitls quiccrypto ncrypt crypt32)
 endif()
 
+if (NOT MSVC)
+    target_compile_options(msquicplatformtest PRIVATE
+        -Wno-missing-field-initializers
+        -Wno-unused-variable
+        -Wno-write-strings)
+endif()
+
 target_link_libraries(msquicplatformtest msquic platform gtest MSQUIC_PLATFORMTEST)
 
 add_test(msquicplatformtest msquicplatformtest)

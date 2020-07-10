@@ -23,6 +23,13 @@ target_include_directories(msquiccoretest PRIVATE ${PROJECT_SOURCE_DIR}/src/core
 
 set_property(TARGET msquiccoretest PROPERTY FOLDER "tests")
 
+if (NOT MSVC)
+    target_compile_options(msquiccoretest PRIVATE
+        -Wno-missing-field-initializers
+        -Wno-unused-variable
+        -Wno-write-strings)
+endif()
+
 target_link_libraries(msquiccoretest msquic core platform gtest MSQUIC_CORETEST)
 
 add_test(msquiccoretest msquiccoretest)
