@@ -9,9 +9,9 @@ COPY 	. /src
 
 FROM	source as build
 WORKDIR /src/Debug
-RUN scripts/install-powershell.sh
-RUN pwsh scripts/prepare-machine.ps1
-RUN pwsh scripts/build.ps1 -DisableTest
+RUN /src/scripts/install-powershell.sh
+RUN pwsh /src/scripts/prepare-machine.ps1
+RUN pwsh /src/scripts/build.ps1 -DisableTest
 RUN openssl ecparam -out server.eckey -noout -name prime256v1 -genkey
 RUN	openssl pkcs8 -topk8 -inform pem -in server.eckey -nocrypt \
 		-out server.key
