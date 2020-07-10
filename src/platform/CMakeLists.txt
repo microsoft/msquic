@@ -4,7 +4,7 @@
 # Include for CLOG processing
 include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
 
-if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+if("${QUIC_PLATFORM}" STREQUAL "windows")
     set(SOURCES
         datapath_winuser.c
         hashtable.c
@@ -70,7 +70,7 @@ target_include_directories(platform PUBLIC ${QUIC_INCLUDE_DIR})
 target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 
 if(QUIC_ENABLE_LOGGING)
-    if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    if("${QUIC_PLATFORM}" STREQUAL "windows")
         add_dependencies(platform MsQuicEtw)
     else()
         target_link_libraries(platform PUBLIC ${LTTNGUST_LIBRARIES})
@@ -94,8 +94,6 @@ if (NOT MSVC AND NOT APPLE)
     target_link_libraries(platform PUBLIC ${ATOMIC})
 endif()
 
-
-
-if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+if("${QUIC_PLATFORM}" STREQUAL "windows")
     target_link_libraries(platform PUBLIC ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
 endif()

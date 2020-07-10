@@ -62,6 +62,6 @@ target_include_directories(core PRIVATE ${QUIC_INCLUDE_DIR})
 
 set_property(TARGET core PROPERTY FOLDER "libraries")
 
-if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+if("${QUIC_PLATFORM}" STREQUAL "windows")
     add_dependencies(core MsQuicEtw)
 endif()

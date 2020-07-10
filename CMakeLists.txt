@@ -37,7 +37,15 @@ message(STATUS "System name: ${CMAKE_SYSTEM_NAME}")
 message(STATUS "System version: ${CMAKE_SYSTEM_VERSION}")
 message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 
-if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsStore")
+    set(QUIC_PLATFORM "windows")
+elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    set(QUIC_PLATFORM "linux")
+elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+    set(QUIC_PLATFORM "darwin")
+endif()
+
+if("${QUIC_PLATFORM}" STREQUAL "windows")
     # On Windows, we just need to set the destination variables
     # This will allow the build to be picked up by other projects
     set(msquic_dest ${CMAKE_INSTALL_PREFIX})
@@ -78,7 +86,7 @@ set(SELF_DIR "$\{SELF_DIR\}")
 enable_testing()
 
 # Set the default TLS method for each platform.
-if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+if ("${QUIC_PLATFORM}" STREQUAL "windows")
     set(QUIC_TLS "schannel" CACHE STRING "TLS Library to use")
 else()
     set(QUIC_TLS "openssl" CACHE STRING "TLS Library to use")
@@ -97,15 +105,6 @@ if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
     message(WARNING "Logging unsupported on this version of CMake. Please upgrade to 3.6 or later.")
     set(QUIC_ENABLE_LOGGING OFF)
 endif()
-
-if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-    set(QUIC_PLATFORM "windows")
-elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-    set(QUIC_PLATFORM "linux")
-elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
-    set(QUIC_PLATFORM "darwin")
-endif()
-
 set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(QUIC_OUTPUT_DIR ${QUIC_BUILD_DIR}/bin/$<IF:$<CONFIG:Debug>,Debug,Release> CACHE STRING "Output directory for build artifacts")
 
@@ -129,7 +128,7 @@ set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 
 set(MANIFESTED_HEADER_FILENAME ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
-if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+if ("${QUIC_PLATFORM}" STREQUAL "windows")
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
     set(QUIC_COMMON_FLAGS "")
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -143,7 +142,7 @@ else()
     set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value CACHE INTERNAL "")
 endif()
 
-if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+if("${QUIC_PLATFORM}" STREQUAL "windows")
     # Generate the MsQuicEtw header file.
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/inc)
     file(WRITE ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
@@ -326,7 +325,7 @@ if(QUIC_BUILD_TOOLS)
     add_subdirectory(src/tools/siduck)
     add_subdirectory(src/tools/spin)
     add_subdirectory(src/tools/void)
-    if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    if("${QUIC_PLATFORM}" STREQUAL "windows")
         add_subdirectory(src/tools/etwlib)
         add_subdirectory(src/tools/etw)
     endif()
@@ -337,7 +336,7 @@ if(QUIC_BUILD_TEST)
     # Build the googletest framework.
     set(BUILD_GMOCK OFF CACHE BOOL "Builds the googlemock subproject")
     set(INSTALL_GTEST OFF CACHE BOOL "Enable installation of googletest. (Projects embedding googletest may want to turn this OFF.)")
-    if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    if("${QUIC_PLATFORM}" STREQUAL "windows")
         option(gtest_force_shared_crt "Use shared (DLL) run-time lib even when Google Test is built as static lib." ON)
     endif()
 
