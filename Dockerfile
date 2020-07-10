@@ -9,8 +9,13 @@ COPY 	. /src
 
 FROM	source as build
 WORKDIR /src/Debug
-RUN chmod +x /src/scripts/docker-build.sh
-RUN /src/scripts/docker-build.sh
+RUN chmod +x /src/scripts/install-powershell.sh
+RUN /src/scripts/install-powershell.sh
+RUN export PATH="$PATH:$HOME/.dotnet"
+RUN export PATH="$PATH:$HOME/.dotnet/tools"
+RUN export DOTNET_ROOT="$HOME/.dotnet/"
+RUN pwsh /src/scripts/prepare-machine.ps1
+RUN pwsh /src/scripts/build.ps1 -DisableTest
 RUN openssl ecparam -out server.eckey -noout -name prime256v1 -genkey
 RUN	openssl pkcs8 -topk8 -inform pem -in server.eckey -nocrypt \
 		-out server.key
