@@ -18,7 +18,7 @@ set(SOURCES
 )
 
 # Allow CLOG to preprocess all the source files.
-CLOG_ADD_SOURCEFILE(MSQUIC_PLATFORMTEST ${SOURCES})
+CLOG_GENERATE_TARGET(MSQUIC_PLATFORMTEST ${SOURCES})
 
 add_executable(msquicplatformtest ${SOURCES})
 

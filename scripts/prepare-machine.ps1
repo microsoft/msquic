@@ -70,7 +70,7 @@ if ($IsWindows) {
             sudo apt-add-repository ppa:lttng/stable-2.10
             sudo apt-get update
             sudo apt-get install -y cmake
-            sudo apt-get install -y build-essentials
+            sudo apt-get install -y build-essential
             sudo apt-get install -y liblttng-ust-dev
             sudo apt-get install -y lttng-tools
         }
