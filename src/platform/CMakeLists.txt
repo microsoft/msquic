@@ -99,7 +99,7 @@ endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-target_link_libraries(platform PUBLIC Threads::Threads ${ATOMIC})
+target_link_libraries(platform PUBLIC Threads::Threads ${CMAKE_DL_LIBS} ${ATOMIC})
 
 if("${QUIC_PLATFORM}" STREQUAL "windows")
     target_link_libraries(platform PUBLIC ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
