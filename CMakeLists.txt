@@ -269,6 +269,7 @@ include_directories(${CLOG_INCLUDE_DIRECTORY})
 include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY})
 include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY}/CORE_CLOG_LIB)
 include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY}/PLATFORM_CLOG_LIB)
+include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY}/TESTLIB_CLOG_LIB)
 
 if(QUIC_TLS STREQUAL "openssl")
     # Configure and build OpenSSL.
