@@ -8,7 +8,4 @@ export PATH="$PATH:$HOME/.dotnet"
 export PATH="$PATH:$HOME/.dotnet/tools"
 export DOTNET_ROOT="$HOME/.dotnet/"
 
-wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb
-dpkg -i packages-microsoft-prod.deb
-apt-get update
-apt-get install -y powershell
+dotnet tool install -g powershell
