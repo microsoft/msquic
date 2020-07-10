@@ -1383,6 +1383,12 @@ QuicDataPathBindingCreate(
         goto Error;
     }
 
+    //
+    // Must set output pointer first thing, as the receive path will try to
+    // use the output.
+    //
+    *NewBinding = Binding;
+
     RtlZeroMemory(Binding, sizeof(QUIC_DATAPATH_BINDING));
     Binding->Datapath = Datapath;
     Binding->ClientContext = RecvCallbackContext;
@@ -1677,12 +1683,6 @@ QuicDataPathBindingCreate(
             goto Error;
         }
     }
-
-    //
-    // Must set output pointer before starting receive path, as the receive path
-    // will try to use the output.
-    //
-    *NewBinding = Binding;
 
     //
     // If no specific local port was indicated, then the stack just
