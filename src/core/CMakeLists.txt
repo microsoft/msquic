@@ -60,12 +60,12 @@ target_compile_definitions(core PRIVATE ${QUIC_COMMON_DEFINES})
 
 target_include_directories(core PRIVATE ${QUIC_INCLUDE_DIR})
 
-if ((NOT "${QUIC_PLATFORM}" STREQUAL "windows") AND ${QUIC_SANITIZE_ADDRESS})
+if (NOT WIN32 AND ${QUIC_SANITIZE_ADDRESS})
     target_link_libraries(core PRIVATE -fsanitize=address)
 endif()
 
 set_property(TARGET core PROPERTY FOLDER "libraries")
 
-if("${QUIC_PLATFORM}" STREQUAL "windows")
+if(WIN32)
     add_dependencies(core MsQuicEtw)
 endif()

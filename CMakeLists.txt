@@ -14,7 +14,7 @@ cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 message(STATUS "Source Dir: ${CMAKE_CURRENT_SOURCE_DIR}")
-message(STATUS "Target System name: ${CMAKE_SYSTEM_NAME}")
+message(STATUS "Host System name: ${CMAKE_HOST_SYSTEM_NAME}")
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
     set(CMAKE_SYSTEM_VERSION 10.0.18362.0 CACHE STRING INTERNAL FORCE)
     set(CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION 10.0.18362.0 CACHE STRING INTERNAL FORCE)
@@ -39,13 +39,13 @@ message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 
 if (WIN32)
     set(QUIC_PLATFORM "windows")
-elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-    set(QUIC_PLATFORM "linux")
-elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+elseif (APPLE)
     set(QUIC_PLATFORM "darwin")
+elseif (UNIX)
+    set(QUIC_PLATFORM "linux")
 endif()
 
-if("${QUIC_PLATFORM}" STREQUAL "windows")
+if(WIN32)
     # On Windows, we just need to set the destination variables
     # This will allow the build to be picked up by other projects
     set(msquic_dest ${CMAKE_INSTALL_PREFIX})
@@ -86,7 +86,7 @@ set(SELF_DIR "$\{SELF_DIR\}")
 enable_testing()
 
 # Set the default TLS method for each platform.
-if ("${QUIC_PLATFORM}" STREQUAL "windows")
+if (WIN32)
     set(QUIC_TLS "schannel" CACHE STRING "TLS Library to use")
 else()
     set(QUIC_TLS "openssl" CACHE STRING "TLS Library to use")
@@ -128,7 +128,7 @@ set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 
 set(MANIFESTED_HEADER_FILENAME ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
-if ("${QUIC_PLATFORM}" STREQUAL "windows")
+if (WIN32)
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
     set(QUIC_COMMON_FLAGS "")
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -142,7 +142,7 @@ else()
     set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value CACHE INTERNAL "")
 endif()
 
-if("${QUIC_PLATFORM}" STREQUAL "windows")
+if(WIN32)
     # Generate the MsQuicEtw header file.
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/inc)
     file(WRITE ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
@@ -163,7 +163,7 @@ if("${QUIC_PLATFORM}" STREQUAL "windows")
         list(APPEND QUIC_COMMON_DEFINES WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP QUIC_UWP_BUILD)
     endif()
 
-    if (QUIC_ENABLE_LOGGING)
+    if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for manifested ETW tracing")
         set(CMAKE_CLOG_CONFIG_PROFILE windows)
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_MANIFEST_ETW QUIC_LOGS_MANIFEST_ETW)
@@ -196,12 +196,13 @@ if("${QUIC_PLATFORM}" STREQUAL "windows")
     set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})
     set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS} /std:c++17 /EHsc)
 
+    # These cannot be updated until CMake 3.13
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /GL /Zi")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL /Zi")
-
     set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /LTCG /DEBUG /OPT:REF /OPT:ICF")
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG /DEBUG /OPT:REF /OPT:ICF")
 
+    # Configure PGO linker flags.
     set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${CMAKE_GENERATOR_PLATFORM}/msquic.pgd")
     if(QUIC_PGO)
         # Configured for training mode. Use the previous PGD file if present.
@@ -226,7 +227,10 @@ if("${QUIC_PLATFORM}" STREQUAL "windows")
         message(STATUS "Configuring for statically-linked CRT")
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     endif()
+
 else()
+    # Custom build flags.
+
     list(APPEND QUIC_COMMON_FLAGS -fms-extensions -fPIC)
     if (QUIC_PLATFORM STREQUAL "darwin")
         list(APPEND QUIC_COMMON_DEFINES QUIC_PLATFORM_DARWIN)
@@ -324,7 +328,7 @@ if(QUIC_BUILD_TOOLS)
     add_subdirectory(src/tools/siduck)
     add_subdirectory(src/tools/spin)
     add_subdirectory(src/tools/void)
-    if("${QUIC_PLATFORM}" STREQUAL "windows")
+    if(WIN32)
         add_subdirectory(src/tools/etwlib)
         add_subdirectory(src/tools/etw)
     endif()
@@ -335,7 +339,7 @@ if(QUIC_BUILD_TEST)
     # Build the googletest framework.
     set(BUILD_GMOCK OFF CACHE BOOL "Builds the googlemock subproject")
     set(INSTALL_GTEST OFF CACHE BOOL "Enable installation of googletest. (Projects embedding googletest may want to turn this OFF.)")
-    if("${QUIC_PLATFORM}" STREQUAL "windows")
+    if(WIN32)
         option(gtest_force_shared_crt "Use shared (DLL) run-time lib even when Google Test is built as static lib." ON)
     endif()
 

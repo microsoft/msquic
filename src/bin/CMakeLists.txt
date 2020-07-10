@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-if("${QUIC_PLATFORM}" STREQUAL "windows")
+if(WIN32)
     set(SOURCES winuser/dllmain.c winuser/msquic.rc ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
 else()
     set(SOURCES linux/init.c)
@@ -13,7 +13,7 @@ set_property(TARGET msquic PROPERTY FOLDER "libraries")
 
 target_link_libraries(msquic PRIVATE core platform)
 
-if("${QUIC_PLATFORM}" STREQUAL "windows")
+if(WIN32)
     if(QUIC_UWP_BUILD)
         target_link_libraries(msquic PUBLIC OneCoreUAP)
     endif()

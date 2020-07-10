@@ -60,13 +60,11 @@ target_link_libraries(platform PUBLIC PLATFORM_CLOG_LIB)
 set_property(TARGET platform PROPERTY FOLDER "libraries")
 
 target_compile_options(platform PUBLIC ${QUIC_WARNING_FLAGS} ${QUIC_C_FLAGS})
-
 target_compile_options(platform PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${QUIC_CXX_FLAGS}>)
 
 target_compile_definitions(platform PUBLIC ${QUIC_COMMON_DEFINES})
 
 target_include_directories(platform PUBLIC ${QUIC_INCLUDE_DIR})
-
 target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 
 if (NOT MSVC AND QUIC_SANITIZE_ADDRESS)
@@ -74,7 +72,7 @@ if (NOT MSVC AND QUIC_SANITIZE_ADDRESS)
 endif()
 
 if(QUIC_ENABLE_LOGGING)
-    if("${QUIC_PLATFORM}" STREQUAL "windows")
+    if(WIN32)
         add_dependencies(platform MsQuicEtw)
     else()
         target_link_libraries(platform PUBLIC ${LTTNGUST_LIBRARIES})
@@ -101,6 +99,6 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 target_link_libraries(platform PUBLIC Threads::Threads ${CMAKE_DL_LIBS} ${ATOMIC})
 
-if("${QUIC_PLATFORM}" STREQUAL "windows")
+if(WIN32)
     target_link_libraries(platform PUBLIC ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
 endif()
