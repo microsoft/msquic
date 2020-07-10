@@ -244,7 +244,7 @@ else()
     else()
         message(STATUS "Disabling tracing")
         set(CMAKE_CLOG_CONFIG_PROFILE stubs)
-        list(APPEND QUIC_COMMON_DEFINES DQUIC_EVENTS_STUB QUIC_LOGS_STUB)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
         list(APPEND QUIC_WARNING_FLAGS -Wno-unused-parameter -Wno-unused-variable)
     endif()
 
