@@ -823,7 +823,11 @@ QuicDataPathInitialize(
     uint32_t DatapathLength;
     QUIC_DATAPATH* Datapath;
     BOOLEAN WskRegistered = FALSE;
-    WSK_EVENT_CALLBACK_CONTROL CallbackControl;
+    WSK_EVENT_CALLBACK_CONTROL CallbackControl =
+    {
+        &NPI_WSK_INTERFACE_ID,
+        WSK_EVENT_RECEIVE_FROM
+    };
 
     if (RecvCallback == NULL || UnreachableCallback == NULL || NewDataPath == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -921,8 +925,6 @@ QuicDataPathInitialize(
         goto Error;
     }
 
-    CallbackControl.NpiId = (PNPIID)&NPI_WSK_INTERFACE_ID;
-    CallbackControl.EventMask = WSK_EVENT_RECEIVE_FROM;
     Status =
         Datapath->WskProviderNpi.Dispatch->
         WskControlClient(
