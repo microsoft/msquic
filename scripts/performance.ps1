@@ -39,12 +39,15 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Record
     Records ETW traces
 
+.PARAMETER Timeout
+    Timeout in seconds for each individual client test invocation.
+
 #>
 
 param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("Debug", "Release")]
-    [string]$Config = "Debug",
+    [string]$Config = "Release",
 
     [Parameter(Mandatory = $false)]
     [string]$TestsFile = "",
@@ -53,16 +56,20 @@ param (
     [string]$Remote = "",
 
     [Parameter(Mandatory = $false)]
+    [ValidateSet("x86", "x64", "arm", "arm64")]
     [string]$LocalArch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [string]$LocalTls = "stub",
+    [ValidateSet("schannel", "openssl", "stub", "mitls")]
+    [string]$LocalTls = "",
 
     [Parameter(Mandatory = $false)]
+    [ValidateSet("x86", "x64", "arm", "arm64")]
     [string]$RemoteArch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [string]$RemoteTls = "stub",
+    [ValidateSet("schannel", "openssl", "stub", "mitls")]
+    [string]$RemoteTls = "",
 
     [Parameter(Mandatory = $false)]
     [string]$ComputerName = "quic-server",
@@ -83,7 +90,9 @@ param (
     [switch]$Record = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$PGO = $false
+    [switch]$PGO = $false,
+
+    [int]$Timeout = 60
 )
 
 Set-StrictMode -Version 'Latest'
@@ -100,6 +109,19 @@ if ($IsWindows) {
     $LocalPlatform = "windows"
 } else {
     $LocalPlatform = "linux"
+}
+
+# Set Tls
+if (($LocalTls -eq "") -and ($RemoteTls -eq "")) {
+    if ($IsWindows) {
+        $LocalTls = "schannel"
+        $RemoteTls = $LocalTls
+    } else {
+        $LocalTls = "openssl"
+        $RemoteTls = $LocalTls
+    }
+} elseif (($LocalTls -ne "") -xor ($RemoteTls -ne "")) {
+    Write-Error "Both TLS arguments must be set if a manual setting is done"
 }
 
 if (!$IsWindows) {
@@ -274,7 +296,7 @@ function Invoke-Test {
 
     try {
         1..$Test.Iterations | ForEach-Object {
-            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments
+            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout
             $LocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
             $AllRunsResults += $LocalParsedResults
             if ($PGO) {
