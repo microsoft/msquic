@@ -6,29 +6,41 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Config
     Specifies the build configuration to use.
 
-.PARAMETER Arch
-    The CPU architecture to use.
+.PARAMETER LocalArch
+    Specifies what the local arch is
 
-.PARAMETER Tls
-    The TLS library use.
+.PARAMETER RemoteArch
+    Specifies what the remote arch is
 
-.PARAMETER Runs
-    The number of runs to execute.
+.PARAMETER LocalTls
+    Specifies what local TLS provider to use
 
-.PARAMETER Length
-    The length of the data to transfer for each run.
+.PARAMETER RemoteTls
+    Specifies what remote TLS provider to use
 
-.PARAMETER Publish
-    Publishes the results to the artifacts directory.
+.PARAMETER TestsFile
+    Explcitly specifes a test file to run
+
+.PARAMETER Remote
+    The remote to connect to. Must have ssh remoting enabled, and public key auth. username@ip
+
+.PARAMETER Local
+    Use the local system as the remote
 
 .PARAMETER PGO
     Uses pgomgr to merge the resulting .pgc files back to the .pgd.
 
-.PARAMETER Record
-    Records the run to collect performance information for analysis.
+.PARAMETER SkipDeploy
+    Set flag to skip deploying test files
 
-.PARAMETER SkipAPIPA
-    Skip setting the APIPA Settings.
+.PARAMETER Publish
+    Publishes the results to the artifacts directory.
+
+.PARAMETER Record
+    Records ETW traces
+
+.PARAMETER Timeout
+    Timeout in seconds for each individual client test invocation.
 
 #>
 
@@ -38,42 +50,78 @@ param (
     [string]$Config = "Release",
 
     [Parameter(Mandatory = $false)]
+    [string]$TestsFile = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$Remote = "",
+
+    [Parameter(Mandatory = $false)]
     [ValidateSet("x86", "x64", "arm", "arm64")]
-    [string]$Arch = "x64",
+    [string]$LocalArch = "x64",
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
-    [string]$Tls = "",
+    [string]$LocalTls = "",
 
     [Parameter(Mandatory = $false)]
-    [Int32]$Runs = 10,
+    [ValidateSet("x86", "x64", "arm", "arm64")]
+    [string]$RemoteArch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [Int64]$Length = 2000000000, # 2 GB
+    [ValidateSet("schannel", "openssl", "stub", "mitls")]
+    [string]$RemoteTls = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$ComputerName = "quic-server",
+
+    [Parameter(Mandatory = $false)]
+    [string]$WinRMUser = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SkipDeploy = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$Publish = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$PGO = $false,
+    [switch]$Local = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$Record = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$SkipAPIPA = $false
+    [switch]$PGO = $false,
+
+    [int]$Timeout = 60
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-# Default TLS based on current platform.
-if ("" -eq $Tls) {
+# Root directory of the project.
+$RootDir = Split-Path $PSScriptRoot -Parent
+
+# Remove any previous remote PowerShell sessions
+Get-PSSession | Remove-PSSession
+
+$LocalPlatform = $null
+if ($IsWindows) {
+    $LocalPlatform = "windows"
+} else {
+    $LocalPlatform = "linux"
+}
+
+# Set Tls
+if (($LocalTls -eq "") -and ($RemoteTls -eq "")) {
     if ($IsWindows) {
-        $Tls = "schannel"
+        $LocalTls = "schannel"
+        $RemoteTls = $LocalTls
     } else {
-        $Tls = "openssl"
+        $LocalTls = "openssl"
+        $RemoteTls = $LocalTls
     }
+} elseif (($LocalTls -ne "") -xor ($RemoteTls -ne "")) {
+    Write-Error "Both TLS arguments must be set if a manual setting is done"
 }
 
 if (!$IsWindows) {
@@ -85,291 +133,231 @@ if (!$IsWindows) {
     }
 }
 
-# Root directory of the project.
-$RootDir = Split-Path $PSScriptRoot -Parent
 
-$OsPlat = "Linux"
-if ($IsWindows) {
-    $OsPlat = "Windows"
+if ($TestsFile -eq "") {
+    $TestsFile = Join-Path $PSScriptRoot "RemoteTests.json"
 }
-$Platform = "$($OsPlat)_$($Arch)_$($Tls)"
 
-# Path to the build artifacts.
-$Artifacts = $null
-$QuicPing = $null
-if ($IsWindows) {
-    $Artifacts = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)"
-    $QuicPing = "quicping.exe"
+Import-Module (Join-Path $PSScriptRoot 'performance-helper.psm1') -Force
+
+Set-ScriptVariables -Local $Local `
+                    -LocalTls $LocalTls `
+                    -LocalArch $LocalArch `
+                    -RemoteTls $RemoteTls `
+                    -RemoteArch $RemoteArch `
+                    -Config $Config `
+                    -Publish $Publish `
+                    -Record $Record
+
+if ($Local) {
+    $RemoteAddress = "localhost"
+    $Session = $null
+    $LocalAddress = "127.0.0.1"
 } else {
-    $Artifacts = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)"
-    $QuicPing = "quicping"
+    if ($Remote -eq "") {
+        if ($WinRMUser -ne "") {
+            $Session = New-PSSession -ComputerName $ComputerName -Credential $WinRMUser -ConfigurationName PowerShell.7
+        } else {
+            $Session = New-PSSession -ComputerName $ComputerName -ConfigurationName PowerShell.7
+        }
+    } else {
+        $Session = New-PSSession -HostName "$Remote"
+    }
+
+    $RemoteAddress = $Session.ComputerName
+
+    if ($null -eq $Session) {
+        Write-Error "Failed to create remote session"
+        exit
+    }
+
+    $LocalAddress = Get-LocalAddress -RemoteAddress $RemoteAddress
+
+    Write-Output "Connected to: $RemoteAddress"
+    Write-Output "Local IP Connection $LocalAddress"
 }
 
-# QuicPing arguments
-$ServerArgs = "-listen:* -port:4433 -selfsign:1 -peer_uni:1 -connections:$Runs"
-$ClientArgs = "-target:localhost -port:4433 -sendbuf:0 -uni:1 -length:$Length"
-if ($IsWindows) {
-    # Always use the same local address and core to provide more consistent results.
-    $ClientArgs += " -bind:127.0.0.1:4434 -ip:4 -core:0"
-}
+Set-Session -Session $Session
 
-# Base output path.
-$OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$Platform"
+$OutputDir = Join-Path $RootDir "artifacts/PerfDataResults"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
-# Make sure the build is present.
-if (!(Test-Path (Join-Path $Artifacts $QuicPing))) {
-    Write-Error "Build does not exist!`n `nRun the following to generate it:`n `n    $(Join-Path $RootDir "scripts" "build.ps1") -Config $Config -Arch $Arch -Tls $Tls`n"
-}
-
-# WPA Profile for collecting stacks.
-$WpaStackWalkProfileXml = `
-@"
-<?xml version="1.0" encoding="utf-8"?>
-<WindowsPerformanceRecorder Version="1.0" Author="MsQuic" Copyright="Microsoft Corporation" Company="Microsoft Corporation">
-  <Profiles>
-    <SystemCollector Id="SC_HighVolume" Realtime="false">
-      <BufferSize Value="1024"/>
-      <Buffers Value="20"/>
-    </SystemCollector>
-    <SystemProvider Id="SP_CPU">
-      <Keywords>
-        <Keyword Value="CpuConfig"/>
-        <Keyword Value="Loader"/>
-        <Keyword Value="ProcessThread"/>
-        <Keyword Value="SampledProfile"/>
-      </Keywords>
-      <Stacks>
-        <Stack Value="SampledProfile"/>
-      </Stacks>
-    </SystemProvider>
-    <Profile Id="CPU.Light.File" Name="CPU" Description="CPU Stacks" LoggingMode="File" DetailLevel="Light">
-      <Collectors>
-        <SystemCollectorId Value="SC_HighVolume">
-          <SystemProviderId Value="SP_CPU" />
-        </SystemCollectorId>
-      </Collectors>
-    </Profile>
-  </Profiles>
-</WindowsPerformanceRecorder>
-"@
-$WpaStackWalkProfile = Join-Path $Artifacts "stackwalk.wprp"
-if ($Record) {
+$RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     if ($IsWindows) {
-        $WpaStackWalkProfileXml | Out-File $WpaStackWalkProfile
+        return "windows"
+    } else {
+        return "linux"
     }
 }
 
-function Start-Background-Executable($File, $Arguments) {
-    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    $pinfo.FileName = $File
-    $pinfo.RedirectStandardOutput = $true
-    $pinfo.UseShellExecute = $false
-    $pinfo.Arguments = $Arguments
-    $p = New-Object System.Diagnostics.Process
-    $p.StartInfo = $pinfo
-    $p.Start() | Out-Null
-    return $p
+# Join path in script to ensure right platform separator
+$RemoteDirectory = Invoke-TestCommand -Session $Session -ScriptBlock {
+    Join-Path (Get-Location) "Tests"
 }
 
-function Stop-Background-Executable($Process) {
-    if (!$Process.WaitForExit(2000)) {
-        $Process.Kill()
-        Write-Debug "Server Failed to Exit"
-    }
-    return $Process.StandardOutput.ReadToEnd()
+$LocalDirectory = Join-Path $RootDir "artifacts"
+
+if ($Local) {
+    $RemoteDirectory = $LocalDirectory
 }
 
-function Run-Foreground-Executable($File, $Arguments) {
-    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    $pinfo.FileName = $File
-    $pinfo.RedirectStandardOutput = $true
-    $pinfo.UseShellExecute = $false
-    $pinfo.Arguments = $Arguments
-    $p = New-Object System.Diagnostics.Process
-    $p.StartInfo = $pinfo
-    $p.Start() | Out-Null
-    $p.WaitForExit()
-    return $p.StandardOutput.ReadToEnd()
-}
+$CurrentCommitHash = Get-GitHash -RepoDir $RootDir
 
-function Parse-Loopback-Results($Results) {
+if ($PGO -and $Local) {
+    # PGO needs the server and client executing out of separate directories.
+    $RemoteDirectoryOld = $RemoteDirectory
+    $RemoteDirectory = "$($RemoteDirectoryOld)_server"
     try {
-        # Unused variable on purpose
-        $m = $Results -match "Closed.*\(TX.*bytes @ (.*) kbps \|"
-        return $Matches[1]
+        Remove-Item -Path "$RemoteDirectory/*" -Recurse -Force
     } catch {
-        Write-Host "Error Processing Results:`n`n$Results"
-        throw
+        # Ignore failure, which occurs when directory does not exist
     }
+    New-Item -Path $RemoteDirectory -ItemType Directory -Force | Out-Null
+    Copy-Item "$RemoteDirectoryOld\*" $RemoteDirectory -Recurse
 }
 
-function Get-Latest-Test-Results($Platform, $Test) {
-    $Uri = "https://msquicperformanceresults.azurewebsites.net/performance/$Platform/$Test"
-    Write-Debug "Requesting: $Uri"
-    $LatestResult = Invoke-RestMethod -Uri $Uri
-    Write-Debug "Result: $LatestResult"
-    return $LatestResult
-}
-
-function Median-Test-Results($FullResults) {
-    $sorted = $FullResults | Sort-Object
-    return $sorted[[int](($sorted.Length - 1) / 2)]
-}
-
-class TestPublishResult {
-    [string]$PlatformName
-    [string]$TestName
-    [string]$CommitHash
-    [double[]]$IndividualRunResults
-}
-
-$currentLoc = Get-Location
-Set-Location -Path $RootDir
-$env:GIT_REDIRECT_STDERR = '2>&1'
-$CurrentCommitHash = $null
-try {
-    $CurrentCommitHash = git rev-parse HEAD
-} catch {
-    Write-Debug "Failed to get commit hash from git"
-}
-Set-Location -Path $currentLoc
-
-function Merge-PGO-Counts($Path) {
-    $Command = "$Artifacts\pgomgr.exe /merge $Path $Artifacts\msquic.pgd"
-    Invoke-Expression $Command | Write-Debug
-    Remove-Item "$Path\*.pgc" | Out-Null
-}
-
-function Run-Loopback-Test() {
-    Write-Host "Running Loopback Test"
-
-    $LoopbackOutputDir = Join-Path $OutputDir "loopback"
-    New-Item $LoopbackOutputDir -ItemType Directory -Force | Out-Null
-
-    $apipaInterfaces = $null
-    Write-Host $SkipAPIPA
-    if ($IsWindows -and !$SkipAPIPA) {
-        $apipaAddr = Get-NetIPAddress 169.254.*
-        if ($null -ne $apipaAddr) {
-            # Disable all the APIPA interfaces for URO perf.
-            Write-Debug "Temporarily disabling APIPA interfaces"
-            $apipaInterfaces = (Get-NetAdapter -InterfaceIndex $apipaAddr.InterfaceIndex) | where {$_.AdminStatus -eq "Up"}
-            $apipaInterfaces | Disable-NetAdapter -Confirm:$false
+function LocalSetup {
+    $RetObj = New-Object -TypeName psobject
+    $RetObj | Add-Member -MemberType NoteProperty -Name apipaInterfaces -Value $null
+    try {
+        if ($IsWindows -and $Local) {
+            $apipaAddr = Get-NetIPAddress 169.254.*
+            if ($null -ne $apipaAddr) {
+                # Disable all the APIPA interfaces for URO perf.
+                Write-Debug "Temporarily disabling APIPA interfaces"
+                $RetObj.apipaInterfaces = (Get-NetAdapter -InterfaceIndex $apipaAddr.InterfaceIndex) | Where-Object {$_.AdminStatus -eq "Up"}
+                $RetObj.apipaInterfaces | Disable-NetAdapter -Confirm:$false
+            }
         }
+    } catch {
+        $RetObj.apipaInterfaces = $null
     }
 
-    $ServerDir = $Artifacts
-    if ($PGO) {
-        # PGO needs the server and client executing out of separate directories.
-        $ServerDir = "$($Artifacts)_server"
-        New-Item -Path $ServerDir -ItemType Directory -Force | Out-Null
-        Copy-Item "$Artifacts\*" $ServerDir
+    return $RetObj
+}
+
+function LocalTeardown {
+    param ($LocalCache)
+    if ($null -ne $LocalCache.apipaInterfaces) {
+        # Re-enable the interfaces we disabled earlier.
+        Write-Debug "Re-enabling APIPA interfaces"
+        $LocalCache.apipaInterfaces | Enable-NetAdapter
+    }
+}
+
+$RemoteExePath = Get-ExePath -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true
+$LocalExePath = Get-ExePath -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false
+
+function Invoke-Test {
+    param ($Test)
+
+    Write-Output "Running Test $Test"
+
+    $RemoteExe = Get-ExeName -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $Test.Remote
+    $LocalExe = Get-ExeName -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local
+
+    # Check both Exes
+    $RemoteExeExists = Invoke-TestCommand -Session $Session -ScriptBlock {
+        param ($RemoteExe)
+        Test-Path $RemoteExe
+    } -ArgumentList $RemoteExe
+
+    $LocalExeExists = Test-Path $LocalExe
+
+    if (!$RemoteExeExists -or !$LocalExeExists) {
+        if (!$RemoteExeExists) {
+            Write-Output "Missing Remote Exe $RemoteExe"
+        }
+        if (!$LocalExeExists) {
+            Write-Output "Missing Local Exe $LocalExe"
+        }
+        Write-Error "Failed to Run $Test because of missing exe"
+    }
+
+    $LocalArguments = $Test.Local.Arguments.GetArguments().Replace('$RemoteAddress', $RemoteAddress)
+    $LocalArguments = $LocalArguments.Replace('$LocalAddress', $LocalAddress)
+
+    $CertThumbprint = Invoke-TestCommand -Session $Session -ScriptBlock {
+        return $env:QUICCERT
+    }
+
+    $RemoteArguments = $Test.Remote.Arguments.GetArguments().Replace('$Thumbprint', $CertThumbprint)
+
+    # Starting the server
+    $RemoteJob = Invoke-RemoteExe -Exe $RemoteExe -RunArgs $RemoteArguments
+    $ReadyToStart = Wait-ForRemoteReady -Job $RemoteJob
+
+    if (!$ReadyToStart) {
+        Stop-Job -Job $RemoteJob
+        Write-Error "Test Remote for $Test failed to start"
+    }
+
+    $AllRunsResults = @()
+
+    try {
+        1..$Test.Iterations | ForEach-Object {
+            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout
+            $LocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
+            $AllRunsResults += $LocalParsedResults
+            if ($PGO) {
+                # Merge client PGO Counts
+                Merge-PGOCounts -Path $LocalExePath
+            }
+
+            Write-Output "Run $($_): $LocalParsedResults kbps"
+            $LocalResults | Write-Debug
+        }
+    } finally {
+        $RemoteResults = Wait-ForRemote -Job $RemoteJob
+        Write-Debug $RemoteResults.ToString()
     }
 
     if ($Record) {
-        # Start collecting performance information.
-        if ($IsWindows) {
-            wpr.exe -start $WpaStackWalkProfile -filemode
-        }
+        Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".etl"))
     }
 
-    $allRunsResults = @()
-    $serverOutput = $null
-    try {
-
-        # Start the server.
-        $proc = Start-Background-Executable -File (Join-Path $ServerDir $QuicPing) -Arguments $ServerArgs
-        Start-Sleep 4
-
-        try {
-            1..$Runs | ForEach-Object {
-                $clientOutput = Run-Foreground-Executable -File (Join-Path $Artifacts $QuicPing) -Arguments $ClientArgs
-                $parsedRunResult = Parse-Loopback-Results -Results $clientOutput
-                $allRunsResults += $parsedRunResult
-                if ($PGO) {
-                    # Merge client PGO counts.
-                    Merge-PGO-Counts $Artifacts
-                }
-                Write-Host "Run $($_): $parsedRunResult kbps"
-                $clientOutput | Write-Debug
-            }
-
-            # Stop the server.
-            $serverOutput = Stop-Background-Executable -Process $proc
-
-        } catch {
-            if ($Record) {
-                if ($IsWindows) {
-                    wpr.exe -cancel
-                }
-            }
-            Stop-Background-Executable -Process $proc | Write-Host
-            throw
-        }
-
-    } finally {
-
-        if ($Record) {
-            # Stop the performance collection.
-            if ($IsWindows) {
-                Write-Host "Saving perf.etl out for publishing."
-                wpr.exe -stop "$(Join-Path $LoopbackOutputDir perf.etl)"
-            }
-        }
-
-        if ($PGO) {
-            # Merge server PGO counts.
-            Merge-PGO-Counts $ServerDir
-            # Clean up server directory.
-            Remove-Item $ServerDir -Recurse -Force | Out-Null
-        }
-
-        if ($null -ne $apipaInterfaces) {
-            # Re-enable the interfaces we disabled earlier.
-            Write-Debug "Re-enabling APIPA interfaces"
-            $apipaInterfaces | Enable-NetAdapter
-        }
+    if ($PGO) {
+        # Merge server PGO Counts
+        Get-RemoteFile -From (Join-Path $RemoteExePath *.pgc) -To $LocalExePath
+        Remove-RemoteFile -Path (Join-Path $RemoteExePath *.pgc)
+        Merge-PGOCounts -Path $LocalExePath
     }
 
-    # Print current and latest master results to console.
-    $MedianCurrentResult = Median-Test-Results -FullResults $allRunsResults
-    $fullLastResult = Get-Latest-Test-Results -Platform $Platform -Test "loopback"
-    if ($fullLastResult -ne "") {
-        $MedianLastResult = Median-Test-Results -FullResults $fullLastResult.individualRunResults
-        $PercentDiff = 100 * (($MedianCurrentResult - $MedianLastResult) / $MedianLastResult)
-        $PercentDiffStr = $PercentDiff.ToString("#.##")
-        if ($PercentDiff -ge 0) {
-            $PercentDiffStr = "+$PercentDiffStr"
-        }
-        Write-Host "Median: $MedianCurrentResult kbps ($PercentDiffStr%)"
-        Write-Host "Master: $MedianLastResult kbps"
-    } else {
-        Write-Host "Median: $MedianCurrentResult kbps"
-    }
-
-    # Write server output so we can detect possible failures early.
-    Write-Debug $serverOutput
-
-    if ($Publish -and ($CurrentCommitHash -ne $null)) {
-        Write-Host "Saving results.json out for publishing."
-        $Results = [TestPublishResult]::new()
-        $Results.CommitHash = $CurrentCommitHash.Substring(0, 7)
-        $Results.PlatformName = $Platform
-        $Results.TestName = "loopback"
-        $Results.IndividualRunResults = $allRunsResults
-
-        $ResultFile = Join-Path $LoopbackOutputDir "results.json"
-        $Results | ConvertTo-Json | Out-File $ResultFile
-    } elseif ($Publish -and ($CurrentCommitHash -eq $null)) {
-        Write-Debug "Failed to publish because of missing commit hash"
-    }
+    Publish-TestResults -Test $Test `
+                        -AllRunsResults $AllRunsResults `
+                        -CurrentCommitHash $CurrentCommitHash `
+                        -OutputDir $OutputDir
 }
 
-# Run through all the test scenarios.
-Run-Loopback-Test
+$LocalDataCache = LocalSetup
 
-if ($PGO) {
-    Write-Host "Saving msquic.pgd out for publishing."
-    Copy-Item "$Artifacts\msquic.pgd" $OutputDir
+try {
+    $Tests = Get-Tests $TestsFile
+
+    if ($null -eq $Tests) {
+        Write-Error "Tests are not valid"
+    }
+
+    if (!$SkipDeploy -and !$Local) {
+        Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory
+    }
+
+    foreach ($Test in $Tests) {
+        if (Test-CanRunTest -Test $Test -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform) {
+            Invoke-Test -Test $Test
+        } else {
+            Write-Output "Skipping $Test"
+        }
+    }
+
+    if ($PGO) {
+        Write-Host "Saving msquic.pgd out for publishing."
+        Copy-Item "$LocalExePath\msquic.pgd" $OutputDir
+    }
+
+} finally {
+    if ($null -ne $Session) {
+        Remove-PSSession -Session $Session
+    }
+    LocalTeardown($LocalDataCache)
 }
