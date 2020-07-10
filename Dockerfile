@@ -1,6 +1,6 @@
 FROM 	martenseemann/quic-network-simulator-endpoint as source
 ENV	DEBIAN_FRONTEND=noninteractive
-RUN 	apt-get update -y \
+RUN apt-get update -y \
 	&& apt-get install -y \
 		build-essential \
 		cmake \
@@ -9,9 +9,10 @@ COPY 	. /src
 
 FROM	source as build
 WORKDIR /src/Debug
-RUN	cmake -DQUIC_ENABLE_LOGGING=OFF -DQUIC_BUILD_TEST=OFF ..
-RUN     cmake --build .
-RUN 	openssl ecparam -out server.eckey -noout -name prime256v1 -genkey
+RUN scripts/install-powershell.sh
+RUN pwsh scripts/prepare-machine.ps1
+RUN pwsh scripts/build.ps1 -DisableTest
+RUN openssl ecparam -out server.eckey -noout -name prime256v1 -genkey
 RUN	openssl pkcs8 -topk8 -inform pem -in server.eckey -nocrypt \
 		-out server.key
 RUN	openssl req -batch -new -key server.key -days 9365 -nodes -x509 \
