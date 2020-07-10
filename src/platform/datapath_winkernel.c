@@ -823,6 +823,7 @@ QuicDataPathInitialize(
     uint32_t DatapathLength;
     QUIC_DATAPATH* Datapath;
     BOOLEAN WskRegistered = FALSE;
+    WSK_EVENT_CALLBACK_CONTROL CallbackControl;
 
     if (RecvCallback == NULL || UnreachableCallback == NULL || NewDataPath == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -917,6 +918,28 @@ QuicDataPathInitialize(
             "[ lib] ERROR, %u, %s.",
             Status,
             "WskCaptureProviderNPI");
+        goto Error;
+    }
+
+    CallbackControl.NpiId = (PNPIID)&NPI_WSK_INTERFACE_ID;
+    CallbackControl.EventMask = WSK_EVENT_RECEIVE_FROM;
+    Status =
+        Datapath->WskProviderNpi.Dispatch->
+        WskControlClient(
+            Datapath->WskProviderNpi.Client,
+            WSK_SET_STATIC_EVENT_CALLBACKS,
+            sizeof(CallbackControl),
+            &CallbackControl,
+            0,
+            NULL,
+            NULL,
+            NULL);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "WskControlClient WSK_SET_STATIC_EVENT_CALLBACKS");
         goto Error;
     }
 
@@ -1288,23 +1311,6 @@ QuicDataPathCleanupSocketContext(
 
     if (SocketContext->Socket != NULL) {
 
-        WSK_EVENT_CALLBACK_CONTROL EventControl =
-        {
-            &NPI_WSK_INTERFACE_ID,
-            WSK_EVENT_DISABLE | WSK_EVENT_RECEIVE_FROM
-        };
-
-        //
-        // Disable receive callbacks.
-        //
-        (void)QuicDataPathSetControlSocket(
-                SocketContext,
-                WskSetOption,
-                SO_WSK_EVENT_CALLBACK,
-                SOL_SOCKET,
-                sizeof(EventControl),
-                &EventControl);
-
         //
         // Close the socket.
         //
@@ -1358,11 +1364,6 @@ QuicDataPathBindingCreate(
     QUIC_DATAPATH_BINDING* Binding = NULL;
     QUIC_UDP_SOCKET_CONTEXT* SocketContext = NULL;
     uint32_t Option;
-    WSK_EVENT_CALLBACK_CONTROL EventControl =
-    {
-        &NPI_WSK_INTERFACE_ID,
-        WSK_EVENT_RECEIVE_FROM
-    };
 
     if (Datapath == NULL || NewBinding == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -1680,24 +1681,6 @@ QuicDataPathBindingCreate(
     // will try to use the output.
     //
     *NewBinding = Binding;
-
-    Status =
-        QuicDataPathSetControlSocket(
-            SocketContext,
-            WskSetOption,
-            SO_WSK_EVENT_CALLBACK,
-            SOL_SOCKET,
-            sizeof(EventControl),
-            &EventControl);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "Set SO_WSK_EVENT_CALLBACK");
-        goto Error;
-    }
 
     //
     // If no specific local port was indicated, then the stack just
