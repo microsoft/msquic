@@ -211,6 +211,7 @@ else()
  # TODO UNIX
 endif()
 
+# CLOG target
 add_subdirectory(submodules/clog/inc)
 
 add_subdirectory(src/core)

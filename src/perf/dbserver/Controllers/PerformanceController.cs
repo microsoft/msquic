@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -51,7 +52,8 @@ namespace QuicDataServer.Controllers
                     IndividualRunResults = x.testrun.TestResults.Select(x => x.Result),
                     PlatformName = x.platform.PlatformName,
                     TestName = x.test.TestName,
-                    ResultDate = x.testrun.TestDate
+                    ResultDate = x.testrun.TestDate,
+                    MachineName = _context.Machines.Where(y => y.DbMachineId == x.testrun.DbMachineId).Select(y => y.MachineName).First()
                 });
 
             return await query.ToListAsync();
@@ -87,7 +89,8 @@ namespace QuicDataServer.Controllers
                     IndividualRunResults = x.TestResults.Select(x => x.Result),
                     PlatformName = platform,
                     TestName = test,
-                    ResultDate = x.TestDate
+                    ResultDate = x.TestDate,
+                    MachineName = _context.Machines.Where(y => y.DbMachineId == x.DbMachineId).Select(y => y.MachineName).First()
                 })
                 .FirstOrDefaultAsync();
         }
@@ -124,108 +127,47 @@ namespace QuicDataServer.Controllers
             return authorization.AuthKey == _configuration["ApiAuthorizationKey"];
         }
 
-        /// <summary>
-        /// Create a new platform.
-        /// </summary>
-        /// <remarks>
-        /// Does nothing if the platform does not exist
-        /// </remarks>
-        /// <param name="platformToCreate">The platform to create</param>
-        /// <returns>Creation result</returns>
-        /// <response code="200">On success</response>
-        /// <response code="401">Missing or incorrect Auth Key</response>
-        [HttpPost("createPlatform")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> CreatePlatform([FromBody] PlatformCreate platformToCreate)
-        {
-            if (platformToCreate == null)
-            {
-                throw new ArgumentNullException(nameof(platformToCreate));
-            }
-
-            if (!Authorize(platformToCreate))
-            {
-                return Unauthorized();
-            }
-
-            if (await _context.Platforms.Where(x => x.PlatformName == platformToCreate.PlatformName).AnyAsync())
-            {
-                return Ok();
-            }
-
-            _context.Platforms.Add(new DbPlatform
-            {
-                PlatformName = platformToCreate.PlatformName
-            });
-
-            await _context.SaveChangesAsync();
-
-            return Ok();
-        }
-
-        /// <summary>
-        /// Create a new test
-        /// </summary>
-        /// <remarks>
-        /// Requires the platform to already be created
-        /// </remarks>
-        /// <param name="testToCreate">The test to create</param>
-        /// <returns></returns>
-        /// <response code="200">On success</response>
-        /// <response code="400">Platform does not already exist</response>
-        /// <response code="401">Missing or incorrect Auth Key</response>
-        [HttpPost("createTest")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> CreateTest([FromBody] TestCreate testToCreate)
-        {
-            if (testToCreate == null)
-            {
-                throw new ArgumentNullException(nameof(testToCreate));
-            }
-
-            if (!Authorize(testToCreate))
-            {
-                return Unauthorized();
-            }
-
-            var tests = await _context.Platforms.Where(x => x.PlatformName == testToCreate.PlatformName).Select(x => new { x.Tests, x.DbPlatformId }).FirstOrDefaultAsync();
-
-            if (tests == null)
-            {
-                return BadRequest("Platform does not exist");
-            }
-
-            if (tests.Tests.Select(x => x.TestName).Contains(testToCreate.TestName))
-            {
-                return Ok();
-            }
-
-            var newTest = new DbTest
-            {
-                TestName = testToCreate.TestName,
-                DbPlatformId = tests.DbPlatformId
-            };
-
-            _context.Tests.Add(newTest);
-
-            await _context.SaveChangesAsync();
-
-            return Ok();
-        }
-
-        private async Task<int> VerifyPlatformAndTest(string platformName, string testName)
+        private async Task<(int testId, int machineId)> VerifyPlatformTestAndMachine(string platformName, string testName, string? machineName)
         {
             var testId = await _context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform, test })
                 .Where(x => x.test.TestName == testName && x.platform.PlatformName == platformName)
                 .Select(x => (int?)x.test.DbTestId)
                 .FirstOrDefaultAsync();
 
+            var machineId = await _context.Machines.Where(x => x.MachineName == machineName)
+                .Select(x => (int?)x.DbMachineId)
+                .FirstOrDefaultAsync();
+
+            if (string.IsNullOrWhiteSpace(machineName))
+            {
+                machineId = 1;
+            }
+
+            if (testId != null && machineId != null)
+            {
+                return (testId.Value, machineId.Value);
+            }
+
+            // If machineId == null create
+            if (machineId == null)
+            {
+                var entity = _context.Machines.Add(new DbMachine
+                {
+                    CPUInfo = "",
+                    Description = "",
+                    ExtraInfo = "",
+                    MemoryInfo = "",
+                    NicInfo = "",
+                    OperatingSystem = "",
+                    MachineName = machineName!
+                });
+                await _context.SaveChangesAsync();
+                machineId = entity.Entity.DbMachineId;
+            }
+
             if (testId != null)
             {
-                return testId.Value;
+                return (testId.Value, machineId.Value);
             }
 
             var platformId = await _context.Platforms.Where(x => x.PlatformName == platformName)
@@ -247,7 +189,7 @@ namespace QuicDataServer.Controllers
                 TestName = testName
             });
             await _context.SaveChangesAsync();
-            return testEntity.Entity.DbTestId;
+            return (testEntity.Entity.DbTestId, machineId.Value);
         }
 
 
@@ -260,11 +202,9 @@ namespace QuicDataServer.Controllers
         /// <param name="testResult">The data to add</param>
         /// <returns>The success result</returns>
         /// <response code="200">On success</response>
-        /// <response code="400">Platform and test do not already exist</response>
         /// <response code="401">Missing or incorrect Auth Key</response>
         [HttpPost("withTime")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> PublishTestResultWithTime([FromBody] TestPublishResultWithTime testResult)
         {
@@ -279,14 +219,14 @@ namespace QuicDataServer.Controllers
             }
 
             // Get Test Records 
-            var testId = await VerifyPlatformAndTest(testResult.PlatformName, testResult.TestName);
+            (var testId, var machineId) = await VerifyPlatformTestAndMachine(testResult.PlatformName, testResult.TestName, testResult.MachineName);
 
             var newRecord = new DbTestRecord
             {
                 CommitHash = testResult.CommitHash,
                 TestDate = testResult.Time,
                 TestResults = testResult.IndividualRunResults.Select(x => new TestResult { Result = x }).ToList(),
-                DbMachineId = 1, // Default, TODO add actual platforms
+                DbMachineId = machineId,
                 DbTestId = testId,
             };
 
@@ -303,11 +243,9 @@ namespace QuicDataServer.Controllers
         /// <param name="testResult">The data to add</param>
         /// <returns>The success result</returns>
         /// <response code="200">On success</response>
-        /// <response code="400">Platform and test do not already exist</response>
         /// <response code="401">Missing or incorrect Auth Key</response>
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> PublishTestResult([FromBody] TestPublishResult testResult)
         {
@@ -322,14 +260,14 @@ namespace QuicDataServer.Controllers
             }
 
             // Get Test Records 
-            var testId = await VerifyPlatformAndTest(testResult.PlatformName, testResult.TestName);
+            (var testId, var machineId) = await VerifyPlatformTestAndMachine(testResult.PlatformName, testResult.TestName, testResult.MachineName);
 
             var newRecord = new DbTestRecord
             {
                 CommitHash = testResult.CommitHash,
                 TestDate = DateTime.UtcNow,
                 TestResults = testResult.IndividualRunResults.Select(x => new TestResult { Result = x }).ToList(),
-                DbMachineId = 1, // Default, TODO add actual platforms
+                DbMachineId = machineId,
                 DbTestId = testId,
             };
 
