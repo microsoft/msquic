@@ -79,7 +79,7 @@ endif()
 
 if(QUIC_TLS STREQUAL "openssl")
     add_dependencies(platform OpenSSL)
-    target_link_libraries(platform
+    target_link_libraries(platform PUBLIC
         ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
         ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
 elseif(QUIC_TLS STREQUAL "mitls")
