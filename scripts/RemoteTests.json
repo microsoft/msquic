@@ -1,0 +1,58 @@
+[
+    {
+        "TestName": "Throughput",
+        "Remote" : {
+            "Platform": "Windows",
+            "Tls": ["stub", "schannel", "mitls"],
+            "Arch": ["x64", "x86", "arm", "arm64"],
+            "Exe": "quicping",
+            "Arguments": {
+                "All": "-listen:* -port:4433 -peer_uni:1 -connections:10",
+                "Loopback": "-selfsign:1",
+                "Remote": "-thumbprint:$Thumbprint -machine_cert:1 -cert_store:My"
+            }
+        },
+        "Local" : {
+            "Platform": "Windows",
+            "Tls": ["stub", "schannel", "mitls"],
+            "Arch": ["x64", "x86", "arm", "arm64"],
+            "Exe": "quicping",
+            "Arguments": {
+                "All": "-target:$RemoteAddress -port:4433 -sendbuf:0 -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -length:2000000000",
+                "Loopback": "",
+                "Remote": ""
+            }
+        },
+        "Iterations": 10,
+        "RemoteReadyMatcher": "Ready For Connections!",
+        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps \\|"
+    },
+    {
+        "TestName": "Throughput",
+        "Remote" : {
+            "Platform": "Linux",
+            "Tls": ["stub", "openssl"],
+            "Arch": ["x64", "arm"],
+            "Exe": "quicping",
+            "Arguments": {
+                "All": "-listen:* -port:4433 -selfsign:1 -peer_uni:1 -connections:10",
+                "Loopback": "",
+                "Remote": ""
+            }
+        },
+        "Local" : {
+            "Platform": "linux",
+            "Tls": ["stub", "openssl"],
+            "Arch": ["x64", "arm"],
+            "Exe": "quicping",
+            "Arguments": {
+                "All": "-target:$RemoteAddress -port:4433 -sendbuf:0 -uni:1 -length:2000000000",
+                "Loopback": "",
+                "Remote": ""
+            }
+        },
+        "Iterations": 10,
+        "RemoteReadyMatcher": "Ready For Connections!",
+        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps \\|"
+    }
+]
