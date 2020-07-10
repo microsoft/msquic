@@ -23,6 +23,6 @@ target_include_directories(msquiccoretest PRIVATE ${PROJECT_SOURCE_DIR}/src/core
 
 set_property(TARGET msquiccoretest PROPERTY FOLDER "tests")
 
-target_link_libraries(msquiccoretest msquic core platform gtest PLATFORM_CLOG_LIB CORE_CLOG_LIB MSQUIC_CORETEST)
+target_link_libraries(msquiccoretest msquic core platform gtest MSQUIC_CORETEST)
 
 add_test(msquiccoretest msquiccoretest)

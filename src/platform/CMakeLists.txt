@@ -55,6 +55,8 @@ CLOG_GENERATE_TARGET(PLATFORM_CLOG_LIB ${SOURCES})
 
 add_library(platform STATIC ${SOURCES})
 
+target_link_libraries(platform PUBLIC PLATFORM_CLOG_LIB)
+
 set_property(TARGET platform PROPERTY FOLDER "libraries")
 
 target_compile_options(platform PUBLIC ${QUIC_WARNING_FLAGS} ${QUIC_COMMON_FLAGS})
@@ -92,3 +94,7 @@ if (NOT MSVC AND NOT APPLE)
 endif()
 
 target_link_libraries(platform ${ATOMIC})
+
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+    target_link_libraries(platform PUBLIC ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
+endif()

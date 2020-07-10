@@ -51,6 +51,8 @@ CLOG_GENERATE_TARGET(CORE_CLOG_LIB ${SOURCES})
 
 add_library(core STATIC ${SOURCES})
 
+target_link_libraries(core PUBLIC CORE_CLOG_LIB)
+
 # Core is private, as Platform is the base build that we want public args for
 
 target_compile_options(core PRIVATE ${QUIC_WARNING_FLAGS} ${QUIC_COMMON_FLAGS})

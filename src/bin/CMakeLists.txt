@@ -11,11 +11,9 @@ add_library(msquic SHARED ${SOURCES})
 
 set_property(TARGET msquic PROPERTY FOLDER "libraries")
 
-target_link_libraries(msquic PRIVATE core platform PLATFORM_CLOG_LIB CORE_CLOG_LIB)
+target_link_libraries(msquic PRIVATE core platform)
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-    target_link_libraries(msquic PUBLIC
-        ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
     if(QUIC_UWP_BUILD)
         target_link_libraries(msquic PUBLIC OneCoreUAP)
     endif()
