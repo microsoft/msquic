@@ -59,7 +59,7 @@ target_link_libraries(platform PUBLIC PLATFORM_CLOG_LIB)
 
 set_property(TARGET platform PROPERTY FOLDER "libraries")
 
-target_compile_options(platform PUBLIC ${QUIC_WARNING_FLAGS} ${QUIC_COMMON_FLAGS})
+target_compile_options(platform PUBLIC ${QUIC_WARNING_FLAGS} ${QUIC_C_FLAGS})
 
 target_compile_options(platform PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${QUIC_CXX_FLAGS}>)
 

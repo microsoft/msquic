@@ -28,7 +28,7 @@ target_include_directories(testlib PRIVATE ${PROJECT_SOURCE_DIR}/src/test)
 
 target_include_directories(testlib PRIVATE ${QUIC_INCLUDE_DIR})
 
-target_compile_options(testlib PRIVATE ${QUIC_WARNING_FLAGS} ${QUIC_COMMON_FLAGS})
+target_compile_options(testlib PRIVATE ${QUIC_WARNING_FLAGS} ${QUIC_C_FLAGS})
 target_compile_options(testlib PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${QUIC_CXX_FLAGS}>)
 target_compile_definitions(testlib PRIVATE ${QUIC_COMMON_DEFINES})
 

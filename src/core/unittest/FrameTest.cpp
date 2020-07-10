@@ -357,7 +357,7 @@ TEST(FrameTest, CryptoFrameEncodeDecode)
 
     ASSERT_EQ(Frame->Offset, DecodedFrame.Offset);
     ASSERT_EQ(Frame->Length, DecodedFrame.Length);
-    ASSERT_EQ(memcmp(Frame->Data, DecodedFrame.Data, DecodedFrame.Length), 0);
+    ASSERT_EQ(memcmp(Frame->Data, DecodedFrame.Data, static_cast<size_t>(DecodedFrame.Length)), 0);
 }
 
 struct CryptoFrameParams {
@@ -422,7 +422,7 @@ TEST(FrameTest, NewTokenFrameEncodeDecode)
     ASSERT_TRUE(QuicNewTokenFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame));
 
     ASSERT_EQ(Frame->TokenLength, DecodedFrame.TokenLength);
-    ASSERT_EQ(memcmp(Frame->Token, DecodedFrame.Token, DecodedFrame.TokenLength), 0);
+    ASSERT_EQ(memcmp(Frame->Token, DecodedFrame.Token, static_cast<size_t>(DecodedFrame.TokenLength)), 0);
 }
 
 struct NewTokenFrameParams {
