@@ -9,6 +9,7 @@ COPY 	. /src
 
 FROM	source as build
 WORKDIR /src/Debug
+RUN chmod +x /src/scripts/install-powershell.sh
 RUN /src/scripts/install-powershell.sh
 RUN pwsh /src/scripts/prepare-machine.ps1
 RUN pwsh /src/scripts/build.ps1 -DisableTest
