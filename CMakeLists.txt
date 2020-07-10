@@ -131,13 +131,15 @@ set(MANIFESTED_HEADER_FILENAME ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
-    set(QUIC_COMMON_FLAGS )
+    set(QUIC_COMMON_FLAGS "")
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         list(APPEND QUIC_COMMON_FLAGS /MP)
     endif()
 
     set(QUIC_COMMON_DEFINES WIN32_LEAN_AND_MEAN SECURITY_WIN32)
 else()
+    set(QUIC_COMMON_FLAGS "")
+    set(QUIC_COMMON_DEFINES "")
     set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value CACHE INTERNAL "")
 endif()
 
@@ -193,7 +195,7 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     endif()
 
     set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})
-    set(QUIC_CXX_FLAGS /std:c++17 /EHsc)
+    set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS} /std:c++17 /EHsc)
 
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /GL /Zi")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL /Zi")
@@ -201,14 +203,108 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /LTCG /DEBUG /OPT:REF /OPT:ICF")
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG /DEBUG /OPT:REF /OPT:ICF")
 
-    # TODO POGO
+    set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${CMAKE_GENERATOR_PLATFORM}/msquic.pgd")
+    if(QUIC_PGO)
+        # Configured for training mode. Use the previous PGD file if present.
+        if(EXISTS "${QUIC_PGO_FILE}")
+            message(STATUS "/GENPROFILE:PDG")
+            configure_file("${QUIC_PGO_FILE}" "${QUIC_OUTPUT_DIR}/msquic.pgd" COPYONLY)
+            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /GENPROFILE:PGD=${QUIC_OUTPUT_DIR}/msquic.pgd")
+        else()
+            message(STATUS "/GENPROFILE")
+            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /GENPROFILE")
+        endif()
+    else()
+        # Just doing a normal build. Use the PGD file if present.
+        if(EXISTS "${QUIC_PGO_FILE}")
+            message(STATUS "Using profile-guided optimization")
+            configure_file("${QUIC_PGO_FILE}" "${QUIC_OUTPUT_DIR}/msquic.pgd" COPYONLY)
+            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /USEPROFILE:PGD=${QUIC_OUTPUT_DIR}/msquic.pgd")
+        endif()
+    endif()
 
     if(QUIC_STATIC_LINK_CRT)
         message(STATUS "Configuring for statically-linked CRT")
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     endif()
 else()
- # TODO UNIX
+    list(APPEND QUIC_COMMON_FLAGS -fms-extensions -fPIC -pthread)]
+    if (QUIC_PLATFORM STREQUAL "darwin")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_PLATFORM_DARWIN)
+        list(APPEND QUIC_COMMON_FLAGS -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wmissing-field-initializers)
+    else()
+        list(APPEND QUIC_COMMON_DEFINES QUIC_PLATFORM_LINUX)
+        list(APPEND QUIC_COMMON_FLAGS -Wl,--no-as-needed -ldl)
+    endif()
+
+    if(QUIC_ENABLE_LOGGING)
+        message(STATUS "Configuring for LTTng tracing")
+        set(CMAKE_CLOG_CONFIG_PROFILE linux)
+        include(FindLTTngUST)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_LTTNG QUIC_LOGS_STUB)
+    else()
+        message(STATUS "Disabling tracing)
+        set(CMAKE_CLOG_CONFIG_PROFILE stubs)
+        list(APPEND QUIC_COMMON_DEFINES DQUIC_EVENTS_STUB QUIC_LOGS_STUB)
+        list(APPEND QUIC_WARNING_FLAGS -Wno-unused-parameter -Wno-unused-variable)
+    endif()
+
+    if(QUIC_TLS STREQUAL "openssl")
+        # OpenSSL doesn't support session resumption yet.
+        message(STATUS "Disabling session resumption support")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION)
+        # OpenSSL doesn't support 0-RTT yet.
+        message(STATUS "Disabling 0-RTT support")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
+    endif()
+
+    if(QUIC_SANITIZE_ADDRESS)
+        message(STATUS "Configuring address sanitizer")
+        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address -fno-omit-frame-pointer -Wno-maybe-uninitialized -O0 -g)
+    endif()
+
+    if(QUIC_TLS STREQUAL "stub")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
+    endif()
+
+    set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})
+    set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS} -std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format)
+endif()
+
+if(QUIC_TLS STREQUAL "openssl")
+    # Configure and build OpenSSL.
+    if (CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
+        add_custom_command(
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl
+            OUTPUT ${QUIC_BUILD_DIR}/openssl/include
+            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ./Configure linux-armv4 --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}- -DL_ENDIAN enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
+            COMMAND make clean
+            COMMAND make -j$$(nproc)
+            COMMAND make install_sw)
+    else ()
+        add_custom_command(
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl
+            OUTPUT ${QUIC_BUILD_DIR}/openssl/include
+            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ./config enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
+            COMMAND make -j$$(nproc)
+            COMMAND make install_sw)
+    endif()
+    add_custom_target(OpenSSL
+        DEPENDS ${QUIC_BUILD_DIR}/openssl/include
+        DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+        DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
+endif()
+
+if(QUIC_TLS STREQUAL "mitls")
+    # Build Everest.
+    add_subdirectory(submodules/everest/msquic/msvc/kremlib)
+    add_subdirectory(submodules/everest/msquic/msvc/evercrypt)
+    add_subdirectory(submodules/everest/msquic/msvc/mitls)
+    add_subdirectory(submodules/everest/msquic/msvc/quiccrypto)
 endif()
 
 # CLOG target
