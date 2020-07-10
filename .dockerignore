@@ -2,6 +2,7 @@
 !CMakeLists.txt
 !scripts/run_endpoint.sh
 !src
+!submodules/clog
 !submodules/openssl
 submodules/openssl/pyca-cryptography
 submodules/openssl/boringssl
