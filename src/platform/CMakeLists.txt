@@ -73,7 +73,7 @@ if(QUIC_ENABLE_LOGGING)
     if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
         add_dependencies(platform MsQuicEtw)
     else()
-        target_link_libraries(platform ${LTTNGUST_LIBRARIES})
+        target_link_libraries(platform PUBLIC ${LTTNGUST_LIBRARIES})
     endif()
 endif()
 
@@ -83,7 +83,7 @@ if(QUIC_TLS STREQUAL "openssl")
         ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
         ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
 elseif(QUIC_TLS STREQUAL "mitls")
-    target_link_libraries(platform kremlib evercrypt mitls quiccrypto)
+    target_link_libraries(platform PUBLIC kremlib evercrypt mitls quiccrypto)
 endif()
 
 if (NOT MSVC AND NOT APPLE)
@@ -91,9 +91,10 @@ if (NOT MSVC AND NOT APPLE)
     if (ATOMIC)
         message(STATUS "Found libatomic: ${ATOMIC}")
     endif()
+    target_link_libraries(platform PUBLIC ${ATOMIC})
 endif()
 
-target_link_libraries(platform ${ATOMIC})
+
 
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     target_link_libraries(platform PUBLIC ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
