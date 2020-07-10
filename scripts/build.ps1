@@ -253,7 +253,8 @@ function CMake-Build {
     # Copy clog to a common location.
     $ClogPath = Join-Path $BaseArtifactsDir "clog"
     if (!(Test-Path $ClogPath)) {
-        Copy-Item (Join-Path $BuildDir "submodules/clog") -Destination $ClogPath -Recurse
+        # Copy only a single clog subproject
+        Copy-Item (Join-Path $BuildDir "submodules/clog/CORE_CLOG_LIB") -Destination $ClogPath -Recurse
     }
 
     if ($IsWindows) {

@@ -10,8 +10,6 @@ namespace QuicDataServer.Models
     public class TestRecord
     {
         [Required]
-        public string MachineName { get; set; } = null!;
-        [Required]
         public string PlatformName { get; set; } = null!;
         [Required]
         public string TestName { get; set; } = null!;
