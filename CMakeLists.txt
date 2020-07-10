@@ -37,7 +37,7 @@ message(STATUS "System name: ${CMAKE_SYSTEM_NAME}")
 message(STATUS "System version: ${CMAKE_SYSTEM_VERSION}")
 message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 
-if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsStore")
+if (WIN32)
     set(QUIC_PLATFORM "windows")
 elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     set(QUIC_PLATFORM "linux")
