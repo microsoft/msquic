@@ -15,5 +15,5 @@ target_include_directories(quicattack PRIVATE ${PROJECT_SOURCE_DIR}/src/core)
 target_link_libraries(quicattack msquic core platform)
 
 if (NOT "${QUIC_PLATFORM}" STREQUAL "windows")
-    target_compile_options(quicattack PUBLIC -Wmissing-field-initializers)
+    target_compile_options(quicattack PUBLIC -Wno-missing-field-initializers)
 endif()
