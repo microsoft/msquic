@@ -68,14 +68,14 @@ QuicProcessorInfoInit(
     uint32_t Offset;
 
     uint32_t NumaNodeCount = 0;
-    uint32_t MaxProcessorCount = QuicProcMaxCount();
-    QuicProcessorInfo = QUIC_ALLOC_NONPAGED(MaxProcessorCount * sizeof(QUIC_PROCESSOR_INFO));
+    uint32_t ActiveProcessorCount = QuicProcActiveCount();
+    QuicProcessorInfo = QUIC_ALLOC_NONPAGED(ActiveProcessorCount * sizeof(QUIC_PROCESSOR_INFO));
     if (QuicProcessorInfo == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QuicProcessorInfo",
-            MaxProcessorCount * sizeof(QUIC_PROCESSOR_INFO));
+            ActiveProcessorCount * sizeof(QUIC_PROCESSOR_INFO));
         goto Error;
     }
 
@@ -142,8 +142,8 @@ QuicProcessorInfoInit(
 
     QuicTraceLogInfo(
         WindowsUserProcessorState,
-        "[ dll] Max Processor Count = %u, NUMA Node Count = %u",
-        MaxProcessorCount, NumaNodeCount);
+        "[ dll] Processor Count = %u, NUMA Node Count = %u",
+        ActiveProcessorCount, NumaNodeCount);
 
     Offset = 0;
     while (Offset < BufferLength) {
@@ -155,7 +155,7 @@ QuicProcessorInfoInit(
         Offset += Info->Size;
     }
 
-    for (uint32_t Index = 0; Index < MaxProcessorCount; ++Index) {
+    for (uint32_t Index = 0; Index < ActiveProcessorCount; ++Index) {
 
         Offset = 0;
         while (Offset < BufferLength) {

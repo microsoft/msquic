@@ -708,8 +708,7 @@ typedef struct {
 
 } QUIC_PROCESSOR_INFO;
 
-extern QUIC_PROCESSOR_INFO* QuicProcessorInfo; // Size of QuicProcMaxCount()
-
+extern QUIC_PROCESSOR_INFO* QuicProcessorInfo;
 extern uint64_t* QuicNumaMasks;
 
 #define QuicProcMaxCount() GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS)
