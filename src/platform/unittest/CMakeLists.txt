@@ -35,6 +35,11 @@ if (NOT MSVC)
         -Wno-missing-field-initializers
         -Wno-unused-variable
         -Wno-write-strings)
+
+    # This must be on the individual executables
+    # CMake 3.13 is needed to solve this, but we want a minimum of 3.5
+    SET_TARGET_PROPERTIES(msquicplatformtest
+        PROPERTIES LINK_FLAGS "-Wl,--no-as-needed")
 endif()
 
 target_link_libraries(msquicplatformtest msquic platform gtest MSQUIC_PLATFORMTEST)

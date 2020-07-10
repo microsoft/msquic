@@ -233,7 +233,6 @@ else()
         list(APPEND QUIC_COMMON_FLAGS -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wmissing-field-initializers)
     else()
         list(APPEND QUIC_COMMON_DEFINES QUIC_PLATFORM_LINUX)
-        list(APPEND QUIC_COMMON_FLAGS -Wl,--no-as-needed)
     endif()
 
     if(QUIC_ENABLE_LOGGING)
