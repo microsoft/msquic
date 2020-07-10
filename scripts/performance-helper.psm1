@@ -133,6 +133,7 @@ function Wait-ForRemoteReady {
 function Wait-ForRemote {
     param ($Job)
     Wait-Job -Job $Job -Timeout 10 | Out-Null
+    Stop-Job -Job $Job | Out-Null
     $RetVal = Receive-Job -Job $Job
     return $RetVal -join "`n"
 }
@@ -350,8 +351,7 @@ function Remove-RemoteFile {
 
 function Invoke-LocalExe {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '')]
-    param ($Exe, $RunArgs)
-
+    param ($Exe, $RunArgs, $Timeout)
     if (!$IsWindows) {
         $BasePath = Split-Path $Exe -Parent
         $env:LD_LIBRARY_PATH = $BasePath
@@ -360,7 +360,14 @@ function Invoke-LocalExe {
     $FullCommand = "$Exe $RunArgs"
     Write-Debug "Running Locally: $FullCommand"
 
-    return (Invoke-Expression $FullCommand) -join "`n"
+    $LocalJob = Start-Job -ScriptBlock { & $Using:Exe ($Using:RunArgs).Split(" ") }
+
+    # Wait 60 seconds for the job to finish
+    Wait-Job -Job $LocalJob -Timeout $Timeout | Out-Null
+    Stop-Job -Job $LocalJob | Out-Null
+
+    $RetVal = Receive-Job -Job $LocalJob
+    return $RetVal -join "`n"
 }
 
 function Get-LatestRemoteTestResults($Platform, $Test) {
@@ -377,13 +384,11 @@ function Get-MedianTestResults($FullResults) {
 }
 
 function Get-TestResult($Results, $Matcher) {
-    try {
-        # Unused variable on purpose
-        $Results -match $Matcher | Out-Null
+    $Found = $Results -match $Matcher
+    if ($Found) {
         return $Matches[1]
-    } catch {
-        Write-Output "Error Processing Results:`n`n$Results"
-        throw
+    } else {
+        Write-Error "Error Processing Results:`n`n$Results"
     }
 }
 
