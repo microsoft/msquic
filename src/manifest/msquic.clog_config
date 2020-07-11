@@ -9,6 +9,10 @@
       ]
     },
     "empty": {
+      "SkipProcessing": true,
+      "Modules": []
+    },
+    "stubs": {
       "Modules": []
     },
     "etw_only": {
@@ -81,7 +85,7 @@
       "EncodedArgNumber": 1,
       "MacroConfiguration": {
         "linux": "lttng_plus",
-        "stubs": "empty",
+        "stubs": "stubs",
         "windows_kernel": "empty",
         "windows": "empty"
       }
@@ -92,7 +96,7 @@
       "EncodedArgNumber": 2,
       "MacroConfiguration": {
         "linux": "lttng_plus",
-        "stubs": "empty",
+        "stubs": "stubs",
         "windows_kernel": "empty",
         "windows": "empty"
       }
@@ -103,7 +107,7 @@
       "EncodedArgNumber": 2,
       "MacroConfiguration": {
         "linux": "lttng_plus",
-        "stubs": "empty",
+        "stubs": "stubs",
         "windows_kernel": "empty",
         "windows": "empty"
       }
@@ -114,7 +118,7 @@
       "EncodedArgNumber": 2,
       "MacroConfiguration": {
         "linux": "lttng_plus",
-        "stubs": "empty",
+        "stubs": "stubs",
         "windows_kernel": "empty",
         "windows": "empty"
       }
@@ -125,7 +129,7 @@
       "EncodedArgNumber": 1,
       "MacroConfiguration": {
         "linux": "lttng_plus",
-        "stubs": "empty",
+        "stubs": "stubs",
         "windows_kernel": "empty",
         "windows": "empty"
       }
@@ -136,7 +140,7 @@
       "EncodedArgNumber": 1,
       "MacroConfiguration": {
         "linux": "lttng_plus",
-        "stubs": "empty",
+        "stubs": "stubs",
         "windows_kernel": "empty",
         "windows": "empty"
       }
@@ -147,7 +151,7 @@
       "EncodedArgNumber": 1,
       "MacroConfiguration": {
         "linux": "lttng_plus",
-        "stubs": "empty",
+       "stubs": "stubs",
         "windows_kernel": "empty",
         "windows": "empty"
       }
@@ -158,7 +162,7 @@
       "EncodedArgNumber": 2,
       "MacroConfiguration": {
         "linux": "lttng_plus",
-        "stubs": "empty",
+        "stubs": "stubs",
         "windows_kernel": "empty",
         "windows": "empty"
       }
@@ -169,7 +173,7 @@
       "EncodedArgNumber": 2,
       "MacroConfiguration": {
         "linux": "lttng_plus",
-        "stubs": "empty",
+        "stubs": "stubs",
         "windows_kernel": "empty",
         "windows": "empty"
       }
@@ -180,7 +184,7 @@
       "EncodedArgNumber": 2,
       "MacroConfiguration": {
         "linux": "lttng_plus",
-        "stubs": "empty",
+        "stubs": "stubs",
         "windows_kernel": "empty",
         "windows": "empty"
       }
@@ -202,7 +206,7 @@
       "EncodedArgNumber": 2,
       "MacroConfiguration": {
         "linux": "lttng_plus",
-        "stubs": "empty",
+        "stubs": "stubs",
         "windows_kernel": "empty",
         "windows": "empty"
       }
@@ -224,7 +228,7 @@
       "EncodedArgNumber": 1,
       "MacroConfiguration": {
         "linux": "lttng_plus",
-        "stubs": "empty",
+        "stubs": "stubs",
         "windows_kernel": "empty",
         "windows": "empty"
       }
