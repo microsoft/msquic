@@ -89,6 +89,11 @@ $TempDir = $null
 if ($IsLinux) {
     $InstanceName = $InstanceName.Replace(".", "_")
     $TempDir = Join-Path $HOME "QUICLogs" $InstanceName
+
+    # Set Linux env variables to include dotnet.
+    $env:PATH+=":$HOME/.dotnet"
+    $env:PATH+=":$HOME/.dotnet/tools"
+    $env:DOTNET_ROOT="$HOME/.dotnet/"
 }
 
 # Start log collection.
