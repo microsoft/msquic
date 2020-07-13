@@ -2428,6 +2428,7 @@ QuicSendBufferPoolAlloc(
     QUIC_DATAPATH_SEND_BUFFER* SendBuffer;
 
     UNREFERENCED_PARAMETER(Lookaside);
+    UNREFERENCED_PARAMETER(PoolType);
     QUIC_DBG_ASSERT(PoolType == NonPagedPoolNx);
     QUIC_DBG_ASSERT(NumberOfBytes > sizeof(*SendBuffer));
 
