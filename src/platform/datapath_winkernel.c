@@ -1657,25 +1657,30 @@ QuicDataPathBindingDelete(
     QUIC_DBG_ASSERT(Binding != NULL);
     if (Binding->SocketContext.Socket != NULL) {
 
-        IoReuseIrp(&Binding->SocketContext.Irp, STATUS_SUCCESS);
+        QUIC_EVENT CompletionEvent;
+        uint8_t IrpBuffer[sizeof(IRP) + sizeof(IO_STACK_LOCATION)];
+        PIRP Irp = (PIRP)IrpBuffer;
+
+        QuicEventInitialize(&CompletionEvent, FALSE, FALSE);
+        QuicZeroMemory(Irp, sizeof(IrpBuffer));
+        IoInitializeIrp(Irp, sizeof(IrpBuffer), 1);
         IoSetCompletionRoutine(
-            &Binding->SocketContext.Irp,
+            Irp,
             QuicDataPathIoCompletion,
-            &Binding->SocketContext.WskCompletionEvent,
+            &CompletionEvent,
             TRUE,
             TRUE,
             TRUE);
-        QuicEventReset(Binding->SocketContext.WskCompletionEvent);
 
         NTSTATUS Status =
             Binding->SocketContext.DgrmSocket->Dispatch->
             WskCloseSocket(
                 Binding->SocketContext.Socket,
-                &Binding->SocketContext.Irp);
+                Irp);
 
         if (Status == STATUS_PENDING) {
-            QuicEventWaitForever(Binding->SocketContext.WskCompletionEvent);
-            Status = Binding->SocketContext.Irp.IoStatus.Status;
+            QuicEventWaitForever(CompletionEvent);
+            Status = Irp->IoStatus.Status;
         }
 
         if (QUIC_FAILED(Status)) {
@@ -1686,6 +1691,8 @@ QuicDataPathBindingDelete(
                 Status,
                 "WskCloseSocket");
         }
+
+        IoCleanupIrp(Irp);
     }
 
     IoCleanupIrp(&Binding->SocketContext.Irp);
