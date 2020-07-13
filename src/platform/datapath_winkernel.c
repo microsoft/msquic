@@ -99,7 +99,6 @@ static_assert(
     FIELD_OFFSET(QUIC_BUFFER, Buffer) == FIELD_OFFSET(WSABUF, buf),
     "WSABUF is assumed to be interchangeable for QUIC_BUFFER");
 
-typedef struct QUIC_UDP_SOCKET_CONTEXT QUIC_UDP_SOCKET_CONTEXT;
 typedef struct QUIC_DATAPATH_PROC_CONTEXT QUIC_DATAPATH_PROC_CONTEXT;
 
 //
@@ -112,7 +111,7 @@ typedef struct QUIC_DATAPATH_INTERNAL_RECV_CONTEXT {
     //
     QUIC_POOL* OwningPool;
 
-    QUIC_UDP_SOCKET_CONTEXT* SocketContext;
+    QUIC_DATAPATH_BINDING* Binding;
     PWSK_DATAGRAM_INDICATION DataIndication;
     ULONG ReferenceCount;
 
@@ -181,7 +180,7 @@ typedef struct QUIC_DATAPATH_SEND_BUFFER {
 //
 typedef struct QUIC_DATAPATH_SEND_CONTEXT {
 
-    QUIC_UDP_SOCKET_CONTEXT* SocketContext;
+    QUIC_DATAPATH_BINDING* Binding;
 
     //
     // The owning processor context.
@@ -245,40 +244,14 @@ _Must_inspect_result_
 QUIC_STATUS
 NTAPI
 QuicDataPathSocketReceive(
-    _In_opt_ void* SocketContext,
+    _In_opt_ void* Binding,
     _In_ ULONG Flags,
     _In_opt_ PWSK_DATAGRAM_INDICATION DataIndication
     );
 
-//
-// Per-socket state.
-//
-typedef struct QUIC_UDP_SOCKET_CONTEXT {
-
-    //
-    // Parent QUIC_DATAPATH_BINDING.
-    //
-    QUIC_DATAPATH_BINDING* Binding;
-
-    //
-    // UDP socket used for sending/receiving datagrams.
-    //
-    PWSK_SOCKET Socket;
-
-    //
-    // Event used to wait for completion of socket functions.
-    //
-    QUIC_EVENT WskCompletionEvent;
-
-    //
-    // IRP used for socket functions.
-    //
-    union {
-        IRP Irp;
-        UCHAR IrpBuffer[sizeof(IRP) + sizeof(IO_STACK_LOCATION)];
-    };
-
-} QUIC_UDP_SOCKET_CONTEXT;
+typedef struct _WSK_DATAGRAM_SOCKET {
+    const WSK_PROVIDER_DATAGRAM_DISPATCH* Dispatch;
+} WSK_DATAGRAM_SOCKET, * PWSK_DATAGRAM_SOCKET;
 
 //
 // Per-port state.
@@ -289,6 +262,19 @@ typedef struct QUIC_DATAPATH_BINDING {
     // Parent datapath.
     //
     QUIC_DATAPATH* Datapath;
+
+    //
+    // UDP socket used for sending/receiving datagrams.
+    //
+    union {
+        PWSK_SOCKET Socket;
+        PWSK_DATAGRAM_SOCKET DgrmSocket;
+    };
+
+    //
+    // Event used to wait for completion of socket functions.
+    //
+    QUIC_EVENT WskCompletionEvent;
 
     //
     // The local address and UDP port.
@@ -306,11 +292,6 @@ typedef struct QUIC_DATAPATH_BINDING {
     UINT16 Mtu;
 
     //
-    // Rundown for client calls.
-    //
-    QUIC_RUNDOWN_REF ClientRundown;
-
-    //
     // Client context pointer.
     //
     void *ClientContext;
@@ -321,9 +302,14 @@ typedef struct QUIC_DATAPATH_BINDING {
     long volatile SendOutstanding;
 
     //
-    // Socket context for this port.
+    // IRP used for socket functions.
     //
-    QUIC_UDP_SOCKET_CONTEXT SocketContext;
+    union {
+        IRP Irp;
+        UCHAR IrpBuffer[sizeof(IRP) + sizeof(IO_STACK_LOCATION)];
+    };
+
+    QUIC_RUNDOWN_REF Rundown[0]; // Per-proc
 
 } QUIC_DATAPATH_BINDING;
 
@@ -475,17 +461,10 @@ QuicDataPathIoCompletion(
     )
 {
     UNREFERENCED_PARAMETER(DeviceObject);
+    UNREFERENCED_PARAMETER(Irp);
 
-    if (Irp->PendingReturned) {
-        QUIC_EVENT* CompletionEvent = (QUIC_EVENT*)Context;
-        NT_ASSERT(CompletionEvent);
-
-        //
-        // Set the event to indicate we have completed the operation.
-        //
-#pragma prefast(suppress: 28182, "SAL doesn't understand this callback parameter")
-        QuicEventSet(*CompletionEvent);
-    }
+    QUIC_DBG_ASSERT(Context != NULL);
+    KeSetEvent((KEVENT*)Context, IO_NO_INCREMENT, FALSE);
 
     //
     // Always return STATUS_MORE_PROCESSING_REQUIRED to
@@ -823,6 +802,11 @@ QuicDataPathInitialize(
     uint32_t DatapathLength;
     QUIC_DATAPATH* Datapath;
     BOOLEAN WskRegistered = FALSE;
+    WSK_EVENT_CALLBACK_CONTROL CallbackControl =
+    {
+        &NPI_WSK_INTERFACE_ID,
+        WSK_EVENT_RECEIVE_FROM
+    };
 
     if (RecvCallback == NULL || UnreachableCallback == NULL || NewDataPath == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -917,6 +901,26 @@ QuicDataPathInitialize(
             "[ lib] ERROR, %u, %s.",
             Status,
             "WskCaptureProviderNPI");
+        goto Error;
+    }
+
+    Status =
+        Datapath->WskProviderNpi.Dispatch->
+        WskControlClient(
+            Datapath->WskProviderNpi.Client,
+            WSK_SET_STATIC_EVENT_CALLBACKS,
+            sizeof(CallbackControl),
+            &CallbackControl,
+            0,
+            NULL,
+            NULL,
+            NULL);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "WskControlClient WSK_SET_STATIC_EVENT_CALLBACKS");
         goto Error;
     }
 
@@ -1174,7 +1178,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS
 QuicDataPathSetControlSocket(
-    _In_ QUIC_UDP_SOCKET_CONTEXT* SocketContext,
+    _In_ QUIC_DATAPATH_BINDING* Binding,
     _In_ WSK_CONTROL_SOCKET_TYPE RequestType,
     _In_ ULONG ControlCode,
     _In_ ULONG Level,
@@ -1183,28 +1187,21 @@ QuicDataPathSetControlSocket(
          void* InputBuffer
     )
 {
-    QUIC_STATUS Status = STATUS_SUCCESS;
-
-    //
-    // Get pointer to the socket's provider dispatch structure
-    //
-    PWSK_PROVIDER_BASIC_DISPATCH Dispatch =
-        (PWSK_PROVIDER_BASIC_DISPATCH)(SocketContext->Socket->Dispatch);
-
-    IoReuseIrp(&SocketContext->Irp, STATUS_SUCCESS);
+    IoReuseIrp(&Binding->Irp, STATUS_SUCCESS);
     IoSetCompletionRoutine(
-        &SocketContext->Irp,
+        &Binding->Irp,
         QuicDataPathIoCompletion,
-        &SocketContext->WskCompletionEvent,
+        &Binding->WskCompletionEvent,
         TRUE,
         TRUE,
         TRUE);
-    QuicEventReset(SocketContext->WskCompletionEvent);
+    QuicEventReset(Binding->WskCompletionEvent);
 
     SIZE_T OutputSizeReturned;
-    Status =
-        Dispatch->WskControlSocket(
-            SocketContext->Socket,
+    QUIC_STATUS Status =
+        Binding->DgrmSocket->Dispatch->
+        WskControlSocket(
+            Binding->Socket,
             RequestType,
             ControlCode,
             Level,
@@ -1213,135 +1210,14 @@ QuicDataPathSetControlSocket(
             0,
             NULL,
             &OutputSizeReturned,
-            &SocketContext->Irp);
+            &Binding->Irp);
 
     if (Status == STATUS_PENDING) {
-        QuicEventWaitForever(SocketContext->WskCompletionEvent);
-
-    } else if (QUIC_FAILED(Status)) {
-        goto Error;
+        QuicEventWaitForever(Binding->WskCompletionEvent);
+        Status = Binding->Irp.IoStatus.Status;
     }
-
-    Status = SocketContext->Irp.IoStatus.Status;
-
-    if (QUIC_FAILED(Status)) {
-        goto Error;
-    }
-
-Error:
 
     return Status;
-}
-
-IO_COMPLETION_ROUTINE QuicDataPathCloseSocketIoCompletion;
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicDataPathBindingSocketClosed(
-    _In_ QUIC_DATAPATH_BINDING* Binding
-    );
-
-//
-// Completion callbacks for IRP used with WskCloseSocket
-//
-_Use_decl_annotations_
-QUIC_STATUS
-QuicDataPathCloseSocketIoCompletion(
-    PDEVICE_OBJECT DeviceObject,
-    PIRP Irp,
-    void* Context
-    )
-{
-    UNREFERENCED_PARAMETER(DeviceObject);
-
-    if (Irp->PendingReturned) {
-        QUIC_UDP_SOCKET_CONTEXT* SocketContext = (QUIC_UDP_SOCKET_CONTEXT*)Context;
-        NT_ASSERT(SocketContext);
-
-#pragma prefast(suppress: 28182, "SAL doesn't understand how callbacks work.")
-        if (QUIC_FAILED(SocketContext->Irp.IoStatus.Status)) {
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
-                SocketContext->Binding,
-                SocketContext->Irp.IoStatus.Status,
-                "WskCloseSocket completion");
-        }
-
-        QuicDataPathBindingSocketClosed(SocketContext->Binding);
-    }
-
-    //
-    // Always return STATUS_MORE_PROCESSING_REQUIRED to
-    // terminate the completion processing of the IRP.
-    //
-    return STATUS_MORE_PROCESSING_REQUIRED;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicDataPathCleanupSocketContext(
-    _In_ QUIC_UDP_SOCKET_CONTEXT* SocketContext
-    )
-{
-    NTSTATUS Status;
-
-    if (SocketContext->Socket != NULL) {
-
-        WSK_EVENT_CALLBACK_CONTROL EventControl =
-        {
-            &NPI_WSK_INTERFACE_ID,
-            WSK_EVENT_DISABLE | WSK_EVENT_RECEIVE_FROM
-        };
-
-        //
-        // Disable receive callbacks.
-        //
-        (void)QuicDataPathSetControlSocket(
-                SocketContext,
-                WskSetOption,
-                SO_WSK_EVENT_CALLBACK,
-                SOL_SOCKET,
-                sizeof(EventControl),
-                &EventControl);
-
-        //
-        // Close the socket.
-        //
-
-        PWSK_PROVIDER_BASIC_DISPATCH Dispatch =
-            (PWSK_PROVIDER_BASIC_DISPATCH)(SocketContext->Socket->Dispatch);
-
-        IoReuseIrp(&SocketContext->Irp, STATUS_SUCCESS);
-        IoSetCompletionRoutine(
-            &SocketContext->Irp,
-            QuicDataPathCloseSocketIoCompletion,
-            SocketContext,
-            TRUE,
-            TRUE,
-            TRUE);
-
-        Status =
-            Dispatch->WskCloseSocket(
-                SocketContext->Socket,
-                &SocketContext->Irp);
-
-        QUIC_DBG_ASSERT(NT_SUCCESS(Status));
-        if (Status == STATUS_PENDING) {
-            return;
-        }
-
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
-                SocketContext->Binding,
-                Status,
-                "WskCloseSocket");
-        }
-    }
-
-    QuicDataPathBindingSocketClosed(SocketContext->Binding);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1355,32 +1231,37 @@ QuicDataPathBindingCreate(
     )
 {
     QUIC_STATUS Status = STATUS_SUCCESS;
+    size_t BindingSize;
     QUIC_DATAPATH_BINDING* Binding = NULL;
-    QUIC_UDP_SOCKET_CONTEXT* SocketContext = NULL;
     uint32_t Option;
-    WSK_EVENT_CALLBACK_CONTROL EventControl =
-    {
-        &NPI_WSK_INTERFACE_ID,
-        WSK_EVENT_RECEIVE_FROM
-    };
 
     if (Datapath == NULL || NewBinding == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
 
-    Binding = (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_DATAPATH_BINDING));
+    BindingSize =
+        sizeof(QUIC_DATAPATH_BINDING) +
+        QuicProcMaxCount() * sizeof(QUIC_RUNDOWN_REF);
+
+    Binding = (QUIC_DATAPATH_BINDING*)QUIC_ALLOC_NONPAGED(BindingSize);
     if (Binding == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_DATAPATH_BINDING",
-            sizeof(QUIC_DATAPATH_BINDING));
+            BindingSize);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
-    RtlZeroMemory(Binding, sizeof(QUIC_DATAPATH_BINDING));
+    //
+    // Must set output pointer first thing, as the receive path will try to
+    // use the output.
+    //
+    *NewBinding = Binding;
+
+    RtlZeroMemory(Binding, BindingSize);
     Binding->Datapath = Datapath;
     Binding->ClientContext = RecvCallbackContext;
     if (LocalAddress != NULL) {
@@ -1389,24 +1270,19 @@ QuicDataPathBindingCreate(
         Binding->LocalAddress.si_family = AF_INET6;
     }
     Binding->Mtu = QUIC_MAX_MTU;
-    QuicRundownInitialize(&Binding->ClientRundown);
+    for (uint32_t i = 0; i < QuicProcMaxCount(); ++i) {
+        QuicRundownInitialize(&Binding->Rundown[i]);
+    }
 
-    //
-    // Initialize the socket context.
-    //
-
-    SocketContext = &Binding->SocketContext;
-
-    SocketContext->Binding = Binding;
-    QuicEventInitialize(&SocketContext->WskCompletionEvent, FALSE, FALSE);
+    QuicEventInitialize(&Binding->WskCompletionEvent, FALSE, FALSE);
     IoInitializeIrp(
-        &SocketContext->Irp,
-        sizeof(SocketContext->Irp),
+        &Binding->Irp,
+        sizeof(Binding->Irp),
         1);
     IoSetCompletionRoutine(
-        &SocketContext->Irp,
+        &Binding->Irp,
         QuicDataPathIoCompletion,
-        &SocketContext->WskCompletionEvent,
+        &Binding->WskCompletionEvent,
         TRUE,
         TRUE,
         TRUE);
@@ -1419,14 +1295,14 @@ QuicDataPathBindingCreate(
             SOCK_DGRAM,
             IPPROTO_UDP,
             WSK_FLAG_DATAGRAM_SOCKET,
-            SocketContext,
+            Binding,
             &Datapath->WskDispatch,
             NULL,
             NULL,
             NULL,
-            &SocketContext->Irp);
+            &Binding->Irp);
     if (Status == STATUS_PENDING) {
-        QuicEventWaitForever(SocketContext->WskCompletionEvent);
+        QuicEventWaitForever(Binding->WskCompletionEvent);
     } else if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -1437,7 +1313,7 @@ QuicDataPathBindingCreate(
         goto Error;
     }
 
-    Status = SocketContext->Irp.IoStatus.Status;
+    Status = Binding->Irp.IoStatus.Status;
 
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
@@ -1449,7 +1325,7 @@ QuicDataPathBindingCreate(
         goto Error;
     }
 
-    SocketContext->Socket = (PWSK_SOCKET)(SocketContext->Irp.IoStatus.Information);
+    Binding->Socket = (PWSK_SOCKET)(Binding->Irp.IoStatus.Information);
 
     //
     // Enable Dual-Stack mode.
@@ -1457,7 +1333,7 @@ QuicDataPathBindingCreate(
     Option = FALSE;
     Status =
         QuicDataPathSetControlSocket(
-            SocketContext,
+            Binding,
             WskSetOption,
             IPV6_V6ONLY,
             IPPROTO_IPV6,
@@ -1476,7 +1352,7 @@ QuicDataPathBindingCreate(
     Option = TRUE;
     Status =
         QuicDataPathSetControlSocket(
-            SocketContext,
+            Binding,
             WskSetOption,
             IP_DONTFRAGMENT,
             IPPROTO_IP,
@@ -1495,7 +1371,7 @@ QuicDataPathBindingCreate(
     Option = TRUE;
     Status =
         QuicDataPathSetControlSocket(
-            SocketContext,
+            Binding,
             WskSetOption,
             IPV6_DONTFRAG,
             IPPROTO_IPV6,
@@ -1514,7 +1390,7 @@ QuicDataPathBindingCreate(
     Option = TRUE;
     Status =
         QuicDataPathSetControlSocket(
-            SocketContext,
+            Binding,
             WskSetOption,
             IPV6_PKTINFO,
             IPPROTO_IPV6,
@@ -1533,7 +1409,7 @@ QuicDataPathBindingCreate(
     Option = TRUE;
     Status =
         QuicDataPathSetControlSocket(
-            SocketContext,
+            Binding,
             WskSetOption,
             IP_PKTINFO,
             IPPROTO_IP,
@@ -1552,7 +1428,7 @@ QuicDataPathBindingCreate(
     Option = TRUE;
     Status =
         QuicDataPathSetControlSocket(
-            SocketContext,
+            Binding,
             WskSetOption,
             IPV6_RECVERR,
             IPPROTO_IPV6,
@@ -1571,7 +1447,7 @@ QuicDataPathBindingCreate(
     Option = TRUE;
     Status =
         QuicDataPathSetControlSocket(
-            SocketContext,
+            Binding,
             WskSetOption,
             IP_RECVERR,
             IPPROTO_IP,
@@ -1591,7 +1467,7 @@ QuicDataPathBindingCreate(
         Option = MAX_URO_PAYLOAD_LENGTH;
         Status =
             QuicDataPathSetControlSocket(
-                SocketContext,
+                Binding,
                 WskSetOption,
                 UDP_RECV_MAX_COALESCED_SIZE,
                 IPPROTO_UDP,
@@ -1608,28 +1484,26 @@ QuicDataPathBindingCreate(
         }
     }
 
-    PWSK_PROVIDER_DATAGRAM_DISPATCH Dispatch =
-        (PWSK_PROVIDER_DATAGRAM_DISPATCH)(SocketContext->Socket->Dispatch);
-
-    IoReuseIrp(&SocketContext->Irp, STATUS_SUCCESS);
+    IoReuseIrp(&Binding->Irp, STATUS_SUCCESS);
     IoSetCompletionRoutine(
-        &SocketContext->Irp,
+        &Binding->Irp,
         QuicDataPathIoCompletion,
-        &SocketContext->WskCompletionEvent,
+        &Binding->WskCompletionEvent,
         TRUE,
         TRUE,
         TRUE);
-    QuicEventReset(SocketContext->WskCompletionEvent);
+    QuicEventReset(Binding->WskCompletionEvent);
 
     Status =
-        Dispatch->WskBind(
-            SocketContext->Socket,
+        Binding->DgrmSocket->Dispatch->
+        WskBind(
+            Binding->Socket,
             (PSOCKADDR)&Binding->LocalAddress,
             0, // No flags
-            &SocketContext->Irp
+            &Binding->Irp
             );
     if (Status == STATUS_PENDING) {
-        QuicEventWaitForever(SocketContext->WskCompletionEvent);
+        QuicEventWaitForever(Binding->WskCompletionEvent);
     } else if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -1640,7 +1514,7 @@ QuicDataPathBindingCreate(
         goto Error;
     }
 
-    Status = SocketContext->Irp.IoStatus.Status;
+    Status = Binding->Irp.IoStatus.Status;
 
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
@@ -1658,7 +1532,7 @@ QuicDataPathBindingCreate(
 
         Status =
             QuicDataPathSetControlSocket(
-                SocketContext,
+                Binding,
                 WskIoctl,
                 (ULONG)SIO_WSK_SET_REMOTE_ADDRESS,
                 SOL_SOCKET,
@@ -1676,52 +1550,29 @@ QuicDataPathBindingCreate(
     }
 
     //
-    // Must set output pointer before starting receive path, as the receive path
-    // will try to use the output.
-    //
-    *NewBinding = Binding;
-
-    Status =
-        QuicDataPathSetControlSocket(
-            SocketContext,
-            WskSetOption,
-            SO_WSK_EVENT_CALLBACK,
-            SOL_SOCKET,
-            sizeof(EventControl),
-            &EventControl);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[ udp][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "Set SO_WSK_EVENT_CALLBACK");
-        goto Error;
-    }
-
-    //
     // If no specific local port was indicated, then the stack just
     // assigned this socket a port. We need to query it and use it for
     // all the other sockets we are going to create.
     //
 
-    IoReuseIrp(&SocketContext->Irp, STATUS_SUCCESS);
+    IoReuseIrp(&Binding->Irp, STATUS_SUCCESS);
     IoSetCompletionRoutine(
-        &SocketContext->Irp,
+        &Binding->Irp,
         QuicDataPathIoCompletion,
-        &SocketContext->WskCompletionEvent,
+        &Binding->WskCompletionEvent,
         TRUE,
         TRUE,
         TRUE);
-    QuicEventReset(SocketContext->WskCompletionEvent);
+    QuicEventReset(Binding->WskCompletionEvent);
 
     Status =
-        Dispatch->WskGetLocalAddress(
-            SocketContext->Socket,
+        Binding->DgrmSocket->Dispatch->
+        WskGetLocalAddress(
+            Binding->Socket,
             (PSOCKADDR)&Binding->LocalAddress,
-            &SocketContext->Irp);
+            &Binding->Irp);
     if (Status == STATUS_PENDING) {
-        QuicEventWaitForever(SocketContext->WskCompletionEvent);
+        QuicEventWaitForever(Binding->WskCompletionEvent);
     } else if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -1732,7 +1583,7 @@ QuicDataPathBindingCreate(
         goto Error;
     }
 
-    Status = SocketContext->Irp.IoStatus.Status;
+    Status = Binding->Irp.IoStatus.Status;
 
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
@@ -1768,15 +1619,56 @@ Error:
     return Status;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDataPathBindingSocketClosed(
+QuicDataPathBindingDeleteComplete(
     _In_ QUIC_DATAPATH_BINDING* Binding
-    )
+)
 {
-    IoCleanupIrp(&Binding->SocketContext.Irp);
-    QuicRundownUninitialize(&Binding->ClientRundown);
+    IoCleanupIrp(&Binding->Irp);
+    for (uint32_t i = 0; i < QuicProcMaxCount(); ++i) {
+        QuicRundownUninitialize(&Binding->Rundown[i]);
+    }
     QUIC_FREE(Binding);
+}
+
+IO_COMPLETION_ROUTINE QuicDataPathCloseSocketIoCompletion;
+
+//
+// Completion callbacks for IRP used with WskCloseSocket
+//
+_Use_decl_annotations_
+QUIC_STATUS
+QuicDataPathCloseSocketIoCompletion(
+    PDEVICE_OBJECT DeviceObject,
+    PIRP Irp,
+    void* Context
+)
+{
+    UNREFERENCED_PARAMETER(DeviceObject);
+    NT_ASSERT(Context);
+
+    if (Irp->PendingReturned) {
+        QUIC_DATAPATH_BINDING* Binding = (QUIC_DATAPATH_BINDING*)Context;
+
+#pragma prefast(suppress: 28182, "SAL doesn't understand how callbacks work.")
+        if (QUIC_FAILED(Binding->Irp.IoStatus.Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Binding,
+                Binding->Irp.IoStatus.Status,
+                "WskCloseSocket completion");
+        }
+
+        QuicDataPathBindingDeleteComplete(Binding);
+    }
+
+    //
+    // Always return STATUS_MORE_PROCESSING_REQUIRED to
+    // terminate the completion processing of the IRP.
+    //
+    return STATUS_MORE_PROCESSING_REQUIRED;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1786,11 +1678,42 @@ QuicDataPathBindingDelete(
     )
 {
     QUIC_DBG_ASSERT(Binding != NULL);
-    //
-    // Close the socket (asynchronously) which will call the above function,
-    // QuicDataPathBindingSocketClosed, when it completes to finish.
-    //
-    QuicDataPathCleanupSocketContext(&Binding->SocketContext);
+    if (Binding->Socket != NULL) {
+
+        for (uint32_t i = 0; i < QuicProcMaxCount(); ++i) {
+            QuicRundownReleaseAndWait(&Binding->Rundown[i]);
+        }
+
+        IoReuseIrp(&Binding->Irp, STATUS_SUCCESS);
+        IoSetCompletionRoutine(
+            &Binding->Irp,
+            QuicDataPathCloseSocketIoCompletion,
+            Binding,
+            TRUE,
+            TRUE,
+            TRUE);
+
+        NTSTATUS Status =
+            Binding->DgrmSocket->Dispatch->
+            WskCloseSocket(
+                Binding->Socket,
+                &Binding->Irp);
+
+        if (Status == STATUS_PENDING) {
+            return; // The rest is handled asynchronously
+        }
+
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "WskCloseSocket");
+        }
+    }
+
+    QuicDataPathBindingDeleteComplete(Binding);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1892,14 +1815,17 @@ QuicDataPathSocketReceive(
         return STATUS_SUCCESS;
     }
 
-    QUIC_UDP_SOCKET_CONTEXT* SocketContext = (QUIC_UDP_SOCKET_CONTEXT*)Context;
+    QUIC_DATAPATH_BINDING* Binding = (QUIC_DATAPATH_BINDING*)Context;
+
+    uint32_t CurProcNumber = QuicProcCurrentNumber();
+    if (!QuicRundownAcquire(&Binding->Rundown[CurProcNumber])) {
+        return STATUS_DEVICE_NOT_READY;
+    }
+
     PWSK_DATAGRAM_INDICATION ReleaseChain = NULL;
     PWSK_DATAGRAM_INDICATION* ReleaseChainTail = &ReleaseChain;
     QUIC_RECV_DATAGRAM* DatagramChain = NULL;
     QUIC_RECV_DATAGRAM** DatagramChainTail = &DatagramChain;
-
-    PWSK_PROVIDER_DATAGRAM_DISPATCH Dispatch =
-        (PWSK_PROVIDER_DATAGRAM_DISPATCH)(SocketContext->Socket->Dispatch);
 
     UNREFERENCED_PARAMETER(Flags);
 
@@ -1921,7 +1847,7 @@ QuicDataPathSocketReceive(
             QuicTraceLogWarning(
                 DatapathDropEmptyMdl,
                 "[%p] Dropping datagram with empty mdl.",
-                SocketContext);
+                Binding);
             goto Drop;
         }
 
@@ -1948,7 +1874,7 @@ QuicDataPathSocketReceive(
                     PIN6_PKTINFO PktInfo6 = (PIN6_PKTINFO)WSA_CMSG_DATA(CMsg);
                     LocalAddr.si_family = AF_INET6;
                     LocalAddr.Ipv6.sin6_addr = PktInfo6->ipi6_addr;
-                    LocalAddr.Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
+                    LocalAddr.Ipv6.sin6_port = Binding->LocalAddress.Ipv6.sin6_port;
                     QuicConvertFromMappedV6(&LocalAddr, &LocalAddr);
 
                     LocalAddr.Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
@@ -1966,7 +1892,7 @@ QuicDataPathSocketReceive(
                     PIN_PKTINFO PktInfo = (PIN_PKTINFO)WSA_CMSG_DATA(CMsg);
                     LocalAddr.si_family = AF_INET;
                     LocalAddr.Ipv4.sin_addr = PktInfo->ipi_addr;
-                    LocalAddr.Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
+                    LocalAddr.Ipv4.sin_port = Binding->LocalAddress.Ipv6.sin6_port;
                     LocalAddr.Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
                     FoundLocalAddr = TRUE;
 
@@ -1996,7 +1922,7 @@ QuicDataPathSocketReceive(
             QuicTraceLogWarning(
                 DatapathDropMissingInfo,
                 "[%p] Dropping datagram missing IP_PKTINFO/IP_RECVERR.",
-                SocketContext);
+                Binding);
             goto Drop;
         }
 
@@ -2010,23 +1936,23 @@ QuicDataPathSocketReceive(
                 QuicTraceLogVerbose(
                     DatapathUnreachable,
                     "[sock][%p] Unreachable error from %!IPV4ADDR!:%hu",
-                    SocketContext,
+                    Binding,
                     &RemoteAddr.Ipv4.sin_addr,
                     RtlUshortByteSwap(RemoteAddr.Ipv4.sin_port));
             } else {
                 QuicTraceLogVerbose(
                     DatapathUnreachableV6,
                     "[sock][%p] Unreachable error from [%!IPV6ADDR!]:%hu",
-                    SocketContext,
+                    Binding,
                     &RemoteAddr.Ipv6.sin6_addr,
                     RtlUshortByteSwap(RemoteAddr.Ipv6.sin6_port));
             }
 #endif
 
-            QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->UnreachableHandler);
-            SocketContext->Binding->Datapath->UnreachableHandler(
-                SocketContext->Binding,
-                SocketContext->Binding->ClientContext,
+            QUIC_DBG_ASSERT(Binding->Datapath->UnreachableHandler);
+            Binding->Datapath->UnreachableHandler(
+                Binding,
+                Binding->ClientContext,
                 &RemoteAddr);
 
             goto Drop;
@@ -2046,7 +1972,7 @@ QuicDataPathSocketReceive(
                 QuicTraceLogWarning(
                     DatapathDropTooBig,
                     "[%p] Dropping datagram with too many bytes (%llu).",
-                    SocketContext,
+                    Binding,
                     (uint64_t)DataLength);
                 goto Drop;
             }
@@ -2057,14 +1983,14 @@ QuicDataPathSocketReceive(
             QuicTraceLogWarning(
                 DatapathDropMdlMapFailure,
                 "[%p] Failed to map MDL chain",
-                SocketContext);
+                Binding);
             goto Drop;
         }
 
         QuicTraceEvent(
             DatapathRecv,
             "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!SOCKADDR! Dst=%!SOCKADDR!",
-            SocketContext->Binding,
+            Binding,
             (uint32_t)DataLength,
             MessageLength,
             LOG_ADDR_LEN(LocalAddr),
@@ -2091,7 +2017,7 @@ QuicDataPathSocketReceive(
                 QuicTraceLogWarning(
                     DatapathFragmented,
                     "[%p] Dropping datagram with fragmented MDL.",
-                    SocketContext);
+                    Binding);
                 QUIC_DBG_ASSERT(FALSE);
                 goto Drop;
             }
@@ -2099,18 +2025,18 @@ QuicDataPathSocketReceive(
             if (RecvContext == NULL) {
                 RecvContext =
                     QuicDataPathBindingAllocRecvContext(
-                        SocketContext->Binding->Datapath,
-                        (UINT16)QuicProcCurrentNumber(),
+                        Binding->Datapath,
+                        (UINT16)CurProcNumber,
                         IsCoalesced);
                 if (RecvContext == NULL) {
                     QuicTraceLogWarning(
                         DatapathDropAllocRecvContextFailure,
                         "[%p] Couldn't allocate receive context.",
-                        SocketContext);
+                        Binding);
                     goto Drop;
                 }
 
-                RecvContext->SocketContext = SocketContext;
+                RecvContext->Binding = Binding;
                 RecvContext->DataIndication = DataIndication;
                 RecvContext->ReferenceCount = 0;
                 RecvContext->Tuple.LocalAddress = LocalAddr;
@@ -2120,7 +2046,7 @@ QuicDataPathSocketReceive(
 
             QUIC_DBG_ASSERT(Datagram != NULL);
             Datagram->Next = NULL;
-            Datagram->PartitionIndex = (uint8_t)QuicProcCurrentNumber();
+            Datagram->PartitionIndex = (uint8_t)CurProcNumber;
             Datagram->Allocated = TRUE;
             Datagram->QueuedOnConnection = FALSE;
 
@@ -2141,7 +2067,7 @@ QuicDataPathSocketReceive(
                 QuicTraceLogWarning(
                     DatapathUroExceeded,
                     "[%p] Exceeded URO preallocation capacity.",
-                    SocketContext);
+                    Binding);
                 break;
             }
 
@@ -2159,7 +2085,7 @@ QuicDataPathSocketReceive(
 
             Datagram = (QUIC_RECV_DATAGRAM*)
                 (((PUCHAR)Datagram) +
-                    SocketContext->Binding->Datapath->DatagramStride);
+                    Binding->Datapath->DatagramStride);
         }
 
         continue;
@@ -2187,9 +2113,9 @@ QuicDataPathSocketReceive(
         //
         // Indicate all accepted datagrams.
         //
-        SocketContext->Binding->Datapath->RecvHandler(
-            SocketContext->Binding,
-            SocketContext->Binding->ClientContext,
+        Binding->Datapath->RecvHandler(
+            Binding,
+            Binding->ClientContext,
             DatagramChain);
     }
 
@@ -2197,8 +2123,10 @@ QuicDataPathSocketReceive(
         //
         // Release any dropped datagrams.
         //
-        Dispatch->WskRelease(SocketContext->Socket, ReleaseChain);
+        Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, ReleaseChain);
     }
+
+    QuicRundownRelease(&Binding->Rundown[CurProcNumber]);
 
     return STATUS_PENDING;
 }
@@ -2209,7 +2137,7 @@ QuicDataPathBindingReturnRecvDatagrams(
     _In_opt_ QUIC_RECV_DATAGRAM* DatagramChain
     )
 {
-    QUIC_UDP_SOCKET_CONTEXT* SocketContext = NULL;
+    QUIC_DATAPATH_BINDING* Binding = NULL;
     PWSK_DATAGRAM_INDICATION DataIndications = NULL;
     PWSK_DATAGRAM_INDICATION* DataIndicationTail = &DataIndications;
 
@@ -2228,8 +2156,8 @@ QuicDataPathBindingReturnRecvDatagrams(
         QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* InternalContext =
             InternalBufferContext->RecvContext;
 
-        QUIC_DBG_ASSERT(SocketContext == NULL || SocketContext == InternalContext->SocketContext);
-        SocketContext = InternalContext->SocketContext;
+        QUIC_DBG_ASSERT(Binding == NULL || Binding == InternalContext->Binding);
+        Binding = InternalContext->Binding;
         Datagram->Allocated = FALSE;
 
         if (BatchedInternalContext == InternalContext) {
@@ -2272,9 +2200,7 @@ QuicDataPathBindingReturnRecvDatagrams(
         //
         // Return the datagram indications back to Wsk.
         //
-        PWSK_PROVIDER_DATAGRAM_DISPATCH Dispatch =
-            (PWSK_PROVIDER_DATAGRAM_DISPATCH)(SocketContext->Socket->Dispatch);
-        Dispatch->WskRelease(SocketContext->Socket, DataIndications);
+        Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, DataIndications);
     }
 }
 
@@ -2650,13 +2576,13 @@ QuicDataPathSendComplete(
 
     QUIC_DATAPATH_SEND_CONTEXT* SendContext = Context;
     QUIC_DBG_ASSERT(SendContext != NULL);
-    QUIC_UDP_SOCKET_CONTEXT* SocketContext = SendContext->SocketContext;
+    QUIC_DATAPATH_BINDING* Binding = SendContext->Binding;
 
     if (!NT_SUCCESS(Irp->IoStatus.Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[ udp][%p] ERROR, %u, %s.",
-            SocketContext->Binding,
+            Binding,
             Irp->IoStatus.Status,
             "WskSendMessages completion");
     }
@@ -2664,7 +2590,7 @@ QuicDataPathSendComplete(
     IoCleanupIrp(&SendContext->Irp);
     QuicDataPathBindingFreeSendContext(SendContext);
 
-    InterlockedDecrement(&SocketContext->Binding->SendOutstanding);
+    InterlockedDecrement(&Binding->SendOutstanding);
 
     return STATUS_MORE_PROCESSING_REQUIRED;
 }
@@ -2700,24 +2626,17 @@ QuicDataPathBindingSendTo(
     )
 {
     QUIC_STATUS Status;
-    QUIC_UDP_SOCKET_CONTEXT* SocketContext;
     PDWORD SegmentSize;
 
     QUIC_DBG_ASSERT(
         Binding != NULL && RemoteAddress != NULL && SendContext != NULL);
-
-    if (!QuicRundownAcquire(&Binding->ClientRundown)) {
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Exit;
-    }
 
     //
     // Initialize IRP and MDLs for sending.
     //
     QuicDataPathBindingPrepareSendContext(SendContext);
 
-    SocketContext = &Binding->SocketContext;
-    SendContext->SocketContext = SocketContext;
+    SendContext->Binding = Binding;
 
     QuicTraceEvent(
         DatapathSendTo,
@@ -2746,12 +2665,10 @@ QuicDataPathBindingSendTo(
 
     InterlockedIncrement(&Binding->SendOutstanding);
 
-    PWSK_PROVIDER_DATAGRAM_DISPATCH Dispatch =
-        (PWSK_PROVIDER_DATAGRAM_DISPATCH)(SocketContext->Socket->Dispatch);
-
     Status =
-        Dispatch->WskSendMessages(
-            SocketContext->Socket,
+        Binding->DgrmSocket->Dispatch->
+        WskSendMessages(
+            Binding->Socket,
             SendContext->WskBufs,
             0,
             NULL,
@@ -2763,7 +2680,7 @@ QuicDataPathBindingSendTo(
         QuicTraceEvent(
             DatapathErrorStatus,
             "[ udp][%p] ERROR, %u, %s.",
-            SocketContext->Binding,
+            Binding,
             Status,
             "WskSendMessages");
         //
@@ -2771,16 +2688,7 @@ QuicDataPathBindingSendTo(
         //
     }
 
-    Status = STATUS_SUCCESS;
-    SendContext = NULL;
-
-Exit:
-
-    if (SendContext != NULL) {
-        QuicDataPathBindingFreeSendContext(SendContext);
-    }
-
-    return Status;
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2793,25 +2701,18 @@ QuicDataPathBindingSendFromTo(
     )
 {
     QUIC_STATUS Status;
-    QUIC_UDP_SOCKET_CONTEXT* SocketContext;
     PDWORD SegmentSize;
 
     QUIC_DBG_ASSERT(
         Binding != NULL && LocalAddress != NULL &&
         RemoteAddress != NULL && SendContext != NULL);
 
-    if (!QuicRundownAcquire(&Binding->ClientRundown)) {
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Exit;
-    }
-
     //
     // Initialize IRP and MDLs for sending.
     //
     QuicDataPathBindingPrepareSendContext(SendContext);
 
-    SocketContext = &Binding->SocketContext;
-    SendContext->SocketContext = SocketContext;
+    SendContext->Binding = Binding;
 
     QuicTraceEvent(
         DatapathSendFromTo,
@@ -2875,12 +2776,10 @@ QuicDataPathBindingSendFromTo(
 
     InterlockedIncrement(&Binding->SendOutstanding);
 
-    PWSK_PROVIDER_DATAGRAM_DISPATCH Dispatch =
-        (PWSK_PROVIDER_DATAGRAM_DISPATCH)(SocketContext->Socket->Dispatch);
-
     Status =
-        Dispatch->WskSendMessages(
-            SocketContext->Socket,
+        Binding->DgrmSocket->Dispatch->
+        WskSendMessages(
+            Binding->Socket,
             SendContext->WskBufs,
             0,
             (PSOCKADDR)&MappedAddress,
@@ -2892,7 +2791,7 @@ QuicDataPathBindingSendFromTo(
         QuicTraceEvent(
             DatapathErrorStatus,
             "[ udp][%p] ERROR, %u, %s.",
-            SocketContext->Binding,
+            Binding,
             Status,
             "WskSendMessages");
         //
@@ -2900,16 +2799,7 @@ QuicDataPathBindingSendFromTo(
         //
     }
 
-    Status = STATUS_SUCCESS;
-    SendContext = NULL;
-
-Exit:
-
-    if (SendContext != NULL) {
-        QuicDataPathBindingFreeSendContext(SendContext);
-    }
-
-    return Status;
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
