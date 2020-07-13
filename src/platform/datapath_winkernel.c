@@ -2431,7 +2431,7 @@ QuicSendBufferPoolAlloc(
     QUIC_DBG_ASSERT(PoolType == POOL_FLAG_NON_PAGED);
     QUIC_DBG_ASSERT(NumberOfBytes > sizeof(*SendBuffer));
 
-    SendBuffer = ExAllocatePool2(PoolType | POOL_FLAG_UNINITIALIZED, NumberOfBytes, Tag);
+    SendBuffer = ExAllocatePool2(PoolType, NumberOfBytes, Tag);
     if (SendBuffer == NULL) {
         return NULL;
     }
