@@ -482,17 +482,10 @@ QuicDataPathIoCompletion(
     )
 {
     UNREFERENCED_PARAMETER(DeviceObject);
+    UNREFERENCED_PARAMETER(Irp);
 
-    if (Irp->PendingReturned) {
-        QUIC_EVENT* CompletionEvent = (QUIC_EVENT*)Context;
-        NT_ASSERT(CompletionEvent);
-
-        //
-        // Set the event to indicate we have completed the operation.
-        //
-#pragma prefast(suppress: 28182, "SAL doesn't understand this callback parameter")
-        QuicEventSet(*CompletionEvent);
-    }
+    QUIC_DBG_ASSERT(Context != NULL);
+    KeSetEvent((KEVENT*)Context, IO_NO_INCREMENT, FALSE);
 
     //
     // Always return STATUS_MORE_PROCESSING_REQUIRED to
