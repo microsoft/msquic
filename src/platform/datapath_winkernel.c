@@ -250,6 +250,10 @@ QuicDataPathSocketReceive(
     _In_opt_ PWSK_DATAGRAM_INDICATION DataIndication
     );
 
+typedef struct _WSK_DATAGRAM_SOCKET {
+    const WSK_PROVIDER_DATAGRAM_DISPATCH* Dispatch;
+} WSK_DATAGRAM_SOCKET, * PWSK_DATAGRAM_SOCKET;
+
 //
 // Per-socket state.
 //
@@ -263,7 +267,10 @@ typedef struct QUIC_UDP_SOCKET_CONTEXT {
     //
     // UDP socket used for sending/receiving datagrams.
     //
-    PWSK_SOCKET Socket;
+    union {
+        PWSK_SOCKET Socket;
+        PWSK_DATAGRAM_SOCKET DgrmSocket;
+    };
 
     //
     // Event used to wait for completion of socket functions.
@@ -1208,14 +1215,6 @@ QuicDataPathSetControlSocket(
          void* InputBuffer
     )
 {
-    QUIC_STATUS Status = STATUS_SUCCESS;
-
-    //
-    // Get pointer to the socket's provider dispatch structure
-    //
-    PWSK_PROVIDER_BASIC_DISPATCH Dispatch =
-        (PWSK_PROVIDER_BASIC_DISPATCH)(SocketContext->Socket->Dispatch);
-
     IoReuseIrp(&SocketContext->Irp, STATUS_SUCCESS);
     IoSetCompletionRoutine(
         &SocketContext->Irp,
@@ -1227,8 +1226,9 @@ QuicDataPathSetControlSocket(
     QuicEventReset(SocketContext->WskCompletionEvent);
 
     SIZE_T OutputSizeReturned;
-    Status =
-        Dispatch->WskControlSocket(
+    QUIC_STATUS Status =
+        SocketContext->DgrmSocket->Dispatch->
+        WskControlSocket(
             SocketContext->Socket,
             RequestType,
             ControlCode,
@@ -1242,114 +1242,10 @@ QuicDataPathSetControlSocket(
 
     if (Status == STATUS_PENDING) {
         QuicEventWaitForever(SocketContext->WskCompletionEvent);
-
-    } else if (QUIC_FAILED(Status)) {
-        goto Error;
+        Status = SocketContext->Irp.IoStatus.Status;
     }
-
-    Status = SocketContext->Irp.IoStatus.Status;
-
-    if (QUIC_FAILED(Status)) {
-        goto Error;
-    }
-
-Error:
 
     return Status;
-}
-
-IO_COMPLETION_ROUTINE QuicDataPathCloseSocketIoCompletion;
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicDataPathBindingSocketClosed(
-    _In_ QUIC_DATAPATH_BINDING* Binding
-    );
-
-//
-// Completion callbacks for IRP used with WskCloseSocket
-//
-_Use_decl_annotations_
-QUIC_STATUS
-QuicDataPathCloseSocketIoCompletion(
-    PDEVICE_OBJECT DeviceObject,
-    PIRP Irp,
-    void* Context
-    )
-{
-    UNREFERENCED_PARAMETER(DeviceObject);
-
-    if (Irp->PendingReturned) {
-        QUIC_UDP_SOCKET_CONTEXT* SocketContext = (QUIC_UDP_SOCKET_CONTEXT*)Context;
-        NT_ASSERT(SocketContext);
-
-#pragma prefast(suppress: 28182, "SAL doesn't understand how callbacks work.")
-        if (QUIC_FAILED(SocketContext->Irp.IoStatus.Status)) {
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
-                SocketContext->Binding,
-                SocketContext->Irp.IoStatus.Status,
-                "WskCloseSocket completion");
-        }
-
-        QuicDataPathBindingSocketClosed(SocketContext->Binding);
-    }
-
-    //
-    // Always return STATUS_MORE_PROCESSING_REQUIRED to
-    // terminate the completion processing of the IRP.
-    //
-    return STATUS_MORE_PROCESSING_REQUIRED;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicDataPathCleanupSocketContext(
-    _In_ QUIC_UDP_SOCKET_CONTEXT* SocketContext
-    )
-{
-    NTSTATUS Status;
-
-    if (SocketContext->Socket != NULL) {
-
-        //
-        // Close the socket.
-        //
-
-        PWSK_PROVIDER_BASIC_DISPATCH Dispatch =
-            (PWSK_PROVIDER_BASIC_DISPATCH)(SocketContext->Socket->Dispatch);
-
-        IoReuseIrp(&SocketContext->Irp, STATUS_SUCCESS);
-        IoSetCompletionRoutine(
-            &SocketContext->Irp,
-            QuicDataPathCloseSocketIoCompletion,
-            SocketContext,
-            TRUE,
-            TRUE,
-            TRUE);
-
-        Status =
-            Dispatch->WskCloseSocket(
-                SocketContext->Socket,
-                &SocketContext->Irp);
-
-        QUIC_DBG_ASSERT(NT_SUCCESS(Status));
-        if (Status == STATUS_PENDING) {
-            return;
-        }
-
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[ udp][%p] ERROR, %u, %s.",
-                SocketContext->Binding,
-                Status,
-                "WskCloseSocket");
-        }
-    }
-
-    QuicDataPathBindingSocketClosed(SocketContext->Binding);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1617,9 +1513,6 @@ QuicDataPathBindingCreate(
         }
     }
 
-    PWSK_PROVIDER_DATAGRAM_DISPATCH Dispatch =
-        (PWSK_PROVIDER_DATAGRAM_DISPATCH)(SocketContext->Socket->Dispatch);
-
     IoReuseIrp(&SocketContext->Irp, STATUS_SUCCESS);
     IoSetCompletionRoutine(
         &SocketContext->Irp,
@@ -1631,7 +1524,8 @@ QuicDataPathBindingCreate(
     QuicEventReset(SocketContext->WskCompletionEvent);
 
     Status =
-        Dispatch->WskBind(
+        SocketContext->DgrmSocket->Dispatch->
+        WskBind(
             SocketContext->Socket,
             (PSOCKADDR)&Binding->LocalAddress,
             0, // No flags
@@ -1701,7 +1595,8 @@ QuicDataPathBindingCreate(
     QuicEventReset(SocketContext->WskCompletionEvent);
 
     Status =
-        Dispatch->WskGetLocalAddress(
+        SocketContext->DgrmSocket->Dispatch->
+        WskGetLocalAddress(
             SocketContext->Socket,
             (PSOCKADDR)&Binding->LocalAddress,
             &SocketContext->Irp);
@@ -1753,17 +1648,6 @@ Error:
     return Status;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicDataPathBindingSocketClosed(
-    _In_ QUIC_DATAPATH_BINDING* Binding
-    )
-{
-    IoCleanupIrp(&Binding->SocketContext.Irp);
-    QuicRundownUninitialize(&Binding->ClientRundown);
-    QUIC_FREE(Binding);
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicDataPathBindingDelete(
@@ -1771,11 +1655,42 @@ QuicDataPathBindingDelete(
     )
 {
     QUIC_DBG_ASSERT(Binding != NULL);
-    //
-    // Close the socket (asynchronously) which will call the above function,
-    // QuicDataPathBindingSocketClosed, when it completes to finish.
-    //
-    QuicDataPathCleanupSocketContext(&Binding->SocketContext);
+    if (Binding->SocketContext.Socket != NULL) {
+
+        IoReuseIrp(&Binding->SocketContext.Irp, STATUS_SUCCESS);
+        IoSetCompletionRoutine(
+            &Binding->SocketContext.Irp,
+            QuicDataPathIoCompletion,
+            &Binding->SocketContext.WskCompletionEvent,
+            TRUE,
+            TRUE,
+            TRUE);
+        QuicEventReset(Binding->SocketContext.WskCompletionEvent);
+
+        NTSTATUS Status =
+            Binding->SocketContext.DgrmSocket->Dispatch->
+            WskCloseSocket(
+                Binding->SocketContext.Socket,
+                &Binding->SocketContext.Irp);
+
+        if (Status == STATUS_PENDING) {
+            QuicEventWaitForever(Binding->SocketContext.WskCompletionEvent);
+            Status = Binding->SocketContext.Irp.IoStatus.Status;
+        }
+
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "WskCloseSocket");
+        }
+    }
+
+    IoCleanupIrp(&Binding->SocketContext.Irp);
+    QuicRundownUninitialize(&Binding->ClientRundown);
+    QUIC_FREE(Binding);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1882,9 +1797,6 @@ QuicDataPathSocketReceive(
     PWSK_DATAGRAM_INDICATION* ReleaseChainTail = &ReleaseChain;
     QUIC_RECV_DATAGRAM* DatagramChain = NULL;
     QUIC_RECV_DATAGRAM** DatagramChainTail = &DatagramChain;
-
-    PWSK_PROVIDER_DATAGRAM_DISPATCH Dispatch =
-        (PWSK_PROVIDER_DATAGRAM_DISPATCH)(SocketContext->Socket->Dispatch);
 
     UNREFERENCED_PARAMETER(Flags);
 
@@ -2182,7 +2094,7 @@ QuicDataPathSocketReceive(
         //
         // Release any dropped datagrams.
         //
-        Dispatch->WskRelease(SocketContext->Socket, ReleaseChain);
+        SocketContext->DgrmSocket->Dispatch->WskRelease(SocketContext->Socket, ReleaseChain);
     }
 
     return STATUS_PENDING;
@@ -2257,9 +2169,7 @@ QuicDataPathBindingReturnRecvDatagrams(
         //
         // Return the datagram indications back to Wsk.
         //
-        PWSK_PROVIDER_DATAGRAM_DISPATCH Dispatch =
-            (PWSK_PROVIDER_DATAGRAM_DISPATCH)(SocketContext->Socket->Dispatch);
-        Dispatch->WskRelease(SocketContext->Socket, DataIndications);
+        SocketContext->DgrmSocket->Dispatch->WskRelease(SocketContext->Socket, DataIndications);
     }
 }
 
@@ -2731,11 +2641,9 @@ QuicDataPathBindingSendTo(
 
     InterlockedIncrement(&Binding->SendOutstanding);
 
-    PWSK_PROVIDER_DATAGRAM_DISPATCH Dispatch =
-        (PWSK_PROVIDER_DATAGRAM_DISPATCH)(SocketContext->Socket->Dispatch);
-
     Status =
-        Dispatch->WskSendMessages(
+        SocketContext->DgrmSocket->Dispatch->
+        WskSendMessages(
             SocketContext->Socket,
             SendContext->WskBufs,
             0,
@@ -2860,11 +2768,9 @@ QuicDataPathBindingSendFromTo(
 
     InterlockedIncrement(&Binding->SendOutstanding);
 
-    PWSK_PROVIDER_DATAGRAM_DISPATCH Dispatch =
-        (PWSK_PROVIDER_DATAGRAM_DISPATCH)(SocketContext->Socket->Dispatch);
-
     Status =
-        Dispatch->WskSendMessages(
+        SocketContext->DgrmSocket->Dispatch->
+        WskSendMessages(
             SocketContext->Socket,
             SendContext->WskBufs,
             0,
