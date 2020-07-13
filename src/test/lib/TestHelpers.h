@@ -549,10 +549,11 @@ public:
             Iter = &((*Iter)->Next);
         }
         *Iter = Hook;
-        if (Hooks == Hook) {
+        bool DoRegister = Hooks == Hook;
+        QuicDispatchLockRelease(&Lock);
+        if (DoRegister) {
             Register();
         }
-        QuicDispatchLockRelease(&Lock);
     }
 
     void RemoveHook(DatapathHook* Hook) {
@@ -562,10 +563,11 @@ public:
             Iter = &((*Iter)->Next);
         }
         *Iter = Hook->Next;
-        if (Hooks == nullptr) {
+        bool DoUnregister = Hooks == nullptr;
+        QuicDispatchLockRelease(&Lock);
+        if (DoUnregister) {
             Unregister();
         }
-        QuicDispatchLockRelease(&Lock);
     }
 };
 

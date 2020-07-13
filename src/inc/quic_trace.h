@@ -228,10 +228,10 @@ QuicTraceStubVarArgs(
 #define QuicTraceLogInfoEnabled()    EventEnabledQuicLogInfo()
 #define QuicTraceLogVerboseEnabled() EventEnabledQuicLogVerbose()
 
-#if DEBUG
-#define QUIC_ETW_BUFFER_LENGTH 512
+#ifdef _KERNEL_MODE
+#define QUIC_ETW_BUFFER_LENGTH 64
 #else
-#define QUIC_ETW_BUFFER_LENGTH 256
+#define QUIC_ETW_BUFFER_LENGTH 128
 #endif
 
 #define LogEtw(EventName, Fmt, ...) \
