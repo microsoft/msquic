@@ -44,18 +44,6 @@ set(PUBLIC_HEADERS
     ../inc/msquic_linux.h
     ../inc/quic_sal_stub.h)
 
-if (QUIC_SOURCE_LINK AND MSVC)
-    if ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER_EQUAL "19.20")
-        include(${PROJECT_SOURCE_DIR}/cmake/SourceLink.cmake)
-        file(TO_NATIVE_PATH "${PROJECT_BINARY_DIR}/source_link.json" SOURCE_LINK_JSON)
-        source_link(${PROJECT_SOURCE_DIR} ${SOURCE_LINK_JSON})
-        set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /SOURCELINK:${SOURCE_LINK_JSON}")
-        set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} /SOURCELINK:${SOURCE_LINK_JSON}")
-    else()
-        message(WARNING "Disabling SourceLink due to old version of MSVC. Please update to VS2019!")
-    endif()
-endif()
-
 install(TARGETS msquic EXPORT msquic DESTINATION "${main_lib_dest}")
 install(FILES ${PUBLIC_HEADERS} DESTINATION "${include_dest}")
 
