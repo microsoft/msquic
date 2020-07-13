@@ -26,7 +26,7 @@ Notes:
 
     This file was originally copied from the following location and then
     modified to reduce dependencies:
-   
+
     https://github.com/microsoft/Network-Adapter-Class-Extension/blob/windows_10.0.19541/ndis/rtl/inc/karray.h
 
 --*/
@@ -77,14 +77,14 @@ private:
 #endif
 };
 
-template <uint32_t TAG, uint32_t ARENA = PagedPool>
+template <uint32_t TAG, POOL_FLAGS ARENA = POOL_FLAG_PAGED>
 struct KRTL_CLASS KALLOCATION_TAG
 {
     static const uint32_t AllocationTag = TAG;
-    static const uint32_t AllocationArena = ARENA;
+    static const POOL_FLAGS AllocationArena = ARENA;
 };
 
-template <uint32_t TAG, uint32_t ARENA = PagedPool>
+template <uint32_t TAG, POOL_FLAGS ARENA = POOL_FLAG_PAGED>
 struct KRTL_CLASS KALLOCATOR : public KALLOCATION_TAG<TAG, ARENA>
 {
     // Scalar new & delete
@@ -92,7 +92,7 @@ struct KRTL_CLASS KALLOCATOR : public KALLOCATION_TAG<TAG, ARENA>
     PAGED void *operator new(size_t cb, std::nothrow_t const &)
     {
         PAGED_CODE();
-        return ExAllocatePoolWithTag(static_cast<POOL_TYPE>(ARENA), (SIZE_T)cb, TAG);
+        return ExAllocatePool2(static_cast<POOL_FLAGS>(ARENA), (SIZE_T)cb, TAG);
     }
 
     PAGED void operator delete(void *p)
@@ -117,7 +117,7 @@ struct KRTL_CLASS KALLOCATOR : public KALLOCATION_TAG<TAG, ARENA>
         if (size < cb)
             return nullptr;
 
-        return ExAllocatePoolWithTag(static_cast<POOL_TYPE>(ARENA), (SIZE_T)size, TAG);
+        return ExAllocatePool2(static_cast<POOL_FLAGS>(ARENA), (SIZE_T)size, TAG);
     }
 
     // Array new & delete
@@ -125,7 +125,7 @@ struct KRTL_CLASS KALLOCATOR : public KALLOCATION_TAG<TAG, ARENA>
     PAGED void *operator new[](size_t cb, std::nothrow_t const &)
     {
         PAGED_CODE();
-        return ExAllocatePoolWithTag(static_cast<POOL_TYPE>(ARENA), (SIZE_T)cb, TAG);
+        return ExAllocatePool2(static_cast<POOL_FLAGS>(ARENA), (SIZE_T)cb, TAG);
     }
 
     PAGED void operator delete[](void *p)
@@ -165,13 +165,14 @@ struct KRTL_CLASS PAGED_OBJECT :
 namespace Rtl
 {
 
-template<typename T, POOL_TYPE PoolType = PagedPool>
+template<typename T, POOL_FLAGS PoolType = POOL_FLAG_PAGED>
 class KRTL_CLASS KArray :
     public PAGED_OBJECT<'rrAK'>
 {
 public:
 
-    static_assert(((PoolType == NonPagedPoolNxCacheAligned) && (alignof(T) <= SYSTEM_CACHE_ALIGNMENT_SIZE)) ||
+    static_assert(((PoolType == (POOL_FLAG_NON_PAGED | POOL_FLAG_CACHE_ALIGNED)) &&
+                  (alignof(T) <= SYSTEM_CACHE_ALIGNMENT_SIZE)) ||
                   (alignof(T) <= MEMORY_ALLOCATION_ALIGNMENT),
                   "This container allocates items with a fixed alignment");
 
@@ -284,7 +285,7 @@ public:
             bytesNeeded > SIZE_T_MAX)
             return false;
 
-        T * p = (T*)ExAllocatePoolWithTag(PoolType, (SIZE_T)bytesNeeded, 'rrAK');
+        T * p = (T*)ExAllocatePool2(PoolType, (SIZE_T)bytesNeeded, 'rrAK');
         if (!p)
             return false;
 

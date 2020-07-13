@@ -257,8 +257,8 @@ extern uint64_t QuicTotalMemory;
 
 #define QUIC_POOL_TAG 'CIUQ'
 
-#define QUIC_ALLOC_PAGED(Size) ExAllocatePoolWithTag(PagedPool, Size, QUIC_POOL_TAG)
-#define QUIC_ALLOC_NONPAGED(Size) ExAllocatePoolWithTag(NonPagedPoolNx, Size, QUIC_POOL_TAG)
+#define QUIC_ALLOC_PAGED(Size) ExAllocatePool2(POOL_FLAG_PAGED, Size, QUIC_POOL_TAG)
+#define QUIC_ALLOC_NONPAGED(Size) ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_POOL_TAG)
 #define QUIC_FREE(Mem) ExFreePoolWithTag((void*)Mem, QUIC_POOL_TAG)
 
 typedef LOOKASIDE_LIST_EX QUIC_POOL;

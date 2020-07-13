@@ -413,7 +413,7 @@ _IRQL_requires_same_
 _Function_class_(ALLOCATE_FUNCTION_EX)
 PVOID
 QuicSendBufferPoolAlloc(
-    _In_ POOL_TYPE PoolType,
+    _In_ POOL_FLAGS PoolType,
     _In_ SIZE_T NumberOfBytes,
     _In_ ULONG Tag,
     _Inout_ PLOOKASIDE_LIST_EX Lookaside
@@ -2419,7 +2419,7 @@ _IRQL_requires_same_
 _Function_class_(ALLOCATE_FUNCTION_EX)
 PVOID
 QuicSendBufferPoolAlloc(
-    _In_ POOL_TYPE PoolType,
+    _In_ POOL_FLAGS PoolType,
     _In_ SIZE_T NumberOfBytes,
     _In_ ULONG Tag,
     _Inout_ PLOOKASIDE_LIST_EX Lookaside
@@ -2428,10 +2428,10 @@ QuicSendBufferPoolAlloc(
     QUIC_DATAPATH_SEND_BUFFER* SendBuffer;
 
     UNREFERENCED_PARAMETER(Lookaside);
-    QUIC_DBG_ASSERT(PoolType == NonPagedPoolNx);
+    QUIC_DBG_ASSERT(PoolType == POOL_FLAG_NON_PAGED);
     QUIC_DBG_ASSERT(NumberOfBytes > sizeof(*SendBuffer));
 
-    SendBuffer = ExAllocatePoolWithTag(PoolType, NumberOfBytes, Tag);
+    SendBuffer = ExAllocatePool2(PoolType, NumberOfBytes, Tag);
     if (SendBuffer == NULL) {
         return NULL;
     }
