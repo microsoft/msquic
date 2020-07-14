@@ -517,7 +517,7 @@ if ($IsWindows -and $EnableAppVerifier) {
 if ($Kernel -ne "") {
     net.exe stop msquic /y | Out-Null
     Copy-Item C:\Windows\system32\driver\msquic.sys C:\Windows\system32\driver\msquic.sys.old
-    Copy-Item (Join-Path $Kernel "msquictest.sys") $RootDir
+    Copy-Item (Join-Path $Kernel "msquictest.sys") (Split-Path $Path -Parent)
     sfpcopy.exe (Join-Path $Kernel "msquic.sys") C:\Windows\system32\driver\msquic.sys
     net.exe start mscquic
 }
