@@ -9,6 +9,8 @@ FATAL: In-source builds are not allowed.
 ")
 endif()
 
+message(STATUS "CMAKE Version: ${CMAKE_VERSION}")
+
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
