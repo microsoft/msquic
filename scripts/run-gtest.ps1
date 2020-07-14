@@ -519,7 +519,7 @@ if ($Kernel -ne "") {
     Copy-Item C:\Windows\system32\drivers\msquic.sys C:\Windows\system32\drivers\msquic.sys.old
     Copy-Item (Join-Path $Kernel "msquictest.sys") (Split-Path $Path -Parent)
     sfpcopy.exe (Join-Path $Kernel "msquic.sys") C:\Windows\system32\drivers\msquic.sys
-    net.exe start mscquic
+    net.exe start mcquic
 }
 
 try {
@@ -624,7 +624,7 @@ try {
         net.exe stop msquic /y | Out-Null
         sc.exe delete msquictest | Out-Null
         sfpcopy.exe C:\Windows\system32\drivers\msquic.sys.old C:\Windows\system32\drivers\msquic.sys
-        net.exe start mscquic
+        net.exe start msquic
         Remove-Item C:\Windows\system32\drivers\msquic.sys.old -Force
     }
 }
