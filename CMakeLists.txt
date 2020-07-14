@@ -55,7 +55,8 @@ else()
     # (but later on when installing)
     set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 
-    set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
+    file(READ ${CMAKE_CURRENT_LIST_DIR}/cmake/rpath.txt ORIGINRPATH)
+    set(CMAKE_BUILD_RPATH ${ORIGINRPATH})
 
     set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
 
