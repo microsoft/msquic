@@ -29,7 +29,7 @@ param (
     [Parameter(Mandatory = $true)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
     [string]$Tls
-    )
+)
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
