@@ -2354,10 +2354,14 @@ QuicSendBufferPoolAlloc(
     QUIC_DATAPATH_SEND_BUFFER* SendBuffer;
 
     UNREFERENCED_PARAMETER(Lookaside);
+    UNREFERENCED_PARAMETER(PoolType);
     QUIC_DBG_ASSERT(PoolType == NonPagedPoolNx);
     QUIC_DBG_ASSERT(NumberOfBytes > sizeof(*SendBuffer));
 
-    SendBuffer = ExAllocatePoolWithTag(PoolType, NumberOfBytes, Tag);
+    //
+    // ExAllocatePool2 requires a different set of flags, so the assert above must keep the pool sane.
+    //
+    SendBuffer = ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, NumberOfBytes, Tag);
     if (SendBuffer == NULL) {
         return NULL;
     }
