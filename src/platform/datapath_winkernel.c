@@ -413,7 +413,7 @@ _IRQL_requires_same_
 _Function_class_(ALLOCATE_FUNCTION_EX)
 PVOID
 QuicSendBufferPoolAlloc(
-    _In_ POOL_TYPE  PoolType,
+    _In_ POOL_TYPE PoolType,
     _In_ SIZE_T NumberOfBytes,
     _In_ ULONG Tag,
     _Inout_ PLOOKASIDE_LIST_EX Lookaside
