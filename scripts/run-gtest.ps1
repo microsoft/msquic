@@ -516,9 +516,9 @@ if ($IsWindows -and $EnableAppVerifier) {
 # Install the kernel mode drivers.
 if ($Kernel -ne "") {
     net.exe stop msquic /y | Out-Null
-    Copy-Item C:\Windows\system32\driver\msquic.sys C:\Windows\system32\driver\msquic.sys.old
+    Copy-Item C:\Windows\system32\drivers\msquic.sys C:\Windows\system32\drivers\msquic.sys.old
     Copy-Item (Join-Path $Kernel "msquictest.sys") (Split-Path $Path -Parent)
-    sfpcopy.exe (Join-Path $Kernel "msquic.sys") C:\Windows\system32\driver\msquic.sys
+    sfpcopy.exe (Join-Path $Kernel "msquic.sys") C:\Windows\system32\drivers\msquic.sys
     net.exe start mscquic
 }
 
@@ -623,8 +623,8 @@ try {
     if ($Kernel -ne "") {
         net.exe stop msquic /y | Out-Null
         sc.exe delete msquictest | Out-Null
-        sfpcopy.exe C:\Windows\system32\driver\msquic.sys.old C:\Windows\system32\driver\msquic.sys
+        sfpcopy.exe C:\Windows\system32\drivers\msquic.sys.old C:\Windows\system32\drivers\msquic.sys
         net.exe start mscquic
-        Remove-Item C:\Windows\system32\driver\msquic.sys.old -Force
+        Remove-Item C:\Windows\system32\drivers\msquic.sys.old -Force
     }
 }
