@@ -32,7 +32,7 @@ Environment:
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <quic_sal_stub.h>
+#include "quic_sal_stub.h"
 
 #ifdef __cplusplus
 extern "C++" {
