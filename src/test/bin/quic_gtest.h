@@ -518,6 +518,8 @@ class WithDrillInitialPacketTokenArgs: public testing::Test,
 
 #ifdef _WIN32
 
+#include <shlwapi.h>
+
 class QuicDriverService {
     SC_HANDLE ScmHandle;
     SC_HANDLE ServiceHandle;
@@ -550,20 +552,23 @@ public:
                 "[ lib] ERROR, %u, %s.",
                  GetLastError(),
                 "OpenService failed");
-            char DriverFilePath[MAX_PATH];
-            Error =
-                GetFullPathNameA(
-                    "msquictest.sys",
-                    sizeof(DriverFilePath),
-                    DriverFilePath,
-                    nullptr);
-            if (Error == 0) {
-                Error = GetLastError();
+            char DriverFilePath[MAX_PATH] = {0};
+            GetModuleFileNameA(NULL, DriverFilePath, MAX_PATH);
+            char* PathEnd = strrchr(DriverFilePath, '\\');
+            if (!PathEnd ||
+                sizeof(DriverFilePath) - (PathEnd - DriverFilePath) < sizeof("msquictest.sys")) {
                 QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    Error,
-                    "GetFullPathName failed");
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "Can't build msquictest.sys full path");
+                return false;
+            }
+            memcpy(PathEnd + 1, "msquictest.sys", sizeof("msquictest.sys"));
+            if (GetFileAttributesA(DriverFilePath) == INVALID_FILE_ATTRIBUTES) {
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "Failed to find msquictest.sys");
                 return false;
             }
             ServiceHandle =
