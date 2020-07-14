@@ -7,6 +7,9 @@ as necessary.
 .PARAMETER Path
     The path to the test executable.
 
+.PARAMETER Kernel
+    Runs for Windows kernel mode, given the path for binaries.
+
 .PARAMETER Filter
     A filter to include test cases from the list to execute. Multiple filters
     are separated by :. Negative filters are prefixed with -.
@@ -55,6 +58,9 @@ as necessary.
 param (
     [Parameter(Mandatory = $true)]
     [string]$Path,
+
+    [Parameter(Mandatory = $false)]
+    [string]$Kernel = "",
 
     [Parameter(Mandatory = $false)]
     [string]$Filter = "",
@@ -112,6 +118,11 @@ function Log($msg) {
 # Make sure the test executable is present.
 if (!(Test-Path $Path)) {
     Write-Error "$($Path) does not exist!"
+}
+
+# Validate the the kernel switch.
+if ($Kernel -ne "" -and !$IsWindows) {
+    Write-Error "-Kernel switch only supported on Windows";
 }
 
 # Root directory of the project.
@@ -270,6 +281,9 @@ function Start-TestCase([String]$Name) {
     if ($BreakOnFailure) {
         $Arguments = $Arguments + " --gtest_break_on_failure"
     }
+    if ($Kernel) {
+        $Arguments "--kernel"
+    }
 
     # Start the test process and return some information about the test case.
     [pscustomobject]@{
@@ -300,6 +314,9 @@ function Start-AllTestCases {
     }
     if ($BreakOnFailure) {
         $Arguments = $Arguments + " --gtest_break_on_failure"
+    }
+    if ($Kernel) {
+        $Arguments "--kernel"
     }
 
     # Start the test process and return some information about the test case.
@@ -485,6 +502,7 @@ if ($IsWindows -and !(Test-Path $WerDumpRegPath)) {
     New-Item -Path $WerDumpRegPath -Force | Out-Null
 }
 
+# Initialize application verifier (Windows only).
 if ($IsWindows -and $EnableAppVerifier) {
     where.exe appverif.exe
     if ($LastExitCode -eq 0) {
@@ -493,6 +511,15 @@ if ($IsWindows -and $EnableAppVerifier) {
         Write-Warning "Application Verifier not installed!"
         $EnableAppVerifier = $false;
     }
+}
+
+# Install the kernel mode drivers.
+if ($Kernel -ne "") {
+    net.exe stop msquic /y | Out-Null
+    Copy-Item C:\Windows\system32\driver\msquic.sys C:\Windows\system32\driver\msquic.sys.old
+    Copy-Item (Join-Path $Kernel "msquictest.sys") $RootDir
+    sfpcopy.exe (Join-Path $Kernel "msquic.sys") C:\Windows\system32\driver\msquic.sys
+    net.exe start mscquic
 }
 
 try {
@@ -591,4 +618,13 @@ try {
         }
     }
     Write-Host ""
+
+    # Uninstall the kernel mode test driver and revert the msquic driver.
+    if ($Kernel -ne "") {
+        net.exe stop msquic /y | Out-Null
+        sc.exe delete msquictest | Out-Null
+        sfpcopy.exe C:\Windows\system32\driver\msquic.sys.old C:\Windows\system32\driver\msquic.sys
+        net.exe start mscquic
+        Remove-Item C:\Windows\system32\driver\msquic.sys.old -Force
+    }
 }
