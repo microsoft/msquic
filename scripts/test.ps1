@@ -138,7 +138,7 @@ Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 # Validate the the kernel switch.
-if ($Kernel && !$IsWindows) {
+if ($Kernel -and !$IsWindows) {
     Write-Error "-Kernel switch only supported on Windows";
 }
 
