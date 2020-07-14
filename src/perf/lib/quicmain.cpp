@@ -17,7 +17,9 @@ QuicMain(int /*Argc*/, char ** /*Argv*/, QUIC_EVENT /*StopEvent*/) {
 
     ThroughputServer server;
 
-    printf("server %d\n", server.IsValid());
+    if (server.IsValid()) {
+        //server.Run()
+    }
 
     MsQuicClose(MsQuic);
 
