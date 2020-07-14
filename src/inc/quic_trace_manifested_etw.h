@@ -31,5 +31,11 @@ QuicEtwCallback(
 
 #define QuicTraceEventEnabled(Name) TRUE //EventEnabledQuic##Name()
 
-#define LOG_ADDR_LEN(Addr) \
-    (uint8_t)((Addr).si_family == AF_INET6 ? sizeof(SOCKADDR_IN6) : sizeof(SOCKADDR_IN))
+#define LOG_BINARY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
+
+#define LOG_CID(CID) LOG_BINARY((CID).Length, (CID).Data)
+
+#define LOG_ADDR(Addr) \
+    LOG_BINARY( \
+        (Addr).si_family == AF_INET6 ? sizeof(SOCKADDR_IN6) : sizeof(SOCKADDR_IN), \
+        &(Addr))

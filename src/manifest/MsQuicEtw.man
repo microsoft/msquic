@@ -1325,14 +1325,14 @@
                 name="LocalAddrLength"
                 />
             <data
-                inType="win:UInt8"
-                name="RemoteAddrLength"
-                />
-            <data
                 inType="win:Binary"
                 length="LocalAddrLength"
                 name="LocalAddr"
                 outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt8"
+                name="RemoteAddrLength"
                 />
             <data
                 inType="win:Binary"
@@ -1390,14 +1390,14 @@
                 name="LocalAddrLength"
                 />
             <data
-                inType="win:UInt8"
-                name="RemoteAddrLength"
-                />
-            <data
                 inType="win:Binary"
                 length="LocalAddrLength"
                 name="LocalAddr"
                 outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt8"
+                name="RemoteAddrLength"
                 />
             <data
                 inType="win:Binary"
@@ -1428,14 +1428,14 @@
                 name="LocalAddrLength"
                 />
             <data
-                inType="win:UInt8"
-                name="RemoteAddrLength"
-                />
-            <data
                 inType="win:Binary"
                 length="LocalAddrLength"
                 name="LocalAddr"
                 outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt8"
+                name="RemoteAddrLength"
                 />
             <data
                 inType="win:Binary"
@@ -1581,14 +1581,14 @@
                 name="RemoteAddrLength"
                 />
             <data
-                inType="win:UInt8"
-                name="LocalAddrLength"
-                />
-            <data
                 inType="win:Binary"
                 length="RemoteAddrLength"
                 name="RemoteAddr"
                 outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt8"
+                name="LocalAddrLength"
                 />
             <data
                 inType="win:Binary"
@@ -1615,14 +1615,14 @@
                 name="LocalAddrLength"
                 />
             <data
-                inType="win:UInt8"
-                name="RemoteAddrLength"
-                />
-            <data
                 inType="win:Binary"
                 length="LocalAddrLength"
                 name="LocalAddr"
                 outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt8"
+                name="RemoteAddrLength"
                 />
             <data
                 inType="win:Binary"

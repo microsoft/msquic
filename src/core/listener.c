@@ -244,8 +244,7 @@ MsQuicListenerStart(
         "[list][%p] Started, Binding=%p, LocalAddr=%!SOCKADDR!",
         Listener,
         Listener->Binding,
-        LOG_ADDR_LEN(Listener->LocalAddress),
-        (uint8_t*)&Listener->LocalAddress);
+        LOG_ADDR(Listener->LocalAddress));
 
 Error:
 
@@ -317,8 +316,7 @@ QuicListenerTraceRundown(
             "[list][%p] Started, Binding=%p, LocalAddr=%!SOCKADDR!",
             Listener,
             Listener->Binding,
-            LOG_ADDR_LEN(Listener->LocalAddress),
-            (uint8_t*)&Listener->LocalAddress);
+            LOG_ADDR(Listener->LocalAddress));
     }
 }
 
