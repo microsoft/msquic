@@ -518,8 +518,6 @@ class WithDrillInitialPacketTokenArgs: public testing::Test,
 
 #ifdef _WIN32
 
-#include <shlwapi.h>
-
 class QuicDriverService {
     SC_HANDLE ScmHandle;
     SC_HANDLE ServiceHandle;
