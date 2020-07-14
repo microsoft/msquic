@@ -279,10 +279,10 @@ function Start-TestCase([String]$Name) {
     $ResultsPath = Join-Path $LocalLogDir "results.xml"
     $Arguments = "--gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)"
     if ($BreakOnFailure) {
-        $Arguments = $Arguments + " --gtest_break_on_failure"
+        $Arguments += " --gtest_break_on_failure"
     }
     if ($Kernel) {
-        $Arguments "--kernel"
+        $Arguments += "--kernel"
     }
 
     # Start the test process and return some information about the test case.
@@ -310,13 +310,13 @@ function Start-AllTestCases {
     # Build up the argument list.
     $Arguments = "--gtest_catch_exceptions=0 --gtest_output=xml:$($FinalResultsPath)"
     if ($Filter -ne "") {
-        $Arguments = $Arguments + " --gtest_filter=$($Filter)"
+        $Arguments += " --gtest_filter=$($Filter)"
     }
     if ($BreakOnFailure) {
-        $Arguments = $Arguments + " --gtest_break_on_failure"
+        $Arguments += " --gtest_break_on_failure"
     }
     if ($Kernel) {
-        $Arguments "--kernel"
+        $Arguments += "--kernel"
     }
 
     # Start the test process and return some information about the test case.
