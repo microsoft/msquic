@@ -669,14 +669,10 @@ QuicTraceConnEvent(
     case EventId_QuicConnDropPacket: {
         char LocalAddrStr[INET6_ADDRSTRLEN];
         char RemoteAddrStr[INET6_ADDRSTRLEN];
-        AddrToString((SOCKADDR_INET*)EvData->DropPacket.Addrs, LocalAddrStr);
-        AddrToString(
-            (SOCKADDR_INET*)(EvData->DropPacket.Addrs + EvData->DropPacket.LocalAddrLength),
-            RemoteAddrStr);
-        char* Reason = (char*)
-            EvData->DropPacket.Addrs +
-            EvData->DropPacket.LocalAddrLength +
-            EvData->DropPacket.RemoteAddrLength;
+        const uint8_t* Addrs = EvData->DropPacket.Addrs;
+        Addrs = DecodeAddr(Addrs, LocalAddrStr);
+        Addrs = DecodeAddr(Addrs, RemoteAddrStr);
+        char* Reason = (char*)Addrs;
         if (EvData->DropPacket.PktNum != ULLONG_MAX) {
             printf("DROP packet Num=%llu Src=%s Dst=%s Reason=%s\n",
                 EvData->DropPacket.PktNum, RemoteAddrStr, LocalAddrStr, Reason);
@@ -689,14 +685,10 @@ QuicTraceConnEvent(
     case EventId_QuicConnDropPacketEx: {
         char LocalAddrStr[INET6_ADDRSTRLEN];
         char RemoteAddrStr[INET6_ADDRSTRLEN];
-        AddrToString((SOCKADDR_INET*)EvData->DropPacketEx.Addrs, LocalAddrStr);
-        AddrToString(
-            (SOCKADDR_INET*)(EvData->DropPacketEx.Addrs + EvData->DropPacketEx.LocalAddrLength),
-            RemoteAddrStr);
-        char* Reason = (char*)
-            EvData->DropPacketEx.Addrs +
-            EvData->DropPacketEx.LocalAddrLength +
-            EvData->DropPacketEx.RemoteAddrLength;
+        const uint8_t* Addrs = EvData->DropPacketEx.Addrs;
+        Addrs = DecodeAddr(Addrs, LocalAddrStr);
+        Addrs = DecodeAddr(Addrs, RemoteAddrStr);
+        char* Reason = (char*)Addrs;
         if (EvData->DropPacketEx.PktNum != ULLONG_MAX) {
             printf("DROP packet Num=%llu Src=%s Dst=%s Reason=%s, %llu\n",
                 EvData->DropPacketEx.PktNum, RemoteAddrStr, LocalAddrStr, Reason, EvData->DropPacketEx.Value);
@@ -897,10 +889,9 @@ QuicTraceBindingEvent(
     case EventId_QuicBindingCreated: {
         char LocalAddrStr[INET6_ADDRSTRLEN];
         char RemoteAddrStr[INET6_ADDRSTRLEN];
-        AddrToString((SOCKADDR_INET*)EvData->Created.Addrs, LocalAddrStr);
-        AddrToString(
-            (SOCKADDR_INET*)(EvData->Created.Addrs + EvData->Created.LocalAddrLength),
-            RemoteAddrStr);
+        const uint8_t* Addrs = EvData->Created.Addrs;
+        Addrs = DecodeAddr(Addrs, LocalAddrStr);
+        Addrs = DecodeAddr(Addrs, RemoteAddrStr);
         printf("Created %llX, Udp=%llX LocalAddr=%s RemoteAddr=%s\n",
             (ULONG64)EvData->BindingPtr, (ULONG64)EvData->Created.DatapathPtr,
             LocalAddrStr, RemoteAddrStr);
@@ -909,10 +900,9 @@ QuicTraceBindingEvent(
     case EventId_QuicBindingRundown: {
         char LocalAddrStr[INET6_ADDRSTRLEN];
         char RemoteAddrStr[INET6_ADDRSTRLEN];
-        AddrToString((SOCKADDR_INET*)EvData->Rundown.Addrs, LocalAddrStr);
-        AddrToString(
-            (SOCKADDR_INET*)(EvData->Rundown.Addrs + EvData->Rundown.LocalAddrLength),
-            RemoteAddrStr);
+        const uint8_t* Addrs = EvData->Rundown.Addrs;
+        Addrs = DecodeAddr(Addrs, LocalAddrStr);
+        Addrs = DecodeAddr(Addrs, RemoteAddrStr);
         printf("Rundown %llX, Udp=%llX LocalAddr=%s RemoteAddr=%s\n",
             (ULONG64)EvData->BindingPtr, (ULONG64)EvData->Rundown.DatapathPtr,
             LocalAddrStr, RemoteAddrStr);
@@ -929,14 +919,10 @@ QuicTraceBindingEvent(
     case EventId_QuicBindingDropPacket: {
         char LocalAddrStr[INET6_ADDRSTRLEN];
         char RemoteAddrStr[INET6_ADDRSTRLEN];
-        AddrToString((SOCKADDR_INET*)EvData->DropPacket.Addrs, LocalAddrStr);
-        AddrToString(
-            (SOCKADDR_INET*)(EvData->DropPacket.Addrs + EvData->DropPacket.LocalAddrLength),
-            RemoteAddrStr);
-        char* Reason = (char*)
-            EvData->DropPacket.Addrs +
-            EvData->DropPacket.LocalAddrLength +
-            EvData->DropPacket.RemoteAddrLength;
+        const uint8_t* Addrs = EvData->DropPacket.Addrs;
+        Addrs = DecodeAddr(Addrs, LocalAddrStr);
+        Addrs = DecodeAddr(Addrs, RemoteAddrStr);
+        char* Reason = (char*)Addrs;
         if (EvData->DropPacket.PktNum != ULLONG_MAX) {
             printf("DROP packet Num=%llu Src=%s Dst=%s Reason=%s\n",
                 EvData->DropPacket.PktNum, LocalAddrStr, RemoteAddrStr, Reason);
@@ -949,14 +935,10 @@ QuicTraceBindingEvent(
     case EventId_QuicBindingDropPacketEx: {
         char LocalAddrStr[INET6_ADDRSTRLEN];
         char RemoteAddrStr[INET6_ADDRSTRLEN];
-        AddrToString((SOCKADDR_INET*)EvData->DropPacketEx.Addrs, LocalAddrStr);
-        AddrToString(
-            (SOCKADDR_INET*)(EvData->DropPacketEx.Addrs + EvData->DropPacketEx.LocalAddrLength),
-            RemoteAddrStr);
-        char* Reason = (char*)
-            EvData->DropPacketEx.Addrs +
-            EvData->DropPacketEx.LocalAddrLength +
-            EvData->DropPacketEx.RemoteAddrLength;
+        const uint8_t* Addrs = EvData->DropPacketEx.Addrs;
+        Addrs = DecodeAddr(Addrs, LocalAddrStr);
+        Addrs = DecodeAddr(Addrs, RemoteAddrStr);
+        char* Reason = (char*)Addrs;
         if (EvData->DropPacketEx.PktNum != ULLONG_MAX) {
             printf("DROP packet Num=%llu Src=%s Dst=%s Reason=%s, %llu\n",
                 EvData->DropPacketEx.PktNum, LocalAddrStr, RemoteAddrStr, Reason, EvData->DropPacketEx.Value);
@@ -1041,10 +1023,9 @@ QuicTraceDatapathEvent(
     case EventId_QuicDatapathSendFromTo: {
         char RemoteAddrStr[INET6_ADDRSTRLEN];
         char LocalAddrStr[INET6_ADDRSTRLEN];
-        AddrToString((SOCKADDR_INET*)EvData->SendFromTo.Addrs, RemoteAddrStr);
-        AddrToString(
-            (SOCKADDR_INET*)(EvData->SendFromTo.Addrs + EvData->SendFromTo.RemoteAddrLength),
-            LocalAddrStr);
+        const uint8_t* Addrs = EvData->SendFromTo.Addrs;
+        Addrs = DecodeAddr(Addrs, RemoteAddrStr);
+        Addrs = DecodeAddr(Addrs, LocalAddrStr);
         if (EvData->SendFromTo.BufferCount == 1) {
             if (EvData->SendFromTo.SegmentSize == 0 ||
                 EvData->SendFromTo.SegmentSize >= EvData->SendFromTo.TotalSize) {
@@ -1065,10 +1046,9 @@ QuicTraceDatapathEvent(
     case EventId_QuicDatapathRecv: {
         char LocalAddrStr[INET6_ADDRSTRLEN];
         char RemoteAddrStr[INET6_ADDRSTRLEN];
-        AddrToString((SOCKADDR_INET*)EvData->Recv.Addrs, LocalAddrStr);
-        AddrToString(
-            (SOCKADDR_INET*)(EvData->Recv.Addrs + EvData->Recv.LocalAddrLength),
-            RemoteAddrStr);
+        const uint8_t* Addrs = EvData->Recv.Addrs;
+        Addrs = DecodeAddr(Addrs, LocalAddrStr);
+        Addrs = DecodeAddr(Addrs, RemoteAddrStr);
         if (EvData->Recv.SegmentSize == 0 ||
             EvData->Recv.TotalSize <= EvData->Recv.SegmentSize) {
             printf("Recv %u bytes Src=%s Dst=%s\n",
