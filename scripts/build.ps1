@@ -48,6 +48,9 @@ This script provides helpers for building msquic.
 .PARAMETER Generator
     Specifies a specific cmake generator (Only supported on unix)
 
+.PARAMETER CI
+    Specifies that this is a CI build. This enables certain flags in the build, currently PDBALTPATH
+
 .EXAMPLE
     build.ps1
 
@@ -101,7 +104,10 @@ param (
     [switch]$PGO = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$Generator = ""
+    [string]$Generator = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$CI = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -222,6 +228,9 @@ function CMake-Generate {
     }
     if ($ToolchainFile -ne "") {
         $Arguments += " ""-DCMAKE_TOOLCHAIN_FILE=" + $ToolchainFile + """"
+    }
+    if ($CI) {
+        $Arguments += " -DQUIC_CI=ON"
     }
     $Arguments += " ../../.."
 
