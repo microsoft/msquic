@@ -255,6 +255,8 @@ function CMake-Build {
     }
     if ($IsWindows) {
         $Arguments += " --config " + $Config
+    } else {
+        $Arguments += " -- VERBOSE=1"
     }
 
     CMake-Execute $Arguments
