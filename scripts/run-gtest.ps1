@@ -282,7 +282,7 @@ function Start-TestCase([String]$Name) {
         $Arguments += " --gtest_break_on_failure"
     }
     if ($Kernel) {
-        $Arguments += "--kernel"
+        $Arguments += " --kernel"
     }
 
     # Start the test process and return some information about the test case.
@@ -316,7 +316,7 @@ function Start-AllTestCases {
         $Arguments += " --gtest_break_on_failure"
     }
     if ($Kernel) {
-        $Arguments += "--kernel"
+        $Arguments += " --kernel"
     }
 
     # Start the test process and return some information about the test case.
