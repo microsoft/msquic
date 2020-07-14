@@ -316,6 +316,8 @@ add_subdirectory(src/bin)
 
 # Tool code
 if(QUIC_BUILD_TOOLS)
+    add_subdirectory(src/perf/lib)
+    add_subdirectory(src/perf/bin)
     add_subdirectory(src/tools/attack)
     add_subdirectory(src/tools/interop)
     add_subdirectory(src/tools/interopserver)
