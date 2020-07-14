@@ -783,19 +783,16 @@ QuicThreadCreate(
     }
     if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
         const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[Config->IdealProcessor];
-        if (ProcInfo->Group != 0) {
-            GROUP_AFFINITY Group;
-            Group.Group = ProcInfo->Group;
-            SetThreadGroupAffinity(*Thread, &Group, NULL);
-        }
-        SetThreadIdealProcessor(*Thread, ProcInfo->Index);
+        GROUP_AFFINITY Group = {0};
         if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
-            SetThreadAffinityMask(*Thread, (DWORD_PTR)(1ull << ProcInfo->Index));
+            Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);          // Fixed processor
         } else {
-            //
-            // Affinitize to the NUMA node's processors.
-            //
-            SetThreadAffinityMask(*Thread, (DWORD_PTR)QuicNumaMasks[ProcInfo->NumaNode]);
+            Group.Mask = (KAFFINITY)QuicNumaMasks[ProcInfo->NumaNode];  // Fixed NUMA node
+        }
+        Group.Group = ProcInfo->Group;
+        SetThreadGroupAffinity(*Thread, &Group, NULL);
+        if (!(Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE)) {
+            SetThreadIdealProcessor(*Thread, ProcInfo->Index);
         }
     }
     if (Config->Flags & QUIC_THREAD_FLAG_HIGH_PRIORITY) {

@@ -702,37 +702,23 @@ QuicDataPathInitialize(
         }
 
         const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[i];
-        if (ProcInfo->Group != 0) {
-            GROUP_AFFINITY Group;
-            Group.Group = ProcInfo->Group;
-            if (!SetThreadGroupAffinity(
-                    Datapath->ProcContexts[i].CompletionThread,
-                    &Group,
-                    NULL)) {
-                DWORD LastError = GetLastError();
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    LastError,
-                    "SetThreadGroupAffinity");
-                Status = HRESULT_FROM_WIN32(LastError);
-                goto Error;
-            }
-        }
-
-        DWORD_PTR AffinityMask = (DWORD_PTR)(1llu << ProcInfo->Index);
-        if (SetThreadAffinityMask(
+        GROUP_AFFINITY Group = {0};
+        Group.Mask = (KAFFINITY)(1llu << ProcInfo->Index);
+        Group.Group = ProcInfo->Group;
+        if (!SetThreadGroupAffinity(
                 Datapath->ProcContexts[i].CompletionThread,
-                AffinityMask) == 0) {
+                &Group,
+                NULL)) {
             DWORD LastError = GetLastError();
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 LastError,
-                "SetThreadAffinityMask");
+                "SetThreadGroupAffinity");
             Status = HRESULT_FROM_WIN32(LastError);
             goto Error;
         }
+
 #ifdef QUIC_UWP_BUILD
         SetThreadDescription(Datapath->ProcContexts[i].CompletionThread, L"quic_datapath");
 #else
