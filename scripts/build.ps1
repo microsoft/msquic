@@ -117,7 +117,7 @@ if ($Generator -eq "") {
     if ($IsWindows) {
         $Generator = "Visual Studio 16 2019"
     } elseif ($IsLinux) {
-        $Generator = "Linux Makefiles"
+        $Generator = "Ninja"
     } else {
         $Generator = "Unix Makefiles"
     }
