@@ -568,3 +568,113 @@ struct CountHelper {
         }
     }
 };
+
+//
+// Arg Value Parsers
+//
+
+//
+// Helper function that searches the list of args for a given
+// parameter name, insensitive to case.
+//
+inline
+_Ret_maybenull_ _Null_terminated_ const char*
+GetValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name
+    )
+{
+    const size_t nameLen = strlen(name);
+    for (int i = 1; i < argc; i++) {
+        if (_strnicmp(argv[i] + 1, name, nameLen) == 0) {
+            return argv[i] + 1 + nameLen + 1;
+        }
+    }
+    return nullptr;
+}
+
+inline
+_Success_(return != false)
+bool
+TryGetValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ _Null_terminated_ const char** pValue
+    )
+{
+    auto value = GetValue(argc, argv, name);
+    if (!value) return false;
+    *pValue = value;
+    return true;
+}
+
+inline
+_Success_(return != false)
+bool
+TryGetValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ uint8_t* pValue
+    )
+{
+    auto value = GetValue(argc, argv, name);
+    if (!value) return false;
+    *pValue = (uint8_t)atoi(value);
+    return true;
+}
+
+inline
+_Success_(return != false)
+bool
+TryGetValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ uint16_t* pValue
+    )
+{
+    auto value = GetValue(argc, argv, name);
+    if (!value) return false;
+    *pValue = (uint16_t)atoi(value);
+    return true;
+}
+
+inline
+_Success_(return != false)
+bool
+TryGetValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ uint32_t* pValue
+    )
+{
+    auto value = GetValue(argc, argv, name);
+    if (!value) return false;
+    *pValue = (uint32_t)atoi(value);
+    return true;
+}
+
+inline
+_Success_(return != false)
+bool
+TryGetValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ uint64_t* pValue
+    )
+{
+    auto value = GetValue(argc, argv, name);
+    if (!value) return false;
+    char* End;
+#ifdef _WIN32
+    *pValue = _strtoui64(value, &End, 10);
+#else
+    *pValue = strtoull(value, &End, 10);
+#endif
+    return true;
+}
