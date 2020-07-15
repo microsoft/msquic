@@ -23,13 +23,6 @@ void* __cdecl operator new (size_t Size) {
     return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_PERF_TAG);
 }
 
-//
-// For placement new
-//
-void* __cdecl operator new (size_t /*Size*/, void* Ptr) {
-    return Ptr;
-}
-
 void __cdecl operator delete (_In_opt_ void* Mem) {
     if (Mem != nullptr) {
         ExFreePoolWithTag(Mem, QUIC_PERF_TAG);

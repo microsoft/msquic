@@ -26,6 +26,8 @@ target_compile_options(perflib PRIVATE
      $<$<CXX_COMPILER_ID:MSVC>:
         ${MSVC_WARNING_FLAGS}>)
 
+target_include_directories(perflib PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_dependencies(perflib MsQuicEtw)
 endif()

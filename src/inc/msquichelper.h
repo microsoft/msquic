@@ -157,6 +157,9 @@ ConvertArgToAddress(
     _Out_ QUIC_ADDR* Address
     )
 {
+    if (!Arg) {
+        return FALSE;
+    }
     if (strcmp("*", Arg) == 0) {
         QuicAddrSetFamily(Address, AF_UNSPEC);
         QuicAddrSetPort(Address, Port);

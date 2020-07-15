@@ -19,6 +19,9 @@ Abstract:
 #include <quic_trace.h>
 #include <msquic.h>
 #include <quic_platform.h>
+#include <msquichelper.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #ifndef _KERNEL_MODE
 #include <new> // Needed for placement new
@@ -27,6 +30,8 @@ Abstract:
 #endif
 
 extern const QUIC_API_TABLE* MsQuic;
+extern uint8_t SelfSignedSecurityHash[20];
+extern bool IsSelfSignedValid;
 
 #define QUIC_TEST_SESSION_CLOSED    1
 
@@ -93,11 +98,11 @@ public:
         }
     }
 
-    void reset(T* ptr) noexcept {
+    void reset(T* lptr) noexcept {
         if (this->ptr) {
             delete this->ptr;
         }
-        this->ptr = ptr;
+        this->ptr = lptr;
     }
 
     T* release() noexcept {
@@ -170,6 +175,25 @@ public:
 private:
     T* ptr = nullptr;
 };
+
+inline
+int
+WriteOutput(
+    _In_z_ const char* format
+    ...
+    )
+{
+#ifndef _KERNEL_MODE
+    va_list args;
+    va_start(args, format);
+    int rval = vprintf(format, args);
+    va_end(args);
+    return rval;
+#else
+    UNREFERENCED_PARAMETER(format);
+    return 0;
+#endif
+}
 
 template<typename Ret, typename... Param>
 struct CallableBase {
@@ -252,7 +276,9 @@ public:
     Function& operator=(Function&& other) = delete;
 
     ~Function() noexcept {
-        Callback->~CallableBase();
+        if (Callback) {
+            Callback->~CallableBase();
+        }
     }
 
     template<typename T>
@@ -445,7 +471,7 @@ struct MsQuicSession {
 };
 
 struct MsQuicListener {
-    HQUIC Handle;
+    HQUIC Handle{ nullptr };
     Function<QUIC_STATUS, HQUIC, QUIC_LISTENER_EVENT*> Callback;
     MsQuicListener(const MsQuicSession& Session) {
         if (!Session.IsValid()) {
@@ -482,6 +508,45 @@ struct MsQuicListener {
     }
 
     bool IsValid() const { return Handle != nullptr; }
+};
+
+struct MsQuicSecurityConfig {
+    QUIC_STATUS Initialize(int argc, char** argv, const MsQuicRegistration& Registration) {
+        uint16_t useSelfSigned = 0;
+        if (TryGetValue(argc, argv, "selfsign", &useSelfSigned)) {
+            if (!IsSelfSignedValid) {
+                WriteOutput("Self Signed Not Configured Correctly\n");
+                return QUIC_STATUS_INVALID_STATE;
+            }
+            CreateSecConfigHelper Helper;
+            SecurityConfig =
+                Helper.Create(
+                    MsQuic,
+                    Registration,
+                    QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH,
+                    &SelfSignedSecurityHash,
+                    nullptr);
+            if (!SecurityConfig) {
+                WriteOutput("Failed to create security config for self signed certificate\n");
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+        } else {
+            // TODO
+            WriteOutput("Non self signed not yet supported\n");
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    ~MsQuicSecurityConfig() {
+        if (SecurityConfig) {
+            MsQuic->SecConfigDelete(SecurityConfig);
+        }
+    }
+
+    operator QUIC_SEC_CONFIG*() const { return SecurityConfig; }
+
+    QUIC_SEC_CONFIG* SecurityConfig {nullptr};
 };
 
 struct ListenerScope {
@@ -569,112 +634,24 @@ struct CountHelper {
     }
 };
 
+struct TestRunner {
+    virtual ~TestRunner() = default;
+    virtual bool IsValid() const = 0;
+    virtual QUIC_STATUS Init() = 0;
+    virtual QUIC_STATUS Run(QUIC_EVENT StopEvent, QUIC_EVENT ReadyEvent) = 0;
+};
+
 //
 // Arg Value Parsers
 //
 
-//
-// Helper function that searches the list of args for a given
-// parameter name, insensitive to case.
-//
-inline
-_Ret_maybenull_ _Null_terminated_ const char*
-GetValue(
-    _In_ int argc,
-    _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_z_ const char* name
-    )
-{
-    const size_t nameLen = strlen(name);
-    for (int i = 1; i < argc; i++) {
-        if (_strnicmp(argv[i] + 1, name, nameLen) == 0) {
-            return argv[i] + 1 + nameLen + 1;
-        }
-    }
-    return nullptr;
-}
-
 inline
 _Success_(return != false)
 bool
-TryGetValue(
-    _In_ int argc,
-    _In_reads_(argc) _Null_terminated_ char* argv[],
+IsValue(
     _In_z_ const char* name,
-    _Out_ _Null_terminated_ const char** pValue
+    _In_z_ const char* toTestAgainst
     )
 {
-    auto value = GetValue(argc, argv, name);
-    if (!value) return false;
-    *pValue = value;
-    return true;
-}
-
-inline
-_Success_(return != false)
-bool
-TryGetValue(
-    _In_ int argc,
-    _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_z_ const char* name,
-    _Out_ uint8_t* pValue
-    )
-{
-    auto value = GetValue(argc, argv, name);
-    if (!value) return false;
-    *pValue = (uint8_t)atoi(value);
-    return true;
-}
-
-inline
-_Success_(return != false)
-bool
-TryGetValue(
-    _In_ int argc,
-    _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_z_ const char* name,
-    _Out_ uint16_t* pValue
-    )
-{
-    auto value = GetValue(argc, argv, name);
-    if (!value) return false;
-    *pValue = (uint16_t)atoi(value);
-    return true;
-}
-
-inline
-_Success_(return != false)
-bool
-TryGetValue(
-    _In_ int argc,
-    _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_z_ const char* name,
-    _Out_ uint32_t* pValue
-    )
-{
-    auto value = GetValue(argc, argv, name);
-    if (!value) return false;
-    *pValue = (uint32_t)atoi(value);
-    return true;
-}
-
-inline
-_Success_(return != false)
-bool
-TryGetValue(
-    _In_ int argc,
-    _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_z_ const char* name,
-    _Out_ uint64_t* pValue
-    )
-{
-    auto value = GetValue(argc, argv, name);
-    if (!value) return false;
-    char* End;
-#ifdef _WIN32
-    *pValue = _strtoui64(value, &End, 10);
-#else
-    *pValue = strtoull(value, &End, 10);
-#endif
-    return true;
+    return _strnicmp(name, toTestAgainst, min(strlen(name), strlen(toTestAgainst))) == 0;
 }
