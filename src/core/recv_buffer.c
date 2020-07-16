@@ -53,7 +53,8 @@ QuicRecvBufferInitialize(
     _Inout_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint32_t AllocBufferLength,
     _In_ uint32_t VirtualBufferLength,
-    _In_ BOOLEAN CopyOnDrain
+    _In_ BOOLEAN CopyOnDrain,
+    _In_opt_ uint8_t* PreallocatedBuffer
     )
 {
     QUIC_STATUS Status;
@@ -62,15 +63,21 @@ QuicRecvBufferInitialize(
     QUIC_DBG_ASSERT(VirtualBufferLength != 0 && (VirtualBufferLength & (VirtualBufferLength - 1)) == 0); // Power of 2
     QUIC_DBG_ASSERT(AllocBufferLength <= VirtualBufferLength);
 
-    RecvBuffer->Buffer = QUIC_ALLOC_NONPAGED(AllocBufferLength);
-    if (RecvBuffer->Buffer == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "recv_buffer",
-            AllocBufferLength);
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
+    if (PreallocatedBuffer != NULL) {
+        RecvBuffer->PreallocatedBuffer = PreallocatedBuffer;
+        RecvBuffer->Buffer = PreallocatedBuffer;
+    } else {
+        RecvBuffer->PreallocatedBuffer = NULL;
+        RecvBuffer->Buffer = QUIC_ALLOC_NONPAGED(AllocBufferLength);
+        if (RecvBuffer->Buffer == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "recv_buffer",
+                AllocBufferLength);
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Error;
+        }
     }
 
     Status =
@@ -108,7 +115,9 @@ QuicRecvBufferUninitialize(
     )
 {
     QuicRangeUninitialize(&RecvBuffer->WrittenRanges);
-    QUIC_FREE(RecvBuffer->Buffer);
+    if (RecvBuffer->Buffer != RecvBuffer->PreallocatedBuffer) {
+        QUIC_FREE(RecvBuffer->Buffer);
+    }
     RecvBuffer->Buffer = NULL;
     if (RecvBuffer->OldBuffer != NULL) {
         QUIC_FREE(RecvBuffer->OldBuffer);
@@ -193,7 +202,7 @@ QuicRecvBufferResize(
 
         if (RecvBuffer->ExternalBufferReference && RecvBuffer->OldBuffer == NULL) {
             RecvBuffer->OldBuffer = RecvBuffer->Buffer;
-        } else {
+        } if (RecvBuffer->Buffer != RecvBuffer->PreallocatedBuffer) {
             QUIC_FREE(RecvBuffer->Buffer);
         }
 
@@ -483,7 +492,9 @@ QuicRecvBufferDrain(
     RecvBuffer->ExternalBufferReference = FALSE;
 
     if (RecvBuffer->OldBuffer != NULL) {
-        QUIC_FREE(RecvBuffer->OldBuffer);
+        if (RecvBuffer->OldBuffer != RecvBuffer->PreallocatedBuffer) {
+            QUIC_FREE(RecvBuffer->OldBuffer);
+        }
         RecvBuffer->OldBuffer = NULL;
     }
 

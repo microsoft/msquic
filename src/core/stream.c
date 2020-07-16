@@ -28,6 +28,8 @@ QuicStreamInitialize(
 {
     QUIC_STATUS Status;
     QUIC_STREAM* Stream;
+    uint8_t* PreallocatedRecvBuffer = NULL;
+    uint32_t InitialRecvBufferLength;
 
     Stream = QuicPoolAlloc(&Connection->Worker->StreamPool);
     if (Stream == NULL) {
@@ -87,12 +89,23 @@ QuicStreamInitialize(
         goto Exit;
     }
 
+    InitialRecvBufferLength = Connection->Session->Settings.StreamRecvBufferDefault;
+    if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
+        PreallocatedRecvBuffer = QuicPoolAlloc(&Connection->Worker->DefaultReceiveBufferPool);
+        if (PreallocatedRecvBuffer == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            QuicRangeUninitialize(&Stream->SparseAckRanges);
+            goto Exit;
+        }
+    }
+
     Status =
         QuicRecvBufferInitialize(
             &Stream->RecvBuffer,
-            Connection->Session->Settings.StreamRecvBufferDefault,
+            InitialRecvBufferLength,
             Connection->Session->Settings.StreamRecvWindowDefault,
-            FALSE);
+            FALSE,
+            PreallocatedRecvBuffer);
     if (QUIC_FAILED(Status)) {
         QuicRangeUninitialize(&Stream->SparseAckRanges);
         goto Exit;
@@ -104,6 +117,7 @@ QuicStreamInitialize(
     Stream->Flags.Initialized = TRUE;
     *NewStream = Stream;
     Stream = NULL;
+    PreallocatedRecvBuffer = NULL;
 
 Exit:
 
@@ -111,6 +125,9 @@ Exit:
         QuicDispatchLockUninitialize(&Stream->ApiSendRequestLock);
         Stream->Flags.Freed = TRUE;
         QuicPoolFree(&Connection->Worker->StreamPool, Stream);
+    }
+    if (PreallocatedRecvBuffer) {
+        QuicPoolFree(&Connection->Worker->DefaultReceiveBufferPool, PreallocatedRecvBuffer);
     }
 
     return Status;
@@ -139,6 +156,12 @@ QuicStreamFree(
     QuicRangeUninitialize(&Stream->SparseAckRanges);
     QuicDispatchLockUninitialize(&Stream->ApiSendRequestLock);
     QuicRefUninitialize(&Stream->RefCount);
+
+    if (Stream->RecvBuffer.PreallocatedBuffer) {
+        QuicPoolFree(
+            &Stream->Connection->Worker->DefaultReceiveBufferPool,
+            Stream->RecvBuffer.PreallocatedBuffer);
+    }
 
     Stream->Flags.Freed = TRUE;
     QuicPoolFree(&Stream->Connection->Worker->StreamPool, Stream);
