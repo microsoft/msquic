@@ -251,11 +251,10 @@ struct MemberCallable : public CallableBase<Ret, Param...> {
 template<typename Ret, typename... Param>
 struct Function {
 private:
-    constexpr static size_t Max(size_t a, size_t b) { return a > b ? a : b; }
-    struct Empty {
-    };
-
-    constexpr static size_t FunctionStorageSize = sizeof(void*) * 3;//Max(sizeof(FunctionCallable<Ret, Param...>), sizeof(MemberCallable<Empty, Ret, Param...>));
+    //
+    // 3 pointers is the size of a pointer to member, plus an object
+    //
+    constexpr static size_t FunctionStorageSize = sizeof(void*) * 3;
     alignas(sizeof(void*)) unsigned char Data[Function<Ret, Param...>::FunctionStorageSize];
 
     CallableBase<Ret, Param...>* Callback = nullptr;
