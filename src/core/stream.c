@@ -338,26 +338,11 @@ QuicStreamIndicateEvent(
 {
     QUIC_STATUS Status;
     if (Stream->ClientCallbackHandler != NULL) {
-        uint64_t StartTime = QuicTimeUs64();
         Status =
             Stream->ClientCallbackHandler(
                 (HQUIC)Stream,
                 Stream->ClientContext,
                 Event);
-        uint64_t EndTime = QuicTimeUs64();
-        if (EndTime - StartTime > QUIC_MAX_CALLBACK_TIME_WARNING) {
-            QuicTraceLogStreamWarning(
-                AppTooLong,
-                Stream,
-                "App took excessive time (%llu us) in callback.",
-                (EndTime - StartTime));
-            QUIC_TEL_ASSERTMSG_ARGS(
-                EndTime - StartTime < QUIC_MAX_CALLBACK_TIME_ERROR,
-                "App extremely long time in stream callback",
-                Stream->Connection->Registration == NULL ?
-                    NULL : Stream->Connection->Registration->AppName,
-                Event->Type, 0);
-        }
     } else {
         Status = QUIC_STATUS_INVALID_STATE;
         QuicTraceLogStreamWarning(
