@@ -188,7 +188,7 @@ extern "C" {
 // Helpers for Windows string functions.
 //
 
-#define _stricmp strncasecmp
+#define _strnicmp strncasecmp
 #define sprintf_s(dst, dst_len, format, ...) sprintf(dst, format, __VA_ARGS__)
 #define _vsnprintf_s(dst, dst_len, flag, format, ...) vsnprintf(dst, dst_len, format, __VA_ARGS__)
 
@@ -197,7 +197,6 @@ extern "C" {
 //
 
 extern char *QuicOpenSslClientTrustedCert;
-
 
 //
 // IP Address Abstraction Helpers
