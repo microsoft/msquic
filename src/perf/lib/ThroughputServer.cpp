@@ -86,7 +86,7 @@ ThroughputServer::ListenerCallback(
     case QUIC_LISTENER_EVENT_NEW_CONNECTION:
         Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
         Handler =
-            [](HQUIC Conn, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
+            [](auto Conn, auto Context, auto Event) -> QUIC_STATUS {
                 return ((ConnectionData*)Context)->Server->
                     ConnectionCallback(
                         Conn,
