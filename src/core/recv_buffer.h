@@ -32,6 +32,11 @@ typedef struct QUIC_RECV_BUFFER {
     uint8_t * Buffer;
 
     //
+    // Optional, preallocated initial buffer.
+    //
+    uint8_t * PreallocatedBuffer;
+
+    //
     // Length of memory allocated for 'Buffer'. Dynamically grows up to
     // VirtualBufferLength.
     //
@@ -65,7 +70,8 @@ QuicRecvBufferInitialize(
     _Inout_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint32_t AllocBufferLength,
     _In_ uint32_t VirtualBufferLength,
-    _In_ BOOLEAN CopyOnDrain
+    _In_ BOOLEAN CopyOnDrain,
+    _In_opt_ uint8_t* PreallocatedBuffer
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
