@@ -35,7 +35,7 @@ PrintUsage()
     printf("\nquicip runs a public IP lookup server.\n\n");
 
     printf("Usage:\n");
-    printf("  quicipserver.exe -selfsign or -cert_hash:<...> or (-cert_file:<...> and -key_file:<...>)\n");
+    printf("  quicipserver.exe -selfsign or -cert_hash:<...> [and -cert_store:<...> | -machine] or (-cert_file:<...> and -key_file:<...>)\n");
 }
 
 QUIC_STATUS
@@ -171,7 +171,13 @@ RunServer(
             return;
         }
     } else if (TryGetValue(argc, argv, "cert_hash", &Cert)) {
-        SecurityConfig = GetSecConfigForThumbprint(MsQuic, Registration, Cert);
+        const char* StoreName = "My";
+        QUIC_CERTIFICATE_HASH_STORE_FLAGS Flags = QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE;
+        if (GetValue(argc, argv, "machine")) {
+            Flags |= QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE;
+        }
+        TryGetValue(argc, argv, "cert_store", &StoreName);
+        SecurityConfig = GetSecConfigForThumbprintAndStore(MsQuic, Registration, Flags, Cert, StoreName);
         if (SecurityConfig == nullptr) {
             printf("Failed to load certificate from hash!\n");
             return;
