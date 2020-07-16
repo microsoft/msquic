@@ -34,8 +34,11 @@ struct QuicMainStore {
 QuicMainStore* MainStore = nullptr;
 
 int
-QuicMainStart(int argc, char ** argv, QUIC_EVENT StopEvent) {
-
+QuicMainStart(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_ QUIC_EVENT StopEvent
+    ) {
     auto TestName = GetValue(argc, argv, "TestName");
     uint8_t ServerMode = 0;
     TryGetValue(argc, argv, "ServerMode", &ServerMode);
@@ -45,8 +48,7 @@ QuicMainStart(int argc, char ** argv, QUIC_EVENT StopEvent) {
         return QUIC_RUN_MISSING_TEST_TYPE;
     }
 
-    UniquePtr<QuicMainStore> LocalStore;
-    LocalStore.reset(new QuicMainStore);
+    UniquePtr<QuicMainStore> LocalStore{new QuicMainStore};
 
     if (!LocalStore || !LocalStore->MsQuicHolder.IsValid()) {
         return QUIC_RUN_FAILED_QUIC_OPEN;
@@ -75,7 +77,10 @@ QuicMainStart(int argc, char ** argv, QUIC_EVENT StopEvent) {
     return QUIC_RUN_FAILED_TEST_INITIALIZE;
 }
 
-int QuicMainStop(int Timeout) {
+int
+QuicMainStop(
+    _In_ int Timeout
+    ) {
     if (!MainStore) {
         return QUIC_RUN_SUCCESS;
     }

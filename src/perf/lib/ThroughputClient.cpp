@@ -36,36 +36,66 @@ ThroughputClient::Init(
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS ThroughputClient::Start(QUIC_EVENT StopEvnt) {
-    UniquePtr<ConnectionData> ConnData;
-    ConnData.reset(new ConnectionData);
-    QUIC_STATUS Status = MsQuic->ConnectionOpen(Session, [](auto Handle, auto Context, auto Event) -> QUIC_STATUS {
-        return ((ConnectionData*)Context)->Client->ConnectionCallback(Handle, Event, (ConnectionData*)Context);
-    }, ConnData.get(), &ConnData->Connection.Handle);
+QUIC_STATUS
+ThroughputClient::Start(
+    _In_ QUIC_EVENT StopEvnt
+    ) {
+    UniquePtr<ConnectionData> ConnData{new ConnectionData};
+    QUIC_STATUS Status =
+        MsQuic->ConnectionOpen(
+            Session,
+            [](auto Handle, auto Context, auto Event) -> QUIC_STATUS {
+                return ((ConnectionData*)Context)->Client->
+                    ConnectionCallback(
+                        Handle,
+                        Event,
+                        (ConnectionData*)Context);
+            },
+            ConnData.get(),
+            &ConnData->Connection.Handle);
 
     if (QUIC_FAILED(Status)) {
         return Status;
     }
 
-    Status = MsQuic->ConnectionStart(ConnData->Connection, AF_UNSPEC, TargetData.get(), Port);
+    Status =
+        MsQuic->ConnectionStart(
+            ConnData->Connection,
+            AF_UNSPEC,
+            TargetData.get(),
+            Port);
+
     if (QUIC_FAILED(Status)) {
         return Status;
     }
 
     auto LocalConnData = ConnData.release();
 
-    UniquePtr<StreamData> StrmData;
-    StrmData.reset(new StreamData);
+    UniquePtr<StreamData> StrmData{new StreamData};
 
-    Status = MsQuic->StreamOpen(LocalConnData->Connection, QUIC_STREAM_OPEN_FLAG_NONE, [](auto Handle, auto Context, auto Event) -> QUIC_STATUS {
-        return ((StreamData*)Context)->Client->StreamCallback(Handle, Event, (StreamData*)Context);
-    }, StrmData.get(), &StrmData->Stream.Handle);
+    Status =
+        MsQuic->StreamOpen(
+            LocalConnData->Connection,
+            QUIC_STREAM_OPEN_FLAG_NONE,
+            [](auto Handle, auto Context, auto Event) -> QUIC_STATUS {
+                return ((StreamData*)Context)->Client->
+                    StreamCallback(
+                        Handle,
+                        Event,
+                        (StreamData*)Context);
+            },
+            StrmData.get(),
+            &StrmData->Stream.Handle);
 
     if (QUIC_FAILED(Status)) {
         return Status;
     }
 
-    Status = MsQuic->StreamStart(StrmData->Stream.Handle, QUIC_STREAM_START_FLAG_NONE);
+    Status =
+        MsQuic->StreamStart(
+            StrmData->Stream.Handle,
+            QUIC_STREAM_START_FLAG_NONE);
+
     if (QUIC_FAILED(Status)) {
         return Status;
     }
@@ -73,7 +103,11 @@ QUIC_STATUS ThroughputClient::Start(QUIC_EVENT StopEvnt) {
     auto LocalStreamData = StrmData.release();
 
     if (Length == 0) {
-        return MsQuic->StreamShutdown(LocalStreamData->Stream.Handle, QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, 0);
+        return
+            MsQuic->StreamShutdown(
+                LocalStreamData->Stream.Handle,
+                QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL,
+                0);
     }
 
     // Always buffered, we'll fix this up later
@@ -92,7 +126,14 @@ QUIC_STATUS ThroughputClient::Start(QUIC_EVENT StopEvnt) {
     }
     LocalStreamData->BytesSent += Buf->Length;
 
-    Status = MsQuic->StreamSend(LocalStreamData->Stream.Handle, Buf, 1, Flags, Buf);
+    Status =
+        MsQuic->StreamSend(
+            LocalStreamData->Stream.Handle,
+            Buf,
+            1,
+            Flags,
+            Buf);
+
     if (QUIC_FAILED(Status)) {
         QUIC_FREE(RawBuf);
     }
@@ -100,7 +141,10 @@ QUIC_STATUS ThroughputClient::Start(QUIC_EVENT StopEvnt) {
     return Status;
 }
 
-QUIC_STATUS ThroughputClient::Wait(int Timeout) {
+QUIC_STATUS
+ThroughputClient::Wait(
+    _In_ int Timeout
+    ) {
     if (Timeout > 0) {
         QuicEventWaitWithTimeout(StopEvent, Timeout);
     } else {
@@ -109,7 +153,12 @@ QUIC_STATUS ThroughputClient::Wait(int Timeout) {
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS ThroughputClient::ConnectionCallback(HQUIC ConnectionHandle, QUIC_CONNECTION_EVENT* Event, ConnectionData* ConnData) {
+QUIC_STATUS
+ThroughputClient::ConnectionCallback(
+    _In_ HQUIC ConnectionHandle,
+    _Inout_ QUIC_CONNECTION_EVENT* Event,
+    _Inout_ ConnectionData* ConnData
+    ) {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
         WriteOutput("[conn][%p] Connected\n", ConnectionHandle);
@@ -123,7 +172,9 @@ QUIC_STATUS ThroughputClient::ConnectionCallback(HQUIC ConnectionHandle, QUIC_CO
         delete ConnData;
         break;
     case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
-        WriteOutput("[conn][%p] Resumption ticket received (%u bytes):\n", ConnectionHandle, Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
+        WriteOutput("[conn][%p] Resumption ticket received (%u bytes):\n",
+            ConnectionHandle,
+            Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
         for (uint32_t i = 0; i < Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength; i++) {
             WriteOutput("%.2X", (uint8_t)Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket[i]);
         }
@@ -135,7 +186,12 @@ QUIC_STATUS ThroughputClient::ConnectionCallback(HQUIC ConnectionHandle, QUIC_CO
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS ThroughputClient::StreamCallback(HQUIC StreamHandle, QUIC_STREAM_EVENT* Event, StreamData* StrmData) {
+QUIC_STATUS
+ThroughputClient::StreamCallback(
+    _In_ HQUIC StreamHandle,
+    _Inout_ QUIC_STREAM_EVENT* Event,
+    _Inout_ StreamData* StrmData
+    ) {
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
         break;
@@ -151,8 +207,6 @@ QUIC_STATUS ThroughputClient::StreamCallback(HQUIC StreamHandle, QUIC_STREAM_EVE
         break;
     }
     }
-    UNREFERENCED_PARAMETER(StreamHandle);
-    UNREFERENCED_PARAMETER(Event);
     return QUIC_STATUS_SUCCESS;
 }
 

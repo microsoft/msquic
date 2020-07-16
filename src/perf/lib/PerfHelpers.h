@@ -76,6 +76,12 @@ template<typename T>
 class UniquePtr {
 public:
     UniquePtr() noexcept = default;
+
+    explicit UniquePtr(T* _ptr) :
+        ptr{_ptr}
+    {
+    }
+
     UniquePtr(const UniquePtr& other) = delete;
     UniquePtr& operator=(const UniquePtr& other) = delete;
 
@@ -127,6 +133,12 @@ template<typename T>
 class UniquePtr<T[]> {
 public:
     UniquePtr() noexcept = default;
+
+    explicit UniquePtr(T* _ptr) :
+        ptr{_ptr}
+    {
+    }
+
     UniquePtr(const UniquePtr& other) = delete;
     UniquePtr& operator=(const UniquePtr& other) = delete;
 
@@ -661,6 +673,7 @@ struct PerfRunner {
     //
     // Start the runner. The StopEvent can be triggered to stop early
     // Passed here rather then Wait so we can synchronize off of it.
+    // This event must be kept alive until Wait is called.
     //
     virtual
     QUIC_STATUS

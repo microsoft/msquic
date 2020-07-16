@@ -17,20 +17,23 @@ Abstract:
 
 class ThroughputServer : public PerfRunner {
 public:
-    //
-    //
-    //
-    ThroughputServer(
+    ThroughputServer();
 
-        );
-
-    QUIC_STATUS Init(
+    QUIC_STATUS
+    Init(
         _In_ int argc,
         _In_reads_(argc) _Null_terminated_ char* argv[]
         ) override;
 
-    QUIC_STATUS Start(QUIC_EVENT StopEvent) override;
-    QUIC_STATUS Wait(int Timeout) override;
+    QUIC_STATUS
+    Start(
+        _In_ QUIC_EVENT StopEvent
+        ) override;
+
+    QUIC_STATUS
+    Wait(
+        int Timeout
+        ) override;
 
 private:
 
@@ -41,9 +44,25 @@ private:
         ThroughputServer* Server;
     };
 
-    QUIC_STATUS ListenerCallback(HQUIC ListenerHandle, QUIC_LISTENER_EVENT* Event);
-    QUIC_STATUS ConnectionCallback(HQUIC ConnectionHandle, QUIC_CONNECTION_EVENT* Event, ConnectionData* Connection);
-    QUIC_STATUS StreamCallback(HQUIC StreamHandle, QUIC_STREAM_EVENT* Event, StreamData* Stream);
+    QUIC_STATUS
+    ListenerCallback(
+        _In_ HQUIC ListenerHandle,
+        _Inout_ QUIC_LISTENER_EVENT* Event
+        );
+
+    QUIC_STATUS
+    ConnectionCallback(
+        _In_ HQUIC ConnectionHandle,
+        _Inout_ QUIC_CONNECTION_EVENT* Event,
+        _Inout_ ConnectionData* Connection
+        );
+
+    QUIC_STATUS
+    StreamCallback(
+        _In_ HQUIC StreamHandle,
+        _Inout_ QUIC_STREAM_EVENT* Event,
+        _Inout_ StreamData* Stream
+        );
 
     MsQuicRegistration Registration;
     MsQuicSession Session{Registration, THROUGHPUT_ALPN};

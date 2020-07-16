@@ -13,8 +13,14 @@
 
 extern
 int
-QuicMainStart(int Argc, char** Argv, QUIC_EVENT StopEvent);
+QuicMainStart(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_ QUIC_EVENT StopEvent
+    );
 
 extern
 int
-QuicMainStop(int Timeout);
+QuicMainStop(
+    _In_ int Timeout
+    );

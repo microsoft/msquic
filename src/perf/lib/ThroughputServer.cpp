@@ -41,7 +41,10 @@ ThroughputServer::Init(
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS ThroughputServer::Start(QUIC_EVENT StopEvent) {
+QUIC_STATUS
+ThroughputServer::Start(
+    _In_ QUIC_EVENT StopEvent
+    ) {
 
     QUIC_STATUS Status = Listener.Start(&Address, Function{ &ThroughputServer::ListenerCallback, this });
     if (QUIC_FAILED(Status)) {
@@ -61,7 +64,10 @@ QUIC_STATUS ThroughputServer::Start(QUIC_EVENT StopEvent) {
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS ThroughputServer::Wait(int Timeout) {
+QUIC_STATUS
+ThroughputServer::Wait(
+    _In_ int Timeout
+    ) {
     if (Timeout > 0) {
         RefCount.Wait(Timeout);
     } else {
@@ -70,23 +76,35 @@ QUIC_STATUS ThroughputServer::Wait(int Timeout) {
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS ThroughputServer::ListenerCallback(HQUIC ListenerHandle, QUIC_LISTENER_EVENT* Event) {
-    UNREFERENCED_PARAMETER(ListenerHandle);
+QUIC_STATUS
+ThroughputServer::ListenerCallback(
+    _In_ HQUIC /*ListenerHandle*/,
+    _Inout_ QUIC_LISTENER_EVENT* Event
+    ) {
     QUIC_CONNECTION_CALLBACK_HANDLER Handler;
     switch (Event->Type) {
     case QUIC_LISTENER_EVENT_NEW_CONNECTION:
         Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
-        Handler = [](auto Conn, auto Context, auto Event) -> QUIC_STATUS {
-            return ((ConnectionData*)Context)->Server->ConnectionCallback(Conn, Event, (ConnectionData*)Context);
-        };
+        Handler =
+            [](auto Conn, auto Context, auto Event) -> QUIC_STATUS {
+                return ((ConnectionData*)Context)->Server->
+                    ConnectionCallback(
+                        Conn,
+                        Event,
+                        (ConnectionData*)Context);
+            };
         MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)Handler, new ConnectionData{ this });
         break;
     }
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS ThroughputServer::ConnectionCallback(HQUIC ConnectionHandle, QUIC_CONNECTION_EVENT* Event, ConnectionData* Connection) {
-    UNREFERENCED_PARAMETER(Connection);
+QUIC_STATUS
+ThroughputServer::ConnectionCallback(
+    _In_ HQUIC ConnectionHandle,
+    _Inout_ QUIC_CONNECTION_EVENT* Event,
+    _Inout_ ConnectionData* Connection
+    ) {
     QUIC_STREAM_CALLBACK_HANDLER Handler;
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
@@ -104,9 +122,14 @@ QUIC_STATUS ThroughputServer::ConnectionCallback(HQUIC ConnectionHandle, QUIC_CO
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
         WriteOutput("[strm][%p] Peer started\n", Event->PEER_STREAM_STARTED.Stream);
-        Handler = [](auto Stream, auto Context, auto Event) -> QUIC_STATUS {
-            return ((StreamData*)Context)->Server->StreamCallback(Stream, Event, (StreamData*)Context);
-        };
+        Handler =
+            [](auto Stream, auto Context, auto Event) -> QUIC_STATUS {
+                return ((StreamData*)Context)->Server->
+                    StreamCallback(
+                        Stream,
+                        Event,
+                        (StreamData*)Context);
+            };
         MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)Handler, new StreamData{ this });
         MsQuic->ConnectionSendResumptionTicket(ConnectionHandle, QUIC_SEND_RESUMPTION_FLAG_NONE, 0, nullptr);
         break;
@@ -119,7 +142,12 @@ QUIC_STATUS ThroughputServer::ConnectionCallback(HQUIC ConnectionHandle, QUIC_CO
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS ThroughputServer::StreamCallback(HQUIC StreamHandle, QUIC_STREAM_EVENT* Event, StreamData* Stream) {
+QUIC_STATUS
+ThroughputServer::StreamCallback(
+    _In_ HQUIC StreamHandle,
+    _Inout_ QUIC_STREAM_EVENT* Event,
+    _Inout_ StreamData* Stream
+    ) {
     UNREFERENCED_PARAMETER(StreamHandle);
     UNREFERENCED_PARAMETER(Stream);
     UNREFERENCED_PARAMETER(Event);

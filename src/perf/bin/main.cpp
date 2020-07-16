@@ -21,7 +21,11 @@
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 
 int
-QuicUserMain(int argc, char** argv, bool KeyboardWait) {
+QuicUserMain(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_ bool KeyboardWait
+    ) {
     QUIC_EVENT StopEvent;
     QuicEventInitialize(&StopEvent, true, false);
 
@@ -41,7 +45,7 @@ QuicUserMain(int argc, char** argv, bool KeyboardWait) {
     return RetVal;
 }
 
-#ifdef _WIN32 
+#ifdef _WIN32
 
 class QuicDriverService {
     SC_HANDLE ScmHandle{nullptr};
@@ -165,7 +169,7 @@ public:
         _In_ QUIC_SEC_CONFIG_PARAMS* SecConfigParams
         ) {
         uint32_t Error;
-        DeviceHandle = 
+        DeviceHandle =
             CreateFileA(
                 QUIC_PERF_IOCTL_PATH,
                 GENERIC_READ | GENERIC_WRITE,
@@ -347,7 +351,13 @@ public:
     }
 };
 
-int QuicKernelMain(int argc, char** argv, bool KeyboardWait, QUIC_SEC_CONFIG_PARAMS* SelfSignedParams) {
+int
+QuicKernelMain(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_ bool KeyboardWait,
+    _In_ QUIC_SEC_CONFIG_PARAMS* SelfSignedParams
+    ) {
     size_t TotalLength = 0;
 
     // Get total length
@@ -393,7 +403,6 @@ int QuicKernelMain(int argc, char** argv, bool KeyboardWait, QUIC_SEC_CONFIG_PAR
         return QUIC_RUN_FAILED_TEST_INITIALIZE;
     }
 
-
     QuicDriverService DriverService;
     QuicDriverClient DriverClient;
     DriverService.Initialize();
@@ -407,9 +416,15 @@ int QuicKernelMain(int argc, char** argv, bool KeyboardWait, QUIC_SEC_CONFIG_PAR
     }
     printf("Ready For Connections!\n\n");
     fflush(stdout);
-    
+
     DWORD OutBufferWritten = 0;
-    auto RunSuccess = DriverClient.Read(IOCTL_QUIC_READ_DATA, OutBuffer, OutBufferSize, &OutBufferWritten);
+    auto RunSuccess =
+        DriverClient.Read(
+            IOCTL_QUIC_READ_DATA,
+            OutBuffer,
+            OutBufferSize,
+            &OutBufferWritten);
+
     if (RunSuccess) {
         printf("%s", OutBuffer);
     }
@@ -463,6 +478,6 @@ main(int argc, char** argv) {
     }
     QuicPlatformUninitialize();
     QuicPlatformSystemUnload();
-    
+
     return RetVal;
 }
