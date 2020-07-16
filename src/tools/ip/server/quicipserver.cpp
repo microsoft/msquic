@@ -5,7 +5,7 @@
 
 Abstract:
 
-    A server and client implementation for a public IP lookup protocol.
+    A server implementation for a public IP lookup protocol.
 
 TODO:
 
@@ -32,11 +32,10 @@ extern "C" void QuicTraceRundown(void) { }
 void
 PrintUsage()
 {
-    printf("\nquicip runs a public IP lookup client or server.\n\n");
+    printf("\nquicip runs a public IP lookup server.\n\n");
 
     printf("Usage:\n");
-    printf("  quicip.exe -client -target:<...> [-unsecure]\n");
-    printf("  quicip.exe -server -selfsign or -cert_hash:<...> or (-cert_file:<...> and -key_file:<...>)\n");
+    printf("  quicipserver.exe -selfsign or -cert_hash:<...> or (-cert_file:<...> and -key_file:<...>)\n");
 }
 
 QUIC_STATUS
@@ -213,143 +212,6 @@ Error:
     }
 }
 
-QUIC_ADDR PublicIp;
-
-QUIC_STATUS
-QUIC_API
-ClientStreamCallback(
-    _In_ HQUIC Stream,
-    _In_opt_ void* /* Context */,
-    _Inout_ QUIC_STREAM_EVENT* Event
-    )
-{
-    switch (Event->Type) {
-    case QUIC_STREAM_EVENT_RECEIVE:
-        if (Event->RECEIVE.AbsoluteOffset + Event->RECEIVE.TotalBufferLength <= sizeof(QUIC_ADDR)) {
-            uint64_t Offset = Event->RECEIVE.AbsoluteOffset;
-            for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
-                memcpy(
-                    ((uint8_t*)&PublicIp) + Offset,
-                    Event->RECEIVE.Buffers[i].Buffer,
-                    Event->RECEIVE.Buffers[i].Length);
-                Offset += Event->RECEIVE.Buffers[i].Length;
-            }
-        }
-        break;
-    case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN: {
-        QUIC_ADDR_STR AddrStr = { 0 };
-        QuicAddrToString(&PublicIp, &AddrStr);
-        printf("Public IP: %s\n\n", AddrStr.Address);
-        MsQuic->ConnectionShutdown(Stream, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
-        break;
-    }
-    case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
-        MsQuic->StreamClose(Stream);
-        break;
-    default:
-        break;
-    }
-    return QUIC_STATUS_SUCCESS;
-}
-
-QUIC_STATUS
-QUIC_API
-ClientConnectionCallback(
-    _In_ HQUIC Connection,
-    _In_opt_ void* /* Context */,
-    _Inout_ QUIC_CONNECTION_EVENT* Event
-    )
-{
-    switch (Event->Type) {
-    case QUIC_CONNECTION_EVENT_CONNECTED:
-        break;
-    case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
-    case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
-        break;
-    case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        MsQuic->ConnectionClose(Connection);
-        break;
-    case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
-        MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)ClientStreamCallback, nullptr);
-        break;
-    case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
-        printf("Resumption ticket received (%u bytes):\n", Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
-        for (uint32_t i = 0; i < Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength; i++) {
-            printf("%.2X", (uint8_t)Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket[i]);
-        }
-        printf("\n");
-        break;
-    default:
-        break;
-    }
-    return QUIC_STATUS_SUCCESS;
-}
-
-void
-RunClient(
-    _In_ int argc,
-    _In_reads_(argc) _Null_terminated_ char* argv[]
-    )
-{
-    QUIC_STATUS Status;
-    const uint16_t PeerStreamCount = 1;
-    const char* ResumptionTicketString = nullptr;
-    HQUIC Connection = nullptr;
-
-    if (QUIC_FAILED(Status = MsQuic->SetParam(
-            Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT,
-            sizeof(PeerStreamCount), &PeerStreamCount))) {
-        printf("SetParam(SESSION_PEER_UNIDI_STREAM_COUNT) failed, 0x%x!\n", Status);
-        goto Error;
-    }
-
-    if (QUIC_FAILED(Status = MsQuic->ConnectionOpen(Session, ClientConnectionCallback, nullptr, &Connection))) {
-        printf("ConnectionOpen failed, 0x%x!\n", Status);
-        goto Error;
-    }
-
-    if (TryGetValue(argc, argv, "ticket", &ResumptionTicketString) && ResumptionTicketString != nullptr) {
-        uint8_t ResumptionTicket[1024];
-         uint16_t TicketLength = (uint16_t)DecodeHexBuffer(ResumptionTicketString, sizeof(ResumptionTicket), ResumptionTicket);
-        if (QUIC_FAILED(Status = MsQuic->SetParam(
-                Connection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_RESUMPTION_STATE,
-                TicketLength,
-                ResumptionTicket))) {
-            printf("SetParam(QUIC_PARAM_CONN_RESUMPTION_TICKET) failed, 0x%x!\n", Status);
-            goto Error;
-        }
-    }
-
-    if (GetValue(argc, argv, "unsecure")) {
-        const uint32_t CertificateValidationFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
-        if (QUIC_FAILED(Status = MsQuic->SetParam(
-                Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-                sizeof(CertificateValidationFlags), &CertificateValidationFlags))) {
-            printf("SetParam(QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS) failed, 0x%x!\n", Status);
-            goto Error;
-        }
-    }
-
-    const char* Target;
-    if (!TryGetValue(argc, argv, "target", &Target)) {
-        printf("Must specify '-target' argument!\n");
-        goto Error;
-    }
-
-    if (QUIC_FAILED(Status = MsQuic->ConnectionStart(Connection, AF_UNSPEC, Target, UdpPort))) {
-        printf("ConnectionStart failed, 0x%x!\n", Status);
-        goto Error;
-    }
-
-Error:
-
-    if (QUIC_FAILED(Status) && Connection != nullptr) {
-        MsQuic->ConnectionClose(Connection);
-    }
-}
-
 int
 QUIC_MAIN_EXPORT
 main(
@@ -359,7 +221,6 @@ main(
 {
     QuicPlatformSystemLoad();
 
-    QUIC_SERVER_RESUMPTION_LEVEL ResumptionLevel = QUIC_SERVER_RESUME_ONLY;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     if (QUIC_FAILED(Status = QuicPlatformInitialize())) {
         printf("QuicPlatformInitialize failed, 0x%x!\n", Status);
@@ -389,24 +250,7 @@ main(
         goto Error;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->SetParam(
-            Session, QUIC_PARAM_LEVEL_SESSION,
-            QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
-            sizeof(ResumptionLevel), &ResumptionLevel))) {
-            printf("SetParam(QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL) failed, 0x%x!\n", Status);
-            goto Error;
-        }
-
-    if (GetValue(argc, argv, "help") ||
-        GetValue(argc, argv, "?")) {
-        PrintUsage();
-    } else if (GetValue(argc, argv, "client")) {
-        RunClient(argc, argv);
-    } else if (GetValue(argc, argv, "server")) {
-        RunServer(argc, argv);
-    } else {
-        PrintUsage();
-    }
+    RunServer(argc, argv);
 
 Error:
 
