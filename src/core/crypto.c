@@ -226,6 +226,41 @@ Exit:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicCryptoInitializePreshared(
+    _Inout_ QUIC_CRYPTO* Crypto,
+    _In_ const QUIC_PRESHARED_CONNECTION_INFORMATION* Info
+    )
+{
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+
+    QuicZeroMemory(Crypto, sizeof(QUIC_CRYPTO));
+    Crypto->TlsState.HandshakeComplete = TRUE;
+
+    if (!QuicCryptoTlsDecodeTransportParameters(
+            Connection,
+            Info->RemoteTransportParameters.Buffer,
+            (uint16_t)Info->RemoteTransportParameters.Length,
+            &Connection->PeerTransportParams)) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    QuicConnProcessPeerTransportParameters(Connection, TRUE);
+
+    Crypto->TlsState.ReadKey = QUIC_PACKET_KEY_1_RTT;
+    Crypto->TlsState.WriteKey = QUIC_PACKET_KEY_1_RTT;
+
+    Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT]; // TODO - Generate from traffic secret
+    Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT]; // TODO - Generate from traffic secret
+
+    // TODO - Do we need to persist ALPN?
+
+    QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE);
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoUninitialize(
     _In_ QUIC_CRYPTO* Crypto

@@ -1892,6 +1892,164 @@ Exit:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnStartPreshared(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const QUIC_PRESHARED_CONNECTION_INFORMATION* Info
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_PATH* Path = &Connection->Paths[0];
+
+    if (Connection->State.ClosedLocally || Connection->State.Started) {
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    QUIC_TEL_ASSERT(Path->Binding == NULL);
+
+    //
+    // Set up the IP addresses and UDP binding.
+    //
+
+    QUIC_DBG_ASSERT(QuicIsVersionSupported(Info->QuicVersion));
+    Connection->Stats.QuicVersion = Info->QuicVersion;
+    QuicConnOnQuicVersionSet(Connection);
+
+    if (Info->RttEstimateUs != 0) {
+        Path->GotFirstRttSample = TRUE;
+        Path->SmoothedRtt = Info->RttEstimateUs;
+        Path->RttVariance = Info->RttEstimateUs; // TODO - What to use for this?
+    }
+
+    Path->LocalAddress = Info->LocalAddress;
+    Connection->State.LocalAddressSet = TRUE;
+
+    QuicTraceEvent(
+        ConnLocalAddrAdded,
+        "[conn][%p] New Local IP: %!SOCKADDR!",
+        Connection,
+        LOG_ADDR_LEN(Path->LocalAddress),
+        (const uint8_t*)&Path->LocalAddress);
+
+    Path->RemoteAddress = Info->RemoteAddress;
+    Connection->State.RemoteAddressSet = TRUE;
+
+    QuicTraceEvent(
+        ConnRemoteAddrAdded,
+        "[conn][%p] New Remote IP: %!SOCKADDR!",
+        Connection,
+        LOG_ADDR_LEN(Path->RemoteAddress),
+        (const uint8_t*)&Path->RemoteAddress);
+
+    Connection->State.ShareBinding = Info->ShareBinding;
+    Status =
+        QuicLibraryGetBinding(
+            Connection->Session,
+            Connection->State.ShareBinding,
+            FALSE,
+            &Path->LocalAddress,
+            &Path->RemoteAddress,
+            &Path->Binding);
+    if (QUIC_FAILED(Status)) {
+        goto Exit;
+    }
+
+    //
+    // Set up the connection IDs.
+    //
+
+    QUIC_CID_HASH_ENTRY* SourceCid;
+    if (Connection->State.ShareBinding) {
+        SourceCid =
+            QuicCidNewSource(
+                Connection,
+                (uint8_t)Info->LocalConnectionID.Length,
+                Info->LocalConnectionID.Buffer);
+    } else {
+        SourceCid = QuicCidNewNullSource(Connection);
+    }
+    if (SourceCid == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
+
+    Connection->NextSourceCidSequenceNumber++;
+    QuicTraceEvent(
+        ConnSourceCidAdded,
+        "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
+        Connection,
+        SourceCid->CID.SequenceNumber,
+        SourceCid->CID.Length,
+        SourceCid->CID.Data);
+    QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
+
+    if (!QuicBindingAddSourceConnectionID(Path->Binding, SourceCid)) {
+        QuicLibraryReleaseBinding(Path->Binding);
+        Path->Binding = NULL;
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
+
+    QUIC_DBG_ASSERT(Path->DestCid != NULL);
+    QuicTraceEvent(
+        ConnDestCidRemoved,
+        "[conn][%p] (SeqNum=%llu) Removed Destination CID: %!CID!",
+        Connection,
+        Path->DestCid->CID.SequenceNumber,
+        Path->DestCid->CID.Length,
+        Path->DestCid->CID.Data);
+    QuicListEntryRemove(&Path->DestCid->Link);
+    QUIC_FREE(Path->DestCid);
+
+    Path->DestCid =
+        QuicCidNewDestination(
+            (uint8_t)Info->RemoteConnectionID.Length,
+            Info->RemoteConnectionID.Buffer);
+    if (Path->DestCid == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
+    Path->DestCid->CID.UsedLocally = TRUE;
+    QuicListInsertTail(&Connection->DestCids, &Path->DestCid->Link);
+    QuicTraceEvent(
+        ConnDestCidAdded,
+        "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
+        Connection,
+        Path->DestCid->CID.SequenceNumber,
+        Path->DestCid->CID.Length,
+        Path->DestCid->CID.Data);
+
+    //
+    // Initialize the rest of the connection/handshake state.
+    //
+
+    Connection->State.UsingPresharedInfo = TRUE;
+    Status = QuicCryptoInitializePreshared(&Connection->Crypto, Info);
+    if (QUIC_FAILED(Status)) {
+        goto Exit;
+    }
+
+    Connection->State.Started = TRUE;
+    Connection->Stats.Timing.Start = QuicTimeUs64();
+    QuicTraceEvent(
+        ConnHandshakeStart,
+        "[conn][%p] Handshake start",
+        Connection);
+
+Exit:
+
+    if (QUIC_FAILED(Status)) {
+        QuicConnCloseLocally(
+            Connection,
+            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+            (uint64_t)Status,
+            NULL);
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnRestart(
     _In_ QUIC_CONNECTION* Connection,
@@ -4572,6 +4730,23 @@ QuicConnRecvFrames(
                 return FALSE;
             }
 
+            if (!Connection->Crypto.TlsState.HandshakeComplete) {
+                QUIC_DBG_ASSERT(Connection->State.UsingPresharedInfo);
+
+                QUIC_CONNECTION_EVENT Event;
+                Event.Type = QUIC_CONNECTION_EVENT_CONNECTED;
+                Event.CONNECTED.SessionResumed = FALSE;
+                Event.CONNECTED.NegotiatedAlpnLength = 0;
+                Event.CONNECTED.NegotiatedAlpn = NULL; // TODO - Necessary?
+                QuicTraceLogConnVerbose(
+                    IndicateConnected,
+                    Connection,
+                    "Indicating QUIC_CONNECTION_EVENT_CONNECTED (Resume=%hhu)",
+                    Event.CONNECTED.SessionResumed);
+                (void)QuicConnIndicateEvent(Connection, &Event);
+                QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PMTUD);
+            }
+
             if (!Connection->State.HandshakeConfirmed) {
                 QuicTraceLogConnInfo(
                     HandshakeConfirmedFrame,
@@ -6460,6 +6635,13 @@ QuicConnProcessApiOperation(
                 ApiCtx->CONN_START.ServerName,
                 ApiCtx->CONN_START.ServerPort);
         ApiCtx->CONN_START.ServerName = NULL;
+        break;
+
+    case QUIC_API_TYPE_CONN_START_PRESHARED:
+        Status =
+            QuicConnStartPreshared(
+                Connection,
+                ApiCtx->CONN_START_PRESHARED.Info);
         break;
 
     case QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET:

@@ -150,6 +150,12 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN ResumptionEnabled : 1;
 
+        //
+        // Indicates that this connection is using preshared information to
+        // connect.
+        //
+        BOOLEAN UsingPresharedInfo : 1;
+
 #ifdef QuicVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).

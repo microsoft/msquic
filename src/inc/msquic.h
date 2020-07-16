@@ -295,6 +295,26 @@ typedef struct QUIC_LISTENER_STATISTICS {
 } QUIC_LISTENER_STATISTICS;
 
 //
+// Information used to create a preshared connection with a peer.
+//
+
+typedef struct QUIC_PRESHARED_CONNECTION_INFORMATION {
+
+    QUIC_ADDR LocalAddress;
+    QUIC_ADDR RemoteAddress;
+    uint32_t QuicVersion;
+    QUIC_BUFFER Alpn;
+    QUIC_BUFFER LocalConnectionID;
+    QUIC_BUFFER RemoteConnectionID;
+    QUIC_BUFFER TrafficSecret;
+    QUIC_BUFFER RemoteTransportParameters;
+    uint32_t RttEstimateUs;
+    BOOLEAN IsServer : 1;
+    BOOLEAN ShareBinding : 1;
+
+} QUIC_PRESHARED_CONNECTION_INFORMATION;
+
+//
 // Functions for associating application contexts with QUIC handles.
 //
 
@@ -798,6 +818,17 @@ QUIC_STATUS
     );
 
 //
+// Uses the preshared information to create a new connection with the peer.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_CONNECTION_START_PRESHARED_FN)(
+    _In_ _Pre_defensive_ HQUIC Connection,
+    _In_ const QUIC_PRESHARED_CONNECTION_INFORMATION* Info
+    );
+
+//
 // Uses the QUIC (server) handle to send a resumption ticket to the remote
 // client, optionally with app-specific data useful during resumption.
 //
@@ -1013,6 +1044,7 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_CLOSE_FN            ConnectionClose;
     QUIC_CONNECTION_SHUTDOWN_FN         ConnectionShutdown;
     QUIC_CONNECTION_START_FN            ConnectionStart;
+    QUIC_CONNECTION_START_PRESHARED_FN  ConnectionStartPreshared;
     QUIC_CONNECTION_SEND_RESUMPTION_FN  ConnectionSendResumptionTicket;
 
     QUIC_STREAM_OPEN_FN                 StreamOpen;
