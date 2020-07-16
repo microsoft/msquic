@@ -106,7 +106,7 @@ MsQuicGetPublicIP(
     HQUIC Session = nullptr;
     HQUIC Connection = nullptr;
 
-    CALLBACK_CONTEXT Context = { nullptr, FALSE, LocalAddress, PublicAddress };
+    CALLBACK_CONTEXT Context = { NULL, FALSE, LocalAddress, PublicAddress };
 
     if (QUIC_FAILED(Status = MsQuicOpen(&Context.MsQuic))) {
         printf("MsQuicOpen failed, 0x%x!\n", Status);
