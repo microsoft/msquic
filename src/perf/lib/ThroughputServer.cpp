@@ -6,23 +6,28 @@
 #include "msquichelper.h"
 #include "ThroughputCommon.h"
 
-ThroughputServer::ThroughputServer(int argc, char** argv) {
-    if (!Listener.IsValid()) {
-        return;
+ThroughputServer::ThroughputServer() {
+    if (Session.IsValid()) {
+        Session.SetAutoCleanup();
     }
-    Session.SetAutoCleanup();
+}
 
+QUIC_STATUS
+ThroughputServer::Init(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[]
+    ) {
     uint16_t port = THROUGHPUT_DEFAULT_PORT;
     TryGetValue(argc, argv, "port", &port);
 
     const char* localAddress = nullptr;
     if (!TryGetValue(argc, argv, "listen", &localAddress)) {
         WriteOutput("Server mode must have -listen\n");
-        return;
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
     if (!ConvertArgToAddress(localAddress, port, &Address)) {
         WriteOutput("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", localAddress);
-        return;
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     TryGetValue(argc, argv, "connections", &NumberOfConnections);
@@ -30,18 +35,14 @@ ThroughputServer::ThroughputServer(int argc, char** argv) {
     QUIC_STATUS Status = SecurityConfig.Initialize(argc, argv, Registration);
 
     if (QUIC_FAILED(Status)) {
-        return;
+        return Status;
     }
 
-    ConstructionSuccess = true;
-}
-
-QUIC_STATUS ThroughputServer::Init() {
-    return ConstructionSuccess ? QUIC_STATUS_SUCCESS : QUIC_STATUS_INVALID_STATE;
+    return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS ThroughputServer::Start(QUIC_EVENT StopEvent) {
-    
+
     QUIC_STATUS Status = Listener.Start(&Address, Function{ &ThroughputServer::ListenerCallback, this });
     if (QUIC_FAILED(Status)) {
         return Status;
@@ -60,7 +61,7 @@ QUIC_STATUS ThroughputServer::Start(QUIC_EVENT StopEvent) {
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS ThroughputServer::Stop(int Timeout) {
+QUIC_STATUS ThroughputServer::Wait(int Timeout) {
     if (Timeout > 0) {
         RefCount.Wait(Timeout);
     } else {

@@ -13,10 +13,10 @@ bool IsSelfSignedValid{ false };
 
 struct CMsQuic {
     CMsQuic() :
-        Result{MsQuicOpen(&MsQuic)} 
+        Result{MsQuicOpen(&MsQuic)}
     {
     }
-    ~CMsQuic() 
+    ~CMsQuic()
     {
         if (IsValid()) {
             MsQuicClose(MsQuic);
@@ -28,7 +28,7 @@ struct CMsQuic {
 
 struct QuicMainStore {
     CMsQuic MsQuicHolder;
-    UniquePtr<TestRunner> TestToRun;
+    UniquePtr<PerfRunner> TestToRun;
 };
 
 QuicMainStore* MainStore = nullptr;
@@ -56,16 +56,16 @@ QuicMainStart(int argc, char ** argv, QUIC_EVENT StopEvent) {
 
     if (IsValue(TestName, "Throughput")) {
         if (ServerMode) {
-            TestToRun.reset(new ThroughputServer{argc, argv});
+            TestToRun.reset(new ThroughputServer{});
         } else {
-            TestToRun.reset(new ThroughputClient{argc, argv});
+            TestToRun.reset(new ThroughputClient{});
         }
     } else {
         return QUIC_RUN_UNKNOWN_TEST_TYPE;
     }
 
     if (TestToRun) {
-        if (QUIC_SUCCEEDED(TestToRun->Init())) {
+        if (QUIC_SUCCEEDED(TestToRun->Init(argc, argv))) {
             MainStore = LocalStore.release();
             return TestToRun->Start(StopEvent);
         }
@@ -80,7 +80,7 @@ int QuicMainStop(int Timeout) {
         return QUIC_RUN_SUCCESS;
     }
 
-    QUIC_STATUS Status = MainStore->TestToRun->Stop(Timeout);
+    QUIC_STATUS Status = MainStore->TestToRun->Wait(Timeout);
     delete MainStore;
     if (QUIC_SUCCEEDED(Status)) {
         return QUIC_RUN_SUCCESS;

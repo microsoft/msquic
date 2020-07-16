@@ -1,15 +1,36 @@
+/*++
+
+    Copyright (c) Microsoft Corporation.
+    Licensed under the MIT License.
+
+Abstract:
+
+    QUIC Perf Throughput Server declaration. Definites the functions and
+    variables used in the ThroughputServer class.
+
+--*/
+
 #pragma once
 
 #include "PerfHelpers.h"
 #include "ThroughputCommon.h"
 
-class ThroughputServer : public TestRunner {
+class ThroughputServer : public PerfRunner {
 public:
-    ThroughputServer(int argc, char** argv);
+    //
+    //
+    //
+    ThroughputServer(
 
-    QUIC_STATUS Init() override;
+        );
+
+    QUIC_STATUS Init(
+        _In_ int argc,
+        _In_reads_(argc) _Null_terminated_ char* argv[]
+        ) override;
+
     QUIC_STATUS Start(QUIC_EVENT StopEvent) override;
-    QUIC_STATUS Stop(int Timeout) override;
+    QUIC_STATUS Wait(int Timeout) override;
 
 private:
 
@@ -30,6 +51,5 @@ private:
     MsQuicSecurityConfig SecurityConfig;
     QUIC_ADDR Address{};
     uint32_t NumberOfConnections {0};
-    bool ConstructionSuccess {false};
     CountHelper RefCount;
 };

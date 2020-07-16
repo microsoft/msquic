@@ -6,19 +6,24 @@
 #include "msquichelper.h"
 #include "ThroughputCommon.h"
 
-ThroughputClient::ThroughputClient(int argc, char** argv) {
-    if (!Session.IsValid()) {
-        return;
+ThroughputClient::ThroughputClient() {
+    if (Session.IsValid()) {
+        Session.SetAutoCleanup();
     }
-    Session.SetAutoCleanup();
+}
 
+QUIC_STATUS
+ThroughputClient::Init(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[]
+    ) {
     Port = THROUGHPUT_DEFAULT_PORT;
     TryGetValue(argc, argv, "port", &Port);
 
     const char* Target;
     if (!TryGetValue(argc, argv, "target", &Target)) {
         WriteOutput("Must specify '-target' argument!\n");
-        return;
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     TryGetValue(argc, argv, "length", &Length);
@@ -28,11 +33,7 @@ ThroughputClient::ThroughputClient(int argc, char** argv) {
     QuicCopyMemory(TargetData.get(), Target, Len);
     TargetData[Len] = '\0';
 
-    ConstructionSuccess = true;
-}
-
-QUIC_STATUS ThroughputClient::Init() {
-    return ConstructionSuccess ? QUIC_STATUS_SUCCESS : QUIC_STATUS_INVALID_STATE;
+    return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS ThroughputClient::Start(QUIC_EVENT StopEvnt) {
@@ -44,7 +45,7 @@ QUIC_STATUS ThroughputClient::Start(QUIC_EVENT StopEvnt) {
 
     if (QUIC_FAILED(Status)) {
         return Status;
-    } 
+    }
 
     Status = MsQuic->ConnectionStart(ConnData->Connection, AF_UNSPEC, TargetData.get(), Port);
     if (QUIC_FAILED(Status)) {
@@ -66,11 +67,11 @@ QUIC_STATUS ThroughputClient::Start(QUIC_EVENT StopEvnt) {
 
     Status = MsQuic->StreamStart(StrmData->Stream.Handle, QUIC_STREAM_START_FLAG_NONE);
     if (QUIC_FAILED(Status)) {
-        return Status; 
+        return Status;
     }
 
     auto LocalStreamData = StrmData.release();
-    
+
     if (Length == 0) {
         return MsQuic->StreamShutdown(LocalStreamData->Stream.Handle, QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, 0);
     }
@@ -90,7 +91,7 @@ QUIC_STATUS ThroughputClient::Start(QUIC_EVENT StopEvnt) {
         Buf->Length = (uint32_t)Length;
     }
     LocalStreamData->BytesSent += Buf->Length;
-    
+
     Status = MsQuic->StreamSend(LocalStreamData->Stream.Handle, Buf, 1, Flags, Buf);
     if (QUIC_FAILED(Status)) {
         QUIC_FREE(RawBuf);
@@ -99,7 +100,7 @@ QUIC_STATUS ThroughputClient::Start(QUIC_EVENT StopEvnt) {
     return Status;
 }
 
-QUIC_STATUS ThroughputClient::Stop(int Timeout) {
+QUIC_STATUS ThroughputClient::Wait(int Timeout) {
     if (Timeout > 0) {
         QuicEventWaitWithTimeout(StopEvent, Timeout);
     } else {
