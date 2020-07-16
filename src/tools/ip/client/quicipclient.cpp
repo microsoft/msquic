@@ -9,6 +9,7 @@ Abstract:
 
 --*/
 
+#include "msquichelper.h"
 #include "quicip.h"
 
 int

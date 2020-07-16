@@ -14,11 +14,13 @@ TODO:
 
 --*/
 
-#include <msquichelper.h>
+#pragma once
 
-const QUIC_API_TABLE* MsQuic;
+#include <msquic.h>
+#include <stdio.h>
 
 typedef struct CALLBACK_CONTEXT {
+    const QUIC_API_TABLE* MsQuic;
     BOOLEAN Success;
     QUIC_ADDR* LocalAdrress;
     QUIC_ADDR* PublicAddress;
@@ -48,13 +50,13 @@ ClientStreamCallback(
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN: {
         Context->Success = TRUE;
-        MsQuic->ConnectionShutdown(Stream, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+        Context->MsQuic->ConnectionShutdown(Stream, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         uint32_t LocalAddressLength = sizeof(QUIC_ADDR);
-        MsQuic->GetParam(Stream, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_LOCAL_ADDRESS, &LocalAddressLength, Context->LocalAdrress);
+        Context->MsQuic->GetParam(Stream, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_LOCAL_ADDRESS, &LocalAddressLength, Context->LocalAdrress);
         break;
     }
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
-        MsQuic->StreamClose(Stream);
+        Context->MsQuic->StreamClose(Stream);
         break;
     default:
         break;
@@ -66,16 +68,17 @@ QUIC_STATUS
 QUIC_API
 ClientConnectionCallback(
     _In_ HQUIC Connection,
-    _In_opt_ void* Context,
+    _In_opt_ void* _Context,
     _Inout_ QUIC_CONNECTION_EVENT* Event
     )
 {
+    CALLBACK_CONTEXT* Context = (CALLBACK_CONTEXT*)_Context;
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        MsQuic->ConnectionClose(Connection);
+        Context->MsQuic->ConnectionClose(Connection);
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
-        MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)ClientStreamCallback, Context);
+        Context->MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)ClientStreamCallback, Context);
         break;
     default:
         break;
@@ -93,7 +96,7 @@ MsQuicGetPublicIP(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    const QUIC_REGISTRATION_CONFIG RegConfig = { "ip", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
+    const QUIC_REGISTRATION_CONFIG RegConfig = { "ip", QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER };
     const QUIC_BUFFER Alpn = { sizeof("ip") - 1, (uint8_t*)"ip" };
     const uint16_t UdpPort = 4444;
     const uint64_t IdleTimeoutMs = 2000;
@@ -103,71 +106,71 @@ MsQuicGetPublicIP(
     HQUIC Session = nullptr;
     HQUIC Connection = nullptr;
 
-    CALLBACK_CONTEXT Context = { FALSE, LocalAddress, PublicAddress };
+    CALLBACK_CONTEXT Context = { nullptr, FALSE, LocalAddress, PublicAddress };
 
-    if (QUIC_FAILED(Status = MsQuicOpen(&MsQuic))) {
+    if (QUIC_FAILED(Status = MsQuicOpen(&Context.MsQuic))) {
         printf("MsQuicOpen failed, 0x%x!\n", Status);
         goto Error;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->RegistrationOpen(&RegConfig, &Registration))) {
+    if (QUIC_FAILED(Status = Context.MsQuic->RegistrationOpen(&RegConfig, &Registration))) {
         printf("RegistrationOpen failed, 0x%x!\n", Status);
         goto Error;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->SessionOpen(Registration, &Alpn, 1, nullptr, &Session))) {
+    if (QUIC_FAILED(Status = Context.MsQuic->SessionOpen(Registration, &Alpn, 1, nullptr, &Session))) {
         printf("SessionOpen failed, 0x%x!\n", Status);
         goto Error;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_IDLE_TIMEOUT, sizeof(IdleTimeoutMs), &IdleTimeoutMs))) {
+    if (QUIC_FAILED(Status = Context.MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_IDLE_TIMEOUT, sizeof(IdleTimeoutMs), &IdleTimeoutMs))) {
         printf("SetParam(SESSION_IDLE_TIMEOUT) failed, 0x%x!\n", Status);
         goto Error;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount))) {
+    if (QUIC_FAILED(Status = Context.MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount))) {
         printf("SetParam(SESSION_PEER_UNIDI_STREAM_COUNT) failed, 0x%x!\n", Status);
         goto Error;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->ConnectionOpen(Session, ClientConnectionCallback, &Context, &Connection))) {
+    if (QUIC_FAILED(Status = Context.MsQuic->ConnectionOpen(Session, ClientConnectionCallback, &Context, &Connection))) {
         printf("ConnectionOpen failed, 0x%x!\n", Status);
         goto Error;
     }
 
     if (Unsecure) {
         const uint32_t CertificateValidationFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
-        if (QUIC_FAILED(Status = MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS, sizeof(CertificateValidationFlags), &CertificateValidationFlags))) {
+        if (QUIC_FAILED(Status = Context.MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS, sizeof(CertificateValidationFlags), &CertificateValidationFlags))) {
             printf("SetParam(CONN_CERT_VALIDATION_FLAGS) failed, 0x%x!\n", Status);
             goto Error;
         }
     }
 
     if (AF_UNSPEC != QuicAddrGetFamily(LocalAddress)) {
-        if (QUIC_FAILED(Status = MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_LOCAL_ADDRESS, sizeof(QUIC_ADDR), LocalAddress))) {
+        if (QUIC_FAILED(Status = Context.MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_LOCAL_ADDRESS, sizeof(QUIC_ADDR), LocalAddress))) {
             printf("SetParam(CONN_LOCAL_ADDRESS) failed, 0x%x!\n", Status);
             goto Error;
         }
     }
 
-    if (QUIC_FAILED(Status = MsQuic->ConnectionStart(Connection, QuicAddrGetFamily(LocalAddress), Target, UdpPort))) {
+    if (QUIC_FAILED(Status = Context.MsQuic->ConnectionStart(Connection, QuicAddrGetFamily(LocalAddress), Target, UdpPort))) {
         printf("ConnectionStart failed, 0x%x!\n", Status);
         goto Error;
     }
 
 Error:
 
-    if (MsQuic) {
+    if (Context.MsQuic) {
         if (QUIC_FAILED(Status) && Connection) {
-            MsQuic->ConnectionClose(Connection);
+            Context.MsQuic->ConnectionClose(Connection);
         }
         if (Session) {
-            MsQuic->SessionClose(Session); // Waits on all connections to be cleaned up.
+            Context.MsQuic->SessionClose(Session); // Waits on all connections to be cleaned up.
         }
         if (Registration) {
-            MsQuic->RegistrationClose(Registration);
+            Context.MsQuic->RegistrationClose(Registration);
         }
-        MsQuicClose(MsQuic);
+        MsQuicClose(Context.MsQuic);
     }
 
     return Context.Success;
