@@ -15,8 +15,6 @@ Abstract:
 #include "range.c.clog.h"
 #endif
 
-#define INITIAL_SUBRANGE_COUNT 8
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicRangeInitialize(
@@ -25,18 +23,23 @@ QuicRangeInitialize(
     )
 {
     Range->UsedLength = 0;
-    Range->AllocLength = INITIAL_SUBRANGE_COUNT;
+    Range->AllocLength = QUIC_RANGE_INITIAL_SUB_COUNT;
     Range->MaxAllocSize = MaxAllocSize;
-    QUIC_FRE_ASSERT(sizeof(QUIC_SUBRANGE) * INITIAL_SUBRANGE_COUNT < MaxAllocSize);
-    Range->SubRanges = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SUBRANGE) * INITIAL_SUBRANGE_COUNT);
+    QUIC_FRE_ASSERT(sizeof(QUIC_SUBRANGE) * QUIC_RANGE_INITIAL_SUB_COUNT < MaxAllocSize);
+#if QUIC_RANGE_PREALLOC_SUB_RANGES
+    Range->SubRanges = Range->PreAllocSubRanges;
+    return QUIC_STATUS_SUCCESS;
+#else
+    Range->SubRanges = QUIC_ALLOC_NONPAGED(sizeof(QUIC_SUBRANGE) * QUIC_RANGE_INITIAL_SUB_COUNT);
     if (Range->SubRanges == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "range",
-            sizeof(QUIC_SUBRANGE) * INITIAL_SUBRANGE_COUNT);
+            sizeof(QUIC_SUBRANGE) * QUIC_RANGE_INITIAL_SUB_COUNT);
     }
     return (Range->SubRanges == NULL) ? QUIC_STATUS_OUT_OF_MEMORY : QUIC_STATUS_SUCCESS;
+#endif
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -45,7 +48,13 @@ QuicRangeUninitialize(
     _In_ QUIC_RANGE* Range
     )
 {
+#if QUIC_RANGE_PREALLOC_SUB_RANGES
+    if (Range->AllocLength != QUIC_RANGE_INITIAL_SUB_COUNT) {
+        QUIC_FREE(Range->SubRanges);
+    }
+#else
     QUIC_FREE(Range->SubRanges);
+#endif
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -115,7 +124,13 @@ QuicRangeGrow(
             (Range->UsedLength - NextIndex) * sizeof(QUIC_SUBRANGE));
     }
 
+#if QUIC_RANGE_PREALLOC_SUB_RANGES
+    if (Range->AllocLength != QUIC_RANGE_INITIAL_SUB_COUNT) {
+        QUIC_FREE(Range->SubRanges);
+    }
+#else
     QUIC_FREE(Range->SubRanges);
+#endif
     Range->SubRanges = NewSubRanges;
     Range->AllocLength = NewAllocLength;
     Range->UsedLength++; // For the next write index.
@@ -196,28 +211,41 @@ QuicRangeRemoveSubranges(
 
     Range->UsedLength -= Count;
 
-    BOOLEAN Reallocated = FALSE;
-    if (Range->AllocLength >= INITIAL_SUBRANGE_COUNT * 2 &&
+    if (Range->AllocLength >= QUIC_RANGE_INITIAL_SUB_COUNT * 2 &&
         Range->UsedLength < Range->AllocLength / 4) {
         //
         // Shrink
         //
         uint32_t NewAllocLength = Range->AllocLength / 2;
-        QUIC_SUBRANGE* NewSubRanges =
-            QUIC_ALLOC_NONPAGED(sizeof(QUIC_SUBRANGE) * NewAllocLength);
-        if (NewSubRanges != NULL) {
-            memcpy(
-                NewSubRanges,
-                Range->SubRanges,
-                Range->UsedLength * sizeof(QUIC_SUBRANGE));
-            QUIC_FREE(Range->SubRanges);
-            Range->SubRanges = NewSubRanges;
-            Range->AllocLength = NewAllocLength;
-            Reallocated = TRUE;
+        QUIC_SUBRANGE* NewSubRanges;
+#if QUIC_RANGE_PREALLOC_SUB_RANGES
+        if (NewAllocLength == QUIC_RANGE_INITIAL_SUB_COUNT) {
+            NewSubRanges = Range->PreAllocSubRanges;
+        } else {
+            NewSubRanges =
+                QUIC_ALLOC_NONPAGED(sizeof(QUIC_SUBRANGE) * NewAllocLength);
+            if (NewSubRanges == NULL) {
+                return FALSE;
+            }
         }
+#else
+        NewSubRanges =
+            QUIC_ALLOC_NONPAGED(sizeof(QUIC_SUBRANGE) * NewAllocLength);
+        if (NewSubRanges == NULL) {
+            return FALSE;
+        }
+#endif
+        memcpy(
+            NewSubRanges,
+            Range->SubRanges,
+            Range->UsedLength * sizeof(QUIC_SUBRANGE));
+        QUIC_FREE(Range->SubRanges);
+        Range->SubRanges = NewSubRanges;
+        Range->AllocLength = NewAllocLength;
+        return TRUE;
     }
 
-    return Reallocated;
+    return FALSE;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
