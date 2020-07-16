@@ -270,7 +270,7 @@ ClientConnectionCallback(
         MsQuic->ConnectionClose(Connection);
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
-        MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, ClientStreamCallback, nullptr);
+        MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)ClientStreamCallback, nullptr);
         break;
     case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
         printf("Resumption ticket received (%u bytes):\n", Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
