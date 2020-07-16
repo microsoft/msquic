@@ -442,6 +442,10 @@ QuicSettingsLoad(
             QUIC_SETTING_STREAM_RECV_BUFFER_SIZE,
             (uint8_t*)&Settings->StreamRecvBufferDefault,
             &ValueLen);
+        if (!IS_POWER_OF_TWO(Settings->StreamRecvBufferDefault) ||
+            Settings->StreamRecvBufferDefault < QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
+            Settings->StreamRecvBufferDefault = QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE;
+        }
     }
 
     if (!Settings->AppSet.ConnFlowControlWindow) {
