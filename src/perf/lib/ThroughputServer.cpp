@@ -10,9 +10,7 @@ ThroughputServer::ThroughputServer(int argc, char** argv) {
     if (!Listener.IsValid()) {
         return;
     }
-    if (Session.IsValid()) {
-        Session.SetAutoCleanup();
-    }
+    Session.SetAutoCleanup();
 
     uint16_t port = THROUGHPUT_DEFAULT_PORT;
     TryGetValue(argc, argv, "port", &port);
@@ -39,24 +37,34 @@ ThroughputServer::ThroughputServer(int argc, char** argv) {
 }
 
 QUIC_STATUS ThroughputServer::Init() {
-    return QUIC_STATUS_SUCCESS;
+    return ConstructionSuccess ? QUIC_STATUS_SUCCESS : QUIC_STATUS_INVALID_STATE;
 }
 
-QUIC_STATUS ThroughputServer::Run(QUIC_EVENT StopEvent, QUIC_EVENT ReadyEvent) {
+QUIC_STATUS ThroughputServer::Start(QUIC_EVENT StopEvent) {
     
     QUIC_STATUS Status = Listener.Start(&Address, Function{ &ThroughputServer::ListenerCallback, this });
     if (QUIC_FAILED(Status)) {
         return Status;
     }
+    RefCount = CountHelper{StopEvent};
     if (NumberOfConnections > 0) {
-        CountHelper RefCounter{StopEvent};
         for (uint32_t i = 0; i < NumberOfConnections; i++) {
-            RefCounter.AddItem();
+            RefCount.AddItem();
         }
-        QuicEventSet(ReadyEvent);
-        RefCounter.WaitForever();
     } else {
-        QuicEventWaitForever(StopEvent);
+        //
+        // Add a single item so we can wait on the Count Helper
+        //
+        RefCount.AddItem();
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+QUIC_STATUS ThroughputServer::Stop(int Timeout) {
+    if (Timeout > 0) {
+        RefCount.Wait(Timeout);
+    } else {
+        RefCount.WaitForever();
     }
     return QUIC_STATUS_SUCCESS;
 }
@@ -91,6 +99,7 @@ QUIC_STATUS ThroughputServer::ConnectionCallback(HQUIC ConnectionHandle, QUIC_CO
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         WriteOutput("[conn][%p] All done\n", ConnectionHandle);
         MsQuic->ConnectionClose(ConnectionHandle);
+        delete Connection;
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
         WriteOutput("[strm][%p] Peer started\n", Event->PEER_STREAM_STARTED.Stream);
@@ -113,5 +122,6 @@ QUIC_STATUS ThroughputServer::StreamCallback(HQUIC StreamHandle, QUIC_STREAM_EVE
     UNREFERENCED_PARAMETER(StreamHandle);
     UNREFERENCED_PARAMETER(Stream);
     UNREFERENCED_PARAMETER(Event);
+    // TODO Remember to delete stram at shutdown complete
     return QUIC_STATUS_SUCCESS;
 }

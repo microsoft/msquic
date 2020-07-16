@@ -36,6 +36,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="quicmain.cpp" />
+    <ClCompile Include="ThroughputClient.cpp" />
     <ClCompile Include="ThroughputServer.cpp" />
   </ItemGroup>
   <ItemGroup>

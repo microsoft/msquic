@@ -149,11 +149,11 @@ public:
         }
     }
 
-    void reset(T* ptr) noexcept {
+    void reset(T* _ptr) noexcept {
         if (this->ptr) {
             delete[] this->ptr;
         }
-        this->ptr = ptr;
+        this->ptr = _ptr;
     }
 
     T* release() noexcept {
@@ -554,6 +554,7 @@ struct ListenerScope {
     ListenerScope() : Handle(nullptr) { }
     ListenerScope(HQUIC handle) : Handle(handle) { }
     ~ListenerScope() { if (Handle) { MsQuic->ListenerClose(Handle); } }
+    operator HQUIC() const { return Handle; }
 };
 
 struct ConnectionScope {
@@ -561,6 +562,7 @@ struct ConnectionScope {
     ConnectionScope() : Handle(nullptr) { }
     ConnectionScope(HQUIC handle) : Handle(handle) { }
     ~ConnectionScope() { if (Handle) { MsQuic->ConnectionClose(Handle); } }
+    operator HQUIC() const { return Handle; }
 };
 
 struct StreamScope {
@@ -568,6 +570,7 @@ struct StreamScope {
     StreamScope() : Handle(nullptr) { }
     StreamScope(HQUIC handle) : Handle(handle) { }
     ~StreamScope() { if (Handle) { MsQuic->StreamClose(Handle); } }
+    operator HQUIC() const { return Handle; }
 };
 
 struct EventScope {
@@ -575,6 +578,7 @@ struct EventScope {
     EventScope() { QuicEventInitialize(&Handle, FALSE, FALSE); }
     EventScope(QUIC_EVENT event) : Handle(event) { }
     ~EventScope() { QuicEventUninitialize(Handle); }
+    operator QUIC_EVENT() const { return Handle; }
 };
 
 struct QuicBufferScope {
@@ -594,6 +598,9 @@ struct CountHelper {
     long RefCount;
 
     QUIC_EVENT Done;
+
+    CountHelper() :
+        RefCount{1}, Done{} {}
 
     CountHelper(QUIC_EVENT Done) :
         RefCount{1}, Done{Done} { }
@@ -636,9 +643,9 @@ struct CountHelper {
 
 struct TestRunner {
     virtual ~TestRunner() = default;
-    virtual bool IsValid() const = 0;
     virtual QUIC_STATUS Init() = 0;
-    virtual QUIC_STATUS Run(QUIC_EVENT StopEvent, QUIC_EVENT ReadyEvent) = 0;
+    virtual QUIC_STATUS Start(QUIC_EVENT StopEvent) = 0;
+    virtual QUIC_STATUS Stop(int Timeout) = 0;
 };
 
 //

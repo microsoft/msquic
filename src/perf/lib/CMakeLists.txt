@@ -7,6 +7,7 @@ include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
 set(SOURCES
     quicmain.cpp
     ThroughputServer.cpp
+    ThroughputClient.cpp
 )
 
 include_directories(${PROJECT_SOURCE_DIR}/src/test)

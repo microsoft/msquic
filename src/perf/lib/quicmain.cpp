@@ -5,6 +5,7 @@
 #include "quic_driver_run.h"
 
 #include "ThroughputServer.h"
+#include "ThroughputClient.h"
 
 const QUIC_API_TABLE* MsQuic;
 uint8_t SelfSignedSecurityHash[20];
@@ -25,8 +26,15 @@ struct CMsQuic {
     QUIC_STATUS Result;
 };
 
+struct QuicMainStore {
+    CMsQuic MsQuicHolder;
+    UniquePtr<TestRunner> TestToRun;
+};
+
+QuicMainStore* MainStore = nullptr;
+
 int
-QuicMain(int argc, char ** argv, QUIC_EVENT StopEvent, QUIC_EVENT ReadyEvent) {
+QuicMainStart(int argc, char ** argv, QUIC_EVENT StopEvent) {
 
     auto TestName = GetValue(argc, argv, "TestName");
     uint8_t ServerMode = 0;
@@ -37,30 +45,45 @@ QuicMain(int argc, char ** argv, QUIC_EVENT StopEvent, QUIC_EVENT ReadyEvent) {
         return QUIC_RUN_MISSING_TEST_TYPE;
     }
 
-    CMsQuic MsQuicHolder;
+    UniquePtr<QuicMainStore> LocalStore;
+    LocalStore.reset(new QuicMainStore);
 
-    if (!MsQuicHolder.IsValid()) {
+    if (!LocalStore || !LocalStore->MsQuicHolder.IsValid()) {
         return QUIC_RUN_FAILED_QUIC_OPEN;
     }
 
-    UniquePtr<TestRunner> TestToRun;
+    auto& TestToRun = LocalStore->TestToRun;
 
     if (IsValue(TestName, "Throughput")) {
         if (ServerMode) {
             TestToRun.reset(new ThroughputServer{argc, argv});
         } else {
-            // TODO Throughput Client
+            TestToRun.reset(new ThroughputClient{argc, argv});
         }
     } else {
         return QUIC_RUN_UNKNOWN_TEST_TYPE;
     }
 
-    if (TestToRun && TestToRun->IsValid()) {
+    if (TestToRun) {
         if (QUIC_SUCCEEDED(TestToRun->Init())) {
-            return TestToRun->Run(StopEvent, ReadyEvent);
+            MainStore = LocalStore.release();
+            return TestToRun->Start(StopEvent);
         }
 
     }
 
     return QUIC_RUN_FAILED_TEST_INITIALIZE;
+}
+
+int QuicMainStop(int Timeout) {
+    if (!MainStore) {
+        return QUIC_RUN_SUCCESS;
+    }
+
+    QUIC_STATUS Status = MainStore->TestToRun->Stop(Timeout);
+    delete MainStore;
+    if (QUIC_SUCCEEDED(Status)) {
+        return QUIC_RUN_SUCCESS;
+    }
+    return QUIC_RUN_STOP_FAILURE;
 }

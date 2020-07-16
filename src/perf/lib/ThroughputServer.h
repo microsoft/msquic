@@ -5,12 +5,11 @@
 
 class ThroughputServer : public TestRunner {
 public:
-    bool IsValid() const override { return ConstructionSuccess; }
-
     ThroughputServer(int argc, char** argv);
 
     QUIC_STATUS Init() override;
-    QUIC_STATUS Run(QUIC_EVENT StopEvent, QUIC_EVENT ReadyEvent) override;
+    QUIC_STATUS Start(QUIC_EVENT StopEvent) override;
+    QUIC_STATUS Stop(int Timeout) override;
 
 private:
 
@@ -32,5 +31,5 @@ private:
     QUIC_ADDR Address{};
     uint32_t NumberOfConnections {0};
     bool ConstructionSuccess {false};
-
+    CountHelper RefCount;
 };

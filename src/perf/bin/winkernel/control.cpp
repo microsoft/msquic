@@ -39,9 +39,10 @@ QuicTestCtlInitialize(
 {
     NTSTATUS Status = STATUS_SUCCESS;
 
-    QUIC_EVENT A, B;
+    QUIC_EVENT A;
 
-    QuicMain(0, nullptr, A, B);
+    QuicMainStart(0, nullptr, A);
+    QuicMainStop(0);
 
     return Status;
 }

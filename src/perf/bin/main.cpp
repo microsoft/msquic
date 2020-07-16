@@ -7,7 +7,6 @@
 #include "PerfHelpers.h"
 
 #include <future>
-#include <atomic>
 
 #ifdef _WIN32
 #include <winioctl.h>
@@ -22,24 +21,23 @@
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 
 int
-QuicUserMain(int argc, char** argv) {
-    QUIC_EVENT StopEvent, ReadyEvent;
-    std::atomic_bool FinishedByExit {false};
+QuicUserMain(int argc, char** argv, bool KeyboardWait) {
+    QUIC_EVENT StopEvent;
     QuicEventInitialize(&StopEvent, true, false);
-    QuicEventInitialize(&ReadyEvent, true, false);
-    auto ReadyFuture = std::async(std::launch::async, [&]() {
-        QuicEventWaitForever(ReadyEvent);
-        if (!FinishedByExit.load()) {
-            printf("Ready For Connections!\n\n");
-            fflush(stdout);
-        }
-    });
-    int RetVal = QuicMain(argc, argv, StopEvent, ReadyEvent);
-    FinishedByExit.store(true);
-    QuicEventSet(ReadyEvent);
-    ReadyFuture.wait();
+
+    int RetVal = QuicMainStart(argc, argv, StopEvent);
+    if (RetVal != 0) {
+        return RetVal;
+    }
+    printf("Ready For Connections!\n\n");
+    fflush(stdout);
+    if (KeyboardWait) {
+        printf("Press enter to exit\n");
+        getchar();
+        QuicEventSet(StopEvent);
+    }
+    RetVal = QuicMainStop(0);
     QuicEventUninitialize(StopEvent);
-    QuicEventUninitialize(ReadyEvent);
     return RetVal;
 }
 
@@ -303,9 +301,8 @@ public:
         }
         QuicTraceLogVerbose(
             TestSendIoctl,
-            "[test] Sending IOCTL %u with %u bytes.",
-            IoGetFunctionCodeFromCtlCode(IoControlCode),
-            InBufferSize);
+            "[test] Sending IOCTL %u.",
+            IoGetFunctionCodeFromCtlCode(IoControlCode));
         if (!DeviceIoControl(
                 DeviceHandle,
                 IoControlCode,
@@ -350,7 +347,7 @@ public:
     }
 };
 
-int QuicKernelMain(int argc, char** argv, QUIC_SEC_CONFIG_PARAMS* SelfSignedParams) {
+int QuicKernelMain(int argc, char** argv, bool KeyboardWait, QUIC_SEC_CONFIG_PARAMS* SelfSignedParams) {
     size_t TotalLength = 0;
 
     // Get total length
@@ -361,6 +358,8 @@ int QuicKernelMain(int argc, char** argv, QUIC_SEC_CONFIG_PARAMS* SelfSignedPara
         TotalLength += strlen(argv[i]) + sizeof(size_t) + 1;
     }
 
+    TotalLength += sizeof(TotalLength);
+
     char* Data = static_cast<char*>(QuicAlloc(TotalLength));
     if (!Data) {
         printf("Failed to allocate arguments to pass\n");
@@ -368,6 +367,10 @@ int QuicKernelMain(int argc, char** argv, QUIC_SEC_CONFIG_PARAMS* SelfSignedPara
     }
 
     char* DataCurrent = Data;
+
+    QuicCopyMemory(DataCurrent, &TotalLength, sizeof(TotalLength));
+
+    DataCurrent += sizeof(TotalLength);
 
     for (int i = 0; i < argc; ++i) {
         size_t ArgLen = strlen(argv[i]) + 1;
@@ -380,7 +383,7 @@ int QuicKernelMain(int argc, char** argv, QUIC_SEC_CONFIG_PARAMS* SelfSignedPara
     }
 
     QUIC_DBG_ASSERT(DataCurrent == (Data + TotalLength));
-    QUIC_DBG_ASSERT(TotalLength <= (std::numeric_limits<uint32_t>::max)());
+    QUIC_DBG_ASSERT(TotalLength <= UINT_MAX);
 
     constexpr DWORD OutBufferSize = 1024 * 1000;
     char* OutBuffer = (char*)QuicAlloc(OutBufferSize); // 1 MB
@@ -397,19 +400,24 @@ int QuicKernelMain(int argc, char** argv, QUIC_SEC_CONFIG_PARAMS* SelfSignedPara
     DriverService.Start();
     DriverClient.Initialize(SelfSignedParams);
 
-    DriverClient.Run(IOCTL_QUIC_RUN_PERF, Data, TotalLength);
+    if (!DriverClient.Run(IOCTL_QUIC_RUN_PERF, Data, (uint32_t)TotalLength)) {
+        QuicFree(Data);
+        QuicFree(OutBuffer);
+        return QUIC_RUN_FAILED_TEST_INITIALIZE;
+    }
+    printf("Ready For Connections!\n\n");
+    fflush(stdout);
     
     DWORD OutBufferWritten = 0;
-    while (true) {
-        if (DriverClient.Read(IOCTL_QUIC_READ_DATA, OutBuffer, OutBufferSize, &OutBufferWritten)) {
-            printf("%s", OutBuffer);
-        }
+    auto RunSuccess = DriverClient.Read(IOCTL_QUIC_READ_DATA, OutBuffer, OutBufferSize, &OutBufferWritten);
+    if (RunSuccess) {
+        printf("%s", OutBuffer);
     }
 
     QuicFree(Data);
     QuicFree(OutBuffer);
 
-    return QUIC_RUN_SUCCESS;
+    return RunSuccess ? QUIC_RUN_SUCCESS : QUIC_RUN_STOP_FAILURE;
 }
 
 #endif
@@ -427,11 +435,13 @@ main(int argc, char** argv) {
     }
 
     bool TestingKernelMode = false;
+    bool KeyboardWait = false;
 
     for (int i = 0; i < argc; ++i) {
         if (strcmp("--kernel", argv[i]) == 0) {
             TestingKernelMode = true;
-            break;
+        } else if (strcmp("--kbwait", argv[i]) == 0) {
+            KeyboardWait = true;
         }
     }
 
@@ -439,13 +449,13 @@ main(int argc, char** argv) {
 
     if (TestingKernelMode) {
 #ifdef _WIN32
-        RetVal = QuicKernelMain(argc, argv, SelfSignedParams);
+        RetVal = QuicKernelMain(argc, argv, KeyboardWait, SelfSignedParams);
 #else
         printf("Cannot run kernel mode tests on non windows platforms\n");
         RetVal = QUIC_RUN_INVALID_MODE
 #endif
     } else {
-        RetVal = QuicUserMain(argc, argv);
+        RetVal = QuicUserMain(argc, argv, KeyboardWait);
     }
 
     if (SelfSignedParams) {
