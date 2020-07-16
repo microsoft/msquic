@@ -54,6 +54,7 @@ QuicWorkerInitialize(
     QuicListInitializeHead(&Worker->Connections);
     QuicListInitializeHead(&Worker->Operations);
     QuicPoolInitialize(FALSE, sizeof(QUIC_STREAM), &Worker->StreamPool);
+    QuicPoolInitialize(FALSE, QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE, &Worker->DefaultReceiveBufferPool);
     QuicPoolInitialize(FALSE, sizeof(QUIC_SEND_REQUEST), &Worker->SendRequestPool);
     QuicSentPacketPoolInitialize(&Worker->SentPacketPool);
     QuicPoolInitialize(FALSE, sizeof(QUIC_API_CONTEXT), &Worker->ApiContextPool);
@@ -92,6 +93,7 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         QuicPoolUninitialize(&Worker->StreamPool);
+        QuicPoolUninitialize(&Worker->DefaultReceiveBufferPool);
         QuicPoolUninitialize(&Worker->SendRequestPool);
         QuicSentPacketPoolUninitialize(&Worker->SentPacketPool);
         QuicPoolUninitialize(&Worker->ApiContextPool);
@@ -131,6 +133,7 @@ QuicWorkerUninitialize(
     QUIC_TEL_ASSERT(QuicListIsEmpty(&Worker->Operations));
 
     QuicPoolUninitialize(&Worker->StreamPool);
+    QuicPoolUninitialize(&Worker->DefaultReceiveBufferPool);
     QuicPoolUninitialize(&Worker->SendRequestPool);
     QuicSentPacketPoolUninitialize(&Worker->SentPacketPool);
     QuicPoolUninitialize(&Worker->ApiContextPool);
