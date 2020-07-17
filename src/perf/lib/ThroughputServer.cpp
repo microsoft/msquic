@@ -9,6 +9,9 @@
 ThroughputServer::ThroughputServer() {
     if (Session.IsValid()) {
         Session.SetAutoCleanup();
+        Session.SetPeerUnidiStreamCount(THROUGHPUT_SERVER_PEER_UNI);
+        Session.SetDisconnectTimeout(THROUGHPUT_DEFAULT_DISCONNECT_TIMEOUT);
+        Session.SetIdleTimeout(THROUGHPUT_DEFAULT_IDLE_TIMEOUT);
     }
 }
 
@@ -109,6 +112,7 @@ ThroughputServer::ConnectionCallback(
     _Inout_ ConnectionData* Connection
     ) {
     QUIC_STREAM_CALLBACK_HANDLER Handler;
+    WriteOutput("Connection Callback %d \n", Event->Type);
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
         WriteOutput("[conn][%p] Connected\n", ConnectionHandle);
@@ -151,9 +155,22 @@ ThroughputServer::StreamCallback(
     _Inout_ QUIC_STREAM_EVENT* Event,
     _Inout_ StreamData* Stream
     ) {
-    UNREFERENCED_PARAMETER(StreamHandle);
-    UNREFERENCED_PARAMETER(Stream);
-    UNREFERENCED_PARAMETER(Event);
-    // TODO Remember to delete stram at shutdown complete
+    WriteOutput("Stream Callback %d \n", Event->Type);
+    switch (Event->Type) {
+    case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
+    case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
+        MsQuic->StreamShutdown(
+            StreamHandle,
+            QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND | QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE,
+            0);
+        break;
+    case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
+        WriteOutput("Shutdown Complete!\n");
+        RefCount.CompleteItem();
+        delete Stream;
+        MsQuic->StreamClose(StreamHandle);
+        break;
+    }
+    }
     return QUIC_STATUS_SUCCESS;
 }

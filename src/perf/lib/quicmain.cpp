@@ -65,9 +65,15 @@ QuicMainStart(
     }
 
     if (LocalStore->TestToRun) {
-        if (QUIC_SUCCEEDED(LocalStore->TestToRun->Init(argc, argv))) {
+        QUIC_STATUS Status = LocalStore->TestToRun->Init(argc, argv);
+        WriteOutput("Init Status! %d\n", Status);
+        if (QUIC_SUCCEEDED(Status)) {
             MainStore = LocalStore.release();
-            return MainStore->TestToRun->Start(StopEvent);
+            Status = MainStore->TestToRun->Start(StopEvent);
+            WriteOutput("Run Status! %s %d\n", QuicStatusToString(Status), QUIC_SUCCEEDED(Status));
+            if (QUIC_SUCCEEDED(Status)) {
+                return QUIC_RUN_SUCCESS;
+            }
         }
 
     }

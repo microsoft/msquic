@@ -32,6 +32,7 @@ private:
 
     struct StreamData {
         ThroughputClient* Client{ nullptr };
+        HQUIC Connection;
         StreamScope Stream;
         uint64_t BytesSent{0};
     };

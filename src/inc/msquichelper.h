@@ -54,6 +54,7 @@ QuicStatusToString(
     case QUIC_STATUS_CONNECTION_REFUSED:        return "CONNECTION_REFUSED";
     case QUIC_STATUS_PROTOCOL_ERROR:            return "PROTOCOL_ERROR";
     case QUIC_STATUS_VER_NEG_ERROR:             return "VER_NEG_ERROR";
+    case QUIC_STATUS_PENDING:                   return "PENDING";
     }
 
     return "UNKNOWN";
