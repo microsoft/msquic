@@ -472,7 +472,7 @@ main(
         RetVal = QuicKernelMain(argc, argv, KeyboardWait, SelfSignedParams);
 #else
         printf("Cannot run kernel mode tests on non windows platforms\n");
-        RetVal = QUIC_RUN_INVALID_MODE
+        RetVal = QUIC_RUN_INVALID_MODE;
 #endif
     } else {
         RetVal = QuicUserMain(argc, argv, KeyboardWait);
