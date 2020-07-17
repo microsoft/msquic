@@ -8,3 +8,5 @@ sudo apt-get install -y powershell apt-transport-https
 sudo apt-get update
 sudo apt-get install -y dotnet-sdk-3.1
 sudo ldconfig
+
+echo "##vso[task.setvariable variable=PATH]${PATH}:${Home}/.dotnet/tools"
