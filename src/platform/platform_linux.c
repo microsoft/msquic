@@ -612,16 +612,6 @@ QuicConvertFromMappedV6(
     }
 }
 
-int
-_strnicmp(
-    _In_ const char * _Str1,
-    _In_ const char * _Str2,
-    _In_ size_t _MaxCount
-    )
-{
-    return strncasecmp(_Str1, _Str2, _MaxCount);
-}
-
 QUIC_STATUS
 QuicThreadCreate(
     _In_ QUIC_THREAD_CONFIG* Config,

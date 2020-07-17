@@ -177,18 +177,6 @@ InterlockedIncrement64(
 }
 
 //
-// String utils.
-//
-
-int _strnicmp(const char * _Str1, const char * _Str2, size_t _MaxCount);
-
-#define sprintf_s(dst, dst_len, format, ...) \
-    sprintf(dst, format, __VA_ARGS__)
-
-#define _vsnprintf_s(dst, dst_len, flag, format, ...) \
-    vsnprintf(dst, dst_len, format, __VA_ARGS__)
-
-//
 // Assertion interfaces.
 //
 

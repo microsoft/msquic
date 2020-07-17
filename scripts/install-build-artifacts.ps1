@@ -36,7 +36,7 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 # Important directories.
 $RootDir = Split-Path $PSScriptRoot -Parent
-$ArtifactsDir = Join-Path $RootDir "artifacts"
+$ArtifactsDir = Join-Path $RootDir "artifacts/bin"
 
 if ($IsWindows) {
     if (!(Test-Path "C:\Windows\System32\drivers\msquic.sys")) {

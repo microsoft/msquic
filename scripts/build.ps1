@@ -146,7 +146,7 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $BaseArtifactsDir = Join-Path $RootDir "artifacts"
 $BaseBuildDir = Join-Path $RootDir "build"
 
-$ArtifactsDir = Join-Path $BaseArtifactsDir $Platform
+$ArtifactsDir = Join-Path $BaseArtifactsDir "bin" $Platform
 $BuildDir = Join-Path $BaseBuildDir $Platform
 
 $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)"
@@ -251,7 +251,7 @@ function CMake-Build {
     CMake-Execute $Arguments
 
     # Copy clog to a common location.
-    $ClogPath = Join-Path $BaseArtifactsDir "clog"
+    $ClogPath = Join-Path $BaseArtifactsDir "bin/clog"
     if (!(Test-Path $ClogPath)) {
         Copy-Item (Join-Path $BuildDir "submodules/clog") -Destination $ClogPath -Recurse
     }
