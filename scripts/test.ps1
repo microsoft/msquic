@@ -131,7 +131,10 @@ param (
     [switch]$NoProgress = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$EnableAppVerifier = $false
+    [switch]$EnableAppVerifier = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$CodeCoverage = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -140,6 +143,19 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 # Validate the the kernel switch.
 if ($Kernel -and !$IsWindows) {
     Write-Error "-Kernel switch only supported on Windows";
+}
+
+#Validate the code coverage switch.
+if ($CodeCoverage) {
+    if (!$IsWindows) {
+        Write-Error "-CodeCoverage switch only supported on Windows";
+    }
+    if ($Kernel) {
+        Write-Error "-CodeCoverage is not supported for kernel mode tests";
+    }
+    if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
+        Write-Error "Code coverage tools are not installed";
+    }
 }
 
 # Default TLS based on current platform.
@@ -222,6 +238,9 @@ if ($NoProgress) {
 if ($EnableAppVerifier) {
     $TestArguments += " -EnableAppVerifier"
 }
+if ($CodeCoverage) {
+    $TestArguments += " -CodeCoverage"
+}
 
 # Run the script.
 if (!$Kernel) {
@@ -229,3 +248,10 @@ if (!$Kernel) {
     Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
 }
 Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
+
+if ($CodeCoverage) {
+    # Merge code coverage results
+    $CoverageExe = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
+    $CoverageMergeParams = " --input_coverage msquiccoretest.cov --input_coverage msquicplatformtest.cov --input_coverage msquictest.cov --export_type cobertura:msquiccoverage.xml"
+    Invoke-Expression ($CoverageExe + $CoverageMergeParams)
+}

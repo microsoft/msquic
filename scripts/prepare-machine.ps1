@@ -40,6 +40,26 @@ if ($IsWindows) {
         reg.exe add $TlsClientKeyPath /v DisabledByDefault /t REG_DWORD /d 0 /f | Out-Null
         reg.exe add $TlsClientKeyPath /v Enabled /t REG_DWORD /d 1 /f | Out-Null
     }
+    if ($Configuration -eq "Test") {
+        # Install OpenCppCoverage on test machines
+
+        # Install procdump on Windows if not already present.
+        if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
+
+            Write-Host "[$(Get-Date)] Installing OpenCppCoverage..."
+
+            # Download the zip file.
+            $ExeFile = Join-Path $Env:TEMP "OpenCppCoverageSetup-x64-0.9.9.0.exe"
+            Invoke-WebRequest -Uri https://github.com/OpenCppCoverage/OpenCppCoverage/releases/download/release-0.9.9.0/OpenCppCoverageSetup-x64-0.9.9.0.exe -OutFile $ExeFile
+
+            Start-Process $ExeFile -Wait -ArgumentList {"/silent"} -NoNewWindow
+
+            # Delete the installer.
+            Remove-Item -Path $ExeFile
+
+            Write-Host "[$(Get-Date)] OpenCppCoverage installed."
+        }
+    }
 
 } else {
     switch ($Configuration) {

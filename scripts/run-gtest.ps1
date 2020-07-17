@@ -105,7 +105,10 @@ param (
     [switch]$NoProgress = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$EnableAppVerifier = $false
+    [switch]$EnableAppVerifier = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$CodeCoverage = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -123,6 +126,22 @@ if (!(Test-Path $Path)) {
 # Validate the the kernel switch.
 if ($Kernel -ne "" -and !$IsWindows) {
     Write-Error "-Kernel switch only supported on Windows";
+}
+
+# Validate the code coverage switch
+if ($CodeCoverage) {
+    if (!$IsWindows) {
+        Write-Error "-CodeCoverage switch only supported on Windows";
+    }
+    if ($Debugger) {
+        Write-Error "-CodeCoverage switch is not supported with debugging";
+    }
+    if ($Kernel -ne "") {
+        Write-Error "-CodeCoverage is not supported for kernel mode tests";
+    }
+    if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
+        Write-Error "Code coverage tools are not installed";
+    }
 }
 
 # Root directory of the project.
@@ -231,6 +250,9 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
             } else {
                 $pinfo.Arguments = "-g -G $($Path) $($Arguments)"
             }
+        } elseif ($CodeCoverage) {
+            $pinfo.FileName = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
+            $pinfo.Arguments = "--modules msquic --cover_children --sources src\core --sources src\inc --sources src\platform --excluded_sources unittest --working_dir $($OutputDir) --export_type binary -- $($Path) $($Arguments)"
         } else {
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments
