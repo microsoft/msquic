@@ -51,7 +51,6 @@ QUIC_STATUS
 ThroughputServer::Start(
     _In_ QUIC_EVENT StopEvent
     ) {
-
     QUIC_STATUS Status =
         Listener.Start(
             &Address,

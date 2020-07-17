@@ -393,8 +393,11 @@ struct MsQuicListener {
         if (QUIC_FAILED(
             MsQuic->ListenerOpen(
                 Session,
-                Handler,
-                Context,
+                [](HQUIC Handle, void* Context, QUIC_LISTENER_EVENT* Event) -> QUIC_STATUS {
+                    MsQuicListener* Listener = (MsQuicListener*)Context;
+                    return Listener->Handler(Handle, Listener->Context, Event);
+                },
+                this,
                 &Handle))) {
             Handle = nullptr;
         }
@@ -449,6 +452,7 @@ struct MsQuicSecurityConfig {
                     MsQuic,
                     Registration,
                     SelfSignedParams);
+            WriteOutput("SelfSignedThings\n");
 #endif
             if (!SecurityConfig) {
                 WriteOutput("Failed to create security config for self signed certificate\n");
