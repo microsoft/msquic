@@ -39,6 +39,8 @@ function Install-ClogTool {
     try {
         Invoke-WebRequest -Uri "$DownloadUrl/$NuGetName" -OutFile $NuGetFile
         dotnet tool install --global --add-source $NuGetPath $ToolName
+    } catch {
+        Write-Warning "Clog could not be installed. Building with logs will not work"
     } finally {
         $ProgressPreference = $OldProgressPreference
     }
