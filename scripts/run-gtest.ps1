@@ -53,6 +53,9 @@ as necessary.
 .Parameter EnableAppVerifier
     Enables all basic Application Verifier checks on the test binary.
 
+.Parameter CodeCoverage
+    Collects code coverage for this test run. Incompatible with -Debugger.
+
 #>
 
 param (
@@ -159,6 +162,7 @@ New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
 
 # Folder for coverage files
 $CoverageDir = $null
+$CoverageName = "$($TestExeName.Split('.')[0]).cov"
 if ($CodeCoverage) {
     $CoverageDir = Join-Path $RootDir "artifacts" "coverage"
     New-Item -Path $CoverageDir -ItemType Directory -Force | Out-Null
@@ -258,9 +262,9 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
                 $pinfo.Arguments = "-g -G $($Path) $($Arguments)"
             }
         } elseif ($CodeCoverage) {
-            $CoverageOutput = "$(Join-Path $CoverageDir $TestExeName.Split('.')[0]).cov"
+            $CoverageOutput = Join-Path $OutputDir $CoverageName
             $pinfo.FileName = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
-            $pinfo.Arguments = "--modules msquic --cover_children --sources src\core --sources src\inc --sources src\platform --excluded_sources unittest --working_dir $($CoverageDir) --export_type binary:$($CoverageOutput) -- $($Path) $($Arguments)"
+            $pinfo.Arguments = "--modules msquic --cover_children --sources src\core --sources src\inc --sources src\platform --excluded_sources unittest --working_dir $($OutputDir) --export_type binary:$($CoverageOutput) -- $($Path) $($Arguments)"
         } else {
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments
@@ -419,6 +423,29 @@ function Wait-TestCase($TestCase) {
         # Add the current test case results.
         if ($IsolationMode -ne "Batch") {
             Add-XmlResults $TestCase
+        }
+
+        if ($CodeCoverage) {
+            $NewCoverage = Join-Path $TestCase.LogDir $Coveragename
+            if ($IsolationMode -eq "Isolated") {
+                # Merge coverage with previous runs
+                $PreviousCoverage = Join-Path $CoverageDir $CoverageName
+                if (!(Test-Path $PreviousCoverage)) {
+                    # No previous coverage data, just copy
+                    Copy-Item $NewCoverage $CoverageDir
+                } else {
+                    # Merge new coverage data with existing coverage data
+                    # On a developer machine, this will always merge coverage until the dev deletes old coverage.
+                    $TempMergedCoverage = Join-Path $CoverageDir "mergetemp.cov"
+                    $CoverageExe = 'C:\"Program Files"\OpenCppCoverage\OpenCppCoverage.exe'
+                    $CoverageMergeParams = " --input_coverage $($PreviousCoverage) --input_coverage $($NewCoverage) --export_type binary:$($TempMergedCoverage)"
+                    Invoke-Expression ($CoverageExe + $CoverageMergeParams) | Out-Null
+                    Move-Item $TempMergedCoverage $PreviousCoverage -Force
+                }
+            } else {
+                # Copy the coverage to destination
+                Copy-Item $NewCoverage $CoverageDir -Force
+            }
         }
 
         if ($ProcessCrashed) {

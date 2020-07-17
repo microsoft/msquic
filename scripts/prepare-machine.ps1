@@ -42,16 +42,22 @@ if ($IsWindows) {
     }
     if ($Configuration -eq "Test") {
         # Install OpenCppCoverage on test machines
-
-        # Install procdump on Windows if not already present.
         if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
 
             Write-Host "[$(Get-Date)] Installing OpenCppCoverage..."
 
-            # Download the zip file.
-            $ExeFile = Join-Path $Env:TEMP "OpenCppCoverageSetup-x64-0.9.9.0.exe"
-            Invoke-WebRequest -Uri https://github.com/OpenCppCoverage/OpenCppCoverage/releases/download/release-0.9.9.0/OpenCppCoverageSetup-x64-0.9.9.0.exe -OutFile $ExeFile
+            # Download the installer.
+            $Installer = $null
+            if ([System.Environment]::Is64BitOperatingSystem) {
+                $Installer = "OpenCppCoverageSetup-x64-0.9.9.0.exe"
+            } else {
+                $Installer = "OpenCppCoverageSetup-x86-0.9.9.0.exe"
+            }
+            $ExeFile = Join-Path $Env:TEMP $Installer
+            $ProgressPreference = 'SilentlyContinue'
+            Invoke-WebRequest -Uri "https://github.com/OpenCppCoverage/OpenCppCoverage/releases/download/release-0.9.9.0/$($Installer)" -OutFile $ExeFile
 
+            # Start the installer and wait for it to finish.
             Start-Process $ExeFile -Wait -ArgumentList {"/silent"} -NoNewWindow
 
             # Delete the installer.

@@ -55,6 +55,9 @@ This script provides helpers for running executing the MsQuic tests.
 .Parameter EnableAppVerifier
     Enables all basic Application Verifier checks on test binaries.
 
+.Parameter CodeCoverage
+    Collect code coverage for this test run. Incompatible with -Kernel and -Debugger.
+
 .EXAMPLE
     test.ps1
 
@@ -152,6 +155,9 @@ if ($CodeCoverage) {
     }
     if ($Kernel) {
         Write-Error "-CodeCoverage is not supported for kernel mode tests";
+    }
+    if ($Debugger) {
+        Write-Error "-CodeCoverage switch is not supported with debugging";
     }
     if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
         Write-Error "Code coverage tools are not installed";
@@ -271,7 +277,7 @@ if ($CodeCoverage) {
         $CoverageMergeParams +=  " --export_type cobertura:$(Join-Path $CoverageDir "msquiccoverage.xml")"
 
         $CoverageExe = 'C:\"Program Files"\OpenCppCoverage\OpenCppCoverage.exe'
-        Invoke-Expression ($CoverageExe + $CoverageMergeParams)
+        Invoke-Expression ($CoverageExe + $CoverageMergeParams) | Out-Null
     } else {
         Write-Warning "No coverage results to merge!"
     }
