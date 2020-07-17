@@ -9,11 +9,8 @@ COPY    . /src
 
 FROM    source as build
 WORKDIR /src/Debug
-RUN     chmod +x /src/scripts/install-powershell.sh
-RUN     /src/scripts/install-powershell.sh
-RUN     export PATH="$PATH:$HOME/.dotnet"
-RUN     export PATH="$PATH:$HOME/.dotnet/tools"
-RUN     export DOTNET_ROOT="$HOME/.dotnet/"
+RUN     chmod +x /src/scripts/install-powershell-docker.sh
+RUN     /src/scripts/install-powershell-docker.sh
 RUN     cmake -DQUIC_ENABLE_LOGGING=OFF -DQUIC_BUILD_TEST=OFF ..
 RUN     cmake --build .
 RUN     openssl ecparam -out server.eckey -noout -name prime256v1 -genkey
