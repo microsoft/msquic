@@ -12,7 +12,11 @@ set(SOURCES
 
 include_directories(${PROJECT_SOURCE_DIR}/src/test)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS} /permissive-")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
+
+if (MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive-")
+endif()
 
 # Allow CLOG to preprocess all the source files.
 CLOG_GENERATE_TARGET(PERFLIB_CLOG_LIB ${SOURCES})
