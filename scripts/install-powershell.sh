@@ -7,3 +7,4 @@ sudo add-apt-repository universe
 sudo apt-get install -y powershell apt-transport-https
 sudo apt-get update
 sudo apt-get install -y dotnet-sdk-3.1
+sudo ldconfig
