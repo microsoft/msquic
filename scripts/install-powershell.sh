@@ -4,6 +4,10 @@ wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh
 chmod +x ./dotnet-install.sh
 ./dotnet-install.sh -c Current
 
+echo "##vso[task.setvariable variable=PATH]${PATH}:${HOME}/.dotnet"
+echo "##vso[task.setvariable variable=PATH]${PATH}:${HOME}/.dotnet/tools"
+echo "##vso[task.setvariable variable=DOTNET_ROOT]${HOME}/.dotnet"
+
 export PATH="$PATH:$HOME/.dotnet"
 export PATH="$PATH:$HOME/.dotnet/tools"
 export DOTNET_ROOT="$HOME/.dotnet/"
