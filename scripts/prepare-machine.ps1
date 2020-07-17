@@ -44,7 +44,7 @@ function Install-ClogTool {
     }
 }
 
-if ($Configuration -eq "Dev") {
+if (($Configuration -eq "Dev") -or ($Configuration -eq "Build")) {
         $NuGetName = "Microsoft.Logging.CLOG.0.1.1.nupkg"
         $ToolName = "Microsoft.Logging.CLOG"
         $DownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v0.1.1"
