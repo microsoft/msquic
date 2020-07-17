@@ -11,13 +11,13 @@ There are a few additional things to note beyond the default build instructions.
 Once built, you can find the `quicinteropserver` in (assuming PowerShell is used to build):
 
 ```
-./artifacts/{platform}/{arch}_{config}_{tls}
+./artifacts/bin/{platform}/{arch}_{config}_{tls}
 ```
 
 For example, if you build with `build.ps1 -Config Release -Tls mitls` on Windows, the output would be in:
 
 ```
-./artifacts/windows/x64_release_mitls
+./artifacts/bin/windows/x64_release_mitls
 ```
 
 The directory contains all the build artifacts, including the base MsQuic library (`msquic.dll` or `libmsquic.so`).
