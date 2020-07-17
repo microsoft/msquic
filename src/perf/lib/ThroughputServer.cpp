@@ -112,7 +112,6 @@ ThroughputServer::ConnectionCallback(
     _Inout_ ConnectionData* Connection
     ) {
     QUIC_STREAM_CALLBACK_HANDLER Handler;
-    WriteOutput("Connection Callback %d \n", Event->Type);
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
         WriteOutput("[conn][%p] Connected\n", ConnectionHandle);
@@ -155,7 +154,6 @@ ThroughputServer::StreamCallback(
     _Inout_ QUIC_STREAM_EVENT* Event,
     _Inout_ StreamData* Stream
     ) {
-    WriteOutput("Stream Callback %d \n", Event->Type);
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:

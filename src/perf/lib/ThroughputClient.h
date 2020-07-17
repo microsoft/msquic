@@ -35,6 +35,9 @@ private:
         HQUIC Connection;
         StreamScope Stream;
         uint64_t BytesSent{0};
+        uint64_t BytesCompleted{0};
+        uint64_t StartTime{0};
+        uint64_t EndTime{0};
     };
 
     QUIC_STATUS

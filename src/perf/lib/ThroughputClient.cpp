@@ -8,8 +8,10 @@
 
 // Always buffered, we'll fix this up later
 // Also need to fix up IO SIze
-constexpr static uint32_t IoSize = 0x100000;
-constexpr static uint32_t IoCount = 8;
+static uint32_t IoSize = 0x100000;
+static uint32_t IoCount = 8;
+
+static uint8_t* RawIoBuffer{nullptr};
 
 ThroughputClient::ThroughputClient() {
     if (Session.IsValid()) {
@@ -42,8 +44,29 @@ ThroughputClient::Init(
     QuicCopyMemory(TargetData.get(), Target, Len);
     TargetData[Len] = '\0';
 
+    RawIoBuffer = new uint8_t[IoSize];
+
     return QUIC_STATUS_SUCCESS;
 }
+
+struct SendRequest {
+    QUIC_SEND_FLAGS Flags {QUIC_SEND_FLAG_NONE};
+    QUIC_BUFFER QuicBuffer;
+    SendRequest(
+        ) {
+        QuicBuffer.Buffer = RawIoBuffer;
+        QuicBuffer.Length = 0;
+    }
+
+    void SetLength(uint64_t BytesLeftToSend) {
+        if (BytesLeftToSend > IoSize) {
+            QuicBuffer.Length = IoSize;
+        } else {
+            Flags |= QUIC_SEND_FLAG_FIN;
+            QuicBuffer.Length = (uint32_t)BytesLeftToSend;
+        }
+    }
+};
 
 QUIC_STATUS
 ThroughputClient::Start(
@@ -81,7 +104,18 @@ ThroughputClient::Start(
         return Status;
     }
 
-    printf("After Cert\n");
+    BOOLEAN Opt = FALSE;
+    Status =
+        MsQuic->SetParam(
+            ConnData->Connection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_SEND_BUFFERING,
+            sizeof(Opt),
+            &Opt);
+
+    if (QUIC_FAILED(Status)) {
+        return Status;
+    }
 
     Status =
         MsQuic->ConnectionStart(
@@ -93,8 +127,6 @@ ThroughputClient::Start(
     if (QUIC_FAILED(Status)) {
         return Status;
     }
-
-    printf("After Conn Start\n");
 
     ConnectionData* LocalConnData = ConnData.release();
 
@@ -118,8 +150,6 @@ ThroughputClient::Start(
         return Status;
     }
 
-    printf("After Stream Open\n");
-
     Status =
         MsQuic->StreamStart(
             StrmData->Stream.Handle,
@@ -129,11 +159,10 @@ ThroughputClient::Start(
         return Status;
     }
 
-    printf("After Stream Start\n");
-
     StreamData* LocalStreamData = StrmData.release();
 
     this->StopEvent = StopEvnt;
+    LocalStreamData->StartTime = QuicTimeUs64();
 
     if (Length == 0) {
         Status =
@@ -141,38 +170,53 @@ ThroughputClient::Start(
                 LocalStreamData->Stream.Handle,
                 QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL,
                 0);
-
-        printf("0 len status %s\n", QuicStatusToString(Status));
         return Status;
     }
 
-    printf("After Length Check\n");
-
-    void* RawBuf = QUIC_ALLOC_PAGED(IoSize + sizeof(QUIC_BUFFER));
-    QUIC_BUFFER* Buf = (QUIC_BUFFER*)RawBuf;
-
-    Buf->Buffer = ((uint8_t*)RawBuf) + sizeof(QUIC_BUFFER);
-    QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE;
-    if (Length > IoSize) {
-        Buf->Length = IoSize;
-    } else {
-        Flags |= QUIC_SEND_FLAG_FIN;
-        WriteOutput("Sending Fin!\n");
-        Buf->Length = (uint32_t)Length;
+    uint32_t SendRequestCount = 0;
+    while (LocalStreamData->BytesSent < Length && SendRequestCount < IoCount) {
+        SendRequest* SendReq = new SendRequest{};
+        SendReq->SetLength(Length - LocalStreamData->BytesSent);
+        LocalStreamData->BytesSent += SendReq->QuicBuffer.Length;
+        ++SendRequestCount;
+        Status =
+            MsQuic->StreamSend(
+                LocalStreamData->Stream,
+                &SendReq->QuicBuffer,
+                1,
+                SendReq->Flags,
+                SendReq);
+        if (QUIC_FAILED(Status)) {
+            delete SendReq;
+            return Status;
+        }
     }
-    LocalStreamData->BytesSent += Buf->Length;
 
-    Status =
-        MsQuic->StreamSend(
-            LocalStreamData->Stream.Handle,
-            Buf,
-            1,
-            Flags,
-            Buf);
+    // void* RawBuf = QUIC_ALLOC_PAGED(IoSize + sizeof(QUIC_BUFFER));
+    // QUIC_BUFFER* Buf = (QUIC_BUFFER*)RawBuf;
 
-    if (QUIC_FAILED(Status)) {
-        QUIC_FREE(RawBuf);
-    }
+    // Buf->Buffer = ((uint8_t*)RawBuf) + sizeof(QUIC_BUFFER);
+    // QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE;
+    // if (Length > IoSize) {
+    //     Buf->Length = IoSize;
+    // } else {
+    //     Flags |= QUIC_SEND_FLAG_FIN;
+    //     WriteOutput("Sending Fin!\n");
+    //     Buf->Length = (uint32_t)Length;
+    // }
+    // LocalStreamData->BytesSent += Buf->Length;
+
+    // Status =
+    //     MsQuic->StreamSend(
+    //         LocalStreamData->Stream.Handle,
+    //         Buf,
+    //         1,
+    //         Flags,
+    //         Buf);
+
+    // if (QUIC_FAILED(Status)) {
+    //     QUIC_FREE(RawBuf);
+    // }
     WriteOutput("Started!\n");
     return Status;
 }
@@ -234,39 +278,31 @@ ThroughputClient::StreamCallback(
     _Inout_ QUIC_STREAM_EVENT* Event,
     _Inout_ StreamData* StrmData
     ) {
-    WriteOutput("Stream Callback %d \n", Event->Type);
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_SEND_COMPLETE: {
-        QUIC_BUFFER* Buf = (QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext;
-        WriteOutput("Completed %d\n", Event->SEND_COMPLETE.Canceled);
+        SendRequest* Req = (SendRequest*)Event->SEND_COMPLETE.ClientContext;
         if (!Event->SEND_COMPLETE.Canceled) {
             uint64_t BytesLeftToSend = Length - StrmData->BytesSent;
-            WriteOutput("SendLength %llu\n", BytesLeftToSend);
+            StrmData->BytesCompleted += Req->QuicBuffer.Length;
             if (BytesLeftToSend != 0) {
-                QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE;
-                if (BytesLeftToSend > IoSize) {
-                    Buf->Length = IoSize;
-                } else {
-                    Flags |= QUIC_SEND_FLAG_FIN;
-                    Buf->Length = (uint32_t)Length;
-                }
-                StrmData->BytesSent += Buf->Length;
+                Req->SetLength(BytesLeftToSend);
+                StrmData->BytesSent += Req->QuicBuffer.Length;
 
                 QUIC_STATUS Status =
                     MsQuic->StreamSend(
                         StrmData->Stream.Handle,
-                        Buf,
+                        &Req->QuicBuffer,
                         1,
-                        Flags,
-                        Buf);
+                        Req->Flags,
+                        Req);
 
                 if (QUIC_SUCCEEDED(Status)) {
-                    Buf = nullptr;
+                    Req = nullptr;
                 }
             }
         }
-        if (Buf) {
-            QUIC_FREE(Buf);
+        if (Req) {
+            delete Req;
         }
         break;
     }
@@ -279,7 +315,18 @@ ThroughputClient::StreamCallback(
             0);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
-        WriteOutput("Bytes Written %llu\n", StrmData->BytesSent);
+        StrmData->EndTime = QuicTimeUs64();
+        uint64_t ElapsedMicroseconds = StrmData->EndTime - StrmData->StartTime;
+        uint32_t SendRate = (uint32_t)((StrmData->BytesCompleted * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
+
+        WriteOutput("[%p][%llu] Closed [%s] after %u.%u ms. (TX %llu bytes @ %u kbps).\n",
+            StrmData->Connection,
+            GetStreamID(MsQuic, StreamHandle),
+            "Complete",
+            (uint32_t)(ElapsedMicroseconds / 1000),
+            (uint32_t)(ElapsedMicroseconds % 1000),
+            StrmData->BytesCompleted, SendRate);
+
         MsQuic->ConnectionShutdown(
             StrmData->Connection,
             QUIC_CONNECTION_SHUTDOWN_FLAG_NONE,

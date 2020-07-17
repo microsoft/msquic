@@ -542,9 +542,33 @@ struct MsQuicSecurityConfig {
                 return QUIC_STATUS_INVALID_PARAMETER;
             }
         } else {
-            // TODO
-            WriteOutput("Non self signed not yet supported\n");
-            return QUIC_STATUS_INVALID_PARAMETER;
+            const char* certThumbprint;
+            if (!TryGetValue(argc, argv, "thumbprint", &certThumbprint)) {
+                WriteOutput("Must specify -thumbprint: for server mode.\n");
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+            const char* certStoreName;
+            if (!TryGetValue(argc, argv, "cert_store", &certStoreName)) {
+                SecurityConfig = GetSecConfigForThumbprint(MsQuic, Registration, certThumbprint);
+                if (SecurityConfig == nullptr) {
+                    WriteOutput("Failed to create security configuration for thumbprint:'%s'.\n", certThumbprint);
+                    return QUIC_STATUS_INVALID_PARAMETER;
+                }
+            } else {
+                uint32_t machineCert = 0;
+                TryGetValue(argc, argv, "machine_cert", &machineCert);
+                QUIC_CERTIFICATE_HASH_STORE_FLAGS flags =
+                    machineCert ? QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE : QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE;
+
+                SecurityConfig = GetSecConfigForThumbprintAndStore(MsQuic, Registration, flags, certThumbprint, certStoreName);
+                if (SecurityConfig == nullptr) {
+                    WriteOutput(
+                        "Failed to create security configuration for thumbprint:'%s' and store: '%s'.\n",
+                        certThumbprint,
+                        certStoreName);
+                    return QUIC_STATUS_INVALID_PARAMETER;
+                }
+            }
         }
         return QUIC_STATUS_SUCCESS;
     }
