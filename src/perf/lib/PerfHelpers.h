@@ -207,109 +207,6 @@ WriteOutput(
 #endif
 }
 
-template<typename Ret, typename... Param>
-struct CallableBase {
-    CallableBase() = default;
-    virtual ~CallableBase() noexcept = default;
-    virtual Ret Invoke(Param... Event) = 0;
-    virtual CallableBase<Ret, Param...>* Clone(void* Data) const = 0;
-};
-
-
-template<typename Ret, typename... Param>
-struct FunctionCallable : public CallableBase<Ret, Param...> {
-    Ret(*Callback)(Param...);
-
-    FunctionCallable(Ret (*Callback)(Param...)) : Callback{ Callback } {}
-
-    Ret Invoke(Param... Event) override {
-        return Callback(Event...);
-    }
-
-    CallableBase<Ret, Param...>* Clone(void* Storage) const override {
-        return new(Storage)FunctionCallable{ Callback };
-    }
-};
-
-template<typename T, typename Ret, typename... Param>
-struct MemberCallable : public CallableBase<Ret, Param...> {
-    T* Obj;
-    Ret(T::* Callback)(Param...);
-
-
-    MemberCallable(Ret(T::* Callback)(Param...), T* obj) : Callback{ Callback }, Obj{ obj } {}
-
-    Ret Invoke(Param... Event) override {
-        return (Obj->*Callback)(Event...);
-    }
-
-    CallableBase<Ret, Param...>* Clone(void* Storage) const override {
-        return new(Storage)MemberCallable{ Callback, Obj };
-    }
-};
-
-template<typename Ret, typename... Param>
-struct Function {
-private:
-    //
-    // 3 pointers is the size of a pointer to member, plus an object
-    //
-    constexpr static size_t FunctionStorageSize = sizeof(void*) * 3;
-    alignas(sizeof(void*)) unsigned char Data[Function<Ret, Param...>::FunctionStorageSize];
-
-    CallableBase<Ret, Param...>* Callback = nullptr;
-
-    void* Storage() { return Data; }
-
-public:
-
-    Function() = default;
-
-    Function& operator=(const Function& other) {
-        if (this->Callback) {
-            this->Callback->~CallableBase();
-            this->Callback = nullptr;
-        }
-        if (other.Callback) {
-            this->Callback = other.Callback->Clone(Storage());
-        }
-        return *this;
-    }
-
-    Function(const Function& other) {
-        if (other.Callback) {
-            this->Callback = other.Callback->Clone(Storage());
-        }
-    }
-
-    // Delete move
-    Function(Function&& other) = delete;
-    Function& operator=(Function&& other) = delete;
-
-    ~Function() noexcept {
-        if (Callback) {
-            Callback->~CallableBase();
-        }
-    }
-
-    template<typename T>
-    Function(Ret(T::*callback)(Param...), T* obj) noexcept {
-        static_assert(sizeof(MemberCallable<T, Ret, Param...>) <= FunctionStorageSize);
-        Callback = new(Storage()) MemberCallable{ callback, obj };
-    }
-
-    Function(Ret(*callback)(Param...)) noexcept {
-        static_assert(sizeof(FunctionCallable<Ret, Param...>) <= FunctionStorageSize);
-        Callback = new(Storage()) FunctionCallable<Ret, Param...>{ callback };
-    }
-
-    Ret operator()(Param... param) {
-        return Callback->Invoke(param...);
-    }
-
-    bool IsValid() const { return Callback != nullptr; }
-};
-
 class MsQuicRegistration {
     HQUIC Registration;
 public:
@@ -483,23 +380,23 @@ struct MsQuicSession {
 
 struct MsQuicListener {
     HQUIC Handle{ nullptr };
-    Function<QUIC_STATUS, HQUIC, QUIC_LISTENER_EVENT*> Callback;
+    QUIC_LISTENER_CALLBACK_HANDLER Handler;
+    void* Context;
     MsQuicListener(const MsQuicSession& Session) {
         if (!Session.IsValid()) {
             return;
         }
         if (QUIC_FAILED(
-            MsQuic->ListenerOpen(Session,
-                [] (HQUIC Listener, void* Context, QUIC_LISTENER_EVENT* Event) -> QUIC_STATUS {
-                    return ((MsQuicListener*)Context)->ListenerCallback(Listener, Event);
-                },
-                this,
+            MsQuic->ListenerOpen(
+                Session,
+                Handler,
+                Context,
                 &Handle))) {
             Handle = nullptr;
         }
     }
     ~MsQuicListener() noexcept {
-        if (Callback.IsValid()) {
+        if (Handler != nullptr) {
             MsQuic->ListenerStop(Handle);
         }
         if (Handle) {
@@ -508,14 +405,18 @@ struct MsQuicListener {
     }
 
     QUIC_STATUS
-    Start(_In_ QUIC_ADDR* Address, const Function<QUIC_STATUS, HQUIC, QUIC_LISTENER_EVENT*>& Handler) {
-        Callback = Handler;
+    Start(
+        _In_ QUIC_ADDR* Address,
+        _In_ QUIC_LISTENER_CALLBACK_HANDLER ShadowHandler,
+        _In_ void* ShadowContext) {
+        Handler = ShadowHandler;
+        Context = ShadowContext;
         return MsQuic->ListenerStart(Handle, Address);
     }
 
     QUIC_STATUS
     ListenerCallback(HQUIC Listener, QUIC_LISTENER_EVENT* Event) {
-        return Callback(Listener, Event);
+        return Handler(Listener, Context, Event);
     }
 
     bool IsValid() const { return Handle != nullptr; }

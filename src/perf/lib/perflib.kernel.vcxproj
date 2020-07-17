@@ -99,6 +99,7 @@
       <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_DISABLE_0RTT_TESTS;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DisableSpecificWarnings>4748;5040;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

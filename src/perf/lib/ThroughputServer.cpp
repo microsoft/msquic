@@ -49,7 +49,13 @@ ThroughputServer::Start(
     _In_ QUIC_EVENT StopEvent
     ) {
 
-    QUIC_STATUS Status = Listener.Start(&Address, Function{ &ThroughputServer::ListenerCallback, this });
+    QUIC_STATUS Status =
+        Listener.Start(
+            &Address,
+            [](HQUIC Handle, void* Context, QUIC_LISTENER_EVENT* Event) -> QUIC_STATUS {
+                return ((ThroughputServer*)Context)->ListenerCallback(Handle, Event);
+            },
+            this);
     if (QUIC_FAILED(Status)) {
         return Status;
     }
