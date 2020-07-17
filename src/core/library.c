@@ -1429,7 +1429,7 @@ QuicTraceRundown(
     QuicLockRelease(&MsQuicLib.Lock);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Ret_maybenull_
 QUIC_KEY*
 QuicLibraryGetStatelessRetryKeyForTimestamp(
@@ -1459,7 +1459,7 @@ QuicLibraryGetStatelessRetryKeyForTimestamp(
     }
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Ret_maybenull_
 QUIC_KEY*
 QuicLibraryGetCurrentStatelessRetryKey(
