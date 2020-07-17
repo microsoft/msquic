@@ -39,7 +39,7 @@ QuicMainStart(
     _In_reads_(argc) _Null_terminated_ char* argv[],
     _In_ QUIC_EVENT StopEvent
     ) {
-    auto TestName = GetValue(argc, argv, "TestName");
+    const char* TestName = GetValue(argc, argv, "TestName");
     uint8_t ServerMode = 0;
     TryGetValue(argc, argv, "ServerMode", &ServerMode);
 
@@ -54,22 +54,20 @@ QuicMainStart(
         return QUIC_RUN_FAILED_QUIC_OPEN;
     }
 
-    auto& TestToRun = LocalStore->TestToRun;
-
     if (IsValue(TestName, "Throughput")) {
         if (ServerMode) {
-            TestToRun.reset(new ThroughputServer{});
+            LocalStore->TestToRun.reset(new ThroughputServer{});
         } else {
-            TestToRun.reset(new ThroughputClient{});
+            LocalStore->TestToRun.reset(new ThroughputClient{});
         }
     } else {
         return QUIC_RUN_UNKNOWN_TEST_TYPE;
     }
 
-    if (TestToRun) {
-        if (QUIC_SUCCEEDED(TestToRun->Init(argc, argv))) {
+    if (LocalStore->TestToRun) {
+        if (QUIC_SUCCEEDED(LocalStore->TestToRun->Init(argc, argv))) {
             MainStore = LocalStore.release();
-            return TestToRun->Start(StopEvent);
+            return MainStore->TestToRun->Start(StopEvent);
         }
 
     }

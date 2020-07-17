@@ -418,7 +418,7 @@ QuicKernelMain(
     fflush(stdout);
 
     DWORD OutBufferWritten = 0;
-    auto RunSuccess =
+    bool RunSuccess =
         DriverClient.Read(
             IOCTL_QUIC_READ_DATA,
             OutBuffer,
@@ -439,10 +439,13 @@ QuicKernelMain(
 
 int
 QUIC_MAIN_EXPORT
-main(int argc, char** argv) {
+main(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[]
+    ) {
     QuicPlatformSystemLoad();
     QuicPlatformInitialize();
-    auto SelfSignedParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
+    QUIC_SEC_CONFIG_PARAMS* SelfSignedParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
     if (SelfSignedParams) {
         static_assert(sizeof(SelfSignedSecurityHash) == sizeof(SelfSignedParams->Thumbprint));
         QuicCopyMemory(SelfSignedSecurityHash, SelfSignedParams->Thumbprint, 20);

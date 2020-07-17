@@ -44,7 +44,7 @@ ThroughputClient::Start(
     QUIC_STATUS Status =
         MsQuic->ConnectionOpen(
             Session,
-            [](auto Handle, auto Context, auto Event) -> QUIC_STATUS {
+            [](HQUIC Handle, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
                 return ((ConnectionData*)Context)->Client->
                     ConnectionCallback(
                         Handle,
@@ -69,7 +69,7 @@ ThroughputClient::Start(
         return Status;
     }
 
-    auto LocalConnData = ConnData.release();
+    ConnectionData* LocalConnData = ConnData.release();
 
     UniquePtr<StreamData> StrmData{new StreamData};
 
@@ -77,7 +77,7 @@ ThroughputClient::Start(
         MsQuic->StreamOpen(
             LocalConnData->Connection,
             QUIC_STREAM_OPEN_FLAG_NONE,
-            [](auto Handle, auto Context, auto Event) -> QUIC_STATUS {
+            [](HQUIC Handle, void* Context, QUIC_STREAM_EVENT* Event) -> QUIC_STATUS {
                 return ((StreamData*)Context)->Client->
                     StreamCallback(
                         Handle,
@@ -100,7 +100,7 @@ ThroughputClient::Start(
         return Status;
     }
 
-    auto LocalStreamData = StrmData.release();
+    StreamData* LocalStreamData = StrmData.release();
 
     if (Length == 0) {
         return

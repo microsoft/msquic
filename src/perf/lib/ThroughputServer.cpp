@@ -86,7 +86,7 @@ ThroughputServer::ListenerCallback(
     case QUIC_LISTENER_EVENT_NEW_CONNECTION:
         Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
         Handler =
-            [](auto Conn, auto Context, auto Event) -> QUIC_STATUS {
+            [](HQUIC Conn, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
                 return ((ConnectionData*)Context)->Server->
                     ConnectionCallback(
                         Conn,
@@ -126,7 +126,7 @@ ThroughputServer::ConnectionCallback(
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
         WriteOutput("[strm][%p] Peer started\n", Event->PEER_STREAM_STARTED.Stream);
         Handler =
-            [](auto Stream, auto Context, auto Event) -> QUIC_STATUS {
+            [](HQUIC Stream, void* Context, QUIC_STREAM_EVENT* Event) -> QUIC_STATUS {
                 return ((StreamData*)Context)->Server->
                     StreamCallback(
                         Stream,

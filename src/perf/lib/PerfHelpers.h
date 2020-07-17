@@ -112,7 +112,7 @@ public:
     }
 
     T* release() noexcept {
-        auto tmp = ptr;
+        T* tmp = ptr;
         ptr = nullptr;
         return tmp;
     }
@@ -169,7 +169,7 @@ public:
     }
 
     T* release() noexcept {
-        auto tmp = ptr;
+        T* tmp = ptr;
         ptr = nullptr;
         return tmp;
     }
