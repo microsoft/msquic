@@ -127,10 +127,6 @@ set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/msquic.clog_
 
 set(MANIFESTED_HEADER_FILENAME ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
-add_custom_target(CLOG_GENERATED_FILES
-    COMMENT "CREATED CMAKE Target for CLOG generated files"
-)
-
 set(CLANG_GCC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value CACHE INTERNAL "")
 set(MSVC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
 
@@ -305,9 +301,6 @@ if(QUIC_TLS STREQUAL "mitls")
     add_subdirectory(submodules/everest/msquic/msvc/mitls)
     add_subdirectory(submodules/everest/msquic/msvc/quiccrypto)
 endif()
-
-# CLOG target
-add_subdirectory(submodules/clog/inc)
 
 # Product code
 add_subdirectory(src/core)

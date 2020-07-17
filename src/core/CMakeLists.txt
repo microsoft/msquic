@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 # Include for CLOG processing
-include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
+include("${PROJECT_SOURCE_DIR}/cmake/CLog.cmake")
 
 set(SOURCES
     ack_tracker.c

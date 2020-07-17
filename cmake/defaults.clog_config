@@ -1,0 +1,213 @@
+{
+  "MacroConfigurations": {},
+  "Version": 1,
+  "CustomTypeClogCSharpFile": "defaults.clog.cs",
+  "TypeEncoders": {
+    "Version": 0,
+    "TypeEncoder": [
+      {
+        "EncodingType": "ByteArray",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "!BYTEARRAY!"
+      },
+      {
+        "EncodingType": "Int32",
+        "CType": "int",
+        "DefinationEncoding": "d",
+      },
+      {
+        "EncodingType": "Int8",
+        "CType": "signed char",
+        "DefinationEncoding": "hhd",
+      },
+      {
+        "EncodingType": "Int32",
+        "CType": "long int",
+        "DefinationEncoding": "ld",
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "long long int",
+        "DefinationEncoding": "lld",
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "size_t",
+        "DefinationEncoding": "zd",
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "ptrdiff_t",
+        "DefinationEncoding": "td",
+      },
+      {
+        "EncodingType": "Int32",
+        "CType": "int",
+        "DefinationEncoding": "i",
+      },
+      {
+        "EncodingType": "Int8",
+        "CType": "signed char",
+        "DefinationEncoding": "hhi",
+      },
+      {
+        "EncodingType": "Int32",
+        "CType": "long int",
+        "DefinationEncoding": "li",
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "long long int",
+        "DefinationEncoding": "lli",
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "size_t",
+        "DefinationEncoding": "zi",
+      },
+      {
+        "EncodingType": "Int64",
+        "CType": "ptrdiff_t",
+        "DefinationEncoding": "ti",
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "unsigned int",
+        "DefinationEncoding": "u",
+      },
+      {
+        "EncodingType": "UInt8",
+        "CType": "unsigned char",
+        "DefinationEncoding": "hhu",
+      },
+      {
+        "EncodingType": "UInt16",
+        "CType": "unsigned short",
+        "DefinationEncoding": "hu",
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "unsigned long int",
+        "DefinationEncoding": "lu",
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "unsigned long long int",
+        "DefinationEncoding": "llu",
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "size_t",
+        "DefinationEncoding": "zu",
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "ptrdiff_t",
+        "DefinationEncoding": "tu",
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "unsigned int",
+        "DefinationEncoding": "x",
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "unsigned int",
+        "DefinationEncoding": "4.4x"
+      },
+      {
+        "EncodingType": "UInt8",
+        "CType": "unsigned char",
+        "DefinationEncoding": "hhx",
+      },
+      {
+        "EncodingType": "UInt16",
+        "CType": "unsigned short",
+        "DefinationEncoding": "hx",
+      },
+      {
+        "EncodingType": "UInt16",
+        "CType": "unsigned short",
+        "DefinationEncoding": "hX",
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "unsigned long int",
+        "DefinationEncoding": "lx",
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "unsigned long long int",
+        "DefinationEncoding": "llx",
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "size_t",
+        "DefinationEncoding": "zx",
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "ptrdiff_t",
+        "DefinationEncoding": "tx",
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "unsigned int",
+        "DefinationEncoding": "X",
+      },
+      {
+        "EncodingType": "UInt8",
+        "CType": "unsigned char",
+        "DefinationEncoding": "hhX",
+      },
+      {
+        "EncodingType": "UInt32",
+        "CType": "unsigned long int",
+        "DefinationEncoding": "lX",
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "unsigned long long int",
+        "DefinationEncoding": "llX",
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "size_t",
+        "DefinationEncoding": "zX",
+      },
+      {
+        "EncodingType": "UInt64",
+        "CType": "ptrdiff_t",
+        "DefinationEncoding": "tX",
+      },
+      {
+        "EncodingType": "UInt8",
+        "CType": "char",
+        "DefinationEncoding": "c"
+      },
+      {
+        "EncodingType": "ANSI_String",
+        "CType": "const char *",
+        "DefinationEncoding": "s"
+      },
+      {
+        "EncodingType": "UNICODE_String",
+        "CType": "const wchar_t *",
+        "DefinationEncoding": "ls"
+      },
+      {
+        "EncodingType": "UNICODE_String",
+        "CType": "const wchar_t *",
+        "DefinationEncoding": "S"
+      },
+      {
+        "EncodingType": "Pointer",
+        "CType": "CLOG_PTR",
+        "DefinationEncoding": "p",
+        "CustomDecoder": "defaults.clog_config.Types.DecodePointer"
+      }
+    ]
+  },
+  "SourceCodeMacros": [],
+  "ChainedConfigFiles": []
+}

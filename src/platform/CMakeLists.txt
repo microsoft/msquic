@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 # Include for CLOG processing
-include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
+include("${PROJECT_SOURCE_DIR}/cmake/CLog.cmake")
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(SOURCES
