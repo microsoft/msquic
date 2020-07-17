@@ -251,7 +251,28 @@ Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
 
 if ($CodeCoverage) {
     # Merge code coverage results
-    $CoverageExe = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
-    $CoverageMergeParams = " --input_coverage msquiccoretest.cov --input_coverage msquicplatformtest.cov --input_coverage msquictest.cov --export_type cobertura:msquiccoverage.xml"
-    Invoke-Expression ($CoverageExe + $CoverageMergeParams)
+    $CoverageDir = Join-Path $RootDir "artifacts" "coverage"
+
+    $CoverageMergeParams = ""
+
+    if (Test-Path (Join-Path $CoverageDir "msquiccoretest.cov")) {
+        $CoverageMergeParams += " --input_coverage $(Join-Path $CoverageDir "msquiccoretest.cov")"
+    }
+
+    if (Test-Path (Join-Path $CoverageDir "msquicplatformtest.cov")) {
+        $CoverageMergeParams += " --input_coverage $(Join-Path $CoverageDir "msquicplatformtest.cov")"
+    }
+
+    if (Test-Path (Join-Path $CoverageDir "msquictest.cov")) {
+        $CoverageMergeParams += " --input_coverage $(Join-Path $CoverageDir "msquictest.cov")"
+    }
+
+    if ($CoverageMergeParams -ne "") {
+        $CoverageMergeParams +=  " --export_type cobertura:$(Join-Path $CoverageDir "msquiccoverage.xml")"
+
+        $CoverageExe = 'C:\"Program Files"\OpenCppCoverage\OpenCppCoverage.exe'
+        Invoke-Expression ($CoverageExe + $CoverageMergeParams)
+    } else {
+        Write-Warning "No coverage results to merge!"
+    }
 }

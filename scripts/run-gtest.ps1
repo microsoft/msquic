@@ -157,6 +157,13 @@ $TestExeName = Split-Path $Path -Leaf
 $LogDir = Join-Path $RootDir "artifacts" "logs" $TestExeName (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
 New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
 
+# Folder for coverage files
+$CoverageDir = $null
+if ($CodeCoverage) {
+    $CoverageDir = Join-Path $RootDir "artifacts" "coverage"
+    New-Item -Path $CoverageDir -ItemType Directory -Force | Out-Null
+}
+
 # The file path of the final XML results.
 $FinalResultsPath = "$($LogDir)-results.xml"
 
@@ -251,8 +258,9 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
                 $pinfo.Arguments = "-g -G $($Path) $($Arguments)"
             }
         } elseif ($CodeCoverage) {
+            $CoverageOutput = "$(Join-Path $CoverageDir $TestExeName.Split('.')[0]).cov"
             $pinfo.FileName = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
-            $pinfo.Arguments = "--modules msquic --cover_children --sources src\core --sources src\inc --sources src\platform --excluded_sources unittest --working_dir $($OutputDir) --export_type binary -- $($Path) $($Arguments)"
+            $pinfo.Arguments = "--modules msquic --cover_children --sources src\core --sources src\inc --sources src\platform --excluded_sources unittest --working_dir $($CoverageDir) --export_type binary:$($CoverageOutput) -- $($Path) $($Arguments)"
         } else {
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments
