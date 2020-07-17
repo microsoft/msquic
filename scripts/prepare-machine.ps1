@@ -32,10 +32,7 @@ if ($IsWindows) {
         # TODO - Support installing VS and necessary addins
         # TODO - Install CMake
         # TODO - Check for Windows preview
-    }
-
-    if ($Configuration -eq "Test" -or $Configuration -eq "Dev") {
-        # Enable SChannel TLS 1.3 (client and server).
+        # Enable SChannel TLS 1.3 (client and server). Unnecessary on most recent builds.
         $TlsServerKeyPath = "HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server"
         reg.exe add $TlsServerKeyPath /v DisabledByDefault /t REG_DWORD /d 0 /f | Out-Null
         reg.exe add $TlsServerKeyPath /v Enabled /t REG_DWORD /d 1 /f | Out-Null
@@ -73,7 +70,7 @@ if ($IsWindows) {
             sudo apt-add-repository ppa:lttng/stable-2.10
             sudo apt-get update
             sudo apt-get install -y cmake
-            sudo apt-get install -y build-essentials
+            sudo apt-get install -y build-essential
             sudo apt-get install -y liblttng-ust-dev
             sudo apt-get install -y lttng-tools
         }

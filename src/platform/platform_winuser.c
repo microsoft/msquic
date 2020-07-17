@@ -21,6 +21,8 @@ Environment:
 uint64_t QuicPlatformPerfFreq;
 uint64_t QuicTotalMemory;
 QUIC_PLATFORM QuicPlatform = { NULL };
+QUIC_PROCESSOR_INFO* QuicProcessorInfo;
+uint64_t* QuicNumaMasks;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -55,6 +57,178 @@ QuicPlatformSystemUnload(
 #endif
 }
 
+BOOLEAN
+QuicProcessorInfoInit(
+    void
+    )
+{
+    BOOLEAN Result = FALSE;
+    DWORD BufferLength = 0;
+    uint8_t* Buffer = NULL;
+    uint32_t Offset;
+
+    uint32_t NumaNodeCount = 0;
+    uint32_t ActiveProcessorCount = QuicProcActiveCount();
+    QuicProcessorInfo = QUIC_ALLOC_NONPAGED(ActiveProcessorCount * sizeof(QUIC_PROCESSOR_INFO));
+    if (QuicProcessorInfo == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QuicProcessorInfo",
+            ActiveProcessorCount * sizeof(QUIC_PROCESSOR_INFO));
+        goto Error;
+    }
+
+    GetLogicalProcessorInformationEx(RelationAll, NULL, &BufferLength);
+    if (BufferLength == 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Failed to determine PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX size");
+        goto Error;
+    }
+
+    Buffer = QUIC_ALLOC_NONPAGED(BufferLength);
+    if (Buffer == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX",
+            BufferLength);
+        goto Error;
+    }
+
+    if (!GetLogicalProcessorInformationEx(
+            RelationAll,
+            (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)Buffer,
+            &BufferLength)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "GetLogicalProcessorInformationEx failed");
+        goto Error;
+    }
+
+    Offset = 0;
+    while (Offset < BufferLength) {
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
+            (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
+        if (Info->Relationship == RelationNumaNode) {
+            if (Info->NumaNode.NodeNumber + 1 > NumaNodeCount) {
+                NumaNodeCount = Info->NumaNode.NodeNumber + 1;
+            }
+        }
+        Offset += Info->Size;
+    }
+
+    if (NumaNodeCount == 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Failed to determine NUMA node count");
+        goto Error;
+    }
+
+    QuicNumaMasks = QUIC_ALLOC_NONPAGED(NumaNodeCount * sizeof(uint64_t));
+    if (QuicNumaMasks == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "QuicNumaMasks",
+            NumaNodeCount * sizeof(uint64_t));
+        goto Error;
+    }
+
+    QuicTraceLogInfo(
+        WindowsUserProcessorState,
+        "[ dll] Processor Count = %u, NUMA Node Count = %u",
+        ActiveProcessorCount, NumaNodeCount);
+
+    Offset = 0;
+    while (Offset < BufferLength) {
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
+            (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
+        if (Info->Relationship == RelationNumaNode) {
+            QuicNumaMasks[Info->NumaNode.NodeNumber] = (uint64_t)Info->NumaNode.GroupMask.Mask;
+        }
+        Offset += Info->Size;
+    }
+
+    for (uint32_t Index = 0; Index < ActiveProcessorCount; ++Index) {
+
+        Offset = 0;
+        while (Offset < BufferLength) {
+            PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
+                (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
+            if (Info->Relationship == RelationGroup) {
+                uint32_t ProcessorOffset = 0;
+                for (WORD i = 0; i < Info->Group.ActiveGroupCount; ++i) {
+                    if (Index - ProcessorOffset < Info->Group.GroupInfo[i].ActiveProcessorCount) {
+                        QuicProcessorInfo[Index].Group = i;
+                        QuicProcessorInfo[Index].Index = Index - ProcessorOffset;
+                        goto FindNumaNode;
+                    }
+                    ProcessorOffset += Info->Group.GroupInfo[i].ActiveProcessorCount;
+                }
+            }
+            Offset += Info->Size;
+        }
+
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Failed to determine processor group");
+        goto Error;
+
+FindNumaNode:
+
+        Offset = 0;
+        while (Offset < BufferLength) {
+            PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
+                (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
+            if (Info->Relationship == RelationNumaNode) {
+                if (Info->NumaNode.GroupMask.Group == QuicProcessorInfo[Index].Group) {
+                    QuicProcessorInfo[Index].NumaNode = Info->NumaNode.NodeNumber;
+                    QuicTraceLogInfo(
+                        ProcessorInfo,
+                        "[ dll] Proc[%u] Group[%hu] Index[%u] NUMA[%u]",
+                        Index,
+                        QuicProcessorInfo[Index].Group,
+                        QuicProcessorInfo[Index].Index,
+                        QuicProcessorInfo[Index].NumaNode);
+                    goto Next;
+                }
+            }
+            Offset += Info->Size;
+        }
+
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Failed to determine NUMA node");
+        goto Error;
+
+Next:
+        ;
+    }
+
+    Result = TRUE;
+
+Error:
+
+    QUIC_FREE(Buffer);
+
+    if (!Result) {
+        QUIC_FREE(QuicNumaMasks);
+        QuicNumaMasks = NULL;
+        QUIC_FREE(QuicProcessorInfo);
+        QuicProcessorInfo = NULL;
+    }
+
+    return Result;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicPlatformInitialize(
@@ -71,13 +245,22 @@ QuicPlatformInitialize(
         goto Error;
     }
 
+    if (!QuicProcessorInfoInit()) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "QuicProcessorInfoInit failed");
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
     if (!GlobalMemoryStatusEx(&memInfo)) {
         DWORD Error = GetLastError();
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Error,
-            "GlobalMemoryStatusEx");
+            "GlobalMemoryStatusEx failed");
         Status = HRESULT_FROM_WIN32(Error);
         goto Error;
     }
@@ -114,6 +297,10 @@ QuicPlatformUninitialize(
 {
     QuicTlsLibraryUninitialize();
     QUIC_DBG_ASSERT(QuicPlatform.Heap);
+    QUIC_FREE(QuicNumaMasks);
+    QuicNumaMasks = NULL;
+    QUIC_FREE(QuicProcessorInfo);
+    QuicProcessorInfo = NULL;
     HeapDestroy(QuicPlatform.Heap);
     QuicPlatform.Heap = NULL;
     QuicTraceLogInfo(

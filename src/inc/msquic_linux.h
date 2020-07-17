@@ -32,7 +32,7 @@ Environment:
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <quic_sal_stub.h>
+#include "quic_sal_stub.h"
 
 #ifdef __cplusplus
 extern "C++" {
@@ -185,11 +185,18 @@ extern "C" {
 #define QUIC_CERTIFICATE_FLAG_IGNORE_WEAK_SIGNATURE             0x00010000
 
 //
+// Helpers for Windows string functions.
+//
+
+#define _strnicmp strncasecmp
+#define sprintf_s(dst, dst_len, format, ...) sprintf(dst, format, __VA_ARGS__)
+#define _vsnprintf_s(dst, dst_len, flag, format, ...) vsnprintf(dst, dst_len, format, __VA_ARGS__)
+
+//
 // Hack to pass in a client trusted cert from APP layer to the TAL layer.
 //
 
 extern char *QuicOpenSslClientTrustedCert;
-
 
 //
 // IP Address Abstraction Helpers

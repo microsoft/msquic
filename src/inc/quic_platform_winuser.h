@@ -697,6 +697,25 @@ QuicTimeAtOrBefore32(
 #define QuicSleep(ms) Sleep(ms)
 
 //
+// Processor Count and Index
+//
+
+typedef struct {
+
+    uint16_t Group;
+    uint32_t Index; // In Group;
+    uint32_t NumaNode;
+
+} QUIC_PROCESSOR_INFO;
+
+extern QUIC_PROCESSOR_INFO* QuicProcessorInfo;
+extern uint64_t* QuicNumaMasks;
+
+#define QuicProcMaxCount() GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS)
+#define QuicProcActiveCount() GetActiveProcessorCount(ALL_PROCESSOR_GROUPS)
+#define QuicProcCurrentNumber() GetCurrentProcessorNumber()
+
+//
 // Create Thread Interfaces
 //
 
@@ -763,10 +782,17 @@ QuicThreadCreate(
         return GetLastError();
     }
     if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
-        QUIC_TEL_ASSERT(Config->IdealProcessor < 64);
-        SetThreadIdealProcessor(*Thread, Config->IdealProcessor);
+        const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[Config->IdealProcessor];
+        GROUP_AFFINITY Group = {0};
         if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
-            SetThreadAffinityMask(*Thread, (DWORD_PTR)(1ull << Config->IdealProcessor));
+            Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);          // Fixed processor
+        } else {
+            Group.Mask = (KAFFINITY)QuicNumaMasks[ProcInfo->NumaNode];  // Fixed NUMA node
+        }
+        Group.Group = ProcInfo->Group;
+        SetThreadGroupAffinity(*Thread, &Group, NULL);
+        if (!(Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE)) {
+            SetThreadIdealProcessor(*Thread, ProcInfo->Index);
         }
     }
     if (Config->Flags & QUIC_THREAD_FLAG_HIGH_PRIORITY) {
@@ -799,14 +825,6 @@ QuicThreadCreate(
 #define QuicThreadWait(Thread) WaitForSingleObject(*(Thread), INFINITE)
 typedef uint32_t QUIC_THREAD_ID;
 #define QuicCurThreadID() GetCurrentThreadId()
-
-//
-// Processor Count and Index
-//
-
-#define QuicProcMaxCount() GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS)
-#define QuicProcActiveCount() GetActiveProcessorCount(ALL_PROCESSOR_GROUPS)
-#define QuicProcCurrentNumber() GetCurrentProcessorNumber()
 
 //
 // Rundown Protection Interfaces

@@ -15,7 +15,7 @@ set(SOURCES
 )
 
 # Allow CLOG to preprocess all the source files.
-CLOG_ADD_SOURCEFILE(MSQUICTEST_CLOG_LIB ${SOURCES})
+CLOG_GENERATE_TARGET(MSQUICTEST_CLOG_LIB ${SOURCES})
 
 add_executable(msquictest ${SOURCES})
 

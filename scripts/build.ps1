@@ -45,6 +45,9 @@ This script provides helpers for building msquic.
 .PARAMETER PGO
     Builds msquic with profile guided optimization support (Windows-only).
 
+.PARAMETER Generator
+    Specifies a specific cmake generator (Only supported on unix)
+
 .EXAMPLE
     build.ps1
 
@@ -95,11 +98,24 @@ param (
     [switch]$DynamicCRT = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$PGO = $false
+    [switch]$PGO = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$Generator = ""
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+if ($Generator -eq "") {
+    if ($IsWindows) {
+        $Generator = "Visual Studio 16 2019"
+    } elseif ($IsLinux) {
+        $Generator = "Linux Makefiles"
+    } else {
+        $Generator = "Unix Makefiles"
+    }
+}
 
 # Default TLS based on current platform.
 if ("" -eq $Tls) {
@@ -168,7 +184,7 @@ function CMake-Execute([String]$Arguments) {
 function CMake-Generate {
     $Arguments = "-g"
     if ($IsWindows) {
-        $Arguments += " 'Visual Studio 16 2019' -A "
+        $Arguments += " '$Generator' -A "
         switch ($Arch) {
             "x86"   { $Arguments += "Win32" }
             "x64"   { $Arguments += "x64" }
@@ -176,7 +192,7 @@ function CMake-Generate {
             "arm64" { $Arguments += "arm64" }
         }
     } else {
-        $Arguments += " 'Linux Makefiles'"
+        $Arguments += " '$Generator'"
     }
     $Arguments += " -DQUIC_TLS=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=" + $ArtifactsDir
@@ -235,7 +251,7 @@ function CMake-Build {
     CMake-Execute $Arguments
 
     # Copy clog to a common location.
-    $ClogPath = $ArtifactsDir = Join-Path $BaseArtifactsDir "clog"
+    $ClogPath = Join-Path $BaseArtifactsDir "clog"
     if (!(Test-Path $ClogPath)) {
         Copy-Item (Join-Path $BuildDir "submodules/clog") -Destination $ClogPath -Recurse
     }

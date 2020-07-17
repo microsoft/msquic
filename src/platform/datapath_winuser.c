@@ -557,8 +557,8 @@ QuicDataPathInitialize(
     QUIC_STATUS Status;
     WSADATA WsaData;
     QUIC_DATAPATH* Datapath;
-    SYSTEM_INFO Sysinfo;
     uint32_t DatapathLength;
+    uint32_t MaxProcCount = QuicProcActiveCount();
 
     if (RecvCallback == NULL || UnreachableCallback == NULL || NewDataPath == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -577,15 +577,9 @@ QuicDataPathInitialize(
         goto Exit;
     }
 
-    GetSystemInfo(&Sysinfo);
     DatapathLength =
         sizeof(QUIC_DATAPATH) +
-        Sysinfo.dwNumberOfProcessors * sizeof(QUIC_DATAPATH_PROC_CONTEXT);
-
-    //
-    // Thread affinity uses a bit mask. We can't support more cores than bits.
-    //
-    QUIC_FRE_ASSERT(Sysinfo.dwNumberOfProcessors <= sizeof(DWORD_PTR) * 8);
+        MaxProcCount * sizeof(QUIC_DATAPATH_PROC_CONTEXT);
 
     Datapath = (QUIC_DATAPATH*)QUIC_ALLOC_PAGED(DatapathLength);
     if (Datapath == NULL) {
@@ -602,7 +596,7 @@ QuicDataPathInitialize(
     Datapath->RecvHandler = RecvCallback;
     Datapath->UnreachableHandler = UnreachableCallback;
     Datapath->ClientRecvContextLength = ClientRecvContextLength;
-    Datapath->ProcCount = (uint32_t)Sysinfo.dwNumberOfProcessors;
+    Datapath->ProcCount = MaxProcCount;
     QuicRundownInitialize(&Datapath->BindingsRundown);
 
     QuicDataPathQueryRssScalabilityInfo(Datapath);
@@ -707,19 +701,24 @@ QuicDataPathInitialize(
             goto Error;
         }
 
-        DWORD_PTR AffinityMask = (DWORD_PTR)(1llu << i);
-        if (SetThreadAffinityMask(
+        const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[i];
+        GROUP_AFFINITY Group = {0};
+        Group.Mask = (KAFFINITY)(1llu << ProcInfo->Index);
+        Group.Group = ProcInfo->Group;
+        if (!SetThreadGroupAffinity(
                 Datapath->ProcContexts[i].CompletionThread,
-                AffinityMask) == 0) {
+                &Group,
+                NULL)) {
             DWORD LastError = GetLastError();
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 LastError,
-                "SetThreadAffinityMask");
+                "SetThreadGroupAffinity");
             Status = HRESULT_FROM_WIN32(LastError);
             goto Error;
         }
+
 #ifdef QUIC_UWP_BUILD
         SetThreadDescription(Datapath->ProcContexts[i].CompletionThread, L"quic_datapath");
 #else

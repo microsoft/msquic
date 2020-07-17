@@ -12,6 +12,9 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER Tls
     The TLS library test.
 
+.PARAMETER Kernel
+    Runs the Windows kernel mode tests.
+
 .PARAMETER Filter
     A filter to include test cases from the list to execute. Multiple filters
     are separated by :. Negative filters are prefixed with -.
@@ -86,6 +89,9 @@ param (
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
+    [switch]$Kernel = $false,
+
+    [Parameter(Mandatory = $false)]
     [string]$Filter = "",
 
     [Parameter(Mandatory = $false)]
@@ -131,6 +137,11 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+# Validate the the kernel switch.
+if ($Kernel -and !$IsWindows) {
+    Write-Error "-Kernel switch only supported on Windows";
+}
+
 # Default TLS based on current platform.
 if ("" -eq $Tls) {
     if ($IsWindows) {
@@ -150,10 +161,12 @@ $RunTest = Join-Path $RootDir "scripts/run-gtest.ps1"
 $MsQuicTest = $null
 $MsQuicCoreTest = $null
 $MsQuicPlatTest = $null
+$KernelPath = $null;
 if ($IsWindows) {
     $MsQuicTest = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)\msquictest.exe"
     $MsQuicCoreTest = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)\msquiccoretest.exe"
     $MsQuicPlatTest = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)\msquicplatformtest.exe"
+    $KernelPath = Join-Path $RootDir "\artifacts\winkernel\$($Arch)_$($Config)_$($Tls)"
 } else {
     $MsQuicTest = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/msquictest"
     $MsQuicCoreTest = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/msquiccoretest"
@@ -164,12 +177,20 @@ if ($IsWindows) {
 if (!(Test-Path $MsQuicTest)) {
     Write-Error "Build does not exist!`n `nRun the following to generate it:`n `n    $(Join-Path $RootDir "scripts" "build.ps1") -Config $Config -Arch $Arch -Tls $Tls`n"
 }
+if ($Kernel) {
+    if (!(Test-Path (Join-Path $KernelPath "msquictest.sys"))) {
+        Write-Error "Kernel binaries do not exist!"
+    }
+}
 
 # Build up all the arguments to pass to the Powershell script.
-$TestArguments =  "-ExecutionMode $($ExecutionMode) -IsolationMode $($IsolationMode)"
+$TestArguments =  "-ExecutionMode $ExecutionMode -IsolationMode $IsolationMode"
 
+if ($Kernel) {
+    $TestArguments += " -Kernel $KernelPath"
+}
 if ("" -ne $Filter) {
-    $TestArguments += " -Filter $($Filter)"
+    $TestArguments += " -Filter $Filter"
 }
 if ($ListTestCases) {
     $TestArguments += " -ListTestCases"
@@ -190,7 +211,7 @@ if ($BreakOnFailure) {
     $TestArguments += " -BreakOnFailure"
 }
 if ("None" -ne $LogProfile) {
-    $TestArguments += " -LogProfile $($LogProfile) -ConvertLogs"
+    $TestArguments += " -LogProfile $LogProfile -ConvertLogs"
 }
 if ($CompressOutput) {
     $TestArguments += " -CompressOutput"
@@ -203,6 +224,8 @@ if ($EnableAppVerifier) {
 }
 
 # Run the script.
-Invoke-Expression ($RunTest + " -Path $($MsQuicCoreTest) " + $TestArguments)
-Invoke-Expression ($RunTest + " -Path $($MsQuicPlatTest) " + $TestArguments)
-Invoke-Expression ($RunTest + " -Path $($MsQuicTest) " + $TestArguments)
+if (!$Kernel) {
+    Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
+    Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
+}
+Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)

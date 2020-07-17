@@ -306,6 +306,9 @@ if(QUIC_TLS STREQUAL "mitls")
     add_subdirectory(submodules/everest/msquic/msvc/quiccrypto)
 endif()
 
+# CLOG target
+add_subdirectory(submodules/clog/inc)
+
 # Product code
 add_subdirectory(src/core)
 add_subdirectory(src/platform)
@@ -316,6 +319,8 @@ if(QUIC_BUILD_TOOLS)
     add_subdirectory(src/tools/attack)
     add_subdirectory(src/tools/interop)
     add_subdirectory(src/tools/interopserver)
+    add_subdirectory(src/tools/ip/client)
+    add_subdirectory(src/tools/ip/server)
     add_subdirectory(src/tools/ping)
     add_subdirectory(src/tools/post)
     add_subdirectory(src/tools/reach)
