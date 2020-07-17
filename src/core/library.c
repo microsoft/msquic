@@ -162,7 +162,7 @@ MsQuicLibraryInitialize(
 
     MsQuicLibraryReadSettings(NULL); // NULL means don't update registrations.
 
-    QuicLockInitialize(&MsQuicLib.StatelessRetryKeysLock);
+    QuicDispatchLockInitialize(&MsQuicLib.StatelessRetryKeysLock);
     QuicZeroMemory(&MsQuicLib.StatelessRetryKeys, sizeof(MsQuicLib.StatelessRetryKeys));
     QuicZeroMemory(&MsQuicLib.StatelessRetryKeysExpiration, sizeof(MsQuicLib.StatelessRetryKeysExpiration));
 
@@ -322,7 +322,7 @@ MsQuicLibraryUninitialize(
         QuicKeyFree(MsQuicLib.StatelessRetryKeys[i]);
         MsQuicLib.StatelessRetryKeys[i] = NULL;
     }
-    QuicLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
+    QuicDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
 
     QuicTraceEvent(
         LibraryUninitialized,

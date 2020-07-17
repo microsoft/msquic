@@ -195,7 +195,7 @@ typedef struct QUIC_LIBRARY {
     //
     // Controls access to the stateless retry keys when rotated.
     //
-    QUIC_LOCK StatelessRetryKeysLock;
+    QUIC_DISPATCH_LOCK StatelessRetryKeysLock;
 
     //
     // Keys used for encryption of stateless retry tokens.
