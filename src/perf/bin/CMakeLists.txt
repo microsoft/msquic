@@ -4,7 +4,11 @@
 # Include for CLOG processing
 include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS} /permissive-")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
+
+if (MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive-")
+endif()
 
 set(SOURCES
     main.cpp
