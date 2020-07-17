@@ -57,7 +57,9 @@ else()
     # (but later on when installing)
     #set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 
-    set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
+    # Azure is not liking this argument. I think its a bug in their configuration
+    # Once this is fixed, also fix the shim in build-config-user.yml
+    #set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
 
     #set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
 
