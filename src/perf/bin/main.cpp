@@ -6,8 +6,6 @@
 #include "quic_driver_run.h"
 #include "PerfHelpers.h"
 
-#include <future>
-
 #ifdef _WIN32
 #include <winioctl.h>
 #endif
