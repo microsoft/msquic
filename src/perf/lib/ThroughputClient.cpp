@@ -2,6 +2,9 @@
 #include "ThroughputClient.cpp.clog.h"
 #endif
 
+#ifndef _KERNEL_MODE
+#define QUIC_TEST_APIS 1
+#endif
 #include "ThroughputClient.h"
 #include "msquichelper.h"
 #include "ThroughputCommon.h"

@@ -30,7 +30,11 @@ Abstract:
 #endif
 
 extern const QUIC_API_TABLE* MsQuic;
+#ifdef _KERNEL_MODE
 extern uint8_t SelfSignedSecurityHash[20];
+#else
+extern QUIC_SEC_CONFIG_PARAMS* SelfSignedParams;
+#endif
 extern bool IsSelfSignedValid;
 
 #define QUIC_TEST_SESSION_CLOSED    1
@@ -430,6 +434,7 @@ struct MsQuicSecurityConfig {
                 WriteOutput("Self Signed Not Configured Correctly\n");
                 return QUIC_STATUS_INVALID_STATE;
             }
+#ifdef _KERNEL_MODE
             CreateSecConfigHelper Helper;
             SecurityConfig =
                 Helper.Create(
@@ -438,6 +443,13 @@ struct MsQuicSecurityConfig {
                     QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH,
                     &SelfSignedSecurityHash,
                     nullptr);
+#else
+            SecurityConfig =
+                GetSecConfigForSelfSigned(
+                    MsQuic,
+                    Registration,
+                    SelfSignedParams);
+#endif
             if (!SecurityConfig) {
                 WriteOutput("Failed to create security config for self signed certificate\n");
                 return QUIC_STATUS_INVALID_PARAMETER;

@@ -2,13 +2,20 @@
 #include "quicmain.cpp.clog.h"
 #endif
 
+#ifndef _KERNEL_MODE
+#define QUIC_TEST_APIS 1
+#endif
 #include "quic_driver_run.h"
 
 #include "ThroughputServer.h"
 #include "ThroughputClient.h"
 
 const QUIC_API_TABLE* MsQuic;
+#ifdef _KERNEL_MODE
 uint8_t SelfSignedSecurityHash[20];
+#else
+QUIC_SEC_CONFIG_PARAMS* SelfSignedParams{nullptr};
+#endif
 bool IsSelfSignedValid{ false };
 
 struct CMsQuic {

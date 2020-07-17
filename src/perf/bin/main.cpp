@@ -443,10 +443,14 @@ main(
     ) {
     QuicPlatformSystemLoad();
     QuicPlatformInitialize();
-    QUIC_SEC_CONFIG_PARAMS* SelfSignedParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
-    if (SelfSignedParams) {
-        static_assert(sizeof(SelfSignedSecurityHash) == sizeof(SelfSignedParams->Thumbprint));
-        QuicCopyMemory(SelfSignedSecurityHash, SelfSignedParams->Thumbprint, 20);
+    QUIC_SEC_CONFIG_PARAMS* SelfSignedConfig = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
+    if (SelfSignedConfig) {
+#ifdef _KERNEL_MODE
+        static_assert(sizeof(SelfSignedSecurityHash) == sizeof(SelfSignedConfig->Thumbprint));
+        QuicCopyMemory(SelfSignedSecurityHash, SelfSignedConfig->Thumbprint, 20);
+#else
+        SelfSignedParams = SelfSignedConfig;
+#endif
         IsSelfSignedValid = true;
     }
 
