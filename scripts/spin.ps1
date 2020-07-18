@@ -62,7 +62,10 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
-    [string]$LogProfile = "None"
+    [string]$LogProfile = "None",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$CodeCoverage = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -82,6 +85,19 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 
 # Path to the run-executable Powershell script.
 $RunExecutable = Join-Path $RootDir "scripts/run-executable.ps1"
+
+#Validate the code coverage switch.
+if ($CodeCoverage) {
+    if (!$IsWindows) {
+        Write-Error "-CodeCoverage switch only supported on Windows";
+    }
+    if ($Debugger) {
+        Write-Error "-CodeCoverage switch is not supported with debugging";
+    }
+    if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
+        Write-Error "Code coverage tools are not installed";
+    }
+}
 
 # Path to the spinquic exectuable.
 $SpinQuic = $null
@@ -109,6 +125,9 @@ if ($Debugger) {
 }
 if ("None" -ne $LogProfile) {
     $Arguments += " -LogProfile $($LogProfile) -ConvertLogs"
+}
+if ($CodeCoverage) {
+    $Arguments += " -CodeCoverage"
 }
 
 # Run the script.
