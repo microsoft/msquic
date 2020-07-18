@@ -197,7 +197,7 @@ $RemoteDirectory = Invoke-TestCommand -Session $Session -ScriptBlock {
     Join-Path (Get-Location) "Tests"
 }
 
-$LocalDirectory = Join-Path $RootDir "artifacts"
+$LocalDirectory = Join-Path $RootDir "artifacts/bin"
 
 if ($Local) {
     $RemoteDirectory = $LocalDirectory
