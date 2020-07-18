@@ -2358,7 +2358,7 @@ QuicTlsLogSecret(
 #define QuicTlsLogSecret(Prefix, Secret, Length) UNREFERENCED_PARAMETER(Prefix);
 #endif
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicHkdfFormatLabel(
     _In_z_ const char* const Label,
@@ -2383,7 +2383,7 @@ QuicHkdfFormatLabel(
     *DataLength += 1;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicHkdfExpandLabel(
     _In_ QUIC_HASH* Hash,
@@ -2409,7 +2409,7 @@ QuicHkdfExpandLabel(
             Output);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicTlsDeriveInitialSecrets(
     _In_reads_(QUIC_VERSION_SALT_LENGTH)
@@ -2509,7 +2509,7 @@ Error:
     return Status;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicPacketKeyDerive(
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
@@ -2633,7 +2633,7 @@ Error:
     return Status;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _When_(NewReadKey != NULL, _At_(*NewReadKey, __drv_allocatesMem(Mem)))
 _When_(NewWriteKey != NULL, _At_(*NewWriteKey, __drv_allocatesMem(Mem)))
 QUIC_STATUS
@@ -2833,7 +2833,7 @@ QuicPacketKeyFree(
     }
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _At_(*NewKey, __drv_allocatesMem(Mem))
 QUIC_STATUS
 QuicPacketKeyUpdate(
@@ -2891,7 +2891,7 @@ Error:
     return Status;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicKeyCreate(
     _In_ QUIC_AEAD_TYPE AeadType,
@@ -3059,7 +3059,7 @@ QuicDecrypt(
     return NtStatusToQuicStatus(Status);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicHpKeyCreate(
     _In_ QUIC_AEAD_TYPE AeadType,
@@ -3148,7 +3148,7 @@ QuicHpComputeMask(
     return Status;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicHashCreate(
     _In_ QUIC_HASH_TYPE HashType,
