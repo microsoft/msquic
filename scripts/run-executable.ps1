@@ -114,7 +114,7 @@ $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 # Executable name.
 $ExeName = Split-Path $Path -Leaf
 
-$CoverageName = "$($ExeName.Split('.')[0]).xml"
+$CoverageName = "$($ExeName.Split('.')[0]).cov"
 $CoverageDir = Join-Path $RootDir "artifacts" "coverage"
 
 # Folder for log files.
@@ -173,7 +173,7 @@ function Start-Executable {
             }
         } elseif ($CodeCoverage) {
             $pinfo.FileName = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
-            $pinfo.Arguments = "--modules msquic --cover_children --sources src\core --sources src\inc --sources src\platform --excluded_sources unittest --working_dir $($CoverageDir) --export_type cobertura:$(Join-Path $CoverageDir $CoverageName) -- $($Path) $($Arguments)"
+            $pinfo.Arguments = "--modules msquic --cover_children --sources src\core --sources src\inc --sources src\platform --excluded_sources unittest --working_dir $($CoverageDir) --export_type binary:$(Join-Path $CoverageDir $CoverageName) -- $($Path) $($Arguments)"
         } else {
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments
