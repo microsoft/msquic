@@ -155,6 +155,7 @@ $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 
 # Executable name.
 $TestExeName = Split-Path $Path -Leaf
+$CoverageName = "$($TestExeName.Split('.')[0]).cov"
 
 # Folder for log files.
 $LogDir = Join-Path $RootDir "artifacts" "logs" $TestExeName (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
@@ -162,7 +163,6 @@ New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
 
 # Folder for coverage files
 $CoverageDir = $null
-$CoverageName = "$($TestExeName.Split('.')[0]).cov"
 if ($CodeCoverage) {
     $CoverageDir = Join-Path $RootDir "artifacts" "coverage"
     New-Item -Path $CoverageDir -ItemType Directory -Force | Out-Null

@@ -113,13 +113,18 @@ $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 
 # Executable name.
 $ExeName = Split-Path $Path -Leaf
-
 $CoverageName = "$($ExeName.Split('.')[0]).cov"
-$CoverageDir = Join-Path $RootDir "artifacts" "coverage"
 
 # Folder for log files.
 $LogDir = Join-Path $RootDir "artifacts" "logs" $ExeName (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
 New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
+
+# Folder for coverage files
+$CoverageDir = $null
+if ($CodeCoverage) {
+    $CoverageDir = Join-Path $RootDir "artifacts" "coverage"
+    New-Item -Path $CoverageDir -ItemType Directory -Force | Out-Null
+}
 
 # XML for creating a failure result data.
 $FailXmlText = @"
