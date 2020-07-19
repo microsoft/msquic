@@ -154,7 +154,7 @@ typedef struct QUIC_PACKET_KEY {
 //
 // Creates a packet key from the static version specific salt.
 //
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _When_(ReadKey != NULL, _At_(*ReadKey, __drv_allocatesMem(Mem)))
 _When_(WriteKey != NULL, _At_(*WriteKey, __drv_allocatesMem(Mem)))
 QUIC_STATUS
@@ -181,7 +181,7 @@ QuicPacketKeyFree(
 //
 // Calculates the updated packet key from the current packet key.
 //
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _At_(*NewKey, __drv_allocatesMem(Mem))
 QUIC_STATUS
 QuicPacketKeyUpdate(
@@ -189,7 +189,7 @@ QuicPacketKeyUpdate(
     _Out_ QUIC_PACKET_KEY** NewKey
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicKeyCreate(
     _In_ QUIC_AEAD_TYPE AeadType,
@@ -200,7 +200,7 @@ QuicKeyCreate(
     _Out_ QUIC_KEY** Key
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicPacketKeyDerive(
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
@@ -291,7 +291,7 @@ QuicDecrypt(
         uint8_t* Buffer
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicHpKeyCreate(
     _In_ QUIC_AEAD_TYPE AeadType,
@@ -323,7 +323,7 @@ QuicHpComputeMask(
         uint8_t* Mask
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicHashCreate(
     _In_ QUIC_HASH_TYPE HashType,

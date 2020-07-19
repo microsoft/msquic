@@ -195,7 +195,7 @@ typedef struct QUIC_LIBRARY {
     //
     // Controls access to the stateless retry keys when rotated.
     //
-    QUIC_LOCK StatelessRetryKeysLock;
+    QUIC_DISPATCH_LOCK StatelessRetryKeysLock;
 
     //
     // Keys used for encryption of stateless retry tokens.
@@ -422,7 +422,7 @@ QuicLibraryGetWorker(
 //
 // Returns the current stateless retry key.
 //
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Ret_maybenull_
 QUIC_KEY*
 QuicLibraryGetCurrentStatelessRetryKey(
@@ -432,7 +432,7 @@ QuicLibraryGetCurrentStatelessRetryKey(
 //
 // Returns the stateless retry key for that timestamp.
 //
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Ret_maybenull_
 QUIC_KEY*
 QuicLibraryGetStatelessRetryKeyForTimestamp(
