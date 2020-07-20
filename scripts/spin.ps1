@@ -86,9 +86,9 @@ $RunExecutable = Join-Path $RootDir "scripts/run-executable.ps1"
 # Path to the spinquic exectuable.
 $SpinQuic = $null
 if ($IsWindows) {
-    $SpinQuic = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)\spinquic.exe"
+    $SpinQuic = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\spinquic.exe"
 } else {
-    $SpinQuic = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/spinquic"
+    $SpinQuic = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/spinquic"
 }
 
 # Make sure the build is present.
