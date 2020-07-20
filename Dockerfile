@@ -5,7 +5,6 @@ RUN 	apt-get update -y \
 		build-essential \
 		cmake \
 	&& apt-get clean
-RUN ls cmake
 COPY 	. /src
 
 FROM	source as build
