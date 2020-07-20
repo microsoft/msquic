@@ -142,6 +142,8 @@ if (!$IsWindows -And $Platform -eq "uwp") {
 Write-Output "Dotnet root is set to the following"
 Write-Output $env:DOTNET_ROOT
 
+clog
+
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
