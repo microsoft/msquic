@@ -11,4 +11,4 @@ sudo ldconfig
 
 echo "##vso[task.setvariable variable=PATH]${PATH}:${Home}/.dotnet/tools"
 
-echo "##vso[task.setvariable variable=DOTNET_ROOT]$(dirname $(realpath $(which dotnet)))
+echo "##vso[task.setvariable variable=DOTNET_ROOT]$(dirname $(realpath $(which dotnet)))"
