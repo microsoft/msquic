@@ -33,7 +33,7 @@ endif()
 
 project(msquic)
 
-message(STATUS "DOTNET_ROOT: $ENV{DOTNET_ROOT})
+message(STATUS "DOTNET_ROOT: $ENV{DOTNET_ROOT}")
 
 message(STATUS "System name: ${CMAKE_SYSTEM_NAME}")
 message(STATUS "System version: ${CMAKE_SYSTEM_VERSION}")
