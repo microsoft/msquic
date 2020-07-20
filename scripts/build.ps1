@@ -139,9 +139,6 @@ if (!$IsWindows -And $Platform -eq "uwp") {
     exit
 }
 
-Write-Output "Dotnet root is set to the following"
-Write-Output $env:DOTNET_ROOT
-
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
@@ -174,8 +171,6 @@ function Log($msg) {
 # Executes cmake with the given arguments.
 function CMake-Execute([String]$Arguments) {
     Log "cmake $($Arguments)"
-    Write-Output "Before calling cmake, dotnet root is"
-    Write-Output $env:DOTNET_ROOT
     $process = Start-Process cmake $Arguments -PassThru -NoNewWindow -WorkingDirectory $BuildDir
     $handle = $process.Handle # Magic work around. Don't remove this line.
     $process.WaitForExit();
@@ -183,10 +178,6 @@ function CMake-Execute([String]$Arguments) {
     if ($process.ExitCode -ne 0) {
         Write-Error "[$(Get-Date)] CMake exited with status code $($process.ExitCode)"
     }
-
-
-    Write-Output "after calling cmake, dotnet root is"
-    Write-Output $env:DOTNET_ROOT
 }
 
 # Uses cmake to generate the build configuration files.
