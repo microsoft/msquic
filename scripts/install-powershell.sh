@@ -7,4 +7,5 @@ sudo add-apt-repository universe
 sudo apt-get install -y powershell apt-transport-https
 
 echo "$AGENT_TOOLSDIRECTORY/dotnet"
-echo "##vso[task.setvariable variable=DOTNET_ROOT]$AGENT_TOOLSDIRECTORY/dotnet
+
+echo "##vso[task.setvariable variable=DOTNET_ROOT]$AGENT_TOOLSDIRECTORY/dotnet"
