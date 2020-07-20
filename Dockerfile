@@ -26,7 +26,7 @@ RUN     apt-get update -y \
             libatomic1 \
             && apt-get clean
 COPY    --from=build /src/Debug/bin/Release /bin
-COPY    --from=build /src/Debug/bin/Release/*.so /lib/x86_64-linux-gnu
+COPY    --from=build /src/Debug/bin/Release/*.so /lib/x86_64-linux-gnu/
 COPY    --from=source /src/scripts/run_endpoint.sh /run_endpoint.sh
 COPY    --from=build /src/Debug/server.* /
 RUN     chmod +x /run_endpoint.sh
