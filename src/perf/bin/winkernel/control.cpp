@@ -18,8 +18,8 @@ Abstract:
 
 #include "quic_driver_run.h"
 
-DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceName, L"\\Device\\quicperformance");
-DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceSymLink, L"\\DosDevices\\quicperformance");
+DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceName, L"\\Device\\quicperformance");
+DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceSymLink, L"\\DosDevices\\quicperformance");
 
 typedef struct QUIC_DEVICE_EXTENSION {
     EX_PUSH_LOCK Lock;
@@ -30,26 +30,381 @@ typedef struct QUIC_DEVICE_EXTENSION {
 
 } QUIC_DEVICE_EXTENSION;
 
+WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DEVICE_EXTENSION, QuicPerfCtlGetDeviceContext);
+
+typedef struct QUIC_TEST_CLIENT
+{
+    LIST_ENTRY Link;
+    bool TestFailure;
+
+} QUIC_TEST_CLIENT;
+
+WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_TEST_CLIENT, QuicPerfCtlGetFileContext);
+
+EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL QuicPerfCtlEvtIoDeviceControl;
+EVT_WDF_IO_QUEUE_IO_CANCELED_ON_QUEUE QuicPerfCtlEvtIoCanceled;
+
+PAGEDX EVT_WDF_DEVICE_FILE_CREATE QuicPerfCtlEvtFileCreate;
+PAGEDX EVT_WDF_FILE_CLOSE QuicPerfCtlEvtFileClose;
+PAGEDX EVT_WDF_FILE_CLEANUP QuicPerfCtlEvtFileCleanup;
+
+WDFDEVICE QuicPerfCtlDevice = nullptr;
+QUIC_DEVICE_EXTENSION* QuicPerfCtlExtension = nullptr;
+QUIC_TEST_CLIENT* QuicPerfClient = nullptr;
+
+
 _No_competing_thread_
 INITCODE
 NTSTATUS
-QuicTestCtlInitialize(
-    _In_ WDFDRIVER /*Driver*/
+QuicPerfCtlInitialize(
+    _In_ WDFDRIVER Driver
 )
 {
     NTSTATUS Status = STATUS_SUCCESS;
+    PWDFDEVICE_INIT DeviceInit = nullptr;
+    WDF_FILEOBJECT_CONFIG FileConfig;
+    WDF_OBJECT_ATTRIBUTES Attribs;
+    WDFDEVICE Device;
+    QUIC_DEVICE_EXTENSION* DeviceContext;
+    WDF_IO_QUEUE_CONFIG QueueConfig;
+    WDFQUEUE Queue;
 
-    QUIC_EVENT A;
+    DeviceInit =
+        WdfControlDeviceInitAllocate(
+            Driver,
+            &SDDL_DEVOBJ_SYS_ALL_ADM_ALL);
+    if (DeviceInit == nullptr) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "WdfControlDeviceInitAllocate failed");
+        Status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Error;
+    }
 
-    QuicMainStart(0, nullptr, A);
-    QuicMainStop(0);
+    Status =
+        WdfDeviceInitAssignName(
+            DeviceInit,
+            &QuicPerfCtlDeviceName);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "WdfDeviceInitAssignName failed");
+        goto Error;
+    }
+
+    WDF_FILEOBJECT_CONFIG_INIT(
+        &FileConfig,
+        QuicPerfCtlEvtFileCreate,
+        QuicPerfCtlEvtFileClose,
+        QuicPerfCtlEvtFileCleanup);
+    FileConfig.FileObjectClass = WdfFileObjectWdfCanUseFsContext2;
+
+    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&Attribs, QUIC_TEST_CLIENT);
+    WdfDeviceInitSetFileObjectConfig(
+        DeviceInit,
+        &FileConfig,
+        &Attribs);
+    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&Attribs, QUIC_DEVICE_EXTENSION);
+
+    Status =
+        WdfDeviceCreate(
+            &DeviceInit,
+            &Attribs,
+            &Device);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "WdfDeviceCreate failed");
+        goto Error;
+    }
+
+    DeviceContext = QuicPerfCtlGetDeviceContext(Device);
+    RtlZeroMemory(DeviceContext, sizeof(QUIC_DEVICE_EXTENSION));
+    ExInitializePushLock(&DeviceContext->Lock);
+    InitializeListHead(&DeviceContext->ClientList);
+
+    Status = WdfDeviceCreateSymbolicLink(Device, &QuicPerfCtlDeviceSymLink);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "WdfDeviceCreateSymbolicLink failed");
+        goto Error;
+    }
+
+    WDF_IO_QUEUE_CONFIG_INIT_DEFAULT_QUEUE(&QueueConfig, WdfIoQueueDispatchParallel);
+    QueueConfig.EvtIoDeviceControl = QuicPerfCtlEvtIoDeviceControl;
+    QueueConfig.EvtIoCanceledOnQueue = QuicPerfCtlEvtIoCanceled;
+
+    __analysis_assume(QueueConfig.EvtIoStop != 0);
+    Status =
+        WdfIoQueueCreate(
+            Device,
+            &QueueConfig,
+            WDF_NO_OBJECT_ATTRIBUTES,
+            &Queue);
+    __analysis_assume(QueueConfig.EvtIoStop == 0);
+
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "WdfIoQueueCreate failed");
+        goto Error;
+    }
+
+    QuicPerfCtlDevice = Device;
+    QuicPerfCtlExtension = DeviceContext;
+
+    WdfControlFinishInitializing(Device);
+
+    QuicTraceLogVerbose(
+        PerfControlInitialized,
+        "[perf] Control interface initialized");
+
+Error:
+
+    if (DeviceInit) {
+        WdfDeviceInitFree(DeviceInit);
+    }
 
     return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID
-QuicTestCtlUninitialize(
+QuicPerfCtlUninitialize(
 )
 {
+    QuicTraceLogVerbose(
+        PerfControlUninitializing,
+        "[perf] Control interface uninitializing");
+
+    if (QuicPerfCtlDevice != nullptr) {
+        NT_ASSERT(QuicPerfCtlExtension != nullptr);
+        QuicPerfCtlExtension = nullptr;
+
+        WdfObjectDelete(QuicPerfCtlDevice);
+        QuicPerfCtlDevice = nullptr;
+    }
+
+    QuicTraceLogVerbose(
+        PerfControlUninitialized,
+        "[perf] Control interface uninitialized");
+}
+
+PAGEDX
+_Use_decl_annotations_
+VOID
+QuicPerfCtlEvtFileCreate(
+    _In_ WDFDEVICE /* Device */,
+    _In_ WDFREQUEST Request,
+    _In_ WDFFILEOBJECT FileObject
+)
+{
+    NTSTATUS Status = STATUS_SUCCESS;
+
+    PAGED_CODE();
+
+    KeEnterGuardedRegion();
+    ExfAcquirePushLockExclusive(&QuicPerfCtlExtension->Lock);
+
+    do
+    {
+        if (QuicPerfCtlExtension->ClientListSize >= 1) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Already have max clients");
+            Status = STATUS_TOO_MANY_SESSIONS;
+            break;
+        }
+
+        QUIC_TEST_CLIENT* Client = QuicPerfCtlGetFileContext(FileObject);
+        if (Client == nullptr) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "nullptr File context in FileCreate");
+            Status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        RtlZeroMemory(Client, sizeof(QUIC_TEST_CLIENT));
+
+        //
+        // Insert into the client list
+        //
+        InsertTailList(&QuicPerfCtlExtension->ClientList, &Client->Link);
+        QuicPerfCtlExtension->ClientListSize++;
+
+        QuicTraceLogInfo(
+            TestControlClientCreated,
+            "[test] Client %p created",
+            Client);
+
+        //
+        // Update globals. (TODO: Add multiple device client support)
+        //
+        QuicPerfClient = Client;
+    } while (false);
+
+    ExfReleasePushLockExclusive(&QuicPerfCtlExtension->Lock);
+    KeLeaveGuardedRegion();
+
+    WdfRequestComplete(Request, Status);
+}
+
+PAGEDX
+_Use_decl_annotations_
+VOID
+QuicPerfCtlEvtFileClose(
+    _In_ WDFFILEOBJECT /* FileObject */
+)
+{
+    PAGED_CODE();
+}
+
+PAGEDX
+_Use_decl_annotations_
+VOID
+QuicPerfCtlEvtFileCleanup(
+    _In_ WDFFILEOBJECT FileObject
+)
+{
+    PAGED_CODE();
+
+    KeEnterGuardedRegion();
+
+    QUIC_TEST_CLIENT* Client = QuicPerfCtlGetFileContext(FileObject);
+    if (Client != nullptr) {
+
+        ExfAcquirePushLockExclusive(&QuicPerfCtlExtension->Lock);
+
+        //
+        // Remove the device client from the list
+        //
+        RemoveEntryList(&Client->Link);
+        QuicPerfCtlExtension->ClientListSize--;
+
+        ExfReleasePushLockExclusive(&QuicPerfCtlExtension->Lock);
+
+        QuicTraceLogInfo(
+            TestControlClientCleaningUp,
+            "[test] Client %p cleaning up",
+            Client);
+
+        //
+        // Clean up globals.
+        //
+        QuicPerfClient = nullptr;
+    }
+
+    KeLeaveGuardedRegion();
+}
+
+VOID
+QuicPerfCtlEvtIoCanceled(
+    _In_ WDFQUEUE /* Queue */,
+    _In_ WDFREQUEST Request
+)
+{
+    NTSTATUS Status;
+
+    WDFFILEOBJECT FileObject = WdfRequestGetFileObject(Request);
+    if (FileObject == nullptr) {
+        Status = STATUS_DEVICE_NOT_READY;
+        goto error;
+    }
+
+    QUIC_TEST_CLIENT* Client = QuicPerfCtlGetFileContext(FileObject);
+    if (Client == nullptr) {
+        Status = STATUS_DEVICE_NOT_READY;
+        goto error;
+    }
+
+    QuicTraceLogWarning(
+        TestControlClientCanceledRequest,
+        "[test] Client %p canceled request %p",
+        Client,
+        Request);
+
+    Status = STATUS_CANCELLED;
+
+error:
+
+    WdfRequestComplete(Request, Status);
+}
+
+size_t QUIC_IOCTL_BUFFER_SIZES[] =
+{
+    0,
+};
+
+static_assert(
+    QUIC_PERF_MAX_IOCTL_FUNC_CODE + 1 == (sizeof(QUIC_IOCTL_BUFFER_SIZES) / sizeof(size_t)),
+    "QUIC_IOCTL_BUFFER_SIZES must be kept in sync with the IOTCLs");
+
+VOID
+QuicPerfCtlEvtIoDeviceControl(
+    _In_ WDFQUEUE /* Queue */,
+    _In_ WDFREQUEST Request,
+    _In_ size_t /* OutputBufferLength */,
+    _In_ size_t /* InputBufferLength */,
+    _In_ ULONG IoControlCode
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    WDFFILEOBJECT FileObject = nullptr;
+    QUIC_TEST_CLIENT* Client = nullptr;
+
+    if (KeGetCurrentIrql() > PASSIVE_LEVEL) {
+        Status = STATUS_NOT_SUPPORTED;
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "IOCTL not supported greater than PASSIVE_LEVEL");
+        goto Error;
+    }
+
+    FileObject = WdfRequestGetFileObject(Request);
+    if (FileObject == nullptr) {
+        Status = STATUS_DEVICE_NOT_READY;
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "WdfRequestGetFileObject failed");
+        goto Error;
+    }
+
+    Client = QuicPerfCtlGetFileContext(FileObject);
+    if (Client == nullptr) {
+        Status = STATUS_DEVICE_NOT_READY;
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "QuicTestCtlGetFileContext failed");
+        goto Error;
+    }
+
+    ULONG FunctionCode = IoGetFunctionCodeFromCtlCode(IoControlCode);
+    if (FunctionCode == 0 || FunctionCode > QUIC_PERF_MAX_IOCTL_FUNC_CODE) {
+        Status = STATUS_NOT_IMPLEMENTED;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            FunctionCode,
+            "Invalid FunctionCode");
+        goto Error;
+    }
+
+Error:
+    UNREFERENCED_PARAMETER(FunctionCode);
 }

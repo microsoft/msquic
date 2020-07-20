@@ -19,6 +19,21 @@ Abstract:
 
 #define QUIC_PERF_TAG 'frPQ' // QPrf
 
+EVT_WDF_DRIVER_UNLOAD QuicPerfDriverUnload;
+
+_No_competing_thread_
+INITCODE
+NTSTATUS
+QuicPerfCtlInitialize(
+    _In_ WDFDRIVER Driver
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID
+QuicPerfCtlUninitialize(
+
+    );
+
 void* __cdecl operator new (size_t Size) {
     return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_PERF_TAG);
 }
@@ -44,20 +59,6 @@ void __cdecl operator delete[](_In_opt_ void* Mem) {
         ExFreePoolWithTag(Mem, QUIC_PERF_TAG);
     }
 }
-
-EVT_WDF_DRIVER_UNLOAD QuicTestDriverUnload;
-
-_No_competing_thread_
-INITCODE
-NTSTATUS
-QuicTestCtlInitialize(
-    _In_ WDFDRIVER Driver
-);
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID
-QuicTestCtlUninitialize(
-);
 
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 
@@ -119,7 +120,7 @@ Return Value:
     // Create the WdfDriver Object
     //
     WDF_DRIVER_CONFIG_INIT(&Config, NULL);
-    Config.EvtDriverUnload = QuicTestDriverUnload;
+    Config.EvtDriverUnload = QuicPerfDriverUnload;
     Config.DriverInitFlags = WdfDriverInitNonPnpDriver;
     Config.DriverPoolTag = QUIC_PERF_TAG;
 
@@ -142,15 +143,19 @@ Return Value:
     //
     // Initialize the device control interface.
     //
-    //Status = QuicTestCtlInitialize(Driver);
-    //if (!NT_SUCCESS(Status)) {
-    //    QuicTraceEvent(
-    //        LibraryErrorStatus,
-    //        "[ lib] ERROR, %u, %s.",
-    //        Status,
-    //        "QuicTestCtlInitialize failed");
-    //    goto Error;
-    //}
+    Status = QuicPerfCtlInitialize(Driver);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "QuicPerfCtlInitialize failed");
+        goto Error;
+    }
+
+    QuicTraceLogInfo(
+        PerfDriverStarted,
+        "[perf] Started");
 
 Error:
 
@@ -168,7 +173,7 @@ _Function_class_(EVT_WDF_DRIVER_UNLOAD)
 _IRQL_requires_same_
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicTestDriverUnload(
+QuicPerfDriverUnload(
     _In_ WDFDRIVER Driver
 )
 /*++
@@ -187,11 +192,11 @@ Arguments:
     UNREFERENCED_PARAMETER(Driver);
     NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
 
-    //QuicTestCtlUninitialize();
+    QuicPerfCtlUninitialize();
 
     QuicTraceLogInfo(
-        TestDriverStopped,
-        "[test] Stopped");
+        PerfDriverStopped,
+        "[perf] Stopped");
 
     QuicPlatformUninitialize();
     QuicPlatformSystemUnload();
