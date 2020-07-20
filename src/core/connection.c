@@ -442,11 +442,9 @@ QuicConnApplySettings(
             Settings->UnidiStreamCount);
     }
 
-    if (Settings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME) {
+    if (Settings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME &&
+        Connection->HandshakeTP == NULL) {
         QUIC_DBG_ASSERT(!Connection->State.Started);
-        //
-        // TODO: Replace with pool allocator for performance.
-        //
         Connection->HandshakeTP =
             QuicPoolAlloc(&MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].TransportParamPool);
         if (Connection->HandshakeTP == NULL) {
