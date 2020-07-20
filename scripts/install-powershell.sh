@@ -5,7 +5,7 @@ sudo dpkg -i packages-microsoft-prod.deb
 sudo apt-get update
 sudo add-apt-repository universe
 sudo apt-get install -y powershell apt-transport-https
+sudo apt-get update
+sudo apt-get install -y dotnet-sdk-3.1
 
-echo "$AGENT_TOOLSDIRECTORY/dotnet"
-
-echo "##vso[task.setvariable variable=DOTNET_ROOT]$AGENT_TOOLSDIRECTORY/dotnet"
+echo "##vso[task.setvariable variable=PATH]${PATH}:${Home}/.dotnet/tools"
