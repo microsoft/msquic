@@ -240,8 +240,8 @@ QuicCryptoInitializePreshared(
 
     if (!QuicCryptoTlsDecodeTransportParameters(
             Connection,
-            Info->RemoteTransportParameters.Buffer,
-            (uint16_t)Info->RemoteTransportParameters.Length,
+            Info->TransportParameters.Buffer,
+            (uint16_t)Info->TransportParameters.Length,
             &Connection->PeerTransportParams)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }

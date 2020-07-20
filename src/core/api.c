@@ -387,18 +387,6 @@ MsQuicConnectionStartPreshared(
         goto Error;
     }
 
-    if (Info->ShareBinding) {
-        if (Info->LocalConnectionID.Length == 0) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Error;
-        }
-    } else {
-        if (Info->LocalConnectionID.Length != 0) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Error;
-        }
-    }
-
     if (IS_CONN_HANDLE(Handle)) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Connection = (QUIC_CONNECTION*)Handle;

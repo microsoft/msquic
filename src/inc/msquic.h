@@ -300,17 +300,13 @@ typedef struct QUIC_LISTENER_STATISTICS {
 
 typedef struct QUIC_PRESHARED_CONNECTION_INFORMATION {
 
-    QUIC_ADDR LocalAddress;
-    QUIC_ADDR RemoteAddress;
-    uint32_t QuicVersion;
-    QUIC_BUFFER Alpn;
-    QUIC_BUFFER LocalConnectionID;
-    QUIC_BUFFER RemoteConnectionID;
-    QUIC_BUFFER TrafficSecret;
-    QUIC_BUFFER RemoteTransportParameters;
+    uint32_t QuicVersion; // TODO - Array?
     uint32_t RttEstimateUs;
-    BOOLEAN IsServer : 1;
-    BOOLEAN ShareBinding : 1;
+    QUIC_ADDR Address;
+    QUIC_BUFFER Alpn;
+    QUIC_BUFFER ConnectionID;
+    QUIC_BUFFER TrafficSecret;
+    QUIC_BUFFER TransportParameters;
 
 } QUIC_PRESHARED_CONNECTION_INFORMATION;
 
@@ -423,6 +419,7 @@ typedef enum QUIC_SERVER_RESUMPTION_LEVEL {
 #define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME        20  // QUIC_STREAM_SCHEDULING_SCHEME
 #define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED        21  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED           22  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_PRESHARED_INFO                  23  // variable (QUIC_PRESHARED_CONNECTION_INFORMATION)
 
 #ifdef WIN32 // Windows certificate validation ignore flags.
 #define QUIC_CERTIFICATE_FLAG_IGNORE_REVOCATION                 0x00000080
@@ -825,7 +822,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_CONNECTION_START_PRESHARED_FN)(
     _In_ _Pre_defensive_ HQUIC Connection,
-    _In_ const QUIC_PRESHARED_CONNECTION_INFORMATION* Info
+    _In_ const QUIC_PRESHARED_CONNECTION_INFORMATION* RemoteInfo
     );
 
 //
