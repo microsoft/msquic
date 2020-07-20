@@ -10,4 +10,5 @@ sudo apt-get install -y dotnet-sdk-3.1
 sudo ldconfig
 
 echo "##vso[task.setvariable variable=PATH]${PATH}:${Home}/.dotnet/tools"
+
 echo "##vso[task.setvariable variable=DOTNET_ROOT]$(dirname $(realpath $(which dotnet)))
