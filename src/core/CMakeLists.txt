@@ -1,13 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-message(STATUS ${PROJECT_SOURCE_DIR})
-file(GLOB_RECURSE TESTING_CMAKE_DIR LIST_DIRECTORIES true ${PROJECT_SOURCE_DIR}/*)
-
-message(STATUS "FILES: ${TESTING_CMAKE_DIR}")
-
-message(STATUS "${CMAKE_CURRENT_SOURCE_DIR}")
-
 # Include for CLOG processing
 include("${PROJECT_SOURCE_DIR}/cmake/CLog.cmake")
 
