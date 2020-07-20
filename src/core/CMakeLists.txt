@@ -1,6 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+message(STATUS ${PROJECT_SOURCE_DIR})
+file(GLOB TESTING_CMAKE_DIR ${PROJECT_SOURCE_DIR}/cmake/*)
+
+message(STATUS "FILES: ${TESTING_CMAKE_DIR}")
+
+message(STATUS "Hello WORLD!")
+
 # Include for CLOG processing
 include("${PROJECT_SOURCE_DIR}/cmake/CLog.cmake")
 

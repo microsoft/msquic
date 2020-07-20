@@ -41,6 +41,7 @@ function Install-ClogTool {
         dotnet tool install --global --add-source $NuGetPath $ToolName
     } catch {
         Write-Warning "Clog could not be installed. Building with logs will not work"
+        Write-Warning $_
     } finally {
         $ProgressPreference = $OldProgressPreference
     }
