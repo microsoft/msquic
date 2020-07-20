@@ -518,7 +518,7 @@ if ($Kernel -ne "") {
     net.exe stop msquic /y | Out-Null
     Copy-Item C:\Windows\system32\drivers\msquic.sys C:\Windows\system32\drivers\msquic.sys.old
     Copy-Item (Join-Path $Kernel "msquictest.sys") (Split-Path $Path -Parent)
-    verifier.exe /volatile /adddriver msquic.sys msquictest.sys /flags 0x9BB
+    verifier.exe /volatile /adddriver afd.sys msquic.sys msquictest.sys netio.sys tcpip.sys /flags 0x9BB
     sfpcopy.exe (Join-Path $Kernel "msquic.sys") C:\Windows\system32\drivers\msquic.sys
     net.exe start msquic
 }
@@ -624,7 +624,7 @@ try {
     if ($Kernel -ne "") {
         net.exe stop msquic /y | Out-Null
         sc.exe delete msquictest | Out-Null
-        verifier.exe /volatile /removedriver msquic.sys msquictest.sys
+        verifier.exe /volatile /removedriver afd.sys msquic.sys msquictest.sys netio.sys tcpip.sys
         verifier.exe /volatile /flags 0x0
         sfpcopy.exe C:\Windows\system32\drivers\msquic.sys.old C:\Windows\system32\drivers\msquic.sys
         net.exe start msquic
