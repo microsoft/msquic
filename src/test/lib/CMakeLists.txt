@@ -22,15 +22,13 @@ set(SOURCES
 # Allow CLOG to preprocess all the source files.
 CLOG_GENERATE_TARGET(TESTLIB_CLOG_LIB ${SOURCES})
 
+target_link_libraries(TESTLIB_CLOG_LIB PRIVATE base)
+
 add_library(testlib ${SOURCES})
 
 target_include_directories(testlib PRIVATE ${PROJECT_SOURCE_DIR}/src/test)
 
-target_include_directories(testlib PRIVATE ${QUIC_INCLUDE_DIR})
-
-target_compile_options(testlib PRIVATE ${QUIC_WARNING_FLAGS} ${QUIC_C_FLAGS})
-target_compile_options(testlib PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${QUIC_CXX_FLAGS}>)
-target_compile_definitions(testlib PRIVATE ${QUIC_COMMON_DEFINES})
+target_link_libraries(testlib PRIVATE base)
 
 set_property(TARGET testlib PROPERTY FOLDER "tests")
 

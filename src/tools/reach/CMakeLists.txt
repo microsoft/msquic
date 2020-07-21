@@ -5,7 +5,7 @@ add_executable(quicreach reach.cpp)
 
 set_property(TARGET quicreach PROPERTY FOLDER "tools")
 
-target_link_libraries(quicreach msquic platform)
+target_link_libraries(quicreach msquic platform base)
 
 if (NOT MSVC)
     target_compile_options(quicreach PRIVATE -Wno-missing-field-initializers)

@@ -3,6 +3,6 @@
 
 add_executable(quicsample sample.cpp)
 
-target_link_libraries(quicsample msquic platform)
+target_link_libraries(quicsample msquic platform base)
 
 set_property(TARGET quicsample PROPERTY FOLDER "tools")

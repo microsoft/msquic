@@ -49,20 +49,11 @@ endif()
 # Allow CLOG to preprocess all the source files.
 CLOG_GENERATE_TARGET(CORE_CLOG_LIB ${SOURCES})
 
+target_link_libraries(CORE_CLOG_LIB PRIVATE base)
+
 add_library(core STATIC ${SOURCES})
 
-target_link_libraries(core PUBLIC CORE_CLOG_LIB)
-
-# Core is private, as Platform is the base build that we want public args for
-
-target_compile_options(core PRIVATE ${QUIC_WARNING_FLAGS} ${QUIC_C_FLAGS})
-target_compile_definitions(core PRIVATE ${QUIC_COMMON_DEFINES})
-
-target_include_directories(core PRIVATE ${QUIC_INCLUDE_DIR})
-
-if (NOT WIN32 AND ${QUIC_SANITIZE_ADDRESS})
-    target_link_libraries(core PRIVATE -fsanitize=address)
-endif()
+target_link_libraries(core PUBLIC CORE_CLOG_LIB base)
 
 set_property(TARGET core PROPERTY FOLDER "libraries")
 

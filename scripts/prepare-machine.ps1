@@ -107,7 +107,6 @@ if ($IsWindows) {
         }
         "Dev" {
             sudo apt-add-repository ppa:lttng/stable-2.10
-            sudo apt-add-repository 'deb https://apt.kitware.com/ubuntu/ bionic main'
             sudo apt-get update
             sudo apt-get install -y cmake
             sudo apt-get install -y build-essential

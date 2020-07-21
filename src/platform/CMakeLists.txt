@@ -53,31 +53,15 @@ endif()
 # Allow CLOG to preprocess all the source files.
 CLOG_GENERATE_TARGET(PLATFORM_CLOG_LIB ${SOURCES})
 
+target_link_libraries(PLATFORM_CLOG_LIB PRIVATE base)
+
 add_library(platform STATIC ${SOURCES})
 
-target_link_libraries(platform PUBLIC PLATFORM_CLOG_LIB)
+target_link_libraries(platform PUBLIC PLATFORM_CLOG_LIB base)
 
 set_property(TARGET platform PROPERTY FOLDER "libraries")
 
-target_compile_options(platform PUBLIC ${QUIC_WARNING_FLAGS} ${QUIC_C_FLAGS})
-target_compile_options(platform PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${QUIC_CXX_FLAGS}>)
-
-target_compile_definitions(platform PUBLIC ${QUIC_COMMON_DEFINES})
-
-target_include_directories(platform PUBLIC ${QUIC_INCLUDE_DIR})
 target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
-
-if (NOT MSVC AND QUIC_SANITIZE_ADDRESS)
-    target_link_libraries(platform PUBLIC -fsanitize=address)
-endif()
-
-if(QUIC_ENABLE_LOGGING)
-    if(WIN32)
-        add_dependencies(platform MsQuicEtw)
-    else()
-        target_link_libraries(platform PUBLIC ${LTTNGUST_LIBRARIES})
-    endif()
-endif()
 
 if(QUIC_TLS STREQUAL "openssl")
     add_dependencies(platform OpenSSL)
@@ -86,19 +70,4 @@ if(QUIC_TLS STREQUAL "openssl")
         ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
 elseif(QUIC_TLS STREQUAL "mitls")
     target_link_libraries(platform PUBLIC kremlib evercrypt mitls quiccrypto)
-endif()
-
-if (NOT MSVC AND NOT APPLE)
-    find_library(ATOMIC NAMES atomic libatomic.so.1)
-    if (ATOMIC)
-        message(STATUS "Found libatomic: ${ATOMIC}")
-    endif()
-endif()
-
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
-target_link_libraries(platform PUBLIC Threads::Threads ${CMAKE_DL_LIBS} ${ATOMIC})
-
-if(WIN32)
-    target_link_libraries(platform PUBLIC ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
 endif()

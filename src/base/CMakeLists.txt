@@ -1,0 +1,39 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+# Base target for all other targets. Ensures all arguments required are correctly set
+
+add_library(base INTERFACE)
+
+target_compile_options(base INTERFACE ${QUIC_WARNING_FLAGS} ${QUIC_C_FLAGS})
+target_compile_options(base INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${QUIC_CXX_FLAGS}>)
+
+target_compile_definitions(base INTERFACE ${QUIC_COMMON_DEFINES})
+target_include_directories(base INTERFACE ${QUIC_INCLUDE_DIR})
+
+if (NOT MSVC AND QUIC_SANITIZE_ADDRESS)
+    target_link_libraries(base INTERFACE -fsanitize=address)
+endif()
+
+if(QUIC_ENABLE_LOGGING)
+    if(WIN32)
+        add_dependencies(base INTERFACE MsQuicEtw)
+    else()
+        target_link_libraries(base INTERFACE ${LTTNGUST_LIBRARIES})
+    endif()
+endif()
+
+if (NOT MSVC AND NOT APPLE)
+    find_library(ATOMIC NAMES atomic libatomic.so.1)
+    if (ATOMIC)
+        message(STATUS "Found libatomic: ${ATOMIC}")
+    endif()
+endif()
+
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+target_link_libraries(base INTERFACE Threads::Threads ${CMAKE_DL_LIBS} ${ATOMIC})
+
+if(WIN32)
+    target_link_libraries(base INTERFACE ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
+endif()

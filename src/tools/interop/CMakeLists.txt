@@ -5,7 +5,7 @@ add_executable(quicinterop interop.cpp)
 
 set_property(TARGET quicinterop PROPERTY FOLDER "tools")
 
-target_link_libraries(quicinterop msquic platform)
+target_link_libraries(quicinterop msquic platform base)
 
 if (NOT MSVC)
     target_compile_options(quicinterop PRIVATE

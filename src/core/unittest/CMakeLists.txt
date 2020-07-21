@@ -17,6 +17,8 @@ set(SOURCES
 # Allow CLOG to preprocess all the source files.
 CLOG_GENERATE_TARGET(MSQUIC_CORETEST ${SOURCES})
 
+target_link_libraries(MSQUIC_CORETEST PRIVATE base)
+
 add_executable(msquiccoretest ${SOURCES})
 
 target_include_directories(msquiccoretest PRIVATE ${PROJECT_SOURCE_DIR}/src/core)
@@ -35,6 +37,6 @@ if (NOT MSVC)
         PROPERTIES LINK_FLAGS "-Wl,--no-as-needed")
 endif()
 
-target_link_libraries(msquiccoretest msquic core platform gtest MSQUIC_CORETEST)
+target_link_libraries(msquiccoretest msquic core platform base gtest MSQUIC_CORETEST)
 
 add_test(msquiccoretest msquiccoretest)

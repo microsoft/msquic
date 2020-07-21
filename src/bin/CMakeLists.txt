@@ -11,7 +11,7 @@ add_library(msquic SHARED ${SOURCES})
 
 set_property(TARGET msquic PROPERTY FOLDER "libraries")
 
-target_link_libraries(msquic PRIVATE core platform)
+target_link_libraries(msquic PRIVATE core platform base)
 
 if(WIN32)
     if(QUIC_UWP_BUILD)

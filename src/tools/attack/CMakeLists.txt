@@ -11,7 +11,7 @@ add_executable(quicattack ${SOURCES})
 set_property(TARGET quicattack PROPERTY FOLDER "tools")
 
 target_include_directories(quicattack PRIVATE ${PROJECT_SOURCE_DIR}/src/core)
-target_link_libraries(quicattack msquic core platform)
+target_link_libraries(quicattack msquic core platform base)
 
 if (NOT MSVC)
     target_compile_options(quicattack PUBLIC -Wno-missing-field-initializers)
