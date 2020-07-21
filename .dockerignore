@@ -2,7 +2,7 @@
 !CMakeLists.txt
 !scripts
 !src
-!submodules/clog
+!cmake
 !submodules/openssl
 submodules/openssl/pyca-cryptography
 submodules/openssl/boringssl
