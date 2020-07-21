@@ -179,8 +179,7 @@ if ($Local) {
 
 Set-Session -Session $Session
 
-$OutputDir = Join-Path $RootDir "artifacts/PerfDataResults"
-New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
+
 
 $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     if ($IsWindows) {
@@ -190,12 +189,15 @@ $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     }
 }
 
+$OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($RemoteArch)_$($Config)_$($RemoteTls)"
+New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
+
 # Join path in script to ensure right platform separator
 $RemoteDirectory = Invoke-TestCommand -Session $Session -ScriptBlock {
     Join-Path (Get-Location) "Tests"
 }
 
-$LocalDirectory = Join-Path $RootDir "artifacts"
+$LocalDirectory = Join-Path $RootDir "artifacts/bin"
 
 if ($Local) {
     $RemoteDirectory = $LocalDirectory

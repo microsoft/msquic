@@ -7,6 +7,9 @@ as necessary.
 .PARAMETER Path
     The path to the test executable.
 
+.PARAMETER Kernel
+    Runs for Windows kernel mode, given the path for binaries.
+
 .PARAMETER Filter
     A filter to include test cases from the list to execute. Multiple filters
     are separated by :. Negative filters are prefixed with -.
@@ -55,6 +58,9 @@ as necessary.
 param (
     [Parameter(Mandatory = $true)]
     [string]$Path,
+
+    [Parameter(Mandatory = $false)]
+    [string]$Kernel = "",
 
     [Parameter(Mandatory = $false)]
     [string]$Filter = "",
@@ -112,6 +118,11 @@ function Log($msg) {
 # Make sure the test executable is present.
 if (!(Test-Path $Path)) {
     Write-Error "$($Path) does not exist!"
+}
+
+# Validate the the kernel switch.
+if ($Kernel -ne "" -and !$IsWindows) {
+    Write-Error "-Kernel switch only supported on Windows";
 }
 
 # Root directory of the project.
@@ -268,7 +279,10 @@ function Start-TestCase([String]$Name) {
     $ResultsPath = Join-Path $LocalLogDir "results.xml"
     $Arguments = "--gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)"
     if ($BreakOnFailure) {
-        $Arguments = $Arguments + " --gtest_break_on_failure"
+        $Arguments += " --gtest_break_on_failure"
+    }
+    if ($Kernel -ne "") {
+        $Arguments += " --kernel"
     }
 
     # Start the test process and return some information about the test case.
@@ -296,10 +310,13 @@ function Start-AllTestCases {
     # Build up the argument list.
     $Arguments = "--gtest_catch_exceptions=0 --gtest_output=xml:$($FinalResultsPath)"
     if ($Filter -ne "") {
-        $Arguments = $Arguments + " --gtest_filter=$($Filter)"
+        $Arguments += " --gtest_filter=$($Filter)"
     }
     if ($BreakOnFailure) {
-        $Arguments = $Arguments + " --gtest_break_on_failure"
+        $Arguments += " --gtest_break_on_failure"
+    }
+    if ($Kernel -ne "") {
+        $Arguments += " --kernel"
     }
 
     # Start the test process and return some information about the test case.
@@ -485,6 +502,7 @@ if ($IsWindows -and !(Test-Path $WerDumpRegPath)) {
     New-Item -Path $WerDumpRegPath -Force | Out-Null
 }
 
+# Initialize application verifier (Windows only).
 if ($IsWindows -and $EnableAppVerifier) {
     where.exe appverif.exe
     if ($LastExitCode -eq 0) {
@@ -493,6 +511,16 @@ if ($IsWindows -and $EnableAppVerifier) {
         Write-Warning "Application Verifier not installed!"
         $EnableAppVerifier = $false;
     }
+}
+
+# Install the kernel mode drivers.
+if ($Kernel -ne "") {
+    net.exe stop msquic /y | Out-Null
+    Copy-Item C:\Windows\system32\drivers\msquic.sys C:\Windows\system32\drivers\msquic.sys.old
+    Copy-Item (Join-Path $Kernel "msquictest.sys") (Split-Path $Path -Parent)
+    verifier.exe /volatile /adddriver afd.sys msquic.sys msquictest.sys netio.sys tcpip.sys /flags 0x9BB
+    sfpcopy.exe (Join-Path $Kernel "msquic.sys") C:\Windows\system32\drivers\msquic.sys
+    net.exe start msquic
 }
 
 try {
@@ -591,4 +619,15 @@ try {
         }
     }
     Write-Host ""
+
+    # Uninstall the kernel mode test driver and revert the msquic driver.
+    if ($Kernel -ne "") {
+        net.exe stop msquic /y | Out-Null
+        sc.exe delete msquictest | Out-Null
+        verifier.exe /volatile /removedriver afd.sys msquic.sys msquictest.sys netio.sys tcpip.sys
+        verifier.exe /volatile /flags 0x0
+        sfpcopy.exe C:\Windows\system32\drivers\msquic.sys.old C:\Windows\system32\drivers\msquic.sys
+        net.exe start msquic
+        Remove-Item C:\Windows\system32\drivers\msquic.sys.old -Force
+    }
 }

@@ -442,11 +442,9 @@ QuicConnApplySettings(
             Settings->UnidiStreamCount);
     }
 
-    if (Settings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME) {
+    if (Settings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME &&
+        Connection->HandshakeTP == NULL) {
         QUIC_DBG_ASSERT(!Connection->State.Started);
-        //
-        // TODO: Replace with pool allocator for performance.
-        //
         Connection->HandshakeTP =
             QuicPoolAlloc(&MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].TransportParamPool);
         if (Connection->HandshakeTP == NULL) {
@@ -696,26 +694,11 @@ QuicConnIndicateEvent(
                 Connection,
                 "Event silently discarded (no handler).");
         } else {
-            uint64_t StartTime = QuicTimeUs64();
             Status =
                 Connection->ClientCallbackHandler(
                     (HQUIC)Connection,
                     Connection->ClientContext,
                     Event);
-            uint64_t EndTime = QuicTimeUs64();
-            if (EndTime - StartTime > QUIC_MAX_CALLBACK_TIME_WARNING) {
-                QuicTraceLogConnWarning(
-                    ApiEventTooLong,
-                    Connection,
-                    "App took excessive time (%llu us) in callback.",
-                    (EndTime - StartTime));
-                QUIC_TEL_ASSERTMSG_ARGS(
-                    EndTime - StartTime < QUIC_MAX_CALLBACK_TIME_ERROR,
-                    "App extremely long time in connection callback",
-                    Connection->Registration == NULL ?
-                        NULL : Connection->Registration->AppName,
-                    Event->Type, 0);
-            }
         }
     } else {
         Status = QUIC_STATUS_INVALID_STATE;
