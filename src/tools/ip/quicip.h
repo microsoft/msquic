@@ -70,14 +70,12 @@ ClientStreamCallback(
     }
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
         if (!Context->Success && Context->Status == QUIC_IP_DEFAULT_STATUS) {
-            QUIC_PRINTF("Stream Peer Send Aborted, 0x%llx!\n", Event->PEER_SEND_ABORTED.ErrorCode);
-            // TODO - Cache error to report to app?
+            QUIC_PRINTF("Stream Peer Send Aborted!\n");
         }
         break;
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
         if (!Context->Success && Context->Status == QUIC_IP_DEFAULT_STATUS) {
-            QUIC_PRINTF("Stream Peer Receive Aborted, 0x%llx!\n", Event->PEER_RECEIVE_ABORTED.ErrorCode);
-            // TODO - Cache error to report to app?
+            QUIC_PRINTF("Stream Peer Receive Aborted!\n");
         }
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
@@ -108,8 +106,7 @@ ClientConnectionCallback(
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
         if (!Context->Success && Context->Status == QUIC_IP_DEFAULT_STATUS) {
-            QUIC_PRINTF("Connection Shutdown by Peer, 0x%llx!\n", Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
-            // TODO - Cache error to report to app?
+            QUIC_PRINTF("Connection Shutdown by Peer!\n");
         }
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
