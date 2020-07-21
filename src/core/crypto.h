@@ -113,13 +113,6 @@ QuicCryptoInitialize(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicCryptoInitializePreshared(
-    _Inout_ QUIC_CRYPTO* Crypto,
-    _In_ const QUIC_PRESHARED_CONNECTION_INFORMATION* Info
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoUninitialize(
     _In_ QUIC_CRYPTO* Crypto

@@ -1725,6 +1725,13 @@ QuicConnStart(
         return QUIC_STATUS_INVALID_STATE;
     }
 
+    if (Connection->State.UsingPresharedInfo) {
+        if (!Connection->State.LocalAddressSet ||
+            !Connection->State.RemoteAddressSet) {
+            return QUIC_STATUS_INVALID_STATE; // Incomplete state
+        }
+    }
+
     QUIC_TEL_ASSERT(Path->Binding == NULL);
 
     if (!Connection->State.RemoteAddressSet) {
@@ -1771,7 +1778,9 @@ QuicConnStart(
         Connection->State.RemoteAddressSet = TRUE;
     }
 
-    QuicAddrSetPort(&Path->RemoteAddress, ServerPort);
+    if (!Connection->State.UsingPresharedInfo) {
+        QuicAddrSetPort(&Path->RemoteAddress, ServerPort);
+    }
     QuicTraceEvent(
         ConnRemoteAddrAdded,
         "[conn][%p] New Remote IP: %!SOCKADDR!",
@@ -1794,37 +1803,44 @@ QuicConnStart(
         goto Exit;
     }
 
-    //
-    // Clients only need to generate a non-zero length source CID if it
-    // intends to share the UDP binding.
-    //
-    QUIC_CID_HASH_ENTRY* SourceCid;
-    if (Connection->State.ShareBinding) {
-        SourceCid =
-            QuicCidNewRandomSource(
-                Connection,
-                NULL,
-                Connection->PartitionID,
-                Connection->Registration->CidPrefixLength,
-                Connection->Registration->CidPrefix);
-    } else {
-        SourceCid = QuicCidNewNullSource(Connection);
-    }
-    if (SourceCid == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
+    if (Connection->SourceCids.Next == NULL) {
+        //
+        // Clients only need to generate a non-zero length source CID if it
+        // intends to share the UDP binding.
+        //
+        QUIC_CID_HASH_ENTRY* SourceCid;
+        if (Connection->State.ShareBinding) {
+            SourceCid =
+                QuicCidNewRandomSource(
+                    Connection,
+                    NULL,
+                    Connection->PartitionID,
+                    Connection->Registration->CidPrefixLength,
+                    Connection->Registration->CidPrefix);
+        } else {
+            SourceCid = QuicCidNewNullSource(Connection);
+        }
+        if (SourceCid == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Exit;
+        }
+
+        Connection->NextSourceCidSequenceNumber++;
+        QuicTraceEvent(
+            ConnSourceCidAdded,
+            "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
+            Connection,
+            SourceCid->CID.SequenceNumber,
+            SourceCid->CID.Length,
+            SourceCid->CID.Data);
+        QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
     }
 
-    Connection->NextSourceCidSequenceNumber++;
-    QuicTraceEvent(
-        ConnSourceCidAdded,
-        "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
-        Connection,
-        SourceCid->CID.SequenceNumber,
-        SourceCid->CID.Length,
-        SourceCid->CID.Data);
-    QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
-
+    const QUIC_CID_HASH_ENTRY* SourceCid =
+        QUIC_CONTAINING_RECORD(
+            Connection->SourceCids.Next,
+            QUIC_CID_HASH_ENTRY,
+            Link);
     if (!QuicBindingAddSourceConnectionID(Path->Binding, SourceCid)) {
         QuicLibraryReleaseBinding(Path->Binding);
         Path->Binding = NULL;
@@ -1862,144 +1878,6 @@ Exit:
     if (ServerName != NULL) {
         QUIC_FREE(ServerName);
     }
-
-    if (QUIC_FAILED(Status)) {
-        QuicConnCloseLocally(
-            Connection,
-            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
-            (uint64_t)Status,
-            NULL);
-    }
-
-    return Status;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicConnStartPreshared(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ const QUIC_PRESHARED_CONNECTION_INFORMATION* Info
-    )
-{
-    QUIC_STATUS Status;
-    QUIC_PATH* Path = &Connection->Paths[0];
-
-    if (Connection->State.ClosedLocally || Connection->State.Started) {
-        return QUIC_STATUS_INVALID_STATE;
-    }
-
-    QUIC_TEL_ASSERT(Path->Binding == NULL);
-
-    //
-    // Set up the IP addresses and UDP binding.
-    //
-
-    QUIC_DBG_ASSERT(QuicIsVersionSupported(Info->QuicVersion));
-    Connection->Stats.QuicVersion = Info->QuicVersion;
-    QuicConnOnQuicVersionSet(Connection);
-
-    if (Info->RttEstimateUs != 0) {
-        Path->GotFirstRttSample = TRUE;
-        Path->SmoothedRtt = Info->RttEstimateUs;
-        Path->RttVariance = Info->RttEstimateUs; // TODO - What to use for this?
-    }
-
-    if (Connection->State.RemoteAddressSet) {
-        // TODO - Remove old one
-    }
-
-    Path->RemoteAddress = Info->Address;
-    Connection->State.RemoteAddressSet = TRUE;
-
-    QuicTraceEvent(
-        ConnRemoteAddrAdded,
-        "[conn][%p] New Remote IP: %!SOCKADDR!",
-        Connection,
-        LOG_ADDR_LEN(Path->RemoteAddress),
-        (const uint8_t*)&Path->RemoteAddress);
-
-    Status =
-        QuicLibraryGetBinding(
-            Connection->Session,
-            Connection->State.ShareBinding,
-            FALSE,
-            &Path->LocalAddress,
-            &Path->RemoteAddress,
-            &Path->Binding);
-    if (QUIC_FAILED(Status)) {
-        goto Exit;
-    }
-
-    //
-    // Set up the connection IDs.
-    //
-
-    QUIC_DBG_ASSERT(Path->DestCid != NULL);
-    QUIC_DBG_ASSERT(Connection->SourceCids.Next != NULL);
-    QUIC_CID_HASH_ENTRY* SourceCid =
-        QUIC_CONTAINING_RECORD(
-            Connection->SourceCids.Next,
-            QUIC_CID_HASH_ENTRY,
-            Link);
-
-    if (!QuicBindingAddSourceConnectionID(Path->Binding, SourceCid)) {
-        QuicLibraryReleaseBinding(Path->Binding);
-        Path->Binding = NULL;
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
-
-    if (Path->DestCid != NULL) {
-        QUIC_DBG_ASSERT(Connection->DestCidCount != 0);
-        QuicTraceEvent(
-            ConnDestCidRemoved,
-            "[conn][%p] (SeqNum=%llu) Removed Destination CID: %!CID!",
-            Connection,
-            Path->DestCid->CID.SequenceNumber,
-            Path->DestCid->CID.Length,
-            Path->DestCid->CID.Data);
-        QuicListEntryRemove(&Path->DestCid->Link);
-        QUIC_FREE(Path->DestCid);
-        Connection->DestCidCount--;
-    }
-
-    Path->DestCid =
-        QuicCidNewDestination(
-            (uint8_t)Info->ConnectionID.Length,
-            Info->ConnectionID.Buffer);
-    if (Path->DestCid == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
-    Connection->DestCidCount++;
-    Path->DestCid->CID.UsedLocally = TRUE;
-    QuicListInsertTail(&Connection->DestCids, &Path->DestCid->Link);
-    QuicTraceEvent(
-        ConnDestCidAdded,
-        "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
-        Connection,
-        Path->DestCid->CID.SequenceNumber,
-        Path->DestCid->CID.Length,
-        Path->DestCid->CID.Data);
-
-    //
-    // Initialize the rest of the connection/handshake state.
-    //
-
-    Connection->State.UsingPresharedInfo = TRUE;
-    Status = QuicCryptoInitializePreshared(&Connection->Crypto, Info);
-    if (QUIC_FAILED(Status)) {
-        goto Exit;
-    }
-
-    Connection->State.Started = TRUE;
-    Connection->Stats.Timing.Start = QuicTimeUs64();
-    QuicTraceEvent(
-        ConnHandshakeStart,
-        "[conn][%p] Handshake start",
-        Connection);
-
-Exit:
 
     if (QUIC_FAILED(Status)) {
         QuicConnCloseLocally(
@@ -5509,6 +5387,272 @@ QuicConnProcessKeepAliveOperation(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
+QuicConnGetLocalPresharedInfo(
+    _In_ QUIC_CONNECTION* Connection,
+    _Inout_ uint32_t* BufferLength,
+    _Out_writes_bytes_opt_(*BufferLength)
+        void* Buffer
+    )
+{
+    if (Connection->State.Started) {
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    const QUIC_PATH* Path = &Connection->Paths[0];
+    QUIC_TRANSPORT_PARAMETERS LocalTP = { 0 };
+
+    if (!Connection->State.LocalAddressSet ||
+        QuicAddrGetPort(&Path->LocalAddress) == 0) {
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    if (Connection->Stats.QuicVersion == 0) {
+        //
+        // Only initialize the version if not already done (by the
+        // application layer).
+        //
+        Connection->Stats.QuicVersion = QUIC_VERSION_LATEST;
+    }
+
+    if (Connection->SourceCids.Next == NULL) {
+        QUIC_CID_HASH_ENTRY* SourceCid;
+        if (Connection->State.ShareBinding) {
+            SourceCid =
+                QuicCidNewRandomSource(
+                    Connection,
+                    NULL,
+                    Connection->PartitionID,
+                    Connection->Registration->CidPrefixLength,
+                    Connection->Registration->CidPrefix);
+        } else {
+            SourceCid = QuicCidNewNullSource(Connection);
+        }
+        if (SourceCid == NULL) {
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+
+        QuicTraceEvent(
+            ConnSourceCidAdded,
+            "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
+            Connection,
+            SourceCid->CID.SequenceNumber,
+            SourceCid->CID.Length,
+            SourceCid->CID.Data);
+        QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
+    }
+
+    QUIC_STATUS Status =
+        QuicConnGenerateLocalTransportParameters(Connection, &LocalTP);
+    if (QUIC_FAILED(Status)) {
+        return Status;
+    }
+
+    if (*BufferLength < sizeof(512)) {
+        *BufferLength = sizeof(512); // TODO - Better size?
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (Buffer == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    QUIC_DBG_ASSERT(Connection->SourceCids.Next != NULL);
+    const QUIC_CID_HASH_ENTRY* SourceCid =
+        QUIC_CONTAINING_RECORD(
+            Connection->SourceCids.Next,
+            QUIC_CID_HASH_ENTRY,
+            Link);
+
+    QUIC_PRESHARED_CONNECTION_INFORMATION* Output =
+        (QUIC_PRESHARED_CONNECTION_INFORMATION*)Buffer;
+    uint32_t OutputLength = sizeof(QUIC_PRESHARED_CONNECTION_INFORMATION);
+
+    QuicZeroMemory(Output, sizeof(QUIC_PRESHARED_CONNECTION_INFORMATION));
+    Output->QuicVersion = Connection->Stats.QuicVersion;
+    Output->Address = Path->LocalAddress;
+
+    Output->ConnectionID.Buffer = (uint8_t*)Buffer + OutputLength;
+    Output->ConnectionID.Length = SourceCid->CID.Length;
+    OutputLength += SourceCid->CID.Length;
+    QuicCopyMemory(
+        Output->ConnectionID.Buffer,
+        SourceCid->CID.Data,
+        SourceCid->CID.Length);
+
+    Output->TrafficSecret.Buffer = (uint8_t*)Buffer + OutputLength;
+    Output->TrafficSecret.Length = QUIC_HASH_SHA256_SIZE;
+    OutputLength += Output->TrafficSecret.Length;
+    QuicRandom(Output->TrafficSecret.Length, Output->TrafficSecret.Buffer);
+
+    QUIC_SECRET Secret;
+    Secret.Aead = QUIC_AEAD_AES_128_GCM;
+    Secret.Hash = QUIC_HASH_SHA256;
+    QuicCopyMemory(
+        Secret.Secret,
+        Output->TrafficSecret.Buffer,
+        Output->TrafficSecret.Length);
+
+    Status =
+        QuicPacketKeyDerive(
+            QUIC_PACKET_KEY_1_RTT,
+            &Secret,
+            "secret",
+            TRUE,
+            &Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+    if (QUIC_FAILED(Status)) {
+        return Status;
+    }
+
+    Connection->Crypto.TlsState.WriteKey = QUIC_PACKET_KEY_1_RTT;
+
+    Output->TransportParameters.Buffer = (uint8_t*)
+        QuicCryptoTlsEncodeTransportParameters(
+            Connection,
+            &LocalTP,
+            &Output->TransportParameters.Length);
+    if (Output->TransportParameters.Buffer == NULL) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
+    QuicCopyMemory(
+        (uint8_t*)Buffer + OutputLength,
+        Output->TransportParameters.Buffer,
+        Output->TransportParameters.Length);
+    QUIC_FREE(Output->TransportParameters.Buffer);
+    Output->TransportParameters.Buffer = (uint8_t*)Buffer + OutputLength;
+    OutputLength += Output->TransportParameters.Length;
+
+    *BufferLength = OutputLength;
+    Connection->State.UsingPresharedInfo = TRUE;
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnSetRemotePresharedInfo(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint32_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const void* Buffer
+    )
+{
+    if (BufferLength < sizeof(QUIC_PRESHARED_CONNECTION_INFORMATION)) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    if (Connection->State.Started) {
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    QUIC_STATUS Status;
+    QUIC_PATH* Path = &Connection->Paths[0];
+
+    const QUIC_PRESHARED_CONNECTION_INFORMATION* Info =
+        (QUIC_PRESHARED_CONNECTION_INFORMATION*)Buffer;
+
+    //
+    // Remote IP Address state.
+    //
+
+    QUIC_DBG_ASSERT(QuicIsVersionSupported(Info->QuicVersion));
+    Connection->Stats.QuicVersion = Info->QuicVersion;
+    QuicConnOnQuicVersionSet(Connection);
+
+    if (Info->RttEstimateUs != 0) {
+        Path->GotFirstRttSample = TRUE;
+        Path->SmoothedRtt = Info->RttEstimateUs;
+        Path->RttVariance = Info->RttEstimateUs; // TODO - What to use for this?
+    }
+
+    Path->RemoteAddress = Info->Address;
+    Connection->State.RemoteAddressSet = TRUE;
+    //
+    // Don't log new Remote address added here because it is logged when
+    // the connection is started.
+    //
+
+    //
+    // Remote connection ID state.
+    //
+
+    if (Path->DestCid != NULL) {
+        QUIC_DBG_ASSERT(Connection->DestCidCount != 0);
+        QuicTraceEvent(
+            ConnDestCidRemoved,
+            "[conn][%p] (SeqNum=%llu) Removed Destination CID: %!CID!",
+            Connection,
+            Path->DestCid->CID.SequenceNumber,
+            Path->DestCid->CID.Length,
+            Path->DestCid->CID.Data);
+        QuicListEntryRemove(&Path->DestCid->Link);
+        QUIC_FREE(Path->DestCid);
+        Connection->DestCidCount--;
+    }
+
+    Path->DestCid =
+        QuicCidNewDestination(
+            (uint8_t)Info->ConnectionID.Length,
+            Info->ConnectionID.Buffer);
+    if (Path->DestCid == NULL) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
+    Connection->DestCidCount++;
+    Path->DestCid->CID.UsedLocally = TRUE;
+    QuicListInsertTail(&Connection->DestCids, &Path->DestCid->Link);
+    QuicTraceEvent(
+        ConnDestCidAdded,
+        "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
+        Connection,
+        Path->DestCid->CID.SequenceNumber,
+        Path->DestCid->CID.Length,
+        Path->DestCid->CID.Data);
+
+    //
+    // Transport parameter state.
+    //
+
+    if (!QuicCryptoTlsDecodeTransportParameters(
+            Connection,
+            Info->TransportParameters.Buffer,
+            (uint16_t)Info->TransportParameters.Length,
+            &Connection->PeerTransportParams)) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    //
+    // Key state.
+    //
+
+    QUIC_SECRET Secret;
+    Secret.Aead = QUIC_AEAD_AES_128_GCM;
+    Secret.Hash = QUIC_HASH_SHA256;
+    QuicCopyMemory(
+        Secret.Secret,
+        Info->TrafficSecret.Buffer,
+        Info->TrafficSecret.Length);
+
+    QUIC_STATUS Status =
+        QuicPacketKeyDerive(
+            QUIC_PACKET_KEY_1_RTT,
+            &Secret,
+            "secret",
+            TRUE,
+            &Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT]);
+    if (QUIC_FAILED(Status)) {
+        return Status;
+    }
+
+    Connection->Crypto.TlsState.ReadKey = QUIC_PACKET_KEY_1_RTT;
+
+    Connection->State.UsingPresharedInfo = TRUE;
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
 QuicConnParamSet(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint32_t Param,
@@ -6041,6 +6185,12 @@ QuicConnParamSet(
             "Updated datagram receive enabled to %hhu",
             Connection->Datagram.ReceiveEnabled);
 
+        break;
+
+    case QUIC_PARAM_CONN_PRESHARED_INFO:
+
+        Status =
+            QuicConnSetRemotePresharedInfo(Connection, BufferLength, Buffer);
         break;
 
     case QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER:
@@ -6581,140 +6731,11 @@ QuicConnParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_PRESHARED_INFO: {
-
-        const QUIC_PATH* Path = &Connection->Paths[0];
-        QUIC_TRANSPORT_PARAMETERS LocalTP = { 0 };
-
-        if (!Connection->State.LocalAddressSet ||
-            QuicAddrGetPort(&Path->LocalAddress) == 0) {
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
-        if (Connection->Stats.QuicVersion == 0) {
-            //
-            // Only initialize the version if not already done (by the
-            // application layer).
-            //
-            Connection->Stats.QuicVersion = QUIC_VERSION_LATEST;
-        }
-
-        if (Connection->NextSourceCidSequenceNumber == 0) {
-            QUIC_CID_HASH_ENTRY* SourceCid;
-            if (Connection->State.ShareBinding) {
-                SourceCid =
-                    QuicCidNewRandomSource(
-                        Connection,
-                        NULL,
-                        Connection->PartitionID,
-                        Connection->Registration->CidPrefixLength,
-                        Connection->Registration->CidPrefix);
-            } else {
-                SourceCid = QuicCidNewNullSource(Connection);
-            }
-            if (SourceCid == NULL) {
-                Status = QUIC_STATUS_OUT_OF_MEMORY;
-                break;
-            }
-
-            QuicTraceEvent(
-                ConnSourceCidAdded,
-                "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
-                Connection,
-                SourceCid->CID.SequenceNumber,
-                SourceCid->CID.Length,
-                SourceCid->CID.Data);
-            QuicListPushEntry(&Connection->SourceCids, &SourceCid->Link);
-        }
-
-        Status = QuicConnGenerateLocalTransportParameters(Connection, &LocalTP);
-        if (QUIC_FAILED(Status)) {
-            break;
-        }
-
-        if (*BufferLength < sizeof(512)) {
-            *BufferLength = sizeof(512); // TODO - Better size?
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        QUIC_DBG_ASSERT(Connection->SourceCids.Next != NULL);
-        const QUIC_CID_HASH_ENTRY* SourceCid =
-            QUIC_CONTAINING_RECORD(
-                Connection->SourceCids.Next,
-                QUIC_CID_HASH_ENTRY,
-                Link);
-
-        QUIC_PRESHARED_CONNECTION_INFORMATION* Output =
-            (QUIC_PRESHARED_CONNECTION_INFORMATION*)Buffer;
-        uint32_t OutputLength = sizeof(QUIC_PRESHARED_CONNECTION_INFORMATION);
-
-        QuicZeroMemory(Output, sizeof(QUIC_PRESHARED_CONNECTION_INFORMATION));
-        Output->QuicVersion = Connection->Stats.QuicVersion;
-        Output->Address = Path->LocalAddress;
-
-        Output->ConnectionID.Buffer = (uint8_t*)Buffer + OutputLength;
-        Output->ConnectionID.Length = SourceCid->CID.Length;
-        OutputLength += SourceCid->CID.Length;
-        QuicCopyMemory(
-            Output->ConnectionID.Buffer,
-            SourceCid->CID.Data,
-            SourceCid->CID.Length);
-
-        Output->TrafficSecret.Buffer = (uint8_t*)Buffer + OutputLength;
-        Output->TrafficSecret.Length = QUIC_HASH_SHA256_SIZE;
-        OutputLength += Output->TrafficSecret.Length;
-        QuicRandom(Output->TrafficSecret.Length, Output->TrafficSecret.Buffer);
-
-        QUIC_SECRET Secret;
-        Secret.Aead = QUIC_AEAD_AES_128_GCM;
-        Secret.Hash = QUIC_HASH_SHA256;
-        QuicCopyMemory(
-            Secret.Secret,
-            Output->TrafficSecret.Buffer,
-            Output->TrafficSecret.Length);
+    case QUIC_PARAM_CONN_PRESHARED_INFO:
 
         Status =
-            QuicPacketKeyDerive(
-                QUIC_PACKET_KEY_1_RTT,
-                &Secret,
-                "secret",
-                TRUE,
-                &Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
-        if (QUIC_FAILED(Status)) {
-            break;
-        }
-
-        Connection->Crypto.TlsState.WriteKey = QUIC_PACKET_KEY_1_RTT;
-
-        Output->TransportParameters.Buffer = (uint8_t*)
-            QuicCryptoTlsEncodeTransportParameters(
-                Connection,
-                &LocalTP,
-                &Output->TransportParameters.Length);
-        if (Output->TransportParameters.Buffer == NULL) {
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            break;
-        }
-
-        QuicCopyMemory(
-            (uint8_t*)Buffer + OutputLength,
-            Output->TransportParameters.Buffer,
-            Output->TransportParameters.Length);
-        QUIC_FREE(Output->TransportParameters.Buffer);
-        Output->TransportParameters.Buffer = (uint8_t*)Buffer + OutputLength;
-        OutputLength += Output->TransportParameters.Length;
-
-        *BufferLength = OutputLength;
-        Status = QUIC_STATUS_SUCCESS;
+            QuicConnGetLocalPresharedInfo(Connection, BufferLength, Buffer);
         break;
-    }
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -6753,13 +6774,6 @@ QuicConnProcessApiOperation(
                 ApiCtx->CONN_START.ServerName,
                 ApiCtx->CONN_START.ServerPort);
         ApiCtx->CONN_START.ServerName = NULL;
-        break;
-
-    case QUIC_API_TYPE_CONN_START_PRESHARED:
-        Status =
-            QuicConnStartPreshared(
-                Connection,
-                ApiCtx->CONN_START_PRESHARED.Info);
         break;
 
     case QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET:

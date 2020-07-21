@@ -815,17 +815,6 @@ QUIC_STATUS
     );
 
 //
-// Uses the preshared information to create a new connection with the peer.
-//
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-(QUIC_API * QUIC_CONNECTION_START_PRESHARED_FN)(
-    _In_ _Pre_defensive_ HQUIC Connection,
-    _In_ const QUIC_PRESHARED_CONNECTION_INFORMATION* RemoteInfo
-    );
-
-//
 // Uses the QUIC (server) handle to send a resumption ticket to the remote
 // client, optionally with app-specific data useful during resumption.
 //
@@ -1041,7 +1030,6 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_CLOSE_FN            ConnectionClose;
     QUIC_CONNECTION_SHUTDOWN_FN         ConnectionShutdown;
     QUIC_CONNECTION_START_FN            ConnectionStart;
-    QUIC_CONNECTION_START_PRESHARED_FN  ConnectionStartPreshared;
     QUIC_CONNECTION_SEND_RESUMPTION_FN  ConnectionSendResumptionTicket;
 
     QUIC_STREAM_OPEN_FN                 StreamOpen;

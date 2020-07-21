@@ -145,14 +145,6 @@ MsQuicConnectionStart(
     _In_ uint16_t ServerPort // Host byte order
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QUIC_API
-MsQuicConnectionStartPreshared(
-    _In_ _Pre_defensive_ HQUIC Handle,
-    _In_ const QUIC_PRESHARED_CONNECTION_INFORMATION* Info
-    );
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API

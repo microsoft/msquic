@@ -100,6 +100,16 @@ QuicCryptoInitialize(
 {
     QUIC_STATUS Status;
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+
+    if (Connection->State.UsingPresharedInfo) {
+        QUIC_DBG_ASSERT(Crypto->TlsState.ReadKey == QUIC_PACKET_KEY_1_RTT);
+        QUIC_DBG_ASSERT(Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_1_RTT);
+        Crypto->TlsState.HandshakeComplete = TRUE;
+        QuicConnProcessPeerTransportParameters(Connection, TRUE);
+        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE);
+        return QUIC_STATUS_SUCCESS;
+    }
+
     uint16_t SendBufferLength =
         QuicConnIsServer(Connection) ?
             QUIC_MAX_TLS_SERVER_SEND_BUFFER : QUIC_MAX_TLS_CLIENT_SEND_BUFFER;
@@ -224,56 +234,6 @@ Exit:
     }
 
     return Status;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicCryptoInitializePreshared(
-    _Inout_ QUIC_CRYPTO* Crypto,
-    _In_ const QUIC_PRESHARED_CONNECTION_INFORMATION* Info
-    )
-{
-    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
-
-    QUIC_DBG_ASSERT(Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_1_RTT);
-    Crypto->TlsState.HandshakeComplete = TRUE;
-
-    QUIC_SECRET Secret;
-    Secret.Aead = QUIC_AEAD_AES_128_GCM;
-    Secret.Hash = QUIC_HASH_SHA256;
-    QuicCopyMemory(
-        Secret.Secret,
-        Info->TrafficSecret.Buffer,
-        Info->TrafficSecret.Length);
-
-    QUIC_STATUS Status =
-        QuicPacketKeyDerive(
-            QUIC_PACKET_KEY_1_RTT,
-            &Secret,
-            "secret",
-            TRUE,
-            &Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT]);
-    if (QUIC_FAILED(Status)) {
-        return Status;
-    }
-
-    Crypto->TlsState.ReadKey = QUIC_PACKET_KEY_1_RTT;
-
-    if (!QuicCryptoTlsDecodeTransportParameters(
-            Connection,
-            Info->TransportParameters.Buffer,
-            (uint16_t)Info->TransportParameters.Length,
-            &Connection->PeerTransportParams)) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    QuicConnProcessPeerTransportParameters(Connection, TRUE);
-
-    // TODO - Do we need to persist ALPN?
-
-    QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE);
-
-    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
