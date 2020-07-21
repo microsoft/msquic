@@ -9,6 +9,7 @@ Abstract:
 
 --*/
 
+#define ENABLE_QUIC_PRINTF
 #include "msquichelper.h"
 #include "quicip.h"
 
@@ -19,7 +20,7 @@ main(
     _In_reads_(argc) _Null_terminated_ char* argv[]
     )
 {
-    if (GetValue(argc, argv, "?")) {
+    if (GetValue(argc, argv, "?") || GetValue(argc, argv, "help")) {
         printf("Usage:\n");
         printf("  quicipclient.exe [-target:<...>] [-local:<...>] [-unsecure]\n");
         return 0;
@@ -42,14 +43,14 @@ main(
         return 0;
     }
 
-    if (MsQuicGetPublicIP(Target, Unsecure, &LocalAddress, &PublicAddress)) {
+    if (QUIC_SUCCEEDED(MsQuicGetPublicIP(Target, Unsecure, &LocalAddress, &PublicAddress))) {
         QUIC_ADDR_STR AddrStr = { 0 };
         QuicAddrToString(&LocalAddress, &AddrStr);
         printf(" Local IP: %s\n", AddrStr.Address);
         QuicAddrToString(&PublicAddress, &AddrStr);
         printf("Public IP: %s\n", AddrStr.Address);
     } else {
-        printf("Failed.\n");
+        printf("Failed!\n");
     }
 
     return 0;
