@@ -61,4 +61,7 @@ private:
     QUIC_EVENT StopEvent{};
     uint64_t Length{0};
     bool ConstructionSuccess {false};
+    uint8_t UseSendBuffer{1};
+    QUIC_ADDR LocalIpAddr{};
+    uint16_t RemoteFamily{AF_UNSPEC};
 };

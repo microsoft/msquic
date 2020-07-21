@@ -17,6 +17,7 @@ static uint32_t IoCount = 8;
 static uint8_t* RawIoBuffer{nullptr};
 
 ThroughputClient::ThroughputClient() {
+    QuicZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
     if (Session.IsValid()) {
         Session.SetAutoCleanup();
     }
@@ -27,13 +28,19 @@ ThroughputClient::Init(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
-    Port = THROUGHPUT_DEFAULT_PORT;
-    TryGetValue(argc, argv, "port", &Port);
 
     const char* Target;
     if (!TryGetValue(argc, argv, "target", &Target)) {
         WriteOutput("Must specify '-target' argument!\n");
         return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    uint16_t ip;
+    if (TryGetValue(argc, argv, "ip", &ip)) {
+        switch (ip) {
+        case 4: RemoteFamily = AF_INET; break;
+        case 6: RemoteFamily = AF_INET6; break;
+        }
     }
 
     TryGetValue(argc, argv, "length", &Length);
@@ -42,10 +49,17 @@ ThroughputClient::Init(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    size_t Len = strlen(Target);
-    TargetData.reset(new char[Len + 1]);
-    QuicCopyMemory(TargetData.get(), Target, Len);
-    TargetData[Len] = '\0';
+    const char* localAddress;
+    if (TryGetValue(argc, argv, "bind", &localAddress)) {
+        if (!ConvertArgToAddress(localAddress, 0, &LocalIpAddr)) {
+            WriteOutput("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", localAddress);
+            return;
+        }
+    }
+
+    // TODO: Core, since we need to support kernel mode
+
+    TryGetValue(argc, argv, "sendbuf", &UseSendBuffer);
 
     RawIoBuffer = new uint8_t[IoSize];
 
@@ -107,23 +121,34 @@ ThroughputClient::Start(
         return Status;
     }
 
-    BOOLEAN Opt = FALSE;
-    Status =
+    if (!UseSendBuffer) {
+        BOOLEAN Opt = FALSE;
+        Status =
+            MsQuic->SetParam(
+                ConnData->Connection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_SEND_BUFFERING,
+                sizeof(Opt),
+                &Opt);
+
+        if (QUIC_FAILED(Status)) {
+            return Status;
+        }
+    }
+
+    if (QuicAddrGetFamily(&LocalIpAddr) != AF_UNSPEC) {
         MsQuic->SetParam(
             ConnData->Connection,
             QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_SEND_BUFFERING,
-            sizeof(Opt),
-            &Opt);
-
-    if (QUIC_FAILED(Status)) {
-        return Status;
+            QUIC_PARAM_CONN_LOCAL_ADDRESS,
+            sizeof(LocalIpAddr),
+            &LocalIpAddr);
     }
 
     Status =
         MsQuic->ConnectionStart(
             ConnData->Connection,
-            AF_UNSPEC,
+            RemoteFamily,
             TargetData.get(),
             Port);
 
