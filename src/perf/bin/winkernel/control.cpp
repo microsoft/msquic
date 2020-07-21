@@ -364,6 +364,7 @@ QuicPerfCtlEvtIoDeviceControl(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     WDFFILEOBJECT FileObject = nullptr;
     QUIC_TEST_CLIENT* Client = nullptr;
+    ULONG FunctionCode = 0;
 
     if (KeGetCurrentIrql() > PASSIVE_LEVEL) {
         Status = STATUS_NOT_SUPPORTED;
@@ -394,7 +395,7 @@ QuicPerfCtlEvtIoDeviceControl(
         goto Error;
     }
 
-    ULONG FunctionCode = IoGetFunctionCodeFromCtlCode(IoControlCode);
+    FunctionCode = IoGetFunctionCodeFromCtlCode(IoControlCode);
     if (FunctionCode == 0 || FunctionCode > QUIC_PERF_MAX_IOCTL_FUNC_CODE) {
         Status = STATUS_NOT_IMPLEMENTED;
         QuicTraceEvent(

@@ -27,7 +27,7 @@ set LIB=
 
 pushd %CMAKE_PROJECTDIR%
 echo CLOG Processing Directory %CMAKE_PROJECTDIR%
-for %%i in (*.c* *.c operation.h stream.h connection.h TestHelpers.h) do (
+for %%i in (*.cpp *.c operation.h stream.h connection.h TestHelpers.h) do (
     echo CLOG Processing %%i
     if EXIST %%i (
         if NOT EXIST %CMAKE_CLOG_OUTPUT_DIRECTORY%\%%i.clog.h (

@@ -9,11 +9,6 @@
 #include "msquichelper.h"
 #include "ThroughputCommon.h"
 
-// Always buffered, we'll fix this up later
-// Also need to fix up IO SIze
-static uint32_t IoSize = 0x100000;
-static uint32_t IoCount = 8;
-
 static uint8_t* RawIoBuffer{nullptr};
 
 ThroughputClient::ThroughputClient() {
@@ -53,13 +48,21 @@ ThroughputClient::Init(
     if (TryGetValue(argc, argv, "bind", &localAddress)) {
         if (!ConvertArgToAddress(localAddress, 0, &LocalIpAddr)) {
             WriteOutput("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", localAddress);
-            return;
+            return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
 
     // TODO: Core, since we need to support kernel mode
 
     TryGetValue(argc, argv, "sendbuf", &UseSendBuffer);
+
+    uint32_t ioSize = UseSendBuffer ? THROUGHPUT_DEFAULT_IO_SIZE_BUFFERED : THROUGHPUT_DEFAULT_IO_SIZE_NONBUFFERED;
+    TryGetValue(argc, argv, "iosize", &ioSize);
+    IoSize = ioSize;
+
+    uint32_t ioCount = UseSendBuffer ? THROGHTPUT_DEFAULT_SEND_COUNT_BUFFERED : THROUGHPUT_DEFAULT_SEND_COUNT_NONBUFFERED;
+    TryGetValue(argc, argv, "iocount", &ioCount);
+    IoCount = ioCount;
 
     RawIoBuffer = new uint8_t[IoSize];
 
@@ -69,8 +72,11 @@ ThroughputClient::Init(
 struct SendRequest {
     QUIC_SEND_FLAGS Flags {QUIC_SEND_FLAG_NONE};
     QUIC_BUFFER QuicBuffer;
+    uint32_t IoSize;
     SendRequest(
+            uint32_t Size
         ) {
+        IoSize = Size;
         QuicBuffer.Buffer = RawIoBuffer;
         QuicBuffer.Length = 0;
     }
@@ -203,7 +209,7 @@ ThroughputClient::Start(
 
     uint32_t SendRequestCount = 0;
     while (LocalStreamData->BytesSent < Length && SendRequestCount < IoCount) {
-        SendRequest* SendReq = new SendRequest{};
+        SendRequest* SendReq = new SendRequest{IoSize};
         SendReq->SetLength(Length - LocalStreamData->BytesSent);
         LocalStreamData->BytesSent += SendReq->QuicBuffer.Length;
         ++SendRequestCount;
