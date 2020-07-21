@@ -167,7 +167,6 @@ set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 
 set(MANIFESTED_HEADER_FILENAME ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
-<<<<<<< HEAD
 if (WIN32)
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
     set(QUIC_COMMON_FLAGS "")
@@ -181,10 +180,6 @@ else()
     set(QUIC_COMMON_DEFINES "")
     set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value CACHE INTERNAL "")
 endif()
-=======
-set(CLANG_GCC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value CACHE INTERNAL "")
-set(MSVC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
->>>>>>> master
 
 if(WIN32)
     # Generate the MsQuicEtw header file.
@@ -353,13 +348,7 @@ if(QUIC_TLS STREQUAL "mitls")
     add_subdirectory(submodules/everest/msquic/msvc/quiccrypto)
 endif()
 
-<<<<<<< HEAD
-# CLOG target
-add_subdirectory(submodules/clog/inc)
-
-=======
 # Product code
->>>>>>> master
 add_subdirectory(src/core)
 add_subdirectory(src/platform)
 add_subdirectory(src/bin)
