@@ -6633,9 +6633,30 @@ QuicConnParamGet(
             SourceCid->CID.Length);
 
         Output->TrafficSecret.Buffer = (uint8_t*)Buffer + OutputLength;
-        Output->TrafficSecret.Length = 32; // TODO
+        Output->TrafficSecret.Length = QUIC_HASH_SHA256_SIZE;
         OutputLength += Output->TrafficSecret.Length;
         QuicRandom(Output->TrafficSecret.Length, Output->TrafficSecret.Buffer);
+
+        QUIC_SECRET Secret;
+        Secret.Aead = QUIC_AEAD_AES_128_GCM;
+        Secret.Hash = QUIC_HASH_SHA256;
+        QuicCopyMemory(
+            Secret.Secret,
+            Output->TrafficSecret.Buffer,
+            Output->TrafficSecret.Length);
+
+        Status =
+            QuicPacketKeyDerive(
+                QUIC_PACKET_KEY_1_RTT,
+                &Secret,
+                "secret",
+                TRUE,
+                &Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+        if (QUIC_FAILED(Status)) {
+            break;
+        }
+
+        Connection->Crypto.TlsState.WriteKey = QUIC_PACKET_KEY_1_RTT;
 
         Output->TransportParameters.Buffer = (uint8_t*)
             QuicCryptoTlsEncodeTransportParameters(

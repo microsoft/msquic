@@ -235,8 +235,29 @@ QuicCryptoInitializePreshared(
 {
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
 
-    QuicZeroMemory(Crypto, sizeof(QUIC_CRYPTO));
+    QUIC_DBG_ASSERT(Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_1_RTT);
     Crypto->TlsState.HandshakeComplete = TRUE;
+
+    QUIC_SECRET Secret;
+    Secret.Aead = QUIC_AEAD_AES_128_GCM;
+    Secret.Hash = QUIC_HASH_SHA256;
+    QuicCopyMemory(
+        Secret.Secret,
+        Info->TrafficSecret.Buffer,
+        Info->TrafficSecret.Length);
+
+    QUIC_STATUS Status =
+        QuicPacketKeyDerive(
+            QUIC_PACKET_KEY_1_RTT,
+            &Secret,
+            "secret",
+            TRUE,
+            &Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT]);
+    if (QUIC_FAILED(Status)) {
+        return Status;
+    }
+
+    Crypto->TlsState.ReadKey = QUIC_PACKET_KEY_1_RTT;
 
     if (!QuicCryptoTlsDecodeTransportParameters(
             Connection,
@@ -247,12 +268,6 @@ QuicCryptoInitializePreshared(
     }
 
     QuicConnProcessPeerTransportParameters(Connection, TRUE);
-
-    Crypto->TlsState.ReadKey = QUIC_PACKET_KEY_1_RTT;
-    Crypto->TlsState.WriteKey = QUIC_PACKET_KEY_1_RTT;
-
-    Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT]; // TODO - Generate from traffic secret
-    Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT]; // TODO - Generate from traffic secret
 
     // TODO - Do we need to persist ALPN?
 
