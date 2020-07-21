@@ -2264,13 +2264,6 @@ QuicConnGenerateLocalTransportParameters(
             QUIC_CID_HASH_ENTRY,
             Link);
 
-    QUIC_DBG_ASSERT(!QuicListIsEmpty(&Connection->DestCids));
-    const QUIC_CID_QUIC_LIST_ENTRY* DestCid =
-        QUIC_CONTAINING_RECORD(
-            Connection->DestCids.Flink,
-            QUIC_CID_QUIC_LIST_ENTRY,
-            Link);
-
     LocalTP->InitialMaxData = Connection->Send.MaxData;
     LocalTP->InitialMaxStreamDataBidiLocal = Connection->Session->Settings.StreamRecvWindowDefault;
     LocalTP->InitialMaxStreamDataBidiRemote = Connection->Session->Settings.StreamRecvWindowDefault;
