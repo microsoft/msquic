@@ -140,6 +140,8 @@ set(QUIC_OUTPUT_DIR ${QUIC_BUILD_DIR}/bin/$<IF:$<CONFIG:Debug>,Debug,Release> CA
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/obj/$<IF:$<CONFIG:Debug>,Debug,Release>)
 
+execute_process(COMMAND clog --installDirectory ${CMAKE_SOURCE_DIR}/build/clog)
+
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${QUIC_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${QUIC_OUTPUT_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${QUIC_OUTPUT_DIR})
@@ -148,17 +150,12 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 
 set(CMAKE_CLOG_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/inc)
-set(CMAKE_CLOG_BINS_DIRECTORY ${QUIC_BUILD_DIR}/submodules/clog)
 set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest)
-set(CLOG_SOURCE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/clog)
-set(CLOG_INCLUDE_DIRECTORY ${CLOG_SOURCE_DIRECTORY}/inc)
+set(CLOG_INCLUDE_DIRECTORY ${CMAKE_SOURCE_DIR}/build/clog)
+set(CMAKE_CLOG_GENERATE_FILE ${CMAKE_SOURCE_DIR}/build/clog/CLog.cmake)
 set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/msquic.clog_config)
 
 set(MANIFESTED_HEADER_FILENAME ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
-
-add_custom_target(CLOG_GENERATED_FILES
-    COMMENT "CREATED CMAKE Target for CLOG generated files"
-)
 
 set(CLANG_GCC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value CACHE INTERNAL "")
 set(MSVC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
@@ -334,9 +331,6 @@ if(QUIC_TLS STREQUAL "mitls")
     add_subdirectory(submodules/everest/msquic/msvc/mitls)
     add_subdirectory(submodules/everest/msquic/msvc/quiccrypto)
 endif()
-
-# CLOG target
-add_subdirectory(submodules/clog/inc)
 
 # Product code
 add_subdirectory(src/core)

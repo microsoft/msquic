@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 # Include for CLOG processing
-include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
+include(${CMAKE_CLOG_GENERATE_FILE})
 
 set(SOURCES
     ApiTest.cpp
