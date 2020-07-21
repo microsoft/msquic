@@ -442,11 +442,9 @@ QuicConnApplySettings(
             Settings->UnidiStreamCount);
     }
 
-    if (Settings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME) {
+    if (Settings->ServerResumptionLevel > QUIC_SERVER_NO_RESUME &&
+        Connection->HandshakeTP == NULL) {
         QUIC_DBG_ASSERT(!Connection->State.Started);
-        //
-        // TODO: Replace with pool allocator for performance.
-        //
         Connection->HandshakeTP =
             QuicPoolAlloc(&MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].TransportParamPool);
         if (Connection->HandshakeTP == NULL) {
@@ -2402,12 +2400,49 @@ QuicConnGenerateLocalTransportParameters(
             QUIC_CID_HASH_ENTRY,
             Link);
 
-    QUIC_DBG_ASSERT(!QuicListIsEmpty(&Connection->DestCids));
-    const QUIC_CID_QUIC_LIST_ENTRY* DestCid =
-        QUIC_CONTAINING_RECORD(
-            Connection->DestCids.Flink,
-            QUIC_CID_QUIC_LIST_ENTRY,
-            Link);
+    LocalTP->InitialMaxData = Connection->Send.MaxData;
+    LocalTP->InitialMaxStreamDataBidiLocal = Connection->Session->Settings.StreamRecvWindowDefault;
+    LocalTP->InitialMaxStreamDataBidiRemote = Connection->Session->Settings.StreamRecvWindowDefault;
+    LocalTP->InitialMaxStreamDataUni = Connection->Session->Settings.StreamRecvWindowDefault;
+    LocalTP->MaxUdpPayloadSize =
+        MaxUdpPayloadSizeFromMTU(
+            QuicDataPathBindingGetLocalMtu(
+                Connection->Paths[0].Binding->DatapathBinding));
+    LocalTP->MaxAckDelay =
+        Connection->MaxAckDelayMs + MsQuicLib.TimerResolutionMs;
+    LocalTP->ActiveConnectionIdLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
+    LocalTP->Flags =
+        QUIC_TP_FLAG_INITIAL_MAX_DATA |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI |
+        QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE |
+        QUIC_TP_FLAG_MAX_ACK_DELAY |
+        QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT;
+
+    if (Connection->IdleTimeoutMs != 0) {
+        LocalTP->Flags |= QUIC_TP_FLAG_IDLE_TIMEOUT;
+        LocalTP->IdleTimeout = Connection->IdleTimeoutMs;
+    }
+
+    if (Connection->AckDelayExponent != QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT) {
+        LocalTP->Flags |= QUIC_TP_FLAG_ACK_DELAY_EXPONENT;
+        LocalTP->AckDelayExponent = Connection->AckDelayExponent;
+    }
+
+    if (Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27) {
+        LocalTP->Flags |= QUIC_TP_FLAG_INITIAL_SOURCE_CONNECTION_ID;
+        LocalTP->InitialSourceConnectionIDLength = SourceCid->CID.Length;
+        QuicCopyMemory(
+            LocalTP->InitialSourceConnectionID,
+            SourceCid->CID.Data,
+            SourceCid->CID.Length);
+    }
+
+    if (Connection->Datagram.ReceiveEnabled) {
+        LocalTP->Flags |= QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE;
+        LocalTP->MaxDatagramFrameSize = QUIC_DEFAULT_MAX_DATAGRAM_LENGTH;
+    }
 
     LocalTP->InitialMaxData = Connection->Send.MaxData;
     LocalTP->InitialMaxStreamDataBidiLocal = Connection->Session->Settings.StreamRecvWindowDefault;

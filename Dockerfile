@@ -11,6 +11,7 @@ FROM    source as build
 WORKDIR /src/Debug
 RUN     chmod +x /src/scripts/install-powershell-docker.sh
 RUN     /src/scripts/install-powershell-docker.sh
+ENV     PATH="/root/.dotnet/tools:${PATH}"
 RUN     cmake -DQUIC_ENABLE_LOGGING=OFF -DQUIC_BUILD_TEST=OFF ..
 RUN     cmake --build .
 RUN     openssl ecparam -out server.eckey -noout -name prime256v1 -genkey
@@ -25,7 +26,7 @@ RUN     apt-get update -y \
             libatomic1 \
             && apt-get clean
 COPY    --from=build /src/Debug/bin/Release /bin
-COPY    --from=build /src/Debug/bin/Release/*.so /lib/x86_64-linux-gnu
+COPY    --from=build /src/Debug/bin/Release/*.so /lib/x86_64-linux-gnu/
 COPY    --from=source /src/scripts/run_endpoint.sh /run_endpoint.sh
 COPY    --from=build /src/Debug/server.* /
 RUN     chmod +x /run_endpoint.sh
