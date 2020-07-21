@@ -48,9 +48,9 @@ function Install-ClogTool {
 }
 
 if (($Configuration -eq "Dev") -or ($Configuration -eq "Build")) {
-        $NuGetName = "Microsoft.Logging.CLOG.0.1.1.nupkg"
+        $NuGetName = "Microsoft.Logging.CLOG.0.1.2.nupkg"
         $ToolName = "Microsoft.Logging.CLOG"
-        $DownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v0.1.1"
+        $DownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v0.1.2"
         Install-ClogTool -NuGetName $NuGetName -ToolName $ToolName -DownloadUrl $DownloadUrl
 }
 
@@ -69,9 +69,9 @@ if ($IsWindows) {
         reg.exe add $TlsClientKeyPath /v Enabled /t REG_DWORD /d 1 /f | Out-Null
     }
     if ($Configuration -eq "Test") {
-        $NuGetName = "Microsoft.Logging.CLOG2Text.Windows.0.1.1.nupkg"
+        $NuGetName = "Microsoft.Logging.CLOG2Text.Windows.0.1.2.nupkg"
         $ToolName = "Microsoft.Logging.CLOG2Text.Windows"
-        $DownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v0.1.1"
+        $DownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v0.1.2"
         Install-ClogTool -NuGetName $NuGetName -ToolName $ToolName -DownloadUrl $DownloadUrl
     }
 
@@ -100,9 +100,9 @@ if ($IsWindows) {
             sudo sh -c "echo -n '%e.%p.%t.core' > /proc/sys/kernel/core_pattern"
             #sudo cat /proc/sys/kernel/core_pattern
 
-            $NuGetName = "Microsoft.Logging.CLOG2Text.Lttng.0.1.1.nupkg"
+            $NuGetName = "Microsoft.Logging.CLOG2Text.Lttng.0.1.2.nupkg"
             $ToolName = "Microsoft.Logging.CLOG2Text.Lttng"
-            $DownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v0.1.1"
+            $DownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v0.1.2"
             Install-ClogTool -NuGetName $NuGetName -ToolName $ToolName -DownloadUrl $DownloadUrl
         }
         "Dev" {

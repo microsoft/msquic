@@ -292,6 +292,8 @@ function CMake-Build {
 #                     Main Execution                         #
 ##############################################################
 
+clog --installDirectory (Join-Path $RootDir build clog)
+
 # Generate the build files.
 Log "Generating files..."
 CMake-Generate
