@@ -33,9 +33,9 @@
             "Platform": "Linux",
             "Tls": ["stub", "openssl"],
             "Arch": ["x64", "arm"],
-            "Exe": "quicping",
+            "Exe": "quicperf",
             "Arguments": {
-                "All": "-listen:* -port:4433 -selfsign:1 -peer_uni:1 -connections:10",
+                "All": "-TestName:Throughput -ServerMode:1 -listen:* -port:4433 -selfsign:1 -peer_uni:1 -connections:10",
                 "Loopback": "",
                 "Remote": ""
             }
@@ -44,9 +44,9 @@
             "Platform": "linux",
             "Tls": ["stub", "openssl"],
             "Arch": ["x64", "arm"],
-            "Exe": "quicping",
+            "Exe": "quicperf",
             "Arguments": {
-                "All": "-target:$RemoteAddress -port:4433 -sendbuf:0 -uni:1 -length:2000000000",
+                "All": "-TestName:Throughput -target:$RemoteAddress -port:4433 -sendbuf:0 -uni:1 -length:2000000000",
                 "Loopback": "",
                 "Remote": ""
             }
