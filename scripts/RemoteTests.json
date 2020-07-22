@@ -46,13 +46,13 @@
             "Arch": ["x64", "arm"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-TestName:Throughput -target:$RemoteAddress -port:4433 -sendbuf:0 -uni:1 -length:2000000000",
+                "All": "-TestName:Throughput -target:$RemoteAddress -port:4433 -sendbuf:0 -uni:1 -bind:$LocalAddress:4434 -ip:4 -length:2000000000",
                 "Loopback": "",
                 "Remote": ""
             }
         },
         "Iterations": 10,
         "RemoteReadyMatcher": "Ready For Connections!",
-        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps \\|"
+        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps\\)"
     }
 ]
