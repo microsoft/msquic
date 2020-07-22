@@ -35,6 +35,3 @@ int
 QuicMainStop(
     _In_ int Timeout
     );
-
-#define QUIC_PERF_MAX_IOCTL_FUNC_CODE 0
-

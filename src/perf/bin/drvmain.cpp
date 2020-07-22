@@ -10,7 +10,9 @@ Abstract:
 --*/
 
 #include <quic_platform.h>
+#include "msquic.h"
 #include <quic_driver_run.h>
+#include "perfioctls.h"
 
 #include "quic_trace.h"
 #ifdef QUIC_CLOG
@@ -529,6 +531,9 @@ error:
 size_t QUIC_IOCTL_BUFFER_SIZES[] =
 {
     0,
+    sizeof(QUIC_CERTIFICATE_HASH),
+    0,
+    0
 };
 
 static_assert(
@@ -537,10 +542,10 @@ static_assert(
 
 VOID
 QuicPerfCtlEvtIoDeviceControl(
-    _In_ WDFQUEUE /* Queue */,
+    _In_ WDFQUEUE Queue,
     _In_ WDFREQUEST Request,
-    _In_ size_t /* OutputBufferLength */,
-    _In_ size_t /* InputBufferLength */,
+    _In_ size_t OutputBufferLength,
+    _In_ size_t InputBufferLength,
     _In_ ULONG IoControlCode
     )
 {
@@ -589,6 +594,11 @@ QuicPerfCtlEvtIoDeviceControl(
         goto Error;
     }
 
+    // TODO Input Buffer Length
+
+
 Error:
-    UNREFERENCED_PARAMETER(FunctionCode);
+    UNREFERENCED_PARAMETER(InputBufferLength);
+    UNREFERENCED_PARAMETER(OutputBufferLength);
+    UNREFERENCED_PARAMETER(Queue);
 }

@@ -13,6 +13,9 @@
 
 #ifdef _WIN32
 
+#define QUIC_TEST_DRIVER_FILE_NAME  QUIC_TEST_DRIVER_NAME ".sys"
+#define QUIC_TEST_IOCTL_PATH        "\\\\.\\\\" QUIC_TEST_DRIVER_NAME
+
 class QuicDriverService {
     SC_HANDLE ScmHandle;
     SC_HANDLE ServiceHandle;
@@ -49,19 +52,19 @@ public:
             GetModuleFileNameA(NULL, DriverFilePath, MAX_PATH);
             char* PathEnd = strrchr(DriverFilePath, '\\');
             if (!PathEnd ||
-                sizeof(DriverFilePath) - (PathEnd - DriverFilePath) < sizeof("msquictest.sys")) {
+                sizeof(DriverFilePath) - (PathEnd - DriverFilePath) < sizeof(QUIC_TEST_DRIVER_FILE_NAME)) {
                 QuicTraceEvent(
                     LibraryError,
                     "[ lib] ERROR, %s.",
-                    "Can't build msquictest.sys full path");
+                    "Can't build " QUIC_TEST_DRIVER_FILE_NAME " full path");
                 return false;
             }
-            memcpy(PathEnd + 1, "msquictest.sys", sizeof("msquictest.sys"));
+            memcpy(PathEnd + 1, QUIC_TEST_DRIVER_FILE_NAME, sizeof(QUIC_TEST_DRIVER_FILE_NAME));
             if (GetFileAttributesA(DriverFilePath) == INVALID_FILE_ATTRIBUTES) {
                 QuicTraceEvent(
                     LibraryError,
                     "[ lib] ERROR, %s.",
-                    "Failed to find msquictest.sys");
+                    "Failed to find " QUIC_TEST_DRIVER_FILE_NAME);
                 return false;
             }
             ServiceHandle =

@@ -21,11 +21,10 @@ Abstract:
 #ifdef _WIN32
 
 //
-// Name of the driver service for msquicperf.sys.
+// Name of the driver service for quicperf.sys.
 // Must be defined before quic_driver_connection.h is included
 //
 #define QUIC_TEST_DRIVER_NAME   "quicperf"
-#define QUIC_TEST_IOCTL_PATH    "\\\\.\\\\" QUIC_TEST_DRIVER_NAME
 
 #include <winioctl.h>
 #include "perfioctls.h"
