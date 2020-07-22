@@ -181,7 +181,9 @@ $CoverageDir = Join-Path $RootDir "artifacts" "coverage"
 
 if ($CodeCoverage) {
     # Clear old coverage data
-    Remove-Item -Path (Join-Path $CoverageDir '*.cov') -Force
+    if (Test-Path $CoverageDir) {
+        Remove-Item -Path (Join-Path $CoverageDir '*.cov') -Force
+    }
 }
 
 # Path to the run-gtest Powershell script.
