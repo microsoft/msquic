@@ -28,7 +28,7 @@ Abstract:
 #define QUIC_TEST_IOCTL_PATH    "\\\\.\\\\" QUIC_TEST_DRIVER_NAME
 
 #include <winioctl.h>
-#include "ioctls.h"
+#include "perfioctls.h"
 #include "quic_driver_connection.h"
 
 #endif
