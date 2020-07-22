@@ -119,10 +119,11 @@ QuicRecvBufferUninitialize(
         QUIC_FREE(RecvBuffer->Buffer);
     }
     RecvBuffer->Buffer = NULL;
-    if (RecvBuffer->OldBuffer != NULL) {
+    if (RecvBuffer->OldBuffer != NULL &&
+        RecvBuffer->OldBuffer != RecvBuffer->PreallocatedBuffer) {
         QUIC_FREE(RecvBuffer->OldBuffer);
-        RecvBuffer->OldBuffer = NULL;
     }
+    RecvBuffer->OldBuffer = NULL;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
