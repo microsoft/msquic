@@ -203,7 +203,7 @@ QuicRecvBufferResize(
 
         if (RecvBuffer->ExternalBufferReference && RecvBuffer->OldBuffer == NULL) {
             RecvBuffer->OldBuffer = RecvBuffer->Buffer;
-        } if (RecvBuffer->Buffer != RecvBuffer->PreallocatedBuffer) {
+        } else if (RecvBuffer->Buffer != RecvBuffer->PreallocatedBuffer) {
             QUIC_FREE(RecvBuffer->Buffer);
         }
 
