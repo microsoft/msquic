@@ -155,7 +155,7 @@ $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 
 # Executable name.
 $TestExeName = Split-Path $Path -Leaf
-$CoverageName = "$($TestExeName.Split('.')[0]).cov"
+$CoverageName = "$(Split-Path $Path -LeafBase).cov"
 
 # Folder for log files.
 $LogDir = Join-Path $RootDir "artifacts" "logs" $TestExeName (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
@@ -264,7 +264,7 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
         } elseif ($CodeCoverage) {
             $CoverageOutput = Join-Path $OutputDir $CoverageName
             $pinfo.FileName = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
-            $pinfo.Arguments = "--modules msquic --cover_children --sources src\core --sources src\inc --sources src\platform --excluded_sources unittest --working_dir $($OutputDir) --export_type binary:$($CoverageOutput) -- $($Path) $($Arguments)"
+            $pinfo.Arguments = "--modules $(Split-Path $Path -Parent) --cover_children --sources src\core --sources src\inc --sources src\platform --excluded_sources unittest --working_dir $($OutputDir) --export_type binary:$($CoverageOutput) -- $($Path) $($Arguments)"
             $pinfo.WorkingDirectory = $OutputDir
         } else {
             $pinfo.FileName = $Path
