@@ -35,8 +35,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="control.cpp" />
-    <ClCompile Include="driver.cpp" />
+    <ClCompile Include="drvmain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\platform\platform.kernel.vcxproj">

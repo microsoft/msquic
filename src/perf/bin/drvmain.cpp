@@ -5,18 +5,19 @@
 
 Abstract:
 
-    QUIC Kernel Mode Perf Driver
+    QUIC Kernel Mode Performance Driver
 
 --*/
 
 #include <quic_platform.h>
+#include <quic_driver_run.h>
 
 #include "quic_trace.h"
 #ifdef QUIC_CLOG
-#include "control.cpp.clog.h"
+#include "driver.cpp.clog.h"
 #endif
 
-#include "quic_driver_run.h"
+#define QUIC_PERF_TAG 'frPQ' // QPrf
 
 DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceName, L"\\Device\\quicperformance");
 DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceSymLink, L"\\DosDevices\\quicperformance");
@@ -52,6 +53,188 @@ WDFDEVICE QuicPerfCtlDevice = nullptr;
 QUIC_DEVICE_EXTENSION* QuicPerfCtlExtension = nullptr;
 QUIC_TEST_CLIENT* QuicPerfClient = nullptr;
 
+EVT_WDF_DRIVER_UNLOAD QuicPerfDriverUnload;
+
+_No_competing_thread_
+INITCODE
+NTSTATUS
+QuicPerfCtlInitialize(
+    _In_ WDFDRIVER Driver
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID
+QuicPerfCtlUninitialize(
+
+    );
+
+void* __cdecl operator new (size_t Size) {
+    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_PERF_TAG);
+}
+
+void __cdecl operator delete (_In_opt_ void* Mem) {
+    if (Mem != nullptr) {
+        ExFreePoolWithTag(Mem, QUIC_PERF_TAG);
+    }
+}
+
+void __cdecl operator delete (_In_opt_ void* Mem, _In_opt_ size_t) {
+    if (Mem != nullptr) {
+        ExFreePoolWithTag(Mem, QUIC_PERF_TAG);
+    }
+}
+
+void* __cdecl operator new[](size_t Size) {
+    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_PERF_TAG);
+}
+
+void __cdecl operator delete[](_In_opt_ void* Mem) {
+    if (Mem != nullptr) {
+        ExFreePoolWithTag(Mem, QUIC_PERF_TAG);
+    }
+}
+
+extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
+
+extern "C"
+INITCODE
+_Function_class_(DRIVER_INITIALIZE)
+_IRQL_requires_same_
+_IRQL_requires_(PASSIVE_LEVEL)
+NTSTATUS
+DriverEntry(
+    _In_ PDRIVER_OBJECT DriverObject,
+    _In_ PUNICODE_STRING RegistryPath
+)
+/*++
+
+Routine Description:
+
+    DriverEntry initializes the driver and is the first routine called by the
+    system after the driver is loaded. DriverEntry specifies the other entry
+    points in the function driver, such as EvtDevice and DriverUnload.
+
+Parameters Description:
+
+    DriverObject - represents the instance of the function driver that is loaded
+    into memory. DriverEntry must initialize members of DriverObject before it
+    returns to the caller. DriverObject is allocated by the system before the
+    driver is loaded, and it is released by the system after the system unloads
+    the function driver from memory.
+
+    RegistryPath - represents the driver specific path in the Registry.
+    The function driver can use the path to store driver related data between
+    reboots. The path does not store hardware instance specific data.
+
+Return Value:
+
+    A success status as determined by NT_SUCCESS macro, if successful.
+
+--*/
+{
+    NTSTATUS Status;
+    WDF_DRIVER_CONFIG Config;
+    WDFDRIVER Driver;
+    BOOLEAN PlatformInitialized = FALSE;
+
+    QuicPlatformSystemLoad(DriverObject, RegistryPath);
+
+    Status = QuicPlatformInitialize();
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "QuicPlatformInitialize failed");
+        goto Error;
+    }
+    PlatformInitialized = TRUE;
+
+    //
+    // Create the WdfDriver Object
+    //
+    WDF_DRIVER_CONFIG_INIT(&Config, NULL);
+    Config.EvtDriverUnload = QuicPerfDriverUnload;
+    Config.DriverInitFlags = WdfDriverInitNonPnpDriver;
+    Config.DriverPoolTag = QUIC_PERF_TAG;
+
+    Status =
+        WdfDriverCreate(
+            DriverObject,
+            RegistryPath,
+            WDF_NO_OBJECT_ATTRIBUTES,
+            &Config,
+            &Driver);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "WdfDriverCreate failed");
+        goto Error;
+    }
+
+    //
+    // Initialize the device control interface.
+    //
+    Status = QuicPerfCtlInitialize(Driver);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "QuicPerfCtlInitialize failed");
+        goto Error;
+    }
+
+    QuicTraceLogInfo(
+        PerfDriverStarted,
+        "[perf] Started");
+
+Error:
+
+    if (!NT_SUCCESS(Status)) {
+        if (PlatformInitialized) {
+            QuicPlatformUninitialize();
+        }
+        QuicPlatformSystemUnload();
+    }
+
+    return Status;
+}
+
+_Function_class_(EVT_WDF_DRIVER_UNLOAD)
+_IRQL_requires_same_
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPerfDriverUnload(
+    _In_ WDFDRIVER Driver
+)
+/*++
+
+Routine Description:
+
+    QuicTestDriverUnload will clean up any resources that were allocated for
+    this driver.
+
+Arguments:
+
+    Driver - Handle to a framework driver object created in DriverEntry
+
+--*/
+{
+    UNREFERENCED_PARAMETER(Driver);
+    NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
+
+    QuicPerfCtlUninitialize();
+
+    QuicTraceLogInfo(
+        PerfDriverStopped,
+        "[perf] Stopped");
+
+    QuicPlatformUninitialize();
+    QuicPlatformSystemUnload();
+}
 
 _No_competing_thread_
 INITCODE
