@@ -265,6 +265,7 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
             $CoverageOutput = Join-Path $OutputDir $CoverageName
             $pinfo.FileName = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
             $pinfo.Arguments = "--modules msquic --cover_children --sources src\core --sources src\inc --sources src\platform --excluded_sources unittest --working_dir $($OutputDir) --export_type binary:$($CoverageOutput) -- $($Path) $($Arguments)"
+            $pinfo.WorkingDirectory = $OutputDir
         } else {
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments

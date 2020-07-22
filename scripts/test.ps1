@@ -176,6 +176,14 @@ if ("" -eq $Tls) {
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
+# Coverage destination directory.
+$CoverageDir = Join-Path $RootDir "artifacts" "coverage"
+
+if ($CodeCoverage) {
+    # Clear old coverage data
+    Remove-Item -Path (Join-Path $CoverageDir '*.cov') -Force
+}
+
 # Path to the run-gtest Powershell script.
 $RunTest = Join-Path $RootDir "scripts/run-gtest.ps1"
 
@@ -257,20 +265,10 @@ Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
 
 if ($CodeCoverage) {
     # Merge code coverage results
-    $CoverageDir = Join-Path $RootDir "artifacts" "coverage"
-
     $CoverageMergeParams = ""
 
-    if (Test-Path (Join-Path $CoverageDir "msquiccoretest.cov")) {
-        $CoverageMergeParams += " --input_coverage $(Join-Path $CoverageDir "msquiccoretest.cov")"
-    }
-
-    if (Test-Path (Join-Path $CoverageDir "msquicplatformtest.cov")) {
-        $CoverageMergeParams += " --input_coverage $(Join-Path $CoverageDir "msquicplatformtest.cov")"
-    }
-
-    if (Test-Path (Join-Path $CoverageDir "msquictest.cov")) {
-        $CoverageMergeParams += " --input_coverage $(Join-Path $CoverageDir "msquictest.cov")"
+    foreach ($file in $(Get-ChildItem -Path $CoverageDir -Filter '*.cov')) {
+        $CoverageMergeParams += " --input_coverage $(Join-Path $CoverageDir $file.Name)"
     }
 
     if ($CoverageMergeParams -ne "") {

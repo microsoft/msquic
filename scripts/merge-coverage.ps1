@@ -47,20 +47,8 @@ $CoverageDir = Join-Path $RootDir "artifacts\coverage\windows\$($Arch)_$($Config
 
 $CoverageMergeParams = ""
 
-if (Test-Path (Join-Path $CoverageDir "msquiccoretest.cov")) {
-    $CoverageMergeParams += " --input_coverage $(Join-Path $CoverageDir "msquiccoretest.cov")"
-}
-
-if (Test-Path (Join-Path $CoverageDir "msquicplatformtest.cov")) {
-    $CoverageMergeParams += " --input_coverage $(Join-Path $CoverageDir "msquicplatformtest.cov")"
-}
-
-if (Test-Path (Join-Path $CoverageDir "msquictest.cov")) {
-    $CoverageMergeParams += " --input_coverage $(Join-Path $CoverageDir "msquictest.cov")"
-}
-
-if (Test-Path (Join-Path $CoverageDir "spinquic.cov")) {
-    $CoverageMergeParams += " --input_coverage $(Join-Path $CoverageDir "spinquic.cov")"
+foreach ($file in $(Get-ChildItem -Path $CoverageDir -Filter '*.cov')) {
+    $CoverageMergeParams += " --input_coverage $(Join-Path $CoverageDir $file.Name)"
 }
 
 if ($CoverageMergeParams -ne "") {
