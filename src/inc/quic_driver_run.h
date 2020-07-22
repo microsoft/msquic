@@ -1,3 +1,14 @@
+/*++
+
+    Copyright (c) Microsoft Corporation.
+    Licensed under the MIT License.
+
+Abstract:
+
+    QUIC Perf Main common driver code.
+
+--*/
+
 #pragma once
 
 #include "quic_platform.h"
