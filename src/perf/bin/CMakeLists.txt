@@ -11,7 +11,7 @@ if (MSVC)
 endif()
 
 set(SOURCES
-    main.cpp
+    appmain.cpp
 )
 
 # Allow CLOG to preprocess all the source files.

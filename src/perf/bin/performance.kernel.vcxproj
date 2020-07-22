@@ -39,13 +39,13 @@
     <ClCompile Include="driver.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\platform\platform.kernel.vcxproj">
+    <ProjectReference Include="..\..\platform\platform.kernel.vcxproj">
       <Project>{5f99f713-bf5f-44eb-90fe-fea03906bba9}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\lib\perflib.kernel.vcxproj">
+    <ProjectReference Include="..\lib\perflib.kernel.vcxproj">
       <Project>{11633785-79cc-4c7d-ab6a-aecdf29a1fa7}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\bin\winkernel\msquic.kernel.vcxproj">
+    <ProjectReference Include="..\..\bin\winkernel\msquic.kernel.vcxproj">
       <Project>{C31B028C-E91C-4CF7-A8E7-F385B2AF5F85}</Project>
     </ProjectReference>
   </ItemGroup>
@@ -85,7 +85,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..;..\..\..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..;..\..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <AdditionalOptions Condition="'$(Platform)'!='x64'">/Gw /kernel /ZH:SHA_256</AdditionalOptions>
