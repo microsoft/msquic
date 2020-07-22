@@ -243,9 +243,9 @@ public:
         _In_ uint32_t IoControlCode,
         _Out_writes_bytes_opt_(OutBufferSize)
             void* OutBuffer,
-        _In_ DWORD OutBufferSize,
-        _Out_ LPDWORD OutBufferWritten,
-        _In_ DWORD TimeoutMs = 30000
+        _In_ uint32_t OutBufferSize,
+        _Out_ LPDWORD OutBufferWritten, // Needs to be LPDWORD to match DeviceIoControl
+        _In_ uint32_t TimeoutMs = 30000
         ) {
         uint32_t Error;
         OVERLAPPED Overlapped = { 0 };
@@ -357,9 +357,9 @@ public:
         _In_ uint32_t IoControlCode,
         _Out_writes_bytes_opt_(OutBufferSize)
             void* OutBuffer,
-        _In_ DWORD OutBufferSize,
-        _Out_ LPDWORD OutBufferWritten,
-        _In_ DWORD TimeoutMs = 30000
+        _In_ uint32_t OutBufferSize,
+        _Out_ uint32_t* OutBufferWritten,
+        _In_ uint32_t TimeoutMs = 30000
         ) {
         UNREFERENCED_PARAMETER(IoControlCode);
         UNREFERENCED_PARAMETER(OutBuffer);
