@@ -455,16 +455,6 @@ main(
     ) {
     QuicPlatformSystemLoad();
     QuicPlatformInitialize();
-    QUIC_SEC_CONFIG_PARAMS* SelfSignedConfig = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
-    if (SelfSignedConfig) {
-#ifdef _KERNEL_MODE
-        static_assert(sizeof(SelfSignedSecurityHash) == sizeof(SelfSignedConfig->Thumbprint));
-        QuicCopyMemory(SelfSignedSecurityHash, SelfSignedConfig->Thumbprint, 20);
-#else
-        SelfSignedParams = SelfSignedConfig;
-#endif
-        IsSelfSignedValid = true;
-    }
 
     bool TestingKernelMode = false;
     bool KeyboardWait = false;
@@ -476,6 +466,23 @@ main(
             KeyboardWait = true;
         }
     }
+
+    QUIC_SEC_CONFIG_PARAMS* SelfSignedConfig =
+        QuicPlatGetSelfSignedCert(
+            TestingKernelMode ?
+                QUIC_SELF_SIGN_CERT_MACHINE :
+                QUIC_SELF_SIGN_CERT_USER);
+    if (SelfSignedConfig) {
+#ifdef _KERNEL_MODE
+        static_assert(sizeof(SelfSignedSecurityHash) == sizeof(SelfSignedConfig->Thumbprint));
+        QuicCopyMemory(SelfSignedSecurityHash, SelfSignedConfig->Thumbprint, 20);
+#else
+        SelfSignedParams = SelfSignedConfig;
+#endif
+        IsSelfSignedValid = true;
+    }
+
+
 
     int RetVal = 0;
 
