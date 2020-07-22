@@ -16,8 +16,8 @@ Abstract:
 #ifndef _KERNEL_MODE
 #define QUIC_TEST_APIS 1
 #endif
-#include "ThroughputClient.h"
 #include "msquichelper.h"
+#include "ThroughputClient.h"
 #include "ThroughputCommon.h"
 
 static uint8_t* RawIoBuffer{nullptr};

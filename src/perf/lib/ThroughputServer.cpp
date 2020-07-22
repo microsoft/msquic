@@ -16,8 +16,8 @@ Abstract:
 #ifndef _KERNEL_MODE
 #define QUIC_TEST_APIS 1
 #endif
-#include "ThroughputServer.h"
 #include "msquichelper.h"
+#include "ThroughputServer.h"
 #include "ThroughputCommon.h"
 
 ThroughputServer::ThroughputServer() {
