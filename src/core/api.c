@@ -253,19 +253,6 @@ MsQuicConnectionStart(
         QUIC_TRACE_API_CONNECTION_START,
         Handle);
 
-    if (ServerPort == 0) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Error;
-    }
-
-    //
-    // Make sure the connection is to a IPv4 or IPv6 address or unspecified.
-    //
-    if (Family != AF_UNSPEC && Family != AF_INET && Family != AF_INET6) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Error;
-    }
-
     if (IS_CONN_HANDLE(Handle)) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Connection = (QUIC_CONNECTION*)Handle;
@@ -279,10 +266,22 @@ MsQuicConnectionStart(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
-    if (QuicConnIsServer(Connection) ||
-        (!Connection->State.RemoteAddressSet && ServerName == NULL)) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Error;
+    if (!Connection->State.UsingPresharedInfo) {
+        if (ServerPort == 0) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
+
+        if (Family != AF_UNSPEC && Family != AF_INET && Family != AF_INET6) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
+
+        if (QuicConnIsServer(Connection) ||
+            (!Connection->State.RemoteAddressSet && ServerName == NULL)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
     }
 
     if (Connection->State.Started || Connection->State.ClosedLocally) {
@@ -1196,7 +1195,8 @@ MsQuicSetParam(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
-    if (Connection->WorkerThreadID == QuicCurThreadID()) {
+    if (!Connection->State.Started ||
+        Connection->WorkerThreadID == QuicCurThreadID()) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
@@ -1307,7 +1307,8 @@ MsQuicGetParam(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
-    if (Connection->WorkerThreadID == QuicCurThreadID()) {
+    if (!Connection->State.Started ||
+        Connection->WorkerThreadID == QuicCurThreadID()) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //

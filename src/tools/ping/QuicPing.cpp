@@ -10,10 +10,13 @@ Abstract:
 --*/
 
 #include "QuicPing.h"
+#include "quicip.h"
 
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 QUIC_SEC_CONFIG* SecurityConfig;
+HQUIC Session;
+PingTracker Tracker;
 QUIC_PING_CONFIG PingConfig;
 
 extern "C" void QuicTraceRundown(void) { }
@@ -42,7 +45,8 @@ PrintUsage()
         "  -ver:<initial version>      The initial QUIC version number to use.\n"
         "  -resume:<bytes>             Resumption bytes for 0-RTT.\n"
         "  -connections:<####>         The number of connections to create. (def:%u)\n"
-        "  -wait:<####>                The time the app waits for completion. (def:%u ms)\n",
+        "  -wait:<####>                The time the app waits for completion. (def:%u ms)\n"
+        "  -psci:<0/1> (def:0)         Reconnect using preshared connection info.\n",
         DEFAULT_CLIENT_CONNECTION_COUNT,
         DEFAULT_WAIT_TIMEOUT);
 
@@ -118,10 +122,17 @@ ParseCommonCommands(
     }
 #endif
 
+    if (PingConfig.PsciAddrSet) {
+        PingConfig.ALPN[0].Buffer = (uint8_t*)PSCI_ALPN;
+        PingConfig.ALPN[0].Length = (uint32_t)strlen(PSCI_ALPN);
+        PingConfig.AlpnCount++;
+    }
+
     const char* alpn = DEFAULT_ALPN;
     TryGetValue(argc, argv, "alpn", &alpn);
-    PingConfig.ALPN.Buffer = (uint8_t*)alpn;
-    PingConfig.ALPN.Length = (uint32_t)strlen(alpn);
+    PingConfig.ALPN[PingConfig.AlpnCount].Buffer = (uint8_t*)alpn;
+    PingConfig.ALPN[PingConfig.AlpnCount].Length = (uint32_t)strlen(alpn);
+    PingConfig.AlpnCount++;
 
     uint16_t port = DEFAULT_PORT;
     TryGetValue(argc, argv, "port", &port);
@@ -344,6 +355,10 @@ ParseClientCommand(
     TryGetValue(argc, argv, "wait", &waitTimeout);
     PingConfig.Client.WaitTimeout = waitTimeout;
 
+    uint16_t usePsci = FALSE;
+    TryGetValue(argc, argv, "psci", &usePsci);
+    PingConfig.PsciAddrSet = PingConfig.PsciAddrSet && usePsci != 0;
+
     PingConfig.ConnectionCount = DEFAULT_CLIENT_CONNECTION_COUNT;
     ParseCommonCommands(argc, argv);
     QuicPingClientRun();
@@ -380,6 +395,24 @@ main(
         printf("RegistrationOpen failed!\n");
         MsQuicClose(MsQuic);
         goto Error;
+    }
+
+    if (QUIC_FAILED(
+        MsQuicGetPublicIPEx(
+            MsQuic,
+            Registration,
+            "quic.westus.cloudapp.azure.com",
+            TRUE,
+            &PingConfig.LocalPsciAddr,
+            &PingConfig.PublicPsciAddr))) {
+        printf("Failed to resolve public IP address. 'psci' feature will not work.\n");
+    } else {
+        PingConfig.PsciAddrSet = true;
+        QUIC_ADDR_STR AddrStr = { 0 };
+        QuicAddrToString(&PingConfig.LocalPsciAddr, &AddrStr);
+        printf(" Local IP: %s\n", AddrStr.Address);
+        QuicAddrToString(&PingConfig.PublicPsciAddr, &AddrStr);
+        printf("Public IP: %s\n", AddrStr.Address);
     }
 
     //

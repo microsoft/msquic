@@ -212,6 +212,16 @@ QuicAddrSetPort(
 }
 
 inline
+void
+QuicAddrSetIsBoundExplicitly(
+    _In_ QUIC_ADDR * Addr,
+    _In_ BOOLEAN IsBound
+    )
+{
+    Addr->Ipv6.sin6_scope_id = IsBound ? 0 : 1;
+}
+
+inline
 BOOLEAN
 QuicAddrIsBoundExplicitly(
     _In_ const QUIC_ADDR * const Addr

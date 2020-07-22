@@ -11,6 +11,8 @@ set(SOURCES
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 
+include_directories(${PROJECT_SOURCE_DIR}/src/tools/ip)
+
 add_executable(quicping ${SOURCES})
 
 set_property(TARGET quicping PROPERTY FOLDER "tools")

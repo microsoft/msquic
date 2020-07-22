@@ -100,16 +100,6 @@ QuicCryptoInitialize(
 {
     QUIC_STATUS Status;
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
-
-    if (Connection->State.UsingPresharedInfo) {
-        QUIC_DBG_ASSERT(Crypto->TlsState.ReadKey == QUIC_PACKET_KEY_1_RTT);
-        QUIC_DBG_ASSERT(Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_1_RTT);
-        Crypto->TlsState.HandshakeComplete = TRUE;
-        QuicConnProcessPeerTransportParameters(Connection, TRUE);
-        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE);
-        return QUIC_STATUS_SUCCESS;
-    }
-
     uint16_t SendBufferLength =
         QuicConnIsServer(Connection) ?
             QUIC_MAX_TLS_SERVER_SEND_BUFFER : QUIC_MAX_TLS_CLIENT_SEND_BUFFER;

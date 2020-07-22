@@ -78,12 +78,14 @@ struct PingTracker {
     }
 };
 
+extern PingTracker Tracker;
+
 struct PingConnection {
 
-    PingTracker* Tracker;
     HQUIC QuicConnection;
     bool DumpResumption;
     bool IsServer;
+    bool ForPsci;
 
     uint64_t StartTime;
     uint64_t ConnectTime;
@@ -106,20 +108,13 @@ struct PingConnection {
     uint64_t DatagramLastTime;
 
     //
-    // Constructor for creating a new connection.
+    // Constructor
     //
     PingConnection(
-        _In_ PingTracker* Tracker,
-        _In_ HQUIC Session,
-        _In_ bool DumpResumption
-        );
-
-    //
-    // Constructor for incoming connection with tracker.
-    //
-    PingConnection(
-        _In_ PingTracker* Tracker,
-        _In_ HQUIC Connection
+        _In_ bool IsServer = false,
+        _In_ HQUIC Handle = nullptr, // Server side accepted connection
+        _In_ bool DumpResumption = false,
+        _In_ bool ForPsci = false
         );
 
     //
@@ -128,14 +123,15 @@ struct PingConnection {
     ~PingConnection();
 
     //
-    // Initializes all the QUIC parameters on the connection.
-    //
-    bool Initialize(bool IsServer);
-
-    //
     // Starts the connection handshake to the server.
     //
     bool Connect();
+
+    //
+    // Get/Set preshared connection info.
+    //
+    QUIC_PRESHARED_CONNECTION_INFORMATION* GetLocalPsci(uint32_t &Length);
+    bool SetRemotePsci(const QUIC_PRESHARED_CONNECTION_INFORMATION* Psci);
 
     //
     // Called by the child stream when it's done cleaning up.
@@ -146,6 +142,8 @@ struct PingConnection {
         );
 
 private:
+
+    void Initialize();
 
     bool
     QueueDatagram(
@@ -164,5 +162,68 @@ private:
         _In_ HQUIC Connection,
         _In_opt_ void* Context,
         _Inout_ QUIC_CONNECTION_EVENT* Event
+        );
+};
+
+struct PingPsciConnection {
+
+    HQUIC QuicConnection;
+    bool IsServer;
+
+    PingConnection* NormalConnection;
+
+    QUIC_BUFFER SendBuffer;
+    QUIC_PRESHARED_CONNECTION_INFORMATION* LocalPsci;
+    QUIC_PRESHARED_CONNECTION_INFORMATION* RemotePsci;
+
+    PingPsciConnection(
+        _In_ bool IsServer,
+        _In_ HQUIC Handle
+        );
+
+    //
+    // Destructor. Closes the associated connection.
+    //
+    ~PingPsciConnection();
+
+    //
+    // Starts the connection handshake to the server.
+    //
+    bool Connect();
+
+    //
+    // Sends the preshared connection info to the peer.
+    //
+    bool SendPsci(HQUIC Stream = nullptr);
+
+private:
+
+    QUIC_STATUS
+    ProcessEvent(
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        );
+
+    QUIC_STATUS
+    ProcessStreamEvent(
+        _In_ HQUIC Stream,
+        _Inout_ QUIC_STREAM_EVENT* Event
+        );
+
+    static
+    QUIC_STATUS
+    QUIC_API
+    QuicCallbackHandler(
+        _In_ HQUIC Connection,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        );
+
+    static
+    QUIC_STATUS
+    QUIC_API
+    QuicStreamCallbackHandler(
+        _In_ HQUIC Stream,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_STREAM_EVENT* Event
         );
 };

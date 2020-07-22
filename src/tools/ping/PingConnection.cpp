@@ -12,38 +12,33 @@ Abstract:
 #include "QuicPing.h"
 
 PingConnection::PingConnection(
-    _In_ PingTracker* Tracker,
-    _In_ HQUIC Session,
-    _In_ bool DumpResumption
+    _In_ bool IsServer,
+    _In_ HQUIC Handle,
+    _In_ bool DumpResumption,
+    _In_ bool ForPsci
     ) :
-    Tracker(Tracker), QuicConnection(nullptr), DumpResumption(DumpResumption),
-    ConnectedSuccessfully(false), BytesSent(0), BytesReceived(0), DatagramLength(0),
-    DatagramsSent(0), DatagramsAcked(0), DatagramsLost(0), DatagramsCancelled(0),
-    DatagramsReceived(0), DatagramsJitterTotal(0), DatagramLastTime(0),
-    TimedOut(false), IsServer(false)  {
-
-    if (QUIC_FAILED(
-        MsQuic->ConnectionOpen(
-            Session,
-            QuicCallbackHandler,
-            this,
-            &QuicConnection))) {
-        printf("Failed to open connection!\n");
-    }
-}
-
-PingConnection::PingConnection(
-    _In_ PingTracker* Tracker,
-    _In_ HQUIC Connection
-    ) :
-    Tracker(Tracker), QuicConnection(Connection), DumpResumption(false),
+    QuicConnection(Handle),
+    DumpResumption(DumpResumption), IsServer(IsServer), ForPsci(ForPsci),
     ConnectedSuccessfully(false), BytesSent(0), BytesReceived(0), DatagramLength(0),
     DatagramsSent(0), DatagramsAcked(0), DatagramsLost(0), DatagramsCancelled(0),
     DatagramsReceived(0), DatagramsJitterTotal(0), DatagramLastTime(0),
     TimedOut(false) {
 
-    StartTime = QuicTimeUs64();
-    MsQuic->SetCallbackHandler(Connection, (void*)QuicCallbackHandler, this);
+    if (QuicConnection == nullptr) {
+        if (QUIC_FAILED(
+            MsQuic->ConnectionOpen(
+                Session,
+                QuicCallbackHandler,
+                this,
+                &QuicConnection))) {
+            printf("Failed to open connection!\n");
+        }
+    } else {
+        MsQuic->SetCallbackHandler(QuicConnection, (void*)QuicCallbackHandler, this);
+        StartTime = QuicTimeUs64();
+    }
+
+    Initialize();
 }
 
 PingConnection::~PingConnection() {
@@ -52,12 +47,7 @@ PingConnection::~PingConnection() {
     }
 }
 
-bool
-PingConnection::Initialize(
-    bool IsServer
-    )
-{
-    this->IsServer = IsServer;
+void PingConnection::Initialize() {
 
     if (!PingConfig.UseSendBuffer) {
         BOOLEAN Opt = FALSE;
@@ -69,7 +59,7 @@ PingConnection::Initialize(
                 sizeof(Opt),
                 &Opt))) {
             printf("MsQuic->SetParam (SEND_BUFFERING) failed!\n");
-            return false;
+            return;
         }
     }
 
@@ -83,7 +73,7 @@ PingConnection::Initialize(
                 sizeof(Opt),
                 &Opt))) {
             printf("MsQuic->SetParam (SEND_PACING) failed!\n");
-            return false;
+            return;
         }
     }
 
@@ -97,32 +87,59 @@ PingConnection::Initialize(
                 sizeof(Enabled),
                 &Enabled))) {
             printf("MsQuic->SetParam (DATAGRAMS) failed!\n");
-            return false;
+            return;
+        }
+    }
+
+    if (QUIC_FAILED(
+        MsQuic->SetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_DISCONNECT_TIMEOUT,
+            sizeof(uint32_t),
+            &PingConfig.DisconnectTimeout))) {
+        printf("Failed to set the disconnect timeout!\n");
+        return;
+    }
+
+    if (QUIC_FAILED(
+        MsQuic->SetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_IDLE_TIMEOUT,
+            sizeof(uint64_t),
+            &PingConfig.IdleTimeout))) {
+        printf("Failed to set the idle timeout!\n");
+        return;
+    }
+
+    if (PingConfig.PeerBidirStreamCount != 0) {
+        if (QUIC_FAILED(
+            MsQuic->SetParam(
+                QuicConnection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT,
+                sizeof(uint16_t),
+                &PingConfig.PeerBidirStreamCount))) {
+            printf("Failed to set the peer max bidi stream count!\n");
+            return;
+        }
+    }
+
+    if (PingConfig.PeerUnidirStreamCount != 0) {
+        if (QUIC_FAILED(
+            MsQuic->SetParam(
+                QuicConnection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT,
+                sizeof(uint16_t),
+                &PingConfig.PeerUnidirStreamCount))) {
+            printf("Failed to set the peer max uni stream count!\n");
+            return;
         }
     }
 
     if (!IsServer) {
-        if (QUIC_FAILED(
-            MsQuic->SetParam(
-                QuicConnection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_DISCONNECT_TIMEOUT,
-                sizeof(uint32_t),
-                &PingConfig.DisconnectTimeout))) {
-            printf("Failed to set the disconnect timeout!\n");
-            return false;
-        }
-
-        if (QUIC_FAILED(
-            MsQuic->SetParam(
-                QuicConnection,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_IDLE_TIMEOUT,
-                sizeof(uint64_t),
-                &PingConfig.IdleTimeout))) {
-            printf("Failed to set the idle timeout!\n");
-            return false;
-        }
 
         uint32_t SecFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
         if (QUIC_FAILED(
@@ -133,33 +150,7 @@ PingConnection::Initialize(
                 sizeof(SecFlags),
                 &SecFlags))) {
             printf("Failed to set the cert validation flags!\n");
-            return false;
-        }
-
-        if (PingConfig.PeerBidirStreamCount != 0) {
-            if (QUIC_FAILED(
-                MsQuic->SetParam(
-                    QuicConnection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT,
-                    sizeof(uint16_t),
-                    &PingConfig.PeerBidirStreamCount))) {
-                printf("Failed to set the peer max bidi stream count!\n");
-                return false;
-            }
-        }
-
-        if (PingConfig.PeerUnidirStreamCount != 0) {
-            if (QUIC_FAILED(
-                MsQuic->SetParam(
-                    QuicConnection,
-                    QUIC_PARAM_LEVEL_CONNECTION,
-                    QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT,
-                    sizeof(uint16_t),
-                    &PingConfig.PeerUnidirStreamCount))) {
-                printf("Failed to set the peer max uni stream count!\n");
-                return false;
-            }
+            return;
         }
 
         if (PingConfig.Client.ResumeToken &&
@@ -168,7 +159,7 @@ PingConnection::Initialize(
                 QuicConnection,
                 PingConfig.Client.ResumeToken)) {
             printf("Failed to set the resumption token!\n");
-            return false;
+            return;
         }
 
         if (PingConfig.Client.Version &&
@@ -180,7 +171,46 @@ PingConnection::Initialize(
                 sizeof(uint32_t),
                 &PingConfig.Client.Version))) {
             printf("Failed to set the version!\n");
-            return false;
+            return;
+        }
+
+        if (!ForPsci) {
+            if (QuicAddrGetFamily(&PingConfig.LocalIpAddr) != AF_UNSPEC) {
+                MsQuic->SetParam(
+                    QuicConnection,
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                    sizeof(PingConfig.LocalIpAddr),
+                    &PingConfig.LocalIpAddr);
+            }
+
+            if (PingConfig.Client.UseExplicitRemoteAddr) {
+                MsQuic->SetParam(
+                    QuicConnection,
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_REMOTE_ADDRESS,
+                    sizeof(PingConfig.Client.RemoteIpAddr),
+                    &PingConfig.Client.RemoteIpAddr);
+            }
+        }
+    }
+
+    if (ForPsci) {
+        MsQuic->SetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_LOCAL_ADDRESS,
+            sizeof(PingConfig.LocalPsciAddr),
+            &PingConfig.LocalPsciAddr);
+
+        {
+            BOOLEAN ShareBinding = TRUE;
+            MsQuic->SetParam(
+                QuicConnection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_SHARE_UDP_BINDING,
+                sizeof(ShareBinding),
+                &ShareBinding);
         }
     }
 
@@ -188,14 +218,14 @@ PingConnection::Initialize(
         auto Stream = new PingStream(this, BidiSendMode);
         if (!Stream || !Stream->Start()) {
             delete Stream;
-            return false;
+            return;
         }
     }
     for (uint64_t i = 0; i < PingConfig.LocalUnidirStreamCount; i++) {
         auto Stream = new PingStream(this, UniSendMode);
         if (!Stream || !Stream->Start()) {
             delete Stream;
-            return false;
+            return;
         }
     }
 
@@ -204,11 +234,9 @@ PingConnection::Initialize(
         SendRequest->SetLength(DatagramLength);
         if (!QueueDatagram(SendRequest)) {
             delete SendRequest;
-            return false;
+            return;
         }
     }
-
-    return true;
 }
 
 bool
@@ -231,25 +259,7 @@ PingConnection::QueueDatagram(
 
 bool
 PingConnection::Connect() {
-    if (QuicAddrGetFamily(&PingConfig.LocalIpAddr) != AF_UNSPEC) {
-        MsQuic->SetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_LOCAL_ADDRESS,
-            sizeof(PingConfig.LocalIpAddr),
-            &PingConfig.LocalIpAddr);
-    }
-
-    if (PingConfig.Client.UseExplicitRemoteAddr) {
-        MsQuic->SetParam(
-            QuicConnection,
-            QUIC_PARAM_LEVEL_CONNECTION,
-            QUIC_PARAM_CONN_REMOTE_ADDRESS,
-            sizeof(PingConfig.Client.RemoteIpAddr),
-            &PingConfig.Client.RemoteIpAddr);
-    }
-
-    Tracker->AddItem();
+    Tracker.AddItem();
     StartTime = QuicTimeUs64();
     if (QUIC_FAILED(
         MsQuic->ConnectionStart(
@@ -257,11 +267,49 @@ PingConnection::Connect() {
             QuicAddrGetFamily(&PingConfig.Client.RemoteIpAddr),
             PingConfig.Client.Target,
             QuicAddrGetPort(&PingConfig.Client.RemoteIpAddr)))) {
-        Tracker->CompleteItem(0, 0);
+        Tracker.CompleteItem(0, 0);
         return false;
     }
-
     return true;
+}
+
+QUIC_PRESHARED_CONNECTION_INFORMATION*
+PingConnection::GetLocalPsci(
+    uint32_t &Length
+    ) {
+    QUIC_PRESHARED_CONNECTION_INFORMATION* Psci =
+        (QUIC_PRESHARED_CONNECTION_INFORMATION*)
+        new uint8_t[512];
+    Length = 512;
+
+    if (QUIC_FAILED(
+        MsQuic->GetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_PRESHARED_INFO,
+            &Length,
+            Psci))) {
+        delete[] (uint8_t*)Psci;
+        return nullptr;
+    }
+
+    Psci->Address = PingConfig.PublicPsciAddr;
+
+    return Psci;
+}
+
+bool
+PingConnection::SetRemotePsci(
+    const QUIC_PRESHARED_CONNECTION_INFORMATION* Psci
+    ) {
+    return
+        QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_PRESHARED_INFO,
+            sizeof(QUIC_PRESHARED_CONNECTION_INFORMATION),
+            Psci));
 }
 
 void
@@ -379,9 +427,7 @@ PingConnection::ProcessEvent(
             }
         }
 
-        if (Tracker != nullptr) {
-            Tracker->CompleteItem(BytesSent, BytesReceived);
-        }
+        Tracker.CompleteItem(BytesSent, BytesReceived);
 
         if (DumpResumption && ConnectedSuccessfully) {
             uint8_t SerializedResumptionState[2048];
@@ -448,7 +494,7 @@ PingConnection::ProcessEvent(
     case QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED: {
         DatagramLength =
             min(PingConfig.DatagramMaxLength, Event->DATAGRAM_STATE_CHANGED.MaxSendLength);
-        printf("[%p] New Datagram Length = %hu\n", QuicConnection, DatagramLength);
+        //printf("[%p] New Datagram Length = %hu\n", QuicConnection, DatagramLength);
         break;
     }
 
@@ -507,4 +553,215 @@ PingConnection::QuicCallbackHandler(
     PingConnection *pThis = (PingConnection*)Context;
     pThis->ProcessEvent(Event);
     return QUIC_STATUS_SUCCESS;
+}
+
+PingPsciConnection::PingPsciConnection(
+        _In_ bool IsServer,
+        _In_ HQUIC Handle
+    ) :
+    QuicConnection(nullptr), IsServer(IsServer)  {
+
+    NormalConnection =
+        new PingConnection(
+            IsServer,
+            nullptr,
+            false,
+            true);
+
+    LocalPsci = NormalConnection->GetLocalPsci(SendBuffer.Length);
+    if (LocalPsci == nullptr) {
+        printf("Failed to query local PSCI\n");
+    }
+    SendBuffer.Buffer = (uint8_t*)LocalPsci;
+    RemotePsci = (QUIC_PRESHARED_CONNECTION_INFORMATION*) new uint8_t[512];
+
+    if (IsServer) {
+        QuicConnection = Handle;
+        MsQuic->SetCallbackHandler(QuicConnection, (void*)QuicCallbackHandler, this);
+        uint16_t StreamCount = 1;
+        if (QUIC_FAILED(
+            MsQuic->SetParam(
+                QuicConnection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT,
+                sizeof(uint16_t),
+                &StreamCount))) {
+            printf("MsQuic->SetParam (CONN_PEER_BIDI_STREAM_COUNT) failed!\n");
+            return;
+        }
+    } else {
+        if (QUIC_FAILED(
+            MsQuic->ConnectionOpen(
+                Session,
+                QuicCallbackHandler,
+                this,
+                &QuicConnection))) {
+            printf("Failed to open connection!\n");
+        }
+        uint32_t SecFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
+        if (QUIC_FAILED(
+            MsQuic->SetParam(
+                QuicConnection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
+                sizeof(SecFlags),
+                &SecFlags))) {
+            printf("Failed to set the cert validation flags!\n");
+            return;
+        }
+    }
+}
+
+PingPsciConnection::~PingPsciConnection() {
+    if (QuicConnection != nullptr) {
+        MsQuic->ConnectionClose(QuicConnection);
+    }
+    delete[] (uint8_t*)LocalPsci;
+    delete[] (uint8_t*)RemotePsci;
+}
+
+bool
+PingPsciConnection::Connect() {
+
+    Tracker.AddItem();
+    if (QUIC_FAILED(
+        MsQuic->ConnectionStart(
+            QuicConnection,
+            QuicAddrGetFamily(&PingConfig.Client.RemoteIpAddr),
+            PingConfig.Client.Target,
+            QuicAddrGetPort(&PingConfig.Client.RemoteIpAddr)))) {
+        Tracker.CompleteItem(0, 0);
+        return false;
+    }
+    return true;
+}
+
+bool PingPsciConnection::SendPsci(HQUIC Stream) {
+    if (Stream == nullptr) {
+        if (QUIC_FAILED(
+            MsQuic->StreamOpen(
+                QuicConnection,
+                QUIC_STREAM_OPEN_FLAG_NONE,
+                QuicStreamCallbackHandler,
+                this,
+                &Stream))) {
+            printf("Failed to open stream!\n");
+            return false;
+        }
+        if (QUIC_FAILED(
+            MsQuic->StreamStart(
+                Stream,
+                QUIC_STREAM_START_FLAG_NONE))) {
+            printf("Failed to start stream!\n");
+            return false;
+        }
+        printf("Sending PSCI\n");
+    } else {
+        printf("Replying with PSCI\n");
+    }
+
+    MsQuic->StreamSend(
+        Stream,
+        &SendBuffer,
+        1,
+        QUIC_SEND_FLAG_FIN,
+        nullptr);
+
+    return true;
+}
+
+QUIC_STATUS
+PingPsciConnection::ProcessEvent(
+    _Inout_ QUIC_CONNECTION_EVENT* Event
+    ) {
+    switch (Event->Type) {
+    case QUIC_CONNECTION_EVENT_CONNECTED:
+        printf("PSCI Connected\n");
+        if (!IsServer &&
+            IsPsciAlpn(
+                Event->CONNECTED.NegotiatedAlpn,
+                Event->CONNECTED.NegotiatedAlpnLength)) {
+            SendPsci();
+        }
+        break;
+    case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
+        delete this;
+        break;
+    case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
+        MsQuic->SetCallbackHandler(
+            Event->PEER_STREAM_STARTED.Stream,
+            (void*)QuicStreamCallbackHandler,
+            this);
+        SendPsci(Event->PEER_STREAM_STARTED.Stream);
+        break;
+    default:
+        break;
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+QUIC_STATUS
+PingPsciConnection::ProcessStreamEvent(
+    _In_ HQUIC Stream,
+    _Inout_ QUIC_STREAM_EVENT* Event
+    ) {
+    switch (Event->Type) {
+    case QUIC_STREAM_EVENT_RECEIVE:
+        if (Event->RECEIVE.AbsoluteOffset + Event->RECEIVE.TotalBufferLength <= 512) {
+            uint64_t Offset = Event->RECEIVE.AbsoluteOffset;
+            for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
+                memcpy(
+                    ((uint8_t*)RemotePsci) + Offset,
+                    Event->RECEIVE.Buffers[i].Buffer,
+                    Event->RECEIVE.Buffers[i].Length);
+                Offset += Event->RECEIVE.Buffers[i].Length;
+            }
+        }
+        break;
+    case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
+        printf("Received PSCI\n");
+        {
+            uint8_t* Offset = (uint8_t*)(RemotePsci + 1);
+            RemotePsci->ConnectionID.Buffer = Offset;
+            Offset += RemotePsci->ConnectionID.Length;
+            RemotePsci->TrafficSecret.Buffer = Offset;
+            Offset += RemotePsci->TrafficSecret.Length;
+            RemotePsci->TransportParameters.Buffer = Offset;
+            Offset += RemotePsci->TransportParameters.Length;
+        }
+        if (NormalConnection->SetRemotePsci(RemotePsci)) {
+            printf("Connecting with PSCI\n");
+            NormalConnection->Connect();
+        } else {
+            printf("Failed to set remote PSCI!\n");
+        }
+        break;
+    case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
+        MsQuic->StreamClose(Stream);
+        Tracker.CompleteItem(0, 0);
+        break;
+    default:
+        break;
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+QUIC_STATUS
+QUIC_API
+PingPsciConnection::QuicCallbackHandler(
+    _In_ HQUIC /* Connection */,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_CONNECTION_EVENT* Event
+    ) {
+    return ((PingPsciConnection*)Context)->ProcessEvent(Event);
+}
+
+QUIC_STATUS
+QUIC_API
+PingPsciConnection::QuicStreamCallbackHandler(
+    _In_ HQUIC Stream,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_STREAM_EVENT* Event
+    ) {
+    return ((PingPsciConnection*)Context)->ProcessStreamEvent(Stream, Event);
 }

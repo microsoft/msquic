@@ -1803,6 +1803,38 @@ QuicConnStart(
         goto Exit;
     }
 
+    Connection->State.LocalAddressSet = TRUE;
+    QuicDataPathBindingGetLocalAddress(
+        Path->Binding->DatapathBinding,
+        &Path->LocalAddress);
+    QuicTraceEvent(
+        ConnLocalAddrAdded,
+        "[conn][%p] New Local IP: %!SOCKADDR!",
+        Connection,
+        LOG_ADDR_LEN(Path->LocalAddress),
+        (const uint8_t*)&Path->LocalAddress);
+
+    if (Connection->State.UsingPresharedInfo) {
+        //
+        // When connecting with PSCI we have to allow for symmetric NATs to
+        // change the IP from what we expect. So we need to be able to accept
+        // packets from more than just the expected remote IP address.
+        //
+        QuicLibraryReleaseBinding(Path->Binding);
+        Status =
+            QuicLibraryGetBinding(
+                Connection->Session,
+                Connection->State.ShareBinding,
+                FALSE,
+                &Path->LocalAddress,
+                NULL,
+                &Path->Binding);
+        if (QUIC_FAILED(Status)) {
+            goto Exit;
+        }
+        QuicAddrSetIsBoundExplicitly(&Path->LocalAddress, FALSE);
+    }
+
     if (Connection->SourceCids.Next == NULL) {
         //
         // Clients only need to generate a non-zero length source CID if it
@@ -1848,17 +1880,6 @@ QuicConnStart(
         goto Exit;
     }
 
-    Connection->State.LocalAddressSet = TRUE;
-    QuicDataPathBindingGetLocalAddress(
-        Path->Binding->DatapathBinding,
-        &Path->LocalAddress);
-    QuicTraceEvent(
-        ConnLocalAddrAdded,
-        "[conn][%p] New Local IP: %!SOCKADDR!",
-        Connection,
-        LOG_ADDR_LEN(Path->LocalAddress),
-        (const uint8_t*)&Path->LocalAddress);
-
     //
     // Save the server name.
     //
@@ -1868,9 +1889,23 @@ QuicConnStart(
     //
     // Start the handshake.
     //
-    Status = QuicConnInitializeCrypto(Connection);
-    if (QUIC_FAILED(Status)) {
-        goto Exit;
+    if (Connection->State.UsingPresharedInfo) {
+        QUIC_DBG_ASSERT(Connection->Crypto.TlsState.ReadKey == QUIC_PACKET_KEY_1_RTT);
+        QUIC_DBG_ASSERT(Connection->Crypto.TlsState.WriteKey == QUIC_PACKET_KEY_1_RTT);
+        Connection->State.Started = TRUE;
+        Connection->Stats.Timing.Start = QuicTimeUs64();
+        QuicTraceEvent(
+            ConnHandshakeStart,
+            "[conn][%p] Handshake start",
+            Connection);
+        Connection->Crypto.TlsState.HandshakeComplete = TRUE;
+        QuicConnProcessPeerTransportParameters(Connection, TRUE);
+        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE);
+    } else {
+        Status = QuicConnInitializeCrypto(Connection);
+        if (QUIC_FAILED(Status)) {
+            goto Exit;
+        }
     }
 
 Exit:
@@ -2282,10 +2317,14 @@ QuicConnGenerateLocalTransportParameters(
     LocalTP->InitialMaxStreamDataBidiLocal = Connection->Session->Settings.StreamRecvWindowDefault;
     LocalTP->InitialMaxStreamDataBidiRemote = Connection->Session->Settings.StreamRecvWindowDefault;
     LocalTP->InitialMaxStreamDataUni = Connection->Session->Settings.StreamRecvWindowDefault;
-    LocalTP->MaxUdpPayloadSize =
-        MaxUdpPayloadSizeFromMTU(
-            QuicDataPathBindingGetLocalMtu(
-                Connection->Paths[0].Binding->DatapathBinding));
+    if (Connection->Paths[0].Binding == NULL) {
+        LocalTP->MaxUdpPayloadSize = MaxUdpPayloadSizeFromMTU(QUIC_MAX_MTU);
+    } else {
+        LocalTP->MaxUdpPayloadSize =
+            MaxUdpPayloadSizeFromMTU(
+                QuicDataPathBindingGetLocalMtu(
+                    Connection->Paths[0].Binding->DatapathBinding));
+    }
     LocalTP->MaxAckDelay =
         Connection->MaxAckDelayMs + MsQuicLib.TimerResolutionMs;
     LocalTP->ActiveConnectionIdLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
@@ -5470,9 +5509,10 @@ QuicConnGetLocalPresharedInfo(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
+    Output->TransportParameters.Length -= QuicTlsTPHeaderSize;
     QuicCopyMemory(
         (uint8_t*)Buffer + OutputLength,
-        Output->TransportParameters.Buffer,
+        Output->TransportParameters.Buffer + QuicTlsTPHeaderSize,
         Output->TransportParameters.Length);
     QUIC_FREE(Output->TransportParameters.Buffer);
     Output->TransportParameters.Buffer = (uint8_t*)Buffer + OutputLength;

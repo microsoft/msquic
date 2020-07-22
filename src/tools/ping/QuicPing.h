@@ -27,6 +27,11 @@ extern HQUIC Registration;
 extern QUIC_SEC_CONFIG* SecurityConfig;
 
 //
+// Session context.
+//
+extern HQUIC Session;
+
+//
 // Raw byte buffer for sending.
 //
 extern uint8_t* QuicPingRawIoBuffer;
@@ -35,6 +40,21 @@ extern uint8_t* QuicPingRawIoBuffer;
 // The protocol name used for QuicPing
 //
 #define DEFAULT_ALPN "ping"
+
+//
+// The protocol name used for QuicPing-psci
+//
+#define PSCI_ALPN "ping-psci"
+
+inline bool IsPsciAlpn(
+    const uint8_t* Alpn,
+    uint8_t AlpnLength
+    )
+{
+    return
+        (uint8_t)strlen(PSCI_ALPN) == AlpnLength &&
+        memcmp(Alpn, PSCI_ALPN, AlpnLength) == 0;
+}
 
 //
 // The default port used for connecting with QuicPing.
@@ -112,8 +132,10 @@ typedef struct QUIC_PING_CONFIG {
     bool UseSendBuffer : 1;
     bool UsePacing     : 1;
     bool PrintStats    : 1;
+    bool PsciAddrSet   : 1;
 
-    QUIC_BUFFER ALPN;
+    uint32_t AlpnCount;
+    QUIC_BUFFER ALPN[2];
     QUIC_ADDR LocalIpAddr;
 
     uint32_t DisconnectTimeout; // Milliseconds
@@ -134,6 +156,12 @@ typedef struct QUIC_PING_CONFIG {
     uint32_t IoCount;
 
     uint32_t ConnectionCount;
+
+    //
+    // Preshared connection info
+    //
+    QUIC_ADDR LocalPsciAddr;
+    QUIC_ADDR PublicPsciAddr;
 
     struct {
         bool UseExplicitRemoteAddr : 1;

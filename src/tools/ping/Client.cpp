@@ -16,24 +16,25 @@ Abstract:
 
 void QuicPingClientRun()
 {
-    PingTracker Tracker;
     bool Timeout = true;
     {
-        QuicSession Session;
+        QuicSession SessionHelper;
         if (QUIC_FAILED(
             MsQuic->SessionOpen(
                 Registration,
-                &PingConfig.ALPN,
-                1,
+                PingConfig.ALPN,
+                PingConfig.AlpnCount,
                 NULL,
-                &Session.Handle))) {
+                &SessionHelper.Handle))) {
             printf("MsQuic->SessionOpen failed!\n");
             return;
         }
+        Session = SessionHelper.Handle;
+
         if (PingConfig.MaxBytesPerKey != UINT64_MAX &&
             QUIC_FAILED(
             MsQuic->SetParam(
-                Session.Handle,
+                Session,
                 QUIC_PARAM_LEVEL_SESSION,
                 QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY,
                 sizeof(uint64_t),
@@ -42,37 +43,42 @@ void QuicPingClientRun()
             return;
         }
 
-        auto Connections = new PingConnection*[PingConfig.ConnectionCount];
-        for (uint32_t i = 0; i < PingConfig.ConnectionCount; i++) {
-            Connections[i] =
-                new PingConnection(
-                    &Tracker,
-                    Session.Handle,
-                    PingConfig.ConnectionCount == 1);
-            if (!Connections[i]) {
-                printf("Failed to open a connection!\n");
-                return;
+        if (PingConfig.PsciAddrSet) {
+
+            auto Connection = new PingPsciConnection(false, nullptr);
+            Tracker.Start();
+            Connection->Connect();
+
+        } else {
+
+            auto Connections = new PingConnection*[PingConfig.ConnectionCount];
+            for (uint32_t i = 0; i < PingConfig.ConnectionCount; i++) {
+                Connections[i] =
+                    new PingConnection(
+                        false,
+                        nullptr,
+                        PingConfig.ConnectionCount == 1);
+                if (!Connections[i]) {
+                    printf("Failed to open a connection!\n");
+                    return;
+                }
             }
 
-            if (!Connections[i]->Initialize(false)) {
-                return;
+            Tracker.Start();
+
+            //
+            // Start connecting to the remote server.
+            //
+            for (uint32_t i = 0; i < PingConfig.ConnectionCount; i++) {
+                Connections[i]->Connect();
             }
+
+            delete[] Connections;
         }
-
-        Tracker.Start();
-
-        //
-        // Start connecting to the remote server.
-        //
-        for (uint32_t i = 0; i < PingConfig.ConnectionCount; i++) {
-            Connections[i]->Connect();
-        }
-
-        delete[] Connections;
 
         if (Tracker.Wait(PingConfig.Client.WaitTimeout)) {
             printf("Cancelling remaining connections.\n");
-            Session.Cancel();
+            SessionHelper.Cancel();
             Timeout = false; // Connections didn't hit idle timeout. They were cancelled.
         }
     }
