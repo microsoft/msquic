@@ -445,6 +445,9 @@ function Wait-TestCase($TestCase) {
             } else {
                 # Copy the coverage to destination
                 Copy-Item $NewCoverage $CoverageDir -Force
+                # Copy coverage log
+                $LogName = "LastCoverageResults-$($ExeName.Split(".")[0]).log"
+                Copy-Item (Join-Path $TestCase.LogDir "LastCoverageResults.log") (Join-Path $CoverageDir $LogName) -Force
             }
         }
 
