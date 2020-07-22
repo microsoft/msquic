@@ -1,3 +1,15 @@
+/*++
+
+    Copyright (c) Microsoft Corporation.
+    Licensed under the MIT License.
+
+Abstract:
+
+    QUIC Perf Main execution engine.
+
+--*/
+
+
 #ifdef QUIC_CLOG
 #include "quicmain.cpp.clog.h"
 #endif

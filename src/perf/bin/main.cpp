@@ -1,3 +1,14 @@
+/*++
+
+    Copyright (c) Microsoft Corporation.
+    Licensed under the MIT License.
+
+Abstract:
+
+    QUIC Perf Main execution runner.
+
+--*/
+
 #ifdef QUIC_CLOG
 #include "main.cpp.clog.h"
 #endif
@@ -5,6 +16,7 @@
 #define QUIC_TEST_APIS 1
 #include "quic_driver_run.h"
 #include "PerfHelpers.h"
+#include <quic_trace.h>
 
 #ifdef _WIN32
 #include <winioctl.h>

@@ -1,3 +1,16 @@
+/*++
+
+    Copyright (c) Microsoft Corporation.
+    Licensed under the MIT License.
+
+Abstract:
+
+    QUIC Perf Throughput Client declaration. Definites the functions and
+    variables used in the ThroughputClient class.
+
+--*/
+
+
 #pragma once
 
 #include "PerfHelpers.h"

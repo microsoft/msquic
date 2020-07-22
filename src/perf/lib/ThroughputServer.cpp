@@ -1,3 +1,14 @@
+/*++
+
+    Copyright (c) Microsoft Corporation.
+    Licensed under the MIT License.
+
+Abstract:
+
+    QUIC Perf Throughput Server Implementation.
+
+--*/
+
 #ifdef QUIC_CLOG
 #include "ThroughputServer.cpp.clog.h"
 #endif

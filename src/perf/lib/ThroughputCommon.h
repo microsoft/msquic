@@ -1,3 +1,15 @@
+/*++
+
+    Copyright (c) Microsoft Corporation.
+    Licensed under the MIT License.
+
+Abstract:
+
+    QUIC Perf Throughput Common definitions.
+
+--*/
+
+
 #pragma once
 
 #define THROUGHPUT_DEFAULT_PORT 4433

@@ -15,8 +15,6 @@ Abstract:
 #include "PerfHelpers.h.clog.h"
 #endif
 
-#include "PerfAbstractionLayer.h"
-#include <quic_trace.h>
 #include <msquic.h>
 #include <quic_platform.h>
 #include <msquichelper.h>
@@ -38,22 +36,6 @@ extern QUIC_SEC_CONFIG_PARAMS* SelfSignedParams;
 extern bool IsSelfSignedValid;
 
 #define QUIC_TEST_SESSION_CLOSED    1
-
-struct TestScopeLogger {
-    const char* Name;
-    TestScopeLogger(const char* name) : Name(name) {
-        QuicTraceLogInfo(
-            TestScopeEntry,
-            "[test]---> %s",
-            Name);
-    }
-    ~TestScopeLogger() {
-        QuicTraceLogInfo(
-            TestScopeExit,
-            "[test]<--- %s",
-            Name);
-    }
-};
 
 struct QuicAddr {
     QUIC_ADDR SockAddr;
@@ -452,7 +434,6 @@ struct MsQuicSecurityConfig {
                     MsQuic,
                     Registration,
                     SelfSignedParams);
-            WriteOutput("SelfSignedThings\n");
 #endif
             if (!SecurityConfig) {
                 WriteOutput("Failed to create security config for self signed certificate\n");
