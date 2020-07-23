@@ -36,6 +36,10 @@ foreach ($Build in $AllBuilds) {
     $BuildBaseName = $Build.Name
     $Platform = Split-Path -Path (Split-Path -Path $Build -Parent) -Leaf
 
+    if ($Platform -eq "winkernel") {
+        continue
+    }
+
     # Important directory paths.
     $ArtifactsDir = $Build.FullName
 
@@ -63,8 +67,6 @@ foreach ($Build in $AllBuilds) {
 
     if ($Platform -eq "windows") {
         $Headers += Join-Path $HeaderDir  "msquic_winuser.h"
-    } elseif ($Platform -eq "winkernel") {
-        $Headers += Join-Path $HeaderDir  "msquic_winkernel.h"
     } else {
         $Headers += Join-Path $HeaderDir  "msquic_linux.h"
         $Headers += Join-Path $HeaderDir  "quic_sal_stub.h"
@@ -77,9 +79,6 @@ foreach ($Build in $AllBuilds) {
     if ($Platform -eq "windows") {
         $Binaries += Join-Path $ArtifactsDir "msquic.dll"
         $Binaries += Join-Path $ArtifactsDir "msquic.pdb"
-    } elseif ($Platform -eq "winkernel") {
-        $Binaries += Join-Path $ArtifactsDir "msquic.sys"
-        $Binaries += Join-Path $ArtifactsDir "msquic.pdb"
     } else {
         $Binaries += Join-Path $ArtifactsDir "libmsquic.so"
         #Temporary until we fix CLOG
@@ -89,7 +88,7 @@ foreach ($Build in $AllBuilds) {
 
     $Libraries = @()
 
-    if ($Platform -eq "windows" -or $Platform -eq "winkernel") {
+    if ($Platform -eq "windows") {
         $Libraries += Join-Path $ArtifactsDir "msquic.lib"
     }
 
