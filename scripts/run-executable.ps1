@@ -36,6 +36,9 @@ This script runs an executable and collects and logs or process dumps as necessa
 .Parameter EnableAppVerifier
     Enables all basic Application Verifier checks on the executable.
 
+.Parameter CodeCoverage
+    Collect code coverage for the binary being run.
+
 #>
 
 param (
@@ -71,7 +74,10 @@ param (
     [switch]$ShowOutput = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$EnableAppVerifier = $false
+    [switch]$EnableAppVerifier = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$CodeCoverage = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -86,6 +92,19 @@ if (!(Test-Path $Path)) {
     Write-Error "$($Path) does not exist!"
 }
 
+# Validate the code coverage switch
+if ($CodeCoverage) {
+    if (!$IsWindows) {
+        Write-Error "-CodeCoverage switch only supported on Windows";
+    }
+    if ($Debugger) {
+        Write-Error "-CodeCoverage switch is not supported with debugging";
+    }
+    if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
+        Write-Error "Code coverage tools are not installed";
+    }
+}
+
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
@@ -94,10 +113,18 @@ $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 
 # Executable name.
 $ExeName = Split-Path $Path -Leaf
+$CoverageName = "$(Split-Path $Path -LeafBase).cov"
 
 # Folder for log files.
 $LogDir = Join-Path $RootDir "artifacts" "logs" $ExeName (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
 New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
+
+# Folder for coverage files
+$CoverageDir = $null
+if ($CodeCoverage) {
+    $CoverageDir = Join-Path $RootDir "artifacts" "coverage"
+    New-Item -Path $CoverageDir -ItemType Directory -Force | Out-Null
+}
 
 # XML for creating a failure result data.
 $FailXmlText = @"
@@ -149,6 +176,10 @@ function Start-Executable {
             } else {
                 $pinfo.Arguments = "-g -G $($Path) $($Arguments)"
             }
+        } elseif ($CodeCoverage) {
+            $pinfo.FileName = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
+            $pinfo.Arguments = "--modules=$(Split-Path $Path -Parent) --cover_children --sources src\core --sources src\inc --sources src\platform --excluded_sources unittest --working_dir $($LogDir) --export_type binary:$(Join-Path $CoverageDir $CoverageName) -- $($Path) $($Arguments)"
+            $pinfo.WorkingDirectory = $LogDir
         } else {
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments
@@ -264,6 +295,12 @@ function Wait-Executable($Exe) {
             if ($null -ne $stderr -and "" -ne $stderr) {
                 Write-Host $stderr
             }
+        }
+
+        if ($CodeCoverage) {
+            # Copy coverage log
+            $LogName = "LastCoverageResults-$(Split-Path $Path -LeafBase).log"
+            Copy-Item (Join-Path $LogDir "LastCoverageResults.log") (Join-Path $CoverageDir $LogName) -Force
         }
 
         if ($KeepOutput) {
