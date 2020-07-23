@@ -229,7 +229,7 @@ function CMake-Generate {
     if ($ToolchainFile -ne "") {
         $Arguments += " ""-DCMAKE_TOOLCHAIN_FILE=" + $ToolchainFile + """"
     }
-    if ($CI) {
+    if ($CI -and ($Config -eq "Release")) {
         $Arguments += " -DQUIC_CI=ON"
     }
     $Arguments += " ../../.."
