@@ -25,33 +25,36 @@ param (
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 $NuGetPath = Join-Path $RootDir "nuget"
 
+# Well-known location for clog packages.
+$ClogDownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v0.1.2"
+$ClogVersion = "0.1.2"
+
 function Install-ClogTool {
-    param($NuGetName, $ToolName, $DownloadUrl)
+    param($ToolName)
     New-Item -Path $NuGetPath -ItemType Directory -Force | Out-Null
+    $NuGetName = "$ToolName.$ClogVersion.nupkg"
     $NuGetFile = Join-Path $NuGetPath $NuGetName
-    $OldProgressPreference = $ProgressPreference
-    $ProgressPreference = 'SilentlyContinue'
     try {
-        Invoke-WebRequest -Uri "$DownloadUrl/$NuGetName" -OutFile $NuGetFile
-        dotnet tool install --global --add-source $NuGetPath $ToolName
+        if (!(Test-Path $NuGetFile)) {
+            Write-Host "Downloading $NuGetName"
+            Invoke-WebRequest -Uri "$ClogDownloadUrl/$NuGetName" -OutFile $NuGetFile
+        }
+        Write-Host "Installing: $NuGetName"
+        dotnet tool update --global --add-source $NuGetPath $ToolName
     } catch {
         Write-Warning "Clog could not be installed. Building with logs will not work"
         Write-Warning $_
-    } finally {
-        $ProgressPreference = $OldProgressPreference
     }
 }
 
 if (($Configuration -eq "Dev") -or ($Configuration -eq "Build")) {
-        $NuGetName = "Microsoft.Logging.CLOG.0.1.2.nupkg"
-        $ToolName = "Microsoft.Logging.CLOG"
-        $DownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v0.1.2"
-        Install-ClogTool -NuGetName $NuGetName -ToolName $ToolName -DownloadUrl $DownloadUrl
+    Install-ClogTool "Microsoft.Logging.CLOG"
 }
 
 if ($IsWindows) {
@@ -60,25 +63,15 @@ if ($IsWindows) {
         # TODO - Support installing VS and necessary addins
         # TODO - Install CMake
         # TODO - Check for Windows preview
-        # Enable SChannel TLS 1.3 (client and server). Unnecessary on most recent builds.
-        $TlsServerKeyPath = "HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Server"
-        reg.exe add $TlsServerKeyPath /v DisabledByDefault /t REG_DWORD /d 0 /f | Out-Null
-        reg.exe add $TlsServerKeyPath /v Enabled /t REG_DWORD /d 1 /f | Out-Null
-        $TlsClientKeyPath = "HKLM\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\TLS 1.3\Client"
-        reg.exe add $TlsClientKeyPath /v DisabledByDefault /t REG_DWORD /d 0 /f | Out-Null
-        reg.exe add $TlsClientKeyPath /v Enabled /t REG_DWORD /d 1 /f | Out-Null
     }
-    if ($Configuration -eq "Test") {
-        $NuGetName = "Microsoft.Logging.CLOG2Text.Windows.0.1.2.nupkg"
-        $ToolName = "Microsoft.Logging.CLOG2Text.Windows"
-        $DownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v0.1.2"
-        Install-ClogTool -NuGetName $NuGetName -ToolName $ToolName -DownloadUrl $DownloadUrl
 
+    if (($Configuration -eq "Dev") -or ($Configuration -eq "Test")) {
+        Install-ClogTool "Microsoft.Logging.CLOG2Text.Windows"
+    }
+
+    if ($Configuration -eq "Test") {
         # Install OpenCppCoverage on test machines
         if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
-
-            Write-Host "[$(Get-Date)] Installing OpenCppCoverage..."
-
             # Download the installer.
             $Installer = $null
             if ([System.Environment]::Is64BitOperatingSystem) {
@@ -87,16 +80,15 @@ if ($IsWindows) {
                 $Installer = "OpenCppCoverageSetup-x86-0.9.9.0.exe"
             }
             $ExeFile = Join-Path $Env:TEMP $Installer
-            $ProgressPreference = 'SilentlyContinue'
+            Write-Host "Downloading $Installer"
             Invoke-WebRequest -Uri "https://github.com/OpenCppCoverage/OpenCppCoverage/releases/download/release-0.9.9.0/$($Installer)" -OutFile $ExeFile
 
             # Start the installer and wait for it to finish.
+            Write-Host "Installing $Installer"
             Start-Process $ExeFile -Wait -ArgumentList {"/silent"} -NoNewWindow
 
             # Delete the installer.
             Remove-Item -Path $ExeFile
-
-            Write-Host "[$(Get-Date)] OpenCppCoverage installed."
         }
     }
 
@@ -125,10 +117,7 @@ if ($IsWindows) {
             sudo sh -c "echo -n '%e.%p.%t.core' > /proc/sys/kernel/core_pattern"
             #sudo cat /proc/sys/kernel/core_pattern
 
-            $NuGetName = "Microsoft.Logging.CLOG2Text.Lttng.0.1.2.nupkg"
-            $ToolName = "Microsoft.Logging.CLOG2Text.Lttng"
-            $DownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v0.1.2"
-            Install-ClogTool -NuGetName $NuGetName -ToolName $ToolName -DownloadUrl $DownloadUrl
+            Install-ClogTool "Microsoft.Logging.CLOG2Text.Lttng"
         }
         "Dev" {
             sudo apt-add-repository ppa:lttng/stable-2.10
@@ -137,6 +126,8 @@ if ($IsWindows) {
             sudo apt-get install -y build-essential
             sudo apt-get install -y liblttng-ust-dev
             sudo apt-get install -y lttng-tools
+
+            Install-ClogTool "Microsoft.Logging.CLOG2Text.Lttng"
         }
     }
 }
