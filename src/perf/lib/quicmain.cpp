@@ -17,7 +17,7 @@ Abstract:
 #ifndef _KERNEL_MODE
 #define QUIC_TEST_APIS 1
 #endif
-#include "quic_driver_run.h"
+#include "quic_driver_main.h"
 
 #include "ThroughputServer.h"
 #include "ThroughputClient.h"

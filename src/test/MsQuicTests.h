@@ -296,7 +296,7 @@ LogTestFailure(
 //
 // Name of the driver service for msquictest.sys.
 //
-#define QUIC_TEST_DRIVER_NAME   "msquictest"
+#define QUIC_DRIVER_NAME   "msquictest"
 
 #ifdef _WIN32
 

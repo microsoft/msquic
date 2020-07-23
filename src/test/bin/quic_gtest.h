@@ -11,7 +11,7 @@
 #include <MsQuicTests.h>
 #include <msquichelper.h>
 #include "quic_trace.h"
-#include "quic_driver_connection.h"
+#include "quic_driver_helpers.h"
 #undef min // gtest headers conflict with previous definitions of min/max.
 #undef max
 #include "gtest/gtest.h"
@@ -512,5 +512,3 @@ std::ostream& operator << (std::ostream& o, const DrillInitialPacketTokenArgs& a
 class WithDrillInitialPacketTokenArgs: public testing::Test,
     public testing::WithParamInterface<DrillInitialPacketTokenArgs> {
 };
-
-

@@ -11,7 +11,7 @@ Abstract:
 
 #include <quic_platform.h>
 #include "msquic.h"
-#include <quic_driver_run.h>
+#include <quic_driver_main.h>
 #include "perfioctls.h"
 
 #include "quic_trace.h"

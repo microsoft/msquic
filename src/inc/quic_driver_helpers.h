@@ -3,6 +3,9 @@
     Copyright (c) Microsoft Corporation.
     Licensed under the MIT License.
 
+Abstract:
+
+    This file contains helpers for interacting with a kernel mode driver service.
 --*/
 
 #pragma once
@@ -13,8 +16,8 @@
 
 #ifdef _WIN32
 
-#define QUIC_TEST_DRIVER_FILE_NAME  QUIC_TEST_DRIVER_NAME ".sys"
-#define QUIC_TEST_IOCTL_PATH        "\\\\.\\\\" QUIC_TEST_DRIVER_NAME
+#define QUIC_DRIVER_FILE_NAME  QUIC_DRIVER_NAME ".sys"
+#define QUIC_IOCTL_PATH        "\\\\.\\\\" QUIC_DRIVER_NAME
 
 class QuicDriverService {
     SC_HANDLE ScmHandle;
@@ -40,7 +43,7 @@ public:
         ServiceHandle =
             OpenServiceA(
                 ScmHandle,
-                QUIC_TEST_DRIVER_NAME,
+                QUIC_DRIVER_NAME,
                 SERVICE_ALL_ACCESS);
         if (ServiceHandle == nullptr) {
             QuicTraceEvent(
@@ -52,26 +55,26 @@ public:
             GetModuleFileNameA(NULL, DriverFilePath, MAX_PATH);
             char* PathEnd = strrchr(DriverFilePath, '\\');
             if (!PathEnd ||
-                sizeof(DriverFilePath) - (PathEnd - DriverFilePath) < sizeof(QUIC_TEST_DRIVER_FILE_NAME)) {
+                sizeof(DriverFilePath) - (PathEnd - DriverFilePath) < sizeof(QUIC_DRIVER_FILE_NAME)) {
                 QuicTraceEvent(
                     LibraryError,
                     "[ lib] ERROR, %s.",
-                    "Can't build " QUIC_TEST_DRIVER_FILE_NAME " full path");
+                    "Can't build " QUIC_DRIVER_FILE_NAME " full path");
                 return false;
             }
-            memcpy(PathEnd + 1, QUIC_TEST_DRIVER_FILE_NAME, sizeof(QUIC_TEST_DRIVER_FILE_NAME));
+            memcpy(PathEnd + 1, QUIC_DRIVER_FILE_NAME, sizeof(QUIC_DRIVER_FILE_NAME));
             if (GetFileAttributesA(DriverFilePath) == INVALID_FILE_ATTRIBUTES) {
                 QuicTraceEvent(
                     LibraryError,
                     "[ lib] ERROR, %s.",
-                    "Failed to find " QUIC_TEST_DRIVER_FILE_NAME);
+                    "Failed to find " QUIC_DRIVER_FILE_NAME);
                 return false;
             }
             ServiceHandle =
                 CreateServiceA(
                     ScmHandle,
-                    QUIC_TEST_DRIVER_NAME,
-                    QUIC_TEST_DRIVER_NAME,
+                    QUIC_DRIVER_NAME,
+                    QUIC_DRIVER_NAME,
                     SC_MANAGER_ALL_ACCESS,
                     SERVICE_KERNEL_DRIVER,
                     SERVICE_DEMAND_START,
@@ -131,7 +134,7 @@ public:
         uint32_t Error;
         DeviceHandle =
             CreateFileA(
-                QUIC_TEST_IOCTL_PATH,
+                QUIC_IOCTL_PATH,
                 GENERIC_READ | GENERIC_WRITE,
                 0,
                 nullptr,                // no SECURITY_ATTRIBUTES structure

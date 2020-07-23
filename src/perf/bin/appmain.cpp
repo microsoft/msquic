@@ -14,7 +14,7 @@ Abstract:
 #endif
 
 #define QUIC_TEST_APIS 1
-#include "quic_driver_run.h"
+#include "quic_driver_main.h"
 #include "PerfHelpers.h"
 #include <quic_trace.h>
 
@@ -22,13 +22,13 @@ Abstract:
 
 //
 // Name of the driver service for quicperf.sys.
-// Must be defined before quic_driver_connection.h is included
+// Must be defined before quic_driver_helpers.h is included
 //
-#define QUIC_TEST_DRIVER_NAME   "quicperf"
+#define QUIC_DRIVER_NAME   "quicperf"
 
 #include <winioctl.h>
 #include "perfioctls.h"
-#include "quic_driver_connection.h"
+#include "quic_driver_helpers.h"
 
 #endif
 
@@ -182,10 +182,7 @@ main(
         IsSelfSignedValid = true;
     }
 
-
-
     int RetVal = 0;
-
     if (TestingKernelMode) {
 #ifdef _WIN32
         RetVal = QuicKernelMain(argc, argv, KeyboardWait, SelfSignedParams);
