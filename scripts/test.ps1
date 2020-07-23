@@ -12,6 +12,9 @@ This script provides helpers for running executing the MsQuic tests.
 .PARAMETER Tls
     The TLS library test.
 
+.PARAMETER Kernel
+    Runs the Windows kernel mode tests.
+
 .PARAMETER Filter
     A filter to include test cases from the list to execute. Multiple filters
     are separated by :. Negative filters are prefixed with -.
@@ -52,6 +55,9 @@ This script provides helpers for running executing the MsQuic tests.
 .Parameter EnableAppVerifier
     Enables all basic Application Verifier checks on test binaries.
 
+.Parameter CodeCoverage
+    Collect code coverage for this test run. Incompatible with -Kernel and -Debugger.
+
 .EXAMPLE
     test.ps1
 
@@ -84,6 +90,9 @@ param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "stub", "mitls")]
     [string]$Tls = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Kernel = $false,
 
     [Parameter(Mandatory = $false)]
     [string]$Filter = "",
@@ -125,11 +134,35 @@ param (
     [switch]$NoProgress = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$EnableAppVerifier = $false
+    [switch]$EnableAppVerifier = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$CodeCoverage = $false
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+# Validate the the kernel switch.
+if ($Kernel -and !$IsWindows) {
+    Write-Error "-Kernel switch only supported on Windows";
+}
+
+#Validate the code coverage switch.
+if ($CodeCoverage) {
+    if (!$IsWindows) {
+        Write-Error "-CodeCoverage switch only supported on Windows";
+    }
+    if ($Kernel) {
+        Write-Error "-CodeCoverage is not supported for kernel mode tests";
+    }
+    if ($Debugger) {
+        Write-Error "-CodeCoverage switch is not supported with debugging";
+    }
+    if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
+        Write-Error "Code coverage tools are not installed";
+    }
+}
 
 # Default TLS based on current platform.
 if ("" -eq $Tls) {
@@ -143,6 +176,16 @@ if ("" -eq $Tls) {
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
+# Coverage destination directory.
+$CoverageDir = Join-Path $RootDir "artifacts" "coverage"
+
+if ($CodeCoverage) {
+    # Clear old coverage data
+    if (Test-Path $CoverageDir) {
+        Remove-Item -Path (Join-Path $CoverageDir '*.cov') -Force
+    }
+}
+
 # Path to the run-gtest Powershell script.
 $RunTest = Join-Path $RootDir "scripts/run-gtest.ps1"
 
@@ -150,26 +193,36 @@ $RunTest = Join-Path $RootDir "scripts/run-gtest.ps1"
 $MsQuicTest = $null
 $MsQuicCoreTest = $null
 $MsQuicPlatTest = $null
+$KernelPath = $null;
 if ($IsWindows) {
-    $MsQuicTest = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)\msquictest.exe"
-    $MsQuicCoreTest = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)\msquiccoretest.exe"
-    $MsQuicPlatTest = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)\msquicplatformtest.exe"
+    $MsQuicTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquictest.exe"
+    $MsQuicCoreTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquiccoretest.exe"
+    $MsQuicPlatTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquicplatformtest.exe"
+    $KernelPath = Join-Path $RootDir "\artifacts\bin\winkernel\$($Arch)_$($Config)_$($Tls)"
 } else {
-    $MsQuicTest = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/msquictest"
-    $MsQuicCoreTest = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/msquiccoretest"
-    $MsQuicPlatTest = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/msquicplatformtest"
+    $MsQuicTest = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/msquictest"
+    $MsQuicCoreTest = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/msquiccoretest"
+    $MsQuicPlatTest = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/msquicplatformtest"
 }
 
 # Make sure the build is present.
 if (!(Test-Path $MsQuicTest)) {
     Write-Error "Build does not exist!`n `nRun the following to generate it:`n `n    $(Join-Path $RootDir "scripts" "build.ps1") -Config $Config -Arch $Arch -Tls $Tls`n"
 }
+if ($Kernel) {
+    if (!(Test-Path (Join-Path $KernelPath "msquictest.sys"))) {
+        Write-Error "Kernel binaries do not exist!"
+    }
+}
 
 # Build up all the arguments to pass to the Powershell script.
-$TestArguments =  "-ExecutionMode $($ExecutionMode) -IsolationMode $($IsolationMode)"
+$TestArguments =  "-ExecutionMode $ExecutionMode -IsolationMode $IsolationMode"
 
+if ($Kernel) {
+    $TestArguments += " -Kernel $KernelPath"
+}
 if ("" -ne $Filter) {
-    $TestArguments += " -Filter $($Filter)"
+    $TestArguments += " -Filter $Filter"
 }
 if ($ListTestCases) {
     $TestArguments += " -ListTestCases"
@@ -190,7 +243,7 @@ if ($BreakOnFailure) {
     $TestArguments += " -BreakOnFailure"
 }
 if ("None" -ne $LogProfile) {
-    $TestArguments += " -LogProfile $($LogProfile) -ConvertLogs"
+    $TestArguments += " -LogProfile $LogProfile -ConvertLogs"
 }
 if ($CompressOutput) {
     $TestArguments += " -CompressOutput"
@@ -201,8 +254,31 @@ if ($NoProgress) {
 if ($EnableAppVerifier) {
     $TestArguments += " -EnableAppVerifier"
 }
+if ($CodeCoverage) {
+    $TestArguments += " -CodeCoverage"
+}
 
 # Run the script.
-Invoke-Expression ($RunTest + " -Path $($MsQuicCoreTest) " + $TestArguments)
-Invoke-Expression ($RunTest + " -Path $($MsQuicPlatTest) " + $TestArguments)
-Invoke-Expression ($RunTest + " -Path $($MsQuicTest) " + $TestArguments)
+if (!$Kernel) {
+    Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
+    Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
+}
+Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
+
+if ($CodeCoverage) {
+    # Merge code coverage results
+    $CoverageMergeParams = ""
+
+    foreach ($file in $(Get-ChildItem -Path $CoverageDir -Filter '*.cov')) {
+        $CoverageMergeParams += " --input_coverage $(Join-Path $CoverageDir $file.Name)"
+    }
+
+    if ($CoverageMergeParams -ne "") {
+        $CoverageMergeParams +=  " --export_type cobertura:$(Join-Path $CoverageDir "msquiccoverage.xml")"
+
+        $CoverageExe = 'C:\"Program Files"\OpenCppCoverage\OpenCppCoverage.exe'
+        Invoke-Expression ($CoverageExe + $CoverageMergeParams) | Out-Null
+    } else {
+        Write-Warning "No coverage results to merge!"
+    }
+}

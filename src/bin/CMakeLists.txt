@@ -41,15 +41,15 @@ target_include_directories(msquic PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
     $<INSTALL_INTERFACE:${include_dest}>)
 
-set(PUBLIC_HEADERS 
+set(PUBLIC_HEADERS
     ../inc/msquic.h
     ../inc/msquic_winuser.h
     ../inc/msquic_posix.h
     ../inc/quic_sal_stub.h)
 
-install(TARGETS msquic EXPORT msquic DESTINATION "${main_lib_dest}")
-install(FILES ${PUBLIC_HEADERS} DESTINATION "${include_dest}")
+#install(TARGETS msquic EXPORT msquic DESTINATION "${main_lib_dest}")
+#install(FILES ${PUBLIC_HEADERS} DESTINATION "${include_dest}")
 
-configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake )
-install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION ${msquic_dest})
-install(EXPORT msquic DESTINATION ${msquic_dest})
+#configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake )
+#install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION ${msquic_dest})
+#install(EXPORT msquic DESTINATION ${msquic_dest})

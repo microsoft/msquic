@@ -109,7 +109,7 @@ QuicTimerWheelUninitialize(
                 StillInTimerWheel,
                 Connection,
                 "Still in timer wheel! Connection was likely leaked!");
-            Entry = Entry->Blink;
+            Entry = Entry->Flink;
         }
         QUIC_TEL_ASSERT(QuicListIsEmpty(&TimerWheel->Slots[i]));
     }

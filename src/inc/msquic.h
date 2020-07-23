@@ -29,11 +29,11 @@ Supported Platforms:
 #pragma warning(disable:4214)  // nonstandard extension used: bit field types other than int
 
 #ifdef _KERNEL_MODE
-#include <msquic_winkernel.h>
+#include "msquic_winkernel.h"
 #elif _WIN32
-#include <msquic_winuser.h>
+#include "msquic_winuser.h"
 #elif __linux__ || __APPLE__
-#include <msquic_posix.h>
+#include "msquic_posix.h"
 #else
 #error "Unsupported Platform"
 #endif

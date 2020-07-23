@@ -9,6 +9,8 @@ FATAL: In-source builds are not allowed.
 ")
 endif()
 
+message(STATUS "CMAKE Version: ${CMAKE_VERSION}")
+
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -49,22 +51,26 @@ else()
 
     # Setup for Install. We set this up in here rather then in the main library folder for future use.
     # i.e. don't skip the full RPATH for the build tree
-    set(CMAKE_SKIP_BUILD_RPATH FALSE)
+    #set(CMAKE_SKIP_BUILD_RPATH FALSE)
 
     # When building, don't use the install RPATH already
     # (but later on when installing)
-    set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+    #set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 
-    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
+    # Azure is not liking this argument. I think its a bug in their configuration
+    # Once this is fixed, also fix the shim in build-config-user.yml
+    #set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
+
+    #set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
 
     # Add the automatically determined parts of the RPATH
     # which point to directories outside the build tree to the install RPATH
-    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+    #set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
     # The RPATH to be used when installing, but only if it's not a system directory
     list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/msquic/lib" isSystemDir)
     if("${isSystemDir}" STREQUAL "-1")
-    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
+    #set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
     endif("${isSystemDir}" STREQUAL "-1")
 
     set(msquic_dest msquic)
@@ -91,6 +97,8 @@ option(QUIC_SANITIZE_ADDRESS "Enables address sanitizer" OFF)
 option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
 option(QUIC_UWP_BUILD "Build for UWP" OFF)
 option(QUIC_PGO "Enables profile guided optimizations" OFF)
+option(QUIC_SOURCE_LINK "Enables source linking on MSVC" ON)
+option(QUIC_CI "Enable CI specific flags" OFF)
 
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
 if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
@@ -106,10 +114,33 @@ elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Darwin")
     set(QUIC_PLATFORM "darwin")
 endif()
 
+if (QUIC_CI)
+    #if (MSVC)
+    #    file(READ ${CMAKE_CURRENT_LIST_DIR}/cmake/PdbAltPath.txt PDBALTPATH)
+    #    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${PDBALTPATH}")
+    #    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${PDBALTPATH}")
+    #    message(STATUS ${CMAKE_EXE_LINKER_FLAGS})
+    #endif()
+
+    if (QUIC_SOURCE_LINK AND MSVC)
+        if ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER_EQUAL "19.20")
+            include(${PROJECT_SOURCE_DIR}/cmake/SourceLink.cmake)
+            file(TO_NATIVE_PATH "${PROJECT_BINARY_DIR}/source_link.json" SOURCE_LINK_JSON)
+            source_link(${PROJECT_SOURCE_DIR} ${SOURCE_LINK_JSON})
+            set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /SOURCELINK:${SOURCE_LINK_JSON}")
+            set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} /SOURCELINK:${SOURCE_LINK_JSON}")
+        else()
+            message(WARNING "Disabling SourceLink due to old version of MSVC. Please update to VS2019!")
+        endif()
+    endif()
+endif()
+
 set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(QUIC_OUTPUT_DIR ${QUIC_BUILD_DIR}/bin/$<IF:$<CONFIG:Debug>,Debug,Release> CACHE STRING "Output directory for build artifacts")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/obj/$<IF:$<CONFIG:Debug>,Debug,Release>)
+
+execute_process(COMMAND clog --installDirectory ${CMAKE_SOURCE_DIR}/build/clog)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${QUIC_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${QUIC_OUTPUT_DIR})
@@ -119,17 +150,12 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 
 set(CMAKE_CLOG_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/inc)
-set(CMAKE_CLOG_BINS_DIRECTORY ${QUIC_BUILD_DIR}/submodules/clog)
 set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest)
-set(CLOG_SOURCE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/clog)
-set(CLOG_INCLUDE_DIRECTORY ${CLOG_SOURCE_DIRECTORY}/inc)
+set(CLOG_INCLUDE_DIRECTORY ${CMAKE_SOURCE_DIR}/build/clog)
+set(CMAKE_CLOG_GENERATE_FILE ${CMAKE_SOURCE_DIR}/build/clog/CLog.cmake)
 set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/msquic.clog_config)
 
 set(MANIFESTED_HEADER_FILENAME ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
-
-add_custom_target(CLOG_GENERATED_FILES
-    COMMENT "CREATED CMAKE Target for CLOG generated files"
-)
 
 set(CLANG_GCC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value CACHE INTERNAL "")
 set(MSVC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
@@ -317,6 +343,8 @@ if(QUIC_BUILD_TOOLS)
     add_subdirectory(src/tools/attack)
     add_subdirectory(src/tools/interop)
     add_subdirectory(src/tools/interopserver)
+    add_subdirectory(src/tools/ip/client)
+    add_subdirectory(src/tools/ip/server)
     add_subdirectory(src/tools/ping)
     add_subdirectory(src/tools/post)
     add_subdirectory(src/tools/reach)

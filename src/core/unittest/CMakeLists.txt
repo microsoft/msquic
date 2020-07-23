@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 # Include for CLOG processing
-include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
+include(${CMAKE_CLOG_GENERATE_FILE})
 
 include_directories(${PROJECT_SOURCE_DIR}/src/core)
 include_directories(${PROJECT_SOURCE_DIR}/submodules/googletest/googletest/include)
@@ -20,7 +20,7 @@ set(SOURCES
 )
 
 # Allow CLOG to preprocess all the source files.
-CLOG_ADD_SOURCEFILE(MSQUIC_CORETEST ${SOURCES})
+CLOG_GENERATE_TARGET(MSQUIC_CORETEST ${SOURCES})
 
 add_executable(msquiccoretest ${SOURCES})
 

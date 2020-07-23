@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 # Include for CLOG processing
-include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
+include(${CMAKE_CLOG_GENERATE_FILE})
 
 set(SOURCES
     ApiTest.cpp
@@ -24,7 +24,7 @@ include_directories(${PROJECT_SOURCE_DIR}/src/test)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 
 # Allow CLOG to preprocess all the source files.
-CLOG_ADD_SOURCEFILE(TESTLIB_CLOG_LIB ${SOURCES})
+CLOG_GENERATE_TARGET(TESTLIB_CLOG_LIB ${SOURCES})
 
 add_library(testlib ${SOURCES})
 

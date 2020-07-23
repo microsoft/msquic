@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 # Include for CLOG processing
-include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
+include(${CMAKE_CLOG_GENERATE_FILE})
 
 set(SOURCES
     ack_tracker.c
@@ -47,7 +47,7 @@ if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 endif()
 
 # Allow CLOG to preprocess all the source files.
-CLOG_ADD_SOURCEFILE(CORE_CLOG_LIB ${SOURCES})
+CLOG_GENERATE_TARGET(CORE_CLOG_LIB ${SOURCES})
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
 

@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 # Include for CLOG processing
-include("${CLOG_INCLUDE_DIRECTORY}/CLog.make")
+include(${CMAKE_CLOG_GENERATE_FILE})
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(SOURCES
@@ -53,7 +53,7 @@ endif()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
 
 # Allow CLOG to preprocess all the source files.
-CLOG_ADD_SOURCEFILE(PLATFORM_CLOG_LIB ${SOURCES})
+CLOG_GENERATE_TARGET(PLATFORM_CLOG_LIB ${SOURCES})
 
 add_library(platform STATIC ${SOURCES})
 

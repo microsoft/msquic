@@ -34,7 +34,7 @@ QuicTestCtlUninitialize(
     );
 
 void* __cdecl operator new (size_t Size) {
-    return ExAllocatePoolWithTag(NonPagedPool, Size, QUIC_TEST_TAG);
+    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_TEST_TAG);
 }
 
 void __cdecl operator delete (_In_opt_ void* Mem) {
@@ -50,7 +50,7 @@ void __cdecl operator delete (_In_opt_ void* Mem, _In_opt_ size_t) {
 }
 
 void* __cdecl operator new[] (size_t Size) {
-    return ExAllocatePoolWithTag(NonPagedPool, Size, QUIC_TEST_TAG);
+    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_TEST_TAG);
 }
 
 void __cdecl operator delete[] (_In_opt_ void* Mem) {

@@ -630,16 +630,6 @@ QuicConvertFromMappedV6(
     }
 }
 
-int
-_strnicmp(
-    _In_ const char * _Str1,
-    _In_ const char * _Str2,
-    _In_ size_t _MaxCount
-    )
-{
-    return strncasecmp(_Str1, _Str2, _MaxCount);
-}
-
 #if defined(QUIC_PLATFORM_LINUX)
 
 QUIC_STATUS
@@ -662,7 +652,6 @@ QuicThreadCreate(
 
 #ifdef __GLIBC__
     if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
-        QUIC_TEL_ASSERT(Config->IdealProcessor < 64);
         // There is no way to set an ideal processor in Linux, so just set affinity
         if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
             cpu_set_t CpuSet;
@@ -703,7 +692,6 @@ QuicThreadCreate(
 
 #ifndef __GLIBC__
     if (Status == QUIC_STATUS_SUCCESS && Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
-        QUIC_TEL_ASSERT(Config->IdealProcessor < 64);
         // There is no way to set an ideal processor in Linux, so just set affinity
         if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
             cpu_set_t CpuSet;

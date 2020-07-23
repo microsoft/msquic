@@ -110,9 +110,9 @@ $RunExecutable = Join-Path $RootDir "scripts/run-executable.ps1"
 # Path to the quicinterop exectuable.
 $QuicInterop = $null
 if ($IsWindows) {
-    $QuicInterop = Join-Path $RootDir "\artifacts\windows\$($Arch)_$($Config)_$($Tls)\quicinterop.exe"
+    $QuicInterop = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\quicinterop.exe"
 } else {
-    $QuicInterop = Join-Path $RootDir "/artifacts/linux/$($Arch)_$($Config)_$($Tls)/quicinterop"
+    $QuicInterop = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/quicinterop"
 }
 
 # Make sure the build is present.
