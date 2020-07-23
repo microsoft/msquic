@@ -113,7 +113,7 @@ $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 
 # Executable name.
 $ExeName = Split-Path $Path -Leaf
-$CoverageName = "$($ExeName.Split('.')[0]).cov"
+$CoverageName = "$(Split-Path $Path -LeafBase).cov"
 
 # Folder for log files.
 $LogDir = Join-Path $RootDir "artifacts" "logs" $ExeName (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
@@ -178,7 +178,8 @@ function Start-Executable {
             }
         } elseif ($CodeCoverage) {
             $pinfo.FileName = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
-            $pinfo.Arguments = "--modules msquic --cover_children --sources src\core --sources src\inc --sources src\platform --excluded_sources unittest --working_dir $($CoverageDir) --export_type binary:$(Join-Path $CoverageDir $CoverageName) -- $($Path) $($Arguments)"
+            $pinfo.Arguments = "--modules=$(Split-Path $Path -Parent) --cover_children --sources src\core --sources src\inc --sources src\platform --excluded_sources unittest --working_dir $($LogDir) --export_type binary:$(Join-Path $CoverageDir $CoverageName) -- $($Path) $($Arguments)"
+            $pinfo.WorkingDirectory = $LogDir
         } else {
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments
@@ -294,6 +295,12 @@ function Wait-Executable($Exe) {
             if ($null -ne $stderr -and "" -ne $stderr) {
                 Write-Host $stderr
             }
+        }
+
+        if ($CodeCoverage) {
+            # Copy coverage log
+            $LogName = "LastCoverageResults-$(Split-Path $Path -LeafBase).log"
+            Copy-Item (Join-Path $LogDir "LastCoverageResults.log") (Join-Path $CoverageDir $LogName) -Force
         }
 
         if ($KeepOutput) {

@@ -264,7 +264,7 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
         } elseif ($CodeCoverage) {
             $CoverageOutput = Join-Path $OutputDir $CoverageName
             $pinfo.FileName = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
-            $pinfo.Arguments = "--modules $(Split-Path $Path -Parent) --cover_children --sources src\core --sources src\inc --sources src\platform --excluded_sources unittest --working_dir $($OutputDir) --export_type binary:$($CoverageOutput) -- $($Path) $($Arguments)"
+            $pinfo.Arguments = "--modules=$(Split-Path $Path -Parent) --cover_children --sources src\core --sources src\inc --sources src\platform --excluded_sources unittest --working_dir $($OutputDir) --export_type binary:$($CoverageOutput) -- $($Path) $($Arguments)"
             $pinfo.WorkingDirectory = $OutputDir
         } else {
             $pinfo.FileName = $Path
@@ -447,7 +447,7 @@ function Wait-TestCase($TestCase) {
                 # Copy the coverage to destination
                 Copy-Item $NewCoverage $CoverageDir -Force
                 # Copy coverage log
-                $LogName = "LastCoverageResults-$($TestExeName.Split(".")[0]).log"
+                $LogName = "LastCoverageResults-$(Split-Path $Path -LeafBase).log"
                 Copy-Item (Join-Path $TestCase.LogDir "LastCoverageResults.log") (Join-Path $CoverageDir $LogName) -Force
             }
         }
