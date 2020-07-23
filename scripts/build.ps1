@@ -48,8 +48,11 @@ This script provides helpers for building msquic.
 .PARAMETER Generator
     Specifies a specific cmake generator (Only supported on unix)
 
-.PARAMETER CI
-    Specifies that this is a CI build. This enables certain flags in the build, currently PDBALTPATH
+.PARAMETER SkipPdbAltPath
+    Skip setting PDBALTPATH into built binaries on Windows. Without this flag, the PDB must be in the same directory as the DLL or EXE.
+
+.PARAMETER SkipSourceLink
+    Skip generating sourcelink and inserting it into the PDB.
 
 .EXAMPLE
     build.ps1
@@ -107,7 +110,10 @@ param (
     [string]$Generator = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$CI = $false
+    [switch]$SkipPdbAltPath = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SkipSourceLink = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -229,8 +235,11 @@ function CMake-Generate {
     if ($ToolchainFile -ne "") {
         $Arguments += " ""-DCMAKE_TOOLCHAIN_FILE=" + $ToolchainFile + """"
     }
-    if ($CI) {
-        $Arguments += " -DQUIC_CI=ON"
+    if ($SkipPdbAltPath) {
+        $Arguments += " -DQUIC_PDBALTPATH=OFF"
+    }
+    if ($SkipSourceLink) {
+        $Arguments += " -DQUIC_SOURCE_LINK=OFF"
     }
     $Arguments += " ../../.."
 
