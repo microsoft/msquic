@@ -65,7 +65,7 @@ foreach ($Build in $AllBuilds) {
 
     $Headers = @(Join-Path $HeaderDir "msquic.h")
 
-    if ($Platform -eq "windows") {
+    if ($Platform -eq "windows" -or $Platform -eq "uwp") {
         $Headers += Join-Path $HeaderDir  "msquic_winuser.h"
     } else {
         $Headers += Join-Path $HeaderDir  "msquic_linux.h"
@@ -76,7 +76,7 @@ foreach ($Build in $AllBuilds) {
 
     $Binaries = @()
 
-    if ($Platform -eq "windows") {
+    if ($Platform -eq "windows" -or $Platform -eq "uwp") {
         $Binaries += Join-Path $ArtifactsDir "msquic.dll"
         $Binaries += Join-Path $ArtifactsDir "msquic.pdb"
     } else {
@@ -88,7 +88,7 @@ foreach ($Build in $AllBuilds) {
 
     $Libraries = @()
 
-    if ($Platform -eq "windows") {
+    if ($Platform -eq "windows" -or $Platform -eq "uwp") {
         $Libraries += Join-Path $ArtifactsDir "msquic.lib"
     }
 
