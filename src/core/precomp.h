@@ -27,6 +27,8 @@
 #include "quic_var_int.h"
 #include "quic_trace.h"
 
+#define QUIC_API_ENABLE_INSECURE_FEATURES 1
+
 #include "msquic.h"
 #include "msquicp.h"
 
