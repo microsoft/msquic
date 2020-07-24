@@ -209,10 +209,15 @@ public:
 
 class MsQuicRegistration {
     HQUIC Registration;
+    QUIC_STATUS InitStatus;
 public:
     MsQuicRegistration() {
         QuicZeroMemory(&Registration, sizeof(Registration));
-        if (QUIC_FAILED(MsQuic->RegistrationOpen(nullptr, &Registration))) {
+        if (QUIC_FAILED(
+            InitStatus =
+                MsQuic->RegistrationOpen(
+                    nullptr,
+                    &Registration))) {
             Registration = nullptr;
         }
     }
@@ -221,6 +226,7 @@ public:
             MsQuic->RegistrationClose(Registration);
         }
     }
+    QUIC_STATUS GetInitStatus() const { return InitStatus; }
     bool IsValid() const { return Registration != nullptr; }
     MsQuicRegistration(MsQuicRegistration& other) = delete;
     MsQuicRegistration operator=(MsQuicRegistration& Other) = delete;
@@ -229,24 +235,30 @@ public:
     }
 };
 
-struct MsQuicSession {
-    HQUIC Handle;
-    bool CloseAllConnectionsOnDelete;
-
+class MsQuicSession {
+    bool CloseAllConnectionsOnDelete {false};
+    QUIC_STATUS InitStatus;
+public:
+    HQUIC Handle {nullptr};
     MsQuicSession(
         _In_ const MsQuicRegistration& Reg,
         _In_z_ const char* RawAlpn = "MsQuicTest")
         : Handle(nullptr), CloseAllConnectionsOnDelete(false) {
+        if (!Reg.IsValid()) {
+            InitStatus = Reg.GetInitStatus();
+            return;
+        }
         QUIC_BUFFER Alpn;
         Alpn.Buffer = (uint8_t*)RawAlpn;
         Alpn.Length = (uint32_t)strlen(RawAlpn);
         if (QUIC_FAILED(
-            MsQuic->SessionOpen(
-                Reg,
-                &Alpn,
-                1,
-                nullptr,
-                &Handle))) {
+                InitStatus =
+                    MsQuic->SessionOpen(
+                    Reg,
+                    &Alpn,
+                    1,
+                    nullptr,
+                    &Handle))) {
             Handle = nullptr;
         }
     }
@@ -259,12 +271,13 @@ struct MsQuicSession {
         Alpn.Buffer = (uint8_t*)RawAlpn;
         Alpn.Length = (uint32_t)strlen(RawAlpn);
         if (QUIC_FAILED(
-            MsQuic->SessionOpen(
-                Registration,
-                &Alpn,
-                1,
-                nullptr,
-                &Handle))) {
+            InitStatus =
+                MsQuic->SessionOpen(
+                    Registration,
+                    &Alpn,
+                    1,
+                    nullptr,
+                    &Handle))) {
             Handle = nullptr;
         }
     }
@@ -276,12 +289,13 @@ struct MsQuicSession {
         Alpns[1].Buffer = (uint8_t*)RawAlpn2;
         Alpns[1].Length = (uint32_t)strlen(RawAlpn2);
         if (QUIC_FAILED(
-            MsQuic->SessionOpen(
-                Registration,
-                Alpns,
-                ARRAYSIZE(Alpns),
-                nullptr,
-                &Handle))) {
+            InitStatus =
+                MsQuic->SessionOpen(
+                    Registration,
+                    Alpns,
+                    ARRAYSIZE(Alpns),
+                    nullptr,
+                    &Handle))) {
             Handle = nullptr;
         }
     }
@@ -297,6 +311,7 @@ struct MsQuicSession {
             MsQuic->SessionClose(Handle);
         }
     }
+    QUIC_STATUS GetInitStatus() const { return InitStatus; }
     bool IsValid() const {
         return Handle != nullptr;
     }
@@ -416,21 +431,25 @@ struct MsQuicSession {
 
 struct MsQuicListener {
     HQUIC Handle { nullptr };
+    QUIC_STATUS InitStatus;
     QUIC_LISTENER_CALLBACK_HANDLER Handler { nullptr };
     void* Context{ nullptr };
+
     MsQuicListener(const MsQuicSession& Session) {
         if (!Session.IsValid()) {
+            InitStatus = Session.GetInitStatus();
             return;
         }
         if (QUIC_FAILED(
-            MsQuic->ListenerOpen(
-                Session,
-                [](HQUIC Handle, void* Context, QUIC_LISTENER_EVENT* Event) -> QUIC_STATUS {
-                    MsQuicListener* Listener = (MsQuicListener*)Context;
-                    return Listener->Handler(Handle, Listener->Context, Event);
-                },
-                this,
-                &Handle))) {
+            InitStatus =
+                MsQuic->ListenerOpen(
+                    Session,
+                    [](HQUIC Handle, void* Context, QUIC_LISTENER_EVENT* Event) -> QUIC_STATUS {
+                        MsQuicListener* Listener = (MsQuicListener*)Context;
+                        return Listener->Handler(Handle, Listener->Context, Event);
+                    },
+                    this,
+                    &Handle))) {
             Handle = nullptr;
         }
     }
@@ -458,7 +477,15 @@ struct MsQuicListener {
         return Handler(Listener, Context, Event);
     }
 
-    bool IsValid() const { return Handle != nullptr; }
+    QUIC_STATUS GetInitStatus() const { return InitStatus; }
+    bool IsValid() const {
+        return Handle != nullptr;
+    }
+    MsQuicListener(MsQuicListener& other) = delete;
+    MsQuicListener operator=(MsQuicListener& Other) = delete;
+    operator HQUIC () const {
+        return Handle;
+    }
 };
 
 struct ListenerScope {

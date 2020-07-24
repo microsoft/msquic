@@ -39,7 +39,7 @@ ThroughputServer::Init(
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
     if (!Listener.IsValid()) {
-        return QUIC_STATUS_INTERNAL_ERROR;
+        return Listener.GetInitStatus();
     }
 
     uint16_t port = THROUGHPUT_DEFAULT_PORT;

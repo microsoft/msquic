@@ -37,6 +37,10 @@ ThroughputClient::Init(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
+    if (!Session.IsValid()) {
+        return Session.GetInitStatus();
+    }
+
     Port = THROUGHPUT_DEFAULT_PORT;
     TryGetValue(argc, argv, "port", &Port);
 
