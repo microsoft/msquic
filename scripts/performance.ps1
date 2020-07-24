@@ -27,9 +27,6 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Local
     Use the local system as the remote
 
-.PARAMETER DisableEncryption
-    Determines if encryption is used post-handshake.
-
 .PARAMETER PGO
     Uses pgomgr to merge the resulting .pgc files back to the .pgd.
 
@@ -82,9 +79,6 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$SkipDeploy = $false,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$DisableEncryption = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$Publish = $false,
@@ -284,10 +278,6 @@ function Invoke-Test {
 
     $LocalArguments = $Test.Local.Arguments.GetArguments().Replace('$RemoteAddress', $RemoteAddress)
     $LocalArguments = $LocalArguments.Replace('$LocalAddress', $LocalAddress)
-
-    if ($DisableEncryption) {
-        $LocalArguments += " -encrypt:0"
-    }
 
     $CertThumbprint = Invoke-TestCommand -Session $Session -ScriptBlock {
         return $env:QUICCERT
