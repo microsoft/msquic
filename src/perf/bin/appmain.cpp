@@ -125,9 +125,18 @@ QuicKernelMain(
 
     QuicDriverService DriverService;
     QuicDriverClient DriverClient;
-    DriverService.Initialize();
+    if (!DriverService.Initialize()) {
+        printf("Failed to initialize driver service\n");
+        QUIC_FREE(Data);
+        return QUIC_RUN_FAILED_TEST_INITIALIZE;
+    }
     DriverService.Start();
-    DriverClient.Initialize(SelfSignedParams);
+
+    if (!DriverClient.Initialize(SelfSignedParams)) {
+        printf("Failed to initialize driver client\n");
+        QUIC_FREE(Data);
+        return QUIC_RUN_FAILED_TEST_INITIALIZE;
+    }
 
     if (!DriverClient.Run(IOCTL_QUIC_RUN_PERF, Data, (uint32_t)TotalLength)) {
         QUIC_FREE(Data);
