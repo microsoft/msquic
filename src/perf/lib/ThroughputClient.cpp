@@ -80,7 +80,9 @@ ThroughputClient::Init(
             WriteOutput("Running in Compartment %d\n", CompartmentId);
         }
     }
+#endif
 
+#ifdef QuicSetCurrentThreadAffinityMask
     uint8_t CpuCore;
     if (TryGetValue(argc, argv, "core",  &CpuCore)) {
         QuicSetCurrentThreadAffinityMask((DWORD_PTR)(1ull << CpuCore));
