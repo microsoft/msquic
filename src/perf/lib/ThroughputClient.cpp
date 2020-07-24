@@ -59,10 +59,6 @@ ThroughputClient::Init(
     }
 
     TryGetValue(argc, argv, "length", &Length);
-    if (Length == 0) {
-        WriteOutput("Must specify a positive 'length'\n");
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
 
     const char* LocalAddress = nullptr;
     if (TryGetValue(argc, argv, "bind", &LocalAddress)) {
@@ -118,11 +114,10 @@ struct ThroughputClient::SendRequest {
     uint32_t IoSize;
     SendRequest(
         ThroughputClient* Client,
-        uint32_t Size,
         bool FillBuffer
         ) {
         this->Client = Client;
-        IoSize = Size;
+        IoSize = Client->IoSize;
         QuicBuffer.Buffer = Client->BufferAllocator.Alloc();
         if (FillBuffer) {
             memset(QuicBuffer.Buffer, 0xBF, IoSize);
@@ -273,13 +268,12 @@ ThroughputClient::Start(
                 StrmData->Stream.Handle,
                 QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL,
                 0);
-        WriteOutput("Failed StreamShutdown with 0 length 0x%x\n", Status);
         return Status;
     }
 
     uint32_t SendRequestCount = 0;
     while (StrmData->BytesSent < Length && SendRequestCount < IoCount) {
-        SendRequest* SendReq = SendRequestAllocator.Alloc(this, IoSize, true);
+        SendRequest* SendReq = SendRequestAllocator.Alloc(this, true);
         SendReq->SetLength(Length - StrmData->BytesSent);
         StrmData->BytesSent += SendReq->QuicBuffer.Length;
         ++SendRequestCount;
