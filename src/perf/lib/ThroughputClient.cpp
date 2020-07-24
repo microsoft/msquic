@@ -105,7 +105,7 @@ ThroughputClient::Init(
     return QUIC_STATUS_SUCCESS;
 }
 
-struct SendRequest {
+struct ThroughputClient::SendRequest {
     QUIC_SEND_FLAGS Flags {QUIC_SEND_FLAG_NONE};
     QUIC_BUFFER QuicBuffer;
     uint32_t IoSize;
@@ -147,7 +147,10 @@ ThroughputClient::Start(
     _In_ QUIC_EVENT StopEvnt
     ) {
     ShutdownWrapper Shutdown;
-    ConnectionData* ConnData = new ConnectionData{this};
+    ConnectionData* ConnData = ConnectionDataAllocator.Alloc(this);
+    if (!ConnData) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
     QUIC_STATUS Status =
         MsQuic->ConnectionOpen(
             Session,
@@ -164,7 +167,7 @@ ThroughputClient::Start(
 
     if (QUIC_FAILED(Status)) {
         WriteOutput("Failed ConnectionOpen 0x%x\n", Status);
-        delete ConnData;
+        ConnectionDataAllocator.Free(ConnData);
         return Status;
     }
 
@@ -221,7 +224,7 @@ ThroughputClient::Start(
         return Status;
     }
 
-    StreamData* StrmData = new StreamData{this, ConnData->Connection};
+    StreamData* StrmData = StreamDataAllocator.Alloc(this, ConnData->Connection);
 
     Status =
         MsQuic->StreamOpen(
@@ -239,7 +242,7 @@ ThroughputClient::Start(
 
     if (QUIC_FAILED(Status)) {
         WriteOutput("Failed StreamOpen 0x%x\n", Status);
-        delete StrmData;
+        StreamDataAllocator.Free(StrmData);
         return Status;
     }
 
@@ -270,7 +273,7 @@ ThroughputClient::Start(
 
     uint32_t SendRequestCount = 0;
     while (StrmData->BytesSent < Length && SendRequestCount < IoCount) {
-        SendRequest* SendReq = new SendRequest{IoSize};
+        SendRequest* SendReq = SendRequestAllocator.Alloc(IoSize);
         SendReq->SetLength(Length - StrmData->BytesSent);
         StrmData->BytesSent += SendReq->QuicBuffer.Length;
         ++SendRequestCount;
@@ -283,7 +286,7 @@ ThroughputClient::Start(
                 SendReq);
         if (QUIC_FAILED(Status)) {
             WriteOutput("Failed StreamSend 0x%x\n", Status);
-            delete SendReq;
+            SendRequestAllocator.Free(SendReq);
             return Status;
         }
     }
@@ -326,7 +329,7 @@ ThroughputClient::ConnectionCallback(
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         WriteOutput("[conn][%p] All done\n", ConnectionHandle);
-        delete ConnData;
+        ConnectionDataAllocator.Free(ConnData);
         QuicEventSet(StopEvent);
         break;
     case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
@@ -374,7 +377,7 @@ ThroughputClient::StreamCallback(
             }
         }
         if (Req) {
-            delete Req;
+            SendRequestAllocator.Free(Req);
         }
         break;
     }
@@ -399,14 +402,9 @@ ThroughputClient::StreamCallback(
             (uint32_t)(ElapsedMicroseconds % 1000),
             StrmData->BytesCompleted, SendRate);
 
-        MsQuic->ConnectionShutdown(
-            StrmData->Connection,
-            QUIC_CONNECTION_SHUTDOWN_FLAG_NONE,
-            0);
-        delete StrmData;
+        StreamDataAllocator.Free(StrmData);
         break;
     }
     }
     return QUIC_STATUS_SUCCESS;
 }
-

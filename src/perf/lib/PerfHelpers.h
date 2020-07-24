@@ -230,6 +230,65 @@ struct CountHelper {
 };
 
 //
+// Implementation of std::forward, to allow use in kernel mode.
+// Based on reference implementation in MSVC's STL
+//
+
+template <class _Ty>
+struct QuicRemoveReference {
+    using type                 = _Ty;
+    using _Const_thru_ref_type = const _Ty;
+};
+
+template <class _Ty>
+using QuicRemoveReferenceT = typename QuicRemoveReference<_Ty>::type;
+
+template <class>
+inline constexpr bool QuicIsLValueReferenceV = false; // determine whether type argument is an lvalue reference
+
+template <class _Ty>
+constexpr _Ty&& QuicForward(
+    QuicRemoveReferenceT<_Ty>& _Arg) noexcept { // forward an lvalue as either an lvalue or an rvalue
+    return static_cast<_Ty&&>(_Arg);
+}
+
+template <class _Ty>
+constexpr _Ty&& QuicForward(QuicRemoveReferenceT<_Ty>&& _Arg) noexcept { // forward an rvalue as an rvalue
+    static_assert(!QuicIsLValueReferenceV<_Ty>, "bad forward call");
+    return static_cast<_Ty&&>(_Arg);
+}
+
+
+template<typename T>
+class QuicPoolAllocator {
+    QUIC_POOL Pool;
+public:
+    QuicPoolAllocator() {
+        QuicPoolInitialize(false, sizeof(T), &Pool);
+    }
+
+    ~QuicPoolAllocator() {
+        QuicPoolUninitialize(&Pool);
+    }
+
+    template <class... Args>
+    T* Alloc(Args&&... args) {
+        void* Raw = QuicPoolAlloc(&Pool);
+        if (Raw == nullptr) {
+            return nullptr;
+        }
+        return new (Raw) T (std::forward<Args>(args)...);
+    }
+
+    void Free(T* Obj) {
+        if (Obj == nullptr) {
+            return;
+        }
+        Obj->~T();
+    }
+};
+
+//
 // Arg Value Parsers
 //
 

@@ -40,11 +40,22 @@ public:
 private:
 
     struct ConnectionData {
+        ConnectionData(
+            _In_ ThroughputClient* Client)
+            : Client{Client} {
+
+        }
         ThroughputClient* Client{ nullptr };
         ConnectionScope Connection;
     };
 
     struct StreamData {
+        StreamData(
+            _In_ ThroughputClient* Client,
+            _In_ HQUIC Connection)
+            : Client{Client}, Connection{Connection} {
+
+        }
         ThroughputClient* Client{ nullptr };
         HQUIC Connection;
         StreamScope Stream;
@@ -68,8 +79,13 @@ private:
         _Inout_ StreamData* StrmData
         );
 
+    struct SendRequest;
+
     MsQuicRegistration Registration;
     MsQuicSession Session{Registration, THROUGHPUT_ALPN};
+    QuicPoolAllocator<StreamData> StreamDataAllocator;
+    QuicPoolAllocator<ConnectionData> ConnectionDataAllocator;
+    QuicPoolAllocator<SendRequest> SendRequestAllocator;
     UniquePtr<char[]> TargetData;
     uint16_t Port{ 0 };
     QUIC_EVENT StopEvent{};
