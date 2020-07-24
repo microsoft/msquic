@@ -22,7 +22,7 @@ Abstract:
 #include "ThroughputServer.h"
 #include "ThroughputClient.h"
 
-const QUIC_API_TABLE* MsQuic;
+const QuicApiTable* MsQuic{nullptr};
 #ifdef _KERNEL_MODE
 uint8_t SelfSignedSecurityHash[20];
 #else
@@ -30,27 +30,7 @@ QUIC_SEC_CONFIG_PARAMS* SelfSignedParams{nullptr};
 #endif
 bool IsSelfSignedValid{ false };
 
-struct CMsQuic {
-    CMsQuic() :
-        Result{MsQuicOpen(&MsQuic)}
-    {
-    }
-    ~CMsQuic()
-    {
-        if (IsValid()) {
-            MsQuicClose(MsQuic);
-        }
-    }
-    bool IsValid() const { return QUIC_SUCCEEDED(Result); }
-    QUIC_STATUS Result;
-};
-
-struct QuicMainStore {
-    CMsQuic MsQuicHolder;
-    UniquePtr<PerfRunner> TestToRun;
-};
-
-QuicMainStore* MainStore = nullptr;
+PerfRunner* TestToRun{nullptr};
 
 int
 QuicMainStart(
@@ -67,36 +47,43 @@ QuicMainStart(
         return QUIC_RUN_MISSING_TEST_TYPE;
     }
 
-    UniquePtr<QuicMainStore> LocalStore{new QuicMainStore};
+    MsQuic = new QuicApiTable{};
 
-    if (!LocalStore || !LocalStore->MsQuicHolder.IsValid()) {
+    if (QUIC_FAILED(MsQuic->InitStatus())) {
+        delete MsQuic;
+        MsQuic = nullptr;
         return QUIC_RUN_FAILED_QUIC_OPEN;
     }
 
     if (IsValue(TestName, "Throughput")) {
         if (ServerMode) {
-            LocalStore->TestToRun.reset(new ThroughputServer{});
+            TestToRun = new ThroughputServer{};
         } else {
-            LocalStore->TestToRun.reset(new ThroughputClient{});
+            TestToRun = new ThroughputClient{};
         }
     } else {
+        delete MsQuic;
         return QUIC_RUN_UNKNOWN_TEST_TYPE;
     }
 
-    if (LocalStore->TestToRun) {
-        QUIC_STATUS Status = LocalStore->TestToRun->Init(argc, argv);
+    if (TestToRun != nullptr) {
+        QUIC_STATUS Status = TestToRun->Init(argc, argv);
         WriteOutput("Init Status! %d\n", Status);
         if (QUIC_SUCCEEDED(Status)) {
-            MainStore = LocalStore.release();
-            Status = MainStore->TestToRun->Start(StopEvent);
+            Status = TestToRun->Start(StopEvent);
             WriteOutput("Run Status! %s %d\n", QuicStatusToString(Status), QUIC_SUCCEEDED(Status));
             if (QUIC_SUCCEEDED(Status)) {
                 return QUIC_RUN_SUCCESS;
             }
         }
-
     }
 
+    if (TestToRun != nullptr) {
+        delete TestToRun;
+    }
+    if (MsQuic != nullptr) {
+        delete MsQuic;
+    }
     return QUIC_RUN_FAILED_TEST_INITIALIZE;
 }
 
@@ -104,12 +91,13 @@ int
 QuicMainStop(
     _In_ int Timeout
     ) {
-    if (!MainStore) {
+    if (TestToRun == nullptr) {
         return QUIC_RUN_SUCCESS;
     }
 
-    QUIC_STATUS Status = MainStore->TestToRun->Wait(Timeout);
-    delete MainStore;
+    QUIC_STATUS Status = TestToRun->Wait(Timeout);
+    delete TestToRun;
+    delete MsQuic;
     if (QUIC_SUCCEEDED(Status)) {
         return QUIC_RUN_SUCCESS;
     }

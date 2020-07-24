@@ -17,7 +17,9 @@ Abstract:
 
 #include <msquic.h>
 
-extern const QUIC_API_TABLE* MsQuic;
+class QuicApiTable;
+
+extern const QuicApiTable* MsQuic;
 
 #define QUIC_SKIP_GLOBAL_CONSTRUCTORS
 
