@@ -33,7 +33,7 @@ Abstract:
 
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 
-int
+QUIC_STATUS
 QuicUserMain(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
@@ -43,7 +43,7 @@ QuicUserMain(
     QUIC_EVENT StopEvent;
     QuicEventInitialize(&StopEvent, true, false);
 
-    int RetVal = QuicMainStart(argc, argv, StopEvent, SelfSignedConfig);
+    QUIC_STATUS RetVal = QuicMainStart(argc, argv, StopEvent, SelfSignedConfig);
     if (RetVal != 0) {
         return RetVal;
     }
@@ -64,7 +64,7 @@ QuicUserMain(
 
 #ifdef _WIN32
 
-int
+QUIC_STATUS
 QuicKernelMain(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
@@ -88,7 +88,7 @@ QuicKernelMain(
     char* Data = static_cast<char*>(QUIC_ALLOC_NONPAGED(TotalLength));
     if (!Data) {
         printf("Failed to allocate arguments to pass\n");
-        return QUIC_RUN_FAILED_TEST_INITIALIZE;
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     char* DataCurrent = Data;
@@ -112,7 +112,7 @@ QuicKernelMain(
     if (TotalLength > UINT_MAX) {
         printf("Too many arguments to pass to the driver\n");
         QUIC_FREE(Data);
-        return QUIC_RUN_FAILED_TEST_INITIALIZE;
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     constexpr uint32_t OutBufferSize = 1024 * 1000;
@@ -120,7 +120,7 @@ QuicKernelMain(
     if (!OutBuffer) {
         printf("Failed to allocate space for output buffer\n");
         QUIC_FREE(Data);
-        return QUIC_RUN_FAILED_TEST_INITIALIZE;
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     QuicDriverService DriverService;
@@ -128,20 +128,20 @@ QuicKernelMain(
     if (!DriverService.Initialize()) {
         printf("Failed to initialize driver service\n");
         QUIC_FREE(Data);
-        return QUIC_RUN_FAILED_TEST_INITIALIZE;
+        return QUIC_STATUS_INVALID_STATE;
     }
     DriverService.Start();
 
     if (!DriverClient.Initialize(SelfSignedParams)) {
         printf("Failed to initialize driver client\n");
         QUIC_FREE(Data);
-        return QUIC_RUN_FAILED_TEST_INITIALIZE;
+        return QUIC_STATUS_INVALID_STATE;
     }
 
     if (!DriverClient.Run(IOCTL_QUIC_RUN_PERF, Data, (uint32_t)TotalLength)) {
         QUIC_FREE(Data);
         QUIC_FREE(OutBuffer);
-        return QUIC_RUN_FAILED_TEST_INITIALIZE;
+        return QUIC_STATUS_INVALID_STATE;
     }
     printf("Started!\n\n");
     fflush(stdout);
@@ -160,7 +160,7 @@ QuicKernelMain(
     QUIC_FREE(Data);
     QUIC_FREE(OutBuffer);
 
-    return RunSuccess ? QUIC_RUN_SUCCESS : QUIC_RUN_STOP_FAILURE;
+    return RunSuccess ? QUIC_STATUS_SUCCESS : QUIC_STATUS_INTERNAL_ERROR;
 }
 
 #endif
@@ -173,7 +173,7 @@ main(
     ) {
     QUIC_SEC_CONFIG_PARAMS* SelfSignedParams = nullptr;
     PerfSelfSignedConfiguration SelfSignedConfig;
-    int RetVal = 0;
+    QUIC_STATUS RetVal = 0;
     bool TestingKernelMode = false;
     bool KeyboardWait = false;
 
@@ -189,7 +189,7 @@ main(
             TestingKernelMode = true;
 #else
             printf("Cannot run kernel mode tests on non windows platforms\n");
-            RetVal = QUIC_RUN_INVALID_MODE;
+            RetVal = QUIC_STATUS_NOT_SUPPORTED;
             goto Exit;
 #endif
         } else if (strcmp("--kbwait", argv[i]) == 0) {
@@ -204,7 +204,7 @@ main(
                 QUIC_SELF_SIGN_CERT_USER);
     if (!SelfSignedParams) {
         printf("Creating self signed certificate failed\n");
-        RetVal = QUIC_RUN_FAILED_QUIC_OPEN;
+        RetVal = QUIC_STATUS_INTERNAL_ERROR;
         goto Exit;
     }
 

@@ -10,9 +10,6 @@ Abstract:
 --*/
 
 
-#ifdef QUIC_CLOG
-#include "quicmain.cpp.clog.h"
-#endif
 
 #ifndef _KERNEL_MODE
 #define QUIC_TEST_APIS 1
@@ -22,11 +19,16 @@ Abstract:
 #include "ThroughputServer.h"
 #include "ThroughputClient.h"
 
+#include "quic_trace.h"
+#ifdef QUIC_CLOG
+#include "quicmain.cpp.clog.h"
+#endif
+
 const QuicApiTable* MsQuic {nullptr};
 
 PerfBase* TestToRun {nullptr};
 
-int
+QUIC_STATUS
 QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
@@ -39,14 +41,15 @@ QuicMainStart(
 
     if (!TestName) {
         WriteOutput("Must have a TestName specified. Ex: -TestName:Throughput\n");
-        return QUIC_RUN_MISSING_TEST_TYPE;
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    QUIC_STATUS Status;
     MsQuic = new QuicApiTable{};
-    if (QUIC_FAILED(MsQuic->InitStatus())) {
+    if (QUIC_FAILED(Status = MsQuic->InitStatus())) {
         delete MsQuic;
         MsQuic = nullptr;
-        return QUIC_RUN_FAILED_QUIC_OPEN;
+        return Status;
     }
 
     if (IsValue(TestName, "Throughput")) {
@@ -57,36 +60,36 @@ QuicMainStart(
         }
     } else {
         delete MsQuic;
-        return QUIC_RUN_UNKNOWN_TEST_TYPE;
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     if (TestToRun != nullptr) {
-        QUIC_STATUS Status = TestToRun->Init(argc, argv);
-        WriteOutput("Init Status! %d\n", Status);
+        Status = TestToRun->Init(argc, argv);
         if (QUIC_SUCCEEDED(Status)) {
             Status = TestToRun->Start(StopEvent);
-            WriteOutput("Run Status! %s %d\n", QuicStatusToString(Status), QUIC_SUCCEEDED(Status));
             if (QUIC_SUCCEEDED(Status)) {
-                return QUIC_RUN_SUCCESS;
+                return QUIC_STATUS_SUCCESS;
             }
         }
+    } else {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     delete TestToRun;
     delete MsQuic;
-    return QUIC_RUN_FAILED_TEST_INITIALIZE;
+    return Status;
 }
 
-int
+QUIC_STATUS
 QuicMainStop(
     _In_ int Timeout
     ) {
     if (TestToRun == nullptr) {
-        return QUIC_RUN_SUCCESS;
+        return QUIC_STATUS_SUCCESS;
     }
 
     QUIC_STATUS Status = TestToRun->Wait(Timeout);
     delete TestToRun;
     delete MsQuic;
-    return QUIC_SUCCEEDED(Status) ? QUIC_RUN_SUCCESS : QUIC_RUN_STOP_FAILURE;
+    return Status;
 }
