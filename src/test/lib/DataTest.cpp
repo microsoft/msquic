@@ -487,7 +487,6 @@ QuicTestServerDisconnect(
                             QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                         ServerLocalAddr.GetPort()));
 
-
                 QuicSleep(500); // Sleep for a little bit.
 
                 Client->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
