@@ -47,6 +47,7 @@ private:
         }
         ThroughputClient* Client{ nullptr };
         ConnectionScope Connection;
+        uint8_t Padding[16]; // Padding for Pools
     };
 
     struct StreamData {
@@ -86,6 +87,7 @@ private:
     QuicPoolAllocator<StreamData> StreamDataAllocator;
     QuicPoolAllocator<ConnectionData> ConnectionDataAllocator;
     QuicPoolAllocator<SendRequest> SendRequestAllocator;
+    QuicPoolBufferAllocator BufferAllocator;
     UniquePtr<char[]> TargetData;
     uint16_t Port{ 0 };
     QUIC_EVENT StopEvent{};

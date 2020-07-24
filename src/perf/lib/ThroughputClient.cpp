@@ -20,8 +20,6 @@ Abstract:
 #include "ThroughputClient.h"
 #include "ThroughputCommon.h"
 
-static uint8_t* RawIoBuffer{nullptr};
-
 ThroughputClient::ThroughputClient(
     ) {
     QuicZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
@@ -100,7 +98,7 @@ ThroughputClient::Init(
     QuicCopyMemory(TargetData.get(), Target, Len);
     TargetData[Len] = '\0';
 
-    RawIoBuffer = new uint8_t[IoSize];
+    BufferAllocator.Initialize(IoSize);
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -108,13 +106,24 @@ ThroughputClient::Init(
 struct ThroughputClient::SendRequest {
     QUIC_SEND_FLAGS Flags {QUIC_SEND_FLAG_NONE};
     QUIC_BUFFER QuicBuffer;
+    ThroughputClient* Client;
     uint32_t IoSize;
     SendRequest(
-        uint32_t Size
+        ThroughputClient* Client,
+        uint32_t Size,
+        bool FillBuffer
         ) {
+        this->Client = Client;
         IoSize = Size;
-        QuicBuffer.Buffer = RawIoBuffer;
+        QuicBuffer.Buffer = Client->BufferAllocator.Alloc();
+        if (FillBuffer) {
+            memset(QuicBuffer.Buffer, 0xBF, IoSize);
+        }
         QuicBuffer.Length = 0;
+    }
+
+    ~SendRequest() {
+        Client->BufferAllocator.Free(QuicBuffer.Buffer);
     }
 
     void SetLength(
@@ -273,7 +282,7 @@ ThroughputClient::Start(
 
     uint32_t SendRequestCount = 0;
     while (StrmData->BytesSent < Length && SendRequestCount < IoCount) {
-        SendRequest* SendReq = SendRequestAllocator.Alloc(IoSize);
+        SendRequest* SendReq = SendRequestAllocator.Alloc(this, IoSize, true);
         SendReq->SetLength(Length - StrmData->BytesSent);
         StrmData->BytesSent += SendReq->QuicBuffer.Length;
         ++SendRequestCount;

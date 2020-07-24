@@ -249,12 +249,46 @@ constexpr _Ty&& QuicForward(
     return static_cast<_Ty&&>(_Arg);
 }
 
-template<typename T>
+
+class QuicPoolBufferAllocator {
+    QUIC_POOL Pool;
+    bool Initialized {false};
+public:
+    QuicPoolBufferAllocator() {
+        QuicZeroMemory(&Pool, sizeof(Pool));
+    }
+
+    ~QuicPoolBufferAllocator() {
+        if (Initialized) {
+            QuicPoolUninitialize(&Pool);
+            Initialized = false;
+        }
+    }
+
+    void Initialize(uint32_t Size, bool Paged = false) {
+        QUIC_DBG_ASSERT(Initialized == false);
+        QuicPoolInitialize(Paged, Size, &Pool);
+        Initialized = true;
+    }
+
+    uint8_t* Alloc() {
+        return static_cast<uint8_t*>(QuicPoolAlloc(&Pool));
+    }
+
+    void Free(uint8_t* Buf) {
+        if (Buf == nullptr) {
+            return;
+        }
+        QuicPoolFree(&Pool, Buf);
+    }
+};
+
+template<typename T, bool Paged = false>
 class QuicPoolAllocator {
     QUIC_POOL Pool;
 public:
     QuicPoolAllocator() {
-        QuicPoolInitialize(false, sizeof(T), &Pool);
+        QuicPoolInitialize(Paged, sizeof(T), &Pool);
     }
 
     ~QuicPoolAllocator() {
@@ -275,6 +309,7 @@ public:
             return;
         }
         Obj->~T();
+        QuicPoolFree(&Pool, Obj);
     }
 };
 
