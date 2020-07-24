@@ -15,7 +15,7 @@ include_directories(${PROJECT_SOURCE_DIR}/src/test)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 
 if (MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive-")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4459")
 endif()
 
 # Allow CLOG to preprocess all the source files.

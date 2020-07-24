@@ -52,18 +52,118 @@ struct QuicAddr {
 
 template<class T>
 class UniquePtr {
-    T* ptr;
 public:
-    UniquePtr() : ptr(nullptr) { }
-    UniquePtr(T* _ptr) : ptr(_ptr) { }
-    ~UniquePtr() { delete ptr; }
-    T* get() { return ptr; }
-    const T* get() const { return ptr; }
+    UniquePtr() noexcept = default;
+
+    explicit UniquePtr(T* _ptr) :
+        ptr{_ptr}
+    {
+    }
+
+    UniquePtr(const UniquePtr& other) = delete;
+    UniquePtr& operator=(const UniquePtr& other) = delete;
+
+    UniquePtr(UniquePtr&& other) noexcept {
+        this->ptr = other->ptr;
+        other->ptr = nullptr;
+    }
+
+    UniquePtr& operator=(UniquePtr&& other) noexcept {
+        if (this->ptr) {
+            delete this->ptr;
+        }
+        this->ptr = other->ptr;
+        other->ptr = nullptr;
+    }
+
+    ~UniquePtr() noexcept {
+        if (this->ptr) {
+            delete this->ptr;
+        }
+    }
+
+    void reset(T* lptr) noexcept {
+        if (this->ptr) {
+            delete this->ptr;
+        }
+        this->ptr = lptr;
+    }
+
+    T* release() noexcept {
+        T* tmp = ptr;
+        ptr = nullptr;
+        return tmp;
+    }
+
+    T* get() const noexcept { return ptr; }
+
     T& operator*() const { return *ptr; }
-    T* operator->() const { return ptr; }
-    operator bool() const { return ptr != nullptr; }
-    bool operator == (T* _ptr) const { return ptr == _ptr; }
-    bool operator != (T* _ptr) const { return ptr != _ptr; }
+    T* operator->() const noexcept { return ptr; }
+    operator bool() const noexcept { return ptr != nullptr; }
+    bool operator == (T* _ptr) const noexcept { return ptr == _ptr; }
+    bool operator != (T* _ptr) const noexcept { return ptr != _ptr; }
+
+private:
+    T* ptr = nullptr;
+};
+
+template<typename T>
+class UniquePtr<T[]> {
+public:
+    UniquePtr() noexcept = default;
+
+    explicit UniquePtr(T* _ptr) :
+        ptr{_ptr}
+    {
+    }
+
+    UniquePtr(const UniquePtr& other) = delete;
+    UniquePtr& operator=(const UniquePtr& other) = delete;
+
+    UniquePtr(UniquePtr&& other) noexcept {
+        this->ptr = other->ptr;
+        other->ptr = nullptr;
+    }
+
+    UniquePtr& operator=(UniquePtr&& other) noexcept {
+        if (this->ptr) {
+            delete[] this->ptr;
+        }
+        this->ptr = other->ptr;
+        other->ptr = nullptr;
+    }
+
+    ~UniquePtr() noexcept {
+        if (this->ptr) {
+            delete[] this->ptr;
+        }
+    }
+
+    void reset(T* _ptr) noexcept {
+        if (this->ptr) {
+            delete[] this->ptr;
+        }
+        this->ptr = _ptr;
+    }
+
+    T* release() noexcept {
+        T* tmp = ptr;
+        ptr = nullptr;
+        return tmp;
+    }
+
+    T* get() const noexcept { return ptr; }
+
+    T& operator[](size_t i) const {
+        return *(ptr + i);
+    }
+
+    operator bool() const noexcept { return ptr != nullptr; }
+    bool operator == (T* _ptr) const noexcept { return ptr == _ptr; }
+    bool operator != (T* _ptr) const noexcept { return ptr != _ptr; }
+
+private:
+    T* ptr = nullptr;
 };
 
 template<class T>
@@ -121,7 +221,7 @@ public:
     bool IsValid() const { return Registration != nullptr; }
     MsQuicRegistration(MsQuicRegistration& other) = delete;
     MsQuicRegistration operator=(MsQuicRegistration& Other) = delete;
-    operator HQUIC () {
+    operator HQUIC () const {
         return Registration;
     }
 };
@@ -129,6 +229,27 @@ public:
 struct MsQuicSession {
     HQUIC Handle;
     bool CloseAllConnectionsOnDelete;
+
+    MsQuicSession(
+        _In_ const MsQuicRegistration& Reg,
+        _In_z_ const char* RawAlpn = "MsQuicTest")
+        : Handle(nullptr), CloseAllConnectionsOnDelete(false) {
+        QUIC_BUFFER Alpn;
+        Alpn.Buffer = (uint8_t*)RawAlpn;
+        Alpn.Length = (uint32_t)strlen(RawAlpn);
+        if (QUIC_FAILED(
+            MsQuic->SessionOpen(
+                Reg,
+                &Alpn,
+                1,
+                nullptr,
+                &Handle))) {
+            Handle = nullptr;
+        }
+    }
+
+#ifndef QUIC_SKIP_GLOBAL_CONSTRUCTORS
+
     MsQuicSession(_In_z_ const char* RawAlpn = "MsQuicTest")
         : Handle(nullptr), CloseAllConnectionsOnDelete(false) {
         QUIC_BUFFER Alpn;
@@ -161,6 +282,7 @@ struct MsQuicSession {
             Handle = nullptr;
         }
     }
+#endif
     ~MsQuicSession() {
         if (Handle != nullptr) {
             if (CloseAllConnectionsOnDelete) {
@@ -177,7 +299,7 @@ struct MsQuicSession {
     }
     MsQuicSession(MsQuicSession& other) = delete;
     MsQuicSession operator=(MsQuicSession& Other) = delete;
-    operator HQUIC () {
+    operator HQUIC () const {
         return Handle;
     }
     void SetAutoCleanup() {
@@ -294,6 +416,7 @@ struct ListenerScope {
     ListenerScope() : Handle(nullptr) { }
     ListenerScope(HQUIC handle) : Handle(handle) { }
     ~ListenerScope() { if (Handle) { MsQuic->ListenerClose(Handle); } }
+    operator HQUIC() const { return Handle; }
 };
 
 struct ConnectionScope {
@@ -301,6 +424,7 @@ struct ConnectionScope {
     ConnectionScope() : Handle(nullptr) { }
     ConnectionScope(HQUIC handle) : Handle(handle) { }
     ~ConnectionScope() { if (Handle) { MsQuic->ConnectionClose(Handle); } }
+    operator HQUIC() const { return Handle; }
 };
 
 struct StreamScope {
@@ -308,6 +432,7 @@ struct StreamScope {
     StreamScope() : Handle(nullptr) { }
     StreamScope(HQUIC handle) : Handle(handle) { }
     ~StreamScope() { if (Handle) { MsQuic->StreamClose(Handle); } }
+    operator HQUIC() const { return Handle; }
 };
 
 struct EventScope {
@@ -315,6 +440,7 @@ struct EventScope {
     EventScope() { QuicEventInitialize(&Handle, FALSE, FALSE); }
     EventScope(QUIC_EVENT event) : Handle(event) { }
     ~EventScope() { QuicEventUninitialize(Handle); }
+    operator QUIC_EVENT() const { return Handle; }
 };
 
 struct QuicBufferScope {
