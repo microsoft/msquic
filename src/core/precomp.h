@@ -16,6 +16,8 @@
 #pragma warning(disable:26451) // Arithmetic overflow: Using operator '+' on a 4 byte value and then casting the result to a 8 byte value.
 #pragma warning(disable:28931) // Unused Assignment
 
+#define QUIC_API_ENABLE_INSECURE_FEATURES 1
+
 //
 // Platform or Public Headers.
 //
@@ -26,8 +28,6 @@
 #include "quic_versions.h"
 #include "quic_var_int.h"
 #include "quic_trace.h"
-
-#define QUIC_API_ENABLE_INSECURE_FEATURES 1
 
 #include "msquic.h"
 #include "msquicp.h"

@@ -2307,7 +2307,7 @@ QuicConnGenerateLocalTransportParameters(
     }
 
     if (Connection->State.Disable1RttEncrytion) {
-        LocalTP.Flags |= QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION;
+        LocalTP->Flags |= QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION;
     }
 
     if (QuicConnIsServer(Connection)) {
