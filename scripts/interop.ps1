@@ -111,9 +111,9 @@ $RunExecutable = Join-Path $RootDir "scripts/run-executable.ps1"
 $QuicInterop = $null
 if ($IsWindows) {
     $QuicInterop = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\quicinterop.exe"
-} else if ($IsLinux) {
+} elseif ($IsLinux) {
     $QuicInterop = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/quicinterop"
-} else if ($IsMacOS) {
+} elseif ($IsMacOS) {
     $QuicInterop = Join-Path $RootDir "/artifacts/bin/macos/$($Arch)_$($Config)_$($Tls)/quicinterop"
 } else {
     Write-Error "Unsupported platform type!"
