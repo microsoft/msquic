@@ -24,7 +24,7 @@
             }
         },
         "Iterations": 10,
-        "RemoteReadyMatcher": "Ready For Connections!",
+        "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps\\)"
     },
     {
@@ -52,7 +52,7 @@
             }
         },
         "Iterations": 10,
-        "RemoteReadyMatcher": "Ready For Connections!",
+        "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps\\)"
     }
 ]

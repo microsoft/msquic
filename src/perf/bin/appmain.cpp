@@ -48,7 +48,7 @@ QuicUserMain(
         return RetVal;
     }
 
-    printf("Ready For Connections!\n\n");
+    printf("Started!\n\n");
     fflush(stdout);
 
     if (KeyboardWait) {
@@ -143,7 +143,7 @@ QuicKernelMain(
         QUIC_FREE(OutBuffer);
         return QUIC_RUN_FAILED_TEST_INITIALIZE;
     }
-    printf("Ready For Connections!\n\n");
+    printf("Started!\n\n");
     fflush(stdout);
 
     uint32_t OutBufferWritten = 0;
