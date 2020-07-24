@@ -414,6 +414,53 @@ struct MsQuicSession {
     }
 };
 
+struct MsQuicListener {
+    HQUIC Handle { nullptr };
+    QUIC_LISTENER_CALLBACK_HANDLER Handler { nullptr };
+    void* Context{ nullptr };
+    MsQuicListener(const MsQuicSession& Session) {
+        if (!Session.IsValid()) {
+            return;
+        }
+        if (QUIC_FAILED(
+            MsQuic->ListenerOpen(
+                Session,
+                [](HQUIC Handle, void* Context, QUIC_LISTENER_EVENT* Event) -> QUIC_STATUS {
+                    MsQuicListener* Listener = (MsQuicListener*)Context;
+                    return Listener->Handler(Handle, Listener->Context, Event);
+                },
+                this,
+                &Handle))) {
+            Handle = nullptr;
+        }
+    }
+    ~MsQuicListener() noexcept {
+        if (Handler != nullptr) {
+            MsQuic->ListenerStop(Handle);
+        }
+        if (Handle) {
+            MsQuic->ListenerClose(Handle);
+        }
+    }
+
+    QUIC_STATUS
+    Start(
+        _In_ QUIC_ADDR* Address,
+        _In_ QUIC_LISTENER_CALLBACK_HANDLER _Handler,
+        _In_ void* _Context) {
+        Handler = _Handler;
+        Context = _Context;
+        return MsQuic->ListenerStart(Handle, Address);
+    }
+
+    QUIC_STATUS
+    ListenerCallback(HQUIC Listener, QUIC_LISTENER_EVENT* Event) {
+        return Handler(Listener, Context, Event);
+    }
+
+    bool IsValid() const { return Handle != nullptr; }
+};
+
 struct ListenerScope {
     HQUIC Handle;
     ListenerScope() : Handle(nullptr) { }

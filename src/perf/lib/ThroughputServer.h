@@ -59,7 +59,7 @@ private:
     MsQuicRegistration Registration;
     MsQuicSession Session{Registration, THROUGHPUT_ALPN};
     MsQuicListener Listener{Session};
-    MsQuicSecurityConfig SecurityConfig;
+    PerfSecurityConfig SecurityConfig;
     QUIC_ADDR Address{};
     uint32_t NumberOfConnections {0};
     CountHelper RefCount;

@@ -68,11 +68,11 @@ ThroughputClient::Init(
     }
 
     // TODO: Core, since we need to support kernel mode
-    #if _WIN32 && !_KERNEL_MODE
+    #ifdef QUIC_COMPARTMENT_ID
     uint16_t CompartmentId;
     if (TryGetValue(argc, argv, "comp",  &CompartmentId)) {
         NETIO_STATUS status;
-        if (!NETIO_SUCCESS(status = SetCurrentThreadCompartmentId(CompartmentId))) {
+        if (!NETIO_SUCCESS(status = QuicCompartmentIdSetCurrent(CompartmentId))) {
             WriteOutput("Failed to set compartment ID = %d: 0x%x\n", CompartmentId, status);
             return QUIC_STATUS_INVALID_PARAMETER;
         } else {
@@ -82,7 +82,7 @@ ThroughputClient::Init(
 
     uint8_t CpuCore;
     if (TryGetValue(argc, argv, "core",  &CpuCore)) {
-        SetThreadAffinityMask(GetCurrentThread(), (DWORD_PTR)(1ull << CpuCore));
+        QuicSetCurrentThreadAffinityMask((DWORD_PTR)(1ull << CpuCore));
     }
 #endif
 
