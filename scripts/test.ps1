@@ -55,6 +55,9 @@ This script provides helpers for running executing the MsQuic tests.
 .Parameter EnableAppVerifier
     Enables all basic Application Verifier checks on test binaries.
 
+.Parameter CodeCoverage
+    Collect code coverage for this test run. Incompatible with -Kernel and -Debugger.
+
 .EXAMPLE
     test.ps1
 
@@ -131,7 +134,10 @@ param (
     [switch]$NoProgress = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$EnableAppVerifier = $false
+    [switch]$EnableAppVerifier = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$CodeCoverage = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -140,6 +146,22 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 # Validate the the kernel switch.
 if ($Kernel -and !$IsWindows) {
     Write-Error "-Kernel switch only supported on Windows";
+}
+
+#Validate the code coverage switch.
+if ($CodeCoverage) {
+    if (!$IsWindows) {
+        Write-Error "-CodeCoverage switch only supported on Windows";
+    }
+    if ($Kernel) {
+        Write-Error "-CodeCoverage is not supported for kernel mode tests";
+    }
+    if ($Debugger) {
+        Write-Error "-CodeCoverage switch is not supported with debugging";
+    }
+    if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
+        Write-Error "Code coverage tools are not installed";
+    }
 }
 
 # Default TLS based on current platform.
@@ -153,6 +175,16 @@ if ("" -eq $Tls) {
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
+
+# Coverage destination directory.
+$CoverageDir = Join-Path $RootDir "artifacts" "coverage"
+
+if ($CodeCoverage) {
+    # Clear old coverage data
+    if (Test-Path $CoverageDir) {
+        Remove-Item -Path (Join-Path $CoverageDir '*.cov') -Force
+    }
+}
 
 # Path to the run-gtest Powershell script.
 $RunTest = Join-Path $RootDir "scripts/run-gtest.ps1"
@@ -222,6 +254,9 @@ if ($NoProgress) {
 if ($EnableAppVerifier) {
     $TestArguments += " -EnableAppVerifier"
 }
+if ($CodeCoverage) {
+    $TestArguments += " -CodeCoverage"
+}
 
 # Run the script.
 if (!$Kernel) {
@@ -229,3 +264,21 @@ if (!$Kernel) {
     Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
 }
 Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
+
+if ($CodeCoverage) {
+    # Merge code coverage results
+    $CoverageMergeParams = ""
+
+    foreach ($file in $(Get-ChildItem -Path $CoverageDir -Filter '*.cov')) {
+        $CoverageMergeParams += " --input_coverage $(Join-Path $CoverageDir $file.Name)"
+    }
+
+    if ($CoverageMergeParams -ne "") {
+        $CoverageMergeParams +=  " --export_type cobertura:$(Join-Path $CoverageDir "msquiccoverage.xml")"
+
+        $CoverageExe = 'C:\"Program Files"\OpenCppCoverage\OpenCppCoverage.exe'
+        Invoke-Expression ($CoverageExe + $CoverageMergeParams) | Out-Null
+    } else {
+        Write-Warning "No coverage results to merge!"
+    }
+}
