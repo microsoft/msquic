@@ -38,12 +38,13 @@ int
 QuicUserMain(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ bool KeyboardWait
+    _In_ bool KeyboardWait,
+    _In_ PerfSelfSignedConfiguration* SelfSignedConfig
     ) {
     QUIC_EVENT StopEvent;
     QuicEventInitialize(&StopEvent, true, false);
 
-    int RetVal = QuicMainStart(argc, argv, StopEvent);
+    int RetVal = QuicMainStart(argc, argv, StopEvent, SelfSignedConfig);
     if (RetVal != 0) {
         return RetVal;
     }
@@ -153,47 +154,51 @@ main(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
-    QuicPlatformSystemLoad();
-    QuicPlatformInitialize();
-
+    QUIC_SEC_CONFIG_PARAMS* SelfSignedParams = nullptr;
+    PerfSelfSignedConfiguration SelfSignedConfig;
+    int RetVal = 0;
     bool TestingKernelMode = false;
     bool KeyboardWait = false;
 
+    QuicPlatformSystemLoad();
+    QuicPlatformInitialize();
+
     for (int i = 0; i < argc; ++i) {
         if (strcmp("--kernel", argv[i]) == 0) {
+#ifdef _WIN32
             TestingKernelMode = true;
+#else
+            printf("Cannot run kernel mode tests on non windows platforms\n");
+            RetVal = QUIC_RUN_INVALID_MODE;
+            goto Exit;
+#endif
         } else if (strcmp("--kbwait", argv[i]) == 0) {
             KeyboardWait = true;
         }
     }
 
-    QUIC_SEC_CONFIG_PARAMS* SelfSignedConfig =
+    SelfSignedParams =
         QuicPlatGetSelfSignedCert(
             TestingKernelMode ?
                 QUIC_SELF_SIGN_CERT_MACHINE :
                 QUIC_SELF_SIGN_CERT_USER);
-    if (SelfSignedConfig) {
-#ifdef _KERNEL_MODE
-        static_assert(sizeof(SelfSignedSecurityHash) == sizeof(SelfSignedConfig->Thumbprint));
-        QuicCopyMemory(SelfSignedSecurityHash, SelfSignedConfig->Thumbprint, 20);
-#else
-        SelfSignedParams = SelfSignedConfig;
-#endif
-        IsSelfSignedValid = true;
+    if (!SelfSignedParams) {
+        printf("Creating self signed certificate failed\n");
+        RetVal = QUIC_RUN_FAILED_QUIC_OPEN;
+        goto Exit;
     }
 
-    int RetVal = 0;
+    SelfSignedConfig.SelfSignedParams = SelfSignedParams;
+
     if (TestingKernelMode) {
 #ifdef _WIN32
         RetVal = QuicKernelMain(argc, argv, KeyboardWait, SelfSignedParams);
-#else
-        printf("Cannot run kernel mode tests on non windows platforms\n");
-        RetVal = QUIC_RUN_INVALID_MODE;
 #endif
     } else {
-        RetVal = QuicUserMain(argc, argv, KeyboardWait);
+        RetVal = QuicUserMain(argc, argv, KeyboardWait, &SelfSignedConfig);
     }
 
+Exit:
     if (SelfSignedParams) {
         QuicPlatFreeSelfSignedCert(SelfSignedParams);
     }

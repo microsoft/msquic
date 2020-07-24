@@ -22,6 +22,7 @@ Abstract:
 #endif
 #include "ThroughputClient.h"
 #include "ThroughputCommon.h"
+#include "quic_trace.h"
 
 ThroughputClient::ThroughputClient(
     ) {
@@ -316,28 +317,31 @@ ThroughputClient::ConnectionCallback(
     ) {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
-        WriteOutput("[conn][%p] Connected\n", ConnectionHandle);
+        QuicTraceLogInfo(
+            ConnectionEventConnected,
+            "[ conn] Connection Connected (%p).",
+            ConnectionHandle);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
+        QuicTraceLogInfo(
+            ConnectionEventPeerShutdown,
+            "[ conn] Connection Shutdown By Peer (%d) (%p).",
+            Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status,
+            ConnectionHandle);
+        break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
-        if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT) {
-            WriteOutput("Transport Status %d %s\n", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status, QuicStatusToString(Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status));
-        }
-        WriteOutput("[conn][%p] Shutdown\n", ConnectionHandle);
+        QuicTraceLogInfo(
+            ConnectionEventPeerShutdown,
+            "[ conn] Connection Shutdown By Peer (%p).",
+            ConnectionHandle);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        WriteOutput("[conn][%p] All done\n", ConnectionHandle);
+        QuicTraceLogInfo(
+            ConnectionEventShutdownComplete,
+            "[ conn] Connection Shutdown Complete (%p).",
+            ConnectionHandle);
         ConnectionDataAllocator.Free(ConnData);
         QuicEventSet(StopEvent);
-        break;
-    case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
-        WriteOutput("[conn][%p] Resumption ticket received (%u bytes):\n",
-            ConnectionHandle,
-            Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength);
-        for (uint32_t i = 0; i < Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength; i++) {
-            WriteOutput("%.2X", (uint8_t)Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicket[i]);
-        }
-        WriteOutput("\n");
         break;
     default:
         break;

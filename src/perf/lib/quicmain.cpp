@@ -22,21 +22,16 @@ Abstract:
 #include "ThroughputServer.h"
 #include "ThroughputClient.h"
 
-const QuicApiTable* MsQuic{nullptr};
-#ifdef _KERNEL_MODE
-uint8_t SelfSignedSecurityHash[20];
-#else
-QUIC_SEC_CONFIG_PARAMS* SelfSignedParams{nullptr};
-#endif
-bool IsSelfSignedValid{ false };
+const QuicApiTable* MsQuic {nullptr};
 
-PerfBase* TestToRun{nullptr};
+PerfBase* TestToRun {nullptr};
 
 int
 QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ QUIC_EVENT StopEvent
+    _In_ QUIC_EVENT StopEvent,
+    _In_ PerfSelfSignedConfiguration* SelfSignedConfig
     ) {
     const char* TestName = GetValue(argc, argv, "TestName");
     uint8_t ServerMode = 0;
@@ -56,7 +51,7 @@ QuicMainStart(
 
     if (IsValue(TestName, "Throughput")) {
         if (ServerMode) {
-            TestToRun = new ThroughputServer{};
+            TestToRun = new ThroughputServer{SelfSignedConfig};
         } else {
             TestToRun = new ThroughputClient{};
         }

@@ -17,10 +17,13 @@ Abstract:
 #define QUIC_TEST_APIS 1
 #endif
 #include "msquichelper.h"
+#include "quic_trace.h"
 #include "ThroughputServer.h"
 #include "ThroughputCommon.h"
 
-ThroughputServer::ThroughputServer() {
+ThroughputServer::ThroughputServer(
+    _In_ PerfSelfSignedConfiguration* SelfSignedConfig
+    ) : SelfSignedConfig{SelfSignedConfig} {
     if (Session.IsValid()) {
         Session.SetAutoCleanup();
         Session.SetPeerUnidiStreamCount(THROUGHPUT_SERVER_PEER_UNI);
@@ -53,7 +56,7 @@ ThroughputServer::Init(
 
     TryGetValue(argc, argv, "connections", &NumberOfConnections);
 
-    QUIC_STATUS Status = SecurityConfig.Initialize(argc, argv, Registration);
+    QUIC_STATUS Status = SecurityConfig.Initialize(argc, argv, Registration, SelfSignedConfig);
     if (QUIC_FAILED(Status)) {
         return Status;
     }
@@ -133,22 +136,39 @@ ThroughputServer::ConnectionCallback(
     ) {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
-        WriteOutput("[conn][%p] Connected\n", ConnectionHandle);
-        MsQuic->ConnectionSendResumptionTicket(ConnectionHandle, QUIC_SEND_RESUMPTION_FLAG_NONE, 0, nullptr);
+        QuicTraceLogInfo(
+            ConnectionEventConnected,
+            "[ conn] Connection Connected (%p).",
+            ConnectionHandle);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
+        QuicTraceLogInfo(
+            ConnectionEventPeerShutdown,
+            "[ conn] Connection Shutdown By Peer (%d) (%p).",
+            Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status,
+            ConnectionHandle);
+        break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
-        WriteOutput("[conn][%p] Shutdown\n", ConnectionHandle);
+        QuicTraceLogInfo(
+            ConnectionEventPeerShutdown,
+            "[ conn] Connection Shutdown By Peer (%p).",
+            ConnectionHandle);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        WriteOutput("[conn][%p] All done\n", ConnectionHandle);
+        QuicTraceLogInfo(
+            ConnectionEventShutdownComplete,
+            "[ conn] Connection Shutdown Complete (%p).",
+            ConnectionHandle);
         MsQuic->ConnectionClose(ConnectionHandle);
         if (NumberOfConnections > 0) {
             RefCount.CompleteItem();
         }
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED: {
-        WriteOutput("[strm][%p] Peer started\n", Event->PEER_STREAM_STARTED.Stream);
+        QuicTraceLogInfo(
+            ConnectionEventPeerStreamStarted,
+            "[ strm] Peer Started (%p).",
+            Event->PEER_STREAM_STARTED.Stream);
         QUIC_STREAM_CALLBACK_HANDLER Handler =
             [](HQUIC Stream, void* Context, QUIC_STREAM_EVENT* Event) -> QUIC_STATUS {
                 return ((ThroughputServer*)Context)->
@@ -157,12 +177,8 @@ ThroughputServer::ConnectionCallback(
                         Event);
             };
         MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)Handler, this);
-        MsQuic->ConnectionSendResumptionTicket(ConnectionHandle, QUIC_SEND_RESUMPTION_FLAG_NONE, 0, nullptr);
         break;
     }
-    case QUIC_CONNECTION_EVENT_RESUMED:
-        WriteOutput("[conn][%p] Connection resumed!\n", ConnectionHandle);
-        break;
     default:
         break;
     }
@@ -183,7 +199,10 @@ ThroughputServer::StreamCallback(
             0);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
-        WriteOutput("Shutdown Complete!\n");
+        QuicTraceLogInfo(
+            StreamEventShutdownComplete,
+            "[ conn] Connection Shutdown Complete (%p).",
+            StreamHandle);
         MsQuic->StreamClose(StreamHandle);
         break;
     }

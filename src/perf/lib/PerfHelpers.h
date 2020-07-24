@@ -40,12 +40,13 @@ extern const QuicApiTable* MsQuic;
 #include <new.h>
 #endif
 
+struct PerfSelfSignedConfiguration {
 #ifdef _KERNEL_MODE
-extern uint8_t SelfSignedSecurityHash[20];
+    uint8_t SelfSignedSecurityHash[20];
 #else
-extern QUIC_SEC_CONFIG_PARAMS* SelfSignedParams;
+    QUIC_SEC_CONFIG_PARAMS* SelfSignedParams;
 #endif
-extern bool IsSelfSignedValid;
+};
 
 #define QUIC_TEST_SESSION_CLOSED    1
 
@@ -69,13 +70,9 @@ WriteOutput(
 }
 
 struct PerfSecurityConfig {
-    QUIC_STATUS Initialize(int argc, char** argv, const MsQuicRegistration& Registration) {
+    QUIC_STATUS Initialize(int argc, char** argv, const MsQuicRegistration& Registration, PerfSelfSignedConfiguration* Config) {
         uint16_t useSelfSigned = 0;
         if (TryGetValue(argc, argv, "selfsign", &useSelfSigned)) {
-            if (!IsSelfSignedValid) {
-                WriteOutput("Self Signed Not Configured Correctly\n");
-                return QUIC_STATUS_INVALID_STATE;
-            }
 #ifdef _KERNEL_MODE
             CreateSecConfigHelper Helper;
             SecurityConfig =
@@ -83,14 +80,14 @@ struct PerfSecurityConfig {
                     MsQuic,
                     Registration,
                     QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH,
-                    &SelfSignedSecurityHash,
+                    &Config->SelfSignedSecurityHash,
                     nullptr);
 #else
             SecurityConfig =
                 GetSecConfigForSelfSigned(
                     MsQuic,
                     Registration,
-                    SelfSignedParams);
+                    Config->SelfSignedParams);
 #endif
             if (!SecurityConfig) {
                 WriteOutput("Failed to create security config for self signed certificate\n");

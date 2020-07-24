@@ -9,9 +9,10 @@ Abstract:
 
 --*/
 
+#include <quic_driver_main.h>
 #include <quic_platform.h>
 #include "msquic.h"
-#include <quic_driver_main.h>
+
 #include "PerfIoctls.h"
 
 #include "quic_trace.h"

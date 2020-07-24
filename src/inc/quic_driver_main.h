@@ -12,6 +12,7 @@ Abstract:
 #pragma once
 
 #include "quic_platform.h"
+#include "PerfHelpers.h"
 
 #define QUIC_RUN_SUCCESS 0
 #define QUIC_RUN_MISSING_TEST_TYPE -1
@@ -27,7 +28,8 @@ int
 QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ QUIC_EVENT StopEvent
+    _In_ QUIC_EVENT StopEvent,
+    _In_ PerfSelfSignedConfiguration* SelfSignedConfig
     );
 
 extern

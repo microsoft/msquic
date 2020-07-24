@@ -18,7 +18,9 @@ Abstract:
 
 class ThroughputServer : public PerfBase {
 public:
-    ThroughputServer();
+    ThroughputServer(
+        _In_ PerfSelfSignedConfiguration* SelfSignedConfig
+        );
 
     QUIC_STATUS
     Init(
@@ -59,6 +61,7 @@ private:
     MsQuicRegistration Registration;
     MsQuicSession Session{Registration, THROUGHPUT_ALPN};
     MsQuicListener Listener{Session};
+    PerfSelfSignedConfiguration* SelfSignedConfig;
     PerfSecurityConfig SecurityConfig;
     QUIC_ADDR Address{};
     uint32_t NumberOfConnections {0};
