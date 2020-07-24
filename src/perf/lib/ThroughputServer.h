@@ -5,7 +5,7 @@
 
 Abstract:
 
-    QUIC Perf Throughput Server declaration. Definites the functions and
+    QUIC Perf Throughput Server declaration. Defines the functions and
     variables used in the ThroughputServer class.
 
 --*/
@@ -13,9 +13,10 @@ Abstract:
 #pragma once
 
 #include "PerfHelpers.h"
+#include "PerfBase.h"
 #include "ThroughputCommon.h"
 
-class ThroughputServer : public PerfRunner {
+class ThroughputServer : public PerfBase {
 public:
     ThroughputServer();
 

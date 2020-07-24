@@ -30,7 +30,7 @@ QUIC_SEC_CONFIG_PARAMS* SelfSignedParams{nullptr};
 #endif
 bool IsSelfSignedValid{ false };
 
-PerfRunner* TestToRun{nullptr};
+PerfBase* TestToRun{nullptr};
 
 int
 QuicMainStart(

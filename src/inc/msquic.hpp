@@ -184,18 +184,21 @@ public:
 
 class QuicApiTable : public QUIC_API_TABLE {
     QUIC_STATUS Init;
+    const QUIC_API_TABLE* ApiTable{nullptr};
 public:
     QuicApiTable() {
-        const QUIC_API_TABLE* table;
-        if (QUIC_SUCCEEDED(Init = MsQuicOpen(&table))) {
+        if (QUIC_SUCCEEDED(Init = MsQuicOpen(&ApiTable))) {
             QUIC_API_TABLE* thisTable = this;
-            QuicCopyMemory(thisTable, table, sizeof(*table));
+            QuicCopyMemory(thisTable, ApiTable, sizeof(*ApiTable));
         }
     }
 
     ~QuicApiTable() {
         if (QUIC_SUCCEEDED(Init)) {
-            MsQuicClose(this);
+            MsQuicClose(ApiTable);
+            ApiTable = nullptr;
+            QUIC_API_TABLE* thisTable = this;
+            QuicZeroMemory(thisTable, sizeof(*thisTable));
         }
     }
 
