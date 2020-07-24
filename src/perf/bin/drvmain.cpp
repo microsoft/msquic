@@ -12,7 +12,7 @@ Abstract:
 #include <quic_platform.h>
 #include "msquic.h"
 #include <quic_driver_main.h>
-#include "perfioctls.h"
+#include "PerfIoctls.h"
 
 #include "quic_trace.h"
 #ifdef QUIC_CLOG
@@ -35,14 +35,13 @@ typedef struct QUIC_DEVICE_EXTENSION {
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DEVICE_EXTENSION, QuicPerfCtlGetDeviceContext);
 
-typedef struct QUIC_TEST_CLIENT
-{
+typedef struct QUIC_DRIVER_CLIENT {
     LIST_ENTRY Link;
     bool TestFailure;
 
-} QUIC_TEST_CLIENT;
+} QUIC_DRIVER_CLIENT;
 
-WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_TEST_CLIENT, QuicPerfCtlGetFileContext);
+WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DRIVER_CLIENT, QuicPerfCtlGetFileContext);
 
 EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL QuicPerfCtlEvtIoDeviceControl;
 EVT_WDF_IO_QUEUE_IO_CANCELED_ON_QUEUE QuicPerfCtlEvtIoCanceled;
@@ -53,7 +52,7 @@ PAGEDX EVT_WDF_FILE_CLEANUP QuicPerfCtlEvtFileCleanup;
 
 WDFDEVICE QuicPerfCtlDevice = nullptr;
 QUIC_DEVICE_EXTENSION* QuicPerfCtlExtension = nullptr;
-QUIC_TEST_CLIENT* QuicPerfClient = nullptr;
+QUIC_DRIVER_CLIENT* QuicPerfClient = nullptr;
 
 EVT_WDF_DRIVER_UNLOAD QuicPerfDriverUnload;
 
@@ -65,9 +64,9 @@ QuicPerfCtlInitialize(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID
+void
 QuicPerfCtlUninitialize(
-
+        void
     );
 
 void* __cdecl operator new (size_t Size) {
@@ -107,32 +106,7 @@ NTSTATUS
 DriverEntry(
     _In_ PDRIVER_OBJECT DriverObject,
     _In_ PUNICODE_STRING RegistryPath
-)
-/*++
-
-Routine Description:
-
-    DriverEntry initializes the driver and is the first routine called by the
-    system after the driver is loaded. DriverEntry specifies the other entry
-    points in the function driver, such as EvtDevice and DriverUnload.
-
-Parameters Description:
-
-    DriverObject - represents the instance of the function driver that is loaded
-    into memory. DriverEntry must initialize members of DriverObject before it
-    returns to the caller. DriverObject is allocated by the system before the
-    driver is loaded, and it is released by the system after the system unloads
-    the function driver from memory.
-
-    RegistryPath - represents the driver specific path in the Registry.
-    The function driver can use the path to store driver related data between
-    reboots. The path does not store hardware instance specific data.
-
-Return Value:
-
-    A success status as determined by NT_SUCCESS macro, if successful.
-
---*/
+    )
 {
     NTSTATUS Status;
     WDF_DRIVER_CONFIG Config;
@@ -181,11 +155,6 @@ Return Value:
     //
     Status = QuicPerfCtlInitialize(Driver);
     if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "QuicPerfCtlInitialize failed");
         goto Error;
     }
 
@@ -211,7 +180,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPerfDriverUnload(
     _In_ WDFDRIVER Driver
-)
+    )
 /*++
 
 Routine Description:
@@ -243,7 +212,7 @@ INITCODE
 NTSTATUS
 QuicPerfCtlInitialize(
     _In_ WDFDRIVER Driver
-)
+    )
 {
     NTSTATUS Status = STATUS_SUCCESS;
     PWDFDEVICE_INIT DeviceInit = nullptr;
@@ -287,7 +256,7 @@ QuicPerfCtlInitialize(
         QuicPerfCtlEvtFileCleanup);
     FileConfig.FileObjectClass = WdfFileObjectWdfCanUseFsContext2;
 
-    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&Attribs, QUIC_TEST_CLIENT);
+    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&Attribs, QUIC_DRIVER_CLIENT);
     WdfDeviceInitSetFileObjectConfig(
         DeviceInit,
         &FileConfig,
@@ -364,9 +333,10 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID
+void
 QuicPerfCtlUninitialize(
-)
+        void
+    )
 {
     QuicTraceLogVerbose(
         PerfControlUninitializing,
@@ -387,12 +357,12 @@ QuicPerfCtlUninitialize(
 
 PAGEDX
 _Use_decl_annotations_
-VOID
+void
 QuicPerfCtlEvtFileCreate(
     _In_ WDFDEVICE /* Device */,
     _In_ WDFREQUEST Request,
     _In_ WDFFILEOBJECT FileObject
-)
+    )
 {
     NTSTATUS Status = STATUS_SUCCESS;
 
@@ -412,7 +382,7 @@ QuicPerfCtlEvtFileCreate(
             break;
         }
 
-        QUIC_TEST_CLIENT* Client = QuicPerfCtlGetFileContext(FileObject);
+        QUIC_DRIVER_CLIENT* Client = QuicPerfCtlGetFileContext(FileObject);
         if (Client == nullptr) {
             QuicTraceEvent(
                 LibraryError,
@@ -422,7 +392,7 @@ QuicPerfCtlEvtFileCreate(
             break;
         }
 
-        RtlZeroMemory(Client, sizeof(QUIC_TEST_CLIENT));
+        RtlZeroMemory(Client, sizeof(QUIC_DRIVER_CLIENT));
 
         //
         // Insert into the client list
@@ -449,26 +419,26 @@ QuicPerfCtlEvtFileCreate(
 
 PAGEDX
 _Use_decl_annotations_
-VOID
+void
 QuicPerfCtlEvtFileClose(
     _In_ WDFFILEOBJECT /* FileObject */
-)
+    )
 {
     PAGED_CODE();
 }
 
 PAGEDX
 _Use_decl_annotations_
-VOID
+void
 QuicPerfCtlEvtFileCleanup(
     _In_ WDFFILEOBJECT FileObject
-)
+    )
 {
     PAGED_CODE();
 
     KeEnterGuardedRegion();
 
-    QUIC_TEST_CLIENT* Client = QuicPerfCtlGetFileContext(FileObject);
+    QUIC_DRIVER_CLIENT* Client = QuicPerfCtlGetFileContext(FileObject);
     if (Client != nullptr) {
 
         ExfAcquirePushLockExclusive(&QuicPerfCtlExtension->Lock);
@@ -499,7 +469,7 @@ VOID
 QuicPerfCtlEvtIoCanceled(
     _In_ WDFQUEUE /* Queue */,
     _In_ WDFREQUEST Request
-)
+    )
 {
     NTSTATUS Status;
 
@@ -509,7 +479,7 @@ QuicPerfCtlEvtIoCanceled(
         goto error;
     }
 
-    QUIC_TEST_CLIENT* Client = QuicPerfCtlGetFileContext(FileObject);
+    QUIC_DRIVER_CLIENT* Client = QuicPerfCtlGetFileContext(FileObject);
     if (Client == nullptr) {
         Status = STATUS_DEVICE_NOT_READY;
         goto error;
@@ -551,7 +521,7 @@ QuicPerfCtlEvtIoDeviceControl(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     WDFFILEOBJECT FileObject = nullptr;
-    QUIC_TEST_CLIENT* Client = nullptr;
+    QUIC_DRIVER_CLIENT* Client = nullptr;
     ULONG FunctionCode = 0;
 
     if (KeGetCurrentIrql() > PASSIVE_LEVEL) {

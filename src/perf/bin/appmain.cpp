@@ -27,7 +27,7 @@ Abstract:
 #define QUIC_DRIVER_NAME   "quicperf"
 
 #include <winioctl.h>
-#include "perfioctls.h"
+#include "PerfIoctls.h"
 #include "quic_driver_helpers.h"
 
 #endif

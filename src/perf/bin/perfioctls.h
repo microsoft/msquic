@@ -1,3 +1,14 @@
+/*++
+
+    Copyright (c) Microsoft Corporation.
+    Licensed under the MIT License.
+
+Abstract:
+
+    QUIC Perf Kernel Mode IOCTL definitions
+
+--*/
+
 #pragma once
 
 #define QUIC_CTL_CODE(request, method, access) \

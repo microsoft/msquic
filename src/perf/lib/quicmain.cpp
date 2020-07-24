@@ -48,7 +48,6 @@ QuicMainStart(
     }
 
     MsQuic = new QuicApiTable{};
-
     if (QUIC_FAILED(MsQuic->InitStatus())) {
         delete MsQuic;
         MsQuic = nullptr;
@@ -78,12 +77,8 @@ QuicMainStart(
         }
     }
 
-    if (TestToRun != nullptr) {
-        delete TestToRun;
-    }
-    if (MsQuic != nullptr) {
-        delete MsQuic;
-    }
+    delete TestToRun;
+    delete MsQuic;
     return QUIC_RUN_FAILED_TEST_INITIALIZE;
 }
 
@@ -98,8 +93,5 @@ QuicMainStop(
     QUIC_STATUS Status = TestToRun->Wait(Timeout);
     delete TestToRun;
     delete MsQuic;
-    if (QUIC_SUCCEEDED(Status)) {
-        return QUIC_RUN_SUCCESS;
-    }
-    return QUIC_RUN_STOP_FAILURE;
+    return QUIC_SUCCEEDED(Status) ? QUIC_RUN_SUCCESS : QUIC_RUN_STOP_FAILURE;
 }

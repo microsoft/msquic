@@ -34,9 +34,9 @@ struct PerfBase {
         ) = 0;
 
     //
-    // Start the runner. The StopEvent can be triggered to stop early
-    // Passed here rather then Wait so we can synchronize off of it.
-    // This event must be kept alive until Wait is called.
+    // Start the runner. The StopEvent can be triggered to stop early. Passed
+    // here rather then Wait so we can synchronize off of it. This event must
+    // be kept alive until Wait is called.
     //
     virtual
     QUIC_STATUS

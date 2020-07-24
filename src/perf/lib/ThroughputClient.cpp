@@ -13,10 +13,13 @@ Abstract:
 #include "ThroughputClient.cpp.clog.h"
 #endif
 
-#ifndef _KERNEL_MODE
-#define QUIC_TEST_APIS 1
+//
+// This needs to be included in kernel mode for QUIC_ADDR to work. Breaks user
+// mode because of QUIC_TEST_API, so only included in kernel mode
+//
+#ifdef _KERNEL_MODE
+#include <quic_platform.h>
 #endif
-#include "msquichelper.h"
 #include "ThroughputClient.h"
 #include "ThroughputCommon.h"
 
@@ -42,9 +45,9 @@ ThroughputClient::Init(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    uint16_t ip;
-    if (TryGetValue(argc, argv, "ip", &ip)) {
-        switch (ip) {
+    uint16_t Ip;
+    if (TryGetValue(argc, argv, "ip", &Ip)) {
+        switch (Ip) {
         case 4: RemoteFamily = AF_INET; break;
         case 6: RemoteFamily = AF_INET6; break;
         }
@@ -56,42 +59,40 @@ ThroughputClient::Init(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    const char* localAddress;
-    if (TryGetValue(argc, argv, "bind", &localAddress)) {
-        if (!ConvertArgToAddress(localAddress, 0, &LocalIpAddr)) {
-            WriteOutput("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", localAddress);
+    const char* LocalAddress;
+    if (TryGetValue(argc, argv, "bind", &LocalAddress)) {
+        if (!ConvertArgToAddress(LocalAddress, 0, &LocalIpAddr)) {
+            WriteOutput("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", LocalAddress);
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
 
     // TODO: Core, since we need to support kernel mode
     #if _WIN32 && !_KERNEL_MODE
-    uint16_t compartmentid;
-    if (TryGetValue(argc, argv, "comp",  &compartmentid)) {
+    uint16_t CompartmentId;
+    if (TryGetValue(argc, argv, "comp",  &CompartmentId)) {
         NETIO_STATUS status;
-        if (!NETIO_SUCCESS(status = SetCurrentThreadCompartmentId(compartmentid))) {
-            WriteOutput("Failed to set compartment ID = %d: 0x%x\n", compartmentid, status);
+        if (!NETIO_SUCCESS(status = SetCurrentThreadCompartmentId(CompartmentId))) {
+            WriteOutput("Failed to set compartment ID = %d: 0x%x\n", CompartmentId, status);
             return QUIC_STATUS_INVALID_PARAMETER;
         } else {
-            WriteOutput("Running in Compartment %d\n", compartmentid);
+            WriteOutput("Running in Compartment %d\n", CompartmentId);
         }
     }
 
-    uint8_t cpuCore;
-    if (TryGetValue(argc, argv, "core",  &cpuCore)) {
-        SetThreadAffinityMask(GetCurrentThread(), (DWORD_PTR)(1ull << cpuCore));
+    uint8_t CpuCore;
+    if (TryGetValue(argc, argv, "core",  &CpuCore)) {
+        SetThreadAffinityMask(GetCurrentThread(), (DWORD_PTR)(1ull << CpuCore));
     }
 #endif
 
     TryGetValue(argc, argv, "sendbuf", &UseSendBuffer);
 
-    uint32_t ioSize = UseSendBuffer ? THROUGHPUT_DEFAULT_IO_SIZE_BUFFERED : THROUGHPUT_DEFAULT_IO_SIZE_NONBUFFERED;
-    TryGetValue(argc, argv, "iosize", &ioSize);
-    IoSize = ioSize;
+    IoSize = UseSendBuffer ? THROUGHPUT_DEFAULT_IO_SIZE_BUFFERED : THROUGHPUT_DEFAULT_IO_SIZE_NONBUFFERED;
+    TryGetValue(argc, argv, "iosize", &IoSize);
 
-    uint32_t ioCount = UseSendBuffer ? THROGHTPUT_DEFAULT_SEND_COUNT_BUFFERED : THROUGHPUT_DEFAULT_SEND_COUNT_NONBUFFERED;
-    TryGetValue(argc, argv, "iocount", &ioCount);
-    IoCount = ioCount;
+    IoCount = UseSendBuffer ? THROGHTPUT_DEFAULT_SEND_COUNT_BUFFERED : THROUGHPUT_DEFAULT_SEND_COUNT_NONBUFFERED;
+    TryGetValue(argc, argv, "iocount", &IoCount);
 
     size_t Len = strlen(Target);
     TargetData.reset(new char[Len + 1]);
@@ -139,12 +140,8 @@ struct ThroughputClient::SendRequest {
 };
 
 struct ShutdownWrapper {
-    HQUIC ConnHandle{nullptr};
-    HQUIC StreamHandle{nullptr};
+    HQUIC ConnHandle {nullptr};
     ~ShutdownWrapper() {
-        if (StreamHandle) {
-            MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
-        }
         if (ConnHandle) {
             MsQuic->ConnectionShutdown(ConnHandle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         }
@@ -173,7 +170,6 @@ ThroughputClient::Start(
             },
             ConnData,
             &ConnData->Connection.Handle);
-
     if (QUIC_FAILED(Status)) {
         WriteOutput("Failed ConnectionOpen 0x%x\n", Status);
         ConnectionDataAllocator.Free(ConnData);
@@ -190,7 +186,6 @@ ThroughputClient::Start(
             QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
             sizeof(SecFlags),
             &SecFlags);
-
     if (QUIC_FAILED(Status)) {
         WriteOutput("Failed Cert Validation Disable 0x%x\n", Status);
         return Status;
@@ -205,7 +200,6 @@ ThroughputClient::Start(
                 QUIC_PARAM_CONN_SEND_BUFFERING,
                 sizeof(Opt),
                 &Opt);
-
         if (QUIC_FAILED(Status)) {
             WriteOutput("Failed Disable Send Buffering 0x%x\n", Status);
             return Status;
@@ -227,7 +221,6 @@ ThroughputClient::Start(
             RemoteFamily,
             TargetData.get(),
             Port);
-
     if (QUIC_FAILED(Status)) {
         WriteOutput("Failed ConnectionStart 0x%x\n", Status);
         return Status;
@@ -248,22 +241,19 @@ ThroughputClient::Start(
             },
             StrmData,
             &StrmData->Stream.Handle);
-
     if (QUIC_FAILED(Status)) {
         WriteOutput("Failed StreamOpen 0x%x\n", Status);
         StreamDataAllocator.Free(StrmData);
         return Status;
     }
 
-    Shutdown.StreamHandle = StrmData->Stream.Handle;
-
     Status =
         MsQuic->StreamStart(
             StrmData->Stream.Handle,
             QUIC_STREAM_START_FLAG_NONE);
-
     if (QUIC_FAILED(Status)) {
         WriteOutput("Failed StreamStart 0x%x\n", Status);
+        StreamDataAllocator.Free(StrmData);
         return Status;
     }
 
@@ -301,7 +291,6 @@ ThroughputClient::Start(
     }
     WriteOutput("Started!\n");
     Shutdown.ConnHandle = nullptr;
-    Shutdown.StreamHandle = nullptr;
     return Status;
 }
 
@@ -372,15 +361,13 @@ ThroughputClient::StreamCallback(
                 Req->SetLength(BytesLeftToSend);
                 StrmData->BytesSent += Req->QuicBuffer.Length;
 
-                QUIC_STATUS Status =
+                if (QUIC_SUCCEEDED(
                     MsQuic->StreamSend(
                         StrmData->Stream.Handle,
                         &Req->QuicBuffer,
                         1,
                         Req->Flags,
-                        Req);
-
-                if (QUIC_SUCCEEDED(Status)) {
+                        Req))) {
                     Req = nullptr;
                 }
             }
@@ -392,7 +379,6 @@ ThroughputClient::StreamCallback(
     }
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
-
         MsQuic->StreamShutdown(
             StreamHandle,
             QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND | QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE,

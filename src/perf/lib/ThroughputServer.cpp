@@ -34,6 +34,10 @@ ThroughputServer::Init(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
+    if (!Listener.IsValid()) {
+        return QUIC_STATUS_INTERNAL_ERROR;
+    }
+
     uint16_t port = THROUGHPUT_DEFAULT_PORT;
     TryGetValue(argc, argv, "port", &port);
 
@@ -50,7 +54,6 @@ ThroughputServer::Init(
     TryGetValue(argc, argv, "connections", &NumberOfConnections);
 
     QUIC_STATUS Status = SecurityConfig.Initialize(argc, argv, Registration);
-
     if (QUIC_FAILED(Status)) {
         return Status;
     }

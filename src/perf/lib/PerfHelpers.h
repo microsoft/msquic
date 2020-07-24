@@ -15,6 +15,10 @@ Abstract:
 #include "PerfHelpers.h.clog.h"
 #endif
 
+#ifndef _KERNEL_MODE
+#define QUIC_TEST_APIS 1
+#endif
+
 #include <msquic.h>
 
 class QuicApiTable;
@@ -96,10 +100,10 @@ struct MsQuicListener {
     QUIC_STATUS
     Start(
         _In_ QUIC_ADDR* Address,
-        _In_ QUIC_LISTENER_CALLBACK_HANDLER ShadowHandler,
-        _In_ void* ShadowContext) {
-        Handler = ShadowHandler;
-        Context = ShadowContext;
+        _In_ QUIC_LISTENER_CALLBACK_HANDLER _Handler,
+        _In_ void* _Context) {
+        Handler = _Handler;
+        Context = _Context;
         return MsQuic->ListenerStart(Handle, Address);
     }
 
