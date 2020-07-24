@@ -48,7 +48,7 @@ if ($IsWindows) {
         Invoke-Expression $Command
     }
 
-} elseif ($IsLinux) {
+} elseif ($IsLinux -or $IsMacOS) {
     # TODO - Figure out how to install openssl?
 
     # Make sure we have full permissions for all artifacts.
