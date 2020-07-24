@@ -23,6 +23,7 @@ uint64_t QuicTotalMemory;
 QUIC_PLATFORM QuicPlatform = { NULL };
 QUIC_PROCESSOR_INFO* QuicProcessorInfo;
 uint64_t* QuicNumaMasks;
+uint8_t QuicProcessorsPerGroup;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -66,6 +67,14 @@ QuicProcessorInfoInit(
     DWORD BufferLength = 0;
     uint8_t* Buffer = NULL;
     uint32_t Offset;
+
+    //
+    // dwNumberOfProcessors is specified to be number of processors in current
+    // group. Processor groups are specified to be equal length.
+    //
+    SYSTEM_INFO SysInfo;
+    GetSystemInfo(&SysInfo);
+    QuicProcessorsPerGroup = (uint8_t)SysInfo.dwNumberOfProcessors;
 
     uint32_t NumaNodeCount = 0;
     uint32_t ActiveProcessorCount = QuicProcActiveCount();

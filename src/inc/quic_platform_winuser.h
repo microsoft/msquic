@@ -710,10 +710,22 @@ typedef struct {
 
 extern QUIC_PROCESSOR_INFO* QuicProcessorInfo;
 extern uint64_t* QuicNumaMasks;
+extern uint8_t QuicProcessorsPerGroup;
 
 #define QuicProcMaxCount() GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS)
 #define QuicProcActiveCount() GetActiveProcessorCount(ALL_PROCESSOR_GROUPS)
-#define QuicProcCurrentNumber() GetCurrentProcessorNumber()
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+DWORD
+QuicProcCurrentNumber(
+    void
+    ) {
+    PROCESSOR_NUMBER ProcNumber;
+    GetCurrentProcessorNumberEx(&ProcNumber);
+    return (ProcNumber.Group * QuicProcessorsPerGroup) + ProcNumber.Number;
+}
+
 
 //
 // Create Thread Interfaces
