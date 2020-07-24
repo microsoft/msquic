@@ -11,5 +11,5 @@ apt-get install -y dotnet-sdk-3.1
 dotnet tool install -g powershell
 wget https://github.com/microsoft/CLOG/releases/download/v0.1.2/Microsoft.Logging.CLOG.0.1.2.nupkg
 mkdir nuget
-mv Microsoft.Logging.CLOG.0.1.1.nupkg nuget/Microsoft.Logging.CLOG.0.1.2.nupkg
+mv Microsoft.Logging.CLOG.0.1.2.nupkg nuget/Microsoft.Logging.CLOG.0.1.2.nupkg
 dotnet tool install --global --add-source nuget Microsoft.Logging.CLOG
