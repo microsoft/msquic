@@ -199,10 +199,16 @@ if ($IsWindows) {
     $MsQuicCoreTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquiccoretest.exe"
     $MsQuicPlatTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquicplatformtest.exe"
     $KernelPath = Join-Path $RootDir "\artifacts\bin\winkernel\$($Arch)_$($Config)_$($Tls)"
-} else {
+}  elseif ($IsLinux) {
     $MsQuicTest = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/msquictest"
     $MsQuicCoreTest = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/msquiccoretest"
     $MsQuicPlatTest = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/msquicplatformtest"
+}  elseif ($IsMacOS) {
+    $MsQuicTest = Join-Path $RootDir "/artifacts/bin/macos/$($Arch)_$($Config)_$($Tls)/msquictest"
+    $MsQuicCoreTest = Join-Path $RootDir "/artifacts/bin/macos/$($Arch)_$($Config)_$($Tls)/msquiccoretest"
+    $MsQuicPlatTest = Join-Path $RootDir "/artifacts/bin/macos/$($Arch)_$($Config)_$($Tls)/msquicplatformtest"
+} else {
+    Write-Error "Unsupported platform type!"
 }
 
 # Make sure the build is present.
