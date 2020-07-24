@@ -10,7 +10,6 @@ Abstract:
 
 --*/
 
-
 #pragma once
 
 #include "msquic.h"

@@ -182,18 +182,6 @@ void
 QuicPerfDriverUnload(
     _In_ WDFDRIVER Driver
     )
-/*++
-
-Routine Description:
-
-    QuicTestDriverUnload will clean up any resources that were allocated for
-    this driver.
-
-Arguments:
-
-    Driver - Handle to a framework driver object created in DriverEntry
-
---*/
 {
     UNREFERENCED_PARAMETER(Driver);
     NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);

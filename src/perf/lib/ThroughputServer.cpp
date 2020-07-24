@@ -135,40 +135,13 @@ ThroughputServer::ConnectionCallback(
     _Inout_ QUIC_CONNECTION_EVENT* Event
     ) {
     switch (Event->Type) {
-    case QUIC_CONNECTION_EVENT_CONNECTED:
-        QuicTraceLogInfo(
-            ConnectionEventConnected,
-            "[ conn] Connection Connected (%p).",
-            ConnectionHandle);
-        break;
-    case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
-        QuicTraceLogInfo(
-            ConnectionEventPeerShutdown,
-            "[ conn] Connection Shutdown By Peer (%d) (%p).",
-            Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status,
-            ConnectionHandle);
-        break;
-    case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
-        QuicTraceLogInfo(
-            ConnectionEventPeerShutdown,
-            "[ conn] Connection Shutdown By Peer (%p).",
-            ConnectionHandle);
-        break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        QuicTraceLogInfo(
-            ConnectionEventShutdownComplete,
-            "[ conn] Connection Shutdown Complete (%p).",
-            ConnectionHandle);
         MsQuic->ConnectionClose(ConnectionHandle);
         if (NumberOfConnections > 0) {
             RefCount.CompleteItem();
         }
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED: {
-        QuicTraceLogInfo(
-            ConnectionEventPeerStreamStarted,
-            "[ strm] Peer Started (%p).",
-            Event->PEER_STREAM_STARTED.Stream);
         QUIC_STREAM_CALLBACK_HANDLER Handler =
             [](HQUIC Stream, void* Context, QUIC_STREAM_EVENT* Event) -> QUIC_STATUS {
                 return ((ThroughputServer*)Context)->
@@ -199,10 +172,6 @@ ThroughputServer::StreamCallback(
             0);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
-        QuicTraceLogInfo(
-            StreamEventShutdownComplete,
-            "[ conn] Connection Shutdown Complete (%p).",
-            StreamHandle);
         MsQuic->StreamClose(StreamHandle);
         break;
     }

@@ -69,7 +69,7 @@ ThroughputClient::Init(
     }
 
     // TODO: Core, since we need to support kernel mode
-    #ifdef QUIC_COMPARTMENT_ID
+#ifdef QUIC_COMPARTMENT_ID
     uint16_t CompartmentId;
     if (TryGetValue(argc, argv, "comp",  &CompartmentId)) {
         NETIO_STATUS status;
@@ -316,30 +316,7 @@ ThroughputClient::ConnectionCallback(
     _Inout_ ConnectionData* ConnData
     ) {
     switch (Event->Type) {
-    case QUIC_CONNECTION_EVENT_CONNECTED:
-        QuicTraceLogInfo(
-            ConnectionEventConnected,
-            "[ conn] Connection Connected (%p).",
-            ConnectionHandle);
-        break;
-    case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
-        QuicTraceLogInfo(
-            ConnectionEventPeerShutdown,
-            "[ conn] Connection Shutdown By Peer (%d) (%p).",
-            Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status,
-            ConnectionHandle);
-        break;
-    case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
-        QuicTraceLogInfo(
-            ConnectionEventPeerShutdown,
-            "[ conn] Connection Shutdown By Peer (%p).",
-            ConnectionHandle);
-        break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        QuicTraceLogInfo(
-            ConnectionEventShutdownComplete,
-            "[ conn] Connection Shutdown Complete (%p).",
-            ConnectionHandle);
         ConnectionDataAllocator.Free(ConnData);
         QuicEventSet(StopEvent);
         break;

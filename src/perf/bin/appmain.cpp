@@ -9,14 +9,13 @@ Abstract:
 
 --*/
 
-#ifdef QUIC_CLOG
-#include "appmain.cpp.clog.h"
-#endif
-
 #define QUIC_TEST_APIS 1
 #include "quic_driver_main.h"
 #include "PerfHelpers.h"
 #include <quic_trace.h>
+#ifdef QUIC_CLOG
+#include "appmain.cpp.clog.h"
+#endif
 
 #ifdef _WIN32
 
@@ -48,13 +47,16 @@ QuicUserMain(
     if (RetVal != 0) {
         return RetVal;
     }
+
     printf("Ready For Connections!\n\n");
     fflush(stdout);
+
     if (KeyboardWait) {
         printf("Press enter to exit\n");
         getchar();
         QuicEventSet(StopEvent);
     }
+
     RetVal = QuicMainStop(0);
     QuicEventUninitialize(StopEvent);
     return RetVal;
@@ -135,7 +137,6 @@ QuicKernelMain(
             OutBuffer,
             OutBufferSize,
             &OutBufferWritten);
-
     if (RunSuccess) {
         printf("%s", OutBuffer);
     }
@@ -161,7 +162,10 @@ main(
     bool KeyboardWait = false;
 
     QuicPlatformSystemLoad();
-    QuicPlatformInitialize();
+    if (QUIC_FAILED(QuicPlatformInitialize())) {
+        printf("Platform failed to initialize\n");
+        goto Exit;
+    }
 
     for (int i = 0; i < argc; ++i) {
         if (strcmp("--kernel", argv[i]) == 0) {
@@ -202,6 +206,7 @@ Exit:
     if (SelfSignedParams) {
         QuicPlatFreeSelfSignedCert(SelfSignedParams);
     }
+
     QuicPlatformUninitialize();
     QuicPlatformSystemUnload();
 

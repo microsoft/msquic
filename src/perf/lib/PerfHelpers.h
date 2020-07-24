@@ -203,7 +203,6 @@ constexpr _Ty&& QuicForward(
     return static_cast<_Ty&&>(_Arg);
 }
 
-
 class QuicPoolBufferAllocator {
     QUIC_POOL Pool;
     bool Initialized {false};
