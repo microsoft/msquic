@@ -80,10 +80,6 @@ ThroughputServer::Start(
         for (uint32_t i = 0; i < NumberOfConnections; i++) {
             RefCount.AddItem();
         }
-        //
-        // Add an extra item for the connection itself.
-        //
-        RefCount.AddItem();
     } else {
         //
         // Add a single item so we can wait on the Count Helper
@@ -189,9 +185,6 @@ ThroughputServer::StreamCallback(
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
         WriteOutput("Shutdown Complete!\n");
         MsQuic->StreamClose(StreamHandle);
-        if (NumberOfConnections > 0) {
-            RefCount.CompleteItem();
-        }
         break;
     }
     }
