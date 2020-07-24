@@ -305,13 +305,11 @@ QUIC_STATUS
 ThroughputClient::Wait(
     _In_ int Timeout
     ) {
-    WriteOutput("Waiting for: %d\n", Timeout);
     if (Timeout > 0) {
         QuicEventWaitWithTimeout(StopEvent, Timeout);
     } else {
         QuicEventWaitForever(StopEvent);
     }
-    WriteOutput("Finished!\n");
     return QUIC_STATUS_SUCCESS;
 }
 
