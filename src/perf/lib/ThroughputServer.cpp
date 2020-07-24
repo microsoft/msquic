@@ -77,6 +77,10 @@ ThroughputServer::Start(
         for (uint32_t i = 0; i < NumberOfConnections; i++) {
             RefCount.AddItem();
         }
+        //
+        // Add an extra item for the connection itself.
+        //
+        RefCount.AddItem();
     } else {
         //
         // Add a single item so we can wait on the Count Helper
@@ -103,23 +107,22 @@ ThroughputServer::ListenerCallback(
     _In_ HQUIC /*ListenerHandle*/,
     _Inout_ QUIC_LISTENER_EVENT* Event
     ) {
-    QUIC_CONNECTION_CALLBACK_HANDLER Handler;
     switch (Event->Type) {
-    case QUIC_LISTENER_EVENT_NEW_CONNECTION:
+    case QUIC_LISTENER_EVENT_NEW_CONNECTION: {
         Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
-        Handler =
+        QUIC_CONNECTION_CALLBACK_HANDLER Handler =
             [](HQUIC Conn, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
-                return ((ConnectionData*)Context)->Server->
+                return ((ThroughputServer*)Context)->
                     ConnectionCallback(
                         Conn,
-                        Event,
-                        (ConnectionData*)Context);
+                        Event);
             };
         MsQuic->SetCallbackHandler(
             Event->NEW_CONNECTION.Connection,
             (void*)Handler,
-            new ConnectionData{ this });
+            this);
         break;
+    }
     }
     return QUIC_STATUS_SUCCESS;
 }
@@ -127,10 +130,8 @@ ThroughputServer::ListenerCallback(
 QUIC_STATUS
 ThroughputServer::ConnectionCallback(
     _In_ HQUIC ConnectionHandle,
-    _Inout_ QUIC_CONNECTION_EVENT* Event,
-    _Inout_ ConnectionData* Connection
+    _Inout_ QUIC_CONNECTION_EVENT* Event
     ) {
-    QUIC_STREAM_CALLBACK_HANDLER Handler;
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
         WriteOutput("[conn][%p] Connected\n", ConnectionHandle);
@@ -143,21 +144,23 @@ ThroughputServer::ConnectionCallback(
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         WriteOutput("[conn][%p] All done\n", ConnectionHandle);
         MsQuic->ConnectionClose(ConnectionHandle);
-        delete Connection;
+        if (NumberOfConnections > 0) {
+            RefCount.CompleteItem();
+        }
         break;
-    case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
+    case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED: {
         WriteOutput("[strm][%p] Peer started\n", Event->PEER_STREAM_STARTED.Stream);
-        Handler =
+        QUIC_STREAM_CALLBACK_HANDLER Handler =
             [](HQUIC Stream, void* Context, QUIC_STREAM_EVENT* Event) -> QUIC_STATUS {
-                return ((StreamData*)Context)->Server->
+                return ((ThroughputServer*)Context)->
                     StreamCallback(
                         Stream,
-                        Event,
-                        (StreamData*)Context);
+                        Event);
             };
-        MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)Handler, new StreamData{ this });
+        MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)Handler, this);
         MsQuic->ConnectionSendResumptionTicket(ConnectionHandle, QUIC_SEND_RESUMPTION_FLAG_NONE, 0, nullptr);
         break;
+    }
     case QUIC_CONNECTION_EVENT_RESUMED:
         WriteOutput("[conn][%p] Connection resumed!\n", ConnectionHandle);
         break;
@@ -170,8 +173,7 @@ ThroughputServer::ConnectionCallback(
 QUIC_STATUS
 ThroughputServer::StreamCallback(
     _In_ HQUIC StreamHandle,
-    _Inout_ QUIC_STREAM_EVENT* Event,
-    _Inout_ StreamData* Stream
+    _Inout_ QUIC_STREAM_EVENT* Event
     ) {
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
@@ -183,9 +185,10 @@ ThroughputServer::StreamCallback(
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
         WriteOutput("Shutdown Complete!\n");
-        RefCount.CompleteItem();
-        delete Stream;
         MsQuic->StreamClose(StreamHandle);
+        if (NumberOfConnections > 0) {
+            RefCount.CompleteItem();
+        }
         break;
     }
     }

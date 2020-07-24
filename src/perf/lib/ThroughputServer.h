@@ -38,13 +38,6 @@ public:
 
 private:
 
-    struct ConnectionData {
-        ThroughputServer* Server;
-    };
-    struct StreamData {
-        ThroughputServer* Server;
-    };
-
     QUIC_STATUS
     ListenerCallback(
         _In_ HQUIC ListenerHandle,
@@ -54,15 +47,13 @@ private:
     QUIC_STATUS
     ConnectionCallback(
         _In_ HQUIC ConnectionHandle,
-        _Inout_ QUIC_CONNECTION_EVENT* Event,
-        _Inout_ ConnectionData* Connection
+        _Inout_ QUIC_CONNECTION_EVENT* Event
         );
 
     QUIC_STATUS
     StreamCallback(
         _In_ HQUIC StreamHandle,
-        _Inout_ QUIC_STREAM_EVENT* Event,
-        _Inout_ StreamData* Stream
+        _Inout_ QUIC_STREAM_EVENT* Event
         );
 
     MsQuicRegistration Registration;
