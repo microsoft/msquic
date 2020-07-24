@@ -29,7 +29,7 @@ typedef struct QUIC_DEVICE_EXTENSION {
     EX_PUSH_LOCK Lock;
 
     _Guarded_by_(Lock)
-        LIST_ENTRY ClientList;
+    LIST_ENTRY ClientList;
     ULONG ClientListSize;
 
 } QUIC_DEVICE_EXTENSION;

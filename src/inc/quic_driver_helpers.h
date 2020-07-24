@@ -250,7 +250,7 @@ public:
         _Out_writes_bytes_opt_(OutBufferSize)
             void* OutBuffer,
         _In_ uint32_t OutBufferSize,
-        _Out_ LPDWORD OutBufferWritten, // Needs to be LPDWORD to match DeviceIoControl
+        _Out_opt_ uint32_t* OutBufferWritten,
         _In_ uint32_t TimeoutMs = 30000
         ) {
         uint32_t Error;
@@ -274,7 +274,7 @@ public:
                 IoControlCode,
                 nullptr, 0,
                 OutBuffer, OutBufferSize,
-                OutBufferWritten,
+                nullptr,
                 &Overlapped)) {
             Error = GetLastError();
             if (Error != ERROR_IO_PENDING) {
@@ -307,6 +307,7 @@ public:
             }
         } else {
             Error = ERROR_SUCCESS;
+            *OutBufferWritten = dwBytesReturned;
         }
         CloseHandle(Overlapped.hEvent);
         return Error == ERROR_SUCCESS;

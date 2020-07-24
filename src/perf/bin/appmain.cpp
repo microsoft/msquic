@@ -73,7 +73,9 @@ QuicKernelMain(
     ) {
     size_t TotalLength = 0;
 
+    //
     // Get total length
+    //
     for (int i = 0; i < argc; ++i) {
         //
         // Length of string, plus null terminator, plus length
@@ -83,7 +85,7 @@ QuicKernelMain(
 
     TotalLength += sizeof(TotalLength);
 
-    char* Data = static_cast<char*>(QuicAlloc(TotalLength));
+    char* Data = static_cast<char*>(QUIC_ALLOC_NONPAGED(TotalLength));
     if (!Data) {
         printf("Failed to allocate arguments to pass\n");
         return QUIC_RUN_FAILED_TEST_INITIALIZE;
@@ -106,13 +108,18 @@ QuicKernelMain(
     }
 
     QUIC_DBG_ASSERT(DataCurrent == (Data + TotalLength));
-    QUIC_DBG_ASSERT(TotalLength <= UINT_MAX);
 
-    constexpr DWORD OutBufferSize = 1024 * 1000;
-    char* OutBuffer = (char*)QuicAlloc(OutBufferSize); // 1 MB
+    if (TotalLength > UINT_MAX) {
+        printf("Too many arguments to pass to the driver\n");
+        QUIC_FREE(Data);
+        return QUIC_RUN_FAILED_TEST_INITIALIZE;
+    }
+
+    constexpr uint32_t OutBufferSize = 1024 * 1000;
+    char* OutBuffer = (char*)QUIC_ALLOC_NONPAGED(OutBufferSize); // 1 MB
     if (!OutBuffer) {
         printf("Failed to allocate space for output buffer\n");
-        QuicFree(Data);
+        QUIC_FREE(Data);
         return QUIC_RUN_FAILED_TEST_INITIALIZE;
     }
 
@@ -123,14 +130,14 @@ QuicKernelMain(
     DriverClient.Initialize(SelfSignedParams);
 
     if (!DriverClient.Run(IOCTL_QUIC_RUN_PERF, Data, (uint32_t)TotalLength)) {
-        QuicFree(Data);
-        QuicFree(OutBuffer);
+        QUIC_FREE(Data);
+        QUIC_FREE(OutBuffer);
         return QUIC_RUN_FAILED_TEST_INITIALIZE;
     }
     printf("Ready For Connections!\n\n");
     fflush(stdout);
 
-    DWORD OutBufferWritten = 0;
+    uint32_t OutBufferWritten = 0;
     bool RunSuccess =
         DriverClient.Read(
             IOCTL_QUIC_READ_DATA,
@@ -141,8 +148,8 @@ QuicKernelMain(
         printf("%s", OutBuffer);
     }
 
-    QuicFree(Data);
-    QuicFree(OutBuffer);
+    QUIC_FREE(Data);
+    QUIC_FREE(OutBuffer);
 
     return RunSuccess ? QUIC_RUN_SUCCESS : QUIC_RUN_STOP_FAILURE;
 }
