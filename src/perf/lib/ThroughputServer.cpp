@@ -24,6 +24,7 @@ Abstract:
 ThroughputServer::ThroughputServer(
     _In_ PerfSelfSignedConfiguration* SelfSignedConfig
     ) : SelfSignedConfig{SelfSignedConfig} {
+    QuicZeroMemory(&Address, sizeof(Address));
     if (Session.IsValid()) {
         Session.SetAutoCleanup();
         Session.SetPeerUnidiStreamCount(THROUGHPUT_SERVER_PEER_UNI);

@@ -60,7 +60,7 @@ ThroughputClient::Init(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    const char* LocalAddress;
+    const char* LocalAddress = nullptr;
     if (TryGetValue(argc, argv, "bind", &LocalAddress)) {
         if (!ConvertArgToAddress(LocalAddress, 0, &LocalIpAddr)) {
             WriteOutput("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", LocalAddress);

@@ -159,6 +159,10 @@ ConvertArgToAddress(
     )
 {
     if (strcmp("*", Arg) == 0) {
+        //
+        // Explicitly zero, otherwise kernel mode errors
+        //
+        QuicZeroMemory(Address, sizeof(*Address));
         QuicAddrSetFamily(Address, AF_UNSPEC);
         QuicAddrSetPort(Address, Port);
         return TRUE;
