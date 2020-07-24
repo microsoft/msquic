@@ -313,7 +313,7 @@ ThroughputClient::Wait(
 
 QUIC_STATUS
 ThroughputClient::ConnectionCallback(
-    _In_ HQUIC ConnectionHandle,
+    _In_ HQUIC /*ConnectionHandle*/,
     _Inout_ QUIC_CONNECTION_EVENT* Event,
     _Inout_ ConnectionData* ConnData
     ) {
