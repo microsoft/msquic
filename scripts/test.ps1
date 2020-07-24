@@ -192,7 +192,7 @@ $RunTest = Join-Path $RootDir "scripts/run-gtest.ps1"
 # Path to the msquictest exectuable.
 $MsQuicTest = $null
 $MsQuicCoreTest = $null
-$MsQuicPlatTest = $Fixnull
+$MsQuicPlatTest = $null
 $KernelPath = $null;
 if ($IsWindows) {
     $MsQuicTest = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\msquictest.exe"
