@@ -14,6 +14,7 @@
 #include <algorithm>
 
 #define QUIC_TEST_APIS 1 // Needed for self signed cert API
+#define QUIC_API_ENABLE_INSECURE_FEATURES 1 // Needed for disabling 1-RTT encryption
 #include <msquichelper.h>
 
 #define EXIT_ON_FAILURE(x) do { \
@@ -431,6 +432,9 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
         break;
     case QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED:                     // uint8_t (BOOLEAN)
         break; // Get Only
+    case QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION:                   // uint8_t (BOOLEAN)
+        Helper.SetUint8(QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION, GetRandom(2));
+        break;
     default:
         break;
     }

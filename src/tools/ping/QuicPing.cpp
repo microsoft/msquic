@@ -203,19 +203,6 @@ ParseCommonCommands(
     //
 
     QuicPingRawIoBuffer = new uint8_t[PingConfig.IoSize];
-
-    if (!PingConfig.UseEncryption) {
-        uint8_t value = FALSE;
-        if (QUIC_FAILED(
-            MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_LEVEL_GLOBAL,
-                QUIC_PARAM_GLOBAL_ENCRYPTION,
-                sizeof(value),
-                &value))) {
-            printf("MsQuic->SetParam (GLOBAL_ENCRYPTION) failed!\n");
-        }
-    }
 }
 
 void
