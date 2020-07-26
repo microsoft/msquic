@@ -2306,6 +2306,10 @@ QuicConnGenerateLocalTransportParameters(
         LocalTP->MaxDatagramFrameSize = QUIC_DEFAULT_MAX_DATAGRAM_LENGTH;
     }
 
+    if (Connection->State.Disable1RttEncrytion) {
+        LocalTP->Flags |= QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION;
+    }
+
     if (QuicConnIsServer(Connection)) {
 
         if (Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount) {
@@ -2731,6 +2735,16 @@ QuicConnProcessPeerTransportParameters(
         !FromCache);
 
     QuicDatagramOnSendStateChanged(&Connection->Datagram);
+
+    if (Connection->State.Disable1RttEncrytion &&
+        Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION) {
+        QuicTraceLogConnInfo(
+            NegotiatedDisable1RttEncryption,
+            Connection,
+            "Negotiated Disable 1-RTT Encryption");
+    } else {
+        Connection->State.Disable1RttEncrytion = FALSE;
+    }
 
     return;
 
@@ -3384,6 +3398,7 @@ QuicConnRecvHeader(
         }
 
         Packet->KeyType = QuicPacketTypeToKeyType(Packet->LH->Type);
+        Packet->Encrypted = Connection->State.EncryptionEnabled;
 
     } else {
 
@@ -3393,9 +3408,12 @@ QuicConnRecvHeader(
         }
 
         Packet->KeyType = QUIC_PACKET_KEY_1_RTT;
+        Packet->Encrypted =
+            Connection->State.EncryptionEnabled &&
+            !Connection->State.Disable1RttEncrytion;
     }
 
-    if (Connection->State.EncryptionEnabled &&
+    if (Packet->Encrypted &&
         Connection->State.HeaderProtectionEnabled &&
         Packet->PayloadLength < 4 + QUIC_HP_SAMPLE_LENGTH) {
         QuicPacketLogDrop(Connection, Packet, "Too short for HP");
@@ -3510,7 +3528,7 @@ QuicConnRecvPrepareDecrypt(
     //
     // Ensure minimum encrypted payload length.
     //
-    if (Connection->State.EncryptionEnabled &&
+    if (Packet->Encrypted &&
         Packet->PayloadLength < QUIC_ENCRYPTION_OVERHEAD) {
         QuicPacketLogDrop(Connection, Packet, "Payload length less than encryption tag");
         return FALSE;
@@ -3603,7 +3621,7 @@ QuicConnRecvDecryptAndAuthenticate(
     //
     // Decrypt the payload with the appropriate key.
     //
-    if (Connection->State.EncryptionEnabled &&
+    if (Packet->Encrypted &&
         QUIC_FAILED(
         QuicDecrypt(
             Connection->Crypto.TlsState.ReadKeys[Packet->KeyType]->PacketKey,
@@ -3689,7 +3707,7 @@ QuicConnRecvDecryptAndAuthenticate(
     //
     // Account for updated payload length after decryption.
     //
-    if (Connection->State.EncryptionEnabled) {
+    if (Packet->Encrypted) {
         Packet->PayloadLength -= QUIC_ENCRYPTION_OVERHEAD;
     }
 
@@ -4785,7 +4803,7 @@ QuicConnRecvDatagramBatch(
         return;
     }
 
-    if (Connection->State.EncryptionEnabled &&
+    if (Packet->Encrypted &&
         Connection->State.HeaderProtectionEnabled) {
         if (QUIC_FAILED(
             QuicHpComputeMask(
@@ -5844,6 +5862,29 @@ QuicConnParamSet(
 
         break;
 
+    case QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION:
+
+        if (BufferLength != sizeof(BOOLEAN)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (Connection->State.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        Connection->State.Disable1RttEncrytion = *(BOOLEAN*)Buffer;
+        Status = QUIC_STATUS_SUCCESS;
+
+        QuicTraceLogConnVerbose(
+            Disable1RttEncrytionUpdated,
+            Connection,
+            "Updated disable 1-RTT encrytption to %hhu",
+            Connection->State.Disable1RttEncrytion);
+
+        break;
+
     case QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER:
 
         if (BufferLength != sizeof(QUIC_PRIVATE_TRANSPORT_PARAMETER)) {
@@ -6378,6 +6419,25 @@ QuicConnParamGet(
 
         *BufferLength = sizeof(BOOLEAN);
         *(BOOLEAN*)Buffer = Connection->Datagram.SendEnabled;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION:
+
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = Connection->State.Disable1RttEncrytion;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
