@@ -178,7 +178,7 @@ function Start-Executable {
             }
         } elseif ($CodeCoverage) {
             $pinfo.FileName = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
-            $pinfo.Arguments = "--modules=$(Split-Path $Path -Parent) --cover_children --sources src\core --sources src\inc --sources src\platform --excluded_sources unittest --working_dir $($LogDir) --export_type binary:$(Join-Path $CoverageDir $CoverageName) -- $($Path) $($Arguments)"
+            $pinfo.Arguments = "--modules=$(Split-Path $Path -Parent) --cover_children --sources src\core --excluded_sources unittest --working_dir $($LogDir) --export_type binary:$(Join-Path $CoverageDir $CoverageName) -- $($Path) $($Arguments)"
             $pinfo.WorkingDirectory = $LogDir
         } else {
             $pinfo.FileName = $Path
