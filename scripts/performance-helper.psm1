@@ -359,7 +359,7 @@ function Invoke-LocalExe {
     $FullCommand = "$Exe $RunArgs"
     Write-Debug "Running Locally: $FullCommand"
 
-    if ($Record -and $IsWindows) {
+    if ($Record -and $IsWindows -and !$Local) {
         $EtwXmlName = $Exe + ".local.wprp"
 
         $WpaStackWalkProfileXml | Out-File $EtwXmlName
@@ -374,7 +374,7 @@ function Invoke-LocalExe {
 
     $RetVal = Receive-Job -Job $LocalJob
 
-    if ($Record -and $IsWindows) {
+    if ($Record -and $IsWindows -and !$Local) {
         $EtwName = $Exe + ".local.etl"
         wpr.exe -stop $EtwName 2> $null | Out-Null
     }

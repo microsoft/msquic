@@ -316,7 +316,9 @@ function Invoke-Test {
 
     if ($Record) {
         Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + "remote.etl"))
-        Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + "local.etl"))
+        if (!$Local) {
+            Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + "local.etl"))
+        }
     }
 
     if ($PGO) {
