@@ -23,6 +23,7 @@ uint64_t QuicTotalMemory;
 QUIC_PLATFORM QuicPlatform = { NULL };
 QUIC_PROCESSOR_INFO* QuicProcessorInfo;
 uint64_t* QuicNumaMasks;
+uint32_t* QuicProcessorGroupOffsets;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -66,6 +67,7 @@ QuicProcessorInfoInit(
     DWORD BufferLength = 0;
     uint8_t* Buffer = NULL;
     uint32_t Offset;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX FirstLogicalProcessor = NULL;
 
     uint32_t NumaNodeCount = 0;
     uint32_t ActiveProcessorCount = QuicProcActiveCount();
@@ -108,6 +110,24 @@ QuicProcessorInfoInit(
             GetLastError(),
             "GetLogicalProcessorInformationEx failed");
         goto Error;
+    }
+
+    FirstLogicalProcessor = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)Buffer;
+    uint32_t ProcessorGroupCount = FirstLogicalProcessor->Group.ActiveGroupCount;
+    uint32_t ProcessorsPerGroup = FirstLogicalProcessor->Group.GroupInfo[0].ActiveProcessorCount;
+
+    QuicProcessorGroupOffsets = QUIC_ALLOC_NONPAGED(ProcessorGroupCount * sizeof(uint8_t));
+    if (QuicProcessorGroupOffsets == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of %s failed. ($llu bytes)",
+            "QuicProcessorGroupOffsets",
+            ProcessorGroupCount * sizeof(uint8_t));
+        goto Error;
+    }
+
+    for (uint32_t i = 0; i < ProcessorGroupCount; ++i) {
+        QuicProcessorGroupOffsets[i] = i * ProcessorsPerGroup;
     }
 
     Offset = 0;
@@ -222,6 +242,8 @@ Error:
     if (!Result) {
         QUIC_FREE(QuicNumaMasks);
         QuicNumaMasks = NULL;
+        QUIC_FREE(QuicProcessorGroupOffsets);
+        QuicProcessorGroupOffsets = NULL;
         QUIC_FREE(QuicProcessorInfo);
         QuicProcessorInfo = NULL;
     }
@@ -299,6 +321,8 @@ QuicPlatformUninitialize(
     QUIC_DBG_ASSERT(QuicPlatform.Heap);
     QUIC_FREE(QuicNumaMasks);
     QuicNumaMasks = NULL;
+    QUIC_FREE(QuicProcessorGroupOffsets);
+    QuicProcessorGroupOffsets = NULL;
     QUIC_FREE(QuicProcessorInfo);
     QuicProcessorInfo = NULL;
     HeapDestroy(QuicPlatform.Heap);
