@@ -315,10 +315,6 @@ function Invoke-RemoteExe {
 
         if ($Record -and $IsWindows) {
             $EtwXmlName = $Exe + ".remote.wprp"
-            try {
-            	wpr.exe -cancel 2> $null
-            } catch {
-            }
 
             $WpaStackWalkProfileXml | Out-File $EtwXmlName
             wpr.exe -start $EtwXmlName -filemode 2> $null
@@ -363,6 +359,13 @@ function Invoke-LocalExe {
     $FullCommand = "$Exe $RunArgs"
     Write-Debug "Running Locally: $FullCommand"
 
+    if ($Record -and $IsWindows) {
+        $EtwXmlName = $Exe + ".local.wprp"
+
+        $WpaStackWalkProfileXml | Out-File $EtwXmlName
+        wpr.exe -start $EtwXmlName -filemode 2> $null
+    }
+
     $LocalJob = Start-Job -ScriptBlock { & $Using:Exe ($Using:RunArgs).Split(" ") }
 
     # Wait 60 seconds for the job to finish
@@ -370,6 +373,12 @@ function Invoke-LocalExe {
     Stop-Job -Job $LocalJob | Out-Null
 
     $RetVal = Receive-Job -Job $LocalJob
+
+    if ($Record -and $IsWindows) {
+        $EtwName = $Exe + ".local.etl"
+        wpr.exe -stop $EtwName 2> $null
+    }
+
     return $RetVal -join "`n"
 }
 

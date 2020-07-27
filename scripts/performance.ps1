@@ -315,7 +315,8 @@ function Invoke-Test {
     }
 
     if ($Record) {
-        Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".etl"))
+        Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + "remote.etl"))
+        Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + "local.etl"))
     }
 
     if ($PGO) {
@@ -332,6 +333,19 @@ function Invoke-Test {
 }
 
 $LocalDataCache = LocalSetup
+
+if ($Record -and $IsWindows) {
+    try {
+        wpr.exe -cancel 2> $null
+    } catch {
+    }
+    Invoke-TestCommand -Session $Session -ScriptBlock {
+        try {
+            wpr.exe -cancel 2> $null
+        } catch {
+        }
+    }
+}
 
 try {
     $Tests = Get-Tests $TestsFile
