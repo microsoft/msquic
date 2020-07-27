@@ -113,8 +113,8 @@ QuicPlatformSystemLoad(
         return;
     }
 
-    memcpy(providerFullPath, info.dli_fname, lastTrailingSlashLen);
-    memcpy(providerFullPath + lastTrailingSlashLen, tpLibNameLen);
+    QuicCopyMemory(providerFullPath, info.dli_fname, lastTrailingSlashLen);
+    QuicCopyMemory(providerFullPath + lastTrailingSlashLen, tpLibName, tpLibNameLen);
     providerFullPath[lastTrailingSlashLen + tpLibNameLen] = '\0';
 
     // Load the tracepoint provider.
