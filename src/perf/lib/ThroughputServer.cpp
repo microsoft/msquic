@@ -59,9 +59,7 @@ ThroughputServer::Init(
     TryGetValue(argc, argv, "connections", &NumberOfConnections);
 
     QUIC_STATUS Status = SecurityConfig.Initialize(argc, argv, Registration, SelfSignedConfig);
-    if (QUIC_FAILED(Status)) {
-        return Status;
-    }
+    return Status;
 }
 
 QUIC_STATUS

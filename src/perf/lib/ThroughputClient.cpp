@@ -46,6 +46,8 @@ ThroughputClient::Init(
     Port = THROUGHPUT_DEFAULT_PORT;
     TryGetValue(argc, argv, "port", &Port);
 
+    TryGetValue(argc, argv, "encypt", &UseEncryption);
+
     const char* Target;
     if (!TryGetValue(argc, argv, "target", &Target)) {
         WriteOutput("Must specify '-target' argument!\n");
