@@ -13,7 +13,7 @@ $WpaStackWalkProfileXml = `
       <BufferSize Value="1024"/>
       <Buffers Value="80"/>
     </SystemCollector>
-    <EventCollector Id="EC_LowVolume" Realtime="false">
+    <EventCollector Id="EC_LowVolume" Realtime="false" Name="LowVolume">
       <BufferSize Value="1024"/>
       <Buffers Value="80"/>
     </EventCollector>
