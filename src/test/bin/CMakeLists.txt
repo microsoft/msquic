@@ -21,6 +21,6 @@ add_executable(msquictest ${SOURCES})
 
 set_property(TARGET msquictest PROPERTY FOLDER "tests")
 
-target_link_libraries(msquictest msquic testlib platform gtest PLATFORM_CLOG_LIB MSQUICTEST_CLOG_LIB)
+target_link_libraries(msquictest msquic testlib platform gtest msquictraceprovicer MSQUICTEST_CLOG_LIB)
 
 add_test(msquictest msquictest)

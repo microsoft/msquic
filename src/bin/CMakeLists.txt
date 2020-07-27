@@ -35,7 +35,9 @@ else()
 endif()
 
 if(WIN32)
-    target_link_libraries(msquic PRIVATE PLATFORM_CLOG_LIB CORE_CLOG_LIB)
+    add_library(msquictraceprovicer INTERFACE)
+    target_link_libraries(msquictraceprovicer INTERFACE PLATFORM_CLOG_LIB CORE_CLOG_LIB)
+
 else()
     add_library(msquictraceprovicer SHARED $<TARGET_OBJECTS:PLATFORM_CLOG_LIB> $<TARGET_OBJECTS:CORE_CLOG_LIB>)
     target_link_libraries(msquictraceprovicer PRIVATE ${LTTNGUST_LIBRARIES})
@@ -43,6 +45,8 @@ else()
     install(TARGETS msquictraceprovicer EXPORT msquictraceprovicer DESTINATION "${main_lib_dest}")
     install(EXPORT msquictraceprovicer DESTINATION ${msquic_dest})
 endif()
+
+target_link_libraries(msquic PRIVATE msquictraceprovicer)
 
 target_include_directories(msquic PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>

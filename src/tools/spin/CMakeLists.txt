@@ -5,7 +5,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 
 add_executable(spinquic spinquic.cpp)
 
-target_link_libraries(spinquic msquic platform PLATFORM_CLOG_LIB CORE_CLOG_LIB)
+target_link_libraries(spinquic msquic platform msquictraceprovicer)
 
 set_property(TARGET spinquic PROPERTY FOLDER "tools")
 
