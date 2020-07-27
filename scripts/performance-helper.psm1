@@ -313,21 +313,16 @@ function Invoke-RemoteExe {
             $env:LD_LIBRARY_PATH = $BasePath
         }
 
-        Write-Debug "Running ScriptBlock for Remote Command"
-
         if ($Record -and $IsWindows) {
-            Write-Debug "Starting Remote Record"
             $EtwXmlName = $Exe + ".remote.wprp"
-            wpr.exe -cancel 2> $null
-
-            Write-Debug "Cancelled any existing record"
+            try {
+            	wpr.exe -cancel 2> $null
+            } catch {
+            }
 
             $WpaStackWalkProfileXml | Out-File $EtwXmlName
             wpr.exe -start $EtwXmlName -filemode 2> $null
-            Write-Debug "Started Remote Record"
         }
-
-        Write-Debug "Starting remote exe"
 
         & $Exe ($RunArgs).Split(" ")
 
