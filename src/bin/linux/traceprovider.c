@@ -10,4 +10,5 @@ Abstract:
 --*/
 
 #define TRACEPOINT_CREATE_PROBES
+#include "quic_platform.h"
 #include "quic_trace.h"
