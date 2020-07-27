@@ -393,7 +393,7 @@ QuicStreamCompleteSendRequest(
         }
 
         (void)QuicStreamIndicateEvent(Stream, &Event);
-    } else {
+    } else if (SendRequest->InternalBuffer.Length != 0) {
         QuicSendBufferFree(
             &Connection->SendBuffer,
             SendRequest->InternalBuffer.Buffer,
