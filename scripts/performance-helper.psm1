@@ -11,8 +11,12 @@ $WpaStackWalkProfileXml = `
   <Profiles>
     <SystemCollector Id="SC_HighVolume" Realtime="false">
       <BufferSize Value="1024"/>
-      <Buffers Value="20"/>
+      <Buffers Value="80"/>
     </SystemCollector>
+    <EventCollector Id="EC_LowVolume" Realtime="false">
+      <BufferSize Value="1024"/>
+      <Buffers Value="80"/>
+    </EventCollector>
     <SystemProvider Id="SP_CPU">
       <Keywords>
         <Keyword Value="CpuConfig"/>
@@ -41,6 +45,14 @@ $WpaStackWalkProfileXml = `
         <SystemCollectorId Value="SC_HighVolume">
           <SystemProviderId Value="SP_CPU" />
         </SystemCollectorId>
+        <EventCollectorId Value="EC_LowVolume">
+          <EventProviders>
+            <EventProviderId Value="EP_TcpIpEtw" />
+            <EventProviderId Value="EP_WinSockEtw" />
+            <EventProviderId Value="EP_MsQuicEtw_LowVolume_DataPath" />
+            <EventProviderId Value="EP_MsQuicEtw_LowVolume" />
+          </EventProviders>
+        </EventCollectorId>
       </Collectors>
     </Profile>
   </Profiles>
