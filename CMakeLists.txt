@@ -139,7 +139,7 @@ set(QUIC_OUTPUT_DIR ${QUIC_BUILD_DIR}/bin/$<IF:$<CONFIG:Debug>,Debug,Release> CA
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/obj/$<IF:$<CONFIG:Debug>,Debug,Release>)
 
-execute_process(COMMAND clog --installDirectory ${CMAKE_SOURCE_DIR}/build/clog)
+#execute_process(COMMAND clog --installDirectory ${CMAKE_SOURCE_DIR}/build/clog)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${QUIC_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${QUIC_OUTPUT_DIR})

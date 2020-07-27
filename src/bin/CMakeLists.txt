@@ -19,7 +19,7 @@ target_compile_options(msquic PRIVATE
      $<$<CXX_COMPILER_ID:MSVC>:
         ${MSVC_WARNING_FLAGS}>)
 
-target_link_libraries(msquic PRIVATE core platform PLATFORM_CLOG_LIB CORE_CLOG_LIB)
+target_link_libraries(msquic PRIVATE core platform)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     target_link_libraries(msquic PUBLIC
@@ -32,6 +32,16 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 else()
     SET_TARGET_PROPERTIES(msquic
         PROPERTIES LINK_FLAGS "-Wl,--version-script=\"${CMAKE_CURRENT_SOURCE_DIR}/linux/exports.txt\"")
+endif()
+
+if(WIN32)
+    target_link_libraries(msquic PRIVATE PLATFORM_CLOG_LIB CORE_CLOG_LIB)
+else()
+    add_library(msquictraceprovicer SHARED $<TARGET_OBJECTS:PLATFORM_CLOG_LIB> $<TARGET_OBJECTS:CORE_CLOG_LIB>)
+    target_link_libraries(msquictraceprovicer PRIVATE ${LTTNGUST_LIBRARIES})
+    target_link_libraries(msquic PRIVATE msquictraceprovicer)
+    install(TARGETS msquictraceprovicer EXPORT msquictraceprovicer DESTINATION "${main_lib_dest}")
+    install(EXPORT msquictraceprovicer DESTINATION ${msquic_dest})
 endif()
 
 target_include_directories(msquic PUBLIC
@@ -47,16 +57,10 @@ set(PUBLIC_HEADERS
 install(TARGETS msquic EXPORT msquic DESTINATION "${main_lib_dest}")
 install(FILES ${PUBLIC_HEADERS} DESTINATION "${include_dest}")
 
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+if (WIN32)
     configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake )
 else()
     configure_file(msquic-config-linux.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake)
-
-    install(TARGETS PLATFORM_CLOG_LIB EXPORT PLATFORM_CLOG_LIB DESTINATION "${main_lib_dest}")
-    install(TARGETS CORE_CLOG_LIB EXPORT CORE_CLOG_LIB DESTINATION "${main_lib_dest}")
-
-    install(EXPORT PLATFORM_CLOG_LIB DESTINATION ${msquic_dest})
-    install(EXPORT CORE_CLOG_LIB DESTINATION ${msquic_dest})
 endif()
 
 install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION ${msquic_dest})
