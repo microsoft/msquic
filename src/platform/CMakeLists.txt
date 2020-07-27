@@ -88,4 +88,4 @@ if (NOT MSVC AND NOT APPLE)
 endif()
 
 target_link_libraries(platform ${ATOMIC})
-target_link_libraries(platform PUBLIC CORE_CLOG_LIB)
+target_link_libraries(platform CORE_CLOG_LIB)
