@@ -378,7 +378,7 @@ function Start-Tracing {
         $EtwXmlName = $Exe + ".local.wprp"
 
         $WpaStackWalkProfileXml | Out-File $EtwXmlName
-        wpr.exe -start $EtwXmlName -filemode 2> $null | Out-Null
+        wpr.exe -start $EtwXmlName -filemode 2> $null
     }
 }
 
@@ -386,7 +386,7 @@ function Stop-Tracing {
     param($Exe)
     if ($Record -and $IsWindows -and !$Local) {
         $EtwName = $Exe + ".local.etl"
-        wpr.exe -stop $EtwName 2> $null | Out-Null
+        wpr.exe -stop $EtwName 2> $null
     }
 }
 
@@ -408,7 +408,6 @@ function Invoke-LocalExe {
     Stop-Job -Job $LocalJob | Out-Null
 
     $RetVal = Receive-Job -Job $LocalJob
-
     return $RetVal -join "`n"
 }
 
