@@ -13,6 +13,8 @@ Abstract:
 #include "ThroughputClient.cpp.clog.h"
 #endif
 
+#define QUIC_API_ENABLE_INSECURE_FEATURES 1
+
 //
 // This needs to be included in kernel mode for QUIC_ADDR to work. Breaks user
 // mode because of QUIC_TEST_API, so only included in kernel mode
@@ -204,6 +206,21 @@ ThroughputClient::Start(
                 &Opt);
         if (QUIC_FAILED(Status)) {
             WriteOutput("Failed Disable Send Buffering 0x%x\n", Status);
+            return Status;
+        }
+    }
+
+    if (!UseEncryption) {
+        BOOLEAN value = TRUE;
+        Status =
+            MsQuic->SetParam(
+                ConnData->Connection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
+                sizeof(value),
+                &value);
+        if (QUIC_FAILED(Status)) {
+            WriteOutput("MsQuic->SetParam (CONN_DISABLE_1RTT_ENCRYPTION) failed!\n", Status);
             return Status;
         }
     }

@@ -16,6 +16,7 @@ Abstract:
 #ifndef _KERNEL_MODE
 #define QUIC_TEST_APIS 1
 #endif
+#define QUIC_API_ENABLE_INSECURE_FEATURES 1
 #include "msquichelper.h"
 #include "quic_trace.h"
 #include "ThroughputServer.h"
@@ -61,8 +62,6 @@ ThroughputServer::Init(
     if (QUIC_FAILED(Status)) {
         return Status;
     }
-
-    return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS
@@ -124,6 +123,16 @@ ThroughputServer::ListenerCallback(
             Event->NEW_CONNECTION.Connection,
             (void*)Handler,
             this);
+        BOOLEAN value = TRUE;
+        if (QUIC_FAILED(
+            MsQuic->SetParam(
+                Event->NEW_CONNECTION.Connection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
+                sizeof(value),
+                &value))) {
+            WriteOutput("MsQuic->SetParam (CONN_DISABLE_1RTT_ENCRYPTION) failed!\n");
+        }
         break;
     }
     }
