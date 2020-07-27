@@ -1345,30 +1345,6 @@ QuicStreamOnAck(
                 QuicRangeRemoveSubranges(&Stream->SparseAckRanges, 0, 1);
             }
 
-            //
-            // Pop any fully-ACKed send requests. Note that we only do this here
-            // where UnAckedOffset has advanced, which means we complete send
-            // requests in the order that they are queued.
-            //
-            while (Stream->SendRequests) {
-
-                QUIC_SEND_REQUEST* Req = Stream->SendRequests;
-
-                //
-                // Cannot complete a request until UnAckedOffset is all the way past it.
-                //
-                if (Req->StreamOffset + Req->TotalLength > Stream->UnAckedOffset) {
-                    break;
-                }
-
-                Stream->SendRequests = Req->Next;
-                if (Stream->SendRequests == NULL) {
-                    Stream->SendRequestsTail = &Stream->SendRequests;
-                }
-
-                QuicStreamCompleteSendRequest(Stream, Req, FALSE);
-            }
-
             if (Stream->NextSendOffset < Stream->UnAckedOffset) {
                 Stream->NextSendOffset = Stream->UnAckedOffset;
             }
@@ -1378,6 +1354,29 @@ QuicStreamOnAck(
             if (Stream->RecoveryEndOffset < Stream->UnAckedOffset) {
                 Stream->Flags.InRecovery = FALSE;
             }
+        }
+
+        //
+        // Pop any fully-ACKed send requests. Note that we complete send
+        // requests in the order that they are queued.
+        //
+        while (Stream->SendRequests) {
+
+            QUIC_SEND_REQUEST* Req = Stream->SendRequests;
+
+            //
+            // Cannot complete a request until UnAckedOffset is all the way past it.
+            //
+            if (Req->StreamOffset + Req->TotalLength > Stream->UnAckedOffset) {
+                break;
+            }
+
+            Stream->SendRequests = Req->Next;
+            if (Stream->SendRequests == NULL) {
+                Stream->SendRequestsTail = &Stream->SendRequests;
+            }
+
+            QuicStreamCompleteSendRequest(Stream, Req, FALSE);
         }
 
         if (Stream->UnAckedOffset == Stream->QueuedSendOffset && Stream->Flags.FinAcked) {
