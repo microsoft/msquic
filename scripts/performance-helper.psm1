@@ -24,6 +24,18 @@ $WpaStackWalkProfileXml = `
         <Stack Value="SampledProfile"/>
       </Stacks>
     </SystemProvider>
+    <EventProvider Id="EP_MsQuicEtw_LowVolume" Name="ff15e657-4f26-570e-88ab-0796b258d11c" NonPagedMemory="true" Level="4">
+      <Keywords>
+        <Keyword Value="0x80000000"/>
+      </Keywords>
+    </EventProvider>
+    <EventProvider Id="EP_MsQuicEtw_LowVolume_DataPath" Name="ff15e657-4f26-570e-88ab-0796b258d11c" NonPagedMemory="true">
+      <Keywords>
+        <Keyword Value="0xC0000000"/>
+      </Keywords>
+    </EventProvider>
+    <EventProvider Id="EP_TcpIpEtw" Name="Microsoft-Windows-TCPIP" NonPagedMemory="true" />
+    <EventProvider Id="EP_WinSockEtw" Name="Microsoft-Windows-Winsock-AFD" NonPagedMemory="true" />
     <Profile Id="CPU.Light.File" Name="CPU" Description="CPU Stacks" LoggingMode="File" DetailLevel="Light">
       <Collectors>
         <SystemCollectorId Value="SC_HighVolume">
