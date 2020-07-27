@@ -419,6 +419,9 @@ QuicStreamSendBufferRequest(
     QUIC_CONNECTION* Connection = Stream->Connection;
 
     QUIC_DBG_ASSERT(Req->TotalLength <= UINT32_MAX);
+    Req->BufferCount = 1;
+    Req->Buffers = &Req->InternalBuffer;
+    Req->InternalBuffer.Length = (uint32_t)Req->TotalLength;
 
     if (Req->TotalLength != 0) {
         //
@@ -441,9 +444,6 @@ QuicStreamSendBufferRequest(
     } else {
         Req->InternalBuffer.Buffer = NULL;
     }
-    Req->BufferCount = 1;
-    Req->Buffers = &Req->InternalBuffer;
-    Req->InternalBuffer.Length = (uint32_t)Req->TotalLength;
 
     Req->Flags |= QUIC_SEND_FLAG_BUFFERED;
     Stream->SendBufferBookmark = Req->Next;
