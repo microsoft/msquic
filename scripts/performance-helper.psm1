@@ -11,12 +11,8 @@ $WpaStackWalkProfileXml = `
   <Profiles>
     <SystemCollector Id="SC_HighVolume" Realtime="false">
       <BufferSize Value="1024"/>
-      <Buffers Value="80"/>
+      <Buffers Value="20"/>
     </SystemCollector>
-    <EventCollector Id="EC_LowVolume" Realtime="false" Name="LowVolume">
-      <BufferSize Value="1024"/>
-      <Buffers Value="80"/>
-    </EventCollector>
     <SystemProvider Id="SP_CPU">
       <Keywords>
         <Keyword Value="CpuConfig"/>
@@ -28,31 +24,11 @@ $WpaStackWalkProfileXml = `
         <Stack Value="SampledProfile"/>
       </Stacks>
     </SystemProvider>
-    <EventProvider Id="EP_MsQuicEtw_LowVolume" Name="ff15e657-4f26-570e-88ab-0796b258d11c" NonPagedMemory="true" Level="4">
-      <Keywords>
-        <Keyword Value="0x80000000"/>
-      </Keywords>
-    </EventProvider>
-    <EventProvider Id="EP_MsQuicEtw_LowVolume_DataPath" Name="ff15e657-4f26-570e-88ab-0796b258d11c" NonPagedMemory="true">
-      <Keywords>
-        <Keyword Value="0xC0000000"/>
-      </Keywords>
-    </EventProvider>
-    <EventProvider Id="EP_TcpIpEtw" Name="Microsoft-Windows-TCPIP" NonPagedMemory="true" />
-    <EventProvider Id="EP_WinSockEtw" Name="Microsoft-Windows-Winsock-AFD" NonPagedMemory="true" />
     <Profile Id="CPU.Light.File" Name="CPU" Description="CPU Stacks" LoggingMode="File" DetailLevel="Light">
       <Collectors>
         <SystemCollectorId Value="SC_HighVolume">
           <SystemProviderId Value="SP_CPU" />
         </SystemCollectorId>
-        <EventCollectorId Value="EC_LowVolume">
-          <EventProviders>
-            <EventProviderId Value="EP_TcpIpEtw" />
-            <EventProviderId Value="EP_WinSockEtw" />
-            <EventProviderId Value="EP_MsQuicEtw_LowVolume_DataPath" />
-            <EventProviderId Value="EP_MsQuicEtw_LowVolume" />
-          </EventProviders>
-        </EventCollectorId>
       </Collectors>
     </Profile>
   </Profiles>
@@ -156,7 +132,7 @@ function Wait-ForRemoteReady {
 
 function Wait-ForRemote {
     param ($Job)
-    Wait-Job -Job $Job -Timeout 60 | Out-Null
+    Wait-Job -Job $Job -Timeout 10 | Out-Null
     Stop-Job -Job $Job | Out-Null
     $RetVal = Receive-Job -Job $Job
     return $RetVal -join "`n"
@@ -344,11 +320,7 @@ function Invoke-RemoteExe {
             wpr.exe -start $EtwXmlName -filemode 2> $null
         }
 
-        Write-Host "Remote Started"
-
         & $Exe ($RunArgs).Split(" ")
-
-        Write-Host "Remote Ended"
 
         if ($Record -and $IsWindows) {
             $EtwName = $Exe + ".remote.etl"
