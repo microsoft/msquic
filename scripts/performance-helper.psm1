@@ -141,7 +141,7 @@ function Invoke-TestCommand {
 function Wait-ForRemoteReady {
     param ($Job, $Matcher)
     $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
-    while ($StopWatch.ElapsedMilliseconds -lt 25000) {
+    while ($StopWatch.ElapsedMilliseconds -lt 10000) {
         $CurrentResults = Receive-Job -Job $Job -Keep
         if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
             $DidMatch = $CurrentResults -match $Matcher
@@ -156,7 +156,7 @@ function Wait-ForRemoteReady {
 
 function Wait-ForRemote {
     param ($Job)
-    Wait-Job -Job $Job -Timeout 10 | Out-Null
+    Wait-Job -Job $Job -Timeout 25 | Out-Null
     Stop-Job -Job $Job | Out-Null
     $RetVal = Receive-Job -Job $Job
     return $RetVal -join "`n"
