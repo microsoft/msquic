@@ -214,6 +214,19 @@ void PingConnection::Initialize() {
         }
     }
 
+    if (IsServer || !PingConfig.UseEncryption) {
+        BOOLEAN value = TRUE;
+        if (QUIC_FAILED(
+            MsQuic->SetParam(
+                QuicConnection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
+                sizeof(value),
+                &value))) {
+            printf("MsQuic->SetParam (CONN_DISABLE_1RTT_ENCRYPTION) failed!\n");
+        }
+    }
+
     for (uint64_t i = 0; i < PingConfig.LocalBidirStreamCount; i++) {
         auto Stream = new PingStream(this, BidiSendMode);
         if (!Stream || !Stream->Start()) {
