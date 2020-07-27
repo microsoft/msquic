@@ -101,7 +101,7 @@ static HQUIC Registration;
 static QUIC_SEC_CONFIG* GlobalSecurityConfig;
 static std::vector<HQUIC> Sessions;
 
-const uint32_t MaxBufferSizes[] = { 1, 2, 32, 50, 256, 500, 1000, 1024, 1400, 5000, 10000, 64000, 10000000 };
+const uint32_t MaxBufferSizes[] = { 0, 1, 2, 32, 50, 256, 500, 1000, 1024, 1400, 5000, 10000, 64000, 10000000 };
 static const size_t BufferCount = ARRAYSIZE(MaxBufferSizes);
 static QUIC_BUFFER Buffers[BufferCount];
 
@@ -526,7 +526,7 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
                 auto Stream = ctx->TryGetStream();
                 if (Stream == nullptr) continue;
                 auto Buffer = &Buffers[GetRandom(BufferCount)];
-                MsQuic->StreamSend(Stream, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(8), nullptr);
+                MsQuic->StreamSend(Stream, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(16), nullptr);
             }
             break;
         }

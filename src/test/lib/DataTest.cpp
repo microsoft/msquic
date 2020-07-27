@@ -183,7 +183,8 @@ SendPingBurst(
             Connection->NewStream(
                 PingStreamShutdown,
                 ((PingConnState*)Connection->Context)->Stats->UnidirectionalStreams ?
-                    QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL : QUIC_STREAM_OPEN_FLAG_NONE);
+                    QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL : QUIC_STREAM_OPEN_FLAG_NONE,
+                PayloadLength == 0 ? NEW_STREAM_START_NONE : NEW_STREAM_START_SYNC);
         if (Stream == nullptr) {
             return false;
         }

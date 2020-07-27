@@ -178,6 +178,11 @@ public:
         _In_ QUIC_UINT62 ErrorCode
         );
 
+    QUIC_STATUS
+    Start(
+        _In_ QUIC_STREAM_START_FLAGS Flags
+        );
+
     bool
     StartPing(
         _In_ uint64_t PayloadLength

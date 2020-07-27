@@ -476,6 +476,8 @@ QuicStreamSendFlush(
     Stream->ApiSendRequests = NULL;
     QuicDispatchLockRelease(&Stream->ApiSendRequestLock);
 
+    BOOLEAN Start = FALSE;
+
     while (ApiSendRequests != NULL) {
 
         QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
@@ -544,11 +546,17 @@ QuicStreamSendFlush(
             SendRequest->StreamOffset,
             SendRequest->Flags);
 
-        //
-        // Check to see if the FIN flag is to be set, so we should close
-        // the stream for any more sending.
-        //
+        if (SendRequest->Flags & QUIC_SEND_FLAG_START) {
+            //
+            // Start the stream if the flag is set.
+            //
+            Start = TRUE;
+        }
+
         if (SendRequest->Flags & QUIC_SEND_FLAG_FIN) {
+            //
+            // Gracefully shutdown the send direction if the flag is set.
+            //
             QuicStreamSendShutdown(Stream, TRUE, FALSE, 0);
         }
 
@@ -564,6 +572,10 @@ QuicStreamSendFlush(
         QUIC_DBG_ASSERT(Stream->SendRequests != NULL);
 
         QuicStreamSendDumpState(Stream);
+    }
+
+    if (Start) {
+        (void)QuicStreamStart(Stream, QUIC_STREAM_START_FLAG_ASYNC, FALSE);
     }
 }
 
