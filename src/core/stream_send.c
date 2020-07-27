@@ -420,24 +420,29 @@ QuicStreamSendBufferRequest(
 
     QUIC_DBG_ASSERT(Req->TotalLength <= UINT32_MAX);
 
-    //
-    // Copy the request bytes into an internal buffer.
-    //
-    uint8_t* Buf =
-        QuicSendBufferAlloc(
-            &Connection->SendBuffer,
-            (uint32_t)Req->TotalLength);
-    if (Buf == NULL) {
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-    uint8_t* CurBuf = Buf;
-    for (uint32_t i = 0; i < Req->BufferCount; i++) {
-        QuicCopyMemory(CurBuf, Req->Buffers[i].Buffer, Req->Buffers[i].Length);
-        CurBuf += Req->Buffers[i].Length;
+    if (Req->TotalLength != 0) {
+        //
+        // Copy the request bytes into an internal buffer.
+        //
+        uint8_t* Buf =
+            QuicSendBufferAlloc(
+                &Connection->SendBuffer,
+                (uint32_t)Req->TotalLength);
+        if (Buf == NULL) {
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+        uint8_t* CurBuf = Buf;
+        for (uint32_t i = 0; i < Req->BufferCount; i++) {
+            QuicCopyMemory(
+                CurBuf, Req->Buffers[i].Buffer, Req->Buffers[i].Length);
+            CurBuf += Req->Buffers[i].Length;
+        }
+        Req->InternalBuffer.Buffer = Buf;
+    } else {
+        Req->InternalBuffer.Buffer = NULL;
     }
     Req->BufferCount = 1;
     Req->Buffers = &Req->InternalBuffer;
-    Req->InternalBuffer.Buffer = Buf;
     Req->InternalBuffer.Length = (uint32_t)Req->TotalLength;
 
     Req->Flags |= QUIC_SEND_FLAG_BUFFERED;

@@ -54,7 +54,7 @@ struct QuicSendBuffer
         Buffers(new QUIC_BUFFER[bufferCount])
     {
         for (uint32_t i = 0; i < BufferCount; ++i) {
-            this->Buffers[i].Buffer = bufferSize == 0 ? (uint8_t*)(this+1) : new uint8_t[bufferSize];
+            this->Buffers[i].Buffer = bufferSize == 0 ? nullptr : new uint8_t[bufferSize];
             this->Buffers[i].Length = bufferSize;
             QuicZeroMemory(this->Buffers[i].Buffer, this->Buffers[i].Length);
         }
@@ -67,7 +67,7 @@ struct QuicSendBuffer
         BufferCount(1),
         Buffers(new QUIC_BUFFER[1])
     {
-        this->Buffers[0].Buffer = bufferSize == 0 ? (uint8_t*)(this+1) : new uint8_t[bufferSize];
+        this->Buffers[0].Buffer = bufferSize == 0 ? nullptr : new uint8_t[bufferSize];
         memcpy((uint8_t*)this->Buffers[0].Buffer, buffer, bufferSize);
         this->Buffers[0].Length = bufferSize;
     }
@@ -78,9 +78,7 @@ struct QuicSendBuffer
     ~QuicSendBuffer()
     {
         for (uint32_t i = 0; i < BufferCount; ++i) {
-            if (this->Buffers[i].Length) {
-                delete [] this->Buffers[i].Buffer;
-            }
+            delete [] this->Buffers[i].Buffer;
         }
         delete [] this->Buffers;
     }
