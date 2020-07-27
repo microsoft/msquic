@@ -47,11 +47,7 @@ if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 endif()
 
 # Allow CLOG to preprocess all the source files.
-if(WIN32)
-    CLOG_GENERATE_TARGET(CORE_CLOG_LIB STATIC ${SOURCES})
-else()
-    CLOG_GENERATE_TARGET(CORE_CLOG_LIB OBJECT ${SOURCES})
-endif()
+CLOG_GENERATE_TARGET(CORE_CLOG_LIB STATIC ${SOURCES})
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
 
@@ -68,3 +64,5 @@ target_compile_options(core PRIVATE
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_dependencies(core MsQuicEtw)
 endif()
+
+target_link_libraries(core PUBLIC CORE_CLOG_LIB)

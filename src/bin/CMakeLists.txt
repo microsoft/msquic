@@ -34,20 +34,6 @@ else()
         PROPERTIES LINK_FLAGS "-Wl,--version-script=\"${CMAKE_CURRENT_SOURCE_DIR}/linux/exports.txt\"")
 endif()
 
-if(WIN32)
-    add_library(msquictraceprovicer INTERFACE)
-    target_link_libraries(msquictraceprovicer INTERFACE PLATFORM_CLOG_LIB CORE_CLOG_LIB)
-
-else()
-    add_library(msquictraceprovicer SHARED $<TARGET_OBJECTS:PLATFORM_CLOG_LIB> $<TARGET_OBJECTS:CORE_CLOG_LIB>)
-    target_link_libraries(msquictraceprovicer PRIVATE ${LTTNGUST_LIBRARIES})
-    target_link_libraries(msquic PRIVATE msquictraceprovicer)
-    install(TARGETS msquictraceprovicer EXPORT msquictraceprovicer DESTINATION "${main_lib_dest}")
-    install(EXPORT msquictraceprovicer DESTINATION ${msquic_dest})
-endif()
-
-target_link_libraries(msquic PRIVATE msquictraceprovicer)
-
 target_include_directories(msquic PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
     $<INSTALL_INTERFACE:${include_dest}>)
@@ -61,12 +47,15 @@ set(PUBLIC_HEADERS
 install(TARGETS msquic EXPORT msquic DESTINATION "${main_lib_dest}")
 install(FILES ${PUBLIC_HEADERS} DESTINATION "${include_dest}")
 
-if (WIN32)
-    configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake )
-else()
-    configure_file(msquic-config-unix.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake)
-endif()
+configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake)
 
 install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION ${msquic_dest})
 
 install(EXPORT msquic DESTINATION ${msquic_dest})
+
+if(WIN32)
+    add_library(msquictraceprovicer INTERFACE)
+else()
+    add_library(msquictraceprovider SHARED linux/traceprovider.c)
+    target_link_libraries(msquictraceprovider ${LTTNGUST_LIBRARIES})
+endif()
