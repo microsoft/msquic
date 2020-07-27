@@ -156,7 +156,7 @@ function Wait-ForRemoteReady {
 
 function Wait-ForRemote {
     param ($Job)
-    Wait-Job -Job $Job -Timeout 25 | Out-Null
+    Wait-Job -Job $Job -Timeout 60 | Out-Null
     Stop-Job -Job $Job | Out-Null
     $RetVal = Receive-Job -Job $Job
     return $RetVal -join "`n"
@@ -344,7 +344,11 @@ function Invoke-RemoteExe {
             wpr.exe -start $EtwXmlName -filemode 2> $null
         }
 
+        Write-Host "Remote Started"
+
         & $Exe ($RunArgs).Split(" ")
+
+        Write-Host "Remote Ended"
 
         if ($Record -and $IsWindows) {
             $EtwName = $Exe + ".remote.etl"
