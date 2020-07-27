@@ -710,7 +710,7 @@ typedef struct {
 
 extern QUIC_PROCESSOR_INFO* QuicProcessorInfo;
 extern uint64_t* QuicNumaMasks;
-extern uint8_t QuicProcessorsPerGroup;
+extern uint32_t* QuicProcessorGroupOffsets;
 
 #define QuicProcMaxCount() GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS)
 #define QuicProcActiveCount() GetActiveProcessorCount(ALL_PROCESSOR_GROUPS)
@@ -723,7 +723,7 @@ QuicProcCurrentNumber(
     ) {
     PROCESSOR_NUMBER ProcNumber;
     GetCurrentProcessorNumberEx(&ProcNumber);
-    return (ProcNumber.Group * QuicProcessorsPerGroup) + ProcNumber.Number;
+    return QuicProcessorGroupOffsets[ProcNumber.Group] + ProcNumber.Number;
 }
 
 
