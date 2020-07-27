@@ -95,7 +95,7 @@ QuicPlatformSystemLoad(
     // Find the length of the full path without the shared object name, including the trailing slash.
     int lastTrailingSlashLen = -1;
     for (int i = pathLen; i >= 0; i--) {
-        if (info.dli_name[i] == '/') {
+        if (info.dli_fname[i] == '/') {
             lastTrailingSlashLen = i + 1;
             break;
         }
@@ -106,15 +106,15 @@ QuicPlatformSystemLoad(
     }
 
     size_t tpLibNameLen = strlen(tpLibName);
-    size_t providerFullPathLength = tpLibNameLen + lastTrailingSlashLen + 1
+    size_t providerFullPathLength = tpLibNameLen + lastTrailingSlashLen + 1;
 
     char* providerFullPath = QUIC_ALLOC_PAGED(providerFullPathLength);
     if (providerFullPath == NULL) {
         return;
     }
 
-    QuicCopyMemory(providerFullPath, info.dli_fname, lastTrailingSlashLen);
-    QuicCopyMemory(providerFullPath + lastTrailingSlashLen, tpLibNameLen);
+    memcpy(providerFullPath, info.dli_fname, lastTrailingSlashLen);
+    memcpy(providerFullPath + lastTrailingSlashLen, tpLibNameLen);
     providerFullPath[lastTrailingSlashLen + tpLibNameLen] = '\0';
 
     // Load the tracepoint provider.
