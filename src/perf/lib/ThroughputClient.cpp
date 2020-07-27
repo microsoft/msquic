@@ -46,7 +46,7 @@ ThroughputClient::Init(
     Port = THROUGHPUT_DEFAULT_PORT;
     TryGetValue(argc, argv, "port", &Port);
 
-    TryGetValue(argc, argv, "encypt", &UseEncryption);
+    TryGetValue(argc, argv, "encrypt", &UseEncryption);
 
     const char* Target;
     if (!TryGetValue(argc, argv, "target", &Target)) {
@@ -110,40 +110,6 @@ ThroughputClient::Init(
 
     return QUIC_STATUS_SUCCESS;
 }
-
-struct ThroughputClient::SendRequest {
-    QUIC_SEND_FLAGS Flags {QUIC_SEND_FLAG_NONE};
-    QUIC_BUFFER QuicBuffer;
-    ThroughputClient* Client;
-    uint32_t IoSize;
-    SendRequest(
-        ThroughputClient* Client,
-        bool FillBuffer
-        ) {
-        this->Client = Client;
-        IoSize = Client->IoSize;
-        QuicBuffer.Buffer = Client->BufferAllocator.Alloc();
-        if (FillBuffer) {
-            memset(QuicBuffer.Buffer, 0xBF, IoSize);
-        }
-        QuicBuffer.Length = 0;
-    }
-
-    ~SendRequest() {
-        Client->BufferAllocator.Free(QuicBuffer.Buffer);
-    }
-
-    void SetLength(
-        uint64_t BytesLeftToSend
-        ) {
-        if (BytesLeftToSend > IoSize) {
-            QuicBuffer.Length = IoSize;
-        } else {
-            Flags |= QUIC_SEND_FLAG_FIN;
-            QuicBuffer.Length = (uint32_t)BytesLeftToSend;
-        }
-    }
-};
 
 struct ShutdownWrapper {
     HQUIC ConnHandle {nullptr};
@@ -292,7 +258,7 @@ ThroughputClient::Start(
 
     uint32_t SendRequestCount = 0;
     while (StrmData->BytesSent < Length && SendRequestCount < IoCount) {
-        SendRequest* SendReq = SendRequestAllocator.Alloc(this, true);
+        SendRequest* SendReq = SendRequestAllocator.Alloc(&BufferAllocator, IoSize, true);
         SendReq->SetLength(Length - StrmData->BytesSent);
         StrmData->BytesSent += SendReq->QuicBuffer.Length;
         ++SendRequestCount;

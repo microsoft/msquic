@@ -16,6 +16,7 @@ Abstract:
 #include "PerfHelpers.h"
 #include "PerfBase.h"
 #include "ThroughputCommon.h"
+#include "SendRequest.h"
 
 class ThroughputClient : public PerfBase {
 public:
@@ -79,8 +80,6 @@ private:
         _Inout_ QUIC_STREAM_EVENT* Event,
         _Inout_ StreamData* StrmData
         );
-
-    struct SendRequest;
 
     MsQuicRegistration Registration;
     MsQuicSession Session{Registration, THROUGHPUT_ALPN};
