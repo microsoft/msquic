@@ -21,6 +21,7 @@ Environment:
 #include <sched.h>
 #include <fcntl.h>
 #include <syslog.h>
+#include <dlfcn.h>
 #include "quic_trace.h"
 #include "quic_platform_dispatch.h"
 #ifdef QUIC_CLOG
@@ -34,6 +35,8 @@ QUIC_PLATFORM_DISPATCH* PlatDispatch = NULL;
 #else
 int RandomFd; // Used for reading random numbers.
 #endif
+
+static const char tpLibName[] = "libmsquictraceprovider.so";
 
 uint64_t QuicTotalMemory;
 
@@ -63,6 +66,60 @@ QuicPlatformSystemLoad(
     void
     )
 {
+    //
+    // Following code is modified from coreclr.
+    // https://github.com/dotnet/coreclr/blob/ed5dc831b09a0bfed76ddad684008bebc86ab2f0/src/pal/src/misc/tracepointprovider.cpp#L106
+    //
+
+    int fShouldLoad = 1;
+    // Check if loading the LTTng providers should be disabled.
+    char *disableValue = getenv("QUIC_LTTng");
+    if (disableValue != NULL)
+    {
+        fShouldLoad = strtol(disableValue, NULL, 10);
+    }
+
+    if (!fShouldLoad) {
+        return;
+    }
+
+    // Get the path to the currently executing shared object (libmsquic.so).
+    Dl_info info;
+    int succeeded = dladdr((void *)QuicPlatformSystemLoad, &info);
+    if (!succeeded) {
+        return;
+    }
+
+    int pathLen = strlen(info.dli_fname);
+
+    // Find the length of the full path without the shared object name, including the trailing slash.
+    int lastTrailingSlashLen = -1;
+    for (int i = pathLen; i >= 0; i--) {
+        if (info.dli_name[i] == '/') {
+            lastTrailingSlashLen = i + 1;
+            break;
+        }
+    }
+
+    if (lastTrailingSlashLen == -1) {
+        return;
+    }
+
+    size_t tpLibNameLen = strlen(tpLibName);
+    size_t providerFullPathLength = tpLibNameLen + lastTrailingSlashLen + 1
+
+    char* providerFullPath = QUIC_ALLOC_PAGED(providerFullPathLength);
+    if (providerFullPath == NULL) {
+        return;
+    }
+
+    QuicCopyMemory(providerFullPath, info.dli_fname, lastTrailingSlashLen);
+    QuicCopyMemory(providerFullPath + lastTrailingSlashLen, tpLibNameLen);
+    providerFullPath[lastTrailingSlashLen + tpLibNameLen] = '\0';
+
+    // Load the tracepoint provider.
+    // It's OK if this fails - that just means that tracing dependencies aren't available.
+    dlopen(providerFullPath, RTLD_NOW | RTLD_GLOBAL);
 }
 
 void
