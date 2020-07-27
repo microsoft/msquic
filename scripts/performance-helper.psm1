@@ -314,12 +314,18 @@ function Invoke-RemoteExe {
         }
 
         if ($Record -and $IsWindows) {
+            Write-Debug "Starting Remote Record"
             $EtwXmlName = $Exe + ".remote.wprp"
             wpr.exe -cancel 2> $null
 
+            Write-Debug "Cancelled any existing record"
+
             $WpaStackWalkProfileXml | Out-File $EtwXmlName
             wpr.exe -start $EtwXmlName -filemode 2> $null
+            Write-Debug "Started Remote Record"
         }
+
+        Write-Debug "Starting remote exe"
 
         & $Exe ($RunArgs).Split(" ")
 
