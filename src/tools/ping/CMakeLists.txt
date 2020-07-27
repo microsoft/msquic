@@ -15,7 +15,7 @@ add_executable(quicping ${SOURCES})
 
 set_property(TARGET quicping PROPERTY FOLDER "tools")
 
-target_link_libraries(quicping msquic platform msquictraceprovicer)
+target_link_libraries(quicping msquic platform msquictraceprovider)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     target_link_libraries(quicping

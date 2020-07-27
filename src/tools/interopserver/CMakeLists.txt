@@ -11,7 +11,7 @@ add_executable(quicinteropserver ${SOURCES})
 
 set_property(TARGET quicinteropserver PROPERTY FOLDER "tools")
 
-target_link_libraries(quicinteropserver msquic platform msquictraceprovicer)
+target_link_libraries(quicinteropserver msquic platform msquictraceprovider)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     target_link_libraries(quicinteropserver

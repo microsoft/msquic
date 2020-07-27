@@ -11,7 +11,7 @@ add_executable(quicpost ${SOURCES})
 
 set_property(TARGET quicpost PROPERTY FOLDER "tools")
 
-target_link_libraries(quicpost msquic platform msquictraceprovicer)
+target_link_libraries(quicpost msquic platform msquictraceprovider)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     target_link_libraries(quicpost

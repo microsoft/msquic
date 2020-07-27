@@ -7,7 +7,7 @@ add_executable(quicreach reach.cpp)
 
 set_property(TARGET quicreach PROPERTY FOLDER "tools")
 
-target_link_libraries(quicreach msquic platform msquictraceprovicer)
+target_link_libraries(quicreach msquic platform msquictraceprovider)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     target_link_libraries(quicreach

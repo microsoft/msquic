@@ -14,7 +14,7 @@ add_executable(quicattack ${SOURCES})
 
 set_property(TARGET quicattack PROPERTY FOLDER "tools")
 
-target_link_libraries(quicattack msquic core platform msquictraceprovicer)
+target_link_libraries(quicattack msquic core platform msquictraceprovider)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     target_link_libraries(quicattack

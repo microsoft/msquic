@@ -7,7 +7,7 @@ add_executable(quicinterop interop.cpp)
 
 set_property(TARGET quicinterop PROPERTY FOLDER "tools")
 
-target_link_libraries(quicinterop msquic platform msquictraceprovicer)
+target_link_libraries(quicinterop msquic platform msquictraceprovider)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     target_link_libraries(quicinterop

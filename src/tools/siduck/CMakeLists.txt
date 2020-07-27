@@ -7,7 +7,7 @@ add_executable(quicsiduck siduck.cpp)
 
 set_property(TARGET quicsiduck PROPERTY FOLDER "tools")
 
-target_link_libraries(quicsiduck msquic platform msquictraceprovicer)
+target_link_libraries(quicsiduck msquic platform msquictraceprovider)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     target_link_libraries(quicsiduck

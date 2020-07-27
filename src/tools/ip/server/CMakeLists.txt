@@ -10,7 +10,7 @@ target_compile_options(quicipserver PRIVATE
      $<$<CXX_COMPILER_ID:MSVC>:
         ${MSVC_WARNING_FLAGS}>)
 
-target_link_libraries(quicipserver msquic platform msquictraceprovicer)
+target_link_libraries(quicipserver msquic platform msquictraceprovider)
 
 set_property(TARGET quicipserver PROPERTY FOLDER "tools")
 

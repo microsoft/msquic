@@ -5,7 +5,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
 
 add_executable(quicvoidserver server.cpp)
 
-target_link_libraries(quicvoidserver msquic platform msquictraceprovicer)
+target_link_libraries(quicvoidserver msquic platform msquictraceprovider)
 
 set_property(TARGET quicvoidserver PROPERTY FOLDER "tools")
 
