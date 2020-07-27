@@ -313,6 +313,8 @@ function Invoke-RemoteExe {
             $env:LD_LIBRARY_PATH = $BasePath
         }
 
+        Write-Debug "Running ScriptBlock for Remote Command"
+
         if ($Record -and $IsWindows) {
             Write-Debug "Starting Remote Record"
             $EtwXmlName = $Exe + ".remote.wprp"

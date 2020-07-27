@@ -287,6 +287,7 @@ function Invoke-Test {
 
     # Starting the server
     $RemoteJob = Invoke-RemoteExe -Exe $RemoteExe -RunArgs $RemoteArguments
+    Write-Debug "Invoked remote exe"
     $ReadyToStart = Wait-ForRemoteReady -Job $RemoteJob
 
     if (!$ReadyToStart) {
