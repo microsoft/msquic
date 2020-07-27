@@ -80,10 +80,10 @@ QuicKernelMain(
         //
         // Length of string, plus null terminator, plus length
         //
-        TotalLength += strlen(argv[i]) + sizeof(size_t) + 1;
+        TotalLength += strlen(argv[i]) + 1;
     }
 
-    TotalLength += sizeof(TotalLength);
+    TotalLength += sizeof(argc);
 
     char* Data = static_cast<char*>(QUIC_ALLOC_NONPAGED(TotalLength));
     if (!Data) {
@@ -93,14 +93,12 @@ QuicKernelMain(
 
     char* DataCurrent = Data;
 
-    QuicCopyMemory(DataCurrent, &TotalLength, sizeof(TotalLength));
+    QuicCopyMemory(DataCurrent, &argc, sizeof(TotalLength));
 
-    DataCurrent += sizeof(TotalLength);
+    DataCurrent += sizeof(argc);
 
     for (int i = 0; i < argc; ++i) {
         size_t ArgLen = strlen(argv[i]) + 1;
-        QuicCopyMemory(DataCurrent, &ArgLen, sizeof(ArgLen));
-        DataCurrent += sizeof(ArgLen);
         QuicCopyMemory(DataCurrent, argv[i], ArgLen);
         DataCurrent += ArgLen;
         DataCurrent[0] = '\0';
