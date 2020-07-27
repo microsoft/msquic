@@ -60,7 +60,7 @@ install(FILES ${PUBLIC_HEADERS} DESTINATION "${include_dest}")
 if (WIN32)
     configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake )
 else()
-    configure_file(msquic-config-linux.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake)
+    configure_file(msquic-config-unix.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake)
 endif()
 
 install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION ${msquic_dest})
