@@ -348,6 +348,24 @@ function Remove-RemoteFile {
     }
 }
 
+function Start-Tracing {
+    param($Exe)
+    if ($Record -and $IsWindows -and !$Local) {
+        $EtwXmlName = $Exe + ".local.wprp"
+
+        $WpaStackWalkProfileXml | Out-File $EtwXmlName
+        wpr.exe -start $EtwXmlName -filemode 2> $null | Out-Null
+    }
+}
+
+function Stop-Tracing {
+    param($Exe)
+    if ($Record -and $IsWindows -and !$Local) {
+        $EtwName = $Exe + ".local.etl"
+        wpr.exe -stop $EtwName 2> $null | Out-Null
+    }
+}
+
 function Invoke-LocalExe {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '')]
     param ($Exe, $RunArgs, $Timeout)
@@ -359,13 +377,6 @@ function Invoke-LocalExe {
     $FullCommand = "$Exe $RunArgs"
     Write-Debug "Running Locally: $FullCommand"
 
-    if ($Record -and $IsWindows -and !$Local) {
-        $EtwXmlName = $Exe + ".local.wprp"
-
-        $WpaStackWalkProfileXml | Out-File $EtwXmlName
-        wpr.exe -start $EtwXmlName -filemode 2> $null | Out-Null
-    }
-
     $LocalJob = Start-Job -ScriptBlock { & $Using:Exe ($Using:RunArgs).Split(" ") }
 
     # Wait 60 seconds for the job to finish
@@ -373,11 +384,6 @@ function Invoke-LocalExe {
     Stop-Job -Job $LocalJob | Out-Null
 
     $RetVal = Receive-Job -Job $LocalJob
-
-    if ($Record -and $IsWindows -and !$Local) {
-        $EtwName = $Exe + ".local.etl"
-        wpr.exe -stop $EtwName 2> $null | Out-Null
-    }
 
     return $RetVal -join "`n"
 }

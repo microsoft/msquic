@@ -296,6 +296,8 @@ function Invoke-Test {
 
     $AllRunsResults = @()
 
+    Start-Tracing -Exe $LocalExe
+
     try {
         1..$Test.Iterations | ForEach-Object {
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout
@@ -314,10 +316,14 @@ function Invoke-Test {
         Write-Debug $RemoteResults.ToString()
     }
 
+    Stop-Tracing -Exe $LocalExe
+
     if ($Record) {
-        Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + "remote.etl"))
-        if (!$Local) {
-            Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + "local.etl"))
+        if ($Local) {
+            Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".combined.etl"))
+        } else {
+            Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".server.etl"))
+            Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + ".client.etl"))
         }
     }
 
