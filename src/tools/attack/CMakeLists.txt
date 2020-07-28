@@ -6,12 +6,10 @@ set(SOURCES
     packet_writer.cpp
 )
 
-add_executable(quicattack ${SOURCES})
-
-set_property(TARGET quicattack PROPERTY FOLDER "tools")
+add_quic_tool(quicattack ${SOURCES})
 
 target_include_directories(quicattack PRIVATE ${PROJECT_SOURCE_DIR}/src/core)
-target_link_libraries(quicattack msquic core platform inc)
+target_link_libraries(quicattack core)
 
 if (NOT MSVC)
     # This must be on the individual executables

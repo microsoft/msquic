@@ -5,8 +5,4 @@ set(SOURCES
     post.cpp
 )
 
-add_executable(quicpost ${SOURCES})
-
-set_property(TARGET quicpost PROPERTY FOLDER "tools")
-
-target_link_libraries(quicpost msquic platform inc)
+add_quic_tool(quicpost ${SOURCES})

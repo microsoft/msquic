@@ -5,8 +5,4 @@ set(SOURCES
     InteropServer.cpp
 )
 
-add_executable(quicinteropserver ${SOURCES})
-
-set_property(TARGET quicinteropserver PROPERTY FOLDER "tools")
-
-target_link_libraries(quicinteropserver msquic platform inc)
+add_quic_tool(quicinteropserver ${SOURCES})

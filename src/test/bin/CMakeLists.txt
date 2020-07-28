@@ -1,9 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-# Include for CLOG processing
-include(${CMAKE_CLOG_GENERATE_FILE})
-
 set(SOURCES
     quic_gtest.cpp
     quic_gtest.h

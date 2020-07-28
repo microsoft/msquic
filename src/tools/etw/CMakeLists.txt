@@ -13,11 +13,8 @@ set(SOURCES
     worker.c
 )
 
-add_executable(quicetw ${SOURCES})
-
-set_property(TARGET quicetw PROPERTY FOLDER "tools")
+add_quic_tool(quicetw ${SOURCES})
 
 target_compile_definitions(quicetw PRIVATE _CRT_SECURE_NO_WARNINGS)
 
-target_link_libraries(quicetw msquic platform inc)
 target_link_libraries(quicetw tdh)

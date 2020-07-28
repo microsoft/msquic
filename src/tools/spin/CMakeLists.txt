@@ -1,8 +1,4 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-add_executable(spinquic spinquic.cpp)
-
-target_link_libraries(spinquic msquic platform inc)
-
-set_property(TARGET spinquic PROPERTY FOLDER "tools")
+add_quic_tool(spinquic spinquic.cpp)
