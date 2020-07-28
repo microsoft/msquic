@@ -40,3 +40,4 @@ endif()
 
 add_library(warnings INTERFACE)
 target_compile_options(warnings INTERFACE ${QUIC_WARNING_FLAGS})
+target_compile_options(warnings INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${QUIC_CXX_WARNING_FLAGS}>)

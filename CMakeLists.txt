@@ -308,8 +308,9 @@ else()
     endif()
 
     set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})
-    set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS} -std=c++17 -g )
-    list(APPEND QUIC_WARNING_FLAGS -Wno-reorder -Wno-sign-compare -Wno-format)
+    set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS} -std=c++17 -g)
+    set(QUIC_CXX_WARNING_FLAGS -Wno-reorder)
+    list(APPEND QUIC_WARNING_FLAGS -Wno-sign-compare -Wno-format)
 endif()
 
 if(QUIC_TLS STREQUAL "openssl")
