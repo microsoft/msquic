@@ -299,11 +299,7 @@ else()
 
     if(QUIC_SANITIZE_ADDRESS)
         message(STATUS "Configuring address sanitizer")
-<<<<<<< HEAD
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -fsanitize=address -fno-omit-frame-pointer -O0 -g")
-=======
         list(APPEND QUIC_COMMON_FLAGS -fsanitize=address -fno-omit-frame-pointer -Wno-maybe-uninitialized -O0 -g)
->>>>>>> master
     endif()
 
     if(QUIC_TLS STREQUAL "stub")
