@@ -49,8 +49,7 @@ endif()
 
 # Allow CLOG to preprocess all the source files.
 CLOG_GENERATE_TARGET(platform.clog ${SOURCES})
-
-target_link_libraries(platform.clog PRIVATE inc)
+CLOG_ADD_ARGS(platform.clog)
 
 add_library(platform STATIC ${SOURCES})
 

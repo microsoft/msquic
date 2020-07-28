@@ -13,8 +13,7 @@ set(SOURCES
 
 # Allow CLOG to preprocess all the source files.
 CLOG_GENERATE_TARGET(msquiccoretest.clog ${SOURCES})
-
-target_link_libraries(msquiccoretest.clog PRIVATE inc)
+CLOG_ADD_ARGS(msquiccoretest.clog)
 
 add_executable(msquiccoretest ${SOURCES})
 
