@@ -156,7 +156,7 @@ Set-ScriptVariables -Local $Local `
                     -RemoteArch $RemoteArch `
                     -Config $Config `
                     -Publish $Publish `
-                    -Record $Record
+                    -Record $Record `
                     -RecordQUIC $RecordQUIC
 
 if ($Local) {
