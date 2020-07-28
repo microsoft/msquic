@@ -6,20 +6,16 @@ set(SOURCES
     packet_writer.cpp
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
+add_quic_tool(quicattack ${SOURCES})
 
-include_directories(${PROJECT_SOURCE_DIR}/src/core)
+target_include_directories(quicattack PRIVATE ${PROJECT_SOURCE_DIR}/src/core)
+# OK to include platform a second time, will not cause multiple link issues
+target_link_libraries(quicattack core platform)
 
-add_executable(quicattack ${SOURCES})
-
-set_property(TARGET quicattack PROPERTY FOLDER "tools")
-
-target_link_libraries(quicattack msquic core platform PLATFORM_CLOG_LIB CORE_CLOG_LIB)
-
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    target_link_libraries(quicattack
-        ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
-    if(QUIC_UWP_BUILD)
-        target_link_libraries(quicattack OneCoreUAP)
-    endif()
+if (NOT MSVC)
+    # This must be on the individual executables
+    # CMake 3.13 is needed to solve this, but we want a minimum of 3.5
+    # This will be removed with #636
+    SET_TARGET_PROPERTIES(quicattack
+        PROPERTIES LINK_FLAGS "-Wl,--no-as-needed")
 endif()
