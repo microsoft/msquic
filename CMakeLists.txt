@@ -121,6 +121,7 @@ elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Linux")
 elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Darwin")
     set(QUIC_PLATFORM "darwin")
 endif()
+message(STATUS "QUIC Platform: ${QUIC_PLATFORM}")
 
 if (QUIC_PDBALTPATH AND MSVC)
 #    Disabled in all cases because generation is broken.
@@ -161,11 +162,9 @@ set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest)
 set(CLOG_INCLUDE_DIRECTORY ${CMAKE_SOURCE_DIR}/build/clog)
 set(CMAKE_CLOG_GENERATE_FILE ${CMAKE_SOURCE_DIR}/build/clog/CLog.cmake)
 set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/msquic.clog_config)
-
 include(${CMAKE_CLOG_GENERATE_FILE})
 
 set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
-
 set(MANIFESTED_HEADER_FILENAME ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
 if (WIN32)
@@ -174,7 +173,6 @@ if (WIN32)
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         list(APPEND QUIC_COMMON_FLAGS /MP)
     endif()
-
     set(QUIC_COMMON_DEFINES WIN32_LEAN_AND_MEAN SECURITY_WIN32)
 else()
     set(QUIC_COMMON_FLAGS "")
@@ -349,7 +347,6 @@ if(QUIC_TLS STREQUAL "mitls")
     add_subdirectory(submodules/everest/msquic/msvc/quiccrypto)
 endif()
 
-include(src/tools/toolbase.cmake)
 add_subdirectory(src/inc)
 
 # Product code
@@ -359,22 +356,7 @@ add_subdirectory(src/bin)
 
 # Tool code
 if(QUIC_BUILD_TOOLS)
-    add_subdirectory(src/tools/attack)
-    add_subdirectory(src/tools/interop)
-    add_subdirectory(src/tools/interopserver)
-    add_subdirectory(src/tools/ip/client)
-    add_subdirectory(src/tools/ip/server)
-    add_subdirectory(src/tools/ping)
-    add_subdirectory(src/tools/post)
-    add_subdirectory(src/tools/reach)
-    add_subdirectory(src/tools/sample)
-    add_subdirectory(src/tools/siduck)
-    add_subdirectory(src/tools/spin)
-    add_subdirectory(src/tools/void)
-    if(WIN32)
-        add_subdirectory(src/tools/etwlib)
-        add_subdirectory(src/tools/etw)
-    endif()
+    add_subdirectory(src/tools)
 endif()
 
 # Test code

@@ -7,9 +7,9 @@ set(SOURCES
 )
 
 # Allow CLOG to preprocess all the source files.
-CLOG_GENERATE_TARGET(MSQUICTEST_CLOG_LIB ${SOURCES})
+CLOG_GENERATE_TARGET(msquictest.clog ${SOURCES})
 
-target_link_libraries(MSQUICTEST_CLOG_LIB PRIVATE inc)
+target_link_libraries(msquictest.clog PRIVATE inc)
 
 add_executable(msquictest ${SOURCES})
 
@@ -17,6 +17,6 @@ target_include_directories(msquictest PRIVATE ${PROJECT_SOURCE_DIR}/src/test)
 
 set_property(TARGET msquictest PROPERTY FOLDER "tests")
 
-target_link_libraries(msquictest msquic testlib platform inc gtest MSQUICTEST_CLOG_LIB)
+target_link_libraries(msquictest msquic testlib platform inc gtest msquictest.clog)
 
 add_test(msquictest msquictest)

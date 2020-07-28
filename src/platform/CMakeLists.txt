@@ -48,13 +48,13 @@ else()
 endif()
 
 # Allow CLOG to preprocess all the source files.
-CLOG_GENERATE_TARGET(PLATFORM_CLOG_LIB ${SOURCES})
+CLOG_GENERATE_TARGET(platform.clog ${SOURCES})
 
-target_link_libraries(PLATFORM_CLOG_LIB PRIVATE inc)
+target_link_libraries(platform.clog PRIVATE inc)
 
 add_library(platform STATIC ${SOURCES})
 
-target_link_libraries(platform PUBLIC PLATFORM_CLOG_LIB inc)
+target_link_libraries(platform PUBLIC platform.clog inc)
 
 target_link_libraries(platform PRIVATE warnings)
 
