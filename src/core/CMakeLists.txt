@@ -55,6 +55,8 @@ add_library(core STATIC ${SOURCES})
 
 target_link_libraries(core PUBLIC CORE_CLOG_LIB base)
 
+target_link_libraries(core PRIVATE warnings)
+
 set_property(TARGET core PROPERTY FOLDER "libraries")
 
 if(WIN32)

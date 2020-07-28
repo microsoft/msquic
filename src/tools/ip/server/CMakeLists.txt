@@ -3,6 +3,6 @@
 
 add_executable(quicipserver quicipserver.cpp)
 
-target_link_libraries(quicipserver msquic platform base)
+target_link_libraries(quicipserver msquic platform base warnings)
 
 set_property(TARGET quicipserver PROPERTY FOLDER "tools")

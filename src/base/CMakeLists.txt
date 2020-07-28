@@ -5,7 +5,7 @@
 
 add_library(base INTERFACE)
 
-target_compile_options(base INTERFACE ${QUIC_WARNING_FLAGS} ${QUIC_C_FLAGS})
+target_compile_options(base INTERFACE ${QUIC_C_FLAGS})
 target_compile_options(base INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${QUIC_CXX_FLAGS}>)
 
 target_compile_definitions(base INTERFACE ${QUIC_COMMON_DEFINES})
@@ -37,3 +37,6 @@ target_link_libraries(base INTERFACE Threads::Threads ${CMAKE_DL_LIBS} ${ATOMIC}
 if(WIN32)
     target_link_libraries(base INTERFACE ws2_32 schannel ntdll bcrypt ncrypt crypt32 iphlpapi advapi32)
 endif()
+
+add_library(warnings INTERFACE)
+target_compile_options(warnings INTERFACE ${QUIC_WARNING_FLAGS})

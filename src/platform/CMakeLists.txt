@@ -59,6 +59,8 @@ add_library(platform STATIC ${SOURCES})
 
 target_link_libraries(platform PUBLIC PLATFORM_CLOG_LIB base)
 
+target_link_libraries(platform PRIVATE warnings)
+
 set_property(TARGET platform PROPERTY FOLDER "libraries")
 
 target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})

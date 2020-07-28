@@ -28,7 +28,7 @@ add_library(testlib ${SOURCES})
 
 target_include_directories(testlib PRIVATE ${PROJECT_SOURCE_DIR}/src/test)
 
-target_link_libraries(testlib PRIVATE base)
+target_link_libraries(testlib PRIVATE base warnings)
 
 set_property(TARGET testlib PROPERTY FOLDER "tests")
 
