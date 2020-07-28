@@ -9,4 +9,4 @@ add_executable(quicpost ${SOURCES})
 
 set_property(TARGET quicpost PROPERTY FOLDER "tools")
 
-target_link_libraries(quicpost msquic platform base)
+target_link_libraries(quicpost msquic platform inc)

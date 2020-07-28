@@ -15,7 +15,7 @@ set(SOURCES
 # Allow CLOG to preprocess all the source files.
 CLOG_GENERATE_TARGET(MSQUIC_PLATFORMTEST ${SOURCES})
 
-target_link_libraries(MSQUIC_PLATFORMTEST PRIVATE base)
+target_link_libraries(MSQUIC_PLATFORMTEST PRIVATE inc)
 
 add_executable(msquicplatformtest ${SOURCES})
 
@@ -30,6 +30,6 @@ if (NOT MSVC)
         PROPERTIES LINK_FLAGS "-Wl,--no-as-needed")
 endif()
 
-target_link_libraries(msquicplatformtest msquic platform base gtest MSQUIC_PLATFORMTEST)
+target_link_libraries(msquicplatformtest msquic platform inc gtest MSQUIC_PLATFORMTEST)
 
 add_test(msquicplatformtest msquicplatformtest)

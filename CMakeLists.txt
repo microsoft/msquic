@@ -347,7 +347,7 @@ if(QUIC_TLS STREQUAL "mitls")
     add_subdirectory(submodules/everest/msquic/msvc/quiccrypto)
 endif()
 
-add_subdirectory(src/base)
+add_subdirectory(src/inc)
 
 # Product code
 add_subdirectory(src/core)

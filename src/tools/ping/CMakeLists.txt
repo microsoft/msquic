@@ -13,4 +13,4 @@ add_executable(quicping ${SOURCES})
 
 set_property(TARGET quicping PROPERTY FOLDER "tools")
 
-target_link_libraries(quicping msquic platform base)
+target_link_libraries(quicping msquic platform inc)

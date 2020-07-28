@@ -22,13 +22,13 @@ set(SOURCES
 # Allow CLOG to preprocess all the source files.
 CLOG_GENERATE_TARGET(TESTLIB_CLOG_LIB ${SOURCES})
 
-target_link_libraries(TESTLIB_CLOG_LIB PRIVATE base)
+target_link_libraries(TESTLIB_CLOG_LIB PRIVATE inc)
 
 add_library(testlib ${SOURCES})
 
 target_include_directories(testlib PRIVATE ${PROJECT_SOURCE_DIR}/src/test)
 
-target_link_libraries(testlib PRIVATE base warnings)
+target_link_libraries(testlib PRIVATE inc warnings)
 
 set_property(TARGET testlib PROPERTY FOLDER "tests")
 

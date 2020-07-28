@@ -53,11 +53,11 @@ endif()
 # Allow CLOG to preprocess all the source files.
 CLOG_GENERATE_TARGET(PLATFORM_CLOG_LIB ${SOURCES})
 
-target_link_libraries(PLATFORM_CLOG_LIB PRIVATE base)
+target_link_libraries(PLATFORM_CLOG_LIB PRIVATE inc)
 
 add_library(platform STATIC ${SOURCES})
 
-target_link_libraries(platform PUBLIC PLATFORM_CLOG_LIB base)
+target_link_libraries(platform PUBLIC PLATFORM_CLOG_LIB inc)
 
 target_link_libraries(platform PRIVATE warnings)
 

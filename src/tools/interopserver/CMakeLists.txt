@@ -9,4 +9,4 @@ add_executable(quicinteropserver ${SOURCES})
 
 set_property(TARGET quicinteropserver PROPERTY FOLDER "tools")
 
-target_link_libraries(quicinteropserver msquic platform base)
+target_link_libraries(quicinteropserver msquic platform inc)

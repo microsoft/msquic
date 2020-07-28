@@ -3,6 +3,6 @@
 
 add_executable(spinquic spinquic.cpp)
 
-target_link_libraries(spinquic msquic platform base)
+target_link_libraries(spinquic msquic platform inc)
 
 set_property(TARGET spinquic PROPERTY FOLDER "tools")
