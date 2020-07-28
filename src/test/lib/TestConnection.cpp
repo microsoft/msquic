@@ -128,10 +128,26 @@ TestConnection::Shutdown(
 TestStream*
 TestConnection::NewStream(
     _In_opt_ STREAM_SHUTDOWN_CALLBACK_HANDLER StreamShutdownHandler,
-    _In_ QUIC_STREAM_OPEN_FLAGS Flags
+    _In_ QUIC_STREAM_OPEN_FLAGS Flags,
+    _In_ NEW_STREAM_START_TYPE StartType
     )
 {
-    return TestStream::FromConnectionHandle(QuicConnection, StreamShutdownHandler, Flags);
+    auto Stream = TestStream::FromConnectionHandle(QuicConnection, StreamShutdownHandler, Flags);
+
+    if (StartType != NEW_STREAM_START_NONE) {
+        QUIC_STATUS Status =
+            Stream->Start(
+                StartType == NEW_STREAM_START_ASYNC ?
+                    QUIC_STREAM_START_FLAG_ASYNC :
+                    QUIC_STREAM_START_FLAG_NONE);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("MsQuic->StreamStart failed, 0x%x.", Status);
+            delete Stream;
+            return nullptr;
+        }
+    }
+
+    return Stream;
 }
 
 bool

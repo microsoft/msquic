@@ -78,8 +78,6 @@ QuicPublicEndpoint PublicEndpoints[] = {
     { "lsquic",         "http3-test.litespeedtech.com" },
     { "mvfst",          "fb.mvfst.net" },
     { "msquic",         "quic.westus.cloudapp.azure.com" },
-    { "msquic-west",    "http3.westus2.cloudapp.azure.com" },
-    { "msquic-east",    "http3.eastus2.cloudapp.azure.com" },
     { "ngtcp2",         "nghttp2.org" },
     { "ngx_quic",       "cloudflare-quic.com" },
     { "Pandora",        "pandora.cm.in.tum.de" },
