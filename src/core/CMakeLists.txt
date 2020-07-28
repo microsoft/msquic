@@ -59,5 +59,3 @@ set_property(TARGET core PROPERTY FOLDER "libraries")
 if(WIN32)
     add_dependencies(core MsQuicEtw)
 endif()
-
-target_link_libraries(core PUBLIC CORE_CLOG_LIB)
