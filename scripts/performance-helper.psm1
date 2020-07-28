@@ -11,7 +11,7 @@ $WpaStackWalkProfileXml = `
   <Profiles>
     <SystemCollector Id="SC_HighVolume" Realtime="false">
       <BufferSize Value="1024"/>
-      <Buffers Value="20"/>
+      <Buffers Value="80"/>
     </SystemCollector>
     <SystemProvider Id="SP_CPU">
       <Keywords>
