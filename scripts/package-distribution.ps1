@@ -81,9 +81,18 @@ foreach ($Build in $AllBuilds) {
         $Binaries += Join-Path $ArtifactsDir "msquic.pdb"
     } else {
         $Binaries += Join-Path $ArtifactsDir "libmsquic.so"
+
         #Temporary until we fix CLOG
-        $Binaries += Join-Path $ArtifactsDir "libPLATFORM_CLOG_LIB.so"
-        $Binaries += Join-Path $ArtifactsDir "libCORE_CLOG_LIB.so"
+        $PlatClogLib = Join-Path $ArtifactsDir "libPLATFORM_CLOG_LIB.so"
+        if (Test-Path $PlatClogLib) {
+            $Binaries += Join-Path $PlatClogLib
+        }
+
+        #Temporary until we fix CLOG
+        $CoreClogLib = Join-Path $ArtifactsDir "libCORE_CLOG_LIB.so"
+        if (Test-Path $CoreClogLib) {
+            $Binaries += $CoreClogLib
+        }
     }
 
     $Libraries = @()
