@@ -72,15 +72,6 @@ TestStream::FromConnectionHandle(
         TEST_FAILURE("MsQuic->StreamOpen failed, 0x%x.", Status);
         return nullptr;
     }
-    Status =
-        MsQuic->StreamStart(
-            QuicStreamHandle,
-            QUIC_STREAM_START_FLAG_NONE);
-    if (QUIC_FAILED(Status)) {
-        TEST_FAILURE("MsQuic->StreamStart failed, 0x%x.", Status);
-        MsQuic->StreamClose(QuicStreamHandle);
-        return nullptr;
-    }
     auto Stream = new TestStream(QuicStreamHandle, StreamShutdownHandler, IsUnidirectionalStream, true);
     if (Stream == nullptr || !Stream->IsValid()) {
         TEST_FAILURE("Failed to create new TestStream.");
@@ -111,6 +102,17 @@ TestStream::Shutdown(
             ErrorCode);
 }
 
+QUIC_STATUS
+TestStream::Start(
+    _In_ QUIC_STREAM_START_FLAGS Flags
+    )
+{
+    return
+        MsQuic->StreamStart(
+            QuicStream,
+            Flags);
+}
+
 bool
 TestStream::StartPing(
     _In_ uint64_t PayloadLength
@@ -118,56 +120,46 @@ TestStream::StartPing(
 {
     BytesToSend = (int64_t)(PayloadLength / MaxSendBuffers);
 
-    if (BytesToSend != 0) {
-        while (BytesToSend != 0 && OutstandingSendRequestCount < MaxSendRequestQueue) {
-
-            auto SendBufferLength = (uint32_t)min(BytesToSend, MaxSendLength);
-            auto SendBuffer = new QuicSendBuffer(MaxSendBuffers, SendBufferLength);
-            if (SendBuffer == nullptr) {
-                TEST_FAILURE("Failed to alloc QuicSendBuffer");
-                return false;
-            }
-
-            auto resultingBytesLeft = InterlockedSubtract64(&BytesToSend, SendBufferLength);
-
-            QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_ALLOW_0_RTT;
-            if (resultingBytesLeft == 0) {
-                Flags |= QUIC_SEND_FLAG_FIN;
-            }
-
-            InterlockedIncrement(&OutstandingSendRequestCount);
-            QUIC_STATUS Status =
-                MsQuic->StreamSend(
-                    QuicStream,
-                    SendBuffer->Buffers,
-                    SendBuffer->BufferCount,
-                    Flags,
-                    SendBuffer);
-            if (QUIC_FAILED(Status)) {
-                InterlockedDecrement(&OutstandingSendRequestCount);
-                delete SendBuffer;
-                TEST_FAILURE("MsQuic->StreamSend failed, 0x%x.", Status);
-                return false;
-            }
-            if (resultingBytesLeft == 0) {
-                // On the finish packet if it succeeds, the instance
-                // we are executing in will be deleted. Return
-                // so we don't execute the while on a deleted instance.
-                return true;
-            }
-        }
-
-    } else {
-        //
-        // No data to send out, so just close the stream.
-        //
-        QUIC_STATUS Status =
-            Shutdown(QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, QUIC_TEST_NO_ERROR);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->StreamShutdown failed, 0x%x.", Status);
+    do {
+        auto SendBufferLength = (uint32_t)min(BytesToSend, MaxSendLength);
+        auto SendBuffer = new QuicSendBuffer(MaxSendBuffers, SendBufferLength);
+        if (SendBuffer == nullptr) {
+            TEST_FAILURE("Failed to alloc QuicSendBuffer");
             return false;
         }
-    }
+
+        auto resultingBytesLeft = InterlockedSubtract64(&BytesToSend, SendBufferLength);
+
+        QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_ALLOW_0_RTT;
+        if (PayloadLength == 0) {
+            Flags |= QUIC_SEND_FLAG_START;
+        }
+        if (resultingBytesLeft == 0) {
+            Flags |= QUIC_SEND_FLAG_FIN;
+        }
+
+        InterlockedIncrement(&OutstandingSendRequestCount);
+        QUIC_STATUS Status =
+            MsQuic->StreamSend(
+                QuicStream,
+                SendBuffer->Buffers,
+                SendBuffer->BufferCount,
+                Flags,
+                SendBuffer);
+        if (QUIC_FAILED(Status)) {
+            InterlockedDecrement(&OutstandingSendRequestCount);
+            delete SendBuffer;
+            TEST_FAILURE("MsQuic->StreamSend failed, 0x%x.", Status);
+            return false;
+        }
+        if (resultingBytesLeft == 0) {
+            // On the finish packet if it succeeds, the instance
+            // we are executing in will be deleted. Return
+            // so we don't execute the while on a deleted instance.
+            return true;
+        }
+
+    } while (BytesToSend != 0 && OutstandingSendRequestCount < MaxSendRequestQueue);
 
     return true;
 }

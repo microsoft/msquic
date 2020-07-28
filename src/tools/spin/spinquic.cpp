@@ -14,6 +14,7 @@
 #include <algorithm>
 
 #define QUIC_TEST_APIS 1 // Needed for self signed cert API
+#define QUIC_API_ENABLE_INSECURE_FEATURES 1 // Needed for disabling 1-RTT encryption
 #include <msquichelper.h>
 
 #define EXIT_ON_FAILURE(x) do { \
@@ -100,7 +101,7 @@ static HQUIC Registration;
 static QUIC_SEC_CONFIG* GlobalSecurityConfig;
 static std::vector<HQUIC> Sessions;
 
-const uint32_t MaxBufferSizes[] = { 1, 2, 32, 50, 256, 500, 1000, 1024, 1400, 5000, 10000, 64000, 10000000 };
+const uint32_t MaxBufferSizes[] = { 0, 1, 2, 32, 50, 256, 500, 1000, 1024, 1400, 5000, 10000, 64000, 10000000 };
 static const size_t BufferCount = ARRAYSIZE(MaxBufferSizes);
 static QUIC_BUFFER Buffers[BufferCount];
 
@@ -431,6 +432,9 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
         break;
     case QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED:                     // uint8_t (BOOLEAN)
         break; // Get Only
+    case QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION:                   // uint8_t (BOOLEAN)
+        Helper.SetUint8(QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION, GetRandom(2));
+        break;
     default:
         break;
     }
@@ -522,7 +526,7 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
                 auto Stream = ctx->TryGetStream();
                 if (Stream == nullptr) continue;
                 auto Buffer = &Buffers[GetRandom(BufferCount)];
-                MsQuic->StreamSend(Stream, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(8), nullptr);
+                MsQuic->StreamSend(Stream, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(16), nullptr);
             }
             break;
         }

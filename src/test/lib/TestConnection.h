@@ -11,6 +11,12 @@ Abstract:
 
 class TestConnection;
 
+enum NEW_STREAM_START_TYPE {
+    NEW_STREAM_START_NONE,      // Dont' start
+    NEW_STREAM_START_SYNC,      // Start synchronously
+    NEW_STREAM_START_ASYNC      // Start asynchronously
+};
+
 //
 // Callback for processing peer created streams.
 //
@@ -130,7 +136,8 @@ public:
     TestStream*
     NewStream(
         _In_opt_ STREAM_SHUTDOWN_CALLBACK_HANDLER StreamShutdownHandler,
-        _In_ QUIC_STREAM_OPEN_FLAGS Flags
+        _In_ QUIC_STREAM_OPEN_FLAGS Flags,
+        _In_ NEW_STREAM_START_TYPE StartType = NEW_STREAM_START_SYNC
         );
 
     uint32_t GetWaitTimeout() const {
