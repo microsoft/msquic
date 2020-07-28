@@ -46,6 +46,7 @@ elseif (APPLE)
 elseif (UNIX)
     set(QUIC_PLATFORM "linux")
 endif()
+message(STATUS "QUIC Platform: ${QUIC_PLATFORM}")
 
 if(WIN32)
     # On Windows, we just need to set the destination variables
@@ -121,7 +122,6 @@ elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Linux")
 elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Darwin")
     set(QUIC_PLATFORM "darwin")
 endif()
-message(STATUS "QUIC Platform: ${QUIC_PLATFORM}")
 
 if (QUIC_PDBALTPATH AND MSVC)
 #    Disabled in all cases because generation is broken.
