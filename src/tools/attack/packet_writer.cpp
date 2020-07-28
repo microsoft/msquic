@@ -44,7 +44,7 @@ struct TlsContext
 
     TlsContext(TlsSession& Session, _In_z_ const char* Alpn, _In_z_ const char* Sni) :
         Ptr(nullptr), SecConfig(nullptr) {
-            
+
         AlpnListBuffer[0] = (uint8_t)strlen(Alpn);
         memcpy(&AlpnListBuffer[1], Alpn, AlpnListBuffer[0]);
         QuicEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
