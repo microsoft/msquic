@@ -22,7 +22,7 @@ target_include_directories(msquiccoretest PRIVATE ${PROJECT_SOURCE_DIR}/src/core
 
 set_property(TARGET msquiccoretest PROPERTY FOLDER "tests")
 
-if (NOT MSVC)
+if (NOT MSVC AND NOT APPLE)
     # This must be on the individual executables
     # CMake 3.13 is needed to solve this, but we want a minimum of 3.5
     SET_TARGET_PROPERTIES(msquiccoretest
