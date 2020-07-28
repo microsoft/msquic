@@ -36,7 +36,7 @@ QUIC_PLATFORM_DISPATCH* PlatDispatch = NULL;
 int RandomFd; // Used for reading random numbers.
 #endif
 
-static const char tpLibName[] = "libmsquictraceprovider.so";
+static const char TpLibName[] = "libmsquic.lttng.so";
 
 uint64_t QuicTotalMemory;
 
@@ -71,55 +71,56 @@ QuicPlatformSystemLoad(
     // https://github.com/dotnet/coreclr/blob/ed5dc831b09a0bfed76ddad684008bebc86ab2f0/src/pal/src/misc/tracepointprovider.cpp#L106
     //
 
-    int fShouldLoad = 1;
+    int ShouldLoad = 1;
     // Check if loading the LTTng providers should be disabled.
-    char *disableValue = getenv("QUIC_LTTng");
-    if (disableValue != NULL)
-    {
-        fShouldLoad = strtol(disableValue, NULL, 10);
+    char *DisableValue = getenv("QUIC_LTTng");
+    if (DisableValue != NULL) {
+        ShouldLoad = strtol(DisableValue, NULL, 10);
     }
 
-    if (!fShouldLoad) {
+    if (!ShouldLoad) {
         return;
     }
 
     // Get the path to the currently executing shared object (libmsquic.so).
-    Dl_info info;
-    int succeeded = dladdr((void *)QuicPlatformSystemLoad, &info);
-    if (!succeeded) {
+    Dl_info Info;
+    int Succeeded = dladdr((void *)QuicPlatformSystemLoad, &Info);
+    if (!Succeeded) {
         return;
     }
 
-    int pathLen = strlen(info.dli_fname);
+    int PathLen = strlen(Info.dli_fname);
 
     // Find the length of the full path without the shared object name, including the trailing slash.
-    int lastTrailingSlashLen = -1;
-    for (int i = pathLen; i >= 0; i--) {
-        if (info.dli_fname[i] == '/') {
-            lastTrailingSlashLen = i + 1;
+    int LastTrailingSlashLen = -1;
+    for (int i = PathLen; i >= 0; i--) {
+        if (Info.dli_fname[i] == '/') {
+            LastTrailingSlashLen = i + 1;
             break;
         }
     }
 
-    if (lastTrailingSlashLen == -1) {
+    if (LastTrailingSlashLen == -1) {
         return;
     }
 
-    size_t tpLibNameLen = strlen(tpLibName);
-    size_t providerFullPathLength = tpLibNameLen + lastTrailingSlashLen + 1;
+    size_t TpLibNameLen = strlen(TpLibName);
+    size_t ProviderFullPathLength = TpLibNameLen + LastTrailingSlashLen + 1;
 
-    char* providerFullPath = QUIC_ALLOC_PAGED(providerFullPathLength);
-    if (providerFullPath == NULL) {
+    char* ProviderFullPath = QUIC_ALLOC_PAGED(ProviderFullPathLength);
+    if (ProviderFullPath == NULL) {
         return;
     }
 
-    QuicCopyMemory(providerFullPath, info.dli_fname, lastTrailingSlashLen);
-    QuicCopyMemory(providerFullPath + lastTrailingSlashLen, tpLibName, tpLibNameLen);
-    providerFullPath[lastTrailingSlashLen + tpLibNameLen] = '\0';
+    QuicCopyMemory(ProviderFullPath, Info.dli_fname, LastTrailingSlashLen);
+    QuicCopyMemory(ProviderFullPath + LastTrailingSlashLen, TpLibName, TpLibNameLen);
+    ProviderFullPath[LastTrailingSlashLen + TpLibNameLen] = '\0';
 
     // Load the tracepoint provider.
     // It's OK if this fails - that just means that tracing dependencies aren't available.
-    dlopen(providerFullPath, RTLD_NOW | RTLD_GLOBAL);
+    dlopen(ProviderFullPath, RTLD_NOW | RTLD_GLOBAL);
+
+    QUIC_FREE(ProviderFullPath);
 }
 
 void

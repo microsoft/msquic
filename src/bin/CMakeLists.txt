@@ -54,9 +54,9 @@ install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION ${msquic_dest}
 install(EXPORT msquic DESTINATION ${msquic_dest})
 
 if(WIN32)
-    add_library(msquictraceprovider INTERFACE)
+    add_library(msquic.lttng INTERFACE)
 else()
-    add_library(msquictraceprovider SHARED linux/traceprovider.c)
-    target_link_libraries(msquictraceprovider ${LTTNGUST_LIBRARIES})
-    install(TARGETS msquictraceprovider DESTINATION "${main_lib_dest}")
+    add_library(msquic.lttng SHARED linux/traceprovider.c)
+    target_link_libraries(msquic.lttng ${LTTNGUST_LIBRARIES})
+    install(TARGETS msquic.lttng DESTINATION "${main_lib_dest}")
 endif()
