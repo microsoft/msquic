@@ -142,7 +142,7 @@ private:
     QUIC_STATUS
     QUIC_API
     QuicCallbackHandler(
-        _In_ HQUIC /*Connection*/,
+        _In_ HQUIC Connection,
         _In_opt_ void* Context,
         _Inout_ QUIC_CONNECTION_EVENT* Event
         ) {

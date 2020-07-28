@@ -54,10 +54,10 @@ PingConnection::~PingConnection() {
 
 bool
 PingConnection::Initialize(
-    bool IsServerParam
+    bool IsServer
     )
 {
-    this->IsServer = IsServerParam;
+    this->IsServer = IsServer;
 
     if (!PingConfig.UseSendBuffer) {
         BOOLEAN Opt = FALSE;

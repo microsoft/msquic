@@ -48,7 +48,7 @@ struct QuicAddr
         QuicZeroMemory(this, sizeof(*this));
     }
 
-    void Resolve(QUIC_ADDRESS_FAMILY /*af*/, const char* hostname) {
+    void Resolve(QUIC_ADDRESS_FAMILY af, const char* hostname) {
         QUIC_DATAPATH* Datapath = nullptr;
         if (QUIC_FAILED(
             QuicDataPathInitialize(

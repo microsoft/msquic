@@ -72,6 +72,7 @@ struct TlsContext
         Config.ReceiveTPCallback = OnRecvQuicTP;
         Config.ServerName = Sni;
 
+        QUIC_TLS_PROCESS_STATE State = {0};
         VERIFY_QUIC_SUCCESS(
             QuicTlsInitialize(
                 &Config,
@@ -248,8 +249,8 @@ PacketWriter::WriteClientInitialPacket(
     Cid->IsInitial = TRUE;
     Cid->Length = CidLength;
 
-    uint16_t PayloadLengthOffset = 0;
-    uint8_t PacketNumberLength = 0;
+    uint16_t PayloadLengthOffset;
+    uint8_t PacketNumberLength;
     *PacketLength =
         QuicPacketEncodeLongHeaderV1(
             QUIC_VERSION_LATEST,
