@@ -36,11 +36,14 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Publish
     Publishes the results to the artifacts directory.
 
-.PARAMETER Record
-    Records ETW traces
+.PARAMETER RecordStack
+    Records ETW stack traces
 
 .PARAMETER Timeout
     Timeout in seconds for each individual client test invocation.
+
+.PARAMETER RecordQUIC
+    Record QUIC specific trace events
 
 #>
 
@@ -87,12 +90,16 @@ param (
     [switch]$Local = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Record = $false,
+    [switch]$RecordStack = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$PGO = $false,
 
-    [int]$Timeout = 60
+    [Parameter(Mandatory = $false)]
+    [int]$Timeout = 60,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$RecordQUIC = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -100,6 +107,8 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
+
+$Record = $RecordStack -or $RecordQUIC
 
 # Remove any previous remote PowerShell sessions
 Get-PSSession | Remove-PSSession
@@ -148,6 +157,7 @@ Set-ScriptVariables -Local $Local `
                     -Config $Config `
                     -Publish $Publish `
                     -Record $Record
+                    -RecordQUIC $RecordQUIC
 
 if ($Local) {
     $RemoteAddress = "localhost"
