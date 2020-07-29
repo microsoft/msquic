@@ -19,6 +19,29 @@ Abstract:
 #include "ThroughputCommon.h"
 #include "quic_trace.h"
 
+static
+void
+PrintHelp(
+    ) {
+    WriteOutput("Usage: quicperf -TestName:Throughput [options]\n\n"
+#if _WIN32
+        "  -comp:<####>                The compartment ID to run in.\n"
+        "  -core:<####>                The CPU core to use for the main thread.\n"
+#endif
+        "  -bind:<addr>                A local IP address to bind to.\n"
+        "  -port:<####>                The UDP port of the server. (def:%u)\n"
+        "  -ip:<0/4/6>                 A hint for the resolving the hostname to an IP address. (def:0)\n"
+        "  -encrypt:<0/1>              Enables/disables encryption. (def:%u)\n"
+        "  -sendbuf:<0/1>              Whether to use send buffering. (def:%u)\n"
+        "  -length:<####>              The length of streams opened locally. (def:0)\n"
+        "  -iosize:<####>              The size of each send request queued. (buffered def:%u) (nonbuffered def:%u)\n"
+        "  -iocount:<####>             The number of outstanding send requests to queue per stream. (buffered def:%u) (nonbuffered def:%u)\n",
+        THROUGHPUT_DEFAULT_PORT,
+        THROUGHPUT_DEFAULT_IO_SIZE_BUFFERED, THROUGHPUT_DEFAULT_IO_SIZE_NONBUFFERED,
+        THROGHTPUT_DEFAULT_SEND_COUNT_BUFFERED, THROUGHPUT_DEFAULT_SEND_COUNT_NONBUFFERED
+        );
+}
+
 ThroughputClient::ThroughputClient(
     ) {
     QuicZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
@@ -44,6 +67,7 @@ ThroughputClient::Init(
     const char* Target;
     if (!TryGetValue(argc, argv, "target", &Target)) {
         WriteOutput("Must specify '-target' argument!\n");
+        PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -61,6 +85,7 @@ ThroughputClient::Init(
     if (TryGetValue(argc, argv, "bind", &LocalAddress)) {
         if (!ConvertArgToAddress(LocalAddress, 0, &LocalIpAddr)) {
             WriteOutput("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", LocalAddress);
+            PrintHelp();
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     }

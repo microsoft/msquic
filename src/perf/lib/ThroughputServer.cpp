@@ -22,6 +22,21 @@ Abstract:
 #include "ThroughputServer.h"
 #include "ThroughputCommon.h"
 
+static
+void
+PrintHelp(
+    ) {
+    WriteOutput("Usage: quicperf -TestName:Throughput -ServerMode:1 [options]\n\n"
+        "  -listen:<addr or *>         The local IP address to listen on, or * for all IP addresses.\n"
+        "  -thumbprint:<cert_hash>     The hash or thumbprint of the certificate to use.\n"
+        "  -cert_store:<store name>    The certificate store to search for the thumbprint in.\n"
+        "  -machine_cert:<0/1>         Use the machine, or current user's, certificate store. (def:0)\n"
+        "  -connections:<####>         The number of connections to create. (def:0)\n"
+        "  -port:<####>                The UDP port of the server. (def:%u)\n",
+        THROUGHPUT_DEFAULT_PORT
+        );
+}
+
 ThroughputServer::ThroughputServer(
     _In_ PerfSelfSignedConfiguration* SelfSignedConfig
     ) : SelfSignedConfig{SelfSignedConfig} {
@@ -49,10 +64,12 @@ ThroughputServer::Init(
     const char* localAddress = nullptr;
     if (!TryGetValue(argc, argv, "listen", &localAddress)) {
         WriteOutput("Server mode must have -listen\n");
+        PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
     }
     if (!ConvertArgToAddress(localAddress, port, &Address)) {
         WriteOutput("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", localAddress);
+        PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 

@@ -26,6 +26,18 @@ const QuicApiTable* MsQuic;
 
 PerfBase* TestToRun;
 
+static
+void
+PrintHelp(
+    ) {
+    WriteOutput("Usage: quicperf -TestName:[Throughput|] [options]\n" \
+        "\n" \
+        "  -ServerMode:<1:0>        default: '0'\n" \
+        "\n\n" \
+        "Run a test without arguments to see it's specific help\n"
+        );
+}
+
 QUIC_STATUS
 QuicMainStart(
     _In_ int argc,
@@ -36,6 +48,7 @@ QuicMainStart(
     const char* TestName = GetValue(argc, argv, "TestName");
     if (!TestName) {
         WriteOutput("Must have a TestName specified. Ex: -TestName:Throughput\n");
+        PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
