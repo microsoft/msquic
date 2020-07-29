@@ -39,9 +39,6 @@ This script runs an executable and collects and logs or process dumps as necessa
 .Parameter CodeCoverage
     Collect code coverage for the binary being run.
 
-.Parameter SkipTracing
-    Skip trace provider loading
-
 #>
 
 param (
@@ -80,10 +77,7 @@ param (
     [switch]$EnableAppVerifier = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$CodeCoverage = $false,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$SkipTracing = $false
+    [switch]$CodeCoverage = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -203,11 +197,7 @@ function Start-Executable {
             }
         } else {
             $pinfo.FileName = "bash"
-            $SkipArgs = ""
-            if ($SkipTracing) {
-                $SkipArgs = "QUIC_LTTng=0"
-            }
-            $pinfo.Arguments = "-c `"ulimit -c unlimited && $($SkipArgs) LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 $($Path) $($Arguments) && echo Done`""
+            $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 $($Path) $($Arguments) && echo Done`""
             $pinfo.WorkingDirectory = $LogDir
         }
     }
