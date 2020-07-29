@@ -12,4 +12,4 @@ add_executable(quicperf ${SOURCES})
 
 set_property(TARGET quicperf PROPERTY FOLDER "perf")
 
-target_link_libraries(quicperf perflib msquic platform gtest perfbin.clog)
+target_link_libraries(quicperf perflib msquic platform perfbin.clog)
