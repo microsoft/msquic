@@ -43,9 +43,9 @@ QuicUserMain(
     QUIC_EVENT StopEvent;
     QuicEventInitialize(&StopEvent, true, false);
 
-    QUIC_STATUS RetVal = QuicMainStart(argc, argv, StopEvent, SelfSignedConfig);
-    if (RetVal != 0) {
-        return RetVal;
+    QUIC_STATUS Status = QuicMainStart(argc, argv, StopEvent, SelfSignedConfig);
+    if (Status != 0) {
+        return Status;
     }
 
     printf("Started!\n\n");
@@ -57,9 +57,9 @@ QuicUserMain(
         QuicEventSet(StopEvent);
     }
 
-    RetVal = QuicMainStop(0);
+    Status = QuicMainStop(0);
     QuicEventUninitialize(StopEvent);
-    return RetVal;
+    return Status;
 }
 
 #ifdef _WIN32
@@ -71,19 +71,19 @@ QuicKernelMain(
     _In_ bool KeyboardWait,
     _In_ QUIC_SEC_CONFIG_PARAMS* SelfSignedParams
     ) {
-    size_t TotalLength = 0;
+    size_t TotalLength = sizeof(argc);
 
     //
     // Get total length
     //
     for (int i = 0; i < argc; ++i) {
-        //
-        // Length of string, plus null terminator, plus length
-        //
         TotalLength += strlen(argv[i]) + 1;
     }
 
-    TotalLength += sizeof(argc);
+    if (TotalLength > UINT_MAX) {
+        printf("Too many arguments to pass to the driver\n");
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
 
     char* Data = static_cast<char*>(QUIC_ALLOC_NONPAGED(TotalLength));
     if (!Data) {
@@ -106,12 +106,6 @@ QuicKernelMain(
     }
 
     QUIC_DBG_ASSERT(DataCurrent == (Data + TotalLength));
-
-    if (TotalLength > UINT_MAX) {
-        printf("Too many arguments to pass to the driver\n");
-        QUIC_FREE(Data);
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
 
     constexpr uint32_t OutBufferSize = 1024 * 1000;
     char* OutBuffer = (char*)QUIC_ALLOC_NONPAGED(OutBufferSize); // 1 MB
@@ -211,6 +205,8 @@ main(
     if (TestingKernelMode) {
 #ifdef _WIN32
         RetVal = QuicKernelMain(argc, argv, KeyboardWait, SelfSignedParams);
+#else
+        QUIC_FRE_ASSERT(FALSE);
 #endif
     } else {
         RetVal = QuicUserMain(argc, argv, KeyboardWait, &SelfSignedConfig);

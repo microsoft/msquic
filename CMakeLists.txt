@@ -101,6 +101,7 @@ endif()
 
 option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
 option(QUIC_BUILD_TEST "Builds the test code" ON)
+option(QUIC_BUILD_PERF "Builds the perf code" ON)
 option(QUIC_ENABLE_LOGGING "Enables logging" ON)
 option(QUIC_SANITIZE_ADDRESS "Enables address sanitizer" OFF)
 option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
@@ -359,6 +360,12 @@ if(QUIC_BUILD_TOOLS)
     add_subdirectory(src/tools)
 endif()
 
+# Tool code
+if(QUIC_BUILD_PERF)
+    add_subdirectory(src/perf/lib)
+    add_subdirectory(src/perf/bin)
+endif()
+
 # Test code
 if(QUIC_BUILD_TEST)
     # Build the googletest framework.
@@ -381,6 +388,4 @@ if(QUIC_BUILD_TEST)
     add_subdirectory(src/platform/unittest)
     add_subdirectory(src/test/lib)
     add_subdirectory(src/test/bin)
-    add_subdirectory(src/perf/lib)
-    add_subdirectory(src/perf/bin)
 endif()

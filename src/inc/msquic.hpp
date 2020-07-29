@@ -55,11 +55,7 @@ class UniquePtr {
 public:
     UniquePtr() noexcept = default;
 
-    explicit UniquePtr(T* _ptr) :
-        ptr{_ptr}
-    {
-    }
-
+    explicit UniquePtr(T* _ptr) : ptr{_ptr} { }
     UniquePtr(const UniquePtr& other) = delete;
     UniquePtr& operator=(const UniquePtr& other) = delete;
 
@@ -112,10 +108,7 @@ class UniquePtr<T[]> {
 public:
     UniquePtr() noexcept = default;
 
-    explicit UniquePtr(T* _ptr) :
-        ptr{_ptr}
-    {
-    }
+    explicit UniquePtr(T* _ptr) : ptr{_ptr} { }
 
     UniquePtr(const UniquePtr& other) = delete;
     UniquePtr& operator=(const UniquePtr& other) = delete;

@@ -180,10 +180,9 @@ _IRQL_requires_same_
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicPerfDriverUnload(
-    _In_ WDFDRIVER Driver
+    _In_ WDFDRIVER /*Driver*/
     )
 {
-    UNREFERENCED_PARAMETER(Driver);
     NT_ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
 
     QuicPerfCtlUninitialize();
@@ -360,8 +359,7 @@ QuicPerfCtlEvtFileCreate(
     KeEnterGuardedRegion();
     ExfAcquirePushLockExclusive(&QuicPerfCtlExtension->Lock);
 
-    do
-    {
+    do {
         if (QuicPerfCtlExtension->ClientListSize >= 1) {
             QuicTraceEvent(
                 LibraryError,

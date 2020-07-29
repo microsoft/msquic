@@ -9,8 +9,6 @@ Abstract:
 
 --*/
 
-
-
 #ifndef _KERNEL_MODE
 #define QUIC_TEST_APIS 1
 #endif
@@ -24,9 +22,9 @@ Abstract:
 #include "quicmain.cpp.clog.h"
 #endif
 
-const QuicApiTable* MsQuic {nullptr};
+const QuicApiTable* MsQuic;
 
-PerfBase* TestToRun {nullptr};
+PerfBase* TestToRun;
 
 QUIC_STATUS
 QuicMainStart(
@@ -36,13 +34,13 @@ QuicMainStart(
     _In_ PerfSelfSignedConfiguration* SelfSignedConfig
     ) {
     const char* TestName = GetValue(argc, argv, "TestName");
-    uint8_t ServerMode = 0;
-    TryGetValue(argc, argv, "ServerMode", &ServerMode);
-
     if (!TestName) {
         WriteOutput("Must have a TestName specified. Ex: -TestName:Throughput\n");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
+
+    uint8_t ServerMode = 0;
+    TryGetValue(argc, argv, "ServerMode", &ServerMode);
 
     QUIC_STATUS Status;
     MsQuic = new QuicApiTable{};
