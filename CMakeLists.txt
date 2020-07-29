@@ -360,7 +360,7 @@ if(QUIC_BUILD_TOOLS)
     add_subdirectory(src/tools)
 endif()
 
-# Tool code
+# Performance code
 if(QUIC_BUILD_PERF)
     add_subdirectory(src/perf/lib)
     add_subdirectory(src/perf/bin)
