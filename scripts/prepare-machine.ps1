@@ -21,7 +21,7 @@ param (
     [string]$Configuration
 )
 
-#Requires -RunAsAdministrator
+##Requires -RunAsAdministrator
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
@@ -32,8 +32,8 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $NuGetPath = Join-Path $RootDir "nuget"
 
 # Well-known location for clog packages.
-$ClogDownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v0.1.2"
-$ClogVersion = "0.1.2"
+$ClogDownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v0.1.3"
+$ClogVersion = "0.1.3"
 
 function Install-ClogTool {
     param($ToolName)
