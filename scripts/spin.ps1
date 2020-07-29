@@ -129,6 +129,9 @@ if ("None" -ne $LogProfile) {
 if ($CodeCoverage) {
     $Arguments += " -CodeCoverage"
 }
+if (($Tls -eq "stub") -and !$IsWindows) {
+    $Arguments += " -SkipTracing"
+}
 
 # Run the script.
 Invoke-Expression ($RunExecutable + " " + $Arguments)
