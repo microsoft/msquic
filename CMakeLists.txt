@@ -277,6 +277,11 @@ else()
         list(APPEND QUIC_COMMON_DEFINES QUIC_PLATFORM_LINUX)
     endif()
 
+    if (QUIC_SANITIZE_ADDRESS)
+        set(QUIC_ENABLE_LOGGING OFF)
+        message(WARNING "LTTng logging is incompatible with Address Sanitizer. Skipping logging")
+    endif()
+
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for LTTng tracing")
         set(CMAKE_CLOG_CONFIG_PROFILE linux)
