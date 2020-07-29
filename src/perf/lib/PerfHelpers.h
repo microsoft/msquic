@@ -19,8 +19,6 @@ Abstract:
 #define QUIC_TEST_APIS 1
 #endif
 
-#include <msquic.h>
-
 class QuicApiTable;
 
 extern const QuicApiTable* MsQuic;

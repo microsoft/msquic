@@ -15,13 +15,6 @@ Abstract:
 
 #define QUIC_API_ENABLE_INSECURE_FEATURES 1
 
-//
-// This needs to be included in kernel mode for QUIC_ADDR to work. Breaks user
-// mode because of QUIC_TEST_API, so only included in kernel mode
-//
-#ifdef _KERNEL_MODE
-#include <quic_platform.h>
-#endif
 #include "ThroughputClient.h"
 #include "ThroughputCommon.h"
 #include "quic_trace.h"
