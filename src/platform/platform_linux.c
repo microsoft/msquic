@@ -72,7 +72,10 @@ QuicPlatformSystemLoad(
     //
 
     int ShouldLoad = 1;
+
+    //
     // Check if loading the LTTng providers should be disabled.
+    //
     char *DisableValue = getenv("QUIC_LTTng");
     if (DisableValue != NULL) {
         ShouldLoad = strtol(DisableValue, NULL, 10);
@@ -82,7 +85,9 @@ QuicPlatformSystemLoad(
         return;
     }
 
+    //
     // Get the path to the currently executing shared object (libmsquic.so).
+    //
     Dl_info Info;
     int Succeeded = dladdr((void *)QuicPlatformSystemLoad, &Info);
     if (!Succeeded) {
@@ -91,7 +96,9 @@ QuicPlatformSystemLoad(
 
     int PathLen = strlen(Info.dli_fname);
 
+    //
     // Find the length of the full path without the shared object name, including the trailing slash.
+    //
     int LastTrailingSlashLen = -1;
     for (int i = PathLen; i >= 0; i--) {
         if (Info.dli_fname[i] == '/') {
@@ -116,8 +123,10 @@ QuicPlatformSystemLoad(
     QuicCopyMemory(ProviderFullPath + LastTrailingSlashLen, TpLibName, TpLibNameLen);
     ProviderFullPath[LastTrailingSlashLen + TpLibNameLen] = '\0';
 
+    //
     // Load the tracepoint provider.
     // It's OK if this fails - that just means that tracing dependencies aren't available.
+    //
     dlopen(ProviderFullPath, RTLD_NOW | RTLD_GLOBAL);
 
     QUIC_FREE(ProviderFullPath);
