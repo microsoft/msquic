@@ -1224,10 +1224,8 @@ QuicSocketContextRecvComplete(
         SocketContext->Binding,
         (uint32_t)BytesTransferred,
         (uint32_t)BytesTransferred,
-        LOG_ADDR_LEN(*LocalAddr),
-        LOG_ADDR_LEN(*RemoteAddr),
-        (uint8_t*)LocalAddr,
-        (uint8_t*)RemoteAddr);
+        LOG_BINARY(sizeof(*LocalAddr), LocalAddr),
+        LOG_BINARY(sizeof(*RemoteAddr), RemoteAddr));
 
     QUIC_DBG_ASSERT(BytesTransferred <= RecvPacket->BufferLength);
     RecvPacket->BufferLength = BytesTransferred;
@@ -1935,8 +1933,7 @@ QuicDataPathBindingSend(
                 SendContext->Buffers[i].Length,
                 1,
                 SendContext->Buffers[i].Length,
-                LOG_ADDR_LEN(*RemoteAddress),
-                (uint8_t*)RemoteAddress);
+                LOG_BINARY(sizeof(*RemoteAddress), RemoteAddress));
 
             SentByteCount =
                 sendto(
@@ -2003,10 +2000,8 @@ QuicDataPathBindingSend(
             TotalSize,
             SendContext->BufferCount,
             SendContext->Buffers[0].Length,
-            LOG_ADDR_LEN(*RemoteAddress),
-            LOG_ADDR_LEN(*LocalAddress),
-            (uint8_t*)RemoteAddress,
-            (uint8_t*)LocalAddress);
+            LOG_BINARY(sizeof(*RemoteAddress), RemoteAddress),
+            LOG_BINARY(sizeof(*LocalAddress), LocalAddress));
 
         //
         // Map V4 address to dual-stack socket format.
