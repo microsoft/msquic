@@ -83,17 +83,12 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 # Path for the WPR profile.
 $WprpFile = $RootDir + "\src\manifest\msquic.wprp"
 $SideCar = Join-Path $RootDir "src/manifest/clog.sidecar"
-$Clog2Text_lttng = Join-Path $RootDir "artifacts/clog/clog2text_lttng"
+$Clog2Text_lttng = Join-Path $RootDir "clog2text_lttng"
 
 $TempDir = $null
 if ($IsLinux) {
     $InstanceName = $InstanceName.Replace(".", "_")
     $TempDir = Join-Path $HOME "QUICLogs" $InstanceName
-
-    # Set Linux env variables to include dotnet.
-    $env:PATH+=":$HOME/.dotnet"
-    $env:PATH+=":$HOME/.dotnet/tools"
-    $env:DOTNET_ROOT="$HOME/.dotnet/"
 }
 
 # Start log collection.
