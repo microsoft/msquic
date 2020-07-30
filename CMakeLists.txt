@@ -194,7 +194,7 @@ if (WIN32)
 else()
     set(QUIC_COMMON_FLAGS "")
     set(QUIC_COMMON_DEFINES "")
-    set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value CACHE INTERNAL "")
+    set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value -Wmultichar CACHE INTERNAL "")
 endif()
 
 if(WIN32)
