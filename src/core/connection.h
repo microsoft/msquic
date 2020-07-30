@@ -42,11 +42,6 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN Freed           : 1;    // Freed. Used for Debugging.
 
         //
-        // Indicates whether encryption is enabled or not for the connection.
-        //
-        BOOLEAN EncryptionEnabled : 1;
-
-        //
         // Indicates whether packet number encryption is enabled or not for the
         // connection.
         //
@@ -1056,8 +1051,7 @@ QuicConnGetSourceCidFromSeq(
                     "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
                     Connection,
                     SourceCid->CID.SequenceNumber,
-                    SourceCid->CID.Length,
-                    SourceCid->CID.Data);
+                    LOG_BINARY(SourceCid->CID.Length, SourceCid->CID.Data));
                 *Entry = (*Entry)->Next;
             }
             *IsLastCid = Connection->SourceCids.Next == NULL;
@@ -1130,7 +1124,7 @@ QuicConnGetDestCidFromSeq(
 // Adds a sample (in microsec) to the connection's RTT estimator.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
+void
 QuicConnUpdateRtt(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,

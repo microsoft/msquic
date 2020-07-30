@@ -259,17 +259,13 @@ struct QuicConnEventPayload {
         } LossDetectionTimerSet;
         struct {
             uint64_t PktNum;
-            uint8_t LocalAddrLength;
-            uint8_t RemoteAddrLength;
-            uint8_t Addrs[1];
+            uint8_t Addrs[1]; // LocalAddr, RemoteAddr
             // char Reason[];
         } DropPacket;
         struct {
             uint64_t PktNum;
             uint64_t Value;
-            uint8_t LocalAddrLength;
-            uint8_t RemoteAddrLength;
-            uint8_t Addrs[1];
+            uint8_t Addrs[1]; // LocalAddr, RemoteAddr
             // char Reason[];
         } DropPacketEx;
         struct {

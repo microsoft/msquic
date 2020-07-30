@@ -151,10 +151,8 @@ QuicBindingInitialize(
         "[bind][%p] Created, Udp=%p LocalAddr=%!SOCKADDR! RemoteAddr=%!SOCKADDR!",
         Binding,
         Binding->DatapathBinding,
-        LOG_ADDR_LEN(DatapathLocalAddr),
-        LOG_ADDR_LEN(DatapathRemoteAddr),
-        (uint8_t*)&DatapathLocalAddr,
-        (uint8_t*)&DatapathRemoteAddr);
+        LOG_BINARY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
+        LOG_BINARY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
 
     *NewBinding = Binding;
     Status = QUIC_STATUS_SUCCESS;
@@ -248,10 +246,8 @@ QuicBindingTraceRundown(
         "[bind][%p] Rundown, Udp=%p LocalAddr=%!SOCKADDR! RemoteAddr=%!SOCKADDR!",
         Binding,
         Binding->DatapathBinding,
-        LOG_ADDR_LEN(DatapathLocalAddr),
-        LOG_ADDR_LEN(DatapathRemoteAddr),
-        (uint8_t*)&DatapathLocalAddr,
-        (uint8_t*)&DatapathRemoteAddr);
+        LOG_BINARY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
+        LOG_BINARY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
 
     QuicDispatchRwLockAcquireShared(&Binding->RwLock);
 
