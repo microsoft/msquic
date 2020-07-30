@@ -270,7 +270,7 @@ typedef LOOKASIDE_LIST_EX QUIC_POOL;
         (IsPaged) ? PagedPool : NonPagedPoolNx, \
         0, \
         Size, \
-        QUIC_POOL_GENERIC, \
+        Tag, \
         0)
 
 #define QuicPoolUninitialize(Pool) ExDeleteLookasideListEx(Pool)
