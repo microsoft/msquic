@@ -1369,13 +1369,14 @@ QuicBindingDeliverDatagrams(
         }
     }
 
-    if (Connection != NULL) {
-        QuicConnQueueRecvDatagrams(Connection, DatagramChain, DatagramChainLength);
-        QuicConnRelease(Connection, QUIC_CONN_REF_LOOKUP_RESULT);
-        return TRUE;
-    } else {
+    if (Connection == NULL) {
         return FALSE;
     }
+
+    QuicConnQueueRecvDatagrams(Connection, DatagramChain, DatagramChainLength);
+    QuicConnRelease(Connection, QUIC_CONN_REF_LOOKUP_RESULT);
+
+    return TRUE;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
