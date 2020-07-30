@@ -451,20 +451,24 @@ const uint32_t ParamCounts[] = {
     QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION + 1
 };
 
+#define GET_PARAM_LOOP_COUNT 10
+
 void SpinQuicGetRandomParam(HQUIC Connection)
 {
-    QUIC_PARAM_LEVEL Level = (QUIC_PARAM_LEVEL)GetRandom(5);
-    uint32_t Param = (uint32_t)GetRandom(ParamCounts[Level]);
+    for (uint32_t i = 0; i < GET_PARAM_LOOP_COUNT; ++i) {
+        QUIC_PARAM_LEVEL Level = (QUIC_PARAM_LEVEL)GetRandom(5);
+        uint32_t Param = (uint32_t)GetRandom(ParamCounts[Level] + 1);
 
-    uint8_t OutBuffer[512];
-    uint32_t OutBufferLength = (uint32_t)GetRandom(sizeof(OutBuffer) + 1);
+        uint8_t OutBuffer[200];
+        uint32_t OutBufferLength = (uint32_t)GetRandom(sizeof(OutBuffer) + 1);
 
-    MsQuic->GetParam(
-        (Level == QUIC_PARAM_LEVEL_GLOBAL) ? nullptr : Connection,
-        Level,
-        Param,
-        &OutBufferLength,
-        (GetRandom(10) == 0) ? nullptr : OutBuffer);
+        MsQuic->GetParam(
+            (GetRandom(10) == 0) ? nullptr : Connection,
+            Level,
+            Param,
+            &OutBufferLength,
+            (GetRandom(10) == 0) ? nullptr : OutBuffer);
+    }
 }
 
 void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
@@ -833,7 +837,10 @@ main(int argc, char **argv)
             }
         }
 
-        const QUIC_REGISTRATION_CONFIG RegConfig = { "spinquic", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
+        QUIC_REGISTRATION_CONFIG RegConfig;
+        RegConfig.AppName = "spinquic";
+        RegConfig.ExecutionProfile = (QUIC_EXECUTION_PROFILE)GetRandom(2);
+
         EXIT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
 
         if (SessionCount == 1) {
