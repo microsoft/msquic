@@ -174,7 +174,6 @@ if (QUIC_ENABLE_LOGGING)
 else()
     function(add_clog_library)
         add_library(${ARGV0} INTERFACE)
-        set_property(TARGET ${ARGV0} PROPERTY FOLDER "clog")
     endfunction()
 endif()
 
