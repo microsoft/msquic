@@ -20,6 +20,7 @@ Environment:
 #define _MSQUIC_LINUX_
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <sys/types.h>
 #include <string.h>

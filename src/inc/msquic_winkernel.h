@@ -284,4 +284,58 @@ QuicAddrHash(
 
 #define QUIC_LOCALHOST_FOR_AF(Af) "localhost"
 
+inline
+BOOLEAN
+QuicAddrFromString(
+    _In_z_ const char* AddrStr,
+    _In_ uint16_t Port, // Host byte order
+    _Out_ QUIC_ADDR* Addr
+    )
+{
+    Addr->Ipv4.sin_port = QuicNetByteSwapShort(Port);
+    if (RtlIpv4StringToAddressExA(AddrStr, FALSE, &Addr->Ipv4.sin_addr, &Addr->Ipv4.sin_port) == STATUS_SUCCESS) {
+        Addr->si_family = AF_INET;
+    } else if (RtlIpv6StringToAddressExA(AddrStr, &Addr->Ipv6.sin6_addr, &Addr->Ipv6.sin6_scope_id, &Addr->Ipv6.sin6_port) == STATUS_SUCCESS) {
+        Addr->si_family = AF_INET6;
+    } else {
+        return FALSE;
+    }
+    return TRUE;
+}
+
+//
+// Represents an IP address and (optionally) port number as a string.
+//
+typedef struct QUIC_ADDR_STR {
+    char Address[64];
+} QUIC_ADDR_STR;
+
+inline
+BOOLEAN
+QuicAddrToString(
+    _In_ const QUIC_ADDR* Addr,
+    _Out_ QUIC_ADDR_STR* AddrStr
+    )
+{
+    LONG Status;
+    ULONG AddrStrLen = ARRAYSIZE(AddrStr->Address);
+    if (Addr->si_family == AF_INET) {
+        Status =
+            RtlIpv4AddressToStringExA(
+                &Addr->Ipv4.sin_addr,
+                Addr->Ipv4.sin_port,
+                AddrStr->Address,
+                &AddrStrLen);
+    } else {
+        Status =
+            RtlIpv6AddressToStringExA(
+                &Addr->Ipv6.sin6_addr,
+                0,
+                Addr->Ipv6.sin6_port,
+                AddrStr->Address,
+                &AddrStrLen);
+    }
+    return Status == STATUS_SUCCESS;
+}
+
 #endif // _MSQUIC_WINKERNEL_

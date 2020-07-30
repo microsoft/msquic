@@ -929,6 +929,8 @@ NdisSetThreadObjectCompartmentId(
     IN NET_IF_COMPARTMENT_ID CompartmentId
     );
 
+#define QuicSetCurrentThreadAffinityMask(Mask) KeSetSystemAffinityThreadEx(Mask)
+
 #define QuicCompartmentIdGetCurrent() NdisGetThreadObjectCompartmentId(PsGetCurrentThread())
 #define QuicCompartmentIdSetCurrent(CompartmentId) \
     NdisSetThreadObjectCompartmentId(PsGetCurrentThread(), CompartmentId)

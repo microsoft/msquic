@@ -2402,6 +2402,7 @@ QuicSendContextComplete(
     _In_ ULONG IoResult
     )
 {
+    UNREFERENCED_PARAMETER(SocketContext);
     if (IoResult != QUIC_STATUS_SUCCESS) {
         QuicTraceEvent(
             DatapathErrorStatus,
