@@ -48,9 +48,7 @@ QuicPacketBuilderInitialize(
     Builder->PacketBatchSent = FALSE;
     Builder->PacketBatchRetransmittable = FALSE;
     Builder->Metadata = &Builder->MetadataStorage.Metadata;
-    Builder->EncryptionOverhead =
-        Connection->State.EncryptionEnabled ?
-            QUIC_ENCRYPTION_OVERHEAD : 0;
+    Builder->EncryptionOverhead = QUIC_ENCRYPTION_OVERHEAD;
 
     if (Connection->SourceCids.Next == NULL) {
         QuicTraceLogConnWarning(

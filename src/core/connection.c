@@ -105,7 +105,6 @@ QuicConnAlloc(
     Connection->PartitionID = PartitionId;
     Connection->State.Allocated = TRUE;
     Connection->State.UseSendBuffer = QUIC_DEFAULT_SEND_BUFFERING_ENABLE;
-    Connection->State.EncryptionEnabled = !MsQuicLib.EncryptionDisabled;
     Connection->State.ShareBinding = IsServer;
     Connection->Stats.Timing.Start = QuicTimeUs64();
     Connection->SourceCidLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
@@ -3398,7 +3397,7 @@ QuicConnRecvHeader(
         }
 
         Packet->KeyType = QuicPacketTypeToKeyType(Packet->LH->Type);
-        Packet->Encrypted = Connection->State.EncryptionEnabled;
+        Packet->Encrypted = TRUE;
 
     } else {
 
@@ -3408,9 +3407,7 @@ QuicConnRecvHeader(
         }
 
         Packet->KeyType = QUIC_PACKET_KEY_1_RTT;
-        Packet->Encrypted =
-            Connection->State.EncryptionEnabled &&
-            !Connection->State.Disable1RttEncrytion;
+        Packet->Encrypted = !Connection->State.Disable1RttEncrytion;
     }
 
     if (Packet->Encrypted &&
@@ -5789,7 +5786,6 @@ QuicConnParamSet(
     case QUIC_PARAM_CONN_FORCE_KEY_UPDATE:
 
         if (!Connection->State.Connected ||
-            !Connection->State.EncryptionEnabled ||
             Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT] == NULL ||
             Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]->AwaitingKeyPhaseConfirmation ||
             !Connection->State.HandshakeConfirmed) {

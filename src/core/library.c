@@ -556,31 +556,6 @@ QuicLibrarySetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_GLOBAL_ENCRYPTION:
-
-        if (BufferLength != sizeof(uint8_t)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        if (MsQuicLib.InUse &&
-            MsQuicLib.EncryptionDisabled != (*(uint8_t*)Buffer == FALSE)) {
-            QuicTraceLogError(
-                LibraryEncryptionSetAfterInUse,
-                "[ lib] Tried to change encryption state after library in use!");
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
-        MsQuicLib.EncryptionDisabled = *(uint8_t*)Buffer == FALSE;
-        QuicTraceLogWarning(
-            LibraryEncryptionSet,
-            "[ lib] Updated encryption disabled = %hu",
-            MsQuicLib.EncryptionDisabled);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     case QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS:
 
@@ -675,25 +650,6 @@ QuicLibraryGetGlobalParam(
 
         *BufferLength = sizeof(uint16_t);
         *(uint16_t*)Buffer = MsQuicLib.Settings.LoadBalancingMode;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_GLOBAL_ENCRYPTION:
-
-        if (*BufferLength < sizeof(uint8_t)) {
-            *BufferLength = sizeof(uint8_t);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(uint8_t);
-        *(uint8_t*)Buffer = !MsQuicLib.EncryptionDisabled;
 
         Status = QUIC_STATUS_SUCCESS;
         break;

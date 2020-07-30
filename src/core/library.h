@@ -78,12 +78,6 @@ typedef struct QUIC_LIBRARY {
     BOOLEAN InUse;
 
     //
-    // Indicates encryption is enabled or disabled for new connections.
-    // Defaults to FALSE.
-    //
-    BOOLEAN EncryptionDisabled;
-
-    //
     // Index for the current stateless retry token key.
     //
     BOOLEAN CurrentStatelessRetryKey;
