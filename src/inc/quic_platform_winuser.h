@@ -257,6 +257,7 @@ QuicFree(
 #define QUIC_ALLOC_PAGED(Size) QuicAlloc(Size)
 #define QUIC_ALLOC_NONPAGED(Size) QuicAlloc(Size)
 #define QUIC_FREE(Mem) QuicFree((void*)Mem)
+#define QUIC_FREE_TAG(Mem, Tag) QUIC_FREE(Mem)
 
 typedef struct QUIC_POOL {
     SLIST_HEADER ListHead;
@@ -278,6 +279,7 @@ void
 QuicPoolInitialize(
     _In_ BOOLEAN IsPaged,
     _In_ uint32_t Size,
+    _In_ uint32_t Tag,
     _Inout_ QUIC_POOL* Pool
     )
 {
@@ -287,6 +289,7 @@ QuicPoolInitialize(
     Pool->Size = Size;
     InitializeSListHead(&(Pool)->ListHead);
     UNREFERENCED_PARAMETER(IsPaged);
+    UNREFERENCED_PARAMETER(Tag); // TODO - Use in debug mode?
 }
 
 inline
