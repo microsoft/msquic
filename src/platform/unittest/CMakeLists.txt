@@ -10,9 +10,7 @@ set(SOURCES
 )
 
 # Allow CLOG to preprocess all the source files.
-CLOG_GENERATE_TARGET(msquicplatformtest.clog STATIC ${SOURCES})
-
-target_link_libraries(msquicplatformtest.clog PRIVATE inc)
+add_clog_library(msquicplatformtest.clog STATIC ${SOURCES})
 
 add_executable(msquicplatformtest ${SOURCES})
 

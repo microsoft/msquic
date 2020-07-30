@@ -6,7 +6,7 @@ set(SOURCES
 )
 
 # Allow CLOG to preprocess all the source files.
-CLOG_GENERATE_TARGET(perfbin.clog STATIC ${SOURCES})
+add_clog_library(perfbin.clog STATIC ${SOURCES})
 
 add_executable(quicperf ${SOURCES})
 

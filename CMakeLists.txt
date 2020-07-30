@@ -153,8 +153,6 @@ set(QUIC_OUTPUT_DIR ${QUIC_BUILD_DIR}/bin/$<IF:$<CONFIG:Debug>,Debug,Release> CA
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/obj/$<IF:$<CONFIG:Debug>,Debug,Release>)
 
-execute_process(COMMAND clog --installDirectory ${CMAKE_SOURCE_DIR}/build/clog)
-
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${QUIC_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${QUIC_OUTPUT_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${QUIC_OUTPUT_DIR})
@@ -162,12 +160,26 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${QUIC_OUTPUT_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 
-set(CMAKE_CLOG_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/inc)
-set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest)
-set(CLOG_INCLUDE_DIRECTORY ${CMAKE_SOURCE_DIR}/build/clog)
-set(CMAKE_CLOG_GENERATE_FILE ${CMAKE_SOURCE_DIR}/build/clog/CLog.cmake)
-set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/msquic.clog_config)
-include(${CMAKE_CLOG_GENERATE_FILE})
+if (QUIC_ENABLE_LOGGING)
+    execute_process(COMMAND clog --installDirectory ${CMAKE_SOURCE_DIR}/build/clog)
+
+    set(CMAKE_CLOG_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/inc)
+    set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest)
+    set(CLOG_INCLUDE_DIRECTORY ${CMAKE_SOURCE_DIR}/build/clog)
+    set(CMAKE_CLOG_GENERATE_FILE ${CMAKE_SOURCE_DIR}/build/clog/CLog.cmake)
+    set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/msquic.clog_config)
+    include(${CMAKE_CLOG_GENERATE_FILE})
+
+    function(add_clog_library)
+        CLOG_GENERATE_TARGET(${ARGV})
+        target_link_libraries(${ARGV0} PRIVATE inc)
+        set_property(TARGET ${ARGV0} PROPERTY FOLDER "clog")
+    endfunction()
+else()
+    function(add_clog_library)
+        add_library(${ARGV0} INTERFACE)
+    endfunction()
+endif()
 
 set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 set(MANIFESTED_HEADER_FILENAME ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
