@@ -648,21 +648,25 @@ QuicDataPathInitialize(
         QuicPoolInitialize(
             FALSE,
             sizeof(QUIC_DATAPATH_SEND_CONTEXT),
+            QUIC_POOL_GENERIC,
             &Datapath->ProcContexts[i].SendContextPool);
 
         QuicPoolInitialize(
             FALSE,
             MAX_UDP_PAYLOAD_LENGTH,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].SendBufferPool);
 
         QuicPoolInitialize(
             FALSE,
             QUIC_LARGE_SEND_BUFFER_SIZE,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].LargeSendBufferPool);
 
         QuicPoolInitialize(
             FALSE,
             RecvDatagramLength,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].RecvDatagramPool);
 
         Datapath->ProcContexts[i].IOCP =

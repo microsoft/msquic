@@ -192,10 +192,12 @@ MsQuicLibraryInitialize(
         QuicPoolInitialize(
             FALSE,
             sizeof(QUIC_CONNECTION),
+            QUIC_POOL_CONN,
             &MsQuicLib.PerProc[i].ConnectionPool);
         QuicPoolInitialize(
             FALSE,
             sizeof(QUIC_TRANSPORT_PARAMETERS),
+            QUIC_POOL_TP,
             &MsQuicLib.PerProc[i].TransportParamPool);
     }
 
