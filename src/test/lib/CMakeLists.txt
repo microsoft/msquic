@@ -17,7 +17,7 @@ set(SOURCES
 )
 
 # Allow CLOG to preprocess all the source files.
-CLOG_GENERATE_TARGET(testlib.clog ${SOURCES})
+CLOG_GENERATE_TARGET(testlib.clog STATIC ${SOURCES})
 
 target_link_libraries(testlib.clog PRIVATE inc)
 

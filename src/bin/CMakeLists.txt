@@ -34,9 +34,19 @@ set(PUBLIC_HEADERS
     ../inc/msquic_linux.h
     ../inc/quic_sal_stub.h)
 
-#install(TARGETS msquic EXPORT msquic DESTINATION "${main_lib_dest}")
-#install(FILES ${PUBLIC_HEADERS} DESTINATION "${include_dest}")
+install(TARGETS msquic EXPORT msquic DESTINATION "${main_lib_dest}")
+install(FILES ${PUBLIC_HEADERS} DESTINATION "${include_dest}")
 
-#configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake )
-#install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION ${msquic_dest})
-#install(EXPORT msquic DESTINATION ${msquic_dest})
+configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake)
+
+install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION ${msquic_dest})
+
+install(EXPORT msquic DESTINATION ${msquic_dest})
+
+if(WIN32)
+    add_library(msquic.lttng INTERFACE)
+else()
+    add_library(msquic.lttng SHARED linux/traceprovider.c)
+    target_link_libraries(msquic.lttng inc ${LTTNGUST_LIBRARIES})
+    install(TARGETS msquic.lttng DESTINATION "${main_lib_dest}")
+endif()

@@ -44,7 +44,7 @@ if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 endif()
 
 # Allow CLOG to preprocess all the source files.
-CLOG_GENERATE_TARGET(core.clog ${SOURCES})
+CLOG_GENERATE_TARGET(core.clog STATIC ${SOURCES})
 
 target_link_libraries(core.clog PRIVATE inc)
 
