@@ -30,6 +30,9 @@ This script provides helpers for building msquic.
 .PARAMETER DisableTest
     Don't build the test directory.
 
+.PARAMETER DisablePerf
+    Don't build the perf directory.
+
 .PARAMETER Clean
     Deletes all previous build and configuration.
 
@@ -47,6 +50,12 @@ This script provides helpers for building msquic.
 
 .PARAMETER Generator
     Specifies a specific cmake generator (Only supported on unix)
+
+.PARAMETER SkipPdbAltPath
+    Skip setting PDBALTPATH into built binaries on Windows. Without this flag, the PDB must be in the same directory as the DLL or EXE.
+
+.PARAMETER SkipSourceLink
+    Skip generating sourcelink and inserting it into the PDB.
 
 .EXAMPLE
     build.ps1
@@ -87,6 +96,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$DisableTest = $false,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$DisablePerf = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$Clean = $false,
@@ -101,7 +113,13 @@ param (
     [switch]$PGO = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$Generator = ""
+    [string]$Generator = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SkipPdbAltPath = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SkipSourceLink = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -111,7 +129,7 @@ if ($Generator -eq "") {
     if ($IsWindows) {
         $Generator = "Visual Studio 16 2019"
     } elseif ($IsLinux) {
-        $Generator = "Linux Makefiles"
+        $Generator = "Ninja"
     } else {
         $Generator = "Unix Makefiles"
     }
@@ -146,7 +164,7 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $BaseArtifactsDir = Join-Path $RootDir "artifacts"
 $BaseBuildDir = Join-Path $RootDir "build"
 
-$ArtifactsDir = Join-Path $BaseArtifactsDir $Platform
+$ArtifactsDir = Join-Path $BaseArtifactsDir "bin" $Platform
 $BuildDir = Join-Path $BaseBuildDir $Platform
 
 $ArtifactsDir = Join-Path $ArtifactsDir "$($Arch)_$($Config)_$($Tls)"
@@ -208,6 +226,9 @@ function CMake-Generate {
     if ($DisableTest) {
         $Arguments += " -DQUIC_BUILD_TEST=off"
     }
+    if ($DisablePerf) {
+        $Arguments += " -DQUIC_BUILD_PERF=off"
+    }
     if ($IsLinux) {
         $Arguments += " -DCMAKE_BUILD_TYPE=" + $Config
     }
@@ -222,6 +243,12 @@ function CMake-Generate {
     }
     if ($ToolchainFile -ne "") {
         $Arguments += " ""-DCMAKE_TOOLCHAIN_FILE=" + $ToolchainFile + """"
+    }
+    if ($SkipPdbAltPath) {
+        $Arguments += " -DQUIC_PDBALTPATH=OFF"
+    }
+    if ($SkipSourceLink) {
+        $Arguments += " -DQUIC_SOURCE_LINK=OFF"
     }
     $Arguments += " ../../.."
 
@@ -246,15 +273,11 @@ function CMake-Build {
     }
     if ($IsWindows) {
         $Arguments += " --config " + $Config
+    } else {
+        $Arguments += " -- VERBOSE=1"
     }
 
     CMake-Execute $Arguments
-
-    # Copy clog to a common location.
-    $ClogPath = Join-Path $BaseArtifactsDir "clog"
-    if (!(Test-Path $ClogPath)) {
-        Copy-Item (Join-Path $BuildDir "submodules/clog") -Destination $ClogPath -Recurse
-    }
 
     if ($IsWindows) {
         Copy-Item (Join-Path $BuildDir "obj" $Config "msquic.lib") $ArtifactsDir
@@ -286,13 +309,6 @@ function CMake-Build {
 ##############################################################
 #                     Main Execution                         #
 ##############################################################
-
-if (!$IsWindows) {
-    # Set Linux env variables to include dotnet.
-    $env:PATH+=":$HOME/.dotnet"
-    $env:PATH+=":$HOME/.dotnet/tools"
-    $env:DOTNET_ROOT="$HOME/.dotnet/"
-}
 
 # Generate the build files.
 Log "Generating files..."

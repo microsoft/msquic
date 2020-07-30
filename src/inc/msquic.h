@@ -29,11 +29,11 @@ Supported Platforms:
 #pragma warning(disable:4214)  // nonstandard extension used: bit field types other than int
 
 #ifdef _KERNEL_MODE
-#include <msquic_winkernel.h>
+#include "msquic_winkernel.h"
 #elif _WIN32
-#include <msquic_winuser.h>
+#include "msquic_winuser.h"
 #elif __linux__
-#include <msquic_linux.h>
+#include "msquic_linux.h"
 #else
 #error "Unsupported Platform"
 #endif
@@ -162,8 +162,9 @@ DEFINE_ENUM_FLAG_OPERATORS(QUIC_RECEIVE_FLAGS);
 typedef enum QUIC_SEND_FLAGS {
     QUIC_SEND_FLAG_NONE                     = 0x0000,
     QUIC_SEND_FLAG_ALLOW_0_RTT              = 0x0001,   // Allows the use of encrypting with 0-RTT key.
-    QUIC_SEND_FLAG_FIN                      = 0x0002,   // Indicates the request is the one last sent on the stream.
-    QUIC_SEND_FLAG_DGRAM_PRIORITY           = 0x0004    // Indicates the datagram is higher priority than others.
+    QUIC_SEND_FLAG_START                    = 0x0002,   // Indicates the request is the one last sent on the stream.
+    QUIC_SEND_FLAG_FIN                      = 0x0004,   // Indicates the request is the one last sent on the stream.
+    QUIC_SEND_FLAG_DGRAM_PRIORITY           = 0x0008    // Indicates the datagram is higher priority than others.
 } QUIC_SEND_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEND_FLAGS);
@@ -403,6 +404,9 @@ typedef enum QUIC_SERVER_RESUMPTION_LEVEL {
 #define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME        20  // QUIC_STREAM_SCHEDULING_SCHEME
 #define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED        21  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED           22  // uint8_t (BOOLEAN)
+#ifdef QUIC_API_ENABLE_INSECURE_FEATURES
+#define QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION         23  // uint8_t (BOOLEAN)
+#endif
 
 #ifdef WIN32 // Windows certificate validation ignore flags.
 #define QUIC_CERTIFICATE_FLAG_IGNORE_REVOCATION                 0x00000080

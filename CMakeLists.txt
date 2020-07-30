@@ -9,6 +9,8 @@ FATAL: In-source builds are not allowed.
 ")
 endif()
 
+message(STATUS "CMAKE Version: ${CMAKE_VERSION}")
+
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -37,7 +39,16 @@ message(STATUS "System name: ${CMAKE_SYSTEM_NAME}")
 message(STATUS "System version: ${CMAKE_SYSTEM_VERSION}")
 message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+if (WIN32)
+    set(QUIC_PLATFORM "windows")
+elseif (APPLE)
+    set(QUIC_PLATFORM "darwin")
+elseif (UNIX)
+    set(QUIC_PLATFORM "linux")
+endif()
+message(STATUS "QUIC Platform: ${QUIC_PLATFORM}")
+
+if(WIN32)
     # On Windows, we just need to set the destination variables
     # This will allow the build to be picked up by other projects
     set(msquic_dest ${CMAKE_INSTALL_PREFIX})
@@ -49,22 +60,26 @@ else()
 
     # Setup for Install. We set this up in here rather then in the main library folder for future use.
     # i.e. don't skip the full RPATH for the build tree
-    set(CMAKE_SKIP_BUILD_RPATH FALSE)
+    #set(CMAKE_SKIP_BUILD_RPATH FALSE)
 
     # When building, don't use the install RPATH already
     # (but later on when installing)
-    set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+    #set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 
-    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
+    # Azure is not liking this argument. I think its a bug in their configuration
+    # Once this is fixed, also fix the shim in build-config-user.yml
+    #set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
+
+    #set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
 
     # Add the automatically determined parts of the RPATH
     # which point to directories outside the build tree to the install RPATH
-    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+    #set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
     # The RPATH to be used when installing, but only if it's not a system directory
     list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/msquic/lib" isSystemDir)
     if("${isSystemDir}" STREQUAL "-1")
-    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
+    #set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
     endif("${isSystemDir}" STREQUAL "-1")
 
     set(msquic_dest msquic)
@@ -78,7 +93,7 @@ set(SELF_DIR "$\{SELF_DIR\}")
 enable_testing()
 
 # Set the default TLS method for each platform.
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+if (WIN32)
     set(QUIC_TLS "schannel" CACHE STRING "TLS Library to use")
 else()
     set(QUIC_TLS "openssl" CACHE STRING "TLS Library to use")
@@ -86,11 +101,14 @@ endif()
 
 option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
 option(QUIC_BUILD_TEST "Builds the test code" ON)
+option(QUIC_BUILD_PERF "Builds the perf code" ON)
 option(QUIC_ENABLE_LOGGING "Enables logging" ON)
 option(QUIC_SANITIZE_ADDRESS "Enables address sanitizer" OFF)
 option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
 option(QUIC_UWP_BUILD "Build for UWP" OFF)
 option(QUIC_PGO "Enables profile guided optimizations" OFF)
+option(QUIC_SOURCE_LINK "Enables source linking on MSVC" ON)
+option(QUIC_PDBALTPATH "Enable PDBALTPATH setting on MSVC" ON)
 
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
 if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
@@ -106,10 +124,32 @@ elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Darwin")
     set(QUIC_PLATFORM "darwin")
 endif()
 
+if (QUIC_PDBALTPATH AND MSVC)
+#    Disabled in all cases because generation is broken.
+#    file(READ ${CMAKE_CURRENT_LIST_DIR}/cmake/PdbAltPath.txt PDBALTPATH)
+#    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${PDBALTPATH}")
+#    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${PDBALTPATH}")
+#    message(STATUS ${CMAKE_EXE_LINKER_FLAGS})
+endif()
+
+if (QUIC_SOURCE_LINK AND MSVC)
+    if ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER_EQUAL "19.20")
+        include(${PROJECT_SOURCE_DIR}/cmake/SourceLink.cmake)
+        file(TO_NATIVE_PATH "${PROJECT_BINARY_DIR}/source_link.json" SOURCE_LINK_JSON)
+        source_link(${PROJECT_SOURCE_DIR} ${SOURCE_LINK_JSON})
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /FORCE:PGOREPRO /SOURCELINK:${SOURCE_LINK_JSON}")
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /FORCE:PGOREPRO /SOURCELINK:${SOURCE_LINK_JSON}")
+    else()
+        message(WARNING "Disabling SourceLink due to old version of MSVC. Please update to VS2019!")
+    endif()
+endif()
+
 set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(QUIC_OUTPUT_DIR ${QUIC_BUILD_DIR}/bin/$<IF:$<CONFIG:Debug>,Debug,Release> CACHE STRING "Output directory for build artifacts")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/obj/$<IF:$<CONFIG:Debug>,Debug,Release>)
+
+execute_process(COMMAND clog --installDirectory ${CMAKE_SOURCE_DIR}/build/clog)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${QUIC_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${QUIC_OUTPUT_DIR})
@@ -119,26 +159,34 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 
 set(CMAKE_CLOG_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/inc)
-set(CMAKE_CLOG_BINS_DIRECTORY ${QUIC_BUILD_DIR}/submodules/clog)
 set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest)
-set(CLOG_SOURCE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/clog)
-set(CLOG_INCLUDE_DIRECTORY ${CLOG_SOURCE_DIRECTORY}/inc)
+set(CLOG_INCLUDE_DIRECTORY ${CMAKE_SOURCE_DIR}/build/clog)
+set(CMAKE_CLOG_GENERATE_FILE ${CMAKE_SOURCE_DIR}/build/clog/CLog.cmake)
 set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/msquic.clog_config)
+include(${CMAKE_CLOG_GENERATE_FILE})
 
+set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 set(MANIFESTED_HEADER_FILENAME ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
-add_custom_target(CLOG_GENERATED_FILES
-    COMMENT "CREATED CMAKE Target for CLOG generated files"
-)
+if (WIN32)
+    set(QUIC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
+    set(QUIC_COMMON_FLAGS "")
+    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+        list(APPEND QUIC_COMMON_FLAGS /MP)
+    endif()
+    set(QUIC_COMMON_DEFINES WIN32_LEAN_AND_MEAN SECURITY_WIN32)
+else()
+    set(QUIC_COMMON_FLAGS "")
+    set(QUIC_COMMON_DEFINES "")
+    set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value CACHE INTERNAL "")
+endif()
 
-set(CLANG_GCC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value CACHE INTERNAL "")
-set(MSVC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
-
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+if(WIN32)
     # Generate the MsQuicEtw header file.
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/inc)
     file(WRITE ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
     include_directories(${QUIC_BUILD_DIR}/inc)
+
     add_custom_command(
         OUTPUT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h
         OUTPUT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc
@@ -150,46 +198,44 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 
     set_property(TARGET MsQuicEtw PROPERTY FOLDER "libraries")
 
-    # Custom build flags.
-    set(QUIC_COMMON_FLAGS "-DWIN32_LEAN_AND_MEAN -DSECURITY_WIN32 /MP")
-
-    if(QUIC_UWP_BUILD)
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DWINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP -DQUIC_UWP_BUILD")
+    if (QUIC_UWP_BUILD)
+        list(APPEND QUIC_COMMON_DEFINES WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP QUIC_UWP_BUILD)
     endif()
 
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for manifested ETW tracing")
         set(CMAKE_CLOG_CONFIG_PROFILE windows)
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_MANIFEST_ETW -DQUIC_LOGS_MANIFEST_ETW")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_MANIFEST_ETW QUIC_LOGS_MANIFEST_ETW)
     else()
         message(STATUS "Disabling tracing")
         set(CMAKE_CLOG_CONFIG_PROFILE stubs)
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_EVENTS_STUB -DQUIC_LOGS_STUB")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
     endif()
 
     if(QUIC_TLS STREQUAL "openssl")
         # OpenSSL doesn't support session resumption yet.
         message(STATUS "Disabling session resumption support")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_DISABLE_RESUMPTION")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION)
     endif()
 
     if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel")
         # OpenSSL and SChannel don't support 0-RTT yet.
         message(STATUS "Disabling 0-RTT support")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_DISABLE_0RTT_TESTS")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
     endif()
 
     if(QUIC_TLS STREQUAL "stub")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_TLS_STUB")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
     endif()
 
     if(QUIC_SANITIZE_ADDRESS)
         message(STATUS "Address sanitizer unsupported on this platform.")
     endif()
 
-    set(QUIC_C_FLAGS "${QUIC_COMMON_FLAGS}")
-    set(QUIC_CXX_FLAGS "${QUIC_COMMON_FLAGS} /std:c++17 /EHsc")
+    set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})
+    set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS} /std:c++17 /EHsc)
 
+    # These cannot be updated until CMake 3.13
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /GL /Zi")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL /Zi")
     set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /LTCG /DEBUG /OPT:REF /OPT:ICF")
@@ -224,11 +270,18 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 else()
     # Custom build flags.
 
-    set(QUIC_COMMON_FLAGS "-fms-extensions -fPIC -pthread -DQUIC_CLOG")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)
+    list(APPEND QUIC_COMMON_FLAGS -fms-extensions -fPIC)
     if (QUIC_PLATFORM STREQUAL "darwin")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_PLATFORM_DARWIN -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wmissing-field-initializers")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_PLATFORM_DARWIN)
+        list(APPEND QUIC_COMMON_FLAGS -Wno-microsoft-anon-tag -Wno-tautological-constant-out-of-range-compare -Wmissing-field-initializers)
     else()
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_PLATFORM_LINUX -Wl,--no-as-needed -ldl")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_PLATFORM_LINUX)
+    endif()
+
+    if (QUIC_SANITIZE_ADDRESS)
+        set(QUIC_ENABLE_LOGGING OFF)
+        message(WARNING "LTTng logging is incompatible with Address Sanitizer. Skipping logging")
     endif()
 
     if(QUIC_ENABLE_LOGGING)
@@ -238,38 +291,30 @@ else()
     else()
         message(STATUS "Disabling tracing")
         set(CMAKE_CLOG_CONFIG_PROFILE stubs)
-        list(APPEND CLANG_GCC_WARNING_FLAGS -Wno-unused-parameter -Wno-unused-variable)
+        list(APPEND QUIC_WARNING_FLAGS -Wno-unused-parameter -Wno-unused-variable)
     endif()
 
     if(QUIC_TLS STREQUAL "openssl")
         # OpenSSL doesn't support session resumption yet.
         message(STATUS "Disabling session resumption support")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_DISABLE_RESUMPTION")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_RESUMPTION)
         # OpenSSL doesn't support 0-RTT yet.
         message(STATUS "Disabling 0-RTT support")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_DISABLE_0RTT_TESTS")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
     endif()
 
     if(QUIC_SANITIZE_ADDRESS)
         message(STATUS "Configuring address sanitizer")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -fsanitize=address -fno-omit-frame-pointer -Wno-maybe-uninitialized -O0 -g")
+        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address -fno-omit-frame-pointer -Wno-maybe-uninitialized -O0 -g)
     endif()
 
     if(QUIC_TLS STREQUAL "stub")
-        set(QUIC_COMMON_FLAGS "${QUIC_COMMON_FLAGS} -DQUIC_TLS_STUB")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
     endif()
 
-    set(QUIC_C_FLAGS "${QUIC_COMMON_FLAGS}")
-    set(QUIC_CXX_FLAGS "${QUIC_COMMON_FLAGS} -std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format")
+    set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})
+    set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS} -std=c++17 -g -Wno-reorder -Wno-sign-compare -Wno-format)
 endif()
-
-include_directories(${QUIC_BUILD_DIR}/inc)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
-include_directories(${CLOG_INCLUDE_DIRECTORY})
-include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY})
-include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY}/CORE_CLOG_LIB)
-include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY}/PLATFORM_CLOG_LIB)
-include_directories(${CMAKE_CLOG_OUTPUT_DIRECTORY}/TESTLIB_CLOG_LIB)
 
 if(QUIC_TLS STREQUAL "openssl")
     # Configure and build OpenSSL.
@@ -307,8 +352,7 @@ if(QUIC_TLS STREQUAL "mitls")
     add_subdirectory(submodules/everest/msquic/msvc/quiccrypto)
 endif()
 
-# CLOG target
-add_subdirectory(submodules/clog/inc)
+add_subdirectory(src/inc)
 
 # Product code
 add_subdirectory(src/core)
@@ -317,20 +361,13 @@ add_subdirectory(src/bin)
 
 # Tool code
 if(QUIC_BUILD_TOOLS)
-    add_subdirectory(src/tools/attack)
-    add_subdirectory(src/tools/interop)
-    add_subdirectory(src/tools/interopserver)
-    add_subdirectory(src/tools/ping)
-    add_subdirectory(src/tools/post)
-    add_subdirectory(src/tools/reach)
-    add_subdirectory(src/tools/sample)
-    add_subdirectory(src/tools/siduck)
-    add_subdirectory(src/tools/spin)
-    add_subdirectory(src/tools/void)
-    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-        add_subdirectory(src/tools/etwlib)
-        add_subdirectory(src/tools/etw)
-    endif()
+    add_subdirectory(src/tools)
+endif()
+
+# Performance code
+if(QUIC_BUILD_PERF)
+    add_subdirectory(src/perf/lib)
+    add_subdirectory(src/perf/bin)
 endif()
 
 # Test code
@@ -338,14 +375,15 @@ if(QUIC_BUILD_TEST)
     # Build the googletest framework.
     set(BUILD_GMOCK OFF CACHE BOOL "Builds the googlemock subproject")
     set(INSTALL_GTEST OFF CACHE BOOL "Enable installation of googletest. (Projects embedding googletest may want to turn this OFF.)")
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    if(WIN32)
         option(gtest_force_shared_crt "Use shared (DLL) run-time lib even when Google Test is built as static lib." ON)
-    else()
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
     endif()
 
     enable_testing()
     add_subdirectory(submodules/googletest)
+
+    set_property(TARGET gtest PROPERTY CXX_STANDARD 17)
+    set_property(TARGET gtest_main PROPERTY CXX_STANDARD 17)
 
     set_property(TARGET gtest PROPERTY FOLDER "tests")
     set_property(TARGET gtest_main PROPERTY FOLDER "tests")

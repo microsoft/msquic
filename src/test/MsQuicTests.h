@@ -17,6 +17,12 @@ extern const QUIC_API_TABLE* MsQuic;
 extern HQUIC Registration;
 extern QUIC_SEC_CONFIG* SecurityConfig;
 
+//
+// Must be included under above extern declarations
+// Fixing is invasive, will do in future
+//
+#include "msquic.hpp"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -296,11 +302,9 @@ LogTestFailure(
 //
 // Name of the driver service for msquictest.sys.
 //
-#define QUIC_TEST_DRIVER_NAME   "msquictest"
+#define QUIC_DRIVER_NAME   "msquictest"
 
 #ifdef _WIN32
-
-#define QUIC_TEST_IOCTL_PATH    "\\\\.\\\\" QUIC_TEST_DRIVER_NAME
 
 //
 // {85C2D886-FA01-4DDA-AAED-9A16CC7DA6CE}

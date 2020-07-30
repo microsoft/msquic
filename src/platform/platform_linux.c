@@ -21,6 +21,7 @@ Environment:
 #include <sched.h>
 #include <fcntl.h>
 #include <syslog.h>
+#include <dlfcn.h>
 #include "quic_trace.h"
 #include "quic_platform_dispatch.h"
 #ifdef QUIC_CLOG
@@ -34,6 +35,8 @@ QUIC_PLATFORM_DISPATCH* PlatDispatch = NULL;
 #else
 int RandomFd; // Used for reading random numbers.
 #endif
+
+static const char TpLibName[] = "libmsquic.lttng.so";
 
 uint64_t QuicTotalMemory;
 
@@ -63,6 +66,70 @@ QuicPlatformSystemLoad(
     void
     )
 {
+    //
+    // Following code is modified from coreclr.
+    // https://github.com/dotnet/coreclr/blob/ed5dc831b09a0bfed76ddad684008bebc86ab2f0/src/pal/src/misc/tracepointprovider.cpp#L106
+    //
+
+    int ShouldLoad = 1;
+
+    //
+    // Check if loading the LTTng providers should be disabled.
+    //
+    char *DisableValue = getenv("QUIC_LTTng");
+    if (DisableValue != NULL) {
+        ShouldLoad = strtol(DisableValue, NULL, 10);
+    }
+
+    if (!ShouldLoad) {
+        return;
+    }
+
+    //
+    // Get the path to the currently executing shared object (libmsquic.so).
+    //
+    Dl_info Info;
+    int Succeeded = dladdr((void *)QuicPlatformSystemLoad, &Info);
+    if (!Succeeded) {
+        return;
+    }
+
+    int PathLen = strlen(Info.dli_fname);
+
+    //
+    // Find the length of the full path without the shared object name, including the trailing slash.
+    //
+    int LastTrailingSlashLen = -1;
+    for (int i = PathLen; i >= 0; i--) {
+        if (Info.dli_fname[i] == '/') {
+            LastTrailingSlashLen = i + 1;
+            break;
+        }
+    }
+
+    if (LastTrailingSlashLen == -1) {
+        return;
+    }
+
+    size_t TpLibNameLen = strlen(TpLibName);
+    size_t ProviderFullPathLength = TpLibNameLen + LastTrailingSlashLen + 1;
+
+    char* ProviderFullPath = QUIC_ALLOC_PAGED(ProviderFullPathLength);
+    if (ProviderFullPath == NULL) {
+        return;
+    }
+
+    QuicCopyMemory(ProviderFullPath, Info.dli_fname, LastTrailingSlashLen);
+    QuicCopyMemory(ProviderFullPath + LastTrailingSlashLen, TpLibName, TpLibNameLen);
+    ProviderFullPath[LastTrailingSlashLen + TpLibNameLen] = '\0';
+
+    //
+    // Load the tracepoint provider.
+    // It's OK if this fails - that just means that tracing dependencies aren't available.
+    //
+    dlopen(ProviderFullPath, RTLD_NOW | RTLD_GLOBAL);
+
+    QUIC_FREE(ProviderFullPath);
 }
 
 void
@@ -612,16 +679,6 @@ QuicConvertFromMappedV6(
     }
 }
 
-int
-_strnicmp(
-    _In_ const char * _Str1,
-    _In_ const char * _Str2,
-    _In_ size_t _MaxCount
-    )
-{
-    return strncasecmp(_Str1, _Str2, _MaxCount);
-}
-
 QUIC_STATUS
 QuicThreadCreate(
     _In_ QUIC_THREAD_CONFIG* Config,
@@ -640,9 +697,8 @@ QuicThreadCreate(
         return errno;
     }
 
-#ifdef __GLIBC__ 
+#ifdef __GLIBC__
     if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
-        QUIC_TEL_ASSERT(Config->IdealProcessor < 64);
         // There is no way to set an ideal processor in Linux, so just set affinity
         if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
             cpu_set_t CpuSet;
@@ -683,7 +739,6 @@ QuicThreadCreate(
 
 #ifndef __GLIBC__
     if (Status == QUIC_STATUS_SUCCESS && Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
-        QUIC_TEL_ASSERT(Config->IdealProcessor < 64);
         // There is no way to set an ideal processor in Linux, so just set affinity
         if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
             cpu_set_t CpuSet;

@@ -1,7 +1,8 @@
 *
 !CMakeLists.txt
-!scripts/run_endpoint.sh
+!scripts
 !src
+!cmake
 !submodules/openssl
 submodules/openssl/pyca-cryptography
 submodules/openssl/boringssl

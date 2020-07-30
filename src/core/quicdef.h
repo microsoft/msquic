@@ -105,7 +105,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 //
 // Maximum number of partitions to support.
 //
-#define QUIC_MAX_PARTITION_COUNT                64
+#define QUIC_MAX_PARTITION_COUNT                128
 
 //
 // The number of partitions (cores) to offset from the receive (RSS) core when
@@ -279,7 +279,7 @@ QUIC_STATIC_ASSERT(
 // The flow control window is doubled when more than (1 / ratio) of the current
 // window is delivered to the app within 1 RTT.
 //
-#define QUIC_RECV_BUFFER_DRAIN_RATIO            2
+#define QUIC_RECV_BUFFER_DRAIN_RATIO            8
 
 //
 // The default value for send buffering being enabled or not.

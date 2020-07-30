@@ -114,6 +114,11 @@ typedef struct QUIC_RECV_PACKET {
     BOOLEAN PacketNumberSet : 1;
 
     //
+    // Flag indicating the packet is encrypted.
+    //
+    BOOLEAN Encrypted : 1;
+
+    //
     // Flag indicating 0-RTT encryption.
     //
     BOOLEAN EncryptedWith0Rtt : 1;
@@ -456,13 +461,13 @@ QuicRetryTokenDecrypt(
         QuicCopyMemory(Iv, Packet->DestCid, MsQuicLib.CidTotalLength);
     }
 
-    QuicLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
+    QuicDispatchLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
 
     QUIC_KEY* StatelessRetryKey =
         QuicLibraryGetStatelessRetryKeyForTimestamp(
             Token->Authenticated.Timestamp);
     if (StatelessRetryKey == NULL) {
-        QuicLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+        QuicDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
         return FALSE;
     }
 
@@ -475,6 +480,6 @@ QuicRetryTokenDecrypt(
             sizeof(Token->Encrypted) + sizeof(Token->EncryptionTag),
             (uint8_t*)&Token->Encrypted);
 
-    QuicLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+    QuicDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
     return QUIC_SUCCEEDED(Status);
 }

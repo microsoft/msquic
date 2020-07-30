@@ -82,7 +82,7 @@
     <TargetName>msquictest</TargetName>
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
     <EnableInf2cat>false</EnableInf2cat>
-    <OutDir>$(SolutionDir)artifacts\winkernel\$(Platform)_$(Configuration)_schannel\</OutDir>
+    <OutDir>$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\</OutDir>
     <IntDir>$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\obj\$(ProjectName)\</IntDir>
     <SignMode>Off</SignMode>
   </PropertyGroup>
@@ -95,7 +95,7 @@
       <AdditionalOptions Condition="'$(Platform)'=='x64'">/Gw /kernel /ZH:SHA_256 -d2jumptablerdata -d2epilogunwindrequirev2</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(SolutionDir)artifacts\winkernel\$(Platform)_$(Configuration)_schannel\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\</AdditionalLibraryDirectories>
       <AdditionalDependencies>cng.lib;ksecdd.lib;msnetioid.lib;netio.lib;wdmsec.lib;uuid.lib;msquic.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>

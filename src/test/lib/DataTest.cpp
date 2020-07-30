@@ -183,7 +183,8 @@ SendPingBurst(
             Connection->NewStream(
                 PingStreamShutdown,
                 ((PingConnState*)Connection->Context)->Stats->UnidirectionalStreams ?
-                    QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL : QUIC_STREAM_OPEN_FLAG_NONE);
+                    QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL : QUIC_STREAM_OPEN_FLAG_NONE,
+                PayloadLength == 0 ? NEW_STREAM_START_NONE : NEW_STREAM_START_SYNC);
         if (Stream == nullptr) {
             return false;
         }
@@ -487,8 +488,7 @@ QuicTestServerDisconnect(
                             QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
                         ServerLocalAddr.GetPort()));
 
-
-                QuicSleep(100); // Sleep for a little bit.
+                QuicSleep(500); // Sleep for a little bit.
 
                 Client->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
             }

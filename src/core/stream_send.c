@@ -393,7 +393,7 @@ QuicStreamCompleteSendRequest(
         }
 
         (void)QuicStreamIndicateEvent(Stream, &Event);
-    } else {
+    } else if (SendRequest->InternalBuffer.Length != 0) {
         QuicSendBufferFree(
             &Connection->SendBuffer,
             SendRequest->InternalBuffer.Buffer,
@@ -420,24 +420,29 @@ QuicStreamSendBufferRequest(
 
     QUIC_DBG_ASSERT(Req->TotalLength <= UINT32_MAX);
 
-    //
-    // Copy the request bytes into an internal buffer.
-    //
-    uint8_t* Buf =
-        QuicSendBufferAlloc(
-            &Connection->SendBuffer,
-            (uint32_t)Req->TotalLength);
-    if (Buf == NULL) {
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-    uint8_t* CurBuf = Buf;
-    for (uint32_t i = 0; i < Req->BufferCount; i++) {
-        QuicCopyMemory(CurBuf, Req->Buffers[i].Buffer, Req->Buffers[i].Length);
-        CurBuf += Req->Buffers[i].Length;
+    if (Req->TotalLength != 0) {
+        //
+        // Copy the request bytes into an internal buffer.
+        //
+        uint8_t* Buf =
+            QuicSendBufferAlloc(
+                &Connection->SendBuffer,
+                (uint32_t)Req->TotalLength);
+        if (Buf == NULL) {
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+        uint8_t* CurBuf = Buf;
+        for (uint32_t i = 0; i < Req->BufferCount; i++) {
+            QuicCopyMemory(
+                CurBuf, Req->Buffers[i].Buffer, Req->Buffers[i].Length);
+            CurBuf += Req->Buffers[i].Length;
+        }
+        Req->InternalBuffer.Buffer = Buf;
+    } else {
+        Req->InternalBuffer.Buffer = NULL;
     }
     Req->BufferCount = 1;
     Req->Buffers = &Req->InternalBuffer;
-    Req->InternalBuffer.Buffer = Buf;
     Req->InternalBuffer.Length = (uint32_t)Req->TotalLength;
 
     Req->Flags |= QUIC_SEND_FLAG_BUFFERED;
@@ -475,6 +480,8 @@ QuicStreamSendFlush(
     QUIC_SEND_REQUEST* ApiSendRequests = Stream->ApiSendRequests;
     Stream->ApiSendRequests = NULL;
     QuicDispatchLockRelease(&Stream->ApiSendRequestLock);
+
+    BOOLEAN Start = FALSE;
 
     while (ApiSendRequests != NULL) {
 
@@ -544,11 +551,17 @@ QuicStreamSendFlush(
             SendRequest->StreamOffset,
             SendRequest->Flags);
 
-        //
-        // Check to see if the FIN flag is to be set, so we should close
-        // the stream for any more sending.
-        //
+        if (SendRequest->Flags & QUIC_SEND_FLAG_START) {
+            //
+            // Start the stream if the flag is set.
+            //
+            Start = TRUE;
+        }
+
         if (SendRequest->Flags & QUIC_SEND_FLAG_FIN) {
+            //
+            // Gracefully shutdown the send direction if the flag is set.
+            //
             QuicStreamSendShutdown(Stream, TRUE, FALSE, 0);
         }
 
@@ -564,6 +577,10 @@ QuicStreamSendFlush(
         QUIC_DBG_ASSERT(Stream->SendRequests != NULL);
 
         QuicStreamSendDumpState(Stream);
+    }
+
+    if (Start) {
+        (void)QuicStreamStart(Stream, QUIC_STREAM_START_FLAG_ASYNC, FALSE);
     }
 }
 
@@ -1333,30 +1350,6 @@ QuicStreamOnAck(
                 QuicRangeRemoveSubranges(&Stream->SparseAckRanges, 0, 1);
             }
 
-            //
-            // Pop any fully-ACKed send requests. Note that we only do this here
-            // where UnAckedOffset has advanced, which means we complete send
-            // requests in the order that they are queued.
-            //
-            while (Stream->SendRequests) {
-
-                QUIC_SEND_REQUEST* Req = Stream->SendRequests;
-
-                //
-                // Cannot complete a request until UnAckedOffset is all the way past it.
-                //
-                if (Req->StreamOffset + Req->TotalLength > Stream->UnAckedOffset) {
-                    break;
-                }
-
-                Stream->SendRequests = Req->Next;
-                if (Stream->SendRequests == NULL) {
-                    Stream->SendRequestsTail = &Stream->SendRequests;
-                }
-
-                QuicStreamCompleteSendRequest(Stream, Req, FALSE);
-            }
-
             if (Stream->NextSendOffset < Stream->UnAckedOffset) {
                 Stream->NextSendOffset = Stream->UnAckedOffset;
             }
@@ -1366,6 +1359,29 @@ QuicStreamOnAck(
             if (Stream->RecoveryEndOffset < Stream->UnAckedOffset) {
                 Stream->Flags.InRecovery = FALSE;
             }
+        }
+
+        //
+        // Pop any fully-ACKed send requests. Note that we complete send
+        // requests in the order that they are queued.
+        //
+        while (Stream->SendRequests) {
+
+            QUIC_SEND_REQUEST* Req = Stream->SendRequests;
+
+            //
+            // Cannot complete a request until UnAckedOffset is all the way past it.
+            //
+            if (Req->StreamOffset + Req->TotalLength > Stream->UnAckedOffset) {
+                break;
+            }
+
+            Stream->SendRequests = Req->Next;
+            if (Stream->SendRequests == NULL) {
+                Stream->SendRequestsTail = &Stream->SendRequests;
+            }
+
+            QuicStreamCompleteSendRequest(Stream, Req, FALSE);
         }
 
         if (Stream->UnAckedOffset == Stream->QueuedSendOffset && Stream->Flags.FinAcked) {

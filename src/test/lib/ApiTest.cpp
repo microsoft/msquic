@@ -659,7 +659,7 @@ void QuicTestValidateConnection()
         // waits a bit to allow for the previous command to be processed so
         // that the second call will fail inline.
         //
-        QuicSleep(100);
+        QuicSleep(500);
 
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_STATE,
@@ -952,7 +952,7 @@ void QuicTestValidateConnection()
             MsQuic->ConnectionClose(Connection.Handle);
 
             //
-            // Enable resumption but ensure failure because the connection 
+            // Enable resumption but ensure failure because the connection
             // isn't in connected state yet.
             //
 

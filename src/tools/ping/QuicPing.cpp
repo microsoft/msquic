@@ -203,19 +203,6 @@ ParseCommonCommands(
     //
 
     QuicPingRawIoBuffer = new uint8_t[PingConfig.IoSize];
-
-    if (!PingConfig.UseEncryption) {
-        uint8_t value = FALSE;
-        if (QUIC_FAILED(
-            MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_LEVEL_GLOBAL,
-                QUIC_PARAM_GLOBAL_ENCRYPTION,
-                sizeof(value),
-                &value))) {
-            printf("MsQuic->SetParam (GLOBAL_ENCRYPTION) failed!\n");
-        }
-    }
 }
 
 void
@@ -227,7 +214,10 @@ ParseServerCommand(
     PingConfig.ServerMode = true;
 
     const char* localAddress = nullptr;
-    TryGetValue(argc, argv, "listen", &localAddress);
+    if (!TryGetValue(argc, argv, "listen", &localAddress)) {
+        printf("Must specify -listen for server mode\n");
+        return;
+    }
     if (!ConvertArgToAddress(localAddress, 0, &PingConfig.LocalIpAddr)) {
         printf("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", localAddress);
         return;

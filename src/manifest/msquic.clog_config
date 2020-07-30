@@ -235,6 +235,6 @@
     }
   ],
   "ChainedConfigFiles": [
-    "../../submodules/clog/inc/defaults.clog_config"
+    "DEFAULTS"
   ]
 }
