@@ -149,7 +149,8 @@ QuicCryptoInitialize(
             &Crypto->RecvBuffer,
             InitialRecvBufferLength,
             QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE / 2,
-            TRUE);
+            TRUE,
+            NULL);
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }

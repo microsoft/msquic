@@ -710,10 +710,22 @@ typedef struct {
 
 extern QUIC_PROCESSOR_INFO* QuicProcessorInfo;
 extern uint64_t* QuicNumaMasks;
+extern uint32_t* QuicProcessorGroupOffsets;
 
 #define QuicProcMaxCount() GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS)
 #define QuicProcActiveCount() GetActiveProcessorCount(ALL_PROCESSOR_GROUPS)
-#define QuicProcCurrentNumber() GetCurrentProcessorNumber()
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+DWORD
+QuicProcCurrentNumber(
+    void
+    ) {
+    PROCESSOR_NUMBER ProcNumber;
+    GetCurrentProcessorNumberEx(&ProcNumber);
+    return QuicProcessorGroupOffsets[ProcNumber.Group] + ProcNumber.Number;
+}
+
 
 //
 // Create Thread Interfaces
@@ -886,6 +898,8 @@ QuicRandom(
 
 #define QUIC_UNSPECIFIED_COMPARTMENT_ID NET_IF_COMPARTMENT_ID_UNSPECIFIED
 #define QUIC_DEFAULT_COMPARTMENT_ID     NET_IF_COMPARTMENT_ID_PRIMARY
+
+#define QuicSetCurrentThreadAffinityMask(Mask) SetThreadAffinityMask(GetCurrentThread(), Mask)
 
 #define QuicCompartmentIdGetCurrent() GetCurrentThreadCompartmentId()
 #define QuicCompartmentIdSetCurrent(CompartmentId) \

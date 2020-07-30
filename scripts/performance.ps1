@@ -36,11 +36,14 @@ This script runs performance tests locally for a period of time.
 .PARAMETER Publish
     Publishes the results to the artifacts directory.
 
-.PARAMETER Record
-    Records ETW traces
+.PARAMETER RecordStack
+    Records ETW stack traces
 
 .PARAMETER Timeout
     Timeout in seconds for each individual client test invocation.
+
+.PARAMETER RecordQUIC
+    Record QUIC specific trace events
 
 #>
 
@@ -87,12 +90,16 @@ param (
     [switch]$Local = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Record = $false,
+    [switch]$RecordStack = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$PGO = $false,
 
-    [int]$Timeout = 60
+    [Parameter(Mandatory = $false)]
+    [int]$Timeout = 60,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$RecordQUIC = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -100,6 +107,8 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
+
+$Record = $RecordStack -or $RecordQUIC
 
 # Remove any previous remote PowerShell sessions
 Get-PSSession | Remove-PSSession
@@ -147,7 +156,8 @@ Set-ScriptVariables -Local $Local `
                     -RemoteArch $RemoteArch `
                     -Config $Config `
                     -Publish $Publish `
-                    -Record $Record
+                    -Record $Record `
+                    -RecordQUIC $RecordQUIC
 
 if ($Local) {
     $RemoteAddress = "localhost"
@@ -179,8 +189,7 @@ if ($Local) {
 
 Set-Session -Session $Session
 
-$OutputDir = Join-Path $RootDir "artifacts/PerfDataResults"
-New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
+
 
 $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     if ($IsWindows) {
@@ -190,12 +199,15 @@ $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     }
 }
 
+$OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($RemoteArch)_$($Config)_$($RemoteTls)"
+New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
+
 # Join path in script to ensure right platform separator
 $RemoteDirectory = Invoke-TestCommand -Session $Session -ScriptBlock {
     Join-Path (Get-Location) "Tests"
 }
 
-$LocalDirectory = Join-Path $RootDir "artifacts"
+$LocalDirectory = Join-Path $RootDir "artifacts/bin"
 
 if ($Local) {
     $RemoteDirectory = $LocalDirectory
@@ -294,6 +306,8 @@ function Invoke-Test {
 
     $AllRunsResults = @()
 
+    Start-Tracing -Exe $LocalExe
+
     try {
         1..$Test.Iterations | ForEach-Object {
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout
@@ -312,8 +326,15 @@ function Invoke-Test {
         Write-Debug $RemoteResults.ToString()
     }
 
+    Stop-Tracing -Exe $LocalExe
+
     if ($Record) {
-        Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".etl"))
+        if ($Local) {
+            Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".combined.etl"))
+        } else {
+            Get-RemoteFile -From ($RemoteExe + ".remote.etl") -To (Join-Path $OutputDir ($Test.ToString() + ".server.etl"))
+            Copy-Item -Path ($LocalExe + ".local.etl") -Destination (Join-Path $OutputDir ($Test.ToString() + ".client.etl"))
+        }
     }
 
     if ($PGO) {
@@ -330,6 +351,19 @@ function Invoke-Test {
 }
 
 $LocalDataCache = LocalSetup
+
+if ($Record -and $IsWindows) {
+    try {
+        wpr.exe -cancel 2> $null
+    } catch {
+    }
+    Invoke-TestCommand -Session $Session -ScriptBlock {
+        try {
+            wpr.exe -cancel 2> $null
+        } catch {
+        }
+    }
+}
 
 try {
     $Tests = Get-Tests $TestsFile

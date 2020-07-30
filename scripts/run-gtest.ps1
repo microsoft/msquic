@@ -7,6 +7,9 @@ as necessary.
 .PARAMETER Path
     The path to the test executable.
 
+.PARAMETER Kernel
+    Runs for Windows kernel mode, given the path for binaries.
+
 .PARAMETER Filter
     A filter to include test cases from the list to execute. Multiple filters
     are separated by :. Negative filters are prefixed with -.
@@ -50,11 +53,17 @@ as necessary.
 .Parameter EnableAppVerifier
     Enables all basic Application Verifier checks on the test binary.
 
+.Parameter CodeCoverage
+    Collects code coverage for this test run. Incompatible with -Debugger.
+
 #>
 
 param (
     [Parameter(Mandatory = $true)]
     [string]$Path,
+
+    [Parameter(Mandatory = $false)]
+    [string]$Kernel = "",
 
     [Parameter(Mandatory = $false)]
     [string]$Filter = "",
@@ -99,7 +108,10 @@ param (
     [switch]$NoProgress = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$EnableAppVerifier = $false
+    [switch]$EnableAppVerifier = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$CodeCoverage = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -114,6 +126,27 @@ if (!(Test-Path $Path)) {
     Write-Error "$($Path) does not exist!"
 }
 
+# Validate the the kernel switch.
+if ($Kernel -ne "" -and !$IsWindows) {
+    Write-Error "-Kernel switch only supported on Windows";
+}
+
+# Validate the code coverage switch
+if ($CodeCoverage) {
+    if (!$IsWindows) {
+        Write-Error "-CodeCoverage switch only supported on Windows";
+    }
+    if ($Debugger) {
+        Write-Error "-CodeCoverage switch is not supported with debugging";
+    }
+    if ($Kernel -ne "") {
+        Write-Error "-CodeCoverage is not supported for kernel mode tests";
+    }
+    if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
+        Write-Error "Code coverage tools are not installed";
+    }
+}
+
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
 
@@ -122,10 +155,18 @@ $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 
 # Executable name.
 $TestExeName = Split-Path $Path -Leaf
+$CoverageName = "$(Split-Path $Path -LeafBase).cov"
 
 # Folder for log files.
 $LogDir = Join-Path $RootDir "artifacts" "logs" $TestExeName (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
 New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
+
+# Folder for coverage files
+$CoverageDir = $null
+if ($CodeCoverage) {
+    $CoverageDir = Join-Path $RootDir "artifacts" "coverage"
+    New-Item -Path $CoverageDir -ItemType Directory -Force | Out-Null
+}
 
 # The file path of the final XML results.
 $FinalResultsPath = "$($LogDir)-results.xml"
@@ -220,6 +261,11 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
             } else {
                 $pinfo.Arguments = "-g -G $($Path) $($Arguments)"
             }
+        } elseif ($CodeCoverage) {
+            $CoverageOutput = Join-Path $OutputDir $CoverageName
+            $pinfo.FileName = "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe"
+            $pinfo.Arguments = "--modules=$(Split-Path $Path -Parent) --cover_children --sources src\core --excluded_sources unittest --working_dir $($OutputDir) --export_type binary:$($CoverageOutput) -- $($Path) $($Arguments)"
+            $pinfo.WorkingDirectory = $OutputDir
         } else {
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments
@@ -268,7 +314,10 @@ function Start-TestCase([String]$Name) {
     $ResultsPath = Join-Path $LocalLogDir "results.xml"
     $Arguments = "--gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)"
     if ($BreakOnFailure) {
-        $Arguments = $Arguments + " --gtest_break_on_failure"
+        $Arguments += " --gtest_break_on_failure"
+    }
+    if ($Kernel -ne "") {
+        $Arguments += " --kernel"
     }
 
     # Start the test process and return some information about the test case.
@@ -296,10 +345,13 @@ function Start-AllTestCases {
     # Build up the argument list.
     $Arguments = "--gtest_catch_exceptions=0 --gtest_output=xml:$($FinalResultsPath)"
     if ($Filter -ne "") {
-        $Arguments = $Arguments + " --gtest_filter=$($Filter)"
+        $Arguments += " --gtest_filter=$($Filter)"
     }
     if ($BreakOnFailure) {
-        $Arguments = $Arguments + " --gtest_break_on_failure"
+        $Arguments += " --gtest_break_on_failure"
+    }
+    if ($Kernel -ne "") {
+        $Arguments += " --kernel"
     }
 
     # Start the test process and return some information about the test case.
@@ -372,6 +424,32 @@ function Wait-TestCase($TestCase) {
         # Add the current test case results.
         if ($IsolationMode -ne "Batch") {
             Add-XmlResults $TestCase
+        }
+
+        if ($CodeCoverage) {
+            $NewCoverage = Join-Path $TestCase.LogDir $Coveragename
+            if ($IsolationMode -eq "Isolated") {
+                # Merge coverage with previous runs
+                $PreviousCoverage = Join-Path $CoverageDir $CoverageName
+                if (!(Test-Path $PreviousCoverage)) {
+                    # No previous coverage data, just copy
+                    Copy-Item $NewCoverage $CoverageDir
+                } else {
+                    # Merge new coverage data with existing coverage data
+                    # On a developer machine, this will always merge coverage until the dev deletes old coverage.
+                    $TempMergedCoverage = Join-Path $CoverageDir "mergetemp.cov"
+                    $CoverageExe = 'C:\"Program Files"\OpenCppCoverage\OpenCppCoverage.exe'
+                    $CoverageMergeParams = " --input_coverage $($PreviousCoverage) --input_coverage $($NewCoverage) --export_type binary:$($TempMergedCoverage)"
+                    Invoke-Expression ($CoverageExe + $CoverageMergeParams) | Out-Null
+                    Move-Item $TempMergedCoverage $PreviousCoverage -Force
+                }
+            } else {
+                # Copy the coverage to destination
+                Copy-Item $NewCoverage $CoverageDir -Force
+                # Copy coverage log
+                $LogName = "LastCoverageResults-$(Split-Path $Path -LeafBase).log"
+                Copy-Item (Join-Path $TestCase.LogDir "LastCoverageResults.log") (Join-Path $CoverageDir $LogName) -Force
+            }
         }
 
         if ($ProcessCrashed) {
@@ -485,6 +563,7 @@ if ($IsWindows -and !(Test-Path $WerDumpRegPath)) {
     New-Item -Path $WerDumpRegPath -Force | Out-Null
 }
 
+# Initialize application verifier (Windows only).
 if ($IsWindows -and $EnableAppVerifier) {
     where.exe appverif.exe
     if ($LastExitCode -eq 0) {
@@ -493,6 +572,16 @@ if ($IsWindows -and $EnableAppVerifier) {
         Write-Warning "Application Verifier not installed!"
         $EnableAppVerifier = $false;
     }
+}
+
+# Install the kernel mode drivers.
+if ($Kernel -ne "") {
+    net.exe stop msquic /y | Out-Null
+    Copy-Item C:\Windows\system32\drivers\msquic.sys C:\Windows\system32\drivers\msquic.sys.old
+    Copy-Item (Join-Path $Kernel "msquictest.sys") (Split-Path $Path -Parent)
+    verifier.exe /volatile /adddriver afd.sys msquic.sys msquictest.sys netio.sys tcpip.sys /flags 0x9BB
+    sfpcopy.exe (Join-Path $Kernel "msquic.sys") C:\Windows\system32\drivers\msquic.sys
+    net.exe start msquic
 }
 
 try {
@@ -591,4 +680,15 @@ try {
         }
     }
     Write-Host ""
+
+    # Uninstall the kernel mode test driver and revert the msquic driver.
+    if ($Kernel -ne "") {
+        net.exe stop msquic /y | Out-Null
+        sc.exe delete msquictest | Out-Null
+        verifier.exe /volatile /removedriver afd.sys msquic.sys msquictest.sys netio.sys tcpip.sys
+        verifier.exe /volatile /flags 0x0
+        sfpcopy.exe C:\Windows\system32\drivers\msquic.sys.old C:\Windows\system32\drivers\msquic.sys
+        net.exe start msquic
+        Remove-Item C:\Windows\system32\drivers\msquic.sys.old -Force
+    }
 }

@@ -8,6 +8,9 @@
 #define QUIC_RANGE_NO_MAX_ALLOC_SIZE    UINT32_MAX
 #define QUIC_RANGE_USE_BINARY_SEARCH    1
 
+#define QUIC_RANGE_INITIAL_SUB_COUNT    8
+#define QUIC_RANGE_PREALLOC_SUB_RANGES  1
+
 typedef struct QUIC_SUBRANGE {
 
     uint64_t Low;
@@ -60,6 +63,13 @@ typedef struct QUIC_RANGE {
     //
     _Field_range_(sizeof(QUIC_SUBRANGE), sizeof(QUIC_SUBRANGE) * QUIC_MAX_RANGE_ALLOC_SIZE)
     uint32_t MaxAllocSize;
+
+#if QUIC_RANGE_PREALLOC_SUB_RANGES
+    //
+    // Allocates a number of subranges along with the parent object.
+    //
+    QUIC_SUBRANGE PreAllocSubRanges[QUIC_RANGE_INITIAL_SUB_COUNT];
+#endif
 
 } QUIC_RANGE;
 

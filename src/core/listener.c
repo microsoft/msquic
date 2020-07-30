@@ -328,26 +328,11 @@ QuicListenerIndicateEvent(
     )
 {
     QUIC_FRE_ASSERT(Listener->ClientCallbackHandler);
-    uint64_t StartTime = QuicTimeUs64();
-    QUIC_STATUS Status =
+    return
         Listener->ClientCallbackHandler(
             (HQUIC)Listener,
             Listener->ClientContext,
             Event);
-    uint64_t EndTime = QuicTimeUs64();
-    if (EndTime - StartTime > QUIC_MAX_CALLBACK_TIME_WARNING) {
-        QuicTraceLogWarning(
-            ListenerExcessiveAppCallback,
-            "[list][%p] App took excessive time (%llu us) in callback.",
-            Listener,
-            (EndTime - StartTime));
-        QUIC_TEL_ASSERTMSG_ARGS(
-            EndTime - StartTime < QUIC_MAX_CALLBACK_TIME_ERROR,
-            "App extremely long time in listener callback",
-            Listener->Session->Registration->AppName,
-            Event->Type, 0);
-    }
-    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

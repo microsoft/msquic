@@ -850,11 +850,11 @@ QuicBindingProcessStatelessOperation(
             QuicCopyMemory(Iv, NewDestCid, MsQuicLib.CidTotalLength);
         }
 
-        QuicLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
+        QuicDispatchLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
 
         QUIC_KEY* StatelessRetryKey = QuicLibraryGetCurrentStatelessRetryKey();
         if (StatelessRetryKey == NULL) {
-            QuicLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+            QuicDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
             goto Exit;
         }
 
@@ -865,7 +865,7 @@ QuicBindingProcessStatelessOperation(
                 sizeof(Token.Authenticated), (uint8_t*) &Token.Authenticated,
                 sizeof(Token.Encrypted) + sizeof(Token.EncryptionTag), (uint8_t*)&(Token.Encrypted));
 
-        QuicLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+        QuicDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
