@@ -17,8 +17,7 @@ set(SOURCES
 )
 
 # Allow CLOG to preprocess all the source files.
-CLOG_GENERATE_TARGET(testlib.clog ${SOURCES})
-CLOG_ADD_ARGS(testlib.clog)
+add_clog_library(testlib.clog ${SOURCES})
 
 add_library(testlib ${SOURCES})
 
