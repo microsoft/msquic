@@ -116,6 +116,11 @@ if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
     set(QUIC_ENABLE_LOGGING OFF)
 endif()
 
+if(QUIC_PLATFORM STREQUAL "darwin)
+    message(WARNING "macOS does not support logging currently")
+    set(QUIC_ENABLE_LOGGING OFF)
+endif()
+
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
     set(QUIC_PLATFORM "windows")
 elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Linux")
