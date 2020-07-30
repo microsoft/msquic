@@ -420,6 +420,7 @@ QuicConnApplySettings(
     Connection->State.UsePacing = Settings->PacingDefault;
     Connection->MaxAckDelayMs = Settings->MaxAckDelayMs;
     Connection->Paths[0].SmoothedRtt = MS_TO_US(Settings->InitialRttMs);
+    Connection->Paths[0].RttVariance = Connection->Paths[0].SmoothedRtt / 2;
     Connection->DisconnectTimeoutUs = MS_TO_US(Settings->DisconnectTimeoutMs);
     Connection->IdleTimeoutMs = Settings->IdleTimeoutMs;
     Connection->HandshakeIdleTimeoutMs = Settings->HandshakeIdleTimeoutMs;
@@ -743,7 +744,7 @@ QuicConnQueueHighestPriorityOper(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
+void
 QuicConnUpdateRtt(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
@@ -795,8 +796,6 @@ QuicConnUpdateRtt(
             Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
             Path->RttVariance / 1000, Path->RttVariance % 1000);
     }
-
-    return RttUpdated;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1895,8 +1894,8 @@ QuicConnRestart(
         //
         QUIC_PATH* Path = &Connection->Paths[0];
         Path->GotFirstRttSample = FALSE;
-        Path->RttVariance = 0;
         Path->SmoothedRtt = MS_TO_US(Connection->Session->Settings.InitialRttMs);
+        Path->RttVariance = Path->SmoothedRtt / 2;
     }
 
     for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); ++i) {
