@@ -48,7 +48,7 @@ else()
 endif()
 
 # Allow CLOG to preprocess all the source files.
-add_clog_library(platform.clog ${SOURCES})
+add_clog_library(platform.clog STATIC ${SOURCES})
 
 add_library(platform STATIC ${SOURCES})
 

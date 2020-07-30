@@ -12,7 +12,7 @@ set(SOURCES
 )
 
 # Allow CLOG to preprocess all the source files.
-add_clog_library(msquiccoretest.clog ${SOURCES})
+add_clog_library(msquiccoretest.clog STATIC ${SOURCES})
 
 add_executable(msquiccoretest ${SOURCES})
 
