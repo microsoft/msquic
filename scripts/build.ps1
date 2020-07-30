@@ -233,7 +233,7 @@ function CMake-Generate {
     if ($DisablePerf) {
         $Arguments += " -DQUIC_BUILD_PERF=off"
     }
-    if ($IsLinux) {
+    if (!$IsWindows) {
         $Arguments += " -DCMAKE_BUILD_TYPE=" + $Config
     }
     if ($DynamicCRT) {
