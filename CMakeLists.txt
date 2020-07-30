@@ -101,6 +101,7 @@ endif()
 
 option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
 option(QUIC_BUILD_TEST "Builds the test code" ON)
+option(QUIC_BUILD_PERF "Builds the perf code" ON)
 option(QUIC_ENABLE_LOGGING "Enables logging" ON)
 option(QUIC_SANITIZE_ADDRESS "Enables address sanitizer" OFF)
 option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
@@ -136,8 +137,8 @@ if (QUIC_SOURCE_LINK AND MSVC)
         include(${PROJECT_SOURCE_DIR}/cmake/SourceLink.cmake)
         file(TO_NATIVE_PATH "${PROJECT_BINARY_DIR}/source_link.json" SOURCE_LINK_JSON)
         source_link(${PROJECT_SOURCE_DIR} ${SOURCE_LINK_JSON})
-        set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /SOURCELINK:${SOURCE_LINK_JSON}")
-        set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} /SOURCELINK:${SOURCE_LINK_JSON}")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /FORCE:PGOREPRO /SOURCELINK:${SOURCE_LINK_JSON}")
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /FORCE:PGOREPRO /SOURCELINK:${SOURCE_LINK_JSON}")
     else()
         message(WARNING "Disabling SourceLink due to old version of MSVC. Please update to VS2019!")
     endif()
@@ -288,6 +289,11 @@ else()
         list(APPEND QUIC_COMMON_DEFINES QUIC_PLATFORM_LINUX)
     endif()
 
+    if (QUIC_SANITIZE_ADDRESS)
+        set(QUIC_ENABLE_LOGGING OFF)
+        message(WARNING "LTTng logging is incompatible with Address Sanitizer. Skipping logging")
+    endif()
+
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for LTTng tracing")
         set(CMAKE_CLOG_CONFIG_PROFILE linux)
@@ -368,6 +374,12 @@ add_subdirectory(src/bin)
 # Tool code
 if(QUIC_BUILD_TOOLS)
     add_subdirectory(src/tools)
+endif()
+
+# Performance code
+if(QUIC_BUILD_PERF)
+    add_subdirectory(src/perf/lib)
+    add_subdirectory(src/perf/bin)
 endif()
 
 # Test code
