@@ -42,11 +42,6 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN Freed           : 1;    // Freed. Used for Debugging.
 
         //
-        // Indicates whether encryption is enabled or not for the connection.
-        //
-        BOOLEAN EncryptionEnabled : 1;
-
-        //
         // Indicates whether packet number encryption is enabled or not for the
         // connection.
         //
