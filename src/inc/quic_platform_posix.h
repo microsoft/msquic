@@ -249,6 +249,7 @@ QuicFree(
 #define QUIC_ALLOC_PAGED(Size) QuicAlloc(Size)
 #define QUIC_ALLOC_NONPAGED(Size) QuicAlloc(Size)
 #define QUIC_FREE(Mem) QuicFree((void*)Mem)
+#define QUIC_FREE_TAG(Mem, Tag) QUIC_FREE(Mem)
 
 //
 // Represents a QUIC memory pool used for fixed sized allocations.
@@ -295,6 +296,7 @@ void
 QuicPoolInitialize(
     _In_ BOOLEAN IsPaged,
     _In_ uint32_t Size,
+    _In_ uint32_t Tag,
     _Inout_ QUIC_POOL* Pool
     );
 

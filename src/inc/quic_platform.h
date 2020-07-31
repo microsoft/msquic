@@ -63,6 +63,21 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 #endif
 #endif
 
+//
+// Different pool tags used for marking allocations.
+//
+
+#define QUIC_POOL_GENERIC   'CIUQ'  // QUIC - Generic QUIC
+#define QUIC_POOL_CONN      'noCQ'  // QCon - QUIC connection
+#define QUIC_POOL_TP        'PTCQ'  // QCTP - QUIC connection transport parameters
+#define QUIC_POOL_STREAM    'mtSQ'  // QStm - QUIC stream
+#define QUIC_POOL_SBUF      'fBSQ'  // QSBf - QUIC stream buffer
+#define QUIC_POOL_META      'MFSQ'  // QSFM - QUIC sent frame metedata
+#define QUIC_POOL_DATA      'atDQ'  // QDta - QUIC datagram buffer
+#define QUIC_POOL_TEST      'tsTQ'  // QTst - QUIC test code
+#define QUIC_POOL_PERF      'frPQ'  // QPrf - QUIC perf code
+#define QUIC_POOL_TOOL      'loTQ'  // QTol - QUIC tool code
+
 #ifdef _KERNEL_MODE
 #define QUIC_PLATFORM_TYPE 1
 #include <quic_platform_winkernel.h>

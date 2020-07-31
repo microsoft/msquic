@@ -20,8 +20,6 @@ Abstract:
 #include "driver.cpp.clog.h"
 #endif
 
-#define QUIC_PERF_TAG 'frPQ' // QPrf
-
 DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceName, L"\\Device\\quicperformance");
 DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceSymLink, L"\\DosDevices\\quicperformance");
 
@@ -71,28 +69,28 @@ QuicPerfCtlUninitialize(
     );
 
 void* __cdecl operator new (size_t Size) {
-    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_PERF_TAG);
+    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_POOL_PERF);
 }
 
 void __cdecl operator delete (_In_opt_ void* Mem) {
     if (Mem != nullptr) {
-        ExFreePoolWithTag(Mem, QUIC_PERF_TAG);
+        ExFreePoolWithTag(Mem, QUIC_POOL_PERF);
     }
 }
 
 void __cdecl operator delete (_In_opt_ void* Mem, _In_opt_ size_t) {
     if (Mem != nullptr) {
-        ExFreePoolWithTag(Mem, QUIC_PERF_TAG);
+        ExFreePoolWithTag(Mem, QUIC_POOL_PERF);
     }
 }
 
 void* __cdecl operator new[](size_t Size) {
-    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_PERF_TAG);
+    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_POOL_PERF);
 }
 
 void __cdecl operator delete[](_In_opt_ void* Mem) {
     if (Mem != nullptr) {
-        ExFreePoolWithTag(Mem, QUIC_PERF_TAG);
+        ExFreePoolWithTag(Mem, QUIC_POOL_PERF);
     }
 }
 
@@ -133,7 +131,7 @@ DriverEntry(
     WDF_DRIVER_CONFIG_INIT(&Config, NULL);
     Config.EvtDriverUnload = QuicPerfDriverUnload;
     Config.DriverInitFlags = WdfDriverInitNonPnpDriver;
-    Config.DriverPoolTag = QUIC_PERF_TAG;
+    Config.DriverPoolTag = QUIC_POOL_PERF;
 
     Status =
         WdfDriverCreate(

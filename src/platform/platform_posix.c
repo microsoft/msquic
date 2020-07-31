@@ -196,9 +196,11 @@ void
 QuicPoolInitialize(
     _In_ BOOLEAN IsPaged,
     _In_ uint32_t Size,
+    _In_ uint32_t Tag,
     _Inout_ QUIC_POOL* Pool
     )
 {
+    UNREFERENCED_PARAMETER(Tag);
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     PlatDispatch->PoolInitialize(IsPaged, Size, Pool);
 #else

@@ -117,6 +117,7 @@ typedef enum {
     SpinQuicAPICallStreamClose,
     SpinQuicAPICallSetParamSession,
     SpinQuicAPICallSetParamConnection,
+    SpinQuicAPICallGetParam,
     SpinQuicAPICallDatagramSend,
     SpinQuicAPICallCount    // Always the last element
 } SpinQuicAPICall;
@@ -442,6 +443,30 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
     Helper.Apply(Connection);
 }
 
+const uint32_t ParamCounts[] = {
+    QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE + 1,
+    QUIC_PARAM_REGISTRATION_CID_PREFIX + 1,
+    QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL + 1,
+    QUIC_PARAM_LISTENER_STATS + 1,
+    QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION + 1
+};
+
+void SpinQuicGetRandomParam(HQUIC Connection)
+{
+    QUIC_PARAM_LEVEL Level = (QUIC_PARAM_LEVEL)GetRandom(5);
+    uint32_t Param = (uint32_t)GetRandom(ParamCounts[Level]);
+
+    uint8_t OutBuffer[512];
+    uint32_t OutBufferLength = (uint32_t)GetRandom(sizeof(OutBuffer) + 1);
+
+    MsQuic->GetParam(
+        (Level == QUIC_PARAM_LEVEL_GLOBAL) ? nullptr : Connection,
+        Level,
+        Param,
+        &OutBufferLength,
+        (GetRandom(10) == 0) ? nullptr : OutBuffer);
+}
+
 void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
 {
     uint64_t OpCount = 0;
@@ -564,6 +589,12 @@ void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
             SpinQuicSetRandomConnectionParam(Connection);
+            break;
+        }
+        case SpinQuicAPICallGetParam: {
+            auto Connection = Connections.TryGetRandom();
+            BAIL_ON_NULL_CONNECTION(Connection);
+            SpinQuicGetRandomParam(Connection);
             break;
         }
         case SpinQuicAPICallDatagramSend: {

@@ -17,8 +17,6 @@ Abstract:
 #include "driver.cpp.clog.h"
 #endif
 
-#define QUIC_TEST_TAG 'tsTQ' // QTst
-
 EVT_WDF_DRIVER_UNLOAD QuicTestDriverUnload;
 
 _No_competing_thread_
@@ -34,28 +32,28 @@ QuicTestCtlUninitialize(
     );
 
 void* __cdecl operator new (size_t Size) {
-    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_TEST_TAG);
+    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_POOL_TEST);
 }
 
 void __cdecl operator delete (_In_opt_ void* Mem) {
     if (Mem != nullptr) {
-        ExFreePoolWithTag(Mem, QUIC_TEST_TAG);
+        ExFreePoolWithTag(Mem, QUIC_POOL_TEST);
     }
 }
 
 void __cdecl operator delete (_In_opt_ void* Mem, _In_opt_ size_t) {
     if (Mem != nullptr) {
-        ExFreePoolWithTag(Mem, QUIC_TEST_TAG);
+        ExFreePoolWithTag(Mem, QUIC_POOL_TEST);
     }
 }
 
 void* __cdecl operator new[] (size_t Size) {
-    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_TEST_TAG);
+    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_POOL_TEST);
 }
 
 void __cdecl operator delete[] (_In_opt_ void* Mem) {
     if (Mem != nullptr) {
-        ExFreePoolWithTag(Mem, QUIC_TEST_TAG);
+        ExFreePoolWithTag(Mem, QUIC_POOL_TEST);
     }
 }
 
@@ -121,7 +119,7 @@ Return Value:
     WDF_DRIVER_CONFIG_INIT(&Config, NULL);
     Config.EvtDriverUnload = QuicTestDriverUnload;
     Config.DriverInitFlags = WdfDriverInitNonPnpDriver;
-    Config.DriverPoolTag = QUIC_TEST_TAG;
+    Config.DriverPoolTag = QUIC_POOL_TEST;
 
     Status =
         WdfDriverCreate(

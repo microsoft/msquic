@@ -405,7 +405,7 @@ QuicSendBufferPoolAlloc(
     _Inout_ PLOOKASIDE_LIST_EX Lookaside
     );
 
-#define QuicSendBufferPoolInitialize(Size, Pool) \
+#define QuicSendBufferPoolInitialize(Size, Tag, Pool) \
     ExInitializeLookasideListEx( \
         Pool, \
         QuicSendBufferPoolAlloc, \
@@ -413,7 +413,7 @@ QuicSendBufferPoolAlloc(
         NonPagedPoolNx, \
         0, \
         Size, \
-        QUIC_POOL_TAG, \
+        Tag, \
         0)
 
 QUIC_RECV_DATAGRAM*
@@ -854,24 +854,29 @@ QuicDataPathInitialize(
         QuicPoolInitialize(
             FALSE,
             sizeof(QUIC_DATAPATH_SEND_CONTEXT),
+            QUIC_POOL_GENERIC,
             &Datapath->ProcContexts[i].SendContextPool);
 
         QuicSendBufferPoolInitialize(
             sizeof(QUIC_DATAPATH_SEND_BUFFER) + MAX_UDP_PAYLOAD_LENGTH,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].SendBufferPool);
 
         QuicSendBufferPoolInitialize(
             sizeof(QUIC_DATAPATH_SEND_BUFFER) + QUIC_LARGE_SEND_BUFFER_SIZE,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].LargeSendBufferPool);
 
         QuicPoolInitialize(
             FALSE,
             RecvDatagramLength,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].RecvDatagramPool);
 
         QuicPoolInitialize(
             FALSE,
             UroDatagramLength,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].UroRecvDatagramPool);
     }
 
