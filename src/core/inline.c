@@ -169,7 +169,7 @@ uint8_t
 QuicPartitionIndexDecrement(
     uint8_t PartitionIndex,
     uint8_t Decrement
-    )
+    );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
