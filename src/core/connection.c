@@ -4845,7 +4845,7 @@ QuicConnRecvDatagrams(
     if (Connection->Registration &&
         QuicRegistrationIsSplitPartitioning(Connection->Registration)) {
         RecvState.PartitionIndex =
-            (RecvState.PartitionIndex + QUIC_MAX_THROUGHPUT_PARTITION_OFFSET) % MsQuicLib.PartitionCount;
+            (RecvState.PartitionIndex - QUIC_MAX_THROUGHPUT_PARTITION_OFFSET) % MsQuicLib.PartitionCount;
     }
 
     UNREFERENCED_PARAMETER(DatagramChainCount);
@@ -5081,7 +5081,8 @@ QuicConnRecvDatagrams(
         Connection->State.Connected &&
         RecvState.UpdatePartitionId) {
         if (QuicRegistrationIsSplitPartitioning(Connection->Registration)) {
-            RecvState.PartitionIndex += QUIC_MAX_THROUGHPUT_PARTITION_OFFSET;
+            RecvState.PartitionIndex =
+                (RecvState.PartitionIndex + QUIC_MAX_THROUGHPUT_PARTITION_OFFSET) % MsQuicLib.PartitionCount;
         }
         QUIC_DBG_ASSERT(RecvState.PartitionIndex != QuicPartitionIdGetIndex(Connection->PartitionID));
         Connection->PartitionID = QuicPartitionIdCreate(RecvState.PartitionIndex);

@@ -343,7 +343,8 @@ QuicRegistrationAcceptConnection(
         // be gained by sharing the same physical core, but not the logical one.
         // The shared one is always one greater than the RSS core.
         //
-        Connection->PartitionID += QUIC_MAX_THROUGHPUT_PARTITION_OFFSET;
+        Connection->PartitionID =
+            (Connection->PartitionID + QUIC_MAX_THROUGHPUT_PARTITION_OFFSET) % MsQuicLib.PartitionCount;
     }
 
     uint8_t Index =
