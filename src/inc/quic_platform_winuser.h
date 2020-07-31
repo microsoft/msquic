@@ -720,7 +720,7 @@ extern uint32_t* QuicProcessorGroupOffsets;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
-DWORD
+uint32_t
 QuicProcCurrentNumber(
     void
     ) {

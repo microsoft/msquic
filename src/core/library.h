@@ -266,6 +266,34 @@ QuicPartitionIdGetIndex(
     return (PartitionId & MsQuicLib.PartitionMask) % MsQuicLib.PartitionCount;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+uint8_t
+QuicPartitionIndexIncrement(
+    uint8_t PartitionIndex,
+    uint8_t Increment
+    )
+{
+    QUIC_DBG_ASSERT(Increment < MsQuicLib.PartitionCount);
+    return (PartitionIndex + Increment) % MsQuicLib.PartitionCount;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+uint8_t
+QuicPartitionIndexDecrement(
+    uint8_t PartitionIndex,
+    uint8_t Decrement
+    )
+{
+    QUIC_DBG_ASSERT(Decrement < MsQuicLib.PartitionCount);
+    if (PartitionIndex >= Decrement) {
+        return PartitionIndex - Decrement;
+    } else {
+        return PartitionIndex + (MsQuicLib.PartitionCount - Decrement);
+    }
+}
+
 //
 // Creates a random, new source connection ID, that will be used on the receive
 // path.

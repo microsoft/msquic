@@ -4806,7 +4806,8 @@ QuicConnRecvDatagramBatch(
             QuicConnRecvPostProcessing(Connection, &Path, Packet);
             RecvState->ResetIdleTimeout |= Packet->CompletelyValid;
 
-            if (Path->IsActive && !Path->PartitionUpdated && Packet->CompletelyValid &&
+            if (Connection->Registration != NULL && !Connection->Registration->NoPartitioning &&
+                Path->IsActive && !Path->PartitionUpdated && Packet->CompletelyValid &&
                 (Datagrams[i]->PartitionIndex % MsQuicLib.PartitionCount) != RecvState->PartitionIndex) {
                 RecvState->PartitionIndex = Datagrams[i]->PartitionIndex % MsQuicLib.PartitionCount;
                 RecvState->UpdatePartitionId = TRUE;
@@ -4842,10 +4843,11 @@ QuicConnRecvDatagrams(
     uint32_t ReleaseChainCount = 0;
     QUIC_RECEIVE_PROCESSING_STATE RecvState = { FALSE, FALSE, 0 };
     RecvState.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
-    if (Connection->Registration &&
-        QuicRegistrationIsSplitPartitioning(Connection->Registration)) {
-        QUIC_DBG_ASSERT(RecvState.PartitionIndex != 0);
-        RecvState.PartitionIndex -= QUIC_MAX_THROUGHPUT_PARTITION_OFFSET;
+    if (Connection->Registration && Connection->Registration->SplitPartitioning) {
+        RecvState.PartitionIndex =
+            QuicPartitionIndexDecrement(
+                RecvState.PartitionIndex,
+                QUIC_MAX_THROUGHPUT_PARTITION_OFFSET);
     }
 
     UNREFERENCED_PARAMETER(DatagramChainCount);
@@ -5080,8 +5082,13 @@ QuicConnRecvDatagrams(
     if (!Connection->State.UpdateWorker &&
         Connection->State.Connected &&
         RecvState.UpdatePartitionId) {
-        if (QuicRegistrationIsSplitPartitioning(Connection->Registration)) {
-            RecvState.PartitionIndex += QUIC_MAX_THROUGHPUT_PARTITION_OFFSET;
+        QUIC_DBG_ASSERT(!Connection->Registration->NoPartitioning);
+        if (Connection->Registration->SplitPartitioning) {
+            // TODO - Constrain PartitionID to the same NUMA node?
+            RecvState.PartitionIndex =
+                QuicPartitionIndexIncrement(
+                    RecvState.PartitionIndex,
+                    QUIC_MAX_THROUGHPUT_PARTITION_OFFSET);
         }
         QUIC_DBG_ASSERT(RecvState.PartitionIndex != QuicPartitionIdGetIndex(Connection->PartitionID));
         Connection->PartitionID = QuicPartitionIdCreate(RecvState.PartitionIndex);
