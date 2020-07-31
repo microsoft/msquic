@@ -158,6 +158,20 @@ QuicPartitionIdGetIndex(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+uint8_t
+QuicPartitionIndexIncrement(
+    uint8_t PartitionIndex,
+    uint8_t Increment
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint8_t
+QuicPartitionIndexDecrement(
+    uint8_t PartitionIndex,
+    uint8_t Decrement
+    )
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicStreamAddRef(
     _In_ QUIC_STREAM* Stream,
