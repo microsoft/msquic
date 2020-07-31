@@ -301,6 +301,9 @@ typedef struct QUIC_CONNECTION {
     long RefCount;
 
 #if DEBUG
+    //
+    // Detailed ref counts
+    //
     short RefTypeCount[QUIC_CONN_REF_COUNT];
 #endif
 
