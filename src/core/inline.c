@@ -636,8 +636,3 @@ int64_t
 QuicTimeEpochMs64(
     void
     );
-
-BOOLEAN
-QuicRegistrationIsSplitPartitioning(
-    _In_ const QUIC_REGISTRATION* Registration
-    );
