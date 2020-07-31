@@ -345,6 +345,16 @@ QuicConnFree(
     QUIC_TEL_ASSERT(QuicListIsEmpty(&Connection->Streams.ClosedStreams));
     QuicLossDetectionUninitialize(&Connection->LossDetection);
     QuicSendUninitialize(&Connection->Send);
+#if DEBUG
+    while (!QuicListIsEmpty(&Connection->Streams.AllStreams)) {
+        QUIC_STREAM *Stream =
+            QUIC_CONTAINING_RECORD(
+                QuicListRemoveHead(&Connection->Streams.AllStreams),
+                QUIC_STREAM,
+                AllStreamsLink);
+        QUIC_DBG_ASSERTMSG(Stream != NULL, "Stream was leaked!");
+    }
+#endif
     while (!QuicListIsEmpty(&Connection->DestCids)) {
         QUIC_CID_QUIC_LIST_ENTRY *CID =
             QUIC_CONTAINING_RECORD(

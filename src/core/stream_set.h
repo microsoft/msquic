@@ -51,6 +51,14 @@ typedef struct QUIC_STREAM_SET {
     //
     QUIC_LIST_ENTRY ClosedStreams;
 
+#if DEBUG
+    //
+    // The list of allocated streams for leak tracking.
+    //
+    QUIC_LIST_ENTRY AllStreams;
+    QUIC_DISPATCH_LOCK AllStreamsLock;
+#endif
+
 } QUIC_STREAM_SET;
 
 //
