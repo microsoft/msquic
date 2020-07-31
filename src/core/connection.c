@@ -4806,7 +4806,8 @@ QuicConnRecvDatagramBatch(
             QuicConnRecvPostProcessing(Connection, &Path, Packet);
             RecvState->ResetIdleTimeout |= Packet->CompletelyValid;
 
-            if (Path->IsActive && !Path->PartitionUpdated && Packet->CompletelyValid &&
+            if (Connection->Registration != NULL && !Connection->Registration->NoPartitioning &&
+                Path->IsActive && !Path->PartitionUpdated && Packet->CompletelyValid &&
                 (Datagrams[i]->PartitionIndex % MsQuicLib.PartitionCount) != RecvState->PartitionIndex) {
                 RecvState->PartitionIndex = Datagrams[i]->PartitionIndex % MsQuicLib.PartitionCount;
                 RecvState->UpdatePartitionId = TRUE;
@@ -5081,6 +5082,7 @@ QuicConnRecvDatagrams(
     if (!Connection->State.UpdateWorker &&
         Connection->State.Connected &&
         RecvState.UpdatePartitionId) {
+        QUIC_DBG_ASSERT(!Connection->Registration->NoPartitioning);
         if (Connection->Registration->SplitPartitioning) {
             // TODO - Constrain PartitionID to the same NUMA node?
             RecvState.PartitionIndex =

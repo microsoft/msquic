@@ -839,7 +839,7 @@ main(int argc, char **argv)
 
         QUIC_REGISTRATION_CONFIG RegConfig;
         RegConfig.AppName = "spinquic";
-        RegConfig.ExecutionProfile = (QUIC_EXECUTION_PROFILE)GetRandom(2);
+        RegConfig.ExecutionProfile = (QUIC_EXECUTION_PROFILE)GetRandom(4);
 
         EXIT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
 
