@@ -4844,7 +4844,6 @@ QuicConnRecvDatagrams(
     RecvState.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
     if (Connection->Registration &&
         QuicRegistrationIsSplitPartitioning(Connection->Registration)) {
-        QUIC_DBG_ASSERT(RecvState.PartitionIndex != 0);
         RecvState.PartitionIndex -= QUIC_MAX_THROUGHPUT_PARTITION_OFFSET;
     }
 
