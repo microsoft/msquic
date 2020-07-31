@@ -837,6 +837,16 @@ main(int argc, char **argv)
             }
         }
 
+        if (0 == GetRandom(4)) {
+            uint16_t RetryMemoryPercent = 0;
+            EXIT_ON_FAILURE(MsQuic->SetParam(nullptr, QUIC_PARAM_LEVEL_GLOBAL, QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT, sizeof(RetryMemoryPercent), &RetryMemoryPercent));
+        }
+
+        if (0 == GetRandom(4)) {
+            uint16_t LoadBalancingMode = QUIC_LOAD_BALANCING_SERVER_ID_IP;
+            EXIT_ON_FAILURE(MsQuic->SetParam(nullptr, QUIC_PARAM_LEVEL_GLOBAL, QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE, sizeof(LoadBalancingMode), &LoadBalancingMode));
+        }
+
         QUIC_REGISTRATION_CONFIG RegConfig;
         RegConfig.AppName = "spinquic";
         RegConfig.ExecutionProfile = (QUIC_EXECUTION_PROFILE)GetRandom(4);
