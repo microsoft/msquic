@@ -405,7 +405,7 @@ QuicSendBufferPoolAlloc(
     _Inout_ PLOOKASIDE_LIST_EX Lookaside
     );
 
-#define QuicSendBufferPoolInitialize(Size, Pool) \
+#define QuicSendBufferPoolInitialize(Size, Tag, Pool) \
     ExInitializeLookasideListEx( \
         Pool, \
         QuicSendBufferPoolAlloc, \
@@ -413,7 +413,7 @@ QuicSendBufferPoolAlloc(
         NonPagedPoolNx, \
         0, \
         Size, \
-        QUIC_POOL_TAG, \
+        Tag, \
         0)
 
 QUIC_RECV_DATAGRAM*
@@ -854,24 +854,29 @@ QuicDataPathInitialize(
         QuicPoolInitialize(
             FALSE,
             sizeof(QUIC_DATAPATH_SEND_CONTEXT),
+            QUIC_POOL_GENERIC,
             &Datapath->ProcContexts[i].SendContextPool);
 
         QuicSendBufferPoolInitialize(
             sizeof(QUIC_DATAPATH_SEND_BUFFER) + MAX_UDP_PAYLOAD_LENGTH,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].SendBufferPool);
 
         QuicSendBufferPoolInitialize(
             sizeof(QUIC_DATAPATH_SEND_BUFFER) + QUIC_LARGE_SEND_BUFFER_SIZE,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].LargeSendBufferPool);
 
         QuicPoolInitialize(
             FALSE,
             RecvDatagramLength,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].RecvDatagramPool);
 
         QuicPoolInitialize(
             FALSE,
             UroDatagramLength,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].UroRecvDatagramPool);
     }
 
@@ -1993,10 +1998,8 @@ QuicDataPathSocketReceive(
             Binding,
             (uint32_t)DataLength,
             MessageLength,
-            LOG_ADDR_LEN(LocalAddr),
-            LOG_ADDR_LEN(RemoteAddr),
-            (UINT8*)&LocalAddr,
-            (UINT8*)&RemoteAddr);
+            LOG_BINARY(sizeof(LocalAddr), &LocalAddr),
+            LOG_BINARY(sizeof(RemoteAddr), &RemoteAddr));
 
         for ( ; DataLength != 0; DataLength -= MessageLength) {
 
@@ -2649,7 +2652,7 @@ QuicDataPathBindingSendTo(
         SendContext->TotalSize,
         SendContext->WskBufferCount,
         SendContext->SegmentSize,
-        LOG_ADDR_LEN(*RemoteAddress), (UINT8*)RemoteAddress);
+        LOG_BINARY(sizeof(*RemoteAddress), RemoteAddress));
 
     BYTE CMsgBuffer[WSA_CMSG_SPACE(sizeof(*SegmentSize))];
     PWSACMSGHDR CMsg = NULL;
@@ -2725,10 +2728,8 @@ QuicDataPathBindingSendFromTo(
         SendContext->TotalSize,
         SendContext->WskBufferCount,
         SendContext->SegmentSize,
-        LOG_ADDR_LEN(*RemoteAddress),
-        LOG_ADDR_LEN(*LocalAddress),
-        (UINT8*)RemoteAddress,
-        (UINT8*)LocalAddress);
+        LOG_BINARY(sizeof(*RemoteAddress), RemoteAddress),
+        LOG_BINARY(sizeof(*LocalAddress), LocalAddress));
 
     //
     // Map V4 address to dual-stack socket format.

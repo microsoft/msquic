@@ -192,10 +192,12 @@ MsQuicLibraryInitialize(
         QuicPoolInitialize(
             FALSE,
             sizeof(QUIC_CONNECTION),
+            QUIC_POOL_CONN,
             &MsQuicLib.PerProc[i].ConnectionPool);
         QuicPoolInitialize(
             FALSE,
             sizeof(QUIC_TRANSPORT_PARAMETERS),
+            QUIC_POOL_TP,
             &MsQuicLib.PerProc[i].TransportParamPool);
     }
 
@@ -556,31 +558,6 @@ QuicLibrarySetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_GLOBAL_ENCRYPTION:
-
-        if (BufferLength != sizeof(uint8_t)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        if (MsQuicLib.InUse &&
-            MsQuicLib.EncryptionDisabled != (*(uint8_t*)Buffer == FALSE)) {
-            QuicTraceLogError(
-                LibraryEncryptionSetAfterInUse,
-                "[ lib] Tried to change encryption state after library in use!");
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
-        MsQuicLib.EncryptionDisabled = *(uint8_t*)Buffer == FALSE;
-        QuicTraceLogWarning(
-            LibraryEncryptionSet,
-            "[ lib] Updated encryption disabled = %hu",
-            MsQuicLib.EncryptionDisabled);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     case QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS:
 
@@ -675,25 +652,6 @@ QuicLibraryGetGlobalParam(
 
         *BufferLength = sizeof(uint16_t);
         *(uint16_t*)Buffer = MsQuicLib.Settings.LoadBalancingMode;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-    case QUIC_PARAM_GLOBAL_ENCRYPTION:
-
-        if (*BufferLength < sizeof(uint8_t)) {
-            *BufferLength = sizeof(uint8_t);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(uint8_t);
-        *(uint8_t*)Buffer = !MsQuicLib.EncryptionDisabled;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -1468,38 +1426,40 @@ QuicLibraryGetCurrentStatelessRetryKey(
 {
     int64_t Now = QuicTimeEpochMs64();
     int64_t StartTime = (Now / QUIC_STATELESS_RETRY_KEY_LIFETIME_MS) * QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
-    int64_t ExpirationTime = StartTime + QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
 
-    //
-    // If the start time for the current key interval is greater-than-or-equal to the expiration time
-    // of the latest stateless retry key, generate a new key, and rotate the old.
-    //
-    if (StartTime >= MsQuicLib.StatelessRetryKeysExpiration[MsQuicLib.CurrentStatelessRetryKey]) {
-
-        QUIC_KEY* NewKey;
-        uint8_t RawKey[QUIC_AEAD_AES_256_GCM_SIZE];
-        QuicRandom(sizeof(RawKey), RawKey);
-        QUIC_STATUS Status =
-            QuicKeyCreate(
-                QUIC_AEAD_AES_256_GCM,
-                RawKey,
-                &NewKey);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "Create stateless retry key");
-            return NULL;
-        }
-
-        MsQuicLib.StatelessRetryKeysExpiration[!MsQuicLib.CurrentStatelessRetryKey] = ExpirationTime;
-        QuicKeyFree(MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey]);
-        MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey] = NewKey;
-        MsQuicLib.CurrentStatelessRetryKey = !MsQuicLib.CurrentStatelessRetryKey;
-
-        return NewKey;
-    } else {
+    if (StartTime < MsQuicLib.StatelessRetryKeysExpiration[MsQuicLib.CurrentStatelessRetryKey]) {
         return MsQuicLib.StatelessRetryKeys[MsQuicLib.CurrentStatelessRetryKey];
     }
+
+    //
+    // If the start time for the current key interval is greater-than-or-equal
+    // to the expiration time of the latest stateless retry key, generate a new
+    // key, and rotate the old.
+    //
+
+    int64_t ExpirationTime = StartTime + QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
+
+    QUIC_KEY* NewKey;
+    uint8_t RawKey[QUIC_AEAD_AES_256_GCM_SIZE];
+    QuicRandom(sizeof(RawKey), RawKey);
+    QUIC_STATUS Status =
+        QuicKeyCreate(
+            QUIC_AEAD_AES_256_GCM,
+            RawKey,
+            &NewKey);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Create stateless retry key");
+        return NULL;
+    }
+
+    MsQuicLib.StatelessRetryKeysExpiration[!MsQuicLib.CurrentStatelessRetryKey] = ExpirationTime;
+    QuicKeyFree(MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey]);
+    MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey] = NewKey;
+    MsQuicLib.CurrentStatelessRetryKey = !MsQuicLib.CurrentStatelessRetryKey;
+
+    return NewKey;
 }

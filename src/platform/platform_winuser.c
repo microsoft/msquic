@@ -340,6 +340,9 @@ QuicPlatformLogAssert(
     _In_z_ const char* Expr
     )
 {
+    UNREFERENCED_PARAMETER(File);
+    UNREFERENCED_PARAMETER(Line);
+    UNREFERENCED_PARAMETER(Expr);
     QuicTraceEvent(
         LibraryAssert,
         "[ lib] ASSERT, %u:%s - %s.",

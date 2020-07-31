@@ -648,21 +648,25 @@ QuicDataPathInitialize(
         QuicPoolInitialize(
             FALSE,
             sizeof(QUIC_DATAPATH_SEND_CONTEXT),
+            QUIC_POOL_GENERIC,
             &Datapath->ProcContexts[i].SendContextPool);
 
         QuicPoolInitialize(
             FALSE,
             MAX_UDP_PAYLOAD_LENGTH,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].SendBufferPool);
 
         QuicPoolInitialize(
             FALSE,
             QUIC_LARGE_SEND_BUFFER_SIZE,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].LargeSendBufferPool);
 
         QuicPoolInitialize(
             FALSE,
             RecvDatagramLength,
+            QUIC_POOL_DATA,
             &Datapath->ProcContexts[i].RecvDatagramPool);
 
         Datapath->ProcContexts[i].IOCP =
@@ -1985,10 +1989,8 @@ QuicDataPathRecvComplete(
             SocketContext->Binding,
             NumberOfBytesTransferred,
             MessageLength,
-            LOG_ADDR_LEN(*LocalAddr),
-            LOG_ADDR_LEN(*RemoteAddr),
-            (UINT8*)LocalAddr,
-            (UINT8*)RemoteAddr);
+            LOG_BINARY(sizeof(*LocalAddr), LocalAddr),
+            LOG_BINARY(sizeof(*RemoteAddr), RemoteAddr));
 
         QUIC_DBG_ASSERT(NumberOfBytesTransferred <= SocketContext->RecvWsaBuf.len);
 
@@ -2402,6 +2404,7 @@ QuicSendContextComplete(
     _In_ ULONG IoResult
     )
 {
+    UNREFERENCED_PARAMETER(SocketContext);
     if (IoResult != QUIC_STATUS_SUCCESS) {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -2451,8 +2454,7 @@ QuicDataPathBindingSendTo(
         SendContext->TotalSize,
         SendContext->WsaBufferCount,
         SendContext->SegmentSize,
-        LOG_ADDR_LEN(*RemoteAddress),
-        (UINT8*)RemoteAddress);
+        LOG_BINARY(sizeof(*RemoteAddress), RemoteAddress));
 
     WSAMSG WSAMhdr;
     WSAMhdr.dwFlags = 0;
@@ -2567,10 +2569,8 @@ QuicDataPathBindingSendFromTo(
         SendContext->TotalSize,
         SendContext->WsaBufferCount,
         SendContext->SegmentSize,
-        LOG_ADDR_LEN(*RemoteAddress),
-        LOG_ADDR_LEN(*LocalAddress),
-        (UINT8*)RemoteAddress,
-        (UINT8*)LocalAddress);
+        LOG_BINARY(sizeof(*RemoteAddress), RemoteAddress),
+        LOG_BINARY(sizeof(*LocalAddress), LocalAddress));
 
     //
     // Map V4 address to dual-stack socket format.

@@ -80,7 +80,7 @@ Return Value:
     WDF_DRIVER_CONFIG_INIT(&Config, NULL);
     Config.EvtDriverUnload = EvtDriverUnload;
     Config.DriverInitFlags = WdfDriverInitNonPnpDriver;
-    Config.DriverPoolTag = QUIC_POOL_TAG;
+    Config.DriverPoolTag = QUIC_POOL_GENERIC;
 
     Status =
         WdfDriverCreate(

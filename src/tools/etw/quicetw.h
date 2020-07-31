@@ -417,17 +417,13 @@ typedef struct QUIC_EVENT_DATA_CONNECTION {
         } LossDetectionTimerSet;
         struct {
             UINT64 PktNum;
-            UINT8 LocalAddrLength;
-            UINT8 RemoteAddrLength;
-            UINT8 Addrs[1];
+            UINT8 Addrs[1]; // LocalAddr, RemoteAddr
             // char Reason[];
         } DropPacket;
         struct {
             UINT64 PktNum;
             UINT64 Value;
-            UINT8 LocalAddrLength;
-            UINT8 RemoteAddrLength;
-            UINT8 Addrs[1];
+            UINT8 Addrs[1]; // LocalAddr, RemoteAddr
             // char Reason[];
         } DropPacketEx;
         struct {
@@ -565,24 +561,16 @@ typedef struct QUIC_EVENT_DATA_BINDING {
     union {
         struct {
             ULONG_PTR DatapathPtr;
-            UINT8 LocalAddrLength;
-            UINT8 RemoteAddrLength;
-            UINT8 Addrs[1];
+            UINT8 Addrs[1]; // LocalAddr, RemoteAddr
         } Created, Rundown;
         struct {
             UINT64 PktNum;
-            UINT8 LocalAddrLength;
-            UINT8 RemoteAddrLength;
-            UINT8 Addrs[1];
-            // char Reason[];
+            UINT8 Addrs[1]; // LocalAddr, RemoteAddr
         } DropPacket;
         struct {
             UINT64 PktNum;
             UINT64 Value;
-            UINT8 LocalAddrLength;
-            UINT8 RemoteAddrLength;
-            UINT8 Addrs[1];
-            // char Reason[];
+            UINT8 Addrs[1]; // LocalAddr, RemoteAddr
         } DropPacketEx;
         struct {
             char ErrStr[1];
@@ -651,16 +639,12 @@ typedef struct QUIC_EVENT_DATA_DATAPATH {
             UINT32 TotalSize;
             UINT8 BufferCount;
             UINT16 SegmentSize;
-            UINT8 RemoteAddrLength;
-            UINT8 LocalAddrLength;
-            UINT8 Addrs[1];
+            UINT8 Addrs[1]; // RemoteAddr, LocalAddr
         } SendFromTo;
         struct {
             UINT32 TotalSize;
             UINT16 SegmentSize;
-            UINT8 LocalAddrLength;
-            UINT8 RemoteAddrLength;
-            UINT8 Addrs[1];
+            UINT8 Addrs[1]; // LocalAddr, RemoteAddr
         } Recv;
         struct {
             char ErrStr[1];
@@ -705,6 +689,13 @@ inline void AddrToString(const SOCKADDR_INET* Addr, _Out_ char AddrStr[INET6_ADD
     } else {
         strcpy_s(AddrStr, INET6_ADDRSTRLEN, "Invalid");
     }
+}
+
+inline const uint8_t* DecodeAddr(const uint8_t* Addr, _Out_ char AddrStr[INET6_ADDRSTRLEN])
+{
+    uint8_t Len = Addr[0];
+    AddrToString((SOCKADDR_INET*)(Addr+1), AddrStr);
+    return Addr + 1 + Len;
 }
 
 #define QUIC_CID_MAX_STR_LEN 37

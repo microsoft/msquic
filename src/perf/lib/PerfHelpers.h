@@ -218,7 +218,7 @@ public:
 
     void Initialize(uint32_t Size, bool Paged = false) {
         QUIC_DBG_ASSERT(Initialized == false);
-        QuicPoolInitialize(Paged, Size, &Pool);
+        QuicPoolInitialize(Paged, Size, QUIC_POOL_PERF, &Pool);
         Initialized = true;
     }
 
@@ -239,7 +239,7 @@ class QuicPoolAllocator {
     QUIC_POOL Pool;
 public:
     QuicPoolAllocator() {
-        QuicPoolInitialize(Paged, sizeof(T), &Pool);
+        QuicPoolInitialize(Paged, sizeof(T), QUIC_POOL_PERF, &Pool);
     }
 
     ~QuicPoolAllocator() {

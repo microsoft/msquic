@@ -8,7 +8,7 @@ set(SOURCES
 )
 
 # Allow CLOG to preprocess all the source files.
-CLOG_GENERATE_TARGET(perflib.clog STATIC ${SOURCES})
+add_clog_library(perflib.clog STATIC ${SOURCES})
 
 add_library(perflib ${SOURCES})
 

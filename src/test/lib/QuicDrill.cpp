@@ -222,20 +222,6 @@ QuicDrillInitialPacketFailureTest(
 
     QuicAddr ServerAddress(QuicAddrFamily);
     DrillSender Sender;
-    const uint8_t Disabled = FALSE;
-    const uint8_t Enabled = TRUE;
-
-    Status =
-        MsQuic->SetParam(
-            nullptr,
-            QUIC_PARAM_LEVEL_GLOBAL,
-            QUIC_PARAM_GLOBAL_ENCRYPTION,
-            sizeof(Disabled),
-            &Disabled);
-    if (QUIC_FAILED(Status)) {
-        TEST_FAILURE("Failed to disable encryption for test. 0x%x", Status);
-        return false;
-    }
 
     MsQuicSession Session;
     if (!Session.IsValid()) {
@@ -318,16 +304,7 @@ QuicDrillInitialPacketFailureTest(
     return true;
 
 Failure:
-    Status =
-        MsQuic->SetParam(
-            nullptr,
-            QUIC_PARAM_LEVEL_GLOBAL,
-            QUIC_PARAM_GLOBAL_ENCRYPTION,
-            sizeof(Enabled),
-            &Enabled);
-    if (QUIC_FAILED(Status)) {
-        TEST_FAILURE("Failed to re-enable encryption after test. 0x%x", Status);
-    }
+
     return false;
 }
 

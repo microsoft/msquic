@@ -321,7 +321,7 @@ QuicLossDetectionUpdateTimer(
         TimeoutType = LOSS_TIMER_INITIAL;
         TimeFires =
             LossDetection->TimeOfLastPacketSent +
-            ((2 * Path->SmoothedRtt) << LossDetection->ProbeCount);
+            ((Path->SmoothedRtt + 4 * Path->RttVariance) << LossDetection->ProbeCount);
 
     } else {
         TimeoutType = LOSS_TIMER_PROBE;

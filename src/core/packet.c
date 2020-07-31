@@ -740,10 +740,8 @@ QuicPacketLogDrop(
             "[conn][%p] DROP packet[%llu] Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
-            LOG_ADDR_LEN(Datagram->Tuple->LocalAddress),
-            LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress),
-            (uint8_t*)&Datagram->Tuple->LocalAddress,
-            (uint8_t*)&Datagram->Tuple->RemoteAddress,
+            LOG_BINARY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
+            LOG_BINARY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
             Reason);
     } else {
         InterlockedIncrement64((int64_t*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
@@ -752,10 +750,8 @@ QuicPacketLogDrop(
             "[bind][%p] DROP packet[%llu] Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
-            LOG_ADDR_LEN(Datagram->Tuple->LocalAddress),
-            LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress),
-            (uint8_t*)&Datagram->Tuple->LocalAddress,
-            (uint8_t*)&Datagram->Tuple->RemoteAddress,
+            LOG_BINARY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
+            LOG_BINARY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
             Reason);
     }
 }
@@ -785,10 +781,8 @@ QuicPacketLogDropWithValue(
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
             Value,
-            LOG_ADDR_LEN(Datagram->Tuple->LocalAddress),
-            LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress),
-            (uint8_t*)&Datagram->Tuple->LocalAddress,
-            (uint8_t*)&Datagram->Tuple->RemoteAddress,
+            LOG_BINARY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
+            LOG_BINARY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
             Reason);
     } else {
         InterlockedIncrement64((int64_t*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
@@ -798,10 +792,8 @@ QuicPacketLogDropWithValue(
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
             Value,
-            LOG_ADDR_LEN(Datagram->Tuple->LocalAddress),
-            LOG_ADDR_LEN(Datagram->Tuple->RemoteAddress),
-            (uint8_t*)&Datagram->Tuple->LocalAddress,
-            (uint8_t*)&Datagram->Tuple->RemoteAddress,
+            LOG_BINARY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
+            LOG_BINARY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
             Reason);
     }
 }
