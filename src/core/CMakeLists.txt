@@ -1,9 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-# Include for CLOG processing
-include(${CMAKE_CLOG_GENERATE_FILE})
-
 set(SOURCES
     ack_tracker.c
     api.c
@@ -47,20 +44,16 @@ if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 endif()
 
 # Allow CLOG to preprocess all the source files.
-CLOG_GENERATE_TARGET(CORE_CLOG_LIB ${SOURCES})
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${QUIC_C_FLAGS}")
+add_clog_library(core.clog STATIC ${SOURCES})
 
 add_library(core STATIC ${SOURCES})
 
+target_link_libraries(core PUBLIC core.clog inc)
+
+target_link_libraries(core PRIVATE warnings)
+
 set_property(TARGET core PROPERTY FOLDER "libraries")
 
-target_compile_options(core PRIVATE
-     $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-        ${CLANG_GCC_WARNING_FLAGS}>
-     $<$<CXX_COMPILER_ID:MSVC>:
-        ${MSVC_WARNING_FLAGS}>)
-
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+if(WIN32)
     add_dependencies(core MsQuicEtw)
 endif()

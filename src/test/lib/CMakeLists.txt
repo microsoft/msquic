@@ -1,9 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-# Include for CLOG processing
-include(${CMAKE_CLOG_GENERATE_FILE})
-
 set(SOURCES
     ApiTest.cpp
     BasicTest.cpp
@@ -19,22 +16,18 @@ set(SOURCES
     TestHelpers.h
 )
 
-include_directories(${PROJECT_SOURCE_DIR}/src/test)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
-
 # Allow CLOG to preprocess all the source files.
-CLOG_GENERATE_TARGET(TESTLIB_CLOG_LIB ${SOURCES})
+add_clog_library(testlib.clog STATIC ${SOURCES})
 
 add_library(testlib ${SOURCES})
 
-set_property(TARGET testlib PROPERTY FOLDER "tests")
+target_include_directories(testlib PRIVATE ${PROJECT_SOURCE_DIR}/src/test)
 
-target_compile_options(testlib PRIVATE
-     $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
-        ${CLANG_GCC_WARNING_FLAGS}>
-     $<$<CXX_COMPILER_ID:MSVC>:
-        ${MSVC_WARNING_FLAGS}>)
+target_link_libraries(testlib PUBLIC testlib.clog)
+
+target_link_libraries(testlib PRIVATE inc warnings)
+
+set_property(TARGET testlib PROPERTY FOLDER "tests")
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_dependencies(platform MsQuicEtw)

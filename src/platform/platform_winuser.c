@@ -23,6 +23,7 @@ uint64_t QuicTotalMemory;
 QUIC_PLATFORM QuicPlatform = { NULL };
 QUIC_PROCESSOR_INFO* QuicProcessorInfo;
 uint64_t* QuicNumaMasks;
+uint32_t* QuicProcessorGroupOffsets;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -67,8 +68,11 @@ QuicProcessorInfoInit(
     uint8_t* Buffer = NULL;
     uint32_t Offset;
 
-    uint32_t NumaNodeCount = 0;
     uint32_t ActiveProcessorCount = QuicProcActiveCount();
+    uint32_t ProcessorGroupCount = 0;
+    uint32_t ProcessorsPerGroup = 0;
+    uint32_t NumaNodeCount = 0;
+
     QuicProcessorInfo = QUIC_ALLOC_NONPAGED(ActiveProcessorCount * sizeof(QUIC_PROCESSOR_INFO));
     if (QuicProcessorInfo == NULL) {
         QuicTraceEvent(
@@ -118,16 +122,55 @@ QuicProcessorInfoInit(
             if (Info->NumaNode.NodeNumber + 1 > NumaNodeCount) {
                 NumaNodeCount = Info->NumaNode.NodeNumber + 1;
             }
+        } else if (Info->Relationship == RelationGroup) {
+            if (ProcessorGroupCount == 0) {
+                QUIC_DBG_ASSERT(Info->Group.ActiveGroupCount != 0);
+                ProcessorGroupCount = Info->Group.ActiveGroupCount;
+                ProcessorsPerGroup = Info->Group.GroupInfo[0].ActiveProcessorCount;
+            }
         }
         Offset += Info->Size;
     }
 
+    QUIC_DBG_ASSERT(ProcessorGroupCount != 0);
+    if (ProcessorGroupCount == 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Failed to determine processor group count");
+        goto Error;
+    }
+
+    QUIC_DBG_ASSERT(ProcessorsPerGroup != 0);
+    if (ProcessorsPerGroup == 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Failed to determine processors per group count");
+        goto Error;
+    }
+
+    QUIC_DBG_ASSERT(NumaNodeCount != 0);
     if (NumaNodeCount == 0) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
             "Failed to determine NUMA node count");
         goto Error;
+    }
+
+    QuicProcessorGroupOffsets = QUIC_ALLOC_NONPAGED(ProcessorGroupCount * sizeof(uint32_t));
+    if (QuicProcessorGroupOffsets == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of %s failed. (%llu bytes)",
+            "QuicProcessorGroupOffsets",
+            ProcessorGroupCount * sizeof(uint32_t));
+        goto Error;
+    }
+
+    for (uint32_t i = 0; i < ProcessorGroupCount; ++i) {
+        QuicProcessorGroupOffsets[i] = i * ProcessorsPerGroup;
     }
 
     QuicNumaMasks = QUIC_ALLOC_NONPAGED(NumaNodeCount * sizeof(uint64_t));
@@ -142,8 +185,8 @@ QuicProcessorInfoInit(
 
     QuicTraceLogInfo(
         WindowsUserProcessorState,
-        "[ dll] Processor Count = %u, NUMA Node Count = %u",
-        ActiveProcessorCount, NumaNodeCount);
+        "[ dll] Processors:%u, Groups:%u, NUMA Nodes:%u",
+        ActiveProcessorCount, ProcessorGroupCount, NumaNodeCount);
 
     Offset = 0;
     while (Offset < BufferLength) {
@@ -222,6 +265,8 @@ Error:
     if (!Result) {
         QUIC_FREE(QuicNumaMasks);
         QuicNumaMasks = NULL;
+        QUIC_FREE(QuicProcessorGroupOffsets);
+        QuicProcessorGroupOffsets = NULL;
         QUIC_FREE(QuicProcessorInfo);
         QuicProcessorInfo = NULL;
     }
@@ -299,6 +344,8 @@ QuicPlatformUninitialize(
     QUIC_DBG_ASSERT(QuicPlatform.Heap);
     QUIC_FREE(QuicNumaMasks);
     QuicNumaMasks = NULL;
+    QUIC_FREE(QuicProcessorGroupOffsets);
+    QuicProcessorGroupOffsets = NULL;
     QUIC_FREE(QuicProcessorInfo);
     QuicProcessorInfo = NULL;
     HeapDestroy(QuicPlatform.Heap);
@@ -316,6 +363,9 @@ QuicPlatformLogAssert(
     _In_z_ const char* Expr
     )
 {
+    UNREFERENCED_PARAMETER(File);
+    UNREFERENCED_PARAMETER(Line);
+    UNREFERENCED_PARAMETER(Expr);
     QuicTraceEvent(
         LibraryAssert,
         "[ lib] ASSERT, %u:%s - %s.",

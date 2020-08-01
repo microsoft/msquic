@@ -49,6 +49,10 @@ QuicStreamSetInitialize(
     )
 {
     QuicListInitializeHead(&StreamSet->ClosedStreams);
+#if DEBUG
+    QuicListInitializeHead(&StreamSet->AllStreams);
+    QuicDispatchLockInitialize(&StreamSet->AllStreamsLock);
+#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -58,6 +62,9 @@ QuicStreamSetUninitialize(
     )
 {
     if (StreamSet->StreamTable != NULL) {
+#if DEBUG
+        QuicDispatchLockUninitialize(&StreamSet->AllStreamsLock);
+#endif
         QuicHashtableUninitialize(StreamSet->StreamTable);
     }
 }

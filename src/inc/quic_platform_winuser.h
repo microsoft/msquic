@@ -257,6 +257,7 @@ QuicFree(
 #define QUIC_ALLOC_PAGED(Size) QuicAlloc(Size)
 #define QUIC_ALLOC_NONPAGED(Size) QuicAlloc(Size)
 #define QUIC_FREE(Mem) QuicFree((void*)Mem)
+#define QUIC_FREE_TAG(Mem, Tag) QUIC_FREE(Mem)
 
 typedef struct QUIC_POOL {
     SLIST_HEADER ListHead;
@@ -278,6 +279,7 @@ void
 QuicPoolInitialize(
     _In_ BOOLEAN IsPaged,
     _In_ uint32_t Size,
+    _In_ uint32_t Tag,
     _Inout_ QUIC_POOL* Pool
     )
 {
@@ -287,6 +289,7 @@ QuicPoolInitialize(
     Pool->Size = Size;
     InitializeSListHead(&(Pool)->ListHead);
     UNREFERENCED_PARAMETER(IsPaged);
+    UNREFERENCED_PARAMETER(Tag); // TODO - Use in debug mode?
 }
 
 inline
@@ -710,10 +713,22 @@ typedef struct {
 
 extern QUIC_PROCESSOR_INFO* QuicProcessorInfo;
 extern uint64_t* QuicNumaMasks;
+extern uint32_t* QuicProcessorGroupOffsets;
 
 #define QuicProcMaxCount() GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS)
 #define QuicProcActiveCount() GetActiveProcessorCount(ALL_PROCESSOR_GROUPS)
-#define QuicProcCurrentNumber() GetCurrentProcessorNumber()
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+uint32_t
+QuicProcCurrentNumber(
+    void
+    ) {
+    PROCESSOR_NUMBER ProcNumber;
+    GetCurrentProcessorNumberEx(&ProcNumber);
+    return QuicProcessorGroupOffsets[ProcNumber.Group] + ProcNumber.Number;
+}
+
 
 //
 // Create Thread Interfaces
@@ -886,6 +901,8 @@ QuicRandom(
 
 #define QUIC_UNSPECIFIED_COMPARTMENT_ID NET_IF_COMPARTMENT_ID_UNSPECIFIED
 #define QUIC_DEFAULT_COMPARTMENT_ID     NET_IF_COMPARTMENT_ID_PRIMARY
+
+#define QuicSetCurrentThreadAffinityMask(Mask) SetThreadAffinityMask(GetCurrentThread(), Mask)
 
 #define QuicCompartmentIdGetCurrent() GetCurrentThreadCompartmentId()
 #define QuicCompartmentIdSetCurrent(CompartmentId) \

@@ -1,26 +1,20 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-# Include for CLOG processing
-include(${CMAKE_CLOG_GENERATE_FILE})
-
-include_directories(${PROJECT_SOURCE_DIR}/src/test)
-include_directories(${PROJECT_SOURCE_DIR}/submodules/googletest/googletest/include)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${QUIC_CXX_FLAGS}")
-
 set(SOURCES
     quic_gtest.cpp
     quic_gtest.h
 )
 
 # Allow CLOG to preprocess all the source files.
-CLOG_GENERATE_TARGET(MSQUICTEST_CLOG_LIB ${SOURCES})
+add_clog_library(msquictest.clog STATIC ${SOURCES})
 
 add_executable(msquictest ${SOURCES})
 
+target_include_directories(msquictest PRIVATE ${PROJECT_SOURCE_DIR}/src/test)
+
 set_property(TARGET msquictest PROPERTY FOLDER "tests")
 
-target_link_libraries(msquictest msquic testlib platform gtest PLATFORM_CLOG_LIB MSQUICTEST_CLOG_LIB)
+target_link_libraries(msquictest msquic testlib platform inc gtest msquictest.clog)
 
 add_test(msquictest msquictest)

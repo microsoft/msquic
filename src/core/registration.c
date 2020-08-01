@@ -65,6 +65,7 @@ MsQuicRegistrationOpen(
     Registration->Type = QUIC_HANDLE_TYPE_REGISTRATION;
     Registration->ClientContext = NULL;
     Registration->NoPartitioning = FALSE;
+    Registration->SplitPartitioning = FALSE;
     Registration->ExecProfile = Config == NULL ? QUIC_EXECUTION_PROFILE_LOW_LATENCY : Config->ExecutionProfile;
     Registration->CidPrefixLength = 0;
     Registration->CidPrefix = NULL;
@@ -90,6 +91,7 @@ MsQuicRegistrationOpen(
         WorkerThreadFlags =
             QUIC_THREAD_FLAG_SET_IDEAL_PROC |
             QUIC_THREAD_FLAG_SET_AFFINITIZE;
+        Registration->SplitPartitioning = TRUE;
         break;
     case QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER:
         WorkerThreadFlags = 0;
@@ -100,6 +102,18 @@ MsQuicRegistrationOpen(
             QUIC_THREAD_FLAG_SET_IDEAL_PROC |
             QUIC_THREAD_FLAG_SET_AFFINITIZE;
         break;
+    }
+
+    //
+    // TODO - Figure out how to check to see if hyper-threading was enabled
+    // first
+    // When hyper-threading is enabled, better bulk throughput can sometimes
+    // be gained by sharing the same physical core, but not the logical one.
+    // The shared one is always one greater than the RSS core.
+    //
+    if (Registration->SplitPartitioning &&
+        MsQuicLib.PartitionCount <= QUIC_MAX_THROUGHPUT_PARTITION_OFFSET) {
+        Registration->SplitPartitioning = FALSE; // Not enough partitions.
     }
 
     Status =
@@ -334,14 +348,9 @@ QuicRegistrationAcceptConnection(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    if (QuicRegistrationIsSplitPartitioning(Registration)) {
+    if (Registration->SplitPartitioning) {
         //
-        // TODO - Figure out how to check to see if hyper-threading was enabled first
-        // TODO - Constrain PartitionID to the same NUMA node.
-        //
-        // When hyper-threading is enabled, better bulk throughput can sometimes
-        // be gained by sharing the same physical core, but not the logical one.
-        // The shared one is always one greater than the RSS core.
+        // TODO - Constrain PartitionID to the same NUMA node?
         //
         Connection->PartitionID += QUIC_MAX_THROUGHPUT_PARTITION_OFFSET;
     }

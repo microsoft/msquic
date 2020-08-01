@@ -21,6 +21,7 @@ Environment:
 #include <sched.h>
 #include <fcntl.h>
 #include <syslog.h>
+#include <dlfcn.h>
 #include "quic_trace.h"
 #include "quic_platform_dispatch.h"
 #ifdef QUIC_CLOG
@@ -34,6 +35,8 @@ QUIC_PLATFORM_DISPATCH* PlatDispatch = NULL;
 #else
 int RandomFd; // Used for reading random numbers.
 #endif
+
+static const char TpLibName[] = "libmsquic.lttng.so";
 
 uint64_t QuicTotalMemory;
 
@@ -63,6 +66,70 @@ QuicPlatformSystemLoad(
     void
     )
 {
+    //
+    // Following code is modified from coreclr.
+    // https://github.com/dotnet/coreclr/blob/ed5dc831b09a0bfed76ddad684008bebc86ab2f0/src/pal/src/misc/tracepointprovider.cpp#L106
+    //
+
+    int ShouldLoad = 1;
+
+    //
+    // Check if loading the LTTng providers should be disabled.
+    //
+    char *DisableValue = getenv("QUIC_LTTng");
+    if (DisableValue != NULL) {
+        ShouldLoad = strtol(DisableValue, NULL, 10);
+    }
+
+    if (!ShouldLoad) {
+        return;
+    }
+
+    //
+    // Get the path to the currently executing shared object (libmsquic.so).
+    //
+    Dl_info Info;
+    int Succeeded = dladdr((void *)QuicPlatformSystemLoad, &Info);
+    if (!Succeeded) {
+        return;
+    }
+
+    int PathLen = strlen(Info.dli_fname);
+
+    //
+    // Find the length of the full path without the shared object name, including the trailing slash.
+    //
+    int LastTrailingSlashLen = -1;
+    for (int i = PathLen; i >= 0; i--) {
+        if (Info.dli_fname[i] == '/') {
+            LastTrailingSlashLen = i + 1;
+            break;
+        }
+    }
+
+    if (LastTrailingSlashLen == -1) {
+        return;
+    }
+
+    size_t TpLibNameLen = strlen(TpLibName);
+    size_t ProviderFullPathLength = TpLibNameLen + LastTrailingSlashLen + 1;
+
+    char* ProviderFullPath = QUIC_ALLOC_PAGED(ProviderFullPathLength);
+    if (ProviderFullPath == NULL) {
+        return;
+    }
+
+    QuicCopyMemory(ProviderFullPath, Info.dli_fname, LastTrailingSlashLen);
+    QuicCopyMemory(ProviderFullPath + LastTrailingSlashLen, TpLibName, TpLibNameLen);
+    ProviderFullPath[LastTrailingSlashLen + TpLibNameLen] = '\0';
+
+    //
+    // Load the tracepoint provider.
+    // It's OK if this fails - that just means that tracing dependencies aren't available.
+    //
+    dlopen(ProviderFullPath, RTLD_NOW | RTLD_GLOBAL);
+
+    QUIC_FREE(ProviderFullPath);
 }
 
 void
@@ -129,9 +196,11 @@ void
 QuicPoolInitialize(
     _In_ BOOLEAN IsPaged,
     _In_ uint32_t Size,
+    _In_ uint32_t Tag,
     _Inout_ QUIC_POOL* Pool
     )
 {
+    UNREFERENCED_PARAMETER(Tag);
 #ifdef QUIC_PLATFORM_DISPATCH_TABLE
     PlatDispatch->PoolInitialize(IsPaged, Size, Pool);
 #else

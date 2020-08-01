@@ -20,6 +20,7 @@ Environment:
 #define _MSQUIC_LINUX_
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <sys/types.h>
 #include <string.h>
@@ -297,6 +298,16 @@ QuicAddrSetPort(
     } else {
         Addr->Ipv6.sin6_port = htons(Port);
     }
+}
+
+inline
+void
+QuicAddrSetIsBoundExplicitly(
+    _In_ QUIC_ADDR * Addr,
+    _In_ BOOLEAN IsBound
+    )
+{
+    Addr->Ipv6.sin6_scope_id = IsBound ? 0 : 1;
 }
 
 inline

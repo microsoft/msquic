@@ -25,7 +25,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 // Until the first RTT sample is collected, this is the default estimate of the
 // RTT.
 //
-#define QUIC_INITIAL_RTT                        500 // millisec
+#define QUIC_INITIAL_RTT                        333 // millisec
 
 //
 // The minimum QUIC Packet Size (UDP payload size) for initial QUIC packets.
@@ -279,7 +279,7 @@ QUIC_STATIC_ASSERT(
 // The flow control window is doubled when more than (1 / ratio) of the current
 // window is delivered to the app within 1 RTT.
 //
-#define QUIC_RECV_BUFFER_DRAIN_RATIO            2
+#define QUIC_RECV_BUFFER_DRAIN_RATIO            8
 
 //
 // The default value for send buffering being enabled or not.

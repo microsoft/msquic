@@ -5,9 +5,9 @@
             "Platform": "Windows",
             "Tls": ["stub", "schannel", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
-            "Exe": "quicping",
+            "Exe": "quicperf",
             "Arguments": {
-                "All": "-listen:* -port:4433 -peer_uni:1 -connections:10",
+                "All": "-TestName:Throughput -ServerMode:1 -listen:* -port:4433 -peer_uni:1 -connections:10",
                 "Loopback": "-selfsign:1",
                 "Remote": "-thumbprint:$Thumbprint -machine_cert:1 -cert_store:My"
             }
@@ -16,16 +16,16 @@
             "Platform": "Windows",
             "Tls": ["stub", "schannel", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
-            "Exe": "quicping",
+            "Exe": "quicperf",
             "Arguments": {
-                "All": "-target:$RemoteAddress -port:4433 -sendbuf:0 -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -length:2000000000",
+                "All": "-TestName:Throughput -target:$RemoteAddress -port:4433 -sendbuf:0 -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -length:2000000000",
                 "Loopback": "",
                 "Remote": ""
             }
         },
         "Iterations": 10,
-        "RemoteReadyMatcher": "Ready For Connections!",
-        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps \\|"
+        "RemoteReadyMatcher": "Started!",
+        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps\\)"
     },
     {
         "TestName": "Throughput",
@@ -33,9 +33,9 @@
             "Platform": "Linux",
             "Tls": ["stub", "openssl"],
             "Arch": ["x64", "arm"],
-            "Exe": "quicping",
+            "Exe": "quicperf",
             "Arguments": {
-                "All": "-listen:* -port:4433 -selfsign:1 -peer_uni:1 -connections:10",
+                "All": "-TestName:Throughput -ServerMode:1 -listen:* -port:4433 -selfsign:1 -peer_uni:1 -connections:10",
                 "Loopback": "",
                 "Remote": ""
             }
@@ -44,16 +44,16 @@
             "Platform": "linux",
             "Tls": ["stub", "openssl"],
             "Arch": ["x64", "arm"],
-            "Exe": "quicping",
+            "Exe": "quicperf",
             "Arguments": {
-                "All": "-target:$RemoteAddress -port:4433 -sendbuf:0 -uni:1 -length:2000000000",
+                "All": "-TestName:Throughput -target:$RemoteAddress -port:4433 -sendbuf:0 -uni:1 -length:2000000000",
                 "Loopback": "",
                 "Remote": ""
             }
         },
         "Iterations": 10,
-        "RemoteReadyMatcher": "Ready For Connections!",
-        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps \\|"
+        "RemoteReadyMatcher": "Started!",
+        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps\\)"
     },
     {
         "TestName": "ThroughputNoEncryption",
@@ -61,9 +61,9 @@
             "Platform": "Windows",
             "Tls": ["stub", "schannel", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
-            "Exe": "quicping",
+            "Exe": "quicperf",
             "Arguments": {
-                "All": "-listen:* -port:4433 -peer_uni:1 -connections:10",
+                "All": "-TestName:Throughput -ServerMode:1 -listen:* -port:4433 -peer_uni:1 -connections:10",
                 "Loopback": "-selfsign:1",
                 "Remote": "-thumbprint:$Thumbprint -machine_cert:1 -cert_store:My"
             }
@@ -72,16 +72,16 @@
             "Platform": "Windows",
             "Tls": ["stub", "schannel", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
-            "Exe": "quicping",
+            "Exe": "quicperf",
             "Arguments": {
-                "All": "-target:$RemoteAddress -port:4433 -sendbuf:0 -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -encrypt:0 -length:2000000000",
+                "All": "-TestName:Throughput -target:$RemoteAddress -port:4433 -sendbuf:0 -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -encrypt:0 -length:2000000000",
                 "Loopback": "",
                 "Remote": ""
             }
         },
         "Iterations": 10,
-        "RemoteReadyMatcher": "Ready For Connections!",
-        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps \\|"
+        "RemoteReadyMatcher": "Started!",
+        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps\\)"
     },
     {
         "TestName": "ThroughputNoEncryption",
@@ -89,9 +89,9 @@
             "Platform": "Linux",
             "Tls": ["stub", "openssl"],
             "Arch": ["x64", "arm"],
-            "Exe": "quicping",
+            "Exe": "quicperf",
             "Arguments": {
-                "All": "-listen:* -port:4433 -selfsign:1 -peer_uni:1 -connections:10",
+                "All": "-TestName:Throughput -ServerMode:1 -listen:* -port:4433 -selfsign:1 -peer_uni:1 -connections:10",
                 "Loopback": "",
                 "Remote": ""
             }
@@ -100,15 +100,15 @@
             "Platform": "linux",
             "Tls": ["stub", "openssl"],
             "Arch": ["x64", "arm"],
-            "Exe": "quicping",
+            "Exe": "quicperf",
             "Arguments": {
-                "All": "-target:$RemoteAddress -port:4433 -sendbuf:0 -uni:1 -encrypt:0 -length:2000000000",
+                "All": "-TestName:Throughput -target:$RemoteAddress -port:4433 -sendbuf:0 -uni:1 -encrypt:0 -length:2000000000",
                 "Loopback": "",
                 "Remote": ""
             }
         },
         "Iterations": 10,
-        "RemoteReadyMatcher": "Ready For Connections!",
-        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps \\|"
+        "RemoteReadyMatcher": "Started!",
+        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps\\)"
     }
 ]

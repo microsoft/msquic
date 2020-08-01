@@ -227,6 +227,12 @@ QuicAddrSetPort(
     _In_ uint16_t Port
     );
 
+void
+QuicAddrSetIsBoundExplicitly(
+    _In_ QUIC_ADDR * Addr,
+    _In_ BOOLEAN IsBound
+    );
+
 BOOLEAN
 QuicAddrIsBoundExplicitly(
     _In_ const QUIC_ADDR* const Addr

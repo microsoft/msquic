@@ -255,15 +255,14 @@ QuicPlatformLogAssert(
 
 extern uint64_t QuicTotalMemory;
 
-#define QUIC_POOL_TAG 'CIUQ'
-
-#define QUIC_ALLOC_PAGED(Size) ExAllocatePool2(POOL_FLAG_PAGED | POOL_FLAG_UNINITIALIZED, Size, QUIC_POOL_TAG)
-#define QUIC_ALLOC_NONPAGED(Size) ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, Size, QUIC_POOL_TAG)
-#define QUIC_FREE(Mem) ExFreePoolWithTag((void*)Mem, QUIC_POOL_TAG)
+#define QUIC_ALLOC_PAGED(Size) ExAllocatePool2(POOL_FLAG_PAGED | POOL_FLAG_UNINITIALIZED, Size, QUIC_POOL_GENERIC)
+#define QUIC_ALLOC_NONPAGED(Size) ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, Size, QUIC_POOL_GENERIC)
+#define QUIC_FREE(Mem) ExFreePool((void*)Mem)
+#define QUIC_FREE_TAG(Mem, Tag) ExFreePoolWithTag((void*)Mem, Tag)
 
 typedef LOOKASIDE_LIST_EX QUIC_POOL;
 
-#define QuicPoolInitialize(IsPaged, Size, Pool) \
+#define QuicPoolInitialize(IsPaged, Size, Tag, Pool) \
     ExInitializeLookasideListEx( \
         Pool, \
         NULL, \
@@ -271,7 +270,7 @@ typedef LOOKASIDE_LIST_EX QUIC_POOL;
         (IsPaged) ? PagedPool : NonPagedPoolNx, \
         0, \
         Size, \
-        QUIC_POOL_TAG, \
+        Tag, \
         0)
 
 #define QuicPoolUninitialize(Pool) ExDeleteLookasideListEx(Pool)
@@ -904,8 +903,8 @@ QuicRandom(
 #define QUIC_SILO_INVALID ((PESILO)(void*)(LONG_PTR)-1)
 
 #define QuicSiloGetCurrentServer() PsGetCurrentServerSilo()
-#define QuicSiloAddRef(Silo) if (Silo != NULL) { ObReferenceObjectWithTag(Silo, QUIC_POOL_TAG); }
-#define QuicSiloRelease(Silo) if (Silo != NULL) { ObDereferenceObjectWithTag(Silo, QUIC_POOL_TAG); }
+#define QuicSiloAddRef(Silo) if (Silo != NULL) { ObReferenceObjectWithTag(Silo, QUIC_POOL_GENERIC); }
+#define QuicSiloRelease(Silo) if (Silo != NULL) { ObDereferenceObjectWithTag(Silo, QUIC_POOL_GENERIC); }
 #define QuicSiloAttach(Silo) PsAttachSiloToCurrentThread(Silo)
 #define QuicSiloDetatch(PrevSilo) PsDetachSiloFromCurrentThread(PrevSilo)
 
@@ -928,6 +927,8 @@ NdisSetThreadObjectCompartmentId(
     IN PETHREAD ThreadObject,
     IN NET_IF_COMPARTMENT_ID CompartmentId
     );
+
+#define QuicSetCurrentThreadAffinityMask(Mask) KeSetSystemAffinityThreadEx(Mask)
 
 #define QuicCompartmentIdGetCurrent() NdisGetThreadObjectCompartmentId(PsGetCurrentThread())
 #define QuicCompartmentIdSetCurrent(CompartmentId) \

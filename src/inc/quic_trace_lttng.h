@@ -12,6 +12,9 @@ Abstract:
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER MsQuic
 
+#undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
+#define TRACEPOINT_PROBE_DYNAMIC_LINKAGE
+
 #undef TRACEPOINT_INCLUDE
 #define TRACEPOINT_INCLUDE "quic_trace_lttng.h"
 
@@ -685,8 +688,8 @@ QUIC_TRACE_EVENT(ConnDropPacket,
         const void*, Connection,
         uint64_t, arg3,
         uint8_t, LocalAddrLength,
-        uint8_t, RemoteAddrLength,
         const void*, LocalAddr,
+        uint8_t, RemoteAddrLength,
         const void*, RemoteAddr,
         const char*, Reason),
     TP_FIELDS(
@@ -702,8 +705,8 @@ QUIC_TRACE_EVENT(ConnDropPacketEx,
         uint64_t, arg3,
         uint64_t, arg4,
         uint8_t, LocalAddrLength,
-        uint8_t, RemoteAddrLength,
         const void*, LocalAddr,
+        uint8_t, RemoteAddrLength,
         const void*, RemoteAddr,
         const char*, Reason),
     TP_FIELDS(
@@ -950,8 +953,8 @@ QUIC_TRACE_EVENT(BindingCreated,
         const void*, Binding,
         const void*, DatapathBinding,
         uint8_t, LocalAddrLength,
-        uint8_t, RemoteAddrLength,
         const void*, LocalAddr,
+        uint8_t, RemoteAddrLength,
         const void*, RemoteAddr),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, Binding, Binding)
@@ -964,8 +967,8 @@ QUIC_TRACE_EVENT(BindingRundown,
         const void*, Binding,
         const void*, DatapathBinding,
         uint8_t, LocalAddrLength,
-        uint8_t, RemoteAddrLength,
         const void*, LocalAddr,
+        uint8_t, RemoteAddrLength,
         const void*, RemoteAddr),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, Binding, Binding)
@@ -990,8 +993,8 @@ QUIC_TRACE_EVENT(BindingDropPacket,
         const void*, Binding,
         uint64_t, arg3,
         uint8_t, LocalAddrLength,
-        uint8_t, RemoteAddrLength,
         const void*, LocalAddr,
+        uint8_t, RemoteAddrLength,
         const void*, RemoteAddr,
         const char*, Reason),
     TP_FIELDS(
@@ -1007,8 +1010,8 @@ QUIC_TRACE_EVENT(BindingDropPacketEx,
         uint64_t, arg3,
         uint64_t, arg4,
         uint8_t, LocalAddrLength,
-        uint8_t, RemoteAddrLength,
         const void*, LocalAddr,
+        uint8_t, RemoteAddrLength,
         const void*, RemoteAddr,
         const char*, Reason),
     TP_FIELDS(
@@ -1096,8 +1099,8 @@ QUIC_TRACE_EVENT(DatapathSendFromTo,
         uint32_t, arg4,
         uint32_t, arg5,
         uint8_t, RemoteAddrLength,
-        uint8_t, LocalAddrLength,
         const void*, RemoteAddr,
+        uint8_t, LocalAddrLength,
         const void*, LocalAddr),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, UdpBinding, UdpBinding)
@@ -1111,8 +1114,8 @@ QUIC_TRACE_EVENT(DatapathRecv,
         uint32_t, arg3,
         uint32_t, arg4,
         uint8_t, LocalAddrLength,
-        uint8_t, RemoteAddrLength,
         const void*, LocalAddr,
+        uint8_t, RemoteAddrLength,
         const void*, RemoteAddr),
     TP_FIELDS(
         ctf_integer_hex(uint64_t, UdpBinding, UdpBinding)
@@ -1146,4 +1149,4 @@ QUIC_TRACE_LEVEL(DatapathErrorStatus, TRACE_ERR)
 
 #define QuicTraceEventEnabled(Name) tracepoint_enabled(MsQuic, Name)
 #define QuicTraceEvent(Name, Fmt, ...) tracepoint(MsQuic, Name, ##__VA_ARGS__)
-#define LOG_ADDR_LEN(Addr) sizeof(Addr)
+#define LOG_BINARY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)

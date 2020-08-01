@@ -11,7 +11,7 @@ $WpaStackWalkProfileXml = `
   <Profiles>
     <SystemCollector Id="SC_HighVolume" Realtime="false">
       <BufferSize Value="1024"/>
-      <Buffers Value="20"/>
+      <Buffers Value="80"/>
     </SystemCollector>
     <SystemProvider Id="SP_CPU">
       <Keywords>
@@ -35,9 +35,55 @@ $WpaStackWalkProfileXml = `
 </WindowsPerformanceRecorder>
 "@
 
+# WPA Profile for collecting QUIC Logs.
+$WpaQUICLogProfileXml = `
+@"
+<?xml version="1.0" encoding="utf-8"?>
+<WindowsPerformanceRecorder Version="1.0" Author="MsQuic" Copyright="Microsoft Corporation" Company="Microsoft Corporation">
+  <Profiles>
+    <SystemCollector Id="SC_HighVolume" Realtime="false">
+      <BufferSize Value="1024"/>
+      <Buffers Value="80"/>
+    </SystemCollector>
+    <EventCollector Id="EC_LowVolume" Realtime="false" Name="LowVolume">
+      <BufferSize Value="1024"/>
+      <Buffers Value="80"/>
+    </EventCollector>
+    <SystemProvider Id="SP_CPU">
+      <Keywords>
+        <Keyword Value="CpuConfig"/>
+        <Keyword Value="Loader"/>
+        <Keyword Value="ProcessThread"/>
+        <Keyword Value="SampledProfile"/>
+      </Keywords>
+      <Stacks>
+        <Stack Value="SampledProfile"/>
+      </Stacks>
+    </SystemProvider>
+    <EventProvider Id="MsQuicEtwPerf" Name="ff15e657-4f26-570e-88ab-0796b258d11c" NonPagedMemory="true" Level="5">
+      <Keywords>
+        <Keyword Value="0xE0000000"/>
+      </Keywords>
+    </EventProvider>
+    <Profile Id="CPU.Light.File" Name="CPU" Description="CPU Stacks" LoggingMode="File" DetailLevel="Light">
+      <Collectors>
+        <SystemCollectorId Value="SC_HighVolume">
+          <SystemProviderId Value="SP_CPU" />
+        </SystemCollectorId>
+        <EventCollectorId Value="EC_LowVolume">
+          <EventProviders>
+            <EventProviderId Value="MsQuicEtwPerf" />
+          </EventProviders>
+        </EventCollectorId>
+      </Collectors>
+    </Profile>
+  </Profiles>
+</WindowsPerformanceRecorder>
+"@
+
 function Set-ScriptVariables {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record)
+    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record, $RecordQUIC)
     $script:Local = $Local
     $script:LocalTls = $LocalTls
     $script:LocalArch = $LocalArch
@@ -46,6 +92,7 @@ function Set-ScriptVariables {
     $script:Config = $Config
     $script:Publish = $Publish
     $script:Record = $Record
+    $script:RecordQUIC = $RecordQUIC
 }
 
 function Set-Session {
@@ -132,7 +179,7 @@ function Wait-ForRemoteReady {
 
 function Wait-ForRemote {
     param ($Job)
-    Wait-Job -Job $Job -Timeout 10 | Out-Null
+    Wait-Job -Job $Job -Timeout 60 | Out-Null
     Stop-Job -Job $Job | Out-Null
     $RetVal = Receive-Job -Job $Job
     return $RetVal -join "`n"
@@ -307,17 +354,21 @@ function Invoke-RemoteExe {
 
     Write-Debug "Running Remote: $Exe $RunArgs"
 
+    $WpaXml = $WpaStackWalkProfileXml
+    if ($RecordQUIC) {
+        $WpaXml = $WpaQUICLogProfileXml
+    }
+
     return Invoke-TestCommand -Session $Session -ScriptBlock {
-        param ($Exe, $RunArgs, $BasePath, $Record, $WpaStackWalkProfileXml)
+        param ($Exe, $RunArgs, $BasePath, $Record, $WpaXml)
         if ($null -ne $BasePath) {
             $env:LD_LIBRARY_PATH = $BasePath
         }
 
         if ($Record -and $IsWindows) {
             $EtwXmlName = $Exe + ".remote.wprp"
-            wpr.exe -cancel 2> $null
 
-            $WpaStackWalkProfileXml | Out-File $EtwXmlName
+            $WpaXml | Out-File $EtwXmlName
             wpr.exe -start $EtwXmlName -filemode 2> $null
         }
 
@@ -327,7 +378,7 @@ function Invoke-RemoteExe {
             $EtwName = $Exe + ".remote.etl"
             wpr.exe -stop $EtwName 2> $null
         }
-    } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $WpaStackWalkProfileXml
+    } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $WpaXml
 }
 
 function Get-RemoteFile {
@@ -346,6 +397,29 @@ function Remove-RemoteFile {
         Remove-Item -Path $Path -Force
     } else {
         Invoke-Command -Session $Session -ScriptBlock { Remove-Item -Path $using:Path -Force }
+    }
+}
+
+function Start-Tracing {
+    param($Exe)
+    if ($Record -and $IsWindows -and !$Local) {
+        $EtwXmlName = $Exe + ".local.wprp"
+
+        $WpaXml = $WpaStackWalkProfileXml
+        if ($RecordQUIC) {
+            $WpaXml = $WpaQUICLogProfileXml
+        }
+
+        $WpaXml | Out-File $EtwXmlName
+        wpr.exe -start $EtwXmlName -filemode 2> $null
+    }
+}
+
+function Stop-Tracing {
+    param($Exe)
+    if ($Record -and $IsWindows -and !$Local) {
+        $EtwName = $Exe + ".local.etl"
+        wpr.exe -stop $EtwName 2> $null
     }
 }
 

@@ -421,7 +421,6 @@ QuicDatagramSendFlush(
         ApiQueue = ApiQueue->Next;
         SendRequest->Next = NULL;
 
-        QUIC_DBG_ASSERT(SendRequest->TotalLength != 0);
         QUIC_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
         QUIC_TEL_ASSERT(Datagram->SendEnabled);
 

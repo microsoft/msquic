@@ -30,6 +30,9 @@ This script provides helpers for building msquic.
 .PARAMETER DisableTest
     Don't build the test directory.
 
+.PARAMETER DisablePerf
+    Don't build the perf directory.
+
 .PARAMETER Clean
     Deletes all previous build and configuration.
 
@@ -93,6 +96,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$DisableTest = $false,
+    
+    [Parameter(Mandatory = $false)]
+    [switch]$DisablePerf = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$Clean = $false,
@@ -219,6 +225,9 @@ function CMake-Generate {
     }
     if ($DisableTest) {
         $Arguments += " -DQUIC_BUILD_TEST=off"
+    }
+    if ($DisablePerf) {
+        $Arguments += " -DQUIC_BUILD_PERF=off"
     }
     if ($IsLinux) {
         $Arguments += " -DCMAKE_BUILD_TYPE=" + $Config
