@@ -1114,3 +1114,98 @@ QuicTestCidUpdate(
         }
     }
 }
+
+void
+QuicTestPresharedConnection(
+    _In_ int Family
+    )
+{
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? AF_INET : AF_INET6;
+
+    MsQuicSession Session;
+    TEST_TRUE(Session.IsValid());
+
+    {
+        TestConnection Server(Session, nullptr, true);
+        TEST_TRUE(Server.IsValid());
+
+        QuicAddr ServerAddr(QuicAddr(QuicAddrFamily, true), TestUdpPortBase);
+        TEST_QUIC_SUCCEEDED(Server.SetLocalAddr(ServerAddr));
+
+        uint8_t ServerPsciRaw[512];
+        QUIC_PRESHARED_CONNECTION_INFORMATION* ServerPsci =
+            (QUIC_PRESHARED_CONNECTION_INFORMATION*)ServerPsciRaw;
+        uint32_t ServerPsciLength = sizeof(ServerPsciRaw);
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                Server.GetConnection(),
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_PRESHARED_INFO,
+                &ServerPsciLength,
+                ServerPsciRaw));
+
+        ServerPsci->Address = ServerAddr.SockAddr;
+
+        {
+            TestConnection Client(Session);
+            TEST_TRUE(Client.IsValid());
+
+            QuicAddr ClientAddr(QuicAddr(QuicAddrFamily, true), TestUdpPortBase+1);
+            TEST_QUIC_SUCCEEDED(Client.SetLocalAddr(ClientAddr));
+
+            uint8_t ClientPsciRaw[512];
+            QUIC_PRESHARED_CONNECTION_INFORMATION* ClientPsci =
+                (QUIC_PRESHARED_CONNECTION_INFORMATION*)ClientPsciRaw;
+            uint32_t ClientPsciLength = sizeof(ClientPsciRaw);
+
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    Client.GetConnection(),
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_PRESHARED_INFO,
+                    &ClientPsciLength,
+                    ClientPsciRaw));
+
+            ClientPsci->Address = ClientAddr.SockAddr;
+
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Client.GetConnection(),
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_PRESHARED_INFO,
+                    ServerPsciLength,
+                    ServerPsciRaw));
+
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Server.GetConnection(),
+                    QUIC_PARAM_LEVEL_CONNECTION,
+                    QUIC_PARAM_CONN_PRESHARED_INFO,
+                    ClientPsciLength,
+                    ClientPsciRaw));
+
+            TEST_QUIC_SUCCEEDED(
+                Client.Start(
+                    QuicAddrFamily,
+                    QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                    ServerAddr.GetPort()));
+
+            TEST_QUIC_SUCCEEDED(
+                Server.Start(
+                    QuicAddrFamily,
+                    QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                    ClientAddr.GetPort()));
+
+            if (!Client.WaitForConnectionComplete()) {
+                return;
+            }
+            TEST_TRUE(Client.GetIsConnected());
+
+            if (!Server.WaitForConnectionComplete()) {
+                return;
+            }
+            TEST_TRUE(Server.GetIsConnected());
+        }
+    }
+}

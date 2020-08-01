@@ -166,6 +166,29 @@ QuicConnGetPathForDatagram(
     _In_ const QUIC_RECV_DATAGRAM* Datagram
     )
 {
+    if (Connection->State.UsingPresharedInfo &&
+        !Connection->State.HandshakeConfirmed) {
+        //
+        // Always copy the initial remote IP address for preshared connections
+        // as the one we currently have is very possibly wrong.
+        //
+        if (!QuicAddrCompare(
+                &Datagram->Tuple->RemoteAddress,
+                &Connection->Paths[0].RemoteAddress)) {
+            QuicTraceLogConnInfo(
+                PathUpdatePreshared,
+                Connection,
+                "Path[%hhu] Remote Address Updated for Preshared Connection",
+                Connection->Paths[0].ID);
+            Connection->Paths[0].RemoteAddress = Datagram->Tuple->RemoteAddress;
+        }
+        QUIC_DBG_ASSERT(
+            QuicAddrCompare(
+                &Datagram->Tuple->LocalAddress,
+                &Connection->Paths[0].LocalAddress));
+        return &Connection->Paths[0];
+    }
+
     for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
         if (!QuicAddrCompare(
                 &Datagram->Tuple->LocalAddress,

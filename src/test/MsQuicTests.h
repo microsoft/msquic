@@ -134,6 +134,15 @@ QuicTestChangeMaxStreamID(
     );
 
 //
+// Preshared Connection Info Tests
+//
+
+void
+QuicTestPresharedConnection(
+    _In_ int Family
+    );
+
+//
 // Application Data Tests
 //
 
@@ -587,4 +596,8 @@ typedef struct {
     QUIC_CTL_CODE(44, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 44
+#define IOCTL_QUIC_RUN_PRESHARED_CONNECTION \
+    QUIC_CTL_CODE(45, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 45

@@ -1713,7 +1713,7 @@ QuicConnStart(
 {
     QUIC_STATUS Status;
     QUIC_PATH* Path = &Connection->Paths[0];
-    QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
+    QUIC_DBG_ASSERT(!QuicConnIsServer(Connection) || Connection->State.UsingPresharedInfo);
 
     if (Connection->State.ClosedLocally || Connection->State.Started) {
         if (ServerName != NULL) {
@@ -2373,52 +2373,55 @@ QuicConnGenerateLocalTransportParameters(
                 Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount;
         }
 
-        if (!Connection->Session->Settings.MigrationEnabled) {
-            LocalTP->Flags |= QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION;
-        }
+        if (!Connection->State.UsingPresharedInfo) {
 
-        LocalTP->Flags |= QUIC_TP_FLAG_STATELESS_RESET_TOKEN;
-        QUIC_STATUS Status =
-            QuicBindingGenerateStatelessResetToken(
-                Connection->Paths[0].Binding,
-                SourceCid->CID.Data,
-                LocalTP->StatelessResetToken);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                ConnErrorStatus,
-                "[conn][%p] ERROR, %u, %s.",
-                Connection,
-                Status,
-                "QuicBindingGenerateStatelessResetToken");
-            return Status;
-        }
+            if (!Connection->Session->Settings.MigrationEnabled) {
+                LocalTP->Flags |= QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION;
+            }
 
-        if (Connection->OrigDestCID != NULL) {
-            QUIC_DBG_ASSERT(Connection->OrigDestCID->Length <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
-            LocalTP->Flags |= QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID;
-            LocalTP->OriginalDestinationConnectionIDLength = Connection->OrigDestCID->Length;
-            QuicCopyMemory(
-                LocalTP->OriginalDestinationConnectionID,
-                Connection->OrigDestCID->Data,
-                Connection->OrigDestCID->Length);
-            QUIC_FREE(Connection->OrigDestCID);
-            Connection->OrigDestCID = NULL;
+            LocalTP->Flags |= QUIC_TP_FLAG_STATELESS_RESET_TOKEN;
+            QUIC_STATUS Status =
+                QuicBindingGenerateStatelessResetToken(
+                    Connection->Paths[0].Binding,
+                    SourceCid->CID.Data,
+                    LocalTP->StatelessResetToken);
+            if (QUIC_FAILED(Status)) {
+                QuicTraceEvent(
+                    ConnErrorStatus,
+                    "[conn][%p] ERROR, %u, %s.",
+                    Connection,
+                    Status,
+                    "QuicBindingGenerateStatelessResetToken");
+                return Status;
+            }
 
-            if (Connection->State.HandshakeUsedRetryPacket &&
-                Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27) {
-                QUIC_DBG_ASSERT(SourceCid->Link.Next != NULL);
-                const QUIC_CID_HASH_ENTRY* PrevSourceCid =
-                    QUIC_CONTAINING_RECORD(
-                        SourceCid->Link.Next,
-                        QUIC_CID_HASH_ENTRY,
-                        Link);
-
-                LocalTP->Flags |= QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID;
-                LocalTP->RetrySourceConnectionIDLength = PrevSourceCid->CID.Length;
+            if (Connection->OrigDestCID != NULL) {
+                QUIC_DBG_ASSERT(Connection->OrigDestCID->Length <= QUIC_MAX_CONNECTION_ID_LENGTH_V1);
+                LocalTP->Flags |= QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID;
+                LocalTP->OriginalDestinationConnectionIDLength = Connection->OrigDestCID->Length;
                 QuicCopyMemory(
-                    LocalTP->RetrySourceConnectionID,
-                    PrevSourceCid->CID.Data,
-                    PrevSourceCid->CID.Length);
+                    LocalTP->OriginalDestinationConnectionID,
+                    Connection->OrigDestCID->Data,
+                    Connection->OrigDestCID->Length);
+                QUIC_FREE(Connection->OrigDestCID);
+                Connection->OrigDestCID = NULL;
+
+                if (Connection->State.HandshakeUsedRetryPacket &&
+                    Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_27) {
+                    QUIC_DBG_ASSERT(SourceCid->Link.Next != NULL);
+                    const QUIC_CID_HASH_ENTRY* PrevSourceCid =
+                        QUIC_CONTAINING_RECORD(
+                            SourceCid->Link.Next,
+                            QUIC_CID_HASH_ENTRY,
+                            Link);
+
+                    LocalTP->Flags |= QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID;
+                    LocalTP->RetrySourceConnectionIDLength = PrevSourceCid->CID.Length;
+                    QuicCopyMemory(
+                        LocalTP->RetrySourceConnectionID,
+                        PrevSourceCid->CID.Data,
+                        PrevSourceCid->CID.Length);
+                }
             }
         }
 
@@ -4583,7 +4586,8 @@ QuicConnRecvFrames(
         }
 
         case QUIC_FRAME_HANDSHAKE_DONE: {
-            if (QuicConnIsServer(Connection)) {
+            if (QuicConnIsServer(Connection) &&
+                !Connection->State.UsingPresharedInfo) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
@@ -4593,8 +4597,10 @@ QuicConnRecvFrames(
                 return FALSE;
             }
 
-            if (!Connection->Crypto.TlsState.HandshakeComplete) {
+            if (!Connection->State.Connected) {
                 QUIC_DBG_ASSERT(Connection->State.UsingPresharedInfo);
+                Connection->State.Connected = TRUE;
+                QuicConnGenerateNewSourceCids(Connection, FALSE);
 
                 QUIC_CONNECTION_EVENT Event;
                 Event.Type = QUIC_CONNECTION_EVENT_CONNECTED;
@@ -5413,6 +5419,8 @@ QuicConnGetLocalPresharedInfo(
         return QUIC_STATUS_INVALID_STATE;
     }
 
+    Connection->State.UsingPresharedInfo = TRUE;
+
     if (Connection->Stats.QuicVersion == 0) {
         //
         // Only initialize the version if not already done (by the
@@ -5531,7 +5539,6 @@ QuicConnGetLocalPresharedInfo(
     OutputLength += Output->TransportParameters.Length;
 
     *BufferLength = OutputLength;
-    Connection->State.UsingPresharedInfo = TRUE;
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -5545,6 +5552,22 @@ QuicConnSetRemotePresharedInfo(
         const void* Buffer
     )
 {
+    if (BufferLength == sizeof(BOOLEAN)) {
+        if (*(BOOLEAN*)Buffer) {
+            //
+            // The remote is the "client" for this connection, so mark this
+            // connection as a server.
+            //
+            Connection->State.UsingPresharedInfo = TRUE;
+            Connection->Type = QUIC_HANDLE_TYPE_CHILD;
+            QuicTraceLogConnInfo(
+                ChangeToServer,
+                Connection,
+                "Changed to Server");
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
     if (BufferLength < sizeof(QUIC_PRESHARED_CONNECTION_INFORMATION)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -5711,7 +5734,8 @@ QuicConnParamSet(
             break;
         }
 
-        if (QuicConnIsServer(Connection)) {
+        if (QuicConnIsServer(Connection) &&
+            !Connection->State.UsingPresharedInfo) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }

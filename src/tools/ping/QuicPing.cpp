@@ -11,6 +11,9 @@ Abstract:
 
 #include "QuicPing.h"
 #include "quicip.h"
+#if _WIN32
+#include "QuicUPnP.h"
+#endif
 
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
@@ -351,6 +354,50 @@ ParseClientCommand(
     QuicPingClientRun();
 }
 
+#if _WIN32
+bool
+AddUPnPMapping(
+    QUIC_UPNP* UPnP
+    )
+{
+    QUIC_ADDR_STR ExternalIP = { 0 };
+    if (PingConfig.PublicPsciAddr.si_family == AF_INET) {
+        RtlIpv4AddressToStringA(
+            &PingConfig.PublicPsciAddr.Ipv4.sin_addr,
+            ExternalIP.Address);
+    } else {
+        RtlIpv6AddressToStringA(
+            &PingConfig.PublicPsciAddr.Ipv6.sin6_addr,
+            ExternalIP.Address);
+    }
+
+    QUIC_ADDR_STR InternalIP = { 0 };
+    if (PingConfig.PublicPsciAddr.si_family == AF_INET) {
+        RtlIpv4AddressToStringA(
+            &PingConfig.LocalPsciAddr.Ipv4.sin_addr,
+            InternalIP.Address);
+    } else {
+        RtlIpv6AddressToStringA(
+            &PingConfig.LocalPsciAddr.Ipv6.sin6_addr,
+            InternalIP.Address);
+    }
+
+    char Description[64];
+    sprintf(Description, "QUIC :%hu", QuicAddrGetPort(&PingConfig.LocalPsciAddr));
+
+    return
+        0 ==
+        QuicUPnPAddStaticMapping(
+            UPnP,
+            "UDP",
+            ExternalIP.Address,
+            QuicAddrGetPort(&PingConfig.PublicPsciAddr),
+            InternalIP.Address,
+            QuicAddrGetPort(&PingConfig.LocalPsciAddr),
+            Description);
+}
+#endif
+
 int
 QUIC_MAIN_EXPORT
 main(
@@ -361,6 +408,10 @@ main(
     int ErrorCode = -1;
     uint16_t execProfile = DEFAULT_EXECUTION_PROFILE;
     QUIC_REGISTRATION_CONFIG RegConfig = { "quicping", DEFAULT_EXECUTION_PROFILE };
+#if _WIN32
+    QUIC_UPNP* UPnP = nullptr;
+    bool MappingAdded = false;
+#endif
 
     QuicPlatformSystemLoad();
     QuicPlatformInitialize();
@@ -400,6 +451,12 @@ main(
         printf(" Local IP: %s\n", AddrStr.Address);
         QuicAddrToString(&PingConfig.PublicPsciAddr, &AddrStr);
         printf("Public IP: %s\n", AddrStr.Address);
+#if _WIN32
+        UPnP = QuicUPnPInitialize();
+        if (UPnP) {
+            MappingAdded = AddUPnPMapping(UPnP);
+        }
+#endif
     }
 
     //
@@ -420,6 +477,14 @@ main(
     MsQuicClose(MsQuic);
 
 Error:
+
+#if _WIN32
+    if (MappingAdded) {
+        QuicUPnPRemoveStaticMapping(UPnP, "UDP", QuicAddrGetPort(&PingConfig.PublicPsciAddr));
+        QuicUPnPDumpStaticMappings(UPnP);
+    }
+    QuicUPnPUninitialize(UPnP);
+#endif
 
     QuicPlatformUninitialize();
     QuicPlatformSystemUnload();

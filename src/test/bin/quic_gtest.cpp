@@ -525,6 +525,15 @@ TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
     }
 }
 
+TEST_P(WithFamilyArgs, PresharedConnection) {
+    TestLoggerT<ParamType> Logger("QuicTestPresharedConnection", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_PRESHARED_CONNECTION, GetParam().Family));
+    } else {
+        QuicTestPresharedConnection(GetParam().Family);
+    }
+}
+
 TEST_P(WithSendArgs1, Send) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
     if (TestingKernelMode) {

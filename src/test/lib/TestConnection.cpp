@@ -38,18 +38,12 @@ TestConnection::TestConnection(
     } else {
         MsQuic->SetCallbackHandler(QuicConnection, (void*)QuicConnectionHandler, this);
     }
-
-    //
-    // Test code uses self-signed certificates, so we cannot validate the root.
-    //
-    SetCertValidationFlags(
-        QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
-        QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID);
 }
 
 TestConnection::TestConnection(
     _In_ MsQuicSession& Session,
-    _In_opt_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler
+    _In_opt_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler,
+    _In_ bool ForceServer
     ) :
     QuicConnection(nullptr),
     Context(nullptr), IsServer(false), IsStarted(false), IsConnected(false), Resumed(false),
@@ -75,6 +69,22 @@ TestConnection::TestConnection(
     if (QUIC_FAILED(Status)) {
         TEST_FAILURE("MsQuic->ConnectionOpen failed, 0x%x.", Status);
         QuicConnection = nullptr;
+    }
+
+    if (ForceServer) {
+        BOOLEAN IsServerFlag = TRUE;
+        Status =
+            MsQuic->SetParam(
+                QuicConnection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_PRESHARED_INFO,
+                sizeof(IsServerFlag),
+                &IsServerFlag);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("Forcing server failed, 0x%x.", Status);
+            MsQuic->ConnectionClose(QuicConnection);
+            QuicConnection = nullptr;
+        }
     }
 
     //

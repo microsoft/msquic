@@ -111,7 +111,8 @@ public:
 
     TestConnection(
         _In_ MsQuicSession& Session,
-        _In_opt_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler = nullptr
+        _In_opt_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler = nullptr,
+        _In_ bool ForceServer = false
         );
 
     ~TestConnection();

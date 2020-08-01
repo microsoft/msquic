@@ -38,6 +38,16 @@ PingConnection::PingConnection(
         StartTime = QuicTimeUs64();
     }
 
+    if (ForPsci && IsServer) {
+        BOOLEAN IsServer = TRUE;
+        MsQuic->SetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_PRESHARED_INFO,
+            sizeof(IsServer),
+            &IsServer);
+    }
+
     Initialize();
 }
 
@@ -750,6 +760,7 @@ PingPsciConnection::ProcessStreamEvent(
         }
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
+        MsQuic->ConnectionShutdown(Stream, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         MsQuic->StreamClose(Stream);
         Tracker.CompleteItem(0, 0);
         break;
