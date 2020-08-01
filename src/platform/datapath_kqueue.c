@@ -561,9 +561,9 @@ QuicProcessorContextInitialize(
         sizeof(QUIC_DATAPATH_RECV_BLOCK) + Datapath->ClientRecvContextLength;
 
     ProcContext->Index = Index;
-    QuicPoolInitialize(TRUE, RecvPacketLength, &ProcContext->RecvBlockPool);
-    QuicPoolInitialize(TRUE, MAX_UDP_PAYLOAD_LENGTH, &ProcContext->SendBufferPool);
-    QuicPoolInitialize(TRUE, sizeof(QUIC_DATAPATH_SEND_CONTEXT), &ProcContext->SendContextPool);
+    QuicPoolInitialize(TRUE, RecvPacketLength, QUIC_POOL_DATA, &ProcContext->RecvBlockPool);
+    QuicPoolInitialize(TRUE, MAX_UDP_PAYLOAD_LENGTH, QUIC_POOL_DATA, &ProcContext->SendBufferPool);
+    QuicPoolInitialize(TRUE, sizeof(QUIC_DATAPATH_SEND_CONTEXT), QUIC_POOL_GENERIC, &ProcContext->SendContextPool);
 
     int KqueueFd = kqueue();
 
