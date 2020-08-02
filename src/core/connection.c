@@ -3753,7 +3753,7 @@ QuicConnRecvDecryptAndAuthenticate(
             Packet->HeaderLength);
     }
 
-#if 0  
+#if 0
     uicTraceEvent(
         ConnPacketRecv,
         "[conn][%p][RX][%llu] %c (%hd bytes)",
