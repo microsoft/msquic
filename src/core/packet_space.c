@@ -23,7 +23,8 @@ QuicPacketSpaceInitialize(
     _Out_ QUIC_PACKET_SPACE** NewPackets
     )
 {
-    QUIC_PACKET_SPACE* Packets = QUIC_ALLOC_NONPAGED(sizeof(QUIC_PACKET_SPACE)); // TODO - Pool alloc?
+    uint8_t CurProcIndex = QuicLibraryGetCurrentPartition();
+    QUIC_PACKET_SPACE* Packets = QuicPoolAlloc(&MsQuicLib.PerProc[CurProcIndex].PacketSpacePool);
     if (Packets == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -62,7 +63,8 @@ QuicPacketSpaceUninitialize(
 
     QuicAckTrackerUninitialize(&Packets->AckTracker);
 
-    QUIC_FREE(Packets);
+    uint8_t CurProcIndex = QuicLibraryGetCurrentPartition();
+    QuicPoolFree(&MsQuicLib.PerProc[CurProcIndex].PacketSpacePool, Packets);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

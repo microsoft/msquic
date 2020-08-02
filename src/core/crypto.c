@@ -120,7 +120,6 @@ QuicCryptoInitialize(
 
     QUIC_PASSIVE_CODE();
 
-    QuicZeroMemory(Crypto, sizeof(QUIC_CRYPTO)); // TODO - Unnecessary as the parent Connection was already zeroed out?
     QuicRangeInitialize(
         QUIC_MAX_RANGE_ALLOC_SIZE,
         &Crypto->SparseAckRanges);

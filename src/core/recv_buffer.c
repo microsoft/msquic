@@ -226,17 +226,6 @@ QuicRecvBufferHasUnreadData(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-QuicRecvBufferAlreadyReadData(
-    _In_ QUIC_RECV_BUFFER* RecvBuffer,
-    _In_ uint64_t BufferOffset,
-    _In_ uint16_t BufferLength
-    )
-{
-    return BufferOffset + BufferLength <= RecvBuffer->BaseOffset;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicRecvBufferWrite(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
