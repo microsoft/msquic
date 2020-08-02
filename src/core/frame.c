@@ -25,39 +25,6 @@ QuicUint8Encode(
     return Buffer + sizeof(uint8_t);
 }
 
-_Post_equal_to_(Buffer + sizeof(uint16_t))
-uint8_t*
-QuicUint16Encode(
-    _In_ uint16_t Value,
-    _Out_writes_bytes_all_(sizeof(uint16_t))
-        uint8_t* Buffer
-    )
-{
-    *(uint16_t*)Buffer = QuicByteSwapUint16(Value);
-    return Buffer + sizeof(uint16_t);
-}
-
-_Success_(return != FALSE)
-BOOLEAN
-QuicUint16Decode(
-    _In_ uint16_t BufferLength,
-    _In_reads_bytes_(BufferLength)
-        const uint8_t * const Buffer,
-    _Inout_
-    _Deref_in_range_(0, BufferLength)
-    _Deref_out_range_(0, BufferLength)
-        uint16_t* Offset,
-    _Out_ uint16_t* Value
-    )
-{
-    if (*Offset + sizeof(uint16_t) > BufferLength) {
-        return FALSE;
-    }
-    *Value = QuicByteSwapUint16(*(const uint16_t * const)(Buffer + *Offset));
-    *Offset += sizeof(uint16_t);
-    return TRUE;
-}
-
 _Success_(return != FALSE)
 BOOLEAN
 QuicAckHeaderEncode(
@@ -1114,7 +1081,7 @@ QuicConnCloseFrameDecode(
     Frame->ApplicationClosed = FrameType == QUIC_FRAME_CONNECTION_CLOSE_1;
     Frame->FrameType = 0; // Default to make OACR happy.
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ErrorCode) ||
-        (!Frame->ApplicationClosed && 
+        (!Frame->ApplicationClosed &&
          !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->FrameType)) ||
         !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ReasonPhraseLength) ||
         (uint64_t)BufferLength < *Offset + Frame->ReasonPhraseLength) {
@@ -1416,7 +1383,7 @@ QuicFrameLog(
         }
 
         QuicTraceLogVerbose(
-            FrameLogCrypto, 
+            FrameLogCrypto,
             "[%c][%cX][%llu]   CRYPTO Offset:%llu Len:%hu",
             PtkConnPre(Connection),
             PktRxPre(Rx),

@@ -154,7 +154,7 @@ $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\Loca
 # Asynchronously starts the executable with the given arguments.
 function Start-Executable {
     $Now = (Get-Date -UFormat "%Y-%m-%dT%T")
-    if ($LogProfile -ne "None") {
+    if ($LogProfile -ne "None" -and !$CodeCoverage) {
         & $LogScript -Start -LogProfile $LogProfile | Out-Null
     }
 
@@ -209,6 +209,13 @@ function Start-Executable {
     $p = New-Object System.Diagnostics.Process
     $p.StartInfo = $pinfo
     $p.Start() | Out-Null
+
+    if ($LogProfile -ne "None" -and $CodeCoverage) {
+        # When measuring code coverage, start logs a little after the exe starts
+        # to trigger the rundown code paths.
+        Sleep -Seconds 5
+        & $LogScript -Start -LogProfile $LogProfile | Out-Null
+    }
 
     [pscustomobject]@{
         Timestamp = $Now
