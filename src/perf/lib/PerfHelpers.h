@@ -10,7 +10,7 @@ Abstract:
 --*/
 
 #pragma once
-
+ 
 #ifdef QUIC_CLOG
 #include "PerfHelpers.h.clog.h"
 #endif

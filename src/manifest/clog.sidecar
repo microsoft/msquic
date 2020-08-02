@@ -34,7 +34,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ApiEnter": {
@@ -70,7 +71,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ApiExitStatus": {
@@ -97,7 +99,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ApiWaitOperation": {
@@ -114,7 +117,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ApiExit": {
@@ -131,7 +135,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "AllocFailure": {
@@ -167,7 +172,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StreamError": {
@@ -203,7 +209,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnError": {
@@ -239,7 +246,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "BindingListenerAlreadyRegistered": {
@@ -275,7 +283,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "BindingSendToFailed": {
@@ -311,7 +320,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "BindingSendFromToFailed": {
@@ -347,7 +357,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PacketTxVersionNegotiation": {
@@ -364,7 +375,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PacketTxStatelessReset": {
@@ -391,7 +403,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PacketTxRetry": {
@@ -454,7 +467,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "BindingSendToTestDrop": {
@@ -481,7 +495,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "BindingSendFromToTestDrop": {
@@ -508,7 +523,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "BindingErrorStatus": {
@@ -553,7 +569,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "BindingCleanup": {
@@ -580,7 +597,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "BindingDestroyed": {
@@ -607,7 +625,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "BindingExecOper": {
@@ -643,7 +662,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnCubic": {
@@ -706,7 +726,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnCongestion": {
@@ -733,7 +754,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnPersistentCongestion": {
@@ -760,7 +782,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnRecoveryExit": {
@@ -787,7 +810,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PacketRxStatelessReset": {
@@ -814,7 +838,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PacketRxNotAcked": {
@@ -850,7 +875,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ApiEventNoHandler": {
@@ -877,7 +903,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ApiEventTooLong": {
@@ -913,7 +940,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ApiEventAlreadyClosed": {
@@ -940,7 +968,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "NoReplacementCidForRetire": {
@@ -967,7 +996,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "NonActivePathCidRetired": {
@@ -994,7 +1024,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IgnoreUnreachable": {
@@ -1021,7 +1052,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IgnoreFrameAfterClose": {
@@ -1066,7 +1098,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "UnreachableIgnore": {
@@ -1093,7 +1126,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "UnreachableInvalid": {
@@ -1120,7 +1154,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "CloseComplete": {
@@ -1147,7 +1182,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "Restart": {
@@ -1183,7 +1219,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "CryptoStateDiscard": {
@@ -1210,7 +1247,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PeerTPSet": {
@@ -1237,7 +1275,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "RecvStatelessReset": {
@@ -1264,7 +1303,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "HandshakeConfirmedFrame": {
@@ -1291,7 +1331,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FirstCidUsage": {
@@ -1327,7 +1368,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PathDiscarded": {
@@ -1363,7 +1405,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "Unreachable": {
@@ -1390,7 +1433,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "UpdateIdleTimeout": {
@@ -1426,7 +1470,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "UpdateKeepAlive": {
@@ -1462,7 +1507,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "UpdateDisconnectTimeout": {
@@ -1498,7 +1544,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SetSecurityConfig": {
@@ -1534,7 +1581,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "UpdateUseSendBuffer": {
@@ -1570,7 +1618,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "UpdateUsePacing": {
@@ -1606,7 +1655,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "UpdateShareBinding": {
@@ -1642,7 +1692,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "UpdateStreamSchedulingScheme": {
@@ -1678,7 +1729,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "RttUpdated": {
@@ -1741,7 +1793,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "NewSrcCidNameCollision": {
@@ -1768,7 +1821,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ZeroLengthCidRetire": {
@@ -1795,7 +1849,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TimerExpired": {
@@ -1831,7 +1886,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicateShutdownByPeer": {
@@ -1867,7 +1923,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicateShutdownByTransport": {
@@ -1903,7 +1960,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicateConnectionShutdownComplete": {
@@ -1930,7 +1988,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FoundCachedServerState": {
@@ -1957,7 +2016,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "QueueDatagrams": {
@@ -1993,7 +2053,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "RecvVerNeg": {
@@ -2020,7 +2081,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "VerNegItem": {
@@ -2065,7 +2127,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "InvalidVerNeg": {
@@ -2092,7 +2155,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DeferDatagram": {
@@ -2128,7 +2192,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecryptOldKey": {
@@ -2155,7 +2220,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PossiblePeerKeyUpdate": {
@@ -2191,7 +2257,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "UpdateReadKeyPhase": {
@@ -2227,7 +2294,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PeerConnFCBlocked": {
@@ -2263,7 +2331,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PeerStreamFCBlocked": {
@@ -2308,7 +2377,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicatePeerNeedStreams": {
@@ -2335,7 +2405,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicatePeerAddrChanged": {
@@ -2362,7 +2433,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "UdpRecvBatch": {
@@ -2398,7 +2470,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "UdpRecvDeferred": {
@@ -2434,7 +2507,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "UdpRecv": {
@@ -2470,7 +2544,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ForceKeyUpdate": {
@@ -2497,7 +2572,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ForceCidUpdate": {
@@ -2524,7 +2600,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DatagramReceiveEnableUpdated": {
@@ -2560,7 +2637,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestTPSet": {
@@ -2605,7 +2683,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ReadTicketFailure": {
@@ -2641,7 +2720,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "AbandonInternallyClosed": {
@@ -2668,7 +2748,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnCreated": {
@@ -2713,7 +2794,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnInitializeComplete": {
@@ -2740,7 +2822,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnDestroyed": {
@@ -2767,7 +2850,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnHandleClosed": {
@@ -2794,7 +2878,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnRundown": {
@@ -2839,7 +2924,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnAssignWorker": {
@@ -2875,7 +2961,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnRegisterSession": {
@@ -2911,7 +2998,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnHandshakeComplete": {
@@ -2938,7 +3026,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnExecTimerOper": {
@@ -2974,7 +3063,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnShutdownComplete": {
@@ -3010,7 +3100,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnAppShutdown": {
@@ -3055,7 +3146,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnTransportShutdown": {
@@ -3109,7 +3201,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnVersionSet": {
@@ -3145,7 +3238,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnErrorStatus": {
@@ -3190,7 +3284,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnServerResumeTicket": {
@@ -3217,7 +3312,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnHandshakeStart": {
@@ -3244,7 +3340,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IgnoreCryptoFrame": {
@@ -3271,7 +3368,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DiscardKeyType": {
@@ -3307,7 +3405,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ZeroRttAccepted": {
@@ -3334,7 +3433,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ZeroRttRejected": {
@@ -3361,7 +3461,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "HandshakeConfirmedServer": {
@@ -3388,7 +3489,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TicketReady": {
@@ -3415,7 +3517,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "CryptoDump": {
@@ -3496,7 +3599,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "CryptoDumpUnacked": {
@@ -3541,7 +3645,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "CryptoDumpUnacked2": {
@@ -3586,7 +3691,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "NoMoreRoomForCrypto": {
@@ -3613,7 +3719,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "AddCryptoFrame": {
@@ -3658,7 +3765,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "RecoverCrypto": {
@@ -3703,7 +3811,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "AckCrypto": {
@@ -3748,7 +3857,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "RecvCrypto": {
@@ -3802,7 +3912,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicateConnected": {
@@ -3838,7 +3949,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DrainCrypto": {
@@ -3874,7 +3986,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "CryptoNotReady": {
@@ -3901,7 +4014,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnWriteKeyUpdated": {
@@ -3937,7 +4051,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnReadKeyUpdated": {
@@ -3973,7 +4088,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnNewPacketKeys": {
@@ -4000,7 +4116,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnKeyPhaseChange": {
@@ -4036,7 +4153,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "NoSniPresent": {
@@ -4063,7 +4181,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPReserved": {
@@ -4108,7 +4227,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPUnknown": {
@@ -4153,7 +4273,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPStart": {
@@ -4180,7 +4301,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPOriginalDestinationCID": {
@@ -4216,7 +4338,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPIdleTimeout": {
@@ -4252,7 +4375,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPStatelessResetToken": {
@@ -4288,7 +4412,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPMaxUdpPayloadSize": {
@@ -4324,7 +4449,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPInitMaxData": {
@@ -4360,7 +4486,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPInitMaxStreamDataBidiLocal": {
@@ -4396,7 +4523,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPInitMaxStreamDataBidiRemote": {
@@ -4432,7 +4560,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPInitMaxStreamUni": {
@@ -4468,7 +4597,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPMaxBidiStreams": {
@@ -4504,7 +4634,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPMaxUniStreams": {
@@ -4540,7 +4671,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPAckDelayExponent": {
@@ -4576,7 +4708,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPMaxAckDelay": {
@@ -4612,7 +4745,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPDisableMigration": {
@@ -4639,7 +4773,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPPreferredAddress": {
@@ -4666,7 +4801,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPCIDLimit": {
@@ -4702,7 +4838,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPOriginalCID": {
@@ -4738,7 +4875,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeMaxDatagramFrameSize": {
@@ -4774,7 +4912,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPTest": {
@@ -4819,7 +4958,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EncodeTPEnd": {
@@ -4855,7 +4995,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPStart": {
@@ -4891,7 +5032,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPOriginalDestinationCID": {
@@ -4927,7 +5069,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPIdleTimeout": {
@@ -4963,7 +5106,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPStatelessResetToken": {
@@ -4999,7 +5143,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPMaxUdpPayloadSize": {
@@ -5035,7 +5180,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPInitMaxData": {
@@ -5071,7 +5217,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPInitMaxStreamDataBidiLocal": {
@@ -5107,7 +5254,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPInitMaxStreamDataBidiRemote": {
@@ -5143,7 +5291,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPInitMaxStreamDataBidiUni": {
@@ -5179,7 +5328,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPMaxBidiStreams": {
@@ -5215,7 +5365,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPMaxUniStreams": {
@@ -5251,7 +5402,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPAckDelayExponent": {
@@ -5287,7 +5439,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPMaxAckDelay": {
@@ -5323,7 +5476,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPDisableActiveMigration": {
@@ -5350,7 +5504,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPPreferredAddress": {
@@ -5377,7 +5532,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPCIDLimit": {
@@ -5413,7 +5569,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPInitialSourceCID": {
@@ -5449,7 +5606,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPRetrySourceCID": {
@@ -5485,7 +5643,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DecodeTPMaxDatagramFrameSize": {
@@ -5521,7 +5680,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DatagramSendStateChanged": {
@@ -5557,7 +5717,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DatagramSendShutdown": {
@@ -5584,7 +5745,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicateDatagramStateChanged": {
@@ -5629,7 +5791,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DatagramSendQueued": {
@@ -5683,7 +5846,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicateDatagramReceived": {
@@ -5719,7 +5883,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogUnknownType": {
@@ -5773,7 +5938,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogPadding": {
@@ -5827,7 +5993,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogPing": {
@@ -5872,7 +6039,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogAckInvalid": {
@@ -5917,7 +6085,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogAck": {
@@ -5980,7 +6149,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogAckSingleBlock": {
@@ -6034,7 +6204,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogAckMultiBlock": {
@@ -6097,7 +6268,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogAckInvalidBlock": {
@@ -6142,7 +6314,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogAckEcnInvalid": {
@@ -6187,7 +6360,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogAckEcn": {
@@ -6259,7 +6433,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogResetStreamInvalid": {
@@ -6304,7 +6479,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogResetStream": {
@@ -6376,7 +6552,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogStopSendingInvalid": {
@@ -6421,7 +6598,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogStopSending": {
@@ -6484,7 +6662,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogCryptoInvalid": {
@@ -6529,7 +6708,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogCrypto": {
@@ -6592,7 +6772,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogNewTokenInvalid": {
@@ -6637,7 +6818,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogNewToken": {
@@ -6691,7 +6873,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogStreamInvalid": {
@@ -6736,7 +6919,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogStreamFin": {
@@ -6808,7 +6992,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogStream": {
@@ -6880,7 +7065,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogMaxDataInvalid": {
@@ -6925,7 +7111,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogMaxData": {
@@ -6979,7 +7166,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogMaxStreamDataInvalid": {
@@ -7024,7 +7212,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogMaxStreamData": {
@@ -7087,7 +7276,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogMaxStreamsInvalid": {
@@ -7132,7 +7322,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogMaxStreams": {
@@ -7195,7 +7386,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogDataBlockedInvalid": {
@@ -7240,7 +7432,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogDataBlocked": {
@@ -7294,7 +7487,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogStreamDataBlockedInvalid": {
@@ -7339,7 +7533,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogStreamDataBlocked": {
@@ -7402,7 +7597,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogStreamsBlockedInvalid": {
@@ -7447,7 +7643,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogStreamsBlocked": {
@@ -7510,7 +7707,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogNewConnectionIDInvalid": {
@@ -7555,7 +7753,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogNewConnectionID": {
@@ -7636,7 +7835,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogRetireConnectionIDInvalid": {
@@ -7681,7 +7881,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogRetireConnectionID": {
@@ -7735,7 +7936,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogPathChallengeInvalid": {
@@ -7780,7 +7982,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogPathChallenge": {
@@ -7834,7 +8037,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogPathResponseInvalid": {
@@ -7879,7 +8083,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogPathResponse": {
@@ -7933,7 +8138,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogConnectionCloseInvalid": {
@@ -7978,7 +8184,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogConnectionCloseApp": {
@@ -8032,7 +8239,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogConnectionClose": {
@@ -8095,7 +8303,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogHandshakeDone": {
@@ -8140,7 +8349,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogDatagramInvalid": {
@@ -8185,7 +8395,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FrameLogDatagram": {
@@ -8239,7 +8450,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryStorageOpenFailed": {
@@ -8266,7 +8478,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryEncryptionSet": {
@@ -8293,7 +8506,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryTestDatapathHooksSet": {
@@ -8310,7 +8524,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibrarySettingsUpdated": {
@@ -8337,7 +8552,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryVerifierEnabledPerRegistration": {
@@ -8354,7 +8570,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryVerifierEnabled": {
@@ -8371,7 +8588,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryCidLengthSet": {
@@ -8398,7 +8616,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryRetryMemoryLimitSet": {
@@ -8425,7 +8644,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryLoadBalancingModeSet": {
@@ -8452,7 +8672,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryInUse": {
@@ -8469,7 +8690,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryNotInUse": {
@@ -8486,7 +8708,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryMsQuicOpenNull": {
@@ -8503,7 +8726,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryMsQuicOpenEntry": {
@@ -8520,7 +8744,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryMsQuicOpenExit": {
@@ -8547,7 +8772,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryMsQuicClose": {
@@ -8564,7 +8790,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryLoadBalancingModeSetAfterInUse": {
@@ -8581,7 +8808,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryEncryptionSetAfterInUse": {
@@ -8598,7 +8826,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryErrorStatus": {
@@ -8634,7 +8863,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryInitialized": {
@@ -8670,7 +8900,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryUninitialized": {
@@ -8687,7 +8918,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryAddRef": {
@@ -8704,7 +8936,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryRelease": {
@@ -8721,7 +8954,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryWorkerPoolInit": {
@@ -8738,7 +8972,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryRundown": {
@@ -8774,7 +9009,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ListenerExcessiveAppCallback": {
@@ -8810,7 +9046,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ListenerIndicateNewConnection": {
@@ -8837,7 +9074,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ListenerNewConnectionPending": {
@@ -8864,7 +9102,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ListenerNewConnectionAccepted": {
@@ -8891,7 +9130,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "NoSecurityConfigAvailable": {
@@ -8918,7 +9158,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ListenerCreated": {
@@ -8954,7 +9195,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ListenerDestroyed": {
@@ -8981,7 +9223,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ListenerErrorStatus": {
@@ -9026,7 +9269,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ListenerError": {
@@ -9062,7 +9306,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ListenerStopped": {
@@ -9089,7 +9334,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ListenerRundown": {
@@ -9125,7 +9371,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LookupCidFound": {
@@ -9170,7 +9417,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LookupCidNotFound": {
@@ -9206,7 +9454,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LookupRemoteHashFound": {
@@ -9251,7 +9500,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LookupRemoteHashNotFound": {
@@ -9287,7 +9537,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LookupCidInsert": {
@@ -9332,7 +9583,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LookupRemoteHashInsert": {
@@ -9377,7 +9629,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LookupCidRemoved": {
@@ -9413,7 +9666,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PacketTxDiscarded": {
@@ -9449,7 +9703,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PacketTxLostDiscarded": {
@@ -9485,7 +9740,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PacketTxForget": {
@@ -9521,7 +9777,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PacketTxLostFack": {
@@ -9566,7 +9823,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PacketTxLostRack": {
@@ -9611,7 +9869,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PacketTxAckedImplicit": {
@@ -9647,7 +9906,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PacketTx0RttRejected": {
@@ -9683,7 +9943,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PacketTxSpuriousLoss": {
@@ -9719,7 +9980,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PacketTxAcked": {
@@ -9773,7 +10035,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PacketTxProbeRetransmit": {
@@ -9809,7 +10072,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "HandshakeConfirmedAck": {
@@ -9836,7 +10100,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PathValidationTimeout": {
@@ -9872,7 +10137,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ScheduleProbe": {
@@ -9908,7 +10174,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "KeyChangeConfirmed": {
@@ -9935,7 +10202,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnLossDetectionTimerCancel": {
@@ -9962,7 +10230,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnLossDetectionTimerSet": {
@@ -10016,7 +10285,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnPacketLost": {
@@ -10070,7 +10340,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnPacketACKed": {
@@ -10115,7 +10386,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LogPacketVersionNegotiation": {
@@ -10178,7 +10450,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LogPacketVersionNegotiationVersion": {
@@ -10223,7 +10496,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LogPacketRetry": {
@@ -10295,7 +10569,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LogPacketLongHeaderInitial": {
@@ -10385,7 +10660,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LogPacketLongHeader": {
@@ -10475,7 +10751,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LogPacketLongHeaderUnsupported": {
@@ -10547,7 +10824,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LogPacketShortHeader": {
@@ -10628,7 +10906,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "NoSrcCidAvailable": {
@@ -10655,7 +10934,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "GetPacketTypeFailure": {
@@ -10691,7 +10971,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PacketBuilderNewDatagram": {
@@ -10727,7 +11008,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PacketBuilderNewPacket": {
@@ -10772,7 +11054,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PacketBuilderSendBatch": {
@@ -10808,7 +11091,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnPacketSent": {
@@ -10862,7 +11146,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PathInitialized": {
@@ -10898,7 +11183,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PathRemoved": {
@@ -10934,7 +11220,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PathValidated": {
@@ -10979,7 +11266,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PathActive": {
@@ -11024,7 +11312,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "RegistrationVerifierEnabled": {
@@ -11051,7 +11340,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "RegistrationCreated": {
@@ -11087,7 +11377,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "RegistrationCleanup": {
@@ -11114,7 +11405,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "RegistrationRundown": {
@@ -11150,7 +11442,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SetSendFlag": {
@@ -11195,7 +11488,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ClearSendFlags": {
@@ -11231,7 +11525,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PathMtuUpdated": {
@@ -11276,7 +11571,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "CancelAckDelayTimer": {
@@ -11303,7 +11599,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ScheduleSendFlags": {
@@ -11348,7 +11645,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "RemoveSendFlags": {
@@ -11384,7 +11682,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FlushSend": {
@@ -11420,7 +11719,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "AmplificationProtectionBlocked": {
@@ -11447,7 +11747,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SetPacingTimer": {
@@ -11483,7 +11784,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SendFlushComplete": {
@@ -11519,7 +11821,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StartAckDelayTimer": {
@@ -11555,7 +11858,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnQueueSendFlush": {
@@ -11591,7 +11895,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicateIdealSendBuffer": {
@@ -11627,7 +11932,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SessionOpenStorageFailed": {
@@ -11663,7 +11969,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SessionOpenAppStorageFailed": {
@@ -11699,7 +12006,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SessionSettingsUpdated": {
@@ -11735,7 +12043,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SessionBiDiStreamCountSet": {
@@ -11771,7 +12080,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SessionUniDiStreamCountSet": {
@@ -11807,7 +12117,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SessionIdleTimeoutSet": {
@@ -11843,7 +12154,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SessionDisconnectTimeoutSet": {
@@ -11879,7 +12191,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SessionMaxBytesPerKeySet": {
@@ -11915,7 +12228,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SessionMigrationEnabledSet": {
@@ -11951,7 +12265,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SessionDatagramReceiveEnabledSet": {
@@ -11987,7 +12302,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SessionServerResumptionLevelSet": {
@@ -12023,7 +12339,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SessionCreated": {
@@ -12068,7 +12385,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SessionDestroyed": {
@@ -12095,7 +12413,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SessionError": {
@@ -12131,7 +12450,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SessionErrorStatus": {
@@ -12176,7 +12496,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SessionCleanup": {
@@ -12203,7 +12524,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SessionShutdown": {
@@ -12248,7 +12570,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SessionRundown": {
@@ -12293,7 +12616,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnUnregisterSession": {
@@ -12329,7 +12653,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpPacingDefault": {
@@ -12356,7 +12681,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpMigrationEnabled": {
@@ -12383,7 +12709,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpDatagramReceiveEnabled": {
@@ -12410,7 +12737,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpMaxPartitionCount": {
@@ -12437,7 +12765,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpMaxOperationsPerDrain": {
@@ -12464,7 +12793,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpRetryMemoryLimit": {
@@ -12491,7 +12821,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpLoadBalancingMode": {
@@ -12518,7 +12849,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpMaxStatelessOperations": {
@@ -12545,7 +12877,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpMaxWorkerQueueDelayUs": {
@@ -12572,7 +12905,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpInitialWindowPackets": {
@@ -12599,7 +12933,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpSendIdleTimeoutMs": {
@@ -12626,7 +12961,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpInitialRttMs": {
@@ -12653,7 +12989,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpMaxAckDelayMs": {
@@ -12680,7 +13017,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpDisconnectTimeoutMs": {
@@ -12707,7 +13045,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpKeepAliveIntervalMs": {
@@ -12734,7 +13073,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpIdleTimeoutMs": {
@@ -12761,7 +13101,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpHandshakeIdleTimeoutMs": {
@@ -12788,7 +13129,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpBidiStreamCount": {
@@ -12815,7 +13157,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpUnidiStreamCount": {
@@ -12842,7 +13185,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpTlsClientMaxSendBuffer": {
@@ -12869,7 +13213,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpTlsServerMaxSendBuffer": {
@@ -12896,7 +13241,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpStreamRecvWindowDefault": {
@@ -12923,7 +13269,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpStreamRecvBufferDefault": {
@@ -12950,7 +13297,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpConnFlowControlWindow": {
@@ -12977,7 +13325,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpMaxBytesPerKey": {
@@ -13004,7 +13353,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SettingDumpServerResumptionLevel": {
@@ -13031,7 +13381,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "CloseWithoutShutdown": {
@@ -13058,7 +13409,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "AppTooLong": {
@@ -13094,7 +13446,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "EventSilentDiscard": {
@@ -13121,7 +13474,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicateStartComplete": {
@@ -13157,7 +13511,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicateStreamShutdownComplete": {
@@ -13184,7 +13539,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StreamDestroyed": {
@@ -13211,7 +13567,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StreamCreated": {
@@ -13265,7 +13622,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StreamSendState": {
@@ -13301,7 +13659,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StreamRecvState": {
@@ -13337,7 +13696,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StreamOutFlowBlocked": {
@@ -13373,7 +13733,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StreamRundown": {
@@ -13427,7 +13788,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ResetEarly": {
@@ -13454,7 +13816,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ResetTooBig": {
@@ -13481,7 +13844,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ReceiveTooBig": {
@@ -13508,7 +13872,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ReceiveBeyondFlowControl": {
@@ -13535,7 +13900,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "RemoteCloseReset": {
@@ -13562,7 +13928,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LocalCloseStopSending": {
@@ -13589,7 +13956,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "QueueRecvFlush": {
@@ -13616,7 +13984,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicatePeerSendAbort": {
@@ -13652,7 +14021,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicatePeerReceiveAborted": {
@@ -13688,7 +14058,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "FlowControlExhausted": {
@@ -13715,7 +14086,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "Receive": {
@@ -13769,7 +14141,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "RemoteBlocked": {
@@ -13805,7 +14178,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IncreaseRxBuffer": {
@@ -13868,7 +14242,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "UpdateFlowControl": {
@@ -13895,7 +14270,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IgnoreRecvFlush": {
@@ -13922,7 +14298,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicateReceive": {
@@ -13976,7 +14353,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ReceiveComplete": {
@@ -14012,7 +14390,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicatePeerSendShutdown": {
@@ -14039,7 +14418,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicateSendShutdownComplete": {
@@ -14066,7 +14446,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicateSendCanceled": {
@@ -14102,7 +14483,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicateSendComplete": {
@@ -14138,7 +14520,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SendQueued": {
@@ -14201,7 +14584,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "NoMoreRoom": {
@@ -14228,7 +14612,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "NoMoreFrames": {
@@ -14255,7 +14640,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "AddFrame": {
@@ -14309,7 +14695,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "RecoverOpen": {
@@ -14336,7 +14723,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "RecoverFin": {
@@ -14363,7 +14751,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "RecoverRange": {
@@ -14408,7 +14797,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "AckRange": {
@@ -14462,7 +14852,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "Send0RttUpdated": {
@@ -14498,7 +14889,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SendQueueDrained": {
@@ -14525,7 +14917,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SendDump": {
@@ -14624,7 +15017,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "SendDumpAck": {
@@ -14669,7 +15063,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "NotAccepted": {
@@ -14705,7 +15100,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "MaxStreamCountUpdated": {
@@ -14750,7 +15146,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicateStreamsAvailable": {
@@ -14795,7 +15192,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "PeerStreamCountsUpdated": {
@@ -14840,7 +15238,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicatePeerStreamStarted": {
@@ -14885,7 +15284,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TimerWheelResize": {
@@ -14921,7 +15321,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TimerWheelNextExpirationNull": {
@@ -14948,7 +15349,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TimerWheelNextExpiration": {
@@ -14993,7 +15395,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TimerWheelRemoveConnection": {
@@ -15029,7 +15432,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TimerWheelUpdateConnection": {
@@ -15065,7 +15469,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StillInTimerWheel": {
@@ -15092,7 +15497,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "IndicateIdealProcChanged": {
@@ -15119,7 +15525,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "AbandonOnLibShutdown": {
@@ -15146,7 +15553,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "WorkerCreated": {
@@ -15191,7 +15599,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "WorkerErrorStatus": {
@@ -15236,7 +15645,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "WorkerCleanup": {
@@ -15263,7 +15673,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "WorkerDestroyed": {
@@ -15290,7 +15701,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnScheduleState": {
@@ -15326,7 +15738,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "WorkerActivityStateUpdated": {
@@ -15371,7 +15784,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "WorkerQueueDelayUpdated": {
@@ -15407,7 +15821,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "WorkerStart": {
@@ -15434,7 +15849,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "WorkerStop": {
@@ -15461,7 +15877,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnExecApiOper": {
@@ -15497,7 +15914,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnExecOper": {
@@ -15533,7 +15951,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnOutFlowStats": {
@@ -15641,7 +16060,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnOutFlowStreamStats": {
@@ -15686,7 +16106,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnInFlowStats": {
@@ -15722,7 +16143,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnStats": {
@@ -15794,7 +16216,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnPacketStats": {
@@ -15893,7 +16316,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "ConnOutFlowBlocked": {
@@ -15929,7 +16353,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StubTlsCertValidationDisabled": {
@@ -15956,7 +16381,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StubTlsContextReset": {
@@ -15983,7 +16409,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StubTlsHandshakeComplete": {
@@ -16010,7 +16437,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StubTlsConsumedData": {
@@ -16046,7 +16474,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StubTlsProducedData": {
@@ -16082,7 +16511,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StubTlsContextCreated": {
@@ -16109,7 +16539,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StubTlsUsing0Rtt": {
@@ -16136,7 +16567,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StubTlsContextCleaningUp": {
@@ -16163,7 +16595,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StubTlsRecvNewSessionTicket": {
@@ -16217,7 +16650,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StubTlsProcessData": {
@@ -16253,7 +16687,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "StubTlsReadTicket": {
@@ -16289,7 +16724,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryError": {
@@ -16316,7 +16752,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TlsError": {
@@ -16352,7 +16789,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TlsErrorStatus": {
@@ -16397,7 +16835,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DatapathCreate": {
@@ -16424,7 +16863,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DatapathWorkerThreadStart": {
@@ -16451,7 +16891,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DatapathWorkerThreadStop": {
@@ -16478,7 +16919,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DatapathShuttingDown": {
@@ -16505,7 +16947,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DatapathSendToCompleted": {
@@ -16541,7 +16984,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DatapathSendMsgCompleted": {
@@ -16577,7 +17021,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DatapathResolveHostNameFailed": {
@@ -16613,7 +17058,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "DatapathErrorStatus": {
@@ -16658,7 +17104,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "LibraryAssert": {
@@ -16703,7 +17150,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestScopeEntry": {
@@ -16730,7 +17178,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestScopeExit": {
@@ -16757,7 +17206,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestHookRegister": {
@@ -16774,7 +17224,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestHookUnregistering": {
@@ -16791,7 +17242,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestHookUnregistered": {
@@ -16808,7 +17260,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestHookDropPacketRandom": {
@@ -16825,7 +17278,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestHookDropPacketSelective": {
@@ -16842,7 +17296,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestHookReplaceAddrRecv": {
@@ -16878,7 +17333,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestHookReplaceAddrSend": {
@@ -16914,7 +17370,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestHookDropOldAddrSend": {
@@ -16931,7 +17388,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestHookDropLimitAddrRecv": {
@@ -16948,7 +17406,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestHookDropLimitAddrSend": {
@@ -16965,7 +17424,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestIgnoreConnectionTimeout": {
@@ -16982,7 +17442,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestSendIoctl": {
@@ -17018,7 +17479,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestCaseStart": {
@@ -17045,7 +17507,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestCaseEnd": {
@@ -17072,7 +17535,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestCaseTStart": {
@@ -17108,7 +17572,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestCaseTEnd": {
@@ -17135,7 +17600,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "TestLogFailure": {
@@ -17180,7 +17646,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "OpenSslAlert": {
@@ -17225,7 +17692,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "OpenSslHandshakeErrorStr": {
@@ -17261,7 +17729,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "OpenSslHandshakeError": {
@@ -17297,7 +17766,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "OpenSslAlpnNegotiationFailure": {
@@ -17324,7 +17794,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "OpenSslInvalidAlpnLength": {
@@ -17351,7 +17822,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "OpenSslNoMatchingAlpn": {
@@ -17378,7 +17850,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "OpenSslMissingTransportParameters": {
@@ -17405,7 +17878,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "OpenSslHandshakeDataStart": {
@@ -17441,7 +17915,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "OpenSsl1RttDataStart": {
@@ -17477,7 +17952,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "OpenSslContextReset": {
@@ -17504,7 +17980,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "OpenSslHandshakeComplete": {
@@ -17531,7 +18008,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "OpenSslNewEncryptionSecrets": {
@@ -17567,7 +18045,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "OpenSslAddHandshakeData": {
@@ -17612,7 +18091,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "OpenSslContextCreated": {
@@ -17639,7 +18119,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "OpenSslContextCleaningUp": {
@@ -17666,7 +18147,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     },
     "OpenSslProcessData": {
@@ -17702,7 +18184,129 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "NegotiatedDisable1RttEncryption": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Negotiated Disable 1-RTT Encryption",
+      "UniqueId": "NegotiatedDisable1RttEncryption",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
         }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnInfo",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "Disable1RttEncrytionUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updated disable 1-RTT encrytption to %hhu",
+      "UniqueId": "Disable1RttEncrytionUpdated",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Connection->State.Disable1RttEncrytion",
+            "UserSuppliedTrimmed": "Connection->State.Disable1RttEncrytion",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "EncodeTPDisable1RttEncryption": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Disable 1-RTT Encryption",
+      "UniqueId": "EncodeTPDisable1RttEncryption",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DecodeTPDisable1RttEncryption": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Disable 1-RTT Encryption",
+      "UniqueId": "DecodeTPDisable1RttEncryption",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n                Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
       }
     }
   },
@@ -17718,6 +18322,10 @@
         ]
       },
       "empty": {
+        "Modules": [],
+        "SkipProcessing": true
+      },
+      "stubs": {
         "Modules": []
       },
       "etw_only": {
@@ -17791,10 +18399,11 @@
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       },
       {
         "MacroName": "QuicTraceLogStreamWarning",
@@ -17802,10 +18411,11 @@
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       },
       {
         "MacroName": "QuicTraceLogStreamInfo",
@@ -17813,10 +18423,11 @@
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       },
       {
         "MacroName": "QuicTraceLogStreamVerbose",
@@ -17824,10 +18435,11 @@
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       },
       {
         "MacroName": "QuicTraceLogInfo",
@@ -17835,10 +18447,11 @@
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       },
       {
         "MacroName": "QuicTraceLogVerbose",
@@ -17846,10 +18459,11 @@
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       },
       {
         "MacroName": "QuicTraceLogError",
@@ -17857,10 +18471,11 @@
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       },
       {
         "MacroName": "QuicTraceLogConnError",
@@ -17868,10 +18483,11 @@
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       },
       {
         "MacroName": "QuicTraceLogConnWarning",
@@ -17879,10 +18495,11 @@
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       },
       {
         "MacroName": "QuicTraceLogConnInfo",
@@ -17890,10 +18507,11 @@
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       },
       {
         "MacroName": "QuicTraceLogConnInfo_Skip",
@@ -17904,7 +18522,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       },
       {
         "MacroName": "QuicTraceLogConnVerbose",
@@ -17912,10 +18531,11 @@
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       },
       {
         "MacroName": "QuicTraceEvent_Skip",
@@ -17926,7 +18546,8 @@
           "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       },
       {
         "MacroName": "QuicTraceEvent",
@@ -17934,20 +18555,21 @@
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
-        }
+        },
+        "CustomSettings": null
       }
     ],
     "ChainedConfigFiles": [
-      "../../submodules/clog/inc/defaults.clog_config"
+      "DEFAULTS"
     ],
     "ChainedConfigurations": [
       {
         "MacroConfigurations": {},
         "Version": 1,
-        "CustomTypeClogCSharpFile": "../decoderTest/defaults.clog.cs",
+        "CustomTypeClogCSharpFile": "DEFAULTS",
         "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nnamespace defaults.clog_config\n{\n    public class Types\n    {\n        public static string DecodePointer(ulong pointer)\n        {\n            return \"CLOG_POINTER:\" + pointer.ToString(\"x\");\n        }\n\n        public static string DecodeUInt32(uint value)\n        {\n            return \"CLOG_UINT32:\" + value.ToString();\n        }\n\n        public static string DecodeInt32(int value)\n        {\n            return \"CLOG_INT32:\" + value.ToString();\n        }\n\n        public static string DecodeInt8(byte value)\n        {\n            return \"CLOG_INT8:\" + value.ToString();\n        }\n    }\n}\n",
         "TypeEncoders": {
           "Version": 0,
@@ -18162,6 +18784,1867 @@
     ]
   },
   "ModuleUniqueness": {
-    "TraceInformation": []
+    "TraceInformation": [
+      {
+        "UniquenessHash": "e0cfb1a0-1258-6f19-06e3-1c55dc984679",
+        "TraceID": "PacketRxMarkedForAck"
+      },
+      {
+        "UniquenessHash": "92b1bb9f-afd4-62fa-3fb6-1021c09c5916",
+        "TraceID": "ApiEnter"
+      },
+      {
+        "UniquenessHash": "c688dd24-6f44-b26b-29cd-a225acbd0a28",
+        "TraceID": "ApiExitStatus"
+      },
+      {
+        "UniquenessHash": "2f617a65-c556-dbe4-0a91-982a44c26814",
+        "TraceID": "ApiWaitOperation"
+      },
+      {
+        "UniquenessHash": "fe671d01-61c1-337c-86f7-e918563cc313",
+        "TraceID": "ApiExit"
+      },
+      {
+        "UniquenessHash": "335643ef-1fdb-099b-6672-4452222524ff",
+        "TraceID": "AllocFailure"
+      },
+      {
+        "UniquenessHash": "c3b546cc-e127-435d-8bf4-cf20ca3d2d5e",
+        "TraceID": "StreamError"
+      },
+      {
+        "UniquenessHash": "0ebbffbe-69d8-3f2b-949d-d93cdd7f8b99",
+        "TraceID": "ConnError"
+      },
+      {
+        "UniquenessHash": "50589e4d-727a-f0d9-3d55-be9fece3f1e3",
+        "TraceID": "BindingListenerAlreadyRegistered"
+      },
+      {
+        "UniquenessHash": "96bd629b-7658-e8fe-391a-3d50274f933c",
+        "TraceID": "BindingSendToFailed"
+      },
+      {
+        "UniquenessHash": "8f26f6f7-d43a-7cad-a86b-14b20bf283e7",
+        "TraceID": "BindingSendFromToFailed"
+      },
+      {
+        "UniquenessHash": "abecde52-d14c-a321-f36e-bec3b2d4aa95",
+        "TraceID": "PacketTxVersionNegotiation"
+      },
+      {
+        "UniquenessHash": "06b1c90c-5051-fa3a-65a9-61ac409a7afc",
+        "TraceID": "PacketTxStatelessReset"
+      },
+      {
+        "UniquenessHash": "e63baed9-55fa-fbbb-57a7-bc462892dc22",
+        "TraceID": "PacketTxRetry"
+      },
+      {
+        "UniquenessHash": "84d253f3-6080-1dd9-85d9-d1835f969640",
+        "TraceID": "BindingSendToTestDrop"
+      },
+      {
+        "UniquenessHash": "5fab5bdf-643a-f660-0bfe-93129662c1c4",
+        "TraceID": "BindingSendFromToTestDrop"
+      },
+      {
+        "UniquenessHash": "8f664316-de64-1faa-b303-6cda51fd619a",
+        "TraceID": "BindingErrorStatus"
+      },
+      {
+        "UniquenessHash": "5d83e63e-7ce5-0102-8dd2-cbcf5946da2e",
+        "TraceID": "BindingCleanup"
+      },
+      {
+        "UniquenessHash": "9dc8a42f-5829-5abf-0bb0-5040ff1428b9",
+        "TraceID": "BindingDestroyed"
+      },
+      {
+        "UniquenessHash": "3726f8cb-fca2-1ea3-208b-0f223c09aae2",
+        "TraceID": "BindingExecOper"
+      },
+      {
+        "UniquenessHash": "e507ac6d-1899-3690-fceb-3231a0eedb86",
+        "TraceID": "ConnCubic"
+      },
+      {
+        "UniquenessHash": "49757e31-cd50-7e77-6853-034e81817918",
+        "TraceID": "ConnCongestion"
+      },
+      {
+        "UniquenessHash": "c339eadc-2eef-8e45-4a51-1fc84a3c198e",
+        "TraceID": "ConnPersistentCongestion"
+      },
+      {
+        "UniquenessHash": "5eef16d4-a574-2e5c-62c1-d561f0040322",
+        "TraceID": "ConnRecoveryExit"
+      },
+      {
+        "UniquenessHash": "74a3473b-5ac0-6376-652d-882aac50b01a",
+        "TraceID": "PacketRxStatelessReset"
+      },
+      {
+        "UniquenessHash": "a0de2e59-c52c-b13c-6065-1bb6268561c7",
+        "TraceID": "PacketRxNotAcked"
+      },
+      {
+        "UniquenessHash": "c69c6d33-2838-013a-936c-7fbc085570b4",
+        "TraceID": "ApiEventNoHandler"
+      },
+      {
+        "UniquenessHash": "5ac2cec3-42ca-2321-6728-82a1188c0140",
+        "TraceID": "ApiEventAlreadyClosed"
+      },
+      {
+        "UniquenessHash": "9cc051a4-7fe8-2888-20cf-c5ada9208533",
+        "TraceID": "NoReplacementCidForRetire"
+      },
+      {
+        "UniquenessHash": "20b67d09-e893-9f23-3603-0b3993d48031",
+        "TraceID": "NonActivePathCidRetired"
+      },
+      {
+        "UniquenessHash": "1e752977-c5b3-6034-4b89-414f9c6ff50f",
+        "TraceID": "IgnoreUnreachable"
+      },
+      {
+        "UniquenessHash": "9b430be7-b0f2-665f-5499-2558b9679b2b",
+        "TraceID": "IgnoreFrameAfterClose"
+      },
+      {
+        "UniquenessHash": "abdd8da8-ac7e-f610-f745-b4d3fc85bbca",
+        "TraceID": "UnreachableIgnore"
+      },
+      {
+        "UniquenessHash": "9ed03280-632f-813e-4188-70167f097eae",
+        "TraceID": "UnreachableInvalid"
+      },
+      {
+        "UniquenessHash": "e6969fd7-4bfa-f16b-fd2d-f366f94dce7c",
+        "TraceID": "CloseComplete"
+      },
+      {
+        "UniquenessHash": "dfd165b7-db65-59a6-211e-8df812cc6524",
+        "TraceID": "Restart"
+      },
+      {
+        "UniquenessHash": "ab194a75-9835-d231-9336-628397e466cc",
+        "TraceID": "CryptoStateDiscard"
+      },
+      {
+        "UniquenessHash": "63153436-bbba-4092-b061-5aab2692a9c9",
+        "TraceID": "PeerTPSet"
+      },
+      {
+        "UniquenessHash": "270621d6-25e4-9741-4f15-ed4a5b3d4f33",
+        "TraceID": "NegotiatedDisable1RttEncryption"
+      },
+      {
+        "UniquenessHash": "1a6051bf-393a-b704-7237-8d9d0881efb3",
+        "TraceID": "RecvStatelessReset"
+      },
+      {
+        "UniquenessHash": "1a99a1d4-e93f-590e-b9d2-766c6616680f",
+        "TraceID": "HandshakeConfirmedFrame"
+      },
+      {
+        "UniquenessHash": "5e023c07-7bc3-8b2f-76d0-4a38701cef2d",
+        "TraceID": "FirstCidUsage"
+      },
+      {
+        "UniquenessHash": "8843a66a-349f-e5a2-a63c-5120fb187f69",
+        "TraceID": "PathDiscarded"
+      },
+      {
+        "UniquenessHash": "78e16be2-4ef2-96e6-6151-8c7198865607",
+        "TraceID": "Unreachable"
+      },
+      {
+        "UniquenessHash": "5566ba17-a508-e348-c832-84523238b097",
+        "TraceID": "UpdateIdleTimeout"
+      },
+      {
+        "UniquenessHash": "5b5d01c1-4b5f-2107-e6bf-6438b293efa1",
+        "TraceID": "UpdateKeepAlive"
+      },
+      {
+        "UniquenessHash": "c12bc763-2609-6955-b54b-6514e5ddc0a4",
+        "TraceID": "UpdateDisconnectTimeout"
+      },
+      {
+        "UniquenessHash": "7421b3e5-dd56-37b4-86a2-1a7c53110237",
+        "TraceID": "SetSecurityConfig"
+      },
+      {
+        "UniquenessHash": "333a1d25-730c-87e8-c17c-7ab1cc39df40",
+        "TraceID": "UpdateUseSendBuffer"
+      },
+      {
+        "UniquenessHash": "f1df97fd-15d7-455b-c14f-10a85fd3d688",
+        "TraceID": "UpdateUsePacing"
+      },
+      {
+        "UniquenessHash": "66cfdc40-f79f-a762-a02c-b7f1a4c2e0eb",
+        "TraceID": "UpdateShareBinding"
+      },
+      {
+        "UniquenessHash": "f433b4bc-afec-9da4-79cb-eb11596d42e4",
+        "TraceID": "UpdateStreamSchedulingScheme"
+      },
+      {
+        "UniquenessHash": "ffeb66e8-2636-b98b-46a5-564068b26843",
+        "TraceID": "RttUpdated"
+      },
+      {
+        "UniquenessHash": "5bdd3273-8aaf-afec-f7e3-a031e8c0122c",
+        "TraceID": "NewSrcCidNameCollision"
+      },
+      {
+        "UniquenessHash": "544776e8-4877-d5da-4fa0-fc664dd8fd98",
+        "TraceID": "ZeroLengthCidRetire"
+      },
+      {
+        "UniquenessHash": "b1be65a8-cd8b-15bc-63f4-2505106e5960",
+        "TraceID": "TimerExpired"
+      },
+      {
+        "UniquenessHash": "5bda6698-e21b-b6c6-8eeb-1345b5b6fdb5",
+        "TraceID": "IndicateShutdownByPeer"
+      },
+      {
+        "UniquenessHash": "2fbfe723-9f02-173c-6f00-d6910945fc2b",
+        "TraceID": "IndicateShutdownByTransport"
+      },
+      {
+        "UniquenessHash": "f8280555-5057-232c-bc7d-b3cdd8f840f5",
+        "TraceID": "IndicateConnectionShutdownComplete"
+      },
+      {
+        "UniquenessHash": "3fd431ea-14e0-47c5-7242-475a64109172",
+        "TraceID": "FoundCachedServerState"
+      },
+      {
+        "UniquenessHash": "18ef147d-5376-d7f2-f624-3b27af96dd05",
+        "TraceID": "QueueDatagrams"
+      },
+      {
+        "UniquenessHash": "9727ad53-8a0f-e3b3-8def-c1fa820baaa9",
+        "TraceID": "RecvVerNeg"
+      },
+      {
+        "UniquenessHash": "62fa7337-1321-2cd0-f7cc-236d893ed747",
+        "TraceID": "VerNegItem"
+      },
+      {
+        "UniquenessHash": "ed33a4f4-4591-33d1-1760-74e7f873aa11",
+        "TraceID": "InvalidVerNeg"
+      },
+      {
+        "UniquenessHash": "3405b409-bdc8-a1c4-cc9a-6dc3c0f86f01",
+        "TraceID": "DeferDatagram"
+      },
+      {
+        "UniquenessHash": "d4b170ec-6aac-e1b9-65d2-980190c166b8",
+        "TraceID": "DecryptOldKey"
+      },
+      {
+        "UniquenessHash": "3a28ad92-a692-7746-3bea-0309be06a558",
+        "TraceID": "PossiblePeerKeyUpdate"
+      },
+      {
+        "UniquenessHash": "e5011584-a82b-c64d-75a5-a18ec4670a1d",
+        "TraceID": "UpdateReadKeyPhase"
+      },
+      {
+        "UniquenessHash": "1d828295-7cdc-fd81-10d0-7bc5ca9f0ce7",
+        "TraceID": "PeerConnFCBlocked"
+      },
+      {
+        "UniquenessHash": "33d2457f-7bc8-a252-2a65-7b492c581b7a",
+        "TraceID": "PeerStreamFCBlocked"
+      },
+      {
+        "UniquenessHash": "df8cd7bd-ef29-fc9c-b3e0-7dc89bee82d5",
+        "TraceID": "IndicatePeerNeedStreams"
+      },
+      {
+        "UniquenessHash": "69bf030e-d811-6f6f-9b99-48c5b8571a4a",
+        "TraceID": "IndicatePeerAddrChanged"
+      },
+      {
+        "UniquenessHash": "d1b6f5eb-6243-10dc-b07a-0f545b66b5e6",
+        "TraceID": "UdpRecvBatch"
+      },
+      {
+        "UniquenessHash": "b2826750-692c-079a-196b-3ef9a77daf0b",
+        "TraceID": "UdpRecvDeferred"
+      },
+      {
+        "UniquenessHash": "cd3c6623-5c8b-d0a0-f653-dd7ae1b09077",
+        "TraceID": "UdpRecv"
+      },
+      {
+        "UniquenessHash": "4e7f072c-3335-6eb0-dcca-13d3fdf87fe8",
+        "TraceID": "ForceKeyUpdate"
+      },
+      {
+        "UniquenessHash": "6e5b39c0-03d0-5405-431a-9b3d0940496e",
+        "TraceID": "ForceCidUpdate"
+      },
+      {
+        "UniquenessHash": "886942eb-0bdc-fffd-0a3b-e2ea639228bb",
+        "TraceID": "DatagramReceiveEnableUpdated"
+      },
+      {
+        "UniquenessHash": "b5551d75-2b95-b9d9-98f7-36215d5364b0",
+        "TraceID": "Disable1RttEncrytionUpdated"
+      },
+      {
+        "UniquenessHash": "ad3632a2-ac75-293d-854f-381b59368114",
+        "TraceID": "TestTPSet"
+      },
+      {
+        "UniquenessHash": "ec0cf6f5-fe6d-3708-e0e3-53203202704d",
+        "TraceID": "ReadTicketFailure"
+      },
+      {
+        "UniquenessHash": "4af24dff-9b3b-84ae-8868-0443f2ad6ec5",
+        "TraceID": "AbandonInternallyClosed"
+      },
+      {
+        "UniquenessHash": "aed1e684-1268-09f6-9232-3b0ad19349f5",
+        "TraceID": "ConnCreated"
+      },
+      {
+        "UniquenessHash": "228c04ea-f275-6f9c-e29a-a8f058a5db5e",
+        "TraceID": "ConnInitializeComplete"
+      },
+      {
+        "UniquenessHash": "3903cc44-b387-b5f6-17fc-62d5aee48015",
+        "TraceID": "ConnDestroyed"
+      },
+      {
+        "UniquenessHash": "27cd4e17-599b-5429-699a-05377472f707",
+        "TraceID": "ConnHandleClosed"
+      },
+      {
+        "UniquenessHash": "9ba874f3-1fe6-aef6-6d3b-5c9b8b9d8720",
+        "TraceID": "ConnRundown"
+      },
+      {
+        "UniquenessHash": "6815c8ca-4f06-e4ed-45ef-61e4440505b7",
+        "TraceID": "ConnAssignWorker"
+      },
+      {
+        "UniquenessHash": "69e49bb9-4937-56a4-18b8-93bc614a86f9",
+        "TraceID": "ConnRegisterSession"
+      },
+      {
+        "UniquenessHash": "e55bbe23-63cb-e695-26d2-734d5bab5d48",
+        "TraceID": "ConnHandshakeComplete"
+      },
+      {
+        "UniquenessHash": "43def263-b39e-5ace-4ab9-9318c5382766",
+        "TraceID": "ConnExecTimerOper"
+      },
+      {
+        "UniquenessHash": "c1260e67-a879-a771-4273-78ed7f098da3",
+        "TraceID": "ConnShutdownComplete"
+      },
+      {
+        "UniquenessHash": "905ba7f9-0427-2d53-7d13-88f2bb532bf0",
+        "TraceID": "ConnAppShutdown"
+      },
+      {
+        "UniquenessHash": "421b9353-bbea-5599-f173-5911d85a776e",
+        "TraceID": "ConnTransportShutdown"
+      },
+      {
+        "UniquenessHash": "bdb8873d-36bc-4a0a-69e3-0de1a47e4afd",
+        "TraceID": "ConnVersionSet"
+      },
+      {
+        "UniquenessHash": "7a6ee833-be8b-28d5-a62a-4addb834ada3",
+        "TraceID": "ConnErrorStatus"
+      },
+      {
+        "UniquenessHash": "78747bf9-56cb-052b-6f03-10d9a57749fa",
+        "TraceID": "ConnServerResumeTicket"
+      },
+      {
+        "UniquenessHash": "01d5a727-8287-c441-9ff0-0ebbd899549f",
+        "TraceID": "ConnHandshakeStart"
+      },
+      {
+        "UniquenessHash": "60d753ab-6710-fe16-e47d-37f046f5973c",
+        "TraceID": "IgnoreCryptoFrame"
+      },
+      {
+        "UniquenessHash": "6501738d-0b97-8289-8e1d-54274fae4f1d",
+        "TraceID": "DiscardKeyType"
+      },
+      {
+        "UniquenessHash": "7add7bc7-5514-83ea-44ca-8acc7e6643b2",
+        "TraceID": "ZeroRttAccepted"
+      },
+      {
+        "UniquenessHash": "bb841825-a52e-8ecf-243e-1a65d10a3e75",
+        "TraceID": "ZeroRttRejected"
+      },
+      {
+        "UniquenessHash": "fba5c72f-0c3d-f668-a88b-39e5e3e62cbd",
+        "TraceID": "HandshakeConfirmedServer"
+      },
+      {
+        "UniquenessHash": "b9d890f2-d479-8184-b0e5-948bdc1545d7",
+        "TraceID": "TicketReady"
+      },
+      {
+        "UniquenessHash": "4e785757-b1de-e65c-a7b1-7ac868748434",
+        "TraceID": "CryptoDump"
+      },
+      {
+        "UniquenessHash": "c2f15df5-6ae8-de48-4875-35d291565d96",
+        "TraceID": "CryptoDumpUnacked"
+      },
+      {
+        "UniquenessHash": "e6984e8e-3408-1b5f-b0a0-7d8f293c6623",
+        "TraceID": "CryptoDumpUnacked2"
+      },
+      {
+        "UniquenessHash": "a2080700-161b-68e4-457e-40e07275acf5",
+        "TraceID": "NoMoreRoomForCrypto"
+      },
+      {
+        "UniquenessHash": "cef32e9a-1355-7a31-bd2d-a458b02e214d",
+        "TraceID": "AddCryptoFrame"
+      },
+      {
+        "UniquenessHash": "94b619d7-6b5a-e1b4-d3ee-1b66a383ebbc",
+        "TraceID": "RecoverCrypto"
+      },
+      {
+        "UniquenessHash": "60f13d90-f6b5-d1e2-41fd-0a5662d602e6",
+        "TraceID": "AckCrypto"
+      },
+      {
+        "UniquenessHash": "e5c3a539-ac41-94df-060d-bd4dc2ef4b82",
+        "TraceID": "RecvCrypto"
+      },
+      {
+        "UniquenessHash": "9ed40f87-2b63-8343-5e37-2640d0a40e27",
+        "TraceID": "IndicateConnected"
+      },
+      {
+        "UniquenessHash": "c53376e2-b465-d6a1-047c-4e5e64c263af",
+        "TraceID": "DrainCrypto"
+      },
+      {
+        "UniquenessHash": "fe4d4428-c697-f073-1d9e-e0441b1a8f45",
+        "TraceID": "CryptoNotReady"
+      },
+      {
+        "UniquenessHash": "15379a50-c581-3086-043e-53167a6b3fd6",
+        "TraceID": "ConnWriteKeyUpdated"
+      },
+      {
+        "UniquenessHash": "252598af-99d8-c9ea-9f14-dd07630a45b4",
+        "TraceID": "ConnReadKeyUpdated"
+      },
+      {
+        "UniquenessHash": "12872365-4c5b-bfd4-dc5f-83f6aae048cf",
+        "TraceID": "ConnNewPacketKeys"
+      },
+      {
+        "UniquenessHash": "ec54e332-0990-e91f-5fc1-9a09441bf8a4",
+        "TraceID": "ConnKeyPhaseChange"
+      },
+      {
+        "UniquenessHash": "e1f61a3e-5405-efd7-d585-f3a10ab0b6d1",
+        "TraceID": "NoSniPresent"
+      },
+      {
+        "UniquenessHash": "95f4176f-e0b5-1420-53d9-44e244c44ea5",
+        "TraceID": "DecodeTPReserved"
+      },
+      {
+        "UniquenessHash": "f1d31c20-28ed-b67e-9b71-05c7763658de",
+        "TraceID": "DecodeTPUnknown"
+      },
+      {
+        "UniquenessHash": "2c89f795-3932-98d9-2849-6ddf6675cfa9",
+        "TraceID": "EncodeTPStart"
+      },
+      {
+        "UniquenessHash": "6de9e23c-7651-edb6-1005-247aef18aae3",
+        "TraceID": "EncodeTPOriginalDestinationCID"
+      },
+      {
+        "UniquenessHash": "a0423f9f-5528-282d-de58-b90aea239e3f",
+        "TraceID": "EncodeTPIdleTimeout"
+      },
+      {
+        "UniquenessHash": "c5a96b84-829e-1140-85af-18ab6924eb23",
+        "TraceID": "EncodeTPStatelessResetToken"
+      },
+      {
+        "UniquenessHash": "7ccb258f-6f1d-cdd4-761c-8b098b4fb5b6",
+        "TraceID": "EncodeTPMaxUdpPayloadSize"
+      },
+      {
+        "UniquenessHash": "c212483c-4211-8603-5f60-6773b67d2622",
+        "TraceID": "EncodeTPInitMaxData"
+      },
+      {
+        "UniquenessHash": "1cf3e10e-79dd-5aed-6c1c-f0675514be81",
+        "TraceID": "EncodeTPInitMaxStreamDataBidiLocal"
+      },
+      {
+        "UniquenessHash": "e9eaf5c8-bdb6-bd4e-beca-4207cd1fef91",
+        "TraceID": "EncodeTPInitMaxStreamDataBidiRemote"
+      },
+      {
+        "UniquenessHash": "24ac7692-c735-f737-d7d6-c3f65d595b67",
+        "TraceID": "EncodeTPInitMaxStreamUni"
+      },
+      {
+        "UniquenessHash": "c5697d69-e02a-7775-a151-c34f748320aa",
+        "TraceID": "EncodeTPMaxBidiStreams"
+      },
+      {
+        "UniquenessHash": "6154341e-5b61-63c0-da65-a3e9fe9cb0e0",
+        "TraceID": "EncodeTPMaxUniStreams"
+      },
+      {
+        "UniquenessHash": "0101cc93-9665-3cc3-b1ea-2a6be959530b",
+        "TraceID": "EncodeTPAckDelayExponent"
+      },
+      {
+        "UniquenessHash": "38340c32-a630-64c1-b93a-b1e7ca40397e",
+        "TraceID": "EncodeTPMaxAckDelay"
+      },
+      {
+        "UniquenessHash": "88f5bfbe-85c2-0a8e-869d-669c1f347170",
+        "TraceID": "EncodeTPDisableMigration"
+      },
+      {
+        "UniquenessHash": "7ae85c8f-532c-c622-19be-a82d9002385d",
+        "TraceID": "EncodeTPPreferredAddress"
+      },
+      {
+        "UniquenessHash": "a9ef9690-4a65-72f7-40ad-f09fd6976881",
+        "TraceID": "EncodeTPCIDLimit"
+      },
+      {
+        "UniquenessHash": "a10dde76-0ba2-2458-5f43-805105fa2127",
+        "TraceID": "EncodeTPOriginalCID"
+      },
+      {
+        "UniquenessHash": "d276c997-5dfb-645e-b54a-7ec567967851",
+        "TraceID": "EncodeMaxDatagramFrameSize"
+      },
+      {
+        "UniquenessHash": "00dd319f-d948-bd6b-e480-9188c53a9eb7",
+        "TraceID": "EncodeTPDisable1RttEncryption"
+      },
+      {
+        "UniquenessHash": "4650353e-149e-c99a-1ab8-9b7e6a1e698e",
+        "TraceID": "EncodeTPTest"
+      },
+      {
+        "UniquenessHash": "413f5682-4110-fabc-1552-daf76011b827",
+        "TraceID": "EncodeTPEnd"
+      },
+      {
+        "UniquenessHash": "7e43f912-3063-019a-bbcf-efe0eff8fbb4",
+        "TraceID": "DecodeTPStart"
+      },
+      {
+        "UniquenessHash": "0f20e85c-c2f2-44e2-9762-7044995c647d",
+        "TraceID": "DecodeTPOriginalDestinationCID"
+      },
+      {
+        "UniquenessHash": "17e21ccd-6314-9850-c892-6fc71b4e2339",
+        "TraceID": "DecodeTPIdleTimeout"
+      },
+      {
+        "UniquenessHash": "22774447-fb97-c333-ea55-96d7234b806f",
+        "TraceID": "DecodeTPStatelessResetToken"
+      },
+      {
+        "UniquenessHash": "dcdc839f-72fd-686f-4a16-b070ed7bea5f",
+        "TraceID": "DecodeTPMaxUdpPayloadSize"
+      },
+      {
+        "UniquenessHash": "718ed4d4-ace9-2e3d-2f3b-c61bc224c852",
+        "TraceID": "DecodeTPInitMaxData"
+      },
+      {
+        "UniquenessHash": "e4d0eb5f-0f76-f0ac-1c84-f306c642b9a6",
+        "TraceID": "DecodeTPInitMaxStreamDataBidiLocal"
+      },
+      {
+        "UniquenessHash": "8ed9301a-b13d-9983-f34c-d2d124a7a3f1",
+        "TraceID": "DecodeTPInitMaxStreamDataBidiRemote"
+      },
+      {
+        "UniquenessHash": "e4979e9a-74a5-15f2-adb0-2e79e72bac62",
+        "TraceID": "DecodeTPInitMaxStreamDataBidiUni"
+      },
+      {
+        "UniquenessHash": "a8590572-737f-3dd9-d415-f1f9c63ab68b",
+        "TraceID": "DecodeTPMaxBidiStreams"
+      },
+      {
+        "UniquenessHash": "0120457e-9a38-b234-ef17-ec3bd85790ec",
+        "TraceID": "DecodeTPMaxUniStreams"
+      },
+      {
+        "UniquenessHash": "244561c5-e612-a194-99af-e39c0b17c234",
+        "TraceID": "DecodeTPAckDelayExponent"
+      },
+      {
+        "UniquenessHash": "f610329d-1292-7a18-4a2d-b745ecf7d4b7",
+        "TraceID": "DecodeTPMaxAckDelay"
+      },
+      {
+        "UniquenessHash": "bd9900ec-ea63-19c7-b852-d50c250f7441",
+        "TraceID": "DecodeTPDisableActiveMigration"
+      },
+      {
+        "UniquenessHash": "f922e6c2-c8b5-7e24-b451-55dd6c348335",
+        "TraceID": "DecodeTPPreferredAddress"
+      },
+      {
+        "UniquenessHash": "4c903962-3302-75ab-6ed6-52c50fb560a8",
+        "TraceID": "DecodeTPCIDLimit"
+      },
+      {
+        "UniquenessHash": "6569e950-f497-9d07-72d6-1811ecdb4b8e",
+        "TraceID": "DecodeTPInitialSourceCID"
+      },
+      {
+        "UniquenessHash": "f9c309de-adae-2892-8f3b-5ecb036737c9",
+        "TraceID": "DecodeTPRetrySourceCID"
+      },
+      {
+        "UniquenessHash": "87156c11-9645-fbe7-66fe-c68ef5b80a18",
+        "TraceID": "DecodeTPMaxDatagramFrameSize"
+      },
+      {
+        "UniquenessHash": "bf16a511-be08-e9ca-915f-5e5c834d5ca6",
+        "TraceID": "DecodeTPDisable1RttEncryption"
+      },
+      {
+        "UniquenessHash": "152723b4-2b46-a936-ffaf-9cc429e8e66f",
+        "TraceID": "DatagramSendStateChanged"
+      },
+      {
+        "UniquenessHash": "61e4bec5-f94e-a8cd-1c05-04b24a1c89ff",
+        "TraceID": "DatagramSendShutdown"
+      },
+      {
+        "UniquenessHash": "bfbc130b-6496-c8c1-c193-82dc7dbfb83e",
+        "TraceID": "IndicateDatagramStateChanged"
+      },
+      {
+        "UniquenessHash": "02aca78b-b8be-4340-6f05-e81c018e6625",
+        "TraceID": "DatagramSendQueued"
+      },
+      {
+        "UniquenessHash": "6cac678c-2cc7-84af-5059-9622332c579b",
+        "TraceID": "IndicateDatagramReceived"
+      },
+      {
+        "UniquenessHash": "9d92f733-cdde-7d96-f3b4-e4b129f86559",
+        "TraceID": "FrameLogUnknownType"
+      },
+      {
+        "UniquenessHash": "a6b615ee-e5e9-f437-c21a-c3c502f86000",
+        "TraceID": "FrameLogPadding"
+      },
+      {
+        "UniquenessHash": "4e057b3b-1d37-81dc-0b9d-e449ba9a5bbf",
+        "TraceID": "FrameLogPing"
+      },
+      {
+        "UniquenessHash": "5ba172ab-0068-119f-d1d4-91b10fb61c9a",
+        "TraceID": "FrameLogAckInvalid"
+      },
+      {
+        "UniquenessHash": "60343716-1a2c-e07a-f524-7337b986b581",
+        "TraceID": "FrameLogAck"
+      },
+      {
+        "UniquenessHash": "af66c908-a85d-0ce3-458c-3a3783481bf0",
+        "TraceID": "FrameLogAckSingleBlock"
+      },
+      {
+        "UniquenessHash": "b526352a-2e6f-49e9-8900-83a417ce4d7f",
+        "TraceID": "FrameLogAckMultiBlock"
+      },
+      {
+        "UniquenessHash": "1e9cdd30-8c88-d373-75ed-935434f33791",
+        "TraceID": "FrameLogAckInvalidBlock"
+      },
+      {
+        "UniquenessHash": "9a1e7c32-71f8-7bcb-6c77-4b43fccaea8c",
+        "TraceID": "FrameLogAckEcnInvalid"
+      },
+      {
+        "UniquenessHash": "9d787009-dbca-5770-1a52-ae3fd6dab643",
+        "TraceID": "FrameLogAckEcn"
+      },
+      {
+        "UniquenessHash": "0bf56511-3556-9f0d-5569-8b637eac8021",
+        "TraceID": "FrameLogResetStreamInvalid"
+      },
+      {
+        "UniquenessHash": "47de738b-e1df-210a-5eff-181b82072815",
+        "TraceID": "FrameLogResetStream"
+      },
+      {
+        "UniquenessHash": "be7c0aac-6f80-d2b1-59c1-fb4be9ae9e45",
+        "TraceID": "FrameLogStopSendingInvalid"
+      },
+      {
+        "UniquenessHash": "e4585b81-61e3-9b3b-5af6-cf17c4e95d81",
+        "TraceID": "FrameLogStopSending"
+      },
+      {
+        "UniquenessHash": "9e696311-7c42-7cd3-32ea-0840d880e794",
+        "TraceID": "FrameLogCryptoInvalid"
+      },
+      {
+        "UniquenessHash": "e00d36b1-f054-87c7-137a-db4257a08907",
+        "TraceID": "FrameLogCrypto"
+      },
+      {
+        "UniquenessHash": "12b5f9d8-e0a8-5b58-d80d-339e7a0d161a",
+        "TraceID": "FrameLogNewTokenInvalid"
+      },
+      {
+        "UniquenessHash": "459e94e6-baab-6749-4df5-f26ad9b8b04b",
+        "TraceID": "FrameLogNewToken"
+      },
+      {
+        "UniquenessHash": "9d86e647-b1c5-a5cf-dc18-5935327b0bdb",
+        "TraceID": "FrameLogStreamInvalid"
+      },
+      {
+        "UniquenessHash": "e9932bc2-289d-ae3a-4e10-766ddb5a6fcc",
+        "TraceID": "FrameLogStreamFin"
+      },
+      {
+        "UniquenessHash": "49f8d2b4-bc9e-eefb-63a6-8bef8d094cb1",
+        "TraceID": "FrameLogStream"
+      },
+      {
+        "UniquenessHash": "c5cd2dbc-b096-c5e4-d241-8987ecc7c9ad",
+        "TraceID": "FrameLogMaxDataInvalid"
+      },
+      {
+        "UniquenessHash": "d4092823-1cdd-2c4d-acc6-ff7c87192a3d",
+        "TraceID": "FrameLogMaxData"
+      },
+      {
+        "UniquenessHash": "ebce62fa-177a-21f5-a9e6-be815e2088c7",
+        "TraceID": "FrameLogMaxStreamDataInvalid"
+      },
+      {
+        "UniquenessHash": "3fa56e85-dbd2-f442-7f76-c4c011e23ecc",
+        "TraceID": "FrameLogMaxStreamData"
+      },
+      {
+        "UniquenessHash": "b79183c7-4d7b-0154-9625-ebf40a995883",
+        "TraceID": "FrameLogMaxStreamsInvalid"
+      },
+      {
+        "UniquenessHash": "f7fb2211-5d39-8968-2543-8c80e5ba6953",
+        "TraceID": "FrameLogMaxStreams"
+      },
+      {
+        "UniquenessHash": "43ad68ac-a2bb-2e93-d7da-364e3502e5fe",
+        "TraceID": "FrameLogDataBlockedInvalid"
+      },
+      {
+        "UniquenessHash": "7776beb0-487f-f492-445d-f29eea30f8eb",
+        "TraceID": "FrameLogDataBlocked"
+      },
+      {
+        "UniquenessHash": "5ff0a3bb-83fb-8d24-6353-c61e566d55f9",
+        "TraceID": "FrameLogStreamDataBlockedInvalid"
+      },
+      {
+        "UniquenessHash": "3833ebb3-0291-d071-2c18-fda51ed98872",
+        "TraceID": "FrameLogStreamDataBlocked"
+      },
+      {
+        "UniquenessHash": "f8792c4a-d448-1f2d-ceba-3e2514d693c4",
+        "TraceID": "FrameLogStreamsBlockedInvalid"
+      },
+      {
+        "UniquenessHash": "3005885e-f0f3-7417-59a0-c87f635ccb99",
+        "TraceID": "FrameLogStreamsBlocked"
+      },
+      {
+        "UniquenessHash": "d942cb64-cd25-abca-53fe-da7ffb3a63fa",
+        "TraceID": "FrameLogNewConnectionIDInvalid"
+      },
+      {
+        "UniquenessHash": "96006531-5a22-bb6d-5186-2b7b30de0d9e",
+        "TraceID": "FrameLogNewConnectionID"
+      },
+      {
+        "UniquenessHash": "8524f407-db2b-201f-baed-6d6501147ee1",
+        "TraceID": "FrameLogRetireConnectionIDInvalid"
+      },
+      {
+        "UniquenessHash": "3bbb38a3-5d64-e257-3f3d-7cd00ece1b21",
+        "TraceID": "FrameLogRetireConnectionID"
+      },
+      {
+        "UniquenessHash": "a145bb21-3f9f-bae4-04ae-a6f82319b86e",
+        "TraceID": "FrameLogPathChallengeInvalid"
+      },
+      {
+        "UniquenessHash": "230959d3-aa58-0944-8287-6120bebac2f0",
+        "TraceID": "FrameLogPathChallenge"
+      },
+      {
+        "UniquenessHash": "98ece405-2862-63c3-ecf6-9f1cb067f3bb",
+        "TraceID": "FrameLogPathResponseInvalid"
+      },
+      {
+        "UniquenessHash": "48bdfe8e-61dc-d2b1-c15b-cd1157a7f291",
+        "TraceID": "FrameLogPathResponse"
+      },
+      {
+        "UniquenessHash": "e1f15bbb-983a-15f1-c311-8a848849d956",
+        "TraceID": "FrameLogConnectionCloseInvalid"
+      },
+      {
+        "UniquenessHash": "b927ee52-d216-17fd-4f2c-969019a36a4e",
+        "TraceID": "FrameLogConnectionCloseApp"
+      },
+      {
+        "UniquenessHash": "39592ea2-35f5-d3d5-efb2-d330fb4c400b",
+        "TraceID": "FrameLogConnectionClose"
+      },
+      {
+        "UniquenessHash": "21385572-3391-c466-7f6d-369484b98bd9",
+        "TraceID": "FrameLogHandshakeDone"
+      },
+      {
+        "UniquenessHash": "e447af81-8615-d95b-02a9-ba9dd4b1ea19",
+        "TraceID": "FrameLogDatagramInvalid"
+      },
+      {
+        "UniquenessHash": "a23b67c8-c2da-dfbe-2c86-728785bcdfb3",
+        "TraceID": "FrameLogDatagram"
+      },
+      {
+        "UniquenessHash": "5d4bb0a9-d10e-7ac9-a46a-dcfc5f7bf831",
+        "TraceID": "LibraryStorageOpenFailed"
+      },
+      {
+        "UniquenessHash": "afe681b2-a6aa-74e7-2687-629e9b38aa2a",
+        "TraceID": "LibraryTestDatapathHooksSet"
+      },
+      {
+        "UniquenessHash": "ebf09e36-4ddd-dec8-19ef-35e6f7cdd691",
+        "TraceID": "LibrarySettingsUpdated"
+      },
+      {
+        "UniquenessHash": "615f61f5-7a3e-def3-f522-de287d7aa749",
+        "TraceID": "LibraryVerifierEnabledPerRegistration"
+      },
+      {
+        "UniquenessHash": "84804294-753f-9674-c22f-a6ce7f8c5f6c",
+        "TraceID": "LibraryVerifierEnabled"
+      },
+      {
+        "UniquenessHash": "4574d3aa-0d58-420f-fa75-4b57a79d3fa8",
+        "TraceID": "LibraryCidLengthSet"
+      },
+      {
+        "UniquenessHash": "71c0b89c-7bb8-4a53-be34-dd9a4170850c",
+        "TraceID": "LibraryRetryMemoryLimitSet"
+      },
+      {
+        "UniquenessHash": "99794e3f-6b9a-841b-214f-6ee4f630fa38",
+        "TraceID": "LibraryLoadBalancingModeSet"
+      },
+      {
+        "UniquenessHash": "80830820-d84f-0303-c862-a7d195fbca03",
+        "TraceID": "LibraryInUse"
+      },
+      {
+        "UniquenessHash": "1799d6aa-33d5-cb09-2058-09b8369d852f",
+        "TraceID": "LibraryNotInUse"
+      },
+      {
+        "UniquenessHash": "a92d40e6-9ec9-6dbe-5bce-51a661ed1554",
+        "TraceID": "LibraryMsQuicOpenNull"
+      },
+      {
+        "UniquenessHash": "831a9b86-1a75-79e7-88d5-aa7c600531c4",
+        "TraceID": "LibraryMsQuicOpenEntry"
+      },
+      {
+        "UniquenessHash": "6f7eb60d-9947-2598-382b-aa6b6053d53d",
+        "TraceID": "LibraryMsQuicOpenExit"
+      },
+      {
+        "UniquenessHash": "ae77005c-231d-7848-7e06-879ecbd5363d",
+        "TraceID": "LibraryMsQuicClose"
+      },
+      {
+        "UniquenessHash": "e6c3b194-e19d-d568-1157-675aba101620",
+        "TraceID": "LibraryLoadBalancingModeSetAfterInUse"
+      },
+      {
+        "UniquenessHash": "f8608b33-99de-87fb-58fc-7a0f6dfe385c",
+        "TraceID": "LibraryErrorStatus"
+      },
+      {
+        "UniquenessHash": "8f218f73-51d3-e674-6f43-937ce1e861c9",
+        "TraceID": "LibraryInitialized"
+      },
+      {
+        "UniquenessHash": "75aa07a5-b70c-1670-9f7b-cddc495a508c",
+        "TraceID": "LibraryUninitialized"
+      },
+      {
+        "UniquenessHash": "f72fef56-3f63-6d43-820a-b0f443526cc6",
+        "TraceID": "LibraryAddRef"
+      },
+      {
+        "UniquenessHash": "0a866453-c89b-e8b7-d853-8f975458d9a9",
+        "TraceID": "LibraryRelease"
+      },
+      {
+        "UniquenessHash": "35758a81-621f-50b4-2b9e-db10d7ef1625",
+        "TraceID": "LibraryWorkerPoolInit"
+      },
+      {
+        "UniquenessHash": "4810c9e0-dcf7-bc55-81bb-684627b092b1",
+        "TraceID": "LibraryRundown"
+      },
+      {
+        "UniquenessHash": "ffc33ba8-4bc7-9e30-e207-f1d3cb6bb3f2",
+        "TraceID": "ListenerIndicateNewConnection"
+      },
+      {
+        "UniquenessHash": "2a7ce132-f946-ec7a-79f4-18f2efe3e781",
+        "TraceID": "ListenerNewConnectionPending"
+      },
+      {
+        "UniquenessHash": "1e177a53-4d41-51c1-4261-1d8b246402b8",
+        "TraceID": "ListenerNewConnectionAccepted"
+      },
+      {
+        "UniquenessHash": "2f8d153a-0fcd-a7fd-a5f2-48a05dfd9a40",
+        "TraceID": "NoSecurityConfigAvailable"
+      },
+      {
+        "UniquenessHash": "b5ee3b99-bc14-024e-4f0a-8be10e90a5fa",
+        "TraceID": "ListenerCreated"
+      },
+      {
+        "UniquenessHash": "c1f29de0-fe00-6ea3-b33e-690fb6e099d4",
+        "TraceID": "ListenerDestroyed"
+      },
+      {
+        "UniquenessHash": "f41800cd-1b46-84fe-faac-464cd08343fe",
+        "TraceID": "ListenerErrorStatus"
+      },
+      {
+        "UniquenessHash": "c11d30b9-28c1-6e74-528e-d5660eebfcc9",
+        "TraceID": "ListenerError"
+      },
+      {
+        "UniquenessHash": "da94a1b4-7135-7fd3-9216-36a5faf1ed7a",
+        "TraceID": "ListenerStopped"
+      },
+      {
+        "UniquenessHash": "8dacc12e-b838-4b2f-273b-77a730a20b87",
+        "TraceID": "ListenerRundown"
+      },
+      {
+        "UniquenessHash": "cbfa374b-8626-eaf8-52f1-dae0df48749f",
+        "TraceID": "LookupCidFound"
+      },
+      {
+        "UniquenessHash": "82888cbc-e68c-a952-e43d-d42bf53948b9",
+        "TraceID": "LookupCidNotFound"
+      },
+      {
+        "UniquenessHash": "e33648a6-65bb-f96c-5528-e402ebb146ee",
+        "TraceID": "LookupRemoteHashFound"
+      },
+      {
+        "UniquenessHash": "697ab833-df25-0d50-e74c-12ff19c95cbb",
+        "TraceID": "LookupRemoteHashNotFound"
+      },
+      {
+        "UniquenessHash": "93dcbb3d-c29c-d129-7b2a-9b78e14e2505",
+        "TraceID": "LookupCidInsert"
+      },
+      {
+        "UniquenessHash": "bb640c64-ae23-7de2-05b1-04e0b9831d6f",
+        "TraceID": "LookupRemoteHashInsert"
+      },
+      {
+        "UniquenessHash": "71715265-6b3f-5781-584b-ab51b0336c38",
+        "TraceID": "LookupCidRemoved"
+      },
+      {
+        "UniquenessHash": "5da7b422-0df0-5cbb-c439-cb34a08ccaeb",
+        "TraceID": "PacketTxDiscarded"
+      },
+      {
+        "UniquenessHash": "4f37e527-894d-f241-db09-d051de04cdb6",
+        "TraceID": "PacketTxLostDiscarded"
+      },
+      {
+        "UniquenessHash": "7f30b648-8f9c-dbba-7e8d-79e925332299",
+        "TraceID": "PacketTxForget"
+      },
+      {
+        "UniquenessHash": "139268a5-7543-71a7-dff5-c6f276821e71",
+        "TraceID": "PacketTxLostFack"
+      },
+      {
+        "UniquenessHash": "6dc5a6c7-b1a2-7553-3189-482e392c50e8",
+        "TraceID": "PacketTxLostRack"
+      },
+      {
+        "UniquenessHash": "d9674680-3227-ec67-7175-bd47736f1221",
+        "TraceID": "PacketTxAckedImplicit"
+      },
+      {
+        "UniquenessHash": "9d72c640-7512-38fd-8823-f24b7e1ad94c",
+        "TraceID": "PacketTx0RttRejected"
+      },
+      {
+        "UniquenessHash": "edcfe29b-2e36-30ba-6e64-181edf2f2e5c",
+        "TraceID": "PacketTxSpuriousLoss"
+      },
+      {
+        "UniquenessHash": "280a868f-caf8-d582-c6a7-2c2d896b0e5f",
+        "TraceID": "PacketTxAcked"
+      },
+      {
+        "UniquenessHash": "114eda6f-e346-6701-573c-ad9cdbd6e082",
+        "TraceID": "PacketTxProbeRetransmit"
+      },
+      {
+        "UniquenessHash": "eeb31991-927b-2f3c-bfb7-12b7dea50ead",
+        "TraceID": "HandshakeConfirmedAck"
+      },
+      {
+        "UniquenessHash": "3ab19fcb-a837-77d2-82e3-a62d0361d98f",
+        "TraceID": "PathValidationTimeout"
+      },
+      {
+        "UniquenessHash": "6bada4e0-06c8-4d7d-f2d7-eb0c307d483d",
+        "TraceID": "ScheduleProbe"
+      },
+      {
+        "UniquenessHash": "7b311464-a259-71d2-ad45-dc4707dbefcc",
+        "TraceID": "KeyChangeConfirmed"
+      },
+      {
+        "UniquenessHash": "ec1df2bc-58d0-6ba3-a0ed-0ea6117c7fe7",
+        "TraceID": "ConnLossDetectionTimerCancel"
+      },
+      {
+        "UniquenessHash": "dc75d9a9-d321-f77d-bb01-bf9cbcccfdb5",
+        "TraceID": "ConnLossDetectionTimerSet"
+      },
+      {
+        "UniquenessHash": "8b0f23a1-b574-3b36-3ad7-fa8d7786695a",
+        "TraceID": "ConnPacketLost"
+      },
+      {
+        "UniquenessHash": "26dded12-d106-a37b-0903-9a3cb98e3618",
+        "TraceID": "ConnPacketACKed"
+      },
+      {
+        "UniquenessHash": "05679666-5021-56bf-0a98-5c02ef0f0bff",
+        "TraceID": "LogPacketVersionNegotiation"
+      },
+      {
+        "UniquenessHash": "afa9276d-cc3c-6cb1-4df9-e4d2fdc0e66d",
+        "TraceID": "LogPacketVersionNegotiationVersion"
+      },
+      {
+        "UniquenessHash": "7eb61a02-54e5-87ff-96fd-1aa7a6f81569",
+        "TraceID": "LogPacketRetry"
+      },
+      {
+        "UniquenessHash": "bbda1fb7-53e6-9422-0733-3fb647dc08c2",
+        "TraceID": "LogPacketLongHeaderInitial"
+      },
+      {
+        "UniquenessHash": "dec52d9e-7e72-e564-5939-e9ea18608def",
+        "TraceID": "LogPacketLongHeader"
+      },
+      {
+        "UniquenessHash": "8800dba6-67c8-d4e4-65f2-a7e73639b324",
+        "TraceID": "LogPacketLongHeaderUnsupported"
+      },
+      {
+        "UniquenessHash": "9e1fbc05-e228-ec82-2670-42e49702aef4",
+        "TraceID": "LogPacketShortHeader"
+      },
+      {
+        "UniquenessHash": "91e6e3a1-830d-6ed9-b737-a6481ac8eb55",
+        "TraceID": "NoSrcCidAvailable"
+      },
+      {
+        "UniquenessHash": "03e79f57-89b7-b2d2-b13f-cb2f995b47cd",
+        "TraceID": "GetPacketTypeFailure"
+      },
+      {
+        "UniquenessHash": "afeabc8e-8a4f-dc8c-ea60-7b49babf6d1f",
+        "TraceID": "PacketBuilderNewDatagram"
+      },
+      {
+        "UniquenessHash": "82f1cecd-7200-a01b-1bf8-b1c01dcf4522",
+        "TraceID": "PacketBuilderNewPacket"
+      },
+      {
+        "UniquenessHash": "f2859068-aa3b-758e-45b8-db7e1bf4063f",
+        "TraceID": "PacketBuilderSendBatch"
+      },
+      {
+        "UniquenessHash": "8acd91f1-3c17-7458-fb5b-e3453f2825d3",
+        "TraceID": "ConnPacketSent"
+      },
+      {
+        "UniquenessHash": "607e449d-59a9-9d66-fcd1-b0a2e12f1dc1",
+        "TraceID": "PathInitialized"
+      },
+      {
+        "UniquenessHash": "2e3024b8-4329-c124-05b3-9801c51b9346",
+        "TraceID": "PathRemoved"
+      },
+      {
+        "UniquenessHash": "4ce67714-4e7b-0004-8559-eee9a101fe4b",
+        "TraceID": "PathValidated"
+      },
+      {
+        "UniquenessHash": "ec372104-72cb-c49c-d887-6610157e8ba9",
+        "TraceID": "PathActive"
+      },
+      {
+        "UniquenessHash": "cf0f3e68-b28d-2378-09be-480fa6147054",
+        "TraceID": "RegistrationVerifierEnabled"
+      },
+      {
+        "UniquenessHash": "71276afe-f6b2-286a-bc47-a9d4176e00a3",
+        "TraceID": "RegistrationCreated"
+      },
+      {
+        "UniquenessHash": "a4c92ffa-ea52-8ddc-f2d9-abc3de718bac",
+        "TraceID": "RegistrationCleanup"
+      },
+      {
+        "UniquenessHash": "6f6956ec-af60-d54a-176e-c9db6ac7a50a",
+        "TraceID": "RegistrationRundown"
+      },
+      {
+        "UniquenessHash": "c8982d54-5957-078c-2db7-dcfc5ff92003",
+        "TraceID": "SetSendFlag"
+      },
+      {
+        "UniquenessHash": "3a9eb05d-dcdf-b054-391e-e360e5d27e51",
+        "TraceID": "ClearSendFlags"
+      },
+      {
+        "UniquenessHash": "e4b7c3f7-0733-40b5-95d7-af81de6568ec",
+        "TraceID": "PathMtuUpdated"
+      },
+      {
+        "UniquenessHash": "5ce88c6c-6ea0-1f73-2a1f-15301e6565c2",
+        "TraceID": "CancelAckDelayTimer"
+      },
+      {
+        "UniquenessHash": "67214142-6506-1bc9-8571-1db21b754ea7",
+        "TraceID": "ScheduleSendFlags"
+      },
+      {
+        "UniquenessHash": "93fcf6ee-a709-3273-c039-2c2b81572b48",
+        "TraceID": "RemoveSendFlags"
+      },
+      {
+        "UniquenessHash": "4a595158-b864-777b-d90a-dbb944e765ac",
+        "TraceID": "FlushSend"
+      },
+      {
+        "UniquenessHash": "908d186e-4adc-6428-393d-cb3f4a90bdb3",
+        "TraceID": "AmplificationProtectionBlocked"
+      },
+      {
+        "UniquenessHash": "cd4142bd-57bd-ddd1-d16b-d811201c3d9f",
+        "TraceID": "SetPacingTimer"
+      },
+      {
+        "UniquenessHash": "6068f77b-96f9-706f-e3c0-02193c9c1c2a",
+        "TraceID": "SendFlushComplete"
+      },
+      {
+        "UniquenessHash": "3811b30b-84d6-43cc-8312-918d88c99d3e",
+        "TraceID": "StartAckDelayTimer"
+      },
+      {
+        "UniquenessHash": "1774df63-d849-a89c-4a88-bf2ff1002e15",
+        "TraceID": "ConnQueueSendFlush"
+      },
+      {
+        "UniquenessHash": "537b9c54-10f5-965c-b3e5-6e6e5c66dc85",
+        "TraceID": "IndicateIdealSendBuffer"
+      },
+      {
+        "UniquenessHash": "b1ccda4a-30c6-faa3-82e1-58f26a04fd3a",
+        "TraceID": "SessionOpenStorageFailed"
+      },
+      {
+        "UniquenessHash": "fd1dcb72-2e16-2303-9c6e-26ec454bad5b",
+        "TraceID": "SessionOpenAppStorageFailed"
+      },
+      {
+        "UniquenessHash": "003f6e08-f695-7465-a9f8-7cf5d278d40c",
+        "TraceID": "SessionSettingsUpdated"
+      },
+      {
+        "UniquenessHash": "b59dce87-a83c-5666-177a-33b2e923d7f1",
+        "TraceID": "SessionBiDiStreamCountSet"
+      },
+      {
+        "UniquenessHash": "eac9e3ea-5afd-27c1-ca5d-98b45ec5249e",
+        "TraceID": "SessionUniDiStreamCountSet"
+      },
+      {
+        "UniquenessHash": "b39a4626-172f-2a1b-0445-4f85d4a9cef4",
+        "TraceID": "SessionIdleTimeoutSet"
+      },
+      {
+        "UniquenessHash": "3eb2b58a-7fe2-2f50-d8b5-9cb1ac4b118e",
+        "TraceID": "SessionDisconnectTimeoutSet"
+      },
+      {
+        "UniquenessHash": "374333eb-afd7-c5f4-000a-c99886eecf1c",
+        "TraceID": "SessionMaxBytesPerKeySet"
+      },
+      {
+        "UniquenessHash": "cf50c39e-a1dc-26f4-76ae-9af915b90637",
+        "TraceID": "SessionMigrationEnabledSet"
+      },
+      {
+        "UniquenessHash": "6d4e7f68-5e0e-704a-b2e9-286af412d91b",
+        "TraceID": "SessionDatagramReceiveEnabledSet"
+      },
+      {
+        "UniquenessHash": "f214a949-859c-b672-e968-07517083599f",
+        "TraceID": "SessionServerResumptionLevelSet"
+      },
+      {
+        "UniquenessHash": "beb182bb-7f41-f3cf-e77a-ad0a0f1c1fa4",
+        "TraceID": "SessionCreated"
+      },
+      {
+        "UniquenessHash": "95031d15-4726-27c6-6968-bd42ae4a56b4",
+        "TraceID": "SessionDestroyed"
+      },
+      {
+        "UniquenessHash": "97ed84db-6299-0c17-382d-1a56cd9a0df9",
+        "TraceID": "SessionError"
+      },
+      {
+        "UniquenessHash": "b5a9abc4-9472-22be-72c8-9c20a5e11b83",
+        "TraceID": "SessionErrorStatus"
+      },
+      {
+        "UniquenessHash": "99b4b1e0-3664-72f3-d357-b343967e9f0d",
+        "TraceID": "SessionCleanup"
+      },
+      {
+        "UniquenessHash": "9bec5f10-1218-44b8-2370-fd6a7817fcfe",
+        "TraceID": "SessionShutdown"
+      },
+      {
+        "UniquenessHash": "9f017e81-6d92-3436-a8e5-023d33db9c0f",
+        "TraceID": "SessionRundown"
+      },
+      {
+        "UniquenessHash": "cf82c2cd-9f33-dd50-a621-e700bfc9069b",
+        "TraceID": "ConnUnregisterSession"
+      },
+      {
+        "UniquenessHash": "c4c6881d-2c1e-0b04-2d3d-c45c7fec76dc",
+        "TraceID": "SettingDumpPacingDefault"
+      },
+      {
+        "UniquenessHash": "340f2d77-e194-4320-a5cf-5bd9f81d8568",
+        "TraceID": "SettingDumpMigrationEnabled"
+      },
+      {
+        "UniquenessHash": "d4201eb3-a633-2e4e-e23a-2c5e045234fa",
+        "TraceID": "SettingDumpDatagramReceiveEnabled"
+      },
+      {
+        "UniquenessHash": "8ec2f3d9-be06-8705-d9ac-064897042254",
+        "TraceID": "SettingDumpMaxPartitionCount"
+      },
+      {
+        "UniquenessHash": "3fe22b95-e06c-01be-48f2-1bed9eb3def3",
+        "TraceID": "SettingDumpMaxOperationsPerDrain"
+      },
+      {
+        "UniquenessHash": "8dd44e38-a5b3-1ee8-e082-ff903f39f574",
+        "TraceID": "SettingDumpRetryMemoryLimit"
+      },
+      {
+        "UniquenessHash": "e4bd36f1-b2c4-a817-647c-b81bdaa7d40d",
+        "TraceID": "SettingDumpLoadBalancingMode"
+      },
+      {
+        "UniquenessHash": "e7d638ec-54bc-9c13-7b32-4cd766bbd4f2",
+        "TraceID": "SettingDumpMaxStatelessOperations"
+      },
+      {
+        "UniquenessHash": "113f784c-e4cf-2f59-57b6-42997504aab7",
+        "TraceID": "SettingDumpMaxWorkerQueueDelayUs"
+      },
+      {
+        "UniquenessHash": "04a58439-5787-a735-8226-ccfb3e8aea2f",
+        "TraceID": "SettingDumpInitialWindowPackets"
+      },
+      {
+        "UniquenessHash": "37fc9d5f-6438-780c-0f14-1574944068f3",
+        "TraceID": "SettingDumpSendIdleTimeoutMs"
+      },
+      {
+        "UniquenessHash": "52215359-317d-8ad1-0592-e3d99ffe9aae",
+        "TraceID": "SettingDumpInitialRttMs"
+      },
+      {
+        "UniquenessHash": "6dabe463-6d61-af2b-317e-28cfcb62e573",
+        "TraceID": "SettingDumpMaxAckDelayMs"
+      },
+      {
+        "UniquenessHash": "5bb1bd57-aefe-343c-87d3-c9a8bc30d2c4",
+        "TraceID": "SettingDumpDisconnectTimeoutMs"
+      },
+      {
+        "UniquenessHash": "c8a2ca5b-f27d-192b-af01-605c5ea507f0",
+        "TraceID": "SettingDumpKeepAliveIntervalMs"
+      },
+      {
+        "UniquenessHash": "6dccdcfe-fcee-6d2e-abe5-76250c180b56",
+        "TraceID": "SettingDumpIdleTimeoutMs"
+      },
+      {
+        "UniquenessHash": "155f7518-f6a7-c163-087f-cd860a6b3bb5",
+        "TraceID": "SettingDumpHandshakeIdleTimeoutMs"
+      },
+      {
+        "UniquenessHash": "698fdf44-609b-8dfa-6c5d-36ecf64c4729",
+        "TraceID": "SettingDumpBidiStreamCount"
+      },
+      {
+        "UniquenessHash": "a68e172d-dcc8-10c1-d4e9-52debec8756f",
+        "TraceID": "SettingDumpUnidiStreamCount"
+      },
+      {
+        "UniquenessHash": "4eaf58f9-d813-f2de-2388-6f550e14f27d",
+        "TraceID": "SettingDumpTlsClientMaxSendBuffer"
+      },
+      {
+        "UniquenessHash": "a53f1507-270d-73e4-9f2e-8e5f14603590",
+        "TraceID": "SettingDumpTlsServerMaxSendBuffer"
+      },
+      {
+        "UniquenessHash": "2da1de63-c2be-a594-45de-7dd6cb192b7e",
+        "TraceID": "SettingDumpStreamRecvWindowDefault"
+      },
+      {
+        "UniquenessHash": "6c0be7ae-fa32-3171-ddc0-837b5508deee",
+        "TraceID": "SettingDumpStreamRecvBufferDefault"
+      },
+      {
+        "UniquenessHash": "02965b16-a43a-3229-55bb-3e9398dc61f8",
+        "TraceID": "SettingDumpConnFlowControlWindow"
+      },
+      {
+        "UniquenessHash": "d4b04482-ccdf-9d2e-2664-801731ea151f",
+        "TraceID": "SettingDumpMaxBytesPerKey"
+      },
+      {
+        "UniquenessHash": "1695fe94-7146-5c58-1fa8-9364a932a773",
+        "TraceID": "SettingDumpServerResumptionLevel"
+      },
+      {
+        "UniquenessHash": "f96b231c-aa1b-08a4-7036-a60927e3eadd",
+        "TraceID": "CloseWithoutShutdown"
+      },
+      {
+        "UniquenessHash": "21a2e517-42a5-1d18-885f-8b57b79a2fba",
+        "TraceID": "EventSilentDiscard"
+      },
+      {
+        "UniquenessHash": "f6a10aa5-a444-631e-8d6f-de27fd8a5565",
+        "TraceID": "IndicateStartComplete"
+      },
+      {
+        "UniquenessHash": "0640b2d1-a929-3d01-b4c9-08733e3f0196",
+        "TraceID": "IndicateStreamShutdownComplete"
+      },
+      {
+        "UniquenessHash": "cfaab7b3-b77b-3a94-a433-4c9b57907696",
+        "TraceID": "StreamDestroyed"
+      },
+      {
+        "UniquenessHash": "ba0612b6-86a7-d764-ac9e-bbd12eeb0dca",
+        "TraceID": "StreamCreated"
+      },
+      {
+        "UniquenessHash": "0a4d4b4f-3622-3e1b-99be-acf0719d1bdf",
+        "TraceID": "StreamSendState"
+      },
+      {
+        "UniquenessHash": "89b5a6dc-7445-0b70-6a73-ff28d3f78246",
+        "TraceID": "StreamRecvState"
+      },
+      {
+        "UniquenessHash": "638251a8-14f3-2929-34e2-e69cfdab2277",
+        "TraceID": "StreamOutFlowBlocked"
+      },
+      {
+        "UniquenessHash": "c91c925c-07e9-3204-5459-5d3b19d137d8",
+        "TraceID": "StreamRundown"
+      },
+      {
+        "UniquenessHash": "1f2558ac-412e-da8c-33d7-7c45995dbcf9",
+        "TraceID": "ResetEarly"
+      },
+      {
+        "UniquenessHash": "a3253f53-3e9c-4e45-d114-c4e99cd3cdc6",
+        "TraceID": "ResetTooBig"
+      },
+      {
+        "UniquenessHash": "933b832f-9c45-2489-6266-de2ff7e2ac21",
+        "TraceID": "ReceiveTooBig"
+      },
+      {
+        "UniquenessHash": "d88819df-486c-d38b-2df6-d9045a4030f3",
+        "TraceID": "ReceiveBeyondFlowControl"
+      },
+      {
+        "UniquenessHash": "f98444b3-dd05-091c-103a-1bab97f2c4ba",
+        "TraceID": "RemoteCloseReset"
+      },
+      {
+        "UniquenessHash": "3d930671-e549-968b-fcba-6e7691ee9678",
+        "TraceID": "LocalCloseStopSending"
+      },
+      {
+        "UniquenessHash": "80596bbb-20e9-07e5-07f3-ebc7078fa612",
+        "TraceID": "QueueRecvFlush"
+      },
+      {
+        "UniquenessHash": "5b791afd-1ad0-2715-7c99-2671ee5be40e",
+        "TraceID": "IndicatePeerSendAbort"
+      },
+      {
+        "UniquenessHash": "87c746b1-6bb4-6173-0f4e-f918641d4b80",
+        "TraceID": "IndicatePeerReceiveAborted"
+      },
+      {
+        "UniquenessHash": "337f803e-406e-0817-5804-7273bf3a07ec",
+        "TraceID": "FlowControlExhausted"
+      },
+      {
+        "UniquenessHash": "84eb0d5c-ea47-1349-64a1-66146e94d06e",
+        "TraceID": "Receive"
+      },
+      {
+        "UniquenessHash": "90a48bef-0658-1e75-8afa-d4fff8d929bf",
+        "TraceID": "RemoteBlocked"
+      },
+      {
+        "UniquenessHash": "5d5005c9-b064-899a-abec-29608ab4c745",
+        "TraceID": "IncreaseRxBuffer"
+      },
+      {
+        "UniquenessHash": "7b3aad91-15b8-6d79-7ad7-f634248db148",
+        "TraceID": "UpdateFlowControl"
+      },
+      {
+        "UniquenessHash": "b7d10598-79a4-31fa-8455-0d393b45c1e7",
+        "TraceID": "IgnoreRecvFlush"
+      },
+      {
+        "UniquenessHash": "e4987d94-23ad-702c-46c0-5e0ae549c4b7",
+        "TraceID": "IndicateReceive"
+      },
+      {
+        "UniquenessHash": "ce1008cb-0d5e-dd9c-0714-8d37be5b7d60",
+        "TraceID": "ReceiveComplete"
+      },
+      {
+        "UniquenessHash": "7b23cd90-0d41-8339-9622-e84277f95b5d",
+        "TraceID": "IndicatePeerSendShutdown"
+      },
+      {
+        "UniquenessHash": "e7d79111-7d5f-45a3-50b8-e4ca6de3c081",
+        "TraceID": "IndicateSendShutdownComplete"
+      },
+      {
+        "UniquenessHash": "5d9c2923-02fa-cd5d-1329-6a4b2a81cf37",
+        "TraceID": "IndicateSendCanceled"
+      },
+      {
+        "UniquenessHash": "a667dea0-1637-af92-3e52-b3d9824c4b35",
+        "TraceID": "IndicateSendComplete"
+      },
+      {
+        "UniquenessHash": "17bf6c28-0f23-8f48-f293-61afc78f4b87",
+        "TraceID": "SendQueued"
+      },
+      {
+        "UniquenessHash": "070e88f9-a986-449f-b2d9-645e7fd659cb",
+        "TraceID": "NoMoreRoom"
+      },
+      {
+        "UniquenessHash": "574dff3c-b925-a925-a951-10832b2c67c6",
+        "TraceID": "NoMoreFrames"
+      },
+      {
+        "UniquenessHash": "7e19b197-b355-123d-115c-3c441b51b116",
+        "TraceID": "AddFrame"
+      },
+      {
+        "UniquenessHash": "cb6d043b-5ace-d8a5-3168-f60061823b3e",
+        "TraceID": "RecoverOpen"
+      },
+      {
+        "UniquenessHash": "2df32de8-d3e1-79f9-8d4f-f4f9c1fc8955",
+        "TraceID": "RecoverFin"
+      },
+      {
+        "UniquenessHash": "bf0a689f-15ce-34a3-a5bd-a09596792886",
+        "TraceID": "RecoverRange"
+      },
+      {
+        "UniquenessHash": "79ffdfe4-2d35-3e89-ccb1-9617b2c74c00",
+        "TraceID": "AckRange"
+      },
+      {
+        "UniquenessHash": "0d9cddd5-17e7-d796-fa49-7f3450287fa6",
+        "TraceID": "Send0RttUpdated"
+      },
+      {
+        "UniquenessHash": "bd391397-df8d-a396-230b-c7846fcbda3b",
+        "TraceID": "SendQueueDrained"
+      },
+      {
+        "UniquenessHash": "11454ad7-905b-ea01-1cdd-f9918ca502dc",
+        "TraceID": "SendDump"
+      },
+      {
+        "UniquenessHash": "b5af9a64-4d59-3aa3-f0d4-abcbbbfd0329",
+        "TraceID": "SendDumpAck"
+      },
+      {
+        "UniquenessHash": "48b0b691-89c1-4bb2-1ba4-5bc91586b2b3",
+        "TraceID": "NotAccepted"
+      },
+      {
+        "UniquenessHash": "418770bb-5594-978f-0b62-4bb47315bfa1",
+        "TraceID": "MaxStreamCountUpdated"
+      },
+      {
+        "UniquenessHash": "4d2f7315-100a-d85f-c10c-0b5f037df46a",
+        "TraceID": "IndicateStreamsAvailable"
+      },
+      {
+        "UniquenessHash": "f717f17f-99ed-acb7-9a3c-098e69d13a4a",
+        "TraceID": "PeerStreamCountsUpdated"
+      },
+      {
+        "UniquenessHash": "c5a168ed-97fa-1cb7-3c3f-15762d9e402a",
+        "TraceID": "IndicatePeerStreamStarted"
+      },
+      {
+        "UniquenessHash": "f1df9958-6255-24ce-540f-df464661f666",
+        "TraceID": "TimerWheelResize"
+      },
+      {
+        "UniquenessHash": "f1a743ba-eff3-ee06-cb54-49ef20ca85ea",
+        "TraceID": "TimerWheelNextExpirationNull"
+      },
+      {
+        "UniquenessHash": "db41669b-3e8f-05ca-4ac2-2c194cce7b51",
+        "TraceID": "TimerWheelNextExpiration"
+      },
+      {
+        "UniquenessHash": "cb91e066-b3cd-a009-a0f8-48d01b26d9a8",
+        "TraceID": "TimerWheelRemoveConnection"
+      },
+      {
+        "UniquenessHash": "c3b6de49-9be3-fc4b-7a9c-fb8402d1d1f6",
+        "TraceID": "TimerWheelUpdateConnection"
+      },
+      {
+        "UniquenessHash": "badaa7e5-aa9e-7979-b334-154a884827b6",
+        "TraceID": "StillInTimerWheel"
+      },
+      {
+        "UniquenessHash": "572f7bb6-23fa-8f9a-25cd-2098fb307a5c",
+        "TraceID": "IndicateIdealProcChanged"
+      },
+      {
+        "UniquenessHash": "2104f4e7-9cc0-74bc-f4b5-dfc645b5642a",
+        "TraceID": "AbandonOnLibShutdown"
+      },
+      {
+        "UniquenessHash": "b60b7439-8fc3-c165-28b5-ceb75cedf2e3",
+        "TraceID": "WorkerCreated"
+      },
+      {
+        "UniquenessHash": "07e794d9-3f9b-61ce-b0b8-af3cc9d92ebe",
+        "TraceID": "WorkerErrorStatus"
+      },
+      {
+        "UniquenessHash": "04d9796b-69cf-902e-3525-738196a13977",
+        "TraceID": "WorkerCleanup"
+      },
+      {
+        "UniquenessHash": "040cdcdf-a76c-26b5-a4d6-36222cd2abdb",
+        "TraceID": "WorkerDestroyed"
+      },
+      {
+        "UniquenessHash": "42b9c102-5000-2886-e38e-f8b94d09dfa1",
+        "TraceID": "ConnScheduleState"
+      },
+      {
+        "UniquenessHash": "c50d7d7b-5ea5-6f62-b2c8-8e06a5684266",
+        "TraceID": "WorkerActivityStateUpdated"
+      },
+      {
+        "UniquenessHash": "e1a37301-aaf6-2912-f408-1d81199cc4e6",
+        "TraceID": "WorkerQueueDelayUpdated"
+      },
+      {
+        "UniquenessHash": "be2a8e4f-7708-e894-48df-762d926dac26",
+        "TraceID": "WorkerStart"
+      },
+      {
+        "UniquenessHash": "2a4c81a8-bf45-5d2a-fa79-dc075733386b",
+        "TraceID": "WorkerStop"
+      },
+      {
+        "UniquenessHash": "4ef04b3e-7dde-88ad-60eb-150c807af68f",
+        "TraceID": "ConnExecApiOper"
+      },
+      {
+        "UniquenessHash": "2f8e5304-312b-2633-ee2b-def9ea2e0e72",
+        "TraceID": "ConnExecOper"
+      },
+      {
+        "UniquenessHash": "9165bf3c-da91-8d88-41bc-6709ad299bed",
+        "TraceID": "ConnOutFlowStats"
+      },
+      {
+        "UniquenessHash": "55425e95-f2a7-6b0d-41e9-82bdeb5d9082",
+        "TraceID": "ConnOutFlowStreamStats"
+      },
+      {
+        "UniquenessHash": "5e524dd5-fea0-3816-a291-92ed85eab29d",
+        "TraceID": "ConnInFlowStats"
+      },
+      {
+        "UniquenessHash": "7a9075aa-0c84-7fed-6142-be1d15c7f7dd",
+        "TraceID": "ConnStats"
+      },
+      {
+        "UniquenessHash": "86c5e382-0fbb-1fd6-cdaa-a3d988861364",
+        "TraceID": "ConnPacketStats"
+      },
+      {
+        "UniquenessHash": "11964356-1a57-bc4d-0637-9300c14e0cb9",
+        "TraceID": "ConnOutFlowBlocked"
+      },
+      {
+        "UniquenessHash": "64ef2389-7553-24d5-62f5-94fa1ab55eac",
+        "TraceID": "StubTlsCertValidationDisabled"
+      },
+      {
+        "UniquenessHash": "ae0cc427-609d-ce4f-004d-6ef2c2d6c540",
+        "TraceID": "StubTlsContextReset"
+      },
+      {
+        "UniquenessHash": "2ca06c46-059c-c3e2-a6db-dc8f0d6292eb",
+        "TraceID": "StubTlsHandshakeComplete"
+      },
+      {
+        "UniquenessHash": "27a202b6-2090-aed6-26c8-4b193f0cb901",
+        "TraceID": "StubTlsConsumedData"
+      },
+      {
+        "UniquenessHash": "8671265f-83a7-8d8f-4fac-ea0d14b9da84",
+        "TraceID": "StubTlsProducedData"
+      },
+      {
+        "UniquenessHash": "df763e59-5b73-45da-9374-93b112b3ad87",
+        "TraceID": "StubTlsContextCreated"
+      },
+      {
+        "UniquenessHash": "16a301c5-8f8d-0d34-6fb9-0a608367097e",
+        "TraceID": "StubTlsUsing0Rtt"
+      },
+      {
+        "UniquenessHash": "068a93f4-8ad9-2eae-53e9-44da62c39494",
+        "TraceID": "StubTlsContextCleaningUp"
+      },
+      {
+        "UniquenessHash": "0b1951ab-04a5-27f1-86ca-0dc9d53ba837",
+        "TraceID": "StubTlsRecvNewSessionTicket"
+      },
+      {
+        "UniquenessHash": "9b5f99a0-b1b6-bae7-12fd-89f89d1f1667",
+        "TraceID": "StubTlsProcessData"
+      },
+      {
+        "UniquenessHash": "ba8f7a88-fc0f-b8fc-30a8-bdb33e21fd5b",
+        "TraceID": "StubTlsReadTicket"
+      },
+      {
+        "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
+        "TraceID": "LibraryError"
+      },
+      {
+        "UniquenessHash": "9eac4540-061f-ff2b-c104-5c1e1b8b22b6",
+        "TraceID": "TlsError"
+      },
+      {
+        "UniquenessHash": "7312d23f-2305-b54b-e1da-81597fabe281",
+        "TraceID": "TlsErrorStatus"
+      },
+      {
+        "UniquenessHash": "eca69f63-4fd1-2302-5724-89ca1189754e",
+        "TraceID": "DatapathCreate"
+      },
+      {
+        "UniquenessHash": "8200b193-6dab-1cc4-e8c0-c7963434388c",
+        "TraceID": "DatapathWorkerThreadStart"
+      },
+      {
+        "UniquenessHash": "8db9f276-e7e4-a879-8d66-04c080b4ed22",
+        "TraceID": "DatapathWorkerThreadStop"
+      },
+      {
+        "UniquenessHash": "5b32401b-1842-9af0-ebab-67d1baf8fc7a",
+        "TraceID": "DatapathShuttingDown"
+      },
+      {
+        "UniquenessHash": "288834d5-3dac-d5c7-9149-5b3ecae18f47",
+        "TraceID": "DatapathSendToCompleted"
+      },
+      {
+        "UniquenessHash": "83724b51-cf73-026c-4a26-055e061654e4",
+        "TraceID": "DatapathSendMsgCompleted"
+      },
+      {
+        "UniquenessHash": "8c0dc882-517e-cd8f-df0b-0b892d83bb00",
+        "TraceID": "DatapathResolveHostNameFailed"
+      },
+      {
+        "UniquenessHash": "0592002f-39b9-c666-727b-d92cd6fb7eeb",
+        "TraceID": "DatapathErrorStatus"
+      },
+      {
+        "UniquenessHash": "681db658-c247-7951-8110-1c361bf69097",
+        "TraceID": "LibraryAssert"
+      },
+      {
+        "UniquenessHash": "76b54d32-001b-12e0-4e99-d29d2640eaeb",
+        "TraceID": "TestScopeEntry"
+      },
+      {
+        "UniquenessHash": "dcfcaf50-a07f-c426-e2fb-f19b77811e65",
+        "TraceID": "TestScopeExit"
+      },
+      {
+        "UniquenessHash": "1dfb652d-bf04-b3c5-5037-a1d7659e3d23",
+        "TraceID": "TestHookRegister"
+      },
+      {
+        "UniquenessHash": "b00f19a5-597a-64dd-4bab-fa3e383ea688",
+        "TraceID": "TestHookUnregistering"
+      },
+      {
+        "UniquenessHash": "35fe1a4b-cb88-2161-ef4b-e6d0c78186f5",
+        "TraceID": "TestHookUnregistered"
+      },
+      {
+        "UniquenessHash": "ccf24f92-4b3c-0f17-5c84-1d454a788837",
+        "TraceID": "TestHookDropPacketRandom"
+      },
+      {
+        "UniquenessHash": "ce814b3f-616f-bb09-3743-9c2879fd97a4",
+        "TraceID": "TestHookDropPacketSelective"
+      },
+      {
+        "UniquenessHash": "28d71381-a26c-3f0b-e2a9-1a97c3be08e2",
+        "TraceID": "TestHookReplaceAddrRecv"
+      },
+      {
+        "UniquenessHash": "5d176d92-2974-c576-9dba-202db86131f2",
+        "TraceID": "TestHookReplaceAddrSend"
+      },
+      {
+        "UniquenessHash": "861bbb4e-e371-4334-b45d-03199c1cacda",
+        "TraceID": "TestHookDropOldAddrSend"
+      },
+      {
+        "UniquenessHash": "8b50bb5d-c66e-e93c-55cd-253b3af4d510",
+        "TraceID": "TestHookDropLimitAddrRecv"
+      },
+      {
+        "UniquenessHash": "78d1c2fe-fbce-b603-004e-f2026093416c",
+        "TraceID": "TestHookDropLimitAddrSend"
+      },
+      {
+        "UniquenessHash": "f4248703-23be-e418-2b90-c9670966f154",
+        "TraceID": "TestIgnoreConnectionTimeout"
+      },
+      {
+        "UniquenessHash": "75b94a49-9bfe-7be0-7756-8f014aeeddba",
+        "TraceID": "TestCaseStart"
+      },
+      {
+        "UniquenessHash": "b79cc8df-4d28-f459-11b2-ba8160512a09",
+        "TraceID": "TestCaseEnd"
+      },
+      {
+        "UniquenessHash": "cf26e1f0-583d-ec79-4a49-8e398f9883b0",
+        "TraceID": "TestCaseTStart"
+      },
+      {
+        "UniquenessHash": "36ce89a9-c16e-d08a-4bea-f8e25c22d2ce",
+        "TraceID": "TestCaseTEnd"
+      },
+      {
+        "UniquenessHash": "3928cc2f-84c2-48ac-845b-40781cf8021b",
+        "TraceID": "TestLogFailure"
+      }
+    ]
   }
 }

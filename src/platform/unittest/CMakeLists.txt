@@ -10,7 +10,7 @@ set(SOURCES
 )
 
 # Allow CLOG to preprocess all the source files.
-add_clog_library(msquicplatformtest.clog STATIC ${SOURCES})
+add_clog_library(msquicplatformtest.clog SHARED ${SOURCES})
 
 add_executable(msquicplatformtest ${SOURCES})
 
