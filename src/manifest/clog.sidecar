@@ -21614,6 +21614,70 @@
       {
         "UniquenessHash": "c9893cd3-8c87-7d0b-9dac-0271871ca855",
         "TraceID": "DatapathSendFromTo"
+      },
+      {
+        "UniquenessHash": "c7b17ffc-7649-6294-b6d0-cf4bbf4bc8cb",
+        "TraceID": "OpenSslAlert"
+      },
+      {
+        "UniquenessHash": "04956959-ecb5-9bea-dd79-ca22765f2c95",
+        "TraceID": "OpenSslHandshakeErrorStr"
+      },
+      {
+        "UniquenessHash": "f80224e1-7ca4-27b8-154f-fc7e85e79ec7",
+        "TraceID": "OpenSslHandshakeError"
+      },
+      {
+        "UniquenessHash": "c279cde0-f02f-b00b-6d26-e4b9b7a7f136",
+        "TraceID": "OpenSslAlpnNegotiationFailure"
+      },
+      {
+        "UniquenessHash": "9db25efa-f88e-4060-209f-1512595e2e48",
+        "TraceID": "OpenSslInvalidAlpnLength"
+      },
+      {
+        "UniquenessHash": "ae3edb31-740c-da1e-7beb-1413f94a5af4",
+        "TraceID": "OpenSslNoMatchingAlpn"
+      },
+      {
+        "UniquenessHash": "b75cb1a1-4f18-b079-1f2f-c85b209e0bb2",
+        "TraceID": "OpenSslMissingTransportParameters"
+      },
+      {
+        "UniquenessHash": "adea8fef-9bdf-e9d9-63f2-64fefaea1bde",
+        "TraceID": "OpenSslHandshakeDataStart"
+      },
+      {
+        "UniquenessHash": "eaede67a-124b-3b3f-95ba-363d08546d2a",
+        "TraceID": "OpenSsl1RttDataStart"
+      },
+      {
+        "UniquenessHash": "c4429bfe-e7df-7623-090b-4ab09187da8f",
+        "TraceID": "OpenSslContextReset"
+      },
+      {
+        "UniquenessHash": "a02a0e9d-57cd-0abf-1cd9-5a46076919b2",
+        "TraceID": "OpenSslHandshakeComplete"
+      },
+      {
+        "UniquenessHash": "e9fe92dd-5582-f430-a385-ab63ebfd22c8",
+        "TraceID": "OpenSslNewEncryptionSecrets"
+      },
+      {
+        "UniquenessHash": "286da584-4057-1b9b-c98f-83b7b936af68",
+        "TraceID": "OpenSslAddHandshakeData"
+      },
+      {
+        "UniquenessHash": "4da3df45-2fb3-acc2-d0d8-9326e14a8988",
+        "TraceID": "OpenSslContextCreated"
+      },
+      {
+        "UniquenessHash": "a241a44d-19e5-3ddd-03b3-2e65b093720f",
+        "TraceID": "OpenSslContextCleaningUp"
+      },
+      {
+        "UniquenessHash": "600cb518-6c6b-9443-6433-6655b76f2cdc",
+        "TraceID": "OpenSslProcessData"
       }
     ]
   }
