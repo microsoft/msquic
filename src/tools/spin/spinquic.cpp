@@ -17,20 +17,8 @@
 #define QUIC_API_ENABLE_INSECURE_FEATURES 1 // Needed for disabling 1-RTT encryption
 #include <msquichelper.h>
 
-#define EXIT_ON_FAILURE(x) do { \
-    auto _Status = x; \
-    if (QUIC_FAILED(_Status)) { \
-       printf("%s:%d %s failed!\n", __FILE__, __LINE__, #x); \
-       exit(10); \
-    } \
-} while (0);
-
-#define EXIT_ON_NOT(x) do { \
-    if (!(x)) { \
-       printf("%s:%d !'%s' !\n", __FILE__, __LINE__, #x); \
-       exit(10); \
-    } \
-} while (0);
+#define ASSERT_ON_FAILURE(x) QUIC_FRE_ASSERT(QUIC_SUCCEEDED(x))
+#define ASSERT_ON_NOT(x) QUIC_FRE_ASSERT(x)
 
 template<typename T>
 T GetRandom(T UpperBound) {
@@ -85,7 +73,7 @@ public:
         Config.Name = "spin_watchdog";
         Config.Callback = WatchdogThreadCallback;
         Config.Context = this;
-        EXIT_ON_FAILURE(QuicThreadCreate(&Config, &WatchdogThread));
+        ASSERT_ON_FAILURE(QuicThreadCreate(&Config, &WatchdogThread));
     }
     ~SpinQuicWatchdog() {
         QuicEventSet(ShutdownEvent);
@@ -451,20 +439,24 @@ const uint32_t ParamCounts[] = {
     QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION + 1
 };
 
+#define GET_PARAM_LOOP_COUNT 10
+
 void SpinQuicGetRandomParam(HQUIC Connection)
 {
-    QUIC_PARAM_LEVEL Level = (QUIC_PARAM_LEVEL)GetRandom(5);
-    uint32_t Param = (uint32_t)GetRandom(ParamCounts[Level]);
+    for (uint32_t i = 0; i < GET_PARAM_LOOP_COUNT; ++i) {
+        QUIC_PARAM_LEVEL Level = (QUIC_PARAM_LEVEL)GetRandom(5);
+        uint32_t Param = (uint32_t)GetRandom(ParamCounts[Level] + 1);
 
-    uint8_t OutBuffer[512];
-    uint32_t OutBufferLength = (uint32_t)GetRandom(sizeof(OutBuffer) + 1);
+        uint8_t OutBuffer[200];
+        uint32_t OutBufferLength = (uint32_t)GetRandom(sizeof(OutBuffer) + 1);
 
-    MsQuic->GetParam(
-        (Level == QUIC_PARAM_LEVEL_GLOBAL) ? nullptr : Connection,
-        Level,
-        Param,
-        &OutBufferLength,
-        (GetRandom(10) == 0) ? nullptr : OutBuffer);
+        MsQuic->GetParam(
+            (GetRandom(10) == 0) ? nullptr : Connection,
+            Level,
+            Param,
+            &OutBufferLength,
+            (GetRandom(10) == 0) ? nullptr : OutBuffer);
+    }
 }
 
 void Spin(LockableVector<HQUIC>& Connections, bool IsServer)
@@ -619,11 +611,11 @@ QUIC_THREAD_CALLBACK(ServerSpin, Context)
     //
 
     auto SelfSignedCertParams = QuicPlatGetSelfSignedCert(QUIC_SELF_SIGN_CERT_USER);
-    EXIT_ON_NOT(SelfSignedCertParams);
+    ASSERT_ON_NOT(SelfSignedCertParams);
 
     QUIC_EVENT Event;
     QuicEventInitialize(&Event, FALSE, FALSE);
-    EXIT_ON_FAILURE(
+    ASSERT_ON_FAILURE(
         MsQuic->SecConfigCreate(
             Registration,
             (QUIC_SEC_CONFIG_FLAGS)SelfSignedCertParams->Flags,
@@ -634,19 +626,19 @@ QUIC_THREAD_CALLBACK(ServerSpin, Context)
     QuicEventWaitForever(Event);
     QuicEventUninitialize(Event);
 
-    EXIT_ON_NOT(GlobalSecurityConfig);
+    ASSERT_ON_NOT(GlobalSecurityConfig);
 
     std::vector<HQUIC> Listeners;
     for (auto &session : Sessions) {
         for (auto &pt : Settings.Ports) {
             HQUIC Listener;
-            EXIT_ON_FAILURE(MsQuic->ListenerOpen(session, SpinQuicServerHandleListenerEvent, &Connections, &Listener));
+            ASSERT_ON_FAILURE(MsQuic->ListenerOpen(session, SpinQuicServerHandleListenerEvent, &Connections, &Listener));
 
             QUIC_ADDR sockAddr = { 0 };
             QuicAddrSetFamily(&sockAddr, GetRandom(2) ? AF_INET : AF_UNSPEC);
             QuicAddrSetPort(&sockAddr, pt);
 
-            EXIT_ON_FAILURE(MsQuic->ListenerStart(Listener, &sockAddr));
+            ASSERT_ON_FAILURE(MsQuic->ListenerStart(Listener, &sockAddr));
             Listeners.push_back(Listener);
         }
     }
@@ -815,10 +807,10 @@ main(int argc, char **argv)
         for (size_t i = 0; i < BufferCount; ++i) {
             Buffers[i].Length = MaxBufferSizes[i]; // TODO - Randomize?
             Buffers[i].Buffer = (uint8_t*)malloc(Buffers[i].Length);
-            EXIT_ON_NOT(Buffers[i].Buffer);
+            ASSERT_ON_NOT(Buffers[i].Buffer);
         }
 
-        EXIT_ON_FAILURE(MsQuicOpen(&MsQuic));
+        ASSERT_ON_FAILURE(MsQuicOpen(&MsQuic));
 
         if (Settings.LossPercent != 0) {
             QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathHooks;
@@ -833,8 +825,21 @@ main(int argc, char **argv)
             }
         }
 
-        const QUIC_REGISTRATION_CONFIG RegConfig = { "spinquic", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
-        EXIT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
+        if (0 == GetRandom(4)) {
+            uint16_t RetryMemoryPercent = 0;
+            ASSERT_ON_FAILURE(MsQuic->SetParam(nullptr, QUIC_PARAM_LEVEL_GLOBAL, QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT, sizeof(RetryMemoryPercent), &RetryMemoryPercent));
+        }
+
+        if (0 == GetRandom(4)) {
+            uint16_t LoadBalancingMode = QUIC_LOAD_BALANCING_SERVER_ID_IP;
+            ASSERT_ON_FAILURE(MsQuic->SetParam(nullptr, QUIC_PARAM_LEVEL_GLOBAL, QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE, sizeof(LoadBalancingMode), &LoadBalancingMode));
+        }
+
+        QUIC_REGISTRATION_CONFIG RegConfig;
+        RegConfig.AppName = "spinquic";
+        RegConfig.ExecutionProfile = (QUIC_EXECUTION_PROFILE)GetRandom(4);
+
+        ASSERT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
 
         if (SessionCount == 1) {
             QUIC_BUFFER AlpnBuffer;
@@ -842,19 +847,19 @@ main(int argc, char **argv)
             AlpnBuffer.Buffer = (uint8_t*)Settings.AlpnPrefix;
 
             HQUIC Session;
-            EXIT_ON_FAILURE(MsQuic->SessionOpen(Registration, &AlpnBuffer, 1, nullptr, &Session));
+            ASSERT_ON_FAILURE(MsQuic->SessionOpen(Registration, &AlpnBuffer, 1, nullptr, &Session));
             Sessions.push_back(Session);
 
             // Configure Session
             auto PeerStreamCount = GetRandom((uint16_t)10);
-            EXIT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
-            EXIT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
+            ASSERT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
+            ASSERT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
 
         } else {
             QUIC_BUFFER AlpnBuffer;
             AlpnBuffer.Length = (uint32_t)strlen(Settings.AlpnPrefix) + 1; // You can't have more than 2^8 SessionCount. :)
             AlpnBuffer.Buffer = (uint8_t*)malloc(AlpnBuffer.Length);
-            EXIT_ON_NOT(AlpnBuffer.Buffer);
+            ASSERT_ON_NOT(AlpnBuffer.Buffer);
             memcpy(AlpnBuffer.Buffer, Settings.AlpnPrefix, AlpnBuffer.Length);
 
             for (uint32_t i = 0; i < SessionCount; i++) {
@@ -862,13 +867,13 @@ main(int argc, char **argv)
                 AlpnBuffer.Buffer[AlpnBuffer.Length-1] = (uint8_t)i;
 
                 HQUIC Session;
-                EXIT_ON_FAILURE(MsQuic->SessionOpen(Registration, &AlpnBuffer, 1, nullptr, &Session));
+                ASSERT_ON_FAILURE(MsQuic->SessionOpen(Registration, &AlpnBuffer, 1, nullptr, &Session));
                 Sessions.push_back(Session);
 
                 // Configure Session
                 auto PeerStreamCount = GetRandom((uint16_t)10);
-                EXIT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
-                EXIT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
+                ASSERT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
+                ASSERT_ON_FAILURE(MsQuic->SetParam(Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, sizeof(PeerStreamCount), &PeerStreamCount));
             }
 
             free(AlpnBuffer.Buffer);
@@ -886,13 +891,13 @@ main(int argc, char **argv)
         if (RunServer) {
             Config.Name = "spin_server";
             Config.Callback = ServerSpin;
-            EXIT_ON_FAILURE(QuicThreadCreate(&Config, &Threads[0]));
+            ASSERT_ON_FAILURE(QuicThreadCreate(&Config, &Threads[0]));
         }
 
         if (RunClient) {
             Config.Name = "spin_client";
             Config.Callback = ClientSpin;
-            EXIT_ON_FAILURE(QuicThreadCreate(&Config, &Threads[1]));
+            ASSERT_ON_FAILURE(QuicThreadCreate(&Config, &Threads[1]));
         }
 
         //

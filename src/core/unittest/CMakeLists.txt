@@ -5,6 +5,7 @@ set(SOURCES
     main.cpp
     FrameTest.cpp
     PacketNumberTest.cpp
+    PartitionTest.cpp
     RangeTest.cpp
     SpinFrame.cpp
     TransportParamTest.cpp
