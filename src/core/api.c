@@ -72,6 +72,7 @@ MsQuicConnectionOpen(
     QuicRegistrationQueueNewConnection(Session->Registration, Connection);
 
     *NewConnection = (HQUIC)Connection;
+    Status = QUIC_STATUS_SUCCESS;
 
 Error:
 

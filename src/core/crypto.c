@@ -108,7 +108,6 @@ QuicCryptoInitialize(
             QUIC_MAX_TLS_CLIENT_SEND_BUFFER : QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE;
     const uint8_t* HandshakeCid;
     uint8_t HandshakeCidLength;
-    BOOLEAN SparseAckRangesInitialized = FALSE;
     BOOLEAN RecvBufferInitialized = FALSE;
 
     const uint8_t* Salt = QuicSupportedVersionList[0].Salt; // Default to latest
@@ -121,7 +120,10 @@ QuicCryptoInitialize(
 
     QUIC_PASSIVE_CODE();
 
-    QuicZeroMemory(Crypto, sizeof(QUIC_CRYPTO));
+    QuicZeroMemory(Crypto, sizeof(QUIC_CRYPTO)); // TODO - Unnecessary as the parent Connection was already zeroed out?
+    QuicRangeInitialize(
+        QUIC_MAX_RANGE_ALLOC_SIZE,
+        &Crypto->SparseAckRanges);
 
     Crypto->TlsState.BufferAllocLength = SendBufferLength;
     Crypto->TlsState.Buffer = QUIC_ALLOC_NONPAGED(SendBufferLength);
@@ -135,14 +137,9 @@ QuicCryptoInitialize(
         goto Exit;
     }
 
-    Status =
-        QuicRangeInitialize(
-            QUIC_MAX_RANGE_ALLOC_SIZE,
-            &Crypto->SparseAckRanges);
-    if (QUIC_FAILED(Status)) {
-        goto Exit;
-    }
-    SparseAckRangesInitialized = TRUE;
+    QuicRangeInitialize(
+        QUIC_MAX_RANGE_ALLOC_SIZE,
+        &Crypto->SparseAckRanges);
 
     Status =
         QuicRecvBufferInitialize(
@@ -213,9 +210,6 @@ Exit:
         }
         if (RecvBufferInitialized) {
             QuicRecvBufferUninitialize(&Crypto->RecvBuffer);
-        }
-        if (SparseAckRangesInitialized) {
-            QuicRangeUninitialize(&Crypto->SparseAckRanges);
         }
         if (Crypto->TlsState.Buffer != NULL) {
             QUIC_FREE(Crypto->TlsState.Buffer);
