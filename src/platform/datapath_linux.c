@@ -1227,14 +1227,14 @@ QuicSocketContextRecvComplete(
 
     QUIC_FRE_ASSERT(FoundLocalAddr);
 
-    QuicTraceEvent_Skip(
+    QuicTraceEvent(
         DatapathRecv,
         "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!SOCKADDR! Dst=%!SOCKADDR!",
         SocketContext->Binding,
         (uint32_t)BytesTransferred,
         (uint32_t)BytesTransferred,
-        LOG_BINARY(sizeof(*LocalAddr), LocalAddr),
-        LOG_BINARY(sizeof(*RemoteAddr), RemoteAddr));
+        CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
+        CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 
     QUIC_DBG_ASSERT(BytesTransferred <= RecvPacket->BufferLength);
     RecvPacket->BufferLength = BytesTransferred;
@@ -1935,14 +1935,14 @@ QuicDataPathBindingSend(
             i < SendContext->BufferCount;
             ++i, SendContext->CurrentIndex++) {
 
-            QuicTraceEvent_Skip(
+            QuicTraceEvent(
                 DatapathSendTo,
                 "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!",
                 Binding,
                 SendContext->Buffers[i].Length,
                 1,
                 SendContext->Buffers[i].Length,
-                LOG_BINARY(sizeof(*RemoteAddress), RemoteAddress));
+                CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress));
 
             SentByteCount =
                 sendto(
@@ -2002,15 +2002,15 @@ QuicDataPathBindingSend(
             TotalSize += SendContext->Buffers[i].Length;
         }
 
-        QuicTraceEvent_Skip(
+        QuicTraceEvent(
             DatapathSendFromTo,
             "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!, Src=%!SOCKADDR!",
             Binding,
             TotalSize,
             SendContext->BufferCount,
             SendContext->Buffers[0].Length,
-            LOG_BINARY(sizeof(*RemoteAddress), RemoteAddress),
-            LOG_BINARY(sizeof(*LocalAddress), LocalAddress));
+            CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+            CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 
         //
         // Map V4 address to dual-stack socket format.

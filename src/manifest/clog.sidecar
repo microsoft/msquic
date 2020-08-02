@@ -18308,6 +18308,932 @@
         },
         "CustomSettings": null
       }
+    },
+    "BindingCreated": {
+      "ModuleProperites": {},
+      "TraceString": "[bind][%p] Created, Udp=%p LocalAddr=%!SOCKADDR! RemoteAddr=%!SOCKADDR!",
+      "UniqueId": "BindingCreated",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        Binding",
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        Binding->DatapathBinding",
+            "UserSuppliedTrimmed": "Binding->DatapathBinding",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr)",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr)",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "BindingRundown": {
+      "ModuleProperites": {},
+      "TraceString": "[bind][%p] Rundown, Udp=%p LocalAddr=%!SOCKADDR! RemoteAddr=%!SOCKADDR!",
+      "UniqueId": "BindingRundown",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        Binding",
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        Binding->DatapathBinding",
+            "UserSuppliedTrimmed": "Binding->DatapathBinding",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr)",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr)",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "ConnLocalAddrAdded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] New Local IP: %!SOCKADDR!",
+      "UniqueId": "ConnLocalAddrAdded",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            CLOG_BYTEARRAY(sizeof(Path->LocalAddress), &Path->LocalAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Path->LocalAddress), &Path->LocalAddress)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "ConnRemoteAddrAdded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] New Remote IP: %!SOCKADDR!",
+      "UniqueId": "ConnRemoteAddrAdded",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            CLOG_BYTEARRAY(sizeof(Path->RemoteAddress), &Path->RemoteAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Path->RemoteAddress), &Path->RemoteAddress)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "ConnDestCidAdded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
+      "UniqueId": "ConnDestCidAdded",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Path->DestCid->CID.SequenceNumber",
+            "UserSuppliedTrimmed": "Path->DestCid->CID.SequenceNumber",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data)",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "ConnSourceCidAdded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
+      "UniqueId": "ConnSourceCidAdded",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            SourceCid->CID.SequenceNumber",
+            "UserSuppliedTrimmed": "SourceCid->CID.SequenceNumber",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data)",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "ConnDestCidRemoved": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] (SeqNum=%llu) Removed Destination CID: %!CID!",
+      "UniqueId": "ConnDestCidRemoved",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        DestCid->CID.SequenceNumber",
+            "UserSuppliedTrimmed": "DestCid->CID.SequenceNumber",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data)",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "ConnSourceCidRemoved": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
+      "UniqueId": "ConnSourceCidRemoved",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n                            Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n                            NextSourceCid->CID.SequenceNumber",
+            "UserSuppliedTrimmed": "NextSourceCid->CID.SequenceNumber",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n                            CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(NextSourceCid->CID.Length, NextSourceCid->CID.Data)",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "ConnLocalAddrRemoved": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Removed Local IP: %!SOCKADDR!",
+      "UniqueId": "ConnLocalAddrRemoved",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n                Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n                CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "ListenerStarted": {
+      "ModuleProperites": {},
+      "TraceString": "[list][%p] Started, Binding=%p, LocalAddr=%!SOCKADDR!",
+      "UniqueId": "ListenerStarted",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        Listener",
+            "UserSuppliedTrimmed": "Listener",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        Listener->Binding",
+            "UserSuppliedTrimmed": "Listener->Binding",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress)",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "ConnDropPacket": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] DROP packet[%llu] Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
+      "UniqueId": "ConnDropPacket",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Owner",
+            "UserSuppliedTrimmed": "Owner",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber",
+            "UserSuppliedTrimmed": "Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Reason",
+            "UserSuppliedTrimmed": "Reason",
+            "SuggestedTelemetryName": "arg6"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "BindingDropPacket": {
+      "ModuleProperites": {},
+      "TraceString": "[bind][%p] DROP packet[%llu] Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
+      "UniqueId": "BindingDropPacket",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Owner",
+            "UserSuppliedTrimmed": "Owner",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber",
+            "UserSuppliedTrimmed": "Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Reason",
+            "UserSuppliedTrimmed": "Reason",
+            "SuggestedTelemetryName": "arg6"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "ConnDropPacketEx": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] DROP packet[%llu] Value=%llu Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
+      "UniqueId": "ConnDropPacketEx",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Owner",
+            "UserSuppliedTrimmed": "Owner",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber",
+            "UserSuppliedTrimmed": "Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Value",
+            "UserSuppliedTrimmed": "Value",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)",
+            "SuggestedTelemetryName": "arg6"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Reason",
+            "UserSuppliedTrimmed": "Reason",
+            "SuggestedTelemetryName": "arg7"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg7"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "BindingDropPacketEx": {
+      "ModuleProperites": {},
+      "TraceString": "[bind][%p] DROP packet[%llu] %llu. Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s",
+      "UniqueId": "BindingDropPacketEx",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Owner",
+            "UserSuppliedTrimmed": "Owner",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber",
+            "UserSuppliedTrimmed": "Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Value",
+            "UserSuppliedTrimmed": "Value",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)",
+            "SuggestedTelemetryName": "arg6"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Reason",
+            "UserSuppliedTrimmed": "Reason",
+            "SuggestedTelemetryName": "arg7"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg7"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathRecv": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!SOCKADDR! Dst=%!SOCKADDR!",
+      "UniqueId": "DatapathRecv",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        SocketContext->Binding",
+            "UserSuppliedTrimmed": "SocketContext->Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        (uint32_t)BytesTransferred",
+            "UserSuppliedTrimmed": "(uint32_t)BytesTransferred",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        (uint32_t)BytesTransferred",
+            "UserSuppliedTrimmed": "(uint32_t)BytesTransferred",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr)",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr)",
+            "SuggestedTelemetryName": "arg6"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathSendTo": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!",
+      "UniqueId": "DatapathSendTo",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n                Binding",
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n                SendContext->Buffers[i].Length",
+            "UserSuppliedTrimmed": "SendContext->Buffers[i].Length",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n                1",
+            "UserSuppliedTrimmed": "1",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n                SendContext->Buffers[i].Length",
+            "UserSuppliedTrimmed": "SendContext->Buffers[i].Length",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n                CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress)",
+            "SuggestedTelemetryName": "arg6"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathSendFromTo": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!, Src=%!SOCKADDR!",
+      "UniqueId": "DatapathSendFromTo",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Binding",
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            TotalSize",
+            "UserSuppliedTrimmed": "TotalSize",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            SendContext->BufferCount",
+            "UserSuppliedTrimmed": "SendContext->BufferCount",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            SendContext->Buffers[0].Length",
+            "UserSuppliedTrimmed": "SendContext->Buffers[0].Length",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress)",
+            "SuggestedTelemetryName": "arg6"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress)",
+            "SuggestedTelemetryName": "arg7"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg7"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
     }
   },
   "Version": 1,
@@ -18514,36 +19440,12 @@
         "CustomSettings": null
       },
       {
-        "MacroName": "QuicTraceLogConnInfo_Skip",
-        "EncodedPrefix": "[conn][%p] ",
-        "EncodedArgNumber": 2,
-        "MacroConfiguration": {
-          "linux": "empty",
-          "stubs": "empty",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      },
-      {
         "MacroName": "QuicTraceLogConnVerbose",
         "EncodedPrefix": "[conn][%p] ",
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
           "stubs": "stubs",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      },
-      {
-        "MacroName": "QuicTraceEvent_Skip",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "empty",
-          "stubs": "empty",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -20644,6 +21546,74 @@
       {
         "UniquenessHash": "3928cc2f-84c2-48ac-845b-40781cf8021b",
         "TraceID": "TestLogFailure"
+      },
+      {
+        "UniquenessHash": "f394b805-800b-c03a-6661-cc6241a33866",
+        "TraceID": "BindingCreated"
+      },
+      {
+        "UniquenessHash": "cb22c273-ad34-5bd1-b6bd-38a2ee4554f3",
+        "TraceID": "BindingRundown"
+      },
+      {
+        "UniquenessHash": "6564b56b-6aa8-120a-96b1-bbc573162489",
+        "TraceID": "ConnLocalAddrAdded"
+      },
+      {
+        "UniquenessHash": "9c697b6f-4db0-22aa-7143-bf009247a362",
+        "TraceID": "ConnRemoteAddrAdded"
+      },
+      {
+        "UniquenessHash": "e2133726-1e36-d515-e6b1-ab7ac6fdf53e",
+        "TraceID": "ConnDestCidAdded"
+      },
+      {
+        "UniquenessHash": "b1ef59fd-834d-2786-8b05-c14f32023aea",
+        "TraceID": "ConnSourceCidAdded"
+      },
+      {
+        "UniquenessHash": "8f204a2e-9160-ae42-2cdd-4f8e8eab10c5",
+        "TraceID": "ConnDestCidRemoved"
+      },
+      {
+        "UniquenessHash": "65f1ff8d-810a-4f24-b2f6-817daf9275ef",
+        "TraceID": "ConnSourceCidRemoved"
+      },
+      {
+        "UniquenessHash": "3dff0c2f-b015-d575-c091-eb8fbcc74265",
+        "TraceID": "ConnLocalAddrRemoved"
+      },
+      {
+        "UniquenessHash": "2bebd8f7-b487-148b-f3a2-d1c7b0313fee",
+        "TraceID": "ListenerStarted"
+      },
+      {
+        "UniquenessHash": "19e4904d-0279-edda-d702-089be1a9ffdc",
+        "TraceID": "ConnDropPacket"
+      },
+      {
+        "UniquenessHash": "ae6ceeda-e33e-fc32-e4e6-2ca569fc4a36",
+        "TraceID": "BindingDropPacket"
+      },
+      {
+        "UniquenessHash": "986517b1-3630-5640-8761-fd0cb11ec4e1",
+        "TraceID": "ConnDropPacketEx"
+      },
+      {
+        "UniquenessHash": "c2b528ba-7224-b6e9-77b8-bb7eb39f2600",
+        "TraceID": "BindingDropPacketEx"
+      },
+      {
+        "UniquenessHash": "37eea1a3-d42b-09d4-d537-653b79a7041b",
+        "TraceID": "DatapathRecv"
+      },
+      {
+        "UniquenessHash": "fdbb45cb-f1d0-276a-340b-eef8e3f4156f",
+        "TraceID": "DatapathSendTo"
+      },
+      {
+        "UniquenessHash": "c9893cd3-8c87-7d0b-9dac-0271871ca855",
+        "TraceID": "DatapathSendFromTo"
       }
     ]
   }

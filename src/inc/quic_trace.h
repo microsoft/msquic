@@ -136,7 +136,7 @@ QuicTraceRundown(
 #define QuicTraceEventEnabled(Name) FALSE
 #define QuicTraceEvent(Name, Fmt, ...)
 #define QuicTraceEvent_Skip(Name, Fmt, ...)
-#define LOG_BINARY(Len, Data)
+#define CLOG_BYTEARRAY(Len, Data)
 
 #endif // QUIC_EVENTS_STUB
 
@@ -178,7 +178,7 @@ QuicEtwCallback(
 #define QuicTraceEvent(Name, Fmt, ...) _QuicTraceEvent(Name, (__VA_ARGS__))
 #define QuicTraceEvent_Skip(Name, Fmt, ...) _QuicTraceEvent(Name, (__VA_ARGS__))
 
-#define LOG_BINARY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
+#define CLOG_BYTEARRAY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
 
 #endif // QUIC_EVENTS_MANIFEST_ETW
 

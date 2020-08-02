@@ -189,17 +189,6 @@
         "windows": "empty"
       }
     },
-     {
-      "MacroName": "QuicTraceLogConnInfo_Skip",
-      "EncodedPrefix": "[conn][%p] ",
-      "EncodedArgNumber": 2,
-      "MacroConfiguration": {
-        "linux": "empty",
-        "stubs": "empty",
-        "windows_kernel": "empty",
-        "windows": "empty"
-      }
-    },
     {
       "MacroName": "QuicTraceLogConnVerbose",
       "EncodedPrefix": "[conn][%p] ",
@@ -207,17 +196,6 @@
       "MacroConfiguration": {
         "linux": "lttng_plus",
         "stubs": "stubs",
-        "windows_kernel": "empty",
-        "windows": "empty"
-      }
-    },
-    {
-      "MacroName": "QuicTraceEvent_Skip",
-      "EncodedPrefix": null,
-      "EncodedArgNumber": 1,
-      "MacroConfiguration": {
-        "linux": "empty",
-        "stubs": "empty",
         "windows_kernel": "empty",
         "windows": "empty"
       }

@@ -152,8 +152,6 @@ if ("" -eq $Platform) {
     }
 }
 
-$env:CLOG_DEVELOPMENT_MODE = 1
-
 if (!$IsWindows -And $Platform -eq "uwp") {
     Write-Error "[$(Get-Date)] Cannot build uwp on non windows platforms"
     exit

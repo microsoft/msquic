@@ -239,12 +239,12 @@ MsQuicListenerStart(
             QuicAddrGetPort(&BindingLocalAddress));
     }
 
-    QuicTraceEvent_Skip(
+    QuicTraceEvent(
         ListenerStarted,
         "[list][%p] Started, Binding=%p, LocalAddr=%!SOCKADDR!",
         Listener,
         Listener->Binding,
-        LOG_BINARY(sizeof(Listener->LocalAddress), &Listener->LocalAddress));
+        CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress));
 
 Error:
 
@@ -311,12 +311,12 @@ QuicListenerTraceRundown(
         Listener,
         Listener->Session);
     if (Listener->Binding != NULL) {
-        QuicTraceEvent_Skip(
+        QuicTraceEvent(
             ListenerStarted,
             "[list][%p] Started, Binding=%p, LocalAddr=%!SOCKADDR!",
             Listener,
             Listener->Binding,
-            LOG_BINARY(sizeof(Listener->LocalAddress), &Listener->LocalAddress));
+            CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress));
     }
 }
 
