@@ -52,6 +52,9 @@ QuicStreamInitialize(
     Stream->SendRequestsTail = &Stream->SendRequests;
     QuicDispatchLockInitialize(&Stream->ApiSendRequestLock);
     QuicRefInitialize(&Stream->RefCount);
+    QuicRangeInitialize(
+        QUIC_MAX_RANGE_ALLOC_SIZE,
+        &Stream->SparseAckRanges);
 #if DEBUG
     Stream->RefTypeCount[QUIC_STREAM_REF_APP] = 1;
 #endif
@@ -82,20 +85,11 @@ QuicStreamInitialize(
         }
     }
 
-    Status =
-        QuicRangeInitialize(
-            QUIC_MAX_RANGE_ALLOC_SIZE,
-            &Stream->SparseAckRanges);
-    if (QUIC_FAILED(Status)) {
-        goto Exit;
-    }
-
     InitialRecvBufferLength = Connection->Session->Settings.StreamRecvBufferDefault;
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
         PreallocatedRecvBuffer = QuicPoolAlloc(&Worker->DefaultReceiveBufferPool);
         if (PreallocatedRecvBuffer == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
-            QuicRangeUninitialize(&Stream->SparseAckRanges);
             goto Exit;
         }
     }
@@ -108,7 +102,6 @@ QuicStreamInitialize(
             FALSE,
             PreallocatedRecvBuffer);
     if (QUIC_FAILED(Status)) {
-        QuicRangeUninitialize(&Stream->SparseAckRanges);
         goto Exit;
     }
 

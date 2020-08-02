@@ -48,7 +48,7 @@ TEST(SpinFrame, SpinFrame1000000)
     uint8_t BufferLength;
     uint8_t FrameType;
 
-    TEST_QUIC_SUCCEEDED(QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckBlocks));
+    QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckBlocks);
 
     //
     // This test generates random "frames" of data to be decoded by the framing

@@ -61,8 +61,8 @@ MsQuicConnectionOpen(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Session = (QUIC_SESSION*)SessionHandle;
 
-    Status = QuicConnInitialize(Session, NULL, &Connection);
-    if (QUIC_FAILED(Status)) {
+    if ((Connection = QuicConnAlloc(Session, NULL)) == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
