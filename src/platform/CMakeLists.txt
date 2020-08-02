@@ -48,7 +48,11 @@ else()
 endif()
 
 # Allow CLOG to preprocess all the source files.
-add_clog_library(platform.clog SHARED ${SOURCES})
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    add_clog_library(platform.clog STATIC ${SOURCES})
+else()
+    add_clog_library(platform.clog SHARED ${SOURCES})
+endif()
 
 add_library(platform STATIC ${SOURCES})
 
