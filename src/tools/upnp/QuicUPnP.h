@@ -56,6 +56,15 @@ QuicUPnPRemoveStaticMapping(
     uint16_t ExternalPort
     );
 
+//
+// Removes any static UPnP mapping with a given description prefix.
+//
+void
+QuicUPnPRemoveStaticMappingByPrefix(
+    QUIC_UPNP* UPnP,
+    const char* DescPrefix
+    );
+
 #if defined(__cplusplus)
 }
 #endif

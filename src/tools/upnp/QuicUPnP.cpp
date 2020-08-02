@@ -42,8 +42,13 @@ QuicUPnPInitialize(
     }
 
     hr = UPnP->NAT->get_StaticPortMappingCollection(&UPnP->PortCollection);
-    if (FAILED(hr) || !UPnP->PortCollection) {
+    if (FAILED(hr)) {
         printf("get_StaticPortMappingCollection failed, 0x%x\n", hr);
+        QuicUPnPUninitialize(UPnP);
+        return nullptr;
+    }
+
+    if (!UPnP->PortCollection) { // Means there is no port collection.
         QuicUPnPUninitialize(UPnP);
         return nullptr;
     }
@@ -90,7 +95,7 @@ QuicUPnPDumpStaticMappings(
         return;
     }
 
-    printf("UPnP Static Mappings:\n");
+    printf("UPnP: Static Mappings:\n");
 
     do {
         VARIANT varCurMapping;
@@ -197,7 +202,7 @@ QuicUPnPAddStaticMapping(
     BSTR bstrInternalIP = _com_util::ConvertStringToBSTR(InternalIP);
     BSTR bstrDescription = _com_util::ConvertStringToBSTR(Description);
 
-    printf("Adding [%ws] %ws:%u -> %ws:%u [%ws]\n",
+    printf("UPnP: Adding [%ws] %ws:%u -> %ws:%u [%ws]\n",
         bstrProtocol, bstrExternalIP, ExternalPort, bstrInternalIP, InternalPort, bstrDescription);
 
     IStaticPortMapping* Mapping = nullptr;
@@ -235,7 +240,7 @@ QuicUPnPRemoveStaticMapping(
 {
     BSTR bstrProtocol = _com_util::ConvertStringToBSTR(Protocol);
 
-    printf("Removing [%ws] :%u\n", bstrProtocol, ExternalPort);
+    printf("UPnP: Removing [%ws] :%u\n", bstrProtocol, ExternalPort);
 
     HRESULT hr =
         UPnP->PortCollection->Remove(
@@ -248,4 +253,92 @@ QuicUPnPRemoveStaticMapping(
     SysFreeString(bstrProtocol);
 
     return FAILED(hr) ? 1 : 0;
+}
+
+extern "C"
+void
+QuicUPnPRemoveStaticMappingByPrefix(
+    QUIC_UPNP* UPnP,
+    const char* DescPrefix
+    )
+{
+    HRESULT hr;
+    IEnumVARIANT* Enumerator;
+    hr = UPnP->PortCollection->get__NewEnum((IUnknown**)&Enumerator);
+    if (FAILED(hr)) {
+        printf("get__NewEnum failed, 0x%x\n", hr);
+        return;
+    }
+
+    hr = Enumerator->Reset();
+    if (FAILED(hr)) {
+        printf("Reset failed, 0x%x\n", hr);
+        Enumerator->Release();
+        return;
+    }
+
+    size_t PrefixLen = strlen(DescPrefix);
+
+    do {
+        VARIANT varCurMapping;
+        VariantInit(&varCurMapping);
+
+        IStaticPortMapping* piMapping = NULL;
+        BSTR Description = NULL;
+        BSTR Protocol = NULL;
+        long ExtPort = 0;
+
+        hr = Enumerator->Next(1, &varCurMapping, NULL);
+        if (FAILED(hr) || varCurMapping.vt == VT_EMPTY) {
+            break;
+        }
+
+        IDispatch* piDispMap = V_DISPATCH(&varCurMapping);
+        hr = piDispMap->QueryInterface(IID_IStaticPortMapping, (void**)&piMapping);
+        if (FAILED(hr)) {
+            printf("QueryInterface(IStaticPortMapping) failed, 0x%x\n", hr);
+            goto Done;
+        }
+
+        hr = piMapping->get_Description(&Description);
+        if (FAILED(hr)) {
+            printf("get_Description failed, 0x%x\n", hr);
+            goto Done;
+        }
+
+        for (size_t i = 0; i < PrefixLen; ++i) {
+            if (Description[i] != (WCHAR)DescPrefix[i]) {
+                goto Done;
+            }
+        }
+
+        hr = piMapping->get_Protocol(&Protocol);
+        if (FAILED(hr)) {
+            printf("get_Protocol failed, 0x%x\n", hr);
+            goto Done;
+        }
+
+        hr = piMapping->get_ExternalPort(&ExtPort);
+        if (FAILED(hr)) {
+            printf("get_ExternalPort failed, 0x%x\n", hr);
+            goto Done;
+        }
+
+        printf("UPnP: Removing [%ws] :%u\n", Protocol, ExtPort);
+
+        UPnP->PortCollection->Remove(ExtPort, Protocol);
+
+    Done:
+
+        SysFreeString(Protocol);
+        SysFreeString(Description);
+
+        if (piMapping) {
+            piMapping->Release();
+        }
+	    VariantClear(&varCurMapping);
+
+    } while (!FAILED(hr));
+
+    Enumerator->Release();
 }

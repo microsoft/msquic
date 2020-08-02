@@ -447,13 +447,14 @@ main(
     } else {
         PingConfig.PsciAddrSet = true;
         QUIC_ADDR_STR AddrStr = { 0 };
-        QuicAddrToString(&PingConfig.LocalPsciAddr, &AddrStr);
-        printf(" Local IP: %s\n", AddrStr.Address);
+        //QuicAddrToString(&PingConfig.LocalPsciAddr, &AddrStr);
+        //printf(" Local IP: %s\n", AddrStr.Address);
         QuicAddrToString(&PingConfig.PublicPsciAddr, &AddrStr);
         printf("Public IP: %s\n", AddrStr.Address);
 #if _WIN32
         UPnP = QuicUPnPInitialize();
         if (UPnP) {
+            QuicUPnPRemoveStaticMappingByPrefix(UPnP, "QUIC");
             MappingAdded = AddUPnPMapping(UPnP);
         }
 #endif
@@ -481,7 +482,6 @@ Error:
 #if _WIN32
     if (MappingAdded) {
         QuicUPnPRemoveStaticMapping(UPnP, "UDP", QuicAddrGetPort(&PingConfig.PublicPsciAddr));
-        QuicUPnPDumpStaticMappings(UPnP);
     }
     QuicUPnPUninitialize(UPnP);
 #endif

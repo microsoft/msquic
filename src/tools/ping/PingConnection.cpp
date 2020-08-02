@@ -361,10 +361,11 @@ PingConnection::ProcessEvent(
             (uint32_t)(ElapsedMicroseconds % 1000));
 
         if (this->IsServer) {
-            if (QUIC_FAILED(
-                MsQuic->ConnectionSendResumptionTicket(QuicConnection, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr))) {
-                printf("[%p] Failed to send 0-RTT resumption ticket!\n", QuicConnection);
-            }
+            MsQuic->ConnectionSendResumptionTicket(
+                QuicConnection,
+                QUIC_SEND_RESUMPTION_FLAG_FINAL,
+                0,
+                nullptr);
         }
         break;
     }
@@ -678,9 +679,9 @@ bool PingPsciConnection::SendPsci(HQUIC Stream) {
             printf("Failed to start stream!\n");
             return false;
         }
-        printf("Sending PSCI\n");
+        //printf("Sending PSCI\n");
     } else {
-        printf("Replying with PSCI\n");
+        //printf("Replying with PSCI\n");
     }
 
     MsQuic->StreamSend(
@@ -699,7 +700,7 @@ PingPsciConnection::ProcessEvent(
     ) {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
-        printf("PSCI Connected\n");
+        //printf("PSCI Connected\n");
         if (!IsServer &&
             IsPsciAlpn(
                 Event->CONNECTED.NegotiatedAlpn,
@@ -742,7 +743,7 @@ PingPsciConnection::ProcessStreamEvent(
         }
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
-        printf("Received PSCI\n");
+        //printf("Received PSCI\n");
         {
             uint8_t* Offset = (uint8_t*)(RemotePsci + 1);
             RemotePsci->ConnectionID.Buffer = Offset;
@@ -752,8 +753,9 @@ PingPsciConnection::ProcessStreamEvent(
             RemotePsci->TransportParameters.Buffer = Offset;
             Offset += RemotePsci->TransportParameters.Length;
         }
+        RemotePsci->RttEstimateUs = 1000 * 100; // TODO - Don't hardcode
         if (NormalConnection->SetRemotePsci(RemotePsci)) {
-            printf("Connecting with PSCI\n");
+            //printf("Connecting with PSCI\n");
             NormalConnection->Connect();
         } else {
             printf("Failed to set remote PSCI!\n");
