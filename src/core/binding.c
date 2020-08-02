@@ -1121,8 +1121,7 @@ QuicBindingCreateConnection(
             MsQuicLib.UnregisteredSession,
             Datagram);
     if (NewConnection == NULL) {
-        QuicPacketLogDropWithValue(Binding, Packet,
-            "Failed to initialize new connection", Status);
+        QuicPacketLogDrop(Binding, Packet, "Failed to initialize new connection");
         return NULL;
     }
 
