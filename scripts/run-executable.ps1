@@ -312,7 +312,9 @@ function Wait-Executable($Exe) {
 
         if ($KeepOutput) {
             if ($LogProfile -ne "None") {
-                if ($ConvertLogs) {
+                if ($CodeCoverage) {
+                    & $LogScript -Cancel | Out-Null
+                } elseif ($ConvertLogs) {
                     & $LogScript -Stop -OutputDirectory $LogDir -ConvertToText
                 } else {
                     & $LogScript -Stop -OutputDirectory $LogDir | Out-Null
