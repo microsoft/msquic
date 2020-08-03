@@ -1,7 +1,8 @@
 FROM    martenseemann/quic-network-simulator-endpoint as source
 ENV     DEBIAN_FRONTEND=noninteractive
 RUN     apt-get software-properties-common -y \
-        && apt-add-repository ppa:lttng/stable-2.11
+            && apt-get install -y \
+            && apt-add-repository ppa:lttng/stable-2.11
 RUN     apt-get update -y \
             && apt-get install -y \
             build-essential \
