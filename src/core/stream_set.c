@@ -62,11 +62,11 @@ QuicStreamSetUninitialize(
     )
 {
     if (StreamSet->StreamTable != NULL) {
-#if DEBUG
-        QuicDispatchLockUninitialize(&StreamSet->AllStreamsLock);
-#endif
         QuicHashtableUninitialize(StreamSet->StreamTable);
     }
+#if DEBUG
+    QuicDispatchLockUninitialize(&StreamSet->AllStreamsLock);
+#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
