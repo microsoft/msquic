@@ -19289,6 +19289,43 @@
         },
         "CustomSettings": null
       }
+    },
+    "PeerPreferredAddress": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Peer configured preferred address %!SOCKADDR!",
+      "UniqueId": "PeerPreferredAddress",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            CLOG_BYTEARRAY(sizeof(Connection->PeerTransportParams.PreferredAddress), &Connection->PeerTransportParams.PreferredAddress)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Connection->PeerTransportParams.PreferredAddress), &Connection->PeerTransportParams.PreferredAddress)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "!SOCKADDR!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnInfo",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
     }
   },
   "Version": 1,
@@ -21737,6 +21774,10 @@
       {
         "UniquenessHash": "af137df5-1055-7424-de16-65895d8d276b",
         "TraceID": "ConnPacketRecv"
+      },
+      {
+        "UniquenessHash": "43482b75-cdcb-d2cd-f082-c1928bc7864d",
+        "TraceID": "PeerPreferredAddress"
       }
     ]
   }
