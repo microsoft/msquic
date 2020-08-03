@@ -1116,16 +1116,12 @@ QuicBindingCreateConnection(
     QUIC_CONNECTION* Connection = NULL;
     QUIC_RECV_PACKET* Packet = QuicDataPathRecvDatagramToRecvPacket(Datagram);
 
-    QUIC_CONNECTION* NewConnection;
-    QUIC_STATUS Status =
-        QuicConnInitialize(
+    QUIC_CONNECTION* NewConnection =
+        QuicConnAlloc(
             MsQuicLib.UnregisteredSession,
-            Datagram,
-            &NewConnection);
-    if (QUIC_FAILED(Status)) {
-        QuicConnRelease(NewConnection, QUIC_CONN_REF_HANDLE_OWNER);
-        QuicPacketLogDropWithValue(Binding, Packet,
-            "Failed to initialize new connection", Status);
+            Datagram);
+    if (NewConnection == NULL) {
+        QuicPacketLogDrop(Binding, Packet, "Failed to initialize new connection");
         return NULL;
     }
 
