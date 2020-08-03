@@ -118,6 +118,11 @@ if ($IsWindows) {
             #sudo cat /proc/sys/kernel/core_pattern
 
             Install-ClogTool "Microsoft.Logging.CLOG2Text.Lttng"
+
+            gci env:* | sort-object name
+
+            clog2text_lttng 
+            
         }
         "Dev" {
             sudo apt-add-repository ppa:lttng/stable-2.10
