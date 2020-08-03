@@ -1,9 +1,12 @@
 FROM    martenseemann/quic-network-simulator-endpoint as source
 ENV     DEBIAN_FRONTEND=noninteractive
-RUN     apt-get update -y \
+RUN     apt-add-repository ppa:lttng/stable-2.11 -y \
+            && apt-get update -y \
             && apt-get install -y \
             build-essential \
             cmake \
+            liblttng-ust-dev \
+            lttng-tools \
             && apt-get clean
 COPY    . /src
 

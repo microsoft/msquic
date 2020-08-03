@@ -95,12 +95,12 @@ if ($IsWindows) {
 } else {
     switch ($Configuration) {
         "Build" {
-            sudo apt-add-repository ppa:lttng/stable-2.10
+            sudo apt-add-repository ppa:lttng/stable-2.11
             sudo apt-get update
             sudo apt-get install -y liblttng-ust-dev
         }
         "Test" {
-            sudo apt-add-repository ppa:lttng/stable-2.10
+            sudo apt-add-repository ppa:lttng/stable-2.11
             sudo apt-get update
             sudo apt-get install -y lttng-tools
 
@@ -120,7 +120,7 @@ if ($IsWindows) {
             Install-ClogTool "Microsoft.Logging.CLOG2Text.Lttng"
         }
         "Dev" {
-            sudo apt-add-repository ppa:lttng/stable-2.10
+            sudo apt-add-repository ppa:lttng/stable-2.11
             sudo apt-get update
             sudo apt-get install -y cmake
             sudo apt-get install -y build-essential
