@@ -32,7 +32,7 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $NuGetPath = Join-Path $RootDir "nuget"
 
 # Well-known location for clog packages.
-$ClogDownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v0.1.4-experiment"
+$ClogDownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v0.1.4"
 $ClogVersion = "0.1.4"
 
 function Install-ClogTool {
