@@ -83,7 +83,7 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 # Path for the WPR profile.
 $WprpFile = $RootDir + "\src\manifest\msquic.wprp"
 $SideCar = Join-Path $RootDir "src/manifest/clog.sidecar"
-$Clog2Text_lttng = Join-Path $RootDir "clog2text_lttng"
+$Clog2Text_lttng = "clog2text_lttng"
 
 $TempDir = $null
 if ($IsLinux) {
