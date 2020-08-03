@@ -115,7 +115,9 @@ function Log-Start {
                 lttng list | Write-Debug
                 babeltrace -i lttng-live net://localhost | Write-Debug
                 Write-Host "Now decoding LTTng events in realtime...`n"
-                Invoke-Expression "babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquiclive | $Clog2Text_lttng -s $SideCar"
+                $args = "babeltrace --names all -i lttng-live net://localhost/host/$env:NAME/msquiclive | $Clog2Text_lttng  -s $SideCar --showTimestamp --showCpuInfo"
+                Write-Host $args
+                Invoke-Expression $args
             }
         } finally {
             if ($Stream) {
@@ -174,7 +176,7 @@ function Log-Stop {
             babeltrace --names all $TempDir/* > $BableTraceFile
 
             Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
-            $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
+            $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"
             Write-Host $Command
             Invoke-Expression $Command | Write-Debug
             Remove-Item -Path $BableTraceFile -Force | Out-Null

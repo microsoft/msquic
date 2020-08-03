@@ -19472,7 +19472,7 @@
         "MacroConfigurations": {},
         "Version": 1,
         "CustomTypeClogCSharpFile": "DEFAULTS",
-        "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nnamespace defaults.clog_config\n{\n    public class Types\n    {\n        public static string DecodePointer(ulong pointer)\n        {\n            return \"CLOG_POINTER:\" + pointer.ToString(\"x\");\n        }\n\n        public static string DecodeUInt32(uint value)\n        {\n            return \"CLOG_UINT32:\" + value.ToString();\n        }\n\n        public static string DecodeInt32(int value)\n        {\n            return \"CLOG_INT32:\" + value.ToString();\n        }\n\n        public static string DecodeInt8(byte value)\n        {\n            return \"CLOG_INT8:\" + value.ToString();\n        }\n    }\n}\n",
+        "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nnamespace defaults.clog_config\n{\n    public class Types\n    {\n        public static string DecodePointer(ulong pointer)\n        {\n            return \"0x\" + pointer.ToString(\"x\");\n        }\n\n        public static string DecodeUInt32(uint value)\n        {\n            return value.ToString();\n        }\n\n        public static string DecodeInt32(int value)\n        {\n            return value.ToString();\n        }\n\n        public static string DecodeInt8(byte value)\n        {\n            return value.ToString();\n        }\n    }\n}\n",
         "TypeEncoders": {
           "Version": 0,
           "TypeEncoder": [
