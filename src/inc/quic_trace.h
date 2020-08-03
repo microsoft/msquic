@@ -130,12 +130,10 @@ QuicTraceRundown(
 #define QuicTraceLogInfoEnabled()    TRUE
 #define QuicTraceLogVerboseEnabled() TRUE
 #define QuicTraceEventEnabled(x) TRUE
-#define QuicTraceEvent_Skip(...)
 #else
 #ifdef QUIC_EVENTS_STUB
 #define QuicTraceEventEnabled(Name) FALSE
 #define QuicTraceEvent(Name, Fmt, ...)
-#define QuicTraceEvent_Skip(Name, Fmt, ...)
 #define CLOG_BYTEARRAY(Len, Data)
 
 #endif // QUIC_EVENTS_STUB
@@ -176,8 +174,6 @@ QuicEtwCallback(
 #define QuicTraceEventEnabled(Name) EventEnabledQuic##Name()
 #define _QuicTraceEvent(Name, Args) EventWriteQuic##Name##Args
 #define QuicTraceEvent(Name, Fmt, ...) _QuicTraceEvent(Name, (__VA_ARGS__))
-#define QuicTraceEvent_Skip(Name, Fmt, ...) _QuicTraceEvent(Name, (__VA_ARGS__))
-
 #define CLOG_BYTEARRAY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
 
 #endif // QUIC_EVENTS_MANIFEST_ETW

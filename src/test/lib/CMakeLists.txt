@@ -17,11 +17,7 @@ set(SOURCES
 )
 
 # Allow CLOG to preprocess all the source files.
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    add_clog_library(testlib.clog STATIC ${SOURCES})
-else()
-    add_clog_library(testlib.clog SHARED ${SOURCES})
-endif()
+add_clog_library(testlib.clog STATIC ${SOURCES})
 
 add_library(testlib ${SOURCES})
 
