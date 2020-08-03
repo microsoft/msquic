@@ -3755,7 +3755,7 @@ QuicConnRecvDecryptAndAuthenticate(
 
     QuicTraceEvent(
         ConnPacketRecv,
-        "[conn][%p][RX][%llu] %c (%hd bytes)",
+        "[conn][%p][RX][%llu] %c (%hu bytes)",
         Connection,
         Packet->PacketNumber,
         Packet->IsShortHeader ? QUIC_TRACE_PACKET_ONE_RTT : (Packet->LH->Type + 1),

@@ -19234,6 +19234,61 @@
         },
         "CustomSettings": null
       }
+    },
+    "ConnPacketRecv": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p][RX][%llu] %c (%hu bytes)",
+      "UniqueId": "ConnPacketRecv",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        Packet->PacketNumber",
+            "UserSuppliedTrimmed": "Packet->PacketNumber",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        Packet->IsShortHeader ? QUIC_TRACE_PACKET_ONE_RTT : (Packet->LH->Type + 1)",
+            "UserSuppliedTrimmed": "Packet->IsShortHeader ? QUIC_TRACE_PACKET_ONE_RTT : (Packet->LH->Type + 1)",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n        Packet->HeaderLength + Packet->PayloadLength",
+            "UserSuppliedTrimmed": "Packet->HeaderLength + Packet->PayloadLength",
+            "SuggestedTelemetryName": "arg5"
+          },
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
     }
   },
   "Version": 1,
@@ -21678,6 +21733,10 @@
       {
         "UniquenessHash": "600cb518-6c6b-9443-6433-6655b76f2cdc",
         "TraceID": "OpenSslProcessData"
+      },
+      {
+        "UniquenessHash": "af137df5-1055-7424-de16-65895d8d276b",
+        "TraceID": "ConnPacketRecv"
       }
     ]
   }
