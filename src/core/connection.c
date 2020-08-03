@@ -3753,15 +3753,13 @@ QuicConnRecvDecryptAndAuthenticate(
             Packet->HeaderLength);
     }
 
-#if 0
-    uicTraceEvent(
+    QuicTraceEvent(
         ConnPacketRecv,
         "[conn][%p][RX][%llu] %c (%hd bytes)",
         Connection,
         Packet->PacketNumber,
         Packet->IsShortHeader ? QUIC_TRACE_PACKET_ONE_RTT : (Packet->LH->Type + 1),
         Packet->HeaderLength + Packet->PayloadLength);
-#endif
 
     //
     // Process any connection ID updates as necessary.
