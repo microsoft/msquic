@@ -124,16 +124,21 @@ QuicTraceRundown(
     );
 
 #ifdef QUIC_CLOG
+
 #define QuicTraceLogStreamVerboseEnabled() TRUE
 #define QuicTraceLogErrorEnabled()   TRUE
 #define QuicTraceLogWarningEnabled() TRUE
 #define QuicTraceLogInfoEnabled()    TRUE
 #define QuicTraceLogVerboseEnabled() TRUE
 #define QuicTraceEventEnabled(x) TRUE
+
 #else
+
 #ifdef QUIC_EVENTS_STUB
+
 #define QuicTraceEventEnabled(Name) FALSE
 #define QuicTraceEvent(Name, Fmt, ...)
+
 #define CLOG_BYTEARRAY(Len, Data)
 
 #endif // QUIC_EVENTS_STUB
@@ -174,6 +179,7 @@ QuicEtwCallback(
 #define QuicTraceEventEnabled(Name) EventEnabledQuic##Name()
 #define _QuicTraceEvent(Name, Args) EventWriteQuic##Name##Args
 #define QuicTraceEvent(Name, Fmt, ...) _QuicTraceEvent(Name, (__VA_ARGS__))
+
 #define CLOG_BYTEARRAY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
 
 #endif // QUIC_EVENTS_MANIFEST_ETW
@@ -200,6 +206,7 @@ QuicTraceStubVarArgs(
 {
     UNREFERENCED_PARAMETER(Fmt);
 }
+
 #define QuicTraceLogError(X,...)            QuicTraceStubVarArgs(__VA_ARGS__)
 #define QuicTraceLogWarning(X,...)          QuicTraceStubVarArgs(__VA_ARGS__)
 #define QuicTraceLogInfo(X,...)             QuicTraceStubVarArgs(__VA_ARGS__)
@@ -250,7 +257,6 @@ QuicTraceStubVarArgs(
         EventWriteQuic##Type##Log##EventName##_AssumeEnabled(Ptr, EtwBuffer); \
     }
 
-
 #define QuicTraceLogError(Name, Fmt, ...)               LogEtw(Error, Fmt, ##__VA_ARGS__)
 #define QuicTraceLogWarning(Name, Fmt, ...)             LogEtw(Warning, Fmt, ##__VA_ARGS__)
 #define QuicTraceLogInfo(Name, Fmt, ...)                LogEtw(Info, Fmt, ##__VA_ARGS__)
@@ -275,5 +281,7 @@ QuicTraceStubVarArgs(
 #error "LTTng not supported yet!"
 
 #endif // QUIC_LOGS_LTTNG
+
 #endif // QUIC_CLOG
+
 #endif // _TRACE_H
