@@ -123,14 +123,12 @@ if ($IsWindows) {
 
             find ~
 
-            clog2text_lttng 
+            $env:PATH += ":$HOME/.dotnet/tools"
 
-            $env:PATH+=":~/.dotnet/tools"
             clog2text_lttng   
 
-            lttng
-
-            find /usr/bin         
+            find /usr/bin  
+            lttng                   
         }
         "Dev" {
             sudo apt-add-repository ppa:lttng/stable-2.10
