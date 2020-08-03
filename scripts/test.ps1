@@ -143,9 +143,6 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
-clog
-clog2text_lttng
-
 # Validate the the kernel switch.
 if ($Kernel -and !$IsWindows) {
     Write-Error "-Kernel switch only supported on Windows";
