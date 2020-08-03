@@ -32,8 +32,8 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $NuGetPath = Join-Path $RootDir "nuget"
 
 # Well-known location for clog packages.
-$ClogDownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v0.1.3"
-$ClogVersion = "0.1.3"
+$ClogDownloadUrl = "https://github.com/microsoft/CLOG/releases/download/v0.1.4"
+$ClogVersion = "0.1.4"
 
 function Install-ClogTool {
     param($ToolName)
@@ -95,12 +95,12 @@ if ($IsWindows) {
 } else {
     switch ($Configuration) {
         "Build" {
-            sudo apt-add-repository ppa:lttng/stable-2.10
+            sudo apt-add-repository ppa:lttng/stable-2.11
             sudo apt-get update
             sudo apt-get install -y liblttng-ust-dev
         }
         "Test" {
-            sudo apt-add-repository ppa:lttng/stable-2.10
+            sudo apt-add-repository ppa:lttng/stable-2.11
             sudo apt-get update
             sudo apt-get install -y lttng-tools
 
@@ -120,7 +120,7 @@ if ($IsWindows) {
             Install-ClogTool "Microsoft.Logging.CLOG2Text.Lttng"
         }
         "Dev" {
-            sudo apt-add-repository ppa:lttng/stable-2.10
+            sudo apt-add-repository ppa:lttng/stable-2.11
             sudo apt-get update
             sudo apt-get install -y cmake
             sudo apt-get install -y build-essential
