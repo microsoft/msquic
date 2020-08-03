@@ -1,7 +1,6 @@
 FROM    martenseemann/quic-network-simulator-endpoint as source
 ENV     DEBIAN_FRONTEND=noninteractive
-RUN     apt-get software-properties-common -y \
-            && apt-get install -y \
+RUN     apt-get install software-properties-common -y \
             && apt-add-repository ppa:lttng/stable-2.11
 RUN     apt-get update -y \
             && apt-get install -y \
