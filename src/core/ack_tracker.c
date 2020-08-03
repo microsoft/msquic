@@ -43,38 +43,23 @@ Abstract:
 #endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 QuicAckTrackerInitialize(
     _Inout_ QUIC_ACK_TRACKER* Tracker
     )
 {
-    QUIC_STATUS Status;
-
     Tracker->AckElicitingPacketsToAcknowledge = 0;
     Tracker->LargestPacketNumberAcknowledged = 0;
     Tracker->LargestPacketNumberRecvTime = 0;
     Tracker->AlreadyWrittenAckFrame = FALSE;
 
-    Status =
-        QuicRangeInitialize(
-            QUIC_MAX_RANGE_DUPLICATE_PACKETS,
-            &Tracker->PacketNumbersReceived);
-    if (QUIC_FAILED(Status)) {
-        goto Error;
-    }
+    QuicRangeInitialize(
+        QUIC_MAX_RANGE_DUPLICATE_PACKETS,
+        &Tracker->PacketNumbersReceived);
 
-    Status =
-        QuicRangeInitialize(
-            QUIC_MAX_RANGE_ACK_PACKETS,
-            &Tracker->PacketNumbersToAck);
-    if (QUIC_FAILED(Status)) {
-        QuicRangeUninitialize(&Tracker->PacketNumbersReceived);
-        goto Error;
-    }
-
-Error:
-
-    return Status;
+    QuicRangeInitialize(
+        QUIC_MAX_RANGE_ACK_PACKETS,
+        &Tracker->PacketNumbersToAck);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

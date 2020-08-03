@@ -34,12 +34,14 @@ Abstract:
 
 #pragma once
 
+#if !defined(QUIC_CLOG)
 #if !defined(QUIC_EVENTS_STUB) && !defined(QUIC_EVENTS_MANIFEST_ETW) && !defined(QUIC_EVENTS_LTTNG)
 #error "Must define one QUIC_EVENTS_*"
 #endif
 
 #if !defined(QUIC_LOGS_STUB) && !defined(QUIC_LOGS_MANIFEST_ETW) && !defined(QUIC_LOGS_LTTNG)
 #error "Must define one QUIC_LOGS_*"
+#endif
 #endif
 
 typedef enum QUIC_FLOW_BLOCK_REASON {
@@ -121,11 +123,23 @@ QuicTraceRundown(
     void
     );
 
+#ifdef QUIC_CLOG
+
+#define QuicTraceLogStreamVerboseEnabled() TRUE
+#define QuicTraceLogErrorEnabled()   TRUE
+#define QuicTraceLogWarningEnabled() TRUE
+#define QuicTraceLogInfoEnabled()    TRUE
+#define QuicTraceLogVerboseEnabled() TRUE
+#define QuicTraceEventEnabled(x) TRUE
+
+#else
+
 #ifdef QUIC_EVENTS_STUB
 
 #define QuicTraceEventEnabled(Name) FALSE
 #define QuicTraceEvent(Name, Fmt, ...)
-#define LOG_BINARY(Len, Data)
+
+#define CLOG_BYTEARRAY(Len, Data)
 
 #endif // QUIC_EVENTS_STUB
 
@@ -166,7 +180,7 @@ QuicEtwCallback(
 #define _QuicTraceEvent(Name, Args) EventWriteQuic##Name##Args
 #define QuicTraceEvent(Name, Fmt, ...) _QuicTraceEvent(Name, (__VA_ARGS__))
 
-#define LOG_BINARY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
+#define CLOG_BYTEARRAY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
 
 #endif // QUIC_EVENTS_MANIFEST_ETW
 
@@ -267,5 +281,7 @@ QuicTraceStubVarArgs(
 #error "LTTng not supported yet!"
 
 #endif // QUIC_LOGS_LTTNG
+
+#endif // QUIC_CLOG
 
 #endif // _TRACE_H

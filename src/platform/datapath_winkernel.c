@@ -1998,8 +1998,8 @@ QuicDataPathSocketReceive(
             Binding,
             (uint32_t)DataLength,
             MessageLength,
-            LOG_BINARY(sizeof(LocalAddr), &LocalAddr),
-            LOG_BINARY(sizeof(RemoteAddr), &RemoteAddr));
+            CLOG_BYTEARRAY(sizeof(LocalAddr), &LocalAddr),
+            CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr));
 
         for ( ; DataLength != 0; DataLength -= MessageLength) {
 
@@ -2652,7 +2652,7 @@ QuicDataPathBindingSendTo(
         SendContext->TotalSize,
         SendContext->WskBufferCount,
         SendContext->SegmentSize,
-        LOG_BINARY(sizeof(*RemoteAddress), RemoteAddress));
+        CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress));
 
     BYTE CMsgBuffer[WSA_CMSG_SPACE(sizeof(*SegmentSize))];
     PWSACMSGHDR CMsg = NULL;
@@ -2728,8 +2728,8 @@ QuicDataPathBindingSendFromTo(
         SendContext->TotalSize,
         SendContext->WskBufferCount,
         SendContext->SegmentSize,
-        LOG_BINARY(sizeof(*RemoteAddress), RemoteAddress),
-        LOG_BINARY(sizeof(*LocalAddress), LocalAddress));
+        CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+        CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 
     //
     // Map V4 address to dual-stack socket format.

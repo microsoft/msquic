@@ -38,8 +38,8 @@ TEST_P(AckFrameTest, AckFrameEncodeDecode)
 
     QuicZeroMemory(Buffer, sizeof(Buffer));
 
-    TEST_QUIC_SUCCEEDED(QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckRange));
-    TEST_QUIC_SUCCEEDED(QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &DecodedAckRange));
+    QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckRange);
+    QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &DecodedAckRange);
 
     ASSERT_TRUE(QuicRangeAddRange(&AckRange, MinPktNum, ContigPktCount, &Unused) != nullptr);
     ASSERT_TRUE(QuicRangeAddValue(&AckRange, MaxPktNum));
@@ -79,7 +79,7 @@ TEST_P(AckFrameTest, DecodeAckFrameFail) {
     BOOLEAN InvalidFrame = FALSE;
     QUIC_RANGE DecodedAckBlocks;
     QUIC_VAR_INT AckDelay = 0;
-    TEST_QUIC_SUCCEEDED(QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &DecodedAckBlocks));
+    QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &DecodedAckBlocks);
     Buffer[0] = (uint8_t)GetParam();
 
     //

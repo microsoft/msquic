@@ -30,8 +30,9 @@ QuicStreamInitialize(
     QUIC_STREAM* Stream;
     uint8_t* PreallocatedRecvBuffer = NULL;
     uint32_t InitialRecvBufferLength;
+    QUIC_WORKER* Worker = Connection->Worker;
 
-    Stream = QuicPoolAlloc(&Connection->Worker->StreamPool);
+    Stream = QuicPoolAlloc(&Worker->StreamPool);
     if (Stream == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
@@ -51,6 +52,9 @@ QuicStreamInitialize(
     Stream->SendRequestsTail = &Stream->SendRequests;
     QuicDispatchLockInitialize(&Stream->ApiSendRequestLock);
     QuicRefInitialize(&Stream->RefCount);
+    QuicRangeInitialize(
+        QUIC_MAX_RANGE_ALLOC_SIZE,
+        &Stream->SparseAckRanges);
 #if DEBUG
     Stream->RefTypeCount[QUIC_STREAM_REF_APP] = 1;
 #endif
@@ -81,20 +85,11 @@ QuicStreamInitialize(
         }
     }
 
-    Status =
-        QuicRangeInitialize(
-            QUIC_MAX_RANGE_ALLOC_SIZE,
-            &Stream->SparseAckRanges);
-    if (QUIC_FAILED(Status)) {
-        goto Exit;
-    }
-
     InitialRecvBufferLength = Connection->Session->Settings.StreamRecvBufferDefault;
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
-        PreallocatedRecvBuffer = QuicPoolAlloc(&Connection->Worker->DefaultReceiveBufferPool);
+        PreallocatedRecvBuffer = QuicPoolAlloc(&Worker->DefaultReceiveBufferPool);
         if (PreallocatedRecvBuffer == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
-            QuicRangeUninitialize(&Stream->SparseAckRanges);
             goto Exit;
         }
     }
@@ -107,12 +102,17 @@ QuicStreamInitialize(
             FALSE,
             PreallocatedRecvBuffer);
     if (QUIC_FAILED(Status)) {
-        QuicRangeUninitialize(&Stream->SparseAckRanges);
         goto Exit;
     }
 
     Stream->MaxAllowedRecvOffset = Stream->RecvBuffer.VirtualBufferLength;
     Stream->RecvWindowLastUpdate = QuicTimeUs32();
+
+#if DEBUG
+    QuicDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
+    QuicListInsertTail(&Connection->Streams.AllStreams, &Stream->AllStreamsLink);
+    QuicDispatchLockRelease(&Connection->Streams.AllStreamsLock);
+#endif
 
     Stream->Flags.Initialized = TRUE;
     *NewStream = Stream;
@@ -124,10 +124,10 @@ Exit:
     if (Stream) {
         QuicDispatchLockUninitialize(&Stream->ApiSendRequestLock);
         Stream->Flags.Freed = TRUE;
-        QuicPoolFree(&Connection->Worker->StreamPool, Stream);
+        QuicPoolFree(&Worker->StreamPool, Stream);
     }
     if (PreallocatedRecvBuffer) {
-        QuicPoolFree(&Connection->Worker->DefaultReceiveBufferPool, PreallocatedRecvBuffer);
+        QuicPoolFree(&Worker->DefaultReceiveBufferPool, PreallocatedRecvBuffer);
     }
 
     return Status;
@@ -140,6 +140,8 @@ QuicStreamFree(
     )
 {
     BOOLEAN WasStarted = Stream->Flags.Started;
+    QUIC_CONNECTION* Connection = Stream->Connection;
+    QUIC_WORKER* Worker = Connection->Worker;
 
     QUIC_TEL_ASSERT(Stream->RefCount == 0);
     QUIC_TEL_ASSERT(Stream->Flags.ShutdownComplete);
@@ -152,6 +154,12 @@ QuicStreamFree(
     QUIC_TEL_ASSERT(Stream->ApiSendRequests == NULL);
     QUIC_TEL_ASSERT(Stream->SendRequests == NULL);
 
+#if DEBUG
+    QuicDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
+    QuicListEntryRemove(&Stream->AllStreamsLink);
+    QuicDispatchLockRelease(&Connection->Streams.AllStreamsLock);
+#endif
+
     QuicRecvBufferUninitialize(&Stream->RecvBuffer);
     QuicRangeUninitialize(&Stream->SparseAckRanges);
     QuicDispatchLockUninitialize(&Stream->ApiSendRequestLock);
@@ -159,12 +167,12 @@ QuicStreamFree(
 
     if (Stream->RecvBuffer.PreallocatedBuffer) {
         QuicPoolFree(
-            &Stream->Connection->Worker->DefaultReceiveBufferPool,
+            &Worker->DefaultReceiveBufferPool,
             Stream->RecvBuffer.PreallocatedBuffer);
     }
 
     Stream->Flags.Freed = TRUE;
-    QuicPoolFree(&Stream->Connection->Worker->StreamPool, Stream);
+    QuicPoolFree(&Worker->StreamPool, Stream);
 
     if (WasStarted) {
 #pragma warning(push)

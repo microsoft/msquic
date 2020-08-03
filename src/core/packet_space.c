@@ -23,39 +23,25 @@ QuicPacketSpaceInitialize(
     _Out_ QUIC_PACKET_SPACE** NewPackets
     )
 {
-    QUIC_STATUS Status;
-    QUIC_PACKET_SPACE* Packets;
-
-    Packets = QUIC_ALLOC_NONPAGED(sizeof(QUIC_PACKET_SPACE));
+    uint8_t CurProcIndex = QuicLibraryGetCurrentPartition();
+    QUIC_PACKET_SPACE* Packets = QuicPoolAlloc(&MsQuicLib.PerProc[CurProcIndex].PacketSpacePool);
     if (Packets == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "packet space",
             sizeof(QUIC_PACKET_SPACE));
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     QuicZeroMemory(Packets, sizeof(QUIC_PACKET_SPACE));
     Packets->Connection = Connection;
     Packets->EncryptLevel = EncryptLevel;
-
-    Status = QuicAckTrackerInitialize(&Packets->AckTracker);
-    if (QUIC_FAILED(Status)) {
-        goto Error;
-    }
+    QuicAckTrackerInitialize(&Packets->AckTracker);
 
     *NewPackets = Packets;
-    Packets = NULL;
 
-Error:
-
-    if (Packets != NULL) {
-        QUIC_FREE(Packets);
-    }
-
-    return Status;
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -77,7 +63,8 @@ QuicPacketSpaceUninitialize(
 
     QuicAckTrackerUninitialize(&Packets->AckTracker);
 
-    QUIC_FREE(Packets);
+    uint8_t CurProcIndex = QuicLibraryGetCurrentPartition();
+    QuicPoolFree(&MsQuicLib.PerProc[CurProcIndex].PacketSpacePool, Packets);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

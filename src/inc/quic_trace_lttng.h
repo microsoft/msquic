@@ -1149,4 +1149,4 @@ QUIC_TRACE_LEVEL(DatapathErrorStatus, TRACE_ERR)
 
 #define QuicTraceEventEnabled(Name) tracepoint_enabled(MsQuic, Name)
 #define QuicTraceEvent(Name, Fmt, ...) tracepoint(MsQuic, Name, ##__VA_ARGS__)
-#define LOG_BINARY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
+#define CLOG_BYTEARRAY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)

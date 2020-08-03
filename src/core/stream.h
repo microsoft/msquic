@@ -213,6 +213,13 @@ typedef struct QUIC_STREAM {
     //
     QUIC_LIST_ENTRY SendLink;
 
+#if DEBUG
+    //
+    // The list entry in the stream set's list of all allocated streams.
+    //
+    QUIC_LIST_ENTRY AllStreamsLink;
+#endif
+
     //
     // The parent connection for this stream.
     //

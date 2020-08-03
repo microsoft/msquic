@@ -301,6 +301,9 @@ typedef struct QUIC_CONNECTION {
     long RefCount;
 
 #if DEBUG
+    //
+    // Detailed ref counts
+    //
     short RefTypeCount[QUIC_CONN_REF_COUNT];
 #endif
 
@@ -817,12 +820,13 @@ QuicConnRemoveOutFlowBlockedReason(
 // a datagram is the cause of the creation, and is passed in.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-QuicConnInitialize(
+__drv_allocatesMem(Mem)
+_Must_inspect_result_
+_Success_(return != NULL)
+QUIC_CONNECTION*
+QuicConnAlloc(
     _In_ QUIC_SESSION* Session,
-    _In_opt_ const QUIC_RECV_DATAGRAM* const Datagram,
-    _Outptr_ _At_(*Connection, __drv_allocatesMem(Mem))
-        QUIC_CONNECTION** Connection
+    _In_opt_ const QUIC_RECV_DATAGRAM* const Datagram
     );
 
 //
@@ -1051,7 +1055,7 @@ QuicConnGetSourceCidFromSeq(
                     "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
                     Connection,
                     SourceCid->CID.SequenceNumber,
-                    LOG_BINARY(SourceCid->CID.Length, SourceCid->CID.Data));
+                    CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
                 *Entry = (*Entry)->Next;
             }
             *IsLastCid = Connection->SourceCids.Next == NULL;
