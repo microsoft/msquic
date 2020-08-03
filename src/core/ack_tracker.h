@@ -48,7 +48,7 @@ typedef struct QUIC_ACK_TRACKER {
 // Initializes a new ack tracker.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 QuicAckTrackerInitialize(
     _Inout_ QUIC_ACK_TRACKER* Tracker
     );
