@@ -53,7 +53,7 @@ function Install-ClogTool {
     }
 }
 
-if (($Configuration -eq "Dev") -or ($Configuration -eq "Build")) {
+if (($Configuration -eq "Dev") -or ($Configuration -eq "Build") -or ($Configuration -eq "Test")) {
     Install-ClogTool "Microsoft.Logging.CLOG"
 }
 

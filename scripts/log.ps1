@@ -175,7 +175,7 @@ function Log-Stop {
 
             Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
             $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
-            Write-Debug $Command
+            Write-Host $Command
             Invoke-Expression $Command | Write-Debug
             Remove-Item -Path $BableTraceFile -Force | Out-Null
         }
