@@ -10,7 +10,11 @@ set(SOURCES
 )
 
 # Allow CLOG to preprocess all the source files.
-add_clog_library(msquicplatformtest.clog STATIC ${SOURCES})
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    add_clog_library(msquicplatformtest.clog STATIC ${SOURCES})
+else()
+    add_clog_library(msquicplatformtest.clog SHARED ${SOURCES})
+endif()
 
 add_executable(msquicplatformtest ${SOURCES})
 
@@ -18,6 +22,10 @@ target_include_directories(msquicplatformtest PRIVATE ${PROJECT_SOURCE_DIR}/src/
 
 set_property(TARGET msquicplatformtest PROPERTY FOLDER "tests")
 
-target_link_libraries(msquicplatformtest msquic platform inc gtest msquicplatformtest.clog)
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+    target_link_libraries(msquicplatformtest msquic platform inc gtest)
+else()
+    target_link_libraries(msquicplatformtest msquic platform inc gtest msquicplatformtest.clog)
+endif()
 
 add_test(msquicplatformtest msquicplatformtest)
