@@ -129,5 +129,10 @@ if ($IsWindows) {
 
             Install-ClogTool "Microsoft.Logging.CLOG2Text.Lttng"
         }
+
+        find ~
+        clog
+        clog2text_lttng
+
     }
 }
