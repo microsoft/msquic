@@ -210,20 +210,6 @@ function Start-Executable {
     $p.StartInfo = $pinfo
     $p.Start() | Out-Null
 
-    if ($CodeCoverage) {
-        # When measuring code coverage, wait a little bit and then force a few
-        # other code paths...
-        Sleep -Seconds 5
-        if ($LogProfile -ne "None") {
-            # Start logs to trigger the rundown code paths.
-            & $LogScript -Start -LogProfile $LogProfile | Out-Null
-        }
-        # Set a registry key to trigger the settings code paths.
-        reg.exe add HKLM\SYSTEM\CurrentControlSet\Services\MsQuic\Parameters\Apps\spinquic /v InitialWindowPackets /t REG_DWORD /d 20 /f
-        Sleep -Seconds 1
-        reg.exe delete HKLM\SYSTEM\CurrentControlSet\Services\MsQuic\Parameters\Apps\spinquic /f
-    }
-
     [pscustomobject]@{
         Timestamp = $Now
         Process = $p
@@ -255,6 +241,21 @@ function Wait-Executable($Exe) {
     $KeepOutput = $KeepOutputOnSuccess
 
     try {
+
+        if ($CodeCoverage) {
+            # When measuring code coverage, wait a little bit and then force a few
+            # other code paths...
+            Sleep -Seconds 5
+            if ($LogProfile -ne "None") {
+                # Start logs to trigger the rundown code paths.
+                & $LogScript -Start -LogProfile $LogProfile | Out-Null
+            }
+            # Set a registry key to trigger the settings code paths.
+            reg.exe add HKLM\SYSTEM\CurrentControlSet\Services\MsQuic\Parameters\Apps\spinquic /v InitialWindowPackets /t REG_DWORD /d 20 /f | Out-Null
+            Sleep -Seconds 1
+            reg.exe delete HKLM\SYSTEM\CurrentControlSet\Services\MsQuic\Parameters\Apps\spinquic /f
+        }
+
         if (!$Debugger) {
             $stdout = $Exe.Process.StandardOutput.ReadToEnd()
             $stderr = $Exe.Process.StandardError.ReadToEnd()

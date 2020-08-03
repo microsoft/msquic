@@ -81,8 +81,9 @@ QuicConnAlloc(
             "Allocation of '%s' failed. (%llu bytes)",
             "connection",
             sizeof(QUIC_CONNECTION));
-        goto Error;
+        return NULL;
     }
+
     QuicZeroMemory(Connection, sizeof(QUIC_CONNECTION));
 
 #if DEBUG
@@ -255,24 +256,22 @@ QuicConnAlloc(
 
 Error:
 
-    if (Connection != NULL) {
-        Connection->State.HandleClosed = TRUE;
-        Connection->State.Uninitialized = TRUE;
-        for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
-            if (Connection->Packets[i] != NULL) {
-                QuicPacketSpaceUninitialize(Connection->Packets[i]);
-            }
+    Connection->State.HandleClosed = TRUE;
+    Connection->State.Uninitialized = TRUE;
+    for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
+        if (Connection->Packets[i] != NULL) {
+            QuicPacketSpaceUninitialize(Connection->Packets[i]);
         }
-        if (Datagram != NULL) {
-            QUIC_FREE(
-                QUIC_CONTAINING_RECORD(
-                    Connection->SourceCids.Next,
-                    QUIC_CID_HASH_ENTRY,
-                    Link));
-            Connection->SourceCids.Next = NULL;
-        }
-        QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
     }
+    if (Datagram != NULL) {
+        QUIC_FREE(
+            QUIC_CONTAINING_RECORD(
+                Connection->SourceCids.Next,
+                QUIC_CID_HASH_ENTRY,
+                Link));
+        Connection->SourceCids.Next = NULL;
+    }
+    QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
 
     return NULL;
 }
