@@ -176,7 +176,6 @@ function(add_clog_library)
     set_property(TARGET ${ARGV0} PROPERTY FOLDER "clog")
 endfunction()
 
-
 set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 set(MANIFESTED_HEADER_FILENAME ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
