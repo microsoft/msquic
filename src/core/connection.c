@@ -2628,22 +2628,11 @@ QuicConnProcessPeerTransportParameters(
     }
 
     if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_PREFERRED_ADDRESS) {
-        /* TODO - Platform independent logging
-        if (QuicAddrGetFamily(&Connection->PeerTransportParams.PreferredAddress) == AF_INET) {
-            QuicTraceLogConnInfo_Skip(
-                PeerPreferredAddressV4,
-                Connection,
-                "Peer configured preferred address %!IPV4ADDR!:%d",
-                &Connection->PeerTransportParams.PreferredAddress.Ipv4.sin_addr,
-                QuicByteSwapUint16(Connection->PeerTransportParams.PreferredAddress.Ipv4.sin_port));
-        } else {
-            QuicTraceLogConnInfo_Skip(
-                PeerPreferredAddressV6,
-                Connection,
-                "Peer configured preferred address [%!IPV6ADDR!]:%d",
-                &Connection->PeerTransportParams.PreferredAddress.Ipv6.sin6_addr,
-                QuicByteSwapUint16(Connection->PeerTransportParams.PreferredAddress.Ipv6.sin6_port));
-        }*/
+        /*QuicTraceLogConnInfo(
+            PeerPreferredAddress,
+            Connection,
+            "Peer configured preferred address %!SOCKADDR!",
+            CLOG_BYTEARRAY(sizeof(Connection->PeerTransportParams.PreferredAddress), &Connection->PeerTransportParams.PreferredAddress));*/
 
         //
         // TODO - Implement preferred address feature.
