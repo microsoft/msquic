@@ -119,6 +119,19 @@ QuicConnAlloc(
     QuicSendInitialize(&Connection->Send);
     QuicLossDetectionInitialize(&Connection->LossDetection);
     QuicDatagramInitialize(&Connection->Datagram);
+    QuicRangeInitialize(
+        QUIC_MAX_RANGE_DECODE_ACKS,
+        &Connection->DecodedAckRanges);
+
+    for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
+        if (QUIC_FAILED(
+            QuicPacketSpaceInitialize(
+                Connection,
+                (QUIC_ENCRYPT_LEVEL)i,
+                &Connection->Packets[i]))) {
+            goto Error;
+        }
+    }
 
     QUIC_PATH* Path = &Connection->Paths[0];
     QuicPathInitialize(Connection, Path);
@@ -205,6 +218,10 @@ QuicConnAlloc(
             SourceCid->CID.SequenceNumber,
             CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
 
+        //
+        // Server lazily finishes initialization in response to first operation.
+        //
+
     } else {
         Connection->Type = QUIC_HANDLE_TYPE_CLIENT;
         Connection->State.ExternalOwner = TRUE;
@@ -224,6 +241,12 @@ QuicConnAlloc(
             Connection,
             Path->DestCid->CID.SequenceNumber,
             CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data));
+
+        Connection->State.Initialized = TRUE;
+        QuicTraceEvent(
+            ConnInitializeComplete,
+            "[conn][%p] Initialize complete",
+            Connection);
     }
 
     QuicSessionRegisterConnection(Session, Connection);
@@ -233,87 +256,13 @@ QuicConnAlloc(
 Error:
 
     if (Connection != NULL) {
-        QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
-    }
-
-    return NULL;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-QuicConnInitialize(
-    _In_ QUIC_SESSION* Session,
-    _In_opt_ const QUIC_RECV_DATAGRAM* const Datagram, // NULL for client side
-    _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem))
-        QUIC_CONNECTION** NewConnection
-    )
-{
-    QUIC_STATUS Status;
-    uint32_t InitStep = 0;
-
-    QUIC_CONNECTION* Connection = QuicConnAlloc(Session, Datagram);
-    if (Connection == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
-    }
-    InitStep++; // Step 1
-
-    for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
-        Status =
-            QuicPacketSpaceInitialize(
-                Connection,
-                (QUIC_ENCRYPT_LEVEL)i,
-                &Connection->Packets[i]);
-        if (QUIC_FAILED(Status)) {
-            goto Error;
-        }
-    }
-
-    //
-    // N.B. Initializing packet space can fail part-way through, so it must be
-    //      cleaned up even if it doesn't complete. Do not separate it from
-    //      allocation.
-    //
-    Status =
-        QuicRangeInitialize(
-            QUIC_MAX_RANGE_DECODE_ACKS,
-            &Connection->DecodedAckRanges);
-    if (QUIC_FAILED(Status)) {
-        goto Error;
-    }
-    InitStep++; // Step 2
-
-    if (Datagram == NULL) {
-        Connection->State.Initialized = TRUE;
-        QuicTraceEvent(
-            ConnInitializeComplete,
-            "[conn][%p] Initialize complete",
-            Connection);
-    } else {
-        //
-        // Server lazily finishes initialzation in response to first operation.
-        //
-    }
-
-    *NewConnection = Connection;
-
-    return QUIC_STATUS_SUCCESS;
-
-Error:
-
-    switch (InitStep) {
-    case 2:
-        QuicRangeUninitialize(&Connection->DecodedAckRanges);
-        __fallthrough;
-    case 1:
+        Connection->State.HandleClosed = TRUE;
+        Connection->State.Uninitialized = TRUE;
         for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
             if (Connection->Packets[i] != NULL) {
                 QuicPacketSpaceUninitialize(Connection->Packets[i]);
             }
         }
-
-        Connection->State.HandleClosed = TRUE;
-        Connection->State.Uninitialized = TRUE;
         if (Datagram != NULL) {
             QUIC_FREE(
                 QUIC_CONTAINING_RECORD(
@@ -323,10 +272,9 @@ Error:
             Connection->SourceCids.Next = NULL;
         }
         QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
-        break;
     }
 
-    return Status;
+    return NULL;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

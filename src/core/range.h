@@ -9,7 +9,6 @@
 #define QUIC_RANGE_USE_BINARY_SEARCH    1
 
 #define QUIC_RANGE_INITIAL_SUB_COUNT    8
-#define QUIC_RANGE_PREALLOC_SUB_RANGES  1
 
 typedef struct QUIC_SUBRANGE {
 
@@ -64,12 +63,10 @@ typedef struct QUIC_RANGE {
     _Field_range_(sizeof(QUIC_SUBRANGE), sizeof(QUIC_SUBRANGE) * QUIC_MAX_RANGE_ALLOC_SIZE)
     uint32_t MaxAllocSize;
 
-#if QUIC_RANGE_PREALLOC_SUB_RANGES
     //
     // Allocates a number of subranges along with the parent object.
     //
     QUIC_SUBRANGE PreAllocSubRanges[QUIC_RANGE_INITIAL_SUB_COUNT];
-#endif
 
 } QUIC_RANGE;
 
@@ -228,7 +225,7 @@ QuicRangeSearch(
 #endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 QuicRangeInitialize(
     _In_ uint32_t MaxAllocSize,
     _Out_ QUIC_RANGE* Range

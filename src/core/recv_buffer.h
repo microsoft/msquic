@@ -109,17 +109,6 @@ QuicRecvBufferHasUnreadData(
     );
 
 //
-// Returns TRUE if the data was already read out of the receive buffer.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-QuicRecvBufferAlreadyReadData(
-    _In_ QUIC_RECV_BUFFER* RecvBuffer,
-    _In_ uint64_t BufferOffset,
-    _In_ uint16_t BufferLength
-    );
-
-//
 // Buffers a (possibly out-of-order or duplicate) range of bytes.
 //
 // Returns TRUE if in-order bytes are ready to be delivered
