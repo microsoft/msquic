@@ -210,11 +210,18 @@ function Start-Executable {
     $p.StartInfo = $pinfo
     $p.Start() | Out-Null
 
-    if ($LogProfile -ne "None" -and $CodeCoverage) {
-        # When measuring code coverage, start logs a little after the exe starts
-        # to trigger the rundown code paths.
+    if ($CodeCoverage) {
+        # When measuring code coverage, wait a little bit and then force a few
+        # other code paths...
         Sleep -Seconds 5
-        & $LogScript -Start -LogProfile $LogProfile | Out-Null
+        if ($LogProfile -ne "None") {
+            # Start logs to trigger the rundown code paths.
+            & $LogScript -Start -LogProfile $LogProfile | Out-Null
+        }
+        # Set a registry key to trigger the settings code paths.
+        reg.exe add HKLM\SYSTEM\CurrentControlSet\Services\MsQuic\Parameters\Apps\spinquic /v InitialWindowPackets /t REG_DWORD /d 20 /f
+        Sleep -Seconds 1
+        reg.exe delete HKLM\SYSTEM\CurrentControlSet\Services\MsQuic\Parameters\Apps\spinquic /f
     }
 
     [pscustomobject]@{
