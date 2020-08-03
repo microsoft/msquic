@@ -20,6 +20,11 @@ fi
 # - SERVER_PARAMS contains user-supplied command line parameters
 # - CLIENT_PARAMS contains user-supplied command line parameters
 
+# Start LTTng log collection.
+mkdir logs
+lttng create msquic -o=logs
+lttng enable-event --userspace CLOG_*
+
 if [ "$ROLE" == "client" ]; then
     # Wait for the simulator to start up.
     /wait-for-it.sh sim:57832 -s -t 30
@@ -41,3 +46,8 @@ elif [ "$ROLE" == "server" ]; then
     quicinteropserver ${SERVER_PARAMS} -root:/www -listen:* -port:443 \
         -file:/server.crt -key:/server.key 2>&1
 fi
+
+# Stop log collection and convert.
+lttng stop msquic
+babeltrace --names all logs/* > quic.babel
+clog2text_lttng -i quic.babel -s clog.sidecar -o quic.log
