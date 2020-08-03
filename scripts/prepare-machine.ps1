@@ -118,17 +118,8 @@ if ($IsWindows) {
             #sudo cat /proc/sys/kernel/core_pattern
 
             Install-ClogTool "Microsoft.Logging.CLOG2Text.Lttng"
-
-            gci env:* | sort-object name
-
-            find ~
-
+           
             $env:PATH += ":$HOME/.dotnet/tools"
-
-            clog2text_lttng   
-
-            find /usr/bin  
-            lttng                   
         }
         "Dev" {
             sudo apt-add-repository ppa:lttng/stable-2.10
