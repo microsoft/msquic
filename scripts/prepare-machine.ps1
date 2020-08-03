@@ -121,8 +121,16 @@ if ($IsWindows) {
 
             gci env:* | sort-object name
 
+            find ~
+
             clog2text_lttng 
-            
+
+            $env:PATH+=":~/.dotnet/tools"
+            clog2text_lttng   
+
+            lttng
+
+            find /usr/bin         
         }
         "Dev" {
             sudo apt-add-repository ppa:lttng/stable-2.10
