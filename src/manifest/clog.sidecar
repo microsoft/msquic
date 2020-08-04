@@ -18311,7 +18311,7 @@
     },
     "BindingCreated": {
       "ModuleProperites": {},
-      "TraceString": "[bind][%p] Created, Udp=%p LocalAddr=%!SOCKADDR! RemoteAddr=%!SOCKADDR!",
+      "TraceString": "[bind][%p] Created, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
       "UniqueId": "BindingCreated",
       "splitArgs": [
         {
@@ -18338,7 +18338,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr)",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg4"
         },
         {
@@ -18347,7 +18347,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr)",
             "SuggestedTelemetryName": "arg5"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg5"
         }
       ],
@@ -18366,7 +18366,7 @@
     },
     "BindingRundown": {
       "ModuleProperites": {},
-      "TraceString": "[bind][%p] Rundown, Udp=%p LocalAddr=%!SOCKADDR! RemoteAddr=%!SOCKADDR!",
+      "TraceString": "[bind][%p] Rundown, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
       "UniqueId": "BindingRundown",
       "splitArgs": [
         {
@@ -18393,7 +18393,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr)",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg4"
         },
         {
@@ -18402,7 +18402,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr)",
             "SuggestedTelemetryName": "arg5"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg5"
         }
       ],
@@ -18421,7 +18421,7 @@
     },
     "ConnLocalAddrAdded": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] New Local IP: %!SOCKADDR!",
+      "TraceString": "[conn][%p] New Local IP: %!ADDR!",
       "UniqueId": "ConnLocalAddrAdded",
       "splitArgs": [
         {
@@ -18439,7 +18439,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Path->LocalAddress), &Path->LocalAddress)",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg3"
         }
       ],
@@ -18458,7 +18458,7 @@
     },
     "ConnRemoteAddrAdded": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] New Remote IP: %!SOCKADDR!",
+      "TraceString": "[conn][%p] New Remote IP: %!ADDR!",
       "UniqueId": "ConnRemoteAddrAdded",
       "splitArgs": [
         {
@@ -18476,7 +18476,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Path->RemoteAddress), &Path->RemoteAddress)",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg3"
         }
       ],
@@ -18679,7 +18679,7 @@
     },
     "ConnLocalAddrRemoved": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Removed Local IP: %!SOCKADDR!",
+      "TraceString": "[conn][%p] Removed Local IP: %!ADDR!",
       "UniqueId": "ConnLocalAddrRemoved",
       "splitArgs": [
         {
@@ -18697,7 +18697,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress)",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg3"
         }
       ],
@@ -18716,7 +18716,7 @@
     },
     "ListenerStarted": {
       "ModuleProperites": {},
-      "TraceString": "[list][%p] Started, Binding=%p, LocalAddr=%!SOCKADDR!",
+      "TraceString": "[list][%p] Started, Binding=%p, LocalAddr=%!ADDR!",
       "UniqueId": "ListenerStarted",
       "splitArgs": [
         {
@@ -18743,7 +18743,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress)",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg4"
         }
       ],
@@ -18762,7 +18762,7 @@
     },
     "ConnDropPacket": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] DROP packet[%llu] Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
+      "TraceString": "[conn][%p] DROP packet[%llu] Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
       "UniqueId": "ConnDropPacket",
       "splitArgs": [
         {
@@ -18789,7 +18789,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg4"
         },
         {
@@ -18798,7 +18798,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)",
             "SuggestedTelemetryName": "arg5"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg5"
         },
         {
@@ -18826,7 +18826,7 @@
     },
     "BindingDropPacket": {
       "ModuleProperites": {},
-      "TraceString": "[bind][%p] DROP packet[%llu] Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
+      "TraceString": "[bind][%p] DROP packet[%llu] Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
       "UniqueId": "BindingDropPacket",
       "splitArgs": [
         {
@@ -18853,7 +18853,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)",
             "SuggestedTelemetryName": "arg4"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg4"
         },
         {
@@ -18862,7 +18862,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)",
             "SuggestedTelemetryName": "arg5"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg5"
         },
         {
@@ -18890,7 +18890,7 @@
     },
     "ConnDropPacketEx": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] DROP packet[%llu] Value=%llu Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
+      "TraceString": "[conn][%p] DROP packet[%llu] Value=%llu Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
       "UniqueId": "ConnDropPacketEx",
       "splitArgs": [
         {
@@ -18926,7 +18926,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)",
             "SuggestedTelemetryName": "arg5"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg5"
         },
         {
@@ -18935,7 +18935,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)",
             "SuggestedTelemetryName": "arg6"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg6"
         },
         {
@@ -18963,7 +18963,7 @@
     },
     "BindingDropPacketEx": {
       "ModuleProperites": {},
-      "TraceString": "[bind][%p] DROP packet[%llu] %llu. Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s",
+      "TraceString": "[bind][%p] DROP packet[%llu] %llu. Dst=%!ADDR! Src=%!ADDR! Reason=%s",
       "UniqueId": "BindingDropPacketEx",
       "splitArgs": [
         {
@@ -18999,7 +18999,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress)",
             "SuggestedTelemetryName": "arg5"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg5"
         },
         {
@@ -19008,7 +19008,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress)",
             "SuggestedTelemetryName": "arg6"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg6"
         },
         {
@@ -19036,7 +19036,7 @@
     },
     "DatapathRecv": {
       "ModuleProperites": {},
-      "TraceString": "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!SOCKADDR! Dst=%!SOCKADDR!",
+      "TraceString": "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
       "UniqueId": "DatapathRecv",
       "splitArgs": [
         {
@@ -19072,7 +19072,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr)",
             "SuggestedTelemetryName": "arg5"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg5"
         },
         {
@@ -19081,7 +19081,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr)",
             "SuggestedTelemetryName": "arg6"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg6"
         }
       ],
@@ -19100,7 +19100,7 @@
     },
     "DatapathSendTo": {
       "ModuleProperites": {},
-      "TraceString": "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!",
+      "TraceString": "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!",
       "UniqueId": "DatapathSendTo",
       "splitArgs": [
         {
@@ -19145,7 +19145,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress)",
             "SuggestedTelemetryName": "arg6"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg6"
         }
       ],
@@ -19164,7 +19164,7 @@
     },
     "DatapathSendFromTo": {
       "ModuleProperites": {},
-      "TraceString": "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!, Src=%!SOCKADDR!",
+      "TraceString": "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
       "UniqueId": "DatapathSendFromTo",
       "splitArgs": [
         {
@@ -19209,7 +19209,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress)",
             "SuggestedTelemetryName": "arg6"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg6"
         },
         {
@@ -19218,7 +19218,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress)",
             "SuggestedTelemetryName": "arg7"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg7"
         }
       ],
@@ -19292,7 +19292,7 @@
     },
     "PeerPreferredAddress": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Peer configured preferred address %!SOCKADDR!",
+      "TraceString": "[conn][%p] Peer configured preferred address %!ADDR!",
       "UniqueId": "PeerPreferredAddress",
       "splitArgs": [
         {
@@ -19310,7 +19310,7 @@
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(Connection->PeerTransportParams.PreferredAddress), &Connection->PeerTransportParams.PreferredAddress)",
             "SuggestedTelemetryName": "arg3"
           },
-          "DefinationEncoding": "!SOCKADDR!",
+          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg3"
         }
       ],
@@ -19375,33 +19375,21 @@
     },
     "Version": 1,
     "CustomTypeClogCSharpFile": "msquic.clog.cs",
-    "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nusing System;\nusing System.Runtime.InteropServices;\n\nnamespace msquic.clog_config\n{\n    public class Types\n    {\n        [StructLayout(LayoutKind.Explicit)]\n        public struct SocketAddress\n        {\n            [FieldOffset(0)]\n            public ushort si_family;\n\n            [FieldOffset(2)]\n            public ushort sin_port;\n\n            // IPv4\n            [FieldOffset(4)]\n            public ulong S_addr;\n\n\n            // IPv6\n            [FieldOffset(4)]\n            public ulong sin6_flowinfo;\n\n            [FieldOffset(8)]\n            public ulong S_v6Addr1;\n\n            [FieldOffset(16)]\n            public ulong S_v6Addr2;\n        };\n\n        public static string QUIC_FLAGS(uint value)\n        {\n            return \"QUIC_FLAGS (good!) \" + value;\n        }\n\n        public static string QUIC_IP_ADDR(byte[] value)\n        {\n            int len = value.Length;\n            IntPtr i = System.Runtime.InteropServices.Marshal.AllocHGlobal(len);\n            System.Runtime.InteropServices.Marshal.Copy(value, 0, i, len);\n            string msg = \"\";\n            SocketAddress sa2 = (SocketAddress)System.Runtime.InteropServices.Marshal.PtrToStructure(i, typeof(SocketAddress));\n\n            switch (sa2.si_family)\n            {\n                case 0:  //<--unspecified\n                    msg += \"Unspecified\";\n                    break;\n                case 23: //<--v6\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\n                    break;\n                case 10:  //<--v6 (linux)\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\n                    break;\n                case 2:  //< --v4\n                    msg += \"IPV4:\" + sa2.S_addr + \":\" + sa2.sin_port;\n                    break;\n                default:\n                    throw new Exception(\"Invalid SI_FAMILY : \" + sa2.si_family);\n            }\n\n            System.Runtime.InteropServices.Marshal.FreeHGlobal(i);\n            return msg;\n        }\n\n        public static string DecodeCID(byte [] value)\n        {\n            return \"CID!\";\n        }\n    }\n}\n",
+    "CustomTypeClogCSharpFileContents": "/*++\r\n\r\n    Copyright (c) Microsoft Corporation.\r\n    Licensed under the MIT License.\r\n\r\n--*/\r\n\r\nusing System;\r\nusing System.Runtime.InteropServices;\r\n\r\nnamespace msquic.clog_config\r\n{\r\n    public class Types\r\n    {\r\n        [StructLayout(LayoutKind.Explicit)]\r\n        public struct SocketAddress\r\n        {\r\n            [FieldOffset(0)]\r\n            public ushort si_family;\r\n\r\n            [FieldOffset(2)]\r\n            public ushort sin_port;\r\n\r\n            // IPv4\r\n            [FieldOffset(4)]\r\n            public ulong S_addr;\r\n\r\n\r\n            // IPv6\r\n            [FieldOffset(4)]\r\n            public ulong sin6_flowinfo;\r\n\r\n            [FieldOffset(8)]\r\n            public ulong S_v6Addr1;\r\n\r\n            [FieldOffset(16)]\r\n            public ulong S_v6Addr2;\r\n        };\r\n\r\n        public static string ADDR(byte[] value)\r\n        {\r\n            int len = value.Length;\r\n            IntPtr i = System.Runtime.InteropServices.Marshal.AllocHGlobal(len);\r\n            System.Runtime.InteropServices.Marshal.Copy(value, 0, i, len);\r\n            string msg = \"\";\r\n            SocketAddress sa2 = (SocketAddress)System.Runtime.InteropServices.Marshal.PtrToStructure(i, typeof(SocketAddress));\r\n\r\n            switch (sa2.si_family)\r\n            {\r\n                case 0:  //<--unspecified\r\n                    msg += \"Unspecified\";\r\n                    break;\r\n                case 23: //<--v6\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 10:  //<--v6 (linux)\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 2:  //< --v4\r\n                    msg += \"IPV4:\" + sa2.S_addr + \":\" + sa2.sin_port;\r\n                    break;\r\n                default:\r\n                    throw new Exception(\"Invalid SI_FAMILY : \" + sa2.si_family);\r\n            }\r\n\r\n            System.Runtime.InteropServices.Marshal.FreeHGlobal(i);\r\n            return msg;\r\n        }\r\n\r\n        public static string CID(byte [] value)\r\n        {\r\n            return \"CID!\";\r\n        }\r\n    }\r\n}\r\n",
     "TypeEncoders": {
       "Version": 0,
       "TypeEncoder": [
         {
           "EncodingType": "ByteArray",
           "CType": "CLOG_PTR",
-          "DefinationEncoding": "!SOCKADDR!",
-          "CustomDecoder": "msquic.clog_config.Types.QUIC_IP_ADDR"
-        },
-        {
-          "EncodingType": "ByteArray",
-          "CType": "CLOG_PTR",
-          "DefinationEncoding": "!IPV4ADDR!",
-          "CustomDecoder": "msquic.clog_config.Types.QUIC_IP_ADDR"
-        },
-        {
-          "EncodingType": "ByteArray",
-          "CType": "CLOG_PTR",
-          "DefinationEncoding": "!IPV6ADDR!",
-          "CustomDecoder": "msquic.clog_config.Types.QUIC_IP_ADDR"
+          "DefinationEncoding": "!ADDR!",
+          "CustomDecoder": "msquic.clog_config.Types.ADDR"
         },
         {
           "EncodingType": "ByteArray",
           "CType": "CLOG_PTR",
           "DefinationEncoding": "!CID!",
-          "CustomDecoder": "msquic.clog_config.Types.DecodeCID"
+          "CustomDecoder": "msquic.clog_config.Types.CID"
         },
         {
           "EncodingType": "UInt32",
@@ -21636,22 +21624,6 @@
         "TraceID": "TestLogFailure"
       },
       {
-        "UniquenessHash": "f394b805-800b-c03a-6661-cc6241a33866",
-        "TraceID": "BindingCreated"
-      },
-      {
-        "UniquenessHash": "cb22c273-ad34-5bd1-b6bd-38a2ee4554f3",
-        "TraceID": "BindingRundown"
-      },
-      {
-        "UniquenessHash": "6564b56b-6aa8-120a-96b1-bbc573162489",
-        "TraceID": "ConnLocalAddrAdded"
-      },
-      {
-        "UniquenessHash": "9c697b6f-4db0-22aa-7143-bf009247a362",
-        "TraceID": "ConnRemoteAddrAdded"
-      },
-      {
         "UniquenessHash": "e2133726-1e36-d515-e6b1-ab7ac6fdf53e",
         "TraceID": "ConnDestCidAdded"
       },
@@ -21666,42 +21638,6 @@
       {
         "UniquenessHash": "65f1ff8d-810a-4f24-b2f6-817daf9275ef",
         "TraceID": "ConnSourceCidRemoved"
-      },
-      {
-        "UniquenessHash": "3dff0c2f-b015-d575-c091-eb8fbcc74265",
-        "TraceID": "ConnLocalAddrRemoved"
-      },
-      {
-        "UniquenessHash": "2bebd8f7-b487-148b-f3a2-d1c7b0313fee",
-        "TraceID": "ListenerStarted"
-      },
-      {
-        "UniquenessHash": "19e4904d-0279-edda-d702-089be1a9ffdc",
-        "TraceID": "ConnDropPacket"
-      },
-      {
-        "UniquenessHash": "ae6ceeda-e33e-fc32-e4e6-2ca569fc4a36",
-        "TraceID": "BindingDropPacket"
-      },
-      {
-        "UniquenessHash": "986517b1-3630-5640-8761-fd0cb11ec4e1",
-        "TraceID": "ConnDropPacketEx"
-      },
-      {
-        "UniquenessHash": "c2b528ba-7224-b6e9-77b8-bb7eb39f2600",
-        "TraceID": "BindingDropPacketEx"
-      },
-      {
-        "UniquenessHash": "37eea1a3-d42b-09d4-d537-653b79a7041b",
-        "TraceID": "DatapathRecv"
-      },
-      {
-        "UniquenessHash": "fdbb45cb-f1d0-276a-340b-eef8e3f4156f",
-        "TraceID": "DatapathSendTo"
-      },
-      {
-        "UniquenessHash": "c9893cd3-8c87-7d0b-9dac-0271871ca855",
-        "TraceID": "DatapathSendFromTo"
       },
       {
         "UniquenessHash": "c7b17ffc-7649-6294-b6d0-cf4bbf4bc8cb",
@@ -21772,8 +21708,60 @@
         "TraceID": "ConnPacketRecv"
       },
       {
-        "UniquenessHash": "43482b75-cdcb-d2cd-f082-c1928bc7864d",
+        "UniquenessHash": "de67327e-34fe-e36e-e687-09f38be7e043",
+        "TraceID": "BindingCreated"
+      },
+      {
+        "UniquenessHash": "229b6b27-7423-c3ab-5a3e-f99929ef7e50",
+        "TraceID": "BindingRundown"
+      },
+      {
+        "UniquenessHash": "74d787df-3260-879d-5e65-e28486df5e26",
         "TraceID": "PeerPreferredAddress"
+      },
+      {
+        "UniquenessHash": "44cc2fb4-5b7d-66dd-69b4-3644ee31088f",
+        "TraceID": "ConnLocalAddrAdded"
+      },
+      {
+        "UniquenessHash": "57df3cb1-120c-282b-ea2a-f9ff854b5a76",
+        "TraceID": "ConnRemoteAddrAdded"
+      },
+      {
+        "UniquenessHash": "23378f35-794d-1493-0f86-0c338e1bf37c",
+        "TraceID": "ConnLocalAddrRemoved"
+      },
+      {
+        "UniquenessHash": "753890f0-f5e6-b412-0d97-189eed7c57ef",
+        "TraceID": "ListenerStarted"
+      },
+      {
+        "UniquenessHash": "2cb7fb05-fb1a-60ec-7a8b-d18c9d49b481",
+        "TraceID": "ConnDropPacket"
+      },
+      {
+        "UniquenessHash": "f603a0b1-0e10-d5f3-c1b9-2d9b9c4451bb",
+        "TraceID": "BindingDropPacket"
+      },
+      {
+        "UniquenessHash": "4fd4e8e2-526f-acb6-d7ba-59f1a4973b05",
+        "TraceID": "ConnDropPacketEx"
+      },
+      {
+        "UniquenessHash": "4eee119a-1325-3a27-60c0-9c033c17e4ec",
+        "TraceID": "BindingDropPacketEx"
+      },
+      {
+        "UniquenessHash": "4a17af8c-bd56-a1f2-d3d6-b28b75030213",
+        "TraceID": "DatapathRecv"
+      },
+      {
+        "UniquenessHash": "60419832-af2f-d7f6-6f43-935918db56b1",
+        "TraceID": "DatapathSendTo"
+      },
+      {
+        "UniquenessHash": "0b5e94e2-63da-d912-9c46-0b9e3b5ea839",
+        "TraceID": "DatapathSendFromTo"
       },
       {
         "UniquenessHash": "bb7402a7-ba47-dbce-71f2-fbbd659eb0ff",

@@ -1723,29 +1723,18 @@ QuicDataPathBindingHandleUnreachableError(
 {
     PSOCKADDR_INET RemoteAddr =
         &SocketContext->CurrentRecvContext->Tuple.RemoteAddress;
+    UNREFERENCED_PARAMETER(ErrorCode);
 
     QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
-#if 0 // TODO - Change to ETW event
-    if (RemoteAddr->si_family == AF_INET) {
-        QuicTraceLogVerbose(
-            DatapathUnreachable,
-            "[ udp][%p] Received unreachable error (0x%x) from %!IPV4ADDR!:%d",
-            SocketContext->Binding,
-            ErrorCode,
-            &RemoteAddr->Ipv4.sin_addr,
-            ntohs(RemoteAddr->Ipv4.sin_port));
-    } else {
-        QuicTraceLogVerbose(
-            DatapathUnreachableV6,
-            "[ udp][%p] Received unreachable error (0x%x) from [%!IPV6ADDR!]:%d",
-            SocketContext->Binding,
-            ErrorCode,
-            &RemoteAddr->Ipv6.sin6_addr,
-            ntohs(RemoteAddr->Ipv6.sin6_port));
-    }
+#if QUIC_CLOG
+    QuicTraceLogVerbose(
+        DatapathUnreachableWithError,
+        "[ udp][%p] Received unreachable error (0x%x) from %!ADDR!",
+        SocketContext->Binding,
+        ErrorCode,
+        CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 #endif
-    UNREFERENCED_PARAMETER(ErrorCode);
 
     QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->UnreachableHandler);
     SocketContext->Binding->Datapath->UnreachableHandler(
@@ -1895,23 +1884,12 @@ QuicDataPathRecvComplete(
 
         QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
-#if 0 // TODO - Change to ETW event
-        if (RemoteAddr->si_family == AF_INET) {
-            QuicTraceLogVerbose(
-                DatapathTooLarge,
-                "[ udp][%p] Received larger than expected datagram from %!IPV4ADDR!:%d",
-                SocketContext->Binding,
-                &RemoteAddr->Ipv4.sin_addr,
-                ntohs(RemoteAddr->Ipv4.sin_port));
-        }
-        else {
-            QuicTraceLogVerbose(
-                DatapathTooLargeV6,
-                "[ udp][%p] Received larger than expected datagram from [%!IPV6ADDR!]:%d",
-                SocketContext->Binding,
-                &RemoteAddr->Ipv6.sin6_addr,
-                ntohs(RemoteAddr->Ipv6.sin6_port));
-        }
+#if QUIC_CLOG
+        QuicTraceLogVerbose(
+            DatapathTooLarge,
+            "[ udp][%p] Received larger than expected datagram from %!ADDR!",
+            SocketContext->Binding,
+            CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 #endif
 
         //
@@ -1985,7 +1963,7 @@ QuicDataPathRecvComplete(
 
         QuicTraceEvent(
             DatapathRecv,
-            "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!SOCKADDR! Dst=%!SOCKADDR!",
+            "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
             SocketContext->Binding,
             NumberOfBytesTransferred,
             MessageLength,
@@ -2450,7 +2428,7 @@ QuicDataPathBindingSendTo(
 
     QuicTraceEvent(
         DatapathSendTo,
-        "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!",
+        "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!",
         Binding,
         SendContext->TotalSize,
         SendContext->WsaBufferCount,
@@ -2565,7 +2543,7 @@ QuicDataPathBindingSendFromTo(
 
     QuicTraceEvent(
         DatapathSendFromTo,
-        "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!, Src=%!SOCKADDR!",
+        "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
         Binding,
         SendContext->TotalSize,
         SendContext->WsaBufferCount,

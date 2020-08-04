@@ -6,75 +6,50 @@
 --*/
 
 using System;
+using System.Text;
+using System.Net;
 using System.Runtime.InteropServices;
 
 namespace msquic.clog_config
 {
     public class Types
     {
-        [StructLayout(LayoutKind.Explicit)]
-        public struct SocketAddress
+        public static string ADDR(byte[] value)
         {
-            [FieldOffset(0)]
-            public ushort si_family;
+            int si_family = value[0] | ((ushort)value[1] << 8);
+            int sin_port = value[2] | ((ushort)value[3] << 8);
 
-            [FieldOffset(2)]
-            public ushort sin_port;
+            Span<byte> sa2 = value;
 
-            // IPv4
-            [FieldOffset(4)]
-            public ulong S_addr;
-
-
-            // IPv6
-            [FieldOffset(4)]
-            public ulong sin6_flowinfo;
-
-            [FieldOffset(8)]
-            public ulong S_v6Addr1;
-
-            [FieldOffset(16)]
-            public ulong S_v6Addr2;
-        };
-
-        public static string QUIC_FLAGS(uint value)
-        {
-            return "QUIC_FLAGS (good!) " + value;
-        }
-
-        public static string QUIC_IP_ADDR(byte[] value)
-        {
-            int len = value.Length;
-            IntPtr i = System.Runtime.InteropServices.Marshal.AllocHGlobal(len);
-            System.Runtime.InteropServices.Marshal.Copy(value, 0, i, len);
             string msg = "";
-            SocketAddress sa2 = (SocketAddress)System.Runtime.InteropServices.Marshal.PtrToStructure(i, typeof(SocketAddress));
 
-            switch (sa2.si_family)
+            switch (si_family)
             {
                 case 0:  //<--unspecified
-                    msg += "Unspecified";
-                    break;
-                case 23: //<--v6
-                    msg += "IPV6: sin6_flowinfo=" + sa2.sin6_flowinfo + " port=" + sa2.sin_port + "part1=" + sa2.S_v6Addr1 + ", part2=" + sa2.S_v6Addr2;
-                    break;
-                case 10:  //<--v6 (linux)
-                    msg += "IPV6: sin6_flowinfo=" + sa2.sin6_flowinfo + " port=" + sa2.sin_port + "part1=" + sa2.S_v6Addr1 + ", part2=" + sa2.S_v6Addr2;
+                    msg += $"*:{sin_port}";
                     break;
                 case 2:  //< --v4
-                    msg += "IPV4:" + sa2.S_addr + ":" + sa2.sin_port;
+                    msg += $"{new IPAddress(sa2.Slice(4, 4)).ToString()}:{sin_port}";
+                    break;
+                case 10:  //<--v6 (linux)
+                case 23: //<--v6
+                    msg += $"[{new IPAddress(sa2.Slice(8, 16)).ToString()}]:{sin_port}";
                     break;
                 default:
-                    throw new Exception("Invalid SI_FAMILY : " + sa2.si_family);
+                    throw new NotSupportedException("Invalid SI_FAMILY : " + si_family);
             }
-
-            System.Runtime.InteropServices.Marshal.FreeHGlobal(i);
+            
             return msg;
         }
 
-        public static string DecodeCID(byte [] value)
+        public static string CID(byte [] value)
         {
-            return "CID!";
+            StringBuilder hex = new StringBuilder(value.Length * 2);
+            foreach (byte v in value)
+            {
+                hex.AppendFormat(v.ToString("X2"));
+            }
+            return hex.ToString();
         }
     }
 }
