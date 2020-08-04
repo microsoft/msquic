@@ -45,7 +45,7 @@ install(EXPORT msquic DESTINATION ${msquic_dest})
 
 if(WIN32)
     add_library(msquic.lttng INTERFACE)
-else()
+elseif(QUIC_ENABLE_LOGGING)
     add_library(msquic.lttng SHARED $<TARGET_OBJECTS:platform.clog.provider> $<TARGET_OBJECTS:core.clog.provider>)
     target_link_libraries(msquic.lttng inc)
     install(TARGETS msquic.lttng DESTINATION "${main_lib_dest}")
