@@ -1229,17 +1229,18 @@ QuicSocketContextRecvComplete(
 
     QuicTraceEvent(
         DatapathRecv,
-        "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!SOCKADDR! Dst=%!SOCKADDR!",
+        "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
         SocketContext->Binding,
         (uint32_t)BytesTransferred,
         (uint32_t)BytesTransferred,
-        LOG_BINARY(sizeof(*LocalAddr), LocalAddr),
-        LOG_BINARY(sizeof(*RemoteAddr), RemoteAddr));
+        CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
+        CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 
     QUIC_DBG_ASSERT(BytesTransferred <= RecvPacket->BufferLength);
     RecvPacket->BufferLength = BytesTransferred;
 
     RecvPacket->PartitionIndex = ProcContext->Index;
+    RecvPacket->TypeOfService = 0; // TODO - Support ToS/ECN
 
     QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->RecvHandler);
     SocketContext->Binding->Datapath->RecvHandler(
@@ -1937,12 +1938,12 @@ QuicDataPathBindingSend(
 
             QuicTraceEvent(
                 DatapathSendTo,
-                "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!",
+                "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!",
                 Binding,
                 SendContext->Buffers[i].Length,
                 1,
                 SendContext->Buffers[i].Length,
-                LOG_BINARY(sizeof(*RemoteAddress), RemoteAddress));
+                CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress));
 
             SentByteCount =
                 sendto(
@@ -2004,13 +2005,13 @@ QuicDataPathBindingSend(
 
         QuicTraceEvent(
             DatapathSendFromTo,
-            "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!, Src=%!SOCKADDR!",
+            "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
             Binding,
             TotalSize,
             SendContext->BufferCount,
             SendContext->Buffers[0].Length,
-            LOG_BINARY(sizeof(*RemoteAddress), RemoteAddress),
-            LOG_BINARY(sizeof(*LocalAddress), LocalAddress));
+            CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+            CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 
         //
         // Map V4 address to dual-stack socket format.

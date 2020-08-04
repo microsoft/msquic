@@ -51,6 +51,11 @@ typedef struct QUIC_CACHEALIGN QUIC_LIBRARY_PP {
     //
     QUIC_POOL TransportParamPool;
 
+    //
+    // Pool for QUIC_PACKET_SPACE.
+    //
+    QUIC_POOL PacketSpacePool;
+
 } QUIC_LIBRARY_PP;
 
 //

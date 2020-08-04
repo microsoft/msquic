@@ -537,10 +537,7 @@ QuicCrytpoTlsGetCompleteTlsMessagesLength(
 {
     uint32_t MessagesLength = 0;
 
-    do {
-        if (BufferLength < TLS_MESSAGE_HEADER_LENGTH) {
-            break;
-        }
+    while (BufferLength >= TLS_MESSAGE_HEADER_LENGTH) {
 
         uint32_t MessageLength =
             TLS_MESSAGE_HEADER_LENGTH + TlsReadUint24(Buffer + 1);
@@ -551,8 +548,7 @@ QuicCrytpoTlsGetCompleteTlsMessagesLength(
         MessagesLength += MessageLength;
         Buffer += MessageLength;
         BufferLength -= MessageLength;
-
-    } while (BufferLength > 0);
+    }
 
     return MessagesLength;
 }

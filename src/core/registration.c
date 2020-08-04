@@ -178,57 +178,50 @@ MsQuicRegistrationClose(
         HQUIC Handle
     )
 {
-    if (Handle == NULL) {
-        return;
-    }
-
-    QUIC_TEL_ASSERT(Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION);
-    if (Handle->Type != QUIC_HANDLE_TYPE_REGISTRATION) {
-        return;
-    }
-
-    QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_REGISTRATION_CLOSE,
-        Handle);
+    if (Handle != NULL && Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION) {
+        QuicTraceEvent(
+            ApiEnter,
+            "[ api] Enter %u (%p).",
+            QUIC_TRACE_API_REGISTRATION_CLOSE,
+            Handle);
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
+        QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
 
-    QuicTraceEvent(
-        RegistrationCleanup,
-        "[ reg][%p] Cleaning up",
-        Registration);
+        QuicTraceEvent(
+            RegistrationCleanup,
+            "[ reg][%p] Cleaning up",
+            Registration);
 
-    //
-    // If you hit this assert, you are trying to clean up a registration without
-    // first cleaning up all the child sessions first.
-    //
-    QUIC_REG_VERIFY(Registration, QuicListIsEmpty(&Registration->Sessions));
+        //
+        // If you hit this assert, you are trying to clean up a registration without
+        // first cleaning up all the child sessions first.
+        //
+        QUIC_REG_VERIFY(Registration, QuicListIsEmpty(&Registration->Sessions));
 
-    QuicLockAcquire(&MsQuicLib.Lock);
-    QuicListEntryRemove(&Registration->Link);
-    QuicLockRelease(&MsQuicLib.Lock);
+        QuicLockAcquire(&MsQuicLib.Lock);
+        QuicListEntryRemove(&Registration->Link);
+        QuicLockRelease(&MsQuicLib.Lock);
 
-    QuicRundownReleaseAndWait(&Registration->ConnectionRundown);
+        QuicRundownReleaseAndWait(&Registration->ConnectionRundown);
 
-    QuicWorkerPoolUninitialize(Registration->WorkerPool);
-    QuicRundownReleaseAndWait(&Registration->SecConfigRundown);
+        QuicWorkerPoolUninitialize(Registration->WorkerPool);
+        QuicRundownReleaseAndWait(&Registration->SecConfigRundown);
 
-    QuicRundownUninitialize(&Registration->SecConfigRundown);
-    QuicRundownUninitialize(&Registration->ConnectionRundown);
-    QuicLockUninitialize(&Registration->Lock);
+        QuicRundownUninitialize(&Registration->SecConfigRundown);
+        QuicRundownUninitialize(&Registration->ConnectionRundown);
+        QuicLockUninitialize(&Registration->Lock);
 
-    if (Registration->CidPrefix != NULL) {
-        QUIC_FREE(Registration->CidPrefix);
+        if (Registration->CidPrefix != NULL) {
+            QUIC_FREE(Registration->CidPrefix);
+        }
+
+        QUIC_FREE(Registration);
+
+        QuicTraceEvent(
+            ApiExit,
+            "[ api] Exit");
     }
-
-    QUIC_FREE(Registration);
-
-    QuicTraceEvent(
-        ApiExit,
-        "[ api] Exit");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -285,7 +278,7 @@ MsQuicSecConfigCreate(
     _In_ _Pre_defensive_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
 {
-    QUIC_STATUS Status;
+    QUIC_STATUS Status = QUIC_STATUS_INVALID_PARAMETER;
 
     QuicTraceEvent(
         ApiEnter,
@@ -293,23 +286,20 @@ MsQuicSecConfigCreate(
         QUIC_TRACE_API_SEC_CONFIG_CREATE,
         Handle);
 
-    if (Handle == NULL || Handle->Type != QUIC_HANDLE_TYPE_REGISTRATION ||
-        CompletionHandler == NULL) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
+    if (Handle != NULL &&
+        Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION &&
+        CompletionHandler != NULL) {
+
+        QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
+        Status =
+            QuicTlsServerSecConfigCreate(
+                &Registration->SecConfigRundown,
+                Flags,
+                Certificate,
+                Principal,
+                Context,
+                CompletionHandler);
     }
-
-    QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
-    Status =
-        QuicTlsServerSecConfigCreate(
-            &Registration->SecConfigRundown,
-            Flags,
-            Certificate,
-            Principal,
-            Context,
-            CompletionHandler);
-
-Exit:
 
     QuicTraceEvent(
         ApiExitStatus,

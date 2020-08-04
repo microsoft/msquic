@@ -48,7 +48,7 @@ Abstract:
 #endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+QUIC_STATUS // TODO - Can only fail if PreallocatedBuffer == NULL
 QuicRecvBufferInitialize(
     _Inout_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint32_t AllocBufferLength,
@@ -80,19 +80,7 @@ QuicRecvBufferInitialize(
         }
     }
 
-    Status =
-        QuicRangeInitialize(
-            QUIC_MAX_RANGE_ALLOC_SIZE,
-            &RecvBuffer->WrittenRanges);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "recv_buffer written ranged",
-            QUIC_MAX_RANGE_ALLOC_SIZE);
-        QUIC_FREE(RecvBuffer->Buffer);
-        goto Error;
-    }
+    QuicRangeInitialize(QUIC_MAX_RANGE_ALLOC_SIZE, &RecvBuffer->WrittenRanges);
 
     RecvBuffer->AllocBufferLength = AllocBufferLength;
     RecvBuffer->VirtualBufferLength = VirtualBufferLength;
@@ -235,17 +223,6 @@ QuicRecvBufferHasUnreadData(
     )
 {
     return QuicRecvBufferGetTotalLength(RecvBuffer) > RecvBuffer->BaseOffset;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-QuicRecvBufferAlreadyReadData(
-    _In_ QUIC_RECV_BUFFER* RecvBuffer,
-    _In_ uint64_t BufferOffset,
-    _In_ uint16_t BufferLength
-    )
-{
-    return BufferOffset + BufferLength <= RecvBuffer->BaseOffset;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

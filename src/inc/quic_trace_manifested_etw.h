@@ -31,4 +31,4 @@ QuicEtwCallback(
 
 #define QuicTraceEventEnabled(Name) TRUE //EventEnabledQuic##Name()
 
-#define LOG_BINARY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
+#define CLOG_BYTEARRAY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
