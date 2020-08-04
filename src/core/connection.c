@@ -4555,6 +4555,7 @@ Done:
         QuicAckTrackerAckPacket(
             &Connection->Packets[EncryptLevel]->AckTracker,
             Packet->PacketNumber,
+            ECN,
             AckPacketImmediately);
     }
 
@@ -4749,7 +4750,7 @@ QuicConnRecvDatagramBatch(
         if (QuicConnRecvPrepareDecrypt(
                 Connection, Packet, HpMask + i * QUIC_HP_SAMPLE_LENGTH) &&
             QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet) &&
-            QuicConnRecvFrames(Connection, Path, ECN, Packet)) {
+            QuicConnRecvFrames(Connection, Path, Packet, ECN)) {
 
             QuicConnRecvPostProcessing(Connection, &Path, Packet);
             RecvState->ResetIdleTimeout |= Packet->CompletelyValid;
