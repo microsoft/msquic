@@ -3779,7 +3779,8 @@ BOOLEAN
 QuicConnRecvFrames(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
-    _In_ QUIC_RECV_PACKET* Packet
+    _In_ QUIC_RECV_PACKET* Packet,
+    _In_ QUIC_ECN_TYPE ECN
     )
 {
     BOOLEAN AckPacketImmediately = FALSE; // Allows skipping delayed ACK timer.
@@ -4554,6 +4555,7 @@ Done:
         QuicAckTrackerAckPacket(
             &Connection->Packets[EncryptLevel]->AckTracker,
             Packet->PacketNumber,
+            ECN,
             AckPacketImmediately);
     }
 
@@ -4743,11 +4745,12 @@ QuicConnRecvDatagramBatch(
 
     for (uint8_t i = 0; i < BatchCount; ++i) {
         QUIC_DBG_ASSERT(Datagrams[i]->Allocated);
+        QUIC_ECN_TYPE ECN = QUIC_ECN_FROM_TOS(Datagrams[i]->TypeOfService);
         Packet = QuicDataPathRecvDatagramToRecvPacket(Datagrams[i]);
         if (QuicConnRecvPrepareDecrypt(
                 Connection, Packet, HpMask + i * QUIC_HP_SAMPLE_LENGTH) &&
             QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet) &&
-            QuicConnRecvFrames(Connection, Path, Packet)) {
+            QuicConnRecvFrames(Connection, Path, Packet, ECN)) {
 
             QuicConnRecvPostProcessing(Connection, &Path, Packet);
             RecvState->ResetIdleTimeout |= Packet->CompletelyValid;
