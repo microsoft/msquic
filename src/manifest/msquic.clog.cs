@@ -7,6 +7,7 @@
 
 using System;
 using System.Text;
+using System.Net;
 using System.Runtime.InteropServices;
 
 namespace msquic.clog_config
@@ -40,33 +41,30 @@ namespace msquic.clog_config
 
         public static string ADDR(byte[] value)
         {
-            int len = value.Length;
-            IntPtr i = Marshal.AllocHGlobal(len);
-            string msg = "";
-            try 
-            {
-                Marshal.Copy(value, 0, i, len);
-                SocketAddress sa2 = (SocketAddress)Marshal.PtrToStructure(i, typeof(SocketAddress));
-            }
-            finally
-            {
-                Marshal.FreeHGlobal(i);
-            }
+            int si_family = value[0] | ((ushort)value[1] << 8);
+            int sin_port = value[2] | ((ushort)value[3] << 8);
 
-            switch (sa2.si_family)
+            Span<byte> sa2 = value;
+
+            string msg = "";
+
+            switch (si_family)
             {
                 case 0:  //<--unspecified
-                    msg += "Unspecified";
+                    msg += $"*:{sin_port}";
                     break;
                 case 2:  //< --v4
-                    msg += $"IPV4:{sa2.S_addr}:{sa2.sin_port}";
+                    msg += $"{new IPAddress(sa2.Slice(4, 4)).ToString()}:{sin_port}";
                     break;
                 case 10:  //<--v6 (linux)
                 case 23: //<--v6
-                    msg += $"IPV6: sin6_flowinfo={sa2.sin6_flowinfo} port={sa2.sin_port} part1={sa2.S_v6Addr1} part2={sa2.S_v6Addr2}";
+                {
+                    uint flowInfo = value[4] | ((uint)value[5] << 8) | ((uint)value[6] << 16) | ((uint)value[7] << 24);
+                    msg += $"flowinfo={flowInfo.ToString("X8")} [{new IPAddress(sa2.Slice(8, 16)).ToString()}]:{sin_port}";
                     break;
+                }
                 default:
-                    throw new NotSupportedException("Invalid SI_FAMILY : " + sa2.si_family);
+                    throw new NotSupportedException("Invalid SI_FAMILY : " + si_family);
             }
             
             return msg;
