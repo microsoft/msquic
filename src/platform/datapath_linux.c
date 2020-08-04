@@ -1240,6 +1240,7 @@ QuicSocketContextRecvComplete(
     RecvPacket->BufferLength = BytesTransferred;
 
     RecvPacket->PartitionIndex = ProcContext->Index;
+    RecvPacket->TypeOfService = 0; // TODO - Support ToS/ECN
 
     QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->RecvHandler);
     SocketContext->Binding->Datapath->RecvHandler(

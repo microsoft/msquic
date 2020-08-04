@@ -81,8 +81,9 @@ QuicConnAlloc(
             "Allocation of '%s' failed. (%llu bytes)",
             "connection",
             sizeof(QUIC_CONNECTION));
-        goto Error;
+        return NULL;
     }
+
     QuicZeroMemory(Connection, sizeof(QUIC_CONNECTION));
 
 #if DEBUG
@@ -255,24 +256,22 @@ QuicConnAlloc(
 
 Error:
 
-    if (Connection != NULL) {
-        Connection->State.HandleClosed = TRUE;
-        Connection->State.Uninitialized = TRUE;
-        for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
-            if (Connection->Packets[i] != NULL) {
-                QuicPacketSpaceUninitialize(Connection->Packets[i]);
-            }
+    Connection->State.HandleClosed = TRUE;
+    Connection->State.Uninitialized = TRUE;
+    for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
+        if (Connection->Packets[i] != NULL) {
+            QuicPacketSpaceUninitialize(Connection->Packets[i]);
         }
-        if (Datagram != NULL) {
-            QUIC_FREE(
-                QUIC_CONTAINING_RECORD(
-                    Connection->SourceCids.Next,
-                    QUIC_CID_HASH_ENTRY,
-                    Link));
-            Connection->SourceCids.Next = NULL;
-        }
-        QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
     }
+    if (Datagram != NULL) {
+        QUIC_FREE(
+            QUIC_CONTAINING_RECORD(
+                Connection->SourceCids.Next,
+                QUIC_CID_HASH_ENTRY,
+                Link));
+        Connection->SourceCids.Next = NULL;
+    }
+    QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
 
     return NULL;
 }
@@ -2629,22 +2628,11 @@ QuicConnProcessPeerTransportParameters(
     }
 
     if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_PREFERRED_ADDRESS) {
-        /* TODO - Platform independent logging
-        if (QuicAddrGetFamily(&Connection->PeerTransportParams.PreferredAddress) == AF_INET) {
-            QuicTraceLogConnInfo_Skip(
-                PeerPreferredAddressV4,
-                Connection,
-                "Peer configured preferred address %!IPV4ADDR!:%d",
-                &Connection->PeerTransportParams.PreferredAddress.Ipv4.sin_addr,
-                QuicByteSwapUint16(Connection->PeerTransportParams.PreferredAddress.Ipv4.sin_port));
-        } else {
-            QuicTraceLogConnInfo_Skip(
-                PeerPreferredAddressV6,
-                Connection,
-                "Peer configured preferred address [%!IPV6ADDR!]:%d",
-                &Connection->PeerTransportParams.PreferredAddress.Ipv6.sin6_addr,
-                QuicByteSwapUint16(Connection->PeerTransportParams.PreferredAddress.Ipv6.sin6_port));
-        }*/
+        /*QuicTraceLogConnInfo(
+            PeerPreferredAddress,
+            Connection,
+            "Peer configured preferred address %!SOCKADDR!",
+            CLOG_BYTEARRAY(sizeof(Connection->PeerTransportParams.PreferredAddress), &Connection->PeerTransportParams.PreferredAddress));*/
 
         //
         // TODO - Implement preferred address feature.
@@ -3791,7 +3779,8 @@ BOOLEAN
 QuicConnRecvFrames(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
-    _In_ QUIC_RECV_PACKET* Packet
+    _In_ QUIC_RECV_PACKET* Packet,
+    _In_ QUIC_ECN_TYPE ECN
     )
 {
     BOOLEAN AckPacketImmediately = FALSE; // Allows skipping delayed ACK timer.
@@ -4566,6 +4555,7 @@ Done:
         QuicAckTrackerAckPacket(
             &Connection->Packets[EncryptLevel]->AckTracker,
             Packet->PacketNumber,
+            ECN,
             AckPacketImmediately);
     }
 
@@ -4755,11 +4745,12 @@ QuicConnRecvDatagramBatch(
 
     for (uint8_t i = 0; i < BatchCount; ++i) {
         QUIC_DBG_ASSERT(Datagrams[i]->Allocated);
+        QUIC_ECN_TYPE ECN = QUIC_ECN_FROM_TOS(Datagrams[i]->TypeOfService);
         Packet = QuicDataPathRecvDatagramToRecvPacket(Datagrams[i]);
         if (QuicConnRecvPrepareDecrypt(
                 Connection, Packet, HpMask + i * QUIC_HP_SAMPLE_LENGTH) &&
             QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet) &&
-            QuicConnRecvFrames(Connection, Path, Packet)) {
+            QuicConnRecvFrames(Connection, Path, Packet, ECN)) {
 
             QuicConnRecvPostProcessing(Connection, &Path, Packet);
             RecvState->ResetIdleTimeout |= Packet->CompletelyValid;

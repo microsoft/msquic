@@ -48,11 +48,6 @@ QuicAckTrackerInitialize(
     _Inout_ QUIC_ACK_TRACKER* Tracker
     )
 {
-    Tracker->AckElicitingPacketsToAcknowledge = 0;
-    Tracker->LargestPacketNumberAcknowledged = 0;
-    Tracker->LargestPacketNumberRecvTime = 0;
-    Tracker->AlreadyWrittenAckFrame = FALSE;
-
     QuicRangeInitialize(
         QUIC_MAX_RANGE_DUPLICATE_PACKETS,
         &Tracker->PacketNumbersReceived);
@@ -82,6 +77,8 @@ QuicAckTrackerReset(
     Tracker->LargestPacketNumberAcknowledged = 0;
     Tracker->LargestPacketNumberRecvTime = 0;
     Tracker->AlreadyWrittenAckFrame = FALSE;
+    Tracker->NonZeroRecvECN = FALSE;
+    QuicZeroMemory(&Tracker->ReceivedECN, sizeof(Tracker->ReceivedECN));
     QuicRangeReset(&Tracker->PacketNumbersToAck);
     QuicRangeReset(&Tracker->PacketNumbersReceived);
 }
@@ -104,6 +101,7 @@ void
 QuicAckTrackerAckPacket(
     _Inout_ QUIC_ACK_TRACKER* Tracker,
     _In_ uint64_t PacketNumber,
+    _In_ QUIC_ECN_TYPE ECN,
     _In_ BOOLEAN AckElicitingPayload
     )
 {
@@ -132,14 +130,32 @@ QuicAckTrackerAckPacket(
 
     QuicTraceLogVerbose(
         PacketRxMarkedForAck,
-        "[%c][RX][%llu] Marked for ACK",
+        "[%c][RX][%llu] Marked for ACK (ECN=%hhu)",
         PtkConnPre(Connection),
-        PacketNumber);
+        PacketNumber,
+        ECN);
 
     BOOLEAN NewLargestPacketNumber =
         PacketNumber == QuicRangeGetMax(&Tracker->PacketNumbersToAck);
     if (NewLargestPacketNumber) {
         Tracker->LargestPacketNumberRecvTime = QuicTimeUs64();
+    }
+
+    switch (ECN) {
+        case QUIC_ECN_ECT_0:
+            Tracker->NonZeroRecvECN = TRUE;
+            Tracker->ReceivedECN.ECT_0_Count++;
+            break;
+        case QUIC_ECN_ECT_1:
+            Tracker->NonZeroRecvECN = TRUE;
+            Tracker->ReceivedECN.ECT_1_Count++;
+            break;
+        case QUIC_ECN_CE:
+            Tracker->NonZeroRecvECN = TRUE;
+            Tracker->ReceivedECN.CE_Count++;
+            break;
+        default:
+            break;
     }
 
     Tracker->AlreadyWrittenAckFrame = FALSE;
@@ -211,7 +227,9 @@ QuicAckTrackerAckFrameEncode(
     if (!QuicAckFrameEncode(
             &Tracker->PacketNumbersToAck,
             AckDelay,
-            NULL, // No ECN right now.
+            Tracker->NonZeroRecvECN ?
+                &Tracker->ReceivedECN :
+                NULL,
             &Builder->DatagramLength,
             (uint16_t)Builder->Datagram->Length - Builder->EncryptionOverhead,
             Builder->Datagram->Buffer)) {

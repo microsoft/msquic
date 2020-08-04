@@ -2016,6 +2016,7 @@ QuicDataPathRecvComplete(
             Datagram->BufferLength = MessageLength;
             Datagram->Tuple = &RecvContext->Tuple;
             Datagram->PartitionIndex = (uint8_t)ProcContext->Index;
+            Datagram->TypeOfService = 0; // TODO - Support ToS/ECN
             Datagram->Allocated = TRUE;
             Datagram->QueuedOnConnection = FALSE;
 
