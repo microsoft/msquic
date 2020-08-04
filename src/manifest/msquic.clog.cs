@@ -58,11 +58,8 @@ namespace msquic.clog_config
                     break;
                 case 10:  //<--v6 (linux)
                 case 23: //<--v6
-                {
-                    uint flowInfo = value[4] | ((uint)value[5] << 8) | ((uint)value[6] << 16) | ((uint)value[7] << 24);
-                    msg += $"flowinfo={flowInfo.ToString("X8")} [{new IPAddress(sa2.Slice(8, 16)).ToString()}]:{sin_port}";
+                    msg += $"[{new IPAddress(sa2.Slice(8, 16)).ToString()}]:{sin_port}";
                     break;
-                }
                 default:
                     throw new NotSupportedException("Invalid SI_FAMILY : " + si_family);
             }
