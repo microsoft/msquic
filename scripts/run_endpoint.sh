@@ -25,6 +25,7 @@ mkdir /log
 mkdir /log/lttng
 lttng create msquic -o=/log/lttng
 lttng enable-event --userspace CLOG_*
+lttng start
 
 function finish {
     # Stop log collection and convert.
