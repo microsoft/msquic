@@ -14,31 +14,6 @@ namespace msquic.clog_config
 {
     public class Types
     {
-        [StructLayout(LayoutKind.Explicit)]
-        public struct SocketAddress
-        {
-            [FieldOffset(0)]
-            public ushort si_family;
-
-            [FieldOffset(2)]
-            public ushort sin_port;
-
-            // IPv4
-            [FieldOffset(4)]
-            public ulong S_addr;
-
-
-            // IPv6
-            [FieldOffset(4)]
-            public ulong sin6_flowinfo;
-
-            [FieldOffset(8)]
-            public ulong S_v6Addr1;
-
-            [FieldOffset(16)]
-            public ulong S_v6Addr2;
-        };
-
         public static string ADDR(byte[] value)
         {
             int si_family = value[0] | ((ushort)value[1] << 8);
