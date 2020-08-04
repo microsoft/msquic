@@ -178,7 +178,7 @@ QuicConnAlloc(
         Connection->State.LocalAddressSet = TRUE;
         QuicTraceEvent(
             ConnLocalAddrAdded,
-            "[conn][%p] New Local IP: %!SOCKADDR!",
+            "[conn][%p] New Local IP: %!ADDR!",
             Connection,
             CLOG_BYTEARRAY(sizeof(Path->LocalAddress), &Path->LocalAddress));
 
@@ -186,7 +186,7 @@ QuicConnAlloc(
         Connection->State.RemoteAddressSet = TRUE;
         QuicTraceEvent(
             ConnRemoteAddrAdded,
-            "[conn][%p] New Remote IP: %!SOCKADDR!",
+            "[conn][%p] New Remote IP: %!ADDR!",
             Connection,
             CLOG_BYTEARRAY(sizeof(Path->RemoteAddress), &Path->RemoteAddress));
 
@@ -560,14 +560,14 @@ QuicConnTraceRundownOper(
             if (Connection->State.LocalAddressSet || i != 0) {
                 QuicTraceEvent(
                     ConnLocalAddrAdded,
-                     "[conn][%p] New Local IP: %!SOCKADDR!",
+                     "[conn][%p] New Local IP: %!ADDR!",
                     Connection,
                     CLOG_BYTEARRAY(sizeof(Connection->Paths[i].LocalAddress), &Connection->Paths[i].LocalAddress));
             }
             if (Connection->State.RemoteAddressSet || i != 0) {
                 QuicTraceEvent(
                     ConnRemoteAddrAdded,
-                    "[conn][%p] New Remote IP: %!SOCKADDR!",
+                    "[conn][%p] New Remote IP: %!ADDR!",
                     Connection,
                     CLOG_BYTEARRAY(sizeof(Connection->Paths[i].RemoteAddress), &Connection->Paths[i].RemoteAddress));
             }
@@ -1718,7 +1718,7 @@ QuicConnStart(
     QuicAddrSetPort(&Path->RemoteAddress, ServerPort);
     QuicTraceEvent(
         ConnRemoteAddrAdded,
-        "[conn][%p] New Remote IP: %!SOCKADDR!",
+        "[conn][%p] New Remote IP: %!ADDR!",
         Connection,
         CLOG_BYTEARRAY(sizeof(Path->RemoteAddress), &Path->RemoteAddress));
 
@@ -1780,7 +1780,7 @@ QuicConnStart(
         &Path->LocalAddress);
     QuicTraceEvent(
         ConnLocalAddrAdded,
-        "[conn][%p] New Local IP: %!SOCKADDR!",
+        "[conn][%p] New Local IP: %!ADDR!",
         Connection,
         CLOG_BYTEARRAY(sizeof(Path->LocalAddress), &Path->LocalAddress));
 
@@ -2628,22 +2628,11 @@ QuicConnProcessPeerTransportParameters(
     }
 
     if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_PREFERRED_ADDRESS) {
-        /* TODO - Platform independent logging
-        if (QuicAddrGetFamily(&Connection->PeerTransportParams.PreferredAddress) == AF_INET) {
-            QuicTraceLogConnInfo_Skip(
-                PeerPreferredAddressV4,
-                Connection,
-                "Peer configured preferred address %!IPV4ADDR!:%d",
-                &Connection->PeerTransportParams.PreferredAddress.Ipv4.sin_addr,
-                QuicByteSwapUint16(Connection->PeerTransportParams.PreferredAddress.Ipv4.sin_port));
-        } else {
-            QuicTraceLogConnInfo_Skip(
-                PeerPreferredAddressV6,
-                Connection,
-                "Peer configured preferred address [%!IPV6ADDR!]:%d",
-                &Connection->PeerTransportParams.PreferredAddress.Ipv6.sin6_addr,
-                QuicByteSwapUint16(Connection->PeerTransportParams.PreferredAddress.Ipv6.sin6_port));
-        }*/
+        /*QuicTraceLogConnInfo(
+            PeerPreferredAddress,
+            Connection,
+            "Peer configured preferred address %!ADDR!",
+            CLOG_BYTEARRAY(sizeof(Connection->PeerTransportParams.PreferredAddress), &Connection->PeerTransportParams.PreferredAddress));*/
 
         //
         // TODO - Implement preferred address feature.
@@ -3790,7 +3779,8 @@ BOOLEAN
 QuicConnRecvFrames(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
-    _In_ QUIC_RECV_PACKET* Packet
+    _In_ QUIC_RECV_PACKET* Packet,
+    _In_ QUIC_ECN_TYPE ECN
     )
 {
     BOOLEAN AckPacketImmediately = FALSE; // Allows skipping delayed ACK timer.
@@ -4565,6 +4555,7 @@ Done:
         QuicAckTrackerAckPacket(
             &Connection->Packets[EncryptLevel]->AckTracker,
             Packet->PacketNumber,
+            ECN,
             AckPacketImmediately);
     }
 
@@ -4694,7 +4685,7 @@ QuicConnRecvPostProcessing(
 
         QuicTraceEvent(
             ConnRemoteAddrAdded,
-            "[conn][%p] New Remote IP: %!SOCKADDR!",
+            "[conn][%p] New Remote IP: %!ADDR!",
             Connection,
             CLOG_BYTEARRAY(sizeof(Connection->Paths[0].RemoteAddress), &Connection->Paths[0].RemoteAddress)); // TODO - Addr removed event?
 
@@ -4754,11 +4745,12 @@ QuicConnRecvDatagramBatch(
 
     for (uint8_t i = 0; i < BatchCount; ++i) {
         QUIC_DBG_ASSERT(Datagrams[i]->Allocated);
+        QUIC_ECN_TYPE ECN = QUIC_ECN_FROM_TOS(Datagrams[i]->TypeOfService);
         Packet = QuicDataPathRecvDatagramToRecvPacket(Datagrams[i]);
         if (QuicConnRecvPrepareDecrypt(
                 Connection, Packet, HpMask + i * QUIC_HP_SAMPLE_LENGTH) &&
             QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet) &&
-            QuicConnRecvFrames(Connection, Path, Packet)) {
+            QuicConnRecvFrames(Connection, Path, Packet, ECN)) {
 
             QuicConnRecvPostProcessing(Connection, &Path, Packet);
             RecvState->ResetIdleTimeout |= Packet->CompletelyValid;
@@ -5342,7 +5334,7 @@ QuicConnParamSet(
         QuicCopyMemory(&Connection->Paths[0].LocalAddress, Buffer, sizeof(QUIC_ADDR));
         QuicTraceEvent(
             ConnLocalAddrAdded,
-            "[conn][%p] New Local IP: %!SOCKADDR!",
+            "[conn][%p] New Local IP: %!ADDR!",
             Connection,
             CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress));
 
@@ -5376,7 +5368,7 @@ QuicConnParamSet(
 
             QuicTraceEvent(
                 ConnLocalAddrRemoved,
-                "[conn][%p] Removed Local IP: %!SOCKADDR!",
+                "[conn][%p] Removed Local IP: %!ADDR!",
                 Connection,
                 CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress));
 
@@ -5386,7 +5378,7 @@ QuicConnParamSet(
 
             QuicTraceEvent(
                 ConnLocalAddrAdded,
-                "[conn][%p] New Local IP: %!SOCKADDR!",
+                "[conn][%p] New Local IP: %!ADDR!",
                 Connection,
                 CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress));
 

@@ -50,26 +50,14 @@
       {
         "EncodingType": "ByteArray",
         "CType": "CLOG_PTR",
-        "DefinationEncoding": "!SOCKADDR!",
-        "CustomDecoder": "msquic.clog_config.Types.QUIC_IP_ADDR"
-      },
-      {
-        "EncodingType": "ByteArray",
-        "CType": "CLOG_PTR",
-        "DefinationEncoding": "!IPV4ADDR!",
-        "CustomDecoder": "msquic.clog_config.Types.QUIC_IP_ADDR"
-      },
-      {
-        "EncodingType": "ByteArray",
-        "CType": "CLOG_PTR",
-        "DefinationEncoding": "!IPV6ADDR!",
-        "CustomDecoder": "msquic.clog_config.Types.QUIC_IP_ADDR"
+        "DefinationEncoding": "!ADDR!",
+        "CustomDecoder": "msquic.clog_config.Types.ADDR"
       },
       {
         "EncodingType": "ByteArray",
         "CType": "CLOG_PTR",
         "DefinationEncoding": "!CID!",
-        "CustomDecoder": "msquic.clog_config.Types.DecodeCID"
+        "CustomDecoder": "msquic.clog_config.Types.CID"
       },
       {
         "EncodingType": "UInt32",

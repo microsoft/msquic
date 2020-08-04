@@ -1229,7 +1229,7 @@ QuicSocketContextRecvComplete(
 
     QuicTraceEvent(
         DatapathRecv,
-        "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!SOCKADDR! Dst=%!SOCKADDR!",
+        "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
         SocketContext->Binding,
         (uint32_t)BytesTransferred,
         (uint32_t)BytesTransferred,
@@ -1240,6 +1240,7 @@ QuicSocketContextRecvComplete(
     RecvPacket->BufferLength = BytesTransferred;
 
     RecvPacket->PartitionIndex = ProcContext->Index;
+    RecvPacket->TypeOfService = 0; // TODO - Support ToS/ECN
 
     QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->RecvHandler);
     SocketContext->Binding->Datapath->RecvHandler(
@@ -1937,7 +1938,7 @@ QuicDataPathBindingSend(
 
             QuicTraceEvent(
                 DatapathSendTo,
-                "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!",
+                "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!",
                 Binding,
                 SendContext->Buffers[i].Length,
                 1,
@@ -2004,7 +2005,7 @@ QuicDataPathBindingSend(
 
         QuicTraceEvent(
             DatapathSendFromTo,
-            "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!, Src=%!SOCKADDR!",
+            "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
             Binding,
             TotalSize,
             SendContext->BufferCount,
