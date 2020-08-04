@@ -30,7 +30,7 @@ RUN     apt-get update -y \
 COPY    --from=build /src/Debug/bin/Release /bin
 COPY    --from=build /src/Debug/bin/Release/*.so /lib/x86_64-linux-gnu/
 COPY    --from=source /src/scripts/run_endpoint.sh /run_endpoint.sh
-COPY    --from=source /src/manifest/clog.sidecar /clog.sidecar
+COPY    --from=source /src/src/manifest/clog.sidecar /clog.sidecar
 COPY    --from=build /src/Debug/server.* /
 RUN     chmod +x /run_endpoint.sh
 ENTRYPOINT [ "/run_endpoint.sh" ]
