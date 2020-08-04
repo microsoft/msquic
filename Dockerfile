@@ -5,7 +5,6 @@ RUN     apt-get update -y \
             build-essential \
             cmake \
             liblttng-ust-dev \
-            lttng-tools \
             && apt-get clean
 COPY    . /src
 
@@ -26,6 +25,7 @@ FROM    martenseemann/quic-network-simulator-endpoint
 RUN     apt-get update -y \
             && apt-get install -y \
             libatomic1 \
+            lttng-tools \
             && apt-get clean
 COPY    --from=build /src/Debug/bin/Release /bin
 COPY    --from=build /src/Debug/bin/Release/*.so /lib/x86_64-linux-gnu/

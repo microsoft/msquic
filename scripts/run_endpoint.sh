@@ -21,6 +21,7 @@ fi
 # - CLIENT_PARAMS contains user-supplied command line parameters
 
 # Start LTTng log collection.
+mkdir /log
 mkdir /log/lttng
 lttng create msquic -o=/log/lttng
 lttng enable-event --userspace CLOG_*
