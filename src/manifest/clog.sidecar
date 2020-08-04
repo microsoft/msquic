@@ -19768,10 +19768,6 @@
   "ModuleUniqueness": {
     "TraceInformation": [
       {
-        "UniquenessHash": "e0cfb1a0-1258-6f19-06e3-1c55dc984679",
-        "TraceID": "PacketRxMarkedForAck"
-      },
-      {
         "UniquenessHash": "92b1bb9f-afd4-62fa-3fb6-1021c09c5916",
         "TraceID": "ApiEnter"
       },
@@ -21766,6 +21762,10 @@
       {
         "UniquenessHash": "0b5e94e2-63da-d912-9c46-0b9e3b5ea839",
         "TraceID": "DatapathSendFromTo"
+      },
+      {
+        "UniquenessHash": "bb7402a7-ba47-dbce-71f2-fbbd659eb0ff",
+        "TraceID": "PacketRxMarkedForAck"
       }
     ]
   }

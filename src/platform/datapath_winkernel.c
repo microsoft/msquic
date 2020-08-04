@@ -2040,6 +2040,7 @@ QuicDataPathSocketReceive(
             QUIC_DBG_ASSERT(Datagram != NULL);
             Datagram->Next = NULL;
             Datagram->PartitionIndex = (uint8_t)CurProcNumber;
+            Datagram->TypeOfService = 0; // TODO - Support ToS/ECN
             Datagram->Allocated = TRUE;
             Datagram->QueuedOnConnection = FALSE;
 
