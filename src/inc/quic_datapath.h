@@ -160,6 +160,12 @@ typedef struct QUIC_RECV_DATAGRAM {
     uint8_t PartitionIndex;
 
     //
+    // The Type of Service (ToS) field of the IPv4 header or Traffic Class field
+    // of the IPv6 header.
+    //
+    uint8_t TypeOfService;
+
+    //
     // Flags.
     //
     uint8_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
