@@ -285,8 +285,7 @@ if(WIN32)
 
 else()
     # Custom build flags.
-
-    list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)
+    
     list(APPEND QUIC_COMMON_FLAGS -fms-extensions -fPIC)
     if (QUIC_PLATFORM STREQUAL "darwin")
         list(APPEND QUIC_COMMON_DEFINES QUIC_PLATFORM_DARWIN)
@@ -303,6 +302,7 @@ else()
     if(QUIC_ENABLE_LOGGING)
         message(STATUS "Configuring for LTTng tracing")
         set(CMAKE_CLOG_CONFIG_PROFILE linux)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)
         include(FindLTTngUST)
     else()
         message(STATUS "Disabling tracing")
