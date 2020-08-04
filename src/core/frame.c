@@ -130,7 +130,7 @@ QuicAckEcnEncode(
 {
     uint16_t RequiredLength =
         QuicVarIntSize(Ecn->ECT_0_Count) +
-        QuicVarIntSize(Ecn->ECT_0_Count) +
+        QuicVarIntSize(Ecn->ECT_1_Count) +
         QuicVarIntSize(Ecn->CE_Count);
 
     if (BufferLength < *Offset + RequiredLength) {
@@ -139,7 +139,7 @@ QuicAckEcnEncode(
 
     Buffer = Buffer + *Offset;
     Buffer = QuicVarIntEncode(Ecn->ECT_0_Count, Buffer);
-    Buffer = QuicVarIntEncode(Ecn->ECT_0_Count, Buffer);
+    Buffer = QuicVarIntEncode(Ecn->ECT_1_Count, Buffer);
     Buffer = QuicVarIntEncode(Ecn->CE_Count, Buffer);
     *Offset += RequiredLength;
 

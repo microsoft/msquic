@@ -41,6 +41,21 @@ extern "C" {
 //
 #define QUIC_UDP_HEADER_SIZE 8
 
+typedef enum QUIC_ECN_TYPE {
+
+    QUIC_ECN_NON_ECT = 0x0, // Non ECN-Capable Transport, Non-ECT
+    QUIC_ECN_ECT_0   = 0x1, // ECN Capable Transport, ECT(0)
+    QUIC_ECN_ECT_1   = 0x2, // ECN Capable Transport, ECT(1)
+    QUIC_ECN_CE      = 0x3  // Congestion Encountered, CE
+
+} QUIC_ECN_TYPE;
+
+//
+// Helper to get the ECN type from the Type of Service field of a recieved
+// datagram.
+//
+#define QUIC_ECN_FROM_TOS(ToS) (QUIC_ECN_TYPE)((ToS) & 0x3)
+
 //
 // The minimum allowed IP MTU for QUIC.
 //
