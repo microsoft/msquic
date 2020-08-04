@@ -732,7 +732,7 @@ QuicPacketLogDrop(
         InterlockedIncrement64((int64_t*) &((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
         QuicTraceEvent(
             ConnDropPacket,
-            "[conn][%p] DROP packet[%llu] Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
+            "[conn][%p] DROP packet[%llu] Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
             CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
@@ -742,7 +742,7 @@ QuicPacketLogDrop(
         InterlockedIncrement64((int64_t*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
         QuicTraceEvent(
             BindingDropPacket,
-            "[bind][%p] DROP packet[%llu] Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
+            "[bind][%p] DROP packet[%llu] Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
             CLOG_BYTEARRAY(sizeof(Datagram->Tuple->LocalAddress), &Datagram->Tuple->LocalAddress),
@@ -767,7 +767,7 @@ QuicPacketLogDropWithValue(
         InterlockedIncrement64((int64_t*) & ((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
         QuicTraceEvent(
             ConnDropPacketEx,
-            "[conn][%p] DROP packet[%llu] Value=%llu Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s.",
+            "[conn][%p] DROP packet[%llu] Value=%llu Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
             Value,
@@ -778,7 +778,7 @@ QuicPacketLogDropWithValue(
         InterlockedIncrement64((int64_t*) &((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
         QuicTraceEvent(
             BindingDropPacketEx,
-            "[bind][%p] DROP packet[%llu] %llu. Dst=%!SOCKADDR! Src=%!SOCKADDR! Reason=%s",
+            "[bind][%p] DROP packet[%llu] %llu. Dst=%!ADDR! Src=%!ADDR! Reason=%s",
             Owner,
             Packet->PacketNumberSet ? UINT64_MAX : Packet->PacketNumber,
             Value,

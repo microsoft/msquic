@@ -178,7 +178,7 @@ QuicConnAlloc(
         Connection->State.LocalAddressSet = TRUE;
         QuicTraceEvent(
             ConnLocalAddrAdded,
-            "[conn][%p] New Local IP: %!SOCKADDR!",
+            "[conn][%p] New Local IP: %!ADDR!",
             Connection,
             CLOG_BYTEARRAY(sizeof(Path->LocalAddress), &Path->LocalAddress));
 
@@ -186,7 +186,7 @@ QuicConnAlloc(
         Connection->State.RemoteAddressSet = TRUE;
         QuicTraceEvent(
             ConnRemoteAddrAdded,
-            "[conn][%p] New Remote IP: %!SOCKADDR!",
+            "[conn][%p] New Remote IP: %!ADDR!",
             Connection,
             CLOG_BYTEARRAY(sizeof(Path->RemoteAddress), &Path->RemoteAddress));
 
@@ -560,14 +560,14 @@ QuicConnTraceRundownOper(
             if (Connection->State.LocalAddressSet || i != 0) {
                 QuicTraceEvent(
                     ConnLocalAddrAdded,
-                     "[conn][%p] New Local IP: %!SOCKADDR!",
+                     "[conn][%p] New Local IP: %!ADDR!",
                     Connection,
                     CLOG_BYTEARRAY(sizeof(Connection->Paths[i].LocalAddress), &Connection->Paths[i].LocalAddress));
             }
             if (Connection->State.RemoteAddressSet || i != 0) {
                 QuicTraceEvent(
                     ConnRemoteAddrAdded,
-                    "[conn][%p] New Remote IP: %!SOCKADDR!",
+                    "[conn][%p] New Remote IP: %!ADDR!",
                     Connection,
                     CLOG_BYTEARRAY(sizeof(Connection->Paths[i].RemoteAddress), &Connection->Paths[i].RemoteAddress));
             }
@@ -1718,7 +1718,7 @@ QuicConnStart(
     QuicAddrSetPort(&Path->RemoteAddress, ServerPort);
     QuicTraceEvent(
         ConnRemoteAddrAdded,
-        "[conn][%p] New Remote IP: %!SOCKADDR!",
+        "[conn][%p] New Remote IP: %!ADDR!",
         Connection,
         CLOG_BYTEARRAY(sizeof(Path->RemoteAddress), &Path->RemoteAddress));
 
@@ -1780,7 +1780,7 @@ QuicConnStart(
         &Path->LocalAddress);
     QuicTraceEvent(
         ConnLocalAddrAdded,
-        "[conn][%p] New Local IP: %!SOCKADDR!",
+        "[conn][%p] New Local IP: %!ADDR!",
         Connection,
         CLOG_BYTEARRAY(sizeof(Path->LocalAddress), &Path->LocalAddress));
 
@@ -2631,7 +2631,7 @@ QuicConnProcessPeerTransportParameters(
         /*QuicTraceLogConnInfo(
             PeerPreferredAddress,
             Connection,
-            "Peer configured preferred address %!SOCKADDR!",
+            "Peer configured preferred address %!ADDR!",
             CLOG_BYTEARRAY(sizeof(Connection->PeerTransportParams.PreferredAddress), &Connection->PeerTransportParams.PreferredAddress));*/
 
         //
@@ -4683,7 +4683,7 @@ QuicConnRecvPostProcessing(
 
         QuicTraceEvent(
             ConnRemoteAddrAdded,
-            "[conn][%p] New Remote IP: %!SOCKADDR!",
+            "[conn][%p] New Remote IP: %!ADDR!",
             Connection,
             CLOG_BYTEARRAY(sizeof(Connection->Paths[0].RemoteAddress), &Connection->Paths[0].RemoteAddress)); // TODO - Addr removed event?
 
@@ -5331,7 +5331,7 @@ QuicConnParamSet(
         QuicCopyMemory(&Connection->Paths[0].LocalAddress, Buffer, sizeof(QUIC_ADDR));
         QuicTraceEvent(
             ConnLocalAddrAdded,
-            "[conn][%p] New Local IP: %!SOCKADDR!",
+            "[conn][%p] New Local IP: %!ADDR!",
             Connection,
             CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress));
 
@@ -5365,7 +5365,7 @@ QuicConnParamSet(
 
             QuicTraceEvent(
                 ConnLocalAddrRemoved,
-                "[conn][%p] Removed Local IP: %!SOCKADDR!",
+                "[conn][%p] Removed Local IP: %!ADDR!",
                 Connection,
                 CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress));
 
@@ -5375,7 +5375,7 @@ QuicConnParamSet(
 
             QuicTraceEvent(
                 ConnLocalAddrAdded,
-                "[conn][%p] New Local IP: %!SOCKADDR!",
+                "[conn][%p] New Local IP: %!ADDR!",
                 Connection,
                 CLOG_BYTEARRAY(sizeof(Connection->Paths[0].LocalAddress), &Connection->Paths[0].LocalAddress));
 
