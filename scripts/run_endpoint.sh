@@ -21,9 +21,16 @@ fi
 # - CLIENT_PARAMS contains user-supplied command line parameters
 
 # Start LTTng log collection.
-mkdir logs
-lttng create msquic -o=logs
+mkdir /log/lttng
+lttng create msquic -o=/log/lttng
 lttng enable-event --userspace CLOG_*
+
+function finish {
+    # Stop log collection and convert.
+    lttng stop msquic
+    babeltrace --names all /log/lttng/* > /log/quic.babel
+    clog2text_lttng -i /log/quic.babel -s clog.sidecar -o /log/quic.log
+}
 
 if [ "$ROLE" == "client" ]; then
     # Wait for the simulator to start up.
@@ -47,7 +54,4 @@ elif [ "$ROLE" == "server" ]; then
         -file:/server.crt -key:/server.key 2>&1
 fi
 
-# Stop log collection and convert.
-lttng stop msquic
-babeltrace --names all logs/* > quic.babel
-clog2text_lttng -i quic.babel -s clog.sidecar -o quic.log
+trap finish EXIT
