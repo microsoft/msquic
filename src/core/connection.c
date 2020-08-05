@@ -5353,8 +5353,7 @@ QuicConnGetLocalPresharedInfo(
     const QUIC_PATH* Path = &Connection->Paths[0];
     QUIC_TRANSPORT_PARAMETERS LocalTP = { 0 };
 
-    if (!Connection->State.LocalAddressSet ||
-        QuicAddrGetPort(&Path->LocalAddress) == 0) {
+    if (!Connection->State.LocalAddressSet) {
         return QUIC_STATUS_INVALID_STATE;
     }
 

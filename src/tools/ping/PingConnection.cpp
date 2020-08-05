@@ -206,12 +206,16 @@ void PingConnection::Initialize() {
     }
 
     if (ForPsci) {
+        QUIC_ADDR LocalAddr = PingConfig.LocalPsciAddr;
+        if (IsServer) {
+            QuicAddrSetPort(&LocalAddr, 0); // Hack to use a different local port.
+        }
         MsQuic->SetParam(
             QuicConnection,
             QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_LOCAL_ADDRESS,
-            sizeof(PingConfig.LocalPsciAddr),
-            &PingConfig.LocalPsciAddr);
+            sizeof(LocalAddr),
+            &LocalAddr);
 
         {
             BOOLEAN ShareBinding = TRUE;
