@@ -9,15 +9,11 @@ Abstract:
 
 --*/
 
+#include "ThroughputClient.h"
+
 #ifdef QUIC_CLOG
 #include "ThroughputClient.cpp.clog.h"
 #endif
-
-#define QUIC_API_ENABLE_INSECURE_FEATURES 1
-
-#include "ThroughputClient.h"
-#include "ThroughputCommon.h"
-#include "quic_trace.h"
 
 static
 void
