@@ -1806,7 +1806,7 @@ QuicDataPathBindingAllocSendContext(
 
     QuicZeroMemory(SendContext, sizeof(*SendContext));
     SendContext->Owner = ProcContext;
-    SendContext->ECN;
+    SendContext->ECN = ECN;
 
 Exit:
 
