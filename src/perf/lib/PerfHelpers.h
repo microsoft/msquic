@@ -30,12 +30,11 @@ extern const QuicApiTable* MsQuic;
 #include <quic_platform.h>
 #include <quic_trace.h>
 #include <msquic.hpp>
-
 #include <msquichelper.h>
-#include <stdlib.h>
-#include <stdio.h>
 
 #ifndef _KERNEL_MODE
+#include <stdlib.h>
+#include <stdio.h>
 #include <new> // Needed for placement new
 #else
 #include <new.h>
