@@ -1778,7 +1778,7 @@ QuicDataPathBindingReturnRecvDatagrams(
 QUIC_DATAPATH_SEND_CONTEXT*
 QuicDataPathBindingAllocSendContext(
     _In_ QUIC_DATAPATH_BINDING* Binding,
-    QUIC_ECN_NON_ECT,
+    _In_ QUIC_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize
     )
 {
