@@ -345,7 +345,7 @@ if(QUIC_TLS STREQUAL "openssl")
             OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
             COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure linux-armv4 --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}- -DL_ENDIAN enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
-            COMMAND make clean # TODO: check if this is still needed when vuilding openssl out-of-dir
+            COMMAND make clean # TODO: check if this is still needed when building openssl out-of-dir
             COMMAND make -j$$(nproc)
             COMMAND make install_sw)
     else ()
