@@ -408,7 +408,7 @@ QuicSocketContextRecvComplete(
 
     QuicTraceEvent(
         DatapathRecv,
-        "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!SOCK! Dst=%!SOCK!",
+        "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
         SocketContext->Binding,
         (uint32_t)BytesTransferred,
         (uint32_t)BytesTransferred,
@@ -1621,7 +1621,7 @@ QuicDataPathBindingSend(
 
             QuicTraceEvent(
                 DatapathSendTo,
-                "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCK!",
+                "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!",
                 Binding,
                 SendContext->Buffers[i].Length,
                 1,
@@ -1703,7 +1703,7 @@ QuicDataPathBindingSend(
 
         QuicTraceEvent(
             DatapathSendFromTo,
-            "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCK!, Src=%!SOCK!",
+            "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
             Binding,
             TotalSize,
             SendContext->BufferCount,
