@@ -161,12 +161,12 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 
 if (QUIC_ENABLE_LOGGING)
-    execute_process(COMMAND clog --installDirectory ${CMAKE_SOURCE_DIR}/build/clog)
+    execute_process(COMMAND clog --installDirectory ${QUIC_BUILD_DIR}/clog)
 
     set(CMAKE_CLOG_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/inc)
     set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest)
-    set(CLOG_INCLUDE_DIRECTORY ${CMAKE_SOURCE_DIR}/build/clog)
-    set(CMAKE_CLOG_GENERATE_FILE ${CMAKE_SOURCE_DIR}/build/clog/CLog.cmake)
+    set(CLOG_INCLUDE_DIRECTORY ${QUIC_BUILD_DIR}/clog)
+    set(CMAKE_CLOG_GENERATE_FILE ${QUIC_BUILD_DIR}/clog/CLog.cmake)
     set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/msquic.clog_config)
     include(${CMAKE_CLOG_GENERATE_FILE})
 
@@ -175,10 +175,10 @@ if (QUIC_ENABLE_LOGGING)
         target_link_libraries(${ARGV0} PRIVATE inc)
         set_property(TARGET ${ARGV0} PROPERTY FOLDER "clog")
     endfunction()
-else()	
-    function(add_clog_library)	
-        add_library(${ARGV0} INTERFACE)	
-    endfunction()	
+else()
+    function(add_clog_library)
+        add_library(${ARGV0} INTERFACE)
+    endfunction()
 endif()
 
 set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
@@ -285,7 +285,7 @@ if(WIN32)
 
 else()
     # Custom build flags.
-    
+
     list(APPEND QUIC_COMMON_FLAGS -fms-extensions -fPIC)
     if (QUIC_PLATFORM STREQUAL "darwin")
         list(APPEND QUIC_COMMON_DEFINES QUIC_PLATFORM_DARWIN)
@@ -335,23 +335,27 @@ endif()
 
 if(QUIC_TLS STREQUAL "openssl")
     # Configure and build OpenSSL.
+    add_custom_target(MKDIR_OPENSSL_BUILD
+        COMMAND mkdir -p ${QUIC_BUILD_DIR}/submodules/openssl)
     if (CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
         add_custom_command(
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl
+            DEPENDS MKDIR_OPENSSL_BUILD
+            WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl
             OUTPUT ${QUIC_BUILD_DIR}/openssl/include
             OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ./Configure linux-armv4 --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}- -DL_ENDIAN enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
-            COMMAND make clean
+            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure linux-armv4 --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}- -DL_ENDIAN enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
+            COMMAND make clean # TODO: check if this is still needed when building openssl out-of-dir
             COMMAND make -j$$(nproc)
             COMMAND make install_sw)
     else ()
         add_custom_command(
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl
+            DEPENDS MKDIR_OPENSSL_BUILD
+            WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl
             OUTPUT ${QUIC_BUILD_DIR}/openssl/include
             OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ./config enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
+            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ${CMAKE_SOURCE_DIR}/submodules/openssl/config enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
             COMMAND make -j$$(nproc)
             COMMAND make install_sw)
     endif()
