@@ -44,8 +44,8 @@ extern "C" {
 typedef enum QUIC_ECN_TYPE {
 
     QUIC_ECN_NON_ECT = 0x0, // Non ECN-Capable Transport, Non-ECT
-    QUIC_ECN_ECT_0   = 0x1, // ECN Capable Transport, ECT(0)
-    QUIC_ECN_ECT_1   = 0x2, // ECN Capable Transport, ECT(1)
+    QUIC_ECN_ECT_1   = 0x1, // ECN Capable Transport, ECT(1)
+    QUIC_ECN_ECT_0   = 0x2, // ECN Capable Transport, ECT(0)
     QUIC_ECN_CE      = 0x3  // Congestion Encountered, CE
 
 } QUIC_ECN_TYPE;
@@ -390,6 +390,7 @@ _Success_(return != NULL)
 QUIC_DATAPATH_SEND_CONTEXT*
 QuicDataPathBindingAllocSendContext(
     _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize
     );
 

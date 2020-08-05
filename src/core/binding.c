@@ -675,7 +675,10 @@ QuicBindingProcessStatelessOperation(
         OperationType);
 
     QUIC_DATAPATH_SEND_CONTEXT* SendContext =
-        QuicDataPathBindingAllocSendContext(Binding->DatapathBinding, 0);
+        QuicDataPathBindingAllocSendContext(
+            Binding->DatapathBinding,
+            QUIC_ECN_NON_ECT,
+            0);
     if (SendContext == NULL) {
         QuicTraceEvent(
             AllocFailure,

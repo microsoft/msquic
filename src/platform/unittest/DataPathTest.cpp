@@ -188,7 +188,7 @@ protected:
             if (recvBuffer->Tuple->LocalAddress.Ipv4.sin_port == RecvContext->ServerAddress.Ipv4.sin_port) {
 
                 auto ServerSendContext =
-                    QuicDataPathBindingAllocSendContext(binding, 0);
+                    QuicDataPathBindingAllocSendContext(binding, QUIC_ECN_NON_ECT, 0);
                 ASSERT_NE(nullptr, ServerSendContext);
 
                 auto ServerDatagram =
@@ -392,7 +392,7 @@ TEST_P(DataPathTest, Data)
     ASSERT_NE(nullptr, client);
 
     auto ClientSendContext =
-        QuicDataPathBindingAllocSendContext(client, 0);
+        QuicDataPathBindingAllocSendContext(client, QUIC_ECN_NON_ECT, 0);
     ASSERT_NE(nullptr, ClientSendContext);
 
     auto ClientDatagram =
@@ -471,7 +471,7 @@ TEST_P(DataPathTest, DataRebind)
     ASSERT_NE(nullptr, client);
 
     auto ClientSendContext =
-        QuicDataPathBindingAllocSendContext(client, 0);
+        QuicDataPathBindingAllocSendContext(client, QUIC_ECN_NON_ECT, 0);
     ASSERT_NE(nullptr, ClientSendContext);
 
     auto ClientDatagram =
@@ -502,7 +502,7 @@ TEST_P(DataPathTest, DataRebind)
     ASSERT_NE(nullptr, client);
 
     ClientSendContext =
-        QuicDataPathBindingAllocSendContext(client, 0);
+        QuicDataPathBindingAllocSendContext(client, QUIC_ECN_NON_ECT, 0);
     ASSERT_NE(nullptr, ClientSendContext);
 
     ClientDatagram =
