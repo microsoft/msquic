@@ -183,7 +183,8 @@ struct DrillSender {
         const uint16_t DatagramLength = (uint16_t) PacketBuffer->size();
 
         QUIC_DATAPATH_SEND_CONTEXT* SendContext =
-            QuicDataPathBindingAllocSendContext(Binding, DatagramLength);
+            QuicDataPathBindingAllocSendContext(
+                Binding, QUIC_ECN_NON_ECT, DatagramLength);
 
         QUIC_BUFFER* SendBuffer =
             QuicDataPathBindingAllocSendDatagram(SendContext, DatagramLength);

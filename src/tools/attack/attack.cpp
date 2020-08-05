@@ -107,7 +107,8 @@ RunAttackRandom(
     while (QuicTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs) {
 
         QUIC_DATAPATH_SEND_CONTEXT* SendContext =
-            QuicDataPathBindingAllocSendContext(Binding, Length);
+            QuicDataPathBindingAllocSendContext(
+                Binding, QUIC_ECN_NON_ECT, Length);
         if (SendContext == nullptr) {
             printf("QuicDataPathBindingAllocSendContext failed\n");
             return;
@@ -211,7 +212,8 @@ RunAttackValidInitial(
     while (QuicTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs) {
 
         QUIC_DATAPATH_SEND_CONTEXT* SendContext =
-            QuicDataPathBindingAllocSendContext(Binding, DatagramLength);
+            QuicDataPathBindingAllocSendContext(
+                Binding, QUIC_ECN_NON_ECT, DatagramLength);
         VERIFY(SendContext);
 
         while (QuicTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs &&

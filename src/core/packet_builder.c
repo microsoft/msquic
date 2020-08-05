@@ -184,6 +184,7 @@ QuicPacketBuilderPrepare(
             Builder->SendContext =
                 QuicDataPathBindingAllocSendContext(
                     Builder->Path->Binding->DatapathBinding,
+                    QUIC_ECN_NON_ECT,
                     IsPathMtuDiscovery ?
                         0 :
                         MaxUdpPayloadSizeForFamily(

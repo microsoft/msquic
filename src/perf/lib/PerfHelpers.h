@@ -16,8 +16,10 @@ Abstract:
 #endif
 
 #ifndef _KERNEL_MODE
-#define QUIC_TEST_APIS 1
+#define QUIC_TEST_APIS 1 // For self-signed cert API
 #endif
+
+#define QUIC_API_ENABLE_INSECURE_FEATURES 1 // For disabling encryption
 
 class QuicApiTable;
 
@@ -26,13 +28,13 @@ extern const QuicApiTable* MsQuic;
 #define QUIC_SKIP_GLOBAL_CONSTRUCTORS
 
 #include <quic_platform.h>
+#include <quic_trace.h>
 #include <msquic.hpp>
-
 #include <msquichelper.h>
-#include <stdlib.h>
-#include <stdio.h>
 
 #ifndef _KERNEL_MODE
+#include <stdlib.h>
+#include <stdio.h>
 #include <new> // Needed for placement new
 #else
 #include <new.h>
@@ -47,6 +49,21 @@ struct PerfSelfSignedConfiguration {
 };
 
 #define QUIC_TEST_SESSION_CLOSED    1
+
+extern
+QUIC_STATUS
+QuicMainStart(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_ QUIC_EVENT StopEvent,
+    _In_ PerfSelfSignedConfiguration* SelfSignedConfig
+    );
+
+extern
+QUIC_STATUS
+QuicMainStop(
+    _In_ int Timeout
+    );
 
 inline
 int

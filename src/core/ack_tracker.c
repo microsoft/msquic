@@ -142,13 +142,13 @@ QuicAckTrackerAckPacket(
     }
 
     switch (ECN) {
-        case QUIC_ECN_ECT_0:
-            Tracker->NonZeroRecvECN = TRUE;
-            Tracker->ReceivedECN.ECT_0_Count++;
-            break;
         case QUIC_ECN_ECT_1:
             Tracker->NonZeroRecvECN = TRUE;
             Tracker->ReceivedECN.ECT_1_Count++;
+            break;
+        case QUIC_ECN_ECT_0:
+            Tracker->NonZeroRecvECN = TRUE;
+            Tracker->ReceivedECN.ECT_0_Count++;
             break;
         case QUIC_ECN_CE:
             Tracker->NonZeroRecvECN = TRUE;

@@ -9,15 +9,11 @@ Abstract:
 
 --*/
 
-#include <quic_driver_main.h>
-#include <quic_platform.h>
-#include "msquic.h"
-
+#include "PerfHelpers.h"
 #include "PerfIoctls.h"
 
-#include "quic_trace.h"
 #ifdef QUIC_CLOG
-#include "driver.cpp.clog.h"
+#include "drivermain.cpp.clog.h"
 #endif
 
 DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceName, L"\\Device\\quicperformance");

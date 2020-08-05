@@ -96,6 +96,11 @@ typedef struct QUIC_DATAPATH_SEND_CONTEXT {
     BOOLEAN Pending;
 
     //
+    // The type of ECN markings needed for send.
+    //
+    QUIC_ECN_TYPE ECN;
+
+    //
     // The proc context owning this send context.
     //
     struct QUIC_DATAPATH_PROC_CONTEXT *Owner;
@@ -1773,6 +1778,7 @@ QuicDataPathBindingReturnRecvDatagrams(
 QUIC_DATAPATH_SEND_CONTEXT*
 QuicDataPathBindingAllocSendContext(
     _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize
     )
 {
@@ -1800,6 +1806,7 @@ QuicDataPathBindingAllocSendContext(
 
     QuicZeroMemory(SendContext, sizeof(*SendContext));
     SendContext->Owner = ProcContext;
+    SendContext->ECN = ECN;
 
 Exit:
 
@@ -1944,6 +1951,8 @@ QuicDataPathBindingSend(
                 1,
                 SendContext->Buffers[i].Length,
                 CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress));
+
+            // TODO - Use SendContext->ECN if not QUIC_ECN_NON_ECT
 
             SentByteCount =
                 sendto(

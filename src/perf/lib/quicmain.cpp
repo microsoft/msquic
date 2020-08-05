@@ -9,15 +9,10 @@ Abstract:
 
 --*/
 
-#ifndef _KERNEL_MODE
-#define QUIC_TEST_APIS 1
-#endif
-#include "quic_driver_main.h"
-
+#include "PerfHelpers.h"
 #include "ThroughputServer.h"
 #include "ThroughputClient.h"
 
-#include "quic_trace.h"
 #ifdef QUIC_CLOG
 #include "quicmain.cpp.clog.h"
 #endif
@@ -56,7 +51,7 @@ QuicMainStart(
     TryGetValue(argc, argv, "ServerMode", &ServerMode);
 
     QUIC_STATUS Status;
-    MsQuic = new QuicApiTable{};
+    MsQuic = new QuicApiTable;
     if (QUIC_FAILED(Status = MsQuic->InitStatus())) {
         delete MsQuic;
         MsQuic = nullptr;
@@ -65,9 +60,9 @@ QuicMainStart(
 
     if (IsValue(TestName, "Throughput")) {
         if (ServerMode) {
-            TestToRun = new ThroughputServer{SelfSignedConfig};
+            TestToRun = new ThroughputServer(SelfSignedConfig);
         } else {
-            TestToRun = new ThroughputClient{};
+            TestToRun = new ThroughputClient;
         }
     } else {
         delete MsQuic;
