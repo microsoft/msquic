@@ -148,11 +148,11 @@ QuicBindingInitialize(
     QuicDataPathBindingGetRemoteAddress(Binding->DatapathBinding, &DatapathRemoteAddr);
     QuicTraceEvent(
         BindingCreated,
-        "[bind][%p] Created, Udp=%p LocalAddr=%!SOCKADDR! RemoteAddr=%!SOCKADDR!",
+        "[bind][%p] Created, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
         Binding,
         Binding->DatapathBinding,
-        LOG_BINARY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
-        LOG_BINARY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
+        CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
+        CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
 
     *NewBinding = Binding;
     Status = QUIC_STATUS_SUCCESS;
@@ -243,11 +243,11 @@ QuicBindingTraceRundown(
     QuicDataPathBindingGetRemoteAddress(Binding->DatapathBinding, &DatapathRemoteAddr);
     QuicTraceEvent(
         BindingRundown,
-        "[bind][%p] Rundown, Udp=%p LocalAddr=%!SOCKADDR! RemoteAddr=%!SOCKADDR!",
+        "[bind][%p] Rundown, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
         Binding,
         Binding->DatapathBinding,
-        LOG_BINARY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
-        LOG_BINARY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
+        CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
+        CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
 
     QuicDispatchRwLockAcquireShared(&Binding->RwLock);
 
@@ -675,7 +675,10 @@ QuicBindingProcessStatelessOperation(
         OperationType);
 
     QUIC_DATAPATH_SEND_CONTEXT* SendContext =
-        QuicDataPathBindingAllocSendContext(Binding->DatapathBinding, 0);
+        QuicDataPathBindingAllocSendContext(
+            Binding->DatapathBinding,
+            QUIC_ECN_NON_ECT,
+            0);
     if (SendContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1116,16 +1119,12 @@ QuicBindingCreateConnection(
     QUIC_CONNECTION* Connection = NULL;
     QUIC_RECV_PACKET* Packet = QuicDataPathRecvDatagramToRecvPacket(Datagram);
 
-    QUIC_CONNECTION* NewConnection;
-    QUIC_STATUS Status =
-        QuicConnInitialize(
+    QUIC_CONNECTION* NewConnection =
+        QuicConnAlloc(
             MsQuicLib.UnregisteredSession,
-            Datagram,
-            &NewConnection);
-    if (QUIC_FAILED(Status)) {
-        QuicConnRelease(NewConnection, QUIC_CONN_REF_HANDLE_OWNER);
-        QuicPacketLogDropWithValue(Binding, Packet,
-            "Failed to initialize new connection", Status);
+            Datagram);
+    if (NewConnection == NULL) {
+        QuicPacketLogDrop(Binding, Packet, "Failed to initialize new connection");
         return NULL;
     }
 

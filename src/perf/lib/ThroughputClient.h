@@ -15,7 +15,7 @@ Abstract:
 
 #include "PerfHelpers.h"
 #include "PerfBase.h"
-#include "ThroughputCommon.h"
+#include "PerfCommon.h"
 #include "SendRequest.h"
 
 class ThroughputClient : public PerfBase {

@@ -43,38 +43,18 @@ Abstract:
 #endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 QuicAckTrackerInitialize(
     _Inout_ QUIC_ACK_TRACKER* Tracker
     )
 {
-    QUIC_STATUS Status;
+    QuicRangeInitialize(
+        QUIC_MAX_RANGE_DUPLICATE_PACKETS,
+        &Tracker->PacketNumbersReceived);
 
-    Tracker->AckElicitingPacketsToAcknowledge = 0;
-    Tracker->LargestPacketNumberAcknowledged = 0;
-    Tracker->LargestPacketNumberRecvTime = 0;
-    Tracker->AlreadyWrittenAckFrame = FALSE;
-
-    Status =
-        QuicRangeInitialize(
-            QUIC_MAX_RANGE_DUPLICATE_PACKETS,
-            &Tracker->PacketNumbersReceived);
-    if (QUIC_FAILED(Status)) {
-        goto Error;
-    }
-
-    Status =
-        QuicRangeInitialize(
-            QUIC_MAX_RANGE_ACK_PACKETS,
-            &Tracker->PacketNumbersToAck);
-    if (QUIC_FAILED(Status)) {
-        QuicRangeUninitialize(&Tracker->PacketNumbersReceived);
-        goto Error;
-    }
-
-Error:
-
-    return Status;
+    QuicRangeInitialize(
+        QUIC_MAX_RANGE_ACK_PACKETS,
+        &Tracker->PacketNumbersToAck);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -97,6 +77,8 @@ QuicAckTrackerReset(
     Tracker->LargestPacketNumberAcknowledged = 0;
     Tracker->LargestPacketNumberRecvTime = 0;
     Tracker->AlreadyWrittenAckFrame = FALSE;
+    Tracker->NonZeroRecvECN = FALSE;
+    QuicZeroMemory(&Tracker->ReceivedECN, sizeof(Tracker->ReceivedECN));
     QuicRangeReset(&Tracker->PacketNumbersToAck);
     QuicRangeReset(&Tracker->PacketNumbersReceived);
 }
@@ -119,6 +101,7 @@ void
 QuicAckTrackerAckPacket(
     _Inout_ QUIC_ACK_TRACKER* Tracker,
     _In_ uint64_t PacketNumber,
+    _In_ QUIC_ECN_TYPE ECN,
     _In_ BOOLEAN AckElicitingPayload
     )
 {
@@ -147,14 +130,32 @@ QuicAckTrackerAckPacket(
 
     QuicTraceLogVerbose(
         PacketRxMarkedForAck,
-        "[%c][RX][%llu] Marked for ACK",
+        "[%c][RX][%llu] Marked for ACK (ECN=%hhu)",
         PtkConnPre(Connection),
-        PacketNumber);
+        PacketNumber,
+        ECN);
 
     BOOLEAN NewLargestPacketNumber =
         PacketNumber == QuicRangeGetMax(&Tracker->PacketNumbersToAck);
     if (NewLargestPacketNumber) {
         Tracker->LargestPacketNumberRecvTime = QuicTimeUs64();
+    }
+
+    switch (ECN) {
+        case QUIC_ECN_ECT_1:
+            Tracker->NonZeroRecvECN = TRUE;
+            Tracker->ReceivedECN.ECT_1_Count++;
+            break;
+        case QUIC_ECN_ECT_0:
+            Tracker->NonZeroRecvECN = TRUE;
+            Tracker->ReceivedECN.ECT_0_Count++;
+            break;
+        case QUIC_ECN_CE:
+            Tracker->NonZeroRecvECN = TRUE;
+            Tracker->ReceivedECN.CE_Count++;
+            break;
+        default:
+            break;
     }
 
     Tracker->AlreadyWrittenAckFrame = FALSE;
@@ -226,7 +227,9 @@ QuicAckTrackerAckFrameEncode(
     if (!QuicAckFrameEncode(
             &Tracker->PacketNumbersToAck,
             AckDelay,
-            NULL, // No ECN right now.
+            Tracker->NonZeroRecvECN ?
+                &Tracker->ReceivedECN :
+                NULL,
             &Builder->DatagramLength,
             (uint16_t)Builder->Datagram->Length - Builder->EncryptionOverhead,
             Builder->Datagram->Buffer)) {

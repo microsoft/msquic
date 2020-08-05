@@ -96,6 +96,11 @@ typedef struct QUIC_DATAPATH_SEND_CONTEXT {
     BOOLEAN Pending;
 
     //
+    // The type of ECN markings needed for send.
+    //
+    QUIC_ECN_TYPE ECN;
+
+    //
     // The proc context owning this send context.
     //
     struct QUIC_DATAPATH_PROC_CONTEXT *Owner;
@@ -1229,17 +1234,18 @@ QuicSocketContextRecvComplete(
 
     QuicTraceEvent(
         DatapathRecv,
-        "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!SOCKADDR! Dst=%!SOCKADDR!",
+        "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
         SocketContext->Binding,
         (uint32_t)BytesTransferred,
         (uint32_t)BytesTransferred,
-        LOG_BINARY(sizeof(*LocalAddr), LocalAddr),
-        LOG_BINARY(sizeof(*RemoteAddr), RemoteAddr));
+        CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
+        CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 
     QUIC_DBG_ASSERT(BytesTransferred <= RecvPacket->BufferLength);
     RecvPacket->BufferLength = BytesTransferred;
 
     RecvPacket->PartitionIndex = ProcContext->Index;
+    RecvPacket->TypeOfService = 0; // TODO - Support ToS/ECN
 
     QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->RecvHandler);
     SocketContext->Binding->Datapath->RecvHandler(
@@ -1772,6 +1778,7 @@ QuicDataPathBindingReturnRecvDatagrams(
 QUIC_DATAPATH_SEND_CONTEXT*
 QuicDataPathBindingAllocSendContext(
     _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize
     )
 {
@@ -1799,6 +1806,7 @@ QuicDataPathBindingAllocSendContext(
 
     QuicZeroMemory(SendContext, sizeof(*SendContext));
     SendContext->Owner = ProcContext;
+    SendContext->ECN = ECN;
 
 Exit:
 
@@ -1937,12 +1945,14 @@ QuicDataPathBindingSend(
 
             QuicTraceEvent(
                 DatapathSendTo,
-                "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!",
+                "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!",
                 Binding,
                 SendContext->Buffers[i].Length,
                 1,
                 SendContext->Buffers[i].Length,
-                LOG_BINARY(sizeof(*RemoteAddress), RemoteAddress));
+                CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress));
+
+            // TODO - Use SendContext->ECN if not QUIC_ECN_NON_ECT
 
             SentByteCount =
                 sendto(
@@ -2004,13 +2014,13 @@ QuicDataPathBindingSend(
 
         QuicTraceEvent(
             DatapathSendFromTo,
-            "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!, Src=%!SOCKADDR!",
+            "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
             Binding,
             TotalSize,
             SendContext->BufferCount,
             SendContext->Buffers[0].Length,
-            LOG_BINARY(sizeof(*RemoteAddress), RemoteAddress),
-            LOG_BINARY(sizeof(*LocalAddress), LocalAddress));
+            CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+            CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 
         //
         // Map V4 address to dual-stack socket format.

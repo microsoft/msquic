@@ -211,6 +211,11 @@ typedef struct QUIC_DATAPATH_SEND_CONTEXT {
     uint32_t TotalSize;
 
     //
+    // The type of ECN markings needed for send.
+    //
+    QUIC_ECN_TYPE ECN;
+
+    //
     // The number of WSK buffers allocated.
     //
     UINT8 WskBufferCount;
@@ -1936,22 +1941,12 @@ QuicDataPathSocketReceive(
             &RemoteAddr);
 
         if (IsUnreachableError) {
-#if 0 // TODO - Change to ETW event
-            if (RemoteAddr.si_family == AF_INET) {
-                QuicTraceLogVerbose(
-                    DatapathUnreachable,
-                    "[sock][%p] Unreachable error from %!IPV4ADDR!:%hu",
-                    Binding,
-                    &RemoteAddr.Ipv4.sin_addr,
-                    RtlUshortByteSwap(RemoteAddr.Ipv4.sin_port));
-            } else {
-                QuicTraceLogVerbose(
-                    DatapathUnreachableV6,
-                    "[sock][%p] Unreachable error from [%!IPV6ADDR!]:%hu",
-                    Binding,
-                    &RemoteAddr.Ipv6.sin6_addr,
-                    RtlUshortByteSwap(RemoteAddr.Ipv6.sin6_port));
-            }
+#if QUIC_CLOG
+            QuicTraceLogVerbose(
+                DatapathUnreachable,
+                "[sock][%p] Unreachable error from %!ADDR!",
+                Binding,
+                CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr));
 #endif
 
             QUIC_DBG_ASSERT(Binding->Datapath->UnreachableHandler);
@@ -1994,12 +1989,12 @@ QuicDataPathSocketReceive(
 
         QuicTraceEvent(
             DatapathRecv,
-            "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!SOCKADDR! Dst=%!SOCKADDR!",
+            "[ udp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
             Binding,
             (uint32_t)DataLength,
             MessageLength,
-            LOG_BINARY(sizeof(LocalAddr), &LocalAddr),
-            LOG_BINARY(sizeof(RemoteAddr), &RemoteAddr));
+            CLOG_BYTEARRAY(sizeof(LocalAddr), &LocalAddr),
+            CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr));
 
         for ( ; DataLength != 0; DataLength -= MessageLength) {
 
@@ -2050,6 +2045,7 @@ QuicDataPathSocketReceive(
             QUIC_DBG_ASSERT(Datagram != NULL);
             Datagram->Next = NULL;
             Datagram->PartitionIndex = (uint8_t)CurProcNumber;
+            Datagram->TypeOfService = 0; // TODO - Support ToS/ECN
             Datagram->Allocated = TRUE;
             Datagram->QueuedOnConnection = FALSE;
 
@@ -2212,6 +2208,7 @@ _Success_(return != NULL)
 QUIC_DATAPATH_SEND_CONTEXT*
 QuicDataPathBindingAllocSendContext(
     _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_ECN_TYPE ECN,
     _In_ UINT16 MaxPacketSize
     )
 {
@@ -2225,6 +2222,7 @@ QuicDataPathBindingAllocSendContext(
 
     if (SendContext != NULL) {
         SendContext->Owner = ProcContext;
+        SendContext->ECN = ECN;
         SendContext->WskBufs = NULL;
         SendContext->TailBuf = NULL;
         SendContext->TotalSize = 0;
@@ -2647,16 +2645,18 @@ QuicDataPathBindingSendTo(
 
     QuicTraceEvent(
         DatapathSendTo,
-        "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!",
+        "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!",
         Binding,
         SendContext->TotalSize,
         SendContext->WskBufferCount,
         SendContext->SegmentSize,
-        LOG_BINARY(sizeof(*RemoteAddress), RemoteAddress));
+        CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress));
 
     BYTE CMsgBuffer[WSA_CMSG_SPACE(sizeof(*SegmentSize))];
     PWSACMSGHDR CMsg = NULL;
     ULONG CMsgLen = 0;
+
+    // TODO - Use SendContext->ECN if not QUIC_ECN_NON_ECT
 
     if (SendContext->SegmentSize > 0) {
         CMsg = (PWSACMSGHDR)CMsgBuffer;
@@ -2723,13 +2723,13 @@ QuicDataPathBindingSendFromTo(
 
     QuicTraceEvent(
         DatapathSendFromTo,
-        "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!SOCKADDR!, Src=%!SOCKADDR!",
+        "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
         Binding,
         SendContext->TotalSize,
         SendContext->WskBufferCount,
         SendContext->SegmentSize,
-        LOG_BINARY(sizeof(*RemoteAddress), RemoteAddress),
-        LOG_BINARY(sizeof(*LocalAddress), LocalAddress));
+        CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+        CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 
     //
     // Map V4 address to dual-stack socket format.
@@ -2743,6 +2743,8 @@ QuicDataPathBindingSendFromTo(
     BYTE CMsgBuffer[WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) + WSA_CMSG_SPACE(sizeof(*SegmentSize))];
     PWSACMSGHDR CMsg = (PWSACMSGHDR)CMsgBuffer;
     ULONG CMsgLen;
+
+    // TODO - Use SendContext->ECN if not QUIC_ECN_NON_ECT
 
     if (LocalAddress->si_family == AF_INET) {
         CMsgLen = WSA_CMSG_SPACE(sizeof(IN_PKTINFO));

@@ -241,10 +241,10 @@ MsQuicListenerStart(
 
     QuicTraceEvent(
         ListenerStarted,
-        "[list][%p] Started, Binding=%p, LocalAddr=%!SOCKADDR!",
+        "[list][%p] Started, Binding=%p, LocalAddr=%!ADDR!",
         Listener,
         Listener->Binding,
-        LOG_BINARY(sizeof(Listener->LocalAddress), &Listener->LocalAddress));
+        CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress));
 
 Error:
 
@@ -313,10 +313,10 @@ QuicListenerTraceRundown(
     if (Listener->Binding != NULL) {
         QuicTraceEvent(
             ListenerStarted,
-            "[list][%p] Started, Binding=%p, LocalAddr=%!SOCKADDR!",
+            "[list][%p] Started, Binding=%p, LocalAddr=%!ADDR!",
             Listener,
             Listener->Binding,
-            LOG_BINARY(sizeof(Listener->LocalAddress), &Listener->LocalAddress));
+            CLOG_BYTEARRAY(sizeof(Listener->LocalAddress), &Listener->LocalAddress));
     }
 }
 

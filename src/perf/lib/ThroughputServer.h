@@ -14,7 +14,7 @@ Abstract:
 
 #include "PerfHelpers.h"
 #include "PerfBase.h"
-#include "ThroughputCommon.h"
+#include "PerfCommon.h"
 
 class ThroughputServer : public PerfBase {
 public:
@@ -59,8 +59,8 @@ private:
         );
 
     MsQuicRegistration Registration;
-    MsQuicSession Session{Registration, THROUGHPUT_ALPN};
-    MsQuicListener Listener{Session};
+    MsQuicSession Session {Registration, THROUGHPUT_ALPN};
+    MsQuicListener Listener {Session};
     PerfSelfSignedConfiguration* SelfSignedConfig;
     PerfSecurityConfig SecurityConfig;
     QUIC_ADDR Address{};

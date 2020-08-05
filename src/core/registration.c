@@ -65,6 +65,7 @@ MsQuicRegistrationOpen(
     Registration->Type = QUIC_HANDLE_TYPE_REGISTRATION;
     Registration->ClientContext = NULL;
     Registration->NoPartitioning = FALSE;
+    Registration->SplitPartitioning = FALSE;
     Registration->ExecProfile = Config == NULL ? QUIC_EXECUTION_PROFILE_LOW_LATENCY : Config->ExecutionProfile;
     Registration->CidPrefixLength = 0;
     Registration->CidPrefix = NULL;
@@ -90,6 +91,7 @@ MsQuicRegistrationOpen(
         WorkerThreadFlags =
             QUIC_THREAD_FLAG_SET_IDEAL_PROC |
             QUIC_THREAD_FLAG_SET_AFFINITIZE;
+        Registration->SplitPartitioning = TRUE;
         break;
     case QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER:
         WorkerThreadFlags = 0;
@@ -100,6 +102,18 @@ MsQuicRegistrationOpen(
             QUIC_THREAD_FLAG_SET_IDEAL_PROC |
             QUIC_THREAD_FLAG_SET_AFFINITIZE;
         break;
+    }
+
+    //
+    // TODO - Figure out how to check to see if hyper-threading was enabled
+    // first
+    // When hyper-threading is enabled, better bulk throughput can sometimes
+    // be gained by sharing the same physical core, but not the logical one.
+    // The shared one is always one greater than the RSS core.
+    //
+    if (Registration->SplitPartitioning &&
+        MsQuicLib.PartitionCount <= QUIC_MAX_THROUGHPUT_PARTITION_OFFSET) {
+        Registration->SplitPartitioning = FALSE; // Not enough partitions.
     }
 
     Status =
@@ -164,57 +178,50 @@ MsQuicRegistrationClose(
         HQUIC Handle
     )
 {
-    if (Handle == NULL) {
-        return;
-    }
-
-    QUIC_TEL_ASSERT(Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION);
-    if (Handle->Type != QUIC_HANDLE_TYPE_REGISTRATION) {
-        return;
-    }
-
-    QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_REGISTRATION_CLOSE,
-        Handle);
+    if (Handle != NULL && Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION) {
+        QuicTraceEvent(
+            ApiEnter,
+            "[ api] Enter %u (%p).",
+            QUIC_TRACE_API_REGISTRATION_CLOSE,
+            Handle);
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-    QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
+        QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
 
-    QuicTraceEvent(
-        RegistrationCleanup,
-        "[ reg][%p] Cleaning up",
-        Registration);
+        QuicTraceEvent(
+            RegistrationCleanup,
+            "[ reg][%p] Cleaning up",
+            Registration);
 
-    //
-    // If you hit this assert, you are trying to clean up a registration without
-    // first cleaning up all the child sessions first.
-    //
-    QUIC_REG_VERIFY(Registration, QuicListIsEmpty(&Registration->Sessions));
+        //
+        // If you hit this assert, you are trying to clean up a registration without
+        // first cleaning up all the child sessions first.
+        //
+        QUIC_REG_VERIFY(Registration, QuicListIsEmpty(&Registration->Sessions));
 
-    QuicLockAcquire(&MsQuicLib.Lock);
-    QuicListEntryRemove(&Registration->Link);
-    QuicLockRelease(&MsQuicLib.Lock);
+        QuicLockAcquire(&MsQuicLib.Lock);
+        QuicListEntryRemove(&Registration->Link);
+        QuicLockRelease(&MsQuicLib.Lock);
 
-    QuicRundownReleaseAndWait(&Registration->ConnectionRundown);
+        QuicRundownReleaseAndWait(&Registration->ConnectionRundown);
 
-    QuicWorkerPoolUninitialize(Registration->WorkerPool);
-    QuicRundownReleaseAndWait(&Registration->SecConfigRundown);
+        QuicWorkerPoolUninitialize(Registration->WorkerPool);
+        QuicRundownReleaseAndWait(&Registration->SecConfigRundown);
 
-    QuicRundownUninitialize(&Registration->SecConfigRundown);
-    QuicRundownUninitialize(&Registration->ConnectionRundown);
-    QuicLockUninitialize(&Registration->Lock);
+        QuicRundownUninitialize(&Registration->SecConfigRundown);
+        QuicRundownUninitialize(&Registration->ConnectionRundown);
+        QuicLockUninitialize(&Registration->Lock);
 
-    if (Registration->CidPrefix != NULL) {
-        QUIC_FREE(Registration->CidPrefix);
+        if (Registration->CidPrefix != NULL) {
+            QUIC_FREE(Registration->CidPrefix);
+        }
+
+        QUIC_FREE(Registration);
+
+        QuicTraceEvent(
+            ApiExit,
+            "[ api] Exit");
     }
-
-    QUIC_FREE(Registration);
-
-    QuicTraceEvent(
-        ApiExit,
-        "[ api] Exit");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -271,7 +278,7 @@ MsQuicSecConfigCreate(
     _In_ _Pre_defensive_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
 {
-    QUIC_STATUS Status;
+    QUIC_STATUS Status = QUIC_STATUS_INVALID_PARAMETER;
 
     QuicTraceEvent(
         ApiEnter,
@@ -279,23 +286,20 @@ MsQuicSecConfigCreate(
         QUIC_TRACE_API_SEC_CONFIG_CREATE,
         Handle);
 
-    if (Handle == NULL || Handle->Type != QUIC_HANDLE_TYPE_REGISTRATION ||
-        CompletionHandler == NULL) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
+    if (Handle != NULL &&
+        Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION &&
+        CompletionHandler != NULL) {
+
+        QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
+        Status =
+            QuicTlsServerSecConfigCreate(
+                &Registration->SecConfigRundown,
+                Flags,
+                Certificate,
+                Principal,
+                Context,
+                CompletionHandler);
     }
-
-    QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
-    Status =
-        QuicTlsServerSecConfigCreate(
-            &Registration->SecConfigRundown,
-            Flags,
-            Certificate,
-            Principal,
-            Context,
-            CompletionHandler);
-
-Exit:
 
     QuicTraceEvent(
         ApiExitStatus,
@@ -334,14 +338,9 @@ QuicRegistrationAcceptConnection(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    if (QuicRegistrationIsSplitPartitioning(Registration)) {
+    if (Registration->SplitPartitioning) {
         //
-        // TODO - Figure out how to check to see if hyper-threading was enabled first
-        // TODO - Constrain PartitionID to the same NUMA node.
-        //
-        // When hyper-threading is enabled, better bulk throughput can sometimes
-        // be gained by sharing the same physical core, but not the logical one.
-        // The shared one is always one greater than the RSS core.
+        // TODO - Constrain PartitionID to the same NUMA node?
         //
         Connection->PartitionID += QUIC_MAX_THROUGHPUT_PARTITION_OFFSET;
     }

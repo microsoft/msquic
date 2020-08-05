@@ -9,18 +9,11 @@ Abstract:
 
 --*/
 
+#include "ThroughputServer.h"
+
 #ifdef QUIC_CLOG
 #include "ThroughputServer.cpp.clog.h"
 #endif
-
-#ifndef _KERNEL_MODE
-#define QUIC_TEST_APIS 1
-#endif
-#define QUIC_API_ENABLE_INSECURE_FEATURES 1
-#include "msquichelper.h"
-#include "quic_trace.h"
-#include "ThroughputServer.h"
-#include "ThroughputCommon.h"
 
 static
 void

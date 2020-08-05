@@ -22,6 +22,11 @@ typedef struct QUIC_ACK_TRACKER {
     QUIC_RANGE PacketNumbersToAck;
 
     //
+    // The current count of recieved ECNs
+    //
+    QUIC_ACK_ECN_EX ReceivedECN;
+
+    //
     // The largest packet number we have sent an ACK for.
     //
     uint64_t LargestPacketNumberAcknowledged;
@@ -40,7 +45,12 @@ typedef struct QUIC_ACK_TRACKER {
     // Indicates an ACK frame has already been written for all the currently
     // queued packet numbers.
     //
-    BOOLEAN AlreadyWrittenAckFrame;
+    BOOLEAN AlreadyWrittenAckFrame : 1;
+
+    //
+    // Indicates that we have received a non-zero ECN type.
+    //
+    BOOLEAN NonZeroRecvECN : 1;
 
 } QUIC_ACK_TRACKER;
 
@@ -48,7 +58,7 @@ typedef struct QUIC_ACK_TRACKER {
 // Initializes a new ack tracker.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 QuicAckTrackerInitialize(
     _Inout_ QUIC_ACK_TRACKER* Tracker
     );
@@ -89,6 +99,7 @@ void
 QuicAckTrackerAckPacket(
     _Inout_ QUIC_ACK_TRACKER* Tracker,
     _In_ uint64_t PacketNumber,
+    _In_ QUIC_ECN_TYPE ECN,
     _In_ BOOLEAN AckElicitingPayload
     );
 
