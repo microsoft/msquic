@@ -20,9 +20,9 @@ namespace QuicDataServer
             {
                 var services = scope.ServiceProvider;
                 var context = services.GetRequiredService<PerformanceContext>();
-                context.Database.EnsureDeleted();
-                bool v = context.Database.EnsureCreated();
-                ;
+                //context.Database.EnsureDeleted();
+                //context.Database.EnsureCreated();
+                //;
             }
 
             await host.RunAsync().ConfigureAwait(false);
