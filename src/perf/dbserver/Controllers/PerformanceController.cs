@@ -46,6 +46,7 @@ namespace QuicDataServer.Controllers
         {
             var query = _context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform, test })
                 .SelectMany(x => x.test.TestRecords, (plattest, testrun) => new { plattest.platform, plattest.test, testrun })
+                .OrderByDescending(x => x.testrun.TestDate)
                 .Select(x => new TestRecord
                 {
                     CommitHash = x.testrun.CommitHash,
@@ -64,31 +65,37 @@ namespace QuicDataServer.Controllers
         /// </summary>
         /// <returns>A list of all tests and platforms</returns>
         [HttpGet("allTests")]
+        [Obsolete("Tests are now explicit")]
         public async Task<IEnumerable> GetAllTests()
         {
             return await _context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform.PlatformName, test.TestName }).ToListAsync();
         }
 
+
+
         /// <summary>
         /// Get the latest test result for a specific platform and test
         /// </summary>
-        /// <param name="platform">The platform</param>
-        /// <param name="test">The test</param>
+        /// <param name="requestData">The data for the request</param>
         /// <returns>The latest result</returns>
-        [HttpGet("{platform}/{test}")]
-        public async Task<TestRecord> GetLatestTestResultForPlatformAndTest(string platform, string test)
+        [HttpPost("getthroughput")]
+        public async Task<TestRecord> GetLatestThroughputResultsForPlatform([FromBody]ThroughputRequest requestData)
         {
-            return await _context.Platforms.Where(x => x.PlatformName == platform)
-                .SelectMany(x => x.Tests)
-                .Where(x => x.TestName == test)
-                .SelectMany(x => x.TestRecords)
+
+            return await _context.Platforms.Where(x => x.PlatformName == requestData.PlatformName)
+                .SelectMany(x => x.ThroughputTests)
+                .Where(x => x.Loopback          == requestData.Loopback &&
+                            x.Encryption        == requestData.Encryption &&
+                            x.SendBuffering     == requestData.SendBuffering &&
+                            x.NumberOfStreams   == requestData.NumberOfStreams &&
+                            x.ServerToClient    == requestData.ServerToClient)
                 .OrderByDescending(x => x.TestDate)
                 .Select(x => new TestRecord
                 {
                     CommitHash = x.CommitHash,
                     IndividualRunResults = x.TestResults.Select(x => x.Result),
-                    PlatformName = platform,
-                    TestName = test,
+                    PlatformName = requestData.PlatformName,
+                    TestName = "Throughput",
                     ResultDate = x.TestDate,
                     MachineName = _context.Machines.Where(y => y.DbMachineId == x.DbMachineId).Select(y => y.MachineName).First()
                 })
@@ -98,24 +105,25 @@ namespace QuicDataServer.Controllers
         /// <summary>
         /// Get the last N test results for a specific platform and test.
         /// </summary>
-        /// <param name="platform">The platform</param>
-        /// <param name="test">The test</param>
         /// <param name="numResults">The number of results to return</param>
+        /// <param name="requestData">The request data</param>
         /// <returns>A list of the last N runs</returns>
-        [HttpGet("{platform}/{test}/{numResults}")]
-        public async Task<IEnumerable<TestRecord>> GetTestResultsForPlatformAndTest(string platform, string test, int numResults)
+        [HttpPost("getthroughput/{numResults}")]
+        public async Task<IEnumerable<TestRecord>> GetThroughputTestResultsForPlatform([FromBody] ThroughputRequest requestData, [FromQuery]int numResults)
         {
-            return await _context.Platforms.Where(x => x.PlatformName == platform)
-                .SelectMany(x => x.Tests)
-                .Where(x => x.TestName == test)
-                .SelectMany(x => x.TestRecords)
-                .OrderByDescending(x => x.TestDate)
+            return await _context.Platforms.Where(x => x.PlatformName == requestData.PlatformName)
+                .SelectMany(x => x.ThroughputTests)
+                .Where(x => x.Loopback == requestData.Loopback &&
+                            x.Encryption == requestData.Encryption &&
+                            x.SendBuffering == requestData.SendBuffering &&
+                            x.NumberOfStreams == requestData.NumberOfStreams &&
+                            x.ServerToClient == requestData.ServerToClient)
                 .Select(x => new TestRecord
                 {
                     CommitHash = x.CommitHash,
                     IndividualRunResults = x.TestResults.Select(x => x.Result),
-                    PlatformName = platform,
-                    TestName = test,
+                    PlatformName = requestData.PlatformName,
+                    TestName = "Throughput",
                     ResultDate = x.TestDate
                 })
                 .Take(numResults)
@@ -127,11 +135,11 @@ namespace QuicDataServer.Controllers
             return authorization.AuthKey == _configuration["ApiAuthorizationKey"];
         }
 
-        private async Task<(int testId, int machineId)> VerifyPlatformTestAndMachine(string platformName, string testName, string? machineName)
+        private async Task<(int platformId, int machineId)> VerifyPlatformAndMachine(string platformName, string? machineName)
         {
-            var testId = await _context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform, test })
-                .Where(x => x.test.TestName == testName && x.platform.PlatformName == platformName)
-                .Select(x => (int?)x.test.DbTestId)
+            var platformId = await _context.Platforms
+                .Where(x => x.PlatformName == platformName)
+                .Select(x => (int?)x.DbPlatformId)
                 .FirstOrDefaultAsync();
 
             var machineId = await _context.Machines.Where(x => x.MachineName == machineName)
@@ -143,9 +151,9 @@ namespace QuicDataServer.Controllers
                 machineId = 1;
             }
 
-            if (testId != null && machineId != null)
+            if (platformId != null && machineId != null)
             {
-                return (testId.Value, machineId.Value);
+                return (platformId.Value, machineId.Value);
             }
 
             // If machineId == null create
@@ -165,14 +173,11 @@ namespace QuicDataServer.Controllers
                 machineId = entity.Entity.DbMachineId;
             }
 
-            if (testId != null)
+            if (platformId != null)
             {
-                return (testId.Value, machineId.Value);
+                return (platformId.Value, machineId.Value);
             }
-
-            var platformId = await _context.Platforms.Where(x => x.PlatformName == platformName)
-                .Select(x => (int?)x.DbPlatformId).FirstOrDefaultAsync();
-            if (platformId == null)
+            else
             {
                 // Create platform
                 var entity = _context.Platforms.Add(new DbPlatform
@@ -180,16 +185,10 @@ namespace QuicDataServer.Controllers
                     PlatformName = platformName,
                 });
                 await _context.SaveChangesAsync();
-                platformId = entity.Entity.DbPlatformId;
-            }
 
-            var testEntity = _context.Tests.Add(new DbTest
-            {
-                DbPlatformId = platformId.Value,
-                TestName = testName
-            });
-            await _context.SaveChangesAsync();
-            return (testEntity.Entity.DbTestId, machineId.Value);
+                platformId = entity.Entity.DbPlatformId;
+                return (platformId.Value, machineId.Value);
+            }
         }
 
 
@@ -206,7 +205,7 @@ namespace QuicDataServer.Controllers
         [HttpPost("withTime")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> PublishTestResultWithTime([FromBody] TestPublishResultWithTime testResult)
+        public async Task<IActionResult> PublishThroughputTestResultWithTime([FromBody] ThroughputTestPublishResultWithTime testResult)
         {
             if (testResult == null)
             {
@@ -219,63 +218,63 @@ namespace QuicDataServer.Controllers
             }
 
             // Get Test Records 
-            (var testId, var machineId) = await VerifyPlatformTestAndMachine(testResult.PlatformName, testResult.TestName, testResult.MachineName);
+            (var platformId, var machineId) = await VerifyPlatformAndMachine(testResult.PlatformName, testResult.MachineName);
 
-            var newRecord = new DbTestRecord
+            var newRecord = new DbThroughputTestRecord
             {
                 CommitHash = testResult.CommitHash,
                 TestDate = testResult.Time,
-                TestResults = testResult.IndividualRunResults.Select(x => new TestResult { Result = x }).ToList(),
+                TestResults = testResult.IndividualRunResults.Select(x => new ThroughputTestResult { Result = x }).ToList(),
                 DbMachineId = machineId,
-                DbTestId = testId,
+                DbPlatformId = platformId,
             };
 
-            _context.TestRecords.Add(newRecord);
+            _context.ThroughputTestRecords.Add(newRecord);
 
             await _context.SaveChangesAsync();
 
             return Ok();
         }
 
-        /// <summary>
-        /// Adds a new test result, using server time for the test time
-        /// </summary>
-        /// <param name="testResult">The data to add</param>
-        /// <returns>The success result</returns>
-        /// <response code="200">On success</response>
-        /// <response code="401">Missing or incorrect Auth Key</response>
-        [HttpPost]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> PublishTestResult([FromBody] TestPublishResult testResult)
-        {
-            if (testResult == null)
-            {
-                throw new ArgumentNullException(nameof(testResult));
-            }
+        ///// <summary>
+        ///// Adds a new test result, using server time for the test time
+        ///// </summary>
+        ///// <param name="testResult">The data to add</param>
+        ///// <returns>The success result</returns>
+        ///// <response code="200">On success</response>
+        ///// <response code="401">Missing or incorrect Auth Key</response>
+        //[HttpPost]
+        //[ProducesResponseType(StatusCodes.Status200OK)]
+        //[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        //public async Task<IActionResult> PublishTestResult([FromBody] TestPublishResult testResult)
+        //{
+        //    if (testResult == null)
+        //    {
+        //        throw new ArgumentNullException(nameof(testResult));
+        //    }
 
-            if (!Authorize(testResult))
-            {
-                return Unauthorized();
-            }
+        //    if (!Authorize(testResult))
+        //    {
+        //        return Unauthorized();
+        //    }
 
-            // Get Test Records 
-            (var testId, var machineId) = await VerifyPlatformTestAndMachine(testResult.PlatformName, testResult.TestName, testResult.MachineName);
+        //    // Get Test Records 
+        //    (var testId, var machineId) = await VerifyPlatformTestAndMachine(testResult.PlatformName, testResult.TestName, testResult.MachineName);
 
-            var newRecord = new DbTestRecord
-            {
-                CommitHash = testResult.CommitHash,
-                TestDate = DateTime.UtcNow,
-                TestResults = testResult.IndividualRunResults.Select(x => new TestResult { Result = x }).ToList(),
-                DbMachineId = machineId,
-                DbTestId = testId,
-            };
+        //    var newRecord = new DbTestRecord
+        //    {
+        //        CommitHash = testResult.CommitHash,
+        //        TestDate = DateTime.UtcNow,
+        //        TestResults = testResult.IndividualRunResults.Select(x => new TestResult { Result = x }).ToList(),
+        //        DbMachineId = machineId,
+        //        DbTestId = testId,
+        //    };
 
-            _context.TestRecords.Add(newRecord);
+        //    _context.TestRecords.Add(newRecord);
 
-            await _context.SaveChangesAsync();
+        //    await _context.SaveChangesAsync();
 
-            return Ok();
-        }
+        //    return Ok();
+        //}
     }
 }

@@ -7,13 +7,11 @@ using System.ComponentModel.DataAnnotations;
 
 namespace QuicDataServer.Models
 {
-    public class TestPublishResultWithTime : IAuthorizable
+    public class ThroughputTestPublishResultWithTime : IAuthorizable
     {
         public string? MachineName { get; set; }
         [Required]
         public string PlatformName { get; set; } = null!;
-        [Required]
-        public string TestName { get; set; } = null!;
         [Required]
         public string CommitHash { get; set; } = null!;
         [Required]
@@ -22,5 +20,16 @@ namespace QuicDataServer.Models
         public DateTime Time { get; set; }
         [Required]
         public IEnumerable<double> IndividualRunResults { get; set; } = null!;
+
+        [Required]
+        public bool Loopback { get; set; }
+        [Required]
+        public bool Encryption { get; set; }
+        [Required]
+        public bool SendBuffering { get; set; }
+        [Required]
+        public int NumberOfStreams { get; set; }
+        [Required]
+        public bool ServerToClient { get; set; }
     }
 }

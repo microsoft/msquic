@@ -10,6 +10,7 @@ namespace QuicDataServer.Models.Db
     {
         public int DbThroughputTestRecordId { get; set; }
         public int DbMachineId { get; set; }
+        public int DbPlatformId { get; set; }
         public bool Loopback { get; set; }
         public bool Encryption { get; set; }
         public bool SendBuffering { get; set; }
