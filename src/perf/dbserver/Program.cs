@@ -3,10 +3,7 @@
 
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using QuicDataServer.Data;
 
 namespace QuicDataServer
 {
@@ -15,15 +12,6 @@ namespace QuicDataServer
         public static async Task Main(string[] args)
         {
             var host = CreateHostBuilder(args).Build();
-
-            using (var scope = host.Services.CreateScope())
-            {
-                var services = scope.ServiceProvider;
-                var context = services.GetRequiredService<PerformanceContext>();
-                //context.Database.EnsureDeleted();
-                //context.Database.EnsureCreated();
-                //;
-            }
 
             await host.RunAsync().ConfigureAwait(false);
         }
