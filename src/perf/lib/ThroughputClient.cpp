@@ -37,6 +37,8 @@ PrintHelp(
         "  -iocount:<####>             The number of outstanding send requests to queue per stream. (buffered def:%u) (nonbuffered def:%u)\n"
         "\n",
         THROUGHPUT_DEFAULT_PORT,
+        0, // FIXME: encrypt argument missing
+        0, // FIXME: sendbuf argument missing
         THROUGHPUT_DEFAULT_IO_SIZE_BUFFERED, THROUGHPUT_DEFAULT_IO_SIZE_NONBUFFERED,
         THROGHTPUT_DEFAULT_SEND_COUNT_BUFFERED, THROUGHPUT_DEFAULT_SEND_COUNT_NONBUFFERED
         );
@@ -212,7 +214,7 @@ ThroughputClient::Start(
                 sizeof(value),
                 &value);
         if (QUIC_FAILED(Status)) {
-            WriteOutput("MsQuic->SetParam (CONN_DISABLE_1RTT_ENCRYPTION) failed!\n", Status);
+            WriteOutput("MsQuic->SetParam (CONN_DISABLE_1RTT_ENCRYPTION) failed!\n");
             return Status;
         }
     }
@@ -377,7 +379,7 @@ ThroughputClient::StreamCallback(
         uint64_t ElapsedMicroseconds = StrmData->EndTime - StrmData->StartTime;
         uint32_t SendRate = (uint32_t)((StrmData->BytesCompleted * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
 
-        WriteOutput("[%p][%llu] Closed [%s] after %u.%u ms. (TX %llu bytes @ %u kbps).\n",
+        WriteOutput("[%p][%" PRIu64 "] Closed [%s] after %u.%u ms. (TX %" PRIu64 " bytes @ %u kbps).\n",
             StrmData->Connection,
             GetStreamID(MsQuic, StreamHandle),
             "Complete",

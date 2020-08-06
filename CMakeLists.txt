@@ -198,10 +198,7 @@ else()
         -Wno-unknown-pragmas -Wno-unused-value -Wno-multichar -Wno-switch
         CACHE INTERNAL "")
     if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        list(APPEND QUIC_WARNING_FLAGS -Wno-missing-braces
-             -Wno-microsoft-anon-tag -Wno-enum-conversion -Wno-reorder
-             -Wno-tautological-constant-out-of-range-compare
-             -Wno-format-nonliteral -Wno-unused-private-field)
+        list(APPEND QUIC_WARNING_FLAGS -Wno-missing-braces -Wno-microsoft-anon-tag)
     endif()
 endif()
 

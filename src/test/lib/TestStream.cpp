@@ -20,12 +20,12 @@ TestStream::TestStream(
     _In_ bool IsUnidirectional,
     _In_ bool IsPingSource
     ) :
-    QuicStream(Handle), Context(nullptr),
+    QuicStream(Handle),
     IsUnidirectional(IsUnidirectional), IsPingSource(IsPingSource), UsedZeroRtt(false),
     AllDataSent(IsUnidirectional && !IsPingSource), AllDataReceived(IsUnidirectional && IsPingSource),
     SendShutdown(IsUnidirectional && !IsPingSource), RecvShutdown(IsUnidirectional && IsPingSource),
     IsShutdown(false), BytesToSend(0), OutstandingSendRequestCount(0), BytesReceived(0),
-    StreamShutdownCallback(StreamShutdownHandler)
+    StreamShutdownCallback(StreamShutdownHandler), Context(nullptr)
 {
     QuicEventInitialize(&EventSendShutdownComplete, TRUE, (IsUnidirectional && !IsPingSource) ? TRUE : FALSE);
     QuicEventInitialize(&EventRecvShutdownComplete, TRUE, (IsUnidirectional && IsPingSource) ? TRUE : FALSE);
@@ -118,10 +118,10 @@ TestStream::StartPing(
     _In_ uint64_t PayloadLength
     )
 {
-    BytesToSend = (int64_t)(PayloadLength / MaxSendBuffers);
+    int64_t BytesToSend = PayloadLength / MaxSendBuffers;
 
     do {
-        auto SendBufferLength = (uint32_t)min(BytesToSend, MaxSendLength);
+        auto SendBufferLength = min(BytesToSend, (int64_t)MaxSendLength);
         auto SendBuffer = new(std::nothrow) QuicSendBuffer(MaxSendBuffers, SendBufferLength);
         if (SendBuffer == nullptr) {
             TEST_FAILURE("Failed to alloc QuicSendBuffer");
@@ -159,7 +159,7 @@ TestStream::StartPing(
             return true;
         }
 
-    } while (BytesToSend != 0 && OutstandingSendRequestCount < MaxSendRequestQueue);
+    } while (BytesToSend != 0 && OutstandingSendRequestCount < (int64_t)MaxSendRequestQueue);
 
     return true;
 }
@@ -274,7 +274,7 @@ TestStream::HandleStreamSendComplete(
             delete SendBuffer;
         } else {
             QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE;
-            auto SendBufferLength = (uint32_t)min(BytesToSend, MaxSendLength);
+            auto SendBufferLength = min(BytesToSend, (int64_t)MaxSendLength);
             for (uint32_t i = 0; i < SendBuffer->BufferCount; ++i) {
                 SendBuffer->Buffers[i].Length = SendBufferLength;
             }

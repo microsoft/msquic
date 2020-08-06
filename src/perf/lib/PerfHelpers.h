@@ -66,7 +66,7 @@ QuicMainStop(
     );
 
 inline
-int
+int __attribute__((__format__(__printf__, 1, 2)))
 WriteOutput(
     _In_z_ const char* format
     ...
