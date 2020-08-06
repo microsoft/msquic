@@ -78,7 +78,8 @@ PrintUsage()
         "  -timeout:<####>             Disconnect timeout for connection. (def:%u ms)\n"
         "  -idle:<####>                Idle timeout for connection. (def:%u ms)\n"
         "  -key_bytes:<####>           The number of bytes encrypted per key.\n"
-        "  -selfsign:<0/1>             Use self signed test certificates.\n",
+        "  -selfsign:<0/1>             Use self signed test certificates.\n"
+        "  -upnp:<0/1>                 Use UPnP to open NAT.\n",
         DEFAULT_ALPN,
         DEFAULT_PORT,
         DEFAULT_USE_ENCRYPTION,
@@ -452,10 +453,14 @@ main(
         QuicAddrToString(&PingConfig.PublicPsciAddr, &AddrStr);
         printf("Public IP: %s\n", AddrStr.Address);
 #if _WIN32
-        UPnP = QuicUPnPInitialize();
-        if (UPnP) {
-            QuicUPnPRemoveStaticMappingByPrefix(UPnP, "QUIC");
-            MappingAdded = AddUPnPMapping(UPnP);
+        uint16_t useUPnP = TRUE;
+        TryGetValue(argc, argv, "upnp", &useUPnP);
+        if (useUPnP) {
+            UPnP = QuicUPnPInitialize();
+            if (UPnP) {
+                QuicUPnPRemoveStaticMappingByPrefix(UPnP, "QUIC");
+                MappingAdded = AddUPnPMapping(UPnP);
+            }
         }
 #endif
     }

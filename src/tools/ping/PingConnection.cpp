@@ -359,10 +359,11 @@ PingConnection::ProcessEvent(
 
         uint64_t ElapsedMicroseconds = ConnectTime - StartTime;
 
-        printf("[%p] Connected in %u.%03u milliseconds.\n",
+        printf("[%p] Connected in %u.%03u milliseconds to %s.\n",
             QuicConnection,
             (uint32_t)(ElapsedMicroseconds / 1000),
-            (uint32_t)(ElapsedMicroseconds % 1000));
+            (uint32_t)(ElapsedMicroseconds % 1000),
+            GetRemoteAddr(MsQuic, QuicConnection).Address);
 
         if (this->IsServer) {
             MsQuic->ConnectionSendResumptionTicket(
