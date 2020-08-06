@@ -194,7 +194,15 @@ if (WIN32)
 else()
     set(QUIC_COMMON_FLAGS "")
     set(QUIC_COMMON_DEFINES "")
-    set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value -Wno-multichar CACHE INTERNAL "")
+    set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
+        -Wno-unknown-pragmas -Wno-unused-value -Wno-multichar -Wno-switch
+        CACHE INTERNAL "")
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        list(APPEND QUIC_WARNING_FLAGS -Wno-missing-braces
+             -Wno-microsoft-anon-tag -Wno-enum-conversion -Wno-reorder
+             -Wno-tautological-constant-out-of-range-compare
+             -Wno-format-nonliteral -Wno-unused-private-field)
+    endif()
 endif()
 
 if(WIN32)
