@@ -41,7 +41,7 @@ QuicUserMain(
     QUIC_EVENT StopEvent;
     QuicEventInitialize(&StopEvent, true, false);
 
-    QUIC_STATUS Status = QuicMainStart(argc, argv, StopEvent, SelfSignedConfig);
+    QUIC_STATUS Status = QuicMainStart(argc, argv, &StopEvent, SelfSignedConfig);
     if (Status != 0) {
         return Status;
     }

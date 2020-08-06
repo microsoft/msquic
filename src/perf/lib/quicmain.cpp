@@ -37,18 +37,21 @@ QUIC_STATUS
 QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ QUIC_EVENT StopEvent,
+    _In_ QUIC_EVENT* StopEvent,
     _In_ PerfSelfSignedConfiguration* SelfSignedConfig
     ) {
-    const char* TestName = GetValue(argc, argv, "TestName");
-    if (!TestName) {
-        WriteOutput("Must have a TestName specified. Ex: -TestName:Throughput\n");
+    if (argc < 3 || IsArg(argv[1], "?") || IsArg(argv[1], "help") || !IsArg(argv[2], "TestName")) {
         PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    const char* TestName = GetValue(argc, argv, "TestName");
+    argc -= 2; argv += 2;
+
     uint8_t ServerMode = 0;
-    TryGetValue(argc, argv, "ServerMode", &ServerMode);
+    if (TryGetValue(argc, argv, "ServerMode", &ServerMode)) {
+        argc--; argv++;
+    }
 
     QUIC_STATUS Status;
     MsQuic = new QuicApiTable;

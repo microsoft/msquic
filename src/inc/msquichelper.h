@@ -428,6 +428,30 @@ GetSecConfigForSelfSigned(
 // Arg Value Parsers
 //
 
+inline
+bool
+IsArg(
+    _In_z_ const char* Arg,
+    _In_z_ const char* toTestAgainst
+    )
+{
+    size_t ArgLen = strlen(Arg);
+    if (ArgLen == 0) {
+        return false;
+    }
+    return _strnicmp(Arg + 1, toTestAgainst, ArgLen) == 0;
+}
+
+inline
+bool
+IsValue(
+    _In_z_ const char* name,
+    _In_z_ const char* toTestAgainst
+    )
+{
+    return _strnicmp(name, toTestAgainst, min(strlen(name), strlen(toTestAgainst))) == 0;
+}
+
 //
 // Helper function that searches the list of args for a given
 // parameter name, insensitive to case.
