@@ -55,7 +55,7 @@ QUIC_STATUS
 QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ QUIC_EVENT StopEvent,
+    _In_ QUIC_EVENT* StopEvent,
     _In_ PerfSelfSignedConfiguration* SelfSignedConfig
     );
 
@@ -154,12 +154,12 @@ struct PerfSecurityConfig {
 struct CountHelper {
     long RefCount;
 
-    QUIC_EVENT Done;
+    QUIC_EVENT* Done;
 
     CountHelper() :
         RefCount{1}, Done{} {}
 
-    CountHelper(QUIC_EVENT Done) :
+    CountHelper(QUIC_EVENT* Done) :
         RefCount{1}, Done{Done} { }
 
     bool
@@ -169,7 +169,7 @@ struct CountHelper {
         if (InterlockedDecrement(&RefCount) == 0) {
             return true;
         } else {
-            return !QuicEventWaitWithTimeout(Done, Milliseconds);
+            return !QuicEventWaitWithTimeout(*Done, Milliseconds);
         }
     }
 
@@ -179,7 +179,7 @@ struct CountHelper {
         if (InterlockedDecrement(&RefCount) == 0) {
             return;
         } else {
-            QuicEventWaitForever(Done);
+            QuicEventWaitForever(*Done);
         }
     }
 
@@ -193,7 +193,7 @@ struct CountHelper {
     CompleteItem(
         ) {
         if (InterlockedDecrement(&RefCount) == 0) {
-            QuicEventSet(Done);
+            QuicEventSet(*Done);
         }
     }
 };
@@ -280,18 +280,3 @@ public:
         QuicPoolFree(&Pool, Obj);
     }
 };
-
-//
-// Arg Value Parsers
-//
-
-inline
-_Success_(return != false)
-bool
-IsValue(
-    _In_z_ const char* name,
-    _In_z_ const char* toTestAgainst
-    )
-{
-    return _strnicmp(name, toTestAgainst, min(strlen(name), strlen(toTestAgainst))) == 0;
-}

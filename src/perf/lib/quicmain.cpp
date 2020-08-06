@@ -25,11 +25,12 @@ static
 void
 PrintHelp(
     ) {
-    WriteOutput("Usage: quicperf -TestName:[Throughput|] [options]\n" \
-        "\n" \
-        "  -ServerMode:<1:0>        default: '0'\n" \
-        "\n\n" \
-        "Run a test without arguments to see it's specific help\n"
+    WriteOutput(
+        "\n"
+        "Usage: quicperf -TestName:[Throughput|RPS] [options]\n"
+        "\n"
+        "  -ServerMode:<1:0>        default: '0'\n"
+        "\n"
         );
 }
 
@@ -37,18 +38,30 @@ QUIC_STATUS
 QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ QUIC_EVENT StopEvent,
+    _In_ QUIC_EVENT* StopEvent,
     _In_ PerfSelfSignedConfiguration* SelfSignedConfig
     ) {
-    const char* TestName = GetValue(argc, argv, "TestName");
-    if (!TestName) {
-        WriteOutput("Must have a TestName specified. Ex: -TestName:Throughput\n");
+    argc--; argv++; // Skip app name
+
+    if (argc == 0 || IsArg(argv[0], "?") || IsArg(argv[0], "help")) {
         PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    if (!IsArg(argv[0], "TestName")) {
+        WriteOutput("Must specify -TestName argument\n");
+        PrintHelp();
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    const char* TestName = GetValue(argc, argv, "TestName");
+    argc--; argv++;
+
     uint8_t ServerMode = 0;
-    TryGetValue(argc, argv, "ServerMode", &ServerMode);
+    if (argc != 0 && IsArg(argv[0], "ServerMode")) {
+        TryGetValue(argc, argv, "ServerMode", &ServerMode);
+        argc--; argv++;
+    }
 
     QUIC_STATUS Status;
     MsQuic = new QuicApiTable;
