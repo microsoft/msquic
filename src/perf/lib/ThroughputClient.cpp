@@ -9,6 +9,8 @@ Abstract:
 
 --*/
 
+#include <inttypes.h>
+
 #include "ThroughputClient.h"
 
 #ifdef QUIC_CLOG
