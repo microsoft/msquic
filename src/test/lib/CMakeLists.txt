@@ -31,4 +31,6 @@ set_property(TARGET testlib PROPERTY FOLDER "tests")
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_dependencies(platform MsQuicEtw)
+else()
+    target_compile_options(testlib PRIVATE ${QUIC_WARNING_FLAGS})
 endif()
