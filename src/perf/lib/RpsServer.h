@@ -65,6 +65,7 @@ private:
     MsQuicListener Listener {Session};
     PerfSelfSignedConfiguration* SelfSignedConfig;
     PerfSecurityConfig SecurityConfig;
+    uint32_t Iterations {RPS_DEFAULT_ITERATIONS};
     uint16_t Port {RPS_DEFAULT_PORT};
     uint32_t ResponseLength {RPS_DEFAULT_RESPONSE_LENGTH};
     uint32_t ActiveConnectionCount {0};

@@ -23,12 +23,14 @@ PrintHelp(
         "\n"
         "RPS Server options:\n"
         "\n"
+        "  -iter:<####>                The number of client iterations run. (def:%u)\n"
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
         "  -thumbprint:<cert_hash>     The hash or thumbprint of the certificate to use.\n"
         "  -cert_store:<store name>    The certificate store to search for the thumbprint in.\n"
         "  -machine_cert:<0/1>         Use the machine, or current user's, certificate store. (def:0)\n"
         "  -response:<####>            The length of response payloads. (def:%u)\n"
         "\n",
+        RPS_DEFAULT_ITERATIONS,
         RPS_DEFAULT_PORT,
         RPS_DEFAULT_RESPONSE_LENGTH
         );
@@ -65,6 +67,7 @@ RpsServer::Init(
         return Listener.GetInitStatus();
     }
 
+    TryGetValue(argc, argv, "iter", &Iterations);
     TryGetValue(argc, argv, "port", &Port);
     TryGetValue(argc, argv, "response", &ResponseLength);
 
@@ -155,7 +158,9 @@ RpsServer::ConnectionCallback(
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         MsQuic->ConnectionClose(ConnectionHandle);
         if (InterlockedDecrement((volatile long*)&ActiveConnectionCount) == 0) {
-            QuicEventSet(*CompletionEvent);
+            if (InterlockedDecrement((volatile long*)&Iterations) == 0) {
+                QuicEventSet(*CompletionEvent);
+            }
         }
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED: {
