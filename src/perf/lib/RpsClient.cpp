@@ -280,7 +280,7 @@ RpsClient::ConnectionCallback(
     ) {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
-        if (InterlockedIncrement(&ActiveConnections) == ConnectionCount) {
+        if (InterlockedIncrement((volatile long*)&ActiveConnections) == ConnectionCount) {
             QuicEventSet(AllConnected);
         }
         break;
@@ -303,7 +303,7 @@ RpsClient::StreamCallback(
     ) {
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
-        InterlockedIncrement(&CompletedRequests);
+        InterlockedIncrement((volatile long*)&CompletedRequests);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:

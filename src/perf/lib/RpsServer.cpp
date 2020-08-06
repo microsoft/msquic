@@ -139,7 +139,7 @@ RpsServer::ListenerCallback(
             Event->NEW_CONNECTION.Connection,
             (void*)Handler,
             this);
-        InterlockedIncrement(&ActiveConnectionCount);
+        InterlockedIncrement((volatile long*)&ActiveConnectionCount);
         break;
     }
     }
@@ -154,7 +154,7 @@ RpsServer::ConnectionCallback(
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         MsQuic->ConnectionClose(ConnectionHandle);
-        if (InterlockedDecrement(&ActiveConnectionCount) == 0) {
+        if (InterlockedDecrement((volatile long*)&ActiveConnectionCount) == 0) {
             QuicEventSet(*CompletionEvent);
         }
         break;
