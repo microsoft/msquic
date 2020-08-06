@@ -116,7 +116,11 @@ ThroughputClient::Init(
     TryGetValue(argc, argv, "iocount", &IoCount);
 
     size_t Len = strlen(Target);
-    TargetData.reset(new char[Len + 1]);
+    char* LocalTarget = new(std::nothrow) char[Len + 1];
+    if (LocalTarget == nullptr) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+    TargetData.reset(LocalTarget);
     QuicCopyMemory(TargetData.get(), Target, Len);
     TargetData[Len] = '\0';
 

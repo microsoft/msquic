@@ -51,7 +51,10 @@ QuicMainStart(
     TryGetValue(argc, argv, "ServerMode", &ServerMode);
 
     QUIC_STATUS Status;
-    MsQuic = new QuicApiTable;
+    MsQuic = new(std::nothrow) QuicApiTable;
+    if (MsQuic == nullptr) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
     if (QUIC_FAILED(Status = MsQuic->InitStatus())) {
         delete MsQuic;
         MsQuic = nullptr;
@@ -60,9 +63,9 @@ QuicMainStart(
 
     if (IsValue(TestName, "Throughput")) {
         if (ServerMode) {
-            TestToRun = new ThroughputServer(SelfSignedConfig);
+            TestToRun = new(std::nothrow) ThroughputServer(SelfSignedConfig);
         } else {
-            TestToRun = new ThroughputClient;
+            TestToRun = new(std::nothrow) ThroughputClient;
         }
     } else {
         delete MsQuic;

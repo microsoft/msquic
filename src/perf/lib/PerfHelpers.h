@@ -255,16 +255,16 @@ template<typename T, bool Paged = false>
 class QuicPoolAllocator {
     QUIC_POOL Pool;
 public:
-    QuicPoolAllocator() {
+    QuicPoolAllocator() noexcept {
         QuicPoolInitialize(Paged, sizeof(T), QUIC_POOL_PERF, &Pool);
     }
 
-    ~QuicPoolAllocator() {
+    ~QuicPoolAllocator() noexcept {
         QuicPoolUninitialize(&Pool);
     }
 
     template <class... Args>
-    T* Alloc(Args&&... args) {
+    T* Alloc(Args&&... args) noexcept {
         void* Raw = QuicPoolAlloc(&Pool);
         if (Raw == nullptr) {
             return nullptr;
@@ -272,7 +272,7 @@ public:
         return new (Raw) T (QuicForward<Args>(args)...);
     }
 
-    void Free(T* Obj) {
+    void Free(T* Obj) noexcept {
         if (Obj == nullptr) {
             return;
         }
