@@ -47,6 +47,8 @@ ThroughputClient::ThroughputClient(
     QuicZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
     if (Session.IsValid()) {
         Session.SetAutoCleanup();
+        Session.SetDisconnectTimeout(RPS_DEFAULT_DISCONNECT_TIMEOUT);
+        Session.SetIdleTimeout(RPS_DEFAULT_IDLE_TIMEOUT);
     }
 }
 
