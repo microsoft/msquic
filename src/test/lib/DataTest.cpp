@@ -241,7 +241,7 @@ ListenerAcceptPingConnection(
 {
     TestScopeLogger logScope(__FUNCTION__);
 
-    auto Connection = new TestConnection(ConnectionHandle, ConnectionAcceptPingStream);
+    auto Connection = new(std::nothrow) TestConnection(ConnectionHandle, ConnectionAcceptPingStream);
     if (Connection == nullptr || !(Connection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete Connection;
@@ -251,7 +251,7 @@ ListenerAcceptPingConnection(
     Connection->SetAutoDelete();
 
     auto Stats = (PingStats*)Listener->Context;
-    Connection->Context = new PingConnState(Stats, Connection);
+    Connection->Context = new(std::nothrow) PingConnState(Stats, Connection);
     Connection->SetShutdownCompleteCallback(PingConnectionShutdown);
     Connection->SetExpectedResumed(Stats->ZeroRtt);
     if (Stats->ExpectedCloseStatus != QUIC_STATUS_SUCCESS) {
@@ -283,7 +283,7 @@ NewPingConnection(
 {
     TestScopeLogger logScope(__FUNCTION__);
 
-    auto Connection = new TestConnection(Session, ConnectionAcceptPingStream);
+    auto Connection = new(std::nothrow) TestConnection(Session, ConnectionAcceptPingStream);
     if (Connection == nullptr || !(Connection)->IsValid()) {
         TEST_FAILURE("Failed to create new TestConnection.");
         delete Connection;
@@ -299,7 +299,7 @@ NewPingConnection(
         }
     }
 
-    Connection->Context = new PingConnState(ClientStats, Connection);
+    Connection->Context = new(std::nothrow) PingConnState(ClientStats, Connection);
     Connection->SetShutdownCompleteCallback(PingConnectionShutdown);
     Connection->SetExpectedResumed(ClientStats->ZeroRtt);
 
@@ -389,7 +389,12 @@ QuicTestConnectAndPing(
 
         Listener.Context = &ServerStats;
 
-        UniquePtrArray<TestConnection*> Connections(new TestConnection*[ConnectionCount]);
+        TestConnection** ConnAlloc = new(std::nothrow) TestConnection*[ConnectionCount];
+        if (ConnAlloc == nullptr) {
+            return;
+        }
+
+        UniquePtrArray<TestConnection*> Connections(ConnAlloc);
 
         for (uint32_t i = 0; i < ClientStats.ConnectionCount; ++i) {
             Connections.get()[i] =
@@ -534,7 +539,7 @@ ListenerAcceptConnectionAndStreams(
     )
 {
     ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
-    *AcceptContext->NewConnection = new TestConnection(ConnectionHandle, ConnectionAcceptAndIgnoreStream);
+    *AcceptContext->NewConnection = new(std::nothrow) TestConnection(ConnectionHandle, ConnectionAcceptAndIgnoreStream);
     if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *AcceptContext->NewConnection;

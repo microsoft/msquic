@@ -98,7 +98,7 @@ struct PrivateTransportHelper : QUIC_PRIVATE_TRANSPORT_PARAMETER
         if (Enabled) {
             Type = PRIVATE_TP_TYPE;
             Length = PRIVATE_TP_LENGTH;
-            Buffer = new uint8_t[PRIVATE_TP_LENGTH];
+            Buffer = new(std::nothrow) uint8_t[PRIVATE_TP_LENGTH];
             TEST_TRUE(Buffer != nullptr);
         } else {
             Buffer = nullptr;
