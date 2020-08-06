@@ -280,7 +280,7 @@ RpsClient::ConnectionCallback(
     ) {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
-        if (InterlockedIncrement((volatile long*)&ActiveConnections) == ConnectionCount) {
+        if ((uint32_t)InterlockedIncrement((volatile long*)&ActiveConnections) == ConnectionCount) {
             QuicEventSet(AllConnected);
         }
         break;
