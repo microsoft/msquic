@@ -42,7 +42,7 @@ TestStream::FromStreamHandle(
     )
 {
     auto IsUnidirectionalStream = !!(Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
-    auto Stream = new TestStream(QuicStreamHandle, StreamShutdownHandler, IsUnidirectionalStream, false);
+    auto Stream = new(std::nothrow) TestStream(QuicStreamHandle, StreamShutdownHandler, IsUnidirectionalStream, false);
     if (Stream == nullptr || !Stream->IsValid()) {
         TEST_FAILURE("Failed to create new TestStream.");
         delete Stream;
@@ -72,7 +72,7 @@ TestStream::FromConnectionHandle(
         TEST_FAILURE("MsQuic->StreamOpen failed, 0x%x.", Status);
         return nullptr;
     }
-    auto Stream = new TestStream(QuicStreamHandle, StreamShutdownHandler, IsUnidirectionalStream, true);
+    auto Stream = new(std::nothrow) TestStream(QuicStreamHandle, StreamShutdownHandler, IsUnidirectionalStream, true);
     if (Stream == nullptr || !Stream->IsValid()) {
         TEST_FAILURE("Failed to create new TestStream.");
         delete Stream;
@@ -122,7 +122,7 @@ TestStream::StartPing(
 
     do {
         auto SendBufferLength = (uint32_t)min(BytesToSend, MaxSendLength);
-        auto SendBuffer = new QuicSendBuffer(MaxSendBuffers, SendBufferLength);
+        auto SendBuffer = new(std::nothrow) QuicSendBuffer(MaxSendBuffers, SendBufferLength);
         if (SendBuffer == nullptr) {
             TEST_FAILURE("Failed to alloc QuicSendBuffer");
             return false;
@@ -240,7 +240,7 @@ TestStream::HandleStreamRecv(
         }
 
         if (!IsUnidirectional) {
-            auto SendBuffer = new QuicSendBuffer(Length, Buffer);
+            auto SendBuffer = new(std::nothrow) QuicSendBuffer(Length, Buffer);
 
             QUIC_STATUS Status =
                 MsQuic->StreamSend(

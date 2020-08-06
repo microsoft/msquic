@@ -19,7 +19,10 @@ static
 void
 PrintHelp(
     ) {
-    WriteOutput("Usage: quicperf -TestName:Throughput [options]\n\n"
+    WriteOutput(
+        "\n"
+        "Throughput Client options:\n"
+        "\n"
 #if _WIN32
         "  -comp:<####>                The compartment ID to run in.\n"
         "  -core:<####>                The CPU core to use for the main thread.\n"
@@ -27,11 +30,12 @@ PrintHelp(
         "  -bind:<addr>                A local IP address to bind to.\n"
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
         "  -ip:<0/4/6>                 A hint for the resolving the hostname to an IP address. (def:0)\n"
-        "  -encrypt:<0/1>              Enables/disables encryption. (def:%u)\n"
-        "  -sendbuf:<0/1>              Whether to use send buffering. (def:%u)\n"
+        "  -encrypt:<0/1>              Enables/disables encryption. (def:1)\n"
+        "  -sendbuf:<0/1>              Whether to use send buffering. (def:1)\n"
         "  -length:<####>              The length of streams opened locally. (def:0)\n"
         "  -iosize:<####>              The size of each send request queued. (buffered def:%u) (nonbuffered def:%u)\n"
-        "  -iocount:<####>             The number of outstanding send requests to queue per stream. (buffered def:%u) (nonbuffered def:%u)\n",
+        "  -iocount:<####>             The number of outstanding send requests to queue per stream. (buffered def:%u) (nonbuffered def:%u)\n"
+        "\n",
         THROUGHPUT_DEFAULT_PORT,
         THROUGHPUT_DEFAULT_IO_SIZE_BUFFERED, THROUGHPUT_DEFAULT_IO_SIZE_NONBUFFERED,
         THROGHTPUT_DEFAULT_SEND_COUNT_BUFFERED, THROUGHPUT_DEFAULT_SEND_COUNT_NONBUFFERED
@@ -51,14 +55,14 @@ ThroughputClient::Init(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
+    if (argc > 0 && (IsArg(argv[0], "?") || IsArg(argv[0], "help"))) {
+        PrintHelp();
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
     if (!Session.IsValid()) {
         return Session.GetInitStatus();
     }
-
-    Port = THROUGHPUT_DEFAULT_PORT;
-    TryGetValue(argc, argv, "port", &Port);
-
-    TryGetValue(argc, argv, "encrypt", &UseEncryption);
 
     const char* Target;
     if (!TryGetValue(argc, argv, "target", &Target)) {
@@ -67,6 +71,10 @@ ThroughputClient::Init(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    TryGetValue(argc, argv, "port", &Port);
+    TryGetValue(argc, argv, "encrypt", &UseEncryption);
+    TryGetValue(argc, argv, "length", &Length);
+
     uint16_t Ip;
     if (TryGetValue(argc, argv, "ip", &Ip)) {
         switch (Ip) {
@@ -74,8 +82,6 @@ ThroughputClient::Init(
         case 6: RemoteFamily = AF_INET6; break;
         }
     }
-
-    TryGetValue(argc, argv, "length", &Length);
 
     const char* LocalAddress = nullptr;
     if (TryGetValue(argc, argv, "bind", &LocalAddress)) {
@@ -116,7 +122,11 @@ ThroughputClient::Init(
     TryGetValue(argc, argv, "iocount", &IoCount);
 
     size_t Len = strlen(Target);
-    TargetData.reset(new char[Len + 1]);
+    char* LocalTarget = new(std::nothrow) char[Len + 1];
+    if (LocalTarget == nullptr) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+    TargetData.reset(LocalTarget);
     QuicCopyMemory(TargetData.get(), Target, Len);
     TargetData[Len] = '\0';
 
@@ -136,7 +146,7 @@ struct ShutdownWrapper {
 
 QUIC_STATUS
 ThroughputClient::Start(
-    _In_ QUIC_EVENT StopEvnt
+    _In_ QUIC_EVENT* StopEvnt
     ) {
     ShutdownWrapper Shutdown;
     ConnectionData* ConnData = ConnectionDataAllocator.Alloc(this);
@@ -299,9 +309,9 @@ ThroughputClient::Wait(
     _In_ int Timeout
     ) {
     if (Timeout > 0) {
-        QuicEventWaitWithTimeout(StopEvent, Timeout);
+        QuicEventWaitWithTimeout(*StopEvent, Timeout);
     } else {
-        QuicEventWaitForever(StopEvent);
+        QuicEventWaitForever(*StopEvent);
     }
     return QUIC_STATUS_SUCCESS;
 }
@@ -315,7 +325,7 @@ ThroughputClient::ConnectionCallback(
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         ConnectionDataAllocator.Free(ConnData);
-        QuicEventSet(StopEvent);
+        QuicEventSet(*StopEvent);
         break;
     default:
         break;

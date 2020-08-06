@@ -40,7 +40,7 @@ struct PerfBase {
     virtual
     QUIC_STATUS
     Start(
-        _In_ QUIC_EVENT StopEvent
+        _In_ QUIC_EVENT* StopEvent
         ) = 0;
 
     //
