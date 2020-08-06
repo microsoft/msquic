@@ -45,7 +45,7 @@ ThroughputServer::Init(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
-    if (argc > 0 && (IsArg(argv[1], "?") || IsArg(argv[1], "help"))) {
+    if (argc > 0 && (IsArg(argv[0], "?") || IsArg(argv[0], "help"))) {
         PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
     }

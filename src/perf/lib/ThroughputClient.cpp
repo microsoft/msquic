@@ -51,7 +51,7 @@ ThroughputClient::Init(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
-    if (argc > 0 && (IsArg(argv[1], "?") || IsArg(argv[1], "help"))) {
+    if (argc > 0 && (IsArg(argv[0], "?") || IsArg(argv[0], "help"))) {
         PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -301,9 +301,9 @@ ThroughputClient::Wait(
     _In_ int Timeout
     ) {
     if (Timeout > 0) {
-        QuicEventWaitWithTimeout(StopEvent, Timeout);
+        QuicEventWaitWithTimeout(*StopEvent, Timeout);
     } else {
-        QuicEventWaitForever(StopEvent);
+        QuicEventWaitForever(*StopEvent);
     }
     return QUIC_STATUS_SUCCESS;
 }
@@ -317,7 +317,7 @@ ThroughputClient::ConnectionCallback(
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         ConnectionDataAllocator.Free(ConnData);
-        QuicEventSet(StopEvent);
+        QuicEventSet(*StopEvent);
         break;
     default:
         break;
