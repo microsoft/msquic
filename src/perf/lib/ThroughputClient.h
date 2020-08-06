@@ -89,7 +89,7 @@ private:
     QuicPoolBufferAllocator BufferAllocator;
     UniquePtr<char[]> TargetData;
     uint16_t Port {THROUGHPUT_DEFAULT_PORT};
-    QUIC_EVENT StopEvent;
+    QUIC_EVENT* StopEvent {nullptr};
     uint64_t Length {0};
     bool ConstructionSuccess {false};
     uint8_t UseSendBuffer {TRUE};
