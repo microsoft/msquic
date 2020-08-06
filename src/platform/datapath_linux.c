@@ -164,7 +164,9 @@ typedef struct QUIC_SOCKET_CONTEXT {
     //
     // The control buffer used in RecvMsgHdr.
     //
-    char RecvMsgControl[CMSG_SPACE(sizeof(struct in6_pktinfo))];
+    char RecvMsgControl[CMSG_SPACE(sizeof(struct in6_pktinfo)) +
+                        CMSG_SPACE(sizeof(struct in_pktinfo)) +
+                        2 * CMSG_SPACE(sizeof(int))];
 
     //
     // The buffer used to receive msg headers on socket.
@@ -944,6 +946,48 @@ QuicSocketContextInitialize(
     }
 
     //
+    // Set socket option to receive TOS (= DSCP + ECN) information from the
+    // incoming packet.
+    //
+    Option = TRUE;
+    Result =
+        setsockopt(
+            SocketContext->SocketFd,
+            IPPROTO_IPV6,
+            IPV6_RECVTCLASS,
+            (const void*)&Option,
+            sizeof(Option));
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[ udp][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "setsockopt(IPV6_RECVTCLASS) failed");
+        goto Exit;
+    }
+
+    Option = TRUE;
+    Result =
+        setsockopt(
+            SocketContext->SocketFd,
+            IPPROTO_IP,
+            IP_RECVTOS,
+            (const void*)&Option,
+            sizeof(Option));
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[ udp][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "setsockopt(IP_RECVTOS) failed");
+        goto Exit;
+    }
+
+    //
     // The socket is shared by multiple QUIC endpoints, so increase the receive
     // buffer size.
     //
@@ -1197,40 +1241,49 @@ QuicSocketContextRecvComplete(
     SocketContext->CurrentRecvBlock = NULL;
 
     BOOLEAN FoundLocalAddr = FALSE;
+    BOOLEAN FoundTOS = FALSE;
     QUIC_ADDR* LocalAddr = &RecvPacket->Tuple->LocalAddress;
     QUIC_ADDR* RemoteAddr = &RecvPacket->Tuple->RemoteAddress;
     QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
+
+    RecvPacket->TypeOfService = 0;
 
     struct cmsghdr *CMsg;
     for (CMsg = CMSG_FIRSTHDR(&SocketContext->RecvMsgHdr);
          CMsg != NULL;
          CMsg = CMSG_NXTHDR(&SocketContext->RecvMsgHdr, CMsg)) {
 
-        if (CMsg->cmsg_level == IPPROTO_IPV6 &&
-            CMsg->cmsg_type == IPV6_PKTINFO) {
-            struct in6_pktinfo* PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
-            LocalAddr->Ip.sa_family = AF_INET6;
-            LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
-            LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
-            QuicConvertFromMappedV6(LocalAddr, LocalAddr);
+        if (CMsg->cmsg_level == IPPROTO_IPV6) {
+            if (CMsg->cmsg_type == IPV6_PKTINFO) {
+                struct in6_pktinfo* PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
+                LocalAddr->Ip.sa_family = AF_INET6;
+                LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
+                LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
+                QuicConvertFromMappedV6(LocalAddr, LocalAddr);
 
-            LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
-            FoundLocalAddr = TRUE;
-            break;
-        }
-
-        if (CMsg->cmsg_level == IPPROTO_IP && CMsg->cmsg_type == IP_PKTINFO) {
-            struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
-            LocalAddr->Ip.sa_family = AF_INET;
-            LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
-            LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
-            LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
-            FoundLocalAddr = TRUE;
-            break;
+                LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
+                FoundLocalAddr = TRUE;
+            } else if (CMsg->cmsg_type == IPV6_TCLASS) {
+                RecvPacket->TypeOfService = *(uint8_t *)CMSG_DATA(CMsg);
+                FoundTOS = TRUE;
+            }
+        } else if (CMsg->cmsg_level == IPPROTO_IP) {
+            if (CMsg->cmsg_type == IP_PKTINFO) {
+                struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
+                LocalAddr->Ip.sa_family = AF_INET;
+                LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
+                LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
+                LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
+                FoundLocalAddr = TRUE;
+            } else if (CMsg->cmsg_type == IP_TOS) {
+                RecvPacket->TypeOfService = *(uint8_t *)CMSG_DATA(CMsg);
+                FoundTOS = TRUE;
+            }
         }
     }
 
     QUIC_FRE_ASSERT(FoundLocalAddr);
+    QUIC_FRE_ASSERT(FoundTOS);
 
     QuicTraceEvent(
         DatapathRecv,
@@ -1245,7 +1298,6 @@ QuicSocketContextRecvComplete(
     RecvPacket->BufferLength = BytesTransferred;
 
     RecvPacket->PartitionIndex = ProcContext->Index;
-    RecvPacket->TypeOfService = 0; // TODO - Support ToS/ECN
 
     QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->RecvHandler);
     SocketContext->Binding->Datapath->RecvHandler(
