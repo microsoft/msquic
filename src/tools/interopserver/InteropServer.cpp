@@ -187,7 +187,8 @@ HttpRequest::Process()
     }
 
     if (strcmp("/", PathStart) == 0) {
-        PathStart = "/index.html";
+        char index[] = "/index.html";
+        PathStart = index;
     }
 
     char FullFilePath[256];

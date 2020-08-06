@@ -67,16 +67,16 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 // Different pool tags used for marking allocations.
 //
 
-#define QUIC_POOL_GENERIC   'CIUQ'  // QUIC - Generic QUIC
-#define QUIC_POOL_CONN      'noCQ'  // QCon - QUIC connection
-#define QUIC_POOL_TP        'PTCQ'  // QCTP - QUIC connection transport parameters
-#define QUIC_POOL_STREAM    'mtSQ'  // QStm - QUIC stream
-#define QUIC_POOL_SBUF      'fBSQ'  // QSBf - QUIC stream buffer
-#define QUIC_POOL_META      'MFSQ'  // QSFM - QUIC sent frame metedata
-#define QUIC_POOL_DATA      'atDQ'  // QDta - QUIC datagram buffer
-#define QUIC_POOL_TEST      'tsTQ'  // QTst - QUIC test code
-#define QUIC_POOL_PERF      'frPQ'  // QPrf - QUIC perf code
-#define QUIC_POOL_TOOL      'loTQ'  // QTol - QUIC tool code
+#define QUIC_POOL_GENERIC   *(uint32_t*)"CIUQ"  // QUIC - Generic QUIC
+#define QUIC_POOL_CONN      *(uint32_t*)"noCQ"  // QCon - QUIC connection
+#define QUIC_POOL_TP        *(uint32_t*)"PTCQ"  // QCTP - QUIC connection transport parameters
+#define QUIC_POOL_STREAM    *(uint32_t*)"mtSQ"  // QStm - QUIC stream
+#define QUIC_POOL_SBUF      *(uint32_t*)"fBSQ"  // QSBf - QUIC stream buffer
+#define QUIC_POOL_META      *(uint32_t*)"MFSQ"  // QSFM - QUIC sent frame metedata
+#define QUIC_POOL_DATA      *(uint32_t*)"atDQ"  // QDta - QUIC datagram buffer
+#define QUIC_POOL_TEST      *(uint32_t*)"tsTQ"  // QTst - QUIC test code
+#define QUIC_POOL_PERF      *(uint32_t*)"frPQ"  // QPrf - QUIC perf code
+#define QUIC_POOL_TOOL      *(uint32_t*)"loTQ"  // QTol - QUIC tool code
 
 #ifdef _KERNEL_MODE
 #define QUIC_PLATFORM_TYPE 1
