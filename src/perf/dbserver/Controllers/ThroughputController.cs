@@ -178,7 +178,7 @@ namespace QuicPerformanceDataServer.Controllers
                 return Unauthorized();
             }
 
-            // Get Test Records 
+            // Get Test Records
             (var platformId, var machineId) = await VerifyPlatformAndMachine(testResult.PlatformName, testResult.MachineName);
 
             var newRecord = new DbThroughputTestRecord
@@ -224,7 +224,7 @@ namespace QuicPerformanceDataServer.Controllers
                 return Unauthorized();
             }
 
-            // Get Test Records 
+            // Get Test Records
             (var platformId, var machineId) = await VerifyPlatformAndMachine(testResult.PlatformName, testResult.MachineName);
 
             var newRecord = new DbThroughputTestRecord

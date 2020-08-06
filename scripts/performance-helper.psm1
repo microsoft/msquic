@@ -3,6 +3,8 @@
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+#region Stack Walk Profiles
+
 # WPA Profile for collecting stacks.
 $WpaStackWalkProfileXml = `
 @"
@@ -80,6 +82,8 @@ $WpaQUICLogProfileXml = `
   </Profiles>
 </WindowsPerformanceRecorder>
 "@
+
+#endregion
 
 function Set-ScriptVariables {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
@@ -199,100 +203,6 @@ function Copy-Artifacts {
 
     } -ArgumentList $To
     Copy-Item -Path "$From\*" -Destination $To -ToSession $Session  -Recurse -Force
-}
-
-class ArgumentsSpec {
-    [string]$All;
-    [string]$Loopback;
-    [string]$Remote;
-}
-
-class VariableSpec {
-    [string]$Name;
-    [Hashtable]$Local;
-    [Hashtable]$Remote;
-    [string]$Default;
-}
-
-class ExecutableSpec {
-    [string]$Platform;
-    [string[]]$Tls;
-    [string[]]$Arch;
-    [string]$Exe;
-    [ArgumentsSpec]$Arguments;
-}
-
-class TestDefinition {
-    [string]$TestName;
-    [ExecutableSpec]$Remote;
-    [ExecutableSpec]$Local;
-    [VariableSpec[]]$Variables;
-    [int]$Iterations;
-    [string]$RemoteReadyMatcher;
-    [string]$ResultsMatcher;
-    [boolean]$AllowLoopback;
-
-    [string]ToString() {
-        $RetString = "$($this.TestName)_$($this.Remote.Platform)_$($script:RemoteArch)_$($script:RemoteTls)"
-        if ($script:Local) {
-            $RetString += "_Loopback"
-        }
-        return $RetString
-    }
-
-    [string]ToTestPlatformString() {
-        $RetString = "$($this.Remote.Platform)_$($script:RemoteArch)_$($script:RemoteTls)"
-        return $RetString
-    }
-}
-
-class TestPublishResult {
-    [string]$PlatformName
-    [string]$TestName
-    [string]$CommitHash
-    [string]$MachineName
-    [double[]]$IndividualRunResults
-}
-
-function Get-Tests {
-    param ($Path)
-    $Tests = [TestDefinition[]](Get-Content -Path $Path | ConvertFrom-Json -AsHashtable)
-    if (Test-AllTestsValid -Tests $Tests) {
-        return $Tests
-    } else {
-        return $null
-    }
-}
-
-function Test-AllTestsValid {
-    param ([TestDefinition[]]$Tests)
-
-    $TestSet = New-Object System.Collections.Generic.HashSet[string]
-    foreach ($T in $Tests) {
-        if (!$TestSet.Add($T)) {
-            return $false
-        }
-    }
-
-    return $true
-}
-
-function Test-CanRunTest {
-    param ([TestRunDefinition]$Test, $RemotePlatform, $LocalPlatform)
-    $PlatformCorrect = ($Test.Local.Platform -eq $LocalPlatform) -and ($Test.Remote.Platform -eq $RemotePlatform)
-    if (!$PlatformCorrect) {
-        return $false
-    }
-    if (!$Test.Local.Tls.Contains($LocalTls)) {
-        return $false
-    }
-    if (!$Test.Remote.Tls.Contains($RemoteTls)) {
-        return $false
-    }
-    if ($Local -and !$Test.AllowLoopback) {
-        return $false
-    }
-    return $true
 }
 
 function Get-GitHash {
@@ -427,6 +337,13 @@ function Stop-Tracing {
     }
 }
 
+function Merge-PGOCounts {
+    param ($Path, $OutputDir)
+    $Command = "$Path\pgomgr.exe /merge $Path $Path\msquic.pgd"
+    Invoke-Expression $Command | Write-Debug
+    Remove-Item "$Path\*.pgc" | Out-Null
+}
+
 function Invoke-LocalExe {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '')]
     param ($Exe, $RunArgs, $Timeout)
@@ -448,14 +365,6 @@ function Invoke-LocalExe {
     return $RetVal -join "`n"
 }
 
-function Get-LatestRemoteTestResults($Platform, $Test) {
-    $Uri = "https://msquicperformanceresults.azurewebsites.net/performance/$Platform/$Test"
-    Write-Debug "Requesting: $Uri"
-    $LatestResult = Invoke-RestMethod -Uri $Uri
-    Write-Debug "Result: $LatestResult"
-    return $LatestResult
-}
-
 function Get-MedianTestResults($FullResults) {
     $sorted = $FullResults | Sort-Object
     return $sorted[[int](($sorted.Length - 1) / 2)]
@@ -470,55 +379,119 @@ function Get-TestResult($Results, $Matcher) {
     }
 }
 
-function Publish-TestResults {
-    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
-    $Platform = $Test.ToTestPlatformString()
-    $TestName = $Test.TestName
-    if ($Local) {
-        $TestName += "_Loopback"
-    }
+#region Throughput Publish
 
-    # Print current and latest master results to console.
+class ThroughputRequest {
+    [string]$PlatformName;
+    [boolean]$Loopback;
+    [boolean]$Encryption;
+    [boolean]$SendBuffering;
+    [int]$NumberOfStreams;
+    [boolean]$ServerToClient;
+
+    ThroughputRequest (
+        [TestRunDefinition]$Test
+    ) {
+        $this.PlatformName = $Test.ToTestPlatformString();
+        $this.Loopback = $Test.Loopback;
+        $this.Encryption = $Test.VariableValues["Encryption"] -eq "On";
+        $this.SendBuffering = $Test.VariableValues["SendBuffering"] -eq "On";
+        $this.NumberOfStreams = 1;
+        $this.ServerToClient = $false;
+    }
+}
+
+function Get-LatestThroughputRemoteTestResults([ThroughputRequest]$Request) {
+    $Uri = "https://msquicperformanceresults.azurewebsites.net/throughput/get"
+    $RequestJson = ConvertTo-Json -InputObject $Request
+    Write-Debug "Requesting: $Uri with $RequestJson"
+    $LatestResult = Invoke-RestMethod -Uri $Uri -Body $RequestJson -Method 'Post' -ContentType "application/json"
+    Write-Debug "Result: $LatestResult"
+    return $LatestResult
+}
+
+class ThroughputTestPublishResult {
+    [string]$MachineName;
+    [string]$PlatformName;
+    [string]$TestName;
+    [string]$CommitHash;
+    [string]$AuthKey;
+    [double[]]$IndividualRunResults;
+    [boolean]$Loopback;
+    [boolean]$Encryption;
+    [boolean]$SendBuffering;
+    [int]$NumberOfStreams;
+    [boolean]$ServerToClient;
+
+    ThroughputTestPublishResult (
+        [ThroughputRequest]$Request,
+        [double[]]$RunResults,
+        [string]$MachineName,
+        [string]$CommitHash
+    ) {
+        $this.TestName = "Throughput"
+        $this.MachineName = $MachineName
+        $this.PlatformName = $Request.PlatformName
+        $this.CommitHash = $CommitHash
+        $this.AuthKey = "empty"
+        $this.IndividualRunResults = $RunResults
+        $this.Loopback = $Request.Loopback
+        $this.Encryption = $Request.Encryption
+        $this.SendBuffering = $Request.SendBuffering
+        $this.NumberOfStreams = $Request.NumberOfStreams
+        $this.ServerToClient = $Request.ServerToClient
+    }
+}
+
+function Publish-ThroughputTestResults {
+    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
+
+    $Request = [ThroughputRequest]::new($Test)
+
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
-    $fullLastResult = Get-LatestRemoteTestResults -Platform $Platform -Test $TestName
-    if ($fullLastResult -ne "") {
-        $MedianLastResult = Get-MedianTestResults -FullResults $fullLastResult.individualRunResults
+    $FullLastResult = LatestThroughputRemoteTestResults -Request $Request
+
+    if ($FullLastResult -ne "") {
+        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
         $PercentDiff = 100 * (($MedianCurrentResult - $MedianLastResult) / $MedianLastResult)
         $PercentDiffStr = $PercentDiff.ToString("#.##")
         if ($PercentDiff -ge 0) {
             $PercentDiffStr = "+$PercentDiffStr"
         }
-        Write-Output "Median: $MedianCurrentResult kbps ($PercentDiffStr%)"
-        Write-Output "Master: $MedianLastResult kbps"
+        Write-Output "Median: $MedianCurrentResult $($Test.Units) ($PercentDiffStr%)"
+        Write-Output "Master: $MedianLastResult $($Test.Units)"
     } else {
-        Write-Output "Median: $MedianCurrentResult kbps"
+        Write-Output "Median: $MedianCurrentResult $($Test.Units)"
     }
 
     if ($Publish -and ($null -ne $CurrentCommitHash)) {
         Write-Output "Saving results_$Test.json out for publishing."
-        $Results = [TestPublishResult]::new()
-        $Results.CommitHash = $CurrentCommitHash.Substring(0, 7)
-        $Results.PlatformName = $Platform
-        $Results.TestName = $TestName
-        $Results.MachineName = $null
+        $MachineName = $null
         if (Test-Path 'env:AGENT_MACHINENAME') {
-            $Results.MachineName = $env:AGENT_MACHINENAME
+            $MachineName = $env:AGENT_MACHINENAME
         }
-        $Results.IndividualRunResults = $AllRunsResults
+        $Results = [ThroughputTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7))
 
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
         $Results | ConvertTo-Json | Out-File $ResultFile
-    } elseif ($Publish -and ($null -ne $CurrentCommitHash)) {
+    } elseif (!$Publish) {
         Write-Debug "Failed to publish because of missing commit hash"
     }
 }
 
-function Merge-PGOCounts {
-    param ($Path, $OutputDir)
-    $Command = "$Path\pgomgr.exe /merge $Path $Path\msquic.pgd"
-    Invoke-Expression $Command | Write-Debug
-    Remove-Item "$Path\*.pgc" | Out-Null
+#endregion
+
+function Publish-TestResults {
+    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
+
+    if ($Test.TestName -eq "Throughput") {
+        Publish-ThroughputTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
+    } else {
+        Write-Error "Unknown Test Type"
+    }
 }
+
+#region Test Parsing
 
 class ExecutableRunSpec {
     [string]$Platform;
@@ -551,6 +524,7 @@ class TestRunDefinition {
     [hashtable]$VariableValues;
     [boolean]$Loopback;
     [boolean]$AllowLoopback;
+    [string]$Units;
 
     TestRunDefinition (
         [TestDefinition]$existingDef,
@@ -571,6 +545,7 @@ class TestRunDefinition {
         $this.VariableValues = $variableValues
         $this.Loopback = $script:Local
         $this.AllowLoopback = $existingDef.AllowLoopback
+        $this.Units = $existingDef.Units
     }
 
     [string]ToString() {
@@ -610,10 +585,10 @@ function Get-TestMatrix {
 
     foreach ($Test in $Tests) {
         [hashtable]$DefaultVals = @{}
-        # Get all defaults
+        # Get all default variables
         foreach ($Var in $Test.Variables) {
             if ($Var.Local.Keys.Count -ne $Var.Remote.Keys.Count) {
-                Write-Error "Remote and local key lengths must be the same" 
+                Write-Error "Remote and local key lengths must be the same"
             }
             $DefaultVals.Add($Var.Name, [Defaults]::new($Var.Local[$Var.Default], $Var.Remote[$Var.Default], $Var.Default))
         }
@@ -666,5 +641,83 @@ function Get-TestMatrix {
 
     return $ToRunTests
 }
+
+class ArgumentsSpec {
+    [string]$All;
+    [string]$Loopback;
+    [string]$Remote;
+}
+
+class VariableSpec {
+    [string]$Name;
+    [Hashtable]$Local;
+    [Hashtable]$Remote;
+    [string]$Default;
+}
+
+class ExecutableSpec {
+    [string]$Platform;
+    [string[]]$Tls;
+    [string[]]$Arch;
+    [string]$Exe;
+    [ArgumentsSpec]$Arguments;
+}
+
+class TestDefinition {
+    [string]$TestName;
+    [ExecutableSpec]$Remote;
+    [ExecutableSpec]$Local;
+    [VariableSpec[]]$Variables;
+    [int]$Iterations;
+    [string]$RemoteReadyMatcher;
+    [string]$ResultsMatcher;
+    [boolean]$AllowLoopback;
+    [string]$Units;
+}
+
+function Get-Tests {
+    param ($Path)
+    $Tests = [TestDefinition[]](Get-Content -Path $Path | ConvertFrom-Json -AsHashtable)
+    $MatrixTests = Get-TestMatrix -Tests $Tests
+    if (Test-AllTestsValid -Tests $MatrixTests) {
+        return $MatrixTests
+    } else {
+        Write-Host "Error"
+        return $null
+    }
+}
+
+function Test-AllTestsValid {
+    param ([TestRunDefinition[]]$Tests)
+
+    $TestSet = New-Object System.Collections.Generic.HashSet[string]
+    foreach ($T in $Tests) {
+        if (!$TestSet.Add($T)) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
+function Test-CanRunTest {
+    param ([TestRunDefinition]$Test, $RemotePlatform, $LocalPlatform)
+    $PlatformCorrect = ($Test.Local.Platform -eq $LocalPlatform) -and ($Test.Remote.Platform -eq $RemotePlatform)
+    if (!$PlatformCorrect) {
+        return $false
+    }
+    if (!$Test.Local.Tls.Contains($LocalTls)) {
+        return $false
+    }
+    if (!$Test.Remote.Tls.Contains($RemoteTls)) {
+        return $false
+    }
+    if ($Local -and !$Test.AllowLoopback) {
+        return $false
+    }
+    return $true
+}
+
+#endregion
 
 Export-ModuleMember -Function * -Alias *

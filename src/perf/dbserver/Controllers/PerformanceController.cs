@@ -19,7 +19,6 @@ using QuicDataServer.Models.Db;
 
 namespace QuicDataServer.Controllers
 {
-
     [ApiController]
     [Route("[controller]")]
     public class PerformanceController : ControllerBase
@@ -217,7 +216,7 @@ namespace QuicDataServer.Controllers
                 return Unauthorized();
             }
 
-            // Get Test Records 
+            // Get Test Records
             (var testId, var machineId) = await VerifyPlatformTestAndMachine(testResult.PlatformName, testResult.TestName, testResult.MachineName);
 
             var newRecord = new DbTestRecord
@@ -258,7 +257,7 @@ namespace QuicDataServer.Controllers
                 return Unauthorized();
             }
 
-            // Get Test Records 
+            // Get Test Records
             (var testId, var machineId) = await VerifyPlatformTestAndMachine(testResult.PlatformName, testResult.TestName, testResult.MachineName);
 
             var newRecord = new DbTestRecord

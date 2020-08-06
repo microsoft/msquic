@@ -371,8 +371,6 @@ if ($Record -and $IsWindows) {
 try {
     $Tests = Get-Tests $TestsFile
 
-    $Tests = Get-TestMatrix $Tests
-
     if ($null -eq $Tests) {
         Write-Error "Tests are not valid"
     }
