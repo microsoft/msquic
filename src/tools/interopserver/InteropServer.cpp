@@ -186,8 +186,8 @@ HttpRequest::Process()
         return;
     }
 
+    char index[] = "/index.html";
     if (strcmp("/", PathStart) == 0) {
-        char index[] = "/index.html";
         PathStart = index;
     }
 
