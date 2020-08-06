@@ -73,7 +73,10 @@ RpsClient::Init(
     }
 
     size_t Len = strlen(target);
-    Target.reset(new char[Len + 1]);
+    Target.reset(new(std::nothrow) char[Len + 1]);
+    if (!Target.get()) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
     QuicCopyMemory(Target.get(), target, Len);
     Target[Len] = '\0';
 
@@ -120,7 +123,10 @@ RpsClient::Start(
                     Event);
         };
 
-    UniquePtr<HQUIC[]> Connections(new HQUIC[ConnectionCount]);
+    UniquePtr<HQUIC[]> Connections(new(std::nothrow) HQUIC[ConnectionCount]);
+    if (!Connections.get()) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     for (uint32_t i = 0; i < ConnectionCount; ++i) {

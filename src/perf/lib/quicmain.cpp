@@ -82,9 +82,9 @@ QuicMainStart(
         }
     } else if (IsValue(TestName, "RPS")) {
         if (ServerMode) {
-            TestToRun = new RpsServer(SelfSignedConfig);
+            TestToRun = new(std::nothrow) RpsServer(SelfSignedConfig);
         } else {
-            TestToRun = new RpsClient;
+            TestToRun = new(std::nothrow) RpsClient;
         }
     } else {
         delete MsQuic;
