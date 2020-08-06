@@ -435,11 +435,7 @@ IsArg(
     _In_z_ const char* toTestAgainst
     )
 {
-    size_t ArgLen = strlen(Arg);
-    if (ArgLen == 0) {
-        return false;
-    }
-    return _strnicmp(Arg + 1, toTestAgainst, ArgLen) == 0;
+    return Arg[0] && (_strnicmp(Arg + 1, toTestAgainst, strlen(toTestAgainst)) == 0);
 }
 
 inline
@@ -465,7 +461,7 @@ GetValue(
     )
 {
     const size_t nameLen = strlen(name);
-    for (int i = 1; i < argc; i++) {
+    for (int i = 0; i < argc; i++) {
         if (_strnicmp(argv[i] + 1, name, nameLen) == 0) {
             return argv[i] + 1 + nameLen + 1;
         }

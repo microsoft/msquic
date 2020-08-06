@@ -19,12 +19,16 @@ static
 void
 PrintHelp(
     ) {
-    WriteOutput("Usage: quicperf -TestName:Throughput -ServerMode:1 [options]\n\n"
+    WriteOutput(
+        "\n"
+        "Throughput Server options:\n"
+        "\n"
         "  -thumbprint:<cert_hash>     The hash or thumbprint of the certificate to use.\n"
         "  -cert_store:<store name>    The certificate store to search for the thumbprint in.\n"
         "  -machine_cert:<0/1>         Use the machine, or current user's, certificate store. (def:0)\n"
         "  -connections:<####>         The number of connections to create. (def:0)\n"
-        "  -port:<####>                The UDP port of the server. (def:%u)\n",
+        "  -port:<####>                The UDP port of the server. (def:%u)\n"
+        "\n",
         THROUGHPUT_DEFAULT_PORT
         );
 }
@@ -58,7 +62,12 @@ ThroughputServer::Init(
     TryGetValue(argc, argv, "connections", &NumberOfConnections);
 
     QUIC_STATUS Status = SecurityConfig.Initialize(argc, argv, Registration, SelfSignedConfig);
-    return Status;
+    if (QUIC_FAILED(Status)) {
+        PrintHelp();
+        return Status;
+    }
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS

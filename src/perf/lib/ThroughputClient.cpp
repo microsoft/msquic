@@ -19,7 +19,10 @@ static
 void
 PrintHelp(
     ) {
-    WriteOutput("Usage: quicperf -TestName:Throughput [options]\n\n"
+    WriteOutput(
+        "\n"
+        "Throughput Client options:\n"
+        "\n"
 #if _WIN32
         "  -comp:<####>                The compartment ID to run in.\n"
         "  -core:<####>                The CPU core to use for the main thread.\n"
@@ -31,7 +34,8 @@ PrintHelp(
         "  -sendbuf:<0/1>              Whether to use send buffering. (def:1)\n"
         "  -length:<####>              The length of streams opened locally. (def:0)\n"
         "  -iosize:<####>              The size of each send request queued. (buffered def:%u) (nonbuffered def:%u)\n"
-        "  -iocount:<####>             The number of outstanding send requests to queue per stream. (buffered def:%u) (nonbuffered def:%u)\n",
+        "  -iocount:<####>             The number of outstanding send requests to queue per stream. (buffered def:%u) (nonbuffered def:%u)\n"
+        "\n",
         THROUGHPUT_DEFAULT_PORT,
         THROUGHPUT_DEFAULT_IO_SIZE_BUFFERED, THROUGHPUT_DEFAULT_IO_SIZE_NONBUFFERED,
         THROGHTPUT_DEFAULT_SEND_COUNT_BUFFERED, THROUGHPUT_DEFAULT_SEND_COUNT_NONBUFFERED
