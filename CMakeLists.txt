@@ -336,16 +336,16 @@ endif()
 if(QUIC_TLS STREQUAL "openssl")
     # Configure and build OpenSSL.
     set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
-    set(OPENSSL_CONFIG_FLAGS CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
+    set(OPENSSL_CONFIG_FLAGS
         enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
         no-weak-ssl-ciphers no-shared no-tests --prefix=${OPENSSL_DIR})
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
         set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure
-            linux-armv4
-            --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}-
-            -DL_ENDIAN)
+            linux-armv4 -DL_ENDIAN
+            --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}-)
     else()
-        set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config)
+        set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config
+            CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER})
     endif()
     add_custom_target(mkdir_openssl_build
         COMMAND mkdir -p ${QUIC_BUILD_DIR}/submodules/openssl)
