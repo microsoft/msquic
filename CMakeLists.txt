@@ -335,34 +335,33 @@ endif()
 
 if(QUIC_TLS STREQUAL "openssl")
     # Configure and build OpenSSL.
-    add_custom_target(MKDIR_OPENSSL_BUILD
-        COMMAND mkdir -p ${QUIC_BUILD_DIR}/submodules/openssl)
-    if (CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
-        add_custom_command(
-            DEPENDS MKDIR_OPENSSL_BUILD
-            WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl
-            OUTPUT ${QUIC_BUILD_DIR}/openssl/include
-            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure linux-armv4 --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}- -DL_ENDIAN enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
-            COMMAND make clean # TODO: check if this is still needed when building openssl out-of-dir
-            COMMAND make -j$$(nproc)
-            COMMAND make install_sw)
-    else ()
-        add_custom_command(
-            DEPENDS MKDIR_OPENSSL_BUILD
-            WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl
-            OUTPUT ${QUIC_BUILD_DIR}/openssl/include
-            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ${CMAKE_SOURCE_DIR}/submodules/openssl/config enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
-            COMMAND make -j$$(nproc)
-            COMMAND make install_sw)
+    set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
+    set(OPENSSL_CONFIG_FLAGS CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
+        enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
+        no-weak-ssl-ciphers no-shared no-tests --prefix=${OPENSSL_DIR})
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
+        set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure
+            linux-armv4 -DL_ENDIAN
+            --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}-)
+    else()
+        set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config)
     endif()
+    add_custom_target(mkdir_openssl_build
+        COMMAND mkdir -p ${QUIC_BUILD_DIR}/submodules/openssl)
+    add_custom_command(
+        DEPENDS mkdir_openssl_build
+        WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl
+        OUTPUT ${OPENSSL_DIR}/include
+        OUTPUT ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+        OUTPUT ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+        COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME}
+            ${OPENSSL_CONFIG_CMD} ${OPENSSL_CONFIG_FLAGS}
+        COMMAND make -j$$(nproc)
+        COMMAND make install_sw)
     add_custom_target(OpenSSL
-        DEPENDS ${QUIC_BUILD_DIR}/openssl/include
-        DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-        DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
+        DEPENDS ${OPENSSL_DIR}/include
+        DEPENDS ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+        DEPENDS ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 endif()
 
 if(QUIC_TLS STREQUAL "mitls")
