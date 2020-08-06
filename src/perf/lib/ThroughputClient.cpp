@@ -9,8 +9,6 @@ Abstract:
 
 --*/
 
-#include <cinttypes>
-
 #include "ThroughputClient.h"
 
 #ifdef QUIC_CLOG
@@ -381,13 +379,13 @@ ThroughputClient::StreamCallback(
         uint64_t ElapsedMicroseconds = StrmData->EndTime - StrmData->StartTime;
         uint32_t SendRate = (uint32_t)((StrmData->BytesCompleted * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
 
-        WriteOutput("[%p][%" PRIu64 "] Closed [%s] after %u.%u ms. (TX %" PRIu64 " bytes @ %u kbps).\n",
+        WriteOutput("[%p][%llu] Closed [%s] after %u.%u ms. (TX %llu bytes @ %u kbps).\n",
             StrmData->Connection,
-            GetStreamID(MsQuic, StreamHandle),
+            (unsigned long long)GetStreamID(MsQuic, StreamHandle),
             "Complete",
             (uint32_t)(ElapsedMicroseconds / 1000),
             (uint32_t)(ElapsedMicroseconds % 1000),
-            StrmData->BytesCompleted, SendRate);
+            (unsigned long long)StrmData->BytesCompleted, SendRate);
 
         StreamDataAllocator.Free(StrmData);
         break;
