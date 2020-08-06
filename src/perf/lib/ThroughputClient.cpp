@@ -9,7 +9,7 @@ Abstract:
 
 --*/
 
-#include <inttypes.h>
+#include <cinttypes>
 
 #include "ThroughputClient.h"
 
