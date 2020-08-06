@@ -64,6 +64,7 @@ private:
     UniquePtr<char[]> Target;
     uint32_t RunTime {RPS_DEFAULT_RUN_TIME};
     uint32_t ConnectionCount {RPS_DEFAULT_CONNECTION_COUNT};
+    uint32_t ParallelRequests {RPS_DEFAULT_PARALLEL_REQUEST_COUNT};
     uint32_t RequestLength {RPS_DEFAULT_REQUEST_LENGTH};
     QUIC_BUFFER* RequestBuffer {nullptr};
     QUIC_EVENT* CompletionEvent {nullptr};

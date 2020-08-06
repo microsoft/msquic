@@ -26,11 +26,13 @@ PrintHelp(
         "  -runtime:<####>             The total runtime (in ms). (def:%u)\n"
         "  -port:<####>                The UDP port of the server. (def:%u)\n"
         "  -conns:<####>               The number of connections to use. (def:%u)\n"
+        "  -parallel:<####>            The number of parallel requests per connection. (def:%u)\n"
         "  -request:<####>             The length of request payloads. (def:%u)\n"
         "\n",
         RPS_DEFAULT_RUN_TIME,
         THROUGHPUT_DEFAULT_PORT,
         RPS_DEFAULT_CONNECTION_COUNT,
+        RPS_DEFAULT_PARALLEL_REQUEST_COUNT,
         RPS_DEFAULT_REQUEST_LENGTH
         );
 }
@@ -247,8 +249,10 @@ RpsClient::Start(
     QuicSleep(RPS_IDLE_WAIT);
 
     WriteOutput("Start sending request...\n");
-    for (uint32_t i = 0; i < ConnectionCount; ++i) {
-        SendRequest(Connections[i]);
+    for (uint32_t i = 0; i < ParallelRequests; ++i) {
+        for (uint32_t j = 0; j < ConnectionCount; ++j) {
+            SendRequest(Connections[j]);
+        }
     }
 
     Scope.NeedsCleanup = false;
