@@ -205,14 +205,13 @@ class ArgumentsSpec {
     [string]$All;
     [string]$Loopback;
     [string]$Remote;
+}
 
-    [string]GetArguments() {
-        if ($script:Local) {
-            return "$($this.All) $($this.Loopback)"
-        } else {
-            return "$($this.All) $($this.Remote)"
-        }
-    }
+class VariableSpec {
+    [string]$Name;
+    [Hashtable]$Local;
+    [Hashtable]$Remote;
+    [string]$Default;
 }
 
 class ExecutableSpec {
@@ -227,9 +226,11 @@ class TestDefinition {
     [string]$TestName;
     [ExecutableSpec]$Remote;
     [ExecutableSpec]$Local;
+    [VariableSpec[]]$Variables;
     [int]$Iterations;
     [string]$RemoteReadyMatcher;
     [string]$ResultsMatcher;
+    [boolean]$AllowLoopback;
 
     [string]ToString() {
         $RetString = "$($this.TestName)_$($this.Remote.Platform)_$($script:RemoteArch)_$($script:RemoteTls)"
@@ -255,7 +256,7 @@ class TestPublishResult {
 
 function Get-Tests {
     param ($Path)
-    $Tests = [TestDefinition[]](Get-Content -Path $Path | ConvertFrom-Json)
+    $Tests = [TestDefinition[]](Get-Content -Path $Path | ConvertFrom-Json -AsHashtable)
     if (Test-AllTestsValid -Tests $Tests) {
         return $Tests
     } else {
@@ -277,7 +278,7 @@ function Test-AllTestsValid {
 }
 
 function Test-CanRunTest {
-    param ([TestDefinition]$Test, $RemotePlatform, $LocalPlatform)
+    param ([TestRunDefinition]$Test, $RemotePlatform, $LocalPlatform)
     $PlatformCorrect = ($Test.Local.Platform -eq $LocalPlatform) -and ($Test.Remote.Platform -eq $RemotePlatform)
     if (!$PlatformCorrect) {
         return $false
@@ -286,6 +287,9 @@ function Test-CanRunTest {
         return $false
     }
     if (!$Test.Remote.Tls.Contains($RemoteTls)) {
+        return $false
+    }
+    if ($Local -and !$Test.AllowLoopback) {
         return $false
     }
     return $true
@@ -467,7 +471,7 @@ function Get-TestResult($Results, $Matcher) {
 }
 
 function Publish-TestResults {
-    param ([TestDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
+    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
     $Platform = $Test.ToTestPlatformString()
     $TestName = $Test.TestName
     if ($Local) {
@@ -514,6 +518,153 @@ function Merge-PGOCounts {
     $Command = "$Path\pgomgr.exe /merge $Path $Path\msquic.pgd"
     Invoke-Expression $Command | Write-Debug
     Remove-Item "$Path\*.pgc" | Out-Null
+}
+
+class ExecutableRunSpec {
+    [string]$Platform;
+    [string]$Exe;
+    [string[]]$Tls;
+    [string[]]$Arch;
+    [string]$Arguments;
+
+    ExecutableRunSpec (
+        [ExecutableSpec]$existingDef,
+        [string]$arguments
+    ) {
+        $this.Platform = $existingDef.Platform
+        $this.Exe = $existingDef.Exe
+        $this.Tls = $existingDef.Tls
+        $this.Arch = $existingDef.Arch
+        $this.Arguments = $arguments
+    }
+}
+
+class TestRunDefinition {
+    [string]$TestName;
+    [string]$VariableName;
+    [string]$VariableValue;
+    [ExecutableRunSpec]$Remote;
+    [ExecutableRunSpec]$Local;
+    [int]$Iterations;
+    [string]$RemoteReadyMatcher;
+    [string]$ResultsMatcher;
+    [hashtable]$VariableValues;
+    [boolean]$Loopback;
+    [boolean]$AllowLoopback;
+
+    TestRunDefinition (
+        [TestDefinition]$existingDef,
+        [string]$variableName,
+        [string]$variableValue,
+        [string]$localArgs,
+        [string]$remoteArgs,
+        [hashtable]$variableValues
+    ) {
+        $this.TestName = $existingDef.TestName
+        $this.VariableName = $variableName
+        $this.VariableValue = $variableValue
+        $this.Local = [ExecutableRunSpec]::new($existingDef.Local, $localArgs)
+        $this.Remote = [ExecutableRunSpec]::new($existingDef.Remote, $remoteArgs)
+        $this.Iterations = $existingDef.Iterations
+        $this.RemoteReadyMatcher = $existingDef.RemoteReadyMatcher
+        $this.ResultsMatcher = $existingDef.ResultsMatcher
+        $this.VariableValues = $variableValues
+        $this.Loopback = $script:Local
+        $this.AllowLoopback = $existingDef.AllowLoopback
+    }
+
+    [string]ToString() {
+        $RetString = "$($this.TestName)_$($this.Remote.Platform)_$($script:RemoteArch)_$($script:RemoteTls)_$($this.VariableName)_$($this.VariableValue)"
+        if ($this.Loopback) {
+            $RetString += "_Loopback"
+        }
+        return $RetString
+    }
+
+    [string]ToTestPlatformString() {
+        $RetString = "$($this.Remote.Platform)_$($script:RemoteArch)_$($script:RemoteTls)"
+        return $RetString
+    }
+}
+
+class Defaults {
+    [string]$LocalValue;
+    [string]$RemoteValue;
+    [string]$DefaultKey;
+
+    Defaults (
+        [string]$local,
+        [string]$remote,
+        [string]$defaultKey
+    ) {
+        $this.LocalValue = $local
+        $this.RemoteValue = $remote
+        $this.DefaultKey = $defaultKey
+    }
+}
+
+function Get-TestMatrix {
+    param ([TestDefinition[]]$Tests)
+
+    [TestRunDefinition[]]$ToRunTests = @()
+
+    foreach ($Test in $Tests) {
+        [hashtable]$DefaultVals = @{}
+        # Get all defaults
+        foreach ($Var in $Test.Variables) {
+            if ($Var.Local.Keys.Count -ne $Var.Remote.Keys.Count) {
+                Write-Error "Remote and local key lengths must be the same" 
+            }
+            $DefaultVals.Add($Var.Name, [Defaults]::new($Var.Local[$Var.Default], $Var.Remote[$Var.Default], $Var.Default))
+        }
+
+        $LocalArgs = $Test.Local.Arguments.All
+        $RemoteArgs = $Test.Remote.Arguments.All
+
+        if ($Local) {
+            $LocalArgs += " " + $Test.Local.Arguments.Loopback
+            $RemoteArgs += " " + $Test.Remote.Arguments.Loopback
+        } else {
+            $LocalArgs += " " + $Test.Local.Arguments.Remote
+            $RemoteArgs += " " + $Test.Remote.Arguments.Remote
+        }
+
+        foreach ($Var in $Test.Variables) {
+            $LocalVarArgs = @{}
+            $RemoteVarArgs = @{}
+
+            $StateKeyList = @()
+
+            foreach ($Key in $Var.Local.Keys) {
+                $LocalVarArgs.Add($Key, $LocalArgs + " " + $Var.Local[$Key])
+                $RemoteVarArgs.Add($Key, $RemoteArgs + " " + $Var.Remote[$Key])
+                $StateKeyList += $Key
+            }
+
+            # Enumerate each variable, getting its value and the default
+            foreach ($Key in $DefaultVals.Keys) {
+                if ($Key -ne $Var.Name) {
+                    foreach ($TestKey in $StateKeyList) {
+                        $KeyVal =$DefaultVals[$Key]
+                        $LocalVarArgs[$TestKey] += " $($KeyVal.LocalValue)"
+                        $RemoteVarArgs[$TestKey] += " $($KeyVal.RemoteValue)"
+                    }
+                }
+            }
+
+            foreach ($Key in $StateKeyList) {
+                $VariableValues = @{}
+                foreach ($VarKey in $DefaultVals.Keys) {
+                    $VariableValues.Add($VarKey, $DefaultVals[$VarKey].DefaultKey)
+                }
+                $VariableValues[$Var.Name] = $Key
+                $TestRunDef = [TestRunDefinition]::new($Test, $Var.Name, $Key, $LocalVarArgs[$Key], $RemoteVarArgs[$Key], $VariableValues)
+                $ToRunTests += $TestRunDef
+            }
+        }
+    }
+
+    return $ToRunTests
 }
 
 Export-ModuleMember -Function * -Alias *
