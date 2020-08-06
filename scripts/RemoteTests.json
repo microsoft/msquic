@@ -18,7 +18,7 @@
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-TestName:Throughput -target:$RemoteAddress -port:4433 -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -length:200",
+                "All": "-TestName:Throughput -target:$RemoteAddress -port:4433 -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -length:2000000000",
                 "Loopback": "",
                 "Remote": ""
             }
