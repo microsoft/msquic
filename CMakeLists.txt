@@ -341,8 +341,9 @@ if(QUIC_TLS STREQUAL "openssl")
         no-weak-ssl-ciphers no-shared no-tests --prefix=${OPENSSL_DIR})
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
         set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure
-            linux-armv4 -DL_ENDIAN
-            --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}-)
+            linux-armv4
+            --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}-
+            -DL_ENDIAN)
     else()
         set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config)
     endif()
