@@ -121,7 +121,6 @@ RpsClient::Start(
         };
 
     UniquePtr<HQUIC[]> Connections(new HQUIC[ConnectionCount]);
-    WriteOutput("Starting %u connections...\n", ConnectionCount);
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     for (uint32_t i = 0; i < ConnectionCount; ++i) {
@@ -262,7 +261,7 @@ RpsClient::Wait(
     QuicEventWaitWithTimeout(*CompletionEvent, Timeout);
 
     uint32_t RPS = (CompletedRequests * 1000) / RunTime;
-    WriteOutput("%u RPS\n", RPS);
+    WriteOutput("Result: %u RPS\n", RPS);
     Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
 
     return QUIC_STATUS_SUCCESS;

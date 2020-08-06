@@ -110,5 +110,33 @@
         "Iterations": 10,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps\\)"
+    },
+    {
+        "TestName": "RPS",
+        "Remote" : {
+            "Platform": "Windows",
+            "Tls": ["stub", "schannel", "mitls"],
+            "Arch": ["x64", "x86", "arm", "arm64"],
+            "Exe": "quicperf",
+            "Arguments": {
+                "All": "-TestName:RPS -ServerMode:1 -port:4433 -response:4096",
+                "Loopback": "-selfsign:1",
+                "Remote": "-thumbprint:$Thumbprint -machine_cert:1 -cert_store:My"
+            }
+        },
+        "Local" : {
+            "Platform": "Windows",
+            "Tls": ["stub", "schannel", "mitls"],
+            "Arch": ["x64", "x86", "arm", "arm64"],
+            "Exe": "quicperf",
+            "Arguments": {
+                "All": "-TestName:RPS -target:$RemoteAddress -port:4433 -request:0 -conns:1000",
+                "Loopback": "",
+                "Remote": ""
+            }
+        },
+        "Iterations": 10,
+        "RemoteReadyMatcher": "Started!",
+        "ResultsMatcher": "Result: (.*) RPS"
     }
 ]
