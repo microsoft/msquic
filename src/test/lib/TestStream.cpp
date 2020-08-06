@@ -118,7 +118,7 @@ TestStream::StartPing(
     _In_ uint64_t PayloadLength
     )
 {
-    int64_t BytesToSend = PayloadLength / MaxSendBuffers;
+    BytesToSend = PayloadLength / MaxSendBuffers;
 
     do {
         auto SendBufferLength = min(BytesToSend, (int64_t)MaxSendLength);
