@@ -35,7 +35,7 @@ ListenerAcceptConnection(
     )
 {
     ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
-    *AcceptContext->NewConnection = new TestConnection(ConnectionHandle);
+    *AcceptContext->NewConnection = new(std::nothrow) TestConnection(ConnectionHandle);
     if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *AcceptContext->NewConnection;
