@@ -150,6 +150,9 @@ function Log-Stop {
         if ($ConvertToText) {
             $LogPath = Join-Path $OutputDirectory "quic.log"
             $Command = "netsh trace convert $($EtlPath) output=$($LogPath) overwrite=yes report=no"
+            if ($TmfPath -ne "") {
+                $Command += " tmfpath=$TmfPath"
+            }
             Invoke-Expression $Command
         }
     } else {

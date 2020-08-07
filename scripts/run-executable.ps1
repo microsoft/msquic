@@ -323,7 +323,7 @@ function Wait-Executable($Exe) {
                 if ($CodeCoverage) {
                     & $LogScript -Cancel | Out-Null
                 } elseif ($ConvertLogs) {
-                    & $LogScript -Stop -OutputDirectory $LogDir -ConvertToText
+                    & $LogScript -Stop -OutputDirectory $LogDir -ConvertToText -Tmfpath (Join-Path $RootDir "artifacts" "tmf")
                 } else {
                     & $LogScript -Stop -OutputDirectory $LogDir | Out-Null
                 }
