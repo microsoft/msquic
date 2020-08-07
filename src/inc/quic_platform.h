@@ -68,30 +68,28 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 //
 #ifdef _WIN32
 
-#define POOL_TAG_QUIC 'QUIC'
-#define POOL_TAG_QCon 'QCon'
-#define POOL_TAG_QCTP 'QCTP'
-#define POOL_TAG_QStm 'QStm'
-#define POOL_TAG_QSBf 'QSBf'
-#define POOL_TAG_QSFM 'QSFM'
-#define POOL_TAG_QDta 'QDta'
-#define POOL_TAG_QTst 'QTst'
-#define POOL_TAG_QPrf 'QPrf'
-#define POOL_TAG_QTol 'QTol'
+#define POOL_TAG_QUIC 'CIUQ'
+#define POOL_TAG_QCon 'noCQ'
+#define POOL_TAG_QCTP 'PTCQ'
+#define POOL_TAG_QStm 'mtSQ'
+#define POOL_TAG_QSBf 'fBSQ'
+#define POOL_TAG_QSFM 'MFSQ'
+#define POOL_TAG_QDta 'atDQ'
+#define POOL_TAG_QTst 'tsTQ'
+#define POOL_TAG_QPrf 'frPQ'
+#define POOL_TAG_QTol 'loTQ'
 
-#define POOL_TAG(x) POOL_TAG_##x
-
-#define QUIC_POOL_TAG(a, b, c, d) POOL_TAG(d ## c ## b ## a)
+#define QUIC_POOL_TAG(a, b, c, d) POOL_TAG_ ##a ## b ## c ## d
 
 #else
 
 #define POOL_TAG_QUOTE(x) ((#x)[0])
 
 #define QUIC_POOL_TAG(a, b, c, d) \
-    ((POOL_TAG_QUOTE(a) << 24) + \
-     (POOL_TAG_QUOTE(b) << 16) + \
-     (POOL_TAG_QUOTE(c) << 8) + \
-     POOL_TAG_QUOTE(d))
+    ((POOL_TAG_QUOTE(d) << 24) + \
+     (POOL_TAG_QUOTE(c) << 16) + \
+     (POOL_TAG_QUOTE(b) << 8) + \
+     POOL_TAG_QUOTE(a))
 
 #endif
 
