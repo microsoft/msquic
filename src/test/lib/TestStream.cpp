@@ -121,7 +121,7 @@ TestStream::StartPing(
     BytesToSend = PayloadLength / MaxSendBuffers;
 
     do {
-        auto SendBufferLength = min(BytesToSend, (int64_t)MaxSendLength);
+        auto SendBufferLength = (uint32_t)min(BytesToSend, (int64_t)MaxSendLength);
         auto SendBuffer = new(std::nothrow) QuicSendBuffer(MaxSendBuffers, SendBufferLength);
         if (SendBuffer == nullptr) {
             TEST_FAILURE("Failed to alloc QuicSendBuffer");
@@ -274,7 +274,7 @@ TestStream::HandleStreamSendComplete(
             delete SendBuffer;
         } else {
             QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE;
-            auto SendBufferLength = min(BytesToSend, (int64_t)MaxSendLength);
+            auto SendBufferLength = (uint32_t)min(BytesToSend, (int64_t)MaxSendLength);
             for (uint32_t i = 0; i < SendBuffer->BufferCount; ++i) {
                 SendBuffer->Buffers[i].Length = SendBufferLength;
             }
