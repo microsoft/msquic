@@ -13,9 +13,9 @@ Write-Host $Files
 $Files | ForEach-Object {
     $DataToWrite = Get-Content $_ | ConvertFrom-Json
     Write-Host $DataToWrite
-    $DataToWrite | Add-Member -NotePropertyName "AuthKey" -NotePropertyValue $env:MAPPED_DEPLOYMENT_KEY
+    $DataToWrite.AuthKey = $env:MAPPED_DEPLOYMENT_KEY
     $JsonToWrite = $DataToWrite | ConvertTo-Json
 
-    $Result = Invoke-RestMethod -Uri "https://msquicperformanceresults.azurewebsites.net/performance" -Body $JsonToWrite -Method 'Post' -ContentType "application/json"
+    $Result = Invoke-RestMethod -Uri "https://msquicperformanceresults.azurewebsites.net/$($DataToWrite.TestName)" -Body $JsonToWrite -Method 'Post' -ContentType "application/json"
     Write-Host $Result
 }
