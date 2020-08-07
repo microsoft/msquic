@@ -24,4 +24,6 @@ else()
     target_link_libraries(msquicplatformtest msquic platform inc gtest msquicplatformtest.clog)
 endif()
 
-add_test(msquicplatformtest msquicplatformtest)
+add_test(NAME msquicplatformtest
+         COMMAND msquicplatformtest
+         WORKING_DIRECTORY ${QUIC_OUTPUT_DIR})

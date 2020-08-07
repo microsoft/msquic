@@ -23,4 +23,6 @@ set_property(TARGET msquiccoretest PROPERTY FOLDER "tests")
 
 target_link_libraries(msquiccoretest msquic core platform inc gtest msquiccoretest.clog)
 
-add_test(msquiccoretest msquiccoretest)
+add_test(NAME msquiccoretest
+         COMMAND msquiccoretest
+         WORKING_DIRECTORY ${QUIC_OUTPUT_DIR})
