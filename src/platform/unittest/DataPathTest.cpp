@@ -74,7 +74,7 @@ struct DataRecvContext {
     QUIC_EVENT ClientCompletion;
 };
 
-struct DataPathTest : public ::testing::TestWithParam<int32_t>
+struct DataPathTest : public ::testing::TestWithParam<std::tuple<int, QUIC_ECN_TYPE>>
 {
 protected:
     static volatile uint16_t NextPort;
@@ -120,7 +120,7 @@ protected:
     QuicAddr
     GetNewLocalAddr(bool randomPort = true)
     {
-        int addressFamily = GetParam();
+        int addressFamily = std::get<0>(GetParam());
 
         if (addressFamily == 4) {
             return GetNewLocalIPv4(randomPort);
@@ -170,10 +170,11 @@ protected:
     }
 
     static void
-    DataRecvCallback(
+    DoDataRecvCallback(
         _In_ QUIC_DATAPATH_BINDING* binding,
         _In_ void * recvContext,
-        _In_ QUIC_RECV_DATAGRAM* recvBufferChain
+        _In_ QUIC_RECV_DATAGRAM* recvBufferChain,
+        _In_ bool checkECN
         )
     {
         DataRecvContext* RecvContext = (DataRecvContext*)recvContext;
@@ -187,8 +188,10 @@ protected:
 
             if (recvBuffer->Tuple->LocalAddress.Ipv4.sin_port == RecvContext->ServerAddress.Ipv4.sin_port) {
 
+                QUIC_ECN_TYPE ecn = (QUIC_ECN_TYPE)recvBuffer->TypeOfService;
+
                 auto ServerSendContext =
-                    QuicDataPathBindingAllocSendContext(binding, QUIC_ECN_NON_ECT, 0);
+                    QuicDataPathBindingAllocSendContext(binding, ecn, 0);
                 ASSERT_NE(nullptr, ServerSendContext);
 
                 auto ServerDatagram =
@@ -196,6 +199,9 @@ protected:
                 ASSERT_NE(nullptr, ServerDatagram);
 
                 memcpy(ServerDatagram->Buffer, recvBuffer->Buffer, recvBuffer->BufferLength);
+
+                if (checkECN)
+                    ASSERT_EQ(ecn, QUIC_ECN_ECT_0);
 
                 VERIFY_QUIC_SUCCESS(
                     QuicDataPathBindingSendFromTo(
@@ -213,6 +219,26 @@ protected:
         }
 
         QuicDataPathBindingReturnRecvDatagrams(recvBufferChain);
+    }
+
+    static void
+    DataRecvCallback(
+        _In_ QUIC_DATAPATH_BINDING* binding,
+        _In_ void * recvContext,
+        _In_ QUIC_RECV_DATAGRAM* recvBufferChain
+        )
+    {
+        DoDataRecvCallback(binding, recvContext, recvBufferChain, false);
+    }
+
+    static void
+    DataRecvCallbackECN(
+        _In_ QUIC_DATAPATH_BINDING* binding,
+        _In_ void * recvContext,
+        _In_ QUIC_RECV_DATAGRAM* recvBufferChain
+        )
+    {
+        DoDataRecvCallback(binding, recvContext, recvBufferChain, true);
     }
 };
 
@@ -429,10 +455,12 @@ TEST_P(DataPathTest, DataRebind)
 
     QuicEventInitialize(&RecvContext.ClientCompletion, FALSE, FALSE);
 
+    QUIC_ECN_TYPE ecn = std::get<1>(GetParam());
+
     VERIFY_QUIC_SUCCESS(
         QuicDataPathInitialize(
             0,
-            DataRecvCallback,
+            ecn == QUIC_ECN_NON_ECT ? DataRecvCallback : DataRecvCallbackECN,
             EmptyUnreachableCallback,
             &datapath));
     ASSERT_NE(nullptr, datapath);
@@ -471,7 +499,7 @@ TEST_P(DataPathTest, DataRebind)
     ASSERT_NE(nullptr, client);
 
     auto ClientSendContext =
-        QuicDataPathBindingAllocSendContext(client, QUIC_ECN_NON_ECT, 0);
+        QuicDataPathBindingAllocSendContext(client, ecn, 0);
     ASSERT_NE(nullptr, ClientSendContext);
 
     auto ClientDatagram =
@@ -502,7 +530,7 @@ TEST_P(DataPathTest, DataRebind)
     ASSERT_NE(nullptr, client);
 
     ClientSendContext =
-        QuicDataPathBindingAllocSendContext(client, QUIC_ECN_NON_ECT, 0);
+        QuicDataPathBindingAllocSendContext(client, ecn, 0);
     ASSERT_NE(nullptr, ClientSendContext);
 
     ClientDatagram =
@@ -528,4 +556,13 @@ TEST_P(DataPathTest, DataRebind)
     QuicEventUninitialize(RecvContext.ClientCompletion);
 }
 
-INSTANTIATE_TEST_SUITE_P(DataPathTest, DataPathTest, ::testing::Values(4, 6), testing::PrintToStringParamName());
+INSTANTIATE_TEST_SUITE_P(DataPathTest, DataPathTest,
+                         testing::Combine(testing::Values(4, 6),
+                                          testing::Values(QUIC_ECN_NON_ECT,
+                                                          QUIC_ECN_ECT_0)),
+                         [](const testing::TestParamInfo<DataPathTest::ParamType>& info) {
+                           ::std::stringstream ss;
+                           ss << 'v' << std::get<0>(info.param)
+                              << (std::get<1>(info.param) == QUIC_ECN_NON_ECT ? "" : "_ecn");
+                           return ss.str();
+                         });
