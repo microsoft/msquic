@@ -119,7 +119,7 @@
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-TestName:RPS -ServerMode:1-iter:10",
+                "All": "-TestName:RPS -ServerMode:1 -iter:10",
                 "Loopback": "-selfsign:1",
                 "Remote": "-thumbprint:$Thumbprint -machine_cert:1 -cert_store:My"
             }
