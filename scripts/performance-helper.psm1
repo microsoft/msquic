@@ -405,7 +405,7 @@ function Get-LatestThroughputRemoteTestResults([ThroughputRequest]$Request) {
     $Uri = "https://msquicperformanceresults.azurewebsites.net/throughput/get"
     $RequestJson = ConvertTo-Json -InputObject $Request
     Write-Debug "Requesting: $Uri with $RequestJson"
-    $LatestResult = Invoke-RestMethod -Uri $Uri -Body $RequestJson -Method 'Post' -ContentType "application/json"
+    $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Body $RequestJson -Method 'Post' -ContentType "application/json"
     Write-Debug "Result: $LatestResult"
     return $LatestResult
 }
