@@ -45,6 +45,9 @@ This script runs performance tests locally for a period of time.
 .PARAMETER RecordQUIC
     Record QUIC specific trace events
 
+.PARAMETER TestToRun
+    Run a specific test name
+
 #>
 
 param (
@@ -99,7 +102,10 @@ param (
     [int]$Timeout = 60,
 
     [Parameter(Mandatory = $false)]
-    [switch]$RecordQUIC = $false
+    [switch]$RecordQUIC = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$TestToRun = ""
 )
 
 Set-StrictMode -Version 'Latest'
@@ -380,6 +386,9 @@ try {
     }
 
     foreach ($Test in $Tests) {
+        if ($TestToRun -ne "" -and $Test.TestName -ne $TestToRun) {
+            continue
+        }
         if (Test-CanRunTest -Test $Test -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform) {
             Invoke-Test -Test $Test
         } else {
