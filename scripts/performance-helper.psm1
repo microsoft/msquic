@@ -548,8 +548,32 @@ class TestRunDefinition {
         $this.Units = $existingDef.Units
     }
 
+    TestRunDefinition (
+        [TestDefinition]$existingDef,
+        [string]$localArgs,
+        [string]$remoteArgs,
+        [hashtable]$variableValues
+    ) {
+        $this.TestName = $existingDef.TestName
+        $this.VariableName = "Default"
+        $this.VariableValue = ""
+        $this.Local = [ExecutableRunSpec]::new($existingDef.Local, $localArgs)
+        $this.Remote = [ExecutableRunSpec]::new($existingDef.Remote, $remoteArgs)
+        $this.Iterations = $existingDef.Iterations
+        $this.RemoteReadyMatcher = $existingDef.RemoteReadyMatcher
+        $this.ResultsMatcher = $existingDef.ResultsMatcher
+        $this.VariableValues = $variableValues
+        $this.Loopback = $script:Local
+        $this.AllowLoopback = $existingDef.AllowLoopback
+        $this.Units = $existingDef.Units
+    }
+
     [string]ToString() {
-        $RetString = "$($this.TestName)_$($this.Remote.Platform)_$($script:RemoteArch)_$($script:RemoteTls)_$($this.VariableName)_$($this.VariableValue)"
+        $VarVal = "_$($this.VariableValue)"
+        if ($this.VariableName -eq "Default") {
+            $VarVal = ""
+        }
+        $RetString = "$($this.TestName)_$($this.Remote.Platform)_$($script:RemoteArch)_$($script:RemoteTls)_$($this.VariableName)$VarVal"
         if ($this.Loopback) {
             $RetString += "_Loopback"
         }
@@ -604,6 +628,10 @@ function Get-TestMatrix {
             $RemoteArgs += " " + $Test.Remote.Arguments.Remote
         }
 
+        # Create the default test
+        $TestRunDef = [TestRunDefinition]::new($Test, $LocalArgs, $RemoteArgs, $DefaultVals)
+        $ToRunTests += $TestRunDef
+
         foreach ($Var in $Test.Variables) {
             $LocalVarArgs = @{}
             $RemoteVarArgs = @{}
@@ -631,6 +659,9 @@ function Get-TestMatrix {
                 $VariableValues = @{}
                 foreach ($VarKey in $DefaultVals.Keys) {
                     $VariableValues.Add($VarKey, $DefaultVals[$VarKey].DefaultKey)
+                }
+                if ($VariableValues[$Var.Name] -eq $Key) {
+                    continue
                 }
                 $VariableValues[$Var.Name] = $Key
                 $TestRunDef = [TestRunDefinition]::new($Test, $Var.Name, $Key, $LocalVarArgs[$Key], $RemoteVarArgs[$Key], $VariableValues)
