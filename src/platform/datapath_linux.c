@@ -1971,8 +1971,12 @@ QuicDataPathBindingSend(
     size_t i = 0;
     QUIC_ADDR MappedRemoteAddress = {0};
     struct cmsghdr *CMsg = NULL;
+    struct in_pktinfo *PktInfo = NULL;
+    struct in6_pktinfo *PktInfo6 = NULL;
     BOOLEAN SendPending = FALSE;
-    char ControlBuffer[CMSG_SPACE(sizeof(int))] = { 0 };
+
+    static_assert(CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
+    char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(int))] = {0};
 
     QUIC_DBG_ASSERT(Binding != NULL && RemoteAddress != NULL && SendContext != NULL);
 
@@ -1985,7 +1989,6 @@ QuicDataPathBindingSend(
         SendContext->Iovs[i].iov_len = SendContext->Buffers[i].Length;
         TotalSize += SendContext->Buffers[i].Length;
     }
-
     if (LocalAddress == NULL) {
         QuicTraceEvent(
             DatapathSendTo,
@@ -2018,7 +2021,7 @@ QuicDataPathBindingSend(
         .msg_iov = SendContext->Iovs,
         .msg_iovlen = SendContext->BufferCount,
         .msg_control = ControlBuffer,
-        .msg_controllen = sizeof(ControlBuffer),
+        .msg_controllen = CMSG_SPACE(sizeof(int)),
         .msg_flags = 0
     };
 
@@ -2027,6 +2030,28 @@ QuicDataPathBindingSend(
     CMsg->cmsg_type = RemoteAddress->Ip.sa_family == AF_INET ? IP_TOS : IPV6_TCLASS;
     CMsg->cmsg_len = CMSG_LEN(sizeof(int));
     *(int *)CMSG_DATA(CMsg) = SendContext->ECN;
+
+    if (LocalAddress) {
+        Mhdr.msg_controllen += CMSG_SPACE(sizeof(struct in6_pktinfo));
+        CMsg = CMSG_NXTHDR(&Mhdr, CMsg);
+        QUIC_DBG_ASSERT(CMsg != NULL);
+        if (RemoteAddress->Ip.sa_family == AF_INET) {
+            CMsg->cmsg_level = IPPROTO_IP;
+            CMsg->cmsg_type = IP_PKTINFO;
+            CMsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
+            PktInfo = (struct in_pktinfo*) CMSG_DATA(CMsg);
+            // TODO: Use Ipv4 instead of Ipv6.
+            PktInfo->ipi_ifindex = LocalAddress->Ipv6.sin6_scope_id;
+            PktInfo->ipi_addr = LocalAddress->Ipv4.sin_addr;
+        } else {
+            CMsg->cmsg_level = IPPROTO_IPV6;
+            CMsg->cmsg_type = IPV6_PKTINFO;
+            CMsg->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
+            PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
+            PktInfo6->ipi6_ifindex = LocalAddress->Ipv6.sin6_scope_id;
+            PktInfo6->ipi6_addr = LocalAddress->Ipv6.sin6_addr;
+        }
+    }
 
     SentByteCount = sendmsg(SocketContext->SocketFd, &Mhdr, 0);
 
