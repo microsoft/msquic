@@ -26,7 +26,7 @@ struct StreamEventValidator {
     QUIC_STREAM_EVENT_TYPE Type;
     uint8_t Actions;
     StreamEventValidator(QUIC_STREAM_EVENT_TYPE type, uint8_t actions = 0, bool optional = false) : Success(false),
-        Type(type), Actions(actions), Optional(optional) { }
+        Optional(optional), Type(type), Actions(actions) { }
     virtual void Validate(_In_ HQUIC Stream, _Inout_ QUIC_STREAM_EVENT* Event) {
         if (Event->Type != Type) {
             if (!Optional) {
@@ -87,7 +87,7 @@ struct ConnEventValidator {
     QUIC_CONNECTION_EVENT_TYPE Type;
     uint8_t Actions;
     ConnEventValidator(QUIC_CONNECTION_EVENT_TYPE type, uint8_t actions = 0, bool optional = false, bool resumed = false) : Success(false),
-        Type(type), Actions(actions), Optional(optional), Resumed(resumed) { }
+        Optional(optional), Resumed(resumed), Type(type), Actions(actions) { }
     virtual void Validate(_In_ HQUIC Connection, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         if (Event->Type != Type) {
             if (!Optional) {

@@ -67,6 +67,9 @@ QuicMainStop(
 
 inline
 int
+#ifndef _WIN32
+ __attribute__((__format__(__printf__, 1, 2)))
+#endif
 WriteOutput(
     _In_z_ const char* format
     ...

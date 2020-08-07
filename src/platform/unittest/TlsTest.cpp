@@ -16,6 +16,10 @@ const uint32_t CertValidationIgnoreFlags =
     QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
     QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID;
 
+const uint16_t UnknownCaError = 48;
+
+const uint32_t DefaultFragmentSize = 1200;
+
 const uint8_t Alpn[] = { 1, 'A' };
 const uint8_t MultiAlpn[] = { 1, 'C', 1, 'A', 1, 'B' };
 
@@ -195,11 +199,11 @@ protected:
 
         void InitializeClient(
             TlsSession& Session,
-            bool MultipleAlpns = false
+            bool MultipleAlpns = false,
+            uint32_t CertFlags = CertValidationIgnoreFlags
             )
         {
-            QuicTlsClientSecConfigCreate(
-                CertValidationIgnoreFlags, &ClientConfig);
+            QuicTlsClientSecConfigCreate(CertFlags, &ClientConfig);
             InitializeClient(Session, ClientConfig, MultipleAlpns);
         }
 
@@ -246,7 +250,8 @@ protected:
             _In_ QUIC_PACKET_KEY_TYPE BufferKey,
             _In_reads_bytes_(*BufferLength)
                 const uint8_t * Buffer,
-            _In_ uint32_t * BufferLength
+            _In_ uint32_t * BufferLength,
+            _In_ bool ExpectError
             )
         {
             QuicEventReset(ProcessCompleteEvent);
@@ -270,7 +275,9 @@ protected:
                 Result = QuicTlsProcessDataComplete(Ptr, BufferLength);
             }
 
-            EXPECT_TRUE((Result & QUIC_TLS_RESULT_ERROR) == 0);
+            if (!ExpectError) {
+                EXPECT_TRUE((Result & QUIC_TLS_RESULT_ERROR) == 0);
+            }
 
             return Result;
         }
@@ -281,7 +288,8 @@ protected:
             _In_reads_bytes_(BufferLength)
                 const uint8_t * Buffer,
             _In_ uint32_t BufferLength,
-            _In_ uint32_t FragmentSize
+            _In_ uint32_t FragmentSize,
+            _In_ bool ExpectError
             )
         {
             uint32_t Result = 0;
@@ -296,7 +304,7 @@ protected:
 
                 //std::cout << "Processing fragment of " << FragmentSize << " bytes" << std::endl;
 
-                Result |= (uint32_t)ProcessData(BufferKey, Buffer, &ConsumedBuffer);
+                Result |= (uint32_t)ProcessData(BufferKey, Buffer, &ConsumedBuffer, ExpectError);
 
                 if (ConsumedBuffer > 0) {
                     Buffer += ConsumedBuffer;
@@ -315,7 +323,8 @@ protected:
         QUIC_TLS_RESULT_FLAGS
         ProcessData(
             _Inout_ QUIC_TLS_PROCESS_STATE* PeerState,
-            _In_ uint32_t FragmentSize = 1200
+            _In_ uint32_t FragmentSize = DefaultFragmentSize,
+            _In_ bool ExpectError = false
             )
         {
             if (PeerState == nullptr) {
@@ -323,7 +332,7 @@ protected:
                 // Special case for client hello/initial.
                 //
                 uint32_t Zero = 0;
-                return ProcessData(QUIC_PACKET_KEY_INITIAL, nullptr, &Zero);
+                return ProcessData(QUIC_PACKET_KEY_INITIAL, nullptr, &Zero, ExpectError);
             }
 
             uint32_t Result = 0;
@@ -359,7 +368,8 @@ protected:
                         PeerWriteKey,
                         PeerState->Buffer,
                         BufferLength,
-                        FragmentSize);
+                        FragmentSize,
+                        ExpectError);
 
                 PeerState->BufferLength -= BufferLength;
                 QuicMoveMemory(
@@ -478,7 +488,7 @@ protected:
     DoHandshake(
         TlsContext& ServerContext,
         TlsContext& ClientContext,
-        uint32_t FragmentSize = 1200
+        uint32_t FragmentSize = DefaultFragmentSize
         )
     {
         auto Result = ClientContext.ProcessData(nullptr);
@@ -699,6 +709,28 @@ TEST_F(TlsTest, HandshakesInterleaved)
         ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
     }
     QuicTlsSecConfigRelease(ClientSecConfig);
+}
+
+TEST_F(TlsTest, CertificateError)
+{
+    TlsSession ServerSession, ClientSession;
+    {
+        TlsContext ServerContext, ClientContext;
+        ServerContext.InitializeServer(ServerSession, SecConfig);
+        ClientContext.InitializeClient(ClientSession, false, 0);
+        {
+            auto Result = ClientContext.ProcessData(nullptr);
+            ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+
+            Result = ServerContext.ProcessData(&ClientContext.State);
+            ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
+            ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+
+            Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
+            ASSERT_TRUE(Result & QUIC_TLS_RESULT_ERROR);
+            ASSERT_EQ(ClientContext.State.AlertCode, UnknownCaError);
+        }
+    }
 }
 
 TEST_P(TlsTest, One1RttKey)

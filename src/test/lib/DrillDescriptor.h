@@ -82,7 +82,7 @@ struct DrillPacketDescriptor {
     uint8_t* SourceCidLen;
     DrillBuffer SourceCid;
 
-    DrillPacketDescriptor() : SourceCidLen(nullptr), DestCidLen(nullptr) {};
+    DrillPacketDescriptor() : DestCidLen(nullptr), SourceCidLen(nullptr) {};
 
     //
     // Write this descriptor to a byte array to send on the wire.
