@@ -84,8 +84,8 @@ struct PingStats
         ServerInitiatedStreams(_ServerInitiatedStreams),
         ZeroRtt(_ZeroRtt),
         AllowDataIncomplete(_AllowDataIncomplete),
-        ExpectedCloseStatus(_ExpectedCloseStatus),
         ServerKeyUpdate(_ServerKeyUpdate),
+        ExpectedCloseStatus(_ExpectedCloseStatus),
         ConnectionsComplete(0)
     {
         QuicEventInitialize(&CompletionEvent, FALSE, FALSE);
@@ -640,7 +640,7 @@ struct AbortiveTestContext {
         _In_ QUIC_ABORTIVE_TRANSFER_FLAGS FlagsParam,
         _In_ uint32_t ExpectedErrorParam,
         _In_ QUIC_STREAM_SHUTDOWN_FLAGS ShutdownFlagsParam) :
-            Flags(FlagsParam), ExpectedError(ExpectedErrorParam), Server(ServerParam), ShutdownFlags(ShutdownFlagsParam), TestResult(0)
+            Flags(FlagsParam), ShutdownFlags(ShutdownFlagsParam), ExpectedError(ExpectedErrorParam), TestResult(0), Server(ServerParam)
     { }
     EventScope ConnectedEvent;
     EventScope StreamEvent;
@@ -1110,7 +1110,7 @@ struct RecvResumeTestContext {
         _In_ bool ServerParam,
         _In_ QUIC_RECEIVE_RESUME_SHUTDOWN_TYPE ShutdownTypeParam,
         _In_ QUIC_RECEIVE_RESUME_TYPE PauseTypeParam) :
-            ShutdownType(ShutdownTypeParam), PauseType(PauseTypeParam), Server(ServerParam), TestResult((uint32_t)QUIC_STATUS_INTERNAL_ERROR), ReceiveCallbackCount(0)
+            ShutdownType(ShutdownTypeParam), PauseType(PauseTypeParam), TestResult((uint32_t)QUIC_STATUS_INTERNAL_ERROR), Server(ServerParam), ReceiveCallbackCount(0)
     { }
     EventScope ConnectedEvent;
     EventScope StreamEvent;

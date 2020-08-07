@@ -212,7 +212,7 @@ ThroughputClient::Start(
                 sizeof(value),
                 &value);
         if (QUIC_FAILED(Status)) {
-            WriteOutput("MsQuic->SetParam (CONN_DISABLE_1RTT_ENCRYPTION) failed!\n", Status);
+            WriteOutput("MsQuic->SetParam (CONN_DISABLE_1RTT_ENCRYPTION) failed!\n");
             return Status;
         }
     }
@@ -379,15 +379,17 @@ ThroughputClient::StreamCallback(
 
         WriteOutput("[%p][%llu] Closed [%s] after %u.%u ms. (TX %llu bytes @ %u kbps).\n",
             StrmData->Connection,
-            GetStreamID(MsQuic, StreamHandle),
+            (unsigned long long)GetStreamID(MsQuic, StreamHandle),
             "Complete",
             (uint32_t)(ElapsedMicroseconds / 1000),
             (uint32_t)(ElapsedMicroseconds % 1000),
-            StrmData->BytesCompleted, SendRate);
+            (unsigned long long)StrmData->BytesCompleted, SendRate);
 
         StreamDataAllocator.Free(StrmData);
         break;
     }
+    default:
+        break;
     }
     return QUIC_STATUS_SUCCESS;
 }

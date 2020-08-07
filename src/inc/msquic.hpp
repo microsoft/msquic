@@ -236,7 +236,7 @@ public:
     MsQuicSession(
         _In_ const MsQuicRegistration& Reg,
         _In_z_ const char* RawAlpn = "MsQuicTest") noexcept
-        : Handle(nullptr), CloseAllConnectionsOnDelete(false) {
+        : CloseAllConnectionsOnDelete(false), Handle(nullptr) {
         if (!Reg.IsValid()) {
             InitStatus = Reg.GetInitStatus();
             return;
@@ -259,7 +259,7 @@ public:
 #ifndef QUIC_SKIP_GLOBAL_CONSTRUCTORS
 
     MsQuicSession(_In_z_ const char* RawAlpn = "MsQuicTest") noexcept
-        : Handle(nullptr), CloseAllConnectionsOnDelete(false) {
+        : CloseAllConnectionsOnDelete(false), Handle(nullptr) {
         QUIC_BUFFER Alpn;
         Alpn.Buffer = (uint8_t*)RawAlpn;
         Alpn.Length = (uint32_t)strlen(RawAlpn);
@@ -275,7 +275,7 @@ public:
         }
     }
     MsQuicSession(_In_z_ const char* RawAlpn1, _In_z_ const char* RawAlpn2) noexcept
-        : Handle(nullptr), CloseAllConnectionsOnDelete(false) {
+        : CloseAllConnectionsOnDelete(false), Handle(nullptr) {
         QUIC_BUFFER Alpns[2];
         Alpns[0].Buffer = (uint8_t*)RawAlpn1;
         Alpns[0].Length = (uint32_t)strlen(RawAlpn1);

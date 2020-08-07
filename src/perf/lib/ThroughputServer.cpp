@@ -194,6 +194,8 @@ ThroughputServer::StreamCallback(
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
         MsQuic->StreamClose(StreamHandle);
         break;
+    default:
+        break;
     }
     }
     return QUIC_STATUS_SUCCESS;
