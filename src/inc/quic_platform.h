@@ -66,17 +66,46 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 //
 // Different pool tags used for marking allocations.
 //
+#ifdef _WIN32
 
-#define QUIC_POOL_GENERIC   *(uint32_t*)"CIUQ"  // QUIC - Generic QUIC
-#define QUIC_POOL_CONN      *(uint32_t*)"noCQ"  // QCon - QUIC connection
-#define QUIC_POOL_TP        *(uint32_t*)"PTCQ"  // QCTP - QUIC connection transport parameters
-#define QUIC_POOL_STREAM    *(uint32_t*)"mtSQ"  // QStm - QUIC stream
-#define QUIC_POOL_SBUF      *(uint32_t*)"fBSQ"  // QSBf - QUIC stream buffer
-#define QUIC_POOL_META      *(uint32_t*)"MFSQ"  // QSFM - QUIC sent frame metedata
-#define QUIC_POOL_DATA      *(uint32_t*)"atDQ"  // QDta - QUIC datagram buffer
-#define QUIC_POOL_TEST      *(uint32_t*)"tsTQ"  // QTst - QUIC test code
-#define QUIC_POOL_PERF      *(uint32_t*)"frPQ"  // QPrf - QUIC perf code
-#define QUIC_POOL_TOOL      *(uint32_t*)"loTQ"  // QTol - QUIC tool code
+#define POOL_TAG_QUIC 'QUIC'
+#define POOL_TAG_QCon 'QCon'
+#define POOL_TAG_QCTP 'QCTP'
+#define POOL_TAG_QStm 'QStm'
+#define POOL_TAG_QSBf 'QSBf'
+#define POOL_TAG_QSFM 'QSFM'
+#define POOL_TAG_QDta 'QDta'
+#define POOL_TAG_QTst 'QTst'
+#define POOL_TAG_QPrf 'QPrf'
+#define POOL_TAG_QTol 'QTol'
+
+#define POOL_TAG(x) POOL_TAG_##x
+
+#define QUIC_POOL_TAG(a, b, c, d) POOL_TAG(d ## c ## b ## a)
+
+#else
+
+#define POOL_TAG_QUOTE(x) ((#x)[0])
+
+#define QUIC_POOL_TAG(a, b, c, d) \
+    ((POOL_TAG_QUOTE(a) << 24) + \
+     (POOL_TAG_QUOTE(b) << 16) + \
+     (POOL_TAG_QUOTE(c) << 8) + \
+     POOL_TAG_QUOTE(d))
+
+#endif
+
+#define QUIC_POOL_GENERIC QUIC_POOL_TAG(Q, U, I, C) // QUIC - Generic QUIC
+#define QUIC_POOL_CONN    QUIC_POOL_TAG(Q, C, o, n) // QCon - QUIC connection
+#define QUIC_POOL_TP      QUIC_POOL_TAG(Q, C, T, P) // QCTP - QUIC connection transport parameters
+#define QUIC_POOL_STREAM  QUIC_POOL_TAG(Q, S, t, m) // QStm - QUIC stream
+#define QUIC_POOL_SBUF    QUIC_POOL_TAG(Q, S, B, f) // QSBf - QUIC stream buffer
+#define QUIC_POOL_META    QUIC_POOL_TAG(Q, S, F, M) // QSFM - QUIC sent frame metedata
+#define QUIC_POOL_DATA    QUIC_POOL_TAG(Q, D, t, a) // QDta - QUIC datagram buffer
+#define QUIC_POOL_TEST    QUIC_POOL_TAG(Q, T, s, t) // QTst - QUIC test code
+#define QUIC_POOL_PERF    QUIC_POOL_TAG(Q, P, r, f) // QPrf - QUIC perf code
+#define QUIC_POOL_TOOL    QUIC_POOL_TAG(Q, T, o, l) // QTol - QUIC tool code
+
 
 #ifdef _KERNEL_MODE
 #define QUIC_PLATFORM_TYPE 1
