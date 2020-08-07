@@ -91,7 +91,7 @@ private:
     uint16_t Port {THROUGHPUT_DEFAULT_PORT};
     QUIC_EVENT* StopEvent {nullptr};
     uint64_t Length {0};
-    bool ConstructionSuccess {false};
+    // FIXME: unused: bool ConstructionSuccess {false};
     uint8_t UseSendBuffer {TRUE};
     QUIC_ADDR LocalIpAddr;
     uint16_t RemoteFamily {AF_UNSPEC};

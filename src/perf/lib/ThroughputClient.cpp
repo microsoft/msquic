@@ -37,8 +37,6 @@ PrintHelp(
         "  -iocount:<####>             The number of outstanding send requests to queue per stream. (buffered def:%u) (nonbuffered def:%u)\n"
         "\n",
         THROUGHPUT_DEFAULT_PORT,
-        0, // FIXME: encrypt argument missing
-        0, // FIXME: sendbuf argument missing
         THROUGHPUT_DEFAULT_IO_SIZE_BUFFERED, THROUGHPUT_DEFAULT_IO_SIZE_NONBUFFERED,
         THROGHTPUT_DEFAULT_SEND_COUNT_BUFFERED, THROUGHPUT_DEFAULT_SEND_COUNT_NONBUFFERED
         );
@@ -390,6 +388,8 @@ ThroughputClient::StreamCallback(
         StreamDataAllocator.Free(StrmData);
         break;
     }
+    default:
+        break;
     }
     return QUIC_STATUS_SUCCESS;
 }
