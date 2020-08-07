@@ -449,7 +449,7 @@ function Publish-ThroughputTestResults {
     $Request = [ThroughputRequest]::new($Test)
 
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
-    $FullLastResult = LatestThroughputRemoteTestResults -Request $Request
+    $FullLastResult = Get-LatestThroughputRemoteTestResults -Request $Request
 
     if ($FullLastResult -ne "") {
         $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
@@ -631,25 +631,8 @@ function Get-TestMatrix {
         $VariableValues = @{}
         foreach ($VarKey in $DefaultVals.Keys) {
             $VariableValues.Add($VarKey, $DefaultVals[$VarKey].DefaultKey)
-        }
-
-        $LocalVarArgs = @{}
-        $RemoteVarArgs = @{}
-
-        $StateKeyList = @()
-
-        foreach ($Key in $Var.Local.Keys) {
-            $LocalVarArgs.Add($Key, $LocalArgs + " " + $Var.Local[$Key])
-            $RemoteVarArgs.Add($Key, $RemoteArgs + " " + $Var.Remote[$Key])
-            $StateKeyList += $Key
-        }
-
-        foreach ($Key in $DefaultVals.Keys) {
-            foreach ($TestKey in $StateKeyList) {
-                $KeyVal =$DefaultVals[$Key]
-                $LocalVarArgs[$TestKey] += " $($KeyVal.LocalValue)"
-                $RemoteVarArgs[$TestKey] += " $($KeyVal.RemoteValue)"
-            }
+            $LocalArgs += (" " + $DefaultVals[$VarKey].LocalValue)
+            $RemoteArgs += (" " + $DefaultVals[$VarKey].RemoteValue)
         }
 
         # Create the default test
