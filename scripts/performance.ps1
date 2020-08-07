@@ -321,7 +321,7 @@ function Invoke-Test {
                 Merge-PGOCounts -Path $LocalExePath
             }
 
-            Write-Output "Run $($_): $LocalParsedResults kbps"
+            Write-Output "Run $($_): $LocalParsedResults $($Test.Units)"
             $LocalResults | Write-Debug
         }
     } finally {
