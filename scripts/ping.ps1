@@ -141,7 +141,7 @@ if ($InitialBreak) {
     $Arguments += " -InitialBreak"
 }
 if ("None" -ne $LogProfile) {
-    $Arguments += " -LogProfile $($LogProfile) -ConvertLogs"
+    $Arguments += " -LogProfile $($LogProfile)"
 }
 
 $ExtraArgs = ""

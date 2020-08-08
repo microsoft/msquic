@@ -41,9 +41,6 @@ as necessary.
 .PARAMETER LogProfile
     The name of the profile to use for log collection.
 
-.PARAMETER ConvertLogs
-    Convert any collected logs to text. Only works when LogProfile is set.
-
 .PARAMETER CompressOutput
     Compresses the output files generated for failed test cases.
 
@@ -97,9 +94,6 @@ param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose")]
     [string]$LogProfile = "None",
-
-    [Parameter(Mandatory = $false)]
-    [switch]$ConvertLogs = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$CompressOutput = $false,
@@ -307,7 +301,7 @@ function Start-TestCase([String]$Name) {
 
     if ($LogProfile -ne "None") {
         # Start the logs
-        & $LogScript -Start -LogProfile $LogProfile -InstanceName $InstanceName | Out-Null
+        & $LogScript -Start -Profile $LogProfile -InstanceName $InstanceName | Out-Null
     }
 
     # Build up the argument list.
@@ -339,7 +333,7 @@ function Start-AllTestCases {
 
     if ($LogProfile -ne "None") {
         # Start the logs
-        & $LogScript -Start -LogProfile $LogProfile -InstanceName $InstanceName | Out-Null
+        & $LogScript -Start -Profile $LogProfile -InstanceName $InstanceName | Out-Null
     }
 
     # Build up the argument list.
@@ -472,11 +466,7 @@ function Wait-TestCase($TestCase) {
         if ($KeepOutputOnSuccess -or $ProcessCrashed -or $AnyTestFailed) {
 
             if ($LogProfile -ne "None") {
-                if ($ConvertLogs) {
-                    & $LogScript -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName -ConvertToText
-                } else {
-                    & $LogScript -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName | Out-Null
-                }
+                & $LogScript -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName
             }
 
             if ($stdout) {
