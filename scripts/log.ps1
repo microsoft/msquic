@@ -19,7 +19,7 @@ This script provides helpers for starting, stopping and canceling log collection
     The output file name or directory for the logs.
 
 .PARAMETER RawLogOnly
-    Converts the output logs to text.
+    Does not convert the output logs to text. Only keeps raw files.
 
 .PARAMETER InstanceName
     A unique name for the logging instance.
@@ -31,7 +31,7 @@ This script provides helpers for starting, stopping and canceling log collection
     logs.ps1 -Cancel
 
 .EXAMPLE
-    logs.ps1 -Stop -Output quic.etl
+    logs.ps1 -Stop -Output .\quic
 
 #>
 
@@ -42,9 +42,9 @@ param (
     [Parameter(Mandatory = $false, ParameterSetName='Start')]
     [switch]$Stream = $false,
 
-    [Parameter(Mandatory = $true, ParameterSetName='Start')]
+    [Parameter(Mandatory = $false, ParameterSetName='Start')]
     [ValidateSet("Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
-    [string]$Profile,
+    [string]$Profile = "Full.Light",
 
     [Parameter(Mandatory = $false, ParameterSetName='Cancel')]
     [switch]$Cancel = $false,
