@@ -55,7 +55,7 @@ QUIC_STATUS
 QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ QUIC_EVENT StopEvent,
+    _In_ QUIC_EVENT* StopEvent,
     _In_ PerfSelfSignedConfiguration* SelfSignedConfig
     );
 
@@ -67,6 +67,9 @@ QuicMainStop(
 
 inline
 int
+#ifndef _WIN32
+ __attribute__((__format__(__printf__, 1, 2)))
+#endif
 WriteOutput(
     _In_z_ const char* format
     ...
@@ -154,12 +157,12 @@ struct PerfSecurityConfig {
 struct CountHelper {
     long RefCount;
 
-    QUIC_EVENT Done;
+    QUIC_EVENT* Done;
 
     CountHelper() :
         RefCount{1}, Done{} {}
 
-    CountHelper(QUIC_EVENT Done) :
+    CountHelper(QUIC_EVENT* Done) :
         RefCount{1}, Done{Done} { }
 
     bool
@@ -169,7 +172,7 @@ struct CountHelper {
         if (InterlockedDecrement(&RefCount) == 0) {
             return true;
         } else {
-            return !QuicEventWaitWithTimeout(Done, Milliseconds);
+            return !QuicEventWaitWithTimeout(*Done, Milliseconds);
         }
     }
 
@@ -179,7 +182,7 @@ struct CountHelper {
         if (InterlockedDecrement(&RefCount) == 0) {
             return;
         } else {
-            QuicEventWaitForever(Done);
+            QuicEventWaitForever(*Done);
         }
     }
 
@@ -193,7 +196,7 @@ struct CountHelper {
     CompleteItem(
         ) {
         if (InterlockedDecrement(&RefCount) == 0) {
-            QuicEventSet(Done);
+            QuicEventSet(*Done);
         }
     }
 };
@@ -255,16 +258,16 @@ template<typename T, bool Paged = false>
 class QuicPoolAllocator {
     QUIC_POOL Pool;
 public:
-    QuicPoolAllocator() {
+    QuicPoolAllocator() noexcept {
         QuicPoolInitialize(Paged, sizeof(T), QUIC_POOL_PERF, &Pool);
     }
 
-    ~QuicPoolAllocator() {
+    ~QuicPoolAllocator() noexcept {
         QuicPoolUninitialize(&Pool);
     }
 
     template <class... Args>
-    T* Alloc(Args&&... args) {
+    T* Alloc(Args&&... args) noexcept {
         void* Raw = QuicPoolAlloc(&Pool);
         if (Raw == nullptr) {
             return nullptr;
@@ -272,7 +275,7 @@ public:
         return new (Raw) T (QuicForward<Args>(args)...);
     }
 
-    void Free(T* Obj) {
+    void Free(T* Obj) noexcept {
         if (Obj == nullptr) {
             return;
         }
@@ -280,18 +283,3 @@ public:
         QuicPoolFree(&Pool, Obj);
     }
 };
-
-//
-// Arg Value Parsers
-//
-
-inline
-_Success_(return != false)
-bool
-IsValue(
-    _In_z_ const char* name,
-    _In_z_ const char* toTestAgainst
-    )
-{
-    return _strnicmp(name, toTestAgainst, min(strlen(name), strlen(toTestAgainst))) == 0;
-}

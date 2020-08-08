@@ -22,7 +22,7 @@ DatapathHooks* DatapathHooks::Instance;
 
 void QuicTestInitialize()
 {
-    DatapathHooks::Instance = new DatapathHooks;
+    DatapathHooks::Instance = new(std::nothrow) DatapathHooks;
 }
 
 void QuicTestUninitialize()
@@ -44,7 +44,7 @@ QuicTestPrimeResumption(
     struct PrimeResumption {
         _Function_class_(NEW_CONNECTION_CALLBACK) static void
         ListenerAccept(_In_ TestListener* /* Listener */, _In_ HQUIC ConnectionHandle) {
-            auto NewConnection = new TestConnection(ConnectionHandle);
+            auto NewConnection = new(std::nothrow) TestConnection(ConnectionHandle);
             if (NewConnection == nullptr || !NewConnection->IsValid()) {
                 TEST_FAILURE("Failed to accept new TestConnection.");
                 delete NewConnection;
@@ -104,7 +104,7 @@ ListenerAcceptConnection(
     )
 {
     ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
-    *AcceptContext->NewConnection = new TestConnection(ConnectionHandle);
+    *AcceptContext->NewConnection = new(std::nothrow) TestConnection(ConnectionHandle);
     if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *AcceptContext->NewConnection;
@@ -852,7 +852,7 @@ ListenerRejectConnection(
     _In_ HQUIC ConnectionHandle
     )
 {
-    auto Connection = new TestConnection(ConnectionHandle);
+    auto Connection = new(std::nothrow) TestConnection(ConnectionHandle);
     if (Connection == nullptr || !Connection->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete Connection;

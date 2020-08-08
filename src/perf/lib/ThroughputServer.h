@@ -30,7 +30,7 @@ public:
 
     QUIC_STATUS
     Start(
-        _In_ QUIC_EVENT StopEvent
+        _In_ QUIC_EVENT* StopEvent
         ) override;
 
     QUIC_STATUS
@@ -63,7 +63,7 @@ private:
     MsQuicListener Listener {Session};
     PerfSelfSignedConfiguration* SelfSignedConfig;
     PerfSecurityConfig SecurityConfig;
-    QUIC_ADDR Address{};
+    uint16_t Port {THROUGHPUT_DEFAULT_PORT};
     uint32_t NumberOfConnections {0};
     CountHelper RefCount;
 };

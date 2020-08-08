@@ -19,15 +19,14 @@ TestConnection::TestConnection(
     _In_opt_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler
     ) :
     QuicConnection(Handle),
-    Context(nullptr), IsServer(true), IsStarted(true), IsConnected(false), Resumed(false),
-    PeerAddrChanged(false), PeerClosed(false), ExpectedResumed(false),
-    ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS),
+    IsServer(true), IsStarted(true), IsConnected(false), Resumed(false),
+    PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
+    IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false),
+    ExpectedResumed(false), ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS),
     ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
-    TransportClosed(false), IsShutdown(false),
-    ShutdownTimedOut(false), AutoDelete(false),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
-    DatagramsLost(0), DatagramsAcknowledged(0)
+    DatagramsLost(0), DatagramsAcknowledged(0), Context(nullptr)
 {
     QuicEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     QuicEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -46,15 +45,14 @@ TestConnection::TestConnection(
     _In_ bool ForceServer
     ) :
     QuicConnection(nullptr),
-    Context(nullptr), IsServer(false), IsStarted(false), IsConnected(false), Resumed(false),
-    PeerAddrChanged(false), PeerClosed(false), ExpectedResumed(false),
-    ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS),
+    IsServer(false), IsStarted(false), IsConnected(false), Resumed(false),
+    PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
+    IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false),
+    ExpectedResumed(false), ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS),
     ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
-    TransportClosed(false), IsShutdown(false),
-    ShutdownTimedOut(false), AutoDelete(false),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
-    DatagramsLost(0), DatagramsAcknowledged(0)
+    DatagramsLost(0), DatagramsAcknowledged(0), Context(nullptr)
 {
     QuicEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     QuicEventInitialize(&EventPeerClosed, TRUE, FALSE);

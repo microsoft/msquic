@@ -1013,7 +1013,7 @@ ListenerAcceptCallback(
     )
 {
     TestConnection** NewConnection = (TestConnection**)Listener->Context;
-    *NewConnection = new TestConnection(ConnectionHandle);
+    *NewConnection = new(std::nothrow) TestConnection(ConnectionHandle);
     if (*NewConnection == nullptr || !(*NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *NewConnection;
