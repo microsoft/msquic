@@ -5,7 +5,6 @@ RUN     apt-get update -y \
             build-essential \
             cmake \
             liblttng-ust-dev \
-            lttng-tools \
             && apt-get clean
 COPY    . /src
 
@@ -14,7 +13,7 @@ WORKDIR /src/Debug
 RUN     chmod +x /src/scripts/install-powershell-docker.sh
 RUN     /src/scripts/install-powershell-docker.sh
 ENV     PATH="/root/.dotnet/tools:${PATH}"
-RUN     cmake -DQUIC_BUILD_TEST=OFF ..
+RUN     cmake -DQUIC_BUILD_TEST=OFF -DQUIC_BUILD_PERF=OFF ..
 RUN     cmake --build .
 RUN     openssl ecparam -out server.eckey -noout -name prime256v1 -genkey
 RUN	    openssl pkcs8 -topk8 -inform pem -in server.eckey -nocrypt \
@@ -26,10 +25,13 @@ FROM    martenseemann/quic-network-simulator-endpoint
 RUN     apt-get update -y \
             && apt-get install -y \
             libatomic1 \
+            liblttng-ust-dev \
+            lttng-tools \
             && apt-get clean
 COPY    --from=build /src/Debug/bin/Release /bin
 COPY    --from=build /src/Debug/bin/Release/*.so /lib/x86_64-linux-gnu/
 COPY    --from=source /src/scripts/run_endpoint.sh /run_endpoint.sh
+COPY    --from=source /src/src/manifest/clog.sidecar /clog.sidecar
 COPY    --from=build /src/Debug/server.* /
 RUN     chmod +x /run_endpoint.sh
 ENTRYPOINT [ "/run_endpoint.sh" ]
