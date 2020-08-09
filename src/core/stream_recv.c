@@ -685,7 +685,6 @@ QuicStreamRecvFlush(
         QUIC_BUFFER RecvBuffers[2];
         QUIC_STREAM_EVENT Event = {0};
         Event.Type = QUIC_STREAM_EVENT_RECEIVE;
-        Event.RECEIVE.Flags = 0;
         Event.RECEIVE.BufferCount = 2;
         Event.RECEIVE.Buffers = RecvBuffers;
 
@@ -727,61 +726,63 @@ QuicStreamRecvFlush(
                 Event.RECEIVE.Flags |= QUIC_RECEIVE_FLAG_FIN;
             }
 
-            QuicTraceLogStreamVerbose(
-                IndicateReceive,
-                Stream,
-                "Indicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]",
-                Event.RECEIVE.TotalBufferLength,
-                Event.RECEIVE.BufferCount,
-                Event.RECEIVE.Flags);
-
-            QUIC_STATUS Status = QuicStreamIndicateEvent(Stream, &Event);
-            if (Status == QUIC_STATUS_PENDING) {
-                if (Stream->Flags.ReceiveCallPending) {
-                    //
-                    // If the pending call wasn't completed inline, then receive
-                    // callbacks MUST be disabled still.
-                    //
-                    QUIC_TEL_ASSERTMSG_ARGS(
-                        !Stream->Flags.ReceiveEnabled,
-                        "App pended recv AND enabled additional recv callbacks",
-                        Stream->Connection->Registration->AppName,
-                        0, 0);
-                    Stream->Flags.ReceiveEnabled = FALSE;
-                }
-                break;
-
-            } else if (Status == QUIC_STATUS_CONTINUE) {
-                //
-                // The app has explicitly indicated it wants to continue to
-                // receive callbacks, even if all the data wasn't drained.
-                //
-                Stream->Flags.ReceiveEnabled = TRUE;
-
-            } else {
-                //
-                // All other failure status returns are ignored and shouldn't be
-                // used by the app.
-                //
-                QUIC_TEL_ASSERTMSG_ARGS(
-                    QUIC_SUCCEEDED(Status),
-                    "App failed recv callback",
-                    Stream->Connection->Registration->AppName,
-                    Status, 0);
-            }
-
-            QUIC_TEL_ASSERTMSG_ARGS(
-                Stream->Flags.ReceiveCallPending,
-                "App completed async recv without pending it",
-                Stream->Connection->Registration->AppName,
-                0, 0);
-
         } else {
             //
             // FIN only case.
             //
-            Stream->RecvPendingLength = 0;
+            Event.RECEIVE.AbsoluteOffset = Stream->RecvMaxLength;
+            Event.RECEIVE.BufferCount = 0;
+            Event.RECEIVE.Flags |= QUIC_RECEIVE_FLAG_FIN; // TODO - 0-RTT flag?
         }
+
+        QuicTraceLogStreamVerbose(
+            IndicateReceive,
+            Stream,
+            "Indicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]",
+            Event.RECEIVE.TotalBufferLength,
+            Event.RECEIVE.BufferCount,
+            Event.RECEIVE.Flags);
+
+        QUIC_STATUS Status = QuicStreamIndicateEvent(Stream, &Event);
+        if (Status == QUIC_STATUS_PENDING) {
+            if (Stream->Flags.ReceiveCallPending) {
+                //
+                // If the pending call wasn't completed inline, then receive
+                // callbacks MUST be disabled still.
+                //
+                QUIC_TEL_ASSERTMSG_ARGS(
+                    !Stream->Flags.ReceiveEnabled,
+                    "App pended recv AND enabled additional recv callbacks",
+                    Stream->Connection->Registration->AppName,
+                    0, 0);
+                Stream->Flags.ReceiveEnabled = FALSE;
+            }
+            break;
+
+        } else if (Status == QUIC_STATUS_CONTINUE) {
+            //
+            // The app has explicitly indicated it wants to continue to
+            // receive callbacks, even if all the data wasn't drained.
+            //
+            Stream->Flags.ReceiveEnabled = TRUE;
+
+        } else {
+            //
+            // All other failure status returns are ignored and shouldn't be
+            // used by the app.
+            //
+            QUIC_TEL_ASSERTMSG_ARGS(
+                QUIC_SUCCEEDED(Status),
+                "App failed recv callback",
+                Stream->Connection->Registration->AppName,
+                Status, 0);
+        }
+
+        QUIC_TEL_ASSERTMSG_ARGS(
+            Stream->Flags.ReceiveCallPending,
+            "App completed async recv without pending it",
+            Stream->Connection->Registration->AppName,
+            0, 0);
 
         FlushRecv = QuicStreamReceiveComplete(Stream, Event.RECEIVE.TotalBufferLength);
     }

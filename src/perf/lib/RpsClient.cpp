@@ -270,8 +270,9 @@ RpsClient::Wait(
 
     QuicEventWaitWithTimeout(*CompletionEvent, Timeout);
 
-    uint32_t RPS = (CompletedRequests * 1000) / RunTime;
-    WriteOutput("Result: %u RPS\n", RPS);
+    uint32_t RPS = (uint32_t)((CompletedRequests * 1000ull) / (uint64_t)RunTime);
+    WriteOutput("Result: %u RPS (%u start, %u send completed, %u completed)\n",
+        RPS, StartedRequests, SendCompletedRequests, CompletedRequests);
     Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
 
     return QUIC_STATUS_SUCCESS;
@@ -284,7 +285,7 @@ RpsClient::ConnectionCallback(
     ) {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
-        if ((uint32_t)InterlockedIncrement((volatile long*)&ActiveConnections) == ConnectionCount) {
+        if ((uint32_t)InterlockedIncrement64((int64_t*)&ActiveConnections) == ConnectionCount) {
             QuicEventSet(AllConnected);
         }
         break;
@@ -306,11 +307,17 @@ RpsClient::StreamCallback(
     _Inout_ QUIC_STREAM_EVENT* Event
     ) {
     switch (Event->Type) {
-    case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
-        InterlockedIncrement((volatile long*)&CompletedRequests);
+    case QUIC_STREAM_EVENT_RECEIVE:
+        if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN) {
+            InterlockedIncrement64((int64_t*)&CompletedRequests);
+        }
+        break;
+    case QUIC_STREAM_EVENT_SEND_COMPLETE:
+        InterlockedIncrement64((int64_t*)&SendCompletedRequests);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
+        printf("Peer stream aborted!\n");
         MsQuic->StreamShutdown(
             StreamHandle,
             QUIC_STREAM_SHUTDOWN_FLAG_ABORT,
@@ -346,6 +353,7 @@ RpsClient::SendRequest(
             this,
             &Stream);
     if (QUIC_SUCCEEDED(Status)) {
+        InterlockedIncrement64((int64_t*)&StartedRequests);
         Status =
             MsQuic->StreamSend(
                 Stream,
