@@ -1148,13 +1148,30 @@ QuicRecvResumeStreamHandler(
         case QUIC_STREAM_EVENT_RECEIVE:
             if (TestContext->Server) {
 
-                TestContext->AvailableBuffer = (uint32_t) Event->RECEIVE.TotalBufferLength;
+                if (Event->RECEIVE.BufferCount == 0 &&
+                    (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN)) {
+                    break; // Ignore FIN only receive indications.
+                }
+
+                if ((uint64_t)TestContext->ConsumeBufferAmount > Event->RECEIVE.TotalBufferLength) {
+                    TEST_FAILURE("Not enough buffer received: %u (expected %u)",
+                        (uint32_t)Event->RECEIVE.TotalBufferLength,
+                        TestContext->ConsumeBufferAmount);
+                    break;
+                }
+
+                TestContext->AvailableBuffer = (uint32_t)Event->RECEIVE.TotalBufferLength;
                 Event->RECEIVE.TotalBufferLength = TestContext->ConsumeBufferAmount;
 
                 if (TestContext->ReceiveCallbackCount == 0) {
                     if (TestContext->PauseType == ReturnStatusPending) {
+                        if (Event->RECEIVE.BufferCount == 0) {
+                            TEST_FAILURE("No buffers!");
+                            break;
+                        }
                         if (Event->RECEIVE.BufferCount > 1) {
                             TEST_FAILURE("Too many buffers! %u", Event->RECEIVE.BufferCount);
+                            break;
                         }
                         TestContext->PendingBuffer = Event->RECEIVE.Buffers[0].Buffer;
                         Status = QUIC_STATUS_PENDING;
