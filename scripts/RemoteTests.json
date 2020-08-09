@@ -175,7 +175,7 @@
             }
         ],
         "AllowLoopback": false,
-        "Iterations": 10,
+        "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
         "ResultsMatcher": "Result: (.*) RPS",
         "Units": "RPS"
