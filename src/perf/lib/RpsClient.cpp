@@ -271,8 +271,9 @@ RpsClient::Wait(
     QuicEventWaitWithTimeout(*CompletionEvent, Timeout);
 
     uint32_t RPS = (uint32_t)((CompletedRequests * 1000ull) / (uint64_t)RunTime);
-    WriteOutput("Result: %u RPS (%u start, %u send completed, %u completed)\n",
-        RPS, StartedRequests, SendCompletedRequests, CompletedRequests);
+    WriteOutput("Result: %u RPS\n", RPS);
+    //WriteOutput("Result: %u RPS (%ull start, %ull send completed, %ull completed)\n",
+    //    RPS, StartedRequests, SendCompletedRequests, CompletedRequests);
     Session.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
 
     return QUIC_STATUS_SUCCESS;

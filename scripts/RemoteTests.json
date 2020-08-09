@@ -160,10 +160,14 @@
             {
                 "Name": "ResponseSize",
                 "Local": {
-                    "512": ""
+                    "512": "",
+                    "4096": "",
+                    "16384": ""
                 },
                 "Remote": {
-                    "512": "-response:512"
+                    "512": "-response:512",
+                    "4096": "-response:4096",
+                    "16384": "-response:16384"
                 },
                 "Default": "512"
             }
