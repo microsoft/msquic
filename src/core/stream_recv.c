@@ -698,15 +698,11 @@ QuicStreamRecvFlush(
                 &Event.RECEIVE.BufferCount,
                 RecvBuffers);
 
-        Stream->Flags.ReceiveEnabled = FALSE;
-        Stream->Flags.ReceiveCallPending = TRUE;
-
         if (DataAvailable) {
             for (uint32_t i = 0; i < Event.RECEIVE.BufferCount; ++i) {
                 Event.RECEIVE.TotalBufferLength += RecvBuffers[i].Length;
             }
             QUIC_DBG_ASSERT(Event.RECEIVE.TotalBufferLength != 0);
-            Stream->RecvPendingLength = Event.RECEIVE.TotalBufferLength;
 
             if (Event.RECEIVE.AbsoluteOffset < Stream->RecvMax0RttLength) {
                 //
@@ -734,6 +730,10 @@ QuicStreamRecvFlush(
             Event.RECEIVE.BufferCount = 0;
             Event.RECEIVE.Flags |= QUIC_RECEIVE_FLAG_FIN; // TODO - 0-RTT flag?
         }
+
+        Stream->Flags.ReceiveEnabled = FALSE;
+        Stream->Flags.ReceiveCallPending = TRUE;
+        Stream->RecvPendingLength = Event.RECEIVE.TotalBufferLength;
 
         QuicTraceLogStreamVerbose(
             IndicateReceive,
