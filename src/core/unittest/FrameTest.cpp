@@ -1143,7 +1143,7 @@ struct ConnectionCloseFrameTest : ::testing::TestWithParam<bool> {};
 
 TEST_P(ConnectionCloseFrameTest, ConnectionCloseFrameEncodeDecode)
 {
-    char* ReasonPhrase = "no";
+    char ReasonPhrase[] = "no";
     QUIC_CONNECTION_CLOSE_EX Frame = {FALSE, GetParam(), 63, 3, ReasonPhrase};
     QUIC_CONNECTION_CLOSE_EX DecodedFrame;
     uint8_t Buffer[7];
