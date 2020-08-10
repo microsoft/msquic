@@ -2195,7 +2195,7 @@ QuicDataPathBindingReturnRecvDatagrams(
         QuicPoolFree(BatchedInternalContext->OwningPool, BatchedInternalContext);
     }
 
-    if (DataIndications != NULL && Binding != NULL) {
+    if (DataIndications != NULL) {
         //
         // Return the datagram indications back to Wsk.
         //
