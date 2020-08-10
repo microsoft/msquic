@@ -379,6 +379,17 @@ try {
         Write-Error "Tests are not valid"
     }
 
+    # Find All Remote processes, and kill them
+    if (!$Local) {
+        foreach ($Test in $Tests) {
+            $ExeName = $Test.Remote.Exe
+            Invoke-TestCommand -Session $Session -ScriptBlock {
+                Stop-Process -Name $ExeName -Force
+            } -ArgumentList $ExeName
+        }
+
+    }
+
     if (!$SkipDeploy -and !$Local) {
         Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory
     }
