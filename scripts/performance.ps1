@@ -155,16 +155,6 @@ if ($TestsFile -eq "") {
 
 Import-Module (Join-Path $PSScriptRoot 'performance-helper.psm1') -Force
 
-Set-ScriptVariables -Local $Local `
-                    -LocalTls $LocalTls `
-                    -LocalArch $LocalArch `
-                    -RemoteTls $RemoteTls `
-                    -RemoteArch $RemoteArch `
-                    -Config $Config `
-                    -Publish $Publish `
-                    -Record $Record `
-                    -RecordQUIC $RecordQUIC
-
 if ($Local) {
     $RemoteAddress = "localhost"
     $Session = $null
@@ -193,9 +183,17 @@ if ($Local) {
     Write-Output "Local IP Connection $LocalAddress"
 }
 
-Set-Session -Session $Session
-
-
+Set-ScriptVariables -Local $Local `
+                    -LocalTls $LocalTls `
+                    -LocalArch $LocalArch `
+                    -RemoteTls $RemoteTls `
+                    -RemoteArch $RemoteArch `
+                    -Config $Config `
+                    -Publish $Publish `
+                    -Record $Record `
+                    -RecordQUIC $RecordQUIC `
+                    -RemoteAddress $RemoteAddress `
+                    -Session $Session
 
 $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     if ($IsWindows) {
@@ -379,6 +377,21 @@ try {
 
     if ($null -eq $Tests) {
         Write-Error "Tests are not valid"
+    }
+
+    # Find All Remote processes, and kill them
+    if (!$Local) {
+        foreach ($Test in $Tests) {
+            $ExeName = $Test.Remote.Exe
+            Invoke-TestCommand -Session $Session -ScriptBlock {
+                param ($ExeName)
+                try {
+                    Stop-Process -Name $ExeName -Force
+                } catch {
+                }
+            } -ArgumentList $ExeName
+        }
+
     }
 
     if (!$SkipDeploy -and !$Local) {
