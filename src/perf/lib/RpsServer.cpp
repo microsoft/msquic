@@ -195,10 +195,9 @@ RpsServer::StreamCallback(
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
         MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         break;
-    case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
+    case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         MsQuic->StreamClose(StreamHandle);
         break;
-    }
     default:
         break;
     }
