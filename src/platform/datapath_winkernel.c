@@ -2195,10 +2195,11 @@ QuicDataPathBindingReturnRecvDatagrams(
         QuicPoolFree(BatchedInternalContext->OwningPool, BatchedInternalContext);
     }
 
-    if (DataIndications != NULL) {
+    if (DataIndications != NULL && Binding != NULL) {
         //
         // Return the datagram indications back to Wsk.
         //
+        QUIC_DBG_ASSERT(Binding != NULL);
         Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, DataIndications);
     }
 }

@@ -728,6 +728,8 @@ Arguments:
         ContextPtr = Context;
     }
 
+    QUIC_DBG_ASSERT(ContextPtr->ChainHead != NULL);
+
     if (QuicListIsEmpty(ContextPtr->ChainHead)) {
         HashTable->NonEmptyBuckets++;
     }

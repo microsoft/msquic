@@ -55,7 +55,10 @@ QuicLookupUninitialize(
         for (uint8_t i = 0; i < Lookup->PartitionCount; i++) {
             QUIC_PARTITIONED_HASHTABLE* Table = &Lookup->HASH.Tables[i];
             QUIC_DBG_ASSERT(Table->Table.NumEntries == 0);
+#pragma warning(push)
+#pragma warning(disable:6001)
             QuicHashtableUninitialize(&Table->Table);
+#pragma warning(pop)
             QuicDispatchRwLockUninitialize(&Table->RwLock);
         }
         QUIC_FREE(Lookup->HASH.Tables);
@@ -199,7 +202,10 @@ QuicLookupRebalance(
             for (uint8_t i = 0; i < PreviousPartitionCount; i++) {
                 QUIC_HASHTABLE_ENTRY* Entry;
                 QUIC_HASHTABLE_ENUMERATOR Enumerator;
+#pragma warning(push)
+#pragma warning(disable:6001)
                 QuicHashtableEnumerateBegin(&PreviousTable[i].Table, &Enumerator);
+#pragma warning(pop)
                 while (TRUE) {
                     Entry = QuicHashtableEnumerateNext(&PreviousTable[i].Table, &Enumerator);
                     if (Entry == NULL) {
@@ -219,7 +225,10 @@ QuicLookupRebalance(
                         CID,
                         FALSE);
                 }
+#pragma warning(push)
+#pragma warning(disable:6001)
                 QuicHashtableUninitialize(&PreviousTable[i].Table);
+#pragma warning(pop)
             }
             QUIC_FREE(PreviousTable);
         }

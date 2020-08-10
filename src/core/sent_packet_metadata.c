@@ -29,6 +29,8 @@ QuicSentPacketMetadataReleaseFrames(
     for (uint8_t i = 0; i < Metadata->FrameCount; i++) {
         switch (Metadata->Frames[i].Type)
         {
+#pragma warning(push)
+#pragma warning(disable:6001)
         case QUIC_FRAME_RESET_STREAM:
             QuicStreamRelease(Metadata->Frames[i].RESET_STREAM.Stream, QUIC_STREAM_REF_SEND_PACKET);
             break;
@@ -44,6 +46,7 @@ QuicSentPacketMetadataReleaseFrames(
         case QUIC_FRAME_STREAM:
             QuicStreamRelease(Metadata->Frames[i].STREAM.Stream, QUIC_STREAM_REF_SEND_PACKET);
             break;
+#pragma warning(pop)
         default:
             //
             // Nothing to clean up for other frame types.
