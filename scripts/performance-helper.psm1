@@ -183,7 +183,7 @@ function Wait-ForRemoteReady {
 
 function Wait-ForRemote {
     param ($Job)
-    Wait-Job -Job $Job -Timeout 60 | Out-Null
+    Wait-Job -Job $Job -Timeout 120 | Out-Null
     Stop-Job -Job $Job | Out-Null
     $RetVal = Receive-Job -Job $Job
     return $RetVal -join "`n"
@@ -357,7 +357,7 @@ function Invoke-LocalExe {
 
     $LocalJob = Start-Job -ScriptBlock { & $Using:Exe ($Using:RunArgs).Split(" ") }
 
-    # Wait 60 seconds for the job to finish
+    # Wait for the job to finish
     Wait-Job -Job $LocalJob -Timeout $Timeout | Out-Null
     Stop-Job -Job $LocalJob | Out-Null
 
@@ -405,7 +405,7 @@ function Get-LatestThroughputRemoteTestResults([ThroughputRequest]$Request) {
     $Uri = "https://msquicperformanceresults.azurewebsites.net/throughput/get"
     $RequestJson = ConvertTo-Json -InputObject $Request
     Write-Debug "Requesting: $Uri with $RequestJson"
-    $LatestResult = Invoke-RestMethod -Uri $Uri -Body $RequestJson -Method 'Post' -ContentType "application/json"
+    $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Body $RequestJson -Method 'Post' -ContentType "application/json"
     Write-Debug "Result: $LatestResult"
     return $LatestResult
 }
@@ -481,11 +481,111 @@ function Publish-ThroughputTestResults {
 
 #endregion
 
+#region RPS Publish
+
+class RPSRequest {
+    [string]$PlatformName;
+    [int]$ConnectionCount;
+    [int]$RequestSize;
+    [int]$ResponseSize;
+    [int]$ParallelRequests;
+
+    RPSRequest (
+        [TestRunDefinition]$Test
+    ) {
+        $this.PlatformName = $Test.ToTestPlatformString();
+        $this.ConnectionCount = $Test.VariableValues["ConnectionCount"];
+        $this.RequestSize = $Test.VariableValues["RequestSize"];
+        $this.ResponseSize = $Test.VariableValues["ResponseSize"];
+        $this.ParallelRequests = 2;
+    }
+}
+
+function Get-LatestRPSRemoteTestResults([RPSRequest]$Request) {
+    $Uri = "https://msquicperformanceresults.azurewebsites.net/RPS/get"
+    $RequestJson = ConvertTo-Json -InputObject $Request
+    Write-Debug "Requesting: $Uri with $RequestJson"
+    $LatestResult = Invoke-RestMethod -SkipHttpErrorCheck -Uri $Uri -Body $RequestJson -Method 'Post' -ContentType "application/json"
+    Write-Debug "Result: $LatestResult"
+    return $LatestResult
+}
+
+class RPSTestPublishResult {
+    [string]$MachineName;
+    [string]$PlatformName;
+    [string]$TestName;
+    [string]$CommitHash;
+    [string]$AuthKey;
+    [double[]]$IndividualRunResults;
+    [int]$ConnectionCount;
+    [int]$RequestSize;
+    [int]$ResponseSize;
+    [int]$ParallelRequests;
+
+    RPSTestPublishResult (
+        [RPSRequest]$Request,
+        [double[]]$RunResults,
+        [string]$MachineName,
+        [string]$CommitHash
+    ) {
+        $this.TestName = "RPS"
+        $this.MachineName = $MachineName
+        $this.PlatformName = $Request.PlatformName
+        $this.CommitHash = $CommitHash
+        $this.AuthKey = "empty"
+        $this.IndividualRunResults = $RunResults
+        $this.ConnectionCount = $Request.ConnectionCount
+        $this.RequestSize = $Request.RequestSize
+        $this.ResponseSize = $Request.ResponseSize
+        $this.ParallelRequests = $Request.ParallelRequests
+    }
+}
+
+function Publish-RPSTestResults {
+    param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
+
+    $Request = [RPSRequest]::new($Test)
+
+    $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
+    $FullLastResult = Get-LatestRPSRemoteTestResults -Request $Request
+
+    if ($FullLastResult -ne "") {
+        $MedianLastResult = Get-MedianTestResults -FullResults $FullLastResult.individualRunResults
+        $PercentDiff = 100 * (($MedianCurrentResult - $MedianLastResult) / $MedianLastResult)
+        $PercentDiffStr = $PercentDiff.ToString("#.##")
+        if ($PercentDiff -ge 0) {
+            $PercentDiffStr = "+$PercentDiffStr"
+        }
+        Write-Output "Median: $MedianCurrentResult $($Test.Units) ($PercentDiffStr%)"
+        Write-Output "Master: $MedianLastResult $($Test.Units)"
+    } else {
+        Write-Output "Median: $MedianCurrentResult $($Test.Units)"
+    }
+
+    if ($Publish -and ($null -ne $CurrentCommitHash)) {
+        Write-Output "Saving results_$Test.json out for publishing."
+        $MachineName = $null
+        if (Test-Path 'env:AGENT_MACHINENAME') {
+            $MachineName = $env:AGENT_MACHINENAME
+        }
+        $Results = [RPSTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7))
+
+        $ResultFile = Join-Path $OutputDir "results_$Test.json"
+        $Results | ConvertTo-Json | Out-File $ResultFile
+    } elseif (!$Publish) {
+        Write-Debug "Failed to publish because of missing commit hash"
+    }
+}
+
+#endregion
+
 function Publish-TestResults {
     param ([TestRunDefinition]$Test, $AllRunsResults, $CurrentCommitHash, $OutputDir)
 
     if ($Test.TestName -eq "Throughput") {
         Publish-ThroughputTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
+    } elseif ($Test.TestName -eq "RPS") {
+        Publish-RPSTestResults -Test $Test -AllRunsResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -OutputDir $OutputDir
     } else {
         Write-Error "Unknown Test Type"
     }

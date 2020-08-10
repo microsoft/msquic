@@ -610,16 +610,18 @@ QuicTestValidateStreamEvents1(
     { // Stream scope
 
     StreamValidator ClientStream(
-        new(std::nothrow) StreamEventValidator* [6] {
+        new(std::nothrow) StreamEventValidator* [7] {
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_START_COMPLETE),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
             nullptr
         });
     StreamValidator ServerStream(
-        new(std::nothrow) StreamEventValidator* [4] {
+        new(std::nothrow) StreamEventValidator* [5] {
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN, QUIC_EVENT_ACTION_SHUTDOWN_STREAM),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE),
