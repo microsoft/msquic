@@ -26,8 +26,7 @@ lttng -q create msquiclive --live 10000
 lttng enable-event --userspace CLOG_*
 lttng start
 babeltrace -i lttng-live net://localhost
-HOST=`hostname`
-babeltrace --names all -i lttng-live net://localhost/host/$HOST/msquiclive \
+babeltrace --names all -i lttng-live net://localhost/host/`hostname`/msquiclive \
     | clog2text_lttng -s clog.sidecar --t --c > /log/quic.log &
 
 if [ "$ROLE" == "client" ]; then
