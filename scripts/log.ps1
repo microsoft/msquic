@@ -6,7 +6,7 @@ This script provides helpers for starting, stopping and canceling log collection
 .PARAMETER Start
     Starts the logs being collected with the given profile.
 
-.PARAMETER LogProfile
+.PARAMETER Profile
     The name of the profile to use for log collection.
 
 .PARAMETER Cancel
@@ -18,20 +18,20 @@ This script provides helpers for starting, stopping and canceling log collection
 .PARAMETER Output
     The output file name or directory for the logs.
 
-.PARAMETER ConvertToText
-    Converts the output logs to text.
+.PARAMETER RawLogOnly
+    Does not convert the output logs to text. Only keeps raw files.
 
 .PARAMETER InstanceName
     A unique name for the logging instance.
 
 .EXAMPLE
-    logs.ps1 -Start -LogProfile Basic.Light
+    logs.ps1 -Start -Profile Basic.Light
 
 .EXAMPLE
     logs.ps1 -Cancel
 
 .EXAMPLE
-    logs.ps1 -Stop -Output quic.etl
+    logs.ps1 -Stop -Output .\quic
 
 #>
 
@@ -42,9 +42,9 @@ param (
     [Parameter(Mandatory = $false, ParameterSetName='Start')]
     [switch]$Stream = $false,
 
-    [Parameter(Mandatory = $true, ParameterSetName='Start')]
+    [Parameter(Mandatory = $false, ParameterSetName='Start')]
     [ValidateSet("Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
-    [string]$LogProfile,
+    [string]$Profile = "Full.Light",
 
     [Parameter(Mandatory = $false, ParameterSetName='Cancel')]
     [switch]$Cancel = $false,
@@ -56,7 +56,7 @@ param (
     [string]$OutputDirectory = "",
 
     [Parameter(Mandatory = $false, ParameterSetName='Stop')]
-    [switch]$ConvertToText = $false,
+    [switch]$RawLogOnly = $false,
 
     [Parameter(Mandatory = $false, ParameterSetName='Stop')]
     [string]$TmfPath = "",
@@ -94,7 +94,7 @@ if ($IsLinux) {
 # Start log collection.
 function Log-Start {
     if ($IsWindows) {
-        wpr.exe -start "$($WprpFile)!$($LogProfile)" -filemode -instancename $InstanceName
+        wpr.exe -start "$($WprpFile)!$($Profile)" -filemode -instancename $InstanceName
     } else {
         if (Test-Path $TempDir) {
             Write-Error "LTTng session ($InstanceName) already running! ($TempDir)"
@@ -147,7 +147,7 @@ function Log-Stop {
     if ($IsWindows) {
         $EtlPath = Join-Path $OutputDirectory "quic.etl"
         wpr.exe -stop $EtlPath -instancename $InstanceName
-        if ($ConvertToText) {
+        if (!$RawLogOnly) {
             $LogPath = Join-Path $OutputDirectory "quic.log"
             $Command = "netsh trace convert $($EtlPath) output=$($LogPath) overwrite=yes report=no"
             if ($TmfPath -ne "") {
@@ -161,7 +161,7 @@ function Log-Stop {
         if (!(Test-Path $OutputDirectory)) {
             New-Item -Path $OutputDirectory -ItemType Directory -Force | Out-Null
         }
-    
+
         if (!(Test-Path $TempDir)) {
             Write-Error "LTTng session ($InstanceName) not currently running!"
         }
@@ -174,7 +174,7 @@ function Log-Stop {
         Write-Host "tar/gzip LTTng log files: $LTTNGTarFile"
         tar -cvzf $LTTNGTarFile $TempDir | Write-Debug
 
-        if ($ConvertToText) {
+        if (!$RawLogOnly) {
             Write-Debug "Decoding LTTng into BabelTrace format ($BableTraceFile)"
             babeltrace --names all $TempDir/* > $BableTraceFile
 
