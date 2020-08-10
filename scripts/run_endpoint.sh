@@ -22,17 +22,14 @@ fi
 
 # Start LTTng log collection.
 mkdir /log
-mkdir /log/lttng
-lttng create msquic -o=/log/lttng
+lttng -q create msquiclive --live
 lttng enable-event --userspace CLOG_*
 lttng start
-
-function finish {
-    # Stop log collection and convert.
-    lttng stop msquic
-    babeltrace --names all /log/lttng/* > /log/quic.babel
-    clog2text_lttng -i /log/quic.babel -s clog.sidecar -o /log/quic.log
-}
+babeltrace -i lttng-live net://localhost
+HOST=`hostname`
+babeltrace --names all -i lttng-live net://localhost/host/$HOST/msquiclive \
+    | clog2text_lttng -s clog.sidecar --showTimestamp --showCpuInfo \
+    > /log/quic.log &
 
 if [ "$ROLE" == "client" ]; then
     # Wait for the simulator to start up.
