@@ -52,5 +52,3 @@ elif [ "$ROLE" == "server" ]; then
     quicinteropserver ${SERVER_PARAMS} -root:/www -listen:* -port:443 \
         -file:/server.crt -key:/server.key 2>&1
 fi
-
-trap finish EXIT
