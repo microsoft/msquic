@@ -26,9 +26,10 @@ Abstract:
 #include <winioctl.h>
 #include "PerfIoctls.h"
 #include "quic_driver_helpers.h"
-#include "quic_datapath.h"
 
 #endif
+
+#include "quic_datapath.h"
 
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 
@@ -49,8 +50,8 @@ QuicUserMain(
     TryGetValue(argc, argv, "ServerMode", &ServerMode);
 
     QUIC_STATUS Status;
-    QUIC_DATAPATH* Datapath;
-    QUIC_DATAPATH_BINDING* Binding;
+    QUIC_DATAPATH* Datapath = nullptr;
+    QUIC_DATAPATH_BINDING* Binding = nullptr;
 
     if (ServerMode) {
         QuicDataPathInitialize(256, DatapathReceiveUserMode, DatapathUnreachable, &Datapath);
