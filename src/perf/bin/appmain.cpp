@@ -54,17 +54,27 @@ QuicUserMain(
     QUIC_DATAPATH_BINDING* Binding = nullptr;
 
     if (ServerMode) {
-        QuicDataPathInitialize(256, DatapathReceiveUserMode, DatapathUnreachable, &Datapath);
+        Status = QuicDataPathInitialize(0, DatapathReceiveUserMode, DatapathUnreachable, &Datapath);
+        if (QUIC_FAILED(Status)) {
+            return Status;
+        }
         QUIC_ADDR LocalAddress;
-        QuicZeroMemory(&LocalAddress, sizeof(LocalAddress));
         QuicAddrSetPort(&LocalAddress, 9999);
-        QuicAddrSetFamily(&LocalAddress, AF_INET);
+        QuicAddrSetFamily(&LocalAddress, AF_UNSPEC);
 
-        QuicDataPathBindingCreate(Datapath, &LocalAddress, nullptr, &StopEvent, &Binding);
+        Status = QuicDataPathBindingCreate(Datapath, &LocalAddress, nullptr, &StopEvent, &Binding);
+        if (QUIC_FAILED(Status)) {
+            QuicDataPathUninitialize(Datapath);
+            return Status;
+        }
     }
 
     Status = QuicMainStart(argc, argv, &StopEvent, SelfSignedConfig);
-    if (Status != 0) {
+    if (QUIC_FAILED(Status)) {
+        if (ServerMode) {
+            QuicDataPathBindingDelete(Binding);
+            QuicDataPathUninitialize(Datapath);
+        }
         return Status;
     }
 
