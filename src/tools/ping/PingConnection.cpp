@@ -499,6 +499,8 @@ PingConnection::ProcessEvent(
         case QUIC_DATAGRAM_SEND_CANCELED:
             DatagramsCancelled++;
             break;
+        default:
+            break;
         }
 
         delete SendRequest;

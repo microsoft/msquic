@@ -160,6 +160,8 @@ private:
         case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
             pThis->Release();
             break;
+        default:
+            break;
         }
         return QUIC_STATUS_SUCCESS;
     }

@@ -1896,7 +1896,7 @@ QuicDataPathBindingFreeSendDatagram(
     PlatDispatch->DatapathBindingFreeSendBuffer(SendContext, Datagram);
 #else
     QuicPoolFree(&SendContext->Owner->SendBufferPool, Datagram->Buffer);
-    Datagram->Buffer == NULL;
+    Datagram->Buffer = NULL;
 
     QUIC_DBG_ASSERT(Datagram == &SendContext->Buffers[SendContext->BufferCount - 1]);
 
