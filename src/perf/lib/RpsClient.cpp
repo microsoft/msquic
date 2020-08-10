@@ -328,6 +328,8 @@ RpsClient::StreamCallback(
         SendRequest(StreamHandle); // Starts a new stream
         MsQuic->StreamClose(StreamHandle);
         break;
+    default:
+        break;
     }
     return QUIC_STATUS_SUCCESS;
 }

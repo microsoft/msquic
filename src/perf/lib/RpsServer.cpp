@@ -145,6 +145,8 @@ RpsServer::ListenerCallback(
         InterlockedIncrement((volatile long*)&ActiveConnectionCount);
         break;
     }
+    default:
+        break;
     }
     return QUIC_STATUS_SUCCESS;
 }
@@ -197,6 +199,8 @@ RpsServer::StreamCallback(
         MsQuic->StreamClose(StreamHandle);
         break;
     }
+    default:
+        break;
     }
     return QUIC_STATUS_SUCCESS;
 }
