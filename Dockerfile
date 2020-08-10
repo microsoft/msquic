@@ -32,6 +32,11 @@ COPY    --from=build /src/Debug/bin/Release /bin
 COPY    --from=build /src/Debug/bin/Release/*.so /lib/x86_64-linux-gnu/
 COPY    --from=source /src/scripts/run_endpoint.sh /run_endpoint.sh
 COPY    --from=source /src/src/manifest/clog.sidecar /clog.sidecar
+COPY    --from=source /src/scripts/install-powershell-docker.sh \
+            /install-powershell-docker.sh
+RUN     chmod +x /install-powershell-docker.sh
+RUN     /install-powershell-docker.sh
+ENV     PATH="/root/.dotnet/tools:${PATH}"
 COPY    --from=build /src/Debug/server.* /
 RUN     chmod +x /run_endpoint.sh
 ENTRYPOINT [ "/run_endpoint.sh" ]
