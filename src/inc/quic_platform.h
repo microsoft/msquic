@@ -66,44 +66,17 @@ typedef struct QUIC_SINGLE_LIST_ENTRY {
 //
 // Different pool tags used for marking allocations.
 //
-#ifdef _WIN32
 
-#define POOL_TAG_QUIC 'CIUQ'
-#define POOL_TAG_QCon 'noCQ'
-#define POOL_TAG_QCTP 'PTCQ'
-#define POOL_TAG_QStm 'mtSQ'
-#define POOL_TAG_QSBf 'fBSQ'
-#define POOL_TAG_QSFM 'MFSQ'
-#define POOL_TAG_QDta 'atDQ'
-#define POOL_TAG_QTst 'tsTQ'
-#define POOL_TAG_QPrf 'frPQ'
-#define POOL_TAG_QTol 'loTQ'
-
-#define QUIC_POOL_TAG(a, b, c, d) POOL_TAG_ ##a ## b ## c ## d
-
-#else
-
-#define POOL_TAG_QUOTE(x) ((#x)[0])
-
-#define QUIC_POOL_TAG(a, b, c, d) \
-    ((POOL_TAG_QUOTE(d) << 24) + \
-     (POOL_TAG_QUOTE(c) << 16) + \
-     (POOL_TAG_QUOTE(b) << 8) + \
-     POOL_TAG_QUOTE(a))
-
-#endif
-
-#define QUIC_POOL_GENERIC QUIC_POOL_TAG(Q, U, I, C) // QUIC - Generic QUIC
-#define QUIC_POOL_CONN    QUIC_POOL_TAG(Q, C, o, n) // QCon - QUIC connection
-#define QUIC_POOL_TP      QUIC_POOL_TAG(Q, C, T, P) // QCTP - QUIC connection transport parameters
-#define QUIC_POOL_STREAM  QUIC_POOL_TAG(Q, S, t, m) // QStm - QUIC stream
-#define QUIC_POOL_SBUF    QUIC_POOL_TAG(Q, S, B, f) // QSBf - QUIC stream buffer
-#define QUIC_POOL_META    QUIC_POOL_TAG(Q, S, F, M) // QSFM - QUIC sent frame metedata
-#define QUIC_POOL_DATA    QUIC_POOL_TAG(Q, D, t, a) // QDta - QUIC datagram buffer
-#define QUIC_POOL_TEST    QUIC_POOL_TAG(Q, T, s, t) // QTst - QUIC test code
-#define QUIC_POOL_PERF    QUIC_POOL_TAG(Q, P, r, f) // QPrf - QUIC perf code
-#define QUIC_POOL_TOOL    QUIC_POOL_TAG(Q, T, o, l) // QTol - QUIC tool code
-
+#define QUIC_POOL_GENERIC   'CIUQ'  // QUIC - Generic QUIC
+#define QUIC_POOL_CONN      'noCQ'  // QCon - QUIC connection
+#define QUIC_POOL_TP        'PTCQ'  // QCTP - QUIC connection transport parameters
+#define QUIC_POOL_STREAM    'mtSQ'  // QStm - QUIC stream
+#define QUIC_POOL_SBUF      'fBSQ'  // QSBf - QUIC stream buffer
+#define QUIC_POOL_META      'MFSQ'  // QSFM - QUIC sent frame metedata
+#define QUIC_POOL_DATA      'atDQ'  // QDta - QUIC datagram buffer
+#define QUIC_POOL_TEST      'tsTQ'  // QTst - QUIC test code
+#define QUIC_POOL_PERF      'frPQ'  // QPrf - QUIC perf code
+#define QUIC_POOL_TOOL      'loTQ'  // QTol - QUIC tool code
 
 #ifdef _KERNEL_MODE
 #define QUIC_PLATFORM_TYPE 1
