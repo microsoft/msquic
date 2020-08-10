@@ -60,7 +60,7 @@ QuicUserMain(
         }
         QUIC_ADDR LocalAddress;
         QuicAddrSetPort(&LocalAddress, 9999);
-        QuicAddrSetFamily(&LocalAddress, AF_UNSPEC);
+        QuicAddrSetFamily(&LocalAddress, AF_INET);
 
         Status = QuicDataPathBindingCreate(Datapath, &LocalAddress, nullptr, &StopEvent, &Binding);
         if (QUIC_FAILED(Status)) {
@@ -88,8 +88,6 @@ QuicUserMain(
     }
 
     Status = QuicMainStop(0);
-
-    printf("Main Stopped\n");
 
     if (ServerMode) {
         QuicDataPathBindingDelete(Binding);
@@ -268,7 +266,6 @@ DatapathReceiveUserMode(
     _In_ QUIC_RECV_DATAGRAM* DatagramChain
     )
 {
-    printf("Packet Received\n");
     QUIC_EVENT* Event = static_cast<QUIC_EVENT*>(Context);
     QuicEventSet(*Event);
 }
