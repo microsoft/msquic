@@ -28,7 +28,7 @@ lttng start
 babeltrace -i lttng-live net://localhost
 HOST=`hostname`
 babeltrace --names all -i lttng-live net://localhost/host/$HOST/msquiclive \
-    | clog2text_lttng -s clog.sidecar --showTimestamp --showCpuInfo \
+    | stdbuf -i0 -o0 -e0 clog2text_lttng -s clog.sidecar --t --c \
     > /log/quic.log &
 
 if [ "$ROLE" == "client" ]; then
