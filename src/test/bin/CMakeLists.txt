@@ -17,4 +17,6 @@ set_property(TARGET msquictest PROPERTY FOLDER "tests")
 
 target_link_libraries(msquictest msquic testlib platform inc gtest msquictest.clog)
 
-add_test(msquictest msquictest)
+add_test(NAME msquictest
+         COMMAND msquictest
+         WORKING_DIRECTORY ${QUIC_OUTPUT_DIR})
