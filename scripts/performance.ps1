@@ -149,16 +149,6 @@ if ($TestsFile -eq "") {
 
 Import-Module (Join-Path $PSScriptRoot 'performance-helper.psm1') -Force
 
-Set-ScriptVariables -Local $Local `
-                    -LocalTls $LocalTls `
-                    -LocalArch $LocalArch `
-                    -RemoteTls $RemoteTls `
-                    -RemoteArch $RemoteArch `
-                    -Config $Config `
-                    -Publish $Publish `
-                    -Record $Record `
-                    -RecordQUIC $RecordQUIC
-
 if ($Local) {
     $RemoteAddress = "localhost"
     $Session = $null
@@ -187,9 +177,17 @@ if ($Local) {
     Write-Output "Local IP Connection $LocalAddress"
 }
 
-Set-Session -Session $Session
-
-
+Set-ScriptVariables -Local $Local `
+                    -LocalTls $LocalTls `
+                    -LocalArch $LocalArch `
+                    -RemoteTls $RemoteTls `
+                    -RemoteArch $RemoteArch `
+                    -Config $Config `
+                    -Publish $Publish `
+                    -Record $Record `
+                    -RecordQUIC $RecordQUIC `
+                    -RemoteAddress $RemoteAddress `
+                    -Session $Session
 
 $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     if ($IsWindows) {

@@ -27,9 +27,33 @@ Abstract:
 #include "PerfIoctls.h"
 #include "quic_driver_helpers.h"
 
+#include <atomic>
+
 #endif
 
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
+
+#ifdef _WIN32
+    typedef SOCKET PERF_SOCKET;
+#else
+    typedef int PERF_SOCKET;
+#endif
+
+std::atomic<PERF_SOCKET> CancelSocket{0};
+
+typedef
+void
+(QUIC_API * PERF_CANCEL_CALLBACK)(
+    _In_opt_ void* Context
+    );
+
+PERF_CANCEL_CALLBACK CancelCallback;
+
+static
+void
+CleanupSocket();
+
+QUIC_THREAD_CALLBACK(QuicServerStopThread, Context);
 
 QUIC_STATUS
 QuicUserMain(
@@ -41,7 +65,33 @@ QuicUserMain(
     QUIC_EVENT StopEvent;
     QuicEventInitialize(&StopEvent, true, false);
 
-    QUIC_STATUS Status = QuicMainStart(argc, argv, &StopEvent, SelfSignedConfig);
+    uint8_t ServerMode = 0;
+    TryGetValue(argc, argv, "ServerMode", &ServerMode);
+
+    QUIC_STATUS Status;
+    QUIC_THREAD Thread;
+
+    if (ServerMode) {
+        CancelCallback = [](void* ctx) -> void {
+            QUIC_EVENT* Event = static_cast<QUIC_EVENT*>(ctx);
+            QuicEventSet(*Event);
+        };
+
+        QUIC_THREAD_CONFIG ThreadConfig;
+        QuicZeroMemory(&ThreadConfig, sizeof(ThreadConfig));
+        ThreadConfig.Callback = QuicServerStopThread;
+        ThreadConfig.Context = &StopEvent;
+        ThreadConfig.Name = "Perf Cancel Thread";
+
+
+
+        Status = QuicThreadCreate(&ThreadConfig, &Thread);
+        if (Status != 0) {
+            return Status;
+        }
+    }
+
+    Status = QuicMainStart(argc, argv, &StopEvent, SelfSignedConfig);
     if (Status != 0) {
         return Status;
     }
@@ -56,6 +106,14 @@ QuicUserMain(
     }
 
     Status = QuicMainStop(0);
+
+    if (ServerMode) {
+        CleanupSocket();
+        QuicThreadWait(&Thread);
+        QuicThreadDelete(&Thread);
+    }
+
+
     QuicEventUninitialize(StopEvent);
     return Status;
 }
@@ -219,4 +277,85 @@ Exit:
     QuicPlatformSystemUnload();
 
     return RetVal;
+}
+
+typedef
+void
+(QUIC_API * PERF_CANCEL_CALLBACK)(
+    _In_opt_ void* Context
+    );
+
+static
+void
+CleanupSocket(
+    )
+{
+    PERF_SOCKET Soc = CancelSocket.exchange(0);
+    if (Soc == 0) {
+        return;
+    }
+#ifdef _WIN32
+    ::shutdown(Soc, SD_BOTH);
+    closesocket(Soc);
+    WSACleanup();
+#else
+    ::shutdown(Soc, SHUT_RDWR);
+    close(Soc);
+#endif
+}
+
+#ifndef _WIN32
+#define INVALID_SOCKET -1
+#endif
+
+QUIC_THREAD_CALLBACK(QuicServerStopThread, Context)
+{
+#ifdef _WIN32
+    WSAData WsaData;
+    WORD VersionRequested = MAKEWORD(2, 2);
+    WSAStartup(VersionRequested, &WsaData);
+#endif
+
+    PERF_SOCKET Soc = socket(AF_INET, SOCK_DGRAM, 0);
+
+    CancelSocket.store(Soc);
+
+    if (Soc == INVALID_SOCKET) {
+        printf("Failed to initialize socket\n");
+#ifdef _WIN32
+        WSACleanup();
+#endif
+        QUIC_THREAD_RETURN(QUIC_STATUS_INTERNAL_ERROR);
+    }
+
+    struct sockaddr_in Addr;
+    QuicZeroMemory(&Addr, sizeof(Addr));
+    Addr.sin_family = AF_INET;
+    Addr.sin_addr.s_addr = INADDR_ANY;
+    Addr.sin_port = htons(9999);
+
+#ifdef _WIN32
+    int Optval = 1;
+    setsockopt(Soc, SOL_SOCKET, SO_EXCLUSIVEADDRUSE,
+               reinterpret_cast<char*>(&Optval), sizeof Optval);
+#else
+    int optval = 1;
+    setsockopt(Soc, SOL_SOCKET, SO_REUSEADDR,
+               reinterpret_cast<char*>(&optval), sizeof optval);
+#endif
+
+    int BindRes = bind(Soc, reinterpret_cast<sockaddr*>(&Addr), sizeof(Addr));
+    if (BindRes != 0) {
+        printf("Failed to bind socket\n");
+        CleanupSocket();
+        QUIC_THREAD_RETURN(QUIC_STATUS_INTERNAL_ERROR);
+    }
+
+    char Buf[256];
+
+    int RecvVal = recv(Soc, Buf, sizeof(Buf), 0);
+
+    CancelCallback(Context);
+
+    QUIC_THREAD_RETURN(QUIC_STATUS_SUCCESS);
 }

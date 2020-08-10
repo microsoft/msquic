@@ -87,7 +87,7 @@ $WpaQUICLogProfileXml = `
 
 function Set-ScriptVariables {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record, $RecordQUIC)
+    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record, $RecordQUIC, $RemoteAddress, $Session)
     $script:Local = $Local
     $script:LocalTls = $LocalTls
     $script:LocalArch = $LocalArch
@@ -97,17 +97,19 @@ function Set-ScriptVariables {
     $script:Publish = $Publish
     $script:Record = $Record
     $script:RecordQUIC = $RecordQUIC
-}
-
-function Set-Session {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-    param ($Session)
+    $script:RemoteAddress = $RemoteAddress
     $script:Session = $Session
     if ($null -ne $Session) {
         Invoke-Command -Session $Session -ScriptBlock {
             $ErrorActionPreference = "Stop"
         }
     }
+}
+
+function Set-Session {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
+    param ($Session)
+
 }
 
 function Convert-HostToNetworkOrder {
@@ -183,6 +185,9 @@ function Wait-ForRemoteReady {
 
 function Wait-ForRemote {
     param ($Job)
+    # Ping sidechannel socket on 9999 to tell the app to die
+    $Socket = New-Object System.Net.Sockets.UDPClient
+    $Socket.Send(@(1), 1, $RemoteAddress, 9999) | Out-Null
     Wait-Job -Job $Job -Timeout 60 | Out-Null
     Stop-Job -Job $Job | Out-Null
     $RetVal = Receive-Job -Job $Job
