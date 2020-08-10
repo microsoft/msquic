@@ -12,6 +12,8 @@ Abstract:
 #include "PerfHelpers.h"
 #include "ThroughputServer.h"
 #include "ThroughputClient.h"
+#include "RpsServer.h"
+#include "RpsClient.h"
 
 #ifdef QUIC_CLOG
 #include "quicmain.cpp.clog.h"
@@ -27,9 +29,7 @@ PrintHelp(
     ) {
     WriteOutput(
         "\n"
-        "Usage: quicperf -TestName:[Throughput|RPS] [options]\n"
-        "\n"
-        "  -ServerMode:<1:0>        default: '0'\n"
+        "Usage: quicperf -TestName:<Throughput|RPS> [-ServerMode:<1:0>] [options]\n"
         "\n"
         );
 }
@@ -79,6 +79,12 @@ QuicMainStart(
             TestToRun = new(std::nothrow) ThroughputServer(SelfSignedConfig);
         } else {
             TestToRun = new(std::nothrow) ThroughputClient;
+        }
+    } else if (IsValue(TestName, "RPS")) {
+        if (ServerMode) {
+            TestToRun = new(std::nothrow) RpsServer(SelfSignedConfig);
+        } else {
+            TestToRun = new(std::nothrow) RpsClient;
         }
     } else {
         delete MsQuic;
