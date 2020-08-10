@@ -385,7 +385,10 @@ try {
             $ExeName = $Test.Remote.Exe
             Invoke-TestCommand -Session $Session -ScriptBlock {
                 param ($ExeName)
-                Stop-Process -Name $ExeName -Force
+                try {
+                    Stop-Process -Name $ExeName -Force
+                } catch {
+                }
             } -ArgumentList $ExeName
         }
 
