@@ -28,8 +28,8 @@ lttng start
 babeltrace -i lttng-live net://localhost
 HOST=`hostname`
 babeltrace --names all -i lttng-live net://localhost/host/$HOST/msquiclive \
-    | stdbuf -i0 -o0 -e0 clog2text_lttng -s clog.sidecar --t --c \
-    > /log/quic.log &
+    | clog2text_lttng -s clog.sidecar --t --c \
+    > quic.log &
 
 if [ "$ROLE" == "client" ]; then
     # Wait for the simulator to start up.
