@@ -22,7 +22,7 @@ fi
 
 # Start LTTng log collection.
 mkdir /log
-lttng -q create msquiclive --live
+lttng -q create msquiclive --live 10000
 lttng enable-event --userspace CLOG_*
 lttng start
 babeltrace -i lttng-live net://localhost
