@@ -43,8 +43,7 @@ QuicUserMain(
     _In_ bool KeyboardWait,
     _In_ PerfSelfSignedConfiguration* SelfSignedConfig
     ) {
-    QUIC_EVENT StopEvent;
-    QuicEventInitialize(&StopEvent, true, false);
+    EventScope StopEvent {true};
 
     uint8_t ServerMode = 0;
     TryGetValue(argc, argv, "ServerMode", &ServerMode);
@@ -58,18 +57,16 @@ QuicUserMain(
         if (QUIC_FAILED(Status)) {
             return Status;
         }
-        QUIC_ADDR LocalAddress;
-        QuicAddrSetPort(&LocalAddress, 9999);
-        QuicAddrSetFamily(&LocalAddress, AF_INET);
 
-        Status = QuicDataPathBindingCreate(Datapath, &LocalAddress, nullptr, &StopEvent, &Binding);
+        QuicAddr LocalAddress {AF_INET, (uint16_t)9999};
+        Status = QuicDataPathBindingCreate(Datapath, &LocalAddress.SockAddr, nullptr, &StopEvent.Handle, &Binding);
         if (QUIC_FAILED(Status)) {
             QuicDataPathUninitialize(Datapath);
             return Status;
         }
     }
 
-    Status = QuicMainStart(argc, argv, &StopEvent, SelfSignedConfig);
+    Status = QuicMainStart(argc, argv, &StopEvent.Handle, SelfSignedConfig);
     if (QUIC_FAILED(Status)) {
         if (ServerMode) {
             QuicDataPathBindingDelete(Binding);
@@ -94,7 +91,6 @@ QuicUserMain(
         QuicDataPathUninitialize(Datapath);
     }
 
-    QuicEventUninitialize(StopEvent);
     return Status;
 }
 

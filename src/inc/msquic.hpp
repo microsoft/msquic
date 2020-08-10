@@ -31,6 +31,11 @@ struct QuicAddr {
         QuicZeroMemory(&SockAddr, sizeof(SockAddr));
         QuicAddrSetFamily(&SockAddr, af);
     }
+    QuicAddr(QUIC_ADDRESS_FAMILY af, uint16_t Port) {
+        QuicZeroMemory(&SockAddr, sizeof(SockAddr));
+        QuicAddrSetFamily(&SockAddr, af);
+        QuicAddrSetPort(&SockAddr, Port);
+    }
     QuicAddr(QUIC_ADDRESS_FAMILY af, bool /*unused*/) {
         QuicZeroMemory(&SockAddr, sizeof(SockAddr));
         QuicAddrSetFamily(&SockAddr, af);
@@ -48,6 +53,7 @@ struct QuicAddr {
         QuicAddrIncrement(&SockAddr);
     }
     uint16_t GetPort() const { return QuicAddrGetPort(&SockAddr); }
+    void SetPort(uint16_t Port) noexcept { QuicAddrSetPort(&SockAddr, Port); }
 };
 
 template<class T>
@@ -508,6 +514,7 @@ struct StreamScope {
 struct EventScope {
     QUIC_EVENT Handle;
     EventScope() noexcept { QuicEventInitialize(&Handle, FALSE, FALSE); }
+    EventScope(bool ManualReset) noexcept { QuicEventInitialize(&Handle, ManualReset, FALSE); }
     EventScope(QUIC_EVENT event) noexcept : Handle(event) { }
     ~EventScope() noexcept { QuicEventUninitialize(Handle); }
     operator QUIC_EVENT() const noexcept { return Handle; }
