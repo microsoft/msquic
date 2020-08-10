@@ -384,6 +384,7 @@ try {
         foreach ($Test in $Tests) {
             $ExeName = $Test.Remote.Exe
             Invoke-TestCommand -Session $Session -ScriptBlock {
+                param ($ExeName)
                 Stop-Process -Name $ExeName -Force
             } -ArgumentList $ExeName
         }
