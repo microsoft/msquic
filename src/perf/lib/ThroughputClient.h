@@ -15,7 +15,7 @@ Abstract:
 
 #include "PerfHelpers.h"
 #include "PerfBase.h"
-#include "ThroughputCommon.h"
+#include "PerfCommon.h"
 #include "SendRequest.h"
 
 class ThroughputClient : public PerfBase {
@@ -30,7 +30,7 @@ public:
 
     QUIC_STATUS
     Start(
-        _In_ QUIC_EVENT StopEvent
+        _In_ QUIC_EVENT* StopEvent
         ) override;
 
     QUIC_STATUS
@@ -88,14 +88,14 @@ private:
     QuicPoolAllocator<SendRequest> SendRequestAllocator;
     QuicPoolBufferAllocator BufferAllocator;
     UniquePtr<char[]> TargetData;
-    uint16_t Port{ 0 };
-    QUIC_EVENT StopEvent{};
-    uint64_t Length{0};
-    bool ConstructionSuccess {false};
-    uint8_t UseSendBuffer{1};
-    QUIC_ADDR LocalIpAddr{};
-    uint16_t RemoteFamily{AF_UNSPEC};
-    uint32_t IoSize{0};
-    uint32_t IoCount{0};
-    uint8_t UseEncryption{1};
+    uint16_t Port {THROUGHPUT_DEFAULT_PORT};
+    QUIC_EVENT* StopEvent {nullptr};
+    uint64_t Length {0};
+    // FIXME: unused: bool ConstructionSuccess {false};
+    uint8_t UseSendBuffer {TRUE};
+    QUIC_ADDR LocalIpAddr;
+    uint16_t RemoteFamily {AF_UNSPEC};
+    uint32_t IoSize {0};
+    uint32_t IoCount {0};
+    uint8_t UseEncryption {TRUE};
 };

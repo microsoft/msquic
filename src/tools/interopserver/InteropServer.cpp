@@ -186,8 +186,9 @@ HttpRequest::Process()
         return;
     }
 
+    char index[] = "/index.html";
     if (strcmp("/", PathStart) == 0) {
-        PathStart = "/index.html";
+        PathStart = index;
     }
 
     char FullFilePath[256];
@@ -367,6 +368,8 @@ HttpRequest::QuicBidiCallbackHandler(
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         delete pThis;
         break;
+    default:
+        break;
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -401,6 +404,8 @@ HttpRequest::QuicUnidiCallbackHandler(
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         delete pThis;
+        break;
+    default:
         break;
     }
     return QUIC_STATUS_SUCCESS;

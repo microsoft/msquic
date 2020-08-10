@@ -23,10 +23,10 @@ TestListener::TestListener(
     _In_ bool AsyncSecConfig,
     _In_ bool UseSendBuffer
     ) :
-    QuicListener(nullptr), Context(nullptr),
+    QuicListener(nullptr),
     FilterConnections(false), SetSecConfig(!AsyncSecConfig),
-    NewConnectionCallback(NewConnectionCallbackHandler),
-    UseSendBuffer(UseSendBuffer)
+    UseSendBuffer(UseSendBuffer), NewConnectionCallback(NewConnectionCallbackHandler),
+    Context(nullptr)
 {
     QUIC_STATUS Status =
         MsQuic->ListenerOpen(

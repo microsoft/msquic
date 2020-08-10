@@ -286,14 +286,16 @@ function Invoke-Test {
         Write-Error "Failed to Run $Test because of missing exe"
     }
 
-    $LocalArguments = $Test.Local.Arguments.GetArguments().Replace('$RemoteAddress', $RemoteAddress)
+    $LocalArguments = $Test.Local.Arguments.Replace('$RemoteAddress', $RemoteAddress)
     $LocalArguments = $LocalArguments.Replace('$LocalAddress', $LocalAddress)
 
     $CertThumbprint = Invoke-TestCommand -Session $Session -ScriptBlock {
         return $env:QUICCERT
     }
 
-    $RemoteArguments = $Test.Remote.Arguments.GetArguments().Replace('$Thumbprint', $CertThumbprint)
+    $RemoteArguments = $Test.Remote.Arguments.Replace('$Thumbprint', $CertThumbprint)
+
+    Write-Debug "Running Remote: $RemoteExe Args: $RemoteArguments"
 
     # Starting the server
     $RemoteJob = Invoke-RemoteExe -Exe $RemoteExe -RunArgs $RemoteArguments
@@ -310,6 +312,7 @@ function Invoke-Test {
 
     try {
         1..$Test.Iterations | ForEach-Object {
+            Write-Debug "Running Local: $LocalExe Args: $LocalArguments"
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout
             $LocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
             $AllRunsResults += $LocalParsedResults
@@ -318,7 +321,7 @@ function Invoke-Test {
                 Merge-PGOCounts -Path $LocalExePath
             }
 
-            Write-Output "Run $($_): $LocalParsedResults kbps"
+            Write-Output "Run $($_): $LocalParsedResults $($Test.Units)"
             $LocalResults | Write-Debug
         }
     } finally {

@@ -39,7 +39,7 @@ typedef _In_range_(0, QUIC_VAR_INT_MAX) uint64_t QUIC_VAR_INT;
 // in a variable-length encoding.
 //
 #define QuicVarIntSize(Value) \
-    (Value < 0x40 ? sizeof(uint8_t) : (Value < 0x4000 ? sizeof(uint16_t) : (Value < 0x40000000 ? sizeof(uint32_t) : sizeof(uint64_t))))
+    ((QUIC_VAR_INT)Value < 0x40 ? sizeof(uint8_t) : ((QUIC_VAR_INT)Value < 0x4000 ? sizeof(uint16_t) : ((QUIC_VAR_INT)Value < 0x40000000 ? sizeof(uint32_t) : sizeof(uint64_t))))
 
 //
 // Helper to encode a variable-length integer.

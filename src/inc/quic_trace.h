@@ -21,11 +21,11 @@ Abstract:
 
     QUIC_EVENTS_STUB            No-op all Events
     QUIC_EVENTS_MANIFEST_ETW    Write to Windows ETW framework
-    QUIC_EVENTS_LTTNG           Write to Linux LTTng framework
 
     QUIC_LOGS_STUB              No-op all Logs
     QUIC_LOGS_MANIFEST_ETW      Write to Windows ETW framework
-    QUIC_LOGS_LTTNG             Write to Linux LTTng framework
+
+    QUIC_CLOG                   Bypasses these mechanisms and uses CLOG to generate logging
 
  --*/
 
@@ -35,11 +35,11 @@ Abstract:
 #pragma once
 
 #if !defined(QUIC_CLOG)
-#if !defined(QUIC_EVENTS_STUB) && !defined(QUIC_EVENTS_MANIFEST_ETW) && !defined(QUIC_EVENTS_LTTNG)
+#if !defined(QUIC_EVENTS_STUB) && !defined(QUIC_EVENTS_MANIFEST_ETW)
 #error "Must define one QUIC_EVENTS_*"
 #endif
 
-#if !defined(QUIC_LOGS_STUB) && !defined(QUIC_LOGS_MANIFEST_ETW) && !defined(QUIC_LOGS_LTTNG)
+#if !defined(QUIC_LOGS_STUB) && !defined(QUIC_LOGS_MANIFEST_ETW)
 #error "Must define one QUIC_LOGS_*"
 #endif
 #endif
@@ -184,12 +184,6 @@ QuicEtwCallback(
 
 #endif // QUIC_EVENTS_MANIFEST_ETW
 
-#ifdef QUIC_EVENTS_LTTNG
-
-#include "quic_trace_lttng.h"
-
-#endif // QUIC_EVENTS_LTTNG
-
 #ifdef QUIC_LOGS_STUB
 
 #define QuicTraceLogErrorEnabled()   FALSE
@@ -275,12 +269,6 @@ QuicTraceStubVarArgs(
 #define QuicTraceLogStreamVerbose(Name, Ptr, Fmt, ...)  LogEtwType(Stream, Verbose, Ptr, Fmt, ##__VA_ARGS__)
 
 #endif // QUIC_LOGS_MANIFEST_ETW
-
-#ifdef QUIC_LOGS_LTTNG
-
-#error "LTTng not supported yet!"
-
-#endif // QUIC_LOGS_LTTNG
 
 #endif // QUIC_CLOG
 

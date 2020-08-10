@@ -92,7 +92,7 @@ QuicPlatformUninitialize(
 
 #define ARRAYSIZE(A) (sizeof(A)/sizeof((A)[0]))
 
-#define UNREFERENCED_PARAMETER(P) (P)
+#define UNREFERENCED_PARAMETER(P) (void)(P)
 
 #define QuicNetByteSwapShort(x) htons((x))
 

@@ -106,7 +106,7 @@ DrillPacketDescriptor::write(
     //
     // Copy version.
     //
-    for (int i = 0; i < sizeof(Version); ++i) {
+    for (size_t i = 0; i < sizeof(Version); ++i) {
         PacketBuffer.push_back((uint8_t) (Version >> (((sizeof(Version) - 1) - i) * 8)));
     }
 

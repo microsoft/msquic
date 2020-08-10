@@ -1673,9 +1673,9 @@ QuicTlsWriteDataToSchannel(
     //
     // Another (output) secbuffer is for any TLS alerts.
     //
-    OutSecBuffers[OutSecBufferDesc.cBuffers].BufferType = SECBUFFER_EMPTY;
+    OutSecBuffers[OutSecBufferDesc.cBuffers].BufferType = SECBUFFER_ALERT;
     OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = sizeof(AlertBufferRaw);
-    OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = &AlertBufferRaw;
+    OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = AlertBufferRaw;
     OutSecBufferDesc.cBuffers++;
 
     if (TlsContext->TransportParams != NULL) {
@@ -1799,7 +1799,8 @@ QuicTlsWriteDataToSchannel(
             OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_TOKEN) {
             OutputTokenBuffer = &OutSecBufferDesc.pBuffers[i];
         } else if (AlertBuffer == NULL &&
-            OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_ALERT) {
+            OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_ALERT &&
+            OutSecBufferDesc.pBuffers[i].cbBuffer > 0) {
             AlertBuffer = &OutSecBufferDesc.pBuffers[i];
         } else if (TlsExtensionBuffer == NULL &&
             OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_SUBSCRIBE_GENERIC_TLS_EXTENSION) {
@@ -2155,6 +2156,24 @@ QuicTlsWriteDataToSchannel(
         // Some other error occurred and we should indicate no data could be
         // processed successfully.
         //
+        if (AlertBuffer != NULL) {
+            if (AlertBuffer->cbBuffer < 2) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "TLS alert message received (invalid)");
+            } else {
+                State->AlertCode = ((uint8_t*)AlertBuffer->pvBuffer)[1];
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    State->AlertCode,
+                    "TLS alert message received");
+            }
+            Result |= QUIC_TLS_RESULT_ERROR;
+        }
         *InBufferLength = 0;
         QuicTraceEvent(
             TlsErrorStatus,

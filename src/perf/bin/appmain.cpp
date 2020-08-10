@@ -9,10 +9,8 @@ Abstract:
 
 --*/
 
-#define QUIC_TEST_APIS 1
-#include "quic_driver_main.h"
 #include "PerfHelpers.h"
-#include <quic_trace.h>
+
 #ifdef QUIC_CLOG
 #include "appmain.cpp.clog.h"
 #endif
@@ -43,7 +41,7 @@ QuicUserMain(
     QUIC_EVENT StopEvent;
     QuicEventInitialize(&StopEvent, true, false);
 
-    QUIC_STATUS Status = QuicMainStart(argc, argv, StopEvent, SelfSignedConfig);
+    QUIC_STATUS Status = QuicMainStart(argc, argv, &StopEvent, SelfSignedConfig);
     if (Status != 0) {
         return Status;
     }

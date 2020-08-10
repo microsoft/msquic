@@ -9,30 +9,26 @@ Abstract:
 
 --*/
 
+#include "ThroughputServer.h"
+
 #ifdef QUIC_CLOG
 #include "ThroughputServer.cpp.clog.h"
 #endif
-
-#ifndef _KERNEL_MODE
-#define QUIC_TEST_APIS 1
-#endif
-#define QUIC_API_ENABLE_INSECURE_FEATURES 1
-#include "msquichelper.h"
-#include "quic_trace.h"
-#include "ThroughputServer.h"
-#include "ThroughputCommon.h"
 
 static
 void
 PrintHelp(
     ) {
-    WriteOutput("Usage: quicperf -TestName:Throughput -ServerMode:1 [options]\n\n"
-        "  -listen:<addr or *>         The local IP address to listen on, or * for all IP addresses.\n"
+    WriteOutput(
+        "\n"
+        "Throughput Server options:\n"
+        "\n"
         "  -thumbprint:<cert_hash>     The hash or thumbprint of the certificate to use.\n"
         "  -cert_store:<store name>    The certificate store to search for the thumbprint in.\n"
         "  -machine_cert:<0/1>         Use the machine, or current user's, certificate store. (def:0)\n"
         "  -connections:<####>         The number of connections to create. (def:0)\n"
-        "  -port:<####>                The UDP port of the server. (def:%u)\n",
+        "  -port:<####>                The UDP port of the server. (def:%u)\n"
+        "\n",
         THROUGHPUT_DEFAULT_PORT
         );
 }
@@ -40,7 +36,6 @@ PrintHelp(
 ThroughputServer::ThroughputServer(
     _In_ PerfSelfSignedConfiguration* SelfSignedConfig
     ) : SelfSignedConfig{SelfSignedConfig} {
-    QuicZeroMemory(&Address, sizeof(Address));
     if (Session.IsValid()) {
         Session.SetAutoCleanup();
         Session.SetPeerUnidiStreamCount(THROUGHPUT_SERVER_PEER_UNI);
@@ -54,35 +49,35 @@ ThroughputServer::Init(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
+    if (argc > 0 && (IsArg(argv[0], "?") || IsArg(argv[0], "help"))) {
+        PrintHelp();
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
     if (!Listener.IsValid()) {
         return Listener.GetInitStatus();
     }
 
-    uint16_t port = THROUGHPUT_DEFAULT_PORT;
-    TryGetValue(argc, argv, "port", &port);
-
-    const char* localAddress = nullptr;
-    if (!TryGetValue(argc, argv, "listen", &localAddress)) {
-        WriteOutput("Server mode must have -listen\n");
-        PrintHelp();
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-    if (!ConvertArgToAddress(localAddress, port, &Address)) {
-        WriteOutput("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", localAddress);
-        PrintHelp();
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
+    TryGetValue(argc, argv, "port", &Port);
     TryGetValue(argc, argv, "connections", &NumberOfConnections);
 
     QUIC_STATUS Status = SecurityConfig.Initialize(argc, argv, Registration, SelfSignedConfig);
-    return Status;
+    if (QUIC_FAILED(Status)) {
+        PrintHelp();
+        return Status;
+    }
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS
 ThroughputServer::Start(
-    _In_ QUIC_EVENT StopEvent
+    _In_ QUIC_EVENT* StopEvent
     ) {
+    QUIC_ADDR Address;
+    QuicAddrSetFamily(&Address, AF_UNSPEC);
+    QuicAddrSetPort(&Address, Port);
+
     QUIC_STATUS Status =
         Listener.Start(
             &Address,
@@ -198,6 +193,8 @@ ThroughputServer::StreamCallback(
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
         MsQuic->StreamClose(StreamHandle);
+        break;
+    default:
         break;
     }
     }

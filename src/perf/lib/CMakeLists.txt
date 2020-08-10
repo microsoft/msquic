@@ -8,11 +8,7 @@ set(SOURCES
 )
 
 # Allow CLOG to preprocess all the source files.
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")   
-    add_clog_library(perflib.clog STATIC ${SOURCES} PerfHelpers.h)
-else() 
-    add_clog_library(perflib.clog SHARED ${SOURCES} PerfHelpers.h)
-endif()
+add_clog_library(perflib.clog STATIC ${SOURCES} PerfHelpers.h)
 
 add_library(perflib ${SOURCES})
 
@@ -26,8 +22,6 @@ target_include_directories(perflib PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
 if (MSVC)
     target_compile_options(perflib PUBLIC /wd4459)
-else()
-    target_compile_options(perflib PUBLIC -Wno-switch)
 endif()
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
