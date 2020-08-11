@@ -335,6 +335,7 @@ typedef struct QUIC_TLS {
     BOOLEAN PeerTransportParamsReceived : 1;
     BOOLEAN HandshakeKeyRead : 1;
     BOOLEAN ApplicationKeyRead : 1;
+    BOOLEAN TicketReceived : 1;
 
     QUIC_TLS_SESSION* TlsSession;
 
@@ -2222,6 +2223,17 @@ QuicTlsProcessData(
         goto Error;
     }
 
+    if (!TlsContext->IsServer && State->BufferOffset1Rtt > 0 &&
+        State->ReadKeys[QUIC_PACKET_KEY_HANDSHAKE] == NULL) {
+        //
+        // Schannel currently sends the NST with server_finished.
+        // We need to wait for the handshake to be confirmed before
+        // setting the flag, since we don't know if we're received
+        // the ticket yet.
+        //
+        TlsContext->TicketReceived = TRUE;
+    }
+
     QuicTraceLogConnVerbose(
         SchannelProcessingData,
         TlsContext->Connection,
@@ -2277,10 +2289,15 @@ QuicTlsReadTicket(
         uint8_t* Buffer
     )
 {
-    UNREFERENCED_PARAMETER(TlsContext);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_INVALID_STATE;
+    BufferLength = 0;
+    if (TlsContext->TicketReceived) {
+        if (Buffer == NULL) {
+            return QUIC_STATUS_BUFFER_TOO_SMALL;
+        } else {
+            return QUIC_STATUS_SUCCESS;
+        }
+    }
+    return  QUIC_STATUS_INVALID_STATE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
