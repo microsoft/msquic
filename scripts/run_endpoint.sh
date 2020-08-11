@@ -21,13 +21,12 @@ fi
 # - CLIENT_PARAMS contains user-supplied command line parameters
 
 # Start LTTng live streaming.
-mkdir /log
-lttng -q create msquiclive --live 10000
+lttng -q create msquiclive --live 1000
 lttng enable-event --userspace CLOG_*
 lttng start
 babeltrace -i lttng-live net://localhost
 babeltrace --names all -i lttng-live net://localhost/host/`hostname`/msquiclive \
-    | clog2text_lttng -s clog.sidecar --t --c > /log/quic.log &
+    | stdbuf -i0 -o0 clog2text_lttng -s clog.sidecar --t --c > /logs/quic.log &
 
 if [ "$ROLE" == "client" ]; then
     # Wait for the simulator to start up.
