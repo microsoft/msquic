@@ -453,8 +453,8 @@ MsQuicSetCallbackHandler(
             (QUIC_LISTENER_CALLBACK_HANDLER)Handler;
         break;
 
-    case QUIC_HANDLE_TYPE_CLIENT:
-    case QUIC_HANDLE_TYPE_CHILD:
+    case QUIC_HANDLE_TYPE_CONNECTION_CLIENT:
+    case QUIC_HANDLE_TYPE_CONNECTION_SERVER:
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         ((QUIC_CONNECTION*)Handle)->ClientCallbackHandler =
             (QUIC_CONNECTION_CALLBACK_HANDLER)Handler;
@@ -718,8 +718,8 @@ QuicLibrarySetParam(
         Registration = Session->Registration;
         break;
 
-    case QUIC_HANDLE_TYPE_CLIENT:
-    case QUIC_HANDLE_TYPE_CHILD:
+    case QUIC_HANDLE_TYPE_CONNECTION_CLIENT:
+    case QUIC_HANDLE_TYPE_CONNECTION_SERVER:
         Stream = NULL;
         Listener = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
@@ -854,8 +854,8 @@ QuicLibraryGetParam(
         Registration = Session->Registration;
         break;
 
-    case QUIC_HANDLE_TYPE_CLIENT:
-    case QUIC_HANDLE_TYPE_CHILD:
+    case QUIC_HANDLE_TYPE_CONNECTION_CLIENT:
+    case QUIC_HANDLE_TYPE_CONNECTION_SERVER:
         Stream = NULL;
         Listener = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
