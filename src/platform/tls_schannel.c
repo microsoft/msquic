@@ -2224,12 +2224,11 @@ QuicTlsProcessData(
     }
 
     if (!TlsContext->IsServer && State->BufferOffset1Rtt > 0 &&
-        State->ReadKeys[QUIC_PACKET_KEY_HANDSHAKE] == NULL) {
+        State->HandshakeComplete) {
         //
-        // Schannel currently sends the NST with server_finished.
-        // We need to wait for the handshake to be confirmed before
-        // setting the flag, since we don't know if we're received
-        // the ticket yet.
+        // Schannel currently sends the NST after receiving client finished.
+        // We need to wait for the handshake to be complete before setting
+        // the flag, since we don't know if we've received the ticket yet.
         //
         TlsContext->TicketReceived = TRUE;
     }
