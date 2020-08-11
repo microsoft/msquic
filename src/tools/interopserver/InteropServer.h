@@ -12,6 +12,9 @@
 extern const QUIC_API_TABLE* MsQuic;
 extern QUIC_SEC_CONFIG* SecurityConfig;
 
+const QUIC_BUFFER QuackBuffer = { sizeof("quack") - 1, (uint8_t*)"quack" };
+const QUIC_BUFFER QuackAckBuffer = { sizeof("quack-ack") - 1, (uint8_t*)"quack-ack" };
+
 //
 // The default port used for connecting with QuicHttpServer.
 //
@@ -31,6 +34,11 @@ extern QUIC_SEC_CONFIG* SecurityConfig;
 // The send IO size to use.
 //
 #define IO_SIZE 64 * 1024
+
+//
+// Siduck error code for invalid payload.
+//
+#define SIDUCK_ONLY_QUACKS_ECHO 0x101
 
 //
 // Exits if there is a failure.
@@ -167,6 +175,55 @@ private:
     }
 };
 
+struct DatagramConnection {
+    DatagramConnection(HQUIC connection) :
+        QuicConnection(connection) {
+        BOOLEAN EnableDatagrams = TRUE;
+        MsQuic->SetParam(
+            QuicConnection,
+            QUIC_PARAM_LEVEL_CONNECTION,
+            QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
+            sizeof(EnableDatagrams),
+            &EnableDatagrams);
+        MsQuic->SetCallbackHandler(QuicConnection, (void*)QuicCallbackHandler, this);
+    }
+    ~DatagramConnection() {
+        MsQuic->ConnectionClose(QuicConnection);
+    }
+private:
+    HQUIC QuicConnection;
+private:
+    static
+    QUIC_STATUS
+    QUIC_API
+    QuicCallbackHandler(
+        _In_ HQUIC Connection,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        ) {
+        DatagramConnection *pThis = (DatagramConnection*)Context;
+        switch (Event->Type) {
+        case QUIC_CONNECTION_EVENT_CONNECTED:
+            MsQuic->ConnectionSendResumptionTicket(pThis->QuicConnection, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr);
+            break;
+        case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
+            delete pThis;
+            break;
+        case QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED:
+            if (Event->DATAGRAM_RECEIVED.Buffer->Length == QuackBuffer.Length &&
+                !memcmp(Event->DATAGRAM_RECEIVED.Buffer->Buffer, QuackBuffer.Buffer, QuackBuffer.Length)) {
+                MsQuic->DatagramSend(pThis->QuicConnection, &QuackAckBuffer, 1, QUIC_SEND_FLAG_NONE, nullptr);
+            } else {
+                MsQuic->ConnectionShutdown(pThis->QuicConnection, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, SIDUCK_ONLY_QUACKS_ECHO);
+            }
+            break;
+        default:
+            break;
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
 struct HttpServer {
     HttpServer(HQUIC Session, const QUIC_ADDR* LocalAddress) {
         EXIT_ON_FAILURE(
@@ -196,7 +253,12 @@ private:
         ) {
         if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
             Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
-            new HttpConnection(Event->NEW_CONNECTION.Connection);
+            if (Event->NEW_CONNECTION.Info->NegotiatedAlpnLength >= 6 &&
+                !memcmp(Event->NEW_CONNECTION.Info->NegotiatedAlpn, "siduck", 6)) {
+                new DatagramConnection(Event->NEW_CONNECTION.Connection);
+            } else {
+                new HttpConnection(Event->NEW_CONNECTION.Connection);
+            }
             return QUIC_STATUS_SUCCESS;
         }
         return QUIC_STATUS_NOT_SUPPORTED;
