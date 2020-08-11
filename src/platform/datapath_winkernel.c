@@ -2199,6 +2199,7 @@ QuicDataPathBindingReturnRecvDatagrams(
         //
         // Return the datagram indications back to Wsk.
         //
+        QUIC_DBG_ASSERT(Binding != NULL);
         Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, DataIndications);
     }
 }

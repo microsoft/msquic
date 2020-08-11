@@ -3265,6 +3265,7 @@ QuicConnRecvHeader(
 
             QUIC_DBG_ASSERT(TokenBuffer == NULL);
             QuicPacketDecodeRetryTokenV1(Packet, &TokenBuffer, &TokenLength);
+            QUIC_DBG_ASSERT(TokenBuffer != NULL);
             QUIC_DBG_ASSERT(TokenLength == sizeof(QUIC_RETRY_TOKEN_CONTENTS));
 
             QUIC_RETRY_TOKEN_CONTENTS Token;
