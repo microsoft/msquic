@@ -65,13 +65,16 @@ QuicVarIntEncode(
         Buffer[0] = (uint8_t)Value;
         return Buffer + sizeof(uint8_t);
     } else if (Value < 0x4000) {
-        *(uint16_t*)Buffer = QuicByteSwapUint16((0x40 << 8) | (uint16_t)Value);
+        const uint16_t tmp = QuicByteSwapUint16((0x40 << 8) | (uint16_t)Value);
+        memcpy(Buffer, &tmp, sizeof(tmp));
         return Buffer + sizeof(uint16_t);
     } else if (Value < 0x40000000) {
-        *(uint32_t*)Buffer = QuicByteSwapUint32((0x80UL << 24) | (uint32_t)Value);
+        const uint32_t tmp = QuicByteSwapUint32((0x80UL << 24) | (uint32_t)Value);
+        memcpy(Buffer, &tmp, sizeof(tmp));
         return Buffer + sizeof(uint32_t);
     } else {
-        *(uint64_t*)Buffer = QuicByteSwapUint64((0xc0ULL << 56) | Value);
+        const uint64_t tmp = QuicByteSwapUint64((0xc0ULL << 56) | Value);
+        memcpy(Buffer, &tmp, sizeof(tmp));
         return Buffer + sizeof(uint64_t);
     }
 }
@@ -90,7 +93,8 @@ QuicVarIntEncode2Bytes(
 {
     QUIC_DBG_ASSERT(Value < 0x4000);
 
-    *(uint16_t*)Buffer = QuicByteSwapUint16((0x40 << 8) | (uint16_t)Value);
+    const uint16_t tmp = QuicByteSwapUint16((0x40 << 8) | (uint16_t)Value);
+    memcpy(Buffer, &tmp, sizeof(tmp));
     return Buffer + sizeof(uint16_t);
 }
 
