@@ -25753,6 +25753,18 @@
       {
         "UniquenessHash": "4f17ceb1-4af8-424e-18d8-17117328147a",
         "TraceID": "TestDriverStopped"
+      },
+      {
+        "UniquenessHash": "214be45a-42ba-44e1-05c2-f82f3200e671",
+        "TraceID": "EncodeTPRetrySourceCID"
+      },
+      {
+        "UniquenessHash": "cc5e9bc2-359a-36f2-27f3-a319e5aee533",
+        "TraceID": "OpenSsslIgnoringTicket"
+      },
+      {
+        "UniquenessHash": "8fcfd765-ba83-53f1-a0bc-6992c51d42bd",
+        "TraceID": "SchannelIgnoringTicket"
       }
     ]
   }

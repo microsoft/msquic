@@ -2215,7 +2215,7 @@ QuicTlsProcessData(
         Result = QUIC_TLS_RESULT_ERROR;
 
         QuicTraceLogConnVerbose(
-            SchannelProcessingData_IgnoringTicket,
+            SchannelIgnoringTicket,
             TlsContext->Connection,
             "Ignoring %u ticket bytes",
             *BufferLength);
