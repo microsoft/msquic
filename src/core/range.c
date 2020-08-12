@@ -244,6 +244,9 @@ QuicRangeGetRange(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_SUBRANGE*
+#if defined(__clang__)
+    __attribute__((no_sanitize("unsigned-integer-overflow")))
+#endif
 QuicRangeAddRange(
     _Inout_ QUIC_RANGE* Range,
     _In_ uint64_t Low,
@@ -259,7 +262,6 @@ QuicRangeAddRange(
     *RangeUpdated = FALSE;
 
 #if QUIC_RANGE_USE_BINARY_SEARCH
-    // FIXME: runtime error: unsigned integer overflow: 0 - 1 cannot be represented in type 'unsigned int'
     if ((Sub = QuicRangeGetSafe(Range, Range->UsedLength - 1)) != NULL &&
         Sub->Low + Sub->Count > Low) {
 #endif
@@ -289,7 +291,6 @@ QuicRangeAddRange(
         // Make sure the previous subrange isn't 1 less than the current Low.
         // If so, start with that subrange.
         //
-        // FIXME: runtime error: unsigned integer overflow: 0 - 1 cannot be represented in type 'unsigned int'
         if ((Sub = QuicRangeGetSafe(Range, i - 1)) != NULL &&
             Sub->Low + Sub->Count == Low) {
             i--;
