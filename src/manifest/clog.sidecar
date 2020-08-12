@@ -907,43 +907,6 @@
         "CustomSettings": null
       }
     },
-    "ApiEventTooLong": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] App took excessive time (%llu us) in callback.",
-      "UniqueId": "ApiEventTooLong",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                    Connection",
-            "UserSuppliedTrimmed": "Connection",
-            "SuggestedTelemetryName": "arg1"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                    (EndTime - StartTime)",
-            "UserSuppliedTrimmed": "(EndTime - StartTime)",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogConnWarning",
-        "EncodedPrefix": "[conn][%p] ",
-        "EncodedArgNumber": 2,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "empty",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
     "ApiEventAlreadyClosed": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Event silently discarded.",
@@ -8482,34 +8445,6 @@
         "CustomSettings": null
       }
     },
-    "LibraryEncryptionSet": {
-      "ModuleProperites": {},
-      "TraceString": "[ lib] Updated encryption disabled = %hu",
-      "UniqueId": "LibraryEncryptionSet",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            MsQuicLib.EncryptionDisabled",
-            "UserSuppliedTrimmed": "MsQuicLib.EncryptionDisabled",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogWarning",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "empty",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
     "LibraryTestDatapathHooksSet": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Updated test datapath hooks",
@@ -8812,24 +8747,6 @@
         "CustomSettings": null
       }
     },
-    "LibraryEncryptionSetAfterInUse": {
-      "ModuleProperites": {},
-      "TraceString": "[ lib] Tried to change encryption state after library in use!",
-      "UniqueId": "LibraryEncryptionSetAfterInUse",
-      "splitArgs": [],
-      "macro": {
-        "MacroName": "QuicTraceLogError",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "empty",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
     "LibraryErrorStatus": {
       "ModuleProperites": {},
       "TraceString": "[ lib] ERROR, %u, %s.",
@@ -9002,43 +8919,6 @@
       ],
       "macro": {
         "MacroName": "QuicTraceEvent",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "empty",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "ListenerExcessiveAppCallback": {
-      "ModuleProperites": {},
-      "TraceString": "[list][%p] App took excessive time (%llu us) in callback.",
-      "UniqueId": "ListenerExcessiveAppCallback",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            Listener",
-            "UserSuppliedTrimmed": "Listener",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            (EndTime - StartTime)",
-            "UserSuppliedTrimmed": "(EndTime - StartTime)",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogWarning",
         "EncodedPrefix": null,
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
@@ -13413,43 +13293,6 @@
         "CustomSettings": null
       }
     },
-    "AppTooLong": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] App took excessive time (%llu us) in callback.",
-      "UniqueId": "AppTooLong",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                Stream",
-            "UserSuppliedTrimmed": "Stream",
-            "SuggestedTelemetryName": "arg1"
-          },
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\n                (EndTime - StartTime)",
-            "UserSuppliedTrimmed": "(EndTime - StartTime)",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogStreamWarning",
-        "EncodedPrefix": "[strm][%p] ",
-        "EncodedArgNumber": 2,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "empty",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
     "EventSilentDiscard": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Event silently discarded",
@@ -17435,43 +17278,6 @@
       "splitArgs": [],
       "macro": {
         "MacroName": "QuicTraceLogInfo",
-        "EncodedPrefix": null,
-        "EncodedArgNumber": 1,
-        "MacroConfiguration": {
-          "linux": "lttng_plus",
-          "stubs": "empty",
-          "windows_kernel": "empty",
-          "windows": "empty"
-        },
-        "CustomSettings": null
-      }
-    },
-    "TestSendIoctl": {
-      "ModuleProperites": {},
-      "TraceString": "[test] Sending IOCTL %u with %u bytes.",
-      "UniqueId": "TestSendIoctl",
-      "splitArgs": [
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            IoGetFunctionCodeFromCtlCode(IoControlCode)",
-            "UserSuppliedTrimmed": "IoGetFunctionCodeFromCtlCode(IoControlCode)",
-            "SuggestedTelemetryName": "arg2"
-          },
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            InBufferSize",
-            "UserSuppliedTrimmed": "InBufferSize",
-            "SuggestedTelemetryName": "arg3"
-          },
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macro": {
-        "MacroName": "QuicTraceLogVerbose",
         "EncodedPrefix": null,
         "EncodedArgNumber": 1,
         "MacroConfiguration": {
