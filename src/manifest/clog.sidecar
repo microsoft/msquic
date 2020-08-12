@@ -22102,6 +22102,931 @@
         },
         "CustomSettings": null
       }
+    },
+    "CertOpenSslGetProcessAddressFailure": {
+      "ModuleProperites": {},
+      "TraceString": "[cert] GetProcAddress failed for %s, 0x%x",
+      "UniqueId": "CertOpenSslGetProcessAddressFailure",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        FuncName",
+            "UserSuppliedTrimmed": "FuncName",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Error",
+            "UserSuppliedTrimmed": "Error",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathOpenTcpSocketFailedAsync": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp] RSS helper socket failed to open (async), 0x%x",
+      "UniqueId": "DatapathOpenTcpSocketFailedAsync",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            Status",
+            "UserSuppliedTrimmed": "Status",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathQueryRssScalabilityInfoFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x",
+      "UniqueId": "DatapathQueryRssScalabilityInfoFailed",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            Status",
+            "UserSuppliedTrimmed": "Status",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathQueryRssScalabilityInfoFailedAsync": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed (async), 0x%x",
+      "UniqueId": "DatapathQueryRssScalabilityInfoFailedAsync",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            Status",
+            "UserSuppliedTrimmed": "Status",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathOpenUdpSocketFailedAsync": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp] UDP send segmentation helper socket failed to open (async), 0x%x",
+      "UniqueId": "DatapathOpenUdpSocketFailedAsync",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            Status",
+            "UserSuppliedTrimmed": "Status",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathQueryUdpSendMsgFailedAsync": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp] Query for UDP_SEND_MSG_SIZE failed (async), 0x%x",
+      "UniqueId": "DatapathQueryUdpSendMsgFailedAsync",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                Status",
+            "UserSuppliedTrimmed": "Status",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathQueryRecvMaxCoalescedSizeFailedAsync": {
+      "ModuleProperites": {},
+      "TraceString": "[ udp] Query for UDP_RECV_MAX_COALESCED_SIZE failed (async), 0x%x",
+      "UniqueId": "DatapathQueryRecvMaxCoalescedSizeFailedAsync",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                Status",
+            "UserSuppliedTrimmed": "Status",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathDropEmptyMdl": {
+      "ModuleProperites": {},
+      "TraceString": "[%p] Dropping datagram with empty mdl.",
+      "UniqueId": "DatapathDropEmptyMdl",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                Binding",
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathDropMissingInfo": {
+      "ModuleProperites": {},
+      "TraceString": "[%p] Dropping datagram missing IP_PKTINFO/IP_RECVERR.",
+      "UniqueId": "DatapathDropMissingInfo",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                Binding",
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathDropTooBig": {
+      "ModuleProperites": {},
+      "TraceString": "[%p] Dropping datagram with too many bytes (%llu).",
+      "UniqueId": "DatapathDropTooBig",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    Binding",
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    (uint64_t)DataLength",
+            "UserSuppliedTrimmed": "(uint64_t)DataLength",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathDropMdlMapFailure": {
+      "ModuleProperites": {},
+      "TraceString": "[%p] Failed to map MDL chain",
+      "UniqueId": "DatapathDropMdlMapFailure",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                Binding",
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathFragmented": {
+      "ModuleProperites": {},
+      "TraceString": "[%p] Dropping datagram with fragmented MDL.",
+      "UniqueId": "DatapathFragmented",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    Binding",
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathDropAllocRecvContextFailure": {
+      "ModuleProperites": {},
+      "TraceString": "[%p] Couldn't allocate receive context.",
+      "UniqueId": "DatapathDropAllocRecvContextFailure",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                        Binding",
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathUroExceeded": {
+      "ModuleProperites": {},
+      "TraceString": "[%p] Exceeded URO preallocation capacity.",
+      "UniqueId": "DatapathUroExceeded",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                    Binding",
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "DatapathUnreachable": {
+      "ModuleProperites": {},
+      "TraceString": "[sock][%p] Unreachable error from %!ADDR!",
+      "UniqueId": "DatapathUnreachable",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                Binding",
+            "UserSuppliedTrimmed": "Binding",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n                CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(RemoteAddr), &RemoteAddr)",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "WindowsKernelLoaded": {
+      "ModuleProperites": {},
+      "TraceString": "[ sys] Loaded",
+      "UniqueId": "WindowsKernelLoaded",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "WindowsKernelUnloaded": {
+      "ModuleProperites": {},
+      "TraceString": "[ sys] Unloaded",
+      "UniqueId": "WindowsKernelUnloaded",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "WindowsKernelInitialized": {
+      "ModuleProperites": {},
+      "TraceString": "[ sys] Initialized (PageSize = %u bytes; AvailMem = %llu bytes)",
+      "UniqueId": "WindowsKernelInitialized",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Sbi.PageSize",
+            "UserSuppliedTrimmed": "Sbi.PageSize",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        QuicTotalMemory",
+            "UserSuppliedTrimmed": "QuicTotalMemory",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "WindowsKernelUninitialized": {
+      "ModuleProperites": {},
+      "TraceString": "[ sys] Uninitialized",
+      "UniqueId": "WindowsKernelUninitialized",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "TestControlClientCanceledRequest": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Client %p canceled request %p",
+      "UniqueId": "TestControlClientCanceledRequest",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Client",
+            "UserSuppliedTrimmed": "Client",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Request",
+            "UserSuppliedTrimmed": "Request",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogWarning",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "TestControlClientCreated": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Client %p created",
+      "UniqueId": "TestControlClientCreated",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            Client",
+            "UserSuppliedTrimmed": "Client",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "TestControlClientCleaningUp": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Client %p cleaning up",
+      "UniqueId": "TestControlClientCleaningUp",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            Client",
+            "UserSuppliedTrimmed": "Client",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "TestControlClientInitialized": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Client %p set security config and initialized",
+      "UniqueId": "TestControlClientInitialized",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Client",
+            "UserSuppliedTrimmed": "Client",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "TestControlSecConfigCreated": {
+      "ModuleProperites": {},
+      "TraceString": "[test] SecConfigCreated: 0x%x",
+      "UniqueId": "TestControlSecConfigCreated",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Status",
+            "UserSuppliedTrimmed": "Status",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "TestControlClientIoctl": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Client %p executing IOCTL %u",
+      "UniqueId": "TestControlClientIoctl",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Client",
+            "UserSuppliedTrimmed": "Client",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        FunctionCode",
+            "UserSuppliedTrimmed": "FunctionCode",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "TestControlClientIoctlComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Client %p completing request, 0x%x",
+      "UniqueId": "TestControlClientIoctlComplete",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Client",
+            "UserSuppliedTrimmed": "Client",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Status",
+            "UserSuppliedTrimmed": "Status",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "TestControlInitialized": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Control interface initialized",
+      "UniqueId": "TestControlInitialized",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "TestControlUninitializing": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Control interface uninitializing",
+      "UniqueId": "TestControlUninitializing",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "TestControlUninitialized": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Control interface uninitialized",
+      "UniqueId": "TestControlUninitialized",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogVerbose",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "TestDriverFailureLocation": {
+      "ModuleProperites": {},
+      "TraceString": "[test] File: %s, Function: %s, Line: %d",
+      "UniqueId": "TestDriverFailureLocation",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        File",
+            "UserSuppliedTrimmed": "File",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Function",
+            "UserSuppliedTrimmed": "Function",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Line",
+            "UserSuppliedTrimmed": "Line",
+            "SuggestedTelemetryName": "arg4"
+          },
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "TestDriverFailure": {
+      "ModuleProperites": {},
+      "TraceString": "[test] FAIL: %s",
+      "UniqueId": "TestDriverFailure",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n        Buffer",
+            "UserSuppliedTrimmed": "Buffer",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogError",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "TestDriverStarted": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Started",
+      "UniqueId": "TestDriverStarted",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "TestDriverStopped": {
+      "ModuleProperites": {},
+      "TraceString": "[test] Stopped",
+      "UniqueId": "TestDriverStopped",
+      "splitArgs": [],
+      "macro": {
+        "MacroName": "QuicTraceLogInfo",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
     }
   },
   "Version": 1,
@@ -24890,6 +25815,138 @@
       {
         "UniquenessHash": "71d0a82e-145c-f936-f56e-7dcb4099b96e",
         "TraceID": "TlsMessage"
+      },
+      {
+        "UniquenessHash": "f11702ec-fc18-f5bb-c732-90e621e3356d",
+        "TraceID": "CertOpenSslGetProcessAddressFailure"
+      },
+      {
+        "UniquenessHash": "19716fe5-c9e9-01cf-c8fe-adaa001f1096",
+        "TraceID": "DatapathOpenTcpSocketFailedAsync"
+      },
+      {
+        "UniquenessHash": "e199bbc2-944b-b1c2-6013-67e8818f2e13",
+        "TraceID": "DatapathQueryRssScalabilityInfoFailed"
+      },
+      {
+        "UniquenessHash": "3d57fa5f-a053-b239-52cb-febd154ffd26",
+        "TraceID": "DatapathQueryRssScalabilityInfoFailedAsync"
+      },
+      {
+        "UniquenessHash": "d1b57f51-d0dc-7fe1-82ba-ccde7926e0cc",
+        "TraceID": "DatapathOpenUdpSocketFailedAsync"
+      },
+      {
+        "UniquenessHash": "8703c474-c698-92fe-cb33-28ca924e6b98",
+        "TraceID": "DatapathQueryUdpSendMsgFailedAsync"
+      },
+      {
+        "UniquenessHash": "8f820ed1-ce50-5793-0bd4-ae115f172b66",
+        "TraceID": "DatapathQueryRecvMaxCoalescedSizeFailedAsync"
+      },
+      {
+        "UniquenessHash": "b503f2a8-8676-cb38-1cab-733b1b6168c4",
+        "TraceID": "DatapathDropEmptyMdl"
+      },
+      {
+        "UniquenessHash": "93ba4ba0-a056-754c-13bd-4d57d0f1d5f4",
+        "TraceID": "DatapathDropMissingInfo"
+      },
+      {
+        "UniquenessHash": "e2a52ac0-8148-8ba4-8ea5-bab2cbf1a43c",
+        "TraceID": "DatapathDropTooBig"
+      },
+      {
+        "UniquenessHash": "177e3d8f-353c-329c-6b7c-638649a7d3ef",
+        "TraceID": "DatapathDropMdlMapFailure"
+      },
+      {
+        "UniquenessHash": "b940eb8b-74ec-f569-8167-e95ccc36510e",
+        "TraceID": "DatapathFragmented"
+      },
+      {
+        "UniquenessHash": "a3d48581-00d1-fbbf-3ede-f8e9a4a22187",
+        "TraceID": "DatapathDropAllocRecvContextFailure"
+      },
+      {
+        "UniquenessHash": "9ab36cd5-f082-c444-283c-9b8354ecedb5",
+        "TraceID": "DatapathUroExceeded"
+      },
+      {
+        "UniquenessHash": "37423b13-b9e3-7961-07d6-137252085127",
+        "TraceID": "DatapathUnreachable"
+      },
+      {
+        "UniquenessHash": "bddd082e-fd86-4e92-2b3f-ed831dad41eb",
+        "TraceID": "WindowsKernelLoaded"
+      },
+      {
+        "UniquenessHash": "99b1ad83-0cbf-8b42-36e2-86e505bf6b76",
+        "TraceID": "WindowsKernelUnloaded"
+      },
+      {
+        "UniquenessHash": "09622250-6902-8f51-16a4-41a81d9cfc14",
+        "TraceID": "WindowsKernelInitialized"
+      },
+      {
+        "UniquenessHash": "7d3c84e1-4c84-fd6e-19b0-5210f45719fe",
+        "TraceID": "WindowsKernelUninitialized"
+      },
+      {
+        "UniquenessHash": "ad38c379-0d77-0135-bf6a-19efa61ee493",
+        "TraceID": "TestControlClientCanceledRequest"
+      },
+      {
+        "UniquenessHash": "c2475345-0789-7d74-d7de-4f1b86d1e04a",
+        "TraceID": "TestControlClientCreated"
+      },
+      {
+        "UniquenessHash": "c14ddd31-b8a1-390e-bce4-3d10b373b5e2",
+        "TraceID": "TestControlClientCleaningUp"
+      },
+      {
+        "UniquenessHash": "f1c6c4be-1cc4-b59c-0a51-d20e49fa8f89",
+        "TraceID": "TestControlClientInitialized"
+      },
+      {
+        "UniquenessHash": "24c5bdc8-7fbf-3ec6-489b-b044097afe76",
+        "TraceID": "TestControlSecConfigCreated"
+      },
+      {
+        "UniquenessHash": "90748ce7-a1ac-f056-31f8-9d25493934c4",
+        "TraceID": "TestControlClientIoctl"
+      },
+      {
+        "UniquenessHash": "5bdce545-413d-da19-a8fc-6de86efa7ec9",
+        "TraceID": "TestControlClientIoctlComplete"
+      },
+      {
+        "UniquenessHash": "7aae4087-bcff-7d98-58cb-dc33ab321e29",
+        "TraceID": "TestControlInitialized"
+      },
+      {
+        "UniquenessHash": "96076d60-1a15-11da-1c76-bc25bddb612b",
+        "TraceID": "TestControlUninitializing"
+      },
+      {
+        "UniquenessHash": "f9c9cbda-520a-37f2-487e-ac0ac46338ea",
+        "TraceID": "TestControlUninitialized"
+      },
+      {
+        "UniquenessHash": "66538ddd-2fba-ef2b-dde7-b0d0d014e40e",
+        "TraceID": "TestDriverFailureLocation"
+      },
+      {
+        "UniquenessHash": "eceb97df-f1b3-f467-bbe8-bab1c1659e78",
+        "TraceID": "TestDriverFailure"
+      },
+      {
+        "UniquenessHash": "72110314-d083-e651-5eab-788ae00e228c",
+        "TraceID": "TestDriverStarted"
+      },
+      {
+        "UniquenessHash": "4f17ceb1-4af8-424e-18d8-17117328147a",
+        "TraceID": "TestDriverStopped"
       }
     ]
   }
