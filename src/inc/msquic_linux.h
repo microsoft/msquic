@@ -185,6 +185,12 @@ extern "C" {
 #define QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_DATE_INVALID   0x00002000 // expired X509 Cert.
 #define QUIC_CERTIFICATE_FLAG_IGNORE_WEAK_SIGNATURE             0x00010000
 
+#if defined(__clang__)
+#define QUIC_NO_SANITIZE(X) __attribute__((no_sanitize(X)))
+#else
+#define QUIC_NO_SANITIZE(X)
+#endif
+
 //
 // Helpers for Windows string functions.
 //
@@ -346,9 +352,7 @@ QuicAddrSetToLoopback(
 
 inline
 uint32_t
-#if defined(__clang__)
-    __attribute__((no_sanitize("unsigned-integer-overflow")))
-#endif
+QUIC_NO_SANITIZE("unsigned-integer-overflow")
 QuicAddrHash(
     _In_ const QUIC_ADDR* Addr
     )
