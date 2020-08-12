@@ -328,7 +328,7 @@ else()
 
     if(QUIC_SANITIZE_ADDRESS)
         message(STATUS "Configuring address sanitizer")
-        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address -fno-omit-frame-pointer -Wno-maybe-uninitialized -O0 -g)
+        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined -fsanitize-recover=all)
     endif()
 
     if(QUIC_TLS STREQUAL "stub")

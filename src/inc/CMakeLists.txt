@@ -12,7 +12,7 @@ target_compile_definitions(inc INTERFACE ${QUIC_COMMON_DEFINES})
 target_include_directories(inc INTERFACE ${QUIC_INCLUDE_DIR})
 
 if (NOT MSVC AND QUIC_SANITIZE_ADDRESS)
-    target_link_libraries(inc INTERFACE -fsanitize=address)
+    target_link_libraries(inc INTERFACE -fsanitize=address,leak,undefined)
 endif()
 
 if(QUIC_ENABLE_LOGGING)
