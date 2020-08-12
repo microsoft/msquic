@@ -100,7 +100,7 @@ QUIC_STATUS
 QuicKernelMain(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ bool KeyboardWait,
+    _In_ bool /*KeyboardWait*/,
     _In_ QUIC_SEC_CONFIG_PARAMS* SelfSignedParams
     ) {
     size_t TotalLength = sizeof(argc);
@@ -257,9 +257,9 @@ Exit:
 
 void
 DatapathReceiveUserMode(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_DATAPATH_BINDING*,
     _In_ void* Context,
-    _In_ QUIC_RECV_DATAGRAM* DatagramChain
+    _In_ QUIC_RECV_DATAGRAM*
     )
 {
     QUIC_EVENT* Event = static_cast<QUIC_EVENT*>(Context);
@@ -268,9 +268,9 @@ DatapathReceiveUserMode(
 
 void
 DatapathUnreachable(
-    _In_ QUIC_DATAPATH_BINDING* Binding,
-    _In_ void* Context,
-    _In_ const QUIC_ADDR* RemoteAddress
+    _In_ QUIC_DATAPATH_BINDING*,
+    _In_ void*,
+    _In_ const QUIC_ADDR*
     )
 {
     //
