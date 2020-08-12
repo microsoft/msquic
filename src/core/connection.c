@@ -155,7 +155,7 @@ QuicConnAlloc(
         const QUIC_RECV_PACKET* Packet =
             QuicDataPathRecvDatagramToRecvPacket(Datagram);
 
-        Connection->Type = QUIC_HANDLE_TYPE_CHILD;
+        Connection->Type = QUIC_HANDLE_TYPE_CONNECTION_SERVER;
         if (MsQuicLib.Settings.LoadBalancingMode == QUIC_LOAD_BALANCING_SERVER_ID_IP) {
             QuicRandom(1, Connection->ServerID); // Randomize the first byte.
             if (QuicAddrGetFamily(&Datagram->Tuple->LocalAddress) == AF_INET) {
@@ -224,7 +224,7 @@ QuicConnAlloc(
         //
 
     } else {
-        Connection->Type = QUIC_HANDLE_TYPE_CLIENT;
+        Connection->Type = QUIC_HANDLE_TYPE_CONNECTION_CLIENT;
         Connection->State.ExternalOwner = TRUE;
         Path->IsPeerValidated = TRUE;
         Path->Allowance = UINT32_MAX;
@@ -5397,7 +5397,7 @@ QuicConnParamSet(
             break;
         }
 
-        if (Connection->Type == QUIC_HANDLE_TYPE_CHILD) {
+        if (QuicConnIsServer(Connection)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }

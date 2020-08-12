@@ -22,7 +22,7 @@ Abstract:
 #define IS_CONN_HANDLE(Handle) \
 ( \
     (Handle) != NULL && \
-    ((Handle)->Type == QUIC_HANDLE_TYPE_CLIENT || (Handle)->Type == QUIC_HANDLE_TYPE_CHILD) \
+    ((Handle)->Type == QUIC_HANDLE_TYPE_CONNECTION_CLIENT || (Handle)->Type == QUIC_HANDLE_TYPE_CONNECTION_SERVER) \
 )
 
 #define IS_STREAM_HANDLE(Handle) \
@@ -1208,8 +1208,8 @@ MsQuicSetParam(
     if (Handle->Type == QUIC_HANDLE_TYPE_STREAM) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Connection = ((QUIC_STREAM*)Handle)->Connection;
-    } else if (Handle->Type == QUIC_HANDLE_TYPE_CHILD ||
-        Handle->Type == QUIC_HANDLE_TYPE_CLIENT) {
+    } else if (Handle->Type == QUIC_HANDLE_TYPE_CONNECTION_SERVER ||
+        Handle->Type == QUIC_HANDLE_TYPE_CONNECTION_CLIENT) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Connection = (QUIC_CONNECTION*)Handle;
     } else {
@@ -1319,8 +1319,8 @@ MsQuicGetParam(
     if (Handle->Type == QUIC_HANDLE_TYPE_STREAM) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Connection = ((QUIC_STREAM*)Handle)->Connection;
-    } else if (Handle->Type == QUIC_HANDLE_TYPE_CHILD ||
-        Handle->Type == QUIC_HANDLE_TYPE_CLIENT) {
+    } else if (Handle->Type == QUIC_HANDLE_TYPE_CONNECTION_SERVER ||
+        Handle->Type == QUIC_HANDLE_TYPE_CONNECTION_CLIENT) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Connection = (QUIC_CONNECTION*)Handle;
     } else {

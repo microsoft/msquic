@@ -583,7 +583,7 @@ QuicConnIsServer(
     _In_ const QUIC_CONNECTION * const Connection
     )
 {
-    return ((QUIC_HANDLE*)Connection)->Type == QUIC_HANDLE_TYPE_CHILD;
+    return ((QUIC_HANDLE*)Connection)->Type == QUIC_HANDLE_TYPE_CONNECTION_SERVER;
 }
 
 //
