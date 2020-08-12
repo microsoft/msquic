@@ -5396,7 +5396,7 @@ QuicConnParamSet(
             break;
         }
 
-        if (!QuicConnIsServer(Connection)) {
+        if (QuicConnIsServer(Connection)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
