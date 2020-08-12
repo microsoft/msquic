@@ -19,7 +19,9 @@ const char* UploadFolderPath;
 const QUIC_BUFFER SupportedALPNs[] = {
     { sizeof("hq-29") - 1, (uint8_t*)"hq-29" },
     { sizeof("hq-28") - 1, (uint8_t*)"hq-28" },
-    { sizeof("hq-27") - 1, (uint8_t*)"hq-27" }
+    { sizeof("hq-27") - 1, (uint8_t*)"hq-27" },
+    { sizeof("siduck") - 1, (uint8_t*)"siduck" },
+    { sizeof("siduck-00") - 1, (uint8_t*)"siduck-00" }
 };
 
 void
