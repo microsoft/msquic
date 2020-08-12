@@ -34,6 +34,8 @@ WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DEVICE_EXTENSION, QuicPerfCtlGetDeviceCo
 typedef struct QUIC_DRIVER_CLIENT {
     LIST_ENTRY Link;
     bool TestFailure;
+    PerfSelfSignedConfiguration SelfSignedConfiguration;
+    bool SelfSignedValid;
 
 } QUIC_DRIVER_CLIENT;
 
@@ -490,17 +492,44 @@ error:
     WdfRequestComplete(Request, Status);
 }
 
+NTSTATUS
+QuicPerfCtlSetSecurityConfig(
+    _Inout_ QUIC_DRIVER_CLIENT* Client,
+    _In_ const QUIC_CERTIFICATE_HASH* CertHash
+)
+{
+    Client->SelfSignedConfiguration.SelfSignedSecurityHash = *CertHash;
+    Client->SelfSignedValid = true;
+    return QUIC_STATUS_SUCCESS;
+}
+
 size_t QUIC_IOCTL_BUFFER_SIZES[] =
 {
     0,
     sizeof(QUIC_CERTIFICATE_HASH),
-    0,
+    SIZE_MAX,
     0
 };
+
+typedef union {
+    struct {
+        size_t Length;
+        char Data;
+    };
+    QUIC_CERTIFICATE_HASH CertHash;
+} QUIC_IOCTL_PARAMS;
 
 static_assert(
     QUIC_PERF_MAX_IOCTL_FUNC_CODE + 1 == (sizeof(QUIC_IOCTL_BUFFER_SIZES) / sizeof(size_t)),
     "QUIC_IOCTL_BUFFER_SIZES must be kept in sync with the IOTCLs");
+
+NTSTATUS
+QuicPerfCtlReadPrints(
+    void
+    )
+{
+    return QUIC_STATUS_SUCCESS;
+}
 
 VOID
 QuicPerfCtlEvtIoDeviceControl(
@@ -515,6 +544,8 @@ QuicPerfCtlEvtIoDeviceControl(
     WDFFILEOBJECT FileObject = nullptr;
     QUIC_DRIVER_CLIENT* Client = nullptr;
     ULONG FunctionCode = 0;
+    QUIC_IOCTL_PARAMS* Params = nullptr;
+    size_t Length = 0;
 
     if (KeGetCurrentIrql() > PASSIVE_LEVEL) {
         Status = STATUS_NOT_SUPPORTED;
@@ -545,6 +576,15 @@ QuicPerfCtlEvtIoDeviceControl(
         goto Error;
     }
 
+    //
+    // Handle IOCTL for read
+    //
+    if (IoControlCode == IOCTL_QUIC_READ_DATA) {
+        QuicPerfCtlReadPrints(
+            );
+        return;
+    }
+
     FunctionCode = IoGetFunctionCodeFromCtlCode(IoControlCode);
     if (FunctionCode == 0 || FunctionCode > QUIC_PERF_MAX_IOCTL_FUNC_CODE) {
         Status = STATUS_NOT_IMPLEMENTED;
@@ -556,10 +596,66 @@ QuicPerfCtlEvtIoDeviceControl(
         goto Error;
     }
 
-    // TODO Input Buffer Length
+    Status =
+        WdfRequestRetrieveInputBuffer(
+            Request,
+            0,
+            (void**)&Params,
+            &Length);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] Error, %u, %s.",
+            Status,
+            "WfdRequestRetreiveInputBuffer failed");
+    } else if (Params == nullptr) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "WdfRequestRetrieveInputBuffer failed to return parameter buffer");
+        Status = STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
 
+    QuicTraceLogInfo(
+        PerfControlClientIoctl,
+        "[test] Client %p executing write IOCTL %u",
+        Client,
+        FunctionCode);
+
+    if (IoControlCode != IOCTL_QUIC_SEC_CONFIG &&
+        !Client->SelfSignedValid) {
+        Status = STATUS_INVALID_DEVICE_STATE;
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Client didn't set Security Config");
+        goto Error;
+    }
+
+    switch (IoControlCode) {
+    case IOCTL_QUIC_SEC_CONFIG:
+        QUIC_FRE_ASSERT(Params != nullptr);
+        Status =
+            QuicPerfCtlSetSecurityConfig(
+                Client,
+                &Params->CertHash);
+        break;
+    case IOCTL_QUIC_RUN_PERF:
+        break;
+    default:
+        Status = STATUS_NOT_IMPLEMENTED;
+        break;
+    }
 
 Error:
+    QuicTraceLogInfo(
+        TestControlClientIoctlComplete,
+        "[test] Client %p completing request, 0x%x",
+        Client,
+        Status);
+
+    WdfRequestComplete(Request, Status);
     UNREFERENCED_PARAMETER(InputBufferLength);
     UNREFERENCED_PARAMETER(OutputBufferLength);
     UNREFERENCED_PARAMETER(Queue);

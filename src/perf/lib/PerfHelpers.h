@@ -42,7 +42,7 @@ extern const QuicApiTable* MsQuic;
 
 struct PerfSelfSignedConfiguration {
 #ifdef _KERNEL_MODE
-    uint8_t SelfSignedSecurityHash[20];
+    QUIC_CERTIFICATE_HASH SelfSignedSecurityHash;
 #else
     QUIC_SEC_CONFIG_PARAMS* SelfSignedParams;
 #endif
