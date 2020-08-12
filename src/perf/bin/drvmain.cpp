@@ -36,6 +36,8 @@ typedef struct QUIC_DRIVER_CLIENT {
     bool TestFailure;
     PerfSelfSignedConfiguration SelfSignedConfiguration;
     bool SelfSignedValid;
+    QUIC_EVENT StopEvent;
+
 
 } QUIC_DRIVER_CLIENT;
 
@@ -529,6 +531,39 @@ QuicPerfCtlReadPrints(
     )
 {
     return QUIC_STATUS_SUCCESS;
+}
+
+NTSTATUS
+QuicPerfCtlStart(
+    _In_ WDFREQUEST /*Request*/,
+    _In_ QUIC_DRIVER_CLIENT* Client,
+    _In_ char* Arguments,
+    _In_ size_t Length
+    )
+{
+    char** Argv = new(std::nothrow) char* [Length];
+    if (!Argv) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
+    int Count = 0;
+    while (*Arguments) {
+        Argv[Count] = Arguments;
+        Arguments += strlen(Arguments);
+        Arguments++;
+        Count++;
+    }
+
+    QuicEventInitialize(&Client->StopEvent, true, false);
+
+    NTSTATUS Status =
+        QuicMainStart(
+            (int)Length,
+            Argv,
+            &Client->StopEvent,
+            &Client->SelfSignedConfiguration);
+    delete[] Argv;
+    return Status;
 }
 
 VOID

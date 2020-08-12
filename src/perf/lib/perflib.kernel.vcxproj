@@ -38,6 +38,8 @@
     <ClCompile Include="quicmain.cpp" />
     <ClCompile Include="ThroughputClient.cpp" />
     <ClCompile Include="ThroughputServer.cpp" />
+    <ClCompile Include="RpsClient.cpp" />
+    <ClCompile Include="RpsServer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PerfHelpers.h" />

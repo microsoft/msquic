@@ -904,6 +904,8 @@ QuicRandom(
 
 #define QuicSetCurrentThreadAffinityMask(Mask) SetThreadAffinityMask(GetCurrentThread(), Mask)
 
+#define QuicSetCurrentThreadGroupAffinityMask(Group) SetThreadGroupAffinity(GetCurrentThread(), Group, NULL)
+
 #define QuicCompartmentIdGetCurrent() GetCurrentThreadCompartmentId()
 #define QuicCompartmentIdSetCurrent(CompartmentId) \
     HRESULT_FROM_WIN32(SetCurrentThreadCompartmentId(CompartmentId))
