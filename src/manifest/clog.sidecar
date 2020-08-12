@@ -22221,6 +22221,142 @@
       {
         "UniquenessHash": "335643ef-1fdb-099b-6672-4452222524ff",
         "TraceID": "AllocFailure"
+      },
+      {
+        "UniquenessHash": "f11702ec-fc18-f5bb-c732-90e621e3356d",
+        "TraceID": "CertOpenSslGetProcessAddressFailure"
+      },
+      {
+        "UniquenessHash": "19716fe5-c9e9-01cf-c8fe-adaa001f1096",
+        "TraceID": "DatapathOpenTcpSocketFailedAsync"
+      },
+      {
+        "UniquenessHash": "e199bbc2-944b-b1c2-6013-67e8818f2e13",
+        "TraceID": "DatapathQueryRssScalabilityInfoFailed"
+      },
+      {
+        "UniquenessHash": "3d57fa5f-a053-b239-52cb-febd154ffd26",
+        "TraceID": "DatapathQueryRssScalabilityInfoFailedAsync"
+      },
+      {
+        "UniquenessHash": "d1b57f51-d0dc-7fe1-82ba-ccde7926e0cc",
+        "TraceID": "DatapathOpenUdpSocketFailedAsync"
+      },
+      {
+        "UniquenessHash": "8703c474-c698-92fe-cb33-28ca924e6b98",
+        "TraceID": "DatapathQueryUdpSendMsgFailedAsync"
+      },
+      {
+        "UniquenessHash": "8f820ed1-ce50-5793-0bd4-ae115f172b66",
+        "TraceID": "DatapathQueryRecvMaxCoalescedSizeFailedAsync"
+      },
+      {
+        "UniquenessHash": "b503f2a8-8676-cb38-1cab-733b1b6168c4",
+        "TraceID": "DatapathDropEmptyMdl"
+      },
+      {
+        "UniquenessHash": "93ba4ba0-a056-754c-13bd-4d57d0f1d5f4",
+        "TraceID": "DatapathDropMissingInfo"
+      },
+      {
+        "UniquenessHash": "e2a52ac0-8148-8ba4-8ea5-bab2cbf1a43c",
+        "TraceID": "DatapathDropTooBig"
+      },
+      {
+        "UniquenessHash": "177e3d8f-353c-329c-6b7c-638649a7d3ef",
+        "TraceID": "DatapathDropMdlMapFailure"
+      },
+      {
+        "UniquenessHash": "b940eb8b-74ec-f569-8167-e95ccc36510e",
+        "TraceID": "DatapathFragmented"
+      },
+      {
+        "UniquenessHash": "a3d48581-00d1-fbbf-3ede-f8e9a4a22187",
+        "TraceID": "DatapathDropAllocRecvContextFailure"
+      },
+      {
+        "UniquenessHash": "9ab36cd5-f082-c444-283c-9b8354ecedb5",
+        "TraceID": "DatapathUroExceeded"
+      },
+      {
+        "UniquenessHash": "37423b13-b9e3-7961-07d6-137252085127",
+        "TraceID": "DatapathUnreachable"
+      },
+      {
+        "UniquenessHash": "bddd082e-fd86-4e92-2b3f-ed831dad41eb",
+        "TraceID": "WindowsKernelLoaded"
+      },
+      {
+        "UniquenessHash": "99b1ad83-0cbf-8b42-36e2-86e505bf6b76",
+        "TraceID": "WindowsKernelUnloaded"
+      },
+      {
+        "UniquenessHash": "09622250-6902-8f51-16a4-41a81d9cfc14",
+        "TraceID": "WindowsKernelInitialized"
+      },
+      {
+        "UniquenessHash": "7d3c84e1-4c84-fd6e-19b0-5210f45719fe",
+        "TraceID": "WindowsKernelUninitialized"
+      },
+      {
+        "UniquenessHash": "531378ce-be9f-1fcd-1a80-62387ae2a844",
+        "TraceID": "SchannelProcessingData_IgnoringTicket"
+      },
+      {
+        "UniquenessHash": "ad38c379-0d77-0135-bf6a-19efa61ee493",
+        "TraceID": "TestControlClientCanceledRequest"
+      },
+      {
+        "UniquenessHash": "c2475345-0789-7d74-d7de-4f1b86d1e04a",
+        "TraceID": "TestControlClientCreated"
+      },
+      {
+        "UniquenessHash": "c14ddd31-b8a1-390e-bce4-3d10b373b5e2",
+        "TraceID": "TestControlClientCleaningUp"
+      },
+      {
+        "UniquenessHash": "f1c6c4be-1cc4-b59c-0a51-d20e49fa8f89",
+        "TraceID": "TestControlClientInitialized"
+      },
+      {
+        "UniquenessHash": "24c5bdc8-7fbf-3ec6-489b-b044097afe76",
+        "TraceID": "TestControlSecConfigCreated"
+      },
+      {
+        "UniquenessHash": "90748ce7-a1ac-f056-31f8-9d25493934c4",
+        "TraceID": "TestControlClientIoctl"
+      },
+      {
+        "UniquenessHash": "5bdce545-413d-da19-a8fc-6de86efa7ec9",
+        "TraceID": "TestControlClientIoctlComplete"
+      },
+      {
+        "UniquenessHash": "7aae4087-bcff-7d98-58cb-dc33ab321e29",
+        "TraceID": "TestControlInitialized"
+      },
+      {
+        "UniquenessHash": "96076d60-1a15-11da-1c76-bc25bddb612b",
+        "TraceID": "TestControlUninitializing"
+      },
+      {
+        "UniquenessHash": "f9c9cbda-520a-37f2-487e-ac0ac46338ea",
+        "TraceID": "TestControlUninitialized"
+      },
+      {
+        "UniquenessHash": "66538ddd-2fba-ef2b-dde7-b0d0d014e40e",
+        "TraceID": "TestDriverFailureLocation"
+      },
+      {
+        "UniquenessHash": "eceb97df-f1b3-f467-bbe8-bab1c1659e78",
+        "TraceID": "TestDriverFailure"
+      },
+      {
+        "UniquenessHash": "72110314-d083-e651-5eab-788ae00e228c",
+        "TraceID": "TestDriverStarted"
+      },
+      {
+        "UniquenessHash": "4f17ceb1-4af8-424e-18d8-17117328147a",
+        "TraceID": "TestDriverStopped"
       }
     ]
   }
