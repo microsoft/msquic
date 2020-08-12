@@ -1459,10 +1459,9 @@ QuicSocketContextProcessEvents(
 {
     uint8_t EventType = *(uint8_t*)EventPtr;
     QUIC_SOCKET_CONTEXT* SocketContext =
-        ((QUIC_SOCKET_CONTEXT*)( \
-            (uint8_t*)(EventPtr) - \
-            (size_t)(&((QUIC_SOCKET_CONTEXT*)0)->EventContexts) -
-            EventType));
+        (QUIC_SOCKET_CONTEXT*)(
+            (uint8_t*)QUIC_CONTAINING_RECORD(EventPtr, QUIC_SOCKET_CONTEXT, EventContexts) -
+            EventType);
 
     if (EventType == QUIC_SOCK_EVENT_CLEANUP) {
         QUIC_DBG_ASSERT(SocketContext->Binding->Shutdown);
