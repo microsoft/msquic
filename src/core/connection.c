@@ -665,6 +665,12 @@ QuicConnQueueOper(
     _In_ QUIC_OPERATION* Oper
     )
 {
+    #if DEBUG
+    if (!Connection->State.Initialized) {
+        QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
+        QUIC_DBG_ASSERT(Connection->SourceCids.Next != NULL);
+    }
+#endif
     if (QuicOperationEnqueue(&Connection->OperQ, Oper)) {
         //
         // The connection needs to be queued on the worker because this was the
