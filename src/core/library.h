@@ -343,8 +343,10 @@ QuicCidNewRandomSource(
         *Data = PartitionID;
         Data++;
 
-        QuicCopyMemory(Data, Prefix, PrefixLength);
-        Data += PrefixLength;
+        if (PrefixLength) {
+            QuicCopyMemory(Data, Prefix, PrefixLength);
+            Data += PrefixLength;
+        }
 
         QuicRandom(MSQUIC_CID_PAYLOAD_LENGTH - PrefixLength, Data);
     }
