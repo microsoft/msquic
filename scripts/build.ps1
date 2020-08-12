@@ -189,6 +189,9 @@ if (!(Test-Path $BaseArtifactsDir)) {
 if (!(Test-Path $BuildDir)) { New-Item -Path $BuildDir -ItemType Directory -Force | Out-Null }
 
 if ($Clang) {
+    if ($IsWindows) {
+        Write-Error "Clang is not supported on windows currently"
+    }
     $env:CC = 'clang'
     $env:CXX = 'clang++'
 }
