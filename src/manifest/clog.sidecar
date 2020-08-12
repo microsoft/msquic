@@ -4872,7 +4872,7 @@
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -18151,10 +18151,10 @@
         "CustomSettings": null
       }
     },
-    "OpenSslProcessData": {
+    "OpenSslProcessData_IgnoreTicket": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Ignoring %u ticket bytes",
-      "UniqueId": "OpenSslProcessData",
+      "UniqueId": "OpenSslProcessData_IgnoreTicket",
       "splitArgs": [
         {
           "VariableInfo": {
@@ -18181,7 +18181,7 @@
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -19326,6 +19326,80 @@
         },
         "CustomSettings": null
       }
+    },
+    "EncodeTPOriginalCID_Retry": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Retry Source Connection ID (%s)",
+      "UniqueId": "EncodeTPOriginalCID_Retry",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            QuicCidBufToStr(\n                TransportParams->RetrySourceConnectionID,\n                TransportParams->RetrySourceConnectionIDLength).Buffer",
+            "UserSuppliedTrimmed": "QuicCidBufToStr(\n                TransportParams->RetrySourceConnectionID,\n                TransportParams->RetrySourceConnectionIDLength).Buffer",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "OpenSslProcessData": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Processing %u received bytes",
+      "UniqueId": "OpenSslProcessData",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            *BufferLength",
+            "UserSuppliedTrimmed": "*BufferLength",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
     }
   },
   "Version": 1,
@@ -19375,7 +19449,7 @@
     },
     "Version": 1,
     "CustomTypeClogCSharpFile": "msquic.clog.cs",
-    "CustomTypeClogCSharpFileContents": "/*++\r\n\r\n    Copyright (c) Microsoft Corporation.\r\n    Licensed under the MIT License.\r\n\r\n--*/\r\n\r\nusing System;\r\nusing System.Runtime.InteropServices;\r\n\r\nnamespace msquic.clog_config\r\n{\r\n    public class Types\r\n    {\r\n        [StructLayout(LayoutKind.Explicit)]\r\n        public struct SocketAddress\r\n        {\r\n            [FieldOffset(0)]\r\n            public ushort si_family;\r\n\r\n            [FieldOffset(2)]\r\n            public ushort sin_port;\r\n\r\n            // IPv4\r\n            [FieldOffset(4)]\r\n            public ulong S_addr;\r\n\r\n\r\n            // IPv6\r\n            [FieldOffset(4)]\r\n            public ulong sin6_flowinfo;\r\n\r\n            [FieldOffset(8)]\r\n            public ulong S_v6Addr1;\r\n\r\n            [FieldOffset(16)]\r\n            public ulong S_v6Addr2;\r\n        };\r\n\r\n        public static string ADDR(byte[] value)\r\n        {\r\n            int len = value.Length;\r\n            IntPtr i = System.Runtime.InteropServices.Marshal.AllocHGlobal(len);\r\n            System.Runtime.InteropServices.Marshal.Copy(value, 0, i, len);\r\n            string msg = \"\";\r\n            SocketAddress sa2 = (SocketAddress)System.Runtime.InteropServices.Marshal.PtrToStructure(i, typeof(SocketAddress));\r\n\r\n            switch (sa2.si_family)\r\n            {\r\n                case 0:  //<--unspecified\r\n                    msg += \"Unspecified\";\r\n                    break;\r\n                case 23: //<--v6\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 10:  //<--v6 (linux)\r\n                    msg += \"IPV6: sin6_flowinfo=\" + sa2.sin6_flowinfo + \" port=\" + sa2.sin_port + \"part1=\" + sa2.S_v6Addr1 + \", part2=\" + sa2.S_v6Addr2;\r\n                    break;\r\n                case 2:  //< --v4\r\n                    msg += \"IPV4:\" + sa2.S_addr + \":\" + sa2.sin_port;\r\n                    break;\r\n                default:\r\n                    throw new Exception(\"Invalid SI_FAMILY : \" + sa2.si_family);\r\n            }\r\n\r\n            System.Runtime.InteropServices.Marshal.FreeHGlobal(i);\r\n            return msg;\r\n        }\r\n\r\n        public static string CID(byte [] value)\r\n        {\r\n            return \"CID!\";\r\n        }\r\n    }\r\n}\r\n",
+    "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nusing System;\nusing System.Text;\nusing System.Net;\nusing System.Runtime.InteropServices;\n\nnamespace msquic.clog_config\n{\n    public class Types\n    {\n        public static string ADDR(byte[] value)\n        {\n            int si_family = value[0] | ((ushort)value[1] << 8);\n            int sin_port = value[2] | ((ushort)value[3] << 8);\n\n            Span<byte> sa2 = value;\n\n            string msg = \"\";\n\n            switch (si_family)\n            {\n                case 0:  //<--unspecified\n                    msg += $\"*:{sin_port}\";\n                    break;\n                case 2:  //< --v4\n                    msg += $\"{new IPAddress(sa2.Slice(4, 4)).ToString()}:{sin_port}\";\n                    break;\n                case 10:  //<--v6 (linux)\n                case 23: //<--v6\n                    msg += $\"[{new IPAddress(sa2.Slice(8, 16)).ToString()}]:{sin_port}\";\n                    break;\n                default:\n                    throw new NotSupportedException(\"Invalid SI_FAMILY : \" + si_family);\n            }\n            \n            return msg;\n        }\n\n        public static string CID(byte [] value)\n        {\n            StringBuilder hex = new StringBuilder(value.Length * 2);\n            foreach (byte v in value)\n            {\n                hex.AppendFormat(v.ToString(\"X2\"));\n            }\n            return hex.ToString();\n        }\n    }\n}\n",
     "TypeEncoders": {
       "Version": 0,
       "TypeEncoder": [
@@ -20314,10 +20388,6 @@
       {
         "UniquenessHash": "a9ef9690-4a65-72f7-40ad-f09fd6976881",
         "TraceID": "EncodeTPCIDLimit"
-      },
-      {
-        "UniquenessHash": "a10dde76-0ba2-2458-5f43-805105fa2127",
-        "TraceID": "EncodeTPOriginalCID"
       },
       {
         "UniquenessHash": "d276c997-5dfb-645e-b54a-7ec567967851",
@@ -21700,10 +21770,6 @@
         "TraceID": "OpenSslContextCleaningUp"
       },
       {
-        "UniquenessHash": "600cb518-6c6b-9443-6433-6655b76f2cdc",
-        "TraceID": "OpenSslProcessData"
-      },
-      {
         "UniquenessHash": "af137df5-1055-7424-de16-65895d8d276b",
         "TraceID": "ConnPacketRecv"
       },
@@ -21766,6 +21832,22 @@
       {
         "UniquenessHash": "bb7402a7-ba47-dbce-71f2-fbbd659eb0ff",
         "TraceID": "PacketRxMarkedForAck"
+      },
+      {
+        "UniquenessHash": "a10dde76-0ba2-2458-5f43-805105fa2127",
+        "TraceID": "EncodeTPOriginalCID"
+      },
+      {
+        "UniquenessHash": "aaebf719-e666-5611-57b6-68d10b71a928",
+        "TraceID": "EncodeTPOriginalCID_Retry"
+      },
+      {
+        "UniquenessHash": "4c35533b-ecc3-d025-ac7a-5a7cc648db02",
+        "TraceID": "OpenSslProcessData_IgnoreTicket"
+      },
+      {
+        "UniquenessHash": "ff332af9-4ba2-95a8-bb2c-c5c729be4ccd",
+        "TraceID": "OpenSslProcessData"
       }
     ]
   }

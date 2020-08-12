@@ -986,7 +986,7 @@ QuicCryptoTlsEncodeTransportParameters(
                 TransportParams->RetrySourceConnectionID,
                 TPBuf);
         QuicTraceLogConnVerbose(
-            EncodeTPOriginalCID,
+            EncodeTPOriginalCID_Retry,
             Connection,
             "TP: Retry Source Connection ID (%s)",
             QuicCidBufToStr(
