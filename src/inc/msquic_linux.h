@@ -346,6 +346,9 @@ QuicAddrSetToLoopback(
 
 inline
 uint32_t
+#if defined(__clang__)
+    __attribute__((no_sanitize("unsigned-integer-overflow")))
+#endif
 QuicAddrHash(
     _In_ const QUIC_ADDR* Addr
     )

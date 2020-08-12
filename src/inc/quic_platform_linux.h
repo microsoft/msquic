@@ -561,6 +561,9 @@ QuicTimeDiff64(
 
 inline
 uint32_t
+#if defined(__clang__)
+    __attribute__((no_sanitize("unsigned-integer-overflow")))
+#endif
 QuicTimeDiff32(
     _In_ uint32_t T1,     // First time measured
     _In_ uint32_t T2      // Second time measured
@@ -589,6 +592,9 @@ QuicTimeAtOrBefore64(
 
 inline
 BOOLEAN
+#if defined(__clang__)
+    __attribute__((no_sanitize("unsigned-integer-overflow")))
+#endif
 QuicTimeAtOrBefore32(
     _In_ uint32_t T1,
     _In_ uint32_t T2

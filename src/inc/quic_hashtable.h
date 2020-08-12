@@ -246,6 +246,9 @@ QuicHashTableContract(
 // Simple helper hash function.
 //
 inline
+#if defined(__clang__)
+    __attribute__((no_sanitize("unsigned-integer-overflow")))
+#endif
 uint32_t
 QuicHashSimple(
     _In_ uint16_t Length,
