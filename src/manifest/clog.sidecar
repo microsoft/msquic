@@ -22833,6 +22833,80 @@
         },
         "CustomSettings": null
       }
+    },
+    "EncodeTPRetrySourceCID": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Retry Source Connection ID (%s)",
+      "UniqueId": "EncodeTPRetrySourceCID",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            Connection",
+            "UserSuppliedTrimmed": "Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            QuicCidBufToStr(\n                TransportParams->RetrySourceConnectionID,\n                TransportParams->RetrySourceConnectionIDLength).Buffer",
+            "UserSuppliedTrimmed": "QuicCidBufToStr(\n                TransportParams->RetrySourceConnectionID,\n                TransportParams->RetrySourceConnectionIDLength).Buffer",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
+    },
+    "OpenSsslIgnoringTicket": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Ignoring %u ticket bytes",
+      "UniqueId": "OpenSsslIgnoringTicket",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            TlsContext->Connection",
+            "UserSuppliedTrimmed": "TlsContext->Connection",
+            "SuggestedTelemetryName": "arg1"
+          },
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            *BufferLength",
+            "UserSuppliedTrimmed": "*BufferLength",
+            "SuggestedTelemetryName": "arg3"
+          },
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceLogConnVerbose",
+        "EncodedPrefix": "[conn][%p] ",
+        "EncodedArgNumber": 2,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
     }
   },
   "Version": 1,
@@ -22882,7 +22956,7 @@
     },
     "Version": 1,
     "CustomTypeClogCSharpFile": "msquic.clog.cs",
-    "CustomTypeClogCSharpFileContents": "/*++\r\n\r\n    Copyright (c) Microsoft Corporation.\r\n    Licensed under the MIT License.\r\n\r\n--*/\r\n\r\nusing System;\r\nusing System.Text;\r\nusing System.Net;\r\nusing System.Runtime.InteropServices;\r\n\r\nnamespace msquic.clog_config\r\n{\r\n    public class Types\r\n    {\r\n        public static string ADDR(byte[] value)\r\n        {\r\n            int si_family = value[0] | ((ushort)value[1] << 8);\r\n            int sin_port = value[2] | ((ushort)value[3] << 8);\r\n\r\n            Span<byte> sa2 = value;\r\n\r\n            string msg = \"\";\r\n\r\n            switch (si_family)\r\n            {\r\n                case 0:  //<--unspecified\r\n                    msg += $\"*:{sin_port}\";\r\n                    break;\r\n                case 2:  //< --v4\r\n                    msg += $\"{new IPAddress(sa2.Slice(4, 4)).ToString()}:{sin_port}\";\r\n                    break;\r\n                case 10:  //<--v6 (linux)\r\n                case 23: //<--v6\r\n                    msg += $\"[{new IPAddress(sa2.Slice(8, 16)).ToString()}]:{sin_port}\";\r\n                    break;\r\n                default:\r\n                    throw new NotSupportedException(\"Invalid SI_FAMILY : \" + si_family);\r\n            }\r\n            \r\n            return msg;\r\n        }\r\n\r\n        public static string CID(byte [] value)\r\n        {\r\n            StringBuilder hex = new StringBuilder(value.Length * 2);\r\n            foreach (byte v in value)\r\n            {\r\n                hex.AppendFormat(v.ToString(\"X2\"));\r\n            }\r\n            return hex.ToString();\r\n        }\r\n    }\r\n}\r\n",
+    "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nusing System;\nusing System.Text;\nusing System.Net;\nusing System.Runtime.InteropServices;\n\nnamespace msquic.clog_config\n{\n    public class Types\n    {\n        public static string ADDR(byte[] value)\n        {\n            int si_family = value[0] | ((ushort)value[1] << 8);\n            int sin_port = value[2] | ((ushort)value[3] << 8);\n\n            Span<byte> sa2 = value;\n\n            string msg = \"\";\n\n            switch (si_family)\n            {\n                case 0:  //<--unspecified\n                    msg += $\"*:{sin_port}\";\n                    break;\n                case 2:  //< --v4\n                    msg += $\"{new IPAddress(sa2.Slice(4, 4)).ToString()}:{sin_port}\";\n                    break;\n                case 10:  //<--v6 (linux)\n                case 23: //<--v6\n                    msg += $\"[{new IPAddress(sa2.Slice(8, 16)).ToString()}]:{sin_port}\";\n                    break;\n                default:\n                    throw new NotSupportedException(\"Invalid SI_FAMILY : \" + si_family);\n            }\n            \n            return msg;\n        }\n\n        public static string CID(byte [] value)\n        {\n            StringBuilder hex = new StringBuilder(value.Length * 2);\n            foreach (byte v in value)\n            {\n                hex.AppendFormat(v.ToString(\"X2\"));\n            }\n            return hex.ToString();\n        }\n    }\n}\n",
     "TypeEncoders": {
       "Version": 0,
       "TypeEncoder": [
@@ -23059,7 +23133,7 @@
         "MacroConfigurations": {},
         "Version": 1,
         "CustomTypeClogCSharpFile": "DEFAULTS",
-        "CustomTypeClogCSharpFileContents": "/*++\r\n\r\n    Copyright (c) Microsoft Corporation.\r\n    Licensed under the MIT License.\r\n\r\n--*/\r\n\r\nnamespace defaults.clog_config\r\n{\r\n    public class Types\r\n    {\r\n        public static string DecodePointer(ulong pointer)\r\n        {\r\n            return \"0x\" + pointer.ToString(\"x\");\r\n        }\r\n\r\n        public static string DecodeUInt32(uint value)\r\n        {\r\n            return value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt32(int value)\r\n        {\r\n            return value.ToString();\r\n        }\r\n\r\n        public static string DecodeInt8(byte value)\r\n        {\r\n            return value.ToString();\r\n        }\r\n    }\r\n}\r\n",
+        "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nnamespace defaults.clog_config\n{\n    public class Types\n    {\n        public static string DecodePointer(ulong pointer)\n        {\n            return \"0x\" + pointer.ToString(\"x\");\n        }\n\n        public static string DecodeUInt32(uint value)\n        {\n            return value.ToString();\n        }\n\n        public static string DecodeInt32(int value)\n        {\n            return value.ToString();\n        }\n\n        public static string DecodeInt8(byte value)\n        {\n            return value.ToString();\n        }\n    }\n}\n",
         "TypeEncoders": {
           "Version": 0,
           "TypeEncoder": [
