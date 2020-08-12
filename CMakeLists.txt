@@ -328,7 +328,10 @@ else()
 
     if(QUIC_SANITIZE_ADDRESS)
         message(STATUS "Configuring address sanitizer")
-        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined -fsanitize-recover=all)
+        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined -fsanitize-address-use-after-scope -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
+        if (CMAKE_C_COMPILER_ID MATCHES "Clang")
+            list(APPEND QUIC_COMMON_FLAGS -fsanitize=unsigned-integer-overflow -fsanitize=local-bounds -fsanitize=integer -fsanitize=nullability)
+        endif()
     endif()
 
     if(QUIC_TLS STREQUAL "stub")
