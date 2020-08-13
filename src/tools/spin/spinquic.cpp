@@ -804,7 +804,7 @@ main(int argc, char **argv)
 
     for (uint32_t i = 0; i < RepeatCount; i++) {
 
-        for (size_t j = 0; i < BufferCount; ++i) {
+        for (size_t j = 0; j < BufferCount; ++j) {
             Buffers[j].Length = MaxBufferSizes[j]; // TODO - Randomize?
             Buffers[j].Buffer = (uint8_t*)malloc(Buffers[j].Length);
             ASSERT_ON_NOT(Buffers[j].Buffer);
@@ -862,9 +862,9 @@ main(int argc, char **argv)
             ASSERT_ON_NOT(AlpnBuffer.Buffer);
             memcpy(AlpnBuffer.Buffer, Settings.AlpnPrefix, AlpnBuffer.Length);
 
-            for (uint32_t i = 0; i < SessionCount; i++) {
+            for (uint32_t j = 0; j < SessionCount; j++) {
 
-                AlpnBuffer.Buffer[AlpnBuffer.Length-1] = (uint8_t)i;
+                AlpnBuffer.Buffer[AlpnBuffer.Length-1] = (uint8_t)j;
 
                 HQUIC Session;
                 ASSERT_ON_FAILURE(MsQuic->SessionOpen(Registration, &AlpnBuffer, 1, nullptr, &Session));
@@ -930,8 +930,8 @@ main(int argc, char **argv)
         MsQuicClose(MsQuic);
         MsQuic = nullptr;
 
-        for (size_t i = 0; i < BufferCount; ++i) {
-            free(Buffers[i].Buffer);
+        for (size_t j = 0; j < BufferCount; ++j) {
+            free(Buffers[j].Buffer);
         }
     }
 
