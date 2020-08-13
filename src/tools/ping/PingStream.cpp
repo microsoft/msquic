@@ -39,7 +39,7 @@ PingStream::PingStream(
     StartTime = QuicTimeUs64();
     MsQuic->SetCallbackHandler(QuicStream, (void*)QuicCallbackHandler, this);
 
-    printf("[%p][%llu] Opened.\n", Connection->QuicConnection, GetStreamID(MsQuic, QuicStream));
+    printf("[%p][%llu] Opened.\n", Connection->QuicConnection, (unsigned long long)GetStreamID(MsQuic, QuicStream));
 }
 
 PingStream::~PingStream() {
@@ -58,7 +58,7 @@ PingStream::Start(
     }
     if (QUIC_SUCCEEDED(MsQuic->StreamOpen(Connection->QuicConnection, OpenFlags, QuicCallbackHandler, this, &QuicStream)) &&
         QUIC_SUCCEEDED(MsQuic->StreamStart(QuicStream, QUIC_STREAM_START_FLAG_NONE))) {
-        printf("[%p][%llu] Opened.\n", Connection->QuicConnection, GetStreamID(MsQuic, QuicStream));
+        printf("[%p][%llu] Opened.\n", Connection->QuicConnection, (unsigned long long)GetStreamID(MsQuic, QuicStream));
         return StartSend();
     } else {
         return false;
@@ -204,15 +204,16 @@ PingStream::ProcessEvent(
             uint32_t RecvRate = (uint32_t)((BytesReceived * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
 
             printf("[%p][%llu] Closed [%s] after %u.%u ms. (TX %llu bytes @ %u kbps | RX %llu bytes @ %u kbps).\n",
-                Connection->QuicConnection, GetStreamID(MsQuic, QuicStream),
+                Connection->QuicConnection, (unsigned long long)GetStreamID(MsQuic, QuicStream),
                 Completed ? "Complete" : "Cancel",
                 (uint32_t)(ElapsedMicroseconds / 1000),
                 (uint32_t)(ElapsedMicroseconds % 1000),
-                BytesCompleted, SendRate, BytesReceived, RecvRate);
+                (unsigned long long)BytesCompleted, SendRate,
+                (unsigned long long)BytesReceived, RecvRate);
 
         } else {
             printf("[%p][%llu] Closed [%s] after %u.%u ms.\n",
-                Connection->QuicConnection, GetStreamID(MsQuic, QuicStream),
+                Connection->QuicConnection, (unsigned long long)GetStreamID(MsQuic, QuicStream),
                 Completed ? "Complete" : "Cancel",
                 (uint32_t)(ElapsedMicroseconds / 1000),
                 (uint32_t)(ElapsedMicroseconds % 1000));

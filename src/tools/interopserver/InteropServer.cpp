@@ -402,7 +402,7 @@ HttpRequest::QuicUnidiCallbackHandler(
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
         printf("[%s] Peer abort (0x%llx)\n",
             GetRemoteAddr(MsQuic, Stream).Address,
-            Event->PEER_SEND_ABORTED.ErrorCode);
+            (unsigned long long)Event->PEER_SEND_ABORTED.ErrorCode);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         delete pThis;

@@ -139,7 +139,7 @@ public:
             return ProcessData(nullptr, &Zero);
         }
 
-        uint32_t Result;
+        uint32_t Result = 0;
 
         while (PeerState->BufferLength != 0) {
             uint32_t BufferLength;

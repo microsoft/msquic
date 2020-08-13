@@ -90,6 +90,7 @@ void QuicPingClientRun()
         printf("Total rate after %u.%u ms. (TX %llu bytes @ %u kbps | RX %llu bytes @ %u kbps).\n",
             (uint32_t)(ElapsedMicroseconds / 1000),
             (uint32_t)(ElapsedMicroseconds % 1000),
-            Tracker.BytesSent, SendRate, Tracker.BytesReceived, RecvRate);
+            (unsigned long long)Tracker.BytesSent, SendRate,
+            (unsigned long long)Tracker.BytesReceived, RecvRate);
     }
 }

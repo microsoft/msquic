@@ -159,7 +159,8 @@ RunAttackRandom(
 
     uint64_t TimeEnd = QuicTimeMs64();
     printf("%llu packets were sent (%llu Hz).\n",
-        PacketCount, (PacketCount * 1000) / QuicTimeDiff64(TimeStart, TimeEnd));
+        (unsigned long long)PacketCount,
+        (unsigned long long)(PacketCount * 1000) / QuicTimeDiff64(TimeStart, TimeEnd));
 }
 
 #if DEBUG
@@ -287,7 +288,8 @@ RunAttackValidInitial(
 
     uint64_t TimeEnd = QuicTimeMs64();
     printf("%llu packets were sent (%llu Hz).\n",
-        PacketCount, (PacketCount * 1000) / QuicTimeDiff64(TimeStart, TimeEnd));
+        (unsigned long long)PacketCount,
+        (unsigned long long)(PacketCount * 1000) / QuicTimeDiff64(TimeStart, TimeEnd));
 }
 
 struct ATTACK_THREAD_CONTEXT {

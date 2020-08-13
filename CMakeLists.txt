@@ -196,7 +196,7 @@ else()
     set(QUIC_COMMON_FLAGS "")
     set(QUIC_COMMON_DEFINES "")
     set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
-        -Wno-unknown-pragmas -Wno-multichar
+        -Wno-unknown-pragmas -Wno-multichar -Wno-missing-field-initializers
         CACHE INTERNAL "")
     if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         list(APPEND QUIC_WARNING_FLAGS -Wno-missing-braces -Wno-microsoft-anon-tag)
