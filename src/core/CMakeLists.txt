@@ -5,6 +5,7 @@ set(SOURCES
     ack_tracker.c
     api.c
     binding.c
+    configuration.c
     congestion_control.c
     connection.c
     crypto.c

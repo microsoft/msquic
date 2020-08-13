@@ -69,9 +69,11 @@ MsQuicRegistrationOpen(
     Registration->ExecProfile = Config == NULL ? QUIC_EXECUTION_PROFILE_LOW_LATENCY : Config->ExecutionProfile;
     Registration->CidPrefixLength = 0;
     Registration->CidPrefix = NULL;
-    QuicLockInitialize(&Registration->Lock);
+    QuicLockInitialize(&Registration->ConfigLock);
+    QuicListInitializeHead(&Registration->Configurations);
+    QuicLockInitialize(&Registration->SessionLock);
     QuicListInitializeHead(&Registration->Sessions);
-    QuicRundownInitialize(&Registration->SecConfigRundown);
+    QuicRundownInitialize(&Registration->ConfigRundown);
     QuicRundownInitialize(&Registration->ConnectionRundown);
     Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
     if (AppNameLength != 0) {
@@ -156,9 +158,10 @@ MsQuicRegistrationOpen(
 Error:
 
     if (Registration != NULL) {
-        QuicRundownUninitialize(&Registration->SecConfigRundown);
+        QuicRundownUninitialize(&Registration->ConfigRundown);
         QuicRundownUninitialize(&Registration->ConnectionRundown);
-        QuicLockUninitialize(&Registration->Lock);
+        QuicLockUninitialize(&Registration->SessionLock);
+        QuicLockUninitialize(&Registration->ConfigLock);
         QUIC_FREE(Registration);
     }
 
@@ -206,11 +209,12 @@ MsQuicRegistrationClose(
         QuicRundownReleaseAndWait(&Registration->ConnectionRundown);
 
         QuicWorkerPoolUninitialize(Registration->WorkerPool);
-        QuicRundownReleaseAndWait(&Registration->SecConfigRundown);
+        QuicRundownReleaseAndWait(&Registration->ConfigRundown);
 
-        QuicRundownUninitialize(&Registration->SecConfigRundown);
+        QuicRundownUninitialize(&Registration->ConfigRundown);
         QuicRundownUninitialize(&Registration->ConnectionRundown);
-        QuicLockUninitialize(&Registration->Lock);
+        QuicLockUninitialize(&Registration->SessionLock);
+        QuicLockUninitialize(&Registration->ConfigLock);
 
         if (Registration->CidPrefix != NULL) {
             QUIC_FREE(Registration->CidPrefix);
@@ -236,7 +240,18 @@ QuicRegistrationTraceRundown(
         Registration,
         Registration->AppName);
 
-    QuicLockAcquire(&Registration->Lock);
+    QuicLockAcquire(&Registration->ConfigLock);
+
+    for (QUIC_LIST_ENTRY* Link = Registration->Configurations.Flink;
+        Link != &Registration->Configurations;
+        Link = Link->Flink) {
+        QuicConfigurationTraceRundown(
+            QUIC_CONTAINING_RECORD(Link, QUIC_CONFIGURATION, Link));
+    }
+
+    QuicLockRelease(&Registration->ConfigLock);
+
+    QuicLockAcquire(&Registration->SessionLock);
 
     for (QUIC_LIST_ENTRY* Link = Registration->Sessions.Flink;
         Link != &Registration->Sessions;
@@ -245,7 +260,7 @@ QuicRegistrationTraceRundown(
             QUIC_CONTAINING_RECORD(Link, QUIC_SESSION, Link));
     }
 
-    QuicLockRelease(&Registration->Lock);
+    QuicLockRelease(&Registration->SessionLock);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -254,16 +269,16 @@ QuicRegistrationSettingsChanged(
     _Inout_ QUIC_REGISTRATION* Registration
     )
 {
-    QuicLockAcquire(&Registration->Lock);
+    QuicLockAcquire(&Registration->ConfigLock);
 
-    for (QUIC_LIST_ENTRY* Link = Registration->Sessions.Flink;
-        Link != &Registration->Sessions;
+    for (QUIC_LIST_ENTRY* Link = Registration->Configurations.Flink;
+        Link != &Registration->Configurations;
         Link = Link->Flink) {
-        QuicSessionSettingsChanged(
-            QUIC_CONTAINING_RECORD(Link, QUIC_SESSION, Link));
+        QuiConfigurationSettingsChanged(
+            QUIC_CONTAINING_RECORD(Link, QUIC_CONFIGURATION, Link));
     }
 
-    QuicLockRelease(&Registration->Lock);
+    QuicLockRelease(&Registration->ConfigLock);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -293,7 +308,7 @@ MsQuicSecConfigCreate(
         QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
         Status =
             QuicTlsServerSecConfigCreate(
-                &Registration->SecConfigRundown,
+                &Registration->ConfigRundown,
                 Flags,
                 Certificate,
                 Principal,

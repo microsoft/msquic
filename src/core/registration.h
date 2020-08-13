@@ -63,9 +63,19 @@ typedef struct QUIC_REGISTRATION {
     QUIC_WORKER_POOL* WorkerPool;
 
     //
+    // Protects access to the Configurations list.
+    //
+    QUIC_LOCK ConfigLock;
+
+    //
+    // List of all configurations for this registration.
+    //
+    QUIC_LIST_ENTRY Configurations;
+
+    //
     // Protects access to the Sessions list.
     //
-    QUIC_LOCK Lock;
+    QUIC_LOCK SessionLock;
 
     //
     // List of all sessions for this registration.
@@ -73,14 +83,14 @@ typedef struct QUIC_REGISTRATION {
     QUIC_LIST_ENTRY Sessions;
 
     //
-    // Rundown for all connections
+    // Rundown for all outstanding configurations.
     //
-    QUIC_RUNDOWN_REF ConnectionRundown;
+    QUIC_RUNDOWN_REF ConfigRundown;
 
     //
-    // Rundown for all outstanding security configs.
+    // Rundown for all connections.
     //
-    QUIC_RUNDOWN_REF SecConfigRundown;
+    QUIC_RUNDOWN_REF ConnectionRundown;
 
     //
     // Name of the application layer.

@@ -25,21 +25,28 @@ MsQuicRegistrationClose(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
-MsQuicSecConfigCreate(
+MsQuicConfigurationOpen(
     _In_ _Pre_defensive_ HQUIC Registration,
-    _In_ QUIC_SEC_CONFIG_FLAGS Flags,
-    _In_opt_ void* Certificate,
-    _In_opt_z_ const char* Principal,
+    _In_ _Pre_defensive_ QUIC_CONFIGURATION_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
-    _In_ _Pre_defensive_
-        QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
+    _Outptr_ _At_(*Configuration, __drv_allocatesMem(Mem)) _Pre_defensive_
+        HQUIC* Configuration
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QUIC_API
-MsQuicSecConfigDelete(
-    _In_ _Pre_defensive_ QUIC_SEC_CONFIG* SecurityConfig
+MsQuicConfigurationClose(
+    _In_ _Pre_defensive_ __drv_freesMem(Mem)
+        HQUIC Configuration
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConfigurationLoadCredential(
+    _In_ _Pre_defensive_ HQUIC Configuration,
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

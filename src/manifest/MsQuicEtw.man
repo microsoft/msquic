@@ -359,92 +359,96 @@
                 value="3"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.SEC_CONFIG_CREATE)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONFIGURATION_OPEN)"
                 value="4"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.SEC_CONFIG_DELETE)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONFIGURATION_CLOSE)"
                 value="5"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.SESSION_OPEN)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONFIGURATION_LOAD_CREDENTIAL)"
                 value="6"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.SESSION_CLOSE)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.SESSION_OPEN)"
                 value="7"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.SESSION_SHUTDOWN)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.SESSION_CLOSE)"
                 value="8"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.LISTENER_OPEN)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.SESSION_SHUTDOWN)"
                 value="9"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.LISTENER_CLOSE)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.LISTENER_OPEN)"
                 value="10"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.LISTENER_START)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.LISTENER_CLOSE)"
                 value="11"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.LISTENER_STOP)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.LISTENER_START)"
                 value="12"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_OPEN)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.LISTENER_STOP)"
                 value="13"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_CLOSE)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_OPEN)"
                 value="14"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_SHUTDOWN)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_CLOSE)"
                 value="15"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_START)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_SHUTDOWN)"
                 value="16"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_SEND_RESUMPTION_TICKET)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_START)"
                 value="17"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_OPEN)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_SEND_RESUMPTION_TICKET)"
                 value="18"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_CLOSE)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_OPEN)"
                 value="19"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_START)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_CLOSE)"
                 value="20"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_SHUTDOWN)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_START)"
                 value="21"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_SEND)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_SHUTDOWN)"
                 value="22"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_RECEIVE_COMPLETE)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_SEND)"
                 value="23"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_RECEIVE_SET_ENABLED)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_RECEIVE_COMPLETE)"
                 value="24"
                 />
             <map
-                message="$(string.Enum.QUIC_TRACE_API_TYPE.DATAGRAM_SEND)"
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_RECEIVE_SET_ENABLED)"
                 value="25"
+                />
+            <map
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.DATAGRAM_SEND)"
+                value="26"
                 />
           </valueMap>
           <valueMap name="map_QUIC_SEND_FLUSH_REASON">
@@ -3585,12 +3589,16 @@
             value="REGISTRATION_CLOSE"
             />
         <string
-            id="Enum.QUIC_TRACE_API_TYPE.SEC_CONFIG_CREATE"
-            value="SEC_CONFIG_CREATE"
+            id="Enum.QUIC_TRACE_API_TYPE.CONFIGURATION_OPEN"
+            value="CONFIGURATION_OPEN"
             />
         <string
-            id="Enum.QUIC_TRACE_API_TYPE.SEC_CONFIG_DELETE"
-            value="SEC_CONFIG_DELETE"
+            id="Enum.QUIC_TRACE_API_TYPE.CONFIGURATION_CLOSE"
+            value="CONFIGURATION_CLOSE"
+            />
+        <string
+            id="Enum.QUIC_TRACE_API_TYPE.CONFIGURATION_LOAD_CREDENTIAL"
+            value="CONFIGURATION_LOAD_CREDENTIAL"
             />
         <string
             id="Enum.QUIC_TRACE_API_TYPE.SESSION_OPEN"

@@ -755,7 +755,7 @@ QuicLibrarySetParam(
         }
         break;
 
-    case QUIC_PARAM_LEVEL_SESSION:
+    case QUIC_PARAM_LEVEL_CONFIGURATION:
         if (Session == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
@@ -891,7 +891,7 @@ QuicLibraryGetParam(
         }
         break;
 
-    case QUIC_PARAM_LEVEL_SESSION:
+    case QUIC_PARAM_LEVEL_CONFIGURATION:
         if (Session == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
@@ -983,8 +983,9 @@ MsQuicOpen(
     Api->RegistrationOpen = MsQuicRegistrationOpen;
     Api->RegistrationClose = MsQuicRegistrationClose;
 
-    Api->SecConfigCreate = MsQuicSecConfigCreate;
-    Api->SecConfigDelete = MsQuicSecConfigDelete;
+    Api->ConfigurationOpen = MsQuicConfigurationOpen;
+    Api->ConfigurationClose = MsQuicConfigurationClose;
+    Api->ConfigurationLoadCredential = MsQuicConfigurationLoadCredential;
 
     Api->SessionOpen = MsQuicSessionOpen;
     Api->SessionClose = MsQuicSessionClose;

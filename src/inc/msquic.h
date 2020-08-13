@@ -42,10 +42,7 @@ Supported Platforms:
 extern "C" {
 #endif
 
-
 typedef struct QUIC_HANDLE *HQUIC;
-typedef struct QUIC_SEC_CONFIG QUIC_SEC_CONFIG;
-
 
 //
 // The maximum value that can be encoded in a 62-bit integer.
@@ -85,16 +82,23 @@ typedef enum QUIC_LOAD_BALANCING_MODE {
     QUIC_LOAD_BALANCING_SERVER_ID_IP            // Encodes IP address in Server ID
 } QUIC_LOAD_BALANCING_MODE;
 
-typedef enum QUIC_SEC_CONFIG_FLAGS {
-    QUIC_SEC_CONFIG_FLAG_NONE                   = 0x00000000,
-    QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH       = 0x00000001,
-    QUIC_SEC_CONFIG_FLAG_CERTIFICATE_HASH_STORE = 0x00000002,
-    QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT    = 0x00000004,
-    QUIC_SEC_CONFIG_FLAG_CERTIFICATE_FILE       = 0x00000008,
-    QUIC_SEC_CONFIG_FLAG_ENABLE_OCSP            = 0x00000010
-} QUIC_SEC_CONFIG_FLAGS;
+typedef enum QUIC_CREDENTIAL_FLAGS {
+    QUIC_CREDENTIAL_FLAG_NONE                       = 0x00000000,
+    QUIC_CREDENTIAL_FLAG_CLIENT                     = 0x00000001, // Lack of client flag indicates server.
+    QUIC_CREDENTIAL_FLAG_LOAD_SYNCHRONOUS           = 0x00000002,
+    QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION  = 0x00000004,
+    QUIC_CREDENTIAL_FLAG_ENABLE_OCSP                = 0x00000008
+} QUIC_CREDENTIAL_FLAGS;
 
-DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEC_CONFIG_FLAGS);
+DEFINE_ENUM_FLAG_OPERATORS(QUIC_CREDENTIAL_FLAGS);
+
+typedef enum QUIC_CREDENTIAL_TYPE {
+    QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE,
+    QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH,
+    QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE,
+    QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
+    QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE
+} QUIC_CREDENTIAL_TYPE;
 
 typedef enum QUIC_CERTIFICATE_HASH_STORE_FLAGS {
     QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE           = 0x0000,
@@ -102,6 +106,8 @@ typedef enum QUIC_CERTIFICATE_HASH_STORE_FLAGS {
 } QUIC_CERTIFICATE_HASH_STORE_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CERTIFICATE_HASH_STORE_FLAGS);
+
+DEFINE_ENUM_FLAG_OPERATORS(QUIC_CERTIFICATE_IGNORE_FLAGS);
 
 typedef enum QUIC_CONNECTION_SHUTDOWN_FLAGS {
     QUIC_CONNECTION_SHUTDOWN_FLAG_NONE      = 0x0000,
@@ -190,6 +196,13 @@ typedef struct QUIC_REGISTRATION_CONFIG { // All fields may be NULL/zero.
     const char* AppName;
     QUIC_EXECUTION_PROFILE ExecutionProfile;
 } QUIC_REGISTRATION_CONFIG;
+
+typedef struct QUIC_CREDENTIAL_CONFIG {
+    QUIC_CREDENTIAL_TYPE Type;
+    QUIC_CREDENTIAL_FLAGS Flags;
+    void* Creds;
+    const char* Principal;
+} QUIC_CREDENTIAL_CONFIG;
 
 typedef struct QUIC_CERTIFICATE_HASH {
     uint8_t ShaHash[20];
@@ -334,7 +347,7 @@ void
 typedef enum QUIC_PARAM_LEVEL {
     QUIC_PARAM_LEVEL_GLOBAL,
     QUIC_PARAM_LEVEL_REGISTRATION,
-    QUIC_PARAM_LEVEL_SESSION,
+    QUIC_PARAM_LEVEL_CONFIGURATION,
     QUIC_PARAM_LEVEL_LISTENER,
     QUIC_PARAM_LEVEL_CONNECTION,
     QUIC_PARAM_LEVEL_TLS,
@@ -360,17 +373,17 @@ typedef enum QUIC_SERVER_RESUMPTION_LEVEL {
 #define QUIC_PARAM_REGISTRATION_CID_PREFIX              0   // uint8_t[]
 
 //
-// Parameters for QUIC_PARAM_LEVEL_SESSION.
+// Parameters for QUIC_PARAM_LEVEL_CONFIGURATION.
 //
-#define QUIC_PARAM_SESSION_TLS_TICKET_KEY               0   // uint8_t[44]
-#define QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT       1   // uint16_t
-#define QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT      2   // uint16_t
-#define QUIC_PARAM_SESSION_IDLE_TIMEOUT                 3   // uint64_t - milliseconds
-#define QUIC_PARAM_SESSION_DISCONNECT_TIMEOUT           4   // uint32_t - milliseconds
-#define QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY            5   // uint64_t - bytes
-#define QUIC_PARAM_SESSION_MIGRATION_ENABLED            6   // uint8_t (BOOLEAN)
-#define QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED     7   // uint8_t (BOOLEAN)
-#define QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL      8   // QUIC_SERVER_RESUMPTION_LEVEL
+#define QUIC_PARAM_CONFIG_TLS_TICKET_KEY                0   // uint8_t[44]
+#define QUIC_PARAM_CONFIG_PEER_BIDI_STREAM_COUNT        1   // uint16_t
+#define QUIC_PARAM_CONFIG_PEER_UNIDI_STREAM_COUNT       2   // uint16_t
+#define QUIC_PARAM_CONFIG_IDLE_TIMEOUT                  3   // uint64_t - milliseconds
+#define QUIC_PARAM_CONFIG_DISCONNECT_TIMEOUT            4   // uint32_t - milliseconds
+#define QUIC_PARAM_CONFIG_MAX_BYTES_PER_KEY             5   // uint64_t - bytes
+#define QUIC_PARAM_CONFIG_MIGRATION_ENABLED             6   // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONFIG_DATAGRAM_RECEIVE_ENABLED      7   // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONFIG_SERVER_RESUMPTION_LEVEL       8   // QUIC_SERVER_RESUMPTION_LEVEL
 
 //
 // Parameters for QUIC_PARAM_LEVEL_LISTENER.
@@ -395,7 +408,7 @@ typedef enum QUIC_SERVER_RESUMPTION_LEVEL {
 #define QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS           11  // uint32_t
 #define QUIC_PARAM_CONN_KEEP_ALIVE                      12  // uint32_t - milliseconds
 #define QUIC_PARAM_CONN_DISCONNECT_TIMEOUT              13  // uint32_t - milliseconds
-#define QUIC_PARAM_CONN_SEC_CONFIG                      14  // QUIC_SEC_CONFIG*
+#define QUIC_PARAM_CONN_CONFIGURATION                   14  // HQUIC*
 #define QUIC_PARAM_CONN_SEND_BUFFERING                  15  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_SEND_PACING                     16  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_SHARE_UDP_BINDING               17  // uint8_t (BOOLEAN)
@@ -491,42 +504,69 @@ void
     );
 
 //
-// Security Configuration Interface.
+// Configuration Interface.
 //
+
+typedef enum QUIC_CONFIGURATION_EVENT_TYPE {
+    QUIC_CONFIGURATION_EVENT_LOAD_COMPLETE      = 0
+} QUIC_CONFIGURATION_EVENT_TYPE;
+
+typedef struct QUIC_CONFIGURATION_EVENT {
+    QUIC_CONFIGURATION_EVENT_TYPE Type;
+    union {
+        struct {
+            QUIC_STATUS Status;
+        } LOAD_CREDENTIAL_COMPLETE;
+    };
+} QUIC_CONFIGURATION_EVENT;
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
-void
-(QUIC_API QUIC_SEC_CONFIG_CREATE_COMPLETE)(
+_Function_class_(QUIC_CONFIGURATION_CALLBACK)
+QUIC_STATUS
+(QUIC_API QUIC_CONFIGURATION_CALLBACK)(
+    _In_ HQUIC Configuration,
     _In_opt_ void* Context,
-    _In_ QUIC_STATUS Status,
-    _In_opt_ QUIC_SEC_CONFIG* SecurityConfig
+    _Inout_ QUIC_CONFIGURATION_EVENT* Event
     );
 
-typedef QUIC_SEC_CONFIG_CREATE_COMPLETE *QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER;
+typedef QUIC_CONFIGURATION_CALLBACK *QUIC_CONFIGURATION_CALLBACK_HANDLER;
 
 //
-// Create a new security config.
+// Opens a new configuration.
 //
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-(QUIC_API * QUIC_SEC_CONFIG_CREATE_FN)(
+(QUIC_API * QUIC_CONFIGURATION_OPEN_FN)(
     _In_ _Pre_defensive_ HQUIC Registration,
-    _In_ QUIC_SEC_CONFIG_FLAGS Flags,
-    _In_opt_ void* Certificate,
-    _In_opt_z_ const char* Principal,
+    _In_ _Pre_defensive_ QUIC_CONFIGURATION_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
-    _In_ _Pre_defensive_
-        QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
+    _Outptr_ _At_(*Configuration, __drv_allocatesMem(Mem)) _Pre_defensive_
+        HQUIC* Configuration
     );
 
+//
+// Closes an existing configuration. N.B. This function will deadlock if called
+// in a QUIC_CONFIGURATION_CALLBACK_HANDLER callback.
+//
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-(QUIC_API * QUIC_SEC_CONFIG_DELETE_FN)(
-    _In_ _Pre_defensive_ QUIC_SEC_CONFIG* SecurityConfig
+(QUIC_API * QUIC_CONFIGURATION_CLOSE_FN)(
+    _In_ _Pre_defensive_ __drv_freesMem(Mem)
+        HQUIC Configuration
+    );
+
+//
+// Loads the credentials based on the input configuration.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_CONFIGURATION_LOAD_CREDENTIAL_FN)(
+    _In_ _Pre_defensive_ HQUIC Configuration,
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
     );
 
 //
@@ -590,7 +630,7 @@ typedef struct QUIC_LISTENER_EVENT {
         struct {
             /* in */    const QUIC_NEW_CONNECTION_INFO* Info;
             /* in */    HQUIC Connection;
-            /* out */   QUIC_SEC_CONFIG* SecurityConfig;
+            /* out */   HQUIC* Configuration;
         } NEW_CONNECTION;
     };
 } QUIC_LISTENER_EVENT;
@@ -1001,8 +1041,10 @@ typedef struct QUIC_API_TABLE {
     QUIC_REGISTRATION_OPEN_FN           RegistrationOpen;
     QUIC_REGISTRATION_CLOSE_FN          RegistrationClose;
 
-    QUIC_SEC_CONFIG_CREATE_FN           SecConfigCreate;
-    QUIC_SEC_CONFIG_DELETE_FN           SecConfigDelete;
+    QUIC_CONFIGURATION_OPEN_FN          ConfigurationOpen;
+    QUIC_CONFIGURATION_CLOSE_FN         ConfigurationClose;
+    QUIC_CONFIGURATION_LOAD_CREDENTIAL_FN
+                                        ConfigurationLoadCredential;
 
     QUIC_SESSION_OPEN_FN                SessionOpen;
     QUIC_SESSION_CLOSE_FN               SessionClose;
