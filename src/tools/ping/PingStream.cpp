@@ -176,7 +176,7 @@ PingStream::ProcessEvent(
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
         CompleteTime = QuicTimeUs64();
 
-        bool Completed;
+        bool Completed = false;
         switch (Mode) {
         case UniSendMode:
             Completed = BytesCompleted == PingConfig.StreamPayloadLength;
