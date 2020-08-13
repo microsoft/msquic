@@ -103,7 +103,7 @@ QuicKernelMain(
     _In_ bool /*KeyboardWait*/,
     _In_ QUIC_SEC_CONFIG_PARAMS* SelfSignedParams
     ) {
-    int TotalLength = sizeof(argc);
+    size_t TotalLength = sizeof(argc);
 
     //
     // Get total length
@@ -125,7 +125,7 @@ QuicKernelMain(
 
     char* DataCurrent = Data;
 
-    QuicCopyMemory(DataCurrent, &argc, sizeof(TotalLength));
+    QuicCopyMemory(DataCurrent, &argc, sizeof(argc));
 
     DataCurrent += sizeof(argc);
 
