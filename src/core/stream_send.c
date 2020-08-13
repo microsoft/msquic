@@ -400,13 +400,14 @@ QuicStreamCompleteSendRequest(
             SendRequest->InternalBuffer.Length);
     }
 
-    Stream->Connection->SendBuffer.PostedBytes -= SendRequest->TotalLength;
+    QUIC_DBG_ASSERT(Connection->SendBuffer.PostedBytes >= SendRequest->TotalLength);
+    Connection->SendBuffer.PostedBytes -= SendRequest->TotalLength;
 
     if (Connection->State.UseSendBuffer) {
         QuicSendBufferFill(Connection);
     }
 
-    QuicPoolFree(&Stream->Connection->Worker->SendRequestPool, SendRequest);
+    QuicPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -492,6 +493,8 @@ QuicStreamSendFlush(
         QUIC_DBG_ASSERT(SendRequest->TotalLength != 0 || SendRequest->Flags & QUIC_SEND_FLAG_FIN);
         QUIC_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
 
+        Stream->Connection->SendBuffer.PostedBytes += SendRequest->TotalLength;
+
         if (!Stream->Flags.SendEnabled) {
             //
             // Only possible if they queue muliple sends, with a FIN flag set
@@ -500,8 +503,6 @@ QuicStreamSendFlush(
             QuicStreamCompleteSendRequest(Stream, SendRequest, TRUE);
             continue;
         }
-
-        Stream->Connection->SendBuffer.PostedBytes += SendRequest->TotalLength;
 
         //
         // Queue up the send request.
