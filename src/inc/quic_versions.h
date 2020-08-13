@@ -11,6 +11,8 @@ Abstract:
 
 #pragma once
 
+#include <stdint.h>
+
 //
 // The QUIC version numbers, in network byte order.
 //
