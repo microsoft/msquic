@@ -61,7 +61,7 @@ ConnectionHandler(
         printf("Transport Shutdown 0x%x\n", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
-        printf("Peer Shutdown 0x%llx\n", Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
+        printf("Peer Shutdown 0x%llx\n", (unsigned long long)Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         //printf("Shutdown Complete\n");
@@ -92,7 +92,7 @@ StreamHandler(
         QuicEventSet(SendReady);
         break;
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
-        printf("Peer stream recv abort (0x%llx)\n", Event->PEER_RECEIVE_ABORTED.ErrorCode);
+        printf("Peer stream recv abort (0x%llx)\n", (unsigned long long)Event->PEER_RECEIVE_ABORTED.ErrorCode);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         MsQuic->ConnectionShutdown(Stream, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
@@ -187,11 +187,11 @@ main(
     uint64_t ElapsedUs = QuicTimeDiff64(TimeStart, TimeEnd);
     uint64_t SendRateKbps = (TotalBytesSent * 1000 * 8) / ElapsedUs;
 
-    printf("%llu bytes sent in %llu.%03llu ms ", TotalBytesSent, ElapsedUs / 1000, ElapsedUs % 1000);
+    printf("%llu bytes sent in %llu.%03llu ms ", (unsigned long long)TotalBytesSent, (unsigned long long)ElapsedUs / 1000, (unsigned long long)ElapsedUs % 1000);
     if (SendRateKbps > 1000) {
-        printf("(%llu.%03llu mbps)\n", SendRateKbps / 1000, SendRateKbps % 1000);
+        printf("(%llu.%03llu mbps)\n", (unsigned long long)SendRateKbps / 1000, (unsigned long long)SendRateKbps % 1000);
     } else {
-        printf("(%llu kbps)\n", SendRateKbps);
+        printf("(%llu kbps)\n", (unsigned long long)SendRateKbps);
     }
 
     QuicEventUninitialize(SendReady);
