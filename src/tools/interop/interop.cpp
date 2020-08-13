@@ -53,11 +53,19 @@ const QUIC_BUFFER DatapathAlpns[] = {
     { sizeof("hq-27") - 1, (uint8_t*)"hq-27" },
 };
 
+const QUIC_BUFFER DatagramAlpns[] = {
+    { sizeof("siduck") - 1,    (uint8_t*)"siduck" },
+    { sizeof("siduck-00") - 1, (uint8_t*)"siduck-00" },
+};
+
 const uint16_t PublicPorts[] = {
     443, 4433, 4434
 };
 
 const uint32_t PublicPortsCount = ARRAYSIZE(PublicPorts);
+
+const QUIC_BUFFER QuackBuffer = { sizeof("quack") - 1, (uint8_t*)"quack" };
+const QUIC_BUFFER QuackAckBuffer = { sizeof("quack-ack") - 1, (uint8_t*)"quack-ack" };
 
 //
 // Represents the information of a well-known public QUIC endpoint.
@@ -147,6 +155,7 @@ class InteropConnection {
     GetRequest SendRequest;
     QUIC_EVENT ConnectionComplete;
     QUIC_EVENT RequestComplete;
+    QUIC_EVENT QuackAckReceived;
     QUIC_EVENT ShutdownComplete;
     char* NegotiatedAlpn;
 public:
@@ -155,6 +164,7 @@ public:
     bool Resumed : 1;
     bool UsedZeroRtt : 1;
     bool ReceivedResponse : 1;
+    bool ReceivedQuackAck : 1;
     InteropConnection(HQUIC Session, bool VerNeg = false, bool LargeTP = false) :
         Connection(nullptr),
         SendRequest("/"),
@@ -163,10 +173,12 @@ public:
         Connected(false),
         Resumed(false),
         UsedZeroRtt(false),
-        ReceivedResponse(false)
+        ReceivedResponse(false),
+        ReceivedQuackAck(false)
     {
         QuicEventInitialize(&ConnectionComplete, TRUE, FALSE);
         QuicEventInitialize(&RequestComplete, TRUE, FALSE);
+        QuicEventInitialize(&QuackAckReceived, TRUE, FALSE);
         QuicEventInitialize(&ShutdownComplete, TRUE, FALSE);
 
         VERIFY_QUIC_SUCCESS(
@@ -230,6 +242,7 @@ public:
         MsQuic->ConnectionClose(Connection);
         QuicEventUninitialize(ShutdownComplete);
         QuicEventUninitialize(RequestComplete);
+        QuicEventUninitialize(QuackAckReceived);
         QuicEventUninitialize(ConnectionComplete);
         delete [] NegotiatedAlpn;
     }
@@ -314,6 +327,31 @@ public:
         return
             QuicEventWaitWithTimeout(RequestComplete, WaitTimeoutMs) &&
             ReceivedResponse;
+    }
+    bool SendQuack() {
+        BOOLEAN DatagramEnabled = TRUE;
+        VERIFY_QUIC_SUCCESS(
+            MsQuic->SetParam(
+                Connection,
+                QUIC_PARAM_LEVEL_CONNECTION,
+                QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
+                sizeof(DatagramEnabled),
+                &DatagramEnabled));
+        if (QUIC_FAILED(
+            MsQuic->DatagramSend(
+                Connection,
+                &QuackBuffer,
+                1,
+                QUIC_SEND_FLAG_NONE,
+                nullptr))) {
+            return false;
+        }
+        return true;
+    }
+    bool WaitForQuackAck() {
+        return
+            QuicEventWaitWithTimeout(QuackAckReceived, WaitTimeoutMs) &&
+            ReceivedQuackAck;
     }
     bool WaitForTicket() {
         int TryCount = 0;
@@ -436,16 +474,25 @@ private:
             __fallthrough;
         case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
             QuicEventSet(pThis->RequestComplete);
+            QuicEventSet(pThis->QuackAckReceived);
             QuicEventSet(pThis->ConnectionComplete);
             break;
         case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
             QuicEventSet(pThis->RequestComplete);
+            QuicEventSet(pThis->QuackAckReceived);
             QuicEventSet(pThis->ConnectionComplete);
             QuicEventSet(pThis->ShutdownComplete);
             break;
         case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
             MsQuic->SetCallbackHandler(
                 Event->PEER_STREAM_STARTED.Stream, (void*)NoOpStreamCallback, pThis);
+            break;
+        case QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED:
+            if (Event->DATAGRAM_RECEIVED.Buffer->Length == QuackAckBuffer.Length &&
+                !memcmp(Event->DATAGRAM_RECEIVED.Buffer->Buffer, QuackAckBuffer.Buffer, QuackAckBuffer.Length)) {
+                pThis->ReceivedQuackAck = true;
+                QuicEventSet(pThis->QuackAckReceived);
+            }
             break;
         default:
             break;
@@ -529,8 +576,18 @@ RunInteropTest(
 {
     bool Success = false;
 
-    const QUIC_BUFFER* Alpns = (Feature & QuicTestFeatureDataPath) ? DatapathAlpns : HandshakeAlpns;
-    const uint32_t AlpnCount = (Feature & QuicTestFeatureDataPath) ? ARRAYSIZE(DatapathAlpns) : ARRAYSIZE(HandshakeAlpns);
+    const QUIC_BUFFER* Alpns;
+    uint32_t AlpnCount;
+    if (Feature & QuicTestFeatureDataPath) {
+        Alpns = DatapathAlpns;
+        AlpnCount = ARRAYSIZE(DatapathAlpns);
+    } else if (Feature == Datagram) {
+        Alpns = DatagramAlpns;
+        AlpnCount = ARRAYSIZE(DatagramAlpns);
+    } else {
+        Alpns = HandshakeAlpns;
+        AlpnCount = ARRAYSIZE(HandshakeAlpns);
+    }
 
     HQUIC Session;
     VERIFY_QUIC_SUCCESS(
@@ -674,6 +731,17 @@ RunInteropTest(
             }
         }
         break;
+    }
+
+    case Datagram: {
+        InteropConnection Connection(Session, false);
+        if (Connection.SendQuack() &&
+            Connection.ConnectToServer(Endpoint.ServerName, Port) &&
+            Connection.WaitForQuackAck()) {
+            Connection.GetQuicVersion(QuicVersionUsed);
+            Connection.GetNegotiatedAlpn(NegotiatedAlpn);
+            Success = true;
+        }
     }
     }
 
