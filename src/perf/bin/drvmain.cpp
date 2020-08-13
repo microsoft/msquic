@@ -554,7 +554,10 @@ QuicPerfCtlReadPrints(
     QuicCopyMemory(LocalBuffer, Buffer, BufferCurrent);
 
 Exit:
-    WdfRequestComplete(Request, Status);
+    WdfRequestCompleteWithInformation(
+        Request,
+        Status,
+        BufferCurrent);
 }
 
 NTSTATUS
