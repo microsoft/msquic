@@ -1967,7 +1967,6 @@ QuicDataPathBindingSend(
     QUIC_SOCKET_CONTEXT* SocketContext = NULL;
     QUIC_DATAPATH_PROC_CONTEXT* ProcContext = NULL;
     ssize_t SentByteCount = 0;
-    size_t i = 0;
     QUIC_ADDR MappedRemoteAddress = {0};
     struct cmsghdr *CMsg = NULL;
     struct in_pktinfo *PktInfo = NULL;
@@ -1983,7 +1982,7 @@ QuicDataPathBindingSend(
     ProcContext = &Binding->Datapath->ProcContexts[QuicProcCurrentNumber()];
 
     uint32_t TotalSize = 0;
-    for (i = 0; i < SendContext->BufferCount; ++i) {
+    for (size_t i = 0; i < SendContext->BufferCount; ++i) {
         SendContext->Iovs[i].iov_base = SendContext->Buffers[i].Buffer;
         SendContext->Iovs[i].iov_len = SendContext->Buffers[i].Length;
         TotalSize += SendContext->Buffers[i].Length;
@@ -1993,9 +1992,9 @@ QuicDataPathBindingSend(
             DatapathSendTo,
             "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!",
             Binding,
-            SendContext->Buffers[i].Length,
-            1,
-            SendContext->Buffers[i].Length,
+            TotalSize,
+            SendContext->BufferCount,
+            SendContext->Buffers[0].Length,
             CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress));
     } else {
         QuicTraceEvent(
