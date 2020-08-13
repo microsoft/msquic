@@ -278,7 +278,7 @@ QuicAckFrameDecode(
     uint64_t Count = Frame.FirstAckBlock + 1;
 
     BOOLEAN DontCare;
-    if (!QuicRangeAddRange(AckRanges, Largest - Count + 1, Count, &DontCare)) {
+    if (!QuicRangeAddRange(AckRanges, Largest + 1 - Count, Count, &DontCare)) {
         return FALSE;
     }
 
