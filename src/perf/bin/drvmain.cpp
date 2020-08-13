@@ -531,8 +531,7 @@ QuicPerfCtlReadPrints(
     _In_ QUIC_DRIVER_CLIENT* //Client
     )
 {
-    char* Buffer = nullptr;
-    size_t Length = 0;
+    char* LocalBuffer = nullptr;
 
     NTSTATUS Status =
         QuicMainStop(0);
@@ -544,13 +543,15 @@ QuicPerfCtlReadPrints(
     Status =
         WdfRequestRetrieveOutputBuffer(
             Request,
-            0,
-            (void**)&Buffer,
-            &Length);
+            BufferCurrent,
+            (void**)&LocalBuffer,
+            nullptr);
 
     if (!NT_SUCCESS(Status)) {
         goto Exit;
     }
+
+    QuicCopyMemory(LocalBuffer, Buffer, BufferCurrent);
 
 Exit:
     WdfRequestComplete(Request, Status);
