@@ -532,6 +532,7 @@ QuicPerfCtlReadPrints(
     )
 {
     char* LocalBuffer = nullptr;
+    DWORD ReturnedLength = 0;
 
     NTSTATUS Status =
         QuicMainStop(0);
@@ -552,12 +553,13 @@ QuicPerfCtlReadPrints(
     }
 
     QuicCopyMemory(LocalBuffer, Buffer, BufferCurrent);
+    ReturnedLength = BufferCurrent;
 
 Exit:
     WdfRequestCompleteWithInformation(
         Request,
         Status,
-        BufferCurrent);
+        ReturnedLength);
 }
 
 NTSTATUS
