@@ -103,6 +103,9 @@ QuicKernelMain(
     _In_ bool /*KeyboardWait*/,
     _In_ QUIC_SEC_CONFIG_PARAMS* SelfSignedParams
     ) {
+    printf("Kernel mode main?\n");
+
+
     size_t TotalLength = sizeof(argc);
 
     //
@@ -130,12 +133,14 @@ QuicKernelMain(
     DataCurrent += sizeof(argc);
 
     for (int i = 0; i < argc; ++i) {
-        size_t ArgLen = strlen(argv[i]) + 1;
+        size_t ArgLen = strlen(argv[i]);
         QuicCopyMemory(DataCurrent, argv[i], ArgLen);
         DataCurrent += ArgLen;
         DataCurrent[0] = '\0';
         ++DataCurrent;
     }
+
+    printf("Assert Test: %p %p\n", DataCurrent, (Data + TotalLength));
 
     QUIC_DBG_ASSERT(DataCurrent == (Data + TotalLength));
 
@@ -147,38 +152,63 @@ QuicKernelMain(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
+    printf("Starting Driver Service\n");
+
     QuicDriverService DriverService;
+
+    printf("Starting Driver Client\n");
     QuicDriverClient DriverClient;
+
+    printf("Initializing Driver Service\n");
     if (!DriverService.Initialize()) {
         printf("Failed to initialize driver service\n");
         QUIC_FREE(Data);
         return QUIC_STATUS_INVALID_STATE;
     }
+    printf("Calling Driver Service Start\n");
     DriverService.Start();
 
+    printf("Initializing Driver Client\n");
     if (!DriverClient.Initialize(SelfSignedParams)) {
         printf("Failed to initialize driver client\n");
         QUIC_FREE(Data);
         return QUIC_STATUS_INVALID_STATE;
     }
 
+    printf("Right before run\n");
+    uint32_t OutBufferWritten = 0;
+    bool RunSuccess = false;
     if (!DriverClient.Run(IOCTL_QUIC_RUN_PERF, Data, (uint32_t)TotalLength)) {
+        printf("Failed To Run\n");
         QUIC_FREE(Data);
         QUIC_FREE(OutBuffer);
+
+        RunSuccess =
+        DriverClient.Read(
+            IOCTL_QUIC_READ_DATA,
+            OutBuffer,
+            OutBufferSize,
+            &OutBufferWritten);
+        if (RunSuccess) {
+            printf("%s\n", OutBuffer);
+        } else {
+            printf("Failed to exit\n");
+        }
         return QUIC_STATUS_INVALID_STATE;
     }
     printf("Started!\n\n");
     fflush(stdout);
 
-    uint32_t OutBufferWritten = 0;
-    bool RunSuccess =
+    RunSuccess =
         DriverClient.Read(
             IOCTL_QUIC_READ_DATA,
             OutBuffer,
             OutBufferSize,
             &OutBufferWritten);
     if (RunSuccess) {
-        printf("%s", OutBuffer);
+        printf("%s\n", OutBuffer);
+    } else {
+        printf("Run end failed\n");
     }
 
     QUIC_FREE(Data);
@@ -236,6 +266,7 @@ main(
 
     if (TestingKernelMode) {
 #ifdef _WIN32
+        printf("Entering kernel mode main\n");
         RetVal = QuicKernelMain(argc, argv, KeyboardWait, SelfSignedParams);
 #else
         QUIC_FRE_ASSERT(FALSE);
