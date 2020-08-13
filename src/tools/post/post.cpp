@@ -58,7 +58,7 @@ ConnectionHandler(
         printf("Connected\n");
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
-        printf("Transport Shutdown 0x%llx\n", (unsigned long long)Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
+        printf("Transport Shutdown 0x%x\n", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER:
         printf("Peer Shutdown 0x%llx\n", (unsigned long long)Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
