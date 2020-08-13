@@ -14,22 +14,22 @@ Abstract:
 //
 // The QUIC version numbers, in network byte order.
 //
-#define QUIC_VERSION_VER_NEG    0x00000000U      // Version for 'Version Negotiation'
-#define QUIC_VERSION_1          0x01000000U      // First official version
-#define QUIC_VERSION_MS_1       0x0000cdabU      // First Microsoft version (currently same as latest draft)
-#define QUIC_VERSION_DRAFT_27   0x1b0000ffU      // IETF draft 27
-#define QUIC_VERSION_DRAFT_28   0x1c0000ffU      // IETF draft 28
-#define QUIC_VERSION_DRAFT_29   0x1d0000ffU      // IETF draft 29
+#define QUIC_VERSION_VER_NEG    0x00000000U     // Version for 'Version Negotiation'
+#define QUIC_VERSION_1          0x01000000U     // First official version
+#define QUIC_VERSION_MS_1       0x0000cdabU     // First Microsoft version (currently same as latest draft)
+#define QUIC_VERSION_DRAFT_27   0x1b0000ffU     // IETF draft 27
+#define QUIC_VERSION_DRAFT_28   0x1c0000ffU     // IETF draft 28
+#define QUIC_VERSION_DRAFT_29   0x1d0000ffU     // IETF draft 29
 
 //
 // The QUIC version numbers, in host byte order.
 //
-#define QUIC_VERSION_VER_NEG_H  0x00000000U      // Version for 'Version Negotiation'
-#define QUIC_VERSION_1_H        0x00000001U      // First official version
-#define QUIC_VERSION_1_MS_H     0xabcd0000U      // First Microsoft version (-1412628480 in decimal)
-#define QUIC_VERSION_DRAFT_27_H 0xff00001bU      // IETF draft 27
-#define QUIC_VERSION_DRAFT_28_H 0xff00001cU      // IETF draft 28
-#define QUIC_VERSION_DRAFT_29_H 0xff00001dU      // IETF draft 29
+#define QUIC_VERSION_VER_NEG_H  0x00000000U     // Version for 'Version Negotiation'
+#define QUIC_VERSION_1_H        0x00000001U     // First official version
+#define QUIC_VERSION_1_MS_H     0xabcd0000U     // First Microsoft version (-1412628480 in decimal)
+#define QUIC_VERSION_DRAFT_27_H 0xff00001bU     // IETF draft 27
+#define QUIC_VERSION_DRAFT_28_H 0xff00001cU     // IETF draft 28
+#define QUIC_VERSION_DRAFT_29_H 0xff00001dU     // IETF draft 29
 
 //
 // Represents a reserved version value; used to force version negotation.
