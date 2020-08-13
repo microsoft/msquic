@@ -65,6 +65,10 @@ QuicMainStop(
     _In_ int Timeout
     );
 
+extern volatile int BufferCurrent;
+constexpr int BufferLength = 40 * 1024 * 1024;
+extern char Buffer[BufferLength];
+
 inline
 int
 #ifndef _WIN32
@@ -82,8 +86,31 @@ WriteOutput(
     va_end(args);
     return rval;
 #else
-    UNREFERENCED_PARAMETER(format);
-    return 0;
+    char Buf[256];
+    char* BufEnd;
+    va_list args;
+    va_start(args, format);
+    NTSTATUS Status = RtlStringCbVPrintfExA(Buf, sizeof(Buf), &BufEnd, nullptr, 0, format, args);
+    va_end(args);
+
+    if (Status == STATUS_INVALID_PARAMETER) {
+        // Write error
+        Status = RtlStringCbPrintfExA(Buf, sizeof(Buf), &BufEnd, nullptr, 0, "Invalid Format: %s\n", format);
+        if (Status != STATUS_SUCCESS) {
+            return 0;
+        }
+    }
+
+    int Length = (int)(BufEnd - Buf);
+    int End = InterlockedAdd((volatile LONG*)&BufferCurrent, Length);
+    if (End > BufferLength) {
+        return 0;
+    }
+    int Start = End - Length;
+    QuicCopyMemory(Buffer + Start, Buf, Length);
+    
+    
+    return Length;
 #endif
 }
 

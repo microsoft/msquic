@@ -20,6 +20,8 @@ Abstract:
 #endif
 
 const QuicApiTable* MsQuic;
+volatile int BufferCurrent;
+char Buffer[BufferLength];
 
 PerfBase* TestToRun;
 

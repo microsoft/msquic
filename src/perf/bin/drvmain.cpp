@@ -515,7 +515,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
 
 typedef union {
     struct {
-        size_t Length;
+        int Length;
         char Data;
     };
     QUIC_CERTIFICATE_HASH CertHash;
@@ -525,33 +525,54 @@ static_assert(
     QUIC_PERF_MAX_IOCTL_FUNC_CODE + 1 == (sizeof(QUIC_IOCTL_BUFFER_SIZES) / sizeof(size_t)),
     "QUIC_IOCTL_BUFFER_SIZES must be kept in sync with the IOTCLs");
 
-NTSTATUS
+void
 QuicPerfCtlReadPrints(
-    void
+    _In_ WDFREQUEST Request,
+    _In_ QUIC_DRIVER_CLIENT* //Client
     )
 {
-    return QUIC_STATUS_SUCCESS;
+    char* Buffer = nullptr;
+    size_t Length = 0;
+
+    NTSTATUS Status =
+        QuicMainStop(0);
+
+    if (QUIC_FAILED(Status)) {
+        goto Exit;
+    }
+
+    Status =
+        WdfRequestRetrieveOutputBuffer(
+            Request,
+            0,
+            (void**)&Buffer,
+            &Length);
+
+    if (!NT_SUCCESS(Status)) {
+        goto Exit;
+    }
+
+Exit:
+    WdfRequestComplete(Request, Status);
 }
 
 NTSTATUS
 QuicPerfCtlStart(
-    _In_ WDFREQUEST /*Request*/,
     _In_ QUIC_DRIVER_CLIENT* Client,
     _In_ char* Arguments,
-    _In_ size_t Length
-    )
-{
+    _In_ int Length
+    ) {
     char** Argv = new(std::nothrow) char* [Length];
     if (!Argv) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     int Count = 0;
-    while (*Arguments) {
+    Arguments += sizeof(Length);
+    for (int i = 0; i < Length; i++) {
         Argv[Count] = Arguments;
         Arguments += strlen(Arguments);
         Arguments++;
-        Count++;
     }
 
     QuicEventInitialize(&Client->StopEvent, true, false);
@@ -616,6 +637,8 @@ QuicPerfCtlEvtIoDeviceControl(
     //
     if (IoControlCode == IOCTL_QUIC_READ_DATA) {
         QuicPerfCtlReadPrints(
+            Request,
+            Client
             );
         return;
     }
@@ -677,6 +700,11 @@ QuicPerfCtlEvtIoDeviceControl(
                 &Params->CertHash);
         break;
     case IOCTL_QUIC_RUN_PERF:
+        Status =
+            QuicPerfCtlStart(
+                Client,
+                &Params->Data,
+                Params->Length);
         break;
     default:
         Status = STATUS_NOT_IMPLEMENTED;

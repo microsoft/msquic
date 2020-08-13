@@ -103,7 +103,7 @@ QuicKernelMain(
     _In_ bool /*KeyboardWait*/,
     _In_ QUIC_SEC_CONFIG_PARAMS* SelfSignedParams
     ) {
-    size_t TotalLength = sizeof(argc);
+    int TotalLength = sizeof(argc);
 
     //
     // Get total length
