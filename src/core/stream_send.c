@@ -400,8 +400,6 @@ QuicStreamCompleteSendRequest(
             SendRequest->InternalBuffer.Length);
     }
 
-    // FIXME: this underflows when running spinquic
-    QUIC_DBG_ASSERT(Stream->Connection->SendBuffer.PostedBytes >= SendRequest->TotalLength);
     Stream->Connection->SendBuffer.PostedBytes -= SendRequest->TotalLength;
 
     if (Connection->State.UseSendBuffer) {

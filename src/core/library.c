@@ -1345,6 +1345,7 @@ Fail:
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_WORKER*
+QUIC_NO_SANITIZE("implicit-conversion")
 QuicLibraryGetWorker(
     void
     )
@@ -1352,8 +1353,7 @@ QuicLibraryGetWorker(
     QUIC_DBG_ASSERT(MsQuicLib.WorkerPool != NULL);
     return
         &MsQuicLib.WorkerPool->Workers[
-            MsQuicLib.NextWorkerIndex == MsQuicLib.WorkerPool->WorkerCount ?
-                0 : MsQuicLib.NextWorkerIndex++];
+            MsQuicLib.NextWorkerIndex++ % MsQuicLib.WorkerPool->WorkerCount];
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
