@@ -154,6 +154,7 @@ private:
         _In_opt_ void* Context,
         _Inout_ QUIC_CONNECTION_EVENT* Event
         ) {
+        UNREFERENCED_PARAMETER(Connection);
         HttpConnection *pThis = (HttpConnection*)Context;
         switch (Event->Type) {
         case QUIC_CONNECTION_EVENT_CONNECTED:
@@ -201,6 +202,7 @@ private:
         _In_opt_ void* Context,
         _Inout_ QUIC_CONNECTION_EVENT* Event
         ) {
+        UNREFERENCED_PARAMETER(Connection);
         DatagramConnection *pThis = (DatagramConnection*)Context;
         switch (Event->Type) {
         case QUIC_CONNECTION_EVENT_CONNECTED:
