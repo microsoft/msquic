@@ -43,7 +43,8 @@ void
 QuicStreamCompleteSendRequest(
     _In_ QUIC_STREAM* Stream,
     _In_ QUIC_SEND_REQUEST* SendRequest,
-    _In_ BOOLEAN Canceled
+    _In_ BOOLEAN Canceled,
+    _In_ BOOLEAN PreviouslyPosted
     );
 
 #if DEBUG
@@ -138,7 +139,7 @@ QuicStreamSendShutdown(
             //
             QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
             ApiSendRequests = ApiSendRequests->Next;
-            QuicStreamCompleteSendRequest(Stream, SendRequest, TRUE);
+            QuicStreamCompleteSendRequest(Stream, SendRequest, TRUE, FALSE);
         }
 
         Stream->Flags.LocalCloseFin = TRUE;
@@ -159,14 +160,14 @@ QuicStreamSendShutdown(
         while (Stream->SendRequests) {
             QUIC_SEND_REQUEST* Req = Stream->SendRequests;
             Stream->SendRequests = Stream->SendRequests->Next;
-            QuicStreamCompleteSendRequest(Stream, Req, TRUE);
+            QuicStreamCompleteSendRequest(Stream, Req, TRUE, TRUE);
         }
         Stream->SendRequestsTail = &Stream->SendRequests;
 
         while (ApiSendRequests != NULL) {
             QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
             ApiSendRequests = ApiSendRequests->Next;
-            QuicStreamCompleteSendRequest(Stream, SendRequest, TRUE);
+            QuicStreamCompleteSendRequest(Stream, SendRequest, TRUE, FALSE);
         }
 
         if (Silent) {
@@ -357,7 +358,8 @@ void
 QuicStreamCompleteSendRequest(
     _In_ QUIC_STREAM* Stream,
     _In_ QUIC_SEND_REQUEST* SendRequest,
-    _In_ BOOLEAN Canceled
+    _In_ BOOLEAN Canceled,
+    _In_ BOOLEAN PreviouslyPosted
     )
 {
     QUIC_CONNECTION* Connection = Stream->Connection;
@@ -400,11 +402,13 @@ QuicStreamCompleteSendRequest(
             SendRequest->InternalBuffer.Length);
     }
 
-    QUIC_DBG_ASSERT(Connection->SendBuffer.PostedBytes >= SendRequest->TotalLength);
-    Connection->SendBuffer.PostedBytes -= SendRequest->TotalLength;
+    if (PreviouslyPosted) {
+        QUIC_DBG_ASSERT(Connection->SendBuffer.PostedBytes >= SendRequest->TotalLength);
+        Connection->SendBuffer.PostedBytes -= SendRequest->TotalLength;
 
-    if (Connection->State.UseSendBuffer) {
-        QuicSendBufferFill(Connection);
+        if (Connection->State.UseSendBuffer) {
+            QuicSendBufferFill(Connection);
+        }
     }
 
     QuicPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
@@ -493,16 +497,16 @@ QuicStreamSendFlush(
         QUIC_DBG_ASSERT(SendRequest->TotalLength != 0 || SendRequest->Flags & QUIC_SEND_FLAG_FIN);
         QUIC_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
 
-        Stream->Connection->SendBuffer.PostedBytes += SendRequest->TotalLength;
-
         if (!Stream->Flags.SendEnabled) {
             //
             // Only possible if they queue muliple sends, with a FIN flag set
             // NOT in the last one.
             //
-            QuicStreamCompleteSendRequest(Stream, SendRequest, TRUE);
+            QuicStreamCompleteSendRequest(Stream, SendRequest, TRUE, FALSE);
             continue;
         }
+
+        Stream->Connection->SendBuffer.PostedBytes += SendRequest->TotalLength;
 
         //
         // Queue up the send request.
@@ -1382,7 +1386,7 @@ QuicStreamOnAck(
                 Stream->SendRequestsTail = &Stream->SendRequests;
             }
 
-            QuicStreamCompleteSendRequest(Stream, Req, FALSE);
+            QuicStreamCompleteSendRequest(Stream, Req, FALSE, TRUE);
         }
 
         if (Stream->UnAckedOffset == Stream->QueuedSendOffset && Stream->Flags.FinAcked) {
