@@ -1352,7 +1352,8 @@ QuicLibraryGetWorker(
     QUIC_DBG_ASSERT(MsQuicLib.WorkerPool != NULL);
     return
         &MsQuicLib.WorkerPool->Workers[
-            MsQuicLib.NextWorkerIndex++ % MsQuicLib.WorkerPool->WorkerCount];
+            MsQuicLib.NextWorkerIndex == MsQuicLib.WorkerPool->WorkerCount ?
+                0 : MsQuicLib.NextWorkerIndex++];
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

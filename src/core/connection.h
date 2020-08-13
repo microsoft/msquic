@@ -13,11 +13,11 @@ typedef struct QUIC_LISTENER QUIC_LISTENER;
 //
 // Connection close flags
 //
-#define QUIC_CLOSE_SILENT                   0x00000001  // Don't send connection close or wait for response
-#define QUIC_CLOSE_SEND_NOTIFICATION        0x00000002  // Send notification to API client
-#define QUIC_CLOSE_APPLICATION              0x00000004  // Application closed the connection.
-#define QUIC_CLOSE_REMOTE                   0x00000008  // Connection closed remotely.
-#define QUIC_CLOSE_QUIC_STATUS              0x00000010  // QUIC_STATUS used for closing.
+#define QUIC_CLOSE_SILENT                   UINT32_C(0x00000001)  // Don't send connection close or wait for response
+#define QUIC_CLOSE_SEND_NOTIFICATION        UINT32_C(0x00000002)  // Send notification to API client
+#define QUIC_CLOSE_APPLICATION              UINT32_C(0x00000004)  // Application closed the connection.
+#define QUIC_CLOSE_REMOTE                   UINT32_C(0x00000008)  // Connection closed remotely.
+#define QUIC_CLOSE_QUIC_STATUS              UINT32_C(0x00000010)  // QUIC_STATUS used for closing.
 
 #define QUIC_CLOSE_INTERNAL QUIC_CLOSE_SEND_NOTIFICATION
 #define QUIC_CLOSE_INTERNAL_SILENT (QUIC_CLOSE_INTERNAL | QUIC_CLOSE_SILENT)
