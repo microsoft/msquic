@@ -213,7 +213,7 @@ QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void * /* C
             //
             // Send ticket with some data
             //
-            DataLength = GetRandom(999) + 1;
+            DataLength = (uint16_t)(GetRandom(999) + 1);
         } else if (Selector == 2) {
             //
             // Send ticket with too much data
@@ -332,10 +332,10 @@ void SpinQuicSetRandomSesssioParam(HQUIC Session)
         Helper.SetPtr(QUIC_PARAM_SESSION_TLS_TICKET_KEY, TlsTicket, sizeof(TlsTicket));
         break;
     case QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT:                 // uint16_t
-        Helper.SetUint16(QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, GetRandom(10));
+        Helper.SetUint16(QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT, (uint16_t)GetRandom(10));
         break;
     case QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT:                // uint16_t
-        Helper.SetUint16(QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, GetRandom(10));
+        Helper.SetUint16(QUIC_PARAM_SESSION_PEER_UNIDI_STREAM_COUNT, (uint16_t)GetRandom(10));
         break;
     case QUIC_PARAM_SESSION_IDLE_TIMEOUT:                           // uint64_t - milliseconds
         Helper.SetUint64(QUIC_PARAM_SESSION_IDLE_TIMEOUT, GetRandom(32000));
@@ -347,10 +347,10 @@ void SpinQuicSetRandomSesssioParam(HQUIC Session)
         Helper.SetUint64(QUIC_PARAM_SESSION_MAX_BYTES_PER_KEY, GetRandom(32000));
         break;
     case QUIC_PARAM_SESSION_MIGRATION_ENABLED:                      // uint8_t (BOOLEAN)
-        Helper.SetUint8(QUIC_PARAM_SESSION_MIGRATION_ENABLED, GetRandom(2));
+        Helper.SetUint8(QUIC_PARAM_SESSION_MIGRATION_ENABLED, (uint8_t)GetRandom(2));
         break;
     case QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED:               // uint8_t (BOOLEAN)
-        Helper.SetUint8(QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED, GetRandom(2));
+        Helper.SetUint8(QUIC_PARAM_SESSION_DATAGRAM_RECEIVE_ENABLED, (uint8_t)GetRandom(2));
         break;
     default:
         break;
@@ -375,10 +375,10 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
         Helper.SetUint64(QUIC_PARAM_CONN_IDLE_TIMEOUT, GetRandom(20000));
         break;
     case QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT:                    // uint16_t
-        Helper.SetUint16(QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT, GetRandom(50000));
+        Helper.SetUint16(QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT, (uint16_t)GetRandom(50000));
         break;
     case QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT:                   // uint16_t
-        Helper.SetUint16(QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT, GetRandom(50000));
+        Helper.SetUint16(QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT, (uint16_t)GetRandom(50000));
         break;
     case QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT:                   // uint16_t
         break; // Get Only
@@ -401,13 +401,13 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
         Helper.SetUint32(QUIC_PARAM_CONN_DISCONNECT_TIMEOUT, GetRandom(200));
         break;
     case QUIC_PARAM_CONN_SEND_BUFFERING:                            // uint8_t (BOOLEAN)
-        Helper.SetUint8(QUIC_PARAM_CONN_SEND_BUFFERING, GetRandom(2));
+        Helper.SetUint8(QUIC_PARAM_CONN_SEND_BUFFERING, (uint8_t)GetRandom(2));
         break;
     case QUIC_PARAM_CONN_SEND_PACING:                               // uint8_t (BOOLEAN)
-        Helper.SetUint8(QUIC_PARAM_CONN_SEND_PACING, GetRandom(2));
+        Helper.SetUint8(QUIC_PARAM_CONN_SEND_PACING, (uint8_t)GetRandom(2));
         break;
     case QUIC_PARAM_CONN_SHARE_UDP_BINDING:                         // uint8_t (BOOLEAN)
-        Helper.SetUint8(QUIC_PARAM_CONN_SHARE_UDP_BINDING, GetRandom(2));
+        Helper.SetUint8(QUIC_PARAM_CONN_SHARE_UDP_BINDING, (uint8_t)GetRandom(2));
         break;
     case QUIC_PARAM_CONN_IDEAL_PROCESSOR:                           // uint8_t
         break; // Get Only
@@ -417,12 +417,12 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection)
         Helper.SetUint32(QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME, GetRandom(QUIC_STREAM_SCHEDULING_SCHEME_COUNT));
         break;
     case QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED:                  // uint8_t (BOOLEAN)
-        Helper.SetUint8(QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED, GetRandom(2));
+        Helper.SetUint8(QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED, (uint8_t)GetRandom(2));
         break;
     case QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED:                     // uint8_t (BOOLEAN)
         break; // Get Only
     case QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION:                   // uint8_t (BOOLEAN)
-        Helper.SetUint8(QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION, GetRandom(2));
+        Helper.SetUint8(QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION, (uint8_t)GetRandom(2));
         break;
     default:
         break;
@@ -804,10 +804,10 @@ main(int argc, char **argv)
 
     for (uint32_t i = 0; i < RepeatCount; i++) {
 
-        for (size_t i = 0; i < BufferCount; ++i) {
-            Buffers[i].Length = MaxBufferSizes[i]; // TODO - Randomize?
-            Buffers[i].Buffer = (uint8_t*)malloc(Buffers[i].Length);
-            ASSERT_ON_NOT(Buffers[i].Buffer);
+        for (size_t j = 0; i < BufferCount; ++i) {
+            Buffers[j].Length = MaxBufferSizes[j]; // TODO - Randomize?
+            Buffers[j].Buffer = (uint8_t*)malloc(Buffers[j].Length);
+            ASSERT_ON_NOT(Buffers[j].Buffer);
         }
 
         ASSERT_ON_FAILURE(MsQuicOpen(&MsQuic));
