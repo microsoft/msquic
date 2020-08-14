@@ -106,7 +106,9 @@ QuicMainStart(
     }
 
     delete TestToRun;
+    TestToRun = nullptr;
     delete MsQuic;
+    MsQuic = nullptr;
     return Status;
 }
 

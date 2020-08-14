@@ -112,6 +112,9 @@ QuicKernelMain(
     // Get total length
     //
     for (int i = 0; i < argc; ++i) {
+        if (strcmp("--kernel", argv[i]) == 0) {
+            continue;
+        }
         TotalLength += strlen(argv[i]) + 1;
     }
 
@@ -133,6 +136,9 @@ QuicKernelMain(
     DataCurrent += sizeof(argc);
 
     for (int i = 0; i < argc; ++i) {
+        if (strcmp("--kernel", argv[i]) == 0) {
+            continue;
+        }
         size_t ArgLen = strlen(argv[i]);
         QuicCopyMemory(DataCurrent, argv[i], ArgLen);
         DataCurrent += ArgLen;
@@ -199,6 +205,7 @@ QuicKernelMain(
         }
         DriverClient.Uninitialize();
         DriverService.Uninitialize();
+        printf("Finished uninitializing\n");
         return QUIC_STATUS_INVALID_STATE;
     }
     printf("Started!\n\n");
@@ -238,8 +245,6 @@ main(
     QUIC_STATUS RetVal = 0;
     bool TestingKernelMode = false;
     bool KeyboardWait = false;
-
-    printf("Status %d\n", QUIC_STATUS_OUT_OF_MEMORY);
 
     QuicPlatformSystemLoad();
     if (QUIC_FAILED(QuicPlatformInitialize())) {

@@ -409,6 +409,7 @@ QuicPerfCtlEvtFileCreate(
         // Update globals. (TODO: Add multiple device client support)
         //
         QuicPerfClient = Client;
+        InterlockedExchange((volatile LONG*)&BufferCurrent, 0);
     } while (false);
 
     ExfReleasePushLockExclusive(&QuicPerfCtlExtension->Lock);
@@ -531,24 +532,17 @@ static_assert(
 
 void
 QuicPerfCtlReadPrints(
-    _In_ WDFREQUEST Request,
-    _In_ QUIC_DRIVER_CLIENT* Client
+    _In_ WDFREQUEST Request
     )
 {
     char* LocalBuffer = nullptr;
     DWORD ReturnedLength = 0;
-    NTSTATUS Status;
+    QUIC_STATUS StopStatus;
 
-    if (Client->Started) {
-         Status =
+    StopStatus =
             QuicMainStop(0);
 
-        if (QUIC_FAILED(Status)) {
-            goto Exit;
-        }
-    }
-
-    Status =
+    NTSTATUS Status =
         WdfRequestRetrieveOutputBuffer(
             Request,
             (size_t)BufferCurrent + 1,
@@ -573,7 +567,7 @@ QuicPerfCtlReadPrints(
 Exit:
     WdfRequestCompleteWithInformation(
         Request,
-        Status,
+        StopStatus,
         ReturnedLength);
 }
 
@@ -661,9 +655,7 @@ QuicPerfCtlEvtIoDeviceControl(
     //
     if (IoControlCode == IOCTL_QUIC_READ_DATA) {
         QuicPerfCtlReadPrints(
-            Request,
-            Client
-            );
+            Request);
         return;
     }
 
