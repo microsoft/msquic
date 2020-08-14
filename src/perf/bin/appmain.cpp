@@ -180,7 +180,7 @@ QuicKernelMain(
     printf("Right before run\n");
     uint32_t OutBufferWritten = 0;
     bool RunSuccess = false;
-    if (!DriverClient.Run(IOCTL_QUIC_RUN_PERF, Data, (uint32_t)TotalLength)) {
+    if (!DriverClient.Run(IOCTL_QUIC_RUN_PERF, Data, (uint32_t)TotalLength, 30000)) {
         printf("Failed To Run\n");
         QUIC_FREE(Data);
         QUIC_FREE(OutBuffer);
