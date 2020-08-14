@@ -70,9 +70,6 @@ QuicKernelMain(
     _In_ bool /*KeyboardWait*/,
     _In_ QUIC_SEC_CONFIG_PARAMS* SelfSignedParams
     ) {
-    printf("Kernel mode main?\n");
-
-
     size_t TotalLength = sizeof(argc);
 
     //
@@ -112,11 +109,6 @@ QuicKernelMain(
         DataCurrent[0] = '\0';
         ++DataCurrent;
     }
-
-    printf("Assert Test: %p %p\n", DataCurrent, (Data + TotalLength));
-
-    printf("Length Printed %d\n", (int)TotalLength);
-
     QUIC_DBG_ASSERT(DataCurrent == (Data + TotalLength));
 
     constexpr uint32_t OutBufferSize = 1024 * 1000;
@@ -127,24 +119,23 @@ QuicKernelMain(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    printf("Starting Driver Service\n");
-
     QuicDriverService DriverService;
-
-    printf("Starting Driver Client\n");
     QuicDriverClient DriverClient;
 
-    printf("Initializing Driver Service\n");
     if (!DriverService.Initialize()) {
         printf("Failed to initialize driver service\n");
         QUIC_FREE(Data);
         return QUIC_STATUS_INVALID_STATE;
     }
-    printf("Calling Driver Service Start\n");
-    DriverService.Start();
+    if (!DriverService.Start()) {
+        printf("Starting Driver Service Failed\n");
+        DriverService.Uninitialize();
+        QUIC_FREE(Data);
+        return QUIC_STATUS_INVALID_STATE;
+    }
 
-    printf("Initializing Driver Client\n");
     if (!DriverClient.Initialize(SelfSignedParams)) {
+        printf("Intializing Driver Client Failed.\n");
         DriverService.Uninitialize();
         QUIC_FREE(Data);
         return QUIC_STATUS_INVALID_STATE;
@@ -172,7 +163,6 @@ QuicKernelMain(
         }
         DriverClient.Uninitialize();
         DriverService.Uninitialize();
-        printf("Finished uninitializing\n");
         return QUIC_STATUS_INVALID_STATE;
     }
     printf("Started!\n\n");
