@@ -218,7 +218,7 @@ $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     } else {
         return "linux"
     }
-} -Arguements $Kernel
+} -ArgumentList $Kernel
 
 $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($RemoteArch)_$($Config)_$($RemoteTls)"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
