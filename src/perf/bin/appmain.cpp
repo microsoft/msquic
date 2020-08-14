@@ -142,6 +142,8 @@ QuicKernelMain(
 
     printf("Assert Test: %p %p\n", DataCurrent, (Data + TotalLength));
 
+    printf("Length Printed %d\n", (int)TotalLength);
+
     QUIC_DBG_ASSERT(DataCurrent == (Data + TotalLength));
 
     constexpr uint32_t OutBufferSize = 1024 * 1000;
@@ -170,7 +172,7 @@ QuicKernelMain(
 
     printf("Initializing Driver Client\n");
     if (!DriverClient.Initialize(SelfSignedParams)) {
-        printf("Failed to initialize driver client\n");
+        DriverService.Uninitialize();
         QUIC_FREE(Data);
         return QUIC_STATUS_INVALID_STATE;
     }
@@ -189,11 +191,14 @@ QuicKernelMain(
             OutBuffer,
             OutBufferSize,
             &OutBufferWritten);
+        printf("OutBufferWritten %d\n", OutBufferWritten);
         if (RunSuccess) {
             printf("%s\n", OutBuffer);
         } else {
             printf("Failed to exit\n");
         }
+        DriverClient.Uninitialize();
+        DriverService.Uninitialize();
         return QUIC_STATUS_INVALID_STATE;
     }
     printf("Started!\n\n");
@@ -214,6 +219,9 @@ QuicKernelMain(
     QUIC_FREE(Data);
     QUIC_FREE(OutBuffer);
 
+    DriverClient.Uninitialize();
+    DriverService.Uninitialize();
+
     return RunSuccess ? QUIC_STATUS_SUCCESS : QUIC_STATUS_INTERNAL_ERROR;
 }
 
@@ -230,6 +238,8 @@ main(
     QUIC_STATUS RetVal = 0;
     bool TestingKernelMode = false;
     bool KeyboardWait = false;
+
+    printf("Status %d\n", QUIC_STATUS_OUT_OF_MEMORY);
 
     QuicPlatformSystemLoad();
     if (QUIC_FAILED(QuicPlatformInitialize())) {

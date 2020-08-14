@@ -17,8 +17,8 @@ Abstract:
 #include "drivermain.cpp.clog.h"
 #endif
 
-DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceName, L"\\Device\\quicperformance");
-DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceSymLink, L"\\DosDevices\\quicperformance");
+DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceName, L"\\Device\\quicperf");
+DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceSymLink, L"\\DosDevices\\quicperf");
 
 typedef struct QUIC_DEVICE_EXTENSION {
     EX_PUSH_LOCK Lock;
@@ -245,6 +245,10 @@ QuicPerfCtlInitialize(
             "WdfDeviceInitAssignName failed");
         goto Error;
     }
+
+    QuicTraceLogVerbose(
+        PerfControlInitialized,
+        "[perf] Control interface initialized with %.*S", QuicPerfCtlDeviceName.Length, QuicPerfCtlDeviceName.Buffer);
 
     WDF_FILEOBJECT_CONFIG_INIT(
         &FileConfig,
@@ -547,7 +551,7 @@ QuicPerfCtlReadPrints(
     Status =
         WdfRequestRetrieveOutputBuffer(
             Request,
-            BufferCurrent,
+            (size_t)BufferCurrent + 1,
             (void**)&LocalBuffer,
             nullptr);
 
@@ -556,7 +560,15 @@ QuicPerfCtlReadPrints(
     }
 
     QuicCopyMemory(LocalBuffer, Buffer, BufferCurrent);
-    ReturnedLength = BufferCurrent;
+    LocalBuffer[BufferCurrent] = '\0';
+
+    QuicTraceLogInfo(
+        PrintBufferReturn,
+        "[perf] Print Buffer %d %s\n",
+        BufferCurrent,
+        LocalBuffer);
+
+    ReturnedLength = BufferCurrent + 1;
 
 Exit:
     WdfRequestCompleteWithInformation(
@@ -596,6 +608,7 @@ QuicPerfCtlStart(
     if (QUIC_SUCCEEDED(Status)) {
         Client->Started = true;
     }
+
     return Status;
 }
 
