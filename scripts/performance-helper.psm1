@@ -272,6 +272,10 @@ function Invoke-RemoteExe {
         return $null
     } -ArgumentList $Exe
 
+    if ($Kernel) {
+        $RunArgs = "--kernel $RunArgs"
+    }
+
     Write-Debug "Running Remote: $Exe $RunArgs"
 
     $WpaXml = $WpaStackWalkProfileXml
@@ -292,11 +296,16 @@ function Invoke-RemoteExe {
             wpr.exe -start $EtwXmlName -filemode 2> $null
         }
 
+        $Arch = Split-Path (Split-Path $Exe -Parent) -Leaf
+        $RootBinPath = Split-Path (Split-Path (Split-Path $Exe -Parent) -Parent) -Parent
+        $KernelDir = Join-Path $RootBinPath "winkernel" $Arch
+
         if ($Kernel) {
             net.exe stop msquic /y | Out-Null
+            sc.exe delete quicperf | Out-Null
             Copy-Item C:\Windows\system32\drivers\msquic.sys C:\Windows\system32\drivers\msquic.sys.old
-            Copy-Item (Join-Path $Kernel "quicperf.sys") (Split-Path $Path -Parent)
-            sfpcopy.exe (Join-Path $Kernel "msquic.sys") C:\Windows\system32\drivers\msquic.sys
+            Copy-Item (Join-Path $KernelDir "quicperf.sys") (Split-Path $Exe -Parent)
+            sfpcopy.exe (Join-Path $KernelDir "msquic.sys") C:\Windows\system32\drivers\msquic.sys
             net.exe start msquic
         }
 
@@ -305,7 +314,7 @@ function Invoke-RemoteExe {
         # Uninstall the kernel mode test driver and revert the msquic driver.
         if ($Kernel) {
             net.exe stop msquic /y | Out-Null
-            sc.exe delete msquictest | Out-Null
+            sc.exe delete quicperf | Out-Null
             sfpcopy.exe C:\Windows\system32\drivers\msquic.sys.old C:\Windows\system32\drivers\msquic.sys
             net.exe start msquic
             Remove-Item C:\Windows\system32\drivers\msquic.sys.old -Force
