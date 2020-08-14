@@ -486,6 +486,8 @@ QuicPerfCtlEvtIoCanceled(
         goto error;
     }
 
+    QuicEventSet(Client->StopEvent);
+
     QuicTraceLogWarning(
         TestControlClientCanceledRequest,
         "[test] Client %p canceled request %p",
@@ -532,7 +534,8 @@ static_assert(
 
 void
 QuicPerfCtlReadPrints(
-    _In_ WDFREQUEST Request
+    _In_ WDFREQUEST Request,
+    _In_ QUIC_DRIVER_CLIENT* Client
     )
 {
     char* LocalBuffer = nullptr;
@@ -563,6 +566,8 @@ QuicPerfCtlReadPrints(
         LocalBuffer);
 
     ReturnedLength = BufferCurrent + 1;
+
+    QuicEventUninitialize(&Client->StopEvent);
 
 Exit:
     WdfRequestCompleteWithInformation(
@@ -655,7 +660,8 @@ QuicPerfCtlEvtIoDeviceControl(
     //
     if (IoControlCode == IOCTL_QUIC_READ_DATA) {
         QuicPerfCtlReadPrints(
-            Request);
+            Request,
+            Client);
         return;
     }
 

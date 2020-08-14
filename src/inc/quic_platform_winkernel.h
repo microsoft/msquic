@@ -502,7 +502,7 @@ QuicRefDecrement(
 typedef KEVENT QUIC_EVENT;
 #define QuicEventInitialize(Event, ManualReset, InitialState) \
     KeInitializeEvent(Event, ManualReset ? NotificationEvent : SynchronizationEvent, InitialState)
-#define QuicEventUninitialize(Event)
+#define QuicEventUninitialize(Event) UNREFERENCED_PARAMETER(Event)
 #define QuicEventSet(Event) KeSetEvent(&(Event), IO_NO_INCREMENT, FALSE)
 #define QuicEventReset(Event) KeResetEvent(&(Event))
 #define QuicEventWaitForever(Event) \
