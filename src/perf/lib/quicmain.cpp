@@ -25,6 +25,14 @@ char Buffer[BufferLength];
 
 PerfBase* TestToRun;
 
+#include "quic_datapath.h"
+
+QUIC_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
+QUIC_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
+QUIC_DATAPATH* Datapath;
+QUIC_DATAPATH_BINDING* Binding;
+uint8_t ServerMode = 0;
+
 static
 void
 PrintHelp(
@@ -59,13 +67,31 @@ QuicMainStart(
     const char* TestName = GetValue(argc, argv, "TestName");
     argc--; argv++;
 
-    uint8_t ServerMode = 0;
+    ServerMode = 0;
     if (argc != 0 && IsArg(argv[0], "ServerMode")) {
         TryGetValue(argc, argv, "ServerMode", &ServerMode);
         argc--; argv++;
     }
 
     QUIC_STATUS Status;
+
+    if (ServerMode) {
+        Datapath = nullptr;
+        Binding = nullptr;
+        Status = QuicDataPathInitialize(0, DatapathReceive, DatapathUnreachable, &Datapath);
+        if (QUIC_FAILED(Status)) {
+            return Status;
+        }
+
+        QuicAddr LocalAddress {AF_INET, (uint16_t)9999};
+        Status = QuicDataPathBindingCreate(Datapath, &LocalAddress.SockAddr, nullptr, StopEvent, &Binding);
+        if (QUIC_FAILED(Status)) {
+            QuicDataPathUninitialize(Datapath);
+            return Status;
+        }
+    }
+
+
     MsQuic = new(std::nothrow) QuicApiTable;
     if (MsQuic == nullptr) {
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -117,11 +143,48 @@ QuicMainStop(
     _In_ int Timeout
     ) {
     if (TestToRun == nullptr) {
+        if (ServerMode) {
+            QuicDataPathBindingDelete(Binding);
+            QuicDataPathUninitialize(Datapath);
+            Datapath = nullptr;
+            Binding = nullptr;
+        }
         return QUIC_STATUS_SUCCESS;
     }
 
     QUIC_STATUS Status = TestToRun->Wait(Timeout);
     delete TestToRun;
     delete MsQuic;
+    if (ServerMode) {
+        QuicDataPathBindingDelete(Binding);
+        QuicDataPathUninitialize(Datapath);
+        Datapath = nullptr;
+        Binding = nullptr;
+    }
+    MsQuic = nullptr;
+    TestToRun = nullptr;
     return Status;
+}
+
+void
+DatapathReceive(
+    _In_ QUIC_DATAPATH_BINDING*,
+    _In_ void* Context,
+    _In_ QUIC_RECV_DATAGRAM*
+    )
+{
+    QUIC_EVENT* Event = static_cast<QUIC_EVENT*>(Context);
+    QuicEventSet(*Event);
+}
+
+void
+DatapathUnreachable(
+    _In_ QUIC_DATAPATH_BINDING*,
+    _In_ void*,
+    _In_ const QUIC_ADDR*
+    )
+{
+    //
+    // Do nothing, we never send
+    //
 }
