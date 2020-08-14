@@ -588,10 +588,9 @@ QuicPerfCtlStart(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    int Count = 0;
     Arguments += sizeof(Length);
     for (int i = 0; i < Length; i++) {
-        Argv[Count] = Arguments;
+        Argv[i] = Arguments;
         Arguments += strlen(Arguments);
         Arguments++;
     }
