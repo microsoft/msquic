@@ -1345,6 +1345,7 @@ Fail:
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_WORKER*
+QUIC_NO_SANITIZE("implicit-conversion")
 QuicLibraryGetWorker(
     void
     )

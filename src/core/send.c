@@ -355,7 +355,7 @@ QuicSendSetStreamSendFlag(
             SetSendFlag,
             Stream,
             "Setting flags 0x%x (existing flags: 0x%x)",
-            (SendFlags & (~Stream->SendFlags)),
+            (SendFlags & (uint32_t)(~Stream->SendFlags)),
             Stream->SendFlags);
 
         if (Stream->Flags.Started &&
