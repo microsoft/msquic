@@ -377,6 +377,8 @@ QuicBindingGetListener(
     const QUIC_ADDR* Addr = Info->LocalAddress;
     const QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(Addr);
 
+    BOOLEAN FailedAlpnMatch = FALSE;
+
     QuicDispatchRwLockAcquireShared(&Binding->RwLock);
 
     for (QUIC_LIST_ENTRY* Link = Binding->Listeners.Flink;
@@ -388,6 +390,7 @@ QuicBindingGetListener(
         const QUIC_ADDR* ExistingAddr = &ExistingListener->LocalAddress;
         const BOOLEAN ExistingWildCard = ExistingListener->WildCard;
         const QUIC_ADDRESS_FAMILY ExistingFamily = QuicAddrGetFamily(ExistingAddr);
+        FailedAlpnMatch = FALSE;
 
         if (ExistingFamily != AF_UNSPEC) {
             if (Family != ExistingFamily ||
@@ -401,12 +404,18 @@ QuicBindingGetListener(
                 Listener = ExistingListener;
             }
             goto Done;
+        } else {
+            FailedAlpnMatch = TRUE;
         }
     }
 
 Done:
 
     QuicDispatchRwLockReleaseShared(&Binding->RwLock);
+
+    if (FailedAlpnMatch) {
+        QuicPerfCounterAdd(ConnectionAttemptsNoMatchingAlpn, 1);
+    }
 
     return Listener;
 }

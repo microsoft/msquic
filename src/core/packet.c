@@ -749,6 +749,7 @@ QuicPacketLogDrop(
             CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
             Reason);
     }
+    QuicPerfCounterAdd(PacketsDropped, 1);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -786,4 +787,5 @@ QuicPacketLogDropWithValue(
             CLOG_BYTEARRAY(sizeof(Datagram->Tuple->RemoteAddress), &Datagram->Tuple->RemoteAddress),
             Reason);
     }
+    QuicPerfCounterAdd(PacketsDropped, 1);
 }

@@ -766,6 +766,10 @@ QuicLossDetectionRetransmitFrames(
         QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
     }
 
+    if (NewDataQueued) {
+        QuicPerfCounterAdd(PacketsRetransmitted, 1);
+    }
+
     return NewDataQueued;
 }
 

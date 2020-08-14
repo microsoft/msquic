@@ -932,4 +932,93 @@ TEST_P(TlsTest, PacketEncryptionPerf)
     }
 }
 
+uint64_t LockedCounter(
+    const uint64_t LoopCount
+    )
+{
+    uint64_t Start, End, Accumulator = 0;
+    QUIC_DISPATCH_LOCK Lock;
+    uint64_t Counter = 0;
+
+    QuicDispatchLockInitialize(&Lock);
+
+    for (uint64_t j = 0; j < LoopCount; ++j) {
+        Start = QuicTimeUs64();
+        QuicDispatchLockAcquire(&Lock);
+        Counter++;
+        QuicDispatchLockRelease(&Lock);
+        End = QuicTimeUs64();
+        Accumulator += End - Start;
+    }
+
+    QuicDispatchLockUninitialize(&Lock);
+
+    return Accumulator;
+}
+
+uint64_t InterlockedCounter(
+    const uint64_t LoopCount
+    )
+{
+    uint64_t Start, End, Accumulator = 0;
+    uint64_t Counter = 0;
+
+    for (uint64_t j = 0; j < LoopCount; ++j) {
+        Start = QuicTimeUs64();
+        InterlockedIncrement(&Counter);
+        End = QuicTimeUs64();
+        Accumulator += End - Start;
+    }
+
+    return Accumulator;
+}
+
+uint64_t UnlockedCounter(
+    const uint64_t LoopCount
+    )
+{
+    uint64_t Start, End, Accumulator = 0;
+    uint64_t Counter = 0;
+
+    for (uint64_t j = 0; j < LoopCount; ++j) {
+        Start = QuicTimeUs64();
+        Counter++;
+        End = QuicTimeUs64();
+        Accumulator += End - Start;
+    }
+
+    return Accumulator;
+}
+
+
+TEST_F(TlsTest, LockPerfTest)
+{
+    uint64_t (*TestFuncs[]) (uint64_t) = {LockedCounter, InterlockedCounter, UnlockedCounter};
+    char* TestName[] = {"Locking/unlocking", "Interlocked incrementing", "Unlocked incrementing"};
+    const uint64_t LoopCount = 100000;
+    uint64_t Counter = 0;
+
+#ifdef _WIN32
+    HANDLE CurrentThread = GetCurrentThread();
+    DWORD ProcNumber = GetCurrentProcessorNumber();
+    DWORD_PTR OldAffinityMask =
+        SetThreadAffinityMask(CurrentThread, (DWORD_PTR)1 << (DWORD_PTR)ProcNumber);
+    SetThreadPriority(CurrentThread, THREAD_PRIORITY_HIGHEST);
+#endif
+
+    for (uint8_t i = 0; i < ARRAYSIZE(TestName); ++i) {
+
+        const uint64_t elapsedMicroseconds = TestFuncs[i](LoopCount);
+
+        std::cout << elapsedMicroseconds / 1000 << "." << (int)(elapsedMicroseconds % 1000) <<
+            " milliseconds elapsed "
+            << TestName[i] << " counter " << LoopCount << " times" << std::endl;
+    }
+
+#ifdef _WIN32
+    SetThreadPriority(CurrentThread, THREAD_PRIORITY_NORMAL);
+    SetThreadAffinityMask(CurrentThread, OldAffinityMask);
+#endif
+}
+
 INSTANTIATE_TEST_SUITE_P(TlsTest, TlsTest, ::testing::Bool());

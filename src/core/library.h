@@ -56,6 +56,11 @@ typedef struct QUIC_CACHEALIGN QUIC_LIBRARY_PP {
     //
     QUIC_POOL PacketSpacePool;
 
+    //
+    // Per-processor performance counters.
+    //
+    uint64_t PerfCounters[QUIC_PERF_COUNTER_MAX];
+
 } QUIC_LIBRARY_PP;
 
 //
@@ -303,6 +308,19 @@ QuicPartitionIndexDecrement(
     } else {
         return PartitionIndex + (MsQuicLib.PartitionCount - Decrement);
     }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+void
+QuicPerfCounterAdd(
+    _In_ QUIC_PERFORMANCE_COUNTERS Type,
+    _In_ int64_t Value
+    )
+{
+    QUIC_DBG_ASSERT(Type < QUIC_PERF_COUNTER_MAX);
+    uint8_t ProcIndex = QuicLibraryGetCurrentPartition();
+    InterlockedAdd64((int64_t*)&MsQuicLib.PerProc[ProcIndex].PerfCounters[Type], Value);
 }
 
 //

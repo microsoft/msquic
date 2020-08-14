@@ -663,6 +663,54 @@ QuicLibraryGetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_GLOBAL_PERF_COUNTERS: {
+
+        if (*BufferLength < sizeof(uint64_t)) {
+            *BufferLength = sizeof(uint64_t) * QUIC_PERF_COUNTER_MAX;
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        uint64_t MergedPerfCounters[QUIC_PERF_COUNTER_MAX];
+        memcpy(MergedPerfCounters, MsQuicLib.PerProc[0].PerfCounters, sizeof(MergedPerfCounters));
+
+        for (int ProcIndex = 1; ProcIndex < MsQuicLib.PartitionCount; ++ProcIndex) {
+            for (int CounterIndex = 0; CounterIndex < QUIC_PERF_COUNTER_MAX; ++CounterIndex) {
+                switch (CounterIndex) {
+                    case ConnectionsActive:
+                        MergedPerfCounters[CounterIndex] =
+                            ((int64_t)MergedPerfCounters[CounterIndex]) +
+                            (int64_t)MsQuicLib.PerProc[ProcIndex].PerfCounters[CounterIndex];
+                        break;
+                    default:
+                        MergedPerfCounters[CounterIndex] +=
+                            MsQuicLib.PerProc[ProcIndex].PerfCounters[CounterIndex];
+                        break;
+                }
+            }
+        }
+
+        QUIC_DBG_ASSERT((int64_t)MergedPerfCounters[ConnectionsActive] >= 0);
+
+        if (*BufferLength < sizeof(MergedPerfCounters)) {
+            //
+            // Copy as many counters will fit completely in the buffer.
+            //
+            *BufferLength = (*BufferLength / sizeof(uint64_t)) * sizeof(uint64_t);
+        } else {
+            *BufferLength = sizeof(MergedPerfCounters);
+        }
+        memcpy(Buffer, MergedPerfCounters, *BufferLength);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+        }
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;

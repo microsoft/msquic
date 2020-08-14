@@ -295,6 +295,18 @@ typedef struct QUIC_LISTENER_STATISTICS {
     } Binding;
 } QUIC_LISTENER_STATISTICS;
 
+typedef enum QUIC_PERFORMANCE_COUNTERS {
+    ConnectionsCreated,
+    ConnectionHandshakesFailed,
+    ConnectionsRejectedByApp,
+    ConnectionsActive,
+    ConnectionsClosedWithError,
+    ConnectionAttemptsNoMatchingAlpn,
+    PacketsRetransmitted,
+    PacketsDropped,
+    QUIC_PERF_COUNTER_MAX
+} QUIC_PERFORMANCE_COUNTERS;
+
 //
 // Functions for associating application contexts with QUIC handles.
 //
@@ -353,6 +365,7 @@ typedef enum QUIC_SERVER_RESUMPTION_LEVEL {
 #define QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT          0   // uint16_t
 #define QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS            1   // uint32_t[] - network byte order
 #define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE            2   // uint16_t - QUIC_LOAD_BALANCING_MODE
+#define QUIC_PARAM_GLOBAL_PERF_COUNTERS                 3   // uint64_t[] - Array size is QUIC_PERF_COUNTER_MAX
 
 //
 // Parameters for QUIC_PARAM_LEVEL_REGISTRATION.

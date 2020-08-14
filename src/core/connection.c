@@ -250,6 +250,7 @@ QuicConnAlloc(
             Connection);
     }
 
+    QuicPerfCounterAdd(ConnectionsCreated, 1);
     QuicSessionRegisterConnection(Session, Connection);
 
     return Connection;
@@ -1339,6 +1340,13 @@ QuicConnOnShutdownComplete(
 
         Connection->ClientCallbackHandler = NULL;
     }
+
+    if (Connection->State.Started) {
+        QuicPerfCounterAdd(ConnectionsActive, -1);
+        if (!Connection->State.Connected) {
+            QuicPerfCounterAdd(ConnectionHandshakesFailed, 1);
+        }
+    }
 }
 
 QUIC_STATUS
@@ -1522,6 +1530,7 @@ QuicConnTryClose(
         if (ResultQuicStatus) {
             Connection->CloseStatus = (QUIC_STATUS)ErrorCode;
             Connection->CloseErrorCode = QUIC_ERROR_INTERNAL_ERROR;
+            QuicPerfCounterAdd(ConnectionsClosedWithError, 1);
         } else {
             Connection->CloseStatus = QuicErrorCodeToStatus(ErrorCode);
             Connection->CloseErrorCode = ErrorCode;
@@ -2443,6 +2452,7 @@ QuicConnHandshakeConfigure(
 
     Connection->State.Started = TRUE;
     Connection->Stats.Timing.Start = QuicTimeUs64();
+    QuicPerfCounterAdd(ConnectionsActive, 1);
     QuicTraceEvent(
         ConnHandshakeStart,
         "[conn][%p] Handshake start",
