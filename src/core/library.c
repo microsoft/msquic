@@ -169,16 +169,16 @@ MsQuicLibraryInitialize(
     //
     // TODO: Add support for CPU hot swap/add.
     //
-    uint32_t MaxProcCount = QuicProcActiveCount();
-    if (MaxProcCount > (uint32_t)MsQuicLib.Settings.MaxPartitionCount) {
-        MaxProcCount = (uint32_t)MsQuicLib.Settings.MaxPartitionCount;
+    MsQuicLib.ProcessorCount = (uint16_t) QuicProcActiveCount();
+    QUIC_FRE_ASSERT(MsQuicLib.ProcessorCount > 0);
+    MsQuicLib.PartitionCount = (uint8_t)MsQuicLib.ProcessorCount;
+    if (MsQuicLib.PartitionCount  > (uint32_t)MsQuicLib.Settings.MaxPartitionCount) {
+        MsQuicLib.PartitionCount  = (uint32_t)MsQuicLib.Settings.MaxPartitionCount;
     }
-    QUIC_FRE_ASSERT(MaxProcCount > 0);
-    MsQuicLib.PartitionCount = (uint8_t)MaxProcCount;
     MsQuicCalculatePartitionMask();
 
     MsQuicLib.PerProc =
-        QUIC_ALLOC_NONPAGED(MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
+        QUIC_ALLOC_NONPAGED(MsQuicLib.ProcessorCount * sizeof(QUIC_LIBRARY_PP));
     if (MsQuicLib.PerProc == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -188,7 +188,7 @@ MsQuicLibraryInitialize(
         goto Error;
     }
 
-    for (uint8_t i = 0; i < MsQuicLib.PartitionCount; ++i) {
+    for (uint8_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
         QuicPoolInitialize(
             FALSE,
             sizeof(QUIC_CONNECTION),
@@ -247,7 +247,7 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         if (MsQuicLib.PerProc != NULL) {
-            for (uint8_t i = 0; i < MsQuicLib.PartitionCount; ++i) {
+            for (uint8_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
                 QuicPoolUninitialize(&MsQuicLib.PerProc[i].ConnectionPool);
                 QuicPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
                 QuicPoolUninitialize(&MsQuicLib.PerProc[i].PacketSpacePool);
@@ -319,7 +319,7 @@ MsQuicLibraryUninitialize(
     //
     QUIC_TEL_ASSERT(QuicListIsEmpty(&MsQuicLib.Bindings));
 
-    for (uint8_t i = 0; i < MsQuicLib.PartitionCount; ++i) {
+    for (uint8_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
         QuicPoolUninitialize(&MsQuicLib.PerProc[i].ConnectionPool);
         QuicPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
         QuicPoolUninitialize(&MsQuicLib.PerProc[i].PacketSpacePool);
