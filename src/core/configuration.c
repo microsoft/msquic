@@ -55,6 +55,7 @@ MsQuicConfigurationOpen(
     QuicZeroMemory(Configuration, sizeof(QUIC_CONFIGURATION));
     Configuration->Type = QUIC_HANDLE_TYPE_CONFIGURATION;
     Configuration->ClientContext = Context;
+    Configuration->ClientCallbackHandler = Handler;
     Configuration->Registration = Registration;
     QuicRundownInitialize(&Configuration->Rundown);
 
@@ -165,7 +166,7 @@ MsQuicConfigurationClose(
         QuicLockRelease(&Configuration->Registration->ConfigLock);
 
         if (Configuration->SecurityConfig != NULL) {
-            QuicTlsSecConfigRelease(Configuration->SecurityConfig);
+            QuicTlsSecConfigDelete(Configuration->SecurityConfig);
         }
 
         QuicRundownReleaseAndWait(&Configuration->Rundown);
@@ -213,6 +214,12 @@ MsQuicConfigurationLoadCredentialComplete(
     QUIC_CONFIGURATION_EVENT* Event;
     Event->Type = QUIC_CONFIGURATION_EVENT_LOAD_COMPLETE;
     Event->LOAD_CREDENTIAL_COMPLETE.Status = Status;
+    (void)Configuration->ClientCallbackHandler(
+        Configuration,
+        Configuration->ClientCallbackHandler,
+        &Event);
+
+    QuicRundownRelease(&Configuration->Rundown);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -237,25 +244,14 @@ MsQuicConfigurationLoadCredential(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_CONFIGURATION* Configuration = (QUIC_CONFIGURATION*)Handle;
 
-        if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
-            Status =
-                QuicTlsClientSecConfigCreate(
-                    CredConfig->Flags,
-                    &Configuration->Rundown,
-                    CredConfig,
-                    Configuration,
-                    MsQuicConfigurationLoadCredentialComplete);
-        } else {
-            Status =
-                QuicTlsServerSecConfigCreate(
-                    &Configuration->Rundown,
-                    CredConfig->Type,
-                    CredConfig->Flags,
-                    CredConfig->Creds,
-                    CredConfig->Principal,
-                    Configuration,
-                    MsQuicConfigurationLoadCredentialComplete);
-        }
+        BOOLEAN Result = QuicRundownAcquire(&Configuration->Rundown);
+        QUIC_FRE_ASSERT(Result);
+
+        Status =
+            QuicTlsSecConfigCreate(
+                CredConfig,
+                Configuration,
+                MsQuicConfigurationLoadCredentialComplete);
     }
 
     QuicTraceEvent(

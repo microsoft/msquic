@@ -57,6 +57,9 @@ typedef struct QUIC_CONFIGURATION {
     //
     QUIC_SETTINGS Settings;
 
+    //
+    // The handler for the API client's callbacks.
+    //
     QUIC_CONFIGURATION_CALLBACK_HANDLER ClientCallbackHandler;
 
 } QUIC_CONFIGURATION;

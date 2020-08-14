@@ -275,42 +275,18 @@ typedef QUIC_SEC_CONFIG_CREATE_COMPLETE *QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicTlsServerSecConfigCreate(
-    _Inout_ QUIC_RUNDOWN_REF* Rundown,
-    _In_ QUIC_SEC_CONFIG_FLAGS Flags,
-    _In_opt_ void* Certificate,
-    _In_opt_z_ const char* Principal,
+QuicTlsSecConfigCreate(
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     );
 
 //
-// Creates a new TLS security configuration for client use.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsClientSecConfigCreate(
-    _In_ uint32_t Flags,
-    _Outptr_ QUIC_SEC_CONFIG** ClientConfig
-    );
-
-//
-// Adds a reference to a TLS security configuration.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_SEC_CONFIG*
-QuicTlsSecConfigAddRef(
-    _In_ QUIC_SEC_CONFIG* SecurityConfig
-    );
-
-//
-// Releases a references on a TLS security configuration and cleans it up
-// if it's the last reference.
+// Deletes a TLS security configuration.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QUIC_API
-QuicTlsSecConfigRelease(
+QuicTlsSecConfigDelete(
     _In_ QUIC_SEC_CONFIG* SecurityConfig
     );
 
