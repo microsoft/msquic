@@ -767,7 +767,7 @@ QuicLossDetectionRetransmitFrames(
     }
 
     if (NewDataQueued) {
-        QuicPerfCounterAdd(PacketsRetransmitted, 1);
+        QuicPerfCounterAdd(QUIC_PERF_COUNTER_PKTS_RETRANSMITTED, 1);
     }
 
     return NewDataQueued;

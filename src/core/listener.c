@@ -429,7 +429,7 @@ Exit:
 
     if (Status != QUIC_STATUS_PENDING && QUIC_FAILED(Status)) {
         QuicSessionUnregisterConnection(Connection);
-        QuicPerfCounterAdd(ConnectionsRejectedByApp, 1);
+        QuicPerfCounterAdd(QUIC_PERF_COUNTER_CONN_APP_REJECT, 1);
     }
 
     return Status;

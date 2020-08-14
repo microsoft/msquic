@@ -296,14 +296,14 @@ typedef struct QUIC_LISTENER_STATISTICS {
 } QUIC_LISTENER_STATISTICS;
 
 typedef enum QUIC_PERFORMANCE_COUNTERS {
-    ConnectionsCreated,
-    ConnectionHandshakesFailed,
-    ConnectionsRejectedByApp,
-    ConnectionsActive,
-    ConnectionsClosedWithError,
-    ConnectionAttemptsNoMatchingAlpn,
-    PacketsRetransmitted,
-    PacketsDropped,
+    QUIC_PERF_COUNTER_CONN_CREATED,
+    QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL,
+    QUIC_PERF_COUNTER_CONN_APP_REJECT,
+    QUIC_PERF_COUNTER_CONN_ACTIVE,
+    QUIC_PERF_COUNTER_CONN_CLOSED_ERROR,
+    QUIC_PERF_COUNTER_CONN_NO_ALPN,
+    QUIC_PERF_COUNTER_PKTS_RETRANSMITTED,
+    QUIC_PERF_COUNTER_PKTS_DROPPED,
     QUIC_PERF_COUNTER_MAX
 } QUIC_PERFORMANCE_COUNTERS;
 

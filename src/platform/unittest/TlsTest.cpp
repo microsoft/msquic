@@ -936,67 +936,67 @@ uint64_t LockedCounter(
     const uint64_t LoopCount
     )
 {
-    uint64_t Start, End, Accumulator = 0;
+    uint64_t Start, End;
     QUIC_DISPATCH_LOCK Lock;
     uint64_t Counter = 0;
 
     QuicDispatchLockInitialize(&Lock);
-
+    Start = QuicTimeUs64();
     for (uint64_t j = 0; j < LoopCount; ++j) {
-        Start = QuicTimeUs64();
         QuicDispatchLockAcquire(&Lock);
         Counter++;
         QuicDispatchLockRelease(&Lock);
-        End = QuicTimeUs64();
-        Accumulator += End - Start;
     }
+    End = QuicTimeUs64();
 
     QuicDispatchLockUninitialize(&Lock);
 
-    return Accumulator;
+    QUIC_FRE_ASSERT(Counter == LoopCount);
+
+    return End - Start;
 }
 
 uint64_t InterlockedCounter(
     const uint64_t LoopCount
     )
 {
-    uint64_t Start, End, Accumulator = 0;
+    uint64_t Start, End;
     uint64_t Counter = 0;
 
+    Start = QuicTimeUs64();
     for (uint64_t j = 0; j < LoopCount; ++j) {
-        Start = QuicTimeUs64();
         InterlockedIncrement(&Counter);
-        End = QuicTimeUs64();
-        Accumulator += End - Start;
     }
+    End = QuicTimeUs64();
 
-    return Accumulator;
+    QUIC_FRE_ASSERT(Counter == LoopCount);
+
+    return End - Start;
 }
 
 uint64_t UnlockedCounter(
     const uint64_t LoopCount
     )
 {
-    uint64_t Start, End, Accumulator = 0;
+    uint64_t Start, End;
     uint64_t Counter = 0;
-
+    Start = QuicTimeUs64();
     for (uint64_t j = 0; j < LoopCount; ++j) {
-        Start = QuicTimeUs64();
         Counter++;
-        End = QuicTimeUs64();
-        Accumulator += End - Start;
     }
+    End = QuicTimeUs64();
 
-    return Accumulator;
+    QUIC_FRE_ASSERT(Counter == LoopCount);
+
+    return End - Start;
 }
 
 
 TEST_F(TlsTest, LockPerfTest)
 {
-    uint64_t (*TestFuncs[]) (uint64_t) = {LockedCounter, InterlockedCounter, UnlockedCounter};
-    char* TestName[] = {"Locking/unlocking", "Interlocked incrementing", "Unlocked incrementing"};
+    uint64_t (*const TestFuncs[]) (uint64_t) = {LockedCounter, InterlockedCounter, UnlockedCounter};
+    const char* const TestName[] = {"Locking/unlocking", "Interlocked incrementing", "Unlocked incrementing"};
     const uint64_t LoopCount = 100000;
-    uint64_t Counter = 0;
 
 #ifdef _WIN32
     HANDLE CurrentThread = GetCurrentThread();

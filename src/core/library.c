@@ -676,36 +676,31 @@ QuicLibraryGetGlobalParam(
             break;
         }
 
-        uint64_t MergedPerfCounters[QUIC_PERF_COUNTER_MAX];
-        memcpy(MergedPerfCounters, MsQuicLib.PerProc[0].PerfCounters, sizeof(MergedPerfCounters));
-
-        for (int ProcIndex = 1; ProcIndex < MsQuicLib.PartitionCount; ++ProcIndex) {
-            for (int CounterIndex = 0; CounterIndex < QUIC_PERF_COUNTER_MAX; ++CounterIndex) {
-                switch (CounterIndex) {
-                    case ConnectionsActive:
-                        MergedPerfCounters[CounterIndex] =
-                            ((int64_t)MergedPerfCounters[CounterIndex]) +
-                            (int64_t)MsQuicLib.PerProc[ProcIndex].PerfCounters[CounterIndex];
-                        break;
-                    default:
-                        MergedPerfCounters[CounterIndex] +=
-                            MsQuicLib.PerProc[ProcIndex].PerfCounters[CounterIndex];
-                        break;
-                }
-            }
-        }
-
-        QUIC_DBG_ASSERT((int64_t)MergedPerfCounters[ConnectionsActive] >= 0);
-
-        if (*BufferLength < sizeof(MergedPerfCounters)) {
+        if (*BufferLength < QUIC_PERF_COUNTER_MAX * sizeof(uint64_t)) {
             //
             // Copy as many counters will fit completely in the buffer.
             //
             *BufferLength = (*BufferLength / sizeof(uint64_t)) * sizeof(uint64_t);
         } else {
-            *BufferLength = sizeof(MergedPerfCounters);
+            *BufferLength = QUIC_PERF_COUNTER_MAX * sizeof(uint64_t);
         }
-        memcpy(Buffer, MergedPerfCounters, *BufferLength);
+
+        uint64_t* Counters = (uint64_t*)Buffer;
+        memcpy(Buffer, MsQuicLib.PerProc[0].PerfCounters, *BufferLength);
+
+        for (int ProcIndex = 1; ProcIndex < MsQuicLib.ProcessorCount; ++ProcIndex) {
+            for (int CounterIndex = 0;
+                CounterIndex < (*BufferLength / sizeof(uint64_t));
+                ++CounterIndex) {
+                Counters[CounterIndex] =
+                    ((int64_t)Counters[CounterIndex]) +
+                    (int64_t)MsQuicLib.PerProc[ProcIndex].PerfCounters[CounterIndex];
+            }
+        }
+
+        if((int64_t)Counters[QUIC_PERF_COUNTER_CONN_ACTIVE] < 0) {
+            Counters[QUIC_PERF_COUNTER_CONN_ACTIVE] = 0;
+        }
 
         Status = QUIC_STATUS_SUCCESS;
         break;

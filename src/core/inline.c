@@ -172,7 +172,6 @@ QuicPartitionIndexDecrement(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
 void
 QuicPerfCounterAdd(
     _In_ QUIC_PERFORMANCE_COUNTERS Type,

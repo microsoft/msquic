@@ -414,7 +414,7 @@ Done:
     QuicDispatchRwLockReleaseShared(&Binding->RwLock);
 
     if (FailedAlpnMatch) {
-        QuicPerfCounterAdd(ConnectionAttemptsNoMatchingAlpn, 1);
+        QuicPerfCounterAdd(QUIC_PERF_COUNTER_CONN_NO_ALPN, 1);
     }
 
     return Listener;
