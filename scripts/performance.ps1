@@ -12,6 +12,9 @@ This script runs performance tests locally for a period of time.
 .PARAMETER RemoteArch
     Specifies what the remote arch is
 
+.PARAMETER Kernel
+    Run the remote in kernel mode
+
 .PARAMETER LocalTls
     Specifies what local TLS provider to use
 
@@ -84,6 +87,9 @@ param (
     [string]$WinRMUser = "",
 
     [Parameter(Mandatory = $false)]
+    [switch]$Kernel = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$SkipDeploy = $false,
 
     [Parameter(Mandatory = $false)]
@@ -110,6 +116,11 @@ param (
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+# Validate the the kernel switch.
+if ($Kernel -and !$IsWindows) {
+    Write-Error "-Kernel switch only supported on Windows";
+}
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
@@ -193,15 +204,21 @@ Set-ScriptVariables -Local $Local `
                     -Record $Record `
                     -RecordQUIC $RecordQUIC `
                     -RemoteAddress $RemoteAddress `
-                    -Session $Session
+                    -Session $Session `
+                    -Kernel $Kernel
 
 $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
+    param($Kernel)
     if ($IsWindows) {
-        return "windows"
+        if ($Kernel) {
+            return "winkernel"
+        } else {
+            return "windows"
+        }
     } else {
         return "linux"
     }
-}
+} -Arguements $Kernel
 
 $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($RemoteArch)_$($Config)_$($RemoteTls)"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null

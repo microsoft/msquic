@@ -87,7 +87,7 @@ $WpaQUICLogProfileXml = `
 
 function Set-ScriptVariables {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record, $RecordQUIC, $RemoteAddress, $Session)
+    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $Config, $Publish, $Record, $RecordQUIC, $RemoteAddress, $Session, $Kernel)
     $script:Local = $Local
     $script:LocalTls = $LocalTls
     $script:LocalArch = $LocalArch
@@ -99,6 +99,7 @@ function Set-ScriptVariables {
     $script:RecordQUIC = $RecordQUIC
     $script:RemoteAddress = $RemoteAddress
     $script:Session = $Session
+    $script:Kernel = $Kernel
     if ($null -ne $Session) {
         Invoke-Command -Session $Session -ScriptBlock {
             $ErrorActionPreference = "Stop"
@@ -279,7 +280,7 @@ function Invoke-RemoteExe {
     }
 
     return Invoke-TestCommand -Session $Session -ScriptBlock {
-        param ($Exe, $RunArgs, $BasePath, $Record, $WpaXml)
+        param ($Exe, $RunArgs, $BasePath, $Record, $WpaXml, $Kernel)
         if ($null -ne $BasePath) {
             $env:LD_LIBRARY_PATH = $BasePath
         }
@@ -291,13 +292,30 @@ function Invoke-RemoteExe {
             wpr.exe -start $EtwXmlName -filemode 2> $null
         }
 
+        if ($Kernel) {
+            net.exe stop msquic /y | Out-Null
+            Copy-Item C:\Windows\system32\drivers\msquic.sys C:\Windows\system32\drivers\msquic.sys.old
+            Copy-Item (Join-Path $Kernel "quicperf.sys") (Split-Path $Path -Parent)
+            sfpcopy.exe (Join-Path $Kernel "msquic.sys") C:\Windows\system32\drivers\msquic.sys
+            net.exe start msquic
+        }
+
         & $Exe ($RunArgs).Split(" ")
+
+        # Uninstall the kernel mode test driver and revert the msquic driver.
+        if ($Kernel) {
+            net.exe stop msquic /y | Out-Null
+            sc.exe delete msquictest | Out-Null
+            sfpcopy.exe C:\Windows\system32\drivers\msquic.sys.old C:\Windows\system32\drivers\msquic.sys
+            net.exe start msquic
+            Remove-Item C:\Windows\system32\drivers\msquic.sys.old -Force
+        }
 
         if ($Record -and $IsWindows) {
             $EtwName = $Exe + ".remote.etl"
             wpr.exe -stop $EtwName 2> $null
         }
-    } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $WpaXml
+    } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $WpaXml, $Kernel
 }
 
 function Get-RemoteFile {
