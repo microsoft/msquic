@@ -38,7 +38,8 @@ typedef struct QUIC_DRIVER_CLIENT {
     bool SelfSignedValid;
     QUIC_EVENT StopEvent;
     bool Started;
-
+    WDFREQUEST Request;
+    QUIC_THREAD Thread;
 } QUIC_DRIVER_CLIENT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DRIVER_CLIENT, QuicPerfCtlGetFileContext);
@@ -532,18 +533,17 @@ static_assert(
     QUIC_PERF_MAX_IOCTL_FUNC_CODE + 1 == (sizeof(QUIC_IOCTL_BUFFER_SIZES) / sizeof(size_t)),
     "QUIC_IOCTL_BUFFER_SIZES must be kept in sync with the IOTCLs");
 
-void
-QuicPerfCtlReadPrints(
-    _In_ WDFREQUEST Request,
-    _In_ QUIC_DRIVER_CLIENT* Client
-    )
+QUIC_THREAD_CALLBACK(WaitThreadCb, Context)
 {
+    QUIC_DRIVER_CLIENT* Client = (QUIC_DRIVER_CLIENT*)Context;
+    WDFREQUEST Request = Client->Request;
+
     char* LocalBuffer = nullptr;
     DWORD ReturnedLength = 0;
     QUIC_STATUS StopStatus;
 
     StopStatus =
-            QuicMainStop(0);
+        QuicMainStop(0);
 
     NTSTATUS Status =
         WdfRequestRetrieveOutputBuffer(
@@ -574,6 +574,28 @@ Exit:
         Request,
         StopStatus,
         ReturnedLength);
+    QuicThreadDelete(&Client->Thread);
+}
+
+void
+QuicPerfCtlReadPrints(
+    _In_ WDFREQUEST Request,
+    _In_ QUIC_DRIVER_CLIENT* Client
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_THREAD_CONFIG ThreadConfig;
+    QuicZeroMemory(&ThreadConfig, sizeof(ThreadConfig));
+    ThreadConfig.Name = "PerfWait";
+    ThreadConfig.Callback = WaitThreadCb;
+    ThreadConfig.Context = Client;
+    Client->Request = Request;
+    if (QUIC_FAILED(Status = QuicThreadCreate(&ThreadConfig, &Client->Thread))) {
+        WdfRequestCompleteWithInformation(
+            Request,
+            Status,
+            0);
+    }
 }
 
 NTSTATUS
