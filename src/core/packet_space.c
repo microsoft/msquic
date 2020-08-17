@@ -23,7 +23,7 @@ QuicPacketSpaceInitialize(
     _Out_ QUIC_PACKET_SPACE** NewPackets
     )
 {
-    uint8_t CurProcIndex = QuicLibraryGetCurrentPartition();
+    uint32_t CurProcIndex = QuicProcCurrentNumber();
     QUIC_PACKET_SPACE* Packets = QuicPoolAlloc(&MsQuicLib.PerProc[CurProcIndex].PacketSpacePool);
     if (Packets == NULL) {
         QuicTraceEvent(
@@ -63,7 +63,7 @@ QuicPacketSpaceUninitialize(
 
     QuicAckTrackerUninitialize(&Packets->AckTracker);
 
-    uint8_t CurProcIndex = QuicLibraryGetCurrentPartition();
+    uint32_t CurProcIndex = QuicProcCurrentNumber();
     QuicPoolFree(&MsQuicLib.PerProc[CurProcIndex].PacketSpacePool, Packets);
 }
 

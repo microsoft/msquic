@@ -163,7 +163,7 @@ QuicProcessorInfoInit(
     if (QuicProcessorGroupOffsets == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of %s failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "QuicProcessorGroupOffsets",
             ProcessorGroupCount * sizeof(uint32_t));
         goto Error;

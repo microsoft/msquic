@@ -1374,7 +1374,7 @@ QuicTlsProcessData(
         TlsContext->ResultFlags = QUIC_TLS_RESULT_ERROR;
 
         QuicTraceLogConnVerbose(
-            OpenSslProcessData,
+            OpenSsslIgnoringTicket,
             TlsContext->Connection,
             "Ignoring %u ticket bytes",
             *BufferLength);

@@ -59,7 +59,7 @@ QuicConnAlloc(
     )
 {
     BOOLEAN IsServer = Datagram != NULL;
-    uint8_t CurProcIndex = QuicLibraryGetCurrentPartition();
+    uint32_t CurProcIndex = QuicProcCurrentNumber();
 
     //
     // For client, the datapath partitioning info is not known yet, so just use
@@ -69,7 +69,7 @@ QuicConnAlloc(
     uint8_t BasePartitionId =
         IsServer ?
             (Datagram->PartitionIndex % MsQuicLib.PartitionCount) :
-            CurProcIndex;
+            CurProcIndex % MsQuicLib.PartitionCount;
     uint8_t PartitionId = QuicPartitionIdCreate(BasePartitionId);
     QUIC_DBG_ASSERT(BasePartitionId == QuicPartitionIdGetIndex(PartitionId));
 
@@ -344,7 +344,7 @@ QuicConnFree(
     }
     if (Connection->HandshakeTP != NULL) {
         QuicPoolFree(
-            &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].TransportParamPool,
+            &MsQuicLib.PerProc[QuicProcCurrentNumber()].TransportParamPool,
             Connection->HandshakeTP);
         Connection->HandshakeTP = NULL;
     }
@@ -353,7 +353,7 @@ QuicConnFree(
         "[conn][%p] Destroyed",
         Connection);
     QuicPoolFree(
-        &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].ConnectionPool,
+        &MsQuicLib.PerProc[QuicProcCurrentNumber()].ConnectionPool,
         Connection);
 
 #if DEBUG
@@ -398,7 +398,7 @@ QuicConnApplySettings(
         Connection->HandshakeTP == NULL) {
         QUIC_DBG_ASSERT(!Connection->State.Started);
         Connection->HandshakeTP =
-            QuicPoolAlloc(&MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].TransportParamPool);
+            QuicPoolAlloc(&MsQuicLib.PerProc[QuicProcCurrentNumber()].TransportParamPool);
         if (Connection->HandshakeTP == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -665,6 +665,12 @@ QuicConnQueueOper(
     _In_ QUIC_OPERATION* Oper
     )
 {
+    #if DEBUG
+    if (!Connection->State.Initialized) {
+        QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
+        QUIC_DBG_ASSERT(Connection->SourceCids.Next != NULL);
+    }
+#endif
     if (QuicOperationEnqueue(&Connection->OperQ, Oper)) {
         //
         // The connection needs to be queued on the worker because this was the
@@ -2118,7 +2124,7 @@ QuicConnCleanupServerResumptionState(
     if (!Connection->State.ResumptionEnabled) {
         if (Connection->HandshakeTP != NULL) {
             QuicPoolFree(
-                &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].TransportParamPool,
+                &MsQuicLib.PerProc[QuicProcCurrentNumber()].TransportParamPool,
                 Connection->HandshakeTP);
             Connection->HandshakeTP = NULL;
         }

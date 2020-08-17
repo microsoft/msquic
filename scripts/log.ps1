@@ -150,7 +150,7 @@ function Log-Stop {
         if (!$RawLogOnly) {
             $LogPath = Join-Path $OutputDirectory "quic.log"
             $Command = "netsh trace convert $($EtlPath) output=$($LogPath) overwrite=yes report=no"
-            if ($TmfPath -ne "") {
+            if ($TmfPath -ne "" -and (Test-Path $TmfPath)) {
                 $Command += " tmfpath=$TmfPath"
             }
             Invoke-Expression $Command

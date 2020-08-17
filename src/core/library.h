@@ -109,6 +109,12 @@ typedef struct QUIC_LIBRARY {
     uint32_t RefCount;
 
     //
+    // Number of processors currently being used.
+    //
+    _Field_range_(>, 0)
+    uint16_t ProcessorCount;
+
+    //
     // Number of partitions currently being used.
     //
     _Field_range_(>, 0)
@@ -344,8 +350,10 @@ QuicCidNewRandomSource(
         *Data = PartitionID;
         Data++;
 
-        QuicCopyMemory(Data, Prefix, PrefixLength);
-        Data += PrefixLength;
+        if (PrefixLength) {
+            QuicCopyMemory(Data, Prefix, PrefixLength);
+            Data += PrefixLength;
+        }
 
         QuicRandom(MSQUIC_CID_PAYLOAD_LENGTH - PrefixLength, Data);
     }
