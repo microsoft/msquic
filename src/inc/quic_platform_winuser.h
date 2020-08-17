@@ -920,7 +920,8 @@ QuicRandom(
 #ifdef QUIC_TEST_APIS
 
 typedef struct QUIC_SEC_CONFIG_PARAMS {
-    uint32_t Flags; // QUIC_SEC_CONFIG_FLAGS
+    uint32_t Type; // QUIC_CREDENTIAL_TYPE
+    uint32_t Flags; // QUIC_CREDENTIAL_FLAGS
     void* Certificate;
     const char* Principal;
     uint8_t Thumbprint[20];

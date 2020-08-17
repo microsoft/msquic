@@ -168,19 +168,9 @@ QuicPacketKeyCreate(
 typedef struct QUIC_SEC_CONFIG {
 
     //
-    // Rundown tracking the clean up of all server security configs.
-    //
-    QUIC_RUNDOWN_REF* CleanupRundown;
-
-    //
-    // Reference count to keep credentials alive long enough.
-    //
-    long RefCount;
-
-    //
     // Configuration flags.
     //
-    uint32_t Flags;
+    QUIC_CREDENTIAL_FLAGS Flags;
 
     //
     // The certificate context, used for signing.
@@ -444,67 +434,31 @@ QuicTlsLibraryUninitialize(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicTlsSecConfigDelete(
-    _In_ QUIC_SEC_CONFIG* SecurityConfig
-    )
-{
-    if (SecurityConfig->PrivateKey != NULL) {
-        QuicCertDeletePrivateKey(SecurityConfig->PrivateKey);
-    }
-    if (SecurityConfig->Certificate != NULL &&
-        !(SecurityConfig->Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT)) {
-        QuicCertFree(SecurityConfig->Certificate);
-    }
-    QUIC_RUNDOWN_REF* Rundown = SecurityConfig->CleanupRundown;
-    QUIC_FREE(SecurityConfig);
-    if (Rundown != NULL) {
-        QuicRundownRelease(Rundown);
-    }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicTlsServerSecConfigCreate(
-    _Inout_ QUIC_RUNDOWN_REF* Rundown,
-    _In_ QUIC_SEC_CONFIG_FLAGS Flags,
-    _In_opt_ void* Certificate,
-    _In_opt_z_ const char* Principal,
+QuicTlsSecConfigCreate(
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
 {
     QUIC_STATUS Status;
-    QUIC_SEC_CONFIG* SecurityConfig = NULL;
-
-    if (!QuicRundownAcquire(Rundown)) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Acquire sec config rundown failed");
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Error;
-    }
 
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (QuicTlsSecConfigDelete).")
-    SecurityConfig = QUIC_ALLOC_PAGED(sizeof(QUIC_SEC_CONFIG));
+    QUIC_SEC_CONFIG* SecurityConfig = QUIC_ALLOC_PAGED(sizeof(QUIC_SEC_CONFIG));
     if (SecurityConfig == NULL) {
-        QuicRundownRelease(Rundown);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
-    SecurityConfig->CleanupRundown = Rundown;
-    SecurityConfig->Flags = Flags;
-    SecurityConfig->RefCount = 1;
+    SecurityConfig->Flags = CredConfig->Flags;
     SecurityConfig->Certificate = NULL;
     SecurityConfig->PrivateKey = NULL;
 
     Status =
         QuicCertCreate(
-            Flags,
-            Certificate,
-            Principal,
+            CredConfig->Type,
+            CredConfig->Creds,
+            CredConfig->Principal,
             &SecurityConfig->Certificate);
     if (QUIC_FAILED(Status)) {
         goto Error;
@@ -541,46 +495,20 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsClientSecConfigCreate(
-    _In_ uint32_t Flags,
-    _Outptr_ QUIC_SEC_CONFIG** ClientConfig
-    )
-{
-    #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (QuicTlsSecConfigDelete).")
-    QUIC_SEC_CONFIG* SecurityConfig = QUIC_ALLOC_PAGED(sizeof(QUIC_SEC_CONFIG));
-    if (SecurityConfig == NULL) {
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-
-    QuicZeroMemory(SecurityConfig, sizeof(*SecurityConfig));
-    SecurityConfig->Flags = (uint32_t)Flags;
-    SecurityConfig->RefCount = 1;
-
-    *ClientConfig = SecurityConfig;
-    return QUIC_STATUS_SUCCESS;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_SEC_CONFIG*
-QuicTlsSecConfigAddRef(
-    _In_ QUIC_SEC_CONFIG* SecurityConfig
-    )
-{
-    InterlockedIncrement(&SecurityConfig->RefCount);
-    return SecurityConfig;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QUIC_API
-QuicTlsSecConfigRelease(
-    _In_ QUIC_SEC_CONFIG* SecurityConfig
+QuicTlsSecConfigDelete(
+    __drv_freesMem(ServerConfig) _Frees_ptr_ _In_
+        QUIC_SEC_CONFIG* SecurityConfig
     )
 {
-    if (InterlockedDecrement(&SecurityConfig->RefCount) == 0) {
-        QuicTlsSecConfigDelete(SecurityConfig);
+    if (SecurityConfig->PrivateKey != NULL) {
+        QuicCertDeletePrivateKey(SecurityConfig->PrivateKey);
     }
+    if (SecurityConfig->Certificate != NULL &&
+        !(SecurityConfig->Flags & QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT)) {
+        QuicCertFree(SecurityConfig->Certificate);
+    }
+    QUIC_FREE(SecurityConfig);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1060,7 +988,6 @@ QuicTlsInitialize(
 Error:
 
     if (QUIC_FAILED(Status)) {
-        QuicTlsSecConfigRelease(TlsContext->SecConfig);
         if (TlsContext->SNI) {
             QUIC_FREE(TlsContext->SNI);
         }
@@ -1085,10 +1012,6 @@ QuicTlsUninitialize(
 
         if (TlsContext->Ticket != NULL) {
             QuicTlsTicketRelease(TlsContext->Ticket);
-        }
-
-        if (TlsContext->SecConfig != NULL) {
-            QuicTlsSecConfigRelease(TlsContext->SecConfig);
         }
 
         if (TlsContext->SNI != NULL) {
@@ -1134,15 +1057,6 @@ QuicTlsReset(
             "FFI_mitls_quic_create failed");
         QUIC_DBG_ASSERT(FALSE);
     }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_SEC_CONFIG*
-QuicTlsGetSecConfig(
-    _In_ QUIC_TLS* TlsContext
-    )
-{
-    return QuicTlsSecConfigAddRef(TlsContext->SecConfig);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

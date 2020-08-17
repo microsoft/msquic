@@ -249,9 +249,8 @@ QuicTlsTicketRelease(
 
 typedef struct QUIC_SEC_CONFIG {
 
-    QUIC_RUNDOWN_REF* CleanupRundown;
-    long RefCount;
-    uint32_t Flags;
+    QUIC_CREDENTIAL_TYPE Type;
+    QUIC_CREDENTIAL_FLAGS Flags;
     QUIC_CERT* Certificate;
     uint16_t FormatLength;
     uint8_t FormatBuffer[SIZEOF_CERT_CHAIN_LIST_LENGTH];
@@ -336,11 +335,8 @@ QuicTlsLibraryUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicTlsServerSecConfigCreate(
-    _Inout_ QUIC_RUNDOWN_REF* Rundown,
-    _In_ QUIC_SEC_CONFIG_FLAGS Flags,
-    _In_opt_ void* Certificate,
-    _In_opt_z_ const char* Principal,
+QuicTlsSecConfigCreate(
+    _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
     _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
     )
@@ -348,35 +344,24 @@ QuicTlsServerSecConfigCreate(
     QUIC_STATUS Status;
     QUIC_SEC_CONFIG* SecurityConfig = NULL;
 
-    if (!QuicRundownAcquire(Rundown)) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Failed to acquire sec config rundown");
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Error;
-    }
-
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (QuicTlsSecConfigDelete)")
     SecurityConfig = QUIC_ALLOC_PAGED(sizeof(QUIC_SEC_CONFIG));
     if (SecurityConfig == NULL) {
-        QuicRundownRelease(Rundown);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
-    SecurityConfig->CleanupRundown = Rundown;
-    SecurityConfig->RefCount = 1;
-    SecurityConfig->Flags = Flags;
+    SecurityConfig->Type = CredConfig->Type;
+    SecurityConfig->Flags = CredConfig->Flags;
 
-    if ((uint32_t)Flags == QUIC_SEC_CONFIG_FLAG_CERTIFICATE_NULL) {
+    if (CredConfig->Type == QUIC_CREDENTIAL_FLAG_NONE) {
         goto Format; // Using NULL certificate (stub-only).
     } else {
         Status =
             QuicCertCreate(
-                Flags,
-                Certificate,
-                Principal,
+                CredConfig->Type,
+                CredConfig->Creds,
+                CredConfig->Principal,
                 &SecurityConfig->Certificate);
         if (QUIC_FAILED(Status)) {
             goto Error;
@@ -403,7 +388,6 @@ Error:
 
     if (SecurityConfig != NULL) {
         QUIC_FREE(SecurityConfig);
-        QuicRundownRelease(Rundown);
     }
 
     return Status;
@@ -412,61 +396,14 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsSecConfigDelete(
-    _In_ QUIC_SEC_CONFIG* SecurityConfig
+    __drv_freesMem(ServerConfig) _Frees_ptr_ _In_
+        QUIC_SEC_CONFIG* SecurityConfig
     )
 {
-    if (!(SecurityConfig->Flags & QUIC_SEC_CONFIG_FLAG_CERTIFICATE_CONTEXT)) {
+    if (SecurityConfig->Type != QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT) {
         QuicCertFree(SecurityConfig->Certificate);
     }
-    QUIC_RUNDOWN_REF* Rundown = SecurityConfig->CleanupRundown;
     QUIC_FREE(SecurityConfig);
-    if (Rundown != NULL) {
-        QuicRundownRelease(Rundown);
-    }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicTlsClientSecConfigCreate(
-    _In_ uint32_t Flags,
-    _Outptr_ QUIC_SEC_CONFIG** ClientConfig
-    )
-{
-    #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (QuicTlsSecConfigDelete)")
-    QUIC_SEC_CONFIG* SecurityConfig = QUIC_ALLOC_PAGED(sizeof(QUIC_SEC_CONFIG));
-    if (SecurityConfig == NULL) {
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-
-    QuicZeroMemory(SecurityConfig, sizeof(*SecurityConfig));
-    SecurityConfig->Flags = (uint32_t)Flags;
-    SecurityConfig->RefCount = 1;
-
-    *ClientConfig = SecurityConfig;
-
-    return QUIC_STATUS_SUCCESS;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_SEC_CONFIG*
-QuicTlsSecConfigAddRef(
-    _In_ QUIC_SEC_CONFIG* SecurityConfig
-    )
-{
-    InterlockedIncrement(&SecurityConfig->RefCount);
-    return SecurityConfig;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QUIC_API
-QuicTlsSecConfigRelease(
-    _In_ QUIC_SEC_CONFIG* SecurityConfig
-    )
-{
-    if (InterlockedDecrement(&SecurityConfig->RefCount) == 0) {
-        QuicTlsSecConfigDelete(SecurityConfig);
-    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -870,7 +807,6 @@ QuicTlsInitialize(
 Error:
 
     if (QUIC_FAILED(Status)) {
-        QuicTlsSecConfigRelease(TlsContext->SecConfig);
         if (TlsContext->SNI) {
             QUIC_FREE(TlsContext->SNI);
         }
@@ -896,10 +832,6 @@ QuicTlsUninitialize(
 
         if (TlsContext->Ticket != NULL) {
             QuicTlsTicketRelease(TlsContext->Ticket);
-        }
-
-        if (TlsContext->SecConfig != NULL) {
-            QuicTlsSecConfigRelease(TlsContext->SecConfig);
         }
 
         if (TlsContext->SNI != NULL) {
@@ -1158,7 +1090,6 @@ QuicTlsServerProcess(
                 TlsContext->Connection,
                 "Handshake complete");
 
-            QuicTlsSecConfigRelease(TlsContext->SecConfig);
             TlsContext->SecConfig = NULL;
 
             *ResultFlags |= QUIC_TLS_RESULT_READ_KEY_UPDATED;

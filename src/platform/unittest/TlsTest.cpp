@@ -42,7 +42,7 @@ protected:
     {
         QuicEventUninitialize(SecConfigDoneEvent);
         if (SecConfig != nullptr) {
-            QuicTlsSecConfigRelease(SecConfig);
+            QuicTlsSecConfigDelete(SecConfig);
         }
         QuicRundownReleaseAndWait(&SecConfigRundown);
         QuicRundownUninitialize(&SecConfigRundown);
@@ -77,12 +77,15 @@ protected:
 
     void SetUp() override
     {
+        QUIC_CREDENTIAL_CONFIG CredConfig = {
+            (QUIC_CREDENTIAL_TYPE)SelfSignedCertParams->Type,
+            (QUIC_CREDENTIAL_FLAGS)SelfSignedCertParams->Flags,
+            SelfSignedCertParams->Certificate,
+            SelfSignedCertParams->Principal
+        };
         VERIFY_QUIC_SUCCESS(
-            QuicTlsServerSecConfigCreate(
-                &SecConfigRundown,
-                (QUIC_SEC_CONFIG_FLAGS)SelfSignedCertParams->Flags,
-                SelfSignedCertParams->Certificate,
-                SelfSignedCertParams->Principal,
+            QuicTlsSecConfigCreate(
+                &CredConfig,
                 this,
                 OnSecConfigCreateComplete));
         ASSERT_TRUE(QuicEventWaitWithTimeout(SecConfigDoneEvent, 5000));
@@ -90,7 +93,7 @@ protected:
 
     void TearDown() override
     {
-        QuicTlsSecConfigRelease(SecConfig);
+        QuicTlsSecConfigDelete(SecConfig);
         SecConfig = nullptr;
     }
 
@@ -130,7 +133,7 @@ protected:
         ~TlsContext() {
             QuicTlsUninitialize(Ptr);
             if (ClientConfig != nullptr) {
-                QuicTlsSecConfigRelease(ClientConfig);
+                QuicTlsSecConfigDelete(ClientConfig);
             }
             QuicEventUninitialize(ProcessCompleteEvent);
             QUIC_FREE(State.Buffer);
@@ -203,6 +206,17 @@ protected:
             uint32_t CertFlags = CertValidationIgnoreFlags
             )
         {
+        QUIC_CREDENTIAL_CONFIG CredConfig = {
+            (QUIC_CREDENTIAL_TYPE)SelfSignedCertParams->Type,
+            (QUIC_CREDENTIAL_FLAGS)SelfSignedCertParams->Flags,
+            SelfSignedCertParams->Certificate,
+            SelfSignedCertParams->Principal
+        };
+        VERIFY_QUIC_SUCCESS(
+            QuicTlsSecConfigCreate(
+                &CredConfig,
+                this,
+                OnSecConfigCreateComplete));
             QuicTlsClientSecConfigCreate(CertFlags, &ClientConfig);
             InitializeClient(Session, ClientConfig, MultipleAlpns);
         }
@@ -660,7 +674,7 @@ TEST_F(TlsTest, HandshakesSerial)
         ClientContext2.InitializeClient(ClientSession, ClientSecConfig);
         DoHandshake(ServerContext, ClientContext2);
     }
-    QuicTlsSecConfigRelease(ClientSecConfig);
+    QuicTlsSecConfigDelete(ClientSecConfig);
 }
 
 TEST_F(TlsTest, HandshakesInterleaved)
@@ -708,7 +722,7 @@ TEST_F(TlsTest, HandshakesInterleaved)
         Result = ServerContext2.ProcessData(&ClientContext2.State);
         ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
     }
-    QuicTlsSecConfigRelease(ClientSecConfig);
+    QuicTlsSecConfigDelete(ClientSecConfig);
 }
 
 TEST_F(TlsTest, CertificateError)

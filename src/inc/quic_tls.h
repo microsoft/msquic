@@ -287,7 +287,8 @@ QuicTlsSecConfigCreate(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsSecConfigDelete(
-    _In_ QUIC_SEC_CONFIG* SecurityConfig
+    __drv_freesMem(ServerConfig) _Frees_ptr_ _In_
+        QUIC_SEC_CONFIG* SecurityConfig
     );
 
 //
@@ -357,16 +358,6 @@ QuicTlsUninitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicTlsReset(
-    _In_ QUIC_TLS* TlsContext
-    );
-
-//
-// Returns the security configuration used to initialize this TLS.
-// Caller must release the ref on the QUIC_SEC_CONFIG.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_SEC_CONFIG*
-QuicTlsGetSecConfig(
     _In_ QUIC_TLS* TlsContext
     );
 
