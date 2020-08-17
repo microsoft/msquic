@@ -1403,6 +1403,8 @@ QuicBindingReceive(
     QUIC_RECV_DATAGRAM** SubChainTail = &SubChain;
     QUIC_RECV_DATAGRAM** SubChainDataTail = &SubChain;
     uint32_t SubChainLength = 0;
+    uint32_t TotalChainLength = 0;
+    uint32_t TotalDatagramBytes = 0;
 
     //
     // Breaks the chain of datagrams into subchains by destination CID and
@@ -1416,6 +1418,8 @@ QuicBindingReceive(
 
     QUIC_RECV_DATAGRAM* Datagram;
     while ((Datagram = DatagramChain) != NULL) {
+        TotalChainLength++;
+        TotalDatagramBytes += Datagram->BufferLength;
 
         //
         // Remove the head.
@@ -1522,6 +1526,8 @@ QuicBindingReceive(
     if (ReleaseChain != NULL) {
         QuicDataPathBindingReturnRecvDatagrams(ReleaseChain);
     }
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_DGRAM_RECV, TotalChainLength);
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_DGRAM_RECV_BYTES, TotalDatagramBytes);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

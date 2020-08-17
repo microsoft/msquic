@@ -1417,6 +1417,10 @@ QuicCryptoProcessTlsCompletion(
             "Indicating QUIC_CONNECTION_EVENT_CONNECTED (Resume=%hhu)",
             Event.CONNECTED.SessionResumed);
         (void)QuicConnIndicateEvent(Connection, &Event);
+        if (Crypto->TlsState.SessionResumed) {
+            QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_RESUMED);
+        }
+        Connection->Stats.ResumptionSucceeded = Crypto->TlsState.SessionResumed;
 
         QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PMTUD);
 

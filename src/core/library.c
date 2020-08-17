@@ -685,7 +685,7 @@ QuicLibraryGetGlobalParam(
             *BufferLength = QUIC_PERF_COUNTER_MAX * sizeof(uint64_t);
         }
 
-        uint64_t* Counters = (uint64_t*)Buffer;
+        uint64_t* const Counters = (uint64_t*)Buffer;
         memcpy(Buffer, MsQuicLib.PerProc[0].PerfCounters, *BufferLength);
 
         for (int ProcIndex = 1; ProcIndex < MsQuicLib.ProcessorCount; ++ProcIndex) {
@@ -704,7 +704,7 @@ QuicLibraryGetGlobalParam(
 
         Status = QUIC_STATUS_SUCCESS;
         break;
-        }
+    }
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;

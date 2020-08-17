@@ -766,10 +766,6 @@ QuicLossDetectionRetransmitFrames(
         QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
     }
 
-    if (NewDataQueued) {
-        QuicPerfCounterAdd(QUIC_PERF_COUNTER_PKTS_RETRANSMITTED, 1);
-    }
-
     return NewDataQueued;
 }
 
@@ -905,6 +901,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
             }
 
             Connection->Stats.Send.SuspectedLostPackets++;
+            QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST);
             if (Packet->Flags.IsAckEliciting) {
                 LossDetection->PacketsInFlight--;
                 LostRetransmittableBytes += Packet->PacketLength;
@@ -1192,6 +1189,7 @@ QuicLossDetectionProcessAckBlocks(
                     PtkConnPre(Connection),
                     (*End)->PacketNumber);
                 Connection->Stats.Send.SpuriousLostPackets++;
+                QuicPerfCounterDecrement(QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST);
                 //
                 // NOTE: we don't increment AckedRetransmittableBytes here
                 // because we already told the congestion control module that

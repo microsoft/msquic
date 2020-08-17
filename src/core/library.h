@@ -319,9 +319,12 @@ QuicPerfCounterAdd(
     )
 {
     QUIC_DBG_ASSERT(Type < QUIC_PERF_COUNTER_MAX);
-    uint8_t ProcIndex = QuicLibraryGetCurrentPartition();
+    uint16_t ProcIndex = (uint16_t) QuicProcActiveCount();
     InterlockedAdd64((int64_t*)&MsQuicLib.PerProc[ProcIndex].PerfCounters[Type], Value);
 }
+
+#define QuicPerfCounterIncrement(Type) QuicPerfCounterAdd(Type, 1)
+#define QuicPerfCounterDecrement(Type) QuicPerfCounterAdd(Type, -1)
 
 //
 // Creates a random, new source connection ID, that will be used on the receive

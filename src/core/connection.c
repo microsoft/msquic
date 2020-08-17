@@ -3625,6 +3625,7 @@ QuicConnRecvDecryptAndAuthenticate(
         }
         Connection->Stats.Recv.DecryptionFailures++;
         QuicPacketLogDrop(Connection, Packet, "Decryption failure");
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL);
 
         return FALSE;
     }
