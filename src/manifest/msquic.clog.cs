@@ -19,7 +19,7 @@ namespace msquic.clog_config
             int si_family = value[0] | ((ushort)value[1] << 8);
             int sin_port = value[2] | ((ushort)value[3] << 8);
 
-            Span<byte> sa2 = value;
+            byte[] sa2;
 
             string msg = "";
 
@@ -29,16 +29,20 @@ namespace msquic.clog_config
                     msg += $"*:{sin_port}";
                     break;
                 case 2:  //< --v4
-                    msg += $"{new IPAddress(sa2.Slice(4, 4)).ToString()}:{sin_port}";
+                    sa2 = new byte[4];
+                    Array.Copy(value, 4, sa2, 0, 4);
+                    msg += $"{new IPAddress(sa2).ToString()}:{sin_port}";
                     break;
                 case 10:  //<--v6 (linux)
                 case 23: //<--v6
-                    msg += $"[{new IPAddress(sa2.Slice(8, 16)).ToString()}]:{sin_port}";
+                    sa2 = new byte[16];
+                    Array.Copy(value, 8, sa2, 0, 16);
+                    msg += $"[{new IPAddress(sa2).ToString()}]:{sin_port}";
                     break;
                 default:
                     throw new NotSupportedException("Invalid SI_FAMILY : " + si_family);
             }
-            
+
             return msg;
         }
 
