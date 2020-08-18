@@ -637,6 +637,9 @@ class ExecutableRunSpec {
         [string]$arguments
     ) {
         $this.Platform = $existingDef.Platform
+        if ($this.Platform -eq "Windows" -and $script:Kernel) {
+            $this.Platform = "winkernel"
+        }
         $this.Exe = $existingDef.Exe
         $this.Tls = $existingDef.Tls
         $this.Arch = $existingDef.Arch
