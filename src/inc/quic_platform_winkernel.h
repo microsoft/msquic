@@ -175,6 +175,9 @@ QuicPlatformLogAssert(
          DbgRaiseAssertionFailure(), FALSE) : \
         TRUE)
 
+#define QUIC_NO_SANITIZE(X)
+
+
 #if defined(_PREFAST_)
 // _Analysis_assume_ will never result in any code generation for _exp,
 // so using it will not have runtime impact, even if _exp has side effects.

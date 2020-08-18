@@ -12,10 +12,10 @@ dotnet tool install -g powershell
 
 mkdir nuget
 
-wget https://github.com/microsoft/CLOG/releases/download/v0.1.5/Microsoft.Logging.CLOG.0.1.5.nupkg
-mv Microsoft.Logging.CLOG.0.1.5.nupkg nuget/Microsoft.Logging.CLOG.0.1.5.nupkg
+wget https://github.com/microsoft/CLOG/releases/download/v0.1.7/Microsoft.Logging.CLOG.0.1.7.nupkg
+mv Microsoft.Logging.CLOG.0.1.7.nupkg nuget/Microsoft.Logging.CLOG.0.1.7.nupkg
 dotnet tool install --global --add-source nuget Microsoft.Logging.CLOG
 
-wget https://github.com/microsoft/CLOG/releases/download/v0.1.5/Microsoft.Logging.CLOG2Text.Lttng.0.1.5.nupkg
-mv Microsoft.Logging.CLOG2Text.Lttng.0.1.5.nupkg nuget/Microsoft.Logging.CLOG2Text.Lttng.0.1.5.nupkg
+wget https://github.com/microsoft/CLOG/releases/download/v0.1.7/Microsoft.Logging.CLOG2Text.Lttng.0.1.7.nupkg
+mv Microsoft.Logging.CLOG2Text.Lttng.0.1.7.nupkg nuget/Microsoft.Logging.CLOG2Text.Lttng.0.1.7.nupkg
 dotnet tool install --global --add-source nuget Microsoft.Logging.CLOG2Text.Lttng

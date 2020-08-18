@@ -175,6 +175,9 @@ QuicPlatformLogAssert(
 #endif // DEBUG
 #endif // _PREFAST_
 
+#define QUIC_NO_SANITIZE(X)
+
+
 //
 // MsQuic uses three types of asserts:
 //

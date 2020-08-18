@@ -445,8 +445,9 @@ QuicPacketEncodeLongHeaderV1(
     }
     *PayloadLengthOffset = (uint16_t)(HeaderBuffer - Buffer);
     HeaderBuffer += sizeof(uint16_t); // Skip PayloadLength.
-    *(uint32_t*)HeaderBuffer = QuicByteSwapUint32(PacketNumber);
-    *PacketNumberLength = sizeof(uint32_t);
+    PacketNumber = QuicByteSwapUint32(PacketNumber);
+    memcpy(HeaderBuffer, &PacketNumber, sizeof(PacketNumber));
+    *PacketNumberLength = sizeof(PacketNumber);
 
     return RequiredBufferLength;
 }
