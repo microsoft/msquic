@@ -566,9 +566,14 @@ if ($IsWindows -and $EnableAppVerifier) {
 
 # Install the kernel mode drivers.
 if ($Kernel -ne "") {
-    net.exe stop msquicpriv /y | Out-Null
-    sc.exe delete msquictest /y | Out-Null
-    sc.exe delete msquicpriv /y | Out-Null
+    if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
+        net.exe stop msquicpriv /y | Out-Null
+        sc.exe delete msquicpriv /y | Out-Null
+    }
+    if ($null -ne (Get-Service -Name "msquictest" -ErrorAction Ignore)) {
+        net.exe stop msquictest /y | Out-Null
+        sc.exe delete msquictest /y | Out-Null
+    }
     Copy-Item (Join-Path $Kernel "msquictest.sys") (Split-Path $Path -Parent)
     Copy-Item (Join-Path $Kernel "msquicpriv.sys") (Split-Path $Path -Parent)
     sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys") start= demand | Out-Null

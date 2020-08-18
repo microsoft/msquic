@@ -301,7 +301,7 @@ function Invoke-RemoteExe {
         $KernelDir = Join-Path $RootBinPath "winkernel" $Arch
 
         if ($Kernel) {
-            if ($null -ne (Get-Service -Name "msquicperf" -ErrorAction Ignore)) {
+            if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
                 net.exe stop msquicpriv /y | Out-Null
                 sc.exe delete msquicpriv /y | Out-Null
             }
