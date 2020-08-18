@@ -312,8 +312,8 @@ function Invoke-RemoteExe {
             Copy-Item (Join-Path $KernelDir "quicperf.sys") (Split-Path $Exe -Parent)
             Copy-Item (Join-Path $KernelDir "msquicpriv.sys") (Split-Path $Exe -Parent)
             Write-Host "Starting Service: msquicpriv"
-            Write-Host (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys")
-            sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys") start= demand | Out-Null
+            Write-Host (Join-Path (Split-Path $Exe -Parent) "msquicpriv.sys")
+            sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Exe -Parent) "msquicpriv.sys") start= demand | Out-Null
             net.exe start msquicpriv
         }
 
