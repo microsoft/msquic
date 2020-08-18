@@ -301,11 +301,18 @@ function Invoke-RemoteExe {
         $KernelDir = Join-Path $RootBinPath "winkernel" $Arch
 
         if ($Kernel) {
-            net.exe stop msquicpriv /y | Out-Null
-            sc.exe delete quicperf /y | Out-Null
-            sc.exe delete msquicpriv /y | Out-Null
+            if ($null -ne (Get-Service -Name "msquicperf" -ErrorAction Ignore)) {
+                net.exe stop msquicpriv /y | Out-Null
+                sc.exe delete msquicpriv /y | Out-Null
+            }
+            if ($null -ne (Get-Service -Name "quicperf" -ErrorAction Ignore)) {
+                net.exe stop quicperf /y | Out-Null
+                sc.exe delete quicperf /y | Out-Null
+            }
             Copy-Item (Join-Path $KernelDir "quicperf.sys") (Split-Path $Exe -Parent)
             Copy-Item (Join-Path $KernelDir "msquicpriv.sys") (Split-Path $Exe -Parent)
+            Write-Host "Starting Service: msquicpriv"
+            Write-Host (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys")
             sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys") start= demand | Out-Null
             net.exe start msquicpriv
         }
