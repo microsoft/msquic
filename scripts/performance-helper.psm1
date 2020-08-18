@@ -301,23 +301,22 @@ function Invoke-RemoteExe {
         $KernelDir = Join-Path $RootBinPath "winkernel" $Arch
 
         if ($Kernel) {
-            net.exe stop msquic /y | Out-Null
-            sc.exe delete quicperf | Out-Null
-            Copy-Item C:\Windows\system32\drivers\msquic.sys C:\Windows\system32\drivers\msquic.sys.old
+            net.exe stop msquicpriv /y | Out-Null
+            sc.exe delete quicperf /y | Out-Null
+            sc.exe delete msquicpriv /y | Out-Null
             Copy-Item (Join-Path $KernelDir "quicperf.sys") (Split-Path $Exe -Parent)
-            sfpcopy.exe (Join-Path $KernelDir "msquic.sys") C:\Windows\system32\drivers\msquic.sys
-            net.exe start msquic
+            Copy-Item (Join-Path $KernelDir "msquicpriv.sys") (Split-Path $Exe -Parent)
+            sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys") start= demand | Out-Null
+            net.exe start msquicpriv
         }
 
         & $Exe ($RunArgs).Split(" ")
 
         # Uninstall the kernel mode test driver and revert the msquic driver.
         if ($Kernel) {
-            net.exe stop msquic /y | Out-Null
+            net.exe stop msquicpriv /y | Out-Null
             sc.exe delete quicperf | Out-Null
-            sfpcopy.exe C:\Windows\system32\drivers\msquic.sys.old C:\Windows\system32\drivers\msquic.sys
-            net.exe start msquic
-            Remove-Item C:\Windows\system32\drivers\msquic.sys.old -Force
+            sc.exe delete msquicpriv | Out-Null
         }
 
         if ($Record -and $IsWindows) {
