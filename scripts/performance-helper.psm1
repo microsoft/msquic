@@ -874,11 +874,7 @@ function Test-CanRunTest {
     param ([TestRunDefinition]$Test, $RemotePlatform, $LocalPlatform)
     Write-Host ("Checking $LocalPlatform against " + $Test.Local.Platform)
     Write-Host ("Checking $RemotePlatform against " + $Test.Remote.Platform)
-    $RemoteCorrect = $Test.Remote.Platform -eq $RemotePlatform
-    if ($Kernel -and $Test.Remote.Platform -eq "windows") {
-        $RemoteCorrect = $true
-    }
-    $PlatformCorrect = ($Test.Local.Platform -eq $LocalPlatform) -and $RemoteCorrect
+    $PlatformCorrect = ($Test.Local.Platform -eq $LocalPlatform) -and ($Test.Remote.Platform -eq $RemotePlatform)
     if (!$PlatformCorrect) {
         return $false
     }

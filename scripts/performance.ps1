@@ -208,17 +208,12 @@ Set-ScriptVariables -Local $Local `
                     -Kernel $Kernel
 
 $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
-    param($Kernel)
     if ($IsWindows) {
-        if ($Kernel) {
-            return "winkernel"
-        } else {
-            return "windows"
-        }
+        return "windows"
     } else {
         return "linux"
     }
-} -ArgumentList $Kernel
+}
 
 $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($RemoteArch)_$($Config)_$($RemoteTls)"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null

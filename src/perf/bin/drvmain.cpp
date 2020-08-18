@@ -478,13 +478,13 @@ QuicPerfCtlEvtIoCanceled(
     WDFFILEOBJECT FileObject = WdfRequestGetFileObject(Request);
     if (FileObject == nullptr) {
         Status = STATUS_DEVICE_NOT_READY;
-        goto error;
+        goto Error;
     }
 
     QUIC_DRIVER_CLIENT* Client = QuicPerfCtlGetFileContext(FileObject);
     if (Client == nullptr) {
         Status = STATUS_DEVICE_NOT_READY;
-        goto error;
+        goto Error;
     }
 
     QuicEventSet(Client->StopEvent);
@@ -497,7 +497,7 @@ QuicPerfCtlEvtIoCanceled(
 
     Status = STATUS_CANCELLED;
 
-error:
+Error:
 
     WdfRequestComplete(Request, Status);
 }
@@ -506,7 +506,7 @@ NTSTATUS
 QuicPerfCtlSetSecurityConfig(
     _Inout_ QUIC_DRIVER_CLIENT* Client,
     _In_ const QUIC_CERTIFICATE_HASH* CertHash
-)
+    )
 {
     Client->SelfSignedConfiguration.SelfSignedSecurityHash = *CertHash;
     Client->SelfSignedValid = true;
@@ -533,7 +533,12 @@ static_assert(
     QUIC_PERF_MAX_IOCTL_FUNC_CODE + 1 == (sizeof(QUIC_IOCTL_BUFFER_SIZES) / sizeof(size_t)),
     "QUIC_IOCTL_BUFFER_SIZES must be kept in sync with the IOTCLs");
 
-QUIC_THREAD_CALLBACK(WaitThreadCb, Context)
+//
+// Since the test is long running, we can't just wait in the Ioctl directly,
+// otherwise we can't cancel. Instead, move the wait into a separate thread
+// so the Ioctl returns into user mode.
+//
+QUIC_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
 {
     QUIC_DRIVER_CLIENT* Client = (QUIC_DRIVER_CLIENT*)Context;
     WDFREQUEST Request = Client->Request;
@@ -587,7 +592,7 @@ QuicPerfCtlReadPrints(
     QUIC_THREAD_CONFIG ThreadConfig;
     QuicZeroMemory(&ThreadConfig, sizeof(ThreadConfig));
     ThreadConfig.Name = "PerfWait";
-    ThreadConfig.Callback = WaitThreadCb;
+    ThreadConfig.Callback = PerformanceWaitForStopThreadCb;
     ThreadConfig.Context = Client;
     Client->Request = Request;
     if (QUIC_FAILED(Status = QuicThreadCreate(&ThreadConfig, &Client->Thread))) {

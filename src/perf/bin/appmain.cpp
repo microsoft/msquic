@@ -150,12 +150,12 @@ QuicKernelMain(
         QUIC_FREE(OutBuffer);
 
         RunSuccess =
-        DriverClient.Read(
-            IOCTL_QUIC_READ_DATA,
-            OutBuffer,
-            OutBufferSize,
-            &OutBufferWritten,
-            180000);
+            DriverClient.Read(
+                IOCTL_QUIC_READ_DATA,
+                OutBuffer,
+                OutBufferSize,
+                &OutBufferWritten,
+                180000);
         printf("OutBufferWritten %d\n", OutBufferWritten);
         if (RunSuccess) {
             printf("%s\n", OutBuffer);
