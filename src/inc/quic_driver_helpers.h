@@ -297,7 +297,9 @@ public:
             Error = GetLastError();
             if (Error == WAIT_TIMEOUT) {
                 Error = ERROR_TIMEOUT;
-                CancelIoEx(DeviceHandle, &Overlapped);
+                if (CancelIoEx(DeviceHandle, &Overlapped)) {
+                    GetOverlappedResult(DeviceHandle, &Overlapped, &dwBytesReturned, true);
+                }
             } else {
                 QuicTraceEvent(
                     LibraryErrorStatus,

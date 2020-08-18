@@ -40,12 +40,14 @@ typedef struct QUIC_DRIVER_CLIENT {
     bool Started;
     WDFREQUEST Request;
     QUIC_THREAD Thread;
+    bool Canceled;
 } QUIC_DRIVER_CLIENT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DRIVER_CLIENT, QuicPerfCtlGetFileContext);
 
 EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL QuicPerfCtlEvtIoDeviceControl;
-EVT_WDF_IO_QUEUE_IO_CANCELED_ON_QUEUE QuicPerfCtlEvtIoCanceled;
+EVT_WDF_IO_QUEUE_IO_CANCELED_ON_QUEUE QuicPerfCtlEvtIoQueueCanceled;
+EVT_WDF_REQUEST_CANCEL QuicPerfCtlEvtIoCanceled;
 
 PAGEDX EVT_WDF_DEVICE_FILE_CREATE QuicPerfCtlEvtFileCreate;
 PAGEDX EVT_WDF_FILE_CLOSE QuicPerfCtlEvtFileClose;
@@ -296,7 +298,7 @@ QuicPerfCtlInitialize(
 
     WDF_IO_QUEUE_CONFIG_INIT_DEFAULT_QUEUE(&QueueConfig, WdfIoQueueDispatchParallel);
     QueueConfig.EvtIoDeviceControl = QuicPerfCtlEvtIoDeviceControl;
-    QueueConfig.EvtIoCanceledOnQueue = QuicPerfCtlEvtIoCanceled;
+    QueueConfig.EvtIoCanceledOnQueue = QuicPerfCtlEvtIoQueueCanceled;
 
     __analysis_assume(QueueConfig.EvtIoStop != 0);
     Status =
@@ -468,8 +470,16 @@ QuicPerfCtlEvtFileCleanup(
 }
 
 VOID
-QuicPerfCtlEvtIoCanceled(
+QuicPerfCtlEvtIoQueueCanceled(
     _In_ WDFQUEUE /* Queue */,
+    _In_ WDFREQUEST Request
+    )
+{
+    QuicPerfCtlEvtIoCanceled(Request);
+}
+
+VOID
+QuicPerfCtlEvtIoCanceled(
     _In_ WDFREQUEST Request
     )
 {
@@ -487,7 +497,12 @@ QuicPerfCtlEvtIoCanceled(
         goto Error;
     }
 
+    Client->Canceled = true;
     QuicEventSet(Client->StopEvent);
+
+    QuicThreadWait(&Client->Thread);
+    QuicThreadDelete(&Client->Thread);
+    QuicEventUninitialize(Client->StopEvent);
 
     QuicTraceLogWarning(
         TestControlClientCanceledRequest,
@@ -550,6 +565,12 @@ QUIC_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
     StopStatus =
         QuicMainStop(0);
 
+    if (Client->Canceled) {
+        return;
+    }
+
+    WdfRequestUnmarkCancelable(Request);
+
     NTSTATUS Status =
         WdfRequestRetrieveOutputBuffer(
             Request,
@@ -572,9 +593,8 @@ QUIC_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
 
     ReturnedLength = BufferCurrent + 1;
 
-    QuicEventUninitialize(&Client->StopEvent);
-
 Exit:
+    QuicEventUninitialize(&Client->StopEvent);
     WdfRequestCompleteWithInformation(
         Request,
         StopStatus,
@@ -600,6 +620,8 @@ QuicPerfCtlReadPrints(
             Request,
             Status,
             0);
+    } else {
+        WdfRequestMarkCancelable(Request, QuicPerfCtlEvtIoCanceled);
     }
 }
 
