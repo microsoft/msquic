@@ -460,6 +460,13 @@ QuicPerfCtlEvtFileCleanup(
             "[test] Client %p cleaning up",
             Client);
 
+        Client->Canceled = true;
+        QuicEventSet(Client->StopEvent);
+
+        QuicThreadWait(&Client->Thread);
+        QuicThreadDelete(&Client->Thread);
+        QuicEventUninitialize(Client->StopEvent);
+
         //
         // Clean up globals.
         //
