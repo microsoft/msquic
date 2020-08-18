@@ -637,9 +637,6 @@ class ExecutableRunSpec {
         [string]$arguments
     ) {
         $this.Platform = $existingDef.Platform
-        if ($this.Platform -eq "Windows" -and $script:Kernel) {
-            $this.Platform = "winkernel"
-        }
         $this.Exe = $existingDef.Exe
         $this.Tls = $existingDef.Tls
         $this.Arch = $existingDef.Arch
@@ -674,6 +671,9 @@ class TestRunDefinition {
         $this.VariableValue = $variableValue
         $this.Local = [ExecutableRunSpec]::new($existingDef.Local, $localArgs)
         $this.Remote = [ExecutableRunSpec]::new($existingDef.Remote, $remoteArgs)
+        if ($this.Remote.Platform -eq "Windows" -and $script:Kernel) {
+            $this.Remote.Platform = "winkernel"
+        }
         $this.Iterations = $existingDef.Iterations
         $this.RemoteReadyMatcher = $existingDef.RemoteReadyMatcher
         $this.ResultsMatcher = $existingDef.ResultsMatcher
@@ -875,6 +875,8 @@ function Test-AllTestsValid {
 
 function Test-CanRunTest {
     param ([TestRunDefinition]$Test, $RemotePlatform, $LocalPlatform)
+    Write-Host ("Checking $LocalPlatform against " + $Test.Local.Platform)
+    Write-Host ("Checking $RemotePlatform against " + $Test.Remote.Platform)
     $PlatformCorrect = ($Test.Local.Platform -eq $LocalPlatform) -and ($Test.Remote.Platform -eq $RemotePlatform)
     if (!$PlatformCorrect) {
         return $false
