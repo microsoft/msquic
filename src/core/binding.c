@@ -749,10 +749,11 @@ QuicBindingProcessStatelessOperation(
         QuicRandom(sizeof(uint8_t), &RandomValue);
         VerNeg->Unused = 0x7F & RandomValue;
 
-        uint32_t* SupportedVersion = (uint32_t*)Buffer;
-        SupportedVersion[0] = Binding->RandomReservedVersion;
+        memcpy(Buffer, &Binding->RandomReservedVersion, sizeof(uint32_t));
+        Buffer += sizeof(uint32_t);
         for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
-            SupportedVersion[1 + i] = QuicSupportedVersionList[i].Number;
+            memcpy(Buffer, &QuicSupportedVersionList[i].Number, sizeof(uint32_t));
+            Buffer += sizeof(uint32_t);
         }
 
         QuicTraceLogVerbose(

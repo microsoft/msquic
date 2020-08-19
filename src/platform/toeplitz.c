@@ -86,10 +86,10 @@ QuicToeplitzHashInitialize(
         //
         StartByteOfKey = i / NIBBLES_PER_BYTE;
 
-        Word1 = (Toeplitz->HashKey[StartByteOfKey] << 24) +
-                (Toeplitz->HashKey[StartByteOfKey + 1] << 16) +
-                (Toeplitz->HashKey[StartByteOfKey + 2] << 8) +
-                 Toeplitz->HashKey[StartByteOfKey + 3];
+        Word1 = ((uint32_t)Toeplitz->HashKey[StartByteOfKey] << 24) +
+                ((uint32_t)Toeplitz->HashKey[StartByteOfKey + 1] << 16) +
+                ((uint32_t)Toeplitz->HashKey[StartByteOfKey + 2] << 8) +
+                 (uint32_t)Toeplitz->HashKey[StartByteOfKey + 3];
 
         //
         // However, we'll need the byte that succeeds Word1, because as we
