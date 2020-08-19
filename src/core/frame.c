@@ -1260,7 +1260,7 @@ QuicFrameLog(
 
         Frame.LargestAcknowledged -= (Frame.FirstAckBlock + 1);
 
-        for (uint8_t i = 0; i < Frame.AdditionalAckBlockCount; i++) {
+        for (uint64_t i = 0; i < Frame.AdditionalAckBlockCount; i++) {
             QUIC_ACK_BLOCK_EX Block;
             if (!QuicAckBlockDecode(PacketLength, Packet, Offset, &Block)) {
                 QuicTraceLogVerbose(

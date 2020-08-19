@@ -188,7 +188,7 @@ MsQuicLibraryInitialize(
         goto Error;
     }
 
-    for (uint8_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
+    for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
         QuicPoolInitialize(
             FALSE,
             sizeof(QUIC_CONNECTION),
@@ -247,7 +247,7 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         if (MsQuicLib.PerProc != NULL) {
-            for (uint8_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
+            for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
                 QuicPoolUninitialize(&MsQuicLib.PerProc[i].ConnectionPool);
                 QuicPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
                 QuicPoolUninitialize(&MsQuicLib.PerProc[i].PacketSpacePool);
@@ -319,7 +319,7 @@ MsQuicLibraryUninitialize(
     //
     QUIC_TEL_ASSERT(QuicListIsEmpty(&MsQuicLib.Bindings));
 
-    for (uint8_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
+    for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
         QuicPoolUninitialize(&MsQuicLib.PerProc[i].ConnectionPool);
         QuicPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
         QuicPoolUninitialize(&MsQuicLib.PerProc[i].PacketSpacePool);
