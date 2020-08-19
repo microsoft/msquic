@@ -1474,7 +1474,7 @@ QuicTraceRundown(
         QuicLibrarySumPerfCounters((uint8_t*)PerfCounters, sizeof(PerfCounters));
         QuicTraceEvent(
             PerfCountersRundown,
-            "[ lib] Perf counters Rundown",
+            "[ lib] Perf counters Rundown, Counters=%!CID!",
             CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters));
     }
 
