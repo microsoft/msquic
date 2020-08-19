@@ -30,7 +30,7 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v1
         with:
-          languages: csharp, python, cpp
+          languages: cpp  # csharp, python,
 
       - run: |
          sudo apt-get install -y liblttng-ust-dev
