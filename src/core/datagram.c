@@ -409,7 +409,7 @@ QuicDatagramSendFlush(
     QUIC_SEND_REQUEST* ApiQueue = Datagram->ApiQueue;
     Datagram->ApiQueue = NULL;
     QuicDispatchLockRelease(&Datagram->ApiQueueLock);
-    uint32_t TotalBytesSent = 0;
+    uint64_t TotalBytesSent = 0;
 
     if (ApiQueue == NULL) {
         return;
@@ -429,7 +429,7 @@ QuicDatagramSendFlush(
             QuicDatagramCancelSend(Connection, SendRequest);
             continue;
         }
-        TotalBytesSent += (uint32_t)SendRequest->TotalLength;
+        TotalBytesSent += SendRequest->TotalLength;
 
         if (SendRequest->Flags & QUIC_SEND_FLAG_DGRAM_PRIORITY) {
             SendRequest->Next = *Datagram->PrioritySendQueueTail;

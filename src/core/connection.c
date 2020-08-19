@@ -1319,6 +1319,10 @@ QuicConnOnShutdownComplete(
 
     if (Connection->State.ExternalOwner == FALSE) {
 
+        if (Connection->State.Started && !Connection->State.Connected) {
+            QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL);
+        }
+
         //
         // If the connection was never indicated to the application, then it
         // needs to be cleaned up now.
@@ -1342,10 +1346,10 @@ QuicConnOnShutdownComplete(
         (void)QuicConnIndicateEvent(Connection, &Event);
 
         Connection->ClientCallbackHandler = NULL;
-    }
 
-    if (Connection->State.Started && !Connection->State.Connected) {
-        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL);
+        if (Connection->State.Started && !Connection->State.Connected) {
+            QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL);
+        }
     }
 }
 

@@ -3366,7 +3366,7 @@
         
         <string
             id="Etw.PerfCountersRundown"
-            value="[ lib] Perf counters Rundown, Counters=%2"
+            value="[ lib] Perf counters Rundown"
             />
         <!-- Map/enum strings -->
         <string
