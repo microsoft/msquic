@@ -41,6 +41,7 @@ jobs:
           languages: cpp  # csharp, python,
 
       - run: |
+         cd build
          cmake --build .
 
       - name: Perform CodeQL Analysis
