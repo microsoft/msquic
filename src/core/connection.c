@@ -261,6 +261,7 @@ Error:
     for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
         if (Connection->Packets[i] != NULL) {
             QuicPacketSpaceUninitialize(Connection->Packets[i]);
+            Connection->Packets[i] = NULL;
         }
     }
     if (Datagram != NULL) {
