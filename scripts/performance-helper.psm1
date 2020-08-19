@@ -198,6 +198,7 @@ function Wait-ForRemote {
 function Copy-Artifacts {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingEmptyCatchBlock', '')]
     param ([string]$From, [string]$To)
+    Remove-PerfServices
     Invoke-TestCommand $Session -ScriptBlock {
         param ($To)
         try {
@@ -259,6 +260,27 @@ function Get-ExeName {
     }
 }
 
+function Remove-PerfServices {
+    if ($IsWindows) {
+        Invoke-TestCommand -Session $Session -ScriptBlock {
+            if ($null -ne (Get-Service -Name "quicperf" -ErrorAction Ignore)) {
+                try {
+                    net.exe stop quicperf /y | Out-Null
+                }
+                catch {}
+                sc.exe delete quicperf /y | Out-Null
+            }
+            if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
+                try {
+                    net.exe stop msquicpriv /y | Out-Null
+                }
+                catch {}
+                sc.exe delete msquicpriv /y | Out-Null
+            }
+        }
+    }
+}
+
 function Invoke-RemoteExe {
     param ($Exe, $RunArgs)
 
@@ -301,20 +323,6 @@ function Invoke-RemoteExe {
         $KernelDir = Join-Path $RootBinPath "winkernel" $Arch
 
         if ($Kernel) {
-            if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
-                try {
-                    net.exe stop msquicpriv /y | Out-Null
-                }
-                catch {}
-                sc.exe delete msquicpriv /y | Out-Null
-            }
-            if ($null -ne (Get-Service -Name "quicperf" -ErrorAction Ignore)) {
-                try {
-                    net.exe stop quicperf /y | Out-Null
-                }
-                catch {}
-                sc.exe delete quicperf /y | Out-Null
-            }
             Copy-Item (Join-Path $KernelDir "quicperf.sys") (Split-Path $Exe -Parent)
             Copy-Item (Join-Path $KernelDir "msquicpriv.sys") (Split-Path $Exe -Parent)
             Write-Host "Starting Service: msquicpriv"
