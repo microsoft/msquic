@@ -409,6 +409,7 @@ QuicDatagramSendFlush(
     QUIC_SEND_REQUEST* ApiQueue = Datagram->ApiQueue;
     Datagram->ApiQueue = NULL;
     QuicDispatchLockRelease(&Datagram->ApiQueueLock);
+    uint32_t TotalBytesSent = 0;
 
     if (ApiQueue == NULL) {
         return;
@@ -428,6 +429,7 @@ QuicDatagramSendFlush(
             QuicDatagramCancelSend(Connection, SendRequest);
             continue;
         }
+        TotalBytesSent += (uint32_t)SendRequest->TotalLength;
 
         if (SendRequest->Flags & QUIC_SEND_FLAG_DGRAM_PRIORITY) {
             SendRequest->Next = *Datagram->PrioritySendQueueTail;
@@ -456,6 +458,7 @@ QuicDatagramSendFlush(
     }
 
     QuicDatagramValidate(Datagram);
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_SEND_BYTES, TotalBytesSent);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -579,6 +582,8 @@ QuicDatagramProcessFrame(
         "Indicating DATAGRAM_RECEIVED [len=%hu]",
         (uint16_t)Frame.Length);
     (void)QuicConnIndicateEvent(Connection, &Event);
+
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, QuicBuffer.Length);
 
     return TRUE;
 }

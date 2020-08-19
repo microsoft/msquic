@@ -944,11 +944,6 @@ MsQuicStreamSend(
     SendRequest->TotalLength = TotalLength;
     SendRequest->ClientContext = ClientSendContext;
 
-    uint32_t TotalBytesSent = 0;
-    for (uint32_t i = 0; i < BufferCount; ++i) {
-        TotalBytesSent += Buffers[i].Length;
-    }
-
     QuicDispatchLockAcquire(&Stream->ApiSendRequestLock);
     if (!Stream->Flags.SendEnabled) {
         Status = QUIC_STATUS_INVALID_STATE;
@@ -993,7 +988,6 @@ MsQuicStreamSend(
         // Queue the operation but don't wait for the completion.
         //
         QuicConnQueueOper(Connection, Oper);
-        QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_SEND_BYTES, TotalBytesSent);
     }
 
     Status = QUIC_STATUS_PENDING;

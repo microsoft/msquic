@@ -225,6 +225,7 @@ QuicStreamStart(
     }
 
     Stream->Flags.Started = TRUE;
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
 
     QuicTraceEvent(
         StreamCreated,
@@ -421,6 +422,7 @@ QuicStreamIndicateShutdownComplete(
         (void)QuicStreamIndicateEvent(Stream, &Event);
 
         Stream->ClientCallbackHandler = NULL;
+        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
     }
 }
 

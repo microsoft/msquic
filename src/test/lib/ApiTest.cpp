@@ -1542,3 +1542,48 @@ void QuicTestValidateServerSecConfig(void* CertContext, QUIC_CERTIFICATE_HASH_ST
         TEST_FALSE(TestContext.Failed);
     }
 }
+
+void
+QuicTestGetPerfCounters()
+{
+    //
+    // Test getting the correct size.
+    //
+    uint32_t BufferLength = 0;
+    TEST_EQUAL(
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            QUIC_PARAM_GLOBAL_PERF_COUNTERS,
+            &BufferLength,
+            nullptr),
+        QUIC_STATUS_BUFFER_TOO_SMALL);
+
+    TEST_EQUAL(BufferLength, sizeof(uint64_t) * QUIC_PERF_COUNTER_MAX);
+
+    //
+    // Test getting the full array of counters.
+    //
+    uint64_t Counters[QUIC_PERF_COUNTER_MAX];
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            QUIC_PARAM_GLOBAL_PERF_COUNTERS,
+            &BufferLength,
+            Counters));
+
+    //
+    // Test a smaller buffer will be rounded to the nearest counter and filled.
+    //
+    BufferLength = (sizeof(uint64_t) * (QUIC_PERF_COUNTER_MAX - 4)) + 1;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_LEVEL_GLOBAL,
+            QUIC_PARAM_GLOBAL_PERF_COUNTERS,
+            &BufferLength,
+            Counters));
+
+    TEST_EQUAL(BufferLength, (sizeof(uint64_t) * (QUIC_PERF_COUNTER_MAX - 4)));
+}

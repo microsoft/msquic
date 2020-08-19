@@ -480,6 +480,7 @@ QuicStreamSendFlush(
     QUIC_SEND_REQUEST* ApiSendRequests = Stream->ApiSendRequests;
     Stream->ApiSendRequests = NULL;
     QuicDispatchLockRelease(&Stream->ApiSendRequestLock);
+    uint64_t TotalBytesSent = 0;
 
     BOOLEAN Start = FALSE;
 
@@ -488,6 +489,7 @@ QuicStreamSendFlush(
         QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
         ApiSendRequests = ApiSendRequests->Next;
         SendRequest->Next = NULL;
+        TotalBytesSent += SendRequest->TotalLength;
 
         QUIC_DBG_ASSERT(SendRequest->TotalLength != 0 || SendRequest->Flags & QUIC_SEND_FLAG_FIN);
         QUIC_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
@@ -582,6 +584,7 @@ QuicStreamSendFlush(
     if (Start) {
         (void)QuicStreamStart(Stream, QUIC_STREAM_START_FLAG_ASYNC, FALSE);
     }
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_SEND_BYTES, TotalBytesSent);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

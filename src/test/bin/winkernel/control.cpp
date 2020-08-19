@@ -951,6 +951,10 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Family));
         break;
 
+    case IOCTL_QUIC_RUN_VALIDATE_GET_PERF_COUNTERS:
+        QuicTestCtlRun(QuicTestGetPerfCounters());
+        break;
+
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;

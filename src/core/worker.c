@@ -205,6 +205,8 @@ QuicWorkerQueueConnection(
 
     QuicDispatchLockRelease(&Worker->Lock);
 
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
+
     if (WakeWorkerThread) {
         QuicEventSet(Worker->Ready);
     }
@@ -258,7 +260,8 @@ QuicWorkerQueueOperation(
         QuicListInsertTail(&Worker->Operations, &Operation->Link);
         Worker->OperationCount++;
         Operation = NULL;
-
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH);
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_OPER_QUEUED);
     } else {
         WakeWorkerThread = FALSE;
         Worker->DroppedOperationCount++;
@@ -347,6 +350,7 @@ QuicWorkerGetNextConnection(
             QUIC_DBG_ASSERT(Connection->HasQueuedWork);
             Connection->HasQueuedWork = FALSE;
             Connection->WorkerProcessing = TRUE;
+            QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
         }
 
         QuicDispatchLockRelease(&Worker->Lock);
@@ -378,6 +382,7 @@ QuicWorkerGetNextOperation(
             Operation->Link.Flink = NULL;
 #endif
             Worker->OperationCount--;
+            QuicPerfCounterDecrement(QUIC_PERF_COUNTER_OPER_QUEUED);
         }
 
         QuicDispatchLockRelease(&Worker->Lock);
@@ -577,6 +582,7 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
                 Operation->Type,
                 Operation->STATELESS.Context);
             QuicOperationFree(Worker, Operation);
+            QuicPerfCounterIncrement(QUIC_PERF_COUNTER_OPER_COMPLETED);
         }
 
         //

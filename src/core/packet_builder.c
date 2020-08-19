@@ -902,18 +902,19 @@ QuicPacketBuilderSendBatch(
         QuicBindingSendTo(
             Builder->Path->Binding,
             &Builder->Path->RemoteAddress,
-            Builder->SendContext);
+            Builder->SendContext,
+            Builder->TotalDatagramsLength,
+            Builder->TotalCountDatagrams);
 
     } else {
         QuicBindingSendFromTo(
             Builder->Path->Binding,
             &Builder->Path->LocalAddress,
             &Builder->Path->RemoteAddress,
-            Builder->SendContext);
+            Builder->SendContext,
+            Builder->TotalDatagramsLength,
+            Builder->TotalCountDatagrams);
     }
-
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_DGRAM_SEND, Builder->TotalCountDatagrams);
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_DGRAM_SEND_BYTES, Builder->TotalDatagramsLength);
 
     Builder->PacketBatchSent = TRUE;
     Builder->SendContext = NULL;

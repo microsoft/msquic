@@ -90,6 +90,9 @@ QuicConnAlloc(
     InterlockedIncrement(&MsQuicLib.ConnectionCount);
 #endif
 
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_CREATED);
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_ACTIVE);
+
     Connection->Stats.CorrelationId =
         InterlockedIncrement64((int64_t*)&MsQuicLib.ConnectionCorrelationId) - 1;
     QuicTraceEvent(
@@ -249,8 +252,6 @@ QuicConnAlloc(
             "[conn][%p] Initialize complete",
             Connection);
     }
-
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_CONN_CREATED, 1);
     QuicSessionRegisterConnection(Session, Connection);
 
     return Connection;
@@ -360,6 +361,8 @@ QuicConnFree(
 #if DEBUG
     InterlockedDecrement(&MsQuicLib.ConnectionCount);
 #endif
+    QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_ACTIVE);
+    QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_CONNECTED);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1341,11 +1344,8 @@ QuicConnOnShutdownComplete(
         Connection->ClientCallbackHandler = NULL;
     }
 
-    if (Connection->State.Started) {
-        QuicPerfCounterAdd(QUIC_PERF_COUNTER_CONN_ACTIVE, -1);
-        if (!Connection->State.Connected) {
-            QuicPerfCounterAdd(QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL, 1);
-        }
+    if (Connection->State.Started && !Connection->State.Connected) {
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL);
     }
 }
 
@@ -1530,7 +1530,7 @@ QuicConnTryClose(
         if (ResultQuicStatus) {
             Connection->CloseStatus = (QUIC_STATUS)ErrorCode;
             Connection->CloseErrorCode = QUIC_ERROR_INTERNAL_ERROR;
-            QuicPerfCounterAdd(QUIC_PERF_COUNTER_CONN_CLOSED_ERROR, 1);
+            QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_CLOSED_ERROR);
         } else {
             Connection->CloseStatus = QuicErrorCodeToStatus(ErrorCode);
             Connection->CloseErrorCode = ErrorCode;
@@ -2452,7 +2452,6 @@ QuicConnHandshakeConfigure(
 
     Connection->State.Started = TRUE;
     Connection->Stats.Timing.Start = QuicTimeUs64();
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_CONN_ACTIVE, 1);
     QuicTraceEvent(
         ConnHandshakeStart,
         "[conn][%p] Handshake start",
@@ -6653,6 +6652,7 @@ QuicConnDrainOperations(
         }
 
         Connection->Stats.Schedule.OperationCount++;
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_OPER_COMPLETED);
     }
 
     if (!Connection->State.ExternalOwner && Connection->State.ClosedLocally) {

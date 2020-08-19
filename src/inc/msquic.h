@@ -296,22 +296,30 @@ typedef struct QUIC_LISTENER_STATISTICS {
 } QUIC_LISTENER_STATISTICS;
 
 typedef enum QUIC_PERFORMANCE_COUNTERS {
-    QUIC_PERF_COUNTER_CONN_CREATED,
-    QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL,
-    QUIC_PERF_COUNTER_CONN_APP_REJECT,
-    QUIC_PERF_COUNTER_CONN_RESUMED,
-    QUIC_PERF_COUNTER_CONN_ACTIVE,
-    QUIC_PERF_COUNTER_CONN_CLOSED_ERROR,
-    QUIC_PERF_COUNTER_CONN_NO_ALPN,
-    QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST,
-    QUIC_PERF_COUNTER_PKTS_DROPPED,
-    QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL,
-    QUIC_PERF_COUNTER_DGRAM_RECV,
-    QUIC_PERF_COUNTER_DGRAM_SEND,
-    QUIC_PERF_COUNTER_DGRAM_RECV_BYTES,
-    QUIC_PERF_COUNTER_DGRAM_SEND_BYTES,
-    QUIC_PERF_COUNTER_APP_SEND_BYTES,
-    QUIC_PERF_COUNTER_APP_RECV_BYTES,
+    QUIC_PERF_COUNTER_CONN_CREATED,         // Total connections ever allocated.
+    QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL,  // Total connections that failed during handshake.
+    QUIC_PERF_COUNTER_CONN_APP_REJECT,      // Total connections rejected by the application.
+    QUIC_PERF_COUNTER_CONN_RESUMED,         // Total connections resumed.
+    QUIC_PERF_COUNTER_CONN_ACTIVE,          // Connections currently allocated.
+    QUIC_PERF_COUNTER_CONN_CONNECTED,       // Connections currently in the connected state.
+    QUIC_PERF_COUNTER_CONN_CLOSED_ERROR,    // Total connections closed with a protocol error.
+    QUIC_PERF_COUNTER_CONN_NO_ALPN,         // Total connection attempts with no matching ALPN.
+    QUIC_PERF_COUNTER_STRM_ACTIVE,          // Current streams allocated.
+    QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST,  // Total suspected packets lost
+    QUIC_PERF_COUNTER_PKTS_DROPPED,         // Total packets dropped for any reason.
+    QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL, // Total packets with decryption failures.
+    QUIC_PERF_COUNTER_UDP_RECV,             // Total UDP datagrams received.
+    QUIC_PERF_COUNTER_UDP_SEND,             // Total UDP datagrams sent.
+    QUIC_PERF_COUNTER_UDP_RECV_BYTES,       // Total UDP payload bytes received.
+    QUIC_PERF_COUNTER_UDP_SEND_BYTES,       // Total UDP payload bytes sent.
+    QUIC_PERF_COUNTER_UDP_RECV_EVENTS,      // Total UDP receive events.
+    QUIC_PERF_COUNTER_UDP_SEND_CALLS,       // Total UDP send API calls.
+    QUIC_PERF_COUNTER_APP_SEND_BYTES,       // Total bytes sent by applications.
+    QUIC_PERF_COUNTER_APP_RECV_BYTES,       // Total bytes received by applications.
+    QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH,     // Current connections queued for processing.
+    QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH,     // Current operations queued.
+    QUIC_PERF_COUNTER_OPER_QUEUED,          // Total operations queued ever.
+    QUIC_PERF_COUNTER_OPER_COMPLETED,       // Total operations processed ever.
     QUIC_PERF_COUNTER_MAX
 } QUIC_PERFORMANCE_COUNTERS;
 

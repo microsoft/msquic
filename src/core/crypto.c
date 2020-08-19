@@ -1367,6 +1367,7 @@ QuicCryptoProcessTlsCompletion(
         // CONNECTED event is indicated to the app).
         //
         Connection->State.Connected = TRUE;
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_CONNECTED);
 
         QuicConnGenerateNewSourceCids(Connection, FALSE);
 

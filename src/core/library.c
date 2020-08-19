@@ -506,6 +506,58 @@ QuicLibApplyLoadBalancingSetting(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicLibrarySumPerfCounters(
+    _Out_writes_bytes_(BufferLength) uint8_t* Buffer,
+    _In_ uint32_t BufferLength
+    )
+{
+    const uint32_t CountersPerBuffer = BufferLength / sizeof(uint64_t);
+    uint64_t* const Counters = (uint64_t*)Buffer;
+    memcpy(Buffer, MsQuicLib.PerProc[0].PerfCounters, BufferLength);
+
+    for (uint32_t ProcIndex = 1; ProcIndex < MsQuicLib.ProcessorCount; ++ProcIndex) {
+        for (uint32_t CounterIndex = 0;
+            CounterIndex < CountersPerBuffer;
+            ++CounterIndex) {
+            Counters[CounterIndex] =
+                ((int64_t)Counters[CounterIndex]) +
+                (int64_t)MsQuicLib.PerProc[ProcIndex].PerfCounters[CounterIndex];
+        }
+    }
+
+    if (QUIC_PERF_COUNTER_CONN_ACTIVE < CountersPerBuffer &&
+        (int64_t)Counters[QUIC_PERF_COUNTER_CONN_ACTIVE] < 0) {
+        Counters[QUIC_PERF_COUNTER_CONN_ACTIVE] = 0;
+    }
+
+    if (QUIC_PERF_COUNTER_CONN_CONNECTED < CountersPerBuffer &&
+        (int64_t)Counters[QUIC_PERF_COUNTER_CONN_CONNECTED] < 0) {
+        Counters[QUIC_PERF_COUNTER_CONN_CONNECTED] = 0;
+    }
+
+    if (QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST < CountersPerBuffer &&
+        (int64_t)Counters[QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST] < 0) {
+        Counters[QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST] = 0;
+    }
+
+    if (QUIC_PERF_COUNTER_STRM_ACTIVE < CountersPerBuffer &&
+        (int64_t)Counters[QUIC_PERF_COUNTER_STRM_ACTIVE] < 0) {
+        Counters[QUIC_PERF_COUNTER_STRM_ACTIVE] = 0;
+    }
+
+    if (QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH < CountersPerBuffer &&
+        (int64_t)Counters[QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH] < 0) {
+        Counters[QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH] = 0;
+    }
+
+    if (QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH < CountersPerBuffer &&
+        (int64_t)Counters[QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH] < 0) {
+        Counters[QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH] = 0;
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibrarySetGlobalParam(
     _In_ uint32_t Param,
@@ -685,22 +737,7 @@ QuicLibraryGetGlobalParam(
             *BufferLength = QUIC_PERF_COUNTER_MAX * sizeof(uint64_t);
         }
 
-        uint64_t* const Counters = (uint64_t*)Buffer;
-        memcpy(Buffer, MsQuicLib.PerProc[0].PerfCounters, *BufferLength);
-
-        for (int ProcIndex = 1; ProcIndex < MsQuicLib.ProcessorCount; ++ProcIndex) {
-            for (int CounterIndex = 0;
-                CounterIndex < (*BufferLength / sizeof(uint64_t));
-                ++CounterIndex) {
-                Counters[CounterIndex] =
-                    ((int64_t)Counters[CounterIndex]) +
-                    (int64_t)MsQuicLib.PerProc[ProcIndex].PerfCounters[CounterIndex];
-            }
-        }
-
-        if((int64_t)Counters[QUIC_PERF_COUNTER_CONN_ACTIVE] < 0) {
-            Counters[QUIC_PERF_COUNTER_CONN_ACTIVE] = 0;
-        }
+        QuicLibrarySumPerfCounters(Buffer, *BufferLength);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -1432,6 +1469,13 @@ QuicTraceRundown(
                 QUIC_CONTAINING_RECORD(Link, QUIC_BINDING, Link));
         }
         QuicDispatchLockRelease(&MsQuicLib.DatapathLock);
+
+        uint64_t PerfCounters[QUIC_PERF_COUNTER_MAX];
+        QuicLibrarySumPerfCounters((uint8_t*)PerfCounters, sizeof(PerfCounters));
+        QuicTraceEvent(
+            PerfCountersRundown,
+            "[ lib] Perf counters Rundown, Counters=%!COUNTERS!",
+            CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters));
     }
 
     QuicLockRelease(&MsQuicLib.Lock);

@@ -549,6 +549,17 @@
                 name="Expression"
                 />
           </template>
+          <template tid="tid_LIBRARY_PERF_COUNTERS">
+            <data
+                inType="win:UInt16"
+                name="PerfCountersLength"
+                />
+            <data
+                inType="win:Binary"
+                length="PerfCountersLength"
+                name="PerfCounters"
+                />
+          </template>
           <template tid="tid_API_ENTER">
             <data
                 inType="win:UInt32"
@@ -1778,6 +1789,15 @@
               opcode="win:Info"
               symbol="QuicApiWaitOperation"
               value="14"
+              />
+          <event
+              keywords="ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.PerfCountersRundown)"
+              opcode="win:Info"
+              symbol="QuicPerfCountersRundown"
+              template="tid_LIBRARY_PERF_COUNTERS"
+              value="15"
               />
           <!-- 1024 - 2047 | Registration Events -->
           <event
@@ -3342,6 +3362,11 @@
         <string
             id="Etw.ApiWaitOperation"
             value="[ api] Waiting on operation"
+            />
+        
+        <string
+            id="Etw.PerfCountersRundown"
+            value="[ lib] Perf counters Rundown, Counters=%2"
             />
         <!-- Map/enum strings -->
         <string
