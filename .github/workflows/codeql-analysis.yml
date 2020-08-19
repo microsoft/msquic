@@ -39,7 +39,7 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v1
         with:
-          languages: cpp, csharp, python
+          languages: cpp
 
       # Analyze this build.
       - run: |
