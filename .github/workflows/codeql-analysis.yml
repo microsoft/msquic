@@ -27,17 +27,20 @@ jobs:
       - run: git checkout HEAD^2
         if: ${{ github.event_name == 'pull_request' }}
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v1
-        with:
-          languages: cpp  # csharp, python,
-
       - run: |
          sudo apt-get install -y liblttng-ust-dev
          sudo sh scripts/install-powershell-docker.sh
          mkdir build
          cd build
          cmake ..
+         cmake --build . --target openssl
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v1
+        with:
+          languages: cpp  # csharp, python,
+
+      - run: |
          cmake --build .
 
       - name: Perform CodeQL Analysis
