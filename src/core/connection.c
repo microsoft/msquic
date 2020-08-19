@@ -354,6 +354,13 @@ QuicConnFree(
         ConnDestroyed,
         "[conn][%p] Destroyed",
         Connection);
+
+    if (Connection->State.Started && !Connection->State.Connected) {
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL);
+    }
+    if (Connection->State.Connected) {
+        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_CONNECTED);
+    }
     QuicPoolFree(
         &MsQuicLib.PerProc[QuicProcCurrentNumber()].ConnectionPool,
         Connection);
@@ -362,7 +369,6 @@ QuicConnFree(
     InterlockedDecrement(&MsQuicLib.ConnectionCount);
 #endif
     QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_ACTIVE);
-    QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_CONNECTED);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1319,10 +1325,6 @@ QuicConnOnShutdownComplete(
 
     if (Connection->State.ExternalOwner == FALSE) {
 
-        if (Connection->State.Started && !Connection->State.Connected) {
-            QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL);
-        }
-
         //
         // If the connection was never indicated to the application, then it
         // needs to be cleaned up now.
@@ -1534,7 +1536,9 @@ QuicConnTryClose(
         if (ResultQuicStatus) {
             Connection->CloseStatus = (QUIC_STATUS)ErrorCode;
             Connection->CloseErrorCode = QUIC_ERROR_INTERNAL_ERROR;
-            QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_CLOSED_ERROR);
+            if (ErrorCode != QUIC_STATUS_CONNECTION_IDLE) {
+                QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS);
+            }
         } else {
             Connection->CloseStatus = QuicErrorCodeToStatus(ErrorCode);
             Connection->CloseErrorCode = ErrorCode;

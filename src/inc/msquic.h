@@ -302,7 +302,7 @@ typedef enum QUIC_PERFORMANCE_COUNTERS {
     QUIC_PERF_COUNTER_CONN_RESUMED,         // Total connections resumed.
     QUIC_PERF_COUNTER_CONN_ACTIVE,          // Connections currently allocated.
     QUIC_PERF_COUNTER_CONN_CONNECTED,       // Connections currently in the connected state.
-    QUIC_PERF_COUNTER_CONN_CLOSED_ERROR,    // Total connections closed with a protocol error.
+    QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS, // Total connections shutdown with a protocol error.
     QUIC_PERF_COUNTER_CONN_NO_ALPN,         // Total connection attempts with no matching ALPN.
     QUIC_PERF_COUNTER_STRM_ACTIVE,          // Current streams allocated.
     QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST,  // Total suspected packets lost

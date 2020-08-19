@@ -3363,7 +3363,6 @@
             id="Etw.ApiWaitOperation"
             value="[ api] Waiting on operation"
             />
-        
         <string
             id="Etw.PerfCountersRundown"
             value="[ lib] Perf counters Rundown"

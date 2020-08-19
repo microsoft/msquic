@@ -183,6 +183,7 @@ QuicWorkerQueueConnection(
     )
 {
     QUIC_DBG_ASSERT(Connection->Worker != NULL);
+    BOOLEAN ConnectionQueued = FALSE;
 
     QuicDispatchLockAcquire(&Worker->Lock);
 
@@ -197,6 +198,7 @@ QuicWorkerQueueConnection(
             QUIC_SCHEDULE_QUEUED);
         QuicConnAddRef(Connection, QUIC_CONN_REF_WORKER);
         QuicListInsertTail(&Worker->Connections, &Connection->WorkerLink);
+        ConnectionQueued = TRUE;
     } else {
         WakeWorkerThread = FALSE;
     }
@@ -205,7 +207,9 @@ QuicWorkerQueueConnection(
 
     QuicDispatchLockRelease(&Worker->Lock);
 
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
+    if (ConnectionQueued) {
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
+    }
 
     if (WakeWorkerThread) {
         QuicEventSet(Worker->Ready);

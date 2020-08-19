@@ -183,9 +183,12 @@ QuicOperationDequeue(
 #if DEBUG
         Oper->Link.Flink = NULL;
 #endif
-        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH);
     }
     QuicDispatchLockRelease(&OperQ->Lock);
+
+    if (Oper != NULL) {
+        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH);
+    }
     return Oper;
 }
 

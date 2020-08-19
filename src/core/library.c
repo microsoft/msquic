@@ -512,48 +512,18 @@ QuicLibrarySumPerfCounters(
     _In_ uint32_t BufferLength
     )
 {
-    const uint32_t CountersPerBuffer = BufferLength / sizeof(uint64_t);
-    uint64_t* const Counters = (uint64_t*)Buffer;
+    const uint32_t CountersPerBuffer = BufferLength / sizeof(int64_t);
+    int64_t* const Counters = (int64_t*)Buffer;
     memcpy(Buffer, MsQuicLib.PerProc[0].PerfCounters, BufferLength);
 
     for (uint32_t ProcIndex = 1; ProcIndex < MsQuicLib.ProcessorCount; ++ProcIndex) {
-        for (uint32_t CounterIndex = 0;
-            CounterIndex < CountersPerBuffer;
-            ++CounterIndex) {
-            Counters[CounterIndex] =
-                ((int64_t)Counters[CounterIndex]) +
-                (int64_t)MsQuicLib.PerProc[ProcIndex].PerfCounters[CounterIndex];
+        for (uint32_t CounterIndex = 0; CounterIndex < CountersPerBuffer; ++CounterIndex) {
+            Counters[CounterIndex] += MsQuicLib.PerProc[ProcIndex].PerfCounters[CounterIndex];
+
+            if (Counters[CounterIndex] < 0) {
+                Counters[CounterIndex] = 0;
+            }
         }
-    }
-
-    if (QUIC_PERF_COUNTER_CONN_ACTIVE < CountersPerBuffer &&
-        (int64_t)Counters[QUIC_PERF_COUNTER_CONN_ACTIVE] < 0) {
-        Counters[QUIC_PERF_COUNTER_CONN_ACTIVE] = 0;
-    }
-
-    if (QUIC_PERF_COUNTER_CONN_CONNECTED < CountersPerBuffer &&
-        (int64_t)Counters[QUIC_PERF_COUNTER_CONN_CONNECTED] < 0) {
-        Counters[QUIC_PERF_COUNTER_CONN_CONNECTED] = 0;
-    }
-
-    if (QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST < CountersPerBuffer &&
-        (int64_t)Counters[QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST] < 0) {
-        Counters[QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST] = 0;
-    }
-
-    if (QUIC_PERF_COUNTER_STRM_ACTIVE < CountersPerBuffer &&
-        (int64_t)Counters[QUIC_PERF_COUNTER_STRM_ACTIVE] < 0) {
-        Counters[QUIC_PERF_COUNTER_STRM_ACTIVE] = 0;
-    }
-
-    if (QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH < CountersPerBuffer &&
-        (int64_t)Counters[QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH] < 0) {
-        Counters[QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH] = 0;
-    }
-
-    if (QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH < CountersPerBuffer &&
-        (int64_t)Counters[QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH] < 0) {
-        Counters[QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH] = 0;
     }
 }
 

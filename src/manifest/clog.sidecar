@@ -22907,6 +22907,34 @@
         },
         "CustomSettings": null
       }
+    },
+    "PerfCountersRundown": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Perf counters Rundown, Counters=%!CID!",
+      "UniqueId": "PerfCountersRundown",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\r\n            CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters)",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
     }
   },
   "Version": 1,
@@ -22956,7 +22984,7 @@
     },
     "Version": 1,
     "CustomTypeClogCSharpFile": "msquic.clog.cs",
-    "CustomTypeClogCSharpFileContents": "/*++\n\n    Copyright (c) Microsoft Corporation.\n    Licensed under the MIT License.\n\n--*/\n\nusing System;\nusing System.Text;\nusing System.Net;\nusing System.Runtime.InteropServices;\n\nnamespace msquic.clog_config\n{\n    public class Types\n    {\n        public static string ADDR(byte[] value)\n        {\n            int si_family = value[0] | ((ushort)value[1] << 8);\n            int sin_port = value[2] | ((ushort)value[3] << 8);\n\n            Span<byte> sa2 = value;\n\n            string msg = \"\";\n\n            switch (si_family)\n            {\n                case 0:  //<--unspecified\n                    msg += $\"*:{sin_port}\";\n                    break;\n                case 2:  //< --v4\n                    msg += $\"{new IPAddress(sa2.Slice(4, 4)).ToString()}:{sin_port}\";\n                    break;\n                case 10:  //<--v6 (linux)\n                case 23: //<--v6\n                    msg += $\"[{new IPAddress(sa2.Slice(8, 16)).ToString()}]:{sin_port}\";\n                    break;\n                default:\n                    throw new NotSupportedException(\"Invalid SI_FAMILY : \" + si_family);\n            }\n            \n            return msg;\n        }\n\n        public static string CID(byte [] value)\n        {\n            StringBuilder hex = new StringBuilder(value.Length * 2);\n            foreach (byte v in value)\n            {\n                hex.AppendFormat(v.ToString(\"X2\"));\n            }\n            return hex.ToString();\n        }\n    }\n}\n",
+    "CustomTypeClogCSharpFileContents": "/*++\r\n\r\n    Copyright (c) Microsoft Corporation.\r\n    Licensed under the MIT License.\r\n\r\n--*/\r\n\r\nusing System;\r\nusing System.Text;\r\nusing System.Net;\r\nusing System.Runtime.InteropServices;\r\n\r\nnamespace msquic.clog_config\r\n{\r\n    public class Types\r\n    {\r\n        public static string ADDR(byte[] value)\r\n        {\r\n            int si_family = value[0] | ((ushort)value[1] << 8);\r\n            int sin_port = value[2] | ((ushort)value[3] << 8);\r\n\r\n            Span<byte> sa2 = value;\r\n\r\n            string msg = \"\";\r\n\r\n            switch (si_family)\r\n            {\r\n                case 0:  //<--unspecified\r\n                    msg += $\"*:{sin_port}\";\r\n                    break;\r\n                case 2:  //< --v4\r\n                    msg += $\"{new IPAddress(sa2.Slice(4, 4)).ToString()}:{sin_port}\";\r\n                    break;\r\n                case 10:  //<--v6 (linux)\r\n                case 23: //<--v6\r\n                    msg += $\"[{new IPAddress(sa2.Slice(8, 16)).ToString()}]:{sin_port}\";\r\n                    break;\r\n                default:\r\n                    throw new NotSupportedException(\"Invalid SI_FAMILY : \" + si_family);\r\n            }\r\n            \r\n            return msg;\r\n        }\r\n\r\n        public static string CID(byte [] value)\r\n        {\r\n            StringBuilder hex = new StringBuilder(value.Length * 2);\r\n            foreach (byte v in value)\r\n            {\r\n                hex.AppendFormat(v.ToString(\"X2\"));\r\n            }\r\n            return hex.ToString();\r\n        }\r\n    }\r\n}\r\n",
     "TypeEncoders": {
       "Version": 0,
       "TypeEncoder": [
@@ -25839,6 +25867,10 @@
       {
         "UniquenessHash": "8fcfd765-ba83-53f1-a0bc-6992c51d42bd",
         "TraceID": "SchannelIgnoringTicket"
+      },
+      {
+        "UniquenessHash": "10ce7ee9-cfcc-e364-e24c-71e1913cb472",
+        "TraceID": "PerfCountersRundown"
       }
     ]
   }

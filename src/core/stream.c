@@ -118,6 +118,7 @@ QuicStreamInitialize(
     *NewStream = Stream;
     Stream = NULL;
     PreallocatedRecvBuffer = NULL;
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
 
 Exit:
 
@@ -174,6 +175,8 @@ QuicStreamFree(
     Stream->Flags.Freed = TRUE;
     QuicPoolFree(&Worker->StreamPool, Stream);
 
+    QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
+
     if (WasStarted) {
 #pragma warning(push)
 #pragma warning(disable:6001) // SAL doesn't understand we're logging just the address
@@ -225,7 +228,6 @@ QuicStreamStart(
     }
 
     Stream->Flags.Started = TRUE;
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
 
     QuicTraceEvent(
         StreamCreated,
@@ -422,7 +424,6 @@ QuicStreamIndicateShutdownComplete(
         (void)QuicStreamIndicateEvent(Stream, &Event);
 
         Stream->ClientCallbackHandler = NULL;
-        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
     }
 }
 

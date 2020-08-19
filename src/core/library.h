@@ -59,7 +59,7 @@ typedef struct QUIC_CACHEALIGN QUIC_LIBRARY_PP {
     //
     // Per-processor performance counters.
     //
-    uint64_t PerfCounters[QUIC_PERF_COUNTER_MAX];
+    int64_t PerfCounters[QUIC_PERF_COUNTER_MAX];
 
 } QUIC_LIBRARY_PP;
 
@@ -320,7 +320,7 @@ QuicPerfCounterAdd(
 {
     QUIC_DBG_ASSERT(Type < QUIC_PERF_COUNTER_MAX);
     uint16_t ProcIndex = (uint16_t) QuicProcActiveCount();
-    InterlockedExchangeAdd64((int64_t*)&MsQuicLib.PerProc[ProcIndex].PerfCounters[Type], Value);
+    InterlockedExchangeAdd64(&MsQuicLib.PerProc[ProcIndex].PerfCounters[Type], Value);
 }
 
 #define QuicPerfCounterIncrement(Type) QuicPerfCounterAdd(Type, 1)

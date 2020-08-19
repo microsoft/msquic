@@ -545,7 +545,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),
     sizeof(INT32),
     sizeof(INT32),
-    sizeof(INT32)
+    sizeof(INT32),
+    0
 };
 
 static_assert(
