@@ -3,7 +3,7 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [master, codeql]
+    branches: [master]
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [master]
@@ -27,6 +27,7 @@ jobs:
       - run: git checkout HEAD^2
         if: ${{ github.event_name == 'pull_request' }}
 
+      # Install dependencies and build submodules before starting analysis.
       - run: |
          sudo apt-get install -y liblttng-ust-dev
          sudo sh scripts/install-powershell-docker.sh
@@ -38,8 +39,9 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v1
         with:
-          languages: cpp  # csharp, python,
+          languages: cpp, csharp, python,
 
+      # Analyze this build.
       - run: |
          cd build
          cmake --build .
