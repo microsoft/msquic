@@ -567,11 +567,17 @@ if ($IsWindows -and $EnableAppVerifier) {
 # Install the kernel mode drivers.
 if ($Kernel -ne "") {
     if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
-        net.exe stop msquicpriv /y | Out-Null
+        try {
+            net.exe stop msquicpriv /y | Out-Null
+        }
+        catch {}
         sc.exe delete msquicpriv /y | Out-Null
     }
     if ($null -ne (Get-Service -Name "msquictest" -ErrorAction Ignore)) {
-        net.exe stop msquictest /y | Out-Null
+        try {
+            net.exe stop msquictest /y | Out-Null
+        }
+        catch {}
         sc.exe delete msquictest /y | Out-Null
     }
     Copy-Item (Join-Path $Kernel "msquictest.sys") (Split-Path $Path -Parent)

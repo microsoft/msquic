@@ -302,11 +302,17 @@ function Invoke-RemoteExe {
 
         if ($Kernel) {
             if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
-                net.exe stop msquicpriv /y | Out-Null
+                try {
+                    net.exe stop msquicpriv /y | Out-Null
+                }
+                catch {}
                 sc.exe delete msquicpriv /y | Out-Null
             }
             if ($null -ne (Get-Service -Name "quicperf" -ErrorAction Ignore)) {
-                net.exe stop quicperf /y | Out-Null
+                try {
+                    net.exe stop quicperf /y | Out-Null
+                }
+                catch {}
                 sc.exe delete quicperf /y | Out-Null
             }
             Copy-Item (Join-Path $KernelDir "quicperf.sys") (Split-Path $Exe -Parent)
