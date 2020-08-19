@@ -147,7 +147,6 @@ QuicKernelMain(
     if (!DriverClient.Run(IOCTL_QUIC_RUN_PERF, Data, (uint32_t)TotalLength, 30000)) {
         printf("Failed To Run\n");
         QUIC_FREE(Data);
-        QUIC_FREE(OutBuffer);
 
         RunSuccess =
             DriverClient.Read(
@@ -155,13 +154,14 @@ QuicKernelMain(
                 OutBuffer,
                 OutBufferSize,
                 &OutBufferWritten,
-                180000);
+                10000);
         printf("OutBufferWritten %d\n", OutBufferWritten);
         if (RunSuccess) {
             printf("%s\n", OutBuffer);
         } else {
             printf("Failed to exit\n");
         }
+        QUIC_FREE(OutBuffer);
         DriverClient.Uninitialize();
         DriverService.Uninitialize();
         return QUIC_STATUS_INVALID_STATE;

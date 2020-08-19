@@ -187,7 +187,7 @@ public:
         }
         QuicTraceLogVerbose(
             TestSendIoctl,
-            "[test] Sending IOCTL %u with %u bytes.",
+            "[test] Sending Write IOCTL %u with %u bytes.",
             IoGetFunctionCodeFromCtlCode(IoControlCode),
             InBufferSize);
         if (!DeviceIoControl(
@@ -204,7 +204,7 @@ public:
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
                     Error,
-                    "DeviceIoControl failed");
+                    "DeviceIoControl Write failed");
                 return false;
             }
         }
@@ -224,7 +224,7 @@ public:
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 Error,
-                "GetOverlappedResultEx failed");
+                "GetOverlappedResultEx Write failed");
         } else {
             Error = ERROR_SUCCESS;
         }
@@ -267,7 +267,7 @@ public:
         }
         QuicTraceLogVerbose(
             TestSendIoctl,
-            "[test] Sending IOCTL %u.",
+            "[test] Sending Read IOCTL %u.",
             IoGetFunctionCodeFromCtlCode(IoControlCode));
         if (!DeviceIoControl(
                 DeviceHandle,
@@ -283,7 +283,7 @@ public:
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
                     Error,
-                    "DeviceIoControl failed");
+                    "DeviceIoControl Write failed");
                 return false;
             }
         }
@@ -305,7 +305,7 @@ public:
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
                     Error,
-                    "GetOverlappedResultEx failed");
+                    "GetOverlappedResultEx Read failed");
             }
         } else {
             Error = ERROR_SUCCESS;

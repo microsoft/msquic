@@ -149,6 +149,8 @@ ThroughputClient::Start(
     _In_ QUIC_EVENT* StopEvnt
     ) {
     ShutdownWrapper Shutdown;
+    this->StopEvent = StopEvnt;
+
     ConnectionData* ConnData = ConnectionDataAllocator.Alloc(this);
     if (!ConnData) {
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -226,17 +228,6 @@ ThroughputClient::Start(
             &LocalIpAddr);
     }
 
-    Status =
-        MsQuic->ConnectionStart(
-            ConnData->Connection,
-            RemoteFamily,
-            TargetData.get(),
-            Port);
-    if (QUIC_FAILED(Status)) {
-        WriteOutput("Failed ConnectionStart 0x%x\n", Status);
-        return Status;
-    }
-
     StreamData* StrmData = StreamDataAllocator.Alloc(this, ConnData->Connection);
 
     Status =
@@ -268,7 +259,6 @@ ThroughputClient::Start(
         return Status;
     }
 
-    this->StopEvent = StopEvnt;
     StrmData->StartTime = QuicTimeUs64();
 
     if (Length == 0) {
@@ -298,6 +288,17 @@ ThroughputClient::Start(
             SendRequestAllocator.Free(SendReq);
             return Status;
         }
+    }
+
+    Status =
+        MsQuic->ConnectionStart(
+            ConnData->Connection,
+            RemoteFamily,
+            TargetData.get(),
+            Port);
+    if (QUIC_FAILED(Status)) {
+        WriteOutput("Failed ConnectionStart 0x%x\n", Status);
+        return Status;
     }
     WriteOutput("Started!\n");
     Shutdown.ConnHandle = nullptr;
@@ -339,6 +340,7 @@ ThroughputClient::StreamCallback(
     _Inout_ QUIC_STREAM_EVENT* Event,
     _Inout_ StreamData* StrmData
     ) {
+    WriteOutput("Stream Status: %d\n", Event->Type);
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_SEND_COMPLETE: {
         SendRequest* Req = (SendRequest*)Event->SEND_COMPLETE.ClientContext;
@@ -377,13 +379,17 @@ ThroughputClient::StreamCallback(
         uint64_t ElapsedMicroseconds = StrmData->EndTime - StrmData->StartTime;
         uint32_t SendRate = (uint32_t)((StrmData->BytesCompleted * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
 
-        WriteOutput("[%p][%llu] Closed [%s] after %u.%u ms. (TX %llu bytes @ %u kbps).\n",
-            StrmData->Connection,
-            (unsigned long long)GetStreamID(MsQuic, StreamHandle),
-            "Complete",
-            (uint32_t)(ElapsedMicroseconds / 1000),
-            (uint32_t)(ElapsedMicroseconds % 1000),
-            (unsigned long long)StrmData->BytesCompleted, SendRate);
+        if (StrmData->BytesCompleted != 0) {
+            WriteOutput("[%p][%llu] Closed [%s] after %u.%u ms. (TX %llu bytes @ %u kbps).\n",
+                StrmData->Connection,
+                (unsigned long long)GetStreamID(MsQuic, StreamHandle),
+                "Complete",
+                (uint32_t)(ElapsedMicroseconds / 1000),
+                (uint32_t)(ElapsedMicroseconds % 1000),
+                (unsigned long long)StrmData->BytesCompleted, SendRate);
+        } else {
+            WriteOutput("Failed to Send\n");
+        }
 
         StreamDataAllocator.Free(StrmData);
         break;
