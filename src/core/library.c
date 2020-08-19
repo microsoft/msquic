@@ -519,10 +519,15 @@ QuicLibrarySumPerfCounters(
     for (uint32_t ProcIndex = 1; ProcIndex < MsQuicLib.ProcessorCount; ++ProcIndex) {
         for (uint32_t CounterIndex = 0; CounterIndex < CountersPerBuffer; ++CounterIndex) {
             Counters[CounterIndex] += MsQuicLib.PerProc[ProcIndex].PerfCounters[CounterIndex];
+        }
+    }
 
-            if (Counters[CounterIndex] < 0) {
-                Counters[CounterIndex] = 0;
-            }
+    //
+    // Zero any counters that are still negative after summation.
+    //
+    for (uint32_t CounterIndex = 0; CounterIndex < CountersPerBuffer; ++CounterIndex) {
+        if (Counters[CounterIndex] < 0) {
+            Counters[CounterIndex] = 0;
         }
     }
 }

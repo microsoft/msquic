@@ -26,6 +26,7 @@ enum QuicEventIdGlobal {
     EventId_QuicApiExit,
     EventId_QuicApiExitStatus,
     EventId_QuicApiWaitOperation,
+    EventId_QuicPerfCountersRundown,
 
     EventId_QuicLibraryCount
 };

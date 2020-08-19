@@ -1537,7 +1537,8 @@ QuicConnTryClose(
         if (ResultQuicStatus) {
             Connection->CloseStatus = (QUIC_STATUS)ErrorCode;
             Connection->CloseErrorCode = QUIC_ERROR_INTERNAL_ERROR;
-            if (ErrorCode != QUIC_STATUS_CONNECTION_IDLE) {
+            if (ErrorCode != QUIC_STATUS_CONNECTION_IDLE &&
+                ErrorCode != QUIC_STATUS_CONNECTION_TIMEOUT) {
                 QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS);
             }
         } else {
