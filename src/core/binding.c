@@ -66,6 +66,7 @@ QuicBindingInitialize(
     Binding->ServerOwned = ServerOwned;
     Binding->Connected = RemoteAddress == NULL ? FALSE : TRUE;
     Binding->StatelessOperCount = 0;
+    Binding->ResetTokenHash = NULL;
     QuicDispatchRwLockInitialize(&Binding->RwLock);
     QuicDispatchLockInitialize(&Binding->ResetTokenLock);
     QuicDispatchLockInitialize(&Binding->StatelessOperLock);

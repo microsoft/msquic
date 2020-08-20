@@ -1921,6 +1921,7 @@ QuicDataPathBindingAllocSendDatagram(
             "Allocation of '%s' failed. (%llu bytes)",
             "Send Buffer",
             0);
+        Buffer = NULL;
         goto Exit;
     }
 
