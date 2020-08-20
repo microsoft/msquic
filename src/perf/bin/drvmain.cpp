@@ -33,7 +33,6 @@ WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DEVICE_EXTENSION, QuicPerfCtlGetDeviceCo
 
 typedef struct QUIC_DRIVER_CLIENT {
     LIST_ENTRY Link;
-    bool TestFailure;
     PerfSelfSignedConfiguration SelfSignedConfiguration;
     bool SelfSignedValid;
     QUIC_EVENT StopEvent;
@@ -403,8 +402,8 @@ QuicPerfCtlEvtFileCreate(
         QuicPerfCtlExtension->ClientListSize++;
 
         QuicTraceLogInfo(
-            TestControlClientCreated,
-            "[test] Client %p created",
+            PerfControlClientCreated,
+            "[perf] Client %p created",
             Client);
 
         //
@@ -456,8 +455,8 @@ QuicPerfCtlEvtFileCleanup(
         ExfReleasePushLockExclusive(&QuicPerfCtlExtension->Lock);
 
         QuicTraceLogInfo(
-            TestControlClientCleaningUp,
-            "[test] Client %p cleaning up",
+            PerfControlClientCleaningUp,
+            "[perf] Client %p cleaning up",
             Client);
 
         Client->Canceled = true;
@@ -510,8 +509,8 @@ QuicPerfCtlEvtIoCanceled(
     QuicEventSet(Client->StopEvent);
 
     QuicTraceLogWarning(
-        TestControlClientCanceledRequest,
-        "[test] Client %p canceled request %p",
+        PerfControlClientCanceledRequest,
+        "[perf] Client %p canceled request %p",
         Client,
         Request);
 
@@ -700,7 +699,7 @@ QuicPerfCtlEvtIoDeviceControl(
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "QuicTestCtlGetFileContext failed");
+            "QuicPerfCtlGetFileContext failed");
         goto Error;
     }
 
@@ -748,7 +747,7 @@ QuicPerfCtlEvtIoDeviceControl(
 
     QuicTraceLogInfo(
         PerfControlClientIoctl,
-        "[test] Client %p executing write IOCTL %u",
+        "[perf] Client %p executing write IOCTL %u",
         Client,
         FunctionCode);
 
@@ -784,8 +783,8 @@ QuicPerfCtlEvtIoDeviceControl(
 
 Error:
     QuicTraceLogInfo(
-        TestControlClientIoctlComplete,
-        "[test] Client %p completing request, 0x%x",
+        PerfControlClientIoctlComplete,
+        "[perf] Client %p completing request, 0x%x",
         Client,
         Status);
 

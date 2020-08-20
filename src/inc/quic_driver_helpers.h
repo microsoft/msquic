@@ -82,7 +82,7 @@ public:
                     DriverFilePath,
                     nullptr,
                     nullptr,
-                    "msquic\0",
+                    "msquicpriv\0",
                     nullptr,
                     nullptr);
             if (ServiceHandle == nullptr) {
