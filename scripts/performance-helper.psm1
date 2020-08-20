@@ -724,7 +724,7 @@ class TestRunDefinition {
             $VarVal = ""
         }
         $Platform = $this.Remote.Platform
-        if ($script:Kernel) {
+        if ($script:Kernel -and $this.Remote.Platform -eq "Windows") {
             $Platform = 'Winkernel'
         }
         $RetString = "$($this.TestName)_$($Platform)_$($script:RemoteArch)_$($script:RemoteTls)_$($this.VariableName)$VarVal"
@@ -736,7 +736,7 @@ class TestRunDefinition {
 
     [string]ToTestPlatformString() {
         $Platform = $this.Remote.Platform
-        if ($script:Kernel) {
+        if ($script:Kernel -and $this.Remote.Platform -eq "Windows") {
             $Platform = 'Winkernel'
         }
         $RetString = "$($Platform)_$($script:RemoteArch)_$($script:RemoteTls)"
@@ -898,8 +898,6 @@ function Test-AllTestsValid {
 
 function Test-CanRunTest {
     param ([TestRunDefinition]$Test, $RemotePlatform, $LocalPlatform)
-    Write-Host ("Checking $LocalPlatform against " + $Test.Local.Platform)
-    Write-Host ("Checking $RemotePlatform against " + $Test.Remote.Platform)
     $PlatformCorrect = ($Test.Local.Platform -eq $LocalPlatform) -and ($Test.Remote.Platform -eq $RemotePlatform)
     if (!$PlatformCorrect) {
         return $false
