@@ -1196,6 +1196,8 @@ Exit:
         // it has been acquired, we must queue the connection, only to shut it
         // down.
         //
+#pragma warning(push)
+#pragma prefast(suppress:6001, "SAL doesn't understand ref counts")
         if (InterlockedCompareExchange16(
                 (short*)&NewConnection->BackUpOperUsed, 1, 0) == 0) {
             QUIC_OPERATION* Oper = &NewConnection->BackUpOper;
@@ -1205,14 +1207,15 @@ Exit:
             Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
             Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
             Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = 0;
-#pragma prefast(suppress:6001, "SAL doesn't understand ref counts")
             QuicConnQueueOper(NewConnection, Oper);
         }
+#pragma warning(pop)
 
     } else {
         NewConnection->SourceCids.Next = NULL;
         QUIC_FREE(SourceCid);
         QuicConnRelease(NewConnection, QUIC_CONN_REF_LOOKUP_RESULT);
+#pragma prefast(suppress:6001, "SAL doesn't understand ref counts")
         QuicConnRelease(NewConnection, QUIC_CONN_REF_HANDLE_OWNER);
     }
 
