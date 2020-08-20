@@ -146,6 +146,46 @@ QuicForceRetry(
             &value);
 }
 
+inline
+void
+DumpMsQuicPerfCounters(
+    _In_ const QUIC_API_TABLE* MsQuic
+    )
+{
+    uint64_t Counters[QUIC_PERF_COUNTER_MAX] = {0};
+    uint32_t Lenth = sizeof(Counters);
+    MsQuic->GetParam(
+        NULL,
+        QUIC_PARAM_LEVEL_GLOBAL,
+        QUIC_PARAM_GLOBAL_PERF_COUNTERS,
+        &Lenth,
+        &Counters);
+    printf("Perf Counters:\n");
+    printf("  CONN_CREATED:         %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_CONN_CREATED]);
+    printf("  CONN_HANDSHAKE_FAIL:  %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL]);
+    printf("  CONN_APP_REJECT:      %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_CONN_APP_REJECT]);
+    printf("  CONN_ACTIVE:          %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_CONN_ACTIVE]);
+    printf("  CONN_CONNECTED:       %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_CONN_CONNECTED]);
+    printf("  CONN_PROTOCOL_ERRORS: %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS]);
+    printf("  CONN_NO_ALPN:         %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_CONN_NO_ALPN]);
+    printf("  STRM_ACTIVE:          %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_STRM_ACTIVE]);
+    printf("  PKTS_SUSPECTED_LOST:  %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST]);
+    printf("  PKTS_DROPPED:         %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_PKTS_DROPPED]);
+    printf("  PKTS_DECRYPTION_FAIL: %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL]);
+    printf("  UDP_RECV:             %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_UDP_RECV]);
+    printf("  UDP_SEND:             %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_UDP_SEND]);
+    printf("  UDP_RECV_BYTES:       %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_UDP_RECV_BYTES]);
+    printf("  UDP_SEND_BYTES:       %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_UDP_SEND_BYTES]);
+    printf("  UDP_RECV_EVENTS:      %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_UDP_RECV_EVENTS]);
+    printf("  UDP_SEND_CALLS:       %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_UDP_SEND_CALLS]);
+    printf("  APP_SEND_BYTES:       %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_APP_SEND_BYTES]);
+    printf("  APP_RECV_BYTES:       %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_APP_RECV_BYTES]);
+    printf("  CONN_QUEUE_DEPTH:     %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH]);
+    printf("  OPER_QUEUE_DEPTH:     %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH]);
+    printf("  OPER_QUEUED:          %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_OPER_QUEUED]);
+    printf("  OPER_COMPLETED:       %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_OPER_COMPLETED]);
+}
+
 //
 // Converts an input command line arg string and port to a socket address.
 // Supports IPv4, IPv6 or '*' input strings.
