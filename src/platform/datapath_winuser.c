@@ -204,8 +204,10 @@ typedef struct QUIC_UDP_SOCKET_CONTEXT {
 
     WSABUF RecvWsaBuf;
     char RecvWsaMsgControlBuf[
-        WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +
-        WSA_CMSG_SPACE(sizeof(DWORD))];
+        WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
+        WSA_CMSG_SPACE(sizeof(DWORD)) +         // UDP_COALESCED_INFO
+        WSA_CMSG_SPACE(sizeof(INT))             // IP_ECN
+        ];
     WSAMSG RecvWsaMsgHdr;
     QUIC_DATAPATH_INTERNAL_RECV_CONTEXT* CurrentRecvContext;
     OVERLAPPED RecvOverlapped;
@@ -1267,6 +1269,46 @@ QuicDataPathBindingCreate(
             goto Error;
         }
 
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketContext->Socket,
+                IPPROTO_IPV6,
+                IPV6_ECN,
+                (char*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Binding,
+                WsaError,
+                "Set IPV6_ECN");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
+
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketContext->Socket,
+                IPPROTO_IP,
+                IP_ECN,
+                (char*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
+                Binding,
+                WsaError,
+                "Set IP_ECN");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
+
         //
         // The socket is shared by multiple endpoints, so increase the receive
         // buffer size.
@@ -1914,32 +1956,45 @@ QuicDataPathRecvComplete(
         UINT16 MessageLength = NumberOfBytesTransferred;
         ULONG MessageCount = 0;
         BOOLEAN IsCoalesced = FALSE;
+        INT ECN = 0;
 
         for (WSACMSGHDR *CMsg = WSA_CMSG_FIRSTHDR(&SocketContext->RecvWsaMsgHdr);
             CMsg != NULL;
             CMsg = WSA_CMSG_NXTHDR(&SocketContext->RecvWsaMsgHdr, CMsg)) {
 
-            if (CMsg->cmsg_level == IPPROTO_IPV6 && CMsg->cmsg_type == IPV6_PKTINFO) {
-                PIN6_PKTINFO PktInfo6 = (PIN6_PKTINFO)WSA_CMSG_DATA(CMsg);
-                LocalAddr->si_family = AF_INET6;
-                LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
-                LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
-                QuicConvertFromMappedV6(LocalAddr, LocalAddr);
+            if (CMsg->cmsg_level == IPPROTO_IPV6) {
+                if (CMsg->cmsg_type == IPV6_PKTINFO) {
+                    PIN6_PKTINFO PktInfo6 = (PIN6_PKTINFO)WSA_CMSG_DATA(CMsg);
+                    LocalAddr->si_family = AF_INET6;
+                    LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
+                    LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
+                    QuicConvertFromMappedV6(LocalAddr, LocalAddr);
 
-                LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
-                FoundLocalAddr = TRUE;
-            } else if (CMsg->cmsg_level == IPPROTO_IP && CMsg->cmsg_type == IP_PKTINFO) {
-                PIN_PKTINFO PktInfo = (PIN_PKTINFO)WSA_CMSG_DATA(CMsg);
-                LocalAddr->si_family = AF_INET;
-                LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
-                LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
-                LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
-                FoundLocalAddr = TRUE;
+                    LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
+                    FoundLocalAddr = TRUE;
+                } else if (CMsg->cmsg_type == IPV6_ECN) {
+                    ECN = *(PINT)WSA_CMSG_DATA(CMsg);
+                    QUIC_DBG_ASSERT(ECN < UINT8_MAX);
+                }
+            } else if (CMsg->cmsg_level == IPPROTO_IP) {
+                if (CMsg->cmsg_type == IP_PKTINFO) {
+                    PIN_PKTINFO PktInfo = (PIN_PKTINFO)WSA_CMSG_DATA(CMsg);
+                    LocalAddr->si_family = AF_INET;
+                    LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
+                    LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
+                    LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
+                    FoundLocalAddr = TRUE;
+                } else if (CMsg->cmsg_type == IPV6_ECN) {
+                    ECN = *(PINT)WSA_CMSG_DATA(CMsg);
+                    QUIC_DBG_ASSERT(ECN < UINT8_MAX);
+                }
 #ifdef UDP_RECV_MAX_COALESCED_SIZE
-            } else if (CMsg->cmsg_level == IPPROTO_UDP && CMsg->cmsg_type == UDP_COALESCED_INFO) {
-                QUIC_DBG_ASSERT(*(PDWORD)WSA_CMSG_DATA(CMsg) <= MAX_URO_PAYLOAD_LENGTH);
-                MessageLength = (UINT16)*(PDWORD)WSA_CMSG_DATA(CMsg);
-                IsCoalesced = TRUE;
+            } else if (CMsg->cmsg_level == IPPROTO_UDP) {
+                if (CMsg->cmsg_type == UDP_COALESCED_INFO) {
+                    QUIC_DBG_ASSERT(*(PDWORD)WSA_CMSG_DATA(CMsg) <= MAX_URO_PAYLOAD_LENGTH);
+                    MessageLength = (UINT16)*(PDWORD)WSA_CMSG_DATA(CMsg);
+                    IsCoalesced = TRUE;
+                }
 #endif
             }
         }
@@ -1999,7 +2054,7 @@ QuicDataPathRecvComplete(
             Datagram->BufferLength = MessageLength;
             Datagram->Tuple = &RecvContext->Tuple;
             Datagram->PartitionIndex = (uint8_t)ProcContext->Index;
-            Datagram->TypeOfService = 0; // TODO - Support ToS/ECN
+            Datagram->TypeOfService = (uint8_t)ECN;
             Datagram->Allocated = TRUE;
             Datagram->QueuedOnConnection = FALSE;
 
@@ -2417,7 +2472,6 @@ QuicDataPathBindingSendTo(
     SOCKET Socket;
     int Result;
     DWORD BytesSent;
-    PDWORD SegmentSize;
 
     QUIC_DBG_ASSERT(
         Binding != NULL && RemoteAddress != NULL && SendContext != NULL);
@@ -2442,32 +2496,49 @@ QuicDataPathBindingSendTo(
         SendContext->SegmentSize,
         CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress));
 
+    PWSACMSGHDR CMsg;
+    BYTE CtrlBuf[
+        WSA_CMSG_SPACE(sizeof(INT)) +   // IP_ECN
+#ifdef UDP_SEND_MSG_SIZE
+        WSA_CMSG_SPACE(sizeof(DWORD))   // UDP_SEND_MSG_SIZE
+#endif
+        ];
+
     WSAMSG WSAMhdr;
     WSAMhdr.dwFlags = 0;
     WSAMhdr.name = NULL;
     WSAMhdr.namelen = 0;
     WSAMhdr.lpBuffers = SendContext->WsaBuffers;
     WSAMhdr.dwBufferCount = SendContext->WsaBufferCount;
-    WSAMhdr.Control.buf = NULL;
+    WSAMhdr.Control.buf = (PCHAR)CtrlBuf;
     WSAMhdr.Control.len = 0;
 
-    // TODO - Use SendContext->ECN if not QUIC_ECN_NON_ECT
+    if (RemoteAddress->si_family == AF_INET) {
+        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+        CMsg = WSA_CMSG_FIRSTHDR(&WSAMhdr);
+        CMsg->cmsg_level = IPPROTO_IP;
+        CMsg->cmsg_type = IP_ECN;
+        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+        *(PINT)WSA_CMSG_DATA(CMsg) = SendContext->ECN;
 
-    PWSACMSGHDR CMsg;
-    BYTE CtrlBuf[WSA_CMSG_SPACE(sizeof(*SegmentSize))];
+    } else {
+        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+        CMsg = WSA_CMSG_FIRSTHDR(&WSAMhdr);
+        CMsg->cmsg_level = IPPROTO_IPV6;
+        CMsg->cmsg_type = IPV6_ECN;
+        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+        *(PINT)WSA_CMSG_DATA(CMsg) = SendContext->ECN;
+    }
 
 #ifdef UDP_SEND_MSG_SIZE
     if (SendContext->SegmentSize > 0) {
-        WSAMhdr.Control.buf = (PCHAR)CtrlBuf;
-        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(*SegmentSize));
-
-        CMsg = WSA_CMSG_FIRSTHDR(&WSAMhdr);
+        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(DWORD));
+        CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+        QUIC_DBG_ASSERT(CMsg != NULL);
         CMsg->cmsg_level = IPPROTO_UDP;
         CMsg->cmsg_type = UDP_SEND_MSG_SIZE;
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(*SegmentSize));
-
-        SegmentSize = (PDWORD)WSA_CMSG_DATA(CMsg);
-        *SegmentSize = SendContext->SegmentSize;
+        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(DWORD));
+        *(PDWORD)WSA_CMSG_DATA(CMsg) = SendContext->SegmentSize;
     }
 #endif
 
@@ -2533,7 +2604,6 @@ QuicDataPathBindingSendFromTo(
     SOCKET Socket;
     int Result;
     DWORD BytesSent;
-    PDWORD SegmentSize;
 
     QUIC_DBG_ASSERT(
         Binding != NULL && LocalAddress != NULL &&
@@ -2566,56 +2636,70 @@ QuicDataPathBindingSendFromTo(
     SOCKADDR_INET MappedRemoteAddress = { 0 };
     QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
 
+    PWSACMSGHDR CMsg;
+    BYTE CtrlBuf[
+        WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
+        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN
+#ifdef UDP_SEND_MSG_SIZE
+        WSA_CMSG_SPACE(sizeof(DWORD))    // UDP_SEND_MSG_SIZE
+#endif
+        ];
+
     WSAMSG WSAMhdr;
     WSAMhdr.dwFlags = 0;
     WSAMhdr.name = (LPSOCKADDR)&MappedRemoteAddress;
     WSAMhdr.namelen = sizeof(MappedRemoteAddress);
     WSAMhdr.lpBuffers = SendContext->WsaBuffers;
     WSAMhdr.dwBufferCount = SendContext->WsaBufferCount;
-
-    // TODO - Use SendContext->ECN if not QUIC_ECN_NON_ECT
-
-    PWSACMSGHDR CMsg;
-    BYTE CtrlBuf[WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) + WSA_CMSG_SPACE(sizeof(*SegmentSize))];
     WSAMhdr.Control.buf = (PCHAR)CtrlBuf;
+    WSAMhdr.Control.len = 0;
 
     if (LocalAddress->si_family == AF_INET) {
-        WSAMhdr.Control.len = WSA_CMSG_SPACE(sizeof(IN_PKTINFO));
-
+        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(IN_PKTINFO));
         CMsg = WSA_CMSG_FIRSTHDR(&WSAMhdr);
         CMsg->cmsg_level = IPPROTO_IP;
         CMsg->cmsg_type = IP_PKTINFO;
         CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(IN_PKTINFO));
-
         PIN_PKTINFO PktInfo = (PIN_PKTINFO)WSA_CMSG_DATA(CMsg);
         PktInfo->ipi_ifindex = LocalAddress->Ipv6.sin6_scope_id;
         PktInfo->ipi_addr = LocalAddress->Ipv4.sin_addr;
 
-    } else {
-        WSAMhdr.Control.len = WSA_CMSG_SPACE(sizeof(IN6_PKTINFO));
+        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+        CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+        QUIC_DBG_ASSERT(CMsg != NULL);
+        CMsg->cmsg_level = IPPROTO_IP;
+        CMsg->cmsg_type = IP_ECN;
+        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+        *(PINT)WSA_CMSG_DATA(CMsg) = SendContext->ECN;
 
+    } else {
+        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(IN6_PKTINFO));
         CMsg = WSA_CMSG_FIRSTHDR(&WSAMhdr);
         CMsg->cmsg_level = IPPROTO_IPV6;
         CMsg->cmsg_type = IPV6_PKTINFO;
         CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(IN6_PKTINFO));
-
         PIN6_PKTINFO PktInfo6 = (PIN6_PKTINFO)WSA_CMSG_DATA(CMsg);
         PktInfo6->ipi6_ifindex = LocalAddress->Ipv6.sin6_scope_id;
         PktInfo6->ipi6_addr = LocalAddress->Ipv6.sin6_addr;
+
+        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+        CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+        QUIC_DBG_ASSERT(CMsg != NULL);
+        CMsg->cmsg_level = IPPROTO_IPV6;
+        CMsg->cmsg_type = IPV6_ECN;
+        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+        *(PINT)WSA_CMSG_DATA(CMsg) = SendContext->ECN;
     }
 
 #ifdef UDP_SEND_MSG_SIZE
     if (SendContext->SegmentSize > 0) {
-        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(*SegmentSize));
-
+        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(DWORD));
         CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
         QUIC_DBG_ASSERT(CMsg != NULL);
         CMsg->cmsg_level = IPPROTO_UDP;
         CMsg->cmsg_type = UDP_SEND_MSG_SIZE;
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(*SegmentSize));
-
-        SegmentSize = (PDWORD)WSA_CMSG_DATA(CMsg);
-        *SegmentSize = SendContext->SegmentSize;
+        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(DWORD));
+        *(PDWORD)WSA_CMSG_DATA(CMsg) = SendContext->SegmentSize;
     }
 #endif
 
