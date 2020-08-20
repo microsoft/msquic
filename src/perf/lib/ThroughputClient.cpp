@@ -340,7 +340,6 @@ ThroughputClient::StreamCallback(
     _Inout_ QUIC_STREAM_EVENT* Event,
     _Inout_ StreamData* StrmData
     ) {
-    WriteOutput("Stream Status: %d\n", Event->Type);
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_SEND_COMPLETE: {
         SendRequest* Req = (SendRequest*)Event->SEND_COMPLETE.ClientContext;
