@@ -1189,22 +1189,19 @@ QuicBindingCreateConnection(
 
 Exit:
 
-    NewConnection->SourceCids.Next = NULL;
-    QUIC_FREE(SourceCid);
-    QuicConnRelease(NewConnection, QUIC_CONN_REF_LOOKUP_RESULT);
-
     if (BindingRefAdded) {
+        QuicConnRelease(NewConnection, QUIC_CONN_REF_LOOKUP_RESULT);
         //
         // The binding ref cannot be released on the receive thread. So, once
         // it has been acquired, we must queue the connection, only to shut it
         // down.
         //
         if (InterlockedCompareExchange16(
-                (short*)&Connection->BackUpOperUsed, 1, 0) == 0) {
-            QUIC_OPERATION* Oper = &Connection->BackUpOper;
+                (short*)&NewConnection->BackUpOperUsed, 1, 0) == 0) {
+            QUIC_OPERATION* Oper = &NewConnection->BackUpOper;
             Oper->FreeAfterProcess = FALSE;
             Oper->Type = QUIC_OPER_TYPE_API_CALL;
-            Oper->API_CALL.Context = &Connection->BackupApiContext;
+            Oper->API_CALL.Context = &NewConnection->BackupApiContext;
             Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
             Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
             Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = 0;
@@ -1213,6 +1210,9 @@ Exit:
         }
 
     } else {
+        NewConnection->SourceCids.Next = NULL;
+        QUIC_FREE(SourceCid);
+        QuicConnRelease(NewConnection, QUIC_CONN_REF_LOOKUP_RESULT);
         QuicConnRelease(NewConnection, QUIC_CONN_REF_HANDLE_OWNER);
     }
 
