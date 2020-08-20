@@ -378,6 +378,8 @@ QuicBindingGetListener(
     const QUIC_ADDR* Addr = Info->LocalAddress;
     const QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(Addr);
 
+    BOOLEAN FailedAlpnMatch = FALSE;
+
     QuicDispatchRwLockAcquireShared(&Binding->RwLock);
 
     for (QUIC_LIST_ENTRY* Link = Binding->Listeners.Flink;
@@ -389,6 +391,7 @@ QuicBindingGetListener(
         const QUIC_ADDR* ExistingAddr = &ExistingListener->LocalAddress;
         const BOOLEAN ExistingWildCard = ExistingListener->WildCard;
         const QUIC_ADDRESS_FAMILY ExistingFamily = QuicAddrGetFamily(ExistingAddr);
+        FailedAlpnMatch = FALSE;
 
         if (ExistingFamily != AF_UNSPEC) {
             if (Family != ExistingFamily ||
@@ -402,12 +405,18 @@ QuicBindingGetListener(
                 Listener = ExistingListener;
             }
             goto Done;
+        } else {
+            FailedAlpnMatch = TRUE;
         }
     }
 
 Done:
 
     QuicDispatchRwLockReleaseShared(&Binding->RwLock);
+
+    if (FailedAlpnMatch) {
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_NO_ALPN);
+    }
 
     return Listener;
 }
@@ -666,6 +675,7 @@ QuicBindingProcessStatelessOperation(
     QUIC_RECV_DATAGRAM* RecvDatagram = StatelessCtx->Datagram;
     QUIC_RECV_PACKET* RecvPacket =
         QuicDataPathRecvDatagramToRecvPacket(RecvDatagram);
+    QUIC_BUFFER* SendDatagram = NULL;
 
     QUIC_DBG_ASSERT(RecvPacket->ValidatedHeaderInv);
 
@@ -702,7 +712,7 @@ QuicBindingProcessStatelessOperation(
             sizeof(uint32_t) +                                      // One random version
             ARRAYSIZE(QuicSupportedVersionList) * sizeof(uint32_t); // Our actual supported versions
 
-        QUIC_BUFFER* SendDatagram =
+        SendDatagram =
             QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
         if (SendDatagram == NULL) {
             QuicTraceEvent(
@@ -782,7 +792,7 @@ QuicBindingProcessStatelessOperation(
 
         QUIC_DBG_ASSERT(PacketLength >= QUIC_MIN_STATELESS_RESET_PACKET_LENGTH);
 
-        QUIC_BUFFER* SendDatagram =
+        SendDatagram =
             QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
         if (SendDatagram == NULL) {
             QuicTraceEvent(
@@ -822,7 +832,7 @@ QuicBindingProcessStatelessOperation(
         QUIC_DBG_ASSERT(RecvPacket->SourceCid != NULL);
 
         uint16_t PacketLength = QuicPacketMaxBufferSizeForRetryV1();
-        QUIC_BUFFER* SendDatagram =
+        SendDatagram =
             QuicDataPathBindingAllocSendDatagram(SendContext, PacketLength);
         if (SendDatagram == NULL) {
             QuicTraceEvent(
@@ -905,7 +915,9 @@ QuicBindingProcessStatelessOperation(
         Binding,
         &RecvDatagram->Tuple->LocalAddress,
         &RecvDatagram->Tuple->RemoteAddress,
-        SendContext);
+        SendContext,
+        SendDatagram->Length,
+        1);
     SendContext = NULL;
 
 Exit:
@@ -1399,6 +1411,8 @@ QuicBindingReceive(
     QUIC_RECV_DATAGRAM** SubChainTail = &SubChain;
     QUIC_RECV_DATAGRAM** SubChainDataTail = &SubChain;
     uint32_t SubChainLength = 0;
+    uint32_t TotalChainLength = 0;
+    uint32_t TotalDatagramBytes = 0;
 
     //
     // Breaks the chain of datagrams into subchains by destination CID and
@@ -1412,6 +1426,8 @@ QuicBindingReceive(
 
     QUIC_RECV_DATAGRAM* Datagram;
     while ((Datagram = DatagramChain) != NULL) {
+        TotalChainLength++;
+        TotalDatagramBytes += Datagram->BufferLength;
 
         //
         // Remove the head.
@@ -1518,6 +1534,10 @@ QuicBindingReceive(
     if (ReleaseChain != NULL) {
         QuicDataPathBindingReturnRecvDatagrams(ReleaseChain);
     }
+
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_RECV, TotalChainLength);
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_RECV_BYTES, TotalDatagramBytes);
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_UDP_RECV_EVENTS);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1551,7 +1571,9 @@ QUIC_STATUS
 QuicBindingSendTo(
     _In_ QUIC_BINDING* Binding,
     _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ uint32_t BytesToSend,
+    _In_ uint32_t DatagramsToSend
     )
 {
     QUIC_STATUS Status;
@@ -1606,6 +1628,10 @@ QuicBindingSendTo(
     }
 #endif
 
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_SEND, DatagramsToSend);
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_SEND_BYTES, BytesToSend);
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_UDP_SEND_CALLS);
+
     return Status;
 }
 
@@ -1615,7 +1641,9 @@ QuicBindingSendFromTo(
     _In_ QUIC_BINDING* Binding,
     _In_ const QUIC_ADDR * LocalAddress,
     _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ uint32_t BytesToSend,
+    _In_ uint32_t DatagramsToSend
     )
 {
     QUIC_STATUS Status;
@@ -1672,6 +1700,10 @@ QuicBindingSendFromTo(
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     }
 #endif
+
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_SEND, DatagramsToSend);
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_SEND_BYTES, BytesToSend);
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_UDP_SEND_CALLS);
 
     return Status;
 }

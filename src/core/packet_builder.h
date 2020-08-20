@@ -105,6 +105,11 @@ typedef struct QUIC_PACKET_BUILDER {
     uint16_t DatagramLength;
 
     //
+    // The total number of bytes sent across all created datagrams.
+    //
+    uint32_t TotalDatagramsLength;
+
+    //
     // Indicates the datagram (or more specifically, the last QUIC packet in the
     // datagram) should be padded to the minimum length.
     //

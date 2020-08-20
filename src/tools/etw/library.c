@@ -270,5 +270,7 @@ LibraryEventCallback(
         break;
     case EventId_QuicApiWaitOperation:
         break;
+    case EventId_QuicPerfCountersRundown:
+        break;
     }
 }

@@ -173,6 +173,13 @@ QuicPartitionIndexDecrement(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
+QuicPerfCounterAdd(
+    _In_ QUIC_PERFORMANCE_COUNTERS Type,
+    _In_ int64_t Value
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
 QuicStreamAddRef(
     _In_ QUIC_STREAM* Stream,
     _In_ QUIC_STREAM_REF Ref

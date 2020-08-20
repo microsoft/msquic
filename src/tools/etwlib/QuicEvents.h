@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <ws2def.h>
 #include <ws2ipdef.h>
+#include <msquic.h>
 
 #include <stdint.h>
 
@@ -26,6 +27,7 @@ enum QuicEventIdGlobal {
     EventId_QuicApiExit,
     EventId_QuicApiExitStatus,
     EventId_QuicApiWaitOperation,
+    EventId_QuicPerfCountersRundown,
 
     EventId_QuicLibraryCount
 };
@@ -149,6 +151,10 @@ struct QuicGlobalEventPayload {
         struct {
             uint32_t Status;
         } ApiExitStatus;
+        struct {
+            uint16_t CounterLen;
+            int64_t Counters[QUIC_PERF_COUNTER_MAX];
+        } PerfCounters;
     };
 };
 
