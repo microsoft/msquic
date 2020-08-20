@@ -264,7 +264,7 @@ Error:
             Connection->Packets[i] = NULL;
         }
     }
-    if (Datagram != NULL) {
+    if (Datagram != NULL && Connection->SourceCids.Next != NULL) {
         QUIC_FREE(
             QUIC_CONTAINING_RECORD(
                 Connection->SourceCids.Next,
