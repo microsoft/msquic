@@ -1531,6 +1531,7 @@ QuicBindingReceive(
     if (ReleaseChain != NULL) {
         QuicDataPathBindingReturnRecvDatagrams(ReleaseChain);
     }
+
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_RECV, TotalChainLength);
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_RECV_BYTES, TotalDatagramBytes);
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_UDP_RECV_EVENTS);

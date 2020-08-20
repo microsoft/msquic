@@ -212,7 +212,7 @@ QuicOperationQueueClear(
     while (!QuicListIsEmpty(&OldList)) {
         QUIC_OPERATION* Oper =
             QUIC_CONTAINING_RECORD(QuicListRemoveHead(&OldList), QUIC_OPERATION, Link);
-            --OperationsDequeued;
+        --OperationsDequeued;
 #if DEBUG
         Oper->Link.Flink = NULL;
 #endif

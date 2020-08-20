@@ -251,6 +251,7 @@ QuicConnAlloc(
             "[conn][%p] Initialize complete",
             Connection);
     }
+
     QuicSessionRegisterConnection(Session, Connection);
 
     return Connection;

@@ -777,7 +777,6 @@ QuicStreamRecvFlush(
                 Stream->Connection->Registration->AppName,
                 Status, 0);
         }
-        QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, Event.RECEIVE.TotalBufferLength);
 
         QUIC_TEL_ASSERTMSG_ARGS(
             Stream->Flags.ReceiveCallPending,
@@ -811,6 +810,8 @@ QuicStreamReceiveComplete(
     if (!Stream->Flags.ReceiveCallPending) {
         return FALSE;
     }
+
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, BufferLength);
 
     QUIC_FRE_ASSERTMSG(
         BufferLength <= Stream->RecvPendingLength,

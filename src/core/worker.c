@@ -666,15 +666,18 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
         QuicConnRelease(Connection, QUIC_CONN_REF_WORKER);
     }
 
+    int64_t OperationsDequeued = 0;
     while (!QuicListIsEmpty(&Worker->Operations)) {
         QUIC_OPERATION* Operation =
             QUIC_CONTAINING_RECORD(
                 QuicListRemoveHead(&Worker->Operations), QUIC_OPERATION, Link);
+        --OperationsDequeued;
 #if DEBUG
         Operation->Link.Flink = NULL;
 #endif
         QuicOperationFree(Worker, Operation);
     }
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH, OperationsDequeued);
 
     QuicTraceEvent(
         WorkerStop,
