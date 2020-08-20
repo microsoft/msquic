@@ -1,0 +1,5 @@
+---
+name: "CodeQL config"
+
+queries:
+ - uses: security-extended  # security-and-quality (very verbose)

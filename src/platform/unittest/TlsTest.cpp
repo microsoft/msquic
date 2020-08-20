@@ -803,7 +803,7 @@ TEST_P(TlsTest, KeyUpdate)
         ClientContext.InitializeClient(ClientSession);
         DoHandshake(ServerContext, ClientContext);
 
-        QUIC_PACKET_KEY* UpdateWriteKey, *UpdateReadKey = nullptr;
+        QUIC_PACKET_KEY* UpdateWriteKey = nullptr, *UpdateReadKey = nullptr;
 
         VERIFY_QUIC_SUCCESS(
             QuicPacketKeyUpdate(
