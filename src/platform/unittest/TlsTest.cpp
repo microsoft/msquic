@@ -965,7 +965,7 @@ uint64_t InterlockedCounter(
 
     Start = QuicTimeUs64();
     for (uint64_t j = 0; j < LoopCount; ++j) {
-        InterlockedIncrement(&Counter);
+        InterlockedIncrement64(&Counter);
     }
     End = QuicTimeUs64();
 
