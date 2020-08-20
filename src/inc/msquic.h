@@ -317,9 +317,12 @@ typedef enum QUIC_PERFORMANCE_COUNTERS {
     QUIC_PERF_COUNTER_APP_SEND_BYTES,       // Total bytes sent by applications.
     QUIC_PERF_COUNTER_APP_RECV_BYTES,       // Total bytes received by applications.
     QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH,     // Current connections queued for processing.
-    QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH,     // Current operations queued.
-    QUIC_PERF_COUNTER_OPER_QUEUED,          // Total operations queued ever.
-    QUIC_PERF_COUNTER_OPER_COMPLETED,       // Total operations processed ever.
+    QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH,// Current connection operations queued.
+    QUIC_PERF_COUNTER_CONN_OPER_QUEUED,     // Total connection operations queued ever.
+    QUIC_PERF_COUNTER_CONN_OPER_COMPLETED,  // Total connection operations processed ever.
+    QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH,// Current worker operations queued.
+    QUIC_PERF_COUNTER_WORK_OPER_QUEUED,     // Total worker operations queued ever.
+    QUIC_PERF_COUNTER_WORK_OPER_COMPLETED,  // Total worker operations processed ever.
     QUIC_PERF_COUNTER_MAX
 } QUIC_PERFORMANCE_COUNTERS;
 

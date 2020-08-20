@@ -6658,7 +6658,7 @@ QuicConnDrainOperations(
         }
 
         Connection->Stats.Schedule.OperationCount++;
-        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_OPER_COMPLETED);
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_COMPLETED);
     }
 
     if (!Connection->State.ExternalOwner && Connection->State.ClosedLocally) {

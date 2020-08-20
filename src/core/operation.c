@@ -139,8 +139,8 @@ QuicOperationEnqueue(
     StartProcessing = QuicListIsEmpty(&OperQ->List) && !OperQ->ActivelyProcessing;
     QuicListInsertTail(&OperQ->List, &Oper->Link);
     QuicDispatchLockRelease(&OperQ->Lock);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_OPER_QUEUED);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH);
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUED);
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
     return StartProcessing;
 }
 
@@ -159,8 +159,8 @@ QuicOperationEnqueueFront(
     StartProcessing = QuicListIsEmpty(&OperQ->List) && !OperQ->ActivelyProcessing;
     QuicListInsertHead(&OperQ->List, &Oper->Link);
     QuicDispatchLockRelease(&OperQ->Lock);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_OPER_QUEUED);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH);
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUED);
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
     return StartProcessing;
 }
 
@@ -187,7 +187,7 @@ QuicOperationDequeue(
     QuicDispatchLockRelease(&OperQ->Lock);
 
     if (Oper != NULL) {
-        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH);
+        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
     }
     return Oper;
 }
@@ -237,5 +237,5 @@ QuicOperationQueueClear(
             }
         }
     }
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH, OperationsDequeued);
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH, OperationsDequeued);
 }

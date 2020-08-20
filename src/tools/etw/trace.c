@@ -277,14 +277,26 @@ QuicTraceGlobalEvent(
             case QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH:
                 printf("    Current connections queued for processing:          ");
                 break;
-            case QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH:
-                printf("    Current operations queued:                          ");
+            case QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH:
+                printf("    Current connection operations queued:               ");
                 break;
-            case QUIC_PERF_COUNTER_OPER_QUEUED:
-                printf("    Total operations queued ever:                       ");
+            case QUIC_PERF_COUNTER_CONN_OPER_QUEUED:
+                printf("    Total connection operations queued ever:            ");
                 break;
-            case QUIC_PERF_COUNTER_OPER_COMPLETED:
-                printf("    Total operations processed ever:                    ");
+            case QUIC_PERF_COUNTER_CONN_OPER_COMPLETED:
+                printf("    Total connection operations processed ever:         ");
+                break;
+            case QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH:
+                printf("    Current worker operations queued:                   ");
+                break;
+            case QUIC_PERF_COUNTER_WORK_OPER_QUEUED:
+                printf("    Total worker operations queued ever:                ");
+                break;
+            case QUIC_PERF_COUNTER_WORK_OPER_COMPLETED:
+                printf("    Total worker operations processed ever:             ");
+                break;
+            default:
+                printf("    Unknown:                                            ");
                 break;
             }
             printf("%lld\n", EvData->PerfCounters.Counters[i]);
