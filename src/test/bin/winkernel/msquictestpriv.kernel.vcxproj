@@ -48,12 +48,12 @@
     <ProjectReference Include="..\..\lib\testlib.kernel.vcxproj">
       <Project>{A295E4D7-A50A-4771-8383-608258C23442}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\bin\winkernel\msquic.kernel.vcxproj">
-      <Project>{C31B028C-E91C-4CF7-A8E7-F385B2AF5F85}</Project>
+    <ProjectReference Include="..\..\..\bin\winkernel\msquicpriv.kernel.vcxproj">
+      <Project>{e2ddb0a8-594d-424d-9add-4ef211f7fc3f}</Project>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{49E98DF4-7BC5-4E0B-8F13-295380652F94}</ProjectGuid>
+    <ProjectGuid>{c8491270-b0be-440c-b88d-7b441a8cb67e}</ProjectGuid>
     <TemplateGuid>{1bc93793-694f-48fe-9372-81e2b05556fd}</TemplateGuid>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
@@ -79,7 +79,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <TargetName>msquictest</TargetName>
+    <TargetName>msquictestpriv</TargetName>
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
     <EnableInf2cat>false</EnableInf2cat>
     <OutDir>$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\</OutDir>
@@ -96,7 +96,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cng.lib;ksecdd.lib;msnetioid.lib;netio.lib;wdmsec.lib;uuid.lib;msquic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cng.lib;ksecdd.lib;msnetioid.lib;netio.lib;wdmsec.lib;uuid.lib;msquicpriv.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>

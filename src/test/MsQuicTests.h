@@ -300,9 +300,9 @@ LogTestFailure(
 //
 
 //
-// Name of the driver service for msquictest.sys.
+// Name of the driver service for msquictestpriv.sys.
 //
-#define QUIC_DRIVER_NAME   "msquictest"
+#define QUIC_DRIVER_NAME   "msquictestpriv"
 
 #ifdef _WIN32
 
