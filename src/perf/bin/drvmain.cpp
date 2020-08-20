@@ -37,7 +37,6 @@ typedef struct QUIC_DRIVER_CLIENT {
     PerfSelfSignedConfiguration SelfSignedConfiguration;
     bool SelfSignedValid;
     QUIC_EVENT StopEvent;
-    bool Started;
     WDFREQUEST Request;
     QUIC_THREAD Thread;
     bool Canceled;
@@ -413,6 +412,7 @@ QuicPerfCtlEvtFileCreate(
         //
         QuicPerfClient = Client;
         InterlockedExchange((volatile LONG*)&BufferCurrent, 0);
+        QuicEventInitialize(&Client->StopEvent, true, false);
     } while (false);
 
     ExfReleasePushLockExclusive(&QuicPerfCtlExtension->Lock);
@@ -463,8 +463,10 @@ QuicPerfCtlEvtFileCleanup(
         Client->Canceled = true;
         QuicEventSet(Client->StopEvent);
 
-        QuicThreadWait(&Client->Thread);
-        QuicThreadDelete(&Client->Thread);
+        if (Client->Thread != nullptr) {
+            QuicThreadWait(&Client->Thread);
+            QuicThreadDelete(&Client->Thread);
+        }
         QuicEventUninitialize(Client->StopEvent);
 
         //
@@ -507,20 +509,14 @@ QuicPerfCtlEvtIoCanceled(
     Client->Canceled = true;
     QuicEventSet(Client->StopEvent);
 
-    QuicThreadWait(&Client->Thread);
-    QuicThreadDelete(&Client->Thread);
-    QuicEventUninitialize(Client->StopEvent);
-
     QuicTraceLogWarning(
         TestControlClientCanceledRequest,
         "[test] Client %p canceled request %p",
         Client,
         Request);
 
-    Status = STATUS_CANCELLED;
-
+    return;
 Error:
-
     WdfRequestComplete(Request, Status);
 }
 
@@ -573,6 +569,10 @@ QUIC_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
         QuicMainStop(0);
 
     if (Client->Canceled) {
+        QuicTraceLogInfo(
+            PerformanceStopCancelled,
+            "[perf] Performance Stop Cancelled");
+        WdfRequestComplete(Request, STATUS_CANCELLED);
         return;
     }
 
@@ -601,12 +601,10 @@ QUIC_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
     ReturnedLength = BufferCurrent + 1;
 
 Exit:
-    QuicEventUninitialize(&Client->StopEvent);
     WdfRequestCompleteWithInformation(
         Request,
         StopStatus,
         ReturnedLength);
-    QuicThreadDelete(&Client->Thread);
 }
 
 void
@@ -650,8 +648,6 @@ QuicPerfCtlStart(
         Arguments++;
     }
 
-    QuicEventInitialize(&Client->StopEvent, true, false);
-
     NTSTATUS Status =
         QuicMainStart(
             (int)Length,
@@ -659,9 +655,6 @@ QuicPerfCtlStart(
             &Client->StopEvent,
             &Client->SelfSignedConfiguration);
     delete[] Argv;
-    if (QUIC_SUCCEEDED(Status)) {
-        Client->Started = true;
-    }
 
     return Status;
 }
