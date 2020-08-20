@@ -261,9 +261,10 @@ Error:
     for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
         if (Connection->Packets[i] != NULL) {
             QuicPacketSpaceUninitialize(Connection->Packets[i]);
+            Connection->Packets[i] = NULL;
         }
     }
-    if (Datagram != NULL) {
+    if (Datagram != NULL && Connection->SourceCids.Next != NULL) {
         QUIC_FREE(
             QUIC_CONTAINING_RECORD(
                 Connection->SourceCids.Next,
