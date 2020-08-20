@@ -204,6 +204,9 @@ MsQuicLibraryInitialize(
             sizeof(QUIC_PACKET_SPACE),
             QUIC_POOL_TP,
             &MsQuicLib.PerProc[i].PacketSpacePool);
+        QuicZeroMemory(
+            &MsQuicLib.PerProc[i].PerfCounters,
+            sizeof(MsQuicLib.PerProc[i].PerfCounters));
     }
 
     Status =
@@ -692,8 +695,8 @@ QuicLibraryGetGlobalParam(
 
     case QUIC_PARAM_GLOBAL_PERF_COUNTERS: {
 
-        if (*BufferLength < sizeof(uint64_t)) {
-            *BufferLength = sizeof(uint64_t) * QUIC_PERF_COUNTER_MAX;
+        if (*BufferLength < sizeof(int64_t)) {
+            *BufferLength = sizeof(int64_t) * QUIC_PERF_COUNTER_MAX;
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             break;
         }
@@ -703,13 +706,13 @@ QuicLibraryGetGlobalParam(
             break;
         }
 
-        if (*BufferLength < QUIC_PERF_COUNTER_MAX * sizeof(uint64_t)) {
+        if (*BufferLength < QUIC_PERF_COUNTER_MAX * sizeof(int64_t)) {
             //
             // Copy as many counters will fit completely in the buffer.
             //
-            *BufferLength = (*BufferLength / sizeof(uint64_t)) * sizeof(uint64_t);
+            *BufferLength = (*BufferLength / sizeof(int64_t)) * sizeof(int64_t);
         } else {
-            *BufferLength = QUIC_PERF_COUNTER_MAX * sizeof(uint64_t);
+            *BufferLength = QUIC_PERF_COUNTER_MAX * sizeof(int64_t);
         }
 
         QuicLibrarySumPerfCounters(Buffer, *BufferLength);
@@ -1446,7 +1449,7 @@ QuicTraceRundown(
         }
         QuicDispatchLockRelease(&MsQuicLib.DatapathLock);
 
-        uint64_t PerfCounters[QUIC_PERF_COUNTER_MAX];
+        int64_t PerfCounters[QUIC_PERF_COUNTER_MAX];
         QuicLibrarySumPerfCounters((uint8_t*)PerfCounters, sizeof(PerfCounters));
         QuicTraceEvent(
             PerfCountersRundown,

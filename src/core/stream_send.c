@@ -485,7 +485,7 @@ QuicStreamSendFlush(
     QUIC_SEND_REQUEST* ApiSendRequests = Stream->ApiSendRequests;
     Stream->ApiSendRequests = NULL;
     QuicDispatchLockRelease(&Stream->ApiSendRequestLock);
-    uint64_t TotalBytesSent = 0;
+    int64_t TotalBytesSent = 0;
 
     BOOLEAN Start = FALSE;
 
@@ -494,7 +494,7 @@ QuicStreamSendFlush(
         QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
         ApiSendRequests = ApiSendRequests->Next;
         SendRequest->Next = NULL;
-        TotalBytesSent += SendRequest->TotalLength;
+        TotalBytesSent += (int64_t) SendRequest->TotalLength;
 
         QUIC_DBG_ASSERT(SendRequest->TotalLength != 0 || SendRequest->Flags & QUIC_SEND_FLAG_FIN);
         QUIC_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));

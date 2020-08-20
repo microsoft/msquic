@@ -21678,7 +21678,7 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\r\n            CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters)",
+            "UserSpecifiedUnModified": "\n            CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters)",
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters)",
             "SuggestedTelemetryName": "arg2"
           },

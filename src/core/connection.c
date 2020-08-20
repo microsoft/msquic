@@ -1349,10 +1349,6 @@ QuicConnOnShutdownComplete(
         (void)QuicConnIndicateEvent(Connection, &Event);
 
         Connection->ClientCallbackHandler = NULL;
-
-        if (Connection->State.Started && !Connection->State.Connected) {
-            QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL);
-        }
     }
 }
 

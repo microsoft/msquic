@@ -320,7 +320,7 @@ QuicPerfCounterAdd(
 {
     QUIC_DBG_ASSERT(Type < QUIC_PERF_COUNTER_MAX);
     uint16_t ProcIndex = (uint16_t) QuicProcActiveCount();
-    InterlockedExchangeAdd64(&MsQuicLib.PerProc[ProcIndex].PerfCounters[Type], Value);
+    InterlockedExchangeAdd64(&(MsQuicLib.PerProc[ProcIndex].PerfCounters[Type]), Value);
 }
 
 #define QuicPerfCounterIncrement(Type) QuicPerfCounterAdd(Type, 1)
