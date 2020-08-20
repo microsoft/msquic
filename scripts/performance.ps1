@@ -119,7 +119,11 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
 # Validate the the kernel switch.
 if ($Kernel -and !$IsWindows) {
-    Write-Error "-Kernel switch only supported on Windows";
+    Write-Error "-Kernel switch only supported on Windows"
+}
+
+if ($Kernel -and $PGO) {
+    Write-Error "PGO is currently not supported in kernel mode"
 }
 
 # Root directory of the project.

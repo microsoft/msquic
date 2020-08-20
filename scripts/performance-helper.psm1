@@ -723,7 +723,11 @@ class TestRunDefinition {
         if ($this.VariableName -eq "Default") {
             $VarVal = ""
         }
-        $RetString = "$($this.TestName)_$($this.Remote.Platform)_$($script:RemoteArch)_$($script:RemoteTls)_$($this.VariableName)$VarVal"
+        $Platform = $this.Remote.Platform
+        if ($script:Kernel) {
+            $Platform = 'Winkernel'
+        }
+        $RetString = "$($this.TestName)_$($Platform)_$($script:RemoteArch)_$($script:RemoteTls)_$($this.VariableName)$VarVal"
         if ($this.Loopback) {
             $RetString += "_Loopback"
         }
