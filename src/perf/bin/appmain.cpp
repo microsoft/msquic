@@ -174,7 +174,8 @@ QuicKernelMain(
             IOCTL_QUIC_READ_DATA,
             OutBuffer,
             OutBufferSize,
-            &OutBufferWritten);
+            &OutBufferWritten,
+            240000);
     if (RunSuccess) {
         printf("%s\n", OutBuffer);
     } else {
