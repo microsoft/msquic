@@ -325,8 +325,6 @@ function Invoke-RemoteExe {
         if ($Kernel) {
             Copy-Item (Join-Path $KernelDir "quicperf.sys") (Split-Path $Exe -Parent)
             Copy-Item (Join-Path $KernelDir "msquicpriv.sys") (Split-Path $Exe -Parent)
-            Write-Host "Starting Service: msquicpriv"
-            Write-Host (Join-Path (Split-Path $Exe -Parent) "msquicpriv.sys")
             sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Exe -Parent) "msquicpriv.sys") start= demand | Out-Null
             net.exe start msquicpriv
         }
@@ -733,7 +731,11 @@ class TestRunDefinition {
     }
 
     [string]ToTestPlatformString() {
-        $RetString = "$($this.Remote.Platform)_$($script:RemoteArch)_$($script:RemoteTls)"
+        $Platform = $this.Remote.Platform
+        if ($script:Kernel) {
+            $Platform = 'Winkernel'
+        }
+        $RetString = "$($Platform)_$($script:RemoteArch)_$($script:RemoteTls)"
         return $RetString
     }
 }
