@@ -90,9 +90,6 @@ QuicConnAlloc(
     InterlockedIncrement(&MsQuicLib.ConnectionCount);
 #endif
 
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_CREATED);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_ACTIVE);
-
     Connection->Stats.CorrelationId =
         InterlockedIncrement64((int64_t*)&MsQuicLib.ConnectionCorrelationId) - 1;
     QuicTraceEvent(
@@ -253,6 +250,9 @@ QuicConnAlloc(
             Connection);
     }
     QuicSessionRegisterConnection(Session, Connection);
+
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_CREATED);
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_ACTIVE);
 
     return Connection;
 
