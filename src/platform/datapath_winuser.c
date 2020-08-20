@@ -1984,7 +1984,7 @@ QuicDataPathRecvComplete(
                     LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
                     LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
                     FoundLocalAddr = TRUE;
-                } else if (CMsg->cmsg_type == IPV6_ECN) {
+                } else if (CMsg->cmsg_type == IP_ECN) {
                     ECN = *(PINT)WSA_CMSG_DATA(CMsg);
                     QUIC_DBG_ASSERT(ECN < UINT8_MAX);
                 }
