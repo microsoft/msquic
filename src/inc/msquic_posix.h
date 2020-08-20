@@ -155,7 +155,7 @@ typedef union QUIC_ADDR {
     struct sockaddr_in6 Ipv6;
 } QUIC_ADDR;
 
-#define FIELD_OFFSET(type, field)       ((uint32_t)(size_t)&(((type *)0)->field))
+#define FIELD_OFFSET(type, field)       offsetof(type, field)
 
 #define QUIC_ADDR_V4_PORT_OFFSET        FIELD_OFFSET(struct sockaddr_in, sin_port)
 #define QUIC_ADDR_V4_IP_OFFSET          FIELD_OFFSET(struct sockaddr_in, sin_addr)
@@ -184,6 +184,12 @@ extern "C" {
 #define QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID     0x00001000 // bad common name in X509 Cert.
 #define QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_DATE_INVALID   0x00002000 // expired X509 Cert.
 #define QUIC_CERTIFICATE_FLAG_IGNORE_WEAK_SIGNATURE             0x00010000
+
+#if defined(__clang__)
+#define QUIC_NO_SANITIZE(X) __attribute__((no_sanitize(X)))
+#else
+#define QUIC_NO_SANITIZE(X)
+#endif
 
 //
 // Helpers for Windows string functions.
@@ -346,6 +352,7 @@ QuicAddrSetToLoopback(
 
 inline
 uint32_t
+QUIC_NO_SANITIZE("unsigned-integer-overflow")
 QuicAddrHash(
     _In_ const QUIC_ADDR* Addr
     )

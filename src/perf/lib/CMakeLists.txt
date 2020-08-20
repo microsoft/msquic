@@ -5,6 +5,8 @@ set(SOURCES
     quicmain.cpp
     ThroughputServer.cpp
     ThroughputClient.cpp
+    RpsServer.cpp
+    RpsClient.cpp
 )
 
 # Allow CLOG to preprocess all the source files.

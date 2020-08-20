@@ -96,6 +96,11 @@ typedef struct QUIC_DATAPATH_SEND_CONTEXT {
     BOOLEAN Pending;
 
     //
+    // The type of ECN markings needed for send.
+    //
+    QUIC_ECN_TYPE ECN;
+
+    //
     // The proc context owning this send context.
     //
     struct QUIC_DATAPATH_PROC_CONTEXT *Owner;
@@ -159,7 +164,9 @@ typedef struct QUIC_SOCKET_CONTEXT {
     //
     // The control buffer used in RecvMsgHdr.
     //
-    char RecvMsgControl[CMSG_SPACE(sizeof(struct in6_pktinfo))];
+    char RecvMsgControl[CMSG_SPACE(sizeof(struct in6_pktinfo)) +
+                        CMSG_SPACE(sizeof(struct in_pktinfo)) +
+                        2 * CMSG_SPACE(sizeof(int))];
 
     //
     // The buffer used to receive msg headers on socket.
@@ -939,6 +946,48 @@ QuicSocketContextInitialize(
     }
 
     //
+    // Set socket option to receive TOS (= DSCP + ECN) information from the
+    // incoming packet.
+    //
+    Option = TRUE;
+    Result =
+        setsockopt(
+            SocketContext->SocketFd,
+            IPPROTO_IPV6,
+            IPV6_RECVTCLASS,
+            (const void*)&Option,
+            sizeof(Option));
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[ udp][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "setsockopt(IPV6_RECVTCLASS) failed");
+        goto Exit;
+    }
+
+    Option = TRUE;
+    Result =
+        setsockopt(
+            SocketContext->SocketFd,
+            IPPROTO_IP,
+            IP_RECVTOS,
+            (const void*)&Option,
+            sizeof(Option));
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[ udp][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "setsockopt(IP_RECVTOS) failed");
+        goto Exit;
+    }
+
+    //
     // The socket is shared by multiple QUIC endpoints, so increase the receive
     // buffer size.
     //
@@ -1192,40 +1241,49 @@ QuicSocketContextRecvComplete(
     SocketContext->CurrentRecvBlock = NULL;
 
     BOOLEAN FoundLocalAddr = FALSE;
+    BOOLEAN FoundTOS = FALSE;
     QUIC_ADDR* LocalAddr = &RecvPacket->Tuple->LocalAddress;
     QUIC_ADDR* RemoteAddr = &RecvPacket->Tuple->RemoteAddress;
     QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
+
+    RecvPacket->TypeOfService = 0;
 
     struct cmsghdr *CMsg;
     for (CMsg = CMSG_FIRSTHDR(&SocketContext->RecvMsgHdr);
          CMsg != NULL;
          CMsg = CMSG_NXTHDR(&SocketContext->RecvMsgHdr, CMsg)) {
 
-        if (CMsg->cmsg_level == IPPROTO_IPV6 &&
-            CMsg->cmsg_type == IPV6_PKTINFO) {
-            struct in6_pktinfo* PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
-            LocalAddr->Ip.sa_family = AF_INET6;
-            LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
-            LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
-            QuicConvertFromMappedV6(LocalAddr, LocalAddr);
+        if (CMsg->cmsg_level == IPPROTO_IPV6) {
+            if (CMsg->cmsg_type == IPV6_PKTINFO) {
+                struct in6_pktinfo* PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
+                LocalAddr->Ip.sa_family = AF_INET6;
+                LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
+                LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
+                QuicConvertFromMappedV6(LocalAddr, LocalAddr);
 
-            LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
-            FoundLocalAddr = TRUE;
-            break;
-        }
-
-        if (CMsg->cmsg_level == IPPROTO_IP && CMsg->cmsg_type == IP_PKTINFO) {
-            struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
-            LocalAddr->Ip.sa_family = AF_INET;
-            LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
-            LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
-            LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
-            FoundLocalAddr = TRUE;
-            break;
+                LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
+                FoundLocalAddr = TRUE;
+            } else if (CMsg->cmsg_type == IPV6_TCLASS) {
+                RecvPacket->TypeOfService = *(uint8_t *)CMSG_DATA(CMsg);
+                FoundTOS = TRUE;
+            }
+        } else if (CMsg->cmsg_level == IPPROTO_IP) {
+            if (CMsg->cmsg_type == IP_PKTINFO) {
+                struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
+                LocalAddr->Ip.sa_family = AF_INET;
+                LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
+                LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
+                LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
+                FoundLocalAddr = TRUE;
+            } else if (CMsg->cmsg_type == IP_TOS) {
+                RecvPacket->TypeOfService = *(uint8_t *)CMSG_DATA(CMsg);
+                FoundTOS = TRUE;
+            }
         }
     }
 
     QUIC_FRE_ASSERT(FoundLocalAddr);
+    QUIC_FRE_ASSERT(FoundTOS);
 
     QuicTraceEvent(
         DatapathRecv,
@@ -1240,7 +1298,6 @@ QuicSocketContextRecvComplete(
     RecvPacket->BufferLength = BytesTransferred;
 
     RecvPacket->PartitionIndex = ProcContext->Index;
-    RecvPacket->TypeOfService = 0; // TODO - Support ToS/ECN
 
     QUIC_DBG_ASSERT(SocketContext->Binding->Datapath->RecvHandler);
     SocketContext->Binding->Datapath->RecvHandler(
@@ -1402,10 +1459,9 @@ QuicSocketContextProcessEvents(
 {
     uint8_t EventType = *(uint8_t*)EventPtr;
     QUIC_SOCKET_CONTEXT* SocketContext =
-        ((QUIC_SOCKET_CONTEXT*)( \
-            (uint8_t*)(EventPtr) - \
-            (size_t)(&((QUIC_SOCKET_CONTEXT*)0)->EventContexts) -
-            EventType));
+        (QUIC_SOCKET_CONTEXT*)(
+            (uint8_t*)QUIC_CONTAINING_RECORD(EventPtr, QUIC_SOCKET_CONTEXT, EventContexts) -
+            EventType);
 
     if (EventType == QUIC_SOCK_EVENT_CLEANUP) {
         QUIC_DBG_ASSERT(SocketContext->Binding->Shutdown);
@@ -1773,6 +1829,7 @@ QuicDataPathBindingReturnRecvDatagrams(
 QUIC_DATAPATH_SEND_CONTEXT*
 QuicDataPathBindingAllocSendContext(
     _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize
     )
 {
@@ -1800,6 +1857,7 @@ QuicDataPathBindingAllocSendContext(
 
     QuicZeroMemory(SendContext, sizeof(*SendContext));
     SendContext->Owner = ProcContext;
+    SendContext->ECN = ECN;
 
 Exit:
 
@@ -1863,6 +1921,7 @@ QuicDataPathBindingAllocSendDatagram(
             "Allocation of '%s' failed. (%llu bytes)",
             "Send Buffer",
             0);
+        Buffer = NULL;
         goto Exit;
     }
 
@@ -1889,7 +1948,7 @@ QuicDataPathBindingFreeSendDatagram(
     PlatDispatch->DatapathBindingFreeSendBuffer(SendContext, Datagram);
 #else
     QuicPoolFree(&SendContext->Owner->SendBufferPool, Datagram->Buffer);
-    Datagram->Buffer == NULL;
+    Datagram->Buffer = NULL;
 
     QUIC_DBG_ASSERT(Datagram == &SendContext->Buffers[SendContext->BufferCount - 1]);
 
@@ -1909,8 +1968,6 @@ QuicDataPathBindingSend(
     QUIC_SOCKET_CONTEXT* SocketContext = NULL;
     QUIC_DATAPATH_PROC_CONTEXT* ProcContext = NULL;
     ssize_t SentByteCount = 0;
-    size_t i = 0;
-    socklen_t RemoteAddrLen = 0;
     QUIC_ADDR MappedRemoteAddress = {0};
     struct cmsghdr *CMsg = NULL;
     struct in_pktinfo *PktInfo = NULL;
@@ -1918,91 +1975,29 @@ QuicDataPathBindingSend(
     BOOLEAN SendPending = FALSE;
 
     static_assert(CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)), "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
-    char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo))] = {0};
+    char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(int))] = {0};
 
     QUIC_DBG_ASSERT(Binding != NULL && RemoteAddress != NULL && SendContext != NULL);
 
     SocketContext = &Binding->SocketContexts[QuicProcCurrentNumber()];
     ProcContext = &Binding->Datapath->ProcContexts[QuicProcCurrentNumber()];
 
-    RemoteAddrLen =
-        (AF_INET == RemoteAddress->Ip.sa_family) ?
-            sizeof(RemoteAddress->Ipv4) : sizeof(RemoteAddress->Ipv6);
-
+    uint32_t TotalSize = 0;
+    for (size_t i = 0; i < SendContext->BufferCount; ++i) {
+        SendContext->Iovs[i].iov_base = SendContext->Buffers[i].Buffer;
+        SendContext->Iovs[i].iov_len = SendContext->Buffers[i].Length;
+        TotalSize += SendContext->Buffers[i].Length;
+    }
     if (LocalAddress == NULL) {
-        QUIC_DBG_ASSERT(Binding->RemoteAddress.Ipv4.sin_port != 0);
-
-        for (i = SendContext->CurrentIndex;
-            i < SendContext->BufferCount;
-            ++i, SendContext->CurrentIndex++) {
-
-            QuicTraceEvent(
-                DatapathSendTo,
-                "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!",
-                Binding,
-                SendContext->Buffers[i].Length,
-                1,
-                SendContext->Buffers[i].Length,
-                CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress));
-
-            SentByteCount =
-                sendto(
-                    SocketContext->SocketFd,
-                    SendContext->Buffers[i].Buffer,
-                    SendContext->Buffers[i].Length,
-                    0,
-                    (struct sockaddr *)RemoteAddress,
-                    RemoteAddrLen);
-
-            if (SentByteCount < 0) {
-                if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                    Status =
-                        QuicSocketContextPendSend(
-                            SocketContext,
-                            SendContext,
-                            ProcContext,
-                            LocalAddress,
-                            RemoteAddress);
-                    if (QUIC_FAILED(Status)) {
-                        goto Exit;
-                    }
-
-                    SendPending = TRUE;
-                    goto Exit;
-                } else {
-                    //
-                    // Completed with error.
-                    //
-
-                    Status = errno;
-                    QuicTraceEvent(
-                        DatapathErrorStatus,
-                        "[ udp][%p] ERROR, %u, %s.",
-                        SocketContext->Binding,
-                        Status,
-                        "sendto failed");
-                    goto Exit;
-                }
-            } else {
-                //
-                // Completed synchronously.
-                //
-                QuicTraceLogVerbose(
-                    DatapathSendToCompleted,
-                    "[ udp][%p] sendto succeeded, bytes transferred %d",
-                    SocketContext->Binding,
-                    SentByteCount);
-            }
-        }
+        QuicTraceEvent(
+            DatapathSendTo,
+            "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!",
+            Binding,
+            TotalSize,
+            SendContext->BufferCount,
+            SendContext->Buffers[0].Length,
+            CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress));
     } else {
-
-        uint32_t TotalSize = 0;
-        for (i = 0; i < SendContext->BufferCount; ++i) {
-            SendContext->Iovs[i].iov_base = SendContext->Buffers[i].Buffer;
-            SendContext->Iovs[i].iov_len = SendContext->Buffers[i].Length;
-            TotalSize += SendContext->Buffers[i].Length;
-        }
-
         QuicTraceEvent(
             DatapathSendFromTo,
             "[ udp][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
@@ -2012,86 +2007,87 @@ QuicDataPathBindingSend(
             SendContext->Buffers[0].Length,
             CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
             CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
+    }
 
-        //
-        // Map V4 address to dual-stack socket format.
-        //
-        QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
+    //
+    // Map V4 address to dual-stack socket format.
+    //
+    QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
 
-        struct msghdr Mhdr = {
-            .msg_name = &MappedRemoteAddress,
-            .msg_namelen = sizeof(MappedRemoteAddress),
-            .msg_iov = SendContext->Iovs,
-            .msg_iovlen = SendContext->BufferCount,
-            .msg_flags = 0
-        };
+    struct msghdr Mhdr = {
+        .msg_name = &MappedRemoteAddress,
+        .msg_namelen = sizeof(MappedRemoteAddress),
+        .msg_iov = SendContext->Iovs,
+        .msg_iovlen = SendContext->BufferCount,
+        .msg_control = ControlBuffer,
+        .msg_controllen = CMSG_SPACE(sizeof(int)),
+        .msg_flags = 0
+    };
 
-        // TODO: Avoid allocating both.
+    CMsg = CMSG_FIRSTHDR(&Mhdr);
+    CMsg->cmsg_level = RemoteAddress->Ip.sa_family == AF_INET ? IPPROTO_IP : IPPROTO_IPV6;
+    CMsg->cmsg_type = RemoteAddress->Ip.sa_family == AF_INET ? IP_TOS : IPV6_TCLASS;
+    CMsg->cmsg_len = CMSG_LEN(sizeof(int));
+    *(int *)CMSG_DATA(CMsg) = SendContext->ECN;
 
-        if (LocalAddress->Ip.sa_family == AF_INET) {
-            Mhdr.msg_control = ControlBuffer;
-            Mhdr.msg_controllen = CMSG_SPACE(sizeof(struct in_pktinfo));
-
-            CMsg = CMSG_FIRSTHDR(&Mhdr);
+    if (LocalAddress) {
+        Mhdr.msg_controllen += CMSG_SPACE(sizeof(struct in6_pktinfo));
+        CMsg = CMSG_NXTHDR(&Mhdr, CMsg);
+        QUIC_DBG_ASSERT(CMsg != NULL);
+        if (RemoteAddress->Ip.sa_family == AF_INET) {
             CMsg->cmsg_level = IPPROTO_IP;
             CMsg->cmsg_type = IP_PKTINFO;
             CMsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
-
             PktInfo = (struct in_pktinfo*) CMSG_DATA(CMsg);
             // TODO: Use Ipv4 instead of Ipv6.
             PktInfo->ipi_ifindex = LocalAddress->Ipv6.sin6_scope_id;
             PktInfo->ipi_addr = LocalAddress->Ipv4.sin_addr;
         } else {
-            Mhdr.msg_control = ControlBuffer;
-            Mhdr.msg_controllen = CMSG_SPACE(sizeof(struct in6_pktinfo));
-
-            CMsg = CMSG_FIRSTHDR(&Mhdr);
             CMsg->cmsg_level = IPPROTO_IPV6;
             CMsg->cmsg_type = IPV6_PKTINFO;
             CMsg->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
-
             PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
             PktInfo6->ipi6_ifindex = LocalAddress->Ipv6.sin6_scope_id;
             PktInfo6->ipi6_addr = LocalAddress->Ipv6.sin6_addr;
         }
+    }
 
-        SentByteCount = sendmsg(SocketContext->SocketFd, &Mhdr, 0);
+    SentByteCount = sendmsg(SocketContext->SocketFd, &Mhdr, 0);
 
-        if (SentByteCount < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                Status =
-                    QuicSocketContextPendSend(
-                        SocketContext,
-                        SendContext,
-                        ProcContext,
-                        LocalAddress,
-                        RemoteAddress);
-                if (QUIC_FAILED(Status)) {
-                    goto Exit;
-                }
-
-                SendPending = TRUE;
-                goto Exit;
-            } else {
-                Status = errno;
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[ udp][%p] ERROR, %u, %s.",
-                    SocketContext->Binding,
-                    Status,
-                    "sendmsg failed");
+    if (SentByteCount < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            Status =
+                QuicSocketContextPendSend(
+                    SocketContext,
+                    SendContext,
+                    ProcContext,
+                    LocalAddress,
+                    RemoteAddress);
+            if (QUIC_FAILED(Status)) {
                 goto Exit;
             }
+
+            SendPending = TRUE;
+            goto Exit;
         } else {
-            //
-            // Completed synchronously.
-            //
-            QuicTraceLogVerbose(
-                DatapathSendMsgCompleted,
-                "[ udp][%p] sendmsg succeeded, bytes transferred %d",
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[ udp][%p] ERROR, %u, %s.",
                 SocketContext->Binding,
-                SentByteCount);
+                Status,
+                "sendmsg failed");
+            goto Exit;
         }
+    } else {
+        //
+        // Completed synchronously.
+        //
+        QuicTraceLogVerbose(
+            DatapathSendMsgCompleted,
+            "[ udp][%p] sendmsg succeeded, bytes transferred %d",
+            SocketContext->Binding,
+            SentByteCount);
     }
 
     Status = QUIC_STATUS_SUCCESS;

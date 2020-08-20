@@ -107,7 +107,8 @@ RunAttackRandom(
     while (QuicTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs) {
 
         QUIC_DATAPATH_SEND_CONTEXT* SendContext =
-            QuicDataPathBindingAllocSendContext(Binding, Length);
+            QuicDataPathBindingAllocSendContext(
+                Binding, QUIC_ECN_NON_ECT, Length);
         if (SendContext == nullptr) {
             printf("QuicDataPathBindingAllocSendContext failed\n");
             return;
@@ -158,7 +159,8 @@ RunAttackRandom(
 
     uint64_t TimeEnd = QuicTimeMs64();
     printf("%llu packets were sent (%llu Hz).\n",
-        PacketCount, (PacketCount * 1000) / QuicTimeDiff64(TimeStart, TimeEnd));
+        (unsigned long long)PacketCount,
+        (unsigned long long)(PacketCount * 1000) / QuicTimeDiff64(TimeStart, TimeEnd));
 }
 
 #if DEBUG
@@ -211,7 +213,8 @@ RunAttackValidInitial(
     while (QuicTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs) {
 
         QUIC_DATAPATH_SEND_CONTEXT* SendContext =
-            QuicDataPathBindingAllocSendContext(Binding, DatagramLength);
+            QuicDataPathBindingAllocSendContext(
+                Binding, QUIC_ECN_NON_ECT, DatagramLength);
         VERIFY(SendContext);
 
         while (QuicTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs &&
@@ -285,7 +288,8 @@ RunAttackValidInitial(
 
     uint64_t TimeEnd = QuicTimeMs64();
     printf("%llu packets were sent (%llu Hz).\n",
-        PacketCount, (PacketCount * 1000) / QuicTimeDiff64(TimeStart, TimeEnd));
+        (unsigned long long)PacketCount,
+        (unsigned long long)(PacketCount * 1000) / QuicTimeDiff64(TimeStart, TimeEnd));
 }
 
 struct ATTACK_THREAD_CONTEXT {

@@ -211,6 +211,11 @@ typedef struct QUIC_DATAPATH_SEND_CONTEXT {
     uint32_t TotalSize;
 
     //
+    // The type of ECN markings needed for send.
+    //
+    QUIC_ECN_TYPE ECN;
+
+    //
     // The number of WSK buffers allocated.
     //
     UINT8 WskBufferCount;
@@ -2194,6 +2199,7 @@ QuicDataPathBindingReturnRecvDatagrams(
         //
         // Return the datagram indications back to Wsk.
         //
+        QUIC_DBG_ASSERT(Binding != NULL);
         Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, DataIndications);
     }
 }
@@ -2203,6 +2209,7 @@ _Success_(return != NULL)
 QUIC_DATAPATH_SEND_CONTEXT*
 QuicDataPathBindingAllocSendContext(
     _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_ECN_TYPE ECN,
     _In_ UINT16 MaxPacketSize
     )
 {
@@ -2216,6 +2223,7 @@ QuicDataPathBindingAllocSendContext(
 
     if (SendContext != NULL) {
         SendContext->Owner = ProcContext;
+        SendContext->ECN = ECN;
         SendContext->WskBufs = NULL;
         SendContext->TailBuf = NULL;
         SendContext->TotalSize = 0;
@@ -2649,6 +2657,8 @@ QuicDataPathBindingSendTo(
     PWSACMSGHDR CMsg = NULL;
     ULONG CMsgLen = 0;
 
+    // TODO - Use SendContext->ECN if not QUIC_ECN_NON_ECT
+
     if (SendContext->SegmentSize > 0) {
         CMsg = (PWSACMSGHDR)CMsgBuffer;
         CMsgLen += WSA_CMSG_SPACE(sizeof(*SegmentSize));
@@ -2734,6 +2744,8 @@ QuicDataPathBindingSendFromTo(
     BYTE CMsgBuffer[WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) + WSA_CMSG_SPACE(sizeof(*SegmentSize))];
     PWSACMSGHDR CMsg = (PWSACMSGHDR)CMsgBuffer;
     ULONG CMsgLen;
+
+    // TODO - Use SendContext->ECN if not QUIC_ECN_NON_ECT
 
     if (LocalAddress->si_family == AF_INET) {
         CMsgLen = WSA_CMSG_SPACE(sizeof(IN_PKTINFO));

@@ -92,7 +92,7 @@ QuicPlatformUninitialize(
 
 #define ARRAYSIZE(A) (sizeof(A)/sizeof((A)[0]))
 
-#define UNREFERENCED_PARAMETER(P) (P)
+#define UNREFERENCED_PARAMETER(P) (void)(P)
 
 #define QuicNetByteSwapShort(x) htons((x))
 
@@ -561,6 +561,7 @@ QuicTimeDiff64(
 
 inline
 uint32_t
+QUIC_NO_SANITIZE("unsigned-integer-overflow")
 QuicTimeDiff32(
     _In_ uint32_t T1,     // First time measured
     _In_ uint32_t T2      // Second time measured
@@ -589,6 +590,7 @@ QuicTimeAtOrBefore64(
 
 inline
 BOOLEAN
+QUIC_NO_SANITIZE("unsigned-integer-overflow")
 QuicTimeAtOrBefore32(
     _In_ uint32_t T1,
     _In_ uint32_t T2

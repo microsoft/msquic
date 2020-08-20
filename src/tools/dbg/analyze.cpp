@@ -21,7 +21,8 @@ EXT_COMMAND(
     QuicHandle Handle(GetUnnamedArgU64(0));
     auto Type = Handle.Type();
 
-    if (Type == QUIC_HANDLE_TYPE_CLIENT || Type == QUIC_HANDLE_TYPE_CHILD) {
+    if (Type == QUIC_HANDLE_TYPE_CONNECTION_CLIENT ||
+        Type == QUIC_HANDLE_TYPE_CONNECTION_SERVER) {
         AnalyzeConnection(Handle.Addr);
     } else if (Type == QUIC_HANDLE_TYPE_STREAM) {
         AnalyzeStream(Handle.Addr);

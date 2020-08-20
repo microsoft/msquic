@@ -9,13 +9,17 @@ namespace QuicDataServer.Models.Db
     {
         public int DbMachineId { get; set; }
         public string MachineName { get; set; } = null!;
-        public string Description { get; set; } = null!;
-        public string OperatingSystem { get; set; } = null!;
-        public string CPUInfo { get; set; } = null!;
-        public string MemoryInfo { get; set; } = null!;
-        public string NicInfo { get; set; } = null!;
-        public string ExtraInfo { get; set; } = null!;
+        public string? Description { get; set; }
+        public string? OperatingSystem { get; set; }
+        public string? CPUInfo { get; set; }
+        public string? MemoryInfo { get; set; }
+        public string? NicInfo { get; set; }
+        public string? ExtraInfo { get; set; }
 
         public ICollection<DbTestRecord> TestRecords { get; set; } = null!;
+
+        public ICollection<DbThroughputTestRecord> ThroughputTestRecords { get; set; } = null!;
+
+        public ICollection<DbRpsTestRecord> RpsTestRecords { get; set; } = null!;
     }
 }

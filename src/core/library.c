@@ -169,16 +169,16 @@ MsQuicLibraryInitialize(
     //
     // TODO: Add support for CPU hot swap/add.
     //
-    uint32_t MaxProcCount = QuicProcActiveCount();
-    if (MaxProcCount > (uint32_t)MsQuicLib.Settings.MaxPartitionCount) {
-        MaxProcCount = (uint32_t)MsQuicLib.Settings.MaxPartitionCount;
+    MsQuicLib.ProcessorCount = (uint16_t) QuicProcActiveCount();
+    QUIC_FRE_ASSERT(MsQuicLib.ProcessorCount > 0);
+    MsQuicLib.PartitionCount = (uint8_t)MsQuicLib.ProcessorCount;
+    if (MsQuicLib.PartitionCount  > (uint32_t)MsQuicLib.Settings.MaxPartitionCount) {
+        MsQuicLib.PartitionCount  = (uint32_t)MsQuicLib.Settings.MaxPartitionCount;
     }
-    QUIC_FRE_ASSERT(MaxProcCount > 0);
-    MsQuicLib.PartitionCount = (uint8_t)MaxProcCount;
     MsQuicCalculatePartitionMask();
 
     MsQuicLib.PerProc =
-        QUIC_ALLOC_NONPAGED(MsQuicLib.PartitionCount * sizeof(QUIC_LIBRARY_PP));
+        QUIC_ALLOC_NONPAGED(MsQuicLib.ProcessorCount * sizeof(QUIC_LIBRARY_PP));
     if (MsQuicLib.PerProc == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -188,7 +188,7 @@ MsQuicLibraryInitialize(
         goto Error;
     }
 
-    for (uint8_t i = 0; i < MsQuicLib.PartitionCount; ++i) {
+    for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
         QuicPoolInitialize(
             FALSE,
             sizeof(QUIC_CONNECTION),
@@ -247,7 +247,7 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         if (MsQuicLib.PerProc != NULL) {
-            for (uint8_t i = 0; i < MsQuicLib.PartitionCount; ++i) {
+            for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
                 QuicPoolUninitialize(&MsQuicLib.PerProc[i].ConnectionPool);
                 QuicPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
                 QuicPoolUninitialize(&MsQuicLib.PerProc[i].PacketSpacePool);
@@ -319,7 +319,7 @@ MsQuicLibraryUninitialize(
     //
     QUIC_TEL_ASSERT(QuicListIsEmpty(&MsQuicLib.Bindings));
 
-    for (uint8_t i = 0; i < MsQuicLib.PartitionCount; ++i) {
+    for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
         QuicPoolUninitialize(&MsQuicLib.PerProc[i].ConnectionPool);
         QuicPoolUninitialize(&MsQuicLib.PerProc[i].TransportParamPool);
         QuicPoolUninitialize(&MsQuicLib.PerProc[i].PacketSpacePool);
@@ -453,8 +453,8 @@ MsQuicSetCallbackHandler(
             (QUIC_LISTENER_CALLBACK_HANDLER)Handler;
         break;
 
-    case QUIC_HANDLE_TYPE_CLIENT:
-    case QUIC_HANDLE_TYPE_CHILD:
+    case QUIC_HANDLE_TYPE_CONNECTION_CLIENT:
+    case QUIC_HANDLE_TYPE_CONNECTION_SERVER:
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         ((QUIC_CONNECTION*)Handle)->ClientCallbackHandler =
             (QUIC_CONNECTION_CALLBACK_HANDLER)Handler;
@@ -718,8 +718,8 @@ QuicLibrarySetParam(
         Registration = Session->Registration;
         break;
 
-    case QUIC_HANDLE_TYPE_CLIENT:
-    case QUIC_HANDLE_TYPE_CHILD:
+    case QUIC_HANDLE_TYPE_CONNECTION_CLIENT:
+    case QUIC_HANDLE_TYPE_CONNECTION_SERVER:
         Stream = NULL;
         Listener = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
@@ -854,8 +854,8 @@ QuicLibraryGetParam(
         Registration = Session->Registration;
         break;
 
-    case QUIC_HANDLE_TYPE_CLIENT:
-    case QUIC_HANDLE_TYPE_CHILD:
+    case QUIC_HANDLE_TYPE_CONNECTION_CLIENT:
+    case QUIC_HANDLE_TYPE_CONNECTION_SERVER:
         Stream = NULL;
         Listener = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
@@ -1345,6 +1345,7 @@ Fail:
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_WORKER*
+QUIC_NO_SANITIZE("implicit-conversion")
 QuicLibraryGetWorker(
     void
     )

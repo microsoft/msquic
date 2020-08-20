@@ -125,12 +125,13 @@ MsQuicListenerClose(
     MsQuicListenerStop(Handle);
 
     QuicRundownUninitialize(&Listener->Rundown);
-    QUIC_FREE(Listener);
 
     QuicTraceEvent(
         ListenerDestroyed,
         "[list][%p] Destroyed",
         Listener);
+
+    QUIC_FREE(Listener);
     QuicRundownRelease(&Session->Rundown);
 
     QuicTraceEvent(

@@ -57,6 +57,9 @@ This script provides helpers for building msquic.
 .PARAMETER SkipSourceLink
     Skip generating sourcelink and inserting it into the PDB.
 
+.PARAMETER Clang
+    Build with Clang if available
+
 .EXAMPLE
     build.ps1
 
@@ -96,7 +99,7 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$DisableTest = $false,
-    
+
     [Parameter(Mandatory = $false)]
     [switch]$DisablePerf = $false,
 
@@ -119,7 +122,10 @@ param (
     [switch]$SkipPdbAltPath = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$SkipSourceLink = $false
+    [switch]$SkipSourceLink = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$Clang = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -185,6 +191,14 @@ if (!(Test-Path $BaseArtifactsDir)) {
     New-Item -Path $BaseArtifactsDir -ItemType Directory -Force | Out-Null
 }
 if (!(Test-Path $BuildDir)) { New-Item -Path $BuildDir -ItemType Directory -Force | Out-Null }
+
+if ($Clang) {
+    if ($IsWindows) {
+        Write-Error "Clang is not supported on windows currently"
+    }
+    $env:CC = 'clang'
+    $env:CXX = 'clang++'
+}
 
 function Log($msg) {
     Write-Host "[$(Get-Date)] $msg"

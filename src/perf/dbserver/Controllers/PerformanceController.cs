@@ -5,7 +5,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -20,7 +19,6 @@ using QuicDataServer.Models.Db;
 
 namespace QuicDataServer.Controllers
 {
-
     [ApiController]
     [Route("[controller]")]
     public class PerformanceController : ControllerBase
@@ -46,6 +44,7 @@ namespace QuicDataServer.Controllers
         {
             var query = _context.Platforms.SelectMany(x => x.Tests, (platform, test) => new { platform, test })
                 .SelectMany(x => x.test.TestRecords, (plattest, testrun) => new { plattest.platform, plattest.test, testrun })
+                .OrderByDescending(x => x.testrun.TestDate)
                 .Select(x => new TestRecord
                 {
                     CommitHash = x.testrun.CommitHash,
@@ -192,7 +191,6 @@ namespace QuicDataServer.Controllers
             return (testEntity.Entity.DbTestId, machineId.Value);
         }
 
-
         /// <summary>
         /// Adds a new test result, with the time specified in the submitted data.
         /// </summary>
@@ -218,7 +216,7 @@ namespace QuicDataServer.Controllers
                 return Unauthorized();
             }
 
-            // Get Test Records 
+            // Get Test Records
             (var testId, var machineId) = await VerifyPlatformTestAndMachine(testResult.PlatformName, testResult.TestName, testResult.MachineName);
 
             var newRecord = new DbTestRecord
@@ -259,7 +257,7 @@ namespace QuicDataServer.Controllers
                 return Unauthorized();
             }
 
-            // Get Test Records 
+            // Get Test Records
             (var testId, var machineId) = await VerifyPlatformTestAndMachine(testResult.PlatformName, testResult.TestName, testResult.MachineName);
 
             var newRecord = new DbTestRecord

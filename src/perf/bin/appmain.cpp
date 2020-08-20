@@ -9,10 +9,8 @@ Abstract:
 
 --*/
 
-#define QUIC_TEST_APIS 1
-#include "quic_driver_main.h"
 #include "PerfHelpers.h"
-#include <quic_trace.h>
+
 #ifdef QUIC_CLOG
 #include "appmain.cpp.clog.h"
 #endif
@@ -31,7 +29,12 @@ Abstract:
 
 #endif
 
+#include "quic_datapath.h"
+
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
+
+QUIC_DATAPATH_RECEIVE_CALLBACK DatapathReceiveUserMode;
+QUIC_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
 
 QUIC_STATUS
 QuicUserMain(
@@ -40,11 +43,35 @@ QuicUserMain(
     _In_ bool KeyboardWait,
     _In_ PerfSelfSignedConfiguration* SelfSignedConfig
     ) {
-    QUIC_EVENT StopEvent;
-    QuicEventInitialize(&StopEvent, true, false);
+    EventScope StopEvent {true};
 
-    QUIC_STATUS Status = QuicMainStart(argc, argv, StopEvent, SelfSignedConfig);
-    if (Status != 0) {
+    uint8_t ServerMode = 0;
+    TryGetValue(argc, argv, "ServerMode", &ServerMode);
+
+    QUIC_STATUS Status;
+    QUIC_DATAPATH* Datapath = nullptr;
+    QUIC_DATAPATH_BINDING* Binding = nullptr;
+
+    if (ServerMode) {
+        Status = QuicDataPathInitialize(0, DatapathReceiveUserMode, DatapathUnreachable, &Datapath);
+        if (QUIC_FAILED(Status)) {
+            return Status;
+        }
+
+        QuicAddr LocalAddress {AF_INET, (uint16_t)9999};
+        Status = QuicDataPathBindingCreate(Datapath, &LocalAddress.SockAddr, nullptr, &StopEvent.Handle, &Binding);
+        if (QUIC_FAILED(Status)) {
+            QuicDataPathUninitialize(Datapath);
+            return Status;
+        }
+    }
+
+    Status = QuicMainStart(argc, argv, &StopEvent.Handle, SelfSignedConfig);
+    if (QUIC_FAILED(Status)) {
+        if (ServerMode) {
+            QuicDataPathBindingDelete(Binding);
+            QuicDataPathUninitialize(Datapath);
+        }
         return Status;
     }
 
@@ -58,7 +85,12 @@ QuicUserMain(
     }
 
     Status = QuicMainStop(0);
-    QuicEventUninitialize(StopEvent);
+
+    if (ServerMode) {
+        QuicDataPathBindingDelete(Binding);
+        QuicDataPathUninitialize(Datapath);
+    }
+
     return Status;
 }
 
@@ -68,7 +100,7 @@ QUIC_STATUS
 QuicKernelMain(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ bool KeyboardWait,
+    _In_ bool /*KeyboardWait*/,
     _In_ QUIC_SEC_CONFIG_PARAMS* SelfSignedParams
     ) {
     size_t TotalLength = sizeof(argc);
@@ -221,4 +253,27 @@ Exit:
     QuicPlatformSystemUnload();
 
     return RetVal;
+}
+
+void
+DatapathReceiveUserMode(
+    _In_ QUIC_DATAPATH_BINDING*,
+    _In_ void* Context,
+    _In_ QUIC_RECV_DATAGRAM*
+    )
+{
+    QUIC_EVENT* Event = static_cast<QUIC_EVENT*>(Context);
+    QuicEventSet(*Event);
+}
+
+void
+DatapathUnreachable(
+    _In_ QUIC_DATAPATH_BINDING*,
+    _In_ void*,
+    _In_ const QUIC_ADDR*
+    )
+{
+    //
+    // Do nothing, we never send
+    //
 }

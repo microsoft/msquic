@@ -136,7 +136,7 @@ if ($Debugger) {
     $Arguments += " -Debugger"
 }
 if ("None" -ne $LogProfile) {
-    $Arguments += " -LogProfile $($LogProfile) -ConvertLogs"
+    $Arguments += " -LogProfile $($LogProfile)"
 }
 
 $ExtraArgs = ""

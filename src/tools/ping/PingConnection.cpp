@@ -17,10 +17,10 @@ PingConnection::PingConnection(
     _In_ bool DumpResumption
     ) :
     Tracker(Tracker), QuicConnection(nullptr), DumpResumption(DumpResumption),
-    ConnectedSuccessfully(false), BytesSent(0), BytesReceived(0), DatagramLength(0),
-    DatagramsSent(0), DatagramsAcked(0), DatagramsLost(0), DatagramsCancelled(0),
-    DatagramsReceived(0), DatagramsJitterTotal(0), DatagramLastTime(0),
-    TimedOut(false), IsServer(false)  {
+    IsServer(false), ConnectedSuccessfully(false), TimedOut(false),
+    BytesSent(0), BytesReceived(0), DatagramLength(0), DatagramsSent(0),
+    DatagramsAcked(0), DatagramsLost(0), DatagramsCancelled(0),
+    DatagramsReceived(0), DatagramsJitterTotal(0), DatagramLastTime(0) {
 
     if (QUIC_FAILED(
         MsQuic->ConnectionOpen(
@@ -37,10 +37,10 @@ PingConnection::PingConnection(
     _In_ HQUIC Connection
     ) :
     Tracker(Tracker), QuicConnection(Connection), DumpResumption(false),
-    ConnectedSuccessfully(false), BytesSent(0), BytesReceived(0), DatagramLength(0),
-    DatagramsSent(0), DatagramsAcked(0), DatagramsLost(0), DatagramsCancelled(0),
-    DatagramsReceived(0), DatagramsJitterTotal(0), DatagramLastTime(0),
-    TimedOut(false) {
+    ConnectedSuccessfully(false), TimedOut(false), BytesSent(0),
+    BytesReceived(0), DatagramLength(0), DatagramsSent(0), DatagramsAcked(0),
+    DatagramsLost(0), DatagramsCancelled(0), DatagramsReceived(0),
+    DatagramsJitterTotal(0), DatagramLastTime(0) {
 
     StartTime = QuicTimeUs64();
     MsQuic->SetCallbackHandler(Connection, (void*)QuicCallbackHandler, this);
@@ -54,10 +54,10 @@ PingConnection::~PingConnection() {
 
 bool
 PingConnection::Initialize(
-    bool IsServer
+    bool isServer
     )
 {
-    this->IsServer = IsServer;
+    this->IsServer = isServer;
 
     if (!PingConfig.UseSendBuffer) {
         BOOLEAN Opt = FALSE;
@@ -345,13 +345,13 @@ PingConnection::ProcessEvent(
 
             printf("[%p] Failed to connect: 0x%llx in %u.%03u milliseconds.\n",
                 QuicConnection,
-                Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode,
+                (unsigned long long)Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode,
                 (uint32_t)(ElapsedMicroseconds / 1000),
                 (uint32_t)(ElapsedMicroseconds % 1000));
         } else {
             printf("[%p] App Closed with error: 0x%llx.\n",
                 QuicConnection,
-                Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
+                (unsigned long long)Event->SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
         }
         break;
     }
@@ -376,19 +376,23 @@ PingConnection::ProcessEvent(
                 QuicConnection,
                 (uint32_t)(ElapsedMicroseconds / 1000),
                 (uint32_t)(ElapsedMicroseconds % 1000),
-                BytesSent, SendRate, BytesReceived, RecvRate);
+                (unsigned long long)BytesSent, SendRate,
+                (unsigned long long)BytesReceived, RecvRate);
 
             if (DatagramsReceived != 0) {
                 uint64_t Jitter = DatagramsJitterTotal / (DatagramsReceived - 1);
                 printf("[%p] Datagrams: %llu recv | %u.%03u ms jitter\n",
                     QuicConnection,
-                    DatagramsReceived,
+                    (unsigned long long)DatagramsReceived,
                     (uint32_t)(Jitter / 1000),
                     (uint32_t)(Jitter % 1000));
             } else if (DatagramsSent != 0) {
                 printf("[%p] Datagrams: %llu sent | %llu acked | %llu lost | %llu cancelled\n",
                     QuicConnection,
-                    DatagramsSent, DatagramsAcked, DatagramsLost, DatagramsCancelled);
+                    (unsigned long long)DatagramsSent,
+                    (unsigned long long)DatagramsAcked,
+                    (unsigned long long)DatagramsLost,
+                    (unsigned long long)DatagramsCancelled);
             }
         }
 
@@ -424,24 +428,24 @@ PingConnection::ProcessEvent(
                 &StatsLength,
                 &Stats);
             printf("[%p] Transport Statistics:\n", QuicConnection);
-            printf("[%p]   Correlation Id:           %llu\n", QuicConnection, Stats.CorrelationId);
+            printf("[%p]   Correlation Id:           %llu\n", QuicConnection, (unsigned long long)Stats.CorrelationId);
             printf("[%p]   RTT:                      %u us (min:%u max:%u)\n", QuicConnection, Stats.Rtt, Stats.MinRtt, Stats.MaxRtt);
             printf("[%p]   Send:\n", QuicConnection);
             printf("[%p]     PMTU:                   %hu bytes\n", QuicConnection, Stats.Send.PathMtu);
-            printf("[%p]     Total Packets:          %llu\n", QuicConnection, Stats.Send.TotalPackets);
-            printf("[%p]     Lost Packets:           %llu\n", QuicConnection, Stats.Send.SuspectedLostPackets - Stats.Send.SpuriousLostPackets);
-            printf("[%p]     Spurious Packets:       %llu\n", QuicConnection, Stats.Send.SpuriousLostPackets);
-            printf("[%p]     Total Bytes:            %llu\n", QuicConnection, Stats.Send.TotalBytes);
-            printf("[%p]     Stream Bytes:           %llu\n", QuicConnection, Stats.Send.TotalStreamBytes);
+            printf("[%p]     Total Packets:          %llu\n", QuicConnection, (unsigned long long)Stats.Send.TotalPackets);
+            printf("[%p]     Lost Packets:           %llu\n", QuicConnection, (unsigned long long)(Stats.Send.SuspectedLostPackets - Stats.Send.SpuriousLostPackets));
+            printf("[%p]     Spurious Packets:       %llu\n", QuicConnection, (unsigned long long)Stats.Send.SpuriousLostPackets);
+            printf("[%p]     Total Bytes:            %llu\n", QuicConnection, (unsigned long long)Stats.Send.TotalBytes);
+            printf("[%p]     Stream Bytes:           %llu\n", QuicConnection, (unsigned long long)Stats.Send.TotalStreamBytes);
             printf("[%p]     Congestion Events:      %u\n", QuicConnection, Stats.Send.CongestionCount);
             printf("[%p]     Pers Congestion Events: %u\n", QuicConnection, Stats.Send.PersistentCongestionCount);
             printf("[%p]   Recv:\n", QuicConnection);
-            printf("[%p]     Total Packets:          %llu\n", QuicConnection, Stats.Recv.TotalPackets);
-            printf("[%p]     Reordered Packets:      %llu\n", QuicConnection, Stats.Recv.ReorderedPackets);
-            printf("[%p]     Dropped Packets:        %llu\n", QuicConnection, Stats.Recv.DroppedPackets);
-            printf("[%p]     Decryption Failures:    %llu\n", QuicConnection, Stats.Recv.DecryptionFailures);
-            printf("[%p]     Total Bytes:            %llu\n", QuicConnection, Stats.Recv.TotalBytes);
-            printf("[%p]     Stream Bytes:           %llu\n", QuicConnection, Stats.Recv.TotalStreamBytes);
+            printf("[%p]     Total Packets:          %llu\n", QuicConnection, (unsigned long long)Stats.Recv.TotalPackets);
+            printf("[%p]     Reordered Packets:      %llu\n", QuicConnection, (unsigned long long)Stats.Recv.ReorderedPackets);
+            printf("[%p]     Dropped Packets:        %llu\n", QuicConnection, (unsigned long long)Stats.Recv.DroppedPackets);
+            printf("[%p]     Decryption Failures:    %llu\n", QuicConnection, (unsigned long long)Stats.Recv.DecryptionFailures);
+            printf("[%p]     Total Bytes:            %llu\n", QuicConnection, (unsigned long long)Stats.Recv.TotalBytes);
+            printf("[%p]     Stream Bytes:           %llu\n", QuicConnection, (unsigned long long)Stats.Recv.TotalStreamBytes);
             printf("[%p]   Misc:\n", QuicConnection);
             printf("[%p]     Key Updates:            %u\n", QuicConnection, Stats.Misc.KeyUpdateCount);
         }
@@ -498,6 +502,8 @@ PingConnection::ProcessEvent(
             break;
         case QUIC_DATAGRAM_SEND_CANCELED:
             DatagramsCancelled++;
+            break;
+        default:
             break;
         }
 

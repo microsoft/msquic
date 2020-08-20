@@ -24,9 +24,6 @@ This script runs an executable and collects and logs or process dumps as necessa
 .PARAMETER LogProfile
     The name of the profile to use for log collection.
 
-.PARAMETER ConvertLogs
-    Convert any collected logs to text. Only works when LogProfile is set.
-
 .PARAMETER CompressOutput
     Compresses the output files generated for failed test cases.
 
@@ -63,9 +60,6 @@ param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
     [string]$LogProfile = "None",
-
-    [Parameter(Mandatory = $false)]
-    [switch]$ConvertLogs = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$CompressOutput = $false,
@@ -155,7 +149,7 @@ $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\Loca
 function Start-Executable {
     $Now = (Get-Date -UFormat "%Y-%m-%dT%T")
     if ($LogProfile -ne "None" -and !$CodeCoverage) {
-        & $LogScript -Start -LogProfile $LogProfile | Out-Null
+        & $LogScript -Start -Profile $LogProfile | Out-Null
     }
 
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
@@ -248,7 +242,7 @@ function Wait-Executable($Exe) {
             Sleep -Seconds 5
             if ($LogProfile -ne "None") {
                 # Start logs to trigger the rundown code paths.
-                & $LogScript -Start -LogProfile $LogProfile | Out-Null
+                & $LogScript -Start -Profile $LogProfile | Out-Null
             }
             # Set a registry key to trigger the settings code paths.
             reg.exe add HKLM\SYSTEM\CurrentControlSet\Services\MsQuic\Parameters\Apps\spinquic /v InitialWindowPackets /t REG_DWORD /d 20 /f | Out-Null
@@ -322,10 +316,8 @@ function Wait-Executable($Exe) {
             if ($LogProfile -ne "None") {
                 if ($CodeCoverage) {
                     & $LogScript -Cancel | Out-Null
-                } elseif ($ConvertLogs) {
-                    & $LogScript -Stop -OutputDirectory $LogDir -ConvertToText
                 } else {
-                    & $LogScript -Stop -OutputDirectory $LogDir | Out-Null
+                    & $LogScript -Stop -OutputDirectory $LogDir -Tmfpath (Join-Path $RootDir "artifacts" "tmf")
                 }
             }
 

@@ -66,6 +66,7 @@ QuicBindingInitialize(
     Binding->ServerOwned = ServerOwned;
     Binding->Connected = RemoteAddress == NULL ? FALSE : TRUE;
     Binding->StatelessOperCount = 0;
+    Binding->ResetTokenHash = NULL;
     QuicDispatchRwLockInitialize(&Binding->RwLock);
     QuicDispatchLockInitialize(&Binding->ResetTokenLock);
     QuicDispatchLockInitialize(&Binding->StatelessOperLock);
@@ -675,7 +676,10 @@ QuicBindingProcessStatelessOperation(
         OperationType);
 
     QUIC_DATAPATH_SEND_CONTEXT* SendContext =
-        QuicDataPathBindingAllocSendContext(Binding->DatapathBinding, 0);
+        QuicDataPathBindingAllocSendContext(
+            Binding->DatapathBinding,
+            QUIC_ECN_NON_ECT,
+            0);
     if (SendContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -736,10 +740,11 @@ QuicBindingProcessStatelessOperation(
         QuicRandom(sizeof(uint8_t), &RandomValue);
         VerNeg->Unused = 0x7F & RandomValue;
 
-        uint32_t* SupportedVersion = (uint32_t*)Buffer;
-        SupportedVersion[0] = Binding->RandomReservedVersion;
+        memcpy(Buffer, &Binding->RandomReservedVersion, sizeof(uint32_t));
+        Buffer += sizeof(uint32_t);
         for (uint32_t i = 0; i < ARRAYSIZE(QuicSupportedVersionList); ++i) {
-            SupportedVersion[1 + i] = QuicSupportedVersionList[i].Number;
+            memcpy(Buffer, &QuicSupportedVersionList[i].Number, sizeof(uint32_t));
+            Buffer += sizeof(uint32_t);
         }
 
         QuicTraceLogVerbose(

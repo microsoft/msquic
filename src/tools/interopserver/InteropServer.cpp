@@ -19,7 +19,9 @@ const char* UploadFolderPath;
 const QUIC_BUFFER SupportedALPNs[] = {
     { sizeof("hq-29") - 1, (uint8_t*)"hq-29" },
     { sizeof("hq-28") - 1, (uint8_t*)"hq-28" },
-    { sizeof("hq-27") - 1, (uint8_t*)"hq-27" }
+    { sizeof("hq-27") - 1, (uint8_t*)"hq-27" },
+    { sizeof("siduck") - 1, (uint8_t*)"siduck" },
+    { sizeof("siduck-00") - 1, (uint8_t*)"siduck-00" }
 };
 
 void
@@ -186,8 +188,9 @@ HttpRequest::Process()
         return;
     }
 
+    char index[] = "/index.html";
     if (strcmp("/", PathStart) == 0) {
-        PathStart = "/index.html";
+        PathStart = index;
     }
 
     char FullFilePath[256];
@@ -367,6 +370,8 @@ HttpRequest::QuicBidiCallbackHandler(
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         delete pThis;
         break;
+    default:
+        break;
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -397,10 +402,12 @@ HttpRequest::QuicUnidiCallbackHandler(
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
         printf("[%s] Peer abort (0x%llx)\n",
             GetRemoteAddr(MsQuic, Stream).Address,
-            Event->PEER_SEND_ABORTED.ErrorCode);
+            (unsigned long long)Event->PEER_SEND_ABORTED.ErrorCode);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         delete pThis;
+        break;
+    default:
         break;
     }
     return QUIC_STATUS_SUCCESS;

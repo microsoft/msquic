@@ -156,6 +156,11 @@ typedef struct QUIC_DATAPATH_SEND_CONTEXT {
     UINT16 SegmentSize;
 
     //
+    // The type of ECN markings needed for send.
+    //
+    QUIC_ECN_TYPE ECN;
+
+    //
     // The current number of WsaBuffers used.
     //
     UINT8 WsaBufferCount;
@@ -2115,6 +2120,7 @@ _Success_(return != NULL)
 QUIC_DATAPATH_SEND_CONTEXT*
 QuicDataPathBindingAllocSendContext(
     _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize
     )
 {
@@ -2128,6 +2134,7 @@ QuicDataPathBindingAllocSendContext(
 
     if (SendContext != NULL) {
         SendContext->Owner = ProcContext;
+        SendContext->ECN = ECN;
         SendContext->SegmentSize =
             (Binding->Datapath->Features & QUIC_DATAPATH_FEATURE_SEND_SEGMENTATION)
                 ? MaxPacketSize : 0;
@@ -2444,6 +2451,8 @@ QuicDataPathBindingSendTo(
     WSAMhdr.Control.buf = NULL;
     WSAMhdr.Control.len = 0;
 
+    // TODO - Use SendContext->ECN if not QUIC_ECN_NON_ECT
+
     PWSACMSGHDR CMsg;
     BYTE CtrlBuf[WSA_CMSG_SPACE(sizeof(*SegmentSize))];
 
@@ -2563,6 +2572,8 @@ QuicDataPathBindingSendFromTo(
     WSAMhdr.namelen = sizeof(MappedRemoteAddress);
     WSAMhdr.lpBuffers = SendContext->WsaBuffers;
     WSAMhdr.dwBufferCount = SendContext->WsaBufferCount;
+
+    // TODO - Use SendContext->ECN if not QUIC_ECN_NON_ECT
 
     PWSACMSGHDR CMsg;
     BYTE CtrlBuf[WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) + WSA_CMSG_SPACE(sizeof(*SegmentSize))];

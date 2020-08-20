@@ -42,9 +42,7 @@ Supported Environments:
 #define S_TO_MS(x)      ((x) * 1000)
 
 #define QUIC_CONTAINING_RECORD(address, type, field) \
-    ((type *)( \
-        (uint8_t*)(address) - \
-        (size_t)(&((type *)0)->field)))
+    ((type *)((uint8_t*)(address) - offsetof(type, field)))
 
 typedef struct QUIC_LIST_ENTRY {
     struct QUIC_LIST_ENTRY* Flink;

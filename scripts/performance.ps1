@@ -45,6 +45,9 @@ This script runs performance tests locally for a period of time.
 .PARAMETER RecordQUIC
     Record QUIC specific trace events
 
+.PARAMETER TestToRun
+    Run a specific test name
+
 #>
 
 param (
@@ -99,7 +102,10 @@ param (
     [int]$Timeout = 60,
 
     [Parameter(Mandatory = $false)]
-    [switch]$RecordQUIC = $false
+    [switch]$RecordQUIC = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$TestToRun = ""
 )
 
 Set-StrictMode -Version 'Latest'
@@ -149,16 +155,6 @@ if ($TestsFile -eq "") {
 
 Import-Module (Join-Path $PSScriptRoot 'performance-helper.psm1') -Force
 
-Set-ScriptVariables -Local $Local `
-                    -LocalTls $LocalTls `
-                    -LocalArch $LocalArch `
-                    -RemoteTls $RemoteTls `
-                    -RemoteArch $RemoteArch `
-                    -Config $Config `
-                    -Publish $Publish `
-                    -Record $Record `
-                    -RecordQUIC $RecordQUIC
-
 if ($Local) {
     $RemoteAddress = "localhost"
     $Session = $null
@@ -187,9 +183,17 @@ if ($Local) {
     Write-Output "Local IP Connection $LocalAddress"
 }
 
-Set-Session -Session $Session
-
-
+Set-ScriptVariables -Local $Local `
+                    -LocalTls $LocalTls `
+                    -LocalArch $LocalArch `
+                    -RemoteTls $RemoteTls `
+                    -RemoteArch $RemoteArch `
+                    -Config $Config `
+                    -Publish $Publish `
+                    -Record $Record `
+                    -RecordQUIC $RecordQUIC `
+                    -RemoteAddress $RemoteAddress `
+                    -Session $Session
 
 $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     if ($IsWindows) {
@@ -286,14 +290,16 @@ function Invoke-Test {
         Write-Error "Failed to Run $Test because of missing exe"
     }
 
-    $LocalArguments = $Test.Local.Arguments.GetArguments().Replace('$RemoteAddress', $RemoteAddress)
+    $LocalArguments = $Test.Local.Arguments.Replace('$RemoteAddress', $RemoteAddress)
     $LocalArguments = $LocalArguments.Replace('$LocalAddress', $LocalAddress)
 
     $CertThumbprint = Invoke-TestCommand -Session $Session -ScriptBlock {
         return $env:QUICCERT
     }
 
-    $RemoteArguments = $Test.Remote.Arguments.GetArguments().Replace('$Thumbprint', $CertThumbprint)
+    $RemoteArguments = $Test.Remote.Arguments.Replace('$Thumbprint', $CertThumbprint)
+
+    Write-Debug "Running Remote: $RemoteExe Args: $RemoteArguments"
 
     # Starting the server
     $RemoteJob = Invoke-RemoteExe -Exe $RemoteExe -RunArgs $RemoteArguments
@@ -310,6 +316,7 @@ function Invoke-Test {
 
     try {
         1..$Test.Iterations | ForEach-Object {
+            Write-Debug "Running Local: $LocalExe Args: $LocalArguments"
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout
             $LocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
             $AllRunsResults += $LocalParsedResults
@@ -318,7 +325,7 @@ function Invoke-Test {
                 Merge-PGOCounts -Path $LocalExePath
             }
 
-            Write-Output "Run $($_): $LocalParsedResults kbps"
+            Write-Output "Run $($_): $LocalParsedResults $($Test.Units)"
             $LocalResults | Write-Debug
         }
     } finally {
@@ -372,11 +379,29 @@ try {
         Write-Error "Tests are not valid"
     }
 
+    # Find All Remote processes, and kill them
+    if (!$Local) {
+        foreach ($Test in $Tests) {
+            $ExeName = $Test.Remote.Exe
+            Invoke-TestCommand -Session $Session -ScriptBlock {
+                param ($ExeName)
+                try {
+                    Stop-Process -Name $ExeName -Force
+                } catch {
+                }
+            } -ArgumentList $ExeName
+        }
+
+    }
+
     if (!$SkipDeploy -and !$Local) {
         Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory
     }
 
     foreach ($Test in $Tests) {
+        if ($TestToRun -ne "" -and $Test.TestName -ne $TestToRun) {
+            continue
+        }
         if (Test-CanRunTest -Test $Test -RemotePlatform $RemotePlatform -LocalPlatform $LocalPlatform) {
             Invoke-Test -Test $Test
         } else {
@@ -386,7 +411,11 @@ try {
 
     if ($PGO) {
         Write-Host "Saving msquic.pgd out for publishing."
-        Copy-Item "$LocalExePath\msquic.pgd" $OutputDir
+        if ($Local) {
+            Copy-Item "$LocalExePath\msquic.pgd" "$OutputDir\msquic_local.pgd"
+        } else {
+            Copy-Item "$LocalExePath\msquic.pgd" $OutputDir
+        }
     }
 
 } finally {

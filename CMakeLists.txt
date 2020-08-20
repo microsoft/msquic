@@ -103,12 +103,13 @@ option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
 option(QUIC_BUILD_TEST "Builds the test code" ON)
 option(QUIC_BUILD_PERF "Builds the perf code" ON)
 option(QUIC_ENABLE_LOGGING "Enables logging" ON)
-option(QUIC_SANITIZE_ADDRESS "Enables address sanitizer" OFF)
+option(QUIC_ENABLE_SANITIZERS "Enables sanitizers" OFF)
 option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
 option(QUIC_UWP_BUILD "Build for UWP" OFF)
 option(QUIC_PGO "Enables profile guided optimizations" OFF)
 option(QUIC_SOURCE_LINK "Enables source linking on MSVC" ON)
 option(QUIC_PDBALTPATH "Enable PDBALTPATH setting on MSVC" ON)
+option(QUIC_CODE_CHECK "Run static code checkers" OFF)
 
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
 if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
@@ -161,12 +162,12 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 
 if (QUIC_ENABLE_LOGGING)
-    execute_process(COMMAND clog --installDirectory ${CMAKE_SOURCE_DIR}/build/clog)
+    execute_process(COMMAND clog --installDirectory ${QUIC_BUILD_DIR}/clog)
 
     set(CMAKE_CLOG_OUTPUT_DIRECTORY ${QUIC_BUILD_DIR}/inc)
     set(CMAKE_CLOG_SIDECAR_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest)
-    set(CLOG_INCLUDE_DIRECTORY ${CMAKE_SOURCE_DIR}/build/clog)
-    set(CMAKE_CLOG_GENERATE_FILE ${CMAKE_SOURCE_DIR}/build/clog/CLog.cmake)
+    set(CLOG_INCLUDE_DIRECTORY ${QUIC_BUILD_DIR}/clog)
+    set(CMAKE_CLOG_GENERATE_FILE ${QUIC_BUILD_DIR}/clog/CLog.cmake)
     set(CMAKE_CLOG_CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/msquic.clog_config)
     include(${CMAKE_CLOG_GENERATE_FILE})
 
@@ -175,10 +176,10 @@ if (QUIC_ENABLE_LOGGING)
         target_link_libraries(${ARGV0} PRIVATE inc)
         set_property(TARGET ${ARGV0} PROPERTY FOLDER "clog")
     endfunction()
-else()	
-    function(add_clog_library)	
-        add_library(${ARGV0} INTERFACE)	
-    endfunction()	
+else()
+    function(add_clog_library)
+        add_library(${ARGV0} INTERFACE)
+    endfunction()
 endif()
 
 set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
@@ -194,7 +195,12 @@ if (WIN32)
 else()
     set(QUIC_COMMON_FLAGS "")
     set(QUIC_COMMON_DEFINES "")
-    set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits -Wno-unknown-pragmas -Wno-unused-value -Wno-multichar CACHE INTERNAL "")
+    set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
+        -Wno-unknown-pragmas -Wno-multichar -Wno-missing-field-initializers
+        CACHE INTERNAL "")
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        list(APPEND QUIC_WARNING_FLAGS -Wno-missing-braces -Wno-microsoft-anon-tag)
+    endif()
 endif()
 
 if(WIN32)
@@ -244,8 +250,8 @@ if(WIN32)
         list(APPEND QUIC_COMMON_DEFINES QUIC_TLS_STUB)
     endif()
 
-    if(QUIC_SANITIZE_ADDRESS)
-        message(STATUS "Address sanitizer unsupported on this platform.")
+    if(QUIC_ENABLE_SANITIZERS)
+        message(STATUS "Sanitizers unsupported on this platform.")
     endif()
 
     set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})
@@ -285,7 +291,7 @@ if(WIN32)
 
 else()
     # Custom build flags.
-    
+
     list(APPEND QUIC_COMMON_FLAGS -fms-extensions -fPIC)
     if (QUIC_PLATFORM STREQUAL "darwin")
         list(APPEND QUIC_COMMON_DEFINES QUIC_PLATFORM_DARWIN)
@@ -294,9 +300,9 @@ else()
         list(APPEND QUIC_COMMON_DEFINES QUIC_PLATFORM_LINUX)
     endif()
 
-    if (QUIC_SANITIZE_ADDRESS)
+    if (QUIC_ENABLE_SANITIZERS)
         set(QUIC_ENABLE_LOGGING OFF)
-        message(WARNING "LTTng logging is incompatible with Address Sanitizer. Skipping logging")
+        message(WARNING "LTTng logging is incompatible with sanitizers. Skipping logging")
     endif()
 
     if(QUIC_ENABLE_LOGGING AND NOT APPLE)
@@ -320,9 +326,12 @@ else()
         list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
     endif()
 
-    if(QUIC_SANITIZE_ADDRESS)
-        message(STATUS "Configuring address sanitizer")
-        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address -fno-omit-frame-pointer -O0 -g)
+    if(QUIC_ENABLE_SANITIZERS)
+        message(STATUS "Configuring sanitizers")
+        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined -fsanitize-address-use-after-scope -Og -g3 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
+        if (CMAKE_C_COMPILER_ID MATCHES "Clang")
+            list(APPEND QUIC_COMMON_FLAGS -fsanitize=unsigned-integer-overflow -fsanitize=local-bounds -fsanitize=integer -fsanitize=nullability)
+        endif()
     endif()
 
     if(QUIC_TLS STREQUAL "stub")
@@ -337,30 +346,34 @@ endif()
 
 if(QUIC_TLS STREQUAL "openssl")
     # Configure and build OpenSSL.
-    if (CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
-        add_custom_command(
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl
-            OUTPUT ${QUIC_BUILD_DIR}/openssl/include
-            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ./Configure linux-armv4 --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}- -DL_ENDIAN enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
-            COMMAND make clean
-            COMMAND make -j$$(nproc)
-            COMMAND make install_sw)
-    else ()
-        add_custom_command(
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/submodules/openssl
-            OUTPUT ${QUIC_BUILD_DIR}/openssl/include
-            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-            OUTPUT ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
-            COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME} ./config enable-tls1_3 --prefix=${QUIC_BUILD_DIR}/openssl
-            COMMAND make -j$$(nproc)
-            COMMAND make install_sw)
+    set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
+    set(OPENSSL_CONFIG_FLAGS
+        enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
+        no-weak-ssl-ciphers no-shared no-tests --prefix=${OPENSSL_DIR})
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
+        set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure
+            linux-armv4 -DL_ENDIAN
+            --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}-)
+    else()
+        set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config
+            CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER})
     endif()
+    add_custom_target(mkdir_openssl_build
+        COMMAND mkdir -p ${QUIC_BUILD_DIR}/submodules/openssl)
+    add_custom_command(
+        DEPENDS mkdir_openssl_build
+        WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl
+        OUTPUT ${OPENSSL_DIR}/include
+        OUTPUT ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+        OUTPUT ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
+        COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME}
+            ${OPENSSL_CONFIG_CMD} ${OPENSSL_CONFIG_FLAGS}
+        COMMAND make -j$$(nproc)
+        COMMAND make install_sw)
     add_custom_target(OpenSSL
-        DEPENDS ${QUIC_BUILD_DIR}/openssl/include
-        DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
-        DEPENDS ${QUIC_BUILD_DIR}/openssl/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
+        DEPENDS ${OPENSSL_DIR}/include
+        DEPENDS ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
+        DEPENDS ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 endif()
 
 if(QUIC_TLS STREQUAL "mitls")
@@ -369,6 +382,35 @@ if(QUIC_TLS STREQUAL "mitls")
     add_subdirectory(submodules/everest/msquic/msvc/evercrypt)
     add_subdirectory(submodules/everest/msquic/msvc/mitls)
     add_subdirectory(submodules/everest/msquic/msvc/quiccrypto)
+endif()
+
+if(QUIC_CODE_CHECK)
+    find_program(CLANGTIDY NAMES clang-tidy)
+    if(CLANGTIDY)
+        message(STATUS "Found clang-tidy: ${CLANGTIDY}")
+        set(CLANG_TIDY_CHECKS *
+            # add checks to ignore here, e.g.,
+            # -hicpp-no-assembler
+            # -hicpp-signed-bitwise
+            # ...
+        )
+        string(REPLACE ";" "," CLANG_TIDY_CHECKS "${CLANG_TIDY_CHECKS}")
+        set(CMAKE_C_CLANG_TIDY ${CLANGTIDY} -checks=${CLANG_TIDY_CHECKS}
+            -system-headers)
+        set(CMAKE_CXX_CLANG_TIDY ${CMAKE_C_CLANG_TIDY})
+    else()
+        message(STATUS "clang-tidy not found")
+    endif()
+
+    find_program(CPPCHECK NAMES cppcheck)
+    if(CPPCHECK)
+        message(STATUS "Found cppcheck: ${CPPCHECK}")
+        set(CMAKE_C_CPPCHECK ${CPPCHECK} -q --inline-suppr
+            --enable=warning,style,performance,portability -D__linux__)
+        set(CMAKE_CXX_CPPCHECK ${CMAKE_C_CPPCHECK})
+    else()
+        message(STATUS "cppcheck not found")
+    endif()
 endif()
 
 add_subdirectory(src/inc)

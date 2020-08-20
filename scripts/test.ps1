@@ -249,7 +249,7 @@ if ($BreakOnFailure) {
     $TestArguments += " -BreakOnFailure"
 }
 if ("None" -ne $LogProfile) {
-    $TestArguments += " -LogProfile $LogProfile -ConvertLogs"
+    $TestArguments += " -LogProfile $LogProfile"
 }
 if ($CompressOutput) {
     $TestArguments += " -CompressOutput"

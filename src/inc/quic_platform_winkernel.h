@@ -175,6 +175,9 @@ QuicPlatformLogAssert(
          DbgRaiseAssertionFailure(), FALSE) : \
         TRUE)
 
+#define QUIC_NO_SANITIZE(X)
+
+
 #if defined(_PREFAST_)
 // _Analysis_assume_ will never result in any code generation for _exp,
 // so using it will not have runtime impact, even if _exp has side effects.
@@ -754,7 +757,6 @@ QuicThreadCreate(
     }
     if (Config->Flags & QUIC_THREAD_FLAG_SET_IDEAL_PROC) {
         PROCESSOR_NUMBER Processor, IdealProcessor;
-        QUIC_TEL_ASSERT(Config->IdealProcessor < 64);
         Status =
             KeGetProcessorNumberFromIndex(
                 Config->IdealProcessor,
@@ -764,22 +766,15 @@ QuicThreadCreate(
             goto Cleanup;
         }
         IdealProcessor = Processor;
-        Status =
-            ZwSetInformationThread(
-                ThreadHandle,
-                ThreadIdealProcessorEx,
-                &IdealProcessor, // Don't pass in Processor because this overwrites on output.
-                sizeof(IdealProcessor));
-        QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
-        if (QUIC_FAILED(Status)) {
-            goto Cleanup;
-        }
         if (Config->Flags & QUIC_THREAD_FLAG_SET_AFFINITIZE) {
-            KAFFINITY Affinity = (KAFFINITY)(1ull << Config->IdealProcessor);
+            GROUP_AFFINITY Affinity;
+            QuicZeroMemory(&Affinity, sizeof(Affinity));
+            Affinity.Group = Processor.Group;
+            Affinity.Mask = (1ull << Processor.Number);
             Status =
                 ZwSetInformationThread(
                     ThreadHandle,
-                    ThreadAffinityMask,
+                    ThreadGroupInformation,
                     &Affinity,
                     sizeof(Affinity));
             QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
@@ -809,6 +804,16 @@ QuicThreadCreate(
             if (QUIC_FAILED(Status)) {
                 goto Cleanup;
             }
+        }
+        Status =
+            ZwSetInformationThread(
+                ThreadHandle,
+                ThreadIdealProcessorEx,
+                &IdealProcessor, // Don't pass in Processor because this overwrites on output.
+                sizeof(IdealProcessor));
+        QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+        if (QUIC_FAILED(Status)) {
+            goto Cleanup;
         }
     }
     if (Config->Flags & QUIC_THREAD_FLAG_HIGH_PRIORITY) {

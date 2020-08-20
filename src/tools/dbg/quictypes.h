@@ -20,8 +20,8 @@ typedef enum QUIC_HANDLE_TYPE {
     QUIC_HANDLE_TYPE_REGISTRATION,
     QUIC_HANDLE_TYPE_SESSION,
     QUIC_HANDLE_TYPE_LISTENER,
-    QUIC_HANDLE_TYPE_CLIENT,
-    QUIC_HANDLE_TYPE_CHILD,
+    QUIC_HANDLE_TYPE_CONNECTION_CLIENT,
+    QUIC_HANDLE_TYPE_CONNECTION_SERVER,
     QUIC_HANDLE_TYPE_STREAM
 
 } QUIC_HANDLE_TYPE;
@@ -422,8 +422,8 @@ struct QuicHandle : Struct {
             return "SESSION";
         case QUIC_HANDLE_TYPE_LISTENER:
             return "LISTENER";
-        case QUIC_HANDLE_TYPE_CLIENT:
-        case QUIC_HANDLE_TYPE_CHILD:
+        case QUIC_HANDLE_TYPE_CONNECTION_CLIENT:
+        case QUIC_HANDLE_TYPE_CONNECTION_SERVER:
             return "CONNECTION";
         case QUIC_HANDLE_TYPE_STREAM:
             return "STREAM";
@@ -440,8 +440,8 @@ struct QuicHandle : Struct {
             return "session";
         case QUIC_HANDLE_TYPE_LISTENER:
             return "listener";
-        case QUIC_HANDLE_TYPE_CLIENT:
-        case QUIC_HANDLE_TYPE_CHILD:
+        case QUIC_HANDLE_TYPE_CONNECTION_CLIENT:
+        case QUIC_HANDLE_TYPE_CONNECTION_SERVER:
             return "connection";
         case QUIC_HANDLE_TYPE_STREAM:
             return "stream";
@@ -1059,9 +1059,9 @@ struct Connection : Struct {
 
     PSTR TypeStr() {
         switch (Type()) {
-        case QUIC_HANDLE_TYPE_CLIENT:
+        case QUIC_HANDLE_TYPE_CONNECTION_CLIENT:
             return "CLIENT";
-        case QUIC_HANDLE_TYPE_CHILD:
+        case QUIC_HANDLE_TYPE_CONNECTION_SERVER:
             return "SERVER";
         default:
             return "INVALID";
@@ -1069,11 +1069,11 @@ struct Connection : Struct {
     }
 
     bool IsClient() {
-        return Type() == QUIC_HANDLE_TYPE_CLIENT;
+        return Type() == QUIC_HANDLE_TYPE_CONNECTION_CLIENT;
     }
 
     bool IsServer() {
-        return Type() == QUIC_HANDLE_TYPE_CHILD;
+        return Type() == QUIC_HANDLE_TYPE_CONNECTION_SERVER;
     }
 
     QUIC_CONNECTION_STATE State() {

@@ -13,8 +13,8 @@ typedef enum QUIC_HANDLE_TYPE {
     QUIC_HANDLE_TYPE_REGISTRATION,
     QUIC_HANDLE_TYPE_SESSION,
     QUIC_HANDLE_TYPE_LISTENER,
-    QUIC_HANDLE_TYPE_CLIENT,
-    QUIC_HANDLE_TYPE_CHILD,
+    QUIC_HANDLE_TYPE_CONNECTION_CLIENT,
+    QUIC_HANDLE_TYPE_CONNECTION_SERVER,
     QUIC_HANDLE_TYPE_STREAM
 
 } QUIC_HANDLE_TYPE;
@@ -106,6 +106,12 @@ typedef struct QUIC_LIBRARY {
     // Total outstanding references on the library.
     //
     uint32_t RefCount;
+
+    //
+    // Number of processors currently being used.
+    //
+    _Field_range_(>, 0)
+    uint16_t ProcessorCount;
 
     //
     // Number of partitions currently being used.
@@ -343,8 +349,10 @@ QuicCidNewRandomSource(
         *Data = PartitionID;
         Data++;
 
-        QuicCopyMemory(Data, Prefix, PrefixLength);
-        Data += PrefixLength;
+        if (PrefixLength) {
+            QuicCopyMemory(Data, Prefix, PrefixLength);
+            Data += PrefixLength;
+        }
 
         QuicRandom(MSQUIC_CID_PAYLOAD_LENGTH - PrefixLength, Data);
     }

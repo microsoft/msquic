@@ -26,7 +26,7 @@ struct StreamEventValidator {
     QUIC_STREAM_EVENT_TYPE Type;
     uint8_t Actions;
     StreamEventValidator(QUIC_STREAM_EVENT_TYPE type, uint8_t actions = 0, bool optional = false) : Success(false),
-        Type(type), Actions(actions), Optional(optional) { }
+        Optional(optional), Type(type), Actions(actions) { }
     virtual void Validate(_In_ HQUIC Stream, _Inout_ QUIC_STREAM_EVENT* Event) {
         if (Event->Type != Type) {
             if (!Optional) {
@@ -87,7 +87,7 @@ struct ConnEventValidator {
     QUIC_CONNECTION_EVENT_TYPE Type;
     uint8_t Actions;
     ConnEventValidator(QUIC_CONNECTION_EVENT_TYPE type, uint8_t actions = 0, bool optional = false, bool resumed = false) : Success(false),
-        Type(type), Actions(actions), Optional(optional), Resumed(resumed) { }
+        Optional(optional), Resumed(resumed), Type(type), Actions(actions) { }
     virtual void Validate(_In_ HQUIC Connection, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         if (Event->Type != Type) {
             if (!Optional) {
@@ -294,19 +294,19 @@ QuicTestValidateConnectionEvents1(
     )
 {
     ConnValidator Client(
-        new ConnEventValidator* [4] {
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+        new(std::nothrow) ConnEventValidator* [4] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         }
     );
     ConnValidator Server(
-        new ConnEventValidator* [5] {
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+        new(std::nothrow) ConnEventValidator* [5] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         }
     );
@@ -356,19 +356,19 @@ QuicTestValidateConnectionEvents2(
     )
 {
     ConnValidator Client(
-        new ConnEventValidator* [5] {
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+        new(std::nothrow) ConnEventValidator* [5] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         }
     );
     ConnValidator Server(
-        new ConnEventValidator* [4] {
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+        new(std::nothrow) ConnEventValidator* [4] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         }
     );
@@ -418,21 +418,21 @@ QuicTestValidateConnectionEvents3(
     )
 {
     ConnValidator Client(
-        new ConnEventValidator* [4] {
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION, false, true),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+        new(std::nothrow) ConnEventValidator* [4] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION, false, true),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         }
     );
     ConnValidator Server(
-        new ConnEventValidator* [7] {
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_RESUMED, 0, true),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_RESUMED, 0, true),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, false, true),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+        new(std::nothrow) ConnEventValidator* [7] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_RESUMED, 0, true),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_RESUMED, 0, true),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, false, true),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         }
     );
@@ -610,38 +610,40 @@ QuicTestValidateStreamEvents1(
     { // Stream scope
 
     StreamValidator ClientStream(
-        new StreamEventValidator* [6] {
-            new StreamEventValidator(QUIC_STREAM_EVENT_START_COMPLETE),
-            new StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
-            new StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN),
-            new StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
-            new StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
+        new(std::nothrow) StreamEventValidator* [7] {
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_START_COMPLETE),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
             nullptr
         });
     StreamValidator ServerStream(
-        new StreamEventValidator* [4] {
-            new StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN, QUIC_EVENT_ACTION_SHUTDOWN_STREAM),
-            new StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE),
-            new StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE),
+        new(std::nothrow) StreamEventValidator* [5] {
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN, QUIC_EVENT_ACTION_SHUTDOWN_STREAM),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         });
 
     Client.SetExpectedEvents(
-        new ConnEventValidator* [6] {
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+        new(std::nothrow) ConnEventValidator* [6] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         });
     Server.SetExpectedEvents(
-        new ConnEventValidator* [6] {
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
-            new NewStreamEventValidator(&ServerStream),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+        new(std::nothrow) ConnEventValidator* [6] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
+            new(std::nothrow) NewStreamEventValidator(&ServerStream),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         });
 
@@ -719,30 +721,30 @@ QuicTestValidateStreamEvents2(
     { // Stream scope
 
     StreamValidator ClientStream(
-        new StreamEventValidator* [5] {
-            new StreamEventValidator(QUIC_STREAM_EVENT_START_COMPLETE),
-            new StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
-            new StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE),
-            new StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
+        new(std::nothrow) StreamEventValidator* [5] {
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_START_COMPLETE),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
             nullptr
         });
 
     Client.SetExpectedEvents(
-        new ConnEventValidator* [7] {
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+        new(std::nothrow) ConnEventValidator* [7] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         });
     Server.SetExpectedEvents(
-        new ConnEventValidator* [5] {
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
-            new ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+        new(std::nothrow) ConnEventValidator* [5] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
             nullptr
         });
 

@@ -335,6 +335,7 @@ typedef struct QUIC_TLS {
     BOOLEAN PeerTransportParamsReceived : 1;
     BOOLEAN HandshakeKeyRead : 1;
     BOOLEAN ApplicationKeyRead : 1;
+    BOOLEAN TicketReceived : 1;
 
     QUIC_TLS_SESSION* TlsSession;
 
@@ -1673,9 +1674,9 @@ QuicTlsWriteDataToSchannel(
     //
     // Another (output) secbuffer is for any TLS alerts.
     //
-    OutSecBuffers[OutSecBufferDesc.cBuffers].BufferType = SECBUFFER_EMPTY;
+    OutSecBuffers[OutSecBufferDesc.cBuffers].BufferType = SECBUFFER_ALERT;
     OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = sizeof(AlertBufferRaw);
-    OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = &AlertBufferRaw;
+    OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = AlertBufferRaw;
     OutSecBufferDesc.cBuffers++;
 
     if (TlsContext->TransportParams != NULL) {
@@ -1799,7 +1800,8 @@ QuicTlsWriteDataToSchannel(
             OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_TOKEN) {
             OutputTokenBuffer = &OutSecBufferDesc.pBuffers[i];
         } else if (AlertBuffer == NULL &&
-            OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_ALERT) {
+            OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_ALERT &&
+            OutSecBufferDesc.pBuffers[i].cbBuffer > 0) {
             AlertBuffer = &OutSecBufferDesc.pBuffers[i];
         } else if (TlsExtensionBuffer == NULL &&
             OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_SUBSCRIBE_GENERIC_TLS_EXTENSION) {
@@ -2155,6 +2157,24 @@ QuicTlsWriteDataToSchannel(
         // Some other error occurred and we should indicate no data could be
         // processed successfully.
         //
+        if (AlertBuffer != NULL) {
+            if (AlertBuffer->cbBuffer < 2) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "TLS alert message received (invalid)");
+            } else {
+                State->AlertCode = ((uint8_t*)AlertBuffer->pvBuffer)[1];
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    State->AlertCode,
+                    "TLS alert message received");
+            }
+            Result |= QUIC_TLS_RESULT_ERROR;
+        }
         *InBufferLength = 0;
         QuicTraceEvent(
             TlsErrorStatus,
@@ -2196,11 +2216,21 @@ QuicTlsProcessData(
         Result = QUIC_TLS_RESULT_ERROR;
 
         QuicTraceLogConnVerbose(
-            SchannelProcessingData,
+            SchannelIgnoringTicket,
             TlsContext->Connection,
             "Ignoring %u ticket bytes",
             *BufferLength);
         goto Error;
+    }
+
+    if (!TlsContext->IsServer && State->BufferOffset1Rtt > 0 &&
+        State->HandshakeComplete) {
+        //
+        // Schannel currently sends the NST after receiving client finished.
+        // We need to wait for the handshake to be complete before setting
+        // the flag, since we don't know if we've received the ticket yet.
+        //
+        TlsContext->TicketReceived = TRUE;
     }
 
     QuicTraceLogConnVerbose(
@@ -2258,10 +2288,15 @@ QuicTlsReadTicket(
         uint8_t* Buffer
     )
 {
-    UNREFERENCED_PARAMETER(TlsContext);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_INVALID_STATE;
+    BufferLength = 0;
+    if (TlsContext->TicketReceived) {
+        if (Buffer == NULL) {
+            return QUIC_STATUS_BUFFER_TOO_SMALL;
+        } else {
+            return QUIC_STATUS_SUCCESS;
+        }
+    }
+    return  QUIC_STATUS_INVALID_STATE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

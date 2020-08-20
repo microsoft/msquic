@@ -1,31 +1,59 @@
 [
     {
         "TestName": "Throughput",
-        "Remote" : {
+        "Remote": {
             "Platform": "Windows",
             "Tls": ["stub", "schannel", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-TestName:Throughput -ServerMode:1 -listen:* -port:4433 -peer_uni:1 -connections:10",
+                "All": "-TestName:Throughput -ServerMode:1 -port:4433 -peer_uni:1 -connections:10",
                 "Loopback": "-selfsign:1",
                 "Remote": "-thumbprint:$Thumbprint -machine_cert:1 -cert_store:My"
             }
         },
-        "Local" : {
+        "Local": {
             "Platform": "Windows",
             "Tls": ["stub", "schannel", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-TestName:Throughput -target:$RemoteAddress -port:4433 -sendbuf:0 -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -length:2000000000",
+                "All": "-TestName:Throughput -target:$RemoteAddress -port:4433 -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -length:2000000000",
                 "Loopback": "",
                 "Remote": ""
             }
         },
+        "Variables": [
+            {
+                "Name": "Encryption",
+                "Local": {
+                    "On": "",
+                    "Off": "-encrypt:0"
+                },
+                "Remote": {
+                    "On": "",
+                    "Off": "-encrypt:0"
+                },
+                "Default": "On"
+            },
+            {
+                "Name": "SendBuffering",
+                "Local": {
+                    "On": "",
+                    "Off": "-sendbuf:0"
+                },
+                "Remote": {
+                    "On": "",
+                    "Off": "-sendbuf:0"
+                },
+                "Default": "Off"
+            }
+        ],
+        "AllowLoopback": true,
         "Iterations": 10,
         "RemoteReadyMatcher": "Started!",
-        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps\\)"
+        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps\\)",
+        "Units": "kbps"
     },
     {
         "TestName": "Throughput",
@@ -35,7 +63,7 @@
             "Arch": ["x64", "arm"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-TestName:Throughput -ServerMode:1 -listen:* -port:4433 -selfsign:1 -peer_uni:1 -connections:10",
+                "All": "-TestName:Throughput -ServerMode:1 -port:4433 -selfsign:1 -peer_uni:1 -connections:10",
                 "Loopback": "",
                 "Remote": ""
             }
@@ -46,69 +74,110 @@
             "Arch": ["x64", "arm"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-TestName:Throughput -target:$RemoteAddress -port:4433 -sendbuf:0 -uni:1 -length:2000000000",
+                "All": "-TestName:Throughput -target:$RemoteAddress -port:4433 -uni:1 -length:2000000000",
                 "Loopback": "",
                 "Remote": ""
             }
         },
+        "Variables": [
+            {
+                "Name": "Encryption",
+                "Local": {
+                    "On": "",
+                    "Off": "-encrypt:0"
+                },
+                "Remote": {
+                    "On": "",
+                    "Off": "-encrypt:0"
+                },
+                "Default": "On"
+            },
+            {
+                "Name": "SendBuffering",
+                "Local": {
+                    "On": "",
+                    "Off": "-sendbuf:0"
+                },
+                "Remote": {
+                    "On": "",
+                    "Off": "-sendbuf:0"
+                },
+                "Default": "Off"
+            }
+        ],
+        "AllowLoopback": true,
         "Iterations": 10,
         "RemoteReadyMatcher": "Started!",
-        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps\\)"
+        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps\\)",
+        "Units": "kbps"
     },
     {
-        "TestName": "ThroughputNoEncryption",
-        "Remote" : {
+        "TestName": "RPS",
+        "Remote": {
             "Platform": "Windows",
             "Tls": ["stub", "schannel", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-TestName:Throughput -ServerMode:1 -listen:* -port:4433 -peer_uni:1 -connections:10",
+                "All": "-TestName:RPS -ServerMode:1 -iter:10",
                 "Loopback": "-selfsign:1",
                 "Remote": "-thumbprint:$Thumbprint -machine_cert:1 -cert_store:My"
             }
         },
-        "Local" : {
+        "Local": {
             "Platform": "Windows",
             "Tls": ["stub", "schannel", "mitls"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
-                "All": "-TestName:Throughput -target:$RemoteAddress -port:4433 -sendbuf:0 -bind:$LocalAddress:4434 -ip:4 -core:0 -uni:1 -encrypt:0 -length:2000000000",
+                "All": "-TestName:RPS -target:$RemoteAddress",
                 "Loopback": "",
                 "Remote": ""
             }
         },
-        "Iterations": 10,
+        "Variables": [
+            {
+                "Name": "ConnectionCount",
+                "Local": {
+                    "1000": "-conns:1000"
+                },
+                "Remote": {
+                    "1000": ""
+                },
+                "Default": "1000"
+            },
+            {
+                "Name": "RequestSize",
+                "Local": {
+                    "0": "-request:0"
+                },
+                "Remote": {
+                    "0": ""
+                },
+
+                "Default": "0"
+            },
+            {
+                "Name": "ResponseSize",
+                "Local": {
+                    "0": "",
+                    "512": "",
+                    "4096": "",
+                    "16384": ""
+                },
+                "Remote": {
+                    "0": "-response:0",
+                    "512": "-response:512",
+                    "4096": "-response:4096",
+                    "16384": "-response:16384"
+                },
+                "Default": "4096"
+            }
+        ],
+        "AllowLoopback": false,
+        "Iterations": 5,
         "RemoteReadyMatcher": "Started!",
-        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps\\)"
-    },
-    {
-        "TestName": "ThroughputNoEncryption",
-        "Remote" : {
-            "Platform": "Linux",
-            "Tls": ["stub", "openssl"],
-            "Arch": ["x64", "arm"],
-            "Exe": "quicperf",
-            "Arguments": {
-                "All": "-TestName:Throughput -ServerMode:1 -listen:* -port:4433 -selfsign:1 -peer_uni:1 -connections:10",
-                "Loopback": "",
-                "Remote": ""
-            }
-        },
-        "Local" : {
-            "Platform": "linux",
-            "Tls": ["stub", "openssl"],
-            "Arch": ["x64", "arm"],
-            "Exe": "quicperf",
-            "Arguments": {
-                "All": "-TestName:Throughput -target:$RemoteAddress -port:4433 -sendbuf:0 -uni:1 -encrypt:0 -length:2000000000",
-                "Loopback": "",
-                "Remote": ""
-            }
-        },
-        "Iterations": 10,
-        "RemoteReadyMatcher": "Started!",
-        "ResultsMatcher": "Closed.*\\(TX.*bytes @ (.*) kbps\\)"
+        "ResultsMatcher": "Result: (.*) RPS",
+        "Units": "RPS"
     }
 ]

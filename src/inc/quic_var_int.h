@@ -39,7 +39,7 @@ typedef _In_range_(0, QUIC_VAR_INT_MAX) uint64_t QUIC_VAR_INT;
 // in a variable-length encoding.
 //
 #define QuicVarIntSize(Value) \
-    (Value < 0x40 ? sizeof(uint8_t) : (Value < 0x4000 ? sizeof(uint16_t) : (Value < 0x40000000 ? sizeof(uint32_t) : sizeof(uint64_t))))
+    ((QUIC_VAR_INT)Value < 0x40 ? sizeof(uint8_t) : ((QUIC_VAR_INT)Value < 0x4000 ? sizeof(uint16_t) : ((QUIC_VAR_INT)Value < 0x40000000 ? sizeof(uint32_t) : sizeof(uint64_t))))
 
 //
 // Helper to encode a variable-length integer.
@@ -65,13 +65,16 @@ QuicVarIntEncode(
         Buffer[0] = (uint8_t)Value;
         return Buffer + sizeof(uint8_t);
     } else if (Value < 0x4000) {
-        *(uint16_t*)Buffer = QuicByteSwapUint16((0x40 << 8) | (uint16_t)Value);
+        const uint16_t tmp = QuicByteSwapUint16((0x40 << 8) | (uint16_t)Value);
+        memcpy(Buffer, &tmp, sizeof(tmp));
         return Buffer + sizeof(uint16_t);
     } else if (Value < 0x40000000) {
-        *(uint32_t*)Buffer = QuicByteSwapUint32((0x80UL << 24) | (uint32_t)Value);
+        const uint32_t tmp = QuicByteSwapUint32((0x80UL << 24) | (uint32_t)Value);
+        memcpy(Buffer, &tmp, sizeof(tmp));
         return Buffer + sizeof(uint32_t);
     } else {
-        *(uint64_t*)Buffer = QuicByteSwapUint64((0xc0ULL << 56) | Value);
+        const uint64_t tmp = QuicByteSwapUint64((0xc0ULL << 56) | Value);
+        memcpy(Buffer, &tmp, sizeof(tmp));
         return Buffer + sizeof(uint64_t);
     }
 }
@@ -90,7 +93,8 @@ QuicVarIntEncode2Bytes(
 {
     QUIC_DBG_ASSERT(Value < 0x4000);
 
-    *(uint16_t*)Buffer = QuicByteSwapUint16((0x40 << 8) | (uint16_t)Value);
+    const uint16_t tmp = QuicByteSwapUint16((0x40 << 8) | (uint16_t)Value);
+    memcpy(Buffer, &tmp, sizeof(tmp));
     return Buffer + sizeof(uint16_t);
 }
 
