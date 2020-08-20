@@ -212,79 +212,79 @@ QuicTraceGlobalEvent(
     }
     case EventId_QuicPerfCountersRundown: {
         printf("Perf Counters:\n");
-        for(uint16_t i = 0; i < EvData->PerfCounters.CounterLen; ++i) {
+        for(uint16_t i = 0; i < EvData->PerfCounters.CounterLen / sizeof(uint64_t); ++i) {
             switch(i) {
             case QUIC_PERF_COUNTER_CONN_CREATED:
-                printf("    Total connections ever allocated: ");
+                printf("    Total connections ever allocated:                   ");
                 break;
             case QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL:
-                printf("    Total connections that failed during handshake: ");
+                printf("    Total connections that failed during handshake:     ");
                 break;
             case QUIC_PERF_COUNTER_CONN_APP_REJECT:
-                printf("     Total connections rejected by the application: ");
+                printf("    Total connections rejected by the application:      ");
                 break;
             case QUIC_PERF_COUNTER_CONN_RESUMED:
-                printf("     Total connections resumed: ");
+                printf("    Total connections resumed:                          ");
                 break;
             case QUIC_PERF_COUNTER_CONN_ACTIVE:
-                printf("     Connections currently allocated: ");
+                printf("    Connections currently allocated:                    ");
                 break;
             case QUIC_PERF_COUNTER_CONN_CONNECTED:
-                printf("     Connections currently in the connected state: ");
+                printf("    Connections currently in the connected state:       ");
                 break;
             case QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS:
-                printf("     Total connections shutdown with a protocol error: ");
+                printf("    Total connections shutdown with a protocol error:   ");
                 break;
             case QUIC_PERF_COUNTER_CONN_NO_ALPN:
-                printf("     Total connection attempts with no matching ALPN: ");
+                printf("    Total connection attempts with no matching ALPN:    ");
                 break;
             case QUIC_PERF_COUNTER_STRM_ACTIVE:
-                printf("     Current streams allocated: ");
+                printf("    Current streams allocated:                          ");
                 break;
             case QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST:
-                printf("     Total suspected packets lost: ");
+                printf("    Total suspected packets lost:                       ");
                 break;
             case QUIC_PERF_COUNTER_PKTS_DROPPED:
-                printf("     Total packets dropped for any reason: ");
+                printf("    Total packets dropped for any reason:               ");
                 break;
             case QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL:
-                printf("     Total packets with decryption failures: ");
+                printf("    Total packets with decryption failures:             ");
                 break;
             case QUIC_PERF_COUNTER_UDP_RECV:
-                printf("     Total UDP datagrams received: ");
+                printf("    Total UDP datagrams received:                       ");
                 break;
             case QUIC_PERF_COUNTER_UDP_SEND:
-                printf("     Total UDP datagrams sent: ");
+                printf("    Total UDP datagrams sent:                           ");
                 break;
             case QUIC_PERF_COUNTER_UDP_RECV_BYTES:
-                printf("     Total UDP payload bytes received: ");
+                printf("    Total UDP payload bytes received:                   ");
                 break;
             case QUIC_PERF_COUNTER_UDP_SEND_BYTES:
-                printf("     Total UDP payload bytes sent: ");
+                printf("    Total UDP payload bytes sent:                       ");
                 break;
             case QUIC_PERF_COUNTER_UDP_RECV_EVENTS:
-                printf("     Total UDP receive events: ");
+                printf("    Total UDP receive events:                           ");
                 break;
             case QUIC_PERF_COUNTER_UDP_SEND_CALLS:
-                printf("     Total UDP send API calls: ");
+                printf("    Total UDP send API calls:                           ");
                 break;
             case QUIC_PERF_COUNTER_APP_SEND_BYTES:
-                printf("     Total bytes sent by applications: ");
+                printf("    Total bytes sent by applications:                   ");
                 break;
             case QUIC_PERF_COUNTER_APP_RECV_BYTES:
-                printf("     Total bytes received by applications: ");
+                printf("    Total bytes received by applications:               ");
                 break;
             case QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH:
-                printf("     Current connections queued for processing: ");
+                printf("    Current connections queued for processing:          ");
                 break;
             case QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH:
-                printf("     Current operations queued: ");
+                printf("    Current operations queued:                          ");
                 break;
             case QUIC_PERF_COUNTER_OPER_QUEUED:
-                printf("     Total operations queued ever: ");
+                printf("    Total operations queued ever:                       ");
                 break;
             case QUIC_PERF_COUNTER_OPER_COMPLETED:
-                printf("     Total operations processed ever: ");
+                printf("    Total operations processed ever:                    ");
                 break;
             }
             printf("%lld\n", EvData->PerfCounters.Counters[i]);

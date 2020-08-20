@@ -207,9 +207,12 @@ QuicOperationQueueClear(
     QuicListMoveItems(&OperQ->List, &OldList);
     QuicDispatchLockRelease(&OperQ->Lock);
 
+    int64_t OperationsDequeued = 0;
+
     while (!QuicListIsEmpty(&OldList)) {
         QUIC_OPERATION* Oper =
             QUIC_CONTAINING_RECORD(QuicListRemoveHead(&OldList), QUIC_OPERATION, Link);
+            --OperationsDequeued;
 #if DEBUG
         Oper->Link.Flink = NULL;
 #endif
@@ -234,4 +237,5 @@ QuicOperationQueueClear(
             }
         }
     }
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_OPER_QUEUE_DEPTH, OperationsDequeued);
 }

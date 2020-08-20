@@ -927,6 +927,8 @@ main(int argc, char **argv)
         MsQuic->RegistrationClose(Registration);
         Registration = nullptr;
 
+        QuicSleep(4000);
+
         DumpMsQuicPerfCounters(MsQuic);
 
         MsQuicClose(MsQuic);
