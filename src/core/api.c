@@ -238,6 +238,7 @@ QUIC_STATUS
 QUIC_API
 MsQuicConnectionStart(
     _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ _Pre_defensive_ HQUIC ConfigHandle,
     _In_ QUIC_ADDRESS_FAMILY Family,
     _In_reads_opt_z_(QUIC_MAX_SNI_LENGTH)
         const char* ServerName,
@@ -246,6 +247,7 @@ MsQuicConnectionStart(
 {
     QUIC_STATUS Status;
     QUIC_CONNECTION* Connection;
+    QUIC_CONFIGURATION* Configuration;
     QUIC_OPERATION* Oper;
     char* ServerNameCopy = NULL;
 
@@ -258,6 +260,11 @@ MsQuicConnectionStart(
         Handle);
 
     if (ServerPort == 0) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    if (ConfigHandle == NULL || ConfigHandle->Type != QUIC_HANDLE_TYPE_CONFIGURATION) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
@@ -326,6 +333,8 @@ MsQuicConnectionStart(
         ServerNameCopy[ServerNameLength] = 0;
     }
 
+    Configuration = (QUIC_CONFIGURATION*)ConfigHandle;
+
     QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
     QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
@@ -338,7 +347,10 @@ MsQuicConnectionStart(
             0);
         goto Error;
     }
+
+    QuicRundownAcquire(&Configuration->Rundown);
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_START;
+    Oper->API_CALL.Context->CONN_START.Configuration = Configuration;
     Oper->API_CALL.Context->CONN_START.ServerName = ServerNameCopy;
     Oper->API_CALL.Context->CONN_START.ServerPort = ServerPort;
     Oper->API_CALL.Context->CONN_START.Family = Family;

@@ -12,10 +12,6 @@
 #include "TlsTest.cpp.clog.h"
 #endif
 
-const uint32_t CertValidationIgnoreFlags =
-    QUIC_CERTIFICATE_FLAG_IGNORE_UNKNOWN_CA |
-    QUIC_CERTIFICATE_FLAG_IGNORE_CERTIFICATE_CN_INVALID;
-
 const uint16_t UnknownCaError = 48;
 
 const uint32_t DefaultFragmentSize = 1200;
@@ -26,26 +22,27 @@ const uint8_t MultiAlpn[] = { 1, 'C', 1, 'A', 1, 'B' };
 struct TlsTest : public ::testing::TestWithParam<bool>
 {
 protected:
-    QUIC_RUNDOWN_REF SecConfigRundown;
-    QUIC_EVENT SecConfigDoneEvent;
-    QUIC_SEC_CONFIG* SecConfig;
+    QUIC_SEC_CONFIG* ServerSecConfig {nullptr};
+    QUIC_SEC_CONFIG* ClientSecConfig {nullptr};
+    QUIC_SEC_CONFIG* ClientSecConfigNoCertValidation {nullptr};
     static QUIC_SEC_CONFIG_PARAMS* SelfSignedCertParams;
 
-    TlsTest() :
-        SecConfig(nullptr)
-    {
-        QuicRundownInitialize(&SecConfigRundown);
-        QuicEventInitialize(&SecConfigDoneEvent, FALSE, FALSE);
-    }
+    TlsTest() { }
 
     ~TlsTest()
     {
-        QuicEventUninitialize(SecConfigDoneEvent);
-        if (SecConfig != nullptr) {
-            QuicTlsSecConfigDelete(SecConfig);
+        if (ClientSecConfigNoCertValidation) {
+            QuicTlsSecConfigDelete(ClientSecConfigNoCertValidation);
+            ClientSecConfigNoCertValidation = nullptr;
         }
-        QuicRundownReleaseAndWait(&SecConfigRundown);
-        QuicRundownUninitialize(&SecConfigRundown);
+        if (ClientSecConfig) {
+            QuicTlsSecConfigDelete(ClientSecConfig);
+            ClientSecConfig = nullptr;
+        }
+        if (ServerSecConfig) {
+            QuicTlsSecConfigDelete(ServerSecConfig);
+            ServerSecConfig = nullptr;
+        }
     }
 
     _Function_class_(QUIC_SEC_CONFIG_CREATE_COMPLETE)
@@ -57,10 +54,9 @@ protected:
         _In_opt_ QUIC_SEC_CONFIG* SecConfig
         )
     {
-        TlsTest* pThis = (TlsTest*)Context;
         VERIFY_QUIC_SUCCESS(Status);
-        pThis->SecConfig = SecConfig;
-        QuicEventSet(pThis->SecConfigDoneEvent);
+        ASSERT_NE(nullptr, SecConfig);
+        *(QUIC_SEC_CONFIG**)Context = SecConfig;
     }
 
     static void SetUpTestSuite()
@@ -77,24 +73,55 @@ protected:
 
     void SetUp() override
     {
-        QUIC_CREDENTIAL_CONFIG CredConfig = {
+        QUIC_CREDENTIAL_CONFIG ServerCredConfig = {
             (QUIC_CREDENTIAL_TYPE)SelfSignedCertParams->Type,
-            (QUIC_CREDENTIAL_FLAGS)SelfSignedCertParams->Flags,
+            (QUIC_CREDENTIAL_FLAGS)SelfSignedCertParams->Flags | QUIC_CREDENTIAL_FLAG_LOAD_SYNCHRONOUS,
             SelfSignedCertParams->Certificate,
             SelfSignedCertParams->Principal
         };
         VERIFY_QUIC_SUCCESS(
             QuicTlsSecConfigCreate(
-                &CredConfig,
-                this,
+                &ServerCredConfig,
+                &ServerSecConfig,
                 OnSecConfigCreateComplete));
-        ASSERT_TRUE(QuicEventWaitWithTimeout(SecConfigDoneEvent, 5000));
+        ASSERT_NE(nullptr, ServerSecConfig);
+
+        QUIC_CREDENTIAL_CONFIG ClientCredConfig = {
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE,
+            QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_LOAD_SYNCHRONOUS,
+            NULL,
+            NULL
+        };
+        VERIFY_QUIC_SUCCESS(
+            QuicTlsSecConfigCreate(
+                &ClientCredConfig,
+                &ClientSecConfig,
+                OnSecConfigCreateComplete));
+        ASSERT_NE(nullptr, ClientSecConfig);
+
+        ClientCredConfig.Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+        VERIFY_QUIC_SUCCESS(
+            QuicTlsSecConfigCreate(
+                &ClientCredConfig,
+                &ClientSecConfigNoCertValidation,
+                OnSecConfigCreateComplete));
+        ASSERT_NE(nullptr, ClientSecConfigNoCertValidation);
     }
 
     void TearDown() override
     {
-        QuicTlsSecConfigDelete(SecConfig);
-        SecConfig = nullptr;
+        if (ClientSecConfigNoCertValidation) {
+            QuicTlsSecConfigDelete(ClientSecConfigNoCertValidation);
+            ClientSecConfigNoCertValidation = nullptr;
+        }
+        if (ClientSecConfig) {
+            QuicTlsSecConfigDelete(ClientSecConfig);
+            ClientSecConfig = nullptr;
+        }
+        if (ServerSecConfig) {
+            QuicTlsSecConfigDelete(ServerSecConfig);
+            ServerSecConfig = nullptr;
+        }
     }
 
     struct TlsSession
@@ -111,7 +138,7 @@ protected:
     struct TlsContext
     {
         QUIC_TLS* Ptr;
-        QUIC_SEC_CONFIG* ClientConfig;
+        QUIC_SEC_CONFIG* SecConfig;
         QUIC_EVENT ProcessCompleteEvent;
 
         QUIC_TLS_PROCESS_STATE State;
@@ -122,7 +149,7 @@ protected:
 
         TlsContext() :
             Ptr(nullptr),
-            ClientConfig(nullptr),
+            SecConfig(nullptr),
             Connected(false) {
             QuicEventInitialize(&ProcessCompleteEvent, FALSE, FALSE);
             QuicZeroMemory(&State, sizeof(State));
@@ -132,9 +159,6 @@ protected:
 
         ~TlsContext() {
             QuicTlsUninitialize(Ptr);
-            if (ClientConfig != nullptr) {
-                QuicTlsSecConfigDelete(ClientConfig);
-            }
             QuicEventUninitialize(ProcessCompleteEvent);
             QUIC_FREE(State.Buffer);
             for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
@@ -198,27 +222,6 @@ protected:
                     &Config,
                     &State,
                     &Ptr));
-        }
-
-        void InitializeClient(
-            TlsSession& Session,
-            bool MultipleAlpns = false,
-            uint32_t CertFlags = CertValidationIgnoreFlags
-            )
-        {
-        QUIC_CREDENTIAL_CONFIG CredConfig = {
-            (QUIC_CREDENTIAL_TYPE)SelfSignedCertParams->Type,
-            (QUIC_CREDENTIAL_FLAGS)SelfSignedCertParams->Flags,
-            SelfSignedCertParams->Certificate,
-            SelfSignedCertParams->Principal
-        };
-        VERIFY_QUIC_SUCCESS(
-            QuicTlsSecConfigCreate(
-                &CredConfig,
-                this,
-                OnSecConfigCreateComplete));
-            QuicTlsClientSecConfigCreate(CertFlags, &ClientConfig);
-            InitializeClient(Session, ClientConfig, MultipleAlpns);
         }
 
     private:
@@ -590,8 +593,8 @@ TEST_F(TlsTest, Initialize)
     TlsSession ServerSession, ClientSession;
     {
         TlsContext ServerContext, ClientContext;
-        ServerContext.InitializeServer(ServerSession, SecConfig);
-        ClientContext.InitializeClient(ClientSession);
+        ServerContext.InitializeServer(ServerSession, ServerSecConfig);
+        ClientContext.InitializeClient(ClientSession, ClientSecConfigNoCertValidation);
     }
 }
 
@@ -600,8 +603,8 @@ TEST_F(TlsTest, Handshake)
     TlsSession ServerSession, ClientSession;
     {
         TlsContext ServerContext, ClientContext;
-        ServerContext.InitializeServer(ServerSession, SecConfig);
-        ClientContext.InitializeClient(ClientSession);
+        ServerContext.InitializeServer(ServerSession, ServerSecConfig);
+        ClientContext.InitializeClient(ClientSession, ClientSecConfigNoCertValidation);
         DoHandshake(ServerContext, ClientContext);
     }
 }
@@ -611,8 +614,8 @@ TEST_F(TlsTest, HandshakeMultiAlpnServer)
     TlsSession ServerSession, ClientSession;
     {
         TlsContext ServerContext, ClientContext;
-        ServerContext.InitializeServer(ServerSession, SecConfig, true);
-        ClientContext.InitializeClient(ClientSession);
+        ServerContext.InitializeServer(ServerSession, ServerSecConfig, true);
+        ClientContext.InitializeClient(ClientSession, ClientSecConfigNoCertValidation);
         DoHandshake(ServerContext, ClientContext);
     }
 }
@@ -622,8 +625,8 @@ TEST_F(TlsTest, HandshakeMultiAlpnClient)
     TlsSession ServerSession, ClientSession;
     {
         TlsContext ServerContext, ClientContext;
-        ServerContext.InitializeServer(ServerSession, SecConfig);
-        ClientContext.InitializeClient(ClientSession, true);
+        ServerContext.InitializeServer(ServerSession, ServerSecConfig);
+        ClientContext.InitializeClient(ClientSession, ClientSecConfigNoCertValidation, true);
         DoHandshake(ServerContext, ClientContext);
     }
 }
@@ -633,8 +636,8 @@ TEST_F(TlsTest, HandshakeMultiAlpnBoth)
     TlsSession ServerSession, ClientSession;
     {
         TlsContext ServerContext, ClientContext;
-        ServerContext.InitializeServer(ServerSession, SecConfig, true);
-        ClientContext.InitializeClient(ClientSession, true);
+        ServerContext.InitializeServer(ServerSession, ServerSecConfig, true);
+        ClientContext.InitializeClient(ClientSession, ClientSecConfigNoCertValidation, true);
         DoHandshake(ServerContext, ClientContext);
     }
 }
@@ -644,53 +647,38 @@ TEST_F(TlsTest, HandshakeFragmented)
     TlsSession ServerSession, ClientSession;
     {
         TlsContext ServerContext, ClientContext;
-        ServerContext.InitializeServer(ServerSession, SecConfig);
-        ClientContext.InitializeClient(ClientSession);
+        ServerContext.InitializeServer(ServerSession, ServerSecConfig);
+        ClientContext.InitializeClient(ClientSession, ClientSecConfigNoCertValidation);
         DoHandshake(ServerContext, ClientContext, 200);
     }
 }
 
 TEST_F(TlsTest, HandshakesSerial)
 {
-    // Server fails to decrypt message during second handshake with shared ClientSession.
-    // Server still fail to decrypt second handshake with separate ClientSessions.
-    // Server still fails to decrypt when using the same ServerContext again.
-    // passes with different ServerContexts.
-    TlsSession ServerSession, ClientSession/*, ClientSession2*/;
-    QUIC_SEC_CONFIG* ClientSecConfig = nullptr;
-    VERIFY_QUIC_SUCCESS(
-        QuicTlsClientSecConfigCreate(
-            CertValidationIgnoreFlags,
-            &ClientSecConfig));
+    TlsSession ServerSession, ClientSession;
     {
         TlsContext ServerContext, ClientContext1;
-        ServerContext.InitializeServer(ServerSession, SecConfig);
-        ClientContext1.InitializeClient(ClientSession, ClientSecConfig);
+        ServerContext.InitializeServer(ServerSession, ServerSecConfig);
+        ClientContext1.InitializeClient(ClientSession, ClientSecConfigNoCertValidation);
         DoHandshake(ServerContext, ClientContext1);
     }
     {
         TlsContext ServerContext, ClientContext2;
-        ServerContext.InitializeServer(ServerSession, SecConfig);
-        ClientContext2.InitializeClient(ClientSession, ClientSecConfig);
+        ServerContext.InitializeServer(ServerSession, ServerSecConfig);
+        ClientContext2.InitializeClient(ClientSession, ClientSecConfigNoCertValidation);
         DoHandshake(ServerContext, ClientContext2);
     }
-    QuicTlsSecConfigDelete(ClientSecConfig);
 }
 
 TEST_F(TlsTest, HandshakesInterleaved)
 {
     TlsSession ServerSession, ClientSession;
-    QUIC_SEC_CONFIG* ClientSecConfig = nullptr;
-    VERIFY_QUIC_SUCCESS(
-        QuicTlsClientSecConfigCreate(
-            CertValidationIgnoreFlags,
-            &ClientSecConfig));
     {
         TlsContext ServerContext1, ServerContext2, ClientContext1, ClientContext2;
-        ServerContext1.InitializeServer(ServerSession, SecConfig);
-        ClientContext1.InitializeClient(ClientSession, ClientSecConfig);
-        ServerContext2.InitializeServer(ServerSession, SecConfig);
-        ClientContext2.InitializeClient(ClientSession, ClientSecConfig);
+        ServerContext1.InitializeServer(ServerSession, ServerSecConfig);
+        ClientContext1.InitializeClient(ClientSession, ClientSecConfigNoCertValidation);
+        ServerContext2.InitializeServer(ServerSession, ServerSecConfig);
+        ClientContext2.InitializeClient(ClientSession, ClientSecConfigNoCertValidation);
 
         auto Result = ClientContext1.ProcessData(nullptr);
         ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
@@ -722,7 +710,6 @@ TEST_F(TlsTest, HandshakesInterleaved)
         Result = ServerContext2.ProcessData(&ClientContext2.State);
         ASSERT_TRUE(Result & QUIC_TLS_RESULT_COMPLETE);
     }
-    QuicTlsSecConfigDelete(ClientSecConfig);
 }
 
 TEST_F(TlsTest, CertificateError)
@@ -730,8 +717,8 @@ TEST_F(TlsTest, CertificateError)
     TlsSession ServerSession, ClientSession;
     {
         TlsContext ServerContext, ClientContext;
-        ServerContext.InitializeServer(ServerSession, SecConfig);
-        ClientContext.InitializeClient(ClientSession, false, 0);
+        ServerContext.InitializeServer(ServerSession, ServerSecConfig);
+        ClientContext.InitializeClient(ClientSession, ClientSecConfig);
         {
             auto Result = ClientContext.ProcessData(nullptr);
             ASSERT_TRUE(Result & QUIC_TLS_RESULT_DATA);
@@ -754,8 +741,8 @@ TEST_P(TlsTest, One1RttKey)
     TlsSession ServerSession, ClientSession;
     {
         TlsContext ServerContext, ClientContext;
-        ServerContext.InitializeServer(ServerSession, SecConfig);
-        ClientContext.InitializeClient(ClientSession);
+        ServerContext.InitializeServer(ServerSession, ServerSecConfig);
+        ClientContext.InitializeClient(ClientSession, ClientSecConfigNoCertValidation);
         DoHandshake(ServerContext, ClientContext);
 
         PacketKey ServerKey(ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
@@ -813,8 +800,8 @@ TEST_P(TlsTest, KeyUpdate)
     TlsSession ServerSession, ClientSession;
     {
         TlsContext ServerContext, ClientContext;
-        ServerContext.InitializeServer(ServerSession, SecConfig);
-        ClientContext.InitializeClient(ClientSession);
+        ServerContext.InitializeServer(ServerSession, ServerSecConfig);
+        ClientContext.InitializeClient(ClientSession, ClientSecConfigNoCertValidation);
         DoHandshake(ServerContext, ClientContext);
 
         QUIC_PACKET_KEY* UpdateWriteKey, *UpdateReadKey = nullptr;
@@ -899,8 +886,8 @@ TEST_P(TlsTest, PacketEncryptionPerf)
     TlsSession ServerSession, ClientSession;
     {
         TlsContext ServerContext, ClientContext;
-        ServerContext.InitializeServer(ServerSession, SecConfig);
-        ClientContext.InitializeClient(ClientSession);
+        ServerContext.InitializeServer(ServerSession, ServerSecConfig);
+        ClientContext.InitializeClient(ClientSession, ClientSecConfigNoCertValidation);
         DoHandshake(ServerContext, ClientContext);
 
         PacketKey ServerKey(ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);

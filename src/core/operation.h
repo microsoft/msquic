@@ -96,6 +96,7 @@ typedef struct QUIC_API_CONTEXT {
             QUIC_VAR_INT ErrorCode;
         } CONN_SHUTDOWN;
         struct {
+            QUIC_CONFIGURATION* Configuration;
             _Null_terminated_
             const char* ServerName;
             uint16_t ServerPort;

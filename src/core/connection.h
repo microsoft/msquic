@@ -296,6 +296,11 @@ typedef struct QUIC_CONNECTION {
     QUIC_SESSION* Session;
 
     //
+    // The configuration for this connection.
+    //
+    QUIC_CONFIGURATION* Configuration;
+
+    //
     // Number of references to the handle.
     //
     long RefCount;
@@ -1185,18 +1190,6 @@ QuicConnOnLocalAddressChanged(
     );
 
 //
-// Starts the connection.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicConnStart(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_opt_z_ const char* ServerName,
-    _In_ uint16_t ServerPort // Host byte order
-    );
-
-//
 // Restarts the connection with the current configuration.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1218,13 +1211,13 @@ QuicConnProcessPeerTransportParameters(
     );
 
 //
-// Configures the security config.
+// Sets the configuration handle.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicConnHandshakeConfigure(
+QuicConnSetConfiguration(
     _In_ QUIC_CONNECTION* Connection,
-    _In_opt_ QUIC_SEC_CONFIG* SecConfig
+    _In_ QUIC_CONFIGURATION* Configuration
     );
 
 //

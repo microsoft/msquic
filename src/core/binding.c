@@ -423,6 +423,33 @@ QuicBindingUnregisterListener(
     QuicDispatchRwLockReleaseExclusive(&Binding->RwLock);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicBindingAcceptConnection(
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_NEW_CONNECTION_INFO* Info
+    )
+{
+    QUIC_LISTENER* Listener =
+        QuicBindingGetListener(Connection->Paths[0].Binding, Info);
+    if (Listener == NULL) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "No listener found for connection");
+        QuicConnTransportError(
+            Connection,
+            QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL);
+        return;
+    }
+
+    QuicListenerAcceptConnection(Listener, Connection, Info);
+
+    QuicRundownRelease(&Listener->Rundown);
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingAddSourceConnectionID(

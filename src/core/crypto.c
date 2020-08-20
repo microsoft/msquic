@@ -1373,7 +1373,7 @@ QuicCryptoProcessTlsCompletion(
         if (!QuicConnIsServer(Connection) &&
             Connection->RemoteServerName != NULL) {
 
-            QUIC_SEC_CONFIG* SecConfig = QuicTlsGetSecConfig(Crypto->TLS);
+            /*QUIC_SEC_CONFIG* SecConfig = QuicTlsGetSecConfig(Crypto->TLS);
 
             //
             // Cache this information for future connections in this
@@ -1387,7 +1387,7 @@ QuicCryptoProcessTlsCompletion(
                 &Connection->PeerTransportParams,
                 SecConfig);
 
-            QuicTlsSecConfigRelease(SecConfig);
+            QuicTlsSecConfigRelease(SecConfig);*/
         }
 
         QUIC_DBG_ASSERT(Crypto->TlsState.NegotiatedAlpn != NULL);
@@ -1572,63 +1572,10 @@ QuicCryptoProcessData(
             Info.CryptoBufferLength = Buffer.Length;
             Info.CryptoBuffer = Buffer.Buffer;
 
-            QUIC_CONNECTION_ACCEPT_RESULT AcceptResult =
-                QUIC_CONNECTION_REJECT_NO_LISTENER;
-
-            QUIC_SEC_CONFIG* SecConfig = NULL;
-            QUIC_LISTENER* Listener =
-                QuicBindingGetListener(
-                    Connection->Paths[0].Binding,
-                    &Info);
-            if (Listener != NULL) {
-                AcceptResult =
-                    QuicListenerAcceptConnection(
-                        Listener,
-                        Connection,
-                        &Info,
-                        &SecConfig);
-                QuicRundownRelease(&Listener->Rundown);
-            }
-
-            if (AcceptResult != QUIC_CONNECTION_ACCEPT) {
-                QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    AcceptResult,
-                    "Connection rejected");
-                if (AcceptResult == QUIC_CONNECTION_REJECT_NO_LISTENER) {
-                    QuicConnTransportError(
-                        Connection,
-                        QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL);
-                } else if (AcceptResult == QUIC_CONNECTION_REJECT_BUSY) {
-                    QuicConnTransportError(
-                        Connection,
-                        QUIC_ERROR_CONNECTION_REFUSED);
-                } else {    // QUIC_CONNECTION_REJECT_APP
-                    QuicConnTransportError(
-                        Connection,
-                        QUIC_ERROR_INTERNAL_ERROR);
-                }
-                goto Error;
-
-            }
-
-            //
-            // Save the negotiated ALPN (starting with the length prefix) to be
-            // used later in building up the TLS response.
-            //
-            Crypto->TlsState.NegotiatedAlpn = Info.NegotiatedAlpn - 1;
-
-            if (SecConfig != NULL) {
-                Status = QuicConnHandshakeConfigure(Connection, SecConfig);
-                if (QUIC_FAILED(Status)) {
-                    QuicConnTransportError(
-                        Connection,
-                        QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE);
-                    goto Error;
-                }
-            }
+            QuicBindingAcceptConnection(
+                Connection->Paths[0].Binding,
+                Connection,
+                &Info);
         }
     }
 

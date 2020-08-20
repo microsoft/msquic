@@ -337,12 +337,11 @@ QuicListenerIndicateEvent(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+BOOLEAN
 QuicListenerClaimConnection(
     _In_ QUIC_LISTENER* Listener,
     _In_ QUIC_CONNECTION* Connection,
-    _In_ const QUIC_NEW_CONNECTION_INFO* Info,
-    _Out_ QUIC_SEC_CONFIG** SecConfig
+    _In_ const QUIC_NEW_CONNECTION_INFO* Info
     )
 {
     QUIC_DBG_ASSERT(Listener != NULL);
@@ -351,16 +350,14 @@ QuicListenerClaimConnection(
     //
     // Internally, the connection matches the listener. Update the associated
     // connection state. Next, call up to the application layer to accept the
-    // connection and return the server certificate.
+    // connection and return the server configuration.
     //
-
-    QuicSessionRegisterConnection(Listener->Session, Connection);
 
     QUIC_LISTENER_EVENT Event;
     Event.Type = QUIC_LISTENER_EVENT_NEW_CONNECTION;
     Event.NEW_CONNECTION.Info = Info;
     Event.NEW_CONNECTION.Connection = (HQUIC)Connection;
-    Event.NEW_CONNECTION.SecurityConfig = NULL;
+    Event.NEW_CONNECTION.Configuration = NULL;
 
     QuicSessionAttachSilo(Listener->Session);
 
@@ -368,6 +365,7 @@ QuicListenerClaimConnection(
         ListenerIndicateNewConnection,
         "[list][%p] Indicating NEW_CONNECTION",
         Listener);
+
     QUIC_STATUS Status = QuicListenerIndicateEvent(Listener, &Event);
 
     QuicSessionDetachSilo();
@@ -377,8 +375,7 @@ QuicListenerClaimConnection(
             ListenerNewConnectionPending,
             "[list][%p] App indicate pending NEW_CONNECTION",
             Listener);
-        QUIC_DBG_ASSERT(Event.NEW_CONNECTION.SecurityConfig == NULL);
-        *SecConfig = NULL;
+        QUIC_DBG_ASSERT(Event.NEW_CONNECTION.Configuration == NULL);
     } else if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             ListenerErrorStatus,
@@ -386,26 +383,31 @@ QuicListenerClaimConnection(
             Listener,
             Status,
             "NEW_CONNECTION callback");
-        goto Exit;
-    } else if (Event.NEW_CONNECTION.SecurityConfig == NULL) {
+        QuicConnTransportError(
+            Connection,
+            QUIC_ERROR_CONNECTION_REFUSED);
+        return FALSE;
+    } else if (Event.NEW_CONNECTION.Configuration == NULL) {
         QuicTraceEvent(
             ListenerError,
             "[list][%p] ERROR, %s.",
             Listener,
-            "NEW_CONNECTION callback didn't set SecConfig");
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
+            "NEW_CONNECTION callback didn't set Configuration");
+        QuicConnTransportError(
+            Connection,
+            QUIC_ERROR_INTERNAL_ERROR);
+        return FALSE;
     } else {
         QuicTraceLogVerbose(
             ListenerNewConnectionAccepted,
             "[list][%p] App accepted NEW_CONNECTION",
             Listener);
-        *SecConfig = Event.NEW_CONNECTION.SecurityConfig;
+        QUIC_DBG_ASSERT(Event.NEW_CONNECTION.Configuration != NULL);
     }
 
     //
-    // The application layer has accepted the connection and provided a
-    // server certificate.
+    // The application layer has accepted the connection and provided a server
+    // certificate.
     //
     QUIC_FRE_ASSERTMSG(
         Connection->ClientCallbackHandler != NULL,
@@ -413,71 +415,64 @@ QuicListenerClaimConnection(
 
     Connection->State.ExternalOwner = TRUE;
     Connection->State.ListenerAccepted = TRUE;
-
-    if (!QuicConnGenerateNewSourceCid(Connection, TRUE)) {
-        Event.NEW_CONNECTION.SecurityConfig = NULL;
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
-
-    if (Event.NEW_CONNECTION.SecurityConfig != NULL) {
-        (void)QuicTlsSecConfigAddRef(Event.NEW_CONNECTION.SecurityConfig);
-    }
     Connection->State.UpdateWorker = TRUE;
 
-Exit:
+    //
+    // Save the negotiated ALPN (starting with the length prefix) to be
+    // used later in building up the TLS response.
+    //
+    Connection->Crypto.TlsState.NegotiatedAlpn = Info->NegotiatedAlpn - 1;
 
-    if (Status != QUIC_STATUS_PENDING && QUIC_FAILED(Status)) {
-        QuicSessionUnregisterConnection(Connection);
-    }
-
-    return Status;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_CONNECTION_ACCEPT_RESULT
-QuicListenerAcceptConnection(
-    _In_ QUIC_LISTENER* Listener,
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ const QUIC_NEW_CONNECTION_INFO* Info,
-    _Out_ QUIC_SEC_CONFIG** SecConfig
-    )
-{
-    QUIC_CONNECTION_ACCEPT_RESULT AcceptResult =
-        QuicRegistrationAcceptConnection(
-            Listener->Session->Registration,
-            Connection);
-    if (AcceptResult != QUIC_CONNECTION_ACCEPT) {
-        goto Error;
-    }
-
-    QUIC_STATUS Status =
-        QuicListenerClaimConnection(
-            Listener,
-            Connection,
-            Info,
-            SecConfig);
-    if (Status != QUIC_STATUS_PENDING) {
-        if (QUIC_FAILED(Status)) {
-            QUIC_TEL_ASSERTMSG(*SecConfig == NULL, "App failed AND provided a sec config?");
-            goto Error;
-        } else if (*SecConfig == NULL) {
-            QuicTraceLogConnVerbose(
-                NoSecurityConfigAvailable,
+    if (Event.NEW_CONNECTION.Configuration != NULL) {
+        QUIC_CONFIGURATION* Configuration =
+            (QUIC_CONFIGURATION*)Event.NEW_CONNECTION.Configuration;
+        if (QUIC_FAILED(QuicConnSetConfiguration(Connection, Configuration))) {
+            QuicConnTransportError(
                 Connection,
-                "No security config was provided by the app.");
-            goto Error;
+                QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE);
+            return FALSE;
         }
     }
 
+    return TRUE;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicListenerAcceptConnection(
+    _In_ QUIC_LISTENER* Listener,
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const QUIC_NEW_CONNECTION_INFO* Info
+    )
+{
+    if (!QuicRegistrationAcceptConnection(
+            Listener->Session->Registration,
+            Connection)) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Connection rejected by registration (overloaded)");
+        QuicConnTransportError(
+            Connection,
+            QUIC_ERROR_CONNECTION_REFUSED);
+        Listener->TotalRejectedConnections++;
+        return;
+    }
+
+    QuicSessionRegisterConnection(Listener->Session, Connection);
+    if (!QuicConnGenerateNewSourceCid(Connection, TRUE)) {
+        QuicSessionUnregisterConnection(Connection);
+        return;
+    }
+
+    if (!QuicListenerClaimConnection(Listener, Connection, Info)) {
+        QuicSessionUnregisterConnection(Connection);
+        Listener->TotalRejectedConnections++;
+        return;
+    }
+
     Listener->TotalAcceptedConnections++;
-    return QUIC_CONNECTION_ACCEPT;
-
-Error:
-
-    *SecConfig = NULL;
-    Listener->TotalRejectedConnections++;
-    return QUIC_CONNECTION_REJECT_APP;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

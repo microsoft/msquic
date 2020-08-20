@@ -42,12 +42,6 @@ typedef struct QUIC_RECEIVE_PROCESSING_STATE {
     uint8_t PartitionIndex;
 } QUIC_RECEIVE_PROCESSING_STATE;
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicConnInitializeCrypto(
-    _In_ QUIC_CONNECTION* Connection
-    );
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 __drv_allocatesMem(Mem)
 _Must_inspect_result_
@@ -333,6 +327,9 @@ QuicConnFree(
     QuicSendBufferUninitialize(&Connection->SendBuffer);
     QuicDatagramUninitialize(&Connection->Datagram);
     QuicSessionUnregisterConnection(Connection);
+    if (Connection->Configuration != NULL) {
+        QuicRundownRelease(&Connection->Configuration->Rundown);
+    }
     if (Connection->Registration != NULL) {
         QuicRundownRelease(&Connection->Registration->ConnectionRundown);
     }
@@ -1660,6 +1657,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnStart(
     _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONFIGURATION* Configuration,
     _In_ QUIC_ADDRESS_FAMILY Family,
     _In_opt_z_ const char* ServerName,
     _In_ uint16_t ServerPort // Host byte order
@@ -1797,12 +1795,24 @@ QuicConnStart(
     Connection->RemoteServerName = ServerName;
     ServerName = NULL;
 
+    Status = QuicCryptoInitialize(&Connection->Crypto);
+    if (QUIC_FAILED(Status)) {
+        goto Exit;
+    }
+
     //
     // Start the handshake.
     //
-    Status = QuicConnInitializeCrypto(Connection);
+    Status = QuicConnSetConfiguration(Connection, Configuration);
     if (QUIC_FAILED(Status)) {
         goto Exit;
+    }
+
+    if (Connection->KeepAliveIntervalMs != 0) {
+        QuicConnTimerSet(
+            Connection,
+            QUIC_CONN_TIMER_KEEP_ALIVE,
+            Connection->KeepAliveIntervalMs);
     }
 
 Exit:
@@ -2152,50 +2162,6 @@ QuicConnCleanupServerResumptionState(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicConnInitializeCrypto(
-    _In_ QUIC_CONNECTION* Connection
-    )
-{
-    QUIC_STATUS Status;
-    BOOLEAN CryptoInitialized = FALSE;
-
-    Status = QuicCryptoInitialize(&Connection->Crypto);
-    if (QUIC_FAILED(Status)) {
-        goto Error;
-    }
-    CryptoInitialized = TRUE;
-
-    if (!QuicConnIsServer(Connection)) {
-        Status = QuicConnHandshakeConfigure(Connection, NULL);
-        if (QUIC_FAILED(Status)) {
-            goto Error;
-        }
-    }
-
-    if (Connection->KeepAliveIntervalMs != 0) {
-        //
-        // Now that we are starting the connection, start the keep alive timer
-        // if enabled.
-        //
-        QuicConnTimerSet(
-            Connection,
-            QUIC_CONN_TIMER_KEEP_ALIVE,
-            Connection->KeepAliveIntervalMs);
-    }
-
-Error:
-
-    if (QUIC_FAILED(Status)) {
-        if (CryptoInitialized) {
-            QuicCryptoUninitialize(&Connection->Crypto);
-        }
-    }
-
-    return Status;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
 QuicConnGenerateLocalTransportParameters(
     _In_ QUIC_CONNECTION* Connection,
     _Out_ QUIC_TRANSPORT_PARAMETERS* LocalTP
@@ -2341,21 +2307,31 @@ QuicConnGenerateLocalTransportParameters(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicConnHandshakeConfigure(
+QuicConnSetConfiguration(
     _In_ QUIC_CONNECTION* Connection,
-    _In_opt_ QUIC_SEC_CONFIG* SecConfig
+    _In_ QUIC_CONFIGURATION* Configuration
     )
 {
     QUIC_STATUS Status;
     QUIC_TRANSPORT_PARAMETERS LocalTP = { 0 };
 
     QUIC_TEL_ASSERT(Connection->Session != NULL);
-    QUIC_TEL_ASSERT(SecConfig != NULL || !QuicConnIsServer(Connection));
+    QUIC_TEL_ASSERT(Connection->Configuration != NULL);
+    QUIC_TEL_ASSERT(Configuration != NULL);
+
+    QuicTraceLogConnInfo(
+        SetConfiguration,
+        Connection,
+        "Configuration set, %p",
+        Configuration);
+
+    (void)QuicRundownAcquire(&Configuration->Rundown);
+    Connection->Configuration = Configuration;
 
     if (!QuicConnIsServer(Connection)) {
 
         uint32_t InitialQuicVersion = QUIC_VERSION_LATEST;
-        if (Connection->RemoteServerName != NULL &&
+        /*if (Connection->RemoteServerName != NULL &&
             QuicSessionServerCacheGetState(
                 Connection->Session,
                 Connection->RemoteServerName,
@@ -2368,7 +2344,7 @@ QuicConnHandshakeConfigure(
                 Connection,
                 "Found server cached state");
             QuicConnProcessPeerTransportParameters(Connection, TRUE);
-        }
+        }*/
 
         if (Connection->Stats.QuicVersion == 0) {
             //
@@ -2377,23 +2353,8 @@ QuicConnHandshakeConfigure(
             //
             Connection->Stats.QuicVersion = InitialQuicVersion;
         }
-        QuicConnOnQuicVersionSet(Connection);
 
-        if (SecConfig == NULL) {
-            Status =
-                QuicTlsClientSecConfigCreate(
-                    Connection->ServerCertValidationFlags,
-                    &SecConfig);
-            if (QUIC_FAILED(Status)) {
-                QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Status,
-                    "QuicTlsClientSecConfigCreate");
-                goto Error;
-            }
-        }
+        QuicConnOnQuicVersionSet(Connection);
 
         QUIC_DBG_ASSERT(!QuicListIsEmpty(&Connection->DestCids));
         const QUIC_CID_QUIC_LIST_ENTRY* DestCid =
@@ -2452,9 +2413,8 @@ QuicConnHandshakeConfigure(
     Status =
         QuicCryptoInitializeTls(
             &Connection->Crypto,
-            SecConfig,
+            Configuration->SecurityConfig,
             &LocalTP);
-    QuicTlsSecConfigRelease(SecConfig); // No longer need local ref.
 
 Error:
 
@@ -5599,16 +5559,15 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_SEC_CONFIG: {
+    case QUIC_PARAM_CONN_CONFIGURATION: {
 
-        if (BufferLength != sizeof(QUIC_SEC_CONFIG*)) {
+        if (BufferLength != sizeof(QUIC_CONFIGURATION*) || Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        QUIC_SEC_CONFIG* SecConfig = *(QUIC_SEC_CONFIG**)Buffer;
-
-        if (SecConfig == NULL) {
+        QUIC_CONFIGURATION* Configuration = *(QUIC_CONFIGURATION**)Buffer;
+        if (Configuration->Type != QUIC_HANDLE_TYPE_CONFIGURATION) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -5620,17 +5579,7 @@ QuicConnParamSet(
             break;
         }
 
-        QuicTraceLogConnInfo(
-            SetSecurityConfig,
-            Connection,
-            "Security config set, %p",
-            SecConfig);
-        (void)QuicTlsSecConfigAddRef(SecConfig);
-
-        Status =
-            QuicConnHandshakeConfigure(
-                Connection,
-                SecConfig);
+        Status = QuicConnSetConfiguration(Connection, Configuration);
         if (QUIC_FAILED(Status)) {
             break;
         }
@@ -6412,6 +6361,7 @@ QuicConnProcessApiOperation(
         Status =
             QuicConnStart(
                 Connection,
+                ApiCtx->CONN_START.Configuration,
                 ApiCtx->CONN_START.Family,
                 ApiCtx->CONN_START.ServerName,
                 ApiCtx->CONN_START.ServerPort);
@@ -6555,7 +6505,7 @@ QuicConnDrainOperations(
         //
         QUIC_DBG_ASSERT(QuicConnIsServer(Connection));
         QUIC_STATUS Status;
-        if (QUIC_FAILED(Status = QuicConnInitializeCrypto(Connection))) {
+        if (QUIC_FAILED(Status = QuicCryptoInitialize(&Connection->Crypto))) {
             QuicConnFatalError(Connection, Status, "Lazily initialize failure");
         } else {
             Connection->State.Initialized = TRUE;
@@ -6563,6 +6513,12 @@ QuicConnDrainOperations(
                 ConnInitializeComplete,
                 "[conn][%p] Initialize complete",
                 Connection);
+            if (Connection->KeepAliveIntervalMs != 0) {
+                QuicConnTimerSet(
+                    Connection,
+                    QUIC_CONN_TIMER_KEEP_ALIVE,
+                    Connection->KeepAliveIntervalMs);
+            }
         }
     }
 

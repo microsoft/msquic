@@ -684,6 +684,7 @@ QuicLibrarySetParam(
 {
     QUIC_STATUS Status;
     QUIC_REGISTRATION* Registration;
+    QUIC_CONFIGURATION* Configuration;
     QUIC_SESSION* Session;
     QUIC_LISTENER* Listener;
     QUIC_CONNECTION* Connection;
@@ -696,18 +697,24 @@ QuicLibrarySetParam(
         Connection = NULL;
         Listener = NULL;
         Session = NULL;
+        Configuration = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Registration = (QUIC_REGISTRATION*)Handle;
         break;
 
-    case QUIC_HANDLE_TYPE_SESSION:
+    case QUIC_HANDLE_TYPE_CONFIGURATION:
         Stream = NULL;
         Connection = NULL;
         Listener = NULL;
+        Session = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Session = (QUIC_SESSION*)Handle;
+        Configuration = (QUIC_CONFIGURATION*)Handle;
         Registration = Session->Registration;
         break;
+
+    case QUIC_HANDLE_TYPE_SESSION:
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+        goto Error;
 
     case QUIC_HANDLE_TYPE_LISTENER:
         Stream = NULL;
@@ -715,6 +722,7 @@ QuicLibrarySetParam(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Listener = (QUIC_LISTENER*)Handle;
         Session = Listener->Session;
+        Configuration = NULL;
         Registration = Session->Registration;
         break;
 
@@ -725,8 +733,9 @@ QuicLibrarySetParam(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Connection = (QUIC_CONNECTION*)Handle;
         Session = Connection->Session;
-        QUIC_DBG_ASSERT(Session != NULL);
-        Registration = Session->Registration;
+        QUIC_TEL_ASSERT(Session != NULL);
+        Configuration = Connection->Configuration;
+        Registration = Connection->Registration;
         break;
 
     case QUIC_HANDLE_TYPE_STREAM:
@@ -735,8 +744,9 @@ QuicLibrarySetParam(
         Stream = (QUIC_STREAM*)Handle;
         Connection = Stream->Connection;
         Session = Connection->Session;
-        QUIC_DBG_ASSERT(Session != NULL);
-        Registration = Session->Registration;
+        QUIC_TEL_ASSERT(Session != NULL);
+        Configuration = Connection->Configuration;
+        Registration = Connection->Registration;
         break;
 
     default:
@@ -756,10 +766,10 @@ QuicLibrarySetParam(
         break;
 
     case QUIC_PARAM_LEVEL_CONFIGURATION:
-        if (Session == NULL) {
+        if (Configuration == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
-            Status = QuicSessionParamSet(Session, Param, BufferLength, Buffer);
+            Status = QuicConfigurationParamSet(Configuration, Param, BufferLength, Buffer);
         }
         break;
 
@@ -818,6 +828,7 @@ QuicLibraryGetParam(
 {
     QUIC_STATUS Status;
     QUIC_REGISTRATION* Registration;
+    QUIC_CONFIGURATION* Configuration;
     QUIC_SESSION* Session;
     QUIC_LISTENER* Listener;
     QUIC_CONNECTION* Connection;
@@ -832,18 +843,24 @@ QuicLibraryGetParam(
         Connection = NULL;
         Listener = NULL;
         Session = NULL;
+        Configuration = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Registration = (QUIC_REGISTRATION*)Handle;
         break;
 
-    case QUIC_HANDLE_TYPE_SESSION:
+    case QUIC_HANDLE_TYPE_CONFIGURATION:
         Stream = NULL;
         Connection = NULL;
         Listener = NULL;
+        Session = NULL;
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        Session = (QUIC_SESSION*)Handle;
+        Configuration = (QUIC_CONFIGURATION*)Handle;
         Registration = Session->Registration;
         break;
+
+    case QUIC_HANDLE_TYPE_SESSION:
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+        goto Error;
 
     case QUIC_HANDLE_TYPE_LISTENER:
         Stream = NULL;
@@ -851,6 +868,7 @@ QuicLibraryGetParam(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Listener = (QUIC_LISTENER*)Handle;
         Session = Listener->Session;
+        Configuration = NULL;
         Registration = Session->Registration;
         break;
 
@@ -862,7 +880,8 @@ QuicLibraryGetParam(
         Connection = (QUIC_CONNECTION*)Handle;
         Session = Connection->Session;
         QUIC_TEL_ASSERT(Session != NULL);
-        Registration = Session->Registration;
+        Configuration = Connection->Configuration;
+        Registration = Connection->Registration;
         break;
 
     case QUIC_HANDLE_TYPE_STREAM:
@@ -872,7 +891,8 @@ QuicLibraryGetParam(
         Connection = Stream->Connection;
         Session = Connection->Session;
         QUIC_TEL_ASSERT(Session != NULL);
-        Registration = Session->Registration;
+        Configuration = Connection->Configuration;
+        Registration = Connection->Registration;
         break;
 
     default:
@@ -892,10 +912,10 @@ QuicLibraryGetParam(
         break;
 
     case QUIC_PARAM_LEVEL_CONFIGURATION:
-        if (Session == NULL) {
+        if (Configuration == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
-            Status = QuicSessionParamGet(Session, Param, BufferLength, Buffer);
+            Status = QuicConfigurationParamGet(Configuration, Param, BufferLength, Buffer);
         }
         break;
 

@@ -133,7 +133,7 @@ QuicRegistrationSettingsChanged(
 // or not.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_CONNECTION_ACCEPT_RESULT
+BOOLEAN
 QuicRegistrationAcceptConnection(
     _In_ QUIC_REGISTRATION* Registration,
     _In_ QUIC_CONNECTION* Connection

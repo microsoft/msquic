@@ -78,12 +78,11 @@ QuicListenerIndicateEvent(
 // Passes the connection to the listener to (possibly) accept it.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_CONNECTION_ACCEPT_RESULT
+void
 QuicListenerAcceptConnection(
     _In_ QUIC_LISTENER* Listener,
     _In_ QUIC_CONNECTION* Connection,
-    _In_ const QUIC_NEW_CONNECTION_INFO* Info,
-    _Out_ QUIC_SEC_CONFIG** SecConfig
+    _In_ const QUIC_NEW_CONNECTION_INFO* Info
     );
 
 //

@@ -274,7 +274,7 @@ QuicRegistrationSettingsChanged(
     for (QUIC_LIST_ENTRY* Link = Registration->Configurations.Flink;
         Link != &Registration->Configurations;
         Link = Link->Flink) {
-        QuiConfigurationSettingsChanged(
+        QuicConfigurationSettingsChanged(
             QUIC_CONTAINING_RECORD(Link, QUIC_CONFIGURATION, Link));
     }
 
@@ -282,72 +282,7 @@ QuicRegistrationSettingsChanged(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QUIC_API
-MsQuicSecConfigCreate(
-    _In_ _Pre_defensive_ HQUIC Handle,
-    _In_ QUIC_SEC_CONFIG_FLAGS Flags,
-    _In_opt_ void* Certificate,
-    _In_opt_z_ const char* Principal,
-    _In_opt_ void* Context,
-    _In_ _Pre_defensive_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER CompletionHandler
-    )
-{
-    QUIC_STATUS Status = QUIC_STATUS_INVALID_PARAMETER;
-
-    QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_SEC_CONFIG_CREATE,
-        Handle);
-
-    if (Handle != NULL &&
-        Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION &&
-        CompletionHandler != NULL) {
-
-        QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
-        Status =
-            QuicTlsServerSecConfigCreate(
-                &Registration->ConfigRundown,
-                Flags,
-                Certificate,
-                Principal,
-                Context,
-                CompletionHandler);
-    }
-
-    QuicTraceEvent(
-        ApiExitStatus,
-        "[ api] Exit %u",
-        Status);
-
-    return Status;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QUIC_API
-MsQuicSecConfigDelete(
-    _In_ _Pre_defensive_ QUIC_SEC_CONFIG* SecurityConfig
-    )
-{
-    QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_SEC_CONFIG_DELETE,
-        SecurityConfig);
-
-    if (SecurityConfig != NULL) {
-        QuicTlsSecConfigRelease(SecurityConfig);
-    }
-
-    QuicTraceEvent(
-        ApiExit,
-        "[ api] Exit");
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_CONNECTION_ACCEPT_RESULT
+BOOLEAN
 QuicRegistrationAcceptConnection(
     _In_ QUIC_REGISTRATION* Registration,
     _In_ QUIC_CONNECTION* Connection
@@ -367,11 +302,7 @@ QuicRegistrationAcceptConnection(
     // TODO - Look for other worker instead if the proposed worker is overloaded?
     //
 
-    if (QuicWorkerIsOverloaded(&Registration->WorkerPool->Workers[Index])) {
-        return QUIC_CONNECTION_REJECT_BUSY;
-    } else {
-        return QUIC_CONNECTION_ACCEPT;
-    }
+    return !QuicWorkerIsOverloaded(&Registration->WorkerPool->Workers[Index]);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

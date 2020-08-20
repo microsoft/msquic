@@ -731,7 +731,7 @@ _Must_inspect_result_
 _Success_(return != NULL)
 QUIC_ACH_CONTEXT*
 QuicTlsAllocateAchContext(
-    _In_ void* Context,
+    _In_opt_ void* Context,
     _In_ QUIC_SEC_CONFIG_CREATE_COMPLETE_HANDLER Callback,
     _In_ QUIC_SEC_CONFIG* Config
     )
