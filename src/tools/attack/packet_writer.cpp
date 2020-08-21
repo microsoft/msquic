@@ -57,6 +57,24 @@ struct TlsContext
             QuicTlsClientSecConfigCreate(
                 CertValidationIgnoreFlags, &SecConfig));
 
+        QUIC_CONNECTION Connection = {0};
+        ((QUIC_HANDLE*)&Connection)->Type = QUIC_HANDLE_TYPE_CONNECTION_SERVER;
+
+        QUIC_TRANSPORT_PARAMETERS TP = {0};
+        TP.Flags |= QUIC_TP_FLAG_INITIAL_MAX_DATA;
+        TP.InitialMaxData = 10000;
+        TP.Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL;
+        TP.InitialMaxStreamDataBidiLocal = 10000;
+        TP.Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE;
+        TP.InitialMaxStreamDataBidiRemote = 10000;
+        TP.Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI;
+        TP.InitialMaxBidiStreams = 3;
+        TP.Flags |= QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI;
+        TP.InitialMaxUniStreams = 3;
+        TP.Flags |= QUIC_TP_FLAG_INITIAL_SOURCE_CONNECTION_ID;
+        TP.InitialSourceConnectionIDLength = sizeof(uint64_t);
+        *(uint64_t*)&TP.InitialSourceConnectionID[0] = MagicCid;
+
         QUIC_TLS_CONFIG Config = {0};
         Config.IsServer = FALSE;
         Config.TlsSession = Session.Ptr;
@@ -64,9 +82,10 @@ struct TlsContext
         Config.AlpnBuffer = AlpnListBuffer;
         Config.AlpnBufferLength = AlpnListBuffer[0] + 1;
         Config.LocalTPBuffer =
-            (uint8_t*)QUIC_ALLOC_NONPAGED(QuicTlsTPHeaderSize + 2);
-        QuicZeroMemory((uint8_t*)Config.LocalTPBuffer, QuicTlsTPHeaderSize + 2);
-        Config.LocalTPLength = QuicTlsTPHeaderSize + 2;
+            QuicCryptoTlsEncodeTransportParameters(&Connection, &TP, &Config.LocalTPLength);
+        if (!Config.LocalTPBuffer) {
+            printf("Failed to encode transport parameters!\n");
+        }
         Config.Connection = (QUIC_CONNECTION*)this;
         Config.ProcessCompleteCallback = OnProcessComplete;
         Config.ReceiveTPCallback = OnRecvQuicTP;

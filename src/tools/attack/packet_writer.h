@@ -7,6 +7,8 @@
 
 #define VERIFY(X) if (!(X)) { printf(#X " FALSE!\n"); exit(0); }
 
+#define MagicCid 0x989898989898989ull
+
 struct PacketWriter
 {
     static
