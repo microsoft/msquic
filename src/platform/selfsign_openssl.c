@@ -15,6 +15,7 @@ Abstract:
 #include "openssl/ssl.h"
 #include "openssl/err.h"
 #include "openssl/kdf.h"
+#include "openssl/ec.h"
 #include "openssl/rsa.h"
 #include "openssl/x509.h"
 #include "openssl/pem.h"
@@ -35,8 +36,7 @@ QuicTlsGenerateSelfSignedCert(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
     EVP_PKEY *PKey = NULL;
-    BIGNUM *BigNum = NULL;
-    RSA * Rsa = NULL;
+    EVP_PKEY_CTX * EcKeyCtx = NULL;
     X509 *X509 = NULL;
     X509_NAME *Name = NULL;
     FILE *Fd = NULL;
@@ -52,57 +52,32 @@ QuicTlsGenerateSelfSignedCert(
         goto Exit;
     }
 
-    BigNum = BN_new();
-
-    if (BigNum == NULL) {
+    EcKeyCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL);
+    if (EcKeyCtx == NULL) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "BN_new() failed");
+            "EVP_PKEY_CTX_new_id() failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
-    Ret = BN_set_word(BigNum, RSA_F4);
-
+    Ret = EVP_PKEY_keygen_init(EcKeyCtx);
     if (Ret != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "BN_set_word() failed");
+            "EVP_PKEY_keygen_init() failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
 
-    Rsa = RSA_new();
-
-    if (Rsa == NULL) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "RSA_new() failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    Ret = RSA_generate_key_ex(Rsa, 2048, BigNum, NULL);
-
+    Ret = EVP_PKEY_keygen(EcKeyCtx, &PKey);
     if (Ret != 1) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "RSA_generate_key_ex() failed");
-        Status = QUIC_STATUS_TLS_ERROR;
-        goto Exit;
-    }
-
-    Ret = EVP_PKEY_assign_RSA(PKey, Rsa);
-
-    if (Ret != 1) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "EVP_PKEY_assign_RSA() failed");
+            "EVP_PKEY_keygen() failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
@@ -204,7 +179,7 @@ QuicTlsGenerateSelfSignedCert(
         goto Exit;
     }
 
-    Ret = X509_sign(X509, PKey, EVP_sha1());
+    Ret = X509_sign(X509, PKey, EVP_sha256());
 
     if (Ret <= 0) {
         QuicTraceEvent(
@@ -272,9 +247,9 @@ Exit:
         PKey= NULL;
     }
 
-    if (BigNum != NULL) {
-        BN_free(BigNum);
-        BigNum = NULL;
+    if (EcKeyCtx != NULL) {
+        EVP_PKEY_CTX_free(EcKeyCtx);
+        EcKeyCtx = NULL;
     }
 
     if (X509 != NULL) {
