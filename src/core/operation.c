@@ -139,6 +139,8 @@ QuicOperationEnqueue(
     StartProcessing = QuicListIsEmpty(&OperQ->List) && !OperQ->ActivelyProcessing;
     QuicListInsertTail(&OperQ->List, &Oper->Link);
     QuicDispatchLockRelease(&OperQ->Lock);
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUED);
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
     return StartProcessing;
 }
 
@@ -157,6 +159,8 @@ QuicOperationEnqueueFront(
     StartProcessing = QuicListIsEmpty(&OperQ->List) && !OperQ->ActivelyProcessing;
     QuicListInsertHead(&OperQ->List, &Oper->Link);
     QuicDispatchLockRelease(&OperQ->Lock);
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUED);
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
     return StartProcessing;
 }
 
@@ -181,6 +185,10 @@ QuicOperationDequeue(
 #endif
     }
     QuicDispatchLockRelease(&OperQ->Lock);
+
+    if (Oper != NULL) {
+        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
+    }
     return Oper;
 }
 
@@ -199,9 +207,12 @@ QuicOperationQueueClear(
     QuicListMoveItems(&OperQ->List, &OldList);
     QuicDispatchLockRelease(&OperQ->Lock);
 
+    int64_t OperationsDequeued = 0;
+
     while (!QuicListIsEmpty(&OldList)) {
         QUIC_OPERATION* Oper =
             QUIC_CONTAINING_RECORD(QuicListRemoveHead(&OldList), QUIC_OPERATION, Link);
+        --OperationsDequeued;
 #if DEBUG
         Oper->Link.Flink = NULL;
 #endif
@@ -226,4 +237,5 @@ QuicOperationQueueClear(
             }
         }
     }
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH, OperationsDequeued);
 }

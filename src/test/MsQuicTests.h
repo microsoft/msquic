@@ -41,6 +41,7 @@ void QuicTestValidateListener();
 void QuicTestValidateConnection();
 void QuicTestValidateStream(bool Connect);
 void QuicTestValidateServerSecConfig(void* CertContext, QUIC_CERTIFICATE_HASH_STORE* CertHashStore, char* Principal);
+void QuicTestGetPerfCounters();
 
 //
 // Event Validation Tests
@@ -588,4 +589,7 @@ typedef struct {
     QUIC_CTL_CODE(44, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 44
+#define IOCTL_QUIC_RUN_VALIDATE_GET_PERF_COUNTERS \
+    QUIC_CTL_CODE(45, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 45

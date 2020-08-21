@@ -197,6 +197,15 @@ TEST(ParameterValidation, ValidateServerSecConfig) {
 }
 #endif // _WIN32
 
+TEST(ParameterValidation, ValidateGetPerfCounters) {
+    TestLogger Logger("QuicTestGetPerfCounters");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_GET_PERF_COUNTERS));
+    } else {
+        QuicTestGetPerfCounters();
+    }
+}
+
 TEST(ParameterValidation, ValidateSession) {
     TestLogger Logger("QuicTestValidateSession");
     if (TestingKernelMode) {

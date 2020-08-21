@@ -210,6 +210,99 @@ QuicTraceGlobalEvent(
         printf("API Waiting on operation\n");
         break;
     }
+    case EventId_QuicPerfCountersRundown: {
+        printf("Perf Counters:\n");
+        for(uint16_t i = 0; i < EvData->PerfCounters.CounterLen / sizeof(uint64_t); ++i) {
+            switch(i) {
+            case QUIC_PERF_COUNTER_CONN_CREATED:
+                printf("    Total connections ever allocated:                   ");
+                break;
+            case QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL:
+                printf("    Total connections that failed during handshake:     ");
+                break;
+            case QUIC_PERF_COUNTER_CONN_APP_REJECT:
+                printf("    Total connections rejected by the application:      ");
+                break;
+            case QUIC_PERF_COUNTER_CONN_RESUMED:
+                printf("    Total connections resumed:                          ");
+                break;
+            case QUIC_PERF_COUNTER_CONN_ACTIVE:
+                printf("    Connections currently allocated:                    ");
+                break;
+            case QUIC_PERF_COUNTER_CONN_CONNECTED:
+                printf("    Connections currently in the connected state:       ");
+                break;
+            case QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS:
+                printf("    Total connections shutdown with a protocol error:   ");
+                break;
+            case QUIC_PERF_COUNTER_CONN_NO_ALPN:
+                printf("    Total connection attempts with no matching ALPN:    ");
+                break;
+            case QUIC_PERF_COUNTER_STRM_ACTIVE:
+                printf("    Current streams allocated:                          ");
+                break;
+            case QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST:
+                printf("    Total suspected packets lost:                       ");
+                break;
+            case QUIC_PERF_COUNTER_PKTS_DROPPED:
+                printf("    Total packets dropped for any reason:               ");
+                break;
+            case QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL:
+                printf("    Total packets with decryption failures:             ");
+                break;
+            case QUIC_PERF_COUNTER_UDP_RECV:
+                printf("    Total UDP datagrams received:                       ");
+                break;
+            case QUIC_PERF_COUNTER_UDP_SEND:
+                printf("    Total UDP datagrams sent:                           ");
+                break;
+            case QUIC_PERF_COUNTER_UDP_RECV_BYTES:
+                printf("    Total UDP payload bytes received:                   ");
+                break;
+            case QUIC_PERF_COUNTER_UDP_SEND_BYTES:
+                printf("    Total UDP payload bytes sent:                       ");
+                break;
+            case QUIC_PERF_COUNTER_UDP_RECV_EVENTS:
+                printf("    Total UDP receive events:                           ");
+                break;
+            case QUIC_PERF_COUNTER_UDP_SEND_CALLS:
+                printf("    Total UDP send API calls:                           ");
+                break;
+            case QUIC_PERF_COUNTER_APP_SEND_BYTES:
+                printf("    Total bytes sent by applications:                   ");
+                break;
+            case QUIC_PERF_COUNTER_APP_RECV_BYTES:
+                printf("    Total bytes received by applications:               ");
+                break;
+            case QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH:
+                printf("    Current connections queued for processing:          ");
+                break;
+            case QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH:
+                printf("    Current connection operations queued:               ");
+                break;
+            case QUIC_PERF_COUNTER_CONN_OPER_QUEUED:
+                printf("    Total connection operations queued ever:            ");
+                break;
+            case QUIC_PERF_COUNTER_CONN_OPER_COMPLETED:
+                printf("    Total connection operations processed ever:         ");
+                break;
+            case QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH:
+                printf("    Current worker operations queued:                   ");
+                break;
+            case QUIC_PERF_COUNTER_WORK_OPER_QUEUED:
+                printf("    Total worker operations queued ever:                ");
+                break;
+            case QUIC_PERF_COUNTER_WORK_OPER_COMPLETED:
+                printf("    Total worker operations processed ever:             ");
+                break;
+            default:
+                printf("    Unknown:                                            ");
+                break;
+            }
+            printf("%lld\n", EvData->PerfCounters.Counters[i]);
+        }
+        break;
+    }
     default: {
         printf("Unknown Event ID=%u\n", ev->EventHeader.EventDescriptor.Id);
         break;

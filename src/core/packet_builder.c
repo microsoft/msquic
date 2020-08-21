@@ -49,6 +49,7 @@ QuicPacketBuilderInitialize(
     Builder->PacketBatchRetransmittable = FALSE;
     Builder->Metadata = &Builder->MetadataStorage.Metadata;
     Builder->EncryptionOverhead = QUIC_ENCRYPTION_OVERHEAD;
+    Builder->TotalDatagramsLength = 0;
 
     if (Connection->SourceCids.Next == NULL) {
         QuicTraceLogConnWarning(
@@ -864,6 +865,7 @@ Exit:
             Builder->Datagram->Length = Builder->DatagramLength;
             Builder->Datagram = NULL;
             ++Builder->TotalCountDatagrams;
+            Builder->TotalDatagramsLength += Builder->DatagramLength;
         }
 
         if (FlushBatchedDatagrams || QuicDataPathBindingIsSendContextFull(Builder->SendContext)) {
@@ -900,16 +902,21 @@ QuicPacketBuilderSendBatch(
         QuicBindingSendTo(
             Builder->Path->Binding,
             &Builder->Path->RemoteAddress,
-            Builder->SendContext);
+            Builder->SendContext,
+            Builder->TotalDatagramsLength,
+            Builder->TotalCountDatagrams);
 
     } else {
         QuicBindingSendFromTo(
             Builder->Path->Binding,
             &Builder->Path->LocalAddress,
             &Builder->Path->RemoteAddress,
-            Builder->SendContext);
+            Builder->SendContext,
+            Builder->TotalDatagramsLength,
+            Builder->TotalCountDatagrams);
     }
 
     Builder->PacketBatchSent = TRUE;
     Builder->SendContext = NULL;
+    Builder->TotalDatagramsLength = 0;
 }

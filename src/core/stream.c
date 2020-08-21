@@ -118,6 +118,7 @@ QuicStreamInitialize(
     *NewStream = Stream;
     Stream = NULL;
     PreallocatedRecvBuffer = NULL;
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
 
 Exit:
 
@@ -173,6 +174,8 @@ QuicStreamFree(
 
     Stream->Flags.Freed = TRUE;
     QuicPoolFree(&Worker->StreamPool, Stream);
+
+    QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
 
     if (WasStarted) {
 #pragma warning(push)
