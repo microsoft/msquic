@@ -23,8 +23,8 @@ QUIC_SEC_CONFIG* SecurityConfig;
 
 QUIC_SEC_CONFIG_CREATE_COMPLETE QuicTestSecConfigCreated;
 
-DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceName, L"\\Device\\msquictest");
-DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceSymLink, L"\\DosDevices\\msquictest");
+DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceName, L"\\Device\\" QUIC_DRIVER_NAME);
+DECLARE_CONST_UNICODE_STRING(QuicTestCtlDeviceSymLink, L"\\DosDevices\\" QUIC_DRIVER_NAME);
 
 typedef struct QUIC_DEVICE_EXTENSION {
     EX_PUSH_LOCK Lock;
