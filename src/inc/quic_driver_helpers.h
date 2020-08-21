@@ -73,7 +73,7 @@ public:
                     RemainingLength,
                     "%s.sys",
                     DriverName);
-            if (PathResult <= 0 || PathResult > RemainingLength) {
+            if (PathResult <= 0 || (size_t)PathResult > RemainingLength) {
                 QuicTraceEvent(
                     LibraryError,
                     "[ lib] ERROR, %s.",
