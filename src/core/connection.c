@@ -83,6 +83,8 @@ QuicConnAlloc(
 #if DEBUG
     InterlockedIncrement(&MsQuicLib.ConnectionCount);
 #endif
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_CREATED);
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_ACTIVE);
 
     Connection->Stats.CorrelationId =
         InterlockedIncrement64((int64_t*)&MsQuicLib.ConnectionCorrelationId) - 1;
@@ -258,7 +260,7 @@ Error:
             Connection->Packets[i] = NULL;
         }
     }
-    if (Datagram != NULL) {
+    if (Datagram != NULL && Connection->SourceCids.Next != NULL) {
         QUIC_FREE(
             QUIC_CONTAINING_RECORD(
                 Connection->SourceCids.Next,
@@ -350,6 +352,13 @@ QuicConnFree(
         ConnDestroyed,
         "[conn][%p] Destroyed",
         Connection);
+
+    if (Connection->State.Started && !Connection->State.Connected) {
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL);
+    }
+    if (Connection->State.Connected) {
+        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_CONNECTED);
+    }
     QuicPoolFree(
         &MsQuicLib.PerProc[QuicProcCurrentNumber()].ConnectionPool,
         Connection);
@@ -357,6 +366,7 @@ QuicConnFree(
 #if DEBUG
     InterlockedDecrement(&MsQuicLib.ConnectionCount);
 #endif
+    QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_ACTIVE);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1520,6 +1530,10 @@ QuicConnTryClose(
         if (ResultQuicStatus) {
             Connection->CloseStatus = (QUIC_STATUS)ErrorCode;
             Connection->CloseErrorCode = QUIC_ERROR_INTERNAL_ERROR;
+            if (ErrorCode != QUIC_STATUS_CONNECTION_IDLE &&
+                ErrorCode != QUIC_STATUS_CONNECTION_TIMEOUT) {
+                QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS);
+            }
         } else {
             Connection->CloseStatus = QuicErrorCodeToStatus(ErrorCode);
             Connection->CloseErrorCode = ErrorCode;
@@ -3576,6 +3590,7 @@ QuicConnRecvDecryptAndAuthenticate(
         }
         Connection->Stats.Recv.DecryptionFailures++;
         QuicPacketLogDrop(Connection, Packet, "Decryption failure");
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL);
 
         return FALSE;
     }
@@ -6599,6 +6614,7 @@ QuicConnDrainOperations(
         }
 
         Connection->Stats.Schedule.OperationCount++;
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_COMPLETED);
     }
 
     if (!Connection->State.ExternalOwner && Connection->State.ClosedLocally) {

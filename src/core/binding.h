@@ -414,7 +414,9 @@ QUIC_STATUS
 QuicBindingSendTo(
     _In_ QUIC_BINDING* Binding,
     _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ uint32_t BytesToSend,
+    _In_ uint32_t DatagramsToSend
     );
 
 //
@@ -427,7 +429,9 @@ QuicBindingSendFromTo(
     _In_ QUIC_BINDING* Binding,
     _In_ const QUIC_ADDR * LocalAddress,
     _In_ const QUIC_ADDR * RemoteAddress,
-    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext
+    _In_ QUIC_DATAPATH_SEND_CONTEXT* SendContext,
+    _In_ uint32_t BytesToSend,
+    _In_ uint32_t DatagramsToSend
     );
 
 //

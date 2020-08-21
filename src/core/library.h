@@ -57,6 +57,11 @@ typedef struct QUIC_CACHEALIGN QUIC_LIBRARY_PP {
     //
     QUIC_POOL PacketSpacePool;
 
+    //
+    // Per-processor performance counters.
+    //
+    int64_t PerfCounters[QUIC_PERF_COUNTER_MAX];
+
 } QUIC_LIBRARY_PP;
 
 //
@@ -305,6 +310,23 @@ QuicPartitionIndexDecrement(
         return PartitionIndex + (MsQuicLib.PartitionCount - Decrement);
     }
 }
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+void
+QuicPerfCounterAdd(
+    _In_ QUIC_PERFORMANCE_COUNTERS Type,
+    _In_ int64_t Value
+    )
+{
+    QUIC_DBG_ASSERT(Type < QUIC_PERF_COUNTER_MAX);
+    uint32_t ProcIndex = QuicProcCurrentNumber();
+    QUIC_DBG_ASSERT(ProcIndex < (uint32_t)MsQuicLib.PartitionCount);
+    InterlockedExchangeAdd64(&(MsQuicLib.PerProc[ProcIndex].PerfCounters[Type]), Value);
+}
+
+#define QuicPerfCounterIncrement(Type) QuicPerfCounterAdd(Type, 1)
+#define QuicPerfCounterDecrement(Type) QuicPerfCounterAdd(Type, -1)
 
 //
 // Creates a random, new source connection ID, that will be used on the receive

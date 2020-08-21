@@ -811,6 +811,8 @@ QuicStreamReceiveComplete(
         return FALSE;
     }
 
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, BufferLength);
+
     QUIC_FRE_ASSERTMSG(
         BufferLength <= Stream->RecvPendingLength,
         "App overflowed read buffer!");

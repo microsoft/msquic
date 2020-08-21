@@ -21670,6 +21670,34 @@
         },
         "CustomSettings": null
       }
+    },
+    "PerfCountersRundown": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Perf counters Rundown, Counters=%!CID!",
+      "UniqueId": "PerfCountersRundown",
+      "splitArgs": [
+        {
+          "VariableInfo": {
+            "UserSpecifiedUnModified": "\n            CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters)",
+            "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters)",
+            "SuggestedTelemetryName": "arg2"
+          },
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macro": {
+        "MacroName": "QuicTraceEvent",
+        "EncodedPrefix": null,
+        "EncodedArgNumber": 1,
+        "MacroConfiguration": {
+          "linux": "lttng_plus",
+          "stubs": "stubs",
+          "windows_kernel": "empty",
+          "windows": "empty"
+        },
+        "CustomSettings": null
+      }
     }
   },
   "Version": 1,
@@ -24602,6 +24630,10 @@
       {
         "UniquenessHash": "8fcfd765-ba83-53f1-a0bc-6992c51d42bd",
         "TraceID": "SchannelIgnoringTicket"
+      },
+      {
+        "UniquenessHash": "10ce7ee9-cfcc-e364-e24c-71e1913cb472",
+        "TraceID": "PerfCountersRundown"
       }
     ]
   }

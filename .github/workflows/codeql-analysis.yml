@@ -40,6 +40,7 @@ jobs:
         uses: github/codeql-action/init@v1
         with:
           languages: cpp
+          config-file: ./.github/codeql/codeql-config.yml
 
       # Analyze this build.
       - run: |

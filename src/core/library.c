@@ -83,6 +83,35 @@ MsQuicCalculatePartitionMask(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicLibrarySumPerfCounters(
+    _Out_writes_bytes_(BufferLength) uint8_t* Buffer,
+    _In_ uint32_t BufferLength
+    )
+{
+    QUIC_DBG_ASSERT(BufferLength == (BufferLength / sizeof(uint64_t) * sizeof(uint64_t)));
+    QUIC_DBG_ASSERT(BufferLength <= sizeof(MsQuicLib.PerProc[0].PerfCounters));
+    const uint32_t CountersPerBuffer = BufferLength / sizeof(int64_t);
+    int64_t* const Counters = (int64_t*)Buffer;
+    memcpy(Buffer, MsQuicLib.PerProc[0].PerfCounters, BufferLength);
+
+    for (uint32_t ProcIndex = 1; ProcIndex < MsQuicLib.ProcessorCount; ++ProcIndex) {
+        for (uint32_t CounterIndex = 0; CounterIndex < CountersPerBuffer; ++CounterIndex) {
+            Counters[CounterIndex] += MsQuicLib.PerProc[ProcIndex].PerfCounters[CounterIndex];
+        }
+    }
+
+    //
+    // Zero any counters that are still negative after summation.
+    //
+    for (uint32_t CounterIndex = 0; CounterIndex < CountersPerBuffer; ++CounterIndex) {
+        if (Counters[CounterIndex] < 0) {
+            Counters[CounterIndex] = 0;
+        }
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Function_class_(QUIC_STORAGE_CHANGE_CALLBACK)
 void
 MsQuicLibraryReadSettings(
@@ -204,6 +233,9 @@ MsQuicLibraryInitialize(
             sizeof(QUIC_PACKET_SPACE),
             QUIC_POOL_TP,
             &MsQuicLib.PerProc[i].PacketSpacePool);
+        QuicZeroMemory(
+            &MsQuicLib.PerProc[i].PerfCounters,
+            sizeof(MsQuicLib.PerProc[i].PerfCounters));
     }
 
     Status =
@@ -311,6 +343,21 @@ MsQuicLibraryUninitialize(
     // first cleaning up all connections.
     //
     QUIC_TEL_ASSERT(MsQuicLib.ConnectionCount == 0);
+#endif
+
+#if DEBUG
+    uint64_t PerfCounters[QUIC_PERF_COUNTER_MAX];
+    QuicLibrarySumPerfCounters((uint8_t*)PerfCounters, sizeof(PerfCounters));
+
+    //
+    // All active/current counters should be zero by cleanup.
+    //
+    QUIC_DBG_ASSERT(PerfCounters[QUIC_PERF_COUNTER_CONN_ACTIVE] == 0);
+    QUIC_DBG_ASSERT(PerfCounters[QUIC_PERF_COUNTER_CONN_CONNECTED] == 0);
+    QUIC_DBG_ASSERT(PerfCounters[QUIC_PERF_COUNTER_STRM_ACTIVE] == 0);
+    QUIC_DBG_ASSERT(PerfCounters[QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH] == 0);
+    QUIC_DBG_ASSERT(PerfCounters[QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH] == 0);
+    QUIC_DBG_ASSERT(PerfCounters[QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH] == 0);
 #endif
 
     //
@@ -662,6 +709,34 @@ QuicLibraryGetGlobalParam(
 
         Status = QUIC_STATUS_SUCCESS;
         break;
+
+    case QUIC_PARAM_GLOBAL_PERF_COUNTERS: {
+
+        if (*BufferLength < sizeof(int64_t)) {
+            *BufferLength = sizeof(int64_t) * QUIC_PERF_COUNTER_MAX;
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (*BufferLength < QUIC_PERF_COUNTER_MAX * sizeof(int64_t)) {
+            //
+            // Copy as many counters will fit completely in the buffer.
+            //
+            *BufferLength = (*BufferLength / sizeof(int64_t)) * sizeof(int64_t);
+        } else {
+            *BufferLength = QUIC_PERF_COUNTER_MAX * sizeof(int64_t);
+        }
+
+        QuicLibrarySumPerfCounters(Buffer, *BufferLength);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -1411,6 +1486,13 @@ QuicTraceRundown(
                 QUIC_CONTAINING_RECORD(Link, QUIC_BINDING, Link));
         }
         QuicDispatchLockRelease(&MsQuicLib.DatapathLock);
+
+        int64_t PerfCounters[QUIC_PERF_COUNTER_MAX];
+        QuicLibrarySumPerfCounters((uint8_t*)PerfCounters, sizeof(PerfCounters));
+        QuicTraceEvent(
+            PerfCountersRundown,
+            "[ lib] Perf counters Rundown, Counters=%!CID!",
+            CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters));
     }
 
     QuicLockRelease(&MsQuicLib.Lock);

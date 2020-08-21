@@ -60,6 +60,9 @@ This script provides helpers for building msquic.
 .PARAMETER Clang
     Build with Clang if available
 
+.PARAMETER UpdateClog
+    Build allowing clog to update the sidecar.
+
 .EXAMPLE
     build.ps1
 
@@ -125,7 +128,10 @@ param (
     [switch]$SkipSourceLink = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$Clang = $false
+    [switch]$Clang = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UpdateClog = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -324,6 +330,10 @@ function CMake-Build {
 #                     Main Execution                         #
 ##############################################################
 
+if ($UpdateClog) {
+    $env:CLOG_DEVELOPMENT_MODE=1
+}
+
 # Generate the build files.
 Log "Generating files..."
 CMake-Generate
@@ -333,3 +343,7 @@ Log "Building..."
 CMake-Build
 
 Log "Done."
+
+if ($UpdateClog) {
+    $env:CLOG_DEVELOPMENT_MODE=0
+}

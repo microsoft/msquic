@@ -804,7 +804,7 @@ TEST_P(TlsTest, KeyUpdate)
         ClientContext.InitializeClient(ClientSession, ClientSecConfigNoCertValidation);
         DoHandshake(ServerContext, ClientContext);
 
-        QUIC_PACKET_KEY* UpdateWriteKey, *UpdateReadKey = nullptr;
+        QUIC_PACKET_KEY* UpdateWriteKey = nullptr, *UpdateReadKey = nullptr;
 
         VERIFY_QUIC_SUCCESS(
             QuicPacketKeyUpdate(
@@ -931,6 +931,95 @@ TEST_P(TlsTest, PacketEncryptionPerf)
         SetThreadAffinityMask(CurrentThread, OldAffinityMask);
 #endif
     }
+}
+
+uint64_t LockedCounter(
+    const uint64_t LoopCount
+    )
+{
+    uint64_t Start, End;
+    QUIC_DISPATCH_LOCK Lock;
+    uint64_t Counter = 0;
+
+    QuicDispatchLockInitialize(&Lock);
+    Start = QuicTimeUs64();
+    for (uint64_t j = 0; j < LoopCount; ++j) {
+        QuicDispatchLockAcquire(&Lock);
+        Counter++;
+        QuicDispatchLockRelease(&Lock);
+    }
+    End = QuicTimeUs64();
+
+    QuicDispatchLockUninitialize(&Lock);
+
+    QUIC_FRE_ASSERT(Counter == LoopCount);
+
+    return End - Start;
+}
+
+uint64_t InterlockedCounter(
+    const uint64_t LoopCount
+    )
+{
+    uint64_t Start, End;
+    int64_t Counter = 0;
+
+    Start = QuicTimeUs64();
+    for (uint64_t j = 0; j < LoopCount; ++j) {
+        InterlockedIncrement64(&Counter);
+    }
+    End = QuicTimeUs64();
+
+    QUIC_FRE_ASSERT(Counter == LoopCount);
+
+    return End - Start;
+}
+
+uint64_t UnlockedCounter(
+    const uint64_t LoopCount
+    )
+{
+    uint64_t Start, End;
+    uint64_t Counter = 0;
+    Start = QuicTimeUs64();
+    for (uint64_t j = 0; j < LoopCount; ++j) {
+        Counter++;
+    }
+    End = QuicTimeUs64();
+
+    QUIC_FRE_ASSERT(Counter == LoopCount);
+
+    return End - Start;
+}
+
+
+TEST_F(TlsTest, LockPerfTest)
+{
+    uint64_t (*const TestFuncs[]) (uint64_t) = {LockedCounter, InterlockedCounter, UnlockedCounter};
+    const char* const TestName[] = {"Locking/unlocking", "Interlocked incrementing", "Unlocked incrementing"};
+    const uint64_t LoopCount = 100000;
+
+#ifdef _WIN32
+    HANDLE CurrentThread = GetCurrentThread();
+    DWORD ProcNumber = GetCurrentProcessorNumber();
+    DWORD_PTR OldAffinityMask =
+        SetThreadAffinityMask(CurrentThread, (DWORD_PTR)1 << (DWORD_PTR)ProcNumber);
+    SetThreadPriority(CurrentThread, THREAD_PRIORITY_HIGHEST);
+#endif
+
+    for (uint8_t i = 0; i < ARRAYSIZE(TestName); ++i) {
+
+        const uint64_t elapsedMicroseconds = TestFuncs[i](LoopCount);
+
+        std::cout << elapsedMicroseconds / 1000 << "." << (int)(elapsedMicroseconds % 1000) <<
+            " milliseconds elapsed "
+            << TestName[i] << " counter " << LoopCount << " times" << std::endl;
+    }
+
+#ifdef _WIN32
+    SetThreadPriority(CurrentThread, THREAD_PRIORITY_NORMAL);
+    SetThreadAffinityMask(CurrentThread, OldAffinityMask);
+#endif
 }
 
 INSTANTIATE_TEST_SUITE_P(TlsTest, TlsTest, ::testing::Bool());

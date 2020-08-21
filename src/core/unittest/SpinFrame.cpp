@@ -45,7 +45,7 @@ TEST(SpinFrame, SpinFrame1000000)
     uint16_t Offset;
     BOOLEAN InvalidFrame;
     uint8_t Buffer[255];
-    uint8_t BufferLength;
+    uint8_t BufferLength = 0;
     uint8_t FrameType;
 
     QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckBlocks);

@@ -469,6 +469,7 @@ QuicListenerAcceptConnection(
     if (!QuicListenerClaimConnection(Listener, Connection, Info)) {
         QuicSessionUnregisterConnection(Connection);
         Listener->TotalRejectedConnections++;
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_APP_REJECT);
         return;
     }
 
