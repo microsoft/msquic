@@ -201,7 +201,7 @@ RpsClient::Start(
             }
         }
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_KERNEL_MODE)
         uint8_t Processor = (uint8_t)(i % QuicProcActiveCount());
         const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[Processor];
         GROUP_AFFINITY Group = {0};
@@ -318,7 +318,7 @@ RpsClient::StreamCallback(
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
-        printf("Peer stream aborted!\n");
+        WriteOutput("Peer stream aborted!\n");
         MsQuic->StreamShutdown(
             StreamHandle,
             QUIC_STREAM_SHUTDOWN_FLAG_ABORT,

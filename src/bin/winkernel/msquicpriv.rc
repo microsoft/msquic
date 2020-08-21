@@ -1,0 +1,32 @@
+//
+//    Copyright (c) Microsoft Corporation.
+//    Licensed under the MIT License.
+//
+
+#include <windows.h>
+
+#define VER_FILETYPE                VFT_DRV
+#define VER_FILESUBTYPE             VFT2_DRV_NETWORK
+#define VER_ORIGINALFILENAME_STR    "msquicpriv.sys"
+
+#ifdef QUIC_WINDOWS_INTERNAL
+
+#include <ntverp.h>
+#define VER_FILEDESCRIPTION_STR     "Microsoft QUIC Private Test Library"
+#define VER_INTERNALNAME_STR        "msquicpriv"
+#include "common.ver"
+
+#else
+
+#include "msquic.ver"
+
+#endif // QUIC_WINDOWS_INTERNAL
+
+#include "resource.h"
+STRINGTABLE DISCARDABLE
+BEGIN
+    IDS_MSQUIC_DISPLAY_NAME         "MSQUICPRIVATE"
+    IDS_MSQUIC_DESCRIPTION_NAME     "This service implements the QUIC transport protocol, for private use."
+END
+
+#include "MsQuicEtw.rc"

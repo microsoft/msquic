@@ -210,7 +210,7 @@ if (!(Test-Path $MsQuicTest)) {
     Write-Error "Build does not exist!`n `nRun the following to generate it:`n `n    $(Join-Path $RootDir "scripts" "build.ps1") -Config $Config -Arch $Arch -Tls $Tls`n"
 }
 if ($Kernel) {
-    if (!(Test-Path (Join-Path $KernelPath "msquictest.sys"))) {
+    if (!(Test-Path (Join-Path $KernelPath "msquictestpriv.sys"))) {
         Write-Error "Kernel binaries do not exist!"
     }
 }

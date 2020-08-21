@@ -149,6 +149,8 @@ ThroughputClient::Start(
     _In_ QUIC_EVENT* StopEvnt
     ) {
     ShutdownWrapper Shutdown;
+    this->StopEvent = StopEvnt;
+
     ConnectionData* ConnData = ConnectionDataAllocator.Alloc(this);
     if (!ConnData) {
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -226,17 +228,6 @@ ThroughputClient::Start(
             &LocalIpAddr);
     }
 
-    Status =
-        MsQuic->ConnectionStart(
-            ConnData->Connection,
-            RemoteFamily,
-            TargetData.get(),
-            Port);
-    if (QUIC_FAILED(Status)) {
-        WriteOutput("Failed ConnectionStart 0x%x\n", Status);
-        return Status;
-    }
-
     StreamData* StrmData = StreamDataAllocator.Alloc(this, ConnData->Connection);
 
     Status =
@@ -268,7 +259,6 @@ ThroughputClient::Start(
         return Status;
     }
 
-    this->StopEvent = StopEvnt;
     StrmData->StartTime = QuicTimeUs64();
 
     if (Length == 0) {
@@ -298,6 +288,17 @@ ThroughputClient::Start(
             SendRequestAllocator.Free(SendReq);
             return Status;
         }
+    }
+
+    Status =
+        MsQuic->ConnectionStart(
+            ConnData->Connection,
+            RemoteFamily,
+            TargetData.get(),
+            Port);
+    if (QUIC_FAILED(Status)) {
+        WriteOutput("Failed ConnectionStart 0x%x\n", Status);
+        return Status;
     }
     WriteOutput("Started!\n");
     Shutdown.ConnHandle = nullptr;
