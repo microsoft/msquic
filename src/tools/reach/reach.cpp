@@ -24,6 +24,7 @@ std::vector<const char*> ALPNs(
     { "h3-27", "h3-28", "h3-29",
       "hq-27", "hq-28", "hq-29",
       "smb" });
+const char* InputAlpn = nullptr;
 
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
@@ -121,13 +122,14 @@ main(int argc, char **argv)
             !strcmp(argv[1], "/?") ||
             !strcmp(argv[1], "help")
         )) {
-        printf("Usage: quicreach.exe [-server:<name>] [-ip:<ip>] [-port:<number>]\n");
+        printf("Usage: quicreach.exe [-server:<name>] [-ip:<ip>] [-port:<number>] [-alpn:<alpn>]\n");
         exit(1);
     }
 
     TryGetValue(argc, argv, "server", &ServerName);
     TryGetValue(argc, argv, "ip", &ServerIp);
     TryGetValue(argc, argv, "port", &Port);
+    TryGetValue(argc, argv, "alpn", &InputAlpn);
 
     QuicPlatformSystemLoad();
     QuicPlatformInitialize();
@@ -175,14 +177,24 @@ main(int argc, char **argv)
     std::vector<QUIC_THREAD> Threads;
     QUIC_THREAD_CONFIG Config = { 0, 0, "reach_worker", TestReachability, nullptr };
 
-    for (auto ALPN : ALPNs) {
-        Config.Context = (void*)ALPN;
+    if (InputAlpn != nullptr) {
+        Config.Context = (void*)InputAlpn;
         QUIC_THREAD Thread;
         if (QUIC_FAILED(QuicThreadCreate(&Config, &Thread))) {
             printf("QuicThreadCreate failed.\n");
             exit(1);
         }
         Threads.push_back(Thread);
+    } else {
+        for (auto ALPN : ALPNs) {
+            Config.Context = (void*)ALPN;
+            QUIC_THREAD Thread;
+            if (QUIC_FAILED(QuicThreadCreate(&Config, &Thread))) {
+                printf("QuicThreadCreate failed.\n");
+                exit(1);
+            }
+            Threads.push_back(Thread);
+        }
     }
 
     for (auto Thread : Threads) {
