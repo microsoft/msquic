@@ -291,8 +291,9 @@ void RunAttackValidInitial()
     }
 }
 
-QUIC_THREAD_CALLBACK(RunAttackThread, _Context)
+QUIC_THREAD_CALLBACK(RunAttackThread, Context)
 {
+    UNREFERENCED_PARAMETER(Context);
     switch (AttackType) {
     case 1:
         RunAttackRandom(1, false);
