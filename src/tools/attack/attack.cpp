@@ -39,6 +39,7 @@ static uint32_t ThreadCount = ATTACK_THREADS_DEFAULT;
 
 static uint64_t TimeStart;
 static int64_t TotalPacketCount;
+static int64_t TotalByteCount;
 
 void PrintUsage()
 {
@@ -147,6 +148,7 @@ void RunAttackRandom(uint16_t Length, bool ValidQuic)
             }
 
             InterlockedExchangeAdd64(&TotalPacketCount, 1);
+            InterlockedExchangeAdd64(&TotalByteCount, Length);
         }
 
         QUIC_STATUS Status =
@@ -180,7 +182,7 @@ void RunAttackValidInitial()
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH;
     const uint64_t PacketNumber = 0;
 
-    uint8_t Packet[256] = {0};
+    uint8_t Packet[512] = {0};
     uint16_t PacketLength, HeaderLength;
     PacketWriter::WriteClientInitialPacket(
         PacketNumber,
@@ -195,6 +197,17 @@ void RunAttackValidInitial()
 
     uint64_t* DestCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1));
     uint64_t* SrcCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1) + sizeof(uint64_t) + sizeof(uint8_t));
+
+    uint64_t* OrigSrcCid = nullptr;
+    for (uint16_t i = HeaderLength; i < PacketLength; ++i) {
+        if (MagicCid == *(uint64_t*)&Packet[i]) {
+            OrigSrcCid = (uint64_t*)&Packet[i];
+        }
+    }
+    if (!OrigSrcCid) {
+        printf("Failed to find OrigSrcCid!\n");
+        return;
+    }
 
     QuicRandom(sizeof(uint64_t), DestCid);
     QuicRandom(sizeof(uint64_t), SrcCid);
@@ -213,6 +226,7 @@ void RunAttackValidInitial()
             VERIFY(SendBuffer);
 
             (*DestCid)++; (*SrcCid)++;
+            *OrigSrcCid = *SrcCid;
             memcpy(SendBuffer->Buffer, Packet, PacketLength);
 
             printf_buf("cleartext", SendBuffer->Buffer, PacketLength - QUIC_ENCRYPTION_OVERHEAD);
@@ -265,6 +279,7 @@ void RunAttackValidInitial()
             printf_buf("protected", SendBuffer->Buffer, PacketLength);
 
             InterlockedExchangeAdd64(&TotalPacketCount, 1);
+            InterlockedExchangeAdd64(&TotalByteCount, DatagramLength);
         }
 
         VERIFY(
@@ -299,9 +314,7 @@ QUIC_THREAD_CALLBACK(RunAttackThread, _Context)
 
 void RunAttack()
 {
-    QUIC_STATUS Status;
-
-    Status =
+    QUIC_STATUS Status =
         QuicDataPathBindingCreate(
             Datapath,
             nullptr,
@@ -310,40 +323,37 @@ void RunAttack()
             &Binding);
     if (QUIC_FAILED(Status)) {
         printf("QuicDataPathBindingCreate failed, 0x%x\n", Status);
-        goto Error;
+        return;
     }
 
-    {
-        QUIC_THREAD* Threads =
-            (QUIC_THREAD*)QUIC_ALLOC_PAGED(ThreadCount * sizeof(QUIC_THREAD));
-        uint32_t ProcCount = QuicProcActiveCount();
-        TimeStart = QuicTimeMs64();
-        for (uint32_t i = 0; i < ThreadCount; ++i) {
-            QUIC_THREAD_CONFIG ThreadConfig = {
-                QUIC_THREAD_FLAG_SET_IDEAL_PROC, // TODO - Maybe affinity instead?
-                (uint8_t)(i % ProcCount),
-                "AttackRunner",
-                RunAttackThread,
-                nullptr
-            };
-            QuicThreadCreate(&ThreadConfig, &Threads[i]);
-        }
-        for (uint32_t i = 0; i < ThreadCount; ++i) {
-            QuicThreadWait(&Threads[i]);
-            QuicThreadDelete(&Threads[i]);
-        }
-        uint64_t TimeEnd = QuicTimeMs64();
-        printf("%llu packets were sent (%llu KHz).\n",
-            (unsigned long long)TotalPacketCount,
-            (unsigned long long)(TotalPacketCount) / QuicTimeDiff64(TimeStart, TimeEnd));
-        QUIC_FREE(Threads);
+    QUIC_THREAD* Threads =
+        (QUIC_THREAD*)QUIC_ALLOC_PAGED(ThreadCount * sizeof(QUIC_THREAD));
+
+    uint32_t ProcCount = QuicProcActiveCount();
+    TimeStart = QuicTimeMs64();
+
+    for (uint32_t i = 0; i < ThreadCount; ++i) {
+        QUIC_THREAD_CONFIG ThreadConfig = {
+            QUIC_THREAD_FLAG_SET_IDEAL_PROC | QUIC_THREAD_FLAG_SET_AFFINITIZE,
+            (uint8_t)(i % ProcCount),
+            "AttackRunner",
+            RunAttackThread,
+            nullptr
+        };
+        QuicThreadCreate(&ThreadConfig, &Threads[i]);
     }
 
-Error:
-
-    if (Binding != nullptr) {
-        QuicDataPathBindingDelete(Binding);
+    for (uint32_t i = 0; i < ThreadCount; ++i) {
+        QuicThreadWait(&Threads[i]);
+        QuicThreadDelete(&Threads[i]);
     }
+
+    uint64_t TimeEnd = QuicTimeMs64();
+    printf("Packet Rate: %llu KHz\n", (unsigned long long)(TotalPacketCount) / QuicTimeDiff64(TimeStart, TimeEnd));
+    printf("Bit Rate: %llu mbps\n", (unsigned long long)(8 * TotalByteCount) / (1000 * QuicTimeDiff64(TimeStart, TimeEnd)));
+    QUIC_FREE(Threads);
+
+    QuicDataPathBindingDelete(Binding);
 }
 
 int
@@ -402,6 +412,7 @@ main(
                 printf("Failed to resolve IP address of '%s'.\n", ServerName);
                 goto Error;
             }
+            QuicAddrSetPort(&ServerAddress, ATTACK_PORT_DEFAULT);
         } else {
             if (!QuicAddrFromString(IpAddress, ATTACK_PORT_DEFAULT, &ServerAddress)) {
                 printf("Invalid -ip:'%s' specified!\n", IpAddress);
