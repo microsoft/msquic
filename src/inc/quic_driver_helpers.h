@@ -16,8 +16,9 @@ Abstract:
 
 #ifdef _WIN32
 
-#define QUIC_DRIVER_FILE_NAME  QUIC_DRIVER_NAME ".sys"
-#define QUIC_IOCTL_PATH        "\\\\.\\\\" QUIC_DRIVER_NAME
+//#define QUIC_DRIVER_FILE_NAME  QUIC_DRIVER_NAME ".sys"
+//#define QUIC_IOCTL_PATH        "\\\\.\\\\" QUIC_DRIVER_NAME
+
 
 class QuicDriverService {
     SC_HANDLE ScmHandle;
@@ -27,7 +28,7 @@ public:
         ScmHandle(nullptr),
         ServiceHandle(nullptr) {
     }
-    bool Initialize() {
+    bool Initialize(const char* DriverName, const char* DependentFileNames) {
         uint32_t Error;
         ScmHandle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
         if (ScmHandle == nullptr) {
@@ -43,7 +44,7 @@ public:
         ServiceHandle =
             OpenServiceA(
                 ScmHandle,
-                QUIC_DRIVER_NAME,
+                DriverName,
                 SERVICE_ALL_ACCESS);
         if (ServiceHandle == nullptr) {
             QuicTraceEvent(
@@ -54,27 +55,40 @@ public:
             char DriverFilePath[MAX_PATH] = {0};
             GetModuleFileNameA(NULL, DriverFilePath, MAX_PATH);
             char* PathEnd = strrchr(DriverFilePath, '\\');
-            if (!PathEnd ||
-                sizeof(DriverFilePath) - (PathEnd - DriverFilePath) < sizeof(QUIC_DRIVER_FILE_NAME)) {
+            if (!PathEnd) {
                 QuicTraceEvent(
                     LibraryError,
                     "[ lib] ERROR, %s.",
-                    "Can't build " QUIC_DRIVER_FILE_NAME " full path");
+                    "Failed to get currently executing module path");
                 return false;
             }
-            memcpy(PathEnd + 1, QUIC_DRIVER_FILE_NAME, sizeof(QUIC_DRIVER_FILE_NAME));
+            PathEnd++;
+            size_t RemainingLength = sizeof(DriverFilePath) - (PathEnd - DriverFilePath);
+            int PathResult =
+                snprintf(
+                    PathEnd,
+                    RemainingLength,
+                    "%s.sys",
+                    DriverName);
+            if (PathResult <= 0 || PathResult > RemainingLength) {
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "Failed to create driver on disk file path");
+                return false;
+            }
             if (GetFileAttributesA(DriverFilePath) == INVALID_FILE_ATTRIBUTES) {
                 QuicTraceEvent(
                     LibraryError,
                     "[ lib] ERROR, %s.",
-                    "Failed to find " QUIC_DRIVER_FILE_NAME);
+                    "Failed to find driver on disk");
                 return false;
             }
             ServiceHandle =
                 CreateServiceA(
                     ScmHandle,
-                    QUIC_DRIVER_NAME,
-                    QUIC_DRIVER_NAME,
+                    DriverName,
+                    DriverName,
                     SC_MANAGER_ALL_ACCESS,
                     SERVICE_KERNEL_DRIVER,
                     SERVICE_DEMAND_START,
@@ -82,7 +96,7 @@ public:
                     DriverFilePath,
                     nullptr,
                     nullptr,
-                    "msquicpriv\0",
+                    DependentFileNames,
                     nullptr,
                     nullptr);
             if (ServiceHandle == nullptr) {
@@ -129,12 +143,27 @@ class QuicDriverClient {
 public:
     QuicDriverClient() : DeviceHandle(INVALID_HANDLE_VALUE) { }
     bool Initialize(
-        _In_ QUIC_SEC_CONFIG_PARAMS* SecConfigParams
+        _In_ QUIC_SEC_CONFIG_PARAMS* SecConfigParams,
+        _In_z_ const char* DriverName
         ) {
         uint32_t Error;
+        char IoctlPath[MAX_PATH];
+        int PathResult =
+            snprintf(
+                IoctlPath,
+                sizeof(IoctlPath),
+                "\\\\.\\\\%s",
+                DriverName);
+        if (PathResult < 0 || PathResult >= sizeof(IoctlPath)) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERRROR, %s",
+                "Creating Driver File Path failed");
+            return false;
+        }
         DeviceHandle =
             CreateFileA(
-                QUIC_IOCTL_PATH,
+                IoctlPath,
                 GENERIC_READ | GENERIC_WRITE,
                 0,
                 nullptr,                // no SECURITY_ATTRIBUTES structure

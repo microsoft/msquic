@@ -17,17 +17,15 @@ Abstract:
 
 #ifdef _WIN32
 
-//
-// Name of the driver service for quicperf.sys.
-// Must be defined before quic_driver_helpers.h is included
-//
-#define QUIC_DRIVER_NAME   "quicperf"
-
 #include <winioctl.h>
 #include "PerfIoctls.h"
 #include "quic_driver_helpers.h"
 
+#define QUIC_DRIVER_NAME   "quicperf"
+
 #endif
+
+
 
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
 
@@ -122,7 +120,7 @@ QuicKernelMain(
     QuicDriverService DriverService;
     QuicDriverClient DriverClient;
 
-    if (!DriverService.Initialize()) {
+    if (!DriverService.Initialize(QUIC_DRIVER_NAME, "msquicpriv\0")) {
         printf("Failed to initialize driver service\n");
         QUIC_FREE(Data);
         return QUIC_STATUS_INVALID_STATE;
@@ -134,7 +132,7 @@ QuicKernelMain(
         return QUIC_STATUS_INVALID_STATE;
     }
 
-    if (!DriverClient.Initialize(SelfSignedParams)) {
+    if (!DriverClient.Initialize(SelfSignedParams, QUIC_DRIVER_NAME)) {
         printf("Intializing Driver Client Failed.\n");
         DriverService.Uninitialize();
         QUIC_FREE(Data);
