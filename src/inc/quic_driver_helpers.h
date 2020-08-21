@@ -28,7 +28,10 @@ public:
         ScmHandle(nullptr),
         ServiceHandle(nullptr) {
     }
-    bool Initialize(const char* DriverName, const char* DependentFileNames) {
+    bool Initialize(
+        _In_z_ const char* DriverName,
+        _In_z_ const char* DependentFileNames
+        ) {
         uint32_t Error;
         ScmHandle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
         if (ScmHandle == nullptr) {
@@ -349,7 +352,14 @@ public:
 
 class QuicDriverService {
 public:
-    bool Initialize() { return false; }
+    bool Initialize(
+        _In_z_ const char* DriverName,
+        _In_z_ const char* DependentFileNames
+        ) {
+        UNREFERENCED_PARAMETER(DriverName);
+        UNREFERENCED_PARAMETER(DependentFileNames);
+        return false;
+        }
     void Uninitialize() { }
     bool Start() { return false; }
 };
@@ -357,9 +367,11 @@ public:
 class QuicDriverClient {
 public:
     bool Initialize(
-        _In_ QUIC_SEC_CONFIG_PARAMS* SecConfigParams
+        _In_ QUIC_SEC_CONFIG_PARAMS* SecConfigParams,
+        _In_z_ const char* DriverName
     ) {
         UNREFERENCED_PARAMETER(SecConfigParams);
+        UNREFERENCED_PARAMETER(DriverName);
         return false;
     }
     void Uninitialize() { }
