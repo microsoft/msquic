@@ -183,6 +183,7 @@ QuicWorkerQueueConnection(
     )
 {
     QUIC_DBG_ASSERT(Connection->Worker != NULL);
+    BOOLEAN ConnectionQueued = FALSE;
 
     QuicDispatchLockAcquire(&Worker->Lock);
 
@@ -197,6 +198,7 @@ QuicWorkerQueueConnection(
             QUIC_SCHEDULE_QUEUED);
         QuicConnAddRef(Connection, QUIC_CONN_REF_WORKER);
         QuicListInsertTail(&Worker->Connections, &Connection->WorkerLink);
+        ConnectionQueued = TRUE;
     } else {
         WakeWorkerThread = FALSE;
     }
@@ -204,6 +206,10 @@ QuicWorkerQueueConnection(
     Connection->HasQueuedWork = TRUE;
 
     QuicDispatchLockRelease(&Worker->Lock);
+
+    if (ConnectionQueued) {
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
+    }
 
     if (WakeWorkerThread) {
         QuicEventSet(Worker->Ready);
@@ -258,7 +264,8 @@ QuicWorkerQueueOperation(
         QuicListInsertTail(&Worker->Operations, &Operation->Link);
         Worker->OperationCount++;
         Operation = NULL;
-
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH);
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_WORK_OPER_QUEUED);
     } else {
         WakeWorkerThread = FALSE;
         Worker->DroppedOperationCount++;
@@ -347,6 +354,7 @@ QuicWorkerGetNextConnection(
             QUIC_DBG_ASSERT(Connection->HasQueuedWork);
             Connection->HasQueuedWork = FALSE;
             Connection->WorkerProcessing = TRUE;
+            QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
         }
 
         QuicDispatchLockRelease(&Worker->Lock);
@@ -378,6 +386,7 @@ QuicWorkerGetNextOperation(
             Operation->Link.Flink = NULL;
 #endif
             Worker->OperationCount--;
+            QuicPerfCounterDecrement(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH);
         }
 
         QuicDispatchLockRelease(&Worker->Lock);
@@ -577,6 +586,7 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
                 Operation->Type,
                 Operation->STATELESS.Context);
             QuicOperationFree(Worker, Operation);
+            QuicPerfCounterIncrement(QUIC_PERF_COUNTER_WORK_OPER_COMPLETED);
         }
 
         //
@@ -638,6 +648,7 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
     // in it's list by the time clean up started. So it needs to release any
     // remaining references on connections.
     //
+    int64_t Dequeue = 0;
     while (!QuicListIsEmpty(&Worker->Connections)) {
         QUIC_CONNECTION* Connection =
             QUIC_CONTAINING_RECORD(
@@ -654,8 +665,11 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
             QuicConnOnShutdownComplete(Connection);
         }
         QuicConnRelease(Connection, QUIC_CONN_REF_WORKER);
+        --Dequeue;
     }
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH, Dequeue);
 
+    Dequeue = 0;
     while (!QuicListIsEmpty(&Worker->Operations)) {
         QUIC_OPERATION* Operation =
             QUIC_CONTAINING_RECORD(
@@ -664,7 +678,9 @@ QUIC_THREAD_CALLBACK(QuicWorkerThread, Context)
         Operation->Link.Flink = NULL;
 #endif
         QuicOperationFree(Worker, Operation);
+        --Dequeue;
     }
+    QuicPerfCounterAdd(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH, Dequeue);
 
     QuicTraceEvent(
         WorkerStop,
