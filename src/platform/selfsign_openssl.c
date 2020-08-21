@@ -52,7 +52,7 @@ QuicTlsGenerateSelfSignedCert(
         goto Exit;
     }
 
-    EcKeyCtx = EVP_PKEY_CTX_new_id(NID_X25519, NULL);
+    EcKeyCtx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL);
     if (EcKeyCtx == NULL) {
         QuicTraceEvent(
             LibraryError,
