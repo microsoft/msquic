@@ -441,6 +441,10 @@ QuicBindingAcceptConnection(
     _In_ QUIC_NEW_CONNECTION_INFO* Info
     )
 {
+    //
+    // Find a listener that matches the incoming connection request, by IP, port
+    // and ALPN.
+    //
     QUIC_LISTENER* Listener =
         QuicBindingGetListener(Connection->Paths[0].Binding, Info);
     if (Listener == NULL) {
@@ -455,6 +459,16 @@ QuicBindingAcceptConnection(
         return;
     }
 
+    //
+    // Save the negotiated ALPN (starting with the length prefix) to be
+    // used later in building up the TLS response.
+    //
+    Connection->Crypto.TlsState.NegotiatedAlpn = Info->NegotiatedAlpn - 1;
+
+    //
+    // Allow for the listener to decide if it wishes to accept the incoming
+    // connection.
+    //
     QuicListenerAcceptConnection(Listener, Connection, Info);
 
     QuicRundownRelease(&Listener->Rundown);

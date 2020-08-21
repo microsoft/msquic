@@ -438,7 +438,7 @@ typedef enum QUIC_SERVER_RESUMPTION_LEVEL {
 #define QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS           11  // uint32_t
 #define QUIC_PARAM_CONN_KEEP_ALIVE                      12  // uint32_t - milliseconds
 #define QUIC_PARAM_CONN_DISCONNECT_TIMEOUT              13  // uint32_t - milliseconds
-#define QUIC_PARAM_CONN_CONFIGURATION                   14  // HQUIC*
+#define QUIC_PARAM_CONN_CONFIGURATION                   14  // HQUIC
 #define QUIC_PARAM_CONN_SEND_BUFFERING                  15  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_SEND_PACING                     16  // uint8_t (BOOLEAN)
 #define QUIC_PARAM_CONN_SHARE_UDP_BINDING               17  // uint8_t (BOOLEAN)
@@ -660,7 +660,7 @@ typedef struct QUIC_LISTENER_EVENT {
         struct {
             /* in */    const QUIC_NEW_CONNECTION_INFO* Info;
             /* in */    HQUIC Connection;
-            /* out */   HQUIC* Configuration;
+            /* out */   HQUIC Configuration;
         } NEW_CONNECTION;
     };
 } QUIC_LISTENER_EVENT;

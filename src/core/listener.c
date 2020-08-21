@@ -417,12 +417,6 @@ QuicListenerClaimConnection(
     Connection->State.ListenerAccepted = TRUE;
     Connection->State.UpdateWorker = TRUE;
 
-    //
-    // Save the negotiated ALPN (starting with the length prefix) to be
-    // used later in building up the TLS response.
-    //
-    Connection->Crypto.TlsState.NegotiatedAlpn = Info->NegotiatedAlpn - 1;
-
     if (Event.NEW_CONNECTION.Configuration != NULL) {
         QUIC_CONFIGURATION* Configuration =
             (QUIC_CONFIGURATION*)Event.NEW_CONNECTION.Configuration;
