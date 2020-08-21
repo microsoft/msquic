@@ -1384,6 +1384,7 @@ _Success_(return != NULL)
 QUIC_DATAPATH_SEND_CONTEXT*
 QuicDataPathBindingAllocSendContext(
     _In_ QUIC_DATAPATH_BINDING* Binding,
+    _In_ QUIC_ECN_TYPE ECN,
     _In_ uint16_t MaxPacketSize
     )
 {
