@@ -1,6 +1,6 @@
 # Support for MsQuic
 
-An MsQuic release begins its life in the master branch where it receives feature updates as well as servicing for security and bug fixes. When it is time to release, the code will be snapped into a release branch where it is stable and will only receive servicing for security and bug fixes. 
+An MsQuic release begins its life in the main branch where it receives feature updates as well as servicing for security and bug fixes. When it is time to release, the code will be snapped into a release branch where it is stable and will only receive servicing for security and bug fixes.
 
 ## MsQuic Releases
 
@@ -16,9 +16,9 @@ This table describes the version, release date and end of support for MsQuic rel
 
 ## MsQuic Branches
 
-MsQuic has two types of branches **master** and **release** defined as:
+MsQuic has two types of branches **main** and **release** defined as:
 
-* **Master** - The master branch receives security and bug fixes just the same as the release branches. However, the master branch is where active development happens and because of this the master branch may experience breaking changes as we develop new features. 
+* **Master** - The main branch receives security and bug fixes just the same as the release branches. However, the main branch is where active development happens and because of this the main branch may experience breaking changes as we develop new features.
 
 * **Release** - Release branches only receive security and bug fixes, and are considered stable. There should be no breaking changes in these branches, and they can be used for stable products.
 

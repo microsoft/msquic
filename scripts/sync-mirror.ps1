@@ -13,7 +13,7 @@ This synchronizes a branch on the current repository to the mirror repo.
 
 param (
     [Parameter(Mandatory = $false)]
-    [string]$Branch = "refs/heads/master"
+    [string]$Branch = "refs/heads/main"
 )
 
 Set-StrictMode -Version 'Latest'
