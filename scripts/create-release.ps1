@@ -1,7 +1,7 @@
 <#
 
 .SYNOPSIS
-This script automates creating a new release branch from the latest master.
+This script automates creating a new release branch from the latest main.
 
 .PARAMETER Type
     Specifies the type of release (Major or Minor) and updates the current
@@ -26,8 +26,8 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 $MsQuicVerFilePath = Join-Path $RootDir "src" "inc" "msquic.ver"
 $UpdateVersionScript = Join-Path $RootDir "scripts" "update-version.ps1"
 
-# Make sure we're on the latest master.
-git checkout master
+# Make sure we're on the latest main.
+git checkout main
 git pull
 
 # Get the current major and minor version numbers from msquic.ver.
@@ -38,8 +38,8 @@ git checkout -b "release/$Version"
 git push --set-upstream origin "release/$Version"
 Write-Host "New release branch created: release/$Versio"
 
-# Go back to master and update the version number.
-git checkout master
+# Go back to main and update the version number.
+git checkout main
 Invoke-Expression ($UpdateVersionScript + " -Part " + $Type)
 
 # Create a new branch, commit the changes, push the branch and open the browser to create the PR.
