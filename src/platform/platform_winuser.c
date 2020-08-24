@@ -207,7 +207,7 @@ QuicProcessorInfoInit(
             if (Info->Relationship == RelationGroup) {
                 uint32_t ProcessorOffset = 0;
                 for (WORD i = 0; i < Info->Group.ActiveGroupCount; ++i) {
-                    uint64_t IndexToSet = Index - ProcessorOffset;
+                    uint32_t IndexToSet = Index - ProcessorOffset;
                     QUIC_DBG_ASSERT(IndexToSet < 64);
                     if (IndexToSet < Info->Group.GroupInfo[i].ActiveProcessorCount) {
                         QuicProcessorInfo[Index].Group = i;
