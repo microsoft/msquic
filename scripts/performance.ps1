@@ -12,6 +12,9 @@ This script runs performance tests locally for a period of time.
 .PARAMETER RemoteArch
     Specifies what the remote arch is
 
+.PARAMETER Kernel
+    Run the remote in kernel mode
+
 .PARAMETER LocalTls
     Specifies what local TLS provider to use
 
@@ -84,6 +87,9 @@ param (
     [string]$WinRMUser = "",
 
     [Parameter(Mandatory = $false)]
+    [switch]$Kernel = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$SkipDeploy = $false,
 
     [Parameter(Mandatory = $false)]
@@ -110,6 +116,15 @@ param (
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+# Validate the the kernel switch.
+if ($Kernel -and !$IsWindows) {
+    Write-Error "-Kernel switch only supported on Windows"
+}
+
+if ($Kernel -and $PGO) {
+    Write-Error "PGO is currently not supported in kernel mode"
+}
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
@@ -193,7 +208,8 @@ Set-ScriptVariables -Local $Local `
                     -Record $Record `
                     -RecordQUIC $RecordQUIC `
                     -RemoteAddress $RemoteAddress `
-                    -Session $Session
+                    -Session $Session `
+                    -Kernel $Kernel
 
 $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     if ($IsWindows) {
@@ -303,7 +319,7 @@ function Invoke-Test {
 
     # Starting the server
     $RemoteJob = Invoke-RemoteExe -Exe $RemoteExe -RunArgs $RemoteArguments
-    $ReadyToStart = Wait-ForRemoteReady -Job $RemoteJob
+    $ReadyToStart = Wait-ForRemoteReady -Job $RemoteJob -Matcher $Test.RemoteReadyMatcher
 
     if (!$ReadyToStart) {
         Stop-Job -Job $RemoteJob

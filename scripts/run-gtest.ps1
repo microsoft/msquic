@@ -311,7 +311,7 @@ function Start-TestCase([String]$Name) {
         $Arguments += " --gtest_break_on_failure"
     }
     if ($Kernel -ne "") {
-        $Arguments += " --kernel"
+        $Arguments += " --kernel --privateLibrary"
     }
 
     # Start the test process and return some information about the test case.
@@ -345,7 +345,7 @@ function Start-AllTestCases {
         $Arguments += " --gtest_break_on_failure"
     }
     if ($Kernel -ne "") {
-        $Arguments += " --kernel"
+        $Arguments += " --kernel --privateLibrary"
     }
 
     # Start the test process and return some information about the test case.
@@ -566,12 +566,25 @@ if ($IsWindows -and $EnableAppVerifier) {
 
 # Install the kernel mode drivers.
 if ($Kernel -ne "") {
-    net.exe stop msquic /y | Out-Null
-    Copy-Item C:\Windows\system32\drivers\msquic.sys C:\Windows\system32\drivers\msquic.sys.old
-    Copy-Item (Join-Path $Kernel "msquictest.sys") (Split-Path $Path -Parent)
-    verifier.exe /volatile /adddriver afd.sys msquic.sys msquictest.sys netio.sys tcpip.sys /flags 0x9BB
-    sfpcopy.exe (Join-Path $Kernel "msquic.sys") C:\Windows\system32\drivers\msquic.sys
-    net.exe start msquic
+    if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
+        try {
+            net.exe stop msquicpriv /y | Out-Null
+        }
+        catch {}
+        sc.exe delete msquicpriv /y | Out-Null
+    }
+    if ($null -ne (Get-Service -Name "msquictestpriv" -ErrorAction Ignore)) {
+        try {
+            net.exe stop msquictestpriv /y | Out-Null
+        }
+        catch {}
+        sc.exe delete msquictestpriv /y | Out-Null
+    }
+    Copy-Item (Join-Path $Kernel "msquictestpriv.sys") (Split-Path $Path -Parent)
+    Copy-Item (Join-Path $Kernel "msquicpriv.sys") (Split-Path $Path -Parent)
+    sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys") start= demand | Out-Null
+    verifier.exe /volatile /adddriver afd.sys msquicpriv.sys msquictestpriv.sys netio.sys tcpip.sys /flags 0x9BB
+    net.exe start msquicpriv
 }
 
 try {
@@ -673,12 +686,10 @@ try {
 
     # Uninstall the kernel mode test driver and revert the msquic driver.
     if ($Kernel -ne "") {
-        net.exe stop msquic /y | Out-Null
-        sc.exe delete msquictest | Out-Null
-        verifier.exe /volatile /removedriver afd.sys msquic.sys msquictest.sys netio.sys tcpip.sys
+        net.exe stop msquicpriv /y | Out-Null
+        sc.exe delete msquictestpriv | Out-Null
+        sc.exe delete msquicpriv | Out-Null
+        verifier.exe /volatile /removedriver afd.sys msquicpriv.sys msquictestpriv.sys netio.sys tcpip.sys
         verifier.exe /volatile /flags 0x0
-        sfpcopy.exe C:\Windows\system32\drivers\msquic.sys.old C:\Windows\system32\drivers\msquic.sys
-        net.exe start msquic
-        Remove-Item C:\Windows\system32\drivers\msquic.sys.old -Force
     }
 }

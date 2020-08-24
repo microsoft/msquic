@@ -44,8 +44,8 @@
     <ProjectReference Include="..\lib\perflib.kernel.vcxproj">
       <Project>{11633785-79cc-4c7d-ab6a-aecdf29a1fa7}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\bin\winkernel\msquic.kernel.vcxproj">
-      <Project>{C31B028C-E91C-4CF7-A8E7-F385B2AF5F85}</Project>
+    <ProjectReference Include="..\..\bin\winkernel\msquicpriv.kernel.vcxproj">
+      <Project>{e2ddb0a8-594d-424d-9add-4ef211f7fc3f}</Project>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -93,7 +93,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cng.lib;ksecdd.lib;msnetioid.lib;netio.lib;wdmsec.lib;uuid.lib;msquic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cng.lib;ksecdd.lib;msnetioid.lib;netio.lib;wdmsec.lib;uuid.lib;msquicpriv.lib;ndis.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
