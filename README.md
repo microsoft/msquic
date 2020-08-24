@@ -39,7 +39,7 @@ QUIC has many benefits when compared to existing TLS over TCP scenarios:
 # Platform Support
 
 MsQuic currently officially supports the following platform configurations.
-Information on support for MsQuic itself is located [here.](./docs/Support.md)
+Information on support for MsQuic itself is located in [Support.md.](./docs/Support.md)
 
 ## Windows 10
 
