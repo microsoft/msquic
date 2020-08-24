@@ -16,7 +16,7 @@ This table describes the version, release date and end of support for MsQuic rel
 
 ### MsQuic v1.0
 
-MsQuic v1.0 is the first officially supported release. The primary shipping vehicle for this release will be the [Windows Server vNext](https://techcommunity.microsoft.com/t5/windows-server-insiders/announcing-windows-server-vnext-preview-build-18917/m-p/700430#M1171) (actual name TBD) release. No official, signed binaries are currently slated to be released. Linux support is considered a preview for this release.
+MsQuic v1.0 is the first officially supported release. The primary shipping vehicle for this release will be the [Windows Server vNext](https://techcommunity.microsoft.com/t5/windows-server-insiders/announcing-windows-server-vnext-preview-build-19551/m-p/1133432) (actual name TBD) release. No official, signed binaries are currently slated to be released. Linux support is considered a preview for this release.
 
 As the QUIC specifications have not yet been finalized (as of Aug 2020), it's likely only the latest draft version(s) numbers will be supported initially, and not the official "version 1". If the specs aren't RFC status at the release date, then the release will be serviced (updated) accordingly when they do reach RFC.
 
