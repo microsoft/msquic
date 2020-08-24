@@ -16912,7 +16912,7 @@
     },
     "OpenSslContextCreated": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Created",
+      "TraceString": "[conn][%p] TLS context Created",
       "UniqueId": "OpenSslContextCreated",
       "splitArgs": [
         {
@@ -16930,7 +16930,7 @@
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -19442,7 +19442,7 @@
     },
     "SchannelContextCreated": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Created",
+      "TraceString": "[conn][%p] TLS context Created",
       "UniqueId": "SchannelContextCreated",
       "splitArgs": [
         {
@@ -24051,10 +24051,6 @@
         "TraceID": "OpenSslAddHandshakeData"
       },
       {
-        "UniquenessHash": "4da3df45-2fb3-acc2-d0d8-9326e14a8988",
-        "TraceID": "OpenSslContextCreated"
-      },
-      {
         "UniquenessHash": "a241a44d-19e5-3ddd-03b3-2e65b093720f",
         "TraceID": "OpenSslContextCleaningUp"
       },
@@ -24321,10 +24317,6 @@
       {
         "UniquenessHash": "1197fc0e-03e3-58cf-6637-f912c96fa67b",
         "TraceID": "SchannelMissingData"
-      },
-      {
-        "UniquenessHash": "c40f92e3-2ef4-35f3-6710-6b43ce3ece32",
-        "TraceID": "SchannelContextCreated"
       },
       {
         "UniquenessHash": "771d2d3f-b8cd-0a3d-ac59-eac4d476390e",
@@ -24633,6 +24625,14 @@
       {
         "UniquenessHash": "d3788ab1-cacd-d552-e06c-2e7bee8b6da9",
         "TraceID": "StubTlsContextCreated"
+      },
+      {
+        "UniquenessHash": "e1629f75-f460-8951-5138-b0602b8f4db0",
+        "TraceID": "OpenSslContextCreated"
+      },
+      {
+        "UniquenessHash": "18fa206f-59b9-158c-7fa9-904ae6cb9663",
+        "TraceID": "SchannelContextCreated"
       }
     ]
   }
