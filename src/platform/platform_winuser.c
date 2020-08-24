@@ -210,6 +210,7 @@ QuicProcessorInfoInit(
                     if (Index - ProcessorOffset < Info->Group.GroupInfo[i].ActiveProcessorCount) {
                         QuicProcessorInfo[Index].Group = i;
                         QuicProcessorInfo[Index].Index = Index - ProcessorOffset;
+                        QuicProcessorInfo[Index].MaskInGroup = 1ull << (Index - ProcessorOffset);
                         goto FindNumaNode;
                     }
                     ProcessorOffset += Info->Group.GroupInfo[i].ActiveProcessorCount;
@@ -231,7 +232,8 @@ FindNumaNode:
             PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
                 (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
             if (Info->Relationship == RelationNumaNode) {
-                if (Info->NumaNode.GroupMask.Group == QuicProcessorInfo[Index].Group) {
+                if (Info->NumaNode.GroupMask.Group == QuicProcessorInfo[Index].Group &&
+                    (Info->NumaNode.GroupMask.Mask & QuicProcessorInfo[Index].MaskInGroup) != 0) {
                     QuicProcessorInfo[Index].NumaNode = Info->NumaNode.NodeNumber;
                     QuicTraceLogInfo(
                         ProcessorInfo,
