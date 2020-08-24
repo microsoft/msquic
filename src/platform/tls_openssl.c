@@ -1171,7 +1171,7 @@ QuicTlsInitialize(
     QuicTraceLogConnVerbose(
         OpenSslContextCreated,
         TlsContext->Connection,
-        "Created");
+        "TLS context Created");
 
     if (!Config->IsServer) {
 
