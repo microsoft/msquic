@@ -15438,7 +15438,7 @@
     },
     "StubTlsContextCreated": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Created",
+      "TraceString": "[conn][%p] TLS context Created",
       "UniqueId": "StubTlsContextCreated",
       "splitArgs": [
         {
@@ -15456,7 +15456,7 @@
         "EncodedArgNumber": 2,
         "MacroConfiguration": {
           "linux": "lttng_plus",
-          "stubs": "empty",
+          "stubs": "stubs",
           "windows_kernel": "empty",
           "windows": "empty"
         },
@@ -21678,7 +21678,6 @@
       "splitArgs": [
         {
           "VariableInfo": {
-            "UserSpecifiedUnModified": "\n            CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters)",
             "UserSuppliedTrimmed": "CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters)",
             "SuggestedTelemetryName": "arg2"
           },
@@ -23844,10 +23843,6 @@
         "TraceID": "StubTlsProducedData"
       },
       {
-        "UniquenessHash": "df763e59-5b73-45da-9374-93b112b3ad87",
-        "TraceID": "StubTlsContextCreated"
-      },
-      {
         "UniquenessHash": "16a301c5-8f8d-0d34-6fb9-0a608367097e",
         "TraceID": "StubTlsUsing0Rtt"
       },
@@ -24634,6 +24629,10 @@
       {
         "UniquenessHash": "10ce7ee9-cfcc-e364-e24c-71e1913cb472",
         "TraceID": "PerfCountersRundown"
+      },
+      {
+        "UniquenessHash": "d3788ab1-cacd-d552-e06c-2e7bee8b6da9",
+        "TraceID": "StubTlsContextCreated"
       }
     ]
   }

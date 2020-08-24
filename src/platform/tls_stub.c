@@ -817,7 +817,7 @@ QuicTlsInitialize(
     QuicTraceLogConnVerbose(
         StubTlsContextCreated,
         TlsContext->Connection,
-        "Created");
+        "TLS context Created");
 
     if (Config->ServerName != NULL) {
         const size_t ServerNameLength =
