@@ -207,10 +207,12 @@ QuicProcessorInfoInit(
             if (Info->Relationship == RelationGroup) {
                 uint32_t ProcessorOffset = 0;
                 for (WORD i = 0; i < Info->Group.ActiveGroupCount; ++i) {
-                    if (Index - ProcessorOffset < Info->Group.GroupInfo[i].ActiveProcessorCount) {
+                    uint64_t IndexToSet = Index - ProcessorOffset;
+                    QUIC_FRE_ASSERT(IndexToSet < 64);
+                    if (IndexToSet < Info->Group.GroupInfo[i].ActiveProcessorCount) {
                         QuicProcessorInfo[Index].Group = i;
-                        QuicProcessorInfo[Index].Index = Index - ProcessorOffset;
-                        QuicProcessorInfo[Index].MaskInGroup = 1ull << (Index - ProcessorOffset);
+                        QuicProcessorInfo[Index].Index = IndexToSet;
+                        QuicProcessorInfo[Index].MaskInGroup = 1ull << IndexToSet;
                         goto FindNumaNode;
                     }
                     ProcessorOffset += Info->Group.GroupInfo[i].ActiveProcessorCount;
