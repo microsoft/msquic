@@ -345,15 +345,18 @@ if(QUIC_TLS STREQUAL "openssl")
     set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
     set(OPENSSL_CONFIG_FLAGS
         enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
-        no-weak-ssl-ciphers no-shared no-tests --prefix=${OPENSSL_DIR})
+        no-weak-ssl-ciphers no-tests --prefix=${OPENSSL_DIR})
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
+        list(PREPEND OPENSSL_CONFIG_FLAGS no-shared)
         set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure
             linux-armv4 -DL_ENDIAN
             --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}-)
     elseif(QUIC_PLATFORM STREQUAL "darwin")
         # need to build with Apple's compiler
+        # also, "no-shared" breaks the build for master-alpha4-quic-support
         set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config)
     else()
+        list(PREPEND OPENSSL_CONFIG_FLAGS no-shared)
         set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/config
             CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER})
     endif()
