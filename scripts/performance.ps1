@@ -427,11 +427,7 @@ try {
 
     if ($PGO) {
         Write-Host "Saving msquic.pgd out for publishing."
-        if ($Local) {
-            Copy-Item "$LocalExePath\msquic.pgd" "$OutputDir\msquic_local.pgd"
-        } else {
-            Copy-Item "$LocalExePath\msquic.pgd" $OutputDir
-        }
+        Copy-Item "$LocalExePath\msquic.pgd" $OutputDir
     }
 
 } finally {
