@@ -130,7 +130,10 @@ function Log-Start {
 # Cancels log collection, discarding any logs.
 function Log-Cancel {
     if ($IsWindows) {
-        wpr.exe -cancel -instancename $InstanceName 2>&1
+        try {
+            wpr.exe -cancel -instancename $InstanceName 2>&1
+        } catch {
+        }
     } else {
         if (!(Test-Path $TempDir)) {
             Write-Error "LTTng session ($InstanceName) not currently running!"
