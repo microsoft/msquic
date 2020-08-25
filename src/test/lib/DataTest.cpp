@@ -756,6 +756,7 @@ QuicAbortiveConnectionHandler(
                 (void*) QuicAbortiveStreamHandler,
                 Context);
 
+            TestContext->Stream.Handle = Event->PEER_STREAM_STARTED.Stream;
             if (TestContext->Server &&
                 !TestContext->Flags.ClientShutdown &&
                 !TestContext->Flags.SendDataOnStream) {
@@ -770,7 +771,6 @@ QuicAbortiveConnectionHandler(
                 }
                 QuicEventSet(TestContext->TestEvent.Handle);
             }
-            TestContext->Stream.Handle = Event->PEER_STREAM_STARTED.Stream;
             QuicEventSet(TestContext->StreamEvent.Handle);
             return QUIC_STATUS_SUCCESS;
         case QUIC_CONNECTION_EVENT_CONNECTED:
