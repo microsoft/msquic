@@ -94,7 +94,7 @@ if ($IsLinux) {
 # Start log collection.
 function Log-Start {
     if ($IsWindows) {
-        wpr.exe -start "$($WprpFile)!$($Profile)" -filemode -instancename $InstanceName
+        wpr.exe -start "$($WprpFile)!$($Profile)" -filemode -instancename $InstanceName 2>&1
     } else {
         if (Test-Path $TempDir) {
             Write-Error "LTTng session ($InstanceName) already running! ($TempDir)"
@@ -130,15 +130,18 @@ function Log-Start {
 # Cancels log collection, discarding any logs.
 function Log-Cancel {
     if ($IsWindows) {
-        wpr.exe -cancel -instancename $InstanceName
+        try {
+            wpr.exe -cancel -instancename $InstanceName 2>&1
+        } catch {
+        }
     } else {
         if (!(Test-Path $TempDir)) {
-            Write-Error "LTTng session ($InstanceName) not currently running!"
+            Write-Debug "LTTng session ($InstanceName) not currently running"
+        } else {
+            Invoke-Expression "lttng destroy $InstanceName" | Write-Debug
+            Remove-Item -Path $TempDir -Recurse -Force | Out-Null
+            Write-Debug "Destroyed LTTng session ($InstanceName) and deleted $TempDir"
         }
-
-        Invoke-Expression "lttng destroy $InstanceName" | Write-Debug
-        Remove-Item -Path $TempDir -Recurse -Force | Out-Null
-        Write-Debug "Destroyed LTTng session ($InstanceName) and deleted $TempDir"
     }
 }
 
@@ -146,7 +149,7 @@ function Log-Cancel {
 function Log-Stop {
     if ($IsWindows) {
         $EtlPath = Join-Path $OutputDirectory "quic.etl"
-        wpr.exe -stop $EtlPath -instancename $InstanceName
+        wpr.exe -stop $EtlPath -instancename $InstanceName 2>&1
         if (!$RawLogOnly) {
             $LogPath = Join-Path $OutputDirectory "quic.log"
             $Command = "netsh trace convert $($EtlPath) output=$($LogPath) overwrite=yes report=no"
