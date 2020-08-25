@@ -238,7 +238,7 @@ function CMake-Generate {
         $Arguments += " -DQUIC_ENABLE_LOGGING=off"
     }
     if ($SanitizeAddress) {
-        $Arguments += " -DQUIC_SANITIZE_ADDRESS=on"
+        $Arguments += " -DQUIC_ENABLE_SANITIZERS=on"
     }
     if ($DisableTools) {
         $Arguments += " -DQUIC_BUILD_TOOLS=off"
