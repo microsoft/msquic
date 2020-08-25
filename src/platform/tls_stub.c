@@ -1877,10 +1877,8 @@ QuicEncrypt(
     UNREFERENCED_PARAMETER(AuthDataLength);
     UNREFERENCED_PARAMETER(AuthData);
     uint16_t PlainTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
-    uint64_t WriteVal = Key->Secret;
-    QuicCopyMemory(Buffer + PlainTextLength, &WriteVal, sizeof(WriteVal));
-    WriteVal = 0;
-    QuicCopyMemory(Buffer + PlainTextLength + sizeof(WriteVal), &WriteVal, sizeof(WriteVal));
+    QuicCopyMemory(Buffer + PlainTextLength, &Key->Secret, sizeof(Key->Secret));
+    QuicZeroMemory(Buffer + PlainTextLength + sizeof(Key->Secret), sizeof(uint64_t));
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -1902,9 +1900,7 @@ QuicDecrypt(
     UNREFERENCED_PARAMETER(AuthDataLength);
     UNREFERENCED_PARAMETER(AuthData);
     uint16_t PlainTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
-    uint64_t ReadVal = 0;
-    QuicCopyMemory(&ReadVal, Buffer + PlainTextLength, sizeof(ReadVal));
-    if (ReadVal != Key->Secret) {
+    if (memcmp(Buffer + PlainTextLength, &Key->Secret, sizeof(Key->Secret)) != 0) {
         return QUIC_STATUS_INVALID_PARAMETER;
     } else {
         return QUIC_STATUS_SUCCESS;
