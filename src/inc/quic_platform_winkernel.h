@@ -933,14 +933,30 @@ NdisSetThreadObjectCompartmentId(
     IN NET_IF_COMPARTMENT_ID CompartmentId
     );
 
-#define QuicSetCurrentThreadAffinityMask(Mask) KeSetSystemAffinityThreadEx(Mask)
-
-#define QuicSetCurrentThreadGroupAffinityMask(Group, GroupSize) \
-    ZwSetInformationThread(                                     \
-        PsGetCurrentThread(),                                   \
-        ThreadGroupInformation,                                 \
-        Group,                                                  \
-        GroupSize)                                              \
+inline
+QUIC_STATUS
+QuicSetCurrentThreadGroupToIndex(
+    _In_ uint8_t ProcessorIndex
+    )
+{
+    PROCESSOR_NUMBER ProcInfo;
+    QUIC_STATUS Status =
+        KeGetProcessorNumberFromIndex(
+            ProcessorIndex,
+            &ProcInfo);
+    if (QUIC_FAILED(Status)) {
+        return Status;
+    }
+    GROUP_AFFINITY Affinity = {0};
+    Affinity.Mask = (KAFFINITY)(1ull << ProcInfo.Number);
+    Affinity.Group = ProcInfo.Group;
+    return
+        ZwSetInformationThread(
+            PsGetCurrentThread(),
+            ThreadGroupInformation,
+            &Affinity,
+            sizeof(Affinity));
+}
 
 #define QuicCompartmentIdGetCurrent() NdisGetThreadObjectCompartmentId(PsGetCurrentThread())
 #define QuicCompartmentIdSetCurrent(CompartmentId) \

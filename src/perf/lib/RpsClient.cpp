@@ -133,6 +133,13 @@ RpsClient::Start(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     for (uint32_t i = 0; i < ConnectionCount; ++i) {
         HQUIC Connection = nullptr;
+
+        Status = QuicSetCurrentThreadGroupToIndex(i);
+        if (QUIC_FAILED(Status)) {
+            WriteOutput("Setting Thread Group Failed 0x%x\n", Status);
+            return Status;
+        }
+
         Status =
             MsQuic->ConnectionOpen(
                 Session,
@@ -200,15 +207,6 @@ RpsClient::Start(
                 return Status;
             }
         }
-
-#if defined(QuicSetCurrentThreadGroupAffinityMask)
-        uint8_t Processor = (uint8_t)(i % QuicProcActiveCount());
-        const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[Processor];
-        GROUP_AFFINITY Group = {0};
-        Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);
-        Group.Group = ProcInfo->Group;
-        QuicSetCurrentThreadGroupAffinityMask(&Group, sizeof(GROUP_AFFINITY));
-#endif
 
         Status =
             MsQuic->ConnectionStart(
