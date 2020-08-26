@@ -99,6 +99,9 @@ typedef struct QUIC_API_CONTEXT {
             QUIC_CONFIGURATION* Configuration;
             _Null_terminated_
             const char* ServerName;
+            _Field_size_(AlpnListLength)
+            uint8_t* AlpnList;
+            uint16_t AlpnListLength;
             uint16_t ServerPort;
             QUIC_ADDRESS_FAMILY Family;
         } CONN_START;

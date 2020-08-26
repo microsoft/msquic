@@ -249,7 +249,10 @@ QUIC_STATUS
 QuicCryptoInitializeTls(
     _Inout_ QUIC_CRYPTO* Crypto,
     _In_ QUIC_SEC_CONFIG* SecConfig,
-    _In_ const QUIC_TRANSPORT_PARAMETERS* Params
+    _In_ const QUIC_TRANSPORT_PARAMETERS* Params,
+    _In_reads_bytes_(AlpnListLength)
+        const uint8_t* AlpnList,
+    _In_ uint16_t AlpnListLength
     )
 {
     QUIC_STATUS Status;
@@ -264,13 +267,8 @@ QuicCryptoInitializeTls(
 
     TlsConfig.IsServer = IsServer;
     TlsConfig.TlsSession = Connection->Session->TlsSession;
-    if (IsServer) {
-        TlsConfig.AlpnBuffer = Crypto->TlsState.NegotiatedAlpn;
-        TlsConfig.AlpnBufferLength = 1 + Crypto->TlsState.NegotiatedAlpn[0];
-    } else {
-        TlsConfig.AlpnBuffer = Connection->Session->AlpnList;
-        TlsConfig.AlpnBufferLength = Connection->Session->AlpnListLength;
-    }
+    TlsConfig.AlpnBuffer = AlpnList;
+    TlsConfig.AlpnBufferLength = AlpnListLength;
     TlsConfig.SecConfig = SecConfig;
     TlsConfig.Connection = Connection;
     TlsConfig.ProcessCompleteCallback = QuicTlsProcessDataCompleteCallback;

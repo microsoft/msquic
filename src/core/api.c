@@ -239,6 +239,9 @@ QUIC_API
 MsQuicConnectionStart(
     _In_ _Pre_defensive_ HQUIC Handle,
     _In_ _Pre_defensive_ HQUIC ConfigHandle,
+    _In_reads_(AlpnBufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const AlpnBuffers,
+    _In_range_(>, 0) uint32_t AlpnBufferCount,
     _In_ QUIC_ADDRESS_FAMILY Family,
     _In_reads_opt_z_(QUIC_MAX_SNI_LENGTH)
         const char* ServerName,
@@ -248,6 +251,9 @@ MsQuicConnectionStart(
     QUIC_STATUS Status;
     QUIC_CONNECTION* Connection;
     QUIC_CONFIGURATION* Configuration;
+    uint8_t* AlpnList = NULL;
+    uint8_t* AlpnListTemp;
+    uint32_t AlpnListLength;
     QUIC_OPERATION* Oper;
     char* ServerNameCopy = NULL;
 
@@ -259,15 +265,29 @@ MsQuicConnectionStart(
         QUIC_TRACE_API_CONNECTION_START,
         Handle);
 
-    if (ServerPort == 0) {
+    if (ConfigHandle == NULL ||
+        ConfigHandle->Type != QUIC_HANDLE_TYPE_CONFIGURATION ||
+        AlpnBuffers == NULL ||
+        AlpnBufferCount == 0 ||
+        ServerPort == 0) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
 
-    if (ConfigHandle == NULL || ConfigHandle->Type != QUIC_HANDLE_TYPE_CONFIGURATION) {
+    AlpnListLength = 0;
+    for (uint32_t i = 0; i < AlpnBufferCount; ++i) {
+        if (AlpnBuffers[i].Length == 0 ||
+            AlpnBuffers[i].Length > QUIC_MAX_ALPN_LENGTH) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
+        AlpnListLength += sizeof(uint8_t) + AlpnBuffers[i].Length;
+    }
+    if (AlpnListLength > UINT16_MAX) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
+    QUIC_ANALYSIS_ASSERT(AlpnListLength <= UINT16_MAX);
 
     //
     // Make sure the connection is to a IPv4 or IPv6 address or unspecified.
@@ -302,6 +322,29 @@ MsQuicConnectionStart(
     if (Connection->State.Started || Connection->State.ClosedLocally) {
         Status = QUIC_STATUS_INVALID_STATE; // TODO - Support the Connect after close/previous connect failure?
         goto Error;
+    }
+
+    AlpnList = QUIC_ALLOC_NONPAGED(AlpnListLength);
+    if (AlpnList == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "AlpnList" ,
+            AlpnListLength);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    AlpnListTemp = AlpnList;
+    for (uint32_t i = 0; i < AlpnBufferCount; ++i) {
+        AlpnListTemp[0] = (uint8_t)AlpnBuffers[i].Length;
+        AlpnListTemp++;
+
+        QuicCopyMemory(
+            AlpnListTemp,
+            AlpnBuffers[i].Buffer,
+            AlpnBuffers[i].Length);
+        AlpnListTemp += AlpnBuffers[i].Length;
     }
 
     if (ServerName != NULL) {
@@ -352,9 +395,12 @@ MsQuicConnectionStart(
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_START;
     Oper->API_CALL.Context->CONN_START.Configuration = Configuration;
     Oper->API_CALL.Context->CONN_START.ServerName = ServerNameCopy;
+    Oper->API_CALL.Context->CONN_START.AlpnList = AlpnList;
+    Oper->API_CALL.Context->CONN_START.AlpnListLength = AlpnListLength;
     Oper->API_CALL.Context->CONN_START.ServerPort = ServerPort;
     Oper->API_CALL.Context->CONN_START.Family = Family;
     ServerNameCopy = NULL;
+    AlpnList = NULL;
 
     //
     // Queue the operation but don't wait for the completion.
@@ -366,6 +412,10 @@ Error:
 
     if (ServerNameCopy != NULL) {
         QUIC_FREE(ServerNameCopy);
+    }
+
+    if (AlpnList != NULL) {
+        QUIC_FREE(AlpnList);
     }
 
     QuicTraceEvent(

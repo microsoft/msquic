@@ -1674,17 +1674,22 @@ QuicConnStart(
     _In_ QUIC_CONFIGURATION* Configuration,
     _In_ QUIC_ADDRESS_FAMILY Family,
     _In_opt_z_ const char* ServerName,
+    _In_reads_bytes_(AlpnListLength)
+        const uint8_t* AlpnList,
+    _In_ uint16_t AlpnListLength,
     _In_ uint16_t ServerPort // Host byte order
     )
 {
     QUIC_STATUS Status;
     QUIC_PATH* Path = &Connection->Paths[0];
     QUIC_DBG_ASSERT(!QuicConnIsServer(Connection));
+    QUIC_DBG_ASSERT(AlpnList != NULL);
 
     if (Connection->State.ClosedLocally || Connection->State.Started) {
         if (ServerName != NULL) {
             QUIC_FREE(ServerName);
         }
+        QUIC_FREE(AlpnList);
         return QUIC_STATUS_INVALID_STATE;
     }
 
@@ -1817,7 +1822,12 @@ QuicConnStart(
     //
     // Start the handshake.
     //
-    Status = QuicConnSetConfiguration(Connection, Configuration);
+    Status =
+        QuicConnSetConfiguration(
+            Connection,
+            Configuration,
+            AlpnList,
+            AlpnListLength);
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
@@ -1833,6 +1843,10 @@ Exit:
 
     if (ServerName != NULL) {
         QUIC_FREE(ServerName);
+    }
+
+    if (AlpnList != NULL) {
+        QUIC_FREE(AlpnList);
     }
 
     if (QUIC_FAILED(Status)) {
@@ -2323,7 +2337,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnSetConfiguration(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_CONFIGURATION* Configuration
+    _In_ QUIC_CONFIGURATION* Configuration,
+    _In_reads_bytes_(AlpnListLength)
+        const uint8_t* AlpnList,
+    _In_ uint16_t AlpnListLength
     )
 {
     QUIC_STATUS Status;
@@ -2332,11 +2349,13 @@ QuicConnSetConfiguration(
     QUIC_TEL_ASSERT(Connection->Session != NULL);
     QUIC_TEL_ASSERT(Connection->Configuration != NULL);
     QUIC_TEL_ASSERT(Configuration != NULL);
+    QUIC_TEL_ASSERT(AlpnList != NULL);
+    QUIC_TEL_ASSERT(AlpnListLength != 0);
 
     QuicTraceLogConnInfo(
         SetConfiguration,
         Connection,
-        "Configuration set, %p",
+        "Configuration set, %p", // TODO - ALPN list?
         Configuration);
 
     (void)QuicRundownAcquire(&Configuration->Rundown);
@@ -2428,7 +2447,9 @@ QuicConnSetConfiguration(
         QuicCryptoInitializeTls(
             &Connection->Crypto,
             Configuration->SecurityConfig,
-            &LocalTP);
+            &LocalTP,
+            AlpnList,
+            AlpnListLength);
 
 Error:
 
@@ -5594,7 +5615,13 @@ QuicConnParamSet(
             break;
         }
 
-        Status = QuicConnSetConfiguration(Connection, Configuration);
+        Status =
+            QuicConnSetConfiguration(
+                Connection,
+                Configuration,
+                Connection->Crypto.TlsState.NegotiatedAlpn,
+                Connection->Crypto.TlsState.NegotiatedAlpn[0] + 1
+                );
         if (QUIC_FAILED(Status)) {
             break;
         }
@@ -6379,8 +6406,11 @@ QuicConnProcessApiOperation(
                 ApiCtx->CONN_START.Configuration,
                 ApiCtx->CONN_START.Family,
                 ApiCtx->CONN_START.ServerName,
+                ApiCtx->CONN_START.AlpnList,
+                ApiCtx->CONN_START.AlpnListLength,
                 ApiCtx->CONN_START.ServerPort);
         ApiCtx->CONN_START.ServerName = NULL;
+        ApiCtx->CONN_START.AlpnList = NULL;
         break;
 
     case QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET:

@@ -131,6 +131,7 @@ MsQuicListenerClose(
         "[list][%p] Destroyed",
         Listener);
 
+    QUIC_DBG_ASSERT(Listener->AlpnList == NULL);
     QUIC_FREE(Listener);
     QuicRundownRelease(&Session->Rundown);
 
@@ -152,7 +153,8 @@ MsQuicListenerStart(
 {
     QUIC_STATUS Status;
     QUIC_LISTENER* Listener;
-    uint32_t AlpnListLength = 0;
+    uint8_t* AlpnList;
+    uint32_t AlpnListLength;
     BOOLEAN PortUnspecified;
     QUIC_ADDR BindingLocalAddress = {0};
 
@@ -170,6 +172,7 @@ MsQuicListenerStart(
         goto Exit;
     }
 
+    AlpnListLength = 0;
     for (uint32_t i = 0; i < AlpnBufferCount; ++i) {
         if (AlpnBuffers[i].Length == 0 ||
             AlpnBuffers[i].Length > QUIC_MAX_ALPN_LENGTH) {
@@ -198,7 +201,7 @@ MsQuicListenerStart(
         goto Exit;
     }
 
-    uint8_t* AlpnList = QUIC_ALLOC_NONPAGED(AlpnListLength);
+    AlpnList = QUIC_ALLOC_NONPAGED(AlpnListLength);
     if (AlpnList == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -338,6 +341,12 @@ MsQuicListenerStop(
             Listener->Binding = NULL;
 
             QuicRundownReleaseAndWait(&Listener->Rundown);
+
+            if (Listener->AlpnList != NULL) {
+                QUIC_FREE(Listener->AlpnList);
+                Listener->AlpnList = NULL;
+            }
+
             QuicTraceEvent(
                 ListenerStopped,
                 "[list][%p] Stopped",
@@ -541,7 +550,12 @@ QuicListenerClaimConnection(
     if (Event.NEW_CONNECTION.Configuration != NULL) {
         QUIC_CONFIGURATION* Configuration =
             (QUIC_CONFIGURATION*)Event.NEW_CONNECTION.Configuration;
-        if (QUIC_FAILED(QuicConnSetConfiguration(Connection, Configuration))) {
+        if (QUIC_FAILED(
+            QuicConnSetConfiguration(
+                Connection,
+                Configuration,
+                Connection->Crypto.TlsState.NegotiatedAlpn,
+                Connection->Crypto.TlsState.NegotiatedAlpn[0] + 1))) {
             QuicConnTransportError(
                 Connection,
                 QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE);
