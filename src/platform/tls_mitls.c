@@ -19,7 +19,7 @@ Abstract:
 #include <EverCrypt.h>
 #include <mitlsffi.h>
 
-#define EVERCYRPT_USE_BCRYPT 1
+#define EVERCYRPT_USE_BCRYPT 0
 
 uint16_t QuicTlsTPHeaderSize = 0;
 
