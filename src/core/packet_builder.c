@@ -257,12 +257,6 @@ QuicPacketBuilderPrepare(
         } else if (IsPathMtuDiscovery) {
             Builder->MinimumDatagramLength = NewDatagramLength;
         }
-
-        QuicTraceLogConnVerbose(
-            PacketBuilderNewDatagram,
-            Connection,
-            "New UDP datagram. Space: %u",
-            Builder->Datagram->Length);
     }
 
     if (NewQuicPacket) {
@@ -353,13 +347,6 @@ QuicPacketBuilderPrepare(
         }
 
         Builder->DatagramLength += Builder->HeaderLength;
-
-        QuicTraceLogConnVerbose(
-            PacketBuilderNewPacket,
-            Connection,
-            "New QUIC packet. Space: %hu. Type: %hx",
-            BufferSpaceAvailable,
-            NewPacketType);
     }
 
     QUIC_DBG_ASSERT(Builder->PacketType == NewPacketType);
