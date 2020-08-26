@@ -19,13 +19,15 @@ Abstract:
 #include <EverCrypt.h>
 #include <mitlsffi.h>
 
+#define EVERCYRPT_USE_BCRYPT 1
+
 uint16_t QuicTlsTPHeaderSize = 0;
 
-#define QUIC_SUPPORTED_CIPHER_SUITES        "TLS_AES_128_GCM_SHA256"
+#define QUIC_SUPPORTED_CIPHER_SUITES        "TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256"
 #define QUIC_SERVER_SIGNATURE_ALGORITHMS    "ECDSA+SHA256:ECDSA+SHA384:ECDSA+SHA512:RSAPSS+SHA256:RSAPSS+SHA384:RSAPSS+SHA512"
 #define QUIC_CLIENT_SIGNATURE_ALGORITHMS    "ECDSA+SHA256:ECDSA+SHA384:ECDSA+SHA512:RSAPSS+SHA256:RSAPSS+SHA384:RSAPSS+SHA512"
-#if QUIC_PROD_MITLS
-#define QUIC_SERVER_NAMED_GROUPS            "P-521:P-384:P-256:X25519:FFDHE4096:FFDHE3072:FFDHE2048"
+#if EVERCYRPT_USE_BCRYPT
+#define QUIC_SERVER_NAMED_GROUPS            "P-384:P-256:X25519"
 #define QUIC_CLIENT_NAMED_GROUPS            "P-384:P-256:X25519"
 #else
 #define QUIC_SERVER_NAMED_GROUPS            "X25519"
@@ -399,6 +401,11 @@ QuicTlsLibraryInitialize(
             "FFI_mitls_init failed");
         goto Error;
     }
+
+#if EVERCYRPT_USE_BCRYPT
+    EverCrypt_AutoConfig2_disable_vale();
+    EverCrypt_AutoConfig2_disable_hacl();
+#endif
 
     uint8_t Key[QUIC_IV_LENGTH + 32] = { 0 }; // Always use the same null key client side right now.
     if (!FFI_mitls_set_sealing_key("AES256-GCM", Key, sizeof(Key))) {
