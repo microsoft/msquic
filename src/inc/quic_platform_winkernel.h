@@ -935,6 +935,13 @@ NdisSetThreadObjectCompartmentId(
 
 #define QuicSetCurrentThreadAffinityMask(Mask) KeSetSystemAffinityThreadEx(Mask)
 
+#define QuicSetCurrentThreadGroupAffinityMask(Group, GroupSize) \
+    ZwSetInformationThread(                                     \
+        PsGetCurrentThread(),                                   \
+        ThreadGroupInformation,                                 \
+        Group,                                                  \
+        GroupSize)                                              \
+
 #define QuicCompartmentIdGetCurrent() NdisGetThreadObjectCompartmentId(PsGetCurrentThread())
 #define QuicCompartmentIdSetCurrent(CompartmentId) \
     NdisSetThreadObjectCompartmentId(PsGetCurrentThread(), CompartmentId)

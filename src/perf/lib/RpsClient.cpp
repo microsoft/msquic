@@ -201,13 +201,13 @@ RpsClient::Start(
             }
         }
 
-#if defined(_WIN32) && !defined(_KERNEL_MODE)
+#if defined(QuicSetCurrentThreadGroupAffinityMask)
         uint8_t Processor = (uint8_t)(i % QuicProcActiveCount());
         const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[Processor];
         GROUP_AFFINITY Group = {0};
         Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);
         Group.Group = ProcInfo->Group;
-        SetThreadGroupAffinity(GetCurrentThread(), &Group, NULL);
+        QuicSetCurrentThreadGroupAffinityMask(&Group, sizeof(GROUP_AFFINITY));
 #endif
 
         Status =
