@@ -620,6 +620,13 @@ QuicPerfCtlReadPrints(
     ThreadConfig.Context = Client;
     Client->Request = Request;
     if (QUIC_FAILED(Status = QuicThreadCreate(&ThreadConfig, &Client->Thread))) {
+        if (Client->Thread != nullptr) {
+            Client->Canceled = true;
+            QuicEventSet(Client->StopEvent);
+            QuicThreadWait(&Client->Thread);
+            QuicThreadDelete(&Client->Thread);
+            Client->Thread = nullptr;
+        }
         WdfRequestCompleteWithInformation(
             Request,
             Status,
