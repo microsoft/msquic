@@ -269,6 +269,10 @@ Exit:
 static char* QuicTestCertFilename = (char*)"localhost_cert.pem";
 static char* QuicTestPrivateKeyFilename = (char*)"localhost_key.pem";
 
+#ifndef MAX_PATH
+#define MAX_PATH 50
+#endif
+
 typedef struct QUIC_SEC_CONFIG_PARAMS_INTERNAL {
     QUIC_SEC_CONFIG_PARAMS;
     QUIC_CERTIFICATE_FILE CertFile;
