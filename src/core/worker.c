@@ -30,6 +30,12 @@ Abstract:
 QUIC_THREAD_CALLBACK(QuicWorkerThread, Context);
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicWorkerUninitialize(
+    _In_ QUIC_WORKER* Worker
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicWorkerInitialize(
     _In_opt_ const void* Owner,
