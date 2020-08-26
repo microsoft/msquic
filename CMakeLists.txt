@@ -420,7 +420,7 @@ if(QUIC_TLS STREQUAL "openssl")
         add_custom_command(
             DEPENDS mkdir_openssl_build
             WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl
-            OUTPUT ${OPENSSL_DIR}/include
+            #OUTPUT ${OPENSSL_DIR}/include
             OUTPUT ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             OUTPUT ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
             COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME}
@@ -428,7 +428,7 @@ if(QUIC_TLS STREQUAL "openssl")
             COMMAND make -j$$(nproc)
             COMMAND make install_dev)
         add_custom_target(OpenSSL_Build
-            DEPENDS ${OPENSSL_DIR}/include
+            #DEPENDS ${OPENSSL_DIR}/include
             DEPENDS ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             DEPENDS ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 
@@ -440,7 +440,7 @@ if(QUIC_TLS STREQUAL "openssl")
 
         add_library(OpenSSL STATIC IMPORTED)
         set_property(TARGET OpenSSL PROPERTY IMPORTED_LOCATION ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
-        target_include_directories(OpenSSL INTERFACE ${CMAKE_SOURCE_DIR}/submodules/openssl/include/openssl)
+        target_include_directories(OpenSSL INTERFACE ${OPENSSL_DIR}/include)
         target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
         add_dependencies(OpenSSL OpenSSL_Build)
     endif()
