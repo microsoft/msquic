@@ -926,6 +926,10 @@ QuicSetCurrentThreadGroupToIndex(
 #define QuicCompartmentIdSetCurrent(CompartmentId) \
     HRESULT_FROM_WIN32(SetCurrentThreadCompartmentId(CompartmentId))
 
+#else
+
+#define QuicSetCurrentThreadGroupToIndex(ProcessorIndex) QUIC_STATUS_SUCCESS
+
 #endif
 
 //

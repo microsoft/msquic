@@ -134,7 +134,7 @@ RpsClient::Start(
     for (uint32_t i = 0; i < ConnectionCount; ++i) {
         HQUIC Connection = nullptr;
 
-        Status = QuicSetCurrentThreadGroupToIndex(i);
+        Status = QuicSetCurrentThreadGroupToIndex((uint8_t)i);
         if (QUIC_FAILED(Status)) {
             WriteOutput("Setting Thread Group Failed 0x%x\n", Status);
             return Status;
