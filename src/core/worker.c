@@ -120,7 +120,7 @@ QuicWorkerUninitialize(
     // Wait for the thread to finish.
     //
     QuicEventSet(Worker->Ready);
-    if (Worker->Thread != NULL) {
+    if (Worker->Thread) {
         QuicThreadWait(&Worker->Thread);
         QuicThreadDelete(&Worker->Thread);
     }

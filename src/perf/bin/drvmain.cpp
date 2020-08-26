@@ -620,7 +620,7 @@ QuicPerfCtlReadPrints(
     ThreadConfig.Context = Client;
     Client->Request = Request;
     if (QUIC_FAILED(Status = QuicThreadCreate(&ThreadConfig, &Client->Thread))) {
-        if (Client->Thread != nullptr) {
+        if (Client->Thread) {
             Client->Canceled = true;
             QuicEventSet(Client->StopEvent);
             QuicThreadWait(&Client->Thread);
