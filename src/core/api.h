@@ -54,9 +54,6 @@ QUIC_STATUS
 QUIC_API
 MsQuicSessionOpen(
     _In_ _Pre_defensive_ HQUIC RegistrationContext,
-    _In_reads_(AlpnBufferCount) _Pre_defensive_
-        const QUIC_BUFFER* const AlpnBuffers,
-    _In_ uint32_t AlpnBufferCount,
     _In_opt_ void* Context,
     _Outptr_ _At_(*Session, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC *Session
@@ -103,6 +100,9 @@ QUIC_STATUS
 QUIC_API
 MsQuicListenerStart(
     _In_ _Pre_defensive_ HQUIC Handle,
+    _In_reads_(AlpnBufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const AlpnBuffers,
+    _In_range_(>, 0) uint32_t AlpnBufferCount,
     _In_opt_ const QUIC_ADDR* LocalAddress
     );
 
@@ -147,6 +147,9 @@ QUIC_API
 MsQuicConnectionStart(
     _In_ _Pre_defensive_ HQUIC Handle,
     _In_ _Pre_defensive_ HQUIC ConfigHandle,
+    _In_reads_(AlpnBufferCount) _Pre_defensive_
+        const QUIC_BUFFER* const AlpnBuffers,
+    _In_range_(>, 0) uint32_t AlpnBufferCount,
     _In_ QUIC_ADDRESS_FAMILY Family,
     _In_reads_opt_z_(QUIC_MAX_SNI_LENGTH)
         const char* ServerName,

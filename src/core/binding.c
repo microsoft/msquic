@@ -325,7 +325,7 @@ QuicBindingRegisterListener(
             continue;
         }
 
-        if (QuicSessionHasAlpnOverlap(NewListener->Session, ExistingListener->Session)) {
+        if (QuicListenerHasAlpnOverlap(NewListener, ExistingListener)) {
             QuicTraceLogWarning(
                 BindingListenerAlreadyRegistered,
                 "[bind][%p] Listener (%p) already registered on ALPN",
@@ -400,7 +400,7 @@ QuicBindingGetListener(
             }
         }
 
-        if (QuicSessionMatchesAlpn(ExistingListener->Session, Info)) {
+        if (QuicListenerMatchesAlpn(ExistingListener, Info)) {
             if (QuicRundownAcquire(&ExistingListener->Rundown)) {
                 Listener = ExistingListener;
             }

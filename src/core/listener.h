@@ -53,6 +53,14 @@ typedef struct QUIC_LISTENER {
     uint64_t TotalAcceptedConnections;
     uint64_t TotalRejectedConnections;
 
+    //
+    // The application layer protocol negotiation buffers. Encoded in the TLS
+    // extension format.
+    //
+    uint16_t AlpnListLength;
+    _Field_size_(AlpnListLength)
+    uint8_t* AlpnList;
+
 } QUIC_LISTENER;
 
 //
@@ -65,13 +73,24 @@ QuicListenerTraceRundown(
     );
 
 //
-// Indicates an event to the application layer.
+// Returns TRUE if the two listeners have an overlapping ALPN.
 //
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicListenerIndicateEvent(
-    _In_ QUIC_LISTENER* Listener,
-    _Inout_ QUIC_LISTENER_EVENT* Event
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicListenerHasAlpnOverlap(
+    _In_ const QUIC_LISTENER* Listener1,
+    _In_ const QUIC_LISTENER* Listener2
+    );
+
+//
+// Returns TRUE if the listener has a matching ALPN. Also updates the new
+// connection info with the matching ALPN.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicListenerMatchesAlpn(
+    _In_ const QUIC_LISTENER* Listener,
+    _In_ QUIC_NEW_CONNECTION_INFO* Info
     );
 
 //

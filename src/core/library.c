@@ -1411,8 +1411,6 @@ QuicLibraryOnListenerRegistered(
         if (QUIC_FAILED(
             QuicSessionAlloc(
                 NULL,
-                NULL,
-                NULL,
                 0,
                 &MsQuicLib.UnregisteredSession))) {
             Success = FALSE;
