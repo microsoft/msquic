@@ -391,15 +391,16 @@ if(QUIC_TLS STREQUAL "openssl")
         add_library(OpenSSL STATIC IMPORTED)
         set_property(TARGET OpenSSL PROPERTY IMPORTED_LOCATION_RELEASE ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
         set_property(TARGET OpenSSL PROPERTY IMPORTED_LOCATION_DEBUG   ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
-        add_dependencies(OpenSSL OpenSSL_Build_Release OpenSSL_Build_Debug)
 
-        add_library(OpenSSL_Inc INTERFACE)
-        target_include_directories(OpenSSL_Inc INTERFACE
+        file(MAKE_DIRECTORY ${OPENSSL_DIR}/debug/include)
+        file(MAKE_DIRECTORY ${OPENSSL_DIR}/release/include)
+
+        target_include_directories(OpenSSL INTERFACE
                 $<$<CONFIG:Debug>:${OPENSSL_DIR}/debug/include>
                 $<$<CONFIG:Release>:${OPENSSL_DIR}/release/include>)
-        add_dependencies(OpenSSL_Inc OpenSSL_Build_Release OpenSSL_Build_Debug)
+        target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
+        add_dependencies(OpenSSL OpenSSL_Build_Release OpenSSL_Build_Debug)
 
-        target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto OpenSSL_Inc)
     else()
         # Configure and build OpenSSL.
         set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
@@ -435,15 +436,13 @@ if(QUIC_TLS STREQUAL "openssl")
         set_property(TARGET OpenSSL_Crypto PROPERTY IMPORTED_LOCATION   ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
         add_dependencies(OpenSSL_Crypto OpenSSL_Build)
 
+        file(MAKE_DIRECTORY ${OPENSSL_DIR}/include)
+
         add_library(OpenSSL STATIC IMPORTED)
         set_property(TARGET OpenSSL PROPERTY IMPORTED_LOCATION ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
+        target_include_directories(OpenSSL INTERFACE ${CMAKE_SOURCE_DIR}/submodules/openssl/include/openssl)
+        target_link_libraries(OpenSSL INTERFACE OpenSSL_Crypto)
         add_dependencies(OpenSSL OpenSSL_Build)
-
-        add_library(OpenSSL_Inc INTERFACE)
-        target_include_directories(OpenSSL_Inc INTERFACE ${CMAKE_SOURCE_DIR}/submodules/openssl/include)
-        add_dependencies(OpenSSL_Inc OpenSSL_Build)
-
-        target_link_libraries(OpenSSL INTERFACE OpenSSL_Inc OpenSSL_Crypto)
     endif()
 endif()
 
