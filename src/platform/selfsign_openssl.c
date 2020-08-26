@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #define QUIC_TEST_APIS 1
+#define _CRT_SECURE_NO_WARNINGS
 
 #include "platform_internal.h"
 #include "openssl/ssl.h"
@@ -272,8 +273,8 @@ typedef struct QUIC_SEC_CONFIG_PARAMS_INTERNAL {
     QUIC_SEC_CONFIG_PARAMS;
     QUIC_CERTIFICATE_FILE CertFile;
     const char* TempDir;
-    char CertFilepath[50];
-    char PrivateKeyFilepath[50];
+    char CertFilepath[MAX_PATH];
+    char PrivateKeyFilepath[MAX_PATH];
 
 } QUIC_SEC_CONFIG_PARAMS_INTERNAL;
 
@@ -299,6 +300,17 @@ QuicPlatGetSelfSignedCert(
     Params->CertFile.CertificateFile = Params->CertFilepath;
     Params->CertFile.PrivateKeyFile = Params->PrivateKeyFilepath;
 
+#ifdef _WIN32
+
+    Params->TempDir = _tempnam("c:\\tmp", "quictext");
+    if (Params->TempDir == NULL) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "_tempnam failed");
+        goto Error;
+    }
+#else
     char* Template = (char*)(Params + 1);
     memcpy(Template, TEMP_DIR_TEMPLATE, sizeof(TEMP_DIR_TEMPLATE));
 
@@ -310,6 +322,7 @@ QuicPlatGetSelfSignedCert(
             "mkdtemp failed");
         goto Error;
     }
+#endif
 
     QuicCopyMemory(
         Params->CertFilepath,
