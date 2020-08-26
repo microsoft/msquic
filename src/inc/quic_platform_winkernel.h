@@ -935,7 +935,7 @@ NdisSetThreadObjectCompartmentId(
 
 inline
 QUIC_STATUS
-QuicSetCurrentThreadGroupToIndex(
+QuicSetCurrentThreadProcessorAffinity(
     _In_ uint8_t ProcessorIndex
     )
 {

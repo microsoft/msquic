@@ -908,7 +908,7 @@ QuicRandom(
 
 inline
 QUIC_STATUS
-QuicSetCurrentThreadGroupToIndex(
+QuicSetCurrentThreadProcessorAffinity(
     _In_ uint8_t ProcessorIndex
     )
 {
@@ -928,7 +928,7 @@ QuicSetCurrentThreadGroupToIndex(
 
 #else
 
-#define QuicSetCurrentThreadGroupToIndex(ProcessorIndex) QUIC_STATUS_SUCCESS
+#define QuicSetCurrentThreadProcessorAffinity(ProcessorIndex) QUIC_STATUS_SUCCESS
 
 #endif
 
