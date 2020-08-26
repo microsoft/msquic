@@ -841,16 +841,10 @@ QuicThreadCreate(
                 &UnicodeName,
                 sizeof(UNICODE_STRING));
         QUIC_DBG_ASSERT(QUIC_SUCCEEDED(Status));
-        if (QUIC_FAILED(Status)) {
-            goto Cleanup;
-        }
+        Status = QUIC_STATUS_SUCCESS;
     }
 Cleanup:
     NtClose(ThreadHandle);
-    if (QUIC_FAILED(Status) && *Thread != NULL) {
-        ObDereferenceObject(*Thread);
-        *Thread = NULL;
-    }
 Error:
     return Status;
 }
