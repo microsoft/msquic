@@ -792,7 +792,7 @@ QuicPlatFreeSelfSignedCert(
 
 #endif // QUIC_TEST_APIS
 
-#define QuicSetCurrentThreadGroupToIndex(ProcessorIndex) QUIC_STATUS_SUCCESS
+#define QuicSetCurrentThreadProcessorAffinity(ProcessorIndex) QUIC_STATUS_SUCCESS
 
 #define QUIC_CPUID(FunctionId, eax, ebx, ecx, dx)
 
