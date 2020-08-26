@@ -301,7 +301,7 @@ function Start-TestCase([String]$Name) {
 
     if ($LogProfile -ne "None") {
         # Start the logs
-        & $LogScript -Start -Profile $LogProfile -InstanceName $InstanceName | Out-Null
+        & $LogScript -Start -Profile $LogProfile | Out-Null
     }
 
     # Build up the argument list.
@@ -333,7 +333,7 @@ function Start-AllTestCases {
 
     if ($LogProfile -ne "None") {
         # Start the logs
-        & $LogScript -Start -Profile $LogProfile -InstanceName $InstanceName | Out-Null
+        & $LogScript -Start -Profile $LogProfile | Out-Null
     }
 
     # Build up the argument list.
@@ -466,7 +466,7 @@ function Wait-TestCase($TestCase) {
         if ($KeepOutputOnSuccess -or $ProcessCrashed -or $AnyTestFailed) {
 
             if ($LogProfile -ne "None") {
-                & $LogScript -Stop -OutputDirectory $TestCase.LogDir -InstanceName $TestCase.InstanceName
+                & $LogScript -Stop -OutputDirectory $TestCase.LogDir
             }
 
             if ($stdout) {
@@ -485,7 +485,7 @@ function Wait-TestCase($TestCase) {
 
         } else {
             if ($LogProfile -ne "None") {
-                & $LogScript -Cancel -InstanceName $TestCase.InstanceName | Out-Null
+                & $LogScript -Cancel | Out-Null
             }
             Remove-Item $TestCase.LogDir -Recurse -Force | Out-Null
         }
@@ -536,6 +536,9 @@ if ($ListTestCases) {
     $TestCases
     exit
 }
+
+# Cancel any outstanding logs that might be leftover.
+& $LogScript -Cancel | Out-Null
 
 # Debugger doesn't work for parallel right now.
 if ($Debugger -and $ExecutionMode -eq "Parallel") {
@@ -636,6 +639,10 @@ try {
         }
     }
 } finally {
+    if ($LogProfile -ne "None") {
+        & $LogScript -Cancel | Out-Null
+    }
+
     if ($isWindows) {
         # Cleanup the WER registry.
         Remove-Item -Path $WerDumpRegPath -Force | Out-Null

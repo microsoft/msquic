@@ -711,6 +711,7 @@ typedef struct {
     uint16_t Group;
     uint32_t Index; // In Group;
     uint32_t NumaNode;
+    uint64_t MaskInGroup;
 
 } QUIC_PROCESSOR_INFO;
 

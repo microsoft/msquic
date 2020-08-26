@@ -1287,7 +1287,7 @@ QuicDataPathBindingCreate(
     QuicEventInitialize(&Binding->WskCompletionEvent, FALSE, FALSE);
     IoInitializeIrp(
         &Binding->Irp,
-        sizeof(Binding->Irp),
+        sizeof(Binding->IrpBuffer),
         1);
     IoSetCompletionRoutine(
         &Binding->Irp,
