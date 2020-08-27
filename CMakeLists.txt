@@ -301,11 +301,10 @@ if(WIN32)
 else()
     # Custom build flags.
 
-    # TODO: something similar should be done for the WIN32 case above
     set(CMAKE_C_FLAGS_DEBUG "-Og -ggdb")
-    set(CMAKE_C_FLAGS_MINSIZEREL "-Os")
-    set(CMAKE_C_FLAGS_RELWITHDEBINFO "-Ofast -march=native -ggdb")
-    set(CMAKE_C_FLAGS_RELEASE "-Ofast -march=native")
+    set(CMAKE_C_FLAGS_MINSIZEREL "-Os -DNDEBUG")
+    set(CMAKE_C_FLAGS_RELWITHDEBINFO "-Ofast -march=native -ggdb -DNDEBUG")
+    set(CMAKE_C_FLAGS_RELEASE "-Ofast -march=native -DNDEBUG")
     set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
     set(CMAKE_CXX_FLAGS_MINSIZEREL ${CMAKE_C_FLAGS_MINSIZEREL})
     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO ${CMAKE_C_FLAGS_RELWITHDEBINFO})
