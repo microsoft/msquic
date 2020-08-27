@@ -19,10 +19,8 @@ const uint32_t SendBufferLength = 100;
 
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
+HQUIC Configuration;
 HQUIC Session;
-QUIC_SEC_CONFIG* SecurityConfig;
-
-extern "C" void QuicTraceRundown(void) { }
 
 void
 PrintUsage()
@@ -32,6 +30,28 @@ PrintUsage()
     printf("Usage:\n");
     printf("  quicinterop.exe -client -target:<...> [-unsecure]\n");
     printf("  quicinterop.exe -server -cert_hash:<...> or (-cert_file:<...> and -key_file:<...>)\n");
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_CONFIGURATION_CALLBACK)
+QUIC_STATUS
+QUIC_API
+ConfigurationCallback(
+    _In_ HQUIC /* Configuration */,
+    _In_opt_ void* /* Context */,
+    _Inout_ QUIC_CONFIGURATION_EVENT* Event
+    )
+{
+    switch (Event->Type) {
+    case QUIC_CONFIGURATION_EVENT_LOAD_COMPLETE:
+        if (QUIC_FAILED(Event->LOAD_CREDENTIAL_COMPLETE.Status)) {
+            printf("Configuration load failed, 0x%x\n", Event->LOAD_CREDENTIAL_COMPLETE.Status);
+        }
+        break;
+    default:
+        break;
+    }
+    return QUIC_STATUS_SUCCESS;
 }
 
 void
@@ -145,13 +165,94 @@ ServerListenerCallback(
 {
     switch (Event->Type) {
     case QUIC_LISTENER_EVENT_NEW_CONNECTION:
-        Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
+        Event->NEW_CONNECTION.Configuration = Configuration;
         MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)ServerConnectionCallback, nullptr);
         break;
     default:
         break;
     }
     return QUIC_STATUS_SUCCESS;
+}
+
+typedef struct QUIC_CREDENTIAL_CONFIG_HELPER {
+    QUIC_CREDENTIAL_CONFIG CredConfig;
+    union {
+        QUIC_CERTIFICATE_HASH CertHash;
+        QUIC_CERTIFICATE_HASH_STORE CertHashStore;
+        QUIC_CERTIFICATE_FILE CertFile;
+    };
+} QUIC_CREDENTIAL_CONFIG_HELPER;
+
+bool
+ServerLoadConfiguration(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[]
+    )
+{
+    QUIC_CREDENTIAL_CONFIG_HELPER Config;
+    Config.CredConfig.Flags = QUIC_CREDENTIAL_FLAG_LOAD_SYNCHRONOUS;
+
+    const char* Cert;
+    const char* KeyFile;
+    if (TryGetValue(argc, argv, "cert_hash", &Cert)) {
+        uint32_t CertHashLen =
+            DecodeHexBuffer(
+                Cert,
+                sizeof(Config.CertHash.ShaHash),
+                Config.CertHash.ShaHash);
+        if (CertHashLen != sizeof(Config.CertHash.ShaHash)) {
+            return false;
+        }
+        Config.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+        Config.CredConfig.Creds = &Config.CertHash;
+
+    } else if (TryGetValue(argc, argv, "cert_file", &Cert) &&
+        TryGetValue(argc, argv, "key_file", &KeyFile)) {
+        Config.CertFile.CertificateFile = (char*)Cert;
+        Config.CertFile.PrivateKeyFile = (char*)KeyFile;
+        Config.CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE;
+        Config.CredConfig.Creds = &Config.CertFile;
+
+    } else {
+        printf("Must specify '-cert_hash' or 'cert_file'!\n");
+        return false;
+    }
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    if (QUIC_FAILED(Status = MsQuic->ConfigurationOpen(Registration, ConfigurationCallback, nullptr, &Configuration))) {
+        printf("ConfigurationOpen failed, 0x%x!\n", Status);
+        return false;
+    }
+
+    if (QUIC_FAILED(Status = MsQuic->ConfigurationLoadCredential(Configuration, &Config.CredConfig))) {
+        printf("ConfigurationOpen failed, 0x%x!\n", Status);
+        return false;
+    }
+
+    if (QUIC_FAILED(Status = MsQuic->SetParam(
+            Configuration, QUIC_PARAM_LEVEL_CONFIGURATION, QUIC_PARAM_CONFIG_IDLE_TIMEOUT,
+            sizeof(IdleTimeoutMs), &IdleTimeoutMs))) {
+        printf("SetParam(QUIC_PARAM_CONFIG_IDLE_TIMEOUT) failed, 0x%x!\n", Status);
+        return false;
+    }
+
+    QUIC_SERVER_RESUMPTION_LEVEL ResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT;
+    if (QUIC_FAILED(Status = MsQuic->SetParam(
+            Configuration, QUIC_PARAM_LEVEL_CONFIGURATION, QUIC_PARAM_CONFIG_SERVER_RESUMPTION_LEVEL,
+            sizeof(ResumptionLevel), &ResumptionLevel))) {
+        printf("SetParam(QUIC_PARAM_CONFIG_SERVER_RESUMPTION_LEVEL) failed, 0x%x!\n", Status);
+        return false;
+    }
+
+    const uint16_t PeerStreamCount = 1;
+    if (QUIC_FAILED(Status = MsQuic->SetParam(
+            Configuration, QUIC_PARAM_LEVEL_CONFIGURATION, QUIC_PARAM_CONFIG_PEER_BIDI_STREAM_COUNT,
+            sizeof(PeerStreamCount), &PeerStreamCount))) {
+        printf("SetParam(QUIC_PARAM_CONFIG_PEER_BIDI_STREAM_COUNT) failed, 0x%x!\n", Status);
+        return false;
+    }
+
+    return true;
 }
 
 void
@@ -161,38 +262,14 @@ RunServer(
     )
 {
     QUIC_STATUS Status;
-    const uint16_t PeerStreamCount = 1;
     HQUIC Listener = nullptr;
 
     QUIC_ADDR Address = {};
     QuicAddrSetFamily(&Address, AF_UNSPEC);
     QuicAddrSetPort(&Address, UdpPort);
 
-    const char* Cert;
-    const char* KeyFile;
-    if (TryGetValue(argc, argv, "cert_hash", &Cert)) {
-        SecurityConfig = GetSecConfigForThumbprint(MsQuic, Registration, Cert);
-        if (SecurityConfig == nullptr) {
-            printf("Failed to load certificate from hash!\n");
-            return;
-        }
-    } else if (TryGetValue(argc, argv, "cert_file", &Cert) &&
-        TryGetValue(argc, argv, "key_file", &KeyFile)) {
-        SecurityConfig = GetSecConfigForFile(MsQuic, Registration, KeyFile, Cert);
-        if (SecurityConfig == nullptr) {
-            printf("Failed to load certificate from file!\n");
-            return;
-        }
-    } else {
-        printf("Must specify '-cert_hash' or 'cert_file'!\n");
+    if (!ServerLoadConfiguration(argc, argv)) {
         return;
-    }
-
-    if (QUIC_FAILED(Status = MsQuic->SetParam(
-            Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT,
-            sizeof(PeerStreamCount), &PeerStreamCount))) {
-        printf("SetParam(QUIC_PARAM_SESSION_PEER_BIDI_STREAM_COUNT) failed, 0x%x!\n", Status);
-        goto Error;
     }
 
     if (QUIC_FAILED(Status = MsQuic->ListenerOpen(Session, ServerListenerCallback, nullptr, &Listener))) {
@@ -200,7 +277,7 @@ RunServer(
         goto Error;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->ListenerStart(Listener, &Address))) {
+    if (QUIC_FAILED(Status = MsQuic->ListenerStart(Listener, &Alpn, 1, &Address))) {
         printf("ListenerStart failed, 0x%x!\n", Status);
         goto Error;
     }
@@ -213,7 +290,6 @@ Error:
     if (Listener != nullptr) {
         MsQuic->ListenerClose(Listener);
     }
-    MsQuic->SecConfigDelete(SecurityConfig);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -334,12 +410,49 @@ ClientConnectionCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
+bool
+ClientLoadConfiguration(
+    bool Unsecure
+    )
+{
+    QUIC_CREDENTIAL_CONFIG CredConfig;
+    CredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_NONE;
+    CredConfig.Flags = QUIC_CREDENTIAL_FLAG_LOAD_SYNCHRONOUS | QUIC_CREDENTIAL_FLAG_CLIENT;
+    if (Unsecure) {
+        CredConfig.Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+    }
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    if (QUIC_FAILED(Status = MsQuic->ConfigurationOpen(Registration, ConfigurationCallback, nullptr, &Configuration))) {
+        printf("ConfigurationOpen failed, 0x%x!\n", Status);
+        return false;
+    }
+
+    if (QUIC_FAILED(Status = MsQuic->ConfigurationLoadCredential(Configuration, &CredConfig))) {
+        printf("ConfigurationOpen failed, 0x%x!\n", Status);
+        return false;
+    }
+
+    if (QUIC_FAILED(Status = MsQuic->SetParam(
+            Configuration, QUIC_PARAM_LEVEL_CONFIGURATION, QUIC_PARAM_CONFIG_IDLE_TIMEOUT,
+            sizeof(IdleTimeoutMs), &IdleTimeoutMs))) {
+        printf("SetParam(QUIC_PARAM_CONFIG_IDLE_TIMEOUT) failed, 0x%x!\n", Status);
+        return false;
+    }
+
+    return true;
+}
+
 void
 RunClient(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[]
     )
 {
+    if (!ClientLoadConfiguration(GetValue(argc, argv, "unsecure"))) {
+        return;
+    }
+
     QUIC_STATUS Status;
     const char* ResumptionTicketString = nullptr;
     HQUIC Connection = nullptr;
@@ -362,16 +475,6 @@ RunClient(
         }
     }
 
-    if (GetValue(argc, argv, "unsecure")) {
-        const uint32_t CertificateValidationFlags = QUIC_CERTIFICATE_FLAG_DISABLE_CERT_VALIDATION;
-        if (QUIC_FAILED(Status = MsQuic->SetParam(
-                Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS,
-                sizeof(CertificateValidationFlags), &CertificateValidationFlags))) {
-            printf("SetParam(QUIC_PARAM_CONN_CERT_VALIDATION_FLAGS) failed, 0x%x!\n", Status);
-            goto Error;
-        }
-    }
-
     const char* Target;
     if (!TryGetValue(argc, argv, "target", &Target)) {
         printf("Must specify '-target' argument!\n");
@@ -380,7 +483,7 @@ RunClient(
 
     printf("[conn][%p] Connecting...\n", Connection);
 
-    if (QUIC_FAILED(Status = MsQuic->ConnectionStart(Connection, AF_UNSPEC, Target, UdpPort))) {
+    if (QUIC_FAILED(Status = MsQuic->ConnectionStart(Connection, Configuration, &Alpn, 1, AF_UNSPEC, Target, UdpPort))) {
         printf("ConnectionStart failed, 0x%x!\n", Status);
         goto Error;
     }
@@ -399,16 +502,7 @@ main(
     _In_reads_(argc) _Null_terminated_ char* argv[]
     )
 {
-    QuicPlatformSystemLoad();
-
-    QUIC_SERVER_RESUMPTION_LEVEL ResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    if (QUIC_FAILED(Status = QuicPlatformInitialize())) {
-        printf("QuicPlatformInitialize failed, 0x%x!\n", Status);
-        QuicPlatformSystemUnload();
-        return Status;
-    }
-
     if (QUIC_FAILED(Status = MsQuicOpen(&MsQuic))) {
         printf("MsQuicOpen failed, 0x%x!\n", Status);
         goto Error;
@@ -419,24 +513,10 @@ main(
         goto Error;
     }
 
-    if (QUIC_FAILED(Status = MsQuic->SessionOpen(Registration, &Alpn, 1, nullptr, &Session))) {
+    if (QUIC_FAILED(Status = MsQuic->SessionOpen(Registration, nullptr, &Session))) {
         printf("SessionOpen failed, 0x%x!\n", Status);
         goto Error;
     }
-
-    if (QUIC_FAILED(Status = MsQuic->SetParam(
-            Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_IDLE_TIMEOUT,
-            sizeof(IdleTimeoutMs), &IdleTimeoutMs))) {
-        printf("SetParam(QUIC_PARAM_SESSION_IDLE_TIMEOUT) failed, 0x%x!\n", Status);
-        goto Error;
-    }
-
-    if (QUIC_FAILED(Status = MsQuic->SetParam(
-        Session, QUIC_PARAM_LEVEL_SESSION, QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL,
-        sizeof(ResumptionLevel), &ResumptionLevel))) {
-            printf("SetParam(QUIC_PARAM_SESSION_SERVER_RESUMPTION_LEVEL) failed, 0x%x!\n", Status);
-            goto Error;
-        }
 
     if (GetValue(argc, argv, "help") ||
         GetValue(argc, argv, "?")) {
@@ -455,14 +535,14 @@ Error:
         if (Session != nullptr) {
             MsQuic->SessionClose(Session); // Waits on all connections to be cleaned up.
         }
+        if (Configuration != nullptr) {
+            MsQuic->ConfigurationClose(Configuration);
+        }
         if (Registration != nullptr) {
             MsQuic->RegistrationClose(Registration);
         }
         MsQuicClose(MsQuic);
     }
-
-    QuicPlatformUninitialize();
-    QuicPlatformSystemUnload();
 
     return (int)Status;
 }
