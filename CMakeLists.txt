@@ -35,9 +35,6 @@ endif()
 
 project(msquic)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_C_STANDARD 11)
-
 # Set a default build type if none was specified
 set(default_build_type "Release")
 
@@ -128,9 +125,6 @@ option(QUIC_CODE_CHECK "Run static code checkers" OFF)
 # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
 if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
     message(WARNING "Logging unsupported on this version of CMake. Please upgrade to 3.6 or later.")
-    set(QUIC_ENABLE_LOGGING OFF)
-elseif (QUIC_PLATFORM STREQUAL "darwin")
-    message(WARNING "Logging unsupported on ${QUIC_PLATFORM}.")
     set(QUIC_ENABLE_LOGGING OFF)
 endif()
 
