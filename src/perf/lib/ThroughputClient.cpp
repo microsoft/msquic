@@ -64,7 +64,7 @@ ThroughputClient::Init(
         return Session.GetInitStatus();
     }
 
-    const char* Target;
+    const char* Target = nullptr;
     if (!TryGetValue(argc, argv, "target", &Target)) {
         WriteOutput("Must specify '-target' argument!\n");
         PrintHelp();
