@@ -79,7 +79,7 @@ Then you will need to manually run "pwsh" to continue.
 
 In order to installed the necessary dependencies, a copy of the .NET Core 3.1 SDK is required. Go to the following location and find the install page for your platform.
    
-    [.NET Core](https://docs.microsoft.com/en-us/dotnet/core/install/)
+ * [.NET Core](https://docs.microsoft.com/en-us/dotnet/core/install/)
     
 After installing .NET Core, you will need to restart your terminal.
 
