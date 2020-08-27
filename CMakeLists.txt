@@ -356,7 +356,6 @@ if(QUIC_TLS STREQUAL "openssl")
         add_custom_command(
             DEPENDS mkdir_openssl_build_debug
             WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/debug
-            #OUTPUT ${OPENSSL_DIR}/debug/include
             OUTPUT ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             OUTPUT ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
             COMMAND perl ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --debug --prefix=${OPENSSL_DIR}/debug
@@ -366,7 +365,6 @@ if(QUIC_TLS STREQUAL "openssl")
         add_custom_command(
             DEPENDS mkdir_openssl_build_release
             WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl/release
-            #OUTPUT ${OPENSSL_DIR}/release/include
             OUTPUT ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             OUTPUT ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
             COMMAND perl ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure ${OPENSSL_CONFIG_FLAGS} --prefix=${OPENSSL_DIR}/release
@@ -374,12 +372,10 @@ if(QUIC_TLS STREQUAL "openssl")
             COMMAND nmake install_dev)
 
         add_custom_target(OpenSSL_Build_Debug
-            #DEPENDS ${OPENSSL_DIR}/debug/include
             DEPENDS ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             DEPENDS ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 
         add_custom_target(OpenSSL_Build_Release
-            #DEPENDS ${OPENSSL_DIR}/release/include
             DEPENDS ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             DEPENDS ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 
@@ -420,7 +416,6 @@ if(QUIC_TLS STREQUAL "openssl")
         add_custom_command(
             DEPENDS mkdir_openssl_build
             WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/openssl
-            #OUTPUT ${OPENSSL_DIR}/include
             OUTPUT ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             OUTPUT ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX}
             COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME}
@@ -428,7 +423,6 @@ if(QUIC_TLS STREQUAL "openssl")
             COMMAND make -j$$(nproc)
             COMMAND make install_dev)
         add_custom_target(OpenSSL_Build
-            #DEPENDS ${OPENSSL_DIR}/include
             DEPENDS ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX}
             DEPENDS ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
 
