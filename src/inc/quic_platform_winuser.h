@@ -906,13 +906,29 @@ QuicRandom(
 #define QUIC_UNSPECIFIED_COMPARTMENT_ID NET_IF_COMPARTMENT_ID_UNSPECIFIED
 #define QUIC_DEFAULT_COMPARTMENT_ID     NET_IF_COMPARTMENT_ID_PRIMARY
 
-#define QuicSetCurrentThreadAffinityMask(Mask) SetThreadAffinityMask(GetCurrentThread(), Mask)
-
-#define QuicSetCurrentThreadGroupAffinityMask(Group) SetThreadGroupAffinity(GetCurrentThread(), Group, NULL)
+inline
+QUIC_STATUS
+QuicSetCurrentThreadProcessorAffinity(
+    _In_ uint8_t ProcessorIndex
+    )
+{
+    const QUIC_PROCESSOR_INFO* ProcInfo = &QuicProcessorInfo[ProcessorIndex];
+    GROUP_AFFINITY Group = {0};
+    Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);
+    Group.Group = ProcInfo->Group;
+    if (SetThreadGroupAffinity(GetCurrentThread(), &Group, NULL)) {
+        return QUIC_STATUS_SUCCESS;
+    }
+    return GetLastError();
+}
 
 #define QuicCompartmentIdGetCurrent() GetCurrentThreadCompartmentId()
 #define QuicCompartmentIdSetCurrent(CompartmentId) \
     HRESULT_FROM_WIN32(SetCurrentThreadCompartmentId(CompartmentId))
+
+#else
+
+#define QuicSetCurrentThreadProcessorAffinity(ProcessorIndex) QUIC_STATUS_SUCCESS
 
 #endif
 

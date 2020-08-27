@@ -2079,15 +2079,6 @@ QuicDataPathBindingSend(
                 "sendmsg failed");
             goto Exit;
         }
-    } else {
-        //
-        // Completed synchronously.
-        //
-        QuicTraceLogVerbose(
-            DatapathSendMsgCompleted,
-            "[ udp][%p] sendmsg succeeded, bytes transferred %d",
-            SocketContext->Binding,
-            SentByteCount);
     }
 
     Status = QUIC_STATUS_SUCCESS;
