@@ -3,7 +3,7 @@
         "TestName": "Throughput",
         "Remote": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls"],
+            "Tls": ["stub", "schannel", "mitls", "openssl"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -14,7 +14,7 @@
         },
         "Local": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls"],
+            "Tls": ["stub", "schannel", "mitls", "openssl"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -115,7 +115,7 @@
         "TestName": "RPS",
         "Remote": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls"],
+            "Tls": ["stub", "schannel", "mitls", "openssl"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
@@ -126,7 +126,7 @@
         },
         "Local": {
             "Platform": "Windows",
-            "Tls": ["stub", "schannel", "mitls"],
+            "Tls": ["stub", "schannel", "mitls", "openssl"],
             "Arch": ["x64", "x86", "arm", "arm64"],
             "Exe": "quicperf",
             "Arguments": {
