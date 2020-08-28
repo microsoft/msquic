@@ -10,9 +10,8 @@ Abstract:
 --*/
 
 #include "PerfHelpers.h"
-#include "ThroughputServer.h"
+#include "PerfServer.h"
 #include "ThroughputClient.h"
-#include "RpsServer.h"
 #include "RpsClient.h"
 
 #ifdef QUIC_CLOG
@@ -39,7 +38,7 @@ PrintHelp(
     ) {
     WriteOutput(
         "\n"
-        "Usage: quicperf -TestName:<Throughput|RPS> [-ServerMode:<1:0>] [options]\n"
+        "Usage: quicperf -ServerMode:<1:0> [-TestName:<Throughput|RPS>] [options]\n"
         "\n"
         );
 }
@@ -58,20 +57,15 @@ QuicMainStart(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (!IsArg(argv[0], "TestName")) {
-        WriteOutput("Must specify -TestName argument\n");
+    ServerMode = 0;
+    if (!IsArg(argv[0], "ServerMode")) {
+        WriteOutput("Must specify -ServerMode argument\n");
         PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    const char* TestName = GetValue(argc, argv, "TestName");
+    TryGetValue(argc, argv, "ServerMode", &ServerMode);
     argc--; argv++;
-
-    ServerMode = 0;
-    if (argc != 0 && IsArg(argv[0], "ServerMode")) {
-        TryGetValue(argc, argv, "ServerMode", &ServerMode);
-        argc--; argv++;
-    }
 
     QUIC_STATUS Status;
 
@@ -91,7 +85,6 @@ QuicMainStart(
         }
     }
 
-
     MsQuic = new(std::nothrow) QuicApiTable;
     if (MsQuic == nullptr) {
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -102,21 +95,29 @@ QuicMainStart(
         return Status;
     }
 
-    if (IsValue(TestName, "Throughput")) {
-        if (ServerMode) {
-            TestToRun = new(std::nothrow) ThroughputServer(SelfSignedConfig);
-        } else {
-            TestToRun = new(std::nothrow) ThroughputClient;
-        }
-    } else if (IsValue(TestName, "RPS")) {
-        if (ServerMode) {
-            TestToRun = new(std::nothrow) RpsServer(SelfSignedConfig);
-        } else {
-            TestToRun = new(std::nothrow) RpsClient;
-        }
+    if (ServerMode) {
+        TestToRun = new(std::nothrow) PerfServer(SelfSignedConfig);
+
     } else {
-        delete MsQuic;
-        return QUIC_STATUS_INVALID_PARAMETER;
+        if (!IsArg(argv[0], "TestName")) {
+            WriteOutput("Must specify -TestName argument\n");
+            PrintHelp();
+            delete MsQuic;
+            MsQuic = nullptr;
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        const char* TestName = GetValue(argc, argv, "TestName");
+        argc--; argv++;
+
+        if (IsValue(TestName, "Throughput")) {
+            TestToRun = new(std::nothrow) ThroughputClient;
+        } else if (IsValue(TestName, "RPS")) {
+            TestToRun = new(std::nothrow) RpsClient;
+        } else {
+            delete MsQuic;
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
     }
 
     if (TestToRun != nullptr) {

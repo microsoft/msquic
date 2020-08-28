@@ -59,13 +59,14 @@ private:
         );
 
     MsQuicRegistration Registration;
-    MsQuicSession Session{Registration, RPS_ALPN};
-    uint16_t Port {RPS_DEFAULT_PORT};
+    MsQuicSession Session{Registration, PERF_ALPN};
+    uint16_t Port {PERF_DEFAULT_PORT};
     UniquePtr<char[]> Target;
     uint32_t RunTime {RPS_DEFAULT_RUN_TIME};
     uint32_t ConnectionCount {RPS_DEFAULT_CONNECTION_COUNT};
     uint32_t ParallelRequests {RPS_DEFAULT_PARALLEL_REQUEST_COUNT};
     uint32_t RequestLength {RPS_DEFAULT_REQUEST_LENGTH};
+    uint32_t ResponseLength {RPS_DEFAULT_RESPONSE_LENGTH};
     QUIC_BUFFER* RequestBuffer {nullptr};
     QUIC_EVENT* CompletionEvent {nullptr};
     QUIC_ADDR LocalAddresses[RPS_MAX_CLIENT_PORT_COUNT];

@@ -23,6 +23,7 @@ PrintHelp(
         "\n"
         "Throughput Client options:\n"
         "\n"
+        "  -target:<####>              The target server to connect to.\n"
 #if _WIN32
         "  -comp:<####>                The compartment ID to run in.\n"
         "  -core:<####>                The CPU core to use for the main thread.\n"
@@ -36,9 +37,9 @@ PrintHelp(
         "  -iosize:<####>              The size of each send request queued. (buffered def:%u) (nonbuffered def:%u)\n"
         "  -iocount:<####>             The number of outstanding send requests to queue per stream. (buffered def:%u) (nonbuffered def:%u)\n"
         "\n",
-        THROUGHPUT_DEFAULT_PORT,
-        THROUGHPUT_DEFAULT_IO_SIZE_BUFFERED, THROUGHPUT_DEFAULT_IO_SIZE_NONBUFFERED,
-        THROGHTPUT_DEFAULT_SEND_COUNT_BUFFERED, THROUGHPUT_DEFAULT_SEND_COUNT_NONBUFFERED
+        PERF_DEFAULT_PORT,
+        PERF_DEFAULT_IO_SIZE_BUFFERED, PERF_DEFAULT_IO_SIZE_NONBUFFERED,
+        PERF_DEFAULT_SEND_COUNT_BUFFERED, PERF_DEFAULT_SEND_COUNT_NONBUFFERED
         );
 }
 
@@ -46,6 +47,7 @@ ThroughputClient::ThroughputClient(
     ) {
     QuicZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
     if (Session.IsValid()) {
+        Session.SetIdleTimeout(TPUT_DEFAULT_IDLE_TIMEOUT);
         Session.SetAutoCleanup();
     }
 }
@@ -115,10 +117,10 @@ ThroughputClient::Init(
 
     TryGetValue(argc, argv, "sendbuf", &UseSendBuffer);
 
-    IoSize = UseSendBuffer ? THROUGHPUT_DEFAULT_IO_SIZE_BUFFERED : THROUGHPUT_DEFAULT_IO_SIZE_NONBUFFERED;
+    IoSize = UseSendBuffer ? PERF_DEFAULT_IO_SIZE_BUFFERED : PERF_DEFAULT_IO_SIZE_NONBUFFERED;
     TryGetValue(argc, argv, "iosize", &IoSize);
 
-    IoCount = UseSendBuffer ? THROGHTPUT_DEFAULT_SEND_COUNT_BUFFERED : THROUGHPUT_DEFAULT_SEND_COUNT_NONBUFFERED;
+    IoCount = UseSendBuffer ? PERF_DEFAULT_SEND_COUNT_BUFFERED : PERF_DEFAULT_SEND_COUNT_NONBUFFERED;
     TryGetValue(argc, argv, "iocount", &IoCount);
 
     size_t Len = strlen(Target);
@@ -274,6 +276,9 @@ ThroughputClient::Start(
     while (StrmData->BytesSent < Length && SendRequestCount < IoCount) {
         SendRequest* SendReq = SendRequestAllocator.Alloc(&BufferAllocator, IoSize, true);
         SendReq->SetLength(Length - StrmData->BytesSent);
+        if (StrmData->BytesSent == 0) {
+            QuicZeroMemory(SendReq->QuicBuffer.Buffer, sizeof(uint64_t));
+        }
         StrmData->BytesSent += SendReq->QuicBuffer.Length;
         ++SendRequestCount;
         Status =
@@ -300,7 +305,7 @@ ThroughputClient::Start(
         WriteOutput("Failed ConnectionStart 0x%x\n", Status);
         return Status;
     }
-    WriteOutput("Started!\n");
+
     Shutdown.ConnHandle = nullptr;
     return Status;
 }
