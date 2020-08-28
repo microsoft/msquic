@@ -22,6 +22,8 @@ public:
         _In_ PerfSelfSignedConfiguration* SelfSignedConfig
         );
 
+    ~PerfServer();
+
     QUIC_STATUS
     Init(
         _In_ int argc,

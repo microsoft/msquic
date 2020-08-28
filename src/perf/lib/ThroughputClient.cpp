@@ -23,6 +23,7 @@ PrintHelp(
         "\n"
         "Throughput Client options:\n"
         "\n"
+        "  -target:<####>              The target server to connect to.\n"
 #if _WIN32
         "  -comp:<####>                The compartment ID to run in.\n"
         "  -core:<####>                The CPU core to use for the main thread.\n"
@@ -46,6 +47,7 @@ ThroughputClient::ThroughputClient(
     ) {
     QuicZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
     if (Session.IsValid()) {
+        Session.SetIdleTimeout(TPUT_DEFAULT_IDLE_TIMEOUT);
         Session.SetAutoCleanup();
     }
 }
@@ -303,7 +305,7 @@ ThroughputClient::Start(
         WriteOutput("Failed ConnectionStart 0x%x\n", Status);
         return Status;
     }
-    WriteOutput("Started!\n");
+
     Shutdown.ConnHandle = nullptr;
     return Status;
 }

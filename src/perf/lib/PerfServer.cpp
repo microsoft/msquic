@@ -43,6 +43,9 @@ PerfServer::PerfServer(
         Session.SetDisconnectTimeout(PERF_DEFAULT_DISCONNECT_TIMEOUT);
         Session.SetIdleTimeout(PERF_DEFAULT_IDLE_TIMEOUT);
     }
+}
+
+PerfServer::~PerfServer() {
     if (DataBufferBuffered) {
         QUIC_FREE(DataBufferBuffered);
     }
@@ -135,18 +138,6 @@ PerfServer::ListenerCallback(
     ) {
     switch (Event->Type) {
     case QUIC_LISTENER_EVENT_NEW_CONNECTION: {
-        Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
-        QUIC_CONNECTION_CALLBACK_HANDLER Handler =
-            [](HQUIC Conn, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
-                return ((PerfServer*)Context)->
-                    ConnectionCallback(
-                        Conn,
-                        Event);
-            };
-        MsQuic->SetCallbackHandler(
-            Event->NEW_CONNECTION.Connection,
-            (void*)Handler,
-            this);
         BOOLEAN value = TRUE;
         if (QUIC_FAILED(
             MsQuic->SetParam(
@@ -157,6 +148,15 @@ PerfServer::ListenerCallback(
                 &value))) {
             WriteOutput("MsQuic->SetParam (CONN_DISABLE_1RTT_ENCRYPTION) failed!\n");
         }
+        QUIC_CONNECTION_CALLBACK_HANDLER Handler =
+            [](HQUIC Conn, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
+                return ((PerfServer*)Context)->
+                    ConnectionCallback(
+                        Conn,
+                        Event);
+            };
+        MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)Handler, this);
+        Event->NEW_CONNECTION.SecurityConfig = SecurityConfig;
         break;
     }
     }
@@ -185,7 +185,7 @@ PerfServer::ConnectionCallback(
                         Stream,
                         Event);
             };
-        MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)Handler, this);
+        MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)Handler, Context);
         break;
     }
     default:
@@ -228,6 +228,7 @@ PerfServer::StreamCallback(
         } else if (Context->ResponseSize != 0) {
             if (Context->Unidirectional) {
                 // TODO - Not supported right now
+                MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
             } else {
                 SendResponse(Context, StreamHandle);
             }
