@@ -30,7 +30,7 @@ PrintHelp(
         "  -request:<####>             The length of request payloads. (def:%u)\n"
         "\n",
         RPS_DEFAULT_RUN_TIME,
-        THROUGHPUT_DEFAULT_PORT,
+        PERF_DEFAULT_PORT,
         RPS_DEFAULT_CONNECTION_COUNT,
         RPS_DEFAULT_PARALLEL_REQUEST_COUNT,
         RPS_DEFAULT_REQUEST_LENGTH
@@ -41,8 +41,8 @@ RpsClient::RpsClient() {
     QuicEventInitialize(&AllConnected, TRUE, FALSE);
     if (Session.IsValid()) {
         Session.SetAutoCleanup();
-        Session.SetDisconnectTimeout(RPS_DEFAULT_DISCONNECT_TIMEOUT);
-        Session.SetIdleTimeout(RPS_DEFAULT_IDLE_TIMEOUT);
+        Session.SetDisconnectTimeout(PERF_DEFAULT_DISCONNECT_TIMEOUT);
+        Session.SetIdleTimeout(PERF_DEFAULT_IDLE_TIMEOUT);
     }
 }
 
@@ -86,15 +86,17 @@ RpsClient::Init(
     TryGetValue(argc, argv, "port", &Port);
     TryGetValue(argc, argv, "conns", &ConnectionCount);
     TryGetValue(argc, argv, "request", &RequestLength);
+    TryGetValue(argc, argv, "response", &ResponseLength);
 
-    RequestBuffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + RequestLength);
+    RequestBuffer = (QUIC_BUFFER*)QUIC_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + sizeof(uint64_t) + RequestLength);
     if (!RequestBuffer) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
-    RequestBuffer->Length = RequestLength;
+    RequestBuffer->Length = sizeof(uint64_t) + RequestLength;
     RequestBuffer->Buffer = (uint8_t*)(RequestBuffer + 1);
+    *(uint64_t*)(RequestBuffer->Buffer) = QuicByteSwapUint64(ResponseLength);
     for (uint32_t i = 0; i < RequestLength; ++i) {
-        RequestBuffer->Buffer[i] = (uint8_t)i;
+        RequestBuffer->Buffer[sizeof(uint64_t) + i] = (uint8_t)i;
     }
 
     return QUIC_STATUS_SUCCESS;
