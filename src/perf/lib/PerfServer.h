@@ -22,7 +22,7 @@ public:
         _In_ PerfSelfSignedConfiguration* SelfSignedConfig
         );
 
-    ~PerfServer();
+    ~PerfServer() override;
 
     QUIC_STATUS
     Init(
