@@ -17,8 +17,8 @@ Abstract:
 #include "drivermain.cpp.clog.h"
 #endif
 
-DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceName, L"\\Device\\quicperformance");
-DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceSymLink, L"\\DosDevices\\quicperformance");
+DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceName, L"\\Device\\quicperf");
+DECLARE_CONST_UNICODE_STRING(QuicPerfCtlDeviceSymLink, L"\\DosDevices\\quicperf");
 
 typedef struct QUIC_DEVICE_EXTENSION {
     EX_PUSH_LOCK Lock;
@@ -33,14 +33,19 @@ WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DEVICE_EXTENSION, QuicPerfCtlGetDeviceCo
 
 typedef struct QUIC_DRIVER_CLIENT {
     LIST_ENTRY Link;
-    bool TestFailure;
-
+    PerfSelfSignedConfiguration SelfSignedConfiguration;
+    bool SelfSignedValid;
+    QUIC_EVENT StopEvent;
+    WDFREQUEST Request;
+    QUIC_THREAD Thread;
+    bool Canceled;
 } QUIC_DRIVER_CLIENT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DRIVER_CLIENT, QuicPerfCtlGetFileContext);
 
 EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL QuicPerfCtlEvtIoDeviceControl;
-EVT_WDF_IO_QUEUE_IO_CANCELED_ON_QUEUE QuicPerfCtlEvtIoCanceled;
+EVT_WDF_IO_QUEUE_IO_CANCELED_ON_QUEUE QuicPerfCtlEvtIoQueueCanceled;
+EVT_WDF_REQUEST_CANCEL QuicPerfCtlEvtIoCanceled;
 
 PAGEDX EVT_WDF_DEVICE_FILE_CREATE QuicPerfCtlEvtFileCreate;
 PAGEDX EVT_WDF_FILE_CLOSE QuicPerfCtlEvtFileClose;
@@ -242,6 +247,10 @@ QuicPerfCtlInitialize(
         goto Error;
     }
 
+    QuicTraceLogVerbose(
+        PerfControlInitialized,
+        "[perf] Control interface initialized with %.*S", QuicPerfCtlDeviceName.Length, QuicPerfCtlDeviceName.Buffer);
+
     WDF_FILEOBJECT_CONFIG_INIT(
         &FileConfig,
         QuicPerfCtlEvtFileCreate,
@@ -287,7 +296,7 @@ QuicPerfCtlInitialize(
 
     WDF_IO_QUEUE_CONFIG_INIT_DEFAULT_QUEUE(&QueueConfig, WdfIoQueueDispatchParallel);
     QueueConfig.EvtIoDeviceControl = QuicPerfCtlEvtIoDeviceControl;
-    QueueConfig.EvtIoCanceledOnQueue = QuicPerfCtlEvtIoCanceled;
+    QueueConfig.EvtIoCanceledOnQueue = QuicPerfCtlEvtIoQueueCanceled;
 
     __analysis_assume(QueueConfig.EvtIoStop != 0);
     Status =
@@ -393,14 +402,16 @@ QuicPerfCtlEvtFileCreate(
         QuicPerfCtlExtension->ClientListSize++;
 
         QuicTraceLogInfo(
-            TestControlClientCreated,
-            "[test] Client %p created",
+            PerfControlClientCreated,
+            "[perf] Client %p created",
             Client);
 
         //
         // Update globals. (TODO: Add multiple device client support)
         //
         QuicPerfClient = Client;
+        InterlockedExchange((volatile LONG*)&BufferCurrent, 0);
+        QuicEventInitialize(&Client->StopEvent, true, false);
     } while (false);
 
     ExfReleasePushLockExclusive(&QuicPerfCtlExtension->Lock);
@@ -444,9 +455,18 @@ QuicPerfCtlEvtFileCleanup(
         ExfReleasePushLockExclusive(&QuicPerfCtlExtension->Lock);
 
         QuicTraceLogInfo(
-            TestControlClientCleaningUp,
-            "[test] Client %p cleaning up",
+            PerfControlClientCleaningUp,
+            "[perf] Client %p cleaning up",
             Client);
+
+        Client->Canceled = true;
+        QuicEventSet(Client->StopEvent);
+
+        if (Client->Thread != nullptr) {
+            QuicThreadWait(&Client->Thread);
+            QuicThreadDelete(&Client->Thread);
+        }
+        QuicEventUninitialize(Client->StopEvent);
 
         //
         // Clean up globals.
@@ -458,8 +478,16 @@ QuicPerfCtlEvtFileCleanup(
 }
 
 VOID
-QuicPerfCtlEvtIoCanceled(
+QuicPerfCtlEvtIoQueueCanceled(
     _In_ WDFQUEUE /* Queue */,
+    _In_ WDFREQUEST Request
+    )
+{
+    QuicPerfCtlEvtIoCanceled(Request);
+}
+
+VOID
+QuicPerfCtlEvtIoCanceled(
     _In_ WDFREQUEST Request
     )
 {
@@ -468,39 +496,174 @@ QuicPerfCtlEvtIoCanceled(
     WDFFILEOBJECT FileObject = WdfRequestGetFileObject(Request);
     if (FileObject == nullptr) {
         Status = STATUS_DEVICE_NOT_READY;
-        goto error;
+        goto Error;
     }
 
     QUIC_DRIVER_CLIENT* Client = QuicPerfCtlGetFileContext(FileObject);
     if (Client == nullptr) {
         Status = STATUS_DEVICE_NOT_READY;
-        goto error;
+        goto Error;
     }
 
+    Client->Canceled = true;
+    QuicEventSet(Client->StopEvent);
+
     QuicTraceLogWarning(
-        TestControlClientCanceledRequest,
-        "[test] Client %p canceled request %p",
+        PerfControlClientCanceledRequest,
+        "[perf] Client %p canceled request %p",
         Client,
         Request);
 
-    Status = STATUS_CANCELLED;
-
-error:
-
+    return;
+Error:
     WdfRequestComplete(Request, Status);
+}
+
+NTSTATUS
+QuicPerfCtlSetSecurityConfig(
+    _Inout_ QUIC_DRIVER_CLIENT* Client,
+    _In_ const QUIC_CERTIFICATE_HASH* CertHash
+    )
+{
+    Client->SelfSignedConfiguration.SelfSignedSecurityHash = *CertHash;
+    Client->SelfSignedValid = true;
+    return QUIC_STATUS_SUCCESS;
 }
 
 size_t QUIC_IOCTL_BUFFER_SIZES[] =
 {
     0,
     sizeof(QUIC_CERTIFICATE_HASH),
-    0,
+    SIZE_MAX,
     0
 };
+
+typedef union {
+    struct {
+        int Length;
+        char Data;
+    };
+    QUIC_CERTIFICATE_HASH CertHash;
+} QUIC_IOCTL_PARAMS;
 
 static_assert(
     QUIC_PERF_MAX_IOCTL_FUNC_CODE + 1 == (sizeof(QUIC_IOCTL_BUFFER_SIZES) / sizeof(size_t)),
     "QUIC_IOCTL_BUFFER_SIZES must be kept in sync with the IOTCLs");
+
+//
+// Since the test is long running, we can't just wait in the Ioctl directly,
+// otherwise we can't cancel. Instead, move the wait into a separate thread
+// so the Ioctl returns into user mode.
+//
+QUIC_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
+{
+    QUIC_DRIVER_CLIENT* Client = (QUIC_DRIVER_CLIENT*)Context;
+    WDFREQUEST Request = Client->Request;
+
+    char* LocalBuffer = nullptr;
+    DWORD ReturnedLength = 0;
+    QUIC_STATUS StopStatus;
+
+    StopStatus =
+        QuicMainStop(0);
+
+    if (Client->Canceled) {
+        QuicTraceLogInfo(
+            PerformanceStopCancelled,
+            "[perf] Performance Stop Cancelled");
+        WdfRequestComplete(Request, STATUS_CANCELLED);
+        return;
+    }
+
+    WdfRequestUnmarkCancelable(Request);
+
+    NTSTATUS Status =
+        WdfRequestRetrieveOutputBuffer(
+            Request,
+            (size_t)BufferCurrent + 1,
+            (void**)&LocalBuffer,
+            nullptr);
+
+    if (!NT_SUCCESS(Status)) {
+        goto Exit;
+    }
+
+    QuicCopyMemory(LocalBuffer, Buffer, BufferCurrent);
+    LocalBuffer[BufferCurrent] = '\0';
+
+    QuicTraceLogInfo(
+        PrintBufferReturn,
+        "[perf] Print Buffer %d %s\n",
+        BufferCurrent,
+        LocalBuffer);
+
+    ReturnedLength = BufferCurrent + 1;
+
+Exit:
+    WdfRequestCompleteWithInformation(
+        Request,
+        StopStatus,
+        ReturnedLength);
+}
+
+void
+QuicPerfCtlReadPrints(
+    _In_ WDFREQUEST Request,
+    _In_ QUIC_DRIVER_CLIENT* Client
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_THREAD_CONFIG ThreadConfig;
+    QuicZeroMemory(&ThreadConfig, sizeof(ThreadConfig));
+    ThreadConfig.Name = "PerfWait";
+    ThreadConfig.Callback = PerformanceWaitForStopThreadCb;
+    ThreadConfig.Context = Client;
+    Client->Request = Request;
+    if (QUIC_FAILED(Status = QuicThreadCreate(&ThreadConfig, &Client->Thread))) {
+        if (Client->Thread) {
+            Client->Canceled = true;
+            QuicEventSet(Client->StopEvent);
+            QuicThreadWait(&Client->Thread);
+            QuicThreadDelete(&Client->Thread);
+            Client->Thread = nullptr;
+        }
+        WdfRequestCompleteWithInformation(
+            Request,
+            Status,
+            0);
+    } else {
+        WdfRequestMarkCancelable(Request, QuicPerfCtlEvtIoCanceled);
+    }
+}
+
+NTSTATUS
+QuicPerfCtlStart(
+    _In_ QUIC_DRIVER_CLIENT* Client,
+    _In_ char* Arguments,
+    _In_ int Length
+    ) {
+    char** Argv = new(std::nothrow) char* [Length];
+    if (!Argv) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
+    Arguments += sizeof(Length);
+    for (int i = 0; i < Length; i++) {
+        Argv[i] = Arguments;
+        Arguments += strlen(Arguments);
+        Arguments++;
+    }
+
+    NTSTATUS Status =
+        QuicMainStart(
+            (int)Length,
+            Argv,
+            &Client->StopEvent,
+            &Client->SelfSignedConfiguration);
+    delete[] Argv;
+
+    return Status;
+}
 
 VOID
 QuicPerfCtlEvtIoDeviceControl(
@@ -515,6 +678,8 @@ QuicPerfCtlEvtIoDeviceControl(
     WDFFILEOBJECT FileObject = nullptr;
     QUIC_DRIVER_CLIENT* Client = nullptr;
     ULONG FunctionCode = 0;
+    QUIC_IOCTL_PARAMS* Params = nullptr;
+    size_t Length = 0;
 
     if (KeGetCurrentIrql() > PASSIVE_LEVEL) {
         Status = STATUS_NOT_SUPPORTED;
@@ -541,8 +706,18 @@ QuicPerfCtlEvtIoDeviceControl(
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
-            "QuicTestCtlGetFileContext failed");
+            "QuicPerfCtlGetFileContext failed");
         goto Error;
+    }
+
+    //
+    // Handle IOCTL for read
+    //
+    if (IoControlCode == IOCTL_QUIC_READ_DATA) {
+        QuicPerfCtlReadPrints(
+            Request,
+            Client);
+        return;
     }
 
     FunctionCode = IoGetFunctionCodeFromCtlCode(IoControlCode);
@@ -556,10 +731,71 @@ QuicPerfCtlEvtIoDeviceControl(
         goto Error;
     }
 
-    // TODO Input Buffer Length
+    Status =
+        WdfRequestRetrieveInputBuffer(
+            Request,
+            0,
+            (void**)&Params,
+            &Length);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] Error, %u, %s.",
+            Status,
+            "WfdRequestRetreiveInputBuffer failed");
+    } else if (Params == nullptr) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "WdfRequestRetrieveInputBuffer failed to return parameter buffer");
+        Status = STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
 
+    QuicTraceLogInfo(
+        PerfControlClientIoctl,
+        "[perf] Client %p executing write IOCTL %u",
+        Client,
+        FunctionCode);
+
+    if (IoControlCode != IOCTL_QUIC_SEC_CONFIG &&
+        !Client->SelfSignedValid) {
+        Status = STATUS_INVALID_DEVICE_STATE;
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Client didn't set Security Config");
+        goto Error;
+    }
+
+    switch (IoControlCode) {
+    case IOCTL_QUIC_SEC_CONFIG:
+        QUIC_FRE_ASSERT(Params != nullptr);
+        Status =
+            QuicPerfCtlSetSecurityConfig(
+                Client,
+                &Params->CertHash);
+        break;
+    case IOCTL_QUIC_RUN_PERF:
+        Status =
+            QuicPerfCtlStart(
+                Client,
+                &Params->Data,
+                Params->Length);
+        break;
+    default:
+        Status = STATUS_NOT_IMPLEMENTED;
+        break;
+    }
 
 Error:
+    QuicTraceLogInfo(
+        PerfControlClientIoctlComplete,
+        "[perf] Client %p completing request, 0x%x",
+        Client,
+        Status);
+
+    WdfRequestComplete(Request, Status);
     UNREFERENCED_PARAMETER(InputBufferLength);
     UNREFERENCED_PARAMETER(OutputBufferLength);
     UNREFERENCED_PARAMETER(Queue);

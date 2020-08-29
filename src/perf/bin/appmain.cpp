@@ -17,24 +17,17 @@ Abstract:
 
 #ifdef _WIN32
 
-//
-// Name of the driver service for quicperf.sys.
-// Must be defined before quic_driver_helpers.h is included
-//
-#define QUIC_DRIVER_NAME   "quicperf"
-
 #include <winioctl.h>
 #include "PerfIoctls.h"
 #include "quic_driver_helpers.h"
 
+#define QUIC_DRIVER_NAME   "quicperf"
+
 #endif
 
-#include "quic_datapath.h"
+
 
 extern "C" _IRQL_requires_max_(PASSIVE_LEVEL) void QuicTraceRundown(void) { }
-
-QUIC_DATAPATH_RECEIVE_CALLBACK DatapathReceiveUserMode;
-QUIC_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
 
 QUIC_STATUS
 QuicUserMain(
@@ -45,33 +38,10 @@ QuicUserMain(
     ) {
     EventScope StopEvent {true};
 
-    uint8_t ServerMode = 0;
-    TryGetValue(argc, argv, "ServerMode", &ServerMode);
-
     QUIC_STATUS Status;
-    QUIC_DATAPATH* Datapath = nullptr;
-    QUIC_DATAPATH_BINDING* Binding = nullptr;
-
-    if (ServerMode) {
-        Status = QuicDataPathInitialize(0, DatapathReceiveUserMode, DatapathUnreachable, &Datapath);
-        if (QUIC_FAILED(Status)) {
-            return Status;
-        }
-
-        QuicAddr LocalAddress {AF_INET, (uint16_t)9999};
-        Status = QuicDataPathBindingCreate(Datapath, &LocalAddress.SockAddr, nullptr, &StopEvent.Handle, &Binding);
-        if (QUIC_FAILED(Status)) {
-            QuicDataPathUninitialize(Datapath);
-            return Status;
-        }
-    }
 
     Status = QuicMainStart(argc, argv, &StopEvent.Handle, SelfSignedConfig);
     if (QUIC_FAILED(Status)) {
-        if (ServerMode) {
-            QuicDataPathBindingDelete(Binding);
-            QuicDataPathUninitialize(Datapath);
-        }
         return Status;
     }
 
@@ -85,11 +55,6 @@ QuicUserMain(
     }
 
     Status = QuicMainStop(0);
-
-    if (ServerMode) {
-        QuicDataPathBindingDelete(Binding);
-        QuicDataPathUninitialize(Datapath);
-    }
 
     return Status;
 }
@@ -109,6 +74,9 @@ QuicKernelMain(
     // Get total length
     //
     for (int i = 0; i < argc; ++i) {
+        if (strcmp("--kernel", argv[i]) == 0) {
+            continue;
+        }
         TotalLength += strlen(argv[i]) + 1;
     }
 
@@ -125,18 +93,20 @@ QuicKernelMain(
 
     char* DataCurrent = Data;
 
-    QuicCopyMemory(DataCurrent, &argc, sizeof(TotalLength));
+    QuicCopyMemory(DataCurrent, &argc, sizeof(argc));
 
     DataCurrent += sizeof(argc);
 
     for (int i = 0; i < argc; ++i) {
-        size_t ArgLen = strlen(argv[i]) + 1;
+        if (strcmp("--kernel", argv[i]) == 0) {
+            continue;
+        }
+        size_t ArgLen = strlen(argv[i]);
         QuicCopyMemory(DataCurrent, argv[i], ArgLen);
         DataCurrent += ArgLen;
         DataCurrent[0] = '\0';
         ++DataCurrent;
     }
-
     QUIC_DBG_ASSERT(DataCurrent == (Data + TotalLength));
 
     constexpr uint32_t OutBufferSize = 1024 * 1000;
@@ -149,40 +119,72 @@ QuicKernelMain(
 
     QuicDriverService DriverService;
     QuicDriverClient DriverClient;
-    if (!DriverService.Initialize()) {
+
+    if (!DriverService.Initialize(QUIC_DRIVER_NAME, "msquicpriv\0")) {
         printf("Failed to initialize driver service\n");
         QUIC_FREE(Data);
         return QUIC_STATUS_INVALID_STATE;
     }
-    DriverService.Start();
-
-    if (!DriverClient.Initialize(SelfSignedParams)) {
-        printf("Failed to initialize driver client\n");
+    if (!DriverService.Start()) {
+        printf("Starting Driver Service Failed\n");
+        DriverService.Uninitialize();
         QUIC_FREE(Data);
         return QUIC_STATUS_INVALID_STATE;
     }
 
-    if (!DriverClient.Run(IOCTL_QUIC_RUN_PERF, Data, (uint32_t)TotalLength)) {
+    if (!DriverClient.Initialize(SelfSignedParams, QUIC_DRIVER_NAME)) {
+        printf("Intializing Driver Client Failed.\n");
+        DriverService.Uninitialize();
         QUIC_FREE(Data);
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    printf("Right before run\n");
+    uint32_t OutBufferWritten = 0;
+    bool RunSuccess = false;
+    if (!DriverClient.Run(IOCTL_QUIC_RUN_PERF, Data, (uint32_t)TotalLength, 30000)) {
+        printf("Failed To Run\n");
+        QUIC_FREE(Data);
+
+        RunSuccess =
+            DriverClient.Read(
+                IOCTL_QUIC_READ_DATA,
+                OutBuffer,
+                OutBufferSize,
+                &OutBufferWritten,
+                10000);
+        printf("OutBufferWritten %d\n", OutBufferWritten);
+        if (RunSuccess) {
+            printf("%s\n", OutBuffer);
+        } else {
+            printf("Failed to exit\n");
+        }
         QUIC_FREE(OutBuffer);
+        DriverClient.Uninitialize();
+        DriverService.Uninitialize();
         return QUIC_STATUS_INVALID_STATE;
     }
     printf("Started!\n\n");
     fflush(stdout);
 
-    uint32_t OutBufferWritten = 0;
-    bool RunSuccess =
+    RunSuccess =
         DriverClient.Read(
             IOCTL_QUIC_READ_DATA,
             OutBuffer,
             OutBufferSize,
-            &OutBufferWritten);
+            &OutBufferWritten,
+            240000);
     if (RunSuccess) {
-        printf("%s", OutBuffer);
+        printf("%s\n", OutBuffer);
+    } else {
+        printf("Run end failed\n");
     }
 
     QUIC_FREE(Data);
     QUIC_FREE(OutBuffer);
+
+    DriverClient.Uninitialize();
+    DriverService.Uninitialize();
 
     return RunSuccess ? QUIC_STATUS_SUCCESS : QUIC_STATUS_INTERNAL_ERROR;
 }
@@ -236,6 +238,7 @@ main(
 
     if (TestingKernelMode) {
 #ifdef _WIN32
+        printf("Entering kernel mode main\n");
         RetVal = QuicKernelMain(argc, argv, KeyboardWait, SelfSignedParams);
 #else
         QUIC_FRE_ASSERT(FALSE);
@@ -253,27 +256,4 @@ Exit:
     QuicPlatformSystemUnload();
 
     return RetVal;
-}
-
-void
-DatapathReceiveUserMode(
-    _In_ QUIC_DATAPATH_BINDING*,
-    _In_ void* Context,
-    _In_ QUIC_RECV_DATAGRAM*
-    )
-{
-    QUIC_EVENT* Event = static_cast<QUIC_EVENT*>(Context);
-    QuicEventSet(*Event);
-}
-
-void
-DatapathUnreachable(
-    _In_ QUIC_DATAPATH_BINDING*,
-    _In_ void*,
-    _In_ const QUIC_ADDR*
-    )
-{
-    //
-    // Do nothing, we never send
-    //
 }

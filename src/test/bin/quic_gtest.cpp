@@ -11,6 +11,7 @@
 #endif
 
 bool TestingKernelMode = false;
+bool PrivateTestLibrary = false;
 const QUIC_API_TABLE* MsQuic;
 HQUIC Registration;
 QUIC_SEC_CONFIG_PARAMS* SelfSignedCertParams;
@@ -33,9 +34,18 @@ public:
                 )) != nullptr);
         if (TestingKernelMode) {
             printf("Initializing for Kernel Mode tests\n");
-            ASSERT_TRUE(DriverService.Initialize());
+            const char* DriverName;
+            const char* DependentDriverNames;
+            if (PrivateTestLibrary) {
+                DriverName = QUIC_DRIVER_NAME_PRIVATE;
+                DependentDriverNames = "msquicpriv\0";
+            } else {
+                DriverName = QUIC_DRIVER_NAME;
+                DependentDriverNames = "msquic\0";
+            }
+            ASSERT_TRUE(DriverService.Initialize(DriverName, DependentDriverNames));
             ASSERT_TRUE(DriverService.Start());
-            ASSERT_TRUE(DriverClient.Initialize(SelfSignedCertParams));
+            ASSERT_TRUE(DriverClient.Initialize(SelfSignedCertParams, DriverName));
         } else {
             printf("Initializing for User Mode tests\n");
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuicOpen(&MsQuic)));
@@ -1015,7 +1025,9 @@ int main(int argc, char** argv) {
     for (int i = 0; i < argc; ++i) {
         if (strcmp("--kernel", argv[i]) == 0) {
             TestingKernelMode = true;
-            break;
+        }
+        if (strcmp("--privateLibrary", argv[i]) == 0) {
+            PrivateTestLibrary = true;
         }
     }
     ::testing::AddGlobalTestEnvironment(new QuicTestEnvironment);

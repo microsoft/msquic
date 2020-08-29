@@ -142,7 +142,6 @@ QuicDatagramCompleteSend(
     )
 {
     QuicCopyMemory(ClientContext, &SendRequest->ClientContext, sizeof(*ClientContext));
-
     QuicDatagramIndicateSendStateChange(
         Connection,
         ClientContext,

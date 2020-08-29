@@ -2,11 +2,10 @@
 # Licensed under the MIT License.
 
 set(SOURCES
+    PerfServer.cpp
     quicmain.cpp
-    ThroughputServer.cpp
-    ThroughputClient.cpp
-    RpsServer.cpp
     RpsClient.cpp
+    ThroughputClient.cpp
 )
 
 # Allow CLOG to preprocess all the source files.

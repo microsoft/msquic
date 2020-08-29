@@ -817,7 +817,7 @@ QuicTlsInitialize(
     QuicTraceLogConnVerbose(
         StubTlsContextCreated,
         TlsContext->Connection,
-        "Created");
+        "TLS context Created");
 
     if (Config->ServerName != NULL) {
         const size_t ServerNameLength =
@@ -1877,8 +1877,8 @@ QuicEncrypt(
     UNREFERENCED_PARAMETER(AuthDataLength);
     UNREFERENCED_PARAMETER(AuthData);
     uint16_t PlainTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
-    ((uint64_t*)(Buffer + PlainTextLength))[0] = Key->Secret;
-    ((uint64_t*)(Buffer + PlainTextLength))[1] = 0;
+    QuicCopyMemory(Buffer + PlainTextLength, &Key->Secret, sizeof(Key->Secret));
+    QuicZeroMemory(Buffer + PlainTextLength + sizeof(Key->Secret), sizeof(uint64_t));
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -1900,7 +1900,7 @@ QuicDecrypt(
     UNREFERENCED_PARAMETER(AuthDataLength);
     UNREFERENCED_PARAMETER(AuthData);
     uint16_t PlainTextLength = BufferLength - QUIC_ENCRYPTION_OVERHEAD;
-    if (*(uint64_t*)(Buffer + PlainTextLength) != Key->Secret) {
+    if (memcmp(Buffer + PlainTextLength, &Key->Secret, sizeof(Key->Secret)) != 0) {
         return QUIC_STATUS_INVALID_PARAMETER;
     } else {
         return QUIC_STATUS_SUCCESS;

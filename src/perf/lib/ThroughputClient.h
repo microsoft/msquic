@@ -82,13 +82,13 @@ private:
         );
 
     MsQuicRegistration Registration;
-    MsQuicSession Session{Registration, THROUGHPUT_ALPN};
+    MsQuicSession Session{Registration, PERF_ALPN};
     QuicPoolAllocator<StreamData> StreamDataAllocator;
     QuicPoolAllocator<ConnectionData> ConnectionDataAllocator;
     QuicPoolAllocator<SendRequest> SendRequestAllocator;
     QuicPoolBufferAllocator BufferAllocator;
     UniquePtr<char[]> TargetData;
-    uint16_t Port {THROUGHPUT_DEFAULT_PORT};
+    uint16_t Port {PERF_DEFAULT_PORT};
     QUIC_EVENT* StopEvent {nullptr};
     uint64_t Length {0};
     uint8_t UseSendBuffer {TRUE};

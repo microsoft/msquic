@@ -1418,11 +1418,14 @@ QuicTlsInitialize(
 
     TlsContext->IsServer = Config->IsServer;
     TlsContext->TlsSession = Config->TlsSession;
+    TlsContext->Connection = Config->Connection;
+    TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
+    TlsContext->SNI = Config->ServerName;
 
     QuicTraceLogConnVerbose(
         SchannelContextCreated,
         TlsContext->Connection,
-        "Created");
+        "TLS context Created");
 
     TlsContext->AppProtocolsSize = AppProtocolsSize;
     TlsContext->ApplicationProtocols = (SEC_APPLICATION_PROTOCOLS*)(TlsContext + 1);
@@ -1446,9 +1449,6 @@ QuicTlsInitialize(
     // Associate the existing security config with this TLS context.
     //
     TlsContext->SecConfig = QuicTlsSecConfigAddRef(Config->SecConfig);
-    TlsContext->Connection = Config->Connection;
-    TlsContext->ReceiveTPCallback = Config->ReceiveTPCallback;
-    TlsContext->SNI = Config->ServerName;
 
     State->EarlyDataState = QUIC_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
 

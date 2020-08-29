@@ -13,7 +13,7 @@ This synchronizes all the changes from mirror branch to the integration branch.
 
 param (
     [Parameter(Mandatory = $false)]
-    [string]$Branch = "refs/heads/master"
+    [string]$Branch = "refs/heads/main"
 )
 
 Set-StrictMode -Version 'Latest'

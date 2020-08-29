@@ -6,7 +6,7 @@ protocol. It is cross platform, written in C and designed to be a general purpos
 
 > **Important** The MsQuic library, as well as the protocol itself, is still a work in progress. Version 1 is not yet finalized and may continue to experience breaking changes until it is finalized.
 
-[![Build Status](https://dev.azure.com/ms/msquic/_apis/build/status/CI?branchName=master)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=master) [![Test Status](https://img.shields.io/azure-devops/tests/ms/msquic/347/master)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=master) [![Code Coverage](https://img.shields.io/azure-devops/coverage/ms/msquic/347/master)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=master) ![CodeQL](https://github.com/microsoft/msquic/workflows/CodeQL/badge.svg?branch=master)
+[![Build Status](https://dev.azure.com/ms/msquic/_apis/build/status/CI?branchName=main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main) [![Test Status](https://img.shields.io/azure-devops/tests/ms/msquic/347/main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main) [![Code Coverage](https://img.shields.io/azure-devops/coverage/ms/msquic/347/main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main) ![CodeQL](https://github.com/microsoft/msquic/workflows/CodeQL/badge.svg?branch=main)
 
 ## Protocol Features
 
@@ -39,7 +39,7 @@ QUIC has many benefits when compared to existing TLS over TCP scenarios:
 # Platform Support
 
 MsQuic currently officially supports the following platform configurations.
-Information on support for MsQuic itself is located [here.](./docs/Support.md)
+Information on support for MsQuic itself is located in [Support.md.](./docs/Support.md)
 
 ## Windows 10
 

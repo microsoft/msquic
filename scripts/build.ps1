@@ -242,7 +242,7 @@ function CMake-Generate {
         $Arguments += " -DQUIC_ENABLE_LOGGING=off"
     }
     if ($SanitizeAddress) {
-        $Arguments += " -DQUIC_SANITIZE_ADDRESS=on"
+        $Arguments += " -DQUIC_ENABLE_SANITIZERS=on"
     }
     if ($DisableTools) {
         $Arguments += " -DQUIC_BUILD_TOOLS=off"
@@ -309,14 +309,10 @@ function CMake-Build {
             Copy-Item (Join-Path $BuildDir "obj" $Config "msquicetw.lib") $ArtifactsDir
         }
         if ($PGO -and $Config -eq "Release") {
-            # TODO - Figure out a better way to get the path?
-            $VCToolsPath = "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\MSVC\14.26.28801\bin\Host$Arch\$Arch"
-            if (!(Test-Path $VCToolsPath)) {
-                $VCToolsPath = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC\14.26.28801\bin\Host$Arch\$Arch"
-            }
-            if (!(Test-Path $VCToolsPath)) {
-                $VCToolsPath = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.26.28801\bin\Host$Arch\$Arch"
-            }
+            Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
+            $VSInstallationPath = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty InstallationPath
+            $VCToolVersion = Get-Content -Path "$VSInstallationPath\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt"
+            $VCToolsPath = "$VSInstallationPath\VC\Tools\MSVC\$VCToolVersion\bin\Host$Arch\$Arch"
             if (Test-Path $VCToolsPath) {
                 Copy-Item (Join-Path $VCToolsPath "pgort140.dll") $ArtifactsDir
                 Copy-Item (Join-Path $VCToolsPath "pgodb140.dll") $ArtifactsDir
