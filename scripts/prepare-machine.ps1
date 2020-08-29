@@ -63,6 +63,9 @@ if ($IsWindows) {
         # TODO - Support installing VS and necessary addins
         # TODO - Install CMake
         # TODO - Check for Windows preview
+    }
+
+    if (($Configuration -eq "Dev") -or ($Configuration -eq "Build")) {
         $NasmVersion = "2.15.05"
         $NasmPath = Join-Path $env:Programfiles "nasm-$NasmVersion"
         $NasmExe = Join-Path $NasmPath "nasm.exe"
