@@ -80,7 +80,7 @@ if ($IsWindows) {
             $CurrentSystemPath = [Environment]::GetEnvironmentVariable("PATH", [System.EnvironmentVariableTarget]::Machine)
             $CurrentSystemPath = "$CurrentSystemPath;$NasmPath"
             [Environment]::SetEnvironmentVariable("PATH", $CurrentSystemPath, [System.EnvironmentVariableTarget]::Machine)
-            Write-Host "##vso[task.setvariable variable=PATH;]${env:PATH};${$NasmPath}"
+            Write-Host "##vso[task.setvariable variable=PATH;]${env:PATH};$NasmPath"
             Write-Host "PATH has been updated. You'll need to restart your terminal for this to take affect."
         }
     }
