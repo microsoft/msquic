@@ -289,7 +289,7 @@ if(WIN32)
 else()
     # Custom build flags.
 
-    list(APPEND QUIC_COMMON_FLAGS -fms-extensions -fPIC)
+    list(APPEND QUIC_COMMON_FLAGS -fms-extensions -fPIC -Wno-format-nonliteral)
     if (QUIC_PLATFORM STREQUAL "darwin")
         list(APPEND QUIC_COMMON_DEFINES QUIC_PLATFORM_DARWIN)
     else()
@@ -324,10 +324,10 @@ else()
 
     if(QUIC_ENABLE_SANITIZERS)
         message(STATUS "Configuring sanitizers")
-        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined -fsanitize-address-use-after-scope -Og -g3 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
-        if (CMAKE_C_COMPILER_ID MATCHES "Clang")
-            list(APPEND QUIC_COMMON_FLAGS -fsanitize=unsigned-integer-overflow -fsanitize=local-bounds -fsanitize=integer -fsanitize=nullability)
-        endif()
+        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address -fsanitize-address-use-after-scope -O0 -g3 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
+        #if (CMAKE_C_COMPILER_ID MATCHES "Clang")
+        #    list(APPEND QUIC_COMMON_FLAGS -fsanitize=unsigned-integer-overflow -fsanitize=local-bounds -fsanitize=integer -fsanitize=nullability)
+        #endif()
     endif()
 
     if(QUIC_TLS STREQUAL "stub")
@@ -345,7 +345,7 @@ if(QUIC_TLS STREQUAL "openssl")
     set(OPENSSL_DIR ${QUIC_BUILD_DIR}/openssl)
     set(OPENSSL_CONFIG_FLAGS
         enable-tls1_3 no-makedepend no-dgram no-ssl3 no-psk no-srp
-        no-weak-ssl-ciphers no-shared no-tests --prefix=${OPENSSL_DIR})
+        no-weak-ssl-ciphers no-tests --prefix=${OPENSSL_DIR})
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
         set(OPENSSL_CONFIG_CMD ${CMAKE_SOURCE_DIR}/submodules/openssl/Configure
             linux-armv4 -DL_ENDIAN

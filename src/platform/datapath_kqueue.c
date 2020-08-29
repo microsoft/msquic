@@ -371,9 +371,7 @@ QuicSocketContextRecvComplete(
     BOOLEAN FoundLocalAddr = FALSE;
     QUIC_ADDR* LocalAddr = &RecvPacket->Tuple->LocalAddress;
     QUIC_ADDR* RemoteAddr = &RecvPacket->Tuple->RemoteAddress;
-   // QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
-
-    //LocalAddr->Ip.sa_family = AF_INET6;
+    // QuicConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
     struct cmsghdr *CMsg;
     for (CMsg = CMSG_FIRSTHDR(&SocketContext->RecvMsgHdr);
@@ -386,18 +384,19 @@ QuicSocketContextRecvComplete(
             LocalAddr->Ip.sa_family = AF_INET6;
             LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
             LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
-            QuicConvertFromMappedV6(LocalAddr, LocalAddr);
-
+            //QuicConvertFromMappedV6(LocalAddr, LocalAddr);
+            
             LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
             FoundLocalAddr = TRUE;
             break;
         }
 
         if (CMsg->cmsg_level == IPPROTO_IP && CMsg->cmsg_type == IP_PKTINFO) {
+            __asm__("int3");
             struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
             LocalAddr->Ip.sa_family = AF_INET;
             LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
-            LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
+            LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv4.sin_port;
             LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
             FoundLocalAddr = TRUE;
             break;
@@ -1017,12 +1016,14 @@ QuicSocketContextInitialize(
     // assigned this socket a port. We need to query it and use it for
     // all the other sockets we are going to create.
     //
-    AssignedLocalAddressLength = sizeof(struct sockaddr);
+    AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
     Result =
         getsockname(
             SocketContext->SocketFd,
             (struct sockaddr *)&Binding->LocalAddress,
             &AssignedLocalAddressLength);
+    // XXX: Does the above break on IPv4?
+
     if (Result == SOCKET_ERROR) {
         Status = errno;
         QuicTraceEvent(
@@ -1202,6 +1203,7 @@ QuicDataPathBindingCreate(
         // Since we can't dual-stack socket, fall back to AF_INET6
         Binding->LocalAddress.Ip.sa_family = AF_INET6;
     }
+
 
     for (uint32_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
@@ -1671,6 +1673,7 @@ QuicDataPathBindingSend(
                     //
 
                     // We get ECONNREFUSED here often. Need to invoke the UnreachHandler
+                    __asm__("int3");
                     printf("COULDN'T SEND FRAME...%d\n", errno);
 
                     Status = errno;
@@ -1718,8 +1721,8 @@ QuicDataPathBindingSend(
         //QuicConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
 
         struct msghdr Mhdr = {
-            .msg_name = &MappedRemoteAddress,
-            .msg_namelen = sizeof(MappedRemoteAddress),
+            .msg_name = (struct sockaddr *)RemoteAddress,
+            .msg_namelen = RemoteAddrLen,
             .msg_iov = SendContext->Iovs,
             .msg_iovlen = SendContext->BufferCount,
             .msg_flags = 0
@@ -1773,6 +1776,7 @@ QuicDataPathBindingSend(
                 SendPending = TRUE;
                 goto Exit;
             } else {
+                    __asm__("int3");
                 printf("COULDN'T SEND FRAME...%d\n", errno);
                 Status = errno;
                 QuicTraceEvent(
