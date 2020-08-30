@@ -422,12 +422,10 @@ typedef struct QUIC_EVENT_DATA_CONNECTION {
             UINT16 ProbeCount;
         } LossDetectionTimerSet;
         struct {
-            UINT64 PktNum;
             UINT8 Addrs[1]; // LocalAddr, RemoteAddr
             // char Reason[];
         } DropPacket;
         struct {
-            UINT64 PktNum;
             UINT64 Value;
             UINT8 Addrs[1]; // LocalAddr, RemoteAddr
             // char Reason[];
@@ -570,11 +568,9 @@ typedef struct QUIC_EVENT_DATA_BINDING {
             UINT8 Addrs[1]; // LocalAddr, RemoteAddr
         } Created, Rundown;
         struct {
-            UINT64 PktNum;
             UINT8 Addrs[1]; // LocalAddr, RemoteAddr
         } DropPacket;
         struct {
-            UINT64 PktNum;
             UINT64 Value;
             UINT8 Addrs[1]; // LocalAddr, RemoteAddr
         } DropPacketEx;
