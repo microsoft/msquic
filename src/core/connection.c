@@ -5037,7 +5037,8 @@ QuicConnRecvDatagrams(
     }
 
     if (QuicConnIsServer(Connection) &&
-        Connection->Stats.Recv.ValidPackets == 0) {
+        Connection->Stats.Recv.ValidPackets == 0 &&
+        !Connection->State.ClosedLocally) {
         //
         // The packet(s) that created this connection weren't valid. We should
         // immediately throw away the connection.
