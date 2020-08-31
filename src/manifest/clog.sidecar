@@ -24614,6 +24614,10 @@
         "TraceID": "SchannelContextCreated"
       },
       {
+        "UniquenessHash": "77212d61-9925-bec1-4c5b-749d4fff7279",
+        "TraceID": "InvalidInitialPackets"
+      },
+      {
         "UniquenessHash": "946d7a4f-ca9f-b676-8fef-1661da5703cd",
         "TraceID": "ConnDropPacket"
       },
@@ -24628,10 +24632,6 @@
       {
         "UniquenessHash": "262f6b18-033f-5ef9-44eb-b2bebae16084",
         "TraceID": "BindingDropPacketEx"
-      },
-      {
-        "UniquenessHash": "77212d61-9925-bec1-4c5b-749d4fff7279",
-        "TraceID": "InvalidInitialPackets"
       }
     ]
   }
